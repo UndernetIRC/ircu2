@@ -250,9 +250,7 @@ void count_memory(struct Client *cptr, char *nick)
       dbufs_allocated = 0,      /* memory used by dbufs */
       dbufs_used = 0,           /* memory used by dbufs */
       msg_allocated = 0,	/* memory used by struct Msg */
-      msg_used = 0,		/* memory used by struct Msg */
       msgbuf_allocated = 0,	/* memory used by struct MsgBuf */
-      msgbuf_used = 0,		/* memory used by struct MsgBuf */
       rm = 0,                   /* res memory used */
       totcl = 0, totch = 0, totww = 0, tot = 0;
 
@@ -365,14 +363,10 @@ void count_memory(struct Client *cptr, char *nick)
 	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
 	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
-  msgq_count_memory(&msg_allocated, &msg_used, &msgbuf_allocated,
-		    &msgbuf_used);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Msgs allocated %d(%zu) used %d(%zu)", msgCounts.alloc,
-	     msg_allocated, msgCounts.used, msg_used);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":MsgBufs allocated %d(%zu) used %d(%zu)", msgBufCounts.alloc,
-	     msgbuf_allocated, msgBufCounts.used, msgbuf_used);
+  /* The DBuf caveats now count for this, but this routine now sends
+   * replies all on its own.
+   */
+  msgq_count_memory(cptr, &msg_allocated, &msgbuf_allocated);
 
   rm = cres_mem(cptr);
 
