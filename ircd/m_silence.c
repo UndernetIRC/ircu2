@@ -86,7 +86,7 @@ apply_silence(struct Client *sptr, const char *mask)
   /* Make the silence, set flags, and apply it. */
   sile = make_ban(mask);
   sile->flags |= flags;
-  return apply_ban(&cli_user(sptr)->silence, sile) ? NULL : sile;
+  return apply_ban(&cli_user(sptr)->silence, sile, 1) ? NULL : sile;
 }
 
 /** Apply and send silence updates for a user.

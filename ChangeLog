@@ -1,5 +1,20 @@
 2004-12-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.h (apply_ban): Add new flag to indicate whether
+	newban should be free()'d after it is used.
+
+	* ircd/channel.c (apply_ban): Likewise.  Also set BAN_DEL flag
+	when setting BAN_OVERLAPPED, and free newban when BAN_DEL.
+	(mode_parse_ban): Delete buggy shortcut when channel banlist is
+	empty.
+	(mode_process_bans): Always give ownership of ban->banstr to the
+	mode buffer, avoiding a memory leak.
+
+	* ircd/m_silence.c (apply_silence): Pass new parameter to
+	apply_ban.
+
+2004-12-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (sub1_from_channel): Immediately destroy
 	non-Apass channels when oplevels are enabled; otherwise, they can
 	stay opless for a considerable period.

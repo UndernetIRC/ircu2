@@ -456,7 +456,7 @@ extern void joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan,
 extern int joinbuf_flush(struct JoinBuf *jbuf);
 extern struct Ban *make_ban(const char *banstr);
 extern struct Ban *find_ban(struct Client *cptr, struct Ban *banlist);
-extern int apply_ban(struct Ban **banlist, struct Ban *newban);
+extern int apply_ban(struct Ban **banlist, struct Ban *newban, int free);
 extern void free_ban(struct Ban *ban);
 
 #endif /* INCLUDED_channel_h */

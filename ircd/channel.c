@@ -2683,7 +2683,7 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
  * @param[in] newban Ban (or exception) to add (or remove).
  * @return Zero if \a newban could be applied, non-zero if not.
  */
-int apply_ban(struct Ban **banlist, struct Ban *newban)
+int apply_ban(struct Ban **banlist, struct Ban *newban, int free)
 {
   struct Ban *ban;
   size_t count = 0;
@@ -2694,7 +2694,8 @@ int apply_ban(struct Ban **banlist, struct Ban *newban)
     /* If a less specific entry is found, fail.  */
     for (ban = *banlist; ban; ban = ban->next) {
       if (!bmatch(ban, newban)) {
-        free_ban(newban);
+        if (free)
+          free_ban(newban);
         return 1;
       }
       if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
@@ -2705,7 +2706,7 @@ int apply_ban(struct Ban **banlist, struct Ban *newban)
     /* Mark more specific entries and add this one to the end of the list. */
     while ((ban = *banlist) != NULL) {
       if (!bmatch(newban, ban)) {
-        ban->flags |= BAN_OVERLAPPED;
+        ban->flags |= BAN_OVERLAPPED | BAN_DEL;
       }
       banlist = &ban->next;
     }
@@ -2716,16 +2717,16 @@ int apply_ban(struct Ban **banlist, struct Ban *newban)
     /* Mark more specific entries. */
     for (ban = *banlist; ban; ban = ban->next) {
       if (!bmatch(newban, ban)) {
-        ban->flags |= BAN_OVERLAPPED;
+        ban->flags |= BAN_OVERLAPPED | BAN_DEL;
         remove_count++;
       }
     }
-    /* If no matches were found, fail. */
-    if (!remove_count) {
+    if (free)
       free_ban(newban);
-      return 3;
-    }
-    return 0;
+    else
+      MyFree(newban->banstr);
+    /* If no matches were found, fail. */
+    return remove_count ? 0 : 3;
   }
   free_ban(newban);
   return 4;
@@ -2738,7 +2739,7 @@ static void
 mode_parse_ban(struct ParseState *state, int *flag_p)
 {
   char *t_str, *s;
-  struct Ban *ban, *newban = 0;
+  struct Ban *ban, *newban;
 
   if (state->parc <= 0) { /* Not enough args, send ban list */
     if (MyUser(state->sptr) && !(state->done & DONE_BANLIST)) {
@@ -2772,12 +2773,6 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     return;
   }
 
-  if (!state->chptr->banlist) {
-    state->chptr->banlist = newban; /* add our ban with its flags */
-    state->done |= DONE_BANCLEAN;
-    return;
-  }
-
   /* Clear all ADD/DEL/OVERLAPPED flags from ban list. */
   if (!(state->done & DONE_BANCLEAN)) {
     for (ban = state->chptr->banlist; ban; ban = ban->next)
@@ -2794,7 +2789,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
   set_ban_mask(newban, collapse(pretty_mask(t_str)));
   newban->who = cli_name(state->sptr);
   newban->when = TStime();
-  apply_ban(&state->chptr->banlist, newban);
+  apply_ban(&state->chptr->banlist, newban, 0);
 }
 
 /*
@@ -2829,8 +2824,7 @@ mode_process_bans(struct ParseState *state)
       continue;
     } else if (ban->flags & BAN_DEL) { /* Deleted a ban? */
       modebuf_mode_string(state->mbuf, MODE_DEL | MODE_BAN,
-			  ban->banstr,
-			  state->flags & MODE_PARSE_SET);
+			  ban->banstr, 1);
 
       if (state->flags & MODE_PARSE_SET) { /* Ok, make it take effect */
 	if (prevban) /* clip it out of the list... */
@@ -2873,8 +2867,7 @@ mode_process_bans(struct ParseState *state)
 	} else {
 	  /* add the ban to the buffer */
 	  modebuf_mode_string(state->mbuf, MODE_ADD | MODE_BAN,
-			      ban->banstr,
-			      !(state->flags & MODE_PARSE_SET));
+			      ban->banstr, 1);
 
 	  if (state->flags & MODE_PARSE_SET) { /* create a new ban */
 	    newban = make_ban(ban->banstr);
