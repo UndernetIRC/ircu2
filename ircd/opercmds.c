@@ -246,6 +246,9 @@ static void report_configured_links(aClient *sptr, int mask)
 	sendto_one(sptr, rpl_str(p[1]),
 	    me.name, sptr->name, c, host, pass, name, port,
 	    get_conf_class(tmp));
+      else if ((tmp->status & (CONF_CONNECT_SERVER|CONF_NOCONNECT_SERVER)))
+	sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, "*", name,
+	    port, get_conf_class(tmp));
       else
 	sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, host, name,
 	    port, get_conf_class(tmp));
@@ -409,8 +412,7 @@ int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (!(doall || wilds) && strCasediff(name, acptr->name))
 	  continue;
 	sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
-	    (isUpper(stat)) ?
-	    get_client_name(acptr, TRUE) : get_client_name(acptr, FALSE),
+            acptr->name,
 	    (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
 	    (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
 	    time(NULL) - acptr->firsttime);
@@ -659,7 +661,7 @@ int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[])
  *
  *    parv[0] = sender prefix
  *    parv[1] = servername
- *    parv[2] = [IP-number:]port number
+ *    parv[2] = port number
  *    parv[3] = remote server
  */
 int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
@@ -668,7 +670,6 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
   unsigned short int port, tmpport;
   aConfItem *aconf, *cconf;
   aClient *acptr;
-  char *p;
 
   if (!IsPrivileged(sptr))
   {
@@ -718,17 +719,9 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     return 0;
   }
 
-  if (parc > 2 && !BadPtr(parv[2]))
-    p = strchr(parv[2], ':');
-  else
-    p = 0;
-  if (p)
-    *p = 0;
   for (aconf = conf; aconf; aconf = aconf->next)
     if (aconf->status == CONF_CONNECT_SERVER &&
-	match(parv[1], aconf->name) == 0 &&
-	(!p || match(parv[2], aconf->host) == 0 ||
-	match(parv[2], strchr(aconf->host, '@') + 1) == 0))
+	match(parv[1], aconf->name) == 0)
       break;
   /* Checked first servernames, then try hostnames. */
   if (!aconf)
@@ -737,8 +730,6 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	  (match(parv[1], aconf->host) == 0 ||
 	  match(parv[1], strchr(aconf->host, '@') + 1) == 0))
 	break;
-  if (p)
-    *p = ':';
 
   if (!aconf)
   {
@@ -760,12 +751,7 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
   tmpport = port = aconf->port;
   if (parc > 2 && !BadPtr(parv[2]))
   {
-    p = strchr(parv[2], ':');
-    if (!p)
-      p = parv[2];
-    else
-      p = p + 1;
-    if ((port = atoi(p)) == 0)
+    if ((port = atoi(parv[2])) == 0)
     {
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,
@@ -825,12 +811,12 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     case 0:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,
-	    ":%s NOTICE %s :*** Connecting to %s[%s].",
-	    me.name, parv[0], aconf->host, aconf->name);
+	    ":%s NOTICE %s :*** Connecting to %s.",
+	    me.name, parv[0], aconf->name);
       else
 	sendto_one(sptr,
-	    "%s NOTICE %s%s :*** Connecting to %s[%s].",
-	    NumServ(&me), NumNick(sptr), aconf->host, aconf->name);
+	    "%s NOTICE %s%s :*** Connecting to %s.",
+	    NumServ(&me), NumNick(sptr), aconf->name);
       break;
     case -1:
       /* Comments already sent */
@@ -838,20 +824,20 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     case -2:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr, ":%s NOTICE %s :*** Host %s is unknown.",
-	    me.name, parv[0], aconf->host);
+	    me.name, parv[0], aconf->name);
       else
 	sendto_one(sptr, "%s NOTICE %s%s :*** Host %s is unknown.",
-	    NumServ(&me), NumNick(sptr), aconf->host);
+	    NumServ(&me), NumNick(sptr), aconf->name);
       break;
     default:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,
 	    ":%s NOTICE %s :*** Connection to %s failed: %s",
-	    me.name, parv[0], aconf->host, strerror(retval));
+	    me.name, parv[0], aconf->name, strerror(retval));
       else
 	sendto_one(sptr,
 	    "%s NOTICE %s%s :*** Connection to %s failed: %s",
-	    NumServ(&me), NumNick(sptr), aconf->host, strerror(retval));
+	    NumServ(&me), NumNick(sptr), aconf->name, strerror(retval));
   }
   aconf->port = tmpport;
   return 0;
@@ -973,7 +959,7 @@ int m_settime(aClient *cptr, aClient *sptr, int parc, char *parv[])
   }
 #else
   sendto_ops("SETTIME from %s, clock is set %ld seconds %s",
-      get_client_name(sptr, FALSE), (dt < 0) ? -dt : dt,
+      sptr->name, (dt < 0) ? -dt : dt,
       (dt < 0) ? "forwards" : "backwards");
   TSoffset -= dt;
   if (IsUser(sptr))
@@ -1289,7 +1275,6 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
   for (i = 0; i <= highest_fd; i++)
   {
-    char *name;
     unsigned int conClass;
 
     if (!(acptr = loc_clients[i]))	/* Local Connection? */
@@ -1301,28 +1286,31 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
       continue;
     if (!dow && strCasediff(tname, acptr->name))
       continue;
-    name = get_client_name(acptr, FALSE);
     conClass = get_client_class(acptr);
 
     switch (acptr->status)
     {
       case STAT_CONNECTING:
 	sendto_one(sptr, rpl_str(RPL_TRACECONNECTING),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_HANDSHAKE:
 	sendto_one(sptr, rpl_str(RPL_TRACEHANDSHAKE),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_ME:
 	break;
       case STAT_UNKNOWN:
       case STAT_UNKNOWN_USER:
+	sendto_one(sptr, rpl_str(RPL_TRACEUNKNOWN),
+	    me.name, parv[0], conClass, get_client_name(acptr, FALSE));
+	cnt++;
+	break;
       case STAT_UNKNOWN_SERVER:
 	sendto_one(sptr, rpl_str(RPL_TRACEUNKNOWN),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_USER:
@@ -1333,10 +1321,10 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	{
 	  if (IsAnOper(acptr))
 	    sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR),
-		me.name, parv[0], conClass, name, now - acptr->lasttime);
+		me.name, parv[0], conClass, get_client_name(acptr, FALSE), now - acptr->lasttime);
 	  else
 	    sendto_one(sptr, rpl_str(RPL_TRACEUSER),
-		me.name, parv[0], conClass, name, now - acptr->lasttime);
+		me.name, parv[0], conClass, get_client_name(acptr, FALSE), now - acptr->lasttime);
 	  cnt++;
 	}
 	break;
@@ -1360,14 +1348,14 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (acptr->serv->user)
 	  sendto_one(sptr, rpl_str(RPL_TRACESERVER),
 	      me.name, parv[0], conClass, link_s[i],
-	      link_u[i], name, acptr->serv->by,
+	      link_u[i], acptr->name, acptr->serv->by,
 	      acptr->serv->user->username,
 	      acptr->serv->user->host,
 	      now - acptr->lasttime, now - acptr->serv->timestamp);
 	else
 	  sendto_one(sptr, rpl_str(RPL_TRACESERVER),
 	      me.name, parv[0], conClass, link_s[i],
-	      link_u[i], name, *(acptr->serv->by) ?
+	      link_u[i], acptr->name, *(acptr->serv->by) ?
 	      acptr->serv->by : "*", "*", me.name,
 	      now - acptr->lasttime, now - acptr->serv->timestamp);
 	cnt++;
@@ -1379,10 +1367,10 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	break;
       case STAT_PING:
 	sendto_one(sptr, rpl_str(RPL_TRACEPING), me.name,
-	    parv[0], name, (acptr->acpt) ? acptr->acpt->name : "<null>");
+	    parv[0], acptr->name, (acptr->acpt) ? acptr->acpt->name : "<null>");
 	break;
       default:			/* We actually shouldn't come here, -msa */
-	sendto_one(sptr, rpl_str(RPL_TRACENEWTYPE), me.name, parv[0], name);
+	sendto_one(sptr, rpl_str(RPL_TRACENEWTYPE), me.name, parv[0], acptr->name);
 	cnt++;
 	break;
     }
@@ -1430,7 +1418,7 @@ int m_close(aClient *cptr, aClient *sptr, int UNUSED(parc), char *parv[])
     if (!IsUnknown(acptr) && !IsConnecting(acptr) && !IsHandshake(acptr))
       continue;
     sendto_one(sptr, rpl_str(RPL_CLOSING), me.name, parv[0],
-	get_client_name(acptr, TRUE), acptr->status);
+	get_client_name(acptr, FALSE), acptr->status);
     exit_client(cptr, acptr, &me, "Oper Closing");
     closed++;
   }
@@ -1467,10 +1455,10 @@ int m_die(aClient *UNUSED(cptr), aClient *sptr, int UNUSED(parc), char *parv[])
       continue;
     if (IsUser(acptr))
       sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s",
-	  me.name, acptr->name, get_client_name(sptr, TRUE));
+	  me.name, acptr->name, get_client_name(sptr, FALSE));
     else if (IsServer(acptr))
       sendto_one(acptr, ":%s ERROR :Terminated by %s",
-	  me.name, get_client_name(sptr, TRUE));
+	  me.name, get_client_name(sptr, FALSE));
   }
 #ifdef __cplusplus
   s_die(0);
