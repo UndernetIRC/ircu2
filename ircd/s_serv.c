@@ -69,7 +69,7 @@ int exit_new_server(struct Client *cptr, struct Client *sptr,
   va_start(vl, fmt);
   if (!IsServer(sptr))
     return vexit_client_msg(cptr, cptr, &me, fmt, vl);
-  sprintf_irc(buf, ":%s SQUIT %s " TIME_T_FMT " :", me.name, host, timestamp);
+  sprintf_irc(buf, ":%s " TOK_SQUIT " %s " TIME_T_FMT " :", me.name, host, timestamp);
   strcat(buf, fmt);
   vsendto_one(cptr, buf, vl);
   va_end(vl);

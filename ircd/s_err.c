@@ -60,7 +60,7 @@ static Numeric local_replies[] = {
 /* 014 */
   { 0 },
 /* 015 */
-  { RPL_MAP, ":%s%s:%s (%is) [%i clients]", "015" },
+  { RPL_MAP, ":%s%s%s %s [%i clients]", "015" },
 /* 016 */
   { RPL_MAPMORE, ":%s%s --> *more*", "016" },
 /* 017 */

@@ -41,11 +41,21 @@ void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt
   if (prompt_length > 60)
     sendto_one(cptr, rpl_str(RPL_MAPMORE), me.name, cptr->name,
         prompt, server->name);
-  else
+  else {
+    char lag[512];
+    if (server->serv->lag>10000)
+    	strcpy(lag,"(--s)");
+    else if (server->serv->lag<0)
+    	strcpy(lag,"(0s)");
+    else
+    	sprintf(lag,"(%is)",server->serv->lag);
     sendto_one(cptr, rpl_str(RPL_MAP), me.name, cptr->name,
-        prompt, NumServ(server), server->name, 
-        server->serv->lag>0 ? server->serv->lag : 0,
+        prompt, 
+	((IsBurstOrBurstAck(server)) ? "*" : ""),
+        server->name, 
+        lag,
         (server == &me) ? UserStats.local_clients : server->serv->clients);
+  }
   if (prompt_length > 0)
   {
     p[-1] = ' ';

@@ -1,3 +1,23 @@
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: rewrote check_pings() for maintainability
+	and speed.  Also changed quit msg's so they don't have
+	redundant nick[host] info in them.
+
+	* ircd/send.c: Changed write errors to report what error
+	occured (if possible).
+
+	* ircd/gline.c: added gline comment to the quit.
+
+	* ircd/m_server.c: Added suggestions to server quits mentioning
+	what went wrong so the admin can fix it earlier instead of asking
+	questions...
+
+	* ircd/map.c: Changed m_map() to hide numerics, show a * beside
+	servers that aren't fully burst yet.  And show '(--s)' for servers
+	where its not sure.
+
+	* doc/example.conf: Fixed wrapped U:
+
 2000-03-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_mode.c (ms_mode): implemented a new m_mode in terms of
@@ -201,7 +221,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.45 2000-03-30 22:03:36 kev Exp $
+# $Id: ChangeLog,v 1.46 2000-03-30 22:09:51 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

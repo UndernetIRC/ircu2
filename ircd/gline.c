@@ -259,7 +259,7 @@ void add_gline(struct Client *sptr, int ip_mask, char *host, char *comment,
 
         /* and get rid of him */
         if (sptr != acptr)
-          exit_client(sptr->from, acptr, &me, "G-lined");
+          exit_client_msg(sptr->from, acptr, &me, "G-lined (%s)", agline->reason);
       }
     }
   }
