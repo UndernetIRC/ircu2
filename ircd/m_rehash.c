@@ -139,7 +139,7 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   sendto_opmask_butone(0, SNO_OLDSNO, "%C is rehashing Server config file",
 		       sptr);
 
-  ircd_log(L_INFO, "REHASH From %s\n", get_client_name(sptr, HIDE_IP));
+  log_write(LS_SYSTEM, L_INFO, 0, "REHASH From %#C", sptr);
 
   return rehash(cptr, flag);
 #endif /* defined(OPER_REHASH) || defined(LOCOP_REHASH) */

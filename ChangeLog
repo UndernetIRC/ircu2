@@ -1,3 +1,88 @@
+2000-12-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c: I'm tired of the exit_client warning :)
+	(ms_create): discovered that exit_client() was being called with
+	too few arguments
+
+	* ircd/s_misc.c (exit_client): remove all dependance on
+	FNAME_USERLOG, since that's now gone; log only to LS_USER
+
+	* ircd/s_debug.c: USE_SYSLOG no longer means anything
+
+	* ircd/m_oper.c (m_oper): no longer log to LS_OPERLOG--we already
+	log to LS_OPER
+
+	* ircd/m_kill.c: no longer conditionalize on SYSLOG_KILL
+
+	* ircd/ircd_log.c: remove LS_OPERLOG, LS_USERLOG
+
+	* include/ircd_log.h: remove LS_OPERLOG, LS_USERLOG--they serve
+	the same purpose as LS_USER and LS_OPER
+
+	* config/config-sh.in: remove no longer relevant log config
+	variables
+
+	* ircd/uping.c (uping_init): use log_write instead of ircd_log
+
+	* ircd/s_misc.c (exit_client): use log_write instead of ircd_log
+
+	* ircd/s_conf.c: use log_write instead of ircd_log
+
+	* ircd/s_bsd.c (report_error): use log_write instead of ircd_log
+
+	* ircd/s_auth.c (timeout_auth_queries): use log_write instead of
+	ircd_log
+
+	* ircd/res.c (send_res_msg): use log_write instead of ircd_log
+
+	* ircd/m_who.c: use log_write instead of write_log; no longer
+	conditionalize on WPATH; mark dead ircd_log calls
+
+	* ircd/m_uping.c: mark dead ircd_log call
+
+	* ircd/m_server.c (mr_server): use log_write instead of ircd_log
+
+	* ircd/m_restart.c: use log_write instead of ircd_log; mark dead
+	ircd_log calls
+
+	* ircd/m_rehash.c (mo_rehash): use log_write instead of ircd_log
+
+	* ircd/m_oper.c: use log_write instead of ircd_log; no longer
+	conditionalize on FNAME_OPERLOG; mark dead ircd_log calls
+
+	* ircd/m_kill.c: mark dead ircd_log calls
+
+	* ircd/m_connect.c: use log_write instead of ircd_log; mark dead
+	ircd_log
+
+	* ircd/m_clearmode.c: use log_write instead of write_log; no
+	longer conditionalize on OPATH
+
+	* ircd/jupe.c: use log_write instead of write_log; no longer
+	conditionalize on JPATH
+
+	* ircd/ircd_log.c: add USER subsystem; remove ircd_log() compat
+	function; fix a couple of bugs
+
+	* ircd/ircd_alloc.c: fixed a comment
+
+	* ircd/ircd.c: use log_write instead of ircd_log; fold server
+	notice generation in a couple of cases
+
+	* ircd/gline.c: use log_write instead of write_log; no longer
+	conditionalize on GPATH
+
+	* ircd/channel.c (modebuf_flush_int): use log_write instead of
+	write_log; no longer conditionalize on OPATH
+
+	* ircd/Makefile.in: run make depend, since dependencies have
+	changed
+
+	* doc/example.conf: add system USER to documentation
+
+	* include/ircd_log.h: add system USER; remove old ircd_log()
+	declarations
+
 2000-12-04  Isomer <isomer@coders.net>
 	* ircd/m_names.c: Add NAMES_EON to do_names to say add a
 	'end_of_names' reply when done.

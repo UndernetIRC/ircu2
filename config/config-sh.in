@@ -227,10 +227,6 @@ endmenu
 
 mainmenu_option next_comment
 comment 'Logging (filenames are either full paths or files within DPATH)'
-  bool 'Do you want to log the use of /WHO x% (recommended)' CONFIG_LOG_WHOX y
-    if [ "$CONFIG_LOG_WHOX" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' WPATH 'whox.log'
-    fi
 
 comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
   bool 'Do you want to enable Bad Channel G-lines' BADCHAN y
@@ -239,68 +235,6 @@ comment 'Bad Channel G-Lines allow operators to add channel masks to a list whic
       echo " WARNING DO _NOT_ USE LOCAL BADCHANNEL GLINES ON UNDERNET"
       echo " Use of LOCAL BAD Channel G-Lines can be cause for REMOVAL"
       bool 'Allow LOCAL BAD Channel G-lines' LOCAL_BADCHAN
-    fi
-
-  bool 'Do you want to log G-lines to a separate file' CONFIG_LOG_GLINES
-    if [ "$CONFIG_LOG_GLINES" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' GPATH 'gline.log'
-    fi
-  bool 'Do you want to log JUPEs to a separate file' CONFIG_LOG_JUPES y
-    if [ "$CONFIG_LOG_JUPES" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' JPATH 'jupe.log'
-    fi
-  bool 'Do you want to log OPMODEs and CLEARMODEs to a separate file' CONFIG_LOG_OPMODES y
-    if [ "$CONFIG_LOG_OPMODES" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' OPATH 'opmode.log'
-    fi
-  bool 'Do you want to log connecting users to a separate file' CONFIG_LOG_USERS
-    if [ "$CONFIG_LOG_USERS" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' FNAME_USERLOG users.log
-    fi
-  bool 'Do you want to log Opers to a separate file' CONFIG_LOG_OPERS
-    if [ "$CONFIG_LOG_OPERS" = "y" ]; then
-      string '   Give the path and(or) filename of this log file' FNAME_OPERLOG opers.log
-    fi
-  if [ "$ac_cv_header_syslog_h" = "yes" ]; then
-    bool 'Do you want to use syslog' USE_SYSLOG
-  else
-    USE_SYSLOG=n
-  fi
-    if [ "$USE_SYSLOG" = "y" ]; then
-      bool '   Log all operator kills to syslog' SYSLOG_KILL
-      bool '   Log all remote squits for all servers to syslog' SYSLOG_SQUIT
-      bool '   Log remote connect messages for other all servs' SYSLOG_CONNECT
-      bool '   Log all users who successfully become an Oper' SYSLOG_OPER
-      bool '   Send userlog stuff to syslog' SYSLOG_USERS
-      if [ "$SYSLOG_KILL" = "n" -a "$SYSLOG_SQUIT" = "n" -a \
-           "$SYSLOG_CONNECT" = "n" -a "$SYSLOG_OPER" = "n" -a \
-	   "$SYSLOG_USERS" = "n" ]; then
-	define_macro LOG_FACILITY $LOG_FACILITY
-        define_bool USE_SYSLOG n
-      else
-        choice '   Log facility' \
-		"daemon		CONFIG_DAEMON	\
-		user		CONFIG_USER	\
-		local0-7	CONFIG_LOCAL" daemon
-	if [ "$CONFIG_DAEMON" = "y" ]; then
-	  define_macro LOG_FACILITY LOG_DAEMON
-	else
-	  if [ "$CONFIG_USER" = "y" ]; then
-	    define_macro LOG_FACILITY LOG_USER
-	  else
-	    int '      Which local facility (0-7)' INT_LOCAL
-	    define_macro LOG_FACILITY LOG_LOCAL$INT_LOCAL
-	  fi
-	fi
-	echo "    Using log facility $LOG_FACILITY"
-      fi
-    else
-      define_bool SYSLOG_KILL $SYSLOG_KILL
-      define_bool SYSLOG_SQUIT $SYSLOG_SQUIT
-      define_bool SYSLOG_CONNECT $SYSLOG_CONNECT
-      define_bool SYSLOG_OPER $SYSLOG_OPER
-      define_bool SYSLOG_USERS $SYSLOG_USERS
-      define_macro LOG_FACILITY $LOG_FACILITY
     fi
 endmenu
 

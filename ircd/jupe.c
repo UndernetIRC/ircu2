@@ -25,6 +25,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -124,11 +125,10 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 		       flags & JUPE_LOCAL ? "local " : "", server,
 		       expire + TSoffset, reason);
 
-#ifdef JPATH
-  write_log(JPATH, "%Tu %C adding %sJUPE for %s, expiring at %Tu: %s\n",
-	    TStime(), sptr, flags & JUPE_LOCAL ? "local " : "", server,
-	    expire + TSoffset, reason);
-#endif /* JPATH */
+  log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
+	    "%#C adding %sJUPE for %s, expiring at %Tu: %s", sptr,
+	    flags & JUPE_LOCAL ? "local " : "", server, expire + TSoffset,
+	    reason);
 
   /* make the jupe */
   ajupe = make_jupe(server, reason, expire, lastmod, flags);
@@ -170,11 +170,9 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
 
-#ifdef JPATH
-  write_log(JPATH, "%Tu %C activating JUPE for %s, expiring at %Tu: %s\n",
-	    TStime(), sptr, jupe->ju_server, jupe->ju_expire + TSoffset,
-	    jupe->ju_reason);
-#endif /* JPATH */
+  log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
+	    "%#C activating JUPE for %s, expiring at %Tu: %s",sptr,
+	    jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
 
   if (!(flags & JUPE_LOCAL)) /* don't propagate local changes */
     propagate_jupe(cptr, sptr, jupe);
@@ -216,11 +214,10 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
 
-#ifdef JPATH
-  write_log(JPATH, "%Tu %s %s JUPE for %s, expiring at %Tu: %s\n", TStime(),
-	    sptr, JupeIsLocal(jupe) ? "removing local" : "deactivating",
+  log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
+	    "%#C %s JUPE for %s, expiring at %Tu: %s", sptr,
+	    JupeIsLocal(jupe) ? "removing local" : "deactivating",
 	    jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
-#endif /* JPATH */
 
   if (JupeIsLocal(jupe))
     jupe_free(jupe);

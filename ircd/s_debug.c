@@ -168,9 +168,6 @@ char serveropts[] = {
     'x',
 #endif
 #endif
-#ifdef  USE_SYSLOG
-    'Y',
-#endif
     '\0'
 };
 

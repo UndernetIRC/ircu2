@@ -97,6 +97,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_debug.h"
+#include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -140,7 +141,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #if 1
   /* If this server is >5 minutes fast, squit it */
   if (TStime() - chanTS<-5*60*60)
-  	return exit_client(sptr,sptr,"Timestamp Drift/Bogus TS");
+  	return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
 #endif
 #if 0  	
   /* If we recieve a CREATE for a channel from a server before that server

@@ -145,9 +145,8 @@ static struct LogDesc {
   S(NETWORK, -1, SNO_NETWORK),
   S(OPERKILL, -1, 0),
   S(SERVKILL, -1, 0),
+  S(USER, -1, 0),
   S(OPER, -1, SNO_OLDREALOP),
-  S(OPERLOG, -1, 0),
-  S(USERLOG, -1, 0),
   S(RESOLVER, -1, 0),
   S(SOCKET, -1, 0),
   S(DEBUG, -1, SNO_DEBUG),
@@ -173,15 +172,6 @@ static struct {
   const char	 *procname; /* process's name */
   struct LogFile *dbfile;   /* debug file */
 } logInfo = { 0, 0, LOG_USER, "ircd", 0 };
-
-void ircd_log(int priority, const char* fmt, ...)
-{
-  va_list vl;
-
-  va_start(vl, fmt);
-  log_vwrite(LS_OLDLOG, priority, 0, fmt, vl);
-  va_end(vl);
-}
 
 /* helper routine to open a log file if needed */
 static void
@@ -473,7 +463,8 @@ log_file_create(const char *file)
 
   tmp->next = logInfo.filelist; /* link it into the list... */
   tmp->prev_p = &logInfo.filelist;
-  logInfo.filelist->prev_p = &tmp->next;
+  if (logInfo.filelist)
+    logInfo.filelist->prev_p = &tmp->next;
   logInfo.filelist = tmp;
 
   return tmp;
@@ -627,7 +618,7 @@ log_set_file(const char *subsys, const char *filename)
     return 2;
 
   /* no change, don't go to the trouble of destroying and recreating */
-  if (filename && !strcmp(desc->file->file, filename))
+  if (desc->file && filename && !strcmp(desc->file->file, filename))
     return 0;
 
   /* debug log is special, since it has to be opened on fd 2 */

@@ -703,7 +703,7 @@ void conf_add_listener(const char* const* fields, int count)
 void conf_add_local(const char* const* fields, int count)
 {
   if (count < 6 || EmptyString(fields[1]) || EmptyString(fields[5])) {
-    ircd_log(L_CRIT, "Your M: line must have 6 fields!\n");
+    log_write(LS_CONFIG, L_CRIT, 0, "Your M: line must have 6 fields!");
     return;
   }
   /*
@@ -716,7 +716,8 @@ void conf_add_local(const char* const* fields, int count)
   if (0 == localConf.numeric) {
     localConf.numeric = atoi(fields[5]);
     if (0 == localConf.numeric)
-      ircd_log(L_WARNING, "Your M: line must have a Numeric value greater than 0\n");
+      log_write(LS_CONFIG, L_WARNING, 0,
+		"Your M: line must have a Numeric value greater than 0");
   }
   /*
    * these two can be changed while the server is running
@@ -740,7 +741,7 @@ void conf_add_admin(const char* const* fields, int count)
    * if you have one, it MUST have 3 lines
    */
   if (count < 4) {
-    ircd_log(L_CRIT, "Your A: line must have 4 fields!\n");
+    log_write(LS_CONFIG, L_CRIT, 0, "Your A: line must have 4 fields!");
     return;
   }
   MyFree(localConf.location1);

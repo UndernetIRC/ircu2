@@ -578,8 +578,7 @@ static int send_res_msg(const u_char* msg, int len, int rcount)
       ++sent;
     }
     else
-      ircd_log(L_ERROR, "Resolver: send failed %s", 
-               (strerror(errno)) ? strerror(errno) : "Unknown");
+      log_write(LS_RESOLVER, L_ERROR, 0, "Resolver: send failed %m");
   }
   return sent;
 }

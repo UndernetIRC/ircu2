@@ -196,13 +196,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 parv[0], sptr->user->username, sptr->sockhost,
 			 IsOper(sptr) ? 'O' : 'o');
 
-    ircd_log(L_INFO, "OPER (%s) by (%s!%s@%s)",
-             name, parv[0], sptr->user->username, sptr->sockhost);
-#ifdef FNAME_OPERLOG
-    if (IsUser(sptr))
-      write_log(FNAME_OPERLOG,
-                "%s OPER (%s) by (%#C)\n", myctime(CurrentTime), name, sptr);
-#endif
+    log_write(LS_OPER, L_INFO, 0, "OPER (%s) by (%#C)", name, sptr);
   }
   else {
     send_reply(sptr, ERR_PASSWDMISMATCH);
@@ -341,11 +335,11 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     send_umode_out(cptr, sptr, old);
     sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]); /* XXX DEAD */
 
-    ircd_log(L_INFO, "OPER (%s) by (%s!%s@%s)",
+    ircd_log(L_INFO, "OPER (%s) by (%s!%s@%s)", /* XXX DEAD */
              name, parv[0], sptr->user->username, sptr->sockhost);
 #ifdef FNAME_OPERLOG
     if (IsUser(sptr))
-      write_log(FNAME_OPERLOG,
+      write_log(FNAME_OPERLOG, /* XXX DEAD */
           "%s OPER (%s) by (%s!%s@%s)\n", myctime(CurrentTime),
           name, parv[0], sptr->user->username, sptr->sockhost);
 #endif

@@ -45,21 +45,10 @@ enum LogLevel {
 
 enum LogSys {
   LS_SYSTEM, LS_CONFIG, LS_OPERMODE, LS_GLINE, LS_JUPE, LS_WHO, LS_NETWORK,
-  LS_OPERKILL, LS_SERVKILL, LS_OPER, LS_OPERLOG, LS_USERLOG, LS_RESOLVER,
-  LS_SOCKET, LS_DEBUG, LS_OLDLOG,
+  LS_OPERKILL, LS_SERVKILL, LS_USER, LS_OPER, LS_RESOLVER, LS_SOCKET,
+  LS_DEBUG, LS_OLDLOG,
   LS_LAST_SYSTEM
 };
-
-extern void open_log(const char* process_name);
-extern void close_log(void);
-extern void set_log_level(int level);
-extern int  get_log_level(void);
-extern void ircd_log(int priority, const char* fmt, ...);
-
-extern void ircd_log_kill(const struct Client* victim,
-                          const struct Client* killer,
-                          const char*          inpath,
-                          const char*          path);
 
 extern void log_debug_init(char *file);
 extern void log_init(const char *process_name);

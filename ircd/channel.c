@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -2828,13 +2829,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 			   addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
 
-#ifdef OPATH
-    if (mbuf->mb_dest & MODEBUF_DEST_LOG) {
-      write_log(OPATH, "%Tu %#C OPMODE %H %s%s%s%s%s%s\n", TStime(),
-		mbuf->mb_source, mbuf->mb_channel, rembuf_i ? "-" : "", rembuf,
+    if (mbuf->mb_dest & MODEBUF_DEST_LOG)
+      log_write(LS_OPERMODE, L_INFO, LOG_NOSNOTICE,
+		"%#C OPMODE %H %s%s%s%s%s%s", mbuf->mb_source,
+		mbuf->mb_channel, rembuf_i ? "-" : "", rembuf,
 		addbuf_i ? "+" : "", addbuf, remstr, addstr);
-    }
-#endif
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
       sendcmdto_channel_butserv(app_source, CMD_MODE, mbuf->mb_channel,

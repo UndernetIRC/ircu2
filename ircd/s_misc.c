@@ -378,31 +378,22 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 {
   struct Client* acptr = 0;
   struct DLink *dlp;
-#ifdef  FNAME_USERLOG
   time_t on_for;
-#endif
+
   char comment1[HOSTLEN + HOSTLEN + 2];
   assert(killer);
   if (MyConnect(victim)) {
     victim->flags |= FLAGS_CLOSING;
     update_load();
-#ifdef FNAME_USERLOG
+
     on_for = CurrentTime - victim->firsttime;
-#if defined(USE_SYSLOG) && defined(SYSLOG_USERS)
+
     if (IsUser(victim))
-      ircd_log(L_TRACE, "%s (%3d:%02d:%02d): %s@%s (%s)\n",
-               myctime(victim->firsttime), on_for / 3600, (on_for % 3600) / 60,
-               on_for % 60, victim->user->username, victim->sockhost, victim->name);
-#else
-    if (IsUser(victim))
-      write_log(FNAME_USERLOG,
-               "%s (%3d:%02d:%02d): %s@%s [%s]\n",
-               myctime(victim->firsttime),
-               on_for / 3600, (on_for % 3600) / 60,
-               on_for % 60,
-               victim->user->username, victim->user->host, victim->username);
-#endif
-#endif
+      log_write(LS_USER, L_TRACE, 0, "%s (%3d:%02d:%02d): %s@%s (%s)",
+		myctime(victim->firsttime), on_for / 3600,
+		(on_for % 3600) / 60, on_for % 60, victim->user->username,
+		victim->sockhost, victim->name);
+
     if (victim != killer->from  /* The source knows already */
         && IsClient(victim))    /* Not a Ping struct or Log file */
     {
