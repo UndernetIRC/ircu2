@@ -181,7 +181,8 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
       modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, /* delete ban */
 			  link->banstr, 1);
-      link->banstr = NULL;
+      link->banstr = NULL; /* modebuf_mode_string() gave ownership of
+                            * banstr to mbuf */
       free_ban(link);
     }
 

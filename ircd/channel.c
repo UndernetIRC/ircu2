@@ -2964,7 +2964,8 @@ mode_process_bans(struct ParseState *state)
 	count--;
 	len -= banlen;
 
-        ban->banstr = NULL; /* do not free this string */
+        ban->banstr = NULL; /* modebuf_mode_string() gave ownership of
+                             * the ban string to state->mbuf */
         free_ban(ban);
 
 	changed++;
