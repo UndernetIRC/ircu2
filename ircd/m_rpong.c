@@ -127,7 +127,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * from pinged server to source server
      */
-    if (!(acptr = FindNServer(parv[1])))
+    if (!(acptr = FindServer(parv[1])))
       return 0;
    
     if (IsMe(acptr)) {
@@ -144,7 +144,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     else
       sendto_one(acptr, "%s " TOK_RPONG " %s %s %s %s :%s",
-                 parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]);
+                 NumServ(sptr), parv[1], parv[2], parv[3], parv[4], parv[5]);
   }
   else {
     /*
