@@ -312,17 +312,22 @@ void remove_client_from_list(struct Client *cptr)
   assert(con_verify(cli_connect(cptr)));
   assert(!cli_prev(cptr) || cli_verify(cli_prev(cptr)));
   assert(!cli_next(cptr) || cli_verify(cli_next(cptr)));
+  assert(!IsMe(cptr));
 
-  if (cli_prev(cptr))
-    cli_next(cli_prev(cptr)) = cli_next(cptr);
-  else {
-    GlobalClientList = cli_next(cptr);
-    if (GlobalClientList)
+  /* Only try to remove cptr from the list if it IS in the list.
+   * cli_next(cptr) cannot be NULL here, as &me is always the end
+   * the list, and we never remove &me.    -GW 
+   */
+  if(cli_next(cptr))
+  {
+    if (cli_prev(cptr))
+      cli_next(cli_prev(cptr)) = cli_next(cptr);
+    else {
+      GlobalClientList = cli_next(cptr);
       cli_prev(GlobalClientList) = 0;
-  }
-  if (cli_next(cptr))
+    }
     cli_prev(cli_next(cptr)) = cli_prev(cptr);
-
+  }
   cli_next(cptr) = cli_prev(cptr) = 0;
 
   if (IsUser(cptr) && cli_user(cptr)) {

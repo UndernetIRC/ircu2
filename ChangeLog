@@ -1,3 +1,8 @@
+2002-03-10 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/list.c: Don't remove clients from the linked list
+	that aren't actually in the list.
+	
 2002-03-08  Carlo Wood  <run@alinoe.com>
 	* include/channel.h: Added CHFL_BURST_ALREADY_OPPED
 	and CHFL_BURST_ALREADY_VOICED.
