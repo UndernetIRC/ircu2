@@ -182,7 +182,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     else
     {
-#if 1                           /* FIXME: This should be removed after all HUBs upgraded to ircu2.10.05 */
+#if 1            /* FIXME: This should be removed after all HUBs upgraded to ircu2.10.05 */
       SetBurst(sptr);
       if (MyConnect(sptr))
 #endif
