@@ -81,6 +81,7 @@ static void killcomment(aClient *sptr, char *parv, char *filename);
 
 aConfItem *conf = NULL;
 aGline *gline = NULL;
+aGline *badchan = NULL;
 aMotdItem *motd = NULL;
 aMotdItem *rmotd = NULL;
 atrecord *tdata = NULL;

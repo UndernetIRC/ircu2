@@ -49,7 +49,7 @@
 		\
 		\
 		\
-		""
+		".bc"
 
 /*
  * Deliberate empty lines

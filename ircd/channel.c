@@ -2263,7 +2263,15 @@ int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[])
       }
 
       if (MyConnect(sptr))
-      {
+      { 
+#ifdef WT_BADCHAN
+        if(bad_channel(name) && !IsAnOper(sptr))
+        {
+	  sendto_one(sptr, err_str(ERR_CHANNELISFULL), me.name, parv[0],name);
+	  continue;
+        }
+#endif
+
 	/*
 	 * Local client is first to enter previously nonexistant
 	 * channel so make them (rightfully) the Channel Operator.
