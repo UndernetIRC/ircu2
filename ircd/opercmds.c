@@ -1472,8 +1472,8 @@ static void add_gline(aClient *sptr, int ip_mask, char *host, char *comment,
   aGline *agline;
   int fd,gtype=0;
 
-#ifdef WT_BADCHAN
-  if(*host=='#')
+#ifdef BADCHAN
+  if(*host=='#' || *host == '&' || *host == '+')
     gtype=1;	/* BAD CHANNEL */
 #endif
   /* Inform ops */
@@ -1498,7 +1498,7 @@ static void add_gline(aClient *sptr, int ip_mask, char *host, char *comment,
   if (local)
     SetGlineIsLocal(agline);
 
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
   if(gtype) return;
 #endif
 
@@ -1576,7 +1576,7 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
     a2gline = agline;
   }
 
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
   /* Remove expired bad channels */
   for (agline = badchan, a2gline = NULL; agline; agline = agline->next)
   {
@@ -1653,8 +1653,9 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	*(host++) = '\0';	/* break up string at the '@' */
       }
       ip_mask = check_if_ipmask(host);	/* Store this boolean */
-#ifdef WT_BADCHAN
-      if(*host == '#') gtype=1;		/* BAD CHANNEL GLINE */
+#ifdef BADCHAN
+      if(*host=='#' || *host == '&' || *host == '+')
+        gtype=1;		/* BAD CHANNEL GLINE */
 #endif
 
       for (agline = (gtype)?badchan:gline, a2gline = NULL; agline; 
@@ -1767,9 +1768,9 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
       *(host++) = '\0';		/* break up string at the '@' */
     }
     ip_mask = check_if_ipmask(host);	/* Store this boolean */
-#ifdef WT_BADCHAN
-    if(*host == '#')
-#ifndef WT_LOCAL_BADCHAN
+#ifdef BADCHAN
+    if(*host=='#' || *host == '&' || *host == '+')
+#ifndef LOCAL_BADCHAN
      return 0;
 #else
      gtype=1;	/* BAD CHANNEL */

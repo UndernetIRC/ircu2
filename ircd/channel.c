@@ -2264,10 +2264,10 @@ int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
       if (MyConnect(sptr))
       { 
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
         if(bad_channel(name) && !IsAnOper(sptr))
         {
-	  sendto_one(sptr, err_str(ERR_CHANNELISFULL), me.name, parv[0],name);
+	  sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0],name);
 	  continue;
         }
 #endif

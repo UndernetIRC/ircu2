@@ -389,9 +389,10 @@ aGline *make_gline(int is_ipmask, char *host, char *reason,
     char *name, time_t expire)
 {
   Reg4 aGline *agline;
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
   int gtype=0;
-  if(*host == '#') gtype=1; /* BAD CHANNEL GLINE */
+  if(*host == '#' || *host == '&' || *host == '+') 
+    gtype=1; /* BAD CHANNEL GLINE */
 #endif
 
   agline = (struct Gline *)RunMalloc(sizeof(aGline));	/* alloc memory */
@@ -403,7 +404,7 @@ aGline *make_gline(int is_ipmask, char *host, char *reason,
   if (is_ipmask)
     SetGlineIsIpMask(agline);
 
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
   if(gtype)
   { agline->next = badchan;		/* link it into the list */
     return (badchan = agline);
@@ -454,8 +455,8 @@ void free_gline(aGline *agline, aGline *pgline)
     pgline->next = agline->next;	/* squeeze agline out */
   else
   { 
-#ifdef WT_BADCHAN
-    if(*agline->host =='#')
+#ifdef BADCHAN
+    if(*agline->host =='#' || *agline->host == '&' || *agline->host == '+')
     {
       badchan = agline->next;
     }
@@ -470,7 +471,7 @@ void free_gline(aGline *agline, aGline *pgline)
   RunFree(agline);
 }
 
-#ifdef WT_BADCHAN
+#ifdef BADCHAN
 int bad_channel(char *name)
 { aGline *agline;
 

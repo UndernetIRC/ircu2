@@ -220,7 +220,7 @@ static Numeric numeric_errors[] = {
 /* 478 */
     {ERR_BANLISTFULL, "%s %s :Channel ban/ignore list is full"},
 /* 479 */
-    {0, (char *)NULL},
+    {ERR_BADCHANNAME, "%s :Cannot join channel (access denied on this server)"},
 /* 480 */
     {0, (char *)NULL},
 /* 481 */
