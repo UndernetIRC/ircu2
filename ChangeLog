@@ -1,10 +1,12 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.15 2000-03-19 05:49:04 bleep Exp $
+# $Id: ChangeLog,v 1.16 2000-03-21 00:33:29 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
 #-----------------------------------------------------------------------------
+* Add Maniacs squit patch --Bleep
+* Merge in u2_10_10_beta07 changes --Bleep
 * Merge in u2_10_10_beta06 changes --Bleep
 * Start ircu2.10.11 development, beta branch u2_10_10 --Bleep

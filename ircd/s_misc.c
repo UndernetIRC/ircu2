@@ -323,7 +323,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
         && IsClient(victim))    /* Not a Ping struct or Log file */
     {
       if (IsServer(victim) || IsHandshake(victim))
-        sendto_one(victim, ":%s SQUIT %s 0 :%s", killer->name, me.name, comment);
+        sendto_one(victim, ":%s " TOK_SQUIT " %s 0 :%s", killer->name, me.name, comment);
       else if (!IsConnecting(victim)) {
         if (!IsDead(victim))
           sendto_one(victim, "ERROR :Closing Link: %s by %s (%s)",
@@ -392,7 +392,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   for (dlp = me.serv->down; dlp; dlp = dlp->next) {
     if (dlp->value.cptr != killer->from && dlp->value.cptr != victim) {
       if (IsServer(victim))
-        sendto_one(dlp->value.cptr, ":%s SQUIT %s " TIME_T_FMT " :%s",
+        sendto_one(dlp->value.cptr, ":%s " TOK_SQUIT " %s " TIME_T_FMT " :%s",
                    killer->name, victim->name, victim->serv->timestamp, comment);
       else if (IsUser(victim) && 0 == (victim->flags & FLAGS_KILLED))
         sendto_one(dlp->value.cptr, "%s%s " TOK_QUIT " :%s", NumNick(victim), comment);
