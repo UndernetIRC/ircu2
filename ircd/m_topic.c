@@ -111,7 +111,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    {
        /* allow off-channel services to set the topic of any channel */
    }
-   else if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && is_chan_op(sptr, chptr))
+   else if ((chptr->mode.mode & MODE_TOPICLIMIT) && !is_chan_op(sptr, chptr))
    {
       /* if +t and not @'d, return an error and ignore the topic */
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
