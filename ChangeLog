@@ -1,5 +1,14 @@
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_whois.c (do_whois): rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
+	* ircd/ircd_features.c: rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
+	* include/ircd_features.h: rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
 	* include/patchlevel.h (PATCHLEVEL): bump patch level
 
 	* ircd/channel.c (is_banned): apply patch #888640
