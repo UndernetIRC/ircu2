@@ -70,9 +70,9 @@ static void map_add(struct Client *server)
   map->next = MapList;
 
   if(MapList)
-    MapList->prev = new;
+    MapList->prev = map;
   
-  MapList = new;
+  MapList = map;
 }
 
 /* Remove a server from the map list */
@@ -127,7 +127,7 @@ void map_update(struct Client *cptr)
 
   /* If we haven't seen it before, add it to the list. */
   if(!map)
-    map_add(cli_name(cptr));
+    map_add(cptr);
 }
 
 void map_dump_head_in_sand(struct Client *cptr)
