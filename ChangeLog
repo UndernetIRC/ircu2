@@ -1,5 +1,12 @@
 2000-04-25  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_snprintf.c (doprintf): implement %H for possible
+	future expansion (channel numerics?)
+
+	* include/ircd_snprintf.h: added documentation to # to explain use
+	with %C; added documentation for : to explain use with %C; added
+	documentation for %H for channels
+
 	* ircd/whocmds.c: use send_reply
 
 	* ircd/userload.c: use sendcmdto_one
@@ -721,7 +728,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.101 2000-04-25 20:22:25 kev Exp $
+# $Id: ChangeLog,v 1.102 2000-04-25 20:33:50 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
