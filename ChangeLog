@@ -1,3 +1,9 @@
+2004-01-31  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): update patchlevel...
+
+	* ircd/channel.c (mode_parse_key): don't allow , in keys!
+
 2004-01-11  Perry Lorier <isomer@undernet.org>
 
 	* include/patchlevel.h: Release 2.10.11.06
