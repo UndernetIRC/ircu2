@@ -95,5 +95,6 @@ extern void msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio);
 extern void msgq_count_memory(size_t *msg_alloc, size_t *msg_used,
 			      size_t *msgbuf_alloc, size_t *msgbuf_used);
 extern unsigned int msgq_bufleft(struct MsgBuf *mb);
+extern void msgq_histogram(struct Client *cptr);
 
 #endif /* INCLUDED_msgq_h */

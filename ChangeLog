@@ -1,5 +1,17 @@
 2002-05-05  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel (again)
+
+	* ircd/s_stats.c: document /stats j as an option
+
+	* ircd/msgq.c: keep a histogram of message sizes; add
+	msgq_histogram() to report it
+
+	* ircd/m_stats.c: add /stats j to report message length histogram
+
+	* include/msgq.h (msgq_histogram): declare histogram reporting
+	function
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 	* ircd/send.c (kill_highest_sendq): create a new routine to kill

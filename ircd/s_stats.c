@@ -82,6 +82,7 @@ const char *statsinfo[] = {
     "z - Memory/Structure allocation information.",
     "r - System resource usage (Debug only).", 
     "x - List usage information (Debug only).",
+    "j - Message length histogram.",
     0,
 };
 
