@@ -242,7 +242,8 @@ gline_checkmask(char *mask)
     } else if (*mask == '*' || *mask == '?')
       flags |= MASK_WILD_0 | MASK_WILDS; /* found a wildcard */
     else if (*mask == '/') { /* n.n.n.n/n notation; parse bit specifier */
-      ipmask = strtoul(++mask, &mask, 10);
+      ++mask;
+      ipmask = strtoul(mask, &mask, 10);
 
       if (*mask || dots != 3 || ipmask > 32 || /* sanity-check to date */
 	  (flags & (MASK_WILDS | MASK_IP)) != MASK_IP)

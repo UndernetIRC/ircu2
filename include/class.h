@@ -80,7 +80,8 @@ extern char *get_conf_class(const struct ConfItem *aconf);
 extern int get_conf_ping(const struct ConfItem *aconf);
 extern char *get_client_class(struct Client *acptr);
 extern void add_class(char *name, unsigned int ping,
-                      unsigned int confreq, unsigned int maxli, unsigned int sendq);
+                      unsigned int confreq, unsigned int maxli,
+                      unsigned int sendq);
 extern void check_class(void);
 extern void report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
                            char *param);

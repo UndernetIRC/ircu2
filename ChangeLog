@@ -1,3 +1,8 @@
+2003-01-12  Thomas Helvey <tom.helvey@cox.net>
+	* include/class.h, include/ircd_string.h, ircd/class.c,
+	ircd/gline.c, ircd_string.c: Fix undefined order
+	of evaluation bug in gline.c, add general purpose hasher for
+	conf entries. 
 2003-01-11  Thomas Helvey <tom.helvey@cox.net>
 	* include/channel.h, include/ircd_alloc.h, ircd/channel.c,
 	ircd/client.c, ircd/gline.c, ircd/ircd_alloc.c,

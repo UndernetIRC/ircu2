@@ -45,7 +45,8 @@ static const char* hostExpr = "^([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+$";
 static regex_t hostRegex;
 
 static const char* addrExpr =
-    "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){1,3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
+    "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){1,3}"
+    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
 static regex_t addrRegex;
 
 int init_string(void)
@@ -89,6 +90,22 @@ int string_has_wildcards(const char* str)
       return 1;
   }
   return 0;
+}
+
+unsigned int hash_pjw(const char* str)
+{
+  unsigned h = 0;
+  unsigned g;
+  assert(str);
+
+  for ( ; *str; ++str) {
+    h = (h << 4) + *str;
+    if ((g = h & 0xf0000000)) {
+      h ^= g >> 24;  /* fold top four bits onto ------X- */
+      h ^= g;        /* clear top four bits */
+    }
+  }
+  return h;
 }
 
 /*

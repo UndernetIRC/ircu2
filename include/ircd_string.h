@@ -23,11 +23,15 @@ extern int string_is_hostname(const char* str);
 extern int string_is_address(const char* str);
 extern int string_has_wildcards(const char* str);
 
+/*! Return hash for string using PJW algorithm */
+extern unsigned hash_pjw(const char* str);
 extern char*       ircd_strncpy(char* dest, const char* src, size_t len);
 extern int         ircd_strcmp(const char *a, const char *b);
 extern int         ircd_strncmp(const char *a, const char *b, size_t n);
-extern int         unique_name_vector(char* names, char token, char** vector, int size);
-extern int         token_vector(char* names, char token, char** vector, int size);
+extern int         unique_name_vector(char* names, char token,
+                                      char** vector, int size);
+extern int         token_vector(char* names, char token,
+                                char** vector, int size);
 extern const char* ircd_ntoa(const char* addr);
 extern const char* ircd_ntoa_r(char* buf, const char* addr);
 extern char*       host_from_uh(char* buf, const char* userhost, size_t len);

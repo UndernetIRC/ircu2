@@ -119,7 +119,8 @@ void class_delete_marked(void)
 
   for (prev = cl = connClassList; cl; cl = prev->next) {
     Debug((DEBUG_DEBUG, "Class %s : CF: %d PF: %d ML: %d LI: %d SQ: %d",
-           ConClass(cl), ConFreq(cl), PingFreq(cl), MaxLinks(cl), Links(cl), MaxSendq(cl)));
+           ConClass(cl), ConFreq(cl), PingFreq(cl), MaxLinks(cl),
+           Links(cl), MaxSendq(cl)));
     /*
      * unlink marked classes, delete unreferenced ones
      */
@@ -270,7 +271,8 @@ get_sendq(struct Client *cptr)
 void class_send_meminfo(struct Client* cptr)
 {
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
-             connClassAllocCount, connClassAllocCount * sizeof(struct ConnectionClass));
+             connClassAllocCount,
+             connClassAllocCount * sizeof(struct ConnectionClass));
 }
 
 
