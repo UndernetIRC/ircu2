@@ -467,6 +467,9 @@ struct Client {
 #define ClearServNotice(x)      ClrFlag(x, FLAG_SERVNOTICE)
 #define ClearHiddenHost(x)	ClrFlag(x, FLAG_HIDDENHOST)
 
+#define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
+                            || HasPriv(sptr, PRIV_SEE_OPERS)))
+
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/* socket needs to be freed */
 #define FREEFLAG_TIMER	0x0002	/* timer needs to be freed */

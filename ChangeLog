@@ -1,4 +1,18 @@
+2004-06-17  Fredrik Soderblom <froo@quakenet.org>
+
+	* ircd/s_conf.c (rehash): added restart_resolver()
+
+2003-07-04  Bas Steendijk <steendijk@xs4all.nl>
+
+	* include/client.h, ircd/m_userhost.c, ircd/m_userip.c, ircd/m_who.c,
+	ircd/m_whois.c, ircd/whocmds.c: the same code, for "can user A see user
+	B is an oper", appeared in a lot of places. made it a define SeeOper. 
+
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_topic.c (do_settopic): Don't allow banned users to set a
+	topic in a channel (adapted from patch by Alexander Maassen
+	<outsider@key2peace.org>)
 
 	* tools/Bounce/Bounce.h: drop file location
 
