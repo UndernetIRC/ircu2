@@ -1,3 +1,41 @@
+2002-01-28  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_err.c: added new channel mode 'r' to list of supported
+	channel modes in RPL_MYINFO (004); migrated RPL_USERIP to use
+	numeric 340 instead of 307; add ERR_NEEDREGGEDNICK (477) for
+	informing users why they can't join a +r channel
+
+	* ircd/m_clearmode.c (do_clearmode): add support for MODE_REGONLY
+	(+r) to do_clearmode(); note that it is *not* being added to the
+	default clearmode mask!
+
+	* ircd/channel.c: don't allow non-+r users to send messages to +r
+	channels from off the channel; add support for MODE_REGONLY (+r)
+	to channel_modes(); don't allow non-+r users to join +r channels
+	without an invite; add support for MODE_REGONLY to the modebuf_*()
+	family of functions (changes in modebuf_flush_int(),
+	modebuf_mode(), and modebuf_extract()); add support for
+	MODE_REGONLY to mode_parse()
+
+	* include/supported.h (FEATURESVALUES2): added the new channel
+	mode 'r' to the list of supported channel modes
+
+	* include/numeric.h: move RPL_USERIP to 340 to avoid the 307
+	conflict; add ERR_NEEDREGGEDNICK (477) for the new +r channels
+
+	* include/channel.h: remove unused MODE_SENDTS; add new
+	MODE_REGONLY
+
+	* ircd/s_bsd.c (read_packet): remove call to timer_verify()
+
+	* ircd/list.c: remove calls to timer_verify() from
+	alloc_connection() and dealloc_connection()
+
+	* ircd/ircd_events.c: turn off timer_verify(); remove calls to it
+	from timer_run()
+
 2002-01-27  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel

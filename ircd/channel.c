@@ -637,8 +637,9 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
    * +n (no external messages) or +m (moderated).
    */
   if (!member) {
-    if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) 
-    	|| IsModelessChannel(chptr->chname)) 
+    if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
+	IsModelessChannel(chptr->chname) ||
+	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
     else
       return !is_banned(cptr, chptr, NULL);
@@ -689,6 +690,8 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'i';
   if (chptr->mode.mode & MODE_NOPRIVMSGS)
     *mbuf++ = 'n';
+  if (chptr->mode.mode & MODE_REGONLY)
+    *mbuf++ = 'r';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
@@ -1005,6 +1008,9 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
   	
   if (chptr->mode.limit && chptr->users >= chptr->mode.limit)
   	return overrideJoin + ERR_CHANNELISFULL;
+
+  if ((chptr->mode.mode & MODE_REGONLY) && !IsAccount(sptr))
+  	return overrideJoin + ERR_NEEDREGGEDNICK;
   	
   if (is_banned(sptr, chptr, NULL))
   	return overrideJoin + ERR_BANNEDFROMCHAN;
@@ -1320,6 +1326,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_TOPICLIMIT,	't',
     MODE_INVITEONLY,	'i',
     MODE_NOPRIVMSGS,	'n',
+    MODE_REGONLY,	'r',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
 /*  MODE_LIMIT,		'l', */
@@ -1674,7 +1681,7 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
-	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS);
+	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;
@@ -1777,6 +1784,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_KEY,		'k',
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
+    MODE_REGONLY,	'r',
     0x0, 0x0
   };
   unsigned int add;
@@ -2422,6 +2430,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_KEY,		'k',
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
+    MODE_REGONLY,	'r',
     MODE_ADD,		'+',
     MODE_DEL,		'-',
     0x0, 0x0
