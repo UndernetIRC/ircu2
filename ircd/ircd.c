@@ -95,7 +95,7 @@ extern etext(void);
 
 static void server_reboot(const char* message)
 {
-  sendto_ops("Restarting server: %s", message);
+  sendto_opmask_butone(0, SNO_OLDSNO, "Restarting server: %s", message);
   Debug((DEBUG_NOTICE, "Restarting server..."));
   flush_connections(0);
 
@@ -118,7 +118,7 @@ static void server_reboot(const char* message)
 void server_die(const char* message)
 {
   ircd_log(L_CRIT, "Server terminating: %s", message);
-  sendto_ops("Server terminating: %s", message);
+  sendto_opmask_butone(0, SNO_OLDSNO, "Server terminating: %s", message);
   flush_connections(0);
   close_connections(1);
   thisServer.running = 0;
@@ -249,7 +249,8 @@ static time_t try_connections(void)
       (*pconf = con_conf)->next = 0;
     }
     if (connect_server(con_conf, 0, 0))
-      sendto_ops("Connection to %s activated.", con_conf->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Connection to %s activated.",
+			   con_conf->name);
   }
   Debug((DEBUG_NOTICE, "Next connection check : %s", myctime(next)));
   return (next);
@@ -321,7 +322,8 @@ static time_t check_pings(void)
       
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
-        sendto_ops("No response from %s, closing link", cptr->name);
+	sendto_opmask_butone(0, SNO_OLDSNO,
+			     "No response from %s, closing link", cptr->name);
 
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
@@ -337,6 +339,7 @@ static time_t check_pings(void)
        * nospoof PONG.
        */
       if (*cptr->name && cptr->user && *cptr->user->username) {
+	/* XXX sendto_one used to send numeric XXX */
         sendto_one(cptr,
             ":%s %d %s :Your client may not be compatible with this server.",
             me.name, ERR_BADPING, cptr->name);
@@ -361,6 +364,7 @@ static time_t check_pings(void)
        */
       cptr->lasttime = CurrentTime - max_ping;
       
+      /* XXX sendto_one sending PING; must be very careful XXX */
       if (IsUser(cptr))
         sendto_one(cptr, MSG_PING " :%s", me.name);
       else

@@ -105,9 +105,9 @@ struct FieldData {
 #define FLAG_SPACE	0x00000004	/* found a ' ' flag */
 #define FLAG_ALT	0x00000008	/* found a '#' flag */
 #define FLAG_ZERO	0x00000010	/* found a '0' flag */
+#define FLAG_COLON	0x00000020	/* found a ':' flag */
 
-#define FLAG_RESERVED2	0x00000020	/* reserved for future expansion */
-#define FLAG_RESERVED1	0x00000040
+#define FLAG_RESERVED1	0x00000040	/* reserved for future expansion */
 #define FLAG_RESERVED0	0x00000080
 
 /* integer types */
@@ -1533,6 +1533,11 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  fld_s.flags |= FLAG_ALT;
 	continue;
 
+      case ':': /* Deal with the colon flag */
+	if (state == FLAG)
+	  fld_s.flags |= FLAG_COLON;
+	continue;
+
       case '0': /* Deal with a zero flag */
 	if (state == FLAG) {
 	  fld_s.flags |= FLAG_ZERO;
@@ -1645,11 +1650,12 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 
       case 's': /* convert a string */
 	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ALT | FLAG_ZERO |
-			 TYPE_MASK);
+			 FLAG_COLON | TYPE_MASK);
 	fld_s.flags |= ARG_PTR | CONV_STRING;
 	break;
 
       case 'd':  case 'i':
+	fld_s.flags &= ~(FLAG_COLON);
 	fld_s.flags |= ARG_INT | CONV_INT;
 	break;
 
@@ -1663,7 +1669,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  fld_s.base = BASE_HEX;
 	/*FALLTHROUGH*/
       case 'u': /* Unsigned int */
-	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE);
+	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_COLON);
 	fld_s.flags |= INFO_UNSIGNED | ARG_INT | CONV_INT;
 	break;
 
@@ -1677,13 +1683,13 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 
       case 'c': /* character */
 	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ALT | FLAG_ZERO |
-			  TYPE_MASK);
+			 FLAG_COLON | TYPE_MASK);
 	fld_s.flags |= INFO_UNSIGNED | ARG_INT | TYPE_CHAR | CONV_CHAR;
 	fld_s.prec = -1;
 	break;
 
       case 'p': /* display a pointer */
-	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | TYPE_MASK);
+	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_COLON | TYPE_MASK);
 	fld_s.flags |= (FLAG_ALT | FLAG_ZERO | TYPE_POINTER | ARG_PTR |
 			CONV_INT | INFO_UNSIGNED);
 	fld_s.prec = (SIZEOF_VOID_P * 2); /* number of characters */
@@ -1716,20 +1722,19 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 
       case 'm': /* write out a string describing an errno error */
 	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ALT | FLAG_ZERO |
-			  TYPE_MASK);
+			 FLAG_COLON | TYPE_MASK);
 	fld_s.flags |= CONV_STRING;
 	fld_s.value.v_ptr = (void *)strerror(errno);
 	break;
 
       case 'v': /* here's the infamous %v... */
 	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ALT | FLAG_ZERO |
-			 TYPE_MASK);
+			 FLAG_COLON | TYPE_MASK);
 	fld_s.flags |= ARG_PTR | CONV_VARARGS;
 	break;
 
       case 'C': /* convert a client name... */
-	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ALT | FLAG_ZERO |
-			 TYPE_MASK);
+	fld_s.flags &= ~(FLAG_PLUS | FLAG_SPACE | FLAG_ZERO | TYPE_MASK);
 	fld_s.flags |= ARG_PTR | CONV_CLIENT;
 	break;
 
@@ -1993,8 +1998,8 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       vdata->vd_overflow = SNP_MAX(buf_s.buf_overflow, buf_s.overflow);
     } else if ((fld_s.flags & CONV_MASK) == CONV_CLIENT) {
       struct Client *cptr = (struct Client*) fld_s.value.v_ptr;
-      char *str1 = 0, *str2 = 0;
-      int slen1 = 0, slen2 = 0, plen = 0;
+      char *str1 = 0, *str2 = 0, *str3 = 0;
+      int slen1 = 0, slen2 = 0, slen3 = 0, elen = 0, plen = 0;
 
       /* &me is used if it's not a definite server */
       if (dest && (IsServer(dest) || IsMe(dest))) {
@@ -2004,21 +2009,47 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  str1 = cptr->user->server->yxx;
 	  str2 = cptr->yxx;
 	}
-      } else
-	str1 = cptr->name;
+	fld_s.flags &= ~(FLAG_ALT | FLAG_COLON);
+      } else {
+	str1 = *cptr->name ? cptr->name : "*";
+	if (!IsServer(dest) && fld_s.flags & FLAG_ALT) {
+	  str2 = cptr->user->username;
+	  str3 = cptr->user->host;
+	} else
+	  fld_s.flags &= ~FLAG_ALT;
+      }
 
-      slen1 = my_strnlen(str1, fld_s.prec);
-      if (str2 && (fld_s.prec < 0 || fld_s.prec - slen1 > 0))
-	slen2 = my_strnlen(str2, fld_s.prec < 0 ? -1 : fld_s.prec - slen1);
-      plen = (fld_s.width - (slen1 + slen2) <= 0 ? 0 :
-	      fld_s.width - (slen1 + slen2));
+      if (fld_s.flags & FLAG_COLON)
+	elen++; /* account for : */
+
+      slen1 = my_strnlen(str1, fld_s.prec < 0 ? -1 : fld_s.prec - elen);
+      if (fld_s.flags & FLAG_ALT)
+	elen++; /* account for ! */
+      if (str2 && (fld_s.prec < 0 || fld_s.prec - (slen1 + elen) > 0))
+	slen2 = my_strnlen(str2, fld_s.prec < 0 ? -1 : fld_s.prec -
+			   (slen1 + elen));
+      if (fld_s.flags & FLAG_ALT)
+	elen++; /* account for @ */
+      if (str3 && (fld_s.prec < 0 || fld_s.prec - (slen1 + slen2 + elen) > 0))
+	slen3 = my_strnlen(str3, fld_s.prec < 0 ? -1 : fld_s.prec -
+			   (slen1 + slen2 + elen));
+      plen = (fld_s.width - (slen1 + slen2 + slen3 + elen) <= 0 ? 0 :
+	      fld_s.width - (slen1 + slen2 + slen3 + elen));
 
       if (plen > 0 && !(fld_s.flags & FLAG_MINUS))
 	do_pad(buf_p, plen, spaces); /* pre-padding */
 
+      if (fld_s.flags & FLAG_COLON)
+	addc(buf_p, ':');
       adds(buf_p, slen1, str1);
+      if (fld_s.flags & FLAG_ALT)
+	addc(buf_p, '!');
       if (str2)
 	adds(buf_p, slen2, str2);
+      if (fld_s.flags & FLAG_ALT)
+	addc(buf_p, '@');
+      if (str3)
+	adds(buf_p, slen3, str3);
 
       if (plen > 0 &&  (fld_s.flags & FLAG_MINUS))
 	do_pad(buf_p, plen, spaces); /* post-padding */

@@ -310,6 +310,7 @@ void free_class(struct ConfClass * tmp)
 }
 
 #ifdef  DEBUGMODE
+/* XXX uses sendto_one to send a RPL_STATSDEBUG -- no string for rpl */
 void send_listinfo(struct Client *cptr, char *name)
 {
   int inuse = 0, mem = 0, tmp = 0;
