@@ -290,6 +290,7 @@ static struct FeatureDesc {
   F_B(UNLIMIT_OPER_QUERY, 0, 0, 0),
   F_B(LOCAL_KILL_ONLY, 0, 0, 0),
   F_B(CONFIG_OPERCMDS, 0, 0, 0),
+  F_B(LIST_CHAN, 0, 1, 0),
 
   /* features that affect global opers on this server */
   F_B(OPER_KILL, 0, 1, 0),

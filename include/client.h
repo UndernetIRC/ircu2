@@ -97,7 +97,9 @@ struct AuthRequest;
 
 #define PRIV_WIDE_GLINE		27 /* oper can set wider G-lines */
 
-#define PRIV_LAST_PRIV		27 /* must be the same as the last priv */
+#define PRIV_LIST_CHAN          28 /* oper can list secret channels */
+
+#define PRIV_LAST_PRIV		28 /* must be the same as the last priv */
 
 #define _PRIV_NBITS		(8 * sizeof(unsigned long))
 

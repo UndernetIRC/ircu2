@@ -83,6 +83,7 @@ enum Feature {
   FEAT_UNLIMIT_OPER_QUERY,
   FEAT_LOCAL_KILL_ONLY,
   FEAT_CONFIG_OPERCMDS,
+  FEAT_LIST_CHAN,
 
   /* features that affect global opers on this server */
   FEAT_OPER_KILL,

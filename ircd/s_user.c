@@ -737,7 +737,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
        * then 30 seconds ago. This is intended to get rid of
        * clone bots doing NICK FLOOD. -SeKs
        * If someone didn't change their nick for more then 60 seconds
-       * however, allow to do two nick changes immedately after another
+       * however, allow to do two nick changes immediately after another
        * before limiting the nick flood. -Run
        */
       if (CurrentTime < cli_nextnick(cptr)) {

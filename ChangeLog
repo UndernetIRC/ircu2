@@ -1,3 +1,17 @@
+2002-03-19 LordLuke <lordluke@undernet.org>
+
+	* include/channel.h: Allow opers to view +s channels in /list
+
+	* include/client.h: Add "PRIV_LIST_CHAN" oper privilege
+
+	* include/ircd_features.h: added "LIST_CHAN" feature
+
+	* ircd/channel.c: Allow opers to view +s channels in /list
+
+	* ircd/client.c: Add "PRIV_LIST_CHAN"
+
+	* ircd/ircd_features.c: Add "LIST_CHAN" feature
+
 2002-03-13 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Last of the last of the bug fixes (Thanks Spike).

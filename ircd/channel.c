@@ -1313,7 +1313,8 @@ void list_next_channels(struct Client *cptr, int nr)
   {
     for (; chptr; chptr = chptr->next)
     {
-      if (!cli_user(cptr) || (SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
+      if (!cli_user(cptr) || (!(HasPriv(cptr, PRIV_LIST_CHAN) && IsAnOper(cptr)) && 
+          SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
         continue;
       if (chptr->users > args->min_users && chptr->users < args->max_users &&
           chptr->creationtime > args->min_time &&
@@ -1361,7 +1362,7 @@ void list_next_channels(struct Client *cptr, int nr)
  * via 'a', or on server 'B' via either 'b' or 'c', or on server D via 'd'.
  *
  * a) On server A : set CHFL_ZOMBIE for `who' (lp) and pass on the KICK.
- *    Remove the user immedeately when no users are left on the channel.
+ *    Remove the user immediately when no users are left on the channel.
  * b) On server B : remove the user (who/lp) from the channel, send a
  *    PART upstream (to A) and pass on the KICK.
  * c) KICKed by `client'; On server B : remove the user (who/lp) from the
@@ -2262,7 +2263,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     } else {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
 	  "Re-create the channel.  The channel must be *empty* for",
-	  TStime() - state->chptr->creationtime >= 171000 ? "48 contigious hours" : "a minute or two",
+	  TStime() - state->chptr->creationtime >= 171000 ? "48 contiguous hours" : "a minute or two",
 	  "before it can be recreated.");
     }
     return;
@@ -2433,7 +2434,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
 	    "You will NOT be able to change this password anymore once the channel is more than 48 hours old!");
 	send_reply(state->sptr, RPL_APASSWARN,
 	    "Use \"/MODE ", state->chptr->chname, " -A ", state->chptr->mode.apass,
-	    "\" to remove the password and then immediatly set a new one. "
+	    "\" to remove the password and then immediately set a new one. "
 	    "IMPORTANT: YOU CANNOT RECOVER THIS PASSWORD, EVER; "
 	    "WRITE THE PASSWORD DOWN (don't store this rescue password on disk)! "
 	    "Now set the channel user password (+u).");
