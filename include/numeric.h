@@ -249,6 +249,8 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_CHANPASSOK       338           IRCnet extension (?)*/
 /*	RPL_WHOISACTUALLY    338	   dalnet */
 /*      RPL_BADCHANPASS      339           IRCnet extension (?)*/
+/*			     339           mIRC/DALnet extension */
+/*			     440           mIRC/DALnet extension */
 
 #define RPL_INVITING         341
 /*      RPL_SUMMONING        342           removed from RFC1459 */
