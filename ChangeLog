@@ -1,5 +1,8 @@
 2002-01-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/engine_devpoll.c (engine_loop): relocate an assertion to
+	prevent a core bug *in* the assertion
+
 	* doc/readme.features: document new POLLS_PER_LOOP feature; change
 	documentation to reflect that OPER_SET now defaults to FALSE
 
