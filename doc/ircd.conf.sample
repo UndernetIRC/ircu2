@@ -1,0 +1,576 @@
+# ircd.conf  configuration file for ircd version ircu2.10.11
+# Last Updated:  August 6, 2002.
+#
+# Written by Sengaia <sengaia@undernet.org>, based on the original
+# example.conf by Niels and Braden.
+#
+# All options start with a letter identifying the option, and a colon
+# separated list of options. Unused fields should be left blank.
+#
+# This sample configuration file serves only to illustrate the use and
+# syntax of the options available, it should *never* be used to start
+# an ircu server with!
+#
+# All options given can be changed while the server is running by sending
+# a HUP signal to ircu or the /REHASH command, except where noted.
+#
+# If your server is a member of a network, chances are that there are some
+# configuration lines that need to be synchronized across all servers;
+# prime candidates being U:, Q: and possibly a subset of F: and K: lines.
+# The linesync script provided in the tools/linesync directory allows you
+# to centrally manage and update such a subset of configuration lines.
+#
+
+# [M:line]
+#
+# The M: line defines the identity of your server.
+# M:<server name>:<virtual host>:<description>::<numeric>
+# <server name>		The name of your server
+# <virtual host>	The IP address used by your server to initiate
+#			outgoing connections: server-to-server links and
+#			identd checks.
+# <description>		A short description of your server
+# <numeric>		A numeric that identifies your server on the
+#			network. It is used in server-server communication
+#			only and *MUST* be unique.
+# - The M: line is required.
+#
+# Notes:
+#	- The <virtual host> field has nothing to do with the addresses
+#	  and ports on which ircu will accept connections, those are
+#	  defined in P: lines, later on.
+#	- If you have CFV-165-based information hiding enabled, the content
+#	  of the <description> field will not be shown in /whois output.
+#	- The configuration parameters in the M: line cannot be updated
+# 	  by rehashing the server, a restart is required to make changes
+#	  take effect.
+#
+# Example:
+M:Amsterdam.NL.EU.undernet.org:192.168.10.11:CoolISP's Amsterdam IRC Server::19
+
+# [A:line]
+# Administrative information about the server
+# A:<line 1>:<line 2>:<line 3>
+# <line 1-3>	Three lines of text containing administrative information.
+# - The A: line is not required, but highly recommended.
+#
+# The contents of the A: line is returned when the /ADMIN command is
+# issued. It should at least contain an admin email address, but can also
+# contain information such as a company/network name and/or URL.
+#
+# Example:
+A:CoolISP's Undernet IRC Server:Administered by <ircadmin@coolisp.nl>:Visit www.coolisp.nl
+
+# [Y:lines]
+# Defines connection classes
+# Y:<class>:<ping frequency>:<connect frequency>:<maximum links>:<maximum sendq>
+# <class>	A number uniquely identifying this class
+# <ping freq>	Frequency in seconds at which the server will send keep-alive
+#		PINGs to the connected client/server.
+# <conn. freq>  Seconds between connection attempts, for server classes.
+# <max links>	Maximum number of allowed connections in this class,
+# <max sendq>	Maximum amount of data in bytes that can be backlogged for
+#		this connection on the server before the connection gets closed.
+# - Y: lines are not a legal requirement but a practical necessity.
+#
+# All connections on your server (both clients and servers) belong to a
+# class, a class defines certain parameters applying to the connection,
+# described below.
+#
+# In general, you will want separate classes for leafs, hubs and a number
+# of classes for clients to connect into. The number of classes to use
+# for clients depends entirely on the policy you wish to use. Use I lines
+# to filter clients into classes; this allows you to set a policy
+# governing how many clients from given networks can connect to your
+# server.
+#
+# For server classes, the meaning of <maximum links> is different:
+# Server classes are all classes that are included in C: lines (see
+# below). For server classes, ircu will keep trying to connect to the
+# servers in a given class until the class contains <maximum links>
+# connections. In practice this means that on leafs you want to set it to
+# 1, and on hubs to 0. Any other values may cause very interesting yet
+# entirely undesirable situations.
+#
+# Examples:
+# (Leaf) A class for the uplink to a hub
+# The maximum size of the sendq depends mostly on the size of your network
+Y:70:120:300:1:1000000
+
+# (Hub) A class for European leafs to connect to
+Y:80:120:300:0:1000000
+
+# (Hub) A class for other hubs to connect to
+Y:90:120:300:0:1500000
+
+# (Leaf) A fallback class for any clients that are not filtered into
+another class.
+Y:10:90:0:2000:32768
+
+# (Leaf) A class for very welcome clients (customers, for example)
+Y:20:90:0:4000:65536
+
+# (Leaf) A class that will allow only a limited number of connections
+Y:30:90:0:250:32768
+
+# (Leaf) A class for all "local" (Dutch) clients
+Y:40:90:0:2000:32768
+
+# (Leaf) A class for all "less local" (European) clients
+Y:50:90:0:1500:32768
+
+# (Leaf) A class for all "foreign" (overseas) clients
+Y:60:90:0:1000:32768
+
+# [I:lines]
+# Authorizes clients and filters them into classes
+# I:<address/hostmask>:<password/limit>:<hostmask>::<class>
+# <IP mask>	An IP address mask
+# <pass/limit>	Password or connection limit.
+# <hostmask>	Hostmask
+# <class>	The class (defined by Y: line) for this connection
+# - I: lines are not a legal requirement but a practical necessity.
+#
+# Notes:
+#	- The following wildcard characters are allowed in both IP and
+#	  hostname mask fields: * and ?
+#	- Both the IP and host mask fields can contain a userid@ field,
+#	  which will match a given username. Note that a userid field will
+#	  only be matched if an identd reply is received.
+#	- The word 'Resolved' in the <IP mask> field will match any
+#	  address for which a resolved hostname could be found.
+#	- The word 'Unresolved' in the <IP mask> field will match any
+#	  address for which no resolved hostname could be found.
+#	- The <password> field is optional and can be left empty for no
+#	  password, when a password is specified it must be in plain text.
+#	- If the <password/limit> field contains a digit, that number
+#	  will be the maximum allowed number of concurrent connections
+#	  *to the entire network* that match the given I: line.
+#	- I: lines with an empty IP or host mask field are ignored.
+#	- The first I: line that matches will be used.
+#	- I: lines are processed in reverse order as they appear in your
+#	  ircd.conf; therefore list the lesser specific I: lines before
+#	  any more specific ones.
+#
+# Incoming client connections are matched with I: lines according to the
+# following algorithm:
+# 1) Do a reverse and forward lookup on the client's IP address
+# 2) if (1) results in a hostname, try to match it to any I: line that
+#    contains a hostmask.
+# 3) If (1) does not return a hostname or (2) fails, try to match the IP
+#    address to any I: line containing an IP address mask.
+# 4) If no I: line matches, the connection is denied.
+#
+# The following two  I: lines are fallback entries - they will match any
+# connection that is not matched by other I: lines.
+
+# Unresolved connections - 1 client per address, in class 10
+I:*@*:1:Unresolved::10
+# Resolved connections
+I:Resolved::*@*::10
+
+# All American ISP's go in the "overseas" class:
+I:Resolved::*@*.com::60
+I:Resolved::*@*.net::60
+
+# Catch all local networks with "overseas" domain names
+I:Resolved::*@*.wirehub.net::40
+I:Resolved::*@*.NL.net::40
+I:Resolved::*@*.casema.net::40
+
+# Catch other European TLD's into the "European" class:
+I:Resolved::*@*.be::50
+I:Resolved::*@*.de::50
+I:Resolved::*@*.fr::50
+I:Resolved::*@*.uk::50
+# etc...
+
+# Clients matching these lines are limited to 1 connection per address
+I:Resolved:1:*@*.compuserve.com::60
+I:Resolved:1:*@dial??.*::1
+
+# Lines for privileged clients, i.e. ourselves and friends ;)
+I:Resolved::*@.office.coolisp.nl::30
+I:Resolved::*@impressive.hostname.com::30
+
+# [T:lines]
+# Display customized MOTD's depending on client's class or hostname
+# T:<hostmask|class>:<motd-file>
+# <host|class>	A hostmask or class number
+# <motd-file>	Patch to a file containing a MOTD
+# - T: lines are not required
+#
+# Notes:
+#	- Filenames given are relative to "DPATH" (see ./configure)
+#
+# Examples:
+#
+# A T: line to inform overseas clients they may be better off connecting
+# to an American server.
+T:60:overseas.motd
+
+# Tell Swedish clients they should connect to irc.bork-bork-bork.org
+T:*.se:bork-bork-bork.motd
+
+# [U:lines]
+# Define services servers and juped nicknames
+# U:<server>:<juped-nicks>:*
+# <server>	Name of a services server
+# <juped-nicks>	Comma separated list of juped nicks
+# - U: lines are required when you run services (i.e., gnuworld)
+#
+# Notes:
+#	- No more than 4 juped nicknames per line
+#	- U: lines must have no trailing spaces or bad things will happen.
+#	- Server names must be full names, they cannot be wildcarded
+#	- The trailing :* is mandatory
+#	- All servers on your network must have the same U: lines
+#
+# Background: Services servers, which usually provide channel and/or
+# operator services are able to change arbitrary modes in channels. In
+# order for them to be able to do this they generate server-to-server
+# messages that are usually disallowed and will be rejected by other
+# servers. Such messages will be accepted only if they originate from
+# U:lined servers.
+#
+# Examples:
+#
+U:services.undernet.org:euworld,X,W,E:*
+U:services2.undernet.org:uworld,COM1,COM2,COM3:*
+U:opers.undernet.org:LPT1,LPT2,login,Undernet:*
+
+# [K:lines]
+# Ban clients from your server
+# K:<mask>:<"reason">:<username>
+# <mask>	A hostname or IP mask
+# <reason>	The reason the client(s) is/are banned
+# <username>	Client's username username
+# - K: lines are not mandatory
+#
+# Notes:
+#	- Put quotes "around the reason"
+#	- If the first character of the reason field is a '!', the remainder of
+#	  the field is interpreted as a filename pointing to a file containing
+#	  the reason the client is banned.
+#	- If no reason is given, the following default reason will be used: "You
+#	  are banned from this server"
+#	- The username field is matched only if the client has returned an
+#	  identd reply.
+#	- Use a lowercase k: line to force a match on the client's IP address,
+#	  regardless of whether or not the client's address was resolved.
+#	- Prefix the <mask> field with '$R' to force a match on the client's
+#	  "real name", which is very handy for banning clonebots.
+#	- K: lines apply to your server only, they have no effect on a client's
+#	  ability (or lack thereof) of being able to connect to another server.
+#
+# Examples:
+#
+# Ban all clients from the UK, telling them to use their local server
+K:*.uk:"Please use a closer server":*
+
+# Ban the address space used by a provider that refuses to handle abuse
+# complaints, show client instructions on what to from a file.
+K:*.abusers.net:!klines/abusers-klined.txt:*
+
+# Ban the same ISP's IP addresses too, in case they don't resolve
+k:172.16.*:!klines/abusers-klined.txt:*
+
+# Ban well-know floodbots based on their realname field
+K:$R*sub7*:"You are infected with a Trojan":*
+
+# [C:lines]
+# Connect your server to other servers
+# C:<host|ip>:<password>:<remote-server>:<port>:<class>
+# <host|ip>	Hostname or IP address of the remote server
+# <password>	Connection password
+# <rem-server>	Name of the remote server
+# <port>	Port to connect to on the remote server
+# <class>	Class to be used for this connection
+# - C: lines are not required, but necessary to connect to other servers.
+#
+# Notes:
+#	- The IP address listed in the <virtual host> field of the M: line will
+# 	  be used to initiate the connection.
+#	- The password must be in plain text
+#	- The remote server needs a matching (mirrored) C: line for a connection
+#	  to be successfully established.
+#	- The class given needs to have an adequate maximum sendq for the net
+#	  burst to be processed upon connecting; for hubs it needs to be set
+#	  higher than for leafs.
+#	- If a port number is given, the server will automatically try to
+#	  establish a connection to the remote server, unless it is already
+#	  linked. If a port number is omitted, no connection will be attempted
+#	  automatically. In practice this means you will want to set a port
+#	  number on leafs, and leave it out on hubs.
+#
+# Examples:
+# (Leaf) uplink to a hub
+C:192.168.77.12:gUeS5whaT!:hub07.eu.undernet.org:4400:70
+
+# (Hub) C: line for a leaf server
+C:192.168.19.07:gUeS5whaT!:Amsterdam.NL.eu.undernet.org::80
+
+# (Hub) a C: line for another hub
+C:172.16.19.94:s3Krit&:hub34.us.undernet.org::90
+
+# [H:lines]
+# Defines what servers allowed to be hubs
+# H:<mask>::<server-name>
+# <mask>	A mask defining what servers the given hub is allowed to hub.
+# <server-name>	Name of a hub server
+# - H: lines are not required, but needed in a multi-server network.
+#
+# Notes:
+#	- The H: lines allows the server <server-name> to "introduce" all
+#	  servers matching <mask> to our server.
+#	- Currently, the <mask> functionality is broken and in effect, any
+#	  server listed in a H: line is allowed to introduce any other server.
+#	- You need H: lines for all hubs your server will connect to.
+#
+# Example:
+H:*.*::hub07.eu.undernet.org
+
+# [D:lines]
+# Specify server-to-server connection policies.
+#
+# D: and d: lines allow you to set pretty fine-grained policies with
+# regard to the routing on an IRC network. For a complete description and
+# examples of D: lines, see the readme.crules file.
+
+
+# [O:lines]
+# Grant operator status to users
+# O:<host|ip mask>:<password>:<nick>::<class>
+# o:<host|ip mask>:<password>:<nick>::<class>
+# <host|ip>	A hostname or IP address mask required for the O: line
+# <password>	An encrypted password
+# <nick>        Nickname required to oper up
+# <class>	A connection class
+# - O: lines are not required
+#
+# Notes:
+#	- Use the tools/mkpasswd tool to encrypt passwords
+#	- Choose safe passwords
+#	- Make the <host|ip> mask as narrowly matching as possible
+#
+# O: lines with a capital O are global operators, their privileges apply
+# to all servers on a given network. o: lines with a lowercase o are local
+# o: lines, their privileges apply to your local server only.
+#
+# In general, most of the tasks originally bequeathed upon IRC operators
+# have been automated by channel services, auto-glining service bots,
+# proxy scanners, etc. This means that, contrary to popular belief, having
+# many operators on your server is not a cool badge of honor, but rather
+# a token of your inability to properly manage your server and/or network.
+#
+# Less is more. Choose your operators sparingly and carefully.
+#
+# Examples:
+O:kermit@muppet.coolisp.nl:VRKLKuGKn0jLs:Kermit::30
+o:*@piglatin.coolisp.nl:eUi5trgahhTyp:MsPiggy::30
+
+
+# [P:lines]
+# Defines listening ports and the type(s) of connections they will accept.
+# P:<IP-mask>:<address>:<status>:<port>
+# <IP-mask>	An IP address mask specifying what addresses can connect to
+#		this port.
+# <address>	A local IP address that ircu should bind this port to.
+# <status>	Defines what types of connections are allowed to this port,
+#		<status> can be either or both of 'C' for clients, or 'S'
+#		for servers. Optionally a trailing 'H' can be specified,
+#		denoting that this port is hidden (will not show up in /STATS P).
+#		If the 'H' flag is used, it must be the last character listed.
+# <port>	A port number to listen on, this must be greater than 1024.
+# - P: lines are required to connect any server or client to your server.
+#
+#	- If <address> is not specified, your system's default address is used.
+#	- If <address> is invalid or not a local address, ircu will bind to all
+#	  interfaces on your system.
+#
+# Examples:
+# The default port clients connect on
+P::192.168.10.11:C:6667
+
+# A hidden port for hubs to connect on, on a different interface
+P:192.168.10.12:SH:4400
+
+# A restricted port for staff only
+P:192.168.10.*:192.168.10.11:C:7000
+
+
+# [Q:lines]
+# Prohibit local operators from setting/clearing modes on a channel.
+# Q:<channel>:<"reason">
+# <channel>	A channel name
+# <"reason">	The reason why this channel should not be touched.
+# - Q: lines are not required
+#
+# Notes:
+#	- Since the # character denotes a comment, you must escape it
+#	  with a \ character
+#	- Put your reason "in quotes".
+#	- Q: lines apply to operators on your server only, they have no
+#	  network-wide effect, which is why they should be synchronized
+#	  across servers.
+# 	- Operators can overrule Q: lines by prepending a '!' to the
+#	  channel name.
+#
+# Examples:
+Q:\#abusers:"These abusers need to learn to fend for themselves."
+Q:\#coder-com:"What the hell do you think you are doing?!"
+
+
+# [F:lines]
+# Set features on your server
+# F:<feature>:<value>
+# <feature>	The name of a feature (in capitals)
+# <value>	The value to be assigned to the feature
+# - F: lines are not required.
+#
+# Previous versions of ircu required you to define a lot of settings at
+# compile time; beginning with version 2.10.11 all of these and more can
+# now be set in ircd.conf via F: lines. The values of these variables can
+# be retrieved and set via IRC through the /GET and /SET commands.
+#
+# For a complete description of features, and how to set them, see the
+# doc/readme.features file.
+#
+# Listed below are all possible F: lines, with their default values.
+#
+F:DOMAINNAME:<obtained from /etc/resolv.conf by ./configure>
+F:RELIABLE_CLOCK:FALSE
+F:BUFFERPOOL:27000000
+F:HAS_FERGUSON_FLUSHER:FALSE
+F:CLIENT_FLOOD:1024
+F:SERVER_PORT:4400
+F:NODEFAULTMOTD:TRUE
+F:MOTD_BANNER
+F:KILL_IPMISMATCH:FALSE
+F:IDLE_FROM_MSG:TRUE
+F:HUB:FALSE
+F:WALLOPS_OPER_ONLY:FALSE
+F:NODNS:FALSE
+F:RANDOM_SEED:<you should set one explicitly>
+F:DEFAULT_LIST_PARAM
+F:NICKNAMEHISTORYLENGTH:800
+F:HOST_HIDING:FALSE
+F:HIDDEN_HOST:users.undernet.org
+F:HIDDEN_IP:127.0.0.1
+F:KILLCHASETIMELIMIT:30
+F:MAXCHANNELSPERUSER:10
+F:AVBANLEN:40
+F:MAXBANS:30
+F:MAXSILES:15
+F:HANGONGOODLINK:300
+F:HANGONRETRYDELAY:10
+F:CONNECTTIMEOUT:90
+F:TIMESEC:60
+F:MAXIMUM_LINKS:1
+F:PINGFREQUENCY:120
+F:CONNECTFREQUENCY:600
+F:DEFAULTMAXSENDQLENGTH:40000
+F:GLINEMAXUSERCOUNT:20
+F:MPATH:ircd.motd
+F:RPATH:remote.motd
+F:PPATH:ircd.pid
+F:VIRTUAL_HOST:FALSE
+F:TOS_SERVER:0x08
+F:TOS_CLIENT:0x08
+F:POLLS_PER_LOOP:200
+F:CRYPT_OPER_PASSWORD:TRUE
+F:OPER_NO_CHAN_LIMIT:TRUE
+F:OPER_MODE_LCHAN:TRUE
+F:OPER_WALK_THROUGH_LMODES:FALSE
+F:NO_OPER_DEOP_LCHAN:FALSE
+F:SHOW_INVISIBLE_USERS:TRUE
+F:SHOW_ALL_INVISIBLE_USERS:TRUE
+F:UNLIMIT_OPER_QUERY:FALSE
+F:LOCAL_KILL_ONLY:FALSE
+F:CONFIG_OPERCMDS:FALSE
+F:OPER_KILL:TRUE
+F:OPER_REHASH:TRUE
+F:OPER_RESTART:TRUE
+F:OPER_DIE:TRUE
+F:OPER_GLINE:TRUE
+F:OPER_LGLINE:TRUE
+F:OPER_JUPE:TRUE
+F:OPER_LJUPE:TRUE
+F:OPER_OPMODE:TRUE
+F:OPER_LOPMODE:TRUE
+F:OPER_FORCE_OPMODE:TRUE
+F:OPER_FORCE_LOPMODE:TRUE
+F:OPER_BADCHAN:FALSE
+F:OPER_LBADCHAN:FALSE
+F:OPER_SET:FALSE
+F:OPERS_SEE_IN_SECRET_CHANNELS:TRUE
+F:OPER_WIDE_GLINE:TRUE
+F:LOCOP_KILL:TRUE
+F:LOCOP_REHASH:TRUE
+F:LOCOP_RESTART:FALSE
+F:LOCOP_DIE:FALSE
+F:LOCOP_LGLINE:TRUE
+F:LOCOP_LJUPE:TRUE
+F:LOCOP_LOPMODE:TRUE
+F:LOCOP_FORCE_LOPMODE:TRUE
+F:LOCOP_LBADCHAN:FALSE
+F:LOCOP_SET:FALSE
+F:LOCOP_SEE_IN_SECRET_CHANNELS:FALSE
+F:LOCOP_WIDE_GLINE:FALSE
+F:HIS_MAP:TRUE
+F:HIS_SNOTICES:TRUE
+F:HIS_SNOTICES_OPER_ONLY:TRUE
+F:HIS_DESYNCS:TRUE
+F:HIS_DEBUG_OPER_ONLY:TRUE
+F:HIS_WALLOPS:TRUE
+F:HIS_LINKS:TRUE
+F:HIS_TRACE:TRUE
+F:HIS_STATS_l:TRUE
+F:HIS_STATS_c:TRUE
+F:HIS_STATS_g:TRUE
+F:HIS_STATS_h:TRUE
+F:HIS_STATS_k:TRUE
+F:HIS_STATS_f:TRUE
+F:HIS_STATS_i:TRUE
+F:HIS_STATS_j:TRUE
+F:HIS_STATS_M:TRUE
+F:HIS_STATS_m:TRUE
+F:HIS_STATS_o:TRUE
+F:HIS_STATS_p:TRUE
+F:HIS_STATS_q:TRUE
+F:HIS_STATS_r:TRUE
+F:HIS_STATS_d:TRUE
+F:HIS_STATS_e:TRUE
+F:HIS_STATS_t:TRUE
+F:HIS_STATS_T:TRUE
+F:HIS_STATS_u:FALSE
+F:HIS_STATS_U:TRUE
+F:HIS_STATS_v:TRUE
+F:HIS_STATS_w:FALSE
+F:HIS_STATS_x:TRUE
+F:HIS_STATS_y:TRUE
+F:HIS_STATS_z:TRUE
+F:HIS_WHOIS_SERVERNAME:TRUE
+F:HIS_WHOIS_IDLETIME:TRUE
+F:HIS_WHO_SERVERNAME:TRUE
+F:HIS_WHO_HOPCOUNT:TRUE
+F:HIS_BANWHO:TRUE
+F:HIS_KILLWHO:TRUE
+F:HIS_REWRITE:TRUE
+F:HIS_REMOTE:TRUE
+F:HIS_NETSPLIT:TRUE
+F:HIS_SERVERNAME:"*.undernet.org"
+F:HIS_SERVERINFO:"The Undernet Underworld"
+F:HIS_URLSERVERS:"http://www.undernet.org/servers.php"
+
+
+# That's it, you've (almost) reached the end!
+#
+# And now for the tricky bit: writing your own ircd.conf. For starters,
+# do not take this file and edit the lines as they appear, that will
+# *not* work. Usually, the network you are # connecting to will have a
+# set of mandatory configuration lines, and quite likely also some
+# people who can help you out when you run into trouble.
+#
+#	Good Luck!
+#	Arjen (Sengaia), August 12, 2002.

@@ -4,6 +4,8 @@
 
 2002-09-02  Arjen Wolfs  <arjen@euro.net>
 
+	* doc/ircd.conf.sample: new sample ircd.conf
+
 	* tools/linesync/linesync.sh: don't use /tmp, require GNU awk
 
 	* README.Solaris: include a link with more information
