@@ -1,3 +1,68 @@
+2001-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: retrieve MAXSILES and MAXSILELENGTH (now
+	AVBANLEN*MAXSILES) from features subsystem
+
+	* ircd/s_debug.c (debug_serveropts): CMDLINE_CONFIG doesn't go to
+	anything anymore
+
+	* ircd/s_bsd.c: retrieve HANGONGOODLINK and HANGONRETRYDELAY from
+	the features subsystem
+
+	* ircd/s_auth.c (start_auth): NODNS migrated to the features
+	subsystem
+
+	* ircd/random.c: created random_seed_set() function to set seed
+	value, along with some stuff to make ircrandom() a little more
+	random--state preserving, xor of time instead of direct usage,
+	etc.; it's still a pseudo-random number generator, though, and
+	hopefully I haven't broken the randomness
+
+	* ircd/m_version.c: FEATUREVALUES makes use of feature_int() calls
+
+	* ircd/m_join.c: use features interface to retrieve
+	MAXCHANNELSPERUSER
+
+	* ircd/ircd_features.c: add NODISP flag for super-secret features;
+	add a whole bunch of new features migrated over from make config
+
+	* ircd/ircd.c: use features interface to retrieve PINGFREQUENCY,
+	CONNECTTIMEOUT, and TIMESEC
+
+	* ircd/client.c (client_get_ping): use features interface to
+	retrieve PINGFREQUENCY
+
+	* ircd/class.c: use features interface to retrieve PINGFREQUENCY,
+	CONNECTFREQUENCY, MAXIMUM_LINKS, and DEFAULTMAXSENDQLENGTH
+
+	* ircd/chkconf.c (DEFAULTMAXSENDQLENGTH): since it's now in the
+	features subsystem, we have to add something explicit
+
+	* ircd/channel.c: use features interface to retrieve
+	KILLCHASETIMELIMIT, MAXBANLENGTH, MAXBANS, and MAXCHANNELSPERUSER;
+	note that MAXBANLENGTH is now calculated dynamically from MAXBANS
+	and AVBANLEN
+
+	* ircd/Makefile.in: run make depend
+
+	* include/supported.h (FEATURESVALUES): update to reference
+	feature settings
+
+	* include/random.h: add prototype for random_seed_set
+
+	* include/ircd_features.h: add several more features
+
+	* include/channel.h: move MAXBANS and MAXBANLENGTH into feature
+	subsystem
+
+	* config/config-sh.in: feature-ized some more stuff
+
+	* include/motd.h: some new elements in motd.h for motd.c changes
+
+	* ircd/motd.c: motd_cache() now searches a list of already cached
+	MOTD files; saves us from having duplicate caches in memory if
+	there are two identical T-lines for two different sites...
+
 2001-01-02  Perry Lorier <isomer@coders.net>
 	* ircd/motd.c: don't core if the motd isn't found.  Bug found by
 	Amarande.

@@ -44,8 +44,6 @@ struct Client;
 
 #define KEYLEN          23
 #define CHANNELLEN      200
-#define MAXBANS         30
-#define MAXBANLENGTH    1024
 
 #define MAXJOINARGS	15 /* number of slots for join buffer */
 #define STARTJOINLEN	10 /* fuzzy numbers */

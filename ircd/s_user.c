@@ -1528,7 +1528,8 @@ int add_silence(struct Client* sptr, const char* mask)
     if (MyUser(sptr))
     {
       len += strlen(lp->value.cp);
-      if ((len > MAXSILELENGTH) || (++cnt >= MAXSILES))
+      if ((len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXSILES))) ||
+	  (++cnt >= feature_int(FEAT_MAXSILES)))
       {
         send_reply(sptr, ERR_SILELISTFULL, mask);
         return -1;

@@ -48,10 +48,11 @@
 #include <sys/stat.h>
 
 static struct {
-  struct Motd*	local;
-  struct Motd*	remote;
-  struct Motd*	other;
-  struct Motd*	freelist;
+  struct Motd*	    local;
+  struct Motd*	    remote;
+  struct Motd*	    other;
+  struct Motd*	    freelist;
+  struct MotdCache* cachelist;
 } MotdList;
 
 /* Create a struct Motd and initialize it */
@@ -118,6 +119,16 @@ motd_cache(struct Motd *motd)
   if (motd->cache)
     return motd->cache;
 
+  /* try to find it in the list of cached files... */
+  for (cache = MotdList.cachelist; cache; cache = cache->next) {
+    if (!strcmp(cache->path, motd->path) &&
+	cache->maxcount == motd->maxcount) { /* found one... */
+      cache->ref++; /* increase reference count... */
+      motd->cache = cache; /* remember cache... */
+      return motd->cache; /* return it */
+    }
+  }
+
   /* gotta read in the file, now */
   if (!(file = fbopen(motd->path, "r"))) {
     Debug((DEBUG_ERROR, "Couldn't open \"%s\": %s", motd->path,
@@ -135,10 +146,14 @@ motd_cache(struct Motd *motd)
   cache = (struct MotdCache *)MyMalloc(sizeof(struct MotdCache) +
 				       (MOTD_LINESIZE * (MOTD_MAXLINES - 1)));
 
+  cache->ref = 1;
+  DupString(cache->path, motd->path);
+  cache->maxcount = motd->maxcount;
+
   cache->modtime = *localtime((time_t *) &sb.st_mtime); /* store modtime */
 
   cache->count = 0;
-  while (cache->count < motd->maxcount && fbgets(line, sizeof(line), file)) {
+  while (cache->count < cache->maxcount && fbgets(line, sizeof(line), file)) {
     /* copy over line, stopping when we overflow or hit line end */
     for (tmp = line, i = 0;
 	 i < (MOTD_LINESIZE - 1) && *tmp && *tmp != '\r' && *tmp != '\n';
@@ -156,6 +171,13 @@ motd_cache(struct Motd *motd)
 					      (MOTD_LINESIZE *
 					       (cache->count - 1)));
 
+  /* now link it in... */
+  motd->cache->next = MotdList.cachelist;
+  motd->cache->prev_p = &MotdList.cachelist;
+  if (MotdList.cachelist)
+    MotdList.cachelist->prev_p = &motd->cache->next;
+  MotdList.cachelist = motd->cache;
+
   return motd->cache;
 }
 
@@ -171,7 +193,15 @@ motd_decache(struct Motd *motd)
 
   motd->cache = 0; /* zero the cache */
 
-  MyFree(cache); /* very simple for a reason... */
+  if (!--cache->ref) { /* reduce reference count... */
+    if (cache->next) /* ref is 0, delink from list and free */
+      cache->next->prev_p = cache->prev_p;
+    *cache->prev_p = cache->next;
+
+    MyFree(cache->path); /* free path info... */
+
+    MyFree(cache); /* very simple for a reason... */
+  }
 }
 
 /* This function destroys a struct Motd, destroying the cache if needed */
@@ -303,6 +333,9 @@ motd_init(void)
   motd_cache(MotdList.remote); /* init remote and cache it */
 
   MotdList.other = 0; /* no T-lines processed yet */
+
+  MotdList.freelist = 0;
+  MotdList.cachelist = 0;
 }
 
 /* This routine adds a MOTD */

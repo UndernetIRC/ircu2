@@ -273,9 +273,11 @@ static time_t try_connections(void) {
  *--------------------------------------------------------------------------*/
 static time_t check_pings(void) {
   int expire     = 0; 
-  int next_check = CurrentTime + PINGFREQUENCY;
+  int next_check = CurrentTime;
   int max_ping   = 0;
   int i;
+
+  next_check += feature_int(FEAT_PINGFREQUENCY);
   
   /* Scan through the client table */
   for (i=0; i <= HighestFd; i++) {
@@ -293,7 +295,8 @@ static time_t check_pings(void) {
       continue;
     }
 
-    max_ping = IsRegistered(cptr) ? client_get_ping(cptr) : CONNECTTIMEOUT;
+    max_ping = IsRegistered(cptr) ? client_get_ping(cptr) :
+      feature_int(FEAT_CONNECTTIMEOUT);
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
 	   cli_name(cptr), (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
@@ -478,7 +481,7 @@ static void event_loop(void) {
     if (delay < 1)
       read_message(1);
     else
-      read_message(IRCD_MIN(delay, TIMESEC));
+      read_message(IRCD_MIN(delay, feature_int(FEAT_TIMESEC)));
 
     /* ...perhaps should not do these loops every time, but only if there is
      * some chance of something happening (but, note that conf->hold times may

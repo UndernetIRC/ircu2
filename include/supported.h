@@ -49,8 +49,10 @@
                 " CHANTYPES=%s" \
                 " PREFIX=%s"
                  
-#define FEATURESVALUES MAXSILES,MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
-        NICKLEN,TOPICLEN,TOPICLEN,"+#&","@+"
+#define FEATURESVALUES feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
+		       feature_int(FEAT_MAXCHANNELSPERUSER), \
+		       feature_int(FEAT_MAXBANS), NICKLEN, TOPICLEN, \
+		       TOPICLEN, "+#&", "@+"
 
 #endif /* INCLUDED_supported_h */
 

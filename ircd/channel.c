@@ -26,6 +26,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_defs.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
@@ -148,7 +149,7 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
   if (who)
     return who;
 
-  if (!(who = get_history(user, KILLCHASETIMELIMIT))) {
+  if (!(who = get_history(user, feature_int(FEAT_KILLCHASETIMELIMIT)))) {
     send_reply(sptr, ERR_NOSUCHNICK, user);
     return 0;
   }
@@ -339,7 +340,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
       banp = &(*banp)->next;
     }
   }
-  if (MyUser(cptr) && !removed_bans && (len > MAXBANLENGTH || (cnt >= MAXBANS)))
+  if (MyUser(cptr) && !removed_bans &&
+      (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
+       (cnt >= feature_int(FEAT_MAXBANS))))
   {
     send_reply(cptr, ERR_BANLISTFULL, chptr->chname, banid);
     return -1;
@@ -1155,7 +1158,7 @@ void add_invite(struct Client *cptr, struct Channel *chptr)
    * Delete last link in chain if the list is max length
    */
   assert(list_length((cli_user(cptr))->invited) == (cli_user(cptr))->invites);
-  if ((cli_user(cptr))->invites>=MAXCHANNELSPERUSER)
+  if ((cli_user(cptr))->invites >= feature_int(FEAT_MAXCHANNELSPERUSER))
     del_invite(cptr, (cli_user(cptr))->invited->value.chptr);
   /*
    * Add client to channel invite list
@@ -2256,7 +2259,8 @@ mode_process_bans(struct ParseState *state)
 	MyFree(ban->value.ban.banstr);
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
-	    (len > MAXBANLENGTH || count >= MAXBANS)) {
+	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
+	     count >= feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
 		     ban->value.ban.banstr);
 	  count--;
