@@ -596,6 +596,7 @@ ircd_aton(struct irc_in_addr *ip, const char *input)
         return 0;
       colon = 0;
       pos += 2;
+      part_start = input + pos;
     }
     while (ii < 8) {
       unsigned char chval;

@@ -1,3 +1,13 @@
+2005-02-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_res.c (check_resolver_timeout): Try another way to
+	avoid timer_chg() on a non-queued/active timer.
+
+	* ircd/ircd_string.c (ircd_aton): Set part_start to handle input
+	strings like "::127.0.0.1".
+
+	* ircd/test/ircd_in_addr_t.c (test_addrs): Add a test for that.
+
 2005-02-02  Michael Poole <mdpoole@troilus.org>
 
 	* Makefile.in (install): Do not create ${prefix}/include since it
