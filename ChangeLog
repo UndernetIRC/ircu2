@@ -1,4 +1,11 @@
 2003-03-26  splidge  <splidge@quakenet.org>
+	* ircd/include/ircd_features.h, include/ircd_osdep.h,
+	  ircd/ircd_features.c, ircd/listener.c, ircd/os_bsd.c, 
+	  ircd/os_generic.c, ircd/os_linux.c, ircd/os_openbsd.c
+	  ircd/os_solaris.c, ircd/s_bsd.c: Patch to allow socket bufs to be 
+	  altered via F: lines
+
+2003-03-26  splidge  <splidge@quakenet.org>
 	* ircd/m_nick.c: Added collidefix - should eliminate some nick 
 	collision races.
 

@@ -287,7 +287,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   /*
    * we want a big buffer for server connections
    */
-  if (!os_set_sockbufs(cli_fd(cptr), SERVER_TCP_WINDOW)) {
+  if (!os_set_sockbufs(cli_fd(cptr), feature_int(FEAT_SOCKSENDBUF), feature_int(FEAT_SOCKRECVBUF))) {
     cli_error(cptr) = errno;
     report_error(SETBUFS_ERROR_MSG, cli_name(cptr), errno);
     close(cli_fd(cptr));
