@@ -301,12 +301,16 @@ static time_t check_pings(void)
     */
    max_ping = IsRegistered(cptr) ? get_client_ping(cptr) : CONNECTTIMEOUT;
    
+   Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
+          cptr->name, (cptr->flags & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
+          max_ping, (int)(CurrentTime - cptr->lasttime)));
+          
    /* Ok, the thing that will happen most frequently, is that someone will
     * have sent something recently.  Cover this first for speed.
     */
    if (CurrentTime-cptr->lasttime < max_ping) {
    	expire=cptr->lasttime + max_ping;
-   	if (next_check<expire) 
+   	if (expire<next_check) 
    	  next_check=expire;
    	continue;
    }
@@ -323,7 +327,9 @@ static time_t check_pings(void)
     } /* of testing to see if ping has been sent */
     
     /* Unregistered clients pingout after max_ping seconds, they don't
-     * get given a second chance. 
+     * get given a second chance - if they were then people could not quite
+     * finish registration and hold resources without being subject to k/g
+     * lines
      */
     if (!IsRegistered(cptr)) {
       /* Display message if they have sent a NICK and a USER but no
@@ -368,6 +374,8 @@ static time_t check_pings(void)
   }  /* end of loop over clients */
   
   assert(next_check>=CurrentTime);
+  
+  Debug((DEBUG_DEBUG, "[%i] check_pings() again in %is",CurrentTime,next_check-CurrentTime));
   
   return next_check;
 }
@@ -485,6 +493,7 @@ ping_timeout:
 static void print_usage(void)
 {
   printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv]\n");
+  printf("\n -n -t\t Don't detach\n -v\t display version\n\n");
   printf("Server not started\n");
 }
 

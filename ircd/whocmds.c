@@ -156,12 +156,26 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       *(p1++) = 'H';
     if (IsAnOper(acptr))
       *(p1++) = '*';
-    if (chptr && is_chan_op(acptr, chptr))
-      *(p1++) = '@';
-    else if (chptr && has_voice(acptr, chptr))
-      *(p1++) = '+';
-    else if (chptr && is_zombie(acptr, chptr))
-      *(p1++) = '!';
+    if (fields) {
+      /* If you specified flags then we assume you know how to parse
+       * multiple channel status flags, as this is currently the only
+       * way to know if someone has @'s *and* is +'d.
+       */
+      if (chptr && is_chan_op(acptr, chptr))
+        *(p1++) = '@';
+      if (chptr && has_voice(acptr, chptr))
+        *(p1++) = '+';
+      if (chptr && is_zombie(acptr, chptr))
+        *(p1++) = '!';
+    }
+    else {
+      if (chptr && is_chan_op(acptr, chptr))
+        *(p1++) = '@';
+      else if (chptr && has_voice(acptr, chptr))
+        *(p1++) = '+';
+      else if (chptr && is_zombie(acptr, chptr))
+        *(p1++) = '!';
+    }
     if (IsDeaf(acptr))
       *(p1++) = 'd';
     if (IsAnOper(sptr))
@@ -181,6 +195,19 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     if (!fields)
       *p1++ = ':';              /* Place colon here for default reply */
     p1 = sprintf_irc(p1, "%d", acptr->hopcount);
+  }
+
+  if (!fields || (fields & WHO_FIELD_IDL))
+  {
+    *p1++ = ' ';
+    if (!fields)
+      *p1++ = ':';              /* Place colon here for default reply */
+    if (MyUser(acptr)) {
+	    p1 = sprintf_irc(p1, "%d", CurrentTime-acptr->lasttime);
+    }    
+    else {
+    	    *p1++ = '0';
+    }
   }
 
   if (!fields || (fields & WHO_FIELD_REN))

@@ -91,6 +91,7 @@ in which:
    f : Include flags (all of them)
    h : Include hostname
    i : Include IP
+   l : Include idle time (0 for remote users) [2.10.11+]
    n : Include nick
    r : Include real name
    s : Include server name
@@ -110,7 +111,7 @@ out-of-standard 352 crashes EPIC and confuses several other clients. I used
 
 :"source" 354 "target" ["querytype"] ["channel"] ["user"] 
                        ["IP"] ["host"] ["server"] ["nick"] 
-                       ["flags"] ["hops"] [:"realname"]
+                       ["flags"] ["hops"] ["idle"] [:"realname"]
 
 Where only the fields specified in the %fields options are present.
 
@@ -153,7 +154,7 @@ Note that:
          Oslo-R.NO.EU.Undernet.org Niels
   
   So that he can have in example a script that does 
-  "on 354 * 166" display "There is an oper ..."
+  on ^354 "% 166" display "There is an oper ..."
 
 - The client will have to sort/format the fields by itself,
   the _order_ in which flags are passed is not significant, the fields in the
@@ -272,6 +273,11 @@ Miscellaneous bug fixes / "undocumented feature" changes:
   This will make old servers act properly and new ones and should be the
   recomended way for GUI based clients to get a channel's userlist and all
   the infos they want about users on the channel.
+
+- If you use the new numeric, flags will contain all the information about
+  a user on a channel.  @ for op'd, + for voiced, and ! for zombie. eg:
+  Isomer #coder-com H@+, where the old behavor of just displaying one of
+  them has been preserved for the old numeric.  [2.10.11+]
 
 Regards, Andrea aka Nemesi
 
