@@ -556,6 +556,9 @@ gline_find(char *userhost, unsigned int flags)
   DupString(t_uh, userhost);
   canon_userhost(t_uh, &user, &host, 0);
 
+  if(BadPtr(user))
+    return 0;
+
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
 
