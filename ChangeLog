@@ -1,3 +1,6 @@
+2000-04-13  Thomas Helvey <tomh@inxpress.net>
+	* ircd/IPcheck.c: Back port BLMet's bugfix from 2.10.10
+
 2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* ircd/whocmds.c: Don't make idle flag default in /who, to prevent:
@@ -443,7 +446,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.80 2000-04-13 20:07:13 gte Exp $
+# $Id: ChangeLog,v 1.81 2000-04-14 02:56:22 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -247,6 +247,8 @@ int ip_registry_check_local(unsigned int addr, time_t* next_target_out)
 #ifdef NOTHROTTLE 
     return 1;
 #else
+    /* Thanks BLMet :) */
+    --entry->connected;
     return 0;
 #endif        
   }
