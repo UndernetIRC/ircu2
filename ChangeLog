@@ -1,5 +1,15 @@
 2000-05-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c (hunt_server): throw in a comment so I know what
+	the sendto_one is for
+
+	* include/querycmds.h (Count_unknownbecomesclient): convert to
+	sendto_opmask_butone
+
+	* ircd/send.c: start removing dead code
+
+	* include/send.h: start removing dead code
+
 	* ircd/m_rping.c: convert to sendcmdto_one / send_reply /
 	hunt_server_cmd
 
@@ -1069,7 +1079,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.126 2000-05-02 20:09:30 kev Exp $
+# $Id: ChangeLog,v 1.127 2000-05-02 20:25:32 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
