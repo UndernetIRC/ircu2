@@ -276,7 +276,7 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
     return HUNTED_NOSUCH;
   }
 
-  assert(!IsServer(from));
+  /* assert(!IsServer(from)); SETTIME to particular destinations permitted */
 
   parv[server] = (char *) acptr; /* HACK! HACK! HACK! ARGH! */
 
@@ -1048,7 +1048,6 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
  * If, after setting the flags, the user has both HiddenHost and Account
  * set, its hostmask is changed.
  */
-#define FLAGS_HOST_HIDDEN	(FLAGS_ACCOUNT|FLAGS_HIDDENHOST)
 int
 hide_hostmask(struct Client *cptr, unsigned int flag)
 {
@@ -1065,6 +1064,11 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   sendcmdto_common_channels_butone(cptr, CMD_QUIT, cptr, ":Registered");
   ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
                 cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+
+  /* ok, the client is now fully hidden, so let them know -- hikari */
+  if (MyConnect(cptr))
+    send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->account,
+	       feature_str(FEAT_HIDDEN_HOST));
 
   /*
    * Go through all channels the client was on, rejoin him
@@ -1283,7 +1287,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   }
   if (MyConnect(sptr))
   {
-    if (FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP))
+    if (FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP) &&
+	!IsAnOper(sptr))
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
 
     if (SendServNotice(sptr))
@@ -1304,7 +1309,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   {
     /* user now oper */
     ++UserStats.opers;
-    client_set_privs(sptr, NULL);
+    client_set_privs(sptr, NULL); /* may set propagate privilege */
   }
   /* remember propagate privilege setting */
   if (HasPriv(sptr, PRIV_PROPAGATE))

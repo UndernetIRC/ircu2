@@ -113,6 +113,7 @@ extern const struct Numeric* get_error_numeric(int err);
 	RPL_STATSGLINE	     227	   Dalnet 
 	RPL_STATSVLINE	     227	   unreal */
 #define RPL_STATSQLINE       228        /* Undernet extension */
+
 #define RPL_SERVICEINFO      231	/* unused */
 #define RPL_ENDOFSERVICES    232	/* unused */
 /*	RPL_RULES	     232	unreal */
@@ -304,6 +305,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_USERS            393        Dalnet/EFnet/IRCnet */
 /*      RPL_END_USERS        394        Dalnet/EFnet/IRCnet */
 /*      RPL_NOUSERS          395        Dalnet/EFnet/IRCnet */
+#define RPL_HOSTHIDDEN       396	/* UMODE +x completed succesfuly */
 
 /*
  * Errors are in the range from 400-599 currently and are grouped by what

@@ -186,7 +186,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
   if (feature_bool(FEAT_HIS_WHOIS_SERVERNAME) && !IsAnOper(sptr) &&
       sptr != acptr)
     send_reply(sptr, RPL_WHOISSERVER, name, feature_str(FEAT_HIS_SERVERNAME),
-               feature_str(FEAT_HIS_SERVERNAME));
+               feature_str(FEAT_HIS_SERVERINFO));
   else
     send_reply(sptr, RPL_WHOISSERVER, name, cli_name(a2cptr),
 	       cli_info(a2cptr));

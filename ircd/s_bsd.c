@@ -196,12 +196,10 @@ static void connect_dns_callback(void* vptr, struct DNSReply* reply)
 void close_connections(int close_stderr)
 {
   int i;
-#if 0
   close(0);
   close(1);
   if (close_stderr)
     close(2);
-#endif
   for (i = 3; i < MAXCONNECTIONS; ++i)
     close(i);
 }
@@ -727,11 +725,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
    */
-  if (length <= 0)
-    ;
-  else if (IsServer(cptr))
+  if (length > 0 && IsServer(cptr))
     return server_dopacket(cptr, readbuf, length);
-  else if (IsConnecting(cptr)  || IsHandshake(cptr))
+  else if (length > 0 && (IsHandshake(cptr) || IsConnecting(cptr)))
     return connect_dopacket(cptr, readbuf, length);
   else
   {
@@ -740,9 +736,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
      * it on the end of the receive queue and do it when its
      * turn comes around.
      */
-    if (dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
+    if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
-    else if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
+
+    if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 

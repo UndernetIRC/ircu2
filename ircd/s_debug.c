@@ -26,6 +26,7 @@
 #include "channel.h"
 #include "class.h"
 #include "client.h"
+#include "gline.h"
 #include "hash.h"
 #include "ircd_alloc.h"
 #include "ircd_features.h"
@@ -33,13 +34,16 @@
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
 #include "ircd.h"
+#include "jupe.h"
 #include "list.h"
+#include "motd.h"
 #include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "res.h"
 #include "s_bsd.h"
 #include "s_conf.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
@@ -357,6 +361,13 @@ void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
+  motd_memory_count(cptr);
+
+  gl = gline_memory_count(&glm);
+  ju = jupe_memory_count(&jum);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+	     ":Glines %d(%zu) Jupes %d(%zu)", gl, glm, ju, jum);
+
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Hash: client %d(%zu), chan is the same", HASHSIZE,
 	     sizeof(void *) * HASHSIZE);
@@ -374,6 +385,9 @@ void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
 	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
 	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
+  /* The DBuf caveats now count for this, but this routine now sends
+   * replies all on its own.
+   */
   msgq_count_memory(cptr, &msg_allocated, &msgbuf_allocated);
 
   rm = cres_mem(cptr);

@@ -24,6 +24,9 @@
 
 #ifndef INCLUDED_s_stats_h
 #define INCLUDED_s_stats_h
+#ifndef INCLUDED_features_h
+#include "ircd_features.h"
+#endif
 
 struct Client;
 
@@ -49,10 +52,6 @@ struct StatDesc
 
 extern struct StatDesc statsinfo[];
 extern struct StatDesc *statsmap[];
-
-extern void report_stats(struct Client *sptr, char stat);
-extern void report_configured_links(struct Client *sptr, int mask);
-extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat, int MustBeOper);
 
 extern void stats_init(void);
 

@@ -251,7 +251,7 @@ version.c: version.c.SH s_serv.c s_user.c channel.c s_bsd.c s_misc.c ircd.c \
 ircd_string.o: ircd_string.c chattr.tab.c
 
 table_gen: table_gen.o
-	${CC} -o $@ table_gen.o
+	${CC} ${LDFLAGS} -o $@ table_gen.o
 
 chattr.tab.c: table_gen
 	./table_gen > chattr.tab.c

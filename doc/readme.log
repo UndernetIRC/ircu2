@@ -160,7 +160,7 @@ Logging to Syslog
 
 By default, except for the CONFIG subsystem, no logs are sent to
 syslog.  This can be overridden using an F-line like
-"F:LOG:<subsys>:SYSLOG:<facility>"; <subsys>, as above, should be
+"F:LOG:<subsys>:FACILITY:<facility>"; <subsys>, as above, should be
 replaced with one of the subsystem names described above, and
 <facility> must be one of the facility strings mentioned under
 "Default Syslog Facility."  The facility string may also be "NONE," to

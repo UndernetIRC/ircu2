@@ -98,8 +98,8 @@ static void makeTables(void)
   moveMacro(NTL_GRAPH, NTL_PRINT);
   markString(NTL_PRINT, " ");
 
-  markRange(NTL_IRCCH, 0, (char) UCHAR_MAX);
-  unMarkString(NTL_IRCCH, "\007\040\054\240");
+  markRange(NTL_IRCCH, '\041', (char) UCHAR_MAX);
+  unMarkString(NTL_IRCCH, "\054\240");
 
   markRange(NTL_IRCCL, '\300', '\326');
   markRange(NTL_IRCCL, '\330', '\336');
@@ -120,7 +120,7 @@ static void makeTables(void)
   markRange(NTL_IRCUI, '\xd8', '\xde');
   markString(NTL_IRCUI, ".-_^'`~");
   markString(NTL_EOL, "\n\r");
-  markString(NTL_CHPFX, "#&+");
+  markString(NTL_CHPFX, "#&");
   markString(NTL_KTIME, " ,-0123456789");
 
   /* And finally let's take care of the toLower/toUpper stuff */

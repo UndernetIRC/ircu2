@@ -165,8 +165,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!IsChannelName(chname) || !(chptr = FindChannel(chname)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
 
-  if (!(member = find_member_link(chptr, sptr)))
-    return send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
+  if (!force && (qreason = find_quarantine(chptr->chname)))
+    return send_reply(sptr, ERR_QUARANTINED, chptr->chname, qreason);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */

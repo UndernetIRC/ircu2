@@ -381,6 +381,7 @@ static struct FeatureDesc {
   /* Misc. random stuff */
   F_S(NETWORK, 0, "UnderNet", 0),
   F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
+
 #undef F_S
 #undef F_B
 #undef F_I
@@ -397,7 +398,7 @@ feature_desc(struct Client* from, const char *feature)
   assert(0 != feature);
 
   for (i = 0; features[i].type; i++) /* find appropriate descriptor */
-    if (!ircd_strcmp(feature, features[i].type))
+    if (!strcmp(feature, features[i].type))
       return &features[i];
 
   Debug((DEBUG_ERROR, "Unknown feature \"%s\"", feature));

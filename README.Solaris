@@ -1,0 +1,20 @@
+
+Running ircu2.10.11 on Solaris
+
+When running on Solaris, ircu can make use of the /dev/poll event engine, which
+results in much improved performance over the old poll()-based method. Solaris
+versions 8 and 9 include /dev/poll out of the box, for Solaris 7 you will have
+to grab and install Patch-ID 106541-21.
+
+In order to increase the number of clients ircu can handle, add lines such as
+the following to /etc/system:
+
+* set hard limit on file descriptors
+set rlim_fd_max = 16384
+* set soft limit on file descriptors
+set rlim_fd_cur = 8192
+
+For more useful hints see http://www.sean.de/Solaris/soltune.html
+
+Created by Sengaia <sengaia@undernet.org> on July 20, 2002.
+

@@ -1,3 +1,135 @@
+2003-01-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* BUGS: removed from distribution
+
+	* ChangeLog.07: moved into doc/history
+
+	* ChangeLog.10: moved into doc/history
+
+	* INSTALL: pulled up from u2.10.11.04
+
+	* README: pulled up from u2.10.11.04
+
+	* README.FreeBSD: pulled up from u2.10.11.04
+
+	* README.Solaris: pulled up from u2.10.11.04
+
+	* RELEASE.NOTES: add sysctl note from u2.10.11.04
+
+	* TODO: removed from distribution
+
+	* configure.in: add extra check for res_mkquery; remove
+	--disable-headinsand since it no longer has any effect; pull up
+	"Enable" vs. "Disable" changes from u2.10.11.04
+
+	* doc/readme.asll: pulled up from u2.10.11.04
+
+	* doc/readme.features: pull up missing documentation, including a
+	couple of corrections
+
+	* doc/readme.log: correct text to read FACILITY instead of SYSLOG
+	in the documentation for configuring syslog facility
+
+	* include/channel.h: declare IsInvited()
+
+	* include/handlers.h: do some minor reorderings
+
+	* include/ircd_defs.h: remove deprecated NETWORK and URL_CLIENTS
+	#define's
+
+	* include/ircd_policy.h: removed from the distribution
+
+	* include/jupe.h: declare jupe_memory_count()
+
+	* include/msgq.h: remove MsgCounts structure
+
+	* include/numeric.h: add a blank line after RPL_STATSQLINE; add
+	RPL_HOSTHIDDEN
+
+	* include/s_stats.h: include ircd_features.h for definition of the
+	enum; remove extraneous declarations
+
+	* ircd/Makefile.in: add LDFLAGS to table_gen
+
+	* ircd/engine_poll.c: remove commented-out assertion
+
+	* ircd/ircd.c: include s_stats.h and call stats_init()
+
+	* ircd/ircd_features.c: feature names have to be case-sensitive
+	because of some of the HIS features
+
+	* ircd/ircd_relay.c: reorder includes
+
+	* ircd/m_account.c: include string.h for strlen()
+
+	* ircd/m_clearmode.c: remove extraneous clean_channelname(); make
+	sure to refer to chname, not parv[1]
+
+	* ircd/m_create.c: remove the broken code that squits servers that
+	are >5 minutes fast; fix "badop || CHFL_CHANOP" bug that caused op
+	desyncs
+
+	* ircd/m_gline.c: if it's a server, force the gline; don't
+	gline_find() before determining if the oper had the privilege
+
+	* ircd/m_kick.c: kicks by servers should appear to be from the
+	local server thanks to HIS
+
+	* ircd/m_lusers.c: needs ircd_features.h, not ircd_policy.h
+
+	* ircd/m_map.c: needs ircd_features.h, not ircd_policy.h
+
+	* ircd/m_nick.c: added an assertion and some explanatory comments
+	pulled up from u2.10.11.04
+
+	* ircd/m_opmode.c: no longer requiring oper to be on the channel;
+	search for quarantines before allowing ops
+
+	* ircd/m_privmsg.c: one character typo that probably means nothing
+
+	* ircd/m_settime.c: add back comments I left in the code
+
+	* ircd/m_squit.c: remove protocol_violation() notices
+
+	* ircd/m_userhost.c: return realhost if user is an oper
+
+	* ircd/m_wallvoices.c: only m_wallvoices() should add a +
+
+	* ircd/m_who.c: add handling for the 'a' field
+
+	* ircd/m_whois.c: correct a typo of FEAT_HIS_SERVERNAME for
+	FEAT_HIS_SERVERINFO
+
+	* ircd/s_bsd.c: close file descriptors 0, 1, and 2; pull up some
+	ancient bug fixes from the u2.10.11 branch
+
+	* ircd/s_debug.c: include gline.h, jupe.h, motd.h, and s_stats.h;
+	call motd_memory_count(), gline_memory_count(), and
+	jupe_memory_count() when reporting memory usage; add back a
+	comment regarding "DBuf caveats"
+
+	* ircd/s_err.c: add RPL_STATSQLINE, RPL_HOSTHIDDEN, and pull up
+	change to ERR_NOPRIVILEGES wording
+
+	* ircd/s_misc.c: include ircd_features.h and not ircd_policy.h
+
+	* ircd/s_stats.c: count from 0 and not 1 when initializing the
+	stats
+
+	* ircd/s_user.c: comment out assertion; remove extraneous
+	definition of FLAGS_HOST_HIDDEN; add in hikari's "your host is now
+	hidden" reply; don't detach oper confs unless sptr is not an oper
+
+	* ircd/table_gen.c: pull up change to NTL_CHPFX (removing +);
+	change channel name character range to be from '\041' (!) to
+	UCHAR_MAX
+
+	* ircd/whocmds.c: pull up fix to /who idle time from u2.10.11.04
+
+	* tools/linesync/linesync.conf: pull up from u2.10.11.04
+
+	* tools/linesync/linesync.sh: pull up from u2.10.11.04
+
 2003-01-07 Andrew Miller <a1kmm@mware.virtualave.net>
 	* almost everything: Forward ported numerous changes from .11 to .12
 	

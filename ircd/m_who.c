@@ -210,6 +210,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         case 'R':
           matchsel |= WHO_FIELD_REN;
           continue;
+        case 'a':
+        case 'A':
+          matchsel |= WHO_FIELD_ACC;
+          continue;
       }
     if (ch == '%')
       while ((ch = *p++) && (ch != ','))
@@ -259,6 +263,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           case 'u':
           case 'U':
             fields |= WHO_FIELD_UID;
+            break;
+          case 'a':
+          case 'A':
+            fields |= WHO_FIELD_ACC;
             break;
           default:
             break;

@@ -1,0 +1,37 @@
+Running ircu2.10.11 on FreeBSD
+
+When running on FreeBSD, ircu can make use of the kqueue() event engine, which
+results in much improved performance over the old poll()-based method. kqueue
+is included in the more recent 4.x releases of FreeBSD.
+
+In order for ircu to be able to serve many clients simultaneously, you need
+to increase the maximum allowable number of open files in the system. To do
+this, add commands such as the following during your system's boot sequence:
+
+sysctl -w kern.maxfiles=16384
+sysctl -w kern.maxfilesperproc=16384
+
+Unless you will be serving thousands of clients simultaneously, you will not
+need to do the following, unless of course you just can't stand having a
+system that is not optimized to its limits :)
+
+Build a custom kernel: Make your kernel as lean as possible by removing all
+drivers and options you will not need. The following parameters will affect
+performance, they are listed with suggested values only. For more information
+on what they do exactly, see FreeBSD's documentation.
+
+maxusers        2048
+options         NMBCLUSTERS=65535
+options         ICMP_BANDLIM
+
+Also, you may wish to run the following at system startup (from /etc/rc.local,
+or whichever other method you prefer):
+
+sysctl -w net.inet.tcp.rfc1323=1
+sysctl -w net.inet.tcp.delayed_ack=0
+sysctl -w net.inet.tcp.restrict_rst=1
+sysctl -w kern.ipc.maxsockbuf=2097152
+sysctl -w kern.ipc.somaxconn=2048
+
+Created by Sengaia <sengaia@undernet.org>, July 20 2002.
+

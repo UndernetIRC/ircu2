@@ -138,9 +138,6 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                                      "SETTIME to correct this",
 				     cli_user(sptr)->server,
 				     chanTS - TStime());
-    /* If this server is >5 minutes fast, squit it */
-    if (TStime() - chanTS<-5*60*60)
-      return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
     /* Now issue a SETTIME to resync.  If we're in the wrong, our
      * (RELIABLE_CLOCK) hub will bounce a SETTIME back to us.
      */
@@ -151,7 +148,6 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
   joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
 
-  
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;
        name = ircd_strtok(&p, 0, ",")) {
@@ -187,7 +183,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       chptr->creationtime = chanTS;
 
     joinbuf_join(badop ? &join : &create, chptr,
-		 (badop || CHFL_CHANOP));
+		 (badop ? 0 : CHFL_CHANOP));
   }
 
   joinbuf_flush(&join); /* flush out the joins and creates */

@@ -37,17 +37,6 @@ struct iovec;
 struct Client;
 struct StatDesc;
 
-struct MsgCounts {
-  int alloc;
-  int used;
-};
-
-/*
- * These should be considered read-only
- */
-extern struct MsgCounts msgBufCounts;	/* resource count for struct MsgBuf */
-extern struct MsgCounts msgCounts;	/* resource count for struct Msg */
-
 struct Msg;
 struct MsgBuf;
 

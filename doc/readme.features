@@ -1,7 +1,9 @@
 Many of the old compile-time options are now configured through the
 server configuration file, ircd.conf.  This file is intended to
 document each of these features.  Logging, although also configured
-through the use of F-lines, is documented in doc/readme.log.
+through the use of F-lines, is documented in doc/readme.log.  NOTE
+THAT THESE NAMES ARE CASE SENSITIVE!  Values are not case sensitive
+unless stated otherwise in the documentation for that feature.
 
 DOMAINNAME
  * Type: string
@@ -126,6 +128,13 @@ MOTD_BANNER
 If you enable NODEFAULTMOTD, this specifies a one-line banner to be sent
 to the client in addition to the instructions mentioned above.
 
+PROVIDER
+ * Type: string
+ * Default: NULL
+
+This string as added to the 001 numeric prefixed with "via" before the nick.
+It's used for providing promotional space to providers as per CFV-202
+
 KILL_IPMISMATCH
  * Type: boolean
  * Default: FALSE
@@ -223,7 +232,7 @@ number of clients" / 25.
 
 HOST_HIDING
  * Type: boolean
- * Default: FALSE
+ * Default: TRUE
 
 This selects whether local users can set umode +x, thus allowing them
 to hide their hostname if they have also registered with a channel
@@ -241,6 +250,20 @@ HIDDEN_IP
 
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
+
+AUTOHIDE
+ * Type: boolean
+ * Default: TRUE
+
+If enabled, local users get umode +x by default when they connect.
+
+CONNEXIT_NOTICES
+ * Type: boolean
+ * Default: FALSE
+
+This feature controls the generation of server notices when a user
+connects to or disconnects from the server.  Enabling this feature may
+have a performance impact.
 
 KILLCHASETIMELIMIT
  * Type: integer
@@ -606,6 +629,20 @@ OPER_LOPMODE
 This selects whether global IRC operators on this server are permitted
 to use /OPMODE and /CLEARMODE on local ("&") channels.
 
+OPER_FORCE_OPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on ordinary ("#") channels
+
+OPER_FORCE_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
+
 OPER_BADCHAN
  * Type: boolean
  * Default: FALSE
@@ -703,6 +740,13 @@ LOCOP_LOPMODE
 This selects whether local IRC operators are permitted to use /OPMODE
 and /CLEARMODE on local ("&") channels.
 
+LOCOP_FORCE_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
+
 LOCOP_LBADCHAN
  * Type: boolean
  * Default: FALSE
@@ -743,3 +787,290 @@ LOCOP_LIST_CHAN
 This selects whether local IRC operators are permitted to list secret 
 (+s) channels.
 
+HIS_MAP
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /MAP from users.
+
+HIS_SNOTICES
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server notices from users.
+ 
+HIS_SNOTICES_OPER_ONLY
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server notices from users.
+ 
+HIS_DESYNCS
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server wallops from users.
+
+HIS_DEBUG_OPER_ONLY
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server wallops from users.
+
+HIS_WALLOPS
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes operator wallops from users.
+
+HIS_LINKS
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /LINKS from users.
+
+HIS_TRACE
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /TRACE from users.
+
+HIS_STATS_l
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS l from users.
+
+HIS_STATS_c
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS c from users.
+
+HIS_STATS_g
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS g from users.
+
+HIS_STATS_h
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS h from users.
+
+HIS_STATS_k
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS k from users.
+
+HIS_STATS_f
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS f from users.
+
+HIS_STATS_i
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS i from users.
+
+HIS_STATS_j
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS j from users.
+
+HIS_STATS_M
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS M from users.
+
+HIS_STATS_m
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS m from users.
+
+HIS_STATS_o
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS o from users.
+
+HIS_STATS_p
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS p from users.
+
+HIS_STATS_q
+ * Type: boolean
+ * Default: TRUE
+ 
+As per UnderNet CFV-165, this removes /STATS q from users.
+
+HIS_STATS_r
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS r from users.
+
+HIS_STATS_d
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS d from users.
+
+HIS_STATS_e
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS e from users.
+
+HIS_STATS_t
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS t from users.
+
+HIS_STATS_T
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS T from users.
+
+HIS_STATS_u
+ * Type: boolean
+ * Default: FALSE
+
+As per UnderNet CFV-165, this allows users to perform /STATS u.
+
+HIS_STATS_U
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS U from users.
+
+HIS_STATS_v
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS v from users.
+
+HIS_STATS_w
+ * Type: boolean
+ * Default: FALSE
+
+As per UnderNet CFV-165, this allows users to perform /STATS w.
+
+HIS_STATS_x
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS x from users.
+
+HIS_STATS_y
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS y from users.
+
+HIS_STATS_z
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS z from users.
+
+HIS_WHOIS_SERVERNAME
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+
+HIS_WHOIS_IDLETIME
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes idle time in replies to /WHOIS.
+
+HIS_WHO_SERVERNAME
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server names in replies to /WHO.
+
+HIS_WHO_HOPCOUNT
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this replaces hopcount to a static 3 in replies to /WHO.
+
+HIS_BANWHO
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this doesn't show which server set a ban.
+
+HIS_KILLWHO
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this doesn't show which server or oper performed a
+kill.
+
+HIS_REWRITE
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this remaps remote numerics to come from the local
+server.
+
+HIS_REMOTE
+ * Type: integer
+ * Default: 1
+
+As per UnderNet CFV-165, this disallows remote queries. (*sob!*)
+
+HIS_NETSPLIT
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes server names in net break sign-offs.
+
+HIS_SERVERNAME
+ * Type: string
+ * Default: "*.undernet.org"
+
+As per UnderNet CFV-165, this is the "name" of the server shown to users on a
+/WHOIS of another user.
+
+HIS_SERVERINFO
+ * Type: string
+ * Default: "The Undernet Underworld"
+
+As per UnderNet CFV-165, this is the "info" of the server shown to users on a
+/WHOIS of another user.
+
+HIS_URLSERVERS        
+ * Type: string 
+ * Default: "http://www.undernet.org/servers.php"
+
+As per UnderNet CFV-165, this is the URL shown to users when they do a /MAP or 
+/LINKS.
+
+NETWORK
+ * Type: string
+ * Default: "UnderNet"
+
+This defines the network name as reported in the 005 "supported features"
+numeric, and as used by the "Failed to deliver" message.
+
+URL_CLIENTS
+ * Type: string
+ * Default: "ftp://ftp.undernet.org/pub/irc/clients"
+
+This defines a URL that users may visit to find compatible IRC clients.

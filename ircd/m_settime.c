@@ -113,15 +113,16 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   static char tbuf[11];
   struct DLink *lp;
 
-  if (parc < 2)
+  if (parc < 2) /* verify argument count */
     return need_more_params(sptr, "SETTIME");
 
-  t = atoi(parv[1]);
+  t = atoi(parv[1]); /* convert time and compute delta */
   dt = TStime() - t;
 
+  /* verify value */
   if (t < OLDEST_TS || dt < -9000000)
   {
-    if (IsServer(sptr))
+    if (IsServer(sptr)) /* protocol violation if it's from a server */
       protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %l)", t, dt);
     else
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
@@ -137,7 +138,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = tbuf;
   }
 
-  if (BadPtr(parv[2]))
+  if (BadPtr(parv[2])) /* spam the network */
   {
     for (lp = cli_serv(&me)->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr)
@@ -172,7 +173,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		    (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
     }
   }
-  else
+  else /* tell opers about time change */
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
 			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
@@ -208,13 +209,14 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!IsOper(sptr))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (parc < 2)
+  if (parc < 2) /* verify argument count */
     return need_more_params(sptr, "SETTIME");
 
-  if (parc == 2 && MyUser(sptr))
+  if (parc == 2 && MyUser(sptr)) /* default to me */
     parv[parc++] = cli_name(&me);
 
-  t = atoi(parv[1]);
+  t = atoi(parv[1]); /* convert the time */
+
   /* If we're reliable_clock or if the oper specified a 0 time, use current */
   if (!t || feature_bool(FEAT_RELIABLE_CLOCK))
   {
@@ -223,35 +225,36 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = tbuf;
   }
 
-  dt = TStime() - t;
+  dt = TStime() - t; /* calculate the delta */
 
-  if (t < OLDEST_TS || dt < -9000000)
+  if (t < OLDEST_TS || dt < -9000000) /* verify value */
   {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
     return 0;
   }
 
+  /* OK, send the message off to its destination */
   if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
                            parv) != HUNTED_ISME)
     return 0;
 
-  if (feature_bool(FEAT_RELIABLE_CLOCK))
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) /* don't apply settime--reliable */
   {
     if ((dt > 600) || (dt < -600))
       sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
                             "(delta %l)", cli_name(sptr), t, dt);
-    if (IsUser(sptr))
+    if (IsUser(sptr)) /* Let user know we're ignoring him */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
                     "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
                     (dt < 0) ? "forward" : "backward");
   }
-  else
+  else /* tell opers about time change */
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
 			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
 			 (dt < 0) ? "forwards" : "backwards");
-    TSoffset -= dt;
-    if (IsUser(sptr))
+    TSoffset -= dt; /* apply time change */
+    if (IsUser(sptr)) /* let user know what we did */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
 		    sptr, (dt < 0) ? -dt : dt,
 		    (dt < 0) ? "forwards" : "backwards");

@@ -299,17 +299,15 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     force = 1;
   }
 
-  clean_channelname(parv[1]);
-
   if (!HasPriv(sptr,
-	       IsLocalChannel(parv[1]) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
+	       IsLocalChannel(chname) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
+
   if (!force && (qreason = find_quarantine(chptr->chname)))
     return send_reply(sptr, ERR_QUARANTINED, chptr->chname, qreason);
-
 
   return do_clearmode(cptr, sptr, chptr, control);
 }

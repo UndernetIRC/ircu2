@@ -362,6 +362,17 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
   }
   /* now we know we have a real collision. */
+  /*
+   * Note: From this point forward it can be assumed that
+   * acptr != sptr (point to different client structures).
+   */
+  assert(acptr != sptr);
+  /*
+   * If the older one is "non-person", the new entry is just
+   * allowed to overwrite it. Just silently drop non-person,
+   * and proceed with the nick. This should take care of the
+   * "dormant nick" way of generating collisions...
+   */
   if (IsUnknown(acptr) && MyConnect(acptr))
   {
     ServerStats->is_ref++;
