@@ -1,3 +1,15 @@
+2004-05-15  Isomer <isomer@undernet.org>
+
+	[Original ChangeLog date: 2004-03-20 -MDP]
+
+	* ircd/m_invite.c: Disallow invites to non existant channels
+
+2004-05-15  David Mansell <splidge@quakenet.org>
+
+	[Original ChangeLog date: 2003-04-26 -MDP]
+
+	* ircd/m_invite.c: let +k users invite into channels they aren't on.
+
 2004-05-15  hikari <shadow@undernet.org>
 
 	[Original ChangeLog date: 2003-07-13 -MDP]

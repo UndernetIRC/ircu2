@@ -146,25 +146,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (!(chptr = FindChannel(parv[2]))) {
-    if (IsLocalChannel(parv[2]))
-    {
-      send_reply(sptr, ERR_NOTONCHANNEL, parv[2]);
-      return 0;
-    }
-
-    /* Do not disallow to invite to non-existant #channels, otherwise they
-       would simply first be created, causing only MORE bandwidth usage. */
-
-    if (check_target_limit(sptr, acptr, cli_name(acptr), 0))
-      return 0;
-
-    send_reply(sptr, RPL_INVITING, cli_name(acptr), parv[2]);
-
-    if (cli_user(acptr)->away)
-      send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
-
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", cli_name(acptr), parv[2]);
-
+    send_reply(sptr, ERR_NOTONCHANNEL, parv[2]);
     return 0;
   }
 
@@ -237,7 +219,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     protocol_violation(sptr,"Too few arguments to invite");
     return need_more_params(sptr,"INVITE");
   }
-  if ('#' != *parv[2]) {
+  if (!IsGlobalChannel(parv[2])) {
     /*
      * should not be sent
      */
@@ -267,7 +249,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
-  if (!find_channel_member(sptr, chptr)) {
+  if (!IsChannelService(sptr) && !find_channel_member(sptr, chptr)) {
     send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
     return 0;
   }
