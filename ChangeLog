@@ -1,4 +1,7 @@
-2000-03-30  Perry Lorier <isomer@coders.net>
+2000-04-06  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: Fix core during pinging (oops)
+	
+2000-04-06  Perry Lorier <isomer@coders.net>
 	* ircd/send.c: fixed wrong ident being sent to channels bug.
 	* include/numerics.h: Updated some of the numerics from other
 	networks.  Flagged some as 'unused' by undernet.
@@ -298,7 +301,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.60 2000-04-06 03:48:04 isomer Exp $
+# $Id: ChangeLog,v 1.61 2000-04-06 04:00:28 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

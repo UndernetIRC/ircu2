@@ -335,7 +335,7 @@ static time_t check_pings(void)
       /* Display message if they have sent a NICK and a USER but no
        * nospoof PONG.
        */
-      if (*cptr->name && *cptr->user->username) {
+      if (*cptr->name && cptr->user && *cptr->user->username) {
         sendto_one(cptr,
             ":%s %d %s :Your client may not be compatible with this server.",
             me.name, ERR_BADPING, cptr->name);
