@@ -281,8 +281,8 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_listing(sptr) = 0;
     send_reply(sptr, RPL_LISTEND);
     update_write(sptr);
-    if (parc < 2)
-      return 0;                 /* Let LIST abort a listing. */
+    if (parc < 2 || 0 == ircd_strcmp("STOP", parv[1]))
+      return 0;                 /* Let LIST or LIST STOP abort a listing. */
   }
 
   if (parc < 2)                 /* No arguments given to /LIST ? */
