@@ -1,3 +1,6 @@
+2001-11-02  Perry Lorier  <isomer@coders.net>
+	* fixed TS drift message to use sptr, not cptr
+
 2001-10-31  Perry Lorier  <isomer@coders.net>
 	* fixed ping *bug*
 
