@@ -1,3 +1,15 @@
+2004-08-26  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c (lookup_confhost): if field 1 of a C-line contains
+	a '/', interpret the text before the '/' as an IP address to bind
+	to locally, and use the text after the '/' as the host to connect
+	to
+
+	* ircd/s_bsd.c (connect_inet): if origin field in struct ConfItem
+	is set, bind to the identified address
+
+	* include/s_conf.h: add origin field to struct ConfItem
+
 2004-06-20  Alex Badea  <decampos@users.sourceforge.net>
 
 	* ircd/m_account.c: login-on-connect extensions, part 1:
