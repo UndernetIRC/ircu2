@@ -1,3 +1,8 @@
+2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c (find_kill): gline_find() takes a char *userhost,
+	but gline_lookup() actually takes a client--d'oh.
+
 2000-04-13  Thomas Helvey <tomh@inxpress.net>
 	* ircd/IPcheck.c: Back port BLMet's bugfix from 2.10.10
 
@@ -446,7 +451,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.81 2000-04-14 02:56:22 bleep Exp $
+# $Id: ChangeLog,v 1.82 2000-04-14 14:41:04 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
