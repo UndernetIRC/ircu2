@@ -1,4 +1,4 @@
-$Id: iauth.txt,v 1.1 2001-05-01 11:38:34 isomer Exp $
+$Id: iauth.txt,v 1.1.2.1 2001-05-08 21:56:41 kev Exp $
 
 Patrick Alken <wnder@underworld.net>
 01/09/2000

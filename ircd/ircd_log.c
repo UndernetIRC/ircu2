@@ -22,9 +22,10 @@
  *
  *   $Id$
  */
+#include "config.h"
+
 #include "ircd_log.h"
 #include "client.h"
-#include "config.h"
 #include "ircd_alloc.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"

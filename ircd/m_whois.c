@@ -79,6 +79,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match
@@ -190,7 +192,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
   }
 
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-  if (!IsOper(sptr))
+  if (!IsAnOper(sptr) && sptr != a2cptr)
     send_reply(sptr, RPL_WHOISSERVER, name, "*.undernet.org",
 	       "The Undernet Underworld");
   else

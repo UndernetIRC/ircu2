@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "opercmds.h"
 #include "class.h"
 #include "client.h"

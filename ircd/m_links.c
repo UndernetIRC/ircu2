@@ -79,6 +79,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match
@@ -148,6 +150,11 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc,
 		     char* parv[])
 {
+
+  if (parc > 2)
+    return send_reply(cptr, ERR_NOPRIVILEGES);
+
+  send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
   sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
 		"/LINKS has been disabled, from CFV-165.  "
 		"Visit http://www.undernet.org/servers.php");

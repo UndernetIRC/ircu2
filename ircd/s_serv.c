@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_serv.h"
 #include "IPcheck.h"
 #include "channel.h"

@@ -5,9 +5,6 @@
  */
 #ifndef INCLUDED_s_debug_h
 #define INCLUDED_s_debug_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"       /* Needed for HOSTLEN */
 #endif

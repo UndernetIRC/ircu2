@@ -25,6 +25,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "userload.h"
 #include "client.h"
 #include "ircd.h"

@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "dbuf.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"

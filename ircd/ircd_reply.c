@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_reply.h"
 #include "client.h"
 #include "ircd.h"

@@ -20,6 +20,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "jupe.h"
 #include "client.h"
 #include "hash.h"

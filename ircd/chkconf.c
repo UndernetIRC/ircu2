@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_conf.h"
 #include "client.h"
 #include "class.h"
@@ -75,7 +77,7 @@ static struct ConfItem *chk_initconf(void);
 static struct ConnectionClass *get_class(int cn, int ism);
 
 static int numclasses = 0, *classarr = (int *)NULL, debugflag = 0;
-static char *chk_configfile = CPATH;
+static char *chk_configfile = "";
 static char nullfield[] = "";
 static char maxsendq[12];
 
@@ -103,7 +105,7 @@ char *rpl_str(int numeric)
 
 int main(int argc, char *argv[])
 {
-  const char *dpath = DPATH;
+  const char *dpath = "./";
   chk_configfile = "ircd.conf";
 
   while (argc > 1)

@@ -19,8 +19,9 @@
  *
  * $Id$
  */
-#include "list.h"
+#include "config.h"
 
+#include "list.h"
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"

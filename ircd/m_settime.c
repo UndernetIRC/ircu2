@@ -79,6 +79,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match
@@ -92,6 +94,7 @@
 #include "ircd.h"
 #include "ircd_features.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "msg.h"
@@ -139,7 +142,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsServer(sptr))           /* send to unlagged servers */
   {
     if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-      sprintf_irc(tbuf, TIME_T_FMT, TStime());
+      ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
       parv[1] = tbuf;
     }
 
@@ -149,7 +152,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else
   {
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
+    ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
     parv[1] = tbuf;
     if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
         HUNTED_ISME)
@@ -215,7 +218,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsServer(sptr))           /* send to unlagged servers */
   {
     if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-      sprintf_irc(tbuf, TIME_T_FMT, TStime());
+      ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
       parv[1] = tbuf;
     }
 
@@ -225,7 +228,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else
   {
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
+    ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
     parv[1] = tbuf;
     if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
         HUNTED_ISME)

@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_misc.h"
 #include "IPcheck.h"
 #include "channel.h"
@@ -460,8 +462,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
       sendto_opmask_butone(0, SNO_OLDSNO, "Received SQUIT %s from %s :",
 			   cli_name(victim), IsServer(killer) ? cli_name(killer) :
 			   get_client_name(killer, HIDE_IP));
-    sendto_opmask_butone(0, SNO_NETWORK, "Net break: %s (%s)", comment1,
-			 comment);
+    sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
+			 cli_serv(victim)->up, victim, comment);
   }
 
   /*

@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_string.h"
 #include "ircd_defs.h"
 #include "ircd_chattr.h"

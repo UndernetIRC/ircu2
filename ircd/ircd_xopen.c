@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #define _XOPEN_SOURCE
 #define _XOPEN_VERSION 4
 #include "ircd_xopen.h"

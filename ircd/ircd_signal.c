@@ -19,6 +19,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_signal.h"
 #include "ircd.h"
 

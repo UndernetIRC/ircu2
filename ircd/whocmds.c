@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "whocmds.h"
 #include "channel.h"
 #include "client.h"

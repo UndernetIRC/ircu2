@@ -5,9 +5,6 @@
  */
 #ifndef INCLUDED_ircd_string_h
 #define INCLUDED_ircd_string_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_ircd_chattr_h
 #include "ircd_chattr.h"
 #endif

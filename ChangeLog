@@ -1,3 +1,110 @@
+2001-05-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c: include ircd_snprintf.h
+
+	* ircd/ircd_relay.c: stomp a couple of gcc warnings suggesting
+	parens around a construct that had both || and &&
+
+	* ircd/chkconf.c: #include "config.h" to get some important
+	definitions
+
+	* ircd/Makefile.in: revamp ircd makefile for new build system
+
+	* doc/Makefile.in: revamp doc makefile for new build system
+
+	* config/*: Removed old build system files
+
+	* stamp-h.in: a stamp file
+
+	* install-sh: install-sh for new build system
+
+	* configure.in: configure.in for new build system
+
+	* configure: configure script for new build system (built by
+	autoconf)
+
+	* config.sub: config.sub for new build system
+
+	* config.h.in: config.h.in for new build system (built by
+	autoheader)
+
+	* config.guess: config.guess for new build system
+
+	* aclocal.m4: aclocal.m4 for new build system (built by aclocal
+	1.4)
+
+	* acinclude.m4: aclocal.m4 macros for new build system
+
+	* acconfig.h: config.h skeleton for new build system
+
+	* Makefile.in: modify for new build system
+
+2001-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_settime.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_server.c: get rid of the last vestiges of TIME_T_FMT
+
+2001-05-01  Perry Lorier       <Isomer@coders.net>
+	* doc/iauth.doc: Protocol for iauth server. (from hybrid).
+	* doc/linux-poll.patch: Patch to make Linux under 2.2 not deadlock
+		when you have far far too many sockets in use.
+	* {include,ircd}/iauth.c: A start on iauth support.
+
+2001-05-01  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_err.c: Suggested wording change.
+	* ircd/s_user.c: Users aren't target limited against +k users.
+	* ircd/chkconf.c: Made it compile again, who knows if it works, but
+		now I can at least make install
+        * various: Cleanups on m_*.c files.
+
+
+2001-04-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c (exit_client): make netsplit server notice say the
+	right thing
+
+	* ircd/m_links.c (m_links_redirect): forward-port RPL_ENDOFLINKS
+	change to make Khaled happy...
+
+	* ircd/m_whois.c (do_whois): pull-up of m_whois() fix
+	(do_whois): duh...
+
+2001-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: finally remove the msgq_integrity() hack, as it's
+	turned up no more bugs
+
+	* ircd/ircd.c: use /* */ comments instead of // comments--all the
+	world's not gcc :(
+
+	* ircd/s_conf.c (conf_add_server): use /* */ comments instead of
+	// comments--all the world's not gcc :(
+
+	* ircd/runmalloc.c: finally garbage-collect unused file
+
+	* include/runmalloc.h: finally garbage-collect unused file
+
+	* ircd/<multiple files>: addition of '#include "config.h"' before
+	all other includes in most .c files
+
+	* include/<multiple files>: remove includes of config.h, which are
+	now going into the raw .c files
+
+2001-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c (do_whois): display proper server name if the
+	user is looking up himself
+
+	* ircd/m_who.c (m_who): disable match by servername or display of
+	server names by non-opers
+
+	* include/ircd_policy.h: add define for
+	HEAD_IN_SAND_WHO_SERVERNAME to cover full intent of sub-motion 15
+	of CFV 165
+
 2001-04-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c: keep the $R in memory so we can see it clearly

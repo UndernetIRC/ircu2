@@ -41,6 +41,7 @@
  * both admins and coders.
  *
  */
+#include "config.h"
 
 #include "ircd_chattr.h"
 #include <stdlib.h>

@@ -22,6 +22,7 @@
  *
  * $Id$
  */
+#include "config.h"
 
 #if 0
 /*

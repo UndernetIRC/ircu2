@@ -17,6 +17,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "random.h"
 #include "client.h"
 #include "ircd_log.h"

@@ -21,6 +21,7 @@
  *
  * $Id$
  */
+#include "config.h"
 
 #include "s_stats.h"
 #include "class.h"

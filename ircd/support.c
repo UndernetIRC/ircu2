@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "support.h"
 #include "fileio.h"
 #include "ircd.h"

@@ -5,9 +5,6 @@
  */
 #ifndef INCLUDED_whocmds_h
 #define INCLUDED_whocmds_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 
 struct Client;
 struct Channel;

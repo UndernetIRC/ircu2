@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "client.h"
 #include "channel.h"
 #include "ircd_snprintf.h"

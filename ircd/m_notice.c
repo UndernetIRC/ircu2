@@ -79,6 +79,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match
@@ -326,7 +328,8 @@ static int m_message(struct Client *cptr, struct Client *sptr,
         acptr = 0;
       if (acptr)
       {
-        if (MyUser(sptr) && check_target_limit(sptr, acptr, acptr->name, 0))
+        if (MyUser(sptr) && !IsChannelService(acptr) && 
+	    check_target_limit(sptr, acptr, acptr->name, 0))
           continue;
         if (!is_silenced(sptr, acptr))
         {

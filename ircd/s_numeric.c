@@ -20,6 +20,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_numeric.h"
 #include "channel.h"
 #include "client.h"

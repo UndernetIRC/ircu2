@@ -19,6 +19,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd.h"
 #include "IPcheck.h"
 #include "class.h"
@@ -84,21 +86,22 @@ enum {
 /*----------------------------------------------------------------------------
  * Global data (YUCK!)
  *--------------------------------------------------------------------------*/
-struct Client  me;                      // That's me
-struct Connection me_con;		// That's me too
-struct Client *GlobalClientList  = &me; // Pointer to beginning of Client list
-time_t         TSoffset          = 0;   // Offset of timestamps to system clock
-int            GlobalRehashFlag  = 0;   // do a rehash if set
-int            GlobalRestartFlag = 0;   // do a restart if set
-time_t         CurrentTime;             // Updated every time we leave select()
+struct Client  me;                      /* That's me */
+struct Connection me_con;		/* That's me too */
+struct Client *GlobalClientList  = &me; /* Pointer to beginning of
+					   Client list */
+time_t         TSoffset          = 0;/* Offset of timestamps to system clock */
+int            GlobalRehashFlag  = 0;   /* do a rehash if set */
+int            GlobalRestartFlag = 0;   /* do a restart if set */
+time_t         CurrentTime;          /* Updated every time we leave select() */
 
-char          *configfile        = CPATH; // Server configuration file
-int            debuglevel        = -1;    // Server debug level 
-char          *debugmode         = "";    // Server debug level
+char          *configfile        = CPATH; /* Server configuration file */
+int            debuglevel        = -1;    /* Server debug level  */
+char          *debugmode         = "";    /* Server debug level */
 static char   *dpath             = DPATH;
 
-time_t         nextconnect       = 1; // time for next try_connections call
-time_t         nextping          = 1; // same as above for check_pings()
+time_t         nextconnect       = 1; /* time for next try_connections call */
+time_t         nextping          = 1; /* same as above for check_pings() */
 
 static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
 

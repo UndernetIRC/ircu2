@@ -22,6 +22,8 @@
  * This file should be edited in a window with a width of 141 characters
  * ick
  */
+#include "config.h"
+
 #include "IPcheck.h"
 #include "client.h"
 #include "ircd.h"

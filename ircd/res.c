@@ -10,6 +10,8 @@
  *     added callbacks and reference counting of returned hostents.
  *     --Bleep (Thomas Helvey <tomh@inxpress.net>)
  */
+#include "config.h"
+
 #include "res.h"
 #include "client.h"
 #include "ircd.h"

@@ -19,6 +19,8 @@
  * $Id$
  *
  */
+#include "config.h"
+
 #define _XOPEN_SOURCE	/* make limits.h #define IOV_MAX */
 
 #include "ircd_osdep.h"

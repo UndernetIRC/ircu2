@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "numeric.h"
 #include "s_debug.h"
 #include "sprintf_irc.h"
@@ -525,7 +527,7 @@ static Numeric replyTable[] = {
 /* 246 */
   { RPL_STATSTLINE, "%c %s %s", "246" },
 /* 247 */
-  { RPL_STATSGLINE, "%c %s@%s " TIME_T_FMT " :%s", "247" },
+  { RPL_STATSGLINE, "%c %s@%s %Tu :%s", "247" },
 /* 248 */
   { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
 /* 249 */
@@ -591,11 +593,11 @@ static Numeric replyTable[] = {
 /* 279 */
   { 0 },
 /* 280 */
-  { RPL_GLIST, "%s%s%s " TIME_T_FMT " %s %c :%s", "280" },
+  { RPL_GLIST, "%s%s%s %Tu %s %c :%s", "280" },
 /* 281 */
   { RPL_ENDOFGLIST, ":End of G-line List", "281" },
 /* 282 */
-  { RPL_JUPELIST, "%s " TIME_T_FMT " %s %c :%s", "282" },
+  { RPL_JUPELIST, "%s %Tu %s %c :%s", "282" },
 /* 283 */
   { RPL_ENDOFJUPELIST, ":End of Jupe List", "283" },
 /* 284 */
@@ -689,7 +691,7 @@ static Numeric replyTable[] = {
 /* 328 */
   { 0 },
 /* 329 */
-  { RPL_CREATIONTIME, "%s " TIME_T_FMT, "329" },
+  { RPL_CREATIONTIME, "%s %Tu", "329" },
 /* 330 */
   { 0 },
 /* 331 */
@@ -697,7 +699,7 @@ static Numeric replyTable[] = {
 /* 332 */
   { RPL_TOPIC, "%s :%s", "332" },
 /* 333 */
-  { RPL_TOPICWHOTIME, "%s %s " TIME_T_FMT, "333" },
+  { RPL_TOPICWHOTIME, "%s %s %Tu", "333" },
 /* 334 */
   { RPL_LISTUSAGE, ":%s", "334" },
 /* 335 */
@@ -765,7 +767,7 @@ static Numeric replyTable[] = {
 /* 366 */
   { RPL_ENDOFNAMES, "%s :End of /NAMES list.", "366" },
 /* 367 */
-  { RPL_BANLIST, "%s %s %s " TIME_T_FMT, "367" },
+  { RPL_BANLIST, "%s %s %s %Tu", "367" },
 /* 368 */
   { RPL_ENDOFBANLIST, "%s :End of Channel Ban List", "368" },
 /* 369 */
@@ -813,7 +815,7 @@ static Numeric replyTable[] = {
 /* 390 */
   { 0 },
 /* 391 */
-  { RPL_TIME, "%s " TIME_T_FMT " %ld :%s", "391" },
+  { RPL_TIME, "%s %Tu %ld :%s", "391" },
 /* 392 */
   { 0 },
 /* 393 */
@@ -999,7 +1001,7 @@ static Numeric replyTable[] = {
 /* 483 */
   { ERR_CANTKILLSERVER, ":You cant kill a server!", "483" },
 /* 484 */
-  { ERR_ISCHANSERVICE, "%s %s :Cannot kill, kick or deop channel service", "484" },
+  { ERR_ISCHANSERVICE, "%s %s :Cannot kill, kick or deop a network service", "484" },
 /* 485 */
   { 0 },
 /* 486 */
@@ -1061,7 +1063,7 @@ static Numeric replyTable[] = {
 /* 514 */
   { ERR_NOSUCHJUPE, "%s :No such jupe", "514" },
 /* 515 */
-  { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" },
+  { ERR_BADEXPIRE, "%Tu :Bad expire time", "515" },
 /* 516 */
   { ERR_DONTCHEAT, " :Don't Cheat.", "516" },
 /* 517 */

@@ -26,6 +26,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "sprintf_irc.h"
 #include "sys.h"
 #include <stdio.h>
