@@ -1,3 +1,14 @@
+2000-09-13  Thomas Helvey <helveytw@home.com>
+	* ircd/list.c: put Clients in free lists, pre-allocate MAXCONNECTIONS
+	local clients.
+	* ircd/list.c: put SLinks in free lists
+	* ircd/channel.c: put Memberships in free lists
+	* ircd/ircd.c: rearrange initializations a bit in main
+	Note: With these changes, ircd NEVER frees Clients, SLinks or
+	Memberships. It will also rarely need to allocate new
+	ones during net bursts and other disruptions. This should
+	cut down on memory fragmentation a bit as well.
+
 2000-08-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_names.c (do_names): pull-up from do_names fix in
@@ -1291,7 +1302,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.159 2000-08-30 15:58:53 kev Exp $
+# $Id: ChangeLog,v 1.160 2000-09-13 07:55:55 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

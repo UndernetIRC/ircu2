@@ -345,6 +345,10 @@ unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len)
       me.sendK += (me.sendB >> 10);
       me.sendB &= 0x03ff;
     }
+    /*
+     * XXX - hrmm.. set blocked here? the socket didn't
+     * say it was blocked
+     */
     if (bytes_written < len)
       cptr->flags |= FLAGS_BLOCKED;
     break;

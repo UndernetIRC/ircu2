@@ -53,6 +53,9 @@
 
 struct Channel* GlobalChannelList = 0;
 
+static unsigned int membershipAllocCount;
+static struct Membership* membershipFreeList;
+
 static struct SLink *next_overlapped_ban(void);
 static int del_banid(struct Channel *, char *, int);
 void del_invite(struct Client *, struct Channel *);
@@ -530,8 +533,15 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
   assert(0 != who);
 
   if (who->user) {
-    struct Membership* member = 
-            (struct Membership*) MyMalloc(sizeof(struct Membership));
+   
+    struct Membership* member = membershipFreeList;
+    if (member)
+      membershipFreeList = member->next_member;
+    else {
+      member = (struct Membership*) MyMalloc(sizeof(struct Membership));
+      ++membershipAllocCount;
+    }
+
     assert(0 != member);
     member->user         = who;
     member->channel      = chptr;
@@ -580,7 +590,9 @@ static int remove_member_from_channel(struct Membership* member)
     member->user->user->channel = member->next_channel;
 
   --member->user->user->joined;
-  MyFree(member);
+
+  member->next_member = membershipFreeList;
+  membershipFreeList = member;
 
   return sub1_from_channel(chptr);
 }

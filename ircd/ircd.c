@@ -366,6 +366,8 @@ static time_t check_pings(void) {
 
 /*----------------------------------------------------------------------------
  * parse_command_line
+ * Side Effects: changes GLOBALS me, thisServer, dpath, configfile, debuglevel
+ * debugmode
  *--------------------------------------------------------------------------*/
 static void parse_command_line(int argc, char** argv) {
   const char *options = "d:f:h:ntvx:";
@@ -612,9 +614,6 @@ int main(int argc, char **argv) {
   memset(&me, 0, sizeof(me));
   me.fd = -1;
 
-  setup_signals();
-  initload();
-
   parse_command_line(argc, argv);
 
   if (chdir(dpath)) {
@@ -637,6 +636,15 @@ int main(int argc, char **argv) {
     exit(5);
 #endif
 
+  debug_init(thisServer.bootopt & BOOT_TTY);
+  daemon_init(thisServer.bootopt & BOOT_TTY);
+
+  setup_signals();
+  open_log(*argv);
+
+  set_nomem_handler(outofmemory);
+
+  initload();
   init_list();
   hash_init();
   initclass();
@@ -644,22 +652,15 @@ int main(int argc, char **argv) {
   initmsgtree();
   initstats();
 
-  debug_init(thisServer.bootopt & BOOT_TTY);
-  daemon_init(thisServer.bootopt & BOOT_TTY);
-
-  set_nomem_handler(outofmemory);
   init_resolver();
 
-  open_log(*argv);
-
   if (!conf_init()) {
-    Debug((DEBUG_FATAL, "Failed to read configuration file %s", configfile));
-    printf("Couldn't open configuration file %s\n", configfile);
+    ircd_log(L_CRIT, "Failed to read configuration file %s", configfile);
     exit(6);
   }
 
   if (!init_server_identity()) {
-    Debug((DEBUG_FATAL, "Failed to initialize server identity"));
+    ircd_log(L_CRIT, "Failed to initialize server identity");
     exit(7);
   }
 
@@ -669,9 +670,9 @@ int main(int argc, char **argv) {
   rmotd       = read_motd(RPATH);
   motd        = read_motd(MPATH);
   CurrentTime = time(NULL);
-  me.from     = &me;
 
   SetMe(&me);
+  me.from = &me;
   make_server(&me);
 
   me.serv->timestamp = TStime();  /* Abuse own link timestamp as start TS */
