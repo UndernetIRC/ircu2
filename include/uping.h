@@ -33,6 +33,7 @@
 #endif
 
 struct Client;
+struct ConfItem;
 
 struct UPing
 {
@@ -54,22 +55,16 @@ struct UPing
   char               buf[BUFSIZE];      /* buffer to hold ping times */
 };
 
+extern int UPingFileDescriptor;
 
-/*=============================================================================
- * Proto types
- */
+extern int  uping_init(void);
+extern void uping_send(struct UPing* pptr);
+extern void uping_read(struct UPing* pptr);
+extern void uping_end(struct UPing* pptr);
+extern void uping_cancel(struct Client *sptr, struct Client *acptr);
+extern void uping_echo(void);
+extern struct UPing* uping_begin(void);
+extern int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int count);
 
-extern int  setup_ping(void);
-extern void polludp(int fd);
-extern void send_ping(struct UPing* pptr);
-extern void read_ping(struct UPing* pptr);
-extern int  m_uping(struct Client *cptr, struct Client *sptr, int parc, char* parv[]);
-extern void end_ping(struct UPing* pptr);
-extern void cancel_ping(struct Client *sptr, struct Client *acptr);
-extern struct UPing* pings_begin(void);
-
-#ifdef DEBUG
-extern void uping_mark_blocks(void);
-#endif
 
 #endif /* INCLUDED_uping_h */

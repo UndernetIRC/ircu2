@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.3.2.1 2000-03-25 08:12:44 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.3.2.2 2000-03-27 02:43:02 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Hookup UPING code again, cleanups --Bleep
 * Convert numerics back to mask and shift extended numerics
   follow same mechanism --Bleep
 * Fixed bogus errno return on Solaris --Bleep

@@ -226,6 +226,9 @@ struct Client;
 #define MSG_BURST               "BURST"         /* BURS */
 #define TOK_BURST               "B"
 
+#define MSG_UPING               "UPING"         /* UPIN */
+#define TOK_UPING               "UP"
+
 #define MSG_CREATE              "CREATE"        /* CREA */
 #define TOK_CREATE              "C"
 

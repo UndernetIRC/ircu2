@@ -49,9 +49,7 @@ extern int            HighestFd;
 extern struct Client* LocalClientArray[MAXCONNECTIONS];
 extern int            OpenFileDescriptorCount;
 
-#ifdef VIRTUAL_HOST
-extern struct sockaddr_in vserv;
-#endif
+extern struct sockaddr_in VirtualHost;
 
 enum PollType {
   PT_NONE,
