@@ -1063,8 +1063,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (IsServer(sptr) || sptr != acptr)
   {
     if (IsServer(cptr))
-      sendcmdto_flag_butone(&me, CMD_WALLOPS, 0, FLAGS_WALLOP,
-                            ":MODE for User %s from %s!%s", parv[1],
+      sendwallto_group_butone(&me, WALL_WALLOPS, 0, 
+	  		    "MODE for User %s from %s!%s", parv[1],
                             cli_name(cptr), cli_name(sptr));
     else
       send_reply(sptr, ERR_USERSDONTMATCH);

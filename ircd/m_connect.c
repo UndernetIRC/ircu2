@@ -195,7 +195,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * Notify all operators about remote connect requests
    */
-  sendcmdto_flag_butone(&me, CMD_WALLOPS, 0, FLAGS_WALLOP,
+  sendwallto_group_butone(&me, WALL_WALLOPS, 0,
 			":Remote CONNECT %s %s from %s", parv[1],
 			parv[2] ? parv[2] : "",
 			get_client_name(sptr, HIDE_IP));

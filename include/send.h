@@ -15,6 +15,10 @@ struct Client;
 struct DBuf;
 struct MsgBuf;
 
+#define WALL_DESYNCH	1
+#define WALL_WALLOPS	2
+#define WALL_WALLUSERS	3
+
 /*
  * Prototypes
  */
@@ -65,9 +69,8 @@ extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 #define SKIP_NONOPS	0x04	/* skip users that aren't chanops */
 
 /* Send command to all users having a particular flag set */
-extern void sendcmdto_flag_butone(struct Client *from, const char *cmd,
-				  const char *tok, struct Client *one,
-				  unsigned int flag, const char *pattern, ...);
+extern void sendwallto_group_butone(struct Client *from, int type, 
+    				struct Client *one, const char *pattern, ...);
 
 /* Send command to all matching clients */
 extern void sendcmdto_match_butone(struct Client *from, const char *cmd,
