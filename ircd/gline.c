@@ -28,6 +28,7 @@
 #include "match.h"
 #include "numeric.h"
 #include "s_bsd.h"
+#include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
@@ -39,6 +40,8 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
+#include <arpa/inet.h> /* for inet_ntoa */
 
 struct Gline* GlobalGlineList  = 0;
 struct Gline* BadChanGlineList = 0;
@@ -109,8 +112,25 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
     DupString(gline->gl_user, user); /* remember them... */
     DupString(gline->gl_host, host);
 
-    if (check_if_ipmask(host)) /* mark if it's an IP mask */
+    if (check_if_ipmask(host)) { /* mark if it's an IP mask */
+      int class;
+      char ipname[16];
+      int ad[4] = { 0 };
+      int bits2 = 0;
+       
+      class = sscanf(host,"%d.%d.%d.%d/%d",
+                     &ad[0],&ad[1],&ad[2],&ad[3], &bits2);
+      if (class!=5) {
+        gline->bits=class*8;
+      }
+      else {
+        gline->bits=bits2;
+      }
+      sprintf_irc(ipname,"%d.%d.%d.%d",ad[0],ad[1],ad[2],ad[3]);
+      gline->ipnum.s_addr = inet_addr(ipname);
+      Debug((DEBUG_DEBUG,"IP gline: %08x/%i",gline->ipnum.s_addr,gline->bits));
       gline->gl_flags |= GLINE_IPMASK;
+    }
 
     if (after) {
       gline->gl_next = after->gl_next;
@@ -146,27 +166,35 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
     if ((acptr = LocalClientArray[fd])) {
       if (!acptr->user)
 	continue;
-
-      if ((GlineIsIpMask(gline) ? match(gline->gl_host, acptr->sock_ip) :
-	   match(gline->gl_host, acptr->sockhost)) == 0 &&
-	  (!acptr->user->username ||
-	   match(gline->gl_user, acptr->user->username) == 0)) {
-	/* ok, here's one that got G-lined */
-	send_reply(acptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s",
-		   gline->gl_reason);
-
-	/* let the ops know about it */
-	sendto_opmask_butone(0, SNO_GLINE, "G-line active for %s",
-			     get_client_name(acptr, FALSE));
-
-	/* and get rid of him */
-	if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",
-				    gline->gl_reason)))
-	  retval = tval; /* retain killed status */
+	
+      if (acptr->user->username && 
+          match(gline->gl_user, acptr->user->username) == 0)
+          continue;
+          
+      if (GlineIsIpMask(gline)) {
+        Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",cptr->ip.s_addr,gline->ipnum.s_addr,gline->bits));
+        if ((cptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+          continue;
       }
+      else {
+        if (match(gline->gl_host, acptr->sock_ip) != 0)
+          continue;
+      }
+
+      /* ok, here's one that got G-lined */
+      send_reply(acptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s",
+      	   gline->gl_reason);
+
+      /* let the ops know about it */
+      sendto_opmask_butone(0, SNO_GLINE, "G-line active for %s",
+      		     get_client_name(acptr, FALSE));
+
+      /* and get rid of him */
+      if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",
+          gline->gl_reason)))
+        retval = tval; /* retain killed status */
     }
   }
-
   return retval;
 }
 
@@ -268,7 +296,6 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   unsigned int saveflags = 0;
 
   assert(0 != gline);
-  assert(!GlineIsLocal(gline));
 
   saveflags = gline->gl_flags;
 
@@ -436,18 +463,32 @@ gline_lookup(struct Client *cptr, unsigned int flags)
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= CurrentTime)
+    if (gline->gl_expire <= CurrentTime) {
       gline_free(gline);
-    else if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
+      continue;
+    }
+    
+    if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
 	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
-    else if ((GlineIsIpMask(gline) ?
-	      match(gline->gl_host, ircd_ntoa((const char *)&cptr->ip)) :
-	      match(gline->gl_host, cptr->user->host)) == 0 &&
-	     match(gline->gl_user, cptr->user->username) == 0)
-      return gline;
+     
+    if (match(gline->gl_user, cptr->user->username) != 0)
+      continue;
+    	 
+    if (GlineIsIpMask(gline)) {
+      Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",cptr->ip.s_addr,gline->ipnum.s_addr,gline->bits));
+      if ((cptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+        continue;
+    }
+    else {
+      if (match(gline->gl_host, cptr->user->host) != 0) 
+        continue;
+    }
+    return gline;
   }
-
+  /*
+   * No Glines matched
+   */
   return 0;
 }
 

@@ -42,7 +42,7 @@ int check_if_ipmask(const char *mask)
   const char *p;
 
   for (p = mask; *p; ++p)
-    if (*p != '*' && *p != '?' && *p != '.')
+    if (*p != '*' && *p != '?' && *p != '.' && *p != '/')
     {
       if (!IsDigit(*p))
         return 0;

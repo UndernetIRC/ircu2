@@ -76,79 +76,6 @@ struct tm        motd_tm;
 
 
 /*
- *  is the K line field an interval or a comment? - Mmmm
- */
-static int is_comment(const char *comment)
-{
-  unsigned int i;
-  unsigned int len = strlen(comment);
-  for (i = 0; i < len; ++i) {
-    if (!IsKTimeChar(comment[i]))
-      return 1;
-  }
-  return 0;
-}
-
-/*
- *  check against a set of time intervals
- */
-static int check_time_interval(char *interval, char *reply, size_t reply_size)
-{
-  struct tm* tptr;
-  char*      p;
-  int        perm_min_hours;
-  int        perm_min_minutes;
-  int        perm_max_hours;
-  int        perm_max_minutes;
-  int        nowm;
-  int        perm_min;
-  int        perm_max;
-
-  tptr = localtime(&CurrentTime);
-  nowm = tptr->tm_hour * 60 + tptr->tm_min;
-
-  while (interval) {
-    p = strchr(interval, ',');
-    if (p)
-      *p = '\0';
-    if (sscanf(interval, "%2d%2d-%2d%2d", &perm_min_hours, &perm_min_minutes,
-               &perm_max_hours, &perm_max_minutes) != 4)
-    {
-      if (p)
-        *p = ',';
-      return 0;
-    }
-    if (p)
-      *(p++) = ',';
-    perm_min = 60 * perm_min_hours + perm_min_minutes;
-    perm_max = 60 * perm_max_hours + perm_max_minutes;
-    /*
-     * The following check allows intervals over midnight ...
-     */
-    if ((perm_min < perm_max)
-        ? (perm_min <= nowm && nowm <= perm_max)
-        : (perm_min <= nowm || nowm <= perm_max))
-    {
-      ircd_snprintf(0, reply, reply_size, ":You are not allowed to connect "
-		    "from %d:%02d to %d:%02d.", perm_min_hours,
-		    perm_min_minutes, perm_max_hours, perm_max_minutes);
-      return (ERR_YOUREBANNEDCREEP);
-    }
-    if ((perm_min < perm_max)
-        ? (perm_min <= nowm + 5 && nowm + 5 <= perm_max)
-        : (perm_min <= nowm + 5 || nowm + 5 <= perm_max))
-    {
-      ircd_snprintf(0, reply, reply_size, ":%d minute%s and you will be "
-		    "denied for further access", perm_min - nowm,
-		    (perm_min - nowm) > 1 ? "s" : "");
-      return (ERR_YOUWILLBEBANNED);
-    }
-    interval = p;
-  }
-  return 0;
-}
-
-/*
  * output the reason for being k lined from a file  - Mmmm
  * sptr is server
  * parv is the sender prefix
@@ -1066,6 +993,7 @@ int conf_init(void)
     /* Could we test if it's conf line at all?      -Vesa */
     if (line[1] != ':') {
       Debug((DEBUG_ERROR, "Bad config line: %s", line));
+      sendto_op_mask(SNO_OLDSNO,"Bad Config line");
       continue;
     }
     if (aconf)
@@ -1144,6 +1072,7 @@ int conf_init(void)
       break;
     default:
       Debug((DEBUG_ERROR, "Error in config file: %s", line));
+      sendto_op_mask(SNO_OLDSNO,"Unknown prefix in config file: %c",*tmp);
       break;
     }
     if (IsIllegal(aconf))
@@ -1167,9 +1096,9 @@ int conf_init(void)
       if (aconf->status & CONF_ME) {
         if (!tmp) {
           Debug((DEBUG_FATAL, "Your M: line must have the Numeric, "
-              "assigned to you by routing-com, behind the port number!\n"));
+              "assigned to you by routing-com!\n"));
           ircd_log(L_WARNING, "Your M: line must have the Numeric, "
-              "assigned to you by routing-com, behind the port number!\n");
+              "assigned to you by routing-com!\n");
           exit(-1);
         }
         SetYXXServerName(&me, atoi(tmp));        /* Our Numeric Nick */
@@ -1278,6 +1207,31 @@ int conf_init(void)
     if (aconf->status == CONF_ME) {
       ircd_strncpy(me.info, aconf->name, REALLEN);
     }
+    
+    if (aconf->status == CONF_IPKILL) {
+      /* 
+       * Here we use the same kludge as in listener.c to parse
+       * a.b.c.d, or a.b.c.*, or a.b.c.d/e.
+       */
+      int class;
+      char ipname[16];
+      int ad[4] = { 0 };
+      int bits2=0;
+      class=sscanf(aconf->host,"%d.%d.%d.%d/%d",
+                   &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
+      if (class!=5) {
+        aconf->bits=class*8;
+      }
+      else {
+        aconf->bits=bits2;
+      }
+      sprintf_irc(ipname,"%d.%d.%d.%d",ad[0], ad[1], ad[2], ad[3]);
+      
+      /* This ensures endian correctness */
+      aconf->ipnum.s_addr = inet_addr(ipname);
+      Debug((DEBUG_DEBUG,"IPkill: %s = %08x/%i (%08x)",ipname,
+      	aconf->ipnum.s_addr,aconf->bits,NETMASK(aconf->bits)));
+    }
 
     /*
      * Juped nicks are listed in the 'password' field of U:lines,
@@ -1357,9 +1311,19 @@ void read_tlines()
   }
 }
 
+/*
+ * find_kill
+ * input:
+ *  client pointer
+ * returns:
+ *  0: Client may continue to try and connect
+ * -1: Client was K/k:'d - sideeffect: reason was sent.
+ * -2: Client was G/g:'d - sideeffect: reason was sent.
+ * sideeffects:
+ *  Client may have been sent a reason why they are denied, as above.
+ */
 int find_kill(struct Client *cptr)
 {
-  char             reply[256];
   const char*      host;
   const char*      name;
   struct ConfItem* tmp;
@@ -1373,47 +1337,43 @@ int find_kill(struct Client *cptr)
   host = cptr->sockhost;
   name = cptr->user->username;
 
-#if 0
-  /*
-   * whee :)
-   * XXX - if this ever happens, we're already screwed
+  assert(strlen(host) <= HOSTLEN);
+  assert((name ? strlen(name) : 0) <= HOSTLEN);
+  
+  /* 2000-07-14: Rewrote this loop for massive speed increases.
+   *             -- Isomer
    */
-  if (strlen(host) > HOSTLEN ||
-      (name ? strlen(name) : 0) > HOSTLEN)
-    return (0);
-#endif
-
-  reply[0] = '\0';
-
   for (tmp = GlobalConfList; tmp; tmp = tmp->next) {
-    /* Added a check against the user's IP address as well.
-     * If the line is either CONF_KILL or CONF_IPKILL, check it; if and only
-     * if it's CONF_IPKILL, check the IP address as well (the && below will
-     * short circuit and the match won't even get run) -Kev
+  
+    if ((tmp->status & CONF_KLINE) == 0)
+    	continue;
+    	
+    /*
+     * What is this for?  You can K: by port?!
+     *   -- Isomer
      */
-    if ((tmp->status & CONF_KLINE) && tmp->host && tmp->name &&
-        (match(tmp->host, host) == 0 ||
-        ((tmp->status == CONF_IPKILL) &&
-        match(tmp->host, ircd_ntoa((const char*) &cptr->ip)) == 0)) &&
-        (!name || match(tmp->name, name) == 0) &&
-        (!tmp->port || (tmp->port == cptr->listener->port)))
-    {
-      /*
-       * Can short-circuit evaluation - not taking chances
-       * because check_time_interval destroys tmp->passwd
-       * - Mmmm
-       */
-      if (EmptyString(tmp->passwd))
-        break;
-      else if (is_comment(tmp->passwd))
-        break;
-      else if (check_time_interval(tmp->passwd, reply, sizeof(reply)))
-        break;
+    if (tmp->port && tmp->port != cptr->listener->port)
+    	continue;
+
+    if (!tmp->name || match(tmp->name, name) != 0)
+    	continue;
+    	
+    if (!tmp->host)
+    	break;
+    
+    if (tmp->status != CONF_IPKILL) {
+    	if (match(tmp->host, host) == 0)
+    	  break;
+    }
+    else { /* k: by IP */
+  	Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
+  		cptr->ip.s_addr, tmp->ipnum.s_addr, tmp->bits, 
+  		NETMASK(tmp->bits)));
+    	if ((cptr->ip.s_addr & NETMASK(tmp->bits)) == tmp->ipnum.s_addr)
+    		break;
     }
   }
-  if (reply[0])
-    send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, reply);
-  else if (tmp) {
+  if (tmp) {
     if (EmptyString(tmp->passwd))
       send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
 		 ":Connection from your host is refused on this server.");
@@ -1442,7 +1402,12 @@ int find_kill(struct Client *cptr)
   else
     agline = NULL;                /* if a gline was found, it was inactive */
 
-  return (tmp ? -1 : (agline ? -2 : 0));
+  if (tmp)
+    return -1;
+  if (agline)
+    return -2;
+    
+  return 0;
 }
 
 struct MotdItem* read_motd(const char* motdfile)
