@@ -244,7 +244,11 @@ void SetYXXCapacity(struct Client* c, unsigned int capacity)
     exit(-1);
   }
   --max_clients;
+#if defined(EXTENDED_NUMERICS)
+  inttobase64(c->serv->nn_capacity, max_clients, 3); 
+#else
   inttobase64(c->serv->nn_capacity, max_clients, 2); 
+#endif
   c->serv->nn_mask = max_clients;       /* Our Numeric Nick mask */
   c->serv->client_list = (struct Client**) MyCalloc(max_clients + 1, 
                                                      sizeof(struct Client*));

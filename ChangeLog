@@ -1,3 +1,7 @@
+2000-03-31  Thomas Helvey <tomh@ixpress.net>
+	* ircd/numnicks.c (SetXYYCapacity): fix for extended
+	numerics.
+
 2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/m_nick.c: send kills both ways so when we add nick change
 	on collision we don't desync the network.
@@ -259,7 +263,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.50 2000-04-01 01:55:31 isomer Exp $
+# $Id: ChangeLog,v 1.51 2000-04-01 05:09:14 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
