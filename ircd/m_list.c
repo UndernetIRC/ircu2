@@ -110,7 +110,7 @@ static struct ListingArgs la_init = {
   0,                          /* min_time */
   4294967295U,                /* max_users */
   0,                          /* min_users */
-  0,                          /* topic_limits */
+  0,                          /* flags */
   2147483647,                 /* max_topic_time */
   0,                          /* min_topic_time */
   0                           /* chptr */
@@ -121,7 +121,7 @@ static struct ListingArgs la_default = {
   0,                          /* min_time */
   4294967295U,                /* max_users */
   0,                          /* min_users */
-  0,                          /* topic_limits */
+  0,                          /* flags */
   2147483647,                 /* max_topic_time */
   0,                          /* min_topic_time */
   0                           /* chptr */
@@ -158,6 +158,9 @@ show_usage(struct Client *sptr)
   send_reply(sptr, RPL_LISTUSAGE,
 	     " \002T>\002\037min_minutes\037 ; Channels with a topic last "
 	     "set more than \037min_minutes\037 ago.");
+  if (IsAnOper(sptr))
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002S\002             ; Show secret channels.");
   send_reply(sptr, RPL_LISTUSAGE,
 	     "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 "
 	     "min., topic set.");
@@ -183,7 +186,7 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
     case 'T':
     case 't':
       is_time++;
-      args->topic_limits = 1;
+      args->flags |= LISTARG_TOPICLIMITS;
       /*FALLTHROUGH*/
 
     case 'C':
@@ -231,6 +234,18 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	  args->max_time = val;
 	break;
       }
+      break;
+
+    case 'S':
+    case 's':
+      if (!IsAnOper(sptr))
+        return show_usage(sptr);
+
+      args->flags |= LISTARG_SHOWSECRET;
+      param++;
+
+      if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
+	return show_usage(sptr);
       break;
 
     default: /* channel name? */
