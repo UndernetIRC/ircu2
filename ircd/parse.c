@@ -1018,7 +1018,12 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      * 1 or 2 character prefixes are from servers
      * 3 or 5 chars are from clients
      */
-    if (' ' == ch[1] || ' ' == ch[2])
+    if (0 == i)
+    {
+      protocol_violation(cptr, "Missing prefix");
+      from = cptr;
+    }
+    else if (' ' == ch[1] || ' ' == ch[2])
       from = FindNServer(numeric_prefix);
     else 
       from = findNUser(numeric_prefix);
