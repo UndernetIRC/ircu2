@@ -1,3 +1,18 @@
+2004-05-15  Isomer <isomer@undernet.org>
+
+	[Original ChangeLog date: 2003-11-18 -MDP]
+
+	* ircd/s_auth.c, ircd/res_libresolv.c, ircd/res_adns.c: Clean up
+	the preregistration subsystem allowing customisation of timers,
+	make the dns resolver stats oper only, and make it much more clear
+	what all the numbers are.
+
+2004-05-15  Spike <spike@undernet.org>
+
+	[Original ChangeLog date: 2003-11-23 -MDP]
+
+	* ircd/IPcheck.c: Make IPcheck constants configurable
+
 2004-05-14  Kevin L Mitchell  <klmitch@mit.edu>
 
 	[Original ChangeLog date: 2003-11-22 -MDP]

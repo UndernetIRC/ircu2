@@ -31,6 +31,7 @@
 #include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
 #include "ircd_alloc.h"
 #include "ircd_events.h"
+#include "ircd_features.h"
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"
@@ -64,9 +65,9 @@ struct IPRegistryEntry {
 #define NOW ((unsigned short)(CurrentTime & MASK_16))
 #define CONNECTED_SINCE(x) (NOW - (x))
 
-#define IPCHECK_CLONE_LIMIT 4
-#define IPCHECK_CLONE_PERIOD 40
-#define IPCHECK_CLONE_DELAY 600
+#define IPCHECK_CLONE_LIMIT feature_int(FEAT_IPCHECK_CLONE_LIMIT)
+#define IPCHECK_CLONE_PERIOD feature_int(FEAT_IPCHECK_CLONE_PERIOD)
+#define IPCHECK_CLONE_DELAY feature_int(FEAT_IPCHECK_CLONE_DELAY)
 
 
 static struct IPRegistryEntry* hashTable[IP_REGISTRY_TABLE_SIZE];

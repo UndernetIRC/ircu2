@@ -103,8 +103,6 @@ typedef enum {
 struct AuthRequest* AuthPollList = 0; /* GLOBAL - auth queries pending io */
 static struct AuthRequest* AuthIncompleteList = 0;
 
-enum { AUTH_TIMEOUT = 60 };
-
 static void release_auth_client(struct Client* client);
 static void unlink_auth_request(struct AuthRequest* request,
                                 struct AuthRequest** list);
@@ -250,7 +248,7 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   auth->client  = client;
   cli_auth(client) = auth;
   timer_add(timer_init(&auth->timeout), auth_timeout_callback, (void*) auth,
-	    TT_RELATIVE, AUTH_TIMEOUT);
+	    TT_RELATIVE, feature_int(FEAT_AUTH_TIMEOUT));
   return auth;
 }
 

@@ -796,17 +796,14 @@ static void res_adns_callback(adns_state state, adns_query q, void *context)
 int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
 #if !defined(NDEBUG)
-  if (parv[1] && *parv[1] == 'd') {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :ResolverFileDescriptor = %d", 
-		  sptr, ResolverFileDescriptor);
-    return 0;
-  }
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Re %d Rl %d/%d Rp %d Rq %d",
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Errors %d Lookups %d/%d Replies %d Requests %d",
 		sptr, reinfo.re_errors, reinfo.re_nu_look,
 		reinfo.re_na_look, reinfo.re_replies, reinfo.re_requests);
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Ru %d Rsh %d Rs %d(%d) Rt %d", sptr,
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Unknown Reply %d Short TTL(<10m) %d Sent %d Resends %d Timeouts %d", sptr,
 		reinfo.re_unkrep, reinfo.re_shortttl, reinfo.re_sent,
 		reinfo.re_resends, reinfo.re_timeouts);
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :ResolverFileDescriptor = %d", 
+                sptr, ResolverFileDescriptor);
 #endif
   return 0;
 }
