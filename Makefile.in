@@ -41,6 +41,19 @@ build:
 		cd $$i; ${MAKE} build; cd ..; \
 	done
 
+config:
+	@echo "*************************************************************"
+	@echo "* The \"make config\" step is now DEPRECATED.  Most           *"
+	@echo "* server options are now configurable via the configuration *"
+	@echo "* file using F-lines; the rest are specified on the command *"
+	@echo "* line to \"./configure\".  To aid the transition, a shell    *"
+	@echo "* script has been provided to generate the necessary        *"
+	@echo "* configuration lines for you.  You may run this script by  *"
+	@echo "* typing \"tools/transition\"; please pay attention to its    *"
+	@echo "* output.  This message will be removed for the next major  *"
+	@echo "* release of ircu.                                          *"
+	@echo "*************************************************************"
+
 root-clean:
 	@for i in '*.orig' '.*.orig' '\#*' '*~' '.*~' '*.bak' '.*.bak' core; do\
 		echo "Removing $$i"; \
