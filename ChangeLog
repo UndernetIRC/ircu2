@@ -1,3 +1,9 @@
+2002-11-24  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c (ms_create): exit the client's *server*, not the
+	client--I was wondering why we weren't seeing any of these squits
+	on the network!
+
 2002-11-24  Andrew Miller <a1kmm@mware.virtualave.net>
 	* include/ircd_alloc.h: Support FROBONMALLOC and FROBONFREE. Turned on
 	now for debugging.

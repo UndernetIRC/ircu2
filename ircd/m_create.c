@@ -142,7 +142,8 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     /* If this server is >5 minutes fast, squit it */
     if (TStime() - chanTS<-5*60*60)
-      return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
+      return exit_client(cptr, cli_user(sptr)->server, &me,
+			 "Timestamp Drift/Bogus TS");
   }
 
   /* For each channel in the comma seperated list: */
