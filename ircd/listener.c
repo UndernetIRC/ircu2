@@ -244,7 +244,7 @@ static void set_listener_mask(struct Listener* listener, const char* mask)
 
   assert(0 != listener);
 
-  if (EmptyString(mask) && strcmp(mask,"*")!=0) {
+  if (EmptyString(mask) || 0 != strcmp(mask, "*")) {
     listener->mask.s_addr = 0;
     return;
   }

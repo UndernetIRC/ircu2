@@ -926,6 +926,19 @@ int rehash(struct Client *cptr, int sig)
   return ret;
 }
 
+
+/*
+ * If conf line is a class definition, create a class entry
+ * for it and make the conf_line illegal and delete it.
+ */
+void conf_create_class(const char* const* fields, int count)
+{
+  if (count < 6)
+    return;
+  add_class(atoi(fields[1]), atoi(fields[2]), atoi(fields[3]),
+            atoi(fields[4]), atoi(fields[5]));
+}
+
 /*
  * conf_init
  *
@@ -940,70 +953,123 @@ int rehash(struct Client *cptr, int sig)
 
 int conf_init(void)
 {
-  static char quotes[9][2] = {
-    {'b', '\b'},
-    {'f', '\f'},
-    {'n', '\n'},
-    {'r', '\r'},
-    {'t', '\t'},
-    {'v', '\v'},
-    {'\\', '\\'},
-    {0, 0}
-  };
-  char *tmp, *s;
+  enum { MAX_FIELDS = 15 };
+
+  char* src;
+  char* dest;
+  int quoted;
   FBFILE *file;
-  int i;
   char line[512];
   int ccount = 0;
   struct ConfItem *aconf = 0;
+  
+  int   field_count = 0;
+  const char* field_vector[MAX_FIELDS + 1];
 
   Debug((DEBUG_DEBUG, "conf_init: ircd.conf = %s", configfile));
   if (0 == (file = fbopen(configfile, "r"))) {
     return 0;
   }
+
   while (fbgets(line, sizeof(line) - 1, file)) {
-    if ((tmp = strchr(line, '\n')))
-      *tmp = '\0';
-    /*
-     * Do quoting of characters and # detection.
-     */
-    for (tmp = line; *tmp; tmp++) {
-      if (*tmp == '\\') {
-        for (i = 0; quotes[i][0]; i++) {
-          if (quotes[i][0] == *(tmp + 1)) {
-            *tmp = quotes[i][1];
-            break;
-          }
-        }
-        if (!quotes[i][0])
-          *tmp = *(tmp + 1);
-        if (!*(tmp + 1))
-          break;
-        else {
-          for (s = tmp; (*s = *(s + 1)); s++)
-            ;
-        }
-      }
-      else if (*tmp == '#')
-        *tmp = '\0';
-    }
-    if (!*line || line[0] == '#' || line[0] == '\n' ||
-        line[0] == ' ' || line[0] == '\t')
+    if ('#' == *line || IsSpace(*line))
       continue;
-    /* Could we test if it's conf line at all?      -Vesa */
-    if (line[1] != ':') {
+
+    if ((src = strchr(line, '\n')))
+      *src = '\0';
+    
+    if (':' != line[1]) {
       Debug((DEBUG_ERROR, "Bad config line: %s", line));
       sendto_op_mask(SNO_OLDSNO,"Bad Config line");
       continue;
     }
+
+    /*
+     * do escapes, quoting, comments, and field breakup in place
+     * in one pass with a poor mans state machine
+     */
+    field_vector[0] = line;
+    field_count = 1;
+    quoted = 0;
+
+    for (src = line, dest = line; *src; ) {
+      switch (*src) {
+      case '\\':
+        ++src;
+        switch (*src) {
+        case 'b':
+          *dest++ = '\b';
+          ++src;
+          break;
+        case 'f':
+          *dest++ = '\f';
+          ++src;
+          break;
+        case 'n':
+          *dest++ = '\n';
+          ++src;
+          break;
+        case 'r':
+          *dest++ = '\r';      
+          ++src;
+          break;
+        case 't':
+          *dest++ = '\t';
+          ++src;
+          break;
+        case 'v':
+          *dest++ = '\v';
+          ++src;
+          break;
+        case '\\':
+          *dest++ = '\\';
+          ++src;
+          break;
+        case '\0':
+          break;
+        default:
+          *dest++ = *src++;
+          break;
+        }
+        break;
+      case '"':
+        if (quoted)
+          quoted = 0;
+        else
+          quoted = 1;
+        *dest++ = *src++;
+        break;
+      case ':':
+        if (quoted)
+          *dest++ = *src++;
+        else {
+          *dest++ = '\0';
+          field_vector[field_count++] = dest;
+          if (field_count > MAX_FIELDS)
+            *src = '\0';
+          else  
+            ++src;
+        }
+        break;
+      case '#':
+        *src = '\0';
+        break;
+      default:
+        *dest++ = *src++;
+        break;
+      }
+    }
+    *dest = '\0';
+
+    if (field_count < 3 || EmptyString(field_vector[0]))
+      continue;
+
     if (aconf)
       free_conf(aconf);
+
     aconf = make_conf();
 
-    tmp = getfield(line, ':');
-    if (!tmp)
-      continue;
-    switch (*tmp) {
+    switch (*field_vector[0]) {
     case 'A':                /* Name, e-mail address of administrator */
     case 'a':                /* of this server. */
       aconf->status = CONF_ADMIN;
@@ -1067,54 +1133,44 @@ int conf_init(void)
       aconf->status = CONF_UWORLD;
       break;
     case 'Y':
-    case 'y':
-      aconf->status = CONF_CLASS;
+    case 'y':      /* CONF_CLASS */
+      conf_create_class(field_vector, field_count);
+      aconf->status = CONF_ILLEGAL;
       break;
     default:
       Debug((DEBUG_ERROR, "Error in config file: %s", line));
-      sendto_op_mask(SNO_OLDSNO,"Unknown prefix in config file: %c",*tmp);
+      sendto_op_mask(SNO_OLDSNO,"Unknown prefix in config file: %c", *field_vector[0]);
+      aconf->status = CONF_ILLEGAL;
       break;
     }
     if (IsIllegal(aconf))
       continue;
 
-    for (;;) {            /* Fake loop, that I can use break here --msa */
-      if ((tmp = getfield(NULL, ':')) == NULL)
-        break;
-      DupString(aconf->host, tmp);
-      if ((tmp = getfield(NULL, (aconf->status == CONF_KILL
-          || aconf->status == CONF_IPKILL) ? '"' : ':')) == NULL)
-        break;
-      DupString(aconf->passwd, tmp);
-      if ((tmp = getfield(NULL, ':')) == NULL)
-        break;
-      DupString(aconf->name, tmp);
-      if ((tmp = getfield(NULL, ':')) == NULL)
-        break;
-      aconf->port = atoi(tmp);
-      tmp = getfield(NULL, ':');
-      if (aconf->status & CONF_ME) {
-        if (!tmp) {
-          Debug((DEBUG_FATAL, "Your M: line must have the Numeric, "
-              "assigned to you by routing-com!\n"));
-          ircd_log(L_WARNING, "Your M: line must have the Numeric, "
-              "assigned to you by routing-com!\n");
-          exit(-1);
-        }
-        SetYXXServerName(&me, atoi(tmp));        /* Our Numeric Nick */
-      }
-      else if (tmp)
-        aconf->confClass = find_class(atoi(tmp));
-      break;
+    if (!EmptyString(field_vector[1]))
+      DupString(aconf->host, field_vector[1]);
+
+    if (!EmptyString(field_vector[2]))
+      DupString(aconf->passwd, field_vector[2]);
+
+    if (field_count > 3 && !EmptyString(field_vector[3]))
+        DupString(aconf->name, field_vector[3]);
+
+    if (field_count > 4 && !EmptyString(field_vector[4]))
+        aconf->port = atoi(field_vector[4]); 
+
+    if (field_count > 5 && !EmptyString(field_vector[5])) {
+      int n = atoi(field_vector[5]);
+      if (CONF_ME == (aconf->status & CONF_ME))
+        SetYXXServerName(&me, n);        /* Our Numeric Nick */
+      else
+        aconf->confClass = find_class(n);
     }
-    /*
-     * If conf line is a class definition, create a class entry
-     * for it and make the conf_line illegal and delete it.
-     */
-    if (aconf->status & CONF_CLASS) {
-      add_class(atoi(aconf->host), atoi(aconf->passwd),
-          atoi(aconf->name), aconf->port, tmp ? atoi(tmp) : 0);
-      continue;
+    else if (CONF_ME == (aconf->status & CONF_ME)) {
+      Debug((DEBUG_FATAL, "Your M: line must have the Numeric, "
+             "assigned to you by routing-com!\n"));
+      ircd_log(L_WARNING, "Your M: line must have the Numeric, "
+              "assigned to you by routing-com!\n");
+      exit(-1);
     }
     /*
      * Associate each conf line with a class by using a pointer
@@ -1266,6 +1322,7 @@ int conf_init(void)
   nextping = nextconnect = CurrentTime;
   return 1;
 }
+
 
 /* read_tlines 
  * Read info from T:lines into TRecords which include the file 

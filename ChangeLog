@@ -1,3 +1,9 @@
+2000-09-14  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c (conf_init): rewrite conf file parser, start to break
+	up conf_init into managable chunks.
+	* ircd/listener.c (set_listener_mask): fix logic bug core dump.
+	* include/s_conf.h: add new data struct for local info (unwinding the mess).
+
 2000-09-13  Thomas Helvey <helveytw@home.com>
 	* ircd/list.c: put Clients in free lists, pre-allocate MAXCONNECTIONS
 	local clients.
@@ -1302,7 +1308,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.160 2000-09-13 07:55:55 bleep Exp $
+# $Id: ChangeLog,v 1.161 2000-09-14 06:53:37 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
