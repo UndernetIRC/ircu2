@@ -1,5 +1,8 @@
 2002-01-13  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_events.c (timer_enqueue): one more assertion--make
+	sure a timer has the ACTIVE flag set before enqueueing the timer
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 	* ircd/list.c (dealloc_connection): assert that the process timer

@@ -217,6 +217,7 @@ timer_enqueue(struct Timer* timer)
 
   assert(0 != timer);
   assert(0 == timer->t_header.gh_prev_p); /* not already on queue */
+  assert(timer->t_header.gh_flags & GEN_ACTIVE); /* timer is active */
 
   /* Calculate expire time */
   switch (timer->t_type) {
