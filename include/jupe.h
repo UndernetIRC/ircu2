@@ -45,10 +45,15 @@ struct Jupe {
   unsigned int   ju_flags;
 };
 
-#define JUPE_ACTIVE	1
-#define JUPE_LOCAL	2
+#define JUPE_ACTIVE	0x0001
+#define JUPE_LOCAL	0x0002
+#define JUPE_LDEACT	0x0004	/* locally deactivated */
 
-#define JupeIsActive(j)		((j)->ju_flags & JUPE_ACTIVE)
+#define JUPE_MASK	(JUPE_ACTIVE | JUPE_LOCAL)
+#define JUPE_ACTMASK	(JUPE_ACTIVE | JUPE_LDEACT)
+
+#define JupeIsActive(j)		(((j)->ju_flags & JUPE_ACTMASK) == JUPE_ACTIVE)
+#define JupeIsRemActive(j)	((j)->ju_flags & JUPE_ACTIVE)
 #define JupeIsLocal(j)		((j)->ju_flags & JUPE_LOCAL)
 
 #define JupeServer(j)		((j)->ju_server)

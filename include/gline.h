@@ -53,10 +53,14 @@ struct Gline {
 #define GLINE_ANY	0x0010
 #define GLINE_FORCE	0x0020
 #define GLINE_EXACT	0x0040
+#define GLINE_LDEACT	0x0080	/* locally deactivated */
 
 #define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL)
+#define GLINE_ACTMASK	(GLINE_ACTIVE | GLINE_LDEACT)
 
-#define GlineIsActive(g)	((g)->gl_flags & GLINE_ACTIVE)
+#define GlineIsActive(g)	(((g)->gl_flags & GLINE_ACTMASK) == \
+				 GLINE_ACTIVE)
+#define GlineIsRemActive(g)	((g)->gl_flags & GLINE_ACTIVE)
 #define GlineIsIpMask(g)	((g)->gl_flags & GLINE_IPMASK)
 #define GlineIsBadChan(g)	((g)->gl_flags & GLINE_BADCHAN)
 #define GlineIsLocal(g)		((g)->gl_flags & GLINE_LOCAL)

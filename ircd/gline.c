@@ -178,14 +178,14 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 
   if (gline->gl_lastmod)
     sendcmdto_serv_butone(cptr, CMD_GLINE, sptr, "* %c%s%s%s %Tu %Tu :%s",
-			  GlineIsActive(gline) ? '+' : '-', gline->gl_user,
+			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
 			  gline->gl_expire - CurrentTime, gline->gl_lastmod,
 			  gline->gl_reason);
   else
     sendcmdto_serv_butone(cptr, CMD_GLINE, sptr, "* %c%s%s%s %Tu :%s",
-			  GlineIsActive(gline) ? '+' : '-', gline->gl_user,
+			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
 			  gline->gl_expire - CurrentTime, gline->gl_reason);
@@ -276,15 +276,29 @@ int
 gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	       time_t lastmod, unsigned int flags)
 {
+  unsigned int saveflags = 0;
+
   assert(0 != gline);
   assert(!GlineIsLocal(gline));
 
-  gline->gl_flags |= GLINE_ACTIVE;
+  if (flags & GLINE_LOCAL)
+    sendto_ops("gline_activate called with GLINE_LOCAL");
 
-  if (gline->gl_lastmod >= lastmod) /* force lastmod to increase */
-    gline->gl_lastmod++;
-  else
-    gline->gl_lastmod = lastmod;
+  saveflags = gline->gl_flags;
+
+  if (flags & GLINE_LOCAL)
+    gline->gl_flags &= ~GLINE_LDEACT;
+  else {
+    gline->gl_flags |= GLINE_ACTIVE;
+
+    if (gline->gl_lastmod >= lastmod) /* force lastmod to increase */
+      gline->gl_lastmod++;
+    else
+      gline->gl_lastmod = lastmod;
+  }
+
+  if ((saveflags & GLINE_ACTMASK) == GLINE_ACTIVE)
+    return 0; /* was active to begin with */
 
   /* Inform ops and log it */
   sendto_op_mask(SNO_GLINE, "%s activating global %s for %s%s%s, expiring at "
@@ -322,15 +336,29 @@ int
 gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 		 time_t lastmod, unsigned int flags)
 {
+  unsigned int saveflags = 0;
+
   assert(0 != gline);
 
-  if (!GlineIsLocal(gline)) {
-    gline->gl_flags &= ~GLINE_ACTIVE;
+  if (flags & GLINE_LOCAL)
+    sendto_ops("gline_deactivate called with GLINE_LOCAL");
 
-    if (gline->gl_lastmod >= lastmod)
-      gline->gl_lastmod++;
-    else
-      gline->gl_lastmod = lastmod;
+  saveflags = gline->gl_flags;
+
+  if (!GlineIsLocal(gline)) {
+    if (flags & GLINE_LOCAL)
+      gline->gl_flags |= GLINE_LDEACT;
+    else {
+      gline->gl_flags &= ~GLINE_ACTIVE;
+
+      if (gline->gl_lastmod >= lastmod)
+	gline->gl_lastmod++;
+      else
+	gline->gl_lastmod = lastmod;
+    }
+
+    if ((saveflags & GLINE_ACTMASK) != GLINE_ACTIVE)
+      return 0; /* was inactive to begin with */
   }
 
   /* Inform ops and log it */
@@ -475,7 +503,7 @@ gline_burst(struct Client *cptr)
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s@%s %Tu %Tu :%s",
-		    GlineIsActive(gline) ? '+' : '-', gline->gl_user,
+		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		    gline->gl_host, gline->gl_expire - CurrentTime,
 		    gline->gl_lastmod, gline->gl_reason);
   }
@@ -487,7 +515,7 @@ gline_burst(struct Client *cptr)
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s %Tu %Tu :%s",
-		    GlineIsActive(gline) ? '+' : '-', gline->gl_user,
+		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		    gline->gl_expire - CurrentTime, gline->gl_lastmod,
 		    gline->gl_reason);
   }
@@ -500,7 +528,7 @@ gline_resend(struct Client *cptr, struct Gline *gline)
     return 0;
 
   sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s%s%s %Tu %Tu :%s",
-		GlineIsActive(gline) ? '+' : '-', gline->gl_user,
+		GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		GlineIsBadChan(gline) ? "" : "@",
 		GlineIsBadChan(gline) ? "" : gline->gl_host,
 		gline->gl_expire - CurrentTime, gline->gl_lastmod,

@@ -1,5 +1,19 @@
 2000-04-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/jupe.c: support local deactivations of jupes
+
+	* ircd/gline.c: support local deactivations of glines
+
+	* include/jupe.h: JUPE_LDEACT allows jupes to be locally
+	deactivated; if they aren't locally deactivated, then it slaves to
+	the net-wide activation status; JupeIsRemActive() tests only
+	whether the jupe is active everywhere else
+
+	* include/gline.h: GLINE_LDEACT allows glines to be locally
+	deactivated; if they aren't locally deactivated, then it slaves to
+	the net-wide activation status; GlineIsRemActive() tests only
+	whether the gline is active everywhere else
+
 	* ircd/gline.c: detect overlapping G-lines; if an existing, wider
 	gline expires after the new one will, we drop the new one,
 	otherwise we add the G-line after that one (so the wide one will
@@ -598,7 +612,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.93 2000-04-17 17:07:01 kev Exp $
+# $Id: ChangeLog,v 1.94 2000-04-17 19:01:35 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

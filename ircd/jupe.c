@@ -51,13 +51,13 @@ make_jupe(char *server, char *reason, time_t expire, time_t lastmod,
   ajupe = (struct Jupe*) MyMalloc(sizeof(struct Jupe)); /* alloc memory */
   assert(0 != ajupe);
 
-  DupString(ajupe->ju_server, server);        /* copy vital information */
+  DupString(ajupe->ju_server, server); /* copy vital information */
   DupString(ajupe->ju_reason, reason);
   ajupe->ju_expire = expire;
   ajupe->ju_lastmod = lastmod;
-  ajupe->ju_flags = flags;        /* set jupe flags */
+  ajupe->ju_flags = flags & JUPE_MASK; /* set jupe flags */
 
-  ajupe->ju_next = GlobalJupeList;       /* link it into the list */
+  ajupe->ju_next = GlobalJupeList; /* link it into the list */
   ajupe->ju_prev_p = &GlobalJupeList;
   if (GlobalJupeList)
     GlobalJupeList->ju_prev_p = &ajupe->ju_next;
@@ -90,7 +90,7 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
     return;
 
   sendcmdto_serv_butone(cptr, CMD_JUPE, sptr, "* %c%s %Tu %Tu :%s",
-			JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+			JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 			jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 			jupe->ju_reason);
 }
@@ -148,15 +148,26 @@ int
 jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 	      time_t lastmod, unsigned int flags)
 {
+  unsigned int saveflags = 0;
+
   assert(0 != jupe);
   assert(!JupeIsLocal(jupe));
 
-  jupe->ju_flags |= JUPE_ACTIVE;
+  saveflags = jupe->ju_flags;
 
-  if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
-    jupe->ju_lastmod++;
-  else
-    jupe->ju_lastmod = lastmod;
+  if (flags & JUPE_LOCAL)
+    jupe->ju_flags &= ~JUPE_LDEACT;
+  else {
+    jupe->ju_flags |= JUPE_ACTIVE;
+
+    if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
+      jupe->ju_lastmod++;
+    else
+      jupe->ju_lastmod = lastmod;
+  }
+
+  if ((saveflags & JUPE_ACTMASK) == JUPE_ACTIVE)
+    return 0; /* was active to begin with */
 
   /* Inform ops and log it */
   sendto_op_mask(SNO_NETWORK, "%s activating JUPE for %s, expiring at "
@@ -185,15 +196,26 @@ int
 jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		time_t lastmod, unsigned int flags)
 {
+  unsigned int saveflags = 0;
+
   assert(0 != jupe);
 
-  if (!JupeIsLocal(jupe)) {
-    jupe->ju_flags &= ~JUPE_ACTIVE;
+  saveflags = jupe->ju_flags;
 
-    if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
-      jupe->ju_lastmod++;
-    else
-      jupe->ju_lastmod = lastmod;
+  if (!JupeIsLocal(jupe)) {
+    if (flags & JUPE_LOCAL)
+      jupe->ju_flags |= JUPE_LDEACT;
+    else {
+      jupe->ju_flags &= ~JUPE_ACTIVE;
+
+      if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
+	jupe->ju_lastmod++;
+      else
+	jupe->ju_lastmod = lastmod;
+    }
+
+    if ((saveflags & JUPE_ACTMASK) != JUPE_ACTIVE)
+      return 0; /* was inactive to begin with */
   }
 
   /* Inform ops and log it */
@@ -270,7 +292,7 @@ jupe_burst(struct Client *cptr)
       jupe_free(jupe);
     else if (!JupeIsLocal(jupe)) /* forward global jupes */
       sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
-		    JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+		    JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 		    jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 		    jupe->ju_reason);
   }
@@ -283,7 +305,7 @@ jupe_resend(struct Client *cptr, struct Jupe *jupe)
     return 0;
 
   sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
-		JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+		JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 		jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 		jupe->ju_reason);
 
