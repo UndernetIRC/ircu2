@@ -100,6 +100,40 @@
 
 #include <assert.h>
 
+static void do_settopic(struct Client *sptr, struct Client *cptr, 
+		        struct Channel *chptr,char *topic)
+{
+   int newtopic;
+   /* if +n and not @'d, return an error and ignore the topic */
+   if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && !is_chan_op(sptr, chptr)) 
+   {
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
+      return;
+   }
+   /* Note if this is just a refresh of an old topic, and don't
+    * send it to all the clients to save bandwidth.  We still send
+    * it to other servers as they may have split and lost the topic.
+    */
+   newtopic=ircd_strncmp(chptr->topic,topic,TOPICLEN)==0;
+   /* setting a topic */
+   ircd_strncpy(chptr->topic, topic, TOPICLEN);
+   ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
+   chptr->topic_time = CurrentTime;
+   /* Fixed in 2.10.11: Don't propergate local topics */
+   if (!IsLocalChannel(chptr->chname))
+     sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
+		           chptr->topic);
+   if (newtopic)
+      sendcmdto_channel_butserv(sptr, CMD_TOPIC, chptr, "%H :%s", chptr,
+				  chptr->topic);
+      /* if this is the same topic as before we send it to the person that
+       * set it (so they knew it went through ok), but don't bother sending
+       * it to everyone else on the channel to save bandwidth
+       */
+    else if (MyUser(sptr))
+      sendcmdto_one(sptr, CMD_TOPIC, sptr, "%H :%s", chptr, chptr->topic);   	
+}
+
 /*
  * m_topic - generic message handler
  *
@@ -121,22 +155,26 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
   {
     chptr = 0;
-    if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
-        ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
+    /* Does the channel exist */
+    if (!IsChannelName(name) || !(chptr = FindChannel(name)))
     {
-      send_reply(sptr, (chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
-		 chptr ? chptr->chname : name);
+    	send_reply(sptr,ERR_NOSUCHCHANNEL,name);
+    	continue;
+    }
+    /* Trying to check a topic outside a secret channel */
+    if ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr))
+    {
+      send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
       continue;
     }
+    /* Modeless Channels don't have topics */
     if (IsModelessChannel(name))
     {
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       continue;
     }
-    if (IsLocalChannel(name) && !MyUser(sptr))
-      continue;
 
-    if (!topic)                 /* only asking  for topic  */
+    if (!topic)                 /* only asking for topic */
     {
       if (chptr->topic[0] == '\0')
 	send_reply(sptr, RPL_NOTOPIC, chptr->chname);
@@ -147,158 +185,51 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		   chptr->topic_time);
       }
     }
-    else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
-        is_chan_op(sptr, chptr)) && topic)
-    {
-      /* setting a topic */
-      ircd_strncpy(chptr->topic, topic, TOPICLEN);
-      ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
-      chptr->topic_time = CurrentTime;
-      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
-			    chptr->topic);
-      sendcmdto_channel_butserv(sptr, CMD_TOPIC, chptr, "%H :%s", chptr,
-				chptr->topic);
-    }
-    else
-      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
+    else 
+     do_settopic(sptr,cptr,chptr,topic);
   }
   return 0;
 }
 
 /*
- * ms_topic - server message handler
+ * ms_topic - generic message handler
  *
  * parv[0]        = sender prefix
  * parv[1]        = channel
- * parv[parc - 1] = topic (if parc > 2)
+ * parv[parc - 1] = topic
  */
 int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   char *topic = 0, *name, *p = 0;
 
-  if (parc < 2)
+  if (parc < 3)
     return need_more_params(sptr, "TOPIC");
 
-  if (parc > 2)
-    topic = parv[parc - 1];
+  topic = parv[parc - 1];
 
   for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
   {
     chptr = 0;
-    if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
-        ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
+    /* Does the channel exist */
+    if (!IsChannelName(name) || !(chptr = FindChannel(name)))
     {
-      send_reply(sptr, (chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
-		 chptr ? chptr->chname : name);
-      continue;
+    	send_reply(sptr,ERR_NOSUCHCHANNEL,name);
+    	continue;
     }
+    /* Modeless Channels don't have topics */
     if (IsModelessChannel(name))
     {
+      /* Protocol Violation? */
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       continue;
     }
+    /* Ignore requests for topics from remote servers */
     if (IsLocalChannel(name) && !MyUser(sptr))
+      /* Protocol Violation warning here? */
       continue;
 
-    if (!topic)                 /* only asking  for topic  */
-    {
-      if (chptr->topic[0] == '\0')
-	send_reply(sptr, RPL_NOTOPIC, chptr->chname);
-      else
-      {
-	send_reply(sptr, RPL_TOPIC, chptr->chname, chptr->topic);
-	send_reply(sptr, RPL_TOPICWHOTIME, chptr->chname, chptr->topic_nick,
-		   chptr->topic_time);
-      }
-    }
-    else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
-        is_chan_op(sptr, chptr)) && topic)
-    {
-      /* setting a topic */
-      ircd_strncpy(chptr->topic, topic, TOPICLEN);
-      ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
-      chptr->topic_time = CurrentTime;
-      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
-			    chptr->topic);
-      sendcmdto_channel_butserv(sptr, CMD_TOPIC, chptr, "%H :%s", chptr,
-				chptr->topic);
-    }
-    else
-      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
+    do_settopic(sptr,cptr,chptr,topic);
   }
   return 0;
 }
-
-
-#if 0
-/*
- * m_topic
- *
- * parv[0]        = sender prefix
- * parv[1]        = channel
- * parv[parc - 1] = topic (if parc > 2)
- */
-int m_topic(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Channel *chptr;
-  char *topic = 0, *name, *p = 0;
-
-  if (parc < 2)
-    return need_more_params(sptr, "TOPIC");
-
-  if (parc > 2)
-    topic = parv[parc - 1];
-
-  for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
-  {
-    chptr = 0;
-    if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
-        ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
-    {
-      sendto_one(sptr, err_str(chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL), /* XXX DEAD */
-          me.name, parv[0], chptr ? chptr->chname : name);
-      continue;
-    }
-    if (IsModelessChannel(name))
-    {
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0], /* XXX DEAD */
-          chptr->chname);
-      continue;
-    }
-    if (IsLocalChannel(name) && !MyUser(sptr))
-      continue;
-
-    if (!topic)                 /* only asking  for topic  */
-    {
-      if (chptr->topic[0] == '\0')
-        sendto_one(sptr, rpl_str(RPL_NOTOPIC), me.name, parv[0], chptr->chname); /* XXX DEAD */
-      else
-      {
-        sendto_one(sptr, rpl_str(RPL_TOPIC), /* XXX DEAD */
-            me.name, parv[0], chptr->chname, chptr->topic);
-        sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME), /* XXX DEAD */
-            me.name, parv[0], chptr->chname,
-            chptr->topic_nick, chptr->topic_time);
-      }
-    }
-    else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
-        is_chan_op(sptr, chptr)) && topic)
-    {
-      /* setting a topic */
-      ircd_strncpy(chptr->topic, topic, TOPICLEN);
-      ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
-      chptr->topic_time = CurrentTime;
-      sendto_serv_butone(cptr, "%s%s " TOK_TOPIC " %s :%s", /* XXX DEAD */
-          NumNick(sptr), chptr->chname, chptr->topic);
-      sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s", /* XXX DEAD */
-          parv[0], chptr->chname, chptr->topic);
-    }
-    else
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), /* XXX DEAD */
-          me.name, parv[0], chptr->chname);
-  }
-  return 0;
-}
-#endif /* 0 */
-

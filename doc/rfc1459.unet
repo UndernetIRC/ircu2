@@ -1285,12 +1285,16 @@ MODE WiZ -o                     ; WiZ 'deopping' (removing operator
    The topic for channel <channel> is returned if there is no <topic>
    given.  If the <topic> parameter is present, the topic for that
    channel will be changed, if the channel modes permit this action.
+   You may not query a topic from outside a secret channel.  Modeless
+   channels don't have a topic and thus ERR_CHANOPRIVSNEEDED is returned.
+   A list of channels may be specified comma seperated.
 
    Numeric Replies:
 
            ERR_NEEDMOREPARAMS              ERR_NOTONCHANNEL
            RPL_NOTOPIC                     RPL_TOPIC
-           ERR_CHANOPRIVSNEEDED
+           ERR_CHANOPRIVSNEEDED            ERR_NOSUCHCHANNEL
+	   RPL_TOPICWHOTIME
 
 
 
@@ -1307,6 +1311,11 @@ RFC 1459              Internet Relay Chat Protocol              May 1993
                                    topic".
 
    TOPIC #test                     ; check the topic for #test.
+
+   TOPIC #test,#testing            ; check the topic on #test and #testing
+
+   TOPIC #test,#testing :Topic     ; set the topic on #test and #testing
+0
 
 4.2.5 Names message
 
