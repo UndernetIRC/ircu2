@@ -91,6 +91,7 @@
 #endif /* 0 */
 #include "client.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -114,8 +115,8 @@ int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   int longoutput = MyUser(sptr) || IsOper(sptr);
   if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, 0, "%s :%C", 2, parc, parv) !=
-        HUNTED_ISME)
+    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, HEAD_IN_SAND_REMOTE, "%s :%C",
+			2, parc, parv) != HUNTED_ISME)
       return 0;
 
   send_reply(sptr, RPL_LUSERCLIENT, UserStats.clients - UserStats.inv_clients,

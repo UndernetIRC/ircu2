@@ -198,7 +198,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char stat = parc > 1 ? parv[1][0] : '\0';
   const char **infotext = statsinfo;
 
-  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+  if (hunt_stats(cptr, sptr, parc, parv, stat, HEAD_IN_SAND_REMOTE)
+      != HUNTED_ISME)
     return 0;
 
   switch (stat)
@@ -393,7 +394,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * interpret the fourth parameter as the port number.
        */ 
 #ifdef HEAD_IN_SAND_STATS_P
-      return m_not_oper(sptr,cptr,parc,parv)
+      return m_not_oper(sptr,cptr,parc,parv);
 #else
       show_ports(sptr, 0, (parc > 3) ? atoi(parv[3]) : 0, 100);
 #endif
@@ -545,7 +546,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char stat = parc > 1 ? parv[1][0] : '\0';
   int i;
 
-  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+  if (hunt_stats(cptr, sptr, parc, parv, stat, 0) != HUNTED_ISME)
     return 0;
 
   switch (stat)
@@ -774,7 +775,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char**     infotext = statsinfo;
   int              i;
 
-  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+  if (hunt_stats(cptr, sptr, parc, parv, stat, HEAD_IN_SAND_REMOTE)
+      != HUNTED_ISME)
     return 0;
 
   switch (stat)

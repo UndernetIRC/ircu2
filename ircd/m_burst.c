@@ -94,6 +94,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -175,7 +176,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!chptr->creationtime || chptr->creationtime > timestamp) {
     chptr->creationtime = timestamp;
 
-    modebuf_init(mbuf = &modebuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL);
+    modebuf_init(mbuf = &modebuf, &me, cptr, chptr, MODEBUF_DEST_CHANNEL);
     modebuf_mode(mbuf, MODE_DEL | chptr->mode.mode); /* wipeout modes */
     chptr->mode.mode &= ~(MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET |
 			  MODE_MODERATED | MODE_TOPICLIMIT | MODE_INVITEONLY |
@@ -187,7 +188,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     for (lp = chptr->banlist; lp; lp = lp->next)
       lp->flags |= CHFL_BURST_BAN_WIPEOUT;
   } else if (chptr->creationtime == timestamp) {
-    modebuf_init(mbuf = &modebuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL);
+    modebuf_init(mbuf = &modebuf, &me, cptr, chptr, MODEBUF_DEST_CHANNEL);
 
     parse_flags |= MODE_PARSE_SET; /* set new modes */
   }
@@ -247,7 +248,11 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    newban = make_link(); /* create new ban */
 
 	    DupString(newban->value.ban.banstr, ban);
+#ifdef HEAD_IN_SAND_BANWHO
+	    DupString(newban->value.ban.who, cli_name(&me));
+#else
 	    DupString(newban->value.ban.who, cli_name(sptr));
+#endif
 	    newban->value.ban.when = TStime();
 
 	    newban->flags = CHFL_BAN | CHFL_BURST_BAN; /* set flags */

@@ -1,5 +1,60 @@
 2001-06-07  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_stats.c (hunt_stats): forward-port from pl15 of all the
+	changes required to control remote stats
+
+	* ircd/s_numeric.c (do_numeric): rewrite numeric origins if
+	recipient is not an operator and HEAD_IN_SAND_REWRITE is defined
+	[forward-port from pl15]
+
+	* ircd/m_whowas.c (m_whowas): report server name only if requester
+	is an operator [forward-port from pl15]
+
+	* ircd/m_whois.c (do_whois): /whois <mynick> now correctly reports
+	my server; if HEAD_IN_SAND_REMOTE is 1, ignore the middle argument
+	and obtain the report from the user's server [forward-port from
+	pl15]
+
+	* ircd/m_who.c: add missing include for ircd_policy.h
+	[forward-port from pl15]
+
+	* ircd/m_version.c (m_version): require oper access for remote
+	/version if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_time.c (m_time): require oper access for remote /time if
+	HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_stats.c: pass extra argument to hunt_stats(); correct
+	missing semicolon [forward-port from pl15]
+
+	* ircd/m_nick.c (ms_nick): hide the origin of certain collision
+	kills [forward-port from pl15]
+
+	* ircd/m_motd.c (m_motd): require oper access for remote /motd if
+	HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_lusers.c (m_lusers): require oper access for remote
+	/lusers if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_burst.c (ms_burst): server-added bans are stored using
+	local server name, to hide remote server names; modes also are to
+	originate from the local server [forward-port from pl15]
+
+	* ircd/m_admin.c (m_admin): require oper access for remote /admin
+	if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/channel.c (add_banid): if a server is adding a ban, use my
+	server name to hide the remote server's name [forward-port from
+	pl15]
+
+	* ircd/Makefile.in: ran make depend
+
+	* include/s_stats.h: hunt_stats() has to have an extra argument to
+	support the forward-port from pl15
+
+	* include/ircd_policy.h: #define HEAD_IN_SAND_STATS_P; add
+	HEAD_IN_SAND_{BANWHO,REWRITE,REMOTE} [forward-port from pl15]
+
 	* ircd/engine_poll.c (engine_loop): remove bogus assert that I
 	forgot to check in the events branch
 

@@ -181,7 +181,7 @@ void report_deny_list(struct Client* to)
  *          thusly once all the hubs have upgraded local opers will be able
  *          to remote stats anywhere on the network.
  */
-int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat)
+int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat, int MustBeOper)
 {
   switch (stat)
   {
@@ -190,8 +190,8 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'u':
     case 'F':
     case 'f':
-      return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc,
-			     parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr, MustBeOper, "%s :%C", 2,
+			     parc, parv);
 
     /* open to all, varying # of params */
     case 'k':
@@ -202,9 +202,11 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'P':
     {
       if (parc > 3)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s %C :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, MustBeOper, "%s %C :%s",
+			       2, parc, parv);
       else
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, MustBeOper, "%s :%C", 2,
+			       parc, parv);
     }
 
       /* oper only, varying # of params */
@@ -213,16 +215,24 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'M':
     {
       if (parc == 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s %C :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr,
+			       MyUser(sptr) ? 1 : MustBeOper, "%s %C :%s", 2,
+			       parc, parv);
       else if (parc > 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s %C %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr,
+			       MyUser(sptr) ? 1 : MustBeOper, "%s %C %s :%s",
+			       2, parc, parv);
       else 
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s :%C", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr,
+			       MyUser(sptr) ? 1 : MustBeOper, "%s :%C", 2,
+			       parc, parv);
     }
 
       /* oper only, standard # of params */
     default:
-      return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s :%C", 2, parc, parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr,
+			     MyUser(sptr) ? 1 : MustBeOper, "%s :%C", 2, parc,
+			     parv);
   }
 }
 
