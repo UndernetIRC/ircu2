@@ -1,3 +1,11 @@
+2004-05-15  Kevin L Mitchell  <klmitch@mit.edu>
+
+	[Original ChangeLog date: 2003-11-22 -MDP]
+
+	* tools/wrapper.c: commit uid on chroot fix from ubra
+
+	* ircd/version.c.SH: fix generation generation
+
 2004-05-15  Isomer <isomer@undernet.org>
 
 	[Original ChangeLog date: 2003-11-23 -MDP]

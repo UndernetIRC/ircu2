@@ -4,7 +4,7 @@ srcdir=$1
 
 if test -r version.c
 then
-   generation=`sed -n 's/^char \*generation = \"\(.*\)\";/\1/p' < version.c`
+   generation=`sed -n 's/^const char \*generation = \"\(.*\)\";/\1/p' < version.c`
    if test ! "$generation" ; then generation=0; fi
 else
    generation=0
