@@ -154,8 +154,11 @@ static void dealloc_connection(struct Connection* con)
 
   Debug((DEBUG_LIST, "Deallocating connection %p", con));
 
-  if (con_dns_reply(con))
-    --(con_dns_reply(con)->ref_count);
+  
+  if (con_dns_reply(con)) {
+    MyFree(con_dns_reply(con));
+    con_dns_reply(con) = 0;
+  }
   if (-1 < con_fd(con))
     close(con_fd(con));
   MsgQClear(&(con_sendQ(con)));

@@ -202,7 +202,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   log_write(LS_NETWORK, L_INFO, 0, "CONNECT From %C : %s %s", sptr, parv[1],
 	    parv[2] ? parv[2] : "");
 
-  if (connect_server(aconf, sptr, 0)) {
+  if (connect_server(aconf, sptr)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connecting to %s.", sptr,
 		  aconf->name);
   }
@@ -332,7 +332,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   tmpport = aconf->port;
   aconf->port = port;
 
-  if (connect_server(aconf, sptr, 0)) {
+  if (connect_server(aconf, sptr)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connecting to %s.", sptr,
 		  aconf->name);
   }

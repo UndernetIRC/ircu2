@@ -308,7 +308,7 @@ static void try_connections(struct Event* ev) {
       (*pconf = con_conf)->next = 0;
     }
 
-    if (connect_server(con_conf, 0, 0))
+    if (connect_server(con_conf, 0))
       sendto_opmask_butone(0, SNO_OLDSNO, "Connection to %s activated.",
 			   con_conf->name);
   }

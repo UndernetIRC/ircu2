@@ -337,11 +337,10 @@ static void auth_kill_client(struct AuthRequest* auth)
  * set the client on it's way to a connection completion, regardless
  * of success of failure
  */
-static void auth_dns_callback(void* vptr, struct DNSReply* reply)
+static void auth_dns_callback(void* vptr, struct hostent* hp)
 {
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
-
-  assert(0 != auth);
+  assert(auth);
   /*
    * need to do this here so auth_kill_client doesn't
    * try have the resolver delete the query it's about
@@ -349,10 +348,8 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
    */
   ClearDNSPending(auth);
 
-  if (reply) {
-    const struct hostent* hp = reply->hp;
+  if (hp) {
     int i;
-    assert(0 != hp);
     /*
      * Verify that the host to ip mapping is correct both ways and that
      * the ip#(s) for the socket is listed for the host.
@@ -380,8 +377,7 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
     }
     else
     {
-      ++reply->ref_count;
-      cli_dns_reply(auth->client) = reply;
+      cli_dns_reply(auth->client) = hp;
       ircd_strncpy(cli_sockhost(auth->client), hp->h_name, HOSTLEN);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FIN_DNS);
@@ -620,18 +616,8 @@ void start_auth(struct Client* client)
       if (IsUserPort(auth->client))
 	sendheader(client, REPORT_DO_DNS);
 
-      cli_dns_reply(client) = gethost_byaddr((const char*) &(cli_ip(client)),
-					     &query);
-
-      if (cli_dns_reply(client)) {
-	++(cli_dns_reply(client))->ref_count;
-	ircd_strncpy(cli_sockhost(client), cli_dns_reply(client)->hp->h_name,
-		     HOSTLEN);
-	if (IsUserPort(auth->client))
-	  sendheader(client, REPORT_FIN_DNSC);
-	Debug((DEBUG_LIST, "DNS entry for %p was cached", auth->client));
-      } else
-	SetDNSPending(auth);
+      gethost_byaddr((const char*) &(cli_ip(client)), &query);
+      SetDNSPending(auth);
     }
   }
 

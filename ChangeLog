@@ -1,4 +1,10 @@
 2003-01-10  Thomas Helvey <tom.helvey@cox.net>
+	* include/client.h, include/res.h, include/s_bsd.h,
+	ircd/ircd.c, ircd/list.c ircd/m_connect.c, ircd/res_adns.c,
+	ircd/res_libresolv.c, ircd/s_auth.c, ircd/s_bsd.c, ircd/s_conf.c:
+	Remove resolver cache wart, change hostent representation, cleanup
+	resolver clients.
+2003-01-10  Thomas Helvey <tom.helvey@cox.net>
 	* ircd/map.c, ircd/Makefile.in, include/map.h: Remove 
         HEAD_IN_SAND macros to get server to build, rebuild dependencies.
 2003-01-08  Fredrik Soderblom <froo@quakenet.org>

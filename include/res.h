@@ -14,26 +14,20 @@
 struct Client;
 struct hostent;
 
-struct DNSReply {
-  struct hostent* hp;        /* hostent struct  */
-  int             ref_count; /* reference count */
-};
-
 struct DNSQuery {
   void* vptr;               /* pointer used by callback to identify request */
-  void (*callback)(void* vptr, struct DNSReply* reply); /* callback to call */
+  void (*callback)(void* vptr, struct hostent* he); /* callback to call */
 };
 
 extern int ResolverFileDescriptor;  /* GLOBAL - file descriptor (s_bsd.c) */
 
 extern void get_res(void);
-extern struct DNSReply* gethost_byname(const char* name, 
-                                       const struct DNSQuery* req);
-extern struct DNSReply* gethost_byaddr(const char* name, 
-                                       const struct DNSQuery* req);
+extern void gethost_byname(const char* name, const struct DNSQuery* req);
+extern void gethost_byaddr(const char* name, const struct DNSQuery* req);
 extern int             init_resolver(void);
 extern void            restart_resolver(void);
 extern time_t          timeout_resolver(time_t now);
+
 /*
  * delete_resolver_queries - delete all outstanding queries for the
  * pointer arg, DO NOT call this from a resolver callback function the

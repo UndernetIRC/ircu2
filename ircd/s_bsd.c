@@ -27,6 +27,7 @@
 #include "channel.h"
 #include "class.h"
 #include "hash.h"
+#include "ircd_alloc.h"
 #include "ircd_log.h"
 #include "ircd_features.h"
 #include "ircd_osdep.h"
@@ -176,13 +177,15 @@ void report_error(const char* text, const char* who, int err)
  * a non-null pointer, otherwise reply will be null.
  * if successful start the connection, otherwise notify opers
  */
-static void connect_dns_callback(void* vptr, struct DNSReply* reply)
+static void connect_dns_callback(void* vptr, struct hostent* hp)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
+  assert(aconf);
   aconf->dns_pending = 0;
-  if (reply) {
-    memcpy(&aconf->ipnum, reply->hp->h_addr, sizeof(struct in_addr));
-    connect_server(aconf, 0, reply);
+  if (hp) {
+    memcpy(&aconf->ipnum, hp->h_addr, sizeof(struct in_addr));
+    MyFree(hp);
+    connect_server(aconf, 0);
   }
   else
     sendto_opmask_butone(0, SNO_OLDSNO, "Connect to %s failed: host lookup",
@@ -393,8 +396,7 @@ void release_dns_reply(struct Client* cptr)
   assert(MyConnect(cptr));
 
   if (cli_dns_reply(cptr)) {
-    assert(0 < cli_dns_reply(cptr)->ref_count);
-    --(cli_dns_reply(cptr))->ref_count;
+    MyFree(cli_dns_reply(cptr));
     cli_dns_reply(cptr) = 0;
   }
 }
@@ -816,8 +818,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
  * be done, we loose the information about who started the connection and
  * it's considered an auto connect.
  */
-int connect_server(struct ConfItem* aconf, struct Client* by,
-                   struct DNSReply* reply)
+int connect_server(struct ConfItem* aconf, struct Client* by)
 {
   struct Client*   cptr = 0;
   assert(0 != aconf);
@@ -853,9 +854,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
    * not a ip# string, then try and find the appropriate host record.
    */
   if (INADDR_NONE == aconf->ipnum.s_addr) {
-    char buf[HOSTLEN + 1];
-    assert(0 == reply);
     if (INADDR_NONE == (aconf->ipnum.s_addr = inet_addr(aconf->host))) {
+      char buf[HOSTLEN + 1];
       struct DNSQuery  query;
 
       query.vptr     = aconf;
@@ -863,19 +863,12 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
       host_from_uh(buf, aconf->host, HOSTLEN);
       buf[HOSTLEN] = '\0';
 
-      reply = gethost_byname(buf, &query);
-
-      if (!reply) {
-        aconf->dns_pending = 1;
-        return 0;
-      }
-      memcpy(&aconf->ipnum, reply->hp->h_addr, sizeof(struct in_addr));
+      gethost_byname(buf, &query);
+      aconf->dns_pending = 1;
     }
+    return 0;
   }
   cptr = make_client(NULL, STAT_UNKNOWN_SERVER);
-  if (reply)
-    ++reply->ref_count;
-  cli_dns_reply(cptr) = reply;
 
   /*
    * Copy these in so we have something for error detection.

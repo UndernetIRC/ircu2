@@ -202,12 +202,15 @@ static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
  * a non-null pointer, otherwise hp will be null.
  * if successful save hp in the conf item it was called with
  */
-static void conf_dns_callback(void* vptr, struct DNSReply* reply)
+static void conf_dns_callback(void* vptr, struct hostent* hp)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
+  assert(aconf);
   aconf->dns_pending = 0;
-  if (reply)
-    memcpy(&aconf->ipnum, reply->hp->h_addr, sizeof(struct in_addr));
+  if (hp) {
+    memcpy(&aconf->ipnum, hp->h_addr, sizeof(struct in_addr));
+    MyFree(hp);
+  }
 }
 
 /*
@@ -215,9 +218,8 @@ static void conf_dns_callback(void* vptr, struct DNSReply* reply)
  * if the conf entry is currently doing a ns lookup do nothing, otherwise
  * if the lookup returns a null pointer, set the conf dns_pending flag
  */
-static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
+static void conf_dns_lookup(struct ConfItem* aconf)
 {
-  struct DNSReply* dns_reply = 0;
   if (!aconf->dns_pending) {
     char            buf[HOSTLEN + 1];
     struct DNSQuery query;
@@ -226,10 +228,9 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
     host_from_uh(buf, aconf->host, HOSTLEN);
     buf[HOSTLEN] = '\0';
 
-    if (0 == (dns_reply = gethost_byname(buf, &query)))
-      aconf->dns_pending = 1;
+    gethost_byname(buf, &query);
+    aconf->dns_pending = 1;
   }
-  return dns_reply;
 }
 
 
@@ -242,8 +243,6 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
 void
 lookup_confhost(struct ConfItem *aconf)
 {
-  struct DNSReply* reply;
-
   if (EmptyString(aconf->host) || EmptyString(aconf->name)) {
     Debug((DEBUG_ERROR, "Host/server name error: (%s) (%s)",
            aconf->host, aconf->name));
@@ -264,8 +263,8 @@ lookup_confhost(struct ConfItem *aconf)
             aconf->host, aconf->name));
     }
   }
-  else if ((reply = conf_dns_lookup(aconf)))
-    memcpy(&aconf->ipnum, reply->hp->h_addr, sizeof(struct in_addr));
+  else 
+    conf_dns_lookup(aconf);
 }
 
 /*
@@ -375,7 +374,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
   assert(0 != cptr);
 
   if (cli_dns_reply(cptr))
-    hp = cli_dns_reply(cptr)->hp;
+    hp = cli_dns_reply(cptr);
 
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
@@ -1047,7 +1046,7 @@ int rehash(struct Client *cptr, int sig)
   clearNickJupes();
 
   if (sig != 2)
-    flush_resolver_cache();
+    restart_resolver();
 
   class_mark_delete();
   mark_listeners_closing();
@@ -1283,7 +1282,7 @@ int conf_check_server(struct Client *cptr)
   if (!c_conf) {
     if (cli_dns_reply(cptr)) {
       int             i;
-      struct hostent* hp = cli_dns_reply(cptr)->hp;
+      struct hostent* hp = cli_dns_reply(cptr);
       const char*     name = hp->h_name;
       /*
        * If we are missing a C or N line from above, search for
@@ -1340,7 +1339,8 @@ int conf_check_server(struct Client *cptr)
   if (INADDR_NONE == c_conf->ipnum.s_addr)
     c_conf->ipnum.s_addr = cli_ip(cptr).s_addr;
 
-  Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]", cli_name(cptr), cli_sockhost(cptr)));
+  Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]",
+         cli_name(cptr), cli_sockhost(cptr)));
   return 0;
 }
 
