@@ -100,6 +100,12 @@ static char nparabuf[MODEBUFLEN];
 #define MAGIC_REMOTE_JOIN_TS 1270080000
 
 /*
+ * Use a global variable to remember if an oper set a mode on a local channel. Ugly,
+ * but the only way to do it without changing set_mode intensively.
+ */
+int LocalChanOperMode = 0;
+
+/*
  * return the length (>=0) of a chain of links.
  */
 static int list_length(Link *lp)
@@ -821,6 +827,8 @@ int m_mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
     return 0;
   }
 
+  LocalChanOperMode = 0;
+
   if (!(sendts = set_mode(cptr, sptr, chptr, parc - 2, parv + 2,
       modebuf, parabuf, nparabuf, &badop)))
   {
@@ -835,8 +843,20 @@ int m_mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (strlen(modebuf) > (size_t)1 || sendts > 0)
   {
     if (badop != 2 && strlen(modebuf) > (size_t)1)
+    {
+#ifdef OPER_MODE_LCHAN
+      if (LocalChanOperMode) {
+         sendto_channel_butserv(chptr, &me, ":%s MODE %s %s %s",
+                                me.name, chptr->chname, modebuf, parabuf);
+         sendto_op_mask(SNO_HACK4, 
+                        "OPER MODE: %s MODE %s %s %s",
+                        me.name,chptr->chname,modebuf,parabuf);
+       }
+       else
+#endif
       sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
 	  parv[0], chptr->chname, modebuf, parabuf);
+    }
     if (IsLocalChannel(chptr->chname))
       return 0;
     /* We send a creationtime of 0, to mark it as a hack --Run */
@@ -1039,6 +1059,11 @@ static int set_mode(aClient *cptr, aClient *sptr, aChannel *chptr, int parc,
   if (!(IsServer(cptr) || (tmp = IsMember(sptr, chptr))))
     return 0;
 
+#ifdef OPER_MODE_LCHAN
+  if (IsOperOnLocalChannel(sptr, chptr->chname) && !(tmp->flags & CHFL_CHANOP))
+    LocalChanOperMode = 1;
+#endif
+
   newmode = mode->mode;
 
   while (curr && *curr)
@@ -1103,6 +1128,19 @@ static int set_mode(aClient *cptr, aClient *sptr, aChannel *chptr, int parc,
 	      cptr->name, parv[0], chptr->chname);
 	  break;
 	}
+#ifdef NO_OPER_DEOP_LCHAN
+        /*
+         * if the user is an oper on a local channel, prevent him
+         * from being deoped. that oper can deop himself though.
+         */
+        if (whatt == MODE_DEL && IsOperOnLocalChannel(who, chptr->chname) && 
+            (who != sptr) && MyUser(cptr) && *curr == 'o')
+        {
+          sendto_one(cptr, err_str(ERR_ISOPERLCHAN), me.name,
+                     cptr->name, parv[0], chptr->chname);
+          break;
+        }
+#endif
 	if (whatt == MODE_ADD)
 	{
 	  lp = &chops[opcnt++];
@@ -1331,8 +1369,17 @@ static int set_mode(aClient *cptr, aClient *sptr, aChannel *chptr, int parc,
     }
   }				/* end of while loop for MODE processing */
 
-  /* Now reject non chan ops */
+  /*
+   * Now reject non chan ops. Accept modes from opers on local channels
+   * even if they are deopped
+   */
+#ifdef OPER_MODE_LCHAN
+  if (!IsServer(cptr) && 
+      (!tmp || !((tmp->flags & CHFL_CHANOP) || 
+                 IsOperOnLocalChannel(sptr, chptr->chname))))
+#else
   if (!IsServer(cptr) && (!tmp || !(tmp->flags & CHFL_CHANOP)))
+#endif
   {
     *badop = 0;
     return (opcnt || newmode != mode->mode || limitset || keychange) ? 0 : -1;
@@ -1345,7 +1392,13 @@ static int set_mode(aClient *cptr, aClient *sptr, aChannel *chptr, int parc,
       (aconf = find_conf_host(cptr->confs, sptr->name, CONF_UWORLD)))
     *badop = 4;
 
+#ifdef OPER_MODE_LCHAN
+  bounce = (*badop == 1 || *badop == 2 || 
+            (is_deopped(sptr, chptr) && 
+             !IsOperOnLocalChannel(sptr, chptr->chname))) ? 1 : 0;
+#else
   bounce = (*badop == 1 || *badop == 2 || is_deopped(sptr, chptr)) ? 1 : 0;
+#endif
 
   whatt = 0;
   for (ip = flags; *ip; ip += 2)
@@ -1935,8 +1988,14 @@ static int can_join(aClient *sptr, aChannel *chptr, char *key)
 {
   Reg1 Link *lp;
 
-  /* Now a banned user CAN join if invited -- Nemesi */
-  /* Now a user CAN escape channel limit if invited -- bfriendly */
+#ifdef OPER_WALK_THROUGH_LMODES
+  if (IsOperOnLocalChannel(sptr, chptr->chname))
+    return 0;
+#endif
+  /*
+   * Now a banned user CAN join if invited -- Nemesi
+   * Now a user CAN escape channel limit if invited -- bfriendly
+   */
   if ((chptr->mode.mode & MODE_INVITEONLY) || (is_banned(sptr, chptr, NULL)
       || (chptr->mode.limit && chptr->users >= chptr->mode.limit)))
   {
@@ -1947,9 +2006,11 @@ static int can_join(aClient *sptr, aChannel *chptr, char *key)
     {
       if (chptr->mode.limit && chptr->users >= chptr->mode.limit)
 	return (ERR_CHANNELISFULL);
-      /* This can return an "Invite only" msg instead of the "You are banned"
-         if _both_ conditions are true, but who can say what is more
-         appropriate ? checking again IsBanned would be _SO_ cpu-xpensive ! */
+      /*
+       * This can return an "Invite only" msg instead of the "You are banned"
+       * if _both_ conditions are true, but who can say what is more
+       * appropriate ? checking again IsBanned would be _SO_ cpu-xpensive !
+       */
       return ((chptr->mode.mode & MODE_INVITEONLY) ?
 	  ERR_INVITEONLYCHAN : ERR_BANNEDFROMCHAN);
     }
@@ -2302,7 +2363,14 @@ int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	  sendcreate = 1;
 	}
 
-	if (sptr->user->joined >= MAXCHANNELSPERUSER)
+#ifdef OPER_NO_CHAN_LIMIT
+        /*
+         * Opers are allowed to join any number of channels
+         */
+        if (sptr->user->joined >= MAXCHANNELSPERUSER && !IsOper(sptr))
+#else
+        if (sptr->user->joined >= MAXCHANNELSPERUSER)
+#endif
 	{
 	  chptr = get_channel(sptr, name, !CREATE);
 	  sendto_one(sptr, err_str(ERR_TOOMANYCHANNELS),
@@ -3592,6 +3660,18 @@ int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	parv[0], who->name, chptr->chname);
     return 0;
   }
+#ifdef NO_OPER_DEOP_LCHAN
+  /*
+   * Prevent kicking opers from local channels -DM-
+   */
+  if (IsOperOnLocalChannel(who, chptr->chname))
+  {
+    sendto_one(sptr, err_str(ERR_ISOPERLCHAN), me.name,
+               parv[0], who->name, chptr->chname);
+    return 0;
+  }
+#endif
+
   if (((lp = find_user_link(chptr->members, who)) &&
       !(lp->flags & CHFL_ZOMBIE)) || IsServer(sptr))
   {

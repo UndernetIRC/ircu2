@@ -347,6 +347,10 @@ comment 'Oper commands'
   bool 'Allow local opers to use the RESTART command' LOCOP_RESTART
   bool 'Allow local opers to use the DIE command' LOCOP_DIE
   bool 'Allow local opers to add local G-lines' LOCOP_LGLINE y
+  bool 'Allow local/global opers to be on any number of channels' OPER_NO_CHAN_LIMIT y
+  bool 'Allow local/global opers to set modes on local channels' OPER_MODE_LCHAN y
+  bool 'Allow local/global opers to walk through local channels modes' OPER_WALK_THROUGH_LMODES n
+  bool 'Prevent local/global opers from being kicked or deoped on local channels' NO_OPER_DEOP_LCHAN n
 endmenu
 
 mainmenu_option next_comment

@@ -114,6 +114,8 @@
 
 #define ERR_NOOPERHOST	     491
 
+#define ERR_ISOPERLCHAN      498        /* Undernet extension */
+
 #define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502
 
