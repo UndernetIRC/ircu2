@@ -1,5 +1,35 @@
 2000-12-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c (send_queued): call deliver_it with appropriate
+	arguments
+
+	* ircd/s_serv.c: reorder a couple of headers--cosmetic
+
+	* ircd/s_bsd.c (deliver_it): make deliver_it work with a struct
+	MsgQ
+
+	* ircd/os_solaris.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_linux.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_generic.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_bsd.c (os_sendv_nonb): function for calling writev with
+	appropriate iovec
+
+	* ircd/msgq.c (msgq_mapiov): add a len_p argument for totalling up
+	exactly how much we're trying to write out to the fd
+
+	* include/s_bsd.h: make deliver_it take a struct MsgQ
+
+	* include/msgq.h: add a len_p argument to msgq_mapiov to help
+	detect short writes that indicate possible socket blocking
+
+	* include/ircd_osdep.h: declare os_sendv_nonb()
+
 	* ircd/channel.c (modebuf_mode): don't add empty modes...
 
 2000-12-08  Kevin L. Mitchell  <klmitch@mit.edu>

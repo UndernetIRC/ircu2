@@ -33,6 +33,7 @@
 #include "list.h"
 #include "listener.h"
 #include "msg.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "packet.h"
@@ -327,12 +328,13 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
  *      net.loads today anyway. Commented out the alarms to save cpu.
  *      --Run
  */
-unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len)
+unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 {
   unsigned int bytes_written = 0;
+  unsigned int bytes_count = 0;
   assert(0 != cptr);
 
-  switch (os_send_nonb(cptr->fd, str, len, &bytes_written)) {
+  switch (os_sendv_nonb(cptr->fd, buf, &bytes_count, &bytes_written)) {
   case IO_SUCCESS:
     cptr->flags &= ~FLAGS_BLOCKED;
 
@@ -350,7 +352,7 @@ unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len)
      * XXX - hrmm.. set blocked here? the socket didn't
      * say it was blocked
      */
-    if (bytes_written < len)
+    if (bytes_written < bytes_count)
       cptr->flags |= FLAGS_BLOCKED;
     break;
   case IO_BLOCKED:

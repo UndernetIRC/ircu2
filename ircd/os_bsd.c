@@ -19,20 +19,25 @@
  * $Id$
  *
  */
+#define _XOPEN_SOURCE	/* make limits.h #define IOV_MAX */
+
 #include "ircd_osdep.h"
 #include "config.h"
+#include "msgq.h"
 
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <errno.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 #ifdef HPUX
@@ -312,6 +317,34 @@ IOResult os_send_nonb(int fd, const char* buf, unsigned int length,
   else if (EWOULDBLOCK == errno || EAGAIN == errno || 
            ENOMEM == errno || ENOBUFS == errno)
     return IO_BLOCKED;
+  return IO_FAILURE;
+}
+
+IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
+		       unsigned int* count_out)
+{
+  int res;
+  int count;
+  struct iovec iov[IOV_MAX];
+
+  assert(0 != buf);
+  assert(0 != count_in);
+  assert(0 != count_out);
+
+  *count_in = 0;
+  *count_out = 0;
+  errno = 0;
+
+  count = msgq_mapiov(buf, iov, IOV_MAX, count_in);
+
+  if (-1 < (res = writev(fd, iov, count))) {
+    *count_out = (unsigned) res;
+    return IO_SUCCESS;
+  }
+  else if (EWOULDBLOCK == errno || EAGAIN == errno ||
+	   ENOMEM == errno || ENOBUFS == errno)
+    return IO_BLOCKED;
+
   return IO_FAILURE;
 }
 
