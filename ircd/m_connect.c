@@ -94,6 +94,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "jupe.h"
 #include "match.h"
 #include "msg.h"
 #include "numeric.h"
@@ -122,7 +123,8 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char*      crule_name;
   struct ConfItem* aconf;
   struct Client*   acptr;
-  
+  struct Jupe*     ajupe;
+
   assert(0 != cptr);
   assert(0 != sptr);
 
@@ -170,6 +172,15 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if ((crule_name = conf_eval_crule(aconf))) {
     sendto_one(sptr, "%s NOTICE %s%s :Connect: Disallowed by rule: %s",
                NumServ(&me), NumNick(sptr), crule_name);
+    return 0;
+  }
+  /*
+   * Check to see if the server is juped; if it is, disallow the connect
+   */
+  if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)) {
+    sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s is juped: %s",
+	       NumServ(&me), NumNick(sptr), JupeServer(ajupe),
+	       JupeReason(ajupe));
     return 0;
   }
   /*
@@ -222,6 +233,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char*      crule_name;
   struct ConfItem* aconf;
   struct Client*   acptr;
+  struct Jupe*     ajupe;
 
   assert(0 != cptr);
   assert(cptr == sptr);
@@ -296,6 +308,14 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
   /*
+   * Check to see if the server is juped; if it is, disallow the connect
+   */
+  if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)) {
+    sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s is juped: %s",
+	       me.name, NumNick(sptr), JupeServer(ajupe), JupeReason(ajupe));
+    return 0;
+  }
+  /*
    *  Get port number from user, if given. If not specified,
    *  use the default from configuration structure. If missing
    *  from there, then use the precompiled default.
@@ -349,6 +369,7 @@ int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ConfItem* aconf;
   struct ConfItem* cconf;
   struct Client*   acptr;
+  struct Jupe*     ajupe;
 
   if (!IsPrivileged(sptr)) {
     sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
@@ -465,6 +486,15 @@ int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         return 0;
       }
     }
+  }
+  /*
+   * Check to see if the server is juped; if it is, disallow the connect
+   */
+  if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)) {
+    sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s is juped: %s",
+	       NumServ(&me), NumNick(sptr), JupeServer(ajupe),
+	       JupeReason(ajupe));
+    return 0;
   }
 
   /*

@@ -531,6 +531,12 @@ by reducing the length of common message identifiers.
 
 <TD><FONT SIZE=-1>PROTO</FONT></TD>
 </TR>
+
+<TR>
+<TD><FONT SIZE=-1>JUPE</FONT></TD>
+
+<TD><FONT SIZE=-1>JU</FONT></TD>
+</TR>
 </TABLE></CENTER>
 <FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
 <BR>
@@ -791,6 +797,43 @@ line would be:</BLOCKQUOTE>
 </BLOCKQUOTE>
 
 <BLOCKQUOTE>Which adds two more opped members and a ban to the channel.</BLOCKQUOTE>
+
+<BLOCKQUOTE><B>3.2.4 - JUPE Messages</B></BLOCKQUOTE>
+
+<BLOCKQUOTE>Any currently unexpired JUPEs are transmitted via "JUPE"
+messages with the following format:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] JU * (+|-)[SERVER NAME]
+[LIFETIME] [LAST MOD] :[REASON]</FONT></TT></BLOCKQUOTE>
+</BLOCKQUOTE>
+<BLOCKQUOTE><I>Notes:</I></BLOCKQUOTE>
+
+<OL>
+<LI>
+The numeric of the server sending this message.</LI>
+
+<LI>
+The "JUPE" token.</LI>
+
+<LI>
+The target that should apply this JUPE (always "*" during bursts).</LI>
+
+<LI>
+The name of the server to JUPE, prefixed with a "+" if the JUPE is active,
+or with a "-" if it is not.</LI>
+
+<LI>
+The remaining absolute lifetime of the JUPE, expressed in seconds.</LI>
+
+<LI>
+The last time the JUPE was modified.</LI>
+
+<LI>
+The reason the JUPE was applied.</LI>
+
+</OL>
+
 <A NAME="chap3.3"></A><B><FONT SIZE=+1>3.3 Summary</FONT></B>
 <P>The following table summarises the sequence of events that occur when
 a server connects to another server. S1 is our server, and S2 is a HUB
@@ -809,11 +852,13 @@ seperately below for simplicity.</I></B>
 <BR>S1: Sends all the clients it is aware of as a stream of NICK messages.
 <BR>S1: Sends the database of channel states on the network, as a stream
 of BURST messages.
+<BR>S1: Sends all the jupes it is aware of as a stream of JUPE messages.
 <BR>S1: Sends a END_OF_BURST token (EB) to indicate it has finished sending.
 <P>S2: Sends all the servers it is aware of as a stream of SERVER messages.
 <BR>S2: Sends all the clients it is aware of as a stream of NICK messages.
 <BR>S2: Sends the database of channel states on the network, as a stream
 of BURST messages.
+<BR>S2: Sends all the jupes it is aware of as a stream of JUPE messages.
 <BR>S2: Sends a END_OF_BURST token (EB) to indicate it has finished sending.
 <P>S2: Sends an EOB_ACK token (EA) to indicate it has succesfully recieved
 the END_OF_BURST from S1
@@ -836,6 +881,7 @@ the END_OF_BURST from S2
 [ READ]: AF B #foobar 947957734 +tink akey AIAAB,AIAAA:v,AZAAA:o :%*!*another@*.ban.com *!*foo@bar.net
 [ READ]: AF B #coder-com 947957727 AIAAB,AZAAA:o
 [ READ]: AF B #another 946101321 AFAAA
+[ READ]: AF JU * +juped.undernet.org 3600 947958100 :Broken, please fix
 [ READ]: AF EB
 [WRITE]: AB EA
 [ READ]: AF EA</FONT></PRE>
@@ -874,6 +920,7 @@ documentation.
 <BR>[26/02/2000]: Continued chapter 5, few example fixes, added token table
 from msg.h. --Gte.
 <BR>[02/03/2000]: Added NICK spec. --Gte.
+<BR>[18/03/2000]: Added JUPE spec. -Kev
 <P><A NAME="chap8.1"></A><B><FONT SIZE=+1>8.1 TODO</FONT></B>
 <UL>
 <LI>
@@ -891,6 +938,9 @@ and outcomes.</LI>
 
 <LI>
 Add FAQ Section.</LI>
+
+<LI>
+Any chance we could switch to ISO dates (2000-3-18)? ;) -Kev.</LI>
 </UL>
 <FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
 </BODY>

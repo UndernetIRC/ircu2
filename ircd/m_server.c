@@ -94,6 +94,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "jupe.h"
 #include "list.h"
 #include "match.h"
 #include "msg.h"
@@ -139,6 +140,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct ConfItem* aconf = 0;
   struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
+  struct Jupe*     ajupe = 0;
   int              hop;
   int              ret;
   int              active_lh_line = 0;
@@ -166,8 +168,13 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "SERVER");
     return exit_client(cptr, cptr, &me, "Need more parameters");
   }
-  ircd_log(L_NOTICE, "SERVER: %s %s[%s]", parv[1], cptr->sockhost, cptr->sock_ip);
   host = parv[1];
+
+  if ((ajupe = jupe_find(host)) && JupeIsActive(ajupe))
+    return exit_client_msg(cptr, sptr, &me, "Juped: %s", JupeReason(ajupe));
+
+  ircd_log(L_NOTICE, "SERVER: %s %s[%s]", parv[1], cptr->sockhost, cptr->sock_ip);
+
   /*
    * Detect protocol
    */
@@ -798,6 +805,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct ConfItem* aconf = 0;
   struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
+  struct Jupe*     ajupe = 0;
   int              hop;
   int              ret;
   int              active_lh_line = 0;
@@ -825,6 +833,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client(cptr, cptr, &me, "Need more parameters");
   }
   host = parv[1];
+
+  if ((ajupe = jupe_find(host)) && JupeIsActive(ajupe))
+    jupe_resend(cptr, ajupe);
+
   /*
    * Detect protocol
    */
@@ -1460,6 +1472,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ConfItem* aconf = 0;
   struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
+  struct Jupe*     ajupe = 0;
   int              hop;
   int              ret;
   int              active_lh_line = 0;
