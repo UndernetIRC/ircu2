@@ -40,6 +40,7 @@ enum Feature {
   FEAT_NODNS,
   FEAT_RANDOM_SEED,
   FEAT_DEFAULT_LIST_PARAM,
+  FEAT_NICKNAMEHISTORYLENGTH,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,

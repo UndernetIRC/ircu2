@@ -1,3 +1,26 @@
+2001-01-03  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: Completely re-did the old allocation scheme by
+	turning it into a linked list, permitting the
+	NICKNAMEHISTORYLENGTH feature to be changed on the fly
+
+	* ircd/s_debug.c (count_memory): use FEAT_NICKNAMEHISTORYLENGTH
+	feature instead of old #define
+
+	* ircd/ircd_features.c: add NICKNAMEHISTORYLENGTH feature as an
+	integer feature with a notify callback (whowas_realloc)
+
+	* ircd/client.c (client_set_privs): second memset was supposed to
+	be over antiprivs, not privs; thanks, Chris Behrens
+	<cbehrens@xo.com> for pointing that out...
+
+	* include/whowas.h: new elements for an extra linked list in
+	struct Whowas; a notify function for feature value changes
+
+	* include/ircd_features.h: new feature--FEAT_NICKNAMEHISTORYLENGTH
+
+	* config/config-sh.in: NICKNAMEHISTORYLENGTH is now a feature
+
 2001-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* config/config-sh.in: get rid of DEFAULT_LIST_PARAMETER
