@@ -25,6 +25,7 @@
 #include "s_misc.h"
 #include "IPcheck.h"
 #include "channel.h"
+#include "class.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -409,13 +410,19 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
                myctime(victim->firsttime), on_for / 3600, (on_for % 3600) / 60,
                on_for % 60, victim->user->username, victim->sockhost, victim->name);
 #else
-    if (IsUser(victim))
+    if (IsUser(victim)) 
+    /*
+     *  Write a comma seperated log for easy parsing. --Gte
+     *  Format:
+     *  Date/Time, Connected Time, Nick, Ident, Host, IP, Class, IPCheck->connected, Realname
+     */
       write_log(FNAME_USERLOG,
-               "%s (%3d:%02d:%02d): %s@%s [%s]\n",
+               "%s,%03d:%02d:%02d,%s,%s,%s,%s,%d,%d,%s\n",
                myctime(victim->firsttime),
                on_for / 3600, (on_for % 3600) / 60,
                on_for % 60,
-               victim->user->username, victim->user->host, victim->username);
+               victim->name, victim->user->username, victim->user->host, victim->sock_ip, 
+               get_client_class(victim), IPcheck_nr(victim), victim->info);
 #endif
 #endif
     if (victim != killer->from  /* The source knows already */
