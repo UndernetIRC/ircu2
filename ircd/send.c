@@ -605,19 +605,15 @@ void sendcmdto_serv_butone(struct Client *one, const char *cmd,
 			   const char *pattern, ...)
 {
   struct VarData vd;
-  va_list vl;
   char sndbuf[IRC_BUFSIZE];
   struct DLink *lp;
 
-  cmd = 0; /* try to suppress compile warning */
-
-  va_start(vl, pattern);
   vd.vd_format = pattern; /* set up the struct VarData for %v */
-  vd.vd_args = vl;
+  va_start(vd.vd_args, pattern);
 
   /* use token */
   ircd_snprintf(&me, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
-  va_end(vl);
+  va_end(vd.vd_args);
 
   /* send it to our downlinks */
   for (lp = me.serv->down; lp; lp = lp->next) {
@@ -689,11 +685,58 @@ void sendto_common_channels(struct Client *acptr, const char* pattern, ...)
   return;
 }
 
+void sendcmdto_common_channels(struct Client *cptr, const char *cmd,
+			       const char *tok, const char *pattern, ...)
+{
+  struct VarData vd;
+  char sndbuf[IRC_BUFSIZE];
+  struct Membership *chan;
+  struct Membership *member;
+
+  assert(0 != cptr);
+  assert(0 != cptr->from);
+  assert(0 != pattern);
+  assert(!IsServer(cptr));
+
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+
+  va_start(vd.vd_args, pattern);
+
+  /* build the buffer */
+  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v", cptr->name,
+		cptr->user->username, cptr->user->host, cmd, &vd);
+  va_end(vd.vd_args);
+
+  sentalong_marker++;
+  if (-1 < cptr->from->fd)
+    sentalong[cptr->from->fd] = sentalong_marker;
+  /*
+   * loop through cptr's channels, and the members on their channels
+   */
+  for (chan = cptr->user->channel; chan; chan = chan->next_channel)
+    for (member = chan->channel->members; member;
+	 member = member->next_member)
+      if (MyConnect(member->user) && -1 < cptr->fd &&
+	  sentalong[cptr->fd] != sentalong_marker) {
+	sentalong[cptr->fd] = sentalong_marker;
+	send_buffer(member->user, sndbuf);
+      }
+
+  if (MyConnect(cptr))
+    send_buffer(cptr, sndbuf);
+}
+
 /*
  * sendto_channel_butserv
  *
  * Send a message to all members of a channel that
  * are connected to this server.
+ *
+ * This contains a subtle bug; after the first call to vsendto_prefix_one()
+ * below, vl is in an indeterminate state, according to ANSI; we'd have to
+ * move va_start() and va_end() into the loop to correct the problem.  It's
+ * easier, however, just to use sendcmdto_channel_butserv(), which builds a
+ * buffer and sends that prepared buffer to each channel member.
  */
 void sendto_channel_butserv(struct Channel *chptr, struct Client *from, const char* pattern, ...)
 {
@@ -710,6 +753,33 @@ void sendto_channel_butserv(struct Channel *chptr, struct Client *from, const ch
   }
   va_end(vl);
   return;
+}
+
+void sendcmdto_channel_butserv(struct Channel *chan, const char *cmd,
+			       const char *tok, struct Client *from,
+			       const char *pattern, ...)
+{
+  struct VarData vd;
+  char sndbuf[IRC_BUFSIZE];
+  struct Membership *member;
+
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+  va_start(vd.vd_args, pattern);
+
+  /* build the buffer */
+  if (IsServer(from) || IsMe(from))
+    ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s %s %v", from->name,
+		  cmd, &vd);
+  else
+    ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v", from->name,
+		  from->user->username, from->user->host, cmd, &vd);
+  va_end(vd.vd_args);
+
+  /* send the buffer to each local channel member */
+  for (member = chan->members; member; member = member->next_member) {
+    if (MyConnect(member->user) && !IsZombie(member))
+      send_buffer(member->user, sndbuf);
+  }
 }
 
 /*
