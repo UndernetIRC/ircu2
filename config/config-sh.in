@@ -229,13 +229,13 @@ comment 'Logging (filenames are either full paths or files within DPATH)'
     fi
 
  comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
-  WT_BADCHAN=y
-  bool 'Do you want to enable Bad Channel G-lines' WT_BADCHAN
-    if [ "$WT_BADCHAN" = "y" ]; then
+  BADCHAN=y
+  bool 'Do you want to enable Bad Channel G-lines' BADCHAN
+    if [ "$BADCHAN" = "y" ]; then
       echo " "
       echo " WARNING DO _NOT_ USE LOCAL BADCHANNEL GLINES ON UNDERNET"
       echo " Use of LOCAL BAD Channel G-Lines can be cause for REMOVAL"
-      bool 'Allow LOCAL BAD Channel G-lines' WT_LOCAL_BADCHAN
+      bool 'Allow LOCAL BAD Channel G-lines' LOCAL_BADCHAN
     fi
 
   bool 'Do you want to log G-lines to a separate file' CONFIG_LOG_GLINES
