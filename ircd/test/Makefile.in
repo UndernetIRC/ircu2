@@ -1,27 +1,51 @@
 top_srcdir = @top_srcdir@
+srcdir = @srcdir@
 VPATH = @srcdir@
 CPPFLAGS = -I${top_srcdir}/include -I../..
 CFLAGS   = -g -Wall
+CC = @CC@
 
 TESTPROGS = \
 	ircd_chattr_t \
 	ircd_string_t \
 	ircd_in_addr_t
 
+DEP_SRC = \
+	ircd_chattr_t.c \
+	ircd_in_addr_t.c \
+	ircd_string_t.c \
+	test_stub.c
+
 all: ${TESTPROGS}
 
 build: ${TESTPROGS}
 
-depend:
+depend: ${DEP_SRC}
+	@cd ${srcdir} && \
+	if [ -f Makefile.in.bak ]; then \
+	  echo "make depend: First remove ircd/Makefile.in.bak"; \
+	else \
+	  mv Makefile.in Makefile.in.bak && \
+	  grep -A1 -B10000 '^# DO NOT DELETE THIS LINE' Makefile.in.bak > Makefile.in && \
+	  ${CC} ${CFLAGS} -MM ${CPPFLAGS} ${DEP_SRC} >> Makefile.in; \
+	fi
 
-ircd_chattr_t: ircd_chattr_t.o test_stub.o ../ircd_string.o
-	${CC} -o $@ $^
+install:
 
-ircd_string_t: ircd_string_t.o test_stub.o ../ircd_string.o
-	${CC} -o $@ $^
+IRCD_CHATTR_T_OBJS = ircd_chattr_t.o test_stub.o ../ircd_string.o
+ircd_chattr_t: $(IRCD_CHATTR_T_OBJS)
+	${CC} -o $@ $(IRCD_CHATTR_T_OBJS)
 
-ircd_in_addr_t: ircd_in_addr_t.o test_stub.o ../ircd_alloc.o ../ircd_string.o ../match.o ../numnicks.o
-	${CC} -o $@ $^
+IRCD_STRING_T_OBJS = ircd_string_t.o test_stub.o ../ircd_string.o
+ircd_string_t: $(IRCD_STRING_T_OBJS)
+	${CC} -o $@ $(IRCD_STRING_T_OBJS)
+
+IRCD_IN_ADDR_T_OBJS = ircd_in_addr_t.o test_stub.o ../ircd_alloc.o ../ircd_string.o ../match.o ../numnicks.o
+ircd_in_addr_t: $(IRCD_IN_ADDR_T_OBJS)
+	${CC} -o $@ $(IRCD_IN_ADDR_T_OBJS)
+
+.c.o:
+	${CC} ${CFLAGS} ${CPPFLAGS} -c $< -o $@
 
 .PHONY: distclean clean
 
@@ -30,3 +54,19 @@ distclean: clean
 
 clean:
 	rm -f core *.o ${TESTPROGS}
+
+# DO NOT DELETE THIS LINE (or the blank line after it) -- make depend depends on them.
+
+ircd_chattr_t.o: ircd_chattr_t.c ../../include/ircd_chattr.h
+ircd_in_addr_t.o: ircd_in_addr_t.c ../../include/ircd_log.h \
+  ../../include/ircd_string.h ../../include/ircd_chattr.h \
+  ../../include/numnicks.h ../../include/client.h \
+  ../../include/ircd_defs.h ../../include/dbuf.h ../../include/msgq.h \
+  ../../include/ircd_events.h ../../config.h ../../include/ircd_handler.h \
+  ../../include/res.h ../../include/capab.h
+ircd_string_t.o: ircd_string_t.c ../../include/ircd_string.h \
+  ../../include/ircd_chattr.h
+test_stub.o: test_stub.c ../../include/client.h ../../include/ircd_defs.h \
+  ../../include/dbuf.h ../../include/msgq.h ../../include/ircd_events.h \
+  ../../config.h ../../include/ircd_handler.h ../../include/res.h \
+  ../../include/capab.h ../../include/ircd_log.h ../../include/s_debug.h
