@@ -1,0 +1,92 @@
+IRC wouldn't be of much interest without the ability for users to join
+channels.  Of course, they must also be able to leave those channels
+when they get bored of the conversation there.  Users can join or
+leave multiple channels at once.  Sometimes these JOIN and PART
+messages can be ganged together into a single message.  This is
+facilitated by the JoinBuf system.
+
+<struct>
+struct JoinBuf;
+
+This structure is used to accumulate and describe several channel
+joins or parts.  None of its fields are directly or indirectly
+accessible to the application; a struct JoinBuf is only suitable for
+passing to the joinbuf_*() suite of functions.  JoinBuf structures
+must be allocated by the caller.
+</struct>
+
+<macro>
+#define JOINBUF_TYPE_JOIN	0	/* send JOINs */
+
+This macro tells joinbuf_init() that the JoinBuf is being used to
+generate several channel joins.
+</macro>
+
+<macro>
+#define JOINBUF_TYPE_CREATE	1	/* send CREATEs */
+
+This macro tells joinbuf_init() that the JoinBuf is being used to
+generate several channel creations.
+</macro>
+
+<macro>
+#define JOINBUF_TYPE_PART	2	/* send PARTs */
+
+This macro tells joinbuf_init() that the JoinBuf is being used to
+generate several channel parts.
+</macro>
+
+<macro>
+#define JOINBUF_TYPE_PARTALL	3	/* send local PARTs, but not remote */
+
+This macro tells joinbuf_init() that the JoinBuf is being used to
+record PARTs for all the user's channels.  That fact is communicated
+to servers through a more efficient means than sending several PARTs,
+but local clients can only be made aware of it with standard PART
+messages.
+</macro>
+
+<function>
+void joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
+		  struct Client *connect, unsigned int type, char *comment,
+		  time_t create);
+
+This function is used to initialize a caller allocated JoinBuf,
+specified by _jbuf_.  The originating user is specified by _source_;
+the connection on which the message was received is specified by
+_connect_; the type (one of the JOINBUF_TYPE_* macros described above)
+is specified by _type_.  PART messages may have an optional comment,
+which is passed through the _comment_ parameter.  JOIN and CREATE
+messages require a timestamp, passed through the _create_ parameter.
+</function>
+
+<function>
+void joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan,
+		  unsigned int flags);
+
+This function adds a channel to the JoinBuf.  The _chan_ parameter
+specifies the channel, and may only be NULL if the JoinBuf type is
+JOINBUF_TYPE_JOIN--this will cause a "JOIN 0" message to be sent to
+all servers.  The _flags_ parameter is used to specify the user's
+current channel flags.  For JOINBUF_TYPE_PART and JOINBUF_TYPE_PARTALL
+JoinBufs, passing CHFL_ZOMBIE will inhibit sending the PART to all
+channel users, and CHFL_BANNED will inhibit sending the user's
+specified PART comment.  For JOINBUF_TYPE_JOIN or JOINBUF_TYPE_CREATE
+JoinBufs, the _flags_ parameter is used to set the initial channel
+modes for the user.
+</function>
+
+<function>
+int joinbuf_flush(struct JoinBuf *jbuf);
+
+This function simply flushes the contents of the struct JoinBuf to the
+appropriate destinations.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation of the JoinBuf subsystem.
+</changelog>

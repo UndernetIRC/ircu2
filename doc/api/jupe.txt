@@ -1,0 +1,161 @@
+Occasionally, a server will become incorrectly configured or will
+start behaving incorrectly.  Even more rarely, a server will be
+compromised, and a modified version of the server put in place to
+cause problems.  These cases are the reason for the _jupe_, a
+temporary server ban.  This is similar to the G-line, which is a
+temporary user ban, and indeed, the jupe API is very similar to the
+G-line API.
+
+<macro>
+#define JUPE_MAX_EXPIRE	604800	/* max expire: 7 days */
+
+This macro lists the maximum expire time a jupe is permitted to have.
+This value is limited to 7 days to prevent abuse of the system.
+</macro>
+
+<macro>
+#define JUPE_ACTIVE	0x0001
+
+This flag is used to indicate that a given jupe is globally active.
+</macro>
+
+<macro>
+#define JUPE_LOCAL	0x0002
+
+This flag is used to indicate that a given jupe is a local one.  Local
+jupes do not affect users on other servers.
+</macro>
+
+<macro>
+#define JUPE_LDEACT	0x0004	/* locally deactivated */
+
+This flag is set on global jupes that have been locally deactivated.
+This flag is maintained internally by the jupe subsystem.
+</macro>
+
+<struct>
+struct Jupe;
+
+The struct Jupe describes everything about a given jupe.  None of its
+fields may be directly accessed by the application; use the functions
+and macros described below instead.
+</struct>
+
+<function>
+int JupeIsActive(struct Jupe* j);
+
+This macro returns a non-zero value if the jupe is active, or 0
+otherwise.  If a jupe is locally deactivated, this macro will always
+return 0.
+</function>
+
+<function>
+int JupeIsRemActive(struct Jupe* j);
+
+This macro returns a non-zero value if the jupe is active, ignoring
+whether or not it is locally deactivated.
+</function>
+
+<function>
+int JupeIsLocal(struct Jupe* j);
+
+This macro returns a non-zero value if the jupe is local only.
+</function>
+
+<function>
+char* JupeServer(struct Jupe* j);
+
+This macro returns the server name associated with the jupe.
+</function>
+
+<function>
+char* JupeReason(struct Jupe* j);
+
+This macro returns the reason that was given when the jupe was set.
+</function>
+
+<function>
+time_t JupeLastMod(struct Jupe* j);
+
+Jupes have a modification time that must be monotonically increasing.
+This macro simply returns that modification time.
+</function>
+
+<function>
+int jupe_add(struct Client *cptr, struct Client *sptr, char *server,
+	     char *reason, time_t expire, time_t lastmod, unsigned int flags);
+
+This function simply adds a jupe, set by _sptr_ and with a _server_,
+_reason_, _expire_, and _lastmod_ as specified.  The _flags_ parameter
+is a bit mask consisting of the binary OR of JUPE_LOCAL and
+JUPE_ACTIVE, as appropriate.  The jupe_add() function will propagate
+the jupe to all servers (assuming JUPE_LOCAL was not passed), and will
+break its link to the server specified by _server_ (assuming that the
+JUPE_ACTIVE flag _was_ passed).
+</function>
+
+<function>
+int jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
+		  time_t lastmod, unsigned int flags);
+
+This function activates the jupe specified by _jupe_, setting its
+_lastmod_ time as specified.  If _flags_ is JUPE_LOCAL and if the jupe
+is locally deactivated, this function will turn off the local
+deactivation flag, but will not modify _lastmod_.  If the jupe is
+globally deactivated, passing this function the JUPE_LOCAL flag will
+have no effect.
+</function>
+
+<function>
+int jupe_deactivate(struct Client *cptr, struct Client *sptr,
+		    struct Jupe *jupe, time_t lastmod, unsigned int flags);
+
+This function is similar to jupe_activate() except that it deactivates
+the jupe.  If the given jupe is local, then the jupe is deleted from
+memory.  In all other cases, the jupe is simply deactivated, either
+locally (if JUPE_LOCAL was passed via _flags_) or globally.  Global
+deactivation will update the _lastmod_ time.
+</function>
+
+<function>
+struct Jupe* jupe_find(char *server);
+
+This function searches for a jupe matching the given _server_.
+</function>
+
+<function>
+void jupe_free(struct Jupe *jupe);
+
+This function releases all storage associated with a given jupe.
+</function>
+
+<function>
+void jupe_burst(struct Client *cptr);
+
+This function generates a burst of all existing global jupes and sends
+them to the server specified by _cptr_.
+</function>
+
+<function>
+int jupe_resend(struct Client *cptr, struct Jupe *jupe);
+
+This function resends the _jupe_ to a server specified by _cptr_.
+This may be used if, for instance, it is discovered that a server is
+not synchronized with respect to a particular jupe.
+</function>
+
+<function>
+int jupe_list(struct Client *sptr, char *server);
+
+This function sends the information about a jupe matching _server_ to
+the client specified by _sptr_.  If _server_ is a NULL pointer, a list
+of all jupes is sent.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation of the jupe API.
+</changelog>
