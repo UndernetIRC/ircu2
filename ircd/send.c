@@ -385,7 +385,7 @@ void sendmsgto_channel_butone(struct Client *one, struct Client *from,
   }
   else {
     sprintf(userbuf,":%s!%s@%s %s %s :%s",
-            from->name, from->username, from->user->host,
+            from->name, from->user->username, from->user->host,
             ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE, chname, msg);
     sprintf(servbuf,"%s%s %s %s :%s", NumNick(from), cmd, chname, msg);
   }
