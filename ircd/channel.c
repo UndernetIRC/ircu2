@@ -728,11 +728,13 @@ void send_channel_modes(aClient *cptr, aChannel *chptr)
 	  if (new_mode)		/* Do we have a nick with a new mode ? */
 	  {
 	    new_mode = 0;
-	    sendbuf[sblen++] = ':';
-	    if (lp1->flags & CHFL_CHANOP)
-	      sendbuf[sblen++] = 'o';
-	    if (lp1->flags & CHFL_VOICE)
-	      sendbuf[sblen++] = 'v';
+            if (lp1->flags & (CHFL_CHANOP | CHFL_VOICE)) {
+	      sendbuf[sblen++] = ':';
+	      if (lp1->flags & CHFL_CHANOP)
+	        sendbuf[sblen++] = 'o';
+	      if (lp1->flags & CHFL_VOICE)
+	        sendbuf[sblen++] = 'v';
+            }
 	  }
 	}
 	if (full)
