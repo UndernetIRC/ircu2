@@ -253,15 +253,31 @@ void sendrawto_one(struct Client *to, const char *pattern, ...)
 void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
 		   struct Client *to, const char *pattern, ...)
 {
-  va_list vl;
+  struct VarData vd;
+  struct MsgBuf *mb;
 
-  va_start(vl, pattern);
-  vsendcmdto_one(from, cmd, tok, to, pattern, vl);
-  va_end(vl);
+  to = cli_from(to);
+
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+  va_start(vd.vd_args, pattern);
+
+  mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
+		 &vd);
+
+  va_end(vd.vd_args);
+
+  send_buffer(to, mb, 0);
+
+  msgq_clean(mb);
 }
 
-void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
-		    struct Client *to, const char *pattern, va_list vl)
+/*
+ * Send a (prefixed) command to a single client in the priority queue;
+ * select  which of <cmd> <tok> to use depending on if to is a server
+ *or not.  <from> is the originator of the command.
+ */
+void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
+			struct Client *to, const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -269,12 +285,14 @@ void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
   to = cli_from(to);
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
-  vd.vd_args = vl;
+  va_start(vd.vd_args, pattern);
 
   mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
 		 &vd);
 
-  send_buffer(to, mb, 0);
+  va_end(vd.vd_args);
+
+  send_buffer(to, mb, 1);
 
   msgq_clean(mb);
 }

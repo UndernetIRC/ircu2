@@ -154,8 +154,8 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
     parv[1] = tbuf;
-    if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
-        HUNTED_ISME)
+    if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
+			     parv) != HUNTED_ISME)
       return 0;
   }
 
@@ -224,14 +224,14 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     for (lp = cli_serv(&me)->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
-	sendcmdto_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
+	sendcmdto_prio_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
   }
   else
   {
     ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
     parv[1] = tbuf;
-    if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
-        HUNTED_ISME)
+    if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
+			     parv) != HUNTED_ISME)
       return 0;
   }
 

@@ -33,11 +33,10 @@ extern void sendcmdto_one(struct Client *from, const char *cmd,
 			  const char *tok, struct Client *to,
 			  const char *pattern, ...);
 
-
-/* Same as above, except it takes a va_list */
-extern void vsendcmdto_one(struct Client *from, const char *cmd,
-			   const char *tok, struct Client *to,
-			   const char *pattern, va_list vl);
+/* Same as above, except it puts the message on the priority queue */
+extern void sendcmdto_prio_one(struct Client *from, const char *cmd,
+			       const char *tok, struct Client *to,
+			       const char *pattern, ...);
 
 /* Send command to all servers except one */
 extern void sendcmdto_serv_butone(struct Client *from, const char *cmd,
