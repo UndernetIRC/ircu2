@@ -96,19 +96,16 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 
       if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
-      else if ((gline->gl_flags & GLINE_LOCAL) != (flags & GLINE_LOCAL))
+      else if (((gline->gl_flags & GLINE_LOCAL) != (flags & GLINE_LOCAL)) ||
+	       (gline->gl_host && !host) || (!gline->gl_host && host))
 	continue;
-      else if ( /* Both have gl_host set, or unset */
-		!((NULL == gline->gl_host) ^ (NULL==host))
-		&& !mmatch(gline->gl_user, user) /* gline contains new mask */
-		&& (gline->gl_host == NULL || !mmatch(gline->gl_host, host))) {
+      else if (!mmatch(gline->gl_user, user) /* gline contains new mask */
+	       && (gline->gl_host == NULL || !mmatch(gline->gl_host, host))) {
 	if (expire <= gline->gl_expire) /* will expire before wider gline */
 	  return 0;
 	else
 	  after = gline; /* stick new gline after this one */
-      } else if (
-		 !((NULL == gline->gl_host) ^ (NULL==host))
-		 && !mmatch(user, gline->gl_user) /* new mask contains gline */
+      } else if (!mmatch(user, gline->gl_user) /* new mask contains gline */
 		 && (gline->gl_host==NULL || !mmatch(host, gline->gl_host)) 
 		 && gline->gl_expire <= expire) /* old expires before new */
 	gline_free(gline); /* save some memory */
