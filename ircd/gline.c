@@ -177,14 +177,14 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
     return;
 
   if (gline->gl_lastmod)
-    sendcmdto_serv_butone(cptr, CMD_GLINE, sptr, "* %c%s%s%s %Tu %Tu :%s",
+    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
 			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
 			  gline->gl_expire - CurrentTime, gline->gl_lastmod,
 			  gline->gl_reason);
   else
-    sendcmdto_serv_butone(cptr, CMD_GLINE, sptr, "* %c%s%s%s %Tu :%s",
+    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu :%s",
 			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -496,7 +496,7 @@ gline_burst(struct Client *cptr)
     if (gline->gl_expire <= CurrentTime) /* expire any that need expiring */
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
-      sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s@%s %Tu %Tu :%s",
+      sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s@%s %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		    gline->gl_host, gline->gl_expire - CurrentTime,
 		    gline->gl_lastmod, gline->gl_reason);
@@ -508,7 +508,7 @@ gline_burst(struct Client *cptr)
     if (gline->gl_expire <= CurrentTime) /* expire any that need expiring */
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
-      sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s %Tu %Tu :%s",
+      sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		    gline->gl_expire - CurrentTime, gline->gl_lastmod,
 		    gline->gl_reason);
@@ -521,7 +521,7 @@ gline_resend(struct Client *cptr, struct Gline *gline)
   if (GlineIsLocal(gline) || !gline->gl_lastmod)
     return 0;
 
-  sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s%s%s %Tu %Tu :%s",
+  sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
 		GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
 		GlineIsBadChan(gline) ? "" : "@",
 		GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -542,7 +542,7 @@ gline_list(struct Client *sptr, char *userhost)
       return send_error_to_client(sptr, ERR_NOSUCHGLINE, userhost);
 
     /* send gline information along */
-    sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
+    send_reply(sptr, RPL_GLIST, gline->gl_user,
 	       GlineIsBadChan(gline) ? "" : "@",
 	       GlineIsBadChan(gline) ? "" : gline->gl_host,
 	       gline->gl_expire + TSoffset,
@@ -555,8 +555,7 @@ gline_list(struct Client *sptr, char *userhost)
       if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
       else
-	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
-		   gline->gl_user, "@", gline->gl_host,
+	send_reply(sptr, RPL_GLIST, gline->gl_user, "@", gline->gl_host,
 		   gline->gl_expire + TSoffset,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
@@ -568,16 +567,15 @@ gline_list(struct Client *sptr, char *userhost)
       if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
       else
-	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
-		   gline->gl_user, "", "", gline->gl_expire + TSoffset,
+	send_reply(sptr, RPL_GLIST, gline->gl_user, "", "",
+		   gline->gl_expire + TSoffset,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
     }
   }
 
   /* end of gline information */
-  sendto_one(sptr, rpl_str(RPL_ENDOFGLIST), me.name, sptr->name);
-  return 0;
+  return send_reply(sptr, RPL_ENDOFGLIST);
 }
 
 void
@@ -592,8 +590,7 @@ gline_stats(struct Client *sptr)
     if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
     else
-      sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name, sptr->name, 'G',
-		 gline->gl_user, gline->gl_host, gline->gl_expire + TSoffset,
-		 gline->gl_reason);
+      send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user, gline->gl_host,
+		 gline->gl_expire + TSoffset, gline->gl_reason);
   }
 }

@@ -151,10 +151,10 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (!IsMe(acptr)) { /* manually propagate */
       if (!lastmod)
-	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %s %s :%s", target, mask,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%s %s %s :%s", target, mask,
 		      parv[3], reason);
       else
-	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %s %s %s :%s", target, mask,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%s %s %s %s :%s", target, mask,
 		      parv[3], parv[4], reason);
 
       return 0;
@@ -260,7 +260,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!IsOper(sptr))
 	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
-	sendcmdto_one(acptr, CMD_GLINE, sptr, "%C %c%s %s %Tu :%s", acptr,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
