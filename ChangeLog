@@ -1,3 +1,6 @@
+2003-05-01 splidge <splidge@quakenet.org>
+        * ircd/match.c: Added a check to detect the end of the string.
+
 2003-05-02 Isomer <isomer@undernet.org>
 	* ircd/IPcheck.c: Added assert()'s to check for underflow
 
