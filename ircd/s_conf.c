@@ -847,12 +847,10 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
   assert(0 != conf);
   memset(conf, 0, sizeof(struct DenyConf));
 
-  if (fields[1][0] == '$' && fields[1][1] == 'R') {
-    DupString(conf->hostmask, fields[1] + 2);
+  if (fields[1][0] == '$' && fields[1][1] == 'R')
     conf->flags |= DENY_FLAGS_REALNAME;
-  } else
-    DupString(conf->hostmask, fields[1]);
 
+  DupString(conf->hostmask, fields[1]);
   collapse(conf->hostmask);
 
   if (!EmptyString(fields[2])) {
@@ -1417,7 +1415,7 @@ int find_kill(struct Client *cptr)
       break;
 
     if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
-      if (0 == match(deny->hostmask, realname))
+      if (0 == match(deny->hostmask + 2, realname))
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",

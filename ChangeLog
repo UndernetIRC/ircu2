@@ -1,5 +1,8 @@
 2001-04-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_conf.c: keep the $R in memory so we can see it clearly
+	when we do a /stats k
+
 	* ircd/s_user.c (set_user_mode): pull-up of changes to prevent
 	users from turning on +s and +g
 
