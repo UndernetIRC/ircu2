@@ -1,3 +1,7 @@
+2001-04-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c (do_whois): pull-up of m_whois() fix
+
 2001-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/msgq.c: finally remove the msgq_integrity() hack, as it's
