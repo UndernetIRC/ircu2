@@ -1,0 +1,55 @@
+JUPE documentation, last updated on 18 Mar 2000
+
+For an ordinary user, the syntax is:
+
+  JUPE [<server>]
+
+If <server> is given, and if a jupe for that server exists, all the
+information about that jupe is displayed.  If <server> is not given,
+all un-expired jupes are displayed.
+
+For an operator, the syntax is:
+
+  JUPE [[+|-]<server> [<target> <expiration> :<reason>]]
+
+If <server> is not given, or if it is not prefixed by "+" or "-", the
+operation is exactly the same as if it were issued by an ordinary
+user.  If the "+" or "-" prefixes are used, the arguments <target>,
+<expiration>, and <reason> must be given, even if the jupe already
+exists.  If <target> is "*" and the currently existing jupe is a local
+jupe, the local jupe will be erased and recreated with the parameters
+given, as described below.  Otherwise, if the jupe currently exists, a
+prefix of "+" will cause an inactive jupe to be activated, whereas a
+prefix of "-" will cause an active jupe to be deactivated.
+
+If the jupe does not already exist, it is created; <target> is used to
+select whether the jupe is only to apply to a single server (which
+need not be the local server) or to the whole network.  This could be
+useful if a single particular link is having problems, for instance.
+The <expiration> parameter is a number of seconds, not to exceed 7
+days, for the jupe to exist.  The <reason> argument is mandatory and
+should describe why this particular jupe was placed.
+
+For a server, the syntax is:
+
+  <prefix> JU <target> (+|-)<server> <expiration> <lastmod> :<reason>
+
+The <target> may be a server numeric or the character "*", for a
+globally scoped jupe.  The <server> argument is a server name, and
+must be prefixed by one of "+" (to indicate an active jupe) or "-" (to
+indicate an inactive jupe).  The parameter <expiration> is a total
+number of seconds the jupe is to live for, and <lastmod> is used for
+versioning.  Since JUPEs are propagated during netbursts, there must
+be some way of resolving conflicting states, which is the reason for
+this argument, and is also the reason jupes cannot be deleted, only
+deactivated.  The <reason> parameter indicates the reason the jupe was
+placed.
+
+If a JUPE is received with a <target> of "*", any jupes with local
+scope are deleted, in preference for the globally scoped version.  If
+the jupe already exists, the values of <lastmod> are compared; if the
+received <lastmod> is less than the stored <lastmod>, the existing
+jupe is resent to the server from which the JUPE message was received;
+otherwise, the jupe is activated or deactivated, depending on the
+<server> prefix.  If the jupe does not currently exist, it is created
+with the parameters given.
