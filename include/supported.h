@@ -46,10 +46,11 @@
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " KICKLEN=%i" \
-                " CHANTYPES=%s"
+                " CHANTYPES=%s" \
+                " PREFIX=%s"
                  
 #define FEATURESVALUES MAXSILES,MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
-        NICKLEN,TOPICLEN,TOPICLEN,"+#&"
+        NICKLEN,TOPICLEN,TOPICLEN,"+#&","@+"
 
 #endif /* INCLUDED_supported_h */
 

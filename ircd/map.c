@@ -45,7 +45,7 @@ void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt
   else {
     char lag[512];
     if (server->serv->lag>10000)
-    	strcpy(lag,"(--s)");
+    	lag[0]=0;
     else if (server->serv->lag<0)
     	strcpy(lag,"(0s)");
     else
