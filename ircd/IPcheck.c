@@ -45,8 +45,8 @@ struct IPRegistryEntry {
   struct IPRegistryEntry*  next;
   struct IPTargetEntry*    target;
   unsigned int             addr;
-  unsigned short           last_connect;
-  unsigned char            connected;
+  int		           last_connect;
+  unsigned short           connected;
   unsigned char            attempts;
 };
 
@@ -62,8 +62,8 @@ struct IPRegistryEntry {
 #define NOW ((unsigned short)(CurrentTime & MASK_16))
 #define CONNECTED_SINCE(x) (NOW - (x))
 
-#define IPCHECK_CLONE_LIMIT 2
-#define IPCHECK_CLONE_PERIOD 20
+#define IPCHECK_CLONE_LIMIT 4
+#define IPCHECK_CLONE_PERIOD 40
 #define IPCHECK_CLONE_DELAY 600
 
 
