@@ -1,3 +1,7 @@
+2002-21-05 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/ircd_relay.c: stop an information leak about the
+	the network topography from relayed messages.
+
 2002-04-19  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_who.c (m_who): disallow non-opers to /who server.name

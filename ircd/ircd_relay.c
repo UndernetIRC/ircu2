@@ -158,14 +158,17 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != text);
   assert(0 != server);
 
-  if (0 == (acptr = FindServer(server + 1))) {
+  if ((acptr = FindServer(server + 1)) == NULL ||
+      !IsChannelService(acptr))
+  {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
-  if (!IsMe(acptr)) {
+  if (!IsMe(acptr))
+  {
     sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%s :%s", name, text);
     return;
   }
@@ -188,10 +191,14 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
    */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
       (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)) ||
-      !IsChannelService(acptr)) {
-#if 0
+      !IsChannelService(acptr))
+  {
+    /*
+     * By this stage we might as well not bother because they will
+     * know that this server is currently linked because of the
+     * increased lag.
+     */
     send_reply(sptr, ERR_NOSUCHNICK, name);
-#endif
     return;
   }
 
