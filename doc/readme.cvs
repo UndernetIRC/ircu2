@@ -1,0 +1,93 @@
+
+Notes on checking out from the Undernet CVS archive and maintenance.
+
+General Strategy:
+The main trunk of the tree will be used for ongoing development only
+(alpha) this code is not intended to be used on the production network.
+When development has reached a point of relative stability a tag will be
+applied to the development branch and a beta tag will be applied to that
+branch. For beta test servers only the tagged branches will be used.
+When a tag is applied we will also produce a snapshot tarball of the
+tag. Once a beta tagged release has been proven stable any fixes will be
+merged into the main tagged version and the code will be voted on for
+release. Fixes after release will be tagged with a patchlevel tag.
+
+You check out a tagged release by specifying the -r tag option to cvs.
+This is the command to check out the most recent tagged version of
+ircu2.10.07:
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs co -r u2_10_07_pl6 -P ircu2.10
+
+Developers doing maintenance and bug fixes should only check out the
+current tagged patchlevel for the affected version. Once the fix has
+proven stable, it will be merged into the tree the fix is relative to.
+
+We will not merge the changes that have been made to ircu2.10.07 since
+it's release into the development branch, the 2.10.07 branch is a
+maintenance only branch.
+
+If you have any questions on how to check out tagged versions check out
+the coder-com web page http://coder-com.undernet.org/cvs.html or the cvs
+manual page. If you're really stumped feel free to ask on coder-com.
+
+We will put out new tarballs for every tagged release which will be
+available on the coder-com web page.
+
+Naming Conventions:
+
+Tag Names:
+Major release - u2_10_10
+Beta release  - u2_10_10_beta01
+Production patch - u2_10_07_pl9
+
+The tree currently looks like this:
+
+Trunk: development only
+------------------------------------------------
+  \                       \
+   \----- u2_10_07         \---- u2_10_10 --- release ---------
+       \                      \                        \
+        \--- u2_10_07_pl9      \--- u2_10_10_beta06     \ u2_10_10_pl01
+
+Patches will be rolled into the tagged branch and eventually rolled into
+the development branch. All new development should be relative to the
+trunk, only bugfixes and maintenance coding should be applied to any
+tagged version. Developers doing maintenance should only check out the
+latest pl or beta tag and apply the changes relative to that tag. These
+changes will be committed to the tag they were checked out from and once
+proven stable they will be merged into the main tagged trunk by the
+maintainer.
+
+Where to get CVS:
+http://www.loria.fr/~molli/cvs-index.html
+
+Checking out:
+First you need to login to cvs: 
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
+
+It will prompt you for a password. The password is "anoncvs". 
+
+To check out the recommended patchlevel for ircu2.10.07 use: 
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs co -r u2_10_07_pl6 -P ircu2.10
+
+For the ircu2.10.10 beta archive use: 
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs co -r u2_10_10_beta06 -P ircu2.10
+
+To check out the current development archive use: 
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs co -P ircu2.10
+
+For the ircu3 pipedream archive use: 
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs co -P ircu3
+
+When you want to update your source tree later to the latest version, use 
+cvs update -P
+
+inside  ircu2.10/,  the directory ircu2.10 was checked out to. 
+
+How to find the most current available release:
+We will announce the most current release tag when we make it available, in general
+you will check out the main branch of any given tree, if you want the current production
+release use the "u2_10_07" tag, for patched versions use a patchlevel tag "u2_10_07_pl6".
+You can always find the most recent tag for any version by looking at the Undernet
+Coder Com CVS archive: http://coder-com.undernet.org/cgi-bin/cvsweb.cgi
+
+
