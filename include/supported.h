@@ -62,7 +62,7 @@
                         NICKLEN, TOPICLEN, AWAYLEN, TOPICLEN, CHANNELLEN
 
 #define FEATURESVALUES2 (feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#"), "(ov)@+", "@+", \
-                        (feature_bool(FEAT_OPLEVELS) ? "b,Aku,l,imnpstrD" : "b,k,l,imnpstrD"), \
+                        (feature_bool(FEAT_OPLEVELS) ? "b,AkU,l,imnpstrD" : "b,k,l,imnpstrD"), \
                         "rfc1459", feature_str(FEAT_NETWORK)
 
 #endif /* INCLUDED_supported_h */

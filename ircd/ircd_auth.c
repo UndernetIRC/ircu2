@@ -35,6 +35,7 @@
 #include "msgq.h"
 #include "res.h"
 #include "s_bsd.h"
+#include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
@@ -180,8 +181,8 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
     i_list_head(iauth).iar_next = &i_list_head(iauth);
     msgq_init(&i_sendQ(iauth));
     ircd_strncpy(i_host(iauth), host, HOSTLEN);
-    i_port(iauth) = port;
     memset(&i_addr(iauth), 0, sizeof(i_addr(iauth)));
+    i_port(iauth) = port;
     iauth_active = iauth;
     i_reconnect(iauth) = reconnect;
     iauth_reconnect(iauth);
@@ -191,6 +192,7 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
   else
     i_passwd(iauth)[0] = '\0';
   i_timeout(iauth) = timeout;
+  i_SetIClass(iauth);
   return iauth;
 }
 
@@ -255,7 +257,7 @@ void iauth_close(struct IAuth *iauth)
 void iauth_close_unused(void)
 {
   struct IAuth *prev, *iauth, *next;
-  
+
   for (prev = NULL, iauth = iauth_active; iauth; iauth = next) {
     next = i_next(iauth);
     if (i_GetClosing(iauth)) {
@@ -355,6 +357,7 @@ static void iauth_reconnect(struct IAuth *iauth)
   IOResult result;
   int fd;
 
+  Debug((DEBUG_INFO, "IAuth attempt connection to %s port %p.", i_host(iauth), i_port(iauth)));
   if (!irc_in_addr_valid(&i_addr(iauth).addr)
       && !ircd_aton(&i_addr(iauth).addr, i_host(iauth))) {
     i_query(iauth).vptr = iauth;
@@ -531,8 +534,10 @@ static void iauth_send_request(struct IAuth *iauth, struct IAuthRequest *iar)
   struct Client *client;
 
   /* If iauth is not connected, we must defer the request. */
-  if (!i_GetConnected(iauth))
+  if (!i_GetConnected(iauth)) {
+    Debug((DEBUG_SEND, "IAuth deferring request for %s because we are not connected.", cli_name(iar->iar_client)));
     return;
+  }
 
   /* If no timed request, set up expiration timer. */
   if (!t_active(&i_request_timer(iauth))) {

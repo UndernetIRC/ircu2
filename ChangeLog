@@ -1,3 +1,17 @@
+2004-09-16  Michael Poole <mdpoole@troilus.org>
+
+	* INSTALL: Fix name of example.conf and mention its installed
+	location.
+
+	* include/supported.h (FEATURESVALUES2): Fix a reference to
+	channel mode +u that escaped earlier rename attempts.
+
+	* ircd/ircd_auth.c (iauth_connect): Assign port number after
+	zeroing out the destination address.
+	Add some additional debug statements to help follow operations.
+
+	* ircd/ircd_parser.y (iauthblock): Do not require "name" to be set.
+
 2004-09-11  Bas Steendijk <steendijk@xs4all.nl>
 
 	* include/channel.h, include/supported.h, ircd/channel.c,

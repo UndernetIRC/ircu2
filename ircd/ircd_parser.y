@@ -999,7 +999,7 @@ iauthblock: IAUTH '{'
   tping = 60;
 } iauthitems '}' ';'
 {
-  if (!name || !host || !port) {
+  if (!host || !port) {
     log_write(LS_CONFIG, L_ERROR, 0, "IAuth block needs a server name and port.");
     return 0;
   }
