@@ -1,3 +1,8 @@
+2004-10-18  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c (gline_find): unless we're looking for an exact
+	match, we should call match() on hostnames, not ircd_strcmp()
+
 2004-10-17  Michael Poole <mdpoole@troilus.org>
 
 	* include/s_conf.h (ConfItem): Add new field username.  Replace
