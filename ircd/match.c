@@ -847,7 +847,6 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
 /** Parse an input string as an IPv4 address.
  * @param[in] in Text form of address.
@@ -857,15 +856,13 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 static int ipmask_parse_ipv4(const char *in, struct in_addr *out)
 {
   int class;
-  char ipname[16];
   int ad[4] = { 0 };
   int bits = 0;
 
   class = sscanf(in, "%d.%d.%d.%d/%d", &ad[0], &ad[1], &ad[2], &ad[3], &bits);
   if (class != 5)
     bits = class * 8;
-  ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
-  out->s_addr = inet_addr(ipname);
+  out->s_addr = ntohl((ad[0] << 24) | (ad[1] << 16) | (ad[2] << 8) | ad[3]);
   return bits;
 }
 

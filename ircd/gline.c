@@ -43,14 +43,12 @@
 #include "msg.h"
 #include "numnicks.h"
 #include "numeric.h"
-#include "sys.h"    /* FALSE bleah */
 #include "whocmds.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <arpa/inet.h> /* for inet_ntoa */
 
 #define CHECK_APPROVED	   0	/**< Mask is acceptable */
 #define CHECK_OVERRIDABLE  1	/**< Mask is acceptable, but not by default */
@@ -244,7 +242,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 
       /* let the ops know about it */
       sendto_opmask_butone(0, SNO_GLINE, "G-line active for %s",
-      		     get_client_name(acptr, TRUE));
+                           get_client_name(acptr, SHOW_IP));
 
       /* and get rid of him */
       if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",

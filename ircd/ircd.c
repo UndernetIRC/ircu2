@@ -244,79 +244,61 @@ static int check_pid(void)
  */
 static void try_connections(struct Event* ev) {
   struct ConfItem*  aconf;
-  struct Client*    cptr;
   struct ConfItem** pconf;
-  int               connecting;
-  int               confrq;
   time_t            next        = 0;
   struct ConnectionClass* cltmp;
-  struct ConfItem*  con_conf    = 0;
   struct Jupe*      ajupe;
-  const char*       con_class   = NULL;
 
   assert(ET_EXPIRE == ev_type(ev));
   assert(0 != ev_timer(ev));
 
-  connecting = FALSE;
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    /* Also when already connecting! (update holdtimes) --SRB */
-    if (!(aconf->status & CONF_SERVER) || aconf->address.port == 0 || aconf->hold == 0)
-      continue;
-
-    /* Also skip juped servers */
-    if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe))
-      continue;
-
-    /* Skip this entry if the use of it is still on hold until
-     * future. Otherwise handle this entry (and set it on hold until next
-     * time). Will reset only hold times, if already made one successfull
-     * connection... [this algorithm is a bit fuzzy... -- msa >;) ]
+    /* Only consider server items with non-zero port and non-zero
+     * connect times that are not actively juped.
      */
-    if (aconf->hold > CurrentTime && (next > aconf->hold || next == 0)) {
-      next = aconf->hold;
+    if (!(aconf->status & CONF_SERVER)
+        || aconf->address.port == 0
+        || aconf->hold == 0
+        || ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)))
       continue;
-    }
 
+    /* Update next possible connection check time. */
+    if (next > aconf->hold || next == 0)
+        next = aconf->hold;
+
+    /* Skip this entry if its use is still on hold until future, too
+     * many links in its connection class, it is already linked, or if
+     * connect rules forbid a link now.
+     */
     cltmp = aconf->conn_class;
-    confrq = get_con_freq(cltmp);
-    if(confrq == 0)
-      aconf->hold = next = 0;
-    else
-      aconf->hold = CurrentTime + confrq;
+    if ((aconf->hold > CurrentTime)
+        || (Links(cltmp) >= MaxLinks(cltmp))
+        || FindServer(aconf->name)
+        || conf_eval_crule(aconf->name, CRULE_MASK))
+      continue;
 
-    /* Found a CONNECT config with port specified, scan clients and see if
-     * this server is already connected?
-     */
-    cptr = FindServer(aconf->name);
+    /* We want to connect; update entry's hold time. */
+    aconf->hold = ConFreq(cltmp) ? CurrentTime + ConFreq(cltmp) : 0;
 
-    if (!cptr && (Links(cltmp) < MaxLinks(cltmp)) &&
-        (!connecting /*|| (ConClass(cltmp) > con_class)*/)) {
-      /*
-       * Check connect rules to see if we're allowed to try
-       */
-      if (0 == conf_eval_crule(aconf->name, CRULE_MASK)) {
-        con_class = ConClass(cltmp);
-        con_conf = aconf;
-        /* We connect only one at time... */
-        connecting = TRUE;
-      }
-    }
-    if ((next > aconf->hold) || (next == 0))
-      next = aconf->hold;
-  }
-  if (connecting) {
-    if (con_conf->next) { /* are we already last? */
-      /* Put the current one at the end and make sure we try all connections */
-      for (pconf = &GlobalConfList; (aconf = *pconf); pconf = &(aconf->next))
-        if (aconf == con_conf)
+    /* Ensure it is at the end of the list for future checks. */
+    if (aconf->next) {
+      /* Find aconf's location in the list and splice it out. */
+      for (pconf = &GlobalConfList; *pconf; pconf = &(*pconf)->next)
+        if (*pconf == aconf)
           *pconf = aconf->next;
-      (*pconf = con_conf)->next = 0;
+      /* Reinsert it at the end of the list (where pconf is now). */
+      *pconf = aconf;
+      aconf->next = 0;
     }
 
-    if (connect_server(con_conf, 0))
+    /* Activate the connection itself. */
+    if (connect_server(aconf, 0))
       sendto_opmask_butone(0, SNO_OLDSNO, "Connection to %s activated.",
-			   con_conf->name);
+			   aconf->name);
+
+    /* And stop looking for further candidates. */
+    break;
   }
 
   if (next == 0)
