@@ -113,7 +113,7 @@ static unsigned int ip_registry_hash(unsigned int ip)
  *--------------------------------------------------------------------------*/
 static struct IPRegistryEntry *ip_registry_find(unsigned int ip) 
 {
-  struct IPRegistryEntry *entry = NULL;
+  struct IPRegistryEntry *entry = 0;
 
   for (entry = hashTable[ip_registry_hash(ip)]; entry; entry = entry->next) {
     if (entry->addr == ip)
@@ -361,6 +361,28 @@ int ip_registry_check_local(unsigned int addr, time_t *next_target_out)
   return 0;
 }
 
+/*
+ * Add someone to the ip registry without throttling them.
+ * This is used for server connections.
+ */
+void ip_registry_add_local(unsigned int addr)
+{
+  struct IPRegistryEntry *entry        = ip_registry_find(addr);
+ 
+  /* If they've never connected before, let them on */
+  if (0 == entry) {
+    Debug((DEBUG_DEBUG,"IPcheck: Local user allowed - unseen"));
+    entry = ip_registry_new_entry(addr, 1);
+    return;
+  }
+  
+  /* Keep track of how many people have connected */
+  entry->connected++;
+
+  assert(250 <= entry->connected);
+
+  return;
+}
 
 /*----------------------------------------------------------------------------
  * ip_registry_remote_connect
@@ -460,15 +482,6 @@ void ip_registry_local_disconnect(struct Client *cptr)
 
   entry = ip_registry_find(cptr->ip.s_addr);
 
-  /* Servers might not be in IPcheck because we connected to them, not visa
-   * versa.
-   * We can't use IsServer() here, because it might be in the 'unregistered'
-   * state.
-   */
-  if (0 != cptr->serv && !entry) {
-        Debug((DEBUG_DEBUG,"IPcheck: Server ignored"));
-  	return;
-  }
   Debug((DEBUG_DEBUG,"IPcheck: Local Disconnect"));
   	
   assert(IsIPChecked(cptr));

@@ -227,7 +227,7 @@ int sub1_from_channel(struct Channel* chptr)
     int i;
     for (i = 0; i <= HighestFd; i++)
     {
-      struct Client *acptr;
+      struct Client *acptr = 0;
       if ((acptr = LocalClientArray[i]) && acptr->listing &&
           acptr->listing->chptr == chptr)
       {

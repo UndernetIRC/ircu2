@@ -652,6 +652,15 @@ BUFFERPOOL
   have less than 4000 local clients.
   Don't forget to specify this value in bytes.
 
+Aggressively empty the sendqpool (Read Help!)
+HAS_FERGUSON_FLUSHER
+  Instead of dropping clients with 'Buffer Allocation Error', try to send
+  data to clients to try and drop the sendq buffer size as a last resort
+  before dropping clients.  This doesn't get rid of the problem, it just
+  tries hard to limit it's impact.
+  WARNING: *THIS PANICS UNCONFIGURED FREEBSD MACHINES*, make sure you've
+  read doc/freebsd.txt before enabling this feature on a FreeBSD machine.
+
 Max receive queue for clients (bytes)
 CLIENT_FLOOD
   Currently, everything that a client sends to a server is read by the server

@@ -269,17 +269,15 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ircd_strncpy(nick, parv[1], NICKLEN);
   nick[NICKLEN] = '\0';
 
-  if (!IsBurstOrBurstAck(sptr)) {
-     if (IsServer(sptr)) {
-       lastnick = atoi(parv[3]);
-       if (lastnick > OLDEST_TS) 
-         sptr->serv->lag = TStime() - lastnick;
-     }
-     else {
-       lastnick = atoi(parv[2]); 
-       if (lastnick > OLDEST_TS)
-         sptr->user->server->serv->lag = TStime() - lastnick;
-     }
+  if (IsServer(sptr)) {
+    lastnick = atoi(parv[3]);
+    if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr)) 
+      sptr->serv->lag = TStime() - lastnick;
+  }
+  else {
+    lastnick = atoi(parv[2]); 
+    if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr))
+      sptr->user->server->serv->lag = TStime() - lastnick;
   }
   /*
    * If do_nick_name() returns a null name OR if the server sent a nick

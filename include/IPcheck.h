@@ -18,6 +18,7 @@ struct Client;
  *--------------------------------------------------------------------------*/
 extern void ip_registry_expire(void);
 extern int  ip_registry_check_local(unsigned int addr, time_t* next_target_out);
+extern void ip_registry_add_local(unsigned int addr);
 extern int  ip_registry_remote_connect(struct Client *cptr);
 extern void ip_registry_connect_succeeded(struct Client *cptr);
 extern void ip_registry_local_disconnect(struct Client *cptr);

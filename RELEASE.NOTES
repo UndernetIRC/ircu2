@@ -68,11 +68,6 @@ run make config.
 -DEXTENDED_NUMERICS This option configures the server to send
 extended numerics as well as parse them. This option should only
 be used on networks that run ircu2.10.07 and above only.
--DFERGUSON_FLUSHER This causes your server to attempt to flush
-it's internal buffers before dropping clients during a netbreak.
-This option *may* panic your server - especially if your running
-on a unconfigured FreeBSD box.  If you can define this we recommend
-you do - but beware of spontanious reboots on netbreak.
 -DWALLOPS_OPER_ONLY Setting this option removes the ability for
 clients that are not opered to see wallops messages.
 -DNOOPER Disallow the /oper command.

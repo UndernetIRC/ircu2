@@ -1,12 +1,11 @@
 .\" @(#)ircd.8 2.0 (beta version) 29 Mar 1989 
-.TH IRCD 8 "29 March 1989"
+.TH IRCD 8 "8 July 2000"
 .SH NAME
-ircd \- The Internet Relay Chat Program Server 
+ircd \- The Undernet Internet Relay Chat Daemon
 .SH SYNOPSIS
 .hy 0
 .IP \fBircd\fP
-[-a] [-c] [-i] [-o] [-q] [-t] [-d directory]
-[-f configfile] [-w interface] [-x debuglevel] [-h hostname] [-p portnum]
+[-t] [-d directory] [-f configfile] [-x debuglevel] [-h hostname]
 .SH DESCRIPTION
 .LP
 \fIircd\fP is the server (daemon) program for the Internet Relay Chat
@@ -16,7 +15,10 @@ and user messages are passed directly to the \fIircd\fP for processing
 and relaying to other ircd sites.  The \fIirc(1)\fP program depends upon
 there being an \fIircd\fP server running somewhere (either on your local
 UNIX site or a remote ircd site) so that it will have somewhere to connect
-to and thus allow the user to begin talking to other users. 
+to and thus allow the user to begin talking to other users.
+.LP
+There are many common clients including ircii, epic, BitchX and other ones
+for Non unix platforms as well, such as mIRC, Pirch, Ircle etc.
 .SH OPTIONS
 .TP
 .B \-d directory
@@ -25,26 +27,14 @@ that as a reference point when opening \fIircd.conf\fP and other startup
 files.
 .TP
 .B \-o
-Starts up a local ircdaemon. Standard input can be used to send IRC
-commands to the daemon. The user logging in from standard input will
-be given operator privileges on this local ircd. If ircd is a setuid program,
-it will call setuid(getuid()) before going to local mode. This option
-can be used in inetd.conf to allow users to open their own irc clients
-by simply connecting their clients to the correct ports. For example:
-.TP
-.B
-irc stream tcp nowait irc /etc/ircd ircd \\-f/etc/ircd.conf \\-o
-
-allows users connecting to irc port (specified in /etc/services) to start
-up their own ircdaemon. The configuration file should be used to check from
-which hosts these connections are allowed from. This option also turns
-on the autodie option -a.
+This option is obsolete.
 .TP
 .B \-a
-Instructs the server to automatically die off if it loses all it's clients.
+This option is obsolete.
 .TP
 .B \-t
-Instructs the server run in the foreground and to direct debugging output to standard output.
+Instructs the server run in the foreground and to direct debugging output to
+standard output.
 .TP
 .B \-x#
 Defines the debuglevel for ircd. The higher the debuglevel, the more stuff
@@ -52,21 +42,12 @@ gets directed to debugging file (or standard output if -t option was used
 as well).
 .TP
 .B \-i
-The server was started by inetd and it should start accepting connections
-from standard input. The following inetd.conf-line could be used to start
-up ircd automatically when needed:
-.TP
-.B
-ircd stream tcp wait irc /etc/ircd ircd \-i
-
-allows inetd to start up ircd on request.
+This option is obsolete.
 .TP
 .B \-w interface
-If the server was compiled with VIRTUAL_HOST (run 'make config' to toggle
-this compile option), then \fIinterface\fP is passed to gethostbyname(3) in
-order to retrieve the IP-number of the interface to bind to. An example
-would be to use '-w localhost', after which the server only listens on the
-loopback interface.  Run `ifconfig -a' to see which interfaces you have.
+This command is depreciated.  Outgoing connections are bound to the
+interface specified in the M:, and Incoming connections are accepted only on
+interfaces specified in the P:'s.
 .TP
 .B \-f filename
 Specifies the ircd.conf file to be used for this ircdaemon. The option
@@ -79,25 +60,21 @@ off and run in the background. This needs to be given if you are starting
 \fIircd\fP from an \fIrc\fP (such as \fI/etc/rc.local\fP) file.
 .TP
 .B \-q
-Using the -q option stops the server from doing DNS lookups on all the
-servers in your \fIircd.conf\fP file when it boots. This can take a lengthy
-amount of time if you have a large number of servers and they are not all
-close by.
+This option is obsolete.
 .TP
 .B \-h hostname
 Allows the user to manually set the server name at startup. The default
 name is hostname.domainname.
 .B \-p portname
-Specifies the server port where the daemon should start waiting for connections
-from other servers. Clients should connect to ports as specified in the ircd.conf file by means of a P: line.
-.TP
-.SH
+This is depreciated in favour of specifying server ports in P:'s
+
+.SH CONFIGURATION
 If you plan to connect your \fIircd\fP server to an existing Irc-Network,
 you will need to alter your local IRC CONFIGURATION FILE (typically named
 "ircd.conf") so that it will accept and make connections to other \fIircd\fP
 servers.  This file contains the hostnames, Network Addresses, and sometimes
 passwords for connections to other ircds around the world.  Because 
-description of the actual file format of the "ircs.conf" file is beyond the
+description of the actual file format of the "ircd.conf" file is beyond the
 scope of this document, please refer to the file INSTALL in the IRC source
 files documentation directory.
 .LP
@@ -140,8 +117,9 @@ For full COPYRIGHT see LICENSE file with IRC package.
 .SH "SEE ALSO"
 irc(1)
 .SH BUGS
-None... ;-) if somebody finds one, please inform author
+See the file 'BUGS' included in the distribution.
 .SH AUTHOR
-Jarkko Oikarinen, currently jto@tolsun.oulu.fi,
-manual page written by Jeff Trim, jtrim@orion.cair.du.edu,
-later modified by jto@tolsun.oulu.fi.
+The current authors of the undernet IRC daemon are coder-com@undernet.org,
+the original author was Jarkko Oikarinen, currently jto@tolsun.oulu.fi,
+manual page written by Jeff Trim, jtrim@orion.cair.du.edu, later modified by
+jto@tolsun.oulu.fi and then isomer@coders.net.
