@@ -355,9 +355,10 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOSERVICEHOST    492 ? */
 
 #define ERR_NOFEATURE	     493	/* Undernet extension - features */
-#define ERR_BADLOGTYPE	     494	/* Undernet extension - features */
-#define ERR_BADLOGSYS	     495	/* Undernet extension - features */
-#define ERR_BADLOGVALUE	     496	/* Undernet extension - features */
+#define ERR_BADFEATVALUE     494	/* Undernet extension - features */
+#define ERR_BADLOGTYPE	     495	/* Undernet extension - features */
+#define ERR_BADLOGSYS	     496	/* Undernet extension - features */
+#define ERR_BADLOGVALUE	     497	/* Undernet extension - features */
 
 #define ERR_ISOPERLCHAN      498        /* Undernet extension */
 

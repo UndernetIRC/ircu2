@@ -944,6 +944,8 @@ int read_configuration_file(void)
     return 0;
   }
 
+  feature_unmark(); /* unmark all features for resetting later */
+
   while (fbgets(line, sizeof(line) - 1, file)) {
     if ('#' == *line || IsSpace(*line))
       continue;
@@ -1228,6 +1230,7 @@ int read_configuration_file(void)
     free_conf(aconf);
   fbclose(file);
   nextping = nextconnect = CurrentTime;
+  feature_mark(); /* reset unmarked features */
   return 1;
 }
 

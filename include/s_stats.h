@@ -35,6 +35,5 @@ extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* 
 extern void report_crule_list(struct Client* to, int mask);
 extern void report_motd_list(struct Client* to);
 extern void report_deny_list(struct Client* to);
-extern void report_feature_list(struct Client* to);
 
 #endif /* INCLUDED_s_stats_h */

@@ -23,11 +23,25 @@
 
 struct Client;
 
+enum Feature {
+  FEAT_LOG,
+  FEAT_LAST_F
+};
+
 extern int feature_set(struct Client* from, const char* const* fields,
 		       int count);
 extern int feature_reset(struct Client* from, const char* const* fields,
 			 int count);
 extern int feature_get(struct Client* from, const char* const* fields,
 		       int count);
+
+extern void feature_unmark(void);
+extern void feature_mark(void);
+
+extern void feature_report(struct Client* to);
+
+extern int feature_int(enum Feature feat);
+extern int feature_bool(enum Feature feat);
+extern const char *feature_str(enum Feature feat);
 
 #endif /* INCLUDED_features_h */

@@ -1027,13 +1027,13 @@ static Numeric replyTable[] = {
 /* 493 */
   { ERR_NOFEATURE, "%s :No such feature", "493" },
 /* 494 */
-  { ERR_BADLOGTYPE, "%s :No such log type", "494" },
+  { ERR_BADFEATVALUE, "%s :Bad value for feature %s", "494" },
 /* 495 */
-  { ERR_BADLOGSYS, "%s :No such log subsystem", "495" },
+  { ERR_BADLOGTYPE, "%s :No such log type", "495" },
 /* 496 */
-  { ERR_BADLOGVALUE, "%s :Bad value for log type", "496" },
+  { ERR_BADLOGSYS, "%s :No such log subsystem", "496" },
 /* 497 */
-  { 0 },
+  { ERR_BADLOGVALUE, "%s :Bad value for log type", "497" },
 /* 498 */
   { ERR_ISOPERLCHAN, "%s %s :Cannot kick or deop an IRC Operator on a local channel", "498" },
 /* 499 */
