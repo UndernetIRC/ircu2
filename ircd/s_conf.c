@@ -887,9 +887,9 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
     /*
      * This ensures endian correctness
      */
-    conf->s_addr = inet_addr(ipname);
+    conf->address = inet_addr(ipname);
     Debug((DEBUG_DEBUG, "IPkill: %s = %08x/%i (%08x)", ipname,
-           conf->s_addr, conf->bits, NETMASK(conf->bits)));
+           conf->address, conf->bits, NETMASK(conf->bits)));
     conf->flags |= DENY_FLAGS_IP;
   }
   conf->next = denyConfList;
@@ -1420,8 +1420,8 @@ int find_kill(struct Client *cptr)
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
-             cli_ip(cptr).s_addr, deny->s_addr, deny->bits, NETMASK(deny->bits)));
-      if ((cli_ip(cptr).s_addr & NETMASK(deny->bits)) == deny->s_addr)
+             cli_ip(cptr).s_addr, deny->address, deny->bits, NETMASK(deny->bits)));
+      if ((cli_ip(cptr).s_addr & NETMASK(deny->bits)) == deny->address)
         break;
     }
     else if (0 == match(deny->hostmask, host))

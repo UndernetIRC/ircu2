@@ -83,7 +83,7 @@ struct DenyConf {
   char*               hostmask;
   char*               message;
   char*               usermask;
-  unsigned int        s_addr;
+  unsigned int        address;
   unsigned int        flags;
   char                bits;        /* Number of bits for ipkills */
 };
