@@ -686,6 +686,7 @@ static int match_it(struct Client *one, const char *mask, int what)
  * Send to all clients which match the mask in a way defined on 'what';
  * either by user hostname or user servername.
  */
+/* See sendcmdto_match_butone, below */
 void sendto_match_butone(struct Client *one, struct Client *from,
     const char *mask, int what, const char* pattern, ...)
 {
@@ -1169,20 +1170,16 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
     /* skip one, zombies, and deaf users... */
     if (member->user->from == one || IsZombie(member) ||
 	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
-	(skip & SKIP_NONOPS && !IsChanOp(member)))
+	(skip & SKIP_NONOPS && !IsChanOp(member)) ||
+	(skip & SKIP_BURST && IsBurstOrBurstAck(member->user->from)) ||
+	member->user->from->fd < -1 ||
+	sentalong[member->user->from->fd] == sentalong_marker)
       continue;
 
-    if (MyConnect(member->user))
-      send_buffer(member->user, userbuf); /* send user buffer */
-    else if (-1 < member->user->from->fd &&
-	     sentalong[member->user->from->fd] != sentalong_marker) {
-      sentalong[member->user->from->fd] = sentalong_marker;
-
-      if (skip & SKIP_BURST && IsBurstOrBurstAck(member->user->from))
-	continue; /* skip bursting servers */
-
-      send_buffer(member->user->from, servbuf); /* send server buffer */
-    }
+    if (MyConnect(member->user)) /* pick right buffer to send */
+      send_buffer(member->user, userbuf);
+    else
+      send_buffer(member->user, servbuf);
   }
 }
 
@@ -1220,14 +1217,60 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
   /* send buffer along! */
   sentalong_marker++;
   for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
-    if (cptr->from == one || !(cptr->flags & flag) || cptr->from->fd < 0 ||
-	sentalong[cptr->from->fd] == sentalong_marker)
+    if (cptr->from == one || IsServer(cptr) || !(cptr->flags & flag) ||
+	cptr->from->fd < 0 || sentalong[cptr->from->fd] == sentalong_marker)
       continue; /* skip it */
 
-    if (IsServer(cptr)) /* send right buffer */
-      send_buffer(cptr, servbuf);
-    else
+    if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, userbuf);
+    else
+      send_buffer(cptr, servbuf);
+  }
+}
+
+/*
+ * Send a (prefixed) command to all users who match <to>, under control
+ * of <who>
+ */
+void sendcmdto_match_butone(struct Client *from, const char *cmd,
+			    const char *tok, const char *to,
+			    struct Client *one, unsigned int who,
+			    const char *pattern, ...)
+{
+  struct VarData vd;
+  struct Client *cptr;
+  char userbuf[IRC_BUFSIZE];
+  char servbuf[IRC_BUFSIZE];
+
+  vd.vd_format = pattern;
+
+  /* Build buffer to send to users */
+  va_start(vd.vd_args, pattern);
+  if (IsServer(from) || IsMe(from)) /* probably a bad idea :) */
+    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s %s %v", from->name,
+		  cmd, &vd);
+  else
+    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s!%s@%s %s %v",
+		  from->name, from->user->username, from->user->host, cmd,
+		  &vd);
+  va_end(vd.vd_args);
+
+  /* Build buffer to send to servers */
+  va_start(vd.vd_args, pattern);
+  ircd_snprintf(&me, servbuf, sizeof(servbuf) - 2, "%C %s %v", from, tok, &vd);
+  va_end(vd.vd_args);
+
+  /* send buffer along */
+  sentalong_marker++;
+  for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
+    if (cptr->from == one || IsServer(cptr) || !match_it(cptr, to, who) ||
+	cptr->from->fd < 0 || sentalong[cptr->from->fd] == sentalong_marker)
+      continue; /* skip it */
+
+    if (MyConnect(cptr)) /* send right buffer */
+      send_buffer(cptr, userbuf);
+    else
+      send_buffer(cptr, servbuf);
   }
 }
 

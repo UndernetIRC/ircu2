@@ -1,3 +1,11 @@
+2000-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: clean up logic in sendcmdto_channel_butone; use
+	MyConnect() instead of IsServer() in sendcmdto_flag_butone; define
+	sendcmdto_match_butone
+
+	* include/send.h: declare sendcmdto_match_butone
+
 2000-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/jupe.c: update to use send_reply()
@@ -656,7 +664,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.97 2000-04-20 20:49:07 kev Exp $
+# $Id: ChangeLog,v 1.98 2000-04-21 15:15:17 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
