@@ -1,10 +1,6 @@
-Index: doc/example.conf
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/doc/example.conf,v
-retrieving revision 1.15.2.5
-diff -b -u -d -r1.15.2.5 example.conf
---- doc/example.conf	2002/05/17 16:42:18	1.15.2.5
-+++ doc/example.conf	2002/07/17 22:17:54
+diff -urdb doc/example.conf ircu2.10.11.06/doc/example.conf
+--- doc/example.conf	Wed Jan 28 22:28:05 2004
++++ doc/example.conf	Wed Jan 28 23:20:26 2004
 @@ -365,6 +365,30 @@
  # Y:10:90:0:100:160000
  
@@ -36,44 +32,36 @@ diff -b -u -d -r1.15.2.5 example.conf
  # [P:lines]
  # When your server gets more full, you will notice delays when trying to
  # connect to your server's primary listening port. It is possible via the
-Index: include/client.h
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/include/client.h,v
-retrieving revision 1.23.2.4
-diff -b -u -d -r1.23.2.4 client.h
---- include/client.h	2002/07/17 21:07:01	1.23.2.4
-+++ include/client.h	2002/07/17 22:17:56
-@@ -370,6 +370,7 @@
- #define FLAGS_DOID      0x00040000      /* I-lines say must use ident return */
- #define FLAGS_NONL      0x00080000      /* No \n in buffer */
- #define FLAGS_TS8       0x00100000      /* Why do you want to know? */
-+#define FLAGS_SLINE     0x00200000      /* User is S-lined */
- #define FLAGS_MAP       0x00800000      /* Show server on the map */
- #define FLAGS_JUNCTION  0x01000000      /* Junction causing the net.burst */
- #define FLAGS_DEAF      0x02000000      /* Makes user deaf */
-@@ -414,6 +415,7 @@
- #define IsAccount(x)            (cli_flags(x) & FLAGS_ACCOUNT)
- #define IsHiddenHost(x)		(cli_flags(x) & FLAGS_HIDDENHOST)
+diff -urdb include/client.h ircu2.10.11.06/include/client.h
+--- include/client.h	Wed Jan 28 22:28:05 2004
++++ include/client.h	Wed Jan 28 23:20:26 2004
+@@ -127,6 +127,7 @@
+     FLAG_GOTID,                     /* successful ident lookup achieved */
+     FLAG_DOID,                      /* I-lines say must use ident return */
+     FLAG_NONL,                      /* No \n in buffer */
++    FLAG_SLINE,                     /* User is S-lined */
+     FLAG_TS8,                       /* Why do you want to know? */
+     FLAG_MAP,                       /* Show server on the map */
+     FLAG_JUNCTION,                  /* Junction causing the net.burst */
+@@ -429,6 +430,7 @@
+ #define IsAccount(x)            HasFlag(x, FLAG_ACCOUNT)
+ #define IsHiddenHost(x)		HasFlag(x, FLAG_HIDDENHOST)
  #define HasHiddenHost(x)	(IsAccount(x) && IsHiddenHost(x))
-+#define HasSLine(x)             (cli_flags(x) & FLAGS_SLINE)
++#define HasSLine(x)             HasFlag(x, FLAG_SLINE)
  
  #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
  
-@@ -436,6 +438,7 @@
- #define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
- #define SetAccount(x)           (cli_flags(x) |= FLAGS_ACCOUNT)
- #define SetHiddenHost(x)	(cli_flags(x) |= FLAGS_HIDDENHOST)
-+#define SetSLined(x)            (cli_flags(x) |= FLAGS_SLINE)
+@@ -451,6 +453,7 @@
+ #define SetService(x)           SetFlag(x, FLAG_SERVICE)
+ #define SetAccount(x)           SetFlag(x, FLAG_ACCOUNT)
+ #define SetHiddenHost(x)	SetFlag(x, FLAG_HIDDENHOST)
++#define SetSLined(x)            SetFlag(x, FLAG_SLINE)
  
- #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
- #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)
-Index: include/s_conf.h
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/include/s_conf.h,v
-retrieving revision 1.15.2.1
-diff -b -u -d -r1.15.2.1 s_conf.h
---- include/s_conf.h	2002/05/17 16:42:19	1.15.2.1
-+++ include/s_conf.h	2002/07/17 22:17:57
+ #define ClearAccess(x)          ClrFlag(x, FLAG_CHKACCESS)
+ #define ClearBurst(x)           ClrFlag(x, FLAG_BURST)
+diff -urdb include/s_conf.h ircu2.10.11.06/include/s_conf.h
+--- include/s_conf.h	Wed Jan 28 22:28:05 2004
++++ include/s_conf.h	Wed Jan 28 23:20:26 2004
 @@ -33,6 +33,7 @@
  
  #define CONF_ILLEGAL            0x80000000
@@ -82,13 +70,9 @@ diff -b -u -d -r1.15.2.1 s_conf.h
  #define CONF_CLIENT             0x0002
  #define CONF_SERVER             0x0004
  #define CONF_LOCOP              0x0010
-Index: ircd/s_auth.c
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_auth.c,v
-retrieving revision 1.21.2.5
-diff -b -u -d -r1.21.2.5 s_auth.c
---- ircd/s_auth.c	2002/07/10 16:22:47	1.21.2.5
-+++ ircd/s_auth.c	2002/07/17 22:17:59
+diff -urdb ircd/s_auth.c ircu2.10.11.06/ircd/s_auth.c
+--- ircd/s_auth.c	Wed Jan 28 22:28:05 2004
++++ ircd/s_auth.c	Wed Jan 28 23:20:26 2004
 @@ -46,6 +46,7 @@
  #include "querycmds.h"
  #include "res.h"
@@ -113,7 +97,7 @@ diff -b -u -d -r1.21.2.5 s_auth.c
    REPORT_INVAL_DNS
  } ReportType;
  
-@@ -597,6 +600,13 @@
+@@ -595,6 +598,13 @@
    struct AuthRequest* auth = 0;
  
    assert(0 != client);
@@ -127,14 +111,10 @@ diff -b -u -d -r1.21.2.5 s_auth.c
  
    auth = make_auth_request(client);
    assert(0 != auth);
-Index: ircd/s_conf.c
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_conf.c,v
-retrieving revision 1.44.2.3
-diff -b -u -d -r1.44.2.3 s_conf.c
---- ircd/s_conf.c	2002/05/17 16:42:19	1.44.2.3
-+++ ircd/s_conf.c	2002/07/17 22:18:03
-@@ -1158,6 +1158,10 @@
+diff -urdb ircd/s_conf.c ircu2.10.11.06/ircd/s_conf.c
+--- ircd/s_conf.c	Wed Jan 28 22:28:05 2004
++++ ircd/s_conf.c	Wed Jan 28 23:20:26 2004
+@@ -1170,6 +1170,10 @@
        conf_add_quarantine(field_vector, field_count);
        aconf->status = CONF_ILLEGAL;
        break;
@@ -145,7 +125,7 @@ diff -b -u -d -r1.44.2.3 s_conf.c
      case 'T':                /* print out different motd's */
      case 't':                /* based on hostmask - CONF_TLINES */
        motd_add(field_vector[1], field_vector[2]);
-@@ -1260,6 +1264,9 @@
+@@ -1272,6 +1276,9 @@
      if ((aconf->status == CONF_UWORLD) && (aconf->passwd) && (*aconf->passwd))
        addNickJupes(aconf->passwd);
  
@@ -155,7 +135,7 @@ diff -b -u -d -r1.44.2.3 s_conf.c
      collapse(aconf->host);
      collapse(aconf->name);
      Debug((DEBUG_NOTICE,
-@@ -1625,6 +1632,70 @@
+@@ -1647,6 +1654,70 @@
      c_conf->ipnum.s_addr = cli_ip(cptr).s_addr;
  
    Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]", cli_name(cptr), cli_sockhost(cptr)));
@@ -226,20 +206,16 @@ diff -b -u -d -r1.44.2.3 s_conf.c
    return 0;
  }
  
-Index: ircd/s_user.c
-===================================================================
-RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_user.c,v
-retrieving revision 1.52.2.10
-diff -b -u -d -r1.52.2.10 s_user.c
---- ircd/s_user.c	2002/07/17 21:07:01	1.52.2.10
-+++ ircd/s_user.c	2002/07/17 22:18:05
-@@ -453,7 +453,8 @@
+diff -urdb ircd/s_user.c ircu2.10.11.06/ircd/s_user.c
+--- ircd/s_user.c	Wed Jan 28 22:28:05 2004
++++ ircd/s_user.c	Wed Jan 28 23:20:26 2004
+@@ -422,7 +422,8 @@
  
      clean_user_id(user->username,
-         (cli_flags(sptr) & FLAGS_GOTID) ? cli_username(sptr) : username,
--        (cli_flags(sptr) & FLAGS_DOID) && !(cli_flags(sptr) & FLAGS_GOTID));
-+        (cli_flags(sptr) & FLAGS_DOID) && !(cli_flags(sptr) & FLAGS_GOTID)
-+        && !(HasSLine(sptr))); /* No tilde for S-lined users. */
+         HasFlag(sptr, FLAG_GOTID) ? cli_username(sptr) : username,
+-        HasFlag(sptr, FLAG_DOID) && !HasFlag(sptr, FLAG_GOTID));
++        HasFlag(sptr, FLAG_DOID) && !HasFlag(sptr, FLAG_GOTID)
++        && !(HasSLine(sptr))); /* No tilde for S-lined users. */	
  
      if ((user->username[0] == '\0')
          || ((user->username[0] == '~') && (user->username[1] == '\000')))
