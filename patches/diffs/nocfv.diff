@@ -1,0 +1,149 @@
+diff -ur ../ircu2.10.11/include/ircd_policy.h ./include/ircd_policy.h
+--- ../ircu2.10.11/include/ircd_policy.h	Thu Sep 20 13:55:14 2001
++++ ./include/ircd_policy.h	Wed Feb 27 14:12:12 2002
+@@ -38,8 +38,8 @@
+  *
+  * This is implemented as disallowing users from setting +s
+  */
+-#define HEAD_IN_SAND_SNOTICES
+-#define SERVNOTICE_OPER_ONLY
++#undef HEAD_IN_SAND_SNOTICES
++#undef SERVNOTICE_OPER_ONLY
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  * 
+@@ -48,8 +48,8 @@
+  * This is implemented by making all server wallops DESYNC's, and removing
+  * +g from normal users.
+  */
+-#define HEAD_IN_SAND_DESYNCS
+-#define DEBUG_OPER_ONLY
++#undef HEAD_IN_SAND_DESYNCS
++#undef DEBUG_OPER_ONLY
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  * 
+@@ -57,7 +57,7 @@
+  *
+  * This is implemented as disallowing users from setting +w
+  */
+-#define HEAD_IN_SAND_WALLOPS
++#undef HEAD_IN_SAND_WALLOPS
+ /* #define WALLOPS_OPER_ONLY */
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+@@ -65,13 +65,13 @@
+  * 5) Removal of /MAP from users.
+  *
+  */
+-#define HEAD_IN_SAND_MAP
++#undef HEAD_IN_SAND_MAP
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  * 
+  * 6) Removal of links from users
+  */
+-#define HEAD_IN_SAND_LINKS
++#undef HEAD_IN_SAND_LINKS
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  *
+@@ -82,66 +82,66 @@
+  *
+  * 8) Removal of /TRACE from users.
+  */
+-#define HEAD_IN_SAND_TRACE
++#undef HEAD_IN_SAND_TRACE
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  *
+  * 9-13) Removal of various stats from non users
+  */
+-#define HEAD_IN_SAND_STATS_L
+-#define HEAD_IN_SAND_STATS_C
+-#define HEAD_IN_SAND_STATS_G
+-#define HEAD_IN_SAND_STATS_H
+-#define HEAD_IN_SAND_STATS_K
+-#define HEAD_IN_SAND_STATS_F
+-#define HEAD_IN_SAND_STATS_I
+-#define HEAD_IN_SAND_STATS_M
+-#define HEAD_IN_SAND_STATS_m
+-#define HEAD_IN_SAND_STATS_O
+-#define HEAD_IN_SAND_STATS_P
+-#define HEAD_IN_SAND_STATS_R
+-#define HEAD_IN_SAND_STATS_D
+-#define HEAD_IN_SAND_STATS_d
+-#define HEAD_IN_SAND_STATS_E
+-#define HEAD_IN_SAND_STATS_t
+-#define HEAD_IN_SAND_STATS_T
+-#define HEAD_IN_SAND_STATS_U
+-#undef  HEAD_IN_SAND_STATS_u
+-#undef  HEAD_IN_SAND_STATS_W
+-#define HEAD_IN_SAND_STATS_X
+-#define HEAD_IN_SAND_STATS_Y
+-#define HEAD_IN_SAND_STATS_Z
++#undef HEAD_IN_SAND_STATS_L
++#undef HEAD_IN_SAND_STATS_C
++#undef HEAD_IN_SAND_STATS_G
++#undef HEAD_IN_SAND_STATS_H
++#undef HEAD_IN_SAND_STATS_K
++#undef HEAD_IN_SAND_STATS_F
++#undef HEAD_IN_SAND_STATS_I
++#undef HEAD_IN_SAND_STATS_M
++#undef HEAD_IN_SAND_STATS_m
++#undef HEAD_IN_SAND_STATS_O
++#undef HEAD_IN_SAND_STATS_P
++#undef HEAD_IN_SAND_STATS_R
++#undef HEAD_IN_SAND_STATS_D
++#undef HEAD_IN_SAND_STATS_d
++#undef HEAD_IN_SAND_STATS_E
++#undef HEAD_IN_SAND_STATS_t
++#undef HEAD_IN_SAND_STATS_T
++#undef HEAD_IN_SAND_STATS_U
++#undef HEAD_IN_SAND_STATS_u
++#undef HEAD_IN_SAND_STATS_W
++#undef HEAD_IN_SAND_STATS_X
++#undef HEAD_IN_SAND_STATS_Y
++#undef HEAD_IN_SAND_STATS_Z
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  *
+  * 14) Removal of server names in net break sign-offs.
+  */
+ 
+-#define HEAD_IN_SAND_NETSPLIT
++#undef HEAD_IN_SAND_NETSPLIT
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  * 
+  * 15) Removal of server names in replies to /WHOIS
+  */
+ 
+-#define HEAD_IN_SAND_WHOIS_SERVERNAME
+-#define HEAD_IN_SAND_WHOIS_IDLETIME
+-#define HEAD_IN_SAND_WHO_SERVERNAME
+-#define HEAD_IN_SAND_WHO_HOPCOUNT
++#undef HEAD_IN_SAND_WHOIS_SERVERNAME
++#undef HEAD_IN_SAND_WHOIS_IDLETIME
++#undef HEAD_IN_SAND_WHO_SERVERNAME
++#undef HEAD_IN_SAND_WHO_HOPCOUNT
+ 
+ /* CFV-165 - Hiding Nonessential information from non-opers
+  *
+  */
+ 
+ /* don't show which server set a ban */
+-#define HEAD_IN_SAND_BANWHO
++#undef HEAD_IN_SAND_BANWHO
+ 
+ /* remap remote numerics to come from the local server */
+-#define HEAD_IN_SAND_REWRITE
++#undef HEAD_IN_SAND_REWRITE
+ 
+ /* disallow remote queries (*sob!*) */
+ /* (note, set this to 0 to reenable, not undef */
+-#define HEAD_IN_SAND_REMOTE 1
++#define HEAD_IN_SAND_REMOTE 0
+ 
+ #define HEAD_IN_SAND_SERVERNAME "*.undernet.org"
+ #define HEAD_IN_SAND_SERVERINFO "The Undernet Underworld"
