@@ -159,8 +159,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       *(p1++) = 'G';
     else
       *(p1++) = 'H';
-    if (IsAnOper(acptr) &&
-	(HasPriv(acptr, PRIV_DISPLAY) || HasPriv(sptr, PRIV_SEE_OPERS)))
+    if SeeOper(sptr,acptr)
       *(p1++) = '*';
     if (fields) {
       /* If you specified flags then we assume you know how to parse

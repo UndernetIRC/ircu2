@@ -1,3 +1,40 @@
+2003-07-07  Bas Steendijk <steendijk@xs4all.nl>
+
+        * ircd/s_user.c: invalidate ban cache for user on host hiding/account
+
+2003-07-04  Bas Steendijk <steendijk@xs4all.nl>
+
+        * include/client.h, ircd/m_userhost.c, ircd/m_userip.c, ircd/m_who.c,
+        ircd/m_whois.c, ircd/whocmds.c: the same code, for "can user A see user
+        B is an oper", appeared in a lot of places. made it a define SeeOper.
+
+2003-07-04  Bas Steendijk  <steendijk@xs4all.nl>
+        * ircd/s_user.c: umode_str (user modes in N token) internal flags var
+	was not initialized to the user's flags, returned a string with
+	random modes set.
+
+2003-07-01  Bas Steendijk  <steendijk@xs4all.nl>
+
+        * ircd/m_names.c: length counter being incremented one too many
+        for each nick, resulting names reply messages are about 50 chars
+        shorter than possible. fixed.
+
+2003-06-29  Bas Steendijk  <steendijk@xs4all.nl>
+
+        * ircd/channel.c: don't ever send mode changes for local channels to
+	servers.
+
+2003-06-27  Bas Steendijk  <steendijk@xs4all.nl>
+
+        * include/channel.h, include/client.h, ircd/s_user.c, ircd/s_err.c:
+        moved the supported channel/user mode strings of the 004 reply from
+        s_err.c to the header files where the channels/user modes are
+        defined, and show or hide +Au based on OPLEVELS setting.
+
+2003-06-25  Bas Steendijk  <steendijk@xs4all.nl>
+
+        * ircd/m_burst.c: Clear topic set by netrider on burst.
+
 2003-08-05 Diane Bruce  <db@db.net>
 
         * ircd/parse.c: Fixed the typo the fix of the typo created

@@ -245,6 +245,15 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /* mark bans for wipeout */
     for (lp = chptr->banlist; lp; lp = lp->next)
       lp->flags |= CHFL_BURST_BAN_WIPEOUT;
+
+    /* clear topic set by netrider (if set) */
+    if (*chptr->topic) {
+      *chptr->topic = '\0';
+      *chptr->topic_nick = '\0';
+      chptr->topic_time = 0;
+      sendcmdto_channel_butserv_butone(&me, CMD_TOPIC, chptr, NULL,
+                                       "%H :%s", chptr, chptr->topic);
+    }
   } else if (chptr->creationtime == timestamp) {
     modebuf_init(mbuf = &modebuf, &me, cptr, chptr,
 		 MODEBUF_DEST_CHANNEL | MODEBUF_DEST_NOKEY);

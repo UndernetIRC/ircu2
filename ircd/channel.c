@@ -1856,6 +1856,8 @@ modebuf_init(struct ModeBuf *mbuf, struct Client *source,
   assert(0 != chan);
   assert(0 != dest);
 
+  if (IsLocalChannel(chan->chname)) dest &= ~MODEBUF_DEST_SERVER;
+
   mbuf->mb_add = 0;
   mbuf->mb_rem = 0;
   mbuf->mb_source = source;

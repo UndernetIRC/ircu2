@@ -176,7 +176,7 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
       idx++;
     }
     strcat(buf, cli_name(c2ptr));
-    idx += strlen(cli_name(c2ptr)) + 1;
+    idx += strlen(cli_name(c2ptr));
     flag = 1;
     if (mlen + idx + NICKLEN + 5 > BUFSIZE)
       /* space, modifier, nick, \r \n \0 */

@@ -321,9 +321,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           for (member = chptr->members; member; member = member->next_member)
           {
             acptr = member->user;
-            if ((bitsel & WHOSELECT_OPER) &&
-		!(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
-				      HasPriv(sptr, PRIV_SEE_OPERS))))
+            if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
               continue;
             if ((acptr != sptr) && (member->status & CHFL_ZOMBIE))
               continue;
@@ -340,9 +338,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       else
       {
         if ((acptr = FindUser(nick)) &&
-            ((!(bitsel & WHOSELECT_OPER)) ||
-	     (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
-				  HasPriv(sptr, PRIV_SEE_OPERS)))) &&
+            ((!(bitsel & WHOSELECT_OPER)) || SeeOper(sptr,acptr)) &&
             Process(acptr) && SHOW_MORE(sptr, counter))
         {
           do_who(sptr, acptr, 0, fields, qrt);
@@ -386,9 +382,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           if (!(IsUser(acptr) && Process(acptr)))
             continue;           /* Now Process() is at the beginning, if we fail
                                    we'll never have to show this acptr in this query */
-	  if ((bitsel & WHOSELECT_OPER) &&
-	      !(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
-				    HasPriv(sptr, PRIV_SEE_OPERS))))
+ 	  if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
 	    continue;
           if ((mask) &&
               ((!(matchsel & WHO_FIELD_NIC))
@@ -424,9 +418,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       {
         if (!(IsUser(acptr) && Process(acptr)))
           continue;
-	if ((bitsel & WHOSELECT_OPER) &&
-	    !(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
-				  HasPriv(sptr, PRIV_SEE_OPERS))))
+	if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
 	  continue;
         if (!(SEE_USER(sptr, acptr, bitsel)))
           continue;

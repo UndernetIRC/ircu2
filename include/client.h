@@ -81,6 +81,8 @@ typedef unsigned long flagpage_t;
 #define FLAGSET_SET(set, flag) (set).bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag)
 #define FLAGSET_CLEAR(set, flag) (set).bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag)
 
+#define infousermodes "dioswkgx"
+
 enum Priv
   {
     PRIV_CHAN_LIMIT, /* no channel limit on oper */
@@ -452,6 +454,9 @@ struct Client {
 #define SetAccount(x)           SetFlag(x, FLAG_ACCOUNT)
 #define SetHiddenHost(x)        SetFlag(x, FLAG_HIDDENHOST)
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
+
+#define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
+                            || HasPriv(sptr, PRIV_SEE_OPERS)))
 
 #define ClearAccess(x)          ClrFlag(x, FLAG_CHKACCESS)
 #define ClearBurst(x)           ClrFlag(x, FLAG_BURST)

@@ -551,7 +551,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
      */
     send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
     send_reply(sptr, RPL_CREATED, creation);
-    send_reply(sptr, RPL_MYINFO, cli_name(&me), version);
+    send_reply(sptr, RPL_MYINFO, cli_name(&me), infousermodes, infochanmodes,
+               infochanmodeswithparams, version);
     send_supported(sptr);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
@@ -1057,6 +1058,11 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
       flag == FLAG_HIDDENHOST)
     return 0;
 
+/* Invalidate all bans against the user so we check them again */
+      for (chan = (cli_user(cptr))->channel; chan;
+           chan = chan->next_channel)
+        ClearBanValid(chan);
+
   SetFlag(cptr, flag);
   if (!HasFlag(cptr, FLAG_HIDDENHOST) || !HasFlag(cptr, FLAG_ACCOUNT))
     return 0;
@@ -1339,7 +1345,7 @@ char *umode_str(struct Client *cptr)
   /* Maximum string size: "owidgrx\0" */
   char *m = umodeBuf;
   int i;
-  struct Flags c_flags;
+  struct Flags c_flags = cli_flags(cptr);
 
   if (HasPriv(cptr, PRIV_PROPAGATE))
     FlagSet(&c_flags, FLAG_OPER);

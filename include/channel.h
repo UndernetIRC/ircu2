@@ -100,6 +100,9 @@ struct Client;
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "Abiklmnopstuvr" : "biklmnopstvr"
+#define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "Abklouv" : "bklov"
+
 #define HoldChannel(x)          (!(x))
 /* name invisible */
 #define SecretChannel(x)        ((x) && ((x)->mode.mode & MODE_SECRET))

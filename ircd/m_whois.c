@@ -196,8 +196,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
     if (user->away)
        send_reply(sptr, RPL_AWAY, name, user->away);
 
-    if (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
-			    HasPriv(sptr, PRIV_SEE_OPERS)))
+    if (SeeOper(sptr,acptr))
        send_reply(sptr, RPL_WHOISOPERATOR, name);
 
     if (IsAccount(acptr))
