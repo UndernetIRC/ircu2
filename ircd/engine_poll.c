@@ -251,6 +251,7 @@ engine_loop(struct Generators* gen)
   int i;
   int errcode;
   size_t codesize;
+  struct Socket *sock;
 
   while (running) {
     wait = timer_next(gen) ? (timer_next(gen) - CurrentTime) * 1000 : -1;
@@ -280,49 +281,46 @@ engine_loop(struct Generators* gen)
     }
 
     for (i = 0; nfds && i < poll_count; i++) {
-      if (!sockList[i]) /* skip empty socket elements */
+      if (!(sock = sockList[i])) /* skip empty socket elements */
 	continue;
 
-      assert(s_fd(sockList[i]) == pollfdList[i].fd);
+      assert(s_fd(sock) == pollfdList[i].fd);
 
-      gen_ref_inc(sockList[i]); /* can't have it going away on us */
+      gen_ref_inc(sock); /* can't have it going away on us */
 
       Debug((DEBUG_LIST, "poll: Checking socket %p (fd %d, index %d, "
-	     "state %s, events %s", sockList[i], s_fd(sockList[i]), i,
-	     state_to_name(s_state(sockList[i])),
-	     sock_flags(s_events(sockList[i]))));
+	     "state %s, events %s", sock, s_fd(sock), i,
+	     state_to_name(s_state(sock)), sock_flags(s_events(sock))));
 
-      if (s_state(sockList[i]) != SS_NOTSOCK) {
+      if (s_state(sock) != SS_NOTSOCK) {
 	errcode = 0; /* check for errors on socket */
 	codesize = sizeof(errcode);
-	if (getsockopt(s_fd(sockList[i]), SOL_SOCKET, SO_ERROR, &errcode,
+	if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
 		       &codesize) < 0)
 	  errcode = errno; /* work around Solaris implementation */
 
 	if (errcode) { /* an error occurred; generate an event */
 	  Debug((DEBUG_LIST, "poll: Error %d on fd %d (index %d), socket %p",
-		 errcode, s_fd(sockList[i]), i, sockList[i]));
-	  event_generate(ET_ERROR, sockList[i], errcode);
-	  if (sockList[i]) /* can go away upon an error */
-	    gen_ref_dec(sockList[i]); /* careful not to leak ref counts */
+		 errcode, s_fd(sock), i, sock));
+	  event_generate(ET_ERROR, sock, errcode);
+	  if (sock) /* can go away upon an error */
+	    gen_ref_dec(sock); /* careful not to leak ref counts */
 	  continue;
 	}
       }
 
-      assert(0 != sockList[i]);
-
-      switch (s_state(sockList[i])) {
+      switch (s_state(sock)) {
       case SS_CONNECTING:
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* connect completed */
 	  Debug((DEBUG_LIST, "poll: Connection completed"));
-	  event_generate(ET_CONNECT, sockList[i], 0);
+	  event_generate(ET_CONNECT, sock, 0);
 	}
 	break;
 
       case SS_LISTENING:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* ready for accept */
 	  Debug((DEBUG_LIST, "poll: Ready for accept"));
-	  event_generate(ET_ACCEPT, sockList[i], 0);
+	  event_generate(ET_ACCEPT, sock, 0);
 	}
 	break;
 
@@ -331,47 +329,46 @@ engine_loop(struct Generators* gen)
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
 	  char c;
 
-	  switch (recv(s_fd(sockList[i]), &c, 1, MSG_PEEK)) { /* check EOF */
+	  switch (recv(s_fd(sock), &c, 1, MSG_PEEK)) { /* check EOF */
 	  case -1: /* error occurred?!? */
 	    if (errno == EAGAIN) {
 	      Debug((DEBUG_LIST, "poll: Resource temporarily unavailable?"));
 	      continue;
 	    }
 	    Debug((DEBUG_LIST, "poll: Uncaught error!"));
-	    event_generate(ET_ERROR, sockList[i], errno);
+	    event_generate(ET_ERROR, sock, errno);
 	    break;
 
 	  case 0: /* EOF from client */
 	    Debug((DEBUG_LIST, "poll: EOF from client"));
-	    event_generate(ET_EOF, sockList[i], 0);
+	    event_generate(ET_EOF, sock, 0);
 	    break;
 
 	  default: /* some data can be read */
 	    Debug((DEBUG_LIST, "poll: Data to be read"));
-	    event_generate(ET_READ, sockList[i], 0);
+	    event_generate(ET_READ, sock, 0);
 	    break;
 	  }
 	}
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
 	  Debug((DEBUG_LIST, "poll: Data can be written"));
-	  event_generate(ET_WRITE, sockList[i], 0);
+	  event_generate(ET_WRITE, sock, 0);
 	}
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* socket readable */
 	  Debug((DEBUG_LIST, "poll: Datagram to be read"));
-	  event_generate(ET_READ, sockList[i], 0);
+	  event_generate(ET_READ, sock, 0);
 	}
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
 	  Debug((DEBUG_LIST, "poll: Datagram can be written"));
-	  event_generate(ET_WRITE, sockList[i], 0);
+	  event_generate(ET_WRITE, sock, 0);
 	}
 	break;
       }
 
-      if (sockList[i]) /* could go away */
-	gen_ref_dec(sockList[i]); /* we're done with it */
+      gen_ref_dec(sock); /* we're done with it */
     }
 
     timer_run(); /* execute any pending timers */

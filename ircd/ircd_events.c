@@ -390,6 +390,9 @@ timer_del(struct Timer* timer)
 {
   assert(0 != timer);
 
+  if (timer->t_header.gh_flags & GEN_MARKED)
+    return; /* timer already marked for destruction */
+
   timer->t_header.gh_flags |= GEN_DESTROY;
 
   Debug((DEBUG_LIST, "Deleting timer %p (type %s)", timer,
@@ -517,7 +520,7 @@ socket_del(struct Socket* sock)
 
   sock->s_header.gh_flags |= GEN_DESTROY;
 
-  if (sock->s_header.gh_ref) { /* not in use; destroy right now */
+  if (!sock->s_header.gh_ref) { /* not in use; destroy right now */
     gen_dequeue(sock);
     event_generate(ET_DESTROY, sock, 0);
   }

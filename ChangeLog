@@ -1,5 +1,11 @@
 2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_events.c: don't destroy a timer if it's already marked
+	for destruction; replace a missing ! in socket_del()
+
+	* ircd/engine_poll.c (engine_loop): reference a temporary variable
+	so we don't have to worry about sockList[i] going away
+
 	* ircd/s_bsd.c (client_sock_callback): add Debug messages
 
 	* ircd/s_auth.c: add Debug messages all over the place
