@@ -1,3 +1,14 @@
+2005-01-14  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Further updates (mention Pseudo blocks, clarify
+	CAP comment, mention named /stats, list config heteromorphisms.
+
+	* doc/readme.features: Document HIS_STATS_a, HIS_STATS_L,
+	HIS_STATS_R, LOCAL_CHANNELS, TOPIC_BURST.
+
+	* ircd/channel.c (mode_parse_apass): Change old mention of +u mode
+	to say +U.
+
 2005-01-13  Michael Poole <mdpoole@troilus.org>
 
 	* RELEASE.NOTES: Update for 2.10.12.

@@ -2631,7 +2631,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
 	    "\" to remove the password and then immediately set a new one. "
 	    "IMPORTANT: YOU CANNOT RECOVER THIS PASSWORD, EVER; "
 	    "WRITE THE PASSWORD DOWN (don't store this rescue password on disk)! "
-	    "Now set the channel user password (+u).");
+	    "Now set the channel user password (+U).");
       }
     } else { /* remove the old apass */
       *state->chptr->mode.apass = '\0';

@@ -1,5 +1,5 @@
 Release notes for ircu2.10.12
-Last updated: 13 Jan 2005
+Last updated: 14 Jan 2005
 Written by Michael Poole <mdpoole@troilus.org>
 Based on earlier documents by Kev <klmitch@mit.edu> and
 Braden <dbtem@yahoo.com>.
@@ -41,16 +41,57 @@ that you cannot be deopped in channel by someone who you opped.
 More than one hashing mechanism is now supported for oper passwords,
 and a new tool (ircd/umkpasswd) is provided to generate them.
 
+Commands that send messages to specified services may be defined in
+the configuration file by using Pseudo blocks.  This lets users use
+commands like /X or /CHANSERV from their client, without tying the
+admin to a particular arrangement or naming of services.
+
 Clients may negotiate extensions and changes to the standard IRC
 client protocol by using the CAP command during registration.  There
 does not appear to be any documentation for the protocol, which should
-not matter since ircu does not currently features that do anything.
+not matter since ircu does not currently implement capabilities that
+affect the protocol.
+
+The /stats command accepts string identifiers in addition to
+single-character identifiers.  For example, "/stats access" shows the
+same data as "/stats i".  Supported names are shown by /stats.  New
+/stats options are: /stats a (nameservers), to list DNS nameservers in
+use; /stats L (modules), to list loaded modules; and /stats R
+(mappings), to list privmsg helper commands defined by Pseudo blocks.
+By default, all of these are hidden from normal users.
 
 Configuration Changes:
 
 As mentioned above, the configuration file format has changed
 radically.  Please consult doc/example.conf for details on the
-new format.
+new format.  Some prominent changes follow.
+
+The old contents of H: lines have been merged into the Connect block
+that describes the peer server(s) that should be allowed to hub.
+
+Two default virtual host addresses may be specified, one for IPv4
+sockets and one for IPv6 sockets.
+
+Nickname jupes have their own blocks, and do not share structure with
+UWorld server declarations.
+
+Operator connection classes and individual operator blocks may be
+assigned privileges, rather than having them controlled globally.
+Because of this, the feature settings that controlled the privileges
+globally have been removed.
+
+The maximum number of clients allowed per IP may be set in a Client
+block (the equivalent of C: lines).
+
+New feature settings (see doc/readme.features for explanations):
+ANNOUNCE_INVITES, HIS_STATS_L, HIS_STATS_a, HIS_STATS_R,
+LOCAL_CHANNELS, TOPIC_BURST.
+
+Deleted features, since they had no effect even in 2.10.11: AUTOHIDE,
+HIS_DESYNCS, TIMESEC.
+
+Deleted features since they are now controlled by other configuration
+entries: VIRTUAL_HOST, oper and locop privilege features.
 
 Compile Time Options:
 

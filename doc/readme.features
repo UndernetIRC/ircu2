@@ -489,11 +489,23 @@ HIS_TRACE
 
 As per UnderNet CFV-165, this removes /TRACE from users.
 
+HIS_STATS_a
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS a from users.
+
 HIS_STATS_l
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS l from users.
+
+HIS_STATS_L
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS L from users.
 
 HIS_STATS_c
  * Type: boolean
@@ -572,6 +584,12 @@ HIS_STATS_r
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS r from users.
+
+HIS_STATS_R
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS R from users.
 
 HIS_STATS_d
  * Type: boolean
@@ -816,3 +834,17 @@ ANNOUNCE_INVITES
 
 If set, send RPL_ISSUEDINVITE (345) to a channel's operators to
 announce when someone is invited to the channel.
+
+LOCAL_CHANNELS
+ * Type: boolean
+ * Default: TRUE
+
+If set, allow users to create local channels.
+
+TOPIC_BURST
+ * Type: boolean
+ * Default: FALSE
+
+If set, send the current topic value and timestamp for channels during
+burst.  This generally only makes sense for hubs to use, and it causes
+a large increase in net.burst size.
