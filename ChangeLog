@@ -1,3 +1,22 @@
+2004-05-17  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_features.h, ircd/ircd_features.c, ircd/s_debug.c:
+	Rip out feature settings related to oper privileges.
+
+	* include/client.h: Comment a few unexplained privileges.
+
+	* ircd/ircd_lexer.l: Rename privilege keywords to match their
+	names in code and /PRIVS output.  Add support for two "new"
+	privileges (FORCE_OPMODE, FORCE_LOCAL_OPMODE).
+
+	* include/class.h, ircd/client.c, ircd/ircd_parser.y,
+	ircd/m_oper.c: Replace the removed feature settings with
+	per-connection class operator privileges.
+
+	* doc/example.conf: Document the change.
+
+	* ircd/ircd_parser.y (portblock): Fix slight memory leak.
+
 2004-05-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Make this show the new NICKLEN default.

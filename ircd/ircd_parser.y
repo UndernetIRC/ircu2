@@ -79,6 +79,8 @@
   struct ServerConf *sconf;
   struct qline *qconf = NULL;
   struct s_map *smap;
+  struct Privs privs;
+  struct Privs privs_dirty;
 
 static void parse_error(char *pattern,...) {
   static char error_buffer[1024];
@@ -157,12 +159,12 @@ static void parse_error(char *pattern,...) {
 %token USERMODE
 /* and now a lot of priviledges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
-%token TPRIV_KILL TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
-%token TPRIV_GLINE TPRIV_LOCAL_GLINE TPRIV_JUPE TPRIV_LOCAL_JUPE
+%token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
+%token TPRIV_GLINE TPRIV_LOCAL_GLINE TPRIV_LOCAL_JUPE TPRIV_LOCAL_BADCHAN
 %token TPRIV_LOCAL_OPMODE TPRIV_OPMODE TPRIV_SET TPRIV_WHOX TPRIV_BADCHAN
-%token TPRIV_LOCAL_BADCHAN
 %token TPRIV_SEE_CHAN TPRIV_SHOW_INVIS TPRIV_SHOW_ALL_INVIS TPRIV_PROPAGATE
 %token TPRIV_UNLIMIT_QUERY TPRIV_DISPLAY TPRIV_SEE_OPERS TPRIV_WIDE_GLINE
+%token TPRIV_FORCE_OPMODE TPRIV_FORCE_LOCAL_OPMODE
 /* and some types... */
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
@@ -330,12 +332,18 @@ classblock: CLASS {
   maxlinks = 0;
   sendq = 0;
   pass = NULL;
+  memset(&privs, 0, sizeof(privs));
+  memset(&privs_dirty, 0, sizeof(privs_dirty));
 } '{' classitems '}'
 {
   if (name != NULL)
   {
-   add_class(name, tping, tconn, maxlinks, sendq);
-   find_class(name)->default_umode = pass;
+    struct ConnectionClass *c_class;
+    add_class(name, tping, tconn, maxlinks, sendq);
+    c_class = find_class(name);
+    c_class->default_umode = pass;
+    memcpy(&c_class->privs, &privs, sizeof(c_class->privs));
+    memcpy(&c_class->privs_dirty, &privs_dirty, sizeof(c_class->privs_dirty));
   }
   else {
    parse_error("Missing name in class block");
@@ -344,7 +352,7 @@ classblock: CLASS {
 } ';';
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
-           classsendq | classusermode | error;
+           classsendq | classusermode | priv | error;
 classname: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -502,11 +510,19 @@ operblock: OPER
 {
   aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
   memset(aconf, 0, sizeof(*aconf));
+  memset(&privs, 0, sizeof(privs));
+  memset(&privs_dirty, 0, sizeof(privs_dirty));
   aconf->status = CONF_OPERATOR;
 } '{' operitems '}' ';'
 {
-  if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL)
+  if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL
+      && aconf->conn_class != NULL)
   {
+    memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
+    memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
+    if (!PrivHas(&privs_dirty, PRIV_PROPAGATE)
+        && !PrivHas(&aconf->conn_class->privs_dirty, PRIV_PROPAGATE))
+      parse_error("Operator block for %s and class %s have no LOCAL setting", aconf->name, aconf->conn_class->cc_name);
     aconf->next = GlobalConfList;
     GlobalConfList = aconf;
   }
@@ -521,7 +537,7 @@ operblock: OPER
   }
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operhost | operclass | operpriv | error;
+operitem: opername | operpass | operhost | operclass | priv | error;
 
 opername: NAME '=' QSTRING ';'
 {
@@ -554,13 +570,13 @@ operclass: CLASS '=' QSTRING ';'
  aconf->conn_class = find_class(yylval.text);
 };
 
-operpriv: privtype '=' yesorno ';'
+priv: privtype '=' yesorno ';'
 {
-  PrivSet(&aconf->privs_dirty, $1);
+  PrivSet(&privs_dirty, $1);
   if (($3 == 1) ^ invert)
-    PrivSet(&aconf->privs, $1);
+    PrivSet(&privs, $1);
   else
-    PrivClr(&aconf->privs, $1);
+    PrivClr(&privs, $1);
   invert = 0;
 };
 
@@ -568,14 +584,14 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
           TPRIV_MODE_LCHAN { $$ = PRIV_MODE_LCHAN; } |
           TPRIV_DEOP_LCHAN { $$ = PRIV_DEOP_LCHAN; } |
           TPRIV_WALK_LCHAN { $$ = PRIV_WALK_LCHAN; } |
-          TPRIV_KILL { $$ = PRIV_KILL; } |
+          KILL { $$ = PRIV_KILL; } |
           TPRIV_LOCAL_KILL { $$ = PRIV_LOCAL_KILL; } |
           TPRIV_REHASH { $$ = PRIV_REHASH; } |
           TPRIV_RESTART { $$ = PRIV_RESTART; } |
           TPRIV_DIE { $$ = PRIV_DIE; } |
           TPRIV_GLINE { $$ = PRIV_GLINE; } |
           TPRIV_LOCAL_GLINE { $$ = PRIV_LOCAL_GLINE; } |
-          TPRIV_JUPE { $$ = PRIV_JUPE; } |
+          JUPE { $$ = PRIV_JUPE; } |
           TPRIV_LOCAL_JUPE { $$ = PRIV_LOCAL_JUPE; } |
           TPRIV_LOCAL_OPMODE { $$ = PRIV_LOCAL_OPMODE; } |
           TPRIV_OPMODE { $$ = PRIV_OPMODE; }|
@@ -591,7 +607,9 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
           TPRIV_DISPLAY { $$ = PRIV_DISPLAY; } |
           TPRIV_SEE_OPERS { $$ = PRIV_SEE_OPERS; } |
           TPRIV_WIDE_GLINE { $$ = PRIV_WIDE_GLINE; } |
-          LOCAL { $$ = PRIV_PROPAGATE; invert = 1; };
+          LOCAL { $$ = PRIV_PROPAGATE; invert = 1; } |
+          TPRIV_FORCE_OPMODE { $$ = PRIV_FORCE_OPMODE; } |
+          TPRIV_FORCE_LOCAL_OPMODE { $$ = PRIV_FORCE_LOCAL_OPMODE; };
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
@@ -609,14 +627,14 @@ portblock: PORT {
   if (port > 0 && port <= 0xFFFF)
   {
     add_listener(port, host, pass, tconn, tping);
-    host = pass = NULL;
   }
   else
   {
-    MyFree(host);
-    MyFree(pass);
     parse_error("Bad port block");
   }
+  MyFree(host);
+  MyFree(pass);
+  host = pass = NULL;
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portmask | portserver | porthidden | error;

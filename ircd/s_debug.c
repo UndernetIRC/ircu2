@@ -93,53 +93,17 @@ const char* debug_serveropts(void)
   AddC('D');
 #endif
 
-  if (feature_bool(FEAT_LOCOP_REHASH))
-    AddC('e');
-
-  if (feature_bool(FEAT_OPER_REHASH))
-    AddC('E');
-
-  if (feature_bool(FEAT_OPER_NO_CHAN_LIMIT))
-    AddC('F');
-
-  if (feature_bool(FEAT_OPER_MODE_LCHAN))
-    AddC('f');
-
   if (feature_bool(FEAT_HUB))
     AddC('H');
 
-  if (feature_bool(FEAT_SHOW_ALL_INVISIBLE_USERS))
-    AddC('I');
-  else if (feature_bool(FEAT_SHOW_INVISIBLE_USERS))
-    AddC('i');
-
-  if (feature_bool(FEAT_OPER_KILL)) {
-    if (feature_bool(FEAT_LOCAL_KILL_ONLY))
-      AddC('k');
-    else
-      AddC('K');
-  }
-
-  if (feature_bool(FEAT_OPER_WALK_THROUGH_LMODES))
-    AddC('l');
-
   if (feature_bool(FEAT_IDLE_FROM_MSG))
     AddC('M');
-
-  if (feature_bool(FEAT_NO_OPER_DEOP_LCHAN))
-    AddC('o');
 
   if (feature_bool(FEAT_CRYPT_OPER_PASSWORD))
     AddC('p');
 
   if (feature_bool(FEAT_RELIABLE_CLOCK))
     AddC('R');
-
-  if (feature_bool(FEAT_LOCOP_RESTART))
-    AddC('s');
-
-  if (feature_bool(FEAT_OPER_RESTART))
-    AddC('S');
 
 #if defined(USE_POLL) && defined(HAVE_POLL_H)
   AddC('U');

@@ -26,7 +26,8 @@
 #define INCLUDED_sys_types_h
 #endif
 
-struct Client;
+#include "client.h"
+
 struct ConfItem;
 struct StatDesc;
 
@@ -37,6 +38,8 @@ struct ConnectionClass {
   struct ConnectionClass* next;
   char                    *cc_name;
   char                    *default_umode;
+  struct Privs            privs;
+  struct Privs            privs_dirty;
   unsigned int            max_sendq;
   short                   ping_freq;
   short                   conn_freq;

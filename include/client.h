@@ -113,8 +113,8 @@ enum Priv
     PRIV_SEE_OPERS, /* display hidden opers */
     PRIV_WIDE_GLINE, /* oper can set wider G-lines */
     PRIV_LIST_CHAN, /* oper can list secret channels */
-    PRIV_FORCE_OPMODE,
-    PRIV_FORCE_LOCAL_OPMODE,
+    PRIV_FORCE_OPMODE, /* can hack modes on quarantined channels */
+    PRIV_FORCE_LOCAL_OPMODE, /* can hack modes on quarantined local channels */
     PRIV_LAST_PRIV /* must be the same as the last priv */
   };
 
