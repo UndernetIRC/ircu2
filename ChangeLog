@@ -1,3 +1,9 @@
+2005-03-22  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_kqueue.c (engine_delete): The kernel removes
+	close()'d FDs from the activity list, so don't try to remove the
+	FD here (the caller may have already close()'d it).
+
 2005-03-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/IPcheck.c: Fix typos in comments and strings to reduce
