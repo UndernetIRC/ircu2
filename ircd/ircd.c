@@ -332,7 +332,7 @@ static time_t check_pings(void)
               me.name, ERR_BADPING, cptr->name);
           sendto_one(cptr,
               ":%s %d %s :Compatible clients are available at "
-              "ftp://ftp.undernet.org/pub/irc/clients",
+              UNDERNET_CLIENT,
               me.name, ERR_BADPING, cptr->name);
         }
         exit_client_msg(cptr, cptr, &me, "Ping timeout");

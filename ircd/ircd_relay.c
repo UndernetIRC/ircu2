@@ -186,9 +186,12 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
    * This means we have to remove error reporting.  Sigh.   Better than
    * removing the ability to send directed messages to client servers
    * Thanks for the suggestion Vampire-.  -- Isomer 2001-08-28
+   * Argh, /ping nick@server, disallow msgs to non +k clients :/  I hate this.
+   *  -- Isomer 2001-09-16
    */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
-      (!EmptyString(host) && 0 != match(host, acptr->user->host))) {
+      (!EmptyString(host) && 0 != match(host, acptr->user->host)) ||
+      !IsChannelService(acptr)) {
 #if 0
     send_error_to_client(sptr, ERR_NOSUCHNICK, name);
 #endif
@@ -320,8 +323,8 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
     sendto_one(sptr,
-               ":%s %d %s * :Target left UnderNet. Failed to deliver: [%.20s]",
-               me.name, ERR_NOSUCHNICK, sptr->name, text);
+               ":%s %d %s * :Target left %s. Failed to deliver: [%.20s]",
+               me.name, ERR_NOSUCHNICK, sptr->name, NETWORK, text);
     return;
   }
   if (is_silenced(sptr, acptr))

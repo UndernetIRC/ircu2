@@ -121,7 +121,7 @@ int m_map_redirect(struct Client* cptr, struct Client* sptr, int parc, char* par
 {
   sendto_one(sptr,":%s NOTICE %s :%s",me.name,parv[0],
  	"/MAP has been disabled, from CFV-165.  "
-	"Visit http://www.undernet.org/servers.php"
+	"Visit " URL_SERVERS
   );
   return 0;
 }

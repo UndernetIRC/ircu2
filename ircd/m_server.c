@@ -326,10 +326,10 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           "Access denied. No conf line for server %s", cptr->name);
 #else /* GODMODE */
       sendto_ops("General C: line active: No line for server %s", cptr->name);
-      aconf = find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
+      aconf = find_conf_byname(cptr->confs, GENERIC_SERVER, CONF_SERVER);
       if (!aconf) {
         sendto_ops("Neither C lines for server %s nor "
-            "\"general.undernet.org\"", cptr->name);
+            "\"%s\"", cptr->name, GENERIC_SERVER);
         return exit_client_msg(cptr, cptr, &me, "No C lines for server %s", cptr->name);
       }
 #endif /* GODMODE */
@@ -982,10 +982,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #else /* GODMODE */
       sendto_ops("General C line active: No line for server %s", cptr->name);
       aconf =
-          find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
+          find_conf_byname(cptr->confs, GENERIC_SERVER, CONF_SERVER);
       if (!aconf) {
         sendto_ops("Neither C lines for server %s nor "
-            "\"general.undernet.org\"", cptr->name);
+            "\"%s\"", cptr->name, GENERIC_SERVER);
         return exit_client_msg(cptr, cptr, &me,
             "No C lines for server %s", cptr->name);
       }
@@ -1646,10 +1646,10 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #else /* GODMODE */
       sendto_ops("General C/N: line active: No line for server %s", cptr->name);
       aconf =
-          find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
+          find_conf_byname(cptr->confs, GENERIC_SERVER, CONF_SERVER);
       if (!aconf) {
         sendto_ops("Neither C/N lines for server %s nor "
-            "\"general.undernet.org\"", cptr->name);
+            "\"%s\"", cptr->name, GENERIC_SERVER);
         return exit_client_msg(cptr, cptr, &me,
             "No C/N lines for server %s", cptr->name);
       }

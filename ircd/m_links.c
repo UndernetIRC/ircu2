@@ -162,7 +162,7 @@ int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc, char* p
 	parc < 2 ? "*" : parv[1]);
   sendto_one(sptr,":%s NOTICE %s :%s",me.name,parv[0],
         "/LINKS has been disabled, from CFV-165.  "
-        "Visit http://www.undernet.org/servers.php"
+        "Visit " URL_SERVERS
   );
   return 0;
 }
