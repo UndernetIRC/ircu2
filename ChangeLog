@@ -1,3 +1,6 @@
+2002-12-31  hikari <shadow@undernet.org>
+	* m_userhost.c: Send the real userhost to opers.
+
 2002-12-30  Perry Lorier <isomer@undernet.org>
 	* ircd/m_gline.c: Server set glines are FORCE'd.
 	

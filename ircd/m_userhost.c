@@ -97,7 +97,9 @@ static void userhost_formatter(struct Client* cptr, struct Client *sptr, struct 
   msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
 	      HasPriv(cptr, PRIV_DISPLAY) ? "*" : "",
 	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
-	      cli_user(cptr)->host);
+              HasHiddenHost(cptr) && !IsAnOper(sptr) ?
+	      cli_user(cptr)->host :
+              cli_user(cptr)->realhost);
 }
 
 /*
