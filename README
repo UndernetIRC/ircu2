@@ -1,36 +1,69 @@
-README for the ircu2.10.11 series
-PLEASE READ THIS COMPLETELY BEFORE RUNNING THE SERVER!
 
-The u2.10.11 is the most advanced version of Undernet ircd to date.
-There are still plenty of rough edges, but many things have been
-cleaned up and redone.  The major changes for this version are
-documented in RELEASE.NOTES, in this directory.  A good description of
-compiling and installing the server is included in INSTALL.  Further
-documentation on many aspects of ircu is contained in the doc
-subdirectory.
+	Welcome to ircu2.10.11, the Undernet IRC daemon
 
-IF YOU ARE PLANNING ON USING IRCU IN A CHROOT "JAIL," YOU MUST READ
-doc/readme.chroot!  This document describes the intricacies of using
-the Undernet ircd daemon in such an environment.
+Version u2.10.11 of the Undernet ircd incorporates many new features
+over its predecessor, and we feel that using it will make you very
+happy indeed.
 
-This version of ircd no longer has the "make compile" step; most
-compile-time options have become features which can be set in the
-configuration file, or on the fly online through the SET and RESET
-commands; the current values may be obtained with GET.  The remaining
-compile-time options are set through arguments to ./configure.  A list
-of the compile-time options may be obtained with "./configure --help";
-see RELEASE.NOTES for a more comprehensive description of each
-option.  All features are documented in doc/readme.features, and log
-configuration is documented in doc/readme.log.
+New features include:
+  - A completely rewritten network event engine, which make full use
+    of the asynchronous event engines available in FreeBSD (kqueue)
+    and Solaris (/dev/poll), resulting in dramaticaly improved
+    performance.
+  - New F: (feature) lines in ircd.conf, and the GET/SET commands allow
+    many settings to be changed dynamically, rather than by with compile-
+    time configuration.
 
-This server version is not compatible with Undernet ircd releases
-prior to u2.10.10, nor is it compatible with any other version of
-ircd.  Also note that this version incorporates the features requested
-by the Undernet administrators in CFV 165; if you don't want these
-hiding features enabled, you must add -DINCLUDED_ircd_policy_h to
+INSTALLATION
+
+Please see the INSTALL file for installation instructions, for hints on how
+to best configure your OS for running ircu under high load, see the various
+README.<platform> files.
+
+COMPATIBILITY
+
+This version of ircu will only work with servers that use the P10 protocol,
+some of the new features will only work between ircu2.10.11 servers.
+
+GENERAL PERFORMANCE HINTS
+
+For platform-specific notes and hints, see the various README.<platform>
+files included in this distribution. The notes below apply to servers that
+will serve large numbers (thousands) of clients simultaenously. If your
+server serves a small amount of users, you will not really have to do much
+of anything about performance tuning.
+
+ - Run an OS that supports an asynchronous netwerk event engine; currently
+   these are FreeBSD (kqueue), and Solaris (/dev/poll); possibly other BSDs
+   will also support kqueue. This will have a dramatic effect on performance.
+ - Make things as lean as possible: Make your server dedicated to ircu,
+   disable anything that is not neccesary, and build a custom kernel (where
+   possible). 
+ - Tune kernel parameters; see the various README.<platform> files as well
+   as your OS documentation for more information.
+ - With many clients connecting each second, ircu will be doing lots of DNS
+   lookups. Make sure that the DNS server(s) in your /etc/resolv.conf are as
+   close as possible, or run a local caching DNS server on your IRC box.
+
+TIME SYNCHRONIZATION
+
+Many things can and will go horribly wrong when the clocks on the servers
+on your network become (too far) out of sync. It is therefore highly
+recommended that all servers run a version of ntpd that will keep their
+clocks from going astray.
+
+INFORMATION HIDING
+
+As per undernet-admins CFV-165, this server contains code that will,
+by default, hide certain information from ordinary users. If you do
+not want this, please make sure you add -DINCLUDED_ircd_policy_h to
 CFLAGS prior to running ./configure.
 
-For more information on the changes in this release, see RELEASE.NOTES
-and ChangeLog, both in this directory.  You may also reference the CVS
-log on the Undernet Coder Committee web page at
-http://coder-com.undernet.org/.
+MORE INFORMATION
+
+For more information on this software, see the included documentation
+in the doc/ directory, as well as http://coder-com.undernet.org.
+
+For general information on the Undernet, vist http://www.undernet.org
+
+Happy IRCing!

@@ -1,9 +1,0 @@
-#
-# BUGS file for ircu2.10
-#
-# $Id: BUGS,v 1.7 2000-07-15 01:31:23 isomer Exp $
-#
-* crule parser coredumps on invalid input
-* throttle
-  * gets corrupted data when adding a new server.
-  * looses count and assert()'s frequently?

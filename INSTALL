@@ -1,158 +1,53 @@
-INSTALL file        by Run <carlo@runaway.xs4all.nl>
-            Updated by Isomer <isomer@coders.net>
-            Updated for u2.10.11 by Kev <klmitch@mit.edu>
 
-This is the UnderNet IRC daemon.
+ircu - INSTALL
+  Original by Run <carlo@runaway.xs4all.nl>,
+  Isomer <isomer@coders.net>, and Kev <klmitch@mit.edu>
+  Rewritten by Sengaia <sengaia@undernet.org> 
 
-The installation of the IRC daemon (ircd) exists of the following steps:
+Compiling and installing ircu should be a fairly straightforward process,
+if you have obtained this software as a (.tar.gz) package, please consider
+using CVS (described below). Using CVS will make updating your installation
+much easier. 
 
-1) Retrieve the package.
-2) cd into the base directory.
-3) "./configure"
-4) "make"
-5) "make install"
+After obtaining the latest version of the ircu source code, change into the
+source directory (ircu2.10), and run "./configure". To see the various ways
+in which you can customize your installation, run "./configure --help".
 
-1) Retrieve the package.
-========================
+The configure process will check your environment and prepare itself for
+compiling the source code. If one or more of the prerequisites cannot be
+found, configure will terminate with an error. You will need to resolve
+this and run configure again.
+
+If configure runs without error(s), you are ready to compile. To compile ircu,
+run "make". Please use GNU make and gcc If the source code does not compile,
+make sure your environment is setup correctly. If you are convinced the source
+of the failure is ircu, gather all relevant information about your system such
+as the Architecture, OS version, the configure statement you used, etc. and
+contact coder-com@undernet.org.
+
+Once ircu is compiled, install it by running "make install".
+
+Next, you will have to configure your IRC server by setting up your ircd.conf
+file. Use the included doc/example.conf as a starting point. 
+Setting up ircd.conf can be a bit tricky, so if this is your first time doing
+it, begin with a bare-bones configuration and extend it as you go.
+
+Good Luck!
+
+RETRIEVING IRCU VIA CVS
 
 The recommended way to get the ircu package now is to use CVS.  CVS makes
 upgrades a lot less painful and lets you get the latest package.
 
-1.1) The first thing you need to do is "authenticate" yourself against the
-server.  
-
-This is done with:
-
-cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
+The first thing you need to do is login to the cvs server:
+# cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
 
 (we recommend that you cut and paste the above line to use it :)
 When it prompts you for a password enter "anoncvs".
 
-1.2) The module you will check out is ircu2.10.  There are three branches
-you can check out.
+To check out the the last stable version of ircu, use:
+# cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout -P ircu2.10
 
-stable - This branch is always the recommended version for use on the
-       Undernet.  To check out the stable tree, add "-r u2_10_11" to
-       the CVS command line.
+To update your source tree to the latest version, run "cvs update -dP" from within the
+ircu2.10 directory. For more information, see http://coder-com.undernet.org.
 
-beta - This branch is undergoing testing before being promoted to the
-       stable branch.  It may be buggy.  Use on the Undernet's production
-       network is prohibited, except for certain authorized servers.  The
-       "-r" flag you need to check this branch out is documented on the
-       Coder Committee's web site, http://coder-com.undernet.org.
-
-alpha - This is the development branch.  It is not guaranteed to even
-       compile, and should be considered HIGHLY unstable.  It is NOT
-       intended for production use.  If you wish to play with the server,
-       you may wish to investigate the test network.  To check this branch
-       out, use no "-r" flags.
-
-
-to check out the tree, type:
-
-cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout
-   -P ircu2.10
-
-The above two lines shouldn't have an enter between them.  If you want to
-use another branch, place the appropriate "-r" flag after the "checkout"
-command.  This will create a directory ircu2.10, and put all the files in
-there.
-
-To get the latest version, from within the tree type "cvs update -dP".
-
-For more information see the coder-com website at
-http://coder-com.undernet.org/
-
-The old (tried and true) method that works even when the website isn't being
-DoS'd (sigh) is included below.  Using the method below means you can't
-just type 'cvs update -dP' to get the latest version.
-
- The name of the package is something like `ircu2.x.y.z.tgz', where
- "x.y.z" is the current release (at the time of writing we have
- ircu2.10.00.beta3.tgz).
-
- You need `gzip', the GNU unzip command, to uncompress this package.
- You can download this from every GNU ftp site for almost any Operating system.
- 
- If you have GNU tar, type:
- 
- tar xzf ircu2.x.y.z.tgz
- 
- where "ircu2.x.y.z.tgz" is the name of the package.
- 
- If your tar doesn't support the 'z' flag, you can type alternatively:
- 
- gzip -dc ircu2.x.y.z.tgz | tar xf -
- 
- Both methods result in a directory "ircu2.x.y.z" in your current directory.
- 
-2) cd into the base directory
-=============================
-
-Make this directory your current directory by typing:
-
-cd ircu2.x.y.z
-
-or ircu2.10 if you used cvs.
-
-where "ircu2.x.y.z" is the name of the unpacked directory.
-
-3) "./configure"
-================
-
-This will generate "config.h", your operating system-dependent
-configuration.
-
-If this produces a "Permission Denied" error message, then try typing
-"chmod a+x ./configure" first to give yourself permission to run the file.
-
-For information on configure command line options, type "./configure --help".
-
-4) "make"
-=========
-
-Type:
-
-make
-
-in the base directory.  It should compile without errors or warnings.
-Please mail any problem to the maintainer, but only AFTER you made sure
-you did everything the right way.  If you want your operating system
-to be supported in future releases, you best make a patch that
-actually fixes the problem.
-
-5) "make install"
-=================
-
-This should install the ircd and the man page. Please recheck the
-permissions of the binary.
-
-Of course, you need a syntactically correct ircd.conf in DPATH.  See the
-docs for some info on this.  Also create an ircd.motd with the text of
-your MOTD.  And finally create a remote.motd with three lines of text
-as the remote MOTD.  Again, all of these files should be readable by the
-ircd, and the logfiles should be writeable.
-
-
-In case of problems
-===================
-
-If you have problems configuring the server you might consider installing
-GNU make in your PATH.  In some cases a brain-dead /bin/sh is causing the
-problem, in which case I suggest to install "bash" and use that (as sh ->
-bash).  Finally, any other compile problem should be solved when you install
-gcc.
-
-If you have problems with starting the ircd, run "./configure" again
-and give it the "--enable-debug" command line option.  Recompile the ircd,
-and run it by hand as:
-
-ircd -t -x9
-
-This will write debug output to your screen, probably showing why it
-doesn't start.
-
-DO NOT USE A SERVER WITH DEBUGGING ENABLED ON A PRODUCTION NETWORK.  Doing
-so is a severe privacy risk.
-
-If things still don't work, try emailing coder-com@undernet.org
