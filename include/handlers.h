@@ -212,7 +212,7 @@ extern int ms_version(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallusers(struct Client*, struct Client*, int, char*[]);
-
+extern int ms_whois(struct Client*, struct Client*, int, char*[]);
 
 #endif /* INCLUDED_handlers_h */
 

@@ -266,7 +266,7 @@ struct Message msgtab[] = {
     TOK_WHOIS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_whois, m_whois, m_whois, m_ignore }
+    { m_unregistered, m_whois, ms_whois, m_whois, m_ignore }
   },
   {
     MSG_WHO,
@@ -586,9 +586,9 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_quit, m_ignore, m_ignore, m_ignore, m_ignore }
-  },  
+  },
   { 0 }
-}; 
+};
 
 
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
@@ -716,7 +716,7 @@ static struct Message *do_msg_tree_cmd(struct MessageTree *mtree, char *prefix,
     }
     return mptr;
   }
-  /* 
+  /*
    * This should never happen
    */
   assert(0);
@@ -745,7 +745,7 @@ void initmsgtree(void)
   int ii;
   struct Message **msgtab_tok;
   struct Message **msgtok;
-  
+
   for (i = 0; msg->cmd; ++i, ++msg)
     continue;
   qsort(msgtab, i, sizeof(struct Message),
@@ -1034,7 +1034,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     }
     else if (' ' == ch[1] || ' ' == ch[2])
       from = FindNServer(numeric_prefix);
-    else 
+    else
       from = findNUser(numeric_prefix);
 
     do

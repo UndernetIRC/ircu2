@@ -1,3 +1,7 @@
+2001-11-03  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/parse.c, include/handlers.h: Give remote whois the correct
+	handler.
+	
 2001-11-01  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c: some minor white-space fiddling; recast selector
