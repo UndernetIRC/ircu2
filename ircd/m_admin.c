@@ -118,6 +118,23 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
+  if (parc > 1)
+    return send_reply(sptr, ERR_NOPRIVILEGES);
+
+  return send_admin_info(sptr);
+}
+
+/*
+ * mo_admin - oper message handler
+ *
+ * parv[0] = sender prefix
+ * parv[1] = servername
+ */
+int mo_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  assert(0 != cptr);
+  assert(cptr == sptr);
+
   if (parc > 1) {
     struct Client *acptr;
     acptr = FindUser(parv[1]);
