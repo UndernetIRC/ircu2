@@ -127,37 +127,27 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * from pinged server to source server
      */
-    if (!(acptr = FindServer(parv[1])))
+    if (!(acptr = FindServer(parv[1])) && !(acptr = FindNServer(parv[1])))
       return 0;
    
     if (IsMe(acptr)) {
       if (!(acptr = findNUser(parv[2])))
         return 0;
-      if (MyConnect(acptr))
-        sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
-                   me.name, acptr->name, sptr->name,
-                   militime(parv[3], parv[4]), parv[5]);
-      else 
-        sendto_one(acptr, "%s " TOK_RPONG " %s%s %s %s :%s",
-                   NumServ(&me), NumNick(acptr), sptr->name,
-                   militime(parv[3], parv[4]), parv[5]);
-    }
-    else
-      sendto_one(acptr, "%s " TOK_RPONG " %s %s %s %s :%s",
-                 NumServ(sptr), parv[1], parv[2], parv[3], parv[4], parv[5]);
-  }
-  else {
+
+      sendcmdto_one(&me, CMD_RPONG, acptr, "%C %s %s :%s", acptr, sptr->name,
+		    militime(parv[3], parv[4]), parv[5]);
+    } else
+      sendcmdto_one(sptr, CMD_RPONG, acptr, "%s %s %s %s :%s", parv[1],
+		    parv[2], parv[3], parv[4], parv[5]);
+  } else {
     /*
      * returned from source server to client
      */
     if (!(acptr = findNUser(parv[1])))
       return 0;
-    if (MyConnect(acptr))
-      sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
-                 sptr->name, acptr->name, parv[2], parv[3], parv[4]);
-    else
-      sendto_one(acptr, "%s " TOK_RPONG " %s %s %s :%s",
-                 NumServ(sptr), parv[1], parv[2], parv[3], parv[4]);
+
+    sendcmdto_one(sptr, CMD_RPONG, acptr, "%C %s %s :%s", acptr, parv[2],
+		  parv[3], parv[4]);
   }
   return 0;
 }
@@ -190,7 +180,7 @@ int m_rpong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   {
     if (IsServer(acptr) && parc > 5)
     {
-      sendto_one(acptr, ":%s RPONG %s %s %s %s :%s",
+      sendto_one(acptr, ":%s RPONG %s %s %s %s :%s", /* XXX DEAD */
           parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]);
       return 0;
     }
@@ -206,7 +196,7 @@ int m_rpong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return 0;                 /* No bouncing between servers ! */
   }
 
-  sendto_one(acptr, ":%s RPONG %s %s %s :%s",
+  sendto_one(acptr, ":%s RPONG %s %s %s :%s", /* XXX DEAD */
       parv[0], parv[1], parv[2], parv[3], parv[4]);
   return 0;
 }

@@ -128,7 +128,7 @@
  */
 int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client* destination = FindNServer(parv[1]);
+  struct Client* destination = 0;
   assert(0 != cptr);
   assert(0 != sptr);
   assert(IsServer(cptr));
@@ -151,11 +151,11 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * if it's not for me, pass it on
        */
       if (IsMe(destination))
-        sendto_one(cptr, "%s " TOK_RPONG " %s %s %s %s :%s", NumServ(&me),
-                   parv[0], parv[2], parv[3], parv[4], parv[5]);
+	sendcmdto_one(&me, CMD_RPONG, sptr, "%s %s %s %s :%s", sptr->name,
+		      parv[2], parv[3], parv[4], parv[5]);
       else
-        sendto_one(destination, "%s " TOK_RPING " %s %s %s %s :%s",
-                   NumServ(sptr), parv[1], parv[2], parv[3], parv[4], parv[5]); 
+	sendcmdto_one(sptr, CMD_RPING, destination, "%C %s %s %s :%s",
+		      destination, parv[2], parv[3], parv[4], parv[5]);
     }
   }
   else {
@@ -169,18 +169,19 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * Haven't made it to the start server yet, if I'm not the start server
      * pass it on.
      */
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) != HUNTED_ISME)
+    if (hunt_server_cmd(sptr, CMD_RPING, cptr, 1, "%s %C :%s", 2, parc, parv)
+	!= HUNTED_ISME)
       return 0;
     /*
      * otherwise ping the destination from here
      */
     if ((destination = find_match_server(parv[1]))) {
-      assert(IsServer(destination));
-      sendto_one(destination, "%s " TOK_RPING " %s %s%s %s :%s",
-                 NumServ(&me), NumServ(destination), NumNick(sptr), militime(0, 0), parv[3]);
+      assert(IsServer(destination) || IsMe(destination));
+      sendcmdto_one(&me, CMD_RPING, destination, "%C %C %s :%s", destination,
+		    sptr, militime(0, 0), parv[3]);
     }
     else
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
   }
   return 0;
 }
@@ -225,7 +226,7 @@ int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          */
         parv[parc++] = (char*) start_time;
       }
-      hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv);
+      hunt_server_cmd(sptr, CMD_RPING, cptr, 1, "%s %C :%s", 2, parc, parv);
       return 0;
     }
     else
@@ -233,12 +234,12 @@ int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   if ((acptr = find_match_server(parv[1]))) {
-    assert(IsServer(acptr));
-    sendto_one(acptr, "%s " TOK_RPING " %s %s%s %s :%s",
-               NumServ(&me), NumServ(acptr), NumNick(sptr), militime(0, 0), start_time);
+    assert(IsServer(acptr) || IsMe(acptr));
+    sendcmdto_one(&me, CMD_RPING, acptr, "%C %C %s :%s", acptr, sptr,
+		  militime(0, 0), start_time);
   }
   else
-    sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+    send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
 
   return 0;
 }
@@ -289,23 +290,23 @@ int m_rping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (IsAnOper(sptr))
   {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) !=
+    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) != /* XXX DEAD */
         HUNTED_ISME)
       return 0;
     if (!(acptr = find_match_server(parv[1])) || !IsServer(acptr))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAD */
       return 0;
     }
-    sendto_one(acptr, ":%s RPING %s %s %s :%s",
+    sendto_one(acptr, ":%s RPING %s %s %s :%s", /* XXX DEAD */
          me.name, NumServ(acptr), sptr->name, militime(0, 0), parv[3]);
   }
   else
   {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s %s %s :%s", 1, parc, parv)
+    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s %s %s :%s", 1, parc, parv) /* XXX DEAD */
         != HUNTED_ISME)
       return 0;
-    sendto_one(cptr, ":%s RPONG %s %s %s %s :%s", me.name, parv[0],
+    sendto_one(cptr, ":%s RPONG %s %s %s %s :%s", me.name, parv[0], /* XXX DEAD */
         parv[2], parv[3], parv[4], parv[5]);
   }
   return 0;

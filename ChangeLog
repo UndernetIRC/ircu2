@@ -1,3 +1,10 @@
+2000-05-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_rping.c: convert to sendcmdto_one / send_reply /
+	hunt_server_cmd
+
+	* ircd/m_rpong.c: convert to sendcmdto_one / send_reply
+
 2000-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_stats.c: convert to sendcmdto_one / send_reply
@@ -1062,7 +1069,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.125 2000-05-01 20:51:38 kev Exp $
+# $Id: ChangeLog,v 1.126 2000-05-02 20:09:30 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
