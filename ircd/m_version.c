@@ -117,23 +117,21 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     if (!(acptr = find_match_server(parv[1])))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
       return 0;
     }
     parv[1] = acptr->name;
   }
 
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) ==
+  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
     char featurebuf[512];
     
     sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
     
-    sendto_one(sptr, rpl_str(RPL_VERSION),
-        me.name, parv[0], version, debugmode, me.name, serveropts);
-    sendto_one(sptr, rpl_str(RPL_ISUPPORT),
-    	me.name, parv[0], featurebuf);
+    send_reply(sptr, RPL_VERSION, version, debugmode, me.name, serveropts);
+    send_reply(sptr, RPL_ISUPPORT, featurebuf);
   }
 
   return 0;
@@ -153,23 +151,21 @@ int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     if (!(acptr = find_match_server(parv[1])))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
       return 0;
     }
     parv[1] = acptr->name;
   }
 
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) ==
+  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
     char featurebuf[512];
     
     sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
     
-    sendto_one(sptr, rpl_str(RPL_VERSION),
-        me.name, parv[0], version, debugmode, me.name, serveropts);
-    sendto_one(sptr, rpl_str(RPL_ISUPPORT),
-    	me.name, parv[0], featurebuf);
+    send_reply(sptr, RPL_VERSION, version, debugmode, me.name, serveropts);
+    send_reply(sptr, RPL_ISUPPORT, featurebuf);
   }
 
   return 0;
@@ -190,15 +186,15 @@ int m_version(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   {
     if (!(acptr = find_match_server(parv[1])))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAF */
       return 0;
     }
     parv[1] = acptr->name;
   }
 
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) ==
+  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) == /* XXX DEAF */
       HUNTED_ISME)
-    sendto_one(sptr, rpl_str(RPL_VERSION),
+    sendto_one(sptr, rpl_str(RPL_VERSION), /* XXX DEAF */
         me.name, parv[0], version, debugmode, me.name, serveropts);
 
   return 0;

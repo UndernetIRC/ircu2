@@ -75,6 +75,10 @@ extern int set_user_mode(struct Client *cptr, struct Client *sptr,
 extern int is_silenced(struct Client *sptr, struct Client *acptr);
 extern int hunt_server(int, struct Client *cptr, struct Client *sptr,
     char *command, int server, int parc, char *parv[]);
+extern int hunt_server_cmd(struct Client *from, const char *cmd,
+			   const char *tok, struct Client *one,
+			   int MustBeOper, const char *pattern, int server,
+			   int parc, char *parv[]);
 extern struct Client* next_client(struct Client* next, const char* ch);
 extern char *umode_str(struct Client *cptr);
 extern void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask);

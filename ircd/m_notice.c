@@ -121,10 +121,10 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   sptr->flags &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_error_to_client(sptr, ERR_NORECIPIENT, MSG_NOTICE);
+    return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
 
   if (parc < 3 || EmptyString(parv[parc - 1]))
-    return send_error_to_client(sptr, ERR_NOTEXTTOSEND);
+    return send_reply(sptr, ERR_NOTEXTTOSEND);
 
   if (parv[1][0] == '@' && IsChannelPrefix(parv[1][1])) {
     parv[1]++;                        /* Get rid of '@' */
@@ -211,10 +211,10 @@ int mo_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   sptr->flags &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_error_to_client(sptr, ERR_NORECIPIENT, MSG_NOTICE);
+    return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
 
   if (parc < 3 || EmptyString(parv[parc - 1]))
-    return send_error_to_client(sptr, ERR_NOTEXTTOSEND);
+    return send_reply(sptr, ERR_NOTEXTTOSEND);
 
   if (parv[1][0] == '@' && IsChannelPrefix(parv[1][1])) {
     parv[1]++;                        /* Get rid of '@' */
@@ -276,10 +276,10 @@ static int m_message(struct Client *cptr, struct Client *sptr,
   cmd = notice ? MSG_NOTICE : MSG_PRIVATE;
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_error_to_client(sptr, ERR_NORECIPIENT, cmd);
+    return send_error_to_client(sptr, ERR_NORECIPIENT, cmd); /* XXX DEAD */
 
   if (parc < 3 || EmptyString(parv[parc - 1]))
-    return send_error_to_client(sptr, ERR_NOTEXTTOSEND);
+    return send_error_to_client(sptr, ERR_NOTEXTTOSEND); /* XXX DEAD */
 
 
 #if 0
@@ -305,12 +305,12 @@ static int m_message(struct Client *cptr, struct Client *sptr,
           if (MyUser(sptr) && (chptr->mode.mode & MODE_NOPRIVMSGS) &&
               check_target_limit(sptr, chptr, chptr->chname, 0))
             continue;
-          sendmsgto_channel_butone(cptr, sptr, chptr,
+          sendmsgto_channel_butone(cptr, sptr, chptr, /* XXX DEAD */
               parv[0], (notice ? TOK_NOTICE : TOK_PRIVATE), 
               chptr->chname, parv[parc - 1]);
         }
         else if (!notice)
-          sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
+          sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN), /* XXX DEAD */
               me.name, parv[0], chptr->chname);
         continue;
       }
@@ -331,24 +331,24 @@ static int m_message(struct Client *cptr, struct Client *sptr,
         if (!is_silenced(sptr, acptr))
         {
           if (!notice && MyConnect(sptr) && acptr->user && acptr->user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY),
+            sendto_one(sptr, rpl_str(RPL_AWAY), /* XXX DEAD */
                 me.name, parv[0], acptr->name, acptr->user->away);
           if (MyUser(acptr))
           {
             add_target(acptr, sptr);
-            sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
+            sendto_prefix_one(acptr, sptr, ":%s %s %s :%s", /* XXX DEAD */
                 parv[0], cmd, acptr->name, parv[parc - 1]);
           }
           else
-            sendto_prefix_one(acptr, sptr, ":%s %s %s%s :%s",
+            sendto_prefix_one(acptr, sptr, ":%s %s %s%s :%s", /* XXX DEAD */
                 parv[0], (notice ? TOK_NOTICE : TOK_PRIVATE),
                 NumNick(acptr), parv[parc - 1]);
         }
       }
       else if (MyUser(sptr))
-        sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+        sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
       else
-        sendto_one(sptr,
+        sendto_one(sptr, /* XXX DEAD */
             ":%s %d %s * :Target left UnderNet. Failed to deliver: [%.50s]",
             me.name, ERR_NOSUCHNICK, sptr->name, parv[parc - 1]);
       continue;
@@ -365,7 +365,7 @@ static int m_message(struct Client *cptr, struct Client *sptr,
       {
         if (!(s = strrchr(nick, '.')))
         {
-          sendto_one(sptr, err_str(ERR_NOTOPLEVEL), me.name, parv[0], nick);
+          sendto_one(sptr, err_str(ERR_NOTOPLEVEL), me.name, parv[0], nick); /* XXX DEAD */
           continue;
         }
         while (*++s)
@@ -373,11 +373,11 @@ static int m_message(struct Client *cptr, struct Client *sptr,
             break;
         if (*s == '*' || *s == '?')
         {
-          sendto_one(sptr, err_str(ERR_WILDTOPLEVEL), me.name, parv[0], nick);
+          sendto_one(sptr, err_str(ERR_WILDTOPLEVEL), me.name, parv[0], nick); /* XXX DEAD */
           continue;
         }
       }
-      sendto_match_butone(IsServer(cptr) ? cptr : 0,
+      sendto_match_butone(IsServer(cptr) ? cptr : 0, /* XXX DEAD */
           sptr, nick + 1, (*nick == '#') ? MATCH_HOST : MATCH_SERVER,
           ":%s %s %s :%s", parv[0], cmd, nick, parv[parc - 1]);
       continue;
@@ -389,7 +389,7 @@ static int m_message(struct Client *cptr, struct Client *sptr,
        */
       if (!IsMe(acptr))
       {
-        sendto_one(acptr, ":%s %s %s :%s", parv[0], cmd, nick, parv[parc - 1]);
+        sendto_one(acptr, ":%s %s %s :%s", parv[0], cmd, nick, parv[parc - 1]); /* XXX DEAD */
         continue;
       }
 
@@ -412,15 +412,15 @@ static int m_message(struct Client *cptr, struct Client *sptr,
       if (acptr)
       {
         if (!(is_silenced(sptr, acptr)))
-          sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
+          sendto_prefix_one(acptr, sptr, ":%s %s %s :%s", /* XXX DEAD */
               parv[0], cmd, nick, parv[parc - 1]);
         continue;
       }
     }
     if (IsChannelName(nick))
-      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], nick);
+      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], nick); /* XXX DEAD */
     else
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
   }
   return 0;
 }

@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
@@ -115,12 +116,12 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   if (!IsServer(sptr))
     return 0;
 
-  sendto_op_mask(SNO_NETWORK, "Completed net.burst from %s.", sptr->name);
-  sendto_serv_butone(cptr, "%s EB", NumServ(sptr));
+  sendto_opmask_butone(0, SNO_NETWORK, "Completed net.burst from %C.", sptr);
+  sendcmdto_serv_butone(sptr, CMD_END_OF_BURST, cptr, "");
   ClearBurst(sptr);
   SetBurstAck(sptr);
   if (MyConnect(sptr))
-    sendto_one(sptr, "%s EA", NumServ(&me));
+    sendcmdto_one(&me, CMD_END_OF_BURST_ACK, sptr, "");
 
   return 0;
 }
@@ -138,8 +139,9 @@ int ms_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char
   if (!IsServer(sptr))
     return 0;
 
-  sendto_op_mask(SNO_NETWORK, "%s acknowledged end of net.burst.", sptr->name);
-  sendto_serv_butone(cptr, "%s EA", NumServ(sptr));
+  sendto_opmask_butone(0, SNO_NETWORK, "%C acknowledged end of net.burst.",
+		       sptr);
+  sendcmdto_serv_butone(sptr, CMD_END_OF_BURST_ACK, cptr, "");
   ClearBurstAck(sptr);
 
   return 0;
@@ -161,12 +163,12 @@ int m_end_of_burst(struct Client *cptr, struct Client *sptr, int parc, char **pa
   if (!IsServer(sptr))
     return 0;
 
-  sendto_op_mask(SNO_NETWORK, "Completed net.burst from %s.", sptr->name);
-  sendto_serv_butone(cptr, "%s EB", NumServ(sptr));
+  sendto_op_mask(SNO_NETWORK, "Completed net.burst from %s.", sptr->name); /* XXX DEAD */
+  sendto_serv_butone(cptr, "%s EB", NumServ(sptr)); /* XXX DEAD */
   ClearBurst(sptr);
   SetBurstAck(sptr);
   if (MyConnect(sptr))
-    sendto_one(sptr, "%s EA", NumServ(&me));
+    sendto_one(sptr, "%s EA", NumServ(&me)); /* XXX DEAD */
 
   return 0;
 }
@@ -183,8 +185,8 @@ int m_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char 
   if (!IsServer(sptr))
     return 0;
 
-  sendto_op_mask(SNO_NETWORK, "%s acknowledged end of net.burst.", sptr->name);
-  sendto_serv_butone(cptr, "%s EA", NumServ(sptr));
+  sendto_op_mask(SNO_NETWORK, "%s acknowledged end of net.burst.", sptr->name); /* XXX DEAD */
+  sendto_serv_butone(cptr, "%s EA", NumServ(sptr)); /* XXX DEAD */
   ClearBurstAck(sptr);
 
   return 0;

@@ -106,9 +106,6 @@ int mo_close(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(IsAnOper(sptr));
 
-  sendto_one(sptr, rpl_str(RPL_CLOSEEND), me.name, parv[0],
-             net_close_unregistered_connections(sptr));
-  return 0;
+  return send_reply(sptr, RPL_CLOSEEND,
+		    net_close_unregistered_connections(sptr));
 }
-
-

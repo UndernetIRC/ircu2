@@ -156,12 +156,12 @@ int m_userhost(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       if (i < j)
         sendbufto_one(sptr);
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], s);
+      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], s); /* XXX DEAD */
       sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERHOST), me.name, parv[0]);
       j = i - 1;
     }
   if (j)
-    sendbufto_one(sptr);
+    sendbufto_one(sptr); /* XXX DEAD */
   return 0;
 }
 #endif

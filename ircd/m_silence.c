@@ -133,10 +133,8 @@ int m_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!(acptr->user))
       return 0;
     for (lp = acptr->user->silence; lp; lp = lp->next)
-      sendto_one(sptr, rpl_str(RPL_SILELIST), me.name,
-	         sptr->name, acptr->name, lp->value.cp);
-    sendto_one(sptr, rpl_str(RPL_ENDOFSILELIST), me.name, sptr->name,
-	       acptr->name);
+      send_reply(sptr, RPL_SILELIST, acptr->name, lp->value.cp);
+    send_reply(sptr, RPL_ENDOFSILELIST, acptr->name);
     return 0;
   }
   cp = parv[1];
@@ -144,15 +142,15 @@ int m_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (c == '-' || c == '+')
     cp++;
   else if (!(strchr(cp, '@') || strchr(cp, '.') || strchr(cp, '!') || strchr(cp, '*'))) {
-    return send_error_to_client(sptr, ERR_NOSUCHNICK, parv[1]);
+    return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
   }
   else
     c = '+';
   cp = pretty_mask(cp);
   if ((c == '-' && !del_silence(sptr, cp)) || (c != '-' && !add_silence(sptr, cp))) {
-    sendto_prefix_one(sptr, sptr, ":%s " MSG_SILENCE " %c%s", parv[0], c, cp);
+    sendcmdto_one(sptr, CMD_SILENCE, sptr, "%c%s", c, cp);
     if (c == '-')
-      sendto_serv_butone(0, "%s%s " TOK_SILENCE " * -%s", NumNick(sptr), cp);
+      sendcmdto_serv_butone(sptr, CMD_SILENCE, 0, " * -%s", cp);
   }
   return 0;
 }
@@ -188,17 +186,12 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (*parv[2] == '-') {
     if (!del_silence(sptr, parv[2] + 1))
-      sendto_serv_butone(cptr, ":%s SILENCE * %s", parv[0], parv[2]);
+      sendcmdto_serv_butone(sptr, CMD_SILENCE, cptr, "* %s", parv[2]);
   }
   else {
     add_silence(sptr, parv[2]);
     if (acptr && IsServer(acptr->from)) {
-      if (IsServer(acptr))
-	sendto_one(acptr, ":%s SILENCE %s %s",
-	           parv[0], NumServ(acptr), parv[2]);
-      else
-	sendto_one(acptr, ":%s SILENCE %s%s %s",
-	           parv[0], NumNick(acptr), parv[2]);
+      sendcmdto_one(sptr, CMD_SILENCE, acptr, "%C %s", acptr, parv[2]);
     }
   }
   return 0;
@@ -230,9 +223,9 @@ int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (!(acptr->user))
         return 0;
       for (lp = acptr->user->silence; lp; lp = lp->next)
-        sendto_one(sptr, rpl_str(RPL_SILELIST), me.name,
+        sendto_one(sptr, rpl_str(RPL_SILELIST), me.name, /* XXX DEAD */
             sptr->name, acptr->name, lp->value.cp);
-      sendto_one(sptr, rpl_str(RPL_ENDOFSILELIST), me.name, sptr->name,
+      sendto_one(sptr, rpl_str(RPL_ENDOFSILELIST), me.name, sptr->name, /* XXX DEAD */
           acptr->name);
       return 0;
     }
@@ -243,7 +236,7 @@ int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     else if (!(strchr(cp, '@') || strchr(cp, '.') ||
         strchr(cp, '!') || strchr(cp, '*')))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
+      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]); /* XXX DEAD */
       return -1;
     }
     else
@@ -252,9 +245,9 @@ int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if ((c == '-' && !del_silence(sptr, cp)) ||
         (c != '-' && !add_silence(sptr, cp)))
     {
-      sendto_prefix_one(sptr, sptr, ":%s SILENCE %c%s", parv[0], c, cp);
+      sendto_prefix_one(sptr, sptr, ":%s SILENCE %c%s", parv[0], c, cp); /* XXX DEAD */
       if (c == '-')
-        sendto_serv_butone(0, ":%s SILENCE * -%s", sptr->name, cp);
+        sendto_serv_butone(0, ":%s SILENCE * -%s", sptr->name, cp); /* XXX DEAD */
     }
   }
   else if (parc < 3 || *parv[2] == '\0')
@@ -270,7 +263,7 @@ int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (*parv[2] == '-')
     {
       if (!del_silence(sptr, parv[2] + 1))
-        sendto_serv_butone(cptr, ":%s SILENCE * %s", parv[0], parv[2]);
+        sendto_serv_butone(cptr, ":%s SILENCE * %s", parv[0], parv[2]); /* XXX DEAD */
     }
     else
     {
@@ -278,10 +271,10 @@ int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (acptr && IsServer(acptr->from))
       {
         if (IsServer(acptr))
-          sendto_one(acptr, ":%s SILENCE %s %s",
+          sendto_one(acptr, ":%s SILENCE %s %s", /* XXX DEAD */
               parv[0], NumServ(acptr), parv[2]);
         else
-          sendto_one(acptr, ":%s SILENCE %s%s %s",
+          sendto_one(acptr, ":%s SILENCE %s%s %s", /* XXX DEAD */
               parv[0], NumNick(acptr), parv[2]);
       }
     }

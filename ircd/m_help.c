@@ -107,7 +107,7 @@ int m_help(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int i;
 
   for (i = 0; msgtab[i].cmd; i++)
-    sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], msgtab[i].cmd);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, msgtab[i].cmd);
   return 0;
 }
 
@@ -123,7 +123,7 @@ int m_help(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   int i;
 
   for (i = 0; msgtab[i].cmd; i++)
-    sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], msgtab[i].cmd);
+    sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], msgtab[i].cmd); /* XXX DEAD */
   return 0;
 }
 #endif /* 0 */

@@ -132,7 +132,7 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sptr->listing->chptr->mode.mode &= ~MODE_LISTED;
     MyFree(sptr->listing);
     sptr->listing = 0;
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, sptr->name);
+    send_reply(sptr, RPL_LISTEND);
     if (parc < 2)
       return 0;                 /* Let LIST abort a listing. */
   }
@@ -261,36 +261,36 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (show_usage)
   {
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        "Usage: \002/QUOTE LIST\002 \037parameters\037");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        "Where \037parameters\037 is a space or comma seperated "
-        "list of one or more of:");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002<\002\037max_users\037    ; Show all channels with less "
-        "than \037max_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002>\002\037min_users\037    ; Show all channels with more "
-        "than \037min_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002C<\002\037max_minutes\037 ; Channels that exist less "
-        "than \037max_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002C>\002\037min_minutes\037 ; Channels that exist more "
-        "than \037min_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002T<\002\037max_minutes\037 ; Channels with a topic last "
-        "set less than \037max_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        " \002T>\002\037min_minutes\037 ; Channels with a topic last "
-        "set more than \037min_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
-        "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 min., "
-        "topic set.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       "Usage: \002/QUOTE LIST\002 \037parameters\037");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       "Where \037parameters\037 is a space or comma seperated "
+	       "list of one or more of:");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002<\002\037max_users\037    ; Show all channels with less "
+	       "than \037max_users\037.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002>\002\037min_users\037    ; Show all channels with more "
+	       "than \037min_users\037.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002C<\002\037max_minutes\037 ; Channels that exist less "
+	       "than \037max_minutes\037.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002C>\002\037min_minutes\037 ; Channels that exist more "
+	       "than \037min_minutes\037.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002T<\002\037max_minutes\037 ; Channels with a topic last "
+	       "set less than \037max_minutes\037 ago.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       " \002T>\002\037min_minutes\037 ; Channels with a topic last "
+	       "set more than \037min_minutes\037 ago.");
+    send_reply(sptr, RPL_LISTUSAGE,
+	       "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 "
+	       "min., topic set.");
     return 0;
   }
 
-  sendto_one(sptr, rpl_str(RPL_LISTSTART), me.name, parv[0]);
+  send_reply(sptr, RPL_LISTSTART);
 
   if (!show_channels)
   {
@@ -309,7 +309,7 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       MyFree(sptr->listing);
       sptr->listing = 0;
     }
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]);
+    send_reply(sptr, RPL_LISTEND);
     return 0;
   }
 
@@ -317,12 +317,11 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     chptr = FindChannel(name);
     if (chptr && ShowChannel(sptr, chptr) && sptr->user)
-      sendto_one(sptr, rpl_str(RPL_LIST), me.name, parv[0],
-          chptr->chname,
-          chptr->users - number_of_zombies(chptr), chptr->topic);
+      send_reply(sptr, RPL_LIST, chptr->chname,
+		 chptr->users - number_of_zombies(chptr), chptr->topic);
   }
 
-  sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]);
+  send_reply(sptr, RPL_LISTEND);
   return 0;
 }
 
@@ -356,7 +355,7 @@ int m_list(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
     sptr->listing->chptr->mode.mode &= ~MODE_LISTED;
     MyFree(sptr->listing);
     sptr->listing = 0;
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, sptr->name);
+    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, sptr->name); /* XXX DEAD */
     if (parc < 2)
       return 0;                 /* Let LIST abort a listing. */
   }
@@ -482,36 +481,36 @@ int m_list(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if (show_usage)
   {
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         "Usage: \002/QUOTE LIST\002 \037parameters\037");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         "Where \037parameters\037 is a space or comma seperated "
         "list of one or more of:");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002<\002\037max_users\037    ; Show all channels with less "
         "than \037max_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002>\002\037min_users\037    ; Show all channels with more "
         "than \037min_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002C<\002\037max_minutes\037 ; Channels that exist less "
         "than \037max_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002C>\002\037min_minutes\037 ; Channels that exist more "
         "than \037min_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002T<\002\037max_minutes\037 ; Channels with a topic last "
         "set less than \037max_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         " \002T>\002\037min_minutes\037 ; Channels with a topic last "
         "set more than \037min_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
         "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 min., "
         "topic set.");
     return 0;
   }
 
-  sendto_one(sptr, rpl_str(RPL_LISTSTART), me.name, parv[0]);
+  sendto_one(sptr, rpl_str(RPL_LISTSTART), me.name, parv[0]); /* XXX DEAD */
 
   if (!show_channels)
   {
@@ -530,7 +529,7 @@ int m_list(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
       MyFree(sptr->listing);
       sptr->listing = 0;
     }
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]);
+    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -538,12 +537,12 @@ int m_list(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
   {
     chptr = FindChannel(name);
     if (chptr && ShowChannel(sptr, chptr) && sptr->user)
-      sendto_one(sptr, rpl_str(RPL_LIST), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_LIST), me.name, parv[0], /* XXX DEAD */
           ShowChannel(sptr, chptr) ? chptr->chname : "*",
           chptr->users - number_of_zombies(chptr), chptr->topic);
   }
 
-  sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]);
+  sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]); /* XXX DEAD */
   return 0;
 }
 #endif /* 0 */

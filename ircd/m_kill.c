@@ -141,9 +141,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(victim = findNUser(parv[1]))) {
     if (IsUser(sptr))
-      sendto_one(sptr,
-                 "%s NOTICE %s%s :KILL target disconnected before I got him :(",
-                 NumServ(&me), NumNick(sptr));
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :KILL target disconnected "
+		    "before I got him :(", sptr);
     return 0;
   }
 #if 0
@@ -153,11 +152,11 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * is done before the message is propagated --Bleep
    */
   if (IsServer(victim) || IsMe(victim)) {
-    return send_error_to_client(sptr, ERR_CANTKILLSERVER);
+    return send_error_to_client(sptr, ERR_CANTKILLSERVER); /* XXX DEAD */
     return 0;
   }
   if (IsLocOp(sptr) && !MyConnect(victim)) {
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return send_error_to_client(sptr, ERR_NOPRIVILEGES); /* XXX DEAD */
     return 0;
   }
   /*
@@ -176,9 +175,9 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   inpath = cptr->name;
 
-  sendto_op_mask(IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-                 "Received KILL message for %s. From %s Path: %s!%s",
-                 victim->name, parv[0], cptr->name, path);
+  sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
+		       "Received KILL message for %C. From %s Path: %C!%s",
+		       victim, parv[0], cptr, path);
 
 #if defined(SYSLOG_KILL)
   ircd_log_kill(victim, sptr, cptr->name, path);
@@ -188,23 +187,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * was changed, the message has to be sent to all links, also
    * back.
    */
-#if defined(EVERYONE_SENDS_NUMERICS)
-  /*
-   * just pass parv[0] here, it's the numeric nick of the sender
-   */
-  sendto_highprot_butone(cptr, 10, "%s " TOK_KILL " %s%s :%s!%s",
-                         parv[0], NumNick(victim), cptr->name, path);
-#else
-  /*
-   * translate to numerics
-   */
-  if (IsServer(sptr))
-    sendto_highprot_butone(cptr, 10, "%s " TOK_KILL " %s%s :%s!%s",
-                           NumServ(sptr), NumNick(victim), cptr->name, path);
-  else
-    sendto_highprot_butone(cptr, 10, "%s%s " TOK_KILL " %s%s :%s!%s",
-                           NumNick(sptr), NumNick(victim), cptr->name, path);
-#endif
+  sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, cptr->name,
+			path);
   /*
    * We *can* have crossed a NICK with this numeric... --Run
    *
@@ -222,8 +206,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * by the next hop (short lag) the bounce won't propagate further.
    */
   if (MyConnect(victim))
-    sendto_one(cptr, "%s " TOK_KILL " %s%s :%s!%s (Ghost 5 Numeric Collided)",
-               NumServ(&me), NumNick(victim), cptr->name, path);
+    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
+		  victim, cptr->name, path);
   /*
    * Set FLAGS_KILLED. This prevents exit_one_client from sending
    * the unnecessary QUIT for this. (This flag should never be
@@ -238,8 +222,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * anyway (as this user don't exist there any more either)
    */
   if (MyConnect(victim))
-    sendto_prefix_one(victim, sptr, ":%s KILL %s :%s!%s",
-                      sptr->name, victim->name, cptr->name, path);
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, cptr->name,
+		  path);
   /*
    * the first space in path will be at the end of the
    * opers name:
@@ -298,28 +282,28 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * servers in synch when nick change and kill collide
      */
     if (!(victim = get_history(user, (long)15)))
-      return send_error_to_client(sptr, ERR_NOSUCHNICK, user);
+      return send_reply(sptr, ERR_NOSUCHNICK, user);
 
-    sendto_one(sptr, ":%s NOTICE %s :Changed KILL %s into %s",
-               me.name, parv[0], user, victim->name);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Changed KILL %s into %s", sptr,
+		  user, victim->name);
   }
   if (!MyConnect(victim) && IsLocOp(cptr))
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (IsServer(victim) || IsMe(victim)) {
-    return send_error_to_client(sptr, ERR_CANTKILLSERVER);
+    return send_reply(sptr, ERR_CANTKILLSERVER);
   }
   /*
    * if the user is +k, prevent a kill from local user
    */
   if (IsChannelService(victim))
-    return send_error_to_client(sptr, ERR_ISCHANSERVICE, "KILL", victim->name);
+    return send_reply(sptr, ERR_ISCHANSERVICE, "KILL", victim->name);
 
 
 #ifdef LOCAL_KILL_ONLY
   if (!MyConnect(victim)) {
-    sendto_one(sptr, ":%s NOTICE %s :Nick %s isnt on your server",
-               me.name, parv[0], victim->name);
+    send_reply(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server", sptr,
+	       victim->name);
     return 0;
   }
 #endif
@@ -351,9 +335,9 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * Note: "victim->name" is used instead of "user" because we may
    *       have changed the target because of the nickname change.
    */
-  sendto_op_mask(SNO_OPERKILL,
-                 "Received KILL message for %s. From %s Path: %s!%s",
-                 victim->name, parv[0], inpath, path);
+  sendto_opmask_butone(0, SNO_OPERKILL,
+		       "Received KILL message for %s. From %s Path: %s!%s",
+		       victim->name, parv[0], inpath, path);
 
 #if defined(SYSLOG_KILL)
   ircd_log_kill(victim, sptr, inpath, path);
@@ -365,8 +349,8 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * Suicide kills are NOT passed on --SRB
    */
   if (!MyConnect(victim)) {
-    sendto_highprot_butone(cptr, 10, "%s%s " TOK_KILL " %s%s :%s!%s",
-                           NumNick(sptr), NumNick(victim), inpath, path);
+    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, inpath,
+			  path);
 
    /*
     * Set FLAGS_KILLED. This prevents exit_one_client from sending
@@ -384,8 +368,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * notification chasing the above kill, it won't get far
    * anyway (as this user don't exist there any more either)
    */
-    sendto_prefix_one(victim, sptr, ":%s KILL %s :%s!%s",
-                      parv[0], victim->name, inpath, path);
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, inpath, path);
     sprintf_irc(buf, "Local kill by %s (%s)", sptr->name, comment);
   }
 
@@ -393,7 +376,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 #else /* !defined(OPER_KILL) */
 
-  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 #endif /* !defined(OPER_KILL) */
 }
@@ -426,13 +409,13 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifdef        OPER_KILL
   if (!IsPrivileged(cptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 #else
   if (!IsServer(cptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 #endif
@@ -456,10 +439,10 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
        */
       if (!(acptr = get_history(user, (long)15)))
       {
-        sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], user);
+        sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], user); /* XXX DEAD */
         return 0;
       }
-      sendto_one(sptr, ":%s NOTICE %s :Changed KILL %s into %s",
+      sendto_one(sptr, ":%s NOTICE %s :Changed KILL %s into %s", /* XXX DEAD */
           me.name, parv[0], user, acptr->name);
       chasing = 1;
     }
@@ -467,26 +450,26 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   else if (!(acptr = findNUser(user)))
   {
     if (IsUser(sptr))
-      sendto_one(sptr,
+      sendto_one(sptr, /* XXX DEAD */
           "%s NOTICE %s%s :KILL target disconnected before I got him :(",
           NumServ(&me), NumNick(sptr));
     return 0;
   }
   if (!MyConnect(acptr) && IsLocOp(cptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   if (IsServer(acptr) || IsMe(acptr))
   {
-    sendto_one(sptr, err_str(ERR_CANTKILLSERVER), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_CANTKILLSERVER), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
   /* if the user is +k, prevent a kill from local user */
   if (IsChannelService(acptr) && MyUser(sptr))
   {
-    sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name,
+    sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name, /* XXX DEAD */
         parv[0], "KILL", acptr->name);
     return 0;
   }
@@ -494,7 +477,7 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifdef        LOCAL_KILL_ONLY
   if (MyConnect(sptr) && !MyConnect(acptr))
   {
-    sendto_one(sptr, ":%s NOTICE %s :Nick %s isnt on your server",
+    sendto_one(sptr, ":%s NOTICE %s :Nick %s isnt on your server", /* XXX DEAD */
         me.name, parv[0], acptr->name);
     return 0;
   }
@@ -532,10 +515,10 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if (IsLocOp(sptr) && !MyConnect(acptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
-  sendto_op_mask(IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
+  sendto_op_mask(IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL, /* XXX DEAD */
       "Received KILL message for %s. From %s Path: %s!%s",
       acptr->name, parv[0], inpath, path);
 #if defined(USE_SYSLOG) && defined(SYSLOG_KILL)
@@ -566,7 +549,7 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if (!MyConnect(acptr) || !MyConnect(sptr) || !IsAnOper(sptr))
   {
-    sendto_highprot_butone(cptr, 10, ":%s " TOK_KILL " %s%s :%s!%s",
+    sendto_highprot_butone(cptr, 10, ":%s " TOK_KILL " %s%s :%s!%s", /* XXX DEAD */
         parv[0], NumNick(acptr), inpath, path);
     /* We *can* have crossed a NICK with this numeric... --Run */
     /* Note the following situation:
@@ -580,7 +563,7 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * Therefore we still need to detect numeric nick collisions too.
      */
     if (MyConnect(acptr) && IsServer(cptr))
-      sendto_one(cptr, "%s " TOK_KILL " %s%s :%s!%s (Ghost5)",
+      sendto_one(cptr, "%s " TOK_KILL " %s%s :%s!%s (Ghost5)", /* XXX DEAD */
           NumServ(&me), NumNick(acptr), inpath, path);
     acptr->flags |= FLAGS_KILLED;
   }
@@ -592,7 +575,7 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    * anyway (as this user don't exist there any more either)
    */
   if (MyConnect(acptr))
-    sendto_prefix_one(acptr, sptr, ":%s KILL %s :%s!%s",
+    sendto_prefix_one(acptr, sptr, ":%s KILL %s :%s!%s", /* XXX DEAD */
         parv[0], acptr->name, inpath, path);
   /*
    * Set FLAGS_KILLED. This prevents exit_one_client from sending

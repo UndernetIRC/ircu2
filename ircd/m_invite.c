@@ -130,9 +130,8 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     struct SLink *lp;
     for (lp = sptr->user->invited; lp; lp = lp->next)
-      sendto_one(cptr, rpl_str(RPL_INVITELIST), me.name, cptr->name,
-                 lp->value.chptr->chname);
-    sendto_one(cptr, rpl_str(RPL_ENDOFINVITELIST), me.name, cptr->name);
+      send_reply(cptr, RPL_INVITELIST, lp->value.chptr->chname);
+    send_reply(cptr, RPL_ENDOFINVITELIST);
     return 0;
   }
 
@@ -140,7 +139,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "INVITE");
 
   if (!(acptr = FindUser(parv[1]))) {
-    sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
+    send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
     return 0;
   }
 
@@ -154,7 +153,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(chptr = FindChannel(parv[2]))) {
     if (IsModelessChannel(parv[2]) || IsLocalChannel(parv[2])) {
-      sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0], parv[2]);
+      send_reply(sptr, ERR_NOTONCHANNEL, parv[2]);
       return 0;
     }
 
@@ -164,38 +163,28 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (check_target_limit(sptr, acptr, acptr->name, 0))
       return 0;
 
-    sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0],
-               acptr->name, parv[2]);
+    send_reply(sptr, RPL_INVITING, acptr->name, parv[2]);
 
     if (acptr->user->away)
-      sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0],
-                 acptr->name, acptr->user->away);
+      send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
 
-    if (MyUser(acptr))
-      sendto_prefix_one(acptr, sptr, ":%s " MSG_INVITE " %s :%s", sptr->name,
-                        acptr->name, parv[2]);
-    else
-      sendto_one(acptr, "%s%s " TOK_INVITE " %s :%s", NumNick(sptr),
-                 acptr->name, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);
 
     return 0;
   }
 
   if (!find_channel_member(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
-               chptr->chname);
+    send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
     return 0;
   }
 
   if (find_channel_member(acptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_USERONCHANNEL),
-               me.name, parv[0], acptr->name, chptr->chname);
+    send_reply(sptr, ERR_USERONCHANNEL, acptr->name, chptr->chname);
     return 0;
   }
 
   if (!is_chan_op(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-               me.name, parv[0], chptr->chname);
+    send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
     return 0;
   }
 
@@ -204,21 +193,15 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (check_target_limit(sptr, acptr, acptr->name, 0))
     return 0;
 
-  sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0],
-             acptr->name, chptr->chname);
+  send_reply(sptr, RPL_INVITING, acptr->name, chptr->chname);
 
   if (acptr->user->away)
-    sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0],
-               acptr->name, acptr->user->away);
+    send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
 
-  if (MyConnect(acptr)) {
+  if (MyConnect(acptr))
     add_invite(acptr, chptr);
-    sendto_prefix_one(acptr, sptr, ":%s " MSG_INVITE " %s :%s", 
-                      sptr->name, acptr->name, chptr->chname);
-  }
-  else
-    sendto_one(acptr, "%s%s " TOK_INVITE " %s :%s", 
-               NumNick(sptr), acptr->name, chptr->chname);
+
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%H", acptr, chptr);
 
   return 0;
 }
@@ -267,15 +250,14 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
   if (!(acptr = FindUser(parv[1]))) {
-    sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
+    send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
     return 0;
   }
   if (!MyUser(acptr)) {
     /*
      * just relay the message
      */
-    sendto_one(acptr, "%s%s " TOK_INVITE " %s :%s",
-               NumNick(sptr), acptr->name, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);
     return 0;
   }
 
@@ -287,24 +269,20 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * allow invites to non existant channels, bleah
      * avoid JOIN, INVITE, PART abuse
      */
-    sendto_prefix_one(acptr, sptr, ":%s " MSG_INVITE " %s :%s", sptr->name,
-                      acptr->name, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);
     return 0;
   }
 
   if (!find_channel_member(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
-               chptr->chname);
+    send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
     return 0;
   }
   if (find_channel_member(acptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_USERONCHANNEL),
-               me.name, parv[0], acptr->name, chptr->chname);
+    send_reply(sptr, ERR_USERONCHANNEL, acptr->name, chptr->chname);
     return 0;
   }
   add_invite(acptr, chptr);
-  sendto_prefix_one(acptr, sptr, ":%s " MSG_INVITE " %s :%s", sptr->name,
-                    acptr->name, chptr->chname);
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%H", acptr, chptr);
   return 0;
 }
 
@@ -337,9 +315,9 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
      */
     struct SLink *lp;
     for (lp = sptr->user->invited; lp; lp = lp->next)
-      sendto_one(cptr, rpl_str(RPL_INVITELIST), me.name, cptr->name,
+      sendto_one(cptr, rpl_str(RPL_INVITELIST), me.name, cptr->name, /* XXX DEAD */
                 lp->value.chptr->chname);
-    sendto_one(cptr, rpl_str(RPL_ENDOFINVITELIST), me.name, cptr->name);
+    sendto_one(cptr, rpl_str(RPL_ENDOFINVITELIST), me.name, cptr->name); /* XXX DEAD */
     return 0;
   }
 
@@ -348,7 +326,7 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!(acptr = FindUser(parv[1])))
   {
-    sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
+    sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]); /* XXX DEAD */
     return 0;
   }
 
@@ -367,7 +345,7 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
   {
     if (IsModelessChannel(parv[2]) || IsLocalChannel(parv[2]))
     {
-      sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0], parv[2]);
+      sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0], parv[2]); /* XXX DEAD */
       return 0;
     }
 
@@ -378,15 +356,15 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
       if (check_target_limit(sptr, acptr, acptr->name, 0))
         return 0;
 
-      sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0], /* XXX DEAD */
           acptr->name, parv[2]);
 
       if (acptr->user->away)
-        sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0],
+        sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0], /* XXX DEAD */
             acptr->name, acptr->user->away);
     }
 
-    sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0],
+    sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0], /* XXX DEAD */
         acptr->name, parv[2]);
 
     return 0;
@@ -394,14 +372,14 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!find_channel_member(sptr, chptr))
   {
-    sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
+    sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0], /* XXX DEAD */
         chptr->chname);
     return 0;
   }
 
   if (find_channel_member(acptr, chptr))
   {
-    sendto_one(sptr, err_str(ERR_USERONCHANNEL),
+    sendto_one(sptr, err_str(ERR_USERONCHANNEL), /* XXX DEAD */
         me.name, parv[0], acptr->name, chptr->chname);
     return 0;
   }
@@ -410,7 +388,7 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
   {
     if (!is_chan_op(sptr, chptr))
     {
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
+      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), /* XXX DEAD */
           me.name, parv[0], chptr->chname);
       return 0;
     }
@@ -420,21 +398,21 @@ int m_invite(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
     if (check_target_limit(sptr, acptr, acptr->name, 0))
       return 0;
 
-    sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_INVITING), me.name, parv[0], /* XXX DEAD */
         acptr->name, chptr->chname);
 
     if (acptr->user->away)
-      sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_AWAY), me.name, parv[0], /* XXX DEAD */
           acptr->name, acptr->user->away);
   }
 
   if (MyConnect(acptr)) {
     add_invite(acptr, chptr);
-  sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0],
+  sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0], /* XXX DEAD */
       acptr->name, chptr->chname);
   }
   else
-    sendto_highprot_butone(acptr, 10, "%s%s " TOK_INVITE " %s :%s", 
+    sendto_highprot_butone(acptr, 10, "%s%s " TOK_INVITE " %s :%s", /* XXX DEAD */
        NumNick(sptr), acptr->name, chptr->chname);
 
   return 0;

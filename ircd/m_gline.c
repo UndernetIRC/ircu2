@@ -151,10 +151,10 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (!IsMe(acptr)) { /* manually propagate */
       if (!lastmod)
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%s %s %s :%s", target, mask,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s %s :%s", acptr, mask,
 		      parv[3], reason);
       else
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%s %s %s %s :%s", target, mask,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s %s %s :%s", acptr, mask,
 		      parv[3], parv[4], reason);
 
       return 0;
@@ -231,10 +231,8 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return gline_list(sptr, mask);
 
 #ifndef LOCOP_LGLINE
-  if (!IsOper(sptr)) {
-    send_error_to_client(sptr, ERR_NOPRIVILEGES);
-    return 0;
-  }
+  if (!IsOper(sptr))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 #endif
 
   if (parc == 4) {
@@ -251,14 +249,14 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (target) {
     if (!(target[0] == '*' && target[1] == '\0')) {
       if (!(acptr = find_match_server(target)))
-	return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
+	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
 #ifndef CONFIG_OPERCMDS
-	return send_error_to_client(sptr, ERR_DISABLED, "GLINE");
+	return send_reply(sptr, ERR_DISABLED, "GLINE");
 #else
 	if (!IsOper(sptr))
-	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
@@ -269,12 +267,12 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       flags |= GLINE_LOCAL;
     } else if (!IsOper(sptr))
-      return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+      return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
 #ifndef CONFIG_OPERCMDS
   if (!(flags & GLINE_LOCAL))
-    return send_error_to_client(sptr, ERR_DISABLED, "GLINE");
+    return send_reply(sptr, ERR_DISABLED, "GLINE");
 #endif /* CONFIG_OPERCMDS */
 
   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
@@ -306,7 +304,7 @@ int
 m_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   if (parc < 2)
-    return send_error_to_client(sptr, ERR_NOSUCHGLINE, "");
+    return send_reply(sptr, ERR_NOSUCHGLINE, "");
 
   return gline_list(sptr, parv[1]);
 }

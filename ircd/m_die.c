@@ -91,6 +91,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_bsd.h"
@@ -118,8 +119,7 @@ int mo_die(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
 #endif
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-    return 0;
+    return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
   for (i = 0; i <= HighestFd; i++)
@@ -127,11 +127,11 @@ int mo_die(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!(acptr = LocalClientArray[i]))
       continue;
     if (IsUser(acptr))
-      sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s",
-                 me.name, acptr->name, get_client_name(sptr, HIDE_IP));
+      sendcmdto_one(&me, CMD_NOTICE, acptr, "%C :Server Terminating. %s",
+		    acptr, get_client_name(sptr, HIDE_IP));
     else if (IsServer(acptr))
-      sendto_one(acptr, ":%s ERROR :Terminated by %s",
-                 me.name, get_client_name(sptr, HIDE_IP));
+      sendcmdto_one(&me, CMD_ERROR, acptr, ":Terminated by %s",
+		    get_client_name(sptr, HIDE_IP));
   }
   server_die("received DIE");
 #endif /* defined(OPER_DIE) || defined(LOCOP_DIE) */
@@ -159,7 +159,7 @@ int m_die(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
 #endif
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -168,10 +168,10 @@ int m_die(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (!(acptr = LocalClientArray[i]))
       continue;
     if (IsUser(acptr))
-      sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s",
+      sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s", /* XXX DEAD */
                  me.name, acptr->name, get_client_name(sptr, HIDE_IP));
     else if (IsServer(acptr))
-      sendto_one(acptr, ":%s ERROR :Terminated by %s",
+      sendto_one(acptr, ":%s ERROR :Terminated by %s", /* XXX DEAD */
                  me.name, get_client_name(sptr, HIDE_IP));
   }
   server_die("received DIE");

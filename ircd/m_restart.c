@@ -114,7 +114,7 @@ int mo_restart(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
 #endif
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    send_reply(sptr, ERR_NOPRIVILEGES);
     return 0;
   }
   ircd_log(L_NOTICE, "Server RESTART by %s\n", get_client_name(sptr, HIDE_IP));
@@ -143,7 +143,7 @@ int m_restart(struct Client *cptr, struct Client *sptr, int parc,
 #endif
 #endif
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   ircd_log(L_NOTICE, "Server RESTART by %s\n", get_client_name(sptr, HIDE_IP));

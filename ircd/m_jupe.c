@@ -226,11 +226,11 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (target) {
     if (!(target[0] == '*' && target[1] == '\0')) {
       if (!(acptr = find_match_server(target)))
-	return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
+	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
 	if (!IsOper(sptr))
-	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 	sendcmdto_one(sptr, CMD_JUPE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
@@ -240,7 +240,7 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
       flags |= JUPE_LOCAL;
     } else if (!IsOper(sptr))
-      return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+      return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
   ajupe = jupe_find(server);

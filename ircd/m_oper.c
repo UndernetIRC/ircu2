@@ -157,9 +157,9 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                             ircd_ntoa((const char*) &cptr->ip), CONF_OPS);
 
   if (!aconf || IsIllegal(aconf)) {
-    send_error_to_client(sptr, ERR_NOOPERHOST);
-    sendto_realops("Failed OPER attempt by %s (%s@%s)",
-                   parv[0], sptr->user->username, sptr->sockhost);
+    send_reply(sptr, ERR_NOOPERHOST);
+    sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",
+			 parv[0], sptr->user->username, sptr->sockhost);
     return 0;
   }
   assert(0 != (aconf->status & CONF_OPS));
@@ -168,9 +168,10 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     unsigned int old_mode = (sptr->flags & ALL_UMODES);
 
     if (ACR_OK != attach_conf(sptr, aconf)) {
-      send_error_to_client(sptr, ERR_NOOPERHOST);
-      sendto_realops("Failed OPER attempt by %s (%s@%s)",
-                     parv[0], sptr->user->username, sptr->sockhost);
+      send_reply(sptr, ERR_NOOPERHOST);
+      sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s "
+			   "(%s@%s)", parv[0], sptr->user->username,
+			   sptr->sockhost);
       return 0;
     }
     if (CONF_LOCOP == aconf->status) {
@@ -192,25 +193,24 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     set_snomask(sptr, SNO_OPERDEFAULT, SNO_ADD);
     send_umode_out(cptr, sptr, old_mode);
-    sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]);
+    send_reply(sptr, RPL_YOUREOPER);
 
-    sendto_ops("%s (%s@%s) is now operator (%c)", parv[0],
-               sptr->user->username, sptr->sockhost,
-               IsOper(sptr) ? 'O' : 'o');
+    sendto_opmask_butone(0, SNO_OLDSNO, "%s (%s@%s) is now operator (%c)",
+			 parv[0], sptr->user->username, sptr->sockhost,
+			 IsOper(sptr) ? 'O' : 'o');
 
     ircd_log(L_INFO, "OPER (%s) by (%s!%s@%s)",
              name, parv[0], sptr->user->username, sptr->sockhost);
 #ifdef FNAME_OPERLOG
     if (IsUser(sptr))
       write_log(FNAME_OPERLOG,
-                "%s OPER (%s) by (%s!%s@%s)\n", myctime(CurrentTime),
-                name, parv[0], sptr->user->username, sptr->sockhost);
+                "%s OPER (%s) by (%#C)\n", myctime(CurrentTime), name, sptr);
 #endif
   }
   else {
-    sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name, parv[0]);
-    sendto_realops("Failed OPER attempt by %s (%s@%s)",
-                   parv[0], sptr->user->username, sptr->sockhost);
+    send_reply(sptr, ERR_PASSWDMISMATCH);
+    sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",
+			 parv[0], sptr->user->username, sptr->sockhost);
   }
   return 0;
 }
@@ -228,7 +228,7 @@ int ms_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!IsServer(sptr) && !IsOper(sptr)) {
     ++UserStats.opers;
     sptr->flags |= FLAGS_OPER;
-    sendto_serv_butone(cptr, "%s%s " TOK_MODE " %s :+o", NumNick(sptr), parv[0]);
+    sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%s :+o", parv[0]);
   }
   return 0;
 }
@@ -240,7 +240,7 @@ int mo_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != cptr);
   assert(cptr == sptr);
-  sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]);
+  send_reply(sptr, RPL_YOUREOPER);
   return 0;
 }
  
@@ -272,12 +272,12 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsServer(cptr) && !IsOper(sptr)) {
     ++UserStats.opers;
     sptr->flags |= FLAGS_OPER;
-    sendto_serv_butone(cptr, "%s%s " TOK_MODE " %s :+o", NumNick(sptr), parv[0]);
+    sendto_serv_butone(cptr, "%s%s " TOK_MODE " %s :+o", NumNick(sptr), parv[0]); /* XXX DEAD */
     return 0;
   }
   else if (IsAnOper(sptr)) {
     if (MyConnect(sptr))
-      sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]);
+      sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   assert(cptr == sptr);
@@ -287,8 +287,8 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
                             ircd_ntoa((const char*) &cptr->ip), CONF_OPS);
 
   if (!aconf || IsIllegal(aconf)) {
-    sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-    sendto_realops("Failed OPER attempt by %s (%s@%s)",
+    sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]); /* XXX DEAD */
+    sendto_realops("Failed OPER attempt by %s (%s@%s)", /* XXX DEAD */
                    parv[0], sptr->user->username, sptr->sockhost);
     return 0;
   }
@@ -316,8 +316,8 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     int old = (sptr->flags & ALL_UMODES);
 
     if (ACR_OK != attach_conf(sptr, aconf)) {
-      sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-      sendto_realops("Failed OPER attempt by %s (%s@%s)",
+      sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]); /* XXX DEAD */
+      sendto_realops("Failed OPER attempt by %s (%s@%s)", /* XXX DEAD */
                      parv[0], sptr->user->username, sptr->sockhost);
       return 0;
     }
@@ -336,13 +336,13 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       ++UserStats.opers;
     }
     cptr->handler = OPER_HANDLER;
-    sendto_ops("%s (%s@%s) is now operator (%c)", parv[0],
+    sendto_ops("%s (%s@%s) is now operator (%c)", parv[0], /* XXX DEAD */
         sptr->user->username, sptr->sockhost, IsOper(sptr) ? 'O' : 'o');
 
     sptr->flags |= (FLAGS_WALLOP | FLAGS_SERVNOTICE | FLAGS_DEBUG);
     set_snomask(sptr, SNO_OPERDEFAULT, SNO_ADD);
     send_umode_out(cptr, sptr, old);
-    sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]);
+    sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, parv[0]); /* XXX DEAD */
 
     ircd_log(L_INFO, "OPER (%s) by (%s!%s@%s)",
              name, parv[0], sptr->user->username, sptr->sockhost);
@@ -354,8 +354,8 @@ int m_oper(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
   }
   else {
-    sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name, parv[0]);
-    sendto_realops("Failed OPER attempt by %s (%s@%s)",
+    sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name, parv[0]); /* XXX DEAD */
+    sendto_realops("Failed OPER attempt by %s (%s@%s)", /* XXX DEAD */
                    parv[0], sptr->user->username, sptr->sockhost);
   }
   return 0;

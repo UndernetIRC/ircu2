@@ -126,9 +126,10 @@ int ms_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client_msg(cptr, cptr, &me, "Register first");
 
   if (cptr == sptr)
-    sendto_ops("ERROR :from %s -- %s", cptr->name, para);
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
   else
-    sendto_ops("ERROR :from %s via %s -- %s", sptr->name, cptr->name, para);
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
+			 cptr, para);
 
   if (sptr->serv)
   {
@@ -164,9 +165,10 @@ int mr_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client_msg(cptr, cptr, &me, "Register first");
 
   if (cptr == sptr)
-    sendto_ops("ERROR :from %s -- %s", cptr->name, para);
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
   else
-    sendto_ops("ERROR :from %s via %s -- %s", sptr->name, cptr->name, para);
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
+			 cptr, para);
 
   if (sptr->serv)
   {
@@ -203,9 +205,9 @@ int m_error(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return exit_client_msg(cptr, cptr, &me, "Register first");
 
   if (cptr == sptr)
-    sendto_ops("ERROR :from %s -- %s", cptr->name, para);
+    sendto_ops("ERROR :from %s -- %s", cptr->name, para); /* XXX DEAD */
   else
-    sendto_ops("ERROR :from %s via %s -- %s", sptr->name, cptr->name, para);
+    sendto_ops("ERROR :from %s via %s -- %s", sptr->name, cptr->name, para); /* XXX DEAD */
 
   if (sptr->serv)
   {

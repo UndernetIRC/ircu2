@@ -133,7 +133,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
 
@@ -144,7 +144,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        it with the correct servername - as is needed by hunt_server() */
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
       parv[1] = acptr->user->server->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
     parv[1] = parv[2];
@@ -218,14 +218,14 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (user)
         {
           a2cptr = user->server;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, user->username, user->host, acptr->info);
+	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		     acptr->info);
         }
         else
         {
           a2cptr = &me;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, "<unknown>", "<unknown>", "<unknown>");
+	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
+		     "<unknown>");
         }
 
         found = 1;
@@ -245,8 +245,8 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-                sendto_one(sptr, ":%s %d %s %s :%s",
-                    me.name, RPL_WHOISCHANNELS, parv[0], name, buf);
+		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS,
+			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;
               }
@@ -267,26 +267,22 @@ exact_match:
             }
           }
           if (buf[0] != '\0')
-            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS),
-                me.name, parv[0], name, buf);
+	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
         }
 
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-            parv[0], name, a2cptr->name, a2cptr->info);
+	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
 
         if (user)
         {
           if (user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY), me.name,
-                parv[0], name, user->away);
+	    send_reply(sptr, RPL_AWAY, name, user->away);
 
           if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
-                me.name, parv[0], name);
+	    send_reply(sptr, RPL_WHOISOPERATOR, name);
 
           if (MyConnect(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
-                parv[0], name, CurrentTime - user->last, acptr->firsttime);
+	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
+		       acptr->firsttime);
         }
         if (found == 2 || total++ >= MAX_WHOIS_LINES)
           break;
@@ -301,19 +297,19 @@ exact_match:
         user = acptr->user;
         name = (!*acptr->name) ? "?" : acptr->name;
         a2cptr = user->server;
-        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-            parv[0], name, user->username, user->host, acptr->info);
+	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		   acptr->info);
         goto exact_match;
       }
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+      send_reply(sptr, ERR_NOSUCHNICK, nick);
     if (p)
       p[-1] = ',';
     if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]);
+  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
 
   return 0;
 }
@@ -347,7 +343,7 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
 
@@ -358,7 +354,7 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        it with the correct servername - as is needed by hunt_server() */
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
       parv[1] = acptr->user->server->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
     parv[1] = parv[2];
@@ -432,14 +428,14 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (user)
         {
           a2cptr = user->server;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, user->username, user->host, acptr->info);
+	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		     acptr->info);
         }
         else
         {
           a2cptr = &me;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, "<unknown>", "<unknown>", "<unknown>");
+	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
+		     "<unknown>");
         }
 
         found = 1;
@@ -459,8 +455,8 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-                sendto_one(sptr, ":%s %d %s %s :%s",
-                    me.name, RPL_WHOISCHANNELS, parv[0], name, buf);
+		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS, 
+			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;
               }
@@ -481,26 +477,22 @@ exact_match:
             }
           }
           if (buf[0] != '\0')
-            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS),
-                me.name, parv[0], name, buf);
+	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
         }
 
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-            parv[0], name, a2cptr->name, a2cptr->info);
+	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
 
         if (user)
         {
           if (user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY), me.name,
-                parv[0], name, user->away);
+	    send_reply(sptr, RPL_AWAY, name, user->away);
 
           if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
-                me.name, parv[0], name);
+	    send_reply(sptr, RPL_WHOISOPERATOR, name);
 
           if (MyConnect(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
-                parv[0], name, CurrentTime - user->last, acptr->firsttime);
+	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
+		       acptr->firsttime);
         }
         if (found == 2 || total++ >= MAX_WHOIS_LINES)
           break;
@@ -515,19 +507,19 @@ exact_match:
         user = acptr->user;
         name = (!*acptr->name) ? "?" : acptr->name;
         a2cptr = user->server;
-        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-            parv[0], name, user->username, user->host, acptr->info);
+	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		   acptr->info);
         goto exact_match;
       }
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+      send_reply(sptr, ERR_NOSUCHNICK, nick);
     if (p)
       p[-1] = ',';
     if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]);
+  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
 
   return 0;
 }
@@ -561,7 +553,7 @@ int mo_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
 
@@ -572,7 +564,7 @@ int mo_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        it with the correct servername - as is needed by hunt_server() */
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
       parv[1] = acptr->user->server->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
     parv[1] = parv[2];
@@ -646,14 +638,14 @@ int mo_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (user)
         {
           a2cptr = user->server;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, user->username, user->host, acptr->info);
+	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		     acptr->info);
         }
         else
         {
           a2cptr = &me;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-              parv[0], name, "<unknown>", "<unknown>", "<unknown>");
+	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
+		     "<unknown>");
         }
 
         found = 1;
@@ -673,8 +665,8 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-                sendto_one(sptr, ":%s %d %s %s :%s",
-                    me.name, RPL_WHOISCHANNELS, parv[0], name, buf);
+		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS,
+			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;
               }
@@ -695,26 +687,22 @@ exact_match:
             }
           }
           if (buf[0] != '\0')
-            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS),
-                me.name, parv[0], name, buf);
+	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
         }
 
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-            parv[0], name, a2cptr->name, a2cptr->info);
+	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
 
         if (user)
         {
           if (user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY), me.name,
-                parv[0], name, user->away);
+	    send_reply(sptr, RPL_AWAY, name, user->away);
 
           if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
-                me.name, parv[0], name);
+	    send_reply(sptr, RPL_WHOISOPERATOR, name);
 
           if (MyConnect(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
-                parv[0], name, CurrentTime - user->last, acptr->firsttime);
+	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
+		       acptr->firsttime);
         }
         if (found == 2 || total++ >= MAX_WHOIS_LINES)
           break;
@@ -729,19 +717,19 @@ exact_match:
         user = acptr->user;
         name = (!*acptr->name) ? "?" : acptr->name;
         a2cptr = user->server;
-        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
-            parv[0], name, user->username, user->host, acptr->info);
+	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		   acptr->info);
         goto exact_match;
       }
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+      send_reply(sptr, ERR_NOSUCHNICK, nick);
     if (p)
       p[-1] = ',';
     if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]);
+  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
 
   return 0;
 }
@@ -778,7 +766,7 @@ int m_whois(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -789,7 +777,7 @@ int m_whois(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
        it with the correct servername - as is needed by hunt_server() */
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
       parv[1] = acptr->user->server->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
+    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) != /* XXX DEAD */
         HUNTED_ISME)
       return 0;
     parv[1] = parv[2];
@@ -863,13 +851,13 @@ int m_whois(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         if (user)
         {
           a2cptr = user->server;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
+          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
               parv[0], name, user->username, user->host, acptr->info);
         }
         else
         {
           a2cptr = &me;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
+          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
               parv[0], name, "<unknown>", "<unknown>", "<unknown>");
         }
 
@@ -890,7 +878,7 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-                sendto_one(sptr, ":%s %d %s %s :%s",
+                sendto_one(sptr, ":%s %d %s %s :%s", /* XXX DEAD */
                     me.name, RPL_WHOISCHANNELS, parv[0], name, buf);
                 *buf = '\0';
                 len = 0;
@@ -912,25 +900,25 @@ exact_match:
             }
           }
           if (buf[0] != '\0')
-            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS),
+            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), /* XXX DEAD */
                 me.name, parv[0], name, buf);
         }
 
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
+        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, /* XXX DEAD */
             parv[0], name, a2cptr->name, a2cptr->info);
 
         if (user)
         {
           if (user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY), me.name,
+            sendto_one(sptr, rpl_str(RPL_AWAY), me.name, /* XXX DEAD */
                 parv[0], name, user->away);
 
           if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
+            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR), /* XXX DEAD */
                 me.name, parv[0], name);
 
           if (MyConnect(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
+            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name, /* XXX DEAD */
                 parv[0], name, CurrentTime - user->last, acptr->firsttime);
         }
         if (found == 2 || total++ >= MAX_WHOIS_LINES)
@@ -946,19 +934,19 @@ exact_match:
         user = acptr->user;
         name = (!*acptr->name) ? "?" : acptr->name;
         a2cptr = user->server;
-        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
+        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
             parv[0], name, user->username, user->host, acptr->info);
         goto exact_match;
       }
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
+      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
     if (p)
       p[-1] = ',';
     if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]);
+  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]); /* XXX DEAD */
 
   return 0;
 }

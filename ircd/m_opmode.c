@@ -116,7 +116,7 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
-    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
@@ -141,7 +141,7 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
 #ifndef CONFIG_OPERCMDS
-  return send_error_to_client(sptr, ERR_DISABLED, "OPMODE");
+  return send_reply(sptr, ERR_DISABLED, "OPMODE");
 #else
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
@@ -153,10 +153,10 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   clean_channelname(parv[1]);
 
   if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
-    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   if (!(member = find_member_link(chptr, sptr)))
-    return send_error_to_client(sptr, ERR_NOTONCHANNEL, chptr->chname);
+    return send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */

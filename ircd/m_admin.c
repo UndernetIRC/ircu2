@@ -111,10 +111,11 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc > 1) {
     struct Client *acptr;
     if (!(acptr = find_match_server(parv[1])))
-      return send_error_to_client(sptr, ERR_NOSUCHSERVER, parv[1]);
+      return send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
 
     parv[1] = acptr->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_ADMIN " :%s", 1, parc, parv) != HUNTED_ISME)
+    if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, 0, ":%C", 1, parc, parv) !=
+	HUNTED_ISME)
       return 0;
   }
   return send_admin_info(sptr, find_admin());
@@ -134,7 +135,8 @@ int ms_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 2)
     return 0;
 
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_ADMIN " :%s", 1, parc, parv) != HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, 0, ":%C", 1, parc, parv) !=
+      HUNTED_ISME)
     return 0;
 
   return send_admin_info(sptr, find_admin());

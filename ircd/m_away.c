@@ -114,12 +114,12 @@ int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
 
   if (user_set_away(sptr->user, away_message)) {
-    sendto_serv_butone(cptr, "%s%s " TOK_AWAY " :%s", NumNick(sptr), away_message);
-    sendto_one(sptr, rpl_str(RPL_NOWAWAY), me.name, parv[0]);
+    sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
+    send_reply(sptr, RPL_NOWAWAY);
   }
   else {
-    sendto_serv_butone(cptr, "%s%s " TOK_AWAY, NumNick(sptr));
-    sendto_one(sptr, rpl_str(RPL_UNAWAY), me.name, parv[0]);
+    sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, "");
+    send_reply(sptr, RPL_UNAWAY);
   }
   return 0;
 }
@@ -144,9 +144,9 @@ int ms_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (user_set_away(sptr->user, away_message))
-    sendto_serv_butone(cptr, "%s%s " TOK_AWAY " :%s", NumNick(sptr), away_message);
+    sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
   else
-    sendto_serv_butone(cptr, "%s%s " TOK_AWAY, NumNick(sptr));
+    sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, "");
   return 0;
 }
 

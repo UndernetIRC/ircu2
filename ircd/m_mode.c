@@ -123,10 +123,8 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
     channel_modes(sptr, modebuf, parabuf, chptr);
-    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
-	       chptr->chname, modebuf, parabuf);
-    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0],
-	       chptr->chname, chptr->creationtime);
+    send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, modebuf, parabuf);
+    send_reply(sptr, RPL_CREATIONTIME, chptr->chname, chptr->creationtime);
     return 0;
   }
 
@@ -251,8 +249,7 @@ int m_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsModelessChannel(chptr->chname)) {
     if (IsUser(sptr))
-      sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
-                 chptr->chname, "+nt", "");
+      send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, "+nt", "");
     return 0;
   }
 
@@ -263,10 +260,8 @@ int m_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
     channel_modes(sptr, modebuf, parabuf, chptr);
-    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
-               chptr->chname, modebuf, parabuf);
-    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0],
-               chptr->chname, chptr->creationtime);
+    send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, modebuf, parabuf);
+    send_reply(sptr, RPL_CREATIONTIME, chptr->chname, chptr->creationtime);
     return 0;
   }
 
@@ -274,27 +269,27 @@ int m_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(sendts = set_mode(cptr, sptr, chptr, parc - 2, parv + 2,
                           modebuf, parabuf, nparabuf, &badop))) {
-    sendto_one(sptr, err_str(find_channel_member(sptr, chptr) ? ERR_CHANOPRIVSNEEDED :
-        ERR_NOTONCHANNEL), me.name, parv[0], chptr->chname);
+    send_reply(sptr, (find_channel_member(sptr, chptr) ?
+		      ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL), chptr->chname);
     return 0;
   }
 
   if (badop >= 2)
-    send_hack_notice(cptr, sptr, parc, parv, badop, 1);
+    send_hack_notice(cptr, sptr, parc, parv, badop, 1); /* XXX DYING */
 
   if (strlen(modebuf) > 1 || sendts > 0) {
     if (badop != 2 && strlen(modebuf) > 1) {
 #ifdef OPER_MODE_LCHAN
       if (LocalChanOperMode) {
-        sendto_channel_butserv(chptr, &me, ":%s MODE %s %s %s",
-                               me.name, chptr->chname, modebuf, parabuf);
-        sendto_op_mask(SNO_HACK4,"OPER MODE: %s MODE %s %s %s",
-                       sptr->name, chptr->chname, modebuf, parabuf);
+	sendcmdto_channel_butserv(&me, CMD_MODE, chptr, "%H %s %s", chptr,
+				  modebuf, parabuf);
+        sendto_opmask_butone(0, SNO_HACK4, "OPER MODE: %C MODE %H %s %s",
+			     sptr, chptr, modebuf, parabuf);
       }
       else
 #endif
-      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
-          parv[0], chptr->chname, modebuf, parabuf);
+      sendcmdto_channel_butserv(sptr, CMD_MODE, chptr, "%H %s %s", chptr,
+				modebuf, parabuf);
     }
     if (IsLocalChannel(chptr->chname))
       return 0;
@@ -303,18 +298,14 @@ int m_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (*modebuf == '\0')
         strcpy(modebuf, "+");
       if (badop != 2) {
-        sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s " TIME_T_FMT,
-            NumServ(sptr), chptr->chname, modebuf, nparabuf,
-            (badop == 4) ? (time_t) 0 : chptr->creationtime);
+	sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%H %s %s %Tu", chptr,
+			      modebuf, nparabuf, (badop == 4) ? (time_t) 0 :
+			      chptr->creationtime);
       }
     }
     else {
-      if (IsServer(sptr))
-         sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s",
-           NumServ(sptr), chptr->chname, modebuf, nparabuf);
-      else
-         sendto_highprot_butone(cptr, 10, "%s%s " TOK_MODE " %s %s %s",
-           NumNick(sptr), chptr->chname, modebuf, nparabuf);
+      sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%H %s %s", chptr, modebuf,
+			    nparabuf);
     }
   }
   return 0;
@@ -358,8 +349,7 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsModelessChannel(chptr->chname)) {
     if (IsUser(sptr))
-      sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
-                 chptr->chname, "+nt", "");
+      send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, "+nt", "");
     return 0;
   }
 
@@ -370,10 +360,8 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
     channel_modes(sptr, modebuf, parabuf, chptr);
-    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
-               chptr->chname, modebuf, parabuf);
-    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0],
-               chptr->chname, chptr->creationtime);
+    send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, modebuf, parabuf);
+    send_reply(sptr, RPL_CREATIONTIME, chptr->chname, chptr->creationtime);
     return 0;
   }
 
@@ -381,27 +369,27 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(sendts = set_mode(cptr, sptr, chptr, parc - 2, parv + 2,
                           modebuf, parabuf, nparabuf, &badop))) {
-    sendto_one(sptr, err_str(find_channel_member(sptr, chptr) ? ERR_CHANOPRIVSNEEDED :
-        ERR_NOTONCHANNEL), me.name, parv[0], chptr->chname);
+    send_reply(sptr, (find_channel_member(sptr, chptr) ?
+		      ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL), chptr->chname);
     return 0;
   }
 
   if (badop >= 2)
-    send_hack_notice(cptr, sptr, parc, parv, badop, 1);
+    send_hack_notice(cptr, sptr, parc, parv, badop, 1); /* XXX DYING */
 
   if (strlen(modebuf) > 1 || sendts > 0) {
     if (badop != 2 && strlen(modebuf) > 1) {
 #ifdef OPER_MODE_LCHAN
       if (LocalChanOperMode) {
-        sendto_channel_butserv(chptr, &me, ":%s MODE %s %s %s",
-                               me.name, chptr->chname, modebuf, parabuf);
-        sendto_op_mask(SNO_HACK4,"OPER MODE: %s MODE %s %s %s",
-                       me.name, chptr->chname, modebuf, parabuf);
+	sendcmdto_channel_butserv(&me, CMD_MODE, chptr, "%H %s %s", chptr,
+				  modebuf, parabuf);
+        sendto_opmask_butone(0, SNO_HACK4, "OPER MODE: %C MODE %H %s %s",
+			     sptr, chptr, modebuf, parabuf);
       }
       else
 #endif
-      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
-          parv[0], chptr->chname, modebuf, parabuf);
+      sendcmdto_channel_butserv(sptr, CMD_MODE, chptr, "%H %s %s", chptr,
+				modebuf, parabuf);
     }
     if (IsLocalChannel(chptr->chname))
       return 0;
@@ -410,18 +398,14 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (*modebuf == '\0')
         strcpy(modebuf, "+");
       if (badop != 2) {
-        sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s " TIME_T_FMT,
-            NumServ(sptr), chptr->chname, modebuf, nparabuf,
-            (badop == 4) ? (time_t) 0 : chptr->creationtime);
+	sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%H %s %s %Tu", chptr,
+			      modebuf, nparabuf, (badop == 4) ? (time_t) 0 :
+			      chptr->creationtime);
       }
     }
     else {
-      if (IsServer(sptr))
-         sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s",
-           NumServ(sptr), chptr->chname, modebuf, nparabuf);
-      else
-         sendto_highprot_butone(cptr, 10, "%s%s " TOK_MODE " %s %s %s",
-           NumNick(sptr), chptr->chname, modebuf, nparabuf);
+      sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%H %s %s", chptr, modebuf,
+			    nparabuf);
     }
   }
   return 0;
@@ -466,7 +450,7 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if (IsModelessChannel(chptr->chname)) {
     if (IsUser(sptr))
-      sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0], /* XXX DEAD */
                  chptr->chname, "+nt", "");
     return 0;
   }
@@ -478,9 +462,9 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
     channel_modes(sptr, modebuf, parabuf, chptr);
-    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0], /* XXX DEAD */
                chptr->chname, modebuf, parabuf);
-    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0], /* XXX DEAD */
                chptr->chname, chptr->creationtime);
     return 0;
   }
@@ -489,7 +473,7 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!(sendts = set_mode(cptr, sptr, chptr, parc - 2, parv + 2,
                           modebuf, parabuf, nparabuf, &badop))) {
-    sendto_one(sptr, err_str(find_channel_member(sptr, chptr) ? ERR_CHANOPRIVSNEEDED :
+    sendto_one(sptr, err_str(find_channel_member(sptr, chptr) ? ERR_CHANOPRIVSNEEDED : /* XXX DEAD */
         ERR_NOTONCHANNEL), me.name, parv[0], chptr->chname);
     return 0;
   }
@@ -501,14 +485,14 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (badop != 2 && strlen(modebuf) > 1) {
 #ifdef OPER_MODE_LCHAN
       if (LocalChanOperMode) {
-        sendto_channel_butserv(chptr, &me, ":%s MODE %s %s %s",
+        sendto_channel_butserv(chptr, &me, ":%s MODE %s %s %s", /* XXX DEAD */
                                me.name, chptr->chname, modebuf, parabuf);
-        sendto_op_mask(SNO_HACK4,"OPER MODE: %s MODE %s %s %s",
+        sendto_op_mask(SNO_HACK4,"OPER MODE: %s MODE %s %s %s", /* XXX DEAD */
                        me.name, chptr->chname, modebuf, parabuf);
       }
       else
 #endif
-      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
+      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", /* XXX DEAD */
           parv[0], chptr->chname, modebuf, parabuf);
     }
     if (IsLocalChannel(chptr->chname))
@@ -518,17 +502,17 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (*modebuf == '\0')
         strcpy(modebuf, "+");
       if (badop != 2) {
-        sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s " TIME_T_FMT,
+        sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s " TIME_T_FMT, /* XXX DEAD */
             NumServ(sptr), chptr->chname, modebuf, nparabuf,
             (badop == 4) ? (time_t) 0 : chptr->creationtime);
       }
     }
     else {
       if (IsServer(sptr))
-         sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s",
+         sendto_highprot_butone(cptr, 10, "%s " TOK_MODE " %s %s %s", /* XXX DEAD */
            NumServ(sptr), chptr->chname, modebuf, nparabuf);
       else
-         sendto_highprot_butone(cptr, 10, "%s%s " TOK_MODE " %s %s %s",
+         sendto_highprot_butone(cptr, 10, "%s%s " TOK_MODE " %s %s %s", /* XXX DEAD */
            NumNick(sptr), chptr->chname, modebuf, nparabuf);
     }
   }
