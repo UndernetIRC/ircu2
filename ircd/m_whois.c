@@ -299,7 +299,7 @@ exact_match:
                 me.name, parv[0], name);
 
 #ifdef HEAD_IN_SAND_IDLETIME
-          if (MyConnect(acptr) && (IsAnOper(sptr) || parc>=3)
+          if (MyConnect(acptr) && (IsAnOper(sptr) || parc>=3))
 #else
           if (MyConnect(acptr))
 #endif

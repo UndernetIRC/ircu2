@@ -31,6 +31,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
