@@ -19,8 +19,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Miscellaneous server support functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -59,9 +61,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+/** Maximum connection count since last restart. */
 unsigned int max_connection_count = 0;
+/** Maximum (local) client count since last restart. */
 unsigned int max_client_count = 0;
 
+/** Squit a new (pre-burst) server.
+ * @param cptr Local client that tried to introduce the server.
+ * @param sptr Server to disconnect.
+ * @param host Name of server being disconnected.
+ * @param timestamp Link time of server being disconnected.
+ * @param pattern Format string for squit message.
+ * @return CPTR_KILLED if cptr == sptr, else 0.
+ */
 int exit_new_server(struct Client *cptr, struct Client *sptr, const char *host,
                     time_t timestamp, const char *pattern, ...)
 {
@@ -81,17 +93,22 @@ int exit_new_server(struct Client *cptr, struct Client *sptr, const char *host,
   return retval;
 }
 
+/** Indicate whether \a a is between \a b and #me (that is, \a b would
+ * be killed if \a a squits).
+ * @param a A server that may be between us and \a b.
+ * @param b A client that may be on the far side of \a a.
+ * @return Non-zero if \a a is between \a b and #me.
+ */
 int a_kills_b_too(struct Client *a, struct Client *b)
 {
   for (; b != a && b != &me; b = cli_serv(b)->up);
   return (a == b ? 1 : 0);
 }
 
-/*
- * server_estab
- *
- * May only be called after a SERVER was received from cptr,
- * and thus make_server was called, and serv->prot set. --Run
+/** Handle a connection that has sent a valid PASS and SERVER.
+ * @param cptr New peer server.
+ * @param aconf Connect block for \a cptr.
+ * @return Zero.
  */
 int server_estab(struct Client *cptr, struct ConfItem *aconf)
 {
