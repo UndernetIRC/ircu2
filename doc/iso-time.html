@@ -1,0 +1,535 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!-- $Id: iso-time.html,v 1.1 2000-04-02 23:46:03 bleep Exp $ -->
+<HTML>
+<HEAD>
+<TITLE>International Standard Date and Time Notation</TITLE>
+<BASE HREF="http://www.cl.cam.ac.uk/~mgk25/iso-time.html">
+<META NAME="keywords" CONTENT="ISO 8601, date format, time format,
+standard notation, calendar, clock, time zones, daylight saving time,
+summer time, international standard, file format, protocol,
+data representation">
+<META NAME="description" CONTENT="International Standard ISO 8601
+specifies numeric representations of date and time. It helps to avoid
+confusion caused by the many different national notations.">
+</HEAD>
+<BODY BGCOLOR="#EFEFEF" TEXT="#000000">
+
+<H1>A Summary of the International Standard Date and Time Notation</H1>
+
+<P>by Markus Kuhn
+
+<P><A HREF="http://www.iso.ch/markete/8601.pdf">International Standard
+ISO 8601</A> specifies numeric representations of date and time. This
+standard notation helps to avoid confusion in international
+communication caused by the many different national notations and
+increases the portability of computer user interfaces. In addition,
+these formats have several important advantages for computer usage
+compared to other traditional date and time notations. The time
+notation described here is already the de-facto standard in almost all
+countries and the date notation is becoming increasingly popular.
+
+<P><STRONG>Especially authors of Web pages and software engineers who
+design user interfaces, file formats, and communication protocols
+should be familiar with ISO 8601.</STRONG>
+
+<P>Contents: <A HREF="#date">Date</A>, <A HREF="#time">Time of Day</A>,
+<A HREF="#zone">Time Zone</A>.
+
+<H2><A NAME="date">Date</A></H2>
+
+<P>The international standard date notation is
+
+<BLOCKQUOTE><P><STRONG>YYYY-MM-DD</STRONG></BLOCKQUOTE>
+
+<P>where YYYY is the year in the usual Gregorian calendar, MM is the
+month of the year between 01 (January) and 12 (December), and DD is
+the day of the month between 01 and 31.
+
+<P>For example, the fourth day of February in the year 1995 is written
+in the standard notation as
+
+<BLOCKQUOTE><P><STRONG>1995-02-04</STRONG></BLOCKQUOTE>
+
+<P>Other commonly used notations are e.g. 2/4/95, 4/2/95, 95/2/4,
+4.2.1995, 04-FEB-1995, 4-February-1995, and many more. Especially the
+first two examples are dangerous, because as both are used quite often
+in the U.S. and in Great Britain and both can not be distinguished, it
+is unclear whether 2/4/95 means 1995-04-02 or 1995-02-04. The date
+notation 2/4/5 has at least six reasonable interpretations (assuming
+that only the twentieth and twenty-first century are reasonable
+candidates in our life time).
+
+<P>Advantages of the ISO 8601 standard date notation compared to other
+commonly used variants:
+
+<UL>
+  <LI>easily readable and writeable by software (no 'JAN', 'FEB', ...
+      table necessary)
+  <LI>easily comparable and sortable with a trivial string comparison
+  <LI>language independent
+  <LI>can not be confused with other popular date notations
+  <LI>consistency with the common 24h time notation system, where
+      the larger units (hours) are also written in front of the smaller
+      ones (minutes and seconds)
+  <LI>strings containing a date followed by a time are also
+      easily comparable and sortable (e.g. write "1995-02-04 22:45:00")
+  <LI>the notation is short and has constant length, which makes both
+      keyboard data entry and table layout easier
+  <LI>identical to the Chinese date notation, so the largest cultural
+      group (>25%) on this planet is already familiar with it :-)
+  <LI>date notations with the order "year, month, day" are in addition
+      already widely used e.g. in Japan, Korea, Hungary, Sweden, Finland,
+      Denmark, and a few other countries and people in the U.S. are already
+      used to at least the "month, day" order
+  <LI>a 4-digit year representation avoids
+      <A HREF="http://www.year2000.com/cgi-bin/clock.cgi">overflow
+      problems after 1999-12-31</A>
+</UL>
+
+<P>As dates will look a little bit strange anyway starting with
+2000-01-01 (e.g. like 1/1/0), it has been suggested that the year 2000
+is an excellent opportunity to change to the standard date notation.
+
+<P>ISO 8601 is only specifying numeric notations and does not cover
+dates and times where words are used in the representation. It is not
+intended as a replacement for language-dependent worded date notations
+such as "24. Dezember 2001" (German) or "February 4, 1995" (US
+English). ISO 8601 should however be used to replace notations such as
+"2/4/95" and "9.30 p.m.".
+
+<P>Apart from the recommended primary standard notation
+<STRONG>YYYY-MM-DD</STRONG>, ISO 8601 also specifies a number of
+alternative formats for use in applications with special requirements.
+All of these alternatives can easily and automatically be
+distinguished from each other:
+
+<P>The hyphens can be omitted if compactness of the representation is
+more important than human readability, for example as in
+
+<BLOCKQUOTE><P><STRONG>19950204</STRONG></BLOCKQUOTE>
+
+<P>For situations where information about the century is really not
+required, a 2-digit year representation is available:
+
+<BLOCKQUOTE><P><STRONG>95-02-04</STRONG> or
+<STRONG>950204</STRONG></BLOCKQUOTE>
+
+<P>If only the month or even only the year is of interest:
+
+<BLOCKQUOTE><P><STRONG>1995-02</STRONG> or
+<STRONG>1995</STRONG></BLOCKQUOTE>
+
+<P>In commercial and industrial applications (delivery times,
+production plans, etc.), especially in Europe, it is often required to
+refer to a week of a year. Week 01 of a year is per definition the
+first week that has the Thursday in this year, which is equivalent to
+the week that contains the fourth day of January. In other words, the
+first week of a new year is the week that has the majority of its
+days in the new year. Week 01 might also contain days from the
+previous year and the week before week 01 of a year is the last week
+(52 or 53) of the previous year even if it contains days from the new
+year. A week starts with Monday (day 1) and ends with Sunday (day 7).
+For example, the first week of the year 1997 lasts from 1996-12-30 to
+1997-01-05 and can be written in standard notation as
+
+<BLOCKQUOTE><P><STRONG>1997-W01</STRONG> or
+<STRONG>1997W01</STRONG></BLOCKQUOTE>
+
+<P>The week notation can also be extended by a number indicating the
+day of the week. For example, the day 1996-12-31, which is the Tuesday
+(day 2) of the first week of 1997, can also be written as
+
+<BLOCKQUOTE><P><STRONG>1997-W01-2</STRONG> or
+<STRONG>1997W012</STRONG></BLOCKQUOTE>
+
+<P>for applications like industrial planning where many things like
+shift rotations are organized per week and knowing the week number and
+the day of the week is more handy than knowing the day of the month.
+
+<P>An abbreviated version of the year and week number like
+
+<BLOCKQUOTE><P><STRONG>95W05</STRONG></BLOCKQUOTE>
+
+<P>is sometimes useful as a compact code printed on a product that
+indicates when it has been manufactured.
+
+<P>The ISO standard avoids explicitly stating the possible range of
+week numbers, but this can easily be deduced from the definition:
+
+<BLOCKQUOTE>
+
+<P><STRONG>Theorem:</STRONG> Possible ISO week numbers are in the
+range 01 to 53. A year always has a week 52. (There is one historic
+exception: the year in which the Gregorian calendar was introduced had
+less than 365 days and less than 52 weeks.)
+
+<P><STRONG>Proof:</STRONG> Per definition, the first week of a year is
+W01 and consequently days before week W01 belong to the previous year
+and so there is no week with lower numbers. Considering the highest
+possible week number, the worst case is a leap year like 1976 that
+starts with a Thursday, because this keeps the highest possible number
+of days of W01 in the previous year, i.e. 3 days. In this case, the
+Sunday of W52 of the worst case year is day number 4+51*7=361 and
+361-366=5 days of W53 belong still to this year, which guarantees that
+in the worst case year day 4 (Thursday) of W53 is not yet in the next
+year, so a week number 53 is possible. For example, the 53 weeks of
+the worst case year 1976 started with 1975-12-29 = 1976-W01-1 and
+ended with 1977-01-02 = 1976-W53-7. On the other hand, considering the
+lowest number of the last week of a year, the worst case is a non-leap
+year like 1999 that starts with a Friday, which ensures that the first
+three days of the year belong to the last week of the previous year.
+In this case, the Sunday of week 52 would be day number 3+52*7=367,
+i.e. only the last 367-365=2 days of the W52 reach into the next year
+and consequently, even a worst case year like 1999 has a week W52
+including the days 1999-12-27 to 2000-01-02. q.e.d.
+
+</BLOCKQUOTE>
+
+<P>[Unfortunately, the current version of the C programming language
+standard provides in the <CODE>strftime()</CODE> function no means to
+generate the ISO 8601 week notation. A required extension would be
+four new formatting codes: for the year of the week to which the
+specified day belongs (both 2-digit and 4-digit), for the number of
+the week between 01 and 53, and for the day of the week between 1
+(Monday) and 7 (Sunday). Another trivial mistake in the description of
+<CODE>strftime()</CODE> in the C standard is that the range of seconds
+goes from 00 to 61, because at one time only one single leap second 60
+can be inserted into UTC and consequently there will never be a leap
+second 61. Contribution <A
+HREF="http://www.gold.net/users/cdwf/c/wg14n764.txt">N764</A> to the
+<A HREF="ftp://dkuug.dk/JTC1/SC22/wg14/index.html">ISO C committee</A>
+suggests to fix some of this in the next revision of the ISO C
+standard. The author of this text has also developed a proposal for a
+<A HREF="c-time/">modernised clock and calendar API</A> for C, which
+provides full proper treatment of leap seconds and timezones and fixes
+numerous other problems in the current C timing library functions. It
+also serves as an excellent model for those who want to design clock
+library functions for other programming languages.]
+
+<P>Both day and year are useful units of structuring time, because the
+position of the sun on the sky, which influences our lives, is
+described by them. However the 12 months of a year are of some obscure
+mystic origin and have no real purpose today except that people are
+used to having them (they do not even describe the current position of
+the moon). In some applications, a date notation is preferred that
+uses only the year and the day of the year between 001 and 365 (366 in
+leap years). The standard notation for this variant representing
+the day 1995-02-04 (that is day 035 of the year 1995) is
+
+<BLOCKQUOTE><P><STRONG>1995-035</STRONG> or
+<STRONG>1995035</STRONG></BLOCKQUOTE>
+
+<P>Leap years are years with an additional day YYYY-02-29, where the
+year number is a multiple of four with the following exception: If a
+year is a multiple of 100, then it is only a leap year if it is also a
+multiple of 400. For example, 1900 was not a leap year, but 2000 is one.
+
+<H2><A NAME="time">Time of Day</A></H2>
+
+<P>The international standard notation for the time of day is
+
+<BLOCKQUOTE><P><STRONG>hh:mm:ss</STRONG></BLOCKQUOTE>
+
+<P>where hh is the number of complete hours that have passed since
+midnight (00-24), mm is the number of complete minutes that have
+passed since the start of the hour (00-59), and ss is the number of
+complete seconds since the start of the minute (00-59).  If the hour
+value is 24, then the minute and second values must be zero. [Although
+ISO 8601 does not mention this, the value 60 for ss might sometimes be
+needed during an inserted <A
+HREF="http://tycho.usno.navy.mil/leap.html">leap second</A> in an
+atomic time scale like Coordinated Universal Time (UTC). A single leap
+second 23:59:60 is inserted into the UTC time scale every few years as
+announced by the <A HREF="http://hpiers.obspm.fr/">International Earth
+Rotation Service</A> in Paris to keep UTC from wandering away more
+than 0.9&nbsp;s from the less constant astronomical time scale UT1
+that is defined by the actual rotation of the earth.]
+
+
+<P>An example time is
+
+<BLOCKQUOTE><P><STRONG>23:59:59</STRONG></BLOCKQUOTE>
+
+<P>which represents the time one second before midnight.
+
+<P>As with the date notation, the separating colons can also be
+omitted as in
+
+<BLOCKQUOTE><P><STRONG>235959</STRONG></BLOCKQUOTE>
+
+<P>and the precision can be reduced by omitting the seconds or both
+the seconds and minutes as in
+
+<BLOCKQUOTE><P><STRONG>23:59</STRONG>, <STRONG>2359</STRONG>, or
+<STRONG>23</STRONG></BLOCKQUOTE>
+
+<P>It is also possible to add fractions of a second after a decimal
+dot or comma, for instance the time 5.8&nbsp;ms before midnight can be
+written as
+
+<BLOCKQUOTE><P><STRONG>23:59:59.9942</STRONG> or
+<STRONG>235959.9942</STRONG> </BLOCKQUOTE>
+
+<P>As every day both starts and ends with midnight, the two notations
+<STRONG>00:00</STRONG> and <STRONG>24:00</STRONG> are available to
+distinguish the two midnights that can be associated with one date.
+This means that the following two notations refer to exactly the same
+point in time:
+
+<BLOCKQUOTE><P><STRONG>1995-02-04 24:00</STRONG> =
+<STRONG>1995-02-05 00:00</STRONG></BLOCKQUOTE>
+
+<P>In case an unambiguous representation of time is required, 00:00 is
+usually the preferred notation for midnight and not 24:00. Digital
+clocks display 00:00 and not 24:00.
+
+<P>ISO 8601 does not specify, whether its notations specify a point in
+time or a time period. This means for example that ISO 8601 does not
+define whether 09:00 refers to the exact end of the ninth hour of the
+day or the period from 09:00 to 09:01 or anything else. The users of
+the standard must somehow agree on the exact interpretation of the
+time notation if this should be of any concern.
+
+<P>If a date and a time are displayed on the same line, then always
+write the date in front of the time. If a date and a time value are
+stored together in a single data field, then ISO 8601 suggests that
+they should be separated by a latin capital letter T, as in
+<STRONG>19951231T235959</STRONG>.
+
+<P>A remark for readers from the U.S.:
+
+<BLOCKQUOTE><P>The 24h time notation specified here has already been
+the de-facto standard all over the world in written language for
+decades. The only exception are some English speaking countries, where
+still notations with hours between 1 and 12 and additions like "a.m."
+and "p.m." are in wide use. The common 24h international standard
+notation starts to get widely used now even in England. Most other
+languages don't even have abbreviations like "a.m." and "p.m." and the
+12h notation is certainly hardly ever used on Continental Europe to
+write or display a time. Even in the U.S., the military and computer
+programmers have been using the 24h notation for a long time.
+
+<P>The old English 12h notation has many disadvantages like:
+
+<UL>
+  <LI> It is longer than the normal 24h notation.
+  <LI> It takes somewhat more time for humans to compare two times
+       in 12h notation.
+  <LI> It is not clear, how 00:00, 12:00 and 24:00 are represented.
+       Even encyclopedias and style manuals contain contradicting
+       descriptions and a common quick fix seems to be to avoid
+       "12:00 a.m./p.m." altogether and write "noon", "midnight", or
+       "12:01 a.m./p.m." instead, although the word "midnight" still
+       does not distinguish between 00:00 and 24:00.
+  <LI> It makes people often believe that the next day starts at the
+       overflow from "12:59 a.m." to "1:00 a.m.", which is a common
+       problem not only when people try to program the timer of VCRs
+       shortly after midnight.
+  <LI> It is not easily comparable with a string compare operation.
+  <LI> It is not immediately clear for the unaware, whether the
+       time between "12:00 a.m./p.m." and "1:00 a.m./p.m." starts
+       at 00:00 or at 12:00, i.e. the English 12h notation is more
+       difficult to understand.
+</UL>
+
+<P>Please consider the 12h time to be a relic from the dark ages when
+Roman numerals were used, the number zero had not yet been invented
+and analog clocks were the only known form of displaying a
+time. Please avoid using it today, especially in technical
+applications! Even in the U.S., the widely respected <CITE>Chicago
+Manual of Style</CITE> now recommends using the international
+standard time notation in publications.
+
+</BLOCKQUOTE>
+
+<P>A remark for readers from German speaking countries:
+
+<BLOCKQUOTE><P>In May 1996, the German standard DIN 5008, which
+specifies typographical rules for German texts written on typewriters,
+has been updated. The old German numeric date notations DD.MM.YYYY and
+DD.MM.YY have been replaced by the ISO date notations YYYY-MM-DD and
+YY-MM-DD. Similarly, the old German time notations hh.mm and hh.mm.ss
+have been replaced by the ISO notations hh:mm and hh:mm:ss.  Those new
+notations are now also mentioned in the latest edition of the
+<CITE>Duden</CITE>. The German alphanumeric date notation continues to
+be for example "3. August 1994" or "3. Aug. 1994". The corresponding
+Austrian standard has already used the ISO 8601 date and time
+notations before.
+
+<P>ISO 8601 has been adopted as European Standard EN 28601 and is
+therefore now a valid standard in all EU countries and all conflicting
+national standards have been changed accordingly.
+</BLOCKQUOTE>
+
+<H2><A NAME="zone">Time Zone</A></H2>
+
+<P>Without any further additions, a date and time as written above is
+assumed to be in some local time zone. In order to indicate that a
+time is measured in <A HREF="http://aa.usno.navy.mil/AA/faq/docs/UT.html"
+>Universal Time (UTC)</A>, you can append a capital
+letter <STRONG>Z</STRONG> to a time as in
+
+<BLOCKQUOTE><P><STRONG>23:59:59Z</STRONG> or <STRONG>2359Z</STRONG>
+</BLOCKQUOTE>
+
+<P>[The Z stands for the "zero meridian", which goes through Greenwich
+in London, and it is also commonly used in radio communication where
+it is pronounced "Zulu" (the word for Z in the international radio
+alphabet).  <A HREF=
+"http://www.apparent-wind.com/gmt-explained.html">Universal
+Time</A> (sometimes also called "Zulu Time") was called Greenwich Mean
+Time (GMT) before 1972, however this term should no longer be
+used. Since the introduction of an international atomic time scale,
+almost all existing civil time zones are now related to UTC, which is
+slightly different from the old and now unused GMT.]
+
+<P>The strings
+
+<BLOCKQUOTE><P><STRONG>+hh:mm</STRONG>, <STRONG>+hhmm</STRONG>, or
+<STRONG>+hh</STRONG></BLOCKQUOTE>
+
+<P>can be added to the time to indicate that the used local time zone
+is hh hours and mm minutes ahead of UTC. For time zones west of the
+zero meridian, which are behind UTC, the notation
+
+<BLOCKQUOTE><P><STRONG>-hh:mm</STRONG>, <STRONG>-hhmm</STRONG>, or
+<STRONG>-hh</STRONG></BLOCKQUOTE>
+
+<P>is used instead. For example, Central European Time (CET) is +0100
+and U.S./Canadian Eastern Standard Time (EST) is -0500. The following
+strings all indicate the same point of time:
+
+<BLOCKQUOTE><P><STRONG>12:00Z</STRONG> = <STRONG>13:00+01:00</STRONG>
+= <STRONG>0700-0500</STRONG></BLOCKQUOTE>
+
+<P>There exists no international standard that specifies
+abbreviations for civil time zones like CET, EST, etc. and sometimes
+the same abbreviation is even used for two very different time zones.
+In addition, politicians enjoy modifying the rules for civil time
+zones, especially for daylight saving times, every few years, so the
+only really reliable way of describing a local time zone is to specify
+numerically the difference of local time to UTC. Better use directly
+UTC as your only time zone where this is possible and then you do not
+have to worry about time zones and daylight saving time changes at
+all.
+
+<H2><A NAME="tz">More Information about Time Zones</A></H2>
+
+<P><A HREF="mailto:ado@elsie.nci.nih.gov">Arthur David Olson</A> and
+others maintain a <A HREF=
+"http://www.twinsun.com/tz/tz-link.htm">database of all current and
+many historic time zone changes and daylight saving time
+algorithms</A>. It is available via ftp from <A
+HREF="ftp://elsie.nci.nih.gov/pub/">elsie.nci.nih.gov</A> in the
+<SAMP>tzcode*</SAMP> and <SAMP>tzdata*</SAMP> files. Most Unix time
+zone handling implementations are based on this package. If you want
+to join the <SAMP>tz</SAMP> mailing list, which is dedicated to
+discussions about time zones and this software, please send a request
+for subscription to <A HREF="mailto:tz-request@elsie.nci.nih.gov"
+>tz-request@elsie.nci.nih.gov</A>. You can read previous discussion
+there in the <A HREF="ftp://elsie.nci.nih.gov/pub/tzarchive.gz">tz
+archive</A>.
+
+<H2><A NAME="other">Other Links about Date, Time, and Calendars</A></H2>
+
+<P>Some other interesting sources of information about date and time
+on the Internet are for example the <A
+HREF="http://www.boulder.nist.gov/timefreq/glossary.htm">Glossary of
+Frequency and Timing Terms</A> and the <A
+HREF="http://www.boulder.nist.gov/timefreq/faq/faq.htm">FAQ</A>
+provided by <A HREF="http://www.boulder.nist.gov/timefreq/">NIST</A>,
+the <A HREF=
+"http://www.yahoo.com/Science/Measurements_and_Units/Time/" >Yahoo
+Science:Measurements and Units:Time</A> link collection, the <A
+HREF="http://tycho.usno.navy.mil/">U.S. Naval Observatory Server</A>,
+the <A HREF="http://hpiers.obspm.fr/"> International Earth Rotation
+Service (IERS)</A> (for time gurus only!), the <A
+HREF="http://www.eecis.udel.edu/~ntp/">University of Delaware NTP Time
+Server</A>, the time and calendar section of the <A
+HREF="http://sciastro.astronomy.net/sci.astro.3.FAQ">USENET sci.astro
+FAQ</A>, and the <A HREF=
+"http://www.tondering.dk/claus/calendar.html">Calendar FAQ</A>.
+
+<P><HR>
+
+<P>This was a brief overview of the ISO 8601 standard, which covers
+only the most useful notations and includes some additional related
+information. The full standard defines in addition a number of more
+exotic notations including some for periods of time. The <A HREF=
+"http://www.iso.ch/cate/d15903.html">ISO 8601:1988 document</A> is
+fortunately now also <A
+HREF="http://www.iso.ch/markete/8601.pdf">available online</A>, or you
+can order a paper copy from
+
+<BLOCKQUOTE><P>
+<A HREF="http://www.iso.ch/">International Organization
+for Standardization</A><BR>
+Case postale 56<BR>
+1, rue de Varemb&eacute;<BR>
+CH-1211 Gen&egrave;ve 20<BR>
+Switzerland<BR>
+<BR>
+phone: +41 22 749 01 11<BR>
+fax: +41 22 733 34 30<BR>
+email: <A HREF="mailto:sales@isocs.iso.ch">sales@isocs.iso.ch</A>
+</BLOCKQUOTE>
+
+<P>A more detailed online summary of ISO 8601 than this one is the
+text <CITE>ISO 8601:1988 Date/Time Representations</CITE> available
+from <A HREF=
+"ftp://ftp.informatik.uni-erlangen.de/pub/doc/ISO/ISO8601.ps.Z">
+ftp.informatik.uni-erlangen.de/pub/doc/ISO/ISO8601.ps.Z</A>
+(PostScript, 16 kb, 5 pages) written by <A HREF=
+"mailto:Gary.Houston@actrix.gen.nz">Gary Houston</A>, now also
+available in <A HREF=
+"http://www.mcs.vuw.ac.nz/comp/Technical/SGML/doc/iso8601/ISO8601.html"
+>HTML</A>. Ian Galpin (G1SMD) proposes to use ISO 8601 as a <A
+HREF="http://www.kirsta.demon.co.uk/radio/iso_8601.htm">Common Date-Time
+Standard for Amateur Radio</A>. <A
+HREF="http://www.saqqara.demon.co.uk/">Steve Adams</A> has written <A
+HREF= "http://www.saqqara.demon.co.uk/datefmt.htm">another web
+page</A> about the ISO date format that is partially based on this
+text.
+
+<P>ISO TC 154 decided in 1996 to revise ISO 8601. <A
+HREF="mailto:Louis.Visser@nni.nl">Louis Visser</A> is coordinating
+this project. If you want to contribute to this work, you should
+contact your <A HREF=
+"http://www.iso.ch/addresse/address.html">national ISO member
+organization</A>. <!-- Have a look at the <A HREF="8601v04.pdf">1998-01
+draft of the forthcoming ISO 8601:1999</A>.-->
+
+<P><HR>
+
+<P>I wish to thank <A HREF="http://emr.cs.uiuc.edu/~reingold">Edward
+M. Reingold</A> for developing the fine GNU Emacs calendar functions,
+as well as <A HREF="http://yank.kitchener.on.ca/~richw">Rich Wales</A>,
+<A HREF="mailto:msb@sq.com">Mark Brader</A>, <A
+HREF="mailto:eggert%yata.UUCP@twinsun.com">Paul Eggert</A>, and others
+in the <A HREF="news:comp.std.internat">comp.std.internat</A>, <A
+HREF="news:comp.protocols.time.ntp">comp.protocols.time.ntp</A>, and
+<A HREF="news:sci.astro">sci.astro</A> USENET discussion groups for
+valuable comments about this text. Further comments and hyperlinks to
+this page are very welcome.
+
+<P>Some journalists recently got interested in the international date
+and time format and reported about it. Examples include:
+<UL>
+<LI>An article by <A HREF="mailto:Jon.Auerbach@news.wsj.com">Jon G.
+Auerbach</A> in the 1999-06-01 issue of the Wall Street Journal, page
+A1.
+</UL>
+<P>If you are a journalist and need information on this or related
+topics, please feel free to contact me.
+
+<P>You might also be interested in the <A
+HREF="http://www.cl.cam.ac.uk/~mgk25/iso-paper.html">International
+Standard Paper Sizes</A> Web page.
+
+<P><A HREF="http://www.cl.cam.ac.uk/~mgk25/">
+Markus Kuhn</A> <A HREF="mailto:Markus.Kuhn@cl.cam.ac.uk"
+>&lt;Markus.Kuhn@cl.cam.ac.uk></A>
+<BR><SMALL>created 1995 -- last modified 2000-01-24 --
+http://www.cl.cam.ac.uk/~mgk25/iso-time.html</SMALL>
+</BODY>
+</HTML>
