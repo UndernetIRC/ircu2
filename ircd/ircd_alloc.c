@@ -57,6 +57,7 @@ set_nomem_handler(OutOfMemoryHandler handler)
   noMemHandler = handler;
 }
 
+#ifndef MDEBUG
 /** Allocate memory.
  * @param[in] size Number of bytes to allocate.
  * @param[in] x Type of allocation (ignored).
@@ -101,3 +102,4 @@ void* DoRealloc(void *orig, size_t size, const char *file, int line)
     (*noMemHandler)();
   return t;
 }
+#endif

@@ -79,6 +79,7 @@ CRYPTO_SRC = \
 UMKPASSWD_SRC = ${CRYPTO_SRC} \
 	ircd_alloc.c \
 	ircd_string.c \
+	memdebug.c \
 	umkpasswd.c
 
 IRCD_SRC = \

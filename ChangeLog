@@ -1,3 +1,23 @@
+2005-01-26  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_alloc.h (DoMallocZero): Parenthesize macro
+	arguments, fixing operator precedence problems.
+	(DoFree): Make debug version also overwrite p.
+
+	* include/memdebug.h (fda_get_byte_count, fda_get_block_count):
+	Declare functions used outside memdebug.c.
+
+	* ircd/Makefile.c (UMKPASSWD_SRC): Add memdebug.c.
+
+	* ircd/ircd_alloc.c (DoMalloc, DoMallocZero, DoRealloc): Do not
+	use these if using the memdebug version.
+
+	* ircd/memdebug.c: #include "send.h" and <string.h> to get
+	declarations for certain functions.
+
+	* ircd/umkpasswd.c (CurrentTime): Define in case of memdebug.
+	(sendto_opmask_butone): Likewise.
+
 2005-01-25  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Fix typos and thinkos in previous commut.

@@ -39,7 +39,7 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
 
 /** Helper macro for zero-initialized allocations. */
 #define MyCalloc(nelem, size) \
-  DoMallocZero(size * nelem, "calloc", __FILE__, __LINE__)
+  DoMallocZero((size) * (nelem), "calloc", __FILE__, __LINE__)
 
 /** Helper macro for freeing memory. */
 #define MyFree(p) \
@@ -73,7 +73,7 @@ extern void *DoRealloc(void *, size_t, const char*, int);
 #define DoMallocZero(size, type, file, line) \
   dbg_malloc_zero(size, type, file, line)
 #define DoFree(p, file, line) \
-  dbg_free(p, file, line)
+  do { dbg_free(p, file, line); (p) = 0; } while (0)
 #define DoRealloc(p, size, file, line) \
   dbg_realloc(p, size, file, line)
 #endif /* defined(MDEBUG) */
