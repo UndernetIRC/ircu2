@@ -343,7 +343,8 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_ENDOFNAMES, para);
       return 1;
     }
-  } 
+  }
+  return 1;
 }
 
  
@@ -486,6 +487,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 1;
     }
   } 
+  return 1;
 }
  
 
