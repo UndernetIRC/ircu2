@@ -1,4 +1,7 @@
 2000-04-29  Perry Lorier <isomer@coders.net>
+	* include/s_bsd.c: Ok, so I thought I compiled and tested this...
+
+2000-04-29  Perry Lorier <isomer@coders.net>
 	* include/s_bsd.c: Add debugging code to IPcheck
 
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
@@ -972,7 +975,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.113 2000-04-29 04:42:51 isomer Exp $
+# $Id: ChangeLog,v 1.114 2000-04-29 05:30:05 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

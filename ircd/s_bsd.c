@@ -581,11 +581,11 @@ void add_connection(struct Listener* listener, int fd)
   if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
 #ifdef IPCHECKDEBUG     
    char buff[512];
-   snprintf(buff,"\n%s [%i connections active]\n",
+   snprintf(buff,512,"\n%s [%i connections active]\n",
    	throttle_message,
    	IPcheck_nr(addr.sin_addr));
    buff[511]=0;
-   send(fd,buff,strlen(buff));
+   send(fd,buff,strlen(buff),0);
 #else
     /*
      * strlen(throttle_message) == 66
