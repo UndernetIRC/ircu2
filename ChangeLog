@@ -1,3 +1,11 @@
+2004-06-18  Alex Badea  <decampos@users.sourceforge.net>
+
+	* ircd/gline.c (gline_lookup): only return a gline if it's
+	active
+	
+	* ircd/s_conf.c (find_kill): don't check for active gline,
+	since gline_lookup does now
+
 2004-06-08  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/parse.c: don't let rank-and-file users escape HIS
