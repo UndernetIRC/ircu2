@@ -968,19 +968,19 @@ HIS_WHOIS_IDLETIME
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this removes idle time in replies to /WHOIS.
 
 HIS_WHO_SERVERNAME
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this removes server names in replies to /WHO.
 
 HIS_WHO_HOPCOUNT
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this replaces hopcount to a static 3 in replies to /WHO.
 
 HIS_BANWHO
  * Type: boolean

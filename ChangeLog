@@ -1,3 +1,22 @@
+2002-09-02  Alexander Maassen <outsider@key2peace.org>
+
+	* doc/readme.features: Fixed bugs regarding certain features
+	being associated to WHOIS instead of WHO.
+ 
+2002-05-21  Andrew Miller  <a1kmm@mware.virtualave.net>
+
+	* ircd/ircd_relay.c: stop an information leak about the
+ 	network topography from relayed messages.
+ 
+2002-09-02  Mathieu Rene  <math@rootservices.net>
+	* ircd/m_squit.c (ms_squit): Fixed a bug that caused server
+        to crash when receiving a SQUIT without any reason or timestamp.
+ 
+2002-06-18  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_burst.c (ms_burst): kick local members if the channel
+	has a larger local TS and it's +i or +k remotely (anti net.ride)
+
 2002-09-16  Jochen Meesters <ekips@pandora.be>
 
 	* ircd/whocmds.h: Changed output of /who %a command, making it
