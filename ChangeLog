@@ -1,4 +1,10 @@
-2001-04-23  Perry Lorier       <Isomer@coders.net>
+2001-05-01  Perry Lorier       <Isomer@coders.net>
+	* doc/iauth.doc: Protocol for iauth server. (from hybrid).
+	* doc/linux-poll.patch: Patch to make Linux under 2.2 not deadlock
+		when you have far far too many sockets in use.
+	* {include,ircd}/iauth.c: A start on iauth support.
+
+2001-05-01  Perry Lorier       <Isomer@coders.net>
 	* ircd/s_err.c: Suggested wording change.
 	* ircd/s_user.c: Users aren't target limited against +k users.
 	* ircd/chkconf.c: Made it compile again, who knows if it works, but
