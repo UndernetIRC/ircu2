@@ -1,3 +1,9 @@
+2003-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* libs: put third-party libraries in this subdirectory.
+	Started by copying adns into it--will fix the rest and remove
+	the top-level copy later.
+
 2003-01-14  Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/m_settime.c: Fixed a minor format string issue.
 	
