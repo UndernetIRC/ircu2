@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.10 2000-04-15 00:20:54 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.11 2000-04-23 03:42:27 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fix for the easter buggy. --Isomer
 * Fix for rpong --Run
 * Fix for other IPcheck bug, thanks BLMet. --Bleep
 * Fix for IPcheck bug, rewrite IPcheck from scratch (mostly),
