@@ -229,4 +229,15 @@ void socket_events(struct Socket* sock, unsigned int events);
 
 const char* engine_name(void);
 
+#ifdef DEBUGMODE
+/* These routines pretty-print names for states and types for debug printing */
+
+const char* state_to_name(enum SocketState state);
+const char* timer_to_name(enum TimerType type);
+const char* event_to_name(enum EventType type);
+const char* gen_flags(unsigned int flags);
+const char* sock_flags(unsigned int flags);
+
+#endif /* DEBUGMODE */
+
 #endif /* INCLUDED_ircd_events_h */

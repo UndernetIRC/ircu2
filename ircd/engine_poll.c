@@ -176,8 +176,8 @@ engine_add(struct Socket* sock)
   sockList[i] = sock; /* enter socket into data structures */
   pollfdList[i].fd = s_fd(sock);
 
-  Debug((DEBUG_LIST, "poll: Adding socket %d to engine on %d [%p]", s_fd(sock),
-	 s_ed_int(sock), sock));
+  Debug((DEBUG_LIST, "poll: Adding socket %d to engine on %d [%p], state %s",
+	 s_fd(sock), s_ed_int(sock), sock, state_to_name(s_state(sock))));
 
   /* set the appropriate bits */
   set_or_clear(i, 0, state_to_events(s_state(sock), s_events(sock)));
@@ -193,8 +193,8 @@ engine_state(struct Socket* sock, enum SocketState new_state)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Changing state for socket %p to %d", sock,
-	 new_state));
+  Debug((DEBUG_LIST, "poll: Changing state for socket %p to %s", sock,
+	 state_to_name(new_state)));
 
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
@@ -210,8 +210,8 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Changing event mask for socket %p to %d", sock,
-	 new_events));
+  Debug((DEBUG_LIST, "poll: Changing event mask for socket %p to [%s]", sock,
+	 sock_flags(new_events)));
 
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
@@ -227,8 +227,8 @@ engine_delete(struct Socket* sock)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Deleting socket %d (%d) [%p]", s_fd(sock),
-	 s_ed_int(sock), sock));
+  Debug((DEBUG_LIST, "poll: Deleting socket %d (%d) [%p], state %s",
+	 s_fd(sock), s_ed_int(sock), sock, state_to_name(s_state(sock))));
 
   /* clear the events */
   pollfdList[s_ed_int(sock)].fd = -1;
@@ -288,8 +288,9 @@ engine_loop(struct Generators* gen)
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 
       Debug((DEBUG_LIST, "poll: Checking socket %p (fd %d, index %d, "
-	     "state %d, events %#x", sockList[i], s_fd(sockList[i]), i,
-	     s_state(sockList[i]), s_events(sockList[i])));
+	     "state %s, events %s", sockList[i], s_fd(sockList[i]), i,
+	     state_to_name(s_state(sockList[i])),
+	     sock_flags(s_events(sockList[i]))));
 
       if (s_state(sockList[i]) != SS_NOTSOCK) {
 	errcode = 0; /* check for errors on socket */
@@ -299,7 +300,7 @@ engine_loop(struct Generators* gen)
 	  errcode = errno; /* work around Solaris implementation */
 
 	if (errcode) { /* an error occurred; generate an event */
-	  Debug((DEBUG_LIST, "Poll: Error %d on fd %d (index %d), socket %p",
+	  Debug((DEBUG_LIST, "poll: Error %d on fd %d (index %d), socket %p",
 		 errcode, s_fd(sockList[i]), i, sockList[i]));
 	  event_generate(ET_ERROR, sockList[i], errcode);
 	  if (sockList[i]) /* can go away upon an error */
@@ -307,6 +308,8 @@ engine_loop(struct Generators* gen)
 	  continue;
 	}
       }
+
+      assert(0 != sockList[i]);
 
       switch (s_state(sockList[i])) {
       case SS_CONNECTING:
@@ -330,6 +333,10 @@ engine_loop(struct Generators* gen)
 
 	  switch (recv(s_fd(sockList[i]), &c, 1, MSG_PEEK)) { /* check EOF */
 	  case -1: /* error occurred?!? */
+	    if (errno == EAGAIN) {
+	      Debug((DEBUG_LIST, "poll: Resource temporarily unavailable?"));
+	      continue;
+	    }
 	    Debug((DEBUG_LIST, "poll: Uncaught error!"));
 	    event_generate(ET_ERROR, sockList[i], errno);
 	    break;

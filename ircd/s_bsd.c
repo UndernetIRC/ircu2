@@ -999,11 +999,13 @@ static void client_sock_callback(struct Event* ev)
   case ET_WRITE: /* socket is writable */
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
       list_next_channels(cptr, 64);
+    Debug((DEBUG_SEND, "Sending queued data to %C", cptr));
     send_queued(cptr);
     break;
 
   case ET_READ: /* socket is readable */
     if (!NoNewLine(cptr) && !IsDead(cptr)) {
+      Debug((DEBUG_DEBUG, "Reading data from %C", cptr));
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
 	fallback = "EOF from client";
     }

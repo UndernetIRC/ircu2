@@ -1,3 +1,21 @@
+2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (client_sock_callback): add Debug messages
+
+	* ircd/s_auth.c: add Debug messages all over the place
+
+	* ircd/ircd_events.c: add and edit some Debug messages; add a list
+	of routines to convert some of the enums and flags from numbers
+	into human-readable strings for the Debug messages
+
+	* ircd/engine_poll.c: hack some Debug messages to use the new name
+	conversion routines in ircd_events.c; add an extra assert for a
+	condition that shouldn't ever happen; apparently recv() can return
+	EAGAIN when poll() returns readable--I wonder why...
+
+	* include/ircd_events.h: declare some helper routines under
+	DEBUGMODE
+
 2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_bsd.c (client_sock_callback): add an extra assertion

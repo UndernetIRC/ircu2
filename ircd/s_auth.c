@@ -184,6 +184,8 @@ static void auth_sock_callback(struct Event* ev)
     break;
 
   case ET_CONNECT: /* socket connection completed */
+    Debug((DEBUG_LIST, "Connection completed for auth %p [%p]; sending query",
+	   auth, ev_socket(ev)));
     socket_state(&auth->socket, SS_CONNECTED);
     send_auth_query(auth);
     break;
@@ -191,6 +193,7 @@ static void auth_sock_callback(struct Event* ev)
   case ET_READ: /* socket is readable */
   case ET_EOF: /* end of file on socket */
   case ET_ERROR: /* error on socket */
+    Debug((DEBUG_LIST, "Auth socket %p [%p] readable", auth, ev_socket(ev)));
     read_auth_reply(auth);
     break;
 
@@ -226,8 +229,10 @@ void free_auth_request(struct AuthRequest* auth)
 {
   if (-1 < auth->fd) {
     close(auth->fd);
+    Debug((DEBUG_LIST, "Deleting auth socket for %p", auth->client));
     socket_del(&auth->socket);
   }
+  Debug((DEBUG_LIST, "Deleting auth timeout timer for %p", auth->client));
   timer_del(&auth->timeout);
 }
 
@@ -661,16 +666,23 @@ void start_auth(struct Client* client)
 		     HOSTLEN);
 	if (IsUserPort(auth->client))
 	  sendheader(client, REPORT_FIN_DNSC);
+	Debug((DEBUG_LIST, "DNS entry for %p was cached", auth->client));
       } else
 	SetDNSPending(auth);
     }
   }
 
-  if (start_auth_query(auth))
+  if (start_auth_query(auth)) {
+    Debug((DEBUG_LIST, "identd query for %p initiated successfully",
+	   auth->client));
     link_auth_request(auth, &AuthPollList);
-  else if (IsDNSPending(auth))
+  } else if (IsDNSPending(auth)) {
+    Debug((DEBUG_LIST, "identd query for %p not initiated successfully; "
+	   "waiting on DNS", auth->client));
     link_auth_request(auth, &AuthIncompleteList);
-  else {
+  } else {
+    Debug((DEBUG_LIST, "identd query for %p not initiated successfully; "
+	   "no DNS pending; releasing immediately", auth->client));
     free_auth_request(auth);
     release_auth_client(client);
   }
@@ -731,11 +743,14 @@ void read_auth_reply(struct AuthRequest* auth)
 
   if (IO_SUCCESS == os_recv_nonb(auth->fd, buf, BUFSIZE, &len)) {
     buf[len] = '\0';
+    Debug((DEBUG_LIST, "Auth %p [%p] reply: %s", auth, &auth->socket, buf));
     username = check_ident_reply(buf);
+    Debug((DEBUG_LIST, "Username: %s", username));
   }
 
   close(auth->fd);
   auth->fd = -1;
+  Debug((DEBUG_LIST, "Deleting auth [%p] socket %p", auth, &auth->socket));
   socket_del(&auth->socket);
   ClearAuth(auth);
   

@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_snprintf.h"
 #include "s_debug.h"
 
 #include <assert.h>
@@ -343,6 +344,9 @@ event_generate(enum EventType type, void* arg, int data)
   if (type != ET_DESTROY && (gen->gh_flags & GEN_DESTROY))
     return;
 
+  Debug((DEBUG_LIST, "Generating event type %s for generator %p (%s)",
+	 event_to_name(type), gen, gen_flags(gen->gh_flags)));
+
   if ((ptr = evInfo.events_free))
     evInfo.events_free = ptr->ev_next; /* pop one off the freelist */
   else { /* allocate another structure */
@@ -367,8 +371,8 @@ timer_add(struct Timer* timer, EventCallBack call, void* data,
   assert(0 != timer);
   assert(0 != call);
 
-  Debug((DEBUG_LIST, "Adding timer %p; time out %Tu (type %i)", timer, value,
-	 type));
+  Debug((DEBUG_LIST, "Adding timer %p; time out %Tu (type %s)", timer, value,
+	 timer_to_name(type)));
 
   /* initialize a timer... */
   gen_init((struct GenHeader*) timer, call, data, 0, 0);
@@ -388,6 +392,9 @@ timer_del(struct Timer* timer)
 
   timer->t_header.gh_flags |= GEN_DESTROY;
 
+  Debug((DEBUG_LIST, "Deleting timer %p (type %s)", timer,
+	 timer_to_name(timer->t_type)));
+
   if (!timer->t_header.gh_ref) { /* not in use; destroy right now */
     gen_dequeue(timer);
     event_generate(ET_DESTROY, timer, 0);
@@ -402,6 +409,10 @@ timer_chg(struct Timer* timer, enum TimerType type, time_t value)
   assert(0 != value);
   assert(TT_PERIODIC != timer->t_type);
   assert(TT_PERIODIC != type);
+
+  Debug((DEBUG_LIST, "Changing timer %p from type %s timeout %Tu to type %s "
+	 "timeout %Tu", timer, timer_to_name(timer->t_type), timer->t_value,
+	 timer_to_name(type), value));
 
   gen_dequeue(timer); /* remove the timer from the queue */
 
@@ -585,3 +596,134 @@ engine_name(void)
 
   return evInfo.engine->eng_name;
 }
+
+#ifdef DEBUGMODE
+/* These routines pretty-print names for states and types for debug printing */
+
+#define NS(TYPE) \
+struct {	\
+  char *name;	\
+  TYPE value;	\
+}
+
+#define NM(name)	{ #name, name }
+
+#define NE		{ 0, 0 }
+
+const char*
+state_to_name(enum SocketState state)
+{
+  int i;
+  NS(enum SocketState) map[] = {
+    NM(SS_CONNECTING),
+    NM(SS_LISTENING),
+    NM(SS_CONNECTED),
+    NM(SS_DATAGRAM),
+    NM(SS_CONNECTDG),
+    NM(SS_NOTSOCK),
+    NE
+  };
+
+  for (i = 0; map[i].name; i++)
+    if (map[i].value == state)
+      return map[i].name;
+
+  return "Undefined socket state";
+}
+
+const char*
+timer_to_name(enum TimerType type)
+{
+  int i;
+  NS(enum TimerType) map[] = {
+    NM(TT_ABSOLUTE),
+    NM(TT_RELATIVE),
+    NM(TT_PERIODIC),
+    NE
+  };
+
+  for (i = 0; map[i].name; i++)
+    if (map[i].value == type)
+      return map[i].name;
+
+  return "Undefined timer type";
+}
+
+const char*
+event_to_name(enum EventType type)
+{
+  int i;
+  NS(enum EventType) map[] = {
+    NM(ET_READ),
+    NM(ET_WRITE),
+    NM(ET_ACCEPT),
+    NM(ET_CONNECT),
+    NM(ET_EOF),
+    NM(ET_ERROR),
+    NM(ET_SIGNAL),
+    NM(ET_EXPIRE),
+    NM(ET_DESTROY),
+    NE
+  };
+
+  for (i = 0; map[i].name; i++)
+    if (map[i].value == type)
+      return map[i].name;
+
+  return "Undefined event type";
+}
+
+const char*
+gen_flags(unsigned int flags)
+{
+  int i, loc = 0;
+  static char buf[256];
+  NS(unsigned int) map[] = {
+    NM(GEN_DESTROY),
+    NM(GEN_MARKED),
+    NE
+  };
+
+  buf[0] = '\0';
+
+  for (i = 0; map[i].name; i++)
+    if (map[i].value & flags) {
+      if (loc != 0)
+	buf[loc++] = ' ';
+      loc += ircd_snprintf(0, buf + loc, sizeof(buf) - loc, "%s", map[i].name);
+      if (loc >= sizeof(buf))
+	return buf; /* overflow case */
+    }
+
+  return buf;
+}
+
+const char*
+sock_flags(unsigned int flags)
+{
+  int i, loc = 0;
+  static char buf[256];
+  NS(unsigned int) map[] = {
+    NM(SOCK_EVENT_READABLE),
+    NM(SOCK_EVENT_WRITABLE),
+    NM(SOCK_ACTION_SET),
+    NM(SOCK_ACTION_ADD),
+    NM(SOCK_ACTION_DEL),
+    NE
+  };
+
+  buf[0] = '\0';
+
+  for (i = 0; map[i].name; i++)
+    if (map[i].value & flags) {
+      if (loc != 0)
+	buf[loc++] = ' ';
+      loc += ircd_snprintf(0, buf + loc, sizeof(buf) - loc, "%s", map[i].name);
+      if (loc >= sizeof(buf))
+	return buf; /* overflow case */
+    }
+
+  return buf;
+}
+
+#endif /* DEBUGMODE */
