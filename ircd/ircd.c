@@ -381,9 +381,9 @@ ping_timeout:
 static int bad_command(void)
 {
 #ifdef CMDLINE_CONFIG
-  printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-t]\n")
+  printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-t]\n");
 #else
-  printf("Usage: ircd [-h servername] [-x loglevel] [-t]\n")
+  printf("Usage: ircd [-h servername] [-x loglevel] [-t]\n");
 #endif
   printf("Server not started\n\n");
   return (-1);
