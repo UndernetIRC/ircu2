@@ -3943,45 +3943,55 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
   assert(0 != jbuf);
 
-  if (chan) {
-    if (jbuf->jb_type == JOINBUF_TYPE_PART ||
-	jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
-      /* Send notification to channel */
-      if (!(flags & CHFL_ZOMBIE))
-	sendcmdto_channel_butserv(jbuf->jb_source, CMD_PART, chan,
-				  (flags & CHFL_BANNED || !jbuf->jb_comment) ?
-				  ":%H" : "%H :%s", chan, jbuf->jb_comment);
-      else if (MyUser(jbuf->jb_source))
-	sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
-		      (flags & CHFL_BANNED || !jbuf->jb_comment) ?
-		      ":%H" : "%H :%s", chan, jbuf->jb_comment);
-      /* XXX: Shouldn't we send a PART here anyway? */
-      /* to users on the channel?  Why?  From their POV, the user isn't on
-       * the channel anymore anyway.  We don't send to servers until below,
-       * when we gang all the channel parts together.  Note that this is
-       * exactly the same logic, albeit somewhat more concise, as was in
-       * the original m_part.c */
+  if (!chan) {
+    if (jbuf->jb_type == JOINBUF_TYPE_JOIN)
+      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect, "0");
 
-      if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-	  IsLocalChannel(chan->chname)) /* got to remove user here */
-	remove_user_from_channel(jbuf->jb_source, chan);
-    } else {
-      /* Add user to channel */
-      add_user_to_channel(chan, jbuf->jb_source, flags);
-
-      /* Send the notification to the channel */
-      sendcmdto_channel_butserv(jbuf->jb_source, CMD_JOIN, chan, ":%H", chan);
-
-      /* send an op, too, if needed */
-      if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
-	  !IsModelessChannel(chan->chname))
-	sendcmdto_channel_butserv(jbuf->jb_source, CMD_MODE, chan, "%H +o %C",
-				  chan, jbuf->jb_source);
-    }
-
-    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || IsLocalChannel(chan->chname))
-      return; /* don't send to remote */
+    return;
   }
+
+  if (jbuf->jb_type == JOINBUF_TYPE_PART ||
+      jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
+    /* Send notification to channel */
+    if (!(flags & CHFL_ZOMBIE))
+      sendcmdto_channel_butserv(jbuf->jb_source, CMD_PART, chan,
+				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
+				":%H" : "%H :%s", chan, jbuf->jb_comment);
+    else if (MyUser(jbuf->jb_source))
+      sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
+		    (flags & CHFL_BANNED || !jbuf->jb_comment) ?
+		    ":%H" : "%H :%s", chan, jbuf->jb_comment);
+    /* XXX: Shouldn't we send a PART here anyway? */
+    /* to users on the channel?  Why?  From their POV, the user isn't on
+     * the channel anymore anyway.  We don't send to servers until below,
+     * when we gang all the channel parts together.  Note that this is
+     * exactly the same logic, albeit somewhat more concise, as was in
+     * the original m_part.c */
+
+    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
+	IsLocalChannel(chan->chname)) /* got to remove user here */
+      remove_user_from_channel(jbuf->jb_source, chan);
+  } else {
+    /* Add user to channel */
+    add_user_to_channel(chan, jbuf->jb_source, flags);
+
+    /* send notification to all servers */
+    if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !IsLocalChannel(chan->chname))
+      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
+			    "%H %Tu", chan, chan->creationtime);
+
+    /* Send the notification to the channel */
+    sendcmdto_channel_butserv(jbuf->jb_source, CMD_JOIN, chan, ":%H", chan);
+
+    /* send an op, too, if needed */
+    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
+	!IsModelessChannel(chan->chname))
+      sendcmdto_channel_butserv(jbuf->jb_source, CMD_MODE, chan, "%H +o %C",
+				chan, jbuf->jb_source);
+  }
+
+  if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || IsLocalChannel(chan->chname))
+    return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */
   len = chan ? strlen(chan->chname) + 1 : 2;
@@ -4007,7 +4017,8 @@ joinbuf_flush(struct JoinBuf *jbuf)
   int chanlist_i = 0;
   int i;
 
-  if (!jbuf->jb_count || jbuf->jb_type == JOINBUF_TYPE_PARTALL)
+  if (!jbuf->jb_count || jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
+      jbuf->jb_type == JOINBUF_TYPE_JOIN)
     return 0; /* no joins to process */
 
   for (i = 0; i < jbuf->jb_count; i++) { /* build channel list */
@@ -4022,18 +4033,12 @@ joinbuf_flush(struct JoinBuf *jbuf)
   }
 
   jbuf->jb_count = 0; /* reset base counters */
-  jbuf->jb_strlen = ((jbuf->jb_type == JOINBUF_TYPE_JOIN ||
-		      jbuf->jb_type == JOINBUF_TYPE_PART ?
+  jbuf->jb_strlen = ((jbuf->jb_type == JOINBUF_TYPE_PART ?
 		      STARTJOINLEN : STARTCREATELEN) +
 		     (jbuf->jb_comment ? strlen(jbuf->jb_comment) + 2 : 0));
 
   /* and send the appropriate command */
   switch (jbuf->jb_type) {
-  case JOINBUF_TYPE_JOIN:
-    sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
-			  "%s", chanlist);
-    break;
-
   case JOINBUF_TYPE_CREATE:
     sendcmdto_serv_butone(jbuf->jb_source, CMD_CREATE, jbuf->jb_connect,
 			  "%s %Tu", chanlist, jbuf->jb_create);

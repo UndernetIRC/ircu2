@@ -13,6 +13,7 @@
 struct Client;
 struct User;
 struct Gline;
+struct Channel;
 
 /*
  * Macros
@@ -93,5 +94,9 @@ extern void add_target(struct Client *sptr, void *target);
 extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);
 
+#define NAMES_ALL 1 /* List all users in channel */
+#define NAMES_VIS 2 /* List only visible users in non-secret channels */
+
+void do_names(struct Client* sptr, struct Channel* chptr, int filter);
 
 #endif /* INCLUDED_s_user_h */
