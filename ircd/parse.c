@@ -372,7 +372,11 @@ struct Message msgtab[] = {
     TOK_MAP,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifdef HEAD_IN_SAND_MAP
+    { m_unregistered, m_not_an_oper, m_ignore, m_map, m_ignore }
+#else
     { m_unregistered, m_map, m_ignore, m_map, m_ignore }
+#endif
   },
   {
     MSG_VERSION,

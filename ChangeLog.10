@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.4 2001-04-15 03:10:09 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.5 2001-04-15 03:22:17 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* HEAD_IN_SAND_MAP done -- Isomer
 * According to CFV-165, buring our head in the sand to try and
 * hide from DoS - First pass -- Isomer
 * As requested by hop: hidden keys are shown as "*" not "" -- Isomer
