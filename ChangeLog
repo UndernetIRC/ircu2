@@ -1,3 +1,6 @@
+2003-12-01  Perry Lorier <isomer@undernet.org>
+	* include/patchlevel.h: Bump patchlevel to pre3
+
 2003-11-30  Perry Lorier <isomer@undernet.org>
 	* ircd/gline.c: Patch canon_userhost as suggested by netski
 
