@@ -59,7 +59,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static void exit_one_client(struct Client *, char *);
 
 static char *months[] = {
   "January", "February", "March", "April",
@@ -200,6 +199,111 @@ void get_sockhost(struct Client *cptr, char *host)
 }
 
 /*
+ * Exit one client, local or remote. Assuming for local client that
+ * all dependants already have been removed, and socket is closed.
+ *
+ * Rewritten by Run - 24 sept 94
+ *
+ * bcptr : client being (s)quitted
+ * sptr : The source (prefix) of the QUIT or SQUIT
+ *
+ * --Run
+ */
+static void exit_one_client(struct Client* bcptr, const char* comment)
+{
+  struct SLink *lp;
+
+  if (bcptr->serv && bcptr->serv->client_list)  /* Was SetServerYXX called ? */
+    ClearServerYXX(bcptr);      /* Removes server from server_list[] */
+  if (IsUser(bcptr)) {
+    /*
+     * clear out uping requests
+     */
+    if (IsUPing(bcptr))
+      uping_cancel(bcptr, 0);
+    /*
+     * Stop a running /LIST clean
+     */
+    if (MyUser(bcptr) && bcptr->listing) {
+      bcptr->listing->chptr->mode.mode &= ~MODE_LISTED;
+      MyFree(bcptr->listing);
+      bcptr->listing = NULL;
+    }
+    /*
+     * If a person is on a channel, send a QUIT notice
+     * to every client (person) on the same channel (so
+     * that the client can show the "**signoff" message).
+     * (Note: The notice is to the local clients *only*)
+     */
+    sendto_common_channels(bcptr, ":%s QUIT :%s", bcptr->name, comment);
+
+    remove_user_from_all_channels(bcptr);
+
+    /* Clean up invitefield */
+    while ((lp = bcptr->user->invited))
+      del_invite(bcptr, lp->value.chptr);
+
+    /* Clean up silencefield */
+    while ((lp = bcptr->user->silence))
+      del_silence(bcptr, lp->value.cp);
+
+    if (IsInvisible(bcptr))
+      --UserStats.inv_clients;
+    if (IsOper(bcptr))
+      --UserStats.opers;
+    if (MyConnect(bcptr))
+      Count_clientdisconnects(bcptr, UserStats);
+    else
+      Count_remoteclientquits(UserStats, bcptr);
+  }
+  else if (IsServer(bcptr))
+  {
+    /* Remove downlink list node of uplink */
+    remove_dlink(&bcptr->serv->up->serv->down, bcptr->serv->updown);
+    bcptr->serv->updown = 0;
+
+    if (MyConnect(bcptr))
+      Count_serverdisconnects(UserStats);
+    else
+      Count_remoteserverquits(UserStats);
+  }
+  else if (IsMe(bcptr))
+  {
+    sendto_ops("ERROR: tried to exit me! : %s", comment);
+    return;                     /* ...must *never* exit self! */
+  }
+  else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
+    Count_unknowndisconnects(UserStats);
+
+  /*
+   * Update IPregistry
+   */
+  if (IsIPChecked(bcptr))
+    IPcheck_disconnect(bcptr);
+
+  /* 
+   * Remove from serv->client_list
+   * NOTE: user is *always* NULL if this is a server
+   */
+  if (bcptr->user) {
+    assert(!IsServer(bcptr));
+    /* bcptr->user->server->serv->client_list[IndexYXX(bcptr)] = NULL; */
+    RemoveYXXClient(bcptr->user->server, bcptr->yxx);
+  }
+
+  /* Remove bcptr from the client list */
+#ifdef DEBUGMODE
+  if (hRemClient(bcptr) != 0)
+    Debug((DEBUG_ERROR, "%p !in tab %s[%s] %p %p %p %d %d %p",
+          bcptr, bcptr->name, bcptr->from ? bcptr->from->sockhost : "??host",
+          bcptr->from, bcptr->next, bcptr->prev, bcptr->fd,
+          bcptr->status, bcptr->user));
+#else
+  hRemClient(bcptr);
+#endif
+  remove_client_from_list(bcptr);
+}
+/*
  * exit_downlinks - added by Run 25-9-94
  *
  * Removes all clients and downlinks (+clients) of any server
@@ -272,7 +376,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     struct Client* victim,              /* Client being killed */
     struct Client* killer,              /* The client that made the decision
                                    to remove this one, never NULL */
-    char *comment)              /* Reason for the exit */
+    const char* comment)              /* Reason for the exit */
 {
   struct Client* acptr = 0;
   struct DLink *dlp;
@@ -415,7 +519,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
  * Exit client with formatted message, added 25-9-94 by Run
  */
 int vexit_client_msg(struct Client *cptr, struct Client *bcptr, struct Client *sptr,
-    char *pattern, va_list vl)
+    const char *pattern, va_list vl)
 {
   char msgbuf[1024];
   vsprintf_irc(msgbuf, pattern, vl);
@@ -423,7 +527,7 @@ int vexit_client_msg(struct Client *cptr, struct Client *bcptr, struct Client *s
 }
 
 int exit_client_msg(struct Client *cptr, struct Client *bcptr,
-    struct Client *sptr, char *pattern, ...)
+    struct Client *sptr, const char *pattern, ...)
 {
   va_list vl;
   char msgbuf[1024];
@@ -434,113 +538,6 @@ int exit_client_msg(struct Client *cptr, struct Client *bcptr,
 
   return exit_client(cptr, bcptr, sptr, msgbuf);
 }
-
-/*
- * Exit one client, local or remote. Assuming for local client that
- * all dependants already have been removed, and socket is closed.
- *
- * Rewritten by Run - 24 sept 94
- *
- * bcptr : client being (s)quitted
- * sptr : The source (prefix) of the QUIT or SQUIT
- *
- * --Run
- */
-static void exit_one_client(struct Client *bcptr, char *comment)
-{
-  struct SLink *lp;
-
-  if (bcptr->serv && bcptr->serv->client_list)  /* Was SetServerYXX called ? */
-    ClearServerYXX(bcptr);      /* Removes server from server_list[] */
-  if (IsUser(bcptr)) {
-    /*
-     * clear out uping requests
-     */
-    if (IsUPing(bcptr))
-      uping_cancel(bcptr, 0);
-    /*
-     * Stop a running /LIST clean
-     */
-    if (MyUser(bcptr) && bcptr->listing) {
-      bcptr->listing->chptr->mode.mode &= ~MODE_LISTED;
-      MyFree(bcptr->listing);
-      bcptr->listing = NULL;
-    }
-    /*
-     * If a person is on a channel, send a QUIT notice
-     * to every client (person) on the same channel (so
-     * that the client can show the "**signoff" message).
-     * (Note: The notice is to the local clients *only*)
-     */
-    sendto_common_channels(bcptr, ":%s QUIT :%s", bcptr->name, comment);
-
-    remove_user_from_all_channels(bcptr);
-
-    /* Clean up invitefield */
-    while ((lp = bcptr->user->invited))
-      del_invite(bcptr, lp->value.chptr);
-
-    /* Clean up silencefield */
-    while ((lp = bcptr->user->silence))
-      del_silence(bcptr, lp->value.cp);
-
-    if (IsInvisible(bcptr))
-      --UserStats.inv_clients;
-    if (IsOper(bcptr))
-      --UserStats.opers;
-    if (MyConnect(bcptr))
-      Count_clientdisconnects(bcptr, UserStats);
-    else
-      Count_remoteclientquits(UserStats, bcptr);
-  }
-  else if (IsServer(bcptr))
-  {
-    /* Remove downlink list node of uplink */
-    remove_dlink(&bcptr->serv->up->serv->down, bcptr->serv->updown);
-    bcptr->serv->updown = 0;
-
-    if (MyConnect(bcptr))
-      Count_serverdisconnects(UserStats);
-    else
-      Count_remoteserverquits(UserStats);
-  }
-  else if (IsMe(bcptr))
-  {
-    sendto_ops("ERROR: tried to exit me! : %s", comment);
-    return;                     /* ...must *never* exit self! */
-  }
-  else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
-    Count_unknowndisconnects(UserStats);
-
-  /*
-   * Update IPregistry
-   */
-  if (IsIPChecked(bcptr))
-    IPcheck_disconnect(bcptr);
-
-  /* 
-   * Remove from serv->client_list
-   * NOTE: user is *always* NULL if this is a server
-   */
-  if (bcptr->user) {
-    assert(!IsServer(bcptr));
-    /* bcptr->user->server->serv->client_list[IndexYXX(bcptr)] = NULL; */
-    RemoveYXXClient(bcptr->user->server, bcptr->yxx);
-  }
-
-  /* Remove bcptr from the client list */
-#ifdef DEBUGMODE
-  if (hRemClient(bcptr) != 0)
-    Debug((DEBUG_ERROR, "%p !in tab %s[%s] %p %p %p %d %d %p",
-          bcptr, bcptr->name, bcptr->from ? bcptr->from->sockhost : "??host",
-          bcptr->from, bcptr->next, bcptr->prev, bcptr->fd,
-          bcptr->status, bcptr->user));
-#else
-  hRemClient(bcptr);
-#endif
-  remove_client_from_list(bcptr);
-}
-
 
 void initstats(void)
 {

@@ -1,10 +1,12 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.6 2000-03-28 00:52:14 bleep Exp $
+# $Id: ChangeLog.10,v 1.7 2000-03-28 06:40:56 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fix for Max Undernet Server bug --Bleep
+* Fix for PRIVMSG<->NOTICE translation from hubs --Bleep
 * Fix for Bogus protocol strings for P9 servers --Bleep
 * Hookup UPING code again, cleanups --Bleep
 * Convert numerics back to mask and shift extended numerics

@@ -1032,10 +1032,10 @@ int read_message(time_t delay)
     }
     if (write_ready) {
       if (!on_write_unblocked(cptr) || IsDead(cptr)) {
-        const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+        const char* msg = (cptr->error) ? strerror(cptr->error) : cptr->info;
         if (!msg)
           msg = "Unknown error";
-        exit_client(cptr, cptr, &me, (char*) msg);
+        exit_client(cptr, cptr, &me, msg);
         continue;
       }
     }
@@ -1051,7 +1051,7 @@ int read_message(time_t delay)
       flush_connections(poll_cptr[i]);
 #endif
     if (IsDead(cptr)) {
-      const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+      const char* msg = (cptr->error) ? strerror(cptr->error) : cptr->info;
       if (!msg)
         msg = "Unknown error";
       exit_client(cptr, cptr, &me, (char*) msg);
@@ -1247,7 +1247,7 @@ int read_message(time_t delay)
       if (FD_ISSET(i, &write_set)) {
         --nfds;
         if (!on_write_unblocked(cptr) || IsDead(cptr)) {
-          const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+          const char* msg = (cptr->error) ? strerror(cptr->error) : cptr->info;
           if (!msg)
             msg = "Unknown error";
           if (FD_ISSET(i, &read_set))
@@ -1271,7 +1271,7 @@ int read_message(time_t delay)
       flush_connections(LocalClientArray[i]);
 #endif
     if (IsDead(cptr)) {
-      const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+      const char* msg = (cptr->error) ? strerror(cptr->error) : cptr->info;
       if (!msg)
         msg = "Unknown error";
       exit_client(cptr, cptr, &me, msg);
