@@ -76,6 +76,7 @@ struct User {
   char               host[HOSTLEN + 1];
   char               realhost[HOSTLEN + 1];
   char               account[ACCOUNTLEN + 1];
+  time_t	     acc_create;
 };
 
 #endif /* INCLUDED_struct_h */

@@ -1,3 +1,15 @@
+2004-05-14  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: process account creation timestamp if present in
+	user mode portion of a N protocol message; add account creation
+	timestamp to outgoing N protocol messages if that timestamp is
+	non-zero
+
+	* ircd/m_account.c: process account creation timestamp if present
+	in AC protocol message
+
+	* include/struct.h: add account creation timestamp
+
 2004-05-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Document operator privilege settings.
