@@ -234,6 +234,7 @@ AC_DEFUN(unet_CHECK_TYPE_SIZES,
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(void *)
 if test "$ac_cv_sizeof_int" = 2 ; then
   AC_CHECK_TYPE(int16_t, int)
   AC_CHECK_TYPE(u_int16_t, unsigned int)

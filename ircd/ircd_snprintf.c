@@ -28,15 +28,8 @@
 #include <string.h>
 #include <time.h>
 
-/* for testing purposes */
-#ifndef SIZEOF_VOID_P
-# warning SIZEOF_VOID_P not defined yet!
-# define SIZEOF_VOID_P 4
-# define SIZEOF_LONG   4
-#endif
-
 /* Inhibit complaints when we use GCC extensions */
-#ifdef __GNUC__
+#if defined(__GNUC__) && defined(HAVE_LONG_LONG)
 # define EXTENSION __extension__
 #else
 # define EXTENSION
@@ -1411,7 +1404,7 @@ static char *HEX[] = {
 };
 
 /* Add a character to the buffer */
-static __inline__ void
+static void
 addc(struct BufData *buf_p, int c)
 {
   int overflow = 0;
@@ -1432,7 +1425,7 @@ addc(struct BufData *buf_p, int c)
 }
 
 /* Add a string to the buffer */
-static __inline__ void
+static void
 adds(struct BufData *buf_p, int s_len, const char *s)
 {
   int overflow = 0;
@@ -1460,7 +1453,7 @@ adds(struct BufData *buf_p, int s_len, const char *s)
 }
 
 /* Add padding */
-static __inline__ void
+static void
 do_pad(struct BufData *buf_p, int padlen, char *pad)
 {
   /* do chunks of PAD_LENGTH first */
@@ -1472,7 +1465,7 @@ do_pad(struct BufData *buf_p, int padlen, char *pad)
 }
 
 /* Find string length up to maxlen */
-static __inline__ int
+static int
 my_strnlen(const char *str, int maxlen)
 {
   int len = 0;
@@ -1604,21 +1597,13 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	if (state <= OPT) {
 	  state = OPT;
 	  if (fld_s.flags & TYPE_LONG) /* We support 'll' */
-	    fld_s.flags |= TYPE_QUAD;
+	    fld_s.flags |= TYPE_QUAD | TYPE_LONGDOUBLE;
 	  else if (!(fld_s.flags & TYPE_MASK))
 	    fld_s.flags |= TYPE_LONG;
 	}
 	continue;
 
-      case 'q': /* it's a quad */
-	if (state <= OPT) {
-	  state = OPT;
-	  if (!(fld_s.flags & TYPE_MASK))
-	    fld_s.flags |= TYPE_QUAD;
-	}
-	continue;
-
-      case 'L': /* it's a quad or long double */
+      case 'q':  case 'L': /* it's a quad or long double */
 	if (state <= OPT) {
 	  state = OPT;
 	  if (!(fld_s.flags & TYPE_MASK))
@@ -2005,7 +1990,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       char *str1 = 0, *str2 = 0;
       int slen1 = 0, slen2 = 0, plen = 0;
 
-      if (IsServer(dest)) {
+      if (dest && IsServer(dest)) {
 	if (IsServer(cptr))
 	  str1 = cptr->yxx;
 	else {
