@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_desynch.c
+ * IRC - Internet Relay Chat, ircd/m_wallusers.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  *
@@ -88,34 +88,48 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
-#include "hash.h"
-#include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
-#include "numnicks.h"
-#include "s_bsd.h"
 #include "send.h"
 
 #include <assert.h>
 
-/*
- * ms_desynch - server message handler
- *
- * Writes to all +g users; for sending wall type debugging/anti-hack info.
- * Added 23 Apr 1998  --Run
- *
- * parv[0] - sender prefix
- * parv[parc-1] - message text
- */
-int ms_desynch(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  if (parc >= 2)
-    sendcmdto_flag_butone(sptr, CMD_DESYNCH, cptr, FLAGS_DEBUG | FLAGS_OPER,
-			  ":%s", parv[parc - 1]);
-  else
-    need_more_params(sptr,"DESYNCH");			
 
+/*
+ * ms_wallusers - server message handler
+ */
+int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  char *message;
+
+  message = parc > 1 ? parv[1] : 0;
+
+  /*
+   * XXX - PROTOCOL ERROR (shouldn't happen)
+   */
+  if (EmptyString(message))
+    return need_more_params(sptr, "WALLUSERS");
+
+  sendcmdto_flag_butone(sptr, CMD_WALLUSERS, cptr, FLAGS_WALLOP, ":%s",
+			message);
   return 0;
 }
+
+/*
+ * mo_wallusers - oper message handler
+ */
+int mo_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  char *message;
+
+  message = parc > 1 ? parv[1] : 0;
+
+  if (EmptyString(message))
+    return need_more_params(sptr, "WALLUSERS");
+
+  sendcmdto_flag_butone(sptr, CMD_WALLUSERS, 0, FLAGS_WALLOP, ":%s", message);
+  return 0;
+}
+
