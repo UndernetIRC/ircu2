@@ -143,8 +143,16 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     struct Client *acptr;
     /* For convenience: Accept a nickname as first parameter, by replacing
        it with the correct servername - as is needed by hunt_server() */
+#if HEAD_IN_SAND_REMOTE
+    /* If remote queries are disabled, then use the *second* parameter of
+     * of whois, so /whois nick nick still works.
+     */
+    if (MyUser(sptr) && (acptr = FindUser(parv[2])))
+#else
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
+#endif
       parv[1] = acptr->user->server->name;
+
     if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
@@ -273,7 +281,7 @@ exact_match:
         }
 
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-        if (!IsAnOper(sptr) && sptr != a2cptr)
+        if (!IsAnOper(sptr) && sptr != acptr)
 	  sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
 	      parv[0], name, "*.undernet.org","The Undernet Underworld");
         else
@@ -290,7 +298,11 @@ exact_match:
             sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
                 me.name, parv[0], name);
 
+#ifdef HEAD_IN_SAND_WHOIS_IDLETIME
+          if (MyConnect(acptr) && (sptr == acptr || IsAnOper(sptr) || parc>=3))
+#else
           if (MyConnect(acptr))
+#endif
             sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
                 parv[0], name, CurrentTime - user->last, acptr->firsttime);
         }

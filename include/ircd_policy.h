@@ -26,6 +26,10 @@
  * braindead and silly.  These aren't configurable as they are network
  * policy, and should not be changed (depending on what network your 
  * on different ones of these should be defined
+ * 
+ * If you want nothing to do with any of this nonsense, add the line
+ * #define INCLUDED_ircd_policy_h
+ * *above* the #ifndef above.
  */
 
 /* CFV-165 - Hiding Nonessential information from non-opers
@@ -94,7 +98,7 @@
 #define HEAD_IN_SAND_STATS_M
 #define HEAD_IN_SAND_STATS_m
 #define HEAD_IN_SAND_STATS_O
-#undef  HEAD_IN_SAND_STATS_P
+#define HEAD_IN_SAND_STATS_P
 #define HEAD_IN_SAND_STATS_R
 #define HEAD_IN_SAND_STATS_D
 #define HEAD_IN_SAND_STATS_d
@@ -120,6 +124,22 @@
  */
 
 #define HEAD_IN_SAND_WHOIS_SERVERNAME
+#define HEAD_IN_SAND_WHOIS_IDLETIME
 #define HEAD_IN_SAND_WHO_SERVERNAME
+#define HEAD_IN_SAND_WHO_HOPCOUNT
+
+/* CFV-165 - Hiding Nonessential information from non-opers
+ *
+ */
+
+/* don't show which server set a ban */
+#define HEAD_IN_SAND_BANWHO
+
+/* remap remote numerics to come from the local server */
+#define HEAD_IN_SAND_REWRITE
+
+/* disallow remote queries (*sob!*) */
+/* (note, set this to 0 to reenable, not undef */
+#define HEAD_IN_SAND_REMOTE 1
 
 #endif /* INCLUDED_ircd_policy_h */

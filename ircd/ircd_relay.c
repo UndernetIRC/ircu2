@@ -163,8 +163,13 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
-  if (!IsMe(acptr)) {
-    sendto_one(acptr, ":%s %s %s :%s", sptr->name, MSG_PRIVATE, name, text);
+  if (!IsMe(acptr)) { /* thus remote client; use server<->server protocol */
+    if (IsUser(sptr))
+      sendto_one(acptr, "%s%s " TOK_PRIVATE " %s :%s", NumNick(sptr), name,
+		 text);
+    else
+      sendto_one(acptr, "%s " TOK_PRIVATE " %s :%s", NumServ(sptr), name,
+		 text);
     return;
   }
   /*
@@ -186,7 +191,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   if (host)
     *--host = '%';
 
-  if (!(is_silenced(sptr, acptr)))
+  if (!(is_silenced(sptr, acptr))) /* local client; use client<->server */
     sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
                       sptr->name, MSG_PRIVATE, name, text);
 }
@@ -206,8 +211,12 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
-  if (!IsMe(acptr)) {
-    sendto_one(acptr, ":%s %s %s :%s", sptr->name, MSG_NOTICE, name, text);
+  if (!IsMe(acptr)) { /* thus remote client; use server<->server protocol */
+    if (IsUser(sptr))
+      sendto_one(acptr, "%s%s " TOK_NOTICE " %s :%s", NumNick(sptr), name,
+		 text);
+    else
+      sendto_one(acptr, "%s " TOK_NOTICE " %s :%s", NumServ(sptr), name, text);
     return;
   }
   /*
@@ -227,7 +236,7 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   if (host)
     *--host = '%';
 
-  if (!(is_silenced(sptr, acptr)))
+  if (!(is_silenced(sptr, acptr))) /* local client; use client<->server */
     sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
                       sptr->name, MSG_NOTICE, name, text);
 }
@@ -386,7 +395,7 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
   }
   sendto_match_butone(IsServer(sptr->from) ? sptr->from : 0,
                       sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_PRIVATE, mask, text);
+		      MSG_PRIVATE, TOK_PRIVATE, mask, text);
 }
 
 void relay_masked_notice(struct Client* sptr, const char* mask, const char* text)
@@ -419,7 +428,7 @@ void relay_masked_notice(struct Client* sptr, const char* mask, const char* text
   }
   sendto_match_butone(IsServer(sptr->from) ? sptr->from : 0,
                       sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_NOTICE, mask, text);
+		      MSG_NOTICE, TOK_NOTICE, mask, text);
 }
 
 void server_relay_masked_message(struct Client* sptr, const char* mask, const char* text)
@@ -434,8 +443,8 @@ void server_relay_masked_message(struct Client* sptr, const char* mask, const ch
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_PRIVATE, mask, text);
+  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST:MATCH_SERVER,
+		      MSG_PRIVATE, TOK_PRIVATE, mask, text);
 }
 
 void server_relay_masked_notice(struct Client* sptr, const char* mask, const char* text)
@@ -450,7 +459,7 @@ void server_relay_masked_notice(struct Client* sptr, const char* mask, const cha
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_NOTICE, mask, text);
+  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST:MATCH_SERVER,
+		      MSG_NOTICE, TOK_NOTICE, mask, text);
 }
 

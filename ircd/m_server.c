@@ -399,8 +399,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     if (0 != ircd_strcmp(acptr->name, host)) {
       sendto_serv_butone(cptr,
-          ":%s WALLOPS :SERVER Numeric Collision: %s != %s",
-          me.name, acptr->name, host);
+          "%s WALLOPS :SERVER Numeric Collision: %s != %s",
+          NumServ(&me), acptr->name, host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
           " Is your server numeric correct ?", host, acptr->name);
@@ -437,8 +437,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, acptr->info);
-      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!",
-          me.name, parv[0], parv[1], cptr->name);
+      sendto_one(cptr, "%s WALLOPS :Received :%s SERVER %s from %s !?!",
+          NumServ(&me), parv[0], parv[1], cptr->name);
       return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
     }
     /*
@@ -763,8 +763,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendto_ops("Connected to a net with a timestamp-clock"
         " difference of " STIME_T_FMT " seconds! Used SETTIME to correct"
         " this.", timestamp - recv_time);
-    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s",
-        me.name, TStime(), me.name);
+    sendto_one(cptr, "%s SETTIME " TIME_T_FMT " :%s",
+        NumServ(&me), TStime(), me.name);
   }
 #endif
 
@@ -1059,8 +1059,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (0 != ircd_strcmp(acptr->name, host))
     {
       sendto_serv_butone(cptr,
-          ":%s WALLOPS :SERVER Numeric Collision: %s != %s",
-          me.name, acptr->name, host);
+          "%s WALLOPS :SERVER Numeric Collision: %s != %s",
+          NumServ(&me), acptr->name, host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
           " Is your server numeric correct ?", host, acptr->name);
@@ -1097,8 +1097,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, acptr->info);
-      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!",
-          me.name, parv[0], parv[1], cptr->name);
+      sendto_one(cptr, "%s WALLOPS :Received :%s SERVER %s from %s !?!",
+          NumServ(&me), parv[0], parv[1], cptr->name);
       return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
     }
     /*
@@ -1423,8 +1423,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendto_ops("Connected to a net with a timestamp-clock"
         " difference of " STIME_T_FMT " seconds! Used SETTIME to correct"
         " this.", timestamp - recv_time);
-    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s",
-        me.name, TStime(), me.name);
+    sendto_one(cptr, "%s SETTIME " TIME_T_FMT " :%s",
+        NumServ(&me), TStime(), me.name);
   }
 #endif
 

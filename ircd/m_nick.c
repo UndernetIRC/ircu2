@@ -319,7 +319,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   assert(0 != acptr);
 
-  if (IsServer(acptr)) {
+  if (IsServer(acptr)) { /* shouldn't even happen, actually */
     /*
      * We have a nickname trying to use the same name as
      * a server. Send out a nick collision KILL to remove
@@ -338,7 +338,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * if sptr is a server it is exited here, nothing else to do
      */
-    return exit_client(cptr, sptr, &me, "Nick/Server collision");
+    return exit_client_msg(cptr, sptr, &me,
+			   "Killed (*.undernet.org (%s <- %s))",
+			   acptr->from->name, cptr->name);
   }
 
   /*
@@ -438,9 +440,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
         sendto_highprot_butone(cptr, 10,        /* Kill old from outgoing servers */
-                              "%s " TOK_KILL " %s%s :%s (%s <- %s (Nick collision))",
-                              NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
-                              cptr->name);
+                              "%s " TOK_KILL " %s%s :%s (Nick collision)",
+                              NumServ(&me), NumNick(sptr), cptr->name);
         assert(!MyConnect(sptr));
 #if 0
         /*
@@ -451,7 +452,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                      NumServ(&me), NumNick(sptr), me.name);
 #endif
         sptr->flags |= FLAGS_KILLED;
-        exit_client(cptr, sptr, &me, "Nick collision (you're a ghost)");
+        exit_client(cptr, sptr, &me,
+		    "Killed (*.undernet.org (Nick collision))");
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
          * again we'll know about it --Bleep
@@ -471,24 +473,32 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (differ) {
     sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
-                           "%s " TOK_KILL " %s%s :%s (%s <- %s (older nick overruled))",
+                           "%s " TOK_KILL " %s%s :%s (older nick overruled)",
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
-    if (MyConnect(acptr))
-      sendto_one(cptr, "%s%s " TOK_QUIT " :Local kill by %s (Ghost)",
-                 NumNick(acptr), me.name);
-    exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
+    if (MyConnect(acptr)) {
+      sendto_one(cptr, "%s%s " TOK_QUIT " :Killed (*.undernet.org (older nick "
+		 "overruled))", NumNick(acptr));
+      sendto_one(acptr, ":%s KILL %s :*.undernet.org (older nick overruled)",
+		 me.name, acptr->name);
+    }
+    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (older nick "
+		"overruled))");
   }
   else {
     sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
-                          "%s " TOK_KILL " %s%s :%s (%s <- %s (nick collision from same user@host))",
+                          "%s " TOK_KILL " %s%s :%s (nick collision from same user@host)",
                           NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                           cptr->name);
-    if (MyConnect(acptr))
+    if (MyConnect(acptr)) {
       sendto_one(cptr,
-                 "%s%s " TOK_QUIT " :Local kill by %s (Ghost: switched servers too fast)",
-                  NumNick(acptr), me.name);
-    exit_client(cptr, acptr, &me, "Nick collision (You collided yourself)");
+                 "%s%s " TOK_QUIT " :Killed (*.undernet.org (nick collision "
+		 "from same user@host))", NumNick(acptr));
+      sendto_one(acptr, ":%s KILL %s :*.undernet.org (nick collision from "
+		 "same user@host)", me.name, acptr->name);
+    }
+    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (nick collision "
+		"from same user@host))");
   }
   if (lastnick == acptr->lastnick)
     return 0;

@@ -25,6 +25,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "numnicks.h"
 #include "send.h"
 #include "struct.h"
@@ -85,13 +86,29 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
   *b = '\000';
 
   /* Since .06 this will implicitly use numeric nicks when needed     */
-
-  if (acptr)
-    sendto_prefix_one(acptr, sptr, ":%s %d %s%s",
-        sptr->name, numeric, acptr->name, buffer);
-  else
-    sendto_channel_butone(cptr, sptr, achptr, ":%s %d %s%s",
-        sptr->name, numeric, achptr->chname, buffer);
+#ifdef HEAD_IN_SAND_REWRITE
+  /* Since 2.10.10.pl14 we rewrite numerics from remote servers to appear to
+   * come from the local server
+   */
+  if (IsOper(acptr)) {
+#endif
+	if (acptr)
+    	  sendto_prefix_one(acptr, sptr, ":%s %d %s%s",
+       	    sptr->name, numeric, acptr->name, buffer);
+  	else
+    	   sendto_channel_butone(cptr, sptr, achptr, ":%s %d %s%s",
+            sptr->name, numeric, achptr->chname, buffer);
+#ifdef HEAD_IN_SAND_REWRITE
+  }
+  else {
+	if (acptr) 
+    	  sendto_prefix_one(acptr, sptr, ":%s %d %s%s",
+       	    me.name, numeric, acptr->name, buffer);
+  	else
+    	   sendto_channel_butone(cptr, sptr, achptr, ":%s %d %s%s",
+            me.name, numeric, achptr->chname, buffer);
+  }
+#endif
 
   return 0;
 }

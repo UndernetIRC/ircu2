@@ -31,6 +31,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -180,7 +181,12 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     *p1++ = ' ';
     if (!fields)
       *p1++ = ':';              /* Place colon here for default reply */
+#ifdef HEAD_IN_SAND_WHO_HOPCOUNT
+    strcat(p1, sptr == acptr ? "0" : "3");
+    p1++;
+#else
     p1 = sprintf_irc(p1, "%d", acptr->hopcount);
+#endif
   }
 
   if (!fields || (fields & WHO_FIELD_REN))

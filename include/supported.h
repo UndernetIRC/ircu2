@@ -32,7 +32,7 @@
 /* 
  * 'Features' supported by this ircd
  */
-#define FEATURES "SILENCE=15"\
+#define FEATURES1 "SILENCE=15"\
                 " WHOX"\
                 " WALLCHOPS"\
                 " USERIP"\
@@ -44,10 +44,16 @@
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " KICKLEN=%i" \
-                " MAP"
-                 
-#define FEATURESVALUES MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
-        NICKLEN,TOPICLEN,TOPICLEN
+		" CHANTYPES=%s"
+
+#define FEATURES2 " PREFIX=%s" \
+		" CHANMODES=%s" \
+		" CHARSET=%s" 
+
+#define FEATURESVALUES1 MAXMODEPARAMS, MAXCHANNELSPERUSER, MAXBANS, \
+        NICKLEN, TOPICLEN, TOPICLEN, "+#&"
+
+#define FEATURESVALUES2 "(ov)@+", "b,k,l,imnpst", "rfc1459"
 
 #endif /* INCLUDED_supported_h */
 

@@ -1,10 +1,61 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.18 2001-06-02 00:10:22 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.19 2001-07-28 15:18:31 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl15
+* Fiddle with /KILL and various exits to make the user experience uniform,
+  no matter who's doing the killing or where.  Previously, differences in
+  QUITs and in the messages sent to the killed client could help make a
+  partial map of the network; now that these messages are all uniform, there
+  is no way to tell. -Kev
+* Split ISUPPORT numeric into two numerics, so as not to exceed the 15
+  parameter limit imposed by the RFC -Kev
+* Turn on HEAD_IN_SAND_REMOTE...oops -Kev
+* Send prefixed error messages to other servers, so ERROR doesn't get
+  interpreted as a prefix -Kev
+* Reverse sense of HEAD_IN_SAND_WHO_HOPCOUNT to do what was intended; use a
+  hopcount of 0 if user is using /who on him/herself -Kev
+* Allow a user to see his/her own idle time without having to do
+  /whois <nick> <nick>; correct spelling of HEAD_IN_SAND_IDLETIME to
+  HEAD_IN_SAND_WHOIS_IDLETIME -Kev
+* Fix a missing ')' in the idle time stuff -Kev
+* Include ircd_policy.h in whocmds.c -Kev
+* Fixed bug in idle time, thanks hektik -- Isomer
+* Update 005 to be compliant with other networks -- Isomer
+* Hide hop count -- Isomer
+* Hide idletime unless you explicitly ask for it -- Isomer
+* /wallops and /wallusers would dump core because of the previous change--my
+  bad.  Now only include user@host when sptr is a client. -Kev
+* /wallops and /wallusers would leave out the user@host--noticed because
+  pl14 broke my script.  Fixed. -Kev
+* Fix several compile warnings, including the one in table_gen.c -Kev
+* Fix a bug in m_silence.c that rendered it uncompilable -Kev
+* Hopefully make mode clears during bursts appear to originate from local
+  server -Kev
+* Fix several things to send server<->server protocol messages with numeric
+  origins -Kev
+* Rework directed notices and mass-messages to use numerics and tokens
+  as appropriate; the latter required the modifications to
+  sendto_match_butone() -Kev
+* Redefined how sendto_match_butone() works, since it's only used with
+  PRIVMSG or NOTICE -Kev
+* Bumped patchlevel to pl15(development) -Kev
+* Corrected reverse-sense of HEAD_IN_SAND_REMOTE test in m_whois() -Kev
+* Clean up logic in m_whowas(), corrected numeric reply -Kev
+* Finally fixed /whois to tell you what your own server is -Kev
+* Clean up logic in add_banid() with some well-placed DupString()'s -Kev
+* Hide which server performed a nick collision kill -- Isomer
+* To allow for remote whois not giving away the remote server, all remote 
+  numerics to clients are remapped to come from the local server :/ -- Isomer
+* All remote queries are disabled for users, except /whois -- Isomer
+  (/whois now uses the second parameter for which server to use, ie:
+   /whois <ignored> <nick> will query <nick>'s server.)
+* Fixed /who showing server name -- Isomer
+* Fixed burst showing linking server -- Isomer
+* Fixed burst bans showing linked server -- Isomer
 * Fixed /whowas showing server name -- Isomer
 -------------------------- Released 2.10.10.pl14 (You got any issues with that punk?)
 * Changed (then fixed) /LINKS to output an empty links list -- Isomer

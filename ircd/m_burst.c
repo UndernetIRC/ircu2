@@ -598,7 +598,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               {
                 modebuf[mblen2] = 0;
                 sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-                    parv[0], chptr->chname, modebuf, parabuf);
+                    me.name, chptr->chname, modebuf, parabuf);
                 *parabuf = 0;
                 pblen2 = 0;
                 mblen2 = 1;
@@ -617,7 +617,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       {
         modebuf[mblen2] = 0;
         sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-            parv[0], chptr->chname, modebuf, parabuf);
+            me.name, chptr->chname, modebuf, parabuf);
       }
     }
   }
@@ -781,7 +781,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Time to send buffer */
         modebuf[mblen2] = 0;
         sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-            parv[0], chptr->chname, modebuf, parabuf);
+            me.name, chptr->chname, modebuf, parabuf);
         *modebuf = deban ? '-' : '+';
         mblen2 = 1;
         pblen2 = 0;
@@ -816,7 +816,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       modebuf[mblen2] = 0;
       sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-          parv[0], chptr->chname, modebuf, parabuf);
+          me.name, chptr->chname, modebuf, parabuf);
     }
   }
   return 0;
@@ -1497,7 +1497,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         /* Time to send buffer */
         modebuf[mblen2] = 0;
         sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-            parv[0], chptr->chname, modebuf, parabuf);
+            me->name, chptr->chname, modebuf, parabuf);
         *modebuf = deban ? '-' : '+';
         mblen2 = 1;
         pblen2 = 0;
@@ -1532,7 +1532,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       modebuf[mblen2] = 0;
       sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
-          parv[0], chptr->chname, modebuf, parabuf);
+          sptr-, chptr->chname, modebuf, parabuf);
     }
   }
 

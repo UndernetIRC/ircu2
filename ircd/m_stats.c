@@ -79,14 +79,6 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 /*
  * XXX - ack!!!
  */
@@ -94,6 +86,7 @@
 #include "class.h"
 #include "client.h"
 #include "gline.h"
+#include "handlers.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -147,15 +140,8 @@
  */
 int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
-  struct Message *mptr;
-  struct Client *acptr;
-  struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
-  int i;
 
 /* m_stats is so obnoxiously full of special cases that the different
  * hunt_server() possiblites were becoming very messy. It now uses a
@@ -168,8 +154,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'U':
     case 'u':
     {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
+      if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+	"%s%s " TOK_STATS " %s :%s", 2, parc, parv) != HUNTED_ISME)
         return 0;
       break;
     }
@@ -184,14 +170,14 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (parc > 3)
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
+        if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+	"%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) != HUNTED_ISME)
           return 0;
       }
       else
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
+        if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+		"%s%s " TOK_STATS " %s :%s", 2, parc, parv) != HUNTED_ISME)
           return 0;
       }
       break;
@@ -238,8 +224,12 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return m_not_oper(sptr,cptr,parc,parv);
 #else
     {
-      int doall = 0, wilds = 0;
+      static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
+	"RcveM RcveKBytes :Open since";
+      static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
+      int doall = 0, wilds = 0, i;
       char *name = "*";
+      struct Client *acptr;
       if (parc > 3 && *parv[3])
       {
         char *p;
@@ -301,11 +291,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef HEAD_IN_SAND_STATS_G
       return m_not_oper(sptr,cptr,parc,parv);
 #else
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
+      {
+	struct Gline* gline;
+
+	gline_remove_expired(TStime());
+	for (gline = GlobalGlineList; gline; gline = gline->next) {
+	  sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
+		     sptr->name, 'G', gline->name, gline->host,
+		     gline->expire, gline->reason);
+	}
       }
       break;
 #endif
@@ -430,10 +424,14 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef HEAD_IN_SAND_STATS_m
       return m_not_oper(sptr,cptr,parc,parv);
 #else
-      for (mptr = msgtab; mptr->cmd; mptr++)
-        if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+      {
+	struct Message *mptr;
+
+	for (mptr = msgtab; mptr->cmd; mptr++)
+	  if (mptr->count)
+	    sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
+		       me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+      }
       break;
 #endif
     case 'o':
@@ -453,7 +451,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * or non-oper results to 8 ports.
        */ 
 #ifdef HEAD_IN_SAND_STATS_P
-      return m_not_oper(sptr,cptr,parc,parv)
+      return m_not_oper(sptr,cptr,parc,parv);
 #else
       show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
                  (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);

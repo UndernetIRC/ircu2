@@ -88,6 +88,7 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "msg.h"
 #include "numeric.h"
@@ -114,7 +115,8 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return send_error_to_client(sptr, ERR_NOSUCHSERVER, parv[1]);
 
     parv[1] = acptr->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_ADMIN " :%s", 1, parc, parv) != HUNTED_ISME)
+    if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, "%s%s " TOK_ADMIN " :%s", 
+	1, parc, parv) != HUNTED_ISME)
       return 0;
   }
   return send_admin_info(sptr, find_admin());

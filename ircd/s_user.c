@@ -27,6 +27,7 @@
 #include "channel.h"
 #include "class.h"
 #include "client.h"
+#include "handlers.h" /* m_lusers and m_motd--bleah :( -Kev */
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -381,7 +382,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            digitgroups = 0;
   struct User*     user = sptr->user;
   char             ip_base64[8];
-  char             featurebuf[512];
 
   user->last = CurrentTime;
   parv[0] = sptr->name;
@@ -567,8 +567,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                me.name, version);
     sendto_one(sptr, rpl_str(RPL_CREATED), me.name, nick, creation);
     sendto_one(sptr, rpl_str(RPL_MYINFO), me.name, parv[0], me.name, version);
-    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
-    sendto_one(sptr, rpl_str(RPL_ISUPPORT), me.name, nick, featurebuf);
+    send_supported(sptr);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
 #ifdef NODEFAULTMOTD
@@ -1474,12 +1473,21 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
     {
       if (!MyConnect(sptr))
       {
-        if (Protocol(sptr->from) < 10)
-          sendto_one(sptr->from, ":%s SILENCE %s %s", acptr->name,
-              sptr->name, lp->value.cp);
-        else
-          sendto_one(sptr->from, ":%s SILENCE %s%s %s", acptr->name,
-              NumNick(sptr), lp->value.cp);
+        if (Protocol(sptr->from) < 10) {
+	  if (IsUser(acptr))
+	    sendto_one(sptr->from, "%s%s " TOK_SILENCE " %s %s",
+		       NumNick(acptr), NumServ(sptr), lp->value.cp);
+	  else
+	    sendto_one(sptr->from, "%s " TOK_SILENCE " %s %s", NumServ(acptr),
+		       NumServ(sptr), lp->value.cp);
+	} else {
+	  if (IsUser(acptr))
+	    sendto_one(sptr->from, "%s%s " TOK_SILENCE " %s%s %s",
+		       NumNick(acptr), NumNick(sptr), lp->value.cp);
+	  else
+	    sendto_one(sptr->from, "%s " TOK_SILENCE " %s%s %s",
+		       NumServ(acptr), NumNick(sptr), lp->value.cp);
+	}
       }
       return 1;
     }
@@ -1558,3 +1566,15 @@ int add_silence(struct Client* sptr, const char* mask)
   return 0;
 }
 
+int
+send_supported(struct Client *cptr)
+{
+  char             featurebuf[512];
+
+  sprintf_irc(featurebuf, FEATURES1, FEATURESVALUES1);
+  sendto_one(cptr, rpl_str(RPL_ISUPPORT), me.name, cptr->name, featurebuf);
+  sprintf_irc(featurebuf, FEATURES2, FEATURESVALUES2);
+  sendto_one(cptr, rpl_str(RPL_ISUPPORT), me.name, cptr->name, featurebuf);
+
+  return 0; /* convenience return, if it's ever needed */
+}

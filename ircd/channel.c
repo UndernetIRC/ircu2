@@ -26,6 +26,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -376,9 +377,13 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-    ban->value.ban.who = (char*) MyMalloc(strlen(cptr->name) + 1);
+#ifdef HEAD_IN_SAND_BANWHO
+    if (IsServer(cptr))
+      DupString(ban->value.ban.who, me.name);
+    else
+#endif
+      DupString(ban->value.ban.who, cptr->name);
     assert(0 != ban->value.ban.who);
-    strcpy(ban->value.ban.who, cptr->name);
 
     ban->value.ban.when = CurrentTime;
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */
@@ -1974,8 +1979,8 @@ int set_mode(struct Client* cptr, struct Client* sptr,
     {
       len[0] = strlen(ban[0]->value.ban.banstr);
       cnt = 1;                  /* We already got one ban :) */
-      sblen = sprintf_irc(sendbuf, ":%s MODE %s +b",
-          me.name, chptr->chname) - sendbuf;
+      sblen = sprintf_irc(sendbuf, "%s MODE %s +b",
+          NumServ(&me), chptr->chname) - sendbuf;
       total_len = sblen + 1 + len[0];   /* 1 = ' ' */
       /* Find more bans: */
       delayed = 0;
@@ -2012,7 +2017,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
     struct Client *acptr;
     if (IsServer(sptr))
       psblen = sprintf_irc(sendbuf, ":%s MODE %s -b",
-          sptr->name, chptr->chname) - sendbuf;
+          me.name, chptr->chname) - sendbuf;
     else                        /* We rely on IsRegistered(sptr) being true for MODE */
       psblen = sprintf_irc(sendbuf, ":%s!%s@%s MODE %s -b", sptr->name,
           sptr->user->username, sptr->user->host, chptr->chname) - sendbuf;
@@ -2371,7 +2376,7 @@ void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
   if (*count == -1)             /* initialize ? */
   {
     sbp = sbpi =
-        sprintf_irc(sendbuf, ":%s MODE %s -", sptr->name, chptr->chname);
+        sprintf_irc(sendbuf, ":%s MODE %s -", me.name, chptr->chname);
     pb = parabuf;
     *count = 0;
   }
@@ -2639,8 +2644,8 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
     }
     case 2:                     /* No conversion is needed for CREATE; the only numnick is sptr */
     {
-      sendto_serv_butone(cptr, ":%s DESYNCH :HACK: %s CREATE %s %s",
-          me.name, sptr->name, chptr->chname, parv[2]);
+      sendto_serv_butone(cptr, "%s DESYNCH :HACK: %s CREATE %s %s",
+          NumServ(&me), sptr->name, chptr->chname, parv[2]);
       sendto_op_mask(SNO_HACK2, "HACK(2): %s CREATE %s %s",
           sptr->name, chptr->chname, parv[2]);
       break;
