@@ -1,5 +1,14 @@
 2004-10-16  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/numeric.h: Remove the unused RPL_STATMEM and
+	RPL_STATMEMTOT.  Move the RPL_BOUNCE comment to its current
+	value (the former RPL_STATMEM).
+
+	* ircd/s_err.c: Remove format strings for RPL_STATMEM and
+	RPL_STATMEMTOT.
+
+2004-10-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_server.c: Look up server configuration by name of our
 	directly connected peer rather than the server being introduced.
 

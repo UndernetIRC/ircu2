@@ -54,13 +54,11 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_CREATED            3
 #define RPL_MYINFO             4
 #define RPL_ISUPPORT           5        /* Undernet/Dalnet extension */
-     /* RPL_BOUNCE                         IRCnet extension */
 /*	RPL_MAP		       6	unreal */
 /*	RPL_MAPEND	       7	unreal */
 #define RPL_SNOMASK            8        /* Undernet extension */
-#define RPL_STATMEMTOT         9        /* Undernet extension */
-#define RPL_STATMEM           10        /* Undernet extension */
-					/* Hybrid: server redirect */
+/*       RPL_BOUNCE           10        efnet, IRCnet extension
+                                        (server redirect) */
 /*      RPL_YOURCOOKIE        14           IRCnet extension */
 #define RPL_MAP               15        /* Undernet extension */
 #define RPL_MAPMORE           16        /* Undernet extension */

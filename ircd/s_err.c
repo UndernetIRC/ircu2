@@ -49,13 +49,9 @@ static Numeric replyTable[] = {
 /* 008 */
   { RPL_SNOMASK, "%d :: Server notice mask (%#x)", "008" },
 /* 009 */
-  { RPL_STATMEMTOT, "%u %u :Bytes Blocks", "009" },
+  { 0 },
 /* 010 */
-#ifdef MEMSIZESTATS
-  { RPL_STATMEM, "%u %u %s %u", "010" },
-#else
-  { RPL_STATMEM, "%u %u %s", "010" },
-#endif
+  { 0 },
 /* 011 */
   { 0 },
 /* 012 */
