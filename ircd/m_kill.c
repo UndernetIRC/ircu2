@@ -100,6 +100,113 @@
 #include <string.h>
 
 /*
+ * do_kill - Performs the generic work involved in killing a client
+ *
+ */
+static int do_kill(struct Client* cptr, struct Client* sptr,
+                  struct Client* victim, char* path)
+{
+  const char*  inpath;
+  char*        comment;
+  char         buf[BUFSIZE];
+
+  assert(0 != cptr);
+  assert(0 != sptr);
+  assert(IsUser(victim));
+
+  if (IsServer(sptr)) {
+     if (!(comment = strchr(path, ' ')))
+       comment = "No reason supplied";
+     else
+       *comment++; /* Remove first character (space) */
+  }
+  else {
+    /*
+     * Do not allow operator specified reasons to exceed TOPICLEN.
+     */
+    if (strlen(path) > TOPICLEN)
+      path[TOPICLEN] = '\0';
+    comment = path;
+  }
+
+#ifdef HEAD_IN_SAND_SERVERNAME
+  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", IsServer(sptr) ?
+                HEAD_IN_SAND_SERVERNAME : cli_name(sptr), comment);
+#else
+  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", cli_name(sptr),
+                comment);
+#endif
+  comment = buf;
+
+  /*
+   * Notify all *local* opers about the KILL (this includes the one
+   * originating the kill, if from this server--the special numeric
+   * reply message is not generated anymore).
+   *
+   * Note: "victim->name" is used instead of "user" because we may
+   *       have changed the target because of the nickname change.
+   */
+  inpath = IsServer(sptr) ? cli_name(cptr) : cli_user(sptr)->host;
+
+  sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
+                       "Received KILL message for %s. From %s Path: %s!%s",
+                       get_client_name(victim, SHOW_IP), cli_name(cptr),
+                       inpath, comment);
+  log_write_kill(victim, sptr, inpath, path);
+
+  /*
+   * And pass on the message to other servers. Note, that if KILL
+   * was changed, the message has to be sent to all links, also
+   * back.
+   * Client suicide kills are NOT passed on --SRB
+   */
+  if (IsServer(cptr) || !MyConnect(victim)) {
+    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim,
+                          inpath, path);
+
+    /*
+     * Set FLAGS_KILLED. This prevents exit_one_client from sending
+     * the unnecessary QUIT for this. (This flag should never be
+     * set in any other place)
+     */
+    cli_flags(victim) |= FLAGS_KILLED;
+  }
+
+  if (MyConnect(victim)) {
+    /*
+     * We *can* have crossed a NICK with this numeric... --Run
+     *
+     * Note the following situation:
+     *  KILL SAA -->       X
+     *  <-- S NICK ... SAA | <-- SAA QUIT <-- S NICK ... SAA <-- SQUIT S
+     * Where the KILL reaches point X before the QUIT does.
+     * This would then *still* cause an orphan because the KILL doesn't reach S
+     * (because of the SQUIT), the QUIT is ignored (because of the KILL)
+     * and the second NICK ... SAA causes an orphan on the server at the
+     * right (which then isn't removed when the SQUIT arrives).
+     * Therefore we still need to detect numeric nick collisions too.
+     *
+     * Bounce the kill back to the originator, if the client can't be found
+     * by the next hop (short lag) the bounce won't propagate further.
+     */
+    if (IsServer(cptr))
+      sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
+                    victim, inpath, path);
+
+    /*
+     * Tell the victim she/he has been zapped, but *only* if
+     * the victim is on current server--no sense in sending the
+     * notification chasing the above kill, it won't get far
+     * anyway (as this user don't exist there any more either)
+     */
+    sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim, "%C :%s", victim,
+                  comment);
+  }
+
+  return exit_client_msg(cptr, victim, sptr, "Killed (%s)", comment);
+}
+
+/*
  * ms_kill - server message handler template
  *
  * NOTE: IsServer(cptr) == true;
@@ -114,8 +221,6 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char*    inpath;
   char*          user;
   char*          path;
-  char*          comment;
-  char           buf[BUFSIZE];
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -140,76 +245,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
-  /*
-   * Notify all *local* opers about the KILL (this includes the one
-   * originating the kill, if from this server--the special numeric
-   * reply message is not generated anymore).
-   *
-   * Note: "victim->name" is used instead of "user" because we may
-   *       have changed the target because of the nickname change.
-   */
-  inpath = cli_name(cptr);
-
-  sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-		       "Received KILL message for %s. From %s Path: %C!%s",
-		       get_client_name(victim,SHOW_IP), parv[0], cptr, path);
-
-  log_write_kill(victim, sptr, cli_name(cptr), path);
-  /*
-   * And pass on the message to other servers. Note, that if KILL
-   * was changed, the message has to be sent to all links, also
-   * back.
-   */
-  sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, cli_name(cptr),
-			path);
-  /*
-   * We *can* have crossed a NICK with this numeric... --Run
-   *
-   * Note the following situation:
-   *  KILL SAA -->       X
-   *  <-- S NICK ... SAA | <-- SAA QUIT <-- S NICK ... SAA <-- SQUIT S
-   * Where the KILL reaches point X before the QUIT does.
-   * This would then *still* cause an orphan because the KILL doesn't reach S
-   * (because of the SQUIT), the QUIT is ignored (because of the KILL)
-   * and the second NICK ... SAA causes an orphan on the server at the
-   * right (which then isn't removed when the SQUIT arrives).
-   * Therefore we still need to detect numeric nick collisions too.
-   *
-   * Bounce the kill back to the originator, if the client can't be found
-   * by the next hop (short lag) the bounce won't propagate further.
-   */
-  if (MyConnect(victim))
-    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
-		  victim, cli_name(cptr), path);
-  /*
-   * Set FLAGS_KILLED. This prevents exit_one_client from sending
-   * the unnecessary QUIT for this. (This flag should never be
-   * set in any other place)
-   */
-  cli_flags(victim) |= FLAGS_KILLED;
-
-  /*
-   * the first space in path will be at the end of the
-   * opers name:
-   * bla.bla.bla!host.net.dom!opername (comment)
-   */
-  if (!(comment = strchr(path, ' ')))
-    comment = " (No reason given)";
-  /*
-   * Tell the victim she/he has been zapped, but *only* if
-   * the victim is on current server--no sense in sending the
-   * notification chasing the above kill, it won't get far
-   * anyway (as this user don't exist there any more either)
-   */
-  if (MyConnect(victim))
-    sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim,
-		  "%C :%s%s", victim, IsServer(sptr) ? HEAD_IN_SAND_SERVERNAME :
-		  cli_name(sptr), comment);
-
-  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s%s)", IsServer(sptr) ?
-		HEAD_IN_SAND_SERVERNAME : cli_name(sptr), comment);
-
-  return exit_client(cptr, victim, sptr, buf);
+  return do_kill(cptr, sptr, victim, path);
 }
 
 /*
@@ -225,11 +261,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client* victim;
-  const char*    inpath;
   char*          user;
   char*          path;
-  char*          comment;
-  char           buf[BUFSIZE];
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -243,6 +276,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "KILL");
 
   user = parv[1];
+  path = parv[parc - 1];
   if (!(victim = FindClient(user))) {
     /*
      * If the user has recently changed nick, we automaticly
@@ -273,69 +307,5 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		  sptr, cli_name(victim));
     return 0;
   }
-
-  /*
-   * The kill originates from this server, initialize path.
-   * (In which case the 'path' may contain user suplied
-   * explanation ...or some nasty comment, sigh... >;-)
-   *
-   * ...!operhost!oper
-   * ...!operhost!oper (comment)
-   */
-
-  comment = parv[parc - 1];        /* Either defined or NULL (parc >= 3) */
-
-  if (strlen(comment) > TOPICLEN)
-    comment[TOPICLEN] = '\0';
-
-  inpath = cli_user(sptr)->host;
-
-  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", cli_name(cptr), comment);
-  path = buf;
-
-  /*
-   * Notify all *local* opers about the KILL (this includes the one
-   * originating the kill, if from this server--the special numeric
-   * reply message is not generated anymore).
-   *
-   * Note: "victim->name" is used instead of "user" because we may
-   *       have changed the target because of the nickname change.
-   */
-  sendto_opmask_butone(0, SNO_OPERKILL,
-		       "Received KILL message for %s. From %s Path: %s!%s",
-		       get_client_name(victim,SHOW_IP), parv[0], inpath, path);
-
-  log_write_kill(victim, sptr, inpath, path);
-  /*
-   * And pass on the message to other servers. Note, that if KILL
-   * was changed, the message has to be sent to all links, also
-   * back.
-   * Suicide kills are NOT passed on --SRB
-   */
-  if (!MyConnect(victim)) {
-    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, inpath,
-			  path);
-
-   /*
-    * Set FLAGS_KILLED. This prevents exit_one_client from sending
-    * the unnecessary QUIT for this. (This flag should never be
-    * set in any other place)
-    */
-    cli_flags(victim) |= FLAGS_KILLED;
-
-  }
-  else {
-  /*
-   * Tell the victim she/he has been zapped, but *only* if
-   * the victim is on current server--no sense in sending the
-   * notification chasing the above kill, it won't get far
-   * anyway (as this user don't exist there any more either)
-   */
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s", victim, path);
-  }
-
-  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s (%s))", cli_name(sptr),
-		comment);
-
-  return exit_client(cptr, victim, sptr, buf);
+  return do_kill(cptr, sptr, victim, path);
 }
