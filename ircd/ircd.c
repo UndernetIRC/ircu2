@@ -85,7 +85,8 @@ extern void mem_dbg_initialise(void);
  *--------------------------------------------------------------------------*/
 enum {
   BOOT_DEBUG = 1,
-  BOOT_TTY   = 2
+  BOOT_TTY   = 2,
+  BOOT_CHKCONF = 3
 };
 
 
@@ -464,7 +465,7 @@ static void check_pings(struct Event* ev) {
  * debugmode
  *--------------------------------------------------------------------------*/
 static void parse_command_line(int argc, char** argv) {
-  const char *options = "d:f:h:ntvx:";
+  const char *options = "d:f:h:nktvx:";
   int opt;
 
   if (thisServer.euid != thisServer.uid)
@@ -475,6 +476,7 @@ static void parse_command_line(int argc, char** argv) {
    */
   while ((opt = getopt(argc, argv, options)) != EOF)
     switch (opt) {
+    case 'k':  thisServer.bootopt |= BOOT_CHKCONF;     break;
     case 'n':
     case 't':  thisServer.bootopt |= BOOT_TTY;         break;
     case 'd':  dpath      = optarg;                    break;
@@ -641,15 +643,13 @@ int main(int argc, char **argv) {
       !check_file_access(configfile, 'C', R_OK))
     return 4;
 
-  debug_init(thisServer.bootopt & BOOT_TTY);
-  daemon_init(thisServer.bootopt & BOOT_TTY);
   event_init(MAXCONNECTIONS);
 
   setup_signals();
   feature_init(); /* initialize features... */
   log_init(*argv);
   set_nomem_handler(outofmemory);
-  
+
   if (!init_string()) {
     log_write(LS_SYSTEM, L_CRIT, 0, "Failed to initialize string module");
     return 6;
@@ -677,6 +677,13 @@ int main(int argc, char **argv) {
     return 7;
   }
 
+  if(thisServer.bootopt & BOOT_CHKCONF) {
+    fprintf(stdout, "Configuration file checked okay.\n");
+    return 0;
+  }
+
+  debug_init(thisServer.bootopt & BOOT_TTY);
+  daemon_init(thisServer.bootopt & BOOT_TTY);
   if (check_pid()) {
     Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
     exit(2);

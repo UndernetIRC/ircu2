@@ -1,5 +1,14 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd.c: Add -k as a chkconf-like option to exit after
+	reading the configuration file.
+
+	* ircd/chkconf.c: Remove as unused.
+
+	* ircd/Makefile.in: Remove last mentions of chkconf from Makefile.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Remove examples for unused features (TIMESEC,
 	CRYPT_OPER_PASSWORD) and add for new feature (ANNOUNCE_INVITES).
 

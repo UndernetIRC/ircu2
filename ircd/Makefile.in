@@ -287,7 +287,6 @@ install-with-symlink: build mkbindir
 	  ${RM} -f ${SYMLINK}; \
 	  ${LN_S} ircd.`cat /tmp/ircd.tag` ${SYMLINK}; )
 	@${RM} /tmp/ircd.tag
-#	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} chkconf ${BINDIR}
 	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} umkpasswd ${BINDIR}
 	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ${top_srcdir}/doc/example.conf ${DPATH}
 # 	( cd ${DPATH}; \
@@ -306,7 +305,6 @@ install-no-symlink: build mkbindir
 	fi
 	@echo "Installing new ircd as ${BINDIR}/ircd :"
 	${INSTALL} -m ${IRCDMODE} -o ${IRCDOWN} -g ${IRCDGRP} ircd ${BINDIR}/ircd
-#	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} chkconf ${BINDIR}
 	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ${top_srcdir}/doc/example.conf ${DPATH}
 # 	( cd ${DPATH}; \
 # 	  ${TOUCH} ${MPATH}; \
@@ -316,13 +314,13 @@ install-no-symlink: build mkbindir
 
 uninstall:
 	@if [ "${BINDIR}" != "${DPATH}" ]; then \
-		echo "${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9* ${BINDIR}/chkconf"; \
-		${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9* ${BINDIR}/chkconf; \
+		echo "${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9*"; \
+		${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9*; \
 	fi
 	@echo "Please remove the contents of ${DPATH} manually"
 
 clean:
-	${RM} -f *.o *.bak ircd version.c chkconf umkpasswd ircd_osdep.c chattr.tab.c table_gen y.tab.* lex.yy.*
+	${RM} -f *.o *.bak ircd version.c umkpasswd ircd_osdep.c chattr.tab.c table_gen y.tab.* lex.yy.*
 
 distclean: clean
 	${RM} -f Makefile stamp-m
