@@ -88,7 +88,7 @@ struct Client;
 #define MODE_SENDTS     0x0800  /* TS was 0 during a local user /join; send
                                  * temporary TS; can be removed when all 2.10 */
 #define MODE_LISTED     0x10000
-
+#define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
