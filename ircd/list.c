@@ -31,6 +31,7 @@
 #include "match.h"
 #include "numeric.h"
 #include "res.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -147,6 +148,8 @@ static void dealloc_connection(struct Connection* con)
 {
   assert(con_verify(con));
 
+  Debug((DEBUG_LIST, "Deallocating connection %p", con));
+
   if (con_dns_reply(con))
     --(con_dns_reply(con)->ref_count);
   if (-1 < con_fd(con))
@@ -242,16 +245,22 @@ void free_client(struct Client* cptr)
   assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
 
-  Debug((DEBUG_LIST, "Freeing client %s [%p]", cli_name(cptr), cptr));
+  Debug((DEBUG_LIST, "Freeing client %s [%p], connection %p", cli_name(cptr),
+	 cptr, cli_connect(cptr)));
+
+  if (cli_auth(cptr))
+    destroy_auth_request(cli_auth(cptr), 0);
 
   if (cli_from(cptr) == cptr) { /* in other words, we're local */
     cli_from(cptr) = 0;
-    if (!cli_freeflag(cptr))
+    /* timer must be marked as not active */
+    if (!cli_freeflag(cptr) && !t_active(&(cli_proc(cptr))))
       dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
     else {
       if (-1 < cli_fd(cptr) && cli_freeflag(cptr) & FREEFLAG_SOCKET)
 	socket_del(&(cli_socket(cptr))); /* queue a socket delete */
-      if (cli_freeflag(cptr) & FREEFLAG_TIMER)
+      if ((cli_freeflag(cptr) & FREEFLAG_TIMER) &&
+	  !t_active(&(cli_proc(cptr))))
 	timer_del(&(cli_proc(cptr))); /* queue a timer delete */
     }
   }

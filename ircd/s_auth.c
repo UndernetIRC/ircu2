@@ -114,7 +114,6 @@ void free_auth_request(struct AuthRequest* auth);
 static void auth_timeout_callback(struct Event* ev)
 {
   struct AuthRequest* auth;
-  struct AuthRequest** authList;
 
   assert(0 != ev_timer(ev));
   assert(0 != t_data(ev_timer(ev)));
@@ -132,31 +131,7 @@ static void auth_timeout_callback(struct Event* ev)
   } else {
     assert(ev_type(ev) == ET_EXPIRE);
 
-    if (IsDoingAuth(auth)) {
-      authList = &AuthPollList;
-      if (-1 < auth->fd) {
-	close(auth->fd);
-	auth->fd = -1;
-	socket_del(&auth->socket);
-      }
-
-      if (IsUserPort(auth->client))
-	sendheader(auth->client, REPORT_FAIL_ID);
-    } else
-      authList = &AuthIncompleteList;
-
-    if (IsDNSPending(auth)) {
-      delete_resolver_queries(auth);
-      if (IsUserPort(auth->client))
-	sendheader(auth->client, REPORT_FAIL_DNS);
-    }
-
-    log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
-	      get_client_name(auth->client, HIDE_IP));
-
-    release_auth_client(auth->client);
-    unlink_auth_request(auth, authList);
-    free_auth_request(auth);
+    destroy_auth_request(auth, 1);
   }
 }
 
@@ -206,6 +181,41 @@ static void auth_sock_callback(struct Event* ev)
 }
 
 /*
+ * destroy_auth_request - stop an auth request completely
+ */
+void destroy_auth_request(struct AuthRequest* auth, int send_reports)
+{
+  struct AuthRequest** authList;
+
+  if (IsDoingAuth(auth)) {
+    authList = &AuthPollList;
+    if (-1 < auth->fd) {
+      close(auth->fd);
+      auth->fd = -1;
+      socket_del(&auth->socket);
+    }
+
+    if (send_reports && IsUserPort(auth->client))
+      sendheader(auth->client, REPORT_FAIL_ID);
+  } else
+    authList = &AuthIncompleteList;
+
+  if (IsDNSPending(auth)) {
+    delete_resolver_queries(auth);
+    if (send_reports && IsUserPort(auth->client))
+      sendheader(auth->client, REPORT_FAIL_DNS);
+  }
+
+  if (send_reports)
+    log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
+	      get_client_name(auth->client, HIDE_IP));
+
+  release_auth_client(auth->client);
+  unlink_auth_request(auth, authList);
+  free_auth_request(auth);
+}
+
+/*
  * make_auth_request - allocate a new auth request
  */
 static struct AuthRequest* make_auth_request(struct Client* client)
@@ -217,6 +227,7 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   auth->flags   = AM_TIMEOUT;
   auth->fd      = -1;
   auth->client  = client;
+  cli_auth(client) = auth;
   timer_add(&auth->timeout, auth_timeout_callback, (void*) auth, TT_RELATIVE,
 	    AUTH_TIMEOUT);
   return auth;
@@ -271,6 +282,7 @@ static void link_auth_request(struct AuthRequest* request,
 static void release_auth_client(struct Client* client)
 {
   assert(0 != client);
+  cli_auth(client) = 0;
   cli_lasttime(client) = cli_since(client) = CurrentTime;
   if (cli_fd(client) > HighestFd)
     HighestFd = cli_fd(client);
@@ -740,6 +752,7 @@ void read_auth_reply(struct AuthRequest* auth)
 
   assert(0 != auth);
   assert(0 != auth->client);
+  assert(auth = cli_auth(auth->client));
 
   if (IO_SUCCESS == os_recv_nonb(auth->fd, buf, BUFSIZE, &len)) {
     buf[len] = '\0';

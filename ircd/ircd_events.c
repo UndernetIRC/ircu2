@@ -105,7 +105,7 @@ gen_init(struct GenHeader* gen, EventCallBack call, void* data,
   gen->gh_head = 0;
   gen->gh_tail = 0;
 #endif
-  gen->gh_flags = 0;
+  gen->gh_flags = GEN_ACTIVE;
   gen->gh_ref = 0;
   gen->gh_call = call;
   gen->gh_data = data;
@@ -124,6 +124,10 @@ event_execute(struct Event* event)
 {
   assert(0 != event);
   assert(0 == event->ev_prev_p); /* must be off queue first */
+  assert(event->ev_gen.gen_header->gh_flags & GEN_ACTIVE);
+
+  if (event->ev_type == ET_DESTROY) /* turn off active flag *before* destroy */
+    event->ev_gen.gen_header->gh_flags &= ~GEN_ACTIVE;
 
   (*event->ev_gen.gen_header->gh_call)(event); /* execute the event */
 

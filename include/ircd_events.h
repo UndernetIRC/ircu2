@@ -81,6 +81,7 @@ struct GenHeader {
 
 #define GEN_DESTROY	0x0001	/* generator is to be destroyed */
 #define GEN_MARKED	0x0002	/* generator is marked for destruction */
+#define GEN_ACTIVE	0x0004	/* generator is active */
 
 struct Socket {
   struct GenHeader s_header;	/* generator information */
@@ -106,6 +107,7 @@ struct Socket {
 #define s_data(sock)	((sock)->s_header.gh_data)
 #define s_ed_int(sock)	((sock)->s_header.gh_engdata.ed_int)
 #define s_ed_ptr(sock)	((sock)->s_header.gh_engdata.ed_ptr)
+#define s_active(sock)	((sock)->s_header.gh_flags & GEN_ACTIVE)
 
 /* Note: The socket state overrides the socket event mask; that is, if
  * it's an SS_CONNECTING socket, the engine selects its own definition
@@ -123,6 +125,7 @@ struct Signal {
 #define sig_data(sig)	((sig)->sig_header.gh_data)
 #define sig_ed_int(sig)	((sig)->sig_header.gh_engdata.ed_int)
 #define sig_ed_ptr(sig)	((sig)->sig_header.gh_engdata.ed_ptr)
+#define sig_active(sig)	((sig)->sig_header.gh_flags & GEN_ACTIVE)
 
 struct Timer {
   struct GenHeader t_header;	/* generator information */
@@ -137,6 +140,7 @@ struct Timer {
 #define t_data(tim)	((tim)->t_header.gh_data)
 #define t_ed_int(tim)	((tim)->t_header.gh_engdata.ed_int)
 #define t_ed_ptr(tim)	((tim)->t_header.gh_engdata.ed_ptr)
+#define t_active(tim)	((tim)->t_header.gh_flags & GEN_ACTIVE)
 
 struct Event {
   struct Event*	 ev_next;	/* linked list of events on queue */

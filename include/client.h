@@ -56,6 +56,7 @@ struct Whowas;
 struct DNSReply;
 struct hostent;
 struct Privs;
+struct AuthRequest;
 
 /*
  * Structures
@@ -156,6 +157,7 @@ struct Connection {
                                    caused this clients socket to be `dead' */
   struct Socket       con_socket; /* socket descriptor for client */
   struct Timer        con_proc; /* process latent messages from client */
+  struct AuthRequest* con_auth; /* auth request for client */
 };
 
 #define CONNECTION_MAGIC 0x12f955f3
@@ -252,6 +254,7 @@ struct Client {
 #define cli_buffer(cli)		((cli)->cli_connect->con_buffer)
 #define cli_socket(cli)		((cli)->cli_connect->con_socket)
 #define cli_proc(cli)		((cli)->cli_connect->con_proc)
+#define cli_auth(cli)		((cli)->cli_connect->con_auth)
 
 #define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
 #define con_magic(con)		((con)->con_magic)
@@ -290,6 +293,7 @@ struct Client {
 #define con_buffer(con)		((con)->con_buffer)
 #define con_socket(con)		((con)->con_socket)
 #define con_proc(con)		((con)->con_proc)
+#define con_auth(con)		((con)->con_auth)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */

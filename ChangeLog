@@ -1,5 +1,33 @@
 2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_auth.c: pull out destruction code in
+	auth_timeout_request() into an externally-visible
+	destroy_auth_request(); manage cli_auth pointer in client
+	structure; use it for an extra assertion check
+
+	* ircd/list.c: include s_auth.h for destroy_auth_request(); add
+	debugging notices to show flow when deallocating
+	connections/clients; call destroy_auth_request() when free'ing a
+	client that has an auth outstanding; don't free the connection if
+	the process timer is unmarked but still active
+
+	* ircd/ircd_events.c: set GEN_ACTIVE when initializing a generator
+	and reset it before calling the event handler for an ET_DESTROY
+	event
+
+	* include/s_auth.h (destroy_auth_request): declare
+	destroy_auth_request(), which can be used to destroy an
+	outstanding auth request if a client socket goes away before the
+	auth exchange is completed
+
+	* include/ircd_events.h: add an active flag to keep track of
+	whether or not particular generators are active, for the
+	convenience of functions using the API
+
+	* include/client.h: add a pointer for auth requests to struct
+	Connection so we can kill outstanding auth requests if a client
+	socket closes unexpectedly
+
 	* ircd/s_bsd.c: cli_connect() could become 0 during the course of
 	the sock or timer callback; take that into account in the assert
 
