@@ -108,7 +108,9 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **	(normally, a decimal point appears in the results of those
 **	conversions only if a digit follows).  For g and G
 **	conversions, trailing zeros are not removed from the result as
-**	they would otherwise be.
+**	they would otherwise be.  For C conversions, if the
+**	destination is local and the origin is a user, the
+**	nick!user@host form is used.
 **
 **   0	specifying zero padding.  For all conversions except n, the
 **	converted value is padded on the left with zeros rather than
@@ -128,6 +130,9 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **   +	specifying that a sign always be placed before a number
 **	produced by a signed conversion.  A + overrides a space if
 **	both are used.
+**
+**   :	specifying that a struct Client name should be preceded by a
+**	':' character if the destination is a user
 **
 ** * An optional decimal digit string specifying a minimum field
 **   width.  If the converted value has fewer characters than the
@@ -254,6 +259,9 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **		control of the <dest> argument; if <dest> is NULL or
 **		is a user, the client's name (nickname or server name)
 **		is printed; otherwise, the client's network numeric is
+**		printed.
+**
+** H		The channel argument identifier (channel name) is
 **		printed.
 **
 ** v		The argument given must be a pointer to a struct
