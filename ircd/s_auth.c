@@ -159,14 +159,14 @@ static void link_auth_request(struct AuthRequest* request,
 static void release_auth_client(struct Client* client)
 {
   assert(0 != client);
-  client->lasttime = client->since = CurrentTime;
-  if (client->fd > HighestFd)
-    HighestFd = client->fd;
-  LocalClientArray[client->fd] = client;
+  cli_lasttime(client) = cli_since(client) = CurrentTime;
+  if (cli_fd(client) > HighestFd)
+    HighestFd = cli_fd(client);
+  LocalClientArray[cli_fd(client)] = client;
 
   add_client_to_list(client);
   Debug((DEBUG_INFO, "Auth: release_auth_client %s@%s[%s]",
-         client->username, client->sockhost, client->sock_ip));
+         cli_username(client), cli_sockhost(client), cli_sock_ip(client)));
 }
  
 static void auth_kill_client(struct AuthRequest* auth)
@@ -211,7 +211,7 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
      * the ip#(s) for the socket is listed for the host.
      */
     for (i = 0; hp->h_addr_list[i]; ++i) {
-      if (0 == memcmp(hp->h_addr_list[i], &auth->client->ip,
+      if (0 == memcmp(hp->h_addr_list[i], &(cli_ip(auth->client)),
                       sizeof(struct in_addr)))
          break;
     }
@@ -219,7 +219,7 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_IP_MISMATCH);
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-			   auth->client->sock_ip, hp->h_name, 
+			   cli_sock_ip(auth->client), hp->h_name, 
 			   ircd_ntoa(hp->h_addr_list[0]));
 #if defined(KILL_IPMISMATCH)
       auth_kill_client(auth);
@@ -228,8 +228,8 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
     }
     else {
       ++reply->ref_count;
-      auth->client->dns_reply = reply;
-      ircd_strncpy(auth->client->sockhost, hp->h_name, HOSTLEN);
+      cli_dns_reply(auth->client) = reply;
+      ircd_strncpy(cli_sockhost(auth->client), hp->h_name, HOSTLEN);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FIN_DNS);
     }
@@ -334,7 +334,7 @@ static int start_auth_query(struct AuthRequest* auth)
    * and machines with multiple IP addresses are common now
    */
   memset(&local_addr, 0, sizeof(struct sockaddr_in));
-  os_get_sockname(auth->client->fd, &local_addr);
+  os_get_sockname(cli_fd(auth->client), &local_addr);
   local_addr.sin_port = htons(0);
 
   if (bind(fd, (struct sockaddr*) &local_addr, sizeof(struct sockaddr_in))) {
@@ -346,7 +346,7 @@ static int start_auth_query(struct AuthRequest* auth)
     return 0;
   }
 
-  remote_addr.sin_addr.s_addr = auth->client->ip.s_addr;
+  remote_addr.sin_addr.s_addr = (cli_ip(auth->client)).s_addr;
   remote_addr.sin_port = htons(113);
   remote_addr.sin_family = AF_INET;
 
@@ -522,8 +522,8 @@ void start_auth(struct Client* client)
   assert(0 != auth);
 
 #if !defined(NODNS)
-  if (LOOPBACK == inet_netof(client->ip)) {
-    strcpy(client->sockhost, me.name);
+  if (LOOPBACK == inet_netof(cli_ip(client))) {
+    strcpy(client->sockhost, cli_name(&me));
   }
   else {
     struct DNSQuery query;
@@ -534,11 +534,11 @@ void start_auth(struct Client* client)
     if (IsUserPort(auth->client))
       sendheader(client, REPORT_DO_DNS);
 
-    client->dns_reply = gethost_byaddr((const char*) &client->ip, &query);
+    client->dns_reply = gethost_byaddr((const char*) &(cli_ip(client)), &query);
 
-    if (client->dns_reply) {
-      ++client->dns_reply->ref_count;
-      ircd_strncpy(client->sockhost, client->dns_reply->hp->h_name, HOSTLEN);
+    if (cli_dns_reply(client)) {
+      ++(cli_dns_reply(client))->ref_count;
+      ircd_strncpy(cli_sockhost(client), cli_dns_reply(client)->hp->h_name, HOSTLEN);
       if (IsUserPort(auth->client))
 	sendheader(client, REPORT_FIN_DNSC);
     }
@@ -622,8 +622,8 @@ void send_auth_query(struct AuthRequest* auth)
   assert(0 != auth);
   assert(0 != auth->client);
 
-  if (!os_get_sockname(auth->client->fd, &us) ||
-      !os_get_peername(auth->client->fd, &them)) {
+  if (!os_get_sockname(cli_fd(auth->client), &us) ||
+      !os_get_peername(cli_fd(auth->client), &them)) {
     auth_error(auth, 1);
     return;
   }
@@ -668,7 +668,7 @@ void read_auth_reply(struct AuthRequest* auth)
   ClearAuth(auth);
   
   if (!EmptyString(username)) {
-    ircd_strncpy(auth->client->username, username, USERLEN);
+    ircd_strncpy(cli_username(auth->client), username, USERLEN);
     /*
      * Not needed, struct is zeroed by memset
      * auth->client->username[USERLEN] = '\0';
@@ -681,7 +681,7 @@ void read_auth_reply(struct AuthRequest* auth)
   else {
     ++ServerStats->is_abad;
 #if 0
-    strcpy(auth->client->username, "unknown");
+    strcpy(cli_username(auth->client), "unknown");
 #endif
   }
   unlink_auth_request(auth, &AuthPollList);

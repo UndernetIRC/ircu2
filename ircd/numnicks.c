@@ -177,14 +177,14 @@ struct Client* findNUser(const char* yxx)
   if (5 == strlen(yxx)) {
     if (0 != (server = FindXNServer(yxx))) {
       Debug((DEBUG_DEBUG, "findNUser: %s(%d)", yxx, 
-             base64toint(yxx + 2) & server->serv->nn_mask));
-      return server->serv->client_list[base64toint(yxx + 2) & server->serv->nn_mask];
+             base64toint(yxx + 2) & cli_serv(server)->nn_mask));
+      return cli_serv(server)->client_list[base64toint(yxx + 2) & cli_serv(server)->nn_mask];
     }
   }
   else if (0 != (server = FindNServer(yxx))) {
     Debug((DEBUG_DEBUG, "findNUser: %s(%d)",
-           yxx, base64toint(yxx + 1) & server->serv->nn_mask));
-    return server->serv->client_list[base64toint(yxx + 1) & server->serv->nn_mask];
+           yxx, base64toint(yxx + 1) & cli_serv(server)->nn_mask));
+    return cli_serv(server)->client_list[base64toint(yxx + 1) & cli_serv(server)->nn_mask];
   }
   return 0;
 }
@@ -195,8 +195,8 @@ void RemoveYXXClient(struct Client* server, const char* yxx)
   assert(0 != yxx);
   if (*yxx) {
     Debug((DEBUG_DEBUG, "RemoveYXXClient: %s(%d)", yxx,
-           base64toint(yxx) & server->serv->nn_mask));
-    server->serv->client_list[base64toint(yxx) & server->serv->nn_mask] = 0;
+           base64toint(yxx) & cli_serv(server)->nn_mask));
+    cli_serv(server)->client_list[base64toint(yxx) & cli_serv(server)->nn_mask] = 0;
   }
 }
 
@@ -204,17 +204,17 @@ void SetServerYXX(struct Client* cptr, struct Client* server, const char* yxx)
 {
   unsigned int index;
   if (5 == strlen(yxx)) {
-    ircd_strncpy(server->yxx, yxx, 2);
-    ircd_strncpy(server->serv->nn_capacity, yxx + 2, 3);
+    ircd_strncpy(cli_yxx(server), yxx, 2);
+    ircd_strncpy(cli_serv(server)->nn_capacity, yxx + 2, 3);
   }
   else {
-    server->yxx[0]               = yxx[0];
-    server->serv->nn_capacity[0] = yxx[1];
-    server->serv->nn_capacity[1] = yxx[2];
+    (cli_yxx(server))[0]               = yxx[0];
+    cli_serv(server)->nn_capacity[0] = yxx[1];
+    cli_serv(server)->nn_capacity[1] = yxx[2];
   }
-  server->serv->nn_mask = base64toint(server->serv->nn_capacity);
+  cli_serv(server)->nn_mask = base64toint(cli_serv(server)->nn_capacity);
 
-  index = base64toint(server->yxx);
+  index = base64toint(cli_yxx(server));
   if (index >= lastNNServer)
     lastNNServer = index + 1;
   server_list[index] = server;
@@ -222,8 +222,8 @@ void SetServerYXX(struct Client* cptr, struct Client* server, const char* yxx)
   /* Note, exit_one_client uses the fact that `client_list' != NULL to
    * determine that SetServerYXX has been called - and then calls
    * ClearServerYXX. However, freeing the allocation happens in free_client() */
-  server->serv->client_list =
-      (struct Client**) MyCalloc(server->serv->nn_mask + 1, sizeof(struct Client*));
+  cli_serv(server)->client_list =
+      (struct Client**) MyCalloc(cli_serv(server)->nn_mask + 1, sizeof(struct Client*));
 }
 
 void SetYXXCapacity(struct Client* c, unsigned int capacity)
@@ -245,14 +245,14 @@ void SetYXXCapacity(struct Client* c, unsigned int capacity)
   }
   --max_clients;
 #if defined(EXTENDED_NUMERICS)
-  inttobase64(c->serv->nn_capacity, max_clients, 3); 
+  inttobase64(cli_serv(c)->nn_capacity, max_clients, 3); 
 #else
-  inttobase64(c->serv->nn_capacity, max_clients, 2); 
+  inttobase64(cli_serv(c)->nn_capacity, max_clients, 2); 
 #endif
-  c->serv->nn_mask = max_clients;       /* Our Numeric Nick mask */
-  c->serv->client_list = (struct Client**) MyCalloc(max_clients + 1, 
+  cli_serv(c)->nn_mask = max_clients;       /* Our Numeric Nick mask */
+  cli_serv(c)->client_list = (struct Client**) MyCalloc(max_clients + 1, 
                                                      sizeof(struct Client*));
-  server_list[base64toint(c->yxx)] = c;
+  server_list[base64toint(cli_yxx(c))] = c;
 }
 
 void SetYXXServerName(struct Client* c, unsigned int numeric)
@@ -261,10 +261,10 @@ void SetYXXServerName(struct Client* c, unsigned int numeric)
   assert(numeric < NN_MAX_SERVER);
 
 #if defined(EXTENDED_NUMERICS)
-  inttobase64(c->yxx, numeric, 2);
+  inttobase64(cli_yxx(c), numeric, 2);
 #else
   assert(numeric < NUMNICKBASE);
-  c->yxx[0] = convert2y[numeric];
+  (cli_yxx(c))[0] = convert2y[numeric];
 #endif
   if (numeric >= lastNNServer)
     lastNNServer = numeric + 1;
@@ -273,7 +273,7 @@ void SetYXXServerName(struct Client* c, unsigned int numeric)
 
 void ClearServerYXX(const struct Client *server)
 {
-  unsigned int index = base64toint(server->yxx);
+  unsigned int index = base64toint(cli_yxx(server));
   if (server_list[index] == server)     /* Sanity check */
     server_list[index] = 0;
 }
@@ -287,26 +287,26 @@ void ClearServerYXX(const struct Client *server)
 void SetRemoteNumNick(struct Client* acptr, const char *yxx)
 {
   struct Client** acptrp;
-  struct Client*  server = acptr->user->server;
+  struct Client*  server = cli_user(acptr)->server;
  
   if (5 == strlen(yxx)) {
-    strcpy(acptr->yxx, yxx + 2);
+    strcpy(cli_yxx(acptr), yxx + 2);
   }
   else {
-    acptr->yxx[0] = *++yxx;
-    acptr->yxx[1] = *++yxx;
-    acptr->yxx[2] = 0;
+    (cli_yxx(acptr))[0] = *++yxx;
+    (cli_yxx(acptr))[1] = *++yxx;
+    (cli_yxx(acptr))[2] = 0;
   }
-  Debug((DEBUG_DEBUG, "SetRemoteNumNick: %s(%d)", acptr->yxx, 
-         base64toint(acptr->yxx) & server->serv->nn_mask));
+  Debug((DEBUG_DEBUG, "SetRemoteNumNick: %s(%d)", cli_yxx(acptr), 
+         base64toint(cli_yxx(acptr)) & cli_serv(server)->nn_mask));
 
-  acptrp = &server->serv->client_list[base64toint(acptr->yxx) & server->serv->nn_mask];
+  acptrp = &(cli_serv(server))->client_list[base64toint(cli_yxx(acptr)) & cli_serv(server)->nn_mask];
   if (*acptrp) {
     /*
      * this exits the old client in the array, not the client
      * that is being set
      */
-    exit_client(acptr->from, *acptrp, server, "Numeric nick collision (Ghost)");
+    exit_client(cli_from(acptr), *acptrp, server, "Numeric nick collision (Ghost)");
   }
   *acptrp = acptr;
 }
@@ -321,11 +321,11 @@ void SetRemoteNumNick(struct Client* acptr, const char *yxx)
 int SetLocalNumNick(struct Client *cptr)
 {
   static unsigned int last_nn     = 0;
-  struct Client**     client_list = me.serv->client_list;
-  unsigned int        mask        = me.serv->nn_mask;
+  struct Client**     client_list = cli_serv(&me)->client_list;
+  unsigned int        mask        = cli_serv(&me)->nn_mask;
   unsigned int        count       = 0;
 
-  assert(cptr->user->server == &me);
+  assert(cli_user(cptr)->server == &me);
 
   while (client_list[last_nn & mask]) {
     if (++count == NN_MAX_CLIENT) {
@@ -338,9 +338,9 @@ int SetLocalNumNick(struct Client *cptr)
   client_list[last_nn & mask] = cptr;  /* Reserve the numeric ! */
 
 #if defined(EXTENDED_NUMERICS)
-  inttobase64(cptr->yxx, last_nn, 3);
+  inttobase64(cli_yxx(cptr), last_nn, 3);
 #else
-  inttobase64(cptr->yxx, last_nn, 2);
+  inttobase64(cli_yxx(cptr), last_nn, 2);
 #endif
   if (++last_nn == NN_MAX_CLIENT)
     last_nn = 0;
@@ -360,10 +360,10 @@ int markMatchexServer(const char *cmask, int minlen)
 
   for (i = 0; i < lastNNServer; i++) {
     if ((acptr = server_list[i])) {
-      if (matchexec(acptr->name, cmask, minlen))
-        acptr->flags &= ~FLAGS_MAP;
+      if (matchexec(cli_name(acptr), cmask, minlen))
+        cli_flags(acptr) &= ~FLAGS_MAP;
       else {
-        acptr->flags |= FLAGS_MAP;
+        cli_flags(acptr) |= FLAGS_MAP;
         cnt++;
       }
     }
@@ -379,7 +379,7 @@ struct Client* find_match_server(char *mask)
   if (!(BadPtr(mask))) {
     collapse(mask);
     for (i = 0; i < lastNNServer; i++) {
-      if ((acptr = server_list[i]) && (!match(mask, acptr->name)))
+      if ((acptr = server_list[i]) && (!match(mask, cli_name(acptr))))
         return acptr;
     }
   }

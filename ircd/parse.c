@@ -807,7 +807,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   if (IsDead(cptr))
     return 0;
 
-  para[0] = from->name;
+  para[0] = cli_name(from);
   for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
   if (*ch == ':')               /* Is any client doing this ? */
   {
@@ -822,7 +822,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   {
     ServerStats->is_empt++;
     Debug((DEBUG_NOTICE, "Empty message from host %s:%s",
-        cptr->name, from->name));
+        cli_name(cptr), cli_name(from)));
     return (-1);
   }
 
@@ -913,24 +913,13 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   }
   para[++i] = NULL;
   ++mptr->count;
-#if 0
-  /*
-   * The "unregistered command check" was ugly and mildly inefficient.
-   * I fixed it. :)  --Shadow
-   */
-  if (!IsUser(cptr) && 0 == (mptr->flags & MFLG_UNREG)) {
-    if (0 == (mptr->flags & MFLG_IGNORE))
-      sendto_one(from, ":%s %d * %s :Register first.", /* XXX DEAD */
-                 me.name, ERR_NOTREGISTERED, ch);
-    return -1;
-  }
-#endif
-  handler = mptr->handlers[cptr->handler];
+
+  handler = mptr->handlers[cli_handler(cptr)];
   assert(0 != handler);
 
 #ifndef IDLE_FROM_MSG
   if (IsUser(cptr) && handler != m_ping && handler != m_ignore)
-    from->user->last = CurrentTime;
+    cli_user(from)->last = CurrentTime;
 #endif
 
   return (*handler) (cptr, from, i, para);
@@ -952,7 +941,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   if (IsDead(cptr))
     return 0;
 
-  para[0] = from->name;
+  para[0] = cli_name(from);
 
   /*
    * A server ALWAYS sends a prefix. When it starts with a ':' it's the
@@ -981,7 +970,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     if (!from)
     {
       Debug((DEBUG_NOTICE, "Unknown prefix (%s)(%s) from (%s)",
-          para[0], buffer, cptr->name));
+          para[0], buffer, cli_name(cptr)));
       ++ServerStats->is_unpf;
       while (*ch == ' ')
         ch++;
@@ -993,17 +982,17 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
        */
       if (ch[1] == 'Q')
       {
-        para[0] = cptr->name;
+        para[0] = cli_name(cptr);
         from = cptr;
       }
       else
         return 0;
     }
-    else if (from->from != cptr)
+    else if (cli_from(from) != cptr)
     {
       ++ServerStats->is_wrdi;
       Debug((DEBUG_NOTICE, "Fake direction: Message (%s) coming from (%s)",
-          buffer, cptr->name));
+          buffer, cli_name(cptr)));
       return 0;
     }
   }
@@ -1056,9 +1045,9 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
         struct Client *server;
         /* Kill the unknown numeric prefix upstream if
          * it's server still exists: */
-        if ((server = FindNServer(numeric_prefix)) && server->from == cptr)
+        if ((server = FindNServer(numeric_prefix)) && cli_from(server) == cptr)
 	  sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (Unknown numeric nick)",
-			numeric_prefix, me.name);
+			numeric_prefix, cli_name(&me));
       }
       /*
        * Things that must be allowed to travel
@@ -1072,13 +1061,13 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     }
 
     /* Let para[0] point to the name of the sender */
-    para[0] = from->name;
+    para[0] = cli_name(from);
 
-    if (from->from != cptr)
+    if (cli_from(from) != cptr)
     {
       ServerStats->is_wrdi++;
       Debug((DEBUG_NOTICE, "Fake direction: Message (%s) coming from (%s)",
-          buffer, cptr->name));
+          buffer, cli_name(cptr)));
       return 0;
     }
   }
@@ -1089,7 +1078,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   {
     ServerStats->is_empt++;
     Debug((DEBUG_NOTICE, "Empty message from host %s:%s",
-        cptr->name, from->name));
+        cli_name(cptr), cli_name(from)));
     return (-1);
   }
 
@@ -1217,5 +1206,5 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     return (do_numeric(numeric, (*buffer != ':'), cptr, from, i, para));
   mptr->count++;
 
-  return (*mptr->handlers[cptr->handler]) (cptr, from, i, para);
+  return (*mptr->handlers[cli_handler(cptr)]) (cptr, from, i, para);
 }

@@ -1,3 +1,66 @@
+2000-12-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: use new struct Client accessor macros
+
+	* ircd/whocmds.c: use new struct Client accessor macros
+
+	* ircd/send.c: use new struct Client accessor macros
+
+	* ircd/s_user.c: use new struct Client accessor macros; removed
+	some dead code
+
+	* ircd/s_serv.c: use new struct Client accessor macros; removed
+	some dead code
+
+	* ircd/s_numeric.c: use new struct Client accessor macros
+
+	* ircd/s_misc.c: use new struct Client accessor macros
+
+	* ircd/s_debug.c: use new struct Client accessor macros
+
+	* ircd/s_conf.c: use new struct Client accessor macros
+
+	* ircd/s_bsd.c: use new struct Client accessor macros
+
+	* ircd/s_auth.c: use new struct Client accessor macros
+
+	* ircd/parse.c: use new struct Client accessor macros
+
+	* ircd/packet.c: use new struct Client accessor macros
+
+	* ircd/numnicks.c: use new struct Client accessor macros
+
+	* ircd/motd.c: use new struct Client accessor macros
+
+	* ircd/listener.c: use new struct Client accessor macros
+
+	* ircd/list.c: use new struct Client accessor macros
+
+	* ircd/jupe.c: use new struct Client accessor macros
+
+	* ircd/ircd_snprintf.c: use new struct Client accessor macros
+
+	* ircd/ircd_reply.c: use new struct Client accessor macros
+
+	* ircd/ircd_relay.c: use new struct Client accessor macros
+
+	* ircd/ircd.c: use new struct Client accessor macros
+
+	* ircd/gline.c: catch some instances of me.<stuff> I missed
+	previously
+
+	* ircd/client.c: use cli_ instead of con_
+
+	* ircd/class.c: use cli_ instead of con_
+
+	* ircd/channel.c: use cli_ instead of con_
+
+	* ircd/IPcheck.c: use cli_ instead of con_; catch some instances
+	of me.<stuff> I missed previously
+
+	* include/client.h: use cli_ instead of con_...seemed like a good
+	idea at the time *shrug*
+
 2000-12-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/hash.c: use struct Client accessor macros

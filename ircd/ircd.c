@@ -285,33 +285,33 @@ static time_t check_pings(void) {
 
     /* Remove dead clients. */
     if (IsDead(cptr)) {
-      exit_client(cptr, cptr, &me, cptr->info);
+      exit_client(cptr, cptr, &me, cli_info(cptr));
       continue;
     }
 
     max_ping = IsRegistered(cptr) ? client_get_ping(cptr) : CONNECTTIMEOUT;
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
-	   cptr->name, (cptr->flags & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
-	   max_ping, (int)(CurrentTime - cptr->lasttime)));
+	   cli_name(cptr), (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
+	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
           
 
     /* Ok, the thing that will happen most frequently, is that someone will
      * have sent something recently.  Cover this first for speed.
      */
-    if (CurrentTime-cptr->lasttime < max_ping) {
-      expire = cptr->lasttime + max_ping;
+    if (CurrentTime-cli_lasttime(cptr) < max_ping) {
+      expire = cli_lasttime(cptr) + max_ping;
       if (expire < next_check) 
 	next_check = expire;
       continue;
     }
 
     /* Quit the client after max_ping*2 - they should have answered by now */
-    if (CurrentTime-cptr->lasttime >= (max_ping*2) ) {
+    if (CurrentTime-cli_lasttime(cptr) >= (max_ping*2) ) {
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
 	sendto_opmask_butone(0, SNO_OLDSNO,
-			     "No response from %s, closing link", cptr->name);
+			     "No response from %s, closing link", cli_name(cptr));
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
     }
@@ -325,7 +325,7 @@ static time_t check_pings(void) {
       /* Display message if they have sent a NICK and a USER but no
        * nospoof PONG.
        */
-      if (*cptr->name && cptr->user && *cptr->user->username) {
+      if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username) {
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Your client may not be compatible with this server.");
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
@@ -336,22 +336,22 @@ static time_t check_pings(void) {
       continue;
     }
     
-    if (!(cptr->flags & FLAGS_PINGSENT)) {
+    if (!(cli_flags(cptr) & FLAGS_PINGSENT)) {
       /* If we havent PINGed the connection and we havent heard from it in a
        * while, PING it to make sure it is still alive.
        */
-      cptr->flags |= FLAGS_PINGSENT;
+      cli_flags(cptr) |= FLAGS_PINGSENT;
 
       /* If we're late in noticing don't hold it against them :) */
-      cptr->lasttime = CurrentTime - max_ping;
+      cli_lasttime(cptr) = CurrentTime - max_ping;
       
       if (IsUser(cptr))
-	sendrawto_one(cptr, MSG_PING " :%s", me.name);
+	sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
       else
-	sendcmdto_one(&me, CMD_PING, cptr, ":%s", me.name);
+	sendcmdto_one(&me, CMD_PING, cptr, ":%s", cli_name(&me));
     }
     
-    expire = cptr->lasttime + max_ping * 2;
+    expire = cli_lasttime(cptr) + max_ping * 2;
     if (expire < next_check)
       next_check=expire;
   }
@@ -386,7 +386,7 @@ static void parse_command_line(int argc, char** argv) {
     case 't':  thisServer.bootopt |= BOOT_TTY;         break;
     case 'd':  dpath      = optarg;                    break;
     case 'f':  configfile = optarg;                    break;
-    case 'h':  ircd_strncpy(me.name, optarg, HOSTLEN); break;
+    case 'h':  ircd_strncpy(cli_name(&me), optarg, HOSTLEN); break;
     case 'v':  printf("ircd %s\n", version);           exit(0);
       
     case 'x':
@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
 
   umask(077);                   /* better safe than sorry --SRB */
   memset(&me, 0, sizeof(me));
-  me.fd = -1;
+  cli_fd(&me) = -1;
 
   parse_command_line(argc, argv);
 
@@ -674,18 +674,18 @@ int main(int argc, char **argv) {
   CurrentTime = time(NULL);
 
   SetMe(&me);
-  me.from = &me;
+  cli_from(&me) = &me;
   make_server(&me);
 
-  me.serv->timestamp = TStime();  /* Abuse own link timestamp as start TS */
-  me.serv->prot      = atoi(MAJOR_PROTOCOL);
-  me.serv->up        = &me;
-  me.serv->down      = NULL;
-  me.handler         = SERVER_HANDLER;
+  cli_serv(&me)->timestamp = TStime();  /* Abuse own link timestamp as start TS */
+  cli_serv(&me)->prot      = atoi(MAJOR_PROTOCOL);
+  cli_serv(&me)->up        = &me;
+  cli_serv(&me)->down      = NULL;
+  cli_handler(&me)         = SERVER_HANDLER;
 
   SetYXXCapacity(&me, MAXCLIENTS);
 
-  me.lasttime = me.since = me.firsttime = CurrentTime;
+  cli_lasttime(&me) = cli_since(&me) = cli_firsttime(&me) = CurrentTime;
 
   hAddClient(&me);
 

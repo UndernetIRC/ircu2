@@ -69,7 +69,7 @@ void init_list(void)
    */
   for (i = 0; i < MAXCONNECTIONS; ++i) {
     cptr = (struct Client*) MyMalloc(CLIENT_LOCAL_SIZE);
-    cptr->next = localClientFreeList;
+    cli_next(cptr) = localClientFreeList;
     localClientFreeList = cptr;
     ++localClientAllocCount;
   }
@@ -104,7 +104,7 @@ struct Client* make_client(struct Client *from, int status)
      * remote client
      */
     if ((cptr = remoteClientFreeList))
-      remoteClientFreeList = cptr->next;
+      remoteClientFreeList = cli_next(cptr);
     else {
       cptr = (struct Client*) MyMalloc(CLIENT_REMOTE_SIZE);
       ++remoteClientAllocCount;
@@ -115,14 +115,14 @@ struct Client* make_client(struct Client *from, int status)
      * structure being zeroed out
      */
     memset(cptr, 0, CLIENT_REMOTE_SIZE);        /* All variables are 0 by default */
-    cptr->from = from;
+    cli_from(cptr) = from;
   }
   else {
     /*
      * local client
      */
     if ((cptr = localClientFreeList))
-      localClientFreeList = cptr->next;
+      localClientFreeList = cli_next(cptr);
     else {
       cptr = (struct Client*) MyMalloc(CLIENT_LOCAL_SIZE);
       ++localClientAllocCount;
@@ -133,18 +133,18 @@ struct Client* make_client(struct Client *from, int status)
      * structure being zeroed out
      */
     memset(cptr, 0, CLIENT_LOCAL_SIZE);        /* All variables are 0 by default */
-    cptr->fd = -1;
-    cptr->local = 1;
-    cptr->since = cptr->lasttime = cptr->firsttime = CurrentTime;
-    cptr->lastnick = TStime();
-    cptr->nextnick = CurrentTime - NICK_DELAY;
-    cptr->nexttarget = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
-    cptr->handler = UNREGISTERED_HANDLER;
-    cptr->from = cptr;      /* 'from' of local client is self! */
+    cli_fd(cptr) = -1;
+    cli_local(cptr) = 1;
+    cli_since(cptr) = cli_lasttime(cptr) = cli_firsttime(cptr) = CurrentTime;
+    cli_lastnick(cptr) = TStime();
+    cli_nextnick(cptr) = CurrentTime - NICK_DELAY;
+    cli_nexttarget(cptr) = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
+    cli_handler(cptr) = UNREGISTERED_HANDLER;
+    cli_from(cptr) = cptr;      /* 'from' of local client is self! */
   }
-  cptr->status = status;
-  cptr->hnext = cptr;
-  strcpy(cptr->username, "unknown");
+  cli_status(cptr) = status;
+  cli_hnext(cptr) = cptr;
+  strcpy(cli_username(cptr), "unknown");
 
 #ifdef  DEBUGMODE
   if (from)
@@ -163,40 +163,40 @@ void free_client(struct Client* cptr)
   /*
    * forget to remove the client from the hash table?
    */
-  assert(cptr->hnext == cptr);
+  assert(cli_hnext(cptr) == cptr);
 
 #ifdef  DEBUGMODE
-  if (cptr->local)
+  if (cli_local(cptr))
     --cloc.inuse;
   else
     --crem.inuse;
 #endif
 
-  if (cptr->local) {
+  if (cli_local(cptr)) {
     /*
      * make sure we have cleaned up local resources
      */
-    if (cptr->dns_reply)
-      --cptr->dns_reply->ref_count;
-    if (-1 < cptr->fd) {
-      close(cptr->fd);
+    if (cli_dns_reply(cptr))
+      --(cli_dns_reply(cptr))->ref_count;
+    if (-1 < cli_fd(cptr)) {
+      close(cli_fd(cptr));
     }
-    MsgQClear(&cptr->sendQ);
-    DBufClear(&cptr->recvQ);
-    if (cptr->listener)
-      release_listener(cptr->listener);
-    cptr->next = localClientFreeList;
+    MsgQClear(&(cli_sendQ(cptr)));
+    DBufClear(&(cli_recvQ(cptr)));
+    if (cli_listener(cptr))
+      release_listener(cli_listener(cptr));
+    cli_next(cptr) = localClientFreeList;
     localClientFreeList = cptr;
   }    
   else {
-    cptr->next = remoteClientFreeList;
+    cli_next(cptr) = remoteClientFreeList;
     remoteClientFreeList = cptr;
   }
 }
 
 struct Server *make_server(struct Client *cptr)
 {
-  struct Server *serv = cptr->serv;
+  struct Server *serv = cli_serv(cptr);
 
   if (!serv)
   {
@@ -206,12 +206,12 @@ struct Server *make_server(struct Client *cptr)
 #ifdef  DEBUGMODE
     servs.inuse++;
 #endif
-    cptr->serv = serv;
-    cptr->serv->lag = 60000;
+    cli_serv(cptr) = serv;
+    cli_serv(cptr)->lag = 60000;
     *serv->by = '\0';
     DupString(serv->last_error_msg, "<>");      /* String must be non-empty */
   }
-  return cptr->serv;
+  return cli_serv(cptr);
 }
 
 /*
@@ -220,35 +220,35 @@ struct Server *make_server(struct Client *cptr)
  */
 void remove_client_from_list(struct Client *cptr)
 {
-  if (cptr->prev)
-    cptr->prev->next = cptr->next;
+  if (cli_prev(cptr))
+    cli_next(cli_prev(cptr)) = cli_next(cptr);
   else {
-    GlobalClientList = cptr->next;
-    GlobalClientList->prev = 0;
+    GlobalClientList = cli_next(cptr);
+    cli_prev(GlobalClientList) = 0;
   }
-  if (cptr->next)
-    cptr->next->prev = cptr->prev;
+  if (cli_next(cptr))
+    cli_prev(cli_next(cptr)) = cli_prev(cptr);
 
-  cptr->next = cptr->prev = 0;
+  cli_next(cptr) = cli_prev(cptr) = 0;
 
-  if (IsUser(cptr) && cptr->user) {
+  if (IsUser(cptr) && cli_user(cptr)) {
     add_history(cptr, 0);
     off_history(cptr);
   }
-  if (cptr->user) {
-    free_user(cptr->user);
-    cptr->user = 0;
+  if (cli_user(cptr)) {
+    free_user(cli_user(cptr));
+    cli_user(cptr) = 0;
   }
 
-  if (cptr->serv) {
-    if (cptr->serv->user) {
-      free_user(cptr->serv->user);
-      cptr->serv->user = 0;
+  if (cli_serv(cptr)) {
+    if (cli_serv(cptr)->user) {
+      free_user(cli_serv(cptr)->user);
+      cli_serv(cptr)->user = 0;
     }
-    if (cptr->serv->client_list)
-      MyFree(cptr->serv->client_list);
-    MyFree(cptr->serv->last_error_msg);
-    MyFree(cptr->serv);
+    if (cli_serv(cptr)->client_list)
+      MyFree(cli_serv(cptr)->client_list);
+    MyFree(cli_serv(cptr)->last_error_msg);
+    MyFree(cli_serv(cptr));
 #ifdef  DEBUGMODE
     --servs.inuse;
 #endif
@@ -269,11 +269,11 @@ void add_client_to_list(struct Client *cptr)
    * this should mean the "me" is the bottom most item in the list.
    * XXX - don't always count on the above, things change
    */
-  cptr->prev = 0;
-  cptr->next = GlobalClientList;
+  cli_prev(cptr) = 0;
+  cli_next(cptr) = GlobalClientList;
   GlobalClientList = cptr;
-  if (cptr->next)
-    cptr->next->prev = cptr;
+  if (cli_next(cptr))
+    cli_prev(cli_next(cptr)) = cptr;
 }
 
 /*

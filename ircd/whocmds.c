@@ -82,7 +82,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       !IsChannelService(acptr))
   {
     struct Membership* chan;
-    for (chan = acptr->user->channel; chan && !chptr; chan = chan->next_channel)
+    for (chan = cli_user(acptr)->channel; chan && !chptr; chan = chan->next_channel)
       if (PubChannel(chan->channel) &&
           (acptr == sptr || !IsZombie(chan)))
         chptr = chan->channel;
@@ -112,35 +112,35 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_UID))
   {
-    char *p2 = acptr->user->username;
+    char *p2 = cli_user(acptr)->username;
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
   if (fields & WHO_FIELD_NIP)
   {
-    const char* p2 = ircd_ntoa((const char*) &acptr->ip);
+    const char* p2 = ircd_ntoa((const char*) &(cli_ip(acptr)));
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
   if (!fields || (fields & WHO_FIELD_HOS))
   {
-    char *p2 = acptr->user->host;
+    char *p2 = cli_user(acptr)->host;
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
   if (!fields || (fields & WHO_FIELD_SER))
   {
-    char *p2 = acptr->user->server->name;
+    char *p2 = cli_name(cli_user(acptr)->server);
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
   if (!fields || (fields & WHO_FIELD_NIC))
   {
-    char *p2 = acptr->name;
+    char *p2 = cli_name(acptr);
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
@@ -148,7 +148,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   if (!fields || (fields & WHO_FIELD_FLA))
   {
     *(p1++) = ' ';
-    if (acptr->user->away)
+    if (cli_user(acptr)->away)
       *(p1++) = 'G';
     else
       *(p1++) = 'H';
@@ -192,14 +192,14 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     *p1++ = ' ';
     if (!fields)
       *p1++ = ':';              /* Place colon here for default reply */
-    p1 = sprintf_irc(p1, "%d", acptr->hopcount);
+    p1 = sprintf_irc(p1, "%d", cli_hopcount(acptr));
   }
 
   if (fields & WHO_FIELD_IDL)
   {
     *p1++ = ' ';
     if (MyUser(acptr)) {
-	    p1 = sprintf_irc(p1, "%d", CurrentTime - acptr->user->last);
+	    p1 = sprintf_irc(p1, "%d", CurrentTime - cli_user(acptr)->last);
     }    
     else {
     	    *p1++ = '0';
@@ -208,7 +208,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_REN))
   {
-    char *p2 = acptr->info;
+    char *p2 = cli_info(acptr);
     *p1++ = ' ';
     if (fields)
       *p1++ = ':';              /* Place colon here for special reply */

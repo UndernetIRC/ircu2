@@ -32,23 +32,23 @@
 
 static void update_bytes_received(struct Client* cptr, unsigned int length)
 {
-  me.receiveB    += length;     /* Update bytes received */
-  cptr->receiveB += length;
+  cli_receiveB(&me)  += length;     /* Update bytes received */
+  cli_receiveB(cptr) += length;
 
-  if (cptr->receiveB > 1023) {
-    cptr->receiveK += (cptr->receiveB >> 10);
-    cptr->receiveB &= 0x03ff;   /* 2^10 = 1024, 3ff = 1023 */
+  if (cli_receiveB(cptr) > 1023) {
+    cli_receiveK(cptr) += (cli_receiveB(cptr) >> 10);
+    cli_receiveB(cptr) &= 0x03ff;   /* 2^10 = 1024, 3ff = 1023 */
   }
-  if (me.receiveB > 1023) {
-    me.receiveK += (me.receiveB >> 10);
-    me.receiveB &= 0x03ff;
+  if (cli_receiveB(&me) > 1023) {
+    cli_receiveK(&me) += (cli_receiveB(&me) >> 10);
+    cli_receiveB(&me) &= 0x03ff;
   }
 }
 
 static void update_messages_received(struct Client* cptr)
 {
-  ++me.receiveM;
-  ++cptr->receiveM;
+  ++(cli_receiveM(&me));
+  ++(cli_receiveM(cptr));
 }
 
 /*
@@ -74,8 +74,8 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
 
   update_bytes_received(cptr, length);
 
-  client_buffer = cptr->buffer;
-  endp = client_buffer + cptr->count;
+  client_buffer = cli_buffer(cptr);
+  endp = client_buffer + cli_count(cptr);
   src = buffer;
 
   while (length-- > 0) {
@@ -94,19 +94,19 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
 
       update_messages_received(cptr);
 
-      if (parse_server(cptr, cptr->buffer, endp) == CPTR_KILLED)
+      if (parse_server(cptr, cli_buffer(cptr), endp) == CPTR_KILLED)
         return CPTR_KILLED;
       /*
        *  Socket is dead so exit
        */
       if (IsDead(cptr))
-        return exit_client(cptr, cptr, &me, cptr->info);
+        return exit_client(cptr, cptr, &me, cli_info(cptr));
       endp = client_buffer;
     }
     else if (endp < client_buffer + BUFSIZE)
       ++endp;                   /* There is always room for the null */
   }
-  cptr->count = endp - cptr->buffer;
+  cli_count(cptr) = endp - cli_buffer(cptr);
   return 1;
 }
 
@@ -120,10 +120,10 @@ int client_dopacket(struct Client *cptr, unsigned int length)
   update_bytes_received(cptr, length);
   update_messages_received(cptr);
 
-  if (CPTR_KILLED == parse_client(cptr, cptr->buffer, cptr->buffer + length))
+  if (CPTR_KILLED == parse_client(cptr, cli_buffer(cptr), cli_buffer(cptr) + length))
     return CPTR_KILLED;
   else if (IsDead(cptr))
-    return exit_client(cptr, cptr, &me, cptr->info);
+    return exit_client(cptr, cptr, &me, cli_info(cptr));
 
   return 1;
 }

@@ -2012,19 +2012,19 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       /* &me is used if it's not a definite server */
       if (dest && (IsServer(dest) || IsMe(dest))) {
 	if (IsServer(cptr) || IsMe(cptr))
-	  str1 = cptr->yxx;
+	  str1 = cli_yxx(cptr);
 	else {
-	  str1 = cptr->user->server->yxx;
-	  str2 = cptr->yxx;
+	  str1 = cli_yxx(cli_user(cptr)->server);
+	  str2 = cli_yxx(cptr);
 	}
 	fld_s.flags &= ~(FLAG_ALT | FLAG_COLON);
       } else {
-	str1 = *cptr->name ? cptr->name : "*";
+	str1 = *cli_name(cptr) ? cli_name(cptr) : "*";
 	if (!IsServer(cptr) && !IsMe(cptr) && fld_s.flags & FLAG_ALT) {
-	  assert(0 != cptr->user);
-	  assert(0 != *cptr->name);
-	  str2 = cptr->user->username;
-	  str3 = cptr->user->host;
+	  assert(0 != cli_user(cptr));
+	  assert(0 != *(cli_name(cptr)));
+	  str2 = cli_user(cptr)->username;
+	  str3 = cli_user(cptr)->host;
 	} else
 	  fld_s.flags &= ~FLAG_ALT;
       }

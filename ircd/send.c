@@ -66,28 +66,28 @@ struct SLink *opsarray[32];     /* don't use highest bit unless you change
 
 static void dead_link(struct Client *to, char *notice)
 {
-  to->flags |= FLAGS_DEADSOCKET;
+  cli_flags(to) |= FLAGS_DEADSOCKET;
   /*
    * If because of BUFFERPOOL problem then clean dbuf's now so that
    * notices don't hurt operators below.
    */
-  DBufClear(&to->recvQ);
-  MsgQClear(&to->sendQ);
+  DBufClear(&(cli_recvQ(to)));
+  MsgQClear(&(cli_sendQ(to)));
 
   /*
    * Keep a copy of the last comment, for later use...
    */
-  ircd_strncpy(to->info, notice, REALLEN);
+  ircd_strncpy(cli_info(to), notice, REALLEN);
 
-  if (!IsUser(to) && !IsUnknown(to) && !(to->flags & FLAGS_CLOSING))
-    sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", to->info, to->name);
-  Debug((DEBUG_ERROR, to->info));
+  if (!IsUser(to) && !IsUnknown(to) && !(cli_flags(to) & FLAGS_CLOSING))
+    sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", cli_info(to), cli_name(to));
+  Debug((DEBUG_ERROR, cli_info(to)));
 }
 
 static int can_send(struct Client* to)
 {
   assert(0 != to);
-  return (IsDead(to) || IsMe(to) || -1 == to->fd) ? 0 : 1;
+  return (IsDead(to) || IsMe(to) || -1 == cli_fd(to)) ? 0 : 1;
 }
 
 /*
@@ -141,24 +141,24 @@ void flush_sendq_except(void)
 void send_queued(struct Client *to)
 {
   assert(0 != to);
-  assert(0 != to->local);
+  assert(0 != cli_local(to));
 
   if (IsBlocked(to) || !can_send(to))
     return;                     /* Don't bother */
 
-  while (MsgQLength(&to->sendQ) > 0) {
+  while (MsgQLength(&(cli_sendQ(to))) > 0) {
     unsigned int len;
 
-    if ((len = deliver_it(to, &to->sendQ))) {
-      msgq_delete(&to->sendQ, len);
-      to->lastsq = MsgQLength(&to->sendQ) / 1024;
+    if ((len = deliver_it(to, &(cli_sendQ(to))))) {
+      msgq_delete(&(cli_sendQ(to)), len);
+      to->lastsq = MsgQLength(&(cli_sendQ(to))) / 1024;
       if (IsBlocked(to))
         break;
     }
     else {
       if (IsDead(to)) {
         char tmp[512];
-        sprintf(tmp,"Write error: %s",(strerror(to->error)) ? (strerror(to->error)) : "Unknown error" );
+        sprintf(tmp,"Write error: %s",(strerror(cli_error(to))) ? (strerror(cli_error(to))) : "Unknown error" );
         dead_link(to, tmp);
       }
       break;
@@ -171,8 +171,8 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
   assert(0 != to);
   assert(0 != buf);
 
-  if (to->from)
-    to = to->from;
+  if (cli_from(to))
+    to = cli_from(to);
 
   if (!can_send(to))
     /*
@@ -180,26 +180,26 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
      */
     return;
 
-  if (MsgQLength(&to->sendQ) > get_sendq(to)) {
+  if (MsgQLength(&(cli_sendQ(to))) > get_sendq(to)) {
     if (IsServer(to))
       sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
-			   "%zu > %zu", to, MsgQLength(&to->sendQ),
+			   "%zu > %zu", to, MsgQLength(&(cli_sendQ(to))),
 			   get_sendq(to));
     dead_link(to, "Max sendQ exceeded");
     return;
   }
 
-  Debug((DEBUG_SEND, "Sending [%p] to %s", buf, to->name));
+  Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
 
-  msgq_add(&to->sendQ, buf, prio);
+  msgq_add(&(cli_sendQ(to)), buf, prio);
 
   /*
    * Update statistics. The following is slightly incorrect
    * because it counts messages even if queued, but bytes
    * only really sent. Queued bytes get updated in SendQueued.
    */
-  ++to->sendM;
-  ++me.sendM;
+  ++(cli_sendM(to));
+  ++(cli_sendM(&me));
   /*
    * This little bit is to stop the sendQ from growing too large when
    * there is no need for it to. Thus we call send_queued() every time
@@ -208,7 +208,7 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
    * trying to flood that link with data (possible during the net
    * relinking done by servers with a large load).
    */
-  if (MsgQLength(&to->sendQ) / 1024 > to->lastsq)
+  if (MsgQLength(&(cli_sendQ(to))) / 1024 > cli_lastsq(to))
     send_queued(to);
 }
 
@@ -224,10 +224,10 @@ static int match_it(struct Client *one, const char *mask, int what)
   switch (what)
   {
     case MATCH_HOST:
-      return (match(mask, one->user->host) == 0);
+      return (match(mask, cli_user(one)->host) == 0);
     case MATCH_SERVER:
     default:
-      return (match(mask, one->user->server->name) == 0);
+      return (match(mask, cli_name(cli_user(one)->server)) == 0);
   }
 }
 
@@ -270,7 +270,7 @@ void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
   struct VarData vd;
   struct MsgBuf *mb;
 
-  to = to->from;
+  to = cli_from(to);
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   vd.vd_args = vl;
@@ -304,7 +304,7 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
 
   /* send it to our downlinks */
   for (lp = me.serv->down; lp; lp = lp->next) {
-    if (one && lp->value.cptr == one->from)
+    if (one && lp->value.cptr == cli_from(one))
       continue;
     send_buffer(lp->value.cptr, mb, 0);
   }
@@ -338,7 +338,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   struct Membership *member;
 
   assert(0 != from);
-  assert(0 != from->from);
+  assert(0 != cli_from(from));
   assert(0 != pattern);
   assert(!IsServer(from) && !IsMe(from));
 
@@ -351,17 +351,17 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   sentalong_marker++;
-  if (-1 < from->from->fd)
-    sentalong[from->from->fd] = sentalong_marker;
+  if (-1 < cli_fd(cli_from(from)))
+    sentalong[cli_fd(cli_from(from))] = sentalong_marker;
   /*
    * loop through from's channels, and the members on their channels
    */
-  for (chan = from->user->channel; chan; chan = chan->next_channel)
+  for (chan = cli_user(from)->channel; chan; chan = chan->next_channel)
     for (member = chan->channel->members; member;
 	 member = member->next_member)
-      if (MyConnect(member->user) && -1 < member->user->from->fd &&
-	  sentalong[member->user->from->fd] != sentalong_marker) {
-	sentalong[member->user->from->fd] = sentalong_marker;
+      if (MyConnect(member->user) && -1 < cli_fd(cli_from(member->user)) &&
+	  sentalong[cli_fd(cli_from(member->user))] != sentalong_marker) {
+	sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
 	send_buffer(member->user, mb, 0);
       }
 
@@ -443,14 +443,14 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   sentalong_marker++;
   for (member = to->members; member; member = member->next_member) {
     /* skip one, zombies, and deaf users... */
-    if (member->user->from == one || IsZombie(member) ||
+    if (cli_from(member->user) == one || IsZombie(member) ||
 	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
 	(skip & SKIP_NONOPS && !IsChanOp(member)) ||
-	(skip & SKIP_BURST && IsBurstOrBurstAck(member->user->from)) ||
-	member->user->from->fd < 0 ||
-	sentalong[member->user->from->fd] == sentalong_marker)
+	(skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
+	cli_fd(cli_from(member->user)) < 0 ||
+	sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
       continue;
-    sentalong[member->user->from->fd] = sentalong_marker;
+    sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
 
     if (MyConnect(member->user)) /* pick right buffer to send */
       send_buffer(member->user, user_mb, 0);
@@ -499,11 +499,12 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 
   /* send buffer along! */
   sentalong_marker++;
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
-    if (cptr->from == one || IsServer(cptr) || !(cptr->flags & flag) ||
-	cptr->from->fd < 0 || sentalong[cptr->from->fd] == sentalong_marker)
+  for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
+    if (cli_from(cptr) == one || IsServer(cptr) || !(cli_flags(cptr) & flag) ||
+	cli_fd(cli_from(cptr)) < 0 ||
+	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
       continue; /* skip it */
-    sentalong[cptr->from->fd] = sentalong_marker;
+    sentalong[cli_fd(cli_from(cptr))] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, user_mb, 1);
@@ -558,11 +559,11 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   /* send buffer along */
   sentalong_marker++;
   for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
-    if (cptr->from == one || IsServer(cptr) || IsMe(cptr) ||
-	!match_it(cptr, to, who) || cptr->from->fd < 0 ||
-	sentalong[cptr->from->fd] == sentalong_marker)
+    if (cli_from(cptr) == one || IsServer(cptr) || IsMe(cptr) ||
+	!match_it(cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
+	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
       continue; /* skip it */
-    sentalong[cptr->from->fd] = sentalong_marker;
+    sentalong[cli_fd(cli_from(cptr))] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, user_mb, 0);

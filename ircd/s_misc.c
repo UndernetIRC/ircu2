@@ -165,13 +165,13 @@ const char* get_client_name(const struct Client* sptr, int showip)
 
   if (MyConnect(sptr)) {
     if (showip)
-      sprintf_irc(nbuf, "%s[%s@%s]", sptr->name,
-            (IsIdented(sptr)) ? sptr->username : "", sptr->sock_ip);
+      sprintf_irc(nbuf, "%s[%s@%s]", cli_name(sptr),
+            (IsIdented(sptr)) ? cli_username(sptr) : "", cli_sock_ip(sptr));
     else
-        return sptr->name;
+        return cli_name(sptr);
     return nbuf;
   }
-  return sptr->name;
+  return cli_name(sptr);
 }
 
 const char *get_client_host(const struct Client *cptr)
@@ -190,7 +190,7 @@ void get_sockhost(struct Client *cptr, char *host)
     s++;
   else
     s = host;
-  ircd_strncpy(cptr->sockhost, s, HOSTLEN);
+  ircd_strncpy(cli_sockhost(cptr), s, HOSTLEN);
 }
 
 /*
@@ -208,7 +208,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
 {
   struct SLink *lp;
 
-  if (bcptr->serv && bcptr->serv->client_list)  /* Was SetServerYXX called ? */
+  if (cli_serv(bcptr) && cli_serv(bcptr)->client_list)  /* Was SetServerYXX called ? */
     ClearServerYXX(bcptr);      /* Removes server from server_list[] */
   if (IsUser(bcptr)) {
     /*
@@ -219,10 +219,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /*
      * Stop a running /LIST clean
      */
-    if (MyUser(bcptr) && bcptr->listing) {
-      bcptr->listing->chptr->mode.mode &= ~MODE_LISTED;
-      MyFree(bcptr->listing);
-      bcptr->listing = NULL;
+    if (MyUser(bcptr) && cli_listing(bcptr)) {
+      cli_listing(bcptr)->chptr->mode.mode &= ~MODE_LISTED;
+      MyFree(cli_listing(bcptr));
+      cli_listing(bcptr) = NULL;
     }
     /*
      * If a person is on a channel, send a QUIT notice
@@ -235,11 +235,11 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     remove_user_from_all_channels(bcptr);
 
     /* Clean up invitefield */
-    while ((lp = bcptr->user->invited))
+    while ((lp = cli_user(bcptr)->invited))
       del_invite(bcptr, lp->value.chptr);
 
     /* Clean up silencefield */
-    while ((lp = bcptr->user->silence))
+    while ((lp = cli_user(bcptr)->silence))
       del_silence(bcptr, lp->value.cp);
 
     if (IsInvisible(bcptr))
@@ -255,8 +255,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   else if (IsServer(bcptr))
   {
     /* Remove downlink list node of uplink */
-    remove_dlink(&bcptr->serv->up->serv->down, bcptr->serv->updown);
-    bcptr->serv->updown = 0;
+    remove_dlink(&(cli_serv(cli_serv(bcptr)->up))->down, cli_serv(bcptr)->updown);
+    cli_serv(bcptr)->updown = 0;
 
     if (MyConnect(bcptr))
       Count_serverdisconnects(UserStats);
@@ -282,19 +282,19 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
    * Remove from serv->client_list
    * NOTE: user is *always* NULL if this is a server
    */
-  if (bcptr->user) {
+  if (cli_user(bcptr)) {
     assert(!IsServer(bcptr));
     /* bcptr->user->server->serv->client_list[IndexYXX(bcptr)] = NULL; */
-    RemoveYXXClient(bcptr->user->server, bcptr->yxx);
+    RemoveYXXClient(cli_user(bcptr)->server, cli_yxx(bcptr));
   }
 
   /* Remove bcptr from the client list */
 #ifdef DEBUGMODE
   if (hRemClient(bcptr) != 0)
     Debug((DEBUG_ERROR, "%p !in tab %s[%s] %p %p %p %d %d %p",
-          bcptr, bcptr->name, bcptr->from ? bcptr->from->sockhost : "??host",
-          bcptr->from, bcptr->next, bcptr->prev, bcptr->fd,
-          bcptr->status, bcptr->user));
+          bcptr, cli_name(bcptr), cli_from(bcptr) ? cli_sockhost(cli_from(bcptr)) : "??host",
+          cli_from(bcptr), cli_next(bcptr), cli_prev(bcptr), cli_fd(bcptr),
+          cli_status(bcptr), cli_user(bcptr)));
 #else
   hRemClient(bcptr);
 #endif
@@ -320,7 +320,7 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
   int i;
 
   /* Run over all its downlinks */
-  for (lp = cptr->serv->down; lp; lp = next)
+  for (lp = cli_serv(cptr)->down; lp; lp = next)
   {
     next = lp->next;
     acptr = lp->value.cptr;
@@ -330,8 +330,8 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
     exit_one_client(acptr, me.name);
   }
   /* Remove all clients of this server */
-  acptrp = cptr->serv->client_list;
-  for (i = 0; i <= cptr->serv->nn_mask; ++acptrp, ++i) {
+  acptrp = cli_serv(cptr)->client_list;
+  for (i = 0; i <= cli_serv(cptr)->nn_mask; ++acptrp, ++i) {
     if (*acptrp)
       exit_one_client(*acptrp, comment);
   }
@@ -383,26 +383,26 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   char comment1[HOSTLEN + HOSTLEN + 2];
   assert(killer);
   if (MyConnect(victim)) {
-    victim->flags |= FLAGS_CLOSING;
+    cli_flags(victim) |= FLAGS_CLOSING;
     update_load();
 
-    on_for = CurrentTime - victim->firsttime;
+    on_for = CurrentTime - cli_firsttime(victim);
 
     if (IsUser(victim))
       log_write(LS_USER, L_TRACE, 0, "%s (%3d:%02d:%02d): %s@%s (%s)",
-		myctime(victim->firsttime), on_for / 3600,
-		(on_for % 3600) / 60, on_for % 60, victim->user->username,
-		victim->sockhost, victim->name);
+		myctime(cli_firsttime(victim)), on_for / 3600,
+		(on_for % 3600) / 60, on_for % 60, cli_user(victim)->username,
+		cli_sockhost(victim), cli_name(victim));
 
-    if (victim != killer->from  /* The source knows already */
+    if (victim != cli_from(killer)  /* The source knows already */
         && IsClient(victim))    /* Not a Ping struct or Log file */
     {
       if (IsServer(victim) || IsHandshake(victim))
-	sendcmdto_one(killer, CMD_SQUIT, victim, "%s 0 :%s", me.name, comment);
+	sendcmdto_one(killer, CMD_SQUIT, victim, "%s 0 :%s", cli_name(&me), comment);
       else if (!IsConnecting(victim)) {
         if (!IsDead(victim))
 	  sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
-			victim->name, killer->name, comment);
+			cli_name(victim), cli_name(killer), comment);
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&
           (killer == &me || (IsServer(killer) &&
@@ -413,24 +413,24 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
          * Note: check user == user needed to make sure we have the same
          * client
          */
-        if (victim->serv->user && *victim->serv->by &&
-            (acptr = findNUser(victim->serv->by))) {
-          if (acptr->user == victim->serv->user) {
+        if (cli_serv(victim)->user && *(cli_serv(victim))->by &&
+            (acptr = findNUser(cli_serv(victim)->by))) {
+          if (cli_user(acptr) == cli_serv(victim)->user) {
 	    sendcmdto_one(&me, CMD_NOTICE, acptr,
 			  "%C :Link with %s cancelled: %s", acptr,
-			  victim->name, comment);
+			  cli_name(victim), comment);
           }
           else {
             /*
              * not right client, set by to empty string
              */
             acptr = 0;
-            *victim->serv->by = '\0';
+            *(cli_serv(victim))->by = '\0';
           }
         }
         if (killer == &me)
 	  sendto_opmask_butone(acptr, SNO_OLDSNO, "Link with %s cancelled: %s",
-			       victim->name, comment);
+			       cli_name(victim), comment);
       }
     }
     /*
@@ -441,19 +441,19 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   if (IsServer(victim))
   {
-    strcpy(comment1, victim->serv->up->name);
+    strcpy(comment1, cli_name(cli_serv(victim)->up));
     strcat(comment1, " ");
-    strcat(comment1, victim->name);
+    strcat(comment1, cli_name(victim));
     if (IsUser(killer))
       sendto_opmask_butone(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
-			   (killer->user->server == victim ||
-			    killer->user->server == victim->serv->up) ?
+			   (cli_user(killer)->server == victim ||
+			    cli_user(killer)->server == cli_serv(victim)->up) ?
 			   "Local" : "Remote",
 			   get_client_name(killer, HIDE_IP),
-			   killer->user->server->name);
-    else if (killer != &me && victim->serv->up != killer)
+			   cli_name(cli_user(killer)->server));
+    else if (killer != &me && cli_serv(victim)->up != killer)
       sendto_opmask_butone(0, SNO_OLDSNO, "Received SQUIT %s from %s :",
-			   victim->name, IsServer(killer) ? killer->name :
+			   cli_name(victim), IsServer(killer) ? cli_name(killer) :
 			   get_client_name(killer, HIDE_IP));
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %s (%s)", comment1,
 			 comment);
@@ -463,12 +463,12 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
    * First generate the needed protocol for the other server links
    * except the source:
    */
-  for (dlp = me.serv->down; dlp; dlp = dlp->next) {
-    if (dlp->value.cptr != killer->from && dlp->value.cptr != victim) {
+  for (dlp = cli_serv(&me)->down; dlp; dlp = dlp->next) {
+    if (dlp->value.cptr != cli_from(killer) && dlp->value.cptr != victim) {
       if (IsServer(victim))
 	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%s %Tu :%s",
-		      victim->name, victim->serv->timestamp, comment);
-      else if (IsUser(victim) && 0 == (victim->flags & FLAGS_KILLED))
+		      cli_name(victim), cli_serv(victim)->timestamp, comment);
+      else if (IsUser(victim) && 0 == (cli_flags(victim) & FLAGS_KILLED))
 	sendcmdto_one(victim, CMD_QUIT, dlp->value.cptr, ":%s", comment);
     }
   }
@@ -528,11 +528,11 @@ void tstats(struct Client *cptr, char *name)
       continue;
     if (IsServer(acptr))
     {
-      sp->is_sbs += acptr->sendB;
-      sp->is_sbr += acptr->receiveB;
-      sp->is_sks += acptr->sendK;
-      sp->is_skr += acptr->receiveK;
-      sp->is_sti += CurrentTime - acptr->firsttime;
+      sp->is_sbs += cli_sendB(acptr);
+      sp->is_sbr += cli_receiveB(acptr);
+      sp->is_sks += cli_sendK(acptr);
+      sp->is_skr += cli_receiveK(acptr);
+      sp->is_sti += CurrentTime - cli_firsttime(acptr);
       sp->is_sv++;
       if (sp->is_sbs > 1023)
       {
@@ -547,11 +547,11 @@ void tstats(struct Client *cptr, char *name)
     }
     else if (IsUser(acptr))
     {
-      sp->is_cbs += acptr->sendB;
-      sp->is_cbr += acptr->receiveB;
-      sp->is_cks += acptr->sendK;
-      sp->is_ckr += acptr->receiveK;
-      sp->is_cti += CurrentTime - acptr->firsttime;
+      sp->is_cbs += cli_sendB(acptr);
+      sp->is_cbr += cli_receiveB(acptr);
+      sp->is_cks += cli_sendK(acptr);
+      sp->is_ckr += cli_receiveK(acptr);
+      sp->is_cti += CurrentTime - cli_firsttime(acptr);
       sp->is_cl++;
       if (sp->is_cbs > 1023)
       {

@@ -120,8 +120,8 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-		       "%Tu: %s", IsServer(sptr) ? sptr->name :
-		       sptr->user->server->name,
+		       "%Tu: %s", IsServer(sptr) ? cli_name(sptr) :
+		       cli_name(cli_user(sptr)->server),
 		       flags & JUPE_LOCAL ? "local " : "", server,
 		       expire + TSoffset, reason);
 
@@ -166,7 +166,7 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s activating JUPE for %s, expiring "
 		       "at %Tu: %s",
-		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       IsServer(sptr) ? cli_name(sptr) : cli_name(cli_user(sptr)->server),
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
 
@@ -209,7 +209,7 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s %s JUPE for %s, expiring at %Tu: "
 		       "%s",
-		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       IsServer(sptr) ? cli_name(sptr) : cli_name(cli_user(sptr)->server),
 		       JupeIsLocal(jupe) ? "removing local" : "deactivating",
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
@@ -304,7 +304,7 @@ jupe_list(struct Client *sptr, char *server)
 
     /* send jupe information along */
     send_reply(sptr, RPL_JUPELIST, jupe->ju_server, jupe->ju_expire + TSoffset,
-	       JupeIsLocal(jupe) ? me.name : "*",
+	       JupeIsLocal(jupe) ? cli_name(&me) : "*",
 	       JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
   } else {
     for (jupe = GlobalJupeList; jupe; jupe = sjupe) { /* go through jupes */
@@ -315,7 +315,7 @@ jupe_list(struct Client *sptr, char *server)
       else /* send jupe information along */
 	send_reply(sptr, RPL_JUPELIST, jupe->ju_server,
 		   jupe->ju_expire + TSoffset,
-		   JupeIsLocal(jupe) ? me.name : "*",
+		   JupeIsLocal(jupe) ? cli_name(&me) : "*",
 		   JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
     }
   }

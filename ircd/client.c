@@ -44,7 +44,7 @@ int client_get_ping(const struct Client* acptr)
   struct ConfItem* aconf;
   struct SLink*    link;
 
-  for (link = con_confs(acptr); link; link = link->next) {
+  for (link = cli_confs(acptr); link; link = link->next) {
     aconf = link->value.aconf;
     if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
       int tmp = get_conf_ping(aconf);
