@@ -3539,6 +3539,8 @@ mode_process_clients(struct ParseState *state)
   struct Membership *member;
 
   for (i = 0; state->cli_change[i].flag; i++) {
+    assert(0 != state->cli_change[i].client);
+
     /* look up member link */
     if (!(member = find_member_link(state->chptr,
 				    state->cli_change[i].client)) ||
@@ -3595,10 +3597,12 @@ mode_process_clients(struct ParseState *state)
 
     /* actually effect the change */
     if (state->flags & MODE_PARSE_SET) {
-      if (state->cli_change[i].flag & MODE_ADD)
+      if (state->cli_change[i].flag & MODE_ADD) {
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
-      else
+	if (state->cli_change[i].flag & MODE_CHANOP)
+	  ClearDeopped(member);
+      } else
 	member->status &= ~(state->cli_change[i].flag &
 			    (MODE_CHANOP | MODE_VOICE));
     }
@@ -3627,10 +3631,11 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
 
   /* make +p and +s mutually exclusive */
   if (state->dir == MODE_ADD && flag_p[0] & (MODE_SECRET | MODE_PRIVATE)) {
-    if (flag_p[0] == MODE_SECRET)
-      modebuf_mode(state->mbuf, MODE_DEL | MODE_SECRET);
-    else
+    if (flag_p[0] == MODE_SECRET && (state->chptr->mode.mode & MODE_PRIVATE))
       modebuf_mode(state->mbuf, MODE_DEL | MODE_PRIVATE);
+    else if (flag_p[0] == MODE_PRIVATE &&
+	     (state->chptr->mode.mode & MODE_SECRET))
+      modebuf_mode(state->mbuf, MODE_DEL | MODE_SECRET);
   }
 
   if (state->flags & MODE_PARSE_SET) { /* set the flags */
@@ -3675,6 +3680,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_KEY,		'k',
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
+    MODE_ADD,		'+',
+    MODE_DEL,		'-',
     0x0, 0x0
   };
   int i;
@@ -3729,10 +3736,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 
       switch (*modestr) {
       case '+': /* switch direction to MODE_ADD */
-	state.dir = MODE_ADD;
-	break;
       case '-': /* switch direction to MODE_DEL */
-	state.dir = MODE_DEL;
+	state.dir = flag_p[0];
 	break;
 
       case 'l': /* deal with limits */
@@ -3797,7 +3802,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     mode_process_bans(&state);
 
   /* process client changes */
-  if (state.cli_change[i].flag)
+  if (state.cli_change[0].flag)
     mode_process_clients(&state);
 
   return state.args_used; /* tell our parent how many args we gobbled */
