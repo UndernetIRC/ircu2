@@ -937,9 +937,6 @@ int rehash(struct Client *cptr, int sig)
    */
   clearNickJupes();
 
-  if (sig != 2)
-    flush_resolver_cache();
-
   mark_listeners_closing();
 
   if (initconf(0) == -1)        /* This calls check_class(), */
