@@ -1,5 +1,11 @@
 2004-10-09  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_server.c: Forward port checks for leaf and hub config
+	rules, and reorganize mr_server() and ms_server() by moving out
+	common code.  Add doxygen comments for the file.
+
+2004-10-09  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/hash.c: Fix thinko in hash function: It is not indexed
 	simply by character value, so we cannot just remap the values
 	by case.
