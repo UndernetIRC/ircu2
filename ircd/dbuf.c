@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of functions dealing with data buffers.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -38,20 +40,33 @@
  * this package maintaining the buffer on disk, either]
  */
 
+/** Number of dbufs allocated.
+ * This should only be modified by dbuf.c.
+ */
 int DBufAllocCount = 0;
+/** Number of dbufs in use.
+ * This should only be modified by dbuf.c.
+ */
 int DBufUsedCount = 0;
 
+/** List of allocated but unused DBuf structures. */
 static struct DBufBuffer *dbufFreeList = 0;
 
+/** Size of data for a single DBufBuffer. */
 #define DBUF_SIZE 2048
 
+/** Single data buffer in a DBuf. */
 struct DBufBuffer {
-  struct DBufBuffer *next;      /* Next data buffer, NULL if last */
-  char *start;                  /* data starts here */
-  char *end;                    /* data ends here */
-  char data[DBUF_SIZE];         /* Actual data stored here */
+  struct DBufBuffer *next;      /**< Next data buffer, NULL if last */
+  char *start;                  /**< data starts here */
+  char *end;                    /**< data ends here */
+  char data[DBUF_SIZE];         /**< Actual data stored here */
 };
 
+/** Return memory used by allocated data buffers.
+ * @param[out] allocated Receives number of bytes allocated to DBufs.
+ * @param[out] used Receives number of bytes for currently used DBufs.
+ */
 void dbuf_count_memory(size_t *allocated, size_t *used)
 {
   assert(0 != allocated);
@@ -60,9 +75,10 @@ void dbuf_count_memory(size_t *allocated, size_t *used)
   *used = DBufUsedCount * sizeof(struct DBufBuffer);
 }
 
-/*
- * dbuf_alloc - allocates a DBufBuffer structure from the free list or
- * creates a new one.
+/** Allocate a new DBufBuffer.
+ * If #dbufFreeList != NULL, use the head of that list; otherwise,
+ * allocate a new buffer.
+ * @return Newly allocated buffer list.
  */
 static struct DBufBuffer *dbuf_alloc(void)
 {
@@ -81,8 +97,8 @@ static struct DBufBuffer *dbuf_alloc(void)
   return db;
 }
 
-/*
- * dbuf_free - return a struct DBufBuffer structure to the freelist
+/** Release a DBufBuffer back to the free list.
+ * @param[in] db Data buffer to release.
  */
 static void dbuf_free(struct DBufBuffer *db)
 {
@@ -92,11 +108,11 @@ static void dbuf_free(struct DBufBuffer *db)
   dbufFreeList = db;
 }
 
-/*
- * This is called when malloc fails. Scrap the whole content
- * of dynamic buffer. (malloc errors are FATAL, there is no
- * reason to continue this buffer...).
- * After this the "dbuf" has consistent EMPTY status.
+/** Handle a memory allocation error on a DBuf.
+ * This frees all the buffers owned by the DBuf, since we have to
+ * close the associated connection.
+ * @param[in] dyn DBuf to clean out.
+ * @return Zero.
  */
 static int dbuf_malloc_error(struct DBuf *dyn)
 {
@@ -113,16 +129,11 @@ static int dbuf_malloc_error(struct DBuf *dyn)
   return 0;
 }
 
-/*
- * dbuf_put - Append the number of bytes to the buffer, allocating memory 
- * as needed. Bytes are copied into internal buffers from users buffer.
- *
- * Returns > 0, if operation successful
- *         < 0, if failed (due memory allocation problem)
- *
- * dyn:         Dynamic buffer header
- * buf:         Pointer to data to be stored
- * length:      Number of bytes to store
+/** Append bytes to a data buffer.
+ * @param[in] dyn Buffer to append to.
+ * @param[in] buf Data to append.
+ * @param[in] length Number of bytes to append.
+ * @return Non-zero on success, or zero on failure.
  */
 int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
 {
@@ -195,33 +206,12 @@ int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
   return 1;
 }
 
-/*
- * dbuf_map, dbuf_delete
- *
- * These functions are meant to be used in pairs and offer a more efficient
- * way of emptying the buffer than the normal 'dbuf_get' would allow--less
- * copying needed.
- *
- *    map     returns a pointer to a largest contiguous section
- *            of bytes in front of the buffer, the length of the
- *            section is placed into the indicated "long int"
- *            variable. Returns NULL *and* zero length, if the
- *            buffer is empty.
- *
- *    delete  removes the specified number of bytes from the
- *            front of the buffer releasing any memory used for them.
- *
- *    Example use (ignoring empty condition here ;)
- *
- *            buf = dbuf_map(&dyn, &count);
- *            <process N bytes (N <= count) of data pointed by 'buf'>
- *            dbuf_delete(&dyn, N);
- *
- *    Note:   delete can be used alone, there is no real binding
- *            between map and delete functions...
- *
- * dyn:         Dynamic buffer header
- * length:      Return number of bytes accessible
+/** Get the first contiguous block of data from a DBuf.
+ * Generally a call to dbuf_map(dyn, &count) will be followed with a
+ * call to dbuf_delete(dyn, count).
+ * @param[in] dyn DBuf to retrieve data from.
+ * @param[out] length Receives number of bytes in block.
+ * @return Pointer to start of block (or NULL if the first block is empty).
  */
 const char *dbuf_map(const struct DBuf* dyn, unsigned int* length)
 {
@@ -239,11 +229,9 @@ const char *dbuf_map(const struct DBuf* dyn, unsigned int* length)
   return dyn->head->start;
 }
 
-/*
- * dbuf_delete - delete length bytes from DBuf
- *
- * dyn:         Dynamic buffer header
- * length:      Number of bytes to delete
+/** Discard data from a DBuf.
+ * @param[in,out] dyn DBuf to drop data from.
+ * @param[in] length Number of bytes to discard.
  */
 void dbuf_delete(struct DBuf *dyn, unsigned int length)
 {
@@ -278,21 +266,11 @@ void dbuf_delete(struct DBuf *dyn, unsigned int length)
   }
 }
 
-/*
- * dbuf_get
- *
- * Remove number of bytes from the buffer, releasing dynamic memory,
- * if applicaple. Bytes are copied from internal buffers to users buffer.
- *
- * Returns the number of bytes actually copied to users buffer,
- * if >= 0, any value less than the size of the users
- * buffer indicates the dbuf became empty by this operation.
- *
- * Return 0 indicates that buffer was already empty.
- *
- * dyn:         Dynamic buffer header
- * buf:         Pointer to buffer to receive the data
- * length:      Max amount of bytes that can be received
+/** Copy data from a buffer and remove what was copied.
+ * @param[in,out] dyn Buffer to copy from.
+ * @param[out] buf Buffer to write to.
+ * @param[in] length Maximum number of bytes to copy.
+ * @return Number of bytes actually copied.
  */
 unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length)
 {
@@ -318,6 +296,10 @@ unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length)
   return moved;
 }
 
+/** Flush empty lines from a buffer.
+ * @param[in,out] dyn Data buffer to flush.
+ * @return Number of bytes in first available block (or zero if none).
+ */
 static unsigned int dbuf_flush(struct DBuf *dyn)
 {
   struct DBufBuffer *db = dyn->head;
@@ -347,12 +329,13 @@ static unsigned int dbuf_flush(struct DBuf *dyn)
   return dyn->length;
 }
 
-
-/*
- * dbuf_getmsg - Check the buffers to see if there is a string which is
- * terminated with either a \r or \n present.  If so, copy as much as 
- * possible (determined by length) into buf and return the amount copied 
- * else return 0.
+/** Copy a single line from a data buffer.
+ * If the output buffer cannot hold the whole line, or if there is no
+ * EOL in the buffer, return 0.
+ * @param[in,out] dyn Data buffer to copy from.
+ * @param[out] buf Buffer to copy to.
+ * @param[in] length Maximum number of bytes to copy.
+ * @return Number of bytes copied to \a buf.
  */
 unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length)
 {
