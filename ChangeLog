@@ -1,5 +1,14 @@
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c: replace bogus assertions with returns, which is
+	logically correct; only wipe out limit/key if they were originally
+	set in the first place; remove user from channel when doing a
+	PARTALL; only send MODE +o for user CREATEing channel if user is
+	not MyUser--CREATE will only be used if the channel did not
+	originally exist, therefore we can assume no one local is on the
+	channel anyway, and we don't exactly need for the user to see an
+	explicit +o for themselves
+
 	* doc/readme.gline: describe the syntax of the GLINE command
 
 	* doc/readme.jupe: update to reflect a couple of changes to JUPE
@@ -1136,7 +1145,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.135 2000-05-04 18:21:48 kev Exp $
+# $Id: ChangeLog,v 1.136 2000-05-04 18:54:31 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
