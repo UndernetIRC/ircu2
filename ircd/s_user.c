@@ -175,7 +175,9 @@ struct Client *next_client(struct Client *next, const char* ch)
  *            Command can have only max 8 parameters.
  *
  *    server  parv[server] is the parameter identifying the
- *            target server.
+ *            target server. It can be a nickname, servername,
+ *            or server mask (from a local user) or a server
+ *            numeric (from a remote server).
  *
  *    *WARNING*
  *            parv[server] is replaced with the pointer to the
@@ -205,8 +207,10 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
   if (MyUser(from)) {
     /* Make sure it's a server */
     if (!strchr(to, '*')) {
-      if (0 == (acptr = FindClient(to)))
+      if (0 == (acptr = FindClient(to))) {
+        send_reply(from, ERR_NOSUCHSERVER, to);
         return HUNTED_NOSUCH;
+      }
 
       if (cli_user(acptr))
         acptr = cli_user(acptr)->server;
@@ -251,8 +255,10 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
   if (MyUser(from)) {
     /* Make sure it's a server */
     if (!strchr(to, '*')) {
-      if (0 == (acptr = FindClient(to)))
+      if (0 == (acptr = FindClient(to))) {
+        send_reply(from, ERR_NOSUCHSERVER, to);
         return HUNTED_NOSUCH;
+      }
 
       if (cli_user(acptr))
         acptr = cli_user(acptr)->server;
