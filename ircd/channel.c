@@ -1959,6 +1959,12 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
   /* Can't remove a limit that's not there */
   if (state->dir == MODE_DEL && !state->chptr->mode.limit)
     return;
+    
+  /* Skip if this is a burst and a lower limit than this is set already */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      (state->chptr->mode.mode & flag_p[0]) &&
+      (state->chptr->mode.limit < t_limit))
+    return;
 
   if (state->done & DONE_LIMIT) /* allow limit to be set only once */
     return;
@@ -2029,6 +2035,13 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   }
 
   if (!state->mbuf)
+    return;
+    
+  /* Skip if this is a burst, we have a key already and the new key is 
+   * after the old one alphabetically */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      *(state->chptr->mode.key) &&
+      ircd_strcmp(state->chptr->mode.key, t_str) <= 0)
     return;
 
   /* can't add a key if one is set, nor can one remove the wrong key */
