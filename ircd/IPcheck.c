@@ -46,7 +46,7 @@ struct IPRegistryEntry {
   struct IPTargetEntry*    target;
   unsigned int             addr;
   int		           last_connect;
-  unsigned char            connected;
+  unsigned short           connected;
   unsigned char            attempts;
 };
 

@@ -1038,8 +1038,6 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
         *sbuf++ = ' ';
       sbuf = (*fmt)(acptr, sbuf);
     }
-    else
-      send_error_to_client(sptr, ERR_NOSUCHNICK, name);
     if (5 == ++arg_count)
       break;
   }
