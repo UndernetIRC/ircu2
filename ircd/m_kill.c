@@ -85,6 +85,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -202,11 +203,11 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (MyConnect(victim))
     sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim,
-		  "%C :%s%s", victim, IsServer(sptr) ? "*.undernet.org" :
+		  "%C :%s%s", victim, IsServer(sptr) ? HEAD_IN_SAND_SERVERNAME :
 		  cli_name(sptr), comment);
 
   ircd_snprintf(0, buf, sizeof(buf), "Killed (%s%s)", IsServer(sptr) ?
-		"*.undernet.org" : cli_name(sptr), comment);
+		HEAD_IN_SAND_SERVERNAME : cli_name(sptr), comment);
 
   return exit_client(cptr, victim, sptr, buf);
 }

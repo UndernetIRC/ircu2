@@ -601,6 +601,27 @@ void sendto_opmask_butone(struct Client *one, unsigned int mask,
 }
 
 /*
+ * Send a server notice to all users subscribing to the indicated <mask>
+ * except for <one> - Ratelimited 1 / 30sec
+ */
+void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
+			  time_t *rate, const char *pattern, ...)
+{
+  va_list vl;
+
+  if ((CurrentTime - *rate) < 30) 
+    return;
+  else 
+    *rate = CurrentTime;
+
+  va_start(vl, pattern);
+  vsendto_opmask_butone(one, mask, pattern, vl);
+  va_end(vl);
+    
+}
+
+
+/*
  * Same as above, except called with a variable argument list
  */
 void vsendto_opmask_butone(struct Client *one, unsigned int mask,

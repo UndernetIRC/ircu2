@@ -178,9 +178,20 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   if ((host = strchr(name, '%')))
     *host++ = '\0';
 
+  /* As reported by Vampire-, it's possible to brute force finding users
+   * by sending a message to each server and see which one succeeded.
+   * This means we have to remove error reporting.  Sigh.  Better than
+   * removing the ability to send directed messages to client servers 
+   * Thanks for the suggestion Vampire=.  -- Isomer 2001-08-28
+   * Argh, /ping nick@server, disallow messages to non +k clients :/  I hate
+   * this. -- Isomer 2001-09-16
+   */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
-      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host))) {
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)) ||
+      !IsChannelService(acptr)) {
+#if 0
     send_reply(sptr, ERR_NOSUCHNICK, name);
+#endif
     return;
   }
 
@@ -295,7 +306,7 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
-    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left UnderNet. "
+    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left " NETWORK ". "
 	       "Failed to deliver: [%.20s]", text);
     return;
   }
