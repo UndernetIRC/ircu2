@@ -1,5 +1,9 @@
 2001-06-22  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* tools/wrapper.c: add a wrapper program that can be used to
+	adjust file descriptor limits and root directories; program must
+	be run as root--NOT SETUID!--and given appropriate -u arguments
+
 	* doc/readme.log: documentation of how to configure logging
 
 	* doc/readme.features: documentation of each feature (except for
