@@ -22,6 +22,7 @@
 #include "parse.h"
 #include "client.h"
 #include "channel.h"
+#include "config.h"
 #include "handlers.h"
 #include "hash.h"
 #include "ircd.h"

@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.1 2001-03-17 03:51:09 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.2 2001-03-27 20:27:02 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* As requested by Buff: allow admins to *disable* below behavour -- Isomer
 * As requested by Adriel, compile time option to disable mo_wallops 
  -- Isomer
 -------------------------- Released 2.10.10.pl13
