@@ -412,8 +412,9 @@ void accept_connection(struct Listener* listener)
    * point, just assume that connections cannot
    * be accepted until some old is closed first.
    */
-  if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr, &addrlen)))
+  if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr, &addrlen))) {
     return;
+  }
   /*
    * check for connection limit
    */

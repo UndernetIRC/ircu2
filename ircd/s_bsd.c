@@ -581,9 +581,9 @@ void add_connection(struct Listener* listener, int fd)
   if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
 #ifdef IPCHECKDEBUG     
    char buff[512];
-   snprintf(buff,512,"\n%s [%i connections active]\n",
-   	throttle_message,
-   	IPcheck_nr(addr.sin_addr));
+   snprintf(buff,512,"\n\rNOTICE * :IPCheck=%i connections active\n\r%s",
+   	IPcheck_nr(cptr),
+   	throttle_message);
    buff[511]=0;
    send(fd,buff,strlen(buff),0);
 #else

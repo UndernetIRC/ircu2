@@ -1,3 +1,7 @@
+2000-04-29  Perry Lorier <isomer@coders.net>
+	* ircd/s_bsd.c: Sigh. :)
+        * ircd/m_mode.c: fix for modeless channels by poptix.
+
 2000-04-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_join.c: reimplement JOIN in terms of struct JoinBuf
@@ -16,10 +20,10 @@
 	JoinBuf abstraction
 
 2000-04-29  Perry Lorier <isomer@coders.net>
-	* include/s_bsd.c: Ok, so I thought I compiled and tested this...
+	* ircd/s_bsd.c: Ok, so I thought I compiled and tested this...
 
 2000-04-29  Perry Lorier <isomer@coders.net>
-	* include/s_bsd.c: Add debugging code to IPcheck
+	* ircd/s_bsd.c: Add debugging code to IPcheck
 
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
@@ -992,7 +996,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.115 2000-04-30 01:33:27 kev Exp $
+# $Id: ChangeLog,v 1.116 2000-04-30 06:37:52 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
