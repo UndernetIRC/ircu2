@@ -1,3 +1,21 @@
+2002-09-03  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel for
+	u2.10.11.01 development
+
+	* ircd/m_invite.c (m_invite): send the invite message to a local
+	user in the case of local channels
+
+	* ircd/engine_poll.c (engine_loop): remove an assertion which
+	isn't supposed to be being triggered, but somehow is
+
+2002-09-03  hikari <shadow@undernet.org>
+	* ircd/m_map.c: changed call from IsOper to IsAnOper to 
+	pickup locals.
+
+	* ircd/m_links.c: changed call from IsOper to IsAnOper to
+	pickup locals.
+
 2002-09-02  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h: release u2.10.11.00
