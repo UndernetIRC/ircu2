@@ -50,7 +50,7 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
   va_start(vd.vd_args, pattern);
 
   sendcmdto_flag_butone(&me, CMD_DESYNCH, NULL, FLAGS_DEBUG,
-			":Protocol Violation from %C: %v", cptr, &vd);
+			":Protocol Violation from %s: %v", cptr->name, &vd);
 
   va_end(vd.vd_args);
   return 0;
