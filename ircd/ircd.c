@@ -180,7 +180,7 @@ static time_t try_connections(void)
   time_t            next = 0;
   struct ConfClass* cltmp;
   struct ConfItem*  cconf;
-  strcut ConfItem*  con_conf = NULL;
+  struct ConfItem*  con_conf = NULL;
   struct Jupe*      ajupe;
   unsigned int      con_class = 0;
 
