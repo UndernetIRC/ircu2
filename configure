@@ -30,9 +30,9 @@ ac_help="$ac_help
 ac_help="$ac_help
   --disable-inlines       Disable inlining for a few critical functions"
 ac_help="$ac_help
-  --disable-devpoll       Enable the /dev/poll-based engine"
+  --disable-devpoll       Disable the /dev/poll-based engine"
 ac_help="$ac_help
-  --disable-kqueue        Enable the kqueue-based engine"
+  --disable-kqueue        Disable the kqueue-based engine"
 ac_help="$ac_help
   --with-symlink=name     Name to give the symlink; if name is "no," no
                           symlink will be created."
