@@ -268,7 +268,6 @@ static struct FeatureDesc {
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
   F_I(CONNECTTIMEOUT, 0, 90, 0),
-  F_I(TIMESEC, 0, 60, 0),
   F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
   F_I(PINGFREQUENCY, 0, 120, init_class),
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
@@ -296,14 +295,11 @@ static struct FeatureDesc {
   F_B(ANNOUNCE_INVITES, 0, 0, 0),
 
   /* features that affect all operators */
-  F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),
   F_B(CONFIG_OPERCMDS, 0, 0, 0),
-  F_B(LIST_CHAN, 0, 1, 0),
 
   /* HEAD_IN_SAND Features */
   F_B(HIS_SNOTICES, 0, 1, 0),
   F_B(HIS_SNOTICES_OPER_ONLY, 0, 1, 0),
-  F_B(HIS_DESYNCS, 0, 1, 0),
   F_B(HIS_DEBUG_OPER_ONLY, 0, 1, 0),
   F_B(HIS_WALLOPS, 0, 1, 0),
   F_B(HIS_MAP, 0, 1, 0),

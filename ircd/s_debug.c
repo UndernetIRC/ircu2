@@ -99,9 +99,6 @@ const char* debug_serveropts(void)
   if (feature_bool(FEAT_IDLE_FROM_MSG))
     AddC('M');
 
-  if (feature_bool(FEAT_CRYPT_OPER_PASSWORD))
-    AddC('p');
-
   if (feature_bool(FEAT_RELIABLE_CLOCK))
     AddC('R');
 

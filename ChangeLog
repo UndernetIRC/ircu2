@@ -1,5 +1,26 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Remove examples for unused features (TIMESEC,
+	CRYPT_OPER_PASSWORD) and add for new feature (ANNOUNCE_INVITES).
+
+	* doc/readme.features: Remove documentation for unused features
+	(TIMESEC, CRYPT_OPER_PASSWORD, oper/locop privileges,
+	HIS_DESYNCS), update defaults for SOCKSENDBUF and SOCKRECVBUF, and
+	add documentation for ANNOUNCE_INVITES.
+
+	* include/ircd_features.h: Remove unused features (TIMESEC,
+	CRYPT_OPER_PASSWORD, LIST_CHAN, HIS_DESYNCS).
+
+	* include/ircd_features.c: Likewise.
+
+	* ircd/ircd_res.c: Actually use FEAT_IRCD_RES_RETRIES and
+	FEAT_IRCD_RES_TIMEOUT where appropriate.
+
+	* ircd/s_debug.c: Do not display setting of unused (and now
+	non-existent) FEAT_CRYPT_OPER_PASSWORD.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/os_generic.c (sockaddr_from_irc): Fix IPv4 implementation
 	to use the correct address family and IP offset.
 

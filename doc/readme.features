@@ -339,14 +339,6 @@ change this value, but if you do, consider the fact that users whose
 clients do not support NOSPOOF will have to type /QUOTE PING <big
 number> before registration.
 
-TIMESEC
- * Type: integer
- * Default: 60
-
-This is the maximum idle time for the server. If no messages are
-received in TIMESEC seconds, PINGFREQUENCY and CONNECTFREQUENCY are
-checked.  Recommended value is 60 seconds.
-
 MAXIMUM_LINKS
  * Type: integer
  * Default: 1
@@ -456,91 +448,6 @@ from the kernel at once.  Since the number retrieved can impact
 performance, it can be tuned by modifying this value.  The engines
 enforce a lower limit of 20.
 
-CRYPT_OPER_PASSWORD
- * Type: boolean
- * Default: TRUE
-
-In order to allow certain users to become IRC operators, they must
-authenticate themselves with a password.  This password is matched
-against an Operator block in the "ircd.conf" configuration file; see
-doc/example.conf for more details.  If you specify "TRUE" here, you
-must use the crypted form of these passwords in your "ircd.conf" file.
-Since compromises of the "ircd.conf" file have happened in the past,
-you are highly encouraged to use this option.  You can find a program
-called "mkpasswd" in the tools directory that will allow you to
-generate crypted passwords.
-
-OPER_NO_CHAN_LIMIT
- * Type: boolean
- * Default: TRUE
-
-If this option is set to "TRUE," IRC operators may join as many
-channels as they need to.  This is primarily intended to permit
-administrators to run a channel service for local ("&") channels.
-
-OPER_MODE_LCHAN
- * Type: boolean
- * Default: TRUE
-
-If this option is set to "TRUE," IRC operators may change the channel
-modes on local ("&") channels.  This is primarily intended to permit
-administrators to run a channel service for local channels.
-
-OPER_WALK_THROUGH_LMODES
- * Type: boolean
- * Default: FALSE
-
-If this option is set to "TRUE," IRC operators may join local ("&")
-channels regardless of any restrictive modes, including bans.  This
-requires giving the special password "OVERRIDE."  This is primarily
-intended to permit administrators to run a channel service for local
-channels.
-
-NO_OPER_DEOP_LCHAN
- * Type: boolean
- * Default: FALSE
-
-If this option is set to "TRUE," IRC operators may not be deopped on
-local ("&") channels.  This is primarily intended to permit
-administrators to run a channel service for local channels.
-
-SHOW_INVISIBLE_USERS
- * Type: boolean
- * Default: TRUE
-
-If you specify "TRUE" here, then your (local) IRC Operators will be
-able to see all local invisible users (clients connected to your own
-server).  This should be used only for investigating instances of
-abuse; make sure your operators do not use this for spying on
-individuals.
-
-SHOW_ALL_INVISIBLE_USERS
- * Type: boolean
- * Default: TRUE
-
-If you specify "TRUE" here, then your global IRC Operators will be
-able to see ALL invisible users.  This should be used only for
-investigating instances of abuse; make sure your operators do not use
-this for spying on individuals.
-
-UNLIMIT_OPER_QUERY
- * Type: boolean
- * Default: FALSE
-
-A /WHO command can sometimes return several hundred lines of
-information.  To reduce the flood potential, the output is truncated.
-By setting this option to "TRUE," when an IRC Operator uses /WHO, the
-output will not be truncated, no matter how much data is returned.
-
-LOCAL_KILL_ONLY
- * Type: boolean
- * Default: FALSE
-
-If this option is set to "TRUE," operators of this server may only
-KILL clients directly connected to this server.  Operators will not be
-able to issue KILLs for clients on other servers.  Some networks may
-require that this be turned on for newly linking servers.
-
 CONFIG_OPERCMDS
  * Type: boolean
  * Default: FALSE
@@ -553,234 +460,6 @@ of these features until the entire network has been upgraded.  It is
 not required that all servers set this to "TRUE" in order for the
 features to be used.
 
-OPER_KILL
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue the /KILL command.
-
-OPER_REHASH
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue the /REHASH command.
-
-OPER_RESTART
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue the /RESTART command.
-
-OPER_DIE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue the /DIE command.
-
-OPER_GLINE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue global G-lines.
-
-OPER_LGLINE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue local G-lines.
-
-OPER_JUPE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue global jupes.
-
-OPER_LJUPE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to issue local jupes.
-
-OPER_OPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to use /OPMODE and /CLEARMODE on ordinary ("#") channels.
-
-OPER_LOPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to use /OPMODE and /CLEARMODE on local ("&") channels.
-
-OPER_FORCE_OPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to override Q-lines set for /OPMODE and /CLEARMODE on ordinary ("#") channels
-
-OPER_FORCE_LOPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
-
-OPER_BADCHAN
- * Type: boolean
- * Default: FALSE
-
-This selects whether global IRC operators on this server are permitted
-to issue global BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY
-REGULATED BY THE UNDERNET ADMINISTRATION.
-
-OPER_LBADCHAN
- * Type: boolean
- * Default: FALSE
-
-This selects whether global IRC operators on this server are permitted
-to issue local BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY
-REGULATED BY THE UNDERNET ADMINISTRATION.
-
-OPER_SET
- * Type: boolean
- * Default: FALSE
-
-This selects whether global IRC operators on this server are permitted
-to use the /SET command to set various feature values.
-
-OPERS_SEE_IN_SECRET_CHANNELS
- * Type: boolean
- * Default: TRUE
-
-If you specify "TRUE" here, then your global IRC Operators will be
-able to see who is on a specified secret channel, without joining
-themselves.  This can be used to make a reasonable judgment in the
-case of a "channel takeover" being reported, while the channel is set
-invite-only.  See doc/readme.who for more details.
-
-OPER_WIDE_GLINE
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators on this server are permitted
-to use the /GLINE command with the ! flag to force slightly wide
-G-lines to be set.
-
-OPER_LIST_CHAN 
- * Type: boolean
- * Default: TRUE
-
-This selects whether global IRC operators are permitted to list secret 
-(+s) channels.
-
-LOCOP_KILL
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators are permitted to use the
-/KILL command on local clients.
-
-LOCOP_REHASH
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators are permitted to use the
-/REHASH command.
-
-LOCOP_RESTART
- * Type: boolean
- * Default: FALSE
-
-This selects whether local IRC operators are permitted to use the
-/RESTART command.
-
-LOCOP_DIE
- * Type: boolean
- * Default: FALSE
-
-This selects whether local IRC operators are permitted to use the /DIE
-command.
-
-LOCOP_LGLINE
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators are permitted to issue local
-G-lines.
-
-LOCOP_LJUPE
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators are permitted to issue local
-jupes.
-
-LOCOP_LOPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators are permitted to use /OPMODE
-and /CLEARMODE on local ("&") channels.
-
-LOCOP_FORCE_LOPMODE
- * Type: boolean
- * Default: TRUE
-
-This selects whether local IRC operators on this server are permitted
-to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
-
-LOCOP_LBADCHAN
- * Type: boolean
- * Default: FALSE
-
-This selects whether local IRC operators are permitted to issue local
-BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY REGULATED BY THE
-UNDERNET ADMINISTRATION.
-
-LOCOP_SET
- * Type: boolean
- * Default: FALSE
-
-This selects whether local IRC operators are permitted to use the /SET
-command to set various feature values.
-
-LOCOP_SEE_IN_SECRET_CHANNELS
- * Type: boolean
- * Default: FALSE
-
-If you specify "TRUE" here, then your local IRC Operators will be
-able to see who is on a specified secret channel, without joining
-themselves.  This can be used to make a reasonable judgment in the
-case of a "channel takeover" being reported, while the channel is set
-invite-only.  See doc/readme.who for more details.
-
-LOCOP_WIDE_GLINE
- * Type: boolean
- * Default: FALSE
-
-This selects whether local IRC operators are permitted to use the
-/GLINE command with the ! flag to force slightly wide G-lines to be
-set.
-
-LOCOP_LIST_CHAN
- * Type: boolean
- * Default: FALSE
- 
-This selects whether local IRC operators are permitted to list secret 
-(+s) channels.
-
 HIS_MAP
  * Type: boolean
  * Default: TRUE
@@ -792,18 +471,12 @@ HIS_SNOTICES
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes server notices from users.
- 
+
 HIS_SNOTICES_OPER_ONLY
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes server notices from users.
- 
-HIS_DESYNCS
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes server wallops from users.
 
 HIS_DEBUG_OPER_ONLY
  * Type: boolean
@@ -904,7 +577,7 @@ As per UnderNet CFV-165, this removes /STATS p from users.
 HIS_STATS_q
  * Type: boolean
  * Default: TRUE
- 
+
 As per UnderNet CFV-165, this removes /STATS q from users.
 
 HIS_STATS_r
@@ -1049,11 +722,11 @@ HIS_SERVERINFO
 As per UnderNet CFV-165, this is the "info" of the server shown to users on a
 /WHOIS of another user.
 
-HIS_URLSERVERS        
- * Type: string 
+HIS_URLSERVERS
+ * Type: string
  * Default: "http://www.undernet.org/servers.php"
 
-As per UnderNet CFV-165, this is the URL shown to users when they do a /MAP or 
+As per UnderNet CFV-165, this is the URL shown to users when they do a /MAP or
 /LINKS.
 
 NETWORK
@@ -1082,9 +755,8 @@ IRCD_RES_RETRIES
  * Type: integer
  * Default: 2
 
-This is the number of attempts the irc daemon's resolver will have at 
+This is the number of attempts the irc daemon's resolver will have at
 trying to solicit a response from the DNS server.
-NOTE: Has no effect when using the adns resolver.
 
 IRCD_RES_TIMEOUT
  * Type: integer
@@ -1100,7 +772,7 @@ AUTH_TIMEOUT
  * Type: integer
  * Default: 9
 
-This is the maximum number of seconds to wait for the ident lookup and 
+This is the maximum number of seconds to wait for the ident lookup and
 the DNS query to succeed.  On older (pre 2.10.11.06) servers this was
 hard coded to 60 seconds.
 
@@ -1113,10 +785,10 @@ seconds before you are considered abusing the server and throttled.
 
 IPCHECK_CLONE_PERIOD
  * Type: integer
- * Defualt: 40
+ * Default: 40
 
 The number of seconds you are allowed to connect IPCHECK_CLONE_LIMIT times
-within before you are considered abusing the server and throttled.  
+within before you are considered abusing the server and throttled.
 For instance if you set IPCHECK_CLONE_LIMIT to 1, and IPCHECK_CLONE_PERIOD
 to 10, then a user is only allowed to connect once in 10s, if they connect
 again within 10s, then they are considered to be connecting too fast and
@@ -1127,19 +799,26 @@ IPCHECK_CLONE_DELAY
  * Default: 600
 
 The number of seconds grace after restarting the server before the throttle
-code kicks in.  Even if a user connects repeditively during this period, 
-they will never get throttled.  This is so after a restart users on a 
-multiuser box can all connect to a server simultaniously without being 
+code kicks in.  Even if a user connects repetitively during this period,
+they will never get throttled.  This is so after a restart users on a
+multiuser box can all connect to a server simultaniously without being
 considered an attack.
 
 SOCKSENDBUF
  * Type: integer
- * Default: 0
+ * Default: 61440
 
 The send window size used for connections to other servers.
 
 SOCKRECVBUF
  * Type: integer
- * Default: 0
+ * Default: 61440
 
 The receive window size used for connections to other servers.
+
+ANNOUNCE_INVITES
+ * Type: boolean
+ * Default: FALSE
+
+If set, send RPL_ISSUEDINVITE (345) to a channel's operators to
+announce when someone is invited to the channel.

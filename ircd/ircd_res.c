@@ -253,9 +253,9 @@ make_request(const struct DNSQuery* query)
   memset(request, 0, sizeof(struct reslist));
 
   request->sentat  = CurrentTime;
-  request->retries = 3;
+  request->retries = feature_int(FEAT_IRCD_RES_RETRIES);
   request->resend  = 1;
-  request->timeout = 4;    /* start at 4 and exponential inc. */
+  request->timeout = feature_int(FEAT_IRCD_RES_TIMEOUT);
   memset(&request->addr, 0, sizeof(request->addr));
   request->query.vptr     = query->vptr;
   request->query.callback = query->callback;
@@ -762,14 +762,14 @@ res_readreply(struct Event *ev)
 
       if (request->state == REQ_AAAA && request->type == T_AAAA)
       {
-        request->timeout += 4;
+        request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
       }
       else if (request->type == T_PTR && request->state != REQ_INT &&
                !irc_in_addr_is_ipv4(&request->addr))
       {
         request->state = REQ_INT;
-        request->timeout += 4;
+        request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
       }
       else
