@@ -302,24 +302,6 @@ UNIXPORT
   or when your local IRC client doesn't support UNIX domain sockets,
   specify 'n' here.  Otherwise specify 'y'.
 
-Do you need virtual hosting
-VIRTUAL_HOST
-  This is only needed when you want to run two or more servers on the
-  same machine and on the same port (but different devices).
-  In general you will only need this if you have at least two ethernet
-  cards in your machine with a different IP-number.
-  If you specify 'y' here, then you can "bind" a server to one of your
-  interfaces.  You should use the command line option '-w' to tell the
-  server to which interface to bind to.  No error is reported if this
-  fails, the server will simply not run.
-  If no '-w' option is given then the server name specified in the
-  'M: line' of the "ircd.conf" file of the server is used, provided it
-  resolves to an IP-number of one of your interfaces.  Note that
-  normally the name does not have to resolve, but when you define this,
-  it MUST resolve or you must use the -w command line option, or the
-  "bind" will fail.
-  If you are unsure, specify 'n'.
-
 Will you connect to more then one server at a time
 HUB
   All servers of one IRC "network" are connected in a "tree" (no loops).
@@ -447,19 +429,6 @@ MEMTIMESTATS
   because it allows you to specify a time window with /stats M for which
   counted blocks must be returned.  This allows to ignore recently allocated
   blocks and permanently allocated blocks (since the start of the server).
-
-Are you testing on a host without DNS
-NODNS
-  If you are playing with the server off-line, and no DNS is available, then
-  long delays occur before the server starts up because it tries to resolv
-  the name given on the M:line (which usually isn't given in /etc/hosts) and
-  for each connecting client.
-  If you specify 'y' here, then a call to gethostbyname() will be done only
-  for the real hostname, and the server will not try to resolv clients that
-  connect to `localhost'.
-  Note that other calls to gethostbyname() are still done anyway if you
-  use VIRTUAL_HOST and that the server still tries to resolv clients
-  that connect to the real IP-number of the server.
 
 Directory where all ircd stuff sits
 DPATH

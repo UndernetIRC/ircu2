@@ -206,7 +206,7 @@ void calc_load(aClient *sptr)
       "Minute  Hour    Day   Yest. YYest. Userload for:";
   /* *INDENT-ON* */
   static const char *what[3] = {
-    DOMAINNAME " clients",
+    "local domain clients",
     "total clients",
     "total connections"
   };

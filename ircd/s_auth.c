@@ -66,7 +66,7 @@ RCSTAG_CC("$Id$");
 void start_auth(aClient *cptr)
 {
   struct sockaddr_in sock;
-  int err;
+  int err, len;
 
   Debug((DEBUG_NOTICE, "start_auth(%p) fd %d status %d",
       cptr, cptr->fd, cptr->status));
@@ -101,14 +101,15 @@ void start_auth(aClient *cptr)
 
   set_non_blocking(cptr->authfd, cptr);
 
-#ifdef VIRTUAL_HOST
-  if (bind(cptr->authfd, (struct sockaddr *)&vserv, sizeof(vserv)) == -1)
+  if (getsockname(cptr->fd, (struct sockaddr *)&sock, &len) == -1
+      || (sock.sin_port = 0)	/* Reset sin_port and let OS choose the port */
+      || bind(cptr->authfd, (struct sockaddr *)&sock, len) == -1)
   {
     report_error("binding auth stream socket %s: %s", cptr);
     close(cptr->fd);
     return;
   }
-#endif
+
   memcpy(&sock.sin_addr, &cptr->ip, sizeof(struct in_addr));
 
   sock.sin_port = htons(113);

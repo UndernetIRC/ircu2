@@ -62,11 +62,19 @@ ircd stream tcp wait irc /etc/ircd ircd \-i
 allows inetd to start up ircd on request.
 .TP
 .B \-w interface
-If the server was compiled with VIRTUAL_HOST (run 'make config' to toggle
-this compile option), then \fIinterface\fP is passed to gethostbyname(3) in
-order to retrieve the IP-number of the interface to bind to. An example
-would be to use '-w localhost', after which the server only listens on the
-loopback interface.  Run `ifconfig -a' to see which interfaces you have.
+\fIinterface\fP is passed to gethostbyname(3) in order to retrieve the
+IP-number of the default interface to bind to.  An example would be to
+use `-w localhost' after which the server listens by default on the
+loopback interface.  Use `ifconfig -a' to see which interfaces you have.
+Without this option the hostname in the M: line is used as default
+interface and if that doesn't resolve, all interfaces are used. The
+server uses the default interface to listen for UDP packets (UPING)
+and for each listen port without a specified interface to bind to.
+Interfaces can be specified per listen port in the configuration file
+(ircd.conf) using P: lines. Note that the last P: line in the
+ircd.conf specifying an interface (not localhost) overrules the
+default CONNECT interface (outgoing connections) but does not change
+the default listen interface as described above.
 .TP
 .B \-f filename
 Specifies the ircd.conf file to be used for this ircdaemon. The option

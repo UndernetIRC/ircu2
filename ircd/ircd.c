@@ -48,9 +48,7 @@
 #include <arpa/nameser.h>
 #include <resolv.h>
 #endif
-#ifdef VIRTUAL_HOST
 #include <sys/socket.h>		/* Needed for AF_INET on some OS */
-#endif
 #include "h.h"
 #include "res.h"
 #include "struct.h"
@@ -553,6 +551,8 @@ static void open_debugfile(void)
   return;
 }
 
+int have_server_port;
+
 int main(int argc, char *argv[])
 {
   unsigned short int portarg = 0;
@@ -590,9 +590,12 @@ int main(int argc, char *argv[])
   myargv = argv;
   umask(077);			/* better safe than sorry --SRB */
   memset(&me, 0, sizeof(me));
-#ifdef VIRTUAL_HOST
   memset(&vserv, 0, sizeof(vserv));
-#endif
+  vserv.sin_family = AF_INET;
+  vserv.sin_addr.s_addr = htonl(INADDR_ANY);
+  memset(&cserv, 0, sizeof(cserv));
+  cserv.sin_addr.s_addr = htonl(INADDR_ANY);
+  cserv.sin_family = AF_INET;
 
   setup_signals();
   initload();
@@ -672,31 +675,33 @@ int main(int argc, char *argv[])
       case 'v':
 	printf("ircd %s\n", version);
 	exit(0);
-#ifdef VIRTUAL_HOST
       case 'w':
       {
 	struct hostent *hep;
 	if (!(hep = gethostbyname(p)))
 	{
-	  fprintf(stderr, "%s: Error creating virtual host \"%s\": %d",
-	      argv[0], p, h_errno);
+	  fprintf(stderr, "%s: Error resolving \"%s\" (h_errno == %d).\n",
+	      argv[-1], p, h_errno);
 	  return -1;
 	}
 	if (hep->h_addrtype == AF_INET && hep->h_addr_list[0] &&
 	    !hep->h_addr_list[1])
 	{
+	  int fd;
 	  memcpy(&vserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
-	  vserv.sin_family = AF_INET;
+	  memcpy(&cserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
+	  /* Test if we can bind to this address */
+   	  fd = socket(AF_INET, SOCK_STREAM, 0);
+          if (bind(fd, (struct sockaddr *)&vserv, sizeof(vserv)) == 0)
+	  {
+	    close(fd);
+	    break;
+	  }
 	}
-	else
-	{
-	  fprintf(stderr, "%s: Error creating virtual host \"%s\": "
-	      "Use -w <IP-number of interface>\n", argv[0], p);
-	  return -1;
-	}
-	break;
+	fprintf(stderr, "%s:\tError binding to interface \"%s\".\n"
+	    "   \tUse `ifconfig -a' to check your interfaces.\n", argv[-1], p);
+	return -1;
       }
-#endif
       case 'x':
 #ifdef	DEBUGMODE
 	if (euid != uid)
@@ -818,9 +823,6 @@ int main(int argc, char *argv[])
   initmsgtree();
   initstats();
   open_debugfile();
-  if (portnum == 0)
-    portnum = PORTNUM;
-  me.port = portnum;
   init_sys();
   me.flags = FLAGS_LISTEN;
   if ((bootopt & BOOT_INETD))
@@ -843,16 +845,11 @@ int main(int argc, char *argv[])
   }
   if (!(bootopt & BOOT_INETD))
   {
-    static char star[] = "*";
-    aConfItem *aconf;
-
-    if ((aconf = find_me()) && portarg == 0 && aconf->port != 0)
-      portnum = aconf->port;
     Debug((DEBUG_ERROR, "Port = %u", portnum));
-    if (inetport(&me, star, portnum))
+    if (!have_server_port && inetport(&me, "*", "", portnum))
       exit(1);
   }
-  else if (inetport(&me, "*", 0))
+  else if (inetport(&me, "*", "*", 0))
     exit(1);
 
   read_tlines();
