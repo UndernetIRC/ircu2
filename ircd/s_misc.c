@@ -403,9 +403,15 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
       if (IsServer(victim) || IsHandshake(victim))
 	sendcmdto_one(killer, CMD_SQUIT, victim, "%s 0 :%s", cli_name(&me), comment);
       else if (!IsConnecting(victim)) {
-        if (!IsDead(victim))
-	  sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
-			cli_name(victim), cli_name(killer), comment);
+        if (!IsDead(victim)) {
+	  if (IsServer(victim))
+	    sendcmdto_one(killer, CMD_ERROR, victim,
+			  ":Closing Link: %s by %s (%s)", cli_name(victim),
+			  cli_name(killer), comment);
+	  else
+	    sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
+			  cli_name(victim), cli_name(killer), comment);
+	}
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&
           (killer == &me || (IsServer(killer) &&
