@@ -190,7 +190,7 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* report all direct connections */
 
   for (i = 0; i <= HighestFd; i++) {
-    unsigned int conClass;
+    const char *conClass;
 
     if (!(acptr = LocalClientArray[i])) /* Local Connection? */
       continue;
@@ -391,7 +391,7 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* report all direct connections */
 
   for (i = 0; i <= HighestFd; i++) {
-    unsigned int conClass;
+    const char *conClass;
 
     if (!(acptr = LocalClientArray[i])) /* Local Connection? */
       continue;
@@ -590,7 +590,7 @@ int mo_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* report all direct connections */
 
   for (i = 0; i <= HighestFd; i++) {
-    unsigned int conClass;
+    const char *conClass;
 
     if (!(acptr = LocalClientArray[i])) /* Local Connection? */
       continue;

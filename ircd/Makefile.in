@@ -38,6 +38,8 @@ CHOWN = chown
 CHGRP = chgrp
 MKDIR = mkdir
 TOUCH = touch
+LEX = flex
+YACC = bison -y
 GREP = grep
 OSDEP_C = @OSDEP_C@
 ENGINE_C = @ENGINE_C@
@@ -100,6 +102,7 @@ IRCD_SRC = \
 	ircd_string.c \
 	ircd_xopen.c \
 	jupe.c \
+	lex.yy.c \
 	list.c \
 	listener.c \
 	m_account.c \
@@ -197,15 +200,15 @@ IRCD_SRC = \
 	uping.c \
 	userload.c \
 	whocmds.c \
-	whowas.c
+	whowas.c \
+	y.tab.c
 
-CHKCONF_SRC = chkconf.c
 
 SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C}
 
 OBJS = ${SRC:%.c=%.o}
 
-DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC} ${ENGINE_SRC} ${CHKCONF_SRC}
+DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC} ${ENGINE_SRC}
 
 all:
 	( cd ..; make -f Makefile )
@@ -215,7 +218,7 @@ all:
 .c.o:
 	${CC} ${CFLAGS} ${CPPFLAGS} -c $< -o $@
 
-build: ircd chkconf
+build: ircd
 
 ircd: ${OBJS} ../include/patchlevel.h version.o
 	${PURIFY} ${CC} ${OBJS} version.o ${RINGLOG_O} ${LDFLAGS} ${LIBS} \
@@ -244,13 +247,11 @@ table_gen: table_gen.o
 chattr.tab.c: table_gen
 	./table_gen > chattr.tab.c
 
-chkcrule.o: crule.c
-	${CC} ${CFLAGS} ${CPPFLAGS} -DCR_CHKCONF -o chkcrule.o -c \
-		${srcdir}/crule.c
+lex.yy.c: ircd_lexer.l y.tab.h
+	${LEX} ircd_lexer.l
 
-chkconf: chkconf.o fda.o match.o chkcrule.o ircd_alloc.o fileio.o ircd_string.o
-	${CC} chkconf.o fda.o match.o chkcrule.o ircd_alloc.o fileio.o \
-	ircd_string.o ${LDFLAGS} ${LIBS} -o chkconf
+y.tab.c y.tab.h: ircd_parser.y
+	${YACC} -d ircd_parser.y
 
 mkbindir:
 	@test -d ${BINDIR} || mkdir ${BINDIR}

@@ -63,40 +63,27 @@ motd_create(const char *hostmask, const char *path, int maxcount)
 {
   struct Motd* tmp;
   int type = MOTD_UNIVERSAL;
-  const char* s;
-
+  
   assert(0 != path);
-
-  if (hostmask) { /* figure out if it's a class or hostmask */
-    type = MOTD_CLASS; /* all digits, convert to class */
-
-    for (s = hostmask; *s; s++)
-      if (!IsDigit(*s)) { /* not a digit, not a class... */
-	type = MOTD_HOSTMASK;
-	break;
-      }
-  }
-
+  
+  if (hostmask != NULL && find_class(hostmask))
+    type = MOTD_CLASS;
+  else
+    type = MOTD_HOSTMASK;
   /* allocate memory and initialize the structure */
-  if (MotdList.freelist) {
+  if (MotdList.freelist)
+  {
     tmp = MotdList.freelist;
     MotdList.freelist = tmp->next;
   } else
     tmp = (struct Motd *)MyMalloc(sizeof(struct Motd));
-
+  
   tmp->next = 0;
   tmp->type = type;
-
-  switch (type) {
-  case MOTD_HOSTMASK:
-    DupString(tmp->id.hostmask, hostmask);
-    break;
-
-  case MOTD_CLASS:
-    tmp->id.class = atoi(hostmask);
-    break;
-  }
-
+  
+  if (hostmask != NULL)
+    DupString(tmp->hostmask, hostmask);
+  
   DupString(tmp->path, path);
   tmp->maxcount = maxcount;
   tmp->cache = 0;
@@ -213,8 +200,7 @@ motd_destroy(struct Motd *motd)
   assert(0 != motd);
 
   MyFree(motd->path); /* we always must have a path */
-  if (motd->type == MOTD_HOSTMASK) /* free a host mask if any */
-    MyFree(motd->id.hostmask);
+  MyFree(motd->hostmask);
   if (motd->cache) /* drop the cache */
     motd_decache(motd);
 
@@ -229,7 +215,7 @@ static struct Motd *
 motd_lookup(struct Client *cptr)
 {
   struct Motd *ptr;
-  int class = -1;
+  char *class = NULL;
 
   assert(0 != cptr);
 
@@ -238,12 +224,14 @@ motd_lookup(struct Client *cptr)
 
   class = get_client_class(cptr);
 
-  /* check the T-lines first */
-  for (ptr = MotdList.other; ptr; ptr = ptr->next) {
-    if (ptr->type == MOTD_CLASS && ptr->id.class == class)
+  /* check the motd blocks first */
+  for (ptr = MotdList.other; ptr; ptr = ptr->next)
+  {
+    if (ptr->type == MOTD_CLASS &&
+        !match(ptr->hostmask, class))
       return ptr;
-    else if (ptr->type == MOTD_HOSTMASK &&
-	     !match(ptr->id.hostmask, cli_sockhost(cptr)))
+    else if (ptr->type == MOTD_HOSTMASK && class != NULL &&
+             !match(ptr->hostmask, cli_sockhost(cptr)))
       return ptr;
   }
 
@@ -366,7 +354,8 @@ motd_clear(void)
   motd_decache(MotdList.remote);
 
   if (MotdList.other) /* destroy other MOTDs */
-    for (ptr = MotdList.other; ptr; ptr = next) {
+    for (ptr = MotdList.other; ptr; ptr = next)
+    { 
       next = ptr->next;
       motd_destroy(ptr);
     }
@@ -384,11 +373,7 @@ motd_report(struct Client *to)
 {
   struct Motd *ptr;
 
-  for (ptr = MotdList.other; ptr; ptr = ptr->next) {
-    if (ptr->type == MOTD_CLASS) /* class requires special handling */
-      send_reply(to, SND_EXPLICIT | RPL_STATSTLINE, "T %d %s", ptr->id.class,
-		 ptr->path);
-    else if (ptr->type == MOTD_HOSTMASK)
-      send_reply(to, RPL_STATSTLINE, 'T', ptr->id.hostmask, ptr->path);
-  }
+  for (ptr = MotdList.other; ptr; ptr = ptr->next)
+    send_reply(to, SND_EXPLICIT | RPL_STATSTLINE, "T %s %s",
+               ptr->hostmask, ptr->path);
 }

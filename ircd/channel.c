@@ -2571,7 +2571,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
 	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
 
       if (!ban->next && (newban->flags & MODE_ADD)) {
-	ban->next = newban; /* add our ban with its flags */
+	ban->next = newban; /* add our"ban with its flags */
 	break; /* get out of loop */
       }
     }

@@ -1,3 +1,14 @@
+2002-04-02 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/ircd_parser.y: Added ircd parser, lexer, to replace the
+          old configuration file format.
+	* ircd/ircd_lexer.l
+	* ircd/s_conf.c
+	* doc/example.conf
+
+2002-03-23 Bert Faes <bert.faes@pandora.be>
+
+	* s_misc.c made /trace reply always show the username
+	
 2002-03-28  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* configure.in: use AC_CHECK_FUNCS to define HAVE_* macros; test

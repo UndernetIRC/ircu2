@@ -26,6 +26,7 @@
 #include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_reply.h"
+#include "ircd_string.h"
 #include "list.h"
 #include "numeric.h"
 #include "s_conf.h"
@@ -60,6 +61,8 @@ void free_class(struct ConnectionClass* p)
 {
   if (p) {
     assert(0 == p->valid);
+    if (p->cc_name)
+     MyFree(p->cc_name);
     MyFree(p);
     --connClassAllocCount;
   }
@@ -73,7 +76,8 @@ void init_class(void)
   if (!connClassList)
     connClassList = (struct ConnectionClass*) make_class();
 
-  ConClass(connClassList) = 0;
+  /* We had better not try and free this... */
+  ConClass(connClassList) = "default";
   PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);
   ConFreq(connClassList)  = feature_int(FEAT_CONNECTFREQUENCY);
   MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
@@ -112,7 +116,7 @@ void class_delete_marked(void)
   Debug((DEBUG_DEBUG, "Class check:"));
 
   for (prev = cl = connClassList; cl; cl = prev->next) {
-    Debug((DEBUG_DEBUG, "Class %d : CF: %d PF: %d ML: %d LI: %d SQ: %d",
+    Debug((DEBUG_DEBUG, "Class %s : CF: %d PF: %d ML: %d LI: %d SQ: %d",
            ConClass(cl), ConFreq(cl), PingFreq(cl), MaxLinks(cl), Links(cl), MaxSendq(cl)));
     /*
      * unlink marked classes, delete unreferenced ones
@@ -127,14 +131,15 @@ void class_delete_marked(void)
   }
 }
 
-unsigned int get_conf_class(const struct ConfItem* aconf)
+char*
+get_conf_class(const struct ConfItem* aconf)
 {
   if ((aconf) && (aconf->conn_class))
     return (ConfClass(aconf));
 
   Debug((DEBUG_DEBUG, "No Class For %s", (aconf) ? aconf->name : "*No Conf*"));
 
-  return (BAD_CONF_CLASS);
+  return NULL;
 }
 
 int get_conf_ping(const struct ConfItem* aconf)
@@ -148,24 +153,20 @@ int get_conf_ping(const struct ConfItem* aconf)
   return -1;
 }
 
-unsigned int get_client_class(struct Client *acptr)
+char*
+get_client_class(struct Client *acptr)
 {
   struct SLink *tmp;
   struct ConnectionClass *cl;
-  unsigned int retc = BAD_CLIENT_CLASS;
 
+  /* Return the most recent(first on LL) client class... */
   if (acptr && !IsMe(acptr) && (cli_confs(acptr)))
     for (tmp = cli_confs(acptr); tmp; tmp = tmp->next)
     {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
-        continue;
-      if (ConClass(cl) > retc || retc == BAD_CLIENT_CLASS)
-        retc = ConClass(cl);
+      if (tmp->value.aconf && !(cl = tmp->value.aconf->conn_class))
+        return ConClass(cl);
     }
-
-  Debug((DEBUG_DEBUG, "Returning Class %d For %s", retc, cli_name(acptr)));
-
-  return (retc);
+  return "(null-class)";
 }
 
 unsigned int get_client_ping(struct Client *acptr)
@@ -213,14 +214,14 @@ unsigned int get_con_freq(struct ConnectionClass * clptr)
  * if no present entry is found, then create a new one and add it in
  * immeadiately after the first one (class 0).
  */
-void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
+void add_class(char *name, unsigned int ping, unsigned int confreq,
                unsigned int maxli, unsigned int sendq)
 {
   struct ConnectionClass* t;
   struct ConnectionClass* p;
 
-  t = find_class(conClass);
-  if ((t == connClassList) && (conClass != 0))
+  t = find_class(name);
+  if ((t == connClassList) && (name != NULL))
   {
     p = (struct ConnectionClass *) make_class();
     p->next = t->next;
@@ -228,30 +229,32 @@ void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
   }
   else
     p = t;
-  Debug((DEBUG_DEBUG, "Add Class %u: cf: %u pf: %u ml: %u sq: %d",
-         conClass, confreq, ping, maxli, sendq));
-  ConClass(p) = conClass;
+  Debug((DEBUG_DEBUG, "Add Class %s: cf: %u pf: %u ml: %u sq: %d",
+         name, confreq, ping, maxli, sendq));
+  ConClass(p) = name;
   ConFreq(p) = confreq;
   PingFreq(p) = ping;
   MaxLinks(p) = maxli;
-  MaxSendq(p) = (sendq > 0) ? sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+  MaxSendq(p) = (sendq > 0) ?
+     sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   p->valid = 1;
   if (p != t)
     Links(p) = 0;
 }
 
-struct ConnectionClass* find_class(unsigned int cclass)
+struct ConnectionClass* find_class(const char *name)
 {
   struct ConnectionClass *cltmp;
 
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next) {
-    if (ConClass(cltmp) == cclass)
+    if (!ircd_strcmp(ConClass(cltmp), name))
       return cltmp;
   }
   return connClassList;
 }
 
-void report_classes(struct Client *sptr)
+void
+report_classes(struct Client *sptr)
 {
   struct ConnectionClass *cltmp;
 
@@ -261,7 +264,8 @@ void report_classes(struct Client *sptr)
 	       Links(cltmp));
 }
 
-unsigned int get_sendq(struct Client *cptr)
+unsigned int
+get_sendq(struct Client *cptr)
 {
   assert(0 != cptr);
   assert(0 != cli_local(cptr));
@@ -276,7 +280,7 @@ unsigned int get_sendq(struct Client *cptr)
     for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
-      if (ConClass(cl) != BAD_CLIENT_CLASS) {
+      if (ConClass(cl) != NULL) {
         cli_max_sendq(cptr) = MaxSendq(cl);
         return cli_max_sendq(cptr);
       }

@@ -38,10 +38,8 @@ struct TRecord;
 struct Motd {
   struct Motd*		next;
   int			type;
-  union {
-    char*		hostmask;
-    int			class;
-  }			id;
+  /* Used for classname if it is a class. */
+  char*		hostmask;
   char*			path;
   int			maxcount;
   struct MotdCache*	cache;

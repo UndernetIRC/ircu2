@@ -59,7 +59,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -72,10 +71,13 @@
 struct ConfItem* GlobalConfList  = 0;
 int              GlobalConfCount = 0;
 
-static struct LocalConf   localConf;
-static struct CRuleConf*  cruleConfList;
-static struct ServerConf* serverConfList;
-static struct DenyConf*   denyConfList;
+void yyparse(void);
+int conf_fd, lineno;
+
+struct LocalConf   localConf;
+struct CRuleConf*  cruleConfList;
+/* struct ServerConf* serverConfList; */
+struct DenyConf*   denyConfList;
 
 /*
  * output the reason for being k lined from a file  - Mmmm
@@ -235,7 +237,7 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
  * Do (start) DNS lookups of all hostnames in the conf line and convert
  * an IP addresses in a.b.c.d number for to IP#s.
  */
-static void lookup_confhost(struct ConfItem *aconf)
+void lookup_confhost(struct ConfItem *aconf)
 {
   struct DNSReply* reply;
 
@@ -626,6 +628,7 @@ struct ConfItem* find_conf_byip(struct SLink* lp, const char* ip,
  *
  * - looks for a match on all given fields.
  */
+#if 0
 static struct ConfItem *find_conf_entry(struct ConfItem *aconf,
                                         unsigned int mask)
 {
@@ -660,7 +663,6 @@ static struct ConfItem *find_conf_entry(struct ConfItem *aconf,
   }
   return bconf;
 }
-
 
 /*
  * If conf line is a class definition, create a class entry
@@ -778,6 +780,7 @@ void conf_add_crule(const char* const* fields, int count, int type)
     cruleConfList = p;
   } 
 }
+#endif
 
 void conf_erase_crule_list(void)
 {
@@ -799,6 +802,7 @@ const struct CRuleConf* conf_get_crule_list(void)
   return cruleConfList;
 }
 
+#if 0
 void conf_add_server(const char* const* fields, int count)
 {
   struct ServerConf* server;
@@ -895,6 +899,8 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
   conf->next = denyConfList;
   denyConfList = conf;
 }
+#endif
+
 
 void conf_erase_deny_list(void)
 {
@@ -928,26 +934,14 @@ const struct DenyConf* conf_get_deny_list(void)
 
 int read_configuration_file(void)
 {
-  enum { MAX_FIELDS = 15 };
-
-  char* src;
-  char* dest;
-  int quoted;
-  FBFILE *file;
-  char line[512];
-  int ccount = 0;
-  struct ConfItem *aconf = 0;
-  
-  int   field_count = 0;
-  const char* field_vector[MAX_FIELDS + 1];
-
-  Debug((DEBUG_DEBUG, "read_configuration_file: ircd.conf = %s", configfile));
-  if (0 == (file = fbopen(configfile, "r"))) {
-    return 0;
-  }
-
   feature_unmark(); /* unmark all features for resetting later */
-
+  /* Now just open an fd. The buffering isn't really needed... */
+  if ((conf_fd = open(configfile, O_RDONLY)) < 0)
+   return 0;
+  lineno = 1;
+  yyparse();
+  close(conf_fd);
+#if 0
   while (fbgets(line, sizeof(line) - 1, file)) {
     if ('#' == *line || IsSpace(*line))
       continue;
@@ -1232,8 +1226,18 @@ int read_configuration_file(void)
     free_conf(aconf);
   fbclose(file);
 /*    nextping = nextconnect = CurrentTime; */
+#endif
   feature_mark(); /* reset unmarked features */
   return 1;
+}
+
+void
+yyerror(const char *msg)
+{
+ sendto_opmask_butone(0, SNO_ALL, "Config file parse error line %d: %s",
+                      lineno, msg);
+ log_write(LS_CONFIG, L_ERROR, 0, "Config file parse error line %d: %s",
+           lineno, msg);
 }
 
 /*
@@ -1418,7 +1422,7 @@ int find_kill(struct Client *cptr)
       break;
 
     if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
-      if (0 == match(deny->hostmask + 2, realname))
+      if (0 == match(deny->hostmask, realname))
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",

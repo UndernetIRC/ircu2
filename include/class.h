@@ -34,7 +34,7 @@ struct ConfItem;
  */
 struct ConnectionClass {
   struct ConnectionClass* next;
-  int                     cc_class;
+  char                    *cc_name;
   unsigned int            max_sendq;
   short                   ping_freq;
   short                   conn_freq;
@@ -47,14 +47,14 @@ struct ConnectionClass {
  * Macro's
  */
 
-#define ConClass(x)     ((x)->cc_class)
+#define ConClass(x)     ((x)->cc_name)
 #define PingFreq(x)     ((x)->ping_freq)
 #define ConFreq(x)      ((x)->conn_freq)
 #define MaxLinks(x)     ((x)->max_links)
 #define MaxSendq(x)     ((x)->max_sendq)
 #define Links(x)        ((x)->ref_count)
 
-#define ConfClass(x)    ((x)->conn_class->cc_class)
+#define ConfClass(x)    ((x)->conn_class->cc_name)
 #define ConfPingFreq(x) ((x)->conn_class->ping_freq)
 #define ConfConFreq(x)  ((x)->conn_class->conn_freq)
 #define ConfMaxLinks(x) ((x)->conn_class->max_links)
@@ -71,15 +71,15 @@ extern const struct ConnectionClass* get_class_list(void);
 extern void class_mark_delete(void);
 extern void class_delete_marked(void);
 
-extern struct ConnectionClass *find_class(unsigned int cclass);
+extern struct ConnectionClass *find_class(const char *name);
 extern struct ConnectionClass *make_class(void);
 extern void free_class(struct ConnectionClass * tmp);
 extern unsigned int get_con_freq(struct ConnectionClass * clptr);
 extern unsigned int get_client_ping(struct Client *acptr);
-extern unsigned int get_conf_class(const struct ConfItem *aconf);
+extern char *get_conf_class(const struct ConfItem *aconf);
 extern int get_conf_ping(const struct ConfItem *aconf);
-extern unsigned int get_client_class(struct Client *acptr);
-extern void add_class(unsigned int conclass, unsigned int ping,
+extern char *get_client_class(struct Client *acptr);
+extern void add_class(char *name, unsigned int ping,
                       unsigned int confreq, unsigned int maxli, unsigned int sendq);
 extern void check_class(void);
 extern void report_classes(struct Client *sptr);

@@ -229,7 +229,7 @@ static void try_connections(struct Event* ev) {
   struct ConnectionClass* cltmp;
   struct ConfItem*  con_conf    = 0;
   struct Jupe*      ajupe;
-  unsigned int      con_class   = 0;
+  const char*       con_class   = NULL;
 
   assert(ET_EXPIRE == ev_type(ev));
   assert(0 != ev_timer(ev));
@@ -265,7 +265,7 @@ static void try_connections(struct Event* ev) {
     cptr = FindServer(aconf->name);
 
     if (!cptr && (Links(cltmp) < MaxLinks(cltmp)) &&
-        (!connecting || (ConClass(cltmp) > con_class))) {
+        (!connecting /*|| (ConClass(cltmp) > con_class)*/)) {
       /*
        * Check connect rules to see if we're allowed to try
        */
