@@ -691,7 +691,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
     *mbuf++ = 'n';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
-    ircd_snprintf(0, pbuf, sizeof(pbuf), "%d", chptr->mode.limit);
+    ircd_snprintf(0, pbuf, sizeof(pbuf), "%u", chptr->mode.limit);
   }
 
   if (*chptr->mode.key) {
@@ -1408,7 +1408,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
       /* if it's a limit, we also format the number */
-      ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%d", MB_UINT(mbuf, i));
+      ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%u", MB_UINT(mbuf, i));
 
       tmp = strlen(limitbuf);
 
@@ -1810,7 +1810,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
       if (MB_TYPE(mbuf, i) & MODE_KEY) /* keep strings */
 	key = MB_STRING(mbuf, i);
       else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
-	ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%d", MB_UINT(mbuf, i));
+	ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%u", MB_UINT(mbuf, i));
     }
   }
 
@@ -1920,7 +1920,7 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
       return;
     }
 
-    t_limit = atoi(state->parv[state->args_used++]); /* grab arg */
+    t_limit = strtoul(state->parv[state->args_used++], 0, 10); /* grab arg */
     state->parc--;
     state->max_args--;
 
