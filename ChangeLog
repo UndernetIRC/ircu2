@@ -1,3 +1,7 @@
+2003-02-24  Vincent Sweeney <zarjazz@quakenet.org>
+        * include/support.h:
+	        Redefine the NETMASK macro to fix bits == 0 oddness.
+
 2003-04-09  Jochen (denspike) <denspike@sf.net>
 	* doc/example.conf:  This adds 2 F:lines to the default conf, to log
 	memoryproblems, which could cause the server to die,
