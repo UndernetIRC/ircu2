@@ -151,96 +151,68 @@ int mmatch(const char *old_mask, const char *new_mask)
  *
  * return  0, if match
  *         1, if no match
+ *
+ *  Originally by Douglas A Lewis (dalewis@acsu.buffalo.edu)
+ *  Rewritten by Timothy Vogelsang (netski), net@astrolink.org
  */
 
-/*
- * match
- *
- * Rewritten by Andrea Cocito (Nemesi), November 1998.
- *
- */
-
-/****************** Nemesi's match() ***************/
-
-int match(const char *mask, const char *string)
+int match(const char *mask, const char *name)
 {
-  const char *m = mask, *s = string;
-  char ch;
-  const char *bm, *bs;          /* Will be reg anyway on a decent CPU/compiler */
+  const char *m = mask, *n = name;
+  const char *m_tmp = mask, *n_tmp = name;
+  int wild = 0;
 
-  /* Process the "head" of the mask, if any */
-  while ((ch = *m++) && (ch != '*'))
-    switch (ch)
-    {
-      case '\\':
-        if (*m == '?' || *m == '*')
-          ch = *m++;
-      default:
-        if (ToLower(*s) != ToLower(ch))
-          return 1;
-      case '?':
-        if (!*s++)
-          return 1;
-    };
-  if (!ch)
-    return *s;
-
-  /* We got a star: quickly find if/where we match the next char */
-got_star:
-  bm = m;                       /* Next try rollback here */
-  while ((ch = *m++))
-    switch (ch)
-    {
-      case '?':
-        if (!*s++)
-          return 1;
-      case '*':
-        bm = m;
-        continue;               /* while */
-      case '\\':
-        if (*m == '?' || *m == '*')
-          ch = *m++;
-      default:
-        goto break_while;       /* C is structured ? */
-    };
-break_while:
-  if (!ch)
-    return 0;                   /* mask ends with '*', we got it */
-  ch = ToLower(ch);
-  while (ToLower(*s++) != ch)
-    if (!*s)
-      return 1;
-  bs = s;                       /* Next try start from here */
-
-  /* Check the rest of the "chunk" */
-  while ((ch = *m++))
+  for (;;)
   {
-    switch (ch)
-    {
-      case '*':
-        goto got_star;
-      case '\\':
-        if (*m == '?' || *m == '*')
-          ch = *m++;
-      default:
-        if (ToLower(*s) != ToLower(ch))
-        {
-          m = bm;
-          s = bs;
-          goto got_star;
-        };
-      case '?':
-        if (!*s++)
-          return 1;
-    };
-  };
-  if (*s)
-  {
-    m = bm;
-    s = bs;
-    goto got_star;
-  };
-  return 0;
+    if (*m == '*') {
+      while (*m == '*')  /* clean up any additional wildcards */
+        m++;
+
+      m_tmp = m;
+      n_tmp = n;
+      wild = 1;
+    }
+    if (*m == '\\')  /* next wildcard is disregarded */
+      *m++;
+
+    if (!*m) {
+      if (!*n)
+        return 0;  /* match */
+
+      for (m--; (m > mask) && (*m == '?'); m--);
+        ;
+
+      if (*m == '*' && (m > mask))
+        return 0;  /* match */
+
+      if (!wild)
+        return 1;
+
+      m = m_tmp;
+      n = ++n_tmp;
+    }
+    else if (!*n) {
+      while (*m == '*')  /* clean up any additional wildcards */
+        m++;
+
+      return (*m != 0);
+    }
+    if (tolower(*m) != tolower(*n) && *m != '?') {
+      if (!wild)
+        return 1;  /* failure! */
+
+      m = m_tmp;
+      n = ++n_tmp;
+    }
+    else {
+      if (*m)
+        m++;
+      if (*n)
+        n++;
+    }
+  }
+
+  return 1;  /* no match! */
 }
 
 /*

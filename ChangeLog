@@ -1,3 +1,8 @@
+2003-08-12 Timothy Vogelsang <net@astrolink.org>
+
+        * ircd/match.c: (match) rewrote function based on existing
+          code from the hybrid ircd -- death to goto
+
 2003-07-07  Bas Steendijk <steendijk@xs4all.nl>
 
         * ircd/s_user.c: invalidate ban cache for user on host hiding/account
