@@ -1,5 +1,11 @@
 2005-02-20  Perry Lorier <isomer@undernet.org>
 
+	* tools/convert-conf.py: A multitude of changes to deal with parsing
+	mistakes, generate a newer config file, better error handling,
+	being smarter about what config elements you generate etc.
+	
+2005-02-20  Perry Lorier <isomer@undernet.org>
+
 	* ircd/engine_epoll.c: Change a size_t to socklen_t to match
 	getsockopt prototype, so it compiles without warning on amd64
 
