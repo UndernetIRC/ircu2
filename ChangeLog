@@ -1,5 +1,11 @@
 2004-07-01  Michael Poole <mdpoole@troilus.org>
 
+	* include/fileio.h: Elaborate on "works for any file descriptor."
+
+	* include/iauth.h: Remove unused file.
+
+2004-07-01  Michael Poole <mdpoole@troilus.org>
+
 	* include/map.h, ircd/map.c: Remove unused code.
 
 	* ircd/m_links.c, ircd/m_map.c, ircd/s_misc.c: Remove includes of

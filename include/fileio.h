@@ -17,6 +17,8 @@ struct stat;
  * FileBuf is a mirror of the ANSI FILE struct, but it works for any
  * file descriptor. FileBufs are allocated when a file is opened with
  * fbopen, and they are freed when the file is closed using fbclose.
+ * (Some OSes limit the range of file descriptors in a FILE*, for
+ * example to fit in "char".)
  */
 typedef struct FileBuf FBFILE;
 
