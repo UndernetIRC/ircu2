@@ -1,4 +1,8 @@
 2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/parse.c: fixed mystifying ping bug thats been plaguing us
+	for so long.  Remember: m_ping MUST be in the parse array. :)
+
+2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/ircd.c: test in check_pings was wrong.  I move that we
 	disallow cvs commit after 10pm localtime....
 
@@ -277,7 +281,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.55 2000-04-01 08:02:33 isomer Exp $
+# $Id: ChangeLog,v 1.56 2000-04-01 08:54:11 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -304,7 +304,7 @@ static time_t check_pings(void)
    /* Ok, the thing that will happen most frequently, is that someone will
     * have sent something recently.  Cover this first for speed.
     */
-   if (CurrentTime-cptr->lasttime <= max_ping) {
+   if (CurrentTime-cptr->lasttime < max_ping) {
    	expire=cptr->lasttime + max_ping;
    	if (next_check<expire) 
    	  next_check=expire;
@@ -312,7 +312,7 @@ static time_t check_pings(void)
    }
 
    /* Quit the client after max_ping*2 - they should have answered by now */
-   if (CurrentTime-cptr->lasttime > (max_ping*2) ) {
+   if (CurrentTime-cptr->lasttime >= (max_ping*2) ) {
       
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
@@ -355,7 +355,7 @@ static time_t check_pings(void)
       cptr->lasttime = CurrentTime - max_ping;
       
       if (IsUser(cptr))
-        sendto_one(cptr, "PING :%s", me.name);
+        sendto_one(cptr, MSG_PING " :%s", me.name);
       else
         sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name);
     } /* of if not ping sent... */
