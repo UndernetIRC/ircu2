@@ -427,7 +427,7 @@ void base64toip(const char* input, struct irc_in_addr* addr)
     do {
       if (*input == '_') {
         unsigned int left;
-        for (left = (strlen(input) - 1) / 3; left; left--)
+        for (left = (25 - strlen(input)) / 3; left; left--)
           addr->in6_16[pos++] = 0;
         input++;
       } else {

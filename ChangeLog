@@ -1,5 +1,16 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (send_channel_modes): Only send oplevels for
+	channels that actually use them -- for -A channels, send chanops
+	as :o even if OPLEVELS is enabled.
+
+	* ircd/ircd.c: Fix -k (chkconf mode) and show in usage help.
+
+	* ircd/numnicks.c (base64toip): Fill in the right number of 0
+	words when we see _ in a base64-encoded IPv6 address.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd.c: Add -k as a chkconf-like option to exit after
 	reading the configuration file.
 

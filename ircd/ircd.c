@@ -86,7 +86,7 @@ extern void mem_dbg_initialise(void);
 enum {
   BOOT_DEBUG = 1,
   BOOT_TTY   = 2,
-  BOOT_CHKCONF = 3
+  BOOT_CHKCONF = 4
 };
 
 
@@ -511,8 +511,8 @@ static void parse_command_line(int argc, char** argv) {
       break;
       
     default:
-      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv]\n");
-      printf("\n -n -t\t Don't detach\n -v\t display version\n\n");
+      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntvk]\n");
+      printf("\n -n -t\t Don't detach\n -v\t display version\n -k\t exit after checking config\n\n");
       printf("Server not started.\n");
       exit(1);
     }
@@ -523,11 +523,6 @@ static void parse_command_line(int argc, char** argv) {
  * daemon_init
  *--------------------------------------------------------------------------*/
 static void daemon_init(int no_fork) {
-  if (!init_connection_limits())
-    exit(9);
-
-  close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY)));
-
   if (no_fork)
     return;
 
@@ -642,6 +637,11 @@ int main(int argc, char **argv) {
   if (!check_file_access(SPATH, 'S', X_OK) ||
       !check_file_access(configfile, 'C', R_OK))
     return 4;
+
+  if (!init_connection_limits())
+    return 9;
+
+  close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY)));
 
   event_init(MAXCONNECTIONS);
 
