@@ -49,7 +49,7 @@
 #define FEATURES2 "CHANTYPES=%s" \
                 " PREFIX=%s" \
                 " CHANMODES=%s" \
-                " CHARSET=%s" \
+                " CASEMAPPING=%s" \
                 " NETWORK=%s"
 
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
