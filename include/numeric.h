@@ -247,7 +247,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*	RPL_COMMANDSYNTAX    334	   Dalnet */
 /*	RPL_LISTSYNTAX	     334	   unreal */
 /*      RPL_CHANPASSOK       338           IRCnet extension (?)*/
-/*	RPL_WHOISACTUALLY    338	   dalnet */
+#define	RPL_WHOISACTUALLY    338	/* Undernet extension, dalnet */
 /*      RPL_BADCHANPASS      339           IRCnet extension (?)*/
 #define RPL_USERIP           340        /* Undernet extension */
 #define RPL_INVITING         341

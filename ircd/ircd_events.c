@@ -129,6 +129,8 @@ event_execute(struct Event* event)
 
   if (event->ev_type == ET_DESTROY) /* turn off active flag *before* destroy */
     event->ev_gen.gen_header->gh_flags &= ~GEN_ACTIVE;
+  if (event->ev_type == ET_ERROR) /* turn on error flag before callback */
+    event->ev_gen.gen_header->gh_flags |= GEN_ERROR;
 
   (*event->ev_gen.gen_header->gh_call)(event); /* execute the event */
 
@@ -593,7 +595,8 @@ socket_state(struct Socket* sock, enum SocketState state)
   /* connected datagram socket now unconnected */
   assert(sock->s_state != SS_CONNECTDG || state == SS_DATAGRAM);
 
-  if (sock->s_header.gh_flags & GEN_DESTROY) /* socket's been destroyed */
+  /* Don't continue if an error occurred or the socket got destroyed */
+  if (sock->s_header.gh_flags & (GEN_DESTROY | GEN_ERROR))
     return;
 
   /* tell engine we're changing socket state */
@@ -612,7 +615,8 @@ socket_events(struct Socket* sock, unsigned int events)
   assert(0 != evInfo.engine);
   assert(0 != evInfo.engine->eng_events);
 
-  if (sock->s_header.gh_flags & GEN_DESTROY) /* socket's been destroyed */
+  /* Don't continue if an error occurred or the socket got destroyed */
+  if (sock->s_header.gh_flags & (GEN_DESTROY | GEN_ERROR))
     return;
 
   switch (events & SOCK_ACTION_MASK) {
@@ -734,6 +738,7 @@ gen_flags(unsigned int flags)
     NM(GEN_MARKED),
     NM(GEN_ACTIVE),
     NM(GEN_READD),
+    NM(GEN_ERROR),
     NE
   };
 

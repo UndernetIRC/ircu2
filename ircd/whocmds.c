@@ -197,6 +197,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       if (SendDebug(acptr))
         *(p1++) = 'g';
     }
+    if (HasHiddenHost(acptr))
+      *(p1++) = 'x';
   }
 
   if (!fields || (fields & WHO_FIELD_DIS))

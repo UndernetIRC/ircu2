@@ -86,6 +86,7 @@
 #include "ircd_string.h"
 #include "msg.h"
 #include "numnicks.h"
+#include "s_user.h"
 #include "send.h"
 
 #include <assert.h>
@@ -119,8 +120,8 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 
   assert(0 == cli_user(acptr)->account[0]);
 
-  SetAccount(acptr);
   ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
+  hide_hostmask(acptr, FLAGS_ACCOUNT);
 
   sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
 			cli_user(acptr)->account);

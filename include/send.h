@@ -48,15 +48,19 @@ extern void sendcmdto_serv_butone(struct Client *from, const char *cmd,
 				  const char *pattern, ...);
 
 /* Send command to all channels user is on */
-extern void sendcmdto_common_channels(struct Client *from, const char *cmd,
-				      const char *tok, const char *pattern,
-				      ...);
-
+extern void sendcmdto_common_channels_butone(struct Client *from,
+					     const char *cmd,
+					     const char *tok,
+					     struct Client *one,
+					     const char *pattern, ...);
 
 /* Send command to all channel users on this server */
-extern void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
-				      const char *tok, struct Channel *to,
-				      const char *pattern, ...);
+extern void sendcmdto_channel_butserv_butone(struct Client *from,
+					     const char *cmd,
+					     const char *tok,
+					     struct Channel *to,
+					     struct Client *one,
+					     const char *pattern, ...);
 
 /* Send command to all interested channel users */
 extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,

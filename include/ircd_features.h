@@ -41,6 +41,8 @@ enum Feature {
   FEAT_RANDOM_SEED,
   FEAT_DEFAULT_LIST_PARAM,
   FEAT_NICKNAMEHISTORYLENGTH,
+  FEAT_HOST_HIDING,
+  FEAT_HIDDEN_HOST,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,

@@ -83,6 +83,7 @@ struct GenHeader {
 #define GEN_MARKED	0x0002	/* generator is marked for destruction */
 #define GEN_ACTIVE	0x0004	/* generator is active */
 #define GEN_READD	0x0008	/* generator (timer) must be re-added */
+#define GEN_ERROR	0x0010	/* an error occurred on the generator */
 
 struct Socket {
   struct GenHeader s_header;	/* generator information */
@@ -210,6 +211,8 @@ do {									      \
     event_generate(ET_DESTROY, _gen, 0);				      \
   }									      \
 } while (0)
+#define gen_clear_error(gen)						      \
+	(((struct GenHeader*) (gen))->gh_flags &= ~GEN_ERROR)
 
 void gen_dequeue(void* arg);
 

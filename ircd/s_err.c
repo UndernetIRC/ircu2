@@ -36,7 +36,7 @@ static Numeric replyTable[] = {
 /* 003 */
   { RPL_CREATED, ":This server was created %s", "003" },
 /* 004 */
-  { RPL_MYINFO, "%s %s dioswkg biklmnopstvr bklov", "004" },
+  { RPL_MYINFO, "%s %s dioswkgx biklmnopstvr bklov", "004" },
 /* 005 */
   { RPL_ISUPPORT, "%s :are supported by this server", "005" },
 /* 006 */
@@ -708,7 +708,7 @@ static Numeric replyTable[] = {
 /* 337 */
   { 0 },
 /* 338 */
-  { 0 },
+  { RPL_WHOISACTUALLY, ":%s is actually %s@%s [%s]", "338" },
 /* 339 */
   { 0 },
 /* 340 */

@@ -1,3 +1,97 @@
+2002-02-03  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/engine_kqueue.c (set_or_clear): don't generate an ET_ERROR
+	event if the errno is EBADF, since the caller probably already
+	knows about it and just hasn't gotten around to processing it yet
+
+	* ircd/ircd_events.c: set the GEN_ERROR flag if an ET_ERROR event
+	is generated; don't process socket_events() or socket_state() if
+	an error occurred; add GEN_ERROR to list of flags in gen_flags()
+
+	* include/ircd_events.h: define new GEN_ERROR flag; add a macro to
+	clear it
+
+2002-02-01  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: change make_nick_user_{ip,host} to not use a
+	static buffer--instead, a buffer of the right size (NUH_BUFSIZE or
+	NUI_BUFSIZE--I confess they're not well-named) is allocated by the
+	caller
+
+2002-02-02  Alex Badea  <vampire@p16.pub.ro>
+
+	* include/client.h: added user flag FLAGS_HIDDENHOST
+
+	* include/ircd_features.h: added FEAT_HOST_HIDING and
+	FEAT_HIDDEN_HOST
+
+	* include/numeric.h: defined numeric 338 (RPL_WHOISACTUALLY)
+	to report real hostnames and IPs to opers
+
+	* include/s_user.h: exported hide_hostmask()
+
+	* include/send.h: changed sendcmdto_channel_butserv to
+	sendcmdto_channel_butserv_butone; ditto for
+	sendcmdto_common_channels
+
+	* include/struct.h: added realhost to struct User
+
+	* include/whowas.h: added realhost to struct Whowas
+
+	* ircd/channel.c: match bans against both real and hidden
+	hostmasks; moved some calls to use sendcmdto_*_butone
+
+	* ircd/gline.c: match glines agains real host
+
+	* ircd/ircd_features.c: added FEAT_HOST_HIDING and
+	FEAT_HIDDEN_HOST
+
+	* ircd/m_account.c: call hide_hostmask() for possibly
+	hiding the user's host
+
+	* ircd/m_burst.c: moved some calls to use sendcmdto_*_butone
+
+	* ircd/m_topic.c: moved some calls to use sendcmdto_*_butone
+
+	* ircd/m_userip.c: report IP 127.0.0.1 if the user has a hidden
+	host
+
+	* ircd/m_who.c: match real hosts, if the query comes from an oper
+
+	* ircd/m_whois.c: report real hostname and IP to opers
+
+	* ircd/m_whowas.c: report real hostname to opers
+
+	* ircd/s_err.c: added user mode 'x' to the list of supported user
+	modes in RPL_MYINFO (004); added RPL_WHOISACTUALLY for reporting
+	real hostnames to opers
+
+	* ircd/s_misc.c: moved some calls to use sendcmdto_*_butone
+
+	* ircd/s_serv.c: send real hostname to servers
+
+	* ircd/s_user.c: send real hostname to servers; added processing
+	of usermode 'x'; added hide_hostmask() which actually does the work
+	of hiding a user's host; moved some calls to use sendcmdto_*_butone
+
+	* ircd/send.c: changed sendcmdto_channel_butserv to
+	sendcmdto_channel_butserv_butone; ditto for
+	sendcmdto_common_channels
+
+	* ircd/whocmds.c: extra letter 'x' in WHO reply if the user has
+	it's host hidden
+
+	* ircd/whowas.c: if needed, store a user's real host so we can
+	report it to opers later
+
+	* doc/readme.features: documented HOST_HIDING and HIDDEN_HOST
+	features
+
+	* doc/example.conf: default values for HOST_HIDING and
+	HIDDEN_HOST features
+
 2002-02-01  Tim Vogelsang  <net@astrolink.org>
 
 	* ircd/send.c (sendwallto_group_butone): don't sent wallops to

@@ -309,7 +309,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  }
 
 	  add_user_to_channel(chptr, acptr, default_mode);
-	  sendcmdto_channel_butserv(acptr, CMD_JOIN, chptr, "%H", chptr);
+	  sendcmdto_channel_butserv_butone(acptr, CMD_JOIN, chptr, NULL, "%H", chptr);
 	}
       }
       param++;
