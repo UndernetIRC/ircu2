@@ -1,5 +1,8 @@
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_gline.c (ms_gline): make G-lines of the form "GLINE *
+	-<mask>" be accepted
+
 	* ircd/channel.c (send_channel_modes): deal with one of the last
 	vestiges of sendbuf
 
@@ -1119,7 +1122,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.132 2000-05-04 17:28:29 kev Exp $
+# $Id: ChangeLog,v 1.133 2000-05-04 17:43:47 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

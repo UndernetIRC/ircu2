@@ -133,7 +133,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   time_t expire_off, lastmod = 0;
   char *mask = parv[2], *target = parv[1], *reason;
 
-  if (parc == 5) {
+  if ((parc == 3 && *mask == '-') || parc == 5) {
     if (!find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
 
@@ -151,7 +151,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (!IsMe(acptr)) { /* manually propagate */
       if (!lastmod)
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s %s :%s", acptr, mask,
+	sendcmdto_one(sptr, CMD_GLINE, acptr,
+		      (parc == 3) ? "%C %s" : "%C %s %s :%s", acptr, mask,
 		      parv[3], reason);
       else
 	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s %s %s :%s", acptr, mask,
@@ -171,7 +172,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   } else
     flags |= GLINE_ACTIVE;
 
-  expire_off = atoi(parv[3]);
+  expire_off = parc < 5 ? 0 : atoi(parv[3]);
 
   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
 
@@ -187,7 +188,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return 0;
     else
       return gline_resend(cptr, agline); /* other server desynched WRT gline */
-  }
+  } else if (parc < 5)
+    return need_more_params(sptr, "GLINE");
 
   return gline_add(cptr, sptr, mask, reason, expire_off, lastmod, flags);
 }
