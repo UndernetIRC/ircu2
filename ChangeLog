@@ -1,5 +1,10 @@
 2004-07-21  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h, ircd/ircd_auth.c, ircd/ircd_crypt_smd5.c,
+	ircd/ircd_reslib.c: Fix warnings from gcc -pedantic.
+
+2004-07-21  Michael Poole <mdpoole@troilus.org>
+
 	New DNS resolver code, courtesy of Dianora and the rest of the
 	Hybrid team.  (Bugs are of course my fault.)
 

@@ -140,14 +140,20 @@ struct IAuthCmd {
 
 struct IAuth *iauth_active;
 
-static const struct IAuthCmd iauth_cmdtab[];
-
 static void iauth_write(struct IAuth *iauth);
 static void iauth_reconnect(struct IAuth *iauth);
 static void iauth_disconnect(struct IAuth *iauth);
 static void iauth_sock_callback(struct Event *ev);
 static void iauth_send_request(struct IAuth *iauth, struct IAuthRequest *iar);
 static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar);
+static void iauth_cmd_doneauth(struct IAuth *iauth, int argc, char *argv[]);
+static void iauth_cmd_badauth(struct IAuth *iauth, int argc, char *argv[]);
+
+static const struct IAuthCmd iauth_cmdtab[] = {
+  { "DoneAuth", iauth_cmd_doneauth },
+  { "BadAuth", iauth_cmd_badauth },
+  { NULL, NULL }
+};
 
 struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_t reconnect, time_t timeout)
 {
@@ -688,9 +694,3 @@ static void iauth_cmd_badauth(struct IAuth *iauth, int argc, char *argv[])
   iauth_dispose_request(iauth, iar);
   exit_client(client, client, &me, reason);
 }
-
-static const struct IAuthCmd iauth_cmdtab[] = {
-  { "DoneAuth", iauth_cmd_doneauth },
-  { "BadAuth", iauth_cmd_badauth },
-  { NULL, NULL }
-};

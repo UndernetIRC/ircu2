@@ -116,9 +116,9 @@ unsigned long l;
   else
    MD5Name(MD5Update)(&ctx, (unsigned const char *)key+j, 1);
 
- /* Now make the output string */
-// strcpy(passwd, magic);
-// strncat(passwd, sp, sl);
+ /* Now make the output string
+ strcpy(passwd, magic);
+ strncat(passwd, sp, sl); */
  strncpy(passwd, sp, sl);
  strcat(passwd, "$");
 

@@ -75,7 +75,7 @@ typedef unsigned long flagpage_t;
   struct name \
   { \
     unsigned long bits[((max + FLAGSET_NBITS - 1) / FLAGSET_NBITS)]; \
-  };
+  }
 
 #define FLAGSET_ISSET(set,flag) ((set).bits[FLAGSET_INDEX(flag)] & FLAGSET_MASK(flag))
 #define FLAGSET_SET(set, flag) (set).bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag)
