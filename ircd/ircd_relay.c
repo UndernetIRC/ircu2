@@ -181,9 +181,17 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   if ((host = strchr(name, '%')))
     *host++ = '\0';
 
+  /* As reported by Vampire-, it's possible to brute force finding users
+   * by sending a message to each server and see which one succeeded.
+   * This means we have to remove error reporting.  Sigh.   Better than
+   * removing the ability to send directed messages to client servers
+   * Thanks for the suggestion Vampire-.  -- Isomer 2001-08-28
+   */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
       (!EmptyString(host) && 0 != match(host, acptr->user->host))) {
+#if 0
     send_error_to_client(sptr, ERR_NOSUCHNICK, name);
+#endif
     return;
   }
 

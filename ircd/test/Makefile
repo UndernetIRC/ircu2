@@ -1,5 +1,5 @@
 
-CPPFLAGS = -I../../include -I../../config
+CPPFLAGS = -I../../include -I../..
 CFLAGS   = -g -Wall
 
 TESTPROGS = \

@@ -280,7 +280,12 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             case 'k':
             {
               int tmp;
-              char *param = parv[++n];
+              char *param;
+	      if (n>=parc) {
+		/* Don't core, desync! */
+		break;
+	      }
+	      param = parv[++n];
               prev_mode &= ~MODE_KEY;
               if (!(tmp = netride || (*current_mode->key &&
                   (!strcmp(current_mode->key, param) ||
@@ -305,7 +310,12 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             case 'l':
             {
               int tmp;
-              unsigned int param = atoi(parv[++n]);
+              unsigned int param;
+	      if (n>=parc) {
+		/* Don't core, just desync the channel instead <bletch> */
+		break;
+	      }
+	      param = atoi(parv[++n]);
               prev_mode &= ~MODE_LIMIT;
               if (!(tmp = netride || (current_mode->limit &&
                   (current_mode->limit == param ||

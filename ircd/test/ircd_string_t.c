@@ -53,6 +53,16 @@ int main(void)
   printf("\n");
   free(names);
 
+  names = strdup("somenick,somenick,somenick");
+  printf("input: %s\n", names);
+  count = unique_name_vector(names, ',', vector, 20);
+  printf("count: %d\n", count);
+  printf("output:");
+  for (i = 0; i < count; ++i)
+    printf(" %s", vector[i]);
+  printf("\n");
+  free(names);
+
   return 0;
 }
   

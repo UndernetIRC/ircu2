@@ -317,6 +317,12 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   clean_channelname(para);
   chptr = FindChannel(para); 
  
+  /* If we don't have a channel pointer, abort early */
+  if (!chptr) {
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], para);
+    return 1;
+  }
+
   member = find_member_link(chptr, sptr); 
   if (member)
   { 
