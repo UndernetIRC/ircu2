@@ -48,6 +48,7 @@
 #include "struct.h"
 #include "sys.h"               /* TRUE bleah */
 
+#include <arpa/inet.h>         /* inet_netof */
 #include <netdb.h>             /* struct hostent */
 #include <string.h>
 #include <stdlib.h>
@@ -96,6 +97,8 @@ typedef enum {
 struct AuthRequest* AuthPollList = 0; /* GLOBAL - auth queries pending io */
 static struct AuthRequest* AuthIncompleteList = 0;
 
+enum { AUTH_TIMEOUT = 60 };
+
 /*
  * make_auth_request - allocate a new auth request
  */
@@ -107,7 +110,7 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   memset(auth, 0, sizeof(struct AuthRequest));
   auth->fd      = -1;
   auth->client  = client;
-  auth->timeout = CurrentTime + CONNECTTIMEOUT;
+  auth->timeout = CurrentTime + AUTH_TIMEOUT;
   return auth;
 }
 
@@ -504,12 +507,12 @@ static char* GetValidIdent(char *buf)
 }
 #endif
 
+enum { LOOPBACK = 127 };
 /*
  * start_auth - starts auth (identd) and dns queries for a client
  */
 void start_auth(struct Client* client)
 {
-  struct DNSQuery     query;
   struct AuthRequest* auth = 0;
 
   assert(0 != client);
@@ -517,22 +520,29 @@ void start_auth(struct Client* client)
   auth = make_auth_request(client);
   assert(0 != auth);
 
-  query.vptr     = auth;
-  query.callback = auth_dns_callback;
-
-  if (IsUserPort(auth->client))
-    sendheader(client, REPORT_DO_DNS);
-
 #if !defined(NODNS)
-  client->dns_reply = gethost_byaddr((const char*) &client->ip, &query);
-  if (client->dns_reply) {
-    ++client->dns_reply->ref_count;
-    ircd_strncpy(client->sockhost, client->dns_reply->hp->h_name, HOSTLEN);
-    if (IsUserPort(auth->client))
-      sendheader(client, REPORT_FIN_DNSC);
+  if (LOOPBACK == inet_netof(client->ip)) {
+    strcpy(client->sockhost, me.name);
   }
-  else
-    SetDNSPending(auth);
+  else {
+    struct DNSQuery     query;
+    query.vptr     = auth;
+    query.callback = auth_dns_callback;
+
+    if (IsUserPort(auth->client))
+      sendheader(client, REPORT_DO_DNS);
+
+    client->dns_reply = gethost_byaddr((const char*) &client->ip, &query);
+
+    if (client->dns_reply) {
+      ++client->dns_reply->ref_count;
+      ircd_strncpy(client->sockhost, client->dns_reply->hp->h_name, HOSTLEN);
+      if (IsUserPort(auth->client))
+	sendheader(client, REPORT_FIN_DNSC);
+    }
+    else
+      SetDNSPending(auth);
+  }
 #endif
 
   if (start_auth_query(auth))
