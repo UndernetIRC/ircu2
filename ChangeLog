@@ -1,3 +1,8 @@
+2002-02-01  Tim Vogelsang  <net@astrolink.org>
+
+	* ircd/send.c (sendwallto_group_butone): don't sent wallops to
+	ordinary users
+
 2002-01-28  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/jupe.c (jupe_activate): remove a bogus assertion
