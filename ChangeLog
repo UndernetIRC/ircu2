@@ -1,3 +1,18 @@
+2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* config.h.in, tools/Makefile.crypt: Remove wrong pathname from
+	comment in header.
+
+	* ircd/m_clearmode.c, ircd/m_opmode.c: Fix wrong pathname in
+	header comment.
+
+	* ircd/m_away.c, ircd/m_kill.c, ircd/m_notice.c, ircd/m_ping.c,
+	ircd/m_pong.c, ircd/m_privmsg.c, ircd/m_quit.c, ircd/m_topic.c,
+	ircd/m_version.c: Remove "template" moniker from comments.
+
+	* ircd/test/ircd_chattr.0.dat (IsChannelPrefix): Drop + from
+	channel prefix list.
+
 2004-09-11  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Add examples for FEAT_HIS_* features.

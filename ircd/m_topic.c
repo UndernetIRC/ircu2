@@ -193,7 +193,7 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * ms_topic - generic message handler
+ * ms_topic - server message handler
  *
  * parv[0]        = sender prefix
  * parv[1]        = channel

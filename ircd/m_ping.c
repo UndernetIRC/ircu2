@@ -230,7 +230,7 @@ int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 
 /*
- * ms_ping - server message handler template
+ * ms_ping - server message handler
  */
 int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
