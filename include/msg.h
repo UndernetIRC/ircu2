@@ -247,6 +247,12 @@ struct Client;
 #define MSG_JUPE                "JUPE"          /* JUPE */
 #define TOK_JUPE                "JU"
 
+#define MSG_OPMODE              "OPMODE"        /* OPMO */
+#define TOK_OPMODE              "OM"
+
+#define MSG_CLEARMODE           "CLEARMODE"     /* CLMO */
+#define TOK_CLEARMODE           "CM"
+
 
 /*
  * Constants

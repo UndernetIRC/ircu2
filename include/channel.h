@@ -253,6 +253,7 @@ struct ModeBuf {
 
 #define MODEBUF_DEST_CHANNEL	0x01	/* Mode is flushed to channel */
 #define MODEBUF_DEST_SERVER	0x02	/* Mode is flushed to server */
+#define MODEBUF_DEST_OPMODE	0x40	/* Send server mode as OPMODE */
 #define MODEBUF_DEST_HACK4	0x80	/* Send a HACK(4) notice and, on
 					   server sends, use a TS of 0 */
 

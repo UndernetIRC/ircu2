@@ -84,6 +84,7 @@ SRC = \
 	m_admin.c \
 	m_away.c \
 	m_burst.c \
+	m_clearmode.c \
 	m_close.c \
 	m_connect.c \
 	m_cprivmsg.c \
@@ -113,6 +114,7 @@ SRC = \
 	m_nick.c \
 	m_notice.c \
 	m_oper.c \
+	m_opmode.c \
 	m_part.c \
 	m_pass.c \
 	m_ping.c \
