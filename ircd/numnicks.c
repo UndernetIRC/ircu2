@@ -67,6 +67,11 @@
 #define NUMNICKBASE 64          /* (2 << NUMNICKLOG) */
 #define NUMNICKMASK 63          /* (NUMNICKBASE-1) */
 #define NN_MAX_SERVER 4096      /* (NUMNICKBASE * NUMNICKBASE) */
+#if defined(EXTENDED_NUMERICS)
+#define NN_MAX_CLIENT 262144    /* NUMNICKBASE ^ 3 */
+#else
+#define NN_MAX_CLIENT 4096      /* (NUMNICKBASE * NUMNICKBASE) */
+#endif
 
 /*
  * The internal counter for the 'XX' of local clients
@@ -169,19 +174,17 @@ struct Client* FindNServer(const char* numeric)
 struct Client* findNUser(const char* yxx)
 {
   struct Client* server = 0;
-  unsigned int index    = 0;
   if (5 == strlen(yxx)) {
     if (0 != (server = FindXNServer(yxx))) {
-      Debug((DEBUG_DEBUG, "findNUser: %s(%d) (%p)", yxx, 
-             base64toint(yxx + 2), server));
-      if ((index = base64toint(yxx + 2)) <= server->serv->nn_mask)
-        return server->serv->client_list[index];
+      Debug((DEBUG_DEBUG, "findNUser: %s(%d)", yxx, 
+             base64toint(yxx + 2) & server->serv->nn_mask));
+      return server->serv->client_list[base64toint(yxx + 2) & server->serv->nn_mask];
     }
   }
   else if (0 != (server = FindNServer(yxx))) {
-    index  = base64toint(yxx + 1) & server->serv->nn_mask;
-    Debug((DEBUG_DEBUG, "findNUser: %s(%d) (%p)", yxx, index, server));
-    return server->serv->client_list[index];
+    Debug((DEBUG_DEBUG, "findNUser: %s(%d)",
+           yxx, base64toint(yxx + 1) & server->serv->nn_mask));
+    return server->serv->client_list[base64toint(yxx + 1) & server->serv->nn_mask];
   }
   return 0;
 }
@@ -191,17 +194,9 @@ void RemoveYXXClient(struct Client* server, const char* yxx)
   assert(0 != server);
   assert(0 != yxx);
   if (*yxx) {
-    unsigned int index = 0;
-
-    if (strlen(yxx) < 3)
-      index = base64toint(yxx) & server->serv->nn_mask;
-    else
-      index = base64toint(yxx);
-
-    Debug((DEBUG_DEBUG, "RemoveYXXClient: %s(%d)", yxx, index));
-
-    if (index < (server->serv->nn_mask + 1))
-      server->serv->client_list[index] = NULL;
+    Debug((DEBUG_DEBUG, "RemoveYXXClient: %s(%d)", yxx,
+           base64toint(yxx) & server->serv->nn_mask));
+    server->serv->client_list[base64toint(yxx) & server->serv->nn_mask] = 0;
   }
 }
 
@@ -228,35 +223,28 @@ void SetServerYXX(struct Client* cptr, struct Client* server, const char* yxx)
    * determine that SetServerYXX has been called - and then calls
    * ClearServerYXX. However, freeing the allocation happens in free_client() */
   server->serv->client_list =
-      (struct Client**) MyCalloc(server->serv->nn_mask + 1, 
-                                   sizeof(struct Client*));
+      (struct Client**) MyCalloc(server->serv->nn_mask + 1, sizeof(struct Client*));
 }
 
 void SetYXXCapacity(struct Client* c, unsigned int capacity)
 {
-  unsigned int max_clients;
-#if defined(EXTENDED_NUMERICS)
-  max_clients = capacity - 1;
-  inttobase64(c->serv->nn_capacity, max_clients, 3); 
-#else
-  max_clients = 16;
+  unsigned int max_clients = 16;
   /* 
    * Calculate mask to be used for the maximum number of clients
    */
-  while (capacity >= max_clients)
-    max_clients = max_clients << 1;
+  while (max_clients < capacity)
+    max_clients <<= 1;
   /*
    * Sanity checks
    */
-  if (max_clients > NN_MAX_SERVER) {
+  if (max_clients > NN_MAX_CLIENT) {
     fprintf(stderr, "MAXCLIENTS (or MAXCONNECTIONS) is (at least) %d "
             "too large ! Please decrease this value.\n",
-             max_clients - NN_MAX_SERVER);
+             max_clients - NN_MAX_CLIENT);
     exit(-1);
   }
   --max_clients;
   inttobase64(c->serv->nn_capacity, max_clients, 2); 
-#endif
   c->serv->nn_mask = max_clients;       /* Our Numeric Nick mask */
   c->serv->client_list = (struct Client**) MyCalloc(max_clients + 1, 
                                                      sizeof(struct Client*));
@@ -283,7 +271,7 @@ void ClearServerYXX(const struct Client *server)
 {
   unsigned int index = base64toint(server->yxx);
   if (server_list[index] == server)     /* Sanity check */
-    server_list[index] = NULL;
+    server_list[index] = 0;
 }
 
 /*
@@ -292,30 +280,23 @@ void ClearServerYXX(const struct Client *server)
  * Register numeric of new, remote, client.
  * Add it to the appropriate client_list.
  */
-int SetRemoteNumNick(struct Client* acptr, const char *yxx)
+void SetRemoteNumNick(struct Client* acptr, const char *yxx)
 {
   struct Client** acptrp;
   struct Client*  server = acptr->user->server;
-  unsigned int index = 0;
  
   if (5 == strlen(yxx)) {
     strcpy(acptr->yxx, yxx + 2);
-    index = base64toint(acptr->yxx);
   }
   else {
     acptr->yxx[0] = *++yxx;
     acptr->yxx[1] = *++yxx;
     acptr->yxx[2] = 0;
-    index = base64toint(acptr->yxx) & server->serv->nn_mask;
   }
+  Debug((DEBUG_DEBUG, "SetRemoteNumNick: %s(%d)", acptr->yxx, 
+         base64toint(acptr->yxx) & server->serv->nn_mask));
 
-  Debug((DEBUG_DEBUG, "SetRemoteNumNick: %s(%d)", acptr->yxx, index));
-  if (index > server->serv->nn_mask)
-    return 0;
-
-  assert(index <= server->serv->nn_mask);
-
-  acptrp = &server->serv->client_list[index];
+  acptrp = &server->serv->client_list[base64toint(acptr->yxx) & server->serv->nn_mask];
   if (*acptrp) {
     /*
      * this exits the old client in the array, not the client
@@ -324,7 +305,6 @@ int SetRemoteNumNick(struct Client* acptr, const char *yxx)
     exit_client(acptr->from, *acptrp, server, "Numeric nick collision (Ghost)");
   }
   *acptrp = acptr;
-  return 1;
 }
 
 
@@ -332,31 +312,35 @@ int SetRemoteNumNick(struct Client* acptr, const char *yxx)
  * SetLocalNumNick()
  *
  * Register numeric of new, local, client. Add it to our client_list.
+ * Muxtex needed if threaded
  */
-void SetLocalNumNick(struct Client *cptr)
+int SetLocalNumNick(struct Client *cptr)
 {
   static unsigned int last_nn     = 0;
   struct Client**     client_list = me.serv->client_list;
-  unsigned int        capacity    = me.serv->nn_mask + 1;
+  unsigned int        mask        = me.serv->nn_mask;
   unsigned int        count       = 0;
 
   assert(cptr->user->server == &me);
 
-  while (client_list[last_nn]) {
-    if (++count == capacity) {
-      assert(count < capacity);
-      return;
+  while (client_list[last_nn & mask]) {
+    if (++count == NN_MAX_CLIENT) {
+      assert(count < NN_MAX_CLIENT);
+      return 0;
     }
-    if (++last_nn == capacity)
+    if (++last_nn == NN_MAX_CLIENT)
       last_nn = 0;
   }
-  client_list[last_nn] = cptr;  /* Reserve the numeric ! */
+  client_list[last_nn & mask] = cptr;  /* Reserve the numeric ! */
 
 #if defined(EXTENDED_NUMERICS)
   inttobase64(cptr->yxx, last_nn, 3);
 #else
   inttobase64(cptr->yxx, last_nn, 2);
 #endif
+  if (++last_nn == NN_MAX_CLIENT)
+    last_nn = 0;
+  return 1;
 }
 
 /* 
