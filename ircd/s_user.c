@@ -1002,13 +1002,13 @@ int whisper(struct Client* source, const char* nick, const char* channel,
 /*
  * added Sat Jul 25 07:30:42 EST 1992
  */
-void send_umode_out(struct Client *cptr, struct Client *sptr, int old)
+void send_umode_out(struct Client *cptr, struct Client *sptr, int old,
+		    int prop)
 {
   int i;
   struct Client *acptr;
 
-  send_umode(NULL, sptr, old,
-	     SEND_UMODES & ~(HasPriv(sptr, PRIV_PROPAGATE) ? 0 : FLAGS_OPER));
+  send_umode(NULL, sptr, old, SEND_UMODES & ~(prop ? 0 : FLAGS_OPER));
 
   for (i = HighestFd; i >= 0; i--) {
     if ((acptr = LocalClientArray[i]) && IsServer(acptr) &&
@@ -1072,6 +1072,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   unsigned int tmpmask = 0;
   int snomask_given = 0;
   char buf[BUFSIZE];
+  int prop = 0;
 
   what = MODE_ADD;
 
@@ -1240,19 +1241,21 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * Compare new flags with old flags and send string which
    * will cause servers to update correctly.
    */
-  if ((setflags & FLAGS_OPER) && !IsOper(sptr)) {
-    --UserStats.opers;
-    client_set_privs(sptr);
-  }
-  if (!(setflags & FLAGS_OPER) && IsOper(sptr)) {
+  if (!(setflags & FLAGS_OPER) && IsOper(sptr)) { /* user now oper */
     ++UserStats.opers;
-    client_set_privs(sptr);
+    client_set_privs(sptr); /* may set propagate privilege */
+  }
+  if (HasPriv(sptr, PRIV_PROPAGATE)) /* remember propagate privilege setting */
+    prop = 1;
+  if ((setflags & FLAGS_OPER) && !IsOper(sptr)) { /* user no longer oper */
+    --UserStats.opers;
+    client_set_privs(sptr); /* will clear propagate privilege */
   }
   if ((setflags & FLAGS_INVISIBLE) && !IsInvisible(sptr))
     --UserStats.inv_clients;
   if (!(setflags & FLAGS_INVISIBLE) && IsInvisible(sptr))
     ++UserStats.inv_clients;
-  send_umode_out(cptr, sptr, setflags);
+  send_umode_out(cptr, sptr, setflags, prop);
 
   return 0;
 }

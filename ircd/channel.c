@@ -2175,16 +2175,18 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     } else if (state->dir == MODE_ADD) {
       /* if the ban already exists, don't worry about it */
       if (!ircd_strcmp(ban->value.ban.banstr, t_str)) {
+	newban->flags &= ~MODE_ADD; /* don't add ban at all */
+	MyFree(newban->value.ban.banstr); /* stopper a leak */
+	state->numbans--; /* deallocate last ban */
 	if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	  break;
-	continue;
       } else if (!mmatch(ban->value.ban.banstr, t_str)) {
 	if (!(ban->flags & MODE_DEL))
 	  newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
       } else if (!mmatch(t_str, ban->value.ban.banstr))
 	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
 
-      if (!ban->next) {
+      if (!ban->next && (newban->flags & MODE_ADD)) {
 	ban->next = newban; /* add our ban with its flags */
 	break; /* get out of loop */
       }
