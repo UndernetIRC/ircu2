@@ -392,3 +392,42 @@ motd_report(struct Client *to)
       send_reply(to, RPL_STATSTLINE, 'T', ptr->id.hostmask, ptr->path);
   }
 }
+
+void
+motd_memory_count(struct Client *cptr)
+{
+  struct Motd *ptr;
+  struct MotdCache *cache;
+  unsigned int mt = 0,   /* motd count */
+               mtm = 0,  /* memory consumed by motd */
+               mtc = 0,  /* motd cache count */
+               mtcm = 0, /* memory consumed by motd cache */
+               mtf = 0;  /* motd free list count */
+  if (MotdList.local) {
+    mt++;
+    mtm += sizeof(struct Motd);
+    mtm += MotdList.local->path ? (strlen(MotdList.local->path) + 1) : 0;
+  }
+  if (MotdList.remote) {
+    mt++;
+    mtm += sizeof(struct Motd);
+    mtm += MotdList.remote->path ? (strlen(MotdList.remote->path) + 1) : 0;
+  }
+  for (ptr = MotdList.other; ptr; ptr = ptr->next) {
+    mt++;
+    mtm += sizeof(struct Motd);
+    mtm += ptr->path ? (strlen(ptr->path) + 1) : 0;
+  }
+  for (cache = MotdList.cachelist; cache; cache = cache->next) {
+    mtc++;
+    mtcm += sizeof(struct MotdCache) + (MOTD_LINESIZE * (cache->count - 1));
+  }
+
+  if (MotdList.freelist)
+    for (ptr = MotdList.freelist; ptr; ptr = ptr->next)
+      mtf++;
+
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":Motds %d(%zu) Cache %d(%zu) Free %d(%zu)",
+             mt, mtm, mtc, mtcm, mtf, (mtf * sizeof(struct Motd)));
+}

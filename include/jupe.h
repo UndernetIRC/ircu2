@@ -71,5 +71,6 @@ extern void jupe_free(struct Jupe *jupe);
 extern void jupe_burst(struct Client *cptr);
 extern int jupe_resend(struct Client *cptr, struct Jupe *jupe);
 extern int jupe_list(struct Client *sptr, char *server);
+extern int jupe_memory_count(size_t *ju_size);
 
 #endif /* INCLUDED_jupe_h */

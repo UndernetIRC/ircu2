@@ -340,3 +340,18 @@ jupe_list(struct Client *sptr, char *server)
   /* end of jupe information */
   return send_reply(sptr, RPL_ENDOFJUPELIST);
 }
+
+int
+jupe_memory_count(size_t *ju_size)
+{
+  struct Jupe *jupe;
+  unsigned int ju = 0;
+
+  for (jupe = GlobalJupeList; jupe; jupe = jupe->ju_next) {
+    ju++;
+    ju_size += sizeof(struct Jupe);
+    ju_size += jupe->ju_server ? (strlen(jupe->ju_server) + 1) : 0;
+    ju_size += jupe->ju_reason ? (strlen(jupe->ju_reason) + 1) : 0;
+  }
+  return ju;
+}

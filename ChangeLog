@@ -1,5 +1,31 @@
 2002-07-10  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/jupe.h (jupe_memory_count): use size_t instead of int
+
+	* include/gline.h (gline_memory_count): use size_t instead of int
+
+	* ircd/motd.c (motd_memory_count): added a missing "++"
+
+	* ircd/gline.c (gline_memory_count): use size_t instead of int
+
+	* ircd/jupe.c (jupe_memory_count): use size_t instead of int
+
+2002-06-26  Tim Vogelsang <net@astrolink.org>
+
+	* ircd/gline.c: added function gline_memory_count which returns
+	the total amount of glines and memory consumed
+
+	* ircd/jupe.c: added function jupe_memory_count which returns
+	the total amount of jupes and memory consumed
+
+	* ircd/motd.c: added function motd_memory_count which sends
+	local, remote, freelist and cachelist sizes and memory consumed
+
+	* ircd/s_debug.c: added support for additional 'stats z' debugging
+	information; accounts, glines, jupes and motd
+
+2002-07-10  Kevin L Mitchell  <klmitch@mit.edu>
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 	* ircd/s_auth.c: added REPORT_INVAL_DNS for reporting that the

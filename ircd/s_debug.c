@@ -26,6 +26,7 @@
 #include "channel.h"
 #include "class.h"
 #include "client.h"
+#include "gline.h"
 #include "hash.h"
 #include "ircd_alloc.h"
 #include "ircd_features.h"
@@ -33,7 +34,9 @@
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
 #include "ircd.h"
+#include "jupe.h"
 #include "list.h"
+#include "motd.h"
 #include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -223,7 +226,8 @@ void count_memory(struct Client *cptr, char *nick)
   const struct ConnectionClass* cltmp;
   struct Membership* member;
 
-  int c = 0,                    /* clients */
+  int acc = 0,                  /* accounts */
+      c = 0,                    /* clients */
       cn = 0,                   /* connections */
       ch = 0,                   /* channels */
       lcc = 0,                  /* local client conf links */
@@ -237,7 +241,9 @@ void count_memory(struct Client *cptr, char *nick)
 
   int usi = 0,                  /* users invited */
       aw = 0,                   /* aways set */
-      wwa = 0;                  /* whowas aways */
+      wwa = 0,                  /* whowas aways */
+      gl = 0,                   /* glines */
+      ju = 0;                   /* jupes */
 
   size_t chm = 0,               /* memory used by channels */
       chbm = 0,                 /* memory used by channel bans */
@@ -246,6 +252,8 @@ void count_memory(struct Client *cptr, char *nick)
       awm = 0,                  /* memory used by aways */
       wwam = 0,                 /* whowas away memory used */
       wwm = 0,                  /* whowas array memory used */
+      glm = 0,                  /* memory used by glines */
+      jum = 0,                  /* memory used by jupes */
       com = 0,                  /* memory used by conf lines */
       dbufs_allocated = 0,      /* memory used by dbufs */
       dbufs_used = 0,           /* memory used by dbufs */
@@ -280,6 +288,8 @@ void count_memory(struct Client *cptr, char *nick)
         awm += (strlen(cli_user(acptr)->away) + 1);
       }
     }
+    if (IsAccount(acptr))
+      acc++;
   }
   cm = c * sizeof(struct Client);
   cnm = cn * sizeof(struct Connection);
@@ -312,7 +322,8 @@ void count_memory(struct Client *cptr, char *nick)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Clients %d(%zu) Connections %d(%zu)", c, cm, cn, cnm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Users %d(%zu) Invites %d(%zu)", us, us * sizeof(struct User),
+	     ":Users %d(%zu) Accounts %d(%zu) Invites %d(%zu)",
+	     us, us * sizeof(struct User), acc, acc * (ACCOUNTLEN + 1),
 	     usi, usi * sizeof(struct SLink));
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
@@ -343,6 +354,13 @@ void count_memory(struct Client *cptr, char *nick)
 	     wwu * sizeof(struct User), wwa, wwam);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
 	     feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwm);
+
+  motd_memory_count(cptr);
+
+  gl = gline_memory_count(&glm);
+  ju = jupe_memory_count(&jum);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+	     ":Glines %d(%zu) Jupes %d(%zu)", gl, glm, ju, jum);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
