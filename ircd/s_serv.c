@@ -88,8 +88,6 @@ static int a_kills_b_too(aClient *a, aClient *b)
   return (a == b ? 1 : 0);
 }
 
-extern unsigned short server_port;
-
 /*
  *  m_server
  *
@@ -125,7 +123,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (IsUserPort(cptr))
     return exit_client_msg(cptr, cptr, &me,
 	"You cannot connect a server to a user port; connect to %s port %u",
-	me.name, server_port);
+	me.name, portnum);
 
   recv_time = TStime();
   info[0] = '\0';

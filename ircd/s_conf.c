@@ -773,8 +773,6 @@ int rehash(aClient *cptr, int sig)
 
 #define MAXCONFLINKS 150
 
-unsigned short server_port;
-
 int initconf(int opt)
 {
   static char quotes[9][2] = {
@@ -948,7 +946,11 @@ int initconf(int opt)
       tmp = getfield(NULL, ':');
       if (aconf->status & CONF_ME)
       {
-	server_port = aconf->port;
+	portnum = aconf->port;
+	if (portnum == 0)
+	  portnum = PORTNUM;
+	me.port = portnum;
+	vserv.sin_port = htons(portnum);
 	if (!tmp)
 	{
 	  Debug((DEBUG_FATAL, "Your M: line must have the Numeric, "
@@ -1058,9 +1060,22 @@ int initconf(int opt)
     {
       strncpy(me.info, aconf->name, sizeof(me.info) - 1);
       if (me.name[0] == '\0' && aconf->host[0])
+      {
 	strncpy(me.name, aconf->host, sizeof(me.name) - 1);
+	if (vserv.sin_addr.s_addr == htonl(INADDR_ANY))		/* Not already initialised on commandline with -w ? */
+	{
+	  struct hostent *hep;
+	  hep = gethostbyname(me.name);
+	  if (hep && hep->h_addrtype == AF_INET && hep->h_addr_list[0] && !hep->h_addr_list[1])
+          {
+	    memcpy(&vserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
+	    memcpy(&cserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
+          }
+	}
+      }
       if (portnum == 0)
 	portnum = aconf->port;
+      have_server_port = 0;
     }
 
     /*

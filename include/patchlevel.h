@@ -59,7 +59,7 @@
 		\
 		\
 		\
-		""
+		".hide8"
 
 /*
  * Deliberate empty lines

@@ -171,7 +171,6 @@ comment 'General defines'
     fi
   fi
   bool 'Set up a Unix domain socket to connect clients/servers' UNIXPORT
-  bool 'Do you need virtual hosting' VIRTUAL_HOST
   PREV_HUB=$HUB
   bool 'Will you connect to more then one server at a time' HUB
   if [ "$PREV_HUB" != "$HUB" ]; then
@@ -201,7 +200,6 @@ comment 'Debugging (do not define this on production servers)'
     define_bool MEMSIZESTATS $MEMSIZESTATS
     define_bool MEMTIMESTATS $MEMTIMESTATS
   fi
-  bool 'Are you testing on a host without DNS' NODNS
 endmenu
 
 mainmenu_option next_comment

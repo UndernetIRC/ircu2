@@ -659,7 +659,7 @@ int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[])
  *
  *    parv[0] = sender prefix
  *    parv[1] = servername
- *    parv[2] = port number
+ *    parv[2] = [IP-number:]port number
  *    parv[3] = remote server
  */
 int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
@@ -668,6 +668,7 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
   unsigned short int port, tmpport;
   aConfItem *aconf, *cconf;
   aClient *acptr;
+  char *p;
 
   if (!IsPrivileged(sptr))
   {
@@ -717,9 +718,17 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     return 0;
   }
 
+  if (parc > 2 && !BadPtr(parv[2]))
+    p = strchr(parv[2], ':');
+  else
+    p = 0;
+  if (p)
+    *p = 0;
   for (aconf = conf; aconf; aconf = aconf->next)
     if (aconf->status == CONF_CONNECT_SERVER &&
-	match(parv[1], aconf->name) == 0)
+	match(parv[1], aconf->name) == 0 &&
+	(!p || match(parv[2], aconf->host) == 0 ||
+	match(parv[2], strchr(aconf->host, '@') + 1) == 0))
       break;
   /* Checked first servernames, then try hostnames. */
   if (!aconf)
@@ -728,6 +737,8 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	  (match(parv[1], aconf->host) == 0 ||
 	  match(parv[1], strchr(aconf->host, '@') + 1) == 0))
 	break;
+  if (p)
+    *p = ':';
 
   if (!aconf)
   {
@@ -749,7 +760,12 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
   tmpport = port = aconf->port;
   if (parc > 2 && !BadPtr(parv[2]))
   {
-    if ((port = atoi(parv[2])) == 0)
+    p = strchr(parv[2], ':');
+    if (!p)
+      p = parv[2];
+    else
+      p = p + 1;
+    if ((port = atoi(p)) == 0)
     {
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,

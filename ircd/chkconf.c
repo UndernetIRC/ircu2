@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 	  break;
 	case 'x':
 	  debugflag = 1;
-	  if (isdigit(argv[1][2]))
+	  if (isdigit((int)argv[1][2]))
 	    debugflag = atoi(&argv[1][2]);
 	  break;
 	default:
