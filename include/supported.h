@@ -38,16 +38,19 @@
                 " USERIP"\
                 " CPRIVMSG"\
                 " CNOTICE"\
+                " MAP" \
                 " MODES=%i" \
                 " MAXCHANNELS=%i" \
                 " MAXBANS=%i" \
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " KICKLEN=%i" \
-                " MAP"
+		" CHANTYPES=%s" \
+		" CHANMODES=%s" \
+		" CHARSET=%s" 
                  
 #define FEATURESVALUES MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
-        NICKLEN,TOPICLEN,TOPICLEN
+        NICKLEN,TOPICLEN,TOPICLEN, "+#^", "(ov)@+", "b,k,l,imnpst", "rfc1459"
 
 #endif /* INCLUDED_supported_h */
 

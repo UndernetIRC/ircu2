@@ -19,7 +19,7 @@
  *
  */
  
-#define PATCHLEVEL "pl15(development)"
+#define PATCHLEVEL "pl15.(development)"
 
 #define RELEASE ".10."
 

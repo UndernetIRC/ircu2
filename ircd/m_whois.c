@@ -298,7 +298,11 @@ exact_match:
             sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
                 me.name, parv[0], name);
 
-          if (MyConnect(acptr))
+#ifdef HEAD_IN_SAND_IDLETIME
+          if (MyConnect(acptr) && (IsAnOper(sptr) || parc>=3)
+#else
+          if (MyConnect(acptr) && (IsAnOper(sptr) || parc>=3)
+#endif
             sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name,
                 parv[0], name, CurrentTime - user->last, acptr->firsttime);
         }

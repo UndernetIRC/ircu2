@@ -26,6 +26,10 @@
  * braindead and silly.  These aren't configurable as they are network
  * policy, and should not be changed (depending on what network your 
  * on different ones of these should be defined
+ * 
+ * If you want nothing to do with any of this nonsense, add the line
+ * #define INCLUDED_ircd_policy_h
+ * *above* the #ifndef above.
  */
 
 /* CFV-165 - Hiding Nonessential information from non-opers
@@ -120,7 +124,9 @@
  */
 
 #define HEAD_IN_SAND_WHOIS_SERVERNAME
+#define HEAD_IN_SAND_WHOIS_IDLETIME
 #define HEAD_IN_SAND_WHO_SERVERNAME
+#define HEAD_IN_SAND_WHO_HOPCOUNT
 
 /* CFV-165 - Hiding Nonessential information from non-opers
  *
