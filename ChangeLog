@@ -1,5 +1,8 @@
 2000-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_jupe.c (mo_jupe): allow target argument to be dropped if
+	this is a local JUPE
+
 	* ircd/gline.c: add flags argument to gline_activate and
 	gline_deactivate for future expansion
 
@@ -583,7 +586,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.91 2000-04-16 05:12:01 kev Exp $
+# $Id: ChangeLog,v 1.92 2000-04-16 05:19:02 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -178,10 +178,15 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * mo_jupe - oper message handler
  *
  * parv[0] = Send prefix
- *
- * From oper:
- *
  * parv[1] = [[+|-]<server name>]
+ *
+ * Local (to me) style:
+ *
+ * parv[2] = [Expiration offset]
+ * parv[3] = [Comment]
+ *
+ * Global (or remote local) style:
+ *
  * parv[2] = [target]
  * parv[3] = [Expiration offset]
  * parv[4] = [Comment]
@@ -194,7 +199,7 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Jupe *ajupe;
   unsigned int flags = 0;
   time_t expire_off;
-  char *server = parv[1], *target = parv[2], *reason = parv[4];
+  char *server = parv[1], *target = 0, *reason;
 
   if (parc < 2)
     return jupe_list(sptr, 0);
@@ -207,28 +212,36 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     return jupe_list(sptr, server);
 
-  if (parc < 5)
+  if (parc == 4) {
+    expire_off = atoi(parv[2]);
+    reason = parv[3];
+    flags |= JUPE_LOCAL;
+  } else if (parc > 4) {
+    target = parv[2];
+    expire_off = atoi(parv[3]);
+    reason = parv[4];
+  } else
     return need_more_params(sptr, "JUPE");
 
-  if (!(target[0] == '*' && target[1] == '\0')) {
-    if (!(acptr = find_match_server(target)))
-      return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
+  if (target) {
+    if (!(target[0] == '*' && target[1] == '\0')) {
+      if (!(acptr = find_match_server(target)))
+	return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
 
-    if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-      if (!IsOper(sptr))
-	return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+      if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
+	if (!IsOper(sptr))
+	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
-      sendcmdto_one(acptr, CMD_JUPE, sptr, "%C %c%s %s %Tu :%s", acptr,
-		    flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
-		    TStime(), reason);
-      return 0;
-    }
+	sendcmdto_one(acptr, CMD_JUPE, sptr, "%C %c%s %s %Tu :%s", acptr,
+		      flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
+		      TStime(), reason);
+	return 0;
+      }
 
-    flags |= JUPE_LOCAL;
-  } else if (!IsOper(sptr))
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
-
-  expire_off = atoi(parv[3]);
+      flags |= JUPE_LOCAL;
+    } else if (!IsOper(sptr))
+      return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+  }
 
   ajupe = jupe_find(server);
 
