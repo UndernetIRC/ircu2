@@ -1,3 +1,8 @@
+2002-09-02  Perry Lorier <isomer@undernet.org>
+	* ircd/m_names.c: Fixed bug where RPL_ENDOFNAMES was not sent when
+	requesting names from a channel you are not on.  Reported by
+	mike2 and Liandrin.
+
 2002-09-02  Alexander Maassen <outsider@key2peace.org>
 
 	* doc/readme.features: Fixed bugs regarding certain features
