@@ -1,5 +1,11 @@
 2001-06-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_features.c: change CONFIG_OPERCMDS to default to FALSE
+
+	* configure.in: use AC_MSG_CHECKING/AC_MSG_RESULT when checking
+	installation prefix; default devpoll and kqueue to on (they get
+	turned off if the required headers aren't present)
+
 	* ircd/whocmds.c (do_who): use ircd_snprintf() instead of
 	sprintf_irc(); it's a bit hackish, but it'll do for now
 
