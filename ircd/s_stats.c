@@ -73,6 +73,7 @@ const char *statsinfo[] = {
     "g - Global bans (G-lines).",
     "k - Local bans (K-Lines).",
     "o - Operator information.", 
+    "e - Report server event loop engine.",
     "f - Feature settings.",
     "m - Message usage information.",
     "t - Local connection statistics (Total SND/RCV, etc).", 

@@ -1,3 +1,273 @@
+2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/res.c (init_resolver): don't start DNS expires with a 0
+	relative timeout--if the server starts slow, timeouts could be
+	messy...there's probably a better solution, but this'll do for now
+
+	* ircd/os_solaris.c: _XOPEN_SOURCE doesn't get along with Solaris
+	headers very well; include stropts.h; define an os_set_tos()
+
+	* ircd/os_generic.c (os_set_tos): added an os_set_tos() for
+	os_generic.c
+
+	* ircd/ircd.c: if there are no C-lines, we don't want to have a
+	timer that expires at the absolute time of 0--it kinda blocks all
+	the other timers!
+
+	* ircd/engine_devpoll.c: some includes for open(); declare errcode
+	and codesize in engine_loop()
+
+	* ircd/list.c (free_client): remove bogus check on timer active
+	flag
+
+	* ircd/s_auth.c: pull out destruction code in
+	auth_timeout_request() into an externally-visible
+	destroy_auth_request(); manage cli_auth pointer in client
+	structure; use it for an extra assertion check
+
+	* ircd/list.c: include s_auth.h for destroy_auth_request(); add
+	debugging notices to show flow when deallocating
+	connections/clients; call destroy_auth_request() when free'ing a
+	client that has an auth outstanding; don't free the connection if
+	the process timer is unmarked but still active
+
+	* ircd/ircd_events.c: set GEN_ACTIVE when initializing a generator
+	and reset it before calling the event handler for an ET_DESTROY
+	event
+
+	* include/s_auth.h (destroy_auth_request): declare
+	destroy_auth_request(), which can be used to destroy an
+	outstanding auth request if a client socket goes away before the
+	auth exchange is completed
+
+	* include/ircd_events.h: add an active flag to keep track of
+	whether or not particular generators are active, for the
+	convenience of functions using the API
+
+	* include/client.h: add a pointer for auth requests to struct
+	Connection so we can kill outstanding auth requests if a client
+	socket closes unexpectedly
+
+	* ircd/s_bsd.c: cli_connect() could become 0 during the course of
+	the sock or timer callback; take that into account in the assert
+
+	* ircd/list.c: add magic number checking and setting--magic
+	numbers are zero'd on frees to detect double-frees; add back
+	setting of cli_from() to 0 to break the back-link from the struct
+	Connection (duh)
+
+	* ircd/ircd.c: set me's magic number correctly
+
+	* include/client.h: define magic numbers and accessor/verifier
+	macros
+
+	* ircd/list.c: assert that dealloc_client() is called with
+	cli_connect(cptr) == 0; set cli_connect(cptr) to 0 before calling
+	dealloc_client(); don't mess with cli_from(cptr)
+
+	* ircd/s_bsd.c: only attempt to dealloc a connection if the
+	associated client has already been destroyed, or at least delinked
+
+2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/list.c (free_client): only try to delete the socket when
+	the fd hasn't already been closed, avoiding a double-free
+
+	* ircd/list.c (free_connection): make sure the client is really
+	gone before doing away with the connection
+
+	* ircd/s_bsd.c: record that socket has been added in con_freeflag
+	field; queue a socket_del() as soon as the socket is close()'d;
+	use con_freeflag & FREEFLAG_TIMER instead of con_timer; clear
+	FREEFLAG_SOCKET on ET_DESTROY event in client_sock_callback(),
+	then dealloc the connection if safe; mark socket as dead when
+	there's a read error or EOF; clear FREEFLAG_TIMER flag upon entry
+	to client_timer_callback(); dealloc connection if safe upon
+	ET_DESTROY event in client_timer_callback()
+
+	* ircd/list.c: use con_freeflag instead of con_timer; only dealloc
+	the connection if both socket and timer have been destroyed;
+	destroy both socket and timer explicitly and carefully
+
+	* include/client.h: replace the con_timer field with a
+	con_freeflag field, to indicate what still needs freeing; define
+	the freeflags
+
+	* ircd/engine_select.c (engine_loop): duh...sockList[i] could
+	become 0
+
+	* ircd/engine_devpoll.c (engine_loop): duh...sockList[i] could
+	become 0
+
+	* ircd/s_bsd.c: add some extra assertions to try to track down a
+	corruption problem
+
+	* ircd/engine_select.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_poll.c (engine_loop): add an extra assert to try to
+	track down a corruption problem
+
+	* ircd/engine_kqueue.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_devpoll.c (engine_loop): skip slots that have become
+	empty during processing; add an extra assert to try to track down
+	a corruption problem
+
+	* ircd/engine_kqueue.c (engine_delete): make sure to zero deleted
+	entries
+
+2001-06-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (client_sock_callback): client is no longer
+	blocked, so we must mark it as unblocked
+
+	* ircd/engine_select.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK; use a dummy sock variable to keep things from
+	disappearing on us; correct timeout calculation; update nfds for
+	efficiency
+
+	* ircd/engine_poll.c: use new debugging level (DEBUG_ENGINE);
+	remove a spurious "if (sock)" which will always be true; update
+	nfds for efficiency
+
+	* ircd/engine_kqueue.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK (just in case); correct timeout calculation
+
+	* ircd/engine_devpoll.c: add Debug() calls galore; add handling
+	for SS_NOTSOCK; correct timeout calculation; add EAGAIN handling
+
+	* include/s_debug.h (DEBUG_ENGINE): add new debugging level;
+	pretty-indent numbers
+
+	* ircd/engine_poll.c (engine_loop): break out SS_NOTSOCK
+	case--it's not a socket; the check for writability is most likely
+	not needed, but present for completeness
+
+2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: add Debug messages; call read_packet() even if the
+	no newline flag is set; call read_packet() when the timer expires,
+	regardless of what's in the buffer--read_packet() should be able
+	to deal properly
+
+	* ircd/IPcheck.c (ip_registry_connect_succeeded): correct a NOTICE
+	sent to clients to include the client nickname (duh)
+
+	* ircd/ircd_events.c: don't destroy a timer if it's already marked
+	for destruction; replace a missing ! in socket_del()
+
+	* ircd/engine_poll.c (engine_loop): reference a temporary variable
+	so we don't have to worry about sockList[i] going away
+
+	* ircd/s_bsd.c (client_sock_callback): add Debug messages
+
+	* ircd/s_auth.c: add Debug messages all over the place
+
+	* ircd/ircd_events.c: add and edit some Debug messages; add a list
+	of routines to convert some of the enums and flags from numbers
+	into human-readable strings for the Debug messages
+
+	* ircd/engine_poll.c: hack some Debug messages to use the new name
+	conversion routines in ircd_events.c; add an extra assert for a
+	condition that shouldn't ever happen; apparently recv() can return
+	EAGAIN when poll() returns readable--I wonder why...
+
+	* include/ircd_events.h: declare some helper routines under
+	DEBUGMODE
+
+2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (client_sock_callback): add an extra assertion
+	check
+
+	* ircd/s_auth.c: add more Debug messages
+
+	* ircd/list.c (make_client): add an extra assertion check
+
+	* ircd/ircd_events.c (socket_events): don't call the engine events
+	changer if we haven't actually made any changes to the event mask
+
+	* ircd/uping.c: add some Debug messages
+
+	* ircd/s_stats.c: document new /STATS e
+
+	* ircd/s_err.c: add RPL_STATSENGINE to report the engine name
+
+	* ircd/s_bsd.c: remove static client_timer variable; in
+	read_packet(), if there's still data in the client's recvQ after
+	parsing, add a 2 second timer (con_proc); fix the ET_DESTROY case
+	of client_sock_callback to handle destroying the timer properly;
+	rewrote client_timer_callback from scratch to be called on an
+	individual client
+
+	* ircd/m_stats.c: add /STATS e to report the engine name
+
+	* ircd/list.c: deal with con_timer field in struct Connection
+	properly; correct a core-level bug in remove_client_from_list--if
+	the client is the only one in the list, we try to update
+	GlobalClientList's cli_prev pointer--not good
+
+	* ircd/ircd.c: remove call to init_client_timer()
+
+	* ircd/engine_poll.c: made Debug messages more uniform by
+	prepending "poll:" to them all; corrected an off-by-one error that
+	caused poll_count to be 1 less than the actual count and removed
+	my work-around; added Debug messages to indicate which socket is
+	being checked and what the results are
+
+	* ircd/Makefile.in: ran a make depend
+
+	* include/s_bsd.h: remove init_client_timer(), since we're doing
+	it differently now
+
+	* include/numeric.h (RPL_STATSENGINE): a stats reply to report the
+	engine name
+
+	* include/ircd_policy.h (HEAD_IN_SAND_STATS_E): turn off /stats e
+	reports for non-opers
+
+	* include/client.h: add con_timer and con_proc fields to struct
+	Connection and define accessor macros--con_timer marks that
+	con_proc contains a valid timer, and con_proc is used to pace user
+	data
+
+	* ircd/s_bsd.c (close_connection): let free_client() destroy the
+	socket
+
+	* ircd/s_auth.c (start_auth): add a Debug call to indicate when
+	auth has begun on a client
+
+	* ircd/ircd_events.c: ensure that event_execute() is called with a
+	non-NULL event; modify event_add() macro to properly zero list
+	bits; modify gen_dequeue() to not try to clip it out of a list
+	it's already been clipped out of; change signal socket
+	initialization to use state SS_NOTSOCK; permit timeout values of
+	0 in add_timer(); add many Debug calls; change socket_del() and
+	timer_del() to always set the GEN_DESTROY flag; use GEN_MARKED in
+	timer_run() instead of GEN_DESTROY so that event_generate() will
+	pass on the events; remove the switch and replace with a simpler
+	if-then-else tree in timer_run(); don't allow destroyed sockets to
+	be destroyed again, nor their states or event masks to be changed
+
+	* ircd/ircd.c: initialize "running" to 1
+
+	* ircd/engine_poll.c: deal with SS_NOTSOCK "sockets"; add Debug
+	messages all over the place; fix a counting problem in
+	engine_add(); turn wait into a signed integer and set it to -1
+	only if timer_next() returns 0; adjust wait time to be relative;
+	don't call gen_ref_dec() if socket disappeared while we were
+	processing it
+
+	* include/ircd_events.h: the pipe for signals is not a socket, so
+	we must mark it as such--added SS_NOTSOCK for that special socket;
+	events won't be generated if GEN_DESTROY is on, so add GEN_MARKED
+	for the benefit of timer_run()
+
+	* configure.in: add --enable-pedantic and --enable-warnings to
+	turn on (and off) -Wall -pedantic in CFLAGS
+
 2001-05-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c: change "s_addr" element accesses to "address"
@@ -5,6 +275,185 @@
 
 	* include/s_conf.h: on some systems, "s_addr" is a macro; use
 	"address" instead
+
+2001-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_kqueue.c: include ircd_alloc.h; set_or_clear returns
+	void in this file; add a missing semi-colon; declare errcode,
+	codesize
+
+	* ircd/uping.c (uping_sender_callback): it's pptr, not uping
+
+	* ircd/s_user.c (register_user): comment out spurious reference to
+	nextping
+
+	* ircd/s_serv.c (server_estab): comment out spurious reference to
+	nextping
+
+	* ircd/s_conf.c (read_configuration_file): comment out spurious
+	reference to nextping and nextconnect
+
+	* ircd/s_bsd.c: comment out some spurious references to formerly
+	global (now non-existant) variables; correct a couple of typos
+
+	* ircd/s_auth.c: pre-declare some functions referenced in the
+	callback; correct a typo
+
+	* ircd/res.c (start_resolver): pass errno value of ENFILE
+
+	* ircd/listener.c (accept_connection): you know your API is messed
+	up when...variables that shouldn't have been global crop up in
+	other files
+
+	* ircd/list.c (free_client): substitution of == for =
+
+	* ircd/ircd_signal.c: include assert.h for assertion checking;
+	check ev_data() to find out what signal generated event
+
+	* ircd/ircd_events.c: some references to the variable "timer"
+	should have been references to the variable "ptr"
+
+	* ircd/engine_select.c: it's struct fd_set, not struct fdset;
+	ev_timer(ev) is already a timer pointer; declare codesize as a
+	size_t to correct signedness issue; use timer_next(), not
+	time_next()
+
+	* ircd/engine_poll.c: ev_timer(ev) is already a timer pointer;
+	select fd out of struct pollfd in assertion checking; declare
+	errcode and codesize; use timer_next(), not time_next()
+
+	* ircd/engine_kqueue.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/engine_devpoll.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/Makefile.in (IRCD_SRC): add ircd_events.c to the list of
+	compiled sources; do make depend
+
+	* include/list.h: pre-declare struct Connection
+
+	* include/ircd_events.h (gen_ref_inc): cast to the right structure
+	name
+
+	* include/s_auth.h: duh; missing */
+
+2001-05-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: update write events status after sending data or
+	accumulating data to be sent
+
+	* ircd/m_list.c (m_list): update write events status after
+	canceling a running /list
+
+	* ircd/channel.c (list_next_channels): update write events status
+	after listing a few channels
+
+	* ircd/s_bsd.c: extensive changes to update to new events model;
+	remove on_write_unblocked() and the two implementations of
+	read_message(), which have been deprecated by this change
+
+	* ircd/s_auth.c: set the socket events we're interested in for
+	clients; simplify some logic that does the connect_nonb followed
+	by the socket_add
+
+	* ircd/list.c: define free_connection() to free a connection
+	that's become freeable once the struct Socket has been
+	deallocated; fix up free_client() to take this new behavior into
+	account
+
+	* ircd/ircd.c: call init_client_timer()
+
+	* include/s_bsd.h: declare new REGISTER_ERROR_MESSAGE when unable
+	to register connect-in-progress with events system; declare
+	init_client_timer() (HACK!) to preserve rate-limiting behavior
+
+	* include/list.h: declare new free_connection()
+
+	* include/client.h: add a struct Socket to struct Connection
+
+2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_signal.c: massage the handlers for SIGHUP, SIGINT, and
+	SIGTERM into event callbacks; perform the actions in the
+	callbacks, since they're not called in the context of the signal;
+	set up the signal callbacks in the event engine
+
+	* ircd/ircd_events.c (signal_callback): we're supposed to look for
+	a specific signal; don't generate an event if there is no signal
+	structure for it
+
+	* ircd/ircd.c: nuke nextconnect and nextping and replace them with
+	connect_timer and ping_timer; massage try_connections() and
+	check_pings() into timer callbacks that re-add themselves at the
+	right time; remove ircd.c's "event_loop()"; initialize the event
+	system and the connect_timer and ping_timer
+
+	* ircd/uping.c: correct a couple more typos
+
+	* ircd/s_auth.c: rework to use new events system
+
+	* ircd/os_solaris.c (os_connect_nonb): update to new interface
+
+	* ircd/os_openbsd.c (os_connect_nonb): update to new interface
+
+	* ircd/os_linux.c (os_connect_nonb): update to new interface
+
+	* ircd/os_generic.c (os_connect_nonb): update to new interface
+
+	* ircd/os_bsd.c (os_connect_nonb): update to new interface
+
+	* include/s_auth.h: remove deprecated members of struct
+	AuthRequest, replacing them with struct Socket and struct Timer
+	structures; add flags to indicate when these structures have been
+	released by the event system; remove the deprecated
+	timeout_auth_queries()
+
+	* include/ircd_osdep.h (os_connect_nonb): connect could complete
+	immediately, so change the interface to handle that possibility
+
+	* ircd/uping.c (uping_server): noticed and corrected a typo
+
+	* ircd/listener.c: set up to use ircd_event's struct Socket by
+	adding an socket_add() call to inetport(), replacing
+	free_listener() with socket_del() in close_listener(), and
+	reworking accept_connection to be called as the callback
+
+	* ircd/ircd.c: add a call to IPcheck_init()
+
+	* ircd/IPcheck.c: remove IPcheck_expire(); rework
+	ip_registry_expire() to be called from a timer; write
+	IPcheck_init() to set up the expiration timer (hard-coded for a
+	60-second expiration time)
+
+	* include/listener.h: add a struct Socket to the struct Listener;
+	remove accept_connection()
+
+	* include/IPcheck.h: add IPcheck_init(), remove IPcheck_expire()
+
+2001-05-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: include config.h; use USE_KQUEUE and
+	USE_DEVPOLL instead of HAVE_KQUEUE and HAVE_DEVPOLL_H
+
+	* ircd/engine_select.c: include config.h; set FD_SETSIZE to
+	MAXCONNECTIONS, not IRCD_FD_SETSIZE...
+
+	* ircd/engine_poll.c: include config.h
+
+	* ircd/engine_kqueue.c: include config.h
+
+	* ircd/engine_devpoll.c: include config.h
+
+	* ircd/Makefile.in: include engine sources in compilation and make
+	depend steps
+
+	* configure.in: add checks for enabling the /dev/poll- and
+	kqueue-based engines
+
+	* acconfig.h: add lines for USE_DEVPOLL and USE_KQUEUE
+
+	* ircd/Makefile.in: work in the engine sources
 
 2001-05-07  Kevin L. Mitchell  <klmitch@mit.edu>
 
@@ -197,6 +646,24 @@
 	* ircd/send.c (sendcmdto_flag_butone): if FLAGS_OPER is or'd with
 	flag, send only to appropriate opers
 
+2001-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/uping.c: refit to use the new events interface
+
+	* ircd/res.c: refit to use the new events interface
+
+	* ircd/ircd_events.c: create timer_chg(), which permits a
+	(non-periodic) timer's expire time to be modified; change the
+	logic in timer_run() so that timers that were re-added while the
+	event was being processed will not be destroyed prematurely
+
+	* include/uping.h: include the events header, declare some extra
+	fields in struct UPing, remove timeout value, and define some
+	flags for marking which cleanup items have yet to be done
+
+	* include/ircd_events.h: add a prototype for timer_chg() to change
+	the expire time of a running timer
+
 2001-03-13 Joseph Bongaarts <foxxe@wtfs.net>
 	* ircd/os_openbsd.c: Tweaked the openbsd hack a bit.
 	
@@ -301,6 +768,28 @@
 
 	* ircd/ircd_features.c: default LOCOP_KILL to TRUE--oops...
 
+2001-01-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c (timer_run): it's possible that the timer got
+	deleted during the callback processing, so don't go to the bother
+	of requeuing it if the destroy flag is set
+
+	* ircd/engine_select.c: define FD_SETSIZE to be IRCD_FD_SETSIZE
+	out of config.h if this is a *BSD; include errno.h (oops);
+	decrement error count after an hour using a timer; use FD_SETSIZE
+	constant instead of IRCD_FD_SETSIZE constant; fill in event
+	processing code
+
+	* ircd/engine_poll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
+	* ircd/engine_kqueue.c: include errno.h (oops); decrement error
+	count after an hour using a timer; assert events filter is either
+	EVFILT_READ or EVFILT_WRITE; fill in event processing code
+
+	* ircd/engine_devpoll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
 2001-01-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/client.c: fixed feattab; basically, when I changed features
@@ -308,6 +797,134 @@
 	bits themselves, I forgot to update feattab to not | these
 	privileges together; also fixed a bug in the antiprivs masking
 	loop in client_set_privs()--last index wouldn't get parsed
+
+2001-01-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: call event_generate() with new data
+	argument; make it set that field in struct Event; make
+	socket_add() return the value of the eng_add callback
+
+	* ircd/engine_select.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_poll.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_kqueue.c: implementation of an engine for kqueue()
+
+	* ircd/engine_devpoll.c: implementation of an engine for /dev/poll
+
+	* include/ircd_events.h: define some accessor macros; add ev_data
+	to struct Event for certain important data--errno values, for
+	instance; make EngineAdd callback tell us if it was successful or
+	not; add extra argument to event_generate(); make socket_add()
+	return the status from EngineAdd
+
+2001-01-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: pass initializer information about how many
+	total _filedescriptors_ may be opened at once
+
+	* ircd/ircd.c: use exported "running" instead of unexported
+	thisServer.running
+
+	* ircd/engine_select.c: implementation of an event engine based on
+	select()
+
+	* ircd/engine_poll.c: implementation of an event engine based on
+	poll()
+
+	* include/ircd_events.h: pass the engine initializer an integer
+	specifing how many _filedescriptors_ may be opened at once
+
+	* include/ircd.h: running has to be exported for the engine_*
+	event loops
+
+2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: include some needed headers; add some
+	comments; make evEngines[] const; bundle sig_sock and sig_fd into
+	a struct named sigInfo; rework struct evInfo to have a queue of
+	_generators_, and only when threaded; added a gen_init() function
+	to centralize generator initialization; fix various compile-time
+	errors; rework event_add() for new queueing scheme and checked for
+	compile-time errors; add casts where needed; spell evEngines[]
+	correctly; make engine_name() return const char*
+
+	* include/ircd_events.h: type EventCallBack depends on struct
+	Event, so pre-declare it; put _event_ queue into generators, and
+	only when threaded; give engine data a union to store both ints
+	and pointers; make engine name a const; fix gen_ref_dec() macro;
+	make engine_name() return a const char*
+
+	* ircd/ircd_events.c: gen_dequeue() is now exported, so move it
+	down with the non-static functions; modify event_execute() to use
+	the new gen_ref_dec() to simplify code; make sure event_generate()
+	does not generate new events for generators marked for destruction
+
+	* include/ircd_events.h: the engines, at least, may need to modify
+	reference counts to keep generators from going away while
+	something still points at them, so add reference counter
+	manipulators and export gen_dequeue() for them
+
+	* ircd/ircd_events.c: set up the list of engines to try; set up
+	the signal struct Socket; rename netInfo to evInfo; move static
+	functions near the beginning of the file; do away with
+	signal_signal() (since we no longer keep a signal count ourselves)
+	and call event_generate() directly from signal_callback--also
+	renamed some functions; allow signal_callback() to read up to
+	SIGS_PER_SOCK at once from the signal pipe; add event_init() to
+	initialize the entire event system; add event_loop() to call the
+	engine's event loop; initialize new struct GenHeader member,
+	gh_engdata; remove timer_next(); add socket_add() function to add
+	a socket; add socket_del() to mark a socket for deletion; add
+	socket_state() to transition a socket between states; add
+	socket_events() to set what events we're interested in on the
+	socket; add engine_name() to retrieve event engine's name
+
+	* include/ircd_events.h: add engine data field to struct
+	GenHeader; rename SOCK_ACTION_REMOVE to SOCK_ACTION_DEL; add a
+	note about states vs s_events; remove signal count; fold union
+	Generator back into struct Event; remove count members from struct
+	Generators; redefine engine callbacks to not take a struct
+	Engine*; add explanatory comments to callback definitions; add
+	some engine callbacks to handle operations; remove struct Engine
+	flag member--can detect single flag from eng_signal member; add
+	event_init(), event_loop(), engine_name(), and the socket_*()
+	functions; make timer_next() a macro to avoid a function call
+
+2001-01-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/ircd_events.h: rename to ircd_events.h, since it handles
+	events, not just networking stuff; add signal support; more
+	structural rearrangement
+
+	* ircd/ircd_events.c: rename to ircd_events.c, since it handles
+	events, not just networking stuff; add signal support; more
+	structural rearrangement
+
+2001-01-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: implement timer API; add reference counts
+	appropriately
+
+	* include/ircd_network.h: firm up some pieces of the interface;
+	split out members everything has into a separate structure; add
+	reference counts; add timer API
+
+2001-01-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: static data and event manipulation
+	functions for new event processing system
+
+	* include/ircd_network.h: data structures for new event processing
+	system
 
 2001-01-03  Kevin L. Mitchell  <klmitch@mit.edu>
 

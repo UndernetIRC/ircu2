@@ -31,6 +31,7 @@
 #include "match.h"
 #include "numeric.h"
 #include "res.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -111,12 +112,17 @@ static struct Client* alloc_client(void)
 
 static void dealloc_client(struct Client* cptr)
 {
+  assert(cli_verify(cptr));
+  assert(0 == cli_connect(cptr));
+
 #ifdef DEBUGMODE
   --clients.inuse;
 #endif
 
   cli_next(cptr) = clientFreeList;
   clientFreeList = cptr;
+
+  cli_magic(cptr) = 0;
 }
 
 static struct Connection* alloc_connection(void)
@@ -140,6 +146,10 @@ static struct Connection* alloc_connection(void)
 
 static void dealloc_connection(struct Connection* con)
 {
+  assert(con_verify(con));
+
+  Debug((DEBUG_LIST, "Deallocating connection %p", con));
+
   if (con_dns_reply(con))
     --(con_dns_reply(con)->ref_count);
   if (-1 < con_fd(con))
@@ -156,6 +166,8 @@ static void dealloc_connection(struct Connection* con)
 
   con_next(con) = connectionFreeList;
   connectionFreeList = con;
+
+  con_magic(con) = 0;
 }
 
 /*
@@ -172,16 +184,23 @@ struct Client* make_client(struct Client *from, int status)
   struct Client* cptr = 0;
   struct Connection* con = 0;
 
+  assert(!from || cli_verify(from));
+
   cptr = alloc_client();
 
   assert(0 != cptr);
+  assert(!cli_magic(cptr));
+  assert(0 == from || 0 != cli_connect(from));
 
   if (!from) { /* local client, allocate a struct Connection */
     con = alloc_connection();
 
     assert(0 != con);
+    assert(!con_magic(con));
 
+    con_magic(con) = CONNECTION_MAGIC;
     con_fd(con) = -1; /* initialize struct Connection */
+    con_freeflag(con) = 0;
     con_nextnick(con) = CurrentTime - NICK_DELAY;
     con_nexttarget(con) = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
     con_handler(con) = UNREGISTERED_HANDLER;
@@ -194,13 +213,26 @@ struct Client* make_client(struct Client *from, int status)
     con = cli_connect(from); /* use 'from's connection */
 
   assert(0 != con);
+  assert(con_verify(con));
 
+  cli_magic(cptr) = CLIENT_MAGIC;
   cli_connect(cptr) = con; /* set the connection and other fields */
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "unknown");
 
   return cptr;
+}
+
+void free_connection(struct Connection* con)
+{
+  if (!con)
+    return;
+
+  assert(con_verify(con));
+  assert(0 == con_client(con));
+
+  dealloc_connection(con); /* deallocate the connection */
 }
 
 void free_client(struct Client* cptr)
@@ -210,16 +242,38 @@ void free_client(struct Client* cptr)
   /*
    * forget to remove the client from the hash table?
    */
+  assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
 
-  if (cli_from(cptr) == cptr) /* in other words, we're local */
-    dealloc_connection(cli_connect(cptr)); /* deallocate the connection... */
-  dealloc_client(cptr); /* deallocate the client */
+  Debug((DEBUG_LIST, "Freeing client %s [%p], connection %p", cli_name(cptr),
+	 cptr, cli_connect(cptr)));
+
+  if (cli_auth(cptr))
+    destroy_auth_request(cli_auth(cptr), 0);
+
+  if (cli_from(cptr) == cptr) { /* in other words, we're local */
+    cli_from(cptr) = 0;
+    /* timer must be marked as not active */
+    if (!cli_freeflag(cptr) && !t_active(&(cli_proc(cptr))))
+      dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
+    else {
+      if (-1 < cli_fd(cptr) && cli_freeflag(cptr) & FREEFLAG_SOCKET)
+	socket_del(&(cli_socket(cptr))); /* queue a socket delete */
+      if (cli_freeflag(cptr) & FREEFLAG_TIMER)
+	timer_del(&(cli_proc(cptr))); /* queue a timer delete */
+    }
+  }
+
+  cli_connect(cptr) = 0;
+
+  dealloc_client(cptr); /* actually destroy the client */
 }
 
 struct Server *make_server(struct Client *cptr)
 {
   struct Server *serv = cli_serv(cptr);
+
+  assert(cli_verify(cptr));
 
   if (!serv)
   {
@@ -243,11 +297,15 @@ struct Server *make_server(struct Client *cptr)
  */
 void remove_client_from_list(struct Client *cptr)
 {
+  assert(cli_verify(cptr));
+  assert(con_verify(cli_connect(cptr)));
+
   if (cli_prev(cptr))
     cli_next(cli_prev(cptr)) = cli_next(cptr);
   else {
     GlobalClientList = cli_next(cptr);
-    cli_prev(GlobalClientList) = 0;
+    if (GlobalClientList)
+      cli_prev(GlobalClientList) = 0;
   }
   if (cli_next(cptr))
     cli_prev(cli_next(cptr)) = cli_prev(cptr);
@@ -287,6 +345,7 @@ void remove_client_from_list(struct Client *cptr)
  */
 void add_client_to_list(struct Client *cptr)
 {
+  assert(cli_verify(cptr));
   /*
    * Since we always insert new clients to the top of the list,
    * this should mean the "me" is the bottom most item in the list.

@@ -24,6 +24,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_string.h"
@@ -59,6 +60,8 @@
 static struct UPing* pingList = 0;
 int UPingFileDescriptor       = -1; /* UDP listener socket for upings */
 
+static struct Socket upingSock;
+
 /*
  * pings_begin - iterator function for ping list 
  */
@@ -86,6 +89,14 @@ static void uping_erase(struct UPing* p)
       break;
     }
   }
+}
+
+/* Called when the event engine detects activity on the UPing socket */
+static void uping_echo_callback(struct Event* ev)
+{
+  assert(ev_type(ev) == ET_READ);
+
+  uping_echo();
 }
 
 /*
@@ -129,6 +140,12 @@ int uping_init(void)
     close(fd);
     return -1;
   }
+  if (!socket_add(&upingSock, uping_echo_callback, 0, SS_DATAGRAM,
+		  SOCK_EVENT_READABLE, fd)) {
+    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
+    close(fd);
+    return -1;
+  }
   UPingFileDescriptor = fd;
   return fd;
 }
@@ -168,6 +185,85 @@ void uping_echo()
 }
 
 
+/* Callback when socket has data to read */
+static void uping_read_callback(struct Event* ev)
+{
+  struct UPing *pptr;
+
+  assert(0 != ev_socket(ev));
+  assert(0 != s_data(ev_socket(ev)));
+
+  pptr = s_data(ev_socket(ev));
+
+  Debug((DEBUG_SEND, "uping_read_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
+
+  if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
+    pptr->freeable &= ~UPING_PENDING_SOCKET;
+
+    if (!pptr->freeable)
+      MyFree(pptr); /* done with it, finally */
+  } else {
+    assert(ev_type(ev) == ET_READ);
+
+    uping_read(pptr); /* read uping response */
+  }
+}
+
+/* Callback to send another ping */
+static void uping_sender_callback(struct Event* ev)
+{
+  struct UPing *pptr;
+
+  assert(0 != ev_timer(ev));
+  assert(0 != t_data(ev_timer(ev)));
+
+  pptr = t_data(ev_timer(ev));
+
+  Debug((DEBUG_SEND, "uping_sender_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
+
+  if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
+    pptr->freeable &= ~UPING_PENDING_SENDER;
+
+    if (!pptr->freeable)
+      MyFree(pptr); /* done with it, finally */
+  } else {
+    assert(ev_type(ev) == ET_EXPIRE);
+
+    pptr->lastsent = CurrentTime; /* store last ping time */
+    uping_send(pptr); /* send a ping */
+
+    if (pptr->sent == pptr->count) /* done sending pings, don't send more */
+      timer_del(ev_timer(ev));
+  }
+}
+
+/* Callback to kill a ping */
+static void uping_killer_callback(struct Event* ev)
+{
+  struct UPing *pptr;
+
+  assert(0 != ev_timer(ev));
+  assert(0 != t_data(ev_timer(ev)));
+
+  pptr = t_data(ev_timer(ev));
+
+  Debug((DEBUG_SEND, "uping_killer_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
+
+  if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
+    pptr->freeable &= ~UPING_PENDING_KILLER;
+
+    if (!pptr->freeable)
+      MyFree(pptr); /* done with it, finally */
+  } else {
+    assert(ev_type(ev) == ET_EXPIRE);
+
+    uping_end(pptr); /* <FUDD>kill the uping, kill the uping!</FUDD> */
+  }
+}
+
 /*
  * start_ping
  */
@@ -175,10 +271,15 @@ static void uping_start(struct UPing* pptr)
 {
   assert(0 != pptr);
 
+  timer_add(&pptr->sender, uping_sender_callback, (void*) pptr,
+	    TT_PERIODIC, 1);
+  timer_add(&pptr->killer, uping_killer_callback, (void*) pptr,
+	    TT_RELATIVE, UPINGTIMEOUT);
+  pptr->freeable |= UPING_PENDING_SENDER | UPING_PENDING_KILLER;
+
   sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :Sending %d ping%s to %s",
 		pptr->client, pptr->count, (pptr->count == 1) ? "" : "s",
 		pptr->name);
-  pptr->timeout = CurrentTime + UPINGTIMEOUT;
   pptr->active = 1;
 }
 
@@ -264,11 +365,8 @@ void uping_read(struct UPing* pptr)
     pptr->ms_min = pingtime;
   if (pingtime > pptr->ms_max)
     pptr->ms_max = pingtime;
-  
-  pptr->timeout = CurrentTime + UPINGTIMEOUT;
 
-  Debug((DEBUG_SEND, "read_ping: %d bytes, ti %lu: [%s %s] %lu ms",
-         len, pptr->timeout, buf, (buf + strlen(buf) + 1), pingtime));
+  timer_chg(&pptr->killer, TT_RELATIVE, UPINGTIMEOUT);
 
   s = pptr->buf + strlen(pptr->buf);
   sprintf(s, " %u", pingtime);
@@ -311,6 +409,15 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   assert(0 != pptr);
   memset(pptr, 0, sizeof(struct UPing));
 
+  if (!socket_add(&pptr->socket, uping_read_callback, (void*) pptr,
+		  SS_DATAGRAM, SOCK_EVENT_READABLE, fd)) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Can't queue fd for "
+		  "reading", sptr);
+    close(fd);
+    MyFree(pptr);
+    return 0;
+  }
+
   pptr->fd                  = fd;
   pptr->sin.sin_port        = htons(port);
   pptr->sin.sin_addr.s_addr = aconf->ipnum.s_addr;
@@ -318,6 +425,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   pptr->count               = IRCD_MIN(20, count);
   pptr->client              = sptr;
   pptr->index               = -1;
+  pptr->freeable            = UPING_PENDING_SOCKET;
   strcpy(pptr->name, aconf->name);
 
   pptr->next = pingList;
@@ -356,7 +464,12 @@ void uping_end(struct UPing* pptr)
   uping_erase(pptr);
   if (pptr->client)
     ClearUPing(pptr->client);
-  MyFree(pptr);
+  if (pptr->freeable & UPING_PENDING_SOCKET)
+    socket_del(&pptr->socket);
+  if (pptr->freeable & UPING_PENDING_SENDER)
+    timer_del(&pptr->sender);
+  if (pptr->freeable & UPING_PENDING_KILLER)
+    timer_del(&pptr->killer);
 }
 
 void uping_cancel(struct Client *sptr, struct Client* acptr)

@@ -21,8 +21,6 @@
  */
 #include "config.h"
 
-#define _XOPEN_SOURCE	/* make limits.h #define IOV_MAX */
-
 #include "ircd_osdep.h"
 #include "msgq.h"
 
@@ -32,6 +30,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include <stropts.h>
 #include <sys/filio.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
@@ -133,6 +132,12 @@ int os_set_sockbufs(int fd, unsigned int size)
                           (const char*) &opt, sizeof(opt)) &&
           0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
                           (const char*) &opt, sizeof(opt)));
+}
+
+int os_set_tos(int fd,int tos)
+{
+  unsigned int opt = tos;
+  return (0 == setsockopt(fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)));
 }
 
 int os_disable_options(int fd)
@@ -249,13 +254,11 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
   return IO_FAILURE;
 }
 
-int os_connect_nonb(int fd, const struct sockaddr_in* sin)
+IOResult os_connect_nonb(int fd, const struct sockaddr_in* sin)
 {
-  if (connect(fd, (struct sockaddr*) sin, sizeof(struct sockaddr_in))) {
-    if (errno != EINPROGRESS)
-      return 0;
-  }
-  return 1;
+  if (connect(fd, (struct sockaddr*) sin, sizeof(struct sockaddr_in)))
+    return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
+  return IO_SUCCESS;
 }
       
 int os_get_sockname(int fd, struct sockaddr_in* sin_out)

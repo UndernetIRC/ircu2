@@ -137,7 +137,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
 
   SetBurst(cptr);
 
-  nextping = CurrentTime;
+/*    nextping = CurrentTime; */
 
   /*
    * NOTE: check for acptr->user == cptr->serv->user is necessary to insure

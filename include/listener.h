@@ -23,6 +23,9 @@
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"       /* HOSTLEN */
 #endif
+#ifndef INCLUDED_ircd_events_h
+#include "ircd_events.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>       /* size_t, broken BSD system headers */
 #define INCLUDED_sys_types_h
@@ -46,11 +49,11 @@ struct Listener {
   time_t           last_accept;        /* last time listener accepted */
   struct in_addr   addr;               /* virtual address or INADDR_ANY */
   struct in_addr   mask;               /* listener hostmask */
+  struct Socket    socket;             /* describe socket to event system */
 };
 
 extern struct Listener* ListenerPollList; /* GLOBAL - listener list */
 
-extern void        accept_connection(struct Listener* listener);
 extern void        add_listener(int port, const char* vaddr_ip, 
                                 const char* mask, int is_server, 
                                 int is_hidden);

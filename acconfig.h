@@ -48,6 +48,10 @@
 
 /* Define to force the poll() function to be used */
 #undef USE_POLL
+/* Define to enable the /dev/poll engine */
+#undef USE_DEVPOLL
+/* Define to enable the kqueue engine */
+#undef USE_KQUEUE
 
 /* Define to enable various debugging code in the server; DO NOT USE
  * THIS ON PRODUCTION SERVERS ON PAIN OF DELINKING!

@@ -76,6 +76,24 @@ if test x"$CFLAGS" != x"$unet_old_cflags"; then
     # If -pg was already there, force profiling to be enabled
     unet_cv_enable_profile=yes
 fi
+dnl Notice the -Wall flag and deal accordingly
+if test x"$CFLAGS" != x; then
+    unet_old_cflags=$CFLAGS
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wall//g'`
+fi
+if test x"$CFLAGS" != x"$unet_old_cflags"; then
+    # If -Wall was already there, force warnings to be enabled
+    unet_cv_enable_warnings=yes
+fi
+dnl Notice the -pedantic flag and deal accordingly
+if test x"$CFLAGS" != x; then
+    unet_old_cflags=$CFLAGS
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pedantic//g'`
+fi
+if test x"$CFLAGS" != x"$unet_old_cflags"; then
+    # If -pedantic was already there, force pedatic to be enabled
+    unet_cv_enable_pedantic=yes
+fi
 
 dnl Checks for libraries.
 
@@ -93,7 +111,7 @@ AC_SEARCH_LIBS(res_mkquery, resolv, ,
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(poll.h)
+AC_CHECK_HEADERS(poll.h sys/devpoll.h sys/event.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST
@@ -105,6 +123,7 @@ AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
 
 dnl Checks for library functions.
+AC_CHECK_FUNC(kqueue)
 
 dnl Do we have restarting syscalls ?
 AC_SYS_RESTARTABLE_SYSCALLS
@@ -200,7 +219,11 @@ AC_MSG_RESULT([$unet_cv_enable_poll])
 
 if test x"$unet_cv_enable_poll" = xyes; then
     AC_DEFINE([USE_POLL], , [Specify whether or not to use poll()])
+    ENGINE_C=engine_poll.c
+else
+    ENGINE_C=engine_select.c
 fi
+AC_SUBST(ENGINE_C)
 
 dnl Now look for --enable-debug
 AC_MSG_CHECKING([whether to enable debug mode])
@@ -254,6 +277,32 @@ if test x"$unet_cv_enable_profile" = xyes; then
     CFLAGS="-pg $CFLAGS"
 fi
 
+dnl Now check for --enable-pedantic
+AC_MSG_CHECKING([whether to enable pedantic compiler warnings])
+AC_ARG_ENABLE([pedantic],
+[  --enable-pedantic       Enable pedantic warnings (add -pedantic to CFLAGS)],
+[unet_cv_enable_pedantic=$enable_pedantic],
+[AC_CACHE_VAL(unet_cv_enable_pedantic,
+[unet_cv_enable_pedantic=no])])
+AC_MSG_RESULT([$unet_cv_enable_pedantic])
+
+if test x"$unet_cv_enable_pedantic" = xyes; then
+    CFLAGS="-pedantic $CFLAGS"
+fi
+
+dnl Now check for --enable-warnings
+AC_MSG_CHECKING([whether to enable compiler warnings])
+AC_ARG_ENABLE([warnings],
+[  --enable-warnings       Enable warnings (add -Wall to CFLAGS)],
+[unet_cv_enable_warnings=$enable_warnings],
+[AC_CACHE_VAL(unet_cv_enable_warnings,
+[unet_cv_enable_warnings=no])])
+AC_MSG_RESULT([$unet_cv_enable_warnings])
+
+if test x"$unet_cv_enable_warnings" = xyes; then
+    CFLAGS="-Wall $CFLAGS"
+fi
+
 dnl --disable-inlines check...
 AC_MSG_CHECKING([whether to enable inlining for a few critical functions])
 AC_ARG_ENABLE([inlines],
@@ -265,6 +314,44 @@ AC_MSG_RESULT([$unet_cv_enable_inlines])
 
 if test x"$unet_cv_enable_inlines" = xyes; then
     AC_DEFINE([FORCEINLINE], , [Force inlining for a few critical functions])
+fi
+
+dnl --enable-devpoll check...
+AC_MSG_CHECKING([whether to enable the /dev/poll event engine])
+AC_ARG_ENABLE([devpoll],
+[  --enable-devpoll        Enable the experimental /dev/poll-based engine],
+[unet_cv_enable_devpoll=$enable_devpoll],
+[AC_CACHE_VAL(unet_cv_enable_devpoll,
+[unet_cv_enable_devpoll=no])])
+
+if test x"$ac_cv_header_sys_devpoll_h" = xno; then
+    unet_cv_enable_devpoll=no
+fi
+
+AC_MSG_RESULT([$unet_cv_enable_devpoll])
+
+if test x"$unet_cv_enable_devpoll" != xno; then
+    AC_DEFINE([USE_DEVPOLL], , [Define to enable the /dev/poll engine])
+    ENGINE_C="engine_devpoll.c $ENGINE_C"
+fi
+
+dnl --enable-kqueue check...
+AC_MSG_CHECKING([whether to enable the kqueue event engine])
+AC_ARG_ENABLE([kqueue],
+[  --enable-kqueue         Enable the experimental kqueue-based engine],
+[unet_cv_enable_kqueue=$enable_kqueue],
+[AC_CACHE_VAL(unet_cv_enable_kqueue,
+[unet_cv_enable_kqueue=no])])
+
+if test x"$ac_cv_header_sys_event_h" = xno -o x"$ac_cv_func_kqueue" = xno; then
+    unet_cv_enable_kqueue=no
+fi
+
+AC_MSG_RESULT([$unet_cv_enable_kqueue])
+
+if test x"$unet_cv_enable_kqueue" != xno; then
+    AC_DEFINE([USE_KQUEUE], , [Define to enable the kqueue engine])
+    ENGINE_C="engine_kqueue.c $ENGINE_C"
 fi
 
 dnl --with-symlink lets us set the name of the symlink; defaults to "ircd"

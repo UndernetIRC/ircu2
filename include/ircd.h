@@ -59,6 +59,7 @@ extern time_t         nextping;
 extern char*          configfile;
 extern int            debuglevel;
 extern char*          debugmode;
+extern int	      running;
 
 #endif /* INCLUDED_ircd_h */
 

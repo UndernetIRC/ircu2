@@ -535,7 +535,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     m_lusers(sptr, sptr, 1, parv);
     update_load();
     motd_signon(sptr);
-    nextping = CurrentTime;
+/*      nextping = CurrentTime; */
     if (cli_snomask(sptr) & SNO_NOISY)
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     IPcheck_connect_succeeded(sptr);

@@ -102,6 +102,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_bsd.h"
 #include "send.h"
 
 #include <assert.h>
@@ -287,6 +288,7 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     MyFree(cli_listing(sptr));
     cli_listing(sptr) = 0;
     send_reply(sptr, RPL_LISTEND);
+    update_write(sptr);
     if (parc < 2)
       return 0;                 /* Let LIST abort a listing. */
   }
