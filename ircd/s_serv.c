@@ -129,7 +129,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
   recv_time = TStime();
   info[0] = '\0';
-  inpath = get_client_name(cptr, TRUE);
+  inpath = cptr->name;
   if (parc < 7)
   {
     sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "SERVER");
@@ -163,7 +163,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (prot < atoi(MINOR_PROTOCOL))
   {
     sendto_ops("Got incompatible protocol version (%s) from %s",
-	parv[5], get_client_name(cptr, TRUE));
+	parv[5], get_client_name(cptr, FALSE));
     return exit_new_server(cptr, sptr, host, timestamp,
 	"Incompatible protocol: %s", parv[5]);
   }
@@ -183,7 +183,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (*ch || !strchr(host, '.'))
   {
     sendto_ops("Bogus server name (%s) from %s",
-	host, get_client_name(cptr, TRUE));
+	host, get_client_name(cptr, FALSE));
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -266,15 +266,14 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (crule_eval(cconf->passwd))
 	{
 	  ircstp->is_ref++;
-	  sendto_ops("Refused connection from %s.", get_client_host(cptr));
+	  sendto_ops("Refused connection from %s.", cptr->name);
 	  return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
 	}
 
     if (check_server(cptr))
     {
       ircstp->is_ref++;
-      sendto_ops("Received unauthorized connection from %s.",
-	  get_client_host(cptr));
+      sendto_ops("Received unauthorized connection from %s.", cptr->name);
       return exit_client(cptr, cptr, &me, "No C/N conf lines");
     }
 
@@ -359,7 +358,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	*s = '@';
 	ircstp->is_ref++;
 	sendto_ops("Username mismatch [%s]v[%s] : %s",
-	    aconf->host, cptr->username, get_client_name(cptr, TRUE));
+	    aconf->host, cptr->username, get_client_name(cptr, FALSE));
 	return exit_client(cptr, cptr, &me, "Bad Username");
       }
       *s = '@';
@@ -617,7 +616,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
       return exit_new_server(cptr, sptr, host, timestamp,
 	  (active_lh_line == 2) ?
 	  "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
-	  get_client_name(cptr, TRUE), host,
+	  cptr->name, host,
 	  lhconf ? (lhconf->host ? lhconf->host : "*") : "!");
     else
     {
@@ -627,7 +626,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (exit_client_msg(cptr, LHcptr, &me,
 	    (active_lh_line == 2) ?
 	    "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
-	    get_client_name(cptr, TRUE), host,
+	    cptr->name, host,
 	    lhconf ? (lhconf->host ? lhconf->host : "*") : "!") == CPTR_KILLED)
 	  return CPTR_KILLED;
       }
@@ -691,7 +690,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
       if (!(cconf = bcptr->serv->nline))
       {
 	sendto_ops("Lost N-line for %s on %s. Closing",
-	    get_client_name(cptr, TRUE), host);
+	    cptr->name, host);
 	return exit_client(cptr, cptr, &me, "Lost N line");
       }
       if (match(my_name_for_link(me.name, cconf), acptr->name) == 0)
@@ -790,7 +789,7 @@ int m_server_estab(aClient *cptr, aConfItem *aconf, aConfItem *bconf)
 
   split = (strCasediff(cptr->name, cptr->sockhost)
       && strnCasecmp(cptr->info, "JUPE", 4));
-  inpath = get_client_name(cptr, TRUE);
+  inpath = cptr->name;
   host = cptr->name;
 
   if (IsUnknown(cptr))
@@ -855,16 +854,16 @@ int m_server_estab(aClient *cptr, aConfItem *aconf, aConfItem *bconf)
     {
       if (Protocol(acptr) > 9)
 	sendto_one(acptr,
-	    "%s SERVER %s 2 0 " TIME_T_FMT " %s%u %s%s 0 :[%s] %s",
+	    "%s SERVER %s 2 0 " TIME_T_FMT " %s%u %s%s 0 :%s",
 	    NumServ(&me), cptr->name, cptr->serv->timestamp,
 	    (Protocol(cptr) > 9) ? "J" : "J0", Protocol(cptr), NumServCap(cptr),
-	    cptr->sockhost, cptr->info);
+	    cptr->info);
       else
 	sendto_one(acptr,
-	    ":%s SERVER %s 2 0 " TIME_T_FMT " %s%u %s%s 0 :[%s] %s", me.name,
+	    ":%s SERVER %s 2 0 " TIME_T_FMT " %s%u %s%s 0 :%s", me.name,
 	    cptr->name, cptr->serv->timestamp,
 	    (Protocol(cptr) > 9) ? "J" : "J0", Protocol(cptr), NumServCap(cptr),
-	    cptr->sockhost, cptr->info);
+	    cptr->info);
     }
     else
     {
@@ -914,18 +913,18 @@ int m_server_estab(aClient *cptr, aConfItem *aconf, aConfItem *bconf)
       {
 	if (Protocol(cptr) > 9)
 	  sendto_one(cptr,
-	      "%s SERVER %s %d 0 " TIME_T_FMT " %s%u %s%s 0 :[%s] %s",
+	      "%s SERVER %s %d 0 " TIME_T_FMT " %s%u %s%s 0 :%s",
 	      NumServ(acptr->serv->up), acptr->name,
 	      acptr->hopcount + 1, acptr->serv->timestamp,
 	      protocol_str, Protocol(acptr),
-	      NumServCap(acptr), acptr->sockhost, acptr->info);
+	      NumServCap(acptr), acptr->info);
 	else
 	  sendto_one(cptr,
-	      ":%s SERVER %s %d 0 " TIME_T_FMT " %s%u %s%s 0 :[%s] %s",
+	      ":%s SERVER %s %d 0 " TIME_T_FMT " %s%u %s%s 0 :%s",
 	      acptr->serv->up->name, acptr->name,
 	      acptr->hopcount + 1, acptr->serv->timestamp,
 	      protocol_str, Protocol(acptr),
-	      NumServCap(acptr), acptr->sockhost, acptr->info);
+	      NumServCap(acptr), acptr->info);
       }
       else
       {
@@ -1021,10 +1020,10 @@ int m_error(aClient *cptr, aClient *sptr, int parc, char *parv[])
     return exit_client_msg(cptr, cptr, &me, "Register first");
 
   if (cptr == sptr)
-    sendto_ops("ERROR :from %s -- %s", get_client_name(cptr, FALSE), para);
+    sendto_ops("ERROR :from %s -- %s", cptr->name, para);
   else
     sendto_ops("ERROR :from %s via %s -- %s",
-	sptr->name, get_client_name(cptr, FALSE), para);
+	sptr->name, cptr->name, para);
 
   if (sptr->serv)
   {

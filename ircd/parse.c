@@ -397,7 +397,7 @@ int parse_client(aClient *cptr, char *buffer, char *bufend)
 	sendto_one(from, ":%s %d %s %s :Unknown command",
 	    me.name, ERR_UNKNOWNCOMMAND, from->name, ch);
       Debug((DEBUG_ERROR, "Unknown (%s) from %s",
-	  ch, get_client_name(cptr, TRUE)));
+	  ch, get_client_name(cptr, FALSE)));
     }
     ircstp->is_unco++;
     return (-1);
@@ -717,7 +717,7 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
       if (buffer[0] != '\0')
       {
 	Debug((DEBUG_ERROR, "Unknown (%s) from %s",
-	    ch, get_client_name(cptr, TRUE)));
+	    ch, get_client_name(cptr, FALSE)));
       }
 #endif
       ircstp->is_unco++;

@@ -188,7 +188,7 @@ void server_reboot(void)
   close(1);
   if ((bootopt & BOOT_CONSOLE) || isatty(0))
     close(0);
-  if (!(bootopt & (BOOT_INETD | BOOT_OPER)))
+  if (!(bootopt & BOOT_INETD))
     execv(SPATH, myargv);
 #ifdef USE_SYSLOG
   /* Have to reopen since it has been closed above */
@@ -284,8 +284,7 @@ static time_t try_connections(void)
       (*pconf = con_conf)->next = 0;
     }
     if (connect_server(con_conf, (aClient *)NULL, (struct hostent *)NULL) == 0)
-      sendto_ops("Connection to %s[%s] activated.",
-	  con_conf->name, con_conf->host);
+      sendto_ops("Connection to %s activated.", con_conf->name);
   }
   Debug((DEBUG_NOTICE, "Next connection check : %s", myctime(next)));
   return (next);
@@ -339,7 +338,7 @@ static time_t check_pings(void)
       if (!IsRegistered(cptr) && (DoingDNS(cptr) || DoingAuth(cptr)))
       {
 	Debug((DEBUG_NOTICE, "%s/%s timeout %s", DoingDNS(cptr) ? "DNS" : "",
-	    DoingAuth(cptr) ? "AUTH" : "", get_client_name(cptr, TRUE)));
+	    DoingAuth(cptr) ? "AUTH" : "", get_client_name(cptr, FALSE)));
 	if (cptr->authfd >= 0)
 	{
 	  close(cptr->authfd);
@@ -357,8 +356,7 @@ static time_t check_pings(void)
       }
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
       {
-	sendto_ops("No response from %s, closing link",
-	    get_client_name(cptr, FALSE));
+	sendto_ops("No response from %s, closing link", cptr->name);
 	exit_client(cptr, cptr, &me, "Ping timeout");
 	continue;
       }
@@ -387,7 +385,7 @@ static time_t check_pings(void)
 	      me.name, ERR_BADPING, cptr->name);
 	}
 	exit_client_msg(cptr, cptr, &me, "Ping timeout for %s",
-	    get_client_name(cptr, FALSE));
+	    IsServer(cptr) ? cptr->name : get_client_name(cptr, FALSE));
       }
       continue;
     }
@@ -521,7 +519,7 @@ static void open_debugfile(void)
     cptr->flags = 0;
     cptr->acpt = cptr;
     loc_clients[2] = cptr;
-    strcpy(cptr->sockhost, me.sockhost);
+    strcpy(cptr->sockhost, me.name);
 
     printf("isatty = %d ttyname = %#x\n", isatty(2), (unsigned int)ttyname(2));
     if (!(bootopt & BOOT_TTY))	/* leave debugging output on fd 2 */
@@ -645,11 +643,6 @@ int main(int argc, char *argv[])
 	if (euid != uid)
 	  setuid((uid_t) uid);
 	dpath = p;
-	break;
-      case 'o':		/* Per user local daemon... */
-	if (euid != uid)
-	  setuid((uid_t) uid);
-	bootopt |= BOOT_OPER;
 	break;
 #ifdef CMDLINE_CONFIG
       case 'f':
@@ -846,6 +839,8 @@ int main(int argc, char *argv[])
     printf("Couldn't open configuration file %s\n", configfile);
     exit(-1);
   }
+  get_my_name(&me);
+
   if (!(bootopt & BOOT_INETD))
   {
     static char star[] = "*";
@@ -864,7 +859,6 @@ int main(int argc, char *argv[])
   rmotd = read_motd(RPATH);
   motd = read_motd(MPATH);
   setup_ping();
-  get_my_name(&me, me.sockhost, sizeof(me.sockhost) - 1);
   now = time(NULL);
   me.hopcount = 0;
   me.authfd = -1;
@@ -886,16 +880,7 @@ int main(int argc, char *argv[])
   hAddClient(&me);
 
   check_class();
-  if ((bootopt & BOOT_OPER))
-  {
-    aClient *tmp = add_connection(&me, 0, ADCON_TTY);
-
-    if (!tmp)
-      exit(1);
-    SetMaster(tmp);
-  }
-  else
-    write_pidfile();
+  write_pidfile();
 
   init_counters();
 

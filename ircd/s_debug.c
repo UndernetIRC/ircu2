@@ -101,6 +101,12 @@ char serveropts[] = {
 #ifdef	OPER_REHASH
     'E',
 #endif
+#ifdef OPER_NO_CHAN_LIMIT
+    'F',
+#endif
+#ifdef OPER_MODE_LCHAN
+    'f',
+#endif
 #ifdef	HUB
     'H',
 #endif
@@ -121,11 +127,17 @@ char serveropts[] = {
 #ifdef	LEAST_IDLE
     'L',
 #endif
+#ifdef OPER_WALK_THROUGH_LMODES
+    'l',
+#endif
 #ifdef	IDLE_FROM_MSG
     'M',
 #endif
 #ifdef	USEONE
     'O',
+#endif
+#ifdef NO_OPER_DEOP_LCHAN
+    'o',
 #endif
 #ifdef	CRYPT_OPER_PASSWORD
     'p',
@@ -157,6 +169,12 @@ char serveropts[] = {
 #endif
 #ifdef	VIRTUAL_HOST
     'v',
+#endif
+#ifdef BADCHAN
+   'W',
+#ifdef LOCAL_BADCHAN
+   'w',
+#endif
 #endif
 #ifdef	UNIXPORT
     'X',

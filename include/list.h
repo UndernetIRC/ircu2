@@ -66,5 +66,8 @@ extern aGline *make_gline(int is_ipmask, char *host, char *reason, char *name,
 extern aGline *find_gline(aClient *cptr, aGline **pgline);
 extern void free_gline(aGline *agline, aGline *pgline);
 extern void send_listinfo(aClient *cptr, char *name);
+#ifdef BADCHAN
+extern int bad_channel(char *name);
+#endif
 
 #endif /* LIST_H */

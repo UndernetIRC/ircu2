@@ -220,7 +220,7 @@ static Numeric numeric_errors[] = {
 /* 478 */
     {ERR_BANLISTFULL, "%s %s :Channel ban/ignore list is full"},
 /* 479 */
-    {0, (char *)NULL},
+    {ERR_BADCHANNAME, "%s :Cannot join channel (access denied on this server)"},
 /* 480 */
     {0, (char *)NULL},
 /* 481 */
@@ -258,7 +258,7 @@ static Numeric numeric_errors[] = {
 /* 497 */
     {0, (char *)NULL},
 /* 498 */
-    {0, (char *)NULL},
+    {ERR_ISOPERLCHAN, "%s %s :Cannot kick or deop an IRC Operator on a local channel"},
 /* 499 */
     {0, (char *)NULL},
 /* 500 */

@@ -1,11 +1,32 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.1.1.1 1999-11-16 05:13:14 codercom Exp $
+# $Id: ChangeLog,v 1.12 2000-03-18 01:59:56 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* Added hostname hiding compatible with ircu2.10.10 to allow host hiding
+  for transitioning services, back out pline8 for now. --Bleep
+* Fixed default behavior for BADCHAN. supposed to DEFAULT yes, however
+  should not change each time a make config is done. -- WT
+* doc/readme.www: add Runs link update patch for linux info. --Bleep
+* channel.c, channel.h: add David M's fixup for local channel oper overrides.
+  --Bleep
+* s_misc.c (date): add Runs Y2K patch --Bleep
+* hash.c (hChangeClient): bug fix. If the client pointer matched the first
+  pointer in the bucket, the change was ignored (returned 0), leaving stale
+  values in the hash table, eventually causing the server to die for mysterious
+  reasons. Bug discovered by Quant and Isomer --Bleep
+* config-sh.in, channel.h, numeric.h, channel.c, s_debug.c, s_err.c:
+  add lchanmode patch by CaptJay, add symbols to incredibly long
+  feature string. Bump patchlevel to .03 --Bleep
+* list.h list.c s_conf.h s_conf.c opercmds.c:
+  badchan patch 2 seperate settings, allow global, and allow local.
+  currently allow_local is 'unapproved' for use on undernet. --WildThang
+* ircd.h, s_serv.h, s_debug.h, ircd.c, s_user.c, s_bsd.c:
+  removed STAT_MASTER/BOOT_OPER code, original patch by Isomer --Bleep
+* s_user.c (m_nick): removed redundant check for acptr --Bleep
 * ChangeLog (file): added ChangeLog, and BUGS files, import to ircu2.10 --Bleep
 

@@ -171,7 +171,7 @@ extern int get_sockerr(aClient *cptr);
 extern void set_non_blocking(int fd, aClient *cptr);
 extern aClient *add_connection(aClient *cptr, int fd, int type);
 extern int read_message(time_t delay);
-extern void get_my_name(aClient *cptr, char *name, size_t len);
+extern void get_my_name(aClient *cptr);
 extern int setup_ping(void);
 
 extern int highest_fd, resfd;

@@ -246,6 +246,9 @@ static void report_configured_links(aClient *sptr, int mask)
 	sendto_one(sptr, rpl_str(p[1]),
 	    me.name, sptr->name, c, host, pass, name, port,
 	    get_conf_class(tmp));
+      else if ((tmp->status & (CONF_CONNECT_SERVER|CONF_NOCONNECT_SERVER)))
+	sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, "*", name,
+	    port, get_conf_class(tmp));
       else
 	sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, host, name,
 	    port, get_conf_class(tmp));
@@ -409,8 +412,7 @@ int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (!(doall || wilds) && strCasediff(name, acptr->name))
 	  continue;
 	sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
-	    (isUpper(stat)) ?
-	    get_client_name(acptr, TRUE) : get_client_name(acptr, FALSE),
+            acptr->name,
 	    (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
 	    (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
 	    time(NULL) - acptr->firsttime);
@@ -809,12 +811,12 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     case 0:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,
-	    ":%s NOTICE %s :*** Connecting to %s[%s].",
-	    me.name, parv[0], aconf->host, aconf->name);
+	    ":%s NOTICE %s :*** Connecting to %s.",
+	    me.name, parv[0], aconf->name);
       else
 	sendto_one(sptr,
-	    "%s NOTICE %s%s :*** Connecting to %s[%s].",
-	    NumServ(&me), NumNick(sptr), aconf->host, aconf->name);
+	    "%s NOTICE %s%s :*** Connecting to %s.",
+	    NumServ(&me), NumNick(sptr), aconf->name);
       break;
     case -1:
       /* Comments already sent */
@@ -822,20 +824,20 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
     case -2:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr, ":%s NOTICE %s :*** Host %s is unknown.",
-	    me.name, parv[0], aconf->host);
+	    me.name, parv[0], aconf->name);
       else
 	sendto_one(sptr, "%s NOTICE %s%s :*** Host %s is unknown.",
-	    NumServ(&me), NumNick(sptr), aconf->host);
+	    NumServ(&me), NumNick(sptr), aconf->name);
       break;
     default:
       if (MyUser(sptr) || Protocol(cptr) < 10)
 	sendto_one(sptr,
 	    ":%s NOTICE %s :*** Connection to %s failed: %s",
-	    me.name, parv[0], aconf->host, strerror(retval));
+	    me.name, parv[0], aconf->name, strerror(retval));
       else
 	sendto_one(sptr,
 	    "%s NOTICE %s%s :*** Connection to %s failed: %s",
-	    NumServ(&me), NumNick(sptr), aconf->host, strerror(retval));
+	    NumServ(&me), NumNick(sptr), aconf->name, strerror(retval));
   }
   aconf->port = tmpport;
   return 0;
@@ -957,7 +959,7 @@ int m_settime(aClient *cptr, aClient *sptr, int parc, char *parv[])
   }
 #else
   sendto_ops("SETTIME from %s, clock is set %ld seconds %s",
-      get_client_name(sptr, FALSE), (dt < 0) ? -dt : dt,
+      sptr->name, (dt < 0) ? -dt : dt,
       (dt < 0) ? "forwards" : "backwards");
   TSoffset -= dt;
   if (IsUser(sptr))
@@ -1273,7 +1275,6 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
   for (i = 0; i <= highest_fd; i++)
   {
-    char *name;
     unsigned int conClass;
 
     if (!(acptr = loc_clients[i]))	/* Local Connection? */
@@ -1285,28 +1286,31 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
       continue;
     if (!dow && strCasediff(tname, acptr->name))
       continue;
-    name = get_client_name(acptr, FALSE);
     conClass = get_client_class(acptr);
 
     switch (acptr->status)
     {
       case STAT_CONNECTING:
 	sendto_one(sptr, rpl_str(RPL_TRACECONNECTING),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_HANDSHAKE:
 	sendto_one(sptr, rpl_str(RPL_TRACEHANDSHAKE),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_ME:
 	break;
       case STAT_UNKNOWN:
       case STAT_UNKNOWN_USER:
+	sendto_one(sptr, rpl_str(RPL_TRACEUNKNOWN),
+	    me.name, parv[0], conClass, get_client_name(acptr, FALSE));
+	cnt++;
+	break;
       case STAT_UNKNOWN_SERVER:
 	sendto_one(sptr, rpl_str(RPL_TRACEUNKNOWN),
-	    me.name, parv[0], conClass, name);
+	    me.name, parv[0], conClass, acptr->name);
 	cnt++;
 	break;
       case STAT_USER:
@@ -1317,10 +1321,10 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	{
 	  if (IsAnOper(acptr))
 	    sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR),
-		me.name, parv[0], conClass, name, now - acptr->lasttime);
+		me.name, parv[0], conClass, get_client_name(acptr, FALSE), now - acptr->lasttime);
 	  else
 	    sendto_one(sptr, rpl_str(RPL_TRACEUSER),
-		me.name, parv[0], conClass, name, now - acptr->lasttime);
+		me.name, parv[0], conClass, get_client_name(acptr, FALSE), now - acptr->lasttime);
 	  cnt++;
 	}
 	break;
@@ -1344,14 +1348,14 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if (acptr->serv->user)
 	  sendto_one(sptr, rpl_str(RPL_TRACESERVER),
 	      me.name, parv[0], conClass, link_s[i],
-	      link_u[i], name, acptr->serv->by,
+	      link_u[i], acptr->name, acptr->serv->by,
 	      acptr->serv->user->username,
 	      acptr->serv->user->host,
 	      now - acptr->lasttime, now - acptr->serv->timestamp);
 	else
 	  sendto_one(sptr, rpl_str(RPL_TRACESERVER),
 	      me.name, parv[0], conClass, link_s[i],
-	      link_u[i], name, *(acptr->serv->by) ?
+	      link_u[i], acptr->name, *(acptr->serv->by) ?
 	      acptr->serv->by : "*", "*", me.name,
 	      now - acptr->lasttime, now - acptr->serv->timestamp);
 	cnt++;
@@ -1363,10 +1367,10 @@ int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	break;
       case STAT_PING:
 	sendto_one(sptr, rpl_str(RPL_TRACEPING), me.name,
-	    parv[0], name, (acptr->acpt) ? acptr->acpt->name : "<null>");
+	    parv[0], acptr->name, (acptr->acpt) ? acptr->acpt->name : "<null>");
 	break;
       default:			/* We actually shouldn't come here, -msa */
-	sendto_one(sptr, rpl_str(RPL_TRACENEWTYPE), me.name, parv[0], name);
+	sendto_one(sptr, rpl_str(RPL_TRACENEWTYPE), me.name, parv[0], acptr->name);
 	cnt++;
 	break;
     }
@@ -1414,7 +1418,7 @@ int m_close(aClient *cptr, aClient *sptr, int UNUSED(parc), char *parv[])
     if (!IsUnknown(acptr) && !IsConnecting(acptr) && !IsHandshake(acptr))
       continue;
     sendto_one(sptr, rpl_str(RPL_CLOSING), me.name, parv[0],
-	get_client_name(acptr, TRUE), acptr->status);
+	get_client_name(acptr, FALSE), acptr->status);
     exit_client(cptr, acptr, &me, "Oper Closing");
     closed++;
   }
@@ -1451,10 +1455,10 @@ int m_die(aClient *UNUSED(cptr), aClient *sptr, int UNUSED(parc), char *parv[])
       continue;
     if (IsUser(acptr))
       sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s",
-	  me.name, acptr->name, get_client_name(sptr, TRUE));
+	  me.name, acptr->name, get_client_name(sptr, FALSE));
     else if (IsServer(acptr))
       sendto_one(acptr, ":%s ERROR :Terminated by %s",
-	  me.name, get_client_name(sptr, TRUE));
+	  me.name, get_client_name(sptr, FALSE));
   }
 #ifdef __cplusplus
   s_die(0);
@@ -1470,26 +1474,37 @@ static void add_gline(aClient *sptr, int ip_mask, char *host, char *comment,
 {
   aClient *acptr;
   aGline *agline;
-  int fd;
+  int fd,gtype=0;
 
+#ifdef BADCHAN
+  if(*host=='#' || *host == '&' || *host == '+')
+    gtype=1;	/* BAD CHANNEL */
+#endif
   /* Inform ops */
   sendto_op_mask(SNO_GLINE,
-      "%s adding %sGLINE for %s@%s, expiring at " TIME_T_FMT ": %s", sptr->name,
-      local ? "local " : "", user, host, expire, comment);
+      "%s adding %s%s for %s@%s, expiring at " TIME_T_FMT ": %s", sptr->name,
+      local ? "local " : "",
+      gtype ? "BADCHAN":"GLINE", user, host, expire, comment);
 
 #ifdef GPATH
   write_log(GPATH,
-      "# " TIME_T_FMT " %s adding %s GLINE for %s@%s, expiring at " TIME_T_FMT
+      "# " TIME_T_FMT " %s adding %s %s for %s@%s, expiring at " TIME_T_FMT
       ": %s\n", TStime(), sptr->name, local ? "local" : "global",
-      user, host, expire, comment);
+      gtype ? "BADCHAN" : "GLINE", user, host, expire, comment);
 
   /* this can be inserted into the conf */
-  write_log(GPATH, "%c:%s:%s:%s\n", ip_mask ? 'k' : 'K', host, comment, user);
+  if(!gtype)
+    write_log(GPATH, "%c:%s:%s:%s\n", ip_mask ? 'k' : 'K', host, comment, 
+      user);
 #endif /* GPATH */
 
   agline = make_gline(ip_mask, host, comment, user, expire);
   if (local)
     SetGlineIsLocal(agline);
+
+#ifdef BADCHAN
+  if(gtype) return;
+#endif
 
   for (fd = highest_fd; fd >= 0; --fd)	/* get the users! */
     if ((acptr = loc_clients[fd]) && !IsMe(acptr))
@@ -1548,7 +1563,7 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
   aGline *agline, *a2gline;
   char *user, *host;
-  int active, ip_mask;
+  int active, ip_mask,gtype = 0;
   time_t expire = 0;
 
   /* Remove expired G-lines */
@@ -1564,6 +1579,23 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
     }
     a2gline = agline;
   }
+
+#ifdef BADCHAN
+  /* Remove expired bad channels */
+  for (agline = badchan, a2gline = NULL; agline; agline = agline->next)
+  {
+    if (agline->expire <= TStime())
+    {
+      free_gline(agline, a2gline);
+      agline = a2gline ? a2gline : badchan;
+      if (!agline)
+        break;
+      continue;
+    }
+    a2gline = agline;
+  }
+#endif
+
 
   if (IsServer(cptr))
   {
@@ -1585,9 +1617,9 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	parv[2]++;		/* step past mode indicator */
 
       /* forward the message appropriately */
-      if (!strCasediff(parv[1], "*"))
+      if (!strCasediff(parv[1], "*"))	/* global! */
 	sendto_serv_butone(cptr, active ? ":%s GLINE %s +%s %s :%s" :
-	    ":%s GLINE %s -%s", parv[0], parv[1], parv[2], parv[3], parv[4]);	/* global! */
+	    ":%s GLINE %s -%s", parv[0], parv[1], parv[2], parv[3], parv[4]);
       else if ((
 #if 1
 	  /*
@@ -1625,8 +1657,13 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	*(host++) = '\0';	/* break up string at the '@' */
       }
       ip_mask = check_if_ipmask(host);	/* Store this boolean */
+#ifdef BADCHAN
+      if(*host=='#' || *host == '&' || *host == '+')
+        gtype=1;		/* BAD CHANNEL GLINE */
+#endif
 
-      for (agline = gline, a2gline = NULL; agline; agline = agline->next)
+      for (agline = (gtype)?badchan:gline, a2gline = NULL; agline; 
+           agline = agline->next)
       {
 	if (!strCasediff(agline->name, user)
 	    && !strCasediff(agline->host, host))
@@ -1636,12 +1673,14 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
       if (!active && agline)
       {				/* removing the gline */
-	sendto_op_mask(SNO_GLINE, "%s removing GLINE for %s@%s", parv[0],
-	    agline->name, agline->host);	/* notify opers */
+	/* notify opers */
+	sendto_op_mask(SNO_GLINE, "%s removing %s for %s@%s", parv[0],
+	    gtype?"BADCHAN":"GLINE",agline->name, agline->host);
 
 #ifdef GPATH
-	write_log(GPATH, "# " TIME_T_FMT " %s removing GLINE for %s@%s\n",
-	    TStime(), parv[0], agline->name, agline->host);
+	write_log(GPATH, "# " TIME_T_FMT " %s removing %s for %s@%s\n",
+	    TStime(), parv[0], gtype?"BADCHAN":"GLINE",agline->name, 
+            agline->host);
 #endif /* GPATH */
 
 	free_gline(agline, a2gline);	/* remove the gline */
@@ -1653,20 +1692,22 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	{			/* new expire time? */
 	  /* yes, notify the opers */
 	  sendto_op_mask(SNO_GLINE,
-	      "%s resetting expiration time on GLINE for %s@%s to " TIME_T_FMT,
-	      parv[0], agline->name, agline->host, expire);
+	      "%s resetting expiration time on %s for %s@%s to " TIME_T_FMT,
+	      parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host, 
+              expire);
 
 #ifdef GPATH
 	  write_log(GPATH, "# " TIME_T_FMT " %s resetting expiration time "
-	      "on GLINE for %s@%s to " TIME_T_FMT "\n",
-	      TStime(), parv[0], agline->name, agline->host, expire);
+	      "on %s for %s@%s to " TIME_T_FMT "\n",
+	      TStime(), parv[0], gtype?"BADCHAN":"GLINE",
+               agline->name, agline->host, expire);
 #endif /* GPATH */
 
 	  agline->expire = expire;	/* reset the expire time */
 	}
 	else if (!agline)
 	{			/* create gline */
-	  for (agline = gline; agline; agline = agline->next)
+	  for (agline = gtype?badchan:gline; agline; agline = agline->next)
 	    if (!mmatch(agline->name, user) &&
 		(ip_mask ? GlineIsIpMask(agline) : !GlineIsIpMask(agline)) &&
 		!mmatch(agline->host, host))
@@ -1731,8 +1772,17 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
       *(host++) = '\0';		/* break up string at the '@' */
     }
     ip_mask = check_if_ipmask(host);	/* Store this boolean */
+#ifdef BADCHAN
+    if(*host=='#' || *host == '&' || *host == '+')
+#ifndef LOCAL_BADCHAN
+     return 0;
+#else
+     gtype=1;	/* BAD CHANNEL */
+#endif
+#endif
 
-    for (agline = gline, a2gline = NULL; agline; agline = agline->next)
+    for (agline = gtype?badchan:gline, a2gline = NULL; agline; 
+      agline = agline->next)
     {
       if (!mmatch(agline->name, user) &&
 	  (ip_mask ? GlineIsIpMask(agline) : !GlineIsIpMask(agline)) &&
@@ -1787,12 +1837,13 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
       else if (GlineIsLocal(agline))
       {
 	/* Remove local G-line */
-	sendto_op_mask(SNO_GLINE, "%s removed local GLINE for %s@%s",
-	    parv[0], agline->name, agline->host);
+	sendto_op_mask(SNO_GLINE, "%s removed local %s for %s@%s",
+	    parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host);
 #ifdef GPATH
 	write_log(GPATH, "# " TIME_T_FMT
-	    " %s!%s@%s removed local GLINE for %s@%s\n",
+	    " %s!%s@%s removed local %s for %s@%s\n",
 	    TStime(), parv[0], cptr->user->username, cptr->user->host,
+	    gtype?"BADCHAN":"GLINE",
 	    agline->name, agline->host);
 #endif /* GPATH */
 	free_gline(agline, a2gline);	/* remove the gline */
@@ -1811,30 +1862,32 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
     /* inform the operators what's up */
     if (active != -1)
     {				/* changing the activation */
-      sendto_op_mask(SNO_GLINE, !expire ? "%s %sactivating GLINE for %s@%s" :
-	  "%s %sactivating GLINE for %s@%s and "
+      sendto_op_mask(SNO_GLINE, !expire ? "%s %sactivating %s for %s@%s" :
+	  "%s %sactivating %s for %s@%s and "
 	  "resetting expiration time to " TIME_T_FMT,
-	  parv[0], active ? "re" : "de", agline->name,
+	  parv[0], active ? "re" : "de", gtype?"BADCHAN":"GLINE",agline->name,
 	  agline->host, agline->expire);
 #ifdef GPATH
       write_log(GPATH, !expire ? "# " TIME_T_FMT " %s!%s@%s %sactivating "
-	  "GLINE for %s@%s\n" : "# " TIME_T_FMT " %s!%s@%s %sactivating GLINE "
+	  "%s for %s@%s\n" : "# " TIME_T_FMT " %s!%s@%s %sactivating %s "
 	  "for %s@%s and resetting expiration time to " TIME_T_FMT "\n",
 	  TStime(), parv[0], cptr->user->username, cptr->user->host,
-	  active ? "re" : "de", agline->name, agline->host, agline->expire);
+	  active ? "re" : "de", gtype?"BADCHAN":"GLINE",agline->name, 
+          agline->host, agline->expire);
 #endif /* GPATH */
 
     }
     else if (expire)
     {				/* changing only the expiration */
       sendto_op_mask(SNO_GLINE,
-	  "%s resetting expiration time on GLINE for %s@%s to " TIME_T_FMT,
-	  parv[0], agline->name, agline->host, agline->expire);
+	  "%s resetting expiration time on %s for %s@%s to " TIME_T_FMT,
+	  parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host, 
+          agline->expire);
 #ifdef GPATH
       write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s resetting expiration "
-	  "time on GLINE for %s@%s to " TIME_T_FMT "\n", TStime(), parv[0],
-	  cptr->user->username, cptr->user->host, agline->name,
-	  agline->host, agline->expire);
+	  "time on %s for %s@%s to " TIME_T_FMT "\n", TStime(), parv[0],
+	  cptr->user->username, cptr->user->host,gtype?"BADCHAN":"GLINE",
+	  agline->name, agline->host, agline->expire);
 #endif /* GPATH */
     }
   }

@@ -81,7 +81,7 @@ static void dead_link(aClient *to, char *notice)
   LastDeadComment(to)[sizeof(LastDeadComment(to)) - 1] = 0;
 
   if (!IsUser(to) && !IsUnknown(to) && !(to->flags & FLAGS_CLOSING))
-    sendto_ops("%s for %s", LastDeadComment(to), get_client_name(to, FALSE));
+    sendto_ops("%s for %s", LastDeadComment(to), to->name);
   Debug((DEBUG_ERROR, LastDeadComment(to)));
 }
 
@@ -232,8 +232,8 @@ void sendbufto_one(aClient *to)
   {
     if (IsServer(to))
       sendto_ops("Max SendQ limit exceeded for %s: "
-	  SIZE_T_FMT " > " SIZE_T_FMT,
-	  get_client_name(to, FALSE), DBufLength(&to->sendQ), get_sendq(to));
+	  SIZE_T_FMT " > " SIZE_T_FMT, to->name,
+	  DBufLength(&to->sendQ), get_sendq(to));
     dead_link(to, "Max sendQ exceeded");
     return;
   }
@@ -782,6 +782,7 @@ void sendto_ops_butone(aClient *one, aClient *from, char *pattern, ...)
   ++sentalong_marker;
   for (cptr = client; cptr; cptr = cptr->next)
   {
+    /*if (!IsAnOper(cptr)) */
     if (!SendWallops(cptr))
       continue;
     i = cptr->from->fd;		/* find connection oper is on */

@@ -20,4 +20,4 @@ world wide web pages:
 		http://routing-com.undernet.org/
 
 * Information about large number of file descriptors per process:
-  linux:	ftp://ftp.linux.org.za/linux/local/kernel/
+  linux:	http://www.linux.org.za/oskar/patches/kernel/filehandle/
