@@ -1402,8 +1402,11 @@ int find_kill(struct Client *cptr)
      * match(). $R identifies a real-name-match token, other char's reserved for
      * future use. -Gte
      */
-     
-    realname = (((tmp->host[0] == '$') && (tmp->host[1] == 'R')) ? &tmp->host[2] : 0); // Move past the $R..
+    
+    /*
+     *  Move past the $R in the field if present.
+     */ 
+    realname = (((tmp->host[0] == '$') && (tmp->host[1] == 'R')) ? &tmp->host[2] : 0);
     if ((tmp->status & CONF_KLINE) && tmp->host && tmp->name &&
         ((realname && (match(realname, cptr->info) == 0)) || match(tmp->host, host) == 0 || 
         ((tmp->status == CONF_IPKILL) &&
