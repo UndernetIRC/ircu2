@@ -249,10 +249,10 @@ void count_memory(struct Client *cptr, char *nick)
   const struct ConnectionClass* cltmp;
   struct Membership* member;
 
-  int lc = 0,                   /* local clients */
+  int c = 0,                    /* clients */
+      cn = 0,                   /* connections */
       ch = 0,                   /* channels */
       lcc = 0,                  /* local client conf links */
-      rc = 0,                   /* remote clients */
       us = 0,                   /* user structs */
       chi = 0,                  /* channel invites */
       chb = 0,                  /* channel bans */
@@ -267,8 +267,8 @@ void count_memory(struct Client *cptr, char *nick)
 
   size_t chm = 0,               /* memory used by channels */
       chbm = 0,                 /* memory used by channel bans */
-      lcm = 0,                  /* memory used by local clients */
-      rcm = 0,                  /* memory used by remote clients */
+      cm = 0,                   /* memory used by clients */
+      cnm = 0,                  /* memory used by connections */
       awm = 0,                  /* memory used by aways */
       wwam = 0,                 /* whowas away memory used */
       wwm = 0,                  /* whowas array memory used */
@@ -288,14 +288,13 @@ void count_memory(struct Client *cptr, char *nick)
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
   {
+    c++;
     if (MyConnect(acptr))
     {
-      lc++;
+      cn++;
       for (link = cli_confs(acptr); link; link = link->next)
         lcc++;
     }
-    else
-      rc++;
     if (cli_user(acptr))
     {
       us++;
@@ -310,8 +309,8 @@ void count_memory(struct Client *cptr, char *nick)
       }
     }
   }
-  lcm = lc * CLIENT_LOCAL_SIZE;
-  rcm = rc * CLIENT_REMOTE_SIZE;
+  cm = c * sizeof(struct Client);
+  cnm = cn * sizeof(struct Connection);
 
   for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
   {
@@ -346,7 +345,7 @@ void count_memory(struct Client *cptr, char *nick)
     cl++;
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Client Local %d(%zu) Remote %d(%zu)", lc, lcm, rc, rcm);
+	     ":Clients %d(%zu) Connections %d(%zu)", c, cm, cn, cnm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Users %d(%zu) Invites %d(%zu)", us, us * sizeof(struct User),
 	     usi, usi * sizeof(struct SLink));
@@ -356,7 +355,7 @@ void count_memory(struct Client *cptr, char *nick)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Attached confs %d(%zu)",
 	     lcc, lcc * sizeof(struct SLink));
 
-  totcl = lcm + rcm + us * sizeof(struct User) + memberships * sizeof(struct Membership) + awm;
+  totcl = cm + cnm + us * sizeof(struct User) + memberships * sizeof(struct Membership) + awm;
   totcl += lcc * sizeof(struct SLink) + usi * sizeof(struct SLink);
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu)", co,

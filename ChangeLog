@@ -1,3 +1,19 @@
+2000-12-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_debug.c (count_memory): modify to report for clients and
+	connections, not local clients and remote clients
+
+	* ircd/list.c: fiddle with the client-fiddling functions to take
+	into account the divorce of struct Connection from struct Client
+
+	* ircd/ircd.c: define a struct Connection for me, initialize it,
+	and link it into the right place (ewww, globals!)
+
+	* include/client.h: remove CLIENT_{LOCAL,REMOTE}_SIZE; split
+	struct Client into struct Client and struct Connection; redefine
+	local-portion accessor macros to go through struct Client to the
+	struct Connection; define struct Connection accessor macros
+
 2000-12-13  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/whowas.c: missed a couple of accesses to a struct Client

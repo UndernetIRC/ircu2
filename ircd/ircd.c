@@ -83,6 +83,7 @@ enum {
  * Global data (YUCK!)
  *--------------------------------------------------------------------------*/
 struct Client  me;                      // That's me
+struct Connection me_con;		// That's me too
 struct Client *GlobalClientList  = &me; // Pointer to beginning of Client list
 time_t         TSoffset          = 0;   // Offset of timestamps to system clock
 int            GlobalRehashFlag  = 0;   // do a rehash if set
@@ -612,6 +613,8 @@ int main(int argc, char **argv) {
 
   umask(077);                   /* better safe than sorry --SRB */
   memset(&me, 0, sizeof(me));
+  memset(&me_con, 0, sizeof(me_con));
+  cli_connect(&me) = &me_con;
   cli_fd(&me) = -1;
 
   parse_command_line(argc, argv);
