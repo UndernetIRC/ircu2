@@ -1,3 +1,6 @@
+2003-11-01 Isomer <isomer@undernet.org>
+	* include/patchlevel.h: 2.10.11.05 release
+
 2003-10-25 beware <steendijk@xs4all.nl>
         * ircd/m_who.c: Fixed /whois comma separated list with wildcards cpu
         hog bug
