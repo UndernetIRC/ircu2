@@ -204,6 +204,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
       if (strchr(parv[param], 'i') || strchr(parv[param], 'k'))
       {
+        /* Clear any outstanding rogue invites */
+        mode_invite_clear(chptr);
         for (member = chptr->members; member; member = nmember)
         {
           nmember = member->next_member;
