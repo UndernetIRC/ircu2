@@ -535,10 +535,282 @@ but may only be called once, since it uses function static storage to
 store the flag strings.
 </function>
 
+<function>
+int sig_signal(struct Signal* sig);
+
+This macro returns the signal number for the given struct Signal.
+</function>
+
+<function>
+void* sig_data(struct Signal* sig);
+
+When a struct Signal is initialized, data that the call-back function
+may find useful is stored in the struct Signal.  This macro returns
+that pointer.
+</function>
+
+<function>
+int sig_ed_int(struct Signal* sig);
+
+Engines may find it convenient to associate an integer with a struct
+Signal.  This macro may be used to retrieve that integer or, when used
+as an lvalue, to assign a value to it.  Engine data must be either an
+int or a void*; use of both is prohibited.
+</function>
+
+<function>
+void* sig_ed_ptr(struct Signal* sig);
+
+Engines may find it convenient to associate a void* pointer with a
+struct Signal.  This macro may be used to retrieve that pointer or,
+when used as an lvalue, to assign a value to it.  Engine data must be
+either an int or a void*; use of both is prohibited.
+</function>
+
+<function>
+int sig_active(struct Signal* sig);
+
+A signal's active flag is set when initialized by signal_add().  This
+may be used by the application to determine whether or not the signal
+has been initialized yet.  If it is, sig_active() returns a non-zero
+value; otherwise, its value is 0.
+</function>
+
+<function>
+void signal_add(struct Signal* signal, EventCallBack call, void* data,
+		int sig);
+
+This function is called to add a signal to the list of signals to be
+monitored.  The _signal_ parameter is a pointer is a pointer to a
+struct Signal that is allocated by the application.  The _call_
+parameter is a pointer to a function to process any signal events.
+The _data_ parameter is for use of the signal call-back and may be
+zero.  The _sig_ parameter is the integer value of the signal to be
+monitored.
+</function>
+
+<function>
+enum TimerType t_type(struct Timer* tim);
+
+This macro returns the type of the given timer.
+</function>
+
+<function>
+time_t t_value(struct Timer* tim);
+
+This macro returns the value that was used when the given timer was
+initialized by the events subsystem.  It will contain an absolute time
+if the timer type is TT_ABSOLUTE, and a relative time otherwise.
+</function>
+
+<function>
+time_t t_expire(struct Timer* tim);
+
+This macro returns the absolute time at which the timer will next
+expire.
+</function>
+
+<function>
+void* t_data(struct Timer* tim);
+
+When a struct Timer is initialized, data that the call-back function
+may find useful is stored in the struct Socket.  This macro returns
+that pointer.
+</function>
+
+<function>
+int t_ed_int(struct Timer *tim);
+
+Engines may find it convenient to associate an integer with a struct
+Timer.  This macro may be used to retrieve that integer or, when used
+as an lvalue, to assign a value to it.  Engine data must be either an
+int or a void*; use of both is prohibited.
+</function>
+
+<function>
+void* t_ed_ptr(struct Timer *tim);
+
+Engines may find it convenient to associate a void* pointer with a
+struct Timer.  This macro may be used to retrieve that pointer or,
+when used as an lvalue, to assign a value to it.  Engine data must be
+either an int or a void*; use of both is prohibited.
+</function>
+
+<function>
+int t_active(struct Timer *tim);
+
+A timer's active flag is set when initialized by timer_add(), and is
+cleared immediately prior to generating an event of type ET_DESTROY.
+This may be used by the application to determine whether or not the
+timer is still in use by the events subsystem.  If it is, s_active()
+returns a non-zero value; otherwise, its value is 0.
+</function>
+
+<function>
+void timer_add(struct Timer* timer, EventCallBack call, void* data,
+	       enum TimerType type, time_t value);
+
+This function is called to initialize and queue a timer.  The _timer_
+parameter is a pointer to a struct Timer that is allocated by the
+application.  The _call_ parameter is a pointer to a function to
+process the timer's expiration.  The _data_ parameter is for use of
+the timer call-back and may be zero.  The _type_ parameter must be one
+of the valid timer types--TT_ABSOLUTE, TT_RELATIVE, or TT_PERIODIC.
+Finally, _value_ is the value for the timer's expiration.
+</function>
+
+<function>
+void timer_del(struct Timer* timer);
+
+When the application no longer needs a TT_PERIODIC timer, or when it
+wishes to stop a TT_ABSOLUTE or TT_RELATIVE timer before its
+expiration, it should call the timer_del() function.
+</function>
+
+<function>
+void timer_chg(struct Timer* timer, enum TimerType type, time_t value);
+
+Occasionally, an application may wish to delay an existing TT_ABSOLUTE
+or TT_RELATIVE timer; this may be done with the timer_chg() function.
+The _type_ parameter must be one of TT_ABSOLUTE or
+TT_RELATIVE--changing the values of TT_PERIODIC timers is not
+supported.  The _value_ parameter is the same as would be given to
+timer_add() for that particular type of timer.
+</function>
+
+<function>
+void timer_run(void);
+
+When an engine has finished processing the results of its socket and
+signal checks--just before it loops around to test for more events--it
+should call the timer_run() function to expire any waiting timers.
+</function>
+
+<function>
+time_t timer_next(struct Generators* gen);
+
+Most engines will use a blocking call with a timeout to check for
+socket activity.  To determine when the next timer needs to be run,
+and thus to calculate how long the call should block, the engine
+should call timer_next() with the _gen_ parameter passed to the
+_EngineLoop_ function.  The timer_next() function returns an absolute
+time, which may have to be massaged into a relative time before the
+engine may use it.
+</function>
+
+<function>
+const char* timer_to_name(enum TimerType type);
+
+This function is defined only when DEBUGMODE is #define'd.  It takes
+the given _type_ and returns a string giving that type's name.  This
+function may safely be called from Debug() macros.
+</function>
+
+<function>
+enum EventType ev_type(struct Event* ev);
+
+This macro simply returns the type of the event _ev_.
+</function>
+
+<function>
+int ev_data(struct Event* ev);
+
+When an event is generated, a single integer can be passed along as a
+piece of extra information.  This can be used, for instance, to carry
+an errno value when an ET_ERROR is generated.  This macro simply
+returns that integer.
+</function>
+
+<function>
+struct Socket* ev_socket(struct Event* ev);
+
+If the event was generated by a socket, this macro returns a pointer
+to the struct Socket that generated the event.  The results are
+undefined if the event was not generated by a socket.
+</function>
+
+<function>
+struct Signal* ev_signal(struct Event* ev);
+
+If the event was generated by a signal, this macro returns a pointer
+to the struct Signal that generated the event.  The results are
+undefined if the event was not generated by a signal.
+</function>
+
+<function>
+struct Timer* ev_timer(struct Event* ev);
+
+If the event was generated by a timer, this macro returns a pointer to
+the struct Timer that generated the event.  The results are undefined
+if the event was not generated by a timer.
+</function>
+
+<function>
+void event_init(int max_sockets);
+
+Before any of the functions or macros described here can be called,
+the events subsystem must be initialized by calling event_init().  The
+_max_sockets_ parameter specifies to the events subsystem how many
+sockets it must be able to support; this figure may be used for memory
+allocation by the engines.
+</function>
+
+<function>
+void event_loop(void);
+
+Once the initial sockets are open, signals added, and timers queued,
+the application must call the event_loop() function in order to
+actually begin monitoring those sockets, signals, and timers.
+</function>
+
+<function>
+void event_generate(enum EventType type, void* arg, int data);
+
+This is the function called by the events subsystem to generate
+particular events.  The _type_ parameter specifies the type of event
+to generate, and the _arg_ parameter must be a pointer to the event's
+generator.  The _data_ parameter may be used for passing such things
+as signal numbers or errno values.
+</function>
+
+<function>
+const char* event_to_name(enum EventType type);
+
+This function is defined only when DEBUGMODE is #define'd.  It takes
+the given _type_ and returns a string giving that event type's name.
+This function may safely be called from Debug() macros.
+</function>
+
+<function>
+const char* engine_name(void);
+
+This function is used to retrieve the name of the engine presently
+being used by the events subsystem.
+</function>
+
+<function>
+void gen_ref_inc(void* gen);
+
+This macro increments the reference count of the generator _gen_,
+preventing it from simply disappearing without warning.
+</function>
+
+<function>
+void gen_ref_dec(void* gen);
+
+This macro decrements the reference count of the generator _gen_, and
+releases the memory associated with it by generating at ET_DESTROY
+event if the reference count falls to zero and the generator is marked
+for destruction.  No references should be made to the generator after
+calling this macro.
+</function>
+
 <authors>
 Kev <klmitch@mit.edu>
 </authors>
 
 <changelog>
+[2001-6-14 Kev] Finished initial description of the events subsystem.
+
 [2001-6-13 Kev] Initial description of the events subsystem.
 </changelog>

@@ -1,0 +1,283 @@
+Some users can be very annoying, as any IRC operator can attest.  Some
+can in fact be downright abusive.  Sometimes the best way of dealing
+with these users is to ban them from the entire network.  The G-line
+system permits this.
+
+G-lines are fairly complicated.  A G-line can be active or inactive,
+either locally or globally.  It can be a purely local G-line, or
+global.  It could be based on IP address or on host name.  In short,
+there are many variations on the basic G-line.  Worse, there is also
+the concept of a "bad channel," or BADCHAN, that has been tacked onto
+the G-line subsystem, when it should have been a separate command in
+the first place.
+
+Different types of G-lines are differentiated from each other through
+the use of various flags.  Some of these flags are maintained solely
+by the G-line subsystem, where as others are passed to various
+functions in the API.
+
+<macro>
+#define GLINE_MAX_EXPIRE 604800	/* max expire: 7 days */
+
+This macro lists the maximum expire time a G-line is permitted to
+have.  This value is limited to 7 days to prevent abuse of the system.
+</macro>
+
+<macro>
+#define GLINE_ACTIVE	0x0001
+
+This flag is used to indicate that a given G-line is globally active.
+</macro>
+
+<macro>
+#define GLINE_IPMASK	0x0002
+
+This flag is used to indicate that a given G-line is an IP mask.  This
+flag is maintained internally by the G-line subsystem.
+</macro>
+
+<macro>
+#define GLINE_BADCHAN	0x0004
+
+This flag is used to indicate that a given G-line specifies a BADCHAN,
+a channel that users are not permitted to join.  This flag is
+maintained internally, but is also used in gline_find() to search for
+a BADCHAN for a particular channel.
+</macro>
+
+<macro>
+#define GLINE_LOCAL	0x0008
+
+This flag is used to indicate that a given G-line is a local G-line.
+Local G-lines do not affect users on other servers.
+</macro>
+
+<macro>
+#define GLINE_ANY	0x0010
+
+This flag is passed to gline_find() to signal that function to return
+any G-line or BADCHAN that matches the passed mask string.  It is
+never set on a real G-line.
+</macro>
+
+<macro>
+#define GLINE_FORCE	0x0020
+
+This flag is passed to gline_add() to force the server to accept an
+expire time that might be out of bounds.  It is never set on a real
+G-line.
+</macro>
+
+<macro>
+#define GLINE_EXACT	0x0040
+
+This flag is passed to gline_find() to signal that function to return
+only G-lines that exactly match the passed mask string.  That is, the
+ircd_strcmp() function is called to compare the G-line to the mask,
+rather than the match() function.  This flag is never set on a real
+G-line.
+</macro>
+
+<macro>
+#define GLINE_LDEACT	0x0080	/* locally deactivated */
+
+This flag is set on global G-lines that have been locally
+deactivated.  This flag is maintained internally by the G-line
+subsystem.
+</macro>
+
+<macro>
+#define GLINE_GLOBAL	0x0100	/* find only global glines */
+
+This flag is passed to gline_find() or gline_lookup() to specify that
+the caller is only interested in global G-lines.  This flag is never
+set on a real G-line.
+</macro>
+
+<macro>
+#define GLINE_LASTMOD	0x0200	/* find only glines with non-zero lastmod */
+
+This flag is passed to gline_find() or gline_lookup() to specify that
+the caller is only interested in G-lines with a non-zero lastmod time,
+that is, G-lines that were not set by a U-lined service.  This flag is
+never set on a real G-line.
+</macro>
+
+<struct>
+struct Gline;
+
+The struct Gline describes everything about a given G-line.  None of
+its fields may be directly accessed by the application; use the
+functions and macros described below instead.
+</struct>
+
+<function>
+int GlineIsActive(struct Gline* g);
+
+This macro returns a non-zero value if the G-line is active, or 0
+otherwise.  If a G-line is locally deactivated, this macro will always
+return 0.
+</function>
+
+<function>
+int GlineIsRemActive(struct Gline* g);
+
+This macro returns a non-zero value if the G-line is active, ignoring
+whether or not it is locally deactivated.
+</function>
+
+<function>
+int GlineIsIpMask(struct Gline* g);
+
+This macro returns a non-zero value if the G-line is an IP mask.
+</function>
+
+<function>
+int GlineIsBadChan(struct Gline* g);
+
+This macro returns a non-zero value if a G-line actually represents a
+BADCHAN.
+</function>
+
+<function>
+int GlineIsLocal(struct Gline* g);
+
+This macro returns a non-zero value if a G-line is local only.
+</function>
+
+<function>
+char* GlineUser(struct Gline* g);
+
+This macro returns the user name associated with the G-line.  If the
+G-line represents a BADCHAN, this will contain the channel name.
+</function>
+
+<function>
+char* GlineHost(struct Gline* g);
+
+This macro returns the host name associated with the G-line.  If the
+G-line represents a BADCHAN, this will be a NULL pointer.
+</function>
+
+<function>
+char* GlineReason(struct Gline* g);
+
+This macro returns the reason that was given when the G-line was set.
+</function>
+
+<function>
+time_t GlineLastMod(struct Gline* g);
+
+G-lines that were not set by a U-lined service have a modification
+time that must be monotonically increasing.  This macro simply returns
+that modification time.
+</function>
+
+<function>
+int gline_propagate(struct Client *cptr, struct Client *sptr,
+		    struct Gline *gline);
+
+When a global G-line is set or modified, all other servers must be
+notified of the new G-line.  This function takes care of propagating
+the G-line specified by _gline_, originated by the client _sptr_, to
+all servers except _cptr_ (which may be a NULL pointer).
+</function>
+
+<function>
+int gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
+	      char *reason, time_t expire, time_t lastmod, unsigned int flags);
+
+This function simply adds a G-line, set by _sptr_ and with a
+_userhost_, _reason_, _expire_, and _lastmod_ as specified.  The
+_flags_ parameter is a bit mask consisting of the binary OR of
+GLINE_FORCE, GLINE_LOCAL, or GLINE_ACTIVE, as appropriate.  The
+gline_add() function also calls gline_propagate() to propagate the
+G-line, and kills off any local users matching the G-line if it is
+active.
+</function>
+
+<function>
+int gline_activate(struct Client *cptr, struct Client *sptr,
+		   struct Gline *gline, time_t lastmod, unsigned int flags);
+
+This function activates the G-line specified by _gline_, setting its
+_lastmod_ time as specified.  If _flags_ is GLINE_LOCAL and if the
+G-line is locally deactivated, this function will turn off the local
+deactivation flag, but will not modify _lastmod_.  If the G-line is
+globally deactivated, passing this function the GLINE_LOCAL flag will
+have no effect.
+</function>
+
+<function>
+int gline_deactivate(struct Client *cptr, struct Client *sptr,
+		     struct Gline *gline, time_t lastmod, unsigned int flags);
+
+This function is similar to gline_activate() except that it
+deactivates the G-line.  If the given G-line is local, or if it was
+set by a U-lined service (and GLINE_LOCAL was not passed via _flags_),
+then the G-line is deleted from memory.  In all other cases, the
+G-line is simply deactivated, either locally (if GLINE_LOCAL was
+passed via _flags_) or globally.  Global deactivation will update the
+_lastmod_ time.
+</function>
+
+<function>
+struct Gline *gline_find(char *userhost, unsigned int flags);
+
+This function looks up a G-line matching the given _userhost_ value,
+under control of the _flags_ parameter.  Valid _flags_ that may be
+passed are: GLINE_BADCHAN, GLINE_ANY, GLINE_GLOBAL, GLINE_LASTMOD, or
+GLINE_EXACT, each described above.
+</function>
+
+<function>
+struct Gline *gline_lookup(struct Client *cptr, unsigned int flags);
+
+This function looks up a G-line matching the given client, specified
+by _cptr_, under the control of the _flags_.  Valid values for _flags_
+are GLINE_GLOBAL and GLINE_LASTMOD, as described above.
+</function>
+
+<function>
+void gline_free(struct Gline *gline);
+
+This function releases all storage associated with a given G-line.
+</function>
+
+<function>
+void gline_burst(struct Client *cptr);
+
+This function generates a burst of all existing global G-lines and
+BADCHANs and sends them to the server specified by _cptr_.
+</function>
+
+<function>
+int gline_resend(struct Client *cptr, struct Gline *gline);
+
+This function resends the _gline_ to a server specified by _cptr_.
+This may be used if, for instance, it is discovered that a server is
+not synchronized with respect to a particular G-line.
+</function>
+
+<function>
+int gline_list(struct Client *sptr, char *userhost);
+
+This function sends the information about a G-line matching _userhost_
+to the client specified by _sptr_.  If _userhost_ is a NULL pointer, a
+list of all G-lines is sent.
+</function>
+
+<function>
+void gline_stats(struct Client *sptr);
+
+This function generates a list of all G-lines, sending them to the
+user _sptr_ by a /STATS G response.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation for the G-line API.
+</changelog>

@@ -1,0 +1,91 @@
+Access control becomes more of a problem as you have more and more
+users that need to access certain features.  As it stands, ircu has
+only 3 access levels: ordinary user, local operator, and global
+operator.  This is hardly enough control, especially over some of the
+more advanced and powerful features, such as G-lines.
+
+Since u2.10.11, ircu includes the concept of privileges.  Privileges
+are basically an arbitrarily long bit string.  Access to particular
+features is governed by the value of a particular bit of that bit
+string--in other words, privileges are a form of Access Control List.
+This document covers the basic structures and macros used by the
+privileges system.
+
+<struct>
+struct Privs;
+
+The Privs structure stores a privileges bit string and represents a
+user's entire privilege set.  This is implemented as a structure,
+rather than as an array of integers, in order to leverage C's
+structure copy.
+</struct>
+
+<function>
+void PrivSet(struct Privs pset, int priv);
+
+This macro sets the privilege specified by _priv_ in the privileges
+structure.  This macro evaluates the _priv_ argument twice.
+</function>
+
+<function>
+void PrivClr(struct Privs pset, int priv);
+
+This macro clears the privilege specified by _priv_ in the privileges
+structure.  This macro evaluates the _priv_ argument twice.
+</function>
+
+<function>
+int PrivHas(struct Privs pset, int priv);
+
+This macro tests whether the privilege specified by _priv_ is set in
+the privileges structure, returning non-zero if it is.  This macro
+evaluates the _priv_ argument twice.
+</function>
+
+<function>
+void GrantPriv(struct Client* cli, int priv);
+
+This macro grants a particular client, specified by _cli_, the
+privilege specified by _priv_.  This macro evaluates the _priv_
+argument twice.
+</function>
+
+<function>
+void RevokePriv(struct Client* cli, int priv);
+
+This macro revokes the privilege specified by _priv_ from the client.
+This macro evaluates the _priv_ argument twice.
+</function>
+
+<function>
+int HasPriv(struct Client* cli, int priv);
+
+This macro tests whether the client specified by _cli_ has the
+privilege specified by _priv_, returning non-zero if so.  This macro
+evaluates the _priv_ argument twice.
+</function>
+
+<function>
+void client_set_privs(struct Client* client);
+
+The ircu configuration file does not yet support privileges.  This
+function thus sets the appropriate privileges for an operator, based
+upon various feature settings.  It should be called whenever there is
+a change in a user's IRC operator status.
+</function>
+
+<function>
+int client_report_privs(struct Client *to, struct Client *client);
+
+This function sends the client specified by _to_ a list of the
+privileges that another client has.  It returns a value of 0 for the
+convenience of other functions that must return an integer value.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation of the privileges system.
+</changelog>
