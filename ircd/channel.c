@@ -2743,12 +2743,16 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 }
 
 static void
-build_string(char *strptr, int *strptr_i, char *str)
+build_string(char *strptr, int *strptr_i, char *str1, char *str2)
 {
   strptr[(*strptr_i)++] = ' ';
 
-  while (strptr[(*strptr_i)++] = *str)
+  while (strptr[(*strptr_i)++] = *(str1++))
     ; /* very simple strcat */
+
+  if (str2)
+    while (strptr[(*strptr_i)++] = *(str2++))
+      ; /* for the two-argument form--used for numeric nicks */
 }
 
 void
@@ -2778,10 +2782,10 @@ modebuf_flush(struct ModeBuf *mbuf)
   char *bufptr;
   int *bufptr_i;
 
-  char addstr[MODEBUFLEN] = "";
-  int addstr_i = 0;
-  char remstr[MODEBUFLEN] = "";
-  int remstr_i = 0;
+  char addstr[MODEBUFLEN];
+  int addstr_i;
+  char remstr[MODEBUFLEN];
+  int remstr_i;
   char *strptr;
   int *strptr_i;
 
@@ -2825,7 +2829,12 @@ modebuf_flush(struct ModeBuf *mbuf)
     }
   }
 
-  if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL) {
+  if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK4)) {
+    addstr[0] = '\0';
+    addstr_i = 0;
+    remstr[0] = '\0';
+    remstr_i = 0;
+
     for (i = 0; i < mbuf->mb_count; i++) {
       if (MB_TYPE(mbuf, i) & MODE_ADD) {
 	strptr = addstr;
@@ -2836,19 +2845,64 @@ modebuf_flush(struct ModeBuf *mbuf)
       }
 
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
-	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name);
+	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name, 0);
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
-	build_string(strptr, strptr_i, MB_STRING(mbuf, i));
+	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
       else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
-	build_string(strptr, strptr_i, limitbuf);
+	build_string(strptr, strptr_i, limitbuf, 0);
     }
 
-    sendto_channel_butserv(mbuf->mb_channel, mbuf->mb_source,
-			   ":%s MODE %s %s%s%s%s", mbuf->mb_source->name,
-			   mbuf->mb_channel->name, addbuf, rembuf, addstr,
-			   remstr);
+    if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
+      sendto_channel_butserv(mbuf->mb_channel, mbuf->mb_source,
+			     ":%s MODE %s %s%s%s%s", mbuf->mb_source->name,
+			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			     remstr);
+    if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
+      sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s [" TIME_T_FMT
+		     "]", mbuf->mb_source->name, mbuf->mb_channel->chname,
+		     addbuf, rembuf, addstr, remstr,
+		     mbuf->mb_channel->creationtime);
   }
 
+  if (mbuf->mb_dest & MODEBUF_DEST_SERVER) {
+    addstr[0] = '\0';
+    addstr_i = 0;
+    remstr[0] = '\0';
+    remstr_i = 0;
+
+    for (i = 0; i < mbuf->mb_count; i++) {
+      if (MB_TYPE(mbuf, i) & MODE_ADD) {
+	strptr = addstr;
+	strptr_i = &addstr_i;
+      } else {
+	strptr = remstr;
+	strptr_i = &remstr_i;
+      }
+
+      if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
+	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)));
+      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
+	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
+      else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
+	build_string(strptr, strptr_i, limitbuf, 0);
+    }
+
+    if (IsServer(mbuf->mb_source))
+      sendto_all_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
+			TIME_T_FMT, NumServ(mbuf->mb_source),
+			mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			mbuf->mb_channel->creationtime);
+    else
+      sendto_all_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
+			TIME_T_FMT, NumNick(mbuf->mb_source),
+			mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			mbuf->mb_channel->creationtime);
+  }
+
+  mbuf->mb_add = 0;
+  mbuf->mb_rem = 0;
   mbuf->mb_count = 0;
 
   for (i = 0; i < MAXMODEPARAMS; i++) {
