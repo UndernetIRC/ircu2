@@ -101,7 +101,16 @@
 
 /* Check if a sptr is an oper, and chptr is a local channel. */
 
-#define IsOperOnLocalChannel(sptr,chname) ((IsOper(sptr)) && (IsLocalChannel(chname)))
+#define IsOperOnLocalChannel(sptr,chname) ((IsAnOper(sptr)) \
+                                          && (IsLocalChannel(chname)))
+
+ 
+#ifdef OPER_WALK_THROUGH_LMODES
+  /* used in can_join to determine if an oper forced a join on a channel */
+  #define MAGIC_OPER_OVERRIDE 1000
+#endif
+
+
 
 /* used in SetMode() in channel.c and m_umode() in s_msg.c */
 

@@ -217,14 +217,10 @@ void SetServerYXX(struct Client *cptr, struct Client *server, const char *yxx)
       const char *name;
       unsigned int numeric;
     } server_table[] = {
-      {
-      "Uworld.undernet.org", 22},
-      {
-      "Uworld2.undernet.org", 23},
-      {
-      "channels.undernet.org", 30},
-      {
-      "channels2.undernet.org", 31},
+      { "Uworld.undernet.org",    22},
+      { "Uworld2.undernet.org",   23},
+      { "channels.undernet.org",  30},
+      { "channels2.undernet.org", 31},
       {
       0, 0}
     };

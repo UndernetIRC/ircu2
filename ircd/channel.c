@@ -850,7 +850,7 @@ int m_mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
                                 me.name, chptr->chname, modebuf, parabuf);
          sendto_op_mask(SNO_HACK4, 
                         "OPER MODE: %s MODE %s %s %s",
-                        me.name,chptr->chname,modebuf,parabuf);
+                        sptr->name,chptr->chname,modebuf,parabuf);
        }
        else
 #endif
@@ -1987,10 +1987,15 @@ top:
 static int can_join(aClient *sptr, aChannel *chptr, char *key)
 {
   Reg1 Link *lp;
-
+  int overrideJoin = 0;  
+  
 #ifdef OPER_WALK_THROUGH_LMODES
-  if (IsOperOnLocalChannel(sptr, chptr->chname))
-    return 0;
+  /* An oper can force a join on a local channel using "OVERRIDE" as the key. 
+     a HACK(4) notice will be sent if he would not have been supposed
+     to join normally. */ 
+  if (IsOperOnLocalChannel(sptr,chptr->chname) && !BadPtr(key) && 
+       compall("OVERRIDE",key) == 0)
+    overrideJoin = MAGIC_OPER_OVERRIDE;
 #endif
   /*
    * Now a banned user CAN join if invited -- Nemesi
@@ -2005,20 +2010,20 @@ static int can_join(aClient *sptr, aChannel *chptr, char *key)
     if (!lp)
     {
       if (chptr->mode.limit && chptr->users >= chptr->mode.limit)
-	return (ERR_CHANNELISFULL);
+	return (overrideJoin + ERR_CHANNELISFULL);
       /*
        * This can return an "Invite only" msg instead of the "You are banned"
        * if _both_ conditions are true, but who can say what is more
        * appropriate ? checking again IsBanned would be _SO_ cpu-xpensive !
        */
-      return ((chptr->mode.mode & MODE_INVITEONLY) ?
+      return overrideJoin + ((chptr->mode.mode & MODE_INVITEONLY) ?
 	  ERR_INVITEONLYCHAN : ERR_BANNEDFROMCHAN);
     }
   }
 
   /* now using compall (above) to test against a whole key ring -Kev */
   if (*chptr->mode.key && (BadPtr(key) || compall(chptr->mode.key, key)))
-    return (ERR_BADCHANNELKEY);
+    return overrideJoin + (ERR_BADCHANNELKEY);
 
   return 0;
 }
@@ -2367,7 +2372,7 @@ int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[])
         /*
          * Opers are allowed to join any number of channels
          */
-        if (sptr->user->joined >= MAXCHANNELSPERUSER && !IsOper(sptr))
+        if (sptr->user->joined >= MAXCHANNELSPERUSER && !IsAnOper(sptr))
 #else
         if (sptr->user->joined >= MAXCHANNELSPERUSER)
 #endif
@@ -2421,8 +2426,27 @@ int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	}
 	if ((i = can_join(sptr, chptr, keysOrTS)))
 	{
-	  sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
-	  continue;
+#ifdef OPER_WALK_THROUGH_LMODES
+          if (i > MAGIC_OPER_OVERRIDE)
+          {
+            switch(i - MAGIC_OPER_OVERRIDE)
+            {
+              case ERR_CHANNELISFULL: i = 'l'; break;
+              case ERR_INVITEONLYCHAN: i = 'i'; break;
+              case ERR_BANNEDFROMCHAN: i = 'b'; break;
+              case ERR_BADCHANNELKEY: i = 'k'; break;
+            }
+            sendto_op_mask(SNO_HACK4,"OPER JOIN: %s JOIN %s (overriding +%c)",sptr->name,chptr->chname,i);
+          }
+          else
+          {
+            sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
+            continue; 
+          }
+#else	  
+          sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
+          continue;
+#endif
 	}
       }
       /*
