@@ -356,6 +356,8 @@ struct Client {
 #define FLAGS_CLOSING    0x0400 /* set when closing to suppress errors */
 #define FLAGS_UPING      0x0800 /* has active UDP ping request */
 #define FLAGS_CHKACCESS  0x1000 /* ok to check clients access if set */
+#define FLAGS_HUB        0x2000 /* server is a hub */
+#define FLAGS_SERVICE    0x4000 /* server is a service */
 #define FLAGS_LOCAL     0x00010000      /* set for local clients */
 #define FLAGS_GOTID     0x00020000      /* successful ident lookup achieved */
 #define FLAGS_DOID      0x00040000      /* I-lines say must use ident return */
@@ -400,6 +402,8 @@ struct Client {
 #define SendDebug(x)            (cli_flags(x) & FLAGS_DEBUG)
 #define SendServNotice(x)       (cli_flags(x) & FLAGS_SERVNOTICE)
 #define SendWallops(x)          (cli_flags(x) & FLAGS_WALLOP)
+#define IsHub(x)                (cli_flags(x) & FLAGS_HUB)
+#define IsService(x)            (cli_flags(x) & FLAGS_SERVICE)
 
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
 
@@ -418,6 +422,8 @@ struct Client {
 #define SetUPing(x)             (cli_flags(x) |= FLAGS_UPING)
 #define SetWallops(x)           (cli_flags(x) |= FLAGS_WALLOP)
 #define SetServNotice(x)        (cli_flags(x) |= FLAGS_SERVNOTICE)
+#define SetHub(x)               (cli_flags(x) |= FLAGS_HUB)
+#define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
 
 #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
 #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)

@@ -1,5 +1,21 @@
 2001-06-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_serv.c (server_estab): send a +h flag in our SERVER
+	command if we're configured as a hub; send individual server flags
+	in SERVER commands
+
+	* ircd/s_bsd.c (completed_connection): send a +h flag in our
+	SERVER command if we're configured as a hub
+
+	* ircd/m_server.c: implement parv[7] as a mode-like string; +h
+	sets the FLAGS_HUB flag for a server; +s sets the FLAGS_SERVICE
+	flag for a server; +hs sets both flags; also modify CMD_SERVER
+	format string to send the flags
+
+	* include/client.h: define two new flags, FLAGS_HUB and
+	FLAGS_SERVICE to mark services and hubs as such; define testing
+	macros, setting macros
+
 	* ircd/s_user.c: remove deprecated struct Gline* argument to
 	register_user(); remove GLINE rebroadcast; do not send GLINE
 	acknowledgement parameter to NICK; do not look for GLINE

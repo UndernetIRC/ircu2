@@ -460,9 +460,10 @@ static int completed_connection(struct Client* cptr)
   cli_lasttime(cptr) = CurrentTime;
   cli_flags(cptr) |= FLAGS_PINGSENT;
 
-  sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s",
-                cli_name(&me), cli_serv(&me)->timestamp, newts, MAJOR_PROTOCOL, 
-                NumServCap(&me), cli_info(&me));
+  sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
+                cli_name(&me), cli_serv(&me)->timestamp, newts,
+		MAJOR_PROTOCOL, NumServCap(&me),
+		feature_bool(FEAT_HUB) ? "h" : "", cli_info(&me));
 
   return (IsDead(cptr)) ? 0 : 1;
 }
