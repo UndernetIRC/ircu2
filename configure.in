@@ -193,6 +193,12 @@ case "$host" in
 	OSDEP_C=os_bsd.c
 	;;
 
+    *-darwin*)
+	AC_MSG_RESULT([Darwin (Mac OS X) ($host) found.])
+	unet_poll_syscall=no
+	OSDEP_C=os_bsd.c
+	;;
+
     *)
 	AC_MSG_RESULT([Unknown system type $host found.])
 	AC_MSG_WARN([Unknown OS type; using generic routines.])
