@@ -362,6 +362,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            badid = 0;
   short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
+  int              killreason;
   char             ip_base64[8];
 
   user->last = CurrentTime;
@@ -432,7 +433,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
         && strcmp(cli_passwd(sptr), aconf->passwd))
     {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(cli_ip(sptr));
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
@@ -440,10 +440,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
     /*
      * following block for the benefit of time-dependent K:-lines
      */
-    if (find_kill(sptr)) {
+    killreason = find_kill(sptr);
+    if (killreason) {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(cli_ip(sptr));
-      return exit_client(cptr, sptr, &me, "K-lined");
+      return exit_client(cptr, sptr, &me,
+                         (killreason == -1 ? "K-lined" : "G-lined"));
     }
     /*
      * Check for mixed case usernames, meaning probably hacked.  Jon2 3-94
@@ -1085,6 +1086,8 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
    */
   for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel)
   {
+    if (IsZombie(chan))
+      continue;
     /* For a user with no modes in a join-delayed channel, do not show
      * the rejoin. */
     if (!IsChanOp(chan) && !HasVoice(chan)
