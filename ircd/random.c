@@ -24,17 +24,34 @@
 #include "random.h"
 #include "client.h"
 #include "ircd_log.h"
+#include "ircd_md5.h"
 #include "ircd_reply.h"
 #include "send.h"
 
 #include <string.h>
 #include <sys/time.h>
 
-/** 8 bytes of local pseudo-random number generator state. */
-static char localkey[9] = "12345678";
+/** Pseudo-random number generator state. */
+static struct MD5Context localkey;
+/** Next byte position in #localkey to insert at. */
+static unsigned int localkey_pos;
 
-/** Rotate \a c left by \a r bits. */
-#define char_roll(c, r)	(((c) << (r)) | ((c) >> (8 - (r))))
+/** Add bytes to #localkey.
+ * This should be fairly resistant to adding non-random bytes, but the
+ * more random the bytes are, the harder it is for an attacker to
+ * guess the internal state.
+ * @param[in] buf Buffer of bytes to add.
+ * @param[in] count Number of bytes to add.
+ */
+static void
+random_add_entropy(const char *buf, unsigned int count)
+{
+  while (count--) {
+    localkey.in[localkey_pos++] ^= *buf++;
+    if (localkey_pos >= sizeof(localkey.in))
+      localkey_pos = 0;
+  }
+}
 
 /** Seed the PRNG with a string.
  * @param[in] from Client setting the seed (may be NULL).
@@ -45,9 +62,6 @@ static char localkey[9] = "12345678";
 int
 random_seed_set(struct Client* from, const char* const* fields, int count)
 {
-  const char *p = 0;
-  int len, i, roll = 0;
-
   if (count < 1) {
     if (from) /* send an error */
       return need_more_params(from, "SET");
@@ -57,196 +71,39 @@ random_seed_set(struct Client* from, const char* const* fields, int count)
     }
   }
 
-  len = strlen(fields[0]);
-
-  /* logic is: go through loop at least 8 times, but use all bits of seed */
-  for (i = 0; i < (len < 8 ? 8 : len); i++, p++) {
-    if (!(i % len)) { /* if we've exceeded the string length, reset */
-      p = fields[0];
-      roll++; /* so latter part of string looks different from former */
-    }
-
-    /* set the appropriate location of localkey according to the following
-     * rules: first, roll current value by an amount depending on how many
-     * times we've touched this character.  Then take seed value and roll
-     * it by an amount depending upon how many times we've touched that
-     * character.  Finally, xor the values together.
-     */
-    localkey[i % 8] = char_roll(localkey[i % 8], (i / 8) % 8) ^
-      char_roll(*p, roll % 8);
-  }
-
+  random_add_entropy(fields[0], strlen(fields[0]));
   return 1;
 }
 
-/** Perform bitwise XOR on two buffers of memory.
- * @param[in,out] dest Buffer to be XOR'ed.
- * @param[in] src Buffer of data to XOR with.
- * @param[in] n Number of bytes to transfor.
- */
-static void
-memxor(void *dest, void *src, int n)
-{
-  unsigned char *d = (unsigned char *)dest;
-  unsigned char *s = (unsigned char *)src;
-
-  while (n--)
-    d[n] ^= s[n];
-}
-
-/*
- * MD5 transform algorithm, taken from code written by Colin Plumb,
- * and put into the public domain
- *
- * Kev: Taken from Ted T'so's /dev/random random.c code and modified to
- * be slightly simpler.  That code is released under a BSD-style copyright
- * OR under the terms of the GNU Public License, which should be included
- * at the top of this source file.
- *
- * record: Cleaned up to work with ircd.  RANDOM_TOKEN is defined in
- * setup.h by the make script; if people start to "guess" your cookies,
- * consider recompiling your server with a different random token.
- *
- * Kev: Now the seed comes from the feature subsystem and is fed into a
- * mash routine (random_set_seed) that depends on previous values of the
- * localkey array; also, part of the output of the RNG is fed back into
- * the localkey array.  Finally, the time values are xor'd with the local
- * key to enhance non-determinability of the data fed into the MD5 core.
- */
-
-/* The four core functions - F1 is optimized somewhat */
-/** Helper function for first round of MD5. */
-#define F1(x, y, z) (z ^ (x & (y ^ z)))
-/** Helper function for second round of MD5. */
-#define F2(x, y, z) F1(z, x, y)
-/** Helper function for third round of MD5. */
-#define F3(x, y, z) (x ^ y ^ z)
-/** Helper function for fourth round of MD5. */
-#define F4(x, y, z) (y ^ (x | ~z))
-
-/** Step function for MD5. */
-#define MD5STEP(f, w, x, y, z, data, s) \
-        ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
-
-/*
- * The core of the MD5 algorithm, this alters an existing MD5 hash to
- * reflect the addition of 16 longwords of new data.  MD5Update blocks
- * the data and converts bytes into longwords for this routine.
- *
- * original comment left in; this used to be called MD5Transform and took
- * two arguments; I've internalized those arguments, creating the character
- * array "localkey," which should contain 8 bytes of data.  The function also
- * originally returned nothing; now it returns an unsigned long that is the
- * random number.  It appears to be reallyrandom, so... -Kev
- *
- * I don't really know what this does.  I tried to figure it out and got
- * a headache.  If you know what's good for you, you'll leave this stuff
- * for the smart people and do something else.          -record
- */
 /** Generate a pseudo-random number.
- * This uses the #localkey variable plus current time as input to MD5,
- * feeding half of the MD5 output back to #localkey and XORing the
- * other two output words to generate the pseudo-random output.
+ * This uses the #localkey structure plus current time as input to
+ * MD5, feeding most of the MD5 output back to #localkey and using one
+ * output words as the pseudo-random output.
  * @return A 32-bit pseudo-random number.
  */
 unsigned int ircrandom(void)
 {
-  unsigned int a, b, c, d;
-  unsigned char in[16];
   struct timeval tv;
+  char usec[3];
 
+  /* Add some randomness to the pool. */
   gettimeofday(&tv, 0);
+  usec[0] = tv.tv_usec;
+  usec[1] = tv.tv_usec >> 8;
+  usec[2] = tv.tv_usec >> 16;
+  random_add_entropy(usec, 3);
 
-  memcpy((void *)in, (void *)localkey, 8);
-  memcpy((void *)(in + 8), (void *)localkey, 8);
-  memxor((void *)(in + 8), (void *)&tv.tv_sec, 4);
-  memxor((void *)(in + 12), (void *)&tv.tv_usec, 4);
+  /* Perform MD5 step. */
+  localkey.buf[0] = 0x67452301;
+  localkey.buf[1] = 0xefcdab89;
+  localkey.buf[2] = 0x98badcfe;
+  localkey.buf[3] = 0x10325476;
+  MD5Transform(localkey.buf, (uint32*)localkey.in);
 
-  a = 0x67452301;
-  b = 0xefcdab89;
-  c = 0x98badcfe;
-  d = 0x10325476;
+  /* Feed back 12 bytes of hash value into randomness pool. */
+  random_add_entropy((char*)localkey.buf, 12);
 
-  MD5STEP(F1, a, b, c, d, (int)in[0] + 0xd76aa478, 7);
-  MD5STEP(F1, d, a, b, c, (int)in[1] + 0xe8c7b756, 12);
-  MD5STEP(F1, c, d, a, b, (int)in[2] + 0x242070db, 17);
-  MD5STEP(F1, b, c, d, a, (int)in[3] + 0xc1bdceee, 22);
-  MD5STEP(F1, a, b, c, d, (int)in[4] + 0xf57c0faf, 7);
-  MD5STEP(F1, d, a, b, c, (int)in[5] + 0x4787c62a, 12);
-  MD5STEP(F1, c, d, a, b, (int)in[6] + 0xa8304613, 17);
-  MD5STEP(F1, b, c, d, a, (int)in[7] + 0xfd469501, 22);
-  MD5STEP(F1, a, b, c, d, (int)in[8] + 0x698098d8, 7);
-  MD5STEP(F1, d, a, b, c, (int)in[9] + 0x8b44f7af, 12);
-  MD5STEP(F1, c, d, a, b, (int)in[10] + 0xffff5bb1, 17);
-  MD5STEP(F1, b, c, d, a, (int)in[11] + 0x895cd7be, 22);
-  MD5STEP(F1, a, b, c, d, (int)in[12] + 0x6b901122, 7);
-  MD5STEP(F1, d, a, b, c, (int)in[13] + 0xfd987193, 12);
-  MD5STEP(F1, c, d, a, b, (int)in[14] + 0xa679438e, 17);
-  MD5STEP(F1, b, c, d, a, (int)in[15] + 0x49b40821, 22);
-
-  MD5STEP(F2, a, b, c, d, (int)in[1] + 0xf61e2562, 5);
-  MD5STEP(F2, d, a, b, c, (int)in[6] + 0xc040b340, 9);
-  MD5STEP(F2, c, d, a, b, (int)in[11] + 0x265e5a51, 14);
-  MD5STEP(F2, b, c, d, a, (int)in[0] + 0xe9b6c7aa, 20);
-  MD5STEP(F2, a, b, c, d, (int)in[5] + 0xd62f105d, 5);
-  MD5STEP(F2, d, a, b, c, (int)in[10] + 0x02441453, 9);
-  MD5STEP(F2, c, d, a, b, (int)in[15] + 0xd8a1e681, 14);
-  MD5STEP(F2, b, c, d, a, (int)in[4] + 0xe7d3fbc8, 20);
-  MD5STEP(F2, a, b, c, d, (int)in[9] + 0x21e1cde6, 5);
-  MD5STEP(F2, d, a, b, c, (int)in[14] + 0xc33707d6, 9);
-  MD5STEP(F2, c, d, a, b, (int)in[3] + 0xf4d50d87, 14);
-  MD5STEP(F2, b, c, d, a, (int)in[8] + 0x455a14ed, 20);
-  MD5STEP(F2, a, b, c, d, (int)in[13] + 0xa9e3e905, 5);
-  MD5STEP(F2, d, a, b, c, (int)in[2] + 0xfcefa3f8, 9);
-  MD5STEP(F2, c, d, a, b, (int)in[7] + 0x676f02d9, 14);
-  MD5STEP(F2, b, c, d, a, (int)in[12] + 0x8d2a4c8a, 20);
-
-  MD5STEP(F3, a, b, c, d, (int)in[5] + 0xfffa3942, 4);
-  MD5STEP(F3, d, a, b, c, (int)in[8] + 0x8771f681, 11);
-  MD5STEP(F3, c, d, a, b, (int)in[11] + 0x6d9d6122, 16);
-  MD5STEP(F3, b, c, d, a, (int)in[14] + 0xfde5380c, 23);
-  MD5STEP(F3, a, b, c, d, (int)in[1] + 0xa4beea44, 4);
-  MD5STEP(F3, d, a, b, c, (int)in[4] + 0x4bdecfa9, 11);
-  MD5STEP(F3, c, d, a, b, (int)in[7] + 0xf6bb4b60, 16);
-  MD5STEP(F3, b, c, d, a, (int)in[10] + 0xbebfbc70, 23);
-  MD5STEP(F3, a, b, c, d, (int)in[13] + 0x289b7ec6, 4);
-  MD5STEP(F3, d, a, b, c, (int)in[0] + 0xeaa127fa, 11);
-  MD5STEP(F3, c, d, a, b, (int)in[3] + 0xd4ef3085, 16);
-  MD5STEP(F3, b, c, d, a, (int)in[6] + 0x04881d05, 23);
-  MD5STEP(F3, a, b, c, d, (int)in[9] + 0xd9d4d039, 4);
-  MD5STEP(F3, d, a, b, c, (int)in[12] + 0xe6db99e5, 11);
-  MD5STEP(F3, c, d, a, b, (int)in[15] + 0x1fa27cf8, 16);
-  MD5STEP(F3, b, c, d, a, (int)in[2] + 0xc4ac5665, 23);
-
-  MD5STEP(F4, a, b, c, d, (int)in[0] + 0xf4292244, 6);
-  MD5STEP(F4, d, a, b, c, (int)in[7] + 0x432aff97, 10);
-  MD5STEP(F4, c, d, a, b, (int)in[14] + 0xab9423a7, 15);
-  MD5STEP(F4, b, c, d, a, (int)in[5] + 0xfc93a039, 21);
-  MD5STEP(F4, a, b, c, d, (int)in[12] + 0x655b59c3, 6);
-  MD5STEP(F4, d, a, b, c, (int)in[3] + 0x8f0ccc92, 10);
-  MD5STEP(F4, c, d, a, b, (int)in[10] + 0xffeff47d, 15);
-  MD5STEP(F4, b, c, d, a, (int)in[1] + 0x85845dd1, 21);
-  MD5STEP(F4, a, b, c, d, (int)in[8] + 0x6fa87e4f, 6);
-  MD5STEP(F4, d, a, b, c, (int)in[15] + 0xfe2ce6e0, 10);
-  MD5STEP(F4, c, d, a, b, (int)in[6] + 0xa3014314, 15);
-  MD5STEP(F4, b, c, d, a, (int)in[13] + 0x4e0811a1, 21);
-  MD5STEP(F4, a, b, c, d, (int)in[4] + 0xf7537e82, 6);
-  MD5STEP(F4, d, a, b, c, (int)in[11] + 0xbd3af235, 10);
-  MD5STEP(F4, c, d, a, b, (int)in[2] + 0x2ad7d2bb, 15);
-  MD5STEP(F4, b, c, d, a, (int)in[9] + 0xeb86d391, 21);
-
-  /* This feeds part of the output of the random number generator into the
-   * seed to further obscure any patterns
-   */
-  memxor((void *)localkey, (void *)&a, 4);
-  memxor((void *)(localkey + 4), (void *)&b, 4);
-
-  /*
-   * We have 4 unsigned longs generated by the above sequence; this scrambles
-   * them together so that if there is any pattern, it will be obscured.
-   *
-   * a and b are now part of the state of the random number generator;
-   * returning them is a security hazard.
-   */
-  return (c ^ d);
+  /* Return the final word of hash, which should not provide any
+   * useful insight into current pool contents. */
+  return localkey.buf[3];
 }

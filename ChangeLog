@@ -1,5 +1,10 @@
 2004-10-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/random.c: Convert to use ircd_md5 interface and hopefully
+	keep more internal random state.
+
+2004-10-05  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_md5.h, ircd/ircd_md5.c, ircd_crypt_smd5.c,
 	ircd/umkpasswd.c: Get rid of the GoodMD5xxx/BrokenMD5xxx
 	prefixes.
