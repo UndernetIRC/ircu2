@@ -1,7 +1,6 @@
-/*
- * random.h
- *
- * $Id$
+/** @file random.h
+ * @brief 32-bit pseudo-random number generator interface.
+ * @version $Id$
  */
 #ifndef INCLUDED_random_h
 #define INCLUDED_random_h

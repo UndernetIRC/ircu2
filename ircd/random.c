@@ -14,8 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief 32-bit pseudo-random number generator implementation.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -28,15 +30,17 @@
 #include <string.h>
 #include <sys/time.h>
 
+/** 8 bytes of local pseudo-random number generator state. */
+static char localkey[9] = "12345678";
 
-char localkey[9] = "12345678";
-
-/* This devious-looking construct rolls a character to the left by r bits */
+/** Rotate \a c left by \a r bits. */
 #define char_roll(c, r)	(((c) << (r)) | ((c) >> (8 - (r))))
 
-/* this routine is intended to be called by the feature subsystem; it takes
- * a key as found in the .conf and mashes it up for the seed for the random
- * number generator.
+/** Seed the PRNG with a string.
+ * @param[in] from Client setting the seed (may be NULL).
+ * @param[in] fields Input arguments (fields[0] is used).
+ * @param[in] count Number of input arguments.
+ * @return Non-zero on success, zero on error.
  */
 int
 random_seed_set(struct Client* from, const char* const* fields, int count)
@@ -75,7 +79,11 @@ random_seed_set(struct Client* from, const char* const* fields, int count)
   return 1;
 }
 
-/* this is like memcpy except it xors the areas in memory. */
+/** Perform bitwise XOR on two buffers of memory.
+ * @param[in,out] dest Buffer to be XOR'ed.
+ * @param[in] src Buffer of data to XOR with.
+ * @param[in] n Number of bytes to transfor.
+ */
 static void
 memxor(void *dest, void *src, int n)
 {
@@ -107,13 +115,16 @@ memxor(void *dest, void *src, int n)
  */
 
 /* The four core functions - F1 is optimized somewhat */
-
+/** Helper function for first round of MD5. */
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
+/** Helper function for second round of MD5. */
 #define F2(x, y, z) F1(z, x, y)
+/** Helper function for third round of MD5. */
 #define F3(x, y, z) (x ^ y ^ z)
+/** Helper function for fourth round of MD5. */
 #define F4(x, y, z) (y ^ (x | ~z))
 
-/* This is the central step in the MD5 algorithm. */
+/** Step function for MD5. */
 #define MD5STEP(f, w, x, y, z, data, s) \
         ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
@@ -131,6 +142,12 @@ memxor(void *dest, void *src, int n)
  * I don't really know what this does.  I tried to figure it out and got
  * a headache.  If you know what's good for you, you'll leave this stuff
  * for the smart people and do something else.          -record
+ */
+/** Generate a pseudo-random number.
+ * This uses the #localkey variable plus current time as input to MD5,
+ * feeding half of the MD5 output back to #localkey and XORing the
+ * other two output words to generate the pseudo-random output.
+ * @return A 32-bit pseudo-random number.
  */
 unsigned int ircrandom(void)
 {
