@@ -1416,13 +1416,23 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_CHANOP ? 'o' : 'v';
 	totalbuflen -= IRCD_MAX(5, tmp) + 1;
       }
-    } else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN)) {
+    } else if (MB_TYPE(mbuf, i) & MODE_BAN) {
       tmp = strlen(MB_STRING(mbuf, i));
 
       if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
-	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_KEY ? 'k' : 'b';
+	bufptr[(*bufptr_i)++] = 'b';
+	totalbuflen -= tmp + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_KEY) {
+      tmp = (mbuf->mb_dest & MODEBUF_DEST_NOKEY ? 1 :
+	     strlen(MB_STRING(mbuf, i)));
+
+      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'k';
 	totalbuflen -= tmp + 1;
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
@@ -1470,9 +1480,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
 	build_string(strptr, strptr_i, cli_name(MB_CLIENT(mbuf, i)), 0, ' ');
 
-      /* deal with strings... */
-      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
+      /* deal with bans... */
+      else if (MB_TYPE(mbuf, i) & MODE_BAN)
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
+
+      /* deal with keys... */
+      else if (MB_TYPE(mbuf, i) & MODE_KEY)
+	build_string(strptr, strptr_i, mbuf->mb_dest & MODEBUF_DEST_NOKEY ?
+		     "*" : MB_STRING(mbuf, i), 0, ' ');
 
       /*
        * deal with limit; note we cannot include the limit parameter if we're
