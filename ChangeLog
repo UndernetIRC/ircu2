@@ -1,3 +1,8 @@
+2002-10-30  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_whois.c (do_whois): reply real host to the user himself,
+	in addition to opers
+
 2002-10-23  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* doc/readme.features: fix documentation--HIS_REMOTE is an integer
