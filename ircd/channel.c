@@ -142,7 +142,7 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
     return who;
 
   if (!(who = get_history(user, KILLCHASETIMELIMIT))) {
-    sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, sptr->name, user);
+    send_reply(sptr, ERR_NOSUCHNICK, user);
     return 0;
   }
   if (chasing)
@@ -361,8 +361,7 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
   }
   if (MyUser(cptr) && !removed_bans && (len > MAXBANLENGTH || (cnt >= MAXBANS)))
   {
-    sendto_one(cptr, err_str(ERR_BANLISTFULL), me.name, cptr->name,
-        chptr->chname, banid);
+    send_reply(cptr, ERR_BANLISTFULL, chptr->chname, banid);
     return -1;
   }
   if (change)
@@ -1077,11 +1076,10 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
   assert(0 != chptr);
 
   for (lp = chptr->banlist; lp; lp = lp->next)
-    sendto_one(cptr, rpl_str(RPL_BANLIST), me.name, cptr->name,
-               chptr->chname, lp->value.ban.banstr, lp->value.ban.who,
-               lp->value.ban.when);
-  sendto_one(cptr, rpl_str(RPL_ENDOFBANLIST), me.name, cptr->name,
-             chptr->chname);
+    send_reply(cptr, RPL_BANLIST, chptr->chname, lp->value.ban.banstr,
+	       lp->value.ban.who, lp->value.ban.when);
+
+  send_reply(cptr, RPL_ENDOFBANLIST, chptr->chname);
 }
 
 /*
@@ -1222,8 +1220,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
         if (!(member_x = find_member_link(chptr, who)) ||
             (MyUser(sptr) && IsZombie(member_x)))
         {
-          sendto_one(cptr, err_str(ERR_USERNOTINCHANNEL),
-              me.name, cptr->name, who->name, chptr->chname);
+	  send_reply(cptr, ERR_USERNOTINCHANNEL, who->name, chptr->chname);
           break;
         }
         /*
@@ -1234,8 +1231,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
            * XXX - CHECKME
            */
           if (MyUser(cptr)) {
-            sendto_one(cptr, err_str(ERR_ISCHANSERVICE), me.name,
-                       cptr->name, parv[0], chptr->chname);
+	    send_reply(cptr, ERR_ISCHANSERVICE, parv[0], chptr->chname);
             break;
            }
            else {
@@ -1251,8 +1247,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
         if (whatt == MODE_DEL && IsOperOnLocalChannel(who, chptr->chname) &&
             (who != sptr) && MyUser(cptr) && *curr == 'o')
         {
-          sendto_one(cptr, err_str(ERR_ISOPERLCHAN), me.name,
-                     cptr->name, parv[0], chptr->chname);
+	  send_reply(cptr, ERR_ISOPERLCHAN, parv[0], chptr->chname);
           break;
         }
 #endif
@@ -1299,8 +1294,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
         if (whatt == MODE_ADD)
         {
           if (*mode->key && !IsServer(cptr))
-            sendto_one(cptr, err_str(ERR_KEYSET),
-                me.name, cptr->name, chptr->chname);
+	    send_reply(cptr, ERR_KEYSET, chptr->chname);
           else if (!*mode->key || IsServer(cptr))
           {
             lp = &chops[opcnt++];
@@ -1413,8 +1407,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
             newmode &= ~*ip;
         }
         else if (!IsServer(cptr))
-          sendto_one(cptr, err_str(ERR_UNKNOWNMODE),
-              me.name, cptr->name, *curr);
+	  send_reply(cptr, ERR_UNKNOWNMODE, *curr);
         break;
     }
     curr++;
@@ -1957,9 +1950,8 @@ int set_mode(struct Client* cptr, struct Client* sptr,
   /* Bounce here */
   if (!hacknotice && *bmodebuf && chptr->creationtime)
   {
-    sendto_one(cptr, "%s " TOK_MODE " %s %s %s " TIME_T_FMT,
-               NumServ(&me), chptr->chname, bmodebuf, nbparambuf,
-               *badop == 2 ? (time_t) 0 : chptr->creationtime);
+    sendcmdto_one(&me, CMD_MODE, cptr, "%H %s %s %Tu", chptr, bmodebuf,
+		  nbparambuf, *badop == 2 ? (time_t) 0 : chptr->creationtime);
   }
   /* If there are possibly bans to re-add, bounce them now */
   if (add_banid_called && bounce)
@@ -1971,6 +1963,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
     {
       len[0] = strlen(ban[0]->value.ban.banstr);
       cnt = 1;                  /* We already got one ban :) */
+      /* XXX sendbuf used to send ban bounces! */
       sblen = sprintf_irc(sendbuf, ":%s MODE %s +b",
           me.name, chptr->chname) - sendbuf;
       total_len = sblen + 1 + len[0];   /* 1 = ' ' */
@@ -2008,6 +2001,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
     struct Membership* member_z;
     struct Client *acptr;
     if (IsServer(sptr))
+      /* XXX sendbuf used to send ban bounces! */
       psblen = sprintf_irc(sendbuf, ":%s MODE %s -b",
           sptr->name, chptr->chname) - sendbuf;
     else                        /* We rely on IsRegistered(sptr) being true for MODE */
@@ -2279,9 +2273,8 @@ void list_next_channels(struct Client *cptr, int nr)
           chptr->topic_time < args->max_topic_time)))
       {
         if (ShowChannel(cptr,chptr))
-          sendto_one(cptr, rpl_str(RPL_LIST), me.name, cptr->name,
-            chptr->chname,
-            chptr->users, chptr->topic);
+	  send_reply(cptr, RPL_LIST, chptr->chname, chptr->users,
+		     chptr->topic);
         chptr = chptr->next;
         break;
       }
@@ -2290,7 +2283,7 @@ void list_next_channels(struct Client *cptr, int nr)
     {
       MyFree(cptr->listing);
       cptr->listing = NULL;
-      sendto_one(cptr, rpl_str(RPL_LISTEND), me.name, cptr->name);
+      send_reply(cptr, RPL_LISTEND);
       break;
     }
   }
@@ -2301,7 +2294,7 @@ void list_next_channels(struct Client *cptr, int nr)
   }
 }
 
-
+/* XXX AIEEEE! sendbuf is an institution here :( */
 void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
     int *send_itp, char is_a_ban, int mode)
 {
@@ -2366,6 +2359,7 @@ void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
   
   if (*count == -1)             /* initialize ? */
   {
+    /* XXX sendbuf used! */
     sbp = sbpi =
         sprintf_irc(sendbuf, ":%s MODE %s -", sptr->name, chptr->chname);
     pb = parabuf;
@@ -2475,7 +2469,7 @@ void make_zombie(struct Membership* member, struct Client* who, struct Client* c
   if (MyUser(who))      /* server 4 */
   {
     if (IsServer(cptr)) /* Case b) ? */
-      sendto_one(cptr, PartFmt1, who->name, chptr->chname);
+      sendcmdto_one(who, CMD_PART, cptr, "%H", chptr);
     remove_user_from_channel(who, chptr);
     return;
   }
@@ -2510,6 +2504,7 @@ int number_of_zombies(struct Channel *chptr)
   return count;
 }
 
+/* XXX we can probably get rid of send_user_joins */
 void send_user_joins(struct Client *cptr, struct Client *user)
 {
   struct Membership* chan;
@@ -2573,7 +2568,7 @@ void send_user_joins(struct Client *cptr, struct Client *user)
  * This function prepares sendbuf with the server notices and wallops
  *   to be sent for all hacks.  -Ghostwolf 18-May-97
  */
-
+/* XXX let's get rid of this if we can */
 void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
                       char *parv[], int badop, int mtype)
 {
@@ -2841,53 +2836,46 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     /* send the messages off to their destination */
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
-      sendto_op_mask(SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
-		     "]", app_source->name, mbuf->mb_channel->chname,
-		     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
-		     remstr, addstr, mbuf->mb_channel->creationtime);
-      sendto_serv_butone(mbuf->mb_connect, "%s " TOK_DESYNCH
-			 " :HACK: %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT "]",
-			 NumServ(&me), app_source->name,
-			 mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
-			 addbuf_i ? "+" : "", addbuf, remstr, addstr,
-			 mbuf->mb_channel->creationtime);
+      sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
+			   "[%Tu]", app_source->name, mbuf->mb_channel->chname,
+			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			   addbuf, remstr, addstr,
+			   mbuf->mb_channel->creationtime);
+      sendcmdto_serv_butone(&me, CMD_DESYNCH, mbuf->mb_connect,
+			    ":HACK: %s MODE %s %s%s%s%s%s%s [%Tu]",
+			    app_source->name, mbuf->mb_channel->chname,
+			    rembuf_i ? "-" : "", rembuf,
+			    addbuf_i ? "+" : "", addbuf, remstr, addstr,
+			    mbuf->mb_channel->creationtime);
     }
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
-      sendto_op_mask(SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s %s%s%s%s%s%s ["
-		     TIME_T_FMT "]", app_source->name,
-		     mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
-		     addbuf_i ? "+" : "", addbuf, remstr, addstr,
-		     mbuf->mb_channel->creationtime);
+      sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
+			   "%s%s%s%s%s%s [%Tu]", app_source->name,
+			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
+			   mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
-      sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
-		     "]", app_source->name, mbuf->mb_channel->chname,
-		     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
-		     remstr, addstr, mbuf->mb_channel->creationtime);
+      sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
+			   "[%Tu]", app_source->name, mbuf->mb_channel->chname,
+			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			   addbuf, remstr, addstr,
+			   mbuf->mb_channel->creationtime);
 
 #ifdef OPATH
     if (mbuf->mb_dest & MODEBUF_DEST_LOG) {
-      if (IsServer(mbuf->mb_source))
-	write_log(OPATH, TIME_T_FMT " %s OPMODE %s %s%s%s%s%s%s\n", TStime(),
-		  mbuf->mb_source->name, mbuf->mb_channel->chname,
-		  rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
-		  remstr, addstr);
-      else
-	write_log(OPATH, TIME_T_FMT " %s!%s@%s OPMODE %s %s%s%s%s%s%s\n",
-		  TStime(), mbuf->mb_source->name,
-		  mbuf->mb_source->user->username, mbuf->mb_source->user->host,
-		  mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
-		  addbuf_i ? "+" : "", addbuf, remstr, addstr);
+      write_log(OPATH, "%Tu %#C OPMODE %H %s%s%s%s%s%s\n", TStime(),
+		mbuf->mb_source, mbuf->mb_channel, rembuf_i ? "-" : "", rembuf,
+		addbuf_i ? "+" : "", addbuf, remstr, addstr);
     }
 #endif
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendto_channel_butserv(mbuf->mb_channel, app_source,
-			     ":%s MODE %s %s%s%s%s%s%s", app_source->name,
-			     mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			     rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			     addstr);
+      sendcmdto_channel_butserv(app_source, CMD_MODE, mbuf->mb_channel,
+				"%H %s%s%s%s%s%s", mbuf->mb_channel,
+				rembuf_i ? "-" : "", rembuf,
+				addbuf_i ? "+" : "", addbuf, remstr, addstr);
   }
 
   /* Now are we supposed to propagate to other servers? */
@@ -2945,46 +2933,37 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
       /* If OPMODE was set, we're propagating the mode as an OPMODE message */
-      if (IsServer(mbuf->mb_source))
-	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_OPMODE
-			   " %s %s%s%s%s%s%s", NumServ(mbuf->mb_source),
-			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			   addstr);
-      else
-	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE
-			   " %s %s%s%s%s%s%s", NumNick(mbuf->mb_source),
-			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			   addstr);
+      sendcmdto_serv_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
+			    "%H %s%s%s%s%s%s", mbuf->mb_channel,
+			    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			    addbuf, remstr, addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to the
        * connection we got it from with the senses reversed and a TS of 0;
        * origin is us
        */
-      sendto_one(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
-		 TIME_T_FMT, NumServ(&me), mbuf->mb_channel->chname,
-		 addbuf_i ? "-" : "", addbuf, rembuf_i ? "+" : "", rembuf,
-		 addstr, remstr, mbuf->mb_channel->creationtime);
+      sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s %Tu",
+		    mbuf->mb_channel, addbuf_i ? "-" : "", addbuf,
+		    rembuf_i ? "+" : "", rembuf, addstr, remstr,
+		    mbuf->mb_channel->creationtime);
     } else {
       /*
        * We're propagating a normal MODE command to the rest of the network;
        * we send the actual channel TS unless this is a HACK3 or a HACK4
        */
       if (IsServer(mbuf->mb_source))
-	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
-			   TIME_T_FMT, NumServ(mbuf->mb_source),
-			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			   addstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			   mbuf->mb_channel->creationtime);
+	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
+			      "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
+			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			      addbuf, remstr, addstr,
+			      (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			      mbuf->mb_channel->creationtime);
       else
-	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE
-			   " %s %s%s%s%s%s%s", NumNick(mbuf->mb_source),
-			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			   addstr);
+	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
+			      "%H %s%s%s%s%s%s", mbuf->mb_channel,
+			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			      addbuf, remstr, addstr);
     }
   }
 
@@ -3198,9 +3177,8 @@ send_notoper(struct ParseState *state)
   if (state->done & DONE_NOTOPER)
     return;
 
-  sendto_one(state->sptr, err_str(state->flags & MODE_PARSE_NOTOPER ?
-				  ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL),
-	     me.name, state->sptr->name, state->chptr->chname);
+  send_reply(state->sptr, (state->flags & MODE_PARSE_NOTOPER) ?
+	     ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL, state->chptr->chname);
 
   state->done |= DONE_NOTOPER;
 }
@@ -3310,8 +3288,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     if ((state->dir == MODE_ADD && *state->chptr->mode.key) ||
 	(state->dir == MODE_DEL &&
 	 ircd_strcmp(state->chptr->mode.key, t_str))) {
-      sendto_one(state->sptr, err_str(ERR_KEYSET), me.name, state->sptr->name,
-		 state->chptr->chname);
+      send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
       return;
     }
 
@@ -3515,8 +3492,8 @@ mode_process_bans(struct ParseState *state)
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
 	    (len > MAXBANLENGTH || count >= MAXBANS)) {
-	  send_error_to_client(state->sptr, ERR_BANLISTFULL,
-			       state->chptr->chname, ban->value.ban.banstr);
+	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
+		     ban->value.ban.banstr);
 	  count--;
 	  len -= banlen;
 
@@ -3616,9 +3593,8 @@ mode_process_clients(struct ParseState *state)
 				    state->cli_change[i].client)) ||
 	(MyUser(state->sptr) && IsZombie(member))) {
       if (MyUser(state->sptr))
-	sendto_one(state->sptr, err_str(ERR_USERNOTINCHANNEL), me.name,
-		   state->sptr->name, state->cli_change[i].client->name,
-		   state->chptr->chname);
+	send_reply(state->sptr, ERR_USERNOTINCHANNEL,
+		   state->cli_change[i].client->name, state->chptr->chname);
       continue;
     }
 
@@ -3634,15 +3610,14 @@ mode_process_clients(struct ParseState *state)
       /* prevent +k users from being deopped */
       if (IsChannelService(state->cli_change[i].client)) {
 	if (state->flags & MODE_PARSE_FORCE) /* it was forced */
-	  sendto_op_mask(SNO_HACK4, "Deop of +k user on %s by %s",
-			 state->chptr->chname,
-			 (IsServer(state->sptr) ? state->sptr->name :
-			  state->sptr->user->server->name));
+	  sendto_opmask_butone(0, SNO_HACK4, "Deop of +k user on %H by %s",
+			       state->chptr,
+			       (IsServer(state->sptr) ? state->sptr->name :
+				state->sptr->user->server->name));
 
 	else if (MyUser(state->sptr) && state->flags & MODE_PARSE_SET) {
-	  sendto_one(state->sptr, err_str(ERR_ISCHANSERVICE), me.name,
-		     state->sptr->name, state->cli_change[i].client->name,
-		     state->chptr->chname);
+	  send_reply(state->sptr, ERR_ISCHANSERVICE,
+		     state->cli_change[i].client->name, state->chptr->chname);
 	  continue;
 	}
       }
@@ -3652,9 +3627,8 @@ mode_process_clients(struct ParseState *state)
       if (MyUser(state->sptr) && state->cli_change[i].client != state->sptr &&
 	  IsOperOnLocalChannel(state->cli_change[i].client,
 			       state->chptr->chname)) {
-	sendto_one(state->sptr, err_str(ERR_ISOPERLCHAN), me.name,
-		   state->sptr->name, state->cli_change[i].client->name,
-		   state->chptr->chname);
+	send_reply(state->sptr, ERR_ISOPERLCHAN,
+		   state->cli_change[i].client->name, state->chptr->chname);
 	continue;
       }
 #endif
@@ -3798,8 +3772,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 
       if (!flag_p[0]) { /* didn't find it?  complain and continue */
 	if (MyUser(state.sptr))
-	  sendto_one(state.sptr, err_str(ERR_UNKNOWNMODE), me.name,
-		     state.sptr->name, *modestr);
+	  send_reply(state.sptr, ERR_UNKNOWNMODE, *modestr);
 	continue;
       }
 

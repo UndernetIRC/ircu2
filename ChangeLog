@@ -1,5 +1,24 @@
 2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c: convert as much as possible to new send
+	semantics
+
+	* ircd/send.c (sendcmdto_common_channels): fix a subtle bug --
+	test member->user->from->fd, not from->fd
+
+	* ircd/gline.c (gline_add): go ahead and add badchans; we just
+	won't look for them in m_gline; this way, they always work...
+
+	* ircd/jupe.c: use ircd_vsnprintf conversion specifiers
+
+	* ircd/gline.c: since write_log now uses ircd_vsnprintf, use
+	ircd_vsnprintf conversion specifiers
+
+	* ircd/support.c (write_log): use ircd_vsnprintf for write_log, so
+	I have my conversion specifiers
+
+	* ircd/gline.c (do_gline): use send_reply for ERR_YOUREBANNEDCREEP
+
 	* ircd/send.c (sendcmdto_flag_butone): explicitly send WALLOPS to
 	local users
 
@@ -775,7 +794,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.104 2000-04-26 20:58:37 kev Exp $
+# $Id: ChangeLog,v 1.105 2000-04-27 02:08:37 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

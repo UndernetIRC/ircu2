@@ -124,16 +124,9 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 		       expire + TSoffset, reason);
 
 #ifdef JPATH
-  if (IsServer(sptr))
-    write_log(JPATH, TIME_T_FMT " %s adding %sJUPE for %s, expiring at "
-	      TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      flags & JUPE_LOCAL ? "local " : "", server, expire + TSoffset,
-	      reason);
-  else
-    write_log(JPATH, TIME_T_FMT, " %s!%s@%s adding %sJUPE for %s, expiring at "
-	      TIME_T_FMT ": %s\n", TStime(), sptr->name, sptr->user->username,
-	      sptr->user->host, flags & JUPE_LOCAL ? "local " : "", server,
-	      expire + TSoffset, reason);
+  write_log(JPATH, "%Tu %C adding %sJUPE for %s, expiring at %Tu: %s\n",
+	    TStime(), sptr, flags & JUPE_LOCAL ? "local " : "", server,
+	    expire + TSoffset, reason);
 #endif /* JPATH */
 
   /* make the jupe */
@@ -177,15 +170,9 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		       jupe->ju_reason);
 
 #ifdef JPATH
-  if (IsServer(sptr))
-    write_log(JPATH, TIME_T_FMT " %s activating JUPE for %s, expiring at "
-	      TIME_T_FMT ": %s\n", TStime(), sptr->name, jupe->ju_server,
-	      jupe->ju_expire + TSoffset, jupe->ju_reason);
-  else
-    write_log(JPATH, TIME_T_FMT, " %s!%s@%s activating JUPE for %s, "
-	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      sptr->user->username, sptr->user->host, jupe->ju_server,
-	      jupe->ju_expire + TSoffset, jupe->ju_reason);
+  write_log(JPATH, "%Tu %C activating JUPE for %s, expiring at %Tu: %s\n",
+	    TStime(), sptr, jupe->ju_server, jupe->ju_expire + TSoffset,
+	    jupe->ju_reason);
 #endif /* JPATH */
 
   propagate_jupe(cptr, sptr, jupe);
@@ -228,17 +215,9 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		       jupe->ju_reason);
 
 #ifdef JPATH
-  if (IsServer(sptr))
-    write_log(JPATH, TIME_T_FMT " %s %s JUPE for %s, expiring at " TIME_T_FMT
-	      ": %s\n", TStime(), sptr->name,
-	      JupeIsLocal(jupe) ? "removing local" : "deactivating",
-	      jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
-  else
-    write_log(JPATH, TIME_T_FMT, " %s!%s@%s %s JUPE for %s, "
-	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      sptr->user->username, sptr->user->host,
-	      JupeIsLocal(jupe) ? "removing local" : "deactivating",
-	      jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+  write_log(JPATH, "%Tu %s %s JUPE for %s, expiring at %Tu: %s\n", TStime(),
+	    sptr, JupeIsLocal(jupe) ? "removing local" : "deactivating",
+	    jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
 #endif /* JPATH */
 
   if (JupeIsLocal(jupe))
