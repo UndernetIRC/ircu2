@@ -1044,6 +1044,12 @@ HIS_WHOIS_IDLETIME
 
 As per UnderNet CFV-165, this removes idle time in replies to /WHOIS.
 
+HIS_WHOIS_LOCALCHAN
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes local channels in replies to /WHOIS.
+
 HIS_WHO_SERVERNAME
  * Type: boolean
  * Default: TRUE
@@ -1088,12 +1094,6 @@ HIS_NETSPLIT
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes server names in net break sign-offs.
-
-HIS_LOCAL_CHAN_WHOIS
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes local channels in replies to /WHOIS.
 
 HIS_SERVERNAME
  * Type: string

@@ -1,5 +1,14 @@
 2004-09-13  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* doc/readme.features: update feature name--forgotten in a prior
+	commit
+
+	* doc/ircd.conf.sample: update feature name--forgotten in a prior
+	commit
+
+	* doc/example.conf: update feature name--forgotten in a prior
+	commit
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel (again!),
 	just so we know who's runnin' what...
 
