@@ -302,7 +302,7 @@ static Numeric numeric_errors[] = {
 /* 515 */
   { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" },
 /* 516 */
-  { ERR_DONTCHEAT, " :Don't Cheat.", 516 }
+  { ERR_DONTCHEAT, " :Don't Cheat.", "516" }
 };
 
 static Numeric numeric_replies[] = {
