@@ -1,5 +1,8 @@
 2002-08-22  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/Makefile.in: apply Sengaia's patch to include LDFLAGS in
+	link lines
+
 	* ircd/m_join.c (m_join): begin deprecation of modeless channels
 	by prohibiting their creation--if the channel already exists, you
 	can join it, otherwise you get "no such channel"
