@@ -233,8 +233,8 @@ struct Connection
   struct Timer        con_proc;      /**< process latent messages from
                                       client */
   struct Privs        con_privs;     /**< Oper privileges */
-  struct CapSet       con_capab;     /**< Client capabilities */
-  struct CapSet       con_active;    /**< Active client capabilities */
+  struct CapSet       con_capab;     /**< Client capabilities (from us) */
+  struct CapSet       con_active;    /**< Active capabilities (to us) */
   struct AuthRequest* con_auth;      /**< auth request for client */
   struct IAuthRequest* con_iauth;    /**< iauth request for client */
 };

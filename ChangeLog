@@ -1,3 +1,27 @@
+2005-04-04  Michael Poole <mdpoole@troilus.org>
+
+	* include/capab.h (CAPFL_STICKY): Define.
+	(CAPLIST): Remove the entries used for testing.
+
+	* include/client.h (Connection): Clarify comment about the
+	distinction between con_capab and con_active.
+
+	* ircd/m_cap.c: Add doxygen comments and replace the long
+	discussion of m_handler functions with an xref to it.
+	(send_caplist): Add new parameters and change the terminal vs
+	non-terminal line distinction to make compliant with current draft
+	specification.
+	(cap_empty): Rename to cap_ls().
+	(cap_req): Track modified capabilities bitwise, so that the
+	responding ACK contains all the appropriate flags.
+	(cap_ack): Add comment explaining why there is no response.
+	(cap_clear): Build and send a list of cleared capabilities, as
+	required by the current draft.
+	(cap_list): Send capability list using LIST subcommand.
+	(cmdlist): Add handler for LS subcommand.  Remove entries for the
+	empty and LSL subcommands, which are no longer allowed.
+	(m_cap): Require at least one argument from user.
+
 2005-04-01  Michael Poole <mdpoole@troilus.org>
 
 	* include/s_conf.h (SMAP_FAST): Define.

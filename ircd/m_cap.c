@@ -18,66 +18,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Capability negotiation commands
+ * @version $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "client.h"
@@ -111,8 +57,6 @@ static struct capabilities {
 };
 
 #define CAPAB_LIST_LEN	(sizeof(capab_list) / sizeof(struct capabilities))
-
-static struct CapSet clean_set; /* guaranteed to be all zeros (right?) */
 
 static int
 capab_sort(const struct capabilities *cap1, const struct capabilities *cap2)
@@ -183,33 +127,62 @@ find_cap(const char **caplist_p, int *neg_p)
   return cap; /* and return the capability (if any) */
 }
 
+/** Send a CAP \a subcmd list of capability changes to \a sptr.
+ * If more than one line is necessary, each line before the last has
+ * an added "*" parameter before that line's capability list.
+ * @param[in] sptr Client receiving capability list.
+ * @param[in] set Capabilities to show as set (with ack and sticky modifiers).
+ * @param[in] rem Capabalities to show as removed (with no other modifier).
+ * @param[in] subcmd Name of capability subcommand.
+ */
 static int
-send_caplist(struct Client *sptr, const struct CapSet *cs)
+send_caplist(struct Client *sptr, const struct CapSet *set,
+             const struct CapSet *rem, const char *subcmd)
 {
-  char capbuf[BUFSIZE] = "";
+  char capbuf[BUFSIZE] = "", pfx[16];
   struct MsgBuf *mb;
-  int i, loc, len;
+  int i, loc, len, flags, pfx_len;
 
-  /* set up the buffer for the LSL message... */
-  mb = msgq_make(sptr, "%:#C " MSG_CAP " LSL :", &me);
+  /* set up the buffer for the final LS message... */
+  mb = msgq_make(sptr, "%:#C " MSG_CAP " %s :", &me, subcmd);
 
   for (i = 0, loc = 0; i < CAPAB_LIST_LEN; i++) {
-    if (cs ? !CapHas(cs, capab_list[i].cap) :
-	(capab_list[i].flags & CAPFL_HIDDEN))
-      continue; /* not including this capability in the list */
-      
-    len = capab_list[i].namelen + (loc != 0); /* how much we'd add... */
+    flags = capab_list[i].flags;
+    /* This is a little bit subtle, but just involves applying de
+     * Morgan's laws to the obvious check: We must display the
+     * capability if (and only if) it is set in \a rem or \a set, or
+     * if both are null and the capability is hidden.
+     */
+    if (!(rem && CapHas(rem, capab_list[i].cap))
+        && !(set && CapHas(set, capab_list[i].cap))
+        && (rem || set || (flags & CAPFL_HIDDEN)))
+      continue;
 
-    if (msgq_bufleft(mb) < loc + len) { /* would add too much; must flush */
-      sendcmdto_one(&me, CMD_CAP, sptr, "LS :%s", capbuf);
+    /* Build the prefix (space separator and any modifiers needed). */
+    pfx_len = 0;
+    if (loc)
+      pfx[pfx_len++] = ' ';
+    if (rem && CapHas(rem, capab_list[i].cap))
+        pfx[pfx_len++] = '-';
+    else {
+      if (flags & CAPFL_PROTO)
+        pfx[pfx_len++] = '~';
+      if (flags & CAPFL_STICKY)
+        pfx[pfx_len++] = '=';
+    }
+    pfx[pfx_len] = '\0';
+
+    len = capab_list[i].namelen + pfx_len; /* how much we'd add... */
+    if (msgq_bufleft(mb) < loc + len + 2) { /* would add too much; must flush */
+      sendcmdto_one(&me, CMD_CAP, sptr, "%s * :%s", subcmd, capbuf);
       capbuf[(loc = 0)] = '\0'; /* re-terminate the buffer... */
     }
 
     loc += ircd_snprintf(0, capbuf + loc, sizeof(capbuf) - loc, "%s%s",
-			 loc ? " " : "", capab_list[i].name);
+			 pfx, capab_list[i].name);
   }
 
-  msgq_append(0, mb, "%s", capbuf); /* append capabilities to the LSL cmd */
+  msgq_append(0, mb, "%s", capbuf); /* append capabilities to the final cmd */
   send_buffer(sptr, mb, 0); /* send them out... */
   msgq_clean(mb); /* and release the buffer */
 
@@ -217,12 +190,12 @@ send_caplist(struct Client *sptr, const struct CapSet *cs)
 }
 
 static int
-cap_empty(struct Client *sptr, const char *caplist)
+cap_ls(struct Client *sptr, const char *caplist)
 {
   if (IsUnknown(sptr)) /* registration hasn't completed; suspend it... */
     cli_unreg(sptr) |= CLIREG_CAP;
 
-  return send_caplist(sptr, 0); /* send list of capabilities */
+  return send_caplist(sptr, 0, 0, "LS"); /* send list of capabilities */
 }
 
 static int
@@ -230,6 +203,7 @@ cap_req(struct Client *sptr, const char *caplist)
 {
   const char *cl = caplist;
   struct capabilities *cap;
+  struct CapSet set, rem;
   struct CapSet cs = *cli_capab(sptr); /* capability set */
   struct CapSet as = *cli_active(sptr); /* active set */
   int neg;
@@ -237,27 +211,34 @@ cap_req(struct Client *sptr, const char *caplist)
   if (IsUnknown(sptr)) /* registration hasn't completed; suspend it... */
     cli_unreg(sptr) |= CLIREG_CAP;
 
+  memset(&set, 0, sizeof(set));
+  memset(&rem, 0, sizeof(rem));
   while (cl) { /* walk through the capabilities list... */
-    if (!(cap = find_cap(&cl, &neg)) || /* look up capability... */
-	(!neg && (cap->flags & CAPFL_PROHIBIT))) { /* is it prohibited? */
+    if (!(cap = find_cap(&cl, &neg)) /* look up capability... */
+	|| (!neg && (cap->flags & CAPFL_PROHIBIT)) /* is it prohibited? */
+        || (neg && (cap->flags & CAPFL_STICKY))) { /* is it sticky? */
       sendcmdto_one(&me, CMD_CAP, sptr, "NAK :%s", caplist);
       return 0; /* can't complete requested op... */
     }
 
     if (neg) { /* set or clear the capability... */
+      CapSet(&rem, cap->cap);
+      CapClr(&set, cap->cap);
       CapClr(&cs, cap->cap);
       if (!(cap->flags & CAPFL_PROTO))
 	CapClr(&as, cap->cap);
     } else {
+      CapClr(&rem, cap->cap);
+      CapSet(&set, cap->cap);
       CapSet(&cs, cap->cap);
       if (!(cap->flags & CAPFL_PROTO))
 	CapSet(&as, cap->cap);
     }
   }
 
-  sendcmdto_one(&me, CMD_CAP, sptr, "ACK :%s", caplist);
-
-  *cli_capab(sptr) = cs; /* copy the completed results */
+  /* Notify client of accepted changes and copy over results. */
+  send_caplist(sptr, &set, &rem, "ACK");
+  *cli_capab(sptr) = cs;
   *cli_active(sptr) = as;
 
   return 0;
@@ -270,6 +251,10 @@ cap_ack(struct Client *sptr, const char *caplist)
   struct capabilities *cap;
   int neg;
 
+  /* Coming from the client, this generally indicates that the client
+   * is using a new backwards-incompatible protocol feature.  As such,
+   * it does not require further response from the server.
+   */
   while (cl) { /* walk through the capabilities list... */
     if (!(cap = find_cap(&cl, &neg)) || /* look up capability... */
 	(neg ? HasCap(sptr, cap->cap) : !HasCap(sptr, cap->cap))) /* uh... */
@@ -287,9 +272,24 @@ cap_ack(struct Client *sptr, const char *caplist)
 static int
 cap_clear(struct Client *sptr, const char *caplist)
 {
-  sendcmdto_one(&me, CMD_CAP, sptr, "CLEAR"); /* Reply... */
+  struct CapSet cleared;
+  struct capabilities *cap;
+  unsigned int ii;
 
-  *cli_capab(sptr) = clean_set; /* then clear! */
+  /* XXX: If we ever add a capab list sorted by capab value, it would
+   * be good cache-wise to use it here. */
+  memset(&cleared, 0, sizeof(cleared));
+  for (ii = 0; ii < CAPAB_LIST_LEN; ++ii) {
+    cap = &capab_list[ii];
+    /* Only clear active non-sticky capabilities. */
+    if (!HasCap(sptr, cap->cap) || (cap->flags & CAPFL_STICKY))
+      continue;
+    CapSet(&cleared, cap->cap);
+    CapClr(cli_capab(sptr), cap->cap);
+    if (!(cap->flags & CAPFL_PROTO))
+      CapClr(cli_active(sptr), cap->cap);
+  }
+  send_caplist(sptr, 0, &cleared, "ACK");
 
   return 0;
 }
@@ -312,20 +312,18 @@ static int
 cap_list(struct Client *sptr, const char *caplist)
 {
   /* Send the list of the client's capabilities */
-  return send_caplist(sptr, cli_capab(sptr));
+  return send_caplist(sptr, cli_capab(sptr), 0, "LIST");
 }
 
 static struct subcmd {
   char *cmd;
   int (*proc)(struct Client *sptr, const char *caplist);
 } cmdlist[] = {
-  { "",      cap_empty },
   { "ACK",   cap_ack   },
   { "CLEAR", cap_clear },
   { "END",   cap_end   },
   { "LIST",  cap_list  },
-  { "LS",    0         },
-  { "LSL",   0         },
+  { "LS",    cap_ls    },
   { "NAK",   0         },
   { "REQ",   cap_req   }
 };
@@ -336,25 +334,22 @@ subcmd_search(const char *cmd, const struct subcmd *elem)
   return ircd_strcmp(cmd, elem->cmd);
 }
 
-/*
- * m_cap - user message handler
- *
- * parv[0] = Send prefix
- *
- * From user:
- *
- * parv[1] = [<subcommand>]
- * parv[2] = [<capab list>]
- *
+/** Handle a capability request or response from a client.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
+ * @see \ref m_functions
  */
 int
 m_cap(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *subcmd = "", *caplist = 0;
+  char *subcmd, *caplist = 0;
   struct subcmd *cmd;
 
-  if (parc > 1 && parv[1]) /* a subcommand was provided */
-    subcmd = parv[1];
+  if (parc < 2) /* a subcommand is required */
+    return 0;
+  subcmd = parv[1];
   if (parc > 2) /* a capability list was provided */
     caplist = parv[2];
 
