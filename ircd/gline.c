@@ -88,9 +88,8 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 {
   struct Gline *gline, *sgline, *after = 0;
 
-  if (!(flags & GLINE_BADCHAN)&&*user!='$') { 
-	  /* search for overlapping glines first, skipping badchans and 
-	   * special $ glines. 
+  if (!(flags & GLINE_BADCHAN)) { 
+	  /* search for overlapping glines first, skipping badchans 
 	   */
     for (gline = GlobalGlineList; gline; gline = sgline) {
       sgline = gline->gl_next;
@@ -100,13 +99,13 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
       else if ((gline->gl_flags & GLINE_LOCAL) != (flags & GLINE_LOCAL))
 	continue;
       else if (!mmatch(gline->gl_user, user) && /* gline contains new mask */
-	       !mmatch(gline->gl_host, host)) {
+	       (gline->gl_host == NULL || !mmatch(gline->gl_host, host))) {
 	if (expire <= gline->gl_expire) /* will expire before wider gline */
 	  return 0;
 	else
 	  after = gline; /* stick new gline after this one */
       } else if (!mmatch(user, gline->gl_user) && /* new mask contains gline */
-		 gline->gl_host && !mmatch(host, gline->gl_host) &&
+		 (gline->gl_host || !mmatch(host, gline->gl_host)) &&
 		 gline->gl_expire <= expire) /* gline expires before new one */
 	gline_free(gline); /* save some memory */
     }

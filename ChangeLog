@@ -1,3 +1,6 @@
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Remove duplicate/overlapping realname glines
+
 2003-11-04 Isomer <isomer@undernet.org>
 	* include/patchlevel.h: 2.10.11.06 initial branch
 
