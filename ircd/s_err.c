@@ -511,7 +511,7 @@ static Numeric replyTable[] = {
 /* 237 */
   { 0 },
 /* 238 */
-  { 0 },
+  { RPL_STATSFLINE, "%c %s %s", "238" },
 /* 239 */
   { 0 },
 /* 240 */
@@ -603,7 +603,7 @@ static Numeric replyTable[] = {
 /* 283 */
   { RPL_ENDOFJUPELIST, ":End of Jupe List", "283" },
 /* 284 */
-  { 0 },
+  { RPL_FEATURE, 0, "284" },
 /* 285 */
   { 0 },
 /* 286 */
@@ -1025,13 +1025,13 @@ static Numeric replyTable[] = {
 /* 492 */
   { 0 },
 /* 493 */
-  { 0 },
+  { ERR_NOFEATURE, "%s :No such feature", "493" },
 /* 494 */
-  { 0 },
+  { ERR_BADLOGTYPE, "%s :No such log type", "494" },
 /* 495 */
-  { 0 },
+  { ERR_BADLOGSYS, "%s :No such log subsystem", "495" },
 /* 496 */
-  { 0 },
+  { ERR_BADLOGVALUE, "%s :Bad value for log type", "496" },
 /* 497 */
   { 0 },
 /* 498 */

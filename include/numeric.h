@@ -104,6 +104,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_SERVLIST         234	/* unused */
 #define RPL_SERVLISTEND      235	/* unused */
 
+#define RPL_STATSFLINE       238	/* Undernet feature lines */
 /*      RPL_STATSIAUTH       239           IRCnet extension */
 /*      RPL_STATSVLINE       240           IRCnet extension */
 #define RPL_STATSLLINE       241	
@@ -155,7 +156,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ENDOFGLIST       281        /* Undernet extension */
 #define RPL_JUPELIST         282        /* Undernet extension - jupe -Kev */
 #define RPL_ENDOFJUPELIST    283        /* Undernet extension - jupe -Kev */
-
+#define RPL_FEATURE	     284	/* Undernet extension - features */
 /*      RPL_CHANINFO_HANDLE  285           aircd */
 /*      RPL_CHANINFO_USERS   286           aircd */
 /*      RPL_CHANINFO_CHOPS   287           aircd */
@@ -352,6 +353,11 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define ERR_NOOPERHOST       491
 /*      ERR_NOSERVICEHOST    492 ? */
+
+#define ERR_NOFEATURE	     493	/* Undernet extension - features */
+#define ERR_BADLOGTYPE	     494	/* Undernet extension - features */
+#define ERR_BADLOGSYS	     495	/* Undernet extension - features */
+#define ERR_BADLOGVALUE	     496	/* Undernet extension - features */
 
 #define ERR_ISOPERLCHAN      498        /* Undernet extension */
 

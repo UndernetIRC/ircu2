@@ -270,6 +270,10 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (0 == report_klines(sptr, (parc == 4) ? parv[3] : 0, 0))
         return 0;
       break;
+    case 'F':
+    case 'f':
+      report_feature_list(sptr);
+      break;
     case 'I':
     case 'i':
     {
@@ -501,6 +505,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (0 == report_klines(sptr, (parc > 3) ? parv[3] : 0, !IsOper(sptr)))
         return 0;
       break;
+    case 'F':
+    case 'f':
+      report_feature_list(sptr);
+      break;
     case 'I':
     case 'i':
     {
@@ -729,6 +737,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'k':    /* display CONF_IPKILL as well as CONF_KILL -Kev */
       if (0 == report_klines(sptr, (parc > 3) ? parv[3] : 0, 0))
         return 0;
+      break;
+    case 'F':
+    case 'f':
+      report_feature_list(sptr);
       break;
     case 'I':
     case 'i':
