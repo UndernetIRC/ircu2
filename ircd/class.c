@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of connection class handling functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -35,18 +37,20 @@
 
 #include <assert.h>
 
-#define BAD_CONF_CLASS          ((unsigned int)-1)
-#define BAD_PING                ((unsigned int)-2)
-#define BAD_CLIENT_CLASS        ((unsigned int)-3)
-
+/** List of all connection classes. */
 static struct ConnectionClass* connClassList = 0;
+/** Number of allocated connection classes. */
 static unsigned int connClassAllocCount;
 
+/** Get start of connection class linked list. */
 const struct ConnectionClass* get_class_list(void)
 {
   return connClassList;
 }
 
+/** Allocate a new connection class.
+ * @return Newly allocated connection class structure.
+ */
 struct ConnectionClass* make_class(void)
 {
   struct ConnectionClass *tmp;
@@ -58,6 +62,9 @@ struct ConnectionClass* make_class(void)
   return tmp;
 }
 
+/** Dereference a connection class.
+ * @param[in] p Connection class to dereference.
+ */
 void free_class(struct ConnectionClass* p)
 {
   if (p)
@@ -70,8 +77,10 @@ void free_class(struct ConnectionClass* p)
   }
 }
 
-/*
- * init_class - initialize the class list
+/** Initialize the connection class list.
+ * A connection class named "default" is created, with ping frequency,
+ * connection frequency, maximum links and max SendQ values from the
+ * corresponding configuration features.
  */
 void init_class(void)
 {
@@ -89,11 +98,7 @@ void init_class(void)
   connClassList->next     = 0;
 }
 
-/*
- * class_mark_delete - mark classes for delete
- * We don't delete the class table, rather mark all entries
- * for deletion. The table is cleaned up by class_delete_marked(). - avalon
- * XXX - This destroys data
+/** Mark current connection classes as invalid.
  */
 void class_mark_delete(void)
 {
@@ -104,11 +109,10 @@ void class_mark_delete(void)
     p->valid = 0;
 }
 
-/*
- * class_delete_marked
- * delete classes marked for deletion
- * XXX - memory leak, no one deletes classes that become unused
- * later
+/** Unlink (and dereference) invalid connection classes.
+ * This is used in combination with class_mark_delete() during rehash
+ * to get rid of connection classes that are no longer in the
+ * configuration.
  */
 void class_delete_marked(void)
 {
@@ -135,6 +139,10 @@ void class_delete_marked(void)
   }
 }
 
+/** Get connection class name for a configuration item.
+ * @param[in] aconf Configuration item to check.
+ * @return Name of connection class associated with \a aconf.
+ */
 char*
 get_conf_class(const struct ConfItem* aconf)
 {
@@ -146,6 +154,10 @@ get_conf_class(const struct ConfItem* aconf)
   return NULL;
 }
 
+/** Get ping time for a configuration item.
+ * @param[in] aconf Configuration item to check.
+ * @return Ping time for connection class associated with \a aconf.
+ */
 int get_conf_ping(const struct ConfItem* aconf)
 {
   assert(0 != aconf);
@@ -157,6 +169,10 @@ int get_conf_ping(const struct ConfItem* aconf)
   return -1;
 }
 
+/** Get connection class name for a particular client.
+ * @param[in] acptr Client to check.
+ * @return Name of connection class to which \a acptr belongs.
+ */
 char*
 get_client_class(struct Client *acptr)
 {
@@ -173,6 +189,11 @@ get_client_class(struct Client *acptr)
   return "(null-class)";
 }
 
+/** Get connection interval for a connection class.
+ * @param[in] clptr Connection class to check (or NULL).
+ * @return If \a clptr != NULL, its connection frequency; else default
+ * connection frequency.
+ */
 unsigned int get_con_freq(struct ConnectionClass * clptr)
 {
   if (clptr)
@@ -181,12 +202,15 @@ unsigned int get_con_freq(struct ConnectionClass * clptr)
     return feature_int(FEAT_CONNECTFREQUENCY);
 }
 
-/*
- * When adding a class, check to see if it is already present first.
- * if so, then update the information for that class, rather than create
- * a new entry for it and later delete the old entry.
- * if no present entry is found, then create a new one and add it in
- * immeadiately after the first one (class 0).
+/** Make sure we have a connection class named \a name.
+ * If one does not exist, create it.  Then set its ping frequency,
+ * connection frequency, maximum link count, and max SendQ according
+ * to the parameters.
+ * @param[in] name Connection class name.
+ * @param[in] ping Ping frequency for clients in this class.
+ * @param[in] confreq Connection frequency for clients.
+ * @param[in] maxli Maximum link count for class.
+ * @param[in] sendq Max SendQ for clients.
  */
 void add_class(char *name, unsigned int ping, unsigned int confreq,
                unsigned int maxli, unsigned int sendq)
@@ -220,6 +244,10 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
     Links(p) = 0;
 }
 
+/** Find a connection class by name.
+ * @param[in] name Name of connection class to search for.
+ * @return Pointer to connection class structure (or NULL if none match).
+ */
 struct ConnectionClass* find_class(const char *name)
 {
   struct ConnectionClass *cltmp;
@@ -231,6 +259,11 @@ struct ConnectionClass* find_class(const char *name)
   return connClassList;
 }
 
+/** Report connection classes to a client.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 void
 report_classes(struct Client *sptr, const struct StatDesc *sd,
                char *param)
@@ -243,6 +276,10 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
 	       Links(cltmp));
 }
 
+/** Return maximum SendQ length for a client.
+ * @param[in] cptr Local client to check.
+ * @return Number of bytes allowed in SendQ for \a cptr.
+ */
 unsigned int
 get_sendq(struct Client *cptr)
 {
@@ -268,6 +305,10 @@ get_sendq(struct Client *cptr)
   return feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
 }
 
+/** Report connection class memory statistics to a client.
+ * Send number of classes and number of bytes allocated for them.
+ * @param[in] cptr Client requesting statistics.
+ */
 void class_send_meminfo(struct Client* cptr)
 {
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
