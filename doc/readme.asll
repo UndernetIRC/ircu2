@@ -1,0 +1,25 @@
+AsLL preliminary documentation, last updated 13 Jun 2002
+
+Server-to-server ping format:
+
+<prefix> G !<local-ts> <target> <local-ts>
+
+prefix = origin server numeric
+local-ts = local timestamp, as "seconds.miliseconds"
+target = target server numeric
+
+The local-ts is also sent instead of the origin field,
+so RTT information can be collected from non-AsLL servers,
+while preserving backward compatibility.
+
+
+Server-to-server pong format:
+
+<prefix> Z <origin> <target> <remote-ts> <diff> <local-ts>
+
+prefix = origin server numeric
+origin = origin server numeric
+target = target server numeric
+remote-ts = remote timestamp as received from an AsLL PING
+diff = difference between local-ts and remote-ts in miliseconds (integer)
+local-ts = local timestamp, as "seconds.miliseconds"
