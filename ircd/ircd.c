@@ -59,6 +59,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <netdb.h>
 
@@ -82,6 +83,8 @@ time_t nextconnect = 1;         /* time for next try_connections call */
 time_t nextping = 1;            /* same as above for check_pings() */
 time_t nextdnscheck = 0;        /* next time to poll dns to force timeouts */
 time_t nextexpire = 1;          /* next expire run on the dns cache */
+
+int pid_fd = -1;		/* We'll get an advisory lock in check_pid */
 
 #ifdef PROFIL
 extern etext(void);
@@ -146,14 +149,12 @@ static void outofmemory(void)
 static void write_pidfile(void)
 {
 #ifdef PPATH
-  int fd;
   char buff[20];
-  if ((fd = open(PPATH, O_CREAT | O_WRONLY, 0600)) >= 0) {
+  if (pid_fd >= 0) {
     memset(buff, 0, sizeof(buff));
     sprintf(buff, "%5d\n", (int)getpid());
-    if (write(fd, buff, strlen(buff)) == -1)
+    if (write(pid_fd, buff, strlen(buff)) == -1)
       Debug((DEBUG_NOTICE, "Error writing to pid file %s", PPATH));
-    close(fd);
     return;
   }
   Debug((DEBUG_NOTICE, "Error opening pid file \"%s\": %s",
@@ -173,16 +174,16 @@ static void write_pidfile(void)
 static int check_pid(void)
 {
 #ifdef PPATH
-  int fd;
-  int pid;
-  char buff[20];
-  if ((fd=open(PPATH, O_RDONLY)) >= 0) {
-    memset(buff,0,sizeof(buff));
-    read(fd,buff,sizeof(buf)-1);
-    close(fd);
-    sscanf(buff,"%d",&pid);
-    return (kill(pid,0)==0);
-  }
+  struct flock lock;
+
+  lock.l_type = F_WRLCK;
+  lock.l_start = 0;
+  lock.l_whence = SEEK_SET;
+  lock.l_len = 0;
+
+  if ((pid_fd = open(PPATH, O_CREAT | O_RDWR, 0600)) >= 0)
+    return fcntl(pid_fd, F_SETLK, &lock);
+
   return 0;
 #endif
 }
@@ -432,10 +433,6 @@ int main(int argc, char *argv[])
 
   myargv = argv;
   umask(077);                   /* better safe than sorry --SRB */
-  if (check_pid()) {
-  	fprintf(stderr,"another ircd process is already running: aborting...\n");
-  	exit(6);
-  }
   memset(&me, 0, sizeof(me));
   me.fd = -1;
 
@@ -649,6 +646,10 @@ int main(int argc, char *argv[])
   initstats();
   open_debugfile();
   init_sys();
+  if (check_pid()) {
+    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
+    exit(2);
+  }
   set_nomem_handler(outofmemory);
 
   me.fd = -1;
