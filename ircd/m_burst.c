@@ -167,6 +167,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (parv[param][0] != '+')
         continue;
       if (strchr(parv[param], 'i') || strchr(parv[param], 'k')) {
+        /* Clear any outstanding rogue invites */
+        mode_invite_clear(chptr);
         for (member = chptr->members; member; member = nmember) {
           nmember=member->next_member;
           if (!MyUser(member->user) || IsZombie(member))
@@ -175,8 +177,6 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, "%H %C :Net Rider", chptr, member->user);
           make_zombie(member, member->user, &me, &me, chptr);
         }
-        /* Clear any outstanding rogue invites */
-        mode_invite_clear(chptr);
       }
       break;
     }
