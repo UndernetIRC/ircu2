@@ -277,9 +277,9 @@ exact_match:
 	  sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
 	      parv[0], name, "*.undernet.org","The Undernet Underworld");
         else
+#endif
           sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
               parv[0], name, a2cptr->name, a2cptr->info);
-#endif
         if (user)
         {
           if (user->away)
