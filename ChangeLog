@@ -1,5 +1,18 @@
 2000-06-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_server.c: Resend jupe only when there is no %<lastmod>
+	parameter, or when it falls out of bounds: see comments prior to
+	call to jupe_resend(); call server_estab with struct Jupe
+	parameter, so that we place the appropriate %<lastmod> in the
+	appropriate place.
+
+	* ircd/s_serv.c (server_estab): send %<lastmod> for introduced
+	server, as well as for servers when we're sending the BURST
+
+	* include/s_serv.h: add a struct Jupe * to the arguments for
+	server_estab() so that we can send the appropriate lastmod
+	parameter
+
 	* ircd/m_gline.c (ms_gline): actually, this should be the
 	slightest bit more efficient...
 
@@ -1171,7 +1184,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.141 2000-06-02 23:09:20 kev Exp $
+# $Id: ChangeLog,v 1.142 2000-06-03 00:09:12 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
