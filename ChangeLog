@@ -1,3 +1,9 @@
+2002-04-03 Andrew Miller <a1kmm@mware.virtualave.net>
+	* doc/example.conf: Cleaned up some comments that ended up in
+	  strange places due to problems in the merge process.
+	* ircd/m_nick.c: Cleaned up ms_nick, and fixed a bug that
+	  probably dates back to Jarkko code.
+
 2002-04-02  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_kill.c: let ms_kill() and mo_kill() seperate the message

@@ -246,16 +246,18 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client* acptr;
-  char           nick[NICKLEN + 2];
-  time_t         lastnick = 0;
-  int            differ = 1;
+  struct Client *acptr;
+  char nick[NICKLEN + 2];
+  time_t lastnick = 0;
+  int differ = 1;
+  char *type;
 
   assert(0 != cptr);
   assert(0 != sptr);
   assert(IsServer(cptr));
 
-  if ((IsServer(sptr) && parc < 8) || parc < 3) {
+  if ((IsServer(sptr) && parc < 8) || parc < 3)
+  {
     sendto_opmask_butone(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
 			 parv[1], cptr);
     return need_more_params(sptr, "NICK");
@@ -264,12 +266,14 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ircd_strncpy(nick, parv[1], NICKLEN);
   nick[NICKLEN] = '\0';
 
-  if (IsServer(sptr)) {
+  if (IsServer(sptr))
+  {
     lastnick = atoi(parv[3]);
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr)) 
       cli_serv(sptr)->lag = TStime() - lastnick;
   }
-  else {
+  else
+  {
     lastnick = atoi(parv[2]); 
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr))
       cli_serv(cli_user(sptr)->server)->lag = TStime() - lastnick;
@@ -280,16 +284,18 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * creation) then reject it. If from a server and we reject it,
    * and KILL it. -avalon 4/4/92
    */
-  if (0 == do_nick_name(nick) || 0 != strcmp(nick, parv[1])) {
+  if (strlen(nick) != do_nick_name(nick))
+  {
     send_reply(sptr, ERR_ERRONEUSNICKNAME, parv[1]);
-
+    
     ++ServerStats->is_kill;
     sendto_opmask_butone(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
 			 parv[0], cptr);
     sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s <- %s[%s])",
 		  IsServer(sptr) ? parv[parc - 2] : parv[0], cli_name(&me), parv[1],
 		  nick, cli_name(cptr));
-    if (!IsServer(sptr)) {
+    if (!IsServer(sptr))
+    {
       /*
        * bad nick _change_
        */
@@ -301,47 +307,10 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     return 0;
   }
-  /*
-   * Check against nick name collisions.
-   *
-   * Put this 'if' here so that the nesting goes nicely on the screen :)
-   * We check against server name list before determining if the nickname
-   * is present in the nicklist (due to the way the below for loop is
-   * constructed). -avalon
-   */
-   
-  acptr = FindClient(nick);
-  if (!acptr) {
-    /*
-     * No collisions, all clear...
-     */
+  /* Check against nick name collisions. */
+  if ((acptr = FindClient(nick)) == NULL)
+    /* No collisions, all clear... */
     return set_nick_name(cptr, sptr, nick, parc, parv);
-  }
-  assert(0 != acptr);
-
-  if (IsServer(acptr)) { /* shouldn't even happen, actually */
-    /*
-     * We have a nickname trying to use the same name as
-     * a server. Send out a nick collision KILL to remove
-     * the nickname. As long as only a KILL is sent out,
-     * there is no danger of the server being disconnected.
-     * Ultimate way to jupiter a nick ? >;-). -avalon
-     */
-    sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C(%C <- %C)", sptr,
-			 cli_from(acptr), cptr);
-    ++ServerStats->is_kill;
-
-    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s <- %s)", sptr, cli_name(&me),
-		  cli_name(cli_from(acptr)), cli_name(cptr));
-
-    cli_flags(sptr) |= FLAGS_KILLED;
-    /*
-     * if sptr is a server it is exited here, nothing else to do
-     */
-    return exit_client_msg(cptr, sptr, &me,
-			   "Killed (" HEAD_IN_SAND_SERVERNAME " (%s <- %s))",
-			   cli_name(cli_from(acptr)), cli_name(cptr));
-  }
 
   /*
    * If acptr == sptr, then we have a client doing a nick
@@ -349,36 +318,19 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * is concerned (user is changing the case of his/her
    * nickname or somesuch)
    */
-  if (acptr == sptr) {
+  if (acptr == sptr)
+  {
     if (strcmp(cli_name(acptr), nick) != 0)
-      /*
-       * Allows change of case in his/her nick
-       */
+      /* Allows change of case in his/her nick */
       return set_nick_name(cptr, sptr, nick, parc, parv);
     else
-      /*
-       * This is just ':old NICK old' type thing.
-       * Just forget the whole thing here. There is
-       * no point forwarding it to anywhere,
-       * especially since servers prior to this
-       * version would treat it as nick collision.
-       */
-      return 0;                        /* NICK Message ignored */
+      /* Setting their nick to what it already is? Ignore it. */
+      return 0;
   }
-
-  /*
-   * Note: From this point forward it can be assumed that
-   * acptr != sptr (point to different client structures).
-   */
-  assert(acptr != sptr);
-  /*
-   * If the older one is "non-person", the new entry is just
-   * allowed to overwrite it. Just silently drop non-person,
-   * and proceed with the nick. This should take care of the
-   * "dormant nick" way of generating collisions...
-   */
-  if (IsUnknown(acptr) && MyConnect(acptr)) {
-    ++ServerStats->is_ref;
+  /* now we know we have a real collision. */
+  if (IsUnknown(acptr) && MyConnect(acptr))
+  {
+    ServerStats->is_ref++;
     IPcheck_connect_fail(cli_ip(acptr));
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
@@ -401,7 +353,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * --Run
    *
    */
-  if (IsServer(sptr)) {
+  if (IsServer(sptr))
+  {
     /*
      * A new NICK being introduced by a neighbouring
      * server (e.g. message type ":server NICK new ..." received)
@@ -415,7 +368,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 cli_lastnick(acptr), cptr, lastnick,
 			 differ ? "Different" : "Same");
   }
-  else {
+  else
+  {
     /*
      * A NICK change has collided (e.g. message type ":old NICK new").
      *
@@ -427,6 +381,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
 			 cli_lastnick(acptr), cptr, lastnick);
   }
+  type = differ ? "older nick overruled" : "nick collision from same user@host";
   /*
    * Now remove (kill) the nick on our side if it is the youngest.
    * If no timestamp was received, we ignore the incoming nick
@@ -436,62 +391,65 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    *
    * This exits the client sending the NICK message
    */
-  if (cli_from(acptr) != cptr) {
-    if ((differ && lastnick >= cli_lastnick(acptr)) ||
-	(!differ && lastnick <= cli_lastnick(acptr))) {
-      if (!IsServer(sptr)) {
-        ++ServerStats->is_kill;
-	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (Nick collision)",
-			      sptr, cli_name(&me));
-        assert(!MyConnect(sptr));
-
-        cli_flags(sptr) |= FLAGS_KILLED;
-        exit_client(cptr, sptr, &me,
-		    "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))");
-        /*
-         * we have killed sptr off, zero out it's pointer so if it's used
-         * again we'll know about it --Bleep
-         */
-        sptr = 0;
-      }
-      if (lastnick != cli_lastnick(acptr))
-        return 0;                /* Ignore the NICK */
+  if ((differ && lastnick >= cli_lastnick(acptr)) ||
+      (!differ && lastnick <= cli_lastnick(acptr)))
+  {
+    /* We need to bounce this kill straight back... Although the nick message
+     * for acptr is probably waiting in their recvq from me, its also possible
+     * that sptr will change their nick on cptr before cptr receives the
+     * nick message for acptr, which would leave acptr and sptr both alive
+     * on cptr, but only acptr alive on me, i.e. desync. This extra kill
+     * message has been absent for a while in ircu although it was a major
+     * problem when it was tried on efnet, so I don't know how big an issue it
+     * is. Probably best that this be left here, anyway...
+     */
+    ServerStats->is_kill++;
+    sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s)",
+                  nick, cli_name(&me), type);
+    /* But if this was a nick change and not a nick introduction,
+     * we also need to ensure that we remove our local state
+     * record of the original client... Also, the rest of the
+     * net should be informed...
+     */
+    if (!IsServer(sptr))
+    {
+      assert(!MyConnect(sptr));
+      /* Inform the rest of the net... */
+      sendcmdto_serv_butone(&me, CMD_KILL, cptr, "%s :%s (%s)",
+                            nick, cli_name(&me), type);
+      /* Don't go sending off a QUIT message... */
+      cli_flags(sptr) |= FLAGS_KILLED;
+      /* Remove them locally. */
+      exit_client_msg(cptr, sptr, &me,
+                      "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))",
+                      type);
+      /*
+       * We have killed sptr off, zero out it's pointer so if it's used
+       * again we'll know about it --Bleep
+       */
+      sptr = NULL;
     }
-    send_reply(acptr, ERR_NICKCOLLISION, nick);
+    /* If the timestamps differ and we just killed sptr, we don't need to kill
+     * acptr as well.
+     */
+    if (lastnick != cli_lastnick(acptr))
+      return 0;
   }
+  /* Tell acptr why we are killing it. */
+  send_reply(acptr, ERR_NICKCOLLISION, nick);
 
-  ++ServerStats->is_kill;
+  ServerStats->is_kill++;
   cli_flags(acptr) |= FLAGS_KILLED;
   /*
    * This exits the client we had before getting the NICK message
    */
-  if (differ) {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
-			  "overruled)", acptr, cli_name(&me));
-    if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (older "
-		    "nick overruled))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
-		    "overruled)", acptr);
-    }
-    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (older nick "
-		"overruled))");
-  }
-  else {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
-			  "same user@host)", acptr, cli_name(&me));
-    if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (nick "
-		    "collision from same user@host))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
-		    "overruled)", acptr);
-    }
-    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (nick collision "
-		"from same user@host))");
-  }
+  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :" HEAD_IN_SAND_SERVERNAME
+                        " (%s)", acptr, type);
+  exit_client_msg(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (%s))",
+                  type);
   if (lastnick == cli_lastnick(acptr))
     return 0;
-
-  assert(0 != sptr);
+  if (sptr == NULL)
+    return 0;
   return set_nick_name(cptr, sptr, nick, parc, parv);
 }

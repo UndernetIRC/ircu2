@@ -626,11 +626,12 @@ void add_connection(struct Listener* listener, int fd) {
    *
    * If they're throttled, murder them, but tell them why first.
    */
-  if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
+  if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server)
+  {
     ++ServerStats->is_ref;
-     write(fd, throttle_message, strlen(throttle_message));
-     close(fd);
-     return;
+    write(fd, throttle_message, strlen(throttle_message));
+    close(fd);
+    return;
   }
 
   new_client = make_client(0, ((listener->server) ? 
