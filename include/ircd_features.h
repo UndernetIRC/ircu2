@@ -17,13 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Public interfaces and declarations for dealing with configurable features.
+ * @version $Id$
  */
 
 struct Client;
 struct StatDesc;
 
+/** Contains all feature settings for ircu.
+ * For documentation of each, see doc/readme.features.
+ */
 enum Feature {
   /* Misc. features */
   FEAT_LOG,
