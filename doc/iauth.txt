@@ -1,0 +1,205 @@
+$Id: iauth.txt,v 1.1 2001-05-01 11:38:34 isomer Exp $
+
+Patrick Alken <wnder@underworld.net>
+01/09/2000
+
+Ircd Authentication
+==== ==============
+
+1. Introduction
+
+  This document describes the protocol used for the IAuth server.
+IAuth performs authorization checks for all clients that connect
+to the ircd server.
+
+2. Protocol
+
+  Ircd and IAuth communicate through a TCP/IP connection. The
+Ircd server will always initiate the connection to the IAuth
+server.
+
+2.1 Server
+
+  When an Ircd server first connects to an IAuth server, it will
+send IAuth a string of the form:
+
+    Server <name>
+
+      <name>     - Ircd server name
+
+  This is used for identification purposes in case more than one
+Ircd server is using an IAuth server.
+
+2.2 Class
+
+2.2.1 Class Add
+
+  When an Ircd server first connects to an IAuth server, it will
+send IAuth it's class list in the form:
+
+    Class Add <number> <maxlinks>
+
+      <number>   - Class number
+      <maxlinks> - Maximum number of clients in this class
+
+  This is needed for the I-line check, in case the number of
+clients allowed to use a certain I-line is limited.
+
+2.2.2 Class Clear
+
+  Upon a rehash, the Ircd server will send I-line a string of the
+form:
+
+    Class Clear [number]
+
+      [number]   - optional number
+
+  In case the Ircd server's Y: lines were changed prior to the
+rehash, IAuth will clear it's old class list to make room for
+the new one Ircd will send after the rehash (via Class Add).
+
+2.3 DoAuth
+
+  When a client connects to the Ircd server, Ircd will send
+a string of the form:
+
+    DoAuth <id> <nickname> <username> <hostname> <IP> [password]
+
+      <id>       - A unique ID used to identify each client
+      <nickname> - Client's nickname
+      <username> - Client's username
+      <hostname> - Client's hostname
+      <IP>       - Client's IP Address in unsigned int format
+      [password] - *Optional* Client password
+
+  The DoAuth directive will initiate an authorization check on
+the client. The following checks are performed.
+
+2.3.1 I-line Check
+
+  This check will ensure that the client matches a valid I-line
+(as given in iauth.conf). If the client fails this check, he/she
+will not be allowed to remain connected to the Ircd server.
+The actual reason they failed authorization will be told to them.
+(See the BadAuth directive).
+  See the section on iauth.conf for more information on I-lines.
+
+2.3.2 Server Ban Check
+
+  K-lines are server-wide bans for individual (or groups of) clients.
+If a client matches a K-line, they will be disconnected from the
+Ircd server with the reason they are banned. The only exception to
+this is if they have an exemption flag in their I-line. See the
+iauth.conf section for more details on this.
+
+2.3.3 Quarantine Check
+
+  Q-lines specify nicknames which are not allowed to be used on
+the Ircd server. If a client's nickname matches that of a Q-lined
+nickname, they will be informed they have selected a quarantined
+nickname and be disconnected from the server.
+
+2.4 DoneAuth
+
+  If a client passes all of the above checks, they will pass
+authorization and be allowed to continue their connection to
+the Ircd server. IAuth will send a string back to the Ircd
+server of the form:
+
+    DoneAuth <id> <username> <hostname> <class>
+
+      <id>       - Client's unique ID
+      <username> - Client's username
+      <hostname> - Client's hostname (may be different from original
+                   if they are allowed a spoof)
+      <class>    - Client's I-line class
+
+  This will inform the Ircd server that the specified client is
+authorized to connect.
+
+2.5 BadAuth
+
+  If a client fails any of the above checks, IAuth will send a
+string to the Ircd server of the form:
+
+    BadAuth <id> :<reason>
+
+      <id>       - Client's unique ID
+      <reason>   - Reason client failed authorization
+
+  The Ircd server will then send an error back to the client
+containing <reason> and disconnect them.
+
+3. Configuration file (iauth.conf)
+
+  IAuth reads a configuration file upon startup. The name of the
+file is located in setup.h, under #define CONFFILE. The format
+of this file is identical to that of ircd.conf, except it supports
+less directives.
+
+3.1 I-lines (Server Access)
+
+  I-lines allow clients access to the Ircd server and are of the
+form:
+
+    I:<spoofhost>:[password]:[flags][user@]<host>::<class>
+
+      <spoofhost> - Hostname to give client if SPOOF_FREEFORM
+                    is defined.
+      [password]  - *Optional* password that clients will
+                    be required to supply to gain access.
+      [flags]     - *Optional* flags (see below)
+      [user]      - *Optional* username (if not given, defaults
+                    to "*")
+      <host>      - Client's hostname
+      <class>     - I-line class (see section Class Add)
+
+  Possible values to go in the [flags] section are:
+
+                = - Spoof their IP Address (requires #define
+                    SPOOF_FREEFORM)
+                ! - Limit 1 client per IP Address
+                - - Do not give them a tilde (~) character if they
+                    are not running identd
+                + - Do not allow them to connect if they are not
+                    running identd
+                ^ - Client is exempt from K/G lines
+                > - Client is also exempt from connection limits
+
+3.2 K-lines (Server Bans)
+
+  K-lines specify clients who are banned from the Ircd server and
+are of the form:
+
+    K:<username>@<hostname>:<reason>
+
+      <username>  - Client's username
+      <hostname>  - Client's hostname
+      <reason>    - Reason client is banned
+
+3.3 Q-lines (Quarantined Nicknames)
+
+  Q-lines specify illegal nicknames. A client that attempts to use
+a quarantined nickname will be exited from the Ircd server. Q-lines
+are of the form:
+
+    Q:<nickname>:<reason>:[[username@]hostname]]
+
+      <nickname>  - Quarantined nickname
+      <reason>    - Reason nickname is quarantined
+      [username]  - *Optional* exempted username
+      [hostname]  - *Optional* exempted hostname
+
+  Examples:
+
+    Q:dcc*:Dcc bots not allowed
+    Q:GoodOper:GoodOper may use this nick:goodoper@oper.irc.server.com
+
+3.4 P-lines (Ports)
+
+  P-lines specify ports on which the IAuth server will listen for
+incoming Ircd server connections. They are of the form:
+
+    P:<portnum>
+
+      <portnum>   - Port number

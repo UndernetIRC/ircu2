@@ -1,0 +1,52 @@
+*** ./select.c.bak	Sun Apr 30 13:00:38 2000
+--- /usr/src/linux/fs/select.c	Mon May  1 18:00:15 2000
+***************
+*** 11,16 ****
+--- 11,17 ----
+   */
+  
+  #include <linux/malloc.h>
++ #include <linux/vmalloc.h>
+  #include <linux/smp_lock.h>
+  #include <linux/poll.h>
+  #include <linux/file.h>
+***************
+*** 416,422 ****
+  	}
+  
+  	size = nfds * sizeof(struct pollfd);
+! 	fds = (struct pollfd *) kmalloc(size, GFP_KERNEL);
+  	if (!fds)
+  		goto out;
+  
+--- 417,426 ----
+  	}
+  
+  	size = nfds * sizeof(struct pollfd);
+! 	if (size > PAGE_SIZE) 
+!   		fds = (struct pollfd *) vmalloc(size);
+! 	else
+! 		fds = (struct pollfd *) kmalloc(size, GFP_KERNEL);
+  	if (!fds)
+  		goto out;
+  
+***************
+*** 437,443 ****
+  		err = -EINTR;
+  
+  out_fds:
+! 	kfree(fds);
+  out:
+  	if (wait)
+  		free_wait(wait_table);
+--- 441,450 ----
+  		err = -EINTR;
+  
+  out_fds:
+! 	if (size > PAGE_SIZE) 
+! 		vfree(fds);
+! 	else
+! 		kfree(fds);
+  out:
+  	if (wait)
+  		free_wait(wait_table);
