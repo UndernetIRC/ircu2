@@ -112,6 +112,54 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
   return 1;
 }
 
+int connect_dopacket(struct Client *cptr, const char *buffer, int length)
+{
+  const char* src;
+  char*       endp;
+  char*       client_buffer;
+  
+  assert(0 != cptr);
+
+  update_bytes_received(cptr, length);
+
+  client_buffer = cli_buffer(cptr);
+  endp = client_buffer + cli_count(cptr);
+  src = buffer;
+
+  while (length-- > 0)
+  {
+    *endp = *src++;
+    /*
+     * Yuck.  Stuck.  To make sure we stay backward compatible,
+     * we must assume that either CR or LF terminates the message
+     * and not CR-LF.  By allowing CR or LF (alone) into the body
+     * of messages, backward compatibility is lost and major
+     * problems will arise. - Avalon
+     */
+    if (IsEol(*endp))
+    {
+      /* Skip extra LF/CR's */
+      if (endp == client_buffer)
+        continue;
+      *endp = '\0';
+
+      update_messages_received(cptr);
+
+      if (parse_client(cptr, cli_buffer(cptr), endp) == CPTR_KILLED)
+        return CPTR_KILLED;
+      /* Socket is dead so exit */
+      if (IsDead(cptr))
+        return exit_client(cptr, cptr, &me, cli_info(cptr));
+      endp = client_buffer;
+    }
+    else if (endp < client_buffer + BUFSIZE)
+      /* There is always room for the null */
+      ++endp;                   
+  }
+  cli_count(cptr) = endp - cli_buffer(cptr);
+  return 1;  
+}
+
 /*
  * client_dopacket - handle client messages
  */

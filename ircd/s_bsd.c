@@ -724,21 +724,24 @@ static int read_packet(struct Client *cptr, int socket_ready)
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
    */
-  if (length > 0 &&
-      (IsServer(cptr) || IsHandshake(cptr) || IsConnecting(cptr))) {
+  if (length <= 0)
+    ;
+  else if (IsServer(cptr))
+  {
     return server_dopacket(cptr, readbuf, length);
   }
-  else {
+  else if (IsHandshake(cptr) || IsConnecting(cptr))
+    return connect_dopacket(cptr, readbuf, length);
+  else
+  {
     /*
      * Before we even think of parsing what we just read, stick
      * it on the end of the receive queue and do it when its
      * turn comes around.
      */
-    if (length > 0 && 0 == dbuf_put(&(cli_recvQ(cptr)), readbuf, length)) {
+    if (dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
-    }
-
-    if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
+    else if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
@@ -748,9 +751,19 @@ static int read_packet(struct Client *cptr, int socket_ready)
        * If it has become registered as a Server
        * then skip the per-message parsing below.
        */
-      if (IsServer(cptr)) {
-        dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
-        return (dolen) ? server_dopacket(cptr, readbuf, dolen) : 1;
+      if (IsHandshake(cptr) || IsServer(cptr))
+      {
+        int ret;
+        while (-1)
+        {
+          dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
+          if (dolen <= 0)
+            return 1;
+          ret = IsServer(cptr) ? server_dopacket(cptr, readbuf, dolen) :
+                                 connect_dopacket(cptr, readbuf, dolen);
+          if (ret != 1)
+            return ret;
+        }
       }
       dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
       /*
@@ -761,19 +774,21 @@ static int read_packet(struct Client *cptr, int socket_ready)
        * deletes the rest of the buffer contents.
        * -avalon
        */
-      if (0 == dolen) {
+      if (dolen = 0)
+      {
         if (DBufLength(&(cli_recvQ(cptr))) < 510)
           cli_flags(cptr) |= FLAGS_NONL;
         else
           DBufClear(&(cli_recvQ(cptr)));
       }
-      else if (CPTR_KILLED == client_dopacket(cptr, dolen))
+      else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
         return CPTR_KILLED;
     }
 
     /* If there's still data to process, wait 2 seconds first */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	!t_onqueue(&(cli_proc(cptr)))) {
+	!t_onqueue(&(cli_proc(cptr))))
+    {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_freeflag(cptr) |= FREEFLAG_TIMER;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),

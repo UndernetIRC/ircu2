@@ -1,3 +1,12 @@
+2002-07-05 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/packet.c
+	* ircd/packet.h: (connect_dopacket): Made a dopacket function for
+	connecting links which sends the messages through the correct message
+	handler.
+	* ircd/s_bsd.c(read_packet): Put packets through the correct handler
+	for connecting links. Properly handle unknown links becoming
+	connecting or servers.
+
 2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
 	* include/ircd_alloc.h (MyFree): Accept NULL pointers to do nothing
 	with, this is used quite a lot.
