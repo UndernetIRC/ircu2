@@ -208,7 +208,7 @@ mainmenu_option next_comment
 comment 'Paths and files'
   eval DPATH_DEFAULT="${prefix}/lib/ircd"
   string 'Directory where all ircd stuff resides' DPATH $DPATH_DEFAULT
-  define_string SPATH "$BINDIR/ircd"
+  define_string SPATH "$BINDIR/$SYMLINK"
   echo "The following filenames are either full paths or files within DPATH"
   string 'Server configuration file' CPATH 'ircd.conf'
   string 'Server MOTD file' MPATH 'ircd.motd'
