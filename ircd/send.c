@@ -215,11 +215,15 @@ void vsendcmdto_one(struct Client *to, const char *cmd, const char *tok,
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   vd.vd_args = vl;
 
-  if (MyUser(to)) /* :nick!user@host form; use cmd */
-    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v",
-		  from->name, from->user->username, from->user->host,
-		  cmd, &vd);
-  else /* numeric form; use tok */
+  if (MyUser(to)) { /* :nick!user@host form; use cmd */
+    if (IsServer(from) || IsMe(from))
+      ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s %s %v",
+		    from->name, cmd, &vd);
+    else
+      ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v",
+		    from->name, from->user->username, from->user->host,
+		    cmd, &vd);
+  } else /* numeric form; use tok */
     ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
 
   send_buffer(to, sndbuf);

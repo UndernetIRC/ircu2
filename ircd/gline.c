@@ -152,14 +152,14 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			  GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
-			  gline->gl_expire - TStime(), gline->gl_lastmod,
+			  gline->gl_expire - CurrentTime, gline->gl_lastmod,
 			  gline->gl_reason);
   else
     sendcmdto_serv_butone(cptr, CMD_GLINE, sptr, "* %c%s%s%s %Tu :%s",
 			  GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 			  GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
-			  gline->gl_expire - TStime(), gline->gl_reason);
+			  gline->gl_expire - CurrentTime, gline->gl_reason);
 }
 
 int 
@@ -181,7 +181,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
     return 0;
   }
 
-  expire += TStime(); /* convert from lifetime to timestamp */
+  expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* NO_OLD_GLINE allows *@#channel to work correctly */
 #ifdef BADCHAN
@@ -204,7 +204,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
 		 flags & GLINE_LOCAL ? "local" : "global",
 		 flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
-		 expire, reason);
+		 expire + TSoffset, reason);
 
 #ifdef GPATH
   /* and log it */
@@ -212,15 +212,15 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
     write_log(GPATH, "# " TIME_T_FMT " %s adding %s %s for %s, expiring at "
 	      TIME_T_FMT ": %s\n", TStime(), sptr->name,
 	      flags & GLINE_LOCAL ? "local" : "global",
-	      flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost, expire,
-	      reason);
+	      flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
+	      expire + TSoffset, reason);
   else
     write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s adding %s %s for %s, "
 	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
 	      sptr->user->username, sptr->user->host,
 	      flags & GLINE_LOCAL ? "local" : "global",
-	      flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost, expire,
-	      reason);
+	      flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
+	      expire + TSoffset, reason);
 #endif /* GPATH */
 
   /* make the gline */
@@ -245,38 +245,40 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	       time_t lastmod)
 {
   assert(0 != gline);
+  assert(!GlineIsLocal(gline));
 
   gline->gl_flags |= GLINE_ACTIVE;
-  gline->gl_lastmod = lastmod;
+
+  if (gline->gl_lastmod >= lastmod) /* force lastmod to increase */
+    gline->gl_lastmod++;
+  else
+    gline->gl_lastmod = lastmod;
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_GLINE, "%s activating %s %s for %s%s%s, expiring at "
+  sendto_op_mask(SNO_GLINE, "%s activating global %s for %s%s%s, expiring at "
 		 TIME_T_FMT ": %s",
 		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 GlineIsLocal(gline) ? "local" : "global",
 		 GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		 gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-		 GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-		 gline->gl_reason);
+		 GlineIsBadChan(gline) ? "" : gline->gl_host,
+		 gline->gl_expire + TSoffset, gline->gl_reason);
 
 #ifdef GPATH
   if (IsServer(sptr))
-    write_log(GPATH, "# " TIME_T_FMT " %s activating %s %s for %s%s%s, "
+    write_log(GPATH, "# " TIME_T_FMT " %s activating global %s for %s%s%s, "
 	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      GlineIsLocal(gline) ? "local" : "global",
 	      GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 	      gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-	      GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-	      gline->gl_reason);
+	      GlineIsBadChan(gline) ? "" : gline->gl_host,
+	      gline->gl_expire + TSoffset, gline->gl_reason);
   else
-    write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s activating %s %s for "
+    write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s activating %s for "
 	      "%s%s%s, expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
 	      sptr->user->username, sptr->user->host,
-	      GlineIsLocal(gline) ? "local" : "global",
 	      GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 	      gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-	      GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-	      gline->gl_reason);
+	      GlineIsBadChan(gline) ? "" : gline->gl_host,
+	      gline->gl_expire + TSoffset, gline->gl_reason);
 #endif /* GPATH */
 
   propagate_gline(cptr, sptr, gline);
@@ -290,40 +292,50 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 {
   assert(0 != gline);
 
-  gline->gl_flags &= ~GLINE_ACTIVE;
-  gline->gl_lastmod = lastmod;
+  if (!GlineIsLocal(gline)) {
+    gline->gl_flags &= ~GLINE_ACTIVE;
+
+    if (gline->gl_lastmod >= lastmod)
+      gline->gl_lastmod++;
+    else
+      gline->gl_lastmod = lastmod;
+  }
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_GLINE, "%s deactivating %s %s for %s%s%s, expiring at "
+  sendto_op_mask(SNO_GLINE, "%s %s %s for %s%s%s, expiring at "
 		 TIME_T_FMT ": %s",
 		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 GlineIsLocal(gline) ? "local" : "global",
+		 GlineIsLocal(gline) ? "removing local" :
+		 "deactivating global",
 		 GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		 gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-		 GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-		 gline->gl_reason);
+		 GlineIsBadChan(gline) ? "" : gline->gl_host,
+		 gline->gl_expire + TSoffset, gline->gl_reason);
 
 #ifdef GPATH
   if (IsServer(sptr))
-    write_log(GPATH, "# " TIME_T_FMT " %s deactivating %s %s for %s%s%s, "
+    write_log(GPATH, "# " TIME_T_FMT " %s %s %s for %s%s%s, "
 	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      GlineIsLocal(gline) ? "local" : "global",
+	      GlineIsLocal(gline) ? "removing local" : "deactivating global",
 	      GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 	      gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-	      GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-	      gline->gl_reason);
+	      GlineIsBadChan(gline) ? "" : gline->gl_host,
+	      gline->gl_expire + TSoffset, gline->gl_reason);
   else
-    write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s deactivating %s %s for "
+    write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s %s %s for "
 	      "%s%s%s, expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
 	      sptr->user->username, sptr->user->host,
-	      GlineIsLocal(gline) ? "local" : "global",
+	      GlineIsLocal(gline) ? "removing local" : "deactivating global",
 	      GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 	      gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-	      GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
-	      gline->gl_reason);
+	      GlineIsBadChan(gline) ? "" : gline->gl_host,
+	      gline->gl_expire + TSoffset, gline->gl_reason);
 #endif /* GPATH */
 
-  propagate_gline(cptr, sptr, gline);
+  if (GlineIsLocal(gline))
+    gline_free(gline);
+  else
+    propagate_gline(cptr, sptr, gline);
 
   return 0;
 }
@@ -347,7 +359,12 @@ gline_find(char *userhost, unsigned int flags)
     }
   }
 
-  if ((flags & (GLINE_BADCHAN | GLINE_ANY)) == GLINE_BADCHAN)
+  if ((flags & (GLINE_BADCHAN | GLINE_ANY)) == GLINE_BADCHAN ||
+      *userhost == '#' || *userhost == '&' || *userhost == '+'
+#ifndef NO_OLD_GLINE
+      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
+#endif /* NO_OLD_GLINE */
+      )
     return 0;
 
   DupString(t_uh, userhost);
@@ -427,7 +444,7 @@ gline_burst(struct Client *cptr)
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s@%s %Tu %Tu :%s",
 		    GlineIsActive(gline) ? '+' : '-', gline->gl_user,
-		    gline->gl_host, gline->gl_expire - TStime(),
+		    gline->gl_host, gline->gl_expire - CurrentTime,
 		    gline->gl_lastmod, gline->gl_reason);
   }
 
@@ -439,7 +456,7 @@ gline_burst(struct Client *cptr)
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s %Tu %Tu :%s",
 		    GlineIsActive(gline) ? '+' : '-', gline->gl_user,
-		    gline->gl_expire - TStime(), gline->gl_lastmod,
+		    gline->gl_expire - CurrentTime, gline->gl_lastmod,
 		    gline->gl_reason);
   }
 }
@@ -454,7 +471,7 @@ gline_resend(struct Client *cptr, struct Gline *gline)
 		GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 		GlineIsBadChan(gline) ? "" : "@",
 		GlineIsBadChan(gline) ? "" : gline->gl_host,
-		gline->gl_expire - TStime(), gline->gl_lastmod,
+		gline->gl_expire - CurrentTime, gline->gl_lastmod,
 		gline->gl_reason);
 
   return 0;
@@ -473,7 +490,7 @@ gline_list(struct Client *sptr, char *userhost)
     /* send gline information along */
     sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
 	       GlineIsBadChan(gline) ? "" : "@",
-	       GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
+	       GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire + TSoffset,
 	       GlineIsLocal(gline) ? me.name : "*",
 	       GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
   } else {
@@ -484,7 +501,7 @@ gline_list(struct Client *sptr, char *userhost)
 	gline_free(gline);
       else
 	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
-		   gline->gl_user, "@", gline->gl_host, gline->gl_expire,
+		   gline->gl_user, "@", gline->gl_host, gline->gl_expire + TSoffset,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
     }
@@ -496,7 +513,7 @@ gline_list(struct Client *sptr, char *userhost)
 	gline_free(gline);
       else
 	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
-		   gline->gl_user, "", "", gline->gl_expire,
+		   gline->gl_user, "", "", gline->gl_expire + TSoffset,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
     }
@@ -520,7 +537,7 @@ gline_stats(struct Client *sptr)
       gline_free(gline);
     else
       sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name, sptr->name, 'G',
-		 gline->gl_user, gline->gl_host, gline->gl_expire,
+		 gline->gl_user, gline->gl_host, gline->gl_expire + TSoffset,
 		 gline->gl_reason);
   }
 }

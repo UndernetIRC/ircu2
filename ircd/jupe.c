@@ -40,7 +40,7 @@
 
 #include <assert.h>
 
-static struct Jupe* GlobalJupeList  = 0;
+static struct Jupe *GlobalJupeList = 0;
 
 static struct Jupe *
 make_jupe(char *server, char *reason, time_t expire, time_t lastmod,
@@ -91,7 +91,7 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
 
   sendcmdto_serv_butone(cptr, CMD_JUPE, sptr, "* %c%s %Tu %Tu :%s",
 			JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-			jupe->ju_expire - TStime(), jupe->ju_lastmod,
+			jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 			jupe->ju_reason);
 }
 
@@ -115,29 +115,25 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
     return 0;
   }
 
-  expire += TStime(); /* convert from lifetime to timestamp */
+  expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops and log it */
-  if (IsServer(sptr)) {
     sendto_op_mask(SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->name, local ? "local " : "",
-		   server, expire, reason);
+		   TIME_T_FMT ": %s",
+		   IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		   local ? "local " : "", server, expire + TSoffset, reason);
+
 #ifdef JPATH
+  if (IsServer(sptr))
     write_log(JPATH, TIME_T_FMT " %s adding %sJUPE for %s, expiring at "
 	      TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      local ? "local " : "", server, expire, reason);
-#endif /* JPATH */
-  } else {
-    sendto_op_mask(SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->user->server->name,
-		   local ? "local " : "", server, expire,
-		   reason);
-#ifdef JPATH
+	      local ? "local " : "", server, expire + TSoffset, reason);
+  else
     write_log(JPATH, TIME_T_FMT, " %s!%s@%s adding %sJUPE for %s, expiring at "
 	      TIME_T_FMT ": %s\n", TStime(), sptr->name, sptr->user->username,
-	      sptr->user->host, local ? "local " : "", server, expire, reason);
+	      sptr->user->host, local ? "local " : "", server,
+	      expire + TSoffset, reason);
 #endif /* JPATH */
-  }
 
   if (active) /* compute initial flags */
     flags |= JUPE_ACTIVE;
@@ -157,35 +153,32 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 	      time_t lastmod)
 {
   assert(0 != jupe);
+  assert(!JupeIsLocal(jupe));
 
   jupe->ju_flags |= JUPE_ACTIVE;
-  jupe->ju_lastmod = lastmod;
+
+  if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
+    jupe->ju_lastmod++;
+  else
+    jupe->ju_lastmod = lastmod;
 
   /* Inform ops and log it */
-  if (IsServer(sptr)) {
-    sendto_op_mask(SNO_NETWORK, "%s activating %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->name, JupeIsLocal(jupe) ?
-		   "local " : "", jupe->ju_server, jupe->ju_expire,
-		   jupe->ju_reason);
+  sendto_op_mask(SNO_NETWORK, "%s activating JUPE for %s, expiring at "
+		 TIME_T_FMT ": %s",
+		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		 jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+
 #ifdef JPATH
-    write_log(JPATH, TIME_T_FMT " %s activating %sJUPE for %s, expiring at "
-	      TIME_T_FMT ": %s\n", TStime(), sptr->name, JupeIsLocal(jupe) ?
-	      "local " : "", jupe->ju_server, jupe->ju_expire,
-	      jupe->ju_reason);
-#endif /* JPATH */
-  } else {
-    sendto_op_mask(SNO_NETWORK, "%s activating %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->user->server->name,
-		   JupeIsLocal(jupe) ? "local " : "", jupe->ju_server,
-		   jupe->ju_expire, jupe->ju_reason);
-#ifdef JPATH
-    write_log(JPATH, TIME_T_FMT, " %s!%s@%s activating %sJUPE for %s, "
+  if (IsServer(sptr))
+    write_log(JPATH, TIME_T_FMT " %s activating JUPE for %s, expiring at "
+	      TIME_T_FMT ": %s\n", TStime(), sptr->name, jupe->ju_server,
+	      jupe->ju_expire + TSoffset, jupe->ju_reason);
+  else
+    write_log(JPATH, TIME_T_FMT, " %s!%s@%s activating JUPE for %s, "
 	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      sptr->user->username, sptr->user->host, JupeIsLocal(jupe) ?
-	      "local " : "", jupe->ju_server, jupe->ju_expire,
-	      jupe->ju_reason);
+	      sptr->user->username, sptr->user->host, jupe->ju_server,
+	      jupe->ju_expire + TSoffset, jupe->ju_reason);
 #endif /* JPATH */
-  }
 
   propagate_jupe(cptr, sptr, jupe);
 
@@ -198,36 +191,40 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 {
   assert(0 != jupe);
 
-  jupe->ju_flags &= ~JUPE_ACTIVE;
-  jupe->ju_lastmod = lastmod;
+  if (!JupeIsLocal(jupe)) {
+    jupe->ju_flags &= ~JUPE_ACTIVE;
 
-  /* Inform ops and log it */
-  if (IsServer(sptr)) {
-    sendto_op_mask(SNO_NETWORK, "%s deactivating %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->name, JupeIsLocal(jupe) ?
-		   "local " : "", jupe->ju_server, jupe->ju_expire,
-		   jupe->ju_reason);
-#ifdef JPATH
-    write_log(JPATH, TIME_T_FMT " %s deactivating %sJUPE for %s, expiring at "
-	      TIME_T_FMT ": %s\n", TStime(), sptr->name, JupeIsLocal(jupe) ?
-	      "local " : "", jupe->ju_server, jupe->ju_expire,
-	      jupe->ju_reason);
-#endif /* JPATH */
-  } else {
-    sendto_op_mask(SNO_NETWORK, "%s deactivating %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s", sptr->user->server->name,
-		   JupeIsLocal(jupe) ? "local " : "", jupe->ju_server,
-		   jupe->ju_expire, jupe->ju_reason);
-#ifdef JPATH
-    write_log(JPATH, TIME_T_FMT, " %s!%s@%s deactivating %sJUPE for %s, "
-	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      sptr->user->username, sptr->user->host, JupeIsLocal(jupe) ?
-	      "local " : "", jupe->ju_server, jupe->ju_expire,
-	      jupe->ju_reason);
-#endif /* JPATH */
+    if (jupe->ju_lastmod >= lastmod) /* force lastmod to increase */
+      jupe->ju_lastmod++;
+    else
+      jupe->ju_lastmod = lastmod;
   }
 
-  propagate_jupe(cptr, sptr, jupe);
+  /* Inform ops and log it */
+  sendto_op_mask(SNO_NETWORK, "%s %s JUPE for %s, expiring at " TIME_T_FMT
+		 ": %s",
+		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		 JupeIsLocal(jupe) ? "removing local" : "deactivating",
+		 jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+
+#ifdef JPATH
+  if (IsServer(sptr))
+    write_log(JPATH, TIME_T_FMT " %s %s JUPE for %s, expiring at " TIME_T_FMT
+	      ": %s\n", TStime(), sptr->name,
+	      JupeIsLocal(jupe) ? "removing local" : "deactivating",
+	      jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+  else
+    write_log(JPATH, TIME_T_FMT, " %s!%s@%s %s JUPE for %s, "
+	      "expiring at " TIME_T_FMT ": %s\n", TStime(), sptr->name,
+	      sptr->user->username, sptr->user->host,
+	      JupeIsLocal(jupe) ? "removing local" : "deactivating",
+	      jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+#endif /* JPATH */
+
+  if (JupeIsLocal(jupe))
+    jupe_free(jupe);
+  else
+    propagate_jupe(cptr, sptr, jupe);
 
   return 0;
 }
@@ -241,7 +238,7 @@ jupe_find(char *server)
   for (jupe = GlobalJupeList; jupe; jupe = sjupe) { /* go through jupes */
     sjupe = jupe->ju_next;
 
-    if (jupe->ju_expire <= TStime()) /* expire any that need expiring */
+    if (jupe->ju_expire <= CurrentTime) /* expire any that need expiring */
       jupe_free(jupe);
     else if (0 == ircd_strcmp(server, jupe->ju_server)) /* found it yet? */
       return jupe;
@@ -273,12 +270,12 @@ jupe_burst(struct Client *cptr)
   for (jupe = GlobalJupeList; jupe; jupe = sjupe) { /* go through jupes */
     sjupe = jupe->ju_next;
 
-    if (jupe->ju_expire <= TStime()) /* expire any that need expiring */
+    if (jupe->ju_expire <= CurrentTime) /* expire any that need expiring */
       jupe_free(jupe);
     else if (!JupeIsLocal(jupe)) /* forward global jupes */
       sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
 		    JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-		    jupe->ju_expire - TStime(), jupe->ju_lastmod,
+		    jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 		    jupe->ju_reason);
   }
 }
@@ -291,7 +288,8 @@ jupe_resend(struct Client *cptr, struct Jupe *jupe)
 
   sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
 		JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-		jupe->ju_expire - TStime(), jupe->ju_lastmod, jupe->ju_reason);
+		jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
+		jupe->ju_reason);
 
   return 0;
 }
@@ -308,19 +306,20 @@ jupe_list(struct Client *sptr, char *server)
 
     /* send jupe information along */
     sendto_one(sptr, rpl_str(RPL_JUPELIST), me.name, sptr->name,
-	       jupe->ju_server, jupe->ju_expire, JupeIsLocal(jupe) ?
-	       me.name : "*", JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
+	       jupe->ju_server, jupe->ju_expire + TSoffset,
+	       JupeIsLocal(jupe) ? me.name : "*",
+	       JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
   } else {
     for (jupe = GlobalJupeList; jupe; jupe = sjupe) { /* go through jupes */
       sjupe = jupe->ju_next;
 
-      if (jupe->ju_expire <= TStime()) /* expire any that need expiring */
+      if (jupe->ju_expire <= CurrentTime) /* expire any that need expiring */
 	jupe_free(jupe);
       else /* send jupe information along */
 	sendto_one(sptr, rpl_str(RPL_JUPELIST), me.name, sptr->name,
-		   jupe->ju_server, jupe->ju_expire, JupeIsLocal(jupe) ?
-		   me.name : "*", JupeIsActive(jupe) ? '+' : '-',
-		   jupe->ju_reason);
+		   jupe->ju_server, jupe->ju_expire + TSoffset,
+		   JupeIsLocal(jupe) ? me.name : "*",
+		   JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
     }
   }
 

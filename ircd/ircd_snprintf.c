@@ -78,7 +78,7 @@ struct BufData {
   size_t	buf_size;	/* maximum size of buffer */
   size_t	buf_overflow;	/* how much buffer has been overflowed */
   size_t	buf_loc;	/* where we are in the buffer */
-  size_t	limit;		/* max # of chars to convert */
+  short		limit;		/* max # of chars to convert */
   size_t	overflow;	/* how much we overflowed the limit */
 };
 
@@ -2038,9 +2038,6 @@ ircd_snprintf(struct Client *dest, char *buf, size_t buf_len,
 
   buf_s.buf = buf; /* initialize buffer settings */
   buf_s.buf_size = buf_len - 1;
-  /*
-   * XXX - assignment of -1 to size_t
-   */
   buf_s.limit = -1;
 
   va_start(args, format);
@@ -2063,9 +2060,6 @@ ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 
   buf_s.buf = buf; /* initialize buffer settings */
   buf_s.buf_size = buf_len - 1;
-  /*
-   * XXX - assignment of -1 to size_t
-   */
   buf_s.limit = -1;
 
   doprintf(dest, &buf_s, format, args); /* fill the buffer */
