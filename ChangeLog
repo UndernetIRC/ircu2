@@ -1,3 +1,12 @@
+2002-12-14 hikari <shadow@undernet.org>
+	* ircd/m_wallchops.c: fixed ms_wallchops()
+	* ircd/m_wallvoices.c: fixed ms_wallvoices()
+
+2002-12-13 Zoot <zoot@gamesnet.net>
+	* ircd/m_whois.c (do_whois): use IsChanOp and HasVoice macros
+	instead of is_chan_op() and has_voice since we already have
+	membership links.
+
 2002-12-15 Isomer <Isomer@undernet.org>
 	* include/patchlevel.h: Release this sucker!
 
