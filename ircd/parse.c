@@ -883,7 +883,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
    */
   if (!IsUser(cptr) && 0 == (mptr->flags & MFLG_UNREG)) {
     if (0 == (mptr->flags & MFLG_IGNORE))
-      sendto_one(from, ":%s %d * %s :Register first.",
+      sendto_one(from, ":%s %d * %s :Register first.", /* XXX DEAD */
                  me.name, ERR_NOTREGISTERED, ch);
     return -1;
   }

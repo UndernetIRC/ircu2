@@ -193,10 +193,10 @@ static void sendmodeto_one(struct Client* cptr, const char* from,
                            const char* param, time_t creationtime)
 {
   if (IsServer(cptr) && DoesOp(mode) && creationtime)
-    sendto_one(cptr, ":%s MODE %s %s %s " TIME_T_FMT,
+    sendto_one(cptr, ":%s MODE %s %s %s " TIME_T_FMT, /* XXX DEAD */
                from, name, mode, param, creationtime);
   else
-    sendto_one(cptr, ":%s MODE %s %s %s", from, name, mode, param);
+    sendto_one(cptr, ":%s MODE %s %s %s", from, name, mode, param); /* XXX DEAD */
 }
 #endif /* 0 */
 
@@ -2538,7 +2538,7 @@ void send_user_joins(struct Client *cptr, struct Client *user)
       if (cnt)
       {
         buf[len - 1] = '\0';
-        sendto_one(cptr, "%s", buf);
+        sendto_one(cptr, "%s", buf); /* XXX Possibly DEAD */
       }
       *buf = ':';
       strcpy(buf + 1, user->name);
@@ -2556,7 +2556,7 @@ void send_user_joins(struct Client *cptr, struct Client *user)
     }
   }
   if (*buf && cnt)
-    sendto_one(cptr, "%s", buf);
+    sendto_one(cptr, "%s", buf); /* XXX Possibly DEAD */
 }
 
 /*
@@ -2617,22 +2617,22 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
           ":%s NOTICE * :*** Notice -- %sHACK(%d): %s MODE %s %s%s ["
           TIME_T_FMT "]", me.name, (badop == 3) ? "BOUNCE or " : "", badop,
           parv[0], parv[1], parv[2], params, chptr->creationtime);
-      sendbufto_op_mask((badop == 3) ? SNO_HACK3 : (badop ==
+      sendbufto_op_mask((badop == 3) ? SNO_HACK3 : (badop == /* XXX DYING */
           4) ? SNO_HACK4 : SNO_HACK2);
 
       if ((IsServer(sptr)) && (badop == 2))
       {
         sprintf_irc(sendbuf, ":%s DESYNCH :HACK: %s MODE %s %s%s",
             me.name, parv[0], parv[1], parv[2], params);
-        sendbufto_serv_butone(cptr);
+        sendbufto_serv_butone(cptr); /* XXX DYING */
       }
       break;
     }
     case 2:                     /* No conversion is needed for CREATE; the only numnick is sptr */
     {
-      sendto_serv_butone(cptr, ":%s DESYNCH :HACK: %s CREATE %s %s",
+      sendto_serv_butone(cptr, ":%s DESYNCH :HACK: %s CREATE %s %s", /* XXX DYING */
           me.name, sptr->name, chptr->chname, parv[2]);
-      sendto_op_mask(SNO_HACK2, "HACK(2): %s CREATE %s %s",
+      sendto_op_mask(SNO_HACK2, "HACK(2): %s CREATE %s %s", /* XXX DYING */
           sptr->name, chptr->chname, parv[2]);
       break;
     }
@@ -2647,7 +2647,7 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
         sprintf_irc(sendbuf,
             ":%s NOTICE * :*** Notice -- HACK: %s KICK %s <%s> :%s",
             me.name, sptr->name, parv[1], parv[2], parv[3]);
-      sendbufto_op_mask(SNO_HACK4);
+      sendbufto_op_mask(SNO_HACK4); /* XXX DYING */
       break;
     }
   }

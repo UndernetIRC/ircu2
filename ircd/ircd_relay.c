@@ -59,22 +59,22 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
   assert(0 != text);
 
   if (0 == (chptr = FindChannel(name))) {
-    send_error_to_client(sptr, ERR_NOSUCHCHANNEL, name);
+    send_reply(sptr, ERR_NOSUCHCHANNEL, name);
     return;
   }
   /*
    * This first: Almost never a server/service
    */
   if (!client_can_send_to_channel(sptr, chptr)) {
-    send_error_to_client(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+    send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
     return;
   }
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
-  sendmsgto_channel_butone(sptr->from, sptr, chptr, sptr->name,
-                           TOK_PRIVATE, chptr->chname, text);
+  sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, sptr->from,
+			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
 }
 
 void relay_channel_notice(struct Client* sptr, const char* name, const char* text)
@@ -96,8 +96,8 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;  
 
-  sendmsgto_channel_butone(sptr->from, sptr, chptr, sptr->name,
-                           TOK_NOTICE, chptr->chname, text);
+  sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, sptr->from,
+			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
 }
 
 void server_relay_channel_message(struct Client* sptr, const char* name, const char* text)
@@ -111,7 +111,7 @@ void server_relay_channel_message(struct Client* sptr, const char* name, const c
     /*
      * XXX - do we need to send this back from a remote server?
      */
-    send_error_to_client(sptr, ERR_NOSUCHCHANNEL, name);
+    send_reply(sptr, ERR_NOSUCHCHANNEL, name);
     return;
   }
   /*
@@ -119,11 +119,11 @@ void server_relay_channel_message(struct Client* sptr, const char* name, const c
    * Servers may have channel services, need to check for it here
    */
   if (client_can_send_to_channel(sptr, chptr) || IsChannelService(sptr)) {
-    sendmsgto_channel_butone(sptr->from, sptr, chptr, sptr->name,
-                             TOK_PRIVATE, chptr->chname, text);
+    sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, sptr->from,
+			     SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
   }
   else
-    send_error_to_client(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+    send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
 }
 
 void server_relay_channel_notice(struct Client* sptr, const char* name, const char* text)
@@ -140,8 +140,8 @@ void server_relay_channel_notice(struct Client* sptr, const char* name, const ch
    * Servers may have channel services, need to check for it here
    */
   if (client_can_send_to_channel(sptr, chptr) || IsChannelService(sptr)) {
-    sendmsgto_channel_butone(sptr->from, sptr, chptr, sptr->name,
-                             TOK_NOTICE, chptr->chname, text);
+    sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, sptr->from,
+			     SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
   }
 }
 
@@ -157,14 +157,14 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != server);
 
   if (0 == (acptr = FindServer(server + 1))) {
-    send_error_to_client(sptr, ERR_NOSUCHNICK, name);
+    send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
   if (!IsMe(acptr)) {
-    sendto_one(acptr, ":%s %s %s :%s", sptr->name, MSG_PRIVATE, name, text);
+    sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%s :%s", name, text);
     return;
   }
   /*
@@ -178,7 +178,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
 
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
       (!EmptyString(host) && 0 != match(host, acptr->user->host))) {
-    send_error_to_client(sptr, ERR_NOSUCHNICK, name);
+    send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
 
@@ -187,8 +187,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
     *--host = '%';
 
   if (!(is_silenced(sptr, acptr)))
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_PRIVATE, name, text);
+    sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%s :%s", name, text);
 }
 
 void relay_directed_notice(struct Client* sptr, char* name, char* server, const char* text)
@@ -207,7 +206,7 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
    * NICK[%host]@server addressed? See if <server> is me first
    */
   if (!IsMe(acptr)) {
-    sendto_one(acptr, ":%s %s %s :%s", sptr->name, MSG_NOTICE, name, text);
+    sendcmdto_one(sptr, CMD_NOTICE, acptr, "%s :%s", name, text);
     return;
   }
   /*
@@ -228,8 +227,7 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
     *--host = '%';
 
   if (!(is_silenced(sptr, acptr)))
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_NOTICE, name, text);
+    sendcmdto_one(sptr, CMD_NOTICE, acptr, "%s :%s", name, text);
 }
 
 void relay_private_message(struct Client* sptr, const char* name, const char* text)
@@ -241,7 +239,7 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
   assert(0 != text);
 
   if (0 == (acptr = FindUser(name))) {
-    send_error_to_client(sptr, ERR_NOSUCHNICK, name);
+    send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
   if (check_target_limit(sptr, acptr, acptr->name, 0) ||
@@ -252,19 +250,14 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
    * send away message if user away
    */
   if (acptr->user && acptr->user->away)
-    sendto_one(sptr, rpl_str(RPL_AWAY),
-               me.name, sptr->name, acptr->name, acptr->user->away);
+    send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
   /*
    * deliver the message
    */
-  if (MyUser(acptr)) {
+  if (MyUser(acptr))
     add_target(acptr, sptr);
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_PRIVATE, acptr->name, text);
-  }
-  else
-    sendto_one(acptr, "%s%s %s %s%s :%s", NumNick(sptr),
-               TOK_PRIVATE, NumNick(acptr), text);
+
+  sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%C :%s", acptr, text);
 }
 
 void relay_private_notice(struct Client* sptr, const char* name, const char* text)
@@ -282,14 +275,10 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
   /*
    * deliver the message
    */
-  if (MyUser(acptr)) {
+  if (MyUser(acptr))
     add_target(acptr, sptr);
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_NOTICE, acptr->name, text);
-  }
-  else
-    sendto_one(acptr, "%s%s %s %s%s :%s", NumNick(sptr),
-               TOK_NOTICE, NumNick(acptr), text);
+
+  sendcmdto_one(sptr, CMD_NOTICE, acptr, "%C :%s", acptr, text);
 }
 
 void server_relay_private_message(struct Client* sptr, const char* name, const char* text)
@@ -302,27 +291,17 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
-    sendto_one(sptr,
-               ":%s %d %s * :Target left UnderNet. Failed to deliver: [%.20s]",
-               me.name, ERR_NOSUCHNICK, sptr->name, text);
+    send_reply(sptr, RPL_EXPLICIT | ERR_NOSUCHNICK, "* :Target left UnderNet. "
+	       "Failed to deliver: [%.20s]", text);
     return;
   }
   if (is_silenced(sptr, acptr))
     return;
 
-  if (MyUser(acptr)) {
+  if (MyUser(acptr))
     add_target(acptr, sptr);
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_PRIVATE, acptr->name, text);
-  }
-  else {
-    if (IsServer(sptr))
-      sendto_one(acptr, "%s %s %s%s :%s", NumServ(sptr),
-                 TOK_PRIVATE, NumNick(acptr), text);
-    else
-      sendto_one(acptr, "%s%s %s %s%s :%s", NumNick(sptr),
-                 TOK_PRIVATE, NumNick(acptr), text);
-  }        
+
+  sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%C :%s", acptr, text);
 }
 
 
@@ -341,19 +320,10 @@ void server_relay_private_notice(struct Client* sptr, const char* name, const ch
   if (is_silenced(sptr, acptr))
     return;
 
-  if (MyUser(acptr)) {
+  if (MyUser(acptr))
     add_target(acptr, sptr);
-    sendto_prefix_one(acptr, sptr, ":%s %s %s :%s",
-                      sptr->name, MSG_NOTICE, acptr->name, text);
-  }
-  else {
-    if (IsServer(sptr))
-      sendto_one(acptr, "%s %s %s%s :%s", NumServ(sptr), 
-                 TOK_NOTICE, NumNick(acptr), text);
-    else            
-      sendto_one(acptr, "%s%s %s %s%s :%s", NumNick(sptr), 
-                 TOK_NOTICE, NumNick(acptr), text);
-  }              
+
+  sendcmdto_one(sptr, CMD_NOTICE, acptr, "%C :%s", acptr, text);
 }
 
 void relay_masked_message(struct Client* sptr, const char* mask, const char* text)
@@ -368,7 +338,7 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
    * look for the last '.' in mask and scan forward
    */
   if (0 == (s = strrchr(mask, '.'))) {
-    send_error_to_client(sptr, ERR_NOTOPLEVEL, mask);
+    send_reply(sptr, ERR_NOTOPLEVEL, mask);
     return;
   }
   while (*++s) {
@@ -376,7 +346,7 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
        break;
   }
   if (*s == '*' || *s == '?') {
-    send_error_to_client(sptr, ERR_WILDTOPLEVEL, mask);
+    send_reply(sptr, ERR_WILDTOPLEVEL, mask);
     return;
   }
   s = mask;
@@ -384,9 +354,11 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(IsServer(sptr->from) ? sptr->from : 0,
-                      sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_PRIVATE, mask, text);
+
+  sendcmdto_match_butone(sptr, CMD_PRIVATE, s,
+			 IsServer(sptr->from) ? sptr->from : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s :%s", mask, text);
 }
 
 void relay_masked_notice(struct Client* sptr, const char* mask, const char* text)
@@ -401,7 +373,7 @@ void relay_masked_notice(struct Client* sptr, const char* mask, const char* text
    * look for the last '.' in mask and scan forward
    */
   if (0 == (s = strrchr(mask, '.'))) {
-    send_error_to_client(sptr, ERR_NOTOPLEVEL, mask);
+    send_reply(sptr, ERR_NOTOPLEVEL, mask);
     return;
   }
   while (*++s) {
@@ -409,7 +381,7 @@ void relay_masked_notice(struct Client* sptr, const char* mask, const char* text
        break;
   }
   if (*s == '*' || *s == '?') {
-    send_error_to_client(sptr, ERR_WILDTOPLEVEL, mask);
+    send_reply(sptr, ERR_WILDTOPLEVEL, mask);
     return;
   }
   s = mask;
@@ -417,9 +389,11 @@ void relay_masked_notice(struct Client* sptr, const char* mask, const char* text
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(IsServer(sptr->from) ? sptr->from : 0,
-                      sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_NOTICE, mask, text);
+
+  sendcmdto_match_butone(sptr, CMD_NOTICE, s,
+			 IsServer(sptr->from) ? sptr->from : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s :%s", mask, text);
 }
 
 void server_relay_masked_message(struct Client* sptr, const char* mask, const char* text)
@@ -434,8 +408,10 @@ void server_relay_masked_message(struct Client* sptr, const char* mask, const ch
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_PRIVATE, mask, text);
+  sendcmdto_match_butone(sptr, CMD_PRIVATE, s,
+			 IsServer(sptr->from) ? sptr->from : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s :%s", mask, text);
 }
 
 void server_relay_masked_notice(struct Client* sptr, const char* mask, const char* text)
@@ -450,7 +426,9 @@ void server_relay_masked_notice(struct Client* sptr, const char* mask, const cha
     host_mask = 1;
     ++s;
   }
-  sendto_match_butone(sptr->from, sptr, s, host_mask ? MATCH_HOST : MATCH_SERVER,
-                      ":%s %s %s :%s", sptr->name, MSG_NOTICE, mask, text);
+  sendcmdto_match_butone(sptr, CMD_NOTICE, s,
+			 IsServer(sptr->from) ? sptr->from : 0,
+			 host_mask ? MATCH_HOST : MATCH_SERVER,
+			 "%s :%s", mask, text);
 }
 

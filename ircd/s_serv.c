@@ -73,7 +73,7 @@ int exit_new_server(struct Client* cptr, struct Client* sptr,
     return vexit_client_msg(cptr, cptr, &me, fmt, vl);
   sprintf_irc(buf, ":%s " TOK_SQUIT " %s " TIME_T_FMT " :", me.name, host, timestamp);
   strcat(buf, fmt);
-  vsendto_one(cptr, buf, vl);
+  vsendto_one(cptr, buf, vl); /* XXX DEAD */
   va_end(vl);
   MyFree(buf);
   return 0;
