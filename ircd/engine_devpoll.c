@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/engine_poll.c
+ * IRC - Internet Relay Chat, ircd/engine_devpoll.c
  * Copyright (C) 2001 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,11 +25,12 @@
 #include "ircd_log.h"
 
 #include <assert.h>
+#include <sys/devpoll.h>
 #include <sys/poll.h>
-#include <time.h>
 #include <unistd.h>
 
-#define POLL_ERROR_THRESHOLD	20	/* after 20 poll errors, restart */
+#define DEVPOLL_ERROR_THRESHOLD	20	/* after 20 devpoll errors, restart */
+#define POLLS_PER_DEVPOLL	20	/* get 20 pollfd's per turn */
 
 /* Figure out what bits to set for read */
 #if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
@@ -59,30 +60,29 @@
 #endif
 
 static struct Socket** sockList;
-static struct pollfd* pollfdList;
-static unsigned int poll_count;
-static unsigned int poll_max;
+static int devpoll_max;
+static int devpoll_fd;
 
-/* initialize the poll engine */
+/* initialize the devpoll engine */
 static int
 engine_init(int max_sockets)
 {
   int i;
 
-  /* allocate necessary memory */
-  sockList = (struct Socket**) MyMalloc(sizeof(struct Socket*) * max_sockets);
-  pollfdList = (struct pollfd*) MyMalloc(sizeof(struct pollfd) * max_sockets);
-
-  /* initialize the data */
-  for (i = 0; i < max_sockets; i++) {
-    sockList[i] = 0;
-    pollfdList[i].fd = -1;
-    pollfdList[i].events = 0;
-    pollfdList[i].revents = 0;
+  if ((devpoll_fd = open("/dev/poll", O_RDWR)) < 0) {
+    log_write(LS_SYSTEM, L_WARNING, 0,
+	      "/dev/poll engine cannot open device: %m");
+    return 0; /* engine cannot be initialized; defer */
   }
 
-  poll_count = 0; /* nothing in set */
-  poll_max = max_sockets; /* number of sockets allocated */
+  /* allocate necessary memory */
+  sockList = (struct Socket**) MyMalloc(sizeof(struct Socket*) * max_sockets);
+
+  /* initialize the data */
+  for (i = 0; i < max_sockets; i++)
+    sockList[i] = 0;
+
+  devpoll_max = max_sockets; /* number of sockets allocated */
 
   return 1;
 }
@@ -109,52 +109,61 @@ state_to_events(enum SocketState state, unsigned int events)
   return 0;
 }
 
-/* Toggle bits in the pollfd structs correctly */
+/* Reset the desired events */
 static void
-set_or_clear(int idx, unsigned int clear, unsigned int set)
+set_events(struct Socket* sock, unsigned int events)
 {
-  if ((clear ^ set) & SOCK_EVENT_READABLE) { /* readable has changed */
-    if (set & SOCK_EVENT_READABLE) /* it's set */
-      pollfdList[idx].events |= POLLREADFLAGS;
-    else /* clear it */
-      pollfdList[idx].events &= ~POLLREADFLAGS;
+  struct pollfd pfd;
+
+  pfd.fd = s_fd(sock);
+
+  if (s_ed_int(sock)) { /* is one in /dev/poll already? */
+    pfd.events = POLLREMOVE; /* First, remove old pollfd */
+
+    if (write(devpoll_fd, &pfd, sizeof(pfd)) != sizeof(pfd)) {
+      event_generate(ET_ERROR, sock, errno); /* report error */
+      return;
+    }
+
+    s_ed_int(sock) = 0; /* mark that it's gone */
   }
 
-  if ((clear ^ set) & SOCK_EVENT_WRITABLE) { /* writable has changed */
-    if (set & SOCK_EVENT_WRITABLE) /* it's set */
-      pollfdList[idx].events |= POLLWRITEFLAGS;
-    else /* clear it */
-      pollfdList[idx].events &= ~POLLWRITEFLAGS;
+  if (!(events & SOCK_EVENT_MASK)) /* no events, so stop here */
+    return;
+
+  pfd.events = 0; /* Now, set up new pollfd... */
+  if (events & SOCK_EVENT_READABLE)
+    pfd.events |= POLLREADFLAGS; /* look for readable conditions */
+  if (events & SOCK_EVENT_WRITABLE)
+    pfd.events |= POLLWRITEFLAGS; /* look for writable conditions */
+
+  if (write(devpoll_fd, &pfd, sizeof(pfd)) != sizeof(pfd)) {
+    event_generate(ET_ERROR, sock, errno); /* report error */
+    return;
   }
+
+  s_ed_int(sock) = 1; /* mark that we've added a pollfd */
 }
 
 /* add a socket to be listened on */
 static int
 engine_add(struct Socket* sock)
 {
-  int i;
-
   assert(0 != sock);
+  assert(0 == sockList[s_fd(sock)]);
 
-  for (i = 0; sockList[i] && i < poll_count; i++) /* Find an empty slot */
-    ;
-  if (sockList[i]) { /* ok, need to allocate another off the list */
-    if (poll_count >= poll_max) { /* bounds-check... */
-      log_write(LS_SYSTEM, L_ERROR, 0,
-		"Attempt to add socket %d (> %d) to event engine", sock->s_fd,
-		poll_max);
-      return 0;
-    }
-
-    i = poll_count++;
+  /* bounds-check... */
+  if (s_fd(sock) >= devpoll_max) {
+    log_write(LS_SYSTEM, L_ERROR, 0,
+	      "Attempt to add socket %d (> %d) to event engine", s_fd(sock),
+	      devpoll_max);
+    return 0;
   }
 
-  s_ed_int(sock) = i; /* set engine data */
-  sockList[i] = sock; /* enter socket into data structures */
-  pollfdList[i].fd = s_fd(sock);
+  sockList[s_fd(sock)] = sock; /* add to list */
 
-  /* set the appropriate bits */
-  set_or_clear(i, 0, state_to_events(s_state(sock), s_events(sock)));
+  /* set the correct events */
+  set_events(sock, state_to_events(s_state(sock), s_events(sock)));
 
   return 1; /* success */
 }
@@ -164,13 +173,10 @@ static void
 engine_state(struct Socket* sock, enum SocketState new_state)
 {
   assert(0 != sock);
-  assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(sock == sockList[s_fd(sock)]);
 
   /* set the correct events */
-  set_or_clear(s_ed_int(sock),
-	       state_to_events(s_state(sock), s_events(sock)), /* old state */
-	       state_to_events(new_state, s_events(sock))); /* new state */
+  set_events(sock, state_to_events(new_state, s_events(sock)));
 }
 
 /* socket events changing */
@@ -178,13 +184,10 @@ static void
 engine_events(struct Socket* sock, unsigned int new_events)
 {
   assert(0 != sock);
-  assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(sock == sockList[s_fd(sock)]);
 
   /* set the correct events */
-  set_or_clear(s_ed_int(sock),
-	       state_to_events(s_state(sock), s_events(sock)), /* old events */
-	       state_to_events(s_state(sock), new_events)); /* new events */
+  set_events(sock, state_to_events(s_state(sock), new_events));
 }
 
 /* socket going away */
@@ -192,44 +195,42 @@ static void
 engine_delete(struct Socket* sock)
 {
   assert(0 != sock);
-  assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(sock == sockList[s_fd(sock)]);
 
-  /* clear the events */
-  pollfdList[s_ed_int(sock)].fd = -1;
-  pollfdList[s_ed_int(sock)].events = 0;
+  set_events(sock, 0); /* get rid of the socket */
 
-  /* zero the socket list entry */
-  sockList[s_ed_int(sock)] = 0;
-
-  /* update poll_count */
-  while (poll_count > 0 && sockList[poll_count - 1] == 0)
-    poll_count--;
+  sockList[s_fd(sock)] = 0; /* zero the socket list entry */
 }
 
-/* socket event loop */
+/* engine event loop */
 static void
 engine_loop(struct Generators* gen)
 {
-  unsigned int wait;
+  struct dvpoll dopoll;
+  struct pollfd polls[POLLS_PER_DEVPOLL];
+  struct Socket* sock;
   int nfds;
   int errors = 0;
   int i;
 
   while (running) {
-    wait = time_next(gen) * 1000; /* set up the sleep time */
+    dopoll.dp_fds = polls; /* set up the struct dvpoll */
+    dopoll.dp_nfds = POLLS_PER_DEVPOLL;
+
+    /* calculate the proper timeout */
+    dopoll.dp_timeout = time_next(gen) ? time_next(gen) * 1000 : -1;
 
     /* check for active files */
-    nfds = poll(pollfdList, poll_count, wait ? wait : -1);
+    nfds = ioctl(devpoll_fd, DP_POLL, &dopoll);
 
     CurrentTime = time(0); /* set current time... */
 
     if (nfds < 0) {
-      if (errno != EINTR) { /* ignore poll interrupts */
+      if (errno != EINTR) { /* ignore interrupts */
 	/* Log the poll error */
-	log_write(LS_SOCKET, L_ERROR, 0, "poll() error: %m");
-	if (++errors > POLL_ERROR_THRESHOLD) /* too many errors, restart */
-	  server_restart("too many poll errors");
+	log_write(LS_SOCKET, L_ERROR, 0, "ioctl(DP_POLL) error: %m");
+	if (++errors > DEVPOLL_ERROR_THRESHOLD) /* too many errors, restart */
+	  server_restart("too many /dev/poll errors");
       }
       /* old code did a sleep(1) here; with usage these days,
        * that may be too expensive
@@ -237,28 +238,29 @@ engine_loop(struct Generators* gen)
       continue;
     }
 
-    for (i = 0; nfds && i < poll_count; i++) {
-      if (!sockList[i]) /* skip empty socket elements */
-	continue;
+    for (i = 0; i < nfds; i++) {
+      assert(-1 < polls[i].fd);
+      assert(0 != sockList[polls[i].fd]);
+      assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
-      assert(s_fd(sockList[i]) == pollfdList[i].fd);
+      sock = sockList[polls[i].fd];
 
-      gen_ref_inc(sockList[i]); /* can't have it going away on us */
+      gen_ref_inc(sock); /* can't have it going away on us */
 
       /* XXX Here's where we actually process sockets and figure out what
        * XXX events have happened, be they errors, eofs, connects, or what
        * XXX have you.  I'll fill this in sometime later.
        */
 
-      gen_ref_dec(sockList[i]); /* we're done with it */
+      gen_ref_dec(sock); /* we're done with it */
     }
 
     timer_run(); /* execute any pending timers */
   }
 }
 
-struct Engine engine_poll = {
-  "poll()",		/* Engine name */
+struct Engine engine_devpoll = {
+  "/dev/poll",		/* Engine name */
   engine_init,		/* Engine initialization function */
   0,			/* Engine signal registration function */
   engine_add,		/* Engine socket registration function */

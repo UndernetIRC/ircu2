@@ -260,7 +260,7 @@ signal_callback(struct Event* event)
       if (ptr->sig_signal) /* find its descriptor... */
 	break;
 
-    event_generate(ET_SIGNAL, ptr); /* generate signal event */
+    event_generate(ET_SIGNAL, ptr, sig); /* generate signal event */
   }
 }
 
@@ -320,7 +320,7 @@ event_loop(void)
 
 /* Generate an event and add it to the queue (or execute it) */
 void
-event_generate(enum EventType type, void* arg)
+event_generate(enum EventType type, void* arg, int data)
 {
   struct Event* ptr;
   struct GenHeader* gen = (struct GenHeader*) arg;
@@ -339,6 +339,7 @@ event_generate(enum EventType type, void* arg)
   }
 
   ptr->ev_type = type; /* Record event type */
+  ptr->ev_data = data;
 
   ptr->ev_gen.gen_header = (struct GenHeader*) gen;
   ptr->ev_gen.gen_header->gh_ref++;
@@ -375,7 +376,7 @@ timer_del(struct Timer* timer)
     timer->t_header.gh_flags |= GEN_DESTROY;
   else { /* not in use; destroy right now */
     gen_dequeue(timer);
-    event_generate(ET_DESTROY, timer);
+    event_generate(ET_DESTROY, timer, 0);
   }
 }
 
@@ -393,7 +394,7 @@ timer_run(void)
       break; /* processed all pending timers */
 
     gen_dequeue(ptr); /* must dequeue timer here */
-    event_generate(ET_EXPIRE, ptr); /* generate expire event */
+    event_generate(ET_EXPIRE, ptr, 0); /* generate expire event */
 
     switch (ptr->t_type) {
     case TT_ABSOLUTE: case TT_RELATIVE:
@@ -435,7 +436,7 @@ signal_add(struct Signal* signal, EventCallBack call, void* data, int sig)
 }
 
 /* Adds a socket to the event system */
-void
+int
 socket_add(struct Socket* sock, EventCallBack call, void* data,
 	   enum SocketState state, unsigned int events, int fd)
 {
@@ -454,7 +455,7 @@ socket_add(struct Socket* sock, EventCallBack call, void* data,
   sock->s_events = events & SOCK_EVENT_MASK;
   sock->s_fd = fd;
 
-  (*evInfo.engine->eng_add)(sock); /* tell engine about it */
+  return (*evInfo.engine->eng_add)(sock); /* tell engine about it */
 }
 
 /* deletes (or marks for deletion) a socket */
@@ -472,7 +473,7 @@ socket_del(struct Socket* sock)
     sock->s_header.gh_flags |= GEN_DESTROY;
   else { /* not in use; destroy right now */
     gen_dequeue(sock);
-    event_generate(ET_DESTROY, sock);
+    event_generate(ET_DESTROY, sock, 0);
   }
 }
 

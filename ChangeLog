@@ -1,3 +1,31 @@
+2001-01-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: call event_generate() with new data
+	argument; make it set that field in struct Event; make
+	socket_add() return the value of the eng_add callback
+
+	* ircd/engine_select.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_poll.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_kqueue.c: implementation of an engine for kqueue()
+
+	* ircd/engine_devpoll.c: implementation of an engine for /dev/poll
+
+	* include/ircd_events.h: define some accessor macros; add ev_data
+	to struct Event for certain important data--errno values, for
+	instance; make EngineAdd callback tell us if it was successful or
+	not; add extra argument to event_generate(); make socket_add()
+	return the status from EngineAdd
+
 2001-01-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c: pass initializer information about how many

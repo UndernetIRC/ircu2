@@ -103,20 +103,29 @@ set_or_clear(int fd, unsigned int clear, unsigned int set)
 }
 
 /* add a socket to be listened on */
-static void
+static int
 engine_add(struct Socket* sock)
 {
   assert(0 != sock);
-  assert(0 == sockList[sock->s_fd]);
-  assert(IRCD_FD_SETSIZE >= sock->s_fd);
+  assert(0 == sockList[s_fd(sock)]);
 
-  sockList[sock->s_fd] = sock; /* add to list */
+  /* bounds-check... */
+  if (s_fd(sock) >= IRCD_FD_SETSIZE) {
+    log_write(LS_SYSTEM, L_ERROR, 0,
+	      "Attempt to add socket %d (> %d) to event engine", s_fd(sock),
+	      IRCD_FD_SETSIZE);
+    return 0;
+  }
 
-  if (sock->s_fd >= highest_fd) /* update highest_fd */
-    highest_fd = sock->s_fd;
+  sockList[s_fd(sock)] = sock; /* add to list */
+
+  if (s_fd(sock) >= highest_fd) /* update highest_fd */
+    highest_fd = s_fd(sock);
 
   /* set the fd set bits */
-  set_or_clear(sock->s_fd, 0, state_to_events(sock->s_state, sock->s_events));
+  set_or_clear(s_fd(sock), 0, state_to_events(s_state(sock), s_events(sock)));
+
+  return 1; /* success */
 }
 
 /* socket switching to new state */
@@ -124,12 +133,12 @@ static void
 engine_state(struct Socket* sock, enum SocketState new_state)
 {
   assert(0 != sock);
-  assert(sock == sockList[sock->s_fd]);
+  assert(sock == sockList[s_fd(sock)]);
 
   /* set the correct events */
-  set_or_clear(sock->s_fd,
-	       state_to_events(sock->s_state, sock->s_events), /* old state */
-	       state_to_events(new_state, sock->s_events)); /* new state */
+  set_or_clear(s_fd(sock),
+	       state_to_events(s_state(sock), s_events(sock)), /* old state */
+	       state_to_events(new_state, s_events(sock))); /* new state */
 }
 
 /* socket events changing */
@@ -137,12 +146,12 @@ static void
 engine_events(struct Socket* sock, unsigned int new_events)
 {
   assert(0 != sock);
-  assert(sock == sockList[sock->s_fd]);
+  assert(sock == sockList[s_fd(sock)]);
 
   /* set the correct events */
-  set_or_clear(sock->s_fd,
-	       state_to_events(sock->s_state, sock->s_events), /* old events */
-	       state_to_events(sock->s_state, new_events)); /* new events */
+  set_or_clear(s_fd(sock),
+	       state_to_events(s_state(sock), s_events(sock)), /* old events */
+	       state_to_events(s_state(sock), new_events)); /* new events */
 }
 
 /* socket going away */
@@ -150,12 +159,12 @@ static void
 engine_delete(struct Socket* sock)
 {
   assert(0 != sock);
-  assert(sock == sockList[sock->s_fd]);
+  assert(sock == sockList[s_fd(sock)]);
 
-  FD_CLR(sock->s_fd, &global_read_set); /* clear event set bits */
-  FD_CLR(sock->s_fd, &global_write_set);
+  FD_CLR(s_fd(sock), &global_read_set); /* clear event set bits */
+  FD_CLR(s_fd(sock), &global_write_set);
 
-  sockList[sock->s_fd] = 0; /* zero the socket list entry */
+  sockList[s_fd(sock)] = 0; /* zero the socket list entry */
 
   while (highest_fd > -1 && sockList[highest_fd] == 0) /* update highest_fd */
     highest_fd--;
@@ -188,7 +197,7 @@ engine_loop(struct Generators* gen)
     if (nfds < 0) {
       if (errno != EINTR) { /* ignore select interrupts */
 	/* Log the select error */
-	ircd_log(LS_SOCKET, L_ERROR, 0, "select() error: %m");
+	log_write(LS_SOCKET, L_ERROR, 0, "select() error: %m");
 	if (++errors > SELECT_ERROR_THRESHOLD) /* too many errors, restart */
 	  server_restart("too many select errors");
       }
@@ -201,6 +210,8 @@ engine_loop(struct Generators* gen)
     for (i = 0; nfds && i <= highest_fd; i++) {
       if (!sockList[i]) /* skip empty socket elements */
 	continue;
+
+      assert(s_fd(sockList[i]) == i);
 
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 

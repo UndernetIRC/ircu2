@@ -98,6 +98,13 @@ struct Socket {
 
 #define SOCK_ACTION_MASK	0x3000	/* mask out the actions */
 
+#define s_state(sock)	((sock)->s_state)
+#define s_events(sock)	((sock)->s_events)
+#define s_fd(sock)	((sock)->s_fd)
+#define s_data(sock)	((sock)->s_header.gh_data)
+#define s_ed_int(sock)	((sock)->s_header.gh_engdata.ed_int)
+#define s_ed_ptr(sock)	((sock)->s_header.gh_engdata.ed_ptr)
+
 /* Note: The socket state overrides the socket event mask; that is, if
  * it's an SS_CONNECTING socket, the engine selects its own definition
  * of what that looks like and ignores s_events.  s_events is meaningful
@@ -110,6 +117,11 @@ struct Signal {
   int		   sig_signal;	/* signal number */
 };
 
+#define sig_signal(sig)	((sig)->sig_signal)
+#define sig_data(sig)	((sig)->sig_header.gh_data)
+#define sig_ed_int(sig)	((sig)->sig_header.gh_engdata.ed_int)
+#define sig_ed_ptr(sig)	((sig)->sig_header.gh_engdata.ed_ptr)
+
 struct Timer {
   struct GenHeader t_header;	/* generator information */
   enum TimerType   t_type;	/* what type of timer this is */
@@ -117,10 +129,18 @@ struct Timer {
   time_t	   t_expire;	/* time at which timer expires */
 };
 
+#define t_type(tim)	((tim)->t_type)
+#define t_value(tim)	((tim)->t_value)
+#define t_expire(tim)	((tim)->t_expire)
+#define t_data(tim)	((tim)->t_header.gh_data)
+#define t_ed_int(tim)	((tim)->t_header.gh_engdata.ed_int)
+#define t_ed_ptr(tim)	((tim)->t_header.gh_engdata.ed_ptr)
+
 struct Event {
   struct Event*	 ev_next;	/* linked list of events on queue */
   struct Event** ev_prev_p;
   enum EventType ev_type;	/* Event type */
+  int		 ev_data;	/* extra data, like errno value */
   union {
     struct GenHeader* gen_header;	/* Generator header */
     struct Socket*    gen_socket;	/* Socket generating event */
@@ -128,6 +148,12 @@ struct Event {
     struct Timer*     gen_timer;	/* Timer generating event */
   }		 ev_gen;	/* object generating event */
 };
+
+#define ev_type(ev)	((ev)->ev_type)
+#define ev_data(ev)	((ev)->ev_data)
+#define ev_socket(ev)	((ev)->ev_gen.gen_socket)
+#define ev_signal(ev)	((ev)->ev_gen.gen_signal)
+#define ev_timer(ev)	((ev)->ev_gen.gen_timer)
 
 struct Generators {
   struct Socket* g_socket;	/* list of socket generators */
@@ -142,7 +168,7 @@ typedef int (*EngineInit)(int);
 typedef void (*EngineSignal)(struct Signal*);
 
 /* Tell engine about new socket */
-typedef void (*EngineAdd)(struct Socket*);
+typedef int (*EngineAdd)(struct Socket*);
 
 /* Tell engine about socket's new_state */
 typedef void (*EngineState)(struct Socket*, enum SocketState new_state);
@@ -173,7 +199,7 @@ do {									      \
   struct GenHeader* _gen = (struct GenHeader*) (gen);			      \
   if (!--_gen->gh_ref && (_gen->gh_flags & GEN_DESTROY)) {		      \
     gen_dequeue(_gen);							      \
-    event_generate(ET_DESTROY, _gen);					      \
+    event_generate(ET_DESTROY, _gen, 0);				      \
   }									      \
 } while (0)
 
@@ -181,7 +207,7 @@ void gen_dequeue(void* arg);
 
 void event_init(int max_sockets);
 void event_loop(void);
-void event_generate(enum EventType type, void* arg);
+void event_generate(enum EventType type, void* arg, int data);
 
 void timer_add(struct Timer* timer, EventCallBack call, void* data,
 	       enum TimerType type, time_t value);
@@ -192,8 +218,8 @@ void timer_run(void);
 void signal_add(struct Signal* signal, EventCallBack call, void* data,
 		int sig);
 
-void socket_add(struct Socket* sock, EventCallBack call, void* data,
-		enum SocketState state, unsigned int events, int fd);
+int socket_add(struct Socket* sock, EventCallBack call, void* data,
+	       enum SocketState state, unsigned int events, int fd);
 void socket_del(struct Socket* sock);
 void socket_state(struct Socket* sock, enum SocketState state);
 void socket_events(struct Socket* sock, unsigned int events);
