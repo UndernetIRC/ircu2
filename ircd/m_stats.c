@@ -247,7 +247,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
                    "%s %u %u %u %u %u :%Tu", (*acptr->name) ? acptr->name : "<unregistered>",
-                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
                    (int)acptr->sendK, (int)acptr->receiveM,
                    (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
@@ -482,7 +482,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
                    "%s %u %u %u %u %u :%Tu", acptr->name,
-                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
                    (int)acptr->sendK, (int)acptr->receiveM,
                    (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
@@ -715,7 +715,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
                    "%s %u %u %u %u %u :%Tu", acptr->name,
-                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
                    (int)acptr->sendK, (int)acptr->receiveM,
                    (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }

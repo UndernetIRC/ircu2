@@ -953,7 +953,7 @@ int read_configuration_file(void)
     
     if (':' != line[1]) {
       Debug((DEBUG_ERROR, "Bad config line: %s", line));
-      sendto_op_mask(SNO_OLDSNO,"Bad Config line");
+      sendto_opmask_butone(0, SNO_OLDSNO,"Bad Config line");
       continue;
     }
 
@@ -1128,7 +1128,8 @@ int read_configuration_file(void)
       break;
     default:
       Debug((DEBUG_ERROR, "Error in config file: %s", line));
-      sendto_op_mask(SNO_OLDSNO,"Unknown prefix in config file: %c", *field_vector[0]);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Unknown prefix in config file: %c",
+			   *field_vector[0]);
       aconf->status = CONF_ILLEGAL;
       break;
     }

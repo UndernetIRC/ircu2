@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "send.h"
 
@@ -118,29 +119,28 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Client* acptr;
   char*          name;
   char*          p = 0;
-  char           buf[BUFSIZE];
-  char*          iter = buf;
-  char*          end = &buf[BUFSIZE - NICKLEN - 4];
+  struct MsgBuf* mb;
 
   if (parc < 2)
     return need_more_params(sptr, "ISON");
 
-  iter = sprintf_irc(buf, rpl_str(RPL_ISON), me.name, sptr->name);
+  mb = msgq_make(sptr, rpl_str(RPL_ISON), me.name, sptr->name);
 
-  for (name = ircd_strtok(&p, parv[1], " "); name; name = ircd_strtok(&p, 0, " ")) {
+  for (name = ircd_strtok(&p, parv[1], " "); name;
+       name = ircd_strtok(&p, 0, " ")) {
     if ((acptr = FindUser(name))) {
-      strcpy(iter, acptr->name);
-      iter += strlen(iter);
-      if (iter >= end)
-        break;
-      *iter++ = ' ';
+      if (msgq_bufleft(mb) < strlen(acptr->name) + 1) {
+	send_buffer(sptr, mb, 0); /* send partial response */
+	msgq_clean(mb); /* then do another round */
+	mb = msgq_make(sptr, rpl_str(RPL_ISON), me.name, sptr->name);
+      }
+      msgq_append(0, mb, "%s ", acptr->name); /* append nickname */
     }
   }
-  *iter = '\0';
-  if (' ' == *--iter)
-    *iter = '\0';
 
-  send_buffer(sptr, buf);
+  send_buffer(sptr, mb, 0); /* send response */
+  msgq_clean(mb);
+
   return 0;
 }
 

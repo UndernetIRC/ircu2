@@ -181,7 +181,7 @@ void free_client(struct Client* cptr)
     if (-1 < cptr->fd) {
       close(cptr->fd);
     }
-    DBufClear(&cptr->sendQ);
+    MsgQClear(&cptr->sendQ);
     DBufClear(&cptr->recvQ);
     if (cptr->listener)
       release_listener(cptr->listener);

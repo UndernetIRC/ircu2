@@ -181,15 +181,15 @@ int m_version(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   {
     if (!(acptr = find_match_server(parv[1])))
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAF */
+      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAD */
       return 0;
     }
     parv[1] = acptr->name;
   }
 
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) == /* XXX DEAF */
+  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) == /* XXX DEAD */
       HUNTED_ISME)
-    sendto_one(sptr, rpl_str(RPL_VERSION), /* XXX DEAF */
+    sendto_one(sptr, rpl_str(RPL_VERSION), /* XXX DEAD */
         me.name, parv[0], version, debugmode, me.name, serveropts);
 
   return 0;

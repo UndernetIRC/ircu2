@@ -142,7 +142,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = tbuf;
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
+      if (cptr != lp->value.cptr && MsgQLength(&lp->value.cptr->sendQ) < 8000)
 	sendcmdto_one(sptr, CMD_NOTICE, lp->value.cptr, "%s", parv[1]);
   }
   else
@@ -218,7 +218,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = tbuf;
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
+      if (cptr != lp->value.cptr && MsgQLength(&lp->value.cptr->sendQ) < 8000)
 	sendcmdto_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
   }
   else
@@ -296,7 +296,7 @@ int m_settime(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     parv[1] = tbuf;
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
+      if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000) /* XXX DEAD */
         sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]); /* XXX DEAD */
   }
   else

@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_defs.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
@@ -32,6 +33,7 @@
 #include "list.h"
 #include "match.h"
 #include "msg.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "querycmds.h"
@@ -858,12 +860,11 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   int                flag_cnt = 0;
   int                new_mode = 0;
   size_t             len;
-  size_t             sblen;
   struct Membership* member;
   struct SLink*      lp2;
   char modebuf[MODEBUFLEN];
   char parabuf[MODEBUFLEN];
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
 
   assert(0 != cptr);
   assert(0 != chptr); 
@@ -884,22 +885,17 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 
     /* (Continued) prefix: "<Y> B <channel> <TS>" */
     /* is there any better way we can do this? */
-    sblen = ircd_snprintf(&me, sndbuf, sizeof(sndbuf), "%C " TOK_BURST
-			  " %H %Tu", &me, chptr, chptr->creationtime);
+    mb = msgq_make(&me, "%C " TOK_BURST " %H %Tu", &me, chptr,
+		   chptr->creationtime);
 
     if (first && modebuf[1])    /* Add simple modes (iklmnpst)
                                  if first message */
     {
       /* prefix: "<Y> B <channel> <TS>[ <modes>[ <params>]]" */
-      sndbuf[sblen++] = ' ';
-      strcpy(sndbuf + sblen, modebuf);
-      sblen += strlen(modebuf);
+      msgq_append(&me, mb, " %s", modebuf);
+
       if (*parabuf)
-      {
-        sndbuf[sblen++] = ' ';
-        strcpy(sndbuf + sblen, parabuf);
-        sblen += strlen(parabuf);
-      }
+	msgq_append(&me, mb, " %s", parabuf);
     }
 
     /*
@@ -916,9 +912,8 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
         if ((member->status & CHFL_VOICED_OR_OPPED) !=
             current_flags[flag_cnt])
           continue;             /* Skip members with different flags */
-        if (sblen + NUMNICKLEN + 4 > BUFSIZE - 3)
-          /* The 4 is a possible ",:ov"
-             The -3 is for the "\r\n\0" that is added in send.c */
+	if (msgq_bufleft(mb) < NUMNICKLEN + 4)
+          /* The 4 is a possible ",:ov" */
         {
           full = 1;           /* Make sure we continue after
                                  sending it so far */
@@ -926,11 +921,9 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
                                  mode. --Gte */
           break;              /* Do not add this member to this message */
         }
-        sndbuf[sblen++] = first ? ' ' : ',';
+	msgq_append(&me, mb, "%c%C", first ? ' ' : ',', member->user);
         first = 0;              /* From now on, us comma's to add new nicks */
 
-	sblen += ircd_snprintf(&me, sndbuf + sblen, sizeof(sndbuf) - sblen,
-			       "%C", member->user);
         /*
          * Do we have a nick with a new mode ?
          * Or are we starting a new BURST line?
@@ -939,11 +932,15 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
         {
           new_mode = 0;
           if (IsVoicedOrOpped(member)) {
-            sndbuf[sblen++] = ':';
+	    char tbuf[4] = ":";
+	    int loc = 1;
+
             if (IsChanOp(member))
-              sndbuf[sblen++] = 'o';
+	      tbuf[loc++] = 'o';
             if (HasVoice(member))
-              sndbuf[sblen++] = 'v';
+	      tbuf[loc++] = 'v';
+	    tbuf[loc] = '\0';
+	    msgq_append(&me, mb, tbuf);
           }
         }
       }
@@ -957,31 +954,22 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
       for (first = 2; lp2; lp2 = lp2->next)
       {
         len = strlen(lp2->value.ban.banstr);
-        if (sblen + len + 1 + first > BUFSIZE - 3)
+	if (msgq_bufleft(mb) < len + 1 + first)
           /* The +1 stands for the added ' '.
            * The +first stands for the added ":%".
-           * The -3 is for the "\r\n\0" that is added in send.c
            */
         {
           full = 1;
           break;
         }
-        if (first)
-        {
-          first = 0;
-          sndbuf[sblen++] = ' ';
-          sndbuf[sblen++] = ':';       /* Will be last parameter */
-          sndbuf[sblen++] = '%';       /* To tell bans apart */
-        }
-        else
-          sndbuf[sblen++] = ' ';
-        strcpy(sndbuf + sblen, lp2->value.ban.banstr);
-        sblen += len;
+	msgq_append(&me, mb, " %s%s", first ? ":%" : "",
+		    lp2->value.ban.banstr);
+	first = 0;
       }
     }
 
-    sndbuf[sblen] = '\0';
-    send_buffer(cptr, sndbuf);  /* Send this message */
+    send_buffer(cptr, mb, 0);  /* Send this message */
+    msgq_clean(mb);
   }                             /* Continue when there was something
                                  that didn't fit (full==1) */
 }
@@ -1095,978 +1083,6 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
 	       lp->value.ban.who, lp->value.ban.when);
 
   send_reply(cptr, RPL_ENDOFBANLIST, chptr->chname);
-}
-
-/*
- * Check and try to apply the channel modes passed in the parv array for
- * the client ccptr to channel chptr.  The resultant changes are printed
- * into mbuf and pbuf (if any) and applied to the channel.
- */
-int set_mode(struct Client* cptr, struct Client* sptr,
-                    struct Channel* chptr, int parc, char* parv[],
-                    char* mbuf, char* pbuf, char* npbuf, int* badop)
-{ 
-  /* 
-   * This size is only needed when a broken
-   * server sends more then MAXMODEPARAMS
-   * parameters
-   */
-  static struct SLink chops[MAXPARA - 2];
-  static int flags[] = {
-    MODE_PRIVATE,    'p',
-    MODE_SECRET,     's',
-    MODE_MODERATED,  'm',
-    MODE_NOPRIVMSGS, 'n',
-    MODE_TOPICLIMIT, 't',
-    MODE_INVITEONLY, 'i',
-    MODE_VOICE,      'v',
-    MODE_KEY,        'k',
-    0x0, 0x0
-  };
-
-  char bmodebuf[MODEBUFLEN];
-  char bparambuf[MODEBUFLEN];
-  char nbparambuf[MODEBUFLEN];     /* "Numeric" Bounce Parameter Buffer */
-  struct SLink*      lp;
-  char*              curr = parv[0];
-  char*              cp = NULL;
-  int*               ip;
-  struct Membership* member_x;
-  struct Membership* member_y;
-  unsigned int       whatt = MODE_ADD;
-  unsigned int       bwhatt = 0;
-  int                limitset = 0;
-  int                bounce;
-  int                add_banid_called = 0;
-  size_t             len;
-  size_t             nlen;
-  size_t             blen;
-  size_t             nblen;
-  int                keychange = 0;
-  unsigned int       nusers = 0;
-  unsigned int       newmode;
-  int                opcnt = 0;
-  int                banlsent = 0;
-  int                doesdeop = 0;
-  int                doesop = 0;
-  int                hacknotice = 0;
-  int                change;
-  int                gotts = 0;
-  struct Client*     who;
-  struct Mode*       mode;
-  struct Mode        oldm;
-  static char        numeric[16];
-  char*              bmbuf = bmodebuf;
-  char*              bpbuf = bparambuf;
-  char*              nbpbuf = nbparambuf;
-  time_t             newtime = 0;
-  struct ConfItem*   aconf;
-
-  *mbuf = *pbuf = *npbuf = *bmbuf = *bpbuf = *nbpbuf = '\0';
-  *badop = 0;
-  if (parc < 1)
-    return 0;
-  /*
-   * Mode is accepted when sptr is a channel operator
-   * but also when the mode is received from a server.
-   * At this point, let any member pass, so they are allowed
-   * to see the bans.
-   */
-  member_y = find_channel_member(sptr, chptr);
-  if (!(IsServer(cptr) || member_y))
-    return 0;
-
-#ifdef OPER_MODE_LCHAN
-  if (IsOperOnLocalChannel(sptr, chptr->chname) && !IsChanOp(member_y))
-    LocalChanOperMode = 1;
-#endif
-
-  mode = &(chptr->mode);
-  memcpy(&oldm, mode, sizeof(struct Mode));
-
-  newmode = mode->mode;
-
-  while (curr && *curr) {
-    switch (*curr) {
-      case '+':
-        whatt = MODE_ADD;
-        break;
-      case '-':
-        whatt = MODE_DEL;
-        break;
-      case 'o':
-      case 'v':
-        if (--parc <= 0)
-          break;
-        parv++;
-        if (MyUser(sptr) && opcnt >= MAXMODEPARAMS)
-          break;
-        /*
-         * Check for nickname changes and try to follow these
-         * to make sure the right client is affected by the
-         * mode change.
-         * Even if we find a nick with find_chasing() there
-         * is still a reason to ignore in a special case.
-         * We need to ignore the mode when:
-         * - It is part of a net.burst (from a server and
-         *   a MODE_ADD). Ofcourse we don't ignore mode
-         *   changes from Uworld.
-         * - The found nick is not on the right side off
-         *   the net.junction.
-         * This fixes the bug that when someone (tries to)
-         * ride a net.break and does so with the nick of
-         * someone on the otherside, that he is nick collided
-         * (killed) but his +o still ops the other person.
-         */
-        if (MyUser(sptr))
-        {
-          if (!(who = find_chasing(sptr, parv[0], NULL)))
-            break;
-        }
-        else
-        {
-          if (!(who = findNUser(parv[0])))
-            break;
-        }
-        if (whatt == MODE_ADD && IsServer(sptr) && who->from != sptr->from &&
-            !find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
-          break;
-
-        if (!(member_x = find_member_link(chptr, who)) ||
-            (MyUser(sptr) && IsZombie(member_x)))
-        {
-	  send_reply(cptr, ERR_USERNOTINCHANNEL, who->name, chptr->chname);
-          break;
-        }
-        /*
-         * if the user is +k, prevent a deop from local user
-         */
-        if (whatt == MODE_DEL && IsChannelService(who) && *curr == 'o') {
-          /*
-           * XXX - CHECKME
-           */
-          if (MyUser(cptr)) {
-	    send_reply(cptr, ERR_ISCHANSERVICE, parv[0], chptr->chname);
-            break;
-           }
-           else {
-             sprintf_irc(sendbuf,":%s NOTICE * :*** Notice -- Deop of +k user on %s by %s", /* XXX set_mode only called by old m_mode */
-                         me.name,chptr->chname,cptr->name);             
-           }
-        }
-#ifdef NO_OPER_DEOP_LCHAN
-        /*
-         * if the user is an oper on a local channel, prevent him
-         * from being deoped. that oper can deop himself though.
-         */
-        if (whatt == MODE_DEL && IsOperOnLocalChannel(who, chptr->chname) &&
-            (who != sptr) && MyUser(cptr) && *curr == 'o')
-        {
-	  send_reply(cptr, ERR_ISOPERLCHAN, parv[0], chptr->chname);
-          break;
-        }
-#endif
-        if (whatt == MODE_ADD)
-        {
-          lp = &chops[opcnt++];
-          lp->value.cptr = who;
-          if (IsServer(sptr) && (!(who->flags & FLAGS_TS8) || ((*curr == 'o') &&
-              !(member_x->status & (CHFL_SERVOPOK | CHFL_CHANOP)))))
-            *badop = ((member_x->status & CHFL_DEOPPED) && (*curr == 'o')) ? 2 : 3;
-          lp->flags = (*curr == 'o') ? MODE_CHANOP : MODE_VOICE;
-          lp->flags |= MODE_ADD;
-        }
-        else if (whatt == MODE_DEL)
-        {
-          lp = &chops[opcnt++];
-          lp->value.cptr = who;
-          doesdeop = 1;         /* Also when -v */
-          lp->flags = (*curr == 'o') ? MODE_CHANOP : MODE_VOICE;
-          lp->flags |= MODE_DEL;
-        }
-        if (*curr == 'o')
-          doesop = 1;
-        break;
-      case 'k':
-        if (--parc <= 0)
-          break;
-        parv++;
-        /* check now so we eat the parameter if present */
-        if (keychange)
-          break;
-        else
-        {
-          char *s = &(*parv)[-1];
-          unsigned short count = KEYLEN + 1;
-
-          while (*++s > ' ' && *s != ':' && --count);
-          *s = '\0';
-          if (!**parv)          /* nothing left in key */
-            break;
-        }
-        if (MyUser(sptr) && opcnt >= MAXMODEPARAMS)
-          break;
-        if (whatt == MODE_ADD)
-        {
-          if (*mode->key && !IsServer(cptr))
-	    send_reply(cptr, ERR_KEYSET, chptr->chname);
-          else if (!*mode->key || IsServer(cptr))
-          {
-            lp = &chops[opcnt++];
-            lp->value.cp = *parv;
-            if (strlen(lp->value.cp) > KEYLEN)
-              lp->value.cp[KEYLEN] = '\0';
-            lp->flags = MODE_KEY | MODE_ADD;
-            keychange = 1;
-          }
-        }
-        else if (whatt == MODE_DEL)
-        {
-          /* Debug((DEBUG_INFO, "removing key: mode->key: >%s< *parv: >%s<", mode->key, *parv)); */
-          if (0 == ircd_strcmp(mode->key, *parv) || IsServer(cptr))
-          {
-            /* Debug((DEBUG_INFO, "key matched")); */
-            lp = &chops[opcnt++];
-            lp->value.cp = mode->key;
-            lp->flags = MODE_KEY | MODE_DEL;
-            keychange = 1;
-          }
-        }
-        break;
-      case 'b':
-        if (--parc <= 0) {
-          if (0 == banlsent) {
-            /*
-             * Only send it once
-             */
-            send_ban_list(cptr, chptr);
-            banlsent = 1;
-          }
-          break;
-        }
-        parv++;
-        if (EmptyString(*parv))
-          break;
-        if (MyUser(sptr))
-        {
-          if ((cp = strchr(*parv, ' ')))
-            *cp = 0;
-          if (opcnt >= MAXMODEPARAMS || **parv == ':' || **parv == '\0')
-            break;
-        }
-        if (whatt == MODE_ADD)
-        {
-          lp = &chops[opcnt++];
-          lp->value.cp = *parv;
-          lp->flags = MODE_ADD | MODE_BAN;
-        }
-        else if (whatt == MODE_DEL)
-        {
-          lp = &chops[opcnt++];
-          lp->value.cp = *parv;
-          lp->flags = MODE_DEL | MODE_BAN;
-        }
-        break;
-      case 'l':
-        /*
-         * limit 'l' to only *1* change per mode command but
-         * eat up others.
-         */
-        if (limitset)
-        {
-          if (whatt == MODE_ADD && --parc > 0)
-            parv++;
-          break;
-        }
-        if (whatt == MODE_DEL)
-        {
-          limitset = 1;
-          nusers = 0;
-          break;
-        }
-        if (--parc > 0)
-        {
-          if (EmptyString(*parv))
-            break;
-          if (MyUser(sptr) && opcnt >= MAXMODEPARAMS)
-            break;
-          if (!(nusers = atoi(*++parv)))
-            continue;
-          lp = &chops[opcnt++];
-          lp->flags = MODE_ADD | MODE_LIMIT;
-          limitset = 1;
-          break;
-        }
-        need_more_params(cptr, "MODE +l");
-        break;
-      case 'i':         /* falls through for default case */
-        if (whatt == MODE_DEL)
-          while ((lp = chptr->invites))
-            del_invite(lp->value.cptr, chptr);
-      default:
-        for (ip = flags; *ip; ip += 2)
-          if (*(ip + 1) == *curr)
-            break;
-
-        if (*ip)
-        {
-          if (whatt == MODE_ADD)
-          {
-            if (*ip == MODE_PRIVATE)
-              newmode &= ~MODE_SECRET;
-            else if (*ip == MODE_SECRET)
-              newmode &= ~MODE_PRIVATE;
-            newmode |= *ip;
-          }
-          else
-            newmode &= ~*ip;
-        }
-        else if (!IsServer(cptr))
-	  send_reply(cptr, ERR_UNKNOWNMODE, *curr);
-        break;
-    }
-    curr++;
-    /*
-     * Make sure mode strings such as "+m +t +p +i" are parsed
-     * fully.
-     */
-    if (!*curr && parc > 0)
-    {
-      curr = *++parv;
-      parc--;
-      /* If this was from a server, and it is the last
-       * parameter and it starts with a digit, it must
-       * be the creationtime.  --Run
-       */
-      if (IsServer(sptr))
-      {
-        if (parc == 1 && IsDigit(*curr))
-        {
-          newtime = atoi(curr);
-          if (newtime && chptr->creationtime == MAGIC_REMOTE_JOIN_TS)
-          {
-            chptr->creationtime = newtime;
-            *badop = 0;
-          }
-          gotts = 1;
-          if (newtime == 0)
-          {
-            *badop = 2;
-            hacknotice = 1;
-          }
-          else if (newtime > chptr->creationtime)
-          {                     /* It is a net-break ride if we have ops.
-                                   bounce modes if we have ops.  --Run */
-            if (doesdeop)
-              *badop = 2;
-            else if (chptr->creationtime == 0)
-            {
-              if (chptr->creationtime == 0 || doesop)
-                chptr->creationtime = newtime;
-              *badop = 0;
-            }
-            /* Bounce: */
-            else
-              *badop = 1;
-          }
-          /*
-           * A legal *badop can occur when two
-           * people join simultaneously a channel,
-           * Allow for 10 min of lag (and thus hacking
-           * on channels younger then 10 min) --Run
-           */
-          else if (*badop == 0 ||
-              chptr->creationtime > (TStime() - TS_LAG_TIME))
-          {
-            if (newtime < chptr->creationtime)
-              chptr->creationtime = newtime;
-            *badop = 0;
-          }
-          break;
-        }
-      }
-      else
-        *badop = 0;
-    }
-  }                             /* end of while loop for MODE processing */
-
-#ifdef OPER_MODE_LCHAN
-  /*
-   * Now reject non chan ops. Accept modes from opers on local channels
-   * even if they are deopped
-   */
-  if (!IsServer(cptr) &&
-      (!member_y || !(IsChanOp(member_y) ||
-                 IsOperOnLocalChannel(sptr, chptr->chname))))
-#else
-  if (!IsServer(cptr) && (!member_y || !IsChanOp(member_y)))
-#endif
-  {
-    *badop = 0;
-    return (opcnt || newmode != mode->mode || limitset || keychange) ? 0 : -1;
-  }
-
-  if (doesop && newtime == 0 && IsServer(sptr))
-    *badop = 2;
-
-  if (*badop >= 2 &&
-      (aconf = find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD)))
-    *badop = 4;
-
-#ifdef OPER_MODE_LCHAN
-  bounce = (*badop == 1 || *badop == 2 ||
-            (is_deopped(sptr, chptr) &&
-             !IsOperOnLocalChannel(sptr, chptr->chname))) ? 1 : 0;
-#else
-  bounce = (*badop == 1 || *badop == 2 || is_deopped(sptr, chptr)) ? 1 : 0;
-#endif
-
-  whatt = 0;
-  for (ip = flags; *ip; ip += 2) {
-    if ((*ip & newmode) && !(*ip & oldm.mode))
-    {
-      if (bounce)
-      {
-        if (bwhatt != MODE_DEL)
-        {
-          *bmbuf++ = '-';
-          bwhatt = MODE_DEL;
-        }
-        *bmbuf++ = *(ip + 1);
-      }
-      else
-      {
-        if (whatt != MODE_ADD)
-        {
-          *mbuf++ = '+';
-          whatt = MODE_ADD;
-        }
-        mode->mode |= *ip;
-        *mbuf++ = *(ip + 1);
-      }
-    }
-  }
-  for (ip = flags; *ip; ip += 2) {
-    if ((*ip & oldm.mode) && !(*ip & newmode))
-    {
-      if (bounce)
-      {
-        if (bwhatt != MODE_ADD)
-        {
-          *bmbuf++ = '+';
-          bwhatt = MODE_ADD;
-        }
-        *bmbuf++ = *(ip + 1);
-      }
-      else
-      {
-        if (whatt != MODE_DEL)
-        {
-          *mbuf++ = '-';
-          whatt = MODE_DEL;
-        }
-        mode->mode &= ~*ip;
-        *mbuf++ = *(ip + 1);
-      }
-    }
-  }
-  blen = nblen = 0;
-  if (limitset && !nusers && mode->limit)
-  {
-    if (bounce)
-    {
-      if (bwhatt != MODE_ADD)
-      {
-        *bmbuf++ = '+';
-        bwhatt = MODE_ADD;
-      }
-      *bmbuf++ = 'l';
-      sprintf(numeric, "%-15d", mode->limit);
-      if ((cp = strchr(numeric, ' ')))
-        *cp = '\0';
-      strcat(bpbuf, numeric);
-      blen += strlen(numeric);
-      strcat(bpbuf, " ");
-      strcat(nbpbuf, numeric);
-      nblen += strlen(numeric);
-      strcat(nbpbuf, " ");
-    }
-    else
-    {
-      if (whatt != MODE_DEL)
-      {
-        *mbuf++ = '-';
-        whatt = MODE_DEL;
-      }
-      mode->mode &= ~MODE_LIMIT;
-      mode->limit = 0;
-      *mbuf++ = 'l';
-    }
-  }
-  /*
-   * Reconstruct "+bkov" chain.
-   */
-  if (opcnt)
-  {
-    int i = 0;
-    char c = 0;
-    unsigned int prev_whatt = 0;
-
-    for (; i < opcnt; i++)
-    {
-      lp = &chops[i];
-      /*
-       * make sure we have correct mode change sign
-       */
-      if (whatt != (lp->flags & (MODE_ADD | MODE_DEL)))
-      {
-        if (lp->flags & MODE_ADD)
-        {
-          *mbuf++ = '+';
-          prev_whatt = whatt;
-          whatt = MODE_ADD;
-        }
-        else
-        {
-          *mbuf++ = '-';
-          prev_whatt = whatt;
-          whatt = MODE_DEL;
-        }
-      }
-      len = strlen(pbuf);
-      nlen = strlen(npbuf);
-      /*
-       * get c as the mode char and tmp as a pointer to
-       * the parameter for this mode change.
-       */
-      switch (lp->flags & MODE_WPARAS)
-      {
-        case MODE_CHANOP:
-          c = 'o';
-          cp = lp->value.cptr->name;
-          break;
-        case MODE_VOICE:
-          c = 'v';
-          cp = lp->value.cptr->name;
-          break;
-        case MODE_BAN:
-          /*
-           * I made this a bit more user-friendly (tm):
-           * nick = nick!*@*
-           * nick!user = nick!user@*
-           * user@host = *!user@host
-           * host.name = *!*@host.name    --Run
-           */
-          c = 'b';
-          cp = pretty_mask(lp->value.cp);
-          break;
-        case MODE_KEY:
-          c = 'k';
-          cp = lp->value.cp;
-          break;
-        case MODE_LIMIT:
-          c = 'l';
-          sprintf(numeric, "%-15d", nusers);
-          if ((cp = strchr(numeric, ' ')))
-            *cp = '\0';
-          cp = numeric;
-          break;
-      }
-
-      /* What could be added: cp+' '+' '+<TS>+'\0' */
-      if (len + strlen(cp) + 13 > MODEBUFLEN ||
-          nlen + strlen(cp) + NUMNICKLEN + 12 > MODEBUFLEN)
-        break;
-
-      switch (lp->flags & MODE_WPARAS)
-      {
-        case MODE_KEY:
-          if (strlen(cp) > KEYLEN)
-            *(cp + KEYLEN) = '\0';
-          if ((whatt == MODE_ADD && (*mode->key == '\0' ||
-               0 != ircd_strcmp(mode->key, cp))) ||
-              (whatt == MODE_DEL && (*mode->key != '\0')))
-          {
-            if (bounce)
-            {
-              if (*mode->key == '\0')
-              {
-                if (bwhatt != MODE_DEL)
-                {
-                  *bmbuf++ = '-';
-                  bwhatt = MODE_DEL;
-                }
-                strcat(bpbuf, cp);
-                blen += strlen(cp);
-                strcat(bpbuf, " ");
-                blen++;
-                strcat(nbpbuf, cp);
-                nblen += strlen(cp);
-                strcat(nbpbuf, " ");
-                nblen++;
-              }
-              else
-              {
-                if (bwhatt != MODE_ADD)
-                {
-                  *bmbuf++ = '+';
-                  bwhatt = MODE_ADD;
-                }
-                strcat(bpbuf, mode->key);
-                blen += strlen(mode->key);
-                strcat(bpbuf, " ");
-                blen++;
-                strcat(nbpbuf, mode->key);
-                nblen += strlen(mode->key);
-                strcat(nbpbuf, " ");
-                nblen++;
-              }
-              *bmbuf++ = c;
-              mbuf--;
-              if (*mbuf != '+' && *mbuf != '-')
-                mbuf++;
-              else
-                whatt = prev_whatt;
-            }
-            else
-            {
-              *mbuf++ = c;
-              strcat(pbuf, cp);
-              len += strlen(cp);
-              strcat(pbuf, " ");
-              len++;
-              strcat(npbuf, cp);
-              nlen += strlen(cp);
-              strcat(npbuf, " ");
-              nlen++;
-              if (whatt == MODE_ADD)
-                ircd_strncpy(mode->key, cp, KEYLEN);
-              else
-                *mode->key = '\0';
-            }
-          }
-          break;
-        case MODE_LIMIT:
-          if (nusers && nusers != mode->limit)
-          {
-            if (bounce)
-            {
-              if (mode->limit == 0)
-              {
-                if (bwhatt != MODE_DEL)
-                {
-                  *bmbuf++ = '-';
-                  bwhatt = MODE_DEL;
-                }
-              }
-              else
-              {
-                if (bwhatt != MODE_ADD)
-                {
-                  *bmbuf++ = '+';
-                  bwhatt = MODE_ADD;
-                }
-                sprintf(numeric, "%-15d", mode->limit);
-                if ((cp = strchr(numeric, ' ')))
-                  *cp = '\0';
-                strcat(bpbuf, numeric);
-                blen += strlen(numeric);
-                strcat(bpbuf, " ");
-                blen++;
-                strcat(nbpbuf, numeric);
-                nblen += strlen(numeric);
-                strcat(nbpbuf, " ");
-                nblen++;
-              }
-              *bmbuf++ = c;
-              mbuf--;
-              if (*mbuf != '+' && *mbuf != '-')
-                mbuf++;
-              else
-                whatt = prev_whatt;
-            }
-            else
-            {
-              *mbuf++ = c;
-              strcat(pbuf, cp);
-              len += strlen(cp);
-              strcat(pbuf, " ");
-              len++;
-              strcat(npbuf, cp);
-              nlen += strlen(cp);
-              strcat(npbuf, " ");
-              nlen++;
-              mode->limit = nusers;
-            }
-          }
-          break;
-        case MODE_CHANOP:
-        case MODE_VOICE:
-          member_y = find_member_link(chptr, lp->value.cptr);
-          if (lp->flags & MODE_ADD)
-          {
-            change = (~member_y->status) & CHFL_VOICED_OR_OPPED & lp->flags;
-            if (change && bounce)
-            {
-              if (lp->flags & MODE_CHANOP)
-                SetDeopped(member_y);
-
-              if (bwhatt != MODE_DEL)
-              {
-                *bmbuf++ = '-';
-                bwhatt = MODE_DEL;
-              }
-              *bmbuf++ = c;
-              strcat(bpbuf, lp->value.cptr->name);
-              blen += strlen(lp->value.cptr->name);
-              strcat(bpbuf, " ");
-              blen++;
-              sprintf_irc(nbpbuf + nblen, "%s%s ", NumNick(lp->value.cptr));
-              nblen += strlen(nbpbuf + nblen);
-              change = 0;
-            }
-            else if (change)
-            {
-              member_y->status |= lp->flags & CHFL_VOICED_OR_OPPED;
-              if (IsChanOp(member_y))
-              {
-                ClearDeopped(member_y);
-                if (IsServer(sptr))
-                  ClearServOpOk(member_y);
-              }
-            }
-          }
-          else
-          {
-            change = member_y->status & CHFL_VOICED_OR_OPPED & lp->flags;
-            if (change && bounce)
-            {
-              if (lp->flags & MODE_CHANOP)
-                ClearDeopped(member_y);
-              if (bwhatt != MODE_ADD)
-              {
-                *bmbuf++ = '+';
-                bwhatt = MODE_ADD;
-              }
-              *bmbuf++ = c;
-              strcat(bpbuf, lp->value.cptr->name);
-              blen += strlen(lp->value.cptr->name);
-              strcat(bpbuf, " ");
-              blen++;
-              sprintf_irc(nbpbuf + nblen, "%s%s ", NumNick(lp->value.cptr));
-              blen += strlen(bpbuf + blen);
-              change = 0;
-            }
-            else
-            {
-              member_y->status &= ~change;
-              if ((change & MODE_CHANOP) && IsServer(sptr))
-                SetDeopped(member_y);
-            }
-          }
-          if (change || *badop == 2 || *badop == 4)
-          {
-            *mbuf++ = c;
-            strcat(pbuf, cp);
-            len += strlen(cp);
-            strcat(pbuf, " ");
-            len++;
-            sprintf_irc(npbuf + nlen, "%s%s ", NumNick(lp->value.cptr));
-            nlen += strlen(npbuf + nlen);
-            npbuf[nlen++] = ' ';
-            npbuf[nlen] = 0;
-          }
-          else
-          {
-            mbuf--;
-            if (*mbuf != '+' && *mbuf != '-')
-              mbuf++;
-            else
-              whatt = prev_whatt;
-          }
-          break;
-        case MODE_BAN:
-/*
- * Only bans aren't bounced, it makes no sense to bounce last second
- * bans while propagating bans done before the net.rejoin. The reason
- * why I don't bounce net.rejoin bans is because it is too much
- * work to take care of too long strings adding the necessary TS to
- * net.burst bans -- RunLazy
- * We do have to check for *badop==2 now, we don't want HACKs to take
- * effect.
- *
- * Since BURST - I *did* implement net.rejoin ban bouncing. So now it
- * certainly makes sense to also bounce 'last second' bans (bans done
- * after the net.junction). -- RunHardWorker
- */
-          if ((change = (whatt & MODE_ADD) &&
-              !add_banid(sptr, chptr, cp, !bounce, !add_banid_called)))
-            add_banid_called = 1;
-          else
-            change = (whatt & MODE_DEL) && !del_banid(chptr, cp, !bounce);
-
-          if (bounce && change)
-          {
-            change = 0;
-            if ((whatt & MODE_ADD))
-            {
-              if (bwhatt != MODE_DEL)
-              {
-                *bmbuf++ = '-';
-                bwhatt = MODE_DEL;
-              }
-            }
-            else if ((whatt & MODE_DEL))
-            {
-              if (bwhatt != MODE_ADD)
-              {
-                *bmbuf++ = '+';
-                bwhatt = MODE_ADD;
-              }
-            }
-            *bmbuf++ = c;
-            strcat(bpbuf, cp);
-            blen += strlen(cp);
-            strcat(bpbuf, " ");
-            blen++;
-            strcat(nbpbuf, cp);
-            nblen += strlen(cp);
-            strcat(nbpbuf, " ");
-            nblen++;
-          }
-          if (change)
-          {
-            *mbuf++ = c;
-            strcat(pbuf, cp);
-            len += strlen(cp);
-            strcat(pbuf, " ");
-            len++;
-            strcat(npbuf, cp);
-            nlen += strlen(cp);
-            strcat(npbuf, " ");
-            nlen++;
-          }
-          else
-          {
-            mbuf--;
-            if (*mbuf != '+' && *mbuf != '-')
-              mbuf++;
-            else
-              whatt = prev_whatt;
-          }
-          break;
-      }
-    }                           /* for (; i < opcnt; i++) */
-  }                             /* if (opcnt) */
-
-  *mbuf++ = '\0';
-  *bmbuf++ = '\0';
-
-  /* Bounce here */
-  if (!hacknotice && *bmodebuf && chptr->creationtime)
-  {
-    sendcmdto_one(&me, CMD_MODE, cptr, "%H %s %s %Tu", chptr, bmodebuf,
-		  nbparambuf, *badop == 2 ? (time_t) 0 : chptr->creationtime);
-  }
-  /* If there are possibly bans to re-add, bounce them now */
-  if (add_banid_called && bounce)
-  {
-    struct SLink *ban[6];               /* Max 6 bans at a time */
-    size_t len[6], sblen, total_len;
-    int cnt, delayed = 0;
-    while (delayed || (ban[0] = next_overlapped_ban()))
-    {
-      len[0] = strlen(ban[0]->value.ban.banstr);
-      cnt = 1;                  /* We already got one ban :) */
-      /* XXX sendbuf used to send ban bounces! */
-      sblen = sprintf_irc(sendbuf, ":%s MODE %s +b", /* XXX set_mode only called by old m_mode */
-          me.name, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
-      total_len = sblen + 1 + len[0];   /* 1 = ' ' */
-      /* Find more bans: */
-      delayed = 0;
-      while (cnt < 6 && (ban[cnt] = next_overlapped_ban()))
-      {
-        len[cnt] = strlen(ban[cnt]->value.ban.banstr);
-        if (total_len + 5 + len[cnt] > BUFSIZE) /* 5 = "b \r\n\0" */
-        {
-          delayed = cnt + 1;    /* != 0 */
-          break;                /* Flush */
-        }
-        sendbuf[sblen++] = 'b'; /* XXX set_mode only called by old m_mode */
-        total_len += 2 + len[cnt++];    /* 2 = "b " */
-      }
-      while (cnt--)
-      {
-        sendbuf[sblen++] = ' '; /* XXX set_mode only called by old m_mode */
-        strcpy(sendbuf + sblen, ban[cnt]->value.ban.banstr); /* XXX set_mode only called by old m_mode */
-        sblen += len[cnt];
-      }
-      sendbufto_one(cptr);      /* Send bounce to uplink */ /* XXX set_mode only called by old m_mode */
-      if (delayed)
-        ban[0] = ban[delayed - 1];
-    }
-  }
-  /* Send -b's of overlapped bans to clients to keep them synchronized */
-  if (add_banid_called && !bounce)
-  {
-    struct SLink *ban;
-    char *banstr[6];            /* Max 6 bans at a time */
-    size_t len[6], sblen, psblen, total_len;
-    int cnt, delayed = 0;
-    struct Membership* member_z;
-    struct Client *acptr;
-    if (IsServer(sptr))
-      /* XXX sendbuf used to send ban bounces! */
-      psblen = sprintf_irc(sendbuf, ":%s MODE %s -b", /* XXX set_mode only called by old m_mode */
-          sptr->name, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
-    else                        /* We rely on IsRegistered(sptr) being true for MODE */
-      psblen = sprintf_irc(sendbuf, ":%s!%s@%s MODE %s -b", sptr->name, /* XXX set_mode only called by old m_mode */
-          sptr->user->username, sptr->user->host, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
-    while (delayed || (ban = next_removed_overlapped_ban()))
-    {
-      if (!delayed)
-      {
-        len[0] = strlen((banstr[0] = ban->value.ban.banstr));
-        ban->value.ban.banstr = NULL;
-      }
-      cnt = 1;                  /* We already got one ban :) */
-      sblen = psblen;
-      total_len = sblen + 1 + len[0];   /* 1 = ' ' */
-      /* Find more bans: */
-      delayed = 0;
-      while (cnt < 6 && (ban = next_removed_overlapped_ban()))
-      {
-        len[cnt] = strlen((banstr[cnt] = ban->value.ban.banstr));
-        ban->value.ban.banstr = NULL;
-        if (total_len + 5 + len[cnt] > BUFSIZE) /* 5 = "b \r\n\0" */
-        {
-          delayed = cnt + 1;    /* != 0 */
-          break;                /* Flush */
-        }
-        sendbuf[sblen++] = 'b'; /* XXX set_mode only called by old m_mode */
-        total_len += 2 + len[cnt++];    /* 2 = "b " */
-      }
-      while (cnt--)
-      {
-        sendbuf[sblen++] = ' '; /* XXX set_mode only called by old m_mode */
-        strcpy(sendbuf + sblen, banstr[cnt]); /* XXX set_mode only called by old m_mode */
-        MyFree(banstr[cnt]);
-        sblen += len[cnt];
-      }
-      for (member_z = chptr->members; member_z; member_z = member_z->next_member) {
-        acptr = member_z->user;
-        if (MyConnect(acptr) && !IsZombie(member_z))
-          sendbufto_one(acptr); /* XXX set_mode only called by old m_mode */
-      }
-      if (delayed)
-      {
-        banstr[0] = banstr[delayed - 1];
-        len[0] = len[delayed - 1];
-      }
-    }
-  }
-
-  return gotts ? 1 : -1;
 }
 
 /* We are now treating the <key> part of /join <channel list> <key> as a key
@@ -2311,121 +1327,6 @@ void list_next_channels(struct Client *cptr, int nr)
   }
 }
 
-/* XXX AIEEEE! sendbuf is an institution here :( */
-void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
-    int *send_itp, char is_a_ban, int mode)
-{
-  int first = *firstp;
-
-  /*
-   * Heh - we do not need to test if it still fits in the buffer, because
-   * this BURST message is reconstructed from another BURST message, and
-   * it only can become smaller. --Run
-   */
-
-  if (*firstp)                  /* First token in this parameter ? */
-  {
-    *firstp = 0;
-    if (*send_itp == 0)
-      *send_itp = 1;            /* Buffer contains data to be sent */
-    sendbuf[(*sblenp)++] = ' '; /* XXX add_token_to_sendbuf only called by old m_burst */
-    if (is_a_ban)
-    {
-      sendbuf[(*sblenp)++] = ':';       /* Bans are always the last "parv" */ /* XXX add_token_to_sendbuf only called by old m_burst */
-      sendbuf[(*sblenp)++] = is_a_ban; /* XXX add_token_to_sendbuf only called by old m_burst */
-    }
-  }
-  else                          /* Of course, 'send_it' is already set here */
-    /* Seperate banmasks with a space because
-       they can contain commas themselfs: */
-    sendbuf[(*sblenp)++] = is_a_ban ? ' ' : ','; /* XXX add_token_to_sendbuf only called by old m_burst */
-  strcpy(sendbuf + *sblenp, token); /* XXX add_token_to_sendbuf only called by old m_burst */
-  *sblenp += strlen(token);
-  if (!is_a_ban)                /* nick list ? Need to take care
-                                   of modes for nicks: */
-  {
-    static int last_mode = 0;
-    mode &= CHFL_CHANOP | CHFL_VOICE;
-    if (first)
-      last_mode = 0;
-    if (last_mode != mode)      /* Append mode like ':ov' if changed */
-    {
-      last_mode = mode;
-      sendbuf[(*sblenp)++] = ':'; /* XXX add_token_to_sendbuf only called by old m_burst */
-      if (mode & CHFL_CHANOP)
-        sendbuf[(*sblenp)++] = 'o'; /* XXX add_token_to_sendbuf only called by old m_burst */
-      if (mode & CHFL_VOICE)
-        sendbuf[(*sblenp)++] = 'v'; /* XXX add_token_to_sendbuf only called by old m_burst */
-    }
-    sendbuf[*sblenp] = '\0'; /* XXX add_token_to_sendbuf only called by old m_burst */
-  }
-}
-
-void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
-                        const char *param, int *count)
-{
-  static char* pb;
-  static char* sbp;
-  static char* sbpi;
-  int          paramdoesntfit = 0;
-  char parabuf[MODEBUFLEN];
-
-  assert(0 != sptr);
-  assert(0 != chptr);
-  assert(0 != count);
-  
-  if (*count == -1)             /* initialize ? */
-  {
-    /* XXX sendbuf used! */
-    sbp = sbpi =
-        sprintf_irc(sendbuf, ":%s MODE %s -", sptr->name, chptr->chname); /* XXX cancel_mode only called from old ms_burst */
-    pb = parabuf;
-    *count = 0;
-  }
-  /* m == 0 means flush */
-  if (m)
-  {
-    if (param)
-    {
-      size_t nplen = strlen(param);
-      if (pb - parabuf + nplen + 23 > MODEBUFLEN)
-        paramdoesntfit = 1;
-      else
-      {
-        *sbp++ = m;
-        *pb++ = ' ';
-        strcpy(pb, param);
-        pb += nplen;
-        ++*count;
-      }
-    }
-    else
-      *sbp++ = m;
-  }
-  else if (*count == 0)
-    return;
-  if (*count == 6 || !m || paramdoesntfit)
-  {
-    struct Membership* member;
-    strcpy(sbp, parabuf);
-    for (member = chptr->members; member; member = member->next_member)
-      if (MyUser(member->user))
-        sendbufto_one(member->user); /* XXX cancel_mode only called from old ms_burst */
-    sbp = sbpi;
-    pb = parabuf;
-    *count = 0;
-  }
-  if (paramdoesntfit)
-  {
-    *sbp++ = m;
-    *pb++ = ' ';
-    strcpy(pb, param);
-    pb += strlen(param);
-    ++*count;
-  }
-}
-
-
 /*
  * Consider:
  *
@@ -2522,100 +1423,6 @@ int number_of_zombies(struct Channel *chptr)
       ++count;
   }
   return count;
-}
-
-/*
- * send_hack_notice()
- *
- * parc & parv[] are the same as that of the calling function:
- *   mtype == 1 is from m_mode, 2 is from m_create, 3 is from m_kick.
- *
- * This function prepares sendbuf with the server notices and wallops
- *   to be sent for all hacks.  -Ghostwolf 18-May-97
- */
-/* XXX let's get rid of this if we can */
-void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
-                      char *parv[], int badop, int mtype)
-{
-  struct Channel *chptr;
-  static char params[MODEBUFLEN];
-  int i = 3;
-  chptr = FindChannel(parv[1]);
-  *params = '\0';
-
-  /* P10 servers require numeric nick conversion before sending. */
-  switch (mtype)
-  {
-    case 1:                     /* Convert nicks for MODE HACKs here  */
-    {
-      char *mode = parv[2];
-      while (i < parc)
-      {
-        while (*mode && *mode != 'o' && *mode != 'v')
-          ++mode;
-        strcat(params, " ");
-        if (*mode == 'o' || *mode == 'v')
-        {
-          /*
-           * blindly stumble through parameter list hoping one of them
-           * might turn out to be a numeric nick
-           * NOTE: this should not cause a problem but _may_ end up finding
-           * something we aren't looking for. findNUser should be able to
-           * handle any garbage that is thrown at it, but may return a client
-           * if we happen to get lucky with a mode string or a timestamp
-           */
-          struct Client *acptr;
-          if ((acptr = findNUser(parv[i])) != NULL)     /* Convert nicks here */
-            strcat(params, acptr->name);
-          else
-          {
-            strcat(params, "<");
-            strcat(params, parv[i]);
-            strcat(params, ">");
-          }
-        }
-        else                    /* If it isn't a numnick, send it 'as is' */
-          strcat(params, parv[i]);
-        i++;
-      }
-      sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
-          ":%s NOTICE * :*** Notice -- %sHACK(%d): %s MODE %s %s%s ["
-          TIME_T_FMT "]", me.name, (badop == 3) ? "BOUNCE or " : "", badop,
-          parv[0], parv[1], parv[2], params, chptr->creationtime);
-      sendbufto_op_mask((badop == 3) ? SNO_HACK3 : (badop == /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
-          4) ? SNO_HACK4 : SNO_HACK2);
-
-      if ((IsServer(sptr)) && (badop == 2))
-      {
-        sprintf_irc(sendbuf, ":%s DESYNCH :HACK: %s MODE %s %s%s", /* XXX send_hack_notice only called from old m_mode */
-            me.name, parv[0], parv[1], parv[2], params);
-        sendbufto_serv_butone(cptr); /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
-      }
-      break;
-    }
-    case 2:                     /* No conversion is needed for CREATE; the only numnick is sptr */
-    {
-      sendto_serv_butone(cptr, ":%s DESYNCH :HACK: %s CREATE %s %s", /* XXX DYING */
-          me.name, sptr->name, chptr->chname, parv[2]);
-      sendto_op_mask(SNO_HACK2, "HACK(2): %s CREATE %s %s", /* XXX DYING */
-          sptr->name, chptr->chname, parv[2]);
-      break;
-    }
-    case 3:                     /* Convert nick in KICK message */
-    {
-      struct Client *acptr;
-      if ((acptr = findNUser(parv[2])) != NULL) /* attempt to convert nick */
-        sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
-            ":%s NOTICE * :*** Notice -- HACK: %s KICK %s %s :%s",
-            me.name, sptr->name, parv[1], acptr->name, parv[3]);
-      else                      /* if conversion fails, send it 'as is' in <>'s */
-        sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
-            ":%s NOTICE * :*** Notice -- HACK: %s KICK %s <%s> :%s",
-            me.name, sptr->name, parv[1], parv[2], parv[3]);
-      sendbufto_op_mask(SNO_HACK4); /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
-      break;
-    }
-  }
 }
 
 /*
@@ -3994,7 +2801,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
   /* figure out if channel name will cause buffer to be overflowed */
   len = chan ? strlen(chan->chname) + 1 : 2;
-  if (jbuf->jb_strlen + len > IRC_BUFSIZE)
+  if (jbuf->jb_strlen + len > BUFSIZE)
     joinbuf_flush(jbuf);
 
   /* add channel to list of channels to send and update counts */
@@ -4012,7 +2819,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 int
 joinbuf_flush(struct JoinBuf *jbuf)
 {
-  char chanlist[IRC_BUFSIZE];
+  char chanlist[BUFSIZE];
   int chanlist_i = 0;
   int i;
 

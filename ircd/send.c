@@ -43,16 +43,10 @@
 #include <string.h>
 
 
-char sendbuf[2048];
 static int sentalong[MAXCONNECTIONS];
 static int sentalong_marker;
 struct SLink *opsarray[32];     /* don't use highest bit unless you change
-                                   atoi to strtoul in sendto_op_mask() */
-#ifdef GODMODE
-char sendbuf2[2048];
-int sdbflag;
-#endif /* GODMODE */
-
+				   atoi to strtoul in sendto_op_mask() */
 /*
  * dead_link
  *
@@ -78,7 +72,7 @@ static void dead_link(struct Client *to, char *notice)
    * notices don't hurt operators below.
    */
   DBufClear(&to->recvQ);
-  DBufClear(&to->sendQ);
+  MsgQClear(&to->sendQ);
 
   /*
    * Keep a copy of the last comment, for later use...
@@ -127,12 +121,12 @@ void flush_connections(struct Client* cptr)
  * by dbuf_put to try to get some more memory before bailing and
  * causing the client to be disconnected.
  */
-void flush_sendq_except(const struct DBuf* one)
+void flush_sendq_except(void)
 {
   int i;
   struct Client* cptr;
   for (i = HighestFd; i >= 0; i--) {
-    if ( (cptr = LocalClientArray[i]) && one != &cptr->sendQ)
+    if ( (cptr = LocalClientArray[i]))
       send_queued(cptr);
   }
 }
@@ -152,13 +146,13 @@ void send_queued(struct Client *to)
   if (IsBlocked(to) || !can_send(to))
     return;                     /* Don't bother */
 
-  while (DBufLength(&to->sendQ) > 0) {
+  while (MsgQLength(&to->sendQ) > 0) {
     unsigned int len;
-    const char* msg = dbuf_map(&to->sendQ, &len);
+    const char* msg = msgq_map(&to->sendQ, &len);
 
     if ((len = deliver_it(to, msg, len))) {
-      dbuf_delete(&to->sendQ, len);
-      to->lastsq = DBufLength(&to->sendQ) / 1024;
+      msgq_delete(&to->sendQ, len);
+      to->lastsq = MsgQLength(&to->sendQ) / 1024;
       if (IsBlocked(to))
         break;
     }
@@ -173,53 +167,8 @@ void send_queued(struct Client *to)
   }
 }
 
-/*
- *  send message to single client
- */
-/* See sendcmdto_one, below */
-void sendto_one(struct Client *to, const char* pattern, ...)
+void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
 {
-  va_list vl;
-  va_start(vl, pattern);
-  vsendto_one(to, pattern, vl);
-  va_end(vl);
-}
-
-/* See vsendcmdto_one, below */
-void vsendto_one(struct Client *to, const char* pattern, va_list vl)
-{
-  vsprintf_irc(sendbuf, pattern, vl);
-  sendbufto_one(to);
-}
-
-#ifdef GODMODE
-static void send_to_god(struct Client* to, const char* buf)
-{
-  if (!sdbflag && !IsUser(to)) {
-    char sbuf2[BUFSIZE + 1];
-    unsigned int len = strlen(buf) - 2;   /* Remove "\r\n" */
-
-    sdbflag = 1;
-    len = IRCD_MIN(len, BUFSIZE);
-    ircd_strncpy(sbuf2, buf, len);
-    sbuf2[len] = '\0';
-
-    if (len > 402) {
-      char c = sbuf2[200];
-      sbuf2[200] = '\0';
-      sendto_ops("SND:%-8.8s(%.4d): \"%s...%s\"",
-                 to->name, len, sbuf2, &sbuf2[len - 200]);
-    }
-    else
-      sendto_ops("SND:%-8.8s(%.4d): \"%s\"", to->name, len, sbuf2);
-    sdbflag = 0;
-  }
-}
-#endif /* GODMODE */
-
-void send_buffer(struct Client* to, char* buf)
-{
-  unsigned int len;
   assert(0 != to);
   assert(0 != buf);
 
@@ -232,34 +181,19 @@ void send_buffer(struct Client* to, char* buf)
      */
     return;
 
-  if (DBufLength(&to->sendQ) > get_sendq(to)) {
+  if (MsgQLength(&to->sendQ) > get_sendq(to)) {
     if (IsServer(to))
       sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
-			   "%zu > %zu", to, DBufLength(&to->sendQ),
+			   "%zu > %zu", to, MsgQLength(&to->sendQ),
 			   get_sendq(to));
     dead_link(to, "Max sendQ exceeded");
     return;
   }
 
-  Debug((DEBUG_SEND, "Sending [%s] to %s", buf, to->name));
+  Debug((DEBUG_SEND, "Sending [%p] to %s", buf, to->name));
 
-  len = strlen(buf);
-  if (buf[len - 1] != '\n') {
-    if (len > 510)
-      len = 510;
-    buf[len++] = '\r';
-    buf[len++] = '\n';
-    buf[len] = '\0';
-  }
+  msgq_add(&to->sendQ, buf, prio);
 
-  if (0 == dbuf_put(&to->sendQ, buf, len)) {
-    dead_link(to, "Buffer allocation error");
-    return;
-  }
-
-#ifdef GODMODE
-  send_to_god(to, buf);
-#endif /* GODMODE */
   /*
    * Update statistics. The following is slightly incorrect
    * because it counts messages even if queued, but bytes
@@ -275,357 +209,8 @@ void send_buffer(struct Client* to, char* buf)
    * trying to flood that link with data (possible during the net
    * relinking done by servers with a large load).
    */
-  if (DBufLength(&to->sendQ) / 1024 > to->lastsq)
+  if (MsgQLength(&to->sendQ) / 1024 > to->lastsq)
     send_queued(to);
-}
-
-void sendbufto_one(struct Client* to)
-{
-  send_buffer(to, sendbuf);
-}
-
-/* See vsendcmdto_one, below */
-static void vsendto_prefix_one(struct Client *to, struct Client *from,
-    const char* pattern, va_list vl)
-{
-  if (to && from && MyUser(to) && IsUser(from))
-  {
-    static char sender[HOSTLEN + NICKLEN + USERLEN + 5];
-    char *par;
-    int flag = 0;
-    struct User *user = from->user;
-
-    par = va_arg(vl, char *);
-    strcpy(sender, from->name);
-    if (user)
-    {
-      if (*user->username)
-      {
-        strcat(sender, "!");
-        strcat(sender, user->username);
-      }
-      if (*user->host && !MyConnect(from))
-      {
-        strcat(sender, "@");
-        strcat(sender, user->host);
-        flag = 1;
-      }
-    }
-    /*
-     * Flag is used instead of strchr(sender, '@') for speed and
-     * also since username/nick may have had a '@' in them. -avalon
-     */
-    if (!flag && MyConnect(from) && *user->host)
-    {
-      strcat(sender, "@");
-      strcat(sender, from->sockhost);
-    }
-    *sendbuf = ':';
-    strcpy(&sendbuf[1], sender);
-    /* Assuming 'pattern' always starts with ":%s ..." */
-    vsprintf_irc(sendbuf + strlen(sendbuf), &pattern[3], vl);
-  }
-  else
-    vsprintf_irc(sendbuf, pattern, vl);
-  sendbufto_one(to);
-}
-
-/* See sendcmdto_channel_butone, below */
-void sendmsgto_channel_butone(struct Client *one, struct Client *from,
-                              struct Channel *chptr, const char *sender,
-                              const char *cmd, const char *chname, const char *msg)
-{
- /*
-  * Sends a PRIVMSG/NOTICE to all members on a channel but 'one', translating
-  * TOKENS to full messages when sent to local clients. --Gte (12/12/99)
-  */
-  struct Membership* member;
-  struct Client *acptr;
-  char userbuf[2048];
-  char servbuf[2048];
-  int i;
-  int flag=-1;
-
-  assert(0 != cmd);
-  /* 
-   * Precalculate the buffers we sent to the clients instead of doing an
-   * expensive sprintf() per member that we send to.  We still have to
-   * use strcpy() which is evil.
-   */
-  if (IsServer(from)) {
-    sprintf(userbuf,":%s %s %s :%s",
-            from->name, ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE, chname, msg);
-    sprintf(servbuf,"%s %s %s :%s", NumServ(from), cmd, chname, msg);
-  }
-  else {
-    sprintf(userbuf,":%s!%s@%s %s %s :%s",
-            from->name, from->user->username, from->user->host,
-            ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE, chname, msg);
-    sprintf(servbuf,"%s%s %s %s :%s", NumNick(from), cmd, chname, msg);
-  }
-
-  ++sentalong_marker;
-  for (member = chptr->members; member; member = member->next_member)
-  {
-    acptr = member->user;
-    /* ...was the one I should skip */
-    if (acptr->from == one || IsZombie(member) || IsDeaf(acptr))
-      continue;
-    if (MyConnect(acptr)) {      /* (It is always a client) */
-        if (flag!=0)
-          strcpy(sendbuf,userbuf);
-        flag=0;
-        sendbufto_one(acptr);
-    }
-    else if (-1 < (i = acptr->from->fd) && sentalong[i] != sentalong_marker)
-    {
-      sentalong[i] = sentalong_marker;
-      if (!IsBurstOrBurstAck(acptr->from)) {
-        if (flag != 1)
-          strcpy(sendbuf,servbuf);
-        flag = 1;
-        sendbufto_one(acptr);
-  }
-    } /* of if MyConnect() */
-  } /* of for(members) */
-}
-
-/* See sendcmdto_channel_butone, below */
-void sendto_lchanops_butone(struct Client *one, struct Client *from, struct Channel *chptr,
-    const char* pattern, ...)
-{
-  va_list vl;
-  struct Membership* member;
-  struct Client *acptr;
-
-  va_start(vl, pattern);
-
-  for (member = chptr->members; member; member = member->next_member)
-  {
-    acptr = member->user;
-    /* ...was the one I should skip */
-    if (acptr == one || !IsChanOp(member) || IsZombie(member) || IsDeaf(acptr))
-      continue;
-    if (MyConnect(acptr))       /* (It is always a client) */
-      vsendto_prefix_one(acptr, from, pattern, vl);
-  }
-  va_end(vl);
-  return;
-}
-
-/* See sendcmdto_channel_butone, below */
-void sendto_chanopsserv_butone(struct Client *one, struct Client *from, struct Channel *chptr,
-    const char* pattern, ...)
-{
-  va_list vl;
-  struct Membership* member;
-  struct Client *acptr;
-  int i;
-#ifndef NO_PROTOCOL9
-  char  target[128];
-  char* source;
-  char* tp;
-  char* msg;
-#endif
-
-  va_start(vl, pattern);
-
-  ++sentalong_marker;
-  for (member = chptr->members; member; member = member->next_member)
-  {
-    acptr = member->user;
-    if (acptr->from == acptr || /* Skip local clients */
-#ifndef NO_PROTOCOL9
-        Protocol(acptr->from) < 10 ||   /* Skip P09 links */
-#endif
-        acptr->from == one ||   /* ...was the one I should skip */
-        !IsChanOp(member) ||   /* Skip non chanops */
-        IsZombie(member) || IsDeaf(acptr))
-      continue;
-    if (-1 < (i = acptr->from->fd) && sentalong[i] != sentalong_marker)
-    {
-      sentalong[i] = sentalong_marker;
-      /* Don't send channel messages to links that are
-         still eating the net.burst: -- Run 2/1/1997 */
-      if (!IsBurstOrBurstAck(acptr->from))
-        vsendto_prefix_one(acptr, from, pattern, vl);
-    }
-  }
-
-#ifndef NO_PROTOCOL9
-  /* Send message to all 2.9 servers */
-  /* This is a hack, because it assumes that we know how `vl' is build up */
-  source = va_arg(vl, char *);
-  tp = va_arg(vl, char *);      /* Channel */
-  msg = va_arg(vl, char *);
-  for (member = chptr->members; member; member = member->next_member)
-  {
-    acptr = member->user;
-    if (acptr->from == acptr || /* Skip local clients */
-        Protocol(acptr->from) > 9 ||    /* Skip P10 servers */
-        acptr->from == one ||   /* ...was the one I should skip */
-        !IsChanOp(member) ||   /* Skip non chanops */
-        IsZombie(member) || IsDeaf(acptr))
-      continue;
-    if (-1 < (i = acptr->from->fd) && sentalong[i] != sentalong_marker)
-    {
-      sentalong[i] = sentalong_marker;
-      /* Don't send channel messages to links that are
-         still eating the net.burst: -- Run 2/1/1997 */
-      if (!IsBurstOrBurstAck(acptr->from))
-      {
-        struct Membership* other_member;
-        struct Client* acptr2;
-        tp = target;
-        *tp = 0;
-        /* Find all chanops in this direction: */
-        for (other_member = chptr->members; other_member; other_member = other_member->next_member)
-        {
-          acptr2 = other_member->user;
-          if (acptr2->from == acptr->from && acptr2->from != one &&
-              IsChanOp(other_member) && !IsZombie(other_member) &&
-              !IsDeaf(acptr2))
-          {
-            int len = strlen(acptr2->name);
-            if (tp + len + 2 > target + sizeof(target))
-            {
-              sendto_prefix_one(acptr, from,
-                  ":%s NOTICE %s :%s", source, target, msg);
-              tp = target;
-              *tp = 0;
-            }
-            if (*target)
-              strcpy(tp++, ",");
-            strcpy(tp, acptr2->name);
-            tp += len;
-          }
-        }
-        sendto_prefix_one(acptr, from,
-            ":%s NOTICE %s :%s", source, target, msg);
-      }
-    }
-  }
-#endif
-
-  va_end(vl);
-  return;
-}
-
-/*
- * sendto_serv_butone
- *
- * Send a message to all connected servers except the client 'one'.
- */
-/* See sendcmdto_serv_butone, below */
-void sendto_serv_butone(struct Client *one, const char* pattern, ...)
-{
-  va_list vl;
-  struct DLink *lp;
-
-  va_start(vl, pattern);
-  vsprintf_irc(sendbuf, pattern, vl);
-  va_end(vl);
-
-  for (lp = me.serv->down; lp; lp = lp->next)
-  {
-    if (one && lp->value.cptr == one->from)
-      continue;
-    sendbufto_one(lp->value.cptr);
-  }
-
-}
-
-/*
- * sendbufto_serv_butone()
- *
- * Send prepared sendbuf to all connected servers except the client 'one'
- *  -Ghostwolf 18-May-97
- */
-void sendbufto_serv_butone(struct Client *one)
-{
-  struct DLink *lp;
-
-  for (lp = me.serv->down; lp; lp = lp->next)
-  {
-    if (one && lp->value.cptr == one->from)
-      continue;
-    sendbufto_one(lp->value.cptr);
-  }
-}
-
-
-/*
- * sendto_common_channels()
- *
- * Sends a message to all people (inclusing `acptr') on local server
- * who are in same channel with client `acptr'.
- */
-/* See sendcmdto_common_channels, below */
-void sendto_common_channels(struct Client *acptr, const char* pattern, ...)
-{
-  va_list vl;
-  struct Membership* chan;
-  struct Membership* member;
-
-  assert(0 != acptr);
-  assert(0 != acptr->from);
-  assert(0 != pattern);
-
-  va_start(vl, pattern);
-
-  ++sentalong_marker;
-  if (-1 < acptr->from->fd)
-    sentalong[acptr->from->fd] = sentalong_marker;
-  /*
-   * loop through acptr's channels, and the members on their channels
-   */
-  if (acptr->user) {
-    for (chan = acptr->user->channel; chan; chan = chan->next_channel) {
-      for (member = chan->channel->members; member; member = member->next_member) {
-        struct Client *cptr = member->user;
-        int    i;
-        if (MyConnect(cptr) && 
-            -1 < (i = cptr->fd) && sentalong[i] != sentalong_marker) {
-          sentalong[i] = sentalong_marker;
-          vsendto_prefix_one(cptr, acptr, pattern, vl);
-        }
-      }
-    }
-  }
-  if (MyConnect(acptr))
-    vsendto_prefix_one(acptr, acptr, pattern, vl);
-  va_end(vl);
-  return;
-}
-
-/*
- * sendto_channel_butserv
- *
- * Send a message to all members of a channel that
- * are connected to this server.
- *
- * This contains a subtle bug; after the first call to vsendto_prefix_one()
- * below, vl is in an indeterminate state, according to ANSI; we'd have to
- * move va_start() and va_end() into the loop to correct the problem.  It's
- * easier, however, just to use sendcmdto_channel_butserv(), which builds a
- * buffer and sends that prepared buffer to each channel member.
- */
-/* See sendcmdto_channel_butserv, below */
-void sendto_channel_butserv(struct Channel *chptr, struct Client *from, const char* pattern, ...)
-{
-  va_list vl;
-  struct Membership* member;
-  struct Client *acptr;
-  
-  va_start(vl, pattern);
-
-  for (member = chptr->members; member; member = member->next_member) {
-    acptr = member->user;
-    if (MyConnect(acptr) && !IsZombie(member))
-      vsendto_prefix_one(acptr, from, pattern, vl);
-  }
-  va_end(vl);
-  return;
 }
 
 /*
@@ -648,299 +233,21 @@ static int match_it(struct Client *one, const char *mask, int what)
 }
 
 /*
- * sendto_match_butone
- *
- * Send to all clients which match the mask in a way defined on 'what';
- * either by user hostname or user servername.
- */
-/* See sendcmdto_match_butone, below */
-void sendto_match_butone(struct Client *one, struct Client *from,
-    const char *mask, int what, const char* pattern, ...)
-{
-  va_list vl;
-  int i;
-  struct Client *cptr, *acptr;
-
-  va_start(vl, pattern);
-  for (i = 0; i <= HighestFd; i++)
-  {
-    if (!(cptr = LocalClientArray[i]))
-      continue;                 /* that clients are not mine */
-    if (cptr == one)            /* must skip the origin !! */
-      continue;
-    if (IsServer(cptr))
-    {
-      for (acptr = GlobalClientList; acptr; acptr = acptr->next)
-        if (IsUser(acptr) && match_it(acptr, mask, what) && acptr->from == cptr)
-          break;
-      /* a person on that server matches the mask, so we
-       *  send *one* msg to that server ...
-       */
-      if (acptr == NULL)
-        continue;
-      /* ... but only if there *IS* a matching person */
-    }
-    /* my client, does he match ? */
-    else if (!(IsUser(cptr) && match_it(cptr, mask, what)))
-      continue;
-    vsendto_prefix_one(cptr, from, pattern, vl);
-  }
-  va_end(vl);
-
-  return;
-}
-
-/*
- * sendto_op_mask
- *
- * Sends message to the list indicated by the bitmask field.
- * Don't try to send to more than one list! That is not supported.
- * Xorath 5/1/97
- */
-#ifdef OLD_VSENDTO_OP_MASK
-void vsendto_op_mask(unsigned int mask, const char *pattern, va_list vl)
-{
-  static char fmt[1024];
-  char *fmt_target;
-  int i = 0;            /* so that 1 points to opsarray[0] */
-  struct SLink *opslist;
-
-  while ((mask >>= 1))
-    i++;
-  if (!(opslist = opsarray[i]))
-    return;
-
-  fmt_target = sprintf_irc(fmt, ":%s NOTICE ", me.name);
-  do
-  {
-    strcpy(fmt_target, opslist->value.cptr->name);
-    strcat(fmt_target, " :*** Notice -- ");
-    strcat(fmt_target, pattern);
-    vsendto_one(opslist->value.cptr, fmt, vl);
-    opslist = opslist->next;
-  }
-  while (opslist);
-}
-#else /* !OLD_VSENDTO_OP_MASK */
-void vsendto_op_mask(unsigned int mask, const char *pattern, va_list vl)
-{
-  vsendto_opmask_butone(0, mask, pattern, vl);
-}
-#endif /* OLD_VSENDTO_OP_MASK */
-
-/*
- * sendbufto_op_mask
- *
- * Send a prepared sendbuf to the list indicated by the bitmask field.
- * Ghostwolf 16-May-97
- */
-void sendbufto_op_mask(unsigned int mask)
-{
-  int i = 0;            /* so that 1 points to opsarray[0] */
-  struct SLink *opslist;
-  while ((mask >>= 1))
-    i++;
-  if (!(opslist = opsarray[i]))
-    return;
-  do
-  {
-    sendbufto_one(opslist->value.cptr);
-    opslist = opslist->next;
-  }
-  while (opslist);
-}
-
-
-/*
- * sendto_ops
- *
- * Send to *local* ops only.
- */
-/* See vsendto_opmask_butone, below */
-void vsendto_ops(const char *pattern, va_list vl)
-{
-  struct Client *cptr;
-  int i;
-  char fmt[1024];
-  char *fmt_target;
-
-  fmt_target = sprintf_irc(fmt, ":%s NOTICE ", me.name);
-
-  for (i = 0; i <= HighestFd; i++)
-    if ((cptr = LocalClientArray[i]) && !IsServer(cptr) &&
-        SendServNotice(cptr))
-    {
-      strcpy(fmt_target, cptr->name);
-      strcat(fmt_target, " :*** Notice -- ");
-      strcat(fmt_target, pattern);
-      vsendto_one(cptr, fmt, vl);
-    }
-}
-
-/* See sendto_opmask_butone, below */
-void sendto_op_mask(unsigned int mask, const char *pattern, ...)
-{
-  va_list vl;
-  va_start(vl, pattern);
-  vsendto_op_mask(mask, pattern, vl);
-  va_end(vl);
-}
-
-/* See sendto_opmask_butone, below */
-void sendto_ops(const char *pattern, ...)
-{
-  va_list vl;
-  va_start(vl, pattern);
-  vsendto_op_mask(SNO_OLDSNO, pattern, vl);
-  va_end(vl);
-}
-
-/*
- * sendto_ops_butone
- *
- * Send message to all operators.
- * one - client not to send message to
- * from- client which message is from *NEVER* NULL!!
- */
-void sendto_ops_butone(struct Client *one, struct Client *from, const char *pattern, ...)
-{
-  va_list vl;
-  int i;
-  struct Client *cptr;
-
-  va_start(vl, pattern);
-  ++sentalong_marker;
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next)
-  {
-    if (!SendWallops(cptr))
-      continue;
-    i = cptr->from->fd;         /* find connection oper is on */
-    if (i < 0 || sentalong[i] == sentalong_marker)       /* sent message along it already ? */
-      continue;
-    if (cptr->from == one)
-      continue;                 /* ...was the one I should skip */
-    sentalong[i] = sentalong_marker;
-    vsendto_prefix_one(cptr->from, from, pattern, vl);
-  }
-  va_end(vl);
-
-  return;
-}
-
-/*
- * sendto_g_serv_butone
- *
- * Send message to all remote +g users (server links).
- *
- * one - server not to send message to.
- */
-void sendto_g_serv_butone(struct Client *one, const char *pattern, ...)
-{
-  va_list vl;
-  struct Client *cptr;
-  int i;
-
-  va_start(vl, pattern);
-  ++sentalong_marker;
-  vsprintf_irc(sendbuf, pattern, vl);
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next)
-  {
-    if (!SendDebug(cptr))
-      continue;
-    i = cptr->from->fd;         /* find connection user is on */
-    if (i < 0 || sentalong[i] == sentalong_marker)       /* sent message along it already ? */
-      continue;
-    if (MyConnect(cptr))
-      continue;
-    sentalong[i] = sentalong_marker;
-    if (cptr->from == one)
-      continue;
-    sendbufto_one(cptr);
-  }
-  va_end(vl);
-
-  return;
-}
-
-/*
- * sendto_prefix_one
- *
- * to - destination client
- * from - client which message is from
- *
- * NOTE: NEITHER OF THESE SHOULD *EVER* BE NULL!!
- * -avalon
- */
-/* See sendcmdto_one, below */
-void sendto_prefix_one(struct Client *to, struct Client *from, const char *pattern, ...)
-{
-  va_list vl;
-  va_start(vl, pattern);
-  vsendto_prefix_one(to, from, pattern, vl);
-  va_end(vl);
-}
-
-/*
- * sendto_realops
- *
- * Send to *local* ops only but NOT +s nonopers.
- */
-/* See sendto_opmask_butone, below */
-void sendto_realops(const char *pattern, ...)
-{
-  va_list vl;
-
-  va_start(vl, pattern);
-  vsendto_op_mask(SNO_OLDREALOP, pattern, vl);
-
-  va_end(vl);
-  return;
-}
-
-/*
- * Send message to all servers of protocol 'p' and lower.
- */
-/* See sendcmdto_serv_butone, below */
-void sendto_lowprot_butone(struct Client *cptr, int p, const char *pattern, ...)
-{
-  va_list vl;
-  struct DLink *lp;
-  va_start(vl, pattern);
-  for (lp = me.serv->down; lp; lp = lp->next)
-    if (lp->value.cptr != cptr && Protocol(lp->value.cptr) <= p)
-      vsendto_one(lp->value.cptr, pattern, vl);
-  va_end(vl);
-}
-
-/*
- * Send message to all servers of protocol 'p' and higher.
- */
-/* See sendcmdto_serv_butone, below */
-void sendto_highprot_butone(struct Client *cptr, int p, const char *pattern, ...)
-{
-  va_list vl;
-  struct DLink *lp;
-  va_start(vl, pattern);
-  for (lp = me.serv->down; lp; lp = lp->next)
-    if (lp->value.cptr != cptr && Protocol(lp->value.cptr) >= p)
-      vsendto_one(lp->value.cptr, pattern, vl);
-  va_end(vl);
-}
-
-/*
  * Send a raw command to a single client; use *ONLY* if you absolutely
  * must send a command without a prefix.
  */
 void sendrawto_one(struct Client *to, const char *pattern, ...)
 {
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   va_list vl;
 
   va_start(vl, pattern);
-  ircd_vsnprintf(to, sndbuf, sizeof(sndbuf) - 2, pattern, vl);
+  mb = msgq_vmake(to, pattern, vl);
   va_end(vl);
 
-  send_buffer(to, sndbuf);
+  send_buffer(to, mb, 0);
+
+  msgq_clean(mb);
 }
 
 /*
@@ -962,17 +269,19 @@ void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
 		    struct Client *to, const char *pattern, va_list vl)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
 
   to = to->from;
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   vd.vd_args = vl;
 
-  ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from,
-		IsServer(to) || IsMe(to) ? tok : cmd, &vd);
+  mb = msgq_make(to, "%:#C %s %v", from, IsServer(to) || IsMe(to) ? tok : cmd,
+		 &vd);
 
-  send_buffer(to, sndbuf);
+  send_buffer(to, mb, 0);
+
+  msgq_clean(mb);
 }
 
 /*
@@ -984,22 +293,24 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
 			   const char *pattern, ...)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   struct DLink *lp;
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
 
   /* use token */
-  ircd_snprintf(&me, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
+  mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
   /* send it to our downlinks */
   for (lp = me.serv->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == one->from)
       continue;
-    send_buffer(lp->value.cptr, sndbuf);
+    send_buffer(lp->value.cptr, mb, 0);
   }
+
+  msgq_clean(mb);
 }
 
 /*
@@ -1023,7 +334,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
 			       const char *tok, const char *pattern, ...)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   struct Membership *chan;
   struct Membership *member;
 
@@ -1037,7 +348,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   va_start(vd.vd_args, pattern);
 
   /* build the buffer */
-  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from, cmd, &vd);
+  mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   sentalong_marker++;
@@ -1052,11 +363,13 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
       if (MyConnect(member->user) && -1 < member->user->from->fd &&
 	  sentalong[member->user->from->fd] != sentalong_marker) {
 	sentalong[member->user->from->fd] = sentalong_marker;
-	send_buffer(member->user, sndbuf);
+	send_buffer(member->user, mb, 0);
       }
 
   if (MyConnect(from))
-    send_buffer(from, sndbuf);
+    send_buffer(from, mb, 0);
+
+  msgq_clean(mb);
 }
 
 /*
@@ -1068,21 +381,23 @@ void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
 			       const char *pattern, ...)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   struct Membership *member;
 
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   va_start(vd.vd_args, pattern);
 
   /* build the buffer */
-  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from, cmd, &vd);
+  mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* send the buffer to each local channel member */
   for (member = to->members; member; member = member->next_member) {
     if (MyConnect(member->user) && !IsZombie(member))
-      send_buffer(member->user, sndbuf);
+      send_buffer(member->user, mb, 0);
   }
+
+  msgq_clean(mb);
 }
 
 /*
@@ -1109,21 +424,20 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 {
   struct Membership *member;
   struct VarData vd;
-  char userbuf[IRC_BUFSIZE];
-  char servbuf[IRC_BUFSIZE];
+  struct MsgBuf *user_mb;
+  struct MsgBuf *serv_mb;
 
   vd.vd_format = pattern;
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2,
-		skip & SKIP_NONOPS ? "%:#C %s @%v" : "%:#C %s %v", from,
-		skip & SKIP_NONOPS ? MSG_NOTICE : cmd, &vd);
+  user_mb = msgq_make(0, skip & SKIP_NONOPS ? "%:#C %s @%v" : "%:#C %s %v",
+		      from, skip & SKIP_NONOPS ? MSG_NOTICE : cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(&me, servbuf, sizeof(servbuf) - 2, "%C %s %v", from, tok, &vd);
+  serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
   /* send buffer along! */
@@ -1140,10 +454,13 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
     sentalong[member->user->from->fd] = sentalong_marker;
 
     if (MyConnect(member->user)) /* pick right buffer to send */
-      send_buffer(member->user, userbuf);
+      send_buffer(member->user, user_mb, 0);
     else
-      send_buffer(member->user, servbuf);
+      send_buffer(member->user, serv_mb, 0);
   }
+
+  msgq_clean(user_mb);
+  msgq_clean(serv_mb);
 }
 
 /*
@@ -1166,20 +483,19 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 {
   struct VarData vd;
   struct Client *cptr;
-  char userbuf[IRC_BUFSIZE];
-  char servbuf[IRC_BUFSIZE];
+  struct MsgBuf *user_mb;
+  struct MsgBuf *serv_mb;
 
   vd.vd_format = pattern;
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C " MSG_WALLOPS " %v",
-		from, &vd);
+  user_mb = msgq_make(0, "%:#C " MSG_WALLOPS " %v", from, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(&me, servbuf, sizeof(servbuf) - 2, "%C %s %v", from, tok, &vd);
+  serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
   /* send buffer along! */
@@ -1191,10 +507,13 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
     sentalong[cptr->from->fd] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
-      send_buffer(cptr, userbuf);
+      send_buffer(cptr, user_mb, 1);
     else
-      send_buffer(cptr, servbuf);
+      send_buffer(cptr, serv_mb, 1);
   }
+
+  msgq_clean(user_mb);
+  msgq_clean(serv_mb);
 }
 
 /*
@@ -1222,19 +541,19 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
 {
   struct VarData vd;
   struct Client *cptr;
-  char userbuf[IRC_BUFSIZE];
-  char servbuf[IRC_BUFSIZE];
+  struct MsgBuf *user_mb;
+  struct MsgBuf *serv_mb;
 
   vd.vd_format = pattern;
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C %s %v", from, cmd, &vd);
+  user_mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
   va_start(vd.vd_args, pattern);
-  ircd_snprintf(&me, servbuf, sizeof(servbuf) - 2, "%C %s %v", from, tok, &vd);
+  serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
   /* send buffer along */
@@ -1247,10 +566,13 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
     sentalong[cptr->from->fd] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
-      send_buffer(cptr, userbuf);
+      send_buffer(cptr, user_mb, 0);
     else
-      send_buffer(cptr, servbuf);
+      send_buffer(cptr, serv_mb, 0);
   }
+
+  msgq_clean(user_mb);
+  msgq_clean(serv_mb);
 }
 
 /*
@@ -1274,7 +596,7 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 			   const char *pattern, va_list vl)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   int i = 0; /* so that 1 points to opsarray[0] */
   struct SLink *opslist;
 
@@ -1290,9 +612,10 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
    */
   vd.vd_format = pattern;
   vd.vd_args = vl;
-  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s " MSG_NOTICE
-		" * :*** Notice -- %v", me.name, &vd);
+  mb = msgq_make(0, ":%s " MSG_NOTICE " * :*** Notice -- %v", me.name, &vd);
 
   for (; opslist; opslist = opslist->next)
-    send_buffer(opslist->value.cptr, sndbuf);
+    send_buffer(opslist->value.cptr, mb, 0);
+
+  msgq_clean(mb);
 }

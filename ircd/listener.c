@@ -418,7 +418,7 @@ void accept_connection(struct Listener* listener)
      * turns out too many messages are generated for meaningless reasons we
      * can filter them back.
      */
-    sendto_op_mask(SNO_TCPCOMMON,"Unable to accept connection: %s", strerror(errno));
+    sendto_opmask_butone(0, SNO_TCPCOMMON, "Unable to accept connection: %m");
     return;
   }
   /*

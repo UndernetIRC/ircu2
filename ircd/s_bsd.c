@@ -517,7 +517,7 @@ void close_connection(struct Client *cptr)
   }
   cptr->flags |= FLAGS_DEADSOCKET;
 
-  DBufClear(&cptr->sendQ);
+  MsgQClear(&cptr->sendQ);
   DBufClear(&cptr->recvQ);
   memset(cptr->passwd, 0, sizeof(cptr->passwd));
   set_snomask(cptr, 0, SNO_SET);
@@ -721,7 +721,7 @@ static int on_write_unblocked(struct Client* cptr)
     if (!completed_connection(cptr))
       return 0;
   }
-  else if (cptr->listing && DBufLength(&cptr->sendQ) < 2048)
+  else if (cptr->listing && MsgQLength(&cptr->sendQ) < 2048)
     list_next_channels(cptr, 64);
   send_queued(cptr);
   return 1;
@@ -904,8 +904,8 @@ int read_message(time_t delay)
         if (DBufLength(&cptr->recvQ) < 4088 || IsServer(cptr)) {
           PFD_SETR(i);
         }
-        if (DBufLength(&cptr->sendQ) || IsConnecting(cptr) ||
-            (cptr->listing && DBufLength(&cptr->sendQ) < 2048)) {
+        if (MsgQLength(&cptr->sendQ) || IsConnecting(cptr) ||
+            (cptr->listing && MsgQLength(&cptr->sendQ) < 2048)) {
           PFD_SETW(i);
         }
       }
@@ -1142,8 +1142,8 @@ int read_message(time_t delay)
           delay2 = 1;
         if (DBufLength(&cptr->recvQ) < 4088 || IsServer(cptr))
           FD_SET(i, &read_set);
-        if (DBufLength(&cptr->sendQ) || IsConnecting(cptr) ||
-            (cptr->listing && DBufLength(&cptr->sendQ) < 2048))
+        if (MsgQLength(&cptr->sendQ) || IsConnecting(cptr) ||
+            (cptr->listing && MsgQLength(&cptr->sendQ) < 2048))
           FD_SET(i, &write_set);
       }
     }

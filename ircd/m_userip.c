@@ -90,20 +90,19 @@
 #include "client.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "s_user.h"
 #include "struct.h"
 
 #include <assert.h>
 
-static char* userip_formatter(struct Client* cptr, char* buf)
+static void userip_formatter(struct Client* cptr, struct MsgBuf* mb)
 {
   assert(IsUser(cptr));
-  return sprintf_irc(buf, "%s%s=%c%s@%s", cptr->name,
-                     IsAnOper(cptr) ? "*" : "",
-                     (cptr->user->away) ? '-' : '+',
-                     cptr->user->username,
-                     ircd_ntoa((const char*) &cptr->ip));
+  msgq_append(0, mb, "%s%s=%c%s@%s", cptr->name, IsAnOper(cptr) ? "*" : "",
+	      cptr->user->away ? '-' : '+', cptr->user->username,
+	      ircd_ntoa((const char*) &cptr->ip));
 }
 
 /*

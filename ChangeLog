@@ -1,7 +1,123 @@
 2000-12-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* include/send.h: add prio argument to send_buffer to select
+	between normal and priority queues
+
+	* ircd/s_user.c (send_user_info): add prio argument to send_buffer
+	call
+
+	* ircd/m_ison.c (m_ison): add prio argument to send_buffer call
+
+	* ircd/ircd_reply.c (send_reply): add prio argument to send_buffer
+	call
+
+	* ircd/channel.c (send_channel_modes): add prio argument to
+	send_buffer call
+
+	* ircd/send.c (send_buffer): add a prio argument to select the
+	priority queue; update send.c functions to use it
+
+	* ircd/msgq.c (msgq_add): remove msgq_prio; fold msgq_link and
+	msgq_add; add a prio argument to msgq_add to select the priority
+	queue
+
+	* include/msgq.h: remove msgq_prio; add a prio argument to
+	msgq_add
+
+	* ircd/send.c: remove sendbuf; remove GODMODE code; switch to
+	using msgq functions instead of dbuf functions; remove old, dead
+	sendto_* functions; redo send_buffer to take a struct MsgBuf;
+	rework sendcmdto_* functions to make use of the new struct MsgBuf
+
+	* ircd/s_user.c: remove hunt_server; restructure send_user_info to
+	make appropriate use of struct MsgBuf
+
+	* ircd/s_debug.c (count_memory): count memory used by the MsgQ
+	system and report it
+
+	* ircd/s_conf.c (read_configuration_file): use
+	sendto_opmask_butone instead of the now dead sendto_op_mask
+
+	* ircd/s_bsd.c: switch to using appropriate MsgQLength and other
+	calls on sendQ
+
+	* ircd/parse.c (parse_server): get rid of a piece of GODMODE code
+
+	* ircd/msgq.c: add msgq_append and msgq_bufleft; fix a bug in
+	msgq_clean
+
+	* ircd/m_version.c: fix spelling in comments marking dead code
+
+	* ircd/m_userip.c (userip_formatter): restructure to make use of
+	struct MsgBuf
+
+	* ircd/m_userhost.c (userhost_formatter): restructure to make use
+	of struct MsgBuf
+
+	* ircd/m_stats.c: use MsgQLength on a sendQ
+
+	* ircd/m_settime.c: use MsgQLength instead of DBufLength on a
+	sendQ; mark a piece of dead code
+
+	* ircd/m_names.c: use send_reply instead of sendto_one
+
+	* ircd/m_mode.c: use new mode; remove old dead code
+
+	* ircd/m_ison.c (m_ison): restructure to make use of struct MsgBuf
+
+	* ircd/m_burst.c: use BUFSIZE instead of IRC_BUFSIZE; remove old
+	dead code
+
+	* ircd/listener.c (accept_connection): use sendto_opmask_butone
+	instead of sendto_op_mask
+
+	* ircd/list.c (free_client): use MsgQClear to clear sendQ
+
+	* ircd/ircd_reply.c: remove send_error_to_client; restructure
+	send_reply to make use of struct MsgBuf
+
+	* ircd/dbuf.c (dbuf_put): remove argument to flush_sendq_except,
+	since its no longer used (at least currently)
+
+	* ircd/channel.c: restructure send_channel_modes to make use of
+	struct MsgBuf; remove set_mode, add_token_to_sendbuf, cancel_mode,
+	and send_hack_notice; use BUFSIZE instead of IRC_BUFSIZE
+
+	* ircd/Makefile.in: add msgq.c to list of sources; run make depend
+
+	* ircd/IPcheck.c: use sendcmdto_one instead of sendto_one
+
+	* include/send.h: send_buffer now takes a struct MsgBuf * instead
+	of a char *; flush_sendq_except now takes no arguments, as sendq
+	flushing currently only happens in dbuf.h and sendQ is a struct
+	MsgQ; remove prototypes for a lot of old sendto_* functions that
+	aren't used anymore; remove sendbuf and IRC_BUFSIZE--the former is
+	no longer needed, and the latter is identical to BUFSIZE in
+	ircd_defs.h
+
+	* include/s_user.h: make InfoFormatter take a struct MsgBuf*
+	instead of a char *; also make it return void, instead of char *
+
+	* include/msgq.h: add msgq_append and msgq_bufleft functions
+
+	* include/client.h: use a struct MsgQ instead of a struct DBuf for
+	sendq
+
+	* doc/Configure.help: Remove help for compile-time options that
+	have gone away
+
+	* config/config-sh.in: remove CONFIG_NEWMODE
+
 	* ircd/m_server.c (mr_server): don't send server IPs in any server
 	notices
+
+	* ircd/msgq.c (msgq_vmake): add \r\n to messages
+
+2000-12-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/msgq.h: declare the MsgQ API
+
+	* ircd/msgq.c: implementation of new MsgQ system
 
 2000-12-06  Kevin L. Mitchell  <klmitch@mit.edu>
 

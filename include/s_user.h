@@ -14,6 +14,7 @@ struct Client;
 struct User;
 struct Gline;
 struct Channel;
+struct MsgBuf;
 
 /*
  * Macros
@@ -49,7 +50,7 @@ struct Channel;
 
 extern struct SLink *opsarray[];
 
-typedef char* (*InfoFormatter)(struct Client* who, char* buf);
+typedef void (*InfoFormatter)(struct Client* who, struct MsgBuf* buf);
 
 /*
  * Prototypes

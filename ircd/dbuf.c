@@ -165,7 +165,7 @@ int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
          * attempt to recover from buffer starvation before
          * bailing this may help servers running out of memory
          */
-        flush_sendq_except(dyn);
+        flush_sendq_except();
         if (0 == (db = dbuf_alloc()))
 #endif
           return dbuf_malloc_error(dyn);
