@@ -1,3 +1,38 @@
+2002-09-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: add documentation for NETWORK and
+	URL_CLIENTS
+
+	* doc/example.conf: list new F-lines for NETWORK and
+	URL_CLIENTS--yeah, it's redundant, but we'll keep it for now
+
+	* doc/ircd.conf.sample: list new F-lines for NETWORK and
+	URL_CLIENTS
+
+	* ircd/ircd_relay.c: use feature for NETWORK
+
+	* ircd/ircd.c: use feature for URL_CLIENTS
+
+	* include/ircd_defs.h: remove now deprecated defined for NETWORK;
+	remove now deprecated define for URL_CLIENTS
+
+	* include/supported.h (FEATURESVALUES2): remove + as a channel
+	prefix, since we're deprecating them; use FEAT_NETWORK value
+	instead of static value set in ircd_defs.h
+
+	* ircd/ircd_features.c: create new FEAT_NETWORK, FEAT_URL_CLIENTS
+
+	* include/ircd_features.h: create new FEAT_NETWORK,
+	FEAT_URL_CLIENTS
+
+2002-09-04  Arjen Wolfs  <arjen@euro.net>
+
+	* README.FreeBSD: fix a few typos
+
+	* README: fix a few typos
+
+	* INSTALL: fix a few typos
+
 2002-09-03  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel for

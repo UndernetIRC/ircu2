@@ -373,6 +373,10 @@ static struct FeatureDesc {
   F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", 0),
   F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
 
+  /* Misc. random stuff */
+  F_S(NETWORK, 0, "UnderNet", 0),
+  F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
+
 #undef F_S
 #undef F_B
 #undef F_I

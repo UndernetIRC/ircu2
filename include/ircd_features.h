@@ -166,6 +166,10 @@ enum Feature {
   FEAT_HIS_SERVERINFO,
   FEAT_HIS_URLSERVERS,
 
+  /* Misc. random stuff */
+  FEAT_NETWORK,
+  FEAT_URL_CLIENTS,
+
   FEAT_LAST_F
 };
 

@@ -562,6 +562,8 @@ F:HIS_NETSPLIT:TRUE
 F:HIS_SERVERNAME:"*.undernet.org"
 F:HIS_SERVERINFO:"The Undernet Underworld"
 F:HIS_URLSERVERS:"http://www.undernet.org/servers.php"
+F:NETWORK:"UnderNet"
+F:URL_CLIENTS:"ftp://ftp.undernet.org/pub/irc/clients"
 
 
 # That's it, you've (almost) reached the end!

@@ -1026,3 +1026,16 @@ HIS_URLSERVERS
  
 As per UnderNet CFV-165, this is the URL shown to users when they do a /MAP or 
 /LINKS.
+
+NETWORK
+ * Type: string
+ * Default: "UnderNet"
+
+This defines the network name as reported in the 005 "supported features"
+numeric, and as used by the "Failed to deliver" message.
+
+URL_CLIENTS
+ * Type: string
+ * Default: "ftp://ftp.undernet.org/pub/irc/clients"
+
+This defines a URL that users may visit to find compatible IRC clients.

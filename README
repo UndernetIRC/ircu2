@@ -14,8 +14,8 @@ New features include:
     many settings to be changed dynamically, rather than by with compile-
     time configuration.
   - The new "account" feature added to the P10 protocol, allows people to
-    remain into service bots (i.e., gnuworld) during a netsplit. This means
-    people will not have to login again once the network rejoins.
+    remain logged in to service bots (i.e., gnuworld) during a netsplit.
+    This means people will not have to login again once the network rejoins.
 
 INSTALLATION
 
@@ -32,7 +32,7 @@ GENERAL PERFORMANCE HINTS
 
 For platform-specific notes and hints, see the various README.<platform>
 files included in this distribution. The notes below apply to servers that
-will serve large numbers (thousands) of clients simultaenously. If your
+will serve large numbers (thousands) of clients simultaneously. If your
 server serves a small amount of users, you will not really have to do much
 of anything about performance tuning.
 
