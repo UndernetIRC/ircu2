@@ -441,7 +441,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     /*
      * following block for the benefit of time-dependent K:-lines
      */
-    if (killreason=find_kill(sptr)) {
+    if ((killreason=find_kill(sptr))) {
       ServerStats->is_ref++;
       IPcheck_connect_fail(cli_ip(sptr));
       return exit_client(cptr, sptr, &me,
