@@ -1,3 +1,9 @@
+2001-07-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_poll.c: deal with POLLHUP properly (hopefully)
+
+	* ircd/engine_devpoll.c: deal with POLLHUP properly (hopefully)
+
 2001-07-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/os_bsd.c (os_get_rusage): move buf into the two ifdef'd
