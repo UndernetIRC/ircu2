@@ -192,8 +192,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   hop = atoi(parv[2]);
   start_timestamp = atoi(parv[3]);
   timestamp = atoi(parv[4]);
-  Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age " TIME_T_FMT " ("
-        TIME_T_FMT ")", host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
+  Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age %Tu (%Tu)",
+	 host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
 
   if ((timestamp < OLDEST_TS || (hop == 1 && start_timestamp < OLDEST_TS)))
   {
@@ -825,8 +825,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   hop = atoi(parv[2]);
   start_timestamp = atoi(parv[3]);
   timestamp = atoi(parv[4]);
-  Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age " TIME_T_FMT " ("
-      TIME_T_FMT ")", host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
+  Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age %Tu (%Tu)",
+	 host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
   if ((timestamp < OLDEST_TS || (hop == 1 && start_timestamp < OLDEST_TS)))
   {
     return exit_client_msg(cptr, sptr, &me,

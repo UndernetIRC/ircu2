@@ -1,3 +1,11 @@
+2001-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_settime.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_server.c: get rid of the last vestiges of TIME_T_FMT
+
 2001-05-01  Perry Lorier       <Isomer@coders.net>
 	* doc/iauth.doc: Protocol for iauth server. (from hybrid).
 	* doc/linux-poll.patch: Patch to make Linux under 2.2 not deadlock
