@@ -202,7 +202,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (MyConnect(victim))
     sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim,
-		  "%C :%s!%s", victim, IsServer(sptr) ? "*.undernet.org" :
+		  "%C :%s%s", victim, IsServer(sptr) ? "*.undernet.org" :
 		  cli_name(sptr), comment);
 
   ircd_snprintf(0, buf, sizeof(buf), "Killed (%s%s)", IsServer(sptr) ?

@@ -1,5 +1,7 @@
 2001-07-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_kill.c (ms_kill): another minor typo *sigh*
+
 	* ircd/s_user.c (send_supported): oops, minor typo...
 
 	* ircd/s_user.c: implement send_supported() to send two ISUPPORT
