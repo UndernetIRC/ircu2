@@ -400,7 +400,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      *  If my ircd.conf sucks, I can try to connect to myself:
      */
     if (acptr == &me)
-      return exit_client_msg(cptr, cptr, &me, "nick collision with me (%s)", host);
+      return exit_client_msg(cptr, cptr, &me, "nick collision with me (%s), check server number?", host);
     /*
      * Detect wrong numeric.
      */
@@ -627,7 +627,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     if (LHcptr == 0) {
       return exit_new_server(cptr, sptr, host, timestamp,
-          (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
+          (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" : 
+                                   "Leaf-only link %s <- %s(%s), check L:",
           cptr->name, host, 
           lhconf ? (lhconf->name ? lhconf->name : "*") : "!");
     }
@@ -637,7 +638,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (active_lh_line < 3)
       {
         if (exit_client_msg(cptr, LHcptr, &me,
-            (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
+            (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" : 
+                                     "Leaf-only link %s <- %s(%s), check L:",
             cptr->name, host,
             lhconf ? (lhconf->name ? lhconf->name : "*") : "!") == CPTR_KILLED)
           return CPTR_KILLED;
@@ -645,7 +647,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       else
       {
         ServerStats->is_ref++;
-        if (exit_client(cptr, LHcptr, &me, "I'm a leaf") == CPTR_KILLED)
+        if (exit_client(cptr, LHcptr, &me, "I'm a leaf, define HUB") == CPTR_KILLED)
           return CPTR_KILLED;
       }
       /*

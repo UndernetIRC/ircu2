@@ -265,7 +265,9 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (doall && IsUser(acptr))
           continue;
         /* Don't show invisible people to unauthorized people when using
-         * wildcards  -- Is this still needed now /stats is oper only ? */
+         * wildcards  -- Is this still needed now /stats is oper only ? 
+         * Yeah it is -- non opers can /stats l, just not remotely.
+         */
         if (IsInvisible(acptr) && (doall || wilds) &&
             !(MyConnect(sptr) && IsOper(sptr)) &&
             !IsAnOper(acptr) && (acptr != sptr))

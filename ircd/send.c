@@ -61,7 +61,7 @@ int sdbflag;
  * generate ExitClient from the main loop.
  *
  * If 'notice' is not NULL, it is assumed to be a format
- * for a message to local opers. I can contain only one
+ * for a message to local opers. It can contain only one
  * '%s', which will be replaced by the sockhost field of
  * the failing link.
  *
@@ -162,8 +162,11 @@ void send_queued(struct Client *to)
         break;
     }
     else {
-      if (IsDead(to))
-        dead_link(to, "Write error, closing link");
+      if (IsDead(to)) {
+        char tmp[512];
+        sprintf(tmp,"Write error: %s",(strerror(to->error)) ? (strerror(to->error)) : "Unknown error" );
+        dead_link(to, tmp);
+      }
       break;
     }
   }

@@ -256,14 +256,134 @@ static time_t try_connections(void)
 
 static time_t check_pings(void)
 {
+ int expire=0; 
+             /* Temp to figure out what time this connection will next need
+              * to be checked.
+              */
+ int next_check = CurrentTime + PINGFREQUENCY;
+ 	    /*
+ 	     * The current lowest expire time - ie: the time that check_pings
+ 	     * needs to be called next.
+ 	     */
+ int max_ping = 0;
+            /* 
+             * The time you've got before a ping is sent/your connection is
+             * terminated.
+             */
+             
+ int i=0; /* loop counter */
+  
+ /* Scan through the client table */
+ for (i=0; i <= HighestFd; i++) {
+   struct Client *cptr;
+   
+   cptr = LocalClientArray[i];
+   
+   /* Skip empty entries */
+   if (!cptr)
+     continue;
+     
+   assert(&me != cptr); /* I should never be in the local client array,
+   			 * so if I am, dying is a good thing(tm).
+   			 */
+   
+   /* Remove dead clients.
+    * We will have sent opers a message when we set the dead flag,
+    * so don't bother to send one now.
+    */
+   if (IsDead(cptr)) {
+     exit_client(cptr, cptr, &me, cptr->info);
+     continue;
+   }
+
+   /* Should we concider adding a class 0 for 'unregistered clients',
+    * where we can specify their 'ping timeout' etc?
+    */
+   max_ping = IsRegistered(cptr) ? get_client_ping(cptr) : CONNECTTIMEOUT;
+   
+   /* Ok, the thing that will happen most frequently, is that someone will
+    * have sent something recently.  Cover this first for speed.
+    */
+   if (CurrentTime-cptr->lasttime <= max_ping) {
+   	expire=cptr->lasttime + max_ping;
+   	if (next_check<expire) 
+   	  next_check=expire;
+   	continue;
+   }
+
+   /* Quit the client after max_ping*2 - they should have answered by now */
+   if (CurrentTime-cptr->lasttime <= (max_ping*2) ) {
+      
+      /* If it was a server, then tell ops about it. */
+      if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
+        sendto_ops("No response from %s, closing link", cptr->name);
+
+      exit_client_msg(cptr, cptr, &me, "Ping timeout");
+      continue;
+    } /* of testing to see if ping has been sent */
+    
+    /* Unregistered clients pingout after max_ping seconds, they don't
+     * get given a second chance. 
+     */
+    if (!IsRegistered(cptr)) {
+      /* Display message if they have sent a NICK and a USER but no
+       * nospoof PONG.
+       */
+      if (*cptr->name && *cptr->user->username) {
+        sendto_one(cptr,
+            ":%s %d %s :Your client may not be compatible with this server.",
+            me.name, ERR_BADPING, cptr->name);
+        sendto_one(cptr,
+            ":%s %d %s :Compatible clients are available at "
+            "ftp://ftp.undernet.org/pub/irc/clients",
+            me.name, ERR_BADPING, cptr->name);
+      }    
+      exit_client_msg(cptr,cptr,&me, "Ping Timeout");
+      continue;
+    } /* of not registered */
+    
+    if (0 == (cptr->flags & FLAGS_PINGSENT)) {
+      /*
+       * If we havent PINGed the connection and we havent heard from it in a
+       * while, PING it to make sure it is still alive.
+       */
+      cptr->flags |= FLAGS_PINGSENT;
+
+      /*
+       * If we're late in noticing don't hold it against them :)
+       */
+      cptr->lasttime = CurrentTime - max_ping;
+      
+      if (IsUser(cptr))
+        sendto_one(cptr, "PING :%s", me.name);
+      else
+        sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name);
+    } /* of if not ping sent... */
+    
+    expire=cptr->lasttime+max_ping*2;
+    
+    if (expire<next_check)
+    	next_check=expire;
+
+  }  /* end of loop over clients */
+  
+  assert(next_check>=CurrentTime);
+  
+  return next_check;
+}
+
+#if 0
+static time_t check_pings(void)
+{
   struct Client *cptr;
-  int ping = 0;
+  int max_ping = 0;
   int i;
   time_t oldest = CurrentTime + PINGFREQUENCY;
   time_t timeout;
 
+  /* For each client... */
   for (i = 0; i <= HighestFd; i++) {
-    if (!(cptr = LocalClientArray[i]))
+    if (!(cptr = LocalClientArray[i])) /* oops! not a client... */
       continue;
     /*
      * me is never in the local client array
@@ -278,15 +398,21 @@ static time_t check_pings(void)
       continue;
     }
 
-    ping = IsRegistered(cptr) ? get_client_ping(cptr) : CONNECTTIMEOUT;
-    Debug((DEBUG_DEBUG, "c(%s)=%d p %d a %d",
-          cptr->name, cptr->status, ping, 
+    max_ping = IsRegistered(cptr) ? get_client_ping(cptr) : CONNECTTIMEOUT;
+    
+    Debug((DEBUG_DEBUG, "check_pings(%s)=status:%d ping: %d current: %d",
+          cptr->name, cptr->status, max_ping, 
           (int)(CurrentTime - cptr->lasttime)));
+          
     /*
      * Ok, so goto's are ugly and can be avoided here but this code
      * is already indented enough so I think its justified. -avalon
      */
-    if (IsRegistered(cptr) && (ping >= CurrentTime - cptr->lasttime))
+    /*
+     * If this is a registered client that we've heard of in a reasonable
+     * time, then skip them.
+     */
+    if (IsRegistered(cptr) && (max_ping >= CurrentTime - cptr->lasttime))
       goto ping_timeout;
     /*
      * If the server hasnt talked to us in 2 * ping seconds
@@ -313,8 +439,7 @@ static time_t check_pings(void)
               "ftp://ftp.undernet.org/pub/irc/clients",
               me.name, ERR_BADPING, cptr->name);
         }
-        exit_client_msg(cptr, cptr, &me, "Ping timeout for %s",
-                        get_client_name(cptr, HIDE_IP));
+        exit_client_msg(cptr, cptr, &me, "Ping timeout");
       }
       continue;
     }
@@ -335,9 +460,9 @@ static time_t check_pings(void)
         sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name);
     }
 ping_timeout:
-    timeout = cptr->lasttime + ping;
+    timeout = cptr->lasttime + max_ping;
     while (timeout <= CurrentTime)
-      timeout += ping;
+      timeout += max_ping;
     if (timeout < oldest)
       oldest = timeout;
   }
@@ -349,6 +474,7 @@ ping_timeout:
 
   return (oldest);
 }
+#endif
 
 /*
  * bad_command
