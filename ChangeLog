@@ -1,3 +1,8 @@
+2001-06-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* tools/mkchroot: shell-script to prepare the chroot area by
+	copying over all the necessary libraries so they can be found
+
 2001-06-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* INSTALL: partial update of INSTALL for u2.10.11 release...
