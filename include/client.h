@@ -55,6 +55,7 @@ struct User;
 struct Whowas;
 struct DNSReply;
 struct hostent;
+struct Privs;
 
 /*
  * Structures
@@ -63,6 +64,46 @@ struct hostent;
  * source files. Other structures go in the header file of there corresponding
  * source file, or in the source file itself (when only used in that file).
  */
+
+#define PRIV_CHAN_LIMIT		 1 /* no channel limit on oper */
+#define PRIV_MODE_LCHAN		 2 /* oper can mode local chans */
+#define PRIV_WALK_LCHAN		 3 /* oper can walk thru local modes */
+#define PRIV_DEOP_LCHAN		 4 /* no deop oper on local chans */
+#define PRIV_SHOW_INVIS		 5 /* show local invisible users */
+#define PRIV_SHOW_ALL_INVIS	 6 /* show all invisible users */
+#define PRIV_UNLIMIT_QUERY	 7 /* unlimit who queries */
+
+#define PRIV_KILL		 8 /* oper can KILL */
+#define PRIV_LOCAL_KILL		 9 /* oper can local KILL */
+#define PRIV_REHASH		10 /* oper can REHASH */
+#define PRIV_RESTART		11 /* oper can RESTART */
+#define PRIV_DIE		12 /* oper can DIE */
+#define PRIV_GLINE		13 /* oper can GLINE */
+#define PRIV_LOCAL_GLINE	14 /* oper can local GLINE */
+#define PRIV_JUPE		15 /* oper can JUPE */
+#define PRIV_LOCAL_JUPE		16 /* oper can local JUPE */
+#define PRIV_OPMODE		17 /* oper can OP/CLEARMODE */
+#define PRIV_LOCAL_OPMODE	18 /* oper can local OP/CLEARMODE */
+#define PRIV_SET		19 /* oper can SET */
+#define PRIV_WHOX		20 /* oper can use /who x */
+#define PRIV_BADCHAN		21 /* oper can BADCHAN */
+#define PRIV_LOCAL_BADCHAN	22 /* oper can local BADCHAN */
+#define PRIV_SEE_CHAN		23 /* oper can see in secret chans */
+
+#define PRIV_PROPAGATE		24 /* propagate oper status */
+#define PRIV_DISPLAY		25 /* "Is an oper" displayed */
+#define PRIV_SEE_OPERS		26 /* display hidden opers */
+
+#define PRIV_LAST_PRIV		26 /* must be the same as the last priv */
+
+#define _PRIV_NBITS		(8 * sizeof(unsigned long))
+
+#define _PRIV_IDX(priv)		((priv) / _PRIV_NBITS)
+#define _PRIV_BIT(priv)		(1 << ((priv) % _PRIV_NBITS))
+
+struct Privs {
+  unsigned long priv_mask[(PRIV_LAST_PRIV / _PRIV_NBITS) + 1];
+};
 
 struct Connection {
   /*
@@ -138,7 +179,7 @@ struct Client {
   struct in_addr cli_ip;        /* Real ip# NOT defined for remote servers! */
   short          cli_status;    /* Client type */
   unsigned char  cli_local;     /* local or remote client */
-  unsigned int   cli_privs;     /* Oper privileges */
+  struct Privs   cli_privs;     /* Oper privileges */
   char cli_name[HOSTLEN + 1];   /* Unique name of the client, nick or host */
   char cli_username[USERLEN + 1]; /* username here now for auth stuff */
   char cli_info[REALLEN + 1];   /* Free form additional client information */
@@ -405,36 +446,16 @@ struct Client {
 #define SNO_OPER (SNO_CONNEXIT|SNO_OLDREALOP)
 #define SNO_NOISY (SNO_SERVKILL|SNO_UNAUTH)
 
-#define PRIV_CHAN_LIMIT		0x00000001 /* no channel limit on oper */
-#define PRIV_MODE_LCHAN		0x00000002 /* oper can mode local chans */
-#define PRIV_WALK_LCHAN		0x00000004 /* oper can walk thru local modes */
-#define PRIV_DEOP_LCHAN		0x00000008 /* no deop oper on local chans */
-#define PRIV_SHOW_INVIS		0x00000010 /* show local invisible users */
-#define PRIV_SHOW_ALL_INVIS	0x00000020 /* show all invisible users */
-#define PRIV_UNLIMIT_QUERY	0x00000040 /* unlimit who queries */
+#define PrivSet(pset, priv)	((pset)->priv_mask[_PRIV_IDX(priv)] |= \
+				 _PRIV_BIT(priv))
+#define PrivClr(pset, priv)	((pset)->priv_mask[_PRIV_IDX(priv)] &= \
+				 ~(_PRIV_BIT(priv)))
+#define PrivHas(pset, priv)	((pset)->priv_mask[_PRIV_IDX(priv)] & \
+				 _PRIV_BIT(priv))
 
-#define PRIV_KILL		0x00000080 /* oper can KILL */
-#define PRIV_LOCAL_KILL		0x00000100 /* oper can local KILL */
-#define PRIV_REHASH		0x00000200 /* oper can REHASH */
-#define PRIV_RESTART		0x00000400 /* oper can RESTART */
-#define PRIV_DIE		0x00000800 /* oper can DIE */
-#define PRIV_GLINE		0x00001000 /* oper can GLINE */
-#define PRIV_LOCAL_GLINE	0x00002000 /* oper can local GLINE */
-#define PRIV_JUPE		0x00004000 /* oper can JUPE */
-#define PRIV_LOCAL_JUPE		0x00008000 /* oper can local JUPE */
-#define PRIV_OPMODE		0x00010000 /* oper can OP/CLEARMODE */
-#define PRIV_LOCAL_OPMODE	0x00020000 /* oper can local OP/CLEARMODE */
-#define PRIV_SET		0x00040000 /* oper can SET */
-#define PRIV_WHOX		0x00080000 /* oper can use /who x */
-#define PRIV_BADCHAN		0x00100000 /* oper can BADCHAN */
-#define PRIV_LOCAL_BADCHAN	0x00200000 /* oper can local BADCHAN */
-#define PRIV_SEE_CHAN		0x00400000 /* oper can see in secret chans */
-
-#define PRIV_PROPAGATE		0x00800000 /* propagate oper status */
-#define PRIV_DISPLAY		0x01000000 /* "Is an oper" displayed */
-#define PRIV_SEE_OPERS		0x02000000 /* display hidden opers */
-
-#define HasPriv(cli, priv)	(cli_privs(cli) & (priv))
+#define GrantPriv(cli, priv)	(PrivSet(&(cli_privs(cli)), priv))
+#define RevokePriv(cli, priv)	(PrivClr(&(cli_privs(cli)), priv))
+#define HasPriv(cli, priv)	(PrivHas(&(cli_privs(cli)), priv))
 
 typedef enum ShowIPType {
   HIDE_IP,

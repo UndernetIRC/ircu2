@@ -53,7 +53,7 @@ static struct {
   struct Motd*	    other;
   struct Motd*	    freelist;
   struct MotdCache* cachelist;
-} MotdList;
+} MotdList = { 0, 0, 0, 0, 0 };
 
 /* Create a struct Motd and initialize it */
 static struct Motd *
@@ -326,16 +326,17 @@ motd_recache(void)
 void
 motd_init(void)
 {
+  if (MotdList.local) /* destroy old local... */
+    motd_destroy(MotdList.local);
+
   MotdList.local = motd_create(0, feature_str(FEAT_MPATH), MOTD_MAXLINES);
   motd_cache(MotdList.local); /* init local and cache it */
 
+  if (MotdList.remote) /* destroy old remote... */
+    motd_destroy(MotdList.remote);
+
   MotdList.remote = motd_create(0, feature_str(FEAT_RPATH), MOTD_MAXREMOTE);
   motd_cache(MotdList.remote); /* init remote and cache it */
-
-  MotdList.other = 0; /* no T-lines processed yet */
-
-  MotdList.freelist = 0;
-  MotdList.cachelist = 0;
 }
 
 /* This routine adds a MOTD */

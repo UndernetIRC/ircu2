@@ -8,8 +8,8 @@ In the ircd_features.h header file is an enum Feature that lists all
 the features known to the features subsystem.  The order of entries in
 this list must match precisely the order of features as listed in the
 features[] table in ircd_features.c.  There are four kinds of
-features, five different flags that can be set for features, and six
-different call-backs for more complex features.
+features, seven different flags that can be set for features, and
+seven different call-backs for more complex features.
 
 Types of Features
 
@@ -35,18 +35,26 @@ functions, described below.
 
 Feature Flags
 
-There are five feature flags, one of which is used internally by the
-feature subsystem.  Two of these flags, FEAT_OPER and FEAT_MYOPER, are
-used to select who can see the settings of those features; FEAT_OPER
-permits any operator anywhere on the network to examine the settings
-of a particular feature, whereas FEAT_MYOPER only permits operators
-local to a server to examine feature values.  If neither of these two
-flags is specified, then any user may examine that feature's value.
+There are seven feature flags, one of which is used internally by the
+feature subsystem.  Three of these flags, FEAT_OPER, FEAT_MYOPER, and
+FEAT_NODISP, are used to select who can see the settings of those
+features; FEAT_OPER permits any operator anywhere on the network to
+examine the settings of a particular feature, whereas FEAT_MYOPER only
+permits operators local to a server to examine feature values, and
+FEAT_NODISP prohibits display of the feature value altogether.  If
+none of these three flags are specified, then any user may examine
+that feature's value.
 
-The other two flags only have any meaning for string values; they are
+Two other flags only have any meaning for string values; they are
 FEAT_NULL, which is used to specify that a feature of type "STR" may
 have a NULL value, and FEAT_CASE, which specifies that the feature is
-case sensitive--this may be used on file names, for example.
+case sensitive--this may be used on file names, for example.  Note
+that if you give "0" as the default value for a feature, you must also
+set the FEAT_NULL flag.
+
+The remaining non-internal flag is FEAT_READ, which simply sets the
+feature to be read-only; a feature so marked may only be changed
+through the configuration file.
 
 Marking Features
 
@@ -129,6 +137,13 @@ unchanged feature settings to their defaults.  See the subsection on
 </function>
 
 <function>
+void feature_init(void);
+
+This function initializes the feature interface by setting the default
+values for all features correctly.
+</function>
+
+<function>
 void feature_report(struct Client* to);
 
 Reports all F-lines to a user using RPL_STATSFLINE, except those which
@@ -158,7 +173,7 @@ Use this function to retrieve strings values for features of type
 </function>
 
 <macro>
-#define F_N(type, flags, set, reset, get, unmark, mark, report)
+#define F_N(type, flags, set, reset, get, notify, unmark, mark, report)
 
 This macro is used in the features[] table to simplify defining a
 feature of type "NONE."  The _type_ parameter is the name of the
@@ -170,28 +185,33 @@ functions implementing the named call-back.
 </macro>
 
 <macro>
-#define F_I(type, flags, v_int)
+#define F_I(type, flags, v_int, notify)
 
 To define integer features, use the F_I() macro.  The _type_ and
 _flags_ parameters are as for F_N(), and the _v_int_ macro specifies
-the default value of the feature.
+the default value of the feature.  The _notify_ parameter, if
+non-zero, will be called whenever the value of the feature changes.
 </macro>
 
 <macro>
-#define F_B(type, flags, v_int)
+#define F_B(type, flags, v_int, notify)
 
 This macro is used for defining features of type "BOOL"; it is very
 similar to F_I(), but _v_int_ should either 0 (for a "FALSE" value) or
-1 (for a "TRUE" value).
+1 (for a "TRUE" value).  The _notify_ parameter, if non-zero, will be
+called whenever the value of the feature changes.
 </macro>
 
 <macro>
-#define F_S(type, flags, v_str)
+#define F_S(type, flags, v_str, notify)
 
 Also similar to F_I(), F_S() defines features of type "STR."  The
 _flags_ argument may be the bitwise OR of one of FEAT_OPER or
 FEAT_MYOPER with the special string flags FEAT_NULL and FEAT_CASE,
-which are described above in the section "Feature Flags."
+which are described above in the section "Feature Flags."  The
+_notify_ parameter, if non-zero, will be called whenever the value of
+the feature changes.  Note that FEAT_NULL *must* be set if the default
+string _v_str_ is set to NULL.
 </macro>
 
 <authors>
@@ -199,5 +219,8 @@ Kev <klmitch@mit.edu>
 </authors>
 
 <changelog>
+[2001-01-02 Kev] Add documentation for new flags and for the notify
+mechanism
+
 [2000-12-18 Kev] Document the features API
 </changelog>

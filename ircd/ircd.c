@@ -647,7 +647,7 @@ int main(int argc, char **argv) {
   daemon_init(thisServer.bootopt & BOOT_TTY);
 
   setup_signals();
-  feature_mark(); /* initialize features... */
+  feature_init(); /* initialize features... */
   log_init(*argv);
 
   set_nomem_handler(outofmemory);

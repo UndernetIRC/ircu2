@@ -20,6 +20,8 @@
  */
 #include "config.h"
 #include "ircd_features.h"
+#include "channel.h"	/* list_set_default */
+#include "class.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -28,6 +30,7 @@
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
+#include "motd.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -171,10 +174,12 @@ feature_log_get(struct Client* from, const char* const* fields, int count)
 typedef int  (*feat_set_call)(struct Client*, const char* const*, int);
 /* gets the value of a feature */
 typedef void (*feat_get_call)(struct Client*, const char* const*, int);
+/* callback to notify of a feature's change */
+typedef void (*feat_notify_call)(void);
 /* unmarks all sub-feature values prior to reading .conf */
 typedef void (*feat_unmark_call)(void);
 /* resets to defaults all currently unmarked values */
-typedef void (*feat_mark_call)(int);
+typedef int  (*feat_mark_call)(int);
 /* reports features as a /stats f list */
 typedef void (*feat_report_call)(struct Client*, int);
 
@@ -205,110 +210,112 @@ static struct FeatureDesc {
   feat_set_call	   set;	    /* set feature values */
   feat_set_call	   reset;   /* reset feature values to defaults */
   feat_get_call	   get;	    /* get feature values */
+  feat_notify_call notify;  /* notify of value change */
   feat_unmark_call unmark;  /* unmark all feature change values */
   feat_mark_call   mark;    /* reset to defaults all unchanged features */
   feat_report_call report;  /* report feature values */
 } features[] = {
-#define F_N(type, flags, set, reset, get, unmark, mark, report)		      \
+#define F_N(type, flags, set, reset, get, notify, unmark, mark, report)	      \
   { FEAT_ ## type, #type, FEAT_NONE | (flags), 0, 0, 0, 0,		      \
-    (set), (reset), (get), (unmark), (mark), (report) }
-#define F_I(type, flags, v_int)						      \
+    (set), (reset), (get), (notify), (unmark), (mark), (report) }
+#define F_I(type, flags, v_int, notify)					      \
   { FEAT_ ## type, #type, FEAT_INT | (flags), 0, (v_int), 0, 0,		      \
-    0, 0, 0, 0, 0, 0 }
-#define F_B(type, flags, v_int)						      \
+    0, 0, 0, (notify), 0, 0, 0 }
+#define F_B(type, flags, v_int, notify)					      \
   { FEAT_ ## type, #type, FEAT_BOOL | (flags), 0, (v_int), 0, 0,	      \
-    0, 0, 0, 0, 0, 0 }
-#define F_S(type, flags, v_str)						      \
+    0, 0, 0, (notify), 0, 0, 0 }
+#define F_S(type, flags, v_str, notify)					      \
   { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
-    0, 0, 0, 0, 0, 0 }
+    0, 0, 0, (notify), 0, 0, 0 }
 
   /* Misc. features */
   F_N(LOG, FEAT_MYOPER, feature_log_set, feature_log_reset, feature_log_get,
-      log_feature_unmark, log_feature_mark, log_feature_report),
-  F_S(DOMAINNAME, 0, DOMAINNAME),
-  F_B(RELIABLE_CLOCK, 0, 0),
-  F_I(BUFFERPOOL, 0, 27000000),
-  F_B(HAS_FERGUSON_FLUSHER, 0, 0),
-  F_I(CLIENT_FLOOD, 0, 1024),
-  F_I(SERVER_PORT, FEAT_OPER, 4400),
-  F_B(NODEFAULTMOTD, 0, 1),
-  F_B(KILL_IPMISMATCH, FEAT_OPER, 0),
-  F_B(IDLE_FROM_MSG, 0, 1),
-  F_B(HUB, 0, 0),
-  F_B(WALLOPS_OPER_ONLY, 0, 0),
-  F_B(NODNS, 0, 0),
-  F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0),
+      0, log_feature_unmark, log_feature_mark, log_feature_report),
+  F_S(DOMAINNAME, 0, DOMAINNAME, 0),
+  F_B(RELIABLE_CLOCK, 0, 0, 0),
+  F_I(BUFFERPOOL, 0, 27000000, 0),
+  F_B(HAS_FERGUSON_FLUSHER, 0, 0, 0),
+  F_I(CLIENT_FLOOD, 0, 1024, 0),
+  F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
+  F_B(NODEFAULTMOTD, 0, 1, 0),
+  F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
+  F_B(IDLE_FROM_MSG, 0, 1, 0),
+  F_B(HUB, 0, 0, 0),
+  F_B(WALLOPS_OPER_ONLY, 0, 0, 0),
+  F_B(NODNS, 0, 0, 0),
+  F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
+  F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
 
   /* features that probably should not be touched */
-  F_I(KILLCHASETIMELIMIT, 0, 30),
-  F_I(MAXCHANNELSPERUSER, 0, 10),
-  F_I(AVBANLEN, 0, 40),
-  F_I(MAXBANS, 0, 30),
-  F_I(MAXSILES, 0, 15),
-  F_I(HANGONGOODLINK, 0, 300),
-  F_I(HANGONRETRYDELAY, 0, 10),
-  F_I(CONNECTTIMEOUT, 0, 90),
-  F_I(TIMESEC, 0, 60),
-  F_I(MAXIMUM_LINKS, 0, 1),
-  F_I(PINGFREQUENCY, 0, 120),
-  F_I(CONNECTFREQUENCY, 0, 600),
-  F_I(DEFAULTMAXSENDQLENGTH, 0, 40000),
+  F_I(KILLCHASETIMELIMIT, 0, 30, 0),
+  F_I(MAXCHANNELSPERUSER, 0, 10, 0),
+  F_I(AVBANLEN, 0, 40, 0),
+  F_I(MAXBANS, 0, 30, 0),
+  F_I(MAXSILES, 0, 15, 0),
+  F_I(HANGONGOODLINK, 0, 300, 0),
+  F_I(HANGONRETRYDELAY, 0, 10, 0),
+  F_I(CONNECTTIMEOUT, 0, 90, 0),
+  F_I(TIMESEC, 0, 60, 0),
+  F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
+  F_I(PINGFREQUENCY, 0, 120, init_class),
+  F_I(CONNECTFREQUENCY, 0, 600, init_class),
+  F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
 
   /* Some misc. default paths */
-  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd"),
-  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd"),
-  F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid"),
+  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
+  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd", motd_init),
+  F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid", 0),
 
   /* Networking features */
-  F_B(VIRTUAL_HOST, 0, 0),
-  F_I(TOS_SERVER, 0, 0x08),
-  F_I(TOS_CLIENT, 0, 0x08),
+  F_B(VIRTUAL_HOST, 0, 0, 0),
+  F_I(TOS_SERVER, 0, 0x08, 0),
+  F_I(TOS_CLIENT, 0, 0x08, 0),
 
   /* features that affect all operators */
-  F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1),
-  F_B(OPER_NO_CHAN_LIMIT, 0, 1),
-  F_B(OPER_MODE_LCHAN, 0, 1),
-  F_B(OPER_WALK_THROUGH_LMODES, 0, 0),
-  F_B(NO_OPER_DEOP_LCHAN, 0, 0),
-  F_B(SHOW_INVISIBLE_USERS, 0, 1),
-  F_B(SHOW_ALL_INVISIBLE_USERS, 0, 1),
-  F_B(UNLIMIT_OPER_QUERY, 0, 0),
-  F_B(LOCAL_KILL_ONLY, 0, 0),
-  F_B(CONFIG_OPERCMDS, 0, 1), /* XXX change default before release */
+  F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),
+  F_B(OPER_NO_CHAN_LIMIT, 0, 1, 0),
+  F_B(OPER_MODE_LCHAN, 0, 1, 0),
+  F_B(OPER_WALK_THROUGH_LMODES, 0, 0, 0),
+  F_B(NO_OPER_DEOP_LCHAN, 0, 0, 0),
+  F_B(SHOW_INVISIBLE_USERS, 0, 1, 0),
+  F_B(SHOW_ALL_INVISIBLE_USERS, 0, 1, 0),
+  F_B(UNLIMIT_OPER_QUERY, 0, 0, 0),
+  F_B(LOCAL_KILL_ONLY, 0, 0, 0),
+  F_B(CONFIG_OPERCMDS, 0, 1, 0), /* XXX change default before release */
 
   /* features that affect global opers on this server */
-  F_B(OPER_KILL, 0, 1),
-  F_B(OPER_REHASH, 0, 1),
-  F_B(OPER_RESTART, 0, 1),
-  F_B(OPER_DIE, 0, 1),
-  F_B(OPER_GLINE, 0, 1),
-  F_B(OPER_LGLINE, 0, 1),
-  F_B(OPER_JUPE, 0, 1),
-  F_B(OPER_LJUPE, 0, 1),
-  F_B(OPER_OPMODE, 0, 1),
-  F_B(OPER_LOPMODE, 0, 1),
-  F_B(OPER_BADCHAN, 0, 0),
-  F_B(OPER_LBADCHAN, 0, 0),
-  F_B(OPER_SET, 0, 1),
-  F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1),
+  F_B(OPER_KILL, 0, 1, 0),
+  F_B(OPER_REHASH, 0, 1, 0),
+  F_B(OPER_RESTART, 0, 1, 0),
+  F_B(OPER_DIE, 0, 1, 0),
+  F_B(OPER_GLINE, 0, 1, 0),
+  F_B(OPER_LGLINE, 0, 1, 0),
+  F_B(OPER_JUPE, 0, 1, 0),
+  F_B(OPER_LJUPE, 0, 1, 0),
+  F_B(OPER_OPMODE, 0, 1, 0),
+  F_B(OPER_LOPMODE, 0, 1, 0),
+  F_B(OPER_BADCHAN, 0, 0, 0),
+  F_B(OPER_LBADCHAN, 0, 0, 0),
+  F_B(OPER_SET, 0, 1, 0),
+  F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
 
   /* features that affect local opers on this server */
-  F_B(LOCOP_KILL, 0, 0),
-  F_B(LOCOP_REHASH, 0, 1),
-  F_B(LOCOP_RESTART, 0, 0),
-  F_B(LOCOP_DIE, 0, 0),
-  F_B(LOCOP_LGLINE, 0, 1),
-  F_B(LOCOP_LJUPE, 0, 1),
-  F_B(LOCOP_LOPMODE, 0, 1),
-  F_B(LOCOP_LBADCHAN, 0, 0),
-  F_B(LOCOP_SET, 0, 0),
-  F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0),
+  F_B(LOCOP_KILL, 0, 0, 0),
+  F_B(LOCOP_REHASH, 0, 1, 0),
+  F_B(LOCOP_RESTART, 0, 0, 0),
+  F_B(LOCOP_DIE, 0, 0, 0),
+  F_B(LOCOP_LGLINE, 0, 1, 0),
+  F_B(LOCOP_LJUPE, 0, 1, 0),
+  F_B(LOCOP_LOPMODE, 0, 1, 0),
+  F_B(LOCOP_LBADCHAN, 0, 0, 0),
+  F_B(LOCOP_SET, 0, 0, 0),
+  F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0, 0),
 
 #undef F_S
 #undef F_B
 #undef F_I
 #undef F_N
-  { FEAT_LAST_F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+  { FEAT_LAST_F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 /* Given a feature's identifier, look up the feature descriptor */
@@ -336,7 +343,8 @@ feature_desc(struct Client* from, const char *feature)
 int
 feature_set(struct Client* from, const char* const* fields, int count)
 {
-  int i;
+  int i, change = 0, tmp;
+  const char *t_str;
   struct FeatureDesc *feat;
 
   if (from && !HasPriv(from, PRIV_SET))
@@ -354,6 +362,8 @@ feature_set(struct Client* from, const char* const* fields, int count)
     switch (feat->flags & FEAT_MASK) {
     case FEAT_NONE:
       if (feat->set && (i = (*feat->set)(from, fields + 1, count - 1))) {
+	change++; /* feature handler wants a change recorded */
+
 	if (i > 0) /* call the set callback and do marking */
 	  feat->flags |= FEAT_MARK;
 	else /* i < 0 */
@@ -362,19 +372,26 @@ feature_set(struct Client* from, const char* const* fields, int count)
       }
 
     case FEAT_INT: /* an integer value */
+      tmp = feat->v_int; /* detect changes... */
+
       if (count < 2) { /* reset value */
 	feat->v_int = feat->def_int;
 	feat->flags &= ~FEAT_MARK;
       } else { /* ok, figure out the value and whether to mark it */
-	feat->v_int = atoi(fields[1]);
+	feat->v_int = strtoul(fields[1], 0, 0);
 	if (feat->v_int == feat->def_int)
 	  feat->flags &= ~FEAT_MARK;
 	else
 	  feat->flags |= FEAT_MARK;
       }
+
+      if (feat->v_int != tmp) /* check for change */
+	change++;
       break;
 
     case FEAT_BOOL: /* it's a boolean value--true or false */
+      tmp = feat->v_int; /* detect changes... */
+
       if (count < 2) { /* reset value */
 	feat->v_int = feat->def_int;
 	feat->flags &= ~FEAT_MARK;
@@ -402,42 +419,69 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	else
 	  feat->flags |= FEAT_MARK;
       }
+
+      if (feat->v_int != tmp) /* check for change */
+	change++;
       break;
 
     case FEAT_STR: /* it's a string value */
-      if (count < 2 ||
-	  !(feat->flags & FEAT_CASE ? strcmp(fields[1], feat->def_str) :
-	    ircd_strcmp(fields[1], feat->def_str))) { /* reset to default */
-	if (feat->v_str && feat->v_str != feat->def_str)
-	  MyFree(feat->v_str); /* free old value */
-	feat->v_str = feat->def_str; /* very special... */
+      if (count < 2)
+	t_str = feat->def_str; /* changing to default */
+      else
+	t_str = *fields[1] ? fields[1] : 0;
 
-	feat->flags &= ~FEAT_MARK; /* unmark it */
-      } else {
-	if (!*fields[1]) { /* empty string translates to NULL */
-	  if (feat->flags & FEAT_NULL) { /* permitted? */
-	    if (feat->v_str && feat->v_str != feat->def_str)
-	      MyFree(feat->v_str); /* free old value */
-	    feat->v_str = 0; /* set it to NULL */
-	  } else if (from) /* hmmm...not permitted; report error */
-	    return send_reply(from, ERR_BADFEATVALUE, "NULL", feat->type);
-	  else {
-	    log_write(LS_CONFIG, L_ERROR, 0,
-		      "Bad value \"NULL\" for feature %s", feat->type);
-	    return 0;
-	  }
-	} else if ((feat->flags & FEAT_CASE ?
-		    strcmp(fields[1], feat->v_str) :
-		    ircd_strcmp(fields[1], feat->v_str))) { /* new value */
-	  if (feat->v_str && feat->v_str != feat->def_str)
+      if (!t_str && !(feat->flags & FEAT_NULL)) { /* NULL value permitted? */
+	if (from)
+	  return send_reply(from, ERR_BADFEATVALUE, "NULL", feat->type);
+	else {
+	  log_write(LS_CONFIG, L_ERROR, 0, "Bad value \"NULL\" for feature %s",
+		    feat->type);
+	  return 0;
+	}
+      }
+
+      if (t_str == feat->def_str ||
+	  (t_str && feat->def_str &&
+	   !(feat->flags & FEAT_CASE ? strcmp(t_str, feat->def_str) :
+	     ircd_strcmp(t_str, feat->def_str)))) { /* resetting to default */
+	if (feat->v_str != feat->def_str) {
+	  change++; /* change from previous value */
+
+	  if (feat->v_str)
 	    MyFree(feat->v_str); /* free old value */
-	  DupString(feat->v_str, fields[1]); /* store new value */
 	}
 
-	feat->flags |= FEAT_MARK; /* mark it as having been touched */
-      }
+	feat->v_str = feat->def_str; /* very special... */
+
+	feat->flags &= ~FEAT_MARK;
+      } else if (!t_str) {
+	if (feat->v_str) {
+	  change++; /* change from previous value */
+
+	  if (feat->v_str != feat->def_str)
+	    MyFree(feat->v_str); /* free old value */
+	}
+
+	feat->v_str = 0; /* set it to NULL */
+
+	feat->flags |= FEAT_MARK;
+      } else if (!feat->v_str ||
+		 (feat->flags & FEAT_CASE ? strcmp(t_str, feat->v_str) :
+		  ircd_strcmp(t_str, feat->v_str))) { /* new value */
+	change++; /* change from previous value */
+
+	if (feat->v_str && feat->v_str != feat->def_str)
+	  MyFree(feat->v_str); /* free old value */
+	DupString(feat->v_str, t_str); /* store new value */
+
+	feat->flags |= FEAT_MARK;
+      } else /* they match, but don't match the default */
+	feat->flags |= FEAT_MARK;
       break;
     }
+
+    if (change && feat->notify) /* call change notify function */
+      (*feat->notify)();
   }
 
   return 0;
@@ -447,7 +491,7 @@ feature_set(struct Client* from, const char* const* fields, int count)
 int
 feature_reset(struct Client* from, const char* const* fields, int count)
 {
-  int i;
+  int i, change = 0;
   struct FeatureDesc *feat;
 
   assert(0 != from);
@@ -464,6 +508,8 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     switch (feat->flags & FEAT_MASK) {
     case FEAT_NONE: /* None... */
       if (feat->reset && (i = (*feat->reset)(from, fields + 1, count - 1))) {
+	change++; /* feature handler wants a change recorded */
+
 	if (i > 0) /* call reset callback and parse mark return */
 	  feat->flags |= FEAT_MARK;
 	else /* i < 0 */
@@ -473,17 +519,27 @@ feature_reset(struct Client* from, const char* const* fields, int count)
 
     case FEAT_INT:  /* Integer... */
     case FEAT_BOOL: /* Boolean... */
+      if (feat->v_int != feat->def_int)
+	change++; /* change will be made */
+
       feat->v_int = feat->def_int; /* set the default */
       feat->flags &= ~FEAT_MARK; /* unmark it */
       break;
 
     case FEAT_STR: /* string! */
-      if (feat->v_str && feat->v_str != feat->def_str)
-	MyFree(feat->v_str); /* free old value */
+      if (feat->v_str != feat->def_str) {
+	change++; /* change has been made */
+	if (feat->v_str)
+	  MyFree(feat->v_str); /* free old value */
+      }
+
       feat->v_str = feat->def_str; /* set it to default */
       feat->flags &= ~FEAT_MARK; /* unmark it */
       break;
     }
+
+    if (change && feat->notify) /* call change notify function */
+      (*feat->notify)();
   }
 
   return 0;
@@ -553,29 +609,66 @@ feature_unmark(void)
 void
 feature_mark(void)
 {
-  int i;
+  int i, change;
 
-  for (i = 0; features[i].type; i++)
+  for (i = 0; features[i].type; i++) {
+    change = 0;
+
     switch (features[i].flags & FEAT_MASK) {
     case FEAT_NONE:
-      if (features[i].mark) /* call the mark callback if necessary */
-	(*features[i].mark)(features[i].flags & FEAT_MARK ? 1 : 0);
+      if (features[i].mark &&
+	  (*features[i].mark)(features[i].flags & FEAT_MARK ? 1 : 0))
+	change++; /* feature handler wants a change recorded */
       break;
 
     case FEAT_INT:  /* Integers or Booleans... */
     case FEAT_BOOL:
-      if (!(features[i].flags & FEAT_MARK)) /* not changed? */
+      if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
+	if (features[i].v_int != features[i].def_int)
+	  change++; /* we're making a change */
 	features[i].v_int = features[i].def_int;
+      }
       break;
 
     case FEAT_STR: /* strings... */
       if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
-	if (features[i].v_str && features[i].v_str != features[i].def_str)
-	  MyFree(features[i].v_str); /* free old value */
+	if (features[i].v_str != features[i].def_str) {
+	  change++; /* we're making a change */
+	  if (features[i].v_str)
+	    MyFree(features[i].v_str); /* free old value */
+	}
 	features[i].v_str = features[i].def_str;
       }
       break;
     }
+
+    if (change && features[i].notify)
+      (*features[i].notify)(); /* call change notify function */
+  }
+}
+
+/* used to initialize the features subsystem */
+void
+feature_init(void)
+{
+  int i;
+
+  for (i = 0; features[i].type; i++) {
+    switch (features[i].flags & FEAT_MASK) {
+    case FEAT_NONE: /* you're on your own */
+      break;
+
+    case FEAT_INT:  /* Integers or Booleans... */
+    case FEAT_BOOL:
+      features[i].v_int = features[i].def_int;
+      break;
+
+    case FEAT_STR:  /* Strings */
+      features[i].v_str = features[i].def_str;
+      assert(features[i].def_str || (features[i].flags & FEAT_NULL));
+      break;
+    }
+  }
 }
 
 /* report all F-lines */

@@ -828,7 +828,7 @@ log_feature_unmark(void)
 }
 
 /* Reset unmarked fields to defaults... */
-void
+int
 log_feature_mark(int flag)
 {
   int i;
@@ -854,6 +854,8 @@ log_feature_mark(int flag)
     if (!(logDesc[i].mark & LOG_MARK_LEVEL)) /* set default level */
       logDesc[i].level = L_DEFAULT;
   }
+
+  return 0; /* we don't have a notify handler */
 }
 
 /* Report feature settings */
