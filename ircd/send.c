@@ -504,7 +504,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
-    send_buffer(lp->value.cptr, mb, 0);
+    send_buffer(lp->value.cptr, mb, 1);
   }
 
   msgq_clean(mb);
