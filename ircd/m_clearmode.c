@@ -156,7 +156,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 		MODEBUF_DEST_OPMODE  | /* Treat it like an OPMODE */
 		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
 
-  modebuf_mode(&mbuf, MODE_DEL | del_mode); /* Mark modes for deletion */
+  modebuf_mode(&mbuf, MODE_DEL | (del_mode & chptr->mode.mode));
   chptr->mode.mode &= ~del_mode; /* and of course actually delete them */
 
   /* If we're removing invite, remove all the invites */

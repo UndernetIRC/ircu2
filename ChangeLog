@@ -1,5 +1,24 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* ircd/m_clearmode.c (do_clearmode): only mark the modes the
+	channel actually has in effect for deletion
+
+	* ircd/channel.c: added explanatory comments to all added
+	functions; made flushing take place at the correct place even if
+	the MODEBUF_DEST_DEOP flag is set; rewrote build_string() helper
+	to bash some stupid bugs; made modebuf_flush() return if ModeBuf
+	is empty, fixed the apparent source, removed some bogus	string
+	termination code, properly terminate the mode strings, add support
+	for HACK2 and HACK3, made limit strings not be sent if the limit
+	is being removed, changed where '+' and '-' come from in sent
+	strings, added support for DEOP flag, set up bouncing code for
+	HACK2
+
+	* ircd/Makefile.in: ran make depend
+
+	* include/channel.h: added new defines for future functionality,
+	made modebuf_flush() return int so I can use tail recursion
+
 	* ircd/m_clearmode.c: add msg.h to includes; other misc cleanups
 	to make it all compile
 
@@ -89,7 +108,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.33 2000-03-28 00:52:14 bleep Exp $
+# $Id: ChangeLog,v 1.34 2000-03-28 02:40:30 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
