@@ -1,3 +1,8 @@
+2003-11-18 Isomer <isomer@undernet.org>
+	* ircd/s_auth.c, ircd/res.c: Clean up the preregistration subsystem
+	allowing customisation of timers, make the dns resolver stats oper only,
+	and make it much more clear what all the numbers are.
+
 2003-11-09 beware <steendijk@xs4all.nl>
         * move assigning a numeric to a local client from when nick is set,
 	to when connection becomes client, to not waste numerics.

@@ -78,6 +78,9 @@ enum Feature {
   FEAT_TOS_SERVER,
   FEAT_TOS_CLIENT,
   FEAT_POLLS_PER_LOOP,
+  FEAT_IRCD_RES_RETRIES,
+  FEAT_IRCD_RES_TIMEOUT,
+  FEAT_AUTH_TIMEOUT,
 
   /* features that affect all operators */
   FEAT_CRYPT_OPER_PASSWORD,

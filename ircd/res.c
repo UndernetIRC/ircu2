@@ -17,6 +17,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_events.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
@@ -487,9 +488,9 @@ static struct ResRequest* make_request(const struct DNSQuery* query)
   memset(request, 0, sizeof(struct ResRequest));
 
   request->sentat           = CurrentTime;
-  request->retries          = 3;
+  request->retries          = feature_int(FEAT_IRCD_RES_RETRIES);
   request->resend           = 1;
-  request->timeout          = 5;    /* start at 5 per RFC1123 */
+  request->timeout          = feature_int(FEAT_IRCD_RES_TIMEOUT);
   request->addr.s_addr      = INADDR_NONE;
   request->he.h.h_addrtype  = AF_INET;
   request->he.h.h_length    = sizeof(struct in_addr);
@@ -1754,7 +1755,7 @@ int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parv[1] && *parv[1] == 'l') {
     for(cp = cacheTop; cp; cp = cp->list_next) {
       hp = &cp->he.h;
-      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Ex %d ttl %d host %s(%s)",
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Expire %d ttl %d host %s(%s)",
 		    sptr, cp->expireat - CurrentTime, cp->ttl,
 		    hp->h_name, ircd_ntoa(hp->h_addr));
       for (i = 0; hp->h_aliases[i]; i++)
@@ -1766,23 +1767,25 @@ int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
     return 0;
   }
-  if (parv[1] && *parv[1] == 'd') {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :ResolverFileDescriptor = %d", 
-		  sptr, ResolverFileDescriptor);
-    return 0;
-  }
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Ca %d Cd %d Ce %d Cl %d Ch %d:%d "
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :\x02Cache\x02: "
+		  	"Adds %d Dels %d Expires %d Lookups %d "
+			"Hits(addr/name)) %d/%d "
 		"Cu %d", sptr,
 		cainfo.ca_adds, cainfo.ca_dels, cainfo.ca_expires,
 		cainfo.ca_lookups, cainfo.ca_na_hits, cainfo.ca_nu_hits, 
 		cainfo.ca_updates);
   
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Re %d Rl %d/%d Rp %d Rq %d",
-		sptr, reinfo.re_errors, reinfo.re_nu_look,
-		reinfo.re_na_look, reinfo.re_replies, reinfo.re_requests);
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Ru %d Rsh %d Rs %d(%d) Rt %d", sptr,
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :\x02Resolver\x02: "
+		  "Errors %d Lookups %d/%d Replies %d Requests %d",
+		sptr, reinfo.re_errors, reinfo.re_na_look,
+		reinfo.re_nu_look, reinfo.re_replies, reinfo.re_requests);
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :\x02Resolver\x02: "
+		  "Unknown Reply %d Short TTL(<10m) %d Resent %d Resends %d "
+		  "Timeouts: %d", sptr,
 		reinfo.re_unkrep, reinfo.re_shortttl, reinfo.re_sent,
 		reinfo.re_resends, reinfo.re_timeouts);
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :ResolverFileDescriptor = %d", 
+		  sptr, ResolverFileDescriptor);
 #endif
   return 0;
 }
