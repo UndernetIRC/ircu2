@@ -4,7 +4,7 @@
 
 	* ircd/ircd.c: Only reset the ping check on registered clients.
 	Unregistered clients will now ping out if they don't register
-	within FEAT_PINGFREQUENCY.
+	within FEAT_CONNECTTIMEOUT.
 
 2003-04-28 Jeekay <jeekay@netgamers.org>
 	* ircd/s_user.c: Store finduser() return value
