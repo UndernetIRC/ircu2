@@ -261,6 +261,7 @@ static struct FeatureDesc {
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
   F_I(MAXCHANNELSPERUSER, 0, 10, 0),
+  F_I(NICKLEN, 0, 9, 0),
   F_I(AVBANLEN, 0, 40, 0),
   F_I(MAXBANS, 0, 45, 0),
   F_I(MAXSILES, 0, 15, 0),

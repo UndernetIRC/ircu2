@@ -43,6 +43,7 @@
                 " MAXCHANNELS=%i" \
                 " MAXBANS=%i" \
                 " NICKLEN=%i" \
+                " MAXNICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " AWAYLEN=%i" \
                 " KICKLEN=%i"
@@ -55,8 +56,8 @@
 
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
 			feature_int(FEAT_MAXCHANNELSPERUSER), \
-			feature_int(FEAT_MAXBANS), NICKLEN, TOPICLEN, \
-			AWAYLEN, TOPICLEN
+                        feature_int(FEAT_MAXBANS), feature_int(FEAT_NICKLEN), \
+                        NICKLEN, TOPICLEN, AWAYLEN, TOPICLEN
 
 #define FEATURESVALUES2 feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#", "(ov)@+", "b,k,l,imnpstrD", "rfc1459", \
                         feature_str(FEAT_NETWORK)

@@ -96,6 +96,7 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
+#include "sys.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -163,8 +164,8 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * garbage
    */
   arg = parv[1];
-  if (strlen(arg) > NICKLEN)
-    arg[NICKLEN] = '\0';
+  if (strlen(arg) > IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN)))
+    arg[IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN))] = '\0';
 
   if ((s = strchr(arg, '~')))
     *s = '\0';
@@ -318,7 +319,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * creation) then reject it. If from a server and we reject it,
    * and KILL it. -avalon 4/4/92
    */
-  if (strlen(nick) != do_nick_name(nick))
+  if (!do_nick_name(nick) || strcmp(nick, parv[1]))
   {
     send_reply(sptr, ERR_ERRONEUSNICKNAME, parv[1]);
     

@@ -36,9 +36,10 @@
  * is a default that can easily be overridden in CFLAGS.  Just add 
  * -DNICKLEN=15 to CFLAGS and save your config in .., and you can forget about
  * it.  Thanks for helping debug guys.
+ * See also F:NICKLEN in ircd.conf.
  */
 #ifndef NICKLEN
-#define NICKLEN         9
+#define NICKLEN         15
 #endif
 /*
  * USERLEN is the maximum length allowed of a user name including an optional

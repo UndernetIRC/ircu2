@@ -1,6 +1,28 @@
+2004-05-14  Kevin L Mitchell  <klmitch@mit.edu>
+
+	[Original ChangeLog date: 2003-11-22 -MDP]
+
+	* ircd/m_nick.c (m_nick): truncate the nickname to the minimum of
+	the maximum allowed length (NICKLEN) or the allowed nickname
+	length specified as the NICKLEN feature
+
+	* ircd/ircd_features.c: declare NICKLEN and set its default value
+	to 9
+
+	* include/supported.h: add MAXNICKLEN to ISUPPORT and do a little
+	rearranging...
+
+	* include/ircd_features.h: add NICKLEN feature
+
+	* include/ircd_defs.h (NICKLEN): raise max NICKLEN to 15
+
+	* doc/readme.features: document new NICKLEN feature
+
+	* doc/example.conf: list new NICKLEN F-line
+
 2004-05-14  Matthias Crauwels <ultimate_@wol.be>
 
-	[Original ChangeLog date: 2003-06-08 -MP]
+	[Original ChangeLog date: 2003-06-08 -MDP]
 	
  	* ircd/gline.c: fixed the counting bug in gline_memory_count
  

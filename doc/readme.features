@@ -1068,3 +1068,12 @@ URL_CLIENTS
  * Default: "ftp://ftp.undernet.org/pub/irc/clients"
 
 This defines a URL that users may visit to find compatible IRC clients.
+
+NICKLEN
+ * Type: integer
+ * Default: 9
+
+This is the allowed length of the nickname length.  It may not be
+larger than the NICKLEN #define, and should usually be the same
+length.  The real purpose of this feature is to permit easy increases
+in nickname length for a network.

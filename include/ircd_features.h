@@ -55,6 +55,7 @@ enum Feature {
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
   FEAT_MAXCHANNELSPERUSER,
+  FEAT_NICKLEN,
   FEAT_AVBANLEN,
   FEAT_MAXBANS,
   FEAT_MAXSILES,
