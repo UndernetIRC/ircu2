@@ -357,6 +357,8 @@ void SetLocalNumNick(struct Client *cptr)
 #else
   inttobase64(cptr->yxx, last_nn, 2);
 #endif
+  if (++last_nn == capacity)
+    last_nn = 0;
 }
 
 /* 

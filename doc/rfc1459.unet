@@ -1328,6 +1328,7 @@ RFC 1459              Internet Relay Chat Protocol              May 1993
    Numerics:
 
            RPL_NAMREPLY                    RPL_ENDOFNAMES
+           ERR_NEEDMOREPARAMS
 
    Examples:
 
@@ -1335,7 +1336,10 @@ RFC 1459              Internet Relay Chat Protocol              May 1993
                                    and #42 if the channels are visible to
                                    you.
 
-   NAMES                           ; list all visible channels and users
+   NAMES 0                         ; list all visible channels and users
+
+   NAMES                           ; does nothing because of the amount
+                                   of users that would do it by accident
 
 4.2.6 List message
 
