@@ -2,9 +2,9 @@
  *   IRC - Internet Relay Chat, src/ircd_log.c
  *   Copyright (C) 1999 Thomas Helvey (BleepSoft)
  *   Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>
- *                     
+ *
  *   See file AUTHORS in IRC package for additional names of
- *   the programmers. 
+ *   the programmers.
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -19,8 +19,10 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *   $Id$
+ */
+/** @file
+ * @brief IRC logging implementation.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -50,27 +52,27 @@
 #include <time.h>
 #include <unistd.h>
 
-#define LOG_BUFSIZE 2048 
+#define LOG_BUFSIZE 2048 /**< Maximum length for a log message. */
 
-/* select default log level cutoff */
+/** Select default log level cutoff. */
 #ifdef DEBUGMODE
 # define L_DEFAULT	L_DEBUG
 #else
 # define L_DEFAULT	L_INFO
 #endif
 
-#define LOG_DOSYSLOG	0x10
-#define LOG_DOFILELOG	0x20
-#define LOG_DOSNOTICE	0x40
-
+#define LOG_DOSYSLOG	0x10 /**< Try to use syslog. */
+#define LOG_DOFILELOG	0x20 /**< Try to log to a file. */
+#define LOG_DOSNOTICE	0x40 /**< Try to notify operators via notice. */
+/** Bitmask of valid delivery mechanisms. */
 #define LOG_DOMASK	(LOG_DOSYSLOG | LOG_DOFILELOG | LOG_DOSNOTICE)
 
-/* Map severity levels to strings and syslog levels */
+/** Map severity levels to strings and syslog levels */
 static struct LevelData {
-  enum LogLevel level;
-  char	       *string;
-  int		syslog;
-  unsigned int	snomask; /* 0 means use default in LogDesc */
+  enum LogLevel level;   /**< Log level being described. */
+  char	       *string;  /**< Textual name of level. */
+  int		syslog;  /**< Syslog priority for log level. */
+  unsigned int	snomask; /**< Server notice mask; 0 means use default in LogDesc. */
 } levelData[] = {
 #define L(level, syslog, mask) { L_ ## level, #level, (syslog), (mask) }
   L(CRIT, LOG_CRIT, SNO_OLDSNO),
@@ -89,14 +91,14 @@ static struct LevelData {
 #undef LOG_DEFAULT
 #undef LOG_NOTFOUND
 
-#define LOG_NONE     -1 /* don't syslog */
-#define LOG_DEFAULT   0 /* syslog to logInfo.facility */
-#define LOG_NOTFOUND -2 /* didn't find a facility corresponding to name */
+#define LOG_NONE     -1 /**< don't syslog */
+#define LOG_DEFAULT   0 /**< syslog to logInfo.facility */
+#define LOG_NOTFOUND -2 /**< didn't find a facility corresponding to name */
 
-/* Map names to syslog facilities--allows syslog configuration from .conf */
+/** Map names to syslog facilities. */
 static struct {
-  char *name;
-  int facility;
+  char *name;   /**< Textual name of facility. */
+  int facility; /**< Facility value for syslog(). */
 } facilities[] = {
 #define F(fac) { #fac, LOG_ ## fac }
   F(NONE),    F(DEFAULT), F(AUTH),
@@ -110,13 +112,13 @@ static struct {
   { 0, 0 }
 };
 
-#define SNO_NONE     0x00000000 /* don't send server notices */
-#define SNO_NOTFOUND 0xffffffff /* didn't find a SNO_MASK value for name */
+#define SNO_NONE     0x00000000 /**< don't send server notices */
+#define SNO_NOTFOUND 0xffffffff /**< didn't find a SNO_MASK value for name */
 
-/* Map names to snomask values--allows configuration from .conf */
+/** Map names to snomask values. */
 static struct {
-  char *name;
-  unsigned int snomask;
+  char *name;           /**< Name of server notice bit. */
+  unsigned int snomask; /**< Bitmask corresponding to name. */
 } masks[] = {
 #define M(mask) { #mask, SNO_ ## mask }
   M(NONE),       M(OLDSNO),     M(SERVKILL),   M(OPERKILL),   M(HACK2),
@@ -127,22 +129,22 @@ static struct {
   { 0, 0 }
 };
 
-#define LOG_MARK_FILE		0x0001	/* file has been changed */
-#define LOG_MARK_FACILITY	0x0002	/* facility has been changed */
-#define LOG_MARK_SNOMASK	0x0004	/* snomask has been changed */
-#define LOG_MARK_LEVEL		0x0008	/* level has been changed */
+#define LOG_MARK_FILE		0x0001	/**< file has been changed */
+#define LOG_MARK_FACILITY	0x0002	/**< facility has been changed */
+#define LOG_MARK_SNOMASK	0x0004	/**< snomask has been changed */
+#define LOG_MARK_LEVEL		0x0008	/**< level has been changed */
 
-/* Descriptions of all logging subsystems */
+/** Descriptions of all logging subsystems. */
 static struct LogDesc {
-  enum LogSys	  subsys;   /* number for subsystem */
-  char		 *name;	    /* subsystem name */
-  struct LogFile *file;	    /* file descriptor for subsystem */
-  unsigned int	  mark;     /* subsystem has been changed */
-  int		  def_fac;  /* default facility */
-  unsigned int	  def_sno;  /* default snomask */
-  int		  facility; /* -1 means don't use syslog */
-  unsigned int	  snomask;  /* 0 means no server message */
-  enum LogLevel	  level;    /* logging level */
+  enum LogSys	  subsys;   /**< number for subsystem */
+  char		 *name;	    /**< subsystem name */
+  struct LogFile *file;	    /**< file descriptor for subsystem */
+  unsigned int	  mark;     /**< subsystem has been changed */
+  int		  def_fac;  /**< default facility */
+  unsigned int	  def_sno;  /**< default snomask */
+  int		  facility; /**< -1 means don't use syslog */
+  unsigned int	  snomask;  /**< 0 means no server message */
+  enum LogLevel	  level;    /**< logging level */
 } logDesc[] = {
 #define S(sys, p, sn) { LS_##sys, #sys, 0, 0, (p), (sn), (p), (sn), L_DEFAULT }
   S(SYSTEM, -1, 0),
@@ -164,25 +166,28 @@ static struct LogDesc {
   { LS_LAST_SYSTEM, 0, 0, -1, 0, -1, 0 }
 };
 
-/* describes a log file */
+/** Describes a log file. */
 struct LogFile {
-  struct LogFile  *next;   /* next log file descriptor */
-  struct LogFile **prev_p; /* what points to us */
-  int		   fd;	   /* file's descriptor-- -1 if not open */
-  int		   ref;	   /* how many things refer to us? */
-  char		  *file;   /* file name */
+  struct LogFile  *next;   /**< next log file descriptor */
+  struct LogFile **prev_p; /**< what points to us */
+  int		   fd;	   /**< file's descriptor-- -1 if not open */
+  int		   ref;	   /**< how many things refer to us? */
+  char		  *file;   /**< file name */
 };
 
-/* modifiable static information */
+/** Modifiable static information. */
 static struct {
-  struct LogFile *filelist; /* list of log files */
-  struct LogFile *freelist; /* list of free'd log files */
-  int		  facility; /* default facility */
-  const char	 *procname; /* process's name */
-  struct LogFile *dbfile;   /* debug file */
+  struct LogFile *filelist; /**< list of log files */
+  struct LogFile *freelist; /**< list of free'd log files */
+  int		  facility; /**< default facility */
+  const char	 *procname; /**< process's name */
+  struct LogFile *dbfile;   /**< debug file */
 } logInfo = { 0, 0, LOG_USER, "ircd", 0 };
 
-/* helper routine to open a log file if needed */
+/** Helper routine to open a log file if needed.
+ * If the log file is already open, do nothing.
+ * @param[in,out] lf Log file to open.
+ */
 static void
 log_open(struct LogFile *lf)
 {
@@ -197,7 +202,7 @@ log_open(struct LogFile *lf)
 
 #ifdef DEBUGMODE
 
-/* reopen debug log */
+/** Reopen debug log file. */
 static void
 log_debug_reopen(void)
 {
@@ -231,7 +236,9 @@ log_debug_reopen(void)
   }
 }
 
-/* initialize debugging log */
+/** initialize debugging log file.
+ * @param[in] usetty If non-zero, log to terminal instead of file.
+ */
 void
 log_debug_init(int usetty)
 {
@@ -254,7 +261,10 @@ log_debug_init(int usetty)
 
 #endif /* DEBUGMODE */
 
-/* set the debug log file */
+/** Set the debug log file name.
+ * @param[in] file File name, or NULL to select the default.
+ * @return Zero if the file was reopened; non-zero if not debugging to file.
+ */
 static int
 log_debug_file(const char *file)
 {
@@ -276,8 +286,8 @@ log_debug_file(const char *file)
   return 0;
 }
 
-/* called in place of open_log(), this stores the process name and prepares
- * for syslogging
+/** Initialize logging subsystem.
+ * @param[in] process_name Process name to interactions with syslog.
  */
 void
 log_init(const char *process_name)
@@ -290,9 +300,7 @@ log_init(const char *process_name)
   openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
 }
 
-/* Files are persistently open; this closes and reopens them to allow
- * log file rotation
- */
+/** Reopen log files (so admins can do things like rotate log files). */
 void
 log_reopen(void)
 {
@@ -306,7 +314,7 @@ log_reopen(void)
   openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
 }
 
-/* close the log files */
+/** Close all log files. */
 void
 log_close(void)
 {
@@ -329,7 +337,12 @@ log_close(void)
   }
 }
 
-/* These write entries to a log file */
+/** Write a logging entry.
+ * @param[in] subsys Target subsystem.
+ * @param[in] severity Severity of message.
+ * @param[in] flags Combination of zero or more of LOG_NOSYSLOG, LOG_NOFILELOG, LOG_NOSNOTICE to suppress certain output.
+ * @param[in] fmt Format string for message.
+ */
 void
 log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 	  const char *fmt, ...)
@@ -341,6 +354,13 @@ log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
   va_end(vl);
 }
 
+/** Write a logging entry using a va_list.
+ * @param[in] subsys Target subsystem.
+ * @param[in] severity Severity of message.
+ * @param[in] flags Combination of zero or more of LOG_NOSYSLOG, LOG_NOFILELOG, LOG_NOSNOTICE to suppress certain output.
+ * @param[in] fmt Format string for message.
+ * @param[in] vl Variable-length argument list for message.
+ */
 void
 log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 	   const char *fmt, va_list vl)
@@ -435,7 +455,13 @@ log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 			 "%s", buf);
 }
 
-/* log kills for fun and profit */
+/** Log an appropriate message for kills.
+ * @param[in] victim %Client being killed.
+ * @param[in] killer %User or server doing the killing.
+ * @param[in] inpath Peer that sent us the KILL message.
+ * @param[in] path Kill path that sent to us by \a inpath.
+ * @param[in] msg Kill reason.
+ */
 void
 log_write_kill(const struct Client *victim, const struct Client *killer,
 	       const char *inpath, const char *path, const char *msg)
@@ -450,7 +476,10 @@ log_write_kill(const struct Client *victim, const struct Client *killer,
 	      path, msg);
 }
 
-/* return a struct LogFile for a specific filename--reference counted */
+/** Find a reference-counted LogFile by file name.
+ * @param[in] file Name of file.
+ * @return A log file descriptor with LogFile::ref at least 1.
+ */
 static struct LogFile *
 log_file_create(const char *file)
 {
@@ -484,7 +513,11 @@ log_file_create(const char *file)
   return tmp;
 }
 
-/* destroy a log file descriptor, under the control of the reference count */
+/** Dereference a log file.
+ * If the reference count is exactly one on entry to this function,
+ * the file is closed and its structure is freed.
+ * @param[in] lf Log file to dereference.
+ */
 static void
 log_file_destroy(struct LogFile *lf)
 {
@@ -506,7 +539,10 @@ log_file_destroy(struct LogFile *lf)
   }
 }
 
-/* finds a subsystem given its name */
+/** Look up a log subsystem by name.
+ * @param[in] subsys Subsystem name.
+ * @return Pointer to the subsystem's LogDesc, or NULL if none exists.
+ */
 static struct LogDesc *
 log_find(const char *subsys)
 {
@@ -522,7 +558,10 @@ log_find(const char *subsys)
   return 0; /* not found */
 }
 
-/* canonicalize subsystem names */
+/** Return canonical version of log subsystem name.
+ * @param[in] subsys Subsystem name.
+ * @return A constant string containing the canonical name.
+ */
 char *
 log_canon(const char *subsys)
 {
@@ -534,7 +573,10 @@ log_canon(const char *subsys)
   return desc->name;
 }
 
-/* find a level given its name */
+/** Look up a log level by name.
+ * @param[in] level Log level name.
+ * @return LogLevel enumeration, or L_LAST_LEVEL if none exists.
+ */
 static enum LogLevel
 log_lev_find(const char *level)
 {
@@ -550,7 +592,10 @@ log_lev_find(const char *level)
   return L_LAST_LEVEL; /* not found */
 }
 
-/* return a name for a level */
+/** Look up the canonical name for a log level.
+ * @param[in] lev
+ * @return A constant string containing the level's canonical name.
+ */
 static char *
 log_lev_name(enum LogLevel lev)
 {
@@ -561,7 +606,10 @@ log_lev_name(enum LogLevel lev)
   return levelData[lev].string;
 }
 
-/* find a facility given its name */
+/** Look up a syslog facility by name.
+ * @param[in] facility Facility name.
+ * @return Syslog facility value, or LOG_NOTFOUND if none exists.
+ */
 static int
 log_fac_find(const char *facility)
 {
@@ -577,7 +625,10 @@ log_fac_find(const char *facility)
   return LOG_NOTFOUND; /* not found */
 }
 
-/* return a name for a facility */
+/** Look up the name for a syslog facility.
+ * @param[in] fac Facility value.
+ * @return Canonical name for facility, or NULL if none exists.
+ */
 static char *
 log_fac_name(int fac)
 {
@@ -591,7 +642,10 @@ log_fac_name(int fac)
   return 0; /* not found; should never happen */
 }
 
-/* find a snomask value given its name */
+/** Look up a server notice mask by name.
+ * @param[in] maskname Name of server notice mask.
+ * @return Bitmask for server notices, or 0 if none exists.
+ */
 static unsigned int
 log_sno_find(const char *maskname)
 {
@@ -607,7 +661,10 @@ log_sno_find(const char *maskname)
   return SNO_NOTFOUND; /* not found */
 }
 
-/* return a name for a snomask value */
+/** Look up the canonical name for a server notice mask.
+ * @param[in] sno Server notice mask.
+ * @return Canonical name for the mask, or NULL if none exists.
+ */
 static char *
 log_sno_name(unsigned int sno)
 {
@@ -621,7 +678,11 @@ log_sno_name(unsigned int sno)
   return 0; /* not found; should never happen */
 }
 
-/* set the log file for a subsystem */
+/** Set a log file for a particular subsystem.
+ * @param[in] subsys Subsystem name.
+ * @param[in] filename Log file to write to.
+ * @return Zero on success; non-zero on error.
+ */
 int
 log_set_file(const char *subsys, const char *filename)
 {
@@ -654,7 +715,10 @@ log_set_file(const char *subsys, const char *filename)
   return 0;
 }
 
-/* get the log file for a subsystem */
+/** Find the log file name for a subsystem.
+ * @param[in] subsys Subsystem name.
+ * @return Log file for the subsystem, or NULL if not being logged to a file.
+ */
 char *
 log_get_file(const char *subsys)
 {
@@ -667,7 +731,11 @@ log_get_file(const char *subsys)
   return desc->file ? desc->file->file : 0;
 }
 
-/* set the facility for a subsystem */
+/** Set the syslog facility for a particular subsystem.
+ * @param[in] subsys Subsystem name.
+ * @param[in] facility Facility name to log to.
+ * @return Zero on success; non-zero on error.
+ */
 int
 log_set_facility(const char *subsys, const char *facility)
 {
@@ -694,7 +762,10 @@ log_set_facility(const char *subsys, const char *facility)
   return 0;
 }
 
-/* get the facility for a subsystem */
+/** Find the facility name for a subsystem.
+ * @param[in] subsys Subsystem name.
+ * @return Facility name being used, or NULL if not being logged to syslog.
+ */
 char *
 log_get_facility(const char *subsys)
 {
@@ -708,7 +779,11 @@ log_get_facility(const char *subsys)
   return log_fac_name(desc->facility);
 }
 
-/* set the snomask value for a subsystem */
+/** Set the server notice mask for a subsystem.
+ * @param[in] subsys Subsystem name.
+ * @param[in] snomask Server notice mask name.
+ * @return Zero on success; non-zero on error.
+ */
 int
 log_set_snomask(const char *subsys, const char *snomask)
 {
@@ -735,7 +810,10 @@ log_set_snomask(const char *subsys, const char *snomask)
   return 0;
 }
 
-/* get the snomask value for a subsystem */
+/** Find the server notice mask name for a subsystem.
+ * @param[in] subsys Subsystem name.
+ * @return Name of server notice mask being used, or NULL if none.
+ */
 char *
 log_get_snomask(const char *subsys)
 {
@@ -749,7 +827,11 @@ log_get_snomask(const char *subsys)
   return log_sno_name(desc->snomask);
 }
 
-/* set the level for a subsystem */
+/** Set the verbosity level for a subystem.
+ * @param[in] subsys Subsystem name.
+ * @param[in] level Minimum log level.
+ * @return Zero on success; non-zero on error.
+ */
 int
 log_set_level(const char *subsys, const char *level)
 {
@@ -776,7 +858,10 @@ log_set_level(const char *subsys, const char *level)
   return 0;
 }
 
-/* get the level for a subsystem */
+/** Find the verbosity level for a subsystem.
+ * @param[in] subsys Subsystem name.
+ * @return Minimum verbosity level being used, or NULL on error.
+ */
 char *
 log_get_level(const char *subsys)
 {
@@ -790,7 +875,10 @@ log_get_level(const char *subsys)
   return log_lev_name(desc->level);
 }
 
-/* set the overall default syslog facility */
+/** Set the default syslog facility.
+ * @param[in] facility Syslog facility name.
+ * @return Zero on success, non-zero on error.
+ */
 int
 log_set_default(const char *facility)
 {
@@ -814,7 +902,9 @@ log_set_default(const char *facility)
   return 0;
 }
 
-/* get the overall default syslog facility */
+/** Find the default syslog facility name.
+ * @return Canonical name of default syslog facility, or NULL if none.
+ */
 char *
 log_get_default(void)
 {
@@ -822,7 +912,7 @@ log_get_default(void)
   return log_fac_name(logInfo.facility);
 }
 
-/* Clear the marks... */
+/** Clear all marks. */
 void
 log_feature_unmark(void)
 {
@@ -832,7 +922,9 @@ log_feature_unmark(void)
     logDesc[i].mark = 0;
 }
 
-/* Reset unmarked fields to defaults... */
+/** Reset unmodified fields in all log subsystems to their defaults.
+ * @param[in] flag If non-zero, clear default syslog facility.
+ */
 int
 log_feature_mark(int flag)
 {
@@ -863,7 +955,10 @@ log_feature_mark(int flag)
   return 0; /* we don't have a notify handler */
 }
 
-/* Report feature settings */
+/** Feature list callback to report log settings.
+ * @param[in] to Client requesting list.
+ * @param[in] flag If non-zero, report default syslog facility.
+ */
 void
 log_feature_report(struct Client *to, int flag)
 {

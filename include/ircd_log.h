@@ -14,9 +14,10 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *
- * $Id$
+ */
+/** @file
+ * @brief IRC logging interface.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_log_h
 #define INCLUDED_ircd_log_h
@@ -31,23 +32,36 @@ struct Client;
 /* WARNING WARNING WARNING -- Order is important; these enums are
  * used as indexes into arrays.
  */
-
+/** Level of a log message. */
 enum LogLevel {
-  L_CRIT,
-  L_ERROR,
-  L_WARNING,
-  L_NOTICE,
-  L_TRACE,
-  L_INFO,
-  L_DEBUG,
-  L_LAST_LEVEL
+  L_CRIT,      /**< Critical failure. */
+  L_ERROR,     /**< Serious error. */
+  L_WARNING,   /**< Recoverable warning. */
+  L_NOTICE,    /**< Important status messages. */
+  L_TRACE,     /**< Client exit and kill logging. */
+  L_INFO,      /**< Logging of other operator commands. */
+  L_DEBUG,     /**< Debug message output. */
+  L_LAST_LEVEL /**< Count of valid LogLevel values. */
 };
 
+/** Log systems. */
 enum LogSys {
-  LS_SYSTEM, LS_CONFIG, LS_OPERMODE, LS_GLINE, LS_JUPE, LS_WHO, LS_NETWORK,
-  LS_OPERKILL, LS_SERVKILL, LS_USER, LS_OPER, LS_RESOLVER, LS_SOCKET,
-  LS_DEBUG, LS_OLDLOG,
-  LS_LAST_SYSTEM
+  LS_SYSTEM,     /**< Operational status changes. */
+  LS_CONFIG,     /**< Configuration errors and warnings. */
+  LS_OPERMODE,   /**< Uses of OPMODE, CLEARMODE< etc. */
+  LS_GLINE,      /**< Adding, (de-)activating or removing GLINEs. */
+  LS_JUPE,       /**< Adding, (de-)activating or removing JUPEs. */
+  LS_WHO,        /**< Use of extended WHO privileges. */
+  LS_NETWORK,    /**< New server connections. */
+  LS_OPERKILL,   /**< Kills by IRC operators. */
+  LS_SERVKILL,   /**< Kills by servers. */
+  LS_USER,       /**< User exits. */
+  LS_OPER,       /**< Users becoming operators. */
+  LS_RESOLVER,   /**< DNS resolver errors. */
+  LS_SOCKET,     /**< Unexpected socket operation errors. */
+  LS_DEBUG,      /**< Debug messages. */
+  LS_OLDLOG,     /**< Old logging messages (no longer used). */
+  LS_LAST_SYSTEM /**< Count of valid LogSys values. */
 };
 
 extern void log_debug_init(int usetty);
@@ -66,10 +80,10 @@ extern void log_write_kill(const struct Client *victim,
 			   const char	       *path,
 			   const char	       *msg);
 
-#define LOG_NOSYSLOG	0x01
-#define LOG_NOFILELOG	0x02
-#define LOG_NOSNOTICE	0x04
-
+#define LOG_NOSYSLOG	0x01 /**< Do not send message to syslog. */
+#define LOG_NOFILELOG	0x02 /**< Do not send message to a log file. */
+#define LOG_NOSNOTICE	0x04 /**< Do not send message via server notice. */
+/** Bitmask of suppression flags for log_write() and log_vwrite(). */
 #define LOG_NOMASK	(LOG_NOSYSLOG | LOG_NOFILELOG | LOG_NOSNOTICE)
 
 extern char *log_canon(const char *subsys);
