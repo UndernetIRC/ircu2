@@ -15,6 +15,19 @@
 #include <sys/types.h>        /* size_t, time_t */
 #endif
 
+struct Daemon
+{
+  int          argc;
+  char**       argv;
+  pid_t        pid;
+  uid_t        uid;
+  uid_t        euid;
+  unsigned int bootopt;
+  int          running;
+  const char*  server_bin;
+  const char*  server_root;
+  const char*  server_log;
+};
 
 /*
  * Macros
@@ -30,16 +43,9 @@
 #define MAJOR_PROTOCOL  "10"
 #define BASE_VERSION    "u2.10"
 
-/* Flags for bootup options (command line flags) */
-
-#define BOOT_QUICK  1
-#define BOOT_DEBUG  2
-#define BOOT_TTY    4
-
 /*
  * Proto types
  */
-
 extern void server_die(const char* message);
 extern void server_restart(const char* message);
 
@@ -47,7 +53,6 @@ extern struct Client  me;
 extern time_t         CurrentTime;
 extern struct Client* GlobalClientList;
 extern time_t         TSoffset;
-extern unsigned int   bootopt;
 extern time_t         nextdnscheck;
 extern time_t         nextconnect;
 extern int            GlobalRehashFlag;      /* 1 if SIGHUP is received */

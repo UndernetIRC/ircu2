@@ -29,7 +29,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
-#include "s_bsd.h"    /* vserv */
+#include "s_bsd.h"    /* VirtualHost */
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"

@@ -1,3 +1,14 @@
+2000-03-29  Thomas Helvey <tomh@inxpress.net>
+	* ircd/ircd.c: refactor server initialization a bit, use
+	getopt for parsing command line, refactor init_sys, main,
+	and other bits.
+
+	* ircd/s_bsd.c: add functions for initialization to clean
+	up logic a bit and remove duplicated code.
+
+	* include/ircd.h: add struct for server process related
+	variables.
+
 2000-03-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: initial definition of mode_parse(); flags to
@@ -150,7 +161,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.40 2000-03-30 04:15:15 kev Exp $
+# $Id: ChangeLog,v 1.41 2000-03-30 08:07:48 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -78,7 +78,6 @@ struct Client*            LocalClientArray[MAXCONNECTIONS];
 int                       HighestFd = -1;
 struct sockaddr_in        VirtualHost;
 static char               readbuf[SERVER_TCP_WINDOW];
-static int                running_in_background;
 
 /*
  * report_error text constants
@@ -153,7 +152,7 @@ void report_error(const char* text, const char* who, int err)
   if (!errmsg)
     errmsg = "Unknown error"; 
 
-  if (!who)
+  if (EmptyString(who))
     who = "unknown";
 
   if (last_notice + 20 < CurrentTime) {
@@ -163,13 +162,7 @@ void report_error(const char* text, const char* who, int err)
     sendto_ops(text, who, errmsg);
     last_notice = CurrentTime;
   }
-
   ircd_log(L_ERROR, text, who, errmsg);
-
-  if (!running_in_background) {
-    fprintf(stderr, text, who, errmsg);
-    fprintf(stderr, "\n");
-  }
   errno = errtmp;
 }
 
@@ -192,6 +185,40 @@ static void connect_dns_callback(void* vptr, struct DNSReply* reply)
     sendto_ops("Connect to %s failed: host lookup", aconf->name);
 }
 
+/*
+ * close_connections - closes all connections
+ * close stderr if specified
+ */
+void close_connections(int close_stderr)
+{
+  int i;
+  close(0);
+  close(1);
+  if (close_stderr)
+    close(2);
+  for (i = 3; i < MAXCONNECTIONS; ++i)
+    close(i);
+}
+
+/*
+ * init_connection_limits - initialize process fd limit to
+ * MAXCONNECTIONS
+ */
+int init_connection_limits(void)
+{
+  int limit = os_set_fdlimit(MAXCONNECTIONS);
+  if (0 == limit)
+    return 1;
+  if (limit < 0) {
+    fprintf(stderr, "error setting max fd's to %d\n", limit);
+  }
+  else if (limit > 0) {
+    fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n",
+            limit, MAXCONNECTIONS);
+    fprintf(stderr, "set MAXCONNECTIONS to a smaller value");
+  }
+  return 0;
+}
 
 /*
  * connect_inet - set up address and port and make a connection
@@ -329,55 +356,6 @@ unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len)
   return bytes_written;
 }
 
-/*
- * init_sys
- */
-void init_sys(void)
-{
-  int fd;
-  int limit = os_set_fdlimit(MAXCONNECTIONS);
-  if (limit < 0) {
-    fprintf(stderr, "error setting max fd's to %d\n", limit);
-    exit(2);
-  }
-  else if (limit > 0) {
-    fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n",
-            limit, MAXCONNECTIONS);
-    fprintf(stderr, "set MAXCONNECTIONS to a smaller value");
-    exit(2);
-  }
-
-  for (fd = 3; fd < MAXCONNECTIONS; ++fd)
-  {
-    close(fd);
-    LocalClientArray[fd] = NULL;
-  }
-  LocalClientArray[2] = 0;
-  LocalClientArray[1] = 0;
-  LocalClientArray[0] = 0;
-  close(1);
-  close(0);
-
-  if (bootopt & BOOT_TTY) {
-    /* debugging is going to a tty */
-    init_resolver();
-    return;
-  }
-  if (!(bootopt & BOOT_DEBUG))
-    close(2);
-
-  if (fork())
-    exit(0);
-  running_in_background = 1;
-#ifdef TIOCNOTTY
-  if ((fd = open("/dev/tty", O_RDWR)) > -1) {
-    ioctl(fd, TIOCNOTTY, 0);
-    close(fd);
-  }
-#endif
-  setsid();
-  init_resolver();
-}
 
 void release_dns_reply(struct Client* cptr)
 {
