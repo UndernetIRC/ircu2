@@ -334,6 +334,9 @@ struct Client;
 #define MSG_GET			"GET"		/* GET */
 #define TOK_GET			"GET"
 
+#define MSG_PRIVS		"PRIVS"		/* PRIV */
+#define TOK_PRIVS		"PRIVS"
+
 /*
  * Constants
  */

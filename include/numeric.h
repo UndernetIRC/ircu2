@@ -144,7 +144,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_START_NETSTAT    267           aircd */
 /*      RPL_NETSTAT          268           aircd */
 /*      RPL_END_NETSTAT      269           aircd */
-
+#define RPL_PRIVS            270	/* Undernet extension - privs */
 #define RPL_SILELIST         271        /* Undernet extension */
 #define RPL_ENDOFSILELIST    272        /* Undernet extension */
 /*      RPL_NOTIFY           273           aircd */

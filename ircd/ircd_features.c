@@ -207,10 +207,12 @@ static struct FeatureDesc {
 #define F(type, flags, v_int, v_str, set, reset, get, unmark, mark, report)   \
   { FEAT_ ## type, #type, (flags), 0, (v_int), 0, (v_str),		      \
     (set), (reset), (get), (unmark), (mark), (report) }
-#define F_I(type, v_int)						      \
-  { FEAT_ ## type, #type, FEAT_INT, 0, (v_int), 0, 0, 0, 0, 0, 0, 0, 0 }
-#define F_B(type, v_int)						      \
-  { FEAT_ ## type, #type, FEAT_BOOL, 0, (v_int), 0, 0, 0, 0, 0, 0, 0, 0 }
+#define F_I(type, flags, v_int)						      \
+  { FEAT_ ## type, #type, FEAT_INT | (flags), 0, (v_int), 0, 0,		      \
+    0, 0, 0, 0, 0, 0 }
+#define F_B(type, flags, v_int)						      \
+  { FEAT_ ## type, #type, FEAT_BOOL | (flags), 0, (v_int), 0, 0,	      \
+    0, 0, 0, 0, 0, 0 }
 #define F_S(type, flags, v_int)						      \
   { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
     0, 0, 0, 0, 0, 0 }
@@ -219,41 +221,43 @@ static struct FeatureDesc {
     feature_log_set, feature_log_reset, feature_log_get,
     log_feature_unmark, log_feature_mark, log_feature_report),
 
-  F_B(OPER_NO_CHAN_LIMIT, 1),
-  F_B(OPER_MODE_LCHAN, 1),
-  F_B(OPER_WALK_THROUGH_LMODES, 0),
-  F_B(NO_OPER_DEOP_LCHAN, 0),
-  F_B(SHOW_INVISIBLE_USERS, 1),
-  F_B(SHOW_ALL_INVISIBLE_USERS, 1),
-  F_B(UNLIMIT_OPER_QUERY, 0),
-  F_B(LOCAL_KILL_ONLY, 0),
-  F_B(TOS_SERVER,0x08),
-  F_B(TOS_CLIENT,0x08),
-  F_B(CONFIG_OPERCMDS, 1), /* XXX change default before release */
+  F_B(OPER_NO_CHAN_LIMIT, 0, 1),
+  F_B(OPER_MODE_LCHAN, 0, 1),
+  F_B(OPER_WALK_THROUGH_LMODES, 0, 0),
+  F_B(NO_OPER_DEOP_LCHAN, 0, 0),
+  F_B(SHOW_INVISIBLE_USERS, 0, 1),
+  F_B(SHOW_ALL_INVISIBLE_USERS, 0, 1),
+  F_B(UNLIMIT_OPER_QUERY, 0, 0),
+  F_B(LOCAL_KILL_ONLY, 0, 0),
+  F_I(TOS_SERVER, 0, 0x08),
+  F_I(TOS_CLIENT, 0, 0x08),
+  F_B(CONFIG_OPERCMDS, 0, 1), /* XXX change default before release */
 
-  F_B(OPER_KILL, 1),
-  F_B(OPER_REHASH, 1),
-  F_B(OPER_RESTART, 1),
-  F_B(OPER_DIE, 1),
-  F_B(OPER_GLINE, 1),
-  F_B(OPER_LGLINE, 1),
-  F_B(OPER_JUPE, 1),
-  F_B(OPER_LJUPE, 1),
-  F_B(OPER_OPMODE, 1),
-  F_B(OPER_LOPMODE, 1),
-  F_B(OPER_BADCHAN, 0),
-  F_B(OPER_LBADCHAN, 0),
-  F_B(OPERS_SEE_IN_SECRET_CHANNELS, 1),
+  F_B(OPER_KILL, 0, 1),
+  F_B(OPER_REHASH, 0, 1),
+  F_B(OPER_RESTART, 0, 1),
+  F_B(OPER_DIE, 0, 1),
+  F_B(OPER_GLINE, 0, 1),
+  F_B(OPER_LGLINE, 0, 1),
+  F_B(OPER_JUPE, 0, 1),
+  F_B(OPER_LJUPE, 0, 1),
+  F_B(OPER_OPMODE, 0, 1),
+  F_B(OPER_LOPMODE, 0, 1),
+  F_B(OPER_BADCHAN, 0, 0),
+  F_B(OPER_LBADCHAN, 0, 0),
+  F_B(OPER_SET, 0, 1),
+  F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1),
 
-  F_B(LOCOP_KILL, 0),
-  F_B(LOCOP_REHASH, 1),
-  F_B(LOCOP_RESTART, 0),
-  F_B(LOCOP_DIE, 0),
-  F_B(LOCOP_LGLINE, 1),
-  F_B(LOCOP_LJUPE, 1),
-  F_B(LOCOP_LOPMODE, 1),
-  F_B(LOCOP_LBADCHAN, 0),
-  F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0),
+  F_B(LOCOP_KILL, 0, 0),
+  F_B(LOCOP_REHASH, 0, 1),
+  F_B(LOCOP_RESTART, 0, 0),
+  F_B(LOCOP_DIE, 0, 0),
+  F_B(LOCOP_LGLINE, 0, 1),
+  F_B(LOCOP_LJUPE, 0, 1),
+  F_B(LOCOP_LOPMODE, 0, 1),
+  F_B(LOCOP_LBADCHAN, 0, 0),
+  F_B(LOCOP_SET, 0, 0),
+  F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0),
 
 #undef F_S
 #undef F_B
@@ -324,13 +328,15 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	  feat->v_int = feat->def_int;
 	  feat->flags &= ~FEAT_MARK;
 	} else { /* figure out the value and whether to mark it */
-	  if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])))
+	  if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
+	      !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
+	      (strlen(fields[1]) >= 2 &&
+	       !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
 	    feat->v_int = 1;
-	  else if (!ircd_strncmp(fields[1], "YES", strlen(fields[1])))
-	    feat->v_int = 1;
-	  else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])))
-	    feat->v_int = 0;
-	  else if (!ircd_strncmp(fields[1], "NO", strlen(fields[1])))
+	  else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
+		   !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
+		   (strlen(fields[1]) >= 2 &&
+		    !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
 	    feat->v_int = 0;
 	  else if (from) /* report an error... */
 	    return send_reply(from, ERR_BADFEATVALUE, fields[1], feat->type);
