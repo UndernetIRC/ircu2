@@ -1018,7 +1018,8 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
      a HACK(4) notice will be sent if he would not have been supposed
      to join normally. */ 
   if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_WALK_LCHAN) &&
-      !BadPtr(key) && compall("OVERRIDE",key) == 0)
+      !BadPtr(key) && compall("OVERRIDE",key) == 0
+      && compall("OVERRIDE",chptr->mode.key) != 0)
     overrideJoin = MAGIC_OPER_OVERRIDE;
 
   if (chptr->mode.mode & MODE_INVITEONLY)

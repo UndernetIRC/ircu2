@@ -196,7 +196,7 @@ stats_klines(struct Client* sptr, struct StatDesc* sd, int stat, char* mask)
   char* host;
   const struct DenyConf* conf;
 
-  if (!IsOper(sptr))
+  if (!IsAnOper(sptr))
     limit_query = 1;
 
   if (!mask) {

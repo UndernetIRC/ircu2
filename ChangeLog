@@ -1,3 +1,13 @@
+2002-11-19  Perry Lorier <isomer@undernet.org>
+	* ircd/m_join.c: Make the protocol violation warning more verbose
+
+	* ircd/m_channel.c: OUTsiders OVERRIDE overly-noisy join patch.
+
+	* ircd/m_join.c: OUTsiders OVERRIDE +r patch.
+
+	* ircd/s_stats.c: fixed a little bug to allow local opers to get a
+	complete /stats k reply.  -- Spike
+	
 2002-10-30  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_whois.c (do_whois): reply real host to the user himself,

@@ -246,6 +246,14 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  case ERR_BADCHANNELKEY:
 	    i = 'k';
 	    break;
+
+	  case ERR_NEEDREGGEDNICK:
+	    i = 'r';
+	    break;
+
+	  default:
+	    i = '?';
+	    break;
 	  }
 
 	  /* send accountability notice */
@@ -299,7 +307,11 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *name;
 
   if (IsServer(sptr)) {
-    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", cli_name(sptr));
+    return protocol_violation(sptr,
+	"%s tried to JOIN %s, duh!",
+	cli_name(sptr),
+	(parc < 2 || *parv[1] == '\0') ? "a channel":argv[1]
+	);
   }
 
   if (parc < 2 || *parv[1] == '\0')
