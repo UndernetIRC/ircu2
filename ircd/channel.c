@@ -381,7 +381,7 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.who);
     strcpy(ban->value.ban.who, cptr->name);
 
-    ban->value.ban.when = CurrentTime;
+    ban->value.ban.when = TStime();
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */
     if ((ip_start = strrchr(banid, '@')) && check_if_ipmask(ip_start + 1))
       ban->flags |= CHFL_BAN_IPMASK;
@@ -3386,7 +3386,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
 
     DupString(newban->value.ban.banstr, t_str);
     newban->value.ban.who = state->sptr->name;
-    newban->value.ban.when = CurrentTime;
+    newban->value.ban.when = TStime();
 
     newban->flags = CHFL_BAN | MODE_ADD;
 

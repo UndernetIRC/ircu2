@@ -1,3 +1,7 @@
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/channel.c: Bans had CurrentTime in their when field instead
+	of TStime()
+
 2000-03-31  Thomas Helvey <tomh@ixpress.net>
 	* ircd/numnicks.c (SetXYYCapacity): fix for extended
 	numerics.
@@ -263,7 +267,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.51 2000-04-01 05:09:14 bleep Exp $
+# $Id: ChangeLog,v 1.52 2000-04-01 05:22:33 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
