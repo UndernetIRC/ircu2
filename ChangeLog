@@ -1,3 +1,6 @@
+2003-11-23 Spike <spike@undernet.org>
+	* ircd/IPcheck.c: Make IPcheck constants configurable
+
 2003-11-18 Isomer <isomer@undernet.org>
 	* ircd/gline.c: Fix broken test that causes core dumps on realname
 	glines.

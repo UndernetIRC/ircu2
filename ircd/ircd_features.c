@@ -274,6 +274,9 @@ static struct FeatureDesc {
   F_I(GLINEMAXUSERCOUNT, 0, 20, 0),
   F_I(SOCKSENDBUF, 0, 61440, 0),
   F_I(SOCKRECVBUF, 0, 61440, 0),
+  F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
+  F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
+  F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
   
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),

@@ -486,6 +486,34 @@ This is the maximum number of seconds to wait for the ident lookup and
 the DNS query to succeed.  On older (pre 2.10.11.06) servers this was
 hard coded to 60 seconds.
 
+IPCHECK_CLONE_LIMIT
+ * Type: integer
+ * Default: 4
+
+The number of times you are allowed to connect within IPCHECK_CLONE_PERIOD
+seconds before you are considered abusing the server and throttled.
+
+IPCHECK_CLONE_PERIOD
+ * Type: integer
+ * Defualt: 40
+
+The number of seconds you are allowed to connect IPCHECK_CLONE_LIMIT times
+within before you are considered abusing the server and throttled.  
+For instance if you set IPCHECK_CLONE_LIMIT to 1, and IPCHECK_CLONE_PERIOD
+to 10, then a user is only allowed to connect once in 10s, if they connect
+again within 10s, then they are considered to be connecting too fast and
+they are throttled.
+
+IPCHECK_CLONE_DELAY
+ * Type: integer
+ * Default: 600
+
+The number of seconds grace after restarting the server before the throttle
+code kicks in.  Even if a user connects repeditively during this period, 
+they will never get throttled.  This is so after a restart users on a 
+multiuser box can all connect to a server simultaniously without being 
+considered an attack.
+
 CRYPT_OPER_PASSWORD
  * Type: boolean
  * Default: TRUE
