@@ -608,6 +608,16 @@ void add_connection(struct Listener* listener, int fd) {
     close(fd);
     return;
   }
+  /*
+   * Disable IP (*not* TCP) options.  In particular, this makes it impossible
+   * to use source routing to connect to the server.  If we didn't do this
+   * (and if intermediate networks didn't drop source-routed packets), an
+   * attacker could successfully IP spoof us...and even return the anti-spoof
+   * ping, because the options would cause the packet to be routed back to
+   * the spoofer's machine.  When we disable the IP options, we delete the
+   * source route, and the normal routing takes over.
+   */
+  os_disable_options(fd);
 
   /*
    * Add this local client to the IPcheck registry.

@@ -1,3 +1,10 @@
+2001-07-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: disable IP (*not* TCP) options to prevent
+	source-routed spoofing attacks; this is only available under
+	u2.10.11, so don't even bother, since no one but testers are using
+	the source base
+
 2001-07-25  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/ircd_policy.h: enable HEAD_IN_SAND_REMOTE by default
