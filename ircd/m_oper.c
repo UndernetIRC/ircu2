@@ -84,6 +84,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -105,6 +106,8 @@
 
 int oper_password_match(const char* to_match, const char* passwd)
 {
+  char *crypted;
+  int res;
   /*
    * use first two chars of the password they send in as salt
    *
@@ -116,12 +119,13 @@ int oper_password_match(const char* to_match, const char* passwd)
   /* we no longer do a CRYPT_OPER_PASSWORD check because a clear 
      text passwords just handled by a fallback mechanism called 
      crypt_clear if it's enabled -- hikari */
-  to_match = ircd_crypt(to_match, passwd);
+  crypted = ircd_crypt(to_match, passwd);
 
   if (to_match == NULL)
    return 0;
-  else
-   return (0 == strcmp(to_match, passwd));
+  res = strcmp(crypted, passwd);
+  MyFree(crypted);
+  return 0 == res;
 }
 
 /*

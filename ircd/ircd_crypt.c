@@ -121,13 +121,13 @@ return 0;
 /** Wrapper for generating a hashed password passed on the supplied password
  * @param key Pointer to the password we want crypted
  * @param salt Pointer to the password we're comparing to (for the salt)
- * @return Pointer to the generated password.
- *  
+ * @return Pointer to the generated password (must be MyFree()'d).
+ *
  * This is a wrapper function which attempts to establish the password
- * format and funnel it off to the correct mechanism handler function.  The 
+ * format and funnel it off to the correct mechanism handler function.  The
  * returned password is compared in the oper_password_match() routine.
 */
-const char* ircd_crypt(const char* key, const char* salt)
+char* ircd_crypt(const char* key, const char* salt)
 {
 char *hashed_pass = NULL;
 const char *temp_hashed_pass, *mysalt;

@@ -83,7 +83,8 @@ static void to64(char *s, unsigned long v, int n)
 const char* ircd_crypt_smd5(const char* key, const char* salt)
 {
 const char *magic = "$1$";
-char *passwd, *p;
+static char passwd[120];
+char *p;
 const char *sp, *ep;
 unsigned char final[16];
 int sl, pl, i, j;
@@ -98,11 +99,6 @@ unsigned long l;
 
  /* Refine the Salt first */
  ep = sp = salt;
-
- if(NULL == (passwd = (char *)MyMalloc(120)))
-  return NULL;
-
- memset(passwd, 0, 120);
 
  for (ep = sp; *ep && *ep != '$' && ep < (sp + 8); ep++)
   continue;
@@ -140,9 +136,8 @@ unsigned long l;
   else
    MD5Update(&ctx, (unsigned const char *)key+j, 1);
 
- /* Now make the output string
- strcpy(passwd, magic);
- strncat(passwd, sp, sl); */
+ /* Now make the output string. */
+ memset(passwd, 0, 120);
  strncpy(passwd, sp, sl);
  strcat(passwd, "$");
 

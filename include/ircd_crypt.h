@@ -59,7 +59,7 @@ struct crypt_mechs_s {
 
 /* exported functions */
 extern void ircd_crypt_init(void);
-extern const char* ircd_crypt(const char* key, const char* salt);
+extern char* ircd_crypt(const char* key, const char* salt);
 extern int ircd_crypt_register_mech(crypt_mech_t* mechanism);
 extern int ircd_crypt_unregister_mech(crypt_mech_t* mechanism);
 

@@ -314,6 +314,7 @@ engine_loop(struct Generators *gen)
     }
     timer_run();
   }
+  MyFree(events);
 }
 
 /** Descriptor for dpoll event engine. */

@@ -1,5 +1,20 @@
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_crypt.h (ircd_crypt): This should return char*, not
+	const char*, since it does not own the returned pointer.
+
+	* ircd/ircd_crypt.c (ircd_crypt): Change return type.
+
+	* ircd/ircd_crypt_smd5.c (irc_crypt_smd5): Make passwd a static
+	field since it is returned but this function must own the buffer.
+
+	* ircd/m_oper.c (oper_password_match): Free the string returned by
+	ircd_crypt().
+
+	* ircd/engine_epoll.c (engine_loop): Fix a memory leak.
+
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
 	* acinclude.m4: Look for a 64-bit integer type.
 
 	* configure.in: Look for inttypes.h, since some systems have that
