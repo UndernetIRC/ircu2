@@ -240,10 +240,13 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           nmember = member->next_member;
           if (!MyUser(member->user) || IsZombie(member))
             continue;
-          /* Kick as netrider if key mismatch *or* remote channel is +i
-           * *or* remote channel is +r and user has no account.
+          /* Kick as netrider if key mismatch *or* remote channel is
+           * +i (unless user is an oper) *or* remote channel is +r
+           * (unless user has an account).
            */
-          if ((check_modes == MODE_REGONLY) && IsAccount(member->user))
+          if (!(check_modes & MODE_KEY)
+              && (!(check_modes & MODE_INVITEONLY) || IsAnOper(member->user))
+              && (!(check_modes & MODE_REGONLY) || IsAccount(member->user)))
             continue;
           sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
           sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, 0, "%H %C :Net Rider", chptr, member->user);
