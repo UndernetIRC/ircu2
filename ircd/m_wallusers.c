@@ -92,26 +92,33 @@
 #include "ircd_string.h"
 #include "numeric.h"
 #include "send.h"
+#include "msg.h"
+#include "s_bsd.h"
+#include "numnicks.h"
+#include "struct.h"
 
 #include <assert.h>
-
 
 /*
  * ms_wallusers - server message handler
  */
 int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *message;
-
-  message = parc > 1 ? parv[1] : 0;
-
+  char* message = parc > 1 ? parv[parc - 1] : 0;
+  int i;
+  struct Client* acptr;
   /*
    * XXX - PROTOCOL ERROR (shouldn't happen)
    */
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
-
-  sendto_ops_butone(cptr, sptr, 0, ":%s WALLUSERS :%s", parv[0], message);
+  
+  sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :%s", parv[0], parv[parc - 1]);
+  for (i = 0; i <= HighestFd; ++i) {
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && SendWallops(acptr))
+      sendbufto_one(acptr);
+  }
+  sendto_serv_butone(cptr, "%s%s " TOK_WALLUSERS " :%s", NumNick(sptr), parv[parc - 1]);
   return 0;
 }
 
@@ -120,14 +127,19 @@ int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[
  */
 int mo_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *message;
-
-  message = parc > 1 ? parv[1] : 0;
+  char* message = parc > 1 ? parv[parc - 1] : 0;
+  int i;
+  struct Client* acptr;
 
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
-
-  sendto_ops_butone(0, sptr, 0, ":%s WALLUSERS :%s", parv[0], message);
+  
+  sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :%s", parv[0], parv[parc - 1]);
+  for (i = 0; i <= HighestFd; ++i) {
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && SendWallops(acptr))
+      sendbufto_one(acptr);
+  }
+  sendto_serv_butone(cptr, "%s%s " TOK_WALLUSERS " :%s", NumNick(sptr), parv[parc - 1]);
   return 0;
 }
 

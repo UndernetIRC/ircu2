@@ -828,38 +828,6 @@ void sendto_ops(const char *pattern, ...)
 }
 
 /*
- * sendto_ops_butone
- *
- * Send message to all operators.
- * one - client not to send message to
- * from- client which message is from *NEVER* NULL!!
- */
-void sendto_ops_butone(struct Client *one, struct Client *from, int oper_only, const char *pattern, ...)
-{
-  va_list vl;
-  int i;
-  struct Client *cptr;
-
-  va_start(vl, pattern);
-  ++sentalong_marker;
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next)
-  {
-    if (!SendWallops(cptr) || (oper_only && !IsAnOper(cptr)))
-      continue;
-    i = cptr->from->fd;         /* find connection oper is on */
-    if (i < 0 || sentalong[i] == sentalong_marker)       /* sent message along it already ? */
-      continue;
-    if (cptr->from == one)
-      continue;                 /* ...was the one I should skip */
-    sentalong[i] = sentalong_marker;
-    vsendto_prefix_one(cptr->from, from, pattern, vl);
-  }
-  va_end(vl);
-
-  return;
-}
-
-/*
  * sendto_g_serv_butone
  *
  * Send message to all remote +g users (server links).
