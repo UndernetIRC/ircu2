@@ -24,7 +24,7 @@
 
 #include <assert.h>
 
-static Numeric local_replies[] = {
+static Numeric replyTable[] = {
 /* 000 */
   { 0 },
 /* 001 */
@@ -65,10 +65,778 @@ static Numeric local_replies[] = {
   { RPL_MAPMORE, ":%s%s --> *more*", "016" },
 /* 017 */
   { RPL_MAPEND, ":End of /MAP", "017" },
-  { 0 }
-};
-
-static Numeric numeric_errors[] = {
+/* 018 */
+  { 0 },
+/* 019 */
+  { 0 },
+/* 020 */
+  { 0 },
+/* 021 */
+  { 0 },
+/* 022 */
+  { 0 },
+/* 023 */
+  { 0 },
+/* 024 */
+  { 0 },
+/* 025 */
+  { 0 },
+/* 026 */
+  { 0 },
+/* 027 */
+  { 0 },
+/* 028 */
+  { 0 },
+/* 029 */
+  { 0 },
+/* 030 */
+  { 0 },
+/* 031 */
+  { 0 },
+/* 032 */
+  { 0 },
+/* 033 */
+  { 0 },
+/* 034 */
+  { 0 },
+/* 035 */
+  { 0 },
+/* 036 */
+  { 0 },
+/* 037 */
+  { 0 },
+/* 038 */
+  { 0 },
+/* 039 */
+  { 0 },
+/* 040 */
+  { 0 },
+/* 041 */
+  { 0 },
+/* 042 */
+  { 0 },
+/* 043 */
+  { 0 },
+/* 044 */
+  { 0 },
+/* 045 */
+  { 0 },
+/* 046 */
+  { 0 },
+/* 047 */
+  { 0 },
+/* 048 */
+  { 0 },
+/* 049 */
+  { 0 },
+/* 050 */
+  { 0 },
+/* 051 */
+  { 0 },
+/* 052 */
+  { 0 },
+/* 053 */
+  { 0 },
+/* 054 */
+  { 0 },
+/* 055 */
+  { 0 },
+/* 056 */
+  { 0 },
+/* 057 */
+  { 0 },
+/* 058 */
+  { 0 },
+/* 059 */
+  { 0 },
+/* 060 */
+  { 0 },
+/* 061 */
+  { 0 },
+/* 062 */
+  { 0 },
+/* 063 */
+  { 0 },
+/* 064 */
+  { 0 },
+/* 065 */
+  { 0 },
+/* 066 */
+  { 0 },
+/* 067 */
+  { 0 },
+/* 068 */
+  { 0 },
+/* 069 */
+  { 0 },
+/* 070 */
+  { 0 },
+/* 071 */
+  { 0 },
+/* 072 */
+  { 0 },
+/* 073 */
+  { 0 },
+/* 074 */
+  { 0 },
+/* 075 */
+  { 0 },
+/* 076 */
+  { 0 },
+/* 077 */
+  { 0 },
+/* 078 */
+  { 0 },
+/* 079 */
+  { 0 },
+/* 080 */
+  { 0 },
+/* 081 */
+  { 0 },
+/* 082 */
+  { 0 },
+/* 083 */
+  { 0 },
+/* 084 */
+  { 0 },
+/* 085 */
+  { 0 },
+/* 086 */
+  { 0 },
+/* 087 */
+  { 0 },
+/* 088 */
+  { 0 },
+/* 089 */
+  { 0 },
+/* 090 */
+  { 0 },
+/* 091 */
+  { 0 },
+/* 092 */
+  { 0 },
+/* 093 */
+  { 0 },
+/* 094 */
+  { 0 },
+/* 095 */
+  { 0 },
+/* 096 */
+  { 0 },
+/* 097 */
+  { 0 },
+/* 098 */
+  { 0 },
+/* 099 */
+  { 0 },
+/* 100 */
+  { 0 },
+/* 101 */
+  { 0 },
+/* 102 */
+  { 0 },
+/* 103 */
+  { 0 },
+/* 104 */
+  { 0 },
+/* 105 */
+  { 0 },
+/* 106 */
+  { 0 },
+/* 107 */
+  { 0 },
+/* 108 */
+  { 0 },
+/* 109 */
+  { 0 },
+/* 110 */
+  { 0 },
+/* 111 */
+  { 0 },
+/* 112 */
+  { 0 },
+/* 113 */
+  { 0 },
+/* 114 */
+  { 0 },
+/* 115 */
+  { 0 },
+/* 116 */
+  { 0 },
+/* 117 */
+  { 0 },
+/* 118 */
+  { 0 },
+/* 119 */
+  { 0 },
+/* 120 */
+  { 0 },
+/* 121 */
+  { 0 },
+/* 122 */
+  { 0 },
+/* 123 */
+  { 0 },
+/* 124 */
+  { 0 },
+/* 125 */
+  { 0 },
+/* 126 */
+  { 0 },
+/* 127 */
+  { 0 },
+/* 128 */
+  { 0 },
+/* 129 */
+  { 0 },
+/* 130 */
+  { 0 },
+/* 131 */
+  { 0 },
+/* 132 */
+  { 0 },
+/* 133 */
+  { 0 },
+/* 134 */
+  { 0 },
+/* 135 */
+  { 0 },
+/* 136 */
+  { 0 },
+/* 137 */
+  { 0 },
+/* 138 */
+  { 0 },
+/* 139 */
+  { 0 },
+/* 140 */
+  { 0 },
+/* 141 */
+  { 0 },
+/* 142 */
+  { 0 },
+/* 143 */
+  { 0 },
+/* 144 */
+  { 0 },
+/* 145 */
+  { 0 },
+/* 146 */
+  { 0 },
+/* 147 */
+  { 0 },
+/* 148 */
+  { 0 },
+/* 149 */
+  { 0 },
+/* 150 */
+  { 0 },
+/* 151 */
+  { 0 },
+/* 152 */
+  { 0 },
+/* 153 */
+  { 0 },
+/* 154 */
+  { 0 },
+/* 155 */
+  { 0 },
+/* 156 */
+  { 0 },
+/* 157 */
+  { 0 },
+/* 158 */
+  { 0 },
+/* 159 */
+  { 0 },
+/* 160 */
+  { 0 },
+/* 161 */
+  { 0 },
+/* 162 */
+  { 0 },
+/* 163 */
+  { 0 },
+/* 164 */
+  { 0 },
+/* 165 */
+  { 0 },
+/* 166 */
+  { 0 },
+/* 167 */
+  { 0 },
+/* 168 */
+  { 0 },
+/* 169 */
+  { 0 },
+/* 170 */
+  { 0 },
+/* 171 */
+  { 0 },
+/* 172 */
+  { 0 },
+/* 173 */
+  { 0 },
+/* 174 */
+  { 0 },
+/* 175 */
+  { 0 },
+/* 176 */
+  { 0 },
+/* 177 */
+  { 0 },
+/* 178 */
+  { 0 },
+/* 179 */
+  { 0 },
+/* 180 */
+  { 0 },
+/* 181 */
+  { 0 },
+/* 182 */
+  { 0 },
+/* 183 */
+  { 0 },
+/* 184 */
+  { 0 },
+/* 185 */
+  { 0 },
+/* 186 */
+  { 0 },
+/* 187 */
+  { 0 },
+/* 188 */
+  { 0 },
+/* 189 */
+  { 0 },
+/* 190 */
+  { 0 },
+/* 191 */
+  { 0 },
+/* 192 */
+  { 0 },
+/* 193 */
+  { 0 },
+/* 194 */
+  { 0 },
+/* 195 */
+  { 0 },
+/* 196 */
+  { 0 },
+/* 197 */
+  { 0 },
+/* 198 */
+  { 0 },
+/* 199 */
+  { 0 },
+/* 200 */
+#ifndef GODMODE
+  { RPL_TRACELINK, "Link %s%s %s %s", "200" },
+#else /* GODMODE */
+  { RPL_TRACELINK, "Link %s%s %s %s " TIME_T_FMT, "200" },
+#endif /* GODMODE */
+/* 201 */
+  { RPL_TRACECONNECTING, "Try. %d %s", "201" },
+/* 202 */
+  { RPL_TRACEHANDSHAKE, "H.S. %d %s", "202" },
+/* 203 */
+  { RPL_TRACEUNKNOWN, "???? %d %s", "203" },
+/* 204 */
+  { RPL_TRACEOPERATOR, "Oper %d %s %ld", "204" },
+/* 205 */
+  { RPL_TRACEUSER, "User %d %s %ld", "205" },
+/* 206 */
+  { RPL_TRACESERVER, "Serv %d %dS %dC %s %s!%s@%s %ld %ld", "206" },
+/* 207 */
+  { 0 },
+/* 208 */
+  { RPL_TRACENEWTYPE, "<newtype> 0 %s", "208" },
+/* 209 */
+  { RPL_TRACECLASS, "Class %d %d", "209" },
+/* 210 */
+  { 0 },
+/* 211 */
+  { RPL_STATSLINKINFO, 0, "211" },
+/* 212 */
+  { RPL_STATSCOMMANDS, "%s %u %u", "212" },
+/* 213 */
+  { RPL_STATSCLINE, "%c %s * %s %d %d", "213" },
+/* 214 */
+  { RPL_STATSNLINE, "%c %s * %s %d %d", "214" },
+/* 215 */
+  { RPL_STATSILINE, "%c %s * %s %d %d", "215" },
+/* 216 */
+  { RPL_STATSKLINE, "%c %s %s %s %d %d", "216" },
+/* 217 */
+  { RPL_STATSPLINE, "P %d %d %s %s", "217" },
+/* 218 */
+  { RPL_STATSYLINE, "%c %d %d %d %d %ld", "218" },
+/* 219 */
+  { RPL_ENDOFSTATS, "%c :End of /STATS report", "219" },
+/* 220 */
+  { 0 },
+/* 221 */
+  { RPL_UMODEIS, "%s", "221" },
+/* 222 */
+  { 0 },
+/* 223 */
+  { 0 },
+/* 224 */
+  { 0 },
+/* 225 */
+  { 0 },
+/* 226 */
+  { 0 },
+/* 227 */
+  { 0 },
+/* 228 */
+  { 0 },
+/* 229 */
+  { 0 },
+/* 230 */
+  { 0 },
+/* 231 */
+  { RPL_SERVICEINFO, 0, "231" },
+/* 232 */
+  { RPL_ENDOFSERVICES, 0, "232" },
+/* 233 */
+  { RPL_SERVICE, 0, "233" },
+/* 234 */
+  { RPL_SERVLIST, 0, "234" },
+/* 235 */
+  { RPL_SERVLISTEND, 0, "235" },
+/* 236 */
+  { 0 },
+/* 237 */
+  { 0 },
+/* 238 */
+  { 0 },
+/* 239 */
+  { 0 },
+/* 240 */
+  { 0 },
+/* 241 */
+  { RPL_STATSLLINE, "%c %s * %s %d %d", "241" },
+/* 242 */
+  { RPL_STATSUPTIME, ":Server Up %d days, %d:%02d:%02d", "242" },
+/* 243 */
+  { RPL_STATSOLINE, "%c %s * %s %d %d", "243" },
+/* 244 */
+  { RPL_STATSHLINE, "%c %s * %s %d %d", "244" },
+/* 245 */
+  { 0 },
+/* 246 */
+  { RPL_STATSTLINE, "%c %s %s", "246" },
+/* 247 */
+  { RPL_STATSGLINE, "%c %s@%s " TIME_T_FMT " :%s", "247" },
+/* 248 */
+  { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
+/* 249 */
+  { 0 },
+/* 250 */
+  { RPL_STATSCONN, ":Highest connection count: %d (%d clients)", "250" },
+/* 251 */
+  { RPL_LUSERCLIENT, ":There are %d users and %d invisible on %d servers", "251" },
+/* 252 */
+  { RPL_LUSEROP, "%d :operator(s) online", "252" },
+/* 253 */
+  { RPL_LUSERUNKNOWN, "%d :unknown connection(s)", "253" },
+/* 254 */
+  { RPL_LUSERCHANNELS, "%d :channels formed", "254" },
+/* 255 */
+  { RPL_LUSERME, ":I have %d clients and %d servers", "255" },
+/* 256 */
+  { RPL_ADMINME, ":Administrative info about %s", "256" },
+/* 257 */
+  { RPL_ADMINLOC1, ":%s", "257" },
+/* 258 */
+  { RPL_ADMINLOC2, ":%s", "258" },
+/* 259 */
+  { RPL_ADMINEMAIL, ":%s", "259" },
+/* 260 */
+  { 0 },
+/* 261 */
+  { RPL_TRACELOG, "File %s %d", "261" },
+/* 262 */
+  { RPL_TRACEPING, "Ping %s %s", "262" },
+/* 263 */
+  { 0 },
+/* 264 */
+  { 0 },
+/* 265 */
+  { 0 },
+/* 266 */
+  { 0 },
+/* 267 */
+  { 0 },
+/* 268 */
+  { 0 },
+/* 269 */
+  { 0 },
+/* 270 */
+  { 0 },
+/* 271 */
+  { RPL_SILELIST, "%s %s", "271" },
+/* 272 */
+  { RPL_ENDOFSILELIST, "%s :End of Silence List", "272" },
+/* 273 */
+  { 0 },
+/* 274 */
+  { 0 },
+/* 275 */
+  { RPL_STATSDLINE, "%c %s %s", "275" },
+/* 276 */
+  { 0 },
+/* 277 */
+  { 0 },
+/* 278 */
+  { 0 },
+/* 279 */
+  { 0 },
+/* 280 */
+  { RPL_GLIST, "%s%s%s " TIME_T_FMT " %s %c :%s", "280" },
+/* 281 */
+  { RPL_ENDOFGLIST, ":End of G-line List", "281" },
+/* 282 */
+  { RPL_JUPELIST, "%s " TIME_T_FMT " %s %c :%s", "282" },
+/* 283 */
+  { RPL_ENDOFJUPELIST, ":End of Jupe List", "283" },
+/* 284 */
+  { 0 },
+/* 285 */
+  { 0 },
+/* 286 */
+  { 0 },
+/* 287 */
+  { 0 },
+/* 288 */
+  { 0 },
+/* 289 */
+  { 0 },
+/* 290 */
+  { 0 },
+/* 291 */
+  { 0 },
+/* 292 */
+  { 0 },
+/* 293 */
+  { 0 },
+/* 294 */
+  { 0 },
+/* 295 */
+  { 0 },
+/* 296 */
+  { 0 },
+/* 297 */
+  { 0 },
+/* 298 */
+  { 0 },
+/* 299 */
+  { 0 },
+/* 300 */
+  { RPL_NONE, 0, "300" },
+/* 301 */
+  { RPL_AWAY, "%s :%s", "301" },
+/* 302 */
+  { RPL_USERHOST, ":", "302" },
+/* 303 */
+  { RPL_ISON, ":", "303" },
+/* 304 */
+  { RPL_TEXT, 0, "304" },
+/* 305 */
+  { RPL_UNAWAY, ":You are no longer marked as being away", "305" },
+/* 306 */
+  { RPL_NOWAWAY, ":You have been marked as being away", "306" },
+/* 307 */
+  { RPL_USERIP, ":", "307" },
+/* 308 */
+  { 0 },
+/* 309 */
+  { 0 },
+/* 310 */
+  { 0 },
+/* 311 */
+  { RPL_WHOISUSER, "%s %s %s * :%s", "311" },
+/* 312 */
+  { RPL_WHOISSERVER, "%s %s :%s", "312" },
+/* 313 */
+  { RPL_WHOISOPERATOR, "%s :is an IRC Operator", "313" },
+/* 314 */
+  { RPL_WHOWASUSER, "%s %s %s * :%s", "314" },
+/* 315 */
+  { RPL_ENDOFWHO, "%s :End of /WHO list.", "315" },
+/* 316 */
+  { 0 },
+/* 317 */
+  { RPL_WHOISIDLE, "%s %ld %ld :seconds idle, signon time", "317" },
+/* 318 */
+  { RPL_ENDOFWHOIS, "%s :End of /WHOIS list.", "318" },
+/* 319 */
+  { RPL_WHOISCHANNELS, "%s :%s", "319" },
+/* 320 */
+  { 0 },
+/* 321 */
+  { RPL_LISTSTART, "Channel :Users  Name", "321" },
+/* 322 */
+  { RPL_LIST, "%s %d :%s", "322" },
+/* 323 */
+  { RPL_LISTEND, ":End of /LIST", "323" },
+/* 324 */
+  { RPL_CHANNELMODEIS, "%s %s %s", "324" },
+/* 325 */
+  { 0 },
+/* 326 */
+  { 0 },
+/* 327 */
+  { 0 },
+/* 328 */
+  { 0 },
+/* 329 */
+  { RPL_CREATIONTIME, "%s " TIME_T_FMT, "329" },
+/* 330 */
+  { 0 },
+/* 331 */
+  { RPL_NOTOPIC, "%s :No topic is set.", "331" },
+/* 332 */
+  { RPL_TOPIC, "%s :%s", "332" },
+/* 333 */
+  { RPL_TOPICWHOTIME, "%s %s " TIME_T_FMT, "333" },
+/* 334 */
+  { RPL_LISTUSAGE, ":%s", "334" },
+/* 335 */
+  { 0 },
+/* 336 */
+  { 0 },
+/* 337 */
+  { 0 },
+/* 338 */
+  { 0 },
+/* 339 */
+  { 0 },
+/* 340 */
+  { 0 },
+/* 341 */
+  { RPL_INVITING, "%s %s", "341" },
+/* 342 */
+  { 0 },
+/* 343 */
+  { 0 },
+/* 344 */
+  { 0 },
+/* 345 */
+  { 0 },
+/* 346 */
+  { RPL_INVITELIST, ":%s", "346" },
+/* 347 */
+  { RPL_ENDOFINVITELIST, ":End of Invite List", "347" },
+/* 348 */
+  { 0 },
+/* 349 */
+  { 0 },
+/* 350 */
+  { 0 },
+/* 351 */
+  { RPL_VERSION, "%s.%s %s :%s", "351" },
+/* 352 */
+  { RPL_WHOREPLY, "%s", "352" },
+/* 353 */
+  { RPL_NAMREPLY, "%s", "353" },
+/* 354 */
+  { RPL_WHOSPCRPL, "%s", "354" },
+/* 355 */
+  { 0 },
+/* 356 */
+  { 0 },
+/* 357 */
+  { 0 },
+/* 358 */
+  { 0 },
+/* 359 */
+  { 0 },
+/* 360 */
+  { 0 },
+/* 361 */
+  { RPL_KILLDONE, 0, "361" }, /* Not used */
+/* 362 */
+  { RPL_CLOSING, "%s :Operator enforced Close", "362" },
+/* 363 */
+  { RPL_CLOSEEND, "%d :Connections Closed", "363" },
+/* 364 */
+#ifndef GODMODE
+  { RPL_LINKS, "%s %s :%d P%u %s", "364" },
+#else /* GODMODE */
+  { RPL_LINKS, "%s %s :%d P%u " TIME_T_FMT " (%s) %s", "364" },
+#endif /* GODMODE */
+/* 365 */
+  { RPL_ENDOFLINKS, "%s :End of /LINKS list.", "365" },
+/* 366 */
+  { RPL_ENDOFNAMES, "%s :End of /NAMES list.", "366" },
+/* 367 */
+  { RPL_BANLIST, "%s %s %s " TIME_T_FMT, "367" },
+/* 368 */
+  { RPL_ENDOFBANLIST, "%s :End of Channel Ban List", "368" },
+/* 369 */
+  { RPL_ENDOFWHOWAS, "%s :End of WHOWAS", "369" },
+/* 370 */
+  { 0 },
+/* 371 */
+  { RPL_INFO, ":%s", "371" },
+/* 372 */
+  { RPL_MOTD, ":- %s", "372" },
+/* 373 */
+  { RPL_INFOSTART, ":Server INFO", "373" },
+/* 374 */
+  { RPL_ENDOFINFO, ":End of /INFO list.", "374" },
+/* 375 */
+  { RPL_MOTDSTART, ":- %s Message of the Day - ", "375" },
+/* 376 */
+  { RPL_ENDOFMOTD, ":End of /MOTD command.", "376" },
+/* 377 */
+  { 0 },
+/* 378 */
+  { 0 },
+/* 379 */
+  { 0 },
+/* 380 */
+  { 0 },
+/* 381 */
+  { RPL_YOUREOPER, ":You are now an IRC Operator", "381" },
+/* 382 */
+  { RPL_REHASHING, "%s :Rehashing", "382" },
+/* 383 */
+  { 0 },
+/* 384 */
+  { RPL_MYPORTIS, "%d :Port to local server is", "384" }, /* not used */
+/* 385 */
+  { RPL_NOTOPERANYMORE, 0, "385" }, /* not used */
+/* 386 */
+  { 0 },
+/* 387 */
+  { 0 },
+/* 388 */
+  { 0 },
+/* 389 */
+  { 0 },
+/* 390 */
+  { 0 },
+/* 391 */
+  { RPL_TIME, "%s " TIME_T_FMT " %ld :%s", "391" },
+/* 392 */
+  { 0 },
+/* 393 */
+  { 0 },
+/* 394 */
+  { 0 },
+/* 395 */
+  { 0 },
+/* 396 */
+  { 0 },
+/* 397 */
+  { 0 },
+/* 398 */
+  { 0 },
+/* 399 */
+  { 0 },
 /* 400 */
   { ERR_FIRSTERROR, "", "400" },
 /* 401 */
@@ -302,400 +1070,182 @@ static Numeric numeric_errors[] = {
 /* 515 */
   { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" },
 /* 516 */
-  { ERR_DONTCHEAT, " :Don't Cheat.", "516" }
-};
-
-static Numeric numeric_replies[] = {
-/* 300 */
-  { RPL_NONE, 0, "300" },
-/* 301 */
-  { RPL_AWAY, "%s :%s", "301" },
-/* 302 */
-  { RPL_USERHOST, ":", "302" },
-/* 303 */
-  { RPL_ISON, ":", "303" },
-/* 304 */
-  { RPL_TEXT, 0, "304" },
-/* 305 */
-  { RPL_UNAWAY, ":You are no longer marked as being away", "305" },
-/* 306 */
-  { RPL_NOWAWAY, ":You have been marked as being away", "306" },
-/* 307 */
-  { RPL_USERIP, ":", "307" },
-/* 308 */
-  { 0 },
-/* 309 */
-  { 0 },
-/* 310 */
-  { 0 },
-/* 311 */
-  { RPL_WHOISUSER, "%s %s %s * :%s", "311" },
-/* 312 */
-  { RPL_WHOISSERVER, "%s %s :%s", "312" },
-/* 313 */
-  { RPL_WHOISOPERATOR, "%s :is an IRC Operator", "313" },
-/* 314 */
-  { RPL_WHOWASUSER, "%s %s %s * :%s", "314" },
-/* 315 */
-  { RPL_ENDOFWHO, "%s :End of /WHO list.", "315" },
-/* 316 */
-  { 0 },
-/* 317 */
-  { RPL_WHOISIDLE, "%s %ld %ld :seconds idle, signon time", "317" },
-/* 318 */
-  { RPL_ENDOFWHOIS, "%s :End of /WHOIS list.", "318" },
-/* 319 */
-  { RPL_WHOISCHANNELS, "%s :%s", "319" },
-/* 320 */
-  { 0 },
-/* 321 */
-  { RPL_LISTSTART, "Channel :Users  Name", "321" },
-/* 322 */
-  { RPL_LIST, "%s %d :%s", "322" },
-/* 323 */
-  { RPL_LISTEND, ":End of /LIST", "323" },
-/* 324 */
-  { RPL_CHANNELMODEIS, "%s %s %s", "324" },
-/* 325 */
-  { 0 },
-/* 326 */
-  { 0 },
-/* 327 */
-  { 0 },
-/* 328 */
-  { 0 },
-/* 329 */
-  { RPL_CREATIONTIME, "%s " TIME_T_FMT, "329" },
-/* 330 */
-  { 0 },
-/* 331 */
-  { RPL_NOTOPIC, "%s :No topic is set.", "331" },
-/* 332 */
-  { RPL_TOPIC, "%s :%s", "332" },
-/* 333 */
-  { RPL_TOPICWHOTIME, "%s %s " TIME_T_FMT, "333" },
-/* 334 */
-  { RPL_LISTUSAGE, ":%s", "334" },
-/* 335 */
-  { 0 },
-/* 336 */
-  { 0 },
-/* 337 */
-  { 0 },
-/* 338 */
-  { 0 },
-/* 339 */
-  { 0 },
-/* 340 */
-  { 0 },
-/* 341 */
-  { RPL_INVITING, "%s %s", "341" },
-/* 342 */
-  { 0 },
-/* 343 */
-  { 0 },
-/* 344 */
-  { 0 },
-/* 345 */
-  { 0 },
-/* 346 */
-  { RPL_INVITELIST, ":%s", "346" },
-/* 347 */
-  { RPL_ENDOFINVITELIST, ":End of Invite List", "347" },
-/* 348 */
-  { 0 },
-/* 349 */
-  { 0 },
-/* 350 */
-  { 0 },
-/* 351 */
-  { RPL_VERSION, "%s.%s %s :%s", "351" },
-/* 352 */
-  { RPL_WHOREPLY, "%s", "352" },
-/* 353 */
-  { RPL_NAMREPLY, "%s", "353" },
-/* 354 */
-  { RPL_WHOSPCRPL, "%s", "354" },
-/* 355 */
-  { 0 },
-/* 356 */
-  { 0 },
-/* 357 */
-  { 0 },
-/* 358 */
-  { 0 },
-/* 359 */
-  { 0 },
-/* 360 */
-  { 0 },
-/* 361 */
-  { RPL_KILLDONE, 0, "361" }, /* Not used */
-/* 362 */
-  { RPL_CLOSING, "%s :Operator enforced Close", "362" },
-/* 363 */
-  { RPL_CLOSEEND, "%d :Connections Closed", "363" },
-/* 364 */
-#ifndef GODMODE
-  { RPL_LINKS, "%s %s :%d P%u %s", "364" },
-#else /* GODMODE */
-  { RPL_LINKS, "%s %s :%d P%u " TIME_T_FMT " (%s) %s", "364" },
-#endif /* GODMODE */
-/* 365 */
-  { RPL_ENDOFLINKS, "%s :End of /LINKS list.", "365" },
-/* 366 */
-  { RPL_ENDOFNAMES, "%s :End of /NAMES list.", "366" },
-/* 367 */
-  { RPL_BANLIST, "%s %s %s " TIME_T_FMT, "367" },
-/* 368 */
-  { RPL_ENDOFBANLIST, "%s :End of Channel Ban List", "368" },
-/* 369 */
-  { RPL_ENDOFWHOWAS, "%s :End of WHOWAS", "369" },
-/* 370 */
-  { 0 },
-/* 371 */
-  { RPL_INFO, ":%s", "371" },
-/* 372 */
-  { RPL_MOTD, ":- %s", "372" },
-/* 373 */
-  { RPL_INFOSTART, ":Server INFO", "373" },
-/* 374 */
-  { RPL_ENDOFINFO, ":End of /INFO list.", "374" },
-/* 375 */
-  { RPL_MOTDSTART, ":- %s Message of the Day - ", "375" },
-/* 376 */
-  { RPL_ENDOFMOTD, ":End of /MOTD command.", "376" },
-/* 377 */
-  { 0 },
-/* 378 */
-  { 0 },
-/* 379 */
-  { 0 },
-/* 380 */
-  { 0 },
-/* 381 */
-  { RPL_YOUREOPER, ":You are now an IRC Operator", "381" },
-/* 382 */
-  { RPL_REHASHING, "%s :Rehashing", "382" },
-/* 383 */
-  { 0 },
-/* 384 */
-  { RPL_MYPORTIS, "%d :Port to local server is", "384" }, /* not used */
-/* 385 */
-  { RPL_NOTOPERANYMORE, 0, "385" }, /* not used */
-/* 386 */
-  { 0 },
-/* 387 */
-  { 0 },
-/* 388 */
-  { 0 },
-/* 389 */
-  { 0 },
-/* 390 */
-  { 0 },
-/* 391 */
-  { RPL_TIME, "%s " TIME_T_FMT " %ld :%s", "391" },
-/* 392 */
-  { 0 },
-/* 393 */
-  { 0 },
-/* 394 */
-  { 0 },
-/* 395 */
-  { 0 },
-/* 396 */
-  { 0 },
-/* 397 */
-  { 0 },
-/* 398 */
-  { 0 },
-/* 399 */
-  { 0 },
-/* 200 */
-#ifndef GODMODE
-  { RPL_TRACELINK, "Link %s%s %s %s", "200" },
-#else /* GODMODE */
-  { RPL_TRACELINK, "Link %s%s %s %s " TIME_T_FMT, "200" },
-#endif /* GODMODE */
-/* 201 */
-  { RPL_TRACECONNECTING, "Try. %d %s", "201" },
-/* 202 */
-  { RPL_TRACEHANDSHAKE, "H.S. %d %s", "202" },
-/* 203 */
-  { RPL_TRACEUNKNOWN, "???? %d %s", "203" },
-/* 204 */
-  { RPL_TRACEOPERATOR, "Oper %d %s %ld", "204" },
-/* 205 */
-  { RPL_TRACEUSER, "User %d %s %ld", "205" },
-/* 206 */
-  { RPL_TRACESERVER, "Serv %d %dS %dC %s %s!%s@%s %ld %ld", "206" },
-/* 207 */
-  { 0 },
-/* 208 */
-  { RPL_TRACENEWTYPE, "<newtype> 0 %s", "208" },
-/* 209 */
-  { RPL_TRACECLASS, "Class %d %d", "209" },
-/* 210 */
-  { 0 },
-/* 211 */
-  { RPL_STATSLINKINFO, 0, "211" },
-/* 212 */
-  { RPL_STATSCOMMANDS, "%s %u %u", "212" },
-/* 213 */
-  { RPL_STATSCLINE, "%c %s * %s %d %d", "213" },
-/* 214 */
-  { RPL_STATSNLINE, "%c %s * %s %d %d", "214" },
-/* 215 */
-  { RPL_STATSILINE, "%c %s * %s %d %d", "215" },
-/* 216 */
-  { RPL_STATSKLINE, "%c %s %s %s %d %d", "216" },
-/* 217 */
-  { RPL_STATSPLINE, "P %d %d %s %s", "217" },
-/* 218 */
-  { RPL_STATSYLINE, "%c %d %d %d %d %ld", "218" },
-/* 219 */
-  { RPL_ENDOFSTATS, "%c :End of /STATS report", "219" },
-/* 220 */
-  { 0 },
-/* 221 */
-  { RPL_UMODEIS, "%s", "221" },
-/* 222 */
-  { 0 },
-/* 223 */
-  { 0 },
-/* 224 */
-  { 0 },
-/* 225 */
-  { 0 },
-/* 226 */
-  { 0 },
-/* 227 */
-  { 0 },
-/* 228 */
-  { 0 },
-/* 229 */
-  { 0 },
-/* 230 */
-  { 0 },
-/* 231 */
-  { RPL_SERVICEINFO, 0, "231" },
-/* 232 */
-  { RPL_ENDOFSERVICES, 0, "232" },
-/* 233 */
-  { RPL_SERVICE, 0, "233" },
-/* 234 */
-  { RPL_SERVLIST, 0, "234" },
-/* 235 */
-  { RPL_SERVLISTEND, 0, "235" },
-/* 236 */
-  { 0 },
-/* 237 */
-  { 0 },
-/* 238 */
-  { 0 },
-/* 239 */
-  { 0 },
-/* 240 */
-  { 0 },
-/* 241 */
-  { RPL_STATSLLINE, "%c %s * %s %d %d", "241" },
-/* 242 */
-  { RPL_STATSUPTIME, ":Server Up %d days, %d:%02d:%02d", "242" },
-/* 243 */
-  { RPL_STATSOLINE, "%c %s * %s %d %d", "243" },
-/* 244 */
-  { RPL_STATSHLINE, "%c %s * %s %d %d", "244" },
-/* 245 */
-  { 0 },
-/* 246 */
-  { RPL_STATSTLINE, "%c %s %s", "246" },
-/* 247 */
-  { RPL_STATSGLINE, "%c %s@%s " TIME_T_FMT " :%s", "247" },
-/* 248 */
-  { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
-/* 249 */
-  { 0 },
-/* 250 */
-  { RPL_STATSCONN, ":Highest connection count: %d (%d clients)", "250" },
-/* 251 */
-  { RPL_LUSERCLIENT, ":There are %d users and %d invisible on %d servers", "251" },
-/* 252 */
-  { RPL_LUSEROP, "%d :operator(s) online", "252" },
-/* 253 */
-  { RPL_LUSERUNKNOWN, "%d :unknown connection(s)", "253" },
-/* 254 */
-  { RPL_LUSERCHANNELS, "%d :channels formed", "254" },
-/* 255 */
-  { RPL_LUSERME, ":I have %d clients and %d servers", "255" },
-/* 256 */
-  { RPL_ADMINME, ":Administrative info about %s", "256" },
-/* 257 */
-  { RPL_ADMINLOC1, ":%s", "257" },
-/* 258 */
-  { RPL_ADMINLOC2, ":%s", "258" },
-/* 259 */
-  { RPL_ADMINEMAIL, ":%s", "259" },
-/* 260 */
-  { 0 },
-/* 261 */
-  { RPL_TRACELOG, "File %s %d", "261" },
-/* 262 */
-  { RPL_TRACEPING, "Ping %s %s", "262" },
-/* 263 */
-  { 0 },
-/* 264 */
-  { 0 },
-/* 265 */
-  { 0 },
-/* 266 */
-  { 0 },
-/* 267 */
-  { 0 },
-/* 268 */
-  { 0 },
-/* 269 */
-  { 0 },
-/* 270 */
-  { 0 },
-/* 271 */
-  { RPL_SILELIST, "%s %s", "271" },
-/* 272 */
-  { RPL_ENDOFSILELIST, "%s :End of Silence List", "272" },
-/* 273 */
-  { 0 },
-/* 274 */
-  { 0 },
-/* 275 */
-  { RPL_STATSDLINE, "%c %s %s", "275" },
-/* 276 */
-  { 0 },
-/* 277 */
-  { 0 },
-/* 278 */
-  { 0 },
-/* 279 */
-  { 0 },
-/* 280 */
-  { RPL_GLIST, "%s%s%s " TIME_T_FMT " %s %c :%s", "280" },
-/* 281 */
-  { RPL_ENDOFGLIST, ":End of G-line List", "281" },
-/* 282 */
-  { RPL_JUPELIST, "%s " TIME_T_FMT " %s %c :%s", "282" },
-/* 283 */
-  { RPL_ENDOFJUPELIST, ":End of Jupe List", "283" },
-/* 284 */
+  { ERR_DONTCHEAT, " :Don't Cheat.", "516" },
+/* 517 */
+  { 0 },
+/* 518 */
+  { ERR_POPTIX, " :While you have been watching us chat in your status window, we have HaX0rd your computer", "666" },
+/* 519 */
+  { 0 },
+/* 520 */
+  { 0 },
+/* 521 */
+  { 0 },
+/* 522 */
+  { 0 },
+/* 523 */
+  { 0 },
+/* 524 */
+  { 0 },
+/* 525 */
+  { 0 },
+/* 526 */
+  { 0 },
+/* 527 */
+  { 0 },
+/* 528 */
+  { 0 },
+/* 529 */
+  { 0 },
+/* 530 */
+  { 0 },
+/* 531 */
+  { 0 },
+/* 532 */
+  { 0 },
+/* 533 */
+  { 0 },
+/* 534 */
+  { 0 },
+/* 535 */
+  { 0 },
+/* 536 */
+  { 0 },
+/* 537 */
+  { 0 },
+/* 538 */
+  { 0 },
+/* 539 */
+  { 0 },
+/* 540 */
+  { 0 },
+/* 541 */
+  { 0 },
+/* 542 */
+  { 0 },
+/* 543 */
+  { 0 },
+/* 544 */
+  { 0 },
+/* 545 */
+  { 0 },
+/* 546 */
+  { 0 },
+/* 547 */
+  { 0 },
+/* 548 */
+  { 0 },
+/* 549 */
+  { 0 },
+/* 550 */
+  { 0 },
+/* 551 */
+  { 0 },
+/* 552 */
+  { 0 },
+/* 553 */
+  { 0 },
+/* 554 */
+  { 0 },
+/* 555 */
+  { 0 },
+/* 556 */
+  { 0 },
+/* 557 */
+  { 0 },
+/* 558 */
+  { 0 },
+/* 559 */
+  { 0 },
+/* 560 */
+  { 0 },
+/* 561 */
+  { 0 },
+/* 562 */
+  { 0 },
+/* 563 */
+  { 0 },
+/* 564 */
+  { 0 },
+/* 565 */
+  { 0 },
+/* 566 */
+  { 0 },
+/* 567 */
+  { 0 },
+/* 568 */
+  { 0 },
+/* 569 */
+  { 0 },
+/* 570 */
+  { 0 },
+/* 571 */
+  { 0 },
+/* 572 */
+  { 0 },
+/* 573 */
+  { 0 },
+/* 574 */
+  { 0 },
+/* 575 */
+  { 0 },
+/* 576 */
+  { 0 },
+/* 577 */
+  { 0 },
+/* 578 */
+  { 0 },
+/* 579 */
+  { 0 },
+/* 580 */
+  { 0 },
+/* 581 */
+  { 0 },
+/* 582 */
+  { 0 },
+/* 583 */
+  { 0 },
+/* 584 */
+  { 0 },
+/* 585 */
+  { 0 },
+/* 586 */
+  { 0 },
+/* 587 */
+  { 0 },
+/* 588 */
+  { 0 },
+/* 589 */
+  { 0 },
+/* 590 */
+  { 0 },
+/* 591 */
+  { 0 },
+/* 592 */
+  { 0 },
+/* 593 */
+  { 0 },
+/* 594 */
+  { 0 },
+/* 595 */
+  { 0 },
+/* 596 */
+  { 0 },
+/* 597 */
+  { 0 },
+/* 598 */
+  { 0 },
+/* 599 */
   { 0 }
 };
 
-const struct Numeric* get_error_numeric(int numeric)
+const struct Numeric* get_error_numeric(int n)
 {
-  int num = numeric;
-  assert(ERR_FIRSTERROR < num);
-  assert(num < ERR_LASTERROR);
+  assert(0 < n);
+  assert(n < ERR_LASTERROR);
+  assert(0 != replyTable[n].value);
 
-  num -= ERR_FIRSTERROR;
-  assert(0 != numeric_errors[num].value);
-
-  return &numeric_errors[num];
+  return &replyTable[n];
 }
 
 static char numbuff[512];
@@ -713,67 +1263,31 @@ static char numbuff[512];
   strcpy(s + 5, tail);                                  \
 }
 
-char *err_str(int numeric)
+char* err_str(int n)
 {
-  Numeric *nptr;
-  int num = numeric;
+  Numeric* p;
 
-  num -= numeric_errors[0].value;
+  assert(0 < n);
+  assert(n < ERR_LASTERROR);
+  assert(0 != replyTable[n].value);
 
-#ifdef DEBUGMODE
-  if (num < 0 || num > ERR_USERSDONTMATCH)
-    sprintf_irc(numbuff,
-        ":%%s %d %%s :INTERNAL ERROR: BAD NUMERIC! %d", numeric, num);
-  else
-  {
-    nptr = &numeric_errors[num];
-    if (!nptr->format || !nptr->value)
-      sprintf_irc(numbuff, ":%%s %d %%s :NO ERROR FOR NUMERIC ERROR %d",
-          numeric, num);
-    else
-      prepbuf(numbuff, nptr->value, nptr->format);
-  }
-#else
-  nptr = &numeric_errors[num];
-  prepbuf(numbuff, nptr->value, nptr->format);
-#endif
+  p = &replyTable[n];
+  prepbuf(numbuff, p->value, p->format);
 
   return numbuff;
 }
 
-char *rpl_str(int numeric)
+char* rpl_str(int n)
 {
-  Numeric *nptr;
-  int num = numeric;
+  Numeric* p;
 
-  if (num > (int)(sizeof(local_replies) / sizeof(Numeric) - 2))
-    num -= (num > 300) ? 300 : 100;
+  assert(0 < n);
+  assert(n < ERR_LASTERROR);
+  assert(0 != replyTable[n].value);
 
-#ifdef DEBUGMODE
-  if (num < 0 || num > 200)
-    sprintf_irc(numbuff, ":%%s %d %%s :INTERNAL REPLY ERROR: BAD NUMERIC! %d",
-        numeric, num);
-  else
-  {
-    if (numeric > 99)
-      nptr = &numeric_replies[num];
-    else
-      nptr = &local_replies[num];
-    Debug((DEBUG_NUM, "rpl_str: numeric %d num %d %d %s",
-        numeric, num, nptr->value, nptr->format ? nptr->format : ""));
-    if (!nptr->format || !nptr->value)
-      sprintf_irc(numbuff, ":%%s %d %%s :NO REPLY FOR NUMERIC ERROR %d",
-          numeric, num);
-    else
-      prepbuf(numbuff, nptr->value, nptr->format);
-  }
-#else
-  if (numeric > 99)
-    nptr = &numeric_replies[num];
-  else
-    nptr = &local_replies[num];
-  prepbuf(numbuff, nptr->value, nptr->format);
-#endif
+  p = &replyTable[n];
+  prepbuf(numbuff, p->value, p->format);
 
   return numbuff;
 }
+
