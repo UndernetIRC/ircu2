@@ -19,9 +19,9 @@
  *
  */
 
-#define PATCHLEVEL "07"
+#define PATCHLEVEL "0"
 
-#define RELEASE ".10.beta."
+#define RELEASE ".10."
 
 /*
  * Deliberate empty lines
