@@ -861,6 +861,8 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-optimization=-O2 Explicitly set the compiler optimization flags
+                          (default: -O3)
   --with-leak-detect          Turn on the leak detector(requires patched boehm)
   --without-ipv6          disable IPv6 support (default is autodetect)
   --with-symlink=name     Name to give the symlink; if name is "no," no
@@ -2462,8 +2464,28 @@ case "x$am_cv_prog_cc_stdc" in
   *) CC="$CC $am_cv_prog_cc_stdc" ;;
 esac
 
+
+# Check whether --with-optimization or --without-optimization was given.
+if test "${with_optimization+set}" = set; then
+  withval="$with_optimization"
+  unet_cv_optimization=$withval
+else
+  unet_cv_optimization='-O3'
+fi;
+echo "$as_me:$LINENO: checking optimization level" >&5
+echo $ECHO_N "checking optimization level... $ECHO_C" >&6
+if test "${unet_cv_optimization+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  unet_cv_optimization='-O3'
+fi
+echo "$as_me:$LINENO: result: $unet_cv_optimization" >&5
+echo "${ECHO_T}$unet_cv_optimization" >&6
+if test "x$unet_cv_optimization" = "xno" ; then
+    unet_cv_optimization=""
+fi
 if test x"$CFLAGS" != x; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-O2/-O3/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e s/-O2/$unet_cv_optimization/`
 fi
 if test x"$CFLAGS" != x; then
     CFLAGS=`echo "$CFLAGS" | sed -e 's/-pipe//g'`
