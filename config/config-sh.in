@@ -171,12 +171,13 @@ endmenu
 
 mainmenu_option next_comment
 comment 'General defines'
-  bool 'Change root ('/') after start of daemon' CHROOTDIR
-  bool 'Do you want the daemon set its own uid/gid' CONFIG_SETUGID
+  bool 'Do you want the daemon set its own uid/gid (say yes for chroot!)' CONFIG_SETUGID
   if [ "$CONFIG_SETUGID" = "y" ]; then
     int '   UID of irc daemon' IRC_UID
     int '   GID of irc daemon' IRC_GID
+    bool '   Change root ('/') after start of daemon' CHROOTDIR
   else
+    define_bool CHROOTDIR n
     define_int IRC_UID $IRC_UID
     define_int IRC_GID $IRC_GID
     bool 'Allow to specify configuration file on command line' CMDLINE_CONFIG
@@ -197,7 +198,11 @@ mainmenu_option next_comment
 comment 'Paths and files'
   eval DPATH_DEFAULT="${prefix}/lib/ircd"
   string 'Directory where all ircd stuff resides' DPATH $DPATH_DEFAULT
-  define_string SPATH "$BINDIR/$SYMLINK"
+  if [ "$CHROOTDIR" = "y" ] ; then
+    define_string SPATH "/$SYMLINK"
+  else
+    define_string SPATH "$BINDIR/$SYMLINK"
+  fi
   echo "The following filenames are either full paths or files within DPATH"
   string 'Server configuration file' CPATH 'ircd.conf'
   string 'Server MOTD file' MPATH 'ircd.motd'

@@ -1,4 +1,8 @@
-2000-04-29  Perry Lorier <isomer@coders.net>
+2000-04-30  Steven M. Doyle <grep@doyle.net>
+        * config/config-sh.in: Fix for CHROOT
+	* ircd/ircd.c: General Cleanup
+
+2000-04-30  Perry Lorier <isomer@coders.net>
 	* ircd/s_bsd.c: Sigh. :)
         * ircd/m_mode.c: fix for modeless channels by poptix.
 
@@ -996,7 +1000,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.116 2000-04-30 06:37:52 isomer Exp $
+# $Id: ChangeLog,v 1.117 2000-04-30 06:44:27 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
