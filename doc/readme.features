@@ -235,6 +235,13 @@ HIDDEN_HOST
 
 This selects the suffix for the hidden hostmask (see HOST_HIDING).
 
+HIDDEN_IP
+ * Type: string
+ * Default: 127.0.0.1
+
+This selects a fake IP to be shown on /USERIP and /WHO %i when the
+target has a hidden host (see HOST_HIDING).
+
 KILLCHASETIMELIMIT
  * Type: integer
  * Default: 30
