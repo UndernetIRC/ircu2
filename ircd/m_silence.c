@@ -194,6 +194,7 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       else
 	sendto_serv_butone(cptr, "%s " TOK_SILENCE " * %s", NumServ(sptr),
 			   parv[2]);
+    }
   }
   else {
     add_silence(sptr, parv[2]);

@@ -140,15 +140,8 @@
  */
 int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
-  struct Message *mptr;
-  struct Client *acptr;
-  struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
-  int i;
 
 /* m_stats is so obnoxiously full of special cases that the different
  * hunt_server() possiblites were becoming very messy. It now uses a
@@ -231,8 +224,12 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return m_not_oper(sptr,cptr,parc,parv);
 #else
     {
-      int doall = 0, wilds = 0;
+      static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
+	"RcveM RcveKBytes :Open since";
+      static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
+      int doall = 0, wilds = 0, i;
       char *name = "*";
+      struct Client *acptr;
       if (parc > 3 && *parv[3])
       {
         char *p;
@@ -294,11 +291,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef HEAD_IN_SAND_STATS_G
       return m_not_oper(sptr,cptr,parc,parv);
 #else
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
+      {
+	struct Gline* gline;
+
+	gline_remove_expired(TStime());
+	for (gline = GlobalGlineList; gline; gline = gline->next) {
+	  sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
+		     sptr->name, 'G', gline->name, gline->host,
+		     gline->expire, gline->reason);
+	}
       }
       break;
 #endif
@@ -423,10 +424,14 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef HEAD_IN_SAND_STATS_m
       return m_not_oper(sptr,cptr,parc,parv);
 #else
-      for (mptr = msgtab; mptr->cmd; mptr++)
-        if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+      {
+	struct Message *mptr;
+
+	for (mptr = msgtab; mptr->cmd; mptr++)
+	  if (mptr->count)
+	    sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
+		       me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+      }
       break;
 #endif
     case 'o':

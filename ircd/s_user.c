@@ -27,6 +27,7 @@
 #include "channel.h"
 #include "class.h"
 #include "client.h"
+#include "handlers.h" /* m_lusers and m_motd--bleah :( -Kev */
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"

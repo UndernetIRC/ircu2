@@ -30,6 +30,7 @@
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
+#include "support.h"
 #include "sys.h"    /* FALSE bleah */
 
 #include <assert.h>
