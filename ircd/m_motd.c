@@ -125,7 +125,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct TRecord *ptr;
   int count;
   struct MotdItem *temp;
-  int class = get_client_class(sptr);
+  int class = get_client_class(cptr);
 
 #ifdef NODEFAULTMOTD
   int no_motd;
