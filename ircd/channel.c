@@ -2747,11 +2747,11 @@ build_string(char *strptr, int *strptr_i, char *str1, char *str2)
 {
   strptr[(*strptr_i)++] = ' ';
 
-  while (strptr[(*strptr_i)++] = *(str1++))
+  while ((strptr[(*strptr_i)++] = *(str1++)))
     ; /* very simple strcat */
 
   if (str2)
-    while (strptr[(*strptr_i)++] = *(str2++))
+    while ((strptr[(*strptr_i)++] = *(str2++)))
       ; /* for the two-argument form--used for numeric nicks */
 }
 

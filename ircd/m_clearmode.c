@@ -92,8 +92,10 @@
 #include "channel.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "list.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -158,7 +160,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   chptr->mode.mode &= ~del_mode; /* and of course actually delete them */
 
   /* If we're removing invite, remove all the invites */
-  if (del_mode & MODE_INVITE)
+  if (del_mode & MODE_INVITEONLY)
     while ((link = chptr->invites))
       del_invite(link->value.cptr, chptr);
 
@@ -243,6 +245,8 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   else
     sendto_serv_butone(cptr, "%s%s " TOK_CLEARMODE " %s %s", NumNick(sptr),
 		       chptr->chname, control_buf);
+
+  return 0;
 }
 
 /*
