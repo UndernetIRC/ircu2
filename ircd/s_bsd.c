@@ -969,7 +969,7 @@ static void client_sock_callback(struct Event* ev)
   case ET_DESTROY:
     con_freeflag(con) &= ~FREEFLAG_SOCKET;
 
-    if (!con_freeflag(con))
+    if (!con_freeflag(con) && !cptr)
       free_connection(con);
     break;
 
@@ -1056,7 +1056,7 @@ static void client_timer_callback(struct Event* ev)
   con_freeflag(con) &= ~FREEFLAG_TIMER; /* timer has expired... */
 
   if (ev_type(ev)== ET_DESTROY) {
-    if (!con_freeflag(con))
+    if (!con_freeflag(con) && !cptr)
       free_connection(con); /* client is being destroyed */
   } else {
     Debug((DEBUG_LIST, "Client process timer for %C expired; processing",
