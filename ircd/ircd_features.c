@@ -389,7 +389,7 @@ feature_desc(struct Client* from, const char *feature)
   assert(0 != feature);
 
   for (i = 0; features[i].type; i++) /* find appropriate descriptor */
-    if (!ircd_strcmp(feature, features[i].type))
+    if (!strcmp(feature, features[i].type))
       return &features[i];
 
   Debug((DEBUG_ERROR, "Unknown feature \"%s\"", feature));

@@ -1,3 +1,11 @@
+2002-08-19  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: document that feature names are
+	case-sensitive
+
+	* ircd/ircd_features.c (feature_desc): make feature names
+	case-sensitive
+
 2002-08-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* doc/readme.log: correct a bug in the documentation--it's
