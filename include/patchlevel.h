@@ -18,7 +18,7 @@
  * $Id$
  *
  */
-#define PATCHLEVEL "48"
+#define PATCHLEVEL "49"
 
 #define RELEASE ".11.beta."
 
