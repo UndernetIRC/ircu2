@@ -387,7 +387,8 @@ static int register_user(aClient *cptr, aClient *sptr,
   Reg1 aConfItem *aconf;
   char *parv[3], *tmpstr, *tmpstr2;
   char c = 0 /* not alphanum */ , d = 'a' /* not a digit */ ;
-  short oldstatus_ismaster = IsMaster(sptr), upper = 0, lower = 0;
+  short upper = 0;
+  short lower = 0;
   short pos = 0, leadcaps = 0, other = 0, digits = 0, badid = 0;
   short digitgroups = 0;
   anUser *user = sptr->user;
@@ -407,7 +408,7 @@ static int register_user(aClient *cptr, aClient *sptr,
 	break;
       case ACR_NO_AUTHORIZATION:
 	sendto_op_mask(SNO_UNAUTH, "Unauthorized connection from %s.",
-	    get_client_host(sptr));
+	    sptr->sockhost);
 	ircstp->is_ref++;
 	return exit_client(cptr, sptr, &me,
 	    "No Authorization - use another server");
@@ -416,7 +417,7 @@ static int register_user(aClient *cptr, aClient *sptr,
 	{
 	  last_too_many1 = now;
 	  sendto_op_mask(SNO_TOOMANY, "Too many connections in class for %s.",
-	      get_client_host(sptr));
+	      sptr->sockhost);
 	}
 	IPcheck_connect_fail(sptr);
 	ircstp->is_ref++;
@@ -428,7 +429,7 @@ static int register_user(aClient *cptr, aClient *sptr,
 	  last_too_many2 = now;
 	  sendto_op_mask(SNO_TOOMANY,
 	      "Too many connections from same IP for %s.",
-	      get_client_host(sptr));
+	      sptr->sockhost);
 	}
 	ircstp->is_ref++;
 	return exit_client(cptr, sptr, &me,
@@ -440,7 +441,7 @@ static int register_user(aClient *cptr, aClient *sptr,
 	return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     if (IsUnixSocket(sptr))
-      strncpy(user->host, me.sockhost, HOSTLEN);
+      strncpy(user->host, me.name, HOSTLEN);
     else
       strncpy(user->host, sptr->sockhost, HOSTLEN);
     aconf = sptr->confs->value.aconf;
@@ -560,10 +561,6 @@ static int register_user(aClient *cptr, aClient *sptr,
 	  me.name, ERR_INVALIDUSERNAME, cptr->name);
       return exit_client(cptr, sptr, &me, "USER: Bad username");
     }
-
-    if (oldstatus_ismaster && MyConnect(sptr))
-      m_oper(&me, sptr, 1, parv);
-
     Count_unknownbecomesclient(sptr, nrof);
   }
   else
@@ -582,7 +579,7 @@ static int register_user(aClient *cptr, aClient *sptr,
     sendto_one(sptr, rpl_str(RPL_WELCOME), me.name, nick, nick);
     /* This is a duplicate of the NOTICE but see below... */
     sendto_one(sptr, rpl_str(RPL_YOURHOST), me.name, nick,
-	get_client_name(&me, FALSE), version);
+	       me.name, version);
     sendto_one(sptr, rpl_str(RPL_CREATED), me.name, nick, creation);
     sendto_one(sptr, rpl_str(RPL_MYINFO), me.name, parv[0], me.name, version);
     m_lusers(sptr, sptr, 1, parv);
@@ -755,13 +752,13 @@ static int user_modes[] = {
  */
 int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
-  aClient *acptr;
-  aClient *server = NULL;
-  char nick[NICKLEN + 2];
-  char *s;
-  Link *lp;
-  time_t lastnick = (time_t) 0;
-  int differ = 1;
+  aClient* acptr;
+  aClient* server = NULL;
+  char     nick[NICKLEN + 2];
+  char*    s;
+  Link*    lp;
+  time_t   lastnick = (time_t) 0;
+  int      differ = 1;
 
   if (parc < 2)
   {
@@ -772,7 +769,7 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
   {
     sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "NICK");
     sendto_ops("bad NICK param count for %s from %s",
-	parv[1], get_client_name(cptr, FALSE));
+	parv[1], cptr->name);
     return 0;
   }
   if (MyConnect(sptr) && (s = strchr(parv[1], '~')))
@@ -793,7 +790,7 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
     {
       ircstp->is_kill++;
       sendto_ops("Bad Nick: %s From: %s %s",
-	  parv[1], parv[0], get_client_name(cptr, FALSE));
+	  parv[1], parv[0], cptr->name);
       if (Protocol(cptr) < 10)
 	sendto_one(cptr, ":%s KILL %s :%s (%s <- %s[%s])",
 	    me.name, parv[1], me.name, parv[1], nick, cptr->name);
@@ -804,11 +801,11 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
       if (!IsServer(sptr))	/* bad nick _change_ */
       {
 	sendto_lowprot_butone(cptr, 9, ":%s KILL %s :%s (%s <- %s!%s@%s)",
-	    me.name, parv[0], me.name, get_client_name(cptr, FALSE), parv[0],
+	    me.name, parv[0], me.name, cptr->name, parv[0],
 	    sptr->user ? sptr->username : "",
 	    sptr->user ? sptr->user->server->name : cptr->name);
 	sendto_highprot_butone(cptr, 10, "%s KILL %s :%s (%s <- %s!%s@%s)",
-	    NumServ(&me), parv[0], me.name, get_client_name(cptr, FALSE),
+	    NumServ(&me), parv[0], me.name, cptr->name,
 	    parv[0], sptr->user ? sptr->username : "",
 	    sptr->user ? sptr->user->server->name : cptr->name);
 	sptr->flags |= FLAGS_KILLED;
@@ -839,18 +836,13 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
    * is present in the nicklist (due to the way the below for loop is
    * constructed). -avalon
    */
-  if ((acptr = FindServer(nick)))
+  if ((acptr = FindServer(nick))) {
     if (MyConnect(sptr))
     {
       sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
 	  BadPtr(parv[0]) ? "*" : parv[0], nick);
       return 0;			/* NICK message ignored */
     }
-  /*
-   * acptr already has result from previous FindServer()
-   */
-  if (acptr)
-  {
     /*
      * We have a nickname trying to use the same name as
      * a server. Send out a nick collision KILL to remove
@@ -859,12 +851,12 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
      * Ultimate way to jupiter a nick ? >;-). -avalon
      */
     sendto_ops("Nick collision on %s(%s <- %s)",
-	sptr->name, acptr->from->name, get_client_name(cptr, FALSE));
+	sptr->name, acptr->from->name, cptr->name);
     ircstp->is_kill++;
     if (Protocol(cptr) < 10)
       sendto_one(cptr, ":%s KILL %s :%s (%s <- %s)",
 	  me.name, sptr->name, me.name, acptr->from->name,
-	  get_client_name(cptr, FALSE));
+	  cptr->name);
     else
       sendto_one(cptr, "%s KILL %s%s :%s (%s <- %s)",
 	  NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
@@ -872,7 +864,7 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	   * NOTE: Cannot use get_client_name twice here, it returns static
 	   *       string pointer--the other info would be lost.
 	   */
-	  get_client_name(cptr, FALSE));
+	  cptr->name);
     sptr->flags |= FLAGS_KILLED;
     return exit_client(cptr, sptr, &me, "Nick/Server collision");
   }
@@ -959,7 +951,7 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	strCasediff(acptr->user->host, parv[5]));
     sendto_ops("Nick collision on %s (%s " TIME_T_FMT " <- %s " TIME_T_FMT
 	" (%s user@host))", acptr->name, acptr->from->name, acptr->lastnick,
-	get_client_name(cptr, FALSE), lastnick, differ ? "Different" : "Same");
+	cptr->name, lastnick, differ ? "Different" : "Same");
   }
   else
   {
@@ -971,7 +963,7 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	strCasediff(acptr->user->host, sptr->user->host));
     sendto_ops("Nick change collision from %s to %s (%s " TIME_T_FMT " <- %s "
 	TIME_T_FMT ")", sptr->name, acptr->name, acptr->from->name,
-	acptr->lastnick, get_client_name(cptr, FALSE), lastnick);
+	acptr->lastnick, cptr->name, lastnick);
   }
   /*
    * Now remove (kill) the nick on our side if it is the youngest.
@@ -991,11 +983,11 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	sendto_lowprot_butone(cptr, 9,	/* Kill old from outgoing servers */
 	    ":%s KILL %s :%s (%s <- %s (Nick collision))",
 	    me.name, sptr->name, me.name, acptr->from->name,
-	    get_client_name(cptr, FALSE));
+	    cptr->name);
 	sendto_highprot_butone(cptr, 10,	/* Kill old from outgoing servers */
 	    "%s KILL %s%s :%s (%s <- %s (Nick collision))",
 	    NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
-	    get_client_name(cptr, FALSE));
+	    cptr->name);
 	if (MyConnect(sptr) && IsServer(cptr) && Protocol(cptr) > 9)
 	  sendto_one(cptr, "%s KILL %s%s :%s (Ghost2)",
 	      NumServ(&me), NumNick(sptr), me.name);
@@ -1014,11 +1006,11 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
     sendto_lowprot_butone(cptr, 9,	/* Kill our old from outgoing servers */
 	":%s KILL %s :%s (%s <- %s (older nick overruled))",
 	me.name, acptr->name, me.name, acptr->from->name,
-	get_client_name(cptr, FALSE));
+	cptr->name);
     sendto_highprot_butone(cptr, 10,	/* Kill our old from outgoing servers */
 	"%s KILL %s%s :%s (%s <- %s (older nick overruled))",
 	NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
-	get_client_name(cptr, FALSE));
+	cptr->name);
     if (MyConnect(acptr) && IsServer(cptr) && Protocol(cptr) > 9)
       sendto_one(cptr, "%s%s QUIT :Local kill by %s (Ghost)",
 	  NumNick(acptr), me.name);
@@ -1029,11 +1021,11 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
     sendto_lowprot_butone(cptr, 9,	/* Kill our old from outgoing servers */
 	":%s KILL %s :%s (%s <- %s (nick collision from same user@host))",
 	me.name, acptr->name, me.name, acptr->from->name,
-	get_client_name(cptr, FALSE));
+	cptr->name);
     sendto_highprot_butone(cptr, 10,	/* Kill our old from outgoing servers */
 	"%s KILL %s%s :%s (%s <- %s (nick collision from same user@host))",
 	NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
-	get_client_name(cptr, FALSE));
+	cptr->name);
     if (MyConnect(acptr) && IsServer(cptr) && Protocol(cptr) > 9)
       sendto_one(cptr,
 	  "%s%s QUIT :Local kill by %s (Ghost: switched servers too fast)",
@@ -1088,29 +1080,13 @@ nickkilldone:
     sptr->user = make_user(sptr);
     sptr->user->server = server;
 #ifndef NO_PROTOCOL9
-    if (Protocol(cptr) < 10)
-    {
-      if (!SetRemoteNumNick(sptr, nnp9))
-      {
-	/*
-	 * if this fails squit the server and free the client
-	 */
-	free_client(sptr);
-	return exit_client_msg(cptr, server, &me, "Invalid numeric index");
-      }
+    if (Protocol(cptr) < 10) {
+      SetRemoteNumNick(sptr, nnp9);
       sptr->ip.s_addr = 0;
     }
-    else
-    {
+    else {
 #endif
-      if (!SetRemoteNumNick(sptr, parv[parc - 2]))
-      {
-	/*
-	 * if this fails squit the server and free the client
-	 */
-	free_client(sptr);
-	return exit_client_msg(cptr, server, &me, "Invalid numeric index");
-      }
+      SetRemoteNumNick(sptr, parv[parc - 2]);
       sptr->ip.s_addr = htonl(base64toint(parv[parc - 3]));
       /* IP# of remote client */
 #ifndef NO_PROTOCOL9
@@ -1788,7 +1764,7 @@ int m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[])
 int m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
   aClient *acptr;
-  char *inpath = get_client_name(cptr, FALSE);
+  char *inpath = cptr->name;
   char *user, *path, *killer;
   int chasing = 0;
 
@@ -1893,10 +1869,7 @@ int m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
      * ...!operhost!oper
      * ...!operhost!oper (comment)
      */
-    if (IsUnixSocket(cptr))	/* Don't use get_client_name syntax */
-      inpath = me.sockhost;
-    else
-      inpath = cptr->sockhost;
+    inpath = cptr->user->host;
     if (!BadPtr(path))
     {
       sprintf_irc(buf,
@@ -2254,16 +2227,12 @@ int m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[])
       !strcmp(encr, aconf->passwd) && attach_conf(sptr, aconf) == ACR_OK)
   {
     int old = (sptr->flags & ALL_UMODES);
-    char *s;
 
-    s = strchr(aconf->host, '@');
-    *s++ = '\0';
 #ifdef	OPER_REMOTE
     if (aconf->status == CONF_LOCOP)
     {
 #else
-    if ((match(s, me.sockhost) && !IsLocal(sptr)) ||
-	aconf->status == CONF_LOCOP)
+    if (!IsLocal(sptr) || aconf->status == CONF_LOCOP)
     {
 #endif
       ClearOper(sptr);
@@ -2276,7 +2245,6 @@ int m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[])
       SetOper(sptr);
       ++nrof.opers;
     }
-    *--s = '@';
     sendto_ops("%s (%s@%s) is now operator (%c)", parv[0],
 	sptr->user->username, sptr->sockhost, IsOper(sptr) ? 'O' : 'o');
     sptr->flags |= (FLAGS_WALLOP | FLAGS_SERVNOTICE | FLAGS_DEBUG);
@@ -2500,7 +2468,7 @@ int m_umode(aClient *cptr, aClient *sptr, int parc, char *parv[])
   {
     if (IsServer(cptr))
       sendto_ops_butone(NULL, &me, ":%s WALLOPS :MODE for User %s From %s!%s",
-	  me.name, parv[1], get_client_name(cptr, FALSE), sptr->name);
+	  me.name, parv[1], cptr->name, sptr->name);
     else
       sendto_one(sptr, err_str(ERR_USERSDONTMATCH), me.name, parv[0]);
     return 0;

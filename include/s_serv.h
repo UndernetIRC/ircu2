@@ -13,15 +13,14 @@
 
 #define STAT_PING		0
 #define STAT_LOG		1	/* logfile for -x */
-#define STAT_MASTER		2	/* Local ircd master before identification */
-#define STAT_CONNECTING		3
-#define STAT_HANDSHAKE		4
-#define STAT_ME			5
-#define STAT_UNKNOWN		6
-#define STAT_UNKNOWN_USER	7	/* Connect to client port */
-#define STAT_UNKNOWN_SERVER	8	/* Connect to server port */
-#define STAT_SERVER		9
-#define STAT_USER		10
+#define STAT_CONNECTING		2
+#define STAT_HANDSHAKE		3
+#define STAT_ME			4
+#define STAT_UNKNOWN		5
+#define STAT_UNKNOWN_USER	6	/* Connect to client port */
+#define STAT_UNKNOWN_SERVER	7	/* Connect to server port */
+#define STAT_SERVER		8
+#define STAT_USER		9
 
 /* 
  * for when you wanna create a bitmask of status values
@@ -41,13 +40,10 @@
 #define IsUnknown(x)		(IsStatMask(x, \
 					StatusMask(STAT_UNKNOWN)|\
 					StatusMask(STAT_UNKNOWN_USER)|\
-					StatusMask(STAT_UNKNOWN_SERVER)|\
-					StatusMask(STAT_MASTER)))
+					StatusMask(STAT_UNKNOWN_SERVER)))
 #define IsServerPort(x)		((x)->status == STAT_UNKNOWN_SERVER )
 #define IsUserPort(x)		((x)->status == STAT_UNKNOWN_USER )
-#define IsMaster(x)		((x)->status == STAT_MASTER)
 #define IsClient(x)		(IsStatMask(x, \
-					StatusMask(STAT_MASTER)|\
 					StatusMask(STAT_HANDSHAKE)|\
 					StatusMask(STAT_ME)|\
 					StatusMask(STAT_UNKNOWN)|\
@@ -74,7 +70,6 @@
 #define IsLog(x)		((x)->status == STAT_LOG)
 #define IsPing(x)		((x)->status == STAT_PING)
 
-#define SetMaster(x)		((x)->status = STAT_MASTER)
 #define SetConnecting(x)	((x)->status = STAT_CONNECTING)
 #define SetHandshake(x)		((x)->status = STAT_HANDSHAKE)
 #define SetServer(x)		((x)->status = STAT_SERVER)

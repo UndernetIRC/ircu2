@@ -15,8 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
 #ifndef INCLUDED_numnicks_h
 #define INCLUDED_numnicks_h
 #ifndef INCLUDED_sys_types_h
@@ -24,16 +25,16 @@
 #define INCLUDED_sys_types_h
 #endif
 
-/*=============================================================================
+/*
  * General defines
  */
 
 /*
  * used for buffer size calculations in channel.c
  */
-#define NUMNICKLEN 5		/* strlen("YYXXX") */
+#define NUMNICKLEN 5            /* strlen("YYXXX") */
 
-/*=============================================================================
+/*
  * Macros
  */
 
@@ -52,34 +53,32 @@
  */
 #define NumServCap(c) (c)->yxx, (c)->serv->nn_capacity
 
-/*=============================================================================
+/*
  * Structures
  */
 struct Client;
 
-/*=============================================================================
+/*
  * Proto types
  */
-extern int SetRemoteNumNick(struct Client *cptr, const char *yxx);
-extern void SetLocalNumNick(struct Client *cptr);
-extern void RemoveYXXClient(struct Client *server, const char *yxx);
-extern void SetServerYXX(struct Client *cptr,
-    struct Client *server, const char *yxx);
-extern void ClearServerYXX(const struct Client *server);
+extern void SetRemoteNumNick(struct Client* cptr, const char* yxx);
+extern int  SetLocalNumNick(struct Client* cptr);
+extern void RemoveYXXClient(struct Client* server, const char* yxx);
+extern void SetServerYXX(struct Client* cptr, 
+                         struct Client* server, const char* yxx);
+extern void ClearServerYXX(const struct Client* server);
 
-extern void SetYXXCapacity(struct Client *myself, size_t max_clients);
-extern void SetYXXServerName(struct Client *myself, unsigned int numeric);
+const char* CreateNNforProtocol9server(const struct Client *server);
+extern void SetYXXCapacity(struct Client* myself, unsigned int max_clients);
+extern void SetYXXServerName(struct Client* myself, unsigned int numeric);
 
-extern int markMatchexServer(const char *cmask, int minlen);
-extern struct Client *find_match_server(char *mask);
-extern struct Client *findNUser(const char *yxx);
-extern struct Client *FindNServer(const char *numeric);
+extern int            markMatchexServer(const char* cmask, int minlen);
+extern struct Client* find_match_server(char* mask);
+extern struct Client* findNUser(const char* yxx);
+extern struct Client* FindNServer(const char* numeric);
 
-extern unsigned int base64toint(const char *str);
-extern const char *inttobase64(char *buf, unsigned int v, size_t count);
-
-#ifndef NO_PROTOCOL9
-extern const char *CreateNNforProtocol9server(const struct Client *server);
-#endif
+extern unsigned int   base64toint(const char* str);
+extern const char*    inttobase64(char* buf, unsigned int v, unsigned int count);
 
 #endif /* INCLUDED_numnicks_h */
+

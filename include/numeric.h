@@ -102,8 +102,8 @@
 #define ERR_BADCHANMASK	     476	/* Undernet extension */
 /*      ERR_NEEDREGGEDNICK   477           DalNet Extention */
 #define ERR_BANLISTFULL	     478	/* Undernet extension */
-/* #define ERR_BADCHANNAME      479        EFNet extension */
-
+#define ERR_BADCHANNAME      479        /* EFNet extension */
+					/* 479 Undernet extension badchan*/
 #define ERR_NOPRIVILEGES     481
 #define ERR_CHANOPRIVSNEEDED 482
 #define ERR_CANTKILLSERVER   483
@@ -113,6 +113,8 @@
 #define ERR_VOICENEEDED	     489	/* Undernet extension */
 
 #define ERR_NOOPERHOST	     491
+
+#define ERR_ISOPERLCHAN      498        /* Undernet extension */
 
 #define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502

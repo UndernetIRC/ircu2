@@ -81,6 +81,7 @@ static void killcomment(aClient *sptr, char *parv, char *filename);
 
 aConfItem *conf = NULL;
 aGline *gline = NULL;
+aGline *badchan = NULL;
 aMotdItem *motd = NULL;
 aMotdItem *rmotd = NULL;
 atrecord *tdata = NULL;
@@ -1056,8 +1057,6 @@ int initconf(int opt)
     if (aconf->status == CONF_ME)
     {
       strncpy(me.info, aconf->name, sizeof(me.info) - 1);
-      if (me.name[0] == '\0' && aconf->host[0])
-	strncpy(me.name, aconf->host, sizeof(me.name) - 1);
       if (portnum == 0)
 	portnum = aconf->port;
     }

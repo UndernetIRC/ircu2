@@ -22,8 +22,7 @@
 #define BOOT_DEBUG	4
 #define BOOT_INETD	8
 #define BOOT_TTY	16
-#define BOOT_OPER	32
-#define BOOT_AUTODIE	64
+#define BOOT_AUTODIE	32
 
 /*=============================================================================
  * Proto types

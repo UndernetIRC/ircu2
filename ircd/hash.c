@@ -311,20 +311,17 @@ int hRemClient(aClient *cptr)
   {
     clientTable[hashv] = cptr->hnext;
     return 0;
-  };
-
+  }
   while (tmp)
   {
     if (tmp->hnext == cptr)
     {
       tmp->hnext = tmp->hnext->hnext;
       return 0;
-    };
+    }
     tmp = tmp->hnext;
-  };
-
+  }
   return -1;
-
 }
 
 /*
@@ -345,32 +342,13 @@ int hRemClient(aClient *cptr)
  */
 int hChangeClient(aClient *cptr, char *newname)
 {
-  register HASHREGS oldhash = strhash(cptr->name);
   register HASHREGS newhash = strhash(newname);
-  register aClient *tmp;
 
-  tmp = clientTable[oldhash];
+  hRemClient(cptr);
 
-  if (tmp == cptr)
-    return 0;
-
-  while (tmp)
-  {
-    if (tmp->hnext == cptr)
-    {
-      tmp->hnext = cptr->hnext;
-      cptr->hnext = clientTable[newhash];
-      clientTable[newhash] = cptr;
-      return 0;
-    };
-    tmp = tmp->hnext;
-  };
-
-  /* Well... do our best anyway... link it to the correct list,
-     and then... Fail (and core if we are debugging) ! */
   cptr->hnext = clientTable[newhash];
   clientTable[newhash] = cptr;
-  return -1;
+  return 0;
 }
 
 /*

@@ -75,18 +75,15 @@ void start_auth(aClient *cptr)
   cptr->authfd = socket(AF_INET, SOCK_STREAM, 0);
   err = errno;
   alarm(0);
-  if (cptr->authfd < 0 && err == EAGAIN)
-    sendto_ops("Can't allocate fd for auth on %s : socket: No more sockets",
-	get_client_name(cptr, TRUE));
 
   if (cptr->authfd < 0)
   {
 #ifdef	USE_SYSLOG
     syslog(LOG_ERR, "Unable to create auth socket for %s:%m",
-	get_client_name(cptr, TRUE));
+	get_client_name(cptr, FALSE));
 #endif
     Debug((DEBUG_ERROR, "Unable to create auth socket for %s:%s",
-	get_client_name(cptr, TRUE), strerror(get_sockerr(cptr))));
+	get_client_name(cptr, FALSE), strerror(get_sockerr(cptr))));
     if (!DoingDNS(cptr))
       SetAccess(cptr);
     ircstp->is_abad++;
@@ -94,8 +91,8 @@ void start_auth(aClient *cptr)
   }
   if (cptr->authfd >= (MAXCONNECTIONS - 2))
   {
-    sendto_ops("Can't allocate fd for auth on %s", get_client_name(cptr, TRUE));
     close(cptr->authfd);
+    cptr->authfd = -1;
     return;
   }
 
@@ -105,7 +102,8 @@ void start_auth(aClient *cptr)
   if (bind(cptr->authfd, (struct sockaddr *)&vserv, sizeof(vserv)) == -1)
   {
     report_error("binding auth stream socket %s: %s", cptr);
-    close(cptr->fd);
+    close(cptr->authfd);
+    cptr->authfd = -1;
     return;
   }
 #endif
@@ -159,7 +157,7 @@ void send_authports(aClient *cptr)
   {
 #ifdef	USE_SYSLOG
     syslog(LOG_ERR, "auth get{sock,peer}name error for %s:%m",
-	get_client_name(cptr, TRUE));
+	get_client_name(cptr, FALSE));
 #endif
     goto authsenderr;
   }
