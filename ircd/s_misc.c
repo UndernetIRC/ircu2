@@ -164,16 +164,12 @@ const char* get_client_name(const struct Client* sptr, int showip)
 {
   static char nbuf[HOSTLEN * 2 + USERLEN + 5];
 
-  if (MyConnect(sptr)) {
-    if (showip)
-      ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
-                    IsIdented(sptr) ? cli_username(sptr) : "unknown",
-                    cli_sock_ip(sptr));
-    else
-        return cli_name(sptr);
-    return nbuf;
-  }
-  return cli_name(sptr);
+  if (!MyConnect(sptr) || !showip)
+    return cli_name(sptr);
+  ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
+                IsIdented(sptr) ? cli_username(sptr) : "",
+                cli_sock_ip(sptr));
+  return nbuf;
 }
 
 /** Set cli_sockhost(cptr) from \a host.

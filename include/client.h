@@ -262,7 +262,7 @@ struct Client {
   struct irc_in_addr cli_ip;      /**< Real IP of client */
   short          cli_status;      /**< Client type */
   char cli_name[HOSTLEN + 1];     /**< Unique name of the client, nick or host */
-  char cli_username[USERLEN + 1]; /**< username here now for auth stuff */
+  char cli_username[USERLEN + 1]; /**< Username determined by ident lookup */
   char cli_info[REALLEN + 1];     /**< Free form additional client information */
 };
 

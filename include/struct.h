@@ -73,7 +73,12 @@ struct User {
   unsigned int       refcnt;         /**< Number of times this block is referenced */
   unsigned int       joined;         /**< number of channels joined */
   unsigned int       invites;        /**< Number of channels we've been invited to */
-  char               username[USERLEN + 1];   /**< remote account name */
+  /** Remote account name.  Before registration is complete, this is
+   * either empty or contains the username from the USER command.
+   * After registration, that may be prefixed with ~ or it may be
+   * overwritten with the ident response.
+   */
+  char               username[USERLEN + 1];
   char               host[HOSTLEN + 1];       /**< displayed hostname */
   char               realhost[HOSTLEN + 1];   /**< actual hostname */
   char               account[ACCOUNTLEN + 1]; /**< IRC account name */

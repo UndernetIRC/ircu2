@@ -1,3 +1,17 @@
+2005-03-30  Michael Poole <mdpoole@troilus.org>
+
+	* include/client.h (struct Client): Explain where cli_username
+	comes from.
+
+	* include/struct.h (struct User): Explain where this username
+	comes from, too
+
+	* ircd/ircd_res.c (timeout_resolver): Update parameter name in
+	Doxygen comment, too.
+
+	* ircd/s_misc.c (get_client_name): Reorganize to have less
+	indentation and behave like 2.10.11 when client is not idented.
+
 2005-03-29  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Remove no-longer-used HIS_STATS_h.

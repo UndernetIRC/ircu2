@@ -289,7 +289,7 @@ check_resolver_timeout(time_t when)
 }
 
 /** Drop pending DNS lookups which have timed out.
- * @param[in] notused Timer event data (ignored).
+ * @param[in] ev Timer event data (ignored).
  */
 static void
 timeout_resolver(struct Event *ev)
