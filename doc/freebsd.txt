@@ -1,0 +1,28 @@
+This document pertains to kernel panics with FreeBSD involving mbufs.
+
+   This is a well documented problem with programs such as ircu, and inn that
+   involve a lot of clients, the solution is generally to set the option 'NMBCLUSTERS'
+   to a reasonably higher number the default is 1024, you should first try increasing
+   this *10 (10240) and continue checking mbuf usage with netstat -m.
+
+   It has been recommended that this be increased as far as *50 (51200) (although more
+   won't hurt, it uses more memory, so don't go too far overboard) it's been stated
+   over and over that the default is very low, but then, you're supposed to know how
+   to configure your OS for what you're doing right? =)
+
+   There is a note in the configuration for this:
+
+   # Note that you will probably want to bump up NMBCLUSTERS a lot to use
+   options NMBCLUSTERS=1024
+   Merely change the 1024 to the number that best suites your system.
+
+
+     -poptix poptix@poptix.net
+
+
+
+
+
+
+
+   April 17, 2000 Matthew S. Hallacy
