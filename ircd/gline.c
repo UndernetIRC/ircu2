@@ -152,7 +152,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 	  (!acptr->user->username ||
 	   match(gline->gl_user, acptr->user->username) == 0)) {
 	/* ok, here's one that got G-lined */
-	send_reply(acptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s",
+	send_reply(acptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s",
 		   gline->gl_reason);
 
 	/* let the ops know about it */

@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_bsd.h"
@@ -111,18 +112,9 @@
 int ms_desynch(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   if (IsServer(sptr) && parc >= 2)
-  {
-    int i;
-    struct Client *acptr;
-    /* Send message to local +g clients as if it were a wallops */
-    sprintf_irc(sendbuf, ":%s WALLOPS :%s", parv[0], parv[parc - 1]);
-    for (i = 0; i <= HighestFd; i++)
-      if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr) &&
-          SendDebug(acptr))
-        sendbufto_one(acptr);
-    /* Send message to remote +g clients */
-    sendto_g_serv_butone(cptr, "%s DESYNCH :%s", NumServ(sptr), parv[parc - 1]);
-  }
+    sendcmdto_flag_butone(sptr, CMD_DESYNCH, cptr, FLAGS_DEBUG, ":%s",
+			  parv[parc - 1]);
+
   return 0;
 }
 
@@ -147,9 +139,9 @@ int m_desynch(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     for (i = 0; i <= HighestFd; i++)
       if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr) &&
           SendDebug(acptr))
-        sendbufto_one(acptr);
+        sendbufto_one(acptr); /* XXX DEAD */
     /* Send message to remote +g clients */
-    sendto_g_serv_butone(cptr, "%s DESYNCH :%s", NumServ(sptr), parv[parc - 1]);
+    sendto_g_serv_butone(cptr, "%s DESYNCH :%s", NumServ(sptr), parv[parc - 1]); /* XXX DEAD */
   }
   return 0;
 }

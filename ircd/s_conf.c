@@ -164,7 +164,7 @@ static void killcomment(struct Client *sptr, char *parv, char *filename)
 
   if (NULL == (file = fbopen(filename, "r"))) {
     send_reply(sptr, ERR_NOMOTD);
-    send_reply(sptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+    send_reply(sptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
 	       ":Connection from your host is refused on this server.");
     return;
   }
@@ -177,7 +177,7 @@ static void killcomment(struct Client *sptr, char *parv, char *filename)
       *tmp = '\0';
     send_reply(sptr, RPL_MOTD, line);
   }
-  send_reply(sptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+  send_reply(sptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
 	     ":Connection from your host is refused on this server.");
   fbclose(file);
 }
@@ -1413,14 +1413,14 @@ int find_kill(struct Client *cptr)
     }
   }
   if (reply[0])
-    send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, reply);
+    send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, reply);
   else if (tmp) {
     if (EmptyString(tmp->passwd))
-      send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+      send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
 		 ":Connection from your host is refused on this server.");
     else {
       if (*tmp->passwd == '"') {
-	send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%*s.",
+	send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%*s.",
 		   strlen(tmp->passwd + 1) - 1, tmp->passwd + 1);
       }
       else if (*tmp->passwd == '!')
@@ -1429,7 +1429,7 @@ int find_kill(struct Client *cptr)
 #ifdef COMMENT_IS_FILE
         killcomment(cptr, cptr->name, tmp->passwd);
 #else
-	send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
+	send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
 		   tmp->passwd);
 #endif
     }
@@ -1438,7 +1438,7 @@ int find_kill(struct Client *cptr)
   /* find active glines */
   /* added a check against the user's IP address to find_gline() -Kev */
   else if ((agline = gline_lookup(cptr)) && GlineIsActive(agline))
-    send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
+    send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
 	       GlineReason(agline));
   else
     agline = NULL;                /* if a gline was found, it was inactive */

@@ -170,7 +170,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         return register_user(cptr, sptr, sptr->name, sptr->user->username);
     }
     else  
-      send_reply(sptr, RPL_EXPLICIT | ERR_BADPING,
+      send_reply(sptr, SND_EXPLICIT | ERR_BADPING,
 		 ":To connect, type /QUOTE PONG %u", sptr->cookie);
   }
   return 0;

@@ -1726,12 +1726,12 @@ size_t cres_mem(struct Client* sptr)
   }
 
   if (cachedCount != cache_count) {
-    send_reply(sptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+    send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	       ":Resolver: cache count mismatch: %d != %d", cachedCount,
 	       cache_count);
     assert(cachedCount == cache_count);
   }
-  send_reply(sptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Resolver: cache %d(%d) requests %d(%d)", cache_count,
 	     cache_mem, request_count, request_mem);
   return cache_mem + request_mem;

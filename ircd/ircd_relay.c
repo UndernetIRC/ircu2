@@ -291,7 +291,7 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
-    send_reply(sptr, RPL_EXPLICIT | ERR_NOSUCHNICK, "* :Target left UnderNet. "
+    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left UnderNet. "
 	       "Failed to deliver: [%.20s]", text);
     return;
   }

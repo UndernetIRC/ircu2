@@ -598,27 +598,27 @@ void tstats(struct Client *cptr, char *name)
       sp->is_ni++;
   }
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
 	     sp->is_ac, sp->is_ref);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":unknown commands %u prefixes %u", sp->is_unco, sp->is_unpf);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":nick collisions %u unknown closes %u", sp->is_kill, sp->is_ni);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":wrong direction %u empty %u", sp->is_wrdi, sp->is_empt);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":numerics seen %u mode fakes %u", sp->is_num, sp->is_fake);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":auth successes %u fails %u", sp->is_asuc, sp->is_abad);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":local connections %u",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":local connections %u",
 	     sp->is_loc);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Client server");
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Client server");
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u",
 	     sp->is_cl, sp->is_sv);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %u.%uK %u.%uK",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %u.%uK %u.%uK",
 	     sp->is_cks, sp->is_cbs, sp->is_sks, sp->is_sbs);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %u.%uK %u.%uK",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %u.%uK %u.%uK",
 	     sp->is_ckr, sp->is_cbr, sp->is_skr, sp->is_sbr);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":time connected %Tu %Tu",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":time connected %Tu %Tu",
 	     sp->is_cti, sp->is_sti);
 }

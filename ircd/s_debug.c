@@ -235,7 +235,7 @@ void debug(int level, const char *form, ...)
 static void debug_enumerator(struct Client* cptr, const char* msg)
 {
   assert(0 != cptr);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":%s", msg);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", msg);
 }
 
 /*
@@ -249,7 +249,7 @@ void send_usage(struct Client *cptr, char *nick)
 {
   os_get_rusage(cptr, CurrentTime - me.since, debug_enumerator);
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %d used %d",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %d used %d",
 	     DBufAllocCount, DBufUsedCount);
 }
 #endif /* DEBUGMODE */
@@ -355,44 +355,44 @@ void count_memory(struct Client *cptr, char *nick)
   for (cltmp = classes; cltmp; cltmp = cltmp->next)
     cl++;
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Client Local %d(%zu) Remote %d(%zu)", lc, lcm, rc, rcm);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Users %d(%zu) Invites %d(%zu)", us, us * sizeof(struct User),
 	     usi, usi * sizeof(struct SLink));
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), aw, awm);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Attached confs %d(%zu)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Attached confs %d(%zu)",
 	     lcc, lcc * sizeof(struct SLink));
 
   totcl = lcm + rcm + us * sizeof(struct User) + memberships * sizeof(struct Membership) + awm;
   totcl += lcc * sizeof(struct SLink) + usi * sizeof(struct SLink);
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu)", co,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu)", co,
 	     com);
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Classes %d(%zu)", cl,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes %d(%zu)", cl,
 	     cl * sizeof(struct ConfClass));
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channel membrs %d(%zu) invite %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), chi,
 	     chi * sizeof(struct SLink));
 
   totch = chm + chbm + chi * sizeof(struct SLink);
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Whowas users %d(%zu) away %d(%zu)", wwu,
 	     wwu * sizeof(struct User), wwa, wwam);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
 	     NICKNAMEHISTORYLENGTH, wwm);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Hash: client %d(%zu), chan is the same", HASHSIZE,
 	     sizeof(void *) * HASHSIZE);
 
@@ -405,7 +405,7 @@ void count_memory(struct Client *cptr, char *nick)
    * are sent.
    */
   dbuf_count_memory(&dbufs_allocated, &dbufs_used);
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
 	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
@@ -417,11 +417,11 @@ void count_memory(struct Client *cptr, char *nick)
   tot += sizeof(void *) * HASHSIZE * 3;
 
 #if !defined(NDEBUG)
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Allocations: %zu(%zu)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Allocations: %zu(%zu)",
 	     fda_get_block_count(), fda_get_byte_count());
 #endif
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Total: ww %zu ch %zu cl %zu co %zu db %zu", totww, totch,
 	     totcl, com, dbufs_allocated);
 }
