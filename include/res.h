@@ -126,9 +126,30 @@ extern void report_dns_servers(struct Client *source_p, const struct StatDesc *s
 extern void gethost_byname(const char *name, const struct DNSQuery *query);
 extern void gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query);
 
-extern int irc_in_addr_valid(const struct irc_in_addr *addr);
-extern int irc_in_addr_cmp(const struct irc_in_addr *a, const struct irc_in_addr *b);
-extern int irc_in_addr_is_ipv4(const struct irc_in_addr *addr);
-extern int irc_in_addr_is_loopback(const struct irc_in_addr *addr);
+/** Evaluate to non-zero if \a ADDR is a valid address (not all 0s and not all 1s). */
+#define irc_in_addr_valid(ADDR) (((ADDR)->in6_16[0] && ~(ADDR)->in6_16[0]) \
+                                 || (ADDR)->in6_16[1] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[2] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[3] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[4] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[5] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[6] != (ADDR)->in6_16[0] \
+                                 || (ADDR)->in6_16[7] != (ADDR)->in6_16[0])
+/** Evaluate to non-zero if \a ADDR (of type struct irc_in_addr) is an IPv4 address. */
+#define irc_in_addr_is_ipv4(ADDR) (!(ADDR)->in6_16[0] && !(ADDR)->in6_16[1] && !(ADDR)->in6_16[2] \
+                                   && !(ADDR)->in6_16[3] && !(ADDR)->in6_16[4] && (ADDR)->in6_16[6] \
+                                   && (!(ADDR)->in6_16[5] || (ADDR)->in6_16[5] == 65535))
+/** Evaluate to non-zero if \a A is a different IP than \a B. */
+#define irc_in_addr_cmp(A,B) (irc_in_addr_is_ipv4(A) ? ((A)->in6_16[6] != (B)->in6_16[6] \
+                                  || (A)->in6_16[7] != (B)->in6_16[7] || !irc_in_addr_is_ipv4(B)) \
+                              : memcmp((A), (B), sizeof(struct irc_in_addr)))
+/** Evaluate to non-zero if \a ADDR is a loopback address. */
+#define irc_in_addr_is_loopback(ADDR) (!(ADDR)->in6_16[0] && !(ADDR)->in6_16[1] && !(ADDR)->in6_16[2] \
+                                       && !(ADDR)->in6_16[3] && !(ADDR)->in6_16[4] \
+                                       && ((!(ADDR)->in6_16[5] \
+                                            && ((!(ADDR)->in6_16[6] && (ADDR)->in6_16[7] == htons(1)) \
+                                                || (ntohs((ADDR)->in6_16[6]) & 0xff00) == 0x7f00)) \
+                                           || (((ADDR)->in6_16[5] == 65535) \
+                                               && (ntohs((ADDR)->in6_16[6]) & 0xff00) == 0x7f00)))
 
 #endif

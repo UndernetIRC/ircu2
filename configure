@@ -10188,7 +10188,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-                              ac_config_files="$ac_config_files Makefile ircd/Makefile doc/Makefile"
+                                        ac_config_files="$ac_config_files Makefile ircd/Makefile ircd/test/Makefile doc/Makefile"
           ac_config_commands="$ac_config_commands default"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -10720,6 +10720,7 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "ircd/Makefile" ) CONFIG_FILES="$CONFIG_FILES ircd/Makefile" ;;
+  "ircd/test/Makefile" ) CONFIG_FILES="$CONFIG_FILES ircd/test/Makefile" ;;
   "doc/Makefile" ) CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
   "default" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;

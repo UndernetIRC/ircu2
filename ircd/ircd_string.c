@@ -450,22 +450,6 @@ const char* ircd_ntoa(const struct irc_in_addr* in)
   return ircd_ntoa_r(buf, in);
 }
 
-/* This doesn't really belong here, but otherwise umkpasswd breaks. */
-/** Check whether an IP address looks like an IPv4 address.
- * @param[in] addr Address to check.
- * @return Non-zero if the address is a valid IPv4 address, zero if not.
- */
-int irc_in_addr_is_ipv4(const struct irc_in_addr *addr)
-{
-  return addr->in6_16[0] == 0
-    && addr->in6_16[1] == 0
-    && addr->in6_16[2] == 0
-    && addr->in6_16[3] == 0
-    && addr->in6_16[4] == 0
-    && (addr->in6_16[5] == 0 || addr->in6_16[5] == 0xffff)
-    && addr->in6_16[6] != 0;
-}
-
 /** Convert an IP address to printable ASCII form.
  * @param[out] buf Output buffer to write to.
  * @param[in] in Address to format.
@@ -536,8 +520,6 @@ const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
         if (ii < 7)
           APPEND(':');
       }
-      if (max_zeros + max_start == 8)
-        APPEND(':');
 #undef APPEND
 
       /* Nul terminate and return number of characters used. */
@@ -650,24 +632,31 @@ ircd_aton(struct irc_in_addr *ip, const char *input)
       case '.': {
         uint32_t ip4;
         unsigned int len;
-        len = ircd_aton_ip4(input + pos, &ip4);
+        len = ircd_aton_ip4(part_start, &ip4);
         if (!len || (ii > 6))
           return 0;
         ip->in6_16[ii++] = htons(ntohl(ip4) >> 16);
         ip->in6_16[ii++] = htons(ntohl(ip4) & 65535);
-        pos += len;
-        break;
+        if (colon < 8) {
+          unsigned int jj;
+          /* Shift stuff after "::" up and fill middle with zeros. */
+          for (jj = 0; jj < ii - colon; jj++)
+            ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
+          for (jj = 0; jj < 8 - ii; jj++)
+            ip->in6_16[colon + jj] = 0;
+        }
+        return part_start - input + len;
       }
       default: {
-        unsigned int jj;
-        if (colon >= 8)
-          return 0;
-        /* Shift stuff after "::" up and fill middle with zeros. */
         ip->in6_16[ii++] = htons(part);
-        for (jj = 0; jj < ii - colon; jj++)
-          ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
-        for (jj = 0; jj < 8 - ii; jj++)
-          ip->in6_16[colon + jj] = 0;
+        if (colon < 8) {
+          unsigned int jj;
+          /* Shift stuff after "::" up and fill middle with zeros. */
+          for (jj = 0; jj < ii - colon; jj++)
+            ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
+          for (jj = 0; jj < 8 - ii; jj++)
+            ip->in6_16[colon + jj] = 0;
+        }
         return pos;
       }
       }

@@ -1,3 +1,24 @@
+2004-12-28  Michael Poole <mdpoole@troilus.org>
+
+	* include/res.h: Implement irc_in_addr_* as macros.
+
+	* ircd/ircd_res.c: Remove the function bodies.
+
+	* ircd/ircd_string.c (irc_in_addr_is_ipv4): Remove body.
+	(ircd_ntoa_r): Do not append extra ':' when unparsing 0::.
+	(ircd_aton): Accept IPv6 addresses with all eight segments
+	specified (e.g. 0:0:0:0:0:0:0:0).  Correctly parse addresses
+	with IPv4 bits at the end (e.g. ::FFFF:127.0.0.1).
+
+	* ircd/test/ircd_in_addr_t.c, ircd/test/test_stub.c: New files.
+
+	* ircd/test/Makefile: Convert to Makefile.in for proper VPATH
+	support.  Add test_stub.c and ircd_in_addr_t.c references.
+
+	* configure.in: Generate ircd/test/Makefile as an output file.
+
+	* configure: Update.
+
 2004-12-18  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h: Move unreg, privs, capab and active fields
