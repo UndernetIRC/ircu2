@@ -1,3 +1,8 @@
+2001-06-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_poll.c (engine_loop): remove bogus assert that I
+	forgot to check in the events branch
+
 2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/res.c (init_resolver): don't start DNS expires with a 0
