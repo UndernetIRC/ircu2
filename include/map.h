@@ -22,6 +22,9 @@
  *
  * $Id$
  */
+#ifndef INCLUDED_ircd_defs_h
+#include "ircd_defs.h"
+#endif
 #ifndef INCLUDED_time_h
 #include <time.h>		/* struct tm */
 #define INCLUDED_time_h
@@ -31,7 +34,8 @@
 #define INCLUDED_sys_types_h
 #endif
 
-#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
+
+struct Client;
 
 struct Map {
   time_t lasttime;
@@ -44,7 +48,7 @@ struct Map {
 };
 
 extern void map_update(struct Client *server);
-#endif /* defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS) */
+
 #ifdef HEAD_IN_SAND_LINKS
 extern void map_dump_links_head_in_sand(struct Client *sptr, char *mask);
 #endif /* HEAD_IN_SAND_LINKS */

@@ -26,10 +26,10 @@
 
 #include "config.h"
 
+#include "map.h"
 #include "client.h"
 #include "ircd.h"
 #include "ircd_defs.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -43,13 +43,10 @@
 #include "s_serv.h"
 #include "send.h"
 #include "querycmds.h"
-#include "map.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-
-#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
 
 static struct Map *MapList = 0;
 
@@ -133,7 +130,6 @@ void map_update(struct Client *cptr)
   if(!map)
     map_add(cptr);
 }
-#endif /* HEAD_IN_SAND_MAP || HEAD_IN_SAND_LINKS*/ 
 
 #ifdef HEAD_IN_SAND_MAP
 

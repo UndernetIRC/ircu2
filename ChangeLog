@@ -1,3 +1,6 @@
+2003-01-10  Thomas Helvey <tom.helvey@cox.net>
+	* ircd/map.c, ircd/Makefile.in, include/map.h: Remove 
+        HEAD_IN_SAND macros to get server to build, rebuild dependencies.
 2003-01-08  Fredrik Soderblom <froo@quakenet.org>
         * ircd/s_err.c, ircd/s_user.c (hide_hostmask): Simplify
         RPL_HOSTHIDDEN and the use of it.
