@@ -457,7 +457,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			       get_client_name(sptr, HIDE_IP));
         }
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr->ip);
+        ip_registry_connect_fail(sptr->ip.s_addr);
         return exit_client(cptr, sptr, &me,
 			   "Sorry, your connection class is full - try "
 			   "again later or try another server");
@@ -476,7 +476,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr->ip);
+        ip_registry_connect_fail(sptr->ip.s_addr);
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, sptr->sockhost, HOSTLEN);
@@ -498,7 +498,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         && strcmp(sptr->passwd, aconf->passwd))
     {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(sptr->ip);
+      ip_registry_connect_fail(sptr->ip.s_addr);
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
@@ -508,7 +508,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
      */
     if (find_kill(sptr)) {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(sptr->ip);
+      ip_registry_connect_fail(sptr->ip.s_addr);
       return exit_client(cptr, sptr, &me, "K-lined");
     }
     /*
@@ -627,7 +627,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
       set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);
-    IPcheck_connect_succeeded(sptr);
+    ip_registry_connect_succeeded(sptr);
   }
   else
     /* if (IsServer(cptr)) */
@@ -656,7 +656,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
     }
-    if (!IPcheck_remote_connect(sptr, (acptr != &me)))
+    if (!ip_registry_check_remote(sptr, (acptr != &me)))
       /*
        * We ran out of bits to count this
        */

@@ -277,11 +277,9 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
     Count_unknowndisconnects(UserStats);
 
-  /*
-   * Update IPregistry
-   */
-  if (IsIPChecked(bcptr))
-    IPcheck_disconnect(bcptr);
+  /* Update IPregistry */
+  ip_registry_disconnect(bcptr);
+
 
   /* 
    * Remove from serv->client_list

@@ -23,7 +23,6 @@
  * $Id$
  */
 #include "whocmds.h"
-#include "IPcheck.h"
 #include "channel.h"
 #include "client.h"
 #include "hash.h"

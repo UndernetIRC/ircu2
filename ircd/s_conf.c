@@ -498,7 +498,7 @@ check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
        * clients connected with the same IP number
        */
       unsigned short nr = *aconf->passwd - '0';
-      if (IPcheck_nr(cptr) > nr)
+      if (ip_registry_count(cptr->ip.s_addr) > nr)
         return ACR_TOO_MANY_FROM_IP; /* Already got nr with that ip# */
     }
 #ifdef USEONE

@@ -547,63 +547,60 @@ int net_close_unregistered_connections(struct Client* source)
   return count;
 }
 
-/*
+/*----------------------------------------------------------------------------
+ * add_connection
+ *
  * Creates a client which has just connected to us on the given fd.
  * The sockhost field is initialized with the ip# of the host.
  * The client is not added to the linked list of clients, it is
  * passed off to the auth handler for dns and ident queries.
- */
-void add_connection(struct Listener* listener, int fd)
-{
+ *--------------------------------------------------------------------------*/
+void add_connection(struct Listener* listener, int fd) {
   struct sockaddr_in addr;
-  struct Client*     new_client;
+  struct Client      *new_client;
   time_t             next_target = 0;
+
   const char* const throttle_message =
          "ERROR: Your host is trying to (re)connect too fast -- throttled\r\n";
        /* 12345678901234567890123456789012345679012345678901234567890123456 */
   
   assert(0 != listener);
+
   /*
-   * Removed preliminary access check. Full check is performed in
-   * m_server and m_user instead. Also connection time out help to
-   * get rid of unwanted connections.
+   * Removed preliminary access check. Full check is performed in m_server and
+   * m_user instead. Also connection time out help to get rid of unwanted
+   * connections.  
    */
   if (!os_get_peername(fd, &addr) || !os_set_nonblocking(fd)) {
     ++ServerStats->is_ref;
     close(fd);
     return;
   }
+
+
   /*
    * Add this local client to the IPcheck registry.
+   *
    * If it is a connection to a user port and if the site has been throttled,
    * reject the user.
    */
-  if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
-#ifdef IPCHECKDEBUG     
-   char buff[512];
-   snprintf(buff,512,"\n\rNOTICE * :IPCheck=%i connections active\n\r%s",
-   	IPcheck_nr(cptr),
-   	throttle_message);
-   buff[511]=0;
-   send(fd,buff,strlen(buff),0);
-#else
-    /*
-     * strlen(throttle_message) == 66
-     *
-     * strlen is slow, so we use the constant here.
-     */
+  if (!ip_registry_check_local(addr.sin_addr.s_addr, &next_target) &&
+      !listener->server) {
     send(fd, throttle_message, 66, 0);
-#endif
     close(fd);
     ++ServerStats->is_ref;
     return;
   }
 
-  new_client = make_client(0,
-      (listener->server) ? STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER);
+  new_client = make_client(0, ((listener->server) ? 
+			       STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
+
+  if (!listener->server)
+    ip_registry_local_connect(new_client);
+
   /*
-   * Copy ascii address to 'sockhost' just in case. Then we
-   * have something valid to put into error messages...
+   * Copy ascii address to 'sockhost' just in case. Then we have something
+   * valid to put into error messages...  
    */
   ircd_ntoa_r(new_client->sock_ip, (const char*) &addr.sin_addr);   
   strcpy(new_client->sockhost, new_client->sock_ip);
@@ -614,18 +611,15 @@ void add_connection(struct Listener* listener, int fd)
     new_client->nexttarget = next_target;
 
   new_client->fd = fd;
-
-  if (!listener->server)
-    SetIPChecked(new_client);
   new_client->listener = listener;
   ++listener->ref_count;
 
   Count_newunknown(UserStats);
-  /*
-   * if we've made it this far we can put the client on the auth query pile
-   */
+
+  /* if we've made it this far we can put the client on the auth query pile */
   start_auth(new_client);
 }
+
 
 /*
  * read_packet
