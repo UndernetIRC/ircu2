@@ -493,7 +493,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     else if (killer != &me && victim->serv->up != killer)
       sendto_ops("Received SQUIT %s from %s :", victim->name,
                  IsServer(killer) ? killer->name : get_client_name(killer, HIDE_IP));
-    sendto_op_mask(SNO_NETWORK, "Net break: %s (%s)", comment1, comment);
+    sendto_op_mask(SNO_NETWORK, "Net break: %s %s (%s)",
+		   victim->serv->up->name, victim->name, comment);
   }
 
   /*
