@@ -107,6 +107,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+/* /etc/magic rules:
+ *
+ * 0	belong	0x52e45fd4	RingLog call trace file, big endian
+ * >4	beshort	x		(First entry %u,
+ * >>6	beshort	x		last entry %u)
+ * 0	lelong	0x52e45fd4	RingLog call trace file, little endian
+ * >4	leshort	x		(First entry %u,
+ * >>6	leshort	x		last entry %u)
+ */
 #define RINGLOG_MAGIC 0x52e45fd4	/* verify file format */
 
 #define RINGLOG_INIT  0x00000000	/* mark when a session was initiated */
