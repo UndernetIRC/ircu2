@@ -22,6 +22,7 @@
 #include "fileio.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_snprintf.h"
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "send.h"
@@ -67,7 +68,7 @@ extern void write_log(const char *filename, const char *pattern, ...)
   if (logfile)
   {
     va_start(vl, pattern);
-    vsprintf_irc(logbuf, pattern, vl);
+    ircd_vsnprintf(0, logbuf, sizeof(logbuf) - 1, pattern, vl);
     va_end(vl);
 
     fbputs(logbuf, logfile);

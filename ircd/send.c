@@ -1109,7 +1109,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   for (chan = from->user->channel; chan; chan = chan->next_channel)
     for (member = chan->channel->members; member;
 	 member = member->next_member)
-      if (MyConnect(member->user) && -1 < from->fd &&
+      if (MyConnect(member->user) && -1 < member->user->from->fd &&
 	  sentalong[member->user->from->fd] != sentalong_marker) {
 	sentalong[member->user->from->fd] = sentalong_marker;
 	send_buffer(member->user, sndbuf);
