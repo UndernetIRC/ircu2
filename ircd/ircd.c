@@ -33,6 +33,7 @@
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
+#include "motd.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -662,10 +663,8 @@ int main(int argc, char **argv) {
 
   uping_init();
 
-  read_tlines();
+  motd_init();
 
-  rmotd       = read_motd(RPATH);
-  motd        = read_motd(MPATH);
   CurrentTime = time(NULL);
 
   SetMe(&me);

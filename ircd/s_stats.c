@@ -133,13 +133,15 @@ void report_configured_links(struct Client *sptr, int mask)
 
 /*
  *  {CONF_TLINES, RPL_STATSTLINE, 'T'},
+ *
+ * see now motd_report() in motd.c
  */
-void report_motd_list(struct Client* to)
-{
-  const struct MotdConf* conf = conf_get_motd_list();
-  for ( ; conf; conf = conf->next)
-    send_reply(to, RPL_STATSTLINE, 'T', conf->hostmask, conf->path);
-}
+/*  void report_motd_list(struct Client* to) */
+/*  { */
+/*    const struct MotdConf* conf = conf_get_motd_list(); */
+/*    for ( ; conf; conf = conf->next) */
+/*      send_reply(to, RPL_STATSTLINE, 'T', conf->hostmask, conf->path); */
+/*  } */
 
 /*
  * {CONF_CRULEALL, RPL_STATSDLINE, 'D'},

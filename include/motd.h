@@ -22,8 +22,9 @@
  *
  * $Id$
  */
-#ifndef INCLUDED_config_h
-#include "config.h"
+#ifndef INCLUDED_time_h
+#include <time.h>		/* struct tm */
+#define INCLUDED_time_h
 #endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>
@@ -34,13 +35,53 @@
 struct Client;
 struct TRecord;
 
-/* motd_find is used to find a matching T-line if any */
-struct TRecord *motd_find(struct Client* cptr);
+struct Motd {
+  struct Motd*		next;
+  int			type;
+  union {
+    char*		hostmask;
+    int			class;
+  }			id;
+  char*			path;
+  int			maxcount;
+  struct MotdCache*	cache;
+};
+
+#define MOTD_UNIVERSAL	0	/* MOTD selected by no criteria */
+#define MOTD_HOSTMASK	1	/* MOTD selected by hostmask */
+#define MOTD_CLASS	2	/* MOTD selected by connection class */
+
+#define MOTD_LINESIZE	81	/* 80 chars + '\0' */
+#define MOTD_MAXLINES	100
+#define MOTD_MAXREMOTE	3
+
+struct MotdCache {
+  struct tm		modtime;
+  int			count;
+  char			motd[1][MOTD_LINESIZE];
+};
 
 /* motd_send sends a MOTD off to a user */
-int motd_send(struct Client* cptr, struct TRecord* trec);
+int motd_send(struct Client* cptr);
 
 /* motd_signon sends a MOTD off to a newly-registered user */
 void motd_signon(struct Client* cptr);
+
+/* motd_recache causes all the MOTD caches to be cleared */
+void motd_recache(void);
+
+/* motd_init initializes the MOTD routines, including reading the
+ * ircd.motd and remote.motd files into cache
+ */
+void motd_init(void);
+
+/* This routine adds a MOTD */
+void motd_add(const char *hostmask, const char *path);
+
+/* This routine clears the list of MOTDs */
+void motd_clear(void);
+
+/* This is called to report T-lines */
+void motd_report(struct Client *to);
 
 #endif /* INCLUDED_motd_h */

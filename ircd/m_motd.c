@@ -124,7 +124,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       HUNTED_ISME)
     return 0;
 
-  return motd_send(sptr, motd_find(sptr));
+  return motd_send(sptr);
 }
 
 /*
@@ -147,5 +147,5 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       HUNTED_ISME)
     return 0;
 
-  return motd_send(sptr, motd_find(sptr));
+  return motd_send(sptr);
 }
