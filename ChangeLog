@@ -1,3 +1,9 @@
+2004-05-15  Isomer <isomer@undernet.org>
+
+	[Original ChangeLog date: 2003-11-04 -MDP]
+
+	* ircd/s_serv.c: Burst glines/jupes early
+
 2004-05-15  volta <volta2@gmx.de>
 
 	[Original ChangeLog date: 2003-04-26 -MDP]
