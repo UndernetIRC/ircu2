@@ -50,6 +50,8 @@ static struct lexer_token {
   TOKEN(SENDQ),
   TOKEN(NAME),
   TOKEN(HOST),
+  TOKEN(IP),
+  TOKEN(USERNAME),
   TOKEN(PASS),
   TOKEN(SECONDS),
   TOKEN(MINUTES),

@@ -382,7 +382,7 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
 
   hp = cli_dns_reply(cptr);
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    if (aconf->status != CONF_CLIENT || !aconf->host)
+    if (aconf->status != CONF_CLIENT)
       continue;
     if (aconf->address.port && aconf->address.port != cli_listener(cptr)->addr.port)
       continue;
@@ -391,14 +391,12 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
       if (match(aconf->username, cli_username(cptr)))
         continue;
     }
-    if (hp) {
-      Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), hp->h_name));
-      if (!match(aconf->host, hp->h_name))
-        return check_limit_and_attach(cptr, aconf);
-    }
+    if (aconf->host && (!hp || match(aconf->host, hp->h_name)))
+      continue;
     if ((aconf->addrbits >= 0)
-        && ipmask_check(&cli_ip(cptr), &aconf->address.addr, aconf->addrbits))
-      return check_limit_and_attach(cptr, aconf);
+        && !ipmask_check(&cli_ip(cptr), &aconf->address.addr, aconf->addrbits))
+      continue;
+    return check_limit_and_attach(cptr, aconf);
   }
   return ACR_NO_AUTHORIZATION;
 }

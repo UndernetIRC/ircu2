@@ -329,13 +329,15 @@ delete_resolver_queries(const void *vptr)
   struct dlink *ptr, *next_ptr;
   struct reslist *request;
 
-  for (ptr = request_list.next; ptr != &request_list; ptr = next_ptr)
-  {
-    next_ptr = ptr->next;
-    request = (struct reslist*)ptr;
-    if (vptr == request->query.vptr) {
-      Debug((DEBUG_DNS, "Removing request %p with vptr %p", request, vptr));
-      rem_request(request);
+  if (request_list.next) {
+    for (ptr = request_list.next; ptr != &request_list; ptr = next_ptr)
+    {
+      next_ptr = ptr->next;
+      request = (struct reslist*)ptr;
+      if (vptr == request->query.vptr) {
+        Debug((DEBUG_DNS, "Removing request %p with vptr %p", request, vptr));
+        rem_request(request);
+      }
     }
   }
 }
@@ -899,12 +901,14 @@ cres_mem(struct Client* sptr)
   size_t request_mem   = 0;
   int    request_count = 0;
 
-  for (dlink = request_list.next; dlink != &request_list; dlink = dlink->next) {
-    request = (struct reslist*)dlink;
-    request_mem += sizeof(*request);
-    if (request->name)
-      request_mem += strlen(request->name) + 1;
-    ++request_count;
+  if (request_list.next) {
+    for (dlink = request_list.next; dlink != &request_list; dlink = dlink->next) {
+      request = (struct reslist*)dlink;
+      request_mem += sizeof(*request);
+      if (request->name)
+        request_mem += strlen(request->name) + 1;
+      ++request_count;
+    }
   }
 
   send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,

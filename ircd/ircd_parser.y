@@ -69,7 +69,7 @@
   int yylex(void);
   /* Now all the globals we need :/... */
   int tping, tconn, maxlinks, sendq, port, invert, stringno;
-  char *name, *pass, *host, *origin, *hub_limit;
+  char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   char *stringlist[MAX_STRINGS];
   struct ConnectionClass *c_class;
   struct DenyConf *dconf;
@@ -108,6 +108,8 @@ static void parse_error(char *pattern,...) {
 %token SENDQ
 %token NAME
 %token HOST
+%token IP
+%token USERNAME
 %token PASS
 %token LOCAL
 %token SECONDS
@@ -642,28 +644,38 @@ clientblock: CLIENT
 }
 '{' clientitems '}' ';'
 {
-  if (host)
-  {
-    struct ConfItem *aconf = make_conf(CONF_CLIENT);
-    conf_parse_userhost(aconf, host);
-    aconf->conn_class = c_class ? c_class : find_class("default");
-    aconf->maximum = maxlinks;
-  }
+  struct ConfItem *aconf = make_conf(CONF_CLIENT);
+  unsigned char addrbits;
+  aconf->username = username;
+  aconf->host = host;
+  if (ip && ipmask_parse(ip, &aconf->address.addr, &addrbits))
+    aconf->addrbits = addrbits;
   else
-  {
-    MyFree(host);
-    parse_error("Bad client block");
-  }
+    aconf->addrbits = -1;
+  aconf->conn_class = c_class ? c_class : find_class("default");
+  aconf->maximum = maxlinks;
   host = NULL;
+  username = NULL;
   c_class = NULL;
+  MyFree(ip);
 };
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientclass | clientpass | clientmaxlinks | error;
+clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks | error;
 clienthost: HOST '=' QSTRING ';'
 {
   MyFree(host);
   DupString(host, $3);
 };
+clientip: IP '=' QSTRING ';'
+{
+  MyFree(ip);
+  DupString(ip, $3);
+}
+clientusername: USERNAME '=' QSTRING ';'
+{
+  MyFree(username);
+  DupString(username, $3);
+}
 clientclass: CLASS '=' QSTRING ';'
 {
   c_class = find_class($3);

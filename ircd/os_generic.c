@@ -108,12 +108,19 @@ int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, i
     int family;
 
     slen = sizeof(sin6);
-    if ((0 <= compat_fd) && (0 == getsockname(compat_fd, (struct sockaddr*)&sin6, &slen)))
-        family = sin6.sin6_family;
-    else if (irc_in_addr_is_ipv4(&VirtualHost.addr))
-        family = AF_INET;
-    else
-        family = AF_INET6;
+    if (0 <= compat_fd) {
+        if (0 == getsockname(compat_fd, (struct sockaddr*)&sin6, &slen))
+            family = sin6.sin6_family;
+        else if (irc_in_addr_is_ipv4(&VirtualHost.addr))
+            family = AF_INET;
+        else
+            family = AF_INET6;
+    } else {
+        if (irc_in_addr_is_ipv4(&irc->addr))
+            family = AF_INET;
+        else
+            family = AF_INET6;
+    }
 
     memset(v6, 0, sizeof(*v6));
     if (!irc) {

@@ -1,3 +1,26 @@
+2004-12-13  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Update configuration to move Client block
+	comment after sample Class blocks, and update entries in it.
+
+	* ircd/ircd_lexer.y: Recognize IP and USERNAME tokens.
+
+	* ircd/ircd_parser.y: Add ip and username global variables and IP
+	and USERNAME tokens.  Add clientip and clientusername alternatives
+	for clientitem, and update clientblock to correspond.
+
+	* ircd/ircd_res.c (delete_resolver_queries): Do not try to walk
+	the request_list before request_list is initialized.
+	(cres_mem): Likewise.
+
+	* ircd/os_generic.c (sockaddr_from_irc): Improve guessing of
+	proper address family.
+
+	* ircd/s_conf.c (attach_iline): Allow aconf->host == NULL, which
+	means DNS reply is optional.  If aconf->addrbits >= 0, test it.
+
+	* tools/crypter: Delete.
+
 2004-12-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/*.c: use new assert() in ircd_log.h in preference to system
