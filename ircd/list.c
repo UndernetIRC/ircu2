@@ -23,6 +23,7 @@
 
 #include "class.h"
 #include "client.h"
+#include "IPcheck.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_reply.h"

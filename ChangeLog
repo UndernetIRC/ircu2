@@ -1,4 +1,11 @@
 2000-07-15  Perry Lorier       <Isomer@coders.net>
+	* various: IP only k:'s and G:'s now do bit tests instead of two(!) 
+                 match()'s.  Major Major cpu savings.  Also speed up the
+                 other case slightly.  As a side effect you can now
+		 k/Gline *@10.0.0.0/8.  I'll do bans tomorrow, it's nearing
+		 3am.
+
+2000-07-15  Perry Lorier       <Isomer@coders.net>
 	* various: Fixed warnings after compiling on an alpha.
 2000-07-09  Perry Lorier       <Isomer@coders.net>
 	* doc/ircd.8: Applied grammitical changes by Liandrin, applied
@@ -1279,7 +1286,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.157 2000-07-15 12:29:15 isomer Exp $
+# $Id: ChangeLog,v 1.158 2000-07-15 23:55:32 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -66,6 +66,7 @@ struct ConfItem {
   unsigned int       status;    /* If CONF_ILLEGAL, delete when no clients */
   unsigned int       clients;   /* Number of *LOCAL* clients using this */
   struct in_addr     ipnum;     /* ip number of host field */
+  char 		     bits;      /* Number of bits for ipkills */
   char*              host;
   char*              passwd;
   char*              name;

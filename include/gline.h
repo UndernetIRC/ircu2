@@ -30,6 +30,7 @@
 #define INCLUDED_sys_types_h
 #endif
 
+#include <netinet/in.h>
 
 struct Client;
 
@@ -43,6 +44,8 @@ struct Gline {
   char	       *gl_reason;
   time_t	gl_expire;
   time_t	gl_lastmod;
+  struct in_addr ipnum;  /* We store the IP in binary for ip glines */
+  char 		bits;
   unsigned int	gl_flags;
 };
 
