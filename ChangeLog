@@ -1,3 +1,17 @@
+2005-03-25  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_server.c (set_server_flags): New function.  Unlike the
+	old code, this recognizes the IPv6 flag.  (Spotted by Reed.)
+	(mr_server): Use the new function.
+	(ms_server): Likewise.  Also don't show "Net junction:" message if
+	any closer server is still bursting (also spotted by Reed).
+	Finally, forward the +6 flag to other servers.
+
+	* ircd/s_serv.c (server_estab): Forward the +6 flag here, too.
+
+	* ircd/s_bsd.c (client_sock_callback): Re-set cli_error() after it
+	may be cleared by completed_connection().
+
 2005-03-23  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Remove limit and keys when a channel

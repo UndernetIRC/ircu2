@@ -479,6 +479,20 @@ check_start_timestamp(struct Client *cptr, time_t timestamp, time_t start_timest
   }
 }
 
+/** Interpret a server's flags.
+ *
+ * @param[in] cptr New server structure.
+ * @param[in] flags String listing server's P10 flags.
+ */
+void set_server_flags(struct Client *cptr, const char *flags)
+{
+    while (*flags) switch (*flags++) {
+    case 'h': SetHub(cptr); break;
+    case 's': SetService(cptr); break;
+    case '6': SetIPv6(cptr); break;
+    }
+}
+
 /** Handle a SERVER message from an unregistered connection.
  *
  * \a parv has the following elements:
@@ -499,7 +513,6 @@ check_start_timestamp(struct Client *cptr, time_t timestamp, time_t start_timest
  */
 int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char*            ch;
   char*            host;
   struct ConfItem* aconf;
   struct Jupe*     ajupe;
@@ -617,17 +630,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Attach any necessary UWorld config items. */
   attach_confs_byhost(cptr, host, CONF_UWORLD);
 
-  if (*parv[7] == '+') {
-    for (ch = parv[7] + 1; *ch; ch++)
-      switch (*ch) {
-      case 'h':
-        SetHub(cptr);
-	break;
-      case 's':
-	SetService(cptr);
-	break;
-      }
-  }
+  if (*parv[7] == '+')
+    set_server_flags(cptr, parv[7] + 1);
 
   recv_time = TStime();
   check_start_timestamp(cptr, timestamp, start_timestamp, recv_time);
@@ -666,7 +670,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char*            ch;
   int              i;
   char*            host;
   struct Client*   acptr;
@@ -741,17 +744,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Attach any necessary UWorld config items. */
   attach_confs_byhost(cptr, host, CONF_UWORLD);
 
-  if (*parv[7] == '+') {
-    for (ch = parv[7] + 1; *ch; ch++)
-      switch (*ch) {
-      case 'h':
-        SetHub(acptr);
-	break;
-      case 's':
-	SetService(acptr);
-	break;
-      }
-  }
+  if (*parv[7] == '+')
+    set_server_flags(acptr, parv[7] + 1);
 
   Count_newremoteserver(UserStats);
   if (Protocol(acptr) < 10)
@@ -761,9 +755,13 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (*parv[5] == 'J')
   {
     SetBurst(acptr);
-    sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
-                         cli_name(sptr), cli_name(acptr));
     SetJunction(acptr);
+    for (bcptr = cli_serv(acptr)->up; !IsMe(bcptr); bcptr = cli_serv(bcptr)->up)
+      if (IsBurstOrBurstAck(bcptr))
+          break;
+    if (IsMe(bcptr))
+      sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
+                           cli_name(sptr), cli_name(acptr));
   }
   /*
    * Old sendto_serv_but_one() call removed because we now need to send
@@ -776,10 +774,11 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       continue;
     if (0 == match(cli_name(&me), cli_name(acptr)))
       continue;
-    sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s :%s",
+    sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s%s :%s",
                   cli_name(acptr), hop + 1, parv[4], parv[5],
                   NumServCap(acptr), IsHub(acptr) ? "h" : "",
-                  IsService(acptr) ? "s" : "", cli_info(acptr));
+                  IsService(acptr) ? "s" : "", IsIPv6(acptr) ? "6" : "",
+                  cli_info(acptr));
   }
   return 0;
 }
