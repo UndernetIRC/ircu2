@@ -19,7 +19,7 @@ found, configure will terminate with an error. You will need to resolve
 this and run configure again.
 
 If configure runs without error(s), you are ready to compile. To compile ircu,
-run "make". Please use GNU make and gcc If the source code does not compile,
+run "make". Please use GNU make and gcc. If the source code does not compile,
 make sure your environment is setup correctly. If you are convinced the source
 of the failure is ircu, gather all relevant information about your system such
 as the Architecture, OS version, the configure statement you used, etc. and
@@ -28,9 +28,12 @@ contact coder-com@undernet.org.
 Once ircu is compiled, install it by running "make install".
 
 Next, you will have to configure your IRC server by setting up your ircd.conf
-file. Use the included doc/example.conf as a starting point. 
+file. Use the included doc/ircd.conf.sample as a starting point. 
 Setting up ircd.conf can be a bit tricky, so if this is your first time doing
 it, begin with a bare-bones configuration and extend it as you go.
+
+If you are upgrading from ircu2.10.10, use the tools/transition script to
+convert your existing configuration file(s).
 
 Good Luck!
 

@@ -46,6 +46,7 @@ enum Feature {
   FEAT_HOST_HIDING,
   FEAT_HIDDEN_HOST,
   FEAT_HIDDEN_IP,
+  FEAT_CONNEXIT_NOTICES,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
@@ -165,6 +166,10 @@ enum Feature {
   FEAT_HIS_SERVERNAME,
   FEAT_HIS_SERVERINFO,
   FEAT_HIS_URLSERVERS,
+
+  /* Misc. random stuff */
+  FEAT_NETWORK,
+  FEAT_URL_CLIENTS,
 
   FEAT_LAST_F
 };

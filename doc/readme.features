@@ -244,6 +244,14 @@ HIDDEN_IP
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
 
+CONNEXIT_NOTICES
+ * Type: boolean
+ * Default: FALSE
+
+This feature controls the generation of server notices when a user
+connects to or disconnects from the server.  Enabling this feature may
+have a performance impact.
+
 KILLCHASETIMELIMIT
  * Type: integer
  * Default: 30
@@ -1026,3 +1034,16 @@ HIS_URLSERVERS
  
 As per UnderNet CFV-165, this is the URL shown to users when they do a /MAP or 
 /LINKS.
+
+NETWORK
+ * Type: string
+ * Default: "UnderNet"
+
+This defines the network name as reported in the 005 "supported features"
+numeric, and as used by the "Failed to deliver" message.
+
+URL_CLIENTS
+ * Type: string
+ * Default: "ftp://ftp.undernet.org/pub/irc/clients"
+
+This defines a URL that users may visit to find compatible IRC clients.

@@ -114,7 +114,7 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *mask;
   struct Client *acptr;
 
-  if (feature_bool(FEAT_HIS_LINKS) && !IsOper(sptr)) {
+  if (feature_bool(FEAT_HIS_LINKS) && !IsAnOper(sptr)) {
     send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s %s", sptr,
 		  "/LINKS has been disabled, from CFV-165.  Visit ", 

@@ -1371,8 +1371,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   if (mbuf->mb_add == 0 && mbuf->mb_rem == 0 && mbuf->mb_count == 0)
     return 0;
 
-  /* Ok, if we were given the OPMODE flag, hide the source if its a user */
-  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
+  /* Ok, if we were given the OPMODE flag or if it's a server, hide source */
+  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE || IsServer(mbuf->mb_source))
     app_source = &me;
   else
     app_source = mbuf->mb_source;

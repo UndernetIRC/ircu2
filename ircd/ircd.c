@@ -393,8 +393,8 @@ static void check_pings(struct Event* ev) {
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Your client may not be compatible with this server.");
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-		   ":Compatible clients are available at "
-		   URL_CLIENTS);
+		   ":Compatible clients are available at %s",
+		   feature_str(FEAT_URL_CLIENTS));
       }    
       exit_client_msg(cptr,cptr,&me, "Ping Timeout");
       continue;
