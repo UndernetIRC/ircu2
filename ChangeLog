@@ -1,3 +1,8 @@
+2000-04-15  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/userload.c: change <sys/time.h> include to <time.h> for
+	  portability.
+
 2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_gline.c (mo_gline): d'oh, target isn't a numeric; use %C
@@ -531,7 +536,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.87 2000-04-14 20:42:28 kev Exp $
+# $Id: ChangeLog,v 1.88 2000-04-15 03:47:32 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #
