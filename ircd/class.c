@@ -222,7 +222,8 @@ struct ConnectionClass* find_class(unsigned int cclass)
   return connClassList;
 }
 
-void report_classes(struct Client *sptr)
+void report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
+		    char *param)
 {
   struct ConnectionClass *cltmp;
 

@@ -30,6 +30,7 @@
 #include "numeric.h"
 #include "send.h"
 #include "s_debug.h"
+#include "s_stats.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -575,7 +576,7 @@ msgq_bufleft(struct MsgBuf *mb)
  * requesting client
  */
 void
-msgq_histogram(struct Client *cptr)
+msgq_histogram(struct Client *cptr, struct StatDesc *sd, int stat, char *param)
 {
   struct MsgSizes tmp = MQData.sizes; /* All hail structure copy! */
   int i;

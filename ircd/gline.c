@@ -36,6 +36,7 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "support.h"
@@ -734,7 +735,7 @@ gline_list(struct Client *sptr, char *userhost)
 }
 
 void
-gline_stats(struct Client *sptr)
+gline_stats(struct Client *sptr, struct StatDesc *sd, int stat, char *param)
 {
   struct Gline *gline;
   struct Gline *sgline;

@@ -40,6 +40,7 @@
 #include "numnicks.h"
 #include "s_conf.h"
 #include "s_debug.h"
+#include "s_stats.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -380,7 +381,7 @@ motd_clear(void)
 
 /* This is called to report T-lines */
 void
-motd_report(struct Client *to)
+motd_report(struct Client *to, struct StatDesc *sd, int stat, char *param)
 {
   struct Motd *ptr;
 

@@ -49,6 +49,7 @@
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "sys.h"
 #include "uping.h"
@@ -649,6 +650,8 @@ int main(int argc, char **argv) {
   init_server_identity();
 
   uping_init();
+
+  stats_init();
 
   IPcheck_init();
   timer_add(timer_init(&connect_timer), try_connections, 0, TT_RELATIVE, 1);

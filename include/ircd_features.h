@@ -22,6 +22,7 @@
  */
 
 struct Client;
+struct StatDesc;
 
 enum Feature {
   /* Misc. features */
@@ -133,7 +134,8 @@ extern int feature_get(struct Client* from, const char* const* fields,
 extern void feature_unmark(void);
 extern void feature_mark(void);
 
-extern void feature_report(struct Client* to);
+extern void feature_report(struct Client* to, struct StatDesc* sd, int stat,
+			   char* param);
 
 extern int feature_int(enum Feature feat);
 extern int feature_bool(enum Feature feat);

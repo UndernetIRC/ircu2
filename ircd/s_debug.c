@@ -43,6 +43,7 @@
 #include "res.h"
 #include "s_bsd.h"
 #include "s_conf.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
@@ -208,7 +209,8 @@ static void debug_enumerator(struct Client* cptr, const char* msg)
  * different field names for "struct rusage".
  * -avalon
  */
-void send_usage(struct Client *cptr, char *nick)
+void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
+		char *param)
 {
   os_get_rusage(cptr, CurrentTime - cli_since(&me), debug_enumerator);
 
@@ -217,7 +219,8 @@ void send_usage(struct Client *cptr, char *nick)
 }
 #endif /* DEBUGMODE */
 
-void count_memory(struct Client *cptr, char *nick)
+void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
+		  char *param)
 {
   struct Client *acptr;
   struct SLink *link;

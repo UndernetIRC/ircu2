@@ -33,6 +33,7 @@
 
 
 struct Client;
+struct StatDesc;
 struct TRecord;
 
 struct Motd {
@@ -87,7 +88,8 @@ void motd_add(const char *hostmask, const char *path);
 void motd_clear(void);
 
 /* This is called to report T-lines */
-void motd_report(struct Client *to);
+void motd_report(struct Client *to, struct StatDesc *sd, int stat,
+		 char *param);
 void motd_memory_count(struct Client *cptr);
 
 #endif /* INCLUDED_motd_h */

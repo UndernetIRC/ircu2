@@ -35,6 +35,7 @@
 struct iovec;
 
 struct Client;
+struct StatDesc;
 
 struct Msg;
 struct MsgBuf;
@@ -84,6 +85,7 @@ extern void msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio);
 extern void msgq_count_memory(struct Client *cptr, size_t *msg_alloc,
 			      size_t *msgbuf_alloc);
 extern unsigned int msgq_bufleft(struct MsgBuf *mb);
-extern void msgq_histogram(struct Client *cptr);
+extern void msgq_histogram(struct Client *cptr, struct StatDesc *sd, int stat,
+			   char *param);
 
 #endif /* INCLUDED_msgq_h */

@@ -30,6 +30,7 @@
 #include <netinet/in.h>
 
 struct Client;
+struct StatDesc;
 
 #define GLINE_MAX_EXPIRE 604800	/* max expire: 7 days */
 
@@ -90,7 +91,8 @@ extern void gline_free(struct Gline *gline);
 extern void gline_burst(struct Client *cptr);
 extern int gline_resend(struct Client *cptr, struct Gline *gline);
 extern int gline_list(struct Client *sptr, char *userhost);
-extern void gline_stats(struct Client *sptr);
+extern void gline_stats(struct Client *sptr, struct StatDesc *sd, int stat,
+			char *param);
 extern int gline_memory_count(size_t *gl_size);
 
 #endif /* INCLUDED_gline_h */

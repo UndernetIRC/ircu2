@@ -36,6 +36,7 @@
 #endif
 
 struct Client;
+struct StatDesc;
 
 struct Listener {
   struct Listener* next;               /* list node pointer */
@@ -62,8 +63,8 @@ extern void        close_listeners(void);
 extern void        count_listener_memory(int* count_out, size_t* size_out);
 extern const char* get_listener_name(const struct Listener* listener);
 extern void        mark_listeners_closing(void);
-extern void        show_ports(struct Client* client, int show_hidden,
-                              int port, int count);
+extern void        show_ports(struct Client* client, struct StatDesc* sd,
+			      int stat, char* param);
 extern void        release_listener(struct Listener* listener);
 
 #endif /* INCLUDED_listener_h */
