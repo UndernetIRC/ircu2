@@ -256,31 +256,21 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
       && !ircd_aton(&vaddr, vhost_ip))
       return;
 
-  if ((listener = find_listener(port, &vaddr))) {
-    /*
-     * set active flag and change connect mask here, it's the only thing
-     * that can change on a rehash
-     */
-    listener->active = 1;
-    if (mask)
-      ipmask_parse(mask, &listener->mask, &listener->mask_bits);
-    else
-      listener->mask_bits = 0;
-    listener->hidden = is_hidden;
-    listener->server = is_server;
-    return;
+  listener = find_listener(port, &vaddr);
+  if (!listener)
+    listener = make_listener(port, &vaddr);
+  listener->active = 1;
+  listener->hidden = is_hidden;
+  listener->server = is_server;
+  if (mask)
+    ipmask_parse(mask, &listener->mask, &listener->mask_bits);
+  else
+    listener->mask_bits = 0;
+
+  if (listener->fd >= 0) {
+    /* If the listener is already open, do not try to re-open. */
   }
-
-  listener = make_listener(port, &vaddr);
-
-  if (inetport(listener)) {
-    listener->active = 1;
-    if (mask)
-      ipmask_parse(mask, &listener->mask, &listener->mask_bits);
-    else
-      listener->mask_bits = 0;
-    listener->hidden = is_hidden;
-    listener->server = is_server;
+  else if (inetport(listener)) {
     listener->next   = ListenerPollList;
     ListenerPollList = listener;
   }

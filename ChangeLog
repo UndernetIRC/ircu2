@@ -1,3 +1,8 @@
+2004-09-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/listener.c (add_listener): Consolidate duplicated code, and
+	make sure listener->server is set before calling inetport() on it.
+
 2004-09-12  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.c (mode_parse_upass, mode_parse_apass): Only let
