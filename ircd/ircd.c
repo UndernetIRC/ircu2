@@ -127,13 +127,15 @@ void server_restart(const char* message) {
   Debug((DEBUG_NOTICE, "Restarting server..."));
   flush_connections(0);
 
-  close_log();
+  log_close();
+
   close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG)));
 
   execv(SPATH, thisServer.argv);
 
   /* Have to reopen since it has been closed above */
-  open_log(*thisServer.argv);
+  log_reopen();
+
   ircd_log(L_CRIT, "execv(%s,%s) failed: %m\n", SPATH, *thisServer.argv);
 
   Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
@@ -635,7 +637,7 @@ int main(int argc, char **argv) {
   daemon_init(thisServer.bootopt & BOOT_TTY);
 
   setup_signals();
-  open_log(*argv);
+  log_init(*argv);
 
   set_nomem_handler(outofmemory);
   

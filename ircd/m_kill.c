@@ -180,7 +180,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       get_client_name(victim,SHOW_IP), parv[0], cptr, path);
 
 #if defined(SYSLOG_KILL)
-  ircd_log_kill(victim, sptr, cptr->name, path);
+  log_write_kill(victim, sptr, cptr->name, path);
 #endif
   /*
    * And pass on the message to other servers. Note, that if KILL
@@ -340,7 +340,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       get_client_name(victim,SHOW_IP), parv[0], inpath, path);
 
 #if defined(SYSLOG_KILL)
-  ircd_log_kill(victim, sptr, inpath, path);
+  log_write_kill(victim, sptr, inpath, path);
 #endif
   /*
    * And pass on the message to other servers. Note, that if KILL

@@ -1,3 +1,32 @@
+2000-11-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_debug.c: rewrite debug_init() and vdebug() in terms of
+	new logging functions, which have special support for the debug
+	log; added loop detection to vdebug(), so that I can
+	sendto_opmask_butone() from log_vwrite() without incurring another
+	call to vdebug()
+
+	* ircd/s_conf.c (rehash): call log_reopen() from rehash routine;
+	this allows log file rotations
+
+	* ircd/m_kill.c: call log_write_kill() instead of ircd_log_kill()
+
+	* ircd/ircd_log.c: much more work fleshing out the interface;
+	removed old interface; included backwards-compat ircd_log()
+	function that logs to subsystem LS_OLDLOG
+
+	* ircd/ircd.c: switch to new log_init()/log_close()/log_reopen()
+	functions
+
+	* include/ircd_log.h: include stdarg.h for va_list; move ordering
+	warning to top of file; fill out LogSys enum; declare new
+	log_debug_init(), log_vwrite(), log_write_kill(), and
+	log_[sg]et_*() functions; add flags argument to log_write();
+	defined flags to inhibit various logging actions
+
+	* include/client.h: added support for new SNO_DEBUG, enabled only
+	if DEBUGMODE is defined
+
 2000-11-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_log.c: make sure the various LOG_* constants are
