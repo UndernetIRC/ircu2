@@ -710,6 +710,8 @@ int main(int argc, char **argv) {
 
   uping_init();
 
+  IPcheck_init();
+
   CurrentTime = time(NULL);
 
   SetMe(&me);

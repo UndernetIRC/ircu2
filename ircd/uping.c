@@ -400,7 +400,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   assert(0 != pptr);
   memset(pptr, 0, sizeof(struct UPing));
 
-  if (!socket_add(&pptr->socket, uping_socket_callback, (void*) pptr,
+  if (!socket_add(&pptr->socket, uping_read_callback, (void*) pptr,
 		  SS_DATAGRAM, SOCK_EVENT_READABLE, fd)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Can't queue fd for "
 		  "reading", sptr);

@@ -1,3 +1,24 @@
+2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/uping.c (uping_server): noticed and corrected a typo
+
+	* ircd/listener.c: set up to use ircd_event's struct Socket by
+	adding an socket_add() call to inetport(), replacing
+	free_listener() with socket_del() in close_listener(), and
+	reworking accept_connection to be called as the callback
+
+	* ircd/ircd.c: add a call to IPcheck_init()
+
+	* ircd/IPcheck.c: remove IPcheck_expire(); rework
+	ip_registry_expire() to be called from a timer; write
+	IPcheck_init() to set up the expiration timer (hard-coded for a
+	60-second expiration time)
+
+	* include/listener.h: add a struct Socket to the struct Listener;
+	remove accept_connection()
+
+	* include/IPcheck.h: add IPcheck_init(), remove IPcheck_expire()
+
 2001-05-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c: include config.h; use USE_KQUEUE and
