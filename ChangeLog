@@ -1,3 +1,8 @@
+2004-09-11  Bas Steendijk <steendijk@xs4all.nl>
+
+	* include/channel.h, include/supported.h, ircd/channel.c,
+	ircd/s_err.c: Use +U instead of +u for user keys.
+
 2004-09-13  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Remove sample VIRTUAL_HOST setting.

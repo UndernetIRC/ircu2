@@ -798,7 +798,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     previous_parameter = 1;
   }
   if (*chptr->mode.upass) {
-    *mbuf++ = 'u';
+    *mbuf++ = 'U';
     if (previous_parameter)
       strcat(pbuf, " ");
     if (IsServer(cptr) || (member && IsChanOp(member) && OpLevel(member) == 0)) {
@@ -1526,7 +1526,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
 /*  MODE_APASS,		'A', */
-/*  MODE_UPASS,		'u', */
+/*  MODE_UPASS,		'U', */
     0x0, 0x0
   };
   int i;
@@ -1615,7 +1615,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	    mode_char = 'A';
 	    break;
 	  case MODE_UPASS:
-	    mode_char = 'u';
+	    mode_char = 'U';
 	    break;
 	  default:
 	    mode_char = 'b';
@@ -2026,7 +2026,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_NOPRIVMSGS,	'n',
     MODE_KEY,		'k',
     MODE_APASS,		'A',
-    MODE_UPASS,		'u',
+    MODE_UPASS,		'U',
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
@@ -2075,7 +2075,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
       build_string(buf, &bufpos, key, 0, ' ');
     else if (buf[i] == 'l')
       build_string(buf, &bufpos, limitbuf, 0, ' ');
-    else if (buf[i] == 'u')
+    else if (buf[i] == 'U')
       build_string(buf, &bufpos, upass, 0, ' ');
     else if (buf[i] == 'A')
       build_string(buf, &bufpos, apass, 0, ' ');
@@ -2325,8 +2325,8 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
 
   if (state->parc <= 0) { /* warn if not enough args */
     if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +u" :
-		       "MODE -u");
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +U" :
+		       "MODE -U");
     return;
   }
 
@@ -2375,8 +2375,8 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
 
   if (!*t_str) { /* warn if empty */
     if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +u" :
-		       "MODE -u");
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +U" :
+		       "MODE -U");
     return;
   }
 
@@ -2985,7 +2985,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_NOPRIVMSGS,	'n',
     MODE_KEY,		'k',
     MODE_APASS,		'A',
-    MODE_UPASS,		'u',
+    MODE_UPASS,		'U',
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
@@ -3066,7 +3066,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	mode_parse_apass(&state, flag_p);
 	break;
 
-      case 'u': /* deal with user passes */
+      case 'U': /* deal with user passes */
         if (feature_bool(FEAT_OPLEVELS))
 	mode_parse_upass(&state, flag_p);
 	break;

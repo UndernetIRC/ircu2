@@ -1138,7 +1138,7 @@ static Numeric replyTable[] = {
 /* 552 */
   { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "552" },
 /* 553 */
-  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+u) is still set.  First use /MODE %s -u <userpass>", "553" },
+  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set.  First use /MODE %s -U <userpass>", "553" },
 /* 554 */
   { ERR_UPASSNOTSET, "%s :Cannot set user pass (+u) while Admin pass (+A) is not set.  First use /MODE %s +A <adminpass>", "554" },
 /* 555 */
