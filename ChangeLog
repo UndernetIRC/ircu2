@@ -1,3 +1,14 @@
+2002-05-17  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+2002-05-17  Sascha Schumann  <sascha@schumann.cx>
+
+	* ircd/listener.c (accept_listener): In the event of a readable
+	listener socket, the function loops until accept(2) returns -1.
+	This ensures that all connections which are pending at the time
+	are accepted which increases the server's capacity significantly.
+
 2002-05-16  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_opmode.c (mo_opmode): check for Q:lines, with

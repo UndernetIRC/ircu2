@@ -442,48 +442,70 @@ static void accept_connection(struct Event* ev)
      * point, just assume that connections cannot
      * be accepted until some old is closed first.
      */
-    if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr,
-			   &addrlen))) {
-      /* Lotsa admins seem to have problems with not giving enough file
-       * descriptors to their server so we'll add a generic warning mechanism
-       * here.  If it turns out too many messages are generated for
-       * meaningless reasons we can filter them back.
-       */
-      sendto_opmask_butone(0, SNO_TCPCOMMON,
-			   "Unable to accept connection: %m");
-      return;
-    }
-    /*
-     * check for connection limit
-     */
-    if (fd > MAXCLIENTS - 1) {
-      ++ServerStats->is_ref;
-      send(fd, "ERROR :All connections in use\r\n", 32, 0);
-      close(fd);
-      return;
-    }
-    /*
-     * check to see if listener is shutting down
-     */
-    if (!listener->active) {
-      ++ServerStats->is_ref;
-      send(fd, "ERROR :Use another port\r\n", 25, 0);
-      close(fd);
-      return;
-    }
-    /*
-     * check to see if connection is allowed for this address mask
-     */
-    if (!connection_allowed((const char*) &addr,
-			    (const char*) &listener->mask)) {
-      ++ServerStats->is_ref;
-      send(fd, "ERROR :Use another port\r\n", 25, 0);
-      close(fd);
-      return;
-    }
-    ++ServerStats->is_ac;
-/*      nextping = CurrentTime; */
 
-    add_connection(listener, fd);
+     /*
+      * This piece of code implements multi-accept, based
+      * on the idea that poll/select can only be efficient,
+      * if we succeed in handling all available events,
+      * i.e. accept all pending connections.
+      *
+      * http://www.hpl.hp.com/techreports/2000/HPL-2000-174.html
+      */
+
+    while (1) {
+      if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr,
+			     &addrlen))) {
+
+        /* There is no other connection pending */
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+          return;
+
+        /* Lotsa admins seem to have problems with not giving enough file
+         * descriptors to their server so we'll add a generic warning mechanism
+         * here.  If it turns out too many messages are generated for
+         * meaningless reasons we can filter them back.
+         */
+        sendto_opmask_butone(0, SNO_TCPCOMMON,
+			     "Unable to accept connection: %m");
+        return;
+      }
+      /*
+       * check for connection limit. If this fd exceeds the limit,
+       * all further accept()ed connections will also exceed it.
+       * Enable the server to clear out other connections before
+       * continuing to accept() new connections.
+       */
+      if (fd > MAXCLIENTS - 1) {
+        ++ServerStats->is_ref;
+        send(fd, "ERROR :All connections in use\r\n", 32, 0);
+        close(fd);
+        return;
+      }
+      /*
+       * check to see if listener is shutting down. Continue
+       * to accept(), because it makes sense to clear our the
+       * socket's queue as fast as possible.
+       */
+      if (!listener->active) {
+        ++ServerStats->is_ref;
+        send(fd, "ERROR :Use another port\r\n", 25, 0);
+        close(fd);
+        continue;
+      }
+      /*
+       * check to see if connection is allowed for this address mask
+       */
+      if (!connection_allowed((const char*) &addr,
+			      (const char*) &listener->mask)) {
+        ++ServerStats->is_ref;
+        send(fd, "ERROR :Use another port\r\n", 25, 0);
+        close(fd);
+	continue;
+      }
+      ++ServerStats->is_ac;
+      /* nextping = CurrentTime; */
+
+      add_connection(listener, fd);
+    }
   }
 }
