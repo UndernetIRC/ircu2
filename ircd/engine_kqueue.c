@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "s_debug.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -89,6 +90,9 @@ engine_signal(struct Signal* sig)
 
   assert(0 != signal);
 
+  Debug((DEBUG_ENGINE, "kqueue: Adding filter for signal %d [%p]",
+	 sig_signal(sig), sig));
+
   sigevent.ident = sig_signal(sig); /* set up the kqueue event */
   sigevent.filter = EVFILT_SIGNAL; /* looking for signals... */
   sigevent.flags = EV_ADD | EV_ENABLE; /* add and enable it */
@@ -118,6 +122,7 @@ state_to_events(enum SocketState state, unsigned int events)
     break;
 
   case SS_LISTENING: /* listening socket */
+  case SS_NOTSOCK: /* our signal socket--just in case */
     return SOCK_EVENT_READABLE;
     break;
 
@@ -193,6 +198,9 @@ engine_add(struct Socket* sock)
 
   sockList[s_fd(sock)] = sock; /* add to list */
 
+  Debug((DEBUG_ENGINE, "kqueue: Adding socket %d [%p], state %s, to engine",
+	 s_fd(sock), sock, state_to_name(s_state(sock))));
+
   /* Add socket to queue */
   set_or_clear(sock, 0, state_to_events(s_state(sock), s_events(sock)));
 
@@ -205,6 +213,9 @@ engine_state(struct Socket* sock, enum SocketState new_state)
 {
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
+
+  Debug((DEBUG_ENGINE, "kqueue: Changing state for socket %p to %s", sock,
+	 state_to_name(new_state)));
 
   /* set the correct events */
   set_or_clear(sock,
@@ -220,6 +231,9 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
+  Debug((DEBUG_ENGINE, "kqueue: Changing event mask for socket %p to [%s]",
+	 sock, sock_flags(new_events)));
+
   /* set the correct events */
   set_or_clear(sock,
 	       state_to_events(s_state(sock), s_events(sock)), /* old events */
@@ -234,6 +248,9 @@ engine_delete(struct Socket* sock)
 
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
+
+  Debug((DEBUG_ENGINE, "kqueue: Deleting socket %d [%p], state %s",
+	 s_fd(sock), sock, state_to_name(s_state(sock))));
 
   dellist[0].ident = s_fd(sock); /* set up the delete list */
   dellist[0].filter = EVFILT_READ; /* readable filter */
@@ -268,12 +285,16 @@ engine_loop(struct Generators* gen)
   size_t codesize;
 
   while (running) {
-    wait.tv_sec = timer_next(gen); /* set up the sleep time */
+    /* set up the sleep time */
+    wait.tv_sec = timer_next(gen) ? (timer_next(gen) - CurrentTime) : -1;
     wait.tv_nsec = 0;
+
+    Debug((DEBUG_INFO, "kqueue: delay: %Tu (%Tu) %Tu", timer_next(gen),
+	   CurrentTime, wait.tv_sec));
 
     /* check for active events */
     nevs = kevent(kqueue_id, 0, 0, events, POLLS_PER_KQUEUE,
-		  wait.tv_sec ? &wait : 0);
+		  wait.tv_sec < 0 ? 0 : &wait);
 
     CurrentTime = time(0); /* set current time... */
 
@@ -311,41 +332,62 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
-      errcode = 0; /* check for errors on socket */
-      codesize = sizeof(errcode);
-      if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
-		     &codesize) < 0)
-	errcode = errno; /* work around Solaris implementation */
+      Debug((DEBUG_ENGINE, "kqueue: Checking socket %p (fd %d) state %s, "
+	     "events %s", sock, s_fd(sock), state_to_name(s_state(sock)),
+	     sock_flags(s_events(sock))));
 
-      if (errcode) { /* an error occurred; generate an event */
-	event_generate(ET_ERROR, sock, errcode);
-	gen_ref_dec(sock); /* careful not to leak reference counts */
-	continue;
+      if (s_state(sock) != SS_NOTSOCK) {
+	errcode = 0; /* check for errors on socket */
+	codesize = sizeof(errcode);
+	if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
+		       &codesize) < 0)
+	  errcode = errno; /* work around Solaris implementation */
+
+	if (errcode) { /* an error occurred; generate an event */
+	  Debug((DEBUG_ENGINE, "kqueue: Error %d on fd %d, socket %p", errcode,
+		 s_fd(sock), sock));
+	  event_generate(ET_ERROR, sock, errcode);
+	  gen_ref_dec(sock); /* careful not to leak reference counts */
+	  continue;
+	}
       }
 
       switch (s_state(sock)) {
       case SS_CONNECTING:
-	if (events[i].filter == EVFILT_WRITE) /* connection completed */
+	if (events[i].filter == EVFILT_WRITE) { /* connection completed */
+	  Debug((DEBUG_ENGINE, "kqueue: Connection completed"));
 	  event_generate(ET_CONNECT, sock, 0);
+	}
 	break;
 
       case SS_LISTENING:
-	if (events[i].filter == EVFILT_READ) /* connect. to be accept. */
+	if (events[i].filter == EVFILT_READ) { /* connect. to be accept. */
+	  Debug((DEBUG_ENGINE, "kqueue: Ready for accept"));
 	  event_generate(ET_ACCEPT, sock, 0);
+	}
 	break;
 
+      case SS_NOTSOCK: /* doing nothing socket-specific */
       case SS_CONNECTED:
-	if (events[i].filter == EVFILT_READ) /* data on socket */
+	if (events[i].filter == EVFILT_READ) { /* data on socket */
+	  Debug((DEBUG_ENGINE, "kqueue: EOF or data to be read"));
 	  event_generate(events[i].flags & EV_EOF ? ET_EOF : ET_READ, sock, 0);
-	if (events[i].filter == EVFILT_WRITE) /* socket writable */
+	}
+	if (events[i].filter == EVFILT_WRITE) { /* socket writable */
+	  Debug((DEBUG_ENGINE, "kqueue: Data can be written"));
 	  event_generate(ET_WRITE, sock, 0);
+	}
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
-	if (events[i].filter == EVFILT_READ) /* socket readable */
+	if (events[i].filter == EVFILT_READ) { /* socket readable */
+	  Debug((DEBUG_ENGINE, "kqueue: Datagram to be read"));
 	  event_generate(ET_READ, sock, 0);
-	if (events[i].filter == EVFILT_WRITE) /* socket writable */
+	}
+	if (events[i].filter == EVFILT_WRITE) { /* socket writable */
+	  Debug((DEBUG_ENGINE, "kqueue: Datagram can be written"));
 	  event_generate(ET_WRITE, sock, 0);
+	}
 	break;
       }
 

@@ -27,16 +27,17 @@ struct Client;
 /*
  * defined debugging levels
  */
-#define DEBUG_FATAL  0
-#define DEBUG_ERROR  1  /* report_error() and other errors that are found */
-#define DEBUG_NOTICE 3
-#define DEBUG_DNS    4  /* used by all DNS related routines - a *lot* */
-#define DEBUG_INFO   5  /* general useful info */
-#define DEBUG_NUM    6  /* numerics */
-#define DEBUG_SEND   7  /* everything that is sent out */
-#define DEBUG_DEBUG  8  /* everything that is received */ 
-#define DEBUG_MALLOC 9  /* malloc/free calls */
-#define DEBUG_LIST  10  /* debug list use */
+#define DEBUG_FATAL   0
+#define DEBUG_ERROR   1  /* report_error() and other errors that are found */
+#define DEBUG_NOTICE  3
+#define DEBUG_DNS     4  /* used by all DNS related routines - a *lot* */
+#define DEBUG_INFO    5  /* general useful info */
+#define DEBUG_NUM     6  /* numerics */
+#define DEBUG_SEND    7  /* everything that is sent out */
+#define DEBUG_DEBUG   8  /* everything that is received */ 
+#define DEBUG_MALLOC  9  /* malloc/free calls */
+#define DEBUG_LIST   10  /* debug list use */
+#define DEBUG_ENGINE 11  /* debug event engine; can dump gigabyte logs */
 
 /*
  * proto types

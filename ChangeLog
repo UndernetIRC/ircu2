@@ -1,5 +1,23 @@
 2001-06-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/engine_select.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK; use a dummy sock variable to keep things from
+	disappearing on us; correct timeout calculation; update nfds for
+	efficiency
+
+	* ircd/engine_poll.c: use new debugging level (DEBUG_ENGINE);
+	remove a spurious "if (sock)" which will always be true; update
+	nfds for efficiency
+
+	* ircd/engine_kqueue.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK (just in case); correct timeout calculation
+
+	* ircd/engine_devpoll.c: add Debug() calls galore; add handling
+	for SS_NOTSOCK; correct timeout calculation; add EAGAIN handling
+
+	* include/s_debug.h (DEBUG_ENGINE): add new debugging level;
+	pretty-indent numbers
+
 	* ircd/engine_poll.c (engine_loop): break out SS_NOTSOCK
 	case--it's not a socket; the check for writability is most likely
 	not needed, but present for completeness

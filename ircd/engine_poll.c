@@ -158,7 +158,8 @@ engine_add(struct Socket* sock)
   for (i = 0; sockList[i] && i < poll_count; i++) /* Find an empty slot */
     ;
 
-  Debug((DEBUG_LIST, "poll: Looking at slot %d, contents %p", i, sockList[i]));
+  Debug((DEBUG_ENGINE, "poll: Looking at slot %d, contents %p", i,
+	 sockList[i]));
 
   if (i >= poll_count) { /* ok, need to allocate another off the list */
     if (poll_count >= poll_max) { /* bounds-check... */
@@ -169,14 +170,14 @@ engine_add(struct Socket* sock)
     }
 
     i = poll_count++;
-    Debug((DEBUG_LIST, "poll: Allocating a new slot: %d", i));
+    Debug((DEBUG_ENGINE, "poll: Allocating a new slot: %d", i));
   }
 
   s_ed_int(sock) = i; /* set engine data */
   sockList[i] = sock; /* enter socket into data structures */
   pollfdList[i].fd = s_fd(sock);
 
-  Debug((DEBUG_LIST, "poll: Adding socket %d to engine on %d [%p], state %s",
+  Debug((DEBUG_ENGINE, "poll: Adding socket %d to engine on %d [%p], state %s",
 	 s_fd(sock), s_ed_int(sock), sock, state_to_name(s_state(sock))));
 
   /* set the appropriate bits */
@@ -193,7 +194,7 @@ engine_state(struct Socket* sock, enum SocketState new_state)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Changing state for socket %p to %s", sock,
+  Debug((DEBUG_ENGINE, "poll: Changing state for socket %p to %s", sock,
 	 state_to_name(new_state)));
 
   /* set the correct events */
@@ -210,7 +211,7 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Changing event mask for socket %p to [%s]", sock,
+  Debug((DEBUG_ENGINE, "poll: Changing event mask for socket %p to [%s]", sock,
 	 sock_flags(new_events)));
 
   /* set the correct events */
@@ -227,7 +228,7 @@ engine_delete(struct Socket* sock)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
-  Debug((DEBUG_LIST, "poll: Deleting socket %d (%d) [%p], state %s",
+  Debug((DEBUG_ENGINE, "poll: Deleting socket %d (%d) [%p], state %s",
 	 s_fd(sock), s_ed_int(sock), sock, state_to_name(s_state(sock))));
 
   /* clear the events */
@@ -288,7 +289,7 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
-      Debug((DEBUG_LIST, "poll: Checking socket %p (fd %d, index %d, "
+      Debug((DEBUG_ENGINE, "poll: Checking socket %p (fd %d, index %d, "
 	     "state %s, events %s", sock, s_fd(sock), i,
 	     state_to_name(s_state(sock)), sock_flags(s_events(sock))));
 
@@ -300,11 +301,11 @@ engine_loop(struct Generators* gen)
 	  errcode = errno; /* work around Solaris implementation */
 
 	if (errcode) { /* an error occurred; generate an event */
-	  Debug((DEBUG_LIST, "poll: Error %d on fd %d (index %d), socket %p",
+	  Debug((DEBUG_ENGINE, "poll: Error %d on fd %d (index %d), socket %p",
 		 errcode, s_fd(sock), i, sock));
 	  event_generate(ET_ERROR, sock, errcode);
-	  if (sock) /* can go away upon an error */
-	    gen_ref_dec(sock); /* careful not to leak ref counts */
+	  gen_ref_dec(sock); /* careful not to leak ref counts */
+	  nfds--;
 	  continue;
 	}
       }
@@ -312,27 +313,26 @@ engine_loop(struct Generators* gen)
       switch (s_state(sock)) {
       case SS_CONNECTING:
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* connect completed */
-	  Debug((DEBUG_LIST, "poll: Connection completed"));
+	  Debug((DEBUG_ENGINE, "poll: Connection completed"));
 	  event_generate(ET_CONNECT, sock, 0);
+	  nfds--;
 	}
 	break;
 
       case SS_LISTENING:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* ready for accept */
-	  Debug((DEBUG_LIST, "poll: Ready for accept"));
+	  Debug((DEBUG_ENGINE, "poll: Ready for accept"));
 	  event_generate(ET_ACCEPT, sock, 0);
+	  nfds--;
 	}
 	break;
 
       case SS_NOTSOCK:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
 	  /* can't peek; it's not a socket */
-	  Debug((DEBUG_LIST, "poll: non-socket readable"));
+	  Debug((DEBUG_ENGINE, "poll: non-socket readable"));
 	  event_generate(ET_READ, sock, 0);
-	}
-	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
-	  Debug((DEBUG_LIST, "poll: non-socket writable"));
-	  event_generate(ET_WRITE, sock, 0);
+	  nfds--;
 	}
 	break;
 
@@ -343,39 +343,43 @@ engine_loop(struct Generators* gen)
 	  switch (recv(s_fd(sock), &c, 1, MSG_PEEK)) { /* check EOF */
 	  case -1: /* error occurred?!? */
 	    if (errno == EAGAIN) {
-	      Debug((DEBUG_LIST, "poll: Resource temporarily unavailable?"));
+	      Debug((DEBUG_ENGINE, "poll: Resource temporarily unavailable?"));
 	      continue;
 	    }
-	    Debug((DEBUG_LIST, "poll: Uncaught error!"));
+	    Debug((DEBUG_ENGINE, "poll: Uncaught error!"));
 	    event_generate(ET_ERROR, sock, errno);
 	    break;
 
 	  case 0: /* EOF from client */
-	    Debug((DEBUG_LIST, "poll: EOF from client"));
+	    Debug((DEBUG_ENGINE, "poll: EOF from client"));
 	    event_generate(ET_EOF, sock, 0);
 	    break;
 
 	  default: /* some data can be read */
-	    Debug((DEBUG_LIST, "poll: Data to be read"));
+	    Debug((DEBUG_ENGINE, "poll: Data to be read"));
 	    event_generate(ET_READ, sock, 0);
 	    break;
 	  }
 	}
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
-	  Debug((DEBUG_LIST, "poll: Data can be written"));
+	  Debug((DEBUG_ENGINE, "poll: Data can be written"));
 	  event_generate(ET_WRITE, sock, 0);
 	}
+	if (pollfdList[i].revents & (POLLREADFLAGS | POLLWRITEFLAGS))
+	  nfds--;
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* socket readable */
-	  Debug((DEBUG_LIST, "poll: Datagram to be read"));
+	  Debug((DEBUG_ENGINE, "poll: Datagram to be read"));
 	  event_generate(ET_READ, sock, 0);
 	}
 	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
-	  Debug((DEBUG_LIST, "poll: Datagram can be written"));
+	  Debug((DEBUG_ENGINE, "poll: Datagram can be written"));
 	  event_generate(ET_WRITE, sock, 0);
 	}
+	if (pollfdList[i].revents & (POLLREADFLAGS | POLLWRITEFLAGS))
+	  nfds--;
 	break;
       }
 

@@ -24,6 +24,7 @@
 
 #include "ircd.h"
 #include "ircd_log.h"
+#include "s_debug.h"
 
 /* On BSD, define FD_SETSIZE to what we want before including sys/types.h */
 #if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
@@ -93,6 +94,7 @@ state_to_events(enum SocketState state, unsigned int events)
     break;
 
   case SS_LISTENING: /* listening socket */
+  case SS_NOTSOCK: /* our signal socket */
     return SOCK_EVENT_READABLE;
     break;
 
@@ -144,6 +146,9 @@ engine_add(struct Socket* sock)
   if (s_fd(sock) >= highest_fd) /* update highest_fd */
     highest_fd = s_fd(sock);
 
+  Debug((DEBUG_ENGINE, "select: Adding socket %d to engine [%p], state %s",
+	 s_fd(sock), sock, state_to_name(s_state(sock))));
+
   /* set the fd set bits */
   set_or_clear(s_fd(sock), 0, state_to_events(s_state(sock), s_events(sock)));
 
@@ -156,6 +161,9 @@ engine_state(struct Socket* sock, enum SocketState new_state)
 {
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
+
+  Debug((DEBUG_ENGINE, "select: Changing state for socket %p to %s", sock,
+	 state_to_name(new_state)));
 
   /* set the correct events */
   set_or_clear(s_fd(sock),
@@ -170,6 +178,9 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
+  Debug((DEBUG_ENGINE, "select: Changing event mask for socket %p to [%s]",
+	 sock, sock_flags(new_events)));
+
   /* set the correct events */
   set_or_clear(s_fd(sock),
 	       state_to_events(s_state(sock), s_events(sock)), /* old events */
@@ -182,6 +193,9 @@ engine_delete(struct Socket* sock)
 {
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
+
+  Debug((DEBUG_ENGINE, "select: Deleting socket %d [%p], state %s", s_fd(sock),
+	 sock, state_to_name(s_state(sock))));
 
   FD_CLR(s_fd(sock), &global_read_set); /* clear event set bits */
   FD_CLR(s_fd(sock), &global_write_set);
@@ -203,17 +217,22 @@ engine_loop(struct Generators* gen)
   int i;
   int errcode;
   size_t codesize;
+  struct Socket *sock;
 
   while (running) {
     read_set = global_read_set; /* all hail structure copy!! */
     write_set = global_write_set;
 
-    wait.tv_sec = timer_next(gen); /* set up the sleep time */
+    /* set up the sleep time */
+    wait.tv_sec = timer_next(gen) ? (timer_next(gen) - CurrentTime) : -1;
     wait.tv_usec = 0;
+
+    Debug((DEBUG_INFO, "select: delay: %Tu (%Tu) %Tu", timer_next(gen),
+	   CurrentTime, wait.tv_sec));
 
     /* check for active files */
     nfds = select(highest_fd + 1, &read_set, &write_set, 0,
-		  wait.tv_sec ? &wait : 0);
+		  wait.tv_sec < 0 ? 0 : &wait);
 
     CurrentTime = time(0); /* set current time... */
 
@@ -234,33 +253,57 @@ engine_loop(struct Generators* gen)
     }
 
     for (i = 0; nfds && i <= highest_fd; i++) {
-      if (!sockList[i]) /* skip empty socket elements */
+      if (!(sock = sockList[i])) /* skip empty socket elements */
 	continue;
 
-      assert(s_fd(sockList[i]) == i);
+      assert(s_fd(sock) == i);
 
-      gen_ref_inc(sockList[i]); /* can't have it going away on us */
+      gen_ref_inc(sock); /* can't have it going away on us */
 
-      errcode = 0; /* check for errors on socket */
-      codesize = sizeof(errcode);
-      if (getsockopt(i, SOL_SOCKET, SO_ERROR, &errcode, &codesize) < 0)
-	errcode = errno; /* work around Solaris implementation */
+      Debug((DEBUG_ENGINE, "select: Checking socket %p (fd %d) state %s, "
+	     "events %s", sock, i, state_to_name(s_state(sock)),
+	     sock_flags(s_events(sock))));
 
-      if (errcode) { /* an error occurred; generate an event */
-	event_generate(ET_ERROR, sockList[i], errcode);
-	gen_ref_dec(sockList[i]); /* careful not to leak reference counts */
-	continue;
+      if (s_state(sock) != SS_NOTSOCK) {
+	errcode = 0; /* check for errors on socket */
+	codesize = sizeof(errcode);
+	if (getsockopt(i, SOL_SOCKET, SO_ERROR, &errcode, &codesize) < 0)
+	  errcode = errno; /* work around Solaris implementation */
+
+	if (errcode) { /* an error occurred; generate an event */
+	  Debug((DEBUG_ENGINE, "select: Error %d on fd %d, socket %p", errcode,
+		 i, sock));
+	  event_generate(ET_ERROR, sock, errcode);
+	  gen_ref_dec(sock); /* careful not to leak reference counts */
+	  continue;
+	}
       }
 
-      switch (s_state(sockList[i])) {
+      switch (s_state(sock)) {
       case SS_CONNECTING:
-	if (FD_ISSET(i, &write_set)) /* connection completed */
-	  event_generate(ET_CONNECT, sockList[i], 0);
+	if (FD_ISSET(i, &write_set)) { /* connection completed */
+	  Debug((DEBUG_ENGINE, "select: Connection completed"));
+	  event_generate(ET_CONNECT, sock, 0);
+	  nfds--;
+	  continue;
+	}
 	break;
 
       case SS_LISTENING:
-	if (FD_ISSET(i, &read_set)) /* connection to be accepted */
-	  event_generate(ET_ACCEPT, sockList[i], 0);
+	if (FD_ISSET(i, &read_set)) { /* connection to be accepted */
+	  Debug((DEBUG_ENGINE, "select: Ready for accept"));
+	  event_generate(ET_ACCEPT, sock, 0);
+	  nfds--;
+	}
+	break;
+
+      case SS_NOTSOCK:
+	if (FD_ISSET(i, &read_set)) { /* data on socket */
+	  /* can't peek; it's not a socket */
+	  Debug((DEBUG_ENGINE, "select: non-socket readable"));
+	  event_generate(ET_READ, sock, 0);
+	  nfds--;
+	}
 	break;
 
       case SS_CONNECTED:
@@ -269,31 +312,49 @@ engine_loop(struct Generators* gen)
 
 	  switch (recv(i, &c, 1, MSG_PEEK)) { /* check for EOF */
 	  case -1: /* error occurred?!? */
-	    event_generate(ET_ERROR, sockList[i], errno);
+	    if (errno == EAGAIN) {
+	      Debug((DEBUG_ENGINE, "select: Resource temporarily "
+		     "unavailable?"));
+	      continue;
+	    }
+	    Debug((DEBUG_ENGINE, "select: Uncaught error!"));
+	    event_generate(ET_ERROR, sock, errno);
 	    break;
 
 	  case 0: /* EOF from client */
-	    event_generate(ET_EOF, sockList[i], 0);
+	    Debug((DEBUG_ENGINE, "select: EOF from client"));
+	    event_generate(ET_EOF, sock, 0);
 	    break;
 
 	  default: /* some data can be read */
-	    event_generate(ET_READ, sockList[i], 0);
+	    Debug((DEBUG_ENGINE, "select: Data to be read"));
+	    event_generate(ET_READ, sock, 0);
 	    break;
 	  }
 	}
-	if (FD_ISSET(i, &write_set)) /* data can be written to socket */
-	  event_generate(ET_WRITE, sockList[i], 0);
+	if (FD_ISSET(i, &write_set)) { /* data can be written to socket */
+	  Debug((DEBUG_ENGINE, "select: Data can be written"));
+	  event_generate(ET_WRITE, sock, 0);
+	}
+	if (FD_ISSET(i, &read_set) || FD_ISSET(i, &write_set))
+	  nfds--;
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
-	if (FD_ISSET(i, &read_set)) /* data to be read from socket */
-	  event_generate(ET_READ, sockList[i], 0);
-	if (FD_ISSET(i, &write_set)) /* data can be written to socket */
-	  event_generate(ET_WRITE, sockList[i], 0);
+	if (FD_ISSET(i, &read_set)) { /* data to be read from socket */
+	  Debug((DEBUG_ENGINE, "select: Datagram to be read"));
+	  event_generate(ET_READ, sock, 0);
+	}
+	if (FD_ISSET(i, &write_set)) { /* data can be written to socket */
+	  Debug((DEBUG_ENGINE, "select: Datagram can be written"));
+	  event_generate(ET_WRITE, sock, 0);
+	}
+	if (FD_ISSET(i, &read_set) || FD_ISSET(i, &write_set))
+	  nfds--;
 	break;
       }
 
-      gen_ref_dec(sockList[i]); /* we're done with it */
+      gen_ref_dec(sock); /* we're done with it */
     }
 
     timer_run(); /* execute any pending timers */

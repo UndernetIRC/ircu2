@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "s_debug.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -115,6 +116,7 @@ state_to_events(enum SocketState state, unsigned int events)
     break;
 
   case SS_LISTENING: /* listening socket */
+  case SS_NOTSOCK: /* our signal socket */
     return SOCK_EVENT_READABLE;
     break;
 
@@ -138,6 +140,9 @@ set_events(struct Socket* sock, unsigned int events)
   if (s_ed_int(sock)) { /* is one in /dev/poll already? */
     pfd.events = POLLREMOVE; /* First, remove old pollfd */
 
+    Debug((DEBUG_ENGINE, "devpoll: Removing old entry for socket %d [%p]",
+	   s_fd(sock), sock));
+
     if (write(devpoll_fd, &pfd, sizeof(pfd)) != sizeof(pfd)) {
       event_generate(ET_ERROR, sock, errno); /* report error */
       return;
@@ -154,6 +159,10 @@ set_events(struct Socket* sock, unsigned int events)
     pfd.events |= POLLREADFLAGS; /* look for readable conditions */
   if (events & SOCK_EVENT_WRITABLE)
     pfd.events |= POLLWRITEFLAGS; /* look for writable conditions */
+
+  Debug((DEBUG_ENGINE, "devpoll: Registering interest on %d [%p] (state %s, "
+	 "mask [%s])", s_fd(sock), sock, state_to_name(s_state(sock)),
+	 sock_flags(s_events(sock))));
 
   if (write(devpoll_fd, &pfd, sizeof(pfd)) != sizeof(pfd)) {
     event_generate(ET_ERROR, sock, errno); /* report error */
@@ -180,6 +189,9 @@ engine_add(struct Socket* sock)
 
   sockList[s_fd(sock)] = sock; /* add to list */
 
+  Debug((DEBUG_ENGINE, "devpoll: Adding socket %d [%p], state %s, to engine",
+	 s_fd(sock), sock, state_to_name(s_state(sock))));
+
   /* set the correct events */
   set_events(sock, state_to_events(s_state(sock), s_events(sock)));
 
@@ -193,6 +205,9 @@ engine_state(struct Socket* sock, enum SocketState new_state)
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
+  Debug((DEBUG_ENGINE, "devpoll: Changing state for socket %p to %s", sock,
+	 state_to_name(new_state)));
+
   /* set the correct events */
   set_events(sock, state_to_events(new_state, s_events(sock)));
 }
@@ -204,6 +219,9 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
+  Debug((DEBUG_ENGINE, "devpoll: Changing event mask for socket %p to [%s]",
+	 sock, sock_flags(new_events)));
+
   /* set the correct events */
   set_events(sock, state_to_events(s_state(sock), new_events));
 }
@@ -214,6 +232,9 @@ engine_delete(struct Socket* sock)
 {
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
+
+  Debug((DEBUG_ENGINE, "devpoll: Deleting socket %d [%p], state %s",
+	 s_fd(sock), sock, state_to_name(s_state(sock))));
 
   set_events(sock, 0); /* get rid of the socket */
 
@@ -235,7 +256,11 @@ engine_loop(struct Generators* gen)
     dopoll.dp_nfds = POLLS_PER_DEVPOLL;
 
     /* calculate the proper timeout */
-    dopoll.dp_timeout = timer_next(gen) ? timer_next(gen) * 1000 : -1;
+    dopoll.dp_timeout = timer_next(gen) ?
+      (timer_next(gen) - CurrentTime) * 1000 : -1;
+
+    Debug((DEBUG_INFO, "devpoll: delay: %Tu (%Tu) %d", timer_next(gen),
+	   CurrentTime, dopoll.dp_timeout));
 
     /* check for active files */
     nfds = ioctl(devpoll_fd, DP_POLL, &dopoll);
@@ -267,27 +292,47 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
-      errcode = 0; /* check for errors on socket */
-      codesize = sizeof(errcode);
-      if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
-		     &codesize) < 0)
-	errcode = errno; /* work around Solaris implementation */
+      Debug((DEBUG_ENGINE, "devpoll: Checking socket %p (fd %d) state %s, "
+	     "events %s", sock, s_fd(sock), state_to_name(s_state(sock)),
+	     sock_flags(s_events(sock))));
 
-      if (errcode) { /* an error occurred; generate an event */
-	event_generate(ET_ERROR, sock, errcode);
-	gen_ref_dec(sock); /* careful not to leak reference counts */
-	continue;
+      if (s_state(sock) != SS_NOTSOCK) {
+	errcode = 0; /* check for errors on socket */
+	codesize = sizeof(errcode);
+	if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
+		       &codesize) < 0)
+	  errcode = errno; /* work around Solaris implementation */
+
+	if (errcode) { /* an error occurred; generate an event */
+	  Debug((DEBUG_ENGINE, "devpoll: Error %d on fd %d, socket %p",
+		 errcode, s_fd(sock), sock));
+	  event_generate(ET_ERROR, sock, errcode);
+	  gen_ref_dec(sock); /* careful not to leak reference counts */
+	  continue;
+	}
       }
 
       switch (s_state(sock)) {
       case SS_CONNECTING:
-	if (polls[i].revents & POLLWRITEFLAGS) /* connection completed */
+	if (polls[i].revents & POLLWRITEFLAGS) { /* connection completed */
+	  Debug((DEBUG_ENGINE, "devpoll: Connection completed"));
 	  event_generate(ET_CONNECT, sock, 0);
+	}
 	break;
 
       case SS_LISTENING:
-	if (polls[i].revents & POLLREADFLAGS) /* connect. to be accept. */
+	if (polls[i].revents & POLLREADFLAGS) { /* connect. to be accept. */
+	  Debug((DEBUG_ENGINE, "devpoll: Ready for accept"));
 	  event_generate(ET_ACCEPT, sock, 0);
+	}
+	break;
+
+      case SS_NOTSOCK:
+	if (polls[i].revents & POLLREADFLAGS) { /* data on socket */
+	  /* can't peek; it's not a socket */
+	  Debug((DEBUG_ENGINE, "devpoll: non-socket readable"));
+	  event_generate(ET_READ, sock, 0);
+	}
 	break;
 
       case SS_CONNECTED:
@@ -296,27 +341,41 @@ engine_loop(struct Generators* gen)
 
 	  switch (recv(s_fd(sock), &c, 1, MSG_PEEK)) { /* check EOF */
 	  case -1: /* error occurred?!? */
+	    if (errno == EAGAIN) {
+	      Debug((DEBUG_ENGINE, "devpoll: Resource temporarily "
+		     "unavailable?"));
+	      continue;
+	    }
+	    Debug((DEBUG_ENGINE, "devpoll: Uncaught error!"));
 	    event_generate(ET_ERROR, sock, errno);
 	    break;
 
 	  case 0: /* EOF from client */
+	    Debug((DEBUG_ENGINE, "devpoll: EOF from client"));
 	    event_generate(ET_EOF, sock, 0);
 	    break;
 
 	  default: /* some data can be read */
+	    Debug((DEBUG_ENGINE, "devpoll: Data to be read"));
 	    event_generate(ET_READ, sock, 0);
 	    break;
 	  }
 	}
-	if (polls[i].revents & POLLWRITEFLAGS) /* socket writable */
+	if (polls[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	  Debug((DEBUG_ENGINE, "devpoll: Data can be written"));
 	  event_generate(ET_WRITE, sock, 0);
+	}
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
-	if (polls[i].revents & POLLREADFLAGS) /* socket readable */
+	if (polls[i].revents & POLLREADFLAGS) { /* socket readable */
+	  Debug((DEBUG_ENGINE, "devpoll: Datagram to be read"));
 	  event_generate(ET_READ, sock, 0);
-	if (polls[i].revents & POLLWRITEFLAGS) /* socket writable */
+	}
+	if (polls[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	  Debug((DEBUG_ENGINE, "devpoll: Datagram can be written"));
 	  event_generate(ET_WRITE, sock, 0);
+	}
 	break;
       }
 
