@@ -1275,6 +1275,16 @@ int read_configuration_file(void)
   fbclose(file);
 /*    nextping = nextconnect = CurrentTime; */
   feature_mark(); /* reset unmarked features */
+
+  /*
+   * Set our local FLAG_HUB if necessary.
+   */
+  if(feature_bool(FEAT_HUB)) {
+    SetFlag(&me, FLAG_HUB);
+  } else {
+    ClrFlag(&me, FLAG_HUB);
+  }
+
   return 1;
 }
 
