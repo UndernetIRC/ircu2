@@ -1,3 +1,6 @@
+2003-01-07 Andrew Miller <a1kmm@mware.virtualave.net>
+	* almost everything: Forward ported numerous changes from .11 to .12
+	
 2002-07-05 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/packet.c(connect_dopacket): Pass the job on to server_dopacket
 	when they become a server.

@@ -179,7 +179,7 @@ Trio <trio@b62897.STUDENT.CWRU.Edu>
 WildThang <dvmitche@antietam.nssl.uoknor.edu>
 Xorath <vorac@wheel.dcn.davis.ca.us>
 
-UNDERNET (2000 - 2001)
+UNDERNET (2000 - 2003)
 --------
 
 The Undernet versions (P9, P10 and u2.10.11) are based on ircu2.10.07
@@ -194,6 +194,7 @@ The current maintainer is Isomer.
 
 Various additions, testings and bugfixes have been contributed by:
 
+A1kmm <ircu_stuff@mware.virtualave.net>
 Bleep <tomh@inxpress.net>
 Gte- <gte@atomicrevs.demon.co.uk>
 Isomer <isomer@coders.net>
