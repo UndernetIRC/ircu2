@@ -1,3 +1,8 @@
+2004-06-08  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/parse.c: don't let rank-and-file users escape HIS
+	limitations with /jupe...
+
 2004-05-14  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_features.c: per CFV-0243, NICKLEN default is increased
