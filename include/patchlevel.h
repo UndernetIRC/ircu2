@@ -18,8 +18,8 @@
  * $Id$
  *
  */
-
-#define PATCHLEVEL "pl10"
+ 
+#define PATCHLEVEL "pl11.(released)"
 
 #define RELEASE ".10."
 

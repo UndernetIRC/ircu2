@@ -218,7 +218,6 @@ comment 'Logging (filenames are either full paths or files within DPATH)'
     fi
 
 comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
-  BADCHAN=y
   bool 'Do you want to enable Bad Channel G-lines' BADCHAN y
     if [ "$BADCHAN" = "y" ]; then
       echo " "

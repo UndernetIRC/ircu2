@@ -308,8 +308,7 @@ static time_t check_pings(void)
               "ftp://ftp.undernet.org/pub/irc/clients",
               me.name, ERR_BADPING, cptr->name);
         }
-        exit_client_msg(cptr, cptr, &me, "Ping timeout for %s",
-                        get_client_name(cptr, HIDE_IP));
+        exit_client_msg(cptr, cptr, &me, "Ping timeout");
       }
       continue;
     }

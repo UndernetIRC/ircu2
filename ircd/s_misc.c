@@ -146,9 +146,7 @@ char *myctime(time_t value)
  *
  *    Returns:
  *      "name[user@ip#.port]" if 'showip' is true;
- *      "name[sockethost]", if name and sockhost are different and
- *      showip is false; else
- *      "name".
+ *      "name" if 'showip' is false.
  *
  *  NOTE 1:
  *    Watch out the allocation of "nbuf", if either sptr->name
@@ -168,12 +166,8 @@ const char* get_client_name(const struct Client* sptr, int showip)
     if (showip)
       sprintf_irc(nbuf, "%s[%s@%s]", sptr->name,
             (IsIdented(sptr)) ? sptr->username : "", sptr->sock_ip);
-    else {
-      if (0 != ircd_strcmp(sptr->name, sptr->sockhost))
-        sprintf_irc(nbuf, "%s[%s]", sptr->name, sptr->sockhost);
-      else
+    else
         return sptr->name;
-    }
     return nbuf;
   }
   return sptr->name;

@@ -20,7 +20,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
  */
 
 /*
@@ -155,6 +154,9 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
     if ((filter == NAMES_VIS) && IsInvisible(c2ptr))
       continue;
 
+    if (IsZombie(member) && member->user != sptr)
+      continue;
+
     if (needs_space) {
     	strcat(buf, " ");
       idx++;
@@ -162,13 +164,8 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
     needs_space=1;
     if (IsZombie(member))
     {
-      if (member->user != sptr)
-        continue;
-      else
-      {
-        strcat(buf, "!");
-        idx++;
-      }
+      strcat(buf, "!");
+      idx++;
     }
     else if (IsChanOp(member))
     {
