@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307, USA.
  */
-/* @file
+/** @file
  * @brief IAuth client implementation for an IRC server.
  * @version $Id$
  */

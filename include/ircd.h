@@ -1,4 +1,4 @@
-/* @file ircd.h
+/** @file ircd.h
  * @brief Global data for the daemon.
  * @version $Id$
  */

@@ -1,4 +1,4 @@
-/* @file list.h
+/** @file list.h
  * @brief Singly and doubly linked list manipulation interface.
  * @version $Id$
  */

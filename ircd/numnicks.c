@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/* @file
+/** @file
  * @brief Implementation of numeric nickname operations.
  * @version $Id$
  */
@@ -39,7 +39,7 @@
 #include <string.h>
 
 
-/** @page numnicks %Numeric Nicks
+/** @page numnicks Numeric Nicks
  * %Numeric nicks (numnicks) are new as of version ircu2.10.00beta1.
  *
  * The idea is as follows:
