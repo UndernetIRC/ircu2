@@ -1,5 +1,9 @@
 2000-05-01  Perry Lorier <isomer@coders.net>
 	* ircd/m_invite.c: Fix for the rest of m_invite.c, and again.
+	* ircd/channels.c: My fix for the part problem.  Untested, probably
+		won't work.  Can't be much worse than the current problem.
+		it'll either work or core, take your pick.
+
 
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* config/config-sh.in: Fix for CONNEXIT
@@ -1049,7 +1053,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.122 2000-04-30 12:41:49 isomer Exp $
+# $Id: ChangeLog,v 1.123 2000-05-01 11:23:56 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

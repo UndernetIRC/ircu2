@@ -3905,9 +3905,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 	sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
 		      (flags & CHFL_BANNED || !jbuf->jb_comment) ?
 		      ":%H" : "%H :%s", chan, jbuf->jb_comment);
+	/* XXX: Shouldn't we send a PART here anyway? */
 
-      /* Remove user from channel */
-      remove_user_from_channel(jbuf->jb_source, chan);
     } else {
       /* Add user to channel */
       add_user_to_channel(chan, jbuf->jb_source, flags);
@@ -3957,6 +3956,9 @@ joinbuf_flush(struct JoinBuf *jbuf)
     build_string(chanlist, &chanlist_i,
 		 jbuf->jb_channels[i] ? jbuf->jb_channels[i]->chname : "0", 0,
 		 i == 0 ? '\0' : ',');
+    if (JOINBUF_TYPE_PART == jbuf->jb_type)
+      /* Remove user from channel */
+      remove_user_from_channel(jbuf->jb_source, jbuf->jb_channels[i]);
 
     jbuf->jb_channels[i] = 0; /* mark slot empty */
   }
