@@ -1,3 +1,14 @@
+2002-09-16  Jochen Meesters <ekips@pandora.be>
+
+	* ircd/whocmds.h: Changed output of /who %a command, making it
+	easier to parse (puts field in front of realname, and reply 0
+	if user has no AC)
+
+2002-09-16  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel for
+	u2_10_11_02 development branch
+
 2002-09-14  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.01

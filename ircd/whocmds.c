@@ -221,19 +221,22 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     }
   }
 
+  if (fields & WHO_FIELD_ACC)
+  {
+    char *p2 = cli_user(acptr)->account;
+    *(p1++) = ' ';
+    if (*p2)
+      while ((*p2) && (*(p1++) = *(p2++)));
+    else
+      *(p1++) = '0';
+  }
+
   if (!fields || (fields & WHO_FIELD_REN))
   {
     char *p2 = cli_info(acptr);
     *p1++ = ' ';
     if (fields)
       *p1++ = ':';              /* Place colon here for special reply */
-    while ((*p2) && (*(p1++) = *(p2++)));
-  }
-
-  if (fields & WHO_FIELD_ACC)
-  {
-    char *p2 = cli_user(acptr)->account;
-    *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
