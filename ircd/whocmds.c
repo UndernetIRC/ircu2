@@ -29,6 +29,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -219,7 +220,6 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
      need to terminate buf1 */
   *p1 = '\0';
   p1 = buf1;
-  sendto_one(sptr, rpl_str(fields ? RPL_WHOSPCRPL : RPL_WHOREPLY),
-      me.name, sptr->name, ++p1);
+  send_reply(sptr, fields ? RPL_WHOSPCRPL : RPL_WHOREPLY, ++p1);
 }
 

@@ -218,9 +218,9 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
     if (!hp->h_addr_list[i]) {
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_IP_MISMATCH);
-      sendto_op_mask(SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-                     auth->client->sock_ip, hp->h_name, 
-                     ircd_ntoa(hp->h_addr_list[0]));
+      sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
+			   auth->client->sock_ip, hp->h_name, 
+			   ircd_ntoa(hp->h_addr_list[0]));
 #if defined(KILL_IPMISMATCH)
       auth_kill_client(auth);
       return;

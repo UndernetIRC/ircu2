@@ -35,51 +35,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef DEBUGMODE
-
-void dumpcore(const char *pattern, ...)
-{
-  va_list vl;
-  static time_t lastd = 0;
-  static int dumps = 0;
-  char corename[12];
-  time_t now;
-  int p;
-
-  va_start(vl, pattern);
-
-  now = time(NULL);
-
-  if (!lastd)
-    lastd = now;
-  else if (now - lastd < 60 && dumps > 2)
-    server_die("too many core dumps");
-  if (now - lastd > 60)
-  {
-    lastd = now;
-    dumps = 1;
-  }
-  else
-    dumps++;
-  p = getpid();
-  if (fork() > 0)
-  {
-    kill(p, 3);
-    kill(p, 9);
-  }
-  sprintf_irc(corename, "core.%d", p);
-  rename("core", corename);
-  Debug((DEBUG_FATAL, "Dumped core : core.%d", p));
-  sendto_ops("Dumped core : core.%d", p);
-  vdebug(DEBUG_FATAL, pattern, vl);
-  vsendto_ops(pattern, vl);
-  va_end(vl);
-
-  server_die("debug core dump");
-
-}
-#endif
-
 int check_if_ipmask(const char *mask)
 {
   int has_digit = 0;
