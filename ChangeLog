@@ -1,3 +1,11 @@
+2002-01-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_squit.c (ms_squit): if we call FindNServer() on a server
+	name like "Amsterdam2.NL.EU.undernet.org", we get the struct
+	Client for the server with numeric "Am", which happens to be
+	stockholm!  To fix this, we look up the full name *first*; if that
+	doesn't get it, *then* we look up by numeric.
+
 2001-11-22  Perry Lorier  <isomer@coders.net>
 	* ircd/m_squit.c: Bug fix in squit
 
