@@ -144,6 +144,9 @@ int ms_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char **text = infotext;
 
+  if (IsServer(sptr))
+    return 0;
+
   if (hunt_server(1, cptr, sptr, "%s%s " TOK_INFO " :%s", 1, parc, parv) == HUNTED_ISME)
   {
     while (text[2])
