@@ -1,6 +1,6 @@
 /*
  * IRC - Internet Relay Chat, ircd/os_openbsd.c
- * Copyright (C) 1999 Joseph Bongaarts
+ * Copyright (C) 2001 Joseph Bongaarts
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,16 @@
  * $Id$
  *
  */
+#define _XOPEN_SOURCE /* Need this for IOV_MAX */
+
+/* These typedef's are needed for socket.h to be happy. Bleep PROMISES to make
+ * to make this less hackish in the future... HONEST. -GW
+ */
+typedef unsigned char u_char;
+typedef unsigned short u_short;
+typedef unsigned int u_int;
+typedef unsigned long u_long;
+
 #include "ircd_osdep.h"
 #include "config.h"
 #include "msgq.h"

@@ -1,3 +1,6 @@
+2001-03-13 Joseph Bongaarts <foxxe@wtfs.net>
+	* ircd/os_openbsd.c: Tweaked the openbsd hack a bit.
+	
 2001-03-07  Joseph Bongaarts  <foxxe@wtfs.net>
 
 	* config/configure.in: Add check for OpenBSD
