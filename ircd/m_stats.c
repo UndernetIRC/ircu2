@@ -172,24 +172,23 @@ int report_klines(struct Client* sptr, char* mask, int limit_query)
 static int report_servers_verbose(struct Client *sptr, char stat)
 {
   struct Client *acptr;
-  int i;
 
   /* lowercase 'v' is for human-readable,
    * uppercase 'V' is for machine-readable */
   if (stat == 'v')
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE,
-	       "%-20s Burst Hops Numeric   Lag Clients/Max Proto "
-	       "%-10s :Info", "Servername", "LinkTS");
-  for (i = -1; i <= HighestFd; i++) {
-    if (i == -1)
-      /* Hack 'me' in the list as well */
-      acptr = &me;
-    else if (!(acptr = LocalClientArray[i]) || !IsServer(acptr))
+	       "%-20s %-20s Burst Hops Numeric   Lag Clients/Max Proto "
+	       "%-10s :Info", "Servername", "Uplink", "LinkTS");
+
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
+  {
+    if (!IsServer(acptr) && !IsMe(acptr))
       continue;
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
-	       "%-20s %c%c    %4i %s %-4i %5i %5i %5i P%-2i   %Tu :%s" :
-	       "%s %c%c %i %s %i %i %i %i P%i %Tu :%s",
+	       "%-20s %-20s %c%c    %4i %s %-4i %5i %5i %5i P%-2i   %Tu :%s" :
+	       "%s %s %c%c %i %s %i %i %i %i P%i %Tu :%s",
 	       cli_name(acptr),
+	       cli_name(cli_serv(acptr)->up),
 	       IsBurst(acptr) ? 'B' : '-',
 	       IsBurstAck(acptr) ? 'A' : '-',
 	       cli_hopcount(acptr),
@@ -202,6 +201,7 @@ static int report_servers_verbose(struct Client *sptr, char stat)
 	       cli_serv(acptr)->timestamp,
 	       cli_info(acptr));
   }
+
   return 0;
 }
 

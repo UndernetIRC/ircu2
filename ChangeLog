@@ -1,3 +1,8 @@
+2002-06-04  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_stats.c (report_servers_verbose): oops, fixed it so
+	it displays all servers, not just local connects
+
 2002-05-30  Jean-Edouard Babin  <Jeb@jeb.com.fr>
 
 	* ircd/m_server.c (mr_server): fixed core bug on insufficient
