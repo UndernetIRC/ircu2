@@ -729,6 +729,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      */
     if (MyUser(sptr)) {
       const char* channel_name;
+      struct Membership *member;
       if ((channel_name = find_no_nickchange_channel(sptr))) {
         return send_reply(cptr, ERR_BANNICKCHANGE, channel_name);
       }
@@ -756,6 +757,10 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
         if (cli_nextnick(cptr) < CurrentTime)
           cli_nextnick(cptr) = CurrentTime;
       }
+      /* Invalidate all bans against the user so we check them again */
+      for (member = (cli_user(cptr))->channel; member;
+	   member = member->next_channel)
+	ClearBanValid(member);
     }
     /*
      * Also set 'lastnick' to current time, if changed.
