@@ -398,7 +398,7 @@ int init_resolver(void)
   requestListHead = requestListTail = 0;
 
   /* initiate the resolver timers */
-  timer_add(&resExpireDNS, expire_DNS_callback, 0, TT_RELATIVE, 0);
+  timer_add(&resExpireDNS, expire_DNS_callback, 0, TT_RELATIVE, 1);
   timer_add(&resExpireCache, expire_cache_callback, 0, TT_RELATIVE, 1);
 
   errno = h_errno = 0;

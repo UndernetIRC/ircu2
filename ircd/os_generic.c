@@ -220,6 +220,16 @@ int os_set_sockbufs(int fd, unsigned int size)
                           (const char*) &opt, sizeof(opt)));
 }
 
+int os_set_tos(int fd,int tos)
+{
+#if defined(IP_TOS) && defined(IPPROTO_IP)
+  unsigned int opt = tos;
+  return (0 == setsockopt(fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)));
+#else
+  return 1;
+#endif
+}
+
 int os_disable_options(int fd)
 {
 #if defined(IP_OPTIONS) && defined(IPPROTO_IP)

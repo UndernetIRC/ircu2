@@ -1,5 +1,22 @@
 2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/res.c (init_resolver): don't start DNS expires with a 0
+	relative timeout--if the server starts slow, timeouts could be
+	messy...there's probably a better solution, but this'll do for now
+
+	* ircd/os_solaris.c: _XOPEN_SOURCE doesn't get along with Solaris
+	headers very well; include stropts.h; define an os_set_tos()
+
+	* ircd/os_generic.c (os_set_tos): added an os_set_tos() for
+	os_generic.c
+
+	* ircd/ircd.c: if there are no C-lines, we don't want to have a
+	timer that expires at the absolute time of 0--it kinda blocks all
+	the other timers!
+
+	* ircd/engine_devpoll.c: some includes for open(); declare errcode
+	and codesize in engine_loop()
+
 	* ircd/list.c (free_client): remove bogus check on timer active
 	flag
 

@@ -29,9 +29,11 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/devpoll.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -250,6 +252,8 @@ engine_loop(struct Generators* gen)
   struct Socket* sock;
   int nfds;
   int i;
+  int errcode;
+  size_t codesize;
 
   while (running) {
     dopoll.dp_fds = polls; /* set up the struct dvpoll */

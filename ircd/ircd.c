@@ -291,6 +291,9 @@ static void try_connections(struct Event* ev) {
 			   con_conf->name);
   }
 
+  if (next == 0)
+    next = CurrentTime + feature_int(FEAT_CONNECTFREQUENCY);
+
   Debug((DEBUG_NOTICE, "Next connection check : %s", myctime(next)));
 
   timer_add(&connect_timer, try_connections, 0, TT_ABSOLUTE, next);
