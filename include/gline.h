@@ -56,6 +56,7 @@ struct Gline {
 #define GLINE_LDEACT	0x0080	/* locally deactivated */
 #define GLINE_GLOBAL	0x0100	/* find only global glines */
 #define GLINE_LASTMOD	0x0200	/* find only glines with non-zero lastmod */
+#define GLINE_OPERFORCE	0x0400	/* oper forcing gline to be set */
 
 #define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL)
 #define GLINE_ACTMASK	(GLINE_ACTIVE | GLINE_LDEACT)

@@ -340,6 +340,14 @@ probably always override this value in your "ircd.conf" with the
 Y-lines.  The given value used to be an often used value for client
 sendQs.
 
+GLINEMAXUSERCOUNT
+ * Type: integer
+ * Default: 20
+
+G-lines that affect too many users have to be set with a special
+command, to prevent accidental G-lines of large blocks of users.  This
+feature sets that particular threshold.
+
 MPATH
  * Type: string
  * Default: "ircd.motd"
@@ -594,6 +602,14 @@ themselves.  This can be used to make a reasonable judgment in the
 case of a "channel takeover" being reported, while the channel is set
 invite-only.  See doc/readme.who for more details.
 
+OPER_WIDE_GLINE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to use the /GLINE command with the ! flag to force slightly wide
+G-lines to be set.
+
 LOCOP_KILL
  * Type: boolean
  * Default: TRUE
@@ -667,3 +683,11 @@ able to see who is on a specified secret channel, without joining
 themselves.  This can be used to make a reasonable judgment in the
 case of a "channel takeover" being reported, while the channel is set
 invite-only.  See doc/readme.who for more details.
+
+LOCOP_WIDE_GLINE
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local IRC operators are permitted to use the
+/GLINE command with the ! flag to force slightly wide G-lines to be
+set.

@@ -378,6 +378,9 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_BADEXPIRE        515        /* Undernet extension - jupe -Kev */
 #define ERR_DONTCHEAT	     516	/* Undernet extension */
 #define ERR_DISABLED	     517	/* Undernet extension -Kev */
-#define ERR_LASTERROR        518
+#define ERR_LONGMASK	     518	/* Undernet extension -Kev */
+#define ERR_TOOMANYUSERS     519	/* Undernet extension -Kev */
+#define ERR_MASKTOOWIDE	     520	/* Undernet extension -Kev */
+#define ERR_LASTERROR        521
 
 #endif /* INCLUDED_numeric_h */

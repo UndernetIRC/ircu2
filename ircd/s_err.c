@@ -1069,11 +1069,11 @@ static Numeric replyTable[] = {
 /* 517 */
   { ERR_DISABLED, "%s :Command disabled.", "517" },
 /* 518 */
-  { 0 },
+  { ERR_LONGMASK, " :Mask is too long", "518" },
 /* 519 */
-  { 0 },
+  { ERR_TOOMANYUSERS, "%d :Too many users affected by mask", "519" },
 /* 520 */
-  { 0 },
+  { ERR_MASKTOOWIDE, "%s :Mask is too wide", "520" },
 /* 521 */
   { 0 },
 /* 522 */

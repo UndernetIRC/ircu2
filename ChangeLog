@@ -1,3 +1,59 @@
+2001-06-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c (count_users): routine to count the number of
+	users matching a given user@host mask
+
+	* ircd/s_err.c: add error messages for ERR_LONGMASK,
+	ERR_TOOMANYUSERS, and ERR_MASKTOOWIDE
+
+	* ircd/m_gline.c: look for and advance past '!' flag on G-lines
+	from operators; only set GLINE_OPERFORCE flag if oper has the
+	PRIV_WIDE_GLINE privilege
+
+	* ircd/ircd_features.c: add GLINEMAXUSERCOUNT, which is the
+	maximum number of users a G-line can impact before it has to be
+	forced; OPER_WIDE_GLINE, to allow operators to use ! to force a
+	wide G-line to be set; and LOCOP_WIDE_GLINE, to allow local
+	operators to use ! to force a wide G-line to be set
+
+	* ircd/gline.c: make make_gline() be called with separate user and
+	host arguments, and not call canon_userhost() directly; implement
+	gline_checkmask() to verify that a host mask is acceptable; move
+	BADCHAN check up in gline_add(), and check passed-in mask under
+	certain circumstances for acceptability; fix call to
+	sendto_opmask_butone() to handle separation of userhost into user
+	and host in gline_add(); update call to make_gline()
+
+	* ircd/client.c: use FEAT_OPER_WIDE_GLINE and
+	FEAT_LOCOP_WIDE_GLINE to set PRIV_WIDE_GLINE for an operator; add
+	PRIV_WIDE_GLINE to privtab[] for client_report_privs()
+
+	* include/whocmds.h (count_users): declare routine to count users
+	matching a given user@host mask
+
+	* include/numeric.h: added three new error returns: ERR_LONGMASK
+	-- mask can't be formatted into a buffer; ERR_TOOMANYUSERS -- too
+	many users would be impacted by the mask; ERR_MASKTOOWIDE -- mask
+	contains wildcards in the wrong places
+
+	* include/ircd_features.h: add FEAT_GLINEMAXUSERCOUNT,
+	FEAT_OPER_WIDE_GLINE, and FEAT_LOCOP_WIDE_GLINE
+
+	* include/gline.h (GLINE_OPERFORCE): provides a way for m_gline()
+	to signal to gline_add() that the operator attempted to force the
+	G-line to be set
+
+	* include/client.h (PRIV_WIDE_GLINE): new privilege for operators
+
+	* doc/readme.gline: update to document new "!" prefix to a G-line
+	user@host mask
+
+	* doc/readme.features: document GLINEMAXUSERCOUNT,
+	OPER_WIDE_GLINE, and LOCOP_WIDE_GLINE
+
+	* doc/example.conf: update to mention new features along with
+	their defaults
+
 2001-06-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* doc/example.conf: updated example.conf from Braden
