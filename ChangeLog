@@ -1,3 +1,9 @@
+2001-07-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): in the case of a modeless channel and
+	a nick collide, a bare BURST may be propagated; adjust the
+	enforced parameter count to accept the bare BURST
+
 2001-07-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_bsd.c: mark a client as having been IP checked

@@ -145,7 +145,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   int param, nickpos = 0, banpos = 0;
   char modestr[BUFSIZE], nickstr[BUFSIZE], banstr[BUFSIZE];
 
-  if (parc < 4)
+  if (parc < 3)
     return protocol_violation(sptr,"Too few parameters for BURST");
 
   if (!IsBurst(sptr)) /* don't allow BURST outside of burst */
