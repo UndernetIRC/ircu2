@@ -1,3 +1,8 @@
+2002-03-13 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/m_kill.c: Last of the last of the bug fixes (Thanks Spike).
+	Must be	more careful when forward porting by hand...
+	
 2002-03-13  Carlo Wood  <run@alinoe.com>
 
 	* include/channel.h: CHFL_CHANNEL_MANAGER, new local

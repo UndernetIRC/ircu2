@@ -113,7 +113,11 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
   assert(0 != sptr);
   assert(IsUser(victim));
 
-  if (!MyConnect || IsServer(sptr)) 
+  /* If we got this from a *local* oper, then path only contains the
+   * kill comment. Remote oper or server kills will at least have
+   * some kind of path preceding it.    -GW
+   */
+  if (IsServer(cptr)) 
   {
      if (!(comment = strchr(path, ' ')))
        comment = "No reason supplied";
