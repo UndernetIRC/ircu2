@@ -1247,6 +1247,8 @@ void list_next_channels(struct Client *cptr, int nr)
     (cli_listing(cptr))->chptr = chptr;
     chptr->mode.mode |= MODE_LISTED;
   }
+
+  update_write(cptr);
 }
 
 /*

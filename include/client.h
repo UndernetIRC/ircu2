@@ -31,6 +31,9 @@
 #ifndef INCLUDED_msgq_h
 #include "msgq.h"
 #endif
+#ifndef INCLUDED_ircd_events_h
+#include "ircd_events.h"
+#endif
 #ifndef INCLUDED_ircd_handler_h
 #include "ircd_handler.h"
 #endif
@@ -149,6 +152,7 @@ struct Connection {
   char con_passwd[PASSWDLEN + 1];
   char con_buffer[BUFSIZE];     /* Incoming message buffer; or the error that
                                    caused this clients socket to be `dead' */
+  struct Socket       con_socket; /* socket descriptor for client */
 };
 
 struct Client {
@@ -235,6 +239,7 @@ struct Client {
 #define cli_sockhost(cli)	((cli)->cli_connect->con_sockhost)
 #define cli_passwd(cli)		((cli)->cli_connect->con_passwd)
 #define cli_buffer(cli)		((cli)->cli_connect->con_buffer)
+#define cli_socket(cli)		((cli)->cli_connect->con_socket)
 
 #define con_next(con)		((con)->con_next)
 #define con_prev_p(con)		((con)->con_prev_p)
@@ -268,6 +273,7 @@ struct Client {
 #define con_sockhost(con)	((con)->con_sockhost)
 #define con_passwd(con)		((con)->con_passwd)
 #define con_buffer(con)		((con)->con_buffer)
+#define con_socket(con)		((con)->con_socket)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */

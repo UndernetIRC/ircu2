@@ -681,6 +681,8 @@ int main(int argc, char **argv) {
   write_pidfile();
   init_counters();
 
+  init_client_timer();
+
   Debug((DEBUG_NOTICE, "Server ready..."));
   log_write(LS_SYSTEM, L_NOTICE, 0, "Server Ready");
 

@@ -1,3 +1,37 @@
+2001-05-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: update write events status after sending data or
+	accumulating data to be sent
+
+	* ircd/m_list.c (m_list): update write events status after
+	canceling a running /list
+
+	* ircd/channel.c (list_next_channels): update write events status
+	after listing a few channels
+
+	* ircd/s_bsd.c: extensive changes to update to new events model;
+	remove on_write_unblocked() and the two implementations of
+	read_message(), which have been deprecated by this change
+
+	* ircd/s_auth.c: set the socket events we're interested in for
+	clients; simplify some logic that does the connect_nonb followed
+	by the socket_add
+
+	* ircd/list.c: define free_connection() to free a connection
+	that's become freeable once the struct Socket has been
+	deallocated; fix up free_client() to take this new behavior into
+	account
+
+	* ircd/ircd.c: call init_client_timer()
+
+	* include/s_bsd.h: declare new REGISTER_ERROR_MESSAGE when unable
+	to register connect-in-progress with events system; declare
+	init_client_timer() (HACK!) to preserve rate-limiting behavior
+
+	* include/list.h: declare new free_connection()
+
+	* include/client.h: add a struct Socket to struct Connection
+
 2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_signal.c: massage the handlers for SIGHUP, SIGINT, and

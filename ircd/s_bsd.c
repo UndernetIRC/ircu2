@@ -85,6 +85,8 @@ int                       HighestFd = -1;
 struct sockaddr_in        VirtualHost;
 static char               readbuf[SERVER_TCP_WINDOW];
 
+static struct Timer client_timer;
+
 /*
  * report_error text constants
  */
@@ -96,12 +98,15 @@ const char* const LISTEN_ERROR_MSG    = "listen error for %s: %s";
 const char* const NONB_ERROR_MSG      = "error setting non-blocking for %s: %s";
 const char* const PEERNAME_ERROR_MSG  = "getpeername failed for %s: %s";
 const char* const POLL_ERROR_MSG      = "poll error for %s: %s";
+const char* const REGISTER_ERROR_MSG  = "registering %s: %s";
 const char* const REUSEADDR_ERROR_MSG = "error setting SO_REUSEADDR for %s: %s";
 const char* const SELECT_ERROR_MSG    = "select error for %s: %s";
 const char* const SETBUFS_ERROR_MSG   = "error setting buffer size for %s: %s";
 const char* const SOCKET_ERROR_MSG    = "error creating socket for %s: %s";
 const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
 
+
+static void client_sock_callback(struct Event* ev);
 
 #if !defined(USE_POLL)
 #if FD_SETSIZE < (MAXCONNECTIONS + 4)
@@ -226,6 +231,7 @@ int init_connection_limits(void)
 static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
   static struct sockaddr_in sin;
+  IOResult result;
   assert(0 != aconf);
   assert(0 != cptr);
   /*
@@ -264,6 +270,8 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
       bind(cli_fd(cptr), (struct sockaddr*) &VirtualHost,
 	   sizeof(VirtualHost))) {
     report_error(BIND_ERROR_MSG, cli_name(cptr), errno);
+    close(cli_fd(cptr));
+    cli_fd(cptr) = -1;
     return 0;
   }
 
@@ -283,6 +291,8 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   if (!os_set_sockbufs(cli_fd(cptr), SERVER_TCP_WINDOW)) {
     cli_error(cptr) = errno;
     report_error(SETBUFS_ERROR_MSG, cli_name(cptr), errno);
+    close(cli_fd(cptr));
+    cli_fd(cptr) = -1;
     return 0;
   }
   /*
@@ -291,11 +301,25 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   if (!os_set_nonblocking(cli_fd(cptr))) {
     cli_error(cptr) = errno;
     report_error(NONB_ERROR_MSG, cli_name(cptr), errno);
+    close(cli_fd(cptr));
+    cli_fd(cptr) = -1;
     return 0;
   }
-  if (!os_connect_nonb(cli_fd(cptr), &sin)) {
+  if ((result = os_connect_nonb(cli_fd(cptr), &sin)) == IO_FAILURE) {
     cli_error(cptr) = errno;
     report_error(CONNECT_ERROR_MSG, cli_name(cptr), errno);
+    close(cli_fd(cptr));
+    cli_fd(cptr) = -1;
+    return 0;
+  }
+  if (!socket_add(&(cli_socket(cptr)), client_sock_callback,
+		  (void*) cli_connect(cptr),
+		  (result == IO_SUCCESS) ? SS_CONNECTED : SS_CONNECTING,
+		  SOCK_EVENT_READABLE, cli_fd(cptr))) {
+    cli_error(cptr) = ENFILE;
+    report_error(REGISTER_ERROR_MSG, cli_name(cptr), ENFILE);
+    close(cli_fd(cptr));
+    cli_fd(cptr) = -1;
     return 0;
   }
   return 1;
@@ -409,6 +433,8 @@ static int completed_connection(struct Client* cptr)
     sendto_opmask_butone(0, SNO_OLDSNO, "Lost Server Line for %s", cli_name(cptr));
     return 0;
   }
+  if (s_state(&(cli_socket(cptr))) == SS_CONNECTING)
+    socket_state(&(cli_socket(cptr)), SS_CONNECTED);
 
   if (!EmptyString(aconf->passwd))
     sendrawto_one(cptr, MSG_PASS " :%s", aconf->passwd);
@@ -508,6 +534,7 @@ void close_connection(struct Client *cptr)
     flush_connections(cptr);
     LocalClientArray[cli_fd(cptr)] = 0;
     close(cli_fd(cptr));
+    socket_del(&(cli_socket(cptr))); /* has to be done as soon as we close */
     cli_fd(cptr) = -1;
   }
   cli_flags(cptr) |= FLAGS_DEADSOCKET;
@@ -564,6 +591,8 @@ void add_connection(struct Listener* listener, int fd) {
   const char* const throttle_message =
          "ERROR :Your host is trying to (re)connect too fast -- throttled\r\n";
        /* 12345678901234567890123456789012345679012345678901234567890123456 */
+  const char* const register_message =
+         "ERROR :Unable to complete your registration\r\n";
   
   assert(0 != listener);
 
@@ -607,6 +636,14 @@ void add_connection(struct Listener* listener, int fd) {
     cli_nexttarget(new_client) = next_target;
 
   cli_fd(new_client) = fd;
+  if (!socket_add(&(cli_socket(new_client)), client_sock_callback,
+		  (void*) cli_connect(new_client), SS_CONNECTED, 0, fd)) {
+    ++ServerStats->is_ref;
+    write(fd, register_message, strlen(register_message));
+    close(fd);
+    cli_fd(new_client) = -1;
+    return;
+  }
   cli_listener(new_client) = listener;
   ++listener->ref_count;
 
@@ -615,6 +652,23 @@ void add_connection(struct Listener* listener, int fd) {
   start_auth(new_client);
 }
 
+/*
+ * update_write
+ *
+ * Determines whether to tell the events engine we're interested in
+ * writable events
+ */
+void update_write(struct Client* cptr)
+{
+  /* If there are messages that need to be sent along, or if the client
+   * is in the middle of a /list, then we need to tell the engine that
+   * we're interested in writable events--otherwise, we need to drop
+   * that interest.
+   */
+  socket_events(&(cli_socket(cptr)),
+		((MsgQLength(&cli_sendQ(cptr)) || cli_listing(cptr)) ?
+		 SOCK_ACTION_ADD | SOCK_ACTION_DEL) | SOCK_EVENT_WRITABLE);
+}
 
 /*
  * read_packet
@@ -706,576 +760,6 @@ static int read_packet(struct Client *cptr, int socket_ready)
   }
   return 1;
 }
-
-static int on_write_unblocked(struct Client* cptr)
-{
-  /*
-   *  ...room for writing, empty some queue then...
-   */
-  cli_flags(cptr) &= ~FLAGS_BLOCKED;
-  if (IsConnecting(cptr)) {
-    if (!completed_connection(cptr))
-      return 0;
-  }
-  else if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
-    list_next_channels(cptr, 64);
-  send_queued(cptr);
-  return 1;
-}
-
-/*
- * Select / Poll Read Algorithm for ircd
- *
- * We need to check the file descriptors for all the different types
- * of things that use them, so check for reads on everything but connects
- * and writes on connects and descriptors that are blocked
- *
- * for each (client in local) {
- *   if (not connecting)
- *     check for read;
- *   if (connecting or blocked)
- *     check for write;
- * }
- * wait for activity;
- *
- * for each (client in local) {
- *   if (there are descriptors to check) {
- *     if (write activity)
- *       send data;
- *     if (read activity)
- *       read data;
- *   }
- *   process data read;
- * }
- * Note we must always process data read whether or not there has been
- * read activity or file descriptors set, since data is buffered by the client.
- */
-
-
-#ifdef USE_POLL
-
-/*
- * poll macros
- */
-#if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
-#  define POLLREADFLAGS (POLLMSG|POLLIN|POLLRDNORM)
-#else
-#  if defined(POLLIN) && defined(POLLRDNORM)
-#    define POLLREADFLAGS (POLLIN|POLLRDNORM)
-#  else
-#    if defined(POLLIN)
-#      define POLLREADFLAGS POLLIN
-#    else
-#      if defined(POLLRDNORM)
-#        define POLLREADFLAGS POLLRDNORM
-#      endif
-#    endif
-#  endif
-#endif
-
-#if defined(POLLOUT) && defined(POLLWRNORM)
-#define POLLWRITEFLAGS (POLLOUT|POLLWRNORM)
-#else
-#  if defined(POLLOUT)
-#    define POLLWRITEFLAGS POLLOUT
-#  else
-#    if defined(POLLWRNORM)
-#      define POLLWRITEFLAGS POLLWRNORM
-#    endif
-#  endif
-#endif
-
-#ifdef POLLHUP
-#define POLLERRORS (POLLHUP|POLLERR)
-#else
-#define POLLERRORS POLLERR
-#endif
-
-/*
- * NOTE: pfd and pfd_count are local variable names in read_message
- */
-#define PFD_SETR(xfd) \
-  do { CHECK_ADD_PFD(xfd) pfd->events |= POLLREADFLAGS; } while(0)
-#define PFD_SETW(xfd) \
-  do { CHECK_ADD_PFD(xfd) pfd->events |= POLLWRITEFLAGS; } while(0)
-
-#define CHECK_ADD_PFD(xfd) \
-  if (pfd->fd != xfd) { \
-    pfd = &poll_fds[pfd_count++]; \
-    poll_fds[pfd_count].fd = -1; \
-    pfd->fd = xfd; \
-    pfd->events = 0; \
-  }
-
-/*
- * Check all connections for new connections and input data that is to be
- * processed. Also check for connections with data queued and whether we can
- * write it out.
- *
- * Don't ever use ZERO for `delay', unless you mean to poll and then
- * you have to have sleep/wait somewhere else in the code.--msa
- */
-int read_message(time_t delay)
-{
-  struct pollfd poll_fds[MAXCONNECTIONS + 1];
-  struct Client*      cptr;
-  struct Listener*    listener   = 0;
-  struct AuthRequest* auth       = 0;
-  struct AuthRequest* auth_next  = 0;
-  struct UPing*       uping      = 0;
-  struct UPing*       uping_next = 0;
-  time_t delay2 = delay;
-  int nfds;
-  int length;
-  int i;
-  int res = 0;
-  int pfd_count;
-  struct pollfd* pfd;
-  struct pollfd* res_pfd;
-  struct pollfd* uping_pfd;
-  int read_ready;
-  int write_ready;
-
-  unsigned int timeout;
-
-  for ( ; ; ) {
-    pfd_count = 0;
-    pfd = poll_fds;
-    res_pfd = 0;
-    uping_pfd = 0;
-    pfd->fd = -1;
-
-    if (-1 < ResolverFileDescriptor) {
-      PFD_SETR(ResolverFileDescriptor);
-      res_pfd = pfd;
-    }
-    if (-1 < UPingFileDescriptor) {
-      PFD_SETR(UPingFileDescriptor);
-      uping_pfd = pfd;
-    }
-    /*
-     * add uping descriptors
-     */
-    for (uping = uping_begin(); uping; uping = uping_next) {
-      uping_next = uping->next;
-      if (uping->active) {
-        delay2 = 1;
-       if (uping->lastsent && CurrentTime > uping->timeout) {
-          uping_end(uping);
-          continue;
-        }
-        uping->index = pfd_count;
-        PFD_SETR(uping->fd);
-      }
-    }
-    /*
-     * add auth file descriptors
-     */
-    for (auth = AuthPollList; auth; auth = auth->next) {
-      assert(-1 < auth->fd);
-      auth->index = pfd_count;
-      if (IsAuthConnect(auth))
-        PFD_SETW(auth->fd);
-      else
-        PFD_SETR(auth->fd);
-    }
-    /*
-     * add listener file descriptors
-     */    
-    for (listener = ListenerPollList; listener; listener = listener->next) {
-      assert(-1 < listener->fd);
-      /*
-       * pfd_count is incremented by PFD_SETR so we need to save the 
-       * index first 
-       */
-      listener->index = pfd_count;
-      PFD_SETR(listener->fd);
-    }
-
-    for (i = HighestFd; -1 < i; --i) {
-      if ((cptr = LocalClientArray[i])) {
-
-        if (DBufLength(&(cli_recvQ(cptr))))
-          delay2 = 1;
-        if (DBufLength(&(cli_recvQ(cptr))) < 4088 || IsServer(cptr)) {
-          PFD_SETR(i);
-        }
-        if (MsgQLength(&(cli_sendQ(cptr))) || IsConnecting(cptr) ||
-            (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)) {
-          PFD_SETW(i);
-        }
-      }
-    }
-
-    Debug((DEBUG_INFO, "poll: %d %d", delay, delay2));
-
-    timeout = (IRCD_MIN(delay2, delay)) * 1000;
-
-    nfds = poll(poll_fds, pfd_count, timeout);
-
-    CurrentTime = time(0);
-    if (-1 < nfds)
-      break;
-
-    if (EINTR == errno)
-      return -1;
-    report_error(POLL_ERROR_MSG, cli_name(&me), errno);
-    ++res;
-    if (res > 5)
-      server_restart("too many poll errors");
-    sleep(1);
-    CurrentTime = time(0);
-  }
-
-  if (uping_pfd && (uping_pfd->revents & (POLLREADFLAGS | POLLERRORS))) {
-    uping_echo();
-    --nfds;
-  }
-  /*
-   * check uping replies
-   */
-  for (uping = uping_begin(); uping; uping = uping_next) {
-    uping_next = uping->next;
-    if (uping->active) {
-      assert(-1 < uping->index);
-      if (poll_fds[uping->index].revents) {
-        uping_read(uping);
-        if (0 == --nfds)
-          break;
-      }
-      else if (CurrentTime > uping->lastsent) {
-        uping->lastsent = CurrentTime;
-        uping_send(uping);
-      }
-    }
-  }
-
-  if (res_pfd && (res_pfd->revents & (POLLREADFLAGS | POLLERRORS))) {
-    resolver_read();
-    --nfds;
-  }
-  /*
-   * check auth queries
-   */
-  for (auth = AuthPollList; auth; auth = auth_next) {
-    auth_next = auth->next;
-    i = auth->index;
-    /*
-     * check for any event, we only ask for one at a time
-     */
-    if (poll_fds[i].revents) {
-      if (IsAuthConnect(auth))
-        send_auth_query(auth);
-      else
-        read_auth_reply(auth);
-      if (0 == --nfds)
-        break;
-    }
-  }
-  /*
-   * check listeners
-   */
-  for (listener = ListenerPollList; listener; listener = listener->next) {
-    i = listener->index;
-    if (poll_fds[i].revents) {
-      accept_connection(listener);
-      if (0 == --nfds)
-        break;
-    }
-  }
-  /*
-   * i contains the next non-auth/non-listener index, since we put the
-   * resolver, auth and listener, file descriptors in poll_fds first,
-   * the very next one should be the start of the clients
-   */
-  pfd = &poll_fds[++i];
-
-  for ( ; (i < pfd_count); ++i, ++pfd) {
-    if (!(cptr = LocalClientArray[pfd->fd]))
-      continue;
-    read_ready = write_ready = 0;
-
-    if (0 < nfds && pfd->revents) {
-      --nfds;
-    
-      read_ready  = pfd->revents & POLLREADFLAGS;
-      write_ready = pfd->revents & POLLWRITEFLAGS;
-
-      if (pfd->revents & POLLERRORS) {
-        if (pfd->events & POLLREADFLAGS)
-          ++read_ready;
-        if (pfd->events & POLLWRITEFLAGS)
-          ++write_ready;
-      }
-    }
-    if (write_ready) {
-      if (!on_write_unblocked(cptr) || IsDead(cptr)) {
-        const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : cli_info(cptr);
-        if (!msg)
-          msg = "Unknown error";
-        exit_client(cptr, cptr, &me, msg);
-        continue;
-      }
-    }
-    length = 1;                 /* for fall through case */
-    if ((!NoNewLine(cptr) || read_ready) && !IsDead(cptr)) {
-      if (CPTR_KILLED == (length = read_packet(cptr, read_ready)))
-        continue;
-    }
-#if 0
-    /* Bullshit, why would we want to flush sockets while using non-blocking?
-     * This uses > 4% cpu! --Run */
-    if (length > 0)
-      flush_connections(poll_cptr[i]);
-#endif
-    if (IsDead(cptr)) {
-      const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : cli_info(cptr);
-      if (!msg)
-        msg = "Unknown error";
-      exit_client(cptr, cptr, &me, (char*) msg);
-      continue;
-    }
-    if (length > 0)
-      continue;
-    cli_flags(cptr) |= FLAGS_DEADSOCKET;
-    /*
-     * ...hmm, with non-blocking sockets we might get
-     * here from quite valid reasons, although.. why
-     * would select report "data available" when there
-     * wasn't... So, this must be an error anyway...  --msa
-     * actually, EOF occurs when read() returns 0 and
-     * in due course, select() returns that fd as ready
-     * for reading even though it ends up being an EOF. -avalon
-     */
-    Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d %d", pfd->fd, errno, length));
-
-    if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0 && length == 0)
-      exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
-                      cli_name(cptr), cli_serv(cptr)->last_error_msg);
-    else {
-      const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : "EOF from client";
-      if (!msg)
-        msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
-    }
-  }
-  return 0;
-}
-#else /* USE_SELECT */
-
-/*
- * Check all connections for new connections and input data that is to be
- * processed. Also check for connections with data queued and whether we can
- * write it out.
- *
- * Don't ever use ZERO for `delay', unless you mean to poll and then
- * you have to have sleep/wait somewhere else in the code.--msa
- */
-int read_message(time_t delay)
-{
-  struct Client*   cptr;
-  struct Listener* listener;
-  struct AuthRequest* auth = 0;
-  struct AuthRequest* auth_next = 0;
-  struct UPing*       uping;
-  struct UPing*       uping_next;
-  int              nfds;
-  struct timeval   wait;
-  time_t           delay2 = delay;
-  unsigned int     usec = 0;
-  int              res = 0;
-  int              length;
-  int              i;
-  int              read_ready;
-  fd_set           read_set;
-  fd_set           write_set;
-
-  for ( ; ; )
-  {
-    FD_ZERO(&read_set);
-    FD_ZERO(&write_set);
-
-    if (-1 < ResolverFileDescriptor)
-      FD_SET(ResolverFileDescriptor, &read_set);
-    if (-1 < UPingFileDescriptor)
-      FD_SET(UPingFileDescriptor, &read_set);
-    /*
-     * set up uping file descriptors
-     */
-    for (uping = uping_begin(); uping; uping = uping_next) {
-      uping_next = uping->next;
-      if (uping->active) {
-        delay2 = 1;
-        if (uping->lastsent && CurrentTime > uping->timeout) {
-          uping_end(uping);
-          continue;
-        }
-        assert(-1 < uping->fd);
-        FD_SET(uping->fd, &read_set);
-      }
-    }
-    /*
-     * set auth file descriptors
-     */
-    for (auth = AuthPollList; auth; auth = auth->next) {
-      assert(-1 < auth->fd);
-      if (IsAuthConnect(auth))
-        FD_SET(auth->fd, &write_set);
-      else /* if (IsAuthPending(auth)) */
-        FD_SET(auth->fd, &read_set);
-    }
-    /*
-     * set listener file descriptors
-     */
-    for (listener = ListenerPollList; listener; listener = listener->next) {
-      assert(-1 < listener->fd);
-      FD_SET(listener->fd, &read_set);
-    }
-
-    for (i = HighestFd; i > -1; --i) {
-      if ((cptr = LocalClientArray[i])) {
-        if (DBufLength(&(cli_recvQ(cptr))))
-          delay2 = 1;
-        if (DBufLength(&(cli_recvQ(cptr))) < 4088 || IsServer(cptr))
-          FD_SET(i, &read_set);
-        if (MsgQLength(&(cli_sendQ(cptr))) || IsConnecting(cptr) ||
-            (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048))
-          FD_SET(i, &write_set);
-      }
-    }
-
-    wait.tv_sec = IRCD_MIN(delay2, delay);
-    wait.tv_usec = usec;
-
-    Debug((DEBUG_INFO, "select: %d %d", delay, delay2));
-
-    nfds = select(FD_SETSIZE, &read_set, &write_set, 0, &wait);
-
-    CurrentTime = time(0);
-
-    if (-1 < nfds)
-      break;
-
-    if (errno == EINTR)
-      return -1;
-    report_error(SELECT_ERROR_MSG, cli_name(&me), errno);
-    if (++res > 5)
-      server_restart("too many select errors");
-    sleep(1);
-    CurrentTime = time(0);
-  }
-
-  if (-1 < UPingFileDescriptor && FD_ISSET(UPingFileDescriptor, &read_set)) {
-    uping_echo();
-    --nfds;
-  }
-  for (uping = uping_begin(); uping; uping = uping_next) {
-    uping_next = uping->next;
-    if (uping->active) {
-      assert(-1 < uping->fd);
-      if (FD_ISSET(uping->fd, &read_set)) {
-        uping_read(uping);
-        if (0 == --nfds)
-          break;
-      }
-      else if (CurrentTime > uping->lastsent) {
-        uping->lastsent = CurrentTime;
-        uping_send(uping);
-      }
-    }
-  }
-  if (-1 < ResolverFileDescriptor && FD_ISSET(ResolverFileDescriptor, &read_set)) {
-    resolver_read();
-    --nfds;
-  }
-  /*
-   * Check fd sets for the auth fd's (if set and valid!) first
-   * because these can not be processed using the normal loops below.
-   * -avalon
-   */
-  for (auth = AuthPollList; auth; auth = auth_next) {
-    auth_next = auth->next;
-    assert(-1 < auth->fd);
-    if (IsAuthConnect(auth) && FD_ISSET(auth->fd, &write_set)) {
-      send_auth_query(auth);
-      if (0 == --nfds)
-        break;
-    }
-    else if (FD_ISSET(auth->fd, &read_set)) {
-      read_auth_reply(auth);
-      if (0 == --nfds)
-        break;
-    }
-  }
-  /*
-   * next accept connections from active listeners
-   */
-  for (listener = ListenerPollList; listener; listener = listener->next) {
-    assert(-1 < listener->fd);
-    if (0 < nfds && FD_ISSET(listener->fd, &read_set))
-      accept_connection(listener);
-  } 
-
-  for (i = HighestFd; -1 < i; --i) {
-    if (!(cptr = LocalClientArray[i]))
-      continue;
-    read_ready = 0;
-    if (0 < nfds) {
-      if (FD_ISSET(i, &write_set)) {
-        --nfds;
-        if (!on_write_unblocked(cptr) || IsDead(cptr)) {
-          const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : cli_info(cptr);
-          if (!msg)
-            msg = "Unknown error";
-          if (FD_ISSET(i, &read_set))
-            --nfds;
-          exit_client(cptr, cptr, &me, msg);
-          continue;
-        }
-      }
-      if ((read_ready = FD_ISSET(i, &read_set)))
-        --nfds;
-    }
-    length = 1;                 /* for fall through case */
-    if ((!NoNewLine(cptr) || read_ready) && !IsDead(cptr)) {
-      if (CPTR_KILLED == (length = read_packet(cptr, read_ready)))
-        continue;
-    }
-    if (IsDead(cptr)) {
-      const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : cli_info(cptr);
-      if (!msg)
-        msg = "Unknown error";
-      exit_client(cptr, cptr, &me, msg);
-      continue;
-    }
-    if (length > 0)
-      continue;
-
-    /*
-     * ...hmm, with non-blocking sockets we might get
-     * here from quite valid reasons, although.. why
-     * would select report "data available" when there
-     * wasn't... So, this must be an error anyway...  --msa
-     * actually, EOF occurs when read() returns 0 and
-     * in due course, select() returns that fd as ready
-     * for reading even though it ends up being an EOF. -avalon
-     */
-    Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d %d", i, cli_error(cptr), length));
-
-    if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0 && length == 0)
-      exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
-                      cli_name(cptr), cli_serv(cptr)->last_error_msg);
-    else {
-      const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : "EOF from client";
-      if (!msg)
-        msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
-    }
-  }
-  return 0;
-}
-
-#endif /* USE_SELECT */
 
 /*
  * connect_server - start or complete a connection to another server
@@ -1422,7 +906,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   hAddClient(cptr);
   nextping = CurrentTime;
 
-  return 1;
+  return (s_state(&cli_socket(cptr)) == SS_CONNECTED) ?
+    completed_connection(cptr) : 1;
 }
 
 /*
@@ -1449,4 +934,104 @@ void init_server_identity(void)
   SetYXXServerName(&me, conf->numeric);
 }
 
+/*
+ * Process events on a client socket
+ */
+static void client_sock_callback(struct Event* ev)
+{
+  struct Client* cptr;
+  struct Connection* con;
+  char *fmt = "%s";
+  char *fallback = 0;
 
+  assert(0 != ev_socket(ev));
+  assert(0 != s_data(ev_socket(ev)));
+
+  con = s_data(ev_socket(ev));
+
+  assert(0 != con_client(con) || ev_type(ev) == ET_DESTROY);
+
+  cptr = con_client(con);
+
+  switch (ev_type(ev)) {
+  case ET_DESTROY:
+    free_connection(con);
+    break;
+
+  case ET_CONNECT: /* socket connection completed */
+    if (!completed_connection(cptr) || IsDead(cptr))
+      fallback = cli_info(cptr);
+    break;
+
+  case ET_ERROR: /* an error occurred */
+    fallback = cli_info(cptr);
+    cli_error = ev_data(ev);
+    if (s_state(&(con_socket(con))) == SS_CONNECTING) {
+      completed_connection(cptr);
+      break;
+    }
+    /*FALLTHROUGH*/
+  case ET_EOF: /* end of file on socket */
+    Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d", i, cli_error(cptr)));
+    if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0) {
+      exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
+		      cli_name(cptr), cli_serv(cptr)->last_error_msg);
+      return;
+    } else {
+      fmt = "Read error: %s";
+      fallback = "EOF from client";
+    }
+    break;
+
+  case ET_WRITE: /* socket is writable */
+    if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
+      list_next_channels(cptr, 64);
+    send_queued(cptr);
+    break;
+
+  case ET_READ: /* socket is readable */
+    if (!NoNewLine(cptr) && !IsDead(cptr)) {
+      if (read_packet(cptr, 1) == 0) /* error while reading packet */
+	fallback = "EOF from client";
+    }
+    break;
+
+  default:
+#ifndef NDEBUG
+    abort(); /* unrecognized event */
+#endif
+    break;
+  }
+
+  if (fallback) {
+    const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
+    if (!msg)
+      msg = "Unknown error";
+    exit_client_msg(cptr, cptr, &me, fmt, msg);
+  }
+}
+
+/*
+ * This sucks.  Every second or so, we loop through all local clients and
+ * process any with incoming data outstanding.
+ */
+static void client_timer_callback(struct Event* ev)
+{
+  struct Client *cptr;
+  int i;
+
+  assert(ET_EXPIRE == ev_type(ev));
+  assert(0 != ev_timer(ev));
+
+  for (i = HighestFd; i >= 0; i--) {
+    cptr = LocalClientArray[i];
+    if (cptr && DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
+	(IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
+      read_packet(cptr, 0);
+  }
+}
+
+void init_client_timer(void)
+{
+  timer_add(&client_timer, client_timer_callback, 0, TT_PERIODIC, 1);
+}

@@ -203,6 +203,14 @@ struct Client* make_client(struct Client *from, int status)
   return cptr;
 }
 
+void free_connection(struct Connection* con)
+{
+  if (!con)
+    return;
+
+  dealloc_connection(con); /* deallocate the connection */
+}
+
 void free_client(struct Client* cptr)
 {
   if (!cptr)
@@ -212,9 +220,15 @@ void free_client(struct Client* cptr)
    */
   assert(cli_hnext(cptr) == cptr);
 
-  if (cli_from(cptr) == cptr) /* in other words, we're local */
-    dealloc_connection(cli_connect(cptr)); /* deallocate the connection... */
-  dealloc_client(cptr); /* deallocate the client */
+  if (cli_from(cptr) == cptr) { /* in other words, we're local */
+    if (-1 < cli_fd(cptr))
+      dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
+    else {
+      cli_from(cptr) == 0;
+      socket_del(&(cli_socket(cptr))); /* queue a socket delete */
+    }
+  }
+  dealloc_client(cptr); /* actually destroy the client */
 }
 
 struct Server *make_server(struct Client *cptr)

@@ -53,6 +53,7 @@ extern struct SLink *make_link(void);
 extern struct SLink *find_user_link(struct SLink *lp, struct Client *ptr);
 extern void init_list(void);
 extern struct Client *make_client(struct Client *from, int status);
+extern void free_connection(struct Connection *con);
 extern void free_client(struct Client *cptr);
 extern struct Server *make_server(struct Client *cptr);
 extern void remove_client_from_list(struct Client *cptr);

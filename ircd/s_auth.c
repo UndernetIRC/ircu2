@@ -260,6 +260,7 @@ static void release_auth_client(struct Client* client)
   LocalClientArray[cli_fd(client)] = client;
 
   add_client_to_list(client);
+  socket_events(&(cli_socket(client)), SOCK_ACTION_SET | SOCK_EVENTS_READABLE);
   Debug((DEBUG_INFO, "Auth: release_auth_client %s@%s[%s]",
          cli_username(client), cli_sockhost(client), cli_sock_ip(client)));
 }
@@ -447,7 +448,10 @@ static int start_auth_query(struct AuthRequest* auth)
   remote_addr.sin_port = htons(113);
   remote_addr.sin_family = AF_INET;
 
-  if ((result = os_connect_nonb(fd, &remote_addr)) == IO_FAILURE) {
+  if ((result = os_connect_nonb(fd, &remote_addr)) == IO_FAILURE ||
+      !socket_add(&auth->socket, auth_sock_callback, (void*) auth,
+		  result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
+		  SOCK_EVENT_READABLE, fd)) {
     ServerStats->is_abad++;
     /*
      * No error report from this...
@@ -455,11 +459,6 @@ static int start_auth_query(struct AuthRequest* auth)
     close(fd);
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
-    return 0;
-  } else if (!socket_add(&auth->socket, auth_sock_callback, (void*) auth,
-			 result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
-			 SOCK_EVENT_READABLE, fd)) {
-    close(fd);
     return 0;
   }
 
