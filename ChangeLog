@@ -1,3 +1,7 @@
+2003-07-13 hikari <shadow@undernet.org>
+	* ircd/IPcheck.c: Fixed (another) overflow problem in
+	ip_registry_check_local()
+
 2003-07-04 Spike  <spike@undernet.org>
 	* ircd/s_user.c: Fixed a small typo
 
