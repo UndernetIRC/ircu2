@@ -477,7 +477,7 @@ msgq_histogram(struct Client *cptr)
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Histogram of message lengths (%lu messages)", tmp.msgs);
-  for (i = 0; i + 16 < BUFSIZE; i += 16)
+  for (i = 0; i + 16 <= BUFSIZE; i += 16)
     send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":% 4d: %lu %lu %lu %lu "
 	       "%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu", i,
 	       tmp.sizes[i +  0], tmp.sizes[i +  1], tmp.sizes[i +  2],

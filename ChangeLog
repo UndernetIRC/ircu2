@@ -1,5 +1,7 @@
 2002-05-05  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/msgq.c (msgq_histogram): minor off-by-n error--no harm
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel (again)
 
 	* ircd/s_stats.c: document /stats j as an option
