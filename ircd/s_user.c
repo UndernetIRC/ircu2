@@ -1138,6 +1138,7 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
     for (chan = (cli_user(cptr))->channel; chan;
          chan = chan->next_channel)
       ClearBanValid(chan);
+    break;
   default:
     return 0;
   }
