@@ -1134,9 +1134,9 @@ int read_message(time_t delay)
       if ((cptr = LocalClientArray[i])) {
         if (DBufLength(&(cli_recvQ(cptr))))
           delay2 = 1;
-        if (DBufLength(&(cli_recvq(cptr))) < 4088 || IsServer(cptr))
+        if (DBufLength(&(cli_recvQ(cptr))) < 4088 || IsServer(cptr))
           FD_SET(i, &read_set);
-        if (MsgQLength(&(cli_sendq(cptr))) || IsConnecting(cptr) ||
+        if (MsgQLength(&(cli_sendQ(cptr))) || IsConnecting(cptr) ||
             (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048))
           FD_SET(i, &write_set);
       }
