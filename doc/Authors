@@ -178,3 +178,33 @@ Starfox <starfox@quicklink.com>
 Trio <trio@b62897.STUDENT.CWRU.Edu>
 WildThang <dvmitche@antietam.nssl.uoknor.edu>
 Xorath <vorac@wheel.dcn.davis.ca.us>
+
+UNDERNET (2000 - 2001)
+--------
+
+The Undernet versions (P9, P10 and u2.10.11) are based on ircu2.10.07
+and contain many hours of work by Coder Commitee.
+The number of protocol enhancements, changes and additions
+that have been added are too many to summarize. All patches are kept in the
+cvs repository at http://coder-com.undernet.org/.  Discussions on this
+server code are currently on the mailing list coder-com@undernet.org, or in
+#coder-com on undernet.
+
+The current maintainer is Isomer.
+
+Various additions, testings and bugfixes have been contributed by:
+
+Bleep <tomh@inxpress.net>
+Gte- <gte@atomicrevs.demon.co.uk>
+Isomer <isomer@coders.net>
+Kev <klmitch@mit.edu>
+Delete <delete@cyberabuse.org>
+Ghostwolf <foxxe@wtfs.net>
+Braden <dbtem@yahoo.com>
+net <simms@LUCIDA.QC.CA>
+Steven <steven@doyle.net>
+OmniDynmc <omni@dynmc.net>
+Dianora <db@db.net>
+Sengaia <sengaia@hallucination.net>
+Cyberdude <Cyberdude@undernet.org>
+Maniac- <maniac@cetlink.net>

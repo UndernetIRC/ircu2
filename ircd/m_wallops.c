@@ -121,6 +121,6 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "WALLOPS");
 
   sendcmdto_flag_butone(sptr, CMD_WALLOPS, 0, FLAGS_WALLOP | FLAGS_OPER,
-			":%s", message);
+			":* %s", message);
   return 0;
 }
