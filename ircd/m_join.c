@@ -310,7 +310,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return protocol_violation(sptr,
 	"%s tried to JOIN %s, duh!",
 	cli_name(sptr),
-	(parc < 2 || *parv[1] == '\0') ? "a channel":argv[1]
+	(parc < 2 || *parv[1] == '\0') ? "a channel":parv[1]
 	);
   }
 

@@ -102,6 +102,39 @@
 #include <string.h>
 
 /*
+ * 'do_nick_name' ensures that the given parameter (nick) is really a proper
+ * string for a nickname (note, the 'nick' may be modified in the process...)
+ *
+ * RETURNS the length of the final NICKNAME (0, if nickname is invalid)
+ *
+ * Nickname characters are in range 'A'..'}', '_', '-', '0'..'9'
+ *  anything outside the above set will terminate nickname.
+ * In addition, the first character cannot be '-' or a Digit.
+ *
+ * Note:
+ *  The '~'-character should be allowed, but a change should be global,
+ *  some confusion would result if only few servers allowed it...
+ */
+static int do_nick_name(char* nick)
+{
+  char* ch  = nick;
+  char* end = ch + NICKLEN;
+  assert(0 != ch);
+
+  if (*ch == '-' || IsDigit(*ch))        /* first character in [0..9-] */
+    return 0;
+
+  for ( ; (ch < end) && *ch; ++ch)
+    if (!IsNickChar(*ch))
+      break;
+
+  *ch = '\0';
+
+  return (ch - nick);
+}
+
+
+/*
  * m_nick - message handler for local clients
  * parv[0] = sender prefix
  * parv[1] = nickname
@@ -140,10 +173,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   strcpy(nick, arg);
 
   /*
-   * If do_nick_name() returns a null name OR if the server sent a nick
-   * name and do_nick_name() changed it in some way (due to rules of nick
-   * creation) then reject it. If from a server and we reject it,
-   * and KILL it. -avalon 4/4/92
+   * If do_nick_name() returns a null name then reject it. 
    */
   if (0 == do_nick_name(nick)) {
     send_reply(sptr, ERR_ERRONEUSNICKNAME, arg);
@@ -165,10 +195,12 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
+
   if (IsServer(acptr)) {
     send_reply(sptr, ERR_NICKNAMEINUSE, nick);
     return 0;                        /* NICK message ignored */
   }
+
   /*
    * If acptr == sptr, then we have a client doing a nick
    * change between *equivalent* nicknames as far as server
@@ -209,6 +241,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * "dormant nick" way of generating collisions...
    *
    * XXX - hmmm can this happen after one is registered?
+   *
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
@@ -310,6 +343,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * constructed). -avalon
    */
    
+  assert(NULL = strchr(nick,'.'));
+
   acptr = FindClient(nick);
   if (!acptr) {
     /*
@@ -318,31 +353,6 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
   assert(0 != acptr);
-
-  if (IsServer(acptr)) { /* shouldn't even happen, actually */
-    /*
-     * We have a nickname trying to use the same name as
-     * a server. Send out a nick collision KILL to remove
-     * the nickname. As long as only a KILL is sent out,
-     * there is no danger of the server being disconnected.
-     * Ultimate way to jupiter a nick ? >;-). -avalon
-     */
-    sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C(%C <- %C)", sptr,
-			 cli_from(acptr), cptr);
-    ++ServerStats->is_kill;
-
-    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s <- %s)", sptr, cli_name(&me),
-		  cli_name(cli_from(acptr)), cli_name(cptr));
-
-    cli_flags(sptr) |= FLAGS_KILLED;
-    /*
-     * if sptr is a server it is exited here, nothing else to do
-     */
-    return exit_client_msg(cptr, sptr, &me,
-			   "Killed (%s (%s <- %s))", 
-			   feature_str(FEAT_HIS_SERVERNAME),
-			   cli_name(cli_from(acptr)), cli_name(cptr));
-  }
 
   /*
    * If acptr == sptr, then we have a client doing a nick
@@ -452,11 +462,6 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			       "Killed (%s (Nick collision))",
 			       feature_str(FEAT_HIS_SERVERNAME));
 
-        /*
-         * we have killed sptr off, zero out it's pointer so if it's used
-         * again we'll know about it --Bleep
-         */
-        sptr = 0;
       }
       if (lastnick != cli_lastnick(acptr))
         return 0;                /* Ignore the NICK */

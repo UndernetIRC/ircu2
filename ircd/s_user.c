@@ -286,37 +286,6 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
   return (HUNTED_PASS);
 }
 
-/*
- * 'do_nick_name' ensures that the given parameter (nick) is really a proper
- * string for a nickname (note, the 'nick' may be modified in the process...)
- *
- * RETURNS the length of the final NICKNAME (0, if nickname is invalid)
- *
- * Nickname characters are in range 'A'..'}', '_', '-', '0'..'9'
- *  anything outside the above set will terminate nickname.
- * In addition, the first character cannot be '-' or a Digit.
- *
- * Note:
- *  The '~'-character should be allowed, but a change should be global,
- *  some confusion would result if only few servers allowed it...
- */
-int do_nick_name(char* nick)
-{
-  char* ch  = nick;
-  char* end = ch + NICKLEN;
-  assert(0 != ch);
-
-  if (*ch == '-' || IsDigit(*ch))        /* first character in [0..9-] */
-    return 0;
-
-  for ( ; (ch < end) && *ch; ++ch)
-    if (!IsNickChar(*ch))
-      break;
-
-  *ch = '\0';
-
-  return (ch - nick);
-}
 
 /*
  * clean_user_id

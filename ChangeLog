@@ -1,4 +1,7 @@
 2002-11-19  Perry Lorier <isomer@undernet.org>
+	* ircd/m_join.c: Fix the inevitable typo
+
+2002-11-19  Perry Lorier <isomer@undernet.org>
 	* ircd/m_join.c: Make the protocol violation warning more verbose
 
 	* ircd/m_channel.c: OUTsiders OVERRIDE overly-noisy join patch.
