@@ -1,5 +1,31 @@
 2003-11-22  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_nick.c (m_nick): truncate the nickname to the minimum of
+	the maximum allowed length (NICKLEN) or the allowed nickname
+	length specified as the NICKLEN feature
+
+	* ircd/ircd_features.c: declare NICKLEN and set its default value
+	to 9
+
+	* ircd/engine_epoll.c: include inttypes.h--bah epoll.
+
+	* include/supported.h: add MAXNICKLEN to ISUPPORT and do a little
+	rearranging...
+
+	* include/ircd_features.h: add NICKLEN feature
+
+	* include/ircd_defs.h (NICKLEN): raise max NICKLEN to 15
+
+	* doc/readme.features: document new NICKLEN feature
+
+	* doc/example.conf: list new NICKLEN F-line
+
+	* configure.in: check for inttypes.h--bah epoll.
+
+	* configure: regenerate...
+
+	* config.h.in: regenerate...
+
 	* ircd/gline.c (make_gline): little bit of logic cleanup here...
 
 2003-11-23 Beware <steendijk@xs4all.nl>

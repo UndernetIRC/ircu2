@@ -1,4 +1,4 @@
-/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.in by autoheader.  */
 #ifndef INCLUDED_config_h
 #define INCLUDED_config_h
 /*
@@ -19,34 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.2.2.1.14.1 2003-11-05 09:19:43 isomer Exp $
+ * $Id: config.h.in,v 1.2.2.1.14.2 2003-11-22 16:18:22 klmitch Exp $
  */
 
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#undef gid_t
-
-/* Define if system calls automatically restart after interruption
-   by a signal.  */
-#undef HAVE_RESTARTABLE_SYSCALLS
-
-/* Define to `unsigned' if <sys/types.h> doesn't define.  */
-#undef size_t
-
-/* Define if you have the ANSI C header files.  */
-#undef STDC_HEADERS
-
-/* Define if you can safely include both <sys/time.h> and <time.h>.  */
-#undef TIME_WITH_SYS_TIME
-
-/* Define if your <sys/time.h> declares struct tm.  */
-#undef TM_IN_SYS_TIME
-
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#undef uid_t
-
-/* Define if your processor stores words with the most significant
-   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-#undef WORDS_BIGENDIAN
+/* Define if you have the setrlimit function */
+#undef HAVE_SETRLIMIT
 
 /* Define one of these, depending on wether you have
  * POSIX, BSD or SYSV non-blocking stuff
@@ -69,80 +46,124 @@
 #undef u_int16_t
 #undef u_int32_t
 
-/* The number of bytes in a int.  */
-#undef SIZEOF_INT
-
-/* The number of bytes in a long.  */
-#undef SIZEOF_LONG
-
-/* The number of bytes in a short.  */
-#undef SIZEOF_SHORT
-
-/* The number of bytes in a void *.  */
-#undef SIZEOF_VOID_P
-
-/* Define if you have the getrusage function.  */
-#undef HAVE_GETRUSAGE
-
-/* Define if you have the kqueue function.  */
-#undef HAVE_KQUEUE
-
-/* Define if you have the setrlimit function.  */
-#undef HAVE_SETRLIMIT
-
-/* Define if you have the times function.  */
-#undef HAVE_TIMES
-
-/* Define if you have the <poll.h> header file.  */
-#undef HAVE_POLL_H
-
-/* Define if you have the <sys/devpoll.h> header file.  */
-#undef HAVE_SYS_DEVPOLL_H
-
-/* Define if you have the <sys/event.h> header file.  */
-#undef HAVE_SYS_EVENT_H
-
-/* Define if you have the <sys/epoll.h> header file.  */
-#undef HAVE_SYS_EPOLL_H
-
-/* Define if you have the nsl library (-lnsl).  */
-#undef HAVE_LIBNSL
-
-/* Define if you have the socket library (-lsocket).  */
-#undef HAVE_LIBSOCKET
-
-/* Specify whether or not to use poll() */
+/* Define to force the poll() function to be used */
 #undef USE_POLL
+/* Define to enable the /dev/poll engine */
+#undef USE_DEVPOLL
+/* Define to enable the kqueue engine */
+#undef USE_KQUEUE
+
+/* Define to enable various debugging code in the server; DO NOT USE
+ * THIS ON PRODUCTION SERVERS ON PAIN OF DELINKING!
+ */
+#undef DEBUGMODE
+
+/* Define this to DISable various assertion checking statements */
+#undef NDEBUG
+
+/* Define to force certain critical functions to be inlined */
+#undef FORCEINLINE
+
+/* Define to be the local domain name for some statics gathering */
+#undef DOMAINNAME
+
+/* Define to be the name of the executable to be executed on /restart */
+#undef SPATH
+
+/* Define to be the path to the data directory */
+#undef DPATH
+
+/* Define to be the name of the configuration file */
+#undef CPATH
+
+/* Define to be the name of the debugging log file */
+#undef LPATH
+
+/* Define to be the maximum number of network connections */
+#undef MAXCONNECTIONS
+
+
+/* Configuration file name */
+#undef CPATH
 
 /* Enable debugging code */
 #undef DEBUGMODE
 
-/* Disable assertions */
-#undef NDEBUG
-
-/* Force inlining for a few critical functions */
-#undef FORCEINLINE
-
-/* Define to enable the /dev/poll engine */
-#undef USE_DEVPOLL
-
-/* Define to enable the kqueue engine */
-#undef USE_KQUEUE
-
-/* Define to enable the epoll engine */
-#undef USE_EPOLL
-
 /* Domain name to be used for some statistics gathering */
 #undef DOMAINNAME
-
-/* Path to executable for restarts */
-#undef SPATH
 
 /* Path to data directory */
 #undef DPATH
 
-/* Configuration file name */
-#undef CPATH
+/* Force inlining for a few critical functions */
+#undef FORCEINLINE
+
+/* Define to 1 if you have the `getrusage' function. */
+#undef HAVE_GETRUSAGE
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `kqueue' function. */
+#undef HAVE_KQUEUE
+
+/* Define to 1 if you have the `nsl' library (-lnsl). */
+#undef HAVE_LIBNSL
+
+/* Define to 1 if you have the `resolv' library (-lresolv). */
+#undef HAVE_LIBRESOLV
+
+/* Define to 1 if you have the `socket' library (-lsocket). */
+#undef HAVE_LIBSOCKET
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <poll.h> header file. */
+#undef HAVE_POLL_H
+
+/* Define to 1 if system calls automatically restart after interruption by a
+   signal. */
+#undef HAVE_RESTARTABLE_SYSCALLS
+
+/* Define to 1 if you have the `setrlimit' function. */
+#undef HAVE_SETRLIMIT
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/devpoll.h> header file. */
+#undef HAVE_SYS_DEVPOLL_H
+
+/* Define to 1 if you have the <sys/epoll.h> header file. */
+#undef HAVE_SYS_EPOLL_H
+
+/* Define to 1 if you have the <sys/event.h> header file. */
+#undef HAVE_SYS_EVENT_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+#undef HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the `times' function. */
+#undef HAVE_TIMES
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
 
 /* Path to debugging log file */
 #undef LPATH
@@ -150,4 +171,82 @@
 /* Maximum number of network connections */
 #undef MAXCONNECTIONS
 
+/* Disable assertions */
+#undef NDEBUG
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* The size of a `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of a `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of a `short', as computed by sizeof. */
+#undef SIZEOF_SHORT
+
+/* The size of a `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
+
+/* Path to executable for restarts */
+#undef SPATH
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
+#undef TIME_WITH_SYS_TIME
+
+/* Define to 1 if your <sys/time.h> declares `struct tm'. */
+#undef TM_IN_SYS_TIME
+
+/* Define to enable the /dev/poll engine */
+#undef USE_DEVPOLL
+
+/* Define to enable the epoll engine */
+#undef USE_EPOLL
+
+/* Define to enable the kqueue engine */
+#undef USE_KQUEUE
+
+/* Specify whether or not to use poll() */
+#undef USE_POLL
+
+/* Define to 1 if your processor stores words with the most significant byte
+   first (like Motorola and SPARC, unlike Intel and VAX). */
+#undef WORDS_BIGENDIAN
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef gid_t
+
+/* Define to `short' if <sys/types.h> does not define. */
+#undef int16_t
+
+/* Define to `long' if <sys/types.h> does not define. */
+#undef int32_t
+
+/* Define to `unsigned' if <sys/types.h> does not define. */
+#undef size_t
+
+/* Define to `unsigned short' if <sys/types.h> does not define. */
+#undef u_int16_t
+
+/* Define to `unsigned long' if <sys/types.h> does not define. */
+#undef u_int32_t
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef uid_t
 #endif /* INCLUDED_config_h */

@@ -30,6 +30,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* bah */
+#endif
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <time.h>
