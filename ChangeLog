@@ -1,5 +1,10 @@
 2005-02-09  Michael Poole <mdpoole@troilus.org>
 
+	* configure.in (YACC): Only warn if we cannot get a version number
+	from $YACC.
+
+	* configure: Regenerate.
+
 	* ircd/ircd_res.c (check_resolver_timeout): Try another way to
 	avoid timer_chg() on a non-queued/active timer.
 

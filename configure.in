@@ -168,7 +168,8 @@ if test "$YACC" = ":" ; then
 elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
   :
 else
-  AC_MSG_ERROR([Cannot use $YACC as yacc.])
+dnl byacc does not seem to have any way to test for workingness, so only warn.
+  AC_MSG_WARN([$YACC may not work as yacc.])
 fi
 
 

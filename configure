@@ -8860,9 +8860,8 @@ echo "$as_me: error: Cannot find yacc." >&2;}
 elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
   :
 else
-  { { echo "$as_me:$LINENO: error: Cannot use $YACC as yacc." >&5
-echo "$as_me: error: Cannot use $YACC as yacc." >&2;}
-   { (exit 1); exit 1; }; }
+  { echo "$as_me:$LINENO: WARNING: $YACC may not work as yacc." >&5
+echo "$as_me: WARNING: $YACC may not work as yacc." >&2;}
 fi
 
 
