@@ -137,6 +137,10 @@ int m_pass(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
+  if (ircd_strcmp("PROTO",password)) {
+  	proto_send_supported(sptr);
+  	return 0;
+  }
   ircd_strncpy(cptr->passwd, password, PASSWDLEN);
   return 0;
 }

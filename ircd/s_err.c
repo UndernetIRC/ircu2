@@ -35,7 +35,7 @@ static Numeric replyTable[] = {
 /* 003 */
   { RPL_CREATED, ":This server was created %s", "003" },
 /* 004 */
-  { RPL_MYINFO, "%s %s dioswkg biklmnopstv", "004" },
+  { RPL_MYINFO, "%s %s dioswkg biklmnopstv bklov", "004" },
 /* 005 */
   { RPL_ISUPPORT, "%s :are supported by this server", "005" },
 /* 006 */

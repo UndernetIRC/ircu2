@@ -67,6 +67,10 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
     return 0;
 
   /* Remap low number numerics, not that I understand WHY.. --Nemesi  */
+  /* numerics below 100 talk about the current 'connection', you're not
+   * connected to a remote server so it doesn't make sense to send them
+   * remotely - but the information they contain may be useful, so we
+   * remap them up.  Weird, but true.  -- Isomer */
   if (numeric < 100)
     numeric += 100;
 

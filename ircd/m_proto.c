@@ -36,6 +36,7 @@
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_debug.h"
@@ -108,6 +109,7 @@
 
 static const char* const PROTO_REQ = "REQ";
 static const char* const PROTO_ACK = "ACK";
+static const char* const PROTO_SUP = "SUP";
 
 int proto_handle_ack(struct Client* cptr, const char* msg)
 {
@@ -132,6 +134,7 @@ int proto_send_supported(struct Client* cptr)
   /*
    * send_reply(cptr, RPL_PROTOLIST, "stuff");
    */
+  sendcmdto_one(&me,CMD_PROTO,cptr,"%s unet1 1 1",PROTO_SUP);
   return 0;
 }
 
@@ -148,6 +151,9 @@ int m_proto(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   else if (0 == ircd_strcmp(PROTO_ACK, parv[1]))
     return proto_handle_ack(cptr, parv[2]);
+    
+  else if (0 == ircd_strcmp(PROTO_SUP, parv[1]))
+    return 0; /* ignore it */
 
   return 0;
 }
