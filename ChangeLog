@@ -1,3 +1,10 @@
+2000-06-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_client): don't send warning if
+	there's not enough arguments for a +/-o/v; means the habit of
+	doing "/mode #channel +oooooo bob" doesn't result in a bunch of
+	error messages
+
 2000-06-04  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* ircd/m_names.c: Re-factor code to remove unneccessary
@@ -1219,7 +1226,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.144 2000-06-04 05:19:29 gte Exp $
+# $Id: ChangeLog,v 1.145 2000-06-09 19:18:11 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

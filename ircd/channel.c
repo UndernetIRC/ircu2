@@ -3564,13 +3564,8 @@ mode_parse_client(struct ParseState *state, int *flag_p)
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
     return;
 
-  if (state->parc <= 0) { /* warn if not enough args */
-    if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ?
-		       (flag_p[0] == MODE_CHANOP ? "MODE +o" : "MODE +v") :
-		       (flag_p[0] == MODE_CHANOP ? "MODE -o" : "MODE -v"));
+  if (state->parc <= 0) /* return if not enough args */
     return;
-  }
 
   t_str = state->parv[state->args_used++]; /* grab arg */
   state->parc--;
