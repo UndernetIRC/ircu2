@@ -2987,7 +2987,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
       if (mbuf->mb_count++ == i) /* don't overwrite our hard work */
 	continue;
-    }
+    } else if (MB_TYPE(mbuf, i) & MODE_FREE)
+      MyFree(MB_STRING(mbuf, i)); /* free string if needed */
 
     MB_TYPE(mbuf, i) = 0;
     MB_UINT(mbuf, i) = 0;
@@ -3078,12 +3079,13 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
  * MODE_ADD or MODE_DEL
  */
 void
-modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
+modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string,
+		    int free)
 {
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
-  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_TYPE(mbuf, mbuf->mb_count) = mode | (free ? MODE_FREE : 0);
   MB_STRING(mbuf, mbuf->mb_count) = string;
 
   /* when we've reached the maximal count, flush the buffer */
@@ -3303,11 +3305,11 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_BOUNCE) {
     if (*state->chptr->mode.key) /* reset old key */
       modebuf_mode_string(state->mbuf, MODE_DEL | flag_p[0],
-			  state->chptr->mode.key);
+			  state->chptr->mode.key, 0);
     else /* remove new bogus key */
-      modebuf_mode_string(state->mbuf, MODE_ADD | flag_p[0], t_str);
+      modebuf_mode_string(state->mbuf, MODE_ADD | flag_p[0], t_str, 0);
   } else /* send new key */
-    modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str);
+    modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
 
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_ADD) /* set the new key */
@@ -3358,12 +3360,14 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     return;
   }
 
+  t_str = collapse(pretty_mask(t_str));
+
   /* remember the ban for the moment... */
   if (state->dir == MODE_ADD) {
     newban = state->banlist + (state->numbans++);
     newban->next = 0;
 
-    newban->value.ban.banstr = t_str;
+    DupString(newban->value.ban.banstr, t_str);
     newban->value.ban.who = state->sptr->name;
     newban->value.ban.when = CurrentTime;
 
@@ -3371,6 +3375,12 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
 
     if ((s = strrchr(t_str, '@')) && check_if_ipmask(s + 1))
       newban->flags |= CHFL_BAN_IPMASK;
+  }
+
+  if (!state->chptr->banlist) {
+    state->chptr->banlist = newban; /* add our ban with its flags */
+    state->done |= DONE_BANCLEAN;
+    return;
   }
 
   /* Go through all bans */
@@ -3407,12 +3417,17 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
       if (!ircd_strcmp(ban->value.ban.banstr, t_str)) {
 	if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	  break;
-      } else if (!mmatch(ban->value.ban.banstr, t_str))
-	newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
-      else if (!mmatch(t_str, ban->value.ban.banstr))
+	continue;
+      } else if (!mmatch(ban->value.ban.banstr, t_str)) {
+	if (!(ban->flags & MODE_DEL))
+	  newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
+      } else if (!mmatch(t_str, ban->value.ban.banstr))
 	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
-      else if (!ban->next)
+
+      if (!ban->next) {
 	ban->next = newban; /* add our ban with its flags */
+	break; /* get out of loop */
+      }
     }
   }
   state->done |= DONE_BANCLEAN;
@@ -3425,14 +3440,33 @@ static void
 mode_process_bans(struct ParseState *state)
 {
   struct SLink *ban, *newban, *prevban, *nextban;
+  int count = 0;
+  int len = 0;
+  int banlen;
   int changed = 0;
 
   for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) {
+    count++;
+    banlen = strlen(ban->value.ban.banstr);
+    len += banlen;
     nextban = ban->next;
 
-    if (ban->flags & MODE_DEL) { /* Deleted a ban? */
+    if ((ban->flags & (MODE_DEL | MODE_ADD)) == (MODE_DEL | MODE_ADD)) {
+      if (prevban)
+	prevban->next = 0; /* Break the list; ban isn't a real ban */
+      else
+	state->chptr->banlist = 0;
+
+      count--;
+      len -= banlen;
+
+      MyFree(ban->value.ban.banstr);
+
+      continue;
+    } else if (ban->flags & MODE_DEL) { /* Deleted a ban? */
       modebuf_mode_string(state->mbuf, MODE_DEL | MODE_BAN,
-			  ban->value.ban.banstr);
+			  ban->value.ban.banstr,
+			  state->flags & MODE_PARSE_SET);
 
       if (state->flags & MODE_PARSE_SET) { /* Ok, make it take effect */
 	if (prevban) /* clip it out of the list... */
@@ -3440,7 +3474,9 @@ mode_process_bans(struct ParseState *state)
 	else
 	  state->chptr->banlist = ban->next;
 
-	MyFree(ban->value.ban.banstr); /* free it */
+	count--;
+	len -= banlen;
+
 	MyFree(ban->value.ban.who);
 	free_link(ban);
 
@@ -3449,34 +3485,50 @@ mode_process_bans(struct ParseState *state)
       } else
 	ban->flags &= (CHFL_BAN | CHFL_BAN_IPMASK); /* unset other flags */
     } else if (ban->flags & MODE_ADD) { /* adding a ban? */
-      prevban->next = 0; /* Break the list; ban isn't a real ban */
+      if (prevban)
+	prevban->next = 0; /* Break the list; ban isn't a real ban */
+      else
+	state->chptr->banlist = 0;
 
       /* If we're supposed to ignore it, do so. */
       if (ban->flags & CHFL_BAN_OVERLAPPED &&
 	  !(state->flags & MODE_PARSE_BOUNCE)) {
-	prevban = ban;
-	continue;
-      }
+	count--;
+	len -= banlen;
 
-      /* add the ban to the buffer */
-      modebuf_mode_string(state->mbuf, MODE_ADD | MODE_BAN,
-			  ban->value.ban.banstr);
+	MyFree(ban->value.ban.banstr);
+      } else {
+	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
+	    (len > MAXBANLENGTH || count >= MAXBANS)) {
+	  send_error_to_client(state->sptr, ERR_BANLISTFULL,
+			       state->chptr->chname, ban->value.ban.banstr);
+	  count--;
+	  len -= banlen;
 
-      if (state->flags & MODE_PARSE_SET) { /* create a new ban */
-	newban = make_link();
-	DupString(newban->value.ban.banstr, ban->value.ban.banstr);
-	DupString(newban->value.ban.who, ban->value.ban.who);
-	newban->value.ban.when = ban->value.ban.when;
-	newban->flags = ban->flags & (CHFL_BAN | CHFL_BAN_IPMASK);
+	  MyFree(ban->value.ban.banstr);
+	} else {
+	  /* add the ban to the buffer */
+	  modebuf_mode_string(state->mbuf, MODE_ADD | MODE_BAN,
+			      ban->value.ban.banstr,
+			      !(state->flags & MODE_PARSE_SET));
 
-	newban->next = state->chptr->banlist; /* and link it in */
-	state->chptr->banlist = newban;
+	  if (state->flags & MODE_PARSE_SET) { /* create a new ban */
+	    newban = make_link();
+	    newban->value.ban.banstr = ban->value.ban.banstr;
+	    DupString(newban->value.ban.who, ban->value.ban.who);
+	    newban->value.ban.when = ban->value.ban.when;
+	    newban->flags = ban->flags & (CHFL_BAN | CHFL_BAN_IPMASK);
 
-	changed++;
+	    newban->next = state->chptr->banlist; /* and link it in */
+	    state->chptr->banlist = newban;
+
+	    changed++;
+	  }
+	}
       }
     }
 
-    prevban = ban; /* keep track of where we've been */
+    prevban = ban;
   } /* for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) { */
 
   if (changed) /* if we changed the ban list, we must invalidate the bans */

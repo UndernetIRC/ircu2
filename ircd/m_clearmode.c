@@ -168,7 +168,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
    * the key until after modebuf_* are done with it
    */
   if (del_mode & MODE_KEY && *chptr->mode.key)
-    modebuf_mode_string(&mbuf, MODE_DEL | MODE_KEY, chptr->mode.key);
+    modebuf_mode_string(&mbuf, MODE_DEL | MODE_KEY, chptr->mode.key, 0);
 
   /* If we're removing the limit, note that and clear the limit */
   if (del_mode & MODE_LIMIT && chptr->mode.limit) {
@@ -180,9 +180,19 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
    * Go through and mark the bans for deletion; note that we can't
    * free them until after modebuf_* are done with them
    */
-  if (del_mode & MODE_BAN)
-    for (link = chptr->banlist; link; link = link->next)
-      modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, link->value.ban.banstr);
+  if (del_mode & MODE_BAN) {
+    for (link = chptr->banlist; link; link = next) {
+      next = link->next;
+
+      modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, /* delete ban */
+			  link->value.ban.banstr, 1);
+
+      MyFree(link->value.ban.who); /* free up who string */
+      free_link(link); /* and of course the link itself */
+    }
+
+    chptr->banlist = 0;
+  }
 
   /* Deal with users on the channel */
   if (del_mode & (MODE_BAN | MODE_CHANOP | MODE_VOICE))
@@ -212,19 +222,6 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   /* Finally, we can clear the key... */
   if (del_mode & MODE_KEY)
     chptr->mode.key[0] = '\0';
-
-  /* and free the bans */
-  if (del_mode & MODE_BAN) {
-    for (link = chptr->banlist; link; link = next) {
-      next = link->next;
-
-      MyFree(link->value.ban.banstr);
-      MyFree(link->value.ban.who);
-      free_link(link);
-    }
-
-    chptr->banlist = 0;
-  }
 
   /* Don't propagate CLEARMODE if it's a local channel */
   if (IsLocalChannel(chptr->chname))
