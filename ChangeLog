@@ -1,3 +1,7 @@
+2000-05-29  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_kill.c: Fixed bug with LOCAL_KILL_ONLY
+	* ircd/m_nick.c: Tidied things up.
+
 2000-06-12 Joseph Bongaarts <foxxe@trms.com>
 	* ircd/m_stats.c: Iso forgot mo_stats when he added /stats v
 	
@@ -1238,7 +1242,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.148 2000-06-13 04:55:42 ghostwolf Exp $
+# $Id: ChangeLog,v 1.149 2000-06-29 23:21:15 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
