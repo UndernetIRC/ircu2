@@ -1,3 +1,11 @@
+2005-01-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/IPcheck.c (ip_registry_check_remote): Do not count clones
+	that have an invalid IP address.
+
+	* ircd/ircd.c (try_connections): Update Connect hold time before
+	skipping it, to prevent infinite loops.
+
 2005-01-03  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (is_silenced): is_silenced() would core if sptr

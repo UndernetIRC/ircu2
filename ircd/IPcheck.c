@@ -326,12 +326,15 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
  */
 int ip_registry_check_remote(struct Client* cptr, int is_burst)
 {
-  struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
+  struct IPRegistryEntry* entry;
 
   /*
    * Mark that we did add/update an IPregistry entry
    */
   SetIPChecked(cptr);
+  if (!irc_in_addr_valid(&cli_ip(cptr)))
+    return 1;
+  entry = ip_registry_find(&cli_ip(cptr));
   if (0 == entry) {
     entry = ip_registry_new_entry();
     ip_registry_canonicalize(&entry->addr, &cli_ip(cptr));

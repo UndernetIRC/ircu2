@@ -267,19 +267,19 @@ static void try_connections(struct Event* ev) {
     if (next > aconf->hold || next == 0)
         next = aconf->hold;
 
-    /* Skip this entry if its use is still on hold until future, too
-     * many links in its connection class, it is already linked, or if
-     * connect rules forbid a link now.
-     */
+    /* Update the next time we can consider this entry. */
     cltmp = aconf->conn_class;
+    aconf->hold = ConFreq(cltmp) ? CurrentTime + ConFreq(cltmp) : 0;
+
+    /* Do not try to connect if its use is still on hold until future,
+     * too many links in its connection class, it is already linked,
+     * or if connect rules forbid a link now.
+     */
     if ((aconf->hold > CurrentTime)
         || (Links(cltmp) >= MaxLinks(cltmp))
         || FindServer(aconf->name)
         || conf_eval_crule(aconf->name, CRULE_MASK))
       continue;
-
-    /* We want to connect; update entry's hold time. */
-    aconf->hold = ConFreq(cltmp) ? CurrentTime + ConFreq(cltmp) : 0;
 
     /* Ensure it is at the end of the list for future checks. */
     if (aconf->next) {
