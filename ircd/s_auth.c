@@ -522,31 +522,31 @@ void start_auth(struct Client* client)
   auth = make_auth_request(client);
   assert(0 != auth);
 
-#if !defined(NODNS)
-  if (LOOPBACK == inet_netof(cli_ip(client))) {
-    strcpy(cli_sockhost(client), cli_name(&me));
-  }
-  else {
-    struct DNSQuery query;
+  if (!feature_bool(FEAT_NODNS)) {
+    if (LOOPBACK == inet_netof(cli_ip(client)))
+      strcpy(cli_sockhost(client), cli_name(&me));
+    else {
+      struct DNSQuery query;
 
-    query.vptr     = auth;
-    query.callback = auth_dns_callback;
+      query.vptr     = auth;
+      query.callback = auth_dns_callback;
 
-    if (IsUserPort(auth->client))
-      sendheader(client, REPORT_DO_DNS);
-
-    cli_dns_reply(client) = gethost_byaddr((const char*) &(cli_ip(client)), &query);
-
-    if (cli_dns_reply(client)) {
-      ++(cli_dns_reply(client))->ref_count;
-      ircd_strncpy(cli_sockhost(client), cli_dns_reply(client)->hp->h_name, HOSTLEN);
       if (IsUserPort(auth->client))
-	sendheader(client, REPORT_FIN_DNSC);
+	sendheader(client, REPORT_DO_DNS);
+
+      cli_dns_reply(client) = gethost_byaddr((const char*) &(cli_ip(client)),
+					     &query);
+
+      if (cli_dns_reply(client)) {
+	++(cli_dns_reply(client))->ref_count;
+	ircd_strncpy(cli_sockhost(client), cli_dns_reply(client)->hp->h_name,
+		     HOSTLEN);
+	if (IsUserPort(auth->client))
+	  sendheader(client, REPORT_FIN_DNSC);
+      } else
+	SetDNSPending(auth);
     }
-    else
-      SetDNSPending(auth);
   }
-#endif
 
   if (start_auth_query(auth))
     link_auth_request(auth, &AuthPollList);

@@ -31,6 +31,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "random.h"	/* random_seed_set */
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
@@ -189,6 +190,7 @@ typedef void (*feat_report_call)(struct Client*, int);
 
 #define FEAT_OPER   0x0100	/* set to display only to opers */
 #define FEAT_MYOPER 0x0200	/* set to display only to local opers */
+#define FEAT_NODISP 0x0400	/* feature must never be displayed */
 
 #define FEAT_READ   0x1000	/* feature is read-only (for now, perhaps?) */
 
@@ -234,6 +236,23 @@ static struct FeatureDesc {
   F_B(IDLE_FROM_MSG, 0, 1),
   F_B(HUB, 0, 0),
   F_B(WALLOPS_OPER_ONLY, 0, 0),
+  F_B(NODNS, 0, 0),
+  F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0),
+
+  /* features that probably should not be touched */
+  F_I(KILLCHASETIMELIMIT, 0, 30),
+  F_I(MAXCHANNELSPERUSER, 0, 10),
+  F_I(AVBANLEN, 0, 40),
+  F_I(MAXBANS, 0, 30),
+  F_I(MAXSILES, 0, 15),
+  F_I(HANGONGOODLINK, 0, 300),
+  F_I(HANGONRETRYDELAY, 0, 10),
+  F_I(CONNECTTIMEOUT, 0, 90),
+  F_I(TIMESEC, 0, 60),
+  F_I(MAXIMUM_LINKS, 0, 1),
+  F_I(PINGFREQUENCY, 0, 120),
+  F_I(CONNECTFREQUENCY, 0, 600),
+  F_I(DEFAULTMAXSENDQLENGTH, 0, 40000),
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd"),
@@ -481,7 +500,8 @@ feature_get(struct Client* from, const char* const* fields, int count)
   if (count < 1) /* check parameters */
     need_more_params(from, "GET");
   else if ((feat = feature_desc(from, fields[0]))) {
-    if ((feat->flags & FEAT_MYOPER && !MyOper(from)) ||
+    if ((feat->flags & FEAT_NODISP) ||
+	(feat->flags & FEAT_MYOPER && !MyOper(from)) ||
 	(feat->flags & FEAT_OPER && !IsAnOper(from))) /* check privs */
       return send_reply(from, ERR_NOPRIVILEGES);
 
@@ -565,7 +585,8 @@ feature_report(struct Client* to)
   int i;
 
   for (i = 0; features[i].type; i++) {
-    if ((features[i].flags & FEAT_MYOPER && !MyOper(to)) ||
+    if ((features[i].flags & FEAT_NODISP) ||
+	(features[i].flags & FEAT_MYOPER && !MyOper(to)) ||
 	(features[i].flags & FEAT_OPER && !IsAnOper(to)))
       continue; /* skip this one */
 

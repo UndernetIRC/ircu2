@@ -69,7 +69,6 @@ comment 'Debugging (do not define this on production servers)'
       EXTRA_CPPFLAGS="-DNDEBUG $EXTRA_CPPFLAGS"
     fi
   fi
-  bool 'Are you testing on a host without DNS' NODNS
 endmenu
 
 mainmenu_option next_comment
@@ -178,8 +177,6 @@ comment 'Host specific defines'
     DOMAINNAME_DEFAULT=none
   fi
   define_string DOMAINNAME $DOMAINNAME_DEFAULT
-
-  string 'Please give a random seed of eight characters' RANDOM_SEED 12345678
 endmenu
 
 mainmenu_option next_comment
@@ -193,7 +190,6 @@ comment 'General defines'
     define_bool CHROOTDIR n
     define_int IRC_UID $IRC_UID
     define_int IRC_GID $IRC_GID
-    bool 'Allow to specify configuration file on command line' CMDLINE_CONFIG
     if [ "$CMDLINE_CONFIG" = "y" ]; then
       echo "   SECURITY: Then don't install the daemon SUID or SGID !"
     fi
@@ -235,22 +231,4 @@ comment 'Server characteristics'
     define_string DEFAULT_LIST "$DEFAULT_LIST"
     define_bool DEFAULT_LIST_PARAM n
   fi
-endmenu
-
-mainmenu_option next_comment
-comment 'Mandatory defines (you should leave these untouched)'
-  int 'Max auto connects per class (1!)' MAXIMUM_LINKS 1
-  int 'KILL nick chase time limit (30)' KILLCHASETIMELIMIT 30
-  int 'Max number of channels per user' MAXCHANNELSPERUSER 10
-  int 'Max number of silence masks (15!)' MAXSILES 15
-  int 'Expected average banmask length (40!)' AVBANLEN 40
-  eval define_macro MAXSILELENGTH \'\($AVBANLEN * MAXSILES\)\'
-  echo '* These are default values, used for class 0:'
-  int 'Max server idle time (60)' TIMESEC 60
-  int 'Class 0 ping frequency (120)' PINGFREQUENCY 120
-  int 'Class 0 connect frequency (600)' CONNECTFREQUENCY 600
-  int 'Min time before a link is good (300)' HANGONGOODLINK 300
-  int 'Wait before reconnecting to good link (10!)' HANGONRETRYDELAY 10
-  int 'connect(2) timeout (90!)' CONNECTTIMEOUT 90
-  int 'Max send queue (40000)' DEFAULTMAXSENDQLENGTH 40000
 endmenu

@@ -55,6 +55,8 @@
 #define CONF_KLINE              (CONF_KILL | CONF_IPKILL)
 #define CONF_CRULE              (CONF_CRULEALL | CONF_CRULEAUTO)
 
+/* DEFAULTMAXSENDQLENGTH went into the features subsystem... */
+#define DEFAULTMAXSENDQLENGTH 40000
 
 /*
  * For the connect rule patch..  these really should be in a header,

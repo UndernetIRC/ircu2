@@ -56,6 +56,11 @@ struct Motd {
 #define MOTD_MAXREMOTE	3
 
 struct MotdCache {
+  struct MotdCache*	next; /* these fields let us read MOTDs only once */
+  struct MotdCache**	prev_p;
+  int			ref;
+  char*			path;
+  int			maxcount;
   struct tm		modtime;
   int			count;
   char			motd[1][MOTD_LINESIZE];

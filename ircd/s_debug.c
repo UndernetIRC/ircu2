@@ -83,9 +83,6 @@ const char* debug_serveropts(void)
 #ifdef  CHROOTDIR
   AddC('c');
 #endif
-#ifdef  CMDLINE_CONFIG
-  AddC('C');
-#endif
 #ifdef  DEBUGMODE
   AddC('D');
 #endif

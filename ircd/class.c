@@ -22,6 +22,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "list.h"
 #include "numeric.h"
@@ -70,10 +71,10 @@ void init_class(void)
   connClassList = (struct ConnectionClass*) make_class();
 
   ConClass(connClassList) = 0;
-  PingFreq(connClassList) = PINGFREQUENCY;
-  ConFreq(connClassList)  = CONNECTFREQUENCY;
-  MaxLinks(connClassList) = MAXIMUM_LINKS;
-  MaxSendq(connClassList) = DEFAULTMAXSENDQLENGTH;
+  PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);
+  ConFreq(connClassList)  = feature_int(FEAT_CONNECTFREQUENCY);
+  MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
+  MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   connClassList->valid    = 1;
   Links(connClassList)    = 0;
   connClassList->next     = 0;
@@ -185,11 +186,11 @@ unsigned int get_client_ping(struct Client *acptr)
     }
   }
   else {
-    ping = PINGFREQUENCY;
+    ping = feature_int(FEAT_PINGFREQUENCY);
     Debug((DEBUG_DEBUG, "No Attached Confs for: %s", cli_name(acptr)));
   }
   if (ping <= 0)
-    ping = PINGFREQUENCY;
+    ping = feature_int(FEAT_PINGFREQUENCY);
   Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
   return (ping);
 }
@@ -199,7 +200,7 @@ unsigned int get_con_freq(struct ConnectionClass * clptr)
   if (clptr)
     return (ConFreq(clptr));
   else
-    return (CONNECTFREQUENCY);
+    return feature_int(FEAT_CONNECTFREQUENCY);
 }
 
 /*
@@ -230,7 +231,7 @@ void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
   ConFreq(p) = confreq;
   PingFreq(p) = ping;
   MaxLinks(p) = maxli;
-  MaxSendq(p) = (sendq > 0) ? sendq : DEFAULTMAXSENDQLENGTH;
+  MaxSendq(p) = (sendq > 0) ? sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   p->valid = 1;
   if (p != t)
     Links(p) = 0;
@@ -278,7 +279,7 @@ unsigned int get_sendq(struct Client *cptr)
       }
     }
   }
-  return DEFAULTMAXSENDQLENGTH;
+  return feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
 }
 
 void class_send_meminfo(struct Client* cptr)

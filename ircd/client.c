@@ -55,7 +55,7 @@ int client_get_ping(const struct Client* acptr)
     }
   }
   if (0 == ping)
-    ping = PINGFREQUENCY;
+    ping = feature_int(FEAT_PINGFREQUENCY);
 
   Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
   return ping;

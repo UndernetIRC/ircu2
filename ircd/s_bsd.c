@@ -476,8 +476,9 @@ void close_connection(struct Client *cptr)
        * CONF_ILLEGAL). But only do this if it was a "good" link.
        */
       aconf->hold = CurrentTime;
-      aconf->hold += (aconf->hold - cli_since(cptr) > HANGONGOODLINK) ?
-                     HANGONRETRYDELAY : ConfConFreq(aconf);
+      aconf->hold += ((aconf->hold - cli_since(cptr) >
+		       feature_int(FEAT_HANGONGOODLINK)) ?
+		      feature_int(FEAT_HANGONRETRYDELAY) : ConfConFreq(aconf));
       if (nextconnect > aconf->hold)
         nextconnect = aconf->hold;
     }

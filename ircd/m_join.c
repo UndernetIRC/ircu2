@@ -93,6 +93,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -217,7 +218,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     } else
       flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
 
-    if (cli_user(sptr)->joined >= MAXCHANNELSPERUSER &&
+    if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
       send_reply(sptr, ERR_TOOMANYCHANNELS, chptr ? chptr->chname : name);
       break; /* no point processing the other channels */
