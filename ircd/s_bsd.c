@@ -229,7 +229,7 @@ int init_connection_limits(void)
  */
 static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
-  static struct sockaddr_in sin;
+  static struct sockaddr_in sin, *locaddr = 0;
   IOResult result;
   assert(0 != aconf);
   assert(0 != cptr);
@@ -265,9 +265,17 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * explicitly bind it, it will default to IN_ADDR_ANY and we lose
    * due to the other server not allowing our base IP --smg
    */
-  if (feature_bool(FEAT_VIRTUAL_HOST) &&
-      bind(cli_fd(cptr), (struct sockaddr*) &VirtualHost,
-	   sizeof(VirtualHost))) {
+  if (aconf->origin.s_addr != INADDR_NONE) {
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = aconf->origin.s_addr;
+    locaddr = &sin;
+  } else if (feature_bool(FEAT_VIRTUAL_HOST))
+    locaddr = &VirtualHost;
+
+  if (locaddr &&
+      bind(cli_fd(cptr), (struct sockaddr*) locaddr,
+	   sizeof(struct sockaddr_in))) {
     report_error(BIND_ERROR_MSG, cli_name(cptr), errno);
     close(cli_fd(cptr));
     cli_fd(cptr) = -1;

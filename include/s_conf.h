@@ -55,6 +55,7 @@ struct ConfItem {
   unsigned int             status;      /* If CONF_ILLEGAL, delete when no clients */
   unsigned int             clients;     /* Number of *LOCAL* clients using this */
   struct ConnectionClass*  conn_class;  /* Class of connection */
+  struct in_addr           origin;      /* ip number of connect origin */
   struct in_addr           ipnum;       /* ip number of host field */
   char*                    host;
   char*                    passwd;

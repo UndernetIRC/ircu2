@@ -238,6 +238,7 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
  */
 static void lookup_confhost(struct ConfItem *aconf)
 {
+  char *tmp, *tmp2;
   struct DNSReply* reply;
 
   if (EmptyString(aconf->host) || EmptyString(aconf->name)) {
@@ -249,6 +250,15 @@ static void lookup_confhost(struct ConfItem *aconf)
    * Do name lookup now on hostnames given and store the
    * ip numbers in conf structure.
    */
+  if ((tmp = strchr(aconf->host, '/'))) {
+    *(tmp++) = '\0';
+    aconf->origin.s_addr = inet_addr(aconf->host);
+    tmp2 = aconf->host;
+    DupString(aconf->host, tmp);
+    free(tmp2);
+  } else
+    aconf->origin.s_addr = INADDR_NONE;
+
   if (IsDigit(*aconf->host)) {
     /*
      * rfc 1035 sez host names may not start with a digit
