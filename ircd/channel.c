@@ -641,7 +641,7 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
     	|| IsModelessChannel(chptr->chname)) 
       return 0;
     else
-      return 1;
+      return !is_banned(cptr, chptr, NULL);
   }
   return member_can_send_to_channel(member); 
 }

@@ -108,6 +108,24 @@
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+
+  if (parc > 1)
+    send_reply(sptr, ERR_NOPRIVILEGES);
+  else
+    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
+	       debug_serveropts());
+
+  return 0;
+}
+
+/*
+ * mo_version - generic message handler
+ *
+ *   parv[0] = sender prefix
+ *   parv[1] = remote server
+ */
+int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
   struct Client *acptr;
 
   if (MyConnect(sptr) && parc > 1)
