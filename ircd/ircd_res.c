@@ -175,7 +175,7 @@ restart_resolver(void)
   {
     struct irc_sockaddr *local;
     int fd;
-    local = irc_in_addr_valid(&ResolverAddr) ? &ResolverAddr : &VirtualHost;
+    local = irc_in_addr_valid(&ResolverAddr.addr) ? &ResolverAddr : &VirtualHost;
     fd = os_socket(local, SOCK_DGRAM, "Resolver UDP socket");
     if (fd < 0) return;
     if (!socket_add(&res_socket, res_readreply, NULL, SS_DATAGRAM,

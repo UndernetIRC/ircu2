@@ -125,7 +125,7 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
    */
   lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER);
   assert(lhconf != NULL);
-  if (cptr == sptr)
+  if (ghost)
   {
     if (!feature_bool(FEAT_HUB))
       for (ii = 0; ii <= HighestFd; ii++)

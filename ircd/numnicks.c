@@ -440,11 +440,14 @@ struct Client* find_match_server(char *mask)
  * @param[in] addr IP address to encode.
  * @param[in] count Number of bytes writable to \a buf.
  */
-const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int count)
+const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int count, int v6_ok)
 {
   if (irc_in_addr_is_ipv4(addr)) {
     assert(count >= 6);
     inttobase64(buf, (htons(addr->in6_16[6]) << 16) | htons(addr->in6_16[7]), 6);
+  } else if (!v6_ok) {
+    assert(count >= 6);
+    strcpy(buf, "AAAAAA");
   } else {
     unsigned int max_start, max_zeros, curr_zeros, zero, ii;
     char *output = buf;

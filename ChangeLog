@@ -1,3 +1,13 @@
+2004-12-15  Michael Poole <dmpoole@troilus.org>
+
+	* doc/example.conf: Remove the example Server blocks since they
+	are no longer used (were merged into Connect).
+
+	* ircd/ircd_res.c (restart_resolver): Fix typo in previous commit.
+
+	* ircd/m_server.c (check_loop_and_lh): Use a different argument to
+	test whether an introduced server is directly connected or not.
+
 2004-12-14  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h (FLAG_IPV6): New value for enum Flag.
