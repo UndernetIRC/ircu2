@@ -101,121 +101,121 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
   }
 }
 
-static struct {
+static struct
+{
   unsigned int priv;
   enum Feature feat;
   unsigned int flag;
-} feattab[] = {
-  { PRIV_WHOX, FEAT_LAST_F, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_DISPLAY, FEAT_LAST_F, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_CHAN_LIMIT, FEAT_OPER_NO_CHAN_LIMIT, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_MODE_LCHAN, FEAT_OPER_MODE_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_LOCAL_OPMODE, FEAT_OPER_MODE_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_WALK_LCHAN, FEAT_OPER_WALK_THROUGH_LMODES,
-    (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_DEOP_LCHAN, FEAT_NO_OPER_DEOP_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_SHOW_INVIS, FEAT_SHOW_INVISIBLE_USERS, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_SHOW_ALL_INVIS, FEAT_SHOW_ALL_INVISIBLE_USERS,
-    (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_UNLIMIT_QUERY, FEAT_UNLIMIT_OPER_QUERY, (FLAGS_OPER | FLAGS_LOCOP) },
-  { PRIV_LIST_CHAN, FEAT_LIST_CHAN, (FLAGS_OPER | FLAGS_LOCOP) },
+} feattab[] =
+  {
+    { PRIV_WHOX, FEAT_LAST_F, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_DISPLAY, FEAT_LAST_F, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_CHAN_LIMIT, FEAT_OPER_NO_CHAN_LIMIT, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_MODE_LCHAN, FEAT_OPER_MODE_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_LOCAL_OPMODE, FEAT_OPER_MODE_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_WALK_LCHAN, FEAT_OPER_WALK_THROUGH_LMODES,
+      (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_DEOP_LCHAN, FEAT_NO_OPER_DEOP_LCHAN, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_SHOW_INVIS, FEAT_SHOW_INVISIBLE_USERS, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_SHOW_ALL_INVIS, FEAT_SHOW_ALL_INVISIBLE_USERS,
+      (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_UNLIMIT_QUERY, FEAT_UNLIMIT_OPER_QUERY,
+      (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_LIST_CHAN, FEAT_LIST_CHAN, (FLAGS_OPER | FLAGS_LOCOP) },
+    { PRIV_KILL, FEAT_LOCAL_KILL_ONLY, 0 },
+    { PRIV_GLINE, FEAT_CONFIG_OPERCMDS, ~0 },
+    { PRIV_JUPE, FEAT_CONFIG_OPERCMDS, ~0 },
+    { PRIV_OPMODE, FEAT_CONFIG_OPERCMDS, ~0 },
+    { PRIV_BADCHAN, FEAT_CONFIG_OPERCMDS, ~0 },
+    { PRIV_PROPAGATE, FEAT_LAST_F, FLAGS_OPER },
+    { PRIV_SEE_OPERS, FEAT_LAST_F, FLAGS_OPER },
+    { PRIV_KILL, FEAT_OPER_KILL, FLAGS_OPER },
+    { PRIV_LOCAL_KILL, FEAT_OPER_KILL, FLAGS_OPER },
+    { PRIV_REHASH, FEAT_OPER_REHASH, FLAGS_OPER },
+    { PRIV_RESTART, FEAT_OPER_RESTART, FLAGS_OPER },
+    { PRIV_DIE, FEAT_OPER_DIE, FLAGS_OPER },
+    { PRIV_GLINE, FEAT_OPER_GLINE, FLAGS_OPER },
+    { PRIV_LOCAL_GLINE, FEAT_OPER_LGLINE, FLAGS_OPER },
+    { PRIV_JUPE, FEAT_OPER_JUPE, FLAGS_OPER },
+    { PRIV_LOCAL_JUPE, FEAT_OPER_LJUPE, FLAGS_OPER },
+    { PRIV_OPMODE, FEAT_OPER_OPMODE, FLAGS_OPER },
+    { PRIV_LOCAL_OPMODE, FEAT_OPER_LOPMODE, FLAGS_OPER },
+    { PRIV_BADCHAN, FEAT_OPER_BADCHAN, FLAGS_OPER },
+    { PRIV_LOCAL_BADCHAN, FEAT_OPER_LBADCHAN, FLAGS_OPER },
+    { PRIV_SET, FEAT_OPER_SET, FLAGS_OPER },
+    { PRIV_SEE_CHAN, FEAT_OPERS_SEE_IN_SECRET_CHANNELS, FLAGS_OPER },
+    { PRIV_WIDE_GLINE, FEAT_OPER_WIDE_GLINE, FLAGS_OPER },
+    { PRIV_LIST_CHAN, FEAT_OPER_LIST_CHAN, FLAGS_OPER },
+    { PRIV_LOCAL_KILL, FEAT_LOCOP_KILL, FLAGS_LOCOP },
+    { PRIV_REHASH, FEAT_LOCOP_REHASH, FLAGS_LOCOP },
+    { PRIV_RESTART, FEAT_LOCOP_RESTART, FLAGS_LOCOP },
+    { PRIV_DIE, FEAT_LOCOP_DIE, FLAGS_LOCOP },
+    { PRIV_LOCAL_GLINE, FEAT_LOCOP_LGLINE, FLAGS_LOCOP },
+    { PRIV_LOCAL_JUPE, FEAT_LOCOP_LJUPE, FLAGS_LOCOP },
+    { PRIV_LOCAL_OPMODE, FEAT_LOCOP_LOPMODE, FLAGS_LOCOP },
+    { PRIV_LOCAL_BADCHAN, FEAT_LOCOP_LBADCHAN, FLAGS_LOCOP },
+    { PRIV_SET, FEAT_LOCOP_SET, FLAGS_LOCOP },
+    { PRIV_SEE_CHAN, FEAT_LOCOP_SEE_IN_SECRET_CHANNELS, FLAGS_LOCOP },
+    { PRIV_WIDE_GLINE, FEAT_LOCOP_WIDE_GLINE, FLAGS_LOCOP },
+    { PRIV_LIST_CHAN, FEAT_LOCOP_LIST_CHAN, FLAGS_LOCOP },
+    { 0, FEAT_LAST_F, 0 }
+  };
 
-  { PRIV_KILL, FEAT_LOCAL_KILL_ONLY, 0 },
-  { PRIV_GLINE, FEAT_CONFIG_OPERCMDS, ~0 },
-  { PRIV_JUPE, FEAT_CONFIG_OPERCMDS, ~0 },
-  { PRIV_OPMODE, FEAT_CONFIG_OPERCMDS, ~0 },
-  { PRIV_BADCHAN, FEAT_CONFIG_OPERCMDS, ~0 },
-
-  { PRIV_PROPAGATE, FEAT_LAST_F, FLAGS_OPER },
-  { PRIV_SEE_OPERS, FEAT_LAST_F, FLAGS_OPER },
-  { PRIV_KILL, FEAT_OPER_KILL, FLAGS_OPER },
-  { PRIV_LOCAL_KILL, FEAT_OPER_KILL, FLAGS_OPER },
-  { PRIV_REHASH, FEAT_OPER_REHASH, FLAGS_OPER },
-  { PRIV_RESTART, FEAT_OPER_RESTART, FLAGS_OPER },
-  { PRIV_DIE, FEAT_OPER_DIE, FLAGS_OPER },
-  { PRIV_GLINE, FEAT_OPER_GLINE, FLAGS_OPER },
-  { PRIV_LOCAL_GLINE, FEAT_OPER_LGLINE, FLAGS_OPER },
-  { PRIV_JUPE, FEAT_OPER_JUPE, FLAGS_OPER },
-  { PRIV_LOCAL_JUPE, FEAT_OPER_LJUPE, FLAGS_OPER },
-  { PRIV_OPMODE, FEAT_OPER_OPMODE, FLAGS_OPER },
-  { PRIV_LOCAL_OPMODE, FEAT_OPER_LOPMODE, FLAGS_OPER },
-  { PRIV_BADCHAN, FEAT_OPER_BADCHAN, FLAGS_OPER },
-  { PRIV_LOCAL_BADCHAN, FEAT_OPER_LBADCHAN, FLAGS_OPER },
-  { PRIV_SET, FEAT_OPER_SET, FLAGS_OPER },
-  { PRIV_SEE_CHAN, FEAT_OPERS_SEE_IN_SECRET_CHANNELS, FLAGS_OPER },
-  { PRIV_WIDE_GLINE, FEAT_OPER_WIDE_GLINE, FLAGS_OPER },
-  { PRIV_LIST_CHAN, FEAT_OPER_LIST_CHAN, FLAGS_OPER },
-
-  { PRIV_LOCAL_KILL, FEAT_LOCOP_KILL, FLAGS_LOCOP },
-  { PRIV_REHASH, FEAT_LOCOP_REHASH, FLAGS_LOCOP },
-  { PRIV_RESTART, FEAT_LOCOP_RESTART, FLAGS_LOCOP },
-  { PRIV_DIE, FEAT_LOCOP_DIE, FLAGS_LOCOP },
-  { PRIV_LOCAL_GLINE, FEAT_LOCOP_LGLINE, FLAGS_LOCOP },
-  { PRIV_LOCAL_JUPE, FEAT_LOCOP_LJUPE, FLAGS_LOCOP },
-  { PRIV_LOCAL_OPMODE, FEAT_LOCOP_LOPMODE, FLAGS_LOCOP },
-  { PRIV_LOCAL_BADCHAN, FEAT_LOCOP_LBADCHAN, FLAGS_LOCOP },
-  { PRIV_SET, FEAT_LOCOP_SET, FLAGS_LOCOP },
-  { PRIV_SEE_CHAN, FEAT_LOCOP_SEE_IN_SECRET_CHANNELS, FLAGS_LOCOP },
-  { PRIV_WIDE_GLINE, FEAT_LOCOP_WIDE_GLINE, FLAGS_LOCOP },
-  { PRIV_LIST_CHAN, FEAT_LOCOP_LIST_CHAN, FLAGS_LOCOP },
-  { 0, FEAT_LAST_F, 0 }
-};
+void
+set_initial_oper_privs(struct ConfItem *oper, int flags)
+{
+  int i;
+  memset(&oper->privs, 0, sizeof(oper->privs));
+  for (i = 0; feattab[i].priv; i++)
+    if ((feattab[i].flag | flags) != 0 && feattab[i].flag != ~0)
+      PrivSet(&oper->privs, feattab[i].priv);
+}
 
 /* client_set_privs(struct Client* client)
  *
  * Sets the privileges for opers.
  */
 void
-client_set_privs(struct Client* client)
+client_set_privs(struct Client *client, struct ConfItem *oper)
 {
-  struct Privs privs;
-  struct Privs antiprivs;
   int i;
 
-  memset(&privs, 0, sizeof(struct Privs));
-  memset(&antiprivs, 0, sizeof(struct Privs));
+  memset(&(cli_privs(client)), 0, sizeof(struct Privs));
 
-  if (!IsAnOper(client)) { /* clear privilege mask */
-    memset(&(cli_privs(client)), 0, sizeof(struct Privs));
+  if (!IsAnOper(client))
     return;
-  } else if (!MyConnect(client)) {
+  else if (!MyConnect(client))
+  {
     memset(&(cli_privs(client)), 255, sizeof(struct Privs));
     PrivClr(&(cli_privs(client)), PRIV_SET);
     return;
   }
+  else if (oper == NULL)
+    return;
 
-  /* This sequence is temporary until the .conf is carefully rewritten */
+  /* Copy across privs from the config. */
+  cli_privs(client) = oper->privs;
 
-  for (i = 0; feattab[i].priv; i++) {
-    if (feattab[i].flag == 0) {
-      if (feature_bool(feattab[i].feat))
-	PrivSet(&antiprivs, feattab[i].priv);
-    } else if (feattab[i].flag == ~0) {
-      if (!feature_bool(feattab[i].feat))
-	PrivSet(&antiprivs, feattab[i].priv);
-    } else if (cli_flags(client) & feattab[i].flag) {
-      if (feattab[i].feat == FEAT_LAST_F ||
-	  feature_bool(feattab[i].feat))
-	PrivSet(&privs, feattab[i].priv);
-    }
+  /* Remove privileges disallowed by features... */
+  for (i = 0; feattab[i].priv; i++)
+    if (feattab[i].flag == 0 && feature_bool(feattab[i].feat))      
+      PrivClr(&cli_privs(client), feattab[i].priv);
+    else if (feattab[i].flag == ~0 && !feature_bool(feattab[i].feat))
+      PrivClr(&cli_privs(client), feattab[i].priv);
+
+  /* This should be handled in the config, but lets be sure... */
+  if (PrivHas(&cli_privs(client), PRIV_PROPAGATE))
+    /* force propagating opers to display */
+    PrivSet(&cli_privs(client), PRIV_DISPLAY);
+  else
+  {
+    /* if they don't propagate oper status, prevent desyncs */
+    PrivClr(&cli_privs(client), PRIV_KILL);
+    PrivClr(&cli_privs(client), PRIV_GLINE);
+    PrivClr(&cli_privs(client), PRIV_JUPE);
+    PrivClr(&cli_privs(client), PRIV_OPMODE);
+    PrivClr(&cli_privs(client), PRIV_BADCHAN);
   }
-
-  /* This is the end of the gross section */
-
-  if (PrivHas(&privs, PRIV_PROPAGATE))
-    PrivSet(&privs, PRIV_DISPLAY); /* force propagating opers to display */
-  else { /* if they don't propagate oper status, prevent desyncs */
-    PrivSet(&antiprivs, PRIV_KILL);
-    PrivSet(&antiprivs, PRIV_GLINE);
-    PrivSet(&antiprivs, PRIV_JUPE);
-    PrivSet(&antiprivs, PRIV_OPMODE);
-    PrivSet(&antiprivs, PRIV_BADCHAN);
-  }
-
-  for (i = 0; i <= _PRIV_IDX(PRIV_LAST_PRIV); i++)
-    privs.priv_mask[i] &= ~antiprivs.priv_mask[i];
-
-  cli_privs(client) = privs;
 }
 
 static struct {

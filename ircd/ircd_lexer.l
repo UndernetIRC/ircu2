@@ -21,18 +21,28 @@
  */
 
 %{
-extern int conf_fd, lineno;
 #include <unistd.h>
+#include <stdio.h>
+#include "ircd.h"
 #include "y.tab.h"
-#undef YY_INPUT
-/* Just stop the lexer at EOF or error. */
-#define YY_INPUT(buf,result,max_size) \
-          if ((result = read(conf_fd, buf, max_size)) <= 0) \
-            result = 0;
+
+extern int lineno;
+
+void
+init_lexer(void)
+{
+  yyin = fopen(configfile, "r");
+  if (yyin == NULL)
+    yy_fatal_error("Could not open the configuration file.");
+  YY_NEW_FILE;
+  lineno = 1;
+}
+
 %}
 %option noyywrap
 %option case-insensitive
 %option nounput
+
 
 WHITE [ \t\r]+
 SHCOMMENT #[^\n]*
@@ -111,5 +121,31 @@ ip return IP;
 crule return CRULE;
 kill return KILL;
 features return FEATURES;
+bypass_local_channel_limits return TPRIV_CHAN_LIMIT;
+set_local_channel_modes return TPRIV_MODE_LCHAN;
+protected_local_channel return TPRIV_DEOP_LCHAN;
+bypass_join_local_channels return TPRIV_WALK_LCHAN;
+global_kill return TPRIV_KILL;
+local_kill return TPRIV_LOCAL_KILL;
+rehash return TPRIV_REHASH;
+restart return TPRIV_RESTART;
+die return TPRIV_DIE;
+gline return TPRIV_GLINE;
+local_gline return TPRIV_LOCAL_GLINE;
+jupe_server return TPRIV_JUPE;
+local_jupe_server return TPRIV_LOCAL_JUPE;
+hack_channel_modes return TPRIV_OPMODE;
+change_settings return TPRIV_SET;
+extended_who_information return TPRIV_WHOX;
+gline_channels return TPRIV_BADCHAN;
+local_gline_channels return TPRIV_LOCAL_BADCHAN;
+see_private_channels return TPRIV_SEE_CHAN;
+see_invisible_users return TPRIV_SHOW_INVIS;
+list_all_invisible_users return TPRIV_SHOW_ALL_INVIS;
+globally_opered return TPRIV_PROPAGATE;
+unlimited_who_queries return TPRIV_UNLIMIT_QUERY;
+oper_status_display return TPRIV_DISPLAY;
+see_other_opers return TPRIV_SEE_OPERS;
+wide_glines return TPRIV_WIDE_GLINE;
 \n lineno++;
 . return yytext[0];

@@ -179,7 +179,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_flags(sptr) |= (FLAGS_WALLOP | FLAGS_SERVNOTICE | FLAGS_DEBUG);
 
     set_snomask(sptr, SNO_OPERDEFAULT, SNO_ADD);
-    client_set_privs(sptr);
+    client_set_privs(sptr, aconf);
     cli_max_sendq(sptr) = 0; /* Get the sendq from the oper's class */
     send_umode_out(cptr, sptr, old_mode, HasPriv(sptr, PRIV_PROPAGATE));
     send_reply(sptr, RPL_YOUREOPER);

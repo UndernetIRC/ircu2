@@ -17,6 +17,7 @@
 #include <netinet/in.h>        /* struct in_addr */
 #define INCLUDED_netinet_in_h
 #endif
+#include "client.h"
 
 struct Client;
 struct SLink;
@@ -50,19 +51,21 @@ struct TRecord;
  * Structures
  */
 
-struct ConfItem {
-  struct ConfItem*         next;
-  unsigned int             status;      /* If CONF_ILLEGAL, delete when no clients */
-  unsigned int             clients;     /* Number of *LOCAL* clients using this */
-  struct ConnectionClass*  conn_class;  /* Class of connection */
-  struct in_addr           ipnum;       /* ip number of host field */
-  char*                    host;
-  char*                    passwd;
-  char*                    name;
-  time_t                   hold;        /* Hold until this time (calendar time) */
-  int                      dns_pending; /* a dns request is pending */
-  unsigned short           port;
-  char 		           bits;        /* Number of bits for ipkills */
+struct ConfItem
+{
+  struct ConfItem *next;
+  unsigned int status;      /* If CONF_ILLEGAL, delete when no clients */
+  unsigned int clients;     /* Number of *LOCAL* clients using this */
+  struct ConnectionClass *conn_class;  /* Class of connection */
+  struct in_addr ipnum;       /* ip number of host field */
+  char *host;
+  char *passwd;
+  char *name;
+  time_t hold; /* Hold until this time (calendar time) */
+  int dns_pending; /* a dns request is pending */
+  unsigned short port;
+  unsigned char bits; /* Number of bits for ipkills. */
+  struct Privs privs; /* Priviledges for opers. */
 };
 
 struct ServerConf {
@@ -189,6 +192,8 @@ extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);
 extern struct MotdItem* read_motd(const char* motdfile);
+
+extern void set_initial_oper_privs(struct ConfItem *oper, int flags);
 
 extern void yyerror(const char *msg);
 

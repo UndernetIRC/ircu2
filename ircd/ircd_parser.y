@@ -133,9 +133,18 @@
 %token ALL
 %token IP
 %token FEATURES
+/* and now a lot of priviledges... */
+%token TPRIV_CHAN_LIMIT, TPRIV_MODE_LCHAN, TPRIV_DEOP_LCHAN, TPRIV_WALK_LCHAN
+%token TPRIV_KILL, TPRIV_LOCAL_KILL, TPRIV_REHASH, TPRIV_RESTART, TPRIV_DIE
+%token TPRIV_GLINE, TPRIV_LOCAL_GLINE, TPRIV_JUPE, TPRIV_LOCAL_JUPE
+%token TPRIV_LOCAL_OPMODE, TPRIV_OPMODE, TPRIV_SET, TPRIV_WHOX, TPRIV_BADCHAN
+%token TPRIV_LOCAL_BADCHAN
+%token TPRIV_SEE_CHAN, TPRIV_SHOW_INVIS, TPRIV_SHOW_ALL_INVIS, TPRIV_PROPAGATE
+%token TPRIV_UNLIMIT_QUERY, TPRIV_DISPLAY, TPRIV_SEE_OPERS, TPRIV_WIDE_GLINE
+/* and some types... */
 %type <num> sizespec
 %type <num> timespec, timefactor, factoredtimes, factoredtime
-%type <num> expr
+%type <num> expr, yesorno, privtype
 %left '+' '-'
 %left '*' '/'
 
@@ -459,24 +468,27 @@ operblock: OPER
   aconf = MyMalloc(sizeof(*aconf));
   memset(aconf, 0, sizeof(*aconf));
   aconf->status = CONF_OPERATOR;
+  set_initial_oper_privs(aconf, (FLAGS_OPER | FLAGS_LOCOP));
 } '{' operitems '}' ';'
 {
   if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL)
   {
-   aconf->next = GlobalConfList;
-   GlobalConfList = aconf;
+    log_write(LS_CONFIG, L_ERROR, 0, "added an oper block for host %s", aconf->host);
+    aconf->next = GlobalConfList;
+    GlobalConfList = aconf;
   }
   else
   {
-   MyFree(aconf->name);
-   MyFree(aconf->passwd);
-   MyFree(aconf->host);
-   MyFree(aconf);
-   aconf = NULL;
+    log_write(LS_CONFIG, L_ERROR, 0, "operator blocks need a name, password, and host.");
+    MyFree(aconf->name);
+    MyFree(aconf->passwd);
+    MyFree(aconf->host);
+    MyFree(aconf);
+    aconf = NULL;
   }
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operlocal | operhost | operclass;
+operitem: opername | operpass | operlocal | operhost | operclass | operpriv;
 
 opername: NAME '=' QSTRING ';'
 {
@@ -496,8 +508,12 @@ operlocal: LOCAL '=' YES ';'
    * permission values here. But for now, I am just going with local 
    * opers... */
   aconf->status = CONF_LOCOP;
+  /* XXX blow away existing priviledges. */
+  set_initial_oper_privs(aconf, FLAGS_LOCOP);
 } | LOCAL '=' NO ';'
 {
+  /* XXX blow away existing priviledges. */
+  set_initial_oper_privs(aconf, (FLAGS_OPER|FLAGS_LOCOP));
   aconf->status = CONF_OPERATOR;
 };
 
@@ -519,6 +535,44 @@ operclass: CLASS '=' QSTRING ';'
 {
  aconf->conn_class = find_class(yylval.text);
 };
+
+operpriv: privtype '=' yesorno ';'
+{
+  if ($3 == 1)
+    PrivSet(&aconf->privs, $1);
+  else
+    PrivClr(&aconf->privs, $1);
+};
+
+privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
+          TPRIV_MODE_LCHAN { $$ = PRIV_MODE_LCHAN; } |
+          TPRIV_DEOP_LCHAN { $$ = PRIV_DEOP_LCHAN; } |
+          TPRIV_WALK_LCHAN { $$ = PRIV_WALK_LCHAN; } |
+          TPRIV_KILL { $$ = PRIV_KILL; } |
+          TPRIV_LOCAL_KILL { $$ = PRIV_LOCAL_KILL; } |
+          TPRIV_REHASH { $$ = PRIV_REHASH; } |
+          TPRIV_RESTART { $$ = PRIV_RESTART; } |
+          TPRIV_DIE { $$ = PRIV_DIE; } |
+          TPRIV_GLINE { $$ = PRIV_GLINE; } |
+          TPRIV_LOCAL_GLINE { $$ = PRIV_LOCAL_GLINE; } |
+          TPRIV_JUPE { $$ = PRIV_JUPE; } |
+          TPRIV_LOCAL_JUPE { $$ = PRIV_LOCAL_JUPE; } |
+          TPRIV_LOCAL_OPMODE { $$ = PRIV_LOCAL_OPMODE; } |
+          TPRIV_OPMODE { $$ = PRIV_OPMODE; }|
+          TPRIV_SET { $$ = PRIV_SET; } |
+          TPRIV_WHOX { $$ = PRIV_WHOX; } |
+          TPRIV_BADCHAN { $$ = PRIV_BADCHAN; } |
+          TPRIV_LOCAL_BADCHAN { $$ = TPRIV_LOCAL_BADCHAN; } |
+          TPRIV_SEE_CHAN { $$ = PRIV_SEE_CHAN; } |
+          TPRIV_SHOW_INVIS { $$ = PRIV_SHOW_INVIS; } |
+          TPRIV_SHOW_ALL_INVIS { $$ = PRIV_SHOW_ALL_INVIS; } |
+          TPRIV_PROPAGATE { $$ = PRIV_PROPAGATE; } |
+          TPRIV_UNLIMIT_QUERY { $$ = PRIV_UNLIMIT_QUERY; } |
+          TPRIV_DISPLAY { $$ = PRIV_DISPLAY; } |
+          TPRIV_SEE_OPERS { $$ = PRIV_SEE_OPERS; } |
+          TPRIV_WIDE_GLINE { $$ = PRIV_WIDE_GLINE; };
+
+yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
 /* The port block... */
 portblock: PORT {
@@ -797,7 +851,8 @@ featureitem: QSTRING
 stringlist: QSTRING
 {
   stringlist[0] = $1;
-  stringno = 1;
+  stringlist[1] = $1;
+  stringno = 2;
 } posextrastrings
 {
   feature_set(NULL, (const char * const *)stringlist, stringno);
