@@ -2807,6 +2807,9 @@ modebuf_flush(struct ModeBuf *mbuf)
       rembuf[rembuf_i++] = flag_p[1];
   }
 
+  if (addbuf_i == 1 && rembuf_i == 1)
+    return;
+
   if (addbuf_i == 1)
     addbuf[0] = '\0';
   if (rembuf_i == 1)
