@@ -2009,7 +2009,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_KEY;
 
-  t_len = KEYLEN + 1;
+  t_len = KEYLEN;
 
   /* clean up the key string */
   s = t_str;

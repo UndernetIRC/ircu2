@@ -1,5 +1,10 @@
 2002-10-19  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c (mode_parse_key): correct an off-by-one error
+	that failed to truncate passed-in keys correctly--this caused a
+	presentation error that made the client think the key was one
+	character longer than it actually was
+
 	* ircd/channel.c (mode_process_bans): correct an off-by-one error
 	that allowed only 29 (44) bans to be set instead of the full 30
 	(45)
