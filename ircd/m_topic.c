@@ -98,11 +98,15 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
 		        struct Channel *chptr,char *topic)
 {
    int newtopic;
-   /* if +n and not @'d, return an error and ignore the topic */
+   /* if +t and not @'d, return an error and ignore the topic */
    if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && !is_chan_op(sptr, chptr)) 
    {
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       return;
+   }
+   if (!client_can_send_to_channel(sptr, chptr)) {
+     send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+     return;
    }
    /* Note if this is just a refresh of an old topic, and don't
     * send it to all the clients to save bandwidth.  We still send
@@ -113,7 +117,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
    ircd_strncpy(chptr->topic_nick, cli_name(sptr), NICKLEN);
    chptr->topic_time = CurrentTime;
-   /* Fixed in 2.10.11: Don't propergate local topics */
+   /* Fixed in 2.10.11: Don't propagate local topics */
    if (!IsLocalChannel(chptr->chname))
      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
 		           chptr->topic);
@@ -180,7 +184,7 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * ms_topic - generic message handler
+ * ms_topic - server message handler
  *
  * parv[0]        = sender prefix
  * parv[1]        = channel

@@ -148,7 +148,7 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * ms_notice - server message handler template
+ * ms_notice - server message handler
  */
 int ms_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, tools/Bouncer/Bouncer.cpp
+ * IRC - Internet Relay Chat
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  *
@@ -27,7 +27,7 @@
  * Each listening port can bounce to a different host/port defined in the
  * config file. --Gte 
  *
- * $Id: Bounce.cpp,v 1.2 2000-04-13 05:53:48 gte Exp $ 
+ * $Id: Bounce.cpp,v 1.2.4.1 2004-09-18 02:13:30 klmitch Exp $ 
  *
  */
 

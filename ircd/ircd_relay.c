@@ -110,7 +110,7 @@ void server_relay_channel_message(struct Client* sptr, const char* name, const c
   assert(0 != name);
   assert(0 != text);
 
-  if (0 == (chptr = FindChannel(name))) {
+  if (*name == '&' || 0 == (chptr = FindChannel(name))) {
     /*
      * XXX - do we need to send this back from a remote server?
      */
@@ -136,7 +136,7 @@ void server_relay_channel_notice(struct Client* sptr, const char* name, const ch
   assert(0 != name);
   assert(0 != text);
 
-  if (0 == (chptr = FindChannel(name)))
+  if (*name == '&' || 0 == (chptr = FindChannel(name)))
     return;
   /*
    * This first: Almost never a server/service
@@ -159,12 +159,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != text);
   assert(0 != server);
 
-  if ((acptr = FindServer(server + 1)) == NULL 
-#if 0
-/* X doesn't say it's a service yet! */
-      || !IsService(acptr)
-#endif
-      ) {
+  if ((acptr = FindServer(server + 1)) == NULL || !IsService(acptr)) {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }

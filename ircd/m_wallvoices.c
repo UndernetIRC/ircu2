@@ -142,7 +142,7 @@ int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv
   if (parc < 3 || !IsUser(sptr))
     return 0;
 
-  if ((chptr = FindChannel(parv[1]))) {
+  if (*parv[1] != '&' && (chptr = FindChannel(parv[1]))) {
     if (client_can_send_to_channel(sptr, chptr)) {
       sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
 			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 

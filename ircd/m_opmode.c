@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_tmpl.c
+ * IRC - Internet Relay Chat, ircd/m_opmode.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  * Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>

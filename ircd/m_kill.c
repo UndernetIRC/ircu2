@@ -162,7 +162,7 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
 }
 
 /*
- * ms_kill - server message handler template
+ * ms_kill - server message handler
  *
  * NOTE: IsServer(cptr) == true;
  *
@@ -227,7 +227,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * mo_kill - oper message handler template
+ * mo_kill - oper message handler
  *
  * NOTE: IsPrivileged(sptr), IsAnOper(sptr) == true
  *       IsServer(cptr), IsServer(sptr) == false

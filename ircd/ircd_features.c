@@ -260,7 +260,7 @@ static struct FeatureDesc {
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
   F_I(MAXCHANNELSPERUSER, 0, 10, 0),
-  F_I(NICKLEN, 0, 9, 0),
+  F_I(NICKLEN, 0, 12, 0),
   F_I(AVBANLEN, 0, 40, 0),
   F_I(MAXBANS, 0, 45, 0),
   F_I(MAXSILES, 0, 15, 0),
@@ -374,6 +374,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_z, 0, 1, 0),
   F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
+  F_B(HIS_WHOIS_LOCALCHAN, 0, 1, 0),
   F_B(HIS_WHO_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHO_HOPCOUNT, 0, 1, 0),
   F_B(HIS_BANWHO, 0, 1, 0),

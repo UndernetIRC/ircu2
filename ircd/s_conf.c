@@ -238,6 +238,7 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
  */
 static void lookup_confhost(struct ConfItem *aconf)
 {
+  char *tmp, *tmp2;
   struct DNSReply* reply;
 
   if (EmptyString(aconf->host) || EmptyString(aconf->name)) {
@@ -249,6 +250,15 @@ static void lookup_confhost(struct ConfItem *aconf)
    * Do name lookup now on hostnames given and store the
    * ip numbers in conf structure.
    */
+  if ((tmp = strchr(aconf->host, '/'))) {
+    *(tmp++) = '\0';
+    aconf->origin.s_addr = inet_addr(aconf->host);
+    tmp2 = aconf->host;
+    DupString(aconf->host, tmp);
+    free(tmp2);
+  } else
+    aconf->origin.s_addr = INADDR_NONE;
+
   if (IsDigit(*aconf->host)) {
     /*
      * rfc 1035 sez host names may not start with a digit
@@ -1354,6 +1364,7 @@ int rehash(struct Client *cptr, int sig)
 
   if (sig != 2)
     flush_resolver_cache();
+  restart_resolver();
 
   class_mark_delete();
   mark_listeners_closing();
@@ -1506,15 +1517,13 @@ int find_kill(struct Client *cptr)
         send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", deny->message);
     }
   }
-  else if ((agline = gline_lookup(cptr, 0)) && GlineIsActive(agline)) {
+  else if ((agline = gline_lookup(cptr, 0))) {
     /*
      * find active glines
      * added a check against the user's IP address to find_gline() -Kev
      */
     send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", GlineReason(agline));
   }
-  else
-    agline = 0;          /* if a gline was found, it was inactive */
 
   if (deny)
     return -1;

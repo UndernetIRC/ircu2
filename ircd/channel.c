@@ -447,7 +447,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
       if (match(tmp->value.ban.banstr, ip_s) == 0)
         break;
     }
-    else if (match(tmp->value.ban.banstr, s) == 0)
+    if (match(tmp->value.ban.banstr, s) == 0)
       break;
     else if (sr && match(tmp->value.ban.banstr, sr) == 0)
       break;
@@ -1344,7 +1344,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_REGONLY,	'r',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
-/*  MODE_LIMIT,		'l', */
+    MODE_LIMIT,		'l',
     0x0, 0x0
   };
   int i;
@@ -1729,6 +1729,11 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
+  if (mode == (MODE_LIMIT | MODE_DEL)) {
+    mbuf->mb_rem |= mode;
+    return;
+  }
+
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_UINT(mbuf, mbuf->mb_count) = uint;
 
@@ -2025,7 +2030,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
 
   /* clean up the key string */
   s = t_str;
-  while (*s > ' ' && *s != ':' && t_len--)
+  while (*s > ' ' && *s != ':' && *s != ',' && t_len--)
     s++;
   *s = '\0';
 

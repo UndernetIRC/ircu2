@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #************************************************************************
-#*   IRC - Internet Relay Chat, ircd/crypt/crypter
+#*   IRC - Internet Relay Chat
 #*   Copyright (C) 1991 Sean Batt
 #*
 #*   This program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ print "crypting ",$ircdconf,"\n";
 @saltset = ('a' .. 'z', 'A' .. 'Z', '0' .. '9', '.', '/');
 
 umask(0077);
-open ($ircdout, ">/tmp/ircd.conf.tmp") || die "open $!";
+open ($ircdout, ">$tmpfile") || die "open $!";
 
 while ($text = <>) {
 #if its not an "O" line we can ignore it
@@ -48,5 +48,6 @@ close ($ircdout);
 close ($ircdin);
 print "/bin/cp ",$tmpfile," ",$ircdconf,"\n";
 (fork()==0) ? exec("/bin/cp", $tmpfile, $ircdconf) : wait;
+print "",$ircdconf," has been crypted successfully!\n";
 
 #unlink($tmpfile);

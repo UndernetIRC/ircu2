@@ -145,7 +145,7 @@ int m_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * ms_privmsg - server message handler template
+ * ms_privmsg - server message handler
  */
 int ms_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

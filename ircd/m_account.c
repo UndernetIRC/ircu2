@@ -86,10 +86,12 @@
 #include "ircd_string.h"
 #include "msg.h"
 #include "numnicks.h"
+#include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -125,11 +127,19 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     return protocol_violation(cptr, "Received account (%s) longer than %d for %s; ignoring.", parv[2], ACCOUNTLEN, cli_name(acptr));
   }
 
+  if (parc > 3) {
+    cli_user(acptr)->acc_create = atoi(parv[3]);
+    Debug((DEBUG_DEBUG, "Received timestamped account: account \"%s\", "
+	   "timestamp %Tu", parv[2], cli_user(acptr)->acc_create));
+  }
+
   ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
   hide_hostmask(acptr, FLAG_ACCOUNT);
 
-  sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
-			cli_user(acptr)->account);
+  sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr,
+			cli_user(acptr)->acc_create ? "%C %s %Tu" : "%C %s",
+			acptr, cli_user(acptr)->account,
+			cli_user(acptr)->acc_create);
 
   return 0;
 }

@@ -442,9 +442,11 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   /* and log it */
   log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
-	    "%#C adding %s %s for %s, expiring at %Tu: %s", sptr,
+	    "%#C adding %s %s for %s%s%s, expiring at %Tu: %s", sptr,
 	    flags & GLINE_LOCAL ? "local" : "global",
-	    flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
+	    flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", user,
+	    flags & (GLINE_BADCHAN|GLINE_REALNAME) ? "" : "@",
+	    flags & (GLINE_BADCHAN|GLINE_REALNAME) ? "" : host,
 	    expire + TSoffset, reason);
 
   /* make the gline */
@@ -660,7 +662,8 @@ gline_lookup(struct Client *cptr, unsigned int flags)
        Debug((DEBUG_DEBUG,"realname gline: '%s' '%s'",gline->gl_user,cli_info(cptr)));
       if (match(gline->gl_user+2, cli_info(cptr)) != 0)
 	continue;
- 
+      if (!GlineIsActive(gline))
+        continue;
       return gline;
     }
     else {
@@ -677,7 +680,8 @@ gline_lookup(struct Client *cptr, unsigned int flags)
           continue;
       }
     }
-    return gline;
+    if (GlineIsActive(gline))
+      return gline;
   }
   /*
    * No Glines matched
@@ -810,7 +814,8 @@ gline_stats(struct Client *sptr, struct StatDesc *sd, int stat, char *param)
 
     if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
-    send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user, 
+    else
+      send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user, 
 		 gline->gl_host ? "@" : "",
 		 gline->gl_host ? gline->gl_host : "",
 		 gline->gl_expire + TSoffset, gline->gl_reason);

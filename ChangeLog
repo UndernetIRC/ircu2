@@ -1,3 +1,219 @@
+2004-09-17  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): Release the sucker.
+
+2004-09-13  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: update feature name--forgotten in a prior
+	commit
+
+	* doc/ircd.conf.sample: update feature name--forgotten in a prior
+	commit
+
+	* doc/example.conf: update feature name--forgotten in a prior
+	commit
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel (again!),
+	just so we know who's runnin' what...
+
+	* ircd/listener.c (add_listener): a listener needs to be listed as
+	a server port listener BEFORE we open the listening port!
+
+2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_topic.c (do_settopic): oh, bah, stupid bug...
+
+2004-06-17  Fredrik Soderblom <froo@quakenet.org>
+
+	* ircd/s_conf.c (rehash): added restart_resolver()
+
+2003-07-04  Bas Steendijk <steendijk@xs4all.nl>
+
+	* include/client.h, ircd/m_userhost.c, ircd/m_userip.c, ircd/m_who.c,
+	ircd/m_whois.c, ircd/whocmds.c: the same code, for "can user A see user
+	B is an oper", appeared in a lot of places. made it a define SeeOper. 
+
+2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_topic.c (do_settopic): Don't allow banned users to set a
+	topic in a channel (adapted from patch by Alexander Maassen
+	<outsider@key2peace.org>)
+
+	* tools/Bounce/Bounce.h: drop file location
+
+	* tools/Bounce/Bounce.cpp: drop file location
+
+	* tools/crypter: drop file location; do some minor fixup; does
+	anyone actually use this script?
+
+	* tools/Makefile.crypt: drop file location
+
+	* ircd/test/ircd_chattr.0.dat (IsChannelPrefix): drop + from
+	channel prefix list
+
+	* ircd/s_user.c (hide_hostmask): use the already calculated hidden
+	host
+
+	* ircd/s_err.c: use the already calculated hidden host
+
+	* ircd/m_version.c (mo_version): fix up a comment
+
+	* ircd/m_topic.c (ms_topic): fix up a couple of comments
+
+	* ircd/m_quit.c: drop the "template" moniker
+
+	* ircd/m_privmsg.c: drop the "template" moniker
+
+	* ircd/m_pong.c: drop the "template" moniker
+
+	* ircd/m_ping.c: drop the "template" moniker
+
+	* ircd/m_opmode.c: update file location
+
+	* ircd/m_notice.c: drop the "template" moniker
+
+	* ircd/m_kill.c: drop the "template" moniker
+
+	* ircd/m_clearmode.c: update file location
+
+	* ircd/m_away.c: drop the "template" moniker
+
+	* ircd/ircd_relay.c (relay_directed_message): X does say it's a
+	service, now...
+
+	* config.h.in: drop file location
+
+	* acconfig.h: drop file location
+
+	* ircd/m_whois.c (do_whois): rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
+	* ircd/ircd_features.c: rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
+	* include/ircd_features.h: rename FEAT_HIS_LOCAL_CHAN_WHOIS to
+	satisfy reed :P
+
+	* include/patchlevel.h (PATCHLEVEL): bump patch level
+
+	* ircd/channel.c (is_banned): apply patch #888640
+
+2003-06-08 Matthias Crauwels <ultimate_@wol.be>
+	* include/ircd_features.h: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/ircd_features.c: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/m_whois.c: hide local channels in local WHOIS, this breaks HIS
+
+	* doc/readme.features: documented FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* doc/ircd.conf.sample: default value for FEAT_HIS_LOCAL_CHAN_WHOIS
+
+2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_wallvoices.c (ms_wallvoices): Don't accept & channel
+	WALLVOICES from servers (Bug #721494)
+
+	* ircd/m_wallchops.c (ms_wallchops): Don't accept & channel
+	WALLCHOPS from servers (Bug #721494)
+
+	* ircd/ircd_relay.c: Don't accept & channel messages/notices from
+	servers (Bug #721494)
+
+	* ircd/gline.c (gline_add): fix GLINE logging (Bug #750927)
+
+	* ircd/channel.c: removing limits shouldn't gobble an argument;
+	this was a subtle interaction issue with modebuf...fixed by adding
+	MODE_LIMIT to modebuf_flush_int() and short-circuiting
+	modebuf_mode_uint() to add MODE_LIMIT to mbuf->mb_rem in the
+	removal case.  Note that this is not proof against the sequence,
+	"modebuf_mode_uint(mbuf, MODE_ADD | MODE_LIMIT, 10);
+	modebuf_mode_uint(mbuf, MODE_DEL | MODE_LIMIT, 10);"
+	(Bug #916138)
+
+2004-08-31  Isomer <isomer@undernet.org>
+	* ircd/m_account.c: Back out untested login-on-connect extensions,
+	we'll relook at these for .12
+
+2004-04-17  Isomer <isomer@undernet.org>
+	* ircd/parse.c: Don't rate limit /gline messages
+
+2004-08-26  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c (lookup_confhost): if field 1 of a C-line contains
+	a '/', interpret the text before the '/' as an IP address to bind
+	to locally, and use the text after the '/' as the host to connect
+	to
+
+	* ircd/s_bsd.c (connect_inet): if origin field in struct ConfItem
+	is set, bind to the identified address
+
+	* include/s_conf.h: add origin field to struct ConfItem
+
+2004-06-20  Alex Badea  <decampos@users.sourceforge.net>
+
+	* ircd/m_account.c: login-on-connect extensions, part 1:
+	added message sub-types and implemented routing
+
+2004-06-18  Alex Badea  <decampos@users.sourceforge.net>
+
+	* ircd/gline.c (gline_lookup): only return a gline if it's
+	active
+	
+	* ircd/s_conf.c (find_kill): don't check for active gline,
+	since gline_lookup does now
+
+2004-06-08  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/parse.c: don't let rank-and-file users escape HIS
+	limitations with /jupe...
+
+2004-05-14  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: per CFV-0243, NICKLEN default is increased
+	to 12
+
+	* ircd/s_user.c: process account creation timestamp if present in
+	user mode portion of a N protocol message; add account creation
+	timestamp to outgoing N protocol messages if that timestamp is
+	non-zero
+
+	* ircd/m_account.c: process account creation timestamp if present
+	in AC protocol message
+
+	* include/struct.h: add account creation timestamp
+
+2004-03-20  Isomer <isomer@undernet.org>
+	* ircd/m_invite.c: Disallow invites to non existant channels
+
+2004-02-27  Entrope <entrope@clan-dk.org>
+        * ircd/ircd.c: Move the PID file acquisition after reading
+        the config file, so that F:PPATH works.
+
+2004-02-27  Entrope <entrope@clan-dk.org>
+
+        * doc/readme.who: Describe the support for matching on and
+        showing account names.
+
+2004-02-16  Entrope <entrope@gamesurge.net>
+
+        * configure.in: Check for missing epoll functions.
+
+        * ircd/engine_epoll.c: Use the results.
+
+        * config.h.in, configure: Regenerate.
+
+2004-03-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c (gline_stats): gotta have an else here or we end up
+	with some nice server crashes
+
+2004-01-31  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): update patchlevel...
+
+	* ircd/channel.c (mode_parse_key): don't allow , in keys!
+
 2004-01-11  Perry Lorier <isomer@undernet.org>
 
 	* include/patchlevel.h: Release 2.10.11.06
