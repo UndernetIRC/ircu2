@@ -64,10 +64,8 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 
-/*
- * a bit different approach
- * this replaces the original sendheader macros
- */
+/** Array of message text (with length) pairs for AUTH status
+ * messages.  Indexed using #ReportType. */
 static struct {
   const char*  message;
   unsigned int length;
@@ -86,6 +84,7 @@ static struct {
 #undef MSG
 };
 
+/** Enum used to index messages in the HeaderMessages[] array. */
 typedef enum {
   REPORT_DO_DNS,
   REPORT_FIN_DNS,
@@ -98,17 +97,18 @@ typedef enum {
   REPORT_INVAL_DNS
 } ReportType;
 
+/** Sends response \a r (from #ReportType) to client \a c. */
 #define sendheader(c, r) \
    send(cli_fd(c), HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
 
 static void release_auth_client(struct Client* client);
-static void unlink_auth_request(struct AuthRequest* request,
-                                struct AuthRequest** list);
 void free_auth_request(struct AuthRequest* auth);
 
-/* auth_verify_hostname - verify that a hostname is valid, i.e., only
- * contains characters valid for a hostname and that a hostname is not
- * too long.
+/** Verify that a hostname is valid, i.e., only contains characters
+ * valid for a hostname and that a hostname is not too long.
+ * @param host Hostname to check.
+ * @param maxlen Maximum length of hostname, not including NUL terminator.
+ * @return Non-zero if the hostname is valid.
  */
 static int
 auth_verify_hostname(char *host, int maxlen)
@@ -124,8 +124,9 @@ auth_verify_hostname(char *host, int maxlen)
   return 1; /* it's a valid hostname */
 }
 
-/*
- * auth_timeout - timeout a given auth request
+/** Timeout a given auth request.
+ * @param ev A timer event whose associated data is the expired struct
+ * AuthRequest.
  */
 static void auth_timeout_callback(struct Event* ev)
 {
@@ -151,8 +152,9 @@ static void auth_timeout_callback(struct Event* ev)
   }
 }
 
-/*
- * auth_sock_callback - called when an event occurs on the socket
+/** Handle socket I/O activity.
+ * @param ev A socket event whos associated data is the active struct
+ * AuthRequest.
  */
 static void auth_sock_callback(struct Event* ev)
 {
@@ -189,15 +191,15 @@ static void auth_sock_callback(struct Event* ev)
     break;
 
   default:
-#ifndef NDEBUG
-    abort(); /* unrecognized event */
-#endif
+    assert(0 && "Unrecognized event in auth_socket_callback().");
     break;
   }
 }
 
-/*
- * destroy_auth_request - stop an auth request completely
+/** Stop an auth request completely.
+ * @param auth The struct AuthRequest to cancel.
+ * @param send_reports If non-zero, report the failure to the user and
+ * resolver log.
  */
 void destroy_auth_request(struct AuthRequest* auth, int send_reports)
 {
@@ -227,8 +229,9 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
   free_auth_request(auth);
 }
 
-/*
- * make_auth_request - allocate a new auth request
+/** Allocate a new auth request.
+ * @param client The client being looked up.
+ * @return The newly allocated auth request.
  */
 static struct AuthRequest* make_auth_request(struct Client* client)
 {
@@ -245,8 +248,8 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   return auth;
 }
 
-/*
- * free_auth_request - cleanup auth request allocations
+/** Clean up auth request allocations (event loop objects, etc).
+ * @param auth The request to clean up.
  */
 void free_auth_request(struct AuthRequest* auth)
 {
@@ -259,37 +262,10 @@ void free_auth_request(struct AuthRequest* auth)
   timer_del(&auth->timeout);
 }
 
-/*
- * unlink_auth_request - remove auth request from a list
- */
-static void unlink_auth_request(struct AuthRequest* request,
-                                struct AuthRequest** list)
-{
-  if (request->next)
-    request->next->prev = request->prev;
-  if (request->prev)
-    request->prev->next = request->next;
-  else
-    *list = request->next;
-}
-
-/*
- * link_auth_request - add auth request to a list
- */
-static void link_auth_request(struct AuthRequest* request,
-                              struct AuthRequest** list)
-{
-  request->prev = 0;
-  request->next = *list;
-  if (*list)
-    (*list)->prev = request;
-  *list = request;
-}
-
-/*
- * release_auth_client - release auth client from auth system
- * this adds the client into the local client lists so it can be read by
- * the main io processing loop
+/** Release auth client from auth system.  This adds the client into
+ * the local client lists so it can be read by the main io processing
+ * loop.
+ * @param client The client to release.
  */
 static void release_auth_client(struct Client* client)
 {
@@ -306,6 +282,9 @@ static void release_auth_client(struct Client* client)
          cli_username(client), cli_sockhost(client), cli_sock_ip(client)));
 }
 
+/** Terminate a client's connection due to auth failure.
+ * @param auth The client to terminate.
+ */
 static void auth_kill_client(struct AuthRequest* auth)
 {
   assert(0 != auth);
@@ -319,12 +298,11 @@ static void auth_kill_client(struct AuthRequest* auth)
   free_auth_request(auth);
 }
 
-/*
- * auth_dns_callback - called when resolver query finishes
- * if the query resulted in a successful search, hp will contain
- * a non-null pointer, otherwise hp will be null.
- * set the client on it's way to a connection completion, regardless
- * of success of failure
+/** Handle a complete DNS lookup.  Send the client on it's way to a
+ * connection completion, regardless of success or failure -- unless
+ * there was a mismatch and KILL_IPMISMATCH is set.
+ * @param vptr The pending struct AuthRequest.
+ * @param hp Pointer to the DNS reply (or NULL, if lookup failed).
  */
 static void auth_dns_callback(void* vptr, struct DNSReply* hp)
 {
@@ -381,8 +359,9 @@ static void auth_dns_callback(void* vptr, struct DNSReply* hp)
   }
 }
 
-/*
- * authsenderr - handle auth send errors
+/** Handle auth send errors.
+ * @param auth The request that saw the failure.
+ * @param kill If non-zero, a critical error; close the client's connection.
  */
 static void auth_error(struct AuthRequest* auth, int kill)
 {
@@ -415,12 +394,12 @@ static void auth_error(struct AuthRequest* auth, int kill)
   }
 }
 
-/*
- * start_auth_query - Flag the client to show that an attempt to
- * contact the ident server on the client's host.  The connect and
- * subsequently the socket are all put into 'non-blocking' mode.
- * Should the connect or any later phase of the identifing process fail,
- * it is aborted and the user is given a username of "unknown".
+/** Flag the client to show an attempt to contact the ident server on
+ * the client's host.  Should the connect or any later phase of the
+ * identifing process fail, it is aborted and the user is given a
+ * username of "unknown".
+ * @param auth The request for which to start the ident lookup.
+ * @return Non-zero on success; zero if unable to start the lookup.
  */
 static int start_auth_query(struct AuthRequest* auth)
 {
@@ -474,7 +453,7 @@ static int start_auth_query(struct AuthRequest* auth)
   return 1;
 }
 
-
+/** Enum used to index ident reply fields in a human-readable way. */
 enum IdentReplyFields {
   IDENT_PORT_NUMBERS,
   IDENT_REPLY_TYPE,
@@ -483,6 +462,10 @@ enum IdentReplyFields {
   USERID_TOKEN_COUNT
 };
 
+/** Parse an ident reply line and extract the userid from it.
+ * @param reply The ident reply line.
+ * @return The userid, or NULL on parse failure.
+ */
 static char* check_ident_reply(char* reply)
 {
   char* token;
@@ -551,11 +534,9 @@ static char* check_ident_reply(char* reply)
   return token;
 }
 
-/*
- * start_auth - starts auth (identd) and dns queries for a client
+/** Starts auth (identd) and dns queries for a client.
+ * @param client The client for which to start queries.
  */
-enum { LOOPBACK = 127 };
-
 void start_auth(struct Client* client)
 {
   struct AuthRequest* auth = 0;
@@ -598,12 +579,12 @@ void start_auth(struct Client* client)
   }
 }
 
-/*
- * send_auth_query - send the ident server a query giving "theirport , ourport"
- * The write is only attempted *once* so it is deemed to be a fail if the
+/** Send the ident server a query giving "theirport , ourport". The
+ * write is only attempted *once* so it is deemed to be a fail if the
  * entire write doesn't write all the data given.  This shouldnt be a
- * problem since the socket should have a write buffer far greater than
- * this message to store it in should problems arise. -avalon
+ * problem since the socket should have a write buffer far greater
+ * than this message to store it in should problems arise. -avalon
+ * @param auth The request to send.
  */
 void send_auth_query(struct AuthRequest* auth)
 {
@@ -633,11 +614,10 @@ void send_auth_query(struct AuthRequest* auth)
 }
 
 
-/*
- * read_auth_reply - read the reply (if any) from the ident server 
- * we connected to.
- * We only give it one shot, if the reply isn't good the first time
- * fail the authentication entirely. --Bleep
+/** Read the reply (if any) from the ident server we connected to.  We
+ * only give it one shot, if the reply isn't good the first time fail
+ * the authentication entirely. --Bleep
+ * @param auth The request to read.
  */
 void read_auth_reply(struct AuthRequest* auth)
 {
