@@ -1,3 +1,8 @@
+2003-12-31  Perry Lorier <isomer@undernet.org>
+	* ircd/s_misc.c: Fix bug in incorrect %Tu format specifier
+
+	* Doxyfile: Doxygen file for generating documation for code
+
 2003-12-02  Perry Lorier <isomer@undernet.org>
 	* ircd/gline.c: Patch gline_find not to core on the *second* gline
 	added.

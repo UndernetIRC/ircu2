@@ -407,7 +407,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     on_for = CurrentTime - cli_firsttime(victim);
 
     if (IsUser(victim))
-      log_write(LS_USER, L_TRACE, 0, "%T %i %s@%s %s %s %s%s %s :%s",
+      log_write(LS_USER, L_TRACE, 0, "%Tu %i %s@%s %s %s %s%s %s :%s",
 		cli_firsttime(victim), on_for, 
 		cli_user(victim)->username, cli_sockhost(victim), 
 		ircd_ntoa((const char *) &(cli_ip(victim))),
