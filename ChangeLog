@@ -1,3 +1,7 @@
+2000-09-28  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/m_names.c: Fixed a non-lethal logic error that 
+	triggers an assert() in find_member_link while debugging.
+	(Spotted by Maniac-).
 2000-09-19  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c: move K:lines to their own list and data
 	structures, add supporting code.

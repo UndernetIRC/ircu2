@@ -317,30 +317,28 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   clean_channelname(para);
   chptr = FindChannel(para); 
- 
-  member = find_member_link(chptr, sptr); 
-  if (member)
-  { 
-    if (chptr) do_names(sptr, chptr, NAMES_ALL);
-    if (!EmptyString(para))
-    {
-      send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
-      return 1;
+
+  if (chptr) {
+    member = find_member_link(chptr, sptr);
+    if (member)
+    { 
+      do_names(sptr, chptr, NAMES_ALL);
+      if (!EmptyString(para))
+      {
+        send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
+        return 1;
+      }
     }
-  }
-    else
-  {
-    /*
-     *  Special Case 3: User isn't on this channel, show all visible users, in 
-     *  non secret channels.
-     */
-     
-    if (chptr) do_names(sptr, chptr, NAMES_VIS);
-    if (!EmptyString(para))
+      else 
     {
-      send_reply(sptr, RPL_ENDOFNAMES, para);
-      return 1;
-    }
+      /*
+       *  Special Case 3: User isn't on this channel, show all visible users, in 
+       *  non secret channels.
+       */ 
+      do_names(sptr, chptr, NAMES_VIS);
+    } 
+  } else { /* Channel doesn't exist. */ 
+      send_reply(sptr, RPL_ENDOFNAMES, para); 
   }
   return 1;
 }
@@ -460,32 +458,29 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   clean_channelname(para);
   chptr = FindChannel(para); 
- 
-  member = find_member_link(chptr, sptr); 
-  if (member)
-  { 
-    if (chptr) do_names(sptr, chptr, NAMES_ALL);
-    if (!EmptyString(para))
-    {
-      send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
-      return 1;
-    }
 
-  }
-    else
-  {
-    /*
-     *  Special Case 3: User isn't on this channel, show all visible users, in 
-     *  non secret channels.
-     */
-     
-    if (chptr) do_names(sptr, chptr, NAMES_VIS);
-    if (!EmptyString(para))
-    {
-      send_reply(sptr, RPL_ENDOFNAMES, para);
-      return 1;
+  if (chptr) {
+    member = find_member_link(chptr, sptr);
+    if (member)
+    { 
+      do_names(sptr, chptr, NAMES_ALL);
+      if (!EmptyString(para))
+      {
+        send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
+        return 1;
+      }
     }
-  } 
+      else 
+    {
+      /*
+       *  Special Case 3: User isn't on this channel, show all visible users, in 
+       *  non secret channels.
+       */ 
+      do_names(sptr, chptr, NAMES_VIS);
+    } 
+  } else { /* Channel doesn't exist. */ 
+      send_reply(sptr, RPL_ENDOFNAMES, para); 
+  }
   return 1;
 }
  
