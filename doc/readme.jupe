@@ -10,7 +10,7 @@ all un-expired jupes are displayed.
 
 For an operator, the syntax is:
 
-  JUPE [[+|-]<server> [<target> <expiration> :<reason>]]
+  JUPE [[+|-]<server> [[<target>] <expiration> :<reason>]]
 
 If <server> is not given, or if it is not prefixed by "+" or "-", the
 operation is exactly the same as if it were issued by an ordinary
@@ -22,13 +22,15 @@ given, as described below.  Otherwise, if the jupe currently exists, a
 prefix of "+" will cause an inactive jupe to be activated, whereas a
 prefix of "-" will cause an active jupe to be deactivated.
 
-If the jupe does not already exist, it is created; <target> is used to
-select whether the jupe is only to apply to a single server (which
-need not be the local server) or to the whole network.  This could be
-useful if a single particular link is having problems, for instance.
-The <expiration> parameter is a number of seconds, not to exceed 7
-days, for the jupe to exist.  The <reason> argument is mandatory and
-should describe why this particular jupe was placed.
+If the jupe does not already exist, it is created. The <target>
+parameter is used to select whether the jupe is only to apply to a
+single server (which need not be the local server) or to the whole
+network; if <target> is not given, it is assumed to be the local
+server.  This could be useful if a single particular link is having
+problems, for instance.  The <expiration> parameter is a number of
+seconds, not to exceed 7 days, for the jupe to exist.  The <reason>
+argument is mandatory and should describe why this particular jupe was
+placed.
 
 For a server, the syntax is:
 

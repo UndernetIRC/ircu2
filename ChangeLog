@@ -1,5 +1,9 @@
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* doc/readme.gline: describe the syntax of the GLINE command
+
+	* doc/readme.jupe: update to reflect a couple of changes to JUPE
+
 	* ircd/gline.c: don't propagate local changes
 
 	* ircd/jupe.c: don't propagate local changes
@@ -1132,7 +1136,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.134 2000-05-04 18:09:46 kev Exp $
+# $Id: ChangeLog,v 1.135 2000-05-04 18:21:48 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
