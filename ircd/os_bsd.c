@@ -40,6 +40,10 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#ifndef IOV_MAX
+#define IOV_MAX 16	/* minimum required */
+#endif
+
 #ifdef HPUX
 #include <sys/syscall.h>
 #define getrusage(a,b) syscall(SYS_GETRUSAGE, a, b)
