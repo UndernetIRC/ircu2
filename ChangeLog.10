@@ -1,10 +1,16 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.17.2.4 2001-06-07 21:05:34 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.17.2.5 2001-06-11 18:03:57 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Rework directed notices and mass-messages to use numerics and tokens
+  as appropriate; the latter required the modifications to
+  sendto_match_butone() -Kev
+* Redefined how sendto_match_butone() works, since it's only used with
+  PRIVMSG or NOTICE -Kev
+* Bumped patchlevel to pl15(development) -Kev
 * Corrected reverse-sense of HEAD_IN_SAND_REMOTE test in m_whois() -Kev
 * Clean up logic in m_whowas(), corrected numeric reply -Kev
 * Finally fixed /whois to tell you what your own server is -Kev

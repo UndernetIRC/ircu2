@@ -669,13 +669,12 @@ static int match_it(struct Client *one, const char *mask, int what)
  * either by user hostname or user servername.
  */
 void sendto_match_butone(struct Client *one, struct Client *from,
-    const char *mask, int what, const char* pattern, ...)
+			 const char *mask, int what, const char *cmd,
+			 const char *tok, const char *dest, const char *text)
 {
-  va_list vl;
   int i;
   struct Client *cptr, *acptr;
 
-  va_start(vl, pattern);
   for (i = 0; i <= HighestFd; i++)
   {
     if (!(cptr = LocalClientArray[i]))
@@ -697,9 +696,14 @@ void sendto_match_butone(struct Client *one, struct Client *from,
     /* my client, does he match ? */
     else if (!(IsUser(cptr) && match_it(cptr, mask, what)))
       continue;
-    vsendto_prefix_one(cptr, from, pattern, vl);
+    if (MyUser(cptr))
+      sendto_prefix_one(cptr, from, ":%s %s %s :%s", from->name, cmd, dest,
+			text);
+    else if (IsUser(from))
+      sendto_one(cptr, "%s%s %s %s :%s", NumNick(from), tok, dest, text);
+    else
+      sendto_one(cptr, "%s %s %s :%s", NumServ(from), tok, dest, text);
   }
-  va_end(vl);
 
   return;
 }

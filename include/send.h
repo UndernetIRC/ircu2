@@ -49,7 +49,9 @@ extern void sendto_chanopsserv_butone(struct Client *one, struct Client *from,
                                    struct Channel *chptr, const char* fmt, ...);
 extern void sendto_common_channels(struct Client *user, const char* fmt, ...);
 extern void sendto_match_butone(struct Client *one, struct Client *from,
-                                const char *mask, int what, const char* fmt, ...);
+                                const char *mask, int what, const char* cmd,
+				const char *tok, const char* dest,
+				const char*text);
 extern void sendto_lops_butone(struct Client *one, const char* fmt, ...);
 extern void vsendto_ops(const char *pattern, va_list vl);
 extern void sendto_g_serv_butone(struct Client *one, const char* fmt, ...);
