@@ -1,4 +1,8 @@
 2003-09-03 splidge <splidge@quakenet.org>
+	* ircd/m_nick.c: Made nick collides get sent to all servers (should
+	fix "ghost client" bug).
+
+2003-09-03 splidge <splidge@quakenet.org>
 	* ircd/s_user.c: Made hide_hostmask() not show bogus joins for
 	channels where the user is a zombie.
 
