@@ -1,3 +1,77 @@
+2002-01-05  Perry Lorier <isomer@undernet.org>
+	* include/patchlevel.h: Release this sucker
+
+2003-01-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): There's a possibility that the user
+	could be destroyed by net rider kicks, causing a crash in
+	mode_invite_clear()--moved it to before the net rider kick loop
+
+2002-01-05  Perry Lorier <isomer@undernet.org>
+	* include/patchlevel.h: Bump PL
+
+2003-01-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/table_gen.c (makeTables): + is no longer a valid channel
+	prefix
+
+2002-12-31  hikari <shadow@undernet.org>
+	* m_userhost.c: Send the real userhost to opers.
+
+2002-12-31  David Mansell <splidge@quakenet.org>
+	* ircd/m_burst.c (ms_burst): when kicking net riders, clear invites
+	too.
+
+2002-12-30  Perry Lorier <isomer@undernet.org>
+	* ircd/m_gline.c: Server set glines are FORCE'd.
+	
+2002-12-30  Perry Lorier <isomer@undernet.org>
+	* ircd/whocmds.c: s/&/&&/ as suggested by reed
+
+2002-12-28  David Mansell <splidge@quakenet.org>
+ 
+ 	* ircd/channel.c (mode_parse_limit): don't allow -l when no limit is
+ 	set, don't allow -l with negative parameter (or unsigned >2^31).
+ 
+2002-12-29  volta <volta2@gmx.de>
+        
+	* ircd/whocmds.c: fixed a bug in the who reply for field 'l',
+	that breaks HIS
+
+2002-12-28  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c (ms_create): we must pass in a flag, not a
+	boolean 1 or 0!  Good spotting splidge...
+
+2002-12-18  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c (stats_init): er, should have started at 0--not
+	that we'll ever see a /stats '\0', but just for completeness' sake
+	:)
+
+	* ircd/s_user.c (hide_hostmask): only send the reply if the user's
+	on my server
+
+2002-12-17 hikari <shadow@undernet.org>
+	* ircd/s_err.c: added RPL_HOSTHIDDEN reply text
+
+	* ircd/s_user.c: send a confirmation of mode +x using reply numeric
+	RPL_HOSTHIDDEN
+
+	* include/numeric.h: addition of RPL_HOSTHIDDEN as 396
+
+	* include/patchlevel.h: bumped to 04dev1
+
+2002-12-14 hikari <shadow@undernet.org>
+	* ircd/m_wallchops.c: fixed ms_wallchops()
+
+	* ircd/m_wallvoices.c: fixed ms_wallvoices()
+
+2002-12-13 Zoot <zoot@gamesnet.net>
+	* ircd/m_whois.c (do_whois): use IsChanOp and HasVoice macros
+	instead of is_chan_op() and has_voice since we already have
+	membership links.
+
 2002-12-15 Isomer <Isomer@undernet.org>
 	* include/patchlevel.h: Release this sucker!
 

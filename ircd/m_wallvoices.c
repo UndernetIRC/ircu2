@@ -146,7 +146,7 @@ int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv
     if (client_can_send_to_channel(sptr, chptr)) {
       sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
 			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
-			       "%H :+ %s", chptr, parv[parc - 1]);
+			       "%H :%s", chptr, parv[parc - 1]);
     } else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }

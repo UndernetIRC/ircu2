@@ -147,6 +147,9 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   } else
     return need_more_params(sptr, "GLINE");
 
+  if (IsServer(sptr))
+    flags |= GLINE_FORCE;
+
   if (!(target[0] == '*' && target[1] == '\0')) {
     if (!(acptr = FindNServer(target)))
       return 0; /* no such server */
