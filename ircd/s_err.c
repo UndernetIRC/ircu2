@@ -722,7 +722,7 @@ static Numeric replyTable[] = {
 /* 344 */
   { 0 },
 /* 345 */
-  { 0 },
+  { RPL_ISSUEDINVITE, "%s %s %s :%s has been invited by %s", "345" },
 /* 346 */
   { RPL_INVITELIST, ":%s", "346" },
 /* 347 */

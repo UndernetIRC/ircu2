@@ -85,6 +85,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -178,8 +179,20 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (MyConnect(acptr))
     add_invite(acptr, chptr);
 
-  if (!IsLocalChannel(chptr->chname) || MyConnect(acptr))
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+  if (!IsLocalChannel(chptr->chname) || MyConnect(acptr)) {
+    if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
+      sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
+                                       NULL, chptr, sptr, SKIP_NONOPS, 
+                                       "%C %C :%C has been invited by %C",
+                                       acptr, sptr, acptr, sptr);
+      sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
+                                       "%s :%H", cli_name(acptr), chptr);
+      if (MyConnect(acptr))
+        sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+    }
+    else
+      sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+  }
 
   return 0;
 }
@@ -227,6 +240,17 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   if (!(acptr = FindUser(parv[1]))) {
     send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
+    return 0;
+  }
+  if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
+    sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
+                                     NULL, chptr, sptr, SKIP_NONOPS, 
+                                     "%C %C :%C has been invited by %C",
+                                     acptr, sptr, acptr, sptr);
+    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
+                                     "%s :%H", cli_name(acptr), chptr);
+    if (MyConnect(acptr))
+      sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
     return 0;
   }
   if (!MyUser(acptr)) {

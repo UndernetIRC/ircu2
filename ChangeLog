@@ -1,5 +1,26 @@
 2004-05-18  Michael Poole <mdpoole@troilus.org>
 
+	Announce invitations to other channel operators.
+
+	* include/ircd_features.h, ircd/ircd_features.c
+	(ANNOUNCE_INVITES): Add new boolean feature, default off.
+
+	* include/numeric.h, ircd/s_err.c (RPL_ISSUEDINVITE): Add new
+	reply.
+
+	* include/send.h, ircd/send.c (sendcmdto_channel_butserv_butone):
+	Add 'skip' parameter that is needed elsewhere.
+	(sendcmdto_channel_servers_butone): New function.
+
+	* ircd/channel.c, ircd/m_burst.c, ircd/m_kick.c, ircd/m_topic.c,
+	ircd/s_user.c: Add argument for 'skip' to calls to s_c_b_b.
+
+	* ircd/m_invite.c (m_invite, ms_invite): If ANNOUNCE_INVITES, send
+	the INVITE message to all interested servers, and send a numeric
+	to all local chanops.
+
+2004-05-18  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/res_adns.c (res_ourserver): Remove unused function.
 	(validate_name): Likewise.
 

@@ -293,6 +293,7 @@ static struct FeatureDesc {
   F_I(IRCD_RES_RETRIES, 0, 2, 0),
   F_I(IRCD_RES_TIMEOUT, 0, 4, 0),
   F_I(AUTH_TIMEOUT, 0, 9, 0),
+  F_B(ANNOUNCE_INVITES, 0, 0, 0),
 
   /* features that affect all operators */
   F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),

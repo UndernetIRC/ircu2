@@ -426,11 +426,12 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
  * by <to>; <tok> is ignored by this function
  *
  * Update: don't send to 'one', if any. --Vampire
+ * Update: use 'skip' like sendcmdto_channel_butone. --Entrope
  */
 void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
 				      const char *tok, struct Channel *to,
-				      struct Client *one, const char *pattern,
-				      ...)
+				      struct Client *one, unsigned int skip,
+                                      const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -445,12 +446,55 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
 
   /* send the buffer to each local channel member */
   for (member = to->members; member; member = member->next_member) {
-    if (MyConnect(member->user) && member->user != one && !IsZombie(member))
+    if (!MyConnect(member->user)
+        || member->user == one 
+        || IsZombie(member)
+        || (skip & SKIP_DEAF && IsDeaf(member->user))
+        || (skip & SKIP_NONOPS && !IsChanOp(member))
+        || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
+        continue;
       send_buffer(member->user, mb, 0);
   }
 
   msgq_clean(mb);
 }
+
+/*
+ * Send a (prefixed) command to all servers with users on the channel
+ * specified by <to>; <cmd> and <skip> are ignored by this function.
+ *
+ * XXX sentalong_marker used XXX
+ */
+void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
+                                      const char *tok, struct Channel *to,
+                                      struct Client *one, unsigned int skip,
+                                      const char *pattern, ...)
+{
+  struct VarData vd;
+  struct MsgBuf *serv_mb;
+  struct Membership *member;
+
+  /* build the buffer */
+  vd.vd_format = pattern;
+  va_start(vd.vd_args, pattern);
+  serv_mb = msgq_make(&me, "%:#C %s %v", from, tok, &vd);
+  va_end(vd.vd_args);
+
+  /* send the buffer to each server */
+  sentalong_marker++;
+  for (member = to->members; member; member = member->next_member) {
+    if (cli_from(member->user) == one
+        || MyConnect(member->user)
+        || IsZombie(member)
+        || cli_fd(cli_from(member->user)) < 0
+        || sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
+      continue;
+    sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
+    send_buffer(member->user, serv_mb, 0);
+  }
+  msgq_clean(serv_mb);
+}
+
 
 /*
  * Send a (prefixed) command to all users on this channel, including

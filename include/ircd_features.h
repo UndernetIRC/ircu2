@@ -87,6 +87,7 @@ enum Feature {
   FEAT_IRCD_RES_RETRIES,
   FEAT_IRCD_RES_TIMEOUT,
   FEAT_AUTH_TIMEOUT,
+  FEAT_ANNOUNCE_INVITES,
 
   /* features that affect all operators */
   FEAT_CRYPT_OPER_PASSWORD,

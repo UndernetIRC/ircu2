@@ -61,7 +61,17 @@ extern void sendcmdto_channel_butserv_butone(struct Client *from,
 					     const char *tok,
 					     struct Channel *to,
 					     struct Client *one,
+                                             unsigned int skip,
 					     const char *pattern, ...);
+
+/* Send command to all servers interested in a channel */
+extern void sendcmdto_channel_servers_butone(struct Client *from,
+                                             const char *cmd,
+                                             const char *tok,
+                                             struct Channel *to,
+                                             struct Client *one,
+                                             unsigned int skip,
+                                             const char *pattern, ...);
 
 /* Send command to all interested channel users */
 extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,

@@ -1107,14 +1107,14 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
         && (chan->channel->mode.mode & MODE_DELJOINS))
       SetDelayedJoin(chan);
     else
-      sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
+      sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr, 0,
                                          "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan))
-      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr,
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr, 0,
                                        "%H +ov %C %C", chan->channel, cptr,
                                        cptr);
     else if (IsChanOp(chan) || HasVoice(chan))
-      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr,
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr, 0,
         "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
   }
   return 0;

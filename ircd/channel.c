@@ -1736,7 +1736,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		addbuf_i ? "+" : "", addbuf, remstr, addstr);
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL,
+      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL, 0,
 				"%H %s%s%s%s%s%s", mbuf->mb_channel,
 				rembuf_i ? "-" : "", rembuf,
 				addbuf_i ? "+" : "", addbuf, remstr, addstr);
@@ -3207,7 +3207,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     /* Send notification to channel */
     if (!(flags & (CHFL_ZOMBIE | CHFL_DELAYED)))
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL,
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL, 0,
 				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
 				":%H" : "%H :%s", chan, jbuf->jb_comment);
     else if (MyUser(jbuf->jb_source))
@@ -3238,11 +3238,11 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     if (!((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))) {
       /* Send the notification to the channel */
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, "%H", chan);
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, 0, "%H", chan);
 
       /* send an op, too, if needed */
       if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
-	sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
+	sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, 0, "%H +o %C",
 					 chan, jbuf->jb_source);
     } else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_JOIN, jbuf->jb_source, ":%H", chan);
@@ -3328,7 +3328,7 @@ int IsInvited(struct Client* cptr, const void* chptr)
 
 void RevealDelayedJoin(struct Membership *member) {
   ClearDelayedJoin(member);
-  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, ":%H",
+  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, 0, ":%H",
                                    member->channel);
   CheckDelayedJoins(member->channel);
 }
@@ -3346,7 +3346,7 @@ void CheckDelayedJoins(struct Channel *chan) {
     if (!memb2) {
       /* clear +d */
       chan->mode.mode &= ~MODE_WASDELJOINS;
-      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan, NULL, 
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan, NULL, 0,
                                        "%H -d", chan);
     }
   }
