@@ -146,7 +146,8 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (!(chptr = FindChannel(parv[2]))) {
-    if (IsModelessChannel(parv[2]) || IsLocalChannel(parv[2])) {
+    if (IsLocalChannel(parv[2]))
+    {
       send_reply(sptr, ERR_NOTONCHANNEL, parv[2]);
       return 0;
     }
@@ -195,7 +196,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (MyConnect(acptr))
     add_invite(acptr, chptr);
 
-  if (!IsLocalChannel(chptr->chname))
+  if (!IsLocalChannel(chptr->chname) || MyConnect(acptr))
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
 
   return 0;

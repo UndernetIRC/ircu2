@@ -26,7 +26,7 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -57,7 +57,7 @@ static struct Connection *send_queues = 0;
  *
  * An error has been detected. The link *must* be closed,
  * but *cannot* call ExitClient (m_bye) from here.
- * Instead, mark it with FLAGS_DEADSOCKET. This should
+ * Instead, mark it with FLAG_DEADSOCKET. This should
  * generate ExitClient from the main loop.
  *
  * If 'notice' is not NULL, it is assumed to be a format
@@ -71,7 +71,7 @@ static struct Connection *send_queues = 0;
 
 static void dead_link(struct Client *to, char *notice)
 {
-  cli_flags(to) |= FLAGS_DEADSOCKET;
+  SetFlag(to, FLAG_DEADSOCKET);
   /*
    * If because of BUFFERPOOL problem then clean dbuf's now so that
    * notices don't hurt operators below.
@@ -85,7 +85,7 @@ static void dead_link(struct Client *to, char *notice)
    */
   ircd_strncpy(cli_info(to), notice, REALLEN);
 
-  if (!IsUser(to) && !IsUnknown(to) && !(cli_flags(to) & FLAGS_CLOSING))
+  if (!IsUser(to) && !IsUnknown(to) && !HasFlag(to, FLAG_CLOSING))
     sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", cli_info(to), cli_name(to));
   Debug((DEBUG_ERROR, cli_info(to)));
 }
@@ -94,6 +94,33 @@ static int can_send(struct Client* to)
 {
   assert(0 != to);
   return (IsDead(to) || IsMe(to) || -1 == cli_fd(to)) ? 0 : 1;
+}
+
+/* This helper routine kills the connection with the highest sendq, to
+ * try to free up some buffer memory.
+ */
+void
+kill_highest_sendq(int servers_too)
+{
+  int i;
+  unsigned int highest_sendq = 0;
+  struct Client *highest_client = 0;
+
+  for (i = HighestFd; i >= 0; i--)
+  {
+    if (!LocalClientArray[i] || (!servers_too && cli_serv(LocalClientArray[i])))
+      continue; /* skip servers */
+    
+    /* If this sendq is higher than one we last saw, remember it */
+    if (MsgQLength(&(cli_sendQ(LocalClientArray[i]))) > highest_sendq)
+    {
+      highest_client = LocalClientArray[i];
+      highest_sendq = MsgQLength(&(cli_sendQ(highest_client)));
+    }
+  }
+
+  if (highest_client)
+    dead_link(highest_client, "Buffer allocation error");
 }
 
 /*
@@ -456,8 +483,8 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  user_mb = msgq_make(0, skip & SKIP_NONOPS ? "%:#C %s @%v" : "%:#C %s %v",
-		      from, skip & SKIP_NONOPS ? MSG_NOTICE : cmd, &vd);
+  user_mb = msgq_make(0, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? "%:#C %s @%v" : "%:#C %s %v",
+                      from, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? MSG_NOTICE : cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
@@ -470,11 +497,12 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   for (member = to->members; member; member = member->next_member) {
     /* skip one, zombies, and deaf users... */
     if (cli_from(member->user) == one || IsZombie(member) ||
-	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
-	(skip & SKIP_NONOPS && !IsChanOp(member)) ||
-	(skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
-	cli_fd(cli_from(member->user)) < 0 ||
-	sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
+        (skip & SKIP_DEAF && IsDeaf(member->user)) ||
+        (skip & SKIP_NONOPS && !IsChanOp(member)) ||
+        (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)) ||
+        (skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
+        cli_fd(cli_from(member->user)) < 0 ||
+        sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
       continue;
     sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
 
@@ -527,17 +555,15 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   va_end(vd.vd_args);
 
   /* send buffer along! */
-  for (i = 0; i <= HighestFd; i++) {
+  for (i = 0; i <= HighestFd; i++)
+  {
     if (!(cptr = LocalClientArray[i]) ||
 	(cli_fd(cli_from(cptr)) < 0) ||
-	(type == WALL_DESYNCH && !(cli_flags(cptr) & FLAGS_DEBUG)) ||
-#ifdef HEAD_IN_SAND_WALLOPS
-	(type == WALL_WALLOPS && (!(cli_flags(cptr) & FLAGS_WALLOP) ||
-				  !IsAnOper(cptr))) ||
-#else
-	(type == WALL_WALLOPS && !(cli_flags(cptr) & FLAGS_WALLOP)) ||
-#endif
-        (type == WALL_WALLUSERS && !(cli_flags(cptr) & FLAGS_WALLOP)))
+	(type == WALL_DESYNCH && !HasFlag(cptr, FLAG_DEBUG)) ||
+	(type == WALL_WALLOPS &&
+         (!HasFlag(cptr, FLAG_WALLOP) || (feature_bool(FEAT_HIS_WALLOPS) &&
+                                          !IsAnOper(cptr)))) ||
+        (type == WALL_WALLUSERS && !HasFlag(cptr, FLAG_WALLOP)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);
   }
@@ -680,7 +706,8 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 		 &vd);
 
   for (; opslist; opslist = opslist->next)
-    send_buffer(opslist->value.cptr, mb, 0);
+    if (opslist->value.cptr != one)
+      send_buffer(opslist->value.cptr, mb, 0);
 
   msgq_clean(mb);
 }

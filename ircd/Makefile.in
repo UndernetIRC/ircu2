@@ -111,6 +111,7 @@ IRCD_SRC = \
 	listener.c \
 	m_account.c \
 	m_admin.c \
+	m_asll.c \
 	m_away.c \
 	m_burst.c \
 	m_clearmode.c \
@@ -175,6 +176,7 @@ IRCD_SRC = \
 	m_wallchops.c \
 	m_wallops.c \
 	m_wallusers.c \
+	m_wallvoices.c \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \

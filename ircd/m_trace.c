@@ -85,6 +85,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -120,18 +121,25 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int wilds;
   int dow;
 
-  if (parc < 2 || BadPtr(parv[1])) {
+  if (feature_bool(FEAT_HIS_TRACE))
+    return send_reply(cptr, ERR_NOPRIVILEGES);
+
+  if (parc < 2 || BadPtr(parv[1]))
+  {
     /* just "TRACE" without parameters. Must be from local client */
     parc = 1;
     acptr = &me;
     tname = cli_name(&me);
     i = HUNTED_ISME;
-  } else if (parc < 3 || BadPtr(parv[2])) {
+  }
+  else if (parc < 3 || BadPtr(parv[2]))
+  {
     /* No target specified. Make one before propagating. */
     parc = 2;
     tname = parv[1];
     if ((acptr = find_match_server(parv[1])) ||
-        ((acptr = FindClient(parv[1])) && !MyUser(acptr))) {
+        ((acptr = FindClient(parv[1])) && !MyUser(acptr)))
+    {
       if (IsUser(acptr))
         parv[2] = cli_name(cli_user(acptr)->server);
       else
@@ -141,7 +149,8 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if ((i = hunt_server_cmd(sptr, CMD_TRACE, cptr, IsServer(acptr),
 			       "%s :%C", 2, parc, parv)) == HUNTED_NOSUCH)
         return 0;
-    } else
+    }
+    else
       i = HUNTED_ISME;
   } else {
     /* Got "TRACE <tname> :<target>" */

@@ -314,7 +314,7 @@ void remove_client_from_list(struct Client *cptr)
   assert(!cli_next(cptr) || cli_verify(cli_next(cptr)));
   assert(!IsMe(cptr));
 
-  /* Only try to remove cptr from the list if it IS in the list.
+  /* Only try remove cptr from the list if it IS in the list.
    * cli_next(cptr) cannot be NULL here, as &me is always the end
    * the list, and we never remove &me.    -GW 
    */

@@ -80,8 +80,9 @@ static struct {
   { "NOTICE AUTH :*** Checking Ident\r\n",                 33 },
   { "NOTICE AUTH :*** Got ident response\r\n",             37 },
   { "NOTICE AUTH :*** No ident response\r\n",              36 },
-  { "NOTICE AUTH :*** Your forward and reverse DNS do not match, " \
-    "ignoring hostname.\r\n",                              80 }
+  { "NOTICE AUTH :*** Your forward and reverse DNS do not match, "
+    "ignoring hostname.\r\n",                              80 },
+  {"NOTICE AUTH :*** Invalid hostname\r\n",                35 }
 };
 
 typedef enum {
@@ -92,7 +93,8 @@ typedef enum {
   REPORT_DO_ID,
   REPORT_FIN_ID,
   REPORT_FAIL_ID,
-  REPORT_IP_MISMATCH
+  REPORT_IP_MISMATCH,
+  REPORT_INVAL_DNS
 } ReportType;
 
 #define sendheader(c, r) \
@@ -107,6 +109,24 @@ static void release_auth_client(struct Client* client);
 static void unlink_auth_request(struct AuthRequest* request,
                                 struct AuthRequest** list);
 void free_auth_request(struct AuthRequest* auth);
+
+/* auth_verify_hostname - verify that a hostname is valid, i.e., only
+ * contains characters valid for a hostname and that a hostname is not
+ * too long.
+ */
+static int
+auth_verify_hostname(char *host, int maxlen)
+{
+  int i;
+
+  /* Walk through the host name */
+  for (i = 0; host[i]; i++)
+    /* If it's not a hostname character or if it's too long, return false */
+    if (!IsHostChar(host[i]) || i >= maxlen)
+      return 0;
+
+  return 1; /* it's a valid hostname */
+}
 
 /*
  * auth_timeout - timeout a given auth request
@@ -353,7 +373,13 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
 	return;
       }
     }
-    else {
+    else if (!auth_verify_hostname(hp->h_name, HOSTLEN))
+    {
+      if (IsUserPort(auth->client))
+        sendheader(auth->client, REPORT_INVAL_DNS);
+    }
+    else
+    {
       ++reply->ref_count;
       cli_dns_reply(auth->client) = reply;
       ircd_strncpy(cli_sockhost(auth->client), hp->h_name, HOSTLEN);

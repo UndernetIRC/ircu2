@@ -24,5 +24,6 @@ struct Client;
  */
 
 extern char *militime(char* sec, char* usec);
+extern char *militime_float(char *start);
 
 #endif /* INCLUDED_opercmds_h */

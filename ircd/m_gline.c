@@ -126,25 +126,29 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *agline;
   unsigned int flags = 0;
   time_t expire_off, lastmod = 0;
-  char *mask = parv[2], *target = parv[1], *reason;
+  char *mask = parv[2], *target = parv[1], *reason = "No reason";
 
-  if (*mask == '!') {
+  if (*mask == '!')
+  {
     mask++;
-
-    if (HasPriv(sptr, PRIV_WIDE_GLINE))
-      flags |= GLINE_OPERFORCE;
+    flags |= GLINE_OPERFORCE;
   }
 
-  if ((parc == 3 && *mask == '-') || parc == 5) {
+  if ((parc == 3 && *mask == '-') || parc == 5)
+  {
     if (!find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
 
-    reason = parv[4];
+    if (parc > 4)
+      reason = parv[4];
     flags |= GLINE_FORCE;
-  } else if (parc > 5) {
+  }
+  else if (parc > 5)
+  {
     lastmod = atoi(parv[4]);
     reason = parv[5];
-  } else
+  }
+  else
     return need_more_params(sptr, "GLINE");
 
   if (!(target[0] == '*' && target[1] == '\0')) {
@@ -263,12 +267,16 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   } else
     return need_more_params(sptr, "GLINE");
 
-  if (target) {
-    if (!(target[0] == '*' && target[1] == '\0')) {
+  if (target)
+  {
+    if (!(target[0] == '*' && target[1] == '\0'))
+    {
       if (!(acptr = find_match_server(target)))
 	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
-      if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
+      /* manually propagate, since we don't set it */
+      if (!IsMe(acptr))
+      {
 	if (!feature_bool(FEAT_CONFIG_OPERCMDS))
 	  return send_reply(sptr, ERR_DISABLED, "GLINE");
 
@@ -280,18 +288,18 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		      flags & GLINE_ACTIVE ? '+' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
-      } else if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
-	return send_reply(sptr, ERR_NOPRIVILEGES);
-
+      }
       flags |= GLINE_LOCAL;
-    } else if (!HasPriv(sptr, PRIV_GLINE))
-      return send_reply(sptr, ERR_NOPRIVILEGES);
+    }
   }
 
   if (!(flags & GLINE_LOCAL) && !feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "GLINE");
 
   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
+
+  if (!HasPriv(sptr, (flags & GLINE_LOCAL ? PRIV_LOCAL_GLINE : PRIV_GLINE)))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (agline) {
     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */

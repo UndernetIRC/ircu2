@@ -1434,7 +1434,9 @@ adds(struct BufData *buf_p, int s_len, const char *s)
 {
   int overflow = 0;
 
-  while (*s && s_len) { /* while the string exists and has non-zero length */
+  /* while the string exists and has non-zero length */
+  while (s_len && *s)
+  {
     /* poor man's inlining; see addc(), above */
     if (buf_p->limit == 0) { /* We've gone past the limit... */
       buf_p->overflow++;

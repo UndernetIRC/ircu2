@@ -26,6 +26,7 @@
 #define INCLUDED_userload_h
 
 struct Client;
+struct StatDesc;
 
 /*
  * Structures
@@ -42,7 +43,8 @@ struct current_load_st {
  */
 
 extern void update_load(void);
-extern void calc_load(struct Client *sptr);
+extern void calc_load(struct Client *sptr, struct StatDesc *sd, int stat,
+                      char *param);
 extern void initload(void);
 
 extern struct current_load_st current_load;

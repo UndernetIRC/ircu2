@@ -143,7 +143,8 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     aconf = find_conf_exact(name, cli_username(sptr),
                             ircd_ntoa((const char*) &(cli_ip(cptr))), CONF_OPS);
 
-  if (!aconf || IsIllegal(aconf)) {
+  if (!aconf || IsIllegal(aconf))
+  {
     send_reply(sptr, ERR_NOOPERHOST);
     sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",
 			 parv[0], cli_user(sptr)->username, cli_sockhost(sptr));
@@ -151,8 +152,9 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   assert(0 != (aconf->status & CONF_OPS));
 
-  if (oper_password_match(password, aconf->passwd)) {
-    unsigned int old_mode = (cli_flags(sptr) & ALL_UMODES);
+  if (oper_password_match(password, aconf->passwd))
+  {
+    struct Flags old_mode = cli_flags(sptr);
 
     if (ACR_OK != attach_conf(sptr, aconf)) {
       send_reply(sptr, ERR_NOOPERHOST);
@@ -175,13 +177,14 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     cli_handler(cptr) = OPER_HANDLER;
 
+    SetFlag(sptr, FLAG_WALLOP);
+    SetFlag(sptr, FLAG_SERVNOTICE);
+    SetFlag(sptr, FLAG_DEBUG);
     
-    cli_flags(sptr) |= (FLAGS_WALLOP | FLAGS_SERVNOTICE | FLAGS_DEBUG);
-
     set_snomask(sptr, SNO_OPERDEFAULT, SNO_ADD);
     client_set_privs(sptr, aconf);
     cli_max_sendq(sptr) = 0; /* Get the sendq from the oper's class */
-    send_umode_out(cptr, sptr, old_mode, HasPriv(sptr, PRIV_PROPAGATE));
+    send_umode_out(cptr, sptr, &old_mode, HasPriv(sptr, PRIV_PROPAGATE));
     send_reply(sptr, RPL_YOUREOPER);
 
     sendto_opmask_butone(0, SNO_OLDSNO, "%s (%s@%s) is now operator (%c)",
@@ -190,7 +193,8 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     log_write(LS_OPER, L_INFO, 0, "OPER (%s) by (%#C)", name, sptr);
   }
-  else {
+  else
+  {
     send_reply(sptr, ERR_PASSWDMISMATCH);
     sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",
 			 parv[0], cli_user(sptr)->username, cli_sockhost(sptr));
@@ -208,9 +212,10 @@ int ms_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * if message arrived from server, trust it, and set to oper
    */
-  if (!IsServer(sptr) && !IsOper(sptr)) {
+  if (!IsServer(sptr) && !IsOper(sptr))
+  {
     ++UserStats.opers;
-    cli_flags(sptr) |= FLAGS_OPER;
+    SetFlag(sptr, FLAG_OPER);
     sendcmdto_serv_butone(sptr, CMD_MODE, cptr, "%s :+o", parv[0]);
   }
   return 0;

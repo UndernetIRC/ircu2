@@ -122,9 +122,6 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   chanTS = atoi(parv[2]);
 
-  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
-  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
-
   /* A create that didn't appear during a burst has that servers idea of
    * the current time.  Use it for lag calculations.
    */
@@ -133,18 +130,28 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_serv(cli_user(sptr)->server)->lag = TStime() - chanTS;
 
   /* If this server is >1 minute fast, warn */
-  if (TStime() - chanTS<-60) {
+  if (TStime() - chanTS<-60)
+  {
     static time_t rate;
     sendto_opmask_butone_ratelimited(0, SNO_NETWORK, &rate,
-				     "Timestamp drift from %C (%is)",
+                                     "Timestamp drift from %C (%is); issuing "
+                                     "SETTIME to correct this",
 				     cli_user(sptr)->server,
 				     chanTS - TStime());
-
     /* If this server is >5 minutes fast, squit it */
     if (TStime() - chanTS<-5*60*60)
       return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
+    /* Now issue a SETTIME to resync.  If we're in the wrong, our
+     * (RELIABLE_CLOCK) hub will bounce a SETTIME back to us.
+     */
+    sendcmdto_prio_one(&me, CMD_SETTIME, cli_user(sptr)->server,
+                       "%Tu %C", TStime(), cli_user(sptr)->server);
   }
 
+  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
+  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
+
+  
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;
        name = ircd_strtok(&p, 0, ",")) {
@@ -153,7 +160,8 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (IsLocalChannel(name))
       continue;
 
-    if ((chptr = FindChannel(name))) {
+    if ((chptr = FindChannel(name)))
+    {
       name = chptr->chname;
 
       /* Check if we need to bounce a mode */
@@ -171,15 +179,15 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 	badop = 1;
       }
-    } else                        /* Channel doesn't exist: create it */
+    }
+    else /* Channel doesn't exist: create it */
       chptr = get_channel(sptr, name, CGT_CREATE);
 
     if (!badop) /* Set/correct TS */
       chptr->creationtime = chanTS;
 
     joinbuf_join(badop ? &join : &create, chptr,
-		 (badop || IsModelessChannel(name)) ?
-		 CHFL_DEOPPED : CHFL_CHANOP);
+		 (badop || CHFL_CHANOP));
   }
 
   joinbuf_flush(&join); /* flush out the joins and creates */

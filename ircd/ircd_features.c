@@ -241,6 +241,7 @@ static struct FeatureDesc {
   F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
   F_B(NODEFAULTMOTD, 0, 1, 0),
   F_S(MOTD_BANNER, FEAT_NULL, 0, 0),
+  F_S(PROVIDER, FEAT_NULL, 0, 0),
   F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
   F_B(IDLE_FROM_MSG, 0, 1, 0),
   F_B(HUB, 0, 0, 0),
@@ -249,15 +250,17 @@ static struct FeatureDesc {
   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
   F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
   F_I(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
-  F_B(HOST_HIDING, 0, 0, 0),
+  F_B(HOST_HIDING, 0, 1, 0),
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
+  F_B(AUTOHIDE, 0, 1, 0),
+  F_B(CONNEXIT_NOTICES, 0, 0, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
   F_I(MAXCHANNELSPERUSER, 0, 10, 0),
   F_I(AVBANLEN, 0, 40, 0),
-  F_I(MAXBANS, 0, 30, 0),
+  F_I(MAXBANS, 0, 45, 0),
   F_I(MAXSILES, 0, 15, 0),
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
@@ -304,6 +307,8 @@ static struct FeatureDesc {
   F_B(OPER_LJUPE, 0, 1, 0),
   F_B(OPER_OPMODE, 0, 1, 0),
   F_B(OPER_LOPMODE, 0, 1, 0),
+  F_B(OPER_FORCE_OPMODE, 0, 1, 0),
+  F_B(OPER_FORCE_LOPMODE, 0, 1, 0),
   F_B(OPER_BADCHAN, 0, 0, 0),
   F_B(OPER_LBADCHAN, 0, 0, 0),
   F_B(OPER_SET, 0, 0, 0),
@@ -319,12 +324,63 @@ static struct FeatureDesc {
   F_B(LOCOP_LGLINE, 0, 1, 0),
   F_B(LOCOP_LJUPE, 0, 1, 0),
   F_B(LOCOP_LOPMODE, 0, 1, 0),
+  F_B(LOCOP_FORCE_LOPMODE, 0, 1, 0),
   F_B(LOCOP_LBADCHAN, 0, 0, 0),
   F_B(LOCOP_SET, 0, 0, 0),
   F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0, 0),
   F_B(LOCOP_WIDE_GLINE, 0, 0, 0),
   F_B(LOCOP_LIST_CHAN, 0, 0, 0),
 
+  /* HEAD_IN_SAND Features */
+  F_B(HIS_SNOTICES, 0, 1, 0),
+  F_B(HIS_SNOTICES_OPER_ONLY, 0, 1, 0),
+  F_B(HIS_DESYNCS, 0, 1, 0),
+  F_B(HIS_DEBUG_OPER_ONLY, 0, 1, 0),
+  F_B(HIS_WALLOPS, 0, 1, 0),
+  F_B(HIS_MAP, 0, 1, 0),
+  F_B(HIS_LINKS, 0, 1, 0),
+  F_B(HIS_TRACE, 0, 1, 0),
+  F_B(HIS_STATS_l, 0, 1, 0),
+  F_B(HIS_STATS_c, 0, 1, 0),
+  F_B(HIS_STATS_g, 0, 1, 0),
+  F_B(HIS_STATS_h, 0, 1, 0),
+  F_B(HIS_STATS_k, 0, 1, 0),
+  F_B(HIS_STATS_f, 0, 1, 0),
+  F_B(HIS_STATS_i, 0, 1, 0),
+  F_B(HIS_STATS_j, 0, 1, 0),
+  F_B(HIS_STATS_M, 0, 1, 0),
+  F_B(HIS_STATS_m, 0, 1, 0),
+  F_B(HIS_STATS_o, 0, 1, 0),
+  F_B(HIS_STATS_p, 0, 1, 0),
+  F_B(HIS_STATS_q, 0, 1, 0),
+  F_B(HIS_STATS_r, 0, 1, 0),
+  F_B(HIS_STATS_d, 0, 1, 0),
+  F_B(HIS_STATS_e, 0, 1, 0),
+  F_B(HIS_STATS_t, 0, 1, 0),
+  F_B(HIS_STATS_T, 0, 1, 0),
+  F_B(HIS_STATS_u, 0, 0, 0),
+  F_B(HIS_STATS_U, 0, 1, 0),
+  F_B(HIS_STATS_v, 0, 1, 0),
+  F_B(HIS_STATS_w, 0, 0, 0),
+  F_B(HIS_STATS_x, 0, 1, 0),
+  F_B(HIS_STATS_y, 0, 1, 0),
+  F_B(HIS_STATS_z, 0, 1, 0),
+  F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
+  F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
+  F_B(HIS_WHO_SERVERNAME, 0, 1, 0),
+  F_B(HIS_WHO_HOPCOUNT, 0, 1, 0),
+  F_B(HIS_BANWHO, 0, 1, 0),
+  F_B(HIS_KILLWHO, 0, 1, 0),
+  F_B(HIS_REWRITE, 0, 1, 0),
+  F_I(HIS_REMOTE, 0, 1, 0),
+  F_B(HIS_NETSPLIT, 0, 1, 0),
+  F_S(HIS_SERVERNAME, 0, "*.undernet.org", 0),
+  F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", 0),
+  F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
+
+  /* Misc. random stuff */
+  F_S(NETWORK, 0, "UnderNet", 0),
+  F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
 #undef F_S
 #undef F_B
 #undef F_I
@@ -687,7 +743,7 @@ feature_init(void)
 
 /* report all F-lines */
 void
-feature_report(struct Client* to)
+feature_report(struct Client* to, struct StatDesc* sd, int stat, char* param)
 {
   int i;
 

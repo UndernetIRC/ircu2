@@ -31,7 +31,6 @@
 #include "ircd_defs.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -383,11 +382,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-#ifdef HEAD_IN_SAND_BANWHO
-    if (IsServer(cptr))
+    if (IsServer(cptr) && feature_bool(FEAT_HIS_BANWHO))
       DupString(ban->value.ban.who, cli_name(&me));
     else
-#endif
       DupString(ban->value.ban.who, cli_name(cptr));
     assert(0 != ban->value.ban.who);
 
@@ -442,6 +439,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
   struct SLink* tmp;
+  char          tmphost[HOSTLEN + 1];
   char          nu_host[NUH_BUFSIZE];
   char          nu_realhost[NUH_BUFSIZE];
   char          nu_ip[NUI_BUFSIZE];
@@ -457,10 +455,23 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
 
   s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
 			  (cli_user(cptr))->host);
-  if (HasHiddenHost(cptr))
-    sr = make_nick_user_host(nu_realhost, cli_name(cptr),
-			     (cli_user(cptr))->username,
-			     cli_user(cptr)->realhost);
+  if (IsAccount(cptr))
+  {
+    if (HasHiddenHost(cptr))
+    {
+      sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                               (cli_user(cptr))->username,
+                               cli_user(cptr)->realhost);
+    }
+    else
+    {
+      ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
+                    cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+      sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                               cli_user(cptr)->username,
+                               tmphost);      
+    }
+  }
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
     if ((tmp->flags & CHFL_BAN_IPMASK)) {
@@ -682,12 +693,11 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
   member = find_channel_member(cptr, chptr);
 
   /*
-   * You can't speak if your off channel, if the channel is modeless, or
-   * +n (no external messages) or +m (moderated).
+   * You can't speak if you're off channel, and it is +n (no external messages)
+   * or +m (moderated).
    */
   if (!member) {
     if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
-	IsModelessChannel(chptr->chname) ||
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
     else
@@ -1156,7 +1166,8 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
      a HACK(4) notice will be sent if he would not have been supposed
      to join normally. */ 
   if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_WALK_LCHAN) &&
-      !BadPtr(key) && compall("OVERRIDE",key) == 0)
+      !BadPtr(key) && compall("OVERRIDE",chptr->mode.key) != 0 &&
+      compall("OVERRIDE",key) == 0)
     overrideJoin = MAGIC_OPER_OVERRIDE;
 
   if (chptr->mode.mode & MODE_INVITEONLY)
@@ -1523,8 +1534,9 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   if (mbuf->mb_add == 0 && mbuf->mb_rem == 0 && mbuf->mb_count == 0)
     return 0;
 
-  /* Ok, if we were given the OPMODE flag, hide the source if its a user */
-  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
+  /* Ok, if we were given the OPMODE flag, or its a server, hide the source.
+   */
+  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE || IsServer(mbuf->mb_source))
     app_source = &me;
   else
     app_source = mbuf->mb_source;
@@ -1666,11 +1678,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2)
       sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
 			   "[%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+                           cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+                                    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
@@ -1679,11 +1688,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
 			   "%s%s%s%s%s%s [%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+                           cli_name(feature_bool(FEAT_HIS_SNOTICES) ? 
+                                    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
 			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
@@ -2190,7 +2196,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_KEY;
 
-  t_len = KEYLEN + 1;
+  t_len = KEYLEN;
 
   /* clean up the key string */
   s = t_str;
@@ -2570,8 +2576,9 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
       } else if (!mmatch(t_str, ban->value.ban.banstr))
 	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
 
-      if (!ban->next && (newban->flags & MODE_ADD)) {
-	ban->next = newban; /* add our"ban with its flags */
+      if (!ban->next && (newban->flags & MODE_ADD))
+      {
+	ban->next = newban; /* add our ban with its flags */
 	break; /* get out of loop */
       }
     }
@@ -2646,7 +2653,7 @@ mode_process_bans(struct ParseState *state)
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
-	     count >= feature_int(FEAT_MAXBANS))) {
+	     count > feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
 		     ban->value.ban.banstr);
 	  count--;
@@ -2778,7 +2785,8 @@ mode_process_clients(struct ParseState *state)
       if (MyUser(state->sptr)) {
 
 	/* don't allow local opers to be deopped on local channels */
-	if (state->cli_change[i].client != state->sptr &&
+	if (MyUser(state->sptr) &&
+            state->cli_change[i].client != state->sptr &&
 	    IsLocalChannel(state->chptr->chname) &&
 	    HasPriv(state->cli_change[i].client, PRIV_DEOP_LCHAN)) {
 	  send_reply(state->sptr, ERR_ISOPERLCHAN,
@@ -3106,6 +3114,7 @@ void
 joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 {
   unsigned int len;
+  int is_local;
 
   assert(0 != jbuf);
 
@@ -3115,6 +3124,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     return;
   }
+
+  is_local = IsLocalChannel(chan->chname);
 
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
@@ -3135,14 +3146,14 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
      * the original m_part.c */
 
     if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-	IsLocalChannel(chan->chname)) /* got to remove user here */
+	is_local) /* got to remove user here */
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
     /* Add user to channel */
     add_user_to_channel(chan, jbuf->jb_source, flags, 0);
 
     /* send notification to all servers */
-    if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !IsLocalChannel(chan->chname))
+    if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)
       sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
 			    "%H %Tu", chan, chan->creationtime);
 
@@ -3150,14 +3161,13 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
 
     /* send an op, too, if needed */
-    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
-	!IsModelessChannel(chan->chname))
+    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
 				chan, jbuf->jb_source);
   }
 
   if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-      jbuf->jb_type == JOINBUF_TYPE_JOIN || IsLocalChannel(chan->chname))
+      jbuf->jb_type == JOINBUF_TYPE_JOIN || is_local)
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */
@@ -3218,5 +3228,16 @@ joinbuf_flush(struct JoinBuf *jbuf)
     break;
   }
 
+  return 0;
+}
+
+/* Returns TRUE (1) if client is invited, FALSE (0) if not */
+int IsInvited(struct Client* cptr, struct Channel* chptr)
+{
+  struct SLink *lp;
+
+  for (lp = (cli_user(cptr))->invited; lp; lp = lp->next)
+    if (lp->value.chptr == chptr)
+      return 1;
   return 0;
 }

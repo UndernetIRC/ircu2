@@ -30,7 +30,7 @@ static Numeric replyTable[] = {
 /* 000 */
   { 0 },
 /* 001 */
-  { RPL_WELCOME, ":Welcome to the Internet Relay Network %s", "001" },
+  { RPL_WELCOME, ":Welcome to the Internet Relay Network%s%s, %s", "001" },
 /* 002 */
   { RPL_YOURHOST, ":Your host is %s, running version %s", "002" },
 /* 003 */
@@ -708,7 +708,7 @@ static Numeric replyTable[] = {
 /* 337 */
   { 0 },
 /* 338 */
-  { RPL_WHOISACTUALLY, ":%s is actually %s@%s [%s]", "338" },
+  { RPL_WHOISACTUALLY, "%s %s@%s %s :Actual user@host, Actual IP", "338" },
 /* 339 */
   { 0 },
 /* 340 */
@@ -1080,7 +1080,7 @@ static Numeric replyTable[] = {
 /* 523 */
   { 0 },
 /* 524 */
-  { 0 },
+  { ERR_QUARANTINED, "%s :Channel is quarantined : %s", "524" },
 /* 525 */
   { 0 },
 /* 526 */

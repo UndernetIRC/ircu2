@@ -340,11 +340,13 @@ int markMatchexServer(const char *cmask, int minlen)
   struct Client *acptr;
 
   for (i = 0; i < lastNNServer; i++) {
-    if ((acptr = server_list[i])) {
+    if ((acptr = server_list[i]))
+    {
       if (matchexec(cli_name(acptr), cmask, minlen))
-        cli_flags(acptr) &= ~FLAGS_MAP;
-      else {
-        cli_flags(acptr) |= FLAGS_MAP;
+        ClrFlag(acptr, FLAG_MAP);
+      else
+      {
+        SetFlag(acptr, FLAG_MAP);
         cnt++;
       }
     }

@@ -36,14 +36,20 @@ struct Channel;
 #define WHO_FIELD_DIS 256
 #define WHO_FIELD_REN 512
 #define WHO_FIELD_IDL 1024
+#define WHO_FIELD_ACC 2048
 
 #define WHO_FIELD_DEF ( WHO_FIELD_NIC | WHO_FIELD_UID | WHO_FIELD_HOS | WHO_FIELD_SER )
 
 #define IS_VISIBLE_USER(s,ac) ((s==ac) || (!IsInvisible(ac)))
 
-#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || ((b & WHOSELECT_EXTRA) && MyConnect(ac) && HasPriv((s), PRIV_SHOW_INVIS | PRIV_SHOW_ALL_INVIS)))
+#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || \
+                             ((b & WHOSELECT_EXTRA) && MyConnect(ac) && \
+                             (HasPriv((s), PRIV_SHOW_INVIS) || \
+                              HasPriv((s), PRIV_SHOW_ALL_INVIS))))
 
-#define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b) || ((b & WHOSELECT_EXTRA) && HasPriv((s), PRIV_SHOW_ALL_INVIS)))
+#define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b) || \
+                            ((b & WHOSELECT_EXTRA) && \
+                              HasPriv((s), PRIV_SHOW_ALL_INVIS)))
 
 #define SHOW_MORE(sptr, counter) (HasPriv(sptr, PRIV_UNLIMIT_QUERY) || (!(counter-- < 0)) )
 

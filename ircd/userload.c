@@ -34,6 +34,7 @@
 #include "numnicks.h"
 #include "querycmds.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
@@ -200,7 +201,8 @@ void update_load(void)
   last = CurrentTime;
 }
 
-void calc_load(struct Client *sptr)
+void
+calc_load(struct Client *sptr, struct StatDesc *sd, int stat, char *param)
 {
   /* *INDENT-OFF* */
   static const char *header =

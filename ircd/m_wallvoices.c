@@ -1,7 +1,6 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_lusers.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * IRC - Internet Relay Chat, ircd/m_wallvoices.c
+ * Copyright (c) 2002 hikari
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -81,83 +80,75 @@
  */
 #include "config.h"
 
+#include "channel.h"
 #include "client.h"
+#include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
-#include "querycmds.h"
 #include "s_user.h"
-#include "s_serv.h"
 #include "send.h"
 
 #include <assert.h>
 
 /*
- * m_lusers - generic message handler
- *
- * parv[0] = sender
- * parv[1] = ignored
- * parv[2] = server to query
+ * m_wallvoices - local generic message handler
  */
-int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  int longoutput = MyUser(sptr) || IsOper(sptr);
-  if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, feature_int(FEAT_HIS_REMOTE),
-                        "%s :%C", 2, parc, parv) != HUNTED_ISME)
-      return 0;
+  struct Channel *chptr;
 
-  send_reply(sptr, RPL_LUSERCLIENT, UserStats.clients - UserStats.inv_clients,
-	     UserStats.inv_clients, UserStats.servers);
-  if (longoutput && UserStats.opers)
-    send_reply(sptr, RPL_LUSEROP, UserStats.opers);
-  if (UserStats.unknowns > 0)
-    send_reply(sptr, RPL_LUSERUNKNOWN, UserStats.unknowns);
-  if (longoutput && UserStats.channels > 0)
-    send_reply(sptr, RPL_LUSERCHANNELS, UserStats.channels);
-  send_reply(sptr, RPL_LUSERME, UserStats.local_clients,
-	     UserStats.local_servers);
+  assert(0 != cptr);
+  assert(cptr == sptr);
 
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", sptr, max_connection_count,
-		max_client_count);
+  ClrFlag(sptr, FLAG_TS8);
+
+  if (parc < 2 || EmptyString(parv[1]))
+    return send_reply(sptr, ERR_NORECIPIENT, "WALLVOICES");
+
+  if (parc < 3 || EmptyString(parv[parc - 1]))
+    return send_reply(sptr, ERR_NOTEXTTOSEND);
+
+  if (IsChannelName(parv[1]) && (chptr = FindChannel(parv[1]))) {
+    if (client_can_send_to_channel(sptr, chptr)) {
+      if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
+          check_target_limit(sptr, chptr, chptr->chname, 0))
+        return 0;
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
+    }
+    else
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
+  }
+  else
+    send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return 0;
 }
 
 /*
- * ms_lusers - server message handler
- *
- * parv[0] = sender
- * parv[1] = ignored
- * parv[2] = server to query
+ * ms_wallvoices - server message handler
  */
-int ms_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  int longoutput = MyUser(sptr) || IsOper(sptr);
-  if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, 0, "%s :%C", 2, parc, parv) !=
-        HUNTED_ISME)
-      return 0;
+  struct Channel *chptr;
+  assert(0 != cptr);
+  assert(0 != sptr);
 
-  send_reply(sptr, RPL_LUSERCLIENT, UserStats.clients - UserStats.inv_clients,
-	     UserStats.inv_clients, UserStats.servers);
-  if (longoutput && UserStats.opers)
-    send_reply(sptr, RPL_LUSEROP, UserStats.opers);
-  if (UserStats.unknowns > 0)
-    send_reply(sptr, RPL_LUSERUNKNOWN, UserStats.unknowns);
-  if (longoutput && UserStats.channels > 0)
-    send_reply(sptr, RPL_LUSERCHANNELS, UserStats.channels);
-  send_reply(sptr, RPL_LUSERME, UserStats.local_clients,
-	     UserStats.local_servers);
+  if (parc < 3 || !IsUser(sptr))
+    return 0;
 
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", sptr, max_connection_count,
-		max_client_count);
-
+  if ((chptr = FindChannel(parv[1]))) {
+    if (client_can_send_to_channel(sptr, chptr)) {
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
+    } else
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
+  }
   return 0;
 }

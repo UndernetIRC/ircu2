@@ -335,6 +335,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        *  non secret channels.
        */ 
       do_names(sptr, chptr, NAMES_VIS);
+      send_reply(sptr, RPL_ENDOFNAMES, para);
     } 
   } else { /* Channel doesn't exist. */ 
       send_reply(sptr, RPL_ENDOFNAMES, para); 

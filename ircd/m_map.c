@@ -102,6 +102,66 @@
 #include <stdio.h>
 #include <string.h>
 
+static void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
+{
+  const char *chr;
+  static char prompt[64];
+  struct DLink *lp;
+  char *p = prompt + prompt_length;
+  int cnt = 0;
+  
+  *p = '\0';
+  if (prompt_length > 60)
+    send_reply(cptr, RPL_MAPMORE, prompt, cli_name(server));
+  else
+  {
+    char lag[512];
+    if (cli_serv(server)->lag>10000)
+      lag[0]=0;
+    else if (cli_serv(server)->lag<0)
+      strcpy(lag,"(0s)");
+    else
+      sprintf(lag,"(%is)",cli_serv(server)->lag);
+    if (IsBurst(server))
+      chr = "*";
+    else if (IsBurstAck(server))
+      chr = "!";
+    else
+      chr = "";
+    send_reply(cptr, RPL_MAP, prompt, chr, cli_name(server),
+               lag, (server == &me) ? UserStats.local_clients :
+                                      cli_serv(server)->clients);
+  }
+  if (prompt_length > 0)
+  {
+    p[-1] = ' ';
+    if (p[-2] == '`')
+      p[-2] = ' ';
+  }
+  if (prompt_length > 60)
+    return;
+  strcpy(p, "|-");
+  for (lp = cli_serv(server)->down; lp; lp = lp->next)
+    if (match(mask, cli_name(lp->value.cptr)))
+      ClrFlag(lp->value.cptr, FLAG_MAP);
+    else
+    {
+      SetFlag(lp->value.cptr, FLAG_MAP);
+      cnt++;
+    }
+  for (lp = cli_serv(server)->down; lp; lp = lp->next)
+  {
+    if (!HasFlag(lp->value.cptr, FLAG_MAP))
+      continue;
+    if (--cnt == 0)
+      *p = '`';
+    dump_map(cptr, lp->value.cptr, mask, prompt_length + 2);
+  }
+  if (prompt_length > 0)
+    p[-1] = '-';
+}
+
+
 /*
  * m_map - generic message handler
  * -- by Run
@@ -111,13 +171,16 @@
  */
 int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#ifdef HEAD_IN_SAND_MAP
-  map_dump_head_in_sand(sptr);
-#else
-  if(parc < 2)
+  if (feature_bool(FEAT_HIS_MAP) && !IsAnOper(sptr))
+  {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s %s", sptr,
+                  "/MAP has been disabled, from CFV-165.  "
+                  "Visit ", feature_str(FEAT_HIS_URLSERVERS));
+    return 0;
+  }
+  if (parc < 2)
     parv[1] = "*";
-  map_dump(sptr, &me, parv[1], 0);
-#endif /* HEAD_IN_SAND_MAP */
+  dump_map(sptr, &me, parv[1], 0);
   send_reply(sptr, RPL_MAPEND);
 
   return 0;
@@ -128,7 +191,7 @@ int mo_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 2)
     parv[1] = "*";
 
-  map_dump(sptr, &me, parv[1], 0);
+  dump_map(sptr, &me, parv[1], 0);
   send_reply(sptr, RPL_MAPEND);
 
   return 0;

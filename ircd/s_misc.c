@@ -37,6 +37,7 @@
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
+#include "map.h"
 #include "match.h"
 #include "msg.h"
 #include "numeric.h"
@@ -47,6 +48,7 @@
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
+#include "s_stats.h"
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
@@ -54,7 +56,6 @@
 #include "sys.h"
 #include "uping.h"
 #include "userload.h"
-#include "map.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -170,7 +171,8 @@ const char* get_client_name(const struct Client* sptr, int showip)
   if (MyConnect(sptr)) {
     if (showip)
       ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
-            cli_user(sptr)->username, cli_sock_ip(sptr));
+                    IsIdented(sptr) ? cli_username(sptr) : "unknown",
+                    cli_sock_ip(sptr));
     else
         return cli_name(sptr);
     return nbuf;
@@ -390,8 +392,16 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   char comment1[HOSTLEN + HOSTLEN + 2];
   assert(killer);
-  if (MyConnect(victim)) {
-    cli_flags(victim) |= FLAGS_CLOSING;
+  if (MyConnect(victim))
+  {
+    SetFlag(victim, FLAG_CLOSING);
+
+    if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
+      sendto_opmask_butone(0, SNO_CONNEXIT,
+                           "Client exiting: %s (%s@%s) [%s] [%s]",
+                           cli_name(victim), cli_user(victim)->username,
+                           cli_user(victim)->host, comment,
+                           ircd_ntoa((const char*) &(cli_ip(victim))));
     update_load();
 
     on_for = CurrentTime - cli_firsttime(victim);
@@ -456,13 +466,15 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   if (IsServer(victim))
   {
-#ifdef HEAD_IN_SAND_NETSPLIT
-    strcpy(comment1, "*.net *.split");
-#else
-    strcpy(comment1, cli_name(cli_serv(victim)->up));
-    strcat(comment1, " ");
-    strcat(comment1, cli_name(victim));
-#endif
+    if (feature_bool(FEAT_HIS_NETSPLIT))
+      strcpy(comment1, "*.net *.split");
+    else
+    {
+      strcpy(comment1, cli_name(cli_serv(victim)->up));
+      strcat(comment1, " ");
+      strcat(comment1, cli_name(victim));
+    }
+
     if (IsUser(killer))
       sendto_opmask_butone(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
 			   (cli_user(killer)->server == victim ||
@@ -477,9 +489,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
 			 cli_serv(victim)->up, victim, comment);
 
-#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)    
-    map_update(victim);
-#endif
+    if (feature_bool(FEAT_HIS_MAP) || feature_bool(FEAT_HIS_LINKS))
+      map_update(victim);
   }
 
   /*
@@ -487,11 +498,12 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
    * except the source:
    */
   for (dlp = cli_serv(&me)->down; dlp; dlp = dlp->next) {
-    if (dlp->value.cptr != cli_from(killer) && dlp->value.cptr != victim) {
+    if (dlp->value.cptr != cli_from(killer) && dlp->value.cptr != victim)
+    {
       if (IsServer(victim))
 	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%s %Tu :%s",
 		      cli_name(victim), cli_serv(victim)->timestamp, comment);
-      else if (IsUser(victim) && 0 == (cli_flags(victim) & FLAGS_KILLED))
+      else if (IsUser(victim) && !HasFlag(victim, FLAG_KILLED))
 	sendcmdto_one(victim, CMD_QUIT, dlp->value.cptr, ":%s", comment);
     }
   }
@@ -536,7 +548,7 @@ void initstats(void)
   memset(&ircst, 0, sizeof(ircst));
 }
 
-void tstats(struct Client *cptr, char *name)
+void tstats(struct Client *cptr, struct StatDesc *sd, int stat, char *param)
 {
   struct Client *acptr;
   int i;

@@ -86,7 +86,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -178,7 +178,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ModeBuf modebuf, *mbuf = 0;
   struct Channel *chptr;
   time_t timestamp;
-  struct Membership *member;
+  struct Membership *member, *nmember;
   struct SLink *lp, **lp_p;
   unsigned int parse_flags = (MODE_PARSE_FORCE | MODE_PARSE_BURST);
   int param, nickpos = 0, banpos = 0;
@@ -198,11 +198,15 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * than the burst TS (anti net.ride). The modes hack is here because
      * we have to do this before mode_parse, as chptr may go away.
      */
-    for (param = 3; param < parc; param++) {
+    for (param = 3; param < parc; param++)
+    {
       if (parv[param][0] != '+')
         continue;
-      if (strchr(parv[param], 'i') || strchr(parv[param], 'k')) {
-        for (member = chptr->members; member; member = member->next_member) {
+      if (strchr(parv[param], 'i') || strchr(parv[param], 'k'))
+      {
+        for (member = chptr->members; member; member = nmember)
+        {
+          nmember = member->next_member;
           if (!MyUser(member->user) || IsZombie(member))
             continue;
           sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
@@ -303,11 +307,9 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    newban = make_link(); /* create new ban */
 
 	    DupString(newban->value.ban.banstr, ban);
-#ifdef HEAD_IN_SAND_BANWHO
-	    DupString(newban->value.ban.who, cli_name(&me));
-#else
-	    DupString(newban->value.ban.who, cli_name(sptr));
-#endif
+
+            DupString(newban->value.ban.who, 
+                      cli_name(feature_bool(FEAT_HIS_BANWHO) ? &me : sptr));
 	    newban->value.ban.when = TStime();
 
 	    newban->flags = CHFL_BAN | CHFL_BURST_BAN; /* set flags */

@@ -95,6 +95,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_conf.h"
 #include "send.h"
 #include "support.h"
 
@@ -132,10 +133,6 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   struct ModeBuf mbuf;
   struct SLink *link, *next;
   struct Membership *member;
-
-  /* Um...yeah, like it's supposed to have any modes at all. */
-  if (IsModelessChannel(chptr->chname))
-    return 0;
 
   /* Ok, so what are we supposed to get rid of? */
   for (; *control; control++) {
@@ -279,6 +276,8 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   char *control = "ovpsmikbl"; /* default control string */
+  const char *chname, *qreason;
+  int force = 0;
 
   if (!feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "CLEARMODE");
@@ -289,14 +288,28 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc > 2)
     control = parv[2];
 
+  chname = parv[1];
+  if (*chname == '!')
+  {
+    chname++;
+    if (!HasPriv(sptr, IsLocalChannel(chname) ?
+                         PRIV_FORCE_LOCAL_OPMODE :
+                         PRIV_FORCE_OPMODE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+    force = 1;
+  }
+
   clean_channelname(parv[1]);
 
   if (!HasPriv(sptr,
 	       IsLocalChannel(parv[1]) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
-    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+  if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
+  if (!force && (qreason = find_quarantine(chptr->chname)))
+    return send_reply(sptr, ERR_QUARANTINED, chptr->chname, qreason);
+
 
   return do_clearmode(cptr, sptr, chptr, control);
 }

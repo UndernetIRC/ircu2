@@ -27,8 +27,8 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -123,13 +123,10 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-		       "%Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name(cli_user(sptr)->server),
-#endif
+                       "%Tu: %s",
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
 		       flags & JUPE_LOCAL ? "local " : "", server,
 		       expire + TSoffset, reason);
 
@@ -173,12 +170,9 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s activating JUPE for %s, expiring "
 		       "at %Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name(cli_user(sptr)->server),
-#endif
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
 
@@ -221,12 +215,9 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_NETWORK, "%s %s JUPE for %s, expiring at %Tu: "
 		       "%s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name(cli_user(sptr)->server),
-#endif
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
 		       JupeIsLocal(jupe) ? "removing local" : "deactivating",
 		       jupe->ju_server, jupe->ju_expire + TSoffset,
 		       jupe->ju_reason);
@@ -339,4 +330,20 @@ jupe_list(struct Client *sptr, char *server)
 
   /* end of jupe information */
   return send_reply(sptr, RPL_ENDOFJUPELIST);
+}
+
+int
+jupe_memory_count(size_t *ju_size)
+{
+  struct Jupe *jupe;
+  unsigned int ju = 0;
+
+  for (jupe = GlobalJupeList; jupe; jupe = jupe->ju_next)
+  {
+    ju++;
+    ju_size += sizeof(struct Jupe);
+    ju_size += jupe->ju_server ? (strlen(jupe->ju_server) + 1) : 0;
+    ju_size += jupe->ju_reason ? (strlen(jupe->ju_reason) + 1) : 0;
+  }
+  return ju;
 }

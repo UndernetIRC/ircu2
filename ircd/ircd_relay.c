@@ -31,6 +31,7 @@
 #include "ircd.h"
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
+#include "ircd_features.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "msg.h"
@@ -158,8 +159,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != text);
   assert(0 != server);
 
-  if ((acptr = FindServer(server + 1)) == NULL ||
-      !IsChannelService(acptr))
+  if ((acptr = FindServer(server + 1)) == NULL || !IsChannelService(acptr))
   {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
@@ -313,8 +313,9 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
-    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left " NETWORK ". "
-	       "Failed to deliver: [%.20s]", text);
+    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left %s. "
+	       "Failed to deliver: [%.20s]", feature_str(FEAT_NETWORK),
+               text);
     return;
   }
   if (is_silenced(sptr, acptr))

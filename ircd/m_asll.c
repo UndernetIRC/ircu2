@@ -1,7 +1,6 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_lusers.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * IRC - Internet Relay Chat, ircd/m_asll.c
+ * Copyright (C) 2002 Alex Badea <vampire@p16.pub.ro>
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -82,82 +81,95 @@
 #include "config.h"
 
 #include "client.h"
+#include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
-#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
-#include "querycmds.h"
-#include "s_user.h"
-#include "s_serv.h"
+#include "match.h"
+#include "msg.h"
 #include "send.h"
+#include "s_bsd.h"
+#include "s_user.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
-/*
- * m_lusers - generic message handler
- *
- * parv[0] = sender
- * parv[1] = ignored
- * parv[2] = server to query
- */
-int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+static int send_asll_reply(struct Client *from, struct Client *to, char *server,
+			   int rtt, int up, int down)
 {
-  int longoutput = MyUser(sptr) || IsOper(sptr);
-  if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, feature_int(FEAT_HIS_REMOTE),
-                        "%s :%C", 2, parc, parv) != HUNTED_ISME)
-      return 0;
-
-  send_reply(sptr, RPL_LUSERCLIENT, UserStats.clients - UserStats.inv_clients,
-	     UserStats.inv_clients, UserStats.servers);
-  if (longoutput && UserStats.opers)
-    send_reply(sptr, RPL_LUSEROP, UserStats.opers);
-  if (UserStats.unknowns > 0)
-    send_reply(sptr, RPL_LUSERUNKNOWN, UserStats.unknowns);
-  if (longoutput && UserStats.channels > 0)
-    send_reply(sptr, RPL_LUSERCHANNELS, UserStats.channels);
-  send_reply(sptr, RPL_LUSERME, UserStats.local_clients,
-	     UserStats.local_servers);
-
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", sptr, max_connection_count,
-		max_client_count);
-
+  sendcmdto_one(from, CMD_NOTICE, to,
+    (up || down) ? "%C :AsLL for %s -- RTT: %ims Upstream: %ims Downstream: %ims" :
+    rtt ? "%C :AsLL for %s -- RTT: %ims [no asymm info]" :
+    "%C :AsLL for %s -- [unknown]",
+    to, server, rtt, up, down);
   return 0;
 }
 
 /*
- * ms_lusers - server message handler
- *
- * parv[0] = sender
- * parv[1] = ignored
- * parv[2] = server to query
+ * ms_asll - server message handler
  */
-int ms_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_asll(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  int longoutput = MyUser(sptr) || IsOper(sptr);
-  if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, 0, "%s :%C", 2, parc, parv) !=
-        HUNTED_ISME)
+  char *mask;
+  struct Client *acptr;
+  int i;
+
+  if (parc < 2)
+    return need_more_params(sptr, "ASLL");
+
+  if (parc > 5) {
+    if (!(acptr = findNUser(parv[1])))
       return 0;
+    if (MyUser(acptr))
+      send_asll_reply(sptr, acptr, parv[2], atoi(parv[3]), atoi(parv[4]), atoi(parv[5]));
+    else
+      sendcmdto_prio_one(sptr, CMD_ASLL, acptr, "%C %s %s %s %s",
+        acptr, parv[2], parv[3], parv[4], parv[5]);
+    return 0;
+  }
 
-  send_reply(sptr, RPL_LUSERCLIENT, UserStats.clients - UserStats.inv_clients,
-	     UserStats.inv_clients, UserStats.servers);
-  if (longoutput && UserStats.opers)
-    send_reply(sptr, RPL_LUSEROP, UserStats.opers);
-  if (UserStats.unknowns > 0)
-    send_reply(sptr, RPL_LUSERUNKNOWN, UserStats.unknowns);
-  if (longoutput && UserStats.channels > 0)
-    send_reply(sptr, RPL_LUSERCHANNELS, UserStats.channels);
-  send_reply(sptr, RPL_LUSERME, UserStats.local_clients,
-	     UserStats.local_servers);
+  if (hunt_server_prio_cmd(sptr, CMD_ASLL, cptr, 1, "%s %C", 2, parc, parv) != HUNTED_ISME)
+    return 0;
+  mask = parv[1];
 
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", sptr, max_connection_count,
-		max_client_count);
+  for (i = 0; i <= HighestFd; i++) {
+    acptr = LocalClientArray[i];
+    if (!acptr || !IsServer(acptr) || !MyConnect(acptr) || match(mask, cli_name(acptr)))
+      continue;
+    sendcmdto_prio_one(&me, CMD_ASLL, sptr, "%C %s %i %i %i", sptr,
+      cli_name(acptr), cli_serv(acptr)->asll_rtt,
+      cli_serv(acptr)->asll_to, cli_serv(acptr)->asll_from);
+  }
+  return 0;
+}
 
+/*
+ * mo_asll - oper message handler
+ */
+int mo_asll(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  char *mask;
+  struct Client *acptr;
+  int i;
+
+  if (parc < 2)
+    return need_more_params(sptr, "ASLL");
+
+  if (parc == 2 && MyUser(sptr))
+    parv[parc++] = cli_name(&me);
+
+  if (hunt_server_prio_cmd(sptr, CMD_ASLL, cptr, 1, "%s %C", 2, parc, parv) != HUNTED_ISME)
+    return 0;
+  mask = parv[1];
+
+  for (i = 0; i <= HighestFd; i++) {
+    acptr = LocalClientArray[i];
+    if (!acptr || !IsServer(acptr) || !MyConnect(acptr) || match(mask, cli_name(acptr)))
+      continue;
+    send_asll_reply(&me, sptr, cli_name(acptr), cli_serv(acptr)->asll_rtt,
+      cli_serv(acptr)->asll_to, cli_serv(acptr)->asll_from);
+  }
   return 0;
 }

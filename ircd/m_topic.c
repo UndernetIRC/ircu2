@@ -161,14 +161,9 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
       continue;
     }
-    /* Modeless Channels don't have topics */
-    if (IsModelessChannel(name))
-    {
-      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
-      continue;
-    }
 
-    if (!topic)                 /* only asking for topic */
+    /* only asking for topic */
+    if (!topic)
     {
       if (chptr->topic[0] == '\0')
 	send_reply(sptr, RPL_NOTOPIC, chptr->chname);
@@ -210,13 +205,6 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
     	send_reply(sptr,ERR_NOSUCHCHANNEL,name);
     	continue;
-    }
-    /* Modeless Channels don't have topics */
-    if (IsModelessChannel(name))
-    {
-      protocol_violation(sptr,"Attempted to topic modeless channel");
-      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
-      continue;
     }
 
     /* Ignore requests for topics from remote servers */

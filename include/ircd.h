@@ -45,6 +45,7 @@ struct Daemon
  * Proto types
  */
 extern void server_die(const char* message);
+extern void server_panic(const char* message);
 extern void server_restart(const char* message);
 
 extern struct Client  me;

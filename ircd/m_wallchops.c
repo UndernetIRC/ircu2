@@ -105,7 +105,7 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, "WALLCHOPS");
@@ -120,7 +120,7 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
         return 0;
       sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
 			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
-			       "%H :%s", chptr, parv[parc - 1]);
+			       "%H :@ %s", chptr, parv[parc - 1]);
     }
     else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);

@@ -110,7 +110,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership* member2;
   char *name, *comment;
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
@@ -122,7 +122,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return send_reply(sptr, ERR_NOSUCHCHANNEL, name);
 
   if (!(member2 = find_member_link(chptr, sptr)) || IsZombie(member2)
-      || !IsChanOp(member2) || IsModelessChannel(name))
+      || !IsChanOp(member2))
     return send_reply(sptr, ERR_CHANOPRIVSNEEDED, name);
 
   if (!(who = find_chasing(sptr, parv[2], 0)))
@@ -176,7 +176,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member = 0, *sptr_link = 0;
   char *name, *comment;
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
@@ -195,7 +195,10 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     member = 0;
 
   /* Send HACK notice, but not for servers in BURST */
-  if (IsServer(sptr) && !IsBurstOrBurstAck(sptr))
+  /* 2002-10-17: Don't send HACK if the users local server is kicking them */
+  if (IsServer(sptr) &&
+      !IsBurstOrBurstAck(sptr) &&
+      sptr!=cli_from(who))
     sendto_opmask_butone(0, SNO_HACK4, "HACK: %C KICK %H %C %s", sptr, chptr,
 			 who, comment);
 

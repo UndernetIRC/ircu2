@@ -86,9 +86,9 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
-#include "ircd_policy.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -100,6 +100,38 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+ /*
+* 'do_nick_name' ensures that the given parameter (nick) is really a proper
+* string for a nickname (note, the 'nick' may be modified in the process...)
+*
+* RETURNS the length of the final NICKNAME (0, if nickname is invalid)
+*
+* Nickname characters are in range 'A'..'}', '_', '-', '0'..'9'
+*  anything outside the above set will terminate nickname.
+* In addition, the first character cannot be '-' or a Digit.
+*
+* Note:
+*  The '~'-character should be allowed, but a change should be global,
+*  some confusion would result if only few servers allowed it...
+*/
+static int do_nick_name(char* nick)
+{
+  char* ch  = nick;
+  char* end = ch + NICKLEN;
+  assert(0 != ch);
+  
+  /* first character in [0..9-] */
+  if (*ch == '-' || IsDigit(*ch))
+    return 0;
+  for ( ; (ch < end) && *ch; ++ch)
+    if (!IsNickChar(*ch))
+      break;
+
+  *ch = '\0';
+
+  return (ch - nick);
+}
 
 /*
  * m_nick - message handler for local clients
@@ -140,10 +172,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   strcpy(nick, arg);
 
   /*
-   * If do_nick_name() returns a null name OR if the server sent a nick
-   * name and do_nick_name() changed it in some way (due to rules of nick
-   * creation) then reject it. If from a server and we reject it,
-   * and KILL it. -avalon 4/4/92
+   * If do_nick_name() returns a null name then reject it.
    */
   if (0 == do_nick_name(nick)) {
     send_reply(sptr, ERR_ERRONEUSNICKNAME, arg);
@@ -209,6 +238,11 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * "dormant nick" way of generating collisions...
    *
    * XXX - hmmm can this happen after one is registered?
+   *
+   * Yes, client 1 connects to IRC and registers, client 2 connects and
+   * sends "NICK foo" but doesn't send anything more.  client 1 now does
+   * /nick foo, they should succeed and client 2 gets disconnected with
+   * the message below.
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
@@ -418,11 +452,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       sendcmdto_serv_butone(&me, CMD_KILL, cptr, "%s :%s (%s)",
                             nick, cli_name(&me), type);
       /* Don't go sending off a QUIT message... */
-      cli_flags(sptr) |= FLAGS_KILLED;
+      SetFlag(sptr, FLAG_KILLED);
       /* Remove them locally. */
       exit_client_msg(cptr, sptr, &me,
-                      "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))",
-                      type);
+                      "Killed (%s (%s))",
+                      feature_str(FEAT_HIS_SERVERNAME), type);
       /*
        * We have killed sptr off, zero out it's pointer so if it's used
        * again we'll know about it --Bleep
@@ -439,14 +473,15 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(acptr, ERR_NICKCOLLISION, nick);
 
   ServerStats->is_kill++;
-  cli_flags(acptr) |= FLAGS_KILLED;
+  SetFlag(acptr, FLAG_KILLED);
   /*
    * This exits the client we had before getting the NICK message
    */
-  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :" HEAD_IN_SAND_SERVERNAME
-                        " (%s)", acptr, type);
-  exit_client_msg(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (%s))",
-                  type);
+  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s"
+                        " (%s)", acptr, feature_str(FEAT_HIS_SERVERNAME),
+                        type);
+  exit_client_msg(cptr, acptr, &me, "Killed (%s (%s))",
+                  feature_str(FEAT_HIS_SERVERNAME), type);
   if (lastnick == cli_lastnick(acptr))
     return 0;
   if (sptr == NULL)

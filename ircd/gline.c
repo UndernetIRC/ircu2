@@ -27,7 +27,6 @@
 #include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -36,6 +35,7 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "support.h"
@@ -317,9 +317,9 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   assert(0 != reason);
 
   /* NO_OLD_GLINE allows *@#channel to work correctly */
-  if (*userhost == '#' || *userhost == '&' || *userhost == '+'
+  if (*userhost == '#' || *userhost == '&'
 # ifndef NO_OLD_GLINE
-      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
+      || userhost[2] == '#' || userhost[2] == '&'
 # endif /* OLD_GLINE */
       ) {
     if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
@@ -327,7 +327,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
     flags |= GLINE_BADCHAN;
 # ifndef NO_OLD_GLINE
-    if (userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+')
+    if (userhost[2] == '#' || userhost[2] == '&')
       user = userhost + 2;
     else
 # endif /* OLD_GLINE */
@@ -368,18 +368,16 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops... */
-  sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s%s%s, expiring at "
-		       "%Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
-		       flags & GLINE_LOCAL ? "local" : "global",
-		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", user,
-		       flags & GLINE_BADCHAN ? "" : "@",
-		       flags & GLINE_BADCHAN ? "" : host,
+  sendto_opmask_butone(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
+                       SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at "
+                       "%Tu: %s",
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
+		       (flags & GLINE_LOCAL) ? "local" : "global",
+		       (flags & GLINE_BADCHAN) ? "BADCHAN" : "GLINE", user,
+		       (flags & GLINE_BADCHAN) ? "" : "@",
+		       (flags & GLINE_BADCHAN) ? "" : host,
 		       expire + TSoffset, reason);
 
   /* and log it */
@@ -431,18 +429,15 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
-		       "expiring at %Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
-		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-		       GlineIsBadChan(gline) ? "" : gline->gl_host,
-		       gline->gl_expire + TSoffset, gline->gl_reason);
-
+                       "expiring at %Tu: %s",
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
+                       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+                       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+                       GlineIsBadChan(gline) ? "" : gline->gl_host,
+                       gline->gl_expire + TSoffset, gline->gl_reason);
+  
   log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
 	    "%#C activating global %s for %s%s%s, expiring at %Tu: %s", sptr,
 	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE", gline->gl_user,
@@ -495,12 +490,9 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
 		       "%s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
+                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                         cli_name(sptr) :
+                         cli_name((cli_user(sptr))->server),
 		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -546,9 +538,9 @@ gline_find(char *userhost, unsigned int flags)
   }
 
   if ((flags & (GLINE_BADCHAN | GLINE_ANY)) == GLINE_BADCHAN ||
-      *userhost == '#' || *userhost == '&' || *userhost == '+'
+      *userhost == '#' || *userhost == '&'
 #ifndef NO_OLD_GLINE
-      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
+      || userhost[2] == '#' || userhost[2] == '&'
 #endif /* NO_OLD_GLINE */
       )
     return 0;
@@ -734,7 +726,8 @@ gline_list(struct Client *sptr, char *userhost)
 }
 
 void
-gline_stats(struct Client *sptr)
+gline_stats(struct Client *sptr, struct StatDesc *sd, int stat,
+            char *param)
 {
   struct Gline *gline;
   struct Gline *sgline;
@@ -749,3 +742,21 @@ gline_stats(struct Client *sptr)
 		 gline->gl_expire + TSoffset, gline->gl_reason);
   }
 }
+
+int
+gline_memory_count(size_t *gl_size)
+{
+  struct Gline *gline;
+  unsigned int gl = 0;
+  
+  for (gline = GlobalGlineList; gline; gline = gline->gl_next)
+  {
+    gl++;
+    gl_size += sizeof(struct Gline);
+    gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
+    gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
+    gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
+  }
+  return gl;
+}
+

@@ -85,7 +85,6 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -103,7 +102,6 @@
 #include "s_serv.h"
 #include "send.h"
 #include "userload.h"
-#include "map.h"
 
 #include <assert.h>
 #include <stdlib.h>

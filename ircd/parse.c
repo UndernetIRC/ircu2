@@ -30,7 +30,6 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -92,6 +91,13 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_wallchops, ms_wallchops, m_wallchops, m_ignore }
+  },
+  {
+    MSG_WALLVOICES,
+    TOK_WALLVOICES,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_wallvoices, ms_wallvoices, m_wallvoices, m_ignore }
   },
   {
     MSG_CPRIVMSG,
@@ -315,11 +321,7 @@ struct Message msgtab[] = {
     TOK_TRACE,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-#ifdef HEAD_IN_SAND_TRACE
-    { m_unregistered, m_not_oper, ms_trace, mo_trace, m_ignore }
-#else
     { m_unregistered, m_trace, ms_trace, mo_trace, m_ignore }
-#endif
   },
   {
     MSG_PASS,
@@ -382,7 +384,7 @@ struct Message msgtab[] = {
     TOK_MAP,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_map, m_ignore, mo_map, m_ignore }
+    { m_unregistered, m_map, m_ignore, m_map, m_ignore }
   },
   {
     MSG_VERSION,
@@ -396,18 +398,14 @@ struct Message msgtab[] = {
     TOK_STATS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_stats, ms_stats, mo_stats, m_ignore }
+    { m_unregistered, m_stats, m_stats, m_stats, m_ignore }
   },
   {
     MSG_LINKS,
     TOK_LINKS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-#ifdef HEAD_IN_SAND_LINKS
-    { m_unregistered, m_links_redirect, m_links, m_links, m_ignore }
-#else
-    { m_unregistered, m_links, m_links, m_links, m_ignore }
-#endif
+    { m_unregistered, m_links, ms_links, m_links, m_ignore }
   },
   {
     MSG_ADMIN,
@@ -577,6 +575,13 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_account, m_ignore, m_ignore }
   },
+  {
+    MSG_ASLL,
+    TOK_ASLL,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_not_oper, ms_asll, mo_asll, m_ignore }
+   },
   /* This command is an alias for QUIT during the unregistered part of
    * of the server.  This is because someone jumping via a broken web
    * proxy will send a 'POST' as their first command - which we will

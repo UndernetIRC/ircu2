@@ -22,6 +22,7 @@
  */
 
 struct Client;
+struct StatDesc;
 
 enum Feature {
   /* Misc. features */
@@ -34,6 +35,7 @@ enum Feature {
   FEAT_SERVER_PORT,
   FEAT_NODEFAULTMOTD,
   FEAT_MOTD_BANNER,
+  FEAT_PROVIDER,
   FEAT_KILL_IPMISMATCH,
   FEAT_IDLE_FROM_MSG,
   FEAT_HUB,
@@ -45,6 +47,8 @@ enum Feature {
   FEAT_HOST_HIDING,
   FEAT_HIDDEN_HOST,
   FEAT_HIDDEN_IP,
+  FEAT_AUTOHIDE,
+  FEAT_CONNEXIT_NOTICES,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
@@ -97,6 +101,8 @@ enum Feature {
   FEAT_OPER_LJUPE,
   FEAT_OPER_OPMODE,
   FEAT_OPER_LOPMODE,
+  FEAT_OPER_FORCE_OPMODE,
+  FEAT_OPER_FORCE_LOPMODE,
   FEAT_OPER_BADCHAN,
   FEAT_OPER_LBADCHAN,
   FEAT_OPER_SET,
@@ -112,11 +118,63 @@ enum Feature {
   FEAT_LOCOP_LGLINE,
   FEAT_LOCOP_LJUPE,
   FEAT_LOCOP_LOPMODE,
+  FEAT_LOCOP_FORCE_LOPMODE,
   FEAT_LOCOP_LBADCHAN,
   FEAT_LOCOP_SET,
   FEAT_LOCOP_SEE_IN_SECRET_CHANNELS,
   FEAT_LOCOP_WIDE_GLINE,
   FEAT_LOCOP_LIST_CHAN,
+
+  /* HEAD_IN_SAND Features */
+  FEAT_HIS_SNOTICES,
+  FEAT_HIS_SNOTICES_OPER_ONLY,
+  FEAT_HIS_DESYNCS,
+  FEAT_HIS_DEBUG_OPER_ONLY,
+  FEAT_HIS_WALLOPS,
+  FEAT_HIS_MAP,
+  FEAT_HIS_LINKS,
+  FEAT_HIS_TRACE,
+  FEAT_HIS_STATS_l,
+  FEAT_HIS_STATS_c,
+  FEAT_HIS_STATS_g,
+  FEAT_HIS_STATS_h,
+  FEAT_HIS_STATS_k,
+  FEAT_HIS_STATS_f,
+  FEAT_HIS_STATS_i,
+  FEAT_HIS_STATS_j,
+  FEAT_HIS_STATS_M,
+  FEAT_HIS_STATS_m,
+  FEAT_HIS_STATS_o,
+  FEAT_HIS_STATS_p,
+  FEAT_HIS_STATS_q,
+  FEAT_HIS_STATS_r,
+  FEAT_HIS_STATS_d,
+  FEAT_HIS_STATS_e,
+  FEAT_HIS_STATS_t,
+  FEAT_HIS_STATS_T,
+  FEAT_HIS_STATS_u,
+  FEAT_HIS_STATS_U,
+  FEAT_HIS_STATS_v,
+  FEAT_HIS_STATS_w,
+  FEAT_HIS_STATS_x,
+  FEAT_HIS_STATS_y,
+  FEAT_HIS_STATS_z,
+  FEAT_HIS_WHOIS_SERVERNAME,
+  FEAT_HIS_WHOIS_IDLETIME,
+  FEAT_HIS_WHO_SERVERNAME,
+  FEAT_HIS_WHO_HOPCOUNT,
+  FEAT_HIS_BANWHO,
+  FEAT_HIS_KILLWHO,
+  FEAT_HIS_REWRITE,
+  FEAT_HIS_REMOTE,
+  FEAT_HIS_NETSPLIT,
+  FEAT_HIS_SERVERNAME,
+  FEAT_HIS_SERVERINFO,
+  FEAT_HIS_URLSERVERS,
+
+  /* Misc. random stuff */
+  FEAT_NETWORK,
+  FEAT_URL_CLIENTS,
 
   FEAT_LAST_F
 };
@@ -133,7 +191,8 @@ extern int feature_get(struct Client* from, const char* const* fields,
 extern void feature_unmark(void);
 extern void feature_mark(void);
 
-extern void feature_report(struct Client* to);
+extern void feature_report(struct Client* to, struct StatDesc* sd, int stat,
+                           char* param);
 
 extern int feature_int(enum Feature feat);
 extern int feature_bool(enum Feature feat);

@@ -42,6 +42,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "opercmds.h"
 #include "parse.h"
 #include "res.h"
 #include "s_auth.h"
@@ -115,7 +116,8 @@ int running = 1;
 /*----------------------------------------------------------------------------
  * API: server_die
  *--------------------------------------------------------------------------*/
-void server_die(const char* message) {
+void server_die(const char *message)
+{
   /* log_write will send out message to both log file and as server notice */
   log_write(LS_SYSTEM, L_CRIT, 0, "Server terminating: %s", message);
   flush_connections(0);
@@ -123,11 +125,24 @@ void server_die(const char* message) {
   running = 0;
 }
 
+/*----------------------------------------------------------------------------
+ * API: server_panic
+ *--------------------------------------------------------------------------*/
+void server_panic(const char *message)
+{
+  /* inhibit sending server notice--we may be panicing due to low memory */
+  log_write(LS_SYSTEM, L_CRIT, LOG_NOSNOTICE, "Server panic: %s", message);
+  flush_connections(0);
+  log_close();
+  close_connections(1);
+  exit(1);
+}
 
 /*----------------------------------------------------------------------------
  * API: server_restart
  *--------------------------------------------------------------------------*/
-void server_restart(const char* message) {
+void server_restart(const char *message)
+{
   static int restarting = 0;
 
   /* inhibit sending any server notices; we may be in a loop */
@@ -345,7 +360,7 @@ static void check_pings(struct Event* ev) {
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
 	   cli_name(cptr),
-	   (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
+	   IsPingSent(cptr) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
           
 
@@ -359,50 +374,58 @@ static void check_pings(struct Event* ev) {
       continue;
     }
 
+    /* Quit the client after max_ping*2 - they should have answered by now */
+    if (CurrentTime-cli_lasttime(cptr) >= (max_ping*2) )
+    {
+      /* If it was a server, then tell ops about it. */
+      if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
+        sendto_opmask_butone(0, SNO_OLDSNO,
+                             "No response from %s, closing link",
+                             cli_name(cptr));
+      exit_client_msg(cptr, cptr, &me, "Ping timeout");
+      continue;
+    }
+
     /* Unregistered clients pingout after max_ping seconds, they don't
      * get given a second chance - if they were then people could not quite
      * finish registration and hold resources without being subject to k/g
      * lines
      */
-    if (!IsRegistered(cptr)) {
+    if (!IsRegistered(cptr))
+    {
       /* Display message if they have sent a NICK and a USER but no
        * nospoof PONG.
        */
-      if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username) {
+      if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username)
+      {
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Your client may not be compatible with this server.");
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-		   ":Compatible clients are available at "
-		   URL_CLIENTS);
+                   ":Compatible clients are available at %s",
+                   feature_str(FEAT_URL_CLIENTS));
       }    
       exit_client_msg(cptr,cptr,&me, "Ping Timeout");
       continue;
     }
     
-    if (!(cli_flags(cptr) & FLAGS_PINGSENT)) {
+    if (!IsPingSent(cptr))
+    {
       /* If we havent PINGed the connection and we havent heard from it in a
        * while, PING it to make sure it is still alive.
        */
-      cli_flags(cptr) |= FLAGS_PINGSENT;
+      SetPingSent(cptr);
 
       /* If we're late in noticing don't hold it against them :) */
       cli_lasttime(cptr) = CurrentTime - max_ping;
       
       if (IsUser(cptr))
-	sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
+        sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
       else
-	sendcmdto_one(&me, CMD_PING, cptr, ":%s", cli_name(&me));
-    }
-    
-    /* Quit the client after max_ping*2 - they should have answered by now */
-    if (CurrentTime-cli_lasttime(cptr) >= (max_ping*2) ) {
-      /* If it was a server, then tell ops about it. */
-      if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
-	sendto_opmask_butone(0, SNO_OLDSNO,
-			     "No response from %s, closing link",
-			     cli_name(cptr));
-      exit_client_msg(cptr, cptr, &me, "Ping timeout");
-      continue;
+      {
+        char *asll_ts = militime_float(NULL);
+        sendcmdto_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
+                      cli_name(cptr), asll_ts);
+      }
     }
     
     expire = cli_lasttime(cptr) + max_ping * 2;

@@ -384,7 +384,7 @@ void ip_registry_disconnect(struct Client *cptr)
   if (0 == entry) {
     /*
      * trying to find an entry for a server causes this to happen,
-     * servers should never have FLAGS_IPCHECK set
+     * servers should never have FLAG_IPCHECK set
      */
     return;
   }

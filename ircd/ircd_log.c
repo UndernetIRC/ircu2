@@ -637,7 +637,8 @@ log_set_file(const char *subsys, const char *filename)
     desc->mark &= ~LOG_MARK_FILE; /* file has been reset to defaults */
 
   /* no change, don't go to the trouble of destroying and recreating */
-  if (desc->file && filename && !strcmp(desc->file->file, filename))
+  if (desc->file && desc->file->file && filename &&
+      !strcmp(desc->file->file, filename))
     return 0;
 
   /* debug log is special, since it has to be opened on fd 2 */
@@ -868,10 +869,12 @@ log_feature_report(struct Client *to, int flag)
 {
   int i;
 
-  for (i = 0; i < LS_LAST_SYSTEM; i++) {
+  for (i = 0; i < LS_LAST_SYSTEM; i++)
+  {
     if (logDesc[i].mark & LOG_MARK_FILE) /* report file */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FILE %s",
-		 logDesc[i].name, logDesc[i].file->file);
+                 logDesc[i].name, (logDesc[i].file && logDesc[i].file->file ?
+                                   logDesc[i].file->file : "(terminal)"));
 
     if (logDesc[i].mark & LOG_MARK_FACILITY) /* report facility */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FACILITY %s",

@@ -112,7 +112,7 @@ extern const struct Numeric* get_error_numeric(int err);
 	RPL_STATSNLINE	     226	   unreal
 	RPL_STATSGLINE	     227	   Dalnet 
 	RPL_STATSVLINE	     227	   unreal */
-
+#define RPL_STATSQLINE       228        /* Undernet extension */
 #define RPL_SERVICEINFO      231	/* unused */
 #define RPL_ENDOFSERVICES    232	/* unused */
 /*	RPL_RULES	     232	unreal */
@@ -250,7 +250,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*	RPL_LISTSYNTAX	     334	   unreal */
 /*      RPL_CHANPASSOK       338           IRCnet extension (?)*/
 #define	RPL_WHOISACTUALLY    338	/* Undernet extension, dalnet */
-/*	RPL_BADCHANPASS	     339           mIRC/DALnet extension */
+/*	RPL_BADCHANPASS	     339           IRCnet extension (?) */
 #define RPL_USERIP           340        /* Undernet extension */
 #define RPL_INVITING         341
 /*      RPL_SUMMONING        342           removed from RFC1459 */
@@ -441,11 +441,13 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_TOOMANYUSERS     519	/* Undernet extension -Kev */
 /*	ERR_OPERONLY	     520	unreal */
 #define ERR_MASKTOOWIDE	     520	/* Undernet extension -Kev */
-/*	ERR_WHOTRUNC	     520	austnet
+/*      ERR_WHOTRUNC         520        austnet */
+/*      ERR_LISTSYNTAX       521        dalnet
 	ERR_LISTSYNTAX       521	dalnet
 	ERR_WHOSYNTAX	     522        dalnet
 	ERR_WHOLIMEXCEED     523	dalnet */
-
+#define ERR_QUARANTINED      524       /* Undernet extension -Vampire */
+ 
 #define ERR_NOTLOWEROPLEVEL  550	/* Undernet extension */
 #define ERR_NOTMANAGER       551	/* Undernet extension */
 #define ERR_CHANSECURED      552	/* Undernet extension */

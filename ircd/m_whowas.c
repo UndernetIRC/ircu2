@@ -84,7 +84,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -138,14 +138,11 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	send_reply(sptr, RPL_WHOWASUSER, temp->name, temp->username,
 		   (IsAnOper(sptr) && temp->realhost) ? temp->realhost :
 		   temp->hostname, temp->realname);
-#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-	if (!IsOper(sptr))
-	  send_reply(sptr, RPL_WHOISSERVER, temp->name,
-		     HEAD_IN_SAND_SERVERNAME, myctime(temp->logoff));
-	else
-#endif
-	  send_reply(sptr, RPL_WHOISSERVER, temp->name, temp->servername,
-		     myctime(temp->logoff));
+        send_reply(sptr, RPL_WHOISSERVER, temp->name,
+                   (feature_bool(FEAT_HIS_WHOIS_SERVERNAME) && !IsOper(sptr)) ?
+                     feature_str(FEAT_HIS_SERVERNAME) :
+                     temp->servername,
+		   myctime(temp->logoff));
         if (temp->away)
 	  send_reply(sptr, RPL_AWAY, temp->name, temp->away);
         cur++;

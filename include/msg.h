@@ -198,6 +198,10 @@ struct Client;
 #define TOK_WALLCHOPS           "WC"
 #define CMD_WALLCHOPS		MSG_WALLCHOPS, TOK_WALLCHOPS
 
+#define MSG_WALLVOICES           "WALLVOICES"     /* WV */
+#define TOK_WALLVOICES           "WV"
+#define CMD_WALLVOICES		MSG_WALLVOICES, TOK_WALLVOICES
+
 #define MSG_CPRIVMSG            "CPRIVMSG"      /* CPRI */
 #define TOK_CPRIVMSG            "CP"
 #define CMD_CPRIVMSG		MSG_CPRIVMSG, TOK_CPRIVMSG
@@ -329,6 +333,10 @@ struct Client;
 #define MSG_ACCOUNT		"ACCOUNT"	/* ACCO */
 #define TOK_ACCOUNT		"AC"
 #define CMD_ACCOUNT		MSG_ACCOUNT, TOK_ACCOUNT
+
+#define MSG_ASLL               "ASLL"          /* ASLL */
+#define TOK_ASLL               "LL"
+#define CMD_ASLL               MSG_ASLL, TOK_ASLL
 
 #define MSG_POST                "POST"          /* POST */
 #define TOK_POST                "POST"

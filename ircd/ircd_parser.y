@@ -62,6 +62,8 @@
   extern struct DenyConf*   denyConfList;
   extern struct CRuleConf*  cruleConfList;
   extern struct ServerConf* serverConfList;
+  extern struct qline     *GlobalQuarantineList;
+ 
 
   int yylex(void);
   /* Now all the globals we need :/... */
@@ -73,6 +75,7 @@
   struct ConfItem *aconf;
   struct DenyConf *dconf;
   struct ServerConf *sconf;
+  struct qline *qconf = NULL;
 %}
 
 %token <text> QSTRING
@@ -85,6 +88,7 @@
 %token CONTACT
 %token CONNECT
 %token CLASS
+%token CHANNEL
 %token PINGFREQ
 %token CONNECTFREQ
 %token MAXLINKS
@@ -134,6 +138,7 @@
 %token ALL
 %token IP
 %token FEATURES
+%token QUARANTINE
 /* and now a lot of priviledges... */
 %token TPRIV_CHAN_LIMIT, TPRIV_MODE_LCHAN, TPRIV_DEOP_LCHAN, TPRIV_WALK_LCHAN
 %token TPRIV_KILL, TPRIV_LOCAL_KILL, TPRIV_REHASH, TPRIV_RESTART, TPRIV_DIE
@@ -159,7 +164,7 @@
 blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        serverblock | operblock | portblock | jupeblock | clientblock |
-       killblock | cruleblock | motdblock | featuresblock;
+       killblock | cruleblock | motdblock | featuresblock | quarantineblock;
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -470,7 +475,6 @@ operblock: OPER
   aconf = MyMalloc(sizeof(*aconf));
   memset(aconf, 0, sizeof(*aconf));
   aconf->status = CONF_OPERATOR;
-  set_initial_oper_privs(aconf, (FLAGS_OPER | FLAGS_LOCOP));
 } '{' operitems '}' ';'
 {
   if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL)
@@ -509,12 +513,8 @@ operlocal: LOCAL '=' YES ';'
    * permission values here. But for now, I am just going with local 
    * opers... */
   aconf->status = CONF_LOCOP;
-  /* XXX blow away existing priviledges. */
-  set_initial_oper_privs(aconf, FLAGS_LOCOP);
 } | LOCAL '=' NO ';'
 {
-  /* XXX blow away existing priviledges. */
-  set_initial_oper_privs(aconf, (FLAGS_OPER|FLAGS_LOCOP));
   aconf->status = CONF_OPERATOR;
 };
 
@@ -540,9 +540,15 @@ operclass: CLASS '=' QSTRING ';'
 operpriv: privtype '=' yesorno ';'
 {
   if ($3 == 1)
+  {
+    PrivSet(&aconf->privs_dirty, $1);
     PrivSet(&aconf->privs, $1);
+  }
   else
+  {
+    PrivSet(&aconf->privs_dirty, $1);
     PrivClr(&aconf->privs, $1);
+  }
 };
 
 privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
@@ -864,4 +870,37 @@ extrastring: QSTRING
 {
   if (stringno < MAX_STRINGS)
     stringlist[stringno++] = $1;
+};
+
+quarantineblock: QUARANTINE '{'
+{
+  if (qconf != NULL)
+    qconf = MyMalloc(sizeof(*qconf));
+  else
+  {
+    if (qconf->chname != NULL)
+      MyFree(qconf->chname);
+    if (qconf->reason != NULL)
+      MyFree(qconf->reason);
+  }
+  memset(qconf, 0, sizeof(*qconf));
+} quarantineitems '}' ';'
+{
+  if (qconf->chname == NULL || qconf->reason == NULL)
+  {
+    log_write(LS_CONFIG, L_ERROR, 0, "quarantine blocks need a channel name "
+              "and a reason.");
+    return;
+  }
+  qconf->next = GlobalQuarantineList;
+  GlobalQuarantineList = qconf;
+  qconf = NULL;
+};
+
+quarantineitems: CHANNEL NAME '=' QSTRING ';'
+{
+  DupString(qconf->chname, yylval.text);
+} | REASON '=' QSTRING ';'
+{
+  DupString(qconf->reason, yylval.text);
 };

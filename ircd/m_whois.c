@@ -85,7 +85,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -183,12 +183,11 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
         send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
   }
 
-#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-  if (!IsAnOper(sptr) && sptr != acptr)
-    send_reply(sptr, RPL_WHOISSERVER, name, HEAD_IN_SAND_SERVERNAME,
-	       HEAD_IN_SAND_SERVERINFO);
+  if (feature_bool(FEAT_HIS_WHOIS_SERVERNAME) && !IsAnOper(sptr) &&
+      sptr != acptr)
+    send_reply(sptr, RPL_WHOISSERVER, name, feature_str(FEAT_HIS_SERVERNAME),
+               feature_str(FEAT_HIS_SERVERNAME));
   else
-#endif
     send_reply(sptr, RPL_WHOISSERVER, name, cli_name(a2cptr),
 	       cli_info(a2cptr));
 
@@ -204,19 +203,16 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
     if (IsAccount(acptr))
       send_reply(sptr, RPL_WHOISACCOUNT, name, user->account);
 
-    if (HasHiddenHost(acptr) && IsAnOper(sptr))
+    if (HasHiddenHost(acptr) && (IsAnOper(sptr) || acptr == sptr))
       send_reply(sptr, RPL_WHOISACTUALLY, name, user->username,
-        user->realhost, ircd_ntoa((const char*) &(cli_ip(acptr))));
-   
+                 user->realhost, ircd_ntoa((const char*) &(cli_ip(acptr))));
+    
     /* Hint: if your looking to add more flags to a user, eg +h, here's
      *       probably a good place to add them :)
      */
      
-    if (MyConnect(acptr)
-#ifdef HEAD_IN_SAND_WHOIS_IDLETIME
-	&& (sptr == acptr || IsAnOper(sptr) || parc >= 3)
-#endif
-	)
+    if (MyConnect(acptr) && (!feature_bool(FEAT_HIS_WHOIS_IDLETIME) ||
+                             (sptr == acptr || IsAnOper(sptr) || parc >= 3)))
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last, 
                   cli_firsttime(acptr));
   }
@@ -361,21 +357,22 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * it with the correct servername - as is needed by hunt_server().
      * This is the secret behind the /whois nick nick trick.
      */
-#if HEAD_IN_SAND_REMOTE
-    /* If remote queries are disabled, then use the *second* parameter of
-     * of whois, so /whois nick nick still works.
-     */
-    if (!IsAnOper(sptr))
+    if (feature_int(FEAT_HIS_REMOTE))
     {
-      if (!FindUser(parv[2]))
+      /* If remote queries are disabled, then use the *second* parameter of
+       * of whois, so /whois nick nick still works.
+       */
+      if (!IsAnOper(sptr))
       {
-	send_reply(sptr, ERR_NOSUCHNICK, parv[2]);
-	send_reply(sptr, RPL_ENDOFWHOIS, parv[2]);
-	return 0;
+        if (!FindUser(parv[2]))
+        {
+          send_reply(sptr, ERR_NOSUCHNICK, parv[2]);
+          send_reply(sptr, RPL_ENDOFWHOIS, parv[2]);
+          return 0;
+        }
+        parv[1] = parv[2];
       }
-      parv[1] = parv[2];
     }
-#endif
 
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
        HUNTED_ISME)

@@ -111,7 +111,7 @@ int m_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(0 != cli_user(sptr));
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (feature_bool(FEAT_IDLE_FROM_MSG))
     cli_user(sptr)->last = CurrentTime;
@@ -152,7 +152,7 @@ int ms_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* name;
   char* server;
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3) {
     /*
@@ -201,7 +201,7 @@ int mo_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(0 != cli_user(sptr));
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(cptr, FLAG_TS8);
 
   if (feature_bool(FEAT_IDLE_FROM_MSG))
     cli_user(sptr)->last = CurrentTime;

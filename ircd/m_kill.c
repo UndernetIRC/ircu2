@@ -84,8 +84,8 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -104,11 +104,11 @@
  *
  */
 static int do_kill(struct Client* cptr, struct Client* sptr,
-		   struct Client* victim, char* inpath, char* path, char *msg)
+		   struct Client* victim, char* inpath, char* path, char* msg)
 {
   assert(0 != cptr);
   assert(0 != sptr);
-  assert(IsUser(victim));
+  assert(!IsServer(victim));
 
   /*
    * Notify all *local* opers about the KILL (this includes the one
@@ -135,11 +135,11 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
                           inpath, path, msg);
 
     /*
-     * Set FLAGS_KILLED. This prevents exit_one_client from sending
+     * Set FLAG_KILLED. This prevents exit_one_client from sending
      * the unnecessary QUIT for this. (This flag should never be
      * set in any other place)
      */
-    cli_flags(victim) |= FLAGS_KILLED;
+    SetFlag(victim, FLAG_KILLED);
   }
 
   /*
@@ -150,19 +150,15 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * In accordance with the new hiding rules, the victim
    * always sees the kill as coming from me.
    */
-#ifdef HEAD_IN_SAND_KILLWHO
   if (MyConnect(victim))
-    sendcmdto_one(&me, CMD_KILL, victim, "%C :%s %s", victim,
-                  HEAD_IN_SAND_SERVERNAME, msg);
-  return exit_client_msg(cptr, victim, &me, "Killed (%s %s)",
-			 HEAD_IN_SAND_SERVERNAME, msg);
-#else
-  if (MyConnect(victim))
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s %s", victim,
-                  cli_name(sptr), msg);
-  return exit_client_msg(cptr, victim, sptr, "Killed (%s %s)", cli_name(sptr),
+    sendcmdto_one(feature_bool(FEAT_HIS_KILLWHO) ? &me : sptr, CMD_KILL, 
+		  victim, "%C :%s %s", victim, feature_bool(FEAT_HIS_KILLWHO)
+		  ? feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr), msg);
+  return exit_client_msg(cptr, victim, feature_bool(FEAT_HIS_KILLWHO)
+			 ? &me : sptr, "Killed (%s %s)",
+			 feature_bool(FEAT_HIS_KILLWHO) ? 
+			 feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr),
 			 msg);
-#endif
 }
 
 /*

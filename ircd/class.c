@@ -231,7 +231,8 @@ struct ConnectionClass* find_class(const char *name)
 }
 
 void
-report_classes(struct Client *sptr)
+report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
+               char *param)
 {
   struct ConnectionClass *cltmp;
 

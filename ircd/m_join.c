@@ -102,21 +102,6 @@
 #include <string.h>
 
 /*
- * Helper function to see if there are any control characters
- * in a given string
- */
-static char *
-HasControlChars(char *mstring)
-{
-  unsigned char *j;
-  for(j = mstring; *j ; j++) {
-    if(*j <= 32) { return j; }
-  }
-
-  return 0;
-}
-
-/*
  * Helper function to find last 0 in a comma-separated list of
  * channel names.
  */
@@ -185,7 +170,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ModeBuf mbuf;
   struct Gline *gline;
   unsigned int flags = 0;
-  int i;
+  int i, j, k = 0;
   char *p = 0;
   char *chanlist;
   char *name;
@@ -208,7 +193,21 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
-    if (!IsChannelName(name) || HasControlChars(name)) { /* bad channel name */
+    if (!IsChannelName(name))
+    {
+      /* bad channel name */
+      send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+      continue;
+    }
+
+    /* This checks if the channel contains control codes and rejects em
+     * until they are gone, then we will do it otherwise - *SOB Mode*
+     */
+    for (k = 0, j = 0; name[j]; j++)
+      if (IsCntrl(name[j]))
+        k++;
+    if (k > 0)
+    {
       send_reply(sptr, ERR_NOSUCHCHANNEL, name);
       continue;
     }
@@ -220,13 +219,15 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
-    if ((chptr = FindChannel(name))) {
+    if ((chptr = FindChannel(name)))
+    {
       if (find_member_link(chptr, sptr))
 	continue; /* already on channel */
 
       flags = CHFL_DEOPPED;
-    } else
-      flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
+    }
+    else
+      flags = CHFL_CHANOP;
 
     if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
@@ -253,31 +254,43 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (check_target_limit(sptr, chptr, chptr->chname, 0))
 	continue; /* exceeded target limit */
       else if (!is_level0_op && (i = can_join(sptr, chptr, keys))) {
-	if (i > MAGIC_OPER_OVERRIDE) { /* oper overrode mode */
-	  switch (i - MAGIC_OPER_OVERRIDE) {
-	  case ERR_CHANNELISFULL: /* figure out which mode */
-	    i = 'l';
-	    break;
+	if (i > MAGIC_OPER_OVERRIDE)
+        { /* oper overrode mode */
+          switch (i - MAGIC_OPER_OVERRIDE)
+          {
+          case ERR_CHANNELISFULL: /* figure out which mode */
+            i = 'l';
+            break;
 
-	  case ERR_INVITEONLYCHAN:
-	    i = 'i';
-	    break;
+          case ERR_INVITEONLYCHAN:
+            i = 'i';
+            break;
 
-	  case ERR_BANNEDFROMCHAN:
-	    i = 'b';
-	    break;
+          case ERR_BANNEDFROMCHAN:
+            i = 'b';
+            break;
 
-	  case ERR_BADCHANNELKEY:
-	    i = 'k';
-	    break;
-	  }
+          case ERR_BADCHANNELKEY:
+            i = 'k';
+            break;
 
-	  /* send accountability notice */
-	  sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
-			       "(overriding +%c)", sptr, chptr, i);
-	} else {
-	  send_reply(sptr, i, chptr->chname);
-	  continue;
+          case ERR_NEEDREGGEDNICK:
+            i = 'r';
+            break;
+
+          default:
+            i = '?';
+            break;
+          }
+
+          /* send accountability notice */
+          sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
+                               "(overriding +%c)", sptr, chptr, i);
+        }
+        else
+        {
+          send_reply(sptr, i, chptr->chname);
+          continue;
 	}
       } /* else if ((i = can_join(sptr, chptr, keys))) */
 
@@ -294,12 +307,14 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
     } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
       continue; /* couldn't get channel */
-    else if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
+    else if (check_target_limit(sptr, chptr, chptr->chname, 1))
+    {
       /* Note: check_target_limit will only ever return 0 here */
       chptr->members = 0;
       destruct_channel(chptr); /* created it... */
       continue;
-    } else
+    }
+    else
       joinbuf_join(&create, chptr, flags | CHFL_CHANNEL_MANAGER);
 
     del_invite(sptr, chptr);
@@ -333,8 +348,14 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *chanlist;
   char *name;
 
-  if (IsServer(sptr)) {
-    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", cli_name(sptr));
+  if (IsServer(sptr))
+  {
+    return protocol_violation(cptr,
+                              "%s tried to JOIN %s, duh!",
+                              cli_name(sptr),
+                              (parc < 2 || *parv[1] == '\0') ? "a channel" :
+                                                               parv[1]
+                              );
   }
 
   if (parc < 2 || *parv[1] == '\0')
@@ -354,25 +375,29 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
-    if (IsLocalChannel(name) || !IsChannelName(name)) {
-      protocol_violation(sptr,"%s tried to join %s",cli_name(cptr),name);
+    if (IsLocalChannel(name) || !IsChannelName(name))
+    {
+      protocol_violation(cptr, "%s tried to join %s", cli_name(sptr), name);
       continue;
     }
 
-    if (!(chptr = FindChannel(name))) {
+    if (!(chptr = FindChannel(name)))
+    {
       /* No channel exists, so create one */
-      if (!(chptr = get_channel(sptr, name, CGT_CREATE))) {
+      if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
+      {
         protocol_violation(sptr,"couldn't get channel %s for %s",
         		   name,cli_name(sptr));
       	continue;
       }
-      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
 
       /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */ 
       chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
     }
     else { /* We have a valid channel? */
-      if ((member = find_member_link(chptr, sptr))) {
+      if ((member = find_member_link(chptr, sptr)))
+      {
 	/* It is impossible to get here --Run */
 	if (!IsZombie(member)) /* already on channel */
 	  continue;
@@ -380,8 +405,9 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
 	remove_user_from_channel(sptr, chptr);
 	chptr = FindChannel(name);
-      } else
-	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      }
+      else
+        flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
       /* Always copy the timestamp when it is older, that is the only way to
          ensure network-wide synchronization of creation times. */
       if (creation && creation < chptr->creationtime)

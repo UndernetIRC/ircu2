@@ -59,18 +59,19 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdio.h>
 
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff
 #endif
 
-struct ConfItem* GlobalConfList  = 0;
+struct ConfItem  *GlobalConfList  = 0;
 int              GlobalConfCount = 0;
+struct qline     *GlobalQuarantineList = 0;
 
 void yyparse(void);
 int conf_fd, lineno;
@@ -238,7 +239,8 @@ static struct DNSReply* conf_dns_lookup(struct ConfItem* aconf)
  * Do (start) DNS lookups of all hostnames in the conf line and convert
  * an IP addresses in a.b.c.d number for to IP#s.
  */
-void lookup_confhost(struct ConfItem *aconf)
+void
+lookup_confhost(struct ConfItem *aconf)
 {
   struct DNSReply* reply;
 
@@ -399,7 +401,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
         uhost[sizeof(uhost) - 1] = 0;
         if (0 == match(aconf->name, uhost)) {
           if (strchr(uhost, '@'))
-            cli_flags(cptr) |= FLAGS_DOID;
+            SetFlag(cptr, FLAG_DOID);
           return check_limit_and_attach(cptr, aconf);
         }
       }
@@ -416,7 +418,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
     if (match(aconf->host, uhost))
       continue;
     if (strchr(uhost, '@'))
-      cli_flags(cptr) |= FLAGS_DOID;
+      SetFlag(cptr, FLAG_DOID);
 
     return check_limit_and_attach(cptr, aconf);
   }
@@ -921,6 +923,43 @@ const struct DenyConf* conf_get_deny_list(void)
 {
   return denyConfList;
 }
+
+#if 0
+void conf_add_quarantine(const char *chname, const char *reason)
+{
+  struct qline *qline;
+
+  qline = (struct qline *) MyMalloc(sizeof(struct qline));
+  DupString(qline->chname, chname);
+  DupString(qline->reason, reason);
+  qline->next = GlobalQuarantineList;
+  GlobalQuarantineList = qline;
+}
+#endif
+
+const char*
+find_quarantine(const char *chname)
+{
+  struct qline *qline;
+  
+  for (qline = GlobalQuarantineList; qline; qline = qline->next)
+    if (!ircd_strcmp(qline->chname, chname))
+      return qline->reason;
+  return NULL;
+}
+
+void clear_quarantines(void)
+{
+  struct qline *qline;
+  while ((qline = GlobalQuarantineList))
+  {
+    GlobalQuarantineList = qline->next;
+    MyFree(qline->reason);
+    MyFree(qline->chname);
+    MyFree(qline);
+  }
+}
+
 
 /*
  * read_configuration_file

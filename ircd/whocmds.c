@@ -30,7 +30,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -138,15 +138,9 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_SER))
   {
-    char *p2;
-#ifdef HEAD_IN_SAND_WHO_SERVERNAME
-    if (IsAnOper(sptr))
-#endif
-      p2 = cli_name(cli_user(acptr)->server);
-#ifdef HEAD_IN_SAND_WHO_SERVERNAME
-    else
-      p2 = HEAD_IN_SAND_SERVERNAME;
-#endif
+    const char *p2 = (feature_bool(FEAT_HIS_WHO_SERVERNAME) && !IsAnOper(sptr)) ?
+                       feature_str(FEAT_HIS_SERVERNAME) :
+                       cli_name(cli_user(acptr)->server);
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
@@ -208,24 +202,31 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     *p1++ = ' ';
     if (!fields)
       *p1++ = ':';              /* Place colon here for default reply */
-#ifdef HEAD_IN_SAND_WHO_HOPCOUNT
-    *p1++ = (sptr == acptr) ? '0' : '3';
-#else
-    /* three digit hopcount maximum */
-    p1 += ircd_snprintf(0, p1, 3, "%d", cli_hopcount(acptr));
-#endif
+    if (feature_bool(FEAT_HIS_WHO_HOPCOUNT) && !IsAnOper(sptr))
+      *p1++ = (sptr == acptr) ? '0' : '3';
+    else
+      /* three digit hopcount maximum */
+      p1 += ircd_snprintf(0, p1, 3, "%d", cli_hopcount(acptr));
   }
 
   if (fields & WHO_FIELD_IDL)
   {
     *p1++ = ' ';
-    if (MyUser(acptr)) {
-	    p1 += ircd_snprintf(0, p1, 11, "%d",
-				CurrentTime - cli_user(acptr)->last);
-    }    
-    else {
-    	    *p1++ = '0';
-    }
+    if (MyUser(acptr))
+      p1 += ircd_snprintf(0, p1, 11, "%d",
+                          CurrentTime - cli_user(acptr)->last);
+    else
+      *p1++ = '0';
+  }
+
+  if (fields & WHO_FIELD_ACC)
+  {
+    char *p2 = cli_user(acptr)->account;
+    *(p1++) = ' ';
+    if (*p2)
+      while ((*p2) && (*(p1++) = *(p2++)));
+    else
+      *(p1++) = '0';
   }
 
   if (!fields || (fields & WHO_FIELD_REN))

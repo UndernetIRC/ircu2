@@ -89,6 +89,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "opercmds.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -116,15 +117,32 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   origin      = parv[1];
   destination = parv[2];
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
-  cli_flags(sptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
+  ClrFlag(sptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
 
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
+  if (parc > 5)
+  {
+    /* AsLL pong */
+    cli_serv(cptr)->asll_rtt = atoi(militime_float(parv[3]));
+    cli_serv(cptr)->asll_to = atoi(parv[4]);
+    cli_serv(cptr)->asll_from = atoi(militime_float(parv[5]));
+    return 0;
+  }
+  
+  if (EmptyString(destination))
+    return 0;
+  
+  if (*destination == '!')
+  {
+    /* AsLL ping reply from a non-AsLL server */
+    cli_serv(cptr)->asll_rtt = atoi(militime_float(destination + 1));
+  }
+  else if (0 != ircd_strcmp(destination, cli_name(&me)))
+  {
     struct Client* acptr;
-    if ((acptr = FindClient(destination))) {
+    if ((acptr = FindClient(destination)))
       sendcmdto_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
-    }
   }
   return 0;
 }
@@ -142,7 +160,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
   /*
    * Check to see if this is a PONG :cookie reply from an
@@ -175,7 +193,7 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != cptr);
   assert(cptr == sptr);
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
   return 0;
 }

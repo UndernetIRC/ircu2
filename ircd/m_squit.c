@@ -60,7 +60,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char* server = parv[1];
   struct Client *acptr;
-  time_t timestamp;
+  time_t timestamp = 0;
   char *comment = 0;
   
   if (parc < 2) 
@@ -84,19 +84,22 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   
   /* If they are squitting me, we reverse it */
-  if (IsMe(acptr)) {
+  if (IsMe(acptr))
     acptr = cptr; /* Bugfix by Prefect */
-  }
-  	
-  timestamp = atoi(parv[2]);
+
+  if (parc > 2)
+    timestamp = atoi(parv[2]);
+  else
+    protocol_violation(cptr, "SQUIT with no timestamp/reason");
 
   /* If atoi(parv[2]) == 0 we must indeed squit !
    * It will be our neighbour.
    */
-  if ( timestamp != 0 && timestamp != cli_serv(acptr)->timestamp) {
+  if ( timestamp != 0 && timestamp != cli_serv(acptr)->timestamp)
+  {
     protocol_violation(sptr, "Issued SQUIT for %C with wrong timestamp %Tu "
-		       "(%Tu) (ignored)", acptr, timestamp,
-		       cli_serv(acptr)->timestamp);
+                       "(%Tu) (ignored)", acptr, timestamp,
+                       cli_serv(acptr)->timestamp);
     Debug((DEBUG_NOTICE, "Ignoring SQUIT with the wrong timestamp"));
     return 0;
   }

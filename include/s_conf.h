@@ -66,6 +66,8 @@ struct ConfItem
   unsigned short port;
   unsigned char bits; /* Number of bits for ipkills. */
   struct Privs privs; /* Priviledges for opers. */
+  /* Used to detect if a privilege has been touched. */
+  struct Privs privs_dirty;
 };
 
 struct ServerConf {
@@ -79,6 +81,13 @@ struct ServerConf {
   int                connected;
   time_t             hold;
   struct ConnectionClass*  conn_class;
+};
+
+struct qline
+{
+  struct qline *next;
+  char *chname;
+  char *reason;
 };
 
 struct DenyConf {
@@ -161,6 +170,7 @@ extern struct tm        motd_tm;
 extern struct MotdItem* motd;
 extern struct MotdItem* rmotd;
 extern struct TRecord*  tdata;
+extern struct qline*   GlobalQuarantineList;
 
 /*
  * Proto types
@@ -192,8 +202,7 @@ extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);
 extern struct MotdItem* read_motd(const char* motdfile);
-
-extern void set_initial_oper_privs(struct ConfItem *oper, int flags);
+extern const char *find_quarantine(const char* chname);
 extern void lookup_confhost(struct ConfItem *aconf);
 
 extern void yyerror(const char *msg);

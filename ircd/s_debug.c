@@ -205,7 +205,8 @@ static void debug_enumerator(struct Client* cptr, const char* msg)
  * different field names for "struct rusage".
  * -avalon
  */
-void send_usage(struct Client *cptr, char *nick)
+void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
+                char *param)
 {
   os_get_rusage(cptr, CurrentTime - cli_since(&me), debug_enumerator);
 
@@ -214,7 +215,8 @@ void send_usage(struct Client *cptr, char *nick)
 }
 #endif /* DEBUGMODE */
 
-void count_memory(struct Client *cptr, char *nick)
+void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
+                  char *param)
 {
   struct Client *acptr;
   struct SLink *link;
@@ -223,7 +225,8 @@ void count_memory(struct Client *cptr, char *nick)
   const struct ConnectionClass* cltmp;
   struct Membership* member;
 
-  int c = 0,                    /* clients */
+  int acc = 0,                  /* accounts */
+      c = 0,                    /* clients */
       cn = 0,                   /* connections */
       ch = 0,                   /* channels */
       lcc = 0,                  /* local client conf links */
@@ -237,7 +240,9 @@ void count_memory(struct Client *cptr, char *nick)
 
   int usi = 0,                  /* users invited */
       aw = 0,                   /* aways set */
-      wwa = 0;                  /* whowas aways */
+      wwa = 0,                  /* whowas aways */
+      gl = 0,                   /* glines */
+      ju = 0;                   /* jupes */
 
   size_t chm = 0,               /* memory used by channels */
       chbm = 0,                 /* memory used by channel bans */
@@ -246,13 +251,13 @@ void count_memory(struct Client *cptr, char *nick)
       awm = 0,                  /* memory used by aways */
       wwam = 0,                 /* whowas away memory used */
       wwm = 0,                  /* whowas array memory used */
+      glm = 0,                  /* memory used by glines */
+      jum = 0,                  /* memory used by jupes */
       com = 0,                  /* memory used by conf lines */
       dbufs_allocated = 0,      /* memory used by dbufs */
       dbufs_used = 0,           /* memory used by dbufs */
       msg_allocated = 0,	/* memory used by struct Msg */
-      msg_used = 0,		/* memory used by struct Msg */
       msgbuf_allocated = 0,	/* memory used by struct MsgBuf */
-      msgbuf_used = 0,		/* memory used by struct MsgBuf */
       rm = 0,                   /* res memory used */
       totcl = 0, totch = 0, totww = 0, tot = 0;
 
@@ -282,6 +287,9 @@ void count_memory(struct Client *cptr, char *nick)
         awm += (strlen(cli_user(acptr)->away) + 1);
       }
     }
+
+    if (IsAccount(acptr))
+      acc++;
   }
   cm = c * sizeof(struct Client);
   cnm = cn * sizeof(struct Connection);
@@ -314,7 +322,8 @@ void count_memory(struct Client *cptr, char *nick)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Clients %d(%zu) Connections %d(%zu)", c, cm, cn, cnm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Users %d(%zu) Invites %d(%zu)", us, us * sizeof(struct User),
+	     ":Users %d(%zu) Accounts %d(%zu) Invites %d(%zu)",
+             us, us * sizeof(struct User), acc, acc * (ACCOUNTLEN + 1),
 	     usi, usi * sizeof(struct SLink));
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
@@ -365,14 +374,7 @@ void count_memory(struct Client *cptr, char *nick)
 	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
 	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
-  msgq_count_memory(&msg_allocated, &msg_used, &msgbuf_allocated,
-		    &msgbuf_used);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Msgs allocated %d(%zu) used %d(%zu)", msgCounts.alloc,
-	     msg_allocated, msgCounts.used, msg_used);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":MsgBufs allocated %d(%zu) used %d(%zu)", msgBufCounts.alloc,
-	     msgbuf_allocated, msgBufCounts.used, msgbuf_used);
+  msgq_count_memory(cptr, &msg_allocated, &msgbuf_allocated);
 
   rm = cres_mem(cptr);
 
