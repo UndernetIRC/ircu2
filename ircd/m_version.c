@@ -107,9 +107,26 @@
  * m_version - generic message handler
  *
  *   parv[0] = sender prefix
- *   parv[1] = remote server
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+
+  if (parc>1)
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, sptr->name);
+  else
+    sendto_one(sptr, rpl_str(RPL_VERSION),
+        me.name, parv[0], version, debugmode, me.name, serveropts);
+
+  return 0;
+}
+
+/*
+ * mo_version - oper message handler
+ *
+ *   parv[0] = sender prefix
+ *   parv[1] = remote server
+ */
+int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr;
 

@@ -88,6 +88,7 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "ircd.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "msg.h"
@@ -95,6 +96,7 @@
 #include "numnicks.h"
 #include "s_conf.h"
 #include "s_user.h"
+#include "send.h"
 
 #include <assert.h>
 
@@ -102,9 +104,27 @@
  * m_admin - generic message handler
  *
  * parv[0] = sender prefix
- * parv[1] = servername
  */
 int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  assert(0 != cptr);
+  assert(cptr == sptr);
+
+  if (parc > 1) {
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, sptr->name);
+    return 0;
+  }
+
+  return send_admin_info(sptr, find_admin());
+}
+
+/*
+ * mo_admin - oper message handler
+ *
+ * parv[0] = sender prefix
+ * parv[1] = servername
+ */
+int mo_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != cptr);
   assert(cptr == sptr);
@@ -121,6 +141,7 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return send_admin_info(sptr, find_admin());
 }
+
 
 /*
  * ms_admin - server message handler
