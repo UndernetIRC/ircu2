@@ -242,7 +242,10 @@ struct Client;
 #define TOK_END_OF_BURST_ACK    "EA"
 
 #define MSG_PROTO               "PROTO"         /* PROTO */
-#define TOK_PROTO               "PROTO"         /* PROTO */
+#define TOK_PROTO               "PROTO"         
+
+#define MSG_POST		"POST"		/* POST */
+#define TOK_POST		"POST"		
 
 
 /*
