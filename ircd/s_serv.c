@@ -208,9 +208,14 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     /* acptr->from == acptr for acptr == cptr */
     if (acptr->from == cptr)
       continue;
-    if (IsServer(acptr))
-    {
-      char *protocol_str = IsBurst(acptr) ? "J" : "P";
+    if (IsServer(acptr)) {
+      const char* protocol_str;
+
+      if (Protocol(acptr) > 9)
+        protocol_str = IsBurst(acptr) ? "J" : "P";
+      else
+        protocol_str = IsBurst(acptr) ? "J0" : "P0";
+
       if (0 == match(me.name, acptr->name))
         continue;
       split = (MyConnect(acptr) && 
