@@ -157,7 +157,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                  sptr->name, acptr->name, parv[2], parv[3], parv[4]);
     else
       sendto_one(acptr, "%s " TOK_RPONG " %s %s %s :%s",
-                 parv[0], parv[1], parv[2], parv[3], parv[4]);
+                 NumServ(sptr), parv[1], parv[2], parv[3], parv[4]);
   }
   return 0;
 }
