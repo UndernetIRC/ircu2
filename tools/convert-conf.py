@@ -22,7 +22,7 @@
 # Usage:
 #   convert-conf.py < old.conf > new.conf
 #
-# $Id: convert-conf.py,v 1.2 2005-02-19 21:50:48 isomer Exp $
+# $Id: convert-conf.py,v 1.3 2005-03-19 23:04:07 entrope Exp $
 #
 
 import sys
@@ -249,7 +249,7 @@ if len(connects.keys()):
 		if connects[i].has_key("hub"):
 			print "\thub = \"%s\";" % qstr(connects[i]["hub"])
 		else:
-			print "\tleaf = \"yes\";"
+			print "\tleaf;"
 		print "};"
 		print
 

@@ -1,5 +1,12 @@
 2005-03-19  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Connect): Remove a buggy comment about leaf
+	directives; refer the reader to the Connect block instead.
+
+	* tools/convert-conf.py: Set "leaf;" rather than "leaf = yes;"
+
+2005-03-19  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Operator): Correct the comment explaining
 	hashed passwords.
 
