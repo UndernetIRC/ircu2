@@ -356,28 +356,30 @@ struct Client;
 /*
  * Constants
  */
-#define   MFLG_SLOW              0x01   /* Command can be executed roughly    *
-                                         * once per 2 seconds.                */
-#define   MFLG_UNREG             0x02   /* Command available to unregistered  *
-                                         * clients.                           */
-#define   MFLG_IGNORE            0x04   /* silently ignore command from
-                                         * unregistered clients */
-#define   MFLG_EXTRA             0x08   /* Handler requests that mptr->extra
-                                         * be passed in parv[1] */
+#define   MFLG_SLOW              0x01   /** Limit command usage to
+                                         * once per 2 seconds (for
+                                         * local users). */
+#define   MFLG_UNREG             0x02   /** Command available to
+                                         * unregistered clients. */
+#define   MFLG_IGNORE            0x04   /** Silently ignore command from
+                                         * unregistered clients. */
+#define   MFLG_EXTRA             0x08   /** Handler requests that
+                                         * mptr->extra be passed in
+                                         * parv[1]. */
 
 /*
  * Structures
  */
+
+/** Information on how to parse a message. */
 struct Message {
-  char *cmd;                  /* command string */
-  char *tok;                  /* token (shorter command string) */
-  unsigned int count;         /* number of times message used */
-  unsigned int parameters;
-  unsigned int flags;           /* bit 0 set means that this command is allowed
-                                   to be used only on the average of once per 2
-                                   seconds -SRB */
-  unsigned int bytes;         /* bytes received for this message */
-  void *extra;                /* extra pointer to be passed in parv[1] */
+  char *cmd;                  /**< command string */
+  char *tok;                  /**< token (shorter command string) */
+  unsigned int count;         /**< number of times message used */
+  unsigned int parameters;    /**< minimum number of parameters */
+  unsigned int flags;         /**< MFLG_* flags for command */
+  unsigned int bytes;         /**< bytes received for this message */
+  void *extra;                /**< extra pointer to be passed in parv[1] */
   /*
    * cptr = Connected client ptr
    * sptr = Source client ptr
