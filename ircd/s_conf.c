@@ -158,7 +158,7 @@ static void killcomment(struct Client *sptr, char *parv, char *filename)
 {
   FBFILE*     file = NULL;
   char        line[80];
-  char*       tmp;
+  char*       tmp = NULL;
   struct stat sb;
   struct tm*  tm;
 

@@ -660,7 +660,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       /*
        * We ran out of bits to count this
        */
-      return exit_client(cptr, sptr, &me, "More than 255 connections from this address");
+      return exit_client(&me, sptr, &me, "More than 255 connections from this address");
   }
 
   tmpstr = umode_str(sptr);
