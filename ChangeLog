@@ -1,5 +1,13 @@
 2002-01-12  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_away.c (user_set_away): use AWAYLEN instead of TOPICLEN
+
+	* include/supported.h: add AWAYLEN to the list of supported
+	features
+
+	* include/ircd_defs.h: add AWAYLEN to specify the maximum length
+	of an away message
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 	* ircd/m_mode.c (m_mode): pass extra parameter to channel_modes()

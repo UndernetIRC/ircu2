@@ -98,10 +98,13 @@
  */
 #define SOCKIPLEN 15
 /*
- * TOPICLEN is the maximum length for channel topics, kill comments,
- * and quit comments
+ * TOPICLEN is the maximum length for channel topics and kill comments
  */
 #define TOPICLEN        160
+/*
+ * AWAYLEN is the maximum length for away messages
+ */
+#define AWAYLEN		160
 /*
  * BUFSIZE is exactly long enough to hold one protocol message (RFC 1459)
  * including the line termination (\r\n).
