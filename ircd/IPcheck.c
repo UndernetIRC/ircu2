@@ -41,7 +41,7 @@
 
 /** Stores free target information for a particular user. */
 struct IPTargetEntry {
-  int           count; /**< Number of free targets targets. */
+  unsigned int  count; /**< Number of free targets targets. */
   unsigned char targets[MAXTARGETS]; /**< Array of recent targets. */
 };
 
@@ -76,24 +76,34 @@ static struct IPRegistryEntry* freeList;
 /** Periodic timer to look for too-old registry entries. */
 static struct Timer expireTimer;
 
+/** Convert IP addresses to canonical form for comparison.  IPv4
+ * addresses are translated into 6to4 form; IPv6 addresses are left
+ * alone.
+ * @param[out] out Receives canonical format for address.
+ * @param[in] in IP address to canonicalize.
+ */
+static void ip_registry_canonicalize(struct irc_in_addr *out, const struct irc_in_addr *in)
+{
+    if (irc_in_addr_is_ipv4(in)) {
+        out->in6_16[0] = htons(0x2002);
+        out->in6_16[1] = in->in6_16[6];
+        out->in6_16[2] = in->in6_16[7];
+        out->in6_16[3] = out->in6_16[4] = out->in6_16[5] = 0;
+        out->in6_16[6] = out->in6_16[7] = 0;
+    } else
+        memcpy(out, in, sizeof(*out));
+}
+
 /** Calculate hash value for an IP address.
- * If this looks like an IPv6 address, only consider the first 64 bits
- * of the address. Otherwise, only consider the final 32 bits.
- * @param[in] ip Address to hash.
+ * @param[in] ip Address to hash; must be in canonical form.
  * @return Hash value for address.
  */
 static unsigned int ip_registry_hash(const struct irc_in_addr *ip)
 {
   unsigned int res;
-
-  if (ip->in6_16[0] || ip->in6_16[1] || ip->in6_16[2] || ip->in6_16[3] || ip->in6_16[4]) {
-      /* Only use the first 64 bits of address, since the last 64 bits
-       * tend to be under user control. */
-      res = ip->in6_16[0] ^ ip->in6_16[1] ^ ip->in6_16[2] ^ ip->in6_16[3];
-  } else {
-      /* Looks like an IPv4 address. */
-      res = ip->in6_16[6] ^ ip->in6_16[7];
-  }
+  /* Only use the first 64 bits of address, since the last 64 bits
+   * tend to be under user control. */
+  res = ip->in6_16[0] ^ ip->in6_16[1] ^ ip->in6_16[2] ^ ip->in6_16[3];
   return res & (IP_REGISTRY_TABLE_SIZE - 1);
 }
 
@@ -105,9 +115,12 @@ static unsigned int ip_registry_hash(const struct irc_in_addr *ip)
  */
 static struct IPRegistryEntry* ip_registry_find(const struct irc_in_addr *ip)
 {
-  struct IPRegistryEntry* entry = hashTable[ip_registry_hash(ip)];
+  struct irc_in_addr canon;
+  struct IPRegistryEntry* entry;
+  ip_registry_canonicalize(&canon, ip);
+  entry = hashTable[ip_registry_hash(&canon)];
   for ( ; entry; entry = entry->next) {
-    int bits = (ip->in6_16[0] || ip->in6_16[1] || ip->in6_16[2] || ip->in6_16[3] || ip->in6_16[4]) ? 64 : 128;
+    int bits = (ip->in6_16[0] == ntohs(0x2002)) ? 48 : 64;
     if (ipmask_check(ip, &entry->addr, bits))
       break;
   }
@@ -260,7 +273,7 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
 
   if (0 == entry) {
     entry       = ip_registry_new_entry();
-    memcpy(&entry->addr, addr, sizeof(entry->addr));
+    ip_registry_canonicalize(&entry->addr, addr);
     ip_registry_add(entry);
     return 1;
   }
@@ -321,7 +334,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
   SetIPChecked(cptr);
   if (0 == entry) {
     entry = ip_registry_new_entry();
-    memcpy(&entry->addr, &cli_ip(cptr), sizeof(entry->addr));
+    ip_registry_canonicalize(&entry->addr, &cli_ip(cptr));
     if (is_burst)
       entry->attempts = 0;
     ip_registry_add(entry);

@@ -444,10 +444,13 @@ const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int c
 {
   if (irc_in_addr_is_ipv4(addr)) {
     assert(count >= 6);
-    inttobase64(buf, (htons(addr->in6_16[6]) << 16) | htons(addr->in6_16[7]), 6);
+    inttobase64(buf, (ntohs(addr->in6_16[6]) << 16) | ntohs(addr->in6_16[7]), 6);
   } else if (!v6_ok) {
     assert(count >= 6);
-    strcpy(buf, "AAAAAA");
+    if (addr[0] == htons(0x2002))
+        inttobase64(buf, (ntohs(addr->in6_16[1]) << 16) | ntohs(addr->in6_16[2]), 6);
+    else
+        strcpy(buf, "AAAAAA");
   } else {
     unsigned int max_start, max_zeros, curr_zeros, zero, ii;
     char *output = buf;

@@ -100,7 +100,6 @@
 static void do_settopic(struct Client *sptr, struct Client *cptr, 
 		        struct Channel *chptr, char *topic, time_t ts)
 {
-   struct Membership *member;
    struct Client *from;
    int newtopic;
 
@@ -108,14 +107,18 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
        from = &me;
    else
        from = sptr;
-   member = find_channel_member(sptr, chptr);
-   /* if +t and not @'d, return an error and ignore the topic */
-   if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && (!member || !IsChanOp(member)))
+   if (IsChannelService(sptr))
    {
+       /* allow off-channel services to set the topic of any channel */
+   }
+   else if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && is_chan_op(sptr, chptr))
+   {
+      /* if +t and not @'d, return an error and ignore the topic */
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       return;
    }
-   if (!client_can_send_to_channel(sptr, chptr, 1) && !IsChannelService(sptr)) {
+   else if (!client_can_send_to_channel(sptr, chptr, 1))
+   {
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
       return;
    }

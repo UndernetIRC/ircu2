@@ -1,3 +1,26 @@
+2004-12-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_topic.c (do_settopic): Allow +k services to set topics on
+	channels they are not joined.
+
+2004-12-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/IPcheck.c (IPTargetEntry): Make count unsigned to squash
+	warning.
+	(ip_registry_canonicalize): New function to convert an IP address
+	into a canonical form for clone checks.
+	(ip_registry_hash): Update to reflect canonical form.
+	(ip_registry_find): Use ip_registry_canonicalize().
+	(ip_registry_check_local, ip_registry_check_remote): Likewise.
+
+	* ircd/numnicks.c (iptobase64): Map 6to4 addresses to IPv4 when
+	sending them to a non-IPv6 server.
+
+2004-02-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (hide_hostmask): Preserve user's visibility in a
+	+D channel when they hide their hostmask.
+
 2004-12-15  Michael Poole <dmpoole@troilus.org>
 
 	* doc/example.conf: Remove the example Server blocks since they

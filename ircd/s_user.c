@@ -1162,12 +1162,8 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   {
     if (IsZombie(chan))
       continue;
-    /* For a user with no modes in a join-delayed channel, do not show
-     * the rejoin. */
-    if (!IsChanOp(chan) && !HasVoice(chan)
-        && (chan->channel->mode.mode & MODE_DELJOINS))
-      SetDelayedJoin(chan);
-    else
+    /* Send a JOIN unless the user's join has been delayed. */
+    if (!IsDelayedJoin(chan))
       sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr, 0,
                                          "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan))
