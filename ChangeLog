@@ -5,6 +5,8 @@
 
 	* ircd/gline.c: Fix core bug in gline_find()
 
+	* ircd/m_kill.c: Bug fix for HIS_KILLWHO
+
 2002-02-19 John Buttery <john@io.com>
 
 	* ircd/ircd.c: Updated "No such file" error message.

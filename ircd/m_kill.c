@@ -182,7 +182,11 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
                   comment);
 #endif
   }
+#ifdef HEAD_IN_SAND_KILLWHO
+  return exit_client_msg(cptr, victim, &me, "Killed (%s)", comment);
+#else
   return exit_client_msg(cptr, victim, sptr, "Killed (%s)", comment);
+#endif
 }
 
 /*
