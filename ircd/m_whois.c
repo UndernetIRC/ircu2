@@ -152,7 +152,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
     {
        chptr = chan->channel;
        
-       if (!ShowChannel(sptr, chptr))
+       if (!ShowChannel(sptr, chptr)
+           && !(IsOper(sptr) && IsLocalChannel(chptr->chname)))
           continue;
           
        if (acptr != sptr && IsZombie(chan))
@@ -166,6 +167,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
        }
        if (IsDeaf(acptr))
          *(buf + len++) = '-';
+       if (IsOper(sptr) && !ShowChannel(sptr, chptr))
+         *(buf + len++) = '*';
        if (IsDelayedJoin(chan) && (sptr != acptr))
          *(buf + len++) = '<';
        else if (IsChanOp(chan))
