@@ -568,7 +568,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			   "Client connecting: %s (%s@%s) [%s] {%d} [%s]",
 			   cli_name(sptr), user->username, user->host,
 			   cli_sock_ip(sptr), get_client_class(sptr),
-			   cli_info(user)
+			   cli_info(sptr)
 			   );
     IPcheck_connect_succeeded(sptr);
   }

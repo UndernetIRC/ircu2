@@ -1,3 +1,6 @@
+2003-07-04 Spike  <spike@undernet.org>
+	* ircd/s_user.c: Fixed a small typo
+
 2003-07-01 Isomer <isomer@undernet.org>
 	* ircd/s_nick.c: Add user@host information to client exiting notices
 
