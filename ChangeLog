@@ -1,5 +1,7 @@
 2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* BUGS: since I fixed that bug, might as well mark it fixed.
+
 	* ircd/m_join.c: look up badchans with GLINE_EXACT
 
 	* ircd/m_gline.c: fix parc count problems; look up existing
@@ -464,7 +466,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.83 2000-04-14 16:53:09 kev Exp $
+# $Id: ChangeLog,v 1.84 2000-04-14 17:08:06 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
