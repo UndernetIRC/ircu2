@@ -146,7 +146,7 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          IsAnOper(acptr) && SendWallops(acptr))
       sendbufto_one(acptr);
   }
-  sendto_serv_butone(cptr, "%s%s " TOK_WALLOPS " :%s", NumNick(sptr), message);
+  sendto_serv_butone(cptr, "%s%s " TOK_WALLOPS " :* %s", NumNick(sptr), message);
   return 0;
 }
 
