@@ -1,5 +1,14 @@
+2002-12-17 hikari <shadow@undernet.org>
+	* ircd/s_err.c: added RPL_HOSTHIDDEN reply text
+
+	* ircd/s_user.c: send a confirmation of mode +x using reply numeric
+	RPL_HOSTHIDDEN
+
+	* include/numeric.h: addition of RPL_HOSTHIDDEN as 396
+
 2002-12-14 hikari <shadow@undernet.org>
 	* ircd/m_wallchops.c: fixed ms_wallchops()
+
 	* ircd/m_wallvoices.c: fixed ms_wallvoices()
 
 2002-12-13 Zoot <zoot@gamesnet.net>
