@@ -211,8 +211,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
 {
   struct SLink *lp;
 
-  verify_client_list();
-
   if (cli_serv(bcptr) && cli_serv(bcptr)->client_list)  /* Was SetServerYXX called ? */
     ClearServerYXX(bcptr);      /* Removes server from server_list[] */
   if (IsUser(bcptr)) {
@@ -304,8 +302,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   hRemClient(bcptr);
 #endif
   remove_client_from_list(bcptr);
-
-  verify_client_list();
 }
 
 /*

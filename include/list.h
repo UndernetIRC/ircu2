@@ -57,11 +57,6 @@ extern struct Client *make_client(struct Client *from, int status);
 extern void free_connection(struct Connection *con);
 extern void free_client(struct Client *cptr);
 extern struct Server *make_server(struct Client *cptr);
-#ifdef DEBUGMODE
-extern void verify_client_list(void);
-#else
-#define verify_client_list()
-#endif
 extern void remove_client_from_list(struct Client *cptr);
 extern void add_client_to_list(struct Client *cptr);
 extern struct DLink *add_dlink(struct DLink **lpp, struct Client *cp);

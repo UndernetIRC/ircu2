@@ -186,8 +186,6 @@ struct Client* make_client(struct Client *from, int status)
 
   assert(!from || cli_verify(from));
 
-  verify_client_list();
-
   cptr = alloc_client();
 
   assert(0 != cptr);
@@ -223,8 +221,6 @@ struct Client* make_client(struct Client *from, int status)
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "unknown");
 
-  verify_client_list();
-
   return cptr;
 }
 
@@ -252,8 +248,6 @@ void free_client(struct Client* cptr)
   assert(cli_next(cptr) == 0);
   assert(cli_prev(cptr) == 0);
 
-  verify_client_list();
-
   Debug((DEBUG_LIST, "Freeing client %s [%p], connection %p", cli_name(cptr),
 	 cptr, cli_connect(cptr)));
 
@@ -280,8 +274,6 @@ void free_client(struct Client* cptr)
   cli_connect(cptr) = 0;
 
   dealloc_client(cptr); /* actually destroy the client */
-
-  verify_client_list();
 }
 
 struct Server *make_server(struct Client *cptr)
@@ -316,8 +308,6 @@ void remove_client_from_list(struct Client *cptr)
   assert(con_verify(cli_connect(cptr)));
   assert(!cli_prev(cptr) || cli_verify(cli_prev(cptr)));
   assert(!cli_next(cptr) || cli_verify(cli_next(cptr)));
-
-  verify_client_list();
 
   if (cli_prev(cptr))
     cli_next(cli_prev(cptr)) = cli_next(cptr);
@@ -354,8 +344,6 @@ void remove_client_from_list(struct Client *cptr)
 #endif
   }
   free_client(cptr);
-
-  verify_client_list();
 }
 
 /*
@@ -370,8 +358,6 @@ void add_client_to_list(struct Client *cptr)
   assert(cli_next(cptr) == 0);
   assert(cli_prev(cptr) == 0);
 
-  verify_client_list();
-
   /*
    * Since we always insert new clients to the top of the list,
    * this should mean the "me" is the bottom most item in the list.
@@ -382,11 +368,9 @@ void add_client_to_list(struct Client *cptr)
   GlobalClientList = cptr;
   if (cli_next(cptr))
     cli_prev(cli_next(cptr)) = cptr;
-
-  verify_client_list();
 }
 
-#ifdef DEBUGMODE
+#if 0
 /* WARNING: Major CPU sink!
  *
  * This is a debugging routine meant to verify the integrity of the client

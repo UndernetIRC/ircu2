@@ -1,3 +1,63 @@
+2002-01-10  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_debug.c (count_memory): conditionalize on MDEBUG instead
+	of !NDEBUG
+
+	* ircd/m_stats.c: conditionalize /stats M on MDEBUG instead of
+	!NDEBUG
+
+	* ircd/ircd_alloc.c: conditionalize on MDEBUG instead of on
+	!NDEBUG
+
+	* ircd/fda.c: conditionalize on MDEBUG instead of on !NDEBUG
+
+	* ircd/Makefile.in: run make depend on chkconf.c as well
+
+	* include/ircd_alloc.h: instead of conditionalizing on !NDEBUG,
+	conditionalize on MDEBUG
+
+	* include/fda.h: instead of conditionalizing on !NDEBUG,
+	conditionalize on MDEBUG
+
+	* configure: rebuild configure script
+
+	* configure.in: enable assertion checking by default, since we
+	have now decoupled memory debugging from the NDEBUG macro
+
+	* ircd/s_user.c (set_nick_name): remove calls to
+	verify_client_list()
+
+	* ircd/s_misc.c (exit_one_client): remove calls to
+	verify_client_list()
+
+	* ircd/s_conf.c (rehash): remove calls to verify_client_list()
+
+	* ircd/m_who.c (m_who): remove calls to verify_client_list()
+
+	* ircd/list.c: remove calls to verify_client_list(); keep
+	verify_client_list() around just in case we ever need it again,
+	but never compile it in
+
+	* ircd/ircd_events.c (event_execute): remove calls to
+	verify_client_list()
+
+	* ircd/client.c (client_get_ping): remove calls to
+	verify_client_list()
+
+	* include/list.h (send_listinfo): remove temporary debugging
+	function verify_client_list()
+
+	* ircd/uping.c: don't die if the event type is ET_ERROR in socket
+	callback functions
+
+	* ircd/res.c (res_callback): don't die if the event type is
+	ET_ERROR
+
+	* ircd/listener.c (accept_connection): don't die if the event type
+	is ET_ERROR
+
 2002-01-09  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (set_nick_name): bracket call to

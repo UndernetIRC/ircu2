@@ -94,7 +94,7 @@ static void uping_erase(struct UPing* p)
 /* Called when the event engine detects activity on the UPing socket */
 static void uping_echo_callback(struct Event* ev)
 {
-  assert(ev_type(ev) == ET_READ);
+  assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
 
   uping_echo();
 }
@@ -204,7 +204,7 @@ static void uping_read_callback(struct Event* ev)
     if (!pptr->freeable)
       MyFree(pptr); /* done with it, finally */
   } else {
-    assert(ev_type(ev) == ET_READ);
+    assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
 
     uping_read(pptr); /* read uping response */
   }
