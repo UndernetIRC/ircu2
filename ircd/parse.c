@@ -1088,7 +1088,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   if (len == 3 && IsDigit(*ch))
   {
     numeric = (*ch - '0') * 100 + (*(ch + 1) - '0') * 10 + (*(ch + 2) - '0');
-    paramcount = MAXPARA;
+    paramcount = 2; /* destination, and the rest of it */
     ServerStats->is_num++;
     mptr = NULL;                /* Init. to avoid stupid compiler warning :/ */
   }
@@ -1183,7 +1183,10 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
          * The rest is single parameter--can
          * include blanks also.
          */
-        para[++i] = s + 1;
+	if (numeric)
+	  para[++i] = s; /* preserve the colon to make do_numeric happy */
+	else
+	  para[++i] = s + 1;
         break;
       }
       para[++i] = s;

@@ -113,8 +113,8 @@ int send_reply(struct Client *to, int reply, ...)
   assert(0 != vd.vd_format);
 
   /* build buffer */
-  ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %C %v", &me, num->str,
-		to, &vd);
+  ircd_snprintf(to->from, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %C %v", &me,
+		num->str, to, &vd);
 
   va_end(vd.vd_args);
 

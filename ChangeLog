@@ -1,5 +1,13 @@
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_reply.c (send_reply): fix a slight bug...
+
+	* ircd/s_numeric.c (do_numeric): use new sendcmdto_* functions,
+	kinda hackish...
+
+	* ircd/parse.c (parse_server): argument wrangling to make
+	processing in do_numeric a little easier to deal with
+
 	* ircd/s_serv.c (server_estab): SERVER should come from
 	acptr->serv->up, not &me
 
@@ -947,7 +955,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.110 2000-04-28 15:34:34 kev Exp $
+# $Id: ChangeLog,v 1.111 2000-04-28 16:16:06 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
