@@ -1075,6 +1075,8 @@ int hide_hostmask(struct Client *cptr, unsigned int flag)
    * and set the modes, if any
    */
   for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel) {
+    if (IsZombie(chan))
+      continue;
     sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
       "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan)) {

@@ -1,3 +1,7 @@
+2003-09-03 splidge <splidge@quakenet.org>
+	* ircd/s_user.c: Made hide_hostmask() not show bogus joins for
+	channels where the user is a zombie.
+
 2003-08-31 hikari <shadow@undernet.org>
 	* ircd/s_stats.c: Fixed stats_servers_verbose() so that the client
 	count for the local server is actually displayed.
