@@ -1,4 +1,7 @@
 2003-11-06 Isomer <isomer@undernet.org>
+	* include/s_user.c: Fix ERR_UMODEUNKNOWNFLAG (again)
+
+2003-11-06 Isomer <isomer@undernet.org>
 	* include/patchlevel.h: Bump to .pre1
 
 2003-11-06 Isomer <isomer@undernet.org>

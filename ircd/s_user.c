@@ -1255,7 +1255,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
 	/* if none of the given case is valid then compain by 
 	 * sending raw 501 ( ERR_UMODEUNKNOWNFLAG )
 	 */
-      default: send_reply(sptr, ERR_UMODEUNKNOWNFLAG, parv[0], *m);
+      default: send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;
       }
     }
