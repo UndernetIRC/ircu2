@@ -834,7 +834,7 @@ void sendto_ops(const char *pattern, ...)
  * one - client not to send message to
  * from- client which message is from *NEVER* NULL!!
  */
-void sendto_ops_butone(struct Client *one, struct Client *from, const char *pattern, ...)
+void sendto_ops_butone(struct Client *one, struct Client *from, int oper_only, const char *pattern, ...)
 {
   va_list vl;
   int i;
@@ -844,7 +844,7 @@ void sendto_ops_butone(struct Client *one, struct Client *from, const char *patt
   ++sentalong_marker;
   for (cptr = GlobalClientList; cptr; cptr = cptr->next)
   {
-    if (!SendWallops(cptr))
+    if (!SendWallops(cptr) || (oper_only && !IsAnOper(cptr)))
       continue;
     i = cptr->from->fd;         /* find connection oper is on */
     if (i < 0 || sentalong[i] == sentalong_marker)       /* sent message along it already ? */

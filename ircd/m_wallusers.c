@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_wallops.c
+ * IRC - Internet Relay Chat, ircd/m_wallusers.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  *
@@ -97,35 +97,37 @@
 
 
 /*
- * ms_wallops - server message handler
+ * ms_wallusers - server message handler
  */
-int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char *message;
 
   message = parc > 1 ? parv[1] : 0;
 
+  /*
+   * XXX - PROTOCOL ERROR (shouldn't happen)
+   */
   if (EmptyString(message))
-    return need_more_params(sptr, "WALLOPS");
+    return need_more_params(sptr, "WALLUSERS");
 
-  sendto_ops_butone(cptr, sptr, 1, ":%s WALLOPS :%s", parv[0], message);
+  sendto_ops_butone(cptr, sptr, 0, ":%s WALLUSERS :%s", parv[0], message);
   return 0;
 }
 
 /*
- * mo_wallops - oper message handler
+ * mo_wallusers - oper message handler
  */
-int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int mo_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char *message;
 
   message = parc > 1 ? parv[1] : 0;
 
   if (EmptyString(message))
-    return need_more_params(sptr, "WALLOPS");
+    return need_more_params(sptr, "WALLUSERS");
 
-  sendto_ops_butone(0, sptr, 1, ":%s WALLOPS :%s", parv[0], message);
+  sendto_ops_butone(0, sptr, 0, ":%s WALLUSERS :%s", parv[0], message);
   return 0;
 }
 
-  

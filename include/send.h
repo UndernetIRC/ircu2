@@ -52,7 +52,7 @@ extern void sendto_match_butone(struct Client *one, struct Client *from,
                                 const char *mask, int what, const char* fmt, ...);
 extern void sendto_lops_butone(struct Client *one, const char* fmt, ...);
 extern void vsendto_ops(const char *pattern, va_list vl);
-extern void sendto_ops_butone(struct Client *one, struct Client *from,
+extern void sendto_ops_butone(struct Client *one, struct Client *from, int oper_only,
                               const char* fmt, ...);
 extern void sendto_g_serv_butone(struct Client *one, const char* fmt, ...);
 extern void sendto_realops(const char* fmt, ...);

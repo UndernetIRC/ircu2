@@ -149,6 +149,7 @@ extern int mo_stats(struct Client*, struct Client*, int, char*[]);
 extern int mo_trace(struct Client*, struct Client*, int, char*[]);
 extern int mo_uping(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallops(struct Client*, struct Client*, int, char*[]);
+extern int mo_wallusers(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
 extern int mr_server(struct Client*, struct Client*, int, char*[]);
@@ -194,6 +195,7 @@ extern int ms_uping(struct Client*, struct Client*, int, char*[]);
 extern int ms_version(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallops(struct Client*, struct Client*, int, char*[]);
+extern int ms_wallusers(struct Client*, struct Client*, int, char*[]);
 
 
 #endif /* INCLUDED_handlers_h */
