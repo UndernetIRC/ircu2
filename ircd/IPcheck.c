@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if 1
+#if 0
 #warning Nick collisions are horribly broken in
 #warning this version, and its known to core on
 #warning a whim.  If your even concidering

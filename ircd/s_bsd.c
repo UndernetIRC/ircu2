@@ -611,7 +611,7 @@ void add_connection(struct Listener* listener, int fd) {
   ++listener->ref_count;
 
   Count_newunknown(UserStats);
-
+  ip_registry_connect_succeeded(new_client);
   /* if we've made it this far we can put the client on the auth query pile */
   start_auth(new_client);
 }
@@ -1418,7 +1418,11 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 
   Count_newunknown(UserStats);
   ip_registry_add_local(aconf->ipnum.s_addr);
-
+  /* Actually we lie, the connect hasn't succeeded yet, but we have a valid
+   * cptr, so we register it now.
+   * Maybe these two calls should be merged.
+   */
+  ip_registry_connect_succeeded(cptr);
   add_client_to_list(cptr);
   hAddClient(cptr);
   nextping = CurrentTime;

@@ -1,9 +1,14 @@
+2000-07-09  Perry Lorier       <Isomer@coders.net>
+	* doc/ircd.8: Applied grammitical changes by Liandrin, applied
+		      changes suggested by various other people.
+	* ircd/IPcheck.c: More bug fixes.  Current problem appears to be
+			that it gets a corrupt entry somehow.
 2000-07-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* ircd/m_oper.c: Clean up compiler warning.
 
 2000-07-08  Perry Lorier       <Isomer@coders.net>
 	* doc/ircd.8: Updated the documentation, it was slightly out of date
-		      being updated around the 05 March 1988.
+		      being updated around 1989.
 	* ircd/m_whois.c: Rewrote for clarity, and probably a bit more speed.
 			  fixed a few minor glitches.
 	* doc/rfc1459.unet: Updated.
@@ -1272,7 +1277,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.155 2000-07-09 14:19:43 gte Exp $
+# $Id: ChangeLog,v 1.156 2000-07-15 01:31:23 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -1,8 +1,9 @@
 #
 # BUGS file for ircu2.10
 #
-# $Id: BUGS,v 1.6 2000-04-15 04:20:14 bleep Exp $
+# $Id: BUGS,v 1.7 2000-07-15 01:31:23 isomer Exp $
 #
 * crule parser coredumps on invalid input
-* /mode #foo +o Thisnickdoesntexist -> Core dump.  Kev?
-  - FIXED
+* throttle
+  * gets corrupted data when adding a new server.
+  * looses count and assert()'s frequently?
