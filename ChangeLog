@@ -1,4 +1,9 @@
 2000-04-09  Thomas Helvey <tomh@inxpress.net>
+	* include/IPcheck.h: fix prototype
+	* ircd/s_user.c: fix usage of IPcheck_remote_connect
+	* ircd/IPcheck.c: removed unused args
+
+2000-04-09  Thomas Helvey <tomh@inxpress.net>
 	* include/IPcheck.h: add proto for IPcheck_expire
 
 	* ircd/IPcheck.c: Rewrote
@@ -339,7 +344,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.66 2000-04-10 02:28:30 bleep Exp $
+# $Id: ChangeLog,v 1.67 2000-04-10 02:52:52 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -488,7 +488,7 @@ int IPcheck_local_connect(struct in_addr a, time_t* next_target_out)
  *   Update the IPcheck registry.
  *   Return 0 on failure, 1 on success.
  */
-int IPcheck_remote_connect(struct Client *cptr, const char *hostname, int is_burst)
+int IPcheck_remote_connect(struct Client *cptr, int is_burst)
 {
   assert(0 != cptr);
   return ip_registry_check_remote(cptr, is_burst);
