@@ -1,5 +1,11 @@
 2001-06-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* Makefile.in (config): add a deprecation notice with a pointer to
+	tools/transition
+
+	* tools/transition: shell script to convert old compile-time
+	options into new compile-time options and appropriate F-lines
+
 	* tools/mkchroot: shell-script to prepare the chroot area by
 	copying over all the necessary libraries so they can be found
 
