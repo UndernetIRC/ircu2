@@ -1,3 +1,8 @@
+2000-03-31  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_clearmode.c (do_clearmode): made sure clearmode removed
+	keys and limits that are set
+
 2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/ircd.c: rewrote check_pings() for maintainability
 	and speed.  Also changed quit msg's so they don't have
@@ -221,7 +226,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.46 2000-03-30 22:09:51 isomer Exp $
+# $Id: ChangeLog,v 1.47 2000-03-31 15:35:18 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
