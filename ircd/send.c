@@ -331,40 +331,6 @@ static void vsendto_prefix_one(struct Client *to, struct Client *from,
 }
 
 /* See sendcmdto_channel_butone, below */
-void sendto_channel_butone(struct Client *one, struct Client *from, struct Channel *chptr,
-    const char* pattern, ...)
-{
-  va_list vl;
-  struct Membership* member;
-  struct Client *acptr;
-  int i;
-
-  va_start(vl, pattern);
-
-  ++sentalong_marker;
-  for (member = chptr->members; member; member = member->next_member)
-  {
-    acptr = member->user;
-    /* ...was the one I should skip */
-    if (acptr->from == one || IsZombie(member) || IsDeaf(acptr))
-      continue;
-    if (MyConnect(acptr))       /* (It is always a client) */
-      vsendto_prefix_one(acptr, from, pattern, vl);
-    else if (-1 < (i = acptr->from->fd) && sentalong[i] != sentalong_marker)
-    {
-      sentalong[i] = sentalong_marker;
-      /*
-       * Don't send channel messages to links that are still eating
-       * the net.burst: -- Run 2/1/1997
-       */
-      if (!IsBurstOrBurstAck(acptr->from))
-        vsendto_prefix_one(acptr, from, pattern, vl);
-    }
-  }
-  va_end(vl);
-}
-
-/* See sendcmdto_channel_butone, below */
 void sendmsgto_channel_butone(struct Client *one, struct Client *from,
                               struct Channel *chptr, const char *sender,
                               const char *cmd, const char *chname, const char *msg)
@@ -722,35 +688,6 @@ void sendto_match_butone(struct Client *one, struct Client *from,
   va_end(vl);
 
   return;
-}
-
-/*
- * sendto_lops_butone
- *
- * Send to *local* ops but one.
- */
-/* See sendto_opmask_butone, below */
-void sendto_lops_butone(struct Client* one, const char* pattern, ...)
-{
-  va_list         vl;
-  struct Client*  cptr;
-  struct Client** clients = me.serv->client_list;
-  int             i;
-  char            nbuf[1024];
-
-  assert(0 != clients);
-
-  sprintf_irc(nbuf, ":%s NOTICE %%s :*** Notice -- ", me.name);
-  va_start(vl, pattern);
-  vsprintf_irc(nbuf + strlen(nbuf), pattern, vl);
-  va_end(vl);
-
-  for (i = 0; i <= me.serv->nn_mask; ++i) {
-    if ((cptr = clients[i]) && cptr != one && SendServNotice(cptr)) {
-      sprintf_irc(sendbuf, nbuf, cptr->name);
-      sendbufto_one(cptr);
-    }
-  }
 }
 
 /*

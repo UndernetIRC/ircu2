@@ -266,7 +266,7 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
 
   assert(!IsServer(sptr));
   /* XXX sendto_one used with explicit command; must be very careful */
-  sendto_one(acptr, command, NumNick(sptr), parv[1], parv[2], parv[3], parv[4],
+  sendto_one(acptr, command, NumNick(sptr), parv[1], parv[2], parv[3], parv[4], /* XXX hunt_server */
       parv[5], parv[6], parv[7], parv[8]);
 
   return (HUNTED_PASS);
