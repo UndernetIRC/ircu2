@@ -1,3 +1,11 @@
+2002-10-19  Perry Lorier <isomer@undernet.org>
+
+	* doc/example.conf: Changed defaults for host hiding and maxbans.
+
+	* ircd/ircd_features.c: Changed defaults for host hiding and maxbans.
+
+	* ircd/m_kick: Fixed braino.
+	
 2002-10-17  Perry Lorier <isomer@undernet.org>
 	
 	* ircd/m_kick.c (ms_kick): Don't HACK(3) when a server kicks it's own
