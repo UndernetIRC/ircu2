@@ -244,7 +244,7 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
       args->flags |= LISTARG_SHOWSECRET;
       param++;
 
-      if (*param != ',' && *param != ' ' && *param !+ '\0') /* check syntax */
+      if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
         return show_usage(sptr);
       break;
 

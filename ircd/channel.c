@@ -1347,7 +1347,7 @@ void list_next_channels(struct Client *cptr, int nr)
       if (!cli_user(cptr))
         continue;
       if (!(HasPriv(cptr, PRIV_LIST_CHAN) && IsAnOper(cptr)) && 
-          SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
+          SecretChannel(chptr) && !find_channel_member(cptr, chptr))
         continue;
       if (chptr->users > args->min_users && chptr->users < args->max_users &&
           chptr->creationtime > args->min_time &&

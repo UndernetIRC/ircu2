@@ -1,3 +1,10 @@
+2004-05-15 beware <steendijk@xs4all.nl>
+
+	[Original ChangeLog date: 2003-10-25 -MDP]
+	
+        * ircd/m_whois.c: Fixed /whois comma separated list with wildcards
+	cpu hog bug
+
 2004-05-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_conf.c (rehash): Call clear_quarantines on rehash since

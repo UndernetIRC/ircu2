@@ -345,6 +345,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char*           p = 0;
   int             found = 0;
   int		  total = 0;
+  int             wildscount = 0;
 
   if (parc < 2)
   {
@@ -401,7 +402,13 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
     else /* wilds */
-    	found=do_wilds(sptr, nick, total, parc);
+    {
+      if (++wildscount > 3) {
+        send_reply(sptr, ERR_QUERYTOOLONG, parv[1]);
+        break;
+      }
+      found=do_wilds(sptr, nick, total, parc);
+    }
 
     if (!found)
       send_reply(sptr, ERR_NOSUCHNICK, nick);
