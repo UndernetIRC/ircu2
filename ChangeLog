@@ -1,5 +1,11 @@
 2003-06-22  Bas Steendijk  <steendijk@xs4all.nl>
 
+        * include/ircd_features.h, include/supported.h, ircd/ircd_features.c,
+	ircd/ircd_features.c, ircu2.10/ircd/m_join.c, doc/example.conf: 
+	Make ability to create local channels a feature which can be disabled.
+
+2003-06-22  Bas Steendijk  <steendijk@xs4all.nl>
+
 	* include/ircd_features.h, ircd/channel.c, ircd/ircd_features.c,
 	ircd/m_kick.c, doc/example.conf: Added OPLEVELS feature, which
 	makes it possible to disable the +Au/oplevels functions.

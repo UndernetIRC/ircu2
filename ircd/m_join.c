@@ -229,6 +229,12 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     else
       flags = CHFL_CHANOP;
 
+    /* disallow creating local channels */
+    if ((name[0] == '&') && !chptr && !feature_bool(FEAT_LOCAL_CHANNELS)) {
+        send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+        continue;
+    }
+
     if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
       send_reply(sptr, ERR_TOOMANYCHANNELS, chptr ? chptr->chname : name);

@@ -50,6 +50,7 @@ enum Feature {
   FEAT_AUTOHIDE,
   FEAT_CONNEXIT_NOTICES,
   FEAT_OPLEVELS,
+  FEAT_LOCAL_CHANNELS,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
