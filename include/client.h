@@ -89,7 +89,7 @@ typedef unsigned long flagpage_t;
 /** Clear a flag in a flagset. */
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
-/** String containig valid user modes, in no particular order. */
+/** String containing valid user modes, in no particular order. */
 #define infousermodes "dioswkgx"
 
 /** Operator privileges. */

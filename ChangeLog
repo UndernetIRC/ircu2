@@ -1,5 +1,15 @@
 2005-01-23  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Kill): Fix typo in realname Kill block
+
+	* include/client.h (infousermodes): Fix typo in comment.
+
+	* ircd/ircd.c (parse_command_line): -k implies BOOT_TTY.
+	(main): Move daemon_init() before event_init() to work around BSD
+	lameness.
+
+2005-01-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/test/Makefile.in: Add missing "install" target.  Make
 	compatible with BSD make (which has no $^ and no $(CPPFLAGS) in
 	its default .c.o rule).

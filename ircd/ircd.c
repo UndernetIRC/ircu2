@@ -464,7 +464,7 @@ static void parse_command_line(int argc, char** argv) {
    */
   while ((opt = getopt(argc, argv, options)) != EOF)
     switch (opt) {
-    case 'k':  thisServer.bootopt |= BOOT_CHKCONF;     break;
+    case 'k':  thisServer.bootopt |= BOOT_CHKCONF | BOOT_TTY; break;
     case 'n':
     case 't':  thisServer.bootopt |= BOOT_TTY;         break;
     case 'd':  dpath      = optarg;                    break;
@@ -639,6 +639,11 @@ int main(int argc, char **argv) {
 
   close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY | BOOT_CHKCONF)));
 
+  /* daemon_init() must be before event_init() because kqueue() FDs
+   * are, perversely, not inherited across fork().
+   */
+  daemon_init(thisServer.bootopt & BOOT_TTY);
+
   event_init(MAXCONNECTIONS);
 
   setup_signals();
@@ -677,7 +682,6 @@ int main(int argc, char **argv) {
   }
 
   debug_init(thisServer.bootopt & BOOT_TTY);
-  daemon_init(thisServer.bootopt & BOOT_TTY);
   if (check_pid()) {
     Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
     exit(2);
