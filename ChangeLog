@@ -1,3 +1,60 @@
+2000-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c (report_feature_list): report features--only
+	local opers can see logging configuration, since it doesn't really
+	mean anything to users
+
+	* ircd/s_err.c: add reply messages for new feature subsystem
+
+	* ircd/s_conf.c: add F lines to .conf
+
+	* ircd/parse.c: add the message descriptions for /set, /reset, and
+	/get
+
+	* ircd/m_stats.c: add /stats f
+
+	* ircd/m_set.c (mo_set): implement /set
+
+	* ircd/m_reset.c (mo_reset): implement /reset
+
+	* ircd/m_rehash.c: /rehash m now flushes MOTD cache, and /rehash l
+	reopens log files (for log file rotation)
+
+	* ircd/m_get.c (mo_get): implement /get
+
+	* ircd/ircd_log.c: use int instead of void return value; add
+	log_report_features() and log_canon(); fix a function that
+	disappears if DEBUGMODE not #define'd
+
+	* ircd/ircd_features.c: functions to manipulate feature settings
+	either from the config file or with the new /set, /reset, and /get
+	commands
+
+	* ircd/Makefile.in: add new .c files, run make depend
+
+	* include/s_stats.h: declare report_feature_list() (/stats f
+	handler)
+
+	* include/numeric.h: add RPL_STATSFLINE, RPL_FEATURE,
+	ERR_NOFEATURE, ERR_BADLOGTYPE, ERR_BADLOGSYS, and ERR_BADLOGVALUE
+	reply numerics
+
+	* include/msg.h: add defines for SET, RESET, and GET
+
+	* include/ircd_log.h: add a function to canonicalize subsystem
+	names; change some void return values to int
+
+	* include/ircd_features.h: new features subsystem handles all the
+	manipulation of special features, like log files
+
+	* include/handlers.h: declare new mo_{s,res,g}et message handlers
+	for fiddling with features run-time
+
+	* include/client.h (SNO_DEFAULT): don't set SNO_DEBUG by default;
+	seemed like a good idea at the time...
+
+	* doc/example.conf: document new F lines
+
 2000-11-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_debug.c: rewrite debug_init() and vdebug() in terms of

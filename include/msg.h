@@ -325,6 +325,15 @@ struct Client;
 #define MSG_POST                "POST"          /* POST */
 #define TOK_POST                "POST"
 
+#define MSG_SET			"SET"		/* SET */
+#define TOK_SET			"SET"
+
+#define MSG_RESET		"RESET"		/* RESE */
+#define TOK_RESET		"RESET"
+
+#define MSG_GET			"GET"		/* GET */
+#define TOK_GET			"GET"
+
 /*
  * Constants
  */

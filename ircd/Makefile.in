@@ -76,6 +76,7 @@ SRC = \
 	hash.c \
 	ircd.c \
 	ircd_alloc.c \
+	ircd_features.c \
 	ircd_log.c \
 	ircd_osdep.c \
 	ircd_relay.c \
@@ -101,6 +102,7 @@ SRC = \
 	m_die.c \
 	m_endburst.c \
 	m_error.c \
+	m_get.c \
 	m_gline.c \
 	m_help.c \
 	m_info.c \
@@ -129,10 +131,12 @@ SRC = \
 	m_proto.c \
 	m_quit.c \
 	m_rehash.c \
+	m_reset.c \
 	m_restart.c \
 	m_rping.c \
 	m_rpong.c \
 	m_server.c \
+	m_set.c \
 	m_settime.c \
 	m_silence.c \
 	m_squit.c \

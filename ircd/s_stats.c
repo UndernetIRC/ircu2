@@ -27,6 +27,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "listener.h"
@@ -71,6 +72,7 @@ const char *statsinfo[] = {
     "g - Global bans (G-lines).",
     "k - Local bans (K-Lines).",
     "o - Operator information.", 
+    "f - Feature settings.",
     "m - Message usage information.",
     "t - Local connection statistics (Total SND/RCV, etc).", 
     "w - Userload statistics.",
@@ -168,6 +170,15 @@ void report_deny_list(struct Client* to)
                p->hostmask, p->message, p->usermask);
 }
 
+/*
+ * {CONF_FEATURE, RPL_STATSFLINE, 'F'},
+ */
+void report_feature_list(struct Client* to)
+{
+  if (MyOper(to)) /* non-local opers don't need to know log config */
+    log_feature_report(to);
+}
+
 /* m_stats is so obnoxiously full of special cases that the different
  * hunt_server() possiblites were becoming very messy. It now uses a
  * switch() so as to be easier to read and update as params change. 
@@ -184,6 +195,8 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
       /* open to all, standard # of params */
     case 'U':
     case 'u':
+    case 'F':
+    case 'f':
       return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc,
 			     parv);
 

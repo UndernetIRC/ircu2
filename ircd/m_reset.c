@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_rehash.c
+ * IRC - Internet Relay Chat, ircd/m_reset.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
  *
@@ -88,61 +88,21 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "hash.h"
 #include "ircd.h"
-#include "ircd_log.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
-#include "motd.h"
 #include "numeric.h"
-#include "s_conf.h"
+#include "numnicks.h"
 #include "send.h"
 
 #include <assert.h>
 
 /*
- * mo_rehash - oper message handler
- * 
- * parv[1] = 'm' flushes the MOTD cache and returns
- * parv[1] = 'l' reopens the log files and returns
- * parv[1] = 'q' to not rehash the resolver (optional)
+ * mo_reset - oper message handler
  */
-int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int mo_reset(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#if defined(OPER_REHASH) || defined(LOCOP_REHASH)
-  int flag = 0;
-
-# if !defined(OPER_REHASH) || !defined(LOCOP_REHASH)
-  if (
-#  ifdef OPER_REHASH
-      !IsOper(sptr)
-#  else
-      !IsLocOp(sptr)
-#  endif
-      )
-    return send_reply(sptr, ERR_NOPRIVILEGES);
-# endif
-
-  if (parc > 1) { /* special processing */
-    if (*parv[1] == 'm') {
-      send_reply(sptr, SND_EXPLICIT | RPL_REHASHING, ":Flushing MOTD cache");
-      motd_recache(); /* flush MOTD cache */
-      return 0;
-    } else if (*parv[1] == 'l') {
-      send_reply(sptr, SND_EXPLICIT | RPL_REHASHING, ":Reopening log files");
-      log_reopen(); /* reopen log files */
-      return 0;
-    } else if (*parv[1] == 'q')
-      flag = 2;
-  }
-
-  send_reply(sptr, RPL_REHASHING, configfile);
-  sendto_opmask_butone(0, SNO_OLDSNO, "%C is rehashing Server config file",
-		       sptr);
-
-  ircd_log(L_INFO, "REHASH From %s\n", get_client_name(sptr, HIDE_IP));
-
-  return rehash(cptr, flag);
-#endif /* defined(OPER_REHASH) || defined(LOCOP_REHASH) */
-  return 0;
+  return feature_reset(sptr, (const char* const*)parv + 1, parc - 1);
 }
-

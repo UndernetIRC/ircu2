@@ -25,6 +25,7 @@
 #include "class.h"
 #include "client.h"
 #include "crule.h"
+#include "ircd_features.h"
 #include "fileio.h"
 #include "gline.h"
 #include "hash.h"
@@ -1062,6 +1063,11 @@ int read_configuration_file(void)
       /* Connect rule - autos only */
     case 'd':  /* CONF_CRULEAUTO */
       conf_add_crule(field_vector, field_count, CRULE_AUTO);
+      aconf->status = CONF_ILLEGAL;
+      break;
+    case 'F':                /* Feature line */
+    case 'f':
+      feature_set(0, &field_vector[1], field_count - 1);
       aconf->status = CONF_ILLEGAL;
       break;
     case 'H':                /* Hub server line */

@@ -82,19 +82,23 @@ extern void log_write_kill(const struct Client *victim,
 
 #define LOG_NOMASK	(LOG_NOSYSLOG | LOG_NOFILELOG | LOG_NOSNOTICE)
 
-extern void log_set_file(char *subsys, char *filename);
-extern char *log_get_file(char *subsys);
+extern char *log_canon(const char *subsys);
 
-extern void log_set_facility(char *subsys, char *facility);
-extern char *log_get_facility(char *subsys);
+extern int log_set_file(const char *subsys, const char *filename);
+extern char *log_get_file(const char *subsys);
 
-extern void log_set_snomask(char *subsys, char *facility);
-extern char *log_get_snomask(char *subsys);
+extern int log_set_facility(const char *subsys, const char *facility);
+extern char *log_get_facility(const char *subsys);
 
-extern void log_set_level(char *subsys, char *level);
-extern char *log_get_level(char *subsys);
+extern int log_set_snomask(const char *subsys, const char *facility);
+extern char *log_get_snomask(const char *subsys);
 
-extern void log_set_default(char *facility);
+extern int log_set_level(const char *subsys, const char *level);
+extern char *log_get_level(const char *subsys);
+
+extern int log_set_default(const char *facility);
 extern char *log_get_default(void);
+
+extern void log_feature_report(struct Client *to);
 
 #endif /* INCLUDED_ircd_log_h */

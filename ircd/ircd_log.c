@@ -26,9 +26,11 @@
 #include "client.h"
 #include "config.h"
 #include "ircd_alloc.h"
+#include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd.h"
+#include "numeric.h"
 #include "s_debug.h"
 #include "send.h"
 #include "struct.h"
@@ -248,25 +250,28 @@ log_debug_init(char *file)
   logDesc[LS_DEBUG].file = logInfo.dbfile; /* remember where it went */
 }
 
+#endif /* DEBUGMODE */
+
 /* set the debug log file */
-static void
-log_debug_file(char *file)
+static int
+log_debug_file(const char *file)
 {
+#ifdef DEBUGMODE
   assert(0 != file);
 
   /* If we weren't started with debugging enabled, or if we're using
    * the terminal, don't do anything at all.
    */
   if (!logInfo.dbfile || !logInfo.dbfile->file)
-    return;
+    return 1;
 
   MyFree(logInfo.dbfile->file); /* free old pathname */
   DupString(logInfo.dbfile->file, file); /* store new pathname */
 
   log_debug_reopen(); /* reopen the debug log */
-}
-
 #endif /* DEBUGMODE */
+  return 0;
+}
 
 /* called in place of open_log(), this stores the process name and prepares
  * for syslogging
@@ -498,7 +503,7 @@ log_file_destroy(struct LogFile *lf)
 
 /* finds a subsystem given its name */
 static struct LogDesc *
-log_find(char *subsys)
+log_find(const char *subsys)
 {
   int i;
 
@@ -512,9 +517,21 @@ log_find(char *subsys)
   return 0; /* not found */
 }
 
+/* canonicalize subsystem names */
+char *
+log_canon(const char *subsys)
+{
+  struct LogDesc *desc;
+
+  if (!(desc = log_find(subsys)))
+    return 0;
+
+  return desc->name;
+}
+
 /* find a level given its name */
 static enum LogLevel
-log_lev_find(char *level)
+log_lev_find(const char *level)
 {
   int i;
 
@@ -528,9 +545,20 @@ log_lev_find(char *level)
   return L_LAST_LEVEL; /* not found */
 }
 
+/* return a name for a level */
+static char *
+log_lev_name(enum LogLevel lev)
+{
+  assert(-1 < (int)lev);
+  assert((int)lev < L_LAST_LEVEL);
+  assert(lev == levelData[lev].level);
+
+  return levelData[lev].string;
+}
+
 /* find a facility given its name */
 static int
-log_fac_find(char *facility)
+log_fac_find(const char *facility)
 {
   int i;
 
@@ -544,9 +572,23 @@ log_fac_find(char *facility)
   return LOG_NOTFOUND; /* not found */
 }
 
+/* return a name for a facility */
+static char *
+log_fac_name(int fac)
+{
+  int i;
+
+  /* find the facility */
+  for (i = 0; facilities[i].name; i++)
+    if (facilities[i].facility == fac)
+      return facilities[i].name;
+
+  return 0; /* not found; should never happen */
+}
+
 /* find a snomask value given its name */
 static unsigned int
-log_sno_find(char *maskname)
+log_sno_find(const char *maskname)
 {
   int i;
 
@@ -560,24 +602,37 @@ log_sno_find(char *maskname)
   return SNO_NOTFOUND; /* not found */
 }
 
+/* return a name for a snomask value */
+static char *
+log_sno_name(unsigned int sno)
+{
+  int i;
+
+  /* find the snomask */
+  for (i = 0; masks[i].name; i++)
+    if (masks[i].snomask == sno)
+      return masks[i].name;
+
+  return 0; /* not found; should never happen */
+}
+
 /* set the log file for a subsystem */
-void
-log_set_file(char *subsys, char *filename)
+int
+log_set_file(const char *subsys, const char *filename)
 {
   struct LogDesc *desc;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
-    return;
+    return 2;
 
   /* no change, don't go to the trouble of destroying and recreating */
   if (filename && !strcmp(desc->file->file, filename))
-    return;
+    return 0;
 
   /* debug log is special, since it has to be opened on fd 2 */
   if (desc->subsys == LS_DEBUG) {
-    log_debug_file(filename);
-    return;
+    return log_debug_file(filename);
   }
 
   if (desc->file) /* destroy previous entry... */
@@ -585,11 +640,13 @@ log_set_file(char *subsys, char *filename)
 
   /* set the file to use */
   desc->file = filename ? log_file_create(filename) : 0;
+
+  return 0;
 }
 
 /* get the log file for a subsystem */
 char *
-log_get_file(char *subsys)
+log_get_file(const char *subsys)
 {
   struct LogDesc *desc;
 
@@ -601,119 +658,116 @@ log_get_file(char *subsys)
 }
 
 /* set the facility for a subsystem */
-void
-log_set_facility(char *subsys, char *facility)
+int
+log_set_facility(const char *subsys, const char *facility)
 {
   struct LogDesc *desc;
   int fac;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
-    return;
+    return 2;
 
   /* set syslog facility */
   if (EmptyString(facility))
     desc->facility = desc->def_fac;
   else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND)
     desc->facility = fac;
+  else
+    return 1;
+
+  return 0;
 }
 
 /* get the facility for a subsystem */
 char *
-log_get_facility(char *subsys)
+log_get_facility(const char *subsys)
 {
   struct LogDesc *desc;
-  int i;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
     return 0;
 
   /* find the facility's name */
-  for (i = 0; facilities[i].name; i++)
-    if (desc->facility == facilities[i].facility)
-      return facilities[i].name; /* found it... */
-
-  return 0; /* shouldn't ever happen */
+  return log_fac_name(desc->facility);
 }
 
 /* set the snomask value for a subsystem */
-void
-log_set_snomask(char *subsys, char *snomask)
+int
+log_set_snomask(const char *subsys, const char *snomask)
 {
   struct LogDesc *desc;
-  unsigned int sno;
+  unsigned int sno = SNO_DEFAULT;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
-    return;
+    return 2;
 
   /* set snomask value */
   if (EmptyString(snomask))
     desc->snomask = desc->def_sno;
   else if ((sno = log_sno_find(snomask)) != SNO_NOTFOUND)
     desc->snomask = sno;
+  else
+    return 1;
+
+  return 0;
 }
 
 /* get the snomask value for a subsystem */
 char *
-log_get_snomask(char *subsys)
+log_get_snomask(const char *subsys)
 {
   struct LogDesc *desc;
-  int i;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
     return 0;
 
   /* find the snomask value's name */
-  for (i = 0; masks[i].name; i++)
-    if (desc->snomask == masks[i].snomask)
-      return masks[i].name; /* found it... */
-
-  return 0; /* shouldn't ever happen */
+  return log_sno_name(desc->snomask);
 }
 
 /* set the level for a subsystem */
-void
-log_set_level(char *subsys, char *level)
+int
+log_set_level(const char *subsys, const char *level)
 {
   struct LogDesc *desc;
   enum LogLevel lev;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
-    return;
+    return 2;
 
   /* set logging level */
   if (EmptyString(level))
     desc->level = L_DEFAULT;
   else if ((lev = log_lev_find(level)) != L_LAST_LEVEL)
     desc->level = lev;
+  else
+    return 1;
+
+  return 0;
 }
 
 /* get the level for a subsystem */
 char *
-log_get_level(char *subsys)
+log_get_level(const char *subsys)
 {
   struct LogDesc *desc;
-  int i;
 
   /* find subsystem */
   if (!(desc = log_find(subsys)))
     return 0;
 
   /* find the level's name */
-  for (i = 0; levelData[i].string; i++)
-    if (desc->level == levelData[i].level)
-      return levelData[i].string; /* found it... */
-
-  return 0; /* shouldn't ever happen */
+  return log_lev_name(desc->level);
 }
 
 /* set the overall default syslog facility */
-void
-log_set_default(char *facility)
+int
+log_set_default(const char *facility)
 {
   int fac, oldfac;
 
@@ -724,23 +778,50 @@ log_set_default(char *facility)
   else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND &&
 	   fac != LOG_NONE && fac != LOG_DEFAULT)
     logInfo.facility = fac;
+  else
+    return 1;
 
   if (logInfo.facility != oldfac) {
     closelog(); /* reopen syslog with new facility setting */
     openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
   }
+
+  return 0;
 }
 
 /* get the overall default syslog facility */
 char *
 log_get_default(void)
 {
+  /* find the facility's name */
+  return log_fac_name(logInfo.facility);
+}
+
+/* Report feature settings */
+void
+log_feature_report(struct Client *to)
+{
   int i;
 
-  /* find the facility's name */
-  for (i = 0; facilities[i].name; i++)
-    if (logInfo.facility == facilities[i].facility)
-      return facilities[i].name; /* found it... */
+  for (i = 0; i < LS_LAST_SYSTEM; i++) {
+    if (logDesc[i].file && logDesc[i].file->file) /* report file */
+      send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FILE %s",
+		 logDesc[i].name, logDesc[i].file->file);
 
-  return 0; /* shouldn't ever happen */
+    if (logDesc[i].facility != logDesc[i].def_fac) /* report facility */
+      send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FACILITY %s",
+		 logDesc[i].name, log_fac_name(logDesc[i].facility));
+
+    if (logDesc[i].snomask != logDesc[i].def_sno) /* report snomask */
+      send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s SNOMASK %s",
+		 logDesc[i].name, log_sno_name(logDesc[i].snomask));
+
+    if (logDesc[i].level != L_DEFAULT) /* report log level */
+      send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s LEVEL %s",
+		 logDesc[i].name, log_lev_name(logDesc[i].level));
+  }
+
+  if (logInfo.facility != LOG_USER) /* report default facility */
+    send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s",
+	       log_fac_name(logInfo.facility));
 }
