@@ -731,12 +731,11 @@ msg_tree_parse(char *cmd, struct MessageTree *root)
 {
   struct MessageTree *mtree;
 
-  for (mtree = root->pointers[(*cmd++) & (MAXPTRLEN-1)];
-           mtree != NULL;
-               mtree = mtree->pointers[(*cmd++) & (MAXPTRLEN-1)])
-  {
-    if ((mtree->msg != NULL) && (*cmd == '\0'))
-      return mtree->msg;
+  for (mtree = root; mtree; mtree = mtree->pointers[(*cmd++) & (MAXPTRLEN-1)]) {
+      if (*cmd == '\0' && mtree->msg)
+          return mtree->msg;
+      else if (!IsAlpha(*cmd))
+          return NULL;
   }
   return NULL;
 }

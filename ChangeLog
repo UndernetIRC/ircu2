@@ -1,3 +1,8 @@
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/parse.c (msg_tree_parse): Reject commands that contain
+	non-alphanumeric characters.
+
 2004-09-09  Michael Poole <mdpoole@troilus.org>
 
 	* config.h.in: Remove duplicated and unused macro definitions.
