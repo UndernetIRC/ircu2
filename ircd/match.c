@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Functions to match strings against IRC mask strings.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -46,6 +48,22 @@
  * And last but not least, '\?' and '\*' in `new_mask' now become one character.
  */
 
+/** Compares one mask against another.
+ * One wildcard mask may be said to be a superset of another if the
+ * set of strings matched by the first is a proper superset of the set
+ * of strings matched by the second.  In practical terms, this means
+ * that the second is made redundant by the first.
+ *
+ * The logic for this test is similar to that in match(), but a
+ * backslash in old_mask only matches a backslash in new_mask (and
+ * requires the next character to match exactly), and -- after
+ * contiguous runs of wildcards are logically collapsed -- a '?' in
+ * old_mask does not match a '*' in new_mask.
+ *
+ * @param[in] old_mask One wildcard mask.
+ * @param[in] new_mask Another wildcard mask.
+ * @return Zero if \a old_mask is a superset of \a new_mask, non-zero otherwise.
+ */
 int mmatch(const char *old_mask, const char *new_mask)
 {
   const char *m = old_mask;
@@ -159,6 +177,15 @@ int mmatch(const char *old_mask, const char *new_mask)
  *  Rewritten by Timothy Vogelsang (netski), net@astrolink.org
  */
 
+/** Check a string against a mask.
+ * This test checks using traditional IRC wildcards only: '*' means
+ * match zero or more characters of any type; '?' means match exactly
+ * one character of any type.  A backslash escapes the next character
+ * so that a wildcard may be matched exactly.
+ * @param[in] mask Wildcard-containing mask.
+ * @param[in] name String to check against \a mask.
+ * @return Zero if \a mask matches \a name, non-zero if no match.
+ */
 int match(const char *mask, const char *name)
 {
   const char *m = mask, *n = name;
@@ -229,6 +256,13 @@ int match(const char *mask, const char *name)
  * Note that this new optimized alghoritm can *only* work in place.
  */
 
+/** Collapse a mask string to remove redundancies.
+ * Specifically, it replaces a sequence of '*' followed by additional
+ * '*' or '?' with the same number of '?'s as the input, followed by
+ * one '*'.  This minimizes useless backtracking when matching later.
+ * @param[in,out] mask Mask string to collapse.
+ * @return Pointer to the start of the string.
+ */
 char *collapse(char *mask)
 {
   int star = 0;
@@ -276,7 +310,8 @@ char *collapse(char *mask)
  ***************** Nemesi's matchcomp() / matchexec() **************
  */
 
-/* These functions allow the use of "compiled" masks, you compile a mask
+/** @page compiledmasks Compiled Masks
+ * These functions allow the use of "compiled" masks, you compile a mask
  * by means of matchcomp() that gets the plain text mask as input and writes
  * its result in the memory locations addressed by the 3 parameters:
  * - *cmask will contain the text of the compiled mask
@@ -346,12 +381,14 @@ char *collapse(char *mask)
  * or when you expect to use mmexec() instead of mmatch() 3 times.
  */
 
- /* 
-    * matchcomp()
-    *
-    * Compiles a mask into a form suitable for using in matchexec().
-  */
-
+/** Compile a mask for faster matching.
+ * See also @ref compiledmasks.
+ * @param[out] cmask Output buffer for compiled mask.
+ * @param[out] minlen Minimum length of matching strings.
+ * @param[out] charset Character attributes used in compiled mask.
+ * @param[out] mask Input mask.
+ * @return Length of compiled mask, not including NUL terminator.
+ */
 int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
 {
   const char *m = mask;
@@ -439,16 +476,15 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
 
 }
 
-/*
- * matchexec()
- *
- * Executes a match with a mask previosuly compiled with matchcomp()
- * Note 1: If the mask isn't correctly produced by matchcomp() I will core
- * Note 2: 'min' MUST be the value returned by matchcomp on that mask,
- *         or.... I will core even faster :-)
- * Note 3: This piece of code is not intended to be nice but efficient.
+/** Compare a string to a compiled mask.
+ * If \a cmask is not from matchcomp(), or if \a minlen is not the value
+ * passed out of matchcomp(), this may core.
+ * See also @ref compiledmasks.
+ * @param[in] string String to test.
+ * @param[in] cmask Compiled mask string.
+ * @param[in] minlen Minimum length of strings that match \a cmask.
+ * @return Zero if the string matches, non-zero otherwise.
  */
-
 int matchexec(const char *string, const char *cmask, int minlen)
 {
   const char *s = string - 1;
@@ -529,6 +565,12 @@ trychunk:
  * It returns the number of chars actually written to *mask;
  */
 
+/** Decompile a compiled mask into printable form.
+ * See also @ref compiledmasks.
+ * @param[out] mask Output mask buffer.
+ * @param[in] cmask Compiled mask.
+ * @return Number of characters written to \a mask.
+ */
 int matchdecomp(char *mask, const char *cmask)
 {
   char *rtb = mask;
@@ -599,7 +641,16 @@ int matchdecomp(char *mask, const char *cmask)
  * written by Run (Carlo Wood), this function is written by
  * Nemesi (Andrea Cocito)
  */
-
+/** Tests for a superset relationship between compiled masks.  This
+ * function does for compiled masks what mmatch() is does for normal
+ * masks.
+ * See also @ref compiledmasks.
+ * @param[in] wcm Compiled mask believed to be wider.
+ * @param[in] wminlen Minimum match length for \a wcm.
+ * @param[in] rcm Compiled mask believed to be restricted.
+ * @param[in] rminlen Minimum match length for \a rcm.
+ * @return Zero if \a wcm is a superset of \a rcm, non-zero if not.
+ */
 int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 {
   const char *w, *r, *br, *bw, *rx, *rz;
@@ -798,6 +849,11 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/** Parse an input string as an IPv4 address.
+ * @param[in] in Text form of address.
+ * @param[out] out IPv4 address in network representation.
+ * @return Number of address bits specified by \a in.
+ */
 static int ipmask_parse_ipv4(const char *in, struct in_addr *out)
 {
   int class;
@@ -813,6 +869,10 @@ static int ipmask_parse_ipv4(const char *in, struct in_addr *out)
   return bits;
 }
 
+/** Test whether a string looks like it matches only IPv4 addresses.
+ * @param[in] mask Hostname matching mask.
+ * @return Non-zero if \a mask can only match IPv4 addresses, zero otherwise.
+ */
 int check_if_ipmask(const char *mask)
 {
   int has_digit = 0;
@@ -829,6 +889,12 @@ int check_if_ipmask(const char *mask)
   return has_digit;
 }
 
+/** Try to parse an IPv4 or IPv6 address mask.
+ * @param[in] in Address matching mask.
+ * @param[out] mask Fixed bits of address mask.
+ * @param[out] bits_ptr If non-NULL, receives number of bits specified in address mask.
+ * @return Non-zero on successful parse; zero on error.
+ */
 int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_ptr)
 {
   struct in_addr ipv4;
@@ -862,6 +928,13 @@ int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_p
   return 1;
 }
 
+/** Test whether an address matches the most significant bits of a mask.
+ * @param[in] addr Address to test.
+ * @param[in] mask Address to test against.
+ * @param[in] bits Number of bits to test.
+ * @return 0 on mismatch, 1 if bits < 128 and all bits match; -1 if
+ * bits == 128 and all bits match.
+ */
 int ipmask_check(const struct irc_in_addr *addr, const struct irc_in_addr *mask, unsigned char bits)
 {
   int k;

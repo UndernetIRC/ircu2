@@ -1,7 +1,9 @@
 /*
  * match.h
- *
- * $Id$
+ */
+/* @file
+ * @brief Interface for matching strings to IRC masks.
+ * @version $Id$
  */
 #ifndef INCLUDED_match_h
 #define INCLUDED_match_h
