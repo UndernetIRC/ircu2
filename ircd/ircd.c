@@ -492,9 +492,9 @@ static char check_file_access(const char *path, char which, int mode) {
 
   fprintf(stderr, 
 	  "Check on %cPATH (%s) failed: %s\n"
-	  "Please create file and/or rerun `make config' and "
-	  "recompile to correct this.\n",
-	  which, path, strerror(errno));
+	  "Please create this file and/or rerun `configure' "
+	  "using --with-%cpath and recompile to correct this.\n",
+	  which, path, strerror(errno), which);
 
   return 0;
 }
