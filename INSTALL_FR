@@ -1,0 +1,158 @@
+Fichier d'installation par Run <carlo@runaway.xs4all.nl>
+            Mis à jour par Isomer <isomer@coders.net>
+            Mis à jour par Delete (Version Fr) <delete@cyberabuse.org> 
+
+
+Ceci est l'UnderNet IRC daemon.
+
+L'installation de l'IRC daemon (ircd) existes dans les ordres que voici:
+
+1) Déballé le module.
+2) cd dans le répertoire.
+3) `./configure'
+4) `make config'
+5) `make'
+6) `make install'
+
+1) Déballé le module.
+====================
+
+La voie recommendée pour avoir le module du ircu est d'utilisé CVS.  
+
+CVS obtiend les marques améliore beaucoup moins douloureux et vous laisse
+obtenir le dernier module.
+
+1.1) La première chose que vous avez besoin de faire est de vous identifiez
+envers le serveur.
+
+This is done with:
+
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
+(nous recommandons que vous découpez et déplacez la ligne ci-dessus pour
+l'utiliser :) Quand il insiste pour un mot de passe écrivez 'anoncvs'.
+
+1.2) Alors vous allez décider lesquels des arbres vous voulez utiliser:
+
+irc2.10 - Ceci est un arbre *STABLE*.  En cas de doute utiliser le! 
+
+beta - Cet arbre subit le test avant d'être favorisée à ircu2.10. Il peut
+être buggé. L'utilisation sur le réseau de production d'undernet est
+interdite, excepté certains serveurs autorisés.
+
+alpha - C'est l'arbre de développement. Si vous projetez de faire des
+connexions à soumettre à l'arbre principal de source, nous vous recommandons
+d'utiliser cet arbre. Cependant cet arbre n'est * pas * en garanti pour
+compiler, et devrait être concidéré FORTEMENT instable. On ne le destine pas
+pour l'usage de production.
+
+pour vérifier l'arbre, tapez:
+
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout
+   -P irc2.10
+
+Les deux lignes ci-dessus ne devraient pas avoir une entrée entre eux. Si vous voulez utiliser un autre arbre, remplacez ' irc2.10 ' par l'arbre que vous voulez utiliser. 
+Ceci créera un répertoire irc2.10, et mettra tous les fichiers dedans. Pour obtenir la dernière version, taper "cvs update -dP". 
+
+Pour plus d'information, regardez sur le site de coder-com à:
+http://coder-com.undernet.org/
+
+La vieille (essayé et rectifiez) méthode qui fonctionne même lorsque le
+website n'est pas DoS'd (soupir) est incluse ci-dessous. En utilisant la
+méthode au-dessous des moyens vous / biseautez / juste de taper ' cvs update
+- dP ' pour obtenir la dernière version
+
+Le nom du module est quelque chose comme `ircu2.x.y.z.tgz ', où " x.y.z "
+est la version en cours (au moment de l'écriture nous avons
+ircu2.10.10.pl13.tgz).  Vous avez besoin de `gzip ', du GNU, ouvrez la
+commande et uncompresser ce module. Vous pouvez télécharger ceci de chaque
+ftp de site GNU pour presque n'importe quel système d'exploitation.
+ 
+ Si vous avex GNU tar, taper:
+ 
+ tar xzf ircu2.x.y.z.tgz
+ 
+ où "ircu2.x.y.z.tgz" est le nom du package.
+ 
+ Si sa ne marche pas, essayez:
+ 
+ gzip -dc ircu2.x.y.z.tgz | tar xf -
+ 
+ Les deux méthodes ont comme conséquence un répertoire " ircu2.x.y.z " dans
+ votre répertoire actuel
+
+2) cd dans la directory de base.
+=============================
+
+Faites à ce répertoire votre répertoire actuel en tapant:
+
+cd ircu2.x.y.z
+
+ou ircu2.10 si vous utilisé cvs.
+
+Là où "ircu2.x.y.z " est le nom du répertoire éclaté
+
+3) `./configure'
+==============
+
+Ceci produira le 'config/setup.h', votre configuration  depend du système
+d'exploitation. Si ceci produit un message d'erreur nié 'par permission',
+alors /configure` du `chmod a+x et taper l'essai d'abord à la permission de
+l'élasticité que vous exécutez le fichier.
+
+4) `make config'
+================
+
+Ceci (re)génère le fichier d'include/config.h. Vous pouvez exécuter ceci
+aussi souvent que vous aimez et il utilisera vos dernières valeurs comme des
+défauts. À chaque question vous pouvez taper '? ' (suivi d'un retour) pour
+obtenir l'aide étendue, ou un ' c ' pour continuer d'utiliser vos vieilles
+valeurs par défaut (terminant rapidement la séquence type).
+
+5) `make'
+=========
+
+Type:
+
+make
+
+Dans le répertoire de base. Il devrait compiler sans erreurs ou
+avertissements. Veuillez expédier n'importe quel problème au défenseur, mais
+seulement après que vous vous êtes assurés vous avez fait tout la bonne
+voie. Si vous voulez que votre système d'exploitation soit supporté dans de
+futures versions, faites une connexion qui fixe réellement le problème.
+
+Si vous avez des problèmes ici avec lui se plaignant au sujet des symboles
+non définis dans res.o, l'essai "make config" encore et ajouter le lresolv à
+LDFLAGS. La note, là n'est aucun 'e' sur l'extrémité du resolv. Ce n'est pas
+un typo, il est censé être comme cela.
+
+Si vous avez des problèmes ici avec lui se plaignant au sujet des symboles
+non définis probablement dans s_user.c pour la ' crypte ', ajoutez - le
+lcrypt à LDFLAGS.
+
+6) `make install'
+=================
+
+Ceci devrait installer l'ircd . Veuillez revérifier les permissions du
+binaire. Vous devez créer certains fichiers journaux que vous avez choisis à
+la main (par exemple avec le 'contact ') avant que l'ircd commence à leur
+écrire. Naturellement, vous avez besoin d'un ircd.conf syntactiquement
+correct dans DPATH. Voyez les Doc.s pour une certaine information sur ceci.
+Créez également un ircd.motd avec le texte de votre MOTD. Et créez
+finalement un remote.motd avec trois lignes de texte comme MOTD à distance.
+Encore, tous ces fichiers devraient être lisibles par l'ircd, et les
+fichiers journaux devraient être writeable
+
+En cas de problème.
+======================
+
+Si vous avez des problèmes pour configurer le serveur vous pourriez
+installer GNU faites dans votre VOIE D'ACCÈS. Dans certains cas un
+cerveau-mort / bin/sh pose le problème, dans ce cas je suggère d'installer
+le ' coup ' et de l'utiliser que (comme SH - > coup).  En conclusion, tout
+autre compilent problème devrait être résolu quand vous installez le GCC. Si
+vous avez des problèmes avec l'ircd, réessayer 'make config' encore et
+définissent DEBUGMODE. Recompiler l'ircd, et metez-le à la main comme: ircd
+- t - x9. Ceci écrira un point la sortie à votre écran, montrant
+probablement pourquoi il ne commence pas.
+
