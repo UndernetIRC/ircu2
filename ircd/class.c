@@ -51,6 +51,7 @@ struct ConnectionClass* make_class(void)
   struct ConnectionClass *tmp;
 
   tmp = (struct ConnectionClass*) MyMalloc(sizeof(struct ConnectionClass));
+  tmp->ref_count = 0;
   assert(0 != tmp);
   ++connClassAllocCount;
   return tmp;
