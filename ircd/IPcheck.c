@@ -27,7 +27,6 @@
 #include "ircd.h"
 #include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
 #include "ircd_alloc.h"
-#include "s_bsd.h"          /* SetIPChecked */
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"

@@ -21,7 +21,6 @@
 struct Client;
 struct SLink;
 struct TRecord;
-struct hostent;
 
 
 /*
@@ -38,7 +37,6 @@ struct hostent;
 #define CONF_SERVER             0x0004
 #define CONF_LOCOP              0x0010
 #define CONF_OPERATOR           0x0020
-#define CONF_ME                 0x0040
 #define CONF_KILL               0x0080
 #define CONF_LEAF               0x1000
 #define CONF_HUB                0x4000
@@ -87,13 +85,13 @@ struct ServerConf {
  * A line: A:<line 1>:<line 2>:<line 3>
  */
 struct LocalConf {
-  char* server_alias;
-  char* vhost_address;
-  char* description;
-  char* numeric_id;
-  char* location1;
-  char* location2;
-  char* contact;
+  char*          name;
+  char*          description;
+  struct in_addr vhost_address;
+  unsigned int   numeric;
+  char*          location1;
+  char*          location2;
+  char*          contact;
 };
 
 struct MotdItem {
@@ -153,33 +151,31 @@ extern struct TRecord*  tdata;
  * Proto types
  */
 
+extern int init_conf(void);
+
 extern const struct LocalConf* conf_get_local(void);
 extern const struct MotdConf*  conf_get_motd_list(void);
 extern const struct CRuleConf* conf_get_crule_list(void);
 
-extern const char* conf_crule_eval(const char* host, int mask);
+extern const char* conf_eval_crule(const char* name, int mask);
 
 extern struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* host, int statmask);
 extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host, int statmask);
 extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name, int statmask);
 extern struct ConfItem* conf_find_server(const char* name);
-const char* conf_eval_crule(const char* name, int mask);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
 extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
-extern struct ConfItem* find_me(void);
 extern struct ConfItem* find_conf_exact(const char* name, const char* user,
                                         const char* host, int statmask);
 extern enum AuthorizationCheckResult conf_check_client(struct Client *cptr);
 extern int  conf_check_server(struct Client *cptr);
 extern struct ConfItem* find_conf_name(const char* name, int statmask);
 extern int rehash(struct Client *cptr, int sig);
-extern int init_conf(void);
 extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);
-extern int m_killcomment(struct Client *sptr, char *parv, char *filename);
 extern struct MotdItem* read_motd(const char* motdfile);
 
 #endif /* INCLUDED_s_conf_h */
