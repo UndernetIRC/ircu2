@@ -259,7 +259,7 @@ motd_signon(struct Client* cptr)
 
   cache = motd_cache(motd_lookup(cptr));
 
-  if (!feature_bool(FEAT_NODEFAULTMOTD))
+  if (!feature_bool(FEAT_NODEFAULTMOTD) || !cache)
     motd_forward(cptr, cache);
   else {
     send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
