@@ -108,7 +108,7 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
 {
   assert(0 != cptr);
   assert(0 != sptr);
-  assert(IsUser(victim));
+  assert(!IsServer(victim));
 
   /*
    * Notify all *local* opers about the KILL (this includes the one
