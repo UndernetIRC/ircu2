@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define SIGS_PER_SOCK	10	/* number of signals to process per socket
