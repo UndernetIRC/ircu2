@@ -15,8 +15,10 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *  $Id$
+ */
+/** @file
+ * @brief Implementation for handling listening sockets.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -49,14 +51,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#ifndef INADDR_NONE
-#define INADDR_NONE ((unsigned int) 0xffffffff)
-#endif
-
+/** List of listening sockets. */
 struct Listener* ListenerPollList = 0;
 
 static void accept_connection(struct Event* ev);
 
+/** Allocate and initialize a new Listener structure for a particular
+ * socket address.
+ * @param[in] port Port number to listen on.
+ * @param[in] addr Local address to listen on.
+ * @return Newly allocated and initialized Listener.
+ */
 static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 {
   struct Listener* listener =
@@ -76,17 +81,21 @@ static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
   return listener;
 }
 
+/** Deallocate a Listener structure.
+ * @param[in] listener Listener to be freed.
+ */
 static void free_listener(struct Listener* listener)
 {
   assert(0 != listener);
   MyFree(listener);
 }
 
+/** Maximum length for a port number. */
 #define PORTNAMELEN 10  /* ":31337" */
 
-/*
- * get_listener_name - return displayable listener name and port
- * returns "host.foo.org:6667" for a given listener
+/** Return displayable listener name and port.
+ * @param[in] listener %Listener to format as a text string.
+ * @return Pointer to a static buffer that contains "server.name:6667".
  */
 const char* get_listener_name(const struct Listener* listener)
 {
@@ -96,8 +105,9 @@ const char* get_listener_name(const struct Listener* listener)
   return buf;
 }
 
-/*
- * count_listener_memory - count memory and listeners
+/** Count allocated listeners and the memory they use.
+ * @param[out] count_out Receives number of allocated listeners.
+ * @param[out] size_out Receives bytes used by listeners.
  */
 void count_listener_memory(int* count_out, size_t* size_out)
 {
@@ -110,13 +120,11 @@ void count_listener_memory(int* count_out, size_t* size_out)
   *count_out = count;
   *size_out  = count * sizeof(struct Listener);
 }
-  
-/*
- * show_ports - send port listing to a client
- * inputs       - pointer to client to show ports to
- * output       - none
- * side effects - show ports
- * author       - Dianora
+
+/** Report listening ports to a client.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (port number to search for).
  */
 void show_ports(struct Client* sptr, const struct StatDesc* sd,
                 char* param)
@@ -164,9 +172,14 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
 #ifdef SOMAXCONN
 #define HYBRID_SOMAXCONN SOMAXCONN
 #else
+/** Maximum length of socket connection backlog. */
 #define HYBRID_SOMAXCONN 64
 #endif
 
+/** Open listening socket for \a listener.
+ * @param[in,out] listener Listener to make a socket for.
+ * @return Non-zero on success, zero on failure.
+ */
 static int inetport(struct Listener* listener)
 {
   int                fd;
@@ -215,11 +228,10 @@ static int inetport(struct Listener* listener)
   return 1;
 }
 
-/*
- * find_listener - find a listener in the list
- *
- * XXX - this function does N comparisons so if the list is huge
- * we may want to do something else for this. (rehash and init use this)
+/** Find the listener (if any) for a particular port and address.
+ * @param[in] port Port number to search for.
+ * @param[in] addr Local address to search for.
+ * @return Listener that matches (or NULL if none match).
  */
 static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
 {
@@ -231,11 +243,15 @@ static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
   return 0;
 }
 
-/*
- * add_listener- create a new listener
- * port - the port number to listen on
- * vhost_ip - if non-null must contain a valid IP address string in
- * the format "255.255.255.255"
+/** Make sure we have a listener for \a port on \a vhost_ip.
+ * If one does not exist, create it.  Then mark it as active and set
+ * the peer mask, server, and hidden flags according to the other
+ * arguments.
+ * @param[in] port Port number to listen on.
+ * @param[in] vhost_ip Local address to listen on.
+ * @param[in] mask Address mask to accept connections from.
+ * @param[in] is_server Non-zero if the port should only accept server connections.
+ * @param[in] is_hidden Non-zero if the port should be hidden from /STATS P output.
  */
 void add_listener(int port, const char* vhost_ip, const char* mask,
                   int is_server, int is_hidden)
@@ -278,9 +294,8 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     free_listener(listener);
 }
 
-/*
- * mark_listeners_closing - iterate through listeners and mark them as
- * inactive
+/** Mark all listeners as closing (inactive).
+ * This is done so unused listeners are closed after a rehash.
  */
 void mark_listeners_closing(void)
 {
@@ -289,8 +304,8 @@ void mark_listeners_closing(void)
     listener->active = 0;
 }
 
-/*
- * close_listener - close a single listener
+/** Close a single listener.
+ * @param[in] listener Listener to close.
  */
 void close_listener(struct Listener* listener)
 {
@@ -313,10 +328,8 @@ void close_listener(struct Listener* listener)
     close(listener->fd);
   socket_del(&listener->socket);
 }
- 
-/*
- * close_listeners - close and free all listeners that are not being used
- */
+
+/** Close all inactive listeners. */
 void close_listeners()
 {
   struct Listener* listener;
@@ -331,6 +344,9 @@ void close_listeners()
   }
 }
 
+/** Dereference the listener previously associated with a client.
+ * @param[in] listener Listener to dereference.
+ */
 void release_listener(struct Listener* listener)
 {
   assert(0 != listener);
@@ -339,8 +355,8 @@ void release_listener(struct Listener* listener)
     close_listener(listener);
 }
 
-/*
- * accept_connection - accept a connection on a listener
+/** Accept a connection on a listener.
+ * @param[in] ev Socket callback structure.
  */
 static void accept_connection(struct Event* ev)
 {
