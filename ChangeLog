@@ -1,8 +1,25 @@
+2003-04-45  Reed Loden  <reed@reedloden.com>
+
+	* INSTALL: Updated the "howto" for CVS.
+
+	* INSTALL_FR: Updated the "howto" for CVS. (NOTE: Somebody needs
+	to correct the part about the password as there isn't a password
+	right now... I don't know French so I couldn't correct that.)
+
+	* doc/Authors: Corrected my e-mail address and added several
+	others. :)
+
+	* doc/readme.cvs: Updated the "howto" for CVS.
+
+	* tools/README: Updated location of file and partly rewrote to
+	fit u2.10.11's Features.
+
+
+
 2003-05-01  Reed Loden  <reed@reedloden.com>
 	* ircd/s_err.c: Added network to text and edited 001 a bit.
 
 	* ircd/s_user.c: Send network with 001.
-
 
 2003-05-01 splidge <splidge@quakenet.org>
         * ircd/match.c: Added a check to detect the end of the string.
