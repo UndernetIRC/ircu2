@@ -1,5 +1,10 @@
 2001-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c (sendcmdto_flag_butone): recast to just broadcast to
+	all servers, rather than to only servers that have +w/+g/whatever
+	users on them; among other things, this removes that atrocity
+	known as sentalong[] from this function
+
 	* ircd/m_admin.c: must include ircd.h to declare "me"; must
 	include hash.h to declare FindUser()
 

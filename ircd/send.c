@@ -456,25 +456,16 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
  * Send a (prefixed) command to all users except <one> that have
  * <flag> set.
  */
-/* XXX sentalong_marker used XXX
- *
- * Again, we can solve this use of sentalong_marker by adding a field
- * to connections--a count of the number of +w users, and another count
- * of +g users.  Then, just walk through the local clients to send
- * those messages, and another walk through the connected servers list,
- * sending only if there's a non-zero count.  No caveats here, either,
- * beyond remembering to decrement the count when a user /quit's or is
- * killed, or a server is squit. -Kev
- */
 void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 			   const char *tok, struct Client *one,
 			   unsigned int flag, const char *pattern, ...)
 {
   struct VarData vd;
   struct Client *cptr;
-  struct MsgBuf *user_mb;
-  struct MsgBuf *serv_mb;
+  struct MsgBuf *mb;
+  struct DLink *lp;
   unsigned int oper_fl = 0;
+  int i;
 
   if (flag & FLAGS_OPER) {
     flag &= ~FLAGS_OPER;
@@ -485,32 +476,32 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  user_mb = msgq_make(0, "%:#C " MSG_WALLOPS " %v", from, &vd);
-  va_end(vd.vd_args);
-
-  /* Build buffer to send to servers */
-  va_start(vd.vd_args, pattern);
-  serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
+  mb = msgq_make(0, "%:#C " MSG_WALLOPS " %v", from, &vd);
   va_end(vd.vd_args);
 
   /* send buffer along! */
-  sentalong_marker++;
-  for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
-    if (cli_from(cptr) == one || IsServer(cptr) || !(cli_flags(cptr) & flag) ||
-	(MyConnect(cptr) && oper_fl && !IsAnOper(cptr)) ||
-	cli_fd(cli_from(cptr)) < 0 ||
-	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
+  for (i = 0; i <= HighestFd; i++) {
+    if (!(cptr = LocalClientArray[i]) || !(cli_flags(cptr) & flag) ||
+	(oper_fl && !IsAnOper(cptr)) ||	cli_fd(cli_from(cptr)) < 0)
       continue; /* skip it */
-    sentalong[cli_fd(cli_from(cptr))] = sentalong_marker;
-
-    if (MyConnect(cptr)) /* send right buffer */
-      send_buffer(cptr, user_mb, 1);
-    else
-      send_buffer(cptr, serv_mb, 1);
+    send_buffer(cptr, mb, 1);
   }
 
-  msgq_clean(user_mb);
-  msgq_clean(serv_mb);
+  msgq_clean(mb);
+
+  /* Build buffer to send to servers */
+  va_start(vd.vd_args, pattern);
+  mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
+  va_end(vd.vd_args);
+
+  /* send buffer along! */
+  for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
+    if (one && lp->value.cptr == cli_from(one))
+      continue;
+    send_buffer(lp->value.cptr, mb, 0);
+  }
+
+  msgq_clean(mb);
 }
 
 /*
