@@ -1,5 +1,16 @@
 2000-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* config/aclocal.m4 (unet_CHECK_TYPE_SIZES): check size of void *,
+	too, for ircd_snprintf.c
+
+	* include/ircd_snprintf.h: documentation for ircd_(v)snprintf, in
+	comments; mostly descended from the Linux manpage for printf, but
+	also documenting the extensions.
+
+	* ircd/ircd_snprintf.c: NULL dest is equivalent to going to a
+	client; make 'q' be the same as 'L'; remove __inline__; only
+	define EXTENSION if HAVE_LONG_LONG is defined
+
 	* include/handlers.h: declare m_gline()
 
 	* ircd/parse.c: gline can be called by users, but it only lists
@@ -422,7 +433,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.78 2000-04-13 15:58:22 kev Exp $
+# $Id: ChangeLog,v 1.79 2000-04-13 19:20:52 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
