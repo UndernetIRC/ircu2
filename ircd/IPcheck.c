@@ -120,8 +120,8 @@ static struct IPRegistryEntry* ip_registry_find(const struct irc_in_addr *ip)
   ip_registry_canonicalize(&canon, ip);
   entry = hashTable[ip_registry_hash(&canon)];
   for ( ; entry; entry = entry->next) {
-    int bits = (ip->in6_16[0] == ntohs(0x2002)) ? 48 : 64;
-    if (ipmask_check(ip, &entry->addr, bits))
+    int bits = (canon.in6_16[0] == htons(0x2002)) ? 48 : 64;
+    if (ipmask_check(&canon, &entry->addr, bits))
       break;
   }
   return entry;

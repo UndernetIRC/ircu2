@@ -118,11 +118,13 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
     maxlength = maxsiles * feature_int(FEAT_AVBANLEN);
     siles = totlength = 0;
     /* Count number of current silences and their total length. */
+    plast = &cli_user(sptr)->silence;
     for (sile = cli_user(sptr)->silence; sile; sile = sile->next) {
       if (sile->flags & (BAN_OVERLAPPED | BAN_ADD | BAN_DEL))
         continue;
       siles++;
       totlength += strlen(sile->banstr);
+      plast = &sile->next;
     }
     for (ii = jj = 0; ii < ac_count; ++ii) {
       sile = accepted[ii];
@@ -132,12 +134,16 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
       if (!(sile->flags & (BAN_OVERLAPPED | BAN_DEL))) {
         slen = strlen(sile->banstr);
         if ((siles >= maxsiles) || (totlength + slen >= maxlength)) {
+          *plast = NULL;
+          if (MyUser(sptr))
+            send_reply(sptr, ERR_SILELISTFULL, accepted[ii]->banstr);
           free_ban(accepted[ii]);
           continue;
         }
         /* Update counts. */
         siles++;
         totlength += slen;
+        plast = &sile->next;
       }
       /* Store the update. */
       accepted[jj++] = sile;

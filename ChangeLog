@@ -1,5 +1,11 @@
 2005-02-18  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/IPcheck.c (ip_registry_find): Use canonical form of IP
+	address to look up and compare against hash entries.
+
+	* ircd/m_silence.c (forward_silences): When we reject a silence,
+	splice it out of the ban list.  Warn the user if he is local.
+
 	* ircd/s_bsd.c (connect_inet): Set IP TOS for outbound server
 	connections.
 
