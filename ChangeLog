@@ -1,3 +1,30 @@
+2000-11-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: comment out report_motd_list and include a
+	reference to motd_report()
+
+	* ircd/s_conf.c: rip out the old MOTD manipulation functions; call
+	motd_add() from the conf parser; call motd_clear() from the rehash
+	routine; remove the no longer needed memory clearing and reloading
+	stuff from the rehash service routine
+
+	* ircd/motd.c: loads new API, including static internal functions
+	to do allocation/deallocation, etc.
+
+	* ircd/m_stats.c: use new motd_report() instead of
+	report_motd_list()
+
+	* ircd/m_motd.c: use new syntax for motd_send()
+
+	* ircd/ircd.c: use new motd_init() function
+
+	* ircd/Makefile.in (SRC): forgot to add motd.c to SRC in
+	Makefile.(in); also ran make depend
+
+	* include/motd.h: don't need config.h, but now do need time.h;
+	define new structures and constants; redefine old API and define
+	new functions
+
 2000-11-22  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (register_user): use motd_signon() instead of

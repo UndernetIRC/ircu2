@@ -38,6 +38,7 @@
 #include "list.h"
 #include "listener.h"
 #include "match.h"
+#include "motd.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
@@ -69,13 +70,8 @@
 
 struct ConfItem* GlobalConfList  = 0;
 int              GlobalConfCount = 0;
-struct MotdItem* motd = NULL;
-struct MotdItem* rmotd = NULL;
-struct TRecord*  tdata = NULL;
-struct tm        motd_tm;
 
 static struct LocalConf   localConf;
-static struct MotdConf*   motdConfList;
 static struct CRuleConf*  cruleConfList;
 static struct ServerConf* serverConfList;
 static struct DenyConf*   denyConfList;
@@ -756,47 +752,6 @@ void conf_add_admin(const char* const* fields, int count)
   DupString(localConf.contact, fields[3]);
 }
 
-void conf_add_motd(const char* const* fields, int count, struct MotdConf** list)
-{
-  struct MotdConf* conf;
-  if (count < 3 || EmptyString(fields[1]) || EmptyString(fields[2]))
-    return;
-
-  conf = (struct MotdConf*) MyMalloc(sizeof(struct MotdConf));
-  assert(0 != conf);
-
-  DupString(conf->hostmask, fields[1]);
-  collapse(conf->hostmask);
-
-  DupString(conf->path, fields[2]);
-
-  assert(0 != list);
-
-  conf->next = *list;
-  *list = conf;
-}
-
-void conf_erase_motd_list(struct MotdConf** list)
-{
-  struct MotdConf* p;
-  struct MotdConf* next;
-
-  assert(0 != list);
-
-  for (p = *list; p; p = next) {
-    next = p->next;
-    MyFree(p->hostmask);
-    MyFree(p->path);
-    MyFree(p);
-  }
-  *list = 0;
-}
-
-const struct MotdConf* conf_get_motd_list(void)
-{
-  return motdConfList;
-}
-
 /*
  * conf_add_crule - Create expression tree from connect rule and add it
  * to the crule list
@@ -1152,7 +1107,7 @@ int read_configuration_file(void)
       break;
     case 'T':                /* print out different motd's */
     case 't':                /* based on hostmask - CONF_TLINES */
-      conf_add_motd(field_vector, field_count, &motdConfList);
+      motd_add(field_vector[1], field_vector[2]);
       aconf->status = CONF_ILLEGAL;
       break;
     case 'U':      /* Underworld server, allowed to hack modes */
@@ -1280,7 +1235,6 @@ int rehash(struct Client *cptr, int sig)
   struct ConfItem** tmp = &GlobalConfList;
   struct ConfItem*  tmp2;
   struct Client*    acptr;
-  struct MotdItem*  temp;
   int               i;
   int               ret = 0;
   int               found_g = 0;
@@ -1310,9 +1264,9 @@ int rehash(struct Client *cptr, int sig)
       free_conf(tmp2);
     }
   }
-  conf_erase_motd_list(&motdConfList);
   conf_erase_crule_list();
   conf_erase_deny_list();
+  motd_clear();
 
   /*
    * delete the juped nicks list
@@ -1368,23 +1322,6 @@ int rehash(struct Client *cptr, int sig)
       }
     }
   }
-  /* 
-   * free old motd structs
-   */
-  while (motd) {
-    temp = motd->next;
-    MyFree(motd);
-    motd = temp;
-  }
-  while (rmotd) {
-    temp = rmotd->next;
-    MyFree(rmotd);
-    rmotd = temp;
-  }
-  /* reload motd files */
-  read_tlines();
-  rmotd = read_motd(RPATH);
-  motd = read_motd(MPATH);
   return ret;
 }
 
@@ -1419,48 +1356,6 @@ int init_conf(void)
     return 1;
   }
   return 0;
-}
-
-
-/* read_tlines 
- * Read info from T:lines into TRecords which include the file 
- * timestamp, the hostmask, and the contents of the motd file 
- * -Ghostwolf 7sep97
- */
-void read_tlines()
-{
-  struct MotdConf* conf;
-  struct TRecord *temp;
-  struct TRecord *last = NULL;        /* Init. to avoid compiler warning */
-  struct MotdItem *amotd;
-
-  /* Free the old trecords and the associated motd contents first */
-  while (tdata) {
-    last = tdata->next;
-    while (tdata->tmotd) {
-      amotd = tdata->tmotd->next;
-      MyFree(tdata->tmotd);
-      tdata->tmotd = amotd;
-    }
-    MyFree(tdata);
-    tdata = last;
-  }
-
-  for (conf = motdConfList; conf; conf = conf->next) {
-    temp = (struct TRecord*) MyMalloc(sizeof(struct TRecord));
-    assert(0 != temp);
-
-    temp->hostmask = conf->hostmask;
-    temp->tmotd = read_motd(conf->path);
-    temp->tmotd_tm = motd_tm;
-    temp->next = 0;
-
-    if (!tdata)
-      tdata = temp;
-    else
-      last->next = temp;
-    last = temp;
-  }
 }
 
 /*
@@ -1539,46 +1434,6 @@ int find_kill(struct Client *cptr)
     
   return 0;
 }
-
-struct MotdItem* read_motd(const char* motdfile)
-{
-  FBFILE*          file = NULL;
-  struct MotdItem* temp;
-  struct MotdItem* newmotd;
-  struct MotdItem* last;
-  struct stat      sb;
-  char             line[80];
-  char*            tmp;
-
-  if (NULL == (file = fbopen(motdfile, "r"))) {
-    Debug((DEBUG_ERROR, "Couldn't open \"%s\": %s", motdfile, strerror(errno)));
-    return NULL;
-  }
-  if (-1 == fbstat(&sb, file)) {
-    fbclose(file);
-    return NULL;
-  }
-  newmotd = last = NULL;
-  motd_tm = *localtime((time_t *) & sb.st_mtime);        /* NetBSD needs cast */
-  while (fbgets(line, sizeof(line) - 1, file)) {
-    if ((tmp = (char *)strchr(line, '\n')))
-      *tmp = '\0';
-    if ((tmp = (char *)strchr(line, '\r')))
-      *tmp = '\0';
-    temp = (struct MotdItem*) MyMalloc(sizeof(struct MotdItem));
-    assert(0 != temp);
-    strcpy(temp->line, line);
-    temp->next = NULL;
-    if (!newmotd)
-      newmotd = temp;
-    else
-      last->next = temp;
-    last = temp;
-  }
-  fbclose(file);
-  return newmotd;
-}
-
 
 /*
  * Ordinary client access check. Look for conf lines which have the same
