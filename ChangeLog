@@ -10,6 +10,7 @@
  	  - rewrite of setuid/chroot code.
  	  - server will no longer run as root
  	  - -DPROFIL compile option removed
+	  - Fixed IPcheck API calls
  
  	* config/config-sh.in
  	  - Fixed up chroot compile options
@@ -24,11 +25,28 @@
  	* ircd/ircd_signal.c
  	  - Removed -DPROFIL
 
+	* include/IPcheck.h
+	  - Removed old API prototypes, added new ones
+	
 	* ircd/IPcheck.c
 	  - Readability cleanups (well, I -think-...)
 	  - Changed IPRegistryEntry.last_connect to a time_t.  The previously
 	    used unsigned short was probably causing interesting things after
 	    a client had been connected longer than about 65,535 seconds...
+	  - Removed old API functions.
+
+	* ircd/whocmds.c
+	  - Removed IPcheck.h include
+	
+	* Additionally modified IPcheck API calls in:
+	  - ircd/m_nick.c
+	  - ircd/m_auth.c
+	  - ircd/s_bsd.c
+	  - ircd/s_conf.c
+	  - ircd/s_misc.c
+	  - ircd/s_serv.c
+	  - ircd/s_user.c
+	
 	
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* ircd/s_bsd.c: Sigh. :)
@@ -1028,7 +1046,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.119 2000-04-30 11:39:24 isomer Exp $
+# $Id: ChangeLog,v 1.120 2000-04-30 12:00:06 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -138,7 +138,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
      * XXX - if this comes from a server port, it will not have been added
      * to the IP check registry, see add_connection in s_bsd.c 
      */
-    IPcheck_connect_fail(cptr->ip);
+    ip_registry_connect_fail(cptr->ip.s_addr);
   }
 
   det_confs_butmask(cptr, CONF_LEAF | CONF_HUB | CONF_SERVER | CONF_UWORLD);

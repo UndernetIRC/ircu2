@@ -89,7 +89,6 @@ debugging *only*.  It lets you connect up to 255 clients from one
 host with no time conciderations.  If this is enabled on a 
 production server I will personally drive your server into the 
 ground.  You have been warned.
--DIPCHECKDEBUG Debugging statements with IPcheck.
 
 Operating System and Kernel Requirements:
 If you plan allowing more than 1000 clients on your server, you

@@ -495,7 +495,7 @@ static void event_loop(void) {
     /* timeout pending queries that haven't been responded to */
     timeout_auth_queries(CurrentTime);
 
-    IPcheck_expire();
+    ip_registry_expire();
 
     if (GlobalRehashFlag) {
       rehash(&me, 1);
