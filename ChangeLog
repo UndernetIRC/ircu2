@@ -1,3 +1,13 @@
+2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* include/channel.h: defined MODEBUF_DEST_SERVER,
+	MODEBUF_DEST_HACK4
+
+	* ircd/channel.c: Add another argument to build_string() to handle
+	numeric nicks; implemented MODEBUF_DEST_SERVER to send MODEs to
+	servers; implemented MODEBUF_DEST_HACK4 to cause HACK(4) notices
+	to be sent out
+
 2000-03-27  Perry Lorier <isomer@coders.net>
 
 	* ircd/s_bsd.c: fixed missing 'u' typo.
@@ -14,7 +24,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.24 2000-03-27 06:19:37 isomer Exp $
+# $Id: ChangeLog,v 1.25 2000-03-27 15:36:41 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
