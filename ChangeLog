@@ -1,3 +1,8 @@
+2002-04-09  Brian Cline  <clineb@cs.winthrop.edu>
+
+        * ircd/ircd.c (try_connections): To avoid problems with infinite event
+        loops, don't try connecting to servers whose connect frequency is 0.
+	
 2002-04-10  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/ircd_parser.y: fixed a "features" block parse bug
