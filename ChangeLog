@@ -68,14 +68,6 @@
 	* include/channel.h: added definition of ModeBuf, modebuf_*
 	manipulation functions, and a couple of helper macros
 
-#
-# ChangeLog for ircu2.10.11
-#
-# $Id: ChangeLog,v 1.32 2000-03-27 21:16:56 kev Exp $
-#
-# Insert new changes at beginning of the change list.
-#
-#-----------------------------------------------------------------------------
 2000-03-24 Thomas Helvey <tomh@inxpress.net>
   * numicks.c: convert extended numerics to use original mask version
   * numnicks.h: ""
@@ -93,3 +85,11 @@
 * Merge in u2_10_10_beta07 changes --Bleep
 * Merge in u2_10_10_beta06 changes --Bleep
 * Start ircu2.10.11 development, beta branch u2_10_10 --Bleep
+#-----------------------------------------------------------------------------
+#
+# ChangeLog for ircu2.10.11
+#
+# $Id: ChangeLog,v 1.33 2000-03-28 00:52:14 bleep Exp $
+#
+# Insert new changes at beginning of the change list.
+#
