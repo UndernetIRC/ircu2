@@ -19,66 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Report operators' privileges to others
+ * @version $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "client.h"
@@ -87,14 +33,17 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
 
-/* #include <assert.h> -- Now using assert in ircd_log.h */
-
-/*
- * mo_privs - report operator privileges
+/** Handle a local operator's privilege query.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
+ * @see \ref m_functions
  */
 int mo_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -109,8 +58,43 @@ int mo_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   for (i = 1; i < parc; i++) {
     for (name = ircd_strtok(&p, parv[i], " "); name;
 	 name = ircd_strtok(&p, 0, " ")) {
-      if ((acptr = FindUser(name)))
+      if (!(acptr = FindUser(name)))
+        continue;
+      else if (MyUser(acptr))
 	client_report_privs(sptr, acptr);
+      else
+        sendcmdto_one(cptr, CMD_PRIVS, acptr, "%s%s", NumNick(acptr));
+    }
+  }
+
+  return 0;
+}
+
+/** Handle a remote user's privilege query.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
+ * @see \ref m_functions
+ */
+int ms_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  struct Client *acptr;
+  char *numnick, *p = 0;
+  int i;
+
+  if (parc < 2)
+    return protocol_violation(cptr, "PRIVS with no arguments");
+
+  for (i = 1; i < parc; i++) {
+    for (numnick = ircd_strtok(&p, parv[i], " "); numnick;
+	 numnick = ircd_strtok(&p, 0, " ")) {
+      if (!(acptr = findNUser(numnick)))
+        continue;
+      else if (MyUser(acptr))
+	client_report_privs(sptr, acptr);
+      else
+        sendcmdto_one(cptr, CMD_PRIVS, acptr, "%s%s", NumNick(acptr));
     }
   }
 

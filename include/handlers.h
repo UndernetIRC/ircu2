@@ -207,6 +207,7 @@ extern int ms_part(struct Client*, struct Client*, int, char*[]);
 extern int ms_ping(struct Client*, struct Client*, int, char*[]);
 extern int ms_pong(struct Client*, struct Client*, int, char*[]);
 extern int ms_privmsg(struct Client*, struct Client*, int, char*[]);
+extern int ms_privs(struct Client*, struct Client*, int, char*[]);
 extern int ms_quit(struct Client*, struct Client*, int, char*[]);
 extern int ms_rping(struct Client*, struct Client*, int, char*[]);
 extern int ms_rpong(struct Client*, struct Client*, int, char*[]);

@@ -1,3 +1,19 @@
+2005-04-01  Michael Poole <mdpoole@troilus.org>
+
+	* include/handlers.h (ms_privs): Declare.
+
+	* include/msg.h (TOK_PRIVS): Assign token.
+	(CMD_PRIVS): Define.
+
+	* ircd/m_privs.c: Add doxygen comments and replace the long
+	discussion of m_handler functions with an xref to it.
+	(mo_privs): Forward requests for non-local users
+	to their own server.
+	(ms_privs): Implement.
+
+	* ircd/parse.c (PRIVS): Dispatch to ms_privs when a server sends
+	the message.
+
 2005-03-30  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h (struct Client): Explain where cli_username
