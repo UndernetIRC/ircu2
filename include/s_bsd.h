@@ -12,6 +12,10 @@
 #include <sys/types.h>         /* size_t, time_t */
 #define INCLUDED_sys_types_h
 #endif
+#ifndef INCLUDED_netinet_in_h
+#include <netinet/in.h>
+#define INCLUDED_netinet_in_h
+#endif
 
 struct Client;
 struct ConfItem;
@@ -82,8 +86,9 @@ extern int  net_close_unregistered_connections(struct Client* source);
 extern void close_connection(struct Client *cptr);
 extern void add_connection(struct Listener* listener, int fd);
 extern int  read_message(time_t delay);
-extern int  init_server_identity(void);
+extern void init_server_identity(void);
 extern void close_connections(int close_stderr);
 extern int  init_connection_limits(void);
+extern void set_virtual_host(struct in_addr addr);
 
 #endif /* INCLUDED_s_bsd_h */

@@ -658,10 +658,7 @@ int main(int argc, char **argv) {
     return 7;
   }
 
-  if (!init_server_identity()) {
-    ircd_log(L_CRIT, "Failed to initialize server identity");
-    return 8;
-  }
+  init_server_identity();
 
   uping_init();
 

@@ -1432,20 +1432,11 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 /*
  * Setup local socket structure to use for binding to.
  */
-void init_virtual_host(const struct ConfItem* conf)
+void set_virtual_host(struct in_addr addr)
 {
-  assert(0 != conf);
-
   memset(&VirtualHost, 0, sizeof(VirtualHost));
   VirtualHost.sin_family = AF_INET;
-  VirtualHost.sin_addr.s_addr = INADDR_ANY;
-
-  if (EmptyString(conf->passwd) || 0 == strcmp(conf->passwd, "*"))
-    return;
-  VirtualHost.sin_addr.s_addr = inet_addr(conf->passwd);
-
-  if (INADDR_NONE == VirtualHost.sin_addr.s_addr)
-    VirtualHost.sin_addr.s_addr = INADDR_ANY;
+  VirtualHost.sin_addr.s_addr = addr.s_addr;
 }  
 
 /*
@@ -1453,17 +1444,13 @@ void init_virtual_host(const struct ConfItem* conf)
  * matches the server's name) and its primary IP#.  Hostname is stored
  * in the client structure passed as a pointer.
  */
-int init_server_identity()
+void init_server_identity(void)
 {
-  struct ConfItem* conf = find_me();
+  const struct LocalConf* conf = conf_get_local();
+  assert(0 != conf);
 
-  if (!conf || EmptyString(conf->host))
-    return 0;
-
-  ircd_strncpy(me.name, conf->host, HOSTLEN);
-
-  init_virtual_host(conf);
-  return 1;
+  ircd_strncpy(me.name, conf->name, HOSTLEN);
+  SetYXXServerName(&me, conf->numeric);
 }
 
 

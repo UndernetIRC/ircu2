@@ -42,6 +42,7 @@
 /*
  * stuff that isn't used by s_conf.c anymore
  */
+#define CONF_ME                 0x0040
 #define CONF_ADMIN              0x0100
 #define CONF_CLASS              0x0400
 #define CONF_LISTEN_PORT        0x2000

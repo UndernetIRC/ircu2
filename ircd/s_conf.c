@@ -472,16 +472,6 @@ const struct LocalConf* conf_get_local(void)
   return &localConf;
 }
 
-struct ConfItem* find_me(void)
-{
-  struct ConfItem* aconf;
-  for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    if (aconf->status & CONF_ME)
-      break;
-  }
-  return aconf;
-}
-
 /*
  * attach_confs_byname
  *
@@ -717,15 +707,48 @@ void conf_add_listener(const char* const* fields, int count)
   add_listener(atoi(fields[4]), fields[2], fields[1], is_server, is_hidden);
 }
 
+void conf_add_local(const char* const* fields, int count)
+{
+  if (count < 6 || EmptyString(fields[1]) || EmptyString(fields[5])) {
+    ircd_log(L_CRIT, "Your M: line must have 6 fields!\n");
+    return;
+  }
+  /*
+   * these two can only be set the first time
+   */
+  if (0 == localConf.name) {
+    if (string_is_hostname(fields[1]))
+      DupString(localConf.name, fields[1]);
+  }
+  if (0 == localConf.numeric) {
+    localConf.numeric = atoi(fields[5]);
+    if (0 == localConf.numeric)
+      ircd_log(L_WARNING, "Your M: line must have a Numeric value greater than 0\n");
+  }
+  /*
+   * these two can be changed while the server is running
+   */
+  if (string_is_address(fields[2])) {
+    if (INADDR_NONE == (localConf.vhost_address.s_addr = inet_addr(fields[2])))
+      localConf.vhost_address.s_addr = INADDR_ANY;
+  }
+  MyFree(localConf.description);
+  DupString(localConf.description, fields[3]);
+  /*
+   * XXX - shouldn't be setting these directly here
+   */
+  ircd_strncpy(me.info, fields[3], REALLEN);
+  set_virtual_host(localConf.vhost_address);
+}
+
 void conf_add_admin(const char* const* fields, int count)
 {
   /*
    * if you have one, it MUST have 3 lines
    */
   if (count < 4) {
-    Debug((DEBUG_FATAL, "Your A: line must have 4 fields!\n"));
     ircd_log(L_CRIT, "Your A: line must have 4 fields!\n");
-    exit(-1);
+    return;
   }
   MyFree(localConf.location1);
   DupString(localConf.location1, fields[1]);
@@ -1040,8 +1063,9 @@ int read_configuration_file(void)
       /* Me. Host field is name used for this host */
       /* and port number is the number of the port */
     case 'M':
-    case 'm':
-      aconf->status = CONF_ME;
+    case 'm':        /* CONF_ME */
+      conf_add_local(field_vector, field_count);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'O':
       aconf->status = CONF_OPERATOR;
@@ -1090,20 +1114,9 @@ int read_configuration_file(void)
     if (field_count > 4 && !EmptyString(field_vector[4]))
         aconf->port = atoi(field_vector[4]); 
 
-    if (field_count > 5 && !EmptyString(field_vector[5])) {
-      int n = atoi(field_vector[5]);
-      if (CONF_ME == (aconf->status & CONF_ME))
-        SetYXXServerName(&me, n);        /* Our Numeric Nick */
-      else
-        aconf->confClass = find_class(n);
-    }
-    else if (CONF_ME == (aconf->status & CONF_ME)) {
-      Debug((DEBUG_FATAL, "Your M: line must have the Numeric, "
-             "assigned to you by routing-com!\n"));
-      ircd_log(L_WARNING, "Your M: line must have the Numeric, "
-              "assigned to you by routing-com!\n");
-      exit(-1);
-    }
+    if (field_count > 5 && !EmptyString(field_vector[5]))
+      aconf->confClass = find_class(atoi(field_vector[5]));
+
     /*
      * Associate each conf line with a class by using a pointer
      * to the correct class record. -avalon
@@ -1158,17 +1171,6 @@ int read_configuration_file(void)
         continue;
       lookup_confhost(aconf);
     }
-    /*
-     * Own port and name cannot be changed after the startup.
-     * (or could be allowed, but only if all links are closed first).
-     * Configuration info does not override the name and port
-     * if previously defined. Note, that "info"-field can be
-     * changed by "/rehash".
-     */
-    if (aconf->status == CONF_ME) {
-      ircd_strncpy(me.info, aconf->name, REALLEN);
-    }
-    
     if (aconf->status == CONF_IPKILL) {
       /* 
        * Here we use the same kludge as in listener.c to parse
@@ -1365,6 +1367,9 @@ int init_conf(void)
      * XXX - should any of these abort the server?
      * TODO: add warning messages
      */
+    if (0 == localConf.name || 0 == localConf.numeric)
+      return 0;
+
     if (0 == localConf.location1)
       DupString(localConf.location1, "");
     if (0 == localConf.location2)
