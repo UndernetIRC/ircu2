@@ -1,3 +1,8 @@
+2002-08-05  Zoot <zoot@gamesnet.net>
+        
+	* ircd/ircd_snprintf.c: Reorder the tests in the adds() while loop
+	to squelch some warnings from Valgrind.
+        
 2002-07-26  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c: create stats_help() to send the help information
