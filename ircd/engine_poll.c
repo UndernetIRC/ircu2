@@ -303,7 +303,7 @@ engine_loop(struct Generators* gen)
 	}
       }
 
-      assert(!(pollfdList[i].revents & POLLERR));
+      /* assert(!(pollfdList[i].revents & POLLERR)); */
 
 #ifdef POLLHUP
       if (pollfdList[i].revents & POLLHUP) { /* hang-up on socket */

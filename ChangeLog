@@ -1,4 +1,16 @@
 2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
+	* include/ircd_alloc.h (MyFree): Accept NULL pointers to do nothing
+	with, this is used quite a lot.
+	* ircd/class.c (make_class): Initialise the ref_count to 1 so that
+	we don't leak.
+	* ircd/class.c (add_class): When updating a class, free the old name
+	first to prevent leakage.
+	* ircd/class.c (class_delete_marked): Decrement the ref_count for the
+	class after it is removed from the linked list.
+	* ircd/ircd_parser.y: Changed a free to MyFree().
+	* ircd/ircd_parser.y: Removed a few debugging messages.
+
+2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
 	* s_bsd.c (read_packet): Our daily addition to the list of entities to
 	treat as servers - Connecting servers.
 	

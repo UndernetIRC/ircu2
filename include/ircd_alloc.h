@@ -38,7 +38,8 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
   DoMallocZero(size * nelem, "calloc", __FILE__, __LINE__)
 
 #define MyFree(p) \
-  DoFree(p, __FILE__, __LINE__)
+  if (p) \
+    DoFree(p, __FILE__, __LINE__)
 
 /* No realloc because it is not currently used, and it is not really the
  * nicest function to be using anyway(i.e. its evil if you want it

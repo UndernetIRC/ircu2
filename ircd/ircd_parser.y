@@ -302,46 +302,46 @@ adminlocation: LOCATION '=' QSTRING ';'
 admincontact: CONTACT '=' QSTRING ';'
 {
  if (localConf.contact != NULL)
-  free(localConf.contact);
+   MyFree(localConf.contact);
  DupString(localConf.contact, yylval.text);
 };
 
 classblock: CLASS {
- name = NULL;
- tping = 90;
- tconn = 0;
- maxlinks = 0;
- sendq = 0;
+  name = NULL;
+  tping = 90;
+  tconn = 0;
+  maxlinks = 0;
+  sendq = 0;
 } '{' classitems '}'
 {
- if (name != NULL)
- {
-  add_class(name, tping, tconn, maxlinks, sendq);
- }
+  if (name != NULL)
+  {
+   add_class(name, tping, tconn, maxlinks, sendq);
+  }
 } ';';
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
            classsendq;
 classname: NAME '=' QSTRING ';'
 {
- MyFree(name);
- DupString(name, yylval.text);
+  MyFree(name);
+  DupString(name, yylval.text);
 };
 classpingfreq: PINGFREQ '=' timespec ';'
 {
- tping = yylval.num;
+  tping = yylval.num;
 };
 classconnfreq: CONNECTFREQ '=' timespec ';'
 {
- tconn = yylval.num;
+  tconn = yylval.num;
 };
 classmaxlinks: MAXLINKS '=' expr ';'
 {
- maxlinks = yylval.num;
+  maxlinks = yylval.num;
 };
 classsendq: SENDQ '=' sizespec ';'
 {
- sendq = yylval.num;
+  sendq = yylval.num;
 };
 
 connectblock: CONNECT
@@ -355,27 +355,25 @@ connectblock: CONNECT
      /*ccount < MAXCONFLINKS &&*/ !strchr(host, '*') &&
      !strchr(host, '?'))
  {
-  aconf = MyMalloc(sizeof(*aconf));
-  aconf->status = CONF_SERVER;
-  aconf->name = name;
-  aconf->passwd = pass;
-  aconf->conn_class = class;
-  aconf->port = port;
-  aconf->status = CONF_SERVER;
-  aconf->host = host;
-  aconf->next = GlobalConfList;
-  aconf->ipnum.s_addr = INADDR_NONE;
-  lookup_confhost(aconf);
-  GlobalConfList = aconf;
-  printf("Server added: %s\n", name);
-  /* ccount++; -- XXX fixme --- A1kmm */
+   aconf = make_conf();
+   aconf->status = CONF_SERVER;
+   aconf->name = name;
+   aconf->passwd = pass;
+   aconf->conn_class = class;
+   aconf->port = port;
+   aconf->status = CONF_SERVER;
+   aconf->host = host;
+   aconf->next = GlobalConfList;
+   aconf->ipnum.s_addr = INADDR_NONE;
+   lookup_confhost(aconf);
+   GlobalConfList = aconf;
  }
  else
  {
-  MyFree(name);
-  MyFree(pass);
-  MyFree(host);
-  name = pass = host = NULL;
+   MyFree(name);
+   MyFree(pass);
+   MyFree(host);
+   name = pass = host = NULL;
  }
 }';';
 connectitems: connectitem connectitems | connectitem;
@@ -477,7 +475,6 @@ operblock: OPER
 {
   if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL)
   {
-    log_write(LS_CONFIG, L_ERROR, 0, "added an oper block for host %s", aconf->host);
     aconf->next = GlobalConfList;
     GlobalConfList = aconf;
   }

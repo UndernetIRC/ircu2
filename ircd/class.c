@@ -52,6 +52,7 @@ struct ConnectionClass* make_class(void)
   struct ConnectionClass *tmp;
 
   tmp = (struct ConnectionClass*) MyMalloc(sizeof(struct ConnectionClass));
+  tmp->ref_count = 1;
   assert(0 != tmp);
   ++connClassAllocCount;
   return tmp;
@@ -59,10 +60,11 @@ struct ConnectionClass* make_class(void)
 
 void free_class(struct ConnectionClass* p)
 {
-  if (p) {
+  if (p)
+  {
     assert(0 == p->valid);
     if (p->cc_name)
-     MyFree(p->cc_name);
+      MyFree(p->cc_name);
     MyFree(p);
     --connClassAllocCount;
   }
@@ -123,9 +125,10 @@ void class_delete_marked(void)
      */
     if (cl->valid)
       prev = cl;
-    else {
+    else
+    {
       prev->next = cl->next;
-      if (0 == cl->ref_count)
+      if (0 == --cl->ref_count)
         free_class(cl);
     }
   }
@@ -198,7 +201,11 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
     t->next = p;
   }
   else
+  {
+    if (ConClass(t) != NULL)
+      MyFree(ConClass(t));
     p = t;
+  }
   Debug((DEBUG_DEBUG, "Add Class %s: cf: %u pf: %u ml: %u sq: %d",
          name, confreq, ping, maxli, sendq));
   ConClass(p) = name;
