@@ -54,6 +54,7 @@
 #include "sys.h"
 #include "uping.h"
 #include "userload.h"
+#include "map.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -269,6 +270,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       Count_serverdisconnects(UserStats);
     else
       Count_remoteserverquits(UserStats);
+    
+    map_update(bcptr);
   }
   else if (IsMe(bcptr))
   {

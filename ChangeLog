@@ -1,3 +1,21 @@
+2002-02-25 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/m_map.c: Modified to show a useful output to non-opered
+	  clients when HEAD_IN_SAND_MAP is defined. Servers are added to
+	  the list when first seen (after receiving SERVER) and that list
+	  is sent to clients. Servers are excluded from the list if they are
+	  hubs, services, or have been missing for more than 1 week.
+	
+	* ircd/map.c: Created file for map_* functions
+
+	* include/map.h: Created file for map_* functions
+
+	* ircd/m_server.c: Added calls to map_update()
+
+	* ircd/s_misc.c: Added call to map_update()
+
+	* ircd/parse.c: Changed to use m_map() and mo_map()
+	
 2002-02-22 Reed Loden <reed@redmagnet.com>
 
        * ircd/m_connect.c: Removed an extra : in remote connect message.

@@ -102,6 +102,7 @@
 #include "s_serv.h"
 #include "send.h"
 #include "userload.h"
+#include "map.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -638,6 +639,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     ret = 0;
 
+  map_update(cptr);
+
   if (feature_bool(FEAT_RELIABLE_CLOCK) &&
       abs(cli_serv(cptr)->timestamp - recv_time) > 30) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
@@ -1076,6 +1079,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   Count_newremoteserver(UserStats);
   add_client_to_list(acptr);
   hAddClient(acptr);
+  map_update(acptr);
 
   if (*parv[5] == 'J')
   {
