@@ -253,11 +253,11 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         {
           if (IsAnOper(acptr))
             sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR),
-                me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                 CurrentTime - acptr->lasttime);
           else
             sendto_one(sptr, rpl_str(RPL_TRACEUSER),
-                me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                 CurrentTime - acptr->lasttime);
           cnt++;
         }
@@ -470,11 +470,11 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         {
           if (IsAnOper(acptr))
             sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR),
-                me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                 CurrentTime - acptr->lasttime);
           else
             sendto_one(sptr, rpl_str(RPL_TRACEUSER),
-                me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                 CurrentTime - acptr->lasttime);
           cnt++;
         }
@@ -687,11 +687,11 @@ int mo_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         {
           if (IsAnOper(acptr))
             sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR),
-                       me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                       me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                        CurrentTime - acptr->lasttime);
           else
             sendto_one(sptr, rpl_str(RPL_TRACEUSER),
-                       me.name, parv[0], conClass, get_client_name(acptr, HIDE_IP),
+                       me.name, parv[0], conClass, get_client_name(acptr, SHOW_IP),
                        CurrentTime - acptr->lasttime);
           cnt++;
         }

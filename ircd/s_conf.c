@@ -1368,6 +1368,7 @@ int find_kill(struct Client *cptr)
   char             reply[256];
   const char*      host;
   const char*      name;
+  const char*      realname;
   struct ConfItem* tmp;
   struct Gline*    agline = NULL;
 
@@ -1390,15 +1391,21 @@ int find_kill(struct Client *cptr)
 #endif
 
   reply[0] = '\0';
+  realname = 0;
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next) {
     /* Added a check against the user's IP address as well.
      * If the line is either CONF_KILL or CONF_IPKILL, check it; if and only
      * if it's CONF_IPKILL, check the IP address as well (the && below will
      * short circuit and the match won't even get run) -Kev
+     * Added check by realname. Similar short circuit to IPKILL check to avoid
+     * match(). $R identifies a real-name-match token, other char's reserved for
+     * future use. -Gte
      */
+     
+    realname = (((tmp->host[0] == '$') && (tmp->host[1] == 'R')) ? &tmp->host[2] : 0); // Move past the $R..
     if ((tmp->status & CONF_KLINE) && tmp->host && tmp->name &&
-        (match(tmp->host, host) == 0 ||
+        ((realname && (match(realname, cptr->info) == 0)) || match(tmp->host, host) == 0 || 
         ((tmp->status == CONF_IPKILL) &&
         match(tmp->host, ircd_ntoa((const char*) &cptr->ip)) == 0)) &&
         (!name || match(tmp->name, name) == 0) &&

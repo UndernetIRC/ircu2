@@ -208,7 +208,7 @@ int m_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef BADCHAN
         if (bad_channel(name) && !IsAnOper(sptr))
         {
-          sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
+          sendto_one(sptr, err_str(ERR_BANNEDFROMCHAN), me.name, parv[0], name);
           continue;
         }
 #endif
@@ -497,7 +497,7 @@ int ms_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef BADCHAN
         if (bad_channel(name) && !IsAnOper(sptr))
         {
-          sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
+          sendto_one(sptr, err_str(ERR_BANNEDFROMCHAN), me.name, parv[0], name);
           continue;
         }
 #endif
@@ -773,7 +773,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifdef BADCHAN
         if (bad_channel(name) && !IsAnOper(sptr))
         {
-          sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
+          sendto_one(sptr, err_str(ERR_BANNEDFROMCHAN), me.name, parv[0], name);
           continue;
         }
 #endif

@@ -406,8 +406,9 @@ int register_user(struct Client *cptr, struct Client *sptr,
         if (CurrentTime - last_too_many1 >= (time_t) 60)
         {
           last_too_many1 = CurrentTime;
-          sendto_op_mask(SNO_TOOMANY, "Too many connections in class for %s.",
-                         get_client_name(sptr, HIDE_IP));
+          sendto_op_mask(SNO_TOOMANY, "Too many connections in class %i for %s.",
+          		 get_client_class(sptr),
+                         get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
         IPcheck_connect_fail(sptr->ip);
@@ -418,7 +419,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         {
           last_too_many2 = CurrentTime;
           sendto_op_mask(SNO_TOOMANY, "Too many connections from same IP for %s.",
-                         get_client_name(sptr, HIDE_IP));
+                         get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
         return exit_client(cptr, sptr, &me,
