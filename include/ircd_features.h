@@ -53,6 +53,7 @@ enum Feature {
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
   FEAT_MAXCHANNELSPERUSER,
+  FEAT_NICKLEN,
   FEAT_AVBANLEN,
   FEAT_MAXBANS,
   FEAT_MAXSILES,
@@ -67,6 +68,9 @@ enum Feature {
   FEAT_GLINEMAXUSERCOUNT,
   FEAT_SOCKSENDBUF,
   FEAT_SOCKRECVBUF,
+  FEAT_IPCHECK_CLONE_LIMIT,
+  FEAT_IPCHECK_CLONE_PERIOD,
+  FEAT_IPCHECK_CLONE_DELAY,
 
   /* Some misc. default paths */
   FEAT_MPATH,
@@ -78,6 +82,9 @@ enum Feature {
   FEAT_TOS_SERVER,
   FEAT_TOS_CLIENT,
   FEAT_POLLS_PER_LOOP,
+  FEAT_IRCD_RES_RETRIES,
+  FEAT_IRCD_RES_TIMEOUT,
+  FEAT_AUTH_TIMEOUT,
 
   /* features that affect all operators */
   FEAT_CRYPT_OPER_PASSWORD,

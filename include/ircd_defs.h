@@ -38,7 +38,7 @@
  * it.  Thanks for helping debug guys.
  */
 #ifndef NICKLEN
-#define NICKLEN         9
+#define NICKLEN         15
 #endif
 /*
  * USERLEN is the maximum length allowed of a user name including an optional

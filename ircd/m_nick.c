@@ -96,6 +96,7 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
+#include "sys.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -164,8 +165,8 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * garbage
    */
   arg = parv[1];
-  if (strlen(arg) > NICKLEN)
-    arg[NICKLEN] = '\0';
+  if (strlen(arg) > IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN)))
+    arg[IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN))] = '\0';
 
   if ((s = strchr(arg, '~')))
     *s = '\0';

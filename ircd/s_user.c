@@ -433,7 +433,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
         && strcmp(cli_passwd(sptr), aconf->passwd))
     {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(cli_ip(sptr));
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
@@ -443,7 +442,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
      */
     if ((killreason=find_kill(sptr))) {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(cli_ip(sptr));
       return exit_client(cptr, sptr, &me,
         killreason == -1 ? "K-lined" : "G-lined");
     }
@@ -542,6 +540,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
     cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
 
+    SetLocalNumNick(sptr);
+    
     send_reply(
 	sptr, 
 	RPL_WELCOME, 
@@ -565,10 +565,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
       sendto_opmask_butone(0, SNO_CONNEXIT,
-			   "Client connecting: %s (%s@%s) [%s] {%d} [%s]",
+			   "Client connecting: %s (%s@%s) [%s] {%d} [%s] <%s%s>",
 			   cli_name(sptr), user->username, user->host,
 			   cli_sock_ip(sptr), get_client_class(sptr),
-			   cli_info(sptr)
+			   cli_info(sptr),
+			   NumNick(cptr) /* Two %'s */
 			   );
     IPcheck_connect_succeeded(sptr);
   }
@@ -788,7 +789,6 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       cli_user(sptr) = make_user(sptr);
       cli_user(sptr)->server = &me;
     }
-    SetLocalNumNick(sptr);
     hAddClient(sptr);
 
     /*
@@ -1053,6 +1053,11 @@ int hide_hostmask(struct Client *cptr, unsigned int flag)
   if (MyConnect(cptr) && !feature_bool(FEAT_HOST_HIDING) && (flag == FLAG_HIDDENHOST))
     return 0;
     
+/* Invalidate all bans against the user so we check them again */
+      for (chan = (cli_user(cptr))->channel; chan;
+           chan = chan->next_channel)
+        ClearBanValid(chan);
+
   if (((flag == FLAG_HIDDENHOST) && !HasFlag(cptr, FLAG_ACCOUNT))
       || ((flag == FLAG_ACCOUNT) && !HasFlag(cptr, FLAG_HIDDENHOST))) {
     /* The user doesn't have both flags, don't change the hostmask */
@@ -1246,7 +1251,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
         if (what == MODE_ADD)
 	  do_host_hiding = 1;
 	break;
-      default:
+	/* if none of the given case is valid then compain by 
+	 * sending raw 501 ( ERR_UMODEUNKNOWNFLAG )
+	 */
+      default: send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;
       }
     }

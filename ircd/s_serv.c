@@ -181,6 +181,13 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 		  cli_info(cptr));
   }
 
+  /* Send these as early as possible so that glined users/juped servers can
+   * be removed from the network while the remote server is still chewing
+   * our burst.
+   */
+  gline_burst(cptr);
+  jupe_burst(cptr);
+
   /*
    * Pass on my client information to the new server
    *
@@ -246,8 +253,6 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
       send_channel_modes(cptr, chptr);
   }
-  jupe_burst(cptr);
-  gline_burst(cptr);
   sendcmdto_one(&me, CMD_END_OF_BURST, cptr, "");
   return 0;
 }

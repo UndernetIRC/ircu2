@@ -260,6 +260,7 @@ static struct FeatureDesc {
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
   F_I(MAXCHANNELSPERUSER, 0, 10, 0),
+  F_I(NICKLEN, 0, 9, 0),
   F_I(AVBANLEN, 0, 40, 0),
   F_I(MAXBANS, 0, 45, 0),
   F_I(MAXSILES, 0, 15, 0),
@@ -272,8 +273,11 @@ static struct FeatureDesc {
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
   F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
   F_I(GLINEMAXUSERCOUNT, 0, 20, 0),
-  F_I(SOCKSENDBUF, 0, 61440, 0),
-  F_I(SOCKRECVBUF, 0, 61440, 0),
+  F_I(SOCKSENDBUF, 0, 0, 0),
+  F_I(SOCKRECVBUF, 0, 0, 0),
+  F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
+  F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
+  F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
   
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
@@ -285,6 +289,9 @@ static struct FeatureDesc {
   F_I(TOS_SERVER, 0, 0x08, 0),
   F_I(TOS_CLIENT, 0, 0x08, 0),
   F_I(POLLS_PER_LOOP, 0, 200, 0),
+  F_I(IRCD_RES_RETRIES, 0, 2, 0),
+  F_I(IRCD_RES_TIMEOUT, 0, 4, 0),
+  F_I(AUTH_TIMEOUT, 0, 9, 0),
 
   /* features that affect all operators */
   F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),

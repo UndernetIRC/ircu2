@@ -47,6 +47,9 @@
 #endif
 #endif
 
+/*fix for change uid/gid with chroot #ubra 08/02/03*/
+int uid, gid;
+
 /*
  * Set the hard and soft limits for maximum file descriptors.
  */
@@ -78,14 +81,16 @@ change_root(char *root)
 /*
  * Change the user and group ids--including supplementary groups!--as
  * appropriate.
+ *
+ * fix for change uid/gid with chroot #ubra 08/02/03
+ * old change_user() got splited into get_user() and set_user()
  */
 int
-change_user(char *user, char *group)
+get_user(char *user, char *group)
 {
   struct passwd *pwd;
   struct group *grp;
   char *tmp;
-  int uid, gid;
 
   /* Track down a struct passwd describing the desired user */
   uid = strtol(user, &tmp, 10); /* was the user given as a number? */
@@ -111,6 +116,11 @@ change_user(char *user, char *group)
 
   if (initgroups(pwd->pw_name, gid)) /* initialize supplementary groups */
     return -1;
+  return 0; /* success! */
+}
+
+int
+set_user(void) {
   if (setgid(gid)) /* change our current group */
     return -1;
   if (setuid(uid)) /* change our current user */
@@ -182,6 +192,13 @@ main(int argc, char **argv)
       return 1;
     }
 
+  if(user) /* get the selected user account uid/gid*/
+   if (get_user(user, group)) {
+     perror(prog);
+     return 1;
+   }
+
+
   if (root) /* change root directories */
     if (change_root(root)) {
       perror(prog);
@@ -189,7 +206,7 @@ main(int argc, char **argv)
     }
 
   if (user) /* change to selected user account */
-    if (change_user(user, group)) {
+    if (set_user()) {
       perror(prog);
       return 1;
     }

@@ -337,9 +337,9 @@ jupe_memory_count(size_t *ju_size)
 
   for (jupe = GlobalJupeList; jupe; jupe = jupe->ju_next) {
     ju++;
-    ju_size += sizeof(struct Jupe);
-    ju_size += jupe->ju_server ? (strlen(jupe->ju_server) + 1) : 0;
-    ju_size += jupe->ju_reason ? (strlen(jupe->ju_reason) + 1) : 0;
+    *ju_size += sizeof(struct Jupe);
+    *ju_size += jupe->ju_server ? (strlen(jupe->ju_server) + 1) : 0;
+    *ju_size += jupe->ju_reason ? (strlen(jupe->ju_reason) + 1) : 0;
   }
   return ju;
 }
