@@ -59,6 +59,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <netdb.h>
 
@@ -82,6 +83,8 @@ time_t nextconnect = 1;         /* time for next try_connections call */
 time_t nextping = 1;            /* same as above for check_pings() */
 time_t nextdnscheck = 0;        /* next time to poll dns to force timeouts */
 time_t nextexpire = 1;          /* next expire run on the dns cache */
+
+int pid_fd = -1;		/* We'll get an advisory lock in check_pid */
 
 #ifdef PROFIL
 extern etext(void);
@@ -146,14 +149,12 @@ static void outofmemory(void)
 static void write_pidfile(void)
 {
 #ifdef PPATH
-  int fd;
   char buff[20];
-  if ((fd = open(PPATH, O_CREAT | O_WRONLY, 0600)) >= 0) {
+  if (pid_fd >= 0) {
     memset(buff, 0, sizeof(buff));
     sprintf(buff, "%5d\n", (int)getpid());
-    if (write(fd, buff, strlen(buff)) == -1)
+    if (write(pid_fd, buff, strlen(buff)) == -1)
       Debug((DEBUG_NOTICE, "Error writing to pid file %s", PPATH));
-    close(fd);
     return;
   }
   Debug((DEBUG_NOTICE, "Error opening pid file \"%s\": %s",
@@ -161,6 +162,32 @@ static void write_pidfile(void)
 #endif
 }
 
+/* check_pid
+ * 
+ * inputs: 
+ *   none
+ * returns:
+ *   true - if the pid file exists (and is readable), and the pid refered
+ *          to in the file is still running.
+ *   false - otherwise.
+ */
+static int check_pid(void)
+{
+#ifdef PPATH
+  struct flock lock;
+
+  lock.l_type = F_WRLCK;
+  lock.l_start = 0;
+  lock.l_whence = SEEK_SET;
+  lock.l_len = 0;
+
+  if ((pid_fd = open(PPATH, O_CREAT | O_RDWR, 0600)) >= 0)
+    return fcntl(pid_fd, F_SETLK, &lock);
+
+  return 0;
+#endif
+}
+  
 /*
  * try_connections
  *
@@ -471,6 +498,7 @@ int main(int argc, char *argv[])
       case 'h':
         ircd_strncpy(me.name, p, HOSTLEN);
         break;
+        
       case 't':
         if (euid != uid)
           setuid((uid_t) uid);
@@ -618,6 +646,10 @@ int main(int argc, char *argv[])
   initstats();
   open_debugfile();
   init_sys();
+  if (check_pid()) {
+    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
+    exit(2);
+  }
   set_nomem_handler(outofmemory);
 
   me.fd = -1;
