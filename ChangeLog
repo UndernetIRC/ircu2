@@ -1,3 +1,7 @@
+2003-08-01 Diane Bruce  <db@db.net>
+
+	* ircd/parse.c: Fixed typo
+
 2003-06-22  Diane Bruce  <db@db.net>
 
 	* ircd/parse.c: Completely rewritten June 2, 2003 - Dianora
