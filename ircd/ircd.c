@@ -663,6 +663,7 @@ int main(int argc, char **argv) {
   CurrentTime = time(NULL);
 
   SetMe(&me);
+  cli_magic(&me) = CLIENT_MAGIC;
   cli_from(&me) = &me;
   make_server(&me);
 

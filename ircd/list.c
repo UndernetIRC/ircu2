@@ -111,6 +111,7 @@ static struct Client* alloc_client(void)
 
 static void dealloc_client(struct Client* cptr)
 {
+  assert(cli_verify(cptr));
   assert(0 == cli_connect(cptr));
 
 #ifdef DEBUGMODE
@@ -119,6 +120,8 @@ static void dealloc_client(struct Client* cptr)
 
   cli_next(cptr) = clientFreeList;
   clientFreeList = cptr;
+
+  cli_magic(cptr) = 0;
 }
 
 static struct Connection* alloc_connection(void)
@@ -142,6 +145,8 @@ static struct Connection* alloc_connection(void)
 
 static void dealloc_connection(struct Connection* con)
 {
+  assert(con_verify(con));
+
   if (con_dns_reply(con))
     --(con_dns_reply(con)->ref_count);
   if (-1 < con_fd(con))
@@ -158,6 +163,8 @@ static void dealloc_connection(struct Connection* con)
 
   con_next(con) = connectionFreeList;
   connectionFreeList = con;
+
+  con_magic(con) = 0;
 }
 
 /*
@@ -174,16 +181,21 @@ struct Client* make_client(struct Client *from, int status)
   struct Client* cptr = 0;
   struct Connection* con = 0;
 
+  assert(!from || cli_verify(from));
+
   cptr = alloc_client();
 
   assert(0 != cptr);
+  assert(!cli_magic(cptr));
   assert(0 == from || 0 != cli_connect(from));
 
   if (!from) { /* local client, allocate a struct Connection */
     con = alloc_connection();
 
     assert(0 != con);
+    assert(!con_magic(con));
 
+    con_magic(con) = CONNECTION_MAGIC;
     con_fd(con) = -1; /* initialize struct Connection */
     con_freeflag(con) = 0;
     con_nextnick(con) = CurrentTime - NICK_DELAY;
@@ -198,7 +210,9 @@ struct Client* make_client(struct Client *from, int status)
     con = cli_connect(from); /* use 'from's connection */
 
   assert(0 != con);
+  assert(con_verify(con));
 
+  cli_magic(cptr) = CLIENT_MAGIC;
   cli_connect(cptr) = con; /* set the connection and other fields */
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
@@ -212,6 +226,7 @@ void free_connection(struct Connection* con)
   if (!con)
     return;
 
+  assert(con_verify(con));
   assert(0 == con_client(con));
 
   dealloc_connection(con); /* deallocate the connection */
@@ -224,9 +239,13 @@ void free_client(struct Client* cptr)
   /*
    * forget to remove the client from the hash table?
    */
+  assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
 
+  Debug((DEBUG_LIST, "Freeing client %s [%p]", cli_name(cptr), cptr));
+
   if (cli_from(cptr) == cptr) { /* in other words, we're local */
+    cli_from(cptr) = 0;
     if (!cli_freeflag(cptr))
       dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
     else {
@@ -245,6 +264,8 @@ void free_client(struct Client* cptr)
 struct Server *make_server(struct Client *cptr)
 {
   struct Server *serv = cli_serv(cptr);
+
+  assert(cli_verify(cptr));
 
   if (!serv)
   {
@@ -268,6 +289,9 @@ struct Server *make_server(struct Client *cptr)
  */
 void remove_client_from_list(struct Client *cptr)
 {
+  assert(cli_verify(cptr));
+  assert(con_verify(cli_connect(cptr)));
+
   if (cli_prev(cptr))
     cli_next(cli_prev(cptr)) = cli_next(cptr);
   else {
@@ -313,6 +337,7 @@ void remove_client_from_list(struct Client *cptr)
  */
 void add_client_to_list(struct Client *cptr)
 {
+  assert(cli_verify(cptr));
   /*
    * Since we always insert new clients to the top of the list,
    * this should mean the "me" is the bottom most item in the list.

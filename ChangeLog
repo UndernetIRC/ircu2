@@ -1,5 +1,15 @@
 2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/list.c: add magic number checking and setting--magic
+	numbers are zero'd on frees to detect double-frees; add back
+	setting of cli_from() to 0 to break the back-link from the struct
+	Connection (duh)
+
+	* ircd/ircd.c: set me's magic number correctly
+
+	* include/client.h: define magic numbers and accessor/verifier
+	macros
+
 	* ircd/list.c: assert that dealloc_client() is called with
 	cli_connect(cptr) == 0; set cli_connect(cptr) to 0 before calling
 	dealloc_client(); don't mess with cli_from(cptr)

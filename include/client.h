@@ -113,6 +113,7 @@ struct Connection {
    *  to which the allocation is tied to! *Never* refer to
    *  these fields, if (from != self).
    */
+  unsigned long       con_magic; /* magic number */
   struct Connection*  con_next;  /* Next connection with queued data */
   struct Connection** con_prev_p; /* What points to us */
   struct Client*      con_client; /* Client associated with connection */
@@ -157,7 +158,10 @@ struct Connection {
   struct Timer        con_proc; /* process latent messages from client */
 };
 
+#define CONNECTION_MAGIC 0x12f955f3
+
 struct Client {
+  unsigned long  cli_magic;     /* magic number */
   struct Client* cli_next;      /* link in GlobalClientList */
   struct Client* cli_prev;      /* link in GlobalClientList */
   struct Client* cli_hnext;     /* link in hash table bucket or this */
@@ -188,6 +192,10 @@ struct Client {
   char cli_info[REALLEN + 1];   /* Free form additional client information */
 };
 
+#define CLIENT_MAGIC 0x4ca08286
+
+#define cli_verify(cli)		((cli)->cli_magic == CLIENT_MAGIC)
+#define cli_magic(cli)		((cli)->cli_magic)
 #define cli_next(cli)		((cli)->cli_next)
 #define cli_prev(cli)		((cli)->cli_prev)
 #define cli_hnext(cli)		((cli)->cli_hnext)
@@ -245,6 +253,8 @@ struct Client {
 #define cli_socket(cli)		((cli)->cli_connect->con_socket)
 #define cli_proc(cli)		((cli)->cli_connect->con_proc)
 
+#define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
+#define con_magic(con)		((con)->con_magic)
 #define con_next(con)		((con)->con_next)
 #define con_prev_p(con)		((con)->con_prev_p)
 #define con_client(con)		((con)->con_client)
