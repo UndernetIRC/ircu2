@@ -1,3 +1,6 @@
+2000-04-10  Perry Lorier  <Isomer@coders.net>
+	* BUGS: Added bug.
+
 2000-04-09  Thomas Helvey <tomh@inxpress.net>
 	* include/IPcheck.h: fix prototype
 	* ircd/s_user.c: fix usage of IPcheck_remote_connect
@@ -12,7 +15,6 @@
 
 	* ircd/s_user.c: Redo target hashing, refactor target code
 
-2000-04-09  Perry Lorier  <Isomer@coders.net>
 	* include/numeric.h: Cleaned up numerics, added which ones are
 	in use by other networks and what they are in use for.
 
@@ -344,7 +346,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.67 2000-04-10 02:52:52 bleep Exp $
+# $Id: ChangeLog,v 1.68 2000-04-10 08:31:33 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

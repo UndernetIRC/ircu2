@@ -1,6 +1,6 @@
 #
 # BUGS file for ircu2.10
 #
-# $Id: BUGS,v 1.3 2000-03-18 05:20:27 bleep Exp $
+# $Id: BUGS,v 1.4 2000-04-10 08:31:33 isomer Exp $
 #
-
+* /mode #foo +o Thisnickdoesntexist -> Core dump.  Kev?
