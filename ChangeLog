@@ -1,5 +1,44 @@
 2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/Makefile.in: run make depend...
+
+	* ircd/s_stats.c: get rid of report_feature_list()
+
+	* ircd/s_err.c: add the 'bad value' error message, shift error
+	messages over somewhat
+
+	* ircd/s_debug.c (debug_init): call log_debug_init with the
+	use_tty flag
+
+	* ircd/s_conf.c (read_configuration_file): unmark features before
+	reading the config file, then reset unmarked features after
+	reading the config file
+
+	* ircd/m_stats.c: use feature_report() instead of
+	report_feature_list()
+
+	* ircd/ircd_log.c: fix log_debug_file (bogus assertion); add
+	special 'mark' flags and use them; add the stuff needed by the
+	features API
+
+	* ircd/ircd_features.c: rework the features API and add gobs of
+	comments to try to explain what some of these complex functions
+	are actually doing
+
+	* include/s_stats.h: get rid of report_feature_list(); use
+	feature_report() instead
+
+	* include/numeric.h: added a new error message and shifted old
+	values over some--this is, after all, an alpha
+
+	* include/ircd_log.h: log_debug_init now takes an integer to tell
+	it if it should be using the tty; added a couple of functions
+	required by the features API
+
+	* include/ircd_features.h: add an enum and some more functions to
+	flesh out the feature API--it should now be possible to put all
+	those compile-time constants in the config file!
+
 	* ircd/send.c: got the direction of the assert incorrect...
 
 	* ircd/send.c: implement the efficiency of flush_connections by

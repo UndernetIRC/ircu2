@@ -50,7 +50,7 @@ enum LogSys {
   LS_LAST_SYSTEM
 };
 
-extern void log_debug_init(char *file);
+extern void log_debug_init(int usetty);
 extern void log_init(const char *process_name);
 extern void log_reopen(void);
 extern void log_close(void);
@@ -88,6 +88,8 @@ extern char *log_get_level(const char *subsys);
 extern int log_set_default(const char *facility);
 extern char *log_get_default(void);
 
-extern void log_feature_report(struct Client *to);
+extern void log_feature_unmark(void);
+extern void log_feature_mark(int flag);
+extern void log_feature_report(struct Client *to, int flag);
 
 #endif /* INCLUDED_ircd_log_h */

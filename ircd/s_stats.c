@@ -170,15 +170,6 @@ void report_deny_list(struct Client* to)
                p->hostmask, p->message, p->usermask);
 }
 
-/*
- * {CONF_FEATURE, RPL_STATSFLINE, 'F'},
- */
-void report_feature_list(struct Client* to)
-{
-  if (MyOper(to)) /* non-local opers don't need to know log config */
-    log_feature_report(to);
-}
-
 /* m_stats is so obnoxiously full of special cases that the different
  * hunt_server() possiblites were becoming very messy. It now uses a
  * switch() so as to be easier to read and update as params change. 

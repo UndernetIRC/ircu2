@@ -124,18 +124,24 @@ static struct {
   { 0, 0 }
 };
 
+#define LOG_MARK_FILE		0x0001	/* file has been changed */
+#define LOG_MARK_FACILITY	0x0002	/* facility has been changed */
+#define LOG_MARK_SNOMASK	0x0004	/* snomask has been changed */
+#define LOG_MARK_LEVEL		0x0008	/* level has been changed */
+
 /* Descriptions of all logging subsystems */
 static struct LogDesc {
   enum LogSys	  subsys;   /* number for subsystem */
   char		 *name;	    /* subsystem name */
   struct LogFile *file;	    /* file descriptor for subsystem */
+  unsigned int	  mark;     /* subsystem has been changed */
   int		  def_fac;  /* default facility */
   unsigned int	  def_sno;  /* default snomask */
   int		  facility; /* -1 means don't use syslog */
   unsigned int	  snomask;  /* 0 means no server message */
   enum LogLevel	  level;    /* logging level */
 } logDesc[] = {
-#define S(sys, p, sn) { LS_ ## sys, #sys, 0, (p), (sn), (p), (sn), L_DEFAULT }
+#define S(sys, p, sn) { LS_##sys, #sys, 0, 0, (p), (sn), (p), (sn), L_DEFAULT }
   S(SYSTEM, -1, 0),
   S(CONFIG, 0, SNO_OLDSNO),
   S(OPERMODE, -1, SNO_HACK4),
@@ -221,7 +227,7 @@ log_debug_reopen(void)
 
 /* initialize debugging log */
 void
-log_debug_init(char *file)
+log_debug_init(int usetty)
 {
   logInfo.dbfile = MyMalloc(sizeof(struct LogFile));
 
@@ -230,10 +236,10 @@ log_debug_init(char *file)
   logInfo.dbfile->fd = -1;
   logInfo.dbfile->ref = 1;
 
-  if (file) /* store pathname to use */
-    DupString(logInfo.dbfile->file, file);
-  else
+  if (usetty) /* store pathname to use */
     logInfo.dbfile->file = 0;
+  else
+    DupString(logInfo.dbfile->file, LOGFILE);
 
   log_debug_reopen(); /* open the debug log */
 
@@ -247,7 +253,8 @@ static int
 log_debug_file(const char *file)
 {
 #ifdef DEBUGMODE
-  assert(0 != file);
+  if (!file)
+    file = LOGFILE;
 
   /* If we weren't started with debugging enabled, or if we're using
    * the terminal, don't do anything at all.
@@ -621,10 +628,14 @@ log_set_file(const char *subsys, const char *filename)
   if (desc->file && filename && !strcmp(desc->file->file, filename))
     return 0;
 
+  if (filename)
+    desc->mark |= LOG_MARK_FILE; /* mark that file has been changed */
+  else
+    desc->mark &= ~LOG_MARK_FILE; /* file has been reset to defaults */
+
   /* debug log is special, since it has to be opened on fd 2 */
-  if (desc->subsys == LS_DEBUG) {
+  if (desc->subsys == LS_DEBUG)
     return log_debug_file(filename);
-  }
 
   if (desc->file) /* destroy previous entry... */
     log_file_destroy(desc->file);
@@ -660,11 +671,16 @@ log_set_facility(const char *subsys, const char *facility)
     return 2;
 
   /* set syslog facility */
-  if (EmptyString(facility))
+  if (EmptyString(facility)) {
     desc->facility = desc->def_fac;
-  else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND)
+    desc->mark &= ~LOG_MARK_FACILITY;
+  } else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND) {
     desc->facility = fac;
-  else
+    if (fac == desc->def_fac)
+      desc->mark &= ~LOG_MARK_FACILITY;
+    else
+      desc->mark |= LOG_MARK_FACILITY;
+  } else
     return 1;
 
   return 0;
@@ -696,11 +712,16 @@ log_set_snomask(const char *subsys, const char *snomask)
     return 2;
 
   /* set snomask value */
-  if (EmptyString(snomask))
+  if (EmptyString(snomask)) {
     desc->snomask = desc->def_sno;
-  else if ((sno = log_sno_find(snomask)) != SNO_NOTFOUND)
+    desc->mark &= ~LOG_MARK_SNOMASK;
+  } else if ((sno = log_sno_find(snomask)) != SNO_NOTFOUND) {
     desc->snomask = sno;
-  else
+    if (sno == desc->def_sno)
+      desc->mark &= ~LOG_MARK_SNOMASK;
+    else
+      desc->mark |= LOG_MARK_SNOMASK;
+  } else
     return 1;
 
   return 0;
@@ -732,11 +753,16 @@ log_set_level(const char *subsys, const char *level)
     return 2;
 
   /* set logging level */
-  if (EmptyString(level))
+  if (EmptyString(level)) {
     desc->level = L_DEFAULT;
-  else if ((lev = log_lev_find(level)) != L_LAST_LEVEL)
+    desc->mark &= ~LOG_MARK_LEVEL;
+  } else if ((lev = log_lev_find(level)) != L_LAST_LEVEL) {
     desc->level = lev;
-  else
+    if (lev == L_DEFAULT)
+      desc->mark &= ~LOG_MARK_LEVEL;
+    else
+      desc->mark |= LOG_MARK_LEVEL;
+  } else
     return 1;
 
   return 0;
@@ -788,31 +814,72 @@ log_get_default(void)
   return log_fac_name(logInfo.facility);
 }
 
+/* Clear the marks... */
+void
+log_feature_unmark(void)
+{
+  int i;
+
+  for (i = 0; i < LS_LAST_SYSTEM; i++)
+    logDesc[i].mark = 0;
+}
+
+/* Reset unmarked fields to defaults... */
+void
+log_feature_mark(int flag)
+{
+  int i;
+
+  if (flag)
+    log_set_default(0);
+
+  for (i = 0; i < LS_LAST_SYSTEM; i++) {
+    if (!(logDesc[i].mark & LOG_MARK_FILE)) {
+      if (logDesc[i].subsys == LS_DEBUG)
+	log_debug_file(0); /* debug is special */
+      else {
+	if (logDesc[i].file) /* destroy previous entry... */
+	  log_file_destroy(logDesc[i].file);
+	logDesc[i].file = 0;
+      }
+    }
+
+    if (!(logDesc[i].mark & LOG_MARK_FACILITY)) /* set default facility */
+      logDesc[i].facility = logDesc[i].def_fac;
+
+    if (!(logDesc[i].mark & LOG_MARK_SNOMASK)) /* set default snomask */
+      logDesc[i].snomask = logDesc[i].def_sno;
+
+    if (!(logDesc[i].mark & LOG_MARK_LEVEL)) /* set default level */
+      logDesc[i].level = L_DEFAULT;
+  }
+}
+
 /* Report feature settings */
 void
-log_feature_report(struct Client *to)
+log_feature_report(struct Client *to, int flag)
 {
   int i;
 
   for (i = 0; i < LS_LAST_SYSTEM; i++) {
-    if (logDesc[i].file && logDesc[i].file->file) /* report file */
+    if (logDesc[i].mark & LOG_MARK_FILE) /* report file */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FILE %s",
 		 logDesc[i].name, logDesc[i].file->file);
 
-    if (logDesc[i].facility != logDesc[i].def_fac) /* report facility */
+    if (logDesc[i].mark & LOG_MARK_FACILITY) /* report facility */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s FACILITY %s",
 		 logDesc[i].name, log_fac_name(logDesc[i].facility));
 
-    if (logDesc[i].snomask != logDesc[i].def_sno) /* report snomask */
+    if (logDesc[i].mark & LOG_MARK_SNOMASK) /* report snomask */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s SNOMASK %s",
 		 logDesc[i].name, log_sno_name(logDesc[i].snomask));
 
-    if (logDesc[i].level != L_DEFAULT) /* report log level */
+    if (logDesc[i].mark & LOG_MARK_LEVEL) /* report log level */
       send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s LEVEL %s",
 		 logDesc[i].name, log_lev_name(logDesc[i].level));
   }
 
-  if (logInfo.facility != LOG_USER) /* report default facility */
+  if (flag) /* report default facility */
     send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F LOG %s",
 	       log_fac_name(logInfo.facility));
 }

@@ -190,7 +190,7 @@ void debug_init(int use_tty)
 #ifdef  DEBUGMODE
   if (debuglevel >= 0) {
     printf("isatty = %d ttyname = %s\n", isatty(2), ttyname(2));
-    log_debug_init(use_tty ? 0 : LOGFILE);
+    log_debug_init(use_tty);
   }
 #endif
 }

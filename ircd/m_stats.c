@@ -99,6 +99,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -272,7 +273,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     case 'F':
     case 'f':
-      report_feature_list(sptr);
+      feature_report(sptr);
       break;
     case 'I':
     case 'i':
@@ -493,7 +494,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     case 'F':
     case 'f':
-      report_feature_list(sptr);
+      feature_report(sptr);
       break;
     case 'I':
     case 'i':
@@ -712,7 +713,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     case 'F':
     case 'f':
-      report_feature_list(sptr);
+      feature_report(sptr);
       break;
     case 'I':
     case 'i':
