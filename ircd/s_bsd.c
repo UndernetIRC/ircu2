@@ -998,6 +998,7 @@ static void client_sock_callback(struct Event* ev)
     break;
 
   case ET_WRITE: /* socket is writable */
+    cli_flags(cptr) &= ~FLAGS_BLOCKED;
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
       list_next_channels(cptr, 64);
     Debug((DEBUG_SEND, "Sending queued data to %C", cptr));
