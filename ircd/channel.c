@@ -669,7 +669,7 @@ const char* find_no_nickchange_channel(struct Client* cptr)
  * write the "simple" list of channel modes for channel chptr onto buffer mbuf
  * with the parameters in pbuf.
  */
-void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
+void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
                           struct Channel *chptr)
 {
   assert(0 != mbuf);
@@ -691,7 +691,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
     *mbuf++ = 'n';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
-    ircd_snprintf(0, pbuf, sizeof(pbuf), "%u", chptr->mode.limit);
+    ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
   }
 
   if (*chptr->mode.key) {
@@ -734,7 +734,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   lp2 = chptr->banlist;
 
   *modebuf = *parabuf = '\0';
-  channel_modes(cptr, modebuf, parabuf, chptr);
+  channel_modes(cptr, modebuf, parabuf, sizeof(parabuf), chptr);
 
   for (first = 1; full; first = 0)      /* Loop for multiple messages */
   {

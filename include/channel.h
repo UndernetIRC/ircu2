@@ -286,7 +286,7 @@ extern int             LocalChanOperMode;
  */
 extern void clean_channelname(char* name);
 extern void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
-                          struct Channel *chptr);
+                          int buflen, struct Channel *chptr);
 extern int set_mode(struct Client* cptr, struct Client* sptr,
                     struct Channel* chptr, int parc, char* parv[],
                     char* mbuf, char* pbuf, char* npbuf, int* badop);

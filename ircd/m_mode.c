@@ -124,7 +124,7 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
-    channel_modes(sptr, modebuf, parabuf, chptr);
+    channel_modes(sptr, modebuf, parabuf, sizeof(parabuf), chptr);
     send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, modebuf, parabuf);
     send_reply(sptr, RPL_CREATIONTIME, chptr->chname, chptr->creationtime);
     return 0;
