@@ -1,5 +1,12 @@
 2005-04-04  Michael Poole <mdpoole@troilus.org>
 
+	* configure.in: For developers' ease, allow passing an option to
+	configure to persistently set optimization CFLAGS.
+
+	* configure: Regenerate.
+
+2005-04-04  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Jupe): Make the default Jupe block follow
 	CFV-0255.  (Thanks to FrankP for pointing me at this and to DinTn
 	for getting me a copy of the CFV.)

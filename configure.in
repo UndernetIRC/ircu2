@@ -52,9 +52,17 @@ AC_PROG_CC
 
 dnl ANSIfy the C compiler whenever possible.
 AM_PROG_CC_STDC
-dnl Use -O3 instead of -O2.
+dnl Allow specification of optimization level.
+AC_ARG_WITH([optimization],
+    AS_HELP_STRING([--with-optimization=[-O2]], [Explicitly set the compiler optimization flags (default: -O3)]),
+    [unet_cv_optimization=$withval],
+    [unet_cv_optimization='-O3'])
+AC_CACHE_CHECK([optimization level], [unet_cv_optimization], [unet_cv_optimization='-O3'])
+if test "x$unet_cv_optimization" = "xno" ; then
+    unet_cv_optimization=""
+fi
 if test x"$CFLAGS" != x; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-O2/-O3/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e s/-O2/$unet_cv_optimization/`
 fi
 dnl Remove -pipe during configure
 if test x"$CFLAGS" != x; then
