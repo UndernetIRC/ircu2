@@ -1,3 +1,17 @@
+2002-10-21  Alex Badea  <vampire@p16.pub.ro>
+
+	* include/ircd_features.h: new feature FEAT_AUTOHIDE
+
+	* ircd/ircd_features.c: new feature FEAT_AUTOHIDE
+
+	* s_user.c: set umode +x in register_user if FEAT_AUTOHIDE is on;
+	allow toggling of umode +x while there is no account set
+
+	* doc/readme.features: documented FEAT_AUTOHIDE, also corrected
+	the HOST_HIDING default to match the code
+
+	* doc/ircd.conf.sample: default value for FEAT_AUTOHIDE
+
 2002-10-19  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c (mode_parse_key): correct an off-by-one error
