@@ -278,7 +278,7 @@ check_resolver_timeout(time_t when)
 {
   if (when > CurrentTime + AR_TTL)
     when = CurrentTime + AR_TTL;
-  if (!t_active(&res_timeout))
+  if (!t_onqueue(&res_timeout))
     timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
   else if (when < t_expire(&res_timeout))
     timer_chg(&res_timeout, TT_ABSOLUTE, when);

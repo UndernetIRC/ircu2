@@ -1,3 +1,13 @@
+2005-01-24  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Make sure that $LEX and $YACC are reasonable and
+	actually run.
+
+	* configure: Regenerate.
+
+	* ircd/ircd_res.c (check_resolver_timeout): Use correct macro to
+	test whether the timer is already pending.
+
 2005-01-23  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Kill): Fix typo in realname Kill block

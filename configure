@@ -8786,22 +8786,22 @@ _ACEOF
 fi
 
 fi
-if test -x "$LEX"
-then
+if  "$LEX" eq ":"  ; then
+  { { echo "$as_me:$LINENO: error: Cannot find flex." >&5
+echo "$as_me: error: Cannot find flex." >&2;}
+   { (exit 1); exit 1; }; }
+elif echo "" | $LEX -V -v --version > /dev/null 2>&1 ; then
   { { echo "$as_me:$LINENO: error: Cannot find flex." >&5
 echo "$as_me: error: Cannot find flex." >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-if test -z "$LEXLIB"
-then
-  { { echo "$as_me:$LINENO: error:
-  Cannot find a library with yywrap() in, but flex was found.
+if test -z "$LEXLIB" ; then
+  { { echo "$as_me:$LINENO: error: Cannot find a library with yywrap() in, but flex was found.
   It's possible the compiler you're using ($CC) is incompatible with the
   installed library.
 See \`config.log' for more details." >&5
-echo "$as_me: error:
-  Cannot find a library with yywrap() in, but flex was found.
+echo "$as_me: error: Cannot find a library with yywrap() in, but flex was found.
   It's possible the compiler you're using ($CC) is incompatible with the
   installed library.
 See \`config.log' for more details." >&2;}
@@ -8851,8 +8851,11 @@ fi
 done
 test -n "$YACC" || YACC="yacc"
 
-if test -z "$YACC"
-then
+if  "$YACC" eq ":"  ; then
+  { { echo "$as_me:$LINENO: error: Cannot find yacc." >&5
+echo "$as_me: error: Cannot find yacc." >&2;}
+   { (exit 1); exit 1; }; }
+elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
   { { echo "$as_me:$LINENO: error: Cannot find yacc." >&5
 echo "$as_me: error: Cannot find yacc." >&2;}
    { (exit 1); exit 1; }; }

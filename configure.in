@@ -142,16 +142,16 @@ AC_PATH_PROGS(SHPROG, sh, /bin/sh)
 
 dnl (F)LEX - needed for the new conf file parser
 AC_PROG_LEX
-if test -x "$LEX"
-then 
+dnl The autoconf docs say $LEX defaults to 'lex'.  They lie.
+if [ "$LEX" eq ":" ] ; then
+  AC_MSG_ERROR([Cannot find flex.])
+elif echo "" | $LEX -V -v --version > /dev/null 2>&1 ; then
   AC_MSG_ERROR([Cannot find flex.])
 fi
 
-if test -z "$LEXLIB"
-then
-  AC_MSG_FAILURE([
-  Cannot find a library with yywrap() in, but flex was found.  
-  It's possible the compiler you're using ($CC) is incompatible with the 
+if test -z "$LEXLIB" ; then
+  AC_MSG_FAILURE([Cannot find a library with yywrap() in, but flex was found.
+  It's possible the compiler you're using ($CC) is incompatible with the
   installed library.])
 fi
 
@@ -159,8 +159,11 @@ LIBS="$LEXLIB $LIBS"
 
 dnl YACC - ditto
 AC_PROG_YACC
-if test -z "$YACC"
-then
+dnl The autoconf docs say $YACC defaults to 'yacc'.  This seems to be true,
+dnl but judging from AC_PROG_LEX, it may not stay true.
+if [ "$YACC" eq ":" ] ; then
+  AC_MSG_ERROR([Cannot find yacc.])
+elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
   AC_MSG_ERROR([Cannot find yacc.])
 fi
 
