@@ -1140,7 +1140,7 @@ static Numeric replyTable[] = {
 /* 553 */
   { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set.  First use /MODE %s -U <userpass>", "553" },
 /* 554 */
-  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+u) while Admin pass (+A) is not set.  First use /MODE %s +A <adminpass>", "554" },
+  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "554" },
 /* 555 */
   { 0 },
 /* 556 */
