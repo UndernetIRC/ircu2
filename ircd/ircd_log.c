@@ -438,15 +438,16 @@ log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 /* log kills for fun and profit */
 void
 log_write_kill(const struct Client *victim, const struct Client *killer,
-	       const char *inpath, const char *path)
+	       const char *inpath, const char *path, const char *msg)
 {
   if (MyUser(victim))
     log_write(IsServer(killer) ? LS_SERVKILL : LS_OPERKILL, L_TRACE, 0,
-	      "A local client %#C KILLED by %#C Path: %s!%s",
-	      victim, killer, inpath, path);
+	      "A local client %#C KILLED by %#C Path: %s!%s %s",
+	      victim, killer, inpath, path, msg);
   else
     log_write(IsServer(killer) ? LS_SERVKILL : LS_OPERKILL, L_TRACE, 0,
-	      "KILL from %C For %C Path: %s!%s", killer, victim, inpath, path);
+	      "KILL from %C For %C Path: %s!%s %s", killer, victim, inpath,
+	      path, msg);
 }
 
 /* return a struct LogFile for a specific filename--reference counted */
