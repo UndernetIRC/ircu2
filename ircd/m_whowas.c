@@ -136,11 +136,12 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (0 == ircd_strcmp(nick, temp->name))
       {
 	send_reply(sptr, RPL_WHOWASUSER, temp->name, temp->username,
+		   (IsAnOper(sptr) && temp->realhost) ? temp->realhost :
 		   temp->hostname, temp->realname);
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
 	if (!IsOper(sptr))
-	  send_reply(sptr, RPL_WHOISSERVER, temp->name, "*.undernet.org",
-		     myctime(temp->logoff));
+	  send_reply(sptr, RPL_WHOISSERVER, temp->name,
+		     HEAD_IN_SAND_SERVERNAME, myctime(temp->logoff));
 	else
 #endif
 	  send_reply(sptr, RPL_WHOISSERVER, temp->name, temp->servername,

@@ -24,6 +24,7 @@
 
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "s_debug.h"
 
@@ -39,8 +40,6 @@
 
 #define DEVPOLL_ERROR_THRESHOLD	20	/* after 20 devpoll errors, restart */
 #define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
-
-#define POLLS_PER_DEVPOLL	20	/* get 20 pollfd's per turn */
 
 /* Figure out what bits to set for read */
 #if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
@@ -241,16 +240,26 @@ static void
 engine_loop(struct Generators* gen)
 {
   struct dvpoll dopoll;
-  struct pollfd polls[POLLS_PER_DEVPOLL];
+  struct pollfd *polls;
+  int polls_count;
   struct Socket* sock;
   int nfds;
   int i;
   int errcode;
   size_t codesize;
 
+  if ((polls_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)
+    polls_count = 20;
+  polls = (struct pollfd *)MyMalloc(sizeof(struct pollfd) * polls_count);
+
   while (running) {
+    if ((i = feature_int(FEAT_POLLS_PER_LOOP)) >= 20 && i != polls_count) {
+      polls = (struct pollfd *)MyRealloc(polls, sizeof(struct pollfd) * i);
+      polls_count = i;
+    }
+
     dopoll.dp_fds = polls; /* set up the struct dvpoll */
-    dopoll.dp_nfds = POLLS_PER_DEVPOLL;
+    dopoll.dp_nfds = polls_count;
 
     /* calculate the proper timeout */
     dopoll.dp_timeout = timer_next(gen) ?
@@ -269,7 +278,7 @@ engine_loop(struct Generators* gen)
 	/* Log the poll error */
 	log_write(LS_SOCKET, L_ERROR, 0, "ioctl(DP_POLL) error: %m");
 	if (!errors++)
-	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+	  timer_add(timer_init(&clear_error), error_clear, 0, TT_PERIODIC,
 		    ERROR_EXPIRE_TIME);
 	else if (errors > DEVPOLL_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many /dev/poll errors");
@@ -282,12 +291,12 @@ engine_loop(struct Generators* gen)
 
     for (i = 0; i < nfds; i++) {
       assert(-1 < polls[i].fd);
-      assert(0 != sockList[polls[i].fd]);
-      assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
       sock = sockList[polls[i].fd];
       if (!sock) /* slots may become empty while processing events */
 	continue;
+
+      assert(s_fd(sock) == polls[i].fd);
 
       gen_ref_inc(sock); /* can't have it going away on us */
 

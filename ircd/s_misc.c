@@ -233,7 +233,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
      * that the client can show the "**signoff" message).
      * (Note: The notice is to the local clients *only*)
      */
-    sendcmdto_common_channels(bcptr, CMD_QUIT, ":%s", comment);
+    sendcmdto_common_channels_butone(bcptr, CMD_QUIT, NULL, ":%s", comment);
 
     remove_user_from_all_channels(bcptr);
 
@@ -244,6 +244,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /* Clean up silencefield */
     while ((lp = cli_user(bcptr)->silence))
       del_silence(bcptr, lp->value.cp);
+
+    /* Clean up snotice lists */
+    if (MyUser(bcptr))
+      set_snomask(bcptr, ~0, SNO_DEL);
 
     if (IsInvisible(bcptr))
       --UserStats.inv_clients;

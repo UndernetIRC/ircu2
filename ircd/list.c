@@ -25,6 +25,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "listener.h"
@@ -140,6 +141,7 @@ static struct Connection* alloc_connection(void)
 #endif
 
   memset(con, 0, sizeof(struct Connection));
+  timer_init(&(con_proc(con)));
 
   return con;
 }
@@ -147,6 +149,8 @@ static struct Connection* alloc_connection(void)
 static void dealloc_connection(struct Connection* con)
 {
   assert(con_verify(con));
+  assert(!t_active(&(con_proc(con))));
+  assert(!t_onqueue(&(con_proc(con))));
 
   Debug((DEBUG_LIST, "Deallocating connection %p", con));
 
@@ -244,12 +248,19 @@ void free_client(struct Client* cptr)
    */
   assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
+  /* or from linked list? */
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
 
   Debug((DEBUG_LIST, "Freeing client %s [%p], connection %p", cli_name(cptr),
 	 cptr, cli_connect(cptr)));
 
   if (cli_auth(cptr))
     destroy_auth_request(cli_auth(cptr), 0);
+
+  /* Make sure we didn't magically get re-added to the list */
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
 
   if (cli_from(cptr) == cptr) { /* in other words, we're local */
     cli_from(cptr) = 0;
@@ -299,6 +310,8 @@ void remove_client_from_list(struct Client *cptr)
 {
   assert(cli_verify(cptr));
   assert(con_verify(cli_connect(cptr)));
+  assert(!cli_prev(cptr) || cli_verify(cli_prev(cptr)));
+  assert(!cli_next(cptr) || cli_verify(cli_next(cptr)));
 
   if (cli_prev(cptr))
     cli_next(cli_prev(cptr)) = cli_next(cptr);
@@ -346,6 +359,9 @@ void remove_client_from_list(struct Client *cptr)
 void add_client_to_list(struct Client *cptr)
 {
   assert(cli_verify(cptr));
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
+
   /*
    * Since we always insert new clients to the top of the list,
    * this should mean the "me" is the bottom most item in the list.
@@ -357,6 +373,36 @@ void add_client_to_list(struct Client *cptr)
   if (cli_next(cptr))
     cli_prev(cli_next(cptr)) = cptr;
 }
+
+#if 0
+/* WARNING: Major CPU sink!
+ *
+ * This is a debugging routine meant to verify the integrity of the client
+ * linked list.  It is meant to be comprehensive, to detect *any* corruption
+ * of that list.  This means that it will be majorly CPU-intensive, and
+ * should *only* be enabled on servers that have DEBUGMODE enabled.  Ignore
+ * this warning at your peril!
+ */
+void verify_client_list(void)
+{
+  struct Client *client, *prev = 0, *sentinel = 0;
+  extern unsigned int ircrandom(void);
+
+  for (client = GlobalClientList; client; client = cli_next(client)) {
+    /* Verify that this is a valid client, not a free'd one */
+    assert(cli_verify(client));
+    /* Verify that the list hasn't suddenly jumped around */
+    assert(cli_prev(client) == prev);
+    /* Verify that the list hasn't become circular */
+    assert(cli_next(client) != GlobalClientList);
+    assert(!sentinel || client != sentinel);
+
+    prev = client; /* Remember what should preceed us */
+    if (!(ircrandom() % 50)) /* probabilistic loop detector */
+      sentinel = client;
+  }
+}
+#endif /* DEBUGMODE */
 
 /*
  * Look for ptr in the linked listed pointed to by link.

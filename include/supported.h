@@ -43,19 +43,21 @@
                 " MAXBANS=%i" \
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
-                " KICKLEN=%i" \
-                " CHANTYPES=%s"
+                " AWAYLEN=%i" \
+                " KICKLEN=%i"
 
-#define FEATURES2 "PREFIX=%s" \
+#define FEATURES2 "CHANTYPES=%s" \
+                " PREFIX=%s" \
                 " CHANMODES=%s" \
-                " CHARSET=%s"
+                " CHARSET=%s" \
+                " NETWORK=%s"
 
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
 			feature_int(FEAT_MAXCHANNELSPERUSER), \
 			feature_int(FEAT_MAXBANS), NICKLEN, TOPICLEN, \
-			TOPICLEN, "+#&"
+			AWAYLEN, TOPICLEN
 
-#define FEATURESVALUES2 "(ov)@+", "b,k,l,imnpst", "rfc1459"
+#define FEATURESVALUES2 "+#&", "(ov)@+", "b,k,l,imnpstr", "rfc1459", NETWORK
 
 #endif /* INCLUDED_supported_h */
 

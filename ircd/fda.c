@@ -26,7 +26,7 @@
 #include <string.h>
 #include <time.h>
 
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
 
 #ifndef HTABLE_SIZE
 #define HTABLE_SIZE 65539
@@ -650,5 +650,5 @@ char* fda_strdup(const char* src, const char* file, int line)
   return p;
 }
 
-#endif /* !defined(NDEBUG) */
+#endif /* defined(MDEBUG) */
 

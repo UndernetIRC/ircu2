@@ -153,7 +153,6 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   unsigned int saveflags = 0;
 
   assert(0 != jupe);
-  assert(!JupeIsLocal(jupe));
 
   saveflags = jupe->ju_flags;
 

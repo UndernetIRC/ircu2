@@ -308,7 +308,7 @@ res_ourserver(const struct __res_state* statp, const struct sockaddr_in* inp)
 /* Socket callback for resolver */
 static void res_callback(struct Event* ev)
 {
-  assert(ev_type(ev) == ET_READ);
+  assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
 
   resolver_read();
 }
@@ -399,8 +399,10 @@ int init_resolver(void)
   requestListHead = requestListTail = 0;
 
   /* initiate the resolver timers */
-  timer_add(&resExpireDNS, expire_DNS_callback, 0, TT_RELATIVE, 1);
-  timer_add(&resExpireCache, expire_cache_callback, 0, TT_RELATIVE, 1);
+  timer_add(timer_init(&resExpireDNS), expire_DNS_callback, 0,
+	    TT_RELATIVE, 1);
+  timer_add(timer_init(&resExpireCache), expire_cache_callback, 0,
+	    TT_RELATIVE, 1);
 
   errno = h_errno = 0;
 
@@ -804,8 +806,10 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
   u_char* current;             /* current position in buf */
   char** alias;                /* alias list */
   char** addr;                 /* address list */
+  char** base_addr;            /* original pointer to address list */
   char*  name;                 /* pointer to name string */
   char*  address;              /* pointer to address */
+  char*  base_address;         /* original pointer to address */
   char*  endp;                 /* end of our buffer */
   int    query_class;          /* answer class */
   int    type;                 /* answer type */
@@ -814,6 +818,7 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
   int    n;                    /* temp count */
   int    addr_count  = 0;      /* number of addresses in hostent */
   int    alias_count = 0;      /* number of aliases in hostent */
+  int    t_ptr_seen = 0;       /* Seen a T_PTR in proc_answer? */
   struct hostent* hp;          /* hostent getting filled */
 
   assert(0 != request);
@@ -854,11 +859,14 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
     ++addr;
     ++addr_count;
   }
+  base_addr = addr;
   /*
    * make address point to first available address slot
    */
   address = request->he.buf + ADDRS_OFFSET +
                     (sizeof(struct in_addr) * addr_count);
+  base_address = address;
+
   /*
    * find the end of the alias list
    */
@@ -928,7 +936,10 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
     case T_A:
       /*
        * check for invalid rd_length or too many addresses
+       * ignore T_A relies if looking for a T_PTR
        */
+      if (t_ptr_seen)
+	return answer_count;
       if (rd_length != sizeof(struct in_addr))
         return answer_count;
       if (++addr_count < RES_MAXADDRS) {
@@ -952,6 +963,11 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
       ++answer_count;
       break;
     case T_PTR:
+      t_ptr_seen = 1;
+      addr_count = 0;
+      addr = base_addr;
+      *addr = 0;
+      address = base_address;
       n = dn_expand(buf, eob, current, hostbuf, sizeof(hostbuf));
       if (n < 0) {
         /*
@@ -1597,7 +1613,7 @@ static struct CacheEntry* make_cache(struct ResRequest* request)
    * shouldn't happen but it just might...
    */
   assert(0 != hp->h_name);
-  assert(0 != hp->h_addr_list[0]);
+/*    assert(0 != hp->h_addr_list[0]); */
   if (!hp->h_name || !hp->h_addr_list[0])
     return NULL;
   /*

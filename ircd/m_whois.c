@@ -200,6 +200,13 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
     if (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
 			    HasPriv(sptr, PRIV_SEE_OPERS)))
        send_reply(sptr, RPL_WHOISOPERATOR, name);
+
+    if (IsAccount(acptr))
+      send_reply(sptr, RPL_WHOISACCOUNT, name, user->account);
+
+    if (HasHiddenHost(acptr) && IsAnOper(sptr))
+      send_reply(sptr, RPL_WHOISACTUALLY, name, user->username,
+        user->realhost, ircd_ntoa((const char*) &(cli_ip(acptr))));
    
     /* Hint: if your looking to add more flags to a user, eg +h, here's
      *       probably a good place to add them :)

@@ -77,6 +77,12 @@
  */
 #define HOSTLEN         63
 /*
+ * ACCOUNTLEN is the maximum length for the account name, which can be set
+ * with the ACCOUNT (AC) command.  This is used for keeping track of who's
+ * logged into which account, for the benefit of irc services.
+ */
+#define ACCOUNTLEN      12
+/*
  * REALLEN is the maximum length for user supplied information about a client
  * connection (gcos). This information is set at client/server registration
  * time.
@@ -92,10 +98,13 @@
  */
 #define SOCKIPLEN 15
 /*
- * TOPICLEN is the maximum length for channel topics, kill comments,
- * and quit comments
+ * TOPICLEN is the maximum length for channel topics and kill comments
  */
 #define TOPICLEN        160
+/*
+ * AWAYLEN is the maximum length for away messages
+ */
+#define AWAYLEN		160
 /*
  * BUFSIZE is exactly long enough to hold one protocol message (RFC 1459)
  * including the line termination (\r\n).

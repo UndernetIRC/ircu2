@@ -428,7 +428,7 @@ static void accept_connection(struct Event* ev)
   if (ev_type(ev) == ET_DESTROY) /* being destroyed */
     free_listener(listener);
   else {
-    assert(ev_type(ev) == ET_ACCEPT);
+    assert(ev_type(ev) == ET_ACCEPT || ev_type(ev) == ET_ERROR);
 
     listener->last_accept = CurrentTime;
     /*

@@ -82,8 +82,8 @@ const char* debug_serveropts(void)
     AddC((char)('0' + (bp / 1000000) % 10));
   }
 
-#ifdef  CHROOTDIR
-  AddC('c');
+#ifndef NDEBUG
+  AddC('A');
 #endif
 #ifdef  DEBUGMODE
   AddC('D');
@@ -381,7 +381,7 @@ void count_memory(struct Client *cptr, char *nick)
       dbufs_allocated + msg_allocated + msgbuf_allocated + rm;
   tot += sizeof(void *) * HASHSIZE * 3;
 
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Allocations: %zu(%zu)",
 	     fda_get_block_count(), fda_get_byte_count());
 #endif

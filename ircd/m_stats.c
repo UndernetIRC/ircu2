@@ -362,7 +362,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef HEAD_IN_SAND_STATS_M
       return m_not_oper(sptr,cptr,parc,parv);
 #else
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
@@ -667,7 +667,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     }
     case 'M':
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
@@ -887,7 +887,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
       break;
     case 'M':
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif

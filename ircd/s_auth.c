@@ -206,11 +206,12 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
       sendheader(auth->client, REPORT_FAIL_DNS);
   }
 
-  if (send_reports)
+  if (send_reports) {
     log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
 	      get_client_name(auth->client, HIDE_IP));
+    release_auth_client(auth->client);
+  }
 
-  release_auth_client(auth->client);
   unlink_auth_request(auth, authList);
   free_auth_request(auth);
 }
@@ -228,8 +229,8 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   auth->fd      = -1;
   auth->client  = client;
   cli_auth(client) = auth;
-  timer_add(&auth->timeout, auth_timeout_callback, (void*) auth, TT_RELATIVE,
-	    AUTH_TIMEOUT);
+  timer_add(timer_init(&auth->timeout), auth_timeout_callback, (void*) auth,
+	    TT_RELATIVE, AUTH_TIMEOUT);
   return auth;
 }
 
@@ -304,6 +305,7 @@ static void auth_kill_client(struct AuthRequest* auth)
     delete_resolver_queries(auth);
   IPcheck_disconnect(auth->client);
   Count_unknowndisconnects(UserStats);
+  cli_auth(auth->client) = 0;
   free_client(auth->client);
   free_auth_request(auth);
 }
@@ -675,7 +677,7 @@ void read_auth_reply(struct AuthRequest* auth)
 
   assert(0 != auth);
   assert(0 != auth->client);
-  assert(auth = cli_auth(auth->client));
+  assert(auth == cli_auth(auth->client));
 
   if (IO_SUCCESS == os_recv_nonb(auth->fd, buf, BUFSIZE, &len)) {
     buf[len] = '\0';

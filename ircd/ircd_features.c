@@ -240,6 +240,7 @@ static struct FeatureDesc {
   F_I(CLIENT_FLOOD, 0, 1024, 0),
   F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
   F_B(NODEFAULTMOTD, 0, 1, 0),
+  F_S(MOTD_BANNER, FEAT_NULL, 0, 0),
   F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
   F_B(IDLE_FROM_MSG, 0, 1, 0),
   F_B(HUB, 0, 0, 0),
@@ -248,6 +249,8 @@ static struct FeatureDesc {
   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
   F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
   F_I(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
+  F_B(HOST_HIDING, 0, 0, 0),
+  F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
@@ -274,6 +277,7 @@ static struct FeatureDesc {
   F_B(VIRTUAL_HOST, 0, 0, 0),
   F_I(TOS_SERVER, 0, 0x08, 0),
   F_I(TOS_CLIENT, 0, 0x08, 0),
+  F_I(POLLS_PER_LOOP, 0, 200, 0),
 
   /* features that affect all operators */
   F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),
@@ -300,7 +304,7 @@ static struct FeatureDesc {
   F_B(OPER_LOPMODE, 0, 1, 0),
   F_B(OPER_BADCHAN, 0, 0, 0),
   F_B(OPER_LBADCHAN, 0, 0, 0),
-  F_B(OPER_SET, 0, 1, 0),
+  F_B(OPER_SET, 0, 0, 0),
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
   F_B(OPER_WIDE_GLINE, 0, 1, 0),
 

@@ -1,7 +1,6 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_version.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * IRC - Internet Relay Chat, ircd/m_account.c
+ * Copyright (C) 2002 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -82,99 +81,50 @@
 #include "config.h"
 
 #include "client.h"
-#include "hash.h"
 #include "ircd.h"
-#include "ircd_features.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
-#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
-#include "numeric.h"
 #include "numnicks.h"
-#include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
-#include "supported.h"
-#include "version.h"
 
 #include <assert.h>
 
 /*
- * m_version - generic message handler
+ * ms_account - server message handler
  *
- *   parv[0] = sender prefix
- *   parv[1] = remote server
+ * parv[0] = sender prefix
+ * parv[1] = numeric of client to act on
+ * parv[2] = account name (12 characters or less)
  */
-int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-
-  if (parc > 1)
-    send_reply(sptr, ERR_NOPRIVILEGES);
-  else
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-
-  return 0;
-}
-
-/*
- * mo_version - generic message handler
- *
- *   parv[0] = sender prefix
- *   parv[1] = remote server
- */
-int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_account(struct Client* cptr, struct Client* sptr, int parc,
+	       char* parv[])
 {
   struct Client *acptr;
 
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
-  }
+  if (parc < 3)
+    return need_more_params(sptr, "ACCOUNT");
 
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
-		      parc, parv) == HUNTED_ISME)
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-    send_supported(sptr);
-  }
+  if (!IsServer(sptr))
+    return protocol_violation(cptr, "ACCOUNT from non-server %s",
+			      cli_name(sptr));
 
-  return 0;
-}
+  if (!(acptr = findNUser(parv[1])))
+    return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
 
-/*
- * ms_version - server message handler
- *
- *   parv[0] = sender prefix
- *   parv[1] = remote server
- */
-int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  struct Client *acptr;
+  if (IsAccount(acptr))
+    return protocol_violation(cptr, "ACCOUNT for already registered user %s "
+			      "(%s -> %s)", cli_name(acptr),
+			      cli_user(acptr)->account, parv[2]);
 
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
-  }
+  assert(0 == cli_user(acptr)->account[0]);
 
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
-      HUNTED_ISME)
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-  }
+  ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
+  hide_hostmask(acptr, FLAGS_ACCOUNT);
+
+  sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
+			cli_user(acptr)->account);
 
   return 0;
 }

@@ -176,6 +176,8 @@ whowas_clean(struct Whowas *ww)
     MyFree(ww->username);
   if (ww->hostname)
     MyFree(ww->hostname);
+  if (ww->realhost)
+    MyFree(ww->realhost);
   if (ww->servername)
     MyFree(ww->servername);
   if (ww->realname)
@@ -218,6 +220,7 @@ whowas_init(struct Whowas *ww)
   ww->name = 0;
   ww->username = 0;
   ww->hostname = 0;
+  ww->realhost = 0;
   ww->servername = 0;
   ww->realname = 0;
   ww->away = 0;
@@ -290,6 +293,8 @@ void add_history(struct Client *cptr, int still_on)
   DupString(ww->name, cli_name(cptr));
   DupString(ww->username, cli_user(cptr)->username);
   DupString(ww->hostname, cli_user(cptr)->host);
+  if (HasHiddenHost(cptr))
+    DupString(ww->realhost, cli_user(cptr)->realhost);
   DupString(ww->servername, cli_name(cli_user(cptr)->server));
   DupString(ww->realname, cli_info(cptr));
   if (cli_user(cptr)->away)

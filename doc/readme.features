@@ -119,6 +119,13 @@ MOTD to the client by default; instead, it will only tell the client
 when the MOTD was last changed, and give instructions on how to obtain
 it by typing /MOTD.
 
+MOTD_BANNER
+ * Type: string
+ * Default: NULL
+
+If you enable NODEFAULTMOTD, this specifies a one-line banner to be sent
+to the client in addition to the instructions mentioned above.
+
 KILL_IPMISMATCH
  * Type: boolean
  * Default: FALSE
@@ -213,6 +220,20 @@ uses about 300 to 400 bytes per entry.  Note that at a net break, so
 many client disappear that the whole "whowas" list is refreshed a few
 times (unless you make it rather large).  A reasonable value is "total
 number of clients" / 25.
+
+HOST_HIDING
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local users can set umode +x, thus allowing them
+to hide their hostname if they have also registered with a channel
+service (i.e. they have the ACCOUNT flag set).
+
+HIDDEN_HOST
+ * Type: string
+ * Default: users.undernet.org
+
+This selects the suffix for the hidden hostmask (see HOST_HIDING).
 
 KILLCHASETIMELIMIT
  * Type: integer
@@ -402,6 +423,15 @@ This option is used to specify the type of service that will be
 requested for connections to users.  The value may be given as a
 hexadecimal integer.
 
+POLLS_PER_LOOP
+ * Type: integer
+ * Default: 200
+
+Some of the engines used by the event interface get a number of events
+from the kernel at once.  Since the number retrieved can impact
+performance, it can be tuned by modifying this value.  The engines
+enforce a lower limit of 20.
+
 CRYPT_OPER_PASSWORD
  * Type: boolean
  * Default: TRUE
@@ -587,7 +617,7 @@ REGULATED BY THE UNDERNET ADMINISTRATION.
 
 OPER_SET
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This selects whether global IRC operators on this server are permitted
 to use the /SET command to set various feature values.

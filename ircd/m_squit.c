@@ -71,10 +71,10 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (BadPtr(parv[parc - 1]))
   	comment = cli_name(sptr);
   	
-  acptr = FindNServer(server);
+  acptr = FindServer(server);
 
   if (!acptr)
-    acptr = FindServer(server);
+    acptr = FindNServer(server);
 
   if (!acptr) {
     protocol_violation(sptr, "Issued SQUIT for unknown server %s (ignored)",
@@ -85,8 +85,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   
   /* If they are squitting me, we reverse it */
   if (IsMe(acptr)) {
-  	cptr = acptr;
-  	acptr = &me;
+    acptr = cptr; /* Bugfix by Prefect */
   }
   	
   timestamp = atoi(parv[2]);

@@ -97,7 +97,6 @@
 #include "support.h"
 #include "whocmds.h"
 
-
 #include <assert.h>
 #include <string.h>
 
@@ -395,6 +394,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               || (!(cli_flags(cli_user(acptr)->server) & FLAGS_MAP)))
               && ((!(matchsel & WHO_FIELD_HOS))
               || matchexec(cli_user(acptr)->host, mymask, minlen))
+              && ((!(matchsel & WHO_FIELD_HOS))
+	      || !HasHiddenHost(acptr)
+	      || !IsAnOper(sptr)
+              || matchexec(cli_user(acptr)->realhost, mymask, minlen))
               && ((!(matchsel & WHO_FIELD_REN))
               || matchexec(cli_info(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_NIP))
@@ -430,6 +433,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             || (!(cli_flags(cli_user(acptr)->server) & FLAGS_MAP)))
             && ((!(matchsel & WHO_FIELD_HOS))
             || matchexec(cli_user(acptr)->host, mymask, minlen))
+            && ((!(matchsel & WHO_FIELD_HOS))
+	    || !HasHiddenHost(acptr)
+	    || !IsAnOper(sptr)
+            || matchexec(cli_user(acptr)->realhost, mymask, minlen))
             && ((!(matchsel & WHO_FIELD_REN))
             || matchexec(cli_info(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_NIP))

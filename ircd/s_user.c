@@ -442,6 +442,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
+    ircd_strncpy(user->realhost, cli_sockhost(sptr), HOSTLEN);
     aconf = cli_confs(sptr)->value.aconf;
 
     clean_user_id(user->username,
@@ -621,7 +622,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
 			"%s %d %Tu %s %s %s%s%s%s %s%s :%s",
 			nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
-			user->username, user->host,
+			user->username, user->realhost,
 			*tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
 			inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
 			NumNick(sptr), cli_info(sptr));
@@ -649,7 +650,9 @@ static const struct UserMode {
   { FLAGS_SERVNOTICE,  's' },
   { FLAGS_DEAF,        'd' },
   { FLAGS_CHSERV,      'k' },
-  { FLAGS_DEBUG,       'g' }
+  { FLAGS_DEBUG,       'g' },
+  { FLAGS_ACCOUNT,     'r' },
+  { FLAGS_HIDDENHOST,  'x' }
 };
 
 #define USERMODELIST_SIZE sizeof(userModeList) / sizeof(struct UserMode)
@@ -664,6 +667,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 {
   if (IsServer(sptr)) {
     int   i;
+    const char* account = 0;
     const char* p;
 
     /*
@@ -679,6 +683,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
         for (i = 0; i < USERMODELIST_SIZE; ++i) {
           if (userModeList[i].c == *p) {
             cli_flags(new_client) |= userModeList[i].flag;
+	    if (userModeList[i].flag & FLAGS_ACCOUNT)
+	      account = parv[7];
             break;
           }
         }
@@ -703,7 +709,13 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     cli_serv(sptr)->ghost = 0;        /* :server NICK means end of net.burst */
     ircd_strncpy(cli_username(new_client), parv[4], USERLEN);
     ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
+    ircd_strncpy(cli_user(new_client)->realhost, parv[5], HOSTLEN);
     ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
+    if (account)
+      ircd_strncpy(cli_user(new_client)->account, account, ACCOUNTLEN);
+    if (HasHiddenHost(new_client))
+      ircd_snprintf(0, cli_user(new_client)->host, HOSTLEN, "%s.%s",
+        account, feature_str(FEAT_HIDDEN_HOST));
 
     return register_user(cptr, new_client, cli_name(new_client), parv[4]);
   }
@@ -757,7 +769,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      * on that channel. Propagate notice to other servers.
      */
     if (IsUser(sptr)) {
-      sendcmdto_common_channels(sptr, CMD_NICK, ":%s", nick);
+      sendcmdto_common_channels_butone(sptr, CMD_NICK, NULL, ":%s", nick);
       add_history(sptr, 1);
       sendcmdto_serv_butone(sptr, CMD_NICK, cptr, "%s %Tu", nick,
                             cli_lastnick(sptr));
@@ -1028,6 +1040,51 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
   msgq_clean(mb);
 }
 
+/*
+ * hide_hostmask()
+ *
+ * If, after setting the flags, the user has both HiddenHost and Account
+ * set, its hostmask is changed.
+ */
+#define FLAGS_HOST_HIDDEN	(FLAGS_ACCOUNT|FLAGS_HIDDENHOST)
+int hide_hostmask(struct Client *cptr, unsigned int flags)
+{
+  struct Membership *chan;
+  int newflags;
+
+  if (MyConnect(cptr) && !feature_bool(FEAT_HOST_HIDING))
+    flags &= ~FLAGS_HIDDENHOST;
+    
+  newflags = cli_flags(cptr) | flags;
+  if ((newflags & FLAGS_HOST_HIDDEN) != FLAGS_HOST_HIDDEN) {
+    /* The user doesn't have both flags, don't change the hostmask */
+    cli_flags(cptr) |= flags;
+    return 0;
+  }
+
+  sendcmdto_common_channels_butone(cptr, CMD_QUIT, cptr, ":Registered");
+  ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
+    cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+  cli_flags(cptr) |= flags;
+
+  /*
+   * Go through all channels the client was on, rejoin him
+   * and set the modes, if any
+   */
+  for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel) {
+    sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
+      "%H", chan->channel);
+    if (IsChanOp(chan) && HasVoice(chan)) {
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr,
+        "%H +ov %C %C", chan->channel, cptr, cptr);
+    } else if (IsChanOp(chan) || HasVoice(chan)) {
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr,
+        "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
+    }
+  }
+  return 0;
+}
+
 
 /*
  * set_user_mode() added 15/10/91 By Darren Reed.
@@ -1048,6 +1105,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   int snomask_given = 0;
   char buf[BUFSIZE];
   int prop = 0;
+  int do_host_hiding = 0;
 
   what = MODE_ADD;
 
@@ -1077,7 +1135,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     m = buf;
     *m++ = '+';
     for (i = 0; i < USERMODELIST_SIZE; ++i) {
-      if ( (userModeList[i].flag & cli_flags(sptr)))
+      if ((userModeList[i].flag & cli_flags(sptr)) &&
+	  !(userModeList[i].flag & FLAGS_ACCOUNT))
         *m++ = userModeList[i].c;
     }
     *m = '\0';
@@ -1176,6 +1235,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
         else
           ClearDebug(sptr);
         break;
+      case 'x':
+        if (what == MODE_ADD)
+	  do_host_hiding = 1;
+	break;
       default:
         break;
       }
@@ -1243,6 +1306,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     --UserStats.inv_clients;
   if (!(setflags & FLAGS_INVISIBLE) && IsInvisible(sptr))
     ++UserStats.inv_clients;
+  if (!(setflags & FLAGS_HIDDENHOST) && do_host_hiding)
+    hide_hostmask(sptr, FLAGS_HIDDENHOST);
   send_umode_out(cptr, sptr, setflags, prop);
 
   return 0;
@@ -1268,6 +1333,15 @@ char *umode_str(struct Client *cptr)
     if ( (c_flags & userModeList[i].flag))
       *m++ = userModeList[i].c;
   }
+
+  if (IsAccount(cptr)) {
+    char* t = cli_user(cptr)->account;
+
+    *m++ = ' ';
+    while ((*m++ = *t++))
+      ; /* Empty loop */
+  }
+
   *m = '\0';
 
   return umodeBuf;                /* Note: static buffer, gets
@@ -1450,6 +1524,7 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   struct User *user;
   static char sender[HOSTLEN + NICKLEN + USERLEN + 5];
   static char senderip[16 + NICKLEN + USERLEN + 5];
+  static char senderh[HOSTLEN + ACCOUNTLEN + USERLEN + 6];
 
   if (!cli_user(acptr) || !(lp = cli_user(acptr)->silence) || !(user = cli_user(sptr)))
     return 0;
@@ -1457,9 +1532,13 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
 		user->username, user->host);
   ircd_snprintf(0, senderip, sizeof(senderip), "%s!%s@%s", cli_name(sptr),
 		user->username, ircd_ntoa((const char*) &(cli_ip(sptr))));
+  if (HasHiddenHost(sptr))
+    ircd_snprintf(0, senderh, sizeof(senderh), "%s!%s@%s", cli_name(sptr),
+		  user->username, user->realhost);
   for (; lp; lp = lp->next)
   {
-    if ((!(lp->flags & CHFL_SILENCE_IPMASK) && !match(lp->value.cp, sender)) ||
+    if ((!(lp->flags & CHFL_SILENCE_IPMASK) && (!match(lp->value.cp, sender) ||
+        (HasHiddenHost(sptr) && !match(lp->value.cp, senderh)))) ||
         ((lp->flags & CHFL_SILENCE_IPMASK) && !match(lp->value.cp, senderip)))
     {
       if (!MyConnect(sptr))

@@ -83,6 +83,7 @@
 
 #include "channel.h"
 #include "client.h"
+#include "ircd.h"
 #include "ircd_string.h"
 #include "struct.h"
 #include "s_misc.h"
@@ -99,7 +100,6 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char comment[TOPICLEN];
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
@@ -111,16 +111,10 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
-
-  if (parc > 1) {
-    strcpy(comment,"Quit: ");
-    strncat(comment,parv[parc-1],sizeof(comment)-strlen("Quit: "));
-    comment[sizeof(comment)] = '\0';
-  }
-  else {
-    strncpy(comment,cli_name(cptr),sizeof(comment));
-  }
-  return exit_client(cptr, sptr, sptr, comment);
+  if (parc > 1 && !BadPtr(parv[parc - 1]))
+    return exit_client_msg(cptr, sptr, sptr, "Quit: %s", parv[parc - 1]);
+  else
+    return exit_client(cptr, sptr, sptr, "Quit");
 }
 
 

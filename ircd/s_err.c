@@ -36,7 +36,7 @@ static Numeric replyTable[] = {
 /* 003 */
   { RPL_CREATED, ":This server was created %s", "003" },
 /* 004 */
-  { RPL_MYINFO, "%s %s dioswkg biklmnopstv bklov", "004" },
+  { RPL_MYINFO, "%s %s dioswkgx biklmnopstvr bklov", "004" },
 /* 005 */
   { RPL_ISUPPORT, "%s :are supported by this server", "005" },
 /* 006 */
@@ -646,7 +646,7 @@ static Numeric replyTable[] = {
 /* 306 */
   { RPL_NOWAWAY, ":You have been marked as being away", "306" },
 /* 307 */
-  { RPL_USERIP, ":", "307" },
+  { 0 },
 /* 308 */
   { 0 },
 /* 309 */
@@ -692,7 +692,7 @@ static Numeric replyTable[] = {
 /* 329 */
   { RPL_CREATIONTIME, "%s %Tu", "329" },
 /* 330 */
-  { 0 },
+  { RPL_WHOISACCOUNT, "%s %s :is logged in as", "330" },
 /* 331 */
   { RPL_NOTOPIC, "%s :No topic is set.", "331" },
 /* 332 */
@@ -708,11 +708,11 @@ static Numeric replyTable[] = {
 /* 337 */
   { 0 },
 /* 338 */
-  { 0 },
+  { RPL_WHOISACTUALLY, ":%s is actually %s@%s [%s]", "338" },
 /* 339 */
   { 0 },
 /* 340 */
-  { 0 },
+  { RPL_USERIP, ":", "340" },
 /* 341 */
   { RPL_INVITING, "%s %s", "341" },
 /* 342 */
@@ -986,7 +986,7 @@ static Numeric replyTable[] = {
 /* 476 */
   { ERR_BADCHANMASK, "%s :Bad Channel Mask", "476" },
 /* 477 */
-  { 0 },
+  { ERR_NEEDREGGEDNICK, "%s :Cannot join channel (+r)", "477" },
 /* 478 */
   { ERR_BANLISTFULL, "%s %s :Channel ban/ignore list is full", "478" },
 /* 479 */

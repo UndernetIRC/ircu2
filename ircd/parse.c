@@ -266,7 +266,7 @@ struct Message msgtab[] = {
     TOK_WHOIS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_whois, m_whois, m_whois, m_ignore }
+    { m_unregistered, m_whois, ms_whois, m_whois, m_ignore }
   },
   {
     MSG_WHO,
@@ -393,7 +393,7 @@ struct Message msgtab[] = {
     TOK_VERSION,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_version, m_version, ms_version, m_version, m_ignore }
+    { m_version, m_version, ms_version, mo_version, m_ignore }
   },
   {
     MSG_STATS,
@@ -418,7 +418,7 @@ struct Message msgtab[] = {
     TOK_ADMIN,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_admin, m_admin, ms_admin, m_admin, m_ignore }
+    { m_admin, m_admin, ms_admin, mo_admin, m_ignore }
   },
   {
     MSG_HELP,
@@ -574,6 +574,13 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_privs, m_ignore }
   },
+  {
+    MSG_ACCOUNT,
+    TOK_ACCOUNT,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_account, m_ignore, m_ignore }
+  },
   /* This command is an alias for QUIT during the unregistered part of
    * of the server.  This is because someone jumping via a broken web
    * proxy will send a 'POST' as their first command - which we will
@@ -586,9 +593,9 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_quit, m_ignore, m_ignore, m_ignore, m_ignore }
-  },  
+  },
   { 0 }
-}; 
+};
 
 
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
@@ -716,7 +723,7 @@ static struct Message *do_msg_tree_cmd(struct MessageTree *mtree, char *prefix,
     }
     return mptr;
   }
-  /* 
+  /*
    * This should never happen
    */
   assert(0);
@@ -745,7 +752,7 @@ void initmsgtree(void)
   int ii;
   struct Message **msgtab_tok;
   struct Message **msgtok;
-  
+
   for (i = 0; msg->cmd; ++i, ++msg)
     continue;
   qsort(msgtab, i, sizeof(struct Message),
@@ -1034,7 +1041,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     }
     else if (' ' == ch[1] || ' ' == ch[2])
       from = FindNServer(numeric_prefix);
-    else 
+    else
       from = findNUser(numeric_prefix);
 
     do

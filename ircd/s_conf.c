@@ -1312,6 +1312,7 @@ int rehash(struct Client *cptr, int sig)
     else
       tmp = &tmp2->next;
   }
+
   for (i = 0; i <= HighestFd; i++) {
     if ((acptr = LocalClientArray[i])) {
       assert(!IsMe(acptr));
@@ -1337,6 +1338,7 @@ int rehash(struct Client *cptr, int sig)
       }
     }
   }
+
   return ret;
 }
 
