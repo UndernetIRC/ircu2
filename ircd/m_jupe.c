@@ -165,9 +165,7 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return jupe_activate(cptr, sptr, ajupe, lastmod, flags);
       else
 	return jupe_deactivate(cptr, sptr, ajupe, lastmod, flags);
-    } else if (JupeLastMod(ajupe) == lastmod) /* no changes */
-      return 0;
-    else if (IsBurstOrBurstAck(cptr)) /* it's in the burst, so don't resynch */
+    } else if (JupeLastMod(ajupe) == lastmod || IsBurstOrBurstAck(cptr))
       return 0;
     else
       return jupe_resend(cptr, ajupe); /* other server desynched WRT jupes */
