@@ -1,5 +1,8 @@
 2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c: cli_connect() could become 0 during the course of
+	the sock or timer callback; take that into account in the assert
+
 	* ircd/list.c: add magic number checking and setting--magic
 	numbers are zero'd on frees to detect double-frees; add back
 	setting of cli_from() to 0 to break the back-link from the struct

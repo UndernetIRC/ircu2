@@ -1023,7 +1023,7 @@ static void client_sock_callback(struct Event* ev)
     break;
   }
 
-  assert(0 == cptr || con == cli_connect(cptr));
+  assert(0 == cptr || 0 == cli_connect(cptr) || con == cli_connect(cptr));
 
   if (fallback) {
     const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
@@ -1064,5 +1064,5 @@ static void client_timer_callback(struct Event* ev)
     read_packet(cptr, 0); /* read_packet will re-add timer if needed */
   }
 
-  assert(0 == cptr || con == cli_connect(cptr));
+  assert(0 == cptr || 0 == cli_connect(cptr) || con == cli_connect(cptr));
 }
