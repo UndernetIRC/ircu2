@@ -1,3 +1,12 @@
+2002-07-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_bsd.c (read_packet): length is initialized to 0, but
+	read_packet() is called in cases where the recv() may not be
+	called, resulting in length remaining 0 and prohibiting processing
+	of queued data
+
 2002-07-10  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/jupe.h (jupe_memory_count): use size_t instead of int
