@@ -32,6 +32,7 @@
 #include "match.h"
 #include "msg.h"
 #include "numnicks.h"
+#include "parse.h"
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
@@ -479,33 +480,47 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
  * Send a (prefixed) command to all users except <one> that have
  * <flag> set.
  */
-void sendcmdto_flag_butone(struct Client *from, const char *cmd,
-			   const char *tok, struct Client *one,
-			   unsigned int flag, const char *pattern, ...)
+void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
+			    const char *pattern, ...)
 {
   struct VarData vd;
   struct Client *cptr;
   struct MsgBuf *mb;
   struct DLink *lp;
-  unsigned int oper_fl = 0;
+  char *prefix=NULL;
+  char *tok=NULL;
   int i;
-
-  if (flag & FLAGS_OPER) {
-    flag &= ~FLAGS_OPER;
-    oper_fl++;
-  }
 
   vd.vd_format = pattern;
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  mb = msgq_make(0, "%:#C " MSG_WALLOPS " %v", from, &vd);
+  switch (type) {
+    	case WALL_DESYNCH:
+	  	prefix="";
+		tok=TOK_DESYNCH;
+		break;
+    	case WALL_WALLOPS:
+	  	prefix="* ";
+		tok=TOK_WALLOPS;
+		break;
+    	case WALL_WALLUSERS:
+	  	prefix="$ ";
+		tok=TOK_WALLUSERS;
+		break;
+	default:
+		assert(0);
+  }
+  mb = msgq_make(0, "%:#C " MSG_WALLOPS " :%s%v", from, prefix,&vd);
   va_end(vd.vd_args);
 
   /* send buffer along! */
   for (i = 0; i <= HighestFd; i++) {
-    if (!(cptr = LocalClientArray[i]) || !(cli_flags(cptr) & flag) ||
-	(oper_fl && !IsAnOper(cptr)) ||	cli_fd(cli_from(cptr)) < 0)
+    if (!(cptr = LocalClientArray[i]) 
+	|| (cli_fd(cli_from(cptr)) < 0)
+	|| (type==WALL_DESYNCH && (cli_flags(cptr)&FLAGS_DEBUG==0))
+	|| (type==WALL_WALLOPS && (cli_flags(cptr)&FLAGS_WALLOP==0))
+        || (type==WALL_WALLUSERS && (cli_flags(cptr)&FLAGS_WALLOP==0)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);
   }
@@ -514,7 +529,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to servers */
   va_start(vd.vd_args, pattern);
-  mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
+  mb = msgq_make(&me, "%C %s :%v", from, tok, &vd);
   va_end(vd.vd_args);
 
   /* send buffer along! */

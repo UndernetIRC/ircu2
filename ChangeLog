@@ -1,3 +1,7 @@
+2001-09-21  Perry Lorier  <isomer@coders.net>
+	* ircd/send.c and various: replace sendcmdto_flag_butone with
+	sendwallto_group_butone
+
 2001-09-21  Vampire-  <unknown>
 	* ircd/ircd_string.c: unique_name_vector round II.
 

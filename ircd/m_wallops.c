@@ -103,8 +103,7 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendcmdto_flag_butone(sptr, CMD_WALLOPS, cptr, FLAGS_WALLOP | FLAGS_OPER,
-			":%s", message);
+  sendwallto_group_butone(sptr, WALL_WALLOPS, cptr, "%s", message);
   return 0;
 }
 
@@ -120,7 +119,6 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendcmdto_flag_butone(sptr, CMD_WALLOPS, 0, FLAGS_WALLOP | FLAGS_OPER,
-			":* %s", message);
+  sendwallto_group_butone(sptr, WALL_WALLOPS, 0, "%s", message);
   return 0;
 }
