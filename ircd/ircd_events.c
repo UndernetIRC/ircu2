@@ -129,8 +129,6 @@ event_execute(struct Event* event)
   assert(0 == event->ev_prev_p); /* must be off queue first */
   assert(event->ev_gen.gen_header->gh_flags & GEN_ACTIVE);
 
-  verify_client_list();
-
   if (event->ev_type == ET_DESTROY) /* turn off active flag *before* destroy */
     event->ev_gen.gen_header->gh_flags &= ~GEN_ACTIVE;
 
@@ -150,8 +148,6 @@ event_execute(struct Event* event)
 
   event->ev_next = evInfo.events_free; /* add to free list */
   evInfo.events_free = event;
-
-  verify_client_list();
 }
 
 #ifndef IRCD_THREADED

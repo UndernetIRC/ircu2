@@ -701,12 +701,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      */
     cli_ip(new_client).s_addr = htonl(base64toint(parv[parc - 3]));
 
-    verify_client_list();
-
     add_client_to_list(new_client);
     hAddClient(new_client);
-
-    verify_client_list();
 
     cli_serv(sptr)->ghost = 0;        /* :server NICK means end of net.burst */
     ircd_strncpy(cli_username(new_client), parv[4], USERLEN);

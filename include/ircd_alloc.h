@@ -30,7 +30,7 @@
 typedef void (*OutOfMemoryHandler)(void);
 extern void set_nomem_handler(OutOfMemoryHandler handler);
 
-#if defined(NDEBUG)
+#if !defined(MDEBUG)
 /* 
  * RELEASE: allocation functions
  */
@@ -45,7 +45,7 @@ extern void* MyMalloc(size_t size);
 extern void* MyCalloc(size_t nelem, size_t size);
 extern void* MyRealloc(void* p, size_t size);
 
-#else /* !defined(NDEBUG) */
+#else /* defined(MDEBUG) */
 /*
  * DEBUG: allocation functions
  */
@@ -58,7 +58,7 @@ extern void* MyRealloc(void* p, size_t size);
 #define MyFree(p)       fda_free((p))
 #define MyRealloc(p, s) fda_realloc((p), (s), __FILE__, __LINE__)
 
-#endif /* !defined(NDEBUG) */
+#endif /* defined(MDEBUG) */
 
 #endif /* INCLUDED_ircd_alloc_h */
 

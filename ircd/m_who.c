@@ -159,8 +159,6 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *qrt;                    /* Pointer to the query type                */
   static char mymask[512];      /* To save the mask before corrupting it    */
 
-  verify_client_list();
-
   /* Let's find where is our mask, and if actually contains something */
   mask = ((parc > 1) ? parv[1] : 0);
   if (parc > 3 && parv[3])
@@ -413,7 +411,6 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     /* Loop through all clients :-\, if we still have something to match to 
        and we can show more clients */
-    verify_client_list();
     if ((!(counter < 1)) && matchsel)
       for (acptr = cli_prev(&me); acptr; acptr = cli_prev(acptr))
       {
@@ -445,7 +442,6 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           break;
         do_who(sptr, acptr, 0, fields, qrt);
       }
-    verify_client_list();
   }
 
   /* Make a clean mask suitable to be sent in the "end of" */
@@ -456,8 +452,6 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Notify the user if we decided that his query was too long */
   if (counter < 0)
     send_reply(sptr, ERR_QUERYTOOLONG, "WHO");
-
-  verify_client_list();
 
   return 0;
 }

@@ -308,7 +308,7 @@ res_ourserver(const struct __res_state* statp, const struct sockaddr_in* inp)
 /* Socket callback for resolver */
 static void res_callback(struct Event* ev)
 {
-  assert(ev_type(ev) == ET_READ);
+  assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
 
   resolver_read();
 }

@@ -29,7 +29,7 @@
 
 #include <assert.h>
 
-#if defined(NDEBUG)
+#if !defined(MDEBUG)
 /*
  * RELEASE: allocation functions
  */
@@ -71,7 +71,7 @@ void* MyCalloc(size_t nelem, size_t size)
   return p;
 }
 
-#else /* !defined(NDEBUG) */
+#else /* defined(MDEBUG) */
 /*
  * DEBUG: allocation functions
  */
@@ -81,5 +81,5 @@ void set_nomem_handler(OutOfMemoryHandler handler)
   fda_set_nomem_handler(handler);
 }
 
-#endif /* !defined(NDEBUG) */
+#endif /* defined(MDEBUG) */
 

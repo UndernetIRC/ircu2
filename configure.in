@@ -246,13 +246,13 @@ if test x"$unet_cv_enable_debug" = xyes; then
     AC_DEFINE([DEBUGMODE], , [Enable debugging code])
 fi
 
-dnl And now for --enable-asserts
+dnl And now for --disable-asserts
 AC_MSG_CHECKING([whether to enable asserts])
 AC_ARG_ENABLE([asserts],
-[  --enable-asserts        Enable asserts],
+[  --disable-asserts       Disable assertion checking],
 [unet_cv_enable_asserts=$enable_asserts],
 [AC_CACHE_VAL(unet_cv_enable_asserts,
-[unet_cv_enable_asserts=no])])
+[unet_cv_enable_asserts=yes])])
 AC_MSG_RESULT([$unet_cv_enable_asserts])
 
 if test x"$unet_cv_enable_asserts" = xno; then

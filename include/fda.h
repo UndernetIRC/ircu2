@@ -21,7 +21,7 @@
 #ifndef INCLUDED_fda_h
 #define INCLUDED_fda_h
 
-#if !defined(NDEBUG)
+#if defined(MDEBUG)
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>      /* size_t */
 #define INCLUDED_sys_types_h
@@ -58,5 +58,5 @@ extern void fda_set_lowmem_handler(void (*fn)(void));
 extern void fda_set_nomem_handler(void (*fn)(void));
 
 
-#endif /* !defined(NDEBUG) */
+#endif /* defined(MDEBUG) */
 #endif /* INCLUDED_fda_h */

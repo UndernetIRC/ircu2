@@ -1252,8 +1252,6 @@ int rehash(struct Client *cptr, int sig)
   int               ret = 0;
   int               found_g = 0;
 
-  verify_client_list();
-
   if (1 == sig)
     sendto_opmask_butone(0, SNO_OLDSNO,
                          "Got signal SIGHUP, reloading ircd conf. file");
@@ -1315,8 +1313,6 @@ int rehash(struct Client *cptr, int sig)
       tmp = &tmp2->next;
   }
 
-  verify_client_list();
-
   for (i = 0; i <= HighestFd; i++) {
     if ((acptr = LocalClientArray[i])) {
       assert(!IsMe(acptr));
@@ -1342,8 +1338,6 @@ int rehash(struct Client *cptr, int sig)
       }
     }
   }
-
-  verify_client_list();
 
   return ret;
 }
