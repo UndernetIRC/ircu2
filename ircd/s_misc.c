@@ -395,20 +395,25 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
     if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
       sendto_opmask_butone(0, SNO_CONNEXIT,
-			   "Client exiting: %s (%s@%s) [%s] [%s]",
+			   "Client exiting: %s (%s@%s) [%s] [%s] <%s%s>",
 			   cli_name(victim), cli_user(victim)->username,
 			   cli_user(victim)->host, comment,
-			   ircd_ntoa((const char*) &(cli_ip(victim))));
+			   ircd_ntoa((const char*) &(cli_ip(victim))),
+			   NumNick(victim) /* Two %'s */
+			   );
 
     update_load();
 
     on_for = CurrentTime - cli_firsttime(victim);
 
     if (IsUser(victim))
-      log_write(LS_USER, L_TRACE, 0, "%s (%3d:%02d:%02d): %s@%s (%s)",
-		myctime(cli_firsttime(victim)), on_for / 3600,
-		(on_for % 3600) / 60, on_for % 60, cli_user(victim)->username,
-		cli_sockhost(victim), cli_name(victim));
+      log_write(LS_USER, L_TRACE, 0, "%Tu %i %s@%s %s %s %s%s %s :%s",
+		cli_firsttime(victim), on_for, 
+		cli_user(victim)->username, cli_sockhost(victim), 
+		ircd_ntoa((const char *) &(cli_ip(victim))),
+		IsAccount(victim) ? cli_username(victim) : "0",
+		NumNick(victim), /* Two %'s */
+		cli_name(victim), cli_info(victim));
 
     if (victim != cli_from(killer)  /* The source knows already */
         && IsClient(victim))    /* Not a Ping struct or Log file */

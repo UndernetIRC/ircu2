@@ -1676,6 +1676,8 @@ modebuf_init(struct ModeBuf *mbuf, struct Client *source,
   assert(0 != chan);
   assert(0 != dest);
 
+  if (IsLocalChannel(chan->chname)) dest &= ~MODEBUF_DEST_SERVER;
+
   mbuf->mb_add = 0;
   mbuf->mb_rem = 0;
   mbuf->mb_source = source;
@@ -2719,7 +2721,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 			    "%H %Tu", chan, chan->creationtime);
 
     /* Send the notification to the channel */
-    sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
+    sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, "%H", chan);
 
     /* send an op, too, if needed */
     if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)

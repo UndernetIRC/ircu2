@@ -5,3 +5,4 @@ ircd
 chkconf
 table_gen
 chattr.tab.c
+autom4te.cache

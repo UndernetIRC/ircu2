@@ -1,3 +1,197 @@
+2004-01-11  Perry Lorier <isomer@undernet.org>
+
+	* include/patchlevel.h: Release 2.10.11.06
+
+2004-01-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_numeric.c (do_numeric): fix a crash when a numeric is
+	sent to a channel...
+
+2003-12-31  Perry Lorier <isomer@undernet.org>
+	* ircd/s_misc.c: Fix bug in incorrect %Tu format specifier
+
+	* Doxyfile: Doxygen file for generating documation for code
+
+2003-12-02  Perry Lorier <isomer@undernet.org>
+	* ircd/gline.c: Patch gline_find not to core on the *second* gline
+	added.
+
+2003-12-01  Perry Lorier <isomer@undernet.org>
+	* include/patchlevel.h: Bump patchlevel to pre3
+
+2003-11-30  Perry Lorier <isomer@undernet.org>
+	* ircd/gline.c: Patch canon_userhost as suggested by netski
+
+	* ChangeLog: Fix up contributers name
+
+2003-11-22  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* tools/wrapper.c: commit uid on chroot fix from ubra
+
+	* ircd/version.c.SH: fix generation generation
+
+	* ircd/m_nick.c (m_nick): truncate the nickname to the minimum of
+	the maximum allowed length (NICKLEN) or the allowed nickname
+	length specified as the NICKLEN feature
+
+	* ircd/ircd_features.c: declare NICKLEN and set its default value
+	to 9
+
+	* ircd/engine_epoll.c: include inttypes.h--bah epoll.
+
+	* include/supported.h: add MAXNICKLEN to ISUPPORT and do a little
+	rearranging...
+
+	* include/ircd_features.h: add NICKLEN feature
+
+	* include/ircd_defs.h (NICKLEN): raise max NICKLEN to 15
+
+	* doc/readme.features: document new NICKLEN feature
+
+	* doc/example.conf: list new NICKLEN F-line
+
+	* configure.in: check for inttypes.h--bah epoll.
+
+	* configure: regenerate...
+
+	* config.h.in: regenerate...
+
+	* ircd/gline.c (make_gline): little bit of logic cleanup here...
+
+2003-11-23 Beware <steendijk@xs4all.nl>
+	* doc/p10.txt: Bewares excellent reference on the p10 protocol as
+	implemented by Undernet.
+
+2003-11-13 Spike <spike@undernet.org>
+	* ircd/gline.c: Remove the possibility to add a BADCHAN by
+	setting a gline on $R#chan.
+
+2003-11-23 Isomer <isomer@undernet.org>
+	* ircd/s_user.c: Don't credit users with an extra attempt if they
+	are klined/glined, throttle them!
+
+2003-11-23 Isomer <isomer@undernet.org>
+	* ircd/os_*.c, ircd/ircd_features.c: Default changing window sizes
+	to off.  if an admin is smart enough to understand these features
+	they can enable them manually.
+
+2003-11-23 Spike <spike@undernet.org>
+	* ircd/IPcheck.c: Make IPcheck constants configurable
+
+2003-11-18 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Fix broken test that causes core dumps on realname
+	glines.
+
+	* ircd/m_whois.c: Fix lost ! from ShowChannel()
+
+2003-11-18 Isomer <isomer@undernet.org>
+	* ircd/res.c: Minor cosmetic typo.
+
+2003-11-17 Entrope <entrope@clan-dk.org>
+        * ircd/engine_epoll.c: #include <sys/types.h>, which is
+        reportedly necessary on certain RedHat releases.
+
+        * ircd/os_linux.c: Restore the #include <unistd.h>, which is
+        reportedly necessary on the Fedora Core 1 distribution.
+
+2003-11-18 Isomer <isomer@undernet.org>
+	* ircd/s_auth.c, ircd/res.c: Clean up the preregistration subsystem
+	allowing customisation of timers, make the dns resolver stats oper only,
+	and make it much more clear what all the numbers are.
+
+2003-11-09 beware <steendijk@xs4all.nl>
+        * move assigning a numeric to a local client from when nick is set,
+	to when connection becomes client, to not waste numerics.
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* include/gline.c: a^b vs !(a^b)
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* include/gline.c: Fix more cores in make_gline.c
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* include/s_user.c: Fix ERR_UMODEUNKNOWNFLAG (again)
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* include/patchlevel.h: Bump to .pre1
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* ircd/s_stats.c: Show "Allowed" in /stats H
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* ircd/s_misc.c: Change the logging format (Closes: 836413)
+
+2003-11-06 Isomer <isomer@undernet.org>
+	* ircd/s_err.c: Fix bug with ERR_UMODEUNKNOWNFLAG introduced by Isomer
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Display realname glines in /stats g
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/m_whois.c: On remote whois, show +s local channels with a *
+	prefix to opers.
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/s_misc.c, ircd/s_user.c: added numnick to SNO_CONNEXIT message
+	(so you can match EXIT's to CONN's)
+
+2003-11-05 Entrope <entrope@users.sourceforge.net>  
+	* ircd/engine_epoll.c, config.h.in, configure,in, ircd/ircd_events.h:
+	Added epoll(2) support.
+
+2003-07-18 |SmAsH| <smash@web.de>
+	* ircd/s_user.c: added sending of ERR_UMODEUNKNOWNFLAG (Updated by
+	Isomer with suggestions from wasted)
+
+2003-07-07 beware  <steendijk@xs4all.nl>
+        * ircd/s_user.c: invalidate ban cache for user on host hiding/account
+
+2003-07-01  Bas Steendijk  <steendijk@xs4all.nl>
+        * ircd/m_names.c: length counter being incremented one too many
+        for each nick, resulting names reply messages are about 50 chars
+        shorter than possible. fixed.
+
+2003-06-29  Bas Steendijk  <steendijk@xs4all.nl>
+         * ircd/channel.c: don't ever send mode changes for local channels to
+ 	 servers.
+
+2003-06-25  Bas Steendijk  <steendijk@xs4all.nl>
+        * ircd/m_burst.c: Clear topic set by netrider on burst.
+
+2003-04-26  volta <volta2@gmx.de>
+         * ircd/m_userip.c, ircd/m_userhost.c: Small fix, that
+         allows users to see their own ip & hostname. (Should solve
+         all problems with dcc)
+
+2003-06-13  Zoot <zoot@gamesnet.net>
+ 
+ 	* ircd/m_map.c, ircd/m_links.c: Remove user-visible references
+ 	to Undernet's CFV-165.
+ 	
+2003-06-08  Matthias Crauwels <ultimate_@wol.be>
+ 	* ircd/gline.c: fixed the counting bug in gline_memory_count
+ 
+ 	* ircd/jupe.c: fixed the counting bug in jupe_memory_count
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/channel.c: (Jeekay) Remove extra : from channel JOIN's on 
+	netburst
+
+	* ircd/gline.c: (splidge) Don't make invalid glines match everyone!
+	
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Fix my first Gline Fix as noticed by a1kmm, thanks!
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Remove duplicate/overlapping realname glines
+
+2003-11-04 Isomer <isomer@undernet.org>
+	* include/patchlevel.h: 2.10.11.06 initial branch
+
+	* ircd/s_serv.c: Burst glines/jupes early
+
+	* ircd/gline.c: Don't add spirious @
+
 2003-11-01 Isomer <isomer@undernet.org>
 	* include/patchlevel.h: 2.10.11.05 release
 

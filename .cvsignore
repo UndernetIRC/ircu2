@@ -5,3 +5,4 @@ config.h
 stamp-h
 config.status
 config.cache
+autom4te.cache

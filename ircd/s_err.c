@@ -526,7 +526,7 @@ static Numeric replyTable[] = {
 /* 246 */
   { RPL_STATSTLINE, "%c %s %s", "246" },
 /* 247 */
-  { RPL_STATSGLINE, "%c %s@%s %Tu :%s", "247" },
+  { RPL_STATSGLINE, "%c %s%s%s %Tu :%s", "247" },
 /* 248 */
   { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
 /* 249 */
@@ -1034,7 +1034,7 @@ static Numeric replyTable[] = {
 /* 500 */
   { 0 },
 /* 501 */
-  { ERR_UMODEUNKNOWNFLAG, ":Unknown MODE flag", "501" },
+  { ERR_UMODEUNKNOWNFLAG, "%c :Unknown User mode flag", "501" },
 /* 502 */
   { ERR_USERSDONTMATCH, ":Cant change mode for other users", "502" },
 /* 503 */
