@@ -1,5 +1,15 @@
 2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_events.c: gen_dequeue() is now exported, so move it
+	down with the non-static functions; modify event_execute() to use
+	the new gen_ref_dec() to simplify code; make sure event_generate()
+	does not generate new events for generators marked for destruction
+
+	* include/ircd_events.h: the engines, at least, may need to modify
+	reference counts to keep generators from going away while
+	something still points at them, so add reference counter
+	manipulators and export gen_dequeue() for them
+
 	* ircd/ircd_events.c: set up the list of engines to try; set up
 	the signal struct Socket; rename netInfo to evInfo; move static
 	functions near the beginning of the file; do away with

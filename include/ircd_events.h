@@ -156,9 +156,21 @@ struct Engine {
   EngineLoop	eng_loop;	/* actual event loop */
 };
 
+#define gen_ref_inc(gen)	(((struct Generator*) (gen))->gh_ref++)
+#define gen_ref_dec(gen)						      \
+do {									      \
+  struct Generator* _gen = (gen);					      \
+  if (!--_gen->gh_ref && (_gen->gh_flags & GEN_DESTROY)) {		      \
+    gen_dequeue(_gen);							      \
+    event_generate(ET_DESTROY, _gen);					      \
+  }									      \
+} while (0)
+
+void gen_dequeue(void* arg);
+
 void event_init(void);
 void event_loop(void);
-void event_generate(enum EventType type, void* gen);
+void event_generate(enum EventType type, void* arg);
 
 void timer_add(struct Timer* timer, EventCallBack call, void* data,
 	       enum TimerType type, time_t value);

@@ -74,20 +74,6 @@ static struct {
   struct Engine* engine;
 } evInfo = { { 0, 0, 0 }, 0, 0, 0, 0, 0, 0 };
 
-/* Remove something from its queue */
-static void
-gen_dequeue(void *arg)
-{
-  struct GenHeader* gen = (struct GenHeader*) arg;
-
-  if (gen->gh_next) /* clip it out of the list */
-    gen->gh_next->gh_prev_p = gen->gh_prev_p;
-  *gen->gh_prev_p = gen->gh_next;
-
-  gen->gh_next = 0; /* mark that it's not in the list anymore */
-  gen->gh_prev_p = 0;
-}
-
 /* Execute an event; optimizations should inline this */
 static void
 event_execute(struct Event* event)
@@ -102,12 +88,8 @@ event_execute(struct Event* event)
    * the reference count; if reference count goes to zero, AND we need
    * to destroy the generator, THEN we generate a DESTROY event.
    */
-  if (event->ev_type != ET_DESTROY &&
-      !--event->ev_gen.gen_header->gh_ref &&
-      (event->ev_gen.gen_header->gh_flags & GEN_DESTROY)) {
-    gen_dequeue(event->ev_gen.gen_header);
-    event_generate(ET_DESTROY, event->ev_gen.gen_header);
-  }
+  if (event->ev_type != ET_DESTROY)
+    gen_ref_dec(event->ev_gen.gen_header);
 
   event->ev_callback = 0; /* clear event data */
   event->ev_gen.gen_header = 0;
@@ -216,6 +198,20 @@ signal_callback(struct Event* event)
   }
 }
 
+/* Remove something from its queue */
+void
+gen_dequeue(void* arg)
+{
+  struct GenHeader* gen = (struct GenHeader*) arg;
+
+  if (gen->gh_next) /* clip it out of the list */
+    gen->gh_next->gh_prev_p = gen->gh_prev_p;
+  *gen->gh_prev_p = gen->gh_next;
+
+  gen->gh_next = 0; /* mark that it's not in the list anymore */
+  gen->gh_prev_p = 0;
+}
+
 /* Initializes the event system */
 void
 event_init(void)
@@ -258,11 +254,16 @@ event_loop(void)
 
 /* Generate an event and add it to the queue (or execute it) */
 void
-event_generate(enum EventType type, void* gen)
+event_generate(enum EventType type, void* arg)
 {
   struct Event* ptr;
+  struct GenHeader* gen = (struct GenHeader*) arg;
 
   assert(0 != gen);
+
+  /* don't create events (other than ET_DESTROY) for destroyed generators */
+  if (type != ET_DESTROY && (gen->gh_flags & GEN_DESTROY))
+    return;
 
   if ((ptr = evInfo.events_free))
     evInfo.events_free = ptr->next; /* pop one off the freelist */
