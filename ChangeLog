@@ -1,3 +1,8 @@
+2002-02-28 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/m_kill.c: Strip the path from the comment for oper kills as 
+	  well as server kills.
+
 2002-02-22 Reed Loden <reed@redmagnet.com>
 
 	* ircd/m_connect.c: Removed an extra : in remote connect message.

@@ -114,15 +114,10 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
   assert(0 != sptr);
   assert(IsUser(victim));
 
-  if (IsServer(sptr)) {
-     if (!(comment = strchr(path, ' ')))
-       comment = "No reason supplied";
-     else
-       comment++; /* Remove first character (space) */
-  }
+  if (!(comment = strchr(path, ' ')))
+    comment = "No reason supplied";
   else
-    comment = path;
-
+    comment++; /* Remove first character (space) */
 
 #ifdef HEAD_IN_SAND_KILLWHO
   ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", HEAD_IN_SAND_SERVERNAME, comment);
