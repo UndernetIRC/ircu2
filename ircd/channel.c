@@ -1563,14 +1563,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_CHANOP ? 'o' : 'v';
 	totalbuflen -= IRCD_MAX(5, tmp) + 1;
       }
-    } else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN | MODE_APASS | MODE_UPASS)) {
+    } else if (MB_TYPE(mbuf, i) & (MODE_BAN | MODE_APASS | MODE_UPASS)) {
       tmp = strlen(MB_STRING(mbuf, i));
 
       if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
 	char mode_char;
-	switch(MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN | MODE_APASS | MODE_UPASS))
+	switch(MB_TYPE(mbuf, i) & (MODE_BAN | MODE_APASS | MODE_UPASS))
 	{
 	  case MODE_APASS:
 	    mode_char = 'A';
@@ -1578,14 +1578,21 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	  case MODE_UPASS:
 	    mode_char = 'u';
 	    break;
-	  case MODE_KEY:
-	    mode_char = 'k';
-	    break;
 	  default:
 	    mode_char = 'b';
 	    break;
 	}
 	bufptr[(*bufptr_i)++] = mode_char;
+	totalbuflen -= tmp + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_KEY) {
+      tmp = (mbuf->mb_dest & MODEBUF_DEST_NOKEY ? 1 :
+	     strlen(MB_STRING(mbuf, i)));
+
+      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'k';
 	totalbuflen -= tmp + 1;
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
@@ -1633,9 +1640,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
 	build_string(strptr, strptr_i, cli_name(MB_CLIENT(mbuf, i)), 0, ' ');
 
-      /* deal with strings... */
-      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
+      /* deal with bans... */
+      else if (MB_TYPE(mbuf, i) & MODE_BAN)
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
+
+      /* deal with keys... */
+      else if (MB_TYPE(mbuf, i) & MODE_KEY)
+	build_string(strptr, strptr_i, mbuf->mb_dest & MODEBUF_DEST_NOKEY ?
+		     "*" : MB_STRING(mbuf, i), 0, ' ');
 
       /* deal with invisible passwords */
       else if (MB_TYPE(mbuf, i) & (MODE_APASS | MODE_UPASS))

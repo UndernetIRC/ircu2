@@ -203,7 +203,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!chptr->creationtime || chptr->creationtime > timestamp) {
     chptr->creationtime = timestamp;
 
-    modebuf_init(mbuf = &modebuf, &me, cptr, chptr, MODEBUF_DEST_CHANNEL);
+    modebuf_init(mbuf = &modebuf, &me, cptr, chptr,
+		 MODEBUF_DEST_CHANNEL | MODEBUF_DEST_NOKEY);
     modebuf_mode(mbuf, MODE_DEL | chptr->mode.mode); /* wipeout modes */
     chptr->mode.mode &= ~(MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET |
 			  MODE_MODERATED | MODE_TOPICLIMIT | MODE_INVITEONLY |
@@ -215,7 +216,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     for (lp = chptr->banlist; lp; lp = lp->next)
       lp->flags |= CHFL_BURST_BAN_WIPEOUT;
   } else if (chptr->creationtime == timestamp) {
-    modebuf_init(mbuf = &modebuf, &me, cptr, chptr, MODEBUF_DEST_CHANNEL);
+    modebuf_init(mbuf = &modebuf, &me, cptr, chptr,
+		 MODEBUF_DEST_CHANNEL | MODEBUF_DEST_NOKEY);
 
     parse_flags |= MODE_PARSE_SET; /* set new modes */
   }

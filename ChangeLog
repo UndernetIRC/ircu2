@@ -1,5 +1,16 @@
 2002-03-27  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_burst.c (ms_burst): use MODEBUF_DEST_NOKEY to suppress
+	sending of the key to the channel
+
+	* ircd/channel.c (modebuf_flush_int): when processing keys, only
+	include the actual key in the mode sent to the channel if
+	MODEBUF_DEST_NOKEY is not set
+
+	* include/channel.h: needed more bits for MODEBUF_DEST_*,
+	especially when adding MODEBUF_DEST_NOKEY to force keys in the
+	BURST to be reported as "*" to the channel
+
 	* ircd/m_oper.c (m_oper): clear the new oper's sendq so it gets
 	inherited from the class associated with the O-line
 
