@@ -1,5 +1,12 @@
 2002-01-08  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump PATCHLEVEL to 2
+
+	* ircd/s_user.c: when building the user mode to send to the user,
+	don't include +r; add an extra set of parens to squelch a warning
+
+	* ircd/m_quit.c (m_quit): use exit_client_msg()
+
 	* include/patchlevel.h (PATCHLEVEL): bump patch level, so we can
 	keep track of who's running what version
 

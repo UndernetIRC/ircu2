@@ -99,7 +99,7 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char comment[TOPICLEN];
+  char *comment = parv[parc - 1];
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
@@ -112,15 +112,8 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
   }
 
-  if (parc > 1) {
-    strcpy(comment,"Quit: ");
-    strncat(comment,parv[parc-1],sizeof(comment)-strlen("Quit: "));
-    comment[sizeof(comment)] = '\0';
-  }
-  else {
-    strncpy(comment,cli_name(cptr),sizeof(comment));
-  }
-  return exit_client(cptr, sptr, sptr, comment);
+  return exit_client_msg(cptr, sptr, sptr, "%s%s", parc > 1 ? "Quit: " : "",
+			 parc > 1 ? parv[parc - 1] : cli_name(cptr));
 }
 
 
