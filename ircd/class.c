@@ -169,36 +169,6 @@ get_client_class(struct Client *acptr)
   return "(null-class)";
 }
 
-unsigned int get_client_ping(struct Client *acptr)
-{
-  unsigned int ping = 0;
-  unsigned int ping2;
-  struct ConfItem *aconf;
-  struct SLink *link;
-
-  link = cli_confs(acptr);
-
-  if (link) {
-    while (link) {
-      aconf = link->value.aconf;
-      if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
-        ping2 = get_conf_ping(aconf);
-        if ((ping2 != BAD_PING) && ((ping > ping2) || !ping))
-          ping = ping2;
-      }
-      link = link->next;
-    }
-  }
-  else {
-    ping = feature_int(FEAT_PINGFREQUENCY);
-    Debug((DEBUG_DEBUG, "No Attached Confs for: %s", cli_name(acptr)));
-  }
-  if (ping <= 0)
-    ping = feature_int(FEAT_PINGFREQUENCY);
-  Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
-  return (ping);
-}
-
 unsigned int get_con_freq(struct ConnectionClass * clptr)
 {
   if (clptr)
