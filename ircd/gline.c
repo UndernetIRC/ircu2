@@ -5,7 +5,7 @@
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 1, or (at your option)
+ * the Free Software Foundation; either version 2, or (at your option)
  * any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Implementation of Gline manipulation functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -50,22 +52,34 @@
 #include <stdlib.h>
 #include <arpa/inet.h> /* for inet_ntoa */
 
-#define CHECK_APPROVED	   0	/* Mask is acceptable */
-#define CHECK_OVERRIDABLE  1	/* Mask is acceptable, but not by default */
-#define CHECK_REJECTED	   2	/* Mask is totally unacceptable */
+#define CHECK_APPROVED	   0	/**< Mask is acceptable */
+#define CHECK_OVERRIDABLE  1	/**< Mask is acceptable, but not by default */
+#define CHECK_REJECTED	   2	/**< Mask is totally unacceptable */
 
-#define MASK_WILD_0	0x01	/* Wildcards in the last position */
-#define MASK_WILD_1	0x02	/* Wildcards in the next-to-last position */
+#define MASK_WILD_0	0x01	/**< Wildcards in the last position */
+#define MASK_WILD_1	0x02	/**< Wildcards in the next-to-last position */
 
-#define MASK_WILD_MASK	0x03	/* Mask out the positional wildcards */
+#define MASK_WILD_MASK	0x03	/**< Mask out the positional wildcards */
 
-#define MASK_WILDS	0x10	/* Mask contains wildcards */
-#define MASK_IP		0x20	/* Mask is an IP address */
-#define MASK_HALT	0x40	/* Finished processing mask */
+#define MASK_WILDS	0x10	/**< Mask contains wildcards */
+#define MASK_IP		0x20	/**< Mask is an IP address */
+#define MASK_HALT	0x40	/**< Finished processing mask */
 
+/** List of user G-lines. */
 struct Gline* GlobalGlineList  = 0;
+/** List of BadChan G-lines. */
 struct Gline* BadChanGlineList = 0;
 
+/** Find canonical user and host for a string.
+ * If \a userhost starts with '$', assign \a userhost to *user_p and NULL to *host_p.
+ * Otherwise, if \a userhost contains '@', assign the earlier part of it to *user_p and the rest to *host_p.
+ * Otherwise, assign \a def_user to *user_p and \a userhost to *host_p.
+ *
+ * @param[in] userhost Input string from user.
+ * @param[out] user_p Gets pointer to user (or channel/realname) part of hostmask.
+ * @param[out] host_p Gets point to host part of hostmask (may be assigned NULL).
+ * @param[in] def_user Default value for user part.
+ */
 static void
 canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
 {
@@ -87,6 +101,15 @@ canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
   }
 }
 
+/** Create a Gline structure.
+ * @param[in] user User part of mask.
+ * @param[in] host Host part of mask (NULL if not applicable).
+ * @param[in] reason Reason for G-line.
+ * @param[in] expire Expiration timestamp.
+ * @param[in] lastmod Last modification timestamp.
+ * @param[in] flags Bitwise combination of GLINE_* bits.
+ * @return Newly allocated G-line.
+ */
 static struct Gline *
 make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 	   unsigned int flags)
@@ -163,12 +186,22 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
   return gline;
 }
 
+/** Check local clients against a new G-line.
+ * If the G-line is inactive or a badchan, return immediately.
+ * Otherwise, if any users match it, disconnect them.
+ * @param[in] cptr Peer connect that sent the G-line.
+ * @param[in] sptr Client that originated the G-line.
+ * @param[in] gline New G-line to check.
+ * @return Zero, unless \a sptr G-lined himself, in which case CPTR_KILLED.
+ */
 static int
 do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 {
   struct Client *acptr;
   int fd, retval = 0, tval;
 
+  if (GlineIsBadChan(gline)) /* no action taken on badchan glines */
+    return 0;
   if (!GlineIsActive(gline)) /* no action taken on inactive glines */
     return 0;
 
@@ -222,12 +255,14 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
   return retval;
 }
 
-/*
- * This routine implements the mask checking applied to local
- * G-lines.  Basically, host masks must have a minimum of two non-wild
- * domain fields, and IP masks must have a minimum of 16 bits.  If the
- * mask has even one wild-card, OVERRIDABLE is returned, assuming the
- * other check doesn't fail.
+/**
+ * Implements the mask checking applied to local G-lines.
+ * Basically, host masks must have a minimum of two non-wild domain
+ * fields, and IP masks must have a minimum of 16 bits.  If the mask
+ * has even one wild-card, OVERRIDABLE is returned, assuming the other
+ * check doesn't fail.
+ * @param[in] mask G-line mask to check.
+ * @return One of CHECK_REJECTED, CHECK_OVERRIDABLE, or CHECK_APPROVED.
  */
 static int
 gline_checkmask(char *mask)
@@ -292,6 +327,12 @@ gline_checkmask(char *mask)
   return flags & MASK_WILDS ? CHECK_OVERRIDABLE : CHECK_APPROVED;
 }
 
+/** Forward a G-line to other servers.
+ * @param[in] cptr Client that sent us the G-line.
+ * @param[in] sptr Client that originated the G-line.
+ * @param[in] gline G-line to forward.
+ * @return Zero.
+ */
 int
 gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 {
@@ -317,6 +358,22 @@ gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
   return 0;
 }
 
+/** Create a new G-line and add it to global lists.
+ * \a userhost may be in one of four forms:
+ * \li A channel name, to add a BadChan.
+ * \li A string starting with $R and followed by a mask to match against their realname.
+ * \li A user\@IP mask (user\@ part optional) to create an IP-based ban.
+ * \li A user\@host mask (user\@ part optional) to create a hostname ban.
+ *
+ * @param[in] cptr Client that sent us the G-line.
+ * @param[in] sptr Client that originated the G-line.
+ * @param[in] userhost Text mask for the G-line.
+ * @param[in] reason Reason for G-line.
+ * @param[in] expire Duration of G-line in seconds.
+ * @param[in] lastmod Last modification time of G-line.
+ * @param[in] flags Bitwise combination of GLINE_* flags.
+ * @return Zero or CPTR_KILLED, depending on whether \a sptr is suicidal.
+ */
 int
 gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	  char *reason, time_t expire, time_t lastmod, unsigned int flags)
@@ -412,12 +469,17 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   gline_propagate(cptr, sptr, agline);
 
-  if (GlineIsBadChan(agline))
-    return 0;
-
   return do_gline(cptr, sptr, agline); /* knock off users if necessary */
 }
 
+/** Activate a currently inactive G-line.
+ * @param[in] cptr Peer that told us to activate the G-line.
+ * @param[in] sptr Client that originally thought it was a good idea.
+ * @param[in] gline G-line to activate.
+ * @param[in] lastmod New value for last modification timestamp.
+ * @param[in] flags 0 if the activation should be propagated, GLINE_LOCAL if not.
+ * @return Zero, unless \a sptr had a death wish (in which case CPTR_KILLED).
+ */
 int
 gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	       time_t lastmod, unsigned int flags)
@@ -465,9 +527,17 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
     gline_propagate(cptr, sptr, gline);
 
-  return GlineIsBadChan(gline) ? 0 : do_gline(cptr, sptr, gline);
+  return do_gline(cptr, sptr, gline);
 }
 
+/** Deactivate a G-line.
+ * @param[in] cptr Peer that gave us the message.
+ * @param[in] sptr Client that initiated the deactivation.
+ * @param[in] gline G-line to deactivate.
+ * @param[in] lastmod New value for G-line last modification timestamp.
+ * @param[in] flags GLINE_LOCAL to only deactivate locally, 0 to propagate.
+ * @return Zero.
+ */
 int
 gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 		 time_t lastmod, unsigned int flags)
@@ -532,6 +602,20 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   return 0;
 }
 
+/** Find a G-line for a particular mask, guided by certain flags.
+ * Certain bits in \a flags are interpreted specially:
+ * <dl>
+ * <dt>GLINE_ANY</dt><dd>Search both BadChans and user G-lines.</dd>
+ * <dt>GLINE_BADCHAN</dt><dd>Search BadChans.</dd>
+ * <dt>GLINE_GLOBAL</dt><dd>Only match global G-lines.</dd>
+ * <dt>GLINE_LASTMOD</dt><dd>Only match G-lines with a last modification time.</dd>
+ * <dt>GLINE_EXACT</dt><dd>Require an exact match of G-line mask.</dd>
+ * <dt>anything else</dt><dd>Search user G-lines.</dd>
+ * </dl>
+ * @param[in] userhost Mask to search for.
+ * @param[in] flags Bitwise combination of GLINE_* flags.
+ * @return First matching G-line, or NULL if none are found.
+ */
 struct Gline *
 gline_find(char *userhost, unsigned int flags)
 {
@@ -592,6 +676,12 @@ gline_find(char *userhost, unsigned int flags)
   return gline;
 }
 
+/** Find a matching G-line for a user.
+ * @param[in] cptr Client to compare against.
+ * @param[in] flags Bitwise combination of GLINE_GLOBAL and/or
+ * GLINE_LASTMOD to limit matches.
+ * @return Matching G-line, or NULL if none are found.
+ */
 struct Gline *
 gline_lookup(struct Client *cptr, unsigned int flags)
 {
@@ -644,6 +734,9 @@ gline_lookup(struct Client *cptr, unsigned int flags)
   return 0;
 }
 
+/** Delink and free a G-line.
+ * @param[in] gline G-line to free.
+ */
 void
 gline_free(struct Gline *gline)
 {
@@ -660,6 +753,9 @@ gline_free(struct Gline *gline)
   MyFree(gline);
 }
 
+/** Burst all known global G-lines to another server.
+ * @param[in] cptr Destination of burst.
+ */
 void
 gline_burst(struct Client *cptr)
 {
@@ -693,6 +789,11 @@ gline_burst(struct Client *cptr)
   }
 }
 
+/** Send a G-line to another server.
+ * @param[in] cptr Who to inform of the G-line.
+ * @param[in] gline G-line to send.
+ * @return Zero.
+ */
 int
 gline_resend(struct Client *cptr, struct Gline *gline)
 {
@@ -709,6 +810,13 @@ gline_resend(struct Client *cptr, struct Gline *gline)
   return 0;
 }
 
+/** Display one or all G-lines to a user.
+ * If \a userhost is not NULL, only send the first matching G-line.
+ * Otherwise send the whole list.
+ * @param[in] sptr User asking for G-line list.
+ * @param[in] userhost G-line mask to search for (or NULL).
+ * @return Zero.
+ */
 int
 gline_list(struct Client *sptr, char *userhost)
 {
@@ -758,6 +866,11 @@ gline_list(struct Client *sptr, char *userhost)
   return send_reply(sptr, RPL_ENDOFGLIST);
 }
 
+/** Statistics callback to list G-lines.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 void
 gline_stats(struct Client *sptr, const struct StatDesc *sd,
             char *param)
@@ -778,6 +891,10 @@ gline_stats(struct Client *sptr, const struct StatDesc *sd,
   }
 }
 
+/** Calculate memory used by G-lines.
+ * @param[out] gl_size Number of bytes used by G-lines.
+ * @return Number of G-lines in use.
+ */
 int
 gline_memory_count(size_t *gl_size)
 {
