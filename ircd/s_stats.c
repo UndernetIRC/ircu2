@@ -77,6 +77,7 @@ const char *statsinfo[] = {
     "f - Feature settings.",
     "m - Message usage information.",
     "t - Local connection statistics (Total SND/RCV, etc).", 
+    "v - Server list with verbose information.",
     "w - Userload statistics.",
     "M - Memory allocation & leak monitoring.", 
     "z - Memory/Structure allocation information.",

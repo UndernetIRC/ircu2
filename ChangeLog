@@ -1,5 +1,16 @@
 2002-04-15  Alex Badea  <vampire@p16.pub.ro>
 
+	* ircd/m_stats.c: added verbose server reporting (/stats v
+	or /stats V for machine-readable format) (bugzilla bug 52)
+
+	* include/numeric.h: added RPL_STATSVERBOSE 236
+
+	* ircd/s_err.c: added RPL_STATSVERBOSE
+
+	* ircd/s_stats.c: added help for stats 'v'
+
+2002-04-15  Alex Badea  <vampire@p16.pub.ro>
+
 	* ircd/class.c (get_client_class): fixed typo which caused
 	/trace (and perhaps motd) to core
 

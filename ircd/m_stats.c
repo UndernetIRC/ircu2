@@ -169,6 +169,39 @@ int report_klines(struct Client* sptr, char* mask, int limit_query)
   return 1;
 }
 
+static int report_servers_verbose(struct Client *sptr, char stat)
+{
+  struct Client *acptr;
+  int i;
+
+  /* lowercase 'v' is for human-readable,
+   * uppercase 'V' is for machine-readable */
+  if (stat == 'v')
+    send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE,
+	       "%-20s Burst Hops Numeric   Lag Clients/Max Proto "
+	       "%-10s :Info", "Servername", "LinkTS");
+  for (i = 0; i <= HighestFd; i++) {
+    if (!(acptr = LocalClientArray[i]) || !IsServer(acptr))
+      continue;
+    send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
+	       "%-20s %c%c    %4i %s %-4i %5i %5i %5i P%-2i   %Tu :%s" :
+	       "%s %c%c %i %s %i %i %i %i P%i %Tu :%s",
+	       cli_name(acptr),
+	       IsBurst(acptr) ? 'B' : '-',
+	       IsBurstAck(acptr) ? 'A' : '-',
+	       cli_hopcount(acptr),
+	       NumServ(acptr),
+	       base64toint(cli_yxx(acptr)),
+	       cli_serv(acptr)->lag,
+	       cli_serv(acptr)->clients,
+	       cli_serv(acptr)->nn_mask,
+	       cli_serv(acptr)->prot,
+	       cli_serv(acptr)->timestamp,
+	       cli_info(acptr));
+  }
+  return 0;
+}
+
 
 /*
  * m_stats - generic message handler
@@ -731,6 +764,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
+    case 'V':
+    case 'v':
+      report_servers_verbose(sptr, stat);
+      break;
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -959,6 +996,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
+    case 'V':
+    case 'v':
+      report_servers_verbose(sptr, stat);
+      break;
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -978,6 +1019,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'z':
       count_memory(sptr, parv[0]);
       break;
+
     default:
       stat = '*';
       while (*infotext)
