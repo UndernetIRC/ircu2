@@ -48,32 +48,9 @@ extern const char* const SETBUFS_ERROR_MSG;
 extern const char* const TOS_ERROR_MSG;
 extern const char* const REGISTER_ERROR_MSG;
 
-
 extern int            HighestFd;
 extern struct Client* LocalClientArray[MAXCONNECTIONS];
-extern int            OpenFileDescriptorCount;
-
 extern struct irc_sockaddr VirtualHost;
-
-enum PollType {
-  PT_NONE,
-  PT_READ,
-  PT_WRITE
-};
-
-struct Pollable;
-
-typedef int (*PollReadyFn)(struct Pollable*);
-
-struct Pollable {
-  struct Pollable* next;
-  struct Pollable* prev;
-  int              fd;
-  int              index;
-  int              state;
-  PollReadyFn      r_handler;
-  PollReadyFn      w_handler;
-};
 
 /*
  * Proto types
