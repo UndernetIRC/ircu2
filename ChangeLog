@@ -1,3 +1,7 @@
+2002-02-14 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* Added support for LIST STOP
+	
 2002-02-13 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* Merged changes from u2_10_11 to main branch.
