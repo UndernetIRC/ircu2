@@ -1,0 +1,576 @@
+Index: ChangeLog
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ChangeLog,v
+retrieving revision 1.340
+diff -u -r1.340 ChangeLog
+--- ChangeLog	2002/04/12 00:19:52	1.340
++++ ChangeLog	2002/04/12 13:17:10
+@@ -1,5 +1,33 @@
+ 2002-04-12  Alex Badea  <vampire@p16.pub.ro>
+ 
++	* include/ircd_features.h: new feature LOGIN_ON_CONNECT
++
++	* ircd/ircd_features.c: new feature LOGIN_ON_CONNECT
++
++	* include/client.h (struct Client): new fields for storing
++	bot name, username and password for login-on-connect
++
++	* ircd/m_account.c: extensions for login-on-connect: route
++	and process auth-request and auth-reply messages
++
++	* ircd/m_pass.c: store bot name, username and password for
++	service login
++
++	* ircd/m_user.c: store username/hostname for the client
++	even if he finished registration, as register_user may not
++	do that anymore
++
++	* ircd/s_user.c (register_user): if the client specified
++	a service login in the PASS command, attempt to log him in;
++	also, don't set his hostname if it was set remotely by a
++	service bot
++
++	* doc/example.conf: default value for FEAT_LOGIN_ON_CONNECT
++
++	* doc/readme.features: documented FEAT_LOGIN_ON_CONNECT
++
++2002-04-12  Alex Badea  <vampire@p16.pub.ro>
++
+ 	* ircd/m_invite.c: don't propagate invites for local channels
+ 
+ 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+Index: doc/example.conf
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/doc/example.conf,v
+retrieving revision 1.20
+diff -u -r1.20 example.conf
+--- doc/example.conf	2002/04/03 15:23:47	1.20
++++ doc/example.conf	2002/04/12 13:17:10
+@@ -702,6 +702,7 @@
+ #  "HOST_HIDING"="FALSE";
+ #  "HIDDEN_HOST"="users.undernet.org";
+ #  "HIDDEN_IP"="127.0.0.1";
++#  "LOGIN_ON_CONNECT"="FALSE";
+ #  "KILLCHASETIMELIMIT"="30";
+ #  "MAXCHANNELSPERUSER"="10";
+ #  "AVBANLEN"="40";
+Index: doc/readme.features
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/doc/readme.features,v
+retrieving revision 1.5
+diff -u -r1.5 readme.features
+--- doc/readme.features	2002/04/03 15:23:47	1.5
++++ doc/readme.features	2002/04/12 13:17:10
+@@ -242,6 +242,13 @@
+ This selects a fake IP to be shown on /USERIP and /WHO %i when the
+ target has a hidden host (see HOST_HIDING).
+ 
++LOGIN_ON_CONNECT
++  * Type: boolean
++  * Default: FALSE
++
++This selects whether local clients can use specify a service bot login
++in the connection phase. Read readme.login-on-connect for more details.
++
+ KILLCHASETIMELIMIT
+  * Type: integer
+  * Default: 30
+Index: include/client.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/client.h,v
+retrieving revision 1.26
+diff -u -r1.26 client.h
+--- include/client.h	2002/04/05 11:36:58	1.26
++++ include/client.h	2002/04/12 13:17:10
+@@ -196,6 +196,10 @@
+   char cli_name[HOSTLEN + 1];   /* Unique name of the client, nick or host */
+   char cli_username[USERLEN + 1]; /* username here now for auth stuff */
+   char cli_info[REALLEN + 1];   /* Free form additional client information */
++  
++  char *cli_cs_user;		/* channel service authentication (user)... */
++  char *cli_cs_pass;		/* ...and password... */
++  char *cli_cs_service;		/* ...and the service bot's nick */
+ };
+ 
+ #define CLIENT_MAGIC 0x4ca08286
+Index: include/ircd_features.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/ircd_features.h,v
+retrieving revision 1.15
+diff -u -r1.15 ircd_features.h
+--- include/ircd_features.h	2002/04/03 15:23:47	1.15
++++ include/ircd_features.h	2002/04/12 13:17:10
+@@ -45,6 +45,7 @@
+   FEAT_HOST_HIDING,
+   FEAT_HIDDEN_HOST,
+   FEAT_HIDDEN_IP,
++  FEAT_LOGIN_ON_CONNECT,
+ 
+   /* features that probably should not be touched */
+   FEAT_KILLCHASETIMELIMIT,
+Index: ircd/ircd_features.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/ircd_features.c,v
+retrieving revision 1.19
+diff -u -r1.19 ircd_features.c
+--- ircd/ircd_features.c	2002/04/03 15:23:48	1.19
++++ ircd/ircd_features.c	2002/04/12 13:17:10
+@@ -252,6 +252,7 @@
+   F_B(HOST_HIDING, 0, 0, 0),
+   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
+   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
++  F_B(LOGIN_ON_CONNECT, 0, 0, 0),
+ 
+   /* features that probably should not be touched */
+   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
+Index: ircd/m_account.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_account.c,v
+retrieving revision 1.2
+diff -u -r1.2 m_account.c
+--- ircd/m_account.c	2002/02/14 00:20:42	1.2
++++ ircd/m_account.c	2002/04/12 13:17:10
+@@ -84,9 +84,11 @@
+ #include "ircd.h"
+ #include "ircd_reply.h"
+ #include "ircd_string.h"
++#include "ircd_alloc.h"
+ #include "msg.h"
+ #include "numnicks.h"
+ #include "s_user.h"
++#include "s_debug.h"
+ #include "send.h"
+ 
+ #include <assert.h>
+@@ -96,35 +98,108 @@
+  *
+  * parv[0] = sender prefix
+  * parv[1] = numeric of client to act on
+- * parv[2] = account name (12 characters or less)
++ * parv[2] = message type
++ *
++ * for *parv[2] == 'R' (remote auth):
++ * parv[3] = account name (12 characters or less)
++ *
++ * for *parv[2] == 'C' (auth check):
++ * parv[3] = numeric of client to check
++ * parv[4] = username
++ * parv[parc-1] = password
++ *
++ * for *parv[2] == 'A' (auth ok) or
++ * for *parv[2] == 'D' (auth denied) or
++ * parv[3] = numeric of client to check 
+  */
+ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
+ 	       char* parv[])
+ {
+   struct Client *acptr;
++  char type;
+ 
+   if (parc < 3)
+     return need_more_params(sptr, "ACCOUNT");
++  
++  if (parc < 4) {
++    /* old-style message, remap it */
++    parv[4] = NULL;
++    parv[3] = parv[2];
++    parv[2] = "R";
++  }
+ 
+   if (!IsServer(sptr))
+     return protocol_violation(cptr, "ACCOUNT from non-server %s",
+ 			      cli_name(sptr));
+-
+-  if (!(acptr = findNUser(parv[1])))
+-    return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
+-
+-  if (IsAccount(acptr))
+-    return protocol_violation(cptr, "ACCOUNT for already registered user %s "
+-			      "(%s -> %s)", cli_name(acptr),
+-			      cli_user(acptr)->account, parv[2]);
+-
+-  assert(0 == cli_user(acptr)->account[0]);
+-
+-  ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
+-  hide_hostmask(acptr, FLAGS_ACCOUNT);
+ 
+-  sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
+-			cli_user(acptr)->account);
++  type = *parv[2];
++  if (type == 'R') {
++    if (!(acptr = findNUser(parv[1])))
++      return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
++
++    if (IsAccount(acptr))
++      return protocol_violation(cptr, "ACCOUNT for already registered user %s "
++			        "(%s -> %s)", cli_name(acptr),
++			        cli_user(acptr)->account, parv[3]);
++
++    assert(0 == cli_user(acptr)->account[0]);
++
++    ircd_strncpy(cli_user(acptr)->account, parv[3], ACCOUNTLEN);
++    hide_hostmask(acptr, FLAGS_ACCOUNT);
++
++#if 0
++    /* XXX Enable this when all servers speak the same language */
++    sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C R %s", acptr,
++			  cli_user(acptr)->account);
++#else
++    sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
++			  cli_user(acptr)->account);
++#endif
++  } else {
++    if (!(acptr = findNUser(parv[1])) && !(acptr = FindNServer(parv[1])))
++      return 0;
++
++    if (type == 'C' && parc < 6)
++      return need_more_params(sptr, "ACCOUNT");
++
++    if (!IsMe(acptr)) {
++      /* in-transit message, forward it */
++      sendcmdto_one(sptr, CMD_ACCOUNT, acptr,
++		    type == 'C' ? "%C %s %s %s :%s" : "%C %s %s",
++		    acptr, parv[2], parv[3], parv[4], parv[parc-1]);
++      return 0;
++    }
++    
++    /* the message is for me, process it */
++    if (type == 'C')
++      return protocol_violation(cptr, "ACCOUNT check (%s %s %s)", parv[3], parv[4], parv[parc-1]);
++
++    if (!(acptr = findNUser(parv[3])))
++      return 0;
++    if (IsRegistered(acptr) || !acptr->cli_cs_service)
++      return protocol_violation(cptr, "Invalid ACCOUNT %s for %s", parv[2], cli_name(acptr));
++    
++    if (type == 'A') {
++      ircd_strncpy(cli_user(acptr)->account, acptr->cli_cs_user, ACCOUNTLEN);
++      hide_hostmask(acptr, FLAGS_ACCOUNT | FLAGS_HIDDENHOST);
++    }
++    
++    sendcmdto_one(&me, CMD_NOTICE, acptr, "%C :AUTHENTICATION %s as %s", acptr,
++    		  type == 'A' ? "SUCCESSFUL" : "FAILED",
++		  acptr->cli_cs_user);
++
++    MyFree(acptr->cli_cs_service);
++    MyFree(acptr->cli_cs_user);
++    MyFree(acptr->cli_cs_pass);
++    acptr->cli_cs_service = acptr->cli_cs_user = acptr->cli_cs_pass = NULL;
++
++    if (type != 'A') {
++      sendcmdto_one(&me, CMD_NOTICE, acptr, "%C :Type /QUOTE PASS to connect anyway", acptr);
++      return 0;
++    }
++    
++    return register_user(acptr, acptr, cli_name(acptr), cli_user(acptr)->username);
++  }
+ 
+   return 0;
+ }
+Index: ircd/m_pass.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_pass.c,v
+retrieving revision 1.7
+diff -u -r1.7 m_pass.c
+--- ircd/m_pass.c	2001/06/29 15:51:02	1.7
++++ ircd/m_pass.c	2002/04/12 13:17:10
+@@ -84,7 +84,11 @@
+ #include "client.h"
+ #include "ircd_reply.h"
+ #include "ircd_string.h"
++#include "ircd_alloc.h"
++#include "ircd_features.h"
++#include "s_user.h"
+ #include "send.h"
++#include "struct.h"
+ 
+ #include <assert.h>
+ 
+@@ -99,15 +103,28 @@
+   assert(cptr == sptr);
+   assert(!IsRegistered(sptr));
+ 
+-  if (EmptyString(password))
+-    return need_more_params(cptr, "PASS");
+-
+   /* TODO: For protocol negotiation */
+ #if 0
+   if (ircd_strcmp(password,"PROT")==0) {
+   	/* Do something here */
+   }
+ #endif
+-  ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
++
++  if (!EmptyString(password))
++    ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
++
++  if (!feature_bool(FEAT_LOGIN_ON_CONNECT) || cptr->cli_cs_service)
++    return 0;
++
++  if (parc > 3) {
++    DupString(cptr->cli_cs_service, parv[parc-3]);
++    DupString(cptr->cli_cs_user, parv[parc-2]);
++    DupString(cptr->cli_cs_pass, parv[parc-1]);
++  }
++
++  /* Deal with password retries */
++  if ((cli_name(cptr))[0] && cli_cookie(cptr) == COOKIE_VERIFIED)
++    return register_user(cptr, cptr, cli_name(cptr), cli_user(cptr)->username);
++
+   return 0;
+ }
+Index: ircd/m_user.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_user.c,v
+retrieving revision 1.7
+diff -u -r1.7 m_user.c
+--- ircd/m_user.c	2001/06/08 23:12:17	1.7
++++ ircd/m_user.c	2002/04/12 13:17:10
+@@ -142,16 +142,14 @@
+ 
+   user->server = &me;
+   ircd_strncpy(cli_info(cptr), info, REALLEN);
++  ircd_strncpy(user->username, username, USERLEN);
++  ircd_strncpy(user->host, cli_sockhost(cptr), HOSTLEN);
+ 
+   if ((cli_name(cptr))[0] && cli_cookie(cptr) == COOKIE_VERIFIED) {
+     /*
+      * NICK and PONG already received, now we have USER...
+      */
+     return register_user(cptr, sptr, cli_name(sptr), username);
+-  }
+-  else {
+-    ircd_strncpy(user->username, username, USERLEN);
+-    ircd_strncpy(user->host, cli_sockhost(cptr), HOSTLEN);
+   }
+   return 0;
+ }
+Index: ircd/s_user.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_user.c,v
+retrieving revision 1.58
+diff -u -r1.58 s_user.c
+--- ircd/s_user.c	2002/04/05 11:36:59	1.58
++++ ircd/s_user.c	2002/04/12 13:17:10
+@@ -394,6 +394,25 @@
+   parv[0] = cli_name(sptr);
+   parv[1] = parv[2] = NULL;
+ 
++  if (MyConnect(sptr) && sptr->cli_cs_service && sptr->cli_cs_user && sptr->cli_cs_pass) {
++    struct Client *acptr;
++    
++    if (!(acptr = FindUser(sptr->cli_cs_service)) || !IsChannelService(acptr)) {
++      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Service '%s' is not available", sptr, sptr->cli_cs_service);
++      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Type /QUOTE PASS to connect anyway", sptr);
++      MyFree(sptr->cli_cs_service);
++      MyFree(sptr->cli_cs_user);
++      MyFree(sptr->cli_cs_pass);
++      sptr->cli_cs_service = sptr->cli_cs_user = sptr->cli_cs_pass = NULL;
++    } else {
++      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Attempting service login to %s",
++      		    sptr, cli_name(acptr));
++      sendcmdto_one(&me, CMD_ACCOUNT, acptr, "%C C %s%s %s :%s", acptr,
++		    NumNick(sptr), sptr->cli_cs_user, sptr->cli_cs_pass);
++    }
++    return 0;
++  }
++
+   if (MyConnect(sptr))
+   {
+     static time_t last_too_many1;
+@@ -441,7 +460,9 @@
+         IPcheck_connect_fail(cli_ip(sptr));
+         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
+     }
+-    ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
++    /* The host might be already set from login-on-connect */
++    if (!HasHiddenHost(sptr))
++	    ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
+     ircd_strncpy(user->realhost, cli_sockhost(sptr), HOSTLEN);
+     aconf = cli_confs(sptr)->value.aconf;
+ 
+--- /dev/null	Thu Aug 24 12:00:32 2000
++++ doc/readme.login-on-connect	Fri Apr 12 16:16:56 2002
+@@ -0,0 +1,182 @@
++1. This feature is experimental.
++
++2. The main point is to allow clients to log in to a service bot (i.e., X)
++*before* being announced to the network. Otherwise, a combination of a
++malicious user, /ISON, /USERIP and low latency can reveal it's real host/IP
++before he gets a chance to log in and set himself +x
++
++3. Client<->Server changes:
++~~~~~~~~~~~~~~~~~~~~~~~~~~~
++The PASS command now has the following syntax:
++
++PASS [optional Client block password] <bot nick> <username> :<passphrase>
++
++If the client specifies sends such a password message, after sending NICK,
++USER and PONG, it's username/passphrase are sent to the specified bot
++for validation, while holding the client in the 'registration' state.
++If the authentication succeeds, the client's account and umode +x are set,
++after which he is introduced to the network, continuing the regular connect
++phase. If authentication fails (or the bot is not on the network), the user
++is given a chance to retry (he can do this by sending another PASS command),
++or to disconnect from the server. If he wishes to connect without a hidden
++hostmask, he can send a PASS command with no parameters.
++
++4. Server<->Server changes:
++~~~~~~~~~~~~~~~~~~~~~~~~~~~
++The ACCOUNT message now has the following syntax:
++
++Auth check: 
++<client's server numeric> AC <bot's numeric> C <client's numeric> <username> :<passphrase>
++Servers send this message to request a service bot to authenticate the client.
++Note that <client's numeric> will only be used by the originating server for
++matching auth replies, as the user has not yet been announced to the network.
++Hubs will have to propagate this message as-is towards the service bot,
++much like they do for PRIVMSGs.
++
++Auth reply:
++<bot's server numeric> AC <client's server numeric> A|D <client's numeric>
++Service bots send this in reply to an 'auth check' message from a server.
++"A" stands for "accepted", "D" for "denied". Again, hubs will have
++to proagate this message back to the client's server.
++
++Remote auth:
++<bot's server numeric> AC <client numeric> R <account>
++This is the current message used by service bots to announce the network
++that a user has logged in. The old format is still supported:
++<bot's server numeric> AC <client numeric> <account>
++
++5. ircu code changes
++~~~~~~~~~~~~~~~~~~~~
++A new feature, FEAT_LOGIN_ON_CONNECT (default FALSE) will specify whether
++ircu will honour the login scheme as specified above for the PASS command.
++ircu will route ACCOUNT messages anyway, regardless of this feature's value.
++
++6. GNUWorld patches
++~~~~~~~~~~~~~~~~~~~
++A patch follows that will implement auth checks and replies.
++
++Index: mod.cservice/cservice.cc
++===================================================================
++RCS file: /cvsroot/gnuworld/gnuworld/mod.cservice/cservice.cc,v
++retrieving revision 1.213
++diff -u -r1.213 cservice.cc
++--- mod.cservice/cservice.cc	10 Apr 2002 19:00:10 -0000	1.213
+++++ mod.cservice/cservice.cc	12 Apr 2002 12:33:45 -0000
++@@ -2491,15 +2491,45 @@
++ 	{
++ 	case EVT_ACCOUNT:
++ 		{
++-		iClient* tmpUser = static_cast< iClient* >( data1 ) ;
++-		networkData* tmpData = static_cast< networkData* >(tmpUser->getCustomData(this) ) ;
++-		/* Lookup this user account, if its not there.. trouble */
++-		sqlUser* theUser = getUserRecord(tmpUser->getAccount());
++-		if (theUser)
++-			{
++-			tmpData->currentUser = theUser;
++-			theUser->addAuthedClient(tmpUser);
+++		char *ac_type = static_cast <char *> (data1);
+++		if (*ac_type == 'R') {
+++			iClient* tmpUser = static_cast< iClient* >( data2 ) ;
+++			networkData* tmpData = static_cast< networkData* >(tmpUser->getCustomData(this) ) ;
+++			/* Lookup this user account, if its not there.. trouble */
+++			sqlUser* theUser = getUserRecord(tmpUser->getAccount());
+++			if (theUser)
+++				{
+++				tmpData->currentUser = theUser;
+++				theUser->addAuthedClient(tmpUser);
+++				}
+++		} else if (*ac_type == 'C') {
+++			// server prefix, client prefix, username, password
+++			char **param_list = static_cast <char **> (data2);
+++			sqlUser* theUser = getUserRecord(param_list[2]);
+++			strstream ac;
+++
+++			LogDebugMessage("Checking account: user=%s pass=%s ok=%d susp=%d maxlog=%d/%d",
+++				param_list[2],
+++				param_list[3],
+++				isPasswordRight(theUser, param_list[3]),
+++				theUser->getFlag(sqlUser::F_GLOBAL_SUSPEND),
+++				theUser->networkClientList.size() + 1,
+++				theUser->getMaxLogins());
+++
+++			ac << getCharYY() << " AC " << param_list[0];
+++			
+++			if (theUser && !theUser->getFlag(sqlUser::F_GLOBAL_SUSPEND) &&
+++				isPasswordRight(theUser, param_list[3]) &&
+++				theUser->networkClientList.size() + 1 <= theUser->getMaxLogins()) {
+++				ac << " A ";
+++			} else {
+++				ac << " D ";
++ 			}
+++
+++			ac << param_list[1] << ends;
+++			Write(ac);
+++			delete[] ac.str();
+++		}
++ 		break;
++ 		}
++ 	case EVT_BURST_ACK:
++Index: src/msg_AC.cc
++===================================================================
++RCS file: /cvsroot/gnuworld/gnuworld/src/msg_AC.cc,v
++retrieving revision 1.1
++diff -u -r1.1 msg_AC.cc
++--- src/msg_AC.cc	12 Jan 2002 21:42:17 -0000	1.1
+++++ src/msg_AC.cc	12 Apr 2002 12:33:46 -0000
++@@ -14,23 +14,48 @@
++  * SOURCE AC TARGET ACCOUNT
++  * Eg:
++  * AXAAA AC BQrTd Gte
+++ *
+++ * AX AC BQrTd R Gte
+++ * BQ AC AX C BqrTd Gte :Gte's Pass
++  */
++-int xServer::MSG_AC( xParameters& Param )
+++int xServer::MSG_AC(xParameters &Param)
++ {
++ /*
++  * First, update this users information.
++  */
++ 
++-iClient* theClient = Network->findClient(Param[1]);
++-if(!theClient)
++-	{
++-		return 0;
++-	}
+++const char *numeric = NULL, *account = NULL;
+++static char *ac_type_C = "C";
+++static char *ac_type_R = "R";
++ 
++-theClient->setAccount(Param[2]);
+++if (Param.size() < 4) {
+++	numeric = Param[1];
+++	account = Param[2];
+++} else if (Param[2][0] == 'R') {
+++	numeric = Param[1];
+++	account = Param[3];
+++} else if (Param[2][0] == 'C') {
+++	const char *param_list[4];
+++	param_list[0] = Param[0];
+++	param_list[1] = Param[3];
+++	param_list[2] = Param[4];
+++	param_list[3] = Param[5];
+++	PostEvent(EVT_ACCOUNT, static_cast <void *> (ac_type_C), static_cast <void *> (param_list));
+++	return 0;
+++}
+++
+++if (!numeric || !account)
+++	return 0;
+++
+++iClient *theClient = Network->findClient(numeric);
+++if (!theClient)
+++	return 0;
+++
+++theClient->setAccount(account);
+++PostEvent(EVT_ACCOUNT, static_cast <void *> (ac_type_R), static_cast <void *> (theClient)) ;
++ 
++-PostEvent( EVT_ACCOUNT, static_cast< void* >( theClient ) ) ;
++ return 0;
+++
++ }
++ 
++ } // namespace gnuworld
