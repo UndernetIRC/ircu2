@@ -1066,4 +1066,13 @@ DEFAULTMAXSENDQLENGTH
 Use new MODE implementation
 CONFIG_NEW_MODE
   This enables a new implementation of m_mode.  THIS IS AN EXPERIMENTAL
-  FEATURE; DO NOT ENABLE UNLESS YOU KNOW WHAT YOU ARE DOING!
+  FEATURE; DO NOT ENABLE UNLESS YOU KNOW WHAT YOU ARE DOING!  Note that,
+  due to apparent stability, this new implementation has been enabled.
+
+Use new oper commands (JUPE, CLEARMODE, OPMODE, GLINE)
+CONFIG_OPERCMDS
+  Several new oper-only commands were added to the server source
+  during the Uworld integration project.  Until all servers are
+  upgraded to versions that understand the new server<->server
+  traffic, they must remain disabled, however.  This option activates
+  the client-side part of those changes.

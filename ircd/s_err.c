@@ -1072,7 +1072,7 @@ static Numeric replyTable[] = {
 /* 516 */
   { ERR_DONTCHEAT, " :Don't Cheat.", "516" },
 /* 517 */
-  { 0 },
+  { ERR_DISABLED, "%s :Command disabled.", "517" },
 /* 518 */
   { 0 },
 /* 519 */
