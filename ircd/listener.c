@@ -50,7 +50,6 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 
 /** List of listening sockets. */
 struct Listener* ListenerPollList = 0;

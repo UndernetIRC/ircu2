@@ -49,7 +49,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif

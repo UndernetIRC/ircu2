@@ -54,7 +54,6 @@
 #include "struct.h"
 #include "sys.h"               /* TRUE bleah */
 
-#include <arpa/inet.h>         /* inet_netof */
 #include <netdb.h>             /* struct hostent */
 #include <string.h>
 #include <stdlib.h>

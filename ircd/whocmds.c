@@ -54,7 +54,6 @@
 #include "whowas.h"
 #include "msg.h"
 
-#include <arpa/inet.h>        /* inet_ntoa */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,15 @@
 2004-12-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/sys.h (BITS_ZERO_ON_*, HAVE_RELIABLE_SIGNALS, DOCURSES,
+	DOTERMCAP, IRC_UID, IRC_GID, LIMIT_FMT, FALSE, TRUE): Remove
+	unused macros.
+
+	* ircd/ircd_auth.c, ircd/listener.c, ircd/s_auth.c, ircd/s_bsd.c,
+	ircd/s_conf.c, ircd/uping.c, ircd/whocmds.c: Remove obsolete
+	#include <arpa/inet.h>.
+
+2004-12-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/match.c: Remove obsolete #include <arpa/inet.h>.
 	(ipmask_parse_ipv4): We already parse the dotted quads from the
 	input string, so use them instead of inet_addr() to populate

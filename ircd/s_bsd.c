@@ -58,7 +58,6 @@
 #include "uping.h"
 #include "version.h"
 
-#include <arpa/inet.h>
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <fcntl.h>
