@@ -781,7 +781,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 	  && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
 	gline_resend(cptr, agline);
     }
-    if (!ip_registry_remote_connect(sptr)) {
+    if (!ip_registry_remote_connect(new_client)) {
     	sendcmdto_one(&me, CMD_KILL, new_client, "%C :%s (Too many connections from your host -- Ghost)",
     		      new_client,me.name);
     	return exit_client(cptr,new_client,&me,"Too many connections from your host -- throttled");
