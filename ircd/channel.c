@@ -2436,7 +2436,8 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   }
 
   /* If a non-service user is trying to force it, refuse. */
-  if (state->flags & MODE_PARSE_FORCE && !IsChannelService(state->sptr)) {
+  if (state->flags & MODE_PARSE_FORCE && MyUser(state->sptr)
+      && !HasPriv(state->sptr, PRIV_APASS_OPMODE)) {
     send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
                "Use /JOIN", state->chptr->chname, " <AdminPass>.");
     return;
@@ -2543,7 +2544,8 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   }
 
   /* If a non-service user is trying to force it, refuse. */
-  if (state->flags & MODE_PARSE_FORCE && !IsChannelService(state->sptr)) {
+  if (state->flags & MODE_PARSE_FORCE && MyUser(state->sptr)
+      && !HasPriv(state->sptr, PRIV_APASS_OPMODE)) {
     send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
                "Use /JOIN", state->chptr->chname, " <AdminPass>.");
     return;

@@ -100,6 +100,7 @@ static struct lexer_token {
   TOKEN(USERMODE),
 #undef TOKEN
   { "administrator", ADMIN },
+  { "apass_opmode", TPRIV_APASS_OPMODE },
   { "b", BYTES },
   { "badchan", TPRIV_BADCHAN },
   { "chan_limit", TPRIV_CHAN_LIMIT },

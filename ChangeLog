@@ -1,5 +1,25 @@
 2005-02-23  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Explain apass_opmode privilege, pointing out
+	that, unlike previous privs, the default is OFF for global opers.
+
+	* include/client.h (PRIV_APASS_OPMODE): Define new privilege.
+
+	* ircd/channel.c (mode_parse_upass): Only prevent local opers
+	without the apass_opmode privilege from forcing a +U change.
+	(mode_parse_apass): Likewise, for +A.
+
+	* ircd/client.c (client_set_privs): Turn off PRIV_APASS_OPMODE in
+	the default privileges for global opers.
+
+	* ircd/ircd_lexer.l (apass_opmode): Recognize keyword.
+
+	* ircd/ircd_parser.y (TPRIV_APASS_OPMODE): New token.
+	(privtype): Fix typo for local_badchan privilege value.
+	Accept apass_opmode token.
+
+2005-02-23  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Fix comment's description of "whox" privilege.
 
 2005-02-21  Michael Poole <mdpoole@troilus.org>

@@ -152,6 +152,8 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   if (!privs_defaults_set)
   {
     memset(&privs_global, -1, sizeof(privs_global));
+    FlagClr(&privs_global, PRIV_APASS_OPMODE);
+
     memset(&privs_local, 0, sizeof(privs_local));
     FlagSet(&privs_local, PRIV_CHAN_LIMIT);
     FlagSet(&privs_local, PRIV_MODE_LCHAN);
@@ -165,6 +167,7 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
     FlagSet(&privs_local, PRIV_WHOX);
     FlagSet(&privs_local, PRIV_DISPLAY);
     FlagSet(&privs_local, PRIV_FORCE_LOCAL_OPMODE);
+
     privs_defaults_set = 1;
   }
 

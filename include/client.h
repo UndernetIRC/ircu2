@@ -125,6 +125,7 @@ enum Priv
     PRIV_LIST_CHAN, /**< oper can list secret channels */
     PRIV_FORCE_OPMODE, /**< can hack modes on quarantined channels */
     PRIV_FORCE_LOCAL_OPMODE, /**< can hack modes on quarantined local channels */
+    PRIV_APASS_OPMODE, /**< can hack modes +A/-A/+U/-U */
     PRIV_LAST_PRIV /**< number of privileges */
   };
 

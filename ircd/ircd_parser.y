@@ -163,7 +163,7 @@ static void parse_error(char *pattern,...) {
 %token TPRIV_LOCAL_OPMODE TPRIV_OPMODE TPRIV_SET TPRIV_WHOX TPRIV_BADCHAN
 %token TPRIV_SEE_CHAN TPRIV_SHOW_INVIS TPRIV_SHOW_ALL_INVIS TPRIV_PROPAGATE
 %token TPRIV_UNLIMIT_QUERY TPRIV_DISPLAY TPRIV_SEE_OPERS TPRIV_WIDE_GLINE
-%token TPRIV_FORCE_OPMODE TPRIV_FORCE_LOCAL_OPMODE
+%token TPRIV_FORCE_OPMODE TPRIV_FORCE_LOCAL_OPMODE TPRIV_APASS_OPMODE
 /* and some types... */
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
@@ -578,7 +578,7 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
           TPRIV_SET { $$ = PRIV_SET; } |
           TPRIV_WHOX { $$ = PRIV_WHOX; } |
           TPRIV_BADCHAN { $$ = PRIV_BADCHAN; } |
-          TPRIV_LOCAL_BADCHAN { $$ = TPRIV_LOCAL_BADCHAN; } |
+          TPRIV_LOCAL_BADCHAN { $$ = PRIV_LOCAL_BADCHAN; } |
           TPRIV_SEE_CHAN { $$ = PRIV_SEE_CHAN; } |
           TPRIV_SHOW_INVIS { $$ = PRIV_SHOW_INVIS; } |
           TPRIV_SHOW_ALL_INVIS { $$ = PRIV_SHOW_ALL_INVIS; } |
@@ -589,7 +589,8 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
           TPRIV_WIDE_GLINE { $$ = PRIV_WIDE_GLINE; } |
           LOCAL { $$ = PRIV_PROPAGATE; invert = 1; } |
           TPRIV_FORCE_OPMODE { $$ = PRIV_FORCE_OPMODE; } |
-          TPRIV_FORCE_LOCAL_OPMODE { $$ = PRIV_FORCE_LOCAL_OPMODE; };
+          TPRIV_FORCE_LOCAL_OPMODE { $$ = PRIV_FORCE_LOCAL_OPMODE; } |
+          TPRIV_APASS_OPMODE { $$ = PRIV_APASS_OPMODE; } ;
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
