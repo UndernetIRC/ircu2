@@ -625,7 +625,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
       set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);
-    ip_registry_connect_succeeded(sptr);
   }
   else
     /* if (IsServer(cptr)) */
