@@ -628,6 +628,7 @@ void add_connection(struct Listener* listener, int fd) {
    * Copy ascii address to 'sockhost' just in case. Then we have something
    * valid to put into error messages...  
    */
+  SetIPChecked(new_client);
   ircd_ntoa_r(cli_sock_ip(new_client), (const char*) &addr.sin_addr);   
   strcpy(cli_sockhost(new_client), cli_sock_ip(new_client));
   (cli_ip(new_client)).s_addr = addr.sin_addr.s_addr;
