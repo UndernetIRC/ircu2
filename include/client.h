@@ -95,7 +95,9 @@ struct AuthRequest;
 #define PRIV_DISPLAY		25 /* "Is an oper" displayed */
 #define PRIV_SEE_OPERS		26 /* display hidden opers */
 
-#define PRIV_LAST_PRIV		26 /* must be the same as the last priv */
+#define PRIV_WIDE_GLINE		27 /* oper can set wider G-lines */
+
+#define PRIV_LAST_PRIV		27 /* must be the same as the last priv */
 
 #define _PRIV_NBITS		(8 * sizeof(unsigned long))
 

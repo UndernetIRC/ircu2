@@ -136,6 +136,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   time_t expire_off, lastmod = 0;
   char *mask = parv[2], *target = parv[1], *reason;
 
+  if (*mask == '!') {
+    mask++;
+
+    if (HasPriv(sptr, PRIV_WIDE_GLINE))
+      flags |= GLINE_OPERFORCE;
+  }
+
   if ((parc == 3 && *mask == '-') || parc == 5) {
     if (!find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
@@ -158,8 +165,9 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		      (parc == 3) ? "%C %s" : "%C %s %s :%s", acptr, mask,
 		      parv[3], reason);
       else
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s %s %s :%s", acptr, mask,
-		      parv[3], parv[4], reason);
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%s %s %s :%s", acptr,
+		      flags & GLINE_OPERFORCE ? "!" : "", mask, parv[3],
+		      parv[4], reason);
 
       return 0;
     }
@@ -236,6 +244,13 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 2)
     return gline_list(sptr, 0);
 
+  if (*mask == '!') {
+    mask++;
+
+    if (HasPriv(sptr, PRIV_WIDE_GLINE))
+      flags |= GLINE_OPERFORCE;
+  }
+
   if (*mask == '+') {
     flags |= GLINE_ACTIVE;
     mask++;
@@ -268,7 +283,8 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!HasPriv(sptr, PRIV_GLINE))
 	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %c%s %s %Tu :%s", acptr,
+	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %s %Tu :%s", acptr,
+		      flags & GLINE_OPERFORCE ? "!" : "",
 		      flags & GLINE_ACTIVE ? '+' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;

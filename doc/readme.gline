@@ -10,7 +10,7 @@ an error is returned.
 
 For an operator, the syntax is:
 
-  GLINE [[+|-]<mask> [[<target>] <expiration> :<reason>]]
+  GLINE [[!][+|-]<mask> [[<target>] <expiration> :<reason>]]
 
 If <mask> is not given, or if it is not prefixed by "+" or "-", the
 operation is exactly the same as if it were issued by an ordinary
@@ -23,7 +23,10 @@ given, as described below.  Otherwise, if the G-line currently exists,
 a prefix of "+" will cause an inactive G-line to be activated, whereas
 a prefix of "-" will cause an active G-line to be deactivated.  If an
 attempt is made to modify a G-line set by a U-lined service such as
-Uworld, the change will be forced to be local.
+Uworld, the change will be forced to be local.  If the mask would not
+be permitted due to it being too wide or affecting too many users
+(governed by the GLINEMAXUSERCOUNT feature), the "!" prefix may be
+used to force the G-line to be set anyway.
 
 If the G-line does not already exist, it is created. The <target>
 parameter is used to select whether the G-line is only to apply to a
@@ -33,7 +36,12 @@ server.  This could be useful if a single particular link is having
 problems, for instance.  The <expiration> parameter is a number of
 seconds, not to exceed 7 days, for the G-line to exist.  The <reason>
 argument is mandatory and should describe why this particular G-line
-was placed.
+was placed.  The <mask> parameter must be a user@host mask; the host
+component must contain at least 2 non-wildcarded subdomains or, if it
+is an IP address, at least 16 bits.  Normally, the host component may
+not contain *any* wildcards, but that can be overridden with the "!"
+prefix, as indicated above, if the operator has the WIDE_GLINE
+privilege.
 
 For a server, the syntax is:
 

@@ -25,9 +25,11 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "numeric.h"
@@ -41,11 +43,26 @@
 #include "numnicks.h"
 #include "numeric.h"
 #include "sys.h"    /* FALSE bleah */
+#include "whocmds.h"
 
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <arpa/inet.h> /* for inet_ntoa */
+
+#define CHECK_APPROVED	   0	/* Mask is acceptable */
+#define CHECK_OVERRIDABLE  1	/* Mask is acceptable, but not by default */
+#define CHECK_REJECTED	   2	/* Mask is totally unacceptable */
+
+#define MASK_WILD_0	0x01	/* Wildcards in the last position */
+#define MASK_WILD_1	0x02	/* Wildcards in the next-to-last position */
+
+#define MASK_WILD_MASK	0x03	/* Mask out the positional wildcards */
+
+#define MASK_WILDS	0x10	/* Mask contains wildcards */
+#define MASK_IP		0x20	/* Mask is an IP address */
+#define MASK_HALT	0x40	/* Finished processing mask */
 
 struct Gline* GlobalGlineList  = 0;
 struct Gline* BadChanGlineList = 0;
@@ -66,14 +83,12 @@ canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
 }
 
 static struct Gline *
-make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
+make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 	   unsigned int flags)
 {
   struct Gline *gline, *sgline, *after = 0;
-  char *user, *host;
 
   if (!(flags & GLINE_BADCHAN)) { /* search for overlapping glines first */
-    canon_userhost(userhost, &user, &host, "*"); /* find user and host */
 
     for (gline = GlobalGlineList; gline; gline = sgline) {
       sgline = gline->gl_next;
@@ -104,7 +119,7 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
   gline->gl_flags = flags & GLINE_MASK;
 
   if (flags & GLINE_BADCHAN) { /* set a BADCHAN gline */
-    DupString(gline->gl_user, userhost); /* first, remember channel */
+    DupString(gline->gl_user, user); /* first, remember channel */
     gline->gl_host = 0;
 
     gline->gl_next = BadChanGlineList; /* then link it into list */
@@ -202,6 +217,68 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
   return retval;
 }
 
+/*
+ * This routine implements the mask checking applied to local
+ * G-lines.  Basically, host masks must have a minimum of two non-wild
+ * domain fields, and IP masks must have a minimum of 16 bits.  If the
+ * mask has even one wild-card, OVERRIDABLE is returned, assuming the
+ * other check doesn't fail.
+ */
+static int
+gline_checkmask(char *mask)
+{
+  unsigned int flags = MASK_IP;
+  unsigned int dots = 0;
+  unsigned int ipmask = 0;
+
+  for (; *mask; mask++) { /* go through given mask */
+    if (*mask == '.') { /* it's a separator; advance positional wilds */
+      flags = (flags & ~MASK_WILD_MASK) | ((flags << 1) & MASK_WILD_MASK);
+      dots++;
+
+      if ((flags & (MASK_IP | MASK_WILDS)) == MASK_IP)
+	ipmask += 8; /* It's an IP with no wilds, count bits */
+    } else if (*mask == '*' || *mask == '?')
+      flags |= MASK_WILD_0 | MASK_WILDS; /* found a wildcard */
+    else if (*mask == '/') { /* n.n.n.n/n notation; parse bit specifier */
+      ipmask = strtoul(++mask, &mask, 10);
+
+      if (*mask || dots != 3 || ipmask > 32 || /* sanity-check to date */
+	  (flags & (MASK_WILDS | MASK_IP)) != MASK_IP)
+	return CHECK_REJECTED; /* how strange... */
+
+      if (ipmask < 32) /* it's a masked address; mark wilds */
+	flags |= MASK_WILDS;
+
+      flags |= MASK_HALT; /* Halt the ipmask calculation */
+
+      break; /* get out of the loop */
+    } else if (!IsDigit(*mask)) {
+      flags &= ~MASK_IP; /* not an IP anymore! */
+      ipmask = 0;
+    }
+  }
+
+  /* Sanity-check quads */
+  if (dots > 3 || (!(flags & MASK_WILDS) && dots < 3)) {
+    flags &= ~MASK_IP;
+    ipmask = 0;
+  }
+
+  /* update bit count if necessary */
+  if ((flags & (MASK_IP | MASK_WILDS | MASK_HALT)) == MASK_IP)
+    ipmask += 8;
+
+  /* Check to see that it's not too wide of a mask */
+  if (flags & MASK_WILDS &&
+      ((!(flags & MASK_IP) && (dots < 2 || flags & MASK_WILD_MASK)) ||
+       (flags & MASK_IP && ipmask < 16)))
+    return CHECK_REJECTED; /* to wide, reject */
+
+  /* Ok, it's approved; require override if it has wildcards, though */
+  return flags & MASK_WILDS ? CHECK_OVERRIDABLE : CHECK_APPROVED;
+}
+
 int
 gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 {
@@ -231,9 +308,51 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	  char *reason, time_t expire, time_t lastmod, unsigned int flags)
 {
   struct Gline *agline;
+  char uhmask[USERLEN + HOSTLEN + 2];
+  char *user, *host;
+  int tmp;
 
   assert(0 != userhost);
   assert(0 != reason);
+
+  /* NO_OLD_GLINE allows *@#channel to work correctly */
+  if (*userhost == '#' || *userhost == '&' || *userhost == '+'
+# ifndef NO_OLD_GLINE
+      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
+# endif /* OLD_GLINE */
+      ) {
+    if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+
+    flags |= GLINE_BADCHAN;
+# ifndef NO_OLD_GLINE
+    if (userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+')
+      user = userhost + 2;
+    else
+# endif /* OLD_GLINE */
+      user = userhost;
+    host = 0;
+  } else {
+    canon_userhost(userhost, &user, &host, "*");
+    if (sizeof(uhmask) <
+	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
+      return send_reply(sptr, ERR_LONGMASK);
+    else if (MyUser(sptr) || (IsUser(sptr) && flags & GLINE_LOCAL)) {
+      switch (gline_checkmask(host)) {
+      case CHECK_OVERRIDABLE: /* oper overrided restriction */
+	if (flags & GLINE_OPERFORCE)
+	  break;
+	/*FALLTHROUGH*/
+      case CHECK_REJECTED:
+	return send_reply(sptr, ERR_MASKTOOWIDE, uhmask);
+	break;
+      }
+
+      if ((tmp = count_users(uhmask)) >=
+	  feature_int(FEAT_GLINEMAXUSERCOUNT) && !(flags & GLINE_OPERFORCE))
+	return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
+    }
+  }
 
   /*
    * You cannot set a negative (or zero) expire time, nor can you set an
@@ -247,20 +366,8 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
-  /* NO_OLD_GLINE allows *@#channel to work correctly */
-  if (*userhost == '#' || *userhost == '&' || *userhost == '+'
-# ifndef NO_OLD_GLINE
-      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
-# endif /* OLD_GLINE */
-      ) {
-    if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
-      return send_reply(sptr, ERR_NOPRIVILEGES);
-
-    flags |= GLINE_BADCHAN;
-  }
-
   /* Inform ops... */
-  sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s, expiring at "
+  sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s%s%s, expiring at "
 		       "%Tu: %s",
 #ifdef HEAD_IN_SAND_SNOTICES
 		       cli_name(sptr),
@@ -269,7 +376,9 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		       cli_name((cli_user(sptr))->server),
 #endif
 		       flags & GLINE_LOCAL ? "local" : "global",
-		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
+		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", user,
+		       flags & GLINE_BADCHAN ? "" : "@",
+		       flags & GLINE_BADCHAN ? "" : host,
 		       expire + TSoffset, reason);
 
   /* and log it */
@@ -280,7 +389,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	    expire + TSoffset, reason);
 
   /* make the gline */
-  agline = make_gline(userhost, reason, expire, lastmod, flags);
+  agline = make_gline(user, host, reason, expire, lastmod, flags);
 
   if (!agline) /* if it overlapped, silently return */
     return 0;

@@ -263,6 +263,7 @@ static struct FeatureDesc {
   F_I(PINGFREQUENCY, 0, 120, init_class),
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
   F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
+  F_I(GLINEMAXUSERCOUNT, 0, 20, 0),
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
@@ -301,6 +302,7 @@ static struct FeatureDesc {
   F_B(OPER_LBADCHAN, 0, 0, 0),
   F_B(OPER_SET, 0, 1, 0),
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
+  F_B(OPER_WIDE_GLINE, 0, 1, 0),
 
   /* features that affect local opers on this server */
   F_B(LOCOP_KILL, 0, 1, 0),
@@ -313,6 +315,7 @@ static struct FeatureDesc {
   F_B(LOCOP_LBADCHAN, 0, 0, 0),
   F_B(LOCOP_SET, 0, 0, 0),
   F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0, 0),
+  F_B(LOCOP_WIDE_GLINE, 0, 0, 0),
 
 #undef F_S
 #undef F_B

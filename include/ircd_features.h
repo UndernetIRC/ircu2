@@ -56,6 +56,7 @@ enum Feature {
   FEAT_PINGFREQUENCY,
   FEAT_CONNECTFREQUENCY,
   FEAT_DEFAULTMAXSENDQLENGTH,
+  FEAT_GLINEMAXUSERCOUNT,
 
   /* Some misc. default paths */
   FEAT_MPATH,
@@ -94,6 +95,7 @@ enum Feature {
   FEAT_OPER_LBADCHAN,
   FEAT_OPER_SET,
   FEAT_OPERS_SEE_IN_SECRET_CHANNELS,
+  FEAT_OPER_WIDE_GLINE,
 
   /* features that affect local opers on this server */
   FEAT_LOCOP_KILL,
@@ -106,6 +108,7 @@ enum Feature {
   FEAT_LOCOP_LBADCHAN,
   FEAT_LOCOP_SET,
   FEAT_LOCOP_SEE_IN_SECRET_CHANNELS,
+  FEAT_LOCOP_WIDE_GLINE,
 
   FEAT_LAST_F
 };

@@ -56,6 +56,6 @@ struct Channel;
  */
 extern void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
                    int fields, char* qrt);
-
+extern int count_users(char* mask);
 
 #endif /* INCLUDED_whocmds_h */
