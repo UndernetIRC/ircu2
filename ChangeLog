@@ -1,5 +1,25 @@
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_user.h (add_silence): Delete.
+	(del_silence): Delete.
+
+	* include/struct.h (struct User): Convert silence list to struct Ban.
+
+	* ircd/m_silence.c (apply_silence, forward_silences): New functions.
+	(m_silence): Use forward_silences() instead of add_silence().
+	(ms_silence): Likewise.
+
+	* ircd/s_err.c (replyTable): Update RPL_SILELIST.
+
+	* ircd/s_misc.c (exit_one_client): Update to new silence list type.
+
+	* ircd/s_user.c (is_silenced): Use find_ban() to search for
+	silences.  If one is found, send it plus any silence exceptions.
+	(del_silence): Delete.
+	(add_silence): Delete.
+
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
 	* include/channel.h: Remove declarations for undefined functions
 	cancel_mode(), add_token_to_sendbuf(), IsMember().  Delete
 	add_banid(), next_removed_overlapped_ban().  Add BAN_EXCEPTION

@@ -202,6 +202,7 @@ void get_sockhost(struct Client *cptr, char *host)
 static void exit_one_client(struct Client* bcptr, const char* comment)
 {
   struct SLink *lp;
+  struct Ban *bp;
 
   if (cli_serv(bcptr) && cli_serv(bcptr)->client_list)  /* Was SetServerYXX called ? */
     ClearServerYXX(bcptr);      /* Removes server from server_list[] */
@@ -233,8 +234,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       del_invite(bcptr, lp->value.chptr);
 
     /* Clean up silencefield */
-    while ((lp = cli_user(bcptr)->silence))
-      del_silence(bcptr, lp->value.cp);
+    while ((bp = cli_user(bcptr)->silence)) {
+      cli_user(bcptr)->silence = bp->next;
+      free_ban(bp);
+    }
 
     /* Clean up snotice lists */
     if (MyUser(bcptr))

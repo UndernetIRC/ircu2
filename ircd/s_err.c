@@ -573,7 +573,7 @@ static Numeric replyTable[] = {
 /* 270 */
   { RPL_PRIVS, "%s :", "270" },
 /* 271 */
-  { RPL_SILELIST, "%s %s", "271" },
+  { RPL_SILELIST, "%s %s%s", "271" },
 /* 272 */
   { RPL_ENDOFSILELIST, "%s :End of Silence List", "272" },
 /* 273 */

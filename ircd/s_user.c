@@ -1659,121 +1659,52 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
 
 /** Check whether \a sptr is allowed to send a message to \a acptr.
  * If \a sptr is a remote user, it means some server has an outdated
- * SILENCE list for \a acptr, so send the missing SILENCE back in the
- * direction of \a sptr.
+ * SILENCE list for \a acptr, so send the missing SILENCE mask(s) back
+ * in the direction of \a sptr.
  * @param[in] sptr Client trying to send a message.
  * @param[in] acptr Destination of message.
  * @return Non-zero if \a sptr is SILENCEd by \a acptr, zero if not.
  */
 int is_silenced(struct Client *sptr, struct Client *acptr)
 {
-  struct SLink *lp;
+  struct Ban *found;
   struct User *user;
-  static char sender[HOSTLEN + NICKLEN + USERLEN + 5];
-  static char senderip[16 + NICKLEN + USERLEN + 5];
-  static char senderh[HOSTLEN + ACCOUNTLEN + USERLEN + 6];
+  size_t buf_used, slen;
+  char buf[BUFSIZE];
 
-  if (!cli_user(acptr) || !(lp = cli_user(acptr)->silence) || !(user = cli_user(sptr)))
+  if (!(user = cli_user(acptr))
+      || !(found = find_ban(sptr, user->silence)))
     return 0;
-  ircd_snprintf(0, sender, sizeof(sender), "%s!%s@%s", cli_name(sptr),
-		user->username, user->host);
-  ircd_snprintf(0, senderip, sizeof(senderip), "%s!%s@%s", cli_name(sptr),
-		user->username, ircd_ntoa(&cli_ip(sptr)));
-  if (HasHiddenHost(sptr))
-    ircd_snprintf(0, senderh, sizeof(senderh), "%s!%s@%s", cli_name(sptr),
-		  user->username, user->realhost);
-  for (; lp; lp = lp->next)
-  {
-    if ((!(lp->flags & CHFL_SILENCE_IPMASK) && (!match(lp->value.cp, sender) ||
-        (HasHiddenHost(sptr) && !match(lp->value.cp, senderh)))) ||
-        ((lp->flags & CHFL_SILENCE_IPMASK) && !match(lp->value.cp, senderip)))
-    {
-      if (!MyConnect(sptr))
-      {
-        sendcmdto_one(acptr, CMD_SILENCE, cli_from(sptr), "%C %s", sptr,
-                      lp->value.cp);
+  assert(!(found->flags & BAN_EXCEPTION));
+  if (!MyConnect(sptr)) {
+    /* Buffer positive silence to send back. */
+    buf_used = strlen(found->banstr);
+    memcpy(buf, found->banstr, buf_used);
+    /* Add exceptions to buffer. */
+    for (found = user->silence; found; found = found->next) {
+      if (!(found->flags & BAN_EXCEPTION))
+        continue;
+      slen = strlen(found->banstr);
+      if (buf_used + slen + 4 > 400) {
+        buf[buf_used] = '\0';
+        sendcmdto_one(acptr, CMD_SILENCE, cli_from(sptr), "%C %s", sptr, buf);
+        buf_used = 0;
       }
-      return 1;
+      if (buf_used)
+        buf[buf_used++] = ',';
+      buf[buf_used++] = '+';
+      buf[buf_used++] = '~';
+      memcpy(buf + buf_used, found->banstr, slen);
+      buf_used += slen;
+    }
+    /* Flush silence buffer. */
+    if (buf_used) {
+      buf[buf_used] = '\0';
+      sendcmdto_one(acptr, CMD_SILENCE, cli_from(sptr), "%C %s", sptr, buf);
+      buf_used = 0;
     }
   }
-  return 0;
-}
-
-/** Remove all silence masks from \a sptr that match \a mask.
- * @param[in,out] sptr Client to update.
- * @param[in] mask Silence mask to remove.
- * @return Zero if any silence masks were removed; non-zero if all were kept.
- */
-int del_silence(struct Client *sptr, char *mask)
-{
-  struct SLink **lp;
-  struct SLink *tmp;
-  int ret = -1;
-
-  for (lp = &(cli_user(sptr))->silence; *lp;) {
-    if (!mmatch(mask, (*lp)->value.cp))
-    {
-      tmp = *lp;
-      *lp = tmp->next;
-      MyFree(tmp->value.cp);
-      free_link(tmp);
-      ret = 0;
-    }
-    else
-      lp = &(*lp)->next;
-  }
-  return ret;
-}
-
-/** Add \a mask to the silence masks for \a sptr.
- * Removes any silence masks that are subsets of \a mask.
- * @param[in,out] sptr Client adding silence mask.
- * @param[in] mask Silence mask to add.
- * @return Zero on success; non-zero on any failure.
- */
-int add_silence(struct Client* sptr, const char* mask)
-{
-  struct SLink *lp, **lpp;
-  int cnt = 0, len = strlen(mask);
-  char *ip_start;
-
-  for (lpp = &(cli_user(sptr))->silence, lp = *lpp; lp;)
-  {
-    if (0 == ircd_strcmp(mask, lp->value.cp))
-      return -1;
-    if (!mmatch(mask, lp->value.cp))
-    {
-      struct SLink *tmp = lp;
-      *lpp = lp = lp->next;
-      MyFree(tmp->value.cp);
-      free_link(tmp);
-      continue;
-    }
-    if (MyUser(sptr))
-    {
-      len += strlen(lp->value.cp);
-      if ((len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXSILES))) ||
-	  (++cnt >= feature_int(FEAT_MAXSILES)))
-      {
-        send_reply(sptr, ERR_SILELISTFULL, mask);
-        return -1;
-      }
-      else if (!mmatch(lp->value.cp, mask))
-        return -1;
-    }
-    lpp = &lp->next;
-    lp = *lpp;
-  }
-  lp = make_link();
-  memset(lp, 0, sizeof(struct SLink));
-  lp->next = cli_user(sptr)->silence;
-  lp->value.cp = (char*) MyMalloc(strlen(mask) + 1);
-  assert(0 != lp->value.cp);
-  strcpy(lp->value.cp, mask);
-  if ((ip_start = strrchr(mask, '@')) && check_if_ipmask(ip_start + 1))
-    lp->flags = CHFL_SILENCE_IPMASK;
-  cli_user(sptr)->silence = lp;
-  return 0;
+  return 1;
 }
 
 /** Send RPL_ISUPPORT lines to \a cptr.
