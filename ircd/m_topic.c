@@ -104,7 +104,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       return;
    }
-   if (!client_can_send_to_channel(sptr, chptr, 1)) {
+   if (!client_can_send_to_channel(sptr, chptr)) {
      send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
      return;
    }
