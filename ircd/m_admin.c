@@ -135,19 +135,9 @@ int mo_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (parc > 1) {
-    struct Client *acptr;
-    acptr = FindUser(parv[1]);
-    if (acptr)
-      parv[1] = cli_name(cli_user(acptr)->server);
-    else if (!(acptr = find_match_server(parv[1])))
-      return send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-
-    parv[1] = cli_name(acptr);
-    if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
-			parc, parv) != HUNTED_ISME)
-      return 0;
-  }
+  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
+		      parc, parv) != HUNTED_ISME)
+    return 0;
   return send_admin_info(sptr);
 }
 

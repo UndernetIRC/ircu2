@@ -357,7 +357,6 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 2)
   {
-    struct Client *acptr;
     /* For convenience: Accept a nickname as first parameter, by replacing
      * it with the correct servername - as is needed by hunt_server().
      * This is the secret behind the /whois nick nick trick.
@@ -370,22 +369,11 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       parv[1] = parv[2];
 #endif
 
-    acptr = FindUser(parv[1]);
-
-    if (IsOper(sptr) && !(acptr))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
+    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
+       HUNTED_ISME)
+    return 0;
     
-    if (acptr)
-    {
-      parv[1] = cli_name(cli_user(acptr)->server);
-      if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
-         HUNTED_ISME)
-      return 0;
-      parv[1] = parv[2];
-    }
+    parv[1] = parv[2];
   }
 
   for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
