@@ -1,3 +1,8 @@
+2001-06-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (sendcmdto_match_butone): don't let the server crash
+	if a client is in the STAT_CONNECTING status
+
 2001-06-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c: remove unused vsendcmdto_one(), consolidating it
