@@ -36,7 +36,7 @@
 #include "send.h"
 
 #include <assert.h>
-
+#include <string.h>
 
 struct IPTargetEntry {
   int           count;

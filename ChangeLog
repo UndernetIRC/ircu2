@@ -1,3 +1,27 @@
+2001-07-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/os_bsd.c (os_get_rusage): move buf into the two ifdef'd
+	sections so that if neither is used, the declaration of buf will
+	not elicit an "unused variable" warning under NetBSD
+
+	* ircd/m_map.c: include string.h to declare strcpy (fix warnings
+	on alpha)
+
+	* ircd/m_away.c: include string.h to declare strcpy/strlen (fix
+	warnings on alpha)
+
+	* ircd/ircd_log.c: include string.h to declare strcpy/strlen (fix
+	warnings on alpha)
+
+	* ircd/client.c: include string.h to declare memset (fix warnings
+	on alpha)
+
+	* ircd/channel.c: remove unused functions next_overlapped_ban,
+	del_banid, and is_deopped (fix warnings under -O1)
+
+	* ircd/IPcheck.c: include string.h to declare memset/memcpy (fix
+	warnings on alpha)
+
 2001-06-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (set_user_mode): clear the snomask if the user

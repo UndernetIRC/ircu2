@@ -62,8 +62,6 @@ struct Channel* GlobalChannelList = 0;
 static unsigned int membershipAllocCount;
 static struct Membership* membershipFreeList;
 
-static struct SLink *next_overlapped_ban(void);
-static int del_banid(struct Channel *, char *, int);
 void del_invite(struct Client *, struct Channel *);
 
 const char* const PartFmt1     = ":%s " MSG_PART " %s";
@@ -376,20 +374,6 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
   return 0;
 }
 
-static struct SLink *next_overlapped_ban(void)
-{
-  struct SLink *tmp = next_ban;
-  if (tmp)
-  {
-    struct SLink *ban;
-    for (ban = tmp->next; ban; ban = ban->next)
-      if ((ban->flags & CHFL_BAN_OVERLAPPED))
-        break;
-    next_ban = ban;
-  }
-  return tmp;
-}
-
 struct SLink *next_removed_overlapped_ban(void)
 {
   struct SLink *tmp = removed_bans_list;
@@ -405,43 +389,6 @@ struct SLink *next_removed_overlapped_ban(void)
     removed_bans_list = removed_bans_list->next;
   prev_ban = tmp;
   return tmp;
-}
-
-/*
- * del_banid
- *
- * If `change' is true, delete `banid' from channel `chptr'.
- * Returns `false' if removal was (or would have been) successful.
- */
-static int del_banid(struct Channel *chptr, char *banid, int change)
-{
-  struct SLink **ban;
-  struct SLink *tmp;
-
-  if (!banid)
-    return -1;
-  for (ban = &(chptr->banlist); *ban; ban = &((*ban)->next)) {
-    if (0 == ircd_strcmp(banid, (*ban)->value.ban.banstr))
-    {
-      tmp = *ban;
-      if (change)
-      {
-        struct Membership* member;
-        *ban = tmp->next;
-        MyFree(tmp->value.ban.banstr);
-        MyFree(tmp->value.ban.who);
-        free_link(tmp);
-        /*
-         * Erase ban-valid-bit, for channel members that are banned
-         */
-        for (member = chptr->members; member; member = member->next_member)
-          if (CHFL_BANVALIDMASK == (member->status & CHFL_BANVALIDMASK))
-            ClearBanValid(member);       /* `tmp' == channel member */
-      }
-      return 0;
-    }
-  }
-  return -1;
 }
 
 /*
@@ -627,17 +574,6 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
     return (!IsZombie(member) && IsChanOp(member));
 
   return 0;
-}
-
-static int is_deopped(struct Client *cptr, struct Channel *chptr)
-{
-  struct Membership* member;
-
-  assert(0 != chptr);
-  if ((member = find_member_link(chptr, cptr)))
-    return IsDeopped(member);
-
-  return (IsUser(cptr) ? 1 : 0);
 }
 
 int is_zombie(struct Client *cptr, struct Channel *chptr)

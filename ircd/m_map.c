@@ -98,6 +98,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
 {
