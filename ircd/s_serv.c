@@ -128,7 +128,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     /*
      *  Pass my info to the new server
      */
-    sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
+    sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s6 :%s",
 		  cli_name(&me), cli_serv(&me)->timestamp,
 		  cli_serv(cptr)->timestamp, MAJOR_PROTOCOL, NumServCap(&me),
 		  feature_bool(FEAT_HUB) ? "h" : "",
@@ -258,7 +258,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 		    cli_name(acptr), cli_hopcount(acptr) + 1, cli_lastnick(acptr),
 		    cli_user(acptr)->username, cli_user(acptr)->realhost,
 		    *s ? "+" : "", s, *s ? " " : "",
-		    iptobase64(xxx_buf, &cli_ip(acptr), sizeof(xxx_buf)),
+		    iptobase64(xxx_buf, &cli_ip(acptr), sizeof(xxx_buf), IsIPv6(cptr)),
 		    NumNick(acptr), cli_info(acptr));
     }
   }

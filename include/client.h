@@ -143,6 +143,7 @@ enum Flag
     FLAG_CLOSING,                   /**< set when closing to suppress errors */
     FLAG_UPING,                     /**< has active UDP ping request */
     FLAG_HUB,                       /**< server is a hub */
+    FLAG_IPV6,                      /**< server understands P10 IPv6 addrs */
     FLAG_SERVICE,                   /**< server is a service */
     FLAG_GOTID,                     /**< successful ident lookup achieved */
     FLAG_DOID,                      /**< I-lines say must use ident return */
@@ -574,6 +575,8 @@ struct Client {
 #define SendWallops(x)          HasFlag(x, FLAG_WALLOP)
 /** Return non-zero if the client claims to be a hub. */
 #define IsHub(x)                HasFlag(x, FLAG_HUB)
+/** Return non-zero if the client understands IPv6 addresses in P10. */
+#define IsIPv6(x)               HasFlag(x, FLAG_IPV6)
 /** Return non-zero if the client claims to be a services server. */
 #define IsService(x)            HasFlag(x, FLAG_SERVICE)
 /** Return non-zero if the client has an account stamp. */
@@ -620,6 +623,8 @@ struct Client {
 #define SetServNotice(x)        SetFlag(x, FLAG_SERVNOTICE)
 /** Mark a client as being a hub server. */
 #define SetHub(x)               SetFlag(x, FLAG_HUB)
+/** Mark a client as being an IPv6-grokking server. */
+#define SetIPv6(x)              SetFlag(x, FLAG_IPV6)
 /** Mark a client as being a services server. */
 #define SetService(x)           SetFlag(x, FLAG_SERVICE)
 /** Mark a client as having an account stamp. */

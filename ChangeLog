@@ -1,3 +1,27 @@
+2004-12-14  Michael Poole <mdpoole@troilus.org>
+
+	* include/client.h (FLAG_IPV6): New value for enum Flag.
+	(IsIPv6, SetIPv6): Accessor macros for it.
+
+	* include/numnicks.h (iptobase64): Add flag indicating whether to
+	use full IPv6 addresses or fake them in an IPv4-compatible way.
+
+	* ircd/numnicks.c (iptobase64): Use the new flag.
+
+	* include/send.h (sendcmdto_flag_serv_butone): New function to
+	send different lines to servers based on flags (like FLAG_IPV6).
+
+	* ircd/send.c (sendcmdto_flag_serv_butone): Implement it.
+
+	* ircd/s_bsd.c (completed_connection): Advertise IPv6 support in
+	our server flags.
+
+	* ircd/s_serv.c (server_estab): Likewise.  Also make sure we send
+	compatible IP addresses for the new server.
+
+	* ircd/s_user.c (register_user): Only send full IPv6 addresses to
+	links that have FLAG_IPV6 set.
+
 2004-12-13  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Update General block comment to mention

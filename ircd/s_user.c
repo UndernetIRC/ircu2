@@ -657,13 +657,24 @@ int register_user(struct Client *cptr, struct Client *sptr,
     }
   }
   tmpstr = umode_str(sptr);
-  sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
-			"%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-			nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
-			user->username, user->realhost,
-			*tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-			iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64)),
-			NumNick(sptr), cli_info(sptr));
+  /* Send full IP address to IPv6-grokking servers. */
+  sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
+                             FLAG_IPV6, FLAG_LAST_FLAG,
+                             "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                             nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
+                             user->username, user->realhost,
+                             *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                             iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 1),
+                             NumNick(sptr), cli_info(sptr));
+  /* Send fake IPv6 addresses to pre-IPv6 servers. */
+  sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
+                             FLAG_LAST_FLAG, FLAG_IPV6,
+                             "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                             nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
+                             user->username, user->realhost,
+                             *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                             iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 0),
+                             NumNick(sptr), cli_info(sptr));
 
   /* Send server notice mask to client */
   if (MyUser(sptr) && (cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
