@@ -175,7 +175,8 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 	    jupe->ju_reason);
 #endif /* JPATH */
 
-  propagate_jupe(cptr, sptr, jupe);
+  if (!(flags & JUPE_LOCAL)) /* don't propagate local changes */
+    propagate_jupe(cptr, sptr, jupe);
 
   return do_jupe(cptr, sptr, jupe);
 }
@@ -222,7 +223,7 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 
   if (JupeIsLocal(jupe))
     jupe_free(jupe);
-  else
+  else if (!(flags & JUPE_LOCAL)) /* don't propagate local changes */
     propagate_jupe(cptr, sptr, jupe);
 
   return 0;

@@ -283,6 +283,9 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
       gline_free(agline);
     else {
+      if (!GlineLastMod(agline)) /* force mods to Uworld-set G-lines local */
+	flags |= GLINE_LOCAL;
+
       if (flags & GLINE_ACTIVE)
 	return gline_activate(cptr, sptr, agline,
 			      GlineLastMod(agline) ? TStime() : 0, flags);
