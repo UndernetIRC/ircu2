@@ -142,11 +142,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(name) || EmptyString(password))
     return need_more_params(sptr, "OPER");
 
-  aconf = find_conf_exact(name, cli_username(sptr), cli_sockhost(sptr), CONF_OPERATOR);
-  if (!aconf)
-    aconf = find_conf_exact(name, cli_username(sptr),
-                            ircd_ntoa(&cli_ip(cptr)), CONF_OPERATOR);
-
+  aconf = find_conf_exact(name, sptr, CONF_OPERATOR);
   if (!aconf || IsIllegal(aconf))
   {
     send_reply(sptr, ERR_NOOPERHOST);

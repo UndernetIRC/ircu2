@@ -69,7 +69,7 @@
 
 /** Global list of all ConfItem structures. */
 struct ConfItem  *GlobalConfList;
-/** Count of items in #GlobalConfLis. */
+/** Count of items in #GlobalConfList. */
 int              GlobalConfCount;
 /** Global list of service mappings. */
 struct s_map     *GlobalServiceMapList;
@@ -192,6 +192,38 @@ static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
     }
     lp = &((*lp)->next);
   }
+}
+
+/** Parse a user\@host mask into username and host or IP parts.
+ * If \a host contains no username part, set \a aconf->username to
+ * NULL.  If the host part of \a host looks like an IP mask, set \a
+ * aconf->addrbits and \a aconf->address to match.  Otherwise, set
+ * \a aconf->host, and set \a aconf->addrbits to -1.
+ * @param[in,out] aconf Configuration item to set.
+ * @param[in] host user\@host mask to parse.
+ */
+void conf_parse_userhost(struct ConfItem *aconf, char *host)
+{
+  char *host_part;
+  unsigned char addrbits;
+
+  MyFree(aconf->username);
+  MyFree(aconf->host);
+  host_part = strchr(host, '@');
+  if (host_part) {
+    *host_part = '\0';
+    DupString(aconf->username, host);
+    host_part++;
+  } else {
+    aconf->username = NULL;
+    host_part = host;
+  }
+  DupString(aconf->host, host_part);
+  if (ipmask_parse(aconf->host, &aconf->address.addr, &addrbits))
+    aconf->addrbits = addrbits;
+  else
+    aconf->addrbits = -1;
+  MyFree(host);
 }
 
 /** Copies a completed DNS query into its ConfItem.
@@ -322,8 +354,9 @@ void det_confs_butmask(struct Client* cptr, int mask)
 }
 
 /** Check client limits and attach Client block.
- * If the password field consists of one or two digits, use that
- * as the per-IP connection limit; otherwise use 255.
+ * If there are more connections from the IP than \a aconf->maximum
+ * allows, return ACR_TOO_MANY_FROM_IP.  Otherwise, attach \a aconf to
+ * \a cptr.
  * @param cptr Client getting \a aconf.
  * @param aconf Configuration item to attach.
  * @return Authorization check result.
@@ -331,16 +364,7 @@ void det_confs_butmask(struct Client* cptr, int mask)
 static enum AuthorizationCheckResult
 check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 {
-  int number = 255;
-  
-  if (aconf->passwd) {
-    if (IsDigit(*aconf->passwd) && !aconf->passwd[1])
-      number = *aconf->passwd-'0';
-    else if (IsDigit(*aconf->passwd) && IsDigit(aconf->passwd[1]) && 
-             !aconf->passwd[2])
-      number = (*aconf->passwd-'0')*10+(aconf->passwd[1]-'0');
-  }
-  if (IPcheck_nr(cptr) > number)
+  if (IPcheck_nr(cptr) > aconf->maximum)
     return ACR_TOO_MANY_FROM_IP;
   return attach_conf(cptr, aconf);
 }
@@ -349,58 +373,32 @@ check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
  * @param cptr Client for whom to check rules.
  * @return Authorization check result.
  */
-enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
+enum AuthorizationCheckResult attach_iline(struct Client* cptr)
 {
   struct ConfItem* aconf;
-  static char      uhost[HOSTLEN + USERLEN + 3];
-  static char      fullname[HOSTLEN + 1];
   struct DNSReply* hp;
 
   assert(0 != cptr);
 
   hp = cli_dns_reply(cptr);
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    if (aconf->status != CONF_CLIENT)
+    if (aconf->status != CONF_CLIENT || !aconf->host)
       continue;
     if (aconf->address.port && aconf->address.port != cli_listener(cptr)->addr.port)
       continue;
-    if (!aconf->host || !aconf->name)
-      continue;
-    if (hp) {
-      ircd_strncpy(fullname, hp->h_name, HOSTLEN);
-      fullname[HOSTLEN] = '\0';
-
-      Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), fullname));
-
-      if (strchr(aconf->name, '@')) {
-        strcpy(uhost, cli_username(cptr));
-        strcat(uhost, "@");
-      }
-      else
-        *uhost = '\0';
-      strncat(uhost, fullname, sizeof(uhost) - 1 - strlen(uhost));
-      uhost[sizeof(uhost) - 1] = 0;
-      if (0 == match(aconf->name, uhost)) {
-        if (strchr(uhost, '@'))
-          SetFlag(cptr, FLAG_DOID);
-        return check_limit_and_attach(cptr, aconf);
-      }
-    }
-    if (strchr(aconf->host, '@')) {
-      ircd_strncpy(uhost, cli_username(cptr), sizeof(uhost) - 2);
-      uhost[sizeof(uhost) - 2] = 0;
-      strcat(uhost, "@");
-    }
-    else
-      *uhost = '\0';
-    strncat(uhost, cli_sock_ip(cptr), sizeof(uhost) - 1 - strlen(uhost));
-    uhost[sizeof(uhost) - 1] = 0;
-    if (match(aconf->host, uhost))
-      continue;
-    if (strchr(uhost, '@'))
+    if (aconf->username) {
       SetFlag(cptr, FLAG_DOID);
-
-    return check_limit_and_attach(cptr, aconf);
+      if (match(aconf->username, cli_username(cptr)))
+        continue;
+    }
+    if (hp) {
+      Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), hp->h_name));
+      if (!match(aconf->name, hp->h_name))
+        return check_limit_and_attach(cptr, aconf);
+    }
+    if ((aconf->addrbits >= 0)
+        && ipmask_check(&cli_ip(cptr), &aconf->address.addr, aconf->addrbits))
+      return check_limit_and_attach(cptr, aconf);
   }
   return ACR_NO_AUTHORIZATION;
 }
@@ -520,41 +518,33 @@ struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* host,
 /** Find a ConfItem that has the same name and user+host fields as
  * specified.  Requires an exact match for \a name.
  * @param name Name to match
- * @param user User part of match (or NULL)
- * @param host Hostname part of match
+ * @param cptr Client to match against
  * @param statmask Filter for ConfItem::status
  * @return First found matching ConfItem.
  */
-struct ConfItem* find_conf_exact(const char* name, const char* user,
-                                 const char* host, int statmask)
+struct ConfItem* find_conf_exact(const char* name, struct Client *cptr, int statmask)
 {
   struct ConfItem *tmp;
-  char userhost[USERLEN + HOSTLEN + 3];
-
-  if (user)
-    ircd_snprintf(0, userhost, sizeof(userhost), "%s@%s", user, host);
-  else
-    ircd_strncpy(userhost, host, sizeof(userhost) - 1);
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next) {
     if (!(tmp->status & statmask) || !tmp->name || !tmp->host ||
         0 != ircd_strcmp(tmp->name, name))
       continue;
-    /*
-     * Accept if the *real* hostname (usually sockecthost)
-     * socket host) matches *either* host or name field
-     * of the configuration.
-     */
-    if (match(tmp->host, userhost))
+    if (tmp->username
+        && (EmptyString(cli_username(cptr))
+            || match(tmp->username, cli_username(cptr))))
       continue;
-    if (tmp->status & CONF_OPERATOR) {
-      if (tmp->clients < MaxLinks(tmp->conn_class))
-        return tmp;
-      else
+    if (tmp->addrbits < 0)
+    {
+      if (match(tmp->host, cli_sockhost(cptr)))
         continue;
     }
-    else
-      return tmp;
+    else if (!ipmask_check(&cli_ip(cptr), &tmp->address.addr, tmp->addrbits))
+      continue;
+    if ((tmp->status & CONF_OPERATOR)
+        && (tmp->clients >= MaxLinks(tmp->conn_class)))
+      continue;
+    return tmp;
   }
   return 0;
 }

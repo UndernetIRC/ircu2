@@ -147,7 +147,6 @@ static void parse_error(char *pattern,...) {
 %token TFILE
 %token RULE
 %token ALL
-%token IP
 %token FEATURES
 %token QUARANTINE
 %token PSEUDO
@@ -493,7 +492,7 @@ operblock: OPER '{' operitems '}' ';'
     struct ConfItem *aconf = make_conf(CONF_OPERATOR);
     aconf->name = name;
     aconf->passwd = pass;
-    aconf->host = host;
+    conf_parse_userhost(aconf, host);
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
@@ -643,35 +642,27 @@ clientblock: CLIENT
 }
 '{' clientitems '}' ';'
 {
-  if (host && name)
+  if (host)
   {
     struct ConfItem *aconf = make_conf(CONF_CLIENT);
-    aconf->host = host;
-    aconf->name = name;
+    conf_parse_userhost(aconf, host);
     aconf->conn_class = c_class ? c_class : find_class("default");
     aconf->maximum = maxlinks;
   }
   else
   {
     MyFree(host);
-    MyFree(name);
     parse_error("Bad client block");
   }
-  host = name = NULL;
+  host = NULL;
   c_class = NULL;
 };
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientclass | clientpass | clientip
-  | clientmaxlinks | error;
-clientip: IP '=' QSTRING ';'
+clientitem: clienthost | clientclass | clientpass | clientmaxlinks | error;
+clienthost: HOST '=' QSTRING ';'
 {
   MyFree(host);
   DupString(host, $3);
-};
-clienthost: HOST '=' QSTRING ';'
-{
-  MyFree(name);
-  DupString(name, $3);
 };
 clientclass: CLASS '=' QSTRING ';'
 {

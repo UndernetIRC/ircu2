@@ -430,7 +430,7 @@ void close_connection(struct Client *cptr)
      * If the connection has been up for a long amount of time, schedule
      * a 'quick' reconnect, else reset the next-connect cycle.
      */
-    if ((aconf = find_conf_exact(cli_name(cptr), 0, cli_sockhost(cptr), CONF_SERVER))) {
+    if ((aconf = find_conf_exact(cli_name(cptr), cptr, CONF_SERVER))) {
       /*
        * Reschedule a faster reconnect, if this was a automaticly
        * connected configuration entry. (Note that if we have had

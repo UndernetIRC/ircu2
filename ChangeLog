@@ -1,5 +1,33 @@
 2004-10-17  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_conf.h (ConfItem): Add new field username.  Replace
+	unused field bits with addrbits.
+	(find_conf_exact): Replace user and host arguments with cptr.
+	(find_conf_name, read_tlines, find_restrict): Remove declaration
+	for undefined functions.
+	(conf_parse_userhost): New function.
+
+	* ircd/m_oper.c (m_oper): Update calls to find_conf_exact(): both
+	resolved hostname and IP are matched in one pass now.
+
+	* ircd/s_bsd.c (close_connection): Update call to find_conf_exact().
+
+	* ircd/s_conf.c (conf_parse_userhost): New function.
+	(check_limit_and_attach): Use correct ConfItem field to determine
+	maximum connections per IP.
+	(attach_iline): Replace user@host matching with shorter, clearer
+	matching against username and host/IP fields.
+	(find_conf_exact): Likewise.
+
+	* ircd/ircd_parser.y: Replace assignment to aconf->host for
+	CONF_CLIENT and CONF_OPERATOR with calls the CIDR-aware
+	conf_parse_userhost().  This means CONF_CLIENT ConfItems no longer
+	use the name field or the IP token.  Remove the latter.
+
+	* ircd/ircd_lexer.l: Remove unused token IP.
+
+2004-10-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/crule.c (crule_via): Simplify the lookup for the directly
 	connected server name.
 

@@ -86,7 +86,6 @@ static struct lexer_token {
   TOKEN(REASON),
   TOKEN(RULE),
   TOKEN(ALL),
-  TOKEN(IP),
   TOKEN(CRULE),
   TOKEN(KILL),
   TOKEN(QUARANTINE),

@@ -53,6 +53,7 @@ struct ConfItem
   struct ConnectionClass *conn_class;  /**< Class of connection */
   struct irc_sockaddr origin;  /**< Local address for outbound connections */
   struct irc_sockaddr address; /**< IP and port */
+  char *username;     /**< For CONF_CLIENT and CONF_OPERATOR, username mask. */
   char *host;         /**< Peer hostname */
   char *origin_name;  /**< Text form of origin address */
   char *passwd;       /**< Password field */
@@ -62,7 +63,7 @@ struct ConfItem
   time_t hold;        /**< Earliest time to attempt an outbound
                          connect on this ConfItem. */
   int dns_pending;    /**< A dns request is pending. */
-  unsigned char bits; /**< Number of bits for ipkills. */
+  int addrbits;       /**< Number of bits valid in ConfItem::address. */
   struct Privs privs; /**< Privileges for opers. */
   /** Used to detect if a privilege has been set by this ConfItem. */
   struct Privs privs_dirty;
@@ -171,17 +172,14 @@ extern struct ConfItem* conf_find_server(const char* name);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
-extern struct ConfItem* find_conf_exact(const char* name, const char* user,
-                                        const char* host, int statmask);
+extern struct ConfItem* find_conf_exact(const char* name, struct Client *cptr, int statmask);
 extern enum AuthorizationCheckResult conf_check_client(struct Client *cptr);
 extern int  conf_check_server(struct Client *cptr);
-extern struct ConfItem* find_conf_name(const char* name, int statmask);
 extern int rehash(struct Client *cptr, int sig);
-extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
-extern int find_restrict(struct Client *cptr);
 extern const char *find_quarantine(const char* chname);
 extern void lookup_confhost(struct ConfItem *aconf);
+extern void conf_parse_userhost(struct ConfItem *aconf, char *host);
 
 extern void yyerror(const char *msg);
 
