@@ -300,7 +300,7 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	       IsLocalChannel(chname) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
+  if (!(chptr = FindChannel(chname)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
 
   if (!force && (qreason = find_quarantine(chptr->chname)))

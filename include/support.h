@@ -9,7 +9,7 @@
 /*
  * Given a number of bits, make a netmask out of it.
  */
-#define NETMASK(bits) htonl((0xffffffff>>(32-(bits)))<<(32-(bits)))
+#define NETMASK(bits) htonl((bits) ? -(1 << (32 - (bits))) : 0)
 
 
 /*

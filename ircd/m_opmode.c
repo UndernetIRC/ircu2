@@ -111,7 +111,7 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsLocalChannel(parv[1]))
     return 0;
 
-  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
+  if (!(chptr = FindChannel(parv[1])))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
@@ -160,7 +160,7 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	       IsLocalChannel(chname) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
+  if (!(chptr = FindChannel(chname)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
 
   if (!force && (qreason = find_quarantine(chptr->chname)))

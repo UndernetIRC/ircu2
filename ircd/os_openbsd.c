@@ -216,13 +216,14 @@ int os_set_reuseaddr(int fd)
                           (const char*) &opt, sizeof(opt)));
 }
 
-int os_set_sockbufs(int fd, unsigned int size)
+int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize)
 {
-  unsigned int opt = size;
+  unsigned int sopt = ssize;
+  unsigned int ropt = rsize;
   return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, 
-                          (const char*) &opt, sizeof(opt)) &&
+                          (const char*) &ropt, sizeof(ropt)) &&
           0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
-                          (const char*) &opt, sizeof(opt)));
+                          (const char*) &sopt, sizeof(sopt)));
 }
 
 int os_set_tos(int fd,int tos)

@@ -123,10 +123,10 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc,
   /* verify value */
   if (t < OLDEST_TS || dt < -9000000) {
     if (IsServer(sptr)) /* protocol violation if it's from a server */
-      protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %l)", t, dt);
+      protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %ld)", t, dt);
     else
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
-		    "delta %l)", sptr, t, dt);
+		    "delta %ld)", sptr, t, dt);
     return 0;
   }
 
@@ -155,7 +155,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc,
   if (feature_bool(FEAT_RELIABLE_CLOCK)) { /* don't apply settime--reliable */
     if (dt > 600 || dt < -600) /* If it was off more than 5 min, complain */
       sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-			    "(delta %l)", cli_name(sptr), t, dt);
+			    "(delta %ld)", cli_name(sptr), t, dt);
     if (IsUser(sptr)) /* Let user know we're ignoring him */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
 		    "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
@@ -210,7 +210,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc,
   /* verify value */
   if (t < OLDEST_TS || dt < -9000000) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
-		  "delta %l)", sptr, t, dt);
+		  "delta %ld)", sptr, t, dt);
     return 0;
   }
 
@@ -222,7 +222,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc,
   if (feature_bool(FEAT_RELIABLE_CLOCK)) { /* don't apply settime--reliable */
     if (dt > 600 || dt < -600) /* If it was off more than 5 min, complain */
       sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-			    "(delta %l)", cli_name(sptr), t, dt);
+			    "(delta %ld)", cli_name(sptr), t, dt);
     if (IsUser(sptr)) /* Let user know we're ignoring him */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
 		    "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,

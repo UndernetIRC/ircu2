@@ -638,6 +638,9 @@ AC_DEFINE_UNQUOTED(LPATH, "$unet_lpath", [Path to debugging log file])
 
 dnl --with-maxcon allows us to set the maximum connections
 unet_maxcon=`ulimit -Hn`
+if test x"$unet_maxcon" = xunlimited; then
+    unet_maxcon=`ulimit -Sn`
+fi
 unet_maxcon=`expr $unet_maxcon - 4`
 AC_MSG_CHECKING([max connections])
 AC_ARG_WITH([maxcon],

@@ -910,6 +910,18 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
     char ipname[16];
     int  ad[4] = { 0 };
     int  bits2 = 0;
+
+    /* very simple check to make sure this could even be a valid IP kline,
+     * this does preclude us ever have IP klines of the form *.xxx.yyy.zzz
+     * though - I can't see it being a problem. -- hikari */
+    if (!IsDigit(conf->hostmask[0]))
+    {
+     sendto_opmask_butone(0, SNO_OLDSNO, 
+        "Mangled IP in IP K-Line: k:%s:%s:%s", conf->hostmask, conf->message,
+         conf->usermask);
+     return;
+    }
+
     c_class = sscanf(conf->hostmask, "%d.%d.%d.%d/%d",
                      &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
     if (c_class != 5) {
@@ -1275,6 +1287,16 @@ int read_configuration_file(void)
   fbclose(file);
 /*    nextping = nextconnect = CurrentTime; */
   feature_mark(); /* reset unmarked features */
+
+  /*
+   * Set our local FLAG_HUB if necessary.
+   */
+  if(feature_bool(FEAT_HUB)) {
+    SetFlag(&me, FLAG_HUB);
+  } else {
+    ClrFlag(&me, FLAG_HUB);
+  }
+
   return 1;
 }
 
@@ -1375,7 +1397,7 @@ int rehash(struct Client *cptr, int sig)
                              found_g == -2 ? "G-line active for %s%s" :
                              "K-line active for %s%s",
                              IsUnknown(acptr) ? "Unregistered Client ":"",                     
-                             get_client_name(acptr, HIDE_IP));
+                             get_client_name(acptr, SHOW_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;

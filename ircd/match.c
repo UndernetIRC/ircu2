@@ -225,6 +225,9 @@ break_while:
       default:
         if (ToLower(*s) != ToLower(ch))
         {
+          /* If we've run out of string, give up */
+          if (!*bs)
+            return 1;
           m = bm;
           s = bs;
           goto got_star;
