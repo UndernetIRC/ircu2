@@ -1,3 +1,7 @@
+2003-10-25  Entrope <entrope@users.sourceforge.net>
+        * ircd/channel.c: Move IsUserParting() test up so we do not
+        send the part to other servers.
+
 2003-10-24  Entrope <entrope@users.sourceforge.net>
         * include/channel.h: Add new flag to indicate a user is
         parting a channel.
