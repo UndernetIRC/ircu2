@@ -128,7 +128,7 @@
  *  If cptr is P10:
  *    parv[6] = "YMM", where 'Y' is the server numeric and "MM" is the
  *              numeric nick mask of this server.
- *    parv[7] = 0 (not used yet, mandatory unsigned int after u2.10.06)
+ *    parv[7] = +hs (h == hub, s == service)
  */
 int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -179,6 +179,18 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!IsServer(cptr))          /* Don't allow silently connecting a server */
     *parv[5] = 'J';
+
+  if (*parv[7] == '+') {
+    for (ch = parv[7] + 1; *ch; ch++)
+      switch (*ch) {
+      case 'h':
+	SetHub(cptr);
+	break;
+      case 's':
+	SetService(cptr);
+	break;
+      }
+  }
 
   prot = atoi(parv[5] + 1);
   if (prot > atoi(MAJOR_PROTOCOL))
@@ -680,9 +692,10 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         continue;
       if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
-      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
-		    cli_name(acptr), hop + 1, parv[4], parv[5], NumServCap(acptr),
-		    cli_info(acptr));
+      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s :%s",
+		    cli_name(acptr), hop + 1, parv[4], parv[5],
+		    NumServCap(acptr), IsHub(acptr) ? "h" : "",
+		    IsService(acptr) ? "s" : "", cli_info(acptr));
     }
     return 0;
   }
@@ -765,7 +778,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *  If cptr is P10:
  *    parv[6] = "YMM", where 'Y' is the server numeric and "MM" is the
  *              numeric nick mask of this server.
- *    parv[7] = 0 (not used yet, mandatory unsigned int after u2.10.06)
+ *    parv[7] = +hs (h == hub, s == service)
  */
 int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -808,6 +821,18 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!IsServer(cptr))          /* Don't allow silently connecting a server */
     *parv[5] = 'J';
+
+  if (*parv[7] == '+') {
+    for (ch = parv[7] + 1; *ch; ch++)
+      switch (*ch) {
+      case 'h':
+	SetHub(cptr);
+	break;
+      case 's':
+	SetService(cptr);
+	break;
+      }
+  }
 
   prot = atoi(parv[5] + 1);
   if (prot > atoi(MAJOR_PROTOCOL))
@@ -1300,9 +1325,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         continue;
       if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
-      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
-		    cli_name(acptr), hop + 1, parv[4], parv[5], NumServCap(acptr),
-		    cli_info(acptr));
+      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s +%s%s :%s",
+		    cli_name(acptr), hop + 1, parv[4], parv[5],
+		    NumServCap(acptr), IsHub(acptr) ? "h" : "",
+		    IsService(acptr) ? "s" : "", cli_info(acptr));
     }
     return 0;
   }

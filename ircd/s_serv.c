@@ -113,9 +113,11 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     /*
      *  Pass my info to the new server
      */
-    sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s", cli_name(&me),
-                  cli_serv(&me)->timestamp, cli_serv(cptr)->timestamp, MAJOR_PROTOCOL,
-                  NumServCap(&me), *(cli_info(&me)) ? cli_info(&me) : "IRCers United");
+    sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
+		  cli_name(&me), cli_serv(&me)->timestamp,
+		  cli_serv(cptr)->timestamp, MAJOR_PROTOCOL, NumServCap(&me),
+		  feature_bool(FEAT_HUB) ? "h" : "",
+		  *(cli_info(&me)) ? cli_info(&me) : "IRCers United");
     /*
      * Don't charge this IP# for connecting
      * XXX - if this comes from a server port, it will not have been added
@@ -176,8 +178,9 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     if (!match(cli_name(&me), cli_name(cptr)))
       continue;
     sendcmdto_one(&me, CMD_SERVER, acptr,
-		  "%s 2 0 %Tu J%02u %s%s 0 :%s", cli_name(cptr),
+		  "%s 2 0 %Tu J%02u %s%s +%s%s :%s", cli_name(cptr),
 		  cli_serv(cptr)->timestamp, Protocol(cptr), NumServCap(cptr),
+		  IsHub(cptr) ? "h" : "", IsService(cptr) ? "s" : "",
 		  cli_info(cptr));
   }
 
@@ -214,9 +217,10 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
                0 != ircd_strcmp(cli_name(acptr), cli_sockhost(acptr)) &&
                0 != ircd_strncmp(cli_info(acptr), "JUPE", 4));
       sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
-		    "%s %d 0 %Tu %s%u %s%s 0 :%s", cli_name(acptr),
+		    "%s %d 0 %Tu %s%u %s%s +%s%s :%s", cli_name(acptr),
 		    cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
 		    protocol_str, Protocol(acptr), NumServCap(acptr),
+		    IsHub(acptr) ? "h" : "", IsService(acptr) ? "s" : "",
 		    cli_info(acptr));
     }
   }
