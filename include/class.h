@@ -41,11 +41,11 @@ struct ConnectionClass {
   struct Privs            privs;
   struct Privs            privs_dirty;
   unsigned int            max_sendq;
-  short                   ping_freq;
-  short                   conn_freq;
-  short                   max_links;
+  unsigned int            max_links;
+  unsigned int            ref_count;
+  unsigned short          ping_freq;
+  unsigned short          conn_freq;
   unsigned char           valid;
-  int                     ref_count;
 };
 
 /*

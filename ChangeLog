@@ -3,6 +3,10 @@
 	* doc/example.conf: Add NETWORK feature example.  Fix typos in
 	eaxmples for HANGONGOODLINK and IRCD_RES_TIMEOUT.
 
+	* include.class.h: Make max_links and ref_count unsigned ints.
+	Make ping_freq and conn_freq unsigned short. (No more negative
+	numbers in /stats y.)
+
 2004-09-18  hikari <hikari@undernet.org>
 
 	* ircd/Makefile.in: Fixed a missing internal build dependency.
