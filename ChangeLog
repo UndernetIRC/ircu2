@@ -1,3 +1,8 @@
+2002-02-06  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* tools/ringlog.c: for the heck of it, add a comment including
+	rules for /etc/magic
+
 2002-02-05  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* tools/ringlog.pl: perl script to take output from ringlog and
