@@ -1,0 +1,127 @@
+#!/bin/sh
+#
+# ircd-patch
+# Copyright (C) 2002 Alex Badea <vampire@p16.pub.ro>
+#
+# Experimental centralized patch system for ircu
+#
+
+DIFFS=patches/diffs
+MARKS=patches/marks
+
+PLIST=""
+for fname in $DIFFS/*.diff ; do
+	name=`basename $fname | sed -e 's/\.diff//'`
+	PLIST="$PLIST $name"
+done
+
+patch_list() {
+	echo "Available patches (* marks applied patches):"
+	for name in $PLIST ; do
+		[ -f $MARKS/$name ] && echo -n " * " || echo -n "   "
+		echo $name
+	done
+	echo "Done."
+}
+
+patch_test() {
+	echo "Testing patches:"
+	list="$*"
+	[ -z "$list" ] && list=$PLIST
+	for name in $list ; do
+		fname=$DIFFS/$name.diff
+		echo -n "  "
+		if [ ! -f $MARKS/$name ] ; then
+			echo -n "        "
+			if patch -p0 -N -t --dry-run >/dev/null < $fname ; then
+				echo -n "     "
+			else
+				echo -n "fail "
+			fi
+		else
+			echo -n "applied "
+			if patch -p0 -R -t --dry-run >/dev/null < $fname ; then
+				echo -n "     "
+			else
+				echo -n "fail "
+			fi
+		fi
+		echo " $name"
+	done
+	echo "Done."
+}
+
+patch_add() {
+	name=$1
+	fname="$DIFFS/$name.diff"
+	if [ ! -f $fname ]; then
+		echo "Patch $name ($fname) does not exist"
+		return 1
+	fi
+	if [ -f $MARKS/$name ] ; then
+		echo "Patch $name seems already applied"
+		return 1
+	fi
+	echo "Applying $fname..."
+	if patch -p0 -N -t < $fname ; then
+		touch $MARKS/$name
+		echo "Done."
+	else
+		echo "Failed."
+	fi
+}
+
+patch_del() {
+	name=$1
+	fname="$DIFFS/$name.diff"
+	if [ ! -f $fname ]; then
+		echo "Patch $name ($fname) does not exist"
+		return 1
+	fi
+	if [ ! -f $MARKS/$name ] ; then
+		echo "Patch $name doesn't seem to be applied"
+		return 1
+	fi
+	echo "Reversing $fname..."
+	if patch -p0 -R -t < $fname ; then
+		rm -f $MARKS/$name
+		echo "Done."
+	else
+		echo "Failed."
+	fi
+}
+
+do_help() {
+	echo "Usage: $0 [args]"
+	echo "Arguments may be:"
+	echo "  help              Prints this help"
+	echo "  list              List available patches"
+	echo "  test [patch list] Tests whether patches can be (un)applied correctly"
+	echo "  add  <patch list> Applies a patch"
+	echo "  del  <patch list> Reverses a patch"
+}
+
+case "$1" in
+	add)
+		shift
+		for name in $* ; do
+			patch_add $name
+		done
+		;;
+	del)
+		shift
+		for name in $* ; do
+			patch_del $name
+		done
+		;;
+	test)
+		shift
+		patch_test $*
+		;;
+	list)
+		patch_list
+		;;
+	*)
+		do_help
+		;;
+esac
