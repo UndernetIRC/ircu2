@@ -1,4 +1,8 @@
 2003-11-23 Isomer <isomer@undernet.org>
+	* ircd/s_user.c: Don't credit users with an extra attempt if they
+	are klined/glined, throttle them!
+
+2003-11-23 Isomer <isomer@undernet.org>
 	* ircd/os_*.c, ircd/ircd_features.c: Default changing window sizes
 	to off.  if an admin is smart enough to understand these features
 	they can enable them manually.
