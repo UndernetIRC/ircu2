@@ -27,7 +27,6 @@
 #include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -372,12 +371,8 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   sendto_opmask_butone(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
 		       SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at "
 		       "%Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
+		       feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr) ?
+		       cli_name(sptr) : cli_name((cli_user(sptr))->server),
 		       flags & GLINE_LOCAL ? "local" : "global",
 		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", user,
 		       flags & GLINE_BADCHAN ? "" : "@",
@@ -434,12 +429,8 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
 		       "expiring at %Tu: %s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
+		       feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr) ?
+		       cli_name(sptr) : cli_name((cli_user(sptr))->server),
 		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -497,12 +488,8 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
 		       "%s",
-#ifdef HEAD_IN_SAND_SNOTICES
-		       cli_name(sptr),
-#else
-		       IsServer(sptr) ? cli_name(sptr) :
-		       cli_name((cli_user(sptr))->server),
-#endif
+		       feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr) ?
+		       cli_name(sptr) : cli_name((cli_user(sptr))->server),
 		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,

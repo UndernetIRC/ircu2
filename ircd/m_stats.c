@@ -85,7 +85,6 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_features.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -146,7 +145,7 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     param = parv[3];
 
   /* Ok, track down who's supposed to get this... */
-  if (hunt_server_cmd(sptr, CMD_STATS, cptr, HEAD_IN_SAND_REMOTE /*feature_bool(FEAT_HIS_REMOTE)*/ ,
+  if (hunt_server_cmd(sptr, CMD_STATS, cptr, feature_int(FEAT_HIS_REMOTE),
 		      param ? "%s %C :%s" : "%s :%C", 2, parc, parv) !=
       HUNTED_ISME)
     return 0; /* Someone else--cool :) */

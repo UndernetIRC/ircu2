@@ -26,7 +26,7 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -555,12 +555,9 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
     if (!(cptr = LocalClientArray[i]) ||
 	(cli_fd(cli_from(cptr)) < 0) ||
 	(type == WALL_DESYNCH && !(cli_flags(cptr) & FLAGS_DEBUG)) ||
-#ifdef HEAD_IN_SAND_WALLOPS
-	(type == WALL_WALLOPS && (!(cli_flags(cptr) & FLAGS_WALLOP) ||
-				  !IsAnOper(cptr))) ||
-#else
-	(type == WALL_WALLOPS && !(cli_flags(cptr) & FLAGS_WALLOP)) ||
-#endif
+	(type == WALL_WALLOPS &&
+	 (!(cli_flags(cptr) & FLAGS_WALLOP) ||
+	  (feature_bool(FEAT_HIS_WALLOPS) && !IsAnOper(cptr)))) ||
         (type == WALL_WALLUSERS && !(cli_flags(cptr) & FLAGS_WALLOP)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);

@@ -86,9 +86,9 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
-#include "ircd_policy.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -339,7 +339,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * if sptr is a server it is exited here, nothing else to do
      */
     return exit_client_msg(cptr, sptr, &me,
-			   "Killed (" HEAD_IN_SAND_SERVERNAME " (%s <- %s))",
+			   "Killed (%s (%s <- %s))", 
+			   feature_str(FEAT_HIS_SERVERNAME),
 			   cli_name(cli_from(acptr)), cli_name(cptr));
   }
 
@@ -446,8 +447,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         assert(!MyConnect(sptr));
 
         cli_flags(sptr) |= FLAGS_KILLED;
-        exit_client(cptr, sptr, &me,
-		    "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))");
+
+	return exit_client_msg(cptr, sptr, &me,
+			       "Killed (%s (Nick collision))",
+			       feature_str(FEAT_HIS_SERVERNAME));
+
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
          * again we'll know about it --Bleep
@@ -469,25 +473,27 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
 			  "overruled)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (older "
-		    "nick overruled))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
-		    "overruled)", acptr);
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (%s (older "
+		    "nick overruled))",  feature_str(FEAT_HIS_SERVERNAME));
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :%s (older nick "
+		    "overruled)", acptr, feature_str(FEAT_HIS_SERVERNAME));
     }
-    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (older nick "
-		"overruled))");
+
+    exit_client_msg(cptr, acptr, &me, "Killed (%s (older nick "
+		    "overruled))", feature_str(FEAT_HIS_SERVERNAME));
   }
   else {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
 			  "same user@host)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (nick "
-		    "collision from same user@host))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
-		    "overruled)", acptr);
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (%s (nick "
+		    "collision from same user@host))",
+		    feature_str(FEAT_HIS_SERVERNAME));
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :%s (older nick "
+		    "overruled)", acptr, feature_str(FEAT_HIS_SERVERNAME));
     }
-    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (nick collision "
-		"from same user@host))");
+    exit_client_msg(cptr, acptr, &me, "Killed (%s (nick collision from "
+		    "same user@host))", feature_str(FEAT_HIS_SERVERNAME));
   }
   if (lastnick == cli_lastnick(acptr))
     return 0;

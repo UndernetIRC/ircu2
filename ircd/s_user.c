@@ -35,7 +35,6 @@
 #include "ircd_chattr.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -619,9 +618,10 @@ int register_user(struct Client *cptr, struct Client *sptr,
       /*
        * We ran out of bits to count this
        */
-      sendcmdto_one(&me, CMD_KILL, sptr, "%C :%s (Too many connections from your host -- Ghost)",
-                    sptr, cli_name(&me));
-      return exit_client(cptr, sptr, &me,"Too many connections from your host -- throttled");
+      sendcmdto_one(&me, CMD_KILL, sptr, "%C :%s (Too many connections from "
+		    "your host -- Ghost)", sptr, cli_name(&me));
+      return exit_client(cptr, sptr, &me, "Too many connections from your"
+			 " host -- throttled");
     }
   }
   tmpstr = umode_str(sptr);
@@ -1278,17 +1278,18 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     if (feature_bool(FEAT_WALLOPS_OPER_ONLY) && !IsAnOper(sptr) &&
 	!(setflags & FLAGS_WALLOP))
       ClearWallops(sptr);
-#ifdef SERVNOTICE_OPER_ONLY
-    if (MyConnect(sptr) && !IsAnOper(sptr) && !(setflags & FLAGS_SERVNOTICE)) {
+
+    if (feature_bool(FEAT_HIS_SNOTICES_OPER_ONLY) && MyConnect(sptr) && 
+	!IsAnOper(sptr) && !(setflags & FLAGS_SERVNOTICE)) {
       ClearServNotice(sptr);
       set_snomask(sptr, 0, SNO_SET);
     }
-#endif
-#ifdef DEBUG_OPER_ONLY
-    if (!IsAnOper(sptr) && !(setflags & FLAGS_DEBUG))
+
+    if (feature_bool(FEAT_HIS_DEBUG_OPER_ONLY) && !IsAnOper(sptr) && 
+	!(setflags & FLAGS_DEBUG))
       ClearDebug(sptr);
-#endif
   }
+
   if (MyConnect(sptr)) {
     if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);

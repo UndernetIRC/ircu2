@@ -84,7 +84,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_defs.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -114,10 +114,17 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *mask;
   struct Client *acptr;
 
-  if (parc > 2)
-  {
-    if (hunt_server_cmd(sptr, CMD_LINKS, cptr, 1, "%C :%s", 1, parc, parv) !=
-        HUNTED_ISME)
+  if (feature_bool(FEAT_HIS_LINKS) && !IsOper(sptr)) {
+    send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s %s", sptr,
+		  "/LINKS has been disabled, from CFV-165.  Visit ", 
+		  feature_str(FEAT_HIS_URLSERVERS));
+    return 0;
+  }
+
+  if (parc > 2) {
+    if (hunt_server_cmd(sptr, CMD_LINKS, cptr, 1, "%C :%s", 1, parc,
+                        parv) != HUNTED_ISME)
       return 0;
     mask = parv[2];
   }
@@ -138,21 +145,6 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
   return 0;
 }
-
-#ifdef HEAD_IN_SAND_LINKS
-int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc,
-		     char* parv[])
-{
-
-  if (parc > 2)
-    return send_reply(cptr, ERR_NOPRIVILEGES);
-
-  send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
-		"/LINKS has been disabled, from CFV-165.  Visit " URL_SERVERS );
-  return 0;
-}
-#endif
 
 /*
  * ms_links - server message handler
