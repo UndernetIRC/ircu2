@@ -1,3 +1,26 @@
+2002-12-03 hikari <shadow@undernet.org>
+
+        * ircd/Makefile.in: fluff to link ircd/m_wallvoices.c
+
+        * ircd/parse.c: addition of wallvoices parsers
+
+        * ircd/send.c: addition of a check for SKIP_NONVOICES which causes
+        a check for !IsChanOp() && !HasVoice()
+
+        * ircd/m_wallvoices.c: new m_wallvoices() and ms_wallvoices()
+        functions message is sent as "#channel :+ foo"
+
+        * ircd/m_wallchops.c: modifed so the format is now "#channel :@
+        * foo"
+        to match the WALLVOICES form...after a little "discussion" on the
+        mater
+
+        * include/send.h: addition of defintion for SKIP_NONVOICES
+
+        * include/msg.h: command defines
+
+        * include/handlers.h: function declarations
+
 2002-11-30  <splidge@quakenet.org>
 	* ircd/ircd_alloc.h: Patched frobulator bug overwriting too much
 
