@@ -1,3 +1,100 @@
+2002-09-14  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.01
+
+2002-09-13  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: make RPL_WHOISACTUALLY machine parsable
+
+	* ircd/s_user.c (register_user): if FEAT_CONNEXIT_NOTICES is TRUE,
+	send a server notice when client connects
+
+	* ircd/s_misc.c (exit_client): if FEAT_CONNEXIT_NOTICES is TRUE
+	and victim is a user, send a server notice
+
+	* ircd/ircd_features.c: new feature, CONNEXIT_NOTICES--defaults to
+	FALSE
+
+	* include/ircd_features.h: new feature: CONNEXIT_NOTICES
+
+	* doc/readme.features: document new CONNEXIT_NOTICES feature
+
+	* doc/ircd.conf.sample: list CONNEXIT_NOTICES in among the F-lines
+
+	* doc/example.conf: list CONNEXIT_NOTICES in among the F-lines
+
+2002-09-13  Jochen Meesters <ekips@pandora.be>
+
+	* include/whocmds.h: created WHO_FIELD_ACC
+
+	* ircd/whcmds.c: added WHO_FIELD_ACC support
+
+	* ircd/m_who.c: added WHO_FIELD_ACC, showing the users ACCOUNT login
+	if %a is used in the /who request
+
+2002-09-06  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (modebuf_flush_int): somehow missed this--set
+	apparent source to me if actual source is a server or if its an
+	OPMODE
+
+2002-09-05  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* INSTALL: one-character typo
+
+2002-09-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: add documentation for NETWORK and
+	URL_CLIENTS
+
+	* doc/example.conf: list new F-lines for NETWORK and
+	URL_CLIENTS--yeah, it's redundant, but we'll keep it for now
+
+	* doc/ircd.conf.sample: list new F-lines for NETWORK and
+	URL_CLIENTS
+
+	* ircd/ircd_relay.c: use feature for NETWORK
+
+	* ircd/ircd.c: use feature for URL_CLIENTS
+
+	* include/ircd_defs.h: remove now deprecated defined for NETWORK;
+	remove now deprecated define for URL_CLIENTS
+
+	* include/supported.h (FEATURESVALUES2): remove + as a channel
+	prefix, since we're deprecating them; use FEAT_NETWORK value
+	instead of static value set in ircd_defs.h
+
+	* ircd/ircd_features.c: create new FEAT_NETWORK, FEAT_URL_CLIENTS
+
+	* include/ircd_features.h: create new FEAT_NETWORK,
+	FEAT_URL_CLIENTS
+
+2002-09-04  Arjen Wolfs  <arjen@euro.net>
+
+	* README.FreeBSD: fix a few typos
+
+	* README: fix a few typos
+
+	* INSTALL: fix a few typos
+
+2002-09-03  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel for
+	u2.10.11.01 development
+
+	* ircd/m_invite.c (m_invite): send the invite message to a local
+	user in the case of local channels
+
+	* ircd/engine_poll.c (engine_loop): remove an assertion which
+	isn't supposed to be being triggered, but somehow is
+
+2002-09-03  hikari <shadow@undernet.org>
+	* ircd/m_map.c: changed call from IsOper to IsAnOper to 
+	pickup locals.
+
+	* ircd/m_links.c: changed call from IsOper to IsAnOper to
+	pickup locals.
+
 2002-09-02  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h: release u2.10.11.00

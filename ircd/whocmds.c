@@ -230,6 +230,13 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     while ((*p2) && (*(p1++) = *(p2++)));
   }
 
+  if (fields & WHO_FIELD_ACC)
+  {
+    char *p2 = cli_user(acptr)->account;
+    *(p1++) = ' ';
+    while ((*p2) && (*(p1++) = *(p2++)));
+  }
+
   /* The first char will always be an useless blank and we 
      need to terminate buf1 */
   *p1 = '\0';

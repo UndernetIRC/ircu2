@@ -253,6 +253,7 @@ static struct FeatureDesc {
   F_B(HOST_HIDING, 0, 0, 0),
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
+  F_B(CONNEXIT_NOTICES, 0, 0, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
@@ -372,6 +373,10 @@ static struct FeatureDesc {
   F_S(HIS_SERVERNAME, 0, "*.undernet.org", 0),
   F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", 0),
   F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
+
+  /* Misc. random stuff */
+  F_S(NETWORK, 0, "UnderNet", 0),
+  F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
 
 #undef F_S
 #undef F_B

@@ -30,6 +30,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -306,8 +307,8 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
    * nickname addressed?
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
-    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left " NETWORK ". "
-	       "Failed to deliver: [%.20s]", text);
+    send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left %s. "
+	       "Failed to deliver: [%.20s]", feature_str(FEAT_NETWORK), text);
     return;
   }
   if (is_silenced(sptr, acptr))

@@ -392,6 +392,14 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   assert(killer);
   if (MyConnect(victim)) {
     cli_flags(victim) |= FLAGS_CLOSING;
+
+    if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
+      sendto_opmask_butone(0, SNO_CONNEXIT,
+			   "Client exiting: %s (%s@%s) [%s] [%s]",
+			   cli_name(victim), cli_user(victim)->username,
+			   cli_user(victim)->host, comment,
+			   ircd_ntoa((const char*) &(cli_ip(victim))));
+
     update_load();
 
     on_for = CurrentTime - cli_firsttime(victim);
