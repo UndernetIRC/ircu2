@@ -1,3 +1,7 @@
+2004-01-20  Perry Lorier <isomer@undernet.org>
+
+	* ircd/ircd_parser.y: Fixed parser to work with a more modern bison
+
 2004-01-21 Gavin Grieve <hektik@dimebox.net>
 
 	* ircd/channel.c, include/channel.h: bring forward the IsUserParting()
@@ -74,6 +78,7 @@
 	* ircd/res_adns.c: included sys/types.h, for non-Linux
 	headers
 
+>>>>>>> 1.388
 2003-03-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* libs/dbprim: database primitives library, including

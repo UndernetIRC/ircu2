@@ -77,6 +77,16 @@
   struct DenyConf *dconf;
   struct ServerConf *sconf;
   struct qline *qconf = NULL;
+
+static void parse_error(char *pattern,...) {
+	va_list vl;
+	struct VarData vd;
+	va_start(vl,pattern);
+	vd.vd_format = pattern;
+	vd.vd_args = vl;
+	sendto_opmask_butone(0, SNO_OLDSNO, "Config: %v", &vd);
+	va_end(vl);
+}
 %}
 
 %token <text> QSTRING
@@ -141,17 +151,17 @@
 %token FEATURES
 %token QUARANTINE
 /* and now a lot of priviledges... */
-%token TPRIV_CHAN_LIMIT, TPRIV_MODE_LCHAN, TPRIV_DEOP_LCHAN, TPRIV_WALK_LCHAN
-%token TPRIV_KILL, TPRIV_LOCAL_KILL, TPRIV_REHASH, TPRIV_RESTART, TPRIV_DIE
-%token TPRIV_GLINE, TPRIV_LOCAL_GLINE, TPRIV_JUPE, TPRIV_LOCAL_JUPE
-%token TPRIV_LOCAL_OPMODE, TPRIV_OPMODE, TPRIV_SET, TPRIV_WHOX, TPRIV_BADCHAN
+%token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
+%token TPRIV_KILL TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
+%token TPRIV_GLINE TPRIV_LOCAL_GLINE TPRIV_JUPE TPRIV_LOCAL_JUPE
+%token TPRIV_LOCAL_OPMODE TPRIV_OPMODE TPRIV_SET TPRIV_WHOX TPRIV_BADCHAN
 %token TPRIV_LOCAL_BADCHAN
-%token TPRIV_SEE_CHAN, TPRIV_SHOW_INVIS, TPRIV_SHOW_ALL_INVIS, TPRIV_PROPAGATE
-%token TPRIV_UNLIMIT_QUERY, TPRIV_DISPLAY, TPRIV_SEE_OPERS, TPRIV_WIDE_GLINE
+%token TPRIV_SEE_CHAN TPRIV_SHOW_INVIS TPRIV_SHOW_ALL_INVIS TPRIV_PROPAGATE
+%token TPRIV_UNLIMIT_QUERY TPRIV_DISPLAY TPRIV_SEE_OPERS TPRIV_WIDE_GLINE
 /* and some types... */
 %type <num> sizespec
-%type <num> timespec, timefactor, factoredtimes, factoredtime
-%type <num> expr, yesorno, privtype
+%type <num> timespec timefactor factoredtimes factoredtime
+%type <num> expr yesorno privtype
 %left '+' '-'
 %left '*' '/'
 
@@ -191,51 +201,41 @@ timefactor: SECONDS { $$ = 1; }
 | DECADES { $$ = 60 * 60 * 24 * 365 * 10; };
 
 
-sizespec:	expr	
-		= {
+sizespec:	expr	{
 			$$ = $1;
 		}
-		| expr BYTES
-		= { 
+		| expr BYTES  { 
 			$$ = $1;
 		}
-		| expr KBYTES
-		= {
+		| expr KBYTES {
 			$$ = $1 * 1024;
 		}
-		| expr MBYTES
-		= {
+		| expr MBYTES {
 			$$ = $1 * 1024 * 1024;
 		}
-		| expr GBYTES
-		= {
+		| expr GBYTES {
 			$$ = $1 * 1024 * 1024 * 1024;
 		}
-		| expr TBYTES
-		= {
+		| expr TBYTES {
 			$$ = $1 * 1024 * 1024 * 1024;
 		}
 		;
 
 /* this is an arithmatic expression */
 expr: NUMBER
-		= { 
+		{ 
 			$$ = $1;
 		}
-		| expr '+' expr
-		= { 
+		| expr '+' expr { 
 			$$ = $1 + $3;
 		}
-		| expr '-' expr
-		= { 
+		| expr '-' expr { 
 			$$ = $1 - $3;
 		}
-		| expr '*' expr
-		= { 
+		| expr '*' expr { 
 			$$ = $1 * $3;
 		}
-		| expr '/' expr
-		= { 
+		| expr '/' expr { 
 			$$ = $1 / $3;
 		}
 /* leave this out until we find why it makes BSD yacc dump core -larne
@@ -243,8 +243,7 @@ expr: NUMBER
 		= {
 			$$ = -$2;
 		} */
-		| '(' expr ')'
-		= {
+		| '(' expr ')' {
 			$$ = $2;
 		}
 		;
@@ -264,12 +263,18 @@ generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (localConf.numeric == 0)
     localConf.numeric = yylval.num;
+  else
+    parse_error("Redefinition of server numeric %i (%i)",yylval.num,
+    		localConf.numeric);
 };
 
 generalname: NAME '=' QSTRING ';'
 {
   if (localConf.name == NULL)
     DupString(localConf.name, yylval.text);
+  else
+    parse_error("Redefinition of server name %s (%s)",yylval.text,
+    		localConf.name);
 };
 
 generaldesc: DESCRIPTION '=' QSTRING ';'
@@ -323,6 +328,9 @@ classblock: CLASS {
   if (name != NULL)
   {
    add_class(name, tping, tconn, maxlinks, sendq);
+  }
+  else {
+   parse_error("Missing name in class block");
   }
 } ';';
 classitems: classitem classitems | classitem;
@@ -380,6 +388,7 @@ connectblock: CONNECT
    MyFree(pass);
    MyFree(host);
    name = pass = host = NULL;
+   parse_error("Bad connect block");
  }
 }';';
 connectitems: connectitem connectitems | connectitem;
@@ -421,6 +430,7 @@ serverblock: SERVER
    MyFree(aconf->name);
    MyFree(aconf);
    aconf = NULL;
+   parse_error("Bad server block");
  }
  else
  {
@@ -456,6 +466,8 @@ serverleaf: LEAF '=' YES ';'
 {
  if (!(aconf->status & CONF_HUB && aconf->status & CONF_UWORLD))
   aconf->status |= CONF_LEAF;
+ else
+  parse_error("Server is both leaf and a hub");
 }
 | LEAF '=' NO ';'
 {
@@ -602,6 +614,7 @@ portblock: PORT {
   {
     MyFree(host);
     MyFree(pass);
+    parse_error("Bad port block");
   }
 };
 portitems: portitem portitems | portitem;
@@ -664,6 +677,7 @@ clientblock: CLIENT
    MyFree(aconf->passwd);
    MyFree(aconf);
    aconf = NULL;
+   parse_error("Bad client block");
   }
 } ';';
 clientitems: clientitem clientitems | clientitem;
@@ -711,6 +725,7 @@ killblock: KILL
     MyFree(dconf->message);
     MyFree(dconf);
     dconf = NULL;
+    parse_error("Bad kill block");
   }
 } ';';
 killitems: killitem killitems | killitem;
@@ -798,6 +813,7 @@ cruleblock: CRULE
   {
     MyFree(host);
     MyFree(pass);
+    parse_error("Bad CRule block");
   }
 } ';';
 
