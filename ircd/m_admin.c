@@ -115,10 +115,12 @@ static int send_admin_info(struct Client* sptr)
  */
 int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  struct Client *acptr;
+
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (parc > 1)
+  if (parc > 1 && (!(acptr = find_match_server(parv[1])) || !IsMe(acptr)))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
   return send_admin_info(sptr);

@@ -1,3 +1,8 @@
+2002-11-21  Aaron Catella <aaroncatella@yahoo.com>
+
+	* ircd/m_admin.c: allow /admin <local server>
+	* ircd/m_version.c: allow /version <local server>
+
 2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_join.c (m_join): reset control character sentinel;

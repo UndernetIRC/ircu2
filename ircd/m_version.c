@@ -103,12 +103,13 @@
  * m_version - generic message handler
  *
  *   parv[0] = sender prefix
- *   parv[1] = remote server
+ *   parv[1] = servername
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  struct Client *acptr;
 
-  if (parc > 1)
+  if (parc > 1 && (!(acptr = find_match_server(parv[1])) || !IsMe(acptr)))
     send_reply(sptr, ERR_NOPRIVILEGES);
   else {
     send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
@@ -123,7 +124,7 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * mo_version - generic message handler
  *
  *   parv[0] = sender prefix
- *   parv[1] = remote server
+ *   parv[1] = servername
  */
 int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -154,7 +155,7 @@ int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * ms_version - server message handler
  *
  *   parv[0] = sender prefix
- *   parv[1] = remote server
+ *   parv[1] = servername
  */
 int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
