@@ -89,6 +89,7 @@ struct Client;
                                  * temporary TS; can be removed when all 2.10 */
 #define MODE_LISTED     0x10000
 #define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
+#define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
@@ -330,7 +331,7 @@ extern void modebuf_mode(struct ModeBuf *mbuf, unsigned int mode);
 extern void modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode,
 			      unsigned int uint);
 extern void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
-				char *string);
+				char *string, int free);
 extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 				struct Client *client);
 extern int modebuf_flush(struct ModeBuf *mbuf);

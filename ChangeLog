@@ -1,5 +1,18 @@
 2000-03-31  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_clearmode.c (do_clearmode): updated uses of
+	modebuf_mode_string() for the new usage
+
+	* ircd/channel.c: added flag MODE_FREE and an int argument to
+	modebuf_mode_string() to indicate that the string must be free'd;
+	updated calls to modebuf_mode_string() for the new usage; called
+	collapse(pretty_mask()) on the ban string and use allocated memory
+	for it; added ban list length accounting; fixed a number of small
+	bugs in ban processing
+
+	* include/channel.h: added flag MODE_FREE and an int argument to
+	modebuf_mode_string() to indicate that the string must be free'd
+
 	* ircd/m_clearmode.c (do_clearmode): made sure clearmode removed
 	keys and limits that are set
 
@@ -226,7 +239,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.47 2000-03-31 15:35:18 kev Exp $
+# $Id: ChangeLog,v 1.48 2000-03-31 18:19:09 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
