@@ -58,3 +58,37 @@ int client_get_ping(const struct Client* acptr)
   Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
   return ping;
 }
+
+/*
+ * client_drop_sendq
+ * removes the client's connection from the list of connections with
+ * queued data
+ */
+void client_drop_sendq(struct Connection* con)
+{
+  if (con_prev_p(con)) { /* on the queued data list... */
+    if (con_next(con))
+      con_prev_p(con_next(con)) = con_prev_p(con);
+    *(con_prev_p(con)) = con_next(con);
+
+    con_next(con) = 0;
+    con_prev_p(con) = 0;
+  }
+}
+
+/*
+ * client_add_sendq
+ * adds the client's connection to the list of connections with
+ * queued data
+ */
+void client_add_sendq(struct Connection* con, struct Connection** con_p)
+{
+  if (!con_prev_p(con)) { /* not on the queued data list yet... */
+    con_prev_p(con) = con_p;
+    con_next(con) = *con_p;
+
+    if (*con_p)
+      con_prev_p(*con_p) = &(con_next(con));
+    *con_p = con;
+  }
+}

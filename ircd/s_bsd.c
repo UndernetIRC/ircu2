@@ -516,6 +516,7 @@ void close_connection(struct Client *cptr)
   cli_flags(cptr) |= FLAGS_DEADSOCKET;
 
   MsgQClear(&(cli_sendQ(cptr)));
+  client_drop_sendq(cli_connect(cptr));
   DBufClear(&(cli_recvQ(cptr)));
   memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
   set_snomask(cptr, 0, SNO_SET);

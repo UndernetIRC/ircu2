@@ -411,7 +411,9 @@ typedef enum ShowIPType {
 
 extern const char* get_client_name(const struct Client* sptr, int showip);
 extern int client_get_ping(const struct Client* local_client);
-
+extern void client_drop_sendq(struct Connection* con);
+extern void client_add_sendq(struct Connection* con,
+			     struct Connection** con_p);
 
 #endif /* INCLUDED_client_h */
 

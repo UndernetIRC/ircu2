@@ -47,6 +47,8 @@ static int sentalong[MAXCONNECTIONS];
 static int sentalong_marker;
 struct SLink *opsarray[32];     /* don't use highest bit unless you change
 				   atoi to strtoul in sendto_op_mask() */
+static struct Connection *send_queues = 0;
+
 /*
  * dead_link
  *
@@ -73,6 +75,7 @@ static void dead_link(struct Client *to, char *notice)
    */
   DBufClear(&(cli_recvQ(to)));
   MsgQClear(&(cli_sendQ(to)));
+  client_drop_sendq(cli_connect(to));
 
   /*
    * Keep a copy of the last comment, for later use...
@@ -106,28 +109,11 @@ void flush_connections(struct Client* cptr)
     send_queued(cptr);
   }
   else {
-    int i;
-    for (i = HighestFd; i >= 0; i--) {
-      if ((cptr = LocalClientArray[i]))
-        send_queued(cptr);
+    struct Connection* con;
+    for (con = send_queues; con; con = con_next(con)) {
+      assert(0 > MsgQLength(&(con_sendQ(con))));
+      send_queued(con_client(con));
     }
-  }
-}
-
-/*
- * flush_sendq_except - run through local client array and flush
- * the sendq for each client, if the address of the client sendq
- * is the same as the one specified, it is skipped. This is used
- * by dbuf_put to try to get some more memory before bailing and
- * causing the client to be disconnected.
- */
-void flush_sendq_except(void)
-{
-  int i;
-  struct Client* cptr;
-  for (i = HighestFd; i >= 0; i--) {
-    if ( (cptr = LocalClientArray[i]))
-      send_queued(cptr);
   }
 }
 
@@ -153,7 +139,7 @@ void send_queued(struct Client *to)
       msgq_delete(&(cli_sendQ(to)), len);
       cli_lastsq(to) = MsgQLength(&(cli_sendQ(to))) / 1024;
       if (IsBlocked(to))
-        break;
+        return;
     }
     else {
       if (IsDead(to)) {
@@ -161,9 +147,12 @@ void send_queued(struct Client *to)
         sprintf(tmp,"Write error: %s",(strerror(cli_error(to))) ? (strerror(cli_error(to))) : "Unknown error" );
         dead_link(to, tmp);
       }
-      break;
+      return;
     }
   }
+
+  /* Ok, sendq is now empty... */
+  client_drop_sendq(cli_connect(to));
 }
 
 void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
@@ -192,6 +181,7 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
   Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
 
   msgq_add(&(cli_sendQ(to)), buf, prio);
+  client_add_sendq(cli_connect(to), &send_queues);
 
   /*
    * Update statistics. The following is slightly incorrect

@@ -1,3 +1,31 @@
+2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: implement the efficiency of flush_connections by
+	creating a linked list of struct Connection's with queued data;
+	also get rid of flush_sendq_except and make sure to yank
+	connections out of the list when their sendQs become empty (notice
+	the assertion in flush_connections!)
+
+	* ircd/s_bsd.c (close_connection): must yank the Connection out of
+	the sendq list
+
+	* ircd/list.c (dealloc_connection): must yank the Connection out
+	of the sendq list
+
+	* ircd/dbuf.c (dbuf_put): call flush_connections instead of the
+	deprecated flush_sendq_except
+
+	* ircd/client.c: define a couple new helper functions for sendq
+	threading--this will make the flush_connections function in send.c
+	considerably more efficient by creating a linked list of
+	Connections that have queued data to send
+
+	* include/send.h: remove flush_sendq_except, as it's not used
+	anymore
+
+	* include/client.h: declare a couple new helper functions for the
+	sendq threading system
+
 2000-12-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_ison.c (m_ison): Apply Diane Bruce's patch to make ISON

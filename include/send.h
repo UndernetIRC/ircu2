@@ -19,7 +19,6 @@ struct MsgBuf;
  * Prototypes
  */
 extern void send_buffer(struct Client* to, struct MsgBuf* buf, int prio);
-extern void flush_sendq_except(void);
 
 extern void flush_connections(struct Client* cptr);
 extern void send_queued(struct Client *to);
