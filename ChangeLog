@@ -1,5 +1,8 @@
 2001-01-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c (read_message): fix a typo in the select version of
+	read_message()
+
 	* ircd/whowas.c (whowas_free): MyFree() is a macro that expects
 	its argument to be an lvalue, which means we can't use
 	whowas_clean()'s handy-dandy "return ww" feature
