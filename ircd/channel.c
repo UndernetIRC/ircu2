@@ -2706,7 +2706,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 				chan, jbuf->jb_source);
   }
 
-  if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || IsLocalChannel(chan->chname))
+  if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
+      jbuf->jb_type == JOINBUF_TYPE_JOIN || IsLocalChannel(chan->chname))
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */

@@ -1,3 +1,10 @@
+2002-04-01  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/channel.c (joinbuf_join): don't add a channel to the list
+	in the joinbuf unless when we flush it, we empty the list
+
 2002-03-28  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* configure.in: use AC_CHECK_FUNCS to define HAVE_* macros; test
