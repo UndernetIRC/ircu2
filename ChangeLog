@@ -1,5 +1,11 @@
 2000-06-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_gline.c (ms_gline): actually, this should be the
+	slightest bit more efficient...
+
+	* ircd/m_jupe.c (ms_jupe): actually, this should be the slightest
+	bit more efficient...
+
 	* ircd/m_gline.c (ms_gline): inhibit GLINE processing resends
 	during netburst
 
@@ -1165,7 +1171,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.140 2000-06-02 22:57:33 kev Exp $
+# $Id: ChangeLog,v 1.141 2000-06-02 23:09:20 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

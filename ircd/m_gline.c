@@ -184,9 +184,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	return gline_activate(cptr, sptr, agline, lastmod, flags);
       else
 	return gline_deactivate(cptr, sptr, agline, lastmod, flags);
-    } else if (GlineLastMod(agline) == lastmod)
-      return 0;
-    else if (IsBurstOrBurstAck(cptr)) /* it's in the burst, so don't resynch */
+    } else if (GlineLastMod(agline) == lastmod || IsBurstOrBurstAck(cptr))
       return 0;
     else
       return gline_resend(cptr, agline); /* other server desynched WRT gline */
