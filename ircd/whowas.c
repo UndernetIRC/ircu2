@@ -196,7 +196,8 @@ whowas_free(struct Whowas *ww)
 
   Debug((DEBUG_LIST, "Destroying whowas structure for %s", ww->name));
 
-  MyFree(whowas_clean(ww));
+  whowas_clean(ww);
+  MyFree(ww);
 
   wwList.ww_alloc--;
 }
