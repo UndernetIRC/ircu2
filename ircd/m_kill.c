@@ -104,9 +104,8 @@
  *
  */
 static int do_kill(struct Client* cptr, struct Client* sptr,
-                  struct Client* victim, char* path)
+                  struct Client* victim, char* inpath, char* path)
 {
-  const char*  inpath;
   char*        comment;
   char         buf[BUFSIZE];
 
@@ -114,7 +113,8 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
   assert(0 != sptr);
   assert(IsUser(victim));
 
-  if (IsServer(sptr)) {
+  if (!MyConnect || IsServer(sptr)) 
+  {
      if (!(comment = strchr(path, ' ')))
        comment = "No reason supplied";
      else
@@ -139,11 +139,9 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * Note: "victim->name" is used instead of "user" because we may
    *       have changed the target because of the nickname change.
    */
-  inpath = IsServer(sptr) ? cli_name(cptr) : cli_user(sptr)->host;
-
   sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
                        "Received KILL message for %s. From %s Path: %s!%s",
-                       get_client_name(victim, SHOW_IP), cli_name(cptr),
+                       get_client_name(victim, SHOW_IP), cli_name(sptr),
                        inpath, comment);
   log_write_kill(victim, sptr, inpath, path);
 
@@ -245,7 +243,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (Ghost 5 Numeric Collided)",
                   victim, path);
   }
-  return do_kill(cptr, sptr, victim, path);
+  return do_kill(cptr, sptr, victim, cli_name(cptr), path);
 }
 
 /*
@@ -311,5 +309,5 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		  sptr, cli_name(victim));
     return 0;
   }
-  return do_kill(cptr, sptr, victim, path);
+  return do_kill(cptr, sptr, victim, cli_user(sptr)->host, path);
 }

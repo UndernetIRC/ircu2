@@ -1,5 +1,7 @@
 2002-03-10 Joseph Bongaarts <foxxe@wtfs.net>
 
+	* ircd/m_kill.c: Last of the bug fixes for do_kill()
+
 	* ircd/list.c: Don't remove clients from the linked list
 	that aren't actually in the list.
 	
