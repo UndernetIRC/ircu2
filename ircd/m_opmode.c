@@ -122,7 +122,8 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
 		MODEBUF_DEST_SERVER  | /* And to server */
 		MODEBUF_DEST_OPMODE  | /* Use OPMODE */
-		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
+		MODEBUF_DEST_HACK4   | /* Generate a HACK(4) notice */
+		MODEBUF_DEST_LOG));    /* Log the mode changes to OPATH */
 
   mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 	     (MODE_PARSE_SET    | /* Set the modes on the channel */
@@ -158,7 +159,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
 		MODEBUF_DEST_SERVER  | /* And to server */
 		MODEBUF_DEST_OPMODE  | /* Use OPMODE */
-		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
+		MODEBUF_DEST_HACK4   | /* Generate a HACK(4) notice */
+		MODEBUF_DEST_LOG));    /* Log the mode changes to OPATH */
 
   mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 	     (MODE_PARSE_SET |    /* set the modes on the channel */

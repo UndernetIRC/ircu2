@@ -540,6 +540,18 @@ JPATH
   log file where the logs of JUPEs will be stored; it is usually called
   "jupe.log".  Note that you should not include quotes here.
 
+Do you want to log OPMODEs and CLEARMODEs to a separate file
+CONFIG_LOG_OPMODES
+  Specify 'y' here if you want to log OPMODEs and CLEARMODEs to a local
+  file.
+
+Give the path and(or) filename of this log file
+OPATH
+  OPATH is the filename, relative to DPATH, or the full path, of the
+  log file where the logs of OPMODEs and CLEARMODEs will be stored; it
+  is usually called "opmode.log".  Note that you should not include
+  quote here.
+
 Do you want to log connecting users to a separate file
 CONFIG_LOG_USERS
   Specify 'y' here if you want to log who is connecting to your server.
