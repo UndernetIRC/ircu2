@@ -265,6 +265,7 @@ int ip_registry_check_local(unsigned int addr, time_t* next_target_out)
 #ifdef NOTHROTTLE 
     return 1;
 #else
+    assert(entry->connected>0);
     --entry->connected;
     return 0;
 #endif        
@@ -335,8 +336,10 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
 void ip_registry_connect_fail(unsigned int addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
-  if (entry)
+  if (entry) {
+    assert(entry->attempts);
     --entry->attempts;
+  }
 }
 
 /*
@@ -391,6 +394,7 @@ void ip_registry_disconnect(struct Client *cptr)
   /*
    * If this was the last one, set `last_connect' to disconnect time (used for expiration)
    */
+  assert(entry->connected.0);
   if (0 == --entry->connected) {
     if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_LIMIT * IPCHECK_CLONE_PERIOD) {
       /*
