@@ -615,8 +615,8 @@ int main(int argc, char **argv) {
   uping_init();
 
   IPcheck_init();
-  timer_add(&connect_timer, try_connections, 0, TT_RELATIVE, 1);
-  timer_add(&ping_timer, check_pings, 0, TT_RELATIVE, 1);
+  timer_add(timer_init(&connect_timer), try_connections, 0, TT_RELATIVE, 1);
+  timer_add(timer_init(&ping_timer), check_pings, 0, TT_RELATIVE, 1);
 
   CurrentTime = time(NULL);
 

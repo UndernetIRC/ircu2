@@ -82,6 +82,7 @@ struct GenHeader {
 #define GEN_DESTROY	0x0001	/* generator is to be destroyed */
 #define GEN_MARKED	0x0002	/* generator is marked for destruction */
 #define GEN_ACTIVE	0x0004	/* generator is active */
+#define GEN_READD	0x0008	/* generator (timer) must be re-added */
 
 struct Socket {
   struct GenHeader s_header;	/* generator information */
@@ -141,6 +142,7 @@ struct Timer {
 #define t_ed_int(tim)	((tim)->t_header.gh_engdata.ed_int)
 #define t_ed_ptr(tim)	((tim)->t_header.gh_engdata.ed_ptr)
 #define t_active(tim)	((tim)->t_header.gh_flags & GEN_ACTIVE)
+#define t_onqueue(tim)	((tim)->t_header.gh_prev_p)
 
 struct Event {
   struct Event*	 ev_next;	/* linked list of events on queue */
@@ -215,6 +217,7 @@ void event_init(int max_sockets);
 void event_loop(void);
 void event_generate(enum EventType type, void* arg, int data);
 
+struct Timer* timer_init(struct Timer* timer);
 void timer_add(struct Timer* timer, EventCallBack call, void* data,
 	       enum TimerType type, time_t value);
 void timer_del(struct Timer* timer);

@@ -197,7 +197,7 @@ static void ip_registry_expire(struct Event* ev)
  */
 void IPcheck_init(void)
 {
-  timer_add(&expireTimer, ip_registry_expire, 0, TT_PERIODIC, 60);
+  timer_add(timer_init(&expireTimer), ip_registry_expire, 0, TT_PERIODIC, 60);
 }
 
 /*

@@ -1,3 +1,46 @@
+2002-01-12  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/uping.c (uping_start): initialize some timers
+
+	* ircd/s_bsd.c (read_packet): use new t_onqueue() macro to figure
+	out when we need to re-add the process timer
+
+	* ircd/s_auth.c (make_auth_request): initialize a timer
+
+	* ircd/res.c (init_resolver): initialize some timers
+
+	* ircd/list.c (alloc_connection): initialize the client process
+	timer
+
+	* ircd/ircd_events.c: add a function, timer_init(), to initialize
+	a struct Timer; recast timer_add() to catch when adding a marked
+	timer and not re-enqueue it--but mark it for re-enqueuing; update
+	timer_del() to turn off the GEN_READD flag and to ignore reference
+	counts when destroying the timer--we're using GEN_MARKED as an
+	ersatz referance count; changed timer_run() to work with the new
+	way of doing things; add GEN_ACTIVE and GEN_READD to gen_flags()'s
+	map[]
+
+	* ircd/ircd.c: initialize some timers
+
+	* ircd/engine_select.c (engine_loop): initialize a timer
+
+	* ircd/engine_poll.c (engine_loop): initialize a timer
+
+	* ircd/engine_kqueue.c (engine_loop): initialize a timer
+
+	* ircd/engine_devpoll.c (engine_loop): initialize a timer
+
+	* ircd/IPcheck.c (IPcheck_init): initialize a timer
+
+	* include/ircd_events.h: add GEN_READD flag for timers to indicate
+	that a timer must be readded; add t_onqueue() macro to check to
+	see if a timer is on the queue (this is a hack, though); added
+	timer_init() to initialize a struct Timer--we're no longer doing
+	the initialization in timer_add()
+
 2002-01-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/engine_devpoll.c (engine_loop): relocate an assertion to

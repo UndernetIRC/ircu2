@@ -368,6 +368,17 @@ event_generate(enum EventType type, void* arg, int data)
   event_add(ptr); /* add event to queue */
 }
 
+/* Initialize a timer structure */
+struct Timer*
+timer_init(struct Timer* timer)
+{
+  gen_init((struct GenHeader*) timer, 0, 0, 0, 0);
+
+  timer->t_header.gh_flags = 0; /* turn off active flag */
+
+  return timer; /* convenience return */
+}
+
 /* Add a timer to be processed */
 void
 timer_add(struct Timer* timer, EventCallBack call, void* data,
@@ -380,13 +391,20 @@ timer_add(struct Timer* timer, EventCallBack call, void* data,
 	 timer_to_name(type)));
 
   /* initialize a timer... */
-  gen_init((struct GenHeader*) timer, call, data, 0, 0);
+  timer->t_header.gh_flags |= GEN_ACTIVE;
+  if (timer->t_header.gh_flags & GEN_MARKED)
+    timer->t_header.gh_flags |= GEN_READD;
+
+  timer->t_header.gh_ref = 0;
+  timer->t_header.gh_call = call;
+  timer->t_header.gh_data = data;
 
   timer->t_type = type;
   timer->t_value = value;
   timer->t_expire = 0;
 
-  timer_enqueue(timer); /* and enqueue it */
+  if (!(timer->t_header.gh_flags & GEN_MARKED))
+    timer_enqueue(timer); /* and enqueue it */
 }
 
 /* Remove a timer from the processing queue */
@@ -395,18 +413,16 @@ timer_del(struct Timer* timer)
 {
   assert(0 != timer);
 
-  if (timer->t_header.gh_flags & GEN_MARKED)
-    return; /* timer already marked for destruction */
+  timer->t_header.gh_flags &= ~GEN_READD;
 
-  timer->t_header.gh_flags |= GEN_DESTROY;
+  if (timer->t_header.gh_flags & GEN_MARKED)
+    return; /* timer is being used */
 
   Debug((DEBUG_LIST, "Deleting timer %p (type %s)", timer,
 	 timer_to_name(timer->t_type)));
 
-  if (!timer->t_header.gh_ref) { /* not in use; destroy right now */
-    gen_dequeue(timer);
-    event_generate(ET_DESTROY, timer, 0);
-  }
+  gen_dequeue(timer);
+  event_generate(ET_DESTROY, timer, 0);
 }
 
 /* Change the time a timer expires */
@@ -445,18 +461,20 @@ timer_run(void)
       break; /* processed all pending timers */
 
     gen_dequeue(ptr); /* must dequeue timer here */
-    if (ptr->t_type == TT_ABSOLUTE || ptr->t_type == TT_RELATIVE) {
-      Debug((DEBUG_LIST, "Marking timer %p for later destruction", ptr));
-      ptr->t_header.gh_flags |= GEN_MARKED; /* mark for destruction */
-    }
+    ptr->t_header.gh_flags |= (GEN_MARKED |
+			       (ptr->t_type == TT_PERIODIC ? GEN_READD : 0));
+
     event_generate(ET_EXPIRE, ptr, 0); /* generate expire event */
 
-    if (ptr->t_header.gh_flags & (GEN_MARKED | GEN_DESTROY)) {
+    ptr->t_header.gh_flags &= ~GEN_MARKED;
+
+    if (!(ptr->t_header.gh_flags & GEN_READD)) {
       Debug((DEBUG_LIST, "Destroying timer %p", ptr));
       event_generate(ET_DESTROY, ptr, 0);
-    } else if (ptr->t_type == TT_PERIODIC) {
-      Debug((DEBUG_LIST, "Re-enqueuing periodic timer %p", ptr));
-      timer_enqueue(ptr); /* re-queue periodic timer */
+    } else {
+      Debug((DEBUG_LIST, "Re-enqueuing timer %p", ptr));
+      timer_enqueue(ptr); /* re-queue timer */
+      ptr->t_header.gh_flags &= ~GEN_READD;
     }
   }
 }
@@ -689,6 +707,8 @@ gen_flags(unsigned int flags)
   NS(unsigned int) map[] = {
     NM(GEN_DESTROY),
     NM(GEN_MARKED),
+    NM(GEN_ACTIVE),
+    NM(GEN_READD),
     NE
   };
 

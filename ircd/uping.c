@@ -271,9 +271,9 @@ static void uping_start(struct UPing* pptr)
 {
   assert(0 != pptr);
 
-  timer_add(&pptr->sender, uping_sender_callback, (void*) pptr,
+  timer_add(timer_init(&pptr->sender), uping_sender_callback, (void*) pptr,
 	    TT_PERIODIC, 1);
-  timer_add(&pptr->killer, uping_killer_callback, (void*) pptr,
+  timer_add(timer_init(&pptr->killer), uping_killer_callback, (void*) pptr,
 	    TT_RELATIVE, UPINGTIMEOUT);
   pptr->freeable |= UPING_PENDING_SENDER | UPING_PENDING_KILLER;
 

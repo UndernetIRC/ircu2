@@ -263,7 +263,7 @@ engine_loop(struct Generators* gen)
 	/* Log the poll error */
 	log_write(LS_SOCKET, L_ERROR, 0, "poll() error: %m");
 	if (!errors++)
-	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+	  timer_add(timer_init(&clear_error), error_clear, 0, TT_PERIODIC,
 		    ERROR_EXPIRE_TIME);
 	else if (errors > POLL_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many poll errors");

@@ -25,6 +25,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "listener.h"
@@ -140,6 +141,7 @@ static struct Connection* alloc_connection(void)
 #endif
 
   memset(con, 0, sizeof(struct Connection));
+  timer_init(&(con_proc(con)));
 
   return con;
 }

@@ -229,8 +229,8 @@ static struct AuthRequest* make_auth_request(struct Client* client)
   auth->fd      = -1;
   auth->client  = client;
   cli_auth(client) = auth;
-  timer_add(&auth->timeout, auth_timeout_callback, (void*) auth, TT_RELATIVE,
-	    AUTH_TIMEOUT);
+  timer_add(timer_init(&auth->timeout), auth_timeout_callback, (void*) auth,
+	    TT_RELATIVE, AUTH_TIMEOUT);
   return auth;
 }
 
