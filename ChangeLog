@@ -1,3 +1,8 @@
+2000-08-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_names.c (do_names): pull-up from do_names fix in
+	u2.10.10.pl11
+
 2000-07-15  Perry Lorier       <Isomer@coders.net>
 	* various: IP only k:'s and G:'s now do bit tests instead of two(!) 
                  match()'s.  Major Major cpu savings.  Also speed up the
@@ -1286,7 +1291,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.158 2000-07-15 23:55:32 isomer Exp $
+# $Id: ChangeLog,v 1.159 2000-08-30 15:58:53 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
