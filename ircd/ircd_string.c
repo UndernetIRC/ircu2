@@ -139,7 +139,7 @@ NTL_HDR_strCasediff { NTL_SRC_strCasediff }
  * Other functions visible externally
  */
 
-int strnChattr(const char *s, const size_t n)
+int strnChattr(const char *s, size_t n)
 {
   const char *rs = s;
   unsigned int x = ~0;
@@ -170,7 +170,7 @@ int ircd_strcmp(const char *a, const char *b)
  * ircd_strncmp - counted case insensitive comparison of 2 strings
  * NOTE: see ircd_chattr.h for notes on case mapping.
  */
-int ircd_strncmp(const char *a, const char *b, const size_t n)
+int ircd_strncmp(const char *a, const char *b, size_t n)
 {
   const char* ra = a;
   const char* rb = b;

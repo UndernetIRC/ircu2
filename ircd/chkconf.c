@@ -205,7 +205,7 @@ static struct ConfItem *chk_initconf(void)
         if (!*(tmp + 1))
           break;
         else
-          for (s = tmp; (*s = *++s);)
+          for (s = tmp; *s; *s = *++s)
             ;
         tmp++;
       }

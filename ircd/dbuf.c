@@ -121,11 +121,11 @@ static int dbuf_malloc_error(struct DBuf *dyn)
  * buf:         Pointer to data to be stored
  * length:      Number of bytes to store
  */
-int dbuf_put(struct DBuf *dyn, const char *buf, size_t length)
+int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
 {
   struct DBufBuffer** h;
   struct DBufBuffer*  db;
-  size_t chunk;
+  unsigned int chunk;
 
   assert(0 != dyn);
   assert(0 != buf);
@@ -218,7 +218,7 @@ int dbuf_put(struct DBuf *dyn, const char *buf, size_t length)
  * dyn:         Dynamic buffer header
  * length:      Return number of bytes accessible
  */
-const char *dbuf_map(const struct DBuf *dyn, size_t *length)
+const char *dbuf_map(const struct DBuf* dyn, unsigned int* length)
 {
   assert(0 != dyn);
   assert(0 != length);
@@ -240,10 +240,10 @@ const char *dbuf_map(const struct DBuf *dyn, size_t *length)
  * dyn:         Dynamic buffer header
  * length:      Number of bytes to delete
  */
-void dbuf_delete(struct DBuf *dyn, size_t length)
+void dbuf_delete(struct DBuf *dyn, unsigned int length)
 {
   struct DBufBuffer *db;
-  size_t chunk;
+  unsigned int chunk;
 
   if (length > dyn->length)
     length = dyn->length;
@@ -289,10 +289,10 @@ void dbuf_delete(struct DBuf *dyn, size_t length)
  * buf:         Pointer to buffer to receive the data
  * length:      Max amount of bytes that can be received
  */
-size_t dbuf_get(struct DBuf *dyn, char *buf, size_t length)
+unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length)
 {
-  size_t moved = 0;
-  size_t chunk;
+  unsigned int moved = 0;
+  unsigned int chunk;
   const char *b;
 
   assert(0 != dyn);
@@ -313,7 +313,7 @@ size_t dbuf_get(struct DBuf *dyn, char *buf, size_t length)
   return moved;
 }
 
-static size_t dbuf_flush(struct DBuf *dyn)
+static unsigned int dbuf_flush(struct DBuf *dyn)
 {
   struct DBufBuffer *db = dyn->head;
 
@@ -349,13 +349,13 @@ static size_t dbuf_flush(struct DBuf *dyn)
  * possible (determined by length) into buf and return the amount copied 
  * else return 0.
  */
-size_t dbuf_getmsg(struct DBuf *dyn, char *buf, size_t length)
+unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length)
 {
   struct DBufBuffer *db;
   char *start;
   char *end;
-  size_t count;
-  size_t copied = 0;
+  unsigned int count;
+  unsigned int copied = 0;
 
   assert(0 != dyn);
   assert(0 != buf);

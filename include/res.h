@@ -39,13 +39,13 @@ extern time_t          timeout_resolver(time_t now);
  * pointer arg, DO NOT call this from a resolver callback function the
  * resolver will delete the query itself for the affected client.
  */
-extern void            delete_resolver_queries(const void* vptr);
-extern unsigned long   cres_mem(struct Client* cptr);
-extern int             m_dns(struct Client* cptr, struct Client* sptr,
+extern void     delete_resolver_queries(const void* vptr);
+extern size_t   cres_mem(struct Client* cptr);
+extern int      m_dns(struct Client* cptr, struct Client* sptr,
                              int parc, char* parv[]);
-extern int             resolver_read(void);
-extern void            resolver_read_multiple(int count);
-extern void            flush_resolver_cache(void);
+extern int      resolver_read(void);
+extern void     resolver_read_multiple(int count);
+extern void     flush_resolver_cache(void);
 
 /*
  * add_local_domain - append local domain suffix to hostnames that 

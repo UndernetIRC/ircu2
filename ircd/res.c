@@ -71,13 +71,13 @@
 /*
  * macros used to calulate offsets into fixed query buffer
  */
-#define ALIAS_BLEN (size_t) ((RES_MAXALIASES + 1) * sizeof(char*))
-#define ADDRS_BLEN (size_t) ((RES_MAXADDRS + 1) * sizeof(struct in_addr*))
+#define ALIAS_BLEN  ((RES_MAXALIASES + 1) * sizeof(char*))
+#define ADDRS_BLEN  ((RES_MAXADDRS + 1) * sizeof(struct in_addr*))
 
-#define ADDRS_OFFSET  (size_t) (ALIAS_BLEN + ADDRS_BLEN)
-#define ADDRS_DLEN    (size_t) (RES_MAXADDRS * sizeof(struct in_addr))
-#define NAMES_OFFSET  (size_t) (ADDRS_OFFSET + ADDRS_DLEN)
-#define MAXGETHOSTLEN (size_t) (NAMES_OFFSET + MAXPACKET)
+#define ADDRS_OFFSET   (ALIAS_BLEN + ADDRS_BLEN)
+#define ADDRS_DLEN     (RES_MAXADDRS * sizeof(struct in_addr))
+#define NAMES_OFFSET   (ADDRS_OFFSET + ADDRS_DLEN)
+#define MAXGETHOSTLEN  (NAMES_OFFSET + MAXPACKET)
 
 #define AR_TTL          600   /* TTL in seconds for dns cache entries */
 
@@ -92,10 +92,10 @@
  * should be named, so for now, we'll just name them this way.
  * we probably should look at what named calls them or something.
  */
-#define TYPE_SIZE       (size_t) 2
-#define CLASS_SIZE      (size_t) 2
-#define TTL_SIZE        (size_t) 4
-#define RDLENGTH_SIZE   (size_t) 2
+#define TYPE_SIZE       2
+#define CLASS_SIZE      2
+#define TTL_SIZE        4
+#define RDLENGTH_SIZE   2
 #define ANSWER_FIXED_SIZE (TYPE_SIZE + CLASS_SIZE + TTL_SIZE + RDLENGTH_SIZE)
 
 /*
@@ -373,7 +373,7 @@ void restart_resolver(void)
  * add_local_domain - Add the domain to hostname, if it is missing
  * (as suggested by eps@TOASTER.SFSU.EDU)
  */
-void add_local_domain(char* hname, size_t size)
+void add_local_domain(char* hname, unsigned int size)
 {
   assert(0 != hname);
   /* 
@@ -381,7 +381,7 @@ void add_local_domain(char* hname, size_t size)
    */
   if ((_res.options & RES_DEFNAMES) && !strchr(hname, '.')) {
     if (_res.defdname[0]) {
-      size_t len = strlen(hname);
+      unsigned len = strlen(hname);
       if ((strlen(_res.defdname) + len + 2) < size) {
         hname[len++] = '.';
         strcpy(hname + len, _res.defdname);
@@ -1728,13 +1728,13 @@ int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   return 0;
 }
 
-unsigned long cres_mem(struct Client* sptr)
+size_t cres_mem(struct Client* sptr)
 {
   struct CacheEntry* entry;
   struct ResRequest* request;
   size_t cache_mem     = 0;
-  int    cache_count   = 0;
   size_t request_mem   = 0;
+  int    cache_count   = 0;
   int    request_count = 0;
 
   for (entry = cacheTop; entry; entry = entry->list_next) {
