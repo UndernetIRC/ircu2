@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_policy.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -143,8 +144,17 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         sendto_one(sptr, rpl_str(RPL_WHOWASUSER),
             me.name, parv[0], temp->name, temp->username,
             temp->hostname, temp->realname);
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
-            temp->name, temp->servername, myctime(temp->logoff));
+#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
+	if (!IsOper(sptr))
+#endif
+        	sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
+            		temp->name, temp->servername, myctime(temp->logoff));
+#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
+	else
+		sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
+			"*.undernet.org", "The Undernet Underworld", 
+			myctime(temp->logoff));
+#endif
         if (temp->away)
           sendto_one(sptr, rpl_str(RPL_AWAY),
               me.name, parv[0], temp->name, temp->away);

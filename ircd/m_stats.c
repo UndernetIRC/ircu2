@@ -79,14 +79,6 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 /*
  * XXX - ack!!!
  */
@@ -94,6 +86,7 @@
 #include "class.h"
 #include "client.h"
 #include "gline.h"
+#include "handlers.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -168,8 +161,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'U':
     case 'u':
     {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
+      if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+	"%s%s " TOK_STATS " %s :%s", 2, parc, parv) != HUNTED_ISME)
         return 0;
       break;
     }
@@ -184,14 +177,14 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (parc > 3)
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
+        if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+	"%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) != HUNTED_ISME)
           return 0;
       }
       else
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
+        if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, 
+		"%s%s " TOK_STATS " %s :%s", 2, parc, parv) != HUNTED_ISME)
           return 0;
       }
       break;
@@ -453,7 +446,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * or non-oper results to 8 ports.
        */ 
 #ifdef HEAD_IN_SAND_STATS_P
-      return m_not_oper(sptr,cptr,parc,parv)
+      return m_not_oper(sptr,cptr,parc,parv);
 #else
       show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
                  (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);

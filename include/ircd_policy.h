@@ -94,7 +94,7 @@
 #define HEAD_IN_SAND_STATS_M
 #define HEAD_IN_SAND_STATS_m
 #define HEAD_IN_SAND_STATS_O
-#undef  HEAD_IN_SAND_STATS_P
+#define HEAD_IN_SAND_STATS_P
 #define HEAD_IN_SAND_STATS_R
 #define HEAD_IN_SAND_STATS_D
 #define HEAD_IN_SAND_STATS_d
@@ -121,5 +121,19 @@
 
 #define HEAD_IN_SAND_WHOIS_SERVERNAME
 #define HEAD_IN_SAND_WHO_SERVERNAME
+
+/* CFV-165 - Hiding Nonessential information from non-opers
+ *
+ */
+
+/* don't show which server set a ban */
+#define HEAD_IN_SAND_BANWHO
+
+/* remap remote numerics to come from the local server */
+#define HEAD_IN_SAND_REWRITE
+
+/* disallow remote queries (*sob!*) */
+/* (note, set this to 1 to reenable, not undef */
+#define HEAD_IN_SAND_REMOTE 0
 
 #endif /* INCLUDED_ircd_policy_h */

@@ -143,8 +143,16 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     struct Client *acptr;
     /* For convenience: Accept a nickname as first parameter, by replacing
        it with the correct servername - as is needed by hunt_server() */
+#if HEAD_IN_SAND_REMOTE
     if (MyUser(sptr) && (acptr = FindUser(parv[1])))
+#else
+    /* If remote queries are disabled, then use the *second* parameter of
+     * of whois, so /whois nick nick still works.
+     */
+    if (MyUser(sptr) && (acptr = FindUser(parv[2])))
+#endif
       parv[1] = acptr->user->server->name;
+
     if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;

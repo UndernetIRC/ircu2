@@ -26,6 +26,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -376,9 +377,22 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-    ban->value.ban.who = (char*) MyMalloc(strlen(cptr->name) + 1);
+#ifdef HEAD_IN_SAND_BANWHO
+    if (!IsServer(cptr)) {
+#endif
+    	ban->value.ban.who = (char*) MyMalloc(strlen(cptr->name) + 1);
+#ifdef HEAD_IN_SAND_BANWHO
+    } 
+    else {
+	ban->value.ban.who = (char*) MyMalloc(strlen(me.name) + 1);
+    }
+#endif
     assert(0 != ban->value.ban.who);
+#ifdef HEAD_IN_SAND_BANWHO
+    strcpy(ban->value.ban.who, me.name);
+#else
     strcpy(ban->value.ban.who, cptr->name);
+#endif
 
     ban->value.ban.when = CurrentTime;
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */

@@ -89,6 +89,7 @@
 #endif /* 0 */
 #include "client.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -131,8 +132,8 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     no_motd = 0;
 #endif
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_MOTD " %s", 1, parc,
-        parv) != HUNTED_ISME)
+    if (hunt_server(HEAD_IN_SAND_REMOTE, cptr, sptr, "%s%s " TOK_MOTD " %s", 
+	1, parc, parv) != HUNTED_ISME)
       return 0;
 #ifdef NODEFAULTMOTD
   }
