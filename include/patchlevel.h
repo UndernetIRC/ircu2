@@ -19,7 +19,7 @@
  *
  */
 
-#define PATCHLEVEL "06"
+#define PATCHLEVEL "07"
 
 #define RELEASE ".10.beta."
 
