@@ -458,6 +458,58 @@ void sendmsgto_channel_butone(struct Client *one, struct Client *from,
   } /* of for(members) */
 }
 
+void sendcmdto_channel_butone(struct Client *one, struct Channel *chan,
+			      const char *cmd, const char *tok,
+			      struct Client *from, unsigned int skip,
+			      const char *pattern, ...)
+{
+  struct Membership *member;
+  struct VarData vd;
+  char userbuf[IRC_BUFSIZE];
+  char servbuf[IRC_BUFSIZE];
+
+  vd.vd_format = pattern;
+
+  /* Build buffer to send to users */
+  va_start(vd.vd_args, pattern);
+  if (IsServer(from) || IsMe(from))
+    ircd_snprintf(from, userbuf, sizeof(userbuf) - 2, ":%s %s %v", from->name,
+		  cmd, &vd);
+  else
+    ircd_snprintf(from, userbuf, sizeof(userbuf) - 2, ":%s!%s@%s %s %v",
+		  from->name, from->user->username, from->user->host, cmd,
+		  &vd);
+  va_end(vd.vd_args);
+
+  /* Build buffer to send to servers */
+  va_start(vd.vd_args, pattern);
+  ircd_snprintf(from, servbuf, sizeof(servbuf) - 2, "%C %s %v", from, tok,
+		&vd);
+  va_end(vd.vd_args);
+
+  /* send buffer along! */
+  sentalong_marker++;
+  for (member = chan->members; member; member = member->next_member) {
+    /* skip one, zombies, and deaf users... */
+    if (member->user->from == one || IsZombie(member) ||
+	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
+	(skip & SKIP_NONOPS && !IsChanOp(member)))
+      continue;
+
+    if (MyConnect(member->user))
+      send_buffer(member->user, userbuf); /* send user buffer */
+    else if (-1 < member->user->from->fd &&
+	     sentalong[member->user->from->fd] != sentalong_marker) {
+      sentalong[member->user->from->fd] = sentalong_marker;
+
+      if (skip & SKIP_BURST && IsBurstOrBurstAck(member->user->from))
+	continue; /* skip bursting servers */
+
+      send_buffer(member->user->from, servbuf); /* send server buffer */
+    }
+  }
+}
+
 void sendto_lchanops_butone(struct Client *one, struct Client *from, struct Channel *chptr,
     const char* pattern, ...)
 {
@@ -878,6 +930,7 @@ void sendto_lops_butone(struct Client* one, const char* pattern, ...)
  * Don't try to send to more than one list! That is not supported.
  * Xorath 5/1/97
  */
+#ifdef OLD_VSENDTO_OP_MASK
 void vsendto_op_mask(unsigned int mask, const char *pattern, va_list vl)
 {
   static char fmt[1024];
@@ -901,6 +954,33 @@ void vsendto_op_mask(unsigned int mask, const char *pattern, va_list vl)
   }
   while (opslist);
 }
+#else /* !OLD_VSENDTO_OP_MASK */
+void vsendto_op_mask(unsigned int mask, const char *pattern, va_list vl)
+{
+  struct VarData vd;
+  char sndbuf[IRC_BUFSIZE];
+  int i = 0; /* so that 1 points to opsarray[0] */
+  struct SLink *opslist;
+
+  while ((mask >>= 1))
+    i++;
+
+  if (!(opslist = opsarray[i]))
+    return;
+
+  /*
+   * build string; I don't want to bother with client nicknames, so I hope
+   * this is ok...
+   */
+  vd.vd_format = pattern;
+  vd.vd_args = vl;
+  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s " MSG_NOTICE
+		" * :*** Notice -- %v", me.name, &vd);
+
+  for (; opslist; opslist = opslist->next)
+    send_buffer(opslist->value.cptr, sndbuf);
+}
+#endif /* OLD_VSENDTO_OP_MASK */
 
 /*
  * sendbufto_op_mask
