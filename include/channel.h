@@ -253,9 +253,12 @@ struct ModeBuf {
 
 #define MODEBUF_DEST_CHANNEL	0x01	/* Mode is flushed to channel */
 #define MODEBUF_DEST_SERVER	0x02	/* Mode is flushed to server */
-#define MODEBUF_DEST_OPMODE	0x40	/* Send server mode as OPMODE */
-#define MODEBUF_DEST_HACK4	0x80	/* Send a HACK(4) notice and, on
-					   server sends, use a TS of 0 */
+
+#define MODEBUF_DEST_OPMODE	0x08	/* Send server mode as OPMODE */
+#define MODEBUF_DEST_DEOP	0x10	/* Deop the offender */
+#define MODEBUF_DEST_HACK2	0x20	/* Send a HACK(2) notice, reverse */
+#define MODEBUF_DEST_HACK3	0x40	/* Send a HACK(3) notice, TS == 0 */
+#define MODEBUF_DEST_HACK4	0x80	/* Send a HACK(4) notice, TS == 0 */
 
 #define MB_TYPE(mb, i)		((mb)->mb_modeargs[(i)].mbm_type)
 #define MB_UINT(mb, i)		((mb)->mb_modeargs[(i)].mbm_arg.mbma_uint)
@@ -328,6 +331,6 @@ extern void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
 				char *string);
 extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 				struct Client *client);
-extern void modebuf_flush(struct ModeBuf *mbuf);
+extern int modebuf_flush(struct ModeBuf *mbuf);
 
 #endif /* INCLUDED_channel_h */

@@ -2659,6 +2659,10 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
   }
 }
 
+/*
+ * This routine just initializes a ModeBuf structure with the information
+ * needed and the options given.
+ */
 void
 modebuf_init(struct ModeBuf *mbuf, struct Client *source,
 	     struct Client *connect, struct Channel *chan, unsigned int dest)
@@ -2678,12 +2682,17 @@ modebuf_init(struct ModeBuf *mbuf, struct Client *source,
   mbuf->mb_dest = dest;
   mbuf->mb_count = 0;
 
+  /* clear each mode-with-parameter slot */
   for (i = 0; i < MAXMODEPARAMS; i++) {
     MB_TYPE(mbuf, i) = 0;
     MB_UINT(mbuf, i) = 0;
   }
 }
 
+/*
+ * This routine simply adds modes to be added or deleted; do a binary OR
+ * with either MODE_ADD or MODE_DEL
+ */
 void
 modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
 {
@@ -2702,6 +2711,11 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   }
 }
 
+/*
+ * This routine adds a mode to be added or deleted that takes a unsigned
+ * int parameter; mode may *only* be the relevant mode flag ORed with one
+ * of MODE_ADD or MODE_DEL
+ */
 void
 modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
 {
@@ -2711,10 +2725,17 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_UINT(mbuf, mbuf->mb_count) = uint;
 
-  if (++mbuf->mb_count >= 6)
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
     modebuf_flush(mbuf);
 }
 
+/*
+ * This routine adds a mode to be added or deleted that takes a string
+ * parameter; mode may *only* be the relevant mode flag ORed with one of
+ * MODE_ADD or MODE_DEL
+ */
 void
 modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
 {
@@ -2724,10 +2745,17 @@ modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_STRING(mbuf, mbuf->mb_count) = string;
 
-  if (++mbuf->mb_count >= 6)
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
     modebuf_flush(mbuf);
 }
 
+/*
+ * This routine adds a mode to be added or deleted that takes a client
+ * parameter; mode may *only* be the relevant mode flag ORed with one of
+ * MODE_ADD or MODE_DEL
+ */
 void
 modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 		    struct Client *client)
@@ -2738,26 +2766,40 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_CLIENT(mbuf, mbuf->mb_count) = client;
 
-  if (++mbuf->mb_count >= 6)
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
     modebuf_flush(mbuf);
 }
 
+/*
+ * This helper function builds an argument string in strptr, consisting
+ * of the original string, a space, and str1 and str2 concatenated (if,
+ * of course, str2 is not NULL)
+ */
 static void
 build_string(char *strptr, int *strptr_i, char *str1, char *str2)
 {
   strptr[(*strptr_i)++] = ' ';
 
-  while ((strptr[(*strptr_i)++] = *(str1++)))
-    ; /* very simple strcat */
+  while (*str1)
+    strptr[(*strptr_i)++] = *(str1++);
 
   if (str2)
-    while ((strptr[(*strptr_i)++] = *(str2++)))
-      ; /* for the two-argument form--used for numeric nicks */
+    while (*str2)
+      strptr[(*strptr_i)++] = *(str2++);
+
+  strptr[(*strptr_i)] = '\0';
 }
 
-void
+/*
+ * This is the workhorse of our ModeBuf suite; this actually generates the
+ * output MODE commands, HACK notices, or whatever.  It's pretty complicated.
+ */
+int
 modebuf_flush(struct ModeBuf *mbuf)
 {
+  /* we only need the flags that don't take args right now */
   static int flags[] = {
 /*  MODE_CHANOP,	'o', */
 /*  MODE_VOICE,		'v', */
@@ -2775,31 +2817,39 @@ modebuf_flush(struct ModeBuf *mbuf)
   int i;
   int *flag_p;
 
-  struct Client *app_source;
+  struct Client *app_source; /* where the MODE appears to come from */
 
-  char addbuf[20] = "+";
-  int addbuf_i = 1;
-  char rembuf[20] = "-";
-  int rembuf_i = 1;
-  char *bufptr;
+  char addbuf[20]; /* accumulates +psmtin, etc. */
+  int addbuf_i = 0;
+  char rembuf[20]; /* accumulates -psmtin, etc. */
+  int rembuf_i = 0;
+  char *bufptr; /* we make use of indirection to simplify the code */
   int *bufptr_i;
 
-  char addstr[MODEBUFLEN];
+  char addstr[MODEBUFLEN]; /* accumulates MODE parameters to add */
   int addstr_i;
-  char remstr[MODEBUFLEN];
+  char remstr[MODEBUFLEN]; /* accumulates MODE parameters to remove */
   int remstr_i;
-  char *strptr;
+  char *strptr; /* more indirection to simplify the code */
   int *strptr_i;
 
-  char limitbuf[10];
+  char limitbuf[10]; /* convert limits to strings */
+
+  unsigned int limitdel = MODE_LIMIT;
 
   assert(0 != mbuf);
 
+  /* If the ModeBuf is empty, we have nothing to do */
+  if (mbuf->mb_add == 0 && mbuf->mb_rem == 0 && mbuf->mb_count == 0)
+    return 0;
+
+  /* Ok, if we were given the OPMODE flag, hide the source if its a user */
   if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
-    app_source = mbuf->mb_source->from;
+    app_source = mbuf->mb_source->user->server;
   else
     app_source = mbuf->mb_source;
 
+  /* Calculate the simple flags */
   for (flag_p = flags; flag_p[0]; flag_p += 2) {
     if (*flag_p & mbuf->mb_add)
       addbuf[addbuf_i++] = flag_p[1];
@@ -2807,21 +2857,9 @@ modebuf_flush(struct ModeBuf *mbuf)
       rembuf[rembuf_i++] = flag_p[1];
   }
 
-  if (addbuf_i == 1 && rembuf_i == 1)
-    return;
-
-  if (addbuf_i == 1)
-    addbuf[0] = '\0';
-  else
-    addbuf[addbuf_i] = '\0';
-
-  if (rembuf_i == 1)
-    rembuf[0] = '\0';
-  else
-    rembuf[rembuf_i] = '\0';
-
+  /* Now go through the modes with arguments... */
   for (i = 0; i < mbuf->mb_count; i++) {
-    if (MB_TYPE(mbuf, i) & MODE_ADD) {
+    if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
       bufptr = addbuf;
       bufptr_i = &addbuf_i;
     } else {
@@ -2840,18 +2878,26 @@ modebuf_flush(struct ModeBuf *mbuf)
     else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
       bufptr[(*bufptr_i)++] = 'l';
 
+      /* if it's a limit, we also format the number */
       sprintf_irc(limitbuf, "%d", MB_UINT(mbuf, i));
     }
   }
 
-  if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK4)) {
+  /* terminate the mode strings */
+  addbuf[addbuf_i] = '\0';
+  rembuf[rembuf_i] = '\0';
+
+  /* If we're building a user visible MODE or HACK... */
+  if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK2 |
+		       MODEBUF_DEST_HACK3   | MODEBUF_DEST_HACK4)) {
+    /* Set up the parameter strings */
     addstr[0] = '\0';
     addstr_i = 0;
     remstr[0] = '\0';
     remstr_i = 0;
 
     for (i = 0; i < mbuf->mb_count; i++) {
-      if (MB_TYPE(mbuf, i) & MODE_ADD) {
+      if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
 	strptr = addstr;
 	strptr_i = &addstr_i;
       } else {
@@ -2859,34 +2905,67 @@ modebuf_flush(struct ModeBuf *mbuf)
 	strptr_i = &remstr_i;
       }
 
+      /* deal with clients... */
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
 	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name, 0);
+
+      /* deal with strings... */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
-      else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
+
+      /*
+       * deal with limit; note we cannot include the limit parameter if we're
+       * removing it
+       */
+      else if ((MB_TYPE(mbuf, i) & (MODE_ADD | MODE_LIMIT)) ==
+	       (MODE_ADD | MODE_LIMIT))
 	build_string(strptr, strptr_i, limitbuf, 0);
     }
 
+    /* send the messages off to their destination */
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
       sendto_channel_butserv(mbuf->mb_channel, app_source,
-			     ":%s MODE %s %s%s%s%s", app_source->name,
-			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			     ":%s MODE %s %s%s%s%s%s%s", app_source->name,
+			     mbuf->mb_channel->chname, addbuf_i ? "+" : "",
+			     addbuf, rembuf_i ? "-" : "", rembuf, addstr,
 			     remstr);
-    if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
-      sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s [" TIME_T_FMT
+
+    if (mbuf->mb_dest & MODEBUF_DEST_HACK2)
+      sendto_op_mask(SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
 		     "]", app_source->name, mbuf->mb_channel->chname,
-		     addbuf, rembuf, addstr, remstr,
+		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
+		     addstr, remstr, mbuf->mb_channel->creationtime);
+
+    if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
+      sendto_op_mask(SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s %s%s%s%s%s%s ["
+		     TIME_T_FMT "]", app_source->name,
+		     mbuf->mb_channel->chname, addbuf_i ? "+" : "", addbuf,
+		     rembuf_i ? "-" : "", rembuf, addstr, remstr,
 		     mbuf->mb_channel->creationtime);
+
+    if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
+      sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
+		     "]", app_source->name, mbuf->mb_channel->chname,
+		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
+		     addstr, remstr, mbuf->mb_channel->creationtime);
   }
 
+  /* Now are we supposed to propagate to other servers? */
   if (mbuf->mb_dest & MODEBUF_DEST_SERVER) {
+    /* set up parameter string */
     addstr[0] = '\0';
     addstr_i = 0;
     remstr[0] = '\0';
     remstr_i = 0;
 
+    /*
+     * limit is supressed if we're removing it; we have to figure out which
+     * direction is the direction for it to be removed, though...
+     */
+    limitdel |= (mbuf->mb_dest & MODEBUF_DEST_HACK2) ? MODE_DEL : MODE_ADD;
+
     for (i = 0; i < mbuf->mb_count; i++) {
-      if (MB_TYPE(mbuf, i) & MODE_ADD) {
+      if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
 	strptr = addstr;
 	strptr_i = &addstr_i;
       } else {
@@ -2894,46 +2973,93 @@ modebuf_flush(struct ModeBuf *mbuf)
 	strptr_i = &remstr_i;
       }
 
+      /* deal with modes that take clients */
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
 	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)));
+
+      /* deal with modes that take strings */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
-      else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
+
+      /*
+       * deal with the limit.  Logic here is complicated; if HACK2 is set,
+       * we're bouncing the mode, so sense is reversed, and we have to
+       * include the original limit if it looks like it's being removed
+       */
+      else if ((MB_TYPE(mbuf, i) & limitdel) == limitdel)
 	build_string(strptr, strptr_i, limitbuf, 0);
+    }
+
+    /* we were told to deop the source */
+    if (mbuf->mb_dest & MODEBUF_DEST_DEOP) {
+      addbuf[addbuf_i++] = 'o'; /* remember, sense is reversed */
+      addbuf[addbuf_i] = '\0'; /* terminate the string... */
+      build_string(addstr, &addstr_i, NumNick(mbuf->mb_source)); /* add user */
+
+      /* mark that we've done this, so we don't do it again */
+      mbuf->mb_dest &= ~MODEBUF_DEST_DEOP;
     }
 
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
+      /* If OPMODE was set, we're propagating the mode as an OPMODE message */
       if (IsServer(mbuf->mb_source))
-	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_OPMODE " %s %s%s%s%s",
-			   NumServ(mbuf->mb_source), mbuf->mb_channel->chname,
-			   addbuf, rembuf, addstr, remstr);
+	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_OPMODE
+			   " %s %s%s%s%s%s%s", NumServ(mbuf->mb_source),
+			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
+			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
+			   remstr);
       else
-	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE " %s %s%s%s%s",
-			   NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
-			   addbuf, rembuf, addstr, remstr);
+	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE
+			   " %s %s%s%s%s%s%s", NumNick(mbuf->mb_source),
+			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
+			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
+			   remstr);
+    } else if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
+      /*
+       * If HACK2 was set, we're bouncing; we send the MODE back to the
+       * connection we got it from with the senses reversed and a TS of 0;
+       * origin is us
+       */
+      sendto_one(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
+		 TIME_T_FMT, NumServ(&me), mbuf->mb_channel->chname,
+		 rembuf_i ? "+" : "", rembuf, addbuf_i ? "-" : "", addbuf,
+		 remstr, addstr, 0);
     } else {
+      /*
+       * We're propagating a normal MODE command to the rest of the network;
+       * we send the actual channel TS unless this is a HACK3 or a HACK4
+       */
       if (IsServer(mbuf->mb_source))
-	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
+	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
 			   TIME_T_FMT, NumServ(mbuf->mb_source),
-			   mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			   remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
+			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
+			   remstr, (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
+						     MODEBUF_DEST_HACK4)) ? 0 :
 			   mbuf->mb_channel->creationtime);
       else
-	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
-			   TIME_T_FMT, NumNick(mbuf->mb_source),
-			   mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			   remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE
+			   " %s %s%s%s%s%s%s " TIME_T_FMT,
+			   NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
+			   addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "",
+			   rembuf, addstr, remstr,
+			   (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
+					     MODEBUF_DEST_HACK4)) ? 0 :
 			   mbuf->mb_channel->creationtime);
     }
   }
 
+  /* We've drained the ModeBuf... */
   mbuf->mb_add = 0;
   mbuf->mb_rem = 0;
   mbuf->mb_count = 0;
 
+  /* reinitialize the mode-with-arg slots */
   for (i = 0; i < MAXMODEPARAMS; i++) {
     MB_TYPE(mbuf, i) = 0;
     MB_UINT(mbuf, i) = 0;
   }
+
+  return 0;
 }
 
