@@ -1,4 +1,23 @@
 2005-03-19  Michael Poole <mdpoole@troilus.org>
+	(Thanks to Reed Loden for pointing these out.)
+
+	* doc/Configure.help: Remove outdated file.
+
+	* doc/exaconf.2: Likewise.
+
+	* doc/snomask.html: Add missing <tr>, SNO_AUTO, SNO_DEBUG, and
+	update SNO_OPERDEFAULT list.
+
+	* tools/mkpasswd.c: Remove outdated file (use ircd/umkpasswd
+	instead).
+
+	* tools/Makefile.crypt: Remove outdated file.
+
+	* tools/mkpasswd.c: Likewise.
+
+	* tools/transition: Likewise.
+
+2005-03-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (sub1_from_channel): Check apass rather than mode
 	to determine whether an apass is set (MODE_KEY/APASS/UPASS are not

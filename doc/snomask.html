@@ -113,15 +113,29 @@ Usage:
 <td><font face="arial" size="2">0x1000</td>
 <td><font face="arial" size="2">/* host throttle add/remove notices */</td>
 </tr>
+<tr>
 <td><font face="arial" size="2">8192</td>
 <td><font face="arial" size="2">SNO_OLDREALOP</td>
 <td><font face="arial" size="2">0x2000</td>
 <td><font face="arial" size="2">/* old oper-only messages */</td>
 </tr>
+<tr>
 <td><font face="arial" size="2">16384</td>
 <td><font face="arial" size="2">SNO_CONNEXIT</td>
 <td><font face="arial" size="2">0x4000</td>
 <td><font face="arial" size="2">/* client connect/exit (ugh) */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">32768</td>
+<td><font face="arial" size="2">SNO_AUTO</td>
+<td><font face="arial" size="2">0x8000</td>
+<td><font face="arial" size="2">/* AUTO G-Lines */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">65536</td>
+<td><font face="arial" size="2">SNO_DEBUG</td>
+<td><font face="arial" size="2">0x10000</td>
+<td><font face="arial" size="2">/* debugging messages (DEBUGMODE only) */</td>
 </tr>
 </table>
 </center>
@@ -135,7 +149,7 @@ Usage:
 </tr>
 <tr>
 <td><font face="arial" size="2">standard +s when +o/O</td>
-<td><font face="arial" size="2">SNO_DEFAULT | SNO_HACK2 | SNO_HACK4 | SNO_OLDSNO)</td>
+<td><font face="arial" size="2">SNO_DEFAULT | SNO_HACK2 | SNO_HACK4 | SNO_THROTTLE | SNO_OLDSNO)</td>
 </tr>
 <tr>
 <td><font face="arial" size="2">only opers may set</td>
