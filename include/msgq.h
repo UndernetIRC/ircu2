@@ -83,7 +83,6 @@ struct MsgQ {
  */
 extern void msgq_init(struct MsgQ *mq);
 extern void msgq_delete(struct MsgQ *mq, unsigned int length);
-extern const char *msgq_map(const struct MsgQ *mq, unsigned int *length_p);
 extern int msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
 		       unsigned int *len);
 extern struct MsgBuf *msgq_make(struct Client *dest, const char *format, ...);
