@@ -76,6 +76,7 @@ extern void free_class(struct ConfClass * tmp);
 extern unsigned int get_con_freq(struct ConfClass * clptr);
 extern unsigned int get_client_ping(struct Client *acptr);
 extern unsigned int get_conf_class(const struct ConfItem *aconf);
+extern unsigned int get_conf_ping(const struct ConfItem *aconf);
 extern unsigned int get_client_class(struct Client *acptr);
 extern void add_class(unsigned int conclass, unsigned int ping,
     unsigned int confreq, unsigned int maxli, unsigned int sendq);
