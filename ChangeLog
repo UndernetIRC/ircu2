@@ -1,5 +1,43 @@
 2004-10-12  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Update example config to reflect the changes
+	made in the remainder of this patch.
+
+	* include/list.h: Make make_conf() take a type argument.
+
+	* include/s_conf.h: Delete CONF_LEAF and CONF_HUB.  Add "maximum"
+	and "hub_limit" to ConfItem to compensate.
+
+	* ircd/ircd_lexer.l: Recognize MAXHOPS token.
+
+	* ircd/ircd_parser.y: Get rid of aconf global variable and add
+	hub_limit global variable.  Add MAXHOPS token, and productions
+	inside connectblock to recognize it and hub masks.  Allow maxlinks
+	field in a Client block, rather than overloading password field.
+	Convert serverblock to uworldblock and remove extraneous fields.
+
+	* ircd/m_server.c: Make check_loop_and_lh() look up ConfItem and
+	calculate LHcptr and active_lh_line.  Merge some duplicated code
+	so handling active_lh_line cases is clearer.
+
+	* ircd/s_conf.c: Make make_conf() take a type argument.  Delete
+	CONF_LEAF and CONF_HUB.  Do not overwrite server name with what
+	is specified in the config file.
+
+	* ircd/s_err.c: Remove the unused RPL_STATSNLINE and
+	RPL_STATSHLINE.  Remove useless parameters and format fields from
+	RPL_STATSCLINE, RPL_STATSILINE, RPL_STATSLLINE, RPL_STATSOLINE and
+	RPL_STATSULINE.
+
+	* ircd/s_serv.c: Delete CONF_LEAF and CONF_HUB.
+
+	* ircd/s_stats.c: Get rid of report_array and make
+	stats_configured_links() directly use RPL_STATSxLINE (adding the
+	new fields for Server and Client blocks).  Remove /stats h, since
+	that has no meaning.
+
+2004-10-12  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_burst.c: Mask off channel modes in a wiped-out channel by
 	default rather than by listing which should be wiped out.
 

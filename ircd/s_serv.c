@@ -140,7 +140,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     IPcheck_connect_fail(&cli_ip(cptr));
   }
 
-  det_confs_butmask(cptr, CONF_LEAF | CONF_HUB | CONF_SERVER | CONF_UWORLD);
+  det_confs_butmask(cptr, CONF_SERVER | CONF_UWORLD);
 
   if (!IsHandshake(cptr))
     hAddClient(cptr);

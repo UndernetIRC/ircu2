@@ -65,16 +65,13 @@
   extern struct ServerConf* serverConfList;
   extern struct s_map*      GlobalServiceMapList;
   extern struct qline*      GlobalQuarantineList;
- 
 
   int yylex(void);
   /* Now all the globals we need :/... */
-  int tping, tconn, maxlinks, sendq, port, invert;
-  int stringno;
-  char *name, *pass, *host, *origin;
+  int tping, tconn, maxlinks, sendq, port, invert, stringno;
+  char *name, *pass, *host, *origin, *hub_limit;
   char *stringlist[MAX_STRINGS];
   struct ConnectionClass *c_class;
-  struct ConfItem *aconf;
   struct DenyConf *dconf;
   struct ServerConf *sconf;
   struct qline *qconf = NULL;
@@ -107,6 +104,7 @@ static void parse_error(char *pattern,...) {
 %token PINGFREQ
 %token CONNECTFREQ
 %token MAXLINKS
+%token MAXHOPS
 %token SENDQ
 %token NAME
 %token HOST
@@ -181,7 +179,7 @@ static void parse_error(char *pattern,...) {
 /* Blocks in the config file... */
 blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
-       serverblock | operblock | portblock | jupeblock | clientblock |
+       uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
        pseudoblock | iauthblock | error;
 
@@ -387,26 +385,25 @@ classusermode: USERMODE '=' QSTRING ';'
 
 connectblock: CONNECT
 {
- name = pass = host = origin = NULL;
+ name = pass = host = origin = hub_limit = NULL;
  c_class = NULL;
  port = 0;
+ maxlinks = 65535;
 } '{' connectitems '}'
 {
  if (name != NULL && pass != NULL && host != NULL && c_class != NULL
      && !strchr(host, '*') && !strchr(host, '?'))
  {
-   aconf = make_conf();
-   aconf->status = CONF_SERVER;
+   struct ConfItem *aconf = make_conf(CONF_SERVER);
    aconf->name = name;
    aconf->origin_name = origin;
    aconf->passwd = pass;
    aconf->conn_class = c_class;
    aconf->address.port = port;
-   aconf->status = CONF_SERVER;
    aconf->host = host;
-   aconf->next = GlobalConfList;
+   aconf->maximum = maxlinks;
+   aconf->hub_limit = hub_limit;
    lookup_confhost(aconf);
-   GlobalConfList = aconf;
  }
  else
  {
@@ -414,13 +411,14 @@ connectblock: CONNECT
    MyFree(pass);
    MyFree(host);
    MyFree(origin);
+   MyFree(hub_limit);
    parse_error("Bad connect block");
  }
- name = pass = host = origin = NULL;
 }';';
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
-              | connectport | connectvhost | error;
+              | connectport | connectvhost | connectleaf | connecthub
+              | connecthublimit | connectmaxhops | error;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -449,135 +447,103 @@ connectvhost: VHOST '=' QSTRING ';'
  MyFree(origin);
  DupString(origin, $3);
 };
-
-serverblock: SERVER
+connectleaf: LEAF ';'
 {
- aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
- memset(aconf, 0, sizeof(*aconf));
- aconf->status = CONF_LEAF;
-} '{' serveritems '}'
-{
- if (aconf->status == 0)
- {
-   MyFree(aconf->host);
-   MyFree(aconf->name);
-   MyFree(aconf);
-   aconf = NULL;
-   parse_error("Bad server block");
- }
- else
- {
-   aconf->next = GlobalConfList;
-   GlobalConfList = aconf;
- }
-} ';';
-serveritems: serveritem serveritems | serveritem;
-serveritem: servername | servermask | serverhub | serverleaf |
-             serveruworld | error;
-servername: NAME '=' QSTRING
-{
- MyFree(aconf->name);
- DupString(aconf->name, $3);
-} ';' ;
-servermask: MASK '=' QSTRING
-{
- MyFree(aconf->host);
- DupString(aconf->host, $3);
-} ';' ;
-/* XXX - perhaps we should do this the hybrid way in connect blocks
- * instead -A1kmm. */
-serverhub: HUB '=' YES ';'
-{
- aconf->status |= CONF_HUB;
- aconf->status &= ~CONF_LEAF;
-}
-| HUB '=' NO
-{
- aconf->status &= ~CONF_HUB;
-} ';'; 
-serverleaf: LEAF '=' YES ';'
-{
- if (!(aconf->status & CONF_HUB && aconf->status & CONF_UWORLD))
-  aconf->status |= CONF_LEAF;
- else
-  parse_error("Server is both leaf and a hub");
-}
-| LEAF '=' NO ';'
-{
- aconf->status &= ~CONF_LEAF;
+ maxlinks = 0;
 };
-serveruworld: UWORLD '=' YES ';'
+connecthub: HUB ';'
 {
- aconf->status |= CONF_UWORLD;
- aconf->status &= ~CONF_LEAF;
+ MyFree(hub_limit);
+ DupString(hub_limit, "*");
+};
+connecthublimit: HUB '=' QSTRING ';'
+{
+ MyFree(hub_limit);
+ DupString(hub_limit, $3);
+};
+connectmaxhops: MAXHOPS '=' expr ';'
+{
+  maxlinks = $3;
 }
-| UWORLD '=' NO ';'
+
+uworldblock: UWORLD '{' uworlditems '}' ';'
 {
-  aconf->status &= ~CONF_UWORLD;
+ if (name)
+ {
+  struct ConfItem *aconf = make_conf(CONF_UWORLD);
+  aconf->name = name;
+ }
+ else
+ {
+  MyFree(name);
+  parse_error("Bad UWorld block");
+ }
+};
+uworlditems: uworlditem uworlditems | uworlditem;
+uworlditem: uworldname | error;
+uworldname: NAME '=' QSTRING ';'
+{
+ MyFree(name);
+ DupString(name, $3);
 };
 
 operblock: OPER
 {
-  aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
-  memset(aconf, 0, sizeof(*aconf));
+  name = pass = host = NULL;
+  c_class = NULL;
   memset(&privs, 0, sizeof(privs));
   memset(&privs_dirty, 0, sizeof(privs_dirty));
-  aconf->status = CONF_OPERATOR;
 } '{' operitems '}' ';'
 {
-  if (aconf->name != NULL && aconf->passwd != NULL && aconf->host != NULL
-      && aconf->conn_class != NULL)
+  if (name && pass && host && c_class)
   {
+    struct ConfItem *aconf = make_conf(CONF_OPERATOR);
+    aconf->name = name;
+    aconf->passwd = pass;
+    aconf->host = host;
+    aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
     if (!PrivHas(&privs_dirty, PRIV_PROPAGATE)
-        && !PrivHas(&aconf->conn_class->privs_dirty, PRIV_PROPAGATE))
-      parse_error("Operator block for %s and class %s have no LOCAL setting", aconf->name, aconf->conn_class->cc_name);
-    aconf->next = GlobalConfList;
-    GlobalConfList = aconf;
+        && !PrivHas(&c_class->privs_dirty, PRIV_PROPAGATE))
+      parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
   }
   else
   {
     log_write(LS_CONFIG, L_ERROR, 0, "operator blocks need a name, password, and host.");
-    MyFree(aconf->name);
-    MyFree(aconf->passwd);
-    MyFree(aconf->host);
-    MyFree(aconf);
-    aconf = NULL;
+    MyFree(name);
+    MyFree(pass);
+    MyFree(host);
   }
 };
 operitems: operitem | operitems operitem;
 operitem: opername | operpass | operhost | operclass | priv | error;
-
 opername: NAME '=' QSTRING ';'
 {
-  MyFree(aconf->name);
-  DupString(aconf->name, $3);
+  MyFree(name);
+  DupString(name, $3);
 };
-
 operpass: PASS '=' QSTRING ';'
 {
-  MyFree(aconf->passwd);
-  DupString(aconf->passwd, $3);
+  MyFree(pass);
+  DupString(pass, $3);
 };
-
 operhost: HOST '=' QSTRING ';'
 {
- MyFree(aconf->host);
+ MyFree(host);
  if (!strchr($3, '@'))
  {
    int uh_len;
    char *b = (char*) MyMalloc((uh_len = strlen($3)+3));
    ircd_snprintf(0, b, uh_len, "*@%s", $3);
-   aconf->host = b;
+   host = b;
  }
  else
-   DupString(aconf->host, $3);
+   DupString(host, $3);
 };
-
 operclass: CLASS '=' QSTRING ';'
 {
- aconf->conn_class = find_class($3);
+ c_class = find_class($3);
 };
 
 priv: privtype '=' yesorno ';'
@@ -683,55 +649,52 @@ porthidden: HIDDEN '=' YES ';'
 
 clientblock: CLIENT
 {
-  aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
-  memset(aconf, 0, sizeof(*aconf));
-  aconf->status = CONF_CLIENT;
-} '{' clientitems '}'
+  host = name = NULL;
+  c_class = NULL;
+  maxlinks = 65535;
+}
+'{' clientitems '}' ';'
 {
-  if ((aconf->host != NULL || aconf->name!=NULL))
+  if (host && name)
   {
-    if (aconf->host == NULL)
-      DupString(aconf->host, "");
-    if (aconf->name == NULL)
-      DupString(aconf->name, "");
-    if (aconf->conn_class == NULL)
-      aconf->conn_class = find_class("default");
-    aconf->next = GlobalConfList;
-    GlobalConfList = aconf;
-    aconf = NULL;
+    struct ConfItem *aconf = make_conf(CONF_CLIENT);
+    aconf->host = host;
+    aconf->name = name;
+    aconf->conn_class = c_class ? c_class : find_class("default");
+    aconf->maximum = maxlinks;
   }
   else
   {
-   MyFree(aconf->host);
-   MyFree(aconf->passwd);
-   MyFree(aconf);
-   aconf = NULL;
-   parse_error("Bad client block");
+    MyFree(host);
+    MyFree(name);
+    parse_error("Bad client block");
   }
-} ';';
+};
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientclass | clientpass | clientip | error;
+clientitem: clienthost | clientclass | clientpass | clientip
+  | clientmaxlinks | error;
 clientip: IP '=' QSTRING ';'
 {
-  MyFree(aconf->host);
-  DupString(aconf->host, $3);
+  MyFree(host);
+  DupString(host, $3);
 };
-
 clienthost: HOST '=' QSTRING ';'
 {
-  MyFree(aconf->name);
-  DupString(aconf->name, $3);
+  MyFree(name);
+  DupString(name, $3);
 };
-
 clientclass: CLASS '=' QSTRING ';'
 {
-  aconf->conn_class = find_class($3);
+  c_class = find_class($3);
 };
-
 clientpass: PASS '=' QSTRING ';'
 {
-  MyFree(aconf->passwd);
-  DupString(aconf->passwd, $3);
+  MyFree(pass);
+  DupString(pass, $3);
+};
+clientmaxlinks: MAXLINKS '=' expr ';'
+{
+  maxlinks = $3;
 };
 
 killblock: KILL

@@ -121,10 +121,10 @@ static void killcomment(struct Client* sptr, const char* filename)
   fbclose(file);
 }
 
-/** Allocate a new struct ConfItem.
+/** Allocate a new struct ConfItem and link it to #GlobalConfList.
  * @return Newly allocated structure.
  */
-struct ConfItem* make_conf(void)
+struct ConfItem* make_conf(int type)
 {
   struct ConfItem* aconf;
 
@@ -134,7 +134,9 @@ struct ConfItem* make_conf(void)
   ++GlobalConfCount;
 #endif
   memset(aconf, 0, sizeof(struct ConfItem));
-  aconf->status       = CONF_ILLEGAL;
+  aconf->status  = type;
+  aconf->next    = GlobalConfList;
+  GlobalConfList = aconf;
   return aconf;
 }
 
@@ -829,10 +831,8 @@ int rehash(struct Client *cptr, int sig)
     if ((acptr = LocalClientArray[i])) {
       assert(!IsMe(acptr));
       if (IsServer(acptr)) {
-        det_confs_butmask(acptr,
-            ~(CONF_HUB | CONF_LEAF | CONF_UWORLD | CONF_ILLEGAL));
-        attach_confs_byname(acptr, cli_name(acptr),
-                            CONF_HUB | CONF_LEAF | CONF_UWORLD);
+        det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
+        attach_confs_byname(acptr, cli_name(acptr), CONF_UWORLD);
       }
       /* Because admin's are getting so uppity about people managing to
        * get past K/G's etc, we'll "fix" the bug by actually explaining
@@ -1054,19 +1054,18 @@ int conf_check_server(struct Client *cptr)
    */
   det_confs_butmask(cptr, 0);
   /*
-   * if no C or no N lines, then deny access
+   * if no Connect block, then deny access
    */
   if (!c_conf) {
     Debug((DEBUG_DNS, "sv_cl: access denied: %s[%s@%s]",
           cli_name(cptr), cli_username(cptr), cli_sockhost(cptr)));
     return -1;
   }
-  ircd_strncpy(cli_name(cptr), c_conf->name, HOSTLEN);
   /*
-   * attach the C and N lines to the client structure for later use.
+   * attach the Connect block to the client structure for later use.
    */
   attach_conf(cptr, c_conf);
-  attach_confs_byname(cptr, cli_name(cptr), CONF_HUB | CONF_LEAF | CONF_UWORLD);
+  attach_confs_byname(cptr, cli_name(cptr), CONF_UWORLD);
 
   if (!irc_in_addr_valid(&c_conf->address.addr))
     memcpy(&c_conf->address.addr, &cli_ip(cptr), sizeof(c_conf->address.addr));

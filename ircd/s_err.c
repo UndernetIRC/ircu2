@@ -461,11 +461,11 @@ static Numeric replyTable[] = {
 /* 212 */
   { RPL_STATSCOMMANDS, "%s %u %u", "212" },
 /* 213 */
-  { RPL_STATSCLINE, "%c %s * %s %d %s", "213" },
+  { RPL_STATSCLINE, "C %s %d %s", "213" },
 /* 214 */
-  { RPL_STATSNLINE, "%c %s * %s %d %d", "214" },
+  { 0 },
 /* 215 */
-  { RPL_STATSILINE, "%c %s %s %s %d %s", "215" },
+  { RPL_STATSILINE, "I %s %d %s %d %s", "215" },
 /* 216 */
   { RPL_STATSKLINE, "%c %s \"%s\" %s 0 0", "216" },
 /* 217 */
@@ -517,13 +517,13 @@ static Numeric replyTable[] = {
 /* 240 */
   { 0 },
 /* 241 */
-  { RPL_STATSLLINE, "%c %s * %s %d %d", "241" },
+  { RPL_STATSLLINE, "Module Description EntryPoint", "241" },
 /* 242 */
   { RPL_STATSUPTIME, ":Server Up %d days, %d:%02d:%02d", "242" },
 /* 243 */
-  { RPL_STATSOLINE, "%c %s * %s %d %d", "243" },
+  { RPL_STATSOLINE, "O %s * %s %d %d", "243" },
 /* 244 */
-  { RPL_STATSHLINE, "%c %s * %s %d %d", "244" },
+  { 0 },
 /* 245 */
   { 0 },
 /* 246 */
@@ -531,7 +531,7 @@ static Numeric replyTable[] = {
 /* 247 */
   { RPL_STATSGLINE, "%c %s%s%s %Tu :%s", "247" },
 /* 248 */
-  { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
+  { RPL_STATSULINE, "U %s", "248" },
 /* 249 */
   { RPL_STATSDEBUG, 0, "249" },
 /* 250 */

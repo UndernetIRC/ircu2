@@ -66,17 +66,6 @@
  *       it--not reversed as in ircd.conf!
  */
 
-/** Stats response to use for various ConfItem types. */
-static unsigned int report_array[][3] = {
-  {CONF_SERVER, RPL_STATSCLINE, 'C'},
-  {CONF_CLIENT, RPL_STATSILINE, 'I'},
-  {CONF_LEAF, RPL_STATSLLINE, 'L'},
-  {CONF_OPERATOR, RPL_STATSOLINE, 'O'},
-  {CONF_HUB, RPL_STATSHLINE, 'H'},
-  {CONF_UWORLD, RPL_STATSULINE, 'U'},
-  {0, 0}
-};
-
 /* The statsinfo array should only be used in this file, but just TRY
  * telling the compiler that you want to forward declare a static
  * array without specifying a length, and see how it responds.  So we
@@ -96,46 +85,27 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
 {
   static char null[] = "<NULL>";
   struct ConfItem *tmp;
-  int mask;
-  unsigned int *p;
   unsigned short int port;
-  char c, *host, *pass, *name;
+  int maximum;
+  char *host, *pass, *name;
 
-  mask = sd->sd_funcdata;
-
-  for (tmp = GlobalConfList; tmp; tmp = tmp->next) 
+  for (tmp = GlobalConfList; tmp; tmp = tmp->next)
   {
-    if ((tmp->status & mask))
+    if ((tmp->status & sd->sd_funcdata))
     {
-      for (p = &report_array[0][0]; *p; p += 3)
-        if (*p == tmp->status)
-          break;
-      if (!*p)
-        continue;
-      c = (char)*(p + 2);
       host = BadPtr(tmp->host) ? null : tmp->host;
       pass = BadPtr(tmp->passwd) ? null : tmp->passwd;
       name = BadPtr(tmp->name) ? null : tmp->name;
+      maximum = tmp->maximum;
       port = tmp->address.port;
-      /*
-       * On K line the passwd contents can be
-       * displayed on STATS reply.    -Vesa
-       */
-      /* Special-case 'k' or 'K' lines as appropriate... -Kev */
-      if ((tmp->status & CONF_UWORLD))
-	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
-      else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
-	send_reply(sptr, p[1], c, "*", name, port, get_conf_class(tmp));
-      else if ((tmp->status & CONF_CLIENT))
-      {
-	if(tmp->passwd && IsDigit(*tmp->passwd) && (!tmp->passwd[1] ||
-	    (IsDigit(tmp->passwd[1]) && !tmp->passwd[2])))
-	  send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
-	else
-	  send_reply(sptr, p[1], c, host, "*", name, port, get_conf_class(tmp));
-      }
-      else
-	send_reply(sptr, p[1], c, host, name, port, get_conf_class(tmp));
+      if (tmp->status & CONF_UWORLD)
+	send_reply(sptr, RPL_STATSULINE, name);
+      else if (tmp->status & CONF_SERVER)
+	send_reply(sptr, RPL_STATSCLINE, name, port, get_conf_class(tmp));
+      else if (tmp->status & CONF_CLIENT)
+        send_reply(sptr, RPL_STATSILINE, host, maximum, name, port, get_conf_class(tmp));
+      else if (tmp->status & CONF_OPERATOR)
+	send_reply(sptr, RPL_STATSOLINE, host, name, port, get_conf_class(tmp));
     }
   }
 }
@@ -544,9 +514,6 @@ struct StatDesc statsinfo[] = {
   { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
     gline_stats, 0,
     "Global bans (G-lines)." },
-  { 'h', "hubs", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_h,
-    stats_configured_links, (CONF_HUB | CONF_LEAF),
-    "Hubs information." },
   { 'i', "access", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
     stats_access, CONF_CLIENT,
     "Connection authorization lines." },

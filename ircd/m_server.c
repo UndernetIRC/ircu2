@@ -100,26 +100,55 @@ parse_protocol(const char *proto)
  * or be disallowed by leaf and hub configuration directives.
  * @param[in] cptr Neighbor who sent the message.
  * @param[in] sptr Client that originated the message.
- * @param[in] LHcptr Who to SQUIT on error (if NULL, SQUIT new server).
- * @param[in] lhconf Leaf or hub configuration block to use.
  * @param[out] ghost If non-NULL, receives ghost timestamp for new server.
  * @param[in] host Name of new server.
  * @param[in] numnick Numnick mask of new server.
  * @param[in] timestamp Claimed link timestamp of new server.
- * @param[in] active_lh_line Pseudo-enum value for rejection reason.
- * 0 means no leaf or hub restrictions.  1 means \a lhconf is a leaf
- * rule.  2 means \a lhconf is a hub rule.  3 means #me does not have
- * the HUB feature but already has a server link.
+ * @param[in] hop Number of hops to the new server.
+ * @param[in] junction Non-zero if the new server is still bursting.
  * @return CPTR_KILLED if \a cptr was SQUIT.  0 if some other server
  * was SQUIT.  1 if the new server is allowed.
  */
 static int
-check_loop_and_lh(struct Client* cptr, struct Client *sptr, struct Client *LHcptr, struct ConfItem *lhconf, time_t *ghost, const char *host, const char *numnick, time_t timestamp, int active_lh_line)
+check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const char *host, const char *numnick, time_t timestamp, int hop, int junction)
 {
   struct Client* acptr;
+  struct Client* LHcptr = NULL;
+  struct ConfItem* lhconf;
+  int active_lh_line = 0, ii;
 
   if (ghost)
     *ghost = 0;
+
+  /*
+   * Calculate type of connect limit and applicable config item.
+   */
+  lhconf = find_conf_byname(cli_confs(cptr), host, CONF_SERVER);
+  assert(lhconf != NULL);
+  if (cptr == sptr)
+  {
+    if (!feature_bool(FEAT_HUB))
+      for (ii = 0; ii <= HighestFd; ii++)
+        if (LocalClientArray[ii] && IsServer(LocalClientArray[ii])) {
+          active_lh_line = 3;
+          break;
+        }
+  }
+  else if (hop > lhconf->maximum)
+  {
+    active_lh_line = 1;
+  }
+  else if (lhconf->hub_limit && match(lhconf->hub_limit, host))
+  {
+    struct Client *ac3ptr;
+    active_lh_line = 2;
+    if (junction)
+      for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up)
+        if (IsJunction(ac3ptr)) {
+          LHcptr = ac3ptr;
+          break;
+        }
+  }
 
   /*
    *  We want to find IsConnecting() and IsHandshake() too,
@@ -370,37 +399,36 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, struct Client *LHcpt
 
   if (active_lh_line)
   {
-    if (LHcptr == 0) {
-      return exit_new_server(cptr, sptr, host, timestamp,
-          (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" :
-                                   "Leaf-only link %s <- %s(%s), check L:",
-          cli_name(cptr), host,
-          lhconf ? (lhconf->name ? lhconf->name : "*") : "!");
+    int killed = 0;
+    if (LHcptr)
+      killed = a_kills_b_too(LHcptr, sptr);
+    else
+      LHcptr = sptr;
+    if (active_lh_line == 1)
+    {
+      if (exit_client_msg(cptr, LHcptr, &me,
+                          "Leaf-only link %s <- %s, check L:",
+                          cli_name(cptr), host) == CPTR_KILLED)
+        return CPTR_KILLED;
+    }
+    else if (active_lh_line == 2)
+    {
+      if (exit_client_msg(cptr, LHcptr, &me,
+                          "Non-Hub link %s <- %s, check H:",
+                          cli_name(cptr), host) == CPTR_KILLED)
+        return CPTR_KILLED;
     }
     else
     {
-      int killed = a_kills_b_too(LHcptr, sptr);
-      if (active_lh_line < 3)
-      {
-        if (exit_client_msg(cptr, LHcptr, &me,
-            (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" :
-                                     "Leaf-only link %s <- %s(%s), check L:",
-            cli_name(cptr), host,
-            lhconf ? (lhconf->name ? lhconf->name : "*") : "!") == CPTR_KILLED)
-          return CPTR_KILLED;
-      }
-      else
-      {
-        ServerStats->is_ref++;
-        if (exit_client(cptr, LHcptr, &me, "I'm a leaf, define HUB") == CPTR_KILLED)
-          return CPTR_KILLED;
-      }
-      /*
-       * Did we kill the incoming server off already ?
-       */
-      if (killed)
-        return 0;
+      ServerStats->is_ref++;
+      if (exit_client(cptr, LHcptr, &me, "I'm a leaf, define HUB") == CPTR_KILLED)
+        return CPTR_KILLED;
     }
+    /*
+     * Did we kill the incoming server off already ?
+     */
+    if (killed)
+      return 0;
   }
 
   return 1;
@@ -472,14 +500,11 @@ check_start_timestamp(struct Client *cptr, time_t timestamp, time_t start_timest
 int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char*            ch;
-  int              i;
   char*            host;
-  const char*      encr;
   struct ConfItem* aconf;
   struct Jupe*     ajupe;
   int              hop;
   int              ret;
-  int              active_lh_line = 0;
   unsigned short   prot;
   time_t           start_timestamp;
   time_t           timestamp;
@@ -566,9 +591,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client_msg(cptr, cptr, &me,
                            "Access denied. No conf line for server %s", cli_name(cptr));
   }
-  encr = cli_passwd(cptr);
 
-  if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
+  if (*aconf->passwd && !!strcmp(aconf->passwd, cli_passwd(cptr))) {
     ++ServerStats->is_ref;
     sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
                          cli_name(cptr));
@@ -578,15 +602,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
-  if (!feature_bool(FEAT_HUB)) {
-    for (i = 0; i <= HighestFd; i++)
-      if (LocalClientArray[i] && IsServer(LocalClientArray[i])) {
-        active_lh_line = 3;
-        break;
-      }
-  }
-
-  ret = check_loop_and_lh(cptr, sptr, NULL, NULL, &ghost, host, (parc > 7 ? parv[6] : NULL), timestamp, active_lh_line);
+  ret = check_loop_and_lh(cptr, sptr, &ghost, host, (parc > 7 ? parv[6] : NULL), timestamp, hop, 1);
   if (ret != 1)
     return ret;
 
@@ -649,11 +665,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char*            host;
   struct Client*   acptr;
   struct Client*   bcptr;
-  struct Client*   LHcptr;
-  struct ConfItem* lhconf;
   int              hop;
   int              ret;
-  int              active_lh_line = 0;
   unsigned short   prot;
   time_t           start_timestamp;
   time_t           timestamp;
@@ -691,50 +704,11 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client_msg(cptr, sptr, &me,
         "Bogus timestamps (%s %s)", parv[3], parv[4]);
 
-  /*
-   * A local server introduces a new server behind this link.
-   * Check if this is allowed according L:, H: and Q: lines.
-   */
   if (parv[parc - 1][0] == '\0')
     return exit_client_msg(cptr, cptr, &me,
                            "No server info specified for %s", host);
-  /*
-   * See if the newly found server is behind a guaranteed
-   * leaf (L-line). If so, close the link.
-   */
-  if ((lhconf = find_conf_byhost(cli_confs(cptr), cli_name(cptr), CONF_LEAF)) &&
-      (!lhconf->address.port || (hop > lhconf->address.port)))
-  {
-    /*
-     * L: lines normally come in pairs, here we try to
-     * make sure that the oldest link is squitted, not
-     * both.
-     */
-    active_lh_line = 1;
-    if (timestamp <= cli_serv(cptr)->timestamp)
-      LHcptr = 0;          /* Kill incoming server */
-    else
-      LHcptr = cptr;          /* Squit ourselfs */
-  }
-  else if (!(lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_HUB)) ||
-           (lhconf->address.port && (hop > lhconf->address.port)) ||
-           (!BadPtr(lhconf->host) && match(lhconf->host, host)))
-  {
-    struct Client *ac3ptr;
-    active_lh_line = 2;
-    /* Look for net junction causing this: */
-    LHcptr = 0;            /* incoming server */
-    if (*parv[5] != 'J') {
-      for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up) {
-        if (IsJunction(ac3ptr)) {
-          LHcptr = ac3ptr;
-          break;
-        }
-      }
-    }
-  }
 
-  ret = check_loop_and_lh(cptr, sptr, LHcptr, lhconf, NULL, host, (parc > 7 ? parv[6] : NULL), timestamp, active_lh_line);
+  ret = check_loop_and_lh(cptr, sptr, NULL, host, (parc > 7 ? parv[6] : NULL), timestamp, hop, parv[5][0] == 'J');
   if (ret != 1)
     return ret;
 

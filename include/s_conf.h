@@ -30,8 +30,6 @@ struct Message;
 #define CONF_CLIENT             0x0002     /**< ConfItem describes a Client block */
 #define CONF_SERVER             0x0004     /**< ConfItem describes a Connect block */
 #define CONF_OPERATOR           0x0020     /**< ConfItem describes an Operator block */
-#define CONF_LEAF               0x1000     /**< ConfItem describes a Server leaf */
-#define CONF_HUB                0x4000     /**< ConfItem describes a Server hub */
 #define CONF_UWORLD             0x8000     /**< ConfItem describes a Uworld server */
 
 /** Indicates ConfItem types that count associated clients. */
@@ -50,17 +48,22 @@ struct ConfItem
   struct ConfItem *next;    /**< Next ConfItem in #GlobalConfList */
   unsigned int status;      /**< Set of CONF_* bits. */
   unsigned int clients;     /**< Number of *LOCAL* clients using this */
+  unsigned int maximum;     /**< For CONF_SERVER, max hops.
+                               For CONF_CLIENT, max connects per IP. */
   struct ConnectionClass *conn_class;  /**< Class of connection */
-  struct irc_sockaddr origin;  /**< local address for outbound connections */
-  struct irc_sockaddr address; /**< ip and port */
-  char *host; /**< peer hostname */
-  char *origin_name; /**< text form of origin address */
-  char *passwd; /**< password field */
-  char *name; /**< name of peer */
-  time_t hold; /**< Earliest time to attempt an outbound connect on this ConfItem. */
-  int dns_pending; /**< a dns request is pending */
+  struct irc_sockaddr origin;  /**< Local address for outbound connections */
+  struct irc_sockaddr address; /**< IP and port */
+  char *host;         /**< Peer hostname */
+  char *origin_name;  /**< Text form of origin address */
+  char *passwd;       /**< Password field */
+  char *name;         /**< Name of peer */
+  char *hub_limit;    /**< Mask that limits servers allowed behind
+                         this one. */
+  time_t hold;        /**< Earliest time to attempt an outbound
+                         connect on this ConfItem. */
+  int dns_pending;    /**< A dns request is pending. */
   unsigned char bits; /**< Number of bits for ipkills. */
-  struct Privs privs; /**< Priviledges for opers. */
+  struct Privs privs; /**< Privileges for opers. */
   /** Used to detect if a privilege has been set by this ConfItem. */
   struct Privs privs_dirty;
 };
