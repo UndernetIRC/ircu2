@@ -2803,7 +2803,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
       /* if it's a limit, we also format the number */
-      sprintf_irc(limitbuf, "%-15d", MB_UINT(mbuf, i));
+      sprintf_irc(limitbuf, "%d", MB_UINT(mbuf, i));
 
       tmp = strlen(limitbuf);
 
