@@ -235,8 +235,11 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
   {
     /* Make sure it's a server */
     if (!strchr(parv[server], '*')) {
-      if (0 == (acptr = FindClient(parv[server])))
+      if (0 == (acptr = FindClient(parv[server]))) {
+        sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
+            me.name, parv[0], parv[server]);
         return HUNTED_NOSUCH;
+      }
       if (acptr->user)
         acptr = acptr->user->server;
     }

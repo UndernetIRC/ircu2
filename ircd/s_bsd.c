@@ -1044,7 +1044,7 @@ int read_message(time_t delay)
       if (CPTR_KILLED == (length = read_packet(cptr, read_ready)))
         continue;
     }
-#if ALWAYSFLUSH
+#if 0
     /* Bullshit, why would we want to flush sockets while using non-blocking?
      * This uses > 4% cpu! --Run */
     if (length > 0)
@@ -1078,8 +1078,7 @@ int read_message(time_t delay)
       const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
       if (!msg)
         msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error to %s: %s",
-                      get_client_name(cptr, HIDE_IP), msg);
+      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
     }
   }
   return 0;
@@ -1298,8 +1297,7 @@ int read_message(time_t delay)
       const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
       if (!msg)
         msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error to %s: %s",
-                      get_client_name(cptr, HIDE_IP), msg);
+      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
     }
   }
   return 0;
