@@ -1,3 +1,44 @@
+2004-07-01  Michael Poole <mdpoole@troilus.org>
+
+	* include/map.h, ircd/map.c: Remove unused code.
+
+	* ircd/m_links.c, ircd/m_map.c, ircd/s_misc.c: Remove includes of
+	map.h and a call to map_update().
+
+	* ircd/Makefile.in: Remove map.c and regenerate dependencies.
+
+	* ircd/ircd_parser.y: Recognize Diane Bruce as a copyright holder
+	for the new config parser.
+
+	* ircd/match.c: Remove pointless pointer dereference (Reed points
+	out that this generates a warning with old gcc).
+
+	* ircd/s_user.c: Display connection class in CONNEXIT connection
+	notice as a string rather than an integer.
+
+	* tools/ringlog.c, tools/ringlog.pl: At Kevin's request, remove
+	lines (falsely) identifying ringlog as related to IRC; the files
+	are general purpose.
+
+	* configure.in, include/ircd_snprintf.h: Add checks for
+	va_copy()-like alternatives and use them if va_copy() is missing.
+
+	* configure, config.h.in: Regenerate.
+
+2004-02-01  beware <steendijk@xs4all.nl>
+
+	* ircd/channel.c: Check bans that look like IP bans against user's
+	hostname just in case they have a host like 1234.domain.tld.
+
+2003-12-18  Timothy Grant Vogelsang <net@astrolink.org>
+
+	* ircd/ircd_log.c, ircd/send.c: va_list is not a scalar type
+
+2004-04-02  Gavin Grieve <hektik@dimebox.net>
+
+	* ircd/ircd_parser.y: Fix rehash warnings for servername and
+	numeric so they only warn if changed in the config file.
+
 2004-06-30  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.iauth, include/ircd_auth.h, ircd/ircd_auth.c: New

@@ -173,7 +173,7 @@ int match(const char *mask, const char *name)
       wild = 1;
     }
     if (*m == '\\')  /* next wildcard is disregarded */
-      *m++;
+      m++;
 
     if (!*m) {
       if (!*n)

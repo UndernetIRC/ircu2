@@ -1,5 +1,4 @@
 /*
-** IRC - Internet Relay Chat, tools/ringlog.c
 ** Copyright (C) 2002 by Kevin L. Mitchell <klmitch@mit.edu>
 **
 ** This program is free software; you can redistribute it and/or modify

@@ -94,7 +94,6 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
-#include "map.h"
 
 #include <assert.h>
 

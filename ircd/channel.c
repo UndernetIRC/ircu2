@@ -484,7 +484,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
       if (match(tmp->value.ban.banstr, ip_s) == 0)
         break;
     }
-    else if (match(tmp->value.ban.banstr, s) == 0)
+    if (match(tmp->value.ban.banstr, s) == 0)
       break;
     else if (sr && match(tmp->value.ban.banstr, sr) == 0)
       break;

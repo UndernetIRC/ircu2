@@ -38,7 +38,6 @@
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
-#include "map.h"
 #include "match.h"
 #include "msg.h"
 #include "numeric.h"
@@ -495,9 +494,6 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 			   get_client_name(killer, HIDE_IP));
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
 			 cli_serv(victim)->up, victim, comment);
-
-    if (feature_bool(FEAT_HIS_MAP) || feature_bool(FEAT_HIS_LINKS))
-      map_update(victim);
   }
 
   /*

@@ -1,8 +1,8 @@
 /*
  * ircd_parser.y: A yacc/bison parser for ircd config files.
  * This is part of ircu, an Internet Relay Chat server.
- * The contents of this file are Copyright(C) 2001 by Andrew Miller, the
- * ircd-hybrid team and the ircu team.
+ * The contents of this file are Copyright 2001 Diane Bruce,
+ * Andrew Miller, the ircd-hybrid team and the ircu team.
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -274,7 +274,7 @@ generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (localConf.numeric == 0)
     localConf.numeric = yylval.num;
-  else
+  else if (localConf.numeric != yylval.num)
     parse_error("Redefinition of server numeric %i (%i)",yylval.num,
     		localConf.numeric);
 };
@@ -283,7 +283,7 @@ generalname: NAME '=' QSTRING ';'
 {
   if (localConf.name == NULL)
     DupString(localConf.name, yylval.text);
-  else
+  else if (strcmp(localConf.name, yylval.text))
     parse_error("Redefinition of server name %s (%s)",yylval.text,
     		localConf.name);
 };

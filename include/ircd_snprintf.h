@@ -39,6 +39,14 @@ struct VarData {
   va_list	vd_args;	/* arguments for %v */
 };
 
+#ifndef HAVE_VA_COPY
+#if HAVE___VA_COPY
+#define va_copy(DEST, SRC) __va_copy(DEST, SRC)
+#else
+#define va_copy(DEST, SRC) memcpy(&(DEST), &(SRC), sizeof(DEST))
+#endif
+#endif
+
 extern int ircd_snprintf(struct Client *dest, char *buf, size_t buf_len,
 			 const char *format, ...);
 extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,

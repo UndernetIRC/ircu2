@@ -96,7 +96,6 @@
 #include "s_serv.h"
 #include "send.h"
 #include "querycmds.h"
-#include "map.h"
 
 #include <assert.h>
 #include <stdio.h>

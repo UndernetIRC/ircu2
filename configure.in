@@ -405,6 +405,25 @@ if test x"$unet_cv_enable_epoll" != xno; then
     ENGINE_C="engine_epoll.c $ENGINE_C"
 fi
 
+dnl How to copy one va_list to another?
+AC_CACHE_CHECK([for va_copy], unet_cv_c_va_copy, [AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include <stdarg.h>], [va_list ap1, ap2; va_copy(ap1, ap2);])],
+  [unet_cv_c_va_copy="yes"],
+  [unet_cv_c_va_copy="no"]
+)])
+if test "$unet_cv_c_va_copy" = "yes" ; then
+  AC_DEFINE(HAVE_VA_COPY, 1, [Define if we have va_copy])
+fi
+
+AC_CACHE_CHECK([for __va_copy], unet_cv_c___va_copy, [AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([#include <stdarg.h>], [va_list ap1, ap2; __va_copy(ap1, ap2);])],
+  [unet_cv_c___va_copy="yes"],
+  [unet_cv_c___va_copy="no"]
+)])
+if test "$unet_cv_c___va_copy" = "yes" ; then
+  AC_DEFINE(HAVE___VA_COPY, 1, [Define if we have __va_copy])
+fi
+
 dnl --disable-adns check...
 AC_MSG_CHECKING([whether to enable the adns resolver engine])
 AC_ARG_ENABLE([adns],
