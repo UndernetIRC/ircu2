@@ -1,10 +1,13 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.21.2.1 2001-10-15 20:30:18 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.21.2.2 2001-10-17 14:15:05 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Use sendto_one() method of sending numeric replies, rather than u2.10.11's
+  send_reply--since it hasn't been back-ported to u2.10.10 and since I'm too
+  lazy to do so.  -Kev
 * Fix the cores and other interesting behavior as a result of the breakage of
   "/mode <nick> -os" -Kev
 -------------------------- Released 2.10.10.pl17

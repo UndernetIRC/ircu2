@@ -1232,7 +1232,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
       if (tmpmask != sptr->snomask)
 	set_snomask(sptr, tmpmask, SNO_SET);
       if (sptr->snomask && snomask_given)
-	send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
+	sendto_one(sptr, rpl_str(RPL_SNOMASK), me.name, parv[0],
+		   sptr->snomask, sptr->snomask);
     } else
       set_snomask(sptr, 0, SNO_SET);
   }
