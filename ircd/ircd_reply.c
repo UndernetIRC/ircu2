@@ -59,8 +59,16 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
 
 int need_more_params(struct Client* cptr, const char* cmd)
 {
+#if 0
+  /*
+   * XXX - bug
+   * shouldn't try to do more than one thing at a time,
+   * call protocol_violation explicitly where it's needed and
+   * context is available.
+   */
   if (!MyUser(cptr))
-    protocol_violation(cptr,"Not enough parameters for %s",cmd);
+    protocol_violation(cptr, "Not enough parameters for %s",cmd);
+#endif
   send_reply(cptr, ERR_NEEDMOREPARAMS, cmd);
   return 0;
 }
@@ -98,16 +106,5 @@ int send_reply(struct Client *to, int reply, ...)
   return 0; /* convenience return */
 }
 
-int send_admin_info(struct Client* sptr)
-{
-  const struct LocalConf* admin = conf_get_local();
-  assert(0 != sptr);
-
-  send_reply(sptr, RPL_ADMINME,    cli_name(&me));
-  send_reply(sptr, RPL_ADMINLOC1,  admin->location1);
-  send_reply(sptr, RPL_ADMINLOC2,  admin->location2);
-  send_reply(sptr, RPL_ADMINEMAIL, admin->contact);
-  return 0;
-}
 
 

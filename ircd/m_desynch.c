@@ -119,33 +119,3 @@ int ms_desynch(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-#if 0
-/*
- * m_desynch
- *
- * Writes to all +g users; for sending wall type debugging/anti-hack info.
- * Added 23 Apr 1998  --Run
- *
- * parv[0] - sender prefix
- * parv[parc-1] - message text
- */
-int m_desynch(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  if (IsServer(sptr) && parc >= 2)
-  {
-    int i;
-    struct Client *acptr;
-    /* Send message to local +g clients as if it were a wallops */
-    sprintf_irc(sendbuf, ":%s WALLOPS :%s", parv[0], parv[parc - 1]); /* XXX DEAD */
-    for (i = 0; i <= HighestFd; i++)
-      if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr) &&
-          SendDebug(acptr))
-        sendbufto_one(acptr); /* XXX DEAD */
-    /* Send message to remote +g clients */
-    sendto_g_serv_butone(cptr, "%s DESYNCH :%s", NumServ(sptr), parv[parc - 1]); /* XXX DEAD */
-  }
-  return 0;
-}
-#endif /* 0 */
-

@@ -130,50 +130,6 @@ void user_count_memory(size_t* count_out, size_t* bytes_out)
   *bytes_out = userCount * sizeof(struct User);
 }
 
-/*
- * user_set_away - set user away state
- * returns 1 if client is away or changed away message, 0 if 
- * client is removing away status.
- * NOTE: this function may modify user and message, so they
- * must be mutable.
- */
-int user_set_away(struct User* user, char* message)
-{
-  char* away;
-  assert(0 != user);
-
-  away = user->away;
-
-  if (EmptyString(message)) {
-    /*
-     * Marking as not away
-     */
-    if (away) {
-      MyFree(away);
-      user->away = 0;
-    }
-  }
-  else {
-    /*
-     * Marking as away
-     */
-    unsigned int len = strlen(message);
-
-    if (len > TOPICLEN) {
-      message[TOPICLEN] = '\0';
-      len = TOPICLEN;
-    }
-    if (away)
-      away = (char*) MyRealloc(away, len + 1);
-    else
-      away = (char*) MyMalloc(len + 1);
-    assert(0 != away);
-
-    user->away = away;
-    strcpy(away, message);
-  }
-  return (user->away != 0);
-}
 
 /*
  * next_client
@@ -697,6 +653,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
         }
       }
     }
+    client_set_privs(new_client); /* set privs on user */
     /*
      * Set new nick name.
      */
@@ -1001,13 +958,13 @@ int whisper(struct Client* source, const char* nick, const char* channel,
 /*
  * added Sat Jul 25 07:30:42 EST 1992
  */
-void send_umode_out(struct Client *cptr, struct Client *sptr, int old)
+void send_umode_out(struct Client *cptr, struct Client *sptr, int old,
+		    int prop)
 {
   int i;
   struct Client *acptr;
 
-  send_umode(NULL, sptr, old,
-	     SEND_UMODES & ~(HasPriv(sptr, PRIV_PROPAGATE) ? 0 : FLAGS_OPER));
+  send_umode(NULL, sptr, old, SEND_UMODES & ~(prop ? 0 : FLAGS_OPER));
 
   for (i = HighestFd; i >= 0; i--) {
     if ((acptr = LocalClientArray[i]) && IsServer(acptr) &&
@@ -1071,6 +1028,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   unsigned int tmpmask = 0;
   int snomask_given = 0;
   char buf[BUFSIZE];
+  int prop = 0;
 
   what = MODE_ADD;
 
@@ -1239,19 +1197,21 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * Compare new flags with old flags and send string which
    * will cause servers to update correctly.
    */
-  if ((setflags & FLAGS_OPER) && !IsOper(sptr)) {
-    --UserStats.opers;
-    client_set_privs(sptr);
-  }
-  if (!(setflags & FLAGS_OPER) && IsOper(sptr)) {
+  if (!(setflags & FLAGS_OPER) && IsOper(sptr)) { /* user now oper */
     ++UserStats.opers;
-    client_set_privs(sptr);
+    client_set_privs(sptr); /* may set propagate privilege */
+  }
+  if (HasPriv(sptr, PRIV_PROPAGATE)) /* remember propagate privilege setting */
+    prop = 1;
+  if ((setflags & FLAGS_OPER) && !IsOper(sptr)) { /* user no longer oper */
+    --UserStats.opers;
+    client_set_privs(sptr); /* will clear propagate privilege */
   }
   if ((setflags & FLAGS_INVISIBLE) && !IsInvisible(sptr))
     --UserStats.inv_clients;
   if (!(setflags & FLAGS_INVISIBLE) && IsInvisible(sptr))
     ++UserStats.inv_clients;
-  send_umode_out(cptr, sptr, setflags);
+  send_umode_out(cptr, sptr, setflags, prop);
 
   return 0;
 }

@@ -295,7 +295,7 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     args = la_init; /* initialize argument to blank slate */
 
     for (param = 1; parv[param]; param++) { /* process each parameter */
-      switch (param_parse(sptr, parv[param], &args, parc != 2)) {
+      switch (param_parse(sptr, parv[param], &args, parc == 2)) {
       case LPARAM_ERROR: /* error encountered, usage already sent, return */
 	return 0;
 	break;

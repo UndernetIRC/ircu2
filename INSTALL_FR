@@ -155,4 +155,3 @@ vous avez des problèmes avec l'ircd, réessayer 'make config' encore et
 définissent DEBUGMODE. Recompiler l'ircd, et metez-le à la main comme: ircd
 - t - x9. Ceci écrira un point la sortie à votre écran, montrant
 probablement pourquoi il ne commence pas.
-

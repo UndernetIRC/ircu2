@@ -16,6 +16,110 @@
 	* include/ircd_events.h: add a prototype for timer_chg() to change
 	the expire time of a running timer
 
+2001-03-13 Joseph Bongaarts <foxxe@wtfs.net>
+	* ircd/os_openbsd.c: Tweaked the openbsd hack a bit.
+	
+2001-03-07  Joseph Bongaarts  <foxxe@wtfs.net>
+
+	* config/configure.in: Add check for OpenBSD
+
+	* ircd/os_openbsd.c: Add seperate os dep file for openbsd which
+	differs from generic BSD, particularly in its handling of
+	_XOPEN_SOURCE.
+	
+2001-02-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (ms_gline): propagate a G-line that happened to
+	have been added by a U-lined server, rather than going through the
+	activate/deactivate logic; propagate G-line removals by U-lined
+	servers as well
+
+	* ircd/gline.c: rename propagate_gline() to gline_propagate();
+	make gline_propagate() return an int 0 (convenience return); only
+	update lastmod in gline_activate() and gline_deactivate() if the
+	current lastmod is non-zero, since 0 lastmod is our flag of a
+	U-lined server having added a G-line
+
+	* include/gline.h (gline_propagate): exporting the G-line
+	propagation function
+
+	* ircd/m_list.c (m_list): duh; permit explicit channel name
+	specification only when /list gets two arguments ("Kev
+	#wasteland") rather than when /list gets more than two
+	arguments--nice braino
+
+2001-01-29  Thomas Helvey <twhelvey1@home.com>
+
+	* ircd/ircd_reply.c (need_more_params): fix bug that allowed
+	unregistered clients to spam opers with protocol violation
+	messages. Note: the bugfix may have eliminated some useful
+	protocol violation messages.
+	Please send protocol violation messages explicitly from the
+	functions they are discovered in, you have much better context
+	for the error there and it helps to document the behavior of the
+	server. This was also a design bug in that it violated the
+	"A function should do one thing" heuristic. Patching this one
+	would have resulted in a continuous spawning of other bugs over
+	the next 3 years, so I killed it. Check around for stuff this
+	broke and readd the calls to protocol_violation in the functions
+	that need to send the message.
+
+2001-01-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_ban): stopper a tiny leak--if a ban
+	already existed, then the logic would (attempt to) skip it, but
+	would not free the ban string; now the ban string is free'd and
+	the ban count is decremented, releasing the ban for use
+
+	* ircd/s_user.c: make send_umode_out() take a prop argument
+	instead of testing for the PRIV_PROPAGATE privilege itself; fix
+	set_umode() to use this new argument, calculating it before
+	calculating the new privileges for a -o'd user
+
+	* ircd/m_oper.c (m_oper): pass the new prop argument to
+	send_umode_out()
+
+	* ircd/channel.c (mode_parse_ban): turn off MODE_ADD bit in bans
+	that we're not actually going to add because they already exist;
+	test that particular bit before adding to the linked list
+
+	* include/s_user.h: add a prop argument to send_umode_out() to
+	indicate whether or not to propagate the user mode
+
+2001-01-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: ircd_vsnprintf() returns the number of bytes that
+	it would have written; upper-bound the number to prevent overflows
+	by proxy; also, tune buffer size given to ircd_vsnprintf() to take
+	into account the fact that ircd_vsnprintf() already takes the
+	terminal \0 into account
+
+2001-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: add an incredibly ugly hack to attempt to track
+	down an apparent buffer overflow; remove msgq_map(), since it's no
+	longer used anywhere; slight tweaks to prevent off-by-one errors,
+	but these can't explain the problems we've seen
+
+	* include/msgq.h: remove msgq_map(), since it's no longer used
+	anywhere
+
+2001-01-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (set_nick_name): call client_set_privs() after
+	parsing user modes
+
+2001-01-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (read_message): fix a typo in the select version of
+	read_message()
+
+	* ircd/whowas.c (whowas_free): MyFree() is a macro that expects
+	its argument to be an lvalue, which means we can't use
+	whowas_clean()'s handy-dandy "return ww" feature
+
+	* ircd/ircd_features.c: default LOCOP_KILL to TRUE--oops...
+
 2001-01-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c (timer_run): it's possible that the timer got
@@ -37,6 +141,14 @@
 
 	* ircd/engine_devpoll.c: include errno.h (oops); decrement error
 	count after an hour using a timer; fill in event processing code
+
+2001-01-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/client.c: fixed feattab; basically, when I changed features
+	to use small integers specifying bit positions, instead of the
+	bits themselves, I forgot to update feattab to not | these
+	privileges together; also fixed a bug in the antiprivs masking
+	loop in client_set_privs()--last index wouldn't get parsed
 
 2001-01-11  Kevin L. Mitchell  <klmitch@mit.edu>
 

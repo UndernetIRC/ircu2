@@ -199,11 +199,11 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
   return retval;
 }
 
-static void
-propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
+int
+gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 {
   if (GlineIsLocal(gline) || (IsUser(sptr) && !gline->gl_lastmod))
-    return;
+    return 0;
 
   if (gline->gl_lastmod)
     sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
@@ -219,6 +219,8 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			  gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
 			  gline->gl_expire - CurrentTime, gline->gl_reason);
+
+  return 0;
 }
 
 int 
@@ -275,7 +277,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   if (!agline) /* if it overlapped, silently return */
     return 0;
 
-  propagate_gline(cptr, sptr, agline);
+  gline_propagate(cptr, sptr, agline);
 
   if (GlineIsBadChan(agline))
     return 0;
@@ -298,10 +300,12 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   else {
     gline->gl_flags |= GLINE_ACTIVE;
 
-    if (gline->gl_lastmod >= lastmod) /* force lastmod to increase */
-      gline->gl_lastmod++;
-    else
-      gline->gl_lastmod = lastmod;
+    if (gline->gl_lastmod) {
+      if (gline->gl_lastmod >= lastmod) /* force lastmod to increase */
+	gline->gl_lastmod++;
+      else
+	gline->gl_lastmod = lastmod;
+    }
   }
 
   if ((saveflags & GLINE_ACTMASK) == GLINE_ACTIVE)
@@ -324,7 +328,7 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
 
   if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
-    propagate_gline(cptr, sptr, gline);
+    gline_propagate(cptr, sptr, gline);
 
   return GlineIsBadChan(gline) ? 0 : do_gline(cptr, sptr, gline);
 }
@@ -353,10 +357,12 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
     else {
       gline->gl_flags &= ~GLINE_ACTIVE;
 
-      if (gline->gl_lastmod >= lastmod)
-	gline->gl_lastmod++;
-      else
-	gline->gl_lastmod = lastmod;
+      if (gline->gl_lastmod) {
+	if (gline->gl_lastmod >= lastmod)
+	  gline->gl_lastmod++;
+	else
+	  gline->gl_lastmod = lastmod;
+      }
     }
 
     if ((saveflags & GLINE_ACTMASK) != GLINE_ACTIVE)
@@ -380,7 +386,7 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
 
   if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
-    propagate_gline(cptr, sptr, gline);
+    gline_propagate(cptr, sptr, gline);
 
   /* if it's a local gline or a Uworld gline (and not locally deactivated).. */
   if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))

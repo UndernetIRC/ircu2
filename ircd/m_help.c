@@ -111,20 +111,3 @@ int m_help(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-
-#if 0
-/*
- * m_help
- *
- * parv[0] = sender prefix
- */
-int m_help(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  int i;
-
-  for (i = 0; msgtab[i].cmd; i++)
-    sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], msgtab[i].cmd); /* XXX DEAD */
-  return 0;
-}
-#endif /* 0 */
-
