@@ -650,8 +650,9 @@ m_map.o: m_map.c ../include/client.h ../include/ircd_defs.h \
  ../include/struct.h ../include/ircd_policy.h ../include/ircd_reply.h \
  ../include/ircd_snprintf.h ../include/ircd_string.h \
  ../include/ircd_chattr.h ../include/list.h ../include/match.h \
- ../include/numeric.h ../include/s_user.h ../include/s_serv.h \
- ../include/send.h ../include/querycmds.h ../include/ircd_features.h
+ ../include/msg.h ../include/numeric.h ../include/s_user.h \
+ ../include/s_serv.h ../include/send.h ../include/querycmds.h \
+ ../include/ircd_features.h
 m_mode.o: m_mode.c ../include/handlers.h ../include/channel.h \
  ../config/config.h ../config/setup.h ../include/ircd_defs.h \
  ../include/client.h ../include/dbuf.h ../include/msgq.h \
@@ -832,19 +833,20 @@ m_squit.o: m_squit.c ../include/client.h ../include/ircd_defs.h \
  ../include/ircd_reply.h ../include/ircd_string.h ../include/numeric.h \
  ../include/numnicks.h ../include/match.h ../include/s_debug.h \
  ../include/s_misc.h ../include/s_user.h ../include/send.h
-m_stats.o: m_stats.c ../include/s_stats.h ../include/channel.h \
- ../config/config.h ../config/setup.h ../include/ircd_defs.h \
- ../include/class.h ../include/client.h ../include/dbuf.h \
- ../include/msgq.h ../include/ircd_handler.h ../include/gline.h \
- ../include/hash.h ../include/ircd.h ../include/struct.h \
- ../include/ircd_alloc.h ../include/fda.h ../include/ircd_chattr.h \
- ../include/ircd_features.h ../include/ircd_policy.h \
- ../include/ircd_reply.h ../include/ircd_string.h ../include/list.h \
- ../include/listener.h ../include/match.h ../include/motd.h \
- ../include/msg.h ../include/numeric.h ../include/numnicks.h \
- ../include/opercmds.h ../include/s_bsd.h ../include/s_conf.h \
- ../include/s_debug.h ../include/s_misc.h ../include/s_serv.h \
- ../include/s_user.h ../include/send.h ../include/userload.h
+m_stats.o: m_stats.c ../include/handlers.h ../include/s_stats.h \
+ ../include/channel.h ../config/config.h ../config/setup.h \
+ ../include/ircd_defs.h ../include/class.h ../include/client.h \
+ ../include/dbuf.h ../include/msgq.h ../include/ircd_handler.h \
+ ../include/gline.h ../include/hash.h ../include/ircd.h \
+ ../include/struct.h ../include/ircd_alloc.h ../include/fda.h \
+ ../include/ircd_chattr.h ../include/ircd_features.h \
+ ../include/ircd_policy.h ../include/ircd_reply.h \
+ ../include/ircd_string.h ../include/list.h ../include/listener.h \
+ ../include/match.h ../include/motd.h ../include/msg.h \
+ ../include/numeric.h ../include/numnicks.h ../include/opercmds.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/s_debug.h \
+ ../include/s_misc.h ../include/s_serv.h ../include/s_user.h \
+ ../include/send.h ../include/userload.h
 m_time.o: m_time.c ../include/client.h ../include/ircd_defs.h \
  ../config/config.h ../config/setup.h ../include/dbuf.h \
  ../include/msgq.h ../include/ircd_handler.h ../include/ircd.h \
