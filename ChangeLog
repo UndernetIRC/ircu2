@@ -1,3 +1,11 @@
+2001-01-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/client.c: fixed feattab; basically, when I changed features
+	to use small integers specifying bit positions, instead of the
+	bits themselves, I forgot to update feattab to not | these
+	privileges together; also fixed a bug in the antiprivs masking
+	loop in client_set_privs()--last index wouldn't get parsed
+
 2001-01-03  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/whowas.c: Completely re-did the old allocation scheme by
