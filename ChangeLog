@@ -1,5 +1,10 @@
 2002-07-17  Reed Loden  <reed@redmagnet.com>
 
+	* ircd/m_server.c: Added a log_write to show the IP in the 
+	"Recieved unauthorized connection" snotice.
+
+2002-07-17  Reed Loden  <reed@redmagnet.com>
+
 	* doc/Authors: Updated to latest info, fixed some
 	spelling/grammar errors, and added several people.
 
