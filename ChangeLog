@@ -1,3 +1,7 @@
+2000-12-01  net  <simms@LUCIDA.QC.CA>
+
+	* ircd/motd.c: add a freelist for struct Motds
+
 2000-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c (report_feature_list): report features--only
