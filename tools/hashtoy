@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+#
+# hashtoy: a little script to read an ircu burst IP dump and try
+#          different hash formulae
+# usage:   hashtoy <filename> <tablesize> '<expression>'
+#          use x for the key and n for the table size
+# example: hashtoy undernet-burst.txt 8192 '((x >> 14) + (x >> 7) + x) & 8191'
+# notes:   the input file is expected to contain one encoded IP address per
+#          line. see base64toint() and inttobase64() in ircd/s_user.c for
+#          details of the encoding.
+#
+# --Liandrin
+
+@convert2n = (
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0,  0, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,
+	 0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 62,  0, 63,  0,  0,  0, 26, 27, 28,
+	29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+	49, 50, 51
+);
+
+sub base64toint {
+	my $i    = 0;
+	my $str  = shift;
+	my @strc = ($str =~ /(.)/g);
+
+	$i  = $convert2n[ord($strc[5])];
+	$i += $convert2n[ord($strc[4])] << 6;
+	$i += $convert2n[ord($strc[3])] << 12;
+	$i += $convert2n[ord($strc[2])] << 18;
+	$i += $convert2n[ord($strc[1])] << 24;
+	$i += $convert2n[ord($strc[0])] << 30;
+}
+
+sub ntohl {
+	my $i = shift;
+	my $j;
+
+	return (($i & 0xFF000000) >> 24) |
+           (($i & 0x00FF0000) >> 8)  |
+           (($i & 0x0000FF00) << 8)  |
+           (($i & 0x000000FF) << 24);
+}
+
+($file, $tablesize, $expression) = @ARGV;
+while ($#ARGV > -1) { shift @ARGV; }
+
+if (!defined($file) || !defined($tablesize) || !defined($expression)) {
+	print STDERR "usage: $0 filename tablesize expression\n";
+	print STDERR "sample expression: x % n\n";
+	exit 1;
+}
+
+$expression =~ s/\bx\b/\$ip/gi;
+$expression =~ s/\bn\b/\$tablesize/gi;
+$expression =~ s/^(.*)$/sub dohash { return ($1); }/;
+
+$minkey = 2**32;
+$maxkey = 0;
+
+eval $expression;
+
+open IPS, $file || die "Can't open $file at";
+
+while (<IPS>) {
+	chomp;
+	$ip = base64toint($_);
+	$key = dohash($ip);
+	$minkey = $key if ($key < $minkey);
+	$maxkey = $key if ($key > $maxkey);
+	$testing{$key}++;
+}
+
+$max      = 0;
+$min      = $tablesize + 1;
+$nEntries = 0;
+$total    = 0;
+for (values %testing) {
+	$max = $_ if ($_ > $max);
+	$min = $_ if ($_ < $min);
+	$nEntries++;
+	$total += $_;
+}
+
+print "Table size: $tablesize\n";
+printf "Min/average/max chain length: $min/%.2f/$max\n", ($total / $nEntries);
+print "Minimum key: $minkey\n";
+print "Maximum key: $maxkey\n";
