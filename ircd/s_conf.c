@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief ircd configuration file driver
+ * @version $Id$
  */
 #include "config.h"
 
@@ -66,23 +68,28 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-struct ConfItem  *GlobalConfList  = 0;
-int              GlobalConfCount = 0;
-struct s_map     *GlobalServiceMapList = 0;
-struct qline     *GlobalQuarantineList = 0;
+/** Global list of all ConfItem structures. */
+struct ConfItem  *GlobalConfList;
+/** Count of items in #GlobalConfLis. */
+int              GlobalConfCount;
+/** Global list of service mappings. */
+struct s_map     *GlobalServiceMapList;
+/** Global list of channel quarantines. */
+struct qline     *GlobalQuarantineList;
 
-void yyparse(void);
-int conf_fd, lineno;
+/** Current line number in scanner input. */
+int lineno;
 
+/** Configuration information for #me. */
 struct LocalConf   localConf;
+/** Global list of connection rules. */
 struct CRuleConf*  cruleConfList;
-/* struct ServerConf* serverConfList; */
+/** Global list of K-lines. */
 struct DenyConf*   denyConfList;
 
-/*
- * output the reason for being k lined from a file  - Mmmm
- * sptr is client being dumped
- * filename is the file that is to be output to the K lined client
+/** Tell a user that they are banned, dumping the message from a file.
+ * @param sptr Client being rejected
+ * @param filename Send this file's contents to \a sptr
  */
 static void killcomment(struct Client* sptr, const char* filename)
 {
@@ -115,6 +122,9 @@ static void killcomment(struct Client* sptr, const char* filename)
   fbclose(file);
 }
 
+/** Allocate a new struct ConfItem.
+ * @return Newly allocated structure.
+ */
 struct ConfItem* make_conf(void)
 {
   struct ConfItem* aconf;
@@ -129,20 +139,9 @@ struct ConfItem* make_conf(void)
   return aconf;
 }
 
-void delist_conf(struct ConfItem *aconf)
-{
-  if (aconf == GlobalConfList)
-    GlobalConfList = GlobalConfList->next;
-  else {
-    struct ConfItem *bconf;
-
-    for (bconf = GlobalConfList; aconf != bconf->next; bconf = bconf->next)
-      ;
-    bconf->next = aconf->next;
-  }
-  aconf->next = 0;
-}
-
+/** Free a struct ConfItem and any resources it owns.
+ * @param aconf Item to free.
+ */
 void free_conf(struct ConfItem *aconf)
 {
   Debug((DEBUG_DEBUG, "free_conf: %s %s %d",
@@ -162,8 +161,9 @@ void free_conf(struct ConfItem *aconf)
 #endif
 }
 
-/*
- * detach_conf - Disassociate configuration from the client.
+/** Disassociate configuration from the client.
+ * @param cptr Client to operate on.
+ * @param aconf ConfItem to detach.
  */
 static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
 {
@@ -193,11 +193,9 @@ static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
   }
 }
 
-/*
- * conf_dns_callback - called when resolver query finishes
- * if the query resulted in a successful search, hp will contain
- * a non-null pointer, otherwise hp will be null.
- * if successful save hp in the conf item it was called with
+/** Copies a completed DNS query into its ConfItem.
+ * @param vptr Pointer to struct ConfItem for the block.
+ * @param hp DNS reply, or NULL if the lookup failed.
  */
 static void conf_dns_callback(void* vptr, struct DNSReply* hp)
 {
@@ -210,10 +208,9 @@ static void conf_dns_callback(void* vptr, struct DNSReply* hp)
   }
 }
 
-/*
- * conf_dns_lookup - do a nameserver lookup of the conf host
- * if the conf entry is currently doing a ns lookup do nothing, otherwise
- * if the lookup returns a null pointer, set the conf dns_pending flag
+/** Start a nameserver lookup of the conf host.  If the conf entry is
+ * currently doing a lookup, do nothing.
+ * @param aconf ConfItem for which to start a request.
  */
 static void conf_dns_lookup(struct ConfItem* aconf)
 {
@@ -231,11 +228,10 @@ static void conf_dns_lookup(struct ConfItem* aconf)
 }
 
 
-/*
- * lookup_confhost
- *
- * Do (start) DNS lookups of all hostnames in the conf line and convert
- * an IP addresses in a.b.c.d number for to IP#s.
+/** Start lookups of all addresses in the conf line.  The origin must
+ * be a numeric IP address.  If the remote host field is not an IP
+ * address, start a DNS lookup for it.
+ * @param aconf Connection to do lookups for.
  */
 void
 lookup_confhost(struct ConfItem *aconf)
@@ -264,13 +260,9 @@ lookup_confhost(struct ConfItem *aconf)
     conf_dns_lookup(aconf);
 }
 
-/*
- * conf_find_server - find a server by name or hostname
- * returns a server conf item pointer if found, 0 otherwise
- *
- * NOTE: at some point when we don't have to scan the entire
- * list it may be cheaper to look for server names and host
- * names in separate loops (original code did it that way)
+/** Find a server by name or hostname.
+ * @param name Server name to find.
+ * @return Pointer to the corresponding ConfItem, or NULL if none exists.
  */
 struct ConfItem* conf_find_server(const char* name)
 {
@@ -291,14 +283,10 @@ struct ConfItem* conf_find_server(const char* name)
   return 0;
 }
 
-/*
- * conf_eval_crule - evaluate connection rules
- * returns the name of the rule triggered if found, 0 otherwise
- *
- * Evaluate connection rules...  If no rules found, allow the
- * connect.   Otherwise stop with the first true rule (ie: rules
- * are ored together.  Oper connects are effected only by D
- * lines (CRULE_ALL) not d lines (CRULE_AUTO).
+/** Evaluate connection rules.
+ * @param name Name of server to check
+ * @param mask Filter for CRule types (only consider if type & \a mask != 0).
+ * @return Name of rule that forbids the connection; NULL if no prohibitions.
  */
 const char* conf_eval_crule(const char* name, int mask)
 {
@@ -314,9 +302,10 @@ const char* conf_eval_crule(const char* name, int mask)
   return 0;
 }
 
-/*
- * Remove all conf entries from the client except those which match
+/** Remove all conf entries from the client except those which match
  * the status field mask.
+ * @param cptr Client to operate on.
+ * @param mask ConfItem types to keep.
  */
 void det_confs_butmask(struct Client* cptr, int mask)
 {
@@ -331,13 +320,12 @@ void det_confs_butmask(struct Client* cptr, int mask)
   }
 }
 
-/*
- * check_limit_and_attach - check client limits and attach I:line
- *
- * Made it accept 1 charactor, and 2 charactor limits (0->99 now), 
- * and dislallow more than 255 people here as well as in ipcheck.
- * removed the old "ONE" scheme too.
- *  -- Isomer 2000-06-22
+/** Check client limits and attach Client block.
+ * If the password field consists of one or two digits, use that
+ * as the per-IP connection limit; otherwise use 255.
+ * @param cptr Client getting \a aconf.
+ * @param aconf Configuration item to attach.
+ * @return Authorization check result.
  */
 static enum AuthorizationCheckResult
 check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
@@ -356,21 +344,20 @@ check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
   return attach_conf(cptr, aconf);
 }
 
-/*
- * Find the first (best) I line to attach.
+/** Find the first (best) Client block to attach.
+ * @param cptr Client for whom to check rules.
+ * @return Authorization check result.
  */
 enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
 {
   struct ConfItem* aconf;
   static char      uhost[HOSTLEN + USERLEN + 3];
   static char      fullname[HOSTLEN + 1];
-  struct DNSReply* hp = 0;
+  struct DNSReply* hp;
 
   assert(0 != cptr);
 
-  if (cli_dns_reply(cptr))
-    hp = cli_dns_reply(cptr);
-
+  hp = cli_dns_reply(cptr);
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
@@ -417,6 +404,12 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
   return ACR_NO_AUTHORIZATION;
 }
 
+/** Check whether a particular ConfItem is already attached to a
+ * Client.
+ * @param aconf ConfItem to search for
+ * @param cptr Client to check
+ * @return Non-zero if \a aconf is attached to \a cptr, zero if not.
+ */
 static int is_attached(struct ConfItem *aconf, struct Client *cptr)
 {
   struct SLink *lp;
@@ -428,13 +421,12 @@ static int is_attached(struct ConfItem *aconf, struct Client *cptr)
   return 0;
 }
 
-/*
- * attach_conf
- *
- * Associate a specific configuration entry to a *local*
- * client (this is the one which used in accepting the
- * connection). Note, that this automaticly changes the
- * attachment if there was an old one...
+/** Associate a specific configuration entry to a *local* client (this
+ * is the one which used in accepting the connection). Note, that this
+ * automaticly changes the attachment if there was an old one...
+ * @param cptr Client to attach \a aconf to
+ * @param aconf ConfItem to attach
+ * @return Authorization check result.
  */
 enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf)
 {
@@ -457,17 +449,20 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
   return ACR_OK;
 }
 
+/** Return our LocalConf configuration structure.
+ * @return A pointer to #localConf.
+ */
 const struct LocalConf* conf_get_local(void)
 {
   return &localConf;
 }
 
-/*
- * attach_confs_byname
- *
- * Attach a CONF line to a client if the name passed matches that for
- * the conf file (for non-C/N lines) or is an exact match (C/N lines
- * only).  The difference in behaviour is to stop C:*::* and N:*::*.
+/** Attach ConfItems to a client if the name passed matches that for
+ * the ConfItems or is an exact match for them.
+ * @param cptr Client getting the ConfItem attachments.
+ * @param name Filter to match ConfItem::name.
+ * @param statmask Filter to limit ConfItem::status.
+ * @return First ConfItem attached to \a cptr.
  */
 struct ConfItem* attach_confs_byname(struct Client* cptr, const char* name,
                                      int statmask)
@@ -492,8 +487,12 @@ struct ConfItem* attach_confs_byname(struct Client* cptr, const char* name,
   return first;
 }
 
-/*
- * Added for new access check    meLazy
+/** Attach ConfItems to a client if the host passed matches that for
+ * the ConfItems or is an exact match for them.
+ * @param cptr Client getting the ConfItem attachments.
+ * @param host Filter to match ConfItem::host.
+ * @param statmask Filter to limit ConfItem::status.
+ * @return First ConfItem attached to \a cptr.
  */
 struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* host,
                                      int statmask)
@@ -517,8 +516,13 @@ struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* host,
   return first;
 }
 
-/*
- * find a conf entry which matches the hostname and has the same name.
+/** Find a ConfItem that has the same name and user+host fields as
+ * specified.  Requires an exact match for \a name.
+ * @param name Name to match
+ * @param user User part of match (or NULL)
+ * @param host Hostname part of match
+ * @param statmask Filter for ConfItem::status
+ * @return First found matching ConfItem.
  */
 struct ConfItem* find_conf_exact(const char* name, const char* user,
                                  const char* host, int statmask)
@@ -554,6 +558,13 @@ struct ConfItem* find_conf_exact(const char* name, const char* user,
   return 0;
 }
 
+/** Find a ConfItem from a list that has a name that matches \a name.
+ * @param lp List to search in.
+ * @param name Filter for ConfItem::name field; matches either exactly
+ * or as a glob.
+ * @param statmask Filter for ConfItem::status.
+ * @return First matching ConfItem from \a lp.
+ */
 struct ConfItem* find_conf_byname(struct SLink* lp, const char* name,
                                   int statmask)
 {
@@ -574,8 +585,11 @@ struct ConfItem* find_conf_byname(struct SLink* lp, const char* name,
   return 0;
 }
 
-/*
- * Added for new access check    meLazy
+/** Find a ConfItem from a list that has a host that matches \a host.
+ * @param lp List to search in.
+ * @param host Filter for ConfItem::host field; matches as a glob.
+ * @param statmask Filter for ConfItem::status.
+ * @return First matching ConfItem from \a lp.
  */
 struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
                                   int statmask)
@@ -597,11 +611,11 @@ struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
   return 0;
 }
 
-/*
- * find_conf_ip
- *
- * Find a conf line using the IP# stored in it to search upon.
- * Added 1/8/92 by Avalon.
+/** Find a ConfItem from a list that has an address equal to \a ip.
+ * @param lp List to search in.
+ * @param ip Filter for ConfItem::address field; matches exactly.
+ * @param statmask Filter for ConfItem::status.
+ * @return First matching ConfItem from \a lp.
  */
 struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
                                 int statmask)
@@ -617,130 +631,7 @@ struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
   return 0;
 }
 
-/*
- * find_conf_entry
- *
- * - looks for a match on all given fields.
- */
-#if 0
-static struct ConfItem *find_conf_entry(struct ConfItem *aconf,
-                                        unsigned int mask)
-{
-  struct ConfItem *bconf;
-  assert(0 != aconf);
-
-  mask &= ~CONF_ILLEGAL;
-
-  for (bconf = GlobalConfList; bconf; bconf = bconf->next) {
-    if (!(bconf->status & mask) || (bconf->port != aconf->port))
-      continue;
-
-    if ((EmptyString(bconf->host) && !EmptyString(aconf->host)) ||
-        (EmptyString(aconf->host) && !EmptyString(bconf->host)))
-      continue;
-    if (!EmptyString(bconf->host) && 0 != ircd_strcmp(bconf->host, aconf->host))
-      continue;
-
-    if ((EmptyString(bconf->passwd) && !EmptyString(aconf->passwd)) ||
-        (EmptyString(aconf->passwd) && !EmptyString(bconf->passwd)))
-      continue;
-    if (!EmptyString(bconf->passwd) && (!IsDigit(*bconf->passwd) || bconf->passwd[1])
-        && 0 != ircd_strcmp(bconf->passwd, aconf->passwd))
-      continue;
-
-    if ((EmptyString(bconf->name) && !EmptyString(aconf->name)) ||
-        (EmptyString(aconf->name) && !EmptyString(bconf->name)))
-      continue;
-    if (!EmptyString(bconf->name) && 0 != ircd_strcmp(bconf->name, aconf->name))
-      continue;
-    break;
-  }
-  return bconf;
-}
-
-/*
- * If conf line is a class definition, create a class entry
- * for it and make the conf_line illegal and delete it.
- */
-void conf_add_class(const char* const* fields, int count)
-{
-  if (count < 6)
-    return;
-  add_class(atoi(fields[1]), atoi(fields[2]), atoi(fields[3]),
-            atoi(fields[4]), atoi(fields[5]));
-}
-
-void conf_add_listener(const char* const* fields, int count)
-{
-  int is_server = 0;
-  int is_hidden = 0;
-
-  /*
-   * need a port
-   */
-  if (count < 5 || EmptyString(fields[4]))
-    return;
-
-  if (!EmptyString(fields[3])) {
-    const char* x = fields[3];
-    if ('S' == ToUpper(*x))
-      is_server = 1;
-    ++x;
-    if ('H' == ToUpper(*x))
-      is_hidden = 1;
-  }
-  /*           port             vhost      mask  */
-  add_listener(atoi(fields[4]), fields[2], fields[1], is_server, is_hidden);
-}
-
-void conf_add_admin(const char* const* fields, int count)
-{
-  /*
-   * if you have one, it MUST have 3 lines
-   */
-  if (count < 4) {
-    log_write(LS_CONFIG, L_CRIT, 0, "Your A: line must have 4 fields!");
-    return;
-  }
-  MyFree(localConf.location1);
-  DupString(localConf.location1, fields[1]);
-
-  MyFree(localConf.location2);
-  DupString(localConf.location2, fields[2]);
-
-  MyFree(localConf.contact);
-  DupString(localConf.contact, fields[3]);
-}
-
-/*
- * conf_add_crule - Create expression tree from connect rule and add it
- * to the crule list
- */
-void conf_add_crule(const char* const* fields, int count, int type)
-{
-  struct CRuleNode* node;
-  assert(0 != fields);
-  
-  if (count < 4 || EmptyString(fields[1]) || EmptyString(fields[3]))
-    return;
-  
-  if ((node = crule_parse(fields[3]))) {
-    struct CRuleConf* p = (struct CRuleConf*) MyMalloc(sizeof(struct CRuleConf));
-    assert(0 != p);
-
-    DupString(p->hostmask, fields[1]);
-    collapse(p->hostmask);
-
-    DupString(p->rule, fields[3]);
-
-    p->type = type;
-    p->node = node;
-    p->next = cruleConfList;
-    cruleConfList = p;
-  } 
-}
-#endif
-
+/** Free all CRules from #cruleConfList. */
 void conf_erase_crule_list(void)
 {
   struct CRuleConf* next;
@@ -756,11 +647,15 @@ void conf_erase_crule_list(void)
   cruleConfList = 0;
 }
 
+/** Return #cruleConfList.
+ * @return #cruleConfList
+ */
 const struct CRuleConf* conf_get_crule_list(void)
 {
   return cruleConfList;
 }
 
+/** Free all deny rules from #denyConfList. */
 void conf_erase_deny_list(void)
 {
   struct DenyConf* next;
@@ -775,11 +670,18 @@ void conf_erase_deny_list(void)
   denyConfList = 0;
 }
 
+/** Return #denyConfList.
+ * @return #denyConfList
+ */
 const struct DenyConf* conf_get_deny_list(void)
 {
   return denyConfList;
 }
 
+/** Find any existing quarantine for the named channel.
+ * @param chname Channel name to search for.
+ * @return Reason for channel's quarantine, or NULL if none exists.
+ */
 const char*
 find_quarantine(const char *chname)
 {
@@ -791,6 +693,7 @@ find_quarantine(const char *chname)
   return NULL;
 }
 
+/** Free all qline structs from #GlobalQuarantineList. */
 void clear_quarantines(void)
 {
   struct qline *qline;
@@ -803,23 +706,16 @@ void clear_quarantines(void)
   }
 }
 
-
-/*
- * read_configuration_file
- *
- * Read configuration file.
- *
- * returns 0, if file cannot be opened
- *         1, if file read
- */
-
-#define MAXCONFLINKS 150
-
+/** When non-zero, indicates that a configuration error has been seen in this pass. */
 static int conf_error;
+/** When non-zero, indicates that the configuration file was loaded at least once. */
 static int conf_already_read;
 extern FILE *yyin;
-void init_lexer(void);
+extern void yyparse(void);
+extern void init_lexer(void);
 
+/** Read configuration file.
+ * @return Zero on failure, non-zero on success. */
 int read_configuration_file(void)
 {
   conf_error = 0;
@@ -834,6 +730,9 @@ int read_configuration_file(void)
   return 1;
 }
 
+/** Report an error message about the configuration file.
+ * @param msg The error to report.
+ */
 void
 yyerror(const char *msg)
 {
@@ -846,12 +745,12 @@ yyerror(const char *msg)
  conf_error = 1;
 }
 
-/*
- * rehash
- *
- * Actual REHASH service routine. Called with sig == 0 if it has been called
- * as a result of an operator issuing this command, else assume it has been
- * called as a result of the server receiving a HUP signal.
+/** Reload the configuration file.
+ * @param cptr Client that requested rehash (if a signal, &me).
+ * @param sig Type of rehash (0 = oper-requested, 1 = signal, 2 =
+ *   oper-requested but do not restart resolver)
+ * @return CPTR_KILLED if any client was K/G-lined because of the
+ * rehash; otherwise 0.
  */
 int rehash(struct Client *cptr, int sig)
 {
@@ -956,13 +855,8 @@ int rehash(struct Client *cptr, int sig)
   return ret;
 }
 
-/*
- * init_conf
- *
- * Read configuration file.
- *
- * returns 0, if file cannot be opened
- *         1, if file read
+/** Read configuration file for the very first time.
+ * @return Non-zero on success, zero on failure.
  */
 
 int init_conf(void)
@@ -991,16 +885,11 @@ int init_conf(void)
   return 0;
 }
 
-/*
- * find_kill
- * input:
- *  client pointer
- * returns:
- *  0: Client may continue to try and connect
- * -1: Client was K/k:'d - sideeffect: reason was sent.
- * -2: Client was G/g:'d - sideeffect: reason was sent.
- * sideeffects:
- *  Client may have been sent a reason why they are denied, as above.
+/** Searches for a K/G-line for a client.  If one is found, notify the
+ * user and disconnect them.
+ * @param cptr Client to search for.
+ * @return 0 if client is accepted; -1 if client was locally denied
+ * (K-line); -2 if client was globally denied (G-line).
  */
 int find_kill(struct Client *cptr)
 {
@@ -1071,13 +960,14 @@ int find_kill(struct Client *cptr)
     return -1;
   if (agline)
     return -2;
-    
+
   return 0;
 }
 
-/*
- * Ordinary client access check. Look for conf lines which have the same
- * status as the flags passed.
+/** Attempt to attach Client blocks to \a cptr.  If attach_iline()
+ * fails for the client, emit a debugging message.
+ * @param cptr Client to check for access.
+ * @return Access check result.
  */
 enum AuthorizationCheckResult conf_check_client(struct Client *cptr)
 {
@@ -1093,19 +983,13 @@ enum AuthorizationCheckResult conf_check_client(struct Client *cptr)
   return ACR_OK;
 }
 
-/*
- * check_server()
- *
- * Check access for a server given its name (passed in cptr struct).
+/** Check access for a server given its name (passed in cptr struct).
  * Must check for all C/N lines which have a name which matches the
  * name given and a host which matches. A host alias which is the
  * same as the server name is also acceptable in the host field of a
  * C/N line.
- *
- * Returns
- *  0 = Success
- * -1 = Access denied
- * -2 = Bad socket.
+ * @param cptr Peer server to check.
+ * @return 0 if accepted, -1 if access denied.
  */
 int conf_check_server(struct Client *cptr)
 {
