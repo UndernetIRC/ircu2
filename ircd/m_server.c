@@ -150,12 +150,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   time_t           recv_time;
   time_t           ghost = 0;
 
-  if (IsUser(cptr))
-  {
-    sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]);
-    return 0;
-  }
-
   if (IsUserPort(cptr))
     return exit_client_msg(cptr, cptr, &me, 
                            "Cannot connect a server to a user port");
@@ -207,8 +201,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ircd_strncpy(info, parv[parc - 1], REALLEN);
   info[REALLEN] = '\0';
   if (prot < atoi(MINOR_PROTOCOL)) {
-    sendto_ops("Got incompatible protocol version (%s) from %s",
-               parv[5], cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Got incompatible protocol version "
+			 "(%s) from %s", parv[5], cptr->name);
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
   }
@@ -228,7 +222,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
   }
   if (*ch || !strchr(host, '.')) {
-    sendto_ops("Bogus server name (%s) from %s", host, cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Bogus server name (%s) from %s",
+			 host, cptr->name);
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -310,14 +305,16 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if ((cconf->status == CONF_CRULEALL) && (match(cconf->host, host) == 0)) {
         if (crule_eval(cconf->passwd)) {
           ServerStats->is_ref++;
-          sendto_ops("Refused connection from %s.", cptr->name);
+          sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.",
+			       cptr->name);
           return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
         }
       }
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Received unauthorized connection from %s.", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
+			   "from %s.", cptr->name);
       return exit_client(cptr, cptr, &me, "No C:line");
     }
 
@@ -328,15 +325,17 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!(aconf = find_conf_byname(cptr->confs, host, CONF_SERVER))) {
       ++ServerStats->is_ref;
 #ifndef GODMODE
-      sendto_ops("Access denied. No conf line for server %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Access denied. No conf line for "
+			   "server %s", cptr->name);
       return exit_client_msg(cptr, cptr, &me,
           "Access denied. No conf line for server %s", cptr->name);
 #else /* GODMODE */
-      sendto_ops("General C: line active: No line for server %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "General C: line active: No line "
+			   "for server %s", cptr->name);
       aconf = find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
       if (!aconf) {
-        sendto_ops("Neither C lines for server %s nor "
-            "\"general.undernet.org\"", cptr->name);
+        sendto_opmask_butone(0, SNO_OLDSNO, "Neither C lines for server %s "
+			     "nor \"general.undernet.org\"", cptr->name);
         return exit_client_msg(cptr, cptr, &me, "No C lines for server %s", cptr->name);
       }
 #endif /* GODMODE */
@@ -359,7 +358,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifndef GODMODE
     if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Access denied (passwd mismatch) %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
+			   cptr->name);
       return exit_client_msg(cptr, cptr, &me,
           "No Access (passwd mismatch) %s", cptr->name);
     }
@@ -405,9 +405,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * Detect wrong numeric.
      */
     if (0 != ircd_strcmp(acptr->name, host)) {
-      sendto_serv_butone(cptr,
-          ":%s WALLOPS :SERVER Numeric Collision: %s != %s",
-          me.name, acptr->name, host);
+      sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
+			    ":SERVER Numeric Collision: %s != %s",
+			    acptr->name, host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
           " Is your server numeric correct ?", host, acptr->name);
@@ -444,8 +444,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, acptr->info);
-      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!",
-          me.name, parv[0], parv[1], cptr->name);
+      sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
+			    ":Received :%s SERVER %s from %s !?!", parv[0],
+			    parv[1], cptr->name);
       return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
     }
     /*
@@ -688,13 +689,16 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (*parv[5] == 'J')
     {
       SetBurst(acptr);
-      sendto_op_mask(SNO_NETWORK, "Net junction: %s %s",
+      sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
           sptr->name, acptr->name);
       SetJunction(acptr);
     }
     /*
      * Old sendto_serv_but_one() call removed because we now need to send
      * different names to different servers (domain name matching).
+     *
+     * Personally, I think this is bogus; it's a feature we don't use here.
+     * -Kev
      */
     for (i = 0; i <= HighestFd; i++)
     {
@@ -703,9 +707,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         continue;
       if (0 == match(me.name, acptr->name))
         continue;
-        sendto_one(bcptr, "%s " TOK_SERVER " %s %d 0 %s %s %s%s 0 :%s",
-            NumServ(sptr), acptr->name, hop + 1, parv[4], parv[5],
-            NumServCap(acptr), acptr->info);
+      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
+		    acptr->name, hop + 1, parv[4], parv[5], NumServCap(acptr),
+		    acptr->info);
     }
     return 0;
   }
@@ -721,19 +725,21 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
 #ifndef RELIABLE_CLOCK
 #ifdef TESTNET
-      sendto_ops("Debug: my start time: " TIME_T_FMT " ; others start time: "
-          TIME_T_FMT, me.serv->timestamp, start_timestamp);
-      sendto_ops("Debug: receive time: " TIME_T_FMT " ; received timestamp: "
-          TIME_T_FMT " ; difference %ld",
-          recv_time, timestamp, timestamp - recv_time);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
+			   "others start time: %Tu", me.serv->timestamp,
+			   start_timestamp);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
+			   "received timestamp: %Tu ; difference %ld",
+			   recv_time, timestamp, timestamp - recv_time);
 #endif
       if (start_timestamp < me.serv->timestamp)
       {
-        sendto_ops("got earlier start time: " TIME_T_FMT " < " TIME_T_FMT,
-            start_timestamp, me.serv->timestamp);
+        sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
+			     "%Tu < %Tu", start_timestamp, me.serv->timestamp);
         me.serv->timestamp = start_timestamp;
         TSoffset += timestamp - recv_time;
-        sendto_ops("clock adjusted by adding %d", (int)(timestamp - recv_time));
+        sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+			     (int)(timestamp - recv_time));
       }
       else if ((start_timestamp > me.serv->timestamp) && IsUnknown(cptr))
         cptr->serv->timestamp = TStime();
@@ -749,8 +755,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           cptr->serv->timestamp = TStime();
         else if (IsHandshake(cptr))
         {
-          sendto_ops("clock adjusted by adding %d",
-              (int)(timestamp - recv_time));
+          sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+			       (int)(timestamp - recv_time));
           TSoffset += timestamp - recv_time;
         }
       }
@@ -769,11 +775,11 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef RELIABLE_CLOCK
   if (abs(cptr->serv->timestamp - recv_time) > 30)
   {
-    sendto_ops("Connected to a net with a timestamp-clock"
-        " difference of " STIME_T_FMT " seconds! Used SETTIME to correct"
-        " this.", timestamp - recv_time);
-    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s",
-        me.name, TStime(), me.name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
+			 "timestamp-clock difference of %Td seconds! "
+			 "Used SETTIME to correct this.",
+			 timestamp - recv_time);
+    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), me.name);
   }
 #endif
 
@@ -816,12 +822,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   time_t           timestamp = 0;
   time_t           recv_time;
   time_t           ghost = 0;
-
-  if (IsUser(cptr))
-  {
-    sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]);
-    return 0;
-  }
 
   if (IsUserPort(cptr))
     return exit_client_msg(cptr, cptr, &me,
@@ -870,8 +870,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ircd_strncpy(info, parv[parc - 1], REALLEN);
   info[REALLEN] = '\0';
   if (prot < atoi(MINOR_PROTOCOL)) {
-    sendto_ops("Got incompatible protocol version (%s) from %s",
-               parv[5], cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Got incompatible protocol version "
+			 "(%s) from %s", parv[5], cptr->name);
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
   }
@@ -889,7 +889,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (*ch <= ' ' || *ch > '~')
       break;
   if (*ch || !strchr(host, '.')) {
-    sendto_ops("Bogus server name (%s) from %s", host, cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Bogus server name (%s) from %s",
+			 host, cptr->name);
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -972,14 +973,16 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (crule_eval(cconf->passwd))
         {
           ServerStats->is_ref++;
-          sendto_ops("Refused connection from %s.", cptr->name);
+          sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.",
+			       cptr->name);
           return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
         }
       }
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Received unauthorized connection from %s.", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
+			   "from %s.", cptr->name);
       return exit_client(cptr, cptr, &me, "No C conf lines");
     }
 
@@ -990,16 +993,18 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!(aconf = find_conf_byname(cptr->confs, host, CONF_SERVER))) {
       ++ServerStats->is_ref;
 #ifndef GODMODE
-      sendto_ops("Access denied. No conf line for server %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Access denied. No conf line for "
+			   "server %s", cptr->name);
       return exit_client_msg(cptr, cptr, &me,
                              "Access denied. No conf line for server %s", cptr->name);
 #else /* GODMODE */
-      sendto_ops("General C line active: No line for server %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "General C line active: No line "
+			   "for server %s", cptr->name);
       aconf =
           find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
       if (!aconf) {
-        sendto_ops("Neither C lines for server %s nor "
-            "\"general.undernet.org\"", cptr->name);
+        sendto_opmask_butone(0, SNO_OLDSNO, "Neither C lines for server %s "
+			     "nor \"general.undernet.org\"", cptr->name);
         return exit_client_msg(cptr, cptr, &me,
             "No C lines for server %s", cptr->name);
       }
@@ -1024,7 +1029,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifndef GODMODE
     if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Access denied (passwd mismatch) %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
+			   cptr->name);
       return exit_client_msg(cptr, cptr, &me,
                              "No Access (passwd mismatch) %s", cptr->name);
     }
@@ -1072,9 +1078,9 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     if (0 != ircd_strcmp(acptr->name, host))
     {
-      sendto_serv_butone(cptr,
-          ":%s WALLOPS :SERVER Numeric Collision: %s != %s",
-          me.name, acptr->name, host);
+      sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
+			    ":SERVER Numeric Collision: %s != %s", acptr->name,
+			    host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
           " Is your server numeric correct ?", host, acptr->name);
@@ -1111,8 +1117,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, acptr->info);
-      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!",
-          me.name, parv[0], parv[1], cptr->name);
+      sendcmdto_one(&me, CMD_WALLOPS, cptr, ":Received :%s SERVER %s "
+		    "from %s !?!", parv[0], parv[1], cptr->name);
       return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
     }
     /*
@@ -1353,8 +1359,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (*parv[5] == 'J')
     {
       SetBurst(acptr);
-      sendto_op_mask(SNO_NETWORK, "Net junction: %s %s",
-          sptr->name, acptr->name);
+      sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
+			   sptr->name, acptr->name);
       SetJunction(acptr);
     }
     /*
@@ -1368,9 +1374,9 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         continue;
       if (0 == match(me.name, acptr->name))
         continue;
-        sendto_one(bcptr, "%s " TOK_SERVER " %s %d 0 %s %s %s%s 0 :%s",
-            NumServ(sptr), acptr->name, hop + 1, parv[4], parv[5],
-            NumServCap(acptr), acptr->info);
+      sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
+		    acptr->name, hop + 1, parv[4], parv[5], NumServCap(acptr),
+		    acptr->info);
     }
     return 0;
   }
@@ -1386,19 +1392,21 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
 #ifndef RELIABLE_CLOCK
 #ifdef TESTNET
-      sendto_ops("Debug: my start time: " TIME_T_FMT " ; others start time: "
-          TIME_T_FMT, me.serv->timestamp, start_timestamp);
-      sendto_ops("Debug: receive time: " TIME_T_FMT " ; received timestamp: "
-          TIME_T_FMT " ; difference %ld",
-          recv_time, timestamp, timestamp - recv_time);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
+			   "others start time: %Tu", me.serv->timestamp,
+			   start_timestamp);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
+			   "received timestamp: %Tu ; difference %ld",
+			   recv_time, timestamp, timestamp - recv_time);
 #endif
       if (start_timestamp < me.serv->timestamp)
       {
-        sendto_ops("got earlier start time: " TIME_T_FMT " < " TIME_T_FMT,
-            start_timestamp, me.serv->timestamp);
+        sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
+			     "%Tu < %Tu", start_timestamp, me.serv->timestamp);
         me.serv->timestamp = start_timestamp;
         TSoffset += timestamp - recv_time;
-        sendto_ops("clock adjusted by adding %d", (int)(timestamp - recv_time));
+        sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+			     (int)(timestamp - recv_time));
       }
       else if ((start_timestamp > me.serv->timestamp) && IsUnknown(cptr))
         cptr->serv->timestamp = TStime();
@@ -1414,8 +1422,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           cptr->serv->timestamp = TStime();
         else if (IsHandshake(cptr))
         {
-          sendto_ops("clock adjusted by adding %d",
-              (int)(timestamp - recv_time));
+          sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+			       (int)(timestamp - recv_time));
           TSoffset += timestamp - recv_time;
         }
       }
@@ -1434,11 +1442,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef RELIABLE_CLOCK
   if (abs(cptr->serv->timestamp - recv_time) > 30)
   {
-    sendto_ops("Connected to a net with a timestamp-clock"
-        " difference of " STIME_T_FMT " seconds! Used SETTIME to correct"
-        " this.", timestamp - recv_time);
-    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s",
-        me.name, TStime(), me.name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
+			 "timestamp-clock difference of %Td seconds! Used "
+			 "SETTIME to correct this.", timestamp - recv_time);
+    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), me.name);
   }
 #endif
 
@@ -1486,7 +1493,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (IsUser(cptr))
   {
-    sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]);
+    sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -1534,7 +1541,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   ircd_strncpy(info, parv[parc - 1], REALLEN);
   info[REALLEN] = '\0';
   if (prot < atoi(MINOR_PROTOCOL)) {
-    sendto_ops("Got incompatible protocol version (%s) from %s",
+    sendto_ops("Got incompatible protocol version (%s) from %s", /* XXX DEAD */
                parv[5], cptr->name);
     return exit_new_server(cptr, sptr, host, timestamp,
         "Incompatible protocol: %s", parv[5]);
@@ -1554,7 +1561,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       break;
   if (*ch || !strchr(host, '.'))
   {
-    sendto_ops("Bogus server name (%s) from %s", host, cptr->name);
+    sendto_ops("Bogus server name (%s) from %s", host, cptr->name); /* XXX DEAD */
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -1637,14 +1644,14 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         if (crule_eval(cconf->passwd))
         {
           ServerStats->is_ref++;
-          sendto_ops("Refused connection from %s.", cptr->name);
+          sendto_ops("Refused connection from %s.", cptr->name); /* XXX DEAD */
           return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
         }
       }
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Received unauthorized connection from %s.", cptr->name);
+      sendto_ops("Received unauthorized connection from %s.", cptr->name); /* XXX DEAD */
       return exit_client(cptr, cptr, &me, "No C/N conf lines");
     }
 
@@ -1655,15 +1662,15 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (!(aconf = find_conf_byname(cptr->confs, host, CONF_SERVER))) {
       ++ServerStats->is_ref;
 #ifndef GODMODE
-      sendto_ops("Access denied. No conf line for server %s", cptr->name);
+      sendto_ops("Access denied. No conf line for server %s", cptr->name); /* XXX DEAD */
       return exit_client_msg(cptr, cptr, &me,
           "Access denied. No conf line for server %s", cptr->name);
 #else /* GODMODE */
-      sendto_ops("General C/N: line active: No line for server %s", cptr->name);
+      sendto_ops("General C/N: line active: No line for server %s", cptr->name); /* XXX DEAD */
       aconf =
           find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
       if (!aconf) {
-        sendto_ops("Neither C/N lines for server %s nor "
+        sendto_ops("Neither C/N lines for server %s nor " /* XXX DEAD */
             "\"general.undernet.org\"", cptr->name);
         return exit_client_msg(cptr, cptr, &me,
             "No C/N lines for server %s", cptr->name);
@@ -1689,7 +1696,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifndef GODMODE
     if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
-      sendto_ops("Access denied (passwd mismatch) %s", cptr->name);
+      sendto_ops("Access denied (passwd mismatch) %s", cptr->name); /* XXX DEAD */
       return exit_client_msg(cptr, cptr, &me,
           "No Access (passwd mismatch) %s", cptr->name);
     }
@@ -1737,7 +1744,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      */
     if (0 != ircd_strcmp(acptr->name, host))
     {
-      sendto_serv_butone(cptr,
+      sendto_serv_butone(cptr, /* XXX DEAD */
           ":%s WALLOPS :SERVER Numeric Collision: %s != %s",
           me.name, acptr->name, host);
       return exit_client_msg(cptr, cptr, &me,
@@ -1776,7 +1783,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, acptr->info);
-      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!",
+      sendto_one(cptr, ":%s WALLOPS :Received :%s SERVER %s from %s !?!", /* XXX DEAD */
           me.name, parv[0], parv[1], cptr->name);
       return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
     }
@@ -2018,7 +2025,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (*parv[5] == 'J')
     {
       SetBurst(acptr);
-      sendto_op_mask(SNO_NETWORK, "Net junction: %s %s",
+      sendto_op_mask(SNO_NETWORK, "Net junction: %s %s", /* XXX DEAD */
           sptr->name, acptr->name);
       SetJunction(acptr);
     }
@@ -2033,7 +2040,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
       if (0 == match(me.name, acptr->name))
         continue;
-        sendto_one(bcptr, "%s " TOK_SERVER " %s %d 0 %s %s %s%s 0 :%s",
+        sendto_one(bcptr, "%s " TOK_SERVER " %s %d 0 %s %s %s%s 0 :%s", /* XXX DEAD */
             NumServ(sptr), acptr->name, hop + 1, parv[4], parv[5],
             NumServCap(acptr), acptr->info);
     }
@@ -2051,19 +2058,19 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
 #ifndef RELIABLE_CLOCK
 #ifdef TESTNET
-      sendto_ops("Debug: my start time: " TIME_T_FMT " ; others start time: "
+      sendto_ops("Debug: my start time: " TIME_T_FMT " ; others start time: " /* XXX DEAD */
           TIME_T_FMT, me.serv->timestamp, start_timestamp);
-      sendto_ops("Debug: receive time: " TIME_T_FMT " ; received timestamp: "
+      sendto_ops("Debug: receive time: " TIME_T_FMT " ; received timestamp: " /* XXX DEAD */
           TIME_T_FMT " ; difference %ld",
           recv_time, timestamp, timestamp - recv_time);
 #endif
       if (start_timestamp < me.serv->timestamp)
       {
-        sendto_ops("got earlier start time: " TIME_T_FMT " < " TIME_T_FMT,
+        sendto_ops("got earlier start time: " TIME_T_FMT " < " TIME_T_FMT, /* XXX DEAD */
             start_timestamp, me.serv->timestamp);
         me.serv->timestamp = start_timestamp;
         TSoffset += timestamp - recv_time;
-        sendto_ops("clock adjusted by adding %d", (int)(timestamp - recv_time));
+        sendto_ops("clock adjusted by adding %d", (int)(timestamp - recv_time)); /* XXX DEAD */
       }
       else if ((start_timestamp > me.serv->timestamp) && IsUnknown(cptr))
         cptr->serv->timestamp = TStime();
@@ -2079,7 +2086,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           cptr->serv->timestamp = TStime();
         else if (IsHandshake(cptr))
         {
-          sendto_ops("clock adjusted by adding %d",
+          sendto_ops("clock adjusted by adding %d", /* XXX DEAD */
               (int)(timestamp - recv_time));
           TSoffset += timestamp - recv_time;
         }
@@ -2099,10 +2106,10 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifdef RELIABLE_CLOCK
   if (abs(cptr->serv->timestamp - recv_time) > 30)
   {
-    sendto_ops("Connected to a net with a timestamp-clock"
+    sendto_ops("Connected to a net with a timestamp-clock" /* XXX DEAD */
         " difference of " STIME_T_FMT " seconds! Used SETTIME to correct"
         " this.", timestamp - recv_time);
-    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s",
+    sendto_one(cptr, ":%s SETTIME " TIME_T_FMT " :%s", /* XXX DEAD */
         me.name, TStime(), me.name);
   }
 #endif
