@@ -167,8 +167,7 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsLocalChannel(parv[1]))
     return 0;
 
-  if (IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])) ||
-      IsLocalChannel(parv[1]))
+  if (!(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
   ClrFlag(sptr, FLAG_TS8);
