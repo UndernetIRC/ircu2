@@ -106,6 +106,33 @@
 #include <string.h>
 #include <ctype.h>
 
+static int
+netride_modes(int parc, char **parv, const char *curr_key)
+{
+  char *modes = parv[0];
+  int result = 0;
+
+  assert(modes && modes[0] == '+');
+  while (*modes) {
+    switch (*modes++) {
+    case 'i':
+      result |= MODE_INVITEONLY;
+      break;
+    case 'k':
+      if (strcmp(curr_key, *++parv))
+        result |= MODE_KEY;
+      break;
+    case 'l':
+      ++parv;
+      break;
+    case 'r':
+      result |= MODE_REGONLY;
+      break;
+    }
+  }
+  return result;
+}
+
 /*
  * ms_burst - server message handler
  *
@@ -200,9 +227,11 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      */
     for (param = 3; param < parc; param++)
     {
+      int check_modes;
       if (parv[param][0] != '+')
         continue;
-      if (strchr(parv[param], 'i') || strchr(parv[param], 'k'))
+      check_modes = netride_modes(parc - param, parv + param, chptr->mode.key);
+      if (check_modes)
       {
         /* Clear any outstanding rogue invites */
         mode_invite_clear(chptr);
@@ -210,6 +239,11 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         {
           nmember = member->next_member;
           if (!MyUser(member->user) || IsZombie(member))
+            continue;
+          /* Kick as netrider if key mismatch *or* remote channel is +i
+           * *or* remote channel is +r and user has no account.
+           */
+          if ((check_modes == MODE_REGONLY) && IsAccount(member->user))
             continue;
           sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
           sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, 0, "%H %C :Net Rider", chptr, member->user);

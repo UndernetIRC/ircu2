@@ -1017,7 +1017,7 @@ iauthblock: IAUTH '{'
   MyFree(pass);
   MyFree(host);
   pass = host = NULL;
-}
+};
 
 iauthitems: iauthitem iauthitems | iauthitem;
 iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout | error;

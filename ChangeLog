@@ -1,3 +1,15 @@
+2004-07-27  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_burst.c: Add new netride_modes() function to check
+	which modes could be used in a net.ride.  Use this instead
+	of the old check for just +i or +k.
+	(Based on patches by beware and pomac.)
+
+2004-07-25  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y: Remove redundant semicolon; it causes
+	errors on some versions of yacc.
+
 2004-07-21  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h, ircd/ircd_auth.c, ircd/ircd_crypt_smd5.c,
