@@ -1,3 +1,31 @@
+2002-01-09  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c (exit_one_client): liberally sprinkle calls to
+	verify_client_list() around to catch any corruption that might
+	occur here
+
+	* ircd/s_conf.c (rehash): liberally sprinkle calls to
+	verify_client_list() here, since this is about the only routine I
+	can think of that could cause the "core on kill -HUP" bug
+
+	* ircd/m_who.c: sprinkle calls to verify_client_list() around
+	liberally, since we've seen crashes here; temporarily include the
+	otherwise unneeded list.h header
+
+	* ircd/list.c: sprinkle calls to verify_client_list() around quite
+	liberally; add debugging asserts to list manipulation functions to
+	catch strange settings for next and prev pointers; define
+	verify_client_list(), which walks the client list and verifies
+	that everything is as it's supposed to be
+
+	* ircd/client.c: wrap client_get_ping with calls to
+	verify_client_list() to see if that's where we're dying
+
+	* include/patchlevel.h (PATCHLEVEL): bump to 03
+
+	* include/list.h: declare verify_client_list() if DEBUGMODE
+	enabled; otherwise, define it to be empty
+
 2002-01-08  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_quit.c (m_quit): remove an unused variable

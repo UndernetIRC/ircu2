@@ -186,6 +186,8 @@ struct Client* make_client(struct Client *from, int status)
 
   assert(!from || cli_verify(from));
 
+  verify_client_list();
+
   cptr = alloc_client();
 
   assert(0 != cptr);
@@ -221,6 +223,8 @@ struct Client* make_client(struct Client *from, int status)
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "unknown");
 
+  verify_client_list();
+
   return cptr;
 }
 
@@ -244,6 +248,11 @@ void free_client(struct Client* cptr)
    */
   assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
+  /* or from linked list? */
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
+
+  verify_client_list();
 
   Debug((DEBUG_LIST, "Freeing client %s [%p], connection %p", cli_name(cptr),
 	 cptr, cli_connect(cptr)));
@@ -267,6 +276,8 @@ void free_client(struct Client* cptr)
   cli_connect(cptr) = 0;
 
   dealloc_client(cptr); /* actually destroy the client */
+
+  verify_client_list();
 }
 
 struct Server *make_server(struct Client *cptr)
@@ -291,6 +302,32 @@ struct Server *make_server(struct Client *cptr)
   return cli_serv(cptr);
 }
 
+#ifdef DEBUGMODE
+/* WARNING: Major CPU sink!
+ *
+ * This is a debugging routine meant to verify the integrity of the client
+ * linked list.  It is meant to be comprehensive, to detect *any* corruption
+ * of that list.  This means that it will be majorly CPU-intensive, and
+ * should *only* be enabled on servers that have DEBUGMODE enabled.  Ignore
+ * this warning at your peril!
+ */
+void verify_client_list(void)
+{
+  struct Client *client, *prev = 0;
+
+  for (client = GlobalClientList; client; client = cli_next(client)) {
+    /* Verify that this is a valid client, not a free'd one */
+    assert(cli_verify(client));
+    /* Verify that the list hasn't suddenly jumped around */
+    assert(cli_prev(client) == prev);
+    /* Verify that the list hasn't become circular */
+    assert(cli_next(client) != GlobalClientList);
+
+    prev = client; /* Remember what should preceed us */
+  }
+}
+#endif /* DEBUGMODE */
+
 /*
  * Taken the code from ExitOneClient() for this and placed it here.
  * - avalon
@@ -299,6 +336,10 @@ void remove_client_from_list(struct Client *cptr)
 {
   assert(cli_verify(cptr));
   assert(con_verify(cli_connect(cptr)));
+  assert(!cli_prev(cptr) || cli_verify(cli_prev(cptr)));
+  assert(!cli_next(cptr) || cli_verify(cli_next(cptr)));
+
+  verify_client_list();
 
   if (cli_prev(cptr))
     cli_next(cli_prev(cptr)) = cli_next(cptr);
@@ -335,6 +376,8 @@ void remove_client_from_list(struct Client *cptr)
 #endif
   }
   free_client(cptr);
+
+  verify_client_list();
 }
 
 /*
@@ -346,6 +389,11 @@ void remove_client_from_list(struct Client *cptr)
 void add_client_to_list(struct Client *cptr)
 {
   assert(cli_verify(cptr));
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
+
+  verify_client_list();
+
   /*
    * Since we always insert new clients to the top of the list,
    * this should mean the "me" is the bottom most item in the list.
@@ -356,6 +404,8 @@ void add_client_to_list(struct Client *cptr)
   GlobalClientList = cptr;
   if (cli_next(cptr))
     cli_prev(cli_next(cptr)) = cptr;
+
+  verify_client_list();
 }
 
 /*
