@@ -394,7 +394,7 @@ void ip_registry_disconnect(struct Client *cptr)
   /*
    * If this was the last one, set `last_connect' to disconnect time (used for expiration)
    */
-  assert(entry->connected.0);
+  assert(entry->connected>0);
   if (0 == --entry->connected) {
     if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_LIMIT * IPCHECK_CLONE_PERIOD) {
       /*
