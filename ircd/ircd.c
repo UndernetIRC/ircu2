@@ -355,7 +355,7 @@ static void check_pings(struct Event* ev) {
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
 	   cli_name(cptr),
-	   (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
+	   HasFlag(cptr, FLAG_PINGSENT) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
           
 
@@ -400,11 +400,11 @@ static void check_pings(struct Event* ev) {
       continue;
     }
     
-    if (!(cli_flags(cptr) & FLAGS_PINGSENT)) {
+    if (!HasFlag(cptr, FLAG_PINGSENT)) {
       /* If we havent PINGed the connection and we havent heard from it in a
        * while, PING it to make sure it is still alive.
        */
-      cli_flags(cptr) |= FLAGS_PINGSENT;
+      SetFlag(cptr, FLAG_PINGSENT);
 
       /* If we're late in noticing don't hold it against them :) */
       cli_lasttime(cptr) = CurrentTime - max_ping;

@@ -146,7 +146,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (!(chptr = FindChannel(parv[2]))) {
-    if (IsModelessChannel(parv[2]) || IsLocalChannel(parv[2])) {
+    if (IsLocalChannel(parv[2])) {
       send_reply(sptr, ERR_NOTONCHANNEL, parv[2]);
       return 0;
     }

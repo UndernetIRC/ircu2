@@ -196,7 +196,7 @@ stats_klines(struct Client* sptr, struct StatDesc* sd, int stat, char* mask)
   char* host;
   const struct DenyConf* conf;
 
-  if (!IsOper(sptr))
+  if (!IsAnOper(sptr))
     limit_query = 1;
 
   if (!mask) {
@@ -443,7 +443,7 @@ struct StatDesc statsinfo[] = {
   { 'u', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
     stats_uptime, 0,
     "Current uptime & highest connection count." },
-  { 'v', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_v,
+  { 'v', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_v,
     stats_servers_verbose, 0,
     "Verbose server information." },
   { 'w', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,

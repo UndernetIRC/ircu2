@@ -198,6 +198,10 @@ struct Client;
 #define TOK_WALLCHOPS           "WC"
 #define CMD_WALLCHOPS		MSG_WALLCHOPS, TOK_WALLCHOPS
 
+#define MSG_WALLVOICES           "WALLVOICES"     /* WV */
+#define TOK_WALLVOICES           "WV"
+#define CMD_WALLVOICES           MSG_WALLVOICES, TOK_WALLVOICES
+
 #define MSG_CPRIVMSG            "CPRIVMSG"      /* CPRI */
 #define TOK_CPRIVMSG            "CP"
 #define CMD_CPRIVMSG		MSG_CPRIVMSG, TOK_CPRIVMSG

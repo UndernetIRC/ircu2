@@ -66,41 +66,43 @@ struct AuthRequest;
  * source file, or in the source file itself (when only used in that file).
  */
 
-#define PRIV_CHAN_LIMIT		 1 /* no channel limit on oper */
-#define PRIV_MODE_LCHAN		 2 /* oper can mode local chans */
-#define PRIV_WALK_LCHAN		 3 /* oper can walk thru local modes */
-#define PRIV_DEOP_LCHAN		 4 /* no deop oper on local chans */
-#define PRIV_SHOW_INVIS		 5 /* show local invisible users */
-#define PRIV_SHOW_ALL_INVIS	 6 /* show all invisible users */
-#define PRIV_UNLIMIT_QUERY	 7 /* unlimit who queries */
+enum Priv {
+  PRIV_CHAN_LIMIT,	/* no channel limit on oper */
+  PRIV_MODE_LCHAN,	/* oper can mode local chans */
+  PRIV_WALK_LCHAN,	/* oper can walk thru local modes */
+  PRIV_DEOP_LCHAN,	/* no deop oper on local chans */
+  PRIV_SHOW_INVIS,	/* show local invisible users */
+  PRIV_SHOW_ALL_INVIS,	/* show all invisible users */
+  PRIV_UNLIMIT_QUERY,	/* unlimit who queries */
 
-#define PRIV_KILL		 8 /* oper can KILL */
-#define PRIV_LOCAL_KILL		 9 /* oper can local KILL */
-#define PRIV_REHASH		10 /* oper can REHASH */
-#define PRIV_RESTART		11 /* oper can RESTART */
-#define PRIV_DIE		12 /* oper can DIE */
-#define PRIV_GLINE		13 /* oper can GLINE */
-#define PRIV_LOCAL_GLINE	14 /* oper can local GLINE */
-#define PRIV_JUPE		15 /* oper can JUPE */
-#define PRIV_LOCAL_JUPE		16 /* oper can local JUPE */
-#define PRIV_OPMODE		17 /* oper can OP/CLEARMODE */
-#define PRIV_LOCAL_OPMODE	18 /* oper can local OP/CLEARMODE */
-#define PRIV_SET		19 /* oper can SET */
-#define PRIV_WHOX		20 /* oper can use /who x */
-#define PRIV_BADCHAN		21 /* oper can BADCHAN */
-#define PRIV_LOCAL_BADCHAN	22 /* oper can local BADCHAN */
-#define PRIV_SEE_CHAN		23 /* oper can see in secret chans */
+  PRIV_KILL,		/* oper can KILL */
+  PRIV_LOCAL_KILL,	/* oper can local KILL */
+  PRIV_REHASH,		/* oper can REHASH */
+  PRIV_RESTART,		/* oper can RESTART */
+  PRIV_DIE,		/* oper can DIE */
+  PRIV_GLINE,		/* oper can GLINE */
+  PRIV_LOCAL_GLINE,	/* oper can local GLINE */
+  PRIV_JUPE,		/* oper can JUPE */
+  PRIV_LOCAL_JUPE,	/* oper can local JUPE */
+  PRIV_OPMODE,		/* oper can OP/CLEARMODE */
+  PRIV_LOCAL_OPMODE,	/* oper can local OP/CLEARMODE */
+  PRIV_SET,		/* oper can SET */
+  PRIV_WHOX,		/* oper can use /who x */
+  PRIV_BADCHAN,		/* oper can BADCHAN */
+  PRIV_LOCAL_BADCHAN,	/* oper can local BADCHAN */
+  PRIV_SEE_CHAN,	/* oper can see in secret chans */
 
-#define PRIV_PROPAGATE		24 /* propagate oper status */
-#define PRIV_DISPLAY		25 /* "Is an oper" displayed */
-#define PRIV_SEE_OPERS		26 /* display hidden opers */
+  PRIV_PROPAGATE,	/* propagate oper status */
+  PRIV_DISPLAY,		/* "Is an oper" displayed */
+  PRIV_SEE_OPERS,	/* display hidden opers */
 
-#define PRIV_WIDE_GLINE		27 /* oper can set wider G-lines */
+  PRIV_WIDE_GLINE,	/* oper can set wider G-lines */
 
-#define PRIV_FORCE_OPMODE	28 /* oper can override a Q-line */
-#define PRIV_FORCE_LOCAL_OPMODE	29 /* oper can override a local channel Q-line */
+  PRIV_FORCE_OPMODE,	/* oper can override a Q-line */
+  PRIV_FORCE_LOCAL_OPMODE,/* oper can override a local channel Q-line */
 
-#define PRIV_LAST_PRIV		29 /* must be the same as the last priv */
+  PRIV_LAST_PRIV	/* must be the same as the last priv */
+};
 
 #define _PRIV_NBITS		(8 * sizeof(unsigned long))
 
@@ -108,7 +110,49 @@ struct AuthRequest;
 #define _PRIV_BIT(priv)		(1 << ((priv) % _PRIV_NBITS))
 
 struct Privs {
-  unsigned long priv_mask[(PRIV_LAST_PRIV / _PRIV_NBITS) + 1];
+  unsigned long priv_mask[(PRIV_LAST_PRIV + _PRIV_NBITS - 1) / _PRIV_NBITS];
+};
+
+enum Flag {
+    FLAG_PINGSENT,                  /* Unreplied ping sent */
+    FLAG_DEADSOCKET,                /* Local socket is dead--Exiting soon */
+    FLAG_KILLED,                    /* Prevents "QUIT" from being sent for this */
+    FLAG_BLOCKED,                   /* socket is in a blocked condition */
+    FLAG_CLOSING,                   /* set when closing to suppress errors */
+    FLAG_UPING,                     /* has active UDP ping request */
+    FLAG_CHKACCESS,                 /* ok to check clients access if set */
+    FLAG_HUB,                       /* server is a hub */
+    FLAG_SERVICE,                   /* server is a service */
+    FLAG_LOCAL,                     /* set for local clients */
+    FLAG_GOTID,                     /* successful ident lookup achieved */
+    FLAG_DOID,                      /* I-lines say must use ident return */
+    FLAG_NONL,                      /* No \n in buffer */
+    FLAG_TS8,                       /* Why do you want to know? */
+    FLAG_MAP,                       /* Show server on the map */
+    FLAG_JUNCTION,                  /* Junction causing the net.burst */
+    FLAG_BURST,                     /* Server is receiving a net.burst */
+    FLAG_BURST_ACK,                 /* Server is waiting for eob ack */
+    FLAG_IPCHECK,                   /* Added or updated IPregistry data */
+
+    FLAG_LOCOP,                     /* Local operator -- SRB */
+    FLAG_SERVNOTICE,                /* server notices such as kill */
+    FLAG_OPER,                      /* Operator */
+    FLAG_INVISIBLE,                 /* makes user invisible */
+    FLAG_WALLOP,                    /* send wallops to them */
+    FLAG_DEAF,                      /* Makes user deaf */
+    FLAG_CHSERV,                    /* Disallow KICK or MODE -o on the user;
+                                       don't display channels in /whois */
+    FLAG_DEBUG,                     /* send global debug/anti-hack info */
+    FLAG_ACCOUNT,                   /* account name has been set */
+    FLAG_HIDDENHOST,                /* user's host is hidden */
+
+    _FLAG_COUNT,
+    FLAG_LOCAL_UMODES = FLAG_LOCOP, /* First local mode flag */
+    FLAG_GLOBAL_UMODES = FLAG_OPER  /* First global mode flag */
+};
+
+struct Flags {
+  unsigned long flag_bits[((_FLAG_COUNT + _PRIV_NBITS - 1) / _PRIV_NBITS)];
 };
 
 struct Connection {
@@ -188,7 +232,7 @@ struct Client {
   time_t         cli_firsttime; /* time client was created */
   time_t         cli_lastnick;  /* TimeStamp on nick */
   int            cli_marker;    /* /who processing marker */
-  unsigned int   cli_flags;     /* client flags */
+  struct Flags   cli_flags;     /* client flags */
   unsigned int   cli_hopcount;  /* number of servers to this 0 = local */
   struct in_addr cli_ip;        /* Real ip# NOT defined for remote servers! */
   short          cli_status;    /* Client type */
@@ -347,110 +391,81 @@ struct Client {
             (STAT_SERVER | STAT_CONNECTING | STAT_HANDSHAKE))
 
 /*
- * FLAGS macros
- */
-#define FLAGS_PINGSENT   0x0001 /* Unreplied ping sent */
-#define FLAGS_DEADSOCKET 0x0002 /* Local socket is dead--Exiting soon */
-#define FLAGS_KILLED     0x0004 /* Prevents "QUIT" from being sent for this */
-#define FLAGS_OPER       0x0008 /* Operator */
-#define FLAGS_LOCOP      0x0010 /* Local operator -- SRB */
-#define FLAGS_INVISIBLE  0x0020 /* makes user invisible */
-#define FLAGS_WALLOP     0x0040 /* send wallops to them */
-#define FLAGS_SERVNOTICE 0x0080 /* server notices such as kill */
-#define FLAGS_BLOCKED    0x0100 /* socket is in a blocked condition */
-#define FLAGS_ACCOUNT    0x0200 /* account name has been set */
-#define FLAGS_CLOSING    0x0400 /* set when closing to suppress errors */
-#define FLAGS_UPING      0x0800 /* has active UDP ping request */
-#define FLAGS_CHKACCESS  0x1000 /* ok to check clients access if set */
-#define FLAGS_HUB        0x2000 /* server is a hub */
-#define FLAGS_SERVICE    0x4000 /* server is a service */
-#define FLAGS_HIDDENHOST 0x8000 /* user's host is hidden */
-#define FLAGS_LOCAL     0x00010000      /* set for local clients */
-#define FLAGS_GOTID     0x00020000      /* successful ident lookup achieved */
-#define FLAGS_DOID      0x00040000      /* I-lines say must use ident return */
-#define FLAGS_NONL      0x00080000      /* No \n in buffer */
-#define FLAGS_TS8       0x00100000      /* Why do you want to know? */
-#define FLAGS_MAP       0x00800000      /* Show server on the map */
-#define FLAGS_JUNCTION  0x01000000      /* Junction causing the net.burst */
-#define FLAGS_DEAF      0x02000000      /* Makes user deaf */
-#define FLAGS_CHSERV    0x04000000      /* Disallow KICK or MODE -o on the user;
-                                           don't display channels in /whois */
-#define FLAGS_BURST     0x08000000      /* Server is receiving a net.burst */
-#define FLAGS_BURST_ACK 0x10000000      /* Server is waiting for eob ack */
-#define FLAGS_DEBUG     0x20000000      /* send global debug/anti-hack info */
-#define FLAGS_IPCHECK   0x40000000      /* Added or updated IPregistry data */
-
-#define SEND_UMODES \
-    (FLAGS_INVISIBLE|FLAGS_OPER|FLAGS_WALLOP|FLAGS_DEAF|FLAGS_CHSERV|FLAGS_DEBUG|FLAGS_ACCOUNT|FLAGS_HIDDENHOST)
-#define ALL_UMODES (SEND_UMODES|FLAGS_SERVNOTICE|FLAGS_LOCOP)
-#define FLAGS_ID (FLAGS_DOID|FLAGS_GOTID)
-
-/*
  * flags macros.
  */
-#define DoAccess(x)             (cli_flags(x) & FLAGS_CHKACCESS)
-#define IsAnOper(x)             (cli_flags(x) & (FLAGS_OPER|FLAGS_LOCOP))
-#define IsBlocked(x)            (cli_flags(x) & FLAGS_BLOCKED)
-#define IsBurst(x)              (cli_flags(x) & FLAGS_BURST)
-#define IsBurstAck(x)           (cli_flags(x) & FLAGS_BURST_ACK)
-#define IsBurstOrBurstAck(x)    (cli_flags(x) & (FLAGS_BURST|FLAGS_BURST_ACK))
-#define IsChannelService(x)     (cli_flags(x) & FLAGS_CHSERV)
-#define IsDead(x)               (cli_flags(x) & FLAGS_DEADSOCKET)
-#define IsDeaf(x)               (cli_flags(x) & FLAGS_DEAF)
-#define IsIPChecked(x)          (cli_flags(x) & FLAGS_IPCHECK)
-#define IsIdented(x)            (cli_flags(x) & FLAGS_GOTID)
-#define IsInvisible(x)          (cli_flags(x) & FLAGS_INVISIBLE)
-#define IsJunction(x)           (cli_flags(x) & FLAGS_JUNCTION)
-#define IsLocOp(x)              (cli_flags(x) & FLAGS_LOCOP)
-#define IsLocal(x)              (cli_flags(x) & FLAGS_LOCAL)
-#define IsOper(x)               (cli_flags(x) & FLAGS_OPER)
-#define IsUPing(x)              (cli_flags(x) & FLAGS_UPING)
-#define NoNewLine(x)            (cli_flags(x) & FLAGS_NONL)
-#define SendDebug(x)            (cli_flags(x) & FLAGS_DEBUG)
-#define SendServNotice(x)       (cli_flags(x) & FLAGS_SERVNOTICE)
-#define SendWallops(x)          (cli_flags(x) & FLAGS_WALLOP)
-#define IsHub(x)                (cli_flags(x) & FLAGS_HUB)
-#define IsService(x)            (cli_flags(x) & FLAGS_SERVICE)
-#define IsAccount(x)            (cli_flags(x) & FLAGS_ACCOUNT)
-#define IsHiddenHost(x)		(cli_flags(x) & FLAGS_HIDDENHOST)
+#define FlagSet(fset, flag)     ((fset)->flag_bits[_PRIV_IDX(flag)] |= \
+                                 _PRIV_BIT(flag))
+#define FlagClr(fset, flag)     ((fset)->flag_bits[_PRIV_IDX(flag)] &= \
+                                 ~(_PRIV_BIT(flag)))
+#define FlagHas(fset, flag)     ((fset)->flag_bits[_PRIV_IDX(flag)] & \
+                                 _PRIV_BIT(flag))
+#define SetFlag(cli, flag)      FlagSet(&cli_flags(cli), flag)
+#define ClrFlag(cli, flag)      FlagClr(&cli_flags(cli), flag)
+#define HasFlag(cli, flag)      FlagHas(&cli_flags(cli), flag)
+
+#define DoAccess(x)             HasFlag(x, FLAG_CHKACCESS)
+#define IsAnOper(x)             (HasFlag(x, FLAG_OPER) || HasFlag(x, FLAG_LOCOP))
+#define IsBlocked(x)            HasFlag(x, FLAG_BLOCKED)
+#define IsBurst(x)              HasFlag(x, FLAG_BURST)
+#define IsBurstAck(x)           HasFlag(x, FLAG_BURST_ACK)
+#define IsBurstOrBurstAck(x)    (HasFlag(x, FLAG_BURST) || HasFlag(x, FLAG_BURST_ACK))
+#define IsChannelService(x)     HasFlag(x, FLAG_CHSERV)
+#define IsDead(x)               HasFlag(x, FLAG_DEADSOCKET)
+#define IsDeaf(x)               HasFlag(x, FLAG_DEAF)
+#define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
+#define IsIdented(x)            HasFlag(x, FLAG_GOTID)
+#define IsInvisible(x)          HasFlag(x, FLAG_INVISIBLE)
+#define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
+#define IsLocOp(x)              HasFlag(x, FLAG_LOCOP)
+#define IsLocal(x)              HasFlag(x, FLAG_LOCAL)
+#define IsOper(x)               HasFlag(x, FLAG_OPER)
+#define IsUPing(x)              HasFlag(x, FLAG_UPING)
+#define NoNewLine(x)            HasFlag(x, FLAG_NONL)
+#define SendDebug(x)            HasFlag(x, FLAG_DEBUG)
+#define SendServNotice(x)       HasFlag(x, FLAG_SERVNOTICE)
+#define SendWallops(x)          HasFlag(x, FLAG_WALLOP)
+#define IsHub(x)                HasFlag(x, FLAG_HUB)
+#define IsService(x)            HasFlag(x, FLAG_SERVICE)
+#define IsAccount(x)            HasFlag(x, FLAG_ACCOUNT)
+#define IsHiddenHost(x)		HasFlag(x, FLAG_HIDDENHOST)
 #define HasHiddenHost(x)	(IsAccount(x) && IsHiddenHost(x))
 
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
 
-#define SetAccess(x)            (cli_flags(x) |= FLAGS_CHKACCESS)
-#define SetBurst(x)             (cli_flags(x) |= FLAGS_BURST)
-#define SetBurstAck(x)          (cli_flags(x) |= FLAGS_BURST_ACK)
-#define SetChannelService(x)    (cli_flags(x) |= FLAGS_CHSERV)
-#define SetDeaf(x)              (cli_flags(x) |= FLAGS_DEAF)
-#define SetDebug(x)             (cli_flags(x) |= FLAGS_DEBUG)
-#define SetGotId(x)             (cli_flags(x) |= FLAGS_GOTID)
-#define SetIPChecked(x)         (cli_flags(x) |= FLAGS_IPCHECK)
-#define SetInvisible(x)         (cli_flags(x) |= FLAGS_INVISIBLE)
-#define SetJunction(x)          (cli_flags(x) |= FLAGS_JUNCTION)
-#define SetLocOp(x)             (cli_flags(x) |= FLAGS_LOCOP)
-#define SetOper(x)              (cli_flags(x) |= FLAGS_OPER)
-#define SetUPing(x)             (cli_flags(x) |= FLAGS_UPING)
-#define SetWallops(x)           (cli_flags(x) |= FLAGS_WALLOP)
-#define SetServNotice(x)        (cli_flags(x) |= FLAGS_SERVNOTICE)
-#define SetHub(x)               (cli_flags(x) |= FLAGS_HUB)
-#define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
-#define SetAccount(x)           (cli_flags(x) |= FLAGS_ACCOUNT)
-#define SetHiddenHost(x)	(cli_flags(x) |= FLAGS_HIDDENHOST)
+#define SetAccess(x)            SetFlag(x, FLAG_CHKACCESS)
+#define SetBurst(x)             SetFlag(x, FLAG_BURST)
+#define SetBurstAck(x)          SetFlag(x, FLAG_BURST_ACK)
+#define SetChannelService(x)    SetFlag(x, FLAG_CHSERV)
+#define SetDeaf(x)              SetFlag(x, FLAG_DEAF)
+#define SetDebug(x)             SetFlag(x, FLAG_DEBUG)
+#define SetGotId(x)             SetFlag(x, FLAG_GOTID)
+#define SetIPChecked(x)         SetFlag(x, FLAG_IPCHECK)
+#define SetInvisible(x)         SetFlag(x, FLAG_INVISIBLE)
+#define SetJunction(x)          SetFlag(x, FLAG_JUNCTION)
+#define SetLocOp(x)             SetFlag(x, FLAG_LOCOP)
+#define SetOper(x)              SetFlag(x, FLAG_OPER)
+#define SetUPing(x)             SetFlag(x, FLAG_UPING)
+#define SetWallops(x)           SetFlag(x, FLAG_WALLOP)
+#define SetServNotice(x)        SetFlag(x, FLAG_SERVNOTICE)
+#define SetHub(x)               SetFlag(x, FLAG_HUB)
+#define SetService(x)           SetFlag(x, FLAG_SERVICE)
+#define SetAccount(x)           SetFlag(x, FLAG_ACCOUNT)
+#define SetHiddenHost(x)	SetFlag(x, FLAG_HIDDENHOST)
 
-#define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
-#define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)
-#define ClearBurstAck(x)        (cli_flags(x) &= ~FLAGS_BURST_ACK)
-#define ClearChannelService(x)  (cli_flags(x) &= ~FLAGS_CHSERV)
-#define ClearDeaf(x)            (cli_flags(x) &= ~FLAGS_DEAF)
-#define ClearDebug(x)           (cli_flags(x) &= ~FLAGS_DEBUG)
-#define ClearIPChecked(x)       (cli_flags(x) &= ~FLAGS_IPCHECK)
-#define ClearInvisible(x)       (cli_flags(x) &= ~FLAGS_INVISIBLE)
-#define ClearLocOp(x)           (cli_flags(x) &= ~FLAGS_LOCOP)
-#define ClearOper(x)            (cli_flags(x) &= ~FLAGS_OPER)
-#define ClearUPing(x)           (cli_flags(x) &= ~FLAGS_UPING)
-#define ClearWallops(x)         (cli_flags(x) &= ~FLAGS_WALLOP)
-#define ClearServNotice(x)      (cli_flags(x) &= ~FLAGS_SERVNOTICE)
-#define ClearHiddenHost(x)	(cli_flags(x) &= ~FLAGS_HIDDENHOST)
+#define ClearAccess(x)          ClrFlag(x, FLAG_CHKACCESS)
+#define ClearBurst(x)           ClrFlag(x, FLAG_BURST)
+#define ClearBurstAck(x)        ClrFlag(x, FLAG_BURST_ACK)
+#define ClearChannelService(x)  ClrFlag(x, FLAG_CHSERV)
+#define ClearDeaf(x)            ClrFlag(x, FLAG_DEAF)
+#define ClearDebug(x)           ClrFlag(x, FLAG_DEBUG)
+#define ClearIPChecked(x)       ClrFlag(x, FLAG_IPCHECK)
+#define ClearInvisible(x)       ClrFlag(x, FLAG_INVISIBLE)
+#define ClearLocOp(x)           ClrFlag(x, FLAG_LOCOP)
+#define ClearOper(x)            ClrFlag(x, FLAG_OPER)
+#define ClearUPing(x)           ClrFlag(x, FLAG_UPING)
+#define ClearWallops(x)         ClrFlag(x, FLAG_WALLOP)
+#define ClearServNotice(x)      ClrFlag(x, FLAG_SERVNOTICE)
+#define ClearHiddenHost(x)	ClrFlag(x, FLAG_HIDDENHOST)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/* socket needs to be freed */

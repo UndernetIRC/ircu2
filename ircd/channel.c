@@ -408,6 +408,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
   struct SLink* tmp;
+  char          tmphost[HOSTLEN + 1];
   char          nu_host[NUH_BUFSIZE];
   char          nu_realhost[NUH_BUFSIZE];
   char          nu_ip[NUI_BUFSIZE];
@@ -423,10 +424,20 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
 
   s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
 			  (cli_user(cptr))->host);
-  if (HasHiddenHost(cptr))
-    sr = make_nick_user_host(nu_realhost, cli_name(cptr),
-			     (cli_user(cptr))->username,
-			     cli_user(cptr)->realhost);
+
+  if (IsAccount(cptr)) {
+     if (HasHiddenHost(cptr))
+        sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                                cli_user(cptr)->username,
+                                cli_user(cptr)->realhost);
+     else {
+        ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
+                      cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+        sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                                 cli_user(cptr)->username,
+                                 tmphost);
+     }
+  }
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
     if ((tmp->flags & CHFL_BAN_IPMASK)) {
@@ -640,13 +651,9 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
 
   member = find_channel_member(cptr, chptr);
 
-  /*
-   * You can't speak if your off channel, if the channel is modeless, or
-   * +n (no external messages) or +m (moderated).
-   */
+  /* You can't speak if your off channel and +n (no external messages) or +m (moderated). */
   if (!member) {
     if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
-	IsModelessChannel(chptr->chname) ||
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
     else
@@ -1007,7 +1014,8 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
      a HACK(4) notice will be sent if he would not have been supposed
      to join normally. */ 
   if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_WALK_LCHAN) &&
-      !BadPtr(key) && compall("OVERRIDE",key) == 0)
+      !BadPtr(key) && compall("OVERRIDE",key) == 0
+      && compall("OVERRIDE",chptr->mode.key) != 0)
     overrideJoin = MAGIC_OPER_OVERRIDE;
 
   if (chptr->mode.mode & MODE_INVITEONLY)
@@ -1998,7 +2006,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_KEY;
 
-  t_len = KEYLEN + 1;
+  t_len = KEYLEN;
 
   /* clean up the key string */
   s = t_str;
@@ -2229,7 +2237,7 @@ mode_process_bans(struct ParseState *state)
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
-	     count >= feature_int(FEAT_MAXBANS))) {
+	     count > feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
 		     ban->value.ban.banstr);
 	  count--;
@@ -2642,6 +2650,7 @@ void
 joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 {
   unsigned int len;
+  int is_local;
 
   assert(0 != jbuf);
 
@@ -2651,6 +2660,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     return;
   }
+
+  is_local = IsLocalChannel(chan->chname);
 
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
@@ -2670,8 +2681,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
      * exactly the same logic, albeit somewhat more concise, as was in
      * the original m_part.c */
 
-    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-	IsLocalChannel(chan->chname)) /* got to remove user here */
+    /* got to remove user here */
+    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || is_local)
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
     /* Add user to channel */
@@ -2686,14 +2697,14 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
 
     /* send an op, too, if needed */
-    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
-	!IsModelessChannel(chan->chname))
+    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
 				chan, jbuf->jb_source);
   }
 
   if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-      jbuf->jb_type == JOINBUF_TYPE_JOIN || IsLocalChannel(chan->chname))
+      jbuf->jb_type == JOINBUF_TYPE_JOIN ||
+      is_local)
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */

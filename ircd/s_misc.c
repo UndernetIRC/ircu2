@@ -391,7 +391,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   char comment1[HOSTLEN + HOSTLEN + 2];
   assert(killer);
   if (MyConnect(victim)) {
-    cli_flags(victim) |= FLAGS_CLOSING;
+    SetFlag(victim, FLAG_CLOSING);
 
     if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
       sendto_opmask_butone(0, SNO_CONNEXIT,
@@ -494,7 +494,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
       if (IsServer(victim))
 	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%s %Tu :%s",
 		      cli_name(victim), cli_serv(victim)->timestamp, comment);
-      else if (IsUser(victim) && 0 == (cli_flags(victim) & FLAGS_KILLED))
+      else if (IsUser(victim) && !HasFlag(victim, FLAG_KILLED))
 	sendcmdto_one(victim, CMD_QUIT, dlp->value.cptr, ":%s", comment);
     }
   }

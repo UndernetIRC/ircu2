@@ -663,7 +663,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     Count_newremoteserver(UserStats);
     if (Protocol(acptr) < 10)
-      cli_flags(acptr) |= FLAGS_TS8;
+      SetFlag(acptr, FLAG_TS8);
     add_client_to_list(acptr);
     hAddClient(acptr);
     if (*parv[5] == 'J')
@@ -791,7 +791,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int              ret;
   int              active_lh_line = 0;
   unsigned short   prot;
-  unsigned int     serv_flags = 0;
+  unsigned char    is_hub = 0;
+  unsigned char    is_service = 0;
   time_t           start_timestamp;
   time_t           timestamp = 0;
   time_t           recv_time;
@@ -823,10 +824,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     for (ch = parv[7] + 1; *ch; ch++)
       switch (*ch) {
       case 'h':
-	serv_flags |= FLAGS_HUB;
+	is_hub = 1;
 	break;
       case 's':
-	serv_flags |= FLAGS_SERVICE;
+	is_service = 1;
 	break;
       }
   }
@@ -905,7 +906,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         LHcptr = cptr;          /* Squit ourselfs */
     }
     else if (!(lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_HUB)) ||
-             (lhconf->port && (hop > lhconf->port)))
+             (lhconf->port && (hop > lhconf->port)) ||
+             (!BadPtr(lhconf->host) && match(lhconf->host, parv[1])))
     {
       struct Client *ac3ptr;
       active_lh_line = 2;
@@ -1294,7 +1296,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_serv(acptr)->prot = prot;
     cli_serv(acptr)->timestamp = timestamp;
     cli_hopcount(acptr) = hop;
-    cli_flags(acptr) |= serv_flags;
+    if (is_hub)
+      SetFlag(acptr, FLAG_HUB);
+    if (is_service)
+      SetFlag(acptr, FLAG_SERVICE);
     ircd_strncpy(cli_name(acptr), host, HOSTLEN);
     ircd_strncpy(cli_info(acptr), info, REALLEN);
     cli_serv(acptr)->up = sptr;
@@ -1305,7 +1310,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     Count_newremoteserver(UserStats);
     if (Protocol(acptr) < 10)
-      cli_flags(acptr) |= FLAGS_TS8;
+      SetFlag(acptr, FLAG_TS8);
     add_client_to_list(acptr);
     hAddClient(acptr);
     if (*parv[5] == 'J')

@@ -90,6 +90,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * ms_account - server message handler
@@ -125,7 +126,7 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
   }
 
   ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
-  hide_hostmask(acptr, FLAGS_ACCOUNT);
+  hide_hostmask(acptr, FLAG_ACCOUNT);
 
   sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr, "%C %s", acptr,
 			cli_user(acptr)->account);
