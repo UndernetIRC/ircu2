@@ -395,10 +395,12 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
     if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
       sendto_opmask_butone(0, SNO_CONNEXIT,
-			   "Client exiting: %s (%s@%s) [%s] [%s]",
+			   "Client exiting: %s (%s@%s) [%s] [%s] <%s%s>",
 			   cli_name(victim), cli_user(victim)->username,
 			   cli_user(victim)->host, comment,
-			   ircd_ntoa((const char*) &(cli_ip(victim))));
+			   ircd_ntoa((const char*) &(cli_ip(victim))),
+			   NumNick(victim) /* Two %'s */
+			   );
 
     update_load();
 

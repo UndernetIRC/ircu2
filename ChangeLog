@@ -1,3 +1,7 @@
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/s_misc.c, ircd/s_user.c: added numnick to SNO_CONNEXIT message
+	(so you can match EXIT's to CONN's)
+
 2003-11-05 Entrope <entrope@users.sourceforge.net>  
 	* ircd/engine_epoll.c, config.h.in, configure,in, ircd/ircd_events.h:
 	Added epoll(2) support.
