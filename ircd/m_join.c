@@ -98,6 +98,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -110,712 +111,267 @@
 #endif
 
 /*
+ * Helper function to find last 0 in a comma-separated list of
+ * channel names.
+ */
+static char *
+last0(char *chanlist)
+{
+  char *p;
+
+  for (p = chanlist; p[0]; p++) /* find last "JOIN 0" */
+    if (p[0] == '0' && (p[1] == ',' || p[1] == '\0' || !IsChannelChar(p[1]))) {
+      chanlist = p; /* we'll start parsing here */
+
+      if (!p[1]) /* hit the end */
+	break;
+
+      p++;
+    } else {
+      while (p[0] != ',' && p[0] != '\0') /* skip past channel name */
+	p++;
+
+      if (!p[0]) /* hit the end */
+	break;
+    }
+
+  return chanlist;
+}
+
+/*
+ * Helper function to perform a JOIN 0 if needed; returns 0 if channel
+ * name is not 0, else removes user from all channels and returns 1.
+ */
+static int
+join0(struct JoinBuf *join, struct Client *cptr, struct Client *sptr,
+      char *chan)
+{
+  struct Membership *member;
+  struct JoinBuf part;
+
+  /* is it a JOIN 0? */
+  if (chan[0] != '0' || chan[1] != '\0')
+    return 0;
+  
+  joinbuf_join(join, 0, 0); /* join special channel 0 */
+
+  /* leave all channels */
+  joinbuf_init(&part, sptr, cptr, JOINBUF_TYPE_PARTALL,
+	       "Left all channels", 0);
+
+  while ((member = sptr->user->channel))
+    joinbuf_join(&part, member->channel,
+		 IsZombie(member) ? CHFL_ZOMBIE : 0);
+
+  joinbuf_flush(&part);
+
+  return 1;
+}
+
+/*
  * m_join - generic message handler
  */
-int m_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
-  static char     jbuf[BUFSIZE];
-  static char     mbuf[BUFSIZE];
-  struct Membership* member;
-  struct Channel* chptr;
-  char*           name;
-  char*           keysOrTS = NULL;
-  int             i = 0;
-  int             zombie = 0;
-  int             sendcreate = 0;
-  unsigned int    flags = 0;
-  size_t          jlen = 0;
-  size_t          mlen = 0;
-  size_t*         buflen;
-  char*           p = NULL;
-  char*           bufptr;
-
+  struct Channel *chptr;
+  struct JoinBuf join;
+  struct JoinBuf create;
+#ifdef BADCHAN
+  struct Gline *gline;
+#endif
+  unsigned int flags = 0;
+  int i;
+  char *p = 0;
+  char *chanlist;
+  char *name;
+  char *keys;
 
   if (parc < 2 || *parv[1] == '\0')
     return need_more_params(sptr, "JOIN");
 
-  for (p = parv[1]; *p; p++)    /* find the last "JOIN 0" in the line -Kev */
-    if (*p == '0'
-        && (*(p + 1) == ',' || *(p + 1) == '\0' || !IsChannelChar(*(p + 1))))
-    {
-      /* If it's a single "0", remember the place; we will start parsing
-         the channels after the last 0 in the line -Kev */
-      parv[1] = p;
-      if (!*(p + 1))
-        break;
-      p++;
-    }
-    else
-    {                           /* Step through to the next comma or until the
-                                   end of the line, in an attempt to save CPU
-                                   -Kev */
-      while (*p != ',' && *p != '\0')
-        p++;
-      if (!*p)
-        break;
-    }
+  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
+  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, TStime());
 
-  keysOrTS = parv[2];           /* Remember where our keys are or the TS is;
-                                   parv[2] needs to be NULL for the call to
-                                   m_names below -Kev */
-  parv[2] = p = NULL;
+  chanlist = last0(parv[1]); /* find last "JOIN 0" */
 
-  *jbuf = *mbuf = '\0';         /* clear both join and mode buffers -Kev */
-  /*
-   *  Rebuild list of channels joined to be the actual result of the
-   *  JOIN.  Note that "JOIN 0" is the destructive problem.
-   */
-  for (name = ircd_strtok(&p, parv[1], ","); name; name = ircd_strtok(&p, NULL, ","))
-  {
-    size_t len;
-    if (MyConnect(sptr))
-      clean_channelname(name);
-    else if (IsLocalChannel(name))
+  keys = parv[2]; /* remember where keys are */
+
+  parv[2] = 0; /* for call to m_names below */
+
+  for (name = ircd_strtok(&p, chanlist, ","); name;
+       name = ircd_strtok(&p, 0, ",")) {
+    clean_channelname(name);
+
+    if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
-    if (*name == '0' && *(name + 1) == '\0')
-    {
-      /* Remove the user from all his channels -Kev */
-      while ((member = sptr->user->channel))
-      {
-        chptr = member->channel;
-        if (!IsZombie(member))
-          sendto_channel_butserv(chptr, sptr, PartFmt2,
-              parv[0], chptr->chname, "Left all channels");
-        remove_user_from_channel(sptr, chptr);
-      }
-      /* Just in case */
-      *mbuf = *jbuf = '\0';
-      mlen = jlen = 0;
-    }
-    else
-    {                           /* not a /join 0, so treat it as
-                                   a /join #channel -Kev */
-      if (!IsChannelName(name))
-      {
-        if (MyUser(sptr))
-          sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
-        continue;
-      }
 
-      if (MyConnect(sptr))
-      {
+    if (!IsChannelName(name)) { /* bad channel name */
+      send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+      continue;
+    }
+
 #ifdef BADCHAN
-	struct Gline *gline;
-
-        if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
-	    GlineIsActive(gline) && !IsAnOper(sptr))
-        {
-          sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
-          continue;
-        }
+    /* BADCHANed channel */
+    if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
+	GlineIsActive(gline) && !IsAnOper(sptr)) {
+      send_reply(sptr, ERR_BADCHANNAME, name);
+      continue;
+    }
 #endif
-        /*
-         * Local client is first to enter previously nonexistant
-         * channel so make them (rightfully) the Channel Operator.
-         * This looks kind of ugly because we try to avoid calling the strlen()
-         */
-        if (ChannelExists(name))
-        {
-          flags = CHFL_DEOPPED;
-          sendcreate = 0;
-        }
-        else if (strlen(name) > CHANNELLEN)
-        {
-          *(name + CHANNELLEN) = '\0';
-          if (ChannelExists(name))
-          {
-            flags = CHFL_DEOPPED;
-            sendcreate = 0;
-          }
-          else
-          {
-            flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
-            sendcreate = 1;
-          }
-        }
-        else
-        {
-          flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
-          sendcreate = 1;
-        }
 
+    if ((chptr = FindChannel(name))) {
+      if (find_member_link(chptr, sptr))
+	continue; /* already on channel */
+
+      flags = CHFL_DEOPPED;
+    } else
+      flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
+
+    if (sptr->user->joined >= MAXCHANNELSPERUSER
 #ifdef OPER_NO_CHAN_LIMIT
-        /*
-         * Opers are allowed to join any number of channels
-         */
-        if (sptr->user->joined >= MAXCHANNELSPERUSER && !IsAnOper(sptr))
-#else
-        if (sptr->user->joined >= MAXCHANNELSPERUSER)
+	/* Opers are allowed to join any number of channels */
+	&& !IsAnOper(sptr)
 #endif
-        {
-          chptr = get_channel(sptr, name, CGT_NO_CREATE);
-          sendto_one(sptr, err_str(ERR_TOOMANYCHANNELS),
-                     me.name, parv[0], chptr ? chptr->chname : name);
-          /*
-           * Can't return, else he won't get on ANY channels!
-           * Break out of the for loop instead.  -Kev
-           */
-          break;
-        }
-      }
-      chptr = get_channel(sptr, name, CGT_CREATE);
-      if (chptr && (member = find_member_link(chptr, sptr)))
-      {
-        if (IsZombie(member))
-        {
-          zombie = 1;
-          flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
-          remove_user_from_channel(sptr, chptr);
-          chptr = get_channel(sptr, name, CGT_CREATE);
-        }
-        else
-          continue;
-      }
-      name = chptr->chname;
-      if (!chptr->creationtime) /* A remote JOIN created this channel ? */
-        chptr->creationtime = MAGIC_REMOTE_JOIN_TS;
-      if (parc > 2)
-      {
-        if (chptr->creationtime == MAGIC_REMOTE_JOIN_TS)
-          chptr->creationtime = atoi(keysOrTS);
-        else
-          parc = 2;             /* Don't pass it on */
-      }
-      if (!zombie)
-      {
-        if (!MyConnect(sptr))
-          flags = CHFL_DEOPPED;
-        if (sptr->flags & FLAGS_TS8)
-          flags |= CHFL_SERVOPOK;
-      }
-      if (MyConnect(sptr))
-      {
-        int created = chptr->users == 0;
-        if (check_target_limit(sptr, chptr, chptr->chname, created))
-        {
-          if (created)          /* Did we create the channel? */
-            sub1_from_channel(chptr);   /* Remove it again! */
-          continue;
-        }
-        if ((i = can_join(sptr, chptr, keysOrTS)))
-        {
+	) {
+      send_reply(sptr, ERR_TOOMANYCHANNELS, chptr ? chptr->chname : name);
+      break; /* no point processing the other channels */
+    }
+
+    if (chptr) {
+      if (check_target_limit(sptr, chptr, chptr->chname, 0))
+	continue; /* exceeded target limit */
+      else if ((i = can_join(sptr, chptr, keys))) {
 #ifdef OPER_WALK_THROUGH_LMODES
-	  if (i > MAGIC_OPER_OVERRIDE)
- 	  {
- 	    switch(i - MAGIC_OPER_OVERRIDE)
- 	    {
- 	    case ERR_CHANNELISFULL: i = 'l'; break;
- 	    case ERR_INVITEONLYCHAN: i = 'i'; break;
- 	    case ERR_BANNEDFROMCHAN: i = 'b'; break;
- 	    case ERR_BADCHANNELKEY: i = 'k'; break;
- 	    }
- 	    sendto_op_mask(SNO_HACK4,"OPER JOIN: %s JOIN %s (overriding +%c)",sptr->name,chptr->chname,i);
- 	  }
- 	  else
- 	  {
-            sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
- 	    continue;
- 	  }
-#else	  
-          sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
-          continue;
+	if (i > MAGIC_OPER_OVERRIDE) { /* oper overrode mode */
+	  switch (i - MAGIC_OPER_OVERRIDE) {
+	  case ERR_CHANNELISFULL: /* figure out which mode */
+	    i = 'l';
+	    break;
+
+	  case ERR_INVITEONLYCHAN:
+	    i = 'i';
+	    break;
+
+	  case ERR_BANNEDFROMCHAN:
+	    i = 'b';
+	    break;
+
+	  case ERR_BADCHANNELKEY:
+	    i = 'k';
+	    break;
+	  }
+
+	  /* send accountability notice */
+	  sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
+			       "(overriding +%c)", sptr, chptr, i);
+	} else {
+	  send_reply(sptr, i, chptr->chname);
+	  continue;
+	}
+#else
+	send_reply(sptr, i, chptr->chname);
+	continue;
 #endif
-        }
-      }
-      /*
-       * Complete user entry to the new channel (if any)
-       */
-      add_user_to_channel(chptr, sptr, flags);
+      } /* else if ((i = can_join(sptr, chptr, keys))) { */
 
-      /*
-       * Notify all other users on the new channel
-       */
-      sendto_channel_butserv(chptr, sptr, ":%s JOIN :%s", parv[0], name);
+      joinbuf_join(&join, chptr, flags);
+    } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
+      continue; /* couldn't get channel */
+    else if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
+      /* Note: check_target_limit will only ever return 0 here */
+      sub1_from_channel(chptr); /* created it... */
+      continue;
+    } else
+      joinbuf_join(&create, chptr, flags);
 
-      if (MyUser(sptr))
-      {
-        del_invite(sptr, chptr);
-        if (chptr->topic[0] != '\0')
-        {
-          sendto_one(sptr, rpl_str(RPL_TOPIC), me.name,
-              parv[0], name, chptr->topic);
-          sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME), me.name, parv[0], name,
-              chptr->topic_nick, chptr->topic_time);
-        }
-        parv[1] = name;
-        m_names(cptr, sptr, 2, parv);
-      }
+    del_invite(sptr, chptr);
+
+    if (chptr->topic[0]) {
+      send_reply(sptr, RPL_TOPIC, chptr->chname, chptr->topic);
+      send_reply(sptr, RPL_TOPICWHOTIME, chptr->chname, chptr->topic_nick,
+		 chptr->topic_time);
     }
 
-    /* Select proper buffer; mbuf for creation, jbuf otherwise */
-
-    if (*name == '&')
-      continue;                 /* Head off local channels at the pass */
-
-    bufptr = (sendcreate == 0) ? jbuf : mbuf;
-    buflen = (sendcreate == 0) ? &jlen : &mlen;
-    len = strlen(name);
-    if (*buflen < BUFSIZE - len - 2)
-    {
-      if (*bufptr)
-      {
-        strcat(bufptr, ",");    /* Add to join buf */
-        *buflen += 1;
-      }
-      strncat(bufptr, name, BUFSIZE - *buflen - 1);
-      *buflen += len;
-    }
-    sendcreate = 0;             /* Reset sendcreate */
+    parv[1] = name;
+    m_names(cptr, sptr, 2, parv); /* XXX find a better way */
   }
 
-  if (*jbuf)                    /* Propgate joins to P10 servers */
-    sendto_serv_butone(cptr, 
-        parc > 2 ? "%s%s " TOK_JOIN " %s %s" : "%s%s " TOK_JOIN " %s", NumNick(sptr), jbuf, keysOrTS);
-  if (*mbuf)                    /* and now creation events */
-    sendto_serv_butone(cptr, "%s%s " TOK_CREATE " %s " TIME_T_FMT,
-        NumNick(sptr), mbuf, TStime());
+  joinbuf_flush(&join); /* must be first, if there's a JOIN 0 */
+  joinbuf_flush(&create);
 
-  if (MyUser(sptr))
-  {                             /* shouldn't ever set TS for remote JOIN's */
-    if (*jbuf)
-    {                           /* check for channels that need TS's */
-      p = NULL;
-      for (name = ircd_strtok(&p, jbuf, ","); name; name = ircd_strtok(&p, NULL, ","))
-      {
-        chptr = get_channel(sptr, name, CGT_NO_CREATE);
-        if (chptr && chptr->mode.mode & MODE_SENDTS)
-        {                       /* send a TS? */
-          sendto_serv_butone(cptr, "%s " TOK_MODE " %s + " TIME_T_FMT, NumServ(&me),
-              chptr->chname, chptr->creationtime);      /* ok, send TS */
-          chptr->mode.mode &= ~MODE_SENDTS;     /* reset flag */
-        }
-      }
-    }
-  }
   return 0;
 }
 
 /*
  * ms_join - server message handler
  */
-int ms_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
-  static char     jbuf[BUFSIZE];
-  static char     mbuf[BUFSIZE];
-  struct Membership* member;
-  struct Channel* chptr;
-  char*           name;
-  char*           keysOrTS = NULL;
-  int             zombie = 0;
-  int             sendcreate = 0;
-  unsigned int    flags = 0;
-  size_t          jlen = 0;
-  size_t          mlen = 0;
-  size_t*         buflen;
-  char*           p = NULL;
-  char*           bufptr;
+  struct Membership *member;
+  struct Channel *chptr;
+  struct JoinBuf join;
+  struct JoinBuf create;
+  unsigned int flags = 0;
+  char *p = 0;
+  char *chanlist;
+  char *name;
 
-  /*
-   * Doesn't make sense having a server join a channel, and besides
-   * the server cores.
-   */
-  if (IsServer(sptr))
+  if (IsServer(sptr)) {
+    Debug((DEBUG_ERROR, "%s tried to JOIN a channel", sptr->name));
     return 0;
+  }
 
   if (parc < 2 || *parv[1] == '\0')
     return need_more_params(sptr, "JOIN");
 
-  keysOrTS = parv[2];           /* Remember where our keys are or the TS is;
-                                   parv[2] needs to be NULL for the call to
-                                   m_names below -Kev */
-  parv[2] = p = NULL;
+  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
+  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, TStime());
 
-  *jbuf = *mbuf = '\0';         /* clear both join and mode buffers -Kev */
-  /*
-   *  Rebuild list of channels joined to be the actual result of the
-   *  JOIN.  Note that "JOIN 0" is the destructive problem.
-   */
-  for (name = ircd_strtok(&p, parv[1], ","); name; name = ircd_strtok(&p, NULL, ","))
-  {
-    size_t len;
-    if (IsLocalChannel(name))
+  chanlist = last0(parv[1]); /* find last "JOIN 0" */
+
+  for (name = ircd_strtok(&p, chanlist, ","); name;
+       name = ircd_strtok(&p, 0, ",")) {
+    clean_channelname(name);
+
+    if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
-    if (!IsChannelName(name))
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
+    if (IsLocalChannel(name) || !IsChannelName(name))
       continue;
-    }
 
-    chptr = get_channel(sptr, name, CGT_CREATE);
-    if (chptr && (member = find_member_link(chptr, sptr)))
-    {
-      if (!IsZombie(member))
-      	continue;
+    if ((chptr = FindChannel(name))) {
+      if ((member = find_member_link(chptr, sptr))) {
+	if (!IsZombie(member)) /* already on channel */
+	  continue;
 
-      /* If they are a zombie, make them really part
-       * and rejoin
-       */      	
-      zombie = 1;
-      flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
-      remove_user_from_channel(sptr, chptr);
-      chptr = get_channel(sptr, name, CGT_CREATE);
-      
-    }
-    
-    name = chptr->chname;
-    
-    if (!chptr->creationtime) /* A remote JOIN created this channel ? */
-      chptr->creationtime = MAGIC_REMOTE_JOIN_TS;
-      
-    if (parc > 2)
-    {
-      if (chptr->creationtime == MAGIC_REMOTE_JOIN_TS)
-        chptr->creationtime = atoi(keysOrTS);
-      else
-        parc = 2;             /* Don't pass it on */
-    }
-    
-    if (!zombie)
-    {
-      if (sptr->flags & FLAGS_TS8)
-        flags |= CHFL_SERVOPOK;
-    }
-    
-    /*
-     * Complete user entry to the new channel (if any)
+	flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
+	remove_user_from_channel(sptr, chptr);
+	chptr = FindChannel(name);
+      } else
+	flags = CHFL_DEOPPED | ((sptr->flags & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+    } else
+      flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
+
+    if (chptr)
+      joinbuf_join(&join, chptr, flags);
+    /* Strange that a channel should get created by a JOIN, but as long
+     * as there are desynchs, we have to assume it's possible.  Previous
+     * solutions involved sending a TS with the JOIN, but that seems
+     * unworkable to me; my solution is to transmute the JOIN into a
+     * CREATE, and let the next BURST try to fix the problem.  Another
+     * solution would be to simply issue an upstream KICK, but that
+     * won't currently be accepted.  Is this what DESTRUCT is for?
      */
-    add_user_to_channel(chptr, sptr, flags);
-
-    /*
-     * Notify all other users on the new channel
-     */
-    sendto_channel_butserv(chptr, sptr, ":%s JOIN :%s", parv[0], name);
-
-    /* Select proper buffer; mbuf for creation, jbuf otherwise */
-
-    if (*name == '&')
-      continue;                 /* Head off local channels at the pass */
-
-    bufptr = (sendcreate == 0) ? jbuf : mbuf;
-    buflen = (sendcreate == 0) ? &jlen : &mlen;
-    len = strlen(name);
-    
-    if (*buflen < BUFSIZE - len - 2)
-    {
-      if (*bufptr)
-      {
-        strcat(bufptr, ",");    /* Add to join buf */
-        *buflen += 1;
-      }
-      strncat(bufptr, name, BUFSIZE - *buflen - 1);
-      *buflen += len;
+    else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
+      continue; /* couldn't get channel */
+    else {
+      chptr->creationtime = TStime(); /* have to set the creation TS */
+      joinbuf_join(&create, chptr, flags);
     }
-    sendcreate = 0;             /* Reset sendcreate */
   }
 
-  if (*jbuf)                    /* Propgate joins to P10 servers */
-    sendto_serv_butone(cptr, 
-        parc > 2 ? "%s%s " TOK_JOIN " %s %s" : "%s%s " TOK_JOIN " %s", NumNick(sptr), jbuf, keysOrTS);
-  if (*mbuf)                    /* and now creation events */
-    sendto_serv_butone(cptr, "%s%s " TOK_CREATE " %s " TIME_T_FMT,
-        NumNick(sptr), mbuf, TStime());
+  joinbuf_flush(&join); /* must be first, if there's a JOIN 0 */
+  joinbuf_flush(&create);
 
   return 0;
 }
-
-
-#if 0
-/*
- * m_join
- *
- * parv[0] = sender prefix
- * parv[1] = channel
- * parv[2] = channel keys (client), or channel TS (server)
- */
-int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  static char     jbuf[BUFSIZE];
-  static char     mbuf[BUFSIZE];
-  struct Membership* member;
-  struct Channel* chptr;
-  char*           name;
-  char*           keysOrTS = NULL;
-  int             i = 0;
-  int             zombie = 0;
-  int             sendcreate = 0;
-  unsigned int    flags = 0;
-  size_t          jlen = 0;
-  size_t          mlen = 0;
-  size_t*         buflen;
-  char*           p = NULL;
-  char*           bufptr;
-
-  /*
-   * Doesn't make sense having a server join a channel, and besides
-   * the server cores.
-   */
-  if (IsServer(sptr))
-    return 0;
-
-  if (parc < 2 || *parv[1] == '\0')
-    return need_more_params(sptr, "JOIN");
-
-  for (p = parv[1]; *p; p++)    /* find the last "JOIN 0" in the line -Kev */
-    if (*p == '0'
-        && (*(p + 1) == ',' || *(p + 1) == '\0' || !IsChannelChar(*(p + 1))))
-    {
-      /* If it's a single "0", remember the place; we will start parsing
-         the channels after the last 0 in the line -Kev */
-      parv[1] = p;
-      if (!*(p + 1))
-        break;
-      p++;
-    }
-    else
-    {                           /* Step through to the next comma or until the
-                                   end of the line, in an attempt to save CPU
-                                   -Kev */
-      while (*p != ',' && *p != '\0')
-        p++;
-      if (!*p)
-        break;
-    }
-
-  keysOrTS = parv[2];           /* Remember where our keys are or the TS is;
-                                   parv[2] needs to be NULL for the call to
-                                   m_names below -Kev */
-  parv[2] = p = NULL;
-
-  *jbuf = *mbuf = '\0';         /* clear both join and mode buffers -Kev */
-  /*
-   *  Rebuild list of channels joined to be the actual result of the
-   *  JOIN.  Note that "JOIN 0" is the destructive problem.
-   */
-  for (name = ircd_strtok(&p, parv[1], ","); name; name = ircd_strtok(&p, NULL, ","))
-  {
-    size_t len;
-    if (MyConnect(sptr))
-      clean_channelname(name);
-    else if (IsLocalChannel(name))
-      continue;
-    if (*name == '0' && *(name + 1) == '\0')
-    {
-      /* Remove the user from all his channels -Kev */
-      while ((member = sptr->user->channel))
-      {
-        chptr = member->channel;
-        if (!IsZombie(member))
-          sendto_channel_butserv(chptr, sptr, PartFmt2,
-              parv[0], chptr->chname, "Left all channels");
-        remove_user_from_channel(sptr, chptr);
-      }
-      /* Just in case */
-      *mbuf = *jbuf = '\0';
-      mlen = jlen = 0;
-    }
-    else
-    {                           /* not a /join 0, so treat it as
-                                   a /join #channel -Kev */
-      if (!IsChannelName(name))
-      {
-        if (MyUser(sptr))
-          sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
-        continue;
-      }
-
-      if (MyConnect(sptr))
-      {
-#ifdef BADCHAN
-	struct Gline *gline;
-
-        if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
-	    GlineIsActive(gline) && !IsAnOper(sptr))
-        {
-          sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
-          continue;
-        }
-#endif
-        /*
-         * Local client is first to enter previously nonexistant
-         * channel so make them (rightfully) the Channel Operator.
-         * This looks kind of ugly because we try to avoid calling the strlen()
-         */
-        if (ChannelExists(name))
-        {
-          flags = CHFL_DEOPPED;
-          sendcreate = 0;
-        }
-        else if (strlen(name) > CHANNELLEN)
-        {
-          *(name + CHANNELLEN) = '\0';
-          if (ChannelExists(name))
-          {
-            flags = CHFL_DEOPPED;
-            sendcreate = 0;
-          }
-          else
-          {
-            flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
-            sendcreate = 1;
-          }
-        }
-        else
-        {
-          flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
-          sendcreate = 1;
-        }
-
-#ifdef OPER_NO_CHAN_LIMIT
-        /*
-         * Opers are allowed to join any number of channels
-         */
-        if (sptr->user->joined >= MAXCHANNELSPERUSER && !IsAnOper(sptr))
-#else
-        if (sptr->user->joined >= MAXCHANNELSPERUSER)
-#endif
-        {
-          chptr = get_channel(sptr, name, CGT_NO_CREATE);
-          sendto_one(sptr, err_str(ERR_TOOMANYCHANNELS),
-                     me.name, parv[0], chptr ? chptr->chname : name);
-          /*
-           * Can't return, else he won't get on ANY channels!
-           * Break out of the for loop instead.  -Kev
-           */
-          break;
-        }
-      }
-      chptr = get_channel(sptr, name, CGT_CREATE);
-      if (chptr && (member = find_member_link(chptr, sptr)))
-      {
-        if (IsZombie(member))
-        {
-          zombie = 1;
-          flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
-          remove_user_from_channel(sptr, chptr);
-          chptr = get_channel(sptr, name, CGT_CREATE);
-        }
-        else
-          continue;
-      }
-      name = chptr->chname;
-      if (!chptr->creationtime) /* A remote JOIN created this channel ? */
-        chptr->creationtime = MAGIC_REMOTE_JOIN_TS;
-      if (parc > 2)
-      {
-        if (chptr->creationtime == MAGIC_REMOTE_JOIN_TS)
-          chptr->creationtime = atoi(keysOrTS);
-        else
-          parc = 2;             /* Don't pass it on */
-      }
-      if (!zombie)
-      {
-        if (!MyConnect(sptr))
-          flags = CHFL_DEOPPED;
-        if (sptr->flags & FLAGS_TS8)
-          flags |= CHFL_SERVOPOK;
-      }
-      if (MyConnect(sptr))
-      {
-        int created = chptr->users == 0;
-        if (check_target_limit(sptr, chptr, chptr->chname, created))
-        {
-          if (created)          /* Did we create the channel? */
-            sub1_from_channel(chptr);   /* Remove it again! */
-          continue;
-        }
-        if ((i = can_join(sptr, chptr, keysOrTS)))
-        {
-          sendto_one(sptr, err_str(i), me.name, parv[0], chptr->chname);
-#ifdef OPER_WALK_THROUGH_LMODES
-	  if (i > MAGIC_OPER_OVERRIDE)
- 	  {
- 	    switch(i - MAGIC_OPER_OVERRIDE)
- 	    {
- 	    case ERR_CHANNELISFULL: i = 'l'; break;
- 	    case ERR_INVITEONLYCHAN: i = 'i'; break;
- 	    case ERR_BANNEDFROMCHAN: i = 'b'; break;
- 	    case ERR_BADCHANNELKEY: i = 'k'; break;
- 	    }
- 	    sendto_op_mask(SNO_HACK4,"OPER JOIN: %s JOIN %s (overriding +%c)",sptr->name,chptr->chname,i);
- 	  }
- 	  else
- 	    continue;	  
-#else	  
-          continue;
-#endif
-        }
-      }
-      /*
-       * Complete user entry to the new channel (if any)
-       */
-      add_user_to_channel(chptr, sptr, flags);
-
-      /*
-       * Notify all other users on the new channel
-       */
-      sendto_channel_butserv(chptr, sptr, ":%s JOIN :%s", parv[0], name);
-
-      if (MyUser(sptr))
-      {
-        del_invite(sptr, chptr);
-        if (chptr->topic[0] != '\0')
-        {
-          sendto_one(sptr, rpl_str(RPL_TOPIC), me.name,
-              parv[0], name, chptr->topic);
-          sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME), me.name, parv[0], name,
-              chptr->topic_nick, chptr->topic_time);
-        }
-        parv[1] = name;
-        m_names(cptr, sptr, 2, parv);
-      }
-    }
-
-    /* Select proper buffer; mbuf for creation, jbuf otherwise */
-
-    if (*name == '&')
-      continue;                 /* Head off local channels at the pass */
-
-    bufptr = (sendcreate == 0) ? jbuf : mbuf;
-    buflen = (sendcreate == 0) ? &jlen : &mlen;
-    len = strlen(name);
-    if (*buflen < BUFSIZE - len - 2)
-    {
-      if (*bufptr)
-      {
-        strcat(bufptr, ",");    /* Add to join buf */
-        *buflen += 1;
-      }
-      strncat(bufptr, name, BUFSIZE - *buflen - 1);
-      *buflen += len;
-    }
-    sendcreate = 0;             /* Reset sendcreate */
-  }
-
-  if (*jbuf)                    /* Propgate joins to P10 servers */
-    sendto_serv_butone(cptr, 
-        parc > 2 ? "%s%s " TOK_JOIN " %s %s" : "%s%s " TOK_JOIN " %s", NumNick(sptr), jbuf, keysOrTS);
-  if (*mbuf)                    /* and now creation events */
-    sendto_serv_butone(cptr, "%s%s " TOK_CREATE " %s " TIME_T_FMT,
-        NumNick(sptr), mbuf, TStime());
-
-  if (MyUser(sptr))
-  {                             /* shouldn't ever set TS for remote JOIN's */
-    if (*jbuf)
-    {                           /* check for channels that need TS's */
-      p = NULL;
-      for (name = ircd_strtok(&p, jbuf, ","); name; name = ircd_strtok(&p, NULL, ","))
-      {
-        chptr = get_channel(sptr, name, CGT_NO_CREATE);
-        if (chptr && chptr->mode.mode & MODE_SENDTS)
-        {                       /* send a TS? */
-          sendto_serv_butone(cptr, "%s " TOK_MODE " %s + " TIME_T_FMT, NumServ(&me),
-              chptr->chname, chptr->creationtime);      /* ok, send TS */
-          chptr->mode.mode &= ~MODE_SENDTS;     /* reset flag */
-        }
-      }
-    }
-  }
-  return 0;
-}
-#endif /* 0 */

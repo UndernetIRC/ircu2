@@ -109,80 +109,46 @@
  */
 int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Channel* chptr;
-  struct Membership* member;
-  char*           p = 0;
-  char*           name;
-  char            pbuf[BUFSIZE];
-  char*           comment = (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0;
-
-  *pbuf = '\0';                 /* Initialize the part buffer... -Kev */
+  struct Channel *chptr;
+  struct Membership *member;
+  struct JoinBuf parts;
+  char *p = 0;
+  char *name;
 
   sptr->flags &= ~FLAGS_TS8;
 
+  /* check number of arguments */
   if (parc < 2 || parv[1][0] == '\0')
     return need_more_params(sptr, "PART");
 
-  for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
-  {
-    chptr = get_channel(sptr, name, CGT_NO_CREATE);
-    if (!chptr) {
-      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
+  /* init join/part buffer */
+  joinbuf_init(&parts, sptr, cptr, JOINBUF_TYPE_PART,
+	       (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0,
+	       0);
+
+  /* scan through channel list */
+  for (name = ircd_strtok(&p, parv[1], ","); name;
+       name = ircd_strtok(&p, 0, ",")) {
+
+    chptr = get_channel(sptr, name, CGT_NO_CREATE); /* look up channel */
+
+    if (!chptr) { /* complain if there isn't such a channel */
+      send_reply(sptr, ERR_NOSUCHCHANNEL, name);
       continue;
     }
-    if (*name == '&' && !MyUser(sptr))
-      continue;
-    /*
-     * Do not use find_channel_member here: zombies must be able to part too
-     */
-    if (!(member = find_member_link(chptr, sptr)))
-    {
-      /* Normal to get when our client did a kick
-       * for a remote client (who sends back a PART),
-       * so check for remote client or not --Run
-       */
-      if (MyUser(sptr))
-        sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
-            chptr->chname);
+
+    if (!(member = find_member_link(chptr, sptr))) { /* complain if not on */
+      send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
       continue;
     }
-    /* Recreate the /part list for sending to servers */
-    if (*name != '&')
-    {
-      if (*pbuf)
-        strcat(pbuf, ",");
-      strcat(pbuf, name);
-    }
-    if (IsZombie(member)
-        || !member_can_send_to_channel(member))  /* Returns 1 if we CAN send */
-      comment = 0;
-    /* Send part to all clients */
-    if (!IsZombie(member))
-    {
-      if (comment)
-        sendto_channel_butserv(chptr, sptr, PartFmt2, parv[0], chptr->chname,
-                               comment);
-      else
-        sendto_channel_butserv(chptr, sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    else if (MyUser(sptr))
-    {
-      if (comment)
-        sendto_one(sptr, PartFmt2, parv[0], chptr->chname, comment);
-      else
-        sendto_one(sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    remove_user_from_channel(sptr, chptr);
+
+    assert(!IsZombie(member)); /* Local users should never zombie */
+
+    joinbuf_join(&parts, chptr, /* part client from channel */
+		 member_can_send_to_channel(member) ? 0 : CHFL_BANNED);
   }
-  /* Send out the parts to all servers... -Kev */
-  if (*pbuf)
-  {
-    if (comment)
-      sendto_serv_butone(cptr, PartFmt2serv, NumNick(sptr), pbuf, comment);
-    else
-      sendto_serv_butone(cptr, PartFmt1serv, NumNick(sptr), pbuf);
-  }
-  return 0;
+
+  return joinbuf_flush(&parts); /* flush channel parts */
 }
 
 /*
@@ -194,165 +160,49 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Channel* chptr;
-  struct Membership* member;
-  char*           p = 0;
-  char*           name;
-  char            pbuf[BUFSIZE];
-  char*           comment = (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0;
-
-  *pbuf = '\0';                 /* Initialize the part buffer... -Kev */
+  struct Channel *chptr;
+  struct Membership *member;
+  struct JoinBuf parts;
+  unsigned int flags;
+  char *p = 0;
+  char *name;
 
   sptr->flags &= ~FLAGS_TS8;
 
+  /* check number of arguments */
   if (parc < 2 || parv[1][0] == '\0')
     return need_more_params(sptr, "PART");
 
-  for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
-  {
-    chptr = get_channel(sptr, name, CGT_NO_CREATE);
-    if (!chptr) {
-      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
-      continue;
-    }
-    if (*name == '&' && !MyUser(sptr))
-      continue;
+  /* init join/part buffer */
+  joinbuf_init(&parts, sptr, cptr, JOINBUF_TYPE_PART,
+	       (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0,
+	       0);
+
+  /* scan through channel list */
+  for (name = ircd_strtok(&p, parv[1], ","); name;
+       name = ircd_strtok(&p, 0, ",")) {
+
+    flags = 0;
+
+    chptr = get_channel(sptr, name, CGT_NO_CREATE); /* look up channel */
+
+    if (!chptr || IsLocalChannel(name) ||
+	!(member = find_member_link(chptr, sptr)))
+      continue; /* ignore from remote clients */
+
+    if (IsZombie(member)) /* figure out special flags... */
+      flags |= CHFL_ZOMBIE;
     /*
-     * Do not use find_channel_member here: zombies must be able to part too
+     * XXX BUG: If a client /part's with a part notice, on channels where
+     * he's banned, local clients will not see the part notice, but remote
+     * clients will.
      */
-    if (!(member = find_member_link(chptr, sptr)))
-    {
-      /* Normal to get when our client did a kick
-       * for a remote client (who sends back a PART),
-       * so check for remote client or not --Run
-       */
-      if (MyUser(sptr))
-        sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
-            chptr->chname);
-      continue;
-    }
-    /* Recreate the /part list for sending to servers */
-    if (*name != '&')
-    {
-      if (*pbuf)
-        strcat(pbuf, ",");
-      strcat(pbuf, name);
-    }
-    if (IsZombie(member)
-        || !member_can_send_to_channel(member))  /* Returns 1 if we CAN send */
-      comment = 0;
-    /* Send part to all clients */
-    if (!IsZombie(member))
-    {
-      if (comment)
-        sendto_channel_butserv(chptr, sptr, PartFmt2, parv[0], chptr->chname,
-                               comment);
-      else
-        sendto_channel_butserv(chptr, sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    else if (MyUser(sptr))
-    {
-      if (comment)
-        sendto_one(sptr, PartFmt2, parv[0], chptr->chname, comment);
-      else
-        sendto_one(sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    remove_user_from_channel(sptr, chptr);
+    if (!member_can_send_to_channel(member))
+      flags |= CHFL_BANNED;
+
+    /* part user from channel */
+    joinbuf_join(&parts, chptr, flags);
   }
-  /* Send out the parts to all servers... -Kev */
-  if (*pbuf)
-  {
-    if (comment)
-      sendto_serv_butone(cptr, PartFmt2serv, NumNick(sptr), pbuf, comment);
-    else
-      sendto_serv_butone(cptr, PartFmt1serv, NumNick(sptr), pbuf);
-  }
-  return 0;
+
+  return joinbuf_flush(&parts); /* flush channel parts */
 }
-
-#if 0
-/*
- * m_part
- *
- * parv[0] = sender prefix
- * parv[1] = channel
- * parv[parc - 1] = comment
- */
-int m_part(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Channel* chptr;
-  struct Membership* member;
-  char*           p = 0;
-  char*           name;
-  char            pbuf[BUFSIZE];
-  char*           comment = (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0;
-
-  *pbuf = '\0';                 /* Initialize the part buffer... -Kev */
-
-  sptr->flags &= ~FLAGS_TS8;
-
-  if (parc < 2 || parv[1][0] == '\0')
-    return need_more_params(sptr, "PART");
-
-  for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
-  {
-    chptr = get_channel(sptr, name, CGT_NO_CREATE);
-    if (!chptr) {
-      sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], name);
-      continue;
-    }
-    if (*name == '&' && !MyUser(sptr))
-      continue;
-    /*
-     * Do not use find_channel_member here: zombies must be able to part too
-     */
-    if (!(member = find_member_link(chptr, sptr)))
-    {
-      /* Normal to get when our client did a kick
-       * for a remote client (who sends back a PART),
-       * so check for remote client or not --Run
-       */
-      if (MyUser(sptr))
-        sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0],
-            chptr->chname);
-      continue;
-    }
-    /* Recreate the /part list for sending to servers */
-    if (*name != '&')
-    {
-      if (*pbuf)
-        strcat(pbuf, ",");
-      strcat(pbuf, name);
-    }
-    if (IsZombie(member)
-        || !member_can_send_to_channel(member))  /* Returns 1 if we CAN send */
-      comment = 0;
-    /* Send part to all clients */
-    if (!IsZombie(member))
-    {
-      if (comment)
-        sendto_channel_butserv(chptr, sptr, PartFmt2, parv[0], chptr->chname,
-                               comment);
-      else
-        sendto_channel_butserv(chptr, sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    else if (MyUser(sptr))
-    {
-      if (comment)
-        sendto_one(sptr, PartFmt2, parv[0], chptr->chname, comment);
-      else
-        sendto_one(sptr, PartFmt1, parv[0], chptr->chname);
-    }
-    remove_user_from_channel(sptr, chptr);
-  }
-  /* Send out the parts to all servers... -Kev */
-  if (*pbuf)
-  {
-    if (comment)
-      sendto_serv_butone(cptr, PartFmt2serv, NumNick(sptr), pbuf, comment);
-    else
-      sendto_serv_butone(cptr, PartFmt1serv, NumNick(sptr), pbuf);
-  }
-  return 0;
-}
-#endif /* 0 */

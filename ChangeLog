@@ -1,3 +1,20 @@
+2000-04-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c: reimplement JOIN in terms of struct JoinBuf
+
+	* ircd/channel.c (clean_channelname): make clean_channelname also
+	truncate long channel names
+
+2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c: reimplement CREATE in terms of struct JoinBuf
+
+	* ircd/channel.c: implemented joinbuf_init, joinbuf_join,
+	joinbuf_flush
+
+	* include/channel.h: definitions and declarations for the struct
+	JoinBuf abstraction
+
 2000-04-29  Perry Lorier <isomer@coders.net>
 	* include/s_bsd.c: Ok, so I thought I compiled and tested this...
 
@@ -975,7 +992,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.114 2000-04-29 05:30:05 isomer Exp $
+# $Id: ChangeLog,v 1.115 2000-04-30 01:33:27 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

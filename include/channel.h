@@ -47,6 +47,10 @@ struct Client;
 #define MAXBANS         30
 #define MAXBANLENGTH    1024
 
+#define MAXJOINARGS	15 /* number of slots for join buffer */
+#define STARTJOINLEN	10 /* fuzzy numbers */
+#define STARTCREATELEN	20
+
 /*
  * Macro's
  */
@@ -269,6 +273,23 @@ struct ModeBuf {
 #define MB_STRING(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_string)
 #define MB_CLIENT(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_client)
 
+struct JoinBuf {
+  struct Client	       *jb_source;	/* Source of joins (ie, joiner) */
+  struct Client	       *jb_connect;	/* Connection of joiner */
+  unsigned int		jb_type;	/* Type of join (JOIN or CREATE) */
+  char		       *jb_comment;	/* part comment */
+  time_t		jb_create;	/* Creation timestamp */
+  unsigned int		jb_count;	/* Number of channels */
+  unsigned int		jb_strlen;	/* length so far */
+  struct Channel       *jb_channels[MAXJOINARGS];
+					/* channels joined or whatever */
+};
+
+#define JOINBUF_TYPE_JOIN	0	/* send JOINs */
+#define JOINBUF_TYPE_CREATE	1	/* send CREATEs */
+#define JOINBUF_TYPE_PART	2	/* send PARTs */
+#define JOINBUF_TYPE_PARTALL	3	/* send local PARTs, but not remote */
+
 extern struct Channel* GlobalChannelList;
 extern int             LocalChanOperMode;
 
@@ -350,5 +371,12 @@ extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
 #define MODE_PARSE_BOUNCE	0x08	/* we will be bouncing the modes */
 #define MODE_PARSE_NOTOPER	0x10	/* send "not chanop" to user */
 #define MODE_PARSE_NOTMEMBER	0x20	/* send "not member" to user */
+
+extern void joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
+			 struct Client *connect, unsigned int type,
+			 char *comment, time_t create);
+extern void joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan,
+			 unsigned int flags);
+extern int joinbuf_flush(struct JoinBuf *jbuf);
 
 #endif /* INCLUDED_channel_h */
