@@ -1,3 +1,8 @@
+2004-08-24  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/client.h: Properly parenthesize "flag" argument to
+	FLAGSET_INDEX() and FLAGSET_MASK() macros.
+
 2004-08-22  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (send_channel_modes): If oplevels are disabled,

@@ -67,8 +67,8 @@ struct AuthRequest;
 typedef unsigned long flagpage_t;
 
 #define FLAGSET_NBITS (8 * sizeof(flagpage_t))
-#define FLAGSET_INDEX(flag) (flag / FLAGSET_NBITS)
-#define FLAGSET_MASK(flag) (1<<(flag % FLAGSET_NBITS))
+#define FLAGSET_INDEX(flag) ((flag) / FLAGSET_NBITS)
+#define FLAGSET_MASK(flag) (1<<((flag) % FLAGSET_NBITS))
 
 #define DECLARE_FLAGSET(name,max) \
   struct name \
