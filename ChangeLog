@@ -1,3 +1,9 @@
+2004-10-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/hash.c: Fix thinko in hash function: It is not indexed
+	simply by character value, so we cannot just remap the values
+	by case.
+
 2004-10-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/hash.c: Replace the old hash function with one based on

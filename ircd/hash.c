@@ -69,20 +69,14 @@ void init_hash(void)
     crc32hash[ii] = rand;
   }
 
-  /* Now reorder the hash table.  To make it case-insensitive, skip
-   * upper-case letters, and have lower-case letters write to the
-   * corresponding upper-case character.
-   */
+  /* Now reorder the hash table. */
   for (ii = 0, rand = 0; ii < 256; ii++)
   {
-    char ch = ii + CHAR_MIN;
-    if (ch != ToLower(ch))
-      continue;
     if (!rand)
       rand = ircrandom();
     poly = ii + rand % (256 - ii);
     jj = crc32hash[ii];
-    crc32hash[ToUpper(ch) - CHAR_MIN] = crc32hash[ii] = crc32hash[poly];
+    crc32hash[ii] = crc32hash[poly];
     crc32hash[poly] = jj;
     rand >>= 8;
   }
@@ -97,9 +91,9 @@ typedef unsigned int HASHREGS;
  */
 static HASHREGS strhash(const char *n)
 {
-  HASHREGS hash = crc32hash[*n++ & 255];
+  HASHREGS hash = crc32hash[ToLower(*n++) & 255];
   while (*n)
-    hash = (hash >> 8) ^ crc32hash[(hash ^ *n++) & 255];
+    hash = (hash >> 8) ^ crc32hash[(hash ^ ToLower(*n++)) & 255];
   return hash % HASHSIZE;
 }
 
