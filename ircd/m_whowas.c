@@ -120,13 +120,13 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
   if (parc > 2)
     max = atoi(parv[2]);
   if (parc > 3)
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_WHOWAS " %s %s :%s", 3, parc, parv))
+    if (hunt_server_cmd(sptr, CMD_WHOWAS, cptr, 1, "%s %s :%C", 3, parc, parv))
       return 0;
 
   parv[1] = canonize(parv[1]);
@@ -140,14 +140,12 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       if (0 == ircd_strcmp(nick, temp->name))
       {
-        sendto_one(sptr, rpl_str(RPL_WHOWASUSER),
-            me.name, parv[0], temp->name, temp->username,
-            temp->hostname, temp->realname);
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
-            temp->name, temp->servername, myctime(temp->logoff));
+	send_reply(sptr, RPL_WHOWASUSER, temp->name, temp->username,
+		   temp->hostname, temp->realname);
+	send_reply(sptr, RPL_WHOISSERVER, temp->name, temp->servername,
+		   myctime(temp->logoff));
         if (temp->away)
-          sendto_one(sptr, rpl_str(RPL_AWAY),
-              me.name, parv[0], temp->name, temp->away);
+	  send_reply(sptr, RPL_AWAY, temp->name, temp->away);
         cur++;
         found++;
       }
@@ -155,12 +153,12 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         break;
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_WASNOSUCHNICK), me.name, parv[0], nick);
+      send_reply(sptr, ERR_WASNOSUCHNICK, nick);
     /* To keep parv[1] intact for ENDOFWHOWAS */
     if (p)
       p[-1] = ',';
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOWAS), me.name, parv[0], parv[1]);
+  send_reply(sptr, RPL_ENDOFWHOWAS, parv[1]);
   return 0;
 }
 
@@ -183,13 +181,13 @@ int m_whowas(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   if (parc > 2)
     max = atoi(parv[2]);
   if (parc > 3)
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_WHOWAS " %s %s :%s", 3, parc, parv))
+    if (hunt_server(1, cptr, sptr, "%s%s " TOK_WHOWAS " %s %s :%s", 3, parc, parv)) /* XXX DEAD */
       return 0;
 
   parv[1] = canonize(parv[1]);
@@ -203,13 +201,13 @@ int m_whowas(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       if (0 == ircd_strcmp(nick, temp->name))
       {
-        sendto_one(sptr, rpl_str(RPL_WHOWASUSER),
+        sendto_one(sptr, rpl_str(RPL_WHOWASUSER), /* XXX DEAD */
             me.name, parv[0], temp->name, temp->username,
             temp->hostname, temp->realname);
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
+        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0], /* XXX DEAD */
             temp->name, temp->servername, myctime(temp->logoff));
         if (temp->away)
-          sendto_one(sptr, rpl_str(RPL_AWAY),
+          sendto_one(sptr, rpl_str(RPL_AWAY), /* XXX DEAD */
               me.name, parv[0], temp->name, temp->away);
         cur++;
         found++;
@@ -218,12 +216,12 @@ int m_whowas(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         break;
     }
     if (!found)
-      sendto_one(sptr, err_str(ERR_WASNOSUCHNICK), me.name, parv[0], nick);
+      sendto_one(sptr, err_str(ERR_WASNOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
     /* To keep parv[1] intact for ENDOFWHOWAS */
     if (p)
       p[-1] = ',';
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOWAS), me.name, parv[0], parv[1]);
+  sendto_one(sptr, rpl_str(RPL_ENDOFWHOWAS), me.name, parv[0], parv[1]); /* XXX DEAD */
   return 0;
 }
 #endif /* 0 */

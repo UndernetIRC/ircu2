@@ -143,7 +143,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   
   /* Not found? Bugger. */
   if (!acptr || IsMe(acptr))
-    return send_error_to_client(sptr, ERR_NOSUCHSERVER, server);
+    return send_reply(sptr, ERR_NOSUCHSERVER, server);
 
   /*
    * Look for a matching server that is closer,
@@ -158,7 +158,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   
   /* Disallow local opers to squit remote servers */
   if (IsLocOp(sptr) && !MyConnect(acptr))
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   return exit_client(cptr, acptr, sptr, comment);
 }

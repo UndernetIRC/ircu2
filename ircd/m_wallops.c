@@ -90,6 +90,7 @@
 #include "client.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "send.h"
 
@@ -108,7 +109,7 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendto_ops_butone(cptr, sptr, ":%s WALLOPS :%s", parv[0], message);
+  sendcmdto_flag_butone(sptr, CMD_WALLOPS, cptr, FLAGS_WALLOP, ":%s", message);
   return 0;
 }
 
@@ -124,7 +125,7 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendto_ops_butone(0, sptr, ":%s WALLOPS :%s", parv[0], message);
+  sendcmdto_flag_butone(sptr, CMD_WALLOPS, 0, FLAGS_WALLOP, ":%s", message);
   return 0;
 }
 
@@ -149,10 +150,10 @@ int m_wallops(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!IsServer(sptr) && MyConnect(sptr) && !IsAnOper(sptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
-  sendto_ops_butone(IsServer(cptr) ? cptr : 0, sptr,
+  sendto_ops_butone(IsServer(cptr) ? cptr : 0, sptr, /* XXX DEAD */
       ":%s WALLOPS :%s", parv[0], message);
   return 0;
 }

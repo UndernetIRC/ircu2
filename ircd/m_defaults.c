@@ -100,19 +100,19 @@
 
 int m_not_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  return send_error_to_client(cptr, ERR_NOPRIVILEGES);
+  return send_reply(cptr, ERR_NOPRIVILEGES);
 }
 
 int m_unregistered(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  sendto_one(cptr, ":%s %d * %s :Register first.",
-             me.name, ERR_NOTREGISTERED, parv[0]);
+  send_reply(cptr, RPL_EXPLICIT | ERR_NOTREGISTERED, "%s :Register first.",
+	     parv[0]);
   return 0;
 }
 
 int m_registered(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  return send_error_to_client(sptr, ERR_ALREADYREGISTRED);
+  return send_reply(sptr, ERR_ALREADYREGISTRED);
 }
 
 int m_ignore(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
@@ -123,8 +123,8 @@ int m_ignore(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int m_unsupported(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
 #if 0
-  sendto_one(cptr, ":%s %d * %s :Unsupported command",
-             me.name, ERR_UNSUPPORTED, parv[0]);
+  send_reply(cptr, RPL_EXPLICIT | ERR_UNSUPPORTED, "%s :Unsupported command",
+	     parv[0]);
 #endif
   return 0;
 }

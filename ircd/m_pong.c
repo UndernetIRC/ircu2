@@ -122,7 +122,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * ignore there is nothing the server sending it can do about it
      */
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
 #endif
     return 0;
   }
@@ -223,7 +223,7 @@ int m_pong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         return register_user(cptr, sptr, sptr->name, sptr->user->username);
     }
     else
-      sendto_one(sptr, ":%s %d %s :To connect, type /QUOTE PONG %u",
+      sendto_one(sptr, ":%s %d %s :To connect, type /QUOTE PONG %u", /* XXX DEAD */
           me.name, ERR_BADPING, sptr->name, sptr->cookie);
 
     return 0;
@@ -231,7 +231,7 @@ int m_pong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 2 || *parv[1] == '\0')
   {
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -243,10 +243,10 @@ int m_pong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name))
   {
     if ((acptr = FindClient(destination)))
-      sendto_one(acptr, ":%s PONG %s %s", parv[0], origin, destination);
+      sendto_one(acptr, ":%s PONG %s %s", parv[0], origin, destination); /* XXX DEAD */
     else
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
+      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), /* XXX DEAD */
           me.name, parv[0], destination);
       return 0;
     }

@@ -114,11 +114,13 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
 #endif
   {
+    send_reply(sptr, ERR_NOPRIVILEGES);
     sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
     return 0;
   }
-  sendto_one(sptr, rpl_str(RPL_REHASHING), me.name, parv[0], configfile);
-  sendto_ops("%s is rehashing Server config file", parv[0]);
+  send_reply(sptr, RPL_REHASHING, configfile);
+  sendto_opmask_butone(0, SNO_OLDSNO, "%C is rehashing Server config file",
+		       sptr);
   ircd_log(L_INFO, "REHASH From %s\n", get_client_name(sptr, HIDE_IP));
   return rehash(cptr, (parc > 1) ? ((*parv[1] == 'q') ? 2 : 0) : 0);
 #endif /* defined(OPER_REHASH) || defined(LOCOP_REHASH) */
@@ -142,11 +144,11 @@ int m_rehash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
 #endif
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
-  sendto_one(sptr, rpl_str(RPL_REHASHING), me.name, parv[0], configfile);
-  sendto_ops("%s is rehashing Server config file", parv[0]);
+  sendto_one(sptr, rpl_str(RPL_REHASHING), me.name, parv[0], configfile); /* XXX DEAD */
+  sendto_ops("%s is rehashing Server config file", parv[0]); /* XXX DEAD */
   ircd_log(L_INFO, "REHASH From %s\n", get_client_name(sptr, HIDE_IP));
   return rehash(cptr, (parc > 1) ? ((*parv[1] == 'q') ? 2 : 0) : 0);
 }

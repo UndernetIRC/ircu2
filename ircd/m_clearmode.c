@@ -238,24 +238,14 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   control_buf[control_buf_i] = '\0';
 
 #ifdef OPATH
-  if (IsServer(sptr))
-    write_log(OPATH, TIME_T_FMT " %s CLEARMODE %s %s\n", TStime(), sptr->name,
-	      chptr->chname, control_buf);
-  else
-    write_log(OPATH, TIME_T_FMT " %s!%s@%s CLEARMODE %s %s\n", TStime(),
-	      sptr->name, sptr->user->username, sptr->user->host,
-	      chptr->chname, control_buf);
+  write_log(OPATH, "%Tu %#C CLEARMODE %H %s\n", TStime(), sptr, chptr,
+	    control_buf);
 #endif
 
   /* Then send it */
-  if (!IsLocalChannel(chptr->chname)) {
-    if (IsServer(sptr))
-      sendto_serv_butone(cptr, "%s " TOK_CLEARMODE " %s %s", NumServ(sptr),
-			 chptr->chname, control_buf);
-    else
-      sendto_serv_butone(cptr, "%s%s " TOK_CLEARMODE " %s %s", NumNick(sptr),
-			 chptr->chname, control_buf);
-  }
+  if (!IsLocalChannel(chptr->chname))
+    sendcmdto_serv_butone(sptr, CMD_CLEARMODE, cptr, "%H %s", chptr,
+			  control_buf);
 
   return 0;
 }
@@ -276,11 +266,11 @@ ms_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "CLEARMODE");
 
   if (!IsPrivileged(sptr))
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (!IsChannelName(parv[1]) || IsLocalChannel(parv[1]) ||
       !(chptr = FindChannel(parv[1])))
-    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return do_clearmode(cptr, sptr, chptr, parv[2]);
 }
@@ -296,7 +286,7 @@ int
 mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
 #ifndef CONFIG_OPERCMDS
-  return send_error_to_client(sptr, ERR_DISABLED, "CLEARMODE");
+  return send_reply(sptr, ERR_DISABLED, "CLEARMODE");
 #else
   struct Channel *chptr;
   char *control = "ovpsmikbl"; /* default control string */
@@ -310,10 +300,10 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   clean_channelname(parv[1]);
 
   if (!IsOper(sptr) && !IsLocalChannel(parv[1]))
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
-    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return do_clearmode(cptr, sptr, chptr, control);
 #endif /* CONFIG_OPERCMDS */

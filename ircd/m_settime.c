@@ -131,7 +131,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (t < OLDEST_TS || dt < -9000000)
   {
-    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
     return 0;
   }
 
@@ -143,46 +143,37 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]);
+	sendcmdto_one(sptr, CMD_NOTICE, lp->value.cptr, "%s", parv[1]);
   }
   else
   {
     sprintf_irc(tbuf, TIME_T_FMT, TStime());
     parv[1] = tbuf;
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_SETTIME " %s %s", 2, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
         HUNTED_ISME)
       return 0;
   }
 
 #ifdef RELIABLE_CLOCK
   if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
-                       me.name, sptr->name, t);
+    sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
+			  sptr->name, t);
   if (IsUser(sptr))
   {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is not set %ld seconds %s : "
-                 "RELIABLE_CLOCK is defined", me.name, parv[0],
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is not set %ld seconds %s : "
-                 "RELIABLE_CLOCK is defined", NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds %s "
+		  ": RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
+		  (dt < 0) ? "forwards" : "backwards");
   }
 #else
-  sendto_ops("SETTIME from %s, clock is set %ld seconds %s",
-             sptr->name, (dt < 0) ? -dt : dt,
-             (dt < 0) ? "forwards" : "backwards");
+  sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+		       "seconds %s", sptr->name, (dt < 0) ? -dt : dt,
+		       (dt < 0) ? "forwards" : "backwards");
   TSoffset -= dt;
   if (IsUser(sptr))
   {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is set %ld seconds %s", me.name,
-                 parv[0], (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is set %ld seconds %s",
-                 NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
+		  sptr, (dt < 0) ? -dt : dt,
+		  (dt < 0) ? "forwards" : "backwards");
   }
 #endif
   return 0;
@@ -216,7 +207,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (t < OLDEST_TS || dt < -9000000)
   {
-    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
     return 0;
   }
 
@@ -228,46 +219,37 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]);
+	sendcmdto_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
   }
   else
   {
     sprintf_irc(tbuf, TIME_T_FMT, TStime());
     parv[1] = tbuf;
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_SETTIME " %s %s", 2, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc, parv) !=
         HUNTED_ISME)
       return 0;
   }
 
 #ifdef RELIABLE_CLOCK
   if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
-                       me.name, sptr->name, t);
+    sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
+			  sptr->name, t);
   if (IsUser(sptr))
   {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is not set %ld seconds %s : "
-                 "RELIABLE_CLOCK is defined", me.name, parv[0],
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is not set %ld seconds %s : "
-                 "RELIABLE_CLOCK is defined", NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds %s "
+		  ": RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
+		  (dt < 0) ? "forwards" : "backwards");
   }
 #else
-  sendto_ops("SETTIME from %s, clock is set %ld seconds %s",
-             sptr->name, (dt < 0) ? -dt : dt,
-             (dt < 0) ? "forwards" : "backwards");
+  sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+		       "seconds %s", sptr->name, (dt < 0) ? -dt : dt,
+		       (dt < 0) ? "forwards" : "backwards");
   TSoffset -= dt;
   if (IsUser(sptr))
   {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is set %ld seconds %s", me.name,
-                 parv[0], (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is set %ld seconds %s",
-                 NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
+		  sptr, (dt < 0) ? -dt : dt,
+		  (dt < 0) ? "forwards" : "backwards");
   }
 #endif
   return 0;
@@ -303,7 +285,7 @@ int m_settime(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (t < OLDEST_TS || dt < -9000000)
   {
-    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]);
+    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 
@@ -315,44 +297,44 @@ int m_settime(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]);
+        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]); /* XXX DEAD */
   }
   else
   {
     sprintf_irc(tbuf, TIME_T_FMT, TStime());
     parv[1] = tbuf;
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_SETTIME " %s %s", 2, parc, parv) !=
+    if (hunt_server(1, cptr, sptr, "%s%s " TOK_SETTIME " %s %s", 2, parc, parv) != /* XXX DEAD */
         HUNTED_ISME)
       return 0;
   }
 
 #ifdef RELIABLE_CLOCK
   if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
+    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT, /* XXX DEAD */
                        me.name, sptr->name, t);
   if (IsUser(sptr))
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is not set %ld seconds %s : "
+      sendto_one(sptr, ":%s NOTICE %s :clock is not set %ld seconds %s : " /* XXX DEAD */
                  "RELIABLE_CLOCK is defined", me.name, parv[0],
                  (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
     else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is not set %ld seconds %s : "
+      sendto_one(sptr, "%s NOTICE %s%s :clock is not set %ld seconds %s : " /* XXX DEAD */
                  "RELIABLE_CLOCK is defined", NumServ(&me), NumNick(sptr),
                  (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
   }
 #else
-  sendto_ops("SETTIME from %s, clock is set %ld seconds %s",
+  sendto_ops("SETTIME from %s, clock is set %ld seconds %s", /* XXX DEAD */
              sptr->name, (dt < 0) ? -dt : dt,
              (dt < 0) ? "forwards" : "backwards");
   TSoffset -= dt;
   if (IsUser(sptr))
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is set %ld seconds %s", me.name,
+      sendto_one(sptr, ":%s NOTICE %s :clock is set %ld seconds %s", me.name, /* XXX DEAD */
                  parv[0], (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
     else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is set %ld seconds %s",
+      sendto_one(sptr, "%s NOTICE %s%s :clock is set %ld seconds %s", /* XXX DEAD */
                  NumServ(&me), NumNick(sptr),
                  (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
   }

@@ -127,16 +127,17 @@ int ms_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != sptr);
 
   if (!IsAnOper(sptr)) {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    send_reply(sptr, ERR_NOPRIVILEGES);
     return 0;
   }
 
   if (parc < 5) {
-    sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "UPING");
+    send_reply(sptr, ERR_NEEDMOREPARAMS, "UPING");
     return 0;
   }
 
-  if (hunt_server(1, cptr, sptr, "%s%s " TOK_UPING " %s %s %s %s", 3, parc, parv) != HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_UPING, cptr, 1, "%s %s %C %s", 3, parc, parv)
+      != HUNTED_ISME)
     return 0;
   /*
    * Determine port: First user supplied, then default : 7007
@@ -146,12 +147,8 @@ int ms_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (EmptyString(parv[4]) || (count = atoi(parv[4])) <= 0)
   {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Illegal number of packets: %s",
-	         me.name, parv[0], parv[4]);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Illegal number of packets: %s",
-	         NumServ(&me), NumNick(sptr), parv[4]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING : Illegal number of "
+		  "packets: %s", sptr, parv[4]);
     return 0;
   }
   /* 
@@ -159,14 +156,10 @@ int ms_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if ((aconf = conf_find_server(parv[1])))
     uping_server(sptr, aconf, port, count);
-  else {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Host %s not listed in ircd.conf",
-	         me.name, parv[0], parv[1]);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Host %s not listed in ircd.conf",
-	         NumServ(&me), NumNick(sptr), parv[1]);
-  }
+  else
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Host %s not listed in "
+		  "ircd.conf", sptr, parv[1]);
+
   return 0;
 }
 
@@ -194,7 +187,7 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(IsAnOper(sptr));
 
   if (parc < 2) {
-    sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "UPING");
+    send_reply(sptr, ERR_NEEDMOREPARAMS, "UPING");
     return 0;
   }
 
@@ -227,7 +220,8 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       parv[2] = UDP_PORT;
     }
   }
-  if (hunt_server(1, cptr, sptr, "%s%s " TOK_UPING " %s %s %s %s", 3, parc, parv) != HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_UPING, sptr, 1, "%s %s %C %s", 3, parc, parv)
+      != HUNTED_ISME)
     return 0;
   /*
    * Determine port: First user supplied, then default : 7007
@@ -237,12 +231,8 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (EmptyString(parv[4]) || (count = atoi(parv[4])) <= 0)
   {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Illegal number of packets: %s",
-	         me.name, parv[0], parv[4]);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Illegal number of packets: %s",
-	         NumServ(&me), NumNick(sptr), parv[4]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Illegal number of "
+		  "packets: %s", sptr, parv[4]);
     return 0;
   }
   /* 
@@ -251,12 +241,8 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if ((aconf = conf_find_server(parv[1])))
     uping_server(sptr, aconf, port, count);
   else {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Host %s not listed in ircd.conf",
-	         me.name, parv[0], parv[1]);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Host %s not listed in ircd.conf",
-	         NumServ(&me), NumNick(sptr), parv[1]);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Host %s not listed in "
+		  "ircd.conf", sptr, parv[1]);
   }
   return 0;
 }
@@ -281,13 +267,13 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!IsPrivileged(sptr))
   {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return -1;
   }
 
   if (parc < 2)
   {
-    sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "UPING");
+    sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "UPING"); /* XXX DEAD */
     return 0;
   }
 
@@ -330,16 +316,16 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
       }
     }
   }
-  if (hunt_server(1, cptr, sptr, ":%s UPING %s %s %s %s", 3, parc, parv) != HUNTED_ISME)
+  if (hunt_server(1, cptr, sptr, ":%s UPING %s %s %s %s", 3, parc, parv) != HUNTED_ISME) /* XXX DEAD */
     return 0;
 
   if (BadPtr(parv[4]) || atoi(parv[4]) <= 0)
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Illegal number of packets: %s",
+      sendto_one(sptr, ":%s NOTICE %s :UPING: Illegal number of packets: %s", /* XXX DEAD */
 	  me.name, parv[0], parv[4]);
     else
-      sendto_one(sptr, "%s NOTICE %s%s :UPING: Illegal number of packets: %s",
+      sendto_one(sptr, "%s NOTICE %s%s :UPING: Illegal number of packets: %s", /* XXX DEAD */
 	  NumServ(&me), NumNick(sptr), parv[4]);
     return 0;
   }
@@ -364,10 +350,10 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
   if (!aconf)
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Host %s not listed in ircd.conf",
+      sendto_one(sptr, ":%s NOTICE %s :UPING: Host %s not listed in ircd.conf", /* XXX DEAD */
 	  me.name, parv[0], parv[1]);
     else
-      sendto_one(sptr,
+      sendto_one(sptr, /* XXX DEAD */
 	  "%s NOTICE %s%s :UPING: Host %s not listed in ircd.conf",
 	  NumServ(&me), NumNick(sptr), parv[1]);
     return 0;
@@ -384,14 +370,14 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
     int err = errno;
-    sendto_ops("m_uping: socket: %s", (err != EMFILE) 
+    sendto_ops("m_uping: socket: %s", (err != EMFILE)  /* XXX DEAD */
                 ? ((strerror(err)) ? strerror(err) : "Unknown error") : "No more sockets");
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, 
+      sendto_one(sptr,  /* XXX DEAD */
                  ":%s NOTICE %s :UPING: Unable to create udp ping socket",
                  me.name, parv[0]);
     else
-      sendto_one(sptr,
+      sendto_one(sptr, /* XXX DEAD */
                  "%s NOTICE %s%s :UPING: Unable to create udp ping socket",
                  NumServ(&me), NumNick(sptr));
     ircd_log(L_ERROR, "UPING: Unable to create UDP socket");
@@ -400,10 +386,10 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!os_set_nonblocking(fd)) {
     if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Can't set fd non-blocking",
+      sendto_one(sptr, ":%s NOTICE %s :UPING: Can't set fd non-blocking", /* XXX DEAD */
             me.name, parv[0]);
     else
-      sendto_one(sptr, "%s NOTICE %s%s :UPING: Can't set fd non-blocking",
+      sendto_one(sptr, "%s NOTICE %s%s :UPING: Can't set fd non-blocking", /* XXX DEAD */
             NumServ(&me), NumNick(sptr));
     close(fd);
     return 0;

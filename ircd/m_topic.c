@@ -124,14 +124,13 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
         ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
     {
-      sendto_one(sptr, err_str(chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
-          me.name, parv[0], chptr ? chptr->chname : name);
+      send_reply(sptr, (chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
+		 chptr ? chptr->chname : name);
       continue;
     }
     if (IsModelessChannel(name))
     {
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
-          chptr->chname);
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       continue;
     }
     if (IsLocalChannel(name) && !MyUser(sptr))
@@ -140,14 +139,12 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!topic)                 /* only asking  for topic  */
     {
       if (chptr->topic[0] == '\0')
-        sendto_one(sptr, rpl_str(RPL_NOTOPIC), me.name, parv[0], chptr->chname);
+	send_reply(sptr, RPL_NOTOPIC, chptr->chname);
       else
       {
-        sendto_one(sptr, rpl_str(RPL_TOPIC),
-            me.name, parv[0], chptr->chname, chptr->topic);
-        sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME),
-            me.name, parv[0], chptr->chname,
-            chptr->topic_nick, chptr->topic_time);
+	send_reply(sptr, RPL_TOPIC, chptr->chname, chptr->topic);
+	send_reply(sptr, RPL_TOPICWHOTIME, chptr->chname, chptr->topic_nick,
+		   chptr->topic_time);
       }
     }
     else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
@@ -157,14 +154,13 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       ircd_strncpy(chptr->topic, topic, TOPICLEN);
       ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
       chptr->topic_time = CurrentTime;
-      sendto_serv_butone(cptr, "%s%s " TOK_TOPIC " %s :%s",
-          NumNick(sptr), chptr->chname, chptr->topic);
-      sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s",
-          parv[0], chptr->chname, chptr->topic);
+      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
+			    chptr->topic);
+      sendcmdto_channel_butserv(sptr, CMD_TOPIC, chptr, "%H :%s", chptr,
+				chptr->topic);
     }
     else
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-          me.name, parv[0], chptr->chname);
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
   }
   return 0;
 }
@@ -193,14 +189,13 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
         ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
     {
-      sendto_one(sptr, err_str(chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
-          me.name, parv[0], chptr ? chptr->chname : name);
+      send_reply(sptr, (chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
+		 chptr ? chptr->chname : name);
       continue;
     }
     if (IsModelessChannel(name))
     {
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
-          chptr->chname);
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       continue;
     }
     if (IsLocalChannel(name) && !MyUser(sptr))
@@ -209,14 +204,12 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!topic)                 /* only asking  for topic  */
     {
       if (chptr->topic[0] == '\0')
-        sendto_one(sptr, rpl_str(RPL_NOTOPIC), me.name, parv[0], chptr->chname);
+	send_reply(sptr, RPL_NOTOPIC, chptr->chname);
       else
       {
-        sendto_one(sptr, rpl_str(RPL_TOPIC),
-            me.name, parv[0], chptr->chname, chptr->topic);
-        sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME),
-            me.name, parv[0], chptr->chname,
-            chptr->topic_nick, chptr->topic_time);
+	send_reply(sptr, RPL_TOPIC, chptr->chname, chptr->topic);
+	send_reply(sptr, RPL_TOPICWHOTIME, chptr->chname, chptr->topic_nick,
+		   chptr->topic_time);
       }
     }
     else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
@@ -226,14 +219,13 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       ircd_strncpy(chptr->topic, topic, TOPICLEN);
       ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
       chptr->topic_time = CurrentTime;
-      sendto_serv_butone(cptr, "%s%s " TOK_TOPIC " %s :%s",
-          NumNick(sptr), chptr->chname, chptr->topic);
-      sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s",
-          parv[0], chptr->chname, chptr->topic);
+      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
+			    chptr->topic);
+      sendcmdto_channel_butserv(sptr, CMD_TOPIC, chptr, "%H :%s", chptr,
+				chptr->topic);
     }
     else
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-          me.name, parv[0], chptr->chname);
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
   }
   return 0;
 }
@@ -264,13 +256,13 @@ int m_topic(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (!IsChannelName(name) || !(chptr = FindChannel(name)) ||
         ((topic || SecretChannel(chptr)) && !find_channel_member(sptr, chptr)))
     {
-      sendto_one(sptr, err_str(chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL),
+      sendto_one(sptr, err_str(chptr ? ERR_NOTONCHANNEL : ERR_NOSUCHCHANNEL), /* XXX DEAD */
           me.name, parv[0], chptr ? chptr->chname : name);
       continue;
     }
     if (IsModelessChannel(name))
     {
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
+      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0], /* XXX DEAD */
           chptr->chname);
       continue;
     }
@@ -280,12 +272,12 @@ int m_topic(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (!topic)                 /* only asking  for topic  */
     {
       if (chptr->topic[0] == '\0')
-        sendto_one(sptr, rpl_str(RPL_NOTOPIC), me.name, parv[0], chptr->chname);
+        sendto_one(sptr, rpl_str(RPL_NOTOPIC), me.name, parv[0], chptr->chname); /* XXX DEAD */
       else
       {
-        sendto_one(sptr, rpl_str(RPL_TOPIC),
+        sendto_one(sptr, rpl_str(RPL_TOPIC), /* XXX DEAD */
             me.name, parv[0], chptr->chname, chptr->topic);
-        sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME),
+        sendto_one(sptr, rpl_str(RPL_TOPICWHOTIME), /* XXX DEAD */
             me.name, parv[0], chptr->chname,
             chptr->topic_nick, chptr->topic_time);
       }
@@ -297,13 +289,13 @@ int m_topic(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       ircd_strncpy(chptr->topic, topic, TOPICLEN);
       ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
       chptr->topic_time = CurrentTime;
-      sendto_serv_butone(cptr, "%s%s " TOK_TOPIC " %s :%s",
+      sendto_serv_butone(cptr, "%s%s " TOK_TOPIC " %s :%s", /* XXX DEAD */
           NumNick(sptr), chptr->chname, chptr->topic);
-      sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s",
+      sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s", /* XXX DEAD */
           parv[0], chptr->chname, chptr->topic);
     }
     else
-      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
+      sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), /* XXX DEAD */
           me.name, parv[0], chptr->chname);
   }
   return 0;

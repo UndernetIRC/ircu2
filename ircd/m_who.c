@@ -190,9 +190,9 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           bitsel |= WHOSELECT_EXTRA;
 #ifdef WPATH
           if (IsAnOper(sptr))
-            write_log(WPATH, "# " TIME_T_FMT " %s!%s@%s WHO %s %s\n",
-                CurrentTime, sptr->name, sptr->user->username, sptr->user->host,
-                (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
+            write_log(WPATH, "# " TIME_T_FMT " %#C WHO %s %s\n",
+		      CurrentTime, sptr, (BadPtr(parv[3]) ? parv[1] : parv[3]),
+		      parv[2]);
 #endif /* WPATH */
           continue;
         case 'n':
@@ -440,12 +440,11 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Make a clean mask suitable to be sent in the "end of" */
   if (mask && (p = strchr(mask, ' ')))
     *p = '\0';
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHO),
-      me.name, parv[0], BadPtr(mask) ? "*" : mask);
+  send_reply(sptr, RPL_ENDOFWHO, BadPtr(mask) ? "*" : mask);
 
   /* Notify the user if we decided that his query was too long */
   if (counter < 0)
-    sendto_one(sptr, err_str(ERR_QUERYTOOLONG), me.name, parv[0], "WHO");
+    send_reply(sptr, ERR_QUERYTOOLONG, "WHO");
 
   return 0;
 }
@@ -761,12 +760,12 @@ int m_who(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* Make a clean mask suitable to be sent in the "end of" */
   if (mask && (p = strchr(mask, ' ')))
     *p = '\0';
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHO),
+  sendto_one(sptr, rpl_str(RPL_ENDOFWHO), /* XXX DEAD */
       me.name, parv[0], BadPtr(mask) ? "*" : mask);
 
   /* Notify the user if we decided that his query was too long */
   if (counter < 0)
-    sendto_one(sptr, err_str(ERR_QUERYTOOLONG), me.name, parv[0], "WHO");
+    sendto_one(sptr, err_str(ERR_QUERYTOOLONG), me.name, parv[0], "WHO"); /* XXX DEAD */
 
   return 0;
 }

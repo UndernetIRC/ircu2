@@ -157,7 +157,8 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
       /* open to all, standard # of params */
     case 'U':
     case 'u':
-      return hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc,
+			     parv);
 
     /* open to all, varying # of params */
     case 'k':
@@ -168,9 +169,11 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'P':
     {
       if (parc > 3)
-        return hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s %C :%s", 2, parc,
+			       parv);
       else
-        return hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc,
+			       parv);
     }
 
       /* oper only, varying # of params */
@@ -179,16 +182,20 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'M':
     {
       if (parc == 4)
-        return hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C :%s", 2, parc,
+			       parv);
       else if (parc > 4)
-        return hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C %s :%s", 2,
+			       parc, parv);
       else 
-        return hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc,
+			       parv);
     }
 
       /* oper only, standard # of params */
     default:
-      return hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc,
+			     parv);
   }
 }
 

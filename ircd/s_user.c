@@ -272,6 +272,51 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
   return (HUNTED_PASS);
 }
 
+int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
+		    struct Client *one, int MustBeOper, const char *pattern,
+		    int server, int parc, char *parv[])
+{
+  struct Client *acptr;
+  char *to;
+
+  /* Assume it's me, if no server or an unregistered client */
+  if (parc <= server || EmptyString((to = parv[server])) || IsUnknown(from))
+    return (HUNTED_ISME);
+
+  /* Make sure it's a server */
+  if (MyUser(from)) {
+    /* Make sure it's a server */
+    if (!strchr(to, '*')) {
+      if (0 == (acptr = FindClient(to)))
+        return HUNTED_NOSUCH;
+
+      if (acptr->user)
+        acptr = acptr->user->server;
+    } else if (!(acptr = find_match_server(to))) {
+      send_reply(from, ERR_NOSUCHSERVER, to);
+      return (HUNTED_NOSUCH);
+    }
+  } else if (!(acptr = FindNServer(to)))
+    return (HUNTED_NOSUCH);        /* Server broke off in the meantime */
+
+  if (IsMe(acptr))
+    return (HUNTED_ISME);
+
+  if (MustBeOper && !IsPrivileged(from)) {
+    send_reply(from, ERR_NOPRIVILEGES);
+    return HUNTED_NOSUCH;
+  }
+
+  assert(!IsServer(from));
+
+  parv[server] = (char *) acptr; /* HACK! HACK! HACK! ARGH! */
+
+  sendcmdto_one(from, cmd, tok, acptr, pattern, parv[1], parv[2], parv[3],
+		parv[4], parv[5], parv[6], parv[7], parv[8]);
+
+  return (HUNTED_PASS);
+}
+
 /*
  * 'do_nick_name' ensures that the given parameter (nick) is really a proper
  * string for a nickname (note, the 'nick' may be modified in the process...)

@@ -1,3 +1,95 @@
+2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: hack to support doing wallchops...
+
+	* ircd/m_whowas.c: convert to new send functions
+
+	* ircd/m_whois.c: convert to new send functions
+
+	* ircd/m_who.c: convert to new send functions
+
+	* ircd/m_wallops.c: convert to new send functions
+
+	* ircd/m_wallchops.c: convert to new send functions
+
+	* ircd/m_version.c: convert to new send functions
+
+	* ircd/m_userip.c: convert to new send functions
+
+	* ircd/m_userhost.c: convert to new send functions
+
+	* ircd/m_uping.c: convert to new send functions
+
+	* ircd/m_trace.c: convert to new send functions
+
+	* ircd/m_topic.c: convert to new send functions
+
+	* ircd/m_time.c: convert to new send functions
+
+	* ircd/m_squit.c: convert to new send functions
+
+	* ircd/m_silence.c: convert to new send functions
+
+	* ircd/m_settime.c: convert to new send functions
+
+	* ircd/m_restart.c: convert to new send functions
+
+	* ircd/m_rehash.c: convert to new send functions
+
+	* ircd/m_privmsg.c: convert to new send functions
+
+	* ircd/m_pong.c: convert to new send functions
+
+	* ircd/m_ping.c: convert to new send functions
+
+	* ircd/m_pass.c: convert to new send functions
+
+	* ircd/m_opmode.c: convert to new send functions
+
+	* ircd/m_oper.c: convert to new send functions
+
+	* ircd/m_notice.c: convert to new send functions
+
+	* ircd/m_nick.c: convert to new send functions
+
+	* ircd/m_names.c: convert to new send functions
+
+	* ircd/m_motd.c: convert to new send functions
+
+	* ircd/m_mode.c: convert to new send functions
+
+	* ircd/m_map.c: convert to new send functions
+
+	* ircd/m_lusers.c: convert to new send functions
+
+	* ircd/m_list.c: convert to new send functions
+
+	* ircd/m_links.c: convert to new send functions
+
+	* ircd/m_kill.c: convert to new send functions
+
+	* ircd/m_jupe.c: convert to new send functions
+
+	* ircd/m_invite.c: convert to new send functions
+
+	* ircd/m_info.c: convert to new send functions
+
+	* ircd/m_help.c: convert to new send functions
+
+	* ircd/m_gline.c: convert to new send functions
+
+	* ircd/m_error.c: convert to new send functions
+
+	* ircd/m_endburst.c: convert to new send functions
+
+	* ircd/m_die.c: convert to new send functions
+
+	* ircd/m_destruct.c: convert to new send functions
+
+	* ircd/m_defaults.c: convert to new send functions
+
+	* ircd/m_connect.c: convert to new send functions
+
 2000-04-28  Perry Lorier <isomer@coders.net>
 	* RELEASE.NOTES: Describe a few more undocumented features.
 	* config/config-sh.in: change the default paths for logging
@@ -5,6 +97,23 @@
 	* include/supported.h: Rearrange slightly, added CHANTYPE's
 
 2000-04-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_close.c: convert to send_reply
+
+	* ircd/m_clearmode.c: convert to send_reply, sendcmdto_serv_butone
+
+	* ircd/m_away.c: convert to send_reply and sendcmdto_serv_butone
+
+	* ircd/m_admin.c: convert to send_reply and hunt_server_cmd
+
+	* ircd/s_user.c (hunt_server_cmd): new hunt_server replacement
+	that takes cmd and tok arguments, etc.  NOTE: THIS IMPLEMENTATION
+	HAS A MAJOR HACK!!!  The whole hunt_server architecture should be
+	carefully rethought...
+
+	* ircd/s_stats.c (hunt_stats): use new hunt_server_cmd
+
+	* include/s_user.h: hunt_server_cmd -- replacement for hunt_server
 
 	* ircd/s_misc.c: *sigh* 2.10.10 doesn't support squitting by
 	numeric nick; therefore, we have to use the server name
@@ -37,7 +146,6 @@
 	conversions; use ircd_snprintf in a couple of cases to negate the
 	possibility of buffer overflow
 
->>>>>>> 1.106
 2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: convert as much as possible to new send
@@ -834,7 +942,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.107 2000-04-27 23:05:41 isomer Exp $
+# $Id: ChangeLog,v 1.108 2000-04-28 15:04:58 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

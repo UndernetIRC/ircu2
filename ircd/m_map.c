@@ -110,7 +110,7 @@ int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = "*";
 
   dump_map(sptr, &me, parv[1], 0);
-  sendto_one(sptr, rpl_str(RPL_MAPEND), me.name, parv[0]);
+  send_reply(sptr, RPL_MAPEND);
 
   return 0;
 }
@@ -129,7 +129,7 @@ int m_map(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     parv[1] = "*";
 
   dump_map(sptr, &me, parv[1], 0);
-  sendto_one(sptr, rpl_str(RPL_MAPEND), me.name, parv[0]);
+  sendto_one(sptr, rpl_str(RPL_MAPEND), me.name, parv[0]); /* XXX DEAD */
 
   return 0;
 }

@@ -120,7 +120,7 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 2)
   {
-    if (hunt_server(1, cptr, sptr, "%s%s LINKS %s :%s", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_LINKS, cptr, 1, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
     mask = parv[2];
@@ -134,8 +134,7 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       continue;
     if (!BadPtr(mask) && match(mask, acptr->name))
       continue;
-    sendto_one(sptr, rpl_str(RPL_LINKS),
-        me.name, parv[0], acptr->name, acptr->serv->up->name,
+    send_reply(sptr, RPL_LINKS, acptr->name, acptr->serv->up->name,
 #ifndef GODMODE
         acptr->hopcount, acptr->serv->prot,
 #else /* GODMODE */
@@ -145,8 +144,7 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         (acptr->info[0] ? acptr->info : "(Unknown Location)"));
   }
 
-  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0],
-      BadPtr(mask) ? "*" : mask);
+  send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
   return 0;
 }
 
@@ -169,7 +167,7 @@ int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 2)
   {
-    if (hunt_server(1, cptr, sptr, "%s%s LINKS %s :%s", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_LINKS, cptr, 1, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
     mask = parv[2];
@@ -183,8 +181,7 @@ int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       continue;
     if (!BadPtr(mask) && match(mask, acptr->name))
       continue;
-    sendto_one(sptr, rpl_str(RPL_LINKS),
-        me.name, parv[0], acptr->name, acptr->serv->up->name,
+    send_reply(sptr, RPL_LINKS, acptr->name, acptr->serv->up->name,
 #ifndef GODMODE
         acptr->hopcount, acptr->serv->prot,
 #else /* GODMODE */
@@ -194,8 +191,7 @@ int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         (acptr->info[0] ? acptr->info : "(Unknown Location)"));
   }
 
-  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0],
-      BadPtr(mask) ? "*" : mask);
+  send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
   return 0;
 }
 
@@ -220,7 +216,7 @@ int m_links(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc > 2)
   {
-    if (hunt_server(1, cptr, sptr, "%s%s LINKS %s :%s", 1, parc, parv) !=
+    if (hunt_server(1, cptr, sptr, "%s%s LINKS %s :%s", 1, parc, parv) != /* XXX DEAD */
         HUNTED_ISME)
       return 0;
     mask = parv[2];
@@ -234,7 +230,7 @@ int m_links(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     if (!BadPtr(mask) && match(mask, acptr->name))
       continue;
-    sendto_one(sptr, rpl_str(RPL_LINKS),
+    sendto_one(sptr, rpl_str(RPL_LINKS), /* XXX DEAD */
         me.name, parv[0], acptr->name, acptr->serv->up->name,
 #ifndef GODMODE
         acptr->hopcount, acptr->serv->prot,
@@ -245,7 +241,7 @@ int m_links(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         (acptr->info[0] ? acptr->info : "(Unknown Location)"));
   }
 
-  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0],
+  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0], /* XXX DEAD */
       BadPtr(mask) ? "*" : mask);
   return 0;
 }

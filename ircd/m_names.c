@@ -122,7 +122,8 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* para = parc > 1 ? parv[1] : 0;
   char buf[BUFSIZE];
 
-  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
+  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc,
+				  parv))
     return 0;
 
   mlen = strlen(me.name) + 10 + strlen(sptr->name);
@@ -213,7 +214,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
         /* space, modifier, nick, \r \n \0 */
       {
-        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+	send_reply(sptr, RPL_NAMREPLY, buf);
         strcpy(buf, "* ");
         ircd_strncpy(buf + 2, chptr->chname, len + 1);
         buf[len + 2] = 0;
@@ -227,12 +228,11 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
     if (flag)
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      send_reply(sptr, RPL_NAMREPLY, buf);
   }
   if (!EmptyString(para))
   {
-    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0],
-        ch2ptr ? ch2ptr->chname : para);
+    send_reply(sptr, RPL_ENDOFNAMES, ch2ptr ? ch2ptr->chname : para);
     return (1);
   }
 
@@ -294,15 +294,15 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
 #endif
     {
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      send_reply(sptr, RPL_NAMREPLY, buf);
       strcpy(buf, "* * :");
       idx = 5;
       flag = 0;
     }
   }
   if (flag)
-    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+    send_reply(sptr, RPL_NAMREPLY, buf);
+  send_reply(sptr, RPL_ENDOFNAMES, "*");
   return 1;
   return 0;
 }
@@ -323,7 +323,8 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *s, *para = parc > 1 ? parv[1] : 0;
   char buf[BUFSIZE];
 
-  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
+  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc,
+				  parv))
     return 0;
 
   mlen = strlen(me.name) + 10 + strlen(sptr->name);
@@ -413,7 +414,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
         /* space, modifier, nick, \r \n \0 */
       {
-        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+	send_reply(sptr, RPL_NAMREPLY, buf);
         strcpy(buf, "* ");
         ircd_strncpy(buf + 2, chptr->chname, len + 1);
         buf[len + 2] = 0;
@@ -427,12 +428,11 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
     if (flag)
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      send_reply(sptr, RPL_NAMREPLY, buf);
   }
   if (!EmptyString(para))
   {
-    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0],
-        ch2ptr ? ch2ptr->chname : para);
+    send_reply(sptr, RPL_ENDOFNAMES, ch2ptr ? ch2ptr->chname : para);
     return (1);
   }
 
@@ -494,15 +494,15 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
 #endif
     {
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      send_reply(sptr, RPL_NAMREPLY, buf);
       strcpy(buf, "* * :");
       idx = 5;
       flag = 0;
     }
   }
   if (flag)
-    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+    send_reply(sptr, RPL_NAMREPLY, buf);
+  send_reply(sptr, RPL_ENDOFNAMES, "*");
   return 1;
   return 0;
 }
@@ -525,7 +525,7 @@ int m_names(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *s, *para = parc > 1 ? parv[1] : 0;
   char buf[BUFSIZE];
 
-  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
+  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv)) /* XXX DEAD */
     return 0;
 
   mlen = strlen(me.name) + 10 + strlen(sptr->name);
@@ -615,7 +615,7 @@ int m_names(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
         /* space, modifier, nick, \r \n \0 */
       {
-        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf); /* XXX DEAD */
         strcpy(buf, "* ");
         ircd_strncpy(buf + 2, chptr->chname, len + 1);
         buf[len + 2] = 0;
@@ -629,11 +629,11 @@ int m_names(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
     }
     if (flag)
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf); /* XXX DEAD */
   }
   if (!EmptyString(para))
   {
-    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0],
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], /* XXX DEAD */
         ch2ptr ? ch2ptr->chname : para);
     return (1);
   }
@@ -696,15 +696,15 @@ int m_names(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
 #endif
     {
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf); /* XXX DEAD */
       strcpy(buf, "* * :");
       idx = 5;
       flag = 0;
     }
   }
   if (flag)
-    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf); /* XXX DEAD */
+  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*"); /* XXX DEAD */
   return 1;
 }
 #endif /* 0 */

@@ -108,11 +108,11 @@
  */
 int m_time(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_TIME " :%s", 1, parc, parv) != HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_TIME, cptr, 0, ":%C", 1, parc, parv) !=
+      HUNTED_ISME)
     return 0;
 
-  sendto_one(sptr, rpl_str(RPL_TIME), me.name,
-             parv[0], me.name, TStime(), TSoffset, date((long)0));
+  send_reply(sptr, RPL_TIME, me.name, TStime(), TSoffset, date((long)0));
   return 0;
 }
 
@@ -125,8 +125,8 @@ int m_time(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int m_time(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
-  if (hunt_server(0, cptr, sptr, "%s%s TIME :%s", 1, parc, parv) == HUNTED_ISME)
-    sendto_one(sptr, rpl_str(RPL_TIME), me.name,
+  if (hunt_server(0, cptr, sptr, "%s%s TIME :%s", 1, parc, parv) == HUNTED_ISME) /* XXX DEAD */
+    sendto_one(sptr, rpl_str(RPL_TIME), me.name, /* XXX DEAD */
         parv[0], me.name, TStime(), TSoffset, date((long)0));
   return 0;
 }

@@ -131,8 +131,8 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     no_motd = 0;
 #endif
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_MOTD " %s", 1, parc,
-        parv) != HUNTED_ISME)
+    if (hunt_server_cmd(sptr, CMD_MODE, cptr, 0, "%C", 1, parc, parv) !=
+	HUNTED_ISME)
       return 0;
 #ifdef NODEFAULTMOTD
   }
@@ -168,7 +168,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   if (temp == 0)
   {
-    sendto_one(sptr, err_str(ERR_NOMOTD), me.name, parv[0]);
+    send_reply(sptr, ERR_NOMOTD);
     return 0;
   }
 #ifdef NODEFAULTMOTD
@@ -177,17 +177,17 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     if (tm)                     /* Not remote? */
     {
-      sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-      sendto_one(sptr, ":%s %d %s :- %d/%d/%d %d:%02d", me.name, RPL_MOTD,
-          parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year,
-          tm->tm_hour, tm->tm_min);
+      send_reply(sptr, RPL_MOTDSTART, me.name);
+      send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, "- %d/%d/%d %d:%02d",
+		 tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, tm->tm_hour,
+		 tm->tm_min);
       count = 100;
     }
     else
       count = 3;
     for (; temp; temp = temp->next)
     {
-      sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0], temp->line);
+      send_reply(sptr, RPL_MOTD, temp->line);
       if (--count == 0)
         break;
     }
@@ -195,15 +195,15 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else
   {
-    sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-    sendto_one(sptr, ":%s %d %s :%s", me.name, RPL_MOTD, parv[0],
-        "Type /MOTD to read the AUP before continuing using this service.");
-    sendto_one(sptr,
-        ":%s %d %s :The message of the day was last changed: %d/%d/%d", me.name,
-        RPL_MOTD, parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year);
+    send_reply(sptr, RPL_MOTDSTART, me.name);
+    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
+	       "AUP before continuing using this service.");
+    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":The message of the day was "
+	       "last changed: %d/%d/%d", tm->tm_mday, tm->tm_mon + 1,
+	       1900 + tm->tm_year);
   }
 #endif
-  sendto_one(sptr, rpl_str(RPL_ENDOFMOTD), me.name, parv[0]);
+  send_reply(sptr, RPL_ENDOFMOTD);
   return 0;
 }
 
@@ -237,8 +237,8 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     no_motd = 0;
 #endif
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_MOTD " %s", 1, parc,
-        parv) != HUNTED_ISME)
+    if (hunt_server_cmd(sptr, CMD_MOTD, cptr, 0, "%C", 1, parc, parv) !=
+	HUNTED_ISME)
       return 0;
 #ifdef NODEFAULTMOTD
   }
@@ -274,7 +274,7 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   if (temp == 0)
   {
-    sendto_one(sptr, err_str(ERR_NOMOTD), me.name, parv[0]);
+    send_reply(sptr, ERR_NOMOTD);
     return 0;
   }
 #ifdef NODEFAULTMOTD
@@ -283,17 +283,17 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     if (tm)                     /* Not remote? */
     {
-      sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-      sendto_one(sptr, ":%s %d %s :- %d/%d/%d %d:%02d", me.name, RPL_MOTD,
-          parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year,
-          tm->tm_hour, tm->tm_min);
+      send_reply(sptr, RPL_MOTDSTART, me.name);
+      send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":- %d/%d/%d %d:%02d",
+		 tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, tm->tm_hour,
+		 tm->tm_min);
       count = 100;
     }
     else
       count = 3;
     for (; temp; temp = temp->next)
     {
-      sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0], temp->line);
+      send_reply(sptr, RPL_MOTD, temp->line);
       if (--count == 0)
         break;
     }
@@ -301,15 +301,15 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else
   {
-    sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-    sendto_one(sptr, ":%s %d %s :%s", me.name, RPL_MOTD, parv[0],
-        "Type /MOTD to read the AUP before continuing using this service.");
-    sendto_one(sptr,
-        ":%s %d %s :The message of the day was last changed: %d/%d/%d", me.name,
-        RPL_MOTD, parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year);
+    send_reply(sptr, RPL_MOTDSTART, me.name);
+    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
+	       "AUP before continuing using this service.");
+    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":The message of the day was "
+	       "last changed: %d/%d/%d", tm->tm_mday, tm->tm_mon + 1,
+	       1900 + tm->tm_year);
   }
 #endif
-  sendto_one(sptr, rpl_str(RPL_ENDOFMOTD), me.name, parv[0]);
+  send_reply(sptr, RPL_ENDOFMOTD);
   return 0;
 }
 
@@ -344,7 +344,7 @@ int m_motd(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   {
     no_motd = 0;
 #endif
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_MOTD " %s", 1, parc,
+    if (hunt_server(0, cptr, sptr, "%s%s " TOK_MOTD " %s", 1, parc, /* XXX DEAD */
         parv) != HUNTED_ISME)
       return 0;
 #ifdef NODEFAULTMOTD
@@ -381,7 +381,7 @@ int m_motd(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   }
   if (temp == 0)
   {
-    sendto_one(sptr, err_str(ERR_NOMOTD), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOMOTD), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
 #ifdef NODEFAULTMOTD
@@ -390,8 +390,8 @@ int m_motd(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
     if (tm)                     /* Not remote? */
     {
-      sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-      sendto_one(sptr, ":%s %d %s :- %d/%d/%d %d:%02d", me.name, RPL_MOTD,
+      sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name); /* XXX DEAD */
+      sendto_one(sptr, ":%s %d %s :- %d/%d/%d %d:%02d", me.name, RPL_MOTD, /* XXX DEAD */
           parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year,
           tm->tm_hour, tm->tm_min);
       count = 100;
@@ -400,7 +400,7 @@ int m_motd(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       count = 3;
     for (; temp; temp = temp->next)
     {
-      sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0], temp->line);
+      sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0], temp->line); /* XXX DEAD */
       if (--count == 0)
         break;
     }
@@ -408,15 +408,15 @@ int m_motd(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   }
   else
   {
-    sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
-    sendto_one(sptr, ":%s %d %s :%s", me.name, RPL_MOTD, parv[0],
+    sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name); /* XXX DEAD */
+    sendto_one(sptr, ":%s %d %s :%s", me.name, RPL_MOTD, parv[0], /* XXX DEAD */
         "Type /MOTD to read the AUP before continuing using this service.");
-    sendto_one(sptr,
+    sendto_one(sptr, /* XXX DEAD */
         ":%s %d %s :The message of the day was last changed: %d/%d/%d", me.name,
         RPL_MOTD, parv[0], tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year);
   }
 #endif
-  sendto_one(sptr, rpl_str(RPL_ENDOFMOTD), me.name, parv[0]);
+  sendto_one(sptr, rpl_str(RPL_ENDOFMOTD), me.name, parv[0]); /* XXX DEAD */
   return 0;
 }
 #endif /* 0 */

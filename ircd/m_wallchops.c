@@ -114,28 +114,25 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   sptr->flags &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_error_to_client(sptr, ERR_NORECIPIENT, "WALLCHOPS");
+    return send_reply(sptr, ERR_NORECIPIENT, "WALLCHOPS");
 
   if (parc < 3 || EmptyString(parv[parc - 1]))
-    return send_error_to_client(sptr, ERR_NOTEXTTOSEND);
+    return send_reply(sptr, ERR_NOTEXTTOSEND);
 
   if (IsChannelName(parv[1]) && (chptr = FindChannel(parv[1]))) {
     if (client_can_send_to_channel(sptr, chptr)) {
       if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
           check_target_limit(sptr, chptr, chptr->chname, 0))
         return 0;
-      /* Send to local clients: */
-      sendto_lchanops_butone(cptr, sptr, chptr,
-            ":%s " MSG_NOTICE " @%s :%s", sptr->name, parv[1], parv[parc - 1]);
-      /* And to other servers: */
-      sendto_chanopsserv_butone(cptr, sptr, chptr,
-            "%s%s " TOK_WALLCHOPS " %s :%s", NumNick(sptr), parv[1], parv[parc - 1]);
+      sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
+			       "%H :%s", chptr, parv[parc - 1]);
     }
     else
-      send_error_to_client(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }
   else
-    send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+    send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return 0;
 }
@@ -154,19 +151,11 @@ int ms_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[
 
   if ((chptr = FindChannel(parv[1]))) {
     if (client_can_send_to_channel(sptr, chptr)) {
-      /*
-       * Send to local clients:
-       */
-      sendto_lchanops_butone(cptr, sptr, chptr,
-          ":%s " MSG_NOTICE " @%s :%s", sptr->name, parv[1], parv[parc - 1]);
-      /*
-       * And to other servers:
-       */
-      sendto_chanopsserv_butone(cptr, sptr, chptr,
-          "%s%s " TOK_WALLCHOPS " %s :%s", NumNick(sptr), parv[1], parv[parc - 1]);
-    }
-    else
-      sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN), me.name, sptr->name, parv[1]);
+      sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
+			       "%H :%s", chptr, parv[parc - 1]);
+    } else
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }
   return 0;
 }
@@ -187,13 +176,13 @@ int m_wallchops(struct Client *cptr, struct Client *sptr, int parc, char *parv[]
 
   if (parc < 2 || *parv[1] == '\0')
   {
-    sendto_one(sptr, err_str(ERR_NORECIPIENT), me.name, parv[0], "WALLCHOPS");
+    sendto_one(sptr, err_str(ERR_NORECIPIENT), me.name, parv[0], "WALLCHOPS"); /* XXX DEAD */
     return -1;
   }
 
   if (parc < 3 || *parv[parc - 1] == '\0')
   {
-    sendto_one(sptr, err_str(ERR_NOTEXTTOSEND), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOTEXTTOSEND), me.name, parv[0]); /* XXX DEAD */
     return -1;
   }
 
@@ -210,19 +199,19 @@ int m_wallchops(struct Client *cptr, struct Client *sptr, int parc, char *parv[]
             check_target_limit(sptr, chptr, chptr->chname, 0))
           return 0;
         /* Send to local clients: */
-        sendto_lchanops_butone(cptr, sptr, chptr,
+        sendto_lchanops_butone(cptr, sptr, chptr, /* XXX DEAD */
             ":%s NOTICE @%s :%s", parv[0], parv[1], parv[parc - 1]);
         /* And to other servers: */
-        sendto_chanopsserv_butone(cptr, sptr, chptr,
+        sendto_chanopsserv_butone(cptr, sptr, chptr, /* XXX DEAD */
             ":%s WC %s :%s", parv[0], parv[1], parv[parc - 1]);
       }
       else
-        sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
+        sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN), /* XXX DEAD */
             me.name, parv[0], parv[1]);
     }
   }
   else
-    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], parv[1]);
+    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], parv[1]); /* XXX DEAD */
 
   return 0;
 }

@@ -166,21 +166,15 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_error_to_client(sptr, ERR_NOORIGIN);
+    return send_reply(sptr, ERR_NOORIGIN);
 
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
     if ((acptr = FindServer(destination)))
-      /*
-       * NOTE: can't send the origin string to servers, since this is a client,
-       * we could get garbage, and the link between us and the pingee wouldn't
-       * know who to send it to.
-       * sendto_one(acptr, "%s%s PING %s :%s", NumNick(sptr), parv[1], destination);
-       */
-      sendto_one(acptr, "%s%s " TOK_PING " %s :%s", NumNick(sptr), sptr->name, destination);
+      sendcmdto_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
     else
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, sptr->name, destination);
+      send_reply(sptr, ERR_NOSUCHSERVER, destination);
   }
   else {
     /*
@@ -196,7 +190,7 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     
     if (strlen(origin) > 64)
       origin[64] = '\0';
-    sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, origin);
+    sendcmdto_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
   }
   return 0;
 }
@@ -228,7 +222,7 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * don't bother sending the error back
      */
 #if 0
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
 #endif
     return 0;
   }
@@ -240,19 +234,13 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * Servers can just forward the origin
        */
-      if (IsServer(sptr))
-        /*
-         * servers don't normally send pings to remote servers
-         */
-        sendto_one(acptr, "%s " TOK_PING " %s :%s", NumServ(sptr), origin, destination);
-      else
-        sendto_one(acptr, "%s%s " TOK_PING " %s :%s", NumNick(sptr), origin, destination);
+      sendcmdto_one(sptr, CMD_PING, acptr, "%s :%s", origin, destination);
     }
     else {
       /*
        * this can happen if server split before the ping got here
        */
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, sptr->name, destination);
+      send_reply(sptr, ERR_NOSUCHSERVER, destination);
     }
   }
   else {
@@ -261,7 +249,7 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * NOTE:  sptr is never local so if pong handles numerics everywhere we
      * could send a numeric here.
      */
-    sendto_one(sptr, "%s " TOK_PONG " %s :%s", NumServ(&me), me.name, origin);
+    sendcmdto_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
   }
   return 0;
 }
@@ -282,7 +270,7 @@ int m_ping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 2 || *parv[1] == '\0')
   {
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   origin = parv[1];
@@ -295,16 +283,16 @@ int m_ping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name) != 0)
   {
     if ((acptr = FindServer(destination)))
-      sendto_one(acptr, ":%s PING %s :%s", parv[0], origin, destination);
+      sendto_one(acptr, ":%s PING %s :%s", parv[0], origin, destination); /* XXX DEAD */
     else
     {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
+      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), /* XXX DEAD */
           me.name, parv[0], destination);
       return 0;
     }
   }
   else
-    sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, origin);
+    sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, origin); /* XXX DEAD */
   return 0;
 }
 #endif

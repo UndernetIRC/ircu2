@@ -128,7 +128,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   client_name = (*sptr->name) ? sptr->name : "*";
 
   if (parc < 2) {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, client_name);
+    send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
   /*
@@ -151,7 +151,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * and KILL it. -avalon 4/4/92
    */
   if (0 == do_nick_name(nick)) {
-    sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME), me.name, client_name, arg);
+    send_reply(sptr, ERR_ERRONEUSNICKNAME, arg);
     return 0;
   }
 
@@ -160,7 +160,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * nick, if so tell him that it's a nick in use...
    */
   if (isNickJuped(nick)) {
-    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, client_name, nick);
+    send_reply(sptr, ERR_NICKNAMEINUSE, nick);
     return 0;                        /* NICK message ignored */
   }
 
@@ -171,7 +171,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
   if (IsServer(acptr)) {
-    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, client_name, nick);
+    send_reply(sptr, ERR_NICKNAMEINUSE, nick);
     return 0;                        /* NICK message ignored */
   }
   /*
@@ -225,7 +225,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * NICK is coming from local client connection. Just
    * send error reply and ignore the command.
    */
-  sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, client_name, nick);
+  send_reply(sptr, ERR_NICKNAMEINUSE, nick);
   return 0;                        /* NICK message ignored */
 }
 
@@ -261,7 +261,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(IsServer(cptr));
 
   if ((IsServer(sptr) && parc < 8) || parc < 3) {
-    sendto_ops("bad NICK param count for %s from %s", parv[1], cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
+			 parv[1], cptr);
     return need_more_params(sptr, "NICK");
   }
 
@@ -287,21 +288,23 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * and KILL it. -avalon 4/4/92
    */
   if (0 == do_nick_name(nick) || 0 != strcmp(nick, parv[1])) {
-    sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME), me.name, parv[0], parv[1]);
+    send_reply(sptr, ERR_ERRONEUSNICKNAME, parv[1]);
 
     ++ServerStats->is_kill;
-    sendto_ops("Bad Nick: %s From: %s %s", parv[1], parv[0], cptr->name);
-    sendto_one(cptr, "%s " TOK_KILL " %s :%s (%s <- %s[%s])",
-               NumServ(&me), IsServer(sptr) ? parv[parc - 2] : parv[0], me.name,
-               parv[1], nick, cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
+			 parv[0], cptr);
+    sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s <- %s[%s])",
+		  IsServer(sptr) ? parv[parc - 2] : parv[0], me.name, parv[1],
+		  nick, cptr->name);
     if (!IsServer(sptr)) {
       /*
        * bad nick _change_
        */
-      sendto_highprot_butone(&me, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
-                             NumServ(&me), parv[0], me.name, cptr->name,
-                             parv[0], sptr->user ? sptr->username : "",
-                             sptr->user ? sptr->user->server->name : cptr->name);
+      sendcmdto_serv_butone(&me, CMD_KILL, 0, "%s :%s (%s <- %s!%s@%s)",
+			    parv[0], me.name, cptr->name, parv[0],
+			    sptr->user ? sptr->username : "",
+			    sptr->user ? sptr->user->server->name :
+			    cptr->name);
     }
     return 0;
   }
@@ -329,12 +332,12 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * there is no danger of the server being disconnected.
      * Ultimate way to jupiter a nick ? >;-). -avalon
      */
-    sendto_ops("Nick collision on %s(%s <- %s)", sptr->name, acptr->from->name, cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C(%C <- %C)", sptr,
+			 acptr->from, cptr);
     ++ServerStats->is_kill;
 
-    sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (%s <- %s)",
-               NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
-               cptr->name);
+    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s <- %s)", sptr, me.name,
+		  acptr->from->name, cptr->name);
 
     sptr->flags |= FLAGS_KILLED;
     /*
@@ -410,9 +413,10 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     differ =  (acptr->ip.s_addr != htonl(base64toint(parv[parc - 3]))) ||
               (0 != ircd_strcmp(acptr->user->username, parv[4]));
-    sendto_ops("Nick collision on %s (%s " TIME_T_FMT " <- %s " TIME_T_FMT
-               " (%s user@host))", acptr->name, acptr->from->name, acptr->lastnick,
-               cptr->name, lastnick, differ ? "Different" : "Same");
+    sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C (%C %Tu <- "
+			 "%C %Tu (%s user@host))", acptr, acptr->from,
+			 acptr->lastnick, cptr, lastnick,
+			 differ ? "Different" : "Same");
   }
   else {
     /*
@@ -422,9 +426,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     differ =  (acptr->ip.s_addr != sptr->ip.s_addr) ||
               (0 != ircd_strcmp(acptr->user->username, sptr->user->username));              
-    sendto_ops("Nick change collision from %s to %s (%s " TIME_T_FMT " <- %s "
-               TIME_T_FMT ")", sptr->name, acptr->name, acptr->from->name,
-               acptr->lastnick, cptr->name, lastnick);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Nick change collision from %C to "
+			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, acptr->from,
+			 acptr->lastnick, cptr, lastnick);
   }
   /*
    * Now remove (kill) the nick on our side if it is the youngest.
@@ -439,17 +443,16 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if ((differ && lastnick >= acptr->lastnick) || (!differ && lastnick <= acptr->lastnick)) {
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
-        sendto_highprot_butone(&me, 10,        /* Kill old from outgoing servers */
-                              "%s " TOK_KILL " %s%s :%s (%s <- %s (Nick collision))",
-                              NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
-                              cptr->name);
+	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (%s <- %s (Nick "
+			      "collision))", sptr, me.name, acptr->from->name,
+			      cptr->name);
         assert(!MyConnect(sptr));
 #if 0
         /*
          * XXX - impossible
          */
         if (MyConnect(sptr))
-          sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (Ghost 2)",
+          sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (Ghost 2)", /* XXX DEAD */
                      NumServ(&me), NumNick(sptr), me.name);
 #endif
         sptr->flags |= FLAGS_KILLED;
@@ -463,7 +466,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (lastnick != acptr->lastnick)
         return 0;                /* Ignore the NICK */
     }
-    sendto_one(acptr, err_str(ERR_NICKCOLLISION), me.name, acptr->name, nick);
+    send_reply(acptr, ERR_NICKCOLLISION, nick);
   }
 
   ++ServerStats->is_kill;
@@ -472,24 +475,21 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * This exits the client we had before getting the NICK message
    */
   if (differ) {
-    sendto_highprot_butone(&me, 10,        /* Kill our old from outgoing servers */
-                           "%s " TOK_KILL " %s%s :%s (%s <- %s (older nick overruled))",
-                           NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
-                           cptr->name);
+    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (older "
+			  "nick overruled))", acptr, me.name,
+			  acptr->from->name, cptr->name);
     if (MyConnect(acptr))
-      sendto_one(cptr, "%s%s " TOK_QUIT " :Local kill by %s (Ghost)",
-                 NumNick(acptr), me.name);
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost)",
+		    me.name);
     exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
   }
   else {
-    sendto_highprot_butone(&me, 10,        /* Kill our old from outgoing servers */
-                          "%s " TOK_KILL " %s%s :%s (%s <- %s (nick collision from same user@host))",
-                          NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
-                          cptr->name);
+    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (nick "
+			  "collision from same user@host))", acptr, me.name,
+			  acptr->from->name, cptr->name);
     if (MyConnect(acptr))
-      sendto_one(cptr,
-                 "%s%s " TOK_QUIT " :Local kill by %s (Ghost: switched servers too fast)",
-                  NumNick(acptr), me.name);
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost: ",
+		    "switched servers too fast)", me.name);
     exit_client(cptr, acptr, &me, "Nick collision (You collided yourself)");
   }
   if (lastnick == acptr->lastnick)
@@ -529,13 +529,13 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   int            differ = 1;
 
   if (parc < 2) {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
+    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]); /* XXX DEAD */
     return 0;
   }
   else if ((IsServer(sptr) && parc < 8) || (IsServer(cptr) && parc < 3))
   {
     need_more_params(sptr, "NICK");
-    sendto_ops("bad NICK param count for %s from %s", parv[1], cptr->name);
+    sendto_ops("bad NICK param count for %s from %s", parv[1], cptr->name); /* XXX DEAD */
     return 0;
   }
   if (MyConnect(sptr) && (s = strchr(parv[1], '~')))
@@ -561,19 +561,19 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if (do_nick_name(nick) == 0 || (IsServer(cptr) && strcmp(nick, parv[1])))
   {
-    sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME), me.name, parv[0], parv[1]);
+    sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME), me.name, parv[0], parv[1]); /* XXX DEAD */
 
     if (IsServer(cptr))
     {
       ServerStats->is_kill++;
-      sendto_ops("Bad Nick: %s From: %s %s",
+      sendto_ops("Bad Nick: %s From: %s %s", /* XXX DEAD */
           parv[1], parv[0], cptr->name);
-      sendto_one(cptr, "%s " TOK_KILL " %s :%s (%s <- %s[%s])",
+      sendto_one(cptr, "%s " TOK_KILL " %s :%s (%s <- %s[%s])", /* XXX DEAD */
             NumServ(&me), IsServer(sptr) ? parv[parc - 2] : parv[0], me.name,
             parv[1], nick, cptr->name);
       if (!IsServer(sptr))        /* bad nick _change_ */
       {
-        sendto_highprot_butone(&me, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
+        sendto_highprot_butone(&me, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)", /* XXX DEAD */
             NumServ(&me), parv[0], me.name, cptr->name,
             parv[0], sptr->user ? sptr->username : "",
             sptr->user ? sptr->user->server->name : cptr->name);
@@ -588,7 +588,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if ((!IsServer(cptr)) && isNickJuped(nick))
   {
-    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
+    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, /* XXX DEAD */
         /* parv[0] is empty when connecting */
         EmptyString(parv[0]) ? "*" : parv[0], nick);
     return 0;                        /* NICK message ignored */
@@ -605,7 +605,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if ((acptr = FindServer(nick))) {
     if (MyConnect(sptr))
     {
-      sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
+      sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, /* XXX DEAD */
           EmptyString(parv[0]) ? "*" : parv[0], nick);
       return 0;                        /* NICK message ignored */
     }
@@ -616,10 +616,10 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * there is no danger of the server being disconnected.
      * Ultimate way to jupiter a nick ? >;-). -avalon
      */
-    sendto_ops("Nick collision on %s(%s <- %s)",
+    sendto_ops("Nick collision on %s(%s <- %s)", /* XXX DEAD */
                sptr->name, acptr->from->name, cptr->name);
     ServerStats->is_kill++;
-    sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (%s <- %s)",
+    sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (%s <- %s)", /* XXX DEAD */
                NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
                cptr->name);
     sptr->flags |= FLAGS_KILLED;
@@ -678,7 +678,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * NICK is coming from local client connection. Just
      * send error reply and ignore the command.
      */
-    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
+    sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, /* XXX DEAD */
         /* parv[0] is empty when connecting */
         EmptyString(parv[0]) ? "*" : parv[0], nick);
     return 0;                        /* NICK message ignored */
@@ -706,7 +706,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      */
     differ =  (acptr->ip.s_addr != htonl(base64toint(parv[parc - 3]))) ||
             (0 != ircd_strcmp(acptr->user->username, parv[4]));
-    sendto_ops("Nick collision on %s (%s " TIME_T_FMT " <- %s " TIME_T_FMT
+    sendto_ops("Nick collision on %s (%s " TIME_T_FMT " <- %s " TIME_T_FMT /* XXX DEAD */
                " (%s user@host))", acptr->name, acptr->from->name, acptr->lastnick,
                cptr->name, lastnick, differ ? "Different" : "Same");
   }
@@ -718,7 +718,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     lastnick = atoi(parv[2]);
     differ =  (acptr->ip.s_addr != sptr->ip.s_addr) ||
             (0 != ircd_strcmp(acptr->user->username, sptr->user->username));              
-    sendto_ops("Nick change collision from %s to %s (%s " TIME_T_FMT " <- %s "
+    sendto_ops("Nick change collision from %s to %s (%s " TIME_T_FMT " <- %s " /* XXX DEAD */
                TIME_T_FMT ")", sptr->name, acptr->name, acptr->from->name,
                acptr->lastnick, cptr->name, lastnick);
   }
@@ -737,12 +737,12 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (!IsServer(sptr))
       {
         ServerStats->is_kill++;
-        sendto_highprot_butone(cptr, 10,        /* Kill old from outgoing servers */
+        sendto_highprot_butone(cptr, 10,        /* Kill old from outgoing servers */ /* XXX DEAD */
                                "%s " TOK_KILL " %s%s :%s (%s <- %s (Nick collision))",
                                NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
                                cptr->name);
         if (MyConnect(sptr) && IsServer(cptr) && Protocol(cptr) > 9)
-          sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (Ghost2)",
+          sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (Ghost2)", /* XXX DEAD */
                      NumServ(&me), NumNick(sptr), me.name);
         sptr->flags |= FLAGS_KILLED;
         exit_client(cptr, sptr, &me, "Nick collision (you're a ghost)");
@@ -750,29 +750,29 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (lastnick != acptr->lastnick)
         return 0;                /* Ignore the NICK */
     }
-    sendto_one(acptr, err_str(ERR_NICKCOLLISION), me.name, acptr->name, nick);
+    sendto_one(acptr, err_str(ERR_NICKCOLLISION), me.name, acptr->name, nick); /* XXX DEAD */
   }
   ServerStats->is_kill++;
   acptr->flags |= FLAGS_KILLED;
   if (differ)
   {
-    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
+    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */ /* XXX DEAD */
                            "%s " TOK_KILL " %s%s :%s (%s <- %s (older nick overruled))",
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
     if (MyConnect(acptr) && IsServer(cptr) && Protocol(cptr) > 9)
-      sendto_one(cptr, "%s%s " TOK_QUIT " :Local kill by %s (Ghost)",
+      sendto_one(cptr, "%s%s " TOK_QUIT " :Local kill by %s (Ghost)", /* XXX DEAD */
           NumNick(acptr), me.name);
     exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
   }
   else
   {
-    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
+    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */ /* XXX DEAD */
                            "%s " TOK_KILL " %s%s :%s (%s <- %s (nick collision from same user@host))",
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
     if (MyConnect(acptr) && IsServer(cptr) && Protocol(cptr) > 9)
-      sendto_one(cptr,
+      sendto_one(cptr, /* XXX DEAD */
           "%s%s " TOK_QUIT " :Local kill by %s (Ghost: switched servers too fast)",
           NumNick(acptr), me.name);
     exit_client(cptr, acptr, &me, "Nick collision (You collided yourself)");
