@@ -33,13 +33,13 @@
  * 'Features' supported by this ircd
  */
 #define FEATURES \
-                " WHOX"\
+                "WHOX"\
                 " WALLCHOPS"\
                 " USERIP"\
                 " CPRIVMSG"\
                 " CNOTICE"\
                 " MAP" \
-                " SILENCE=%i " \
+                " SILENCE=%i" \
                 " MODES=%i" \
                 " MAXCHANNELS=%i" \
                 " MAXBANS=%i" \

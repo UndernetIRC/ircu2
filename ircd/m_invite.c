@@ -282,7 +282,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
   add_invite(acptr, chptr);
-  sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%H", acptr, chptr);
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", acptr->name, chptr);
   return 0;
 }
 

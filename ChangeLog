@@ -1,6 +1,8 @@
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* config/config-sh.in: Fix for CONNEXIT
 	* ircd/s_{user,misc}.c: Fix for CONNEXIT
+	* ircd/m_invite.c: Fix for incorrectly numnickified invite.
+			(Kev: Want to come talk to me about this?)
 
 2000-04-30  Steven M. Doyle <steven@doyle.net>
  	* ircd/ircd.c
@@ -22,6 +24,12 @@
  	* ircd/ircd_signal.c
  	  - Removed -DPROFIL
 
+	* ircd/IPcheck.c
+	  - Readability cleanups (well, I -think-...)
+	  - Changed IPRegistryEntry.last_connect to a time_t.  The previously
+	    used unsigned short was probably causing interesting things after
+	    a client had been connected longer than about 65,535 seconds...
+	
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* ircd/s_bsd.c: Sigh. :)
         * ircd/m_mode.c: fix for modeless channels by poptix.
@@ -1020,7 +1028,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.118 2000-04-30 10:22:14 isomer Exp $
+# $Id: ChangeLog,v 1.119 2000-04-30 11:39:24 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
