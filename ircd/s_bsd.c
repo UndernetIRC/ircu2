@@ -47,6 +47,7 @@
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
+#include "uping.h"
 #include "version.h"
 
 #include <arpa/inet.h>
@@ -69,17 +70,13 @@
 #include <sys/poll.h>
 #endif /* USE_POLL */
 
-#ifndef IN_LOOPBACKNET
-#define IN_LOOPBACKNET  0x7f
-#endif
-
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff
 #endif
 
 struct Client*            LocalClientArray[MAXCONNECTIONS];
 int                       HighestFd = -1;
-static struct sockaddr_in virtualHost;
+struct sockaddr_in        VirtualHost;
 static char               readbuf[SERVER_TCP_WINDOW];
 static int                running_in_background;
 
@@ -99,9 +96,6 @@ const char* const SELECT_ERROR_MSG    = "select error for %s: %s";
 const char* const SETBUFS_ERROR_MSG   = "error setting buffer size for %s: %s";
 const char* const SOCKET_ERROR_MSG    = "error creating socket for %s: %s";
 
-#ifdef VIRTUAL_HOST
-struct sockaddr_in vserv;
-#endif
 
 #ifdef GODMODE
 #ifndef NODNS
@@ -239,7 +233,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * explicitly bind it, it will default to IN_ADDR_ANY and we lose
    * due to the other server not allowing our base IP --smg
    */
-  if (bind(cptr->fd, (struct sockaddr*) &virtualHost, sizeof(virtualHost))) {
+  if (bind(cptr->fd, (struct sockaddr*) &VirtualHost, sizeof(VirtualHost))) {
     report_error(BIND_ERROR_MSG, cptr->name, errno);
     return 0;
   }
@@ -846,18 +840,21 @@ static int on_write_unblocked(struct Client* cptr)
 int read_message(time_t delay)
 {
   struct pollfd poll_fds[MAXCONNECTIONS + 1];
-  struct Client*    cptr;
-  struct Listener*    listener  = 0;
-  struct AuthRequest* auth      = 0;
-  struct AuthRequest* auth_next = 0;
-  int nfds;
+  struct Client*      cptr;
+  struct Listener*    listener   = 0;
+  struct AuthRequest* auth       = 0;
+  struct AuthRequest* auth_next  = 0;
+  struct UPing*       uping      = 0;
+  struct UPing*       uping_next = 0;
   time_t delay2 = delay;
+  int nfds;
   int length;
   int i;
   int res = 0;
-  int pfd_count = 0;
-  struct pollfd* pfd = 0;
-  struct pollfd* res_pfd = 0;
+  int pfd_count;
+  struct pollfd* pfd;
+  struct pollfd* res_pfd;
+  struct pollfd* uping_pfd;
   int read_ready;
   int write_ready;
 
@@ -867,11 +864,31 @@ int read_message(time_t delay)
     pfd_count = 0;
     pfd = poll_fds;
     res_pfd = 0;
+    uping_pfd = 0;
     pfd->fd = -1;
 
     if (-1 < ResolverFileDescriptor) {
       PFD_SETR(ResolverFileDescriptor);
       res_pfd = pfd;
+    }
+    if (-1 < UPingFileDescriptor) {
+      PFD_SETR(UPingFileDescriptor);
+      uping_pfd = pfd;
+    }
+    /*
+     * add uping descriptors
+     */
+    for (uping = uping_begin(); uping; uping = uping_next) {
+      uping_next = uping->next;
+      if (uping->active) {
+        delay2 = 1;
+       if (uping->lastsent && CurrentTime > uping->timeout) {
+          uping_end(uping);
+          continue;
+        }
+        uping->index = pfd_count;
+        PFD_SETR(uping->fd);
+      }
     }
     /*
      * add auth file descriptors
@@ -930,6 +947,29 @@ int read_message(time_t delay)
       server_restart("too many poll errors");
     sleep(1);
     CurrentTime = time(0);
+  }
+
+  if (uping_pfd && (uping_pfd->revents & (POLLREADFLAGS | POLLERRORS))) {
+    uping_echo();
+    --nfds;
+  }
+  /*
+   * check uping replies
+   */
+  for (uping = uping_begin(); uping; uping = uping_next) {
+    uping_next = uping->next;
+    if (uping->active) {
+      assert(-1 < uping->index);
+      if (poll_fds[uping->index].revents) {
+        uping_read(uping);
+        if (0 == --nfds)
+          break;
+      }
+      else if (CurrentTime > uping->lastsent) {
+        uping->lastsent = CurrentTime;
+        uping_send(uping);
+      }
+    }
   }
 
   if (res_pfd && (res_pfd->revents & (POLLREADFLAGS | POLLERRORS))) {
@@ -1058,6 +1098,10 @@ int read_message(time_t delay)
 {
   struct Client*   cptr;
   struct Listener* listener;
+  struct AuthRequest* auth = 0;
+  struct AuthRequest* auth_next = 0;
+  struct UPing*       uping;
+  struct UPing*       uping_next;
   int              nfds;
   struct timeval   wait;
   time_t           delay2 = delay;
@@ -1065,8 +1109,6 @@ int read_message(time_t delay)
   int              res = 0;
   int              length;
   int              i;
-  struct AuthRequest* auth = 0;
-  struct AuthRequest* auth_next = 0;
   int              read_ready;
   fd_set           read_set;
   fd_set           write_set;
@@ -1078,6 +1120,23 @@ int read_message(time_t delay)
 
     if (-1 < ResolverFileDescriptor)
       FD_SET(ResolverFileDescriptor, &read_set);
+    if (-1 < UPingFileDescriptor)
+      FD_SET(UPingFileDescriptor, &read_set);
+    /*
+     * set up uping file descriptors
+     */
+    for (uping = uping_begin(); uping; uping = uping_next) {
+      uping_next = uping->next;
+      if (uping->active) {
+        delay2 = 1;
+        if (uping->lastsent && CurrentTime > ping->timeout) {
+          uping_end(uping);
+          continue;
+        }
+        assert(-1 < uping->fd);
+        FD_SET(uping->fd, &read_set);
+      }
+    }
     /*
      * set auth file descriptors
      */
@@ -1129,8 +1188,26 @@ int read_message(time_t delay)
     CurrentTime = time(0);
   }
 
-  if (-1 < ResolverFileDescriptor && 
-      FD_ISSET(ResolverFileDescriptor, &read_set)) {
+  if (-1 < UPingFileDescriptor && FD_ISSET(UPingFileDescriptor, &read_set)) {
+    uping_echo();
+    --nfds;
+  }
+  for (uping = uping_begin(); uping; uping = uping_next) {
+    uping_next = uping->next;
+    if (uping->active) {
+      assert(-1 < uping->fd);
+      if (FD_ISSET(uping->fd, &read_set)) {
+        uping_read(uping);
+        if (0 == --nfds)
+          break;
+      }
+      else if (CurrentTime > uping->lastsent) {
+        uping->lastsent = CurrentTime;
+        uping_send(uping);
+      }
+    }
+  }
+  if (-1 < ResolverFileDescriptor && FD_ISSET(ResolverFileDescriptor, &read_set)) {
     resolver_read();
     --nfds;
   }
@@ -1381,16 +1458,16 @@ void init_virtual_host(const struct ConfItem* conf)
 {
   assert(0 != conf);
 
-  memset(&virtualHost, 0, sizeof(virtualHost));
-  virtualHost.sin_family = AF_INET;
-  virtualHost.sin_addr.s_addr = INADDR_ANY;
+  memset(&VirtualHost, 0, sizeof(VirtualHost));
+  VirtualHost.sin_family = AF_INET;
+  VirtualHost.sin_addr.s_addr = INADDR_ANY;
 
   if (EmptyString(conf->passwd) || 0 == strcmp(conf->passwd, "*"))
     return;
-  virtualHost.sin_addr.s_addr = inet_addr(conf->passwd);
+  VirtualHost.sin_addr.s_addr = inet_addr(conf->passwd);
 
-  if (INADDR_NONE == virtualHost.sin_addr.s_addr)
-    virtualHost.sin_addr.s_addr = INADDR_ANY;
+  if (INADDR_NONE == VirtualHost.sin_addr.s_addr)
+    VirtualHost.sin_addr.s_addr = INADDR_ANY;
 }  
 
 /*

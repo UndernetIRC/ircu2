@@ -48,6 +48,7 @@
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
+#include "uping.h"
 #include "userload.h"
 
 #include <assert.h>
@@ -452,6 +453,11 @@ static void exit_one_client(struct Client *bcptr, char *comment)
   if (bcptr->serv && bcptr->serv->client_list)  /* Was SetServerYXX called ? */
     ClearServerYXX(bcptr);      /* Removes server from server_list[] */
   if (IsUser(bcptr)) {
+    /*
+     * clear out uping requests
+     */
+    if (IsUPing(bcptr))
+      uping_cancel(bcptr, 0);
     /*
      * Stop a running /LIST clean
      */

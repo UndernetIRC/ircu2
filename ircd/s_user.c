@@ -712,15 +712,11 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     strcpy(new_client->name, nick);
     new_client->user = make_user(new_client);
     new_client->user->server = sptr;
-    if (!SetRemoteNumNick(new_client, parv[parc - 2])) {
-      /*
-       * if this fails squit the server and free the client
-       */
-      free_client(new_client);
-      return exit_client_msg(cptr, sptr, &me, "Invalid numeric index");
-    }
+    SetRemoteNumNick(new_client, parv[parc - 2]);
+    /*
+     * IP# of remote client
+     */
     new_client->ip.s_addr = htonl(base64toint(parv[parc - 3]));
-    /* IP# of remote client */
 
     add_client_to_list(new_client);
     hAddClient(new_client);
