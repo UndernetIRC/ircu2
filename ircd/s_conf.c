@@ -1189,7 +1189,7 @@ int find_kill(struct Client *cptr)
       break;
 
     if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
-      if (0 == match(deny->hostmask, realname))
+      if (0 == match(deny->hostmask + 2, realname))
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
