@@ -108,6 +108,8 @@
  *
  *  NAMES_ALL - Lists all users on channel.
  *  NAMES_VIS - Only list visible (-i) users. --Gte (04/06/2000).
+ *  NAMES_EON - When OR'd with the other two, adds an 'End of Names' numeric
+ *              used by m_join
  *
  */
 
@@ -121,6 +123,10 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
   char buf[BUFSIZE];
   struct Client *c2ptr;
   struct Membership* member;
+  
+  assert(chptr);
+  assert(sptr);
+  assert((filter&NAMES_ALL) != (filter&NAMES_VIS));
 
   /* Tag Pub/Secret channels accordingly. */
 
@@ -149,7 +155,7 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
   {
     c2ptr = member->user;
 
-    if ((filter == NAMES_VIS) && IsInvisible(c2ptr))
+    if (((filter&NAMES_VIS)!=0) && IsInvisible(c2ptr))
       continue;
 
     if (IsZombie(member) && member->user != sptr)
@@ -197,6 +203,8 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
   }
   if (flag)
     send_reply(sptr, RPL_NAMREPLY, buf); 
+  if (filter&NAMES_EON)
+    send_reply(sptr, RPL_ENDOFNAMES, chptr->chname);
 }
 
 /*

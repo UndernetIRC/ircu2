@@ -96,6 +96,7 @@ extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
 
 #define NAMES_ALL 1 /* List all users in channel */
 #define NAMES_VIS 2 /* List only visible users in non-secret channels */
+#define NAMES_EON 4 /* Add an 'End Of Names' reply to the end */
 
 void do_names(struct Client* sptr, struct Channel* chptr, int filter);
 
