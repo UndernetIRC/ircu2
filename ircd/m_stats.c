@@ -340,8 +340,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	      (wilds && (!mmatch(host, aconf->host) ||
 	      !mmatch(host, aconf->name))))
 	  {
-	    send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-		       aconf->port, get_conf_class(aconf));
+	    if (acptr->passwd && IsDigit(*aconf->passwd) && 
+		(!aconf->passwd[1] || 
+		 (IsDigit(aconf->passwd[1]) && !aconf->passwd[2])
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->passwd, aconf->host, 
+			aconf->name, aconf->port, get_conf_class(aconf));
+	    }
+	    else {
+	      send_reply(sptr, RPL_STATSILINE, 'I', "*", aconf->host, 
+			aconf->name, aconf->port, get_conf_class(aconf));
 	    if (--count == 0)
 	      break;
 	  }
