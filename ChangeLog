@@ -1,3 +1,14 @@
+2002-04-13  Stephane Thiell <mbuna@undernet.org>
+
+	* ircd/class.c: removed unused (and duplicated) code
+	get_client_ping().
+
+	* include/class.h: removed unused function prototype.
+
+	* config.guess: upgraded with latest
+
+	* config.sub: upgraded with latest
+
 2002-04-12  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_invite.c: don't propagate invites for local channels
@@ -5,6 +16,7 @@
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 2002-04-12  Stephane Thiell <mbuna@undernet.org>
+
 	* ircd/m_whois.c: removing FindClient() in ms_whois. Was a server
 	numeric/user nickname conflict.
 
