@@ -1,3 +1,24 @@
+2000-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c: make gline expire times relative to CurrentTime,
+	since that should be monotonically increasing, instead of
+	TStime(), which can be set backwards, and which can therefore
+	cause an expire time to increase; make local glines be removed
+	instead of just deactivated; don't let gline_find() look for
+	user@host glines if the mask being looked up is a channel mask
+
+	* ircd/send.c (vsendcmdto_one): forgot to account for the case
+	where origin is a server and destination is a user
+
+	* ircd/jupe.c: make jupe expire times relative to CurrentTime,
+	since that should be monotonically increasing, instead of
+	TStime(), which can be set backwards, and which can therefore
+	cause an expire time to increase; make local jupes be removed
+	instead of just deactivated
+
+	* ircd/ircd_snprintf.c: d'oh, thanks for catching that; short for
+	limit is fine.  any other warnings I should know about?
+
 2000-04-15  Thomas Helvey <tomh@inxpress.net>
 
 	* ircd/*.c: const correctness and type safety cleanups to
@@ -542,7 +563,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.89 2000-04-15 04:20:14 bleep Exp $
+# $Id: ChangeLog,v 1.90 2000-04-16 04:30:42 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
