@@ -1,5 +1,11 @@
 2005-04-04  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Jupe): Make the default Jupe block follow
+	CFV-0255.  (Thanks to FrankP for pointing me at this and to DinTn
+	for getting me a copy of the CFV.)
+
+2005-04-04  Michael Poole <mdpoole@troilus.org>
+
 	* include/capab.h (CAPFL_STICKY): Define.
 	(CAPLIST): Remove the entries used for testing.
 
