@@ -102,9 +102,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define NAMES_ALL 1 /* List all users in channel */
-#define NAMES_VIS 2 /* List only visible users in non-secret channels */
-
 /*
  *  Sends a suitably formatted 'names' reply to 'sptr' consisting of nicks within
  *  'chptr', depending on 'filter'.

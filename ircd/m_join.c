@@ -292,8 +292,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		 chptr->topic_time);
     }
 
-    parv[1] = name;
-    m_names(cptr, sptr, 2, parv); /* XXX find a better way */
+    do_names(sptr, chptr, NAMES_ALL); /* send /names list */
   }
 
   joinbuf_flush(&join); /* must be first, if there's a JOIN 0 */
@@ -310,8 +309,8 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member;
   struct Channel *chptr;
   struct JoinBuf join;
-  struct JoinBuf create;
   unsigned int flags = 0;
+  time_t creation = 0;
   char *p = 0;
   char *chanlist;
   char *name;
@@ -324,8 +323,10 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 2 || *parv[1] == '\0')
     return need_more_params(sptr, "JOIN");
 
+  if (parc > 2 && parv[2])
+    creation = atoi(parv[2]);
+
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
-  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, TStime());
 
   chanlist = last0(parv[1]); /* find last "JOIN 0" */
 
@@ -349,29 +350,19 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	chptr = FindChannel(name);
       } else
 	flags = CHFL_DEOPPED | ((sptr->flags & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
-    } else
-      flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
+    } else {
+      flags = CHFL_DEOPPED | ((sptr->flags & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
 
-    if (chptr)
-      joinbuf_join(&join, chptr, flags);
-    /* Strange that a channel should get created by a JOIN, but as long
-     * as there are desynchs, we have to assume it's possible.  Previous
-     * solutions involved sending a TS with the JOIN, but that seems
-     * unworkable to me; my solution is to transmute the JOIN into a
-     * CREATE, and let the next BURST try to fix the problem.  Another
-     * solution would be to simply issue an upstream KICK, but that
-     * won't currently be accepted.  Is this what DESTRUCT is for?
-     */
-    else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
-      continue; /* couldn't get channel */
-    else {
-      chptr->creationtime = TStime(); /* have to set the creation TS */
-      joinbuf_join(&create, chptr, flags);
+      if ((chptr = get_channel(sptr, name, CGT_CREATE)))
+	chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
+      else
+	continue; /* couldn't get channel */
     }
+
+    joinbuf_join(&join, chptr, flags);
   }
 
-  joinbuf_flush(&join); /* must be first, if there's a JOIN 0 */
-  joinbuf_flush(&create);
+  joinbuf_flush(&join); /* flush joins... */
 
   return 0;
 }

@@ -1,3 +1,19 @@
+2000-11-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c: remove compiler warning by adding a newline to
+	end of file
+
+	* ircd/m_names.c: moved the flags up to s_user.h
+
+	* ircd/m_join.c: call do_names instead of m_names; restructure
+	ms_join to never transmute a JOIN into a CREATE, but use the TS in
+	the JOIN (if present) to timestamp the channel
+
+	* ircd/channel.c: send JOINs individually, instead of grouping
+	them, so that we can send the channel's creation time
+
+	* include/s_user.h: declare do_names()
+
 2000-10-30  Isomer <isomer@coders.net>
 	* ircd/m_oper.c: Fixed warning
 
