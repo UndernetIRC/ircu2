@@ -79,13 +79,14 @@ static void dead_link(struct Client *to, char *notice)
   DBufClear(&to->recvQ);
   DBufClear(&to->sendQ);
 
-  /* Keep a copy of the last comment, for later use... */
-  ircd_strncpy(LastDeadComment(to), notice, sizeof(LastDeadComment(to) - 1));
-  LastDeadComment(to)[sizeof(LastDeadComment(to)) - 1] = '\0';
+  /*
+   * Keep a copy of the last comment, for later use...
+   */
+  ircd_strncpy(to->info, notice, REALLEN);
 
   if (!IsUser(to) && !IsUnknown(to) && !(to->flags & FLAGS_CLOSING))
-    sendto_ops("%s for %s", LastDeadComment(to), to->name);
-  Debug((DEBUG_ERROR, LastDeadComment(to)));
+    sendto_ops("%s for %s", to->info, to->name);
+  Debug((DEBUG_ERROR, to->info));
 }
 
 static int can_send(struct Client* to)
@@ -379,15 +380,13 @@ void sendmsgto_channel_butone(struct Client *one, struct Client *from,
    */
   if (IsServer(from)) {
     sprintf(userbuf,":%s %s %s :%s",
-            from->name, ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE),
-            chname, msg);
+            from->name, ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE, chname, msg);
     sprintf(servbuf,"%s %s %s :%s", NumServ(from), cmd, chname, msg);
   }
   else {
     sprintf(userbuf,":%s!%s@%s %s %s :%s",
             from->name, from->username, from->user->host,
-            ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE),
-            chname, msg);
+            ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE, chname, msg);
     sprintf(servbuf,"%s%s %s %s :%s", NumNick(from), cmd, chname, msg);
   }
 
