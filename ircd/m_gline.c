@@ -109,6 +109,212 @@
 /*
  * ms_gline - server message handler
  *
+ * parv[0] = Sender prefix
+ * parv[1] = Target: server numeric
+ * parv[2] = (+|-)<G-line mask>
+ * parv[3] = G-line lifetime
+ *
+ * From Uworld:
+ *
+ * parv[4] = Comment
+ *
+ * From somewhere else:
+ *
+ * parv[4] = Last modification time
+ * parv[5] = Comment
+ *
+ */
+int
+ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+{
+  struct Client *acptr = 0;
+  struct Gline *agline;
+  unsigned int flags = 0;
+  time_t expire_off, lastmod = 0;
+  char *mask = parv[2], *target = parv[1], *reason;
+
+  if (parc == 4) {
+    if (!find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
+      return need_more_params(sptr, "GLINE");
+
+    reason = parv[4];
+    flags |= GLINE_FORCE;
+  } else if (parc >= 5) {
+    lastmod = atoi(parv[4]);
+    reason = parv[5];
+  } else
+    return need_more_params(sptr, "GLINE");
+
+  if (!(target[0] == '*' && target[1] == '\0')) {
+    if (!(acptr = FindNServer(target)))
+      return 0; /* no such server */
+
+    if (!IsMe(acptr)) { /* manually propagate */
+      if (IsServer(sptr)) {
+	if (!lastmod)
+	  sendto_one(acptr, "%s " TOK_GLINE " %s %s %s :%s", NumServ(sptr),
+		     target, mask, parv[3], reason);
+	else
+	  sendto_one(acptr, "%s " TOK_GLINE " %s %s %s %s :%s", NumServ(sptr),
+		     target, mask, parv[3], parv[4], reason);
+      } else
+	sendto_one(acptr, "%s%s " TOK_GLINE " %s %s %s %s :%s", NumNick(sptr),
+		   target, mask, parv[3], parv[4], reason);
+
+      return 0;
+    }
+
+    flags |= GLINE_LOCAL;
+  }
+
+  if (*server == '-')
+    server++;
+  else if (*server == '+') {
+    flags |= GLINE_ACTIVE;
+    server++;
+  } else
+    flags |= GLINE_ACTIVE;
+
+  expire_off = atoi(parv[3]);
+
+  agline = gline_find(mask, GLINE_ANY);
+
+  if (agline) {
+    if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
+      gline_free(agline);
+    else if (!lastmod || GlineLastMod(agline) < lastmod) { /* new mod */
+      if (flags & GLINE_ACTIVE)
+	return gline_activate(cptr, sptr, agline, lastmod);
+      else
+	return gline_deactivate(cptr, sptr, agline, lastmod);
+    } else if (GlineLastMod(agline) == lastmod)
+      return 0;
+    else
+      return gline_resend(cptr, agline); /* other server desynched WRT gline */
+  }
+
+  return gline_add(cptr, sptr, mask, reason, expire_off, lastmod, flags);
+}
+
+/*
+ * mo_gline - oper message handler
+ *
+ * parv[0] = Sender prefix
+ * parv[1] = [[+|-]<G-line mask>]
+ *
+ * Old style:
+ *
+ * parv[2] = [Expiration offset]
+ * parv[3] = [Comment]
+ *
+ * New style:
+ *
+ * parv[2] = [target]
+ * parv[3] = [Expiration offset]
+ * parv[4] = [Comment]
+ *
+ */
+int
+mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+{
+  struct Client *acptr = 0;
+  struct Gline *agline;
+  unsigned int flags = 0;
+  time_t expire_off;
+  char *mask = parv[1], *target = 0, *reason;
+
+  if (parc < 2)
+    return gline_list(sptr, 0);
+
+  if (*mask == '+') {
+    flags |= GLINE_ACTIVE;
+    mask++;
+  } else if (*mask == '-')
+    mask++;
+  else
+    return gline_list(sptr, mask);
+
+#ifndef LOCOP_LGLINE
+  if (!IsOper(sptr)) {
+    send_error_to_client(sptr, ERR_NOPRIVILEGES);
+    return 0;
+  }
+#endif
+
+  if (parc == 3) {
+    expire_off = atoi(parv[2]);
+    reason = parv[3];
+    flags |= GLINE_LOCAL;
+  } else if (parc >= 4) {
+    target = parv[2];
+    expire_off = atoi(parv[3]);
+    reason = parv[4];
+  } else
+    return need_more_params(sptr, "GLINE");
+
+  if (target) {
+    if (!(target[0] == '*' && target[1] == '\0')) {
+      if (!(acptr = find_match_server(target))) {
+	send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
+	return 0;
+      }
+
+      if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
+	if (!IsOper(sptr)) {
+	  send_error_to_client(sptr, ERR_NOPRIVILEGES);
+	  return 0;
+	}
+
+	sendto_one(acptr, "%s%s " TOK_GLINE " %s %c%s %s " TIME_T_FMT " :%s",
+		   NumNick(sptr), NumServ(acptr),
+		   flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3], TStime(),
+		   reason);
+	return 0;
+      }
+
+      flags |= GLINE_LOCAL;
+    } else if (!IsOper(sptr)) {
+      send_error_to_client(sptr, ERR_NOPRIVILEGES);
+      return 0;
+    }
+  }
+
+  agline = gline_find(mask, GLINE_ANY);
+
+  if (agline) {
+    if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
+      gline_free(agline);
+    else {
+      if (flags & GLINE_ACTIVE)
+	return gline_activate(cptr, sptr, agline, TStime());
+      else
+	return gline_deactivate(cptr, sptr, agline, TStime());
+    }
+  }
+
+  return gline_add(cptr, sptr, mask, reason, expire_off, TStime(), flags);
+}
+
+/*
+ * m_gline - user message handler
+ *
+ * parv[0] = Sender prefix
+ * parv[1] = [<server name>]
+ *
+ */
+int
+m_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+{
+  if (parc < 2)
+    return gline_list(sptr, 0);
+
+  return gline_list(sptr, parv[1]);
+}
+
+#if 0
+/*
+ * ms_gline - server message handler
+ *
  * parv[0] = Send prefix
  *
  * From server:
@@ -1130,3 +1336,4 @@ int m_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
 #endif /* 0 */
 
+#endif /* 0 */

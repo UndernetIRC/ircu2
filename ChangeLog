@@ -1,3 +1,24 @@
+2000-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/handlers.h: declare m_gline()
+
+	* ircd/parse.c: gline can be called by users, but it only lists
+	the glines.
+
+	* ircd/s_user.c (set_nick_name): resend gline if a remote server
+	introduces a glined client
+
+	* ircd/s_serv.c (server_estab): burst glines, too
+
+	* ircd/gline.c: fix up all the expire times to be offsets;
+	simplify gline_resend()
+
+	* ircd/m_gline.c: begin coding replacements for ms_gline(),
+	mo_gline(), and m_gline()
+
+	* ircd/gline.c (gline_add): allow *@#channel to work correctly;
+	also, prohibit local BADCHANs if LOCAL_BADCHAN not defined
+
 2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* tools/Bouncer/*: Add comments/documentation/tags.
@@ -401,7 +422,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.77 2000-04-13 05:53:48 gte Exp $
+# $Id: ChangeLog,v 1.78 2000-04-13 15:58:22 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -27,6 +27,7 @@
 #include "channel.h"
 #include "client.h"
 #include "crule.h"
+#include "gline.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -272,6 +273,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       send_channel_modes(cptr, chptr);
   }
   jupe_burst(cptr);
+  gline_burst(cptr);
   sendto_one(cptr, "%s EB", NumServ(&me));
   return 0;
 }

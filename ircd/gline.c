@@ -147,7 +147,8 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 		       GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 		       GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
-		       gline->gl_expire, gline->gl_lastmod, gline->gl_reason);
+		       gline->gl_expire - TStime(), gline->gl_lastmod,
+		       gline->gl_reason);
   } else {
     if (gline->gl_lastmod)
       sendto_serv_butone(cptr, "%s " TOK_GLINE " * %c%s%s%s " TIME_T_FMT " "
@@ -155,7 +156,7 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			 GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 			 GlineIsBadChan(gline) ? "" : "@",
 			 GlineIsBadChan(gline) ? "" : gline->gl_host,
-			 gline->gl_expire, gline->gl_lastmod,
+			 gline->gl_expire - TStime(), gline->gl_lastmod,
 			 gline->gl_reason);
     else
       sendto_serv_butone(cptr, "%s " TOK_GLINE " * %c%s%s%s " TIME_T_FMT
@@ -163,7 +164,7 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			 GlineIsActive(gline) ? '+' : '-', gline->gl_user,
 			 GlineIsBadChan(gline) ? "" : "@",
 			 GlineIsBadChan(gline) ? "" : gline->gl_host,
-			 gline->gl_expire, gline->gl_reason);
+			 gline->gl_expire - TStime(), gline->gl_reason);
   }
 }
 
@@ -188,10 +189,20 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   expire += TStime(); /* convert from lifetime to timestamp */
 
+  /* NO_OLD_GLINE allows *@#channel to work correctly */
 #ifdef BADCHAN
-  if (*userhost == '#' || *userhost == '&' || *userhost == '+')
+  if (*userhost == '#' || *userhost == '&' || *userhost == '+'
+# ifndef NO_OLD_GLINE
+      || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
+# endif /* OLD_GLINE */
+      ) {
+# ifndef LOCAL_BADCHAN
+    if (flags & GLINE_LOCAL)
+      return 0;
+# endif
     flags |= GLINE_BADCHAN;
-#endif
+  }
+#endif /* BADCHAN */
 
   /* Inform ops... */
   sendto_op_mask(SNO_GLINE, "%s adding %s %s for %s, expiring at "
@@ -414,7 +425,7 @@ gline_burst(struct Client *cptr)
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendto_one(cptr, "%s " TOK_GLINE " * %c%s@%s " TIME_T_FMT " " TIME_T_FMT
 		 " :%s", NumServ(&me), GlineIsActive(gline) ? '+' : '-',
-		 gline->gl_user, gline->gl_host, gline->gl_expire,
+		 gline->gl_user, gline->gl_host, gline->gl_expire - TStime(),
 		 gline->gl_lastmod, gline->gl_reason);
   }
 
@@ -426,8 +437,8 @@ gline_burst(struct Client *cptr)
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendto_one(cptr, "%s " TOK_GLINE " * %c%s " TIME_T_FMT " " TIME_T_FMT
 		 " :%s", NumServ(&me), GlineIsActive(gline) ? '+' : '-',
-		 gline->gl_user, gline->gl_expire, gline->gl_lastmod,
-		 gline->gl_reason);
+		 gline->gl_user, gline->gl_expire - TStime(),
+		 gline->gl_lastmod, gline->gl_reason);
   }
 }
 
@@ -437,16 +448,11 @@ gline_resend(struct Client *cptr, struct Gline *gline)
   if (GlineIsLocal(gline) || !gline->gl_lastmod)
     return 0;
 
-  if (GlineIsBadChan(gline))
-    sendto_one(cptr, "%s " TOK_GLINE " * %c%s " TIME_T_FMT " " TIME_T_FMT
-	       " :%s", NumServ(&me), GlineIsActive(gline) ? '+' : '-',
-	       gline->gl_user, gline->gl_expire, gline->gl_lastmod,
-	       gline->gl_reason);
-  else
-    sendto_one(cptr, "%s " TOK_GLINE " * %c%s@%s " TIME_T_FMT " " TIME_T_FMT
-	       " :%s", NumServ(&me), GlineIsActive(gline) ? '+' : '-',
-	       gline->gl_user, gline->gl_host, gline->gl_expire,
-	       gline->gl_lastmod, gline->gl_reason);
+  sendto_one(cptr, "%s " TOK_GLINE " * %c%s%s%s " TIME_T_FMT " " TIME_T_FMT
+	     " :%s", NumServ(&me), GlineIsActive(gline) ? '+' : '-',
+	     gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+	     GlineIsBadChan(gline) ? "" : gline->gl_host,
+	     gline->gl_expire - TStime(), gline->gl_lastmod, gline->gl_reason);
 
   return 0;
 }
