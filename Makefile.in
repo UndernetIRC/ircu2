@@ -29,7 +29,7 @@ AWK = @AWK@
 #### End of system configuration section. ####
 
 SUBDIRS = doc ircd
-MAKEFILES = Makefile doc/Makefile ircd/Makefile
+IRCD_MAKEFILES = Makefile doc/Makefile ircd/Makefile
 
 all: build
 
@@ -37,7 +37,7 @@ all: build
 # Some versions of make give a warning when this is empty:
 .SUFFIXES: .dummy
 
-build: ${MAKEFILES}
+build: ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "Building $$i..."; \
 		cd $$i; ${MAKE} build; cd ..; \
@@ -63,7 +63,7 @@ root-clean:
 		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
 	done || true
 
-sub-clean: ${MAKEFILES}
+sub-clean: ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "Cleaning $$i..."; \
 		cd $$i; ${MAKE} clean; cd ..;\
@@ -78,7 +78,7 @@ root-distclean: root-clean
 		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
 	done || true
 
-sub-distclean: ${MAKEFILES}
+sub-distclean: ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "Dist-cleaning $$i..."; \
 		cd $$i; ${MAKE} distclean; cd ..;\
@@ -88,26 +88,26 @@ distclean: root-distclean sub-distclean
 	${RM} -f Makefile config.h config.log config.cache config.status \
 		stamp-h
 
-maintainer-clean: root-distclean ${MAKEFILES}
+maintainer-clean: root-distclean ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "maintainer-cleaning $$i..."; \
 		cd $$i; ${MAKE} maintainer-clean; cd ..;\
 	done
 
-depend: ${MAKEFILES}
+depend: ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "Making dependencies in $$i..."; \
 		cd $$i; ${MAKE} depend; cd ..; \
 	done
 
-install: ${MAKEFILES}
+install: ${IRCD_MAKEFILES}
 	test -d ${prefix} || mkdir ${prefix}
 	@for i in ${SUBDIRS}; do \
 		echo "Installing $$i..."; \
 		cd $$i; ${MAKE} install; cd ..; \
 	done
 
-uninstall: ${MAKEFILES}
+uninstall: ${IRCD_MAKEFILES}
 	@for i in ${SUBDIRS}; do \
 		echo "Uninstalling $$i..."; \
 		cd $$i; ${MAKE} uninstall; cd ..; \
