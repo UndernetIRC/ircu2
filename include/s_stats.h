@@ -30,7 +30,7 @@ struct Client;
 extern const char *statsinfo[];
 extern void report_stats(struct Client *sptr, char stat);
 extern void report_configured_links(struct Client *sptr, int mask);
-extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat);
+extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat, int MustBeOper);
 
 extern void report_crule_list(struct Client* to, int mask);
 extern void report_motd_list(struct Client* to);

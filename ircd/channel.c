@@ -30,6 +30,7 @@
 #include "ircd_defs.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -360,9 +361,13 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-    ban->value.ban.who = (char*) MyMalloc(strlen(cli_name(cptr)) + 1);
+#ifdef HEAD_IN_SAND_BANWHO
+    if (IsServer(cptr))
+      DupString(ban->value.ban.who, cli_name(&me));
+    else
+#endif
+      DupString(ban->value.ban.who, cli_name(cptr));
     assert(0 != ban->value.ban.who);
-    strcpy(ban->value.ban.who, cli_name(cptr));
 
     ban->value.ban.when = TStime();
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */

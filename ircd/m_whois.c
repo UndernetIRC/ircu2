@@ -192,7 +192,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
   }
 
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-  if (!IsAnOper(sptr) && sptr != a2cptr)
+  if (!IsAnOper(sptr) && sptr != acptr)
     send_reply(sptr, RPL_WHOISSERVER, name, "*.undernet.org",
 	       "The Undernet Underworld");
   else
@@ -359,7 +359,14 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * it with the correct servername - as is needed by hunt_server().
      * This is the secret behind the /whois nick nick trick.
      */
+#if HEAD_IN_SAND_REMOTE
+    /* If remote queries are disabled, then use the *second* parameter of
+     * of whois, so /whois nick nick still works.
+     */
+    acptr = FindUser(parv[2]);
+#else
     acptr = FindUser(parv[1]);
+#endif
     if (acptr)
       parv[1] = cli_name(cli_user(acptr)->server);
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=

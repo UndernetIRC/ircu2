@@ -447,9 +447,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	(!differ && lastnick <= cli_lastnick(acptr))) {
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
-	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (%s <- %s (Nick "
-			      "collision))", sptr, cli_name(&me), cli_name(cli_from(acptr)),
-			      cli_name(cptr));
+	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (Nick collision)",
+			      sptr, cli_name(&me));
         assert(!MyConnect(sptr));
 
         cli_flags(sptr) |= FLAGS_KILLED;
@@ -472,18 +471,16 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * This exits the client we had before getting the NICK message
    */
   if (differ) {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (older "
-			  "nick overruled))", acptr, cli_name(&me),
-			  cli_name(cli_from(acptr)), cli_name(cptr));
+    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
+			  "overruled)", acptr, cli_name(&me));
     if (MyConnect(acptr))
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost)",
 		    cli_name(&me));
     exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
   }
   else {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (nick "
-			  "collision from same user@host))", acptr, cli_name(&me),
-			  cli_name(cli_from(acptr)), cli_name(cptr));
+    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
+			  "same user@host)", acptr, cli_name(&me));
     if (MyConnect(acptr))
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost: ",
 		    "switched servers too fast)", cli_name(&me));

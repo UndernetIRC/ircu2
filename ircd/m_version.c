@@ -93,6 +93,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_features.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -126,8 +127,8 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = cli_name(acptr);
   }
 
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
-      HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
+		      parc, parv) == HUNTED_ISME)
   {
     char featurebuf[512];
     
