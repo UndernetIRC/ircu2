@@ -47,7 +47,7 @@ unsigned int get_conf_class(const struct ConfItem* aconf)
   return (BAD_CONF_CLASS);
 }
 
-unsigned int get_conf_ping(struct ConfItem *aconf)
+unsigned int get_conf_ping(const struct ConfItem *aconf)
 {
   if ((aconf) && (aconf->confClass))
     return (ConfPingFreq(aconf));

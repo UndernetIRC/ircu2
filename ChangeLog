@@ -1,4 +1,8 @@
 2000-09-17  Thomas Helvey <helveytw@home.com>
+	* include/class.h: add missing prototype
+	* ircd/class.c: make argument to get_conf_class const
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
 	* ircd/*.c: merged in changes from 2.10.10.pl12, cleanup
 	merge conflicts.
 	* ircd/*.h: merged in changes from 2.10.10.pl12, cleanup
