@@ -1,10 +1,13 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.12 2000-04-23 03:59:21 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.12.2.1 2000-07-08 07:23:57 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Add 'POST' as a unregistered command to disconnect people abusing web
+  proxies --Isomer.
+* Conceal bugs in IPcheck --Isomer
 * Fix for changing the wrong define --Isomer
 * Fix for the easter buggy. --Isomer
 * Fix for rpong --Run
