@@ -178,7 +178,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   sendto_op_mask(IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
                  "Received KILL message for %s. From %s Path: %s!%s",
-                 victim->name, parv[0], cptr->name, path);
+                 IsServer(sptr)?victim->name:get_client_name(victim,SHOW_IP),
+		 parv[0], cptr->name, path);
 
 #if defined(SYSLOG_KILL)
   ircd_log_kill(victim, sptr, cptr->name, path);

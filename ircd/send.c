@@ -800,15 +800,15 @@ void vsendto_ops(const char *pattern, va_list vl)
 
   fmt_target = sprintf_irc(fmt, ":%s NOTICE ", me.name);
 
-  for (i = 0; i <= HighestFd; i++)
-    if ((cptr = LocalClientArray[i]) && !IsServer(cptr) &&
-        SendServNotice(cptr))
+  for (i = 0; i <= HighestFd; i++) {
+    if ((cptr = LocalClientArray[i]) && !IsServer(cptr) && SendServNotice(cptr))
     {
       strcpy(fmt_target, cptr->name);
       strcat(fmt_target, " :*** Notice -- ");
       strcat(fmt_target, pattern);
       vsendto_one(cptr, fmt, vl);
     }
+  }
 }
 
 void sendto_op_mask(unsigned int mask, const char *pattern, ...)
@@ -825,38 +825,6 @@ void sendto_ops(const char *pattern, ...)
   va_start(vl, pattern);
   vsendto_op_mask(SNO_OLDSNO, pattern, vl);
   va_end(vl);
-}
-
-/*
- * sendto_ops_butone
- *
- * Send message to all operators.
- * one - client not to send message to
- * from- client which message is from *NEVER* NULL!!
- */
-void sendto_ops_butone(struct Client *one, struct Client *from, const char *pattern, ...)
-{
-  va_list vl;
-  int i;
-  struct Client *cptr;
-
-  va_start(vl, pattern);
-  ++sentalong_marker;
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next)
-  {
-    if (!SendWallops(cptr))
-      continue;
-    i = cptr->from->fd;         /* find connection oper is on */
-    if (i < 0 || sentalong[i] == sentalong_marker)       /* sent message along it already ? */
-      continue;
-    if (cptr->from == one)
-      continue;                 /* ...was the one I should skip */
-    sentalong[i] = sentalong_marker;
-    vsendto_prefix_one(cptr->from, from, pattern, vl);
-  }
-  va_end(vl);
-
-  return;
 }
 
 /*

@@ -89,6 +89,7 @@
 #endif /* 0 */
 #include "client.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -149,6 +150,23 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       BadPtr(mask) ? "*" : mask);
   return 0;
 }
+
+#ifdef HEAD_IN_SAND_LINKS
+int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+
+  if (parc > 2)
+    return send_error_to_client(cptr, ERR_NOPRIVILEGES);
+
+  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0], 
+	parc < 2 ? "*" : parv[1]);
+  sendto_one(sptr,":%s NOTICE %s :%s",me.name,parv[0],
+        "/LINKS has been disabled, from CFV-165.  "
+        "Visit http://www.undernet.org/servers.php"
+  );
+  return 0;
+}
+#endif
 
 /*
  * ms_links - server message handler

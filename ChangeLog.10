@@ -1,10 +1,42 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16 2001-01-06 01:45:51 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.17 2001-05-12 11:11:44 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl14 (You got any issues with that punk?)
+* Changed (then fixed) /LINKS to output an empty links list -- Isomer
+* Make netsplit server notice say the right thing
+* Final fix for HEAD_IN_SAND_WHOIS_SERVERNAME
+* Fix a bug with implementation of HEAD_IN_SAND_NETSPLIT
+* Permit users to find out what server they're on, since they already
+  know -- Kev
+* Added HEAD_IN_SAND_WHO_SERVERNAME to cover final source of server
+  names -- Kev
+* Fixed wallops, wallusers now sends wallops to local clients,
+  wallusers to servers.
+* Added host to /kill messages -- Isomer
+* Fixed whois (opers can see server names) -- Isomer
+* Implement walluser -- Bleep
+* stats fixed -- Isomer
+* trace disabled from non opers -- Isomer
+* server name removed from whois (but not /who, shrug!) -- Isomer
+* netsplits are now represented with "*.net *.split" -- Isomer
+* Done /links -- Isomer
+* Modifications to map as suggested by nighty -- Isomer
+* Wallops is the only code that uses sendto_ops_butone now, this
+  isolates wallops entirely. No server notices sent by wallops.
+* HEAD_IN_SAND_SNOTICES done -- Bleep
+* HEAD_IN_SAND_WALLOPS done -- Bleep
+* HEAD_IN_SAND_DESYNC done -- Bleep
+* HEAD_IN_SAND_MAP done -- Isomer
+* According to CFV-165, buring our head in the sand to try and
+* hide from DoS - First pass -- Isomer
+* As requested by hop: hidden keys are shown as "*" not "" -- Isomer
+* As requested by Buff: allow admins to *disable* below behavour -- Isomer
+* As requested by Adriel, compile time option to disable mo_wallops 
+ -- Isomer
 -------------------------- Released 2.10.10.pl13
 * Don't allow two copies of the server to start -- Isomer/Kev
 -------------------------- Released 2.10.10.pl12

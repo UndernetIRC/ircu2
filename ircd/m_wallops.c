@@ -92,6 +92,10 @@
 #include "ircd_string.h"
 #include "numeric.h"
 #include "send.h"
+#include "msg.h"
+#include "s_bsd.h"
+#include "numnicks.h"
+#include "struct.h"
 
 #include <assert.h>
 
@@ -101,14 +105,26 @@
  */
 int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *message;
+  char* message = parc > 1 ? parv[1] : 0;
+  int i;
+  struct Client* acptr;
 
-  message = parc > 1 ? parv[1] : 0;
-
+  /*
+   * XXX - PROTOCOL ERROR
+   */
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendto_ops_butone(cptr, sptr, ":%s WALLOPS :%s", parv[0], message);
+  sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :* %s", parv[0], parv[parc - 1]);
+  for (i = 0; i <= HighestFd; ++i) {
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && 
+         IsAnOper(acptr) && SendWallops(acptr))
+      sendbufto_one(acptr);
+  }
+  if (IsServer(sptr))
+    sendto_serv_butone(cptr, "%s " TOK_WALLOPS " :%s", NumServ(sptr), message);
+  else
+    sendto_serv_butone(cptr, "%s%s " TOK_WALLOPS " :%s", NumNick(sptr), message);
   return 0;
 }
 
@@ -117,44 +133,20 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *message;
-
-  message = parc > 1 ? parv[1] : 0;
+  char* message = parc > 1 ? parv[1] : 0;
+  int i;
+  struct Client* acptr;
 
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendto_ops_butone(0, sptr, ":%s WALLOPS :%s", parv[0], message);
-  return 0;
-}
-
-  
-#if 0
-/*
- * m_wallops
- *
- * Writes to all +w users currently online
- *
- * parv[0] = sender prefix
- * parv[1] = message text
- */
-int m_wallops(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *message;
-
-  message = parc > 1 ? parv[1] : 0;
-
-  if (BadPtr(message))
-    return need_more_params(sptr, "WALLOPS");
-
-  if (!IsServer(sptr) && MyConnect(sptr) && !IsAnOper(sptr))
-  {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-    return 0;
+  sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :* %s", parv[0], parv[parc - 1]);
+  for (i = 0; i <= HighestFd; ++i) {
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && 
+         IsAnOper(acptr) && SendWallops(acptr))
+      sendbufto_one(acptr);
   }
-  sendto_ops_butone(IsServer(cptr) ? cptr : 0, sptr,
-      ":%s WALLOPS :%s", parv[0], message);
+  sendto_serv_butone(cptr, "%s%s " TOK_WALLOPS " :%s", NumNick(sptr), message);
   return 0;
 }
-#endif /* 0 */
 

@@ -255,7 +255,7 @@ void add_gline(struct Client *sptr, int ip_mask, char *host, char *comment,
 
         /* let the ops know about my first kill */
         sendto_op_mask(SNO_GLINE, "G-line active for %s",
-            get_client_name(acptr, TRUE));
+            get_client_name(acptr, SHOW_IP));
 
         /* and get rid of him */
         if (sptr != acptr)

@@ -127,6 +127,9 @@ struct Client;
 #define MSG_WALLOPS             "WALLOPS"       /* WALL */
 #define TOK_WALLOPS             "WA"
 
+#define MSG_WALLUSERS           "WALLUSERS"     /* WALL */
+#define TOK_WALLUSERS           "WU"
+
 #define MSG_DESYNCH             "DESYNCH"       /* DESY */
 #define TOK_DESYNCH             "DS"
 

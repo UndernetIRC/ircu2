@@ -98,6 +98,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -233,6 +234,9 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     case 'L':
     case 'l':
+#ifdef HEAD_IN_SAND_STATS_L
+	return m_not_oper(sptr,cptr,parc,parv);
+#else
     {
       int doall = 0, wilds = 0;
       char *name = "*";
@@ -283,12 +287,20 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
       break;
     }
+#endif
     case 'C':
     case 'c':
+#ifdef HEAD_IN_SAND_STATS_C
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_SERVER);
+#endif
       break;
     case 'G':
     case 'g': /* send glines */
+#ifdef HEAD_IN_SAND_STATS_G
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       gline_remove_expired(TStime());
       for (gline = GlobalGlineList; gline; gline = gline->next) {
         sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
@@ -296,14 +308,22 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                    gline->expire, gline->reason);
       }
       break;
+#endif
     case 'H':
     case 'h':
+#ifdef HEAD_IN_SAND_STATS_H
+      return m_not_oper(sptr,cptr,parc,parv);
+#endif
       break;
     case 'I':
     case 'i':
     case 'K':
     case 'k':                   /* display CONF_IPKILL as well
                                    as CONF_KILL -Kev */
+#ifdef HEAD_IN_SAND_STATS_I
+    /* Simple version - if you want to fix it - send in a patch */
+    return m_not_oper(sptr,cptr,parc,parv);
+#endif
     {
       int wilds, count;
       char *user, *host, *p;
@@ -397,34 +417,32 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     }
     case 'M':
+#ifdef HEAD_IN_SAND_STATS_M
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #if !defined(NDEBUG)
       sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
           me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
 #endif
-
-#if 0
-#ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
-          me.name, parv[0], get_mem_size(), get_alloc_cnt());
 #endif
-#ifdef MEMLEAKSTATS
-      report_memleak_stats(sptr, parc, parv);
-#endif
-#if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring "
-          "is not enabled on this server", me.name, parv[0]);
-#endif
-#endif /* 0 */
       break;
     case 'm':
+#ifdef HEAD_IN_SAND_STATS_m
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
           sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
               me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
       break;
+#endif
     case 'o':
     case 'O':
+#ifdef HEAD_IN_SAND_STATS_O
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_OPS);
+#endif
       break;
     case 'p':
     case 'P':
@@ -434,34 +452,64 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * interpret the fourth parameter as the port number, limit non-local
        * or non-oper results to 8 ports.
        */ 
+#ifdef HEAD_IN_SAND_STATS_P
+      return m_not_oper(sptr,cptr,parc,parv)
+#else
       show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
                  (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);
+#endif
       break;
     case 'R':
     case 'r':
+#ifdef HEAD_IN_SAND_STATS_R
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #ifdef DEBUGMODE
       send_usage(sptr, parv[0]);
 #endif
+#endif
       break;
     case 'D':
+#ifdef HEAD_IN_SAND_STATS_D
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_CRULEALL);
       break;
+#endif
     case 'd':
+#ifdef HEAD_IN_SAND_STATS_d
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_CRULE);
+#endif
       break;
     case 't':
+#ifdef HEAD_IN_SAND_STATS_t
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       tstats(sptr, parv[0]);
+#endif
       break;
     case 'T':
+#ifdef HEAD_IN_SAND_STATS_T
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_TLINES);
+#endif
       break;
     case 'U':
+#ifdef HEAD_IN_SAND_STATS_U
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_UWORLD);
+#endif
       break;
     case 'u':
+#ifdef HEAD_IN_SAND_STATS_u
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
     {
       time_t nowr;
-
       nowr = CurrentTime - me.since;
       sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0],
           nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
@@ -469,23 +517,40 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           max_connection_count, max_client_count);
       break;
     }
+#endif
     case 'W':
     case 'w':
+#ifdef HEAD_IN_SAND_STATS_W
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       calc_load(sptr);
       break;
+#endif
     case 'X':
     case 'x':
+#ifdef HEAD_IN_SAND_STATS_X
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #ifdef  DEBUGMODE
       send_listinfo(sptr, parv[0]);
+#endif
 #endif
       break;
     case 'Y':
     case 'y':
+#ifdef HEAD_IN_SAND_STATS_Y
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_classes(sptr);
+#endif
       break;
     case 'Z':
     case 'z':
+#ifdef HEAD_IN_SAND_STATS_Z
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       count_memory(sptr, parv[0]);
+#endif
       break;
     default:
       stat = '*';
