@@ -258,7 +258,7 @@ static Numeric numeric_errors[] = {
 /* 497 */
     {0, (char *)NULL},
 /* 498 */
-    {0, (char *)NULL},
+    {ERR_ISOPERLCHAN, "%s %s :Cannot kick or deop an IRC Operator on a local channel"},
 /* 499 */
     {0, (char *)NULL},
 /* 500 */

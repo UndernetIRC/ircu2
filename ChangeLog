@@ -1,12 +1,15 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.3 1999-11-28 01:36:25 danny Exp $
+# $Id: ChangeLog,v 1.4 1999-11-29 00:26:41 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* config-sh.in, channel.h, numeric.h, channel.c, s_debug.c, s_err.c:
+  add lchanmode patch by CaptJay, add symbols to incredibly long
+  feature string. Bump patchlevel to .03 --Bleep
 * list.h list.c s_conf.h s_conf.c opercmds.c:
   badchan patch 2 seperate settings, allow global, and allow local.
   currently allow_local is 'unapproved' for use on undernet. --WildThang

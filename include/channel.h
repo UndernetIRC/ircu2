@@ -99,6 +99,10 @@
 #define IsChannelName(name)	(*(name) == '#' || \
 				IsModelessChannel(name) || IsLocalChannel(name))
 
+/* Check if a sptr is an oper, and chptr is a local channel. */
+
+#define IsOperOnLocalChannel(sptr,chname) ((IsOper(sptr)) && (IsLocalChannel(chname)))
+
 /* used in SetMode() in channel.c and m_umode() in s_msg.c */
 
 #define MODE_NULL      0
