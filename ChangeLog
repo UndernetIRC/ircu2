@@ -1,3 +1,10 @@
+2000-10-30  Isomer <isomer@coders.net>
+
+	* ircd/m_topic.c: Fixed bug where we'd only send to clients topics
+	that were the *same* instead of different.  Oh the embarrasment!
+
+	* ircd/IPcheck.c: Merged net's fix.
+
 2000-11-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_whois.c: remove compiler warning by adding a newline to
