@@ -1,5 +1,8 @@
 2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_events.c (socket_events): don't call the engine events
+	changer if we haven't actually made any changes to the event mask
+
 	* ircd/uping.c: add some Debug messages
 
 	* ircd/s_stats.c: document new /STATS e

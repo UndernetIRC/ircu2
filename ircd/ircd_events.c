@@ -567,6 +567,9 @@ socket_events(struct Socket* sock, unsigned int events)
     break;
   }
 
+  if (sock->s_events == new_events)
+    return; /* no changes have been made */
+
   /* tell engine about event mask change */
   (*evInfo.engine->eng_events)(sock, new_events);
 
