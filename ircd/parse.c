@@ -1026,7 +1026,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       sprintf_irc(sendbuf, ":%s WALLOPS :Missing prefix from %s", me.name,
 		  cptr->name);
       for (i = 0; i <= HighestFd; i++)
-	if (LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr)
+	if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr)
 	    && SendDebug(acptr))
 	  sendbufto_one(acptr);
       /* Send message to remote +g clients */
