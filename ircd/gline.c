@@ -347,16 +347,19 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
     host = 0;
   } else if (*userhost == '$' 
 # ifndef NO_OLD_GLINE
-	|| userhost[2] == '$'
+  || userhost[2] == '$'
 # endif /* OLD_GLINE */
-	) {
-	  switch (*userhost == '$' ? userhost[1] : userhost[3]) {
-		  case 'R': flags |= GLINE_REALNAME; break;
-		  default:
-			    /* uh, what to do here? */
-			    break;
-	  }
-	  user = (*userhost =='$' ? userhost : userhost+2);
+  ) {
+    switch (*userhost == '$' ? userhost[1] : userhost[3]) {
+      case 'R': flags |= GLINE_REALNAME; break;
+      default:
+        /* uh, what to do here? */
+        /* The answer, my dear Watson, is we throw a protocol_violation()
+           -- hikari */
+        return protocol_violation(sptr,"%s has been smoking the sweet leaf and sent me a whacky gline",cli_name(sptr));
+        break;
+    }
+     user = (*userhost =='$' ? userhost : userhost+2);
   } else {
     canon_userhost(userhost, &user, &host, "*");
     if (sizeof(uhmask) <

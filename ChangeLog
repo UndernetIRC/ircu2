@@ -1,3 +1,8 @@
+2003-08-28 hikari <shadow@undernet.org>
+	* ircd/gline.c: Throw a protocol_violation if we get sent an
+	invalid GLINE with $ in it (suspected cause of recent core where
+	a GLINE was missing the R after $ to denote relanme.
+
 2003-07-13 hikari <shadow@undernet.org>
 	* ircd/IPcheck.c: Fixed (another) overflow problem in
 	ip_registry_check_local()
