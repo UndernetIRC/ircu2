@@ -3587,6 +3587,9 @@ mode_parse_client(struct ParseState *state, int *flag_p)
   else
     acptr = findNUser(t_str);
 
+  if (!acptr)
+    return; /* find_chasing() already reported an error to the user */
+
   for (i = 0; i < MAXPARA; i++) /* find an element to stick them in */
     if (!state->cli_change[i].flag || (state->cli_change[i].client == acptr &&
 				       state->cli_change[i].flag & flag_p[0]))
