@@ -158,6 +158,12 @@ char serveropts[] = {
 #ifdef	VIRTUAL_HOST
     'v',
 #endif
+#ifdef WT_BADCHAN
+   'W',
+#ifdef WT_LOCAL_BADCHAN
+   't',
+#endif
+#endif
 #ifdef	UNIXPORT
     'X',
 #endif

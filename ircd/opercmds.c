@@ -1470,26 +1470,37 @@ static void add_gline(aClient *sptr, int ip_mask, char *host, char *comment,
 {
   aClient *acptr;
   aGline *agline;
-  int fd;
+  int fd,gtype=0;
 
+#ifdef WT_BADCHAN
+  if(*host=='#')
+    gtype=1;	/* BAD CHANNEL */
+#endif
   /* Inform ops */
   sendto_op_mask(SNO_GLINE,
-      "%s adding %sGLINE for %s@%s, expiring at " TIME_T_FMT ": %s", sptr->name,
-      local ? "local " : "", user, host, expire, comment);
+      "%s adding %s%s for %s@%s, expiring at " TIME_T_FMT ": %s", sptr->name,
+      local ? "local " : "",
+      gtype ? "BADCHAN":"GLINE", user, host, expire, comment);
 
 #ifdef GPATH
   write_log(GPATH,
-      "# " TIME_T_FMT " %s adding %s GLINE for %s@%s, expiring at " TIME_T_FMT
+      "# " TIME_T_FMT " %s adding %s %s for %s@%s, expiring at " TIME_T_FMT
       ": %s\n", TStime(), sptr->name, local ? "local" : "global",
-      user, host, expire, comment);
+      gtype ? "BADCHAN" : "GLINE", user, host, expire, comment);
 
   /* this can be inserted into the conf */
-  write_log(GPATH, "%c:%s:%s:%s\n", ip_mask ? 'k' : 'K', host, comment, user);
+  if(!gtype)
+    write_log(GPATH, "%c:%s:%s:%s\n", ip_mask ? 'k' : 'K', host, comment, 
+      user);
 #endif /* GPATH */
 
   agline = make_gline(ip_mask, host, comment, user, expire);
   if (local)
     SetGlineIsLocal(agline);
+
+#ifdef WT_BADCHAN
+  if(gtype) return;
+#endif
 
   for (fd = highest_fd; fd >= 0; --fd)	/* get the users! */
     if ((acptr = loc_clients[fd]) && !IsMe(acptr))
@@ -1548,7 +1559,7 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
   aGline *agline, *a2gline;
   char *user, *host;
-  int active, ip_mask;
+  int active, ip_mask,gtype = 0;
   time_t expire = 0;
 
   /* Remove expired G-lines */
@@ -1564,6 +1575,23 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
     }
     a2gline = agline;
   }
+
+#ifdef WT_BADCHAN
+  /* Remove expired bad channels */
+  for (agline = badchan, a2gline = NULL; agline; agline = agline->next)
+  {
+    if (agline->expire <= TStime())
+    {
+      free_gline(agline, a2gline);
+      agline = a2gline ? a2gline : badchan;
+      if (!agline)
+        break;
+      continue;
+    }
+    a2gline = agline;
+  }
+#endif
+
 
   if (IsServer(cptr))
   {
@@ -1585,9 +1613,9 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	parv[2]++;		/* step past mode indicator */
 
       /* forward the message appropriately */
-      if (!strCasediff(parv[1], "*"))
+      if (!strCasediff(parv[1], "*"))	/* global! */
 	sendto_serv_butone(cptr, active ? ":%s GLINE %s +%s %s :%s" :
-	    ":%s GLINE %s -%s", parv[0], parv[1], parv[2], parv[3], parv[4]);	/* global! */
+	    ":%s GLINE %s -%s", parv[0], parv[1], parv[2], parv[3], parv[4]);
       else if ((
 #if 1
 	  /*
@@ -1625,8 +1653,12 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	*(host++) = '\0';	/* break up string at the '@' */
       }
       ip_mask = check_if_ipmask(host);	/* Store this boolean */
+#ifdef WT_BADCHAN
+      if(*host == '#') gtype=1;		/* BAD CHANNEL GLINE */
+#endif
 
-      for (agline = gline, a2gline = NULL; agline; agline = agline->next)
+      for (agline = (gtype)?badchan:gline, a2gline = NULL; agline; 
+           agline = agline->next)
       {
 	if (!strCasediff(agline->name, user)
 	    && !strCasediff(agline->host, host))
@@ -1636,12 +1668,14 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
       if (!active && agline)
       {				/* removing the gline */
-	sendto_op_mask(SNO_GLINE, "%s removing GLINE for %s@%s", parv[0],
-	    agline->name, agline->host);	/* notify opers */
+	/* notify opers */
+	sendto_op_mask(SNO_GLINE, "%s removing %s for %s@%s", parv[0],
+	    gtype?"BADCHAN":"GLINE",agline->name, agline->host);
 
 #ifdef GPATH
-	write_log(GPATH, "# " TIME_T_FMT " %s removing GLINE for %s@%s\n",
-	    TStime(), parv[0], agline->name, agline->host);
+	write_log(GPATH, "# " TIME_T_FMT " %s removing %s for %s@%s\n",
+	    TStime(), parv[0], gtype?"BADCHAN":"GLINE",agline->name, 
+            agline->host);
 #endif /* GPATH */
 
 	free_gline(agline, a2gline);	/* remove the gline */
@@ -1653,20 +1687,22 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	{			/* new expire time? */
 	  /* yes, notify the opers */
 	  sendto_op_mask(SNO_GLINE,
-	      "%s resetting expiration time on GLINE for %s@%s to " TIME_T_FMT,
-	      parv[0], agline->name, agline->host, expire);
+	      "%s resetting expiration time on %s for %s@%s to " TIME_T_FMT,
+	      parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host, 
+              expire);
 
 #ifdef GPATH
 	  write_log(GPATH, "# " TIME_T_FMT " %s resetting expiration time "
-	      "on GLINE for %s@%s to " TIME_T_FMT "\n",
-	      TStime(), parv[0], agline->name, agline->host, expire);
+	      "on %s for %s@%s to " TIME_T_FMT "\n",
+	      TStime(), parv[0], gtype?"BADCHAN":"GLINE",
+               agline->name, agline->host, expire);
 #endif /* GPATH */
 
 	  agline->expire = expire;	/* reset the expire time */
 	}
 	else if (!agline)
 	{			/* create gline */
-	  for (agline = gline; agline; agline = agline->next)
+	  for (agline = gtype?badchan:gline; agline; agline = agline->next)
 	    if (!mmatch(agline->name, user) &&
 		(ip_mask ? GlineIsIpMask(agline) : !GlineIsIpMask(agline)) &&
 		!mmatch(agline->host, host))
@@ -1731,8 +1767,17 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
       *(host++) = '\0';		/* break up string at the '@' */
     }
     ip_mask = check_if_ipmask(host);	/* Store this boolean */
+#ifdef WT_BADCHAN
+    if(*host == '#')
+#ifndef WT_LOCAL_BADCHAN
+     return 0;
+#else
+     gtype=1;	/* BAD CHANNEL */
+#endif
+#endif
 
-    for (agline = gline, a2gline = NULL; agline; agline = agline->next)
+    for (agline = gtype?badchan:gline, a2gline = NULL; agline; 
+      agline = agline->next)
     {
       if (!mmatch(agline->name, user) &&
 	  (ip_mask ? GlineIsIpMask(agline) : !GlineIsIpMask(agline)) &&
@@ -1787,12 +1832,13 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
       else if (GlineIsLocal(agline))
       {
 	/* Remove local G-line */
-	sendto_op_mask(SNO_GLINE, "%s removed local GLINE for %s@%s",
-	    parv[0], agline->name, agline->host);
+	sendto_op_mask(SNO_GLINE, "%s removed local %s for %s@%s",
+	    parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host);
 #ifdef GPATH
 	write_log(GPATH, "# " TIME_T_FMT
-	    " %s!%s@%s removed local GLINE for %s@%s\n",
+	    " %s!%s@%s removed local %s for %s@%s\n",
 	    TStime(), parv[0], cptr->user->username, cptr->user->host,
+	    gtype?"BADCHAN":"GLINE",
 	    agline->name, agline->host);
 #endif /* GPATH */
 	free_gline(agline, a2gline);	/* remove the gline */
@@ -1811,30 +1857,32 @@ int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
     /* inform the operators what's up */
     if (active != -1)
     {				/* changing the activation */
-      sendto_op_mask(SNO_GLINE, !expire ? "%s %sactivating GLINE for %s@%s" :
-	  "%s %sactivating GLINE for %s@%s and "
+      sendto_op_mask(SNO_GLINE, !expire ? "%s %sactivating %s for %s@%s" :
+	  "%s %sactivating %s for %s@%s and "
 	  "resetting expiration time to " TIME_T_FMT,
-	  parv[0], active ? "re" : "de", agline->name,
+	  parv[0], active ? "re" : "de", gtype?"BADCHAN":"GLINE",agline->name,
 	  agline->host, agline->expire);
 #ifdef GPATH
       write_log(GPATH, !expire ? "# " TIME_T_FMT " %s!%s@%s %sactivating "
-	  "GLINE for %s@%s\n" : "# " TIME_T_FMT " %s!%s@%s %sactivating GLINE "
+	  "%s for %s@%s\n" : "# " TIME_T_FMT " %s!%s@%s %sactivating %s "
 	  "for %s@%s and resetting expiration time to " TIME_T_FMT "\n",
 	  TStime(), parv[0], cptr->user->username, cptr->user->host,
-	  active ? "re" : "de", agline->name, agline->host, agline->expire);
+	  active ? "re" : "de", gtype?"BADCHAN":"GLINE",agline->name, 
+          agline->host, agline->expire);
 #endif /* GPATH */
 
     }
     else if (expire)
     {				/* changing only the expiration */
       sendto_op_mask(SNO_GLINE,
-	  "%s resetting expiration time on GLINE for %s@%s to " TIME_T_FMT,
-	  parv[0], agline->name, agline->host, agline->expire);
+	  "%s resetting expiration time on %s for %s@%s to " TIME_T_FMT,
+	  parv[0], gtype?"BADCHAN":"GLINE",agline->name, agline->host, 
+          agline->expire);
 #ifdef GPATH
       write_log(GPATH, "# " TIME_T_FMT " %s!%s@%s resetting expiration "
-	  "time on GLINE for %s@%s to " TIME_T_FMT "\n", TStime(), parv[0],
-	  cptr->user->username, cptr->user->host, agline->name,
-	  agline->host, agline->expire);
+	  "time on %s for %s@%s to " TIME_T_FMT "\n", TStime(), parv[0],
+	  cptr->user->username, cptr->user->host,gtype?"BADCHAN":"GLINE",
+	  agline->name, agline->host, agline->expire);
 #endif /* GPATH */
     }
   }

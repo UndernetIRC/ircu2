@@ -116,6 +116,7 @@ extern aMotdItem *read_motd(char *motdfile);
 
 extern aConfItem *conf;
 extern aGline *gline;
+extern aGline *badchan;
 extern struct tm motd_tm;
 extern aMotdItem *motd;
 extern aMotdItem *rmotd;
