@@ -32,22 +32,24 @@
 /* 
  * 'Features' supported by this ircd
  */
-#define FEATURES "SILENCE=15"\
+#define FEATURES \
                 " WHOX"\
                 " WALLCHOPS"\
                 " USERIP"\
                 " CPRIVMSG"\
                 " CNOTICE"\
+                " MAP" \
+                " SILENCE=%i " \
                 " MODES=%i" \
                 " MAXCHANNELS=%i" \
                 " MAXBANS=%i" \
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " KICKLEN=%i" \
-                " MAP"
+                " CHANTYPES=%s"
                  
-#define FEATURESVALUES MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
-        NICKLEN,TOPICLEN,TOPICLEN
+#define FEATURESVALUES 15,MAXMODEPARAMS,MAXCHANNELSPERUSER,MAXBANS, \
+        NICKLEN,TOPICLEN,TOPICLEN,"+#&"
 
 #endif /* INCLUDED_supported_h */
 

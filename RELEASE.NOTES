@@ -68,13 +68,27 @@ run make config.
 -DEXTENDED_NUMERICS This option configures the server to send
 extended numerics as well as parse them. This option should only
 be used on networks that run ircu2.10.07 and above only.
--DFERGUSON_FLUSHER If you have a server with a lot of resources
-available this option will cause the server to attempt to flush
+-DFERGUSON_FLUSHER This causes your server to attempt to flush
 it's internal buffers before dropping clients during a netbreak.
-Don't define this if you don't know, if you're not careful this
-can end up rebooting FreeBSD boxes.
+This option *may* panic your server - especially if your running
+on a unconfigured FreeBSD box.  If you can define this we recommend
+you do - but beware of spontanious reboots on netbreak.
 -DWALLOPS_OPER_ONLY Setting this option removes the ability for
 clients that are not opered to see wallops messages.
+-DNOOPER Disallow the /oper command.
+
+There are a few to be used for debugging or other networks.  These
+should *NOT* be defined on the undernet production network.
+
+-DNICKLEN=15 This allows you do override the default nick length
+to 15 characters.  If this has different values on different servers
+your network *WILL* fall apart.  Only use this option if you know
+what your doing. If you don't, ask in #coder-com on undernet.
+-DNO_THROTTLE This disables the throttling code.  This is used for
+debugging *only*.  It lets you connect up to 255 clients from one
+host with no time conciderations.  If this is enabled on a 
+production server I will personally drive your server into the 
+ground.  You have been warned.
 
 Operating System and Kernel Requirements:
 If you plan allowing more than 1000 clients on your server, you

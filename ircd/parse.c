@@ -354,7 +354,11 @@ struct Message msgtab[] = {
     TOK_OPER,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifndef NOOPER    
     { m_unregistered, m_oper, ms_oper, mo_oper, m_ignore }
+#else
+    { m_unregistered, m_oper, m_ignore, m_ignore, m_ignore }
+#endif
   },
   {
     MSG_CONNECT,

@@ -1,3 +1,9 @@
+2000-04-28  Perry Lorier <isomer@coders.net>
+	* RELEASE.NOTES: Describe a few more undocumented features.
+	* config/config-sh.in: change the default paths for logging
+	and the recommended number of channels.
+	* include/supported.h: Rearrange slightly, added CHANTYPE's
+
 2000-04-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_misc.c: *sigh* 2.10.10 doesn't support squitting by
@@ -31,6 +37,7 @@
 	conversions; use ircd_snprintf in a couple of cases to negate the
 	possibility of buffer overflow
 
+>>>>>>> 1.106
 2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: convert as much as possible to new send
@@ -827,7 +834,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.106 2000-04-27 20:24:11 kev Exp $
+# $Id: ChangeLog,v 1.107 2000-04-27 23:05:41 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
