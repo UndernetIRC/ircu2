@@ -366,16 +366,26 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* If remote queries are disabled, then use the *second* parameter of
      * of whois, so /whois nick nick still works.
      */
-    acptr = FindUser(parv[2]);
-#else
-    acptr = FindUser(parv[1]);
+    if (!IsOper(sptr))
+      parv[1] = parv[2];
 #endif
-    if (acptr)
-      parv[1] = cli_name(cli_user(acptr)->server);
-    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
-        HUNTED_ISME)
+
+    acptr = FindUser(parv[1]);
+
+    if (IsOper(sptr) && !(acptr))
+    {
+      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
       return 0;
-    parv[1] = parv[2];
+    }
+    
+    if (acptr)
+    {
+      parv[1] = cli_name(cli_user(acptr)->server);
+      if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
+         HUNTED_ISME)
+      return 0;
+      parv[1] = parv[2];
+    }
   }
 
   for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
@@ -481,3 +491,4 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
+
