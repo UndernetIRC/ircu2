@@ -1,3 +1,7 @@
+2000-03-27  Perry Lorier <isomer@coders.net>
+
+	* ircd/s_bsd.c: fixed missing 'u' typo.
+
 2000-03-26  Kevin L. Mitchell  <klmitch@emc.com>
 
 	* ircd/channel.c: implement modebuf_init(), _mode(), _mode_uint(),
@@ -10,7 +14,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.23 2000-03-27 04:36:11 kev Exp $
+# $Id: ChangeLog,v 1.24 2000-03-27 06:19:37 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
