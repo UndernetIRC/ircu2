@@ -408,6 +408,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
   struct SLink* tmp;
+  char          tmphost[HOSTLEN + 1];
   char          nu_host[NUH_BUFSIZE];
   char          nu_realhost[NUH_BUFSIZE];
   char          nu_ip[NUI_BUFSIZE];
@@ -423,10 +424,20 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
 
   s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
 			  (cli_user(cptr))->host);
-  if (HasHiddenHost(cptr))
-    sr = make_nick_user_host(nu_realhost, cli_name(cptr),
-			     (cli_user(cptr))->username,
-			     cli_user(cptr)->realhost);
+
+  if (cli_flags(cptr) & FLAGS_ACCOUNT) {
+     if (HasHiddenHost(cptr))
+        sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                                cli_user(cptr)->username,
+                                cli_user(cptr)->realhost);
+     else {
+        ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
+                      cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+        sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+                                 cli_user(cptr)->username,
+                                 tmphost);
+     }
+  }
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
     if ((tmp->flags & CHFL_BAN_IPMASK)) {

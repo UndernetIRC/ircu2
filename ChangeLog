@@ -1,3 +1,13 @@
+2002-10-15  Tim Vogelsang <net@astrolink.org>
+
+       * ircd/channel.c (is_banned): users that are using account and not
+       using the hidden host feature should have their accounts checked
+       against other hidden hosts banned in a attempted channel join
+
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* include/patchlevel.h (PATCHLEVEL): branch u2.10.11.03
+
 2002-10-10  Perry Lorier <isomer@undernet.org>
 
 	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.02
