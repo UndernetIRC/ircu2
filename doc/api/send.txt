@@ -1,0 +1,231 @@
+The send functions are perhaps the most important API in all of ircd;
+without them, communications would not be possible.  Most of these
+functions are pretty much stand-alone, although one or two are
+intended for use in conjunction with the MsgQ interface.  The send
+functions use the MsgQ interface internally, but for the most part,
+this fact is hidden from the caller.
+
+Command tokenization provides the greatest complication.  The
+functions do use ircd_snprintf() internally, so the use of numerics
+doesn't increase that complication.  The tokenization issue is dealt
+with by making each function accept two char* pointers, _cmd_ and
+_tok_, in that order, and then defining a CMD_* macro in msg.h that
+contains the message string and the token string in that order.  When
+one of these functions is called, it determines whether the
+destination will be a server or a user, then selects the correct one,
+either _cmd_ or _tok_, for that message.
+
+The MsgQ interface provides the concept of a priority queue; messages
+which must be sent as soon as possible, regardless of what other
+messages may already be in the queue.  The sendcmdto_prio_one() and
+sendcmdto_flag_butone() functions make use of this priority queue.
+The function send_buffer() also takes a _prio_ argument that should be
+non-zero if the message passed to it should be placed in the priority
+queue.
+
+<macro>
+#define SKIP_DEAF	0x01	/* skip users that are +d */
+
+This flag may be passed to sendcmdto_channel_butone() to cause a
+message passed by that function to skip users that are +d.  See the
+documentation for sendcmdto_channel_butone() for more information.
+</macro>
+
+<macro>
+#define SKIP_BURST	0x02	/* skip users that are bursting */
+
+This is another flag that may be passed to
+sendcmdto_channel_butone().  Its purpose is to cause the server to not
+send the message across a link that is still in the "burst" stage of
+network junction.  See the documentation for
+sendcmdto_channel_butone() for more information.
+</macro>
+
+<macro>
+#define SKIP_NONOPS	0x04	/* skip users that aren't chanops */
+
+Some messages may need to be passed only to channel operators.  This
+flag is passed to sendcmdto_channel_butone() when that is the case.
+See the documentation for sendcmdto_channel_butone() for more
+information.
+</macro>
+
+<function>
+void send_buffer(struct Client* to, struct MsgBuf* buf, int prio);
+
+Some applications may need to build a message piece by piece, directly
+utilizing the MsgQ interface.  The function send_buffer() is used when
+that message has been completed to place the message on a client's
+queue.  See the documentation for the MsgQ interface for more
+information about struct MsgBuf and the _buf_ parameter.
+</function>
+
+<function>
+void flush_connections(struct Client* cptr);
+
+This function attempts to send all queued data to a client specified
+by _cptr_.  If _cptr_ is 0, all clients with non-empty send queues
+will have their queues flushed.
+</function>
+
+<function>
+void send_queued(struct Client *to);
+
+This function attempts to send all queued data to a client specified
+by _to_.  The _to_ parameter is not permitted to be 0.  This is the
+function called by flush_connections().
+</function>
+
+<function>
+void sendrawto_one(struct Client *to, const char *pattern, ...);
+
+Most of the actual send functions in this API send their data with a
+prefix--the numeric of the origin.  This function is used when a
+message should be sent _without_ that prefix.  The caller must specify
+the complete message, including the exact command, with the _pattern_
+argument and the variable argument list following it.
+</function>
+
+<function>
+void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
+		   struct Client *to, const char *pattern, ...);
+
+This function is used for sending messages to specific clients.  The
+origin of the message is specified using the _from_ parameter; this
+will be used to formulate the origin.  As mentioned above, _cmd_ and
+_tok_ are used to determine the command and token to be used.  The
+_to_ parameter specifies which client the message should be sent to.
+The origin and command will be formatted and followed by a space; the
+given _pattern_ and the following arguments are passed to
+ircd_snprintf() for formatting.
+</function>
+
+<function>
+void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
+			struct Client *to, const char *pattern, ...);
+
+This function is identical to sendcmdto_one() except that messages
+formatted using it will be placed onto the priority queue.
+</function>
+
+<function>
+void sendcmdto_serv_butone(struct Client *from, const char *cmd,
+			   const char *tok, struct Client *one,
+			   const char *pattern, ...);
+
+This function treats its arguments similar to sendcmdto_one() does.
+Messages passed created with this function are sent to all directly
+linked servers except for the _one_ passed.  If _one_ is 0, the
+message is sent to all linked servers.
+</function>
+
+<function>
+void sendcmdto_common_channels(struct Client *from, const char *cmd,
+			       const char *tok, const char *pattern, ...);
+
+When a user quits IRC, all of the other users on the channels that the
+user is on must receive a single QUIT message.  This function formats
+the message, under control of _from_ (for the origin prefix), _cmd_
+and _tok_, and _pattern_ and the variable argument list, and sends
+that message to all local users on the same channels as the user
+specified by _from_.  This function does not send any messages across
+server<->server links.
+</function>
+
+<function>
+void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
+			       const char *tok, struct Channel *to,
+			       const char *pattern, ...);
+
+This function is used to send a command to every local user on a
+particular channel, specified by _to_.  No messages are sent across
+the server<->server links.
+</function>
+
+<function>
+void sendcmdto_channel_butone(struct Client *from, const char *cmd,
+			      const char *tok, struct Channel *to,
+			      struct Client *one, unsigned int skip,
+			      const char *pattern, ...);
+
+This function is used mostly for sending PRIVMSG commands to
+particular channels.  The users that receive the message are under the
+control of the _skip_ parameter, which is a binary OR of the
+SKIP_DEAF, SKIP_BURST, and SKIP_NONOPS flags, depending on what
+channel users should see the message.  This function sends messages
+across both client<->server and server<->server links, as needed.  The
+client specified by _one_ will not receive a copy of the message.
+</function>
+
+<function>
+void sendcmdto_flag_butone(struct Client *from, const char *cmd,
+			   const char *tok, struct Client *one,
+			   unsigned int flag, const char *pattern, ...);
+
+This function is used for sending messages to clients with specific
+user modes set (specified by the _flag_ parameter).  Three flags make
+sense for this function: FLAGS_WALLOP (user mode +w), FLAGS_DEBUG
+(user mode +g), and FLAGS_OPER.  FLAGS_OPER has a special meaning that
+further restricts distribution of the message only to IRC operators.
+For the purposes of this function, no distinction is made between
+global operators and local operators.
+</function>
+
+<function>
+void sendcmdto_match_butone(struct Client *from, const char *cmd,
+			    const char *tok, const char *to,
+			    struct Client *one, unsigned int who,
+			    const char *pattern, ...);
+
+Certain kinds of global messages may be sent by IRC operators.  This
+function implements those global messages.  The _to_ parameter is used
+to specify a pattern by which to filter users, while _who_ specifies
+whether that pattern is to be applied to the user's server name or to
+the user's host name.  The _who_ parameter may be one of MATCH_SERVER
+or MATCH_HOST; these two macros are defined in s_user.h.  The _one_
+parameter will not receive a copy of the message.
+</function>
+
+<function>
+void sendto_opmask_butone(struct Client *one, unsigned int mask,
+			  const char *pattern, ...);
+
+The sendto_opmask_butone() function sends a server notice to all
+subscribing users except for _one_.  The _mask_ parameter is one of
+the SNO_* values defined in client.h and is used for selection of
+subscribing users.
+</function>
+
+<function>
+void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+			   const char *pattern, va_list vl);
+
+The vsendto_opmask_butone() function is identical to the
+sendto_opmask_butone() function except that instead of a variable
+argument list, it takes a va_list, specified by _vl_.
+</function>
+
+<macro>
+#define SND_EXPLICIT	0x40000000	/* first arg is a pattern to use */
+
+When this flag, defined in ircd_reply.h, is combined with the _reply_
+argument to the send_reply() function, the format string send_reply()
+uses is obtained from the first argument in the variable argument list
+passed to that function, rather than from the table of replies.
+</macro>
+
+<function>
+int send_reply(struct Client* to, int reply, ...);
+
+The send_reply() function, declared in ircd_reply.h, is used to send
+clients numeric replies.  Unless SND_EXPLICIT is used, the pattern
+will be extracted from a table of replies.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation for the send functions.
+</changelog>

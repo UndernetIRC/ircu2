@@ -1,0 +1,74 @@
+The server has a Message of the Day (MOTD) which is often used for
+describing the Acceptable Usage Policy, where to get help if you have
+problems, and so on.  Older versions of ircd had a lot of duplicated
+code, as well as some inefficiencies, all related to sending the
+MOTD.  As of u2.10.11, there is an API specifically for MOTDs.  This
+API caches the MOTDs in memory for efficiency.  Sending a MOTD to a
+client is as simple as calling a single function.
+
+<function>
+void motd_init(void);
+
+This function initializes the MOTD subsystem.  It will also read in
+the default MOTD (usually ircd.motd) and the remote MOTD (usually
+remote.motd) files.
+</function>
+
+<function>
+int motd_send(struct Client* cptr);
+
+This function sends an appropriate MOTD to the client specified by
+_cptr_.  If _cptr_ is not a local client, the remote MOTD will be
+sent; otherwise, an attempt will be made to find a T-line in the
+configuration file that matches the client.  If no T-line can be
+found, the default MOTD will be sent to the client.  This function
+returns 0 for the convenience of other functions that must have an
+integer return value.
+</function>
+
+<function>
+void motd_signon(struct Client* cptr);
+
+This function is similar to motd_send(), described above, except that
+it will only send a message to the client indicating when the MOTD was
+last modified if the FEAT_NODEFAULTMOTD feature is set to TRUE.
+</function>
+
+<function>
+void motd_recache(void);
+
+The MOTD system will not automatically detect when MOTD files have
+been modified.  This function causes the MOTD system to clear the MOTD
+cache and re-read the files.
+</function>
+
+<function>
+void motd_add(const char *hostmask, const char *path);
+
+This function is used to add a MOTD to be sent to clients possessing a
+given _hostmask_.  If _hostmask_ is a numerical string, it is
+interpreted as a connection class.
+</function>
+
+<function>
+void motd_clear(void);
+
+This function clears the list of special MOTDs.  Only the default MOTD
+and remote MOTD are not affected by this function.
+</function>
+
+<function>
+void motd_report(struct Client *to);
+
+The motd_report() function sends a list of the T-lines stored in
+memory to the client specified by _to_.  Access control should be
+handled by the caller.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation of the MOTD interface.
+</changelog>
