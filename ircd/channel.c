@@ -1399,7 +1399,15 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
     }
 }
 
-/** @page zombie Explaination of Zombies
+/** @page zombie Explanation of Zombies
+ *
+ * Synopsis:
+ *
+ * A channel member is turned into a zombie when he is kicked from a
+ * channel but his server has not acknowledged the kick.  Servers that
+ * see the member as a zombie can accept actions he performed before
+ * being kicked, without allowing chanop operations from outsiders or
+ * desyncing the network.
  *
  * Consider:
  * <pre>

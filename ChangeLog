@@ -1,3 +1,11 @@
+2005-01-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (@page zombie): Add synopsis to explain what
+	zombies are supposed to do.
+
+	* doc/example.conf (Features): Transfer recommended LOG features
+	from 2.10.11 example.conf.
+
 2005-01-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd.c (try_connections): Test Connect hold time before
