@@ -1,3 +1,14 @@
+2000-10-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: add "add" and "del" elements to ParseState to
+	avoid not-too-pretty -p+s when +s is sufficient; fix a bug in
+	mode_parse_limit that caused it to clear all channel modes
+	prematurely; restructure mode_parse_mode to avoid calling
+	modebuf_mode too early (ties in with first mentioned change);
+	better logic for +p/+s mutual exclusivity; initialize "add" and
+	"del" elements in mode_parse; send simple modes down to
+	modebuf_mode after the loop in mode_parse
+
 2000-09-28  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* ircd/m_names.c: Fixed a non-lethal logic error that 
 	triggers an assert() in find_member_link while debugging.
