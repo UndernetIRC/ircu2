@@ -1959,6 +1959,12 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
   /* Can't remove a limit that's not there */
   if (state->dir == MODE_DEL && !state->chptr->mode.limit)
     return;
+    
+  /* Skip if this is a burst and a lower limit than this is set already */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      (state->chptr->mode.mode & flag_p[0]) &&
+      (state->chptr->mode.limit < t_limit))
+    return;
 
   if (state->done & DONE_LIMIT) /* allow limit to be set only once */
     return;
@@ -2017,8 +2023,8 @@ mode_parse_key(struct ParseState *state, int *flag_p)
 
   /* clean up the key string */
   s = t_str;
-  while (*++s > ' ' && *s != ':' && --t_len)
-    ;
+  while (*s > ' ' && *s != ':' && t_len--)
+    s++;
   *s = '\0';
 
   if (!*t_str) { /* warn if empty */
@@ -2029,6 +2035,13 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   }
 
   if (!state->mbuf)
+    return;
+    
+  /* Skip if this is a burst, we have a key already and the new key is 
+   * after the old one alphabetically */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      *(state->chptr->mode.key) &&
+      ircd_strcmp(state->chptr->mode.key, t_str) <= 0)
     return;
 
   /* can't add a key if one is set, nor can one remove the wrong key */
@@ -2672,15 +2685,20 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
+    struct Membership *member = find_member_link(chan, jbuf->jb_source);
+    if (IsUserParting(member))
+      return;
+    SetUserParting(member);
+
     /* Send notification to channel */
     if (!(flags & CHFL_ZOMBIE))
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL,
 				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
-				":%H" : "%H :%s", chan, jbuf->jb_comment);
+				"%H" : "%H :%s", chan, jbuf->jb_comment);
     else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
 		    (flags & CHFL_BANNED || !jbuf->jb_comment) ?
-		    ":%H" : "%H :%s", chan, jbuf->jb_comment);
+		    "%H" : "%H :%s", chan, jbuf->jb_comment);
     /* XXX: Shouldn't we send a PART here anyway? */
     /* to users on the channel?  Why?  From their POV, the user isn't on
      * the channel anymore anyway.  We don't send to servers until below,

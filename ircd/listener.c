@@ -210,7 +210,8 @@ static int inetport(struct Listener* listener)
    * else has no effect whatsoever on the connection.
    * NOTE: this must be set before listen is called
    */
-  if (!os_set_sockbufs(fd, (listener->server) ? SERVER_TCP_WINDOW : CLIENT_TCP_WINDOW)) {
+  if (!os_set_sockbufs(fd, (listener->server) ? feature_int(FEAT_SOCKSENDBUF) : CLIENT_TCP_WINDOW,
+                           (listener->server) ? feature_int(FEAT_SOCKRECVBUF) : CLIENT_TCP_WINDOW)) {
     report_error(SETBUFS_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
     return 0;

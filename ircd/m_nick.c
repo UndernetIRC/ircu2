@@ -287,7 +287,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char           nick[NICKLEN + 2];
   time_t         lastnick = 0;
   int            differ = 1;
-
+  int            samelastnick = 0;
+  
   assert(0 != cptr);
   assert(0 != sptr);
   assert(IsServer(cptr));
@@ -458,7 +459,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	(!differ && lastnick <= cli_lastnick(acptr))) {
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
-	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (Nick collision)",
+	sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s (Nick collision)",
 			      sptr, cli_name(&me));
         assert(!MyConnect(sptr));
 
@@ -470,7 +471,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 	sptr = 0; /* Make sure we don't use the dead client */
 
-      }
+      } else {
+        /* We need to kill this incoming client, which hasn't been properly registered yet.
+         * Send a KILL message upstream to the server it came from  */
+        sendcmdto_one(&me, CMD_KILL, sptr, "%s :%s (Nick collision)", parv[parc-2], cli_name(&me));
+      } 
       /* If the two have the same TS then we want to kill both sides, so
        * don't leave yet!
        */
@@ -482,11 +487,15 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   ++ServerStats->is_kill;
   SetFlag(acptr, FLAG_KILLED);
+  
+  if (lastnick == cli_lastnick(acptr))
+    samelastnick = 1;
+    
   /*
    * This exits the client we had before getting the NICK message
    */
   if (differ) {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
+    sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s (older nick "
 			  "overruled)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (%s (older "
@@ -499,7 +508,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		    "overruled))", feature_str(FEAT_HIS_SERVERNAME));
   }
   else {
-    sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
+    sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s (nick collision from "
 			  "same user@host)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (%s (nick "
@@ -511,7 +520,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     exit_client_msg(cptr, acptr, &me, "Killed (%s (nick collision from "
 		    "same user@host))", feature_str(FEAT_HIS_SERVERNAME));
   }
-  if (lastnick == cli_lastnick(acptr))
+  if (samelastnick)
     return 0;
 
   assert(0 != sptr);

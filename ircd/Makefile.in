@@ -218,7 +218,7 @@ all:
 build: ircd chkconf
 
 ircd: ${OBJS} ../include/patchlevel.h version.o
-	${PURIFY} ${CC} ${LDFLAGS} ${OBJS} version.o ${RINGLOG_O} ${LDFLAGS} ${LIBS} \
+	${PURIFY} ${CC} ${CFLAGS} ${LDFLAGS} ${OBJS} version.o ${RINGLOG_O} ${LDFLAGS} ${LIBS} \
 		-o ircd
 	${CHMOD} ${IRCDMODE} ircd
 
@@ -239,7 +239,7 @@ version.c: version.c.SH s_serv.c s_user.c channel.c s_bsd.c s_misc.c ircd.c \
 ircd_string.o: ircd_string.c chattr.tab.c
 
 table_gen: table_gen.o
-	${CC} ${LDFLAGS} -o $@ table_gen.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ table_gen.o
 
 chattr.tab.c: table_gen
 	./table_gen > chattr.tab.c
@@ -250,7 +250,7 @@ chkcrule.o: crule.c
 
 chkconf: chkconf.o fda.o match.o chkcrule.o ircd_alloc.o fileio.o ircd_string.o
 	${CC} chkconf.o fda.o match.o chkcrule.o ircd_alloc.o fileio.o \
-	ircd_string.o ${LDFLAGS} ${LIBS} -o chkconf
+	ircd_string.o ${CFLAGS} ${LDFLAGS} ${LIBS} -o chkconf
 
 mkbindir:
 	@test -d ${BINDIR} || mkdir ${BINDIR}

@@ -362,6 +362,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            badid = 0;
   short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
+  int              killreason;
   char             ip_base64[8];
 
   user->last = CurrentTime;
@@ -440,10 +441,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
     /*
      * following block for the benefit of time-dependent K:-lines
      */
-    if (find_kill(sptr)) {
+    if ((killreason=find_kill(sptr))) {
       ServerStats->is_ref++;
       IPcheck_connect_fail(cli_ip(sptr));
-      return exit_client(cptr, sptr, &me, "K-lined");
+      return exit_client(cptr, sptr, &me,
+        killreason == -1 ? "K-lined" : "G-lined");
     }
     /*
      * Check for mixed case usernames, meaning probably hacked.  Jon2 3-94
@@ -543,9 +545,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
     send_reply(
 	sptr, 
 	RPL_WELCOME, 
+	feature_str(FEAT_NETWORK),
 	feature_str(FEAT_PROVIDER) ? " via " : "",
 	feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
 	nick);
+
     /*
      * This is a duplicate of the NOTICE but see below...
      */
@@ -561,9 +565,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
       sendto_opmask_butone(0, SNO_CONNEXIT,
-			   "Client connecting: %s (%s@%s) [%s] {%d}",
+			   "Client connecting: %s (%s@%s) [%s] {%d} [%s]",
 			   cli_name(sptr), user->username, user->host,
-			   cli_sock_ip(sptr), get_client_class(sptr));
+			   cli_sock_ip(sptr), get_client_class(sptr),
+			   cli_info(sptr)
+			   );
     IPcheck_connect_succeeded(sptr);
   }
   else
@@ -1069,6 +1075,8 @@ int hide_hostmask(struct Client *cptr, unsigned int flag)
    * and set the modes, if any
    */
   for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel) {
+    if (IsZombie(chan))
+      continue;
     sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
       "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan)) {
