@@ -1,3 +1,10 @@
+2000-05-02  Thomas Helvey <tomh@inxpress.net>
+	
+	* ircd/IPcheck.c: cleanups for ZenShadow's cleanups
+        review emailed privately
+
+	* include/IPcheck.h: removed unneeded include
+
 2000-05-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (hunt_server): throw in a comment so I know what
@@ -1079,7 +1086,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.127 2000-05-02 20:25:32 kev Exp $
+# $Id: ChangeLog,v 1.128 2000-05-03 03:32:24 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -19,18 +19,6 @@
  * $Id$
  *
  */
-
-/*----------------------------------------------------------------------------
- * Platform Includes
- *--------------------------------------------------------------------------*/
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-
-
-/*----------------------------------------------------------------------------
- * Application Includes
- *--------------------------------------------------------------------------*/
 #include "IPcheck.h"
 #include "client.h"
 #include "ircd.h"
@@ -42,23 +30,24 @@
 #include "s_user.h"
 #include "send.h"
 
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
-/*----------------------------------------------------------------------------
- * Data Structures (should be moved to IPcheck.h)
- *--------------------------------------------------------------------------*/
-typedef struct IPTargetEntry {
+
+struct IPTargetEntry {
   int           count;
   unsigned char targets[MAXTARGETS];
-} iptarget_entry_t;
+};
 
-typedef struct IPRegistryEntry {
+struct IPRegistryEntry {
   struct IPRegistryEntry *next;
   struct IPTargetEntry   *target;
   unsigned int             addr;
   time_t                  last_connect;
   unsigned char            connected;
   unsigned char            attempts;
-} ip_reg_entry_t;
+};
 
 
 /*
@@ -88,8 +77,8 @@ typedef struct IPRegistryEntry {
 /*----------------------------------------------------------------------------
  * Global Data (ugly!)
  *--------------------------------------------------------------------------*/
-static ip_reg_entry_t *hashTable[IP_REGISTRY_TABLE_SIZE];
-static ip_reg_entry_t *freeList = 0;
+static struct IPRegistryEntry *hashTable[IP_REGISTRY_TABLE_SIZE];
+static struct IPRegistryEntry *freeList = 0;
 
 
 /*----------------------------------------------------------------------------
@@ -98,7 +87,8 @@ static ip_reg_entry_t *freeList = 0;
  *                    to the IP argument?  Ugly.  This should probably be a
  *                    struct in_addr.  This is asking for trouble.  --ZS)
  *--------------------------------------------------------------------------*/
-static unsigned int ip_registry_hash(unsigned int ip) {
+static unsigned int ip_registry_hash(unsigned int ip)
+{
   return ((ip >> 16) ^ ip) & (IP_REGISTRY_TABLE_SIZE - 1);
 }
 
@@ -106,8 +96,9 @@ static unsigned int ip_registry_hash(unsigned int ip) {
 /*----------------------------------------------------------------------------
  * ip_registry_find:  Find a given IP registry entry and return it.
  *--------------------------------------------------------------------------*/
-static ip_reg_entry_t *ip_registry_find(unsigned int ip) {
-  ip_reg_entry_t *entry;
+static struct IPRegistryEntry *ip_registry_find(unsigned int ip) 
+{
+  struct IPRegistryEntry *entry;
 
   for (entry = hashTable[ip_registry_hash(ip)]; entry; entry = entry->next) {
     if (entry->addr == ip)
@@ -121,7 +112,8 @@ static ip_reg_entry_t *ip_registry_find(unsigned int ip) {
 /*----------------------------------------------------------------------------
  * ip_registry_add:  Add an entry to the IP registry
  *--------------------------------------------------------------------------*/
-static void ip_registry_add(ip_reg_entry_t *entry) {
+static void ip_registry_add(struct IPRegistryEntry *entry) 
+{
   unsigned int bucket = ip_registry_hash(entry->addr);
 
   entry->next = hashTable[bucket];
@@ -132,13 +124,14 @@ static void ip_registry_add(ip_reg_entry_t *entry) {
 /*----------------------------------------------------------------------------
  * ip_registry_remove:  Remove an entry from the IP registry
  *--------------------------------------------------------------------------*/
-static void ip_registry_remove(ip_reg_entry_t *entry) {
+static void ip_registry_remove(struct IPRegistryEntry* entry) 
+{
   unsigned int bucket = ip_registry_hash(entry->addr);
 
   if (hashTable[bucket] == entry)
     hashTable[bucket] = entry->next;
   else {
-    ip_reg_entry_t *prev;
+    struct IPRegistryEntry *prev;
 
     for (prev = hashTable[bucket]; prev; prev = prev->next) {
       if (prev->next == entry) {
@@ -154,17 +147,18 @@ static void ip_registry_remove(ip_reg_entry_t *entry) {
  * ip_registry_new_entry():  Creates and initializes an IP Registry entry.
  *                           NOW ALSO ADDS IT TO THE LIST! --ZS
  *--------------------------------------------------------------------------*/
-static ip_reg_entry_t *ip_registry_new_entry(unsigned int addr, int attempt) {
-  ip_reg_entry_t *entry = freeList;
+static struct IPRegistryEntry *ip_registry_new_entry(unsigned int addr, int attempt)
+{
+  struct IPRegistryEntry* entry = freeList;
 
   if (entry)
     freeList = entry->next;
   else
-    entry = (ip_reg_entry_t *)MyMalloc(sizeof(ip_reg_entry_t));
+    entry = (struct IPRegistryEntry *)MyMalloc(sizeof(struct IPRegistryEntry));
 
   assert(0 != entry);
 
-  memset(entry, 0, sizeof(ip_reg_entry_t));
+  memset(entry, 0, sizeof(struct IPRegistryEntry));
   entry->last_connect = NOW;     /* Seconds since last connect attempt */
   entry->connected    = 1;       /* connected clients for this IP */
   entry->attempts     = attempt; /* Number attempts for this IP        */
@@ -182,7 +176,8 @@ static ip_reg_entry_t *ip_registry_new_entry(unsigned int addr, int attempt) {
  *                            the freelist every once in a while!  This is
  *                            potentially a way to DoS the server...  -ZS)
  *--------------------------------------------------------------------------*/
-static void ip_registry_delete_entry(ip_reg_entry_t *entry) {
+static void ip_registry_delete_entry(struct IPRegistryEntry *entry)
+{
   if (entry->target)
     MyFree(entry->target);
 
@@ -194,7 +189,8 @@ static void ip_registry_delete_entry(ip_reg_entry_t *entry) {
 /*----------------------------------------------------------------------------
  * ip_registry_update_free_targets:  
  *--------------------------------------------------------------------------*/
-static unsigned int ip_registry_update_free_targets(ip_reg_entry_t  *entry) {
+static unsigned int ip_registry_update_free_targets(struct IPRegistryEntry  *entry)
+{
   unsigned int free_targets = STARTTARGETS;
 
   if (entry->target) {
@@ -216,7 +212,8 @@ static unsigned int ip_registry_update_free_targets(ip_reg_entry_t  *entry) {
  *                            entry isn't expired, then also check the target
  *                            list to see if it needs to be expired.
  *--------------------------------------------------------------------------*/
-static void ip_registry_expire_entry(ip_reg_entry_t *entry) {
+static void ip_registry_expire_entry(struct IPRegistryEntry *entry)
+{
   /*
    * Don't touch this number, it has statistical significance
    * XXX - blah blah blah
@@ -225,7 +222,8 @@ static void ip_registry_expire_entry(ip_reg_entry_t *entry) {
   if (CONNECTED_SINCE(entry) > 600) {
     ip_registry_remove(entry);
     ip_registry_delete_entry(entry);
-  } else if (CONNECTED_SINCE(entry) > 120 && 0 != entry->target) {
+  }
+  else if (CONNECTED_SINCE(entry) > 120 && 0 != entry->target) {
     MyFree(entry->target);
     entry->target = 0;
   }
@@ -235,9 +233,10 @@ static void ip_registry_expire_entry(ip_reg_entry_t *entry) {
 /*----------------------------------------------------------------------------
  * ip_registry_expire:  Expire all of the needed entries in the hash table
  *--------------------------------------------------------------------------*/
-void ip_registry_expire(void) {
-  ip_reg_entry_t *entry;
-  ip_reg_entry_t *entry_next;
+void ip_registry_expire(void)
+{
+  struct IPRegistryEntry *entry;
+  struct IPRegistryEntry *entry_next;
   static time_t   next_expire = 0;
   int i;
 
@@ -286,7 +285,7 @@ void ip_registry_expire(void) {
  *--------------------------------------------------------------------------*/
 int ip_registry_check_local(unsigned int addr, time_t *next_target_out)
 {
-  ip_reg_entry_t *entry        = ip_registry_find(addr);
+  struct IPRegistryEntry *entry        = ip_registry_find(addr);
   unsigned int free_targets = STARTTARGETS;
  
   assert(0 != next_target_out);
@@ -330,7 +329,8 @@ int ip_registry_check_local(unsigned int addr, time_t *next_target_out)
  * Does anything that needs to be done once we actually have a client
  * structure to play with on a local connection that passed the IPcheck test.
  *--------------------------------------------------------------------------*/
-void ip_registry_local_connect(struct Client *cptr) {
+void ip_registry_local_connect(struct Client *cptr)
+{
   assert(0 != cptr);
   SetIPChecked(cptr);
 }
@@ -347,8 +347,9 @@ void ip_registry_local_connect(struct Client *cptr) {
  *   Update the IPcheck registry.
  *   Return 0 on failure, 1 on success.
  *--------------------------------------------------------------------------*/
-int ip_registry_check_remote(struct Client* cptr, int is_burst) {
-  ip_reg_entry_t *entry;
+int ip_registry_check_remote(struct Client* cptr, int is_burst)
+{
+  struct IPRegistryEntry *entry;
 
   assert(cptr);
 
@@ -390,8 +391,9 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst) {
  *   a way that the client won't be penalized when trying to reconnect
  *   again.
  *--------------------------------------------------------------------------*/
-void ip_registry_connect_fail(unsigned int addr) {
-  ip_reg_entry_t *entry = ip_registry_find(addr);
+void ip_registry_connect_fail(unsigned int addr)
+{
+  struct IPRegistryEntry *entry = ip_registry_find(addr);
 
   if (entry)
     --entry->attempts;
@@ -406,10 +408,11 @@ void ip_registry_connect_fail(unsigned int addr) {
  *
  * Finish IPcheck registration of a successfully, locally connected client.
  *--------------------------------------------------------------------------*/
-void ip_registry_connect_succeeded(struct Client *cptr) {
+void ip_registry_connect_succeeded(struct Client *cptr)
+{
   const char     *tr           = "";
   unsigned int free_targets     = STARTTARGETS;
-  ip_reg_entry_t *entry;
+  struct IPRegistryEntry *entry;
 
   assert(cptr);
 
@@ -443,8 +446,9 @@ void ip_registry_connect_succeeded(struct Client *cptr) {
  *   Remove all expired IPregistry structures from the hash bucket
  *     that belongs to this clients IP number.
  *--------------------------------------------------------------------------*/
-void ip_registry_disconnect(struct Client *cptr) {
-  ip_reg_entry_t *entry;
+void ip_registry_disconnect(struct Client *cptr)
+{
+  struct IPRegistryEntry *entry;
 
   assert(0 != cptr);
 
@@ -475,7 +479,7 @@ void ip_registry_disconnect(struct Client *cptr) {
     unsigned int free_targets;
 
     if (0 == entry->target) {
-      entry->target = (iptarget_entry_t *)MyMalloc(sizeof(iptarget_entry_t));
+      entry->target = (struct IPTargetEntry *)MyMalloc(sizeof(struct IPTargetEntry));
       assert(0 != entry->target);
       entry->target->count = STARTTARGETS;
     }
@@ -516,8 +520,9 @@ void ip_registry_disconnect(struct Client *cptr) {
  *
  * Returns number of clients with the same IP number
  *--------------------------------------------------------------------------*/
-int ip_registry_count(unsigned int addr) {
-  ip_reg_entry_t *entry = ip_registry_find(addr);
+int ip_registry_count(unsigned int addr)
+{
+  struct IPRegistryEntry *entry = ip_registry_find(addr);
   return (entry) ? entry->connected : 0;
 }
 
