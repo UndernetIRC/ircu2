@@ -462,7 +462,7 @@ static Numeric replyTable[] = {
 /* 214 */
   { RPL_STATSNLINE, "%c %s * %s %d %d", "214" },
 /* 215 */
-  { RPL_STATSILINE, "%c %s %s %s %d %d", "215" },
+  { RPL_STATSILINE, "%c %s %s %s %d %s", "215" },
 /* 216 */
   { RPL_STATSKLINE, "%c %s \"%s\" %s 0 0", "216" },
 /* 217 */

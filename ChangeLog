@@ -1,3 +1,8 @@
+2002-04-18  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/s_err.c (RPL_STATSILINE): connection classes are now
+	strings
+
 2002-04-17  beware <steendijk@tomaatnet.nl>
 
 	* m_whois.c (m_whois): disallow remote queries for non-existent
