@@ -1,3 +1,7 @@
+2002-08-27  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c (ms_settime): SETTIME != NOTICE
+
 2002-08-26  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_opmode.c (mo_opmode): don't require opers to be on the

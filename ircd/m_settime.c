@@ -140,7 +140,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     for (lp = cli_serv(&me)->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
-	sendcmdto_one(sptr, CMD_NOTICE, lp->value.cptr, "%s", parv[1]);
+	sendcmdto_prio_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
   }
   else
   {
