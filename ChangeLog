@@ -1,3 +1,13 @@
+2000-04-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/class.c (report_classes): use send_reply instead of
+	sendto_one
+
+	* ircd/hash.c (m_hash): replace sendto_one with sendcmdto_one
+
+	* ircd/IPcheck.c (ip_registry_connect_succeeded): replace
+	sendto_one with sendcmdto_one
+
 2000-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c: clean up logic in sendcmdto_channel_butone; use
@@ -664,7 +674,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.98 2000-04-21 15:15:17 kev Exp $
+# $Id: ChangeLog,v 1.99 2000-04-24 16:34:02 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

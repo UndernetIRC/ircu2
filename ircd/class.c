@@ -21,6 +21,7 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_reply.h"
 #include "list.h"
 #include "numeric.h"
 #include "s_conf.h"
@@ -198,9 +199,8 @@ void report_classes(struct Client *sptr)
   struct ConfClass *cltmp;
 
   for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
-    sendto_one(sptr, rpl_str(RPL_STATSYLINE), me.name, sptr->name,
-        'Y', ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
-        MaxLinks(cltmp), MaxSendq(cltmp));
+    send_reply(sptr, RPL_STATSYLINE, 'Y', ConClass(cltmp), PingFreq(cltmp),
+	       ConFreq(cltmp), MaxLinks(cltmp), MaxSendq(cltmp));
 }
 
 unsigned int get_sendq(struct Client *cptr)
