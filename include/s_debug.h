@@ -100,7 +100,6 @@ extern char serveropts[];
 /* Logging mask, selection on type of connection */
 #define LOG_PING	(0x8000 >> (8 + STAT_PING))
 #define LOG_LOG		(0x8000 >> (8 + STAT_LOG))
-#define LOG_MASTER	(0x8000 >> (8 + STAT_MASTER))
 #define LOG_CONNECTING	(0x8000 >> (8 + STAT_CONNECTING))
 #define LOG_HANDSHAKE	(0x8000 >> (8 + STAT_HANDSHAKE))
 #define LOG_ME		(0x8000 >> (8 + STAT_ME))
@@ -113,7 +112,7 @@ extern char serveropts[];
  * Default is to log messages coming from any connection.
  */
 #define LOG_MASK_TYPE \
-    ( LOG_PING | LOG_LOG | LOG_MASTER | LOG_CONNECTING | \
+    ( LOG_PING | LOG_LOG | LOG_CONNECTING | \
       LOG_HANDSHAKE | LOG_ME | LOG_UNKNOWN | LOG_SERVER | LOG_CLIENT )
 
 /*=============================================================================
