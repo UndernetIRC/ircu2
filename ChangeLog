@@ -1,3 +1,9 @@
+2004-05-15  Kevin L Mitchell  <klmitch@mit.edu>
+
+	[Original ChangeLog date: 2003-06-13 -MDP]
+
+	* ircd/m_settime.c: it's supposed to be %ld, not %l
+
 2004-05-15  Isomer <isomer@undernet.org>
 
 	[Original ChangeLog date: 2004-03-20 -MDP]
