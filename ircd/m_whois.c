@@ -134,7 +134,7 @@
 /*
  * Send whois information for acptr to sptr
  */
-static void do_whois(struct Client* sptr, struct Client *acptr)
+static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 {
   struct Client *a2cptr=0;
   struct Channel *chptr=0;
@@ -213,7 +213,11 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
      *       probably a good place to add them :)
      */
      
-    if (MyConnect(acptr))
+    if (MyConnect(acptr)
+#ifdef HEAD_IN_SAND_WHOIS_IDLETIME
+	&& (sptr == acptr || IsAnOper(sptr) || parc >= 3)
+#endif
+	)
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last, 
                   cli_firsttime(acptr));
   }
@@ -224,7 +228,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
  * returns the number of people found (or, obviously, 0, if none where
  * found).
  */
-static int do_wilds(struct Client* sptr,char *nick,int count)
+static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
 {
   struct Client *acptr; /* Current client we're concidering */
   struct User *user; 	/* the user portion of the client */
@@ -276,7 +280,7 @@ static int do_wilds(struct Client* sptr,char *nick,int count)
     /* Should we show this person now? */
     if (showperson) {
     	found++;
-    	do_whois(sptr,acptr);
+    	do_whois(sptr, acptr, parc);
     	if (count+found>MAX_WHOIS_LINES)
     	  return found;
     	continue;
@@ -318,7 +322,7 @@ static int do_wilds(struct Client* sptr,char *nick,int count)
     if (!showperson)
       continue;
       
-    do_whois(sptr,acptr);
+    do_whois(sptr, acptr, parc);
     found++;
     if (count+found>MAX_WHOIS_LINES)
        return found;  
@@ -389,12 +393,12 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* No wildcards */
       acptr = FindUser(nick);
       if (acptr && !IsServer(acptr)) {
-        do_whois(sptr,acptr);
+        do_whois(sptr, acptr, parc);
         found = 1;
       }
     }
     else /* wilds */
-    	found=do_wilds(sptr,nick,total);
+    	found=do_wilds(sptr, nick, total, parc);
 
     if (!found)
       send_reply(sptr, ERR_NOSUCHNICK, nick);
@@ -466,7 +470,7 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     acptr = FindUser(nick);
     if (acptr && !IsServer(acptr)) {
       found++;
-      do_whois(sptr,acptr);
+      do_whois(sptr, acptr, parc);
     }
 
     if (!found)
