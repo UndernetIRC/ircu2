@@ -1,3 +1,17 @@
+2004-05-15  hikari <shadow@undernet.org>
+
+	[Original ChangeLog date: 2003-06-27 -MDP]
+	
+	* ircd/ircd.c: After thought, update the next check time based on
+	when an unregistered client should expire.
+
+2004-05-15   hikari <shadow@undernet.org>
+
+	[Original ChangeLog date: 2003-06-22 -MDP]
+
+	* ircd/ircd.c: Fixed check_pings() - shouldn't be any problem with
+	clients not being able to connect anymore.
+
 2004-05-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (can_join): Revert to using IsInvited() rather

@@ -363,16 +363,52 @@ static void check_pings(struct Event* ev) {
 	   cli_name(cptr),
 	   IsPingSent(cptr) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
-          
 
     /* Ok, the thing that will happen most frequently, is that someone will
      * have sent something recently.  Cover this first for speed.
+     * -- 
+     * If it's an unregisterd client and hasn't managed to register within
+     * max_ping then it's obviously having problems (broken client) or it's
+     * just up to no good, so we won't skip it, even if its been sending
+     * data to us. 
+     * -- hikari
      */
-    if (CurrentTime-cli_lasttime(cptr) < max_ping) {
+    if ((CurrentTime-cli_lasttime(cptr) < max_ping) && IsRegistered(cptr)) {
       expire = cli_lasttime(cptr) + max_ping;
       if (expire < next_check) 
 	next_check = expire;
       continue;
+    }
+
+    /* Unregistered clients pingout after max_ping seconds, they don't
+     * get given a second chance - if they were then people could not quite
+     * finish registration and hold resources without being subject to k/g
+     * lines
+     */
+    if (!IsRegistered(cptr)) {
+      assert(!IsServer(cptr));
+      if ((CurrentTime-cli_firsttime(cptr) >= max_ping)) {
+       /* Display message if they have sent a NICK and a USER but no
+        * nospoof PONG.
+        */
+       if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username) {
+         send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
+           ":Your client may not be compatible with this server.");
+         send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
+           ":Compatible clients are available at %s",
+         feature_str(FEAT_URL_CLIENTS));
+       }
+       exit_client_msg(cptr,cptr,&me, "Registration Timeout");
+       continue;
+      } else {
+        /* OK, they still have enough time left, so we'll just skip to the
+         * next client.  Set the next check to be when their time is up, if
+         * that's before the currently scheduled next check -- hikari */
+        expire = cli_firsttime(cptr) + max_ping;
+        if (expire < next_check)
+          next_check = expire;
+        continue;
+      }
     }
 
     /* Quit the client after max_ping*2 - they should have answered by now */
@@ -384,28 +420,6 @@ static void check_pings(struct Event* ev) {
                              "No response from %s, closing link",
                              cli_name(cptr));
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
-      continue;
-    }
-
-    /* Unregistered clients pingout after max_ping seconds, they don't
-     * get given a second chance - if they were then people could not quite
-     * finish registration and hold resources without being subject to k/g
-     * lines
-     */
-    if (!IsRegistered(cptr))
-    {
-      /* Display message if they have sent a NICK and a USER but no
-       * nospoof PONG.
-       */
-      if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username)
-      {
-	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-		   ":Your client may not be compatible with this server.");
-	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-                   ":Compatible clients are available at %s",
-                   feature_str(FEAT_URL_CLIENTS));
-      }    
-      exit_client_msg(cptr,cptr,&me, "Ping Timeout");
       continue;
     }
     
