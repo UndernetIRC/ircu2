@@ -49,7 +49,7 @@ struct MsgBuf;
 
 extern struct SLink *opsarray[];
 
-typedef void (*InfoFormatter)(struct Client* who, struct MsgBuf* buf);
+typedef void (*InfoFormatter)(struct Client* who, struct Client *sptr, struct MsgBuf* buf);
 
 /*
  * Prototypes

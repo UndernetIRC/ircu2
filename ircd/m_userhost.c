@@ -91,7 +91,7 @@
 
 #include <assert.h>
 
-static void userhost_formatter(struct Client* cptr, struct MsgBuf* mb)
+static void userhost_formatter(struct Client* cptr, struct Client *sptr, struct MsgBuf* mb)
 {
   assert(IsUser(cptr));
   msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
