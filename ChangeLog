@@ -1,5 +1,8 @@
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_serv.c (server_estab): SERVER should come from
+	acptr->serv->up, not &me
+
 	* ircd/m_lusers.c: accidentally left out sptr for a %C
 
 	* ircd/send.c: hack to support doing wallchops...
@@ -944,7 +947,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.109 2000-04-28 15:10:14 kev Exp $
+# $Id: ChangeLog,v 1.110 2000-04-28 15:34:34 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

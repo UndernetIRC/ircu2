@@ -229,10 +229,10 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       split = (MyConnect(acptr) && 
                0 != ircd_strcmp(acptr->name, acptr->sockhost) &&
                0 != ircd_strncmp(acptr->info, "JUPE", 4));
-      sendcmdto_one(&me, CMD_SERVER, cptr, "%s %d 0 %Tu %s%u %s%s 0 :%s",
-		    acptr->name, acptr->hopcount + 1, acptr->serv->timestamp,
-		    protocol_str, Protocol(acptr), NumServCap(acptr),
-		    acptr->info);
+      sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr, "%s %d 0 %Tu %s%u "
+		    "%s%s 0 :%s", acptr->name, acptr->hopcount + 1,
+		    acptr->serv->timestamp, protocol_str, Protocol(acptr),
+		    NumServCap(acptr), acptr->info);
     }
   }
 
