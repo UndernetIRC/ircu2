@@ -82,8 +82,8 @@ const char* debug_serveropts(void)
     AddC((char)('0' + (bp / 1000000) % 10));
   }
 
-#ifdef  CHROOTDIR
-  AddC('c');
+#ifndef NDEBUG
+  AddC('A');
 #endif
 #ifdef  DEBUGMODE
   AddC('D');
