@@ -7,7 +7,7 @@ L'UnderNet IRC daemon.
 L'installation de l'IRC daemon (ircd) existes dans les ordres que
 voici:
 
-1) Déballr le module.
+1) Déballer le module.
 2) cd dans le répertoire.
 3) `./configure'
 4) `make config'
