@@ -96,6 +96,30 @@ static int can_send(struct Client* to)
   return (IsDead(to) || IsMe(to) || -1 == cli_fd(to)) ? 0 : 1;
 }
 
+/* This helper routine kills the connection with the highest sendq, to
+ * try to free up some buffer memory.
+ */
+void kill_highest_sendq(int servers_too)
+{
+  int i;
+  unsigned int highest_sendq = 0;
+  struct Client *highest_client = 0;
+
+  for (i = HighestFd; i >= 0; i--) {
+    if (!servers_too && cli_serv(LocalClientArray[i]))
+      continue; /* skip servers */
+
+    /* If this sendq is higher than one we last saw, remember it */
+    if (MsgQLength(&(cli_sendQ(LocalClientArray[i]))) > highest_sendq) {
+      highest_client = LocalClientArray[i];
+      highest_sendq = MsgQLength(&(cli_sendQ(highest_client)));
+    }
+  }
+
+  if (highest_client)
+    dead_link(highest_client, "Buffer allocation error");
+}
+
 /*
  * flush_connections
  *

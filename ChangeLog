@@ -1,3 +1,18 @@
+2002-05-05  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/send.c (kill_highest_sendq): create a new routine to kill
+	the client with the highest sendq--can optionally skip servers
+
+	* ircd/msgq.c: create new helper routine msgq_alloc() to allocate
+	a struct MsgBuf, subject to FEAT_BUFFERPOOL restrictions; recast
+	msgq_vmake() to use the new helper and to try various tricks to
+	free up a buffer, like calling kill_highest_sendq()
+
+	* include/send.h: declare a new routine to kill the client with
+	the highest sendq--can optionally skip servers
+
 2002-04-24  Greg Sikorski <gte@atomicrevs.demon.co.uk
 
 	* ircd/msgq.c (msgq_count_memory): Have stats z report the

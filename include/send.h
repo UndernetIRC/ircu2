@@ -24,6 +24,7 @@ struct MsgBuf;
  */
 extern void send_buffer(struct Client* to, struct MsgBuf* buf, int prio);
 
+extern void kill_highest_sendq(int servers_too);
 extern void flush_connections(struct Client* cptr);
 extern void send_queued(struct Client *to);
 
