@@ -62,8 +62,31 @@ static struct Gline *
 make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
 	   unsigned int flags)
 {
-  struct Gline *gline;
+  struct Gline *gline, *sgline, *after = 0;
   char *user, *host;
+
+  if (!(flags & GLINE_BADCHAN)) { /* search for overlapping glines first */
+    canon_userhost(userhost, &user, &host, "*"); /* find user and host */
+
+    for (gline = GlobalGlineList; gline; gline = sgline) {
+      sgline = gline->gl_next;
+
+      if (gline->gl_expire <= CurrentTime)
+	gline_free(gline);
+      else if ((gline->gl_flags & GLINE_LOCAL) != (flags & GLINE_LOCAL))
+	continue;
+      else if (!mmatch(gline->gl_user, user) && /* gline contains new mask */
+	       !mmatch(gline->gl_host, host)) {
+	if (expire <= gline->gl_expire) /* will expire before wider gline */
+	  return 0;
+	else
+	  after = gline; /* stick new gline after this one */
+      } else if (!mmatch(user, gline->gl_user) && /* new mask contains gline */
+		 !mmatch(host, gline->gl_host) &&
+		 gline->gl_expire <= expire) /* gline expires before new one */
+	gline_free(gline); /* save some memory */
+    }
+  }
 
   gline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
   assert(0 != gline);
@@ -83,19 +106,25 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
       BadChanGlineList->gl_prev_p = &gline->gl_next;
     BadChanGlineList = gline;
   } else {
-    canon_userhost(userhost, &user, &host, "*"); /* find user and host */
-
     DupString(gline->gl_user, user); /* remember them... */
     DupString(gline->gl_host, host);
 
     if (check_if_ipmask(host)) /* mark if it's an IP mask */
       gline->gl_flags |= GLINE_IPMASK;
 
-    gline->gl_next = GlobalGlineList; /* then link it into list */
-    gline->gl_prev_p = &GlobalGlineList;
-    if (GlobalGlineList)
-      GlobalGlineList->gl_prev_p = &gline->gl_next;
-    GlobalGlineList = gline;
+    if (after) {
+      gline->gl_next = after->gl_next;
+      gline->gl_prev_p = &after->gl_next;
+      if (after->gl_next)
+	after->gl_next->gl_prev_p = &gline->gl_next;
+      after->gl_next = gline;
+    } else {
+      gline->gl_next = GlobalGlineList; /* then link it into list */
+      gline->gl_prev_p = &GlobalGlineList;
+      if (GlobalGlineList)
+	GlobalGlineList->gl_prev_p = &gline->gl_next;
+      GlobalGlineList = gline;
+    }
   }
 
   return gline;
@@ -225,6 +254,9 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   /* make the gline */
   agline = make_gline(userhost, reason, expire, lastmod, flags);
+
+  if (!agline) /* if it overlapped, silently return */
+    return 0;
 
   propagate_gline(cptr, sptr, agline);
 
