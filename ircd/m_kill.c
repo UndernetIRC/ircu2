@@ -176,8 +176,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   inpath = cptr->name;
 
   sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-		       "Received KILL message for %C. From %s Path: %C!%s",
-		       victim, parv[0], cptr, path);
+		       "Received KILL message for %s. From %s Path: %C!%s",
+		       get_client_name(victim,SHOW_IP), parv[0], cptr, path);
 
 #if defined(SYSLOG_KILL)
   ircd_log_kill(victim, sptr, cptr->name, path);
@@ -222,7 +222,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * anyway (as this user don't exist there any more either)
    */
   if (MyConnect(victim))
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, cptr->name,
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, NumServ(cptr),
 		  path);
   /*
    * the first space in path will be at the end of the
@@ -337,7 +337,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   sendto_opmask_butone(0, SNO_OPERKILL,
 		       "Received KILL message for %s. From %s Path: %s!%s",
-		       victim->name, parv[0], inpath, path);
+		       get_client_name(victim,SHOW_IP), parv[0], inpath, path);
 
 #if defined(SYSLOG_KILL)
   ircd_log_kill(victim, sptr, inpath, path);

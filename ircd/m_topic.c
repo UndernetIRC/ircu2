@@ -220,13 +220,13 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* Modeless Channels don't have topics */
     if (IsModelessChannel(name))
     {
-      /* Protocol Violation? */
+      protocol_violation(sptr,"Attempted to topic modeless channel");
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       continue;
     }
     /* Ignore requests for topics from remote servers */
     if (IsLocalChannel(name) && !MyUser(sptr))
-      /* Protocol Violation warning here? */
+      protocol_violation(sptr,"Topic request");
       continue;
 
     do_settopic(sptr,cptr,chptr,topic);

@@ -170,6 +170,10 @@ void report_deny_list(struct Client* to)
  * hunt_server() possiblites were becoming very messy. It now uses a
  * switch() so as to be easier to read and update as params change. 
  * -Ghostwolf 
+ *
+ * 2.10.11: Don't check for the oper limitation if it's not our local server.
+ *          thusly once all the hubs have upgraded local opers will be able
+ *          to remote stats anywhere on the network.
  */
 int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat)
 {
@@ -201,16 +205,16 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'M':
     {
       if (parc == 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s %C :%s", 2, parc, parv);
       else if (parc > 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C %s :%s", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s %C %s :%s", 2, parc, parv);
       else 
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s :%C", 2, parc, parv);
     }
 
       /* oper only, standard # of params */
     default:
-      return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc, parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr, MyUser(sptr) ? 1 : 0, "%s :%C", 2, parc, parv);
   }
 }
 

@@ -119,10 +119,9 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
 
   assert(0 != cptr);
   assert(0 != sptr);
-  if (!IsServer(sptr))
-    return 0;
 
-  sendto_opmask_butone(0, SNO_NETWORK, "Completed net.burst from %C.", sptr);
+  sendto_opmask_butone(0, SNO_NETWORK, "Completed net.burst from %C.", 
+  	sptr);
   sendcmdto_serv_butone(sptr, CMD_END_OF_BURST, cptr, "");
   ClearBurst(sptr);
   SetBurstAck(sptr);

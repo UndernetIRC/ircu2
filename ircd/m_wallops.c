@@ -148,7 +148,7 @@ int m_wallops(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (BadPtr(message))
     return need_more_params(sptr, "WALLOPS");
 
-  if (!IsServer(sptr) && MyConnect(sptr) && !IsAnOper(sptr))
+  if (!IsAnOper(sptr))
   {
     sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
     return 0;

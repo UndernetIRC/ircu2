@@ -92,6 +92,7 @@
 #include "ircd_string.h"
 #include "struct.h"
 #include "s_misc.h"
+#include "ircd_reply.h"
 
 #include <assert.h>
 #include <string.h>
@@ -140,10 +141,14 @@ int ms_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != sptr);
   assert(parc > 0);
+  if (IsServer(sptr)) {
+  	protocol_violation(sptr,"Server QUIT, not SQUIT?");
+  	return 0;
+  }
   /*
    * ignore quit from servers
    */
-  return IsServer(sptr) ? 0 : exit_client(cptr, sptr, sptr, parv[parc - 1]);
+  return exit_client(cptr, sptr, sptr, parv[parc - 1]);
 }
 
 #if 0

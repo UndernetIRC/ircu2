@@ -97,6 +97,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_debug.h"
+#include "s_user.h"
 #include "send.h"
 
 #include <assert.h>
@@ -117,14 +118,12 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct ModeBuf mbuf; /* a mode buffer */
   int badop; /* a flag */
 
-  if (IsServer(sptr)) {
-    Debug((DEBUG_ERROR, "%s tried to CREATE a channel", sptr->name));
-    return 0;
-  }
+  if (IsServer(sptr))
+    return protocol_violation(sptr,"%s tried to CREATE a channel", sptr->name);
 
   /* sanity checks: Only accept CREATE messages from servers */
   if (parc < 3 || *parv[2] == '\0')
-    return 0;
+    return need_more_params(sptr,"CREATE");
 
   chanTS = atoi(parv[2]);
 
@@ -138,11 +137,12 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       MAGIC_REMOTE_JOIN_TS != chanTS)
     sptr->user->server->serv->lag = TStime() - chanTS;
 
-#if 0  
+#if 1
   /* If this server is >5 minutes fast, squit it */
   if (TStime() - chanTS<-5*60*60)
   	return exit_client(sptr,sptr,"Timestamp Drift/Bogus TS");
-  	
+#endif
+#if 0  	
   /* If we recieve a CREATE for a channel from a server before that server
    * was linked, then it's a HACK
    */

@@ -1,4 +1,26 @@
-2000-10-30  Isomer <isomer@coders.net>
+2000-11-19  Isomer <isomer@coders.net>
+	* ircd/ircd_reply.c: added 'protocol_violation', thus alerting us
+	to problems in the server<->server protocol.
+
+	* ircd/m_connect.c: allow remote connects with a port of '0'
+	meaning to use the port in the config file.
+
+	* ircd/m_create.c: Enable hacking protection, lets see how far we
+	get.
+
+	* ircd/m_error.c: The RFC says never accept ERROR from unreg'd
+	clients, so we don't any more.
+
+	* ircd/m_kill.c: The kill path is now made up of numnicks of servers,
+	and the user@host is displayed of the victim.
+
+	* ircd/m_map.c: reloaded 'dump_map'.
+
+	* ircd/m_trace.c: allow per class T:
+
+	* ircd/m_stats.c: allow local opers /remote stats anywhere on the 'net.
+
+2000-11-17  Isomer <isomer@coders.net>
 
 	* ircd/m_topic.c: Fixed bug where we'd only send to clients topics
 	that were the *same* instead of different.  Oh the embarrasment!

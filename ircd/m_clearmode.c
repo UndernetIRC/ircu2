@@ -265,8 +265,10 @@ ms_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 3)
     return need_more_params(sptr, "CLEARMODE");
 
-  if (!IsPrivileged(sptr))
+  if (!IsPrivileged(sptr)) {
+    protocol_violation(sptr,"No priviledges on source for CLEARMODE, desync?");
     return send_reply(sptr, ERR_NOPRIVILEGES);
+  }
 
   if (!IsChannelName(parv[1]) || IsLocalChannel(parv[1]) ||
       !(chptr = FindChannel(parv[1])))

@@ -100,6 +100,8 @@
 
 /*
  * mo_rehash - oper message handler
+ * 
+ * parv[1] = 'q' to not rehash the resolver (optional)
  */
 int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

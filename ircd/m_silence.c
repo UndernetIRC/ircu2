@@ -170,12 +170,9 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client* acptr;
 
   if (IsServer(sptr)) {
-    /* PROTOCOL WARNING */
-    /* bail, don't core */
-    return 0;
+    return protocol_violation(sptr,"Server trying to silence a user");
   }
   if (parc < 3 || EmptyString(parv[2])) {
-    /* PROTOCOL WARNING */
     return need_more_params(sptr, "SILENCE");
   }
 

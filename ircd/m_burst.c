@@ -151,7 +151,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char modestr[IRC_BUFSIZE], nickstr[IRC_BUFSIZE], banstr[IRC_BUFSIZE];
 
   if (parc < 4)
-    return 0;
+    return protocol_violation(sptr,"Too few parameters for BURST");
 
   if (!IsBurst(sptr)) /* don't allow BURST outside of burst */
     return exit_client_msg(cptr, cptr, &me, "HACK: BURST message outside "

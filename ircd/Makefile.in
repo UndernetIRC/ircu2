@@ -150,7 +150,6 @@ SRC = \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \
-	map.c \
 	match.c \
 	numnicks.c \
 	opercmds.c \
@@ -375,7 +374,8 @@ ircd_reply.o: ircd_reply.c ../include/ircd_reply.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
  ../include/struct.h ../include/ircd_snprintf.h ../include/numeric.h \
- ../include/s_conf.h ../include/s_debug.h ../include/send.h
+ ../include/msg.h ../include/s_conf.h ../include/s_debug.h \
+ ../include/send.h
 ircd_signal.o: ircd_signal.c ../include/ircd_signal.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
  ../include/struct.h ../include/ircd_defs.h
@@ -591,8 +591,7 @@ m_map.o: m_map.c ../include/client.h ../include/ircd_defs.h \
  ../include/dbuf.h ../include/ircd_handler.h ../include/ircd.h \
  ../config/config.h ../config/setup.h ../include/struct.h \
  ../include/ircd_reply.h ../include/ircd_string.h \
- ../include/ircd_chattr.h ../include/map.h ../include/numeric.h \
- ../include/send.h
+ ../include/ircd_chattr.h ../include/numeric.h ../include/send.h
 m_mode.o: m_mode.c ../include/handlers.h ../include/channel.h \
  ../config/config.h ../config/setup.h ../include/ircd_defs.h \
  ../include/client.h ../include/dbuf.h ../include/ircd_handler.h \
@@ -838,12 +837,6 @@ m_whowas.o: m_whowas.c ../include/client.h ../include/ircd_defs.h \
  ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
  ../include/numnicks.h ../include/s_user.h ../include/s_misc.h \
  ../include/send.h ../include/whowas.h
-map.o: map.c ../include/map.h ../include/client.h \
- ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
- ../include/ircd.h ../config/config.h ../config/setup.h \
- ../include/struct.h ../include/ircd_reply.h ../include/list.h \
- ../include/match.h ../include/numeric.h ../include/numnicks.h \
- ../include/querycmds.h ../include/send.h
 match.o: match.c ../include/match.h ../include/ircd_chattr.h
 numnicks.o: numnicks.c ../include/numnicks.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
@@ -864,18 +857,6 @@ packet.o: packet.c ../include/packet.h ../include/client.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
  ../include/struct.h ../include/ircd_chattr.h ../include/parse.h \
  ../include/s_bsd.h ../include/s_misc.h ../include/send.h
-parse.o: parse.c ../include/parse.h ../include/client.h \
- ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
- ../include/channel.h ../config/config.h ../config/setup.h \
- ../include/handlers.h ../include/hash.h ../include/ircd.h \
- ../include/struct.h ../include/ircd_alloc.h ../include/fda.h \
- ../include/ircd_chattr.h ../include/ircd_reply.h \
- ../include/ircd_string.h ../include/map.h ../include/msg.h \
- ../include/numeric.h ../include/numnicks.h ../include/opercmds.h \
- ../include/querycmds.h ../include/res.h ../include/s_bsd.h \
- ../include/s_conf.h ../include/s_debug.h ../include/s_misc.h \
- ../include/s_numeric.h ../include/s_user.h ../include/send.h \
- ../include/sys.h ../include/whocmds.h ../include/whowas.h
 querycmds.o: querycmds.c ../include/querycmds.h
 random.o: random.c ../include/random.h ../config/config.h \
  ../config/setup.h

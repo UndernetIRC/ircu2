@@ -167,7 +167,7 @@ int ms_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * we can't deliver it, sending an error back is pointless
      */
-    return 0;
+    return protocol_violation(sptr,"Not enough params for NOTICE");
   }
   name = parv[1];
   /*

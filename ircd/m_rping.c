@@ -160,9 +160,6 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else {
     if (parc < 3) {
-      /*
-       * PROTOCOL ERROR
-       */
       return need_more_params(sptr, "RPING");
     }
     /*

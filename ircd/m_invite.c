@@ -134,7 +134,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(cptr, RPL_ENDOFINVITELIST);
     return 0;
   }
-
+  
   if (parc < 3 || EmptyString(parv[2]))
     return need_more_params(sptr, "INVITE");
 
@@ -232,22 +232,19 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * this will blow up if we get an invite from a server
      * we look for channel membership in sptr below. 
      */
-    /* PROTOCOL WARNING */
-    return 0;
+    return protocol_violation(sptr,"Server attempting to invite");
   }
   if (parc < 3 || EmptyString(parv[2])) {
     /*
      * should have been handled upstream, ignore it.
      */
-    /* PROTOCOL WARNING */
-    return 0;
+    return need_more_params(sptr,"INVITE");
   }
   if ('#' != *parv[2]) {
     /*
      * should not be sent
      */
-    /* PROTOCOL WARNING */
-    return 0;
+    return protocol_violation(sptr, "Invite to a non-standard channel %s",parv[2]);
   }
   if (!(acptr = FindUser(parv[1]))) {
     send_reply(sptr, ERR_NOSUCHNICK, parv[1]);

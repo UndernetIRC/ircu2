@@ -120,11 +120,7 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   assert(IsServer(cptr));
 
   if (parc < 3 || EmptyString(parv[2]))
-    return 0;
-
-    /* sanity checks: Only accept DESTRUCT messages from servers */
-  if (!IsServer(sptr))
-    return 0;
+    return need_more_params(sptr,"DESTRUCT");
 
   /* Don't pass on DESTRUCT messages for channels that exist */
   if (FindChannel(parv[1]))

@@ -29,7 +29,6 @@
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
-#include "map.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -207,7 +206,7 @@ struct Message msgtab[] = {
     TOK_ERROR,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { mr_error, m_ignore, ms_error, m_ignore, m_ignore }
+    { m_ignore, m_ignore, ms_error, m_ignore, m_ignore }
   },
   {
     MSG_KILL,
@@ -312,7 +311,7 @@ struct Message msgtab[] = {
     TOK_PASS,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_pass, m_registered, m_ignore, m_registered, m_ignore }
+    { mr_pass, m_registered, m_ignore, m_registered, m_ignore }
   },
   {
     MSG_LUSERS,
@@ -707,7 +706,7 @@ void initmsgtree(void)
   int ii;
   struct Message **msgtab_tok;
   struct Message **msgtok;
-
+  
   for (i = 0; msg->cmd; ++i, ++msg)
     continue;
   qsort(msgtab, i, sizeof(struct Message),
