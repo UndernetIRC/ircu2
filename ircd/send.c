@@ -701,7 +701,8 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 		 &vd);
 
   for (; opslist; opslist = opslist->next)
-    send_buffer(opslist->value.cptr, mb, 0);
+    if (opslist->value.cptr != one)
+      send_buffer(opslist->value.cptr, mb, 0);
 
   msgq_clean(mb);
 }
