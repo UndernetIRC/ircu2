@@ -137,8 +137,12 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0; /* no such server */
 
     if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-      sendto_one(acptr, "%s " TOK_JUPE " %s %s %s %s :%s", NumServ(sptr),
-		 target, server, parv[3], parv[4], reason);
+      if (IsServer(sptr))
+	sendto_one(acptr, "%s " TOK_JUPE " %s %s %s %s :%s", NumServ(sptr),
+		   target, server, parv[3], parv[4], reason);
+      else
+	sendto_one(acptr, "%s%s " TOK_JUPE " %s %s %s %s :%s", NumNick(sptr),
+		   target, server, parv[3], parv[4], reason);
 
       return 0;
     }
@@ -226,12 +230,15 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
 
       sendto_one(acptr, "%s%s " TOK_JUPE " %s %c%s %s " TIME_T_FMT " :%s",
-		 NumNick(sptr), NumServ(acptr), server, active ? '+' : '-',
+		 NumNick(sptr), NumServ(acptr), active ? '+' : '-', server,
 		 parv[3], TStime(), reason);
       return 0;
     }
 
     local = 1;
+  } else if (!IsOper(sptr)) {
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+    return 0;
   }
 
   expire_off = atoi(parv[3]);

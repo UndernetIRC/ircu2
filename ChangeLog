@@ -1,11 +1,12 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.18 2000-03-21 03:48:11 bleep Exp $
+# $Id: ChangeLog,v 1.19 2000-03-22 00:50:12 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
 #-----------------------------------------------------------------------------
+* Fix misc. jupe bugs that somehow made it into the tree
 * Escape /names 0 to mean /names --Maniac
 * Don't core when server asks for info --Maniac 
 * Add Kev's jupe patch --Bleep

@@ -311,7 +311,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * Check to see if the server is juped; if it is, disallow the connect
    */
   if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)) {
-    sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s is juped: %s",
+    sendto_one(sptr, ":%s NOTICE %s%s :Connect: Server %s is juped: %s",
 	       me.name, NumNick(sptr), JupeServer(ajupe), JupeReason(ajupe));
     return 0;
   }
