@@ -1718,7 +1718,8 @@ RFC 1459              Internet Relay Chat Protocol              May 1993
    The admin message is used to find the name of the administrator of
    the given server, or current server if <server> parameter is omitted.
    Each server must have the ability to forward ADMIN messages to other
-   servers.
+   servers.  The given server may be a nick, where the server that the
+   nick is on will be queried.
 
    Numeric Replies:
 

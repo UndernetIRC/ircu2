@@ -97,6 +97,19 @@
 
 #include <assert.h>
 
+static int send_admin_info(struct Client* sptr)
+{
+  const struct LocalConf* admin = conf_get_local();
+  assert(0 != sptr);
+
+  send_reply(sptr, RPL_ADMINME,    cli_name(&me));
+  send_reply(sptr, RPL_ADMINLOC1,  admin->location1);
+  send_reply(sptr, RPL_ADMINLOC2,  admin->location2);
+  send_reply(sptr, RPL_ADMINEMAIL, admin->contact);
+  return 0;
+}
+
+
 /*
  * m_admin - generic message handler
  *
@@ -110,7 +123,10 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 1) {
     struct Client *acptr;
-    if (!(acptr = find_match_server(parv[1])))
+    acptr = FindUser(parv[1]);
+    if (acptr)
+      parv[1] = cli_name(cli_user(acptr)->server);
+    else if (!(acptr = find_match_server(parv[1])))
       return send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
 
     parv[1] = cli_name(acptr);

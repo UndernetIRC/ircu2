@@ -89,6 +89,7 @@
 #endif /* 0 */
 #include "client.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -100,11 +101,60 @@
 #include <assert.h>
 
 /*
+ * user_set_away - set user away state
+ * returns 1 if client is away or changed away message, 0 if 
+ * client is removing away status.
+ * NOTE: this function may modify user and message, so they
+ * must be mutable.
+ */
+static int user_set_away(struct User* user, char* message)
+{
+  char* away;
+  assert(0 != user);
+
+  away = user->away;
+
+  if (EmptyString(message)) {
+    /*
+     * Marking as not away
+     */
+    if (away) {
+      MyFree(away);
+      user->away = 0;
+    }
+  }
+  else {
+    /*
+     * Marking as away
+     */
+    unsigned int len = strlen(message);
+
+    if (len > TOPICLEN) {
+      message[TOPICLEN] = '\0';
+      len = TOPICLEN;
+    }
+    if (away)
+      away = (char*) MyRealloc(away, len + 1);
+    else
+      away = (char*) MyMalloc(len + 1);
+    assert(0 != away);
+
+    user->away = away;
+    strcpy(away, message);
+  }
+  return (user->away != 0);
+}
+
+
+/*
  * m_away - generic message handler template
  * - Added 14 Dec 1988 by jto.
  *
  * parv[0] = sender prefix
  * parv[1] = away message
+ *
+ * TODO: Throttle aways - many people have a script which resets the away
+ *       message every 10 seconds which really chews the bandwidth.
  */
 int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

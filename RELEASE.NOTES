@@ -139,3 +139,5 @@ The kernel has a kernel destination cache size of 4096.  If the kernel sees
 more than 4096 IP's in 60s it warns 'dst cache overflow'.  This limit can be
 changed by modifying /proc/sys/net/ipv4/route/max_size.
 
+A patch to select is also recommended if you have regular poll/select
+errors.
