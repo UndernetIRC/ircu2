@@ -1,4 +1,20 @@
 2005-03-29  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Remove no-longer-used HIS_STATS_h.
+
+	* doc/readme.features: Likewise.
+
+	* include/ircd_features.h: Likewise.
+
+	* ircd/ircd_features.c: Likewise.
+
+2005-03-20  Reed Loden <reed@reedloden.com>
+
+	* include/ircd_features.h: Alphabetize HIS_STATS_? features.
+
+	* ircd/ircd_features.c: Likewise.
+
+2005-03-29  Michael Poole <mdpoole@troilus.org>
 	(The previously unapplied part of another patch (by Carlo Wood?).)
 
 	* ircd/m_part.c (ms_part): Remove a check that should already be
