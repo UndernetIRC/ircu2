@@ -1,3 +1,47 @@
+2003-11-05 Entrope <entrope@users.sourceforge.net>  
+	* ircd/engine_epoll.c, config.h.in, configure,in, ircd/ircd_events.h:
+	Added epoll(2) support.
+
+2003-07-18 Patrick N. <smash@web.de>
+	* ircd/s_user.c: added sending of ERR_UMODEUNKNOWNFLAG (Updated by
+	Isomer with suggestions from wasted)
+
+2003-07-07 beware  <steendijk@xs4all.nl>
+        * ircd/s_user.c: invalidate ban cache for user on host hiding/account
+
+2003-07-01  Bas Steendijk  <steendijk@xs4all.nl>
+        * ircd/m_names.c: length counter being incremented one too many
+        for each nick, resulting names reply messages are about 50 chars
+        shorter than possible. fixed.
+
+2003-06-29  Bas Steendijk  <steendijk@xs4all.nl>
+         * ircd/channel.c: don't ever send mode changes for local channels to
+ 	 servers.
+
+2003-06-25  Bas Steendijk  <steendijk@xs4all.nl>
+        * ircd/m_burst.c: Clear topic set by netrider on burst.
+
+2003-04-26  volta <volta2@gmx.de>
+         * ircd/m_userip.c, ircd/m_userhost.c: Small fix, that
+         allows users to see their own ip & hostname. (Should solve
+         all problems with dcc)
+
+2003-06-13  Zoot <zoot@gamesnet.net>
+ 
+ 	* ircd/m_map.c, ircd/m_links.c: Remove user-visible references
+ 	to Undernet's CFV-165.
+ 	
+2003-06-08  Matthias Crauwels <ultimate_@wol.be>
+ 	* ircd/gline.c: fixed the counting bug in gline_memory_count
+ 
+ 	* ircd/jupe.c: fixed the counting bug in jupe_memory_count
+
+2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/channel.c: (Jeekay) Remove extra : from channel JOIN's on 
+	netburst
+
+	* ircd/gline.c: (splidge) Don't make invalid glines match everyone!
+	
 2003-11-05 Isomer <isomer@undernet.org>
 	* ircd/gline.c: Fix my first Gline Fix as noticed by a1kmm, thanks!
 

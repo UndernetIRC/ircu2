@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.2.2.1 2002-03-28 15:07:17 kev Exp $
+ * $Id: config.h.in,v 1.2.2.1.14.1 2003-11-05 09:19:43 isomer Exp $
  */
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
@@ -102,6 +102,9 @@
 /* Define if you have the <sys/event.h> header file.  */
 #undef HAVE_SYS_EVENT_H
 
+/* Define if you have the <sys/epoll.h> header file.  */
+#undef HAVE_SYS_EPOLL_H
+
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL
 
@@ -125,6 +128,9 @@
 
 /* Define to enable the kqueue engine */
 #undef USE_KQUEUE
+
+/* Define to enable the epoll engine */
+#undef USE_EPOLL
 
 /* Domain name to be used for some statistics gathering */
 #undef DOMAINNAME

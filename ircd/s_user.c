@@ -1053,6 +1053,11 @@ int hide_hostmask(struct Client *cptr, unsigned int flag)
   if (MyConnect(cptr) && !feature_bool(FEAT_HOST_HIDING) && (flag == FLAG_HIDDENHOST))
     return 0;
     
+/* Invalidate all bans against the user so we check them again */
+      for (chan = (cli_user(cptr))->channel; chan;
+           chan = chan->next_channel)
+        ClearBanValid(chan);
+
   if (((flag == FLAG_HIDDENHOST) && !HasFlag(cptr, FLAG_ACCOUNT))
       || ((flag == FLAG_ACCOUNT) && !HasFlag(cptr, FLAG_HIDDENHOST))) {
     /* The user doesn't have both flags, don't change the hostmask */
@@ -1246,7 +1251,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
         if (what == MODE_ADD)
 	  do_host_hiding = 1;
 	break;
-      default:
+	/* if none of the given case is valid then compain by 
+	 * sending raw 501 ( ERR_UMODEUNKNOWNFLAG )
+	 */
+      default: send_reply(sptr, ERR_UMODEUNKNOWNFLAG, parv[0], *m);
         break;
       }
     }

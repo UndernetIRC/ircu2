@@ -50,6 +50,13 @@ extern struct Engine engine_devpoll;
 #define ENGINE_DEVPOLL
 #endif /* USE_DEVPOLL */
 
+#ifdef USE_EPOLL
+extern struct Engine engine_epoll;
+#define ENGINE_EPOLL &engine_epoll,
+#else
+#define ENGINE_EPOLL
+#endif /* USE_EPOLL */
+
 #ifdef USE_POLL
 extern struct Engine engine_poll;
 #define ENGINE_FALLBACK	&engine_poll,
@@ -61,6 +68,7 @@ extern struct Engine engine_select;
 /* list of engines to try */
 static const struct Engine *evEngines[] = {
   ENGINE_KQUEUE
+  ENGINE_EPOLL
   ENGINE_DEVPOLL
   ENGINE_FALLBACK
   0

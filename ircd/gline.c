@@ -140,18 +140,40 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
       char ipname[16];
       int ad[4] = { 0 };
       int bits2 = 0;
-       
-      class = sscanf(host,"%d.%d.%d.%d/%d",
-                     &ad[0],&ad[1],&ad[2],&ad[3], &bits2);
-      if (class!=5) {
-        gline->bits=class*8;
+      char *ch;
+      int seenwild;
+      int badmask=0;
+      
+      /* Sanity check for dodgy IP masks 
+       * Any mask featuring a digit after a wildcard will 
+       * not behave as expected. */
+      for (seenwild=0,ch=host;*ch;ch++) {
+        if (*ch=='*' || *ch=='?') 
+          seenwild=1;
+        if (IsDigit(*ch) && seenwild) {
+          badmask=1;
+          break;
+        }
       }
-      else {
-        gline->bits=bits2;
-      }
-      ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
-		    ad[2], ad[3]);
-      gline->ipnum.s_addr = inet_addr(ipname);
+      
+      if (badmask) {
+        /* It's bad - let's make it match 0.0.0.0/32 */
+        gline->bits=32;
+        gline->ipnum.s_addr=0;
+      } else {
+
+        class = sscanf(host,"%d.%d.%d.%d/%d",
+                       &ad[0],&ad[1],&ad[2],&ad[3], &bits2);
+        if (class!=5) {
+          gline->bits=class*8;
+        }
+        else {
+          gline->bits=bits2;
+        }
+        ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
+                      ad[2], ad[3]);
+        gline->ipnum.s_addr = inet_addr(ipname);
+      }      
       Debug((DEBUG_DEBUG,"IP gline: %08x/%i",gline->ipnum.s_addr,gline->bits));
       gline->gl_flags |= GLINE_IPMASK;
     }
@@ -684,7 +706,7 @@ gline_burst(struct Client *cptr)
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
-		    gline->gl_host ? gline->gl_host : "@",
+		    gline->gl_host ? "@" : "",
 		    gline->gl_host ? gline->gl_host : "", 
 		    gline->gl_expire - CurrentTime, gline->gl_lastmod, 
 		    gline->gl_reason);
@@ -793,10 +815,10 @@ gline_memory_count(size_t *gl_size)
 
   for (gline = GlobalGlineList; gline; gline = gline->gl_next) {
     gl++;
-    gl_size += sizeof(struct Gline);
-    gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
-    gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
-    gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
+    *gl_size += sizeof(struct Gline);
+    *gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
+    *gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
+    *gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
   }
   return gl;
 }
