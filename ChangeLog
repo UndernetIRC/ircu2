@@ -1,3 +1,8 @@
+2002-08-26  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_opmode.c (mo_opmode): don't require opers to be on the
+	channel to use /opmode
+
 2002-08-24  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): release rc2

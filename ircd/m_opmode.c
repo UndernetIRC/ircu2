@@ -138,7 +138,6 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
-  struct Membership *member;
   char *chname, *qreason;
   int force = 0;
 
@@ -163,9 +162,6 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
-
-  if (!(member = find_member_link(chptr, sptr)))
-    return send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
 
   if (!force && (qreason = find_quarantine(chptr->chname)))
     return send_reply(sptr, ERR_QUARANTINED, chptr->chname, qreason);
