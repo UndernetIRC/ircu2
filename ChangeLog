@@ -3,6 +3,9 @@
 	* ircd/ircd_reply.c (protocol_violation): rewrite
 	protocol_violation so it'll actually work
 
+	oh, yeah, use %s -> cptr->name, instead of %c -> cptr, so we get
+	the client's real name in there.
+
 	* ircd/m_motd.c (m_motd): Iso's addition of get_client_class(sptr)
 	resulted in core dumps if NODEFAULTMOTD is defined, because m_motd
 	gets called from register_user with a NULL sptr.  This is probably
