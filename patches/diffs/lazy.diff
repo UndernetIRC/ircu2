@@ -1,0 +1,844 @@
+Index: include/channel.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/channel.h,v
+retrieving revision 1.31
+diff -u -r1.31 channel.h
+--- include/channel.h	2002/03/27 22:30:24	1.31
++++ include/channel.h	2002/04/02 07:11:52
+@@ -95,6 +95,8 @@
+ #define MODE_BURSTADDED	0x80000	/* channel was created by a BURST */
+ #define MODE_UPASS	0x100000
+ #define MODE_APASS	0x200000
++#define MODE_EMPTY	0x400000 /* LazeLeaf: no more locals, remove channel asap */
++
+ /*
+  * mode flags which take another parameter (With PARAmeterS)
+  */
+@@ -222,15 +224,20 @@
+   time_t             creationtime;
+   time_t             topic_time;
+   unsigned int       users;
++  unsigned int       locals;
+   struct Membership* members;
+   struct SLink*      invites;
+   struct SLink*      banlist;
+   struct Mode        mode;
+   char               topic[TOPICLEN + 1];
+   char               topic_nick[NICKLEN + 1];
+-  char               chname[1];
++  unsigned long      ll_bits;		/* LazyLeaf */
++  char               chname[1];		/* This *must* be last */
+ };
+ 
++#define LeafKnowsChannel(c,x)	(cli_serv(c)->ll_mask & (x)->ll_bits)
++#define LL_ALL			(~0UL)
++
+ struct ListingArgs {
+   time_t max_time;
+   time_t min_time;
+@@ -350,6 +357,7 @@
+ extern int is_zombie(struct Client *cptr, struct Channel *chptr);
+ extern int has_voice(struct Client *cptr, struct Channel *chptr);
+ extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
++extern void ll_send_channel(struct Client *cptr, struct Channel *chptr);
+ extern char *pretty_mask(char *mask);
+ extern void del_invite(struct Client *cptr, struct Channel *chptr);
+ extern void list_next_channels(struct Client *cptr, int nr);
+Index: include/client.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/client.h,v
+retrieving revision 1.25
+diff -u -r1.25 client.h
+--- include/client.h	2002/03/19 10:54:28	1.25
++++ include/client.h	2002/04/02 07:11:53
+@@ -369,6 +369,7 @@
+ #define FLAGS_DOID      0x00040000      /* I-lines say must use ident return */
+ #define FLAGS_NONL      0x00080000      /* No \n in buffer */
+ #define FLAGS_TS8       0x00100000      /* Why do you want to know? */
++#define FLAGS_LAZY	0x00200000	/* LazyLeaf */
+ #define FLAGS_MAP       0x00800000      /* Show server on the map */
+ #define FLAGS_JUNCTION  0x01000000      /* Junction causing the net.burst */
+ #define FLAGS_DEAF      0x02000000      /* Makes user deaf */
+@@ -413,6 +414,7 @@
+ #define IsAccount(x)            (cli_flags(x) & FLAGS_ACCOUNT)
+ #define IsHiddenHost(x)		(cli_flags(x) & FLAGS_HIDDENHOST)
+ #define HasHiddenHost(x)	(IsAccount(x) && IsHiddenHost(x))
++#define IsLazy(x)		(cli_flags(x) & FLAGS_LAZY)
+ 
+ #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
+ 
+@@ -435,6 +437,7 @@
+ #define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
+ #define SetAccount(x)           (cli_flags(x) |= FLAGS_ACCOUNT)
+ #define SetHiddenHost(x)	(cli_flags(x) |= FLAGS_HIDDENHOST)
++#define SetLazy(x)		(cli_flags(x) |= FLAGS_LAZY)
+ 
+ #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
+ #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)
+@@ -450,6 +453,7 @@
+ #define ClearWallops(x)         (cli_flags(x) &= ~FLAGS_WALLOP)
+ #define ClearServNotice(x)      (cli_flags(x) &= ~FLAGS_SERVNOTICE)
+ #define ClearHiddenHost(x)	(cli_flags(x) &= ~FLAGS_HIDDENHOST)
++#define ClearLazy(x)		(cli_flags(x) &= ~FLAGS_LAZY)
+ 
+ /* free flags */
+ #define FREEFLAG_SOCKET	0x0001	/* socket needs to be freed */
+Index: include/handlers.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/handlers.h,v
+retrieving revision 1.16
+diff -u -r1.16 handlers.h
+--- include/handlers.h	2002/03/19 22:03:36	1.16
++++ include/handlers.h	2002/04/02 07:11:53
+@@ -183,6 +183,7 @@
+ extern int ms_gline(struct Client*, struct Client*, int, char*[]);
+ extern int ms_info(struct Client*, struct Client*, int, char*[]);
+ extern int ms_invite(struct Client*, struct Client*, int, char*[]);
++extern int ms_forget(struct Client*, struct Client*, int, char*[]);
+ extern int ms_join(struct Client*, struct Client*, int, char*[]);
+ extern int ms_jupe(struct Client*, struct Client*, int, char*[]);
+ extern int ms_kick(struct Client*, struct Client*, int, char*[]);
+Index: include/ircd_features.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/ircd_features.h,v
+retrieving revision 1.14
+diff -u -r1.14 ircd_features.h
+--- include/ircd_features.h	2002/03/20 06:33:24	1.14
++++ include/ircd_features.h	2002/04/02 07:11:53
+@@ -37,6 +37,7 @@
+   FEAT_KILL_IPMISMATCH,
+   FEAT_IDLE_FROM_MSG,
+   FEAT_HUB,
++  FEAT_LAZY_LEAF,
+   FEAT_WALLOPS_OPER_ONLY,
+   FEAT_NODNS,
+   FEAT_RANDOM_SEED,
+Index: include/msg.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/msg.h,v
+retrieving revision 1.12
+diff -u -r1.12 msg.h
+--- include/msg.h	2002/02/14 00:20:40	1.12
++++ include/msg.h	2002/04/02 07:11:53
+@@ -330,6 +330,10 @@
+ #define TOK_ACCOUNT		"AC"
+ #define CMD_ACCOUNT		MSG_ACCOUNT, TOK_ACCOUNT
+ 
++#define MSG_FORGET		"FORGET"	/* FORGET */
++#define TOK_FORGET		"FO"
++#define CMD_FORGET		MSG_FORGET, TOK_FORGET
++
+ #define MSG_POST                "POST"          /* POST */
+ #define TOK_POST                "POST"
+ 
+Index: include/s_serv.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/s_serv.h,v
+retrieving revision 1.6
+diff -u -r1.6 s_serv.h
+--- include/s_serv.h	2001/06/08 23:12:16	1.6
++++ include/s_serv.h	2002/04/02 07:11:53
+@@ -12,9 +12,11 @@
+ 
+ struct ConfItem;
+ struct Client;
++struct Channel;
+ 
+ extern unsigned int max_connection_count;
+ extern unsigned int max_client_count;
++extern unsigned long GlobalLeafBits;
+ 
+ /*
+  * Prototypes
+@@ -24,5 +26,8 @@
+ extern int a_kills_b_too(struct Client *a, struct Client *b);
+ extern int server_estab(struct Client *cptr, struct ConfItem *aconf);
+ 
++extern int ll_add(struct Client *cptr);
++extern void ll_remove(struct Client *cptr);
++extern void ll_check_channel(struct Client *cptr, struct Channel *chptr);
+ 
+ #endif /* INCLUDED_s_serv_h */
+Index: include/send.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/send.h,v
+retrieving revision 1.17
+diff -u -r1.17 send.h
+--- include/send.h	2002/02/14 00:20:41	1.17
++++ include/send.h	2002/04/02 07:11:53
+@@ -47,6 +47,12 @@
+ 				  const char *tok, struct Client *one,
+ 				  const char *pattern, ...);
+ 
++/* Same as above, but only when the server's ll_mask matches */
++extern void sendcmdto_mask_butone(struct Client *from, const char *cmd,
++				  const char *tok, unsigned long ll_mask,
++				  struct Client *one,
++				  const char *pattern, ...);
++
+ /* Send command to all channels user is on */
+ extern void sendcmdto_common_channels_butone(struct Client *from,
+ 					     const char *cmd,
+Index: include/struct.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/struct.h,v
+retrieving revision 1.3
+diff -u -r1.3 struct.h
+--- include/struct.h	2002/02/14 00:20:41	1.3
++++ include/struct.h	2002/04/02 07:11:53
+@@ -52,6 +52,7 @@
+   unsigned short  nn_last;      /* Last numeric nick for p9 servers only */
+   unsigned int    nn_mask;      /* [Remote] FD_SETSIZE - 1 */
+   char          nn_capacity[4]; /* numeric representation of server capacity */
++  unsigned long   ll_mask;	/* LazyLeaf mask */
+ 
+   char *last_error_msg;         /* Allocated memory with last message receive with an ERROR */
+   char by[NICKLEN + 1];
+Index: ircd/channel.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/channel.c,v
+retrieving revision 1.79
+diff -u -r1.79 channel.c
+--- ircd/channel.c	2002/04/02 00:26:46	1.79
++++ ircd/channel.c	2002/04/02 07:11:54
+@@ -46,6 +46,7 @@
+ #include "s_conf.h"
+ #include "s_debug.h"
+ #include "s_misc.h"
++#include "s_serv.h"
+ #include "s_user.h"
+ #include "send.h"
+ #include "struct.h"
+@@ -533,6 +534,8 @@
+       remove_destruct_event(chptr);
+     ++chptr->users;
+     ++((cli_user(who))->joined);
++    if (MyUser(who))
++      ++chptr->locals;
+   }
+ }
+ 
+@@ -562,6 +565,8 @@
+     (cli_user(member->user))->channel = member->next_channel;
+ 
+   --(cli_user(member->user))->joined;
++  if (MyUser(member->user))
++    --chptr->locals;
+ 
+   member->next_member = membershipFreeList;
+   membershipFreeList = member;
+@@ -587,6 +592,12 @@
+   struct Membership* member;
+   assert(0 != chptr);
+ 
++  if (chptr->mode.mode & MODE_EMPTY) {
++    while (remove_member_from_channel(chptr->members))
++      ;
++    return;
++  }
++
+   if ((member = find_member_link(chptr, cptr))) {
+     if (remove_member_from_channel(member)) {
+       if (channel_all_zombies(chptr)) {
+@@ -1417,6 +1428,7 @@
+     for (; acptr != &me; acptr = (cli_serv(acptr))->up)
+       if (acptr == (cli_user(who))->server)   /* Case d) (server 5) */
+       {
++        ll_check_channel(who, chptr);
+         remove_user_from_channel(who, chptr);
+         return;
+       }
+@@ -1769,8 +1781,8 @@
+ 
+     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
+       /* If OPMODE was set, we're propagating the mode as an OPMODE message */
+-      sendcmdto_serv_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
+-			    "%H %s%s%s%s%s%s", mbuf->mb_channel,
++      sendcmdto_mask_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_channel->ll_bits,
++			    mbuf->mb_connect, "%H %s%s%s%s%s%s", mbuf->mb_channel,
+ 			    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+ 			    addbuf, remstr, addstr);
+     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
+@@ -1789,14 +1801,16 @@
+        * we send the actual channel TS unless this is a HACK3 or a HACK4
+        */
+       if (IsServer(mbuf->mb_source))
+-	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
++	sendcmdto_mask_butone(mbuf->mb_source, CMD_MODE,
++			      mbuf->mb_channel->ll_bits, mbuf->mb_connect,
+ 			      "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
+ 			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+ 			      addbuf, remstr, addstr,
+ 			      (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+ 			      mbuf->mb_channel->creationtime);
+       else
+-	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
++	sendcmdto_mask_butone(mbuf->mb_source, CMD_MODE, 
++			      mbuf->mb_channel->ll_bits, mbuf->mb_connect,
+ 			      "%H %s%s%s%s%s%s", mbuf->mb_channel,
+ 			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+ 			      addbuf, remstr, addstr);
+@@ -3143,7 +3157,7 @@
+ 
+     /* send notification to all servers */
+     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !IsLocalChannel(chan->chname))
+-      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
++      sendcmdto_mask_butone(jbuf->jb_source, CMD_JOIN, chan->ll_bits, jbuf->jb_connect,
+ 			    "%H %Tu", chan, chan->creationtime);
+ 
+     /* Send the notification to the channel */
+@@ -3191,9 +3205,37 @@
+     build_string(chanlist, &chanlist_i,
+ 		 jbuf->jb_channels[i] ? jbuf->jb_channels[i]->chname : "0", 0,
+ 		 i == 0 ? '\0' : ',');
+-    if (JOINBUF_TYPE_PART == jbuf->jb_type)
++
++    /*
++     * For lazy leafs, joins/parts have to be sent separately for 
++     * each channel. 
++     */
++    switch (jbuf->jb_type) {
++    case JOINBUF_TYPE_CREATE:
++      sendcmdto_mask_butone(jbuf->jb_source, CMD_CREATE,
++			    jbuf->jb_channels[i] ? jbuf->jb_channels[i]->ll_bits : LL_ALL,
++			    jbuf->jb_connect, "%s %Tu",
++			    jbuf->jb_channels[i] ? jbuf->jb_channels[i]->chname : "0",
++			    jbuf->jb_create);
++      break;
++
++    case JOINBUF_TYPE_PART:
++      sendcmdto_mask_butone(jbuf->jb_source, CMD_PART,
++			    jbuf->jb_channels[i]->ll_bits,
++			    jbuf->jb_connect,
++			    jbuf->jb_comment ? "%s :%s" : "%s",
++			    jbuf->jb_channels[i]->chname,
++			    jbuf->jb_comment);
++      break;
++    }
++
++    if (JOINBUF_TYPE_PART == jbuf->jb_type) {
++      /* Check now, as remove_user* may free the channel */
++      ll_check_channel(jbuf->jb_source, jbuf->jb_channels[i]);
++	
+       /* Remove user from channel */
+       remove_user_from_channel(jbuf->jb_source, jbuf->jb_channels[i]);
++    }
+ 
+     jbuf->jb_channels[i] = 0; /* mark slot empty */
+   }
+@@ -3203,6 +3245,7 @@
+ 		      STARTJOINLEN : STARTCREATELEN) +
+ 		     (jbuf->jb_comment ? strlen(jbuf->jb_comment) + 2 : 0));
+ 
++#if 0
+   /* and send the appropriate command */
+   switch (jbuf->jb_type) {
+   case JOINBUF_TYPE_CREATE:
+@@ -3216,6 +3259,7 @@
+ 			  jbuf->jb_comment);
+     break;
+   }
++#endif
+ 
+   return 0;
+ }
+Index: ircd/ircd_features.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/ircd_features.c,v
+retrieving revision 1.18
+diff -u -r1.18 ircd_features.c
+--- ircd/ircd_features.c	2002/03/20 06:33:25	1.18
++++ ircd/ircd_features.c	2002/04/02 07:11:55
+@@ -244,6 +244,7 @@
+   F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
+   F_B(IDLE_FROM_MSG, 0, 1, 0),
+   F_B(HUB, 0, 0, 0),
++  F_B(LAZY_LEAF, 0, 0, 0),
+   F_B(WALLOPS_OPER_ONLY, 0, 0, 0),
+   F_B(NODNS, 0, 0, 0),
+   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
+Index: ircd/m_burst.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_burst.c,v
+retrieving revision 1.16
+diff -u -r1.16 m_burst.c
+--- ircd/m_burst.c	2002/03/27 22:30:24	1.16
++++ ircd/m_burst.c	2002/04/02 07:11:55
+@@ -89,6 +89,7 @@
+ #include "ircd_policy.h"
+ #include "ircd_reply.h"
+ #include "ircd_string.h"
++#include "ircd_features.h"
+ #include "list.h"
+ #include "match.h"
+ #include "msg.h"
+@@ -463,6 +464,11 @@
+       lp->flags &= (CHFL_BAN | CHFL_BAN_IPMASK); /* reset the flag */
+       lp_p = &(*lp_p)->next;
+     }
++  }
++
++  if (IsLazy(cptr) && !LeafKnowsChannel(cptr, chptr)) {
++    chptr->ll_bits |= cli_serv(cptr)->ll_mask;
++    send_channel_modes(cptr, chptr);
+   }
+ 
+   return mbuf ? modebuf_flush(mbuf) : 0;
+Index: ircd/m_clearmode.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_clearmode.c,v
+retrieving revision 1.20
+diff -u -r1.20 m_clearmode.c
+--- ircd/m_clearmode.c	2002/02/14 00:20:42	1.20
++++ ircd/m_clearmode.c	2002/04/02 07:11:55
+@@ -234,8 +234,8 @@
+ 
+   /* Then send it */
+   if (!IsLocalChannel(chptr->chname))
+-    sendcmdto_serv_butone(sptr, CMD_CLEARMODE, cptr, "%H %s", chptr,
+-			  control_buf);
++    sendcmdto_mask_butone(sptr, CMD_CLEARMODE, chptr->ll_bits, cptr,
++			  "%H %s", chptr, control_buf);
+ 
+   return 0;
+ }
+Index: ircd/m_create.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_create.c,v
+retrieving revision 1.12
+diff -u -r1.12 m_create.c
+--- ircd/m_create.c	2002/02/14 00:20:42	1.12
++++ ircd/m_create.c	2002/04/02 07:11:55
+@@ -154,6 +154,7 @@
+       continue;
+ 
+     if ((chptr = FindChannel(name))) {
++      int hack2 = IsLazy(cptr) ? 0 : MODEBUF_DEST_HACK2;
+       name = chptr->chname;
+ 
+       /* Check if we need to bounce a mode */
+@@ -162,7 +163,7 @@
+ 	   chptr->creationtime != MAGIC_REMOTE_JOIN_TS)) {
+ 	modebuf_init(&mbuf, sptr, cptr, chptr,
+ 		     (MODEBUF_DEST_SERVER |  /* Send mode to server */
+-		      MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
++		      hack2               |  /* Send a HACK(2) message */
+ 		      MODEBUF_DEST_BOUNCE)); /* And bounce the mode */
+ 
+ 	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr);
+@@ -180,6 +181,11 @@
+     joinbuf_join(badop ? &join : &create, chptr,
+ 		 (badop || IsModelessChannel(name)) ?
+ 		 CHFL_DEOPPED : CHFL_CHANOP);
++
++    if (IsLazy(cptr) && !LeafKnowsChannel(cptr, chptr)) {
++      chptr->ll_bits |= cli_serv(cptr)->ll_mask;
++      send_channel_modes(cptr, chptr);
++    }
+   }
+ 
+   joinbuf_flush(&join); /* flush out the joins and creates */
+Index: ircd/m_join.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_join.c,v
+retrieving revision 1.19
+diff -u -r1.19 m_join.c
+--- ircd/m_join.c	2002/03/13 09:19:21	1.19
++++ ircd/m_join.c	2002/04/02 07:11:55
+@@ -373,6 +373,11 @@
+ 	chptr->creationtime = creation;
+     } 
+ 
++    if (IsLazy(cptr) && !LeafKnowsChannel(cptr, chptr)) {
++      chptr->ll_bits |= cli_serv(cptr)->ll_mask;
++      send_channel_modes(cptr, chptr);
++    }
++
+     joinbuf_join(&join, chptr, flags);
+   }
+ 
+Index: ircd/m_kick.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_kick.c,v
+retrieving revision 1.8
+diff -u -r1.8 m_kick.c
+--- ircd/m_kick.c	2002/03/13 09:19:21	1.8
++++ ircd/m_kick.c	2002/04/02 07:11:55
+@@ -150,7 +150,7 @@
+   comment = EmptyString(parv[parc - 1]) ? parv[0] : parv[parc - 1];
+ 
+   if (!IsLocalChannel(name))
+-    sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
++    sendcmdto_mask_butone(sptr, CMD_KICK, chptr->ll_bits, cptr, "%H %C :%s", chptr, who,
+ 			  comment);
+ 
+   sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
+@@ -228,7 +228,7 @@
+     }
+   } else {
+     /* Propagate kick... */
+-    sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
++    sendcmdto_mask_butone(sptr, CMD_KICK, chptr->ll_bits, cptr, "%H %C :%s", chptr, who,
+ 			  comment);
+ 
+     if (member) { /* and tell the channel about it */
+Index: ircd/m_server.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_server.c,v
+retrieving revision 1.26
+diff -u -r1.26 m_server.c
+--- ircd/m_server.c	2002/03/19 22:03:36	1.26
++++ ircd/m_server.c	2002/04/02 07:11:56
+@@ -181,6 +181,9 @@
+       case 's':
+ 	SetService(cptr);
+ 	break;
++      case 'l':
++        SetLazy(cptr);
++	break;
+       }
+   }
+ 
+Index: ircd/m_topic.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/m_topic.c,v
+retrieving revision 1.10
+diff -u -r1.10 m_topic.c
+--- ircd/m_topic.c	2002/02/14 00:20:43	1.10
++++ ircd/m_topic.c	2002/04/02 07:11:56
+@@ -115,8 +115,8 @@
+    chptr->topic_time = CurrentTime;
+    /* Fixed in 2.10.11: Don't propergate local topics */
+    if (!IsLocalChannel(chptr->chname))
+-     sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
+-		           chptr->topic);
++     sendcmdto_mask_butone(sptr, CMD_TOPIC, chptr->ll_bits, cptr, "%H %Tu :%s", chptr,
++		           chptr->topic_time, chptr->topic);
+    if (newtopic)
+       sendcmdto_channel_butserv_butone(sptr, CMD_TOPIC, chptr, NULL,
+       				       "%H :%s", chptr, chptr->topic);
+Index: ircd/parse.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/parse.c,v
+retrieving revision 1.34
+diff -u -r1.34 parse.c
+--- ircd/parse.c	2002/03/19 22:03:36	1.34
++++ ircd/parse.c	2002/04/02 07:11:57
+@@ -577,6 +577,13 @@
+     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+     { m_ignore, m_ignore, ms_account, m_ignore, m_ignore }
+   },
++  {
++    MSG_FORGET,
++    TOK_FORGET,
++    0, MAXPARA, MFLG_SLOW, 0,
++    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
++    { m_ignore, m_ignore, ms_forget, m_ignore, m_ignore }
++  },
+   /* This command is an alias for QUIT during the unregistered part of
+    * of the server.  This is because someone jumping via a broken web
+    * proxy will send a 'POST' as their first command - which we will
+Index: ircd/s_bsd.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_bsd.c,v
+retrieving revision 1.47
+diff -u -r1.47 s_bsd.c
+--- ircd/s_bsd.c	2002/04/02 00:26:46	1.47
++++ ircd/s_bsd.c	2002/04/02 07:11:58
+@@ -465,7 +465,8 @@
+   sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
+                 cli_name(&me), cli_serv(&me)->timestamp, newts,
+ 		MAJOR_PROTOCOL, NumServCap(&me),
+-		feature_bool(FEAT_HUB) ? "h" : "", cli_info(&me));
++		feature_bool(FEAT_HUB) ? "h" :
++		feature_bool(FEAT_LAZY_LEAF) ? "l" : "", cli_info(&me));
+ 
+   return (IsDead(cptr)) ? 0 : 1;
+ }
+Index: ircd/s_misc.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_misc.c,v
+retrieving revision 1.31
+diff -u -r1.31 s_misc.c
+--- ircd/s_misc.c	2002/04/02 00:26:47	1.31
++++ ircd/s_misc.c	2002/04/02 07:11:59
+@@ -48,6 +48,7 @@
+ #include "s_conf.h"
+ #include "s_debug.h"
+ #include "s_user.h"
++#include "s_serv.h"
+ #include "send.h"
+ #include "struct.h"
+ #include "support.h"
+@@ -477,6 +478,8 @@
+     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
+ 			 cli_serv(victim)->up, victim, comment);
+ 
++    if (IsLazy(victim))
++      ll_remove(victim);
+ #if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)    
+     map_update(victim);
+ #endif
+Index: ircd/s_serv.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_serv.c,v
+retrieving revision 1.28
+diff -u -r1.28 s_serv.c
+--- ircd/s_serv.c	2002/02/14 00:20:44	1.28
++++ ircd/s_serv.c	2002/04/02 07:11:59
+@@ -36,6 +36,7 @@
+ #include "ircd_string.h"
+ #include "ircd_snprintf.h"
+ #include "ircd_xopen.h"
++#include "ircd_log.h"
+ #include "jupe.h"
+ #include "list.h"
+ #include "match.h"
+@@ -61,6 +62,7 @@
+ 
+ unsigned int max_connection_count = 0;
+ unsigned int max_client_count = 0;
++unsigned long GlobalLeafBits = 0;
+ 
+ int exit_new_server(struct Client *cptr, struct Client *sptr, const char *host,
+                     time_t timestamp, const char *pattern, ...)
+@@ -113,7 +115,8 @@
+     sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
+ 		  cli_name(&me), cli_serv(&me)->timestamp,
+ 		  cli_serv(cptr)->timestamp, MAJOR_PROTOCOL, NumServCap(&me),
+-		  feature_bool(FEAT_HUB) ? "h" : "",
++		  feature_bool(FEAT_HUB) ? "h" :
++		  feature_bool(FEAT_LAZY_LEAF) ? "l" : "",
+ 		  *(cli_info(&me)) ? cli_info(&me) : "IRCers United");
+     /*
+      * Don't charge this IP# for connecting
+@@ -135,6 +138,9 @@
+ 
+   SetBurst(cptr);
+ 
++  if (IsLazy(cptr) && !ll_add(cptr))
++    ClearLazy(cptr);
++
+ /*    nextping = CurrentTime; */
+ 
+   /*
+@@ -241,6 +247,7 @@
+    * Last, send the BURST.
+    * (Or for 2.9 servers: pass all channels plus statuses)
+    */
++  if (!IsLazy(cptr))
+   {
+     struct Channel *chptr;
+     for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
+@@ -252,3 +259,42 @@
+   return 0;
+ }
+ 
++int ll_add(struct Client *cptr)
++{
++  int i = 1;
++
++  assert(IsLazy(cptr));
++
++  while ((GlobalLeafBits & i) && i < 0x80000000)
++    i <<= 1;
++  if (GlobalLeafBits & i) {
++    sendto_opmask_butone(NULL, SNO_OLDSNO, "No more bits for LazyLeaf %s.", cli_name(cptr));
++    return 0;
++  }
++  GlobalLeafBits |= i;
++  cli_serv(cptr)->ll_mask = i;
++  log_write(LS_DEBUG, L_DEBUG, 0, "Added LazyLeaf %s with mask 0x%lx. GlobalLeafBits=0x%lx", cli_name(cptr), i, GlobalLeafBits);
++  return 1;
++}
++
++void ll_remove(struct Client *cptr)
++{
++  struct Channel *chptr;
++
++  assert(IsLazy(cptr));
++
++  for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
++    chptr->ll_bits &= ~cli_serv(cptr)->ll_mask;
++
++  GlobalLeafBits &= ~cli_serv(cptr)->ll_mask;
++  log_write(LS_DEBUG, L_DEBUG, 0, "Removed LazyLeaf %s with mask 0x%lx. GlobalLeafBits=0x%lx", cli_name(cptr), cli_serv(cptr)->ll_mask, GlobalLeafBits);
++}
++
++void ll_check_channel(struct Client *cptr, struct Channel *chptr)
++{
++  if (feature_bool(FEAT_LAZY_LEAF) && MyUser(cptr) && chptr->locals <= 1) {
++    log_write(LS_DEBUG, L_DEBUG, 0, "LazyLeaf: Channel %s has no more locals", chptr->chname);
++    sendcmdto_serv_butone(&me, CMD_FORGET, NULL, "%s", chptr->chname);
++    chptr->mode.mode |= MODE_EMPTY;
++  }
++}
+Index: ircd/send.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/send.c,v
+retrieving revision 1.46
+diff -u -r1.46 send.c
+--- ircd/send.c	2002/02/14 00:20:45	1.46
++++ ircd/send.c	2002/04/02 07:11:59
+@@ -328,6 +328,35 @@
+   msgq_clean(mb);
+ }
+ 
++void sendcmdto_mask_butone(struct Client *from, const char *cmd,
++			   const char *tok, unsigned long ll_mask,
++			   struct Client *one,
++			   const char *pattern, ...)
++{
++  struct VarData vd;
++  struct MsgBuf *mb;
++  struct DLink *lp;
++
++  vd.vd_format = pattern; /* set up the struct VarData for %v */
++  va_start(vd.vd_args, pattern);
++
++  /* use token */
++  mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
++  va_end(vd.vd_args);
++
++  /* send it to our downlinks */
++  for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
++    if (one && lp->value.cptr == cli_from(one))
++      continue;
++    if (IsLazy(lp->value.cptr) && !(cli_serv(lp->value.cptr)->ll_mask & ll_mask))
++      continue;
++    send_buffer(lp->value.cptr, mb, 0);
++  }
++
++  msgq_clean(mb);
++}
++
++
+ /*
+  * Send a (prefix) command originating from <from> to all channels
+  * <from> is locally on.  <from> must be a user. <tok> is ignored in
+--- /dev/null	Tue Mar 19 18:25:27 2002
++++ ircd/m_forget.c	Tue Apr  2 18:49:42 2002
+@@ -0,0 +1,123 @@
++/*
++ * IRC - Internet Relay Chat, ircd/m_forget.c
++ * Copyright (C) 2002 Alex Badea <vampire@p16.pub.ro>
++ *
++ * See file AUTHORS in IRC package for additional names of
++ * the programmers.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 1, or (at your option)
++ * any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ *
++ * $Id: lazy.diff,v 1.1 2002-04-02 07:17:11 isomer Exp $
++ */
++
++/*
++ * m_functions execute protocol messages on this server:
++ *
++ *    cptr    is always NON-NULL, pointing to a *LOCAL* client
++ *            structure (with an open socket connected!). This
++ *            identifies the physical socket where the message
++ *            originated (or which caused the m_function to be
++ *            executed--some m_functions may call others...).
++ *
++ *    sptr    is the source of the message, defined by the
++ *            prefix part of the message if present. If not
++ *            or prefix not found, then sptr==cptr.
++ *
++ *            (!IsServer(cptr)) => (cptr == sptr), because
++ *            prefixes are taken *only* from servers...
++ *
++ *            (IsServer(cptr))
++ *                    (sptr == cptr) => the message didn't
++ *                    have the prefix.
++ *
++ *                    (sptr != cptr && IsServer(sptr) means
++ *                    the prefix specified servername. (?)
++ *
++ *                    (sptr != cptr && !IsServer(sptr) means
++ *                    that message originated from a remote
++ *                    user (not local).
++ *
++ *            combining
++ *
++ *            (!IsServer(sptr)) means that, sptr can safely
++ *            taken as defining the target structure of the
++ *            message in this server.
++ *
++ *    *Always* true (if 'parse' and others are working correct):
++ *
++ *    1)      sptr->from == cptr  (note: cptr->from == cptr)
++ *
++ *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
++ *            *cannot* be a local connection, unless it's
++ *            actually cptr!). [MyConnect(x) should probably
++ *            be defined as (x == x->from) --msa ]
++ *
++ *    parc    number of variable parameter strings (if zero,
++ *            parv is allowed to be NULL)
++ *
++ *    parv    a NULL terminated list of parameter pointers,
++ *
++ *                    parv[0], sender (prefix string), if not present
++ *                            this points to an empty string.
++ *                    parv[1]...parv[parc-1]
++ *                            pointers to additional parameters
++ *                    parv[parc] == NULL, *always*
++ *
++ *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
++ *                    non-NULL pointers.
++ */
++#include "config.h"
++
++#include "client.h"
++#include "hash.h"
++#include "ircd.h"
++#include "ircd_reply.h"
++#include "ircd_string.h"
++#include "msg.h"
++#include "numeric.h"
++#include "numnicks.h"
++#include "send.h"
++#include "channel.h"
++#include "ircd_log.h"
++
++#include <assert.h>
++#include <stdlib.h>
++
++/*
++ * ms_forget - server message handler
++ */
++int ms_forget(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
++{
++  struct Channel *chptr;
++
++  assert(0 != cptr);
++  assert(0 != sptr);
++  assert(IsServer(cptr));
++
++  if (parc < 2)
++    return need_more_params(sptr, "FORGET");
++
++  if (!IsLazy(cptr))
++    return 0;
++
++  /* Don't pass on forget messages for channels that exist */
++  if (!(chptr = FindChannel(parv[1])))
++    return 0;
++
++  chptr->ll_bits &= ~cli_serv(cptr)->ll_mask;
++  log_write(LS_DEBUG, L_DEBUG, 0, "LazyLeaf %s forgot about %s", cli_name(cptr), chptr->chname);
++
++  return 0;
++}
