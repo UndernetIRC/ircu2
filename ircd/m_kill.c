@@ -120,6 +120,9 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
      else
        comment++; /* Remove first character (space) */
   }
+  else
+    comment = path;
+
 
 #ifdef HEAD_IN_SAND_KILLWHO
   ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", HEAD_IN_SAND_SERVERNAME, comment);
