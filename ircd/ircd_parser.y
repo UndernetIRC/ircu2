@@ -269,6 +269,7 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 {
   MyFree(localConf.description);
   DupString(localConf.description, yylval.text);
+  ircd_strncpy(cli_info(&me), yylval.text, REALLEN);
 };
 
 generalvhost: VHOST '=' QSTRING ';'

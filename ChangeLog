@@ -1,3 +1,8 @@
+2002-04-14  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/ircd_parser.y: fixed cli_info(&me) not being set
+	from 'description' conf
+
 2002-04-13  Stephane Thiell <mbuna@undernet.org>
 
 	* ircd/m_whois.c: removed FindUser() in ms_whois to fix
