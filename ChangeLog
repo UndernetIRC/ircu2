@@ -1,5 +1,10 @@
 2005-03-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_res.c (check_resolver_timeout): I give up.  Use the
+	kludgy earlier version of the timeout fix.
+
+2005-03-22  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (send_channel_modes): Fix test for when to send
 	membership mode suffix, to avoid sending it more than once.
 

@@ -278,7 +278,14 @@ check_resolver_timeout(time_t when)
 {
   if (when > CurrentTime + AR_TTL)
     when = CurrentTime + AR_TTL;
-  timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
+  /* TODO after 2.10.12: Rewrite the timer API because there should be
+   * no need for clients to know this kind of implementation detail. */
+  if (when > t_expire(&res_timeout))
+    /* do nothing */;
+  else if (t_onqueue(&res_timeout) && !(res_timeout.t_header.gh_flags & GEN_MARKED))
+    timer_chg(&res_timeout, TT_ABSOLUTE, when);
+  else
+    timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
 }
 
 /** Drop pending DNS lookups which have timed out.
