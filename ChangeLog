@@ -1,3 +1,11 @@
+2001-03-07  Joseph Bongaarts  <foxxe@wtfs.net>
+
+	* config/configure.in: Add check for OpenBSD
+
+	* ircd/os_openbsd.c: Add seperate os dep file for openbsd which
+	differs from generic BSD, particularly in its handling of
+	_XOPEN_SOURCE.
+	
 2001-02-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_gline.c (ms_gline): propagate a G-line that happened to

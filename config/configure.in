@@ -128,6 +128,10 @@ case "$uname" in
     AC_MSG_RESULT($uname found.)
     OSDEP_C="os_solaris.c"
   ;;
+  *OpenBSD*)
+    AC_MSG_RESULT($uname found.)
+    OSDEP_C="os_openbsd.c"
+  ;;
   *BSD*)
     AC_MSG_RESULT($uname found.)
     OSDEP_C="os_bsd.c"
