@@ -32,6 +32,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -1218,13 +1219,12 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
      */
     if (!(setflags & FLAGS_CHSERV))
       ClearChannelService(sptr);
-#ifdef WALLOPS_OPER_ONLY
     /*
      * only send wallops to opers
      */
-    if (!IsAnOper(sptr) && !(setflags & FLAGS_WALLOP))
+    if (feature_bool(FEAT_WALLOPS_OPER_ONLY) && !IsAnOper(sptr) &&
+	!(setflags & FLAGS_WALLOP))
       ClearWallops(sptr);
-#endif
   }
   if (MyConnect(sptr)) {
     if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))

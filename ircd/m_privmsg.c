@@ -90,6 +90,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_relay.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -118,9 +119,8 @@ int m_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   cli_flags(sptr) &= ~FLAGS_TS8;
 
-#ifdef IDLE_FROM_MSG
-  cli_user(sptr)->last = CurrentTime;
-#endif
+  if (feature_bool(FEAT_IDLE_FROM_MSG))
+    cli_user(sptr)->last = CurrentTime;
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_PRIVATE);
@@ -209,9 +209,8 @@ int mo_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   cli_flags(sptr) &= ~FLAGS_TS8;
 
-#ifdef IDLE_FROM_MSG
-  cli_user(sptr)->last = CurrentTime;
-#endif
+  if (feature_bool(FEAT_IDLE_FROM_MSG))
+    cli_user(sptr)->last = CurrentTime;
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_PRIVATE);

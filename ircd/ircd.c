@@ -26,6 +26,7 @@
 #include "crule.h"
 #include "hash.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_signal.h"
@@ -163,14 +164,16 @@ static void outofmemory(void) {
 static void write_pidfile(void) {
   FILE *pidf;
 
-  if (!(pidf = fopen(PPATH, "w+"))) {
+  if (!(pidf = fopen(feature_str(FEAT_PPATH), "w+"))) {
     Debug((DEBUG_NOTICE, 
-	   "Error opening pid file \"%s\": %s", PPATH, strerror(errno)));
+	   "Error opening pid file \"%s\": %s", feature_str(FEAT_PPATH),
+	   strerror(errno)));
     return;
   }
     
   if (fprintf(pidf, "%5d\n", getpid()) < 5)
-    Debug((DEBUG_NOTICE, "Error writing to pid file %s", PPATH));
+    Debug((DEBUG_NOTICE, "Error writing to pid file %s",
+	   feature_str(FEAT_PPATH)));
 
   fclose(pidf);
 }
@@ -629,9 +632,7 @@ int main(int argc, char **argv) {
 
   /* Check paths for accessibility */
   if (!check_file_access(SPATH, 'S', X_OK) ||
-      !check_file_access(configfile, 'C', R_OK) ||
-      !check_file_access(MPATH, 'M', R_OK) ||
-      !check_file_access(RPATH, 'R', R_OK))
+      !check_file_access(configfile, 'C', R_OK))
     return 4;
       
 #ifdef DEBUG
@@ -643,6 +644,7 @@ int main(int argc, char **argv) {
   daemon_init(thisServer.bootopt & BOOT_TTY);
 
   setup_signals();
+  feature_mark(); /* initialize features... */
   log_init(*argv);
 
   set_nomem_handler(outofmemory);

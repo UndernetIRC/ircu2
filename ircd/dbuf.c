@@ -21,6 +21,7 @@
 #include "dbuf.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "send.h"
 #include "sys.h"       /* MIN */
 
@@ -69,7 +70,7 @@ static struct DBufBuffer *dbuf_alloc(void)
     dbufFreeList = db->next;
     ++DBufUsedCount;
   }
-  else if (DBufAllocCount * DBUF_SIZE < BUFFERPOOL) {
+  else if (DBufAllocCount * DBUF_SIZE < feature_int(FEAT_BUFFERPOOL)) {
     db = (struct DBufBuffer*) MyMalloc(sizeof(struct DBufBuffer));
     assert(0 != db);
     ++DBufAllocCount;
@@ -147,27 +148,29 @@ int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
   for (; length > 0; h = &(db->next)) {
     if (0 == (db = *h)) {
       if (0 == (db = dbuf_alloc())) {
-#if defined(HAS_FERGUSON_FLUSHER)
-        /*
-         * from "Married With Children" episode were Al bought a REAL toilet
-         * on the black market because he was tired of the wimpy water
-         * conserving toilets they make these days --Bleep
-         */
-        /*
-         * Apparently this doesn't work, the server _has_ to
-         * dump a few clients to handle the load. A fully loaded
-         * server cannot handle a net break without dumping some
-         * clients. If we flush the connections here under a full
-         * load we may end up starving the kernel for mbufs and
-         * crash the machine
-         */
-        /*
-         * attempt to recover from buffer starvation before
-         * bailing this may help servers running out of memory
-         */
-        flush_connections(0);
-        if (0 == (db = dbuf_alloc()))
-#endif
+	if (feature_bool(FEAT_HAS_FERGUSON_FLUSHER)) {
+	  /*
+	   * from "Married With Children" episode were Al bought a REAL toilet
+	   * on the black market because he was tired of the wimpy water
+	   * conserving toilets they make these days --Bleep
+	   */
+	  /*
+	   * Apparently this doesn't work, the server _has_ to
+	   * dump a few clients to handle the load. A fully loaded
+	   * server cannot handle a net break without dumping some
+	   * clients. If we flush the connections here under a full
+	   * load we may end up starving the kernel for mbufs and
+	   * crash the machine
+	   */
+	  /*
+	   * attempt to recover from buffer starvation before
+	   * bailing this may help servers running out of memory
+	   */
+	  flush_connections(0);
+	  db = dbuf_alloc();
+	}
+
+        if (0 == db)
           return dbuf_malloc_error(dyn);
       }
       dyn->tail = db;

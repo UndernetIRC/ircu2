@@ -91,6 +91,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "jupe.h"
@@ -324,16 +325,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return exit_client_msg(cptr, cptr, &me,
           "Access denied. No conf line for server %s", cli_name(cptr));
     }
-#ifdef CRYPT_LINK_PASSWORD
-    /* passwd may be NULL. Head it off at the pass... */
-    if (*(cli_passwd(cptr))) {
-      encr = ircd_crypt(cli_passwd(cptr), aconf->passed);
-    }
-    else
-      encr = "";
-#else
     encr = cli_passwd(cptr);
-#endif /* CRYPT_LINK_PASSWORD */
 
     if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
@@ -345,14 +337,14 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
-#ifndef HUB
-    for (i = 0; i <= HighestFd; i++)
-      if (LocalClientArray[i] && IsServer(LocalClientArray[i])) {
-        active_lh_line = 3;
-        LHcptr = 0;
-        break;
-      }
-#endif
+    if (!feature_bool(FEAT_HUB)) {
+      for (i = 0; i <= HighestFd; i++)
+	if (LocalClientArray[i] && IsServer(LocalClientArray[i])) {
+	  active_lh_line = 3;
+	  LHcptr = 0;
+	  break;
+	}
+    }
   }
 
   /*
@@ -702,65 +694,58 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     SetServerYXX(cptr, cptr, parv[6]);
     if (start_timestamp > OLDEST_TS)
     {
-#ifndef RELIABLE_CLOCK
-#ifdef TESTNET
-      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
-			   "others start time: %Tu", cli_serv(&me)->timestamp,
-			   start_timestamp);
-      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
-			   "received timestamp: %Tu ; difference %ld",
-			   recv_time, timestamp, timestamp - recv_time);
-#endif
-      if (start_timestamp < cli_serv(&me)->timestamp)
-      {
-        sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
-			     "%Tu < %Tu", start_timestamp, cli_serv(&me)->timestamp);
-        cli_serv(&me)->timestamp = start_timestamp;
-        TSoffset += timestamp - recv_time;
-        sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
-			     (int)(timestamp - recv_time));
-      }
-      else if ((start_timestamp > cli_serv(&me)->timestamp) && IsUnknown(cptr))
-        cli_serv(cptr)->timestamp = TStime();
-
-      else if (timestamp != recv_time)
-      {
-        /*
-         * Equal start times, we have a collision.  Let the connected-to server
-         * decide. This assumes leafs issue more than half of the connection
-         * attempts.
-         */
-        if (IsUnknown(cptr))
-          cli_serv(cptr)->timestamp = TStime();
-        else if (IsHandshake(cptr))
-        {
-          sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+      Debug((DEBUG_DEBUG, "My start time: %Tu; other's start time: %Tu",
+	     cli_serv(&me)->timestamp, start_timestamp));
+      Debug((DEBUG_DEBUG, "Receive time: %Tu; received timestamp: %Tu; "
+	     "difference %ld", recv_time, timestamp, timestamp - recv_time));
+      if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+	if (start_timestamp < cli_serv(&me)->timestamp)
+	  cli_serv(&me)->timestamp = start_timestamp;
+	if (IsUnknown(cptr))
+	  cli_serv(cptr)->timestamp = TStime();
+      } else {
+	if (start_timestamp < cli_serv(&me)->timestamp) {
+	  sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
+			       "%Tu < %Tu", start_timestamp,
+			       cli_serv(&me)->timestamp);
+	  cli_serv(&me)->timestamp = start_timestamp;
+	  TSoffset += timestamp - recv_time;
+	  sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
 			       (int)(timestamp - recv_time));
-          TSoffset += timestamp - recv_time;
-        }
+	} else if ((start_timestamp > cli_serv(&me)->timestamp) &&
+		 IsUnknown(cptr))
+	  cli_serv(cptr)->timestamp = TStime();
+
+	else if (timestamp != recv_time) {
+	  /*
+	   * Equal start times, we have a collision.  Let the connected-to
+	   * server decide. This assumes leafs issue more than half of the
+	   * connection attempts.
+	   */
+	  if (IsUnknown(cptr))
+	    cli_serv(cptr)->timestamp = TStime();
+	  else if (IsHandshake(cptr)) {
+	    sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+				 (int)(timestamp - recv_time));
+	    TSoffset += timestamp - recv_time;
+	  }
+	}
       }
-#else /* RELIABLE CLOCK IS TRUE, we _always_ use our own clock */
-      if (start_timestamp < cli_serv(&me)->timestamp)
-        cli_serv(&me)->timestamp = start_timestamp;
-      if (IsUnknown(cptr))
-        cli_serv(cptr)->timestamp = TStime();
-#endif
     }
 
     ret = server_estab(cptr, aconf, ajupe);
   }
   else
     ret = 0;
-#ifdef RELIABLE_CLOCK
-  if (abs(cli_serv(cptr)->timestamp - recv_time) > 30)
-  {
+
+  if (feature_bool(FEAT_RELIABLE_CLOCK) &&
+      abs(cli_serv(cptr)->timestamp - recv_time) > 30) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! "
 			 "Used SETTIME to correct this.",
 			 timestamp - recv_time);
     sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
   }
-#endif
 
   return ret;
 }
@@ -979,17 +964,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return exit_client_msg(cptr, cptr, &me,
                              "Access denied. No conf line for server %s", cli_name(cptr));
     }
-#ifdef CRYPT_LINK_PASSWORD
-    /* passwd may be NULL. Head it off at the pass... */
-    if (*(cli_passwd(cptr)))
-    {
-      encr = ircd_crypt(cli_passwd(cptr), cli_passwd(aconf));
-    }
-    else
-      encr = "";
-#else
     encr = cli_passwd(cptr);
-#endif /* CRYPT_LINK_PASSWORD */
 
     if (*(aconf->passwd) && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
@@ -1000,14 +975,14 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
-#ifndef HUB
-    for (i = 0; i <= HighestFd; i++)
-      if (LocalClientArray[i] && IsServer(LocalClientArray[i])) {
-        active_lh_line = 3;
-        LHcptr = 0;
-        break;
-      }
-#endif
+    if (!feature_bool(FEAT_HUB)) {
+      for (i = 0; i <= HighestFd; i++)
+	if (LocalClientArray[i] && IsServer(LocalClientArray[i])) {
+	  active_lh_line = 3;
+	  LHcptr = 0;
+	  break;
+	}
+    }
   }
 
   /*
@@ -1353,64 +1328,57 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     SetServerYXX(cptr, cptr, parv[6]);
     if (start_timestamp > OLDEST_TS)
     {
-#ifndef RELIABLE_CLOCK
-#ifdef TESTNET
-      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
-			   "others start time: %Tu", cli_serv(&me)->timestamp,
-			   start_timestamp);
-      sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
-			   "received timestamp: %Tu ; difference %ld",
-			   recv_time, timestamp, timestamp - recv_time);
-#endif
-      if (start_timestamp < cli_serv(&me)->timestamp)
-      {
-        sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
-			     "%Tu < %Tu", start_timestamp, cli_serv(&me)->timestamp);
-        cli_serv(&me)->timestamp = start_timestamp;
-        TSoffset += timestamp - recv_time;
-        sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
-			     (int)(timestamp - recv_time));
-      }
-      else if ((start_timestamp > cli_serv(&me)->timestamp) && IsUnknown(cptr))
-        cli_serv(cptr)->timestamp = TStime();
-
-      else if (timestamp != recv_time)
-      {
-        /*
-         * Equal start times, we have a collision.  Let the connected-to server
-         * decide. This assumes leafs issue more than half of the connection
-         * attempts.
-         */
-        if (IsUnknown(cptr))
-          cli_serv(cptr)->timestamp = TStime();
-        else if (IsHandshake(cptr))
-        {
-          sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+      Debug((DEBUG_DEBUG, "My start time: %Tu; other's start time: %Tu",
+	     cli_serv(&me)->timestamp, start_timestamp));
+      Debug((DEBUG_DEBUG, "Receive time: %Tu; received timestamp: %Tu; "
+	     "difference %ld", recv_time, timestamp, timestamp - recv_time));
+      if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+	if (start_timestamp < cli_serv(&me)->timestamp)
+	  cli_serv(&me)->timestamp = start_timestamp;
+	if (IsUnknown(cptr))
+	  cli_serv(cptr)->timestamp = TStime();
+      } else {
+	if (start_timestamp < cli_serv(&me)->timestamp) {
+	  sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
+			       "%Tu < %Tu", start_timestamp,
+			       cli_serv(&me)->timestamp);
+	  cli_serv(&me)->timestamp = start_timestamp;
+	  TSoffset += timestamp - recv_time;
+	  sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
 			       (int)(timestamp - recv_time));
-          TSoffset += timestamp - recv_time;
-        }
+	} else if ((start_timestamp > cli_serv(&me)->timestamp) &&
+		   IsUnknown(cptr))
+	  cli_serv(cptr)->timestamp = TStime();
+
+	else if (timestamp != recv_time) {
+	  /*
+	   * Equal start times, we have a collision.  Let the connected-to
+	   * server decide. This assumes leafs issue more than half of the
+	   * connection attempts.
+	   */
+	  if (IsUnknown(cptr))
+	    cli_serv(cptr)->timestamp = TStime();
+	  else if (IsHandshake(cptr)) {
+	    sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
+				 (int)(timestamp - recv_time));
+	    TSoffset += timestamp - recv_time;
+	  }
+	}
       }
-#else /* RELIABLE CLOCK IS TRUE, we _always_ use our own clock */
-      if (start_timestamp < cli_serv(&me)->timestamp)
-        cli_serv(&me)->timestamp = start_timestamp;
-      if (IsUnknown(cptr))
-        cli_serv(cptr)->timestamp = TStime();
-#endif
     }
 
     ret = server_estab(cptr, aconf, ajupe);
   }
   else
     ret = 0;
-#ifdef RELIABLE_CLOCK
-  if (abs(cli_serv(cptr)->timestamp - recv_time) > 30)
-  {
+
+  if (feature_bool(FEAT_RELIABLE_CLOCK) &&
+      abs(cli_serv(cptr)->timestamp - recv_time) > 30) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! Used "
 			 "SETTIME to correct this.", timestamp - recv_time);
     sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
   }
-#endif
 
   return ret;
 }

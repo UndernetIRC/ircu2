@@ -431,11 +431,7 @@ static Numeric replyTable[] = {
 /* 199 */
   { 0 },
 /* 200 */
-#ifndef GODMODE
   { RPL_TRACELINK, "Link %s%s %s %s", "200" },
-#else /* GODMODE */
-  { RPL_TRACELINK, "Link %s%s %s %s " TIME_T_FMT, "200" },
-#endif /* GODMODE */
 /* 201 */
   { RPL_TRACECONNECTING, "Try. %d %s", "201" },
 /* 202 */
@@ -763,11 +759,7 @@ static Numeric replyTable[] = {
 /* 363 */
   { RPL_CLOSEEND, "%d :Connections Closed", "363" },
 /* 364 */
-#ifndef GODMODE
   { RPL_LINKS, "%s %s :%d P%u %s", "364" },
-#else /* GODMODE */
-  { RPL_LINKS, "%s %s :%d P%u " TIME_T_FMT " (%s) %s", "364" },
-#endif /* GODMODE */
 /* 365 */
   { RPL_ENDOFLINKS, "%s :End of /LINKS list.", "365" },
 /* 366 */

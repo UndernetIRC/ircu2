@@ -648,9 +648,6 @@ static struct ConfItem *find_conf_entry(struct ConfItem *aconf,
         (EmptyString(aconf->passwd) && !EmptyString(bconf->passwd)))
       continue;
     if (!EmptyString(bconf->passwd) && (!IsDigit(*bconf->passwd) || bconf->passwd[1])
-#ifdef USEONE
-        && 0 != ircd_strcmp(bconf->passwd, "ONE")
-#endif
         && 0 != ircd_strcmp(bconf->passwd, aconf->passwd))
       continue;
 

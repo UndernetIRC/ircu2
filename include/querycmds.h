@@ -6,6 +6,10 @@
 #ifndef INCLUDED_querycmds_h
 #define INCLUDED_querycmds_h
 
+#ifndef INCLUDED_ircd_features_h
+#include "ircd_features.h"	/* feature_str() */
+#endif
+
 struct Client;
 
 /*
@@ -57,7 +61,7 @@ extern struct UserStatistics UserStats;
 #define Count_unknownbecomesclient(cptr, UserStats) \
   do { \
     --UserStats.unknowns; ++UserStats.local_clients; ++UserStats.clients; \
-    if (match("*" DOMAINNAME, cli_sockhost(cptr)) == 0) \
+    if (match(feature_str(FEAT_DOMAINNAME), cli_sockhost(cptr)) == 0) \
       ++current_load.local_count; \
     if (UserStats.local_clients > max_client_count) \
       max_client_count = UserStats.local_clients; \
@@ -74,7 +78,7 @@ extern struct UserStatistics UserStats;
   do \
   { \
     --UserStats.local_clients; --UserStats.clients; \
-    if (match("*" DOMAINNAME, cli_sockhost(cptr)) == 0) \
+    if (match(feature_str(FEAT_DOMAINNAME), cli_sockhost(cptr)) == 0) \
       --current_load.local_count; \
   } while(0)
 #define Count_serverdisconnects(UserStats)              do { --UserStats.local_servers; --UserStats.servers; } while(0)

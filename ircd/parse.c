@@ -27,6 +27,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -353,11 +354,7 @@ struct Message msgtab[] = {
     TOK_OPER,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-#ifndef NOOPER    
     { m_unregistered, m_oper, ms_oper, mo_oper, m_ignore }
-#else
-    { m_unregistered, m_oper, m_ignore, m_ignore, m_ignore }
-#endif
   },
   {
     MSG_CONNECT,
@@ -571,10 +568,6 @@ struct Message msgtab[] = {
   { 0 }
 }; 
 
-
-#ifdef GODMODE
-extern int sdbflag;
-#endif /* GODMODE */
 
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
 
@@ -920,10 +913,9 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   handler = mptr->handlers[cli_handler(cptr)];
   assert(0 != handler);
 
-#ifndef IDLE_FROM_MSG
-  if (IsUser(cptr) && handler != m_ping && handler != m_ignore)
+  if (!feature_bool(FEAT_IDLE_FROM_MSG) && IsUser(cptr) &&
+      handler != m_ping && handler != m_ignore)
     cli_user(from)->last = CurrentTime;
-#endif
 
   return (*handler) (cptr, from, i, para);
 }

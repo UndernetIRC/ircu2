@@ -90,6 +90,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -137,10 +138,11 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (IsServer(sptr))           /* send to unlagged servers */
   {
-#ifdef RELIABLE_CLOCK
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
-    parv[1] = tbuf;
-#endif
+    if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+      sprintf_irc(tbuf, TIME_T_FMT, TStime());
+      parv[1] = tbuf;
+    }
+
     for (lp = cli_serv(&me)->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
 	sendcmdto_one(sptr, CMD_NOTICE, lp->value.cptr, "%s", parv[1]);
@@ -154,28 +156,27 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
   }
 
-#ifdef RELIABLE_CLOCK
-  if ((dt > 600) || (dt < -600))
-    sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
-			  cli_name(sptr), t);
-  if (IsUser(sptr))
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds %s "
-		  ": RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
-		  (dt < 0) ? "forwards" : "backwards");
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+    if ((dt > 600) || (dt < -600))
+      sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
+			    cli_name(sptr), t);
+    if (IsUser(sptr)) {
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld "
+		    "seconds %s : RELIABLE_CLOCK is defined", sptr,
+		    (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    }
+  } else {
+    sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
+			 (dt < 0) ? "forwards" : "backwards");
+    TSoffset -= dt;
+    if (IsUser(sptr)) {
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
+		    sptr, (dt < 0) ? -dt : dt,
+		    (dt < 0) ? "forwards" : "backwards");
+    }
   }
-#else
-  sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
-		       "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-		       (dt < 0) ? "forwards" : "backwards");
-  TSoffset -= dt;
-  if (IsUser(sptr))
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
-		  sptr, (dt < 0) ? -dt : dt,
-		  (dt < 0) ? "forwards" : "backwards");
-  }
-#endif
+
   return 0;
 }
 
@@ -213,10 +214,11 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (IsServer(sptr))           /* send to unlagged servers */
   {
-#ifdef RELIABLE_CLOCK
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
-    parv[1] = tbuf;
-#endif
+    if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+      sprintf_irc(tbuf, TIME_T_FMT, TStime());
+      parv[1] = tbuf;
+    }
+
     for (lp = cli_serv(&me)->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
 	sendcmdto_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
@@ -230,28 +232,27 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
   }
 
-#ifdef RELIABLE_CLOCK
-  if ((dt > 600) || (dt < -600))
-    sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
-			  cli_name(sptr), t);
-  if (IsUser(sptr))
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds %s "
-		  ": RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
-		  (dt < 0) ? "forwards" : "backwards");
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) {
+    if ((dt > 600) || (dt < -600))
+      sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
+			    cli_name(sptr), t);
+    if (IsUser(sptr)) {
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld "
+		    "seconds %s : RELIABLE_CLOCK is defined", sptr,
+		    (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
+    }
+  } else {
+    sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
+			 (dt < 0) ? "forwards" : "backwards");
+    TSoffset -= dt;
+    if (IsUser(sptr)) {
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
+		    sptr, (dt < 0) ? -dt : dt,
+		    (dt < 0) ? "forwards" : "backwards");
+    }
   }
-#else
-  sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
-		       "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-		       (dt < 0) ? "forwards" : "backwards");
-  TSoffset -= dt;
-  if (IsUser(sptr))
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
-		  sptr, (dt < 0) ? -dt : dt,
-		  (dt < 0) ? "forwards" : "backwards");
-  }
-#endif
+
   return 0;
 }
 
