@@ -1,3 +1,11 @@
+2005-02-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_bsd.c (connect_inet): Set IP TOS for outbound server
+	connections.
+
+	* ircd/s_stats.c (stats_configured_links): Display correct field
+	when listing CONF_UWORLD entries.
+
 2005-02-09  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in (YACC): Only warn if we cannot get a version number
