@@ -18,37 +18,34 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Commentary by Bleep (Thomas Helvey)
- *
- * $Id$
  */
 #ifndef INCLUDED_ircd_defs_h
 #define INCLUDED_ircd_defs_h
-/*
- * Definitions used everywhere in the server
- * NOTE: Changing any of these definitions is equivalent to a protocol
- * revision. Every server on a given network must also use the same sizes.
+/** @file
+ * @brief Definitions used everywhere in the server.
+ *
+ * NOTE: Changing any of these definitions (except for the
+ * target-related ones at the bottom) is equivalent to a protocol
+ * revision. Every server on a given network must use the same values.
+ * @version $Id$
  */
 
-/*
- * NICKLEN is the maximum length allowed for a nickname
- *
+/** Maximum length allowed for a nickname.
  * Because certain networks are very helpful in finding bugs, the below
- * is a default that can easily be overridden in CFLAGS.  Just add 
- * -DNICKLEN=15 to CFLAGS and save your config in .., and you can forget about
+ * is a default that can easily be overridden in CFLAGS.  Just add
+ * -DNICKLEN=15 to CFLAGS during configure, and you can forget about
  * it.  Thanks for helping debug guys.
  * See also F:NICKLEN in ircd.conf.
  */
 #ifndef NICKLEN
 #define NICKLEN         15
 #endif
-/*
- * USERLEN is the maximum length allowed of a user name including an optional
+/** Maximum length allowed of a user name, including an optional
  * leading '~' if the user name has not been authenticated by an auth (RFC 931)
  * server query.
  */
 #define USERLEN         10
-/*
- * HOSTLEN is exactly long enough to hold one (1) segment of FQDN or hostname.
+/** Exactly long enough to hold one (1) segment of FQDN or hostname.
  * This is due to an historical misinterpretation of RFC 1034.
  * 3.1. Name space specifications and terminology
  *
@@ -67,46 +64,39 @@
  * are shorter. It is possible to have a valid FQDN longer than 63 characters.
  */
 #define HOSTLEN         63
-/*
- * ACCOUNTLEN is the maximum length for the account name, which can be set
+/** Maximum length for the account name, which can be set
  * with the ACCOUNT (AC) command.  This is used for keeping track of who's
  * logged into which account, for the benefit of irc services.
  */
 #define ACCOUNTLEN      12
-/*
- * REALLEN is the maximum length for user supplied information about a client
+/** Maximum length for user supplied information about a client
  * connection (gcos). This information is set at client/server registration
  * time.
  */
 #define REALLEN         50
-/*
- * PASSWDLEN is the maximum length for a password used for connecting servers
- * and clients.
+/** Maximum length for a password used for connecting servers and clients.
  */
 #define PASSWDLEN       20
-/*
- * SOCKIPLEN is the maximum length of a numeric IP (v4 or v6) address
+/** Maximum length of a numeric IP (v4 or v6) address.
  * "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255"
  */
 #define SOCKIPLEN 45
-/*
- * TOPICLEN is the maximum length for channel topics and kill comments
+/** Maximum length for channel topics and kill comments.
  */
 #define TOPICLEN        160
-/*
- * AWAYLEN is the maximum length for away messages
+/** Maximum length for away messages.
  */
 #define AWAYLEN		160
-/*
- * BUFSIZE is exactly long enough to hold one protocol message (RFC 1459)
- * including the line termination (\r\n).
+/** Exactly long enough to hold one protocol message (RFC 1459)
+ * including the line termination (\\r\\n).  DO NOT CHANGE THIS!!!!
  */
-#define BUFSIZE         512     /* WARNING: *DONT* CHANGE THIS!!!! */
+#define BUFSIZE         512
 
+/** Maximum available targets for a user. */
 #define MAXTARGETS      20
+/** Starting free targets for a user. */
 #define STARTTARGETS    10
+/** Target number to start assigning new targets. */
 #define RESERVEDTARGETS 12
-
-#define MAP_CACHE_TIME 604800
 
 #endif /* INCLUDED_ircd_defs_h */
