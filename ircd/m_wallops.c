@@ -115,8 +115,7 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :* %s", parv[0],
-	      sptr->user->username, sptr->user->host, parv[parc - 1]);
+  sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :* %s", parv[0], parv[parc - 1]);
   for (i = 0; i <= HighestFd; ++i) {
     if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && 
          IsAnOper(acptr) && SendWallops(acptr))
