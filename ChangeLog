@@ -1,4 +1,8 @@
 2003-08-28 hikari <shadow@undernet.org>
+	* ircd/Makefile.in: Adding CFLAGS in a couple of places so building
+	with flags that effect linking works properly (-m64 for example).
+
+2003-08-28 hikari <shadow@undernet.org>
 	* ircd/gline.c: Throw a protocol_violation if we get sent an
 	invalid GLINE with $ in it (suspected cause of recent core where
 	a GLINE was missing the R after $ to denote relanme.
