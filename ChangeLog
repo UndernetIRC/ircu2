@@ -1,3 +1,12 @@
+2000-04-09  Thomas Helvey <tomh@inxpress.net>
+	* include/IPcheck.h: add proto for IPcheck_expire
+
+	* ircd/IPcheck.c: Rewrote
+
+	* ircd/ircd.c: Add IPcheck_expire to main message loop
+
+	* ircd/s_user.c: Redo target hashing, refactor target code
+
 2000-04-09  Perry Lorier  <Isomer@coders.net>
 	* include/numeric.h: Cleaned up numerics, added which ones are
 	in use by other networks and what they are in use for.
@@ -330,7 +339,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.65 2000-04-09 11:53:12 isomer Exp $
+# $Id: ChangeLog,v 1.66 2000-04-10 02:28:30 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

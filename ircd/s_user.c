@@ -827,6 +827,10 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
   return 0;
 }
 
+static unsigned char hash_target(unsigned int target)
+{
+  return (unsigned char) (target >> 16) ^ (target >> 8);
+}
 
 /*
  * add_target
@@ -837,20 +841,26 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
  */
 void add_target(struct Client *sptr, void *target)
 {
-  unsigned char *p;
-  unsigned int tmp = ((size_t) target & 0xffff00) >> 8;
-  unsigned char hash = (tmp * tmp) >> 12;
-  if (sptr->targets[0] == hash)        /* Last person that we messaged ourself? */
-    return;
-  for (p = sptr->targets; p < &sptr->targets[MAXTARGETS - 1];)
-    if (*++p == hash)
-      return;                        /* Already in table */
+  unsigned char  hash = hash_target((unsigned int) target);
+  unsigned char* targets;
+  int            i;
+  assert(0 != sptr);
+  assert(sptr->local);
 
-  /* New target */
-  memmove(&sptr->targets[RESERVEDTARGETS + 1],
-      &sptr->targets[RESERVEDTARGETS], MAXTARGETS - RESERVEDTARGETS - 1);
-  sptr->targets[RESERVEDTARGETS] = hash;
-  return;
+  targets = sptr->targets;
+  /* 
+   * Already in table?
+   */
+  for (i = 0; i < MAXTARGETS; ++i) {
+    if (targets[i] == hash)
+      return;
+  }
+  /*
+   * New target
+   */
+  memmove(&targets[RESERVEDTARGETS + 1],
+          &targets[RESERVEDTARGETS], MAXTARGETS - RESERVEDTARGETS - 1);
+  targets[RESERVEDTARGETS] = hash;
 }
 
 /*
@@ -864,34 +874,42 @@ void add_target(struct Client *sptr, void *target)
 int check_target_limit(struct Client *sptr, void *target, const char *name,
     int created)
 {
-  unsigned char *p;
-  unsigned int tmp = ((size_t)target & 0xffff00) >> 8;
-  unsigned char hash = (tmp * tmp) >> 12;
-  if (sptr->targets[0] == hash)        /* Same target as last time ? */
+  unsigned char hash = hash_target((unsigned int) target);
+  int            i;
+  unsigned char* targets;
+
+  assert(0 != sptr);
+  assert(sptr->local);
+  targets = sptr->targets;
+
+  /*
+   * Same target as last time?
+   */
+  if (targets[0] == hash)
     return 0;
-  for (p = sptr->targets; p < &sptr->targets[MAXTARGETS - 1];)
-    if (*++p == hash)
-    {
-      memmove(&sptr->targets[1], &sptr->targets[0], p - sptr->targets);
-      sptr->targets[0] = hash;
+  for (i = 1; i < MAXTARGETS; ++i) {
+    if (targets[i] == hash) {
+      memmove(&targets[1], &targets[0], i);
+      targets[0] = hash;
       return 0;
     }
-
-  /* New target */
-  if (!created)
-  {
-    if (CurrentTime < sptr->nexttarget)
-    {
-      if (sptr->nexttarget - CurrentTime < TARGET_DELAY + 8)        /* No server flooding */
-      {
+  }
+  /*
+   * New target
+   */
+  if (!created) {
+    if (CurrentTime < sptr->nexttarget) {
+      if (sptr->nexttarget - CurrentTime < TARGET_DELAY + 8) {
+        /*
+         * No server flooding
+         */
         sptr->nexttarget += 2;
         sendto_one(sptr, err_str(ERR_TARGETTOOFAST),
-            me.name, sptr->name, name, sptr->nexttarget - CurrentTime);
+                   me.name, sptr->name, name, sptr->nexttarget - CurrentTime);
       }
       return 1;
     }
-    else
-    {
+    else {
 #ifdef GODMODE
       sendto_one(sptr, ":%s NOTICE %s :New target: %s; ft " TIME_T_FMT,
           me.name, sptr->name, name, (CurrentTime - sptr->nexttarget) / TARGET_DELAY);
@@ -901,8 +919,8 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
         sptr->nexttarget = CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1));
     }
   }
-  memmove(&sptr->targets[1], &sptr->targets[0], MAXTARGETS - 1);
-  sptr->targets[0] = hash;
+  memmove(&targets[1], &targets[0], MAXTARGETS - 1);
+  targets[0] = hash;
   return 0;
 }
 

@@ -20,6 +20,7 @@
  * $Id$
  */
 #include "ircd.h"
+#include "IPcheck.h"
 #include "class.h"
 #include "client.h"
 #include "crule.h"
@@ -661,6 +662,7 @@ static void event_loop(void)
      */
     timeout_auth_queries(CurrentTime);
 
+    IPcheck_expire();
     if (GlobalRehashFlag) {
       rehash(&me, 1);
       GlobalRehashFlag = 0;
