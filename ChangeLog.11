@@ -1,3 +1,8 @@
+2002-01-08  Perry Lorier  <isomer@coders.net>
+	* Fixed the build system -- MAKEFILES is *not* a variable you can
+	just use in a makefile :)
+	* Added "Quit: " prefix to quit messages.
+
 2001-10-14  Perry Lorier  <isomer@coders.net>
 	* Minor fixes to the below
 
