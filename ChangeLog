@@ -1,3 +1,7 @@
+2001-11-01  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c (ms_create): Fix "Timestamp drift" server notice
+
 2001-10-31  Perry Lorier  <isomer@coders.net>
 	* include/m_ping.c: Forward port ping bug
 

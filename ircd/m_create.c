@@ -136,7 +136,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (TStime() - chanTS<-60) {
     static int rate;
     sendto_opmask_butone_ratelimited(0,SNO_NETWORK,&rate,
-	"Timestamp drift from %s (%is)",cli_name(cptr),chanTS-TStime());
+	"Timestamp drift from %C (%is)",sptr,chanTS-TStime());
 
     /* If this server is >5 minutes fast, squit it */
     if (TStime() - chanTS<-5*60*60)
