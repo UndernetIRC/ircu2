@@ -89,6 +89,7 @@
 #endif /* 0 */
 #include "client.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "map.h"
@@ -115,6 +116,16 @@ int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
+#ifdef HEAD_IN_SAND_MAP
+int m_map_redirect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  sendto_one(sptr,":%s NOTICE %s :%s",me.name,parv[0],
+ 	"/MAP has been disabled, from CFV-165.  "
+	"Visit http://www.undernet.org/servers.php"
+  );
+  return 0;
+}
+#endif
 
 #if 0
 /*

@@ -31,6 +31,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -477,9 +478,13 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   if (IsServer(victim))
   {
+#ifdef HEAD_IN_SAND_NETSPLIT
     strcpy(comment1, victim->serv->up->name);
     strcat(comment1, " ");
     strcat(comment1, victim->name);
+#else
+    strcpy(comment1, "*.net *.split");
+#endif
     if (IsUser(killer))
       sendto_lops_butone(killer, "%s SQUIT by %s [%s]:",
                          (killer->user->server == victim ||
