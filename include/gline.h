@@ -72,7 +72,7 @@ extern int gline_activate(struct Client *cptr, struct Client *sptr,
 			  struct Gline *gline, time_t lastmod);
 extern int gline_deactivate(struct Client *cptr, struct Client *sptr,
 			    struct Gline *gline, time_t lastmod);
-extern struct Gline *gline_find(char *userhost);
+extern struct Gline *gline_find(char *userhost, unsigned int flags);
 extern struct Gline *gline_lookup(struct Client *cptr);
 extern void gline_free(struct Gline *gline);
 extern void gline_burst(struct Client *cptr);
@@ -80,7 +80,7 @@ extern int gline_resend(struct Client *cptr, struct Gline *gline);
 extern int gline_list(struct Client *sptr, char *userhost);
 extern void gline_stats(struct Client *sptr);
 
-#ifdef 0 /* forget it! */
+#if 0 /* forget it! */
 #define SetActive(g)        ((g)->gl_flags |= GLINE_ACTIVE)
 #define ClearActive(g)      ((g)->gl_flags &= ~GLINE_ACTIVE)
 #define SetGlineIsIpMask(g) ((g)->gl_flags |= GLINE_IPMASK)

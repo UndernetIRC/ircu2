@@ -23,7 +23,6 @@ struct Client;
  * Proto types
  */
 
-extern void report_configured_links(struct Client* sptr, int mask);
 extern char *militime(char* sec, char* usec);
 
 #endif /* INCLUDED_opercmds_h */
