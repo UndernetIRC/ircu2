@@ -1,3 +1,11 @@
+2004-06-18  Alex Badea  <decampos@users.sourceforge.net>
+
+	* ircd/gline.c (gline_lookup): only return a gline if it's
+	active
+
+	* ircd/s_conf.c (find_kill): don't check for active gline,
+	since gline_lookup does now
+
 2002-11-11  hikari <shadow@undernet.org>
 	* ircd/ircd.c: added call to irc_crypt_init() - someone hurry up and 
 	modularise :P

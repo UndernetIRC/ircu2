@@ -656,7 +656,8 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       Debug((DEBUG_DEBUG,"realname gline: '%s' '%s'",gline->gl_user,cli_info(cptr)));
       if (match(gline->gl_user+2, cli_info(cptr)) != 0)
         continue;
-
+      if (!GlineIsActive(gline))
+        continue;
       return gline;
     }
     else {
@@ -670,6 +671,8 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       }
       else {
         if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0) 
+          continue;
+        if (!GlineIsActive(gline))
           continue;
       }
     }
