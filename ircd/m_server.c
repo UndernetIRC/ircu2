@@ -704,8 +704,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (strlen(parv[5]) != 3 || (parv[5][0] != 'P' && parv[5][0] != 'J'))
     return exit_client_msg(cptr, sptr, &me, "Bogus protocol (%s)", parv[5]);
 
-  *parv[5] = 'J';
-
   if (*parv[7] == '+') {
     for (ch = parv[7] + 1; *ch; ch++)
       switch (*ch) {

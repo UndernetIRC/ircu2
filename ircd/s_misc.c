@@ -270,9 +270,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       Count_serverdisconnects(UserStats);
     else
       Count_remoteserverquits(UserStats);
-#ifdef HEAD_IN_SAND_MAP    
-    map_update(bcptr);
-#endif
   }
   else if (IsMe(bcptr))
   {
@@ -480,6 +477,10 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
 			 cli_serv(victim)->up, victim, comment);
   }
+
+#ifdef HEAD_IN_SAND_MAP    
+  map_update(victim);
+#endif
 
   /*
    * First generate the needed protocol for the other server links

@@ -56,11 +56,11 @@ static struct Map *MapList = 0;
 /* Add a server to the map list. */
 static void map_add(struct Client *server)
 {
-/*  assert(server != 0);
+  struct Map *map = (struct Map *)MyMalloc(sizeof(struct Map));
+
+  assert(IsServer(server));
   assert(!IsHub(server));
   assert(!IsService(server));
-*/
-  struct Map *map = (struct Map *)MyMalloc(sizeof(struct Map));
 
   map->lasttime = TStime();
   strcpy(map->name, cli_name(server));
@@ -78,7 +78,7 @@ static void map_add(struct Client *server)
 /* Remove a server from the map list */
 static void map_remove(struct Map *cptr)
 {
-  /*  assert(cptr != 0);*/
+  assert(cptr != 0);
   
   if(cptr->next)
     cptr->next->prev = cptr->prev;
@@ -97,10 +97,10 @@ static void map_remove(struct Map *cptr)
  * splits, or we haven't checked in more than a week. */
 void map_update(struct Client *cptr)
 {
-  /*  assert(IsServer(cptr)); */
-
   struct Map *map = 0;
-  
+
+  assert(IsServer(cptr));
+
   /* Find the server in the list and update it */ 
   for(map = MapList; map; map = map->next)
   {
@@ -155,7 +155,7 @@ void map_dump_head_in_sand(struct Client *cptr)
       else
 	map_update(acptr);
     }
-    send_reply(cptr, RPL_MAP, "", "|-", map->name, "", map->maxclients);
+    send_reply(cptr, RPL_MAP, smap ? "|" : "`", "-", map->name, "", map->maxclients);
   }
 }
 
