@@ -1224,9 +1224,19 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (!IsAnOper(sptr) && !(setflags & FLAGS_DEBUG))
     ClearDebug(sptr);
 #endif
-  if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr) &&
-      MyConnect(sptr))
-    det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
+  if (MyConnect(sptr)) {
+    if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))
+      det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
+
+    if (SendServNotice(sptr)) {
+      if (tmpmask != sptr->snomask)
+	set_snomask(sptr, tmpmask, SNO_SET);
+      if (sptr->snomask && snomask_given)
+	sendto_one(sptr, rpl_str(RPL_SNOMASK), me.name, parv[0],
+		   sptr->snomask, sptr->snomask);
+    } else
+      set_snomask(sptr, 0, SNO_SET);
+  }
   /*
    * new umode; servers can set it, local users cannot;
    * prevents users from /kick'ing or /mode -o'ing

@@ -142,6 +142,7 @@ extern int mo_info(struct Client*, struct Client*, int, char*[]);
 extern int mo_kill(struct Client*, struct Client*, int, char*[]);
 extern int mo_notice(struct Client*, struct Client*, int, char*[]);
 extern int mo_oper(struct Client*, struct Client*, int, char*[]);
+extern int mo_ping(struct Client*, struct Client*, int, char*[]);
 extern int mo_privmsg(struct Client*, struct Client*, int, char*[]);
 extern int mo_rehash(struct Client*, struct Client*, int, char*[]);
 extern int mo_restart(struct Client*, struct Client*, int, char*[]);

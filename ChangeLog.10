@@ -1,10 +1,17 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.21 2001-10-11 07:04:34 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.22 2001-11-13 00:25:29 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl18 (dammit)
+* Fix ping so that users can't tell who they're pinging -- Isomer
+* Use sendto_one() method of sending numeric replies, rather than u2.10.11's
+  send_reply--since it hasn't been back-ported to u2.10.10 and since I'm too
+  lazy to do so.  -Kev
+* Fix the cores and other interesting behavior as a result of the breakage of
+  "/mode <nick> -os" -Kev
 -------------------------- Released 2.10.10.pl17
 * Admin's complaining that users can't see that their carefully written MOTD
  -- Isomer
