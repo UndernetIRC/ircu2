@@ -1,3 +1,10 @@
+2000-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_kick.c: Completely reimplement m_kick
+
+	* ircd/channel.c: send_user_joins removed; it was dead code,
+	anyway...
+
 2000-05-01  Perry Lorier <isomer@coders.net>
 	* ircd/m_invite.c: Fix for the rest of m_invite.c, and again.
 	* ircd/channels.c: My fix for the part problem.  Untested, probably
@@ -1053,7 +1060,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.123 2000-05-01 11:23:56 isomer Exp $
+# $Id: ChangeLog,v 1.124 2000-05-01 16:50:41 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
