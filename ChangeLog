@@ -1,11 +1,7 @@
-2000-10-26  Kevin L. Mitchell  <klmitch@mit.edu>
-
-	* ircd/m_join.c: use ERR_BANNEDFROMCHAN instead of ERR_BADCHANNAME
-
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog,v 1.13.2.2.2.1 2000-10-26 16:50:27 kev Exp $
+# $Id: ChangeLog,v 1.13.2.2.2.2 2000-11-22 10:47:41 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
