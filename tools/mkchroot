@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+# IRC - Internet Relay Chat, tools/mkchroot
+# Copyright (C) 2001 Kevin L. Mitchell <klmitch@mit.edu>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 1, or (at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Id: mkchroot,v 1.1 2001-06-21 15:48:16 kev Exp $
+
+if test $# -lt 2; then
+    echo "Usage: $0 <destdir> <executable> [<executable> [...]]" >&2
+    exit 2
+fi
+
+destdir=$1
+shift
+
+# Use ldd to formulate a newline-separated list of libraries
+liblist=
+for arg
+do
+    # Interpret ldd output
+    libs=`ldd $arg | sed -e 's/	/ /g' -e 's/  */ /g' -e 's/^ //g' | \
+	awk 'BEGIN { RS = " "; } { print; }' | grep '^/'`
+
+    # add it to the list so far
+    if test x"$liblist" = x; then
+	liblist=$libs
+    else
+	liblist="$liblist
+$libs"
+    fi
+done
+# Sort the list and remove duplicates
+liblist=`echo "$liblist" | sort -u`
+
+# Now figure out all the subdirectories we're interested in
+# Must create the top level, if need be
+dirlist=/
+# Break down the library list into directories and remove duplicates
+dirs=`echo "$liblist" | sed -e 's@/[^/]*$@@' | sort -u`
+# Go through each directory to break it down into its components
+for headdir in $dirs; do
+    tIFS=$IFS
+    IFS=/$IFS
+    # Start at the top level
+    dir=
+    for subdir in $headdir; do
+	# update dir so we know where we are
+	if test x"$dir" = x; then
+	    dir=$subdir
+	else
+	    dir=$dir/$subdir
+	fi
+
+	# add (absolute) entry to directory list
+	dirlist="$dirlist
+/$dir"
+    done
+    IFS=$tIFS
+done
+# Sort for ordering and remove duplicates
+dirlist=`echo "$dirlist" | sort -u`
+
+# Create the directories
+echo "Creating directories:"
+for dir in $dirlist; do
+    # add destination directory name, remove trailing /, if any, for test
+    dir=`echo "$destdir$dir" | sed -e 's@//*$@@'`
+    echo "  $dir"
+    # sanity-check directory...
+    if test -f "$dir" -o -h "$dir"; then
+	echo "ERROR: A non-directory \"$dir\" already exists; bailing out" >&2
+	exit 2
+    elif test ! -d "$dir"; then
+	# Create the directory world-readable
+	mkdir -m 755 $dir
+    fi
+done
+
+# Now copy over the libraries
+echo "Copying libraries:"
+for lib in $liblist; do
+    echo "  $lib -> $destdir$lib"
+    # Preserve permissions
+    cp -p $lib $destdir$lib
+done
