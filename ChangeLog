@@ -1,3 +1,6 @@
+2003-10-15 splidge <splidge@quakenet.org>
+	* ircd/channel.c: Fixed buggy MODE +k handling (broke with '+k :').
+
 2003-09-03 splidge <splidge@quakenet.org>
 	* ircd/m_nick.c: Fixed use-after-free bug in nick collision code.
 

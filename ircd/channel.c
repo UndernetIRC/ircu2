@@ -2023,8 +2023,8 @@ mode_parse_key(struct ParseState *state, int *flag_p)
 
   /* clean up the key string */
   s = t_str;
-  while (*++s > ' ' && *s != ':' && --t_len)
-    ;
+  while (*s > ' ' && *s != ':' && t_len--)
+    s++;
   *s = '\0';
 
   if (!*t_str) { /* warn if empty */
