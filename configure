@@ -8766,6 +8766,9 @@ _ACEOF
 
 
 unet_maxcon=`ulimit -Hn`
+if test x"$unet_maxcon" = xunlimited; then
+    unet_maxcon=`ulimit -Sn`
+fi
 unet_maxcon=`expr $unet_maxcon - 4`
 echo "$as_me:$LINENO: checking max connections" >&5
 echo $ECHO_N "checking max connections... $ECHO_C" >&6

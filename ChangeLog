@@ -1,3 +1,7 @@
+2003-03-11  Landon Fuller (landonf) <landonf@sf.net>
+
+	* configure.in: allow ircu to build on OS X.
+
 2004-05-24  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_invite.c (m_invite): Include channel name in invitation
