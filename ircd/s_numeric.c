@@ -44,6 +44,15 @@
  * the savy approach is NEVER generate an error in response to an... error :)
  */
 
+/** Forwards a numeric message from a remote server.
+ * @param numeric Value of numeric message.
+ * @param nnn If non-zero, treat parv[1] as a numnick; else as a client name.
+ * @param cptr Client that originated the numeric.
+ * @param sptr Peer that sent us the numeric.
+ * @param parc Count of valid arguments in \a parv.
+ * @param parv Argument list.
+ * @return Zero (always).
+ */
 int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
     int parc, char *parv[])
 {
