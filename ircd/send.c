@@ -111,7 +111,7 @@ void flush_connections(struct Client* cptr)
   else {
     struct Connection* con;
     for (con = send_queues; con; con = con_next(con)) {
-      assert(0 > MsgQLength(&(con_sendQ(con))));
+      assert(0 < MsgQLength(&(con_sendQ(con))));
       send_queued(con_client(con));
     }
   }

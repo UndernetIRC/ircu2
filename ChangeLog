@@ -1,5 +1,7 @@
 2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c: got the direction of the assert incorrect...
+
 	* ircd/send.c: implement the efficiency of flush_connections by
 	creating a linked list of struct Connection's with queued data;
 	also get rid of flush_sendq_except and make sure to yank
