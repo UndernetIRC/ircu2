@@ -204,10 +204,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         case 's':
         case 'S':
-#ifdef HEAD_IN_SAND_WHO_SERVERNAME
-          if (IsAnOper(sptr))
-#endif
-            matchsel |= WHO_FIELD_SER;
+          matchsel |= WHO_FIELD_SER;
           continue;
         case 'r':
         case 'R':
@@ -253,10 +250,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             break;
           case 's':
           case 'S':
-#ifdef HEAD_IN_SAND_WHO_SERVERNAME
-            if (IsAnOper(sptr))
-#endif
-              fields |= WHO_FIELD_SER;
+            fields |= WHO_FIELD_SER;
             break;
           case 't':
           case 'T':
@@ -278,6 +272,11 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     matchsel = WHO_FIELD_DEF;
   if (!fields)
     counter = 7;
+
+#ifdef HEAD_IN_SAND_WHO_SERVERNAME
+  if (!IsAnOper(sptr))
+    matchsel &= ~WHO_FIELD_SER;
+#endif
 
   if (qrt && (fields & WHO_FIELD_QTY))
   {

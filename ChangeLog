@@ -1,3 +1,7 @@
+2002-04-19  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_who.c (m_who): disallow non-opers to /who server.name
+
 2002-04-18  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/s_err.c (RPL_STATSILINE): connection classes are now
