@@ -187,7 +187,7 @@ static int report_servers_verbose(struct Client *sptr, char stat)
    * uppercase 'V' is for machine-readable */
   if (stat == 'v')
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE,
-	       "%-20s %-20s Burst Hops Numeric   Lag Clients/Max Proto "
+	       "%-20s %-20s Flags Hops Numeric   Lag  RTT   Up Down Clients/Max Proto "
 	       "%-10s :Info", "Servername", "Uplink", "LinkTS");
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
@@ -195,16 +195,21 @@ static int report_servers_verbose(struct Client *sptr, char stat)
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
-	       "%-20s %-20s %c%c    %4i %s %-4i %5i %5i %5i P%-2i   %Tu :%s" :
-	       "%s %s %c%c %i %s %i %i %i %i P%i %Tu :%s",
+	       "%-20s %-20s %c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i P%-2i   %Tu :%s" :
+	       "%s %s %c%c%c%c %i %s %i %i %i %i %i %i %i P%i %Tu :%s",
 	       cli_name(acptr),
 	       cli_name(cli_serv(acptr)->up),
 	       IsBurst(acptr) ? 'B' : '-',
 	       IsBurstAck(acptr) ? 'A' : '-',
+	       IsHub(acptr) ? 'H' : '-',
+	       IsService(acptr) ? 'S' : '-',
 	       cli_hopcount(acptr),
 	       NumServ(acptr),
 	       base64toint(cli_yxx(acptr)),
 	       cli_serv(acptr)->lag,
+	       cli_serv(acptr)->asll_rtt,
+	       cli_serv(acptr)->asll_to,
+	       cli_serv(acptr)->asll_from,
 	       cli_serv(acptr)->clients,
 	       cli_serv(acptr)->nn_mask,
 	       cli_serv(acptr)->prot,

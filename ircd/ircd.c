@@ -41,6 +41,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "opercmds.h"
 #include "parse.h"
 #include "res.h"
 #include "s_auth.h"
@@ -409,8 +410,11 @@ static void check_pings(struct Event* ev) {
       
       if (IsUser(cptr))
 	sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
-      else
-	sendcmdto_one(&me, CMD_PING, cptr, ":%s", cli_name(&me));
+      else  {
+        char *asll_ts = militime_float(NULL);
+	sendcmdto_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
+		      cli_name(cptr), asll_ts);
+      }
     }
     
     expire = cli_lasttime(cptr) + max_ping * 2;

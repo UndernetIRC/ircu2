@@ -83,6 +83,7 @@ const char *statsinfo[] = {
     "r - System resource usage (Debug only).", 
     "x - List usage information (Debug only).",
     "j - Message length histogram.",
+    "v - Verbose server information.",
     0,
 };
 

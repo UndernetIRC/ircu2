@@ -103,6 +103,7 @@ IRCD_SRC = \
 	listener.c \
 	m_account.c \
 	m_admin.c \
+	m_asll.c \
 	m_away.c \
 	m_burst.c \
 	m_clearmode.c \

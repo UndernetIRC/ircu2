@@ -1,3 +1,38 @@
+2002-06-07  Alex Badea  <vampire@p16.pub.ro)
+
+	* ircd/ircd.c (check_pings): use a timestamp on server pings
+
+	* ircd/m_ping.c (ms_ping): reply with AsLL information on server
+	pings
+
+	* ircd/m_ping.c (ms_pong): process AsLL-compliant server pongs,
+	and record statistics
+
+	* ircd/m_stats.c (report_servers_verbose): also report IsHub
+	and IsService flags
+
+	* ircd/opercmds.c: added militime_float, a version of militime
+	which returns the timestamp as a floating-point number
+
+	* ircd/parse.c: added MSG_ASLL
+
+	* ircd/s_bsd.c: don't reset cli_lasttime on server links
+	(use pings instead)
+
+	* ircd/s_stats.c: help on /stats v
+
+	* include/handlers.h: declared handlers for MSG_ASLL
+
+	* include/msg.h: added MSG_ASLL
+
+	* include/opercmds.h: declared militime_float
+
+	* include/struct.h: added asll stats to struct Server
+
+	* ircd/Makefile.in: added m_asll.c
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 2002-06-04  Alex Badea  <vampire@p16.pub.ro)
 
 	* ircd/m_stats.c: backported /stats v for verbose information

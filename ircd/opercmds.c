@@ -42,6 +42,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 
 char *militime(char* sec, char* usec)
@@ -58,3 +59,21 @@ char *militime(char* sec, char* usec)
   return timebuf;
 }
 
+char *militime_float(char* start)
+{
+  struct timeval tv;
+  static char timebuf[18];
+  char *p;
+
+  gettimeofday(&tv, NULL);
+  if (start) {
+    if ((p = strchr(start, '.'))) {
+      *p++;
+      sprintf(timebuf, "%ld",
+          (tv.tv_sec - atoi(start)) * 1000 + (tv.tv_usec - atoi(p)) / 1000);
+    } else 
+      strcpy(timebuf, "0");
+  } else
+    sprintf(timebuf, "%ld.%ld", tv.tv_sec, tv.tv_usec);
+  return timebuf;
+}

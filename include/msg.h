@@ -330,6 +330,10 @@ struct Client;
 #define TOK_ACCOUNT		"AC"
 #define CMD_ACCOUNT		MSG_ACCOUNT, TOK_ACCOUNT
 
+#define MSG_ASLL		"ASLL"		/* ASLL */
+#define TOK_ASLL		"LL"
+#define CMD_ASLL		MSG_ASLL, TOK_ASLL
+
 #define MSG_POST                "POST"          /* POST */
 #define TOK_POST                "POST"
 
