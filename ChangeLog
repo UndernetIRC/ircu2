@@ -1,5 +1,18 @@
 2004-12-18  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h: Move unreg, privs, capab and active fields
+	from struct Client to struct Connection since that is how they
+	are really associated.  Adjust macros to match.
+	(SetPriv, ClrPriv): New macros.
+
+	* ircd/client.c (client_set_privs): Exit earlier for remote
+	clients.  Adjust macro use to correspond.
+
+	* ircd/m_server.c (mr_server): Grant all privileges except
+	PRIV_SET to peer servers.
+
+2004-12-18  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_user.c (hide_hostmask): Add a missing "break;" to fix bug
 	#1087461.
 

@@ -140,6 +140,15 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   struct Privs *source, *defaults;
   enum Priv priv;
 
+  if (!MyConnect(client))
+    return;
+
+  /* Clear out client's privileges. */
+  memset(cli_privs(client), 0, sizeof(struct Privs));
+
+  if (!IsAnOper(client) || !oper)
+      return;
+
   if (!privs_defaults_set)
   {
     memset(&privs_global, -1, sizeof(privs_global));
@@ -158,21 +167,6 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
     FlagSet(&privs_local, PRIV_FORCE_LOCAL_OPMODE);
     privs_defaults_set = 1;
   }
-  memset(&(cli_privs(client)), 0, sizeof(struct Privs));
-
-  if (!IsAnOper(client))
-    return;
-  else if (!MyConnect(client))
-  {
-    memset(&(cli_privs(client)), 255, sizeof(struct Privs));
-    FlagClr(&(cli_privs(client)), PRIV_SET);
-    return;
-  }
-  else if (oper == NULL)
-    return;
-
-  /* Clear out client's privileges. */
-  memset(&cli_privs(client), 0, sizeof(struct Privs));
 
   /* Decide whether to use global or local oper defaults. */
   if (FlagHas(&oper->privs_dirty, PRIV_PROPAGATE))
@@ -199,23 +193,23 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
 
     /* Set it if necessary (privileges were already cleared). */
     if (FlagHas(source, priv))
-      FlagSet(&cli_privs(client), priv);
+      SetPriv(client, priv);
   }
 
   /* This should be handled in the config, but lets be sure... */
-  if (FlagHas(&cli_privs(client), PRIV_PROPAGATE))
+  if (HasPriv(client, PRIV_PROPAGATE))
   {
     /* force propagating opers to display */
-    FlagSet(&cli_privs(client), PRIV_DISPLAY);
+    SetPriv(client, PRIV_DISPLAY);
   }
   else
   {
     /* if they don't propagate oper status, prevent desyncs */
-    FlagClr(&cli_privs(client), PRIV_KILL);
-    FlagClr(&cli_privs(client), PRIV_GLINE);
-    FlagClr(&cli_privs(client), PRIV_JUPE);
-    FlagClr(&cli_privs(client), PRIV_OPMODE);
-    FlagClr(&cli_privs(client), PRIV_BADCHAN);
+    ClrPriv(client, PRIV_KILL);
+    ClrPriv(client, PRIV_GLINE);
+    ClrPriv(client, PRIV_JUPE);
+    ClrPriv(client, PRIV_OPMODE);
+    ClrPriv(client, PRIV_BADCHAN);
   }
 }
 
