@@ -25,6 +25,7 @@
 #include "ircd_reply.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_snprintf.h"
 #include "numeric.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -89,6 +90,36 @@ int send_error_to_client(struct Client* cptr, int error, ...)
   vsendto_one(cptr, buf, vl);
   va_end(vl);
   return 0;
+}
+
+
+int send_reply(struct Client *to, int reply, ...)
+{
+  struct VarData vd;
+  char sndbuf[IRC_BUFSIZE];
+  const struct Numeric *num;
+
+  assert(0 != to);
+  assert(0 != reply);
+
+  num = get_error_numeric(reply); /* get information about reply... */
+
+  vd.vd_format = num->format; /* select format... */
+
+  /* build buffer */
+  va_start(vd.vd_args, reply);
+  if (MyUser(to))
+    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s %s %C %v", me.name,
+		  num->str, to, &vd);
+  else
+    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%C %s %C %v", &me, num->str,
+		  to, &vd);
+  va_end(vd.vd_args);
+
+  /* send it to the user */
+  send_buffer(to, sndbuf);
+
+  return 0; /* convenience return */
 }
 
 int send_admin_info(struct Client* sptr, const struct ConfItem* admin)

@@ -89,7 +89,7 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
   if (JupeIsLocal(jupe)) /* don't propagate local jupes */
     return;
 
-  sendcmdto_serv_butone(cptr, CMD_JUPE, sptr, "* %c%s %Tu %Tu :%s",
+  sendcmdto_serv_butone(sptr, CMD_JUPE, cptr, "* %c%s %Tu %Tu :%s",
 			JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 			jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 			jupe->ju_reason);
@@ -291,7 +291,7 @@ jupe_burst(struct Client *cptr)
     if (jupe->ju_expire <= CurrentTime) /* expire any that need expiring */
       jupe_free(jupe);
     else if (!JupeIsLocal(jupe)) /* forward global jupes */
-      sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
+      sendcmdto_one(&me, CMD_JUPE, cptr, "* %c%s %Tu %Tu :%s",
 		    JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 		    jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 		    jupe->ju_reason);
@@ -304,7 +304,7 @@ jupe_resend(struct Client *cptr, struct Jupe *jupe)
   if (JupeIsLocal(jupe)) /* don't propagate local jupes */
     return 0;
 
-  sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
+  sendcmdto_one(&me, CMD_JUPE, cptr, "* %c%s %Tu %Tu :%s",
 		JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
 		jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
 		jupe->ju_reason);
@@ -323,8 +323,7 @@ jupe_list(struct Client *sptr, char *server)
       return send_error_to_client(sptr, ERR_NOSUCHJUPE, server);
 
     /* send jupe information along */
-    sendto_one(sptr, rpl_str(RPL_JUPELIST), me.name, sptr->name,
-	       jupe->ju_server, jupe->ju_expire + TSoffset,
+    send_reply(sptr, RPL_JUPELIST, jupe->ju_server, jupe->ju_expire + TSoffset,
 	       JupeIsLocal(jupe) ? me.name : "*",
 	       JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
   } else {
@@ -334,14 +333,13 @@ jupe_list(struct Client *sptr, char *server)
       if (jupe->ju_expire <= CurrentTime) /* expire any that need expiring */
 	jupe_free(jupe);
       else /* send jupe information along */
-	sendto_one(sptr, rpl_str(RPL_JUPELIST), me.name, sptr->name,
-		   jupe->ju_server, jupe->ju_expire + TSoffset,
+	send_reply(sptr, RPL_JUPELIST, jupe->ju_server,
+		   jupe->ju_expire + TSoffset,
 		   JupeIsLocal(jupe) ? me.name : "*",
 		   JupeIsActive(jupe) ? '+' : '-', jupe->ju_reason);
     }
   }
 
   /* end of jupe information */
-  sendto_one(sptr, rpl_str(RPL_ENDOFJUPELIST), me.name, sptr->name);
-  return 0;
+  return send_reply(sptr, RPL_ENDOFJUPELIST);
 }

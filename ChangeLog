@@ -1,3 +1,31 @@
+2000-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/jupe.c: update to use send_reply()
+
+	* ircd/gline.c: update to use send_reply()
+
+	* include/ircd_reply.h: declare send_reply
+
+	* ircd/ircd_reply.c (send_reply): send_error_to_client, but for
+	replies; uses ircd_snprintf
+
+	* ircd/send.c: added comments to redirect searchers to appropriate
+	sendcmdto_* function; moved new functions to end of file; added
+	explanatory comments; reordered arguments; defined new functions
+	mentioned below
+
+	* ircd/m_jupe.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/m_gline.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/jupe.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/gline.c: reorder arguments to sendcmdto_* functions
+
+	* include/send.h: reorder arguments, add explanatory comments,
+	declare new functions sendcmdto_flag_butone, sendto_opmask_butone,
+	and vsendto_opmask_butone
+
 2000-04-19  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c: define sendcmdto_channel_butone, wrote a simplified
@@ -628,7 +656,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.96 2000-04-20 03:09:35 kev Exp $
+# $Id: ChangeLog,v 1.97 2000-04-20 20:49:07 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -137,7 +137,7 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0; /* no such server */
 
     if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-      sendcmdto_one(acptr, CMD_JUPE, sptr, "%s %s %s %s :%s", target, server,
+      sendcmdto_one(sptr, CMD_JUPE, acptr, "%s %s %s %s :%s", target, server,
 		    parv[3], parv[4], reason);
       return 0;
     }
@@ -232,7 +232,7 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	if (!IsOper(sptr))
 	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
-	sendcmdto_one(acptr, CMD_JUPE, sptr, "%C %c%s %s %Tu :%s", acptr,
+	sendcmdto_one(sptr, CMD_JUPE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
 		      TStime(), reason);
 	return 0;

@@ -66,28 +66,54 @@ extern char sendbuf[2048];
 
 #define IRC_BUFSIZE	512
 
-extern void sendcmdto_one(struct Client *one, const char *cmd,
-			  const char *tok, struct Client *from,
-			  const char *fmt, ...);
-extern void vsendcmdto_one(struct Client *one, const char *cmd,
-			   const char *tok, struct Client *from,
-			   const char *fmt, va_list vl);
-extern void sendcmdto_serv_butone(struct Client *one, const char *cmd,
-				  const char *tok, struct Client *from,
-				  const char *fmt, ...);
-extern void sendcmdto_common_channels(struct Client *cptr, const char *cmd,
+/* Send a command to one client */
+extern void sendcmdto_one(struct Client *from, const char *cmd,
+			  const char *tok, struct Client *to,
+			  const char *pattern, ...);
+
+
+/* Same as above, except it takes a va_list */
+extern void vsendcmdto_one(struct Client *from, const char *cmd,
+			   const char *tok, struct Client *to,
+			   const char *pattern, va_list vl);
+
+/* Send command to all servers except one */
+extern void sendcmdto_serv_butone(struct Client *from, const char *cmd,
+				  const char *tok, struct Client *one,
+				  const char *pattern, ...);
+
+/* Send command to all channels user is on */
+extern void sendcmdto_common_channels(struct Client *from, const char *cmd,
 				      const char *tok, const char *pattern,
 				      ...);
-extern void sendcmdto_channel_butserv(struct Channel *chan, const char *cmd,
-				      const char *tok, struct Client *from,
+
+
+/* Send command to all channel users on this server */
+extern void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
+				      const char *tok, struct Channel *to,
 				      const char *pattern, ...);
-extern void sendcmdto_channel_butone(struct Client *one, struct Channel *chan,
-				     const char *cmd, const char *tok,
-				     struct Client *from, unsigned int skip,
+
+/* Send command to all interested channel users */
+extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
+				     const char *tok, struct Channel *to,
+				     struct Client *one, unsigned int skip,
 				     const char *pattern, ...);
 
 #define SKIP_DEAF	0x01	/* skip users that are +d */
 #define SKIP_BURST	0x02	/* skip users that are bursting */
 #define SKIP_NONOPS	0x04	/* skip users that aren't chanops */
+
+/* Send command to all users having a particular flag set */
+extern void sendcmdto_flag_butone(struct Client *from, const char *cmd,
+				  const char *tok, struct Client *one,
+				  unsigned int flag, const char *pattern, ...);
+
+/* Send server notice to opers but one--one can be NULL */
+extern void sendto_opmask_butone(struct Client *one, unsigned int mask,
+				 const char *pattern, ...);
+
+/* Same as above, but with variable argument list */
+extern void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+				  const char *pattern, va_list vl);
 
 #endif /* INCLUDED_send_h */
