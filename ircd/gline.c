@@ -168,16 +168,16 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 	continue;
 	
       if (acptr->user->username && 
-          match(gline->gl_user, acptr->user->username) == 0)
-          continue;
+          match (gline->gl_user, acptr->user->username) != 0)
+               continue;
           
       if (GlineIsIpMask(gline)) {
         Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",cptr->ip.s_addr,gline->ipnum.s_addr,gline->bits));
-        if ((cptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+        if ((acptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
           continue;
       }
       else {
-        if (match(gline->gl_host, acptr->sock_ip) != 0)
+        if (match(gline->gl_host, acptr->sockhost) != 0)
           continue;
       }
 
