@@ -1,3 +1,21 @@
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h: Remove declarations for undefined functions
+	cancel_mode(), add_token_to_sendbuf(), IsMember().  Delete
+	add_banid(), next_removed_overlapped_ban().  Add BAN_EXCEPTION
+	flag and new functions find_ban(), apply_ban().
+
+	* ircd/channel.c (PartFmt*, next_ban, prev_ban, removed_bans_list,
+	LocalChanOperMode): Remove unused variable definitions.
+	(make_nick_user_host): Delete.
+	(add_banid): Delete.
+	(next_removed_overlapped_ban): Delete.
+	(find_ban): New function, which knows about exceptions.
+	(is_banned): Use find_ban() and only work on a struct Membership.
+	(bmatch): New function, which knows about CIDR bans.
+	(apply_ban): New function to replace add_banid().
+	(mode_parse_ban): Use apply_ban().
+
 2004-10-28  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in (AC_PREREQ): Depend on autoconf 2.50 since we use

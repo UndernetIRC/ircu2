@@ -65,25 +65,8 @@ struct Channel* GlobalChannelList = 0;
 static unsigned int membershipAllocCount;
 /** Freelist for struct Membership*'s */
 static struct Membership* membershipFreeList;
-
-void del_invite(struct Client *, struct Channel *);
-
-const char* const PartFmt1     = ":%s " MSG_PART " %s";
-const char* const PartFmt2     = ":%s " MSG_PART " %s :%s";
-const char* const PartFmt1serv = "%s%s " TOK_PART " %s";
-const char* const PartFmt2serv = "%s%s " TOK_PART " %s :%s";
-
-
-static struct Ban* next_ban;
-static struct Ban* prev_ban;
-static struct Ban* removed_bans_list;
+/** Freelist for struct Ban*'s */
 static struct Ban* free_bans;
-
-/**
- * Use a global variable to remember if an oper set a mode on a local channel. 
- * Ugly, but the only way to do it without changing set_mode intensively.
- */
-int LocalChanOperMode = 0;
 
 #if !defined(NDEBUG)
 /** return the length (>=0) of a chain of links.
@@ -238,24 +221,6 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
   return who;
 }
 
-/** build up a hostmask
- * Create a string of form "foo!bar@fubar" given foo, bar and fubar
- * as the parameters.  If NULL, they become "*".
- * @param namebuf the buffer to build the hostmask into.  Must be at least
- * 		  NICKLEN+USERLEN+HOSTLEN+3 charactors long.
- * @param nick The nickname
- * @param name The ident
- * @param host the hostname
- * @returns namebuf
- */
-static char *make_nick_user_host(char *namebuf, const char *nick,
-				 const char *name, const char *host)
-{
-#define NUH_BUFSIZE	(NICKLEN + USERLEN + HOSTLEN + 3)
-  ircd_snprintf(0, namebuf, NUH_BUFSIZE, "%s!%s@%s", nick, name, host);
-  return namebuf;
-}
-
 /** Decrement the count of users, and free if empty.
  * Subtract one user from channel i (and free channel * block, if channel 
  * became empty).
@@ -348,148 +313,6 @@ int destruct_channel(struct Channel* chptr)
   return 0;
 }
 
-/** add a ban to a channel
- *
- * `cptr' must be the client adding the ban.
- *
- * If `change' is true then add `banid' to channel `chptr'.
- * Returns 0 if the ban was added.
- * Returns -2 if the ban already existed and was marked BAN_BURST_WIPEOUT.
- * Return -1 otherwise.
- *
- * Those bans that overlapped with `banid' are flagged with BAN_OVERLAPPED
- * when `change' is false, otherwise they will be removed from the banlist.
- * Subsequently calls to next_overlapped_ban() or next_removed_overlapped_ban()
- * respectively will return these bans until NULL is returned.
- *
- * If `firsttime' is true, the ban list as returned by next_overlapped_ban()
- * is reset (unless a non-zero value is returned, in which case the
- * BAN_OVERLAPPED flag might not have been reset!).
- *
- * @author Run
- * @param cptr 	Client adding the ban
- * @param chptr	Channel to add the ban to
- * @param banid The actual ban.
- * @param change True if adding a ban, false if old bans should just be flagged
- * @param firsttime Reset the next_overlapped_ban() iteration.
- * @returns 
- * 	0 if the ban was added
- * 	-2 if the ban already existed and was marked BAN_BURST_WIPEOUT
- * 	-1 otherwise
- */
-int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
-                     int change, int firsttime)
-{
-  struct Ban*    ban;
-  struct Ban**   banp;
-  int            cnt = 0;
-  int            removed_bans = 0;
-  int            len = strlen(banid);
-
-  if (firsttime)
-  {
-    next_ban = NULL;
-    assert(0 == prev_ban);
-    assert(0 == removed_bans_list);
-  }
-  if (MyUser(cptr))
-    collapse(banid);
-  for (banp = &chptr->banlist; *banp;)
-  {
-    len += strlen((*banp)->banstr);
-    ++cnt;
-    if (((*banp)->flags & BAN_BURST_WIPEOUT))
-    {
-      if (!strcmp((*banp)->banstr, banid))
-      {
-        (*banp)->flags &= ~BAN_BURST_WIPEOUT;
-        return -2;
-      }
-    }
-    else if (!mmatch((*banp)->banstr, banid))
-      return -1;
-    if (!mmatch(banid, (*banp)->banstr))
-    {
-      struct Ban *tmp = *banp;
-      if (change)
-      {
-        if (MyUser(cptr))
-        {
-          cnt--;
-          len -= strlen(tmp->banstr);
-        }
-        *banp = tmp->next;
-        /* These will be sent to the user later as -b */
-        tmp->next = removed_bans_list;
-        removed_bans_list = tmp;
-        removed_bans = 1;
-      }
-      else if (!(tmp->flags & BAN_BURST_WIPEOUT))
-      {
-        tmp->flags |= BAN_OVERLAPPED;
-        if (!next_ban)
-          next_ban = tmp;
-        banp = &tmp->next;
-      }
-      else
-        banp = &tmp->next;
-    }
-    else
-    {
-      if (firsttime)
-        (*banp)->flags &= ~BAN_OVERLAPPED;
-      banp = &(*banp)->next;
-    }
-  }
-  if (MyUser(cptr) && !removed_bans &&
-      (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
-       (cnt >= feature_int(FEAT_MAXBANS))))
-  {
-    send_reply(cptr, ERR_BANLISTFULL, chptr->chname, banid);
-    return -1;
-  }
-  if (change)
-  {
-    char*              ip_start;
-    struct Membership* member;
-    ban = make_ban(banid);
-    ban->next = chptr->banlist;
-
-    if (IsServer(cptr) && feature_bool(FEAT_HIS_BANWHO))
-      DupString(ban->who, cli_name(&me));
-    else
-      DupString(ban->who, cli_name(cptr));
-    assert(0 != ban->who);
-
-    ban->when = TStime();
-    if ((ip_start = strrchr(banid, '@')) && check_if_ipmask(ip_start + 1))
-      ban->flags |= BAN_IPMASK;
-    chptr->banlist = ban;
-
-    /*
-     * Erase ban-valid-bit
-     */
-    for (member = chptr->members; member; member = member->next_member)
-      ClearBanValid(member);     /* `ban' == channel member ! */
-  }
-  return 0;
-}
-
-/** return the next ban that is removed 
- * @returns the next ban that is removed because of overlapping
- */
-struct Ban *next_removed_overlapped_ban(void)
-{
-  if (prev_ban)
-  {
-    free_ban(prev_ban);
-    prev_ban = 0;
-  }
-  if ((prev_ban = removed_bans_list))
-    removed_bans_list = removed_bans_list->next;
-  return prev_ban;
-}
-
 /** returns Membership * if a person is joined and not a zombie
  * @param cptr Client
  * @param chptr Channel
@@ -507,74 +330,80 @@ struct Membership* find_channel_member(struct Client* cptr, struct Channel* chpt
   return (member && !IsZombie(member)) ? member : 0;
 }
 
-/** return true if banned else false.
- *
+/** Searches for a ban from a banlist that matches a user.
+ * @param[in] cptr The client to test.
+ * @param[in] banlist The list of bans to test.
+ * @return Pointer to a matching ban, or NULL if none exit.
+ */
+struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
+{
+  char        nu[NICKLEN + USERLEN + 2];
+  char        tmphost[HOSTLEN + 1];
+  char       *sr;
+  struct Ban *found;
+
+  /* Build nick!user and alternate host names. */
+  ircd_snprintf(0, nu, sizeof(nu), "%s!%s",
+                cli_name(cptr), cli_user(cptr)->username);
+  if (!IsAccount(cptr))
+    sr = NULL;
+  else if (HasHiddenHost(cptr))
+    sr = cli_user(cptr)->realhost;
+  else
+  {
+    ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
+                  cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
+    sr = tmphost;
+  }
+
+  /* Walk through ban list. */
+  for (found = NULL; banlist; banlist = banlist->next) {
+    int res;
+    /* If we have found a positive ban already, only consider exceptions. */
+    if (found && !(banlist->flags & BAN_EXCEPTION))
+      continue;
+    /* Compare nick!user portion of ban. */
+    banlist->banstr[banlist->nu_len] = '\0';
+    res = match(banlist->banstr, nu);
+    banlist->banstr[banlist->nu_len] = '@';
+    if (res)
+      continue;
+    /* Compare host portion of ban. */
+    if (!((banlist->flags & BAN_IPMASK)
+         && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
+        && match(banlist->banstr + banlist->nu_len + 1, cli_user(cptr)->host)
+        && !(sr && match(banlist->banstr + banlist->nu_len + 1, sr) == 0))
+      continue;
+    /* If an exception matches, no ban can match. */
+    if (banlist->flags & BAN_EXCEPTION)
+      return NULL;
+    /* Otherwise, remember this ban but keep searching for an exception. */
+    found = banlist;
+  }
+  return found;
+}
+
+/**
  * This function returns true if the user is banned on the said channel.
  * This function will check the ban cache if applicable, otherwise will
  * do the comparisons and cache the result.
  *
- * @param cptr  The client to test
- * @param chptr The channel
- * @param member The Membership * of this client on this channel 
- *               (may be NULL if the member is not on the channel).
+ * @param[in] member The Membership to test for banned-ness.
+ * @return Non-zero if the member is banned, zero if not.
  */
-static int is_banned(struct Client *cptr, struct Channel *chptr,
-                     struct Membership* member)
+static int is_banned(struct Membership* member)
 {
-  struct Ban*   tmp;
-  char          nu[NICKLEN + USERLEN + 2];
-  char          tmphost[HOSTLEN + 1];
-  char*         sr = NULL;
-
-  if (!IsUser(cptr))
-    return 0;
-
-  if (member && IsBanValid(member))
+  if (IsBanValid(member))
     return IsBanned(member);
 
-  ircd_snprintf(0, nu, sizeof(nu), "%s!%s",
-                cli_name(cptr), cli_user(cptr)->username);
-  if (IsAccount(cptr))
-  {
-    if (HasHiddenHost(cptr))
-    {
-      sr = cli_user(cptr)->realhost;
-    }
-    else
-    {
-      ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
-                    cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
-      sr = tmphost;
-    }
+  SetBanValid(member);
+  if (find_ban(member->user, member->channel->banlist)) {
+    SetBanned(member);
+    return 1;
+  } else {
+    ClearBanned(member);
+    return 0;
   }
-
-  for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
-    int res;
-    tmp->banstr[tmp->nu_len] = '\0';
-    res = match(tmp->banstr, nu);
-    tmp->banstr[tmp->nu_len] = '@';
-    if (res)
-      continue;
-    if (((tmp->flags & BAN_IPMASK)
-         && ipmask_check(&cli_ip(cptr), &tmp->address, tmp->addrbits))
-        || match(tmp->banstr + tmp->nu_len + 1, cli_user(cptr)->host) == 0
-        || (sr && match(tmp->banstr + tmp->nu_len + 1, sr) == 0))
-      break;
-  }
-
-  if (member) {
-    SetBanValid(member);
-    if (tmp) {
-      SetBanned(member);
-      return 1;
-    }
-    else {
-      ClearBanned(member);
-      return 0;
-    }
-  }
-
-  return (tmp != NULL);
 }
 
 /** add a user to a channel.
@@ -832,7 +661,7 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
    * but because of the amount of CPU time that is_banned chews
    * we only check it for our clients.
    */
-  if (MyUser(member->user) && is_banned(member->user, member->channel, member))
+  if (MyUser(member->user) && is_banned(member))
     return 0;
 
   if (IsDelayedJoin(member) && reveal)
@@ -877,7 +706,7 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int r
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
     else
-      return !is_banned(cptr, chptr, NULL);
+      return !find_ban(cptr, chptr->banlist);
   }
   return member_can_send_to_channel(member, reveal);
 }
@@ -898,7 +727,7 @@ const char* find_no_nickchange_channel(struct Client* cptr)
     for (member = (cli_user(cptr))->channel; member;
 	 member = member->next_channel) {
         if (!IsVoicedOrOpped(member) &&
-            (is_banned(cptr, member->channel, member) ||
+            (is_banned(member) ||
              (member->channel->mode.mode & MODE_MODERATED)))
         return member->channel->chname;
     }
@@ -1240,7 +1069,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 char *pretty_mask(char *mask)
 {
   static char star[2] = { '*', 0 };
-  static char retmask[NUH_BUFSIZE];
+  static char retmask[NICKLEN + USERLEN + HOSTLEN + 3];
   char *last_dot = NULL;
   char *ptr;
 
@@ -1313,7 +1142,8 @@ char *pretty_mask(char *mask)
     host = ptr - HOSTLEN;
     *host = '*';
   }
-  return make_nick_user_host(retmask, nick, user, host);
+  ircd_snprintf(0, retmask, sizeof(retmask), "%s!%s@%s", nick, user, host);
+  return retmask;
 }
 
 /** send a banlist to a client for a channel
@@ -1415,7 +1245,7 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
   if ((chptr->mode.mode & MODE_REGONLY) && !IsAccount(sptr))
   	return overrideJoin + ERR_NEEDREGGEDNICK;
   	
-  if (is_banned(sptr, chptr, NULL))
+  if (find_ban(sptr, chptr->banlist))
   	return overrideJoin + ERR_BANNEDFROMCHAN;
   
   /*
@@ -2808,6 +2638,100 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   }
 }
 
+/** Compare one ban's extent to another.
+ * This works very similarly to mmatch() but it knows about CIDR masks
+ * and ban exceptions.  If both bans are CIDR-based, compare their
+ * address bits; otherwise, use mmatch().
+ * @param[in] old_ban One ban.
+ * @param[in] new_ban Another ban.
+ * @return Zero if \a old_ban is a superset of \a new_ban, non-zero otherwise.
+ */
+static int
+bmatch(struct Ban *old_ban, struct Ban *new_ban)
+{
+  int res;
+  assert(old_ban != NULL);
+  assert(new_ban != NULL);
+  /* A ban is never treated as a superset of an exception. */
+  if (!(old_ban->flags & BAN_EXCEPTION)
+      && (new_ban->flags & BAN_EXCEPTION))
+    return 1;
+  /* If either is not an address mask, match the text masks. */
+  if ((old_ban->flags & new_ban->flags & BAN_IPMASK) == 0)
+    return mmatch(old_ban->banstr, new_ban->banstr);
+  /* If the old ban has a longer prefix than new, it cannot be a superset. */
+  if (old_ban->addrbits > new_ban->addrbits)
+    return 1;
+  /* Compare the masks before the hostname part.  */
+  old_ban->banstr[old_ban->nu_len] = new_ban->banstr[new_ban->nu_len] = '\0';
+  res = mmatch(old_ban->banstr, new_ban->banstr);
+  old_ban->banstr[old_ban->nu_len] = new_ban->banstr[new_ban->nu_len] = '@';
+  if (res)
+    return res;
+  /* Compare the addresses. */
+  return !ipmask_check(&new_ban->address, &old_ban->address, old_ban->addrbits);
+}
+
+/** Add a ban from a ban list and mark bans that should be removed
+ * because they overlap.
+ *
+ * There are three invariants for a ban list.  First, no ban may be
+ * more specific than another ban.  Second, no exception may be more
+ * specific than another exception.  Finally, no ban may be more
+ * specific than any exception.
+ *
+ * @param[in,out] banlist Pointer to head of list.
+ * @param[in] newban Ban (or exception) to add (or remove).
+ * @return Zero if \a newban could be applied, non-zero if not.
+ */
+int apply_ban(struct Ban **banlist, struct Ban *newban)
+{
+  struct Ban *ban;
+  size_t count = 0;
+
+  assert(newban->flags & (BAN_ADD|BAN_DEL));
+  if (newban->flags & BAN_ADD) {
+    size_t totlen = 0;
+    /* If a less specific entry is found, fail.  */
+    for (ban = *banlist; ban; ban = ban->next) {
+      if (!bmatch(ban, newban)) {
+        free_ban(newban);
+        return 1;
+      }
+      if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
+        count++;
+        totlen += strlen(ban->banstr);
+      }
+    }
+    /* Mark more specific entries and add this one to the end of the list. */
+    while ((ban = *banlist) != NULL) {
+      if (!bmatch(newban, ban)) {
+        ban->flags |= BAN_OVERLAPPED;
+      }
+      banlist = &ban->next;
+    }
+    *banlist = newban;
+    return 0;
+  } else if (newban->flags & BAN_DEL) {
+    size_t remove_count = 0;
+    /* Mark more specific entries. */
+    for (ban = *banlist; ban; ban = ban->next) {
+      if (!bmatch(newban, ban)) {
+        ban->flags |= BAN_OVERLAPPED;
+        remove_count++;
+      }
+    }
+    /* If no matches were found, fail. */
+    if (!remove_count) {
+      free_ban(newban);
+      return 3;
+    }
+    return 0;
+  }
+  free_ban(newban);
+  return 4;
+}
+
 /*
  * Helper function to convert bans
  */
@@ -2849,75 +2773,28 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     return;
   }
 
-  t_str = collapse(pretty_mask(t_str));
-
-  /* remember the ban for the moment... */
-  if (state->dir == MODE_ADD) {
-    newban = state->banlist + (state->numbans++);
-    newban->next = 0;
-    newban->flags = BAN_ADD;
-    set_ban_mask(newban, t_str);
-    newban->who = cli_name(state->sptr);
-    newban->when = TStime();
-  }
-
   if (!state->chptr->banlist) {
     state->chptr->banlist = newban; /* add our ban with its flags */
     state->done |= DONE_BANCLEAN;
     return;
   }
 
-  /* Go through all bans */
-  for (ban = state->chptr->banlist; ban; ban = ban->next) {
-    /* first, clean the ban flags up a bit */
-    if (!(state->done & DONE_BANCLEAN))
-      /* Note: We're overloading *lots* of bits here; be careful! */
+  /* Clear all ADD/DEL/OVERLAPPED flags from ban list. */
+  if (!(state->done & DONE_BANCLEAN)) {
+    for (ban = state->chptr->banlist; ban; ban = ban->next)
       ban->flags &= ~(BAN_ADD | BAN_DEL | BAN_OVERLAPPED);
-
-    /* Bit meanings:
-     *
-     * BAN_ADD		   - Ban was added; if we're bouncing modes,
-     *			     then we'll remove it below; otherwise,
-     *			     we'll have to allocate a real ban
-     *
-     * BAN_DEL		   - Ban was marked for deletion; if we're
-     *			     bouncing modes, we'll have to re-add it,
-     *			     otherwise, we'll have to remove it
-     *
-     * BAN_OVERLAPPED	   - The ban we added turns out to overlap
-     *			     with a ban already set; if we're
-     *			     bouncing modes, we'll have to bounce
-     *			     this one; otherwise, we'll just ignore
-     *			     it when we process added bans
-     */
-
-    if (state->dir == MODE_DEL && !ircd_strcmp(ban->banstr, t_str)) {
-      ban->flags |= BAN_DEL; /* delete one ban */
-
-      if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
-	break;
-    } else if (state->dir == MODE_ADD) {
-      /* if the ban already exists, don't worry about it */
-      if (!ircd_strcmp(ban->banstr, t_str)) {
-	newban->flags &= ~BAN_ADD; /* don't add ban at all */
-        MyFree(newban->banstr); /* stopper a leak */
-	state->numbans--; /* deallocate last ban */
-	if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
-	  break;
-      } else if (!mmatch(ban->banstr, t_str)) {
-	if (!(ban->flags & BAN_DEL))
-	  newban->flags |= BAN_OVERLAPPED; /* our ban overlaps */
-      } else if (!mmatch(t_str, ban->banstr))
-	ban->flags |= BAN_DEL; /* mark ban for deletion: overlapping */
-
-      if (!ban->next && (newban->flags & BAN_ADD))
-      {
-	ban->next = newban; /* add our ban with its flags */
-	break; /* get out of loop */
-      }
-    }
+    state->done |= DONE_BANCLEAN;
   }
-  state->done |= DONE_BANCLEAN;
+
+  /* remember the ban for the moment... */
+  newban = state->banlist + (state->numbans++);
+  newban->next = 0;
+  newban->flags = ((state->dir == MODE_ADD) ? BAN_ADD : BAN_DEL)
+      | (*flag_p == 'b' ? 0 : BAN_EXCEPTION);
+  set_ban_mask(newban, collapse(pretty_mask(t_str)));
+  newban->who = cli_name(state->sptr);
+  newban->when = TStime();
+  apply_ban(&state->chptr->banlist, newban);
 }
 
 /*

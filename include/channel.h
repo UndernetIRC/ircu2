@@ -256,6 +256,7 @@ struct Mode {
 #define BAN_OVERLAPPED     0x0002  /**< ban overlapped, need bounce */
 #define BAN_BURSTED        0x0004  /**< Ban part of last BURST */
 #define BAN_BURST_WIPEOUT  0x0008  /**< Ban will be wiped at EOB */
+#define BAN_EXCEPTION      0x0010  /**< Ban is an exception */
 #define BAN_DEL            0x4000  /**< Ban is being removed */
 #define BAN_ADD            0x8000  /**< Ban is being added */
 
@@ -385,15 +386,6 @@ extern int destruct_channel(struct Channel* chptr);
 extern int can_join(struct Client *sptr, struct Channel *chptr, char *key);
 extern void add_user_to_channel(struct Channel* chptr, struct Client* who,
                                 unsigned int flags, int oplevel);
-extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
-                        const char *param, int *count);
-extern void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
-                                 int *send_itp, char is_a_ban, int mode);
-extern int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
-                     int change, int firsttime);
-extern struct Ban *next_removed_overlapped_ban(void);
-extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
-                        const char *param, int *count);
 extern void make_zombie(struct Membership* member, struct Client* who,
                         struct Client* cptr, struct Client* sptr,
                         struct Channel* chptr);
@@ -402,7 +394,6 @@ void add_invite(struct Client *cptr, struct Channel *chptr);
 int number_of_zombies(struct Channel *chptr);
 
 extern const char* find_no_nickchange_channel(struct Client* cptr);
-extern struct Membership* IsMember(struct Client *cptr, struct Channel *chptr);
 extern struct Membership* find_channel_member(struct Client* cptr, struct Channel* chptr);
 extern int member_can_send_to_channel(struct Membership* member, int reveal);
 extern int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal);
@@ -464,6 +455,8 @@ extern void joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan,
 			 unsigned int flags);
 extern int joinbuf_flush(struct JoinBuf *jbuf);
 extern struct Ban *make_ban(const char *banstr);
+extern struct Ban *find_ban(struct Client *cptr, struct Ban *banlist);
+extern int apply_ban(struct Ban **banlist, struct Ban *newban);
 extern void free_ban(struct Ban *ban);
 
 #endif /* INCLUDED_channel_h */
