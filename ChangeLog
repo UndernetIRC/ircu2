@@ -1,3 +1,7 @@
+2001-06-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd.c: don't check LPATH for accessibility at all
+
 2001-06-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_serv.c (server_estab): send a +h flag in our SERVER
