@@ -66,7 +66,7 @@
 
 #include "handlers.h" /* m_motd and m_lusers */
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

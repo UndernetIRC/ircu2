@@ -31,11 +31,12 @@
 #include "ircd_alloc.h"
 #include "ircd_events.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 /** Stores free target information for a particular user. */

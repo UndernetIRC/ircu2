@@ -27,6 +27,7 @@
 #include "ircd_alloc.h"
 #include "ircd_defs.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "numeric.h"
@@ -34,7 +35,7 @@
 #include "s_debug.h"
 #include "s_stats.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>

@@ -27,12 +27,13 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_log.h"
 #include "parse.h"
 #include "s_bsd.h"
 #include "s_misc.h"
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /** Add a certain number of bytes to a client's received statistics.
  * @param[in,out] cptr Client to update.

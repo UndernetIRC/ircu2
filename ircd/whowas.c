@@ -40,6 +40,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "numeric.h"
@@ -51,7 +52,7 @@
 #include "sys.h"
 #include "msg.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
 #include <string.h>
 

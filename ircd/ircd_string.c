@@ -28,7 +28,7 @@
 #include "ircd_log.h"
 #include "res.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 #include <regex.h>
 #include <sys/types.h>

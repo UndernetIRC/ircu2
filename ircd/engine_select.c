@@ -35,7 +35,7 @@
 # endif
 #endif
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <string.h> /* needed for bzero() on OS X */
 #include <sys/socket.h>

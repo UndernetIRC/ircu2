@@ -32,6 +32,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -43,7 +44,7 @@
 #include "send.h"
 #include "struct.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
 #include <string.h>
 

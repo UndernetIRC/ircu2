@@ -59,7 +59,7 @@
 #include "version.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>

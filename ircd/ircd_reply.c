@@ -29,6 +29,7 @@
 #include "ircd_reply.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_log.h"
 #include "ircd_snprintf.h"
 #include "msg.h"
 #include "msgq.h"
@@ -37,7 +38,7 @@
 #include "s_debug.h"
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 /** Report a protocol violation warning to anyone listening.  This can

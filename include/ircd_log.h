@@ -26,6 +26,10 @@
 #include <stdarg.h>	    /* va_list */
 #define INCLUDED_stdarg_h
 #endif
+#ifndef INCLUDED_stdlib_h
+#include <stdlib.h> /* abort */
+#define INCLUDED_stdlib_h
+#endif
 
 struct Client;
 
@@ -107,4 +111,47 @@ extern void log_feature_unmark(void);
 extern int log_feature_mark(int flag);
 extern void log_feature_report(struct Client *to, int flag);
 
+extern int log_inassert;
+
 #endif /* INCLUDED_ircd_log_h */
+
+/* The rest of this file implements our own custom version of assert.
+ * This version will log the assertion failure using the LS_SYSTEM log
+ * stream, thus putting the assertion failure message into a useful
+ * place, rather than elsewhere, as is currently the case...
+ */
+
+/* We've been included twice; clean up before creating assert() again */
+#ifdef _ircd_log_assert
+# undef _ircd_log_assert
+# undef assert
+#endif
+
+/* gcc has a nice way of hinting that an expression is expected to
+ * produce a specific result, which can improve optimization.
+ * Unfortunately, all the world's not gcc (at least, not yet), and not
+ * all gcc's support it.  I don't know exactly when it appeared, but
+ * it does appear to be in all versions from 3 and up.  So, we'll
+ * create a dummy define if (we think) this version of gcc doesn't
+ * have it...
+ */
+#ifndef _log_builtin_expect
+# define _log_builtin_expect
+# if __GNUC__ < 3
+#  define __builtin_expect(expr, expect)	(expr)
+# endif
+#endif
+
+/* let's try not to clash with the system assert()... */
+#ifndef assert
+# ifdef NDEBUG
+#  define assert(expr)	((void)0)
+# else
+#  define assert(expr)							      \
+  ((void)(__builtin_expect(!!(expr), 1) ? 0 :				      \
+	  (__builtin_expect(log_inassert, 0) ? (abort(), 0) :		      \
+	   ((log_inassert = 1), /* inhibit looping in assert() */	      \
+	    log_write(LS_SYSTEM, L_CRIT, 0, "Assertion failure at %s:%d: "    \
+		      "\"%s\"", __FILE__, __LINE__, #expr), abort(), 0))))
+# endif
+#endif

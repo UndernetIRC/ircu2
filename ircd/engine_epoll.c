@@ -29,7 +29,7 @@
 #include "ircd_log.h"
 #include "s_debug.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <sys/types.h>
 #ifdef HAVE_STDINT_H

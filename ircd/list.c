@@ -28,6 +28,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_events.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "listener.h"
@@ -44,7 +45,7 @@
 #include "struct.h"
 #include "whowas.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stddef.h>  /* offsetof */
 #include <unistd.h>  /* close */
 #include <string.h>

@@ -38,7 +38,7 @@
 #include "send.h"
 #include "struct.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -51,6 +51,8 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+
+int log_inassert = 0;
 
 #define LOG_BUFSIZE 2048 /**< Maximum length for a log message. */
 

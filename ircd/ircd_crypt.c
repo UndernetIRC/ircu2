@@ -47,6 +47,7 @@
 #include "ircd_crypt.h"
 #include "ircd_alloc.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "s_debug.h"
 
@@ -55,7 +56,7 @@
 #include "ircd_crypt_plain.h"
 #include "ircd_crypt_smd5.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <unistd.h>
 #include <string.h>
 

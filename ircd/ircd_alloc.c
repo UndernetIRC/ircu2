@@ -26,10 +26,11 @@
 #include "config.h"
 
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "s_debug.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 static void nomem_handler(void);

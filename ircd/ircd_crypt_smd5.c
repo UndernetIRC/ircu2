@@ -39,11 +39,12 @@
 #include "config.h"
 #include "ircd_crypt.h"
 #include "ircd_crypt_smd5.h"
+#include "ircd_log.h"
 #include "ircd_md5.h"
 #include "s_debug.h"
 #include "ircd_alloc.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 #include <unistd.h>
 

@@ -27,10 +27,11 @@
 #include "config.h"
 #include "ircd_crypt.h"
 #include "ircd_crypt_plain.h"
+#include "ircd_log.h"
 #include "s_debug.h"
 #include "ircd_alloc.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <unistd.h>
 
 /** Just sends back the supplied password.

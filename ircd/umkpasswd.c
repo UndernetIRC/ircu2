@@ -26,10 +26,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /* ircu headers */
 #include "ircd_alloc.h"
+#include "ircd_log.h" /* for ircd's assert.h */
 #include "ircd_string.h"
 #include "umkpasswd.h"
 #include "s_debug.h"
@@ -44,6 +45,7 @@
 /* bleah, evil globals */
 umkpasswd_conf_t* umkpasswd_conf;
 crypt_mechs_t* crypt_mechs_root;
+int log_inassert = 0;
 
 void copyright(void)
 {
@@ -92,6 +94,17 @@ int err = errno;
     va_end(vl);
   }
   errno = err;
+}
+
+/* quick implementation of log_write() for assert() call */
+void log_write(enum LogSys subsys, enum LogLevel severity,
+	       unsigned int flags, const char *fmt, ...)
+{
+  va_list vl;
+  va_start(vl, fmt);
+  vfprintf(stderr, fmt, vl);
+  fprintf(stderr, "\n");
+  va_end(vl);
 }
 
 /* quick and dirty salt generator */

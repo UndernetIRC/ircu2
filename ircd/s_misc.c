@@ -58,7 +58,7 @@
 #include "uping.h"
 #include "userload.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <fcntl.h>
 #include <netdb.h>
 #include <stdio.h>

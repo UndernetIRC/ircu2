@@ -46,7 +46,7 @@
 #include "sys.h"    /* FALSE bleah */
 #include "whocmds.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

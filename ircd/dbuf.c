@@ -26,10 +26,11 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "send.h"
 #include "sys.h"       /* MIN */
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 /*

@@ -27,6 +27,7 @@
 
 #include "ircd_osdep.h"
 #include "msgq.h"
+#include "ircd_log.h"
 #include "res.h"
 #include "s_bsd.h"
 #include "sys.h"
@@ -37,7 +38,7 @@
  * Solaris requires sys/time.h before struct rusage (indirectly) in
  * netinet/in.h.
  */
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>

@@ -26,6 +26,7 @@
 #include "class.h"
 #include "ircd.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "list.h"
 #include "msgq.h"
@@ -35,7 +36,7 @@
 #include "send.h"
 #include "struct.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 /** Find the shortest non-zero ping time attached to a client.

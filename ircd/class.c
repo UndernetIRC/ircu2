@@ -27,6 +27,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -35,7 +36,7 @@
 #include "s_debug.h"
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /** List of all connection classes. */
 static struct ConnectionClass* connClassList;

@@ -84,6 +84,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -97,7 +98,7 @@
 #include "send.h"
 
 #include <stdlib.h>
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /*
  * m_motd - generic message handler

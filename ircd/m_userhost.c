@@ -82,6 +82,7 @@
 #include "config.h"
 
 #include "client.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msgq.h"
@@ -89,7 +90,7 @@
 #include "s_user.h"
 #include "struct.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 static void userhost_formatter(struct Client* cptr, struct Client *sptr, struct MsgBuf* mb)
 {

@@ -84,13 +84,14 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msgq.h"
 #include "numeric.h"
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
 /*

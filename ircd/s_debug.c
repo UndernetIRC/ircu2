@@ -50,7 +50,7 @@
 #include "sys.h"
 #include "whowas.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>

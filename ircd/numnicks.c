@@ -26,6 +26,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "s_bsd.h"
@@ -33,7 +34,7 @@
 #include "s_misc.h"
 #include "struct.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

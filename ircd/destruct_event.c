@@ -27,10 +27,11 @@
 #include "ircd_alloc.h"
 #include "ircd.h"
 #include "ircd_events.h"
+#include "ircd_log.h"
 #include "send.h"
 #include "msg.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
 
 /** Structure describing a destruction event. */

@@ -83,6 +83,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "numeric.h"
@@ -93,7 +94,7 @@
 #include "s_bsd.h"
 #include "s_user.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
 
 static int send_asll_reply(struct Client *from, struct Client *to, char *server,

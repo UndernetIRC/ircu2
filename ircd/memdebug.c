@@ -1,11 +1,12 @@
 #include <sys/types.h>
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "client.h"
 #include "s_debug.h"
 #include <stdlib.h>
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 #ifdef MDEBUG
 

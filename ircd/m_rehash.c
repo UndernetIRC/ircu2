@@ -91,7 +91,7 @@
 #include "s_conf.h"
 #include "send.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /*
  * mo_rehash - oper message handler

@@ -2,7 +2,7 @@
  * ircd_chattr_t.c - Test file for character attributes
  */
 #include "ircd_chattr.h"
-#include <assert.h>
+/* #include <assert.h> -- not used here */
 #include <stdio.h>
 
 typedef int (*EvalFn)(char);

@@ -40,7 +40,7 @@
 #include "res.h"
 #include "ircd_reslib.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 #include <sys/time.h>
 #include <sys/socket.h>

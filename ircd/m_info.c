@@ -83,6 +83,7 @@
 
 #include "client.h"
 #include "ircd.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -94,7 +95,7 @@
 #include "send.h"
 #include "version.h"
 
-#include <assert.h>
+/* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /*
  * m_info - generic message handler
