@@ -39,7 +39,7 @@
 		\
 		\
 		\
-		".7"
+		".07"
 
 /*
  * Deliberate empty lines
@@ -49,7 +49,7 @@
 		\
 		\
 		\
-		".bc"
+		""
 
 /*
  * Deliberate empty lines
