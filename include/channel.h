@@ -104,7 +104,6 @@ struct Client;
 #define MODE_LIMIT      0x0400		/**< +l Limit */
 #define MODE_REGONLY    0x0800  	/**< Only +r users may join */
 #define MODE_DELJOINS   0x1000  	/**< New join messages are delayed */
-#define MODE_LISTED     0x10000
 #define MODE_SAVE	0x20000		/**< save this mode-with-arg 'til 
 					 * later */
 #define MODE_FREE	0x40000 	/**< string needs to be passed to 
@@ -133,7 +132,6 @@ struct Client;
                                  (IsAnOper(v) && HasPriv(v, PRIV_LIST_CHAN)))
 #define PubChannel(x)           ((!x) || ((x)->mode.mode & \
                                     (MODE_PRIVATE | MODE_SECRET)) == 0)
-#define is_listed(x)            ((x)->mode.mode & MODE_LISTED)
 
 #define IsGlobalChannel(name)   (*(name) == '#')
 #define IsLocalChannel(name)    (*(name) == '&')
@@ -287,7 +285,7 @@ struct ListingArgs {
   unsigned int flags;
   time_t max_topic_time;
   time_t min_topic_time;
-  struct Channel *chptr;
+  unsigned int bucket;
 };
 
 struct ModeBuf {
@@ -407,7 +405,6 @@ extern int IsInvited(struct Client* cptr, const void* chptr);
 extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
-extern void list_next_channels(struct Client *cptr, int nr);
 extern void list_set_default(void); /* this belongs elsewhere! */
 
 extern void RevealDelayedJoin(struct Membership *member);

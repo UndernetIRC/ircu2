@@ -361,10 +361,10 @@ depend: ${DEP_SRC} chattr.tab.c
 IPcheck.o: IPcheck.c ../config.h ../include/IPcheck.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
-  ../include/ircd.h ../include/struct.h ../include/msg.h \
-  ../include/numnicks.h ../include/ircd_alloc.h \
+  ../include/ircd.h ../include/struct.h ../include/match.h \
+  ../include/msg.h ../include/numnicks.h ../include/ircd_alloc.h \
   ../include/ircd_features.h ../include/s_debug.h ../include/s_user.h \
-  ../include/send.h ../include/match.h
+  ../include/send.h
 channel.o: channel.c ../config.h ../include/channel.h \
   ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
   ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
@@ -421,9 +421,10 @@ gline.o: gline.c ../config.h ../include/gline.h ../include/res.h \
 hash.o: hash.c ../config.h ../include/hash.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
-  ../include/channel.h ../include/ircd_chattr.h ../include/ircd_string.h \
-  ../include/ircd.h ../include/struct.h ../include/msg.h \
-  ../include/send.h ../include/sys.h
+  ../include/channel.h ../include/ircd_alloc.h ../include/ircd_chattr.h \
+  ../include/ircd_reply.h ../include/ircd_string.h ../include/ircd.h \
+  ../include/struct.h ../include/msg.h ../include/numeric.h \
+  ../include/random.h ../include/send.h ../include/sys.h
 ircd.o: ircd.c ../config.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_defs.h ../include/IPcheck.h ../include/class.h \
   ../include/client.h ../include/dbuf.h ../include/msgq.h \
@@ -1155,7 +1156,8 @@ querycmds.o: querycmds.c ../config.h ../include/querycmds.h \
 random.o: random.c ../config.h ../include/random.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
-  ../include/ircd_log.h ../include/ircd_reply.h ../include/send.h
+  ../include/ircd_log.h ../include/ircd_md5.h ../include/ircd_reply.h \
+  ../include/send.h
 s_auth.o: s_auth.c ../config.h ../include/s_auth.h \
   ../include/ircd_events.h ../include/client.h ../include/ircd_defs.h \
   ../include/dbuf.h ../include/msgq.h ../include/ircd_handler.h \

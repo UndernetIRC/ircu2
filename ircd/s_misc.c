@@ -215,7 +215,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
      * Stop a running /LIST clean
      */
     if (MyUser(bcptr) && cli_listing(bcptr)) {
-      cli_listing(bcptr)->chptr->mode.mode &= ~MODE_LISTED;
       MyFree(cli_listing(bcptr));
       cli_listing(bcptr) = NULL;
     }

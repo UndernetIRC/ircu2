@@ -24,10 +24,13 @@
 #include "hash.h"
 #include "client.h"
 #include "channel.h"
+#include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd.h"
 #include "msg.h"
+#include "numeric.h"
 #include "random.h"
 #include "send.h"
 #include "struct.h"
@@ -402,4 +405,47 @@ void clearNickJupes(void)
   jupesCount = 0;
   for (i = 0; i < JUPEHASHSIZE; i++)
     jupeTable[i][0] = '\000';
+}
+
+/** Send more channels to a client in mid-LIST.
+ * @param[in] cptr Client to send the list to.
+ */
+void list_next_channels(struct Client *cptr)
+{
+  struct ListingArgs *args;
+  struct Channel *chptr;
+
+  /* Walk consecutive buckets until we hit the end. */
+  for (args = cli_listing(cptr); args->bucket < HASHSIZE; args->bucket++)
+  {
+    /* Send all the matching channels in the bucket. */
+    for (chptr = channelTable[args->bucket]; chptr; chptr = chptr->hnext)
+    {
+      if (chptr->users > args->min_users
+          && chptr->users < args->max_users
+          && chptr->creationtime > args->min_time
+          && chptr->creationtime < args->max_time
+          && (!(args->flags & LISTARG_TOPICLIMITS)
+              || (chptr->topic[0]
+                  && chptr->topic_time > args->min_topic_time
+                  && chptr->topic_time < args->max_topic_time))
+          && ((args->flags & LISTARG_SHOWSECRET)
+              || ShowChannel(cptr, chptr)))
+      {
+        send_reply(cptr, RPL_LIST, chptr->chname, chptr->users, chptr->topic);
+      }
+    }
+    /* If, at the end of the bucket, client sendq is more than half
+     * full, stop. */
+    if (MsgQLength(&cli_sendQ(cptr)) > cli_max_sendq(cptr) / 2)
+      break;
+  }
+
+  /* If we did all buckets, clean the client and send RPL_LISTEND. */
+  if (args->bucket >= HASHSIZE)
+  {
+    MyFree(cli_listing(cptr));
+    cli_listing(cptr) = NULL;
+    send_reply(cptr, RPL_LISTEND);
+  }
 }

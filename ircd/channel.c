@@ -291,21 +291,6 @@ int destruct_channel(struct Channel* chptr)
 
   assert(0 == chptr->members);
 
-  /* Channel became (or was) empty: Remove channel */
-  if (is_listed(chptr))
-  {
-    int i;
-    for (i = 0; i <= HighestFd; i++)
-    {
-      struct Client *acptr = 0;
-      if ((acptr = LocalClientArray[i]) && cli_listing(acptr) &&
-          (cli_listing(acptr))->chptr == chptr)
-      {
-        list_next_channels(acptr, 1);
-        break;                  /* Only one client can list a channel */
-      }
-    }
-  }
   /*
    * Now, find all invite links from channel structure
    */
@@ -1575,58 +1560,6 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
       tmp = 0;
       break;
     }
-}
-
-/** List a set of channels
- * Lists a series of channels that match a filter, skipping channels that 
- * have been listed before.
- *
- * @param cptr	Client to send the list to.
- * @param nr	Number of channels to send this update.
- */
-void list_next_channels(struct Client *cptr, int nr)
-{
-  struct ListingArgs *args = cli_listing(cptr);
-  struct Channel *chptr = args->chptr;
-  chptr->mode.mode &= ~MODE_LISTED;
-  while (is_listed(chptr) || --nr >= 0)
-  {
-    for (; chptr; chptr = chptr->next)
-    {
-      if (!cli_user(cptr))
-        continue;
-      if (!(HasPriv(cptr, PRIV_LIST_CHAN) && IsAnOper(cptr)) && 
-          SecretChannel(chptr) && !find_channel_member(cptr, chptr))
-        continue;
-      if (chptr->users > args->min_users && chptr->users < args->max_users &&
-          chptr->creationtime > args->min_time &&
-          chptr->creationtime < args->max_time &&
-          (!(args->flags & LISTARG_TOPICLIMITS) || (*chptr->topic &&
-          chptr->topic_time > args->min_topic_time &&
-          chptr->topic_time < args->max_topic_time)))
-      {
-        if ((args->flags & LISTARG_SHOWSECRET) || ShowChannel(cptr,chptr))
-	  send_reply(cptr, RPL_LIST, chptr->chname, chptr->users,
-		     chptr->topic);
-        chptr = chptr->next;
-        break;
-      }
-    }
-    if (!chptr)
-    {
-      MyFree(cli_listing(cptr));
-      cli_listing(cptr) = NULL;
-      send_reply(cptr, RPL_LISTEND);
-      break;
-    }
-  }
-  if (chptr)
-  {
-    (cli_listing(cptr))->chptr = chptr;
-    chptr->mode.mode |= MODE_LISTED;
-  }
-
-  update_write(cptr);
 }
 
 /** @page zombie Explaination of Zombies

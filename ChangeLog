@@ -1,5 +1,29 @@
 2004-10-13  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h: Delete MODE_LISTED and is_listed().  Replace
+	ListingArgs.chptr with ListingArgs.bucket.  Move declaration of
+	list_next_channels() to..
+
+	* include/hash.h: here, and drop the "nr" argument.
+
+	* ircd/channel.c: Remove redundant scan of local clients for
+	channels being listed.  Delete list_next_channels() function.
+
+	* ircd/hash.c: Add list_next_channels() here, revising to not use
+	MODE_LISTED and to use ListingArgs.bucket instead of chptr.  Also
+	decide when to stop sending RPL_LISTs based on a half-full sendq.
+
+	* ircd/m_burst.c, ircd/s_misc.c: Delete mention of MODE_LISTED.
+
+	* ircd/m_list.c: Delete mention of MODE_LISTED.  Unconditionally
+	call list_next_channels(sptr).
+
+	* ircd/s_bsd.c: Remove the "nr" argument to list_next_channels().
+
+	* ircd/Makefile.in: Update dependencies (for hash.c).
+
+2004-10-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y: Consistently zero out global variables after
 	they are used (prevents double frees and other problems).
 

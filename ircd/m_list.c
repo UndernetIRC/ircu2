@@ -291,7 +291,6 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (cli_listing(sptr))            /* Already listing ? */
   {
-    cli_listing(sptr)->chptr->mode.mode &= ~MODE_LISTED;
     MyFree(cli_listing(sptr));
     cli_listing(sptr) = 0;
     send_reply(sptr, RPL_LISTEND);
@@ -331,14 +330,8 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       cli_listing(sptr) = (struct ListingArgs*) MyMalloc(sizeof(struct ListingArgs));
       assert(0 != cli_listing(sptr));
       memcpy(cli_listing(sptr), &args, sizeof(struct ListingArgs));
-      if ((cli_listing(sptr)->chptr = GlobalChannelList)) {
-        int m = GlobalChannelList->mode.mode & MODE_LISTED;
-        list_next_channels(sptr, 64);
-        GlobalChannelList->mode.mode |= m;
-        return 0;
-      }
-      MyFree(cli_listing(sptr));
-      cli_listing(sptr) = 0;
+      list_next_channels(sptr);
+      return 0;
     }
     send_reply(sptr, RPL_LISTEND);
     return 0;

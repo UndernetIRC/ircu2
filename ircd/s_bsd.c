@@ -940,7 +940,7 @@ static void client_sock_callback(struct Event* ev)
   case ET_WRITE: /* socket is writable */
     ClrFlag(cptr, FLAG_BLOCKED);
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
-      list_next_channels(cptr, 64);
+      list_next_channels(cptr);
     Debug((DEBUG_SEND, "Sending queued data to %C", cptr));
     send_queued(cptr);
     break;

@@ -87,5 +87,6 @@ extern int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv
 extern int isNickJuped(const char *nick);
 extern int addNickJupes(const char *nicks);
 extern void clearNickJupes(void);
+extern void list_next_channels(struct Client *cptr);
 
 #endif /* INCLUDED_hash_h */
