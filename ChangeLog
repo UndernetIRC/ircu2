@@ -1,3 +1,8 @@
+2004-09-18  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Add NETWORK feature example.  Fix typos in
+	eaxmples for HANGONGOODLINK and IRCD_RES_TIMEOUT.
+
 2004-09-18  hikari <hikari@undernet.org>
 
 	* ircd/Makefile.in: Fixed a missing internal build dependency.
