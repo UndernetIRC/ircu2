@@ -194,6 +194,7 @@ extern int find_restrict(struct Client *cptr);
 extern struct MotdItem* read_motd(const char* motdfile);
 
 extern void set_initial_oper_privs(struct ConfItem *oper, int flags);
+extern void lookup_confhost(struct ConfItem *aconf);
 
 extern void yyerror(const char *msg);
 

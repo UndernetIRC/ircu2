@@ -1,3 +1,16 @@
+2002-06-18  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_burst.c (ms_burst): kick local members if the channel
+	has a larger local TS and it's +i or +k remotely (anti net.ride)
+
+	* ircd/ircd_parser.y: fixed a bug that broke IP-based C:lines
+
+	* ircd/s_err.c: connection classes are now strings (RPL_STATSCLINE)
+
+	* include/s_conf.h: externalized lookup_confhost
+
+	* adns/Makefile.in: compilation-outside-source-tree fix
+
 2002-06-17  Alex Badea  <vampire@p16.pub.ro>
 
 	* adns/*: added a slightly hacked copy of adns

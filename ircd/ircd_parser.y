@@ -47,6 +47,7 @@
 #include "parse.h"
 #include "res.h"
 #include "s_bsd.h"
+#include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
@@ -364,6 +365,7 @@ connectblock: CONNECT
   aconf->host = host;
   aconf->next = GlobalConfList;
   aconf->ipnum.s_addr = INADDR_NONE;
+  lookup_confhost(aconf);
   GlobalConfList = aconf;
   printf("Server added: %s\n", name);
   /* ccount++; -- XXX fixme --- A1kmm */
