@@ -1,3 +1,13 @@
+2000-04-19  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: define sendcmdto_channel_butone, wrote a simplified
+	vsendto_op_mask that uses '*' instead of the receiving client
+	nickname
+
+	* include/send.h: declare sendcmdto_channel_butone; takes a skip
+	argument that allows you to skip (or not to skip) deaf users,
+	users behind bursting servers, and non channel operators
+
 2000-04-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c: new sendcmdto_channel_butserv -- note that old
@@ -618,7 +628,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.95 2000-04-17 20:41:57 kev Exp $
+# $Id: ChangeLog,v 1.96 2000-04-20 03:09:35 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

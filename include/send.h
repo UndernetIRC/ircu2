@@ -81,5 +81,13 @@ extern void sendcmdto_common_channels(struct Client *cptr, const char *cmd,
 extern void sendcmdto_channel_butserv(struct Channel *chan, const char *cmd,
 				      const char *tok, struct Client *from,
 				      const char *pattern, ...);
+extern void sendcmdto_channel_butone(struct Client *one, struct Channel *chan,
+				     const char *cmd, const char *tok,
+				     struct Client *from, unsigned int skip,
+				     const char *pattern, ...);
+
+#define SKIP_DEAF	0x01	/* skip users that are +d */
+#define SKIP_BURST	0x02	/* skip users that are bursting */
+#define SKIP_NONOPS	0x04	/* skip users that aren't chanops */
 
 #endif /* INCLUDED_send_h */
