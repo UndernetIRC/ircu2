@@ -1,4 +1,8 @@
 2001-01-02  Perry Lorier <isomer@coders.net>
+	* ircd/motd.c: don't core if the motd isn't found.  Bug found by
+	Amarande.
+
+2001-01-02  Perry Lorier <isomer@coders.net>
 	* ircd/s_err.c: Added third param to 004 - the channel modes that tage params.  Used by hybrid/epic.
 	* ircd/s_channels.c: Added fix for msg'ing a -n+m channel - thanks
 		to guppy for noticing, and hektik for providing the fix.
