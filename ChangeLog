@@ -1,3 +1,7 @@
+2002-11-23  Perry Lorier <isomer@undernet.org>
+	* ircd/m_nick.c: Minor cleanups and fixing some stuff I accidently
+	commited before
+
 2002-11-19  Perry Lorier <isomer@undernet.org>
 	* ircd/m_join.c: Fix the inevitable typo
 

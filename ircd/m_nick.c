@@ -242,6 +242,10 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    *
    * XXX - hmmm can this happen after one is registered?
    *
+   * Yes, client 1 connects to IRC and registers, client 2 connects and
+   * sends "NICK foo" but doesn't send anything more.  client 1 now does
+   * /nick foo, they should succeed and client 2 gets disconnected with
+   * the message below.
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
@@ -320,8 +324,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendto_opmask_butone(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
 			 parv[0], cptr);
     sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s <- %s[%s])",
-		  IsServer(sptr) ? parv[parc - 2] : parv[0], cli_name(&me), parv[1],
-		  nick, cli_name(cptr));
+		  IsServer(sptr) ? parv[parc - 2] : parv[0], 
+		  cli_name(&me), parv[1], nick, cli_name(cptr));
     if (!IsServer(sptr)) {
       /*
        * bad nick _change_
@@ -343,7 +347,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * constructed). -avalon
    */
    
-  assert(NULL = strchr(nick,'.'));
+  assert(NULL == strchr(nick,'.'));
 
   acptr = FindClient(nick);
   if (!acptr) {
@@ -361,12 +365,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * nickname or somesuch)
    */
   if (acptr == sptr) {
-    if (strcmp(cli_name(acptr), nick) != 0)
-      /*
-       * Allows change of case in his/her nick
-       */
-      return set_nick_name(cptr, sptr, nick, parc, parv);
-    else
+    if (strcmp(cli_name(acptr), nick) == 0)
       /*
        * This is just ':old NICK old' type thing.
        * Just forget the whole thing here. There is
@@ -375,6 +374,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * version would treat it as nick collision.
        */
       return 0;                        /* NICK Message ignored */
+    else
+      /*
+       * Allows change of case in his/her nick
+       */
+      return set_nick_name(cptr, sptr, nick, parc, parv);
   }
 
   /*
