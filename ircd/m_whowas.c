@@ -146,15 +146,12 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             temp->hostname, temp->realname);
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
 	if (!IsOper(sptr))
+		sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
+			temp->name, "*.undernet.org", myctime(temp->logoff));
+	else
 #endif
         	sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
             		temp->name, temp->servername, myctime(temp->logoff));
-#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-	else
-		sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
-			"*.undernet.org", "The Undernet Underworld", 
-			myctime(temp->logoff));
-#endif
         if (temp->away)
           sendto_one(sptr, rpl_str(RPL_AWAY),
               me.name, parv[0], temp->name, temp->away);

@@ -378,21 +378,12 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     strcpy(ban->value.ban.banstr, banid);
 
 #ifdef HEAD_IN_SAND_BANWHO
-    if (!IsServer(cptr)) {
+    if (IsServer(cptr))
+      DupString(ban->value.ban.who, me.name);
+    else
 #endif
-    	ban->value.ban.who = (char*) MyMalloc(strlen(cptr->name) + 1);
-#ifdef HEAD_IN_SAND_BANWHO
-    } 
-    else {
-	ban->value.ban.who = (char*) MyMalloc(strlen(me.name) + 1);
-    }
-#endif
+      DupString(ban->value.ban.who, cptr->name);
     assert(0 != ban->value.ban.who);
-#ifdef HEAD_IN_SAND_BANWHO
-    strcpy(ban->value.ban.who, me.name);
-#else
-    strcpy(ban->value.ban.who, cptr->name);
-#endif
 
     ban->value.ban.when = CurrentTime;
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */
