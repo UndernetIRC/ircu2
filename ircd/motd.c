@@ -210,7 +210,7 @@ motd_lookup(struct Client *cptr)
     if (ptr->type == MOTD_CLASS && ptr->id.class == class)
       return ptr;
     else if (ptr->type == MOTD_HOSTMASK &&
-	     !match(ptr->id.hostmask, cptr->sockhost))
+	     !match(ptr->id.hostmask, cli_sockhost(cptr)))
       return ptr;
   }
 
@@ -229,7 +229,7 @@ motd_forward(struct Client *cptr, struct MotdCache *cache)
     return send_reply(cptr, ERR_NOMOTD);
 
   /* send the motd */
-  send_reply(cptr, RPL_MOTDSTART, me.name);
+  send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
   send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":- %d-%d-%d %d:%02d",
 	     cache->modtime.tm_year + 1900, cache->modtime.tm_mon + 1,
 	     cache->modtime.tm_mday, cache->modtime.tm_hour,
@@ -259,7 +259,7 @@ motd_signon(struct Client* cptr)
   cache = motd_cache(motd_lookup(cptr));
 
 #ifdef NODEFAULTMOTD
-  send_reply(cptr, RPL_MOTDSTART, me.name);
+  send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
   send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":\002Type /MOTD to read the AUP "
 	     "before continuing using this service.\002");
   send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was last "

@@ -150,8 +150,8 @@ unsigned int get_client_class(struct Client *acptr)
   struct ConnectionClass *cl;
   unsigned int retc = BAD_CLIENT_CLASS;
 
-  if (acptr && !IsMe(acptr) && (con_confs(acptr)))
-    for (tmp = con_confs(acptr); tmp; tmp = tmp->next)
+  if (acptr && !IsMe(acptr) && (cli_confs(acptr)))
+    for (tmp = cli_confs(acptr); tmp; tmp = tmp->next)
     {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
@@ -171,7 +171,7 @@ unsigned int get_client_ping(struct Client *acptr)
   struct ConfItem *aconf;
   struct SLink *link;
 
-  link = con_confs(acptr);
+  link = cli_confs(acptr);
 
   if (link) {
     while (link) {
@@ -262,19 +262,19 @@ unsigned int get_sendq(struct Client *cptr)
   assert(0 != cptr);
   assert(0 != cptr->local);
 
-  if (con_max_sendq(cptr))
-    return con_max_sendq(cptr);
+  if (cli_max_sendq(cptr))
+    return cli_max_sendq(cptr);
 
-  else if (con_confs(cptr)) {
+  else if (cli_confs(cptr)) {
     struct SLink*     tmp;
     struct ConnectionClass* cl;
 
-    for (tmp = con_confs(cptr); tmp; tmp = tmp->next) {
+    for (tmp = cli_confs(cptr); tmp; tmp = tmp->next) {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
       if (ConClass(cl) != BAD_CLIENT_CLASS) {
-        con_max_sendq(cptr) = MaxSendq(cl);
-        return con_max_sendq(cptr);
+        cli_max_sendq(cptr) = MaxSendq(cl);
+        return cli_max_sendq(cptr);
       }
     }
   }

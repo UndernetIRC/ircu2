@@ -207,8 +207,8 @@ int sub1_from_channel(struct Channel* chptr)
     for (i = 0; i <= HighestFd; i++)
     {
       struct Client *acptr = 0;
-      if ((acptr = LocalClientArray[i]) && con_listing(acptr) &&
-          (con_listing(acptr))->chptr == chptr)
+      if ((acptr = LocalClientArray[i]) && cli_listing(acptr) &&
+          (cli_listing(acptr))->chptr == chptr)
       {
         list_next_channels(acptr, 1);
         break;                  /* Only one client can list a channel */
@@ -1207,7 +1207,7 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
 /* List and skip all channels that are listen */
 void list_next_channels(struct Client *cptr, int nr)
 {
-  struct ListingArgs *args = con_listing(cptr);
+  struct ListingArgs *args = cli_listing(cptr);
   struct Channel *chptr = args->chptr;
   chptr->mode.mode &= ~MODE_LISTED;
   while (is_listed(chptr) || --nr >= 0)
@@ -1232,15 +1232,15 @@ void list_next_channels(struct Client *cptr, int nr)
     }
     if (!chptr)
     {
-      MyFree(con_listing(cptr));
-      con_listing(cptr) = NULL;
+      MyFree(cli_listing(cptr));
+      cli_listing(cptr) = NULL;
       send_reply(cptr, RPL_LISTEND);
       break;
     }
   }
   if (chptr)
   {
-    (con_listing(cptr))->chptr = chptr;
+    (cli_listing(cptr))->chptr = chptr;
     chptr->mode.mode |= MODE_LISTED;
   }
 }

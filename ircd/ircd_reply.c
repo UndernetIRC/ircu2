@@ -51,7 +51,7 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
   va_start(vd.vd_args, pattern);
 
   sendcmdto_flag_butone(&me, CMD_DESYNCH, NULL, FLAGS_DEBUG,
-			":Protocol Violation from %s: %v", cptr->name, &vd);
+			":Protocol Violation from %s: %v", cli_name(cptr), &vd);
 
   va_end(vd.vd_args);
   return 0;
@@ -86,7 +86,7 @@ int send_reply(struct Client *to, int reply, ...)
   assert(0 != vd.vd_format);
 
   /* build buffer */
-  mb = msgq_make(to->from, "%:#C %s %C %v", &me, num->str, to, &vd);
+  mb = msgq_make(cli_from(to), "%:#C %s %C %v", &me, num->str, to, &vd);
 
   va_end(vd.vd_args);
 
@@ -103,7 +103,7 @@ int send_admin_info(struct Client* sptr)
   const struct LocalConf* admin = conf_get_local();
   assert(0 != sptr);
 
-  send_reply(sptr, RPL_ADMINME,    me.name);
+  send_reply(sptr, RPL_ADMINME,    cli_name(&me));
   send_reply(sptr, RPL_ADMINLOC1,  admin->location1);
   send_reply(sptr, RPL_ADMINLOC2,  admin->location2);
   send_reply(sptr, RPL_ADMINEMAIL, admin->contact);

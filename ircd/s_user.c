@@ -80,18 +80,18 @@ struct User *make_user(struct Client *cptr)
 {
   assert(0 != cptr);
 
-  if (!cptr->user) {
-    cptr->user = (struct User*) MyMalloc(sizeof(struct User));
-    assert(0 != cptr->user);
+  if (!cli_user(cptr)) {
+    cli_user(cptr) = (struct User*) MyMalloc(sizeof(struct User));
+    assert(0 != cli_user(cptr));
 
     /* All variables are 0 by default */
-    memset(cptr->user, 0, sizeof(struct User));
+    memset(cli_user(cptr), 0, sizeof(struct User));
 #ifdef  DEBUGMODE
     ++userCount;
 #endif
-    cptr->user->refcnt = 1;
+    cli_user(cptr)->refcnt = 1;
   }
-  return cptr->user;
+  return cli_user(cptr);
 }
 
 /*
@@ -194,12 +194,12 @@ struct Client *next_client(struct Client *next, const char* ch)
 
   next = FindClient(ch);
   next = next ? next : tmp;
-  if (tmp->prev == next)
+  if (cli_prev(tmp) == next)
     return NULL;
   if (next != tmp)
     return next;
-  for (; next; next = next->next)
-    if (!match(ch, next->name))
+  for (; next; next = cli_next(next))
+    if (!match(ch, cli_name(next)))
       break;
   return next;
 }
@@ -243,8 +243,8 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
       if (0 == (acptr = FindClient(to)))
         return HUNTED_NOSUCH;
 
-      if (acptr->user)
-        acptr = acptr->user->server;
+      if (cli_user(acptr))
+        acptr = cli_user(acptr)->server;
     } else if (!(acptr = find_match_server(to))) {
       send_reply(from, ERR_NOSUCHSERVER, to);
       return (HUNTED_NOSUCH);
@@ -376,12 +376,12 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            digits = 0;
   short            badid = 0;
   short            digitgroups = 0;
-  struct User*     user = sptr->user;
+  struct User*     user = cli_user(sptr);
   char             ip_base64[8];
   char             featurebuf[512];
 
   user->last = CurrentTime;
-  parv[0] = sptr->name;
+  parv[0] = cli_name(sptr);
   parv[1] = parv[2] = NULL;
 
   if (MyConnect(sptr))
@@ -409,7 +409,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                                get_client_name(sptr, HIDE_IP));
         }
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr->ip);
+        IPcheck_connect_fail(cli_ip(sptr));
         return exit_client(cptr, sptr, &me,
                            "Sorry, your connection class is full - try "
                            "again later or try another server");
@@ -428,15 +428,15 @@ int register_user(struct Client *cptr, struct Client *sptr,
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr->ip);
+        IPcheck_connect_fail(cli_ip(sptr));
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
-    ircd_strncpy(user->host, sptr->sockhost, HOSTLEN);
-    aconf = sptr->confs->value.aconf;
+    ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
+    aconf = cli_confs(sptr)->value.aconf;
 
     clean_user_id(user->username,
-        (sptr->flags & FLAGS_GOTID) ? sptr->username : username,
-        (sptr->flags & FLAGS_DOID) && !(sptr->flags & FLAGS_GOTID));
+        (cli_flags(sptr) & FLAGS_GOTID) ? cli_username(sptr) : username,
+        (cli_flags(sptr) & FLAGS_DOID) && !(cli_flags(sptr) & FLAGS_GOTID));
 
     if ((user->username[0] == '\0')
         || ((user->username[0] == '~') && (user->username[1] == '\000')))
@@ -444,20 +444,20 @@ int register_user(struct Client *cptr, struct Client *sptr,
 
     if (!EmptyString(aconf->passwd)
         && !(IsDigit(*aconf->passwd) && !aconf->passwd[1])
-        && strcmp(sptr->passwd, aconf->passwd))
+        && strcmp(cli_passwd(sptr), aconf->passwd))
     {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(sptr->ip);
+      IPcheck_connect_fail(cli_ip(sptr));
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
-    memset(sptr->passwd, 0, sizeof(sptr->passwd));
+    memset(cli_passwd(sptr), 0, sizeof(cli_passwd(sptr)));
     /*
      * following block for the benefit of time-dependent K:-lines
      */
     if (find_kill(sptr)) {
       ServerStats->is_ref++;
-      IPcheck_connect_fail(sptr->ip);
+      IPcheck_connect_fail(cli_ip(sptr));
       return exit_client(cptr, sptr, &me, "K-lined");
     }
     /*
@@ -525,7 +525,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         badid = 1;
     }
     if (badid && (!(sptr->flags & FLAGS_GOTID) ||
-        strcmp(sptr->username, username) != 0))
+        strcmp(cli_username(sptr), username) != 0))
     {
       ServerStats->is_ref++;
 
@@ -560,16 +560,16 @@ int register_user(struct Client *cptr, struct Client *sptr,
     ++UserStats.opers;
 
   if (MyConnect(sptr)) {
-    sptr->handler = CLIENT_HANDLER;
+    cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
 
     send_reply(sptr, RPL_WELCOME, nick);
     /*
      * This is a duplicate of the NOTICE but see below...
      */
-    send_reply(sptr, RPL_YOURHOST, me.name, version);
+    send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
     send_reply(sptr, RPL_CREATED, creation);
-    send_reply(sptr, RPL_MYINFO, me.name, version);
+    send_reply(sptr, RPL_MYINFO, cli_name(&me), version);
     sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
     send_reply(sptr, RPL_ISUPPORT, featurebuf);
     m_lusers(sptr, sptr, 1, parv);
@@ -577,7 +577,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     motd_signon(sptr);
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
-      set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);
+      set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     IPcheck_connect_succeeded(sptr);
   }
   else
@@ -586,16 +586,16 @@ int register_user(struct Client *cptr, struct Client *sptr,
     struct Client *acptr;
 
     acptr = user->server;
-    if (acptr->from != sptr->from)
+    if (cli_from(acptr) != cli_from(sptr))
     {
       sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s != %s[%s])",
-                    sptr, me.name, user->server->name, acptr->from->name,
-                    acptr->from->sockhost);
-      sptr->flags |= FLAGS_KILLED;
+                    sptr, cli_name(&me), cli_name(user->server), cli_name(cli_from(acptr)),
+                    cli_sockhost(cli_from(acptr)));
+      cli_flags(sptr) |= FLAGS_KILLED;
       return exit_client(cptr, sptr, &me, "NICK server wrong direction");
     }
     else
-      sptr->flags |= (acptr->flags & FLAGS_TS8);
+      cli_flags(sptr) |= (cli_flags(acptr) & FLAGS_TS8);
 
     /*
      * Check to see if this user is being propogated
@@ -603,7 +603,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
      * FIXME: This can be speeded up - its stupid to check it for
      * every NICK message in a burst again  --Run.
      */
-    for (acptr = user->server; acptr != &me; acptr = acptr->serv->up) {
+    for (acptr = user->server; acptr != &me; acptr = cli_serv(acptr)->up) {
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
     }
@@ -612,7 +612,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
        * We ran out of bits to count this
        */
       sendcmdto_one(&me, CMD_KILL, sptr, "%C :%s (Too many connections from your host -- Ghost)",
-                    sptr, me.name);
+                    sptr, cli_name(&me));
       return exit_client(cptr, sptr, &me,"Too many connections from your host -- throttled");
     }
   }
@@ -620,28 +620,28 @@ int register_user(struct Client *cptr, struct Client *sptr,
   if (agline)
     sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
                           "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
-                          nick, sptr->hopcount + 1, sptr->lastnick,
+                          nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
                           user->username, user->host,
                           *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
                           GlineLastMod(agline), GlineUser(agline),
                           GlineHost(agline),
-                          inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
-                          NumNick(sptr), sptr->info);
+                          inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
+                          NumNick(sptr), cli_info(sptr));
   else
     sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
                           "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                          nick, sptr->hopcount + 1, sptr->lastnick,
+                          nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
                           user->username, user->host,
                           *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-                          inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
-                          NumNick(sptr), sptr->info);
+                          inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
+                          NumNick(sptr), cli_info(sptr));
   
   /* Send umode to client */
   if (MyUser(sptr))
   {
     send_umode(cptr, sptr, 0, ALL_UMODES);
-    if (sptr->snomask != SNO_DEFAULT && (sptr->flags & FLAGS_SERVNOTICE))
-      send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
+    if (cli_snomask(sptr) != SNO_DEFAULT && (cli_flags(sptr) & FLAGS_SERVNOTICE))
+      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
   }
 
   return 0;
@@ -664,20 +664,6 @@ static const struct UserMode {
 
 #define USERMODELIST_SIZE sizeof(userModeList) / sizeof(struct UserMode)
 
-#if 0
-static int user_modes[] = {
-  FLAGS_OPER,        'o',
-  FLAGS_LOCOP,       'O',
-  FLAGS_INVISIBLE,   'i',
-  FLAGS_WALLOP,      'w',
-  FLAGS_SERVNOTICE,  's',
-  FLAGS_DEAF,        'd',
-  FLAGS_CHSERV,      'k',
-  FLAGS_DEBUG,       'g',
-  0,                  0
-};
-#endif
-
 /*
  * XXX - find a way to get rid of this
  */
@@ -698,13 +684,13 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     struct Client* new_client = make_client(cptr, STAT_UNKNOWN);
     assert(0 != new_client);
 
-    new_client->hopcount = atoi(parv[2]);
-    new_client->lastnick = atoi(parv[3]);
+    cli_hopcount(new_client) = atoi(parv[2]);
+    cli_lastnick(new_client) = atoi(parv[3]);
     if (Protocol(cptr) > 9 && parc > 7 && *parv[6] == '+') {
       for (p = parv[6] + 1; *p; p++) {
         for (i = 0; i < USERMODELIST_SIZE; ++i) {
           if (userModeList[i].c == *p) {
-            new_client->flags |= userModeList[i].flag;
+            cli_flags(new_client) |= userModeList[i].flag;
             break;
           }
         }
@@ -713,22 +699,22 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     /*
      * Set new nick name.
      */
-    strcpy(new_client->name, nick);
-    new_client->user = make_user(new_client);
-    new_client->user->server = sptr;
+    strcpy(cli_name(new_client), nick);
+    cli_user(new_client) = make_user(new_client);
+    cli_user(new_client)->server = sptr;
     SetRemoteNumNick(new_client, parv[parc - 2]);
     /*
      * IP# of remote client
      */
-    new_client->ip.s_addr = htonl(base64toint(parv[parc - 3]));
+    cli_ip(new_client).s_addr = htonl(base64toint(parv[parc - 3]));
 
     add_client_to_list(new_client);
     hAddClient(new_client);
 
-    sptr->serv->ghost = 0;        /* :server NICK means end of net.burst */
-    ircd_strncpy(new_client->username, parv[4], USERLEN);
-    ircd_strncpy(new_client->user->host, parv[5], HOSTLEN);
-    ircd_strncpy(new_client->info, parv[parc - 1], REALLEN);
+    cli_serv(sptr)->ghost = 0;        /* :server NICK means end of net.burst */
+    ircd_strncpy(cli_username(new_client), parv[4], USERLEN);
+    ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
+    ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
 
     /* Deal with GLINE parameters... */
     if (*parv[parc - 4] == '%' && (t = strchr(parv[parc - 4] + 1, ':'))) {
@@ -742,9 +728,9 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
           && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
         gline_resend(cptr, agline);
     }
-    return register_user(cptr, new_client, new_client->name, parv[4], agline);
+    return register_user(cptr, new_client, cli_name(new_client), parv[4], agline);
   }
-  else if (sptr->name[0]) {
+  else if ((cli_name(sptr))[0]) {
     /*
      * Client changing its nick
      *
@@ -765,28 +751,28 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
        * however, allow to do two nick changes immedately after another
        * before limiting the nick flood. -Run
        */
-      if (CurrentTime < cptr->nextnick) {
-        cptr->nextnick += 2;
+      if (CurrentTime < cli_nextnick(cptr)) {
+        cli_nextnick(cptr) += 2;
         send_reply(cptr, ERR_NICKTOOFAST, parv[1],
-                   cptr->nextnick - CurrentTime);
+                   cli_nextnick(cptr) - CurrentTime);
         /* Send error message */
-        sendcmdto_one(cptr, CMD_NICK, cptr, "%s", cptr->name);
+        sendcmdto_one(cptr, CMD_NICK, cptr, "%s", cli_name(cptr));
         /* bounce NICK to user */
         return 0;                /* ignore nick change! */
       }
       else {
         /* Limit total to 1 change per NICK_DELAY seconds: */
-        cptr->nextnick += NICK_DELAY;
+        cli_nextnick(cptr) += NICK_DELAY;
         /* However allow _maximal_ 1 extra consecutive nick change: */
-        if (cptr->nextnick < CurrentTime)
-          cptr->nextnick = CurrentTime;
+        if (cli_nextnick(cptr) < CurrentTime)
+          cli_nextnick(cptr) = CurrentTime;
       }
     }
     /*
      * Also set 'lastnick' to current time, if changed.
      */
     if (0 != ircd_strcmp(parv[0], nick))
-      sptr->lastnick = (sptr == cptr) ? TStime() : atoi(parv[2]);
+      cli_lastnick(sptr) = (sptr == cptr) ? TStime() : atoi(parv[2]);
 
     /*
      * Client just changing his/her nick. If he/she is
@@ -797,23 +783,23 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       sendcmdto_common_channels(sptr, CMD_NICK, ":%s", nick);
       add_history(sptr, 1);
       sendcmdto_serv_butone(sptr, CMD_NICK, cptr, "%s %Tu", nick,
-                            sptr->lastnick);
+                            cli_lastnick(sptr));
     }
     else
       sendcmdto_one(sptr, CMD_NICK, sptr, ":%s", nick);
 
-    if (sptr->name[0])
+    if ((cli_name(sptr))[0])
       hRemClient(sptr);
-    strcpy(sptr->name, nick);
+    strcpy(cli_name(sptr), nick);
     hAddClient(sptr);
   }
   else {
     /* Local client setting NICK the first time */
 
-    strcpy(sptr->name, nick);
-    if (!sptr->user) {
-      sptr->user = make_user(sptr);
-      sptr->user->server = &me;
+    strcpy(cli_name(sptr), nick);
+    if (!cli_user(sptr)) {
+      cli_user(sptr) = make_user(sptr);
+      cli_user(sptr)->server = &me;
     }
     SetLocalNumNick(sptr);
     hAddClient(sptr);
@@ -822,20 +808,20 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      * If the client hasn't gotten a cookie-ping yet,
      * choose a cookie and send it. -record!jegelhof@cloud9.net
      */
-    if (!sptr->cookie) {
+    if (!cli_cookie(sptr)) {
       do {
-        sptr->cookie = (ircrandom() & 0x7fffffff);
-      } while (!sptr->cookie);
+        cli_cookie(sptr) = (ircrandom() & 0x7fffffff);
+      } while (!cli_cookie(sptr));
       sendrawto_one(cptr, MSG_PING " :%u", sptr->cookie);
     }
-    else if (*sptr->user->host && sptr->cookie == COOKIE_VERIFIED) {
+    else if (*(cli_user(sptr))->host && cli_cookie(sptr) == COOKIE_VERIFIED) {
       /*
        * USER and PONG already received, now we have NICK.
        * register_user may reject the client and call exit_client
        * for it - must test this and exit m_nick too !
        */
-      sptr->lastnick = TStime();        /* Always local client */
-      if (register_user(cptr, sptr, nick, sptr->user->username, 0) == CPTR_KILLED)
+      cli_lastnick(sptr) = TStime();        /* Always local client */
+      if (register_user(cptr, sptr, nick, cli_user(sptr)->username, 0) == CPTR_KILLED)
         return CPTR_KILLED;
     }
   }
@@ -862,9 +848,9 @@ void add_target(struct Client *sptr, void *target)
   unsigned char* targets;
   int            i;
   assert(0 != sptr);
-  assert(sptr->local);
+  assert(cli_local(sptr));
 
-  targets = sptr->targets;
+  targets = cli_targets(sptr);
   /* 
    * Already in table?
    */
@@ -896,8 +882,8 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
   unsigned char* targets;
 
   assert(0 != sptr);
-  assert(sptr->local);
-  targets = sptr->targets;
+  assert(cli_local(sptr));
+  targets = cli_targets(sptr);
 
   /*
    * Same target as last time?
@@ -915,26 +901,21 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
    * New target
    */
   if (!created) {
-    if (CurrentTime < sptr->nexttarget) {
-      if (sptr->nexttarget - CurrentTime < TARGET_DELAY + 8) {
+    if (CurrentTime < cli_nexttarget(sptr)) {
+      if (cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
         /*
          * No server flooding
          */
-        sptr->nexttarget += 2;
+        cli_nexttarget(sptr) += 2;
         send_reply(sptr, ERR_TARGETTOOFAST, name,
-                   sptr->nexttarget - CurrentTime);
+                   cli_nexttarget(sptr) - CurrentTime);
       }
       return 1;
     }
     else {
-#ifdef GODMODE
-      /* XXX Let's get rid of GODMODE */
-      sendto_one(sptr, ":%s NOTICE %s :New target: %s; ft " TIME_T_FMT, /* XXX Possibly DEAD */
-          me.name, sptr->name, name, (CurrentTime - sptr->nexttarget) / TARGET_DELAY);
-#endif
-      sptr->nexttarget += TARGET_DELAY;
-      if (sptr->nexttarget < CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1)))
-        sptr->nexttarget = CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1));
+      cli_nexttarget(sptr) += TARGET_DELAY;
+      if (cli_nexttarget(sptr) < CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1)))
+        cli_nexttarget(sptr) = CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1));
     }
   }
   memmove(&targets[1], &targets[0], MAXTARGETS - 1);
@@ -982,7 +963,7 @@ int whisper(struct Client* source, const char* nick, const char* channel,
    * since the link is the same, this should be a little faster for channels
    * with a lot of users
    */
-  for (membership = source->user->channel; membership; membership = membership->next_channel) {
+  for (membership = cli_user(source)->channel; membership; membership = membership->next_channel) {
     if (chptr == membership->channel)
       break;
   }
@@ -995,19 +976,19 @@ int whisper(struct Client* source, const char* nick, const char* channel,
   /*
    * lookup channel in destination
    */
-  assert(0 != dest->user);
-  for (membership = dest->user->channel; membership; membership = membership->next_channel) {
+  assert(0 != cli_user(dest));
+  for (membership = cli_user(dest)->channel; membership; membership = membership->next_channel) {
     if (chptr == membership->channel)
       break;
   }
   if (0 == membership || IsZombie(membership)) {
-    return send_reply(source, ERR_USERNOTINCHANNEL, dest->name, chptr->chname);
+    return send_reply(source, ERR_USERNOTINCHANNEL, cli_name(dest), chptr->chname);
   }
   if (is_silenced(source, dest))
     return 0;
           
-  if (dest->user->away)
-    send_reply(source, RPL_AWAY, dest->name, dest->user->away);
+  if (cli_user(dest)->away)
+    send_reply(source, RPL_AWAY, cli_name(dest), cli_user(dest)->away);
   if (is_notice)
     sendcmdto_one(source, CMD_NOTICE, dest, "%C :%s", dest, text);
   else
@@ -1029,7 +1010,7 @@ void send_umode_out(struct Client *cptr, struct Client *sptr, int old)
   for (i = HighestFd; i >= 0; i--) {
     if ((acptr = LocalClientArray[i]) && IsServer(acptr) &&
         (acptr != cptr) && (acptr != sptr) && *umodeBuf)
-      sendcmdto_one(sptr, CMD_MODE, acptr, "%s :%s", sptr->name, umodeBuf);
+      sendcmdto_one(sptr, CMD_MODE, acptr, "%s :%s", cli_name(sptr), umodeBuf);
   }
   if (cptr && MyUser(cptr))
     send_umode(cptr, sptr, old, ALL_UMODES);
@@ -1054,7 +1035,7 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
   assert(0 != names);
   assert(0 != fmt);
 
-  mb = msgq_make(sptr, rpl_str(rpl), me.name, sptr->name);
+  mb = msgq_make(sptr, rpl_str(rpl), cli_name(&me), cli_name(sptr));
 
   for (name = ircd_strtok(&p, names, " "); name; name = ircd_strtok(&p, 0, " ")) {
     if ((acptr = FindUser(name))) {
@@ -1106,7 +1087,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     if (IsServer(cptr))
       sendcmdto_flag_butone(&me, CMD_WALLOPS, 0, FLAGS_WALLOP,
                             ":MODE for User %s from %s!%s", parv[1],
-                            cptr->name, sptr->name);
+                            cli_name(cptr), cli_name(sptr));
     else
       send_reply(sptr, ERR_USERSDONTMATCH);
     return 0;
@@ -1117,15 +1098,15 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     m = buf;
     *m++ = '+';
     for (i = 0; i < USERMODELIST_SIZE; ++i) {
-      if ( (userModeList[i].flag & sptr->flags))
+      if ( (userModeList[i].flag & cli_flags(sptr)))
         *m++ = userModeList[i].c;
     }
     *m = '\0';
     send_reply(sptr, RPL_UMODEIS, buf);
-    if ((sptr->flags & FLAGS_SERVNOTICE) && MyConnect(sptr)
-        && sptr->snomask !=
+    if ((cli_flags(sptr) & FLAGS_SERVNOTICE) && MyConnect(sptr)
+        && cli_snomask(sptr) !=
         (unsigned int)(IsOper(sptr) ? SNO_OPERDEFAULT : SNO_DEFAULT))
-      send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
+      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
     return 0;
   }
 
@@ -1133,16 +1114,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * find flags already set for user
    * why not just copy them?
    */
-  setflags = sptr->flags;
-#if 0
-  setflags = 0;
-  for (i = 0; i < USERMODELIST_SIZE; ++i) {
-    if (sptr->flags & userModeList[i].flag)
-      setflags |= userModeList[i].flag;
-  }
-#endif
+  setflags = cli_flags(sptr);
+
   if (MyConnect(sptr))
-    tmpmask = sptr->snomask;
+    tmpmask = cli_snomask(sptr);
 
   /*
    * parse mode change string(s)
@@ -1166,9 +1141,9 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
           tmpmask = (what == MODE_ADD) ?
               (IsAnOper(sptr) ? SNO_OPERDEFAULT : SNO_DEFAULT) : 0;
         if (tmpmask)
-          sptr->flags |= FLAGS_SERVNOTICE;
+          cli_flags(sptr) |= FLAGS_SERVNOTICE;
         else
-          sptr->flags &= ~FLAGS_SERVNOTICE;
+          cli_flags(sptr) &= ~FLAGS_SERVNOTICE;
         break;
       case 'w':
         if (what == MODE_ADD)
@@ -1180,10 +1155,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
         if (what == MODE_ADD)
           SetOper(sptr);
         else {
-          sptr->flags &= ~(FLAGS_OPER | FLAGS_LOCOP);
+          cli_flags(sptr) &= ~(FLAGS_OPER | FLAGS_LOCOP);
           if (MyConnect(sptr)) {
-            tmpmask = sptr->snomask & ~SNO_OPER;
-            sptr->handler = CLIENT_HANDLER;
+            tmpmask = cli_snomask(sptr) & ~SNO_OPER;
+            cli_handler(sptr) = CLIENT_HANDLER;
           }
         }
         break;
@@ -1191,10 +1166,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
         if (what == MODE_ADD)
           SetLocOp(sptr);
         else { 
-          sptr->flags &= ~(FLAGS_OPER | FLAGS_LOCOP);
+          cli_flags(sptr) &= ~(FLAGS_OPER | FLAGS_LOCOP);
           if (MyConnect(sptr)) {
-            tmpmask = sptr->snomask & ~SNO_OPER;
-            sptr->handler = CLIENT_HANDLER;
+            tmpmask = cli_snomask(sptr) & ~SNO_OPER;
+            cli_handler(sptr) = CLIENT_HANDLER;
           }
         }
         break;
@@ -1254,10 +1229,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
 
-    if (tmpmask != sptr->snomask)
+    if (tmpmask != cli_snomask(sptr))
       set_snomask(sptr, tmpmask, SNO_SET);
-    if (sptr->snomask && snomask_given)
-      send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
+    if (cli_snomask(sptr) && snomask_given)
+      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
   }
   /*
    * Compare new flags with old flags and send string which
@@ -1286,7 +1261,7 @@ char *umode_str(struct Client *cptr)
   int   i;
   int   c_flags;
 
-  c_flags = cptr->flags & SEND_UMODES;        /* cleaning up the original code */
+  c_flags = cli_flags(cptr) & SEND_UMODES;        /* cleaning up the original code */
 
   for (i = 0; i < USERMODELIST_SIZE; ++i) {
     if ( (c_flags & userModeList[i].flag))
@@ -1319,7 +1294,7 @@ void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask)
     flag = userModeList[i].flag;
     if (MyUser(sptr) && !(flag & sendmask))
       continue;
-    if ( (flag & old) && !(sptr->flags & flag))
+    if ( (flag & old) && !(cli_flags(sptr) & flag))
     {
       if (what == MODE_DEL)
         *m++ = userModeList[i].c;
@@ -1344,7 +1319,7 @@ void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask)
   }
   *m = '\0';
   if (*umodeBuf && cptr)
-    sendcmdto_one(sptr, CMD_MODE, cptr, "%s :%s", sptr->name, umodeBuf);
+    sendcmdto_one(sptr, CMD_MODE, cptr, "%s :%s", cli_name(sptr), umodeBuf);
 }
 
 /*
@@ -1429,7 +1404,7 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
   int i;
   struct SLink *tmp;
 
-  oldmask = cptr->snomask;
+  oldmask = cli_snomask(cptr);
 
   if (what == SNO_ADD)
     newmask |= oldmask;
@@ -1457,7 +1432,7 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
         delfrom_list(cptr, &opsarray[i]);
     }
   }
-  cptr->snomask = newmask;
+  cli_snomask(cptr) = newmask;
 }
 
 /*
@@ -1475,11 +1450,11 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   static char sender[HOSTLEN + NICKLEN + USERLEN + 5];
   static char senderip[16 + NICKLEN + USERLEN + 5];
 
-  if (!(acptr->user) || !(lp = acptr->user->silence) || !(user = sptr->user))
+  if (!cli_user(acptr) || !(lp = cli_user(acptr)->silence) || !(user = cli_user(sptr)))
     return 0;
-  sprintf_irc(sender, "%s!%s@%s", sptr->name, user->username, user->host);
-  sprintf_irc(senderip, "%s!%s@%s", sptr->name, user->username,
-              ircd_ntoa((const char*) &sptr->ip));
+  sprintf_irc(sender, "%s!%s@%s", cli_name(sptr), user->username, user->host);
+  sprintf_irc(senderip, "%s!%s@%s", cli_name(sptr), user->username,
+              ircd_ntoa((const char*) &(cli_ip(sptr))));
   for (; lp; lp = lp->next)
   {
     if ((!(lp->flags & CHFL_SILENCE_IPMASK) && !match(lp->value.cp, sender)) ||
@@ -1487,7 +1462,7 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
     {
       if (!MyConnect(sptr))
       {
-        sendcmdto_one(acptr, CMD_SILENCE, sptr->from, "%C %s", sptr,
+        sendcmdto_one(acptr, CMD_SILENCE, cli_from(sptr), "%C %s", sptr,
                       lp->value.cp);
       }
       return 1;
@@ -1508,7 +1483,7 @@ int del_silence(struct Client *sptr, char *mask)
   struct SLink *tmp;
   int ret = -1;
 
-  for (lp = &sptr->user->silence; *lp;) {
+  for (lp = &(cli_user(sptr))->silence; *lp;) {
     if (!mmatch(mask, (*lp)->value.cp))
     {
       tmp = *lp;
@@ -1529,7 +1504,7 @@ int add_silence(struct Client* sptr, const char* mask)
   int cnt = 0, len = strlen(mask);
   char *ip_start;
 
-  for (lpp = &sptr->user->silence, lp = *lpp; lp;)
+  for (lpp = &(cli_user(sptr))->silence, lp = *lpp; lp;)
   {
     if (0 == ircd_strcmp(mask, lp->value.cp))
       return -1;
@@ -1557,13 +1532,13 @@ int add_silence(struct Client* sptr, const char* mask)
   }
   lp = make_link();
   memset(lp, 0, sizeof(struct SLink));
-  lp->next = sptr->user->silence;
+  lp->next = cli_user(sptr)->silence;
   lp->value.cp = (char*) MyMalloc(strlen(mask) + 1);
   assert(0 != lp->value.cp);
   strcpy(lp->value.cp, mask);
   if ((ip_start = strrchr(mask, '@')) && check_if_ipmask(ip_start + 1))
     lp->flags = CHFL_SILENCE_IPMASK;
-  sptr->user->silence = lp;
+  cli_user(sptr)->silence = lp;
   return 0;
 }
 

@@ -84,7 +84,7 @@ const char* get_listener_name(const struct Listener* listener)
 {
   static char buf[HOSTLEN + PORTNAMELEN + 4];
   assert(0 != listener);
-  sprintf_irc(buf, "%s:%u", me.name, listener->port);
+  sprintf_irc(buf, "%s:%u", cli_name(&me), listener->port);
   return buf;
 }
 

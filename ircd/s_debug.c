@@ -233,7 +233,7 @@ static void debug_enumerator(struct Client* cptr, const char* msg)
  */
 void send_usage(struct Client *cptr, char *nick)
 {
-  os_get_rusage(cptr, CurrentTime - me.since, debug_enumerator);
+  os_get_rusage(cptr, CurrentTime - cli_since(&me), debug_enumerator);
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %d used %d",
 	     DBufAllocCount, DBufUsedCount);
@@ -286,27 +286,27 @@ void count_memory(struct Client *cptr, char *nick)
   wwm += sizeof(struct Whowas) * NICKNAMEHISTORYLENGTH;
   wwm += sizeof(struct Whowas *) * WW_MAX;
 
-  for (acptr = GlobalClientList; acptr; acptr = acptr->next)
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
   {
     if (MyConnect(acptr))
     {
       lc++;
-      for (link = acptr->confs; link; link = link->next)
+      for (link = cli_confs(acptr); link; link = link->next)
         lcc++;
     }
     else
       rc++;
-    if (acptr->user)
+    if (cli_user(acptr))
     {
       us++;
-      for (link = acptr->user->invited; link; link = link->next)
+      for (link = cli_user(acptr)->invited; link; link = link->next)
         usi++;
-      for (member = acptr->user->channel; member; member = member->next_channel)
+      for (member = cli_user(acptr)->channel; member; member = member->next_channel)
         ++memberships;
-      if (acptr->user->away)
+      if (cli_user(acptr)->away)
       {
         aw++;
-        awm += (strlen(acptr->user->away) + 1);
+        awm += (strlen(cli_user(acptr)->away) + 1);
       }
     }
   }

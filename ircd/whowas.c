@@ -183,16 +183,16 @@ void add_history(struct Client *cptr, int still_on)
   }
 
   /* Initialize aWhoWas struct `newww' */
-  ww.newww->hashv = hash_whowas_name(cptr->name);
+  ww.newww->hashv = hash_whowas_name(cli_name(cptr));
   ww.newww->logoff = CurrentTime;
-  DupString(ww.newww->name, cptr->name);
-  DupString(ww.newww->username, cptr->user->username);
-  DupString(ww.newww->hostname, cptr->user->host);
+  DupString(ww.newww->name, cli_name(cptr));
+  DupString(ww.newww->username, cli_user(cptr)->username);
+  DupString(ww.newww->hostname, cli_user(cptr)->host);
   /* Should be changed to server numeric */
-  DupString(ww.newww->servername, cptr->user->server->name);
-  DupString(ww.newww->realname, cptr->info);
+  DupString(ww.newww->servername, cli_name(cli_user(cptr)->server));
+  DupString(ww.newww->realname, cli_info(cptr));
   if (cptr->user->away)
-    DupString(ww.newww->away, cptr->user->away);
+    DupString(ww.newww->away, cli_user(cptr)->away);
   else
     ww.newww->away = NULL;
 
@@ -201,10 +201,10 @@ void add_history(struct Client *cptr, int still_on)
   {
     ww.newww->online = cptr;
     /* Add struct Whowas struct `newww' to start of 'online list': */
-    if ((ww.newww->cnext = cptr->whowas))
+    if ((ww.newww->cnext = cli_whowas(cptr)))
       ww.newww->cnext->cprevnextp = &ww.newww->cnext;
-    ww.newww->cprevnextp = &cptr->whowas;
-    cptr->whowas = ww.newww;
+    ww.newww->cprevnextp = &(cli_whowas(cptr));
+    cli_whowas(cptr) = ww.newww;
   }
   else                          /* User quitting */
     ww.newww->online = NULL;
@@ -230,7 +230,7 @@ void off_history(const struct Client *cptr)
 {
   struct Whowas *temp;
 
-  for (temp = cptr->whowas; temp; temp = temp->cnext)
+  for (temp = cli_whowas(cptr); temp; temp = temp->cnext)
     temp->online = NULL;
 }
 

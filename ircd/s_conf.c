@@ -173,7 +173,7 @@ static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
   assert(0 != cptr);
   assert(0 < aconf->clients);
 
-  lp = &(cptr->confs);
+  lp = &(cli_confs(cptr));
 
   while (*lp) {
     if ((*lp)->value.aconf == aconf) {
@@ -323,7 +323,7 @@ void det_confs_butmask(struct Client* cptr, int mask)
   struct SLink* next;
   assert(0 != cptr);
 
-  for (link = cptr->confs; link; link = next) {
+  for (link = cli_confs(cptr); link; link = next) {
     next = link->next;
     if ((link->value.aconf->status & mask) == 0)
       detach_conf(cptr, link->value.aconf);
@@ -369,13 +369,13 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
 
   assert(0 != cptr);
 
-  if (cptr->dns_reply)
-    hp = cptr->dns_reply->hp;
+  if (cli_dns_reply(cptr))
+    hp = cli_dns_reply(cptr)->hp;
 
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
-    if (aconf->port && aconf->port != cptr->listener->port)
+    if (aconf->port && aconf->port != cli_listener(cptr)->port)
       continue;
     if (!aconf->host || !aconf->name)
       continue;
@@ -384,10 +384,10 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
         ircd_strncpy(fullname, hname, HOSTLEN);
         fullname[HOSTLEN] = '\0';
 
-        Debug((DEBUG_DNS, "a_il: %s->%s", cptr->sockhost, fullname));
+        Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), fullname));
 
         if (strchr(aconf->name, '@')) {
-          strcpy(uhost, cptr->username);
+          strcpy(uhost, cli_username(cptr));
           strcat(uhost, "@");
         }
         else
@@ -396,24 +396,24 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
         uhost[sizeof(uhost) - 1] = 0;
         if (0 == match(aconf->name, uhost)) {
           if (strchr(uhost, '@'))
-            cptr->flags |= FLAGS_DOID;
+            cli_flags(cptr) |= FLAGS_DOID;
           return check_limit_and_attach(cptr, aconf);
         }
       }
     }
     if (strchr(aconf->host, '@')) {
-      ircd_strncpy(uhost, cptr->username, sizeof(uhost) - 2);
+      ircd_strncpy(uhost, cli_username(cptr), sizeof(uhost) - 2);
       uhost[sizeof(uhost) - 2] = 0;
       strcat(uhost, "@");
     }
     else
       *uhost = '\0';
-    strncat(uhost, cptr->sock_ip, sizeof(uhost) - 1 - strlen(uhost));
+    strncat(uhost, cli_sock_ip(cptr), sizeof(uhost) - 1 - strlen(uhost));
     uhost[sizeof(uhost) - 1] = 0;
     if (match(aconf->host, uhost))
       continue;
     if (strchr(uhost, '@'))
-      cptr->flags |= FLAGS_DOID;
+      cli_flags(cptr) |= FLAGS_DOID;
 
     return check_limit_and_attach(cptr, aconf);
   }
@@ -731,7 +731,7 @@ void conf_add_local(const char* const* fields, int count)
   /*
    * XXX - shouldn't be setting these directly here
    */
-  ircd_strncpy(me.info, fields[3], REALLEN);
+  ircd_strncpy(cli_info(&me), fields[3], REALLEN);
   set_virtual_host(localConf.vhost_address);
 }
 
@@ -1388,11 +1388,11 @@ int find_kill(struct Client *cptr)
 
   assert(0 != cptr);
 
-  if (!cptr->user)
+  if (!cli_user(cptr))
     return 0;
 
-  host = cptr->sockhost;
-  name = cptr->user->username;
+  host = cli_sockhost(cptr);
+  name = cli_user(cptr)->username;
 
   assert(strlen(host) <= HOSTLEN);
   assert((name ? strlen(name) : 0) <= HOSTLEN);
@@ -1409,8 +1409,8 @@ int find_kill(struct Client *cptr)
     
     if (deny->ip_kill) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
-             cptr->ip.s_addr, deny->s_addr, deny->bits, NETMASK(deny->bits)));
-      if ((cptr->ip.s_addr & NETMASK(deny->bits)) == deny->s_addr)
+             cli_ip(cptr).s_addr, deny->s_addr, deny->bits, NETMASK(deny->bits)));
+      if ((cli_ip(cptr).s_addr & NETMASK(deny->bits)) == deny->s_addr)
         break;
     }
     else if (0 == match(deny->hostmask, host))
@@ -1457,7 +1457,7 @@ enum AuthorizationCheckResult conf_check_client(struct Client *cptr)
 
   if ((acr = attach_iline(cptr))) {
     Debug((DEBUG_DNS, "ch_cl: access denied: %s[%s]", 
-          cptr->name, cptr->sockhost));
+          cli_name(cptr), cli_sockhost(cptr)));
     return acr;
   }
   return ACR_OK;
@@ -1483,23 +1483,23 @@ int conf_check_server(struct Client *cptr)
   struct SLink*    lp;
 
   Debug((DEBUG_DNS, "sv_cl: check access for %s[%s]", 
-        cptr->name, cptr->sockhost));
+        cli_name(cptr), cli_sockhost(cptr)));
 
-  if (IsUnknown(cptr) && !attach_confs_byname(cptr, cptr->name, CONF_SERVER)) {
-    Debug((DEBUG_DNS, "No C/N lines for %s", cptr->sockhost));
+  if (IsUnknown(cptr) && !attach_confs_byname(cptr, cli_name(cptr), CONF_SERVER)) {
+    Debug((DEBUG_DNS, "No C/N lines for %s", cli_sockhost(cptr)));
     return -1;
   }
-  lp = cptr->confs;
+  lp = cli_confs(cptr);
   /*
    * We initiated this connection so the client should have a C and N
    * line already attached after passing through the connect_server()
    * function earlier.
    */
   if (IsConnecting(cptr) || IsHandshake(cptr)) {
-    c_conf = find_conf_byname(lp, cptr->name, CONF_SERVER);
+    c_conf = find_conf_byname(lp, cli_name(cptr), CONF_SERVER);
     if (!c_conf) {
       sendto_opmask_butone(0, SNO_OLDSNO, "Connect Error: lost C:line for %s",
-                           cptr->name);
+                           cli_name(cptr));
       det_confs_butmask(cptr, 0);
       return -1;
     }
@@ -1508,9 +1508,9 @@ int conf_check_server(struct Client *cptr)
   ClearAccess(cptr);
 
   if (!c_conf) {
-    if (cptr->dns_reply) {
+    if (cli_dns_reply(cptr)) {
       int             i;
-      struct hostent* hp = cptr->dns_reply->hp;
+      struct hostent* hp = cli_dns_reply(cptr)->hp;
       const char*     name = hp->h_name;
       /*
        * If we are missing a C or N line from above, search for
@@ -1518,7 +1518,7 @@ int conf_check_server(struct Client *cptr)
        */
       for (i = 0; name; name = hp->h_aliases[i++]) {
         if ((c_conf = find_conf_byhost(lp, name, CONF_SERVER))) {
-          ircd_strncpy(cptr->sockhost, name, HOSTLEN);
+          ircd_strncpy(cli_sockhost(cptr), name, HOSTLEN);
           break;
         }
       }
@@ -1535,7 +1535,7 @@ int conf_check_server(struct Client *cptr)
        * of the host the server runs on. This also checks the case where
        * there is a server connecting from 'localhost'.
        */
-      c_conf = find_conf_byhost(lp, cptr->sockhost, CONF_SERVER);
+      c_conf = find_conf_byhost(lp, cli_sockhost(cptr), CONF_SERVER);
     }
   }
   /*
@@ -1544,7 +1544,7 @@ int conf_check_server(struct Client *cptr)
    * happen when using DNS in the way the irc server does. -avalon
    */
   if (!c_conf)
-    c_conf = find_conf_byip(lp, (const char*) &cptr->ip, CONF_SERVER);
+    c_conf = find_conf_byip(lp, (const char*) &(cli_ip(cptr)), CONF_SERVER);
   /*
    * detach all conf lines that got attached by attach_confs()
    */
@@ -1554,20 +1554,20 @@ int conf_check_server(struct Client *cptr)
    */
   if (!c_conf) {
     Debug((DEBUG_DNS, "sv_cl: access denied: %s[%s@%s]",
-          cptr->name, cptr->username, cptr->sockhost));
+          cli_name(cptr), cli_username(cptr), cli_sockhost(cptr)));
     return -1;
   }
-  ircd_strncpy(cptr->name, c_conf->name, HOSTLEN);
+  ircd_strncpy(cli_name(cptr), c_conf->name, HOSTLEN);
   /*
    * attach the C and N lines to the client structure for later use.
    */
   attach_conf(cptr, c_conf);
-  attach_confs_byname(cptr, cptr->name, CONF_HUB | CONF_LEAF | CONF_UWORLD);
+  attach_confs_byname(cptr, cli_name(cptr), CONF_HUB | CONF_LEAF | CONF_UWORLD);
 
   if (INADDR_NONE == c_conf->ipnum.s_addr)
-    c_conf->ipnum.s_addr = cptr->ip.s_addr;
+    c_conf->ipnum.s_addr = cli_ip(cptr).s_addr;
 
-  Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]", cptr->name, cptr->sockhost));
+  Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]", cli_name(cptr), cli_sockhost(cptr)));
   return 0;
 }
 

@@ -63,7 +63,7 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
   else
     acptr = (nnn) ? (findNUser(parv[1])) : (FindUser(parv[1]));
 
-  if (((!acptr) || (acptr->from == cptr)) && !achptr)
+  if (((!acptr) || (cli_from(acptr) == cptr)) && !achptr)
     return 0;
 
   /* Remap low number numerics, not that I understand WHY.. --Nemesi  */
