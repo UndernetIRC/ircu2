@@ -1,7 +1,16 @@
+2000-03-26  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* ircd/channel.c: implement modebuf_init(), _mode(), _mode_uint(),
+	_mode_string(), _mode_client(), _flush(); also implemented a
+	simple build_string()
+
+	* include/channel.h: added definition of ModeBuf, modebuf_*
+	manipulation functions, and a couple of helper macros
+
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.22 2000-03-25 07:02:48 bleep Exp $
+# $Id: ChangeLog,v 1.23 2000-03-27 04:36:11 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
