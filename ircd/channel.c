@@ -359,6 +359,7 @@ int destruct_channel(struct Channel* chptr)
  * @author Run
  * @param cptr 	Client adding the ban
  * @param chptr	Channel to add the ban to
+ * @param banid The actual ban.
  * @param change True if adding a ban, false if old bans should just be flagged
  * @param firsttime Reset the next_overlapped_ban() iteration.
  * @returns 
@@ -702,7 +703,7 @@ static int channel_all_zombies(struct Channel* chptr)
  * if there are no more normal users left.
  *
  * @param cptr		The client
- * @param channel	The channel
+ * @param chptr		The channel
  */
 void remove_user_from_channel(struct Client* cptr, struct Channel* chptr)
 {
@@ -925,7 +926,7 @@ const char* find_no_nickchange_channel(struct Client* cptr)
  * @param pbuf  The buffer to write the mode parameters into.
  * @param buflen The length of the buffers.
  * @param chptr	The channel to get the modes from.
- * @param membership The membership of this client on this channel (or NULL
+ * @param member The membership of this client on this channel (or NULL
  * 		if this client isn't on this channel)
  *
  */
@@ -1236,10 +1237,10 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
  * The following transformations are made:
  *
  * 1)   xxx             -> nick!*@*
- * 2)   xxx.xxx         -> *!*@host
- * 3)   xxx!yyy         -> nick!user@*
- * 4)   xxx@yyy         -> *!user@host
- * 5)   xxx!yyy@zzz     -> nick!user@host
+ * 2)   xxx.xxx         -> *!*\@host
+ * 3)   xxx\!yyy         -> nick!user\@*
+ * 4)   xxx\@yyy         -> *!user\@host
+ * 5)   xxx!yyy\@zzz     -> nick!user\@host
  *
  * @param mask	The uncanonified mask.
  * @returns The updated mask in a static buffer.
@@ -1343,11 +1344,11 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
 }
 
 /** Check a key against a keyring.
- * We are now treating the <key> part of /join <channel list> <key> as a key
+ * We are now treating the key part of /join channellist key as a key
  * ring; that is, we try one key against the actual channel key, and if that
  * doesn't work, we try the next one, and so on. -Kev -Texaco
  * Returns: 0 on match, 1 otherwise
- * This version contributed by SeKs <intru@info.polymtl.ca>
+ * This version contributed by SeKs \<intru@info.polymtl.ca\>
  *
  * @param key		Key to check
  * @param keyring	Comma seperated list of keys
@@ -1439,7 +1440,7 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 
 /** Remove bells and commas from channel name
  *
- * @param ch	Channel name to clean, modified in place.
+ * @param cn	Channel name to clean, modified in place.
  */
 void clean_channelname(char *cn)
 {
@@ -1632,7 +1633,7 @@ void list_next_channels(struct Client *cptr, int nr)
 /** @page zombie Explaination of Zombies
  *
  * Consider:
- *
+ * <pre>
  *                     client
  *                       |
  *                       c
@@ -1640,6 +1641,7 @@ void list_next_channels(struct Client *cptr, int nr)
  *     X --a--> A --b--> B --d--> D
  *                       |
  *                      who
+ * </pre>
  *
  * Where `who' is being KICK-ed by a "KICK" message received by server 'A'
  * via 'a', or on server 'B' via either 'b' or 'c', or on server D via 'd'.
@@ -1661,12 +1663,13 @@ void list_next_channels(struct Client *cptr, int nr)
  * - A PART is only sent upstream in case b).
  *
  * 2 aug 97:
- *
+ * <pre>
  *              6
  *              |
  *  1 --- 2 --- 3 --- 4 --- 5
  *        |           |
  *      kicker       who
+ * </pre>
  *
  * We also need to turn 'who' into a zombie on servers 1 and 6,
  * because a KICK from 'who' (kicking someone else in that direction)
