@@ -21,6 +21,7 @@
 #include "map.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_reply.h"
 #include "list.h"
 #include "match.h"
 #include "numeric.h"
@@ -40,8 +41,7 @@ void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt
 
   *p = '\0';
   if (prompt_length > 60)
-    sendto_one(cptr, rpl_str(RPL_MAPMORE), me.name, cptr->name,
-        prompt, server->name);
+    send_reply(cptr, RPL_MAPMORE, prompt, server->name);
   else {
     char lag[512];
     if (server->serv->lag>10000)
@@ -50,12 +50,9 @@ void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt
     	strcpy(lag,"(0s)");
     else
     	sprintf(lag,"(%is)",server->serv->lag);
-    sendto_one(cptr, rpl_str(RPL_MAP), me.name, cptr->name,
-        prompt, 
-	((IsBurstOrBurstAck(server)) ? "*" : ""),
-        server->name, 
-        lag,
-        (server == &me) ? UserStats.local_clients : server->serv->clients);
+    send_reply(cptr, RPL_MAP, prompt, ((IsBurstOrBurstAck(server)) ? "*" : ""),
+	       server->name, lag, (server == &me) ? UserStats.local_clients :
+	       server->serv->clients);
   }
   if (prompt_length > 0)
   {

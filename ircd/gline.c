@@ -152,12 +152,13 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 	  (!acptr->user->username ||
 	   match(gline->gl_user, acptr->user->username) == 0)) {
 	/* ok, here's one that got G-lined */
+	/* XXX sendto_one used for K-line reason */
 	sendto_one(acptr, ":%s %d %s :*** %s.", me.name, ERR_YOUREBANNEDCREEP,
 		   acptr->name, gline->gl_reason);
 
 	/* let the ops know about it */
-	sendto_op_mask(SNO_GLINE, "G-line active for %s",
-		       get_client_name(acptr, FALSE));
+	sendto_opmask_butone(0, SNO_GLINE, "G-line active for %s",
+			     get_client_name(acptr, FALSE));
 
 	/* and get rid of him */
 	if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",
@@ -206,7 +207,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
    */
   if (!(flags & GLINE_FORCE) && (expire <= 0 || expire > GLINE_MAX_EXPIRE)) {
     if (!IsServer(sptr) && MyConnect(sptr))
-      send_error_to_client(sptr, ERR_BADEXPIRE, expire);
+      send_reply(sptr, ERR_BADEXPIRE, expire);
     return 0;
   }
 
@@ -228,12 +229,12 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 #endif /* BADCHAN */
 
   /* Inform ops... */
-  sendto_op_mask(SNO_GLINE, "%s adding %s %s for %s, expiring at "
-		 TIME_T_FMT ": %s",
-		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 flags & GLINE_LOCAL ? "local" : "global",
-		 flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
-		 expire + TSoffset, reason);
+  sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s, expiring at "
+		       "%Tu: %s",
+		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       flags & GLINE_LOCAL ? "local" : "global",
+		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
+		       expire + TSoffset, reason);
 
 #ifdef GPATH
   /* and log it */
@@ -298,13 +299,13 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
     return 0; /* was active to begin with */
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_GLINE, "%s activating global %s for %s%s%s, expiring at "
-		 TIME_T_FMT ": %s",
-		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-		 gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-		 GlineIsBadChan(gline) ? "" : gline->gl_host,
-		 gline->gl_expire + TSoffset, gline->gl_reason);
+  sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
+		       "expiring at %Tu: %s",
+		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+		       GlineIsBadChan(gline) ? "" : gline->gl_host,
+		       gline->gl_expire + TSoffset, gline->gl_reason);
 
 #ifdef GPATH
   if (IsServer(sptr))
@@ -356,15 +357,15 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   }
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_GLINE, "%s %s %s for %s%s%s, expiring at "
-		 TIME_T_FMT ": %s",
-		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 GlineIsLocal(gline) ? "removing local" :
-		 "deactivating global",
-		 GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-		 gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
-		 GlineIsBadChan(gline) ? "" : gline->gl_host,
-		 gline->gl_expire + TSoffset, gline->gl_reason);
+  sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
+		       "%s",
+		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       GlineIsLocal(gline) ? "removing local" :
+		       "deactivating global",
+		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+		       GlineIsBadChan(gline) ? "" : gline->gl_host,
+		       gline->gl_expire + TSoffset, gline->gl_reason);
 
 #ifdef GPATH
   if (IsServer(sptr))
@@ -539,7 +540,7 @@ gline_list(struct Client *sptr, char *userhost)
 
   if (userhost) {
     if (!(gline = gline_find(userhost, GLINE_ANY))) /* no such gline */
-      return send_error_to_client(sptr, ERR_NOSUCHGLINE, userhost);
+      return send_reply(sptr, ERR_NOSUCHGLINE, userhost);
 
     /* send gline information along */
     send_reply(sptr, RPL_GLIST, gline->gl_user,

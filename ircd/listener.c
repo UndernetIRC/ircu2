@@ -23,6 +23,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_osdep.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "numeric.h"
 #include "s_bsd.h"
@@ -127,11 +128,9 @@ void show_ports(struct Client* sptr, int show_hidden, int port, int count)
     }
     else
       flags[1] = '\0';
-        
-    sendto_one(sptr, rpl_str(RPL_STATSPLINE),
-               me.name, sptr->name, listener->port,
-               listener->ref_count, flags, 
-               (listener->active) ? "active" : "disabled");
+
+    send_reply(sptr, RPL_STATSPLINE, listener->port, listener->ref_count,
+	       flags, (listener->active) ? "active" : "disabled");
     if (--count == 0)
       break;
   }

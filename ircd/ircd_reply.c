@@ -35,8 +35,7 @@
 
 int need_more_params(struct Client* cptr, const char* cmd)
 {
-  sendto_one(cptr, err_str(ERR_NEEDMOREPARAMS), 
-             me.name, (*cptr->name) ? cptr->name : "*", cmd);
+  send_reply(cptr, ERR_NEEDMOREPARAMS, cmd);
   return 0;
 }
 
@@ -126,13 +125,13 @@ int send_admin_info(struct Client* sptr, const struct ConfItem* admin)
 {
   assert(0 != sptr);
   if (admin) {
-    sendto_one(sptr, rpl_str(RPL_ADMINME),    me.name, sptr->name, me.name);
-    sendto_one(sptr, rpl_str(RPL_ADMINLOC1),  me.name, sptr->name, admin->host);
-    sendto_one(sptr, rpl_str(RPL_ADMINLOC2),  me.name, sptr->name, admin->passwd);
-    sendto_one(sptr, rpl_str(RPL_ADMINEMAIL), me.name, sptr->name, admin->name);
+    send_reply(sptr, RPL_ADMINME,    me.name);
+    send_reply(sptr, RPL_ADMINLOC1,  admin->host);
+    send_reply(sptr, RPL_ADMINLOC2,  admin->passwd);
+    send_reply(sptr, RPL_ADMINEMAIL, admin->name);
   }
   else
-    send_error_to_client(sptr, ERR_NOADMININFO, me.name);
+    send_reply(sptr, ERR_NOADMININFO, me.name);
   return 0;
 }
 

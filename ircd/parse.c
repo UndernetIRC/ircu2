@@ -27,6 +27,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "map.h"
 #include "msg.h"
@@ -811,8 +812,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
     if (buffer[0] != '\0')
     {
       if (IsUser(from))
-        sendto_one(from, ":%s %d %s %s :Unknown command",
-            me.name, ERR_UNKNOWNCOMMAND, from->name, ch);
+	send_reply(from, ERR_UNKNOWNCOMMAND, ch);
       Debug((DEBUG_ERROR, "Unknown (%s) from %s",
             ch, get_client_name(cptr, HIDE_IP)));
     }
@@ -1036,8 +1036,8 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
         /* Kill the unknown numeric prefix upstream if
          * it's server still exists: */
         if ((server = FindNServer(numeric_prefix)) && server->from == cptr)
-          sendto_one(cptr, "%s KILL %s :%s (Unknown numeric nick)",
-                     NumServ(&me), numeric_prefix, me.name);
+	  sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (Unknown numeric nick)",
+			numeric_prefix, me.name);
       }
       /*
        * Things that must be allowed to travel

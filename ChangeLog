@@ -1,5 +1,23 @@
 2000-04-24  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/parse.c: use send_reply, sendcmdto_one
+
+	* ircd/map.c: use send_reply
+
+	* ircd/listener.c: use send_reply
+
+	* ircd/jupe.c: use sendto_opmask_butone, send_reply
+
+	* ircd/ircd_reply.c: use send_reply
+
+	* ircd/ircd.c: use sendto_opmask_butone
+
+	* ircd/gline.c: use sendto_opmask_butone, send_reply
+
+	* ircd/ircd_snprintf.c (doprintf): make it deal with incompletely
+	registered clients; make FLAG_ALT print nick!user@host; make
+	FLAG_COLON print :blah
+
 	* ircd/class.c (report_classes): use send_reply instead of
 	sendto_one
 
@@ -674,7 +692,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.99 2000-04-24 16:34:02 kev Exp $
+# $Id: ChangeLog,v 1.100 2000-04-24 18:50:37 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

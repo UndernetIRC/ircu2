@@ -110,18 +110,18 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
    */
   if (expire <= 0 || expire > JUPE_MAX_EXPIRE) {
     if (!IsServer(cptr) && MyConnect(cptr))
-      send_error_to_client(cptr, ERR_BADEXPIRE, expire);
+      send_reply(cptr, ERR_BADEXPIRE, expire);
     return 0;
   }
 
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops and log it */
-    sendto_op_mask(SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-		   TIME_T_FMT ": %s",
-		   IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		   flags & JUPE_LOCAL ? "local " : "", server,
-		   expire + TSoffset, reason);
+  sendto_opmask_butone(0, SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
+		       "%Tu: %s", IsServer(sptr) ? sptr->name :
+		       sptr->user->server->name,
+		       flags & JUPE_LOCAL ? "local " : "", server,
+		       expire + TSoffset, reason);
 
 #ifdef JPATH
   if (IsServer(sptr))
@@ -170,10 +170,11 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
     return 0; /* was active to begin with */
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_NETWORK, "%s activating JUPE for %s, expiring at "
-		 TIME_T_FMT ": %s",
-		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+  sendto_opmask_butone(0, SNO_NETWORK, "%s activating JUPE for %s, expiring "
+		       "at %Tu: %s",
+		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       jupe->ju_server, jupe->ju_expire + TSoffset,
+		       jupe->ju_reason);
 
 #ifdef JPATH
   if (IsServer(sptr))
@@ -219,11 +220,12 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   }
 
   /* Inform ops and log it */
-  sendto_op_mask(SNO_NETWORK, "%s %s JUPE for %s, expiring at " TIME_T_FMT
-		 ": %s",
-		 IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		 JupeIsLocal(jupe) ? "removing local" : "deactivating",
-		 jupe->ju_server, jupe->ju_expire + TSoffset, jupe->ju_reason);
+  sendto_opmask_butone(0, SNO_NETWORK, "%s %s JUPE for %s, expiring at %Tu: "
+		       "%s",
+		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       JupeIsLocal(jupe) ? "removing local" : "deactivating",
+		       jupe->ju_server, jupe->ju_expire + TSoffset,
+		       jupe->ju_reason);
 
 #ifdef JPATH
   if (IsServer(sptr))
@@ -320,7 +322,7 @@ jupe_list(struct Client *sptr, char *server)
 
   if (server) {
     if (!(jupe = jupe_find(server))) /* no such jupe */
-      return send_error_to_client(sptr, ERR_NOSUCHJUPE, server);
+      return send_reply(sptr, ERR_NOSUCHJUPE, server);
 
     /* send jupe information along */
     send_reply(sptr, RPL_JUPELIST, jupe->ju_server, jupe->ju_expire + TSoffset,
