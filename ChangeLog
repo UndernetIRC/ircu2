@@ -1,3 +1,7 @@
+2003-06-29 hikari <shadow@undernet.org>
+	* ircd/IPcheck.c: Fixed overflow problem in
+	ip_registry_connect_fail()
+
 2003-06-27 hikari <shadow@undernet.org>
 	* ircd/ircd.c: After thought, update the next check time based on
 	when an unregistered client should expire.

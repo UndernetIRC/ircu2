@@ -337,8 +337,8 @@ void ip_registry_connect_fail(unsigned int addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
   if (entry) {
-    assert(entry->attempts);
-    --entry->attempts;
+    if (0 == --entry->attempts)
+      ++entry->attempts; /* check for overflow */
   }
 }
 
