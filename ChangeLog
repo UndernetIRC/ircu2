@@ -1,3 +1,9 @@
+2004-09-11  Michael Poole <mdpoole@troilus.org>
+
+	* include/supported.h: Kev pointed out I misinterpreted the
+	meaning of CHANMODES; fix this.  Also define CHANNELLEN and
+	STATUSMSG from the ISUPPORT draft.
+
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
 	* include/supported.h (FEATURESVALUES2): Include A,u, in CHANMODES
