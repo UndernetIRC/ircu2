@@ -15,8 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/**
+ * @file
+ * @brief Native crypt() function routines
+ * @version $Id$
+ * 
+ * Routines for handling passwords encrypted with the system's native crypt()
+ * function (typicaly a DES encryption routine, but can be anything nowdays).
+ * 
  */
 #define _XOPEN_SOURCE
 #define _XOPEN_VERSION 4
@@ -33,7 +40,16 @@
 #include <crypt.h>
 #endif
 
-/* well this bit is (kinda) intact :) -- hikari */
+/** Simple routine that just calls crypt() with the supplied password and salt
+ * @param key The password we're encrypting.
+ * @param salt The salt we're using to encrypt key
+ * @reutrn The encrypted password.
+ * 
+ * Well this bit is (kinda) intact from the original oper password routines :) 
+ * It's a very simple wrapper routine that just calls crypt and returns the 
+ * result.
+ *   -- hikari
+ */
 const char* ircd_crypt_native(const char* key, const char* salt)
 {
  assert(NULL != key);

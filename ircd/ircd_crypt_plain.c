@@ -16,7 +16,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
+ */
+/*
+ * @file
+ * @brief Routines for PLAIN passwords
+ * @version $Id$
+ * 
+ * PLAIN text encryption.  Oxymoron and a half that.
  */
 #include "config.h"
 #include "ircd_crypt.h"
@@ -27,7 +33,16 @@
 #include <assert.h>
 #include <unistd.h>
 
-/* yes I know it's an oxymoron, but still, it's handy for testing */
+/** Just sends back the supplied password.
+ * @param key The password
+ * @param salt The salt
+ * @return The password
+ * 
+ * Yes I know it's an oxymoron, but still, it's handy for testing.
+ * 
+ * What you need more help with seeing what this does?
+ * 
+ */
 const char* ircd_crypt_plain(const char* key, const char* salt)
 {
   assert(NULL != salt);
@@ -41,7 +56,11 @@ const char* ircd_crypt_plain(const char* key, const char* salt)
   return key;
 }
 
-/* register ourself with the list of crypt mechanisms -- hikari */
+/** register ourself with the list of crypt mechanisms 
+ * Registers the PLAIN mechanism in the list of available crypt mechanisms.  
+ * When we're modular this will be the entry function for the module.
+ * 
+ * -- hikari */
 void ircd_register_crypt_plain(void)
 {
 crypt_mech_t* crypt_mech;

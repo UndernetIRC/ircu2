@@ -16,13 +16,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id$
  */
 
-/*
+/**
+ * @file
+ * @brief Core password encryption routines.
+ * @version $Id$
+ * 
  * This is a new look crypto API for ircu, it can handle different
- * password formats by the grace of the standard magic tokens at the 
- * begining of the password e.g. $1 for MD5, $2 for Blowfish, etc.
+ * password formats by the grace of magic tokens at the begining of the 
+ * password e.g. $SMD5 for Salted MD5, $CRYPT for native crypt(), etc.
  *
  * Currently crypt routines are implemented for: the native crypt() 
  * function, Salted MD5 and a plain text mechanism which should only
@@ -59,8 +62,12 @@
 /* evil global */
 crypt_mechs_t* crypt_mechs_root;
 
-/*
- * add a crypt mechanism to the list 
+/** Add a crypt mechanism to the list 
+ * @param mechanism Pointer to the mechanism details struct
+ * @return 0 on success, anything else on fail.
+ * 
+ * This routine registers a new crypt mechanism in the loaded mechanisms list, 
+ * making it availabe for comparing passwords.
 */
 int ircd_crypt_register_mech(crypt_mech_t* mechanism)
 {
@@ -101,8 +108,9 @@ crypt_mechs_t* crypt_mech;
  return 0;
 }
 
-/*
- * remove a crypt mechanism from the list 
+/** Remove a crypt mechanism from the list 
+ * @param Pointer to the mechanism we want to remove
+ * @return 0 on success, anything else on fail.
 */
 int ircd_crypt_unregister_mech(crypt_mech_t* mechanism)
 {
@@ -110,9 +118,14 @@ int ircd_crypt_unregister_mech(crypt_mech_t* mechanism)
 return 0;
 }
 
-/*
- * this is now a wrapper function which attempts to establish the password
- * format and funnel it off to the correct handler function.
+/** Wrapper for generating a hashed password passed on the supplied password
+ * @param key Pointer to the password we want crypted
+ * @param salt Pointer to the password we're comparing to (for the salt)
+ * @return Pointer to the generated password.
+ *  
+ * This is a wrapper function which attempts to establish the password
+ * format and funnel it off to the correct mechanism handler function.  The 
+ * returned password is compared in the oper_password_match() routine.
 */
 const char* ircd_crypt(const char* key, const char* salt)
 {
@@ -196,9 +209,14 @@ crypt_mechs_t* crypt_mech;
  return NULL;
 }
 
-/* 
- * some basic init, when we're modular this will be our entry
- * function.
+/** Some basic init.
+ * This function loads initalises the crypt mechanisms linked list and 
+ * currently loads the default mechanisms (Salted MD5, Crypt() and PLAIN).  
+ * The last step is only needed while ircu is not properly modular.
+ *  
+ * When ircu is modular this will be the entry function for the ircd_crypt
+ * module.
+ * 
 */
 void ircd_crypt_init(void)
 {

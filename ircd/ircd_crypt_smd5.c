@@ -15,21 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
  */
-#include "config.h"
-#include "ircd_crypt.h"
-#include "ircd_crypt_smd5.h"
-#include "ircd_md5.h"
-#include "s_debug.h"
-#include "ircd_alloc.h"
-
-#include <assert.h>
-#include <string.h>
-#include <unistd.h>
-
-/*
+ 
+/** 
+ * @file
+ * @brief Routines for Salted MD5 passwords
+ * @version $Id$
+ * 
  * ircd_crypt_smd5 is largely taken from md5_crypt.c from the Linux PAM 
  * source code.  it's been modified to fit in with ircu and some of the 
  * undeeded code has been removed.  the source file md5_crypt.c has the 
@@ -44,10 +36,30 @@
  * ----------------------------------------------------------------------------
  *
  */
+#include "config.h"
+#include "ircd_crypt.h"
+#include "ircd_crypt_smd5.h"
+#include "ircd_md5.h"
+#include "s_debug.h"
+#include "ircd_alloc.h"
+
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 static unsigned char itoa64[] = /* 0 ... 63 => ascii - 64 */
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
+/** Converts a binary value into a BASE64 encoded string.
+ * @param s Pointer to the output string
+ * @param v The unsigned long we're working on
+ * @param n The number of bytes we're working with
+ *  
+ * This is used to produce the normal MD5 hash everyone is familar with.  
+ * It takes the value v and converts n bytes of it it into an ASCII string in 
+ * 6-bit chunks, the resulting string is put at the address pointed to by s.
+ * 
+ */
 static void to64(char *s, unsigned long v, int n)
 {
  while (--n >= 0) {
@@ -56,6 +68,18 @@ static void to64(char *s, unsigned long v, int n)
  }
 }
 
+/** Produces a Salted MD5 crypt of a password using the supplied salt
+ * @param key The password we're encrypting
+ * @param salt The salt we're using to encrypt it
+ * @return The Salted MD5 password of key and salt
+ * 
+ * Erm does exactly what the brief comment says.  If you think I'm writing a 
+ * description of how MD5 works, you have another thing comming.  Go and read
+ * Applied Cryptopgraphy by Bruce Schneier.  The only difference is we use a 
+ * salt at the begining of the password to perturb it so that the same password
+ * doesn't always produce the same hash.
+ * 
+ */ 
 const char* ircd_crypt_smd5(const char* key, const char* salt)
 {
 const char *magic = "$1$";
@@ -155,6 +179,8 @@ unsigned long l;
 
  Debug((DEBUG_DEBUG, "passwd = %s", passwd));
 
+ /* Turn the encrypted binary data into a BASE64 encoded string we can read
+  * and display -- hikari */
  l = (final[0] << 16) | (final[6] << 8) | final[12];
  to64(p, l, 4);
  p += 4;
@@ -183,7 +209,11 @@ return passwd;
 
 /* end borrowed code */
 
-/* register ourself with the list of crypt mechanisms */
+/** Register ourself with the list of crypt mechanisms 
+ * Registers the SMD5 mechanism in the list of available crypt mechanisms.  When 
+ * we're modular this will be the entry function for the module.
+ * 
+ */
 void ircd_register_crypt_smd5(void)
 {
 crypt_mech_t* crypt_mech;
