@@ -1,5 +1,15 @@
 2002-04-02  Kevin L Mitchell  <klmitch@mit.edu>
- 
+
+	* ircd/m_kill.c: let ms_kill() and mo_kill() seperate the message
+	from the path before calling do_kill(); add a msg argument to
+	do_kill() and use it in preference to comment; remove all that old
+	code that fiddled with the buf and the comment
+
+	* ircd/ircd_log.c (log_write_kill): add a seperate msg argument
+
+	* include/ircd_log.h: add a seperate msg argument to
+	log_write_kill()
+
 	* ircd/ircd.c: display event engine and MAXCONNECTIONS information
  
 2002-04-02  Alex Badea <vampire@p16.pub.ro>

@@ -63,7 +63,8 @@ extern void log_vwrite(enum LogSys subsys, enum LogLevel severity,
 extern void log_write_kill(const struct Client *victim,
 			   const struct Client *killer,
 			   const char	       *inpath,
-			   const char	       *path);
+			   const char	       *path,
+			   const char	       *msg);
 
 #define LOG_NOSYSLOG	0x01
 #define LOG_NOFILELOG	0x02

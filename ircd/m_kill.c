@@ -104,36 +104,11 @@
  *
  */
 static int do_kill(struct Client* cptr, struct Client* sptr,
-                  struct Client* victim, char* inpath, char* path)
+		   struct Client* victim, char* inpath, char* path, char *msg)
 {
-  char*        comment;
-  char         buf[BUFSIZE];
-
   assert(0 != cptr);
   assert(0 != sptr);
   assert(IsUser(victim));
-
-  /* If we got this from a *local* oper, then path only contains the
-   * kill comment. Remote oper or server kills will at least have
-   * some kind of path preceding it.    -GW
-   */
-  if (IsServer(cptr)) 
-  {
-     if (!(comment = strchr(path, ' ')))
-       comment = "No reason supplied";
-     else
-       comment++; /* Remove first character (space) */
-  }
-  else
-    comment = path;
-
-#ifdef HEAD_IN_SAND_KILLWHO
-  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", HEAD_IN_SAND_SERVERNAME, comment);
-#else
-  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", cli_name(sptr),
-                comment);
-#endif
-  comment = buf;
 
   /*
    * Notify all *local* opers about the KILL (this includes the one
@@ -144,10 +119,10 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    *       have changed the target because of the nickname change.
    */
   sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-                       "Received KILL message for %s. From %s Path: %s!%s",
+                       "Received KILL message for %s. From %s Path: %s!%s %s",
                        get_client_name(victim, SHOW_IP), cli_name(sptr),
-                       inpath, comment);
-  log_write_kill(victim, sptr, inpath, path);
+                       inpath, path, msg);
+  log_write_kill(victim, sptr, inpath, path, msg);
 
   /*
    * And pass on the message to other servers. Note, that if KILL
@@ -156,8 +131,8 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * Client suicide kills are NOT passed on --SRB
    */
   if (IsServer(cptr) || !MyConnect(victim)) {
-    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim,
-                          inpath, path);
+    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s %s", victim,
+                          inpath, path, msg);
 
     /*
      * Set FLAGS_KILLED. This prevents exit_one_client from sending
@@ -175,19 +150,18 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * In accordance with the new hiding rules, the victim
    * always sees the kill as coming from me.
    */
-  if (MyConnect(victim)) {
 #ifdef HEAD_IN_SAND_KILLWHO
-    sendcmdto_one(&me, CMD_KILL, victim, "%C :%s", victim,
-                  comment);
+  if (MyConnect(victim))
+    sendcmdto_one(&me, CMD_KILL, victim, "%C :%s %s", victim,
+                  HEAD_IN_SAND_SERVERNAME, msg);
+  return exit_client_msg(cptr, victim, &me, "Killed (%s %s)",
+			 HEAD_IN_SAND_SERVERNAME, msg);
 #else
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s", victim,
-                  comment);
-#endif
-  }
-#ifdef HEAD_IN_SAND_KILLWHO
-  return exit_client_msg(cptr, victim, &me, "Killed (%s)", comment);
-#else
-  return exit_client_msg(cptr, victim, sptr, "Killed (%s)", comment);
+  if (MyConnect(victim))
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s %s", victim,
+                  cli_name(sptr), msg);
+  return exit_client_msg(cptr, victim, sptr, "Killed (%s %s)", cli_name(sptr),
+			 msg);
 #endif
 }
 
@@ -204,6 +178,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client* victim;
   char*          path;
+  char*          msg;
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -219,6 +194,11 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   path = parv[parc - 1];        /* Either defined or NULL (parc >= 3) */
+
+  if (!(msg = strchr(path, ' '))) /* Extract out the message */
+    msg = "(No reason supplied)";
+  else
+    *(msg++) = '\0'; /* Remove first character (space) and terminate path */
 
   if (!(victim = findNUser(parv[1]))) {
     if (IsUser(sptr))
@@ -247,7 +227,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (Ghost 5 Numeric Collided)",
                   victim, path);
   }
-  return do_kill(cptr, sptr, victim, cli_name(cptr), path);
+  return do_kill(cptr, sptr, victim, cli_name(cptr), path, msg);
 }
 
 /*
@@ -264,7 +244,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client* victim;
   char*          user;
-  char*          path;
+  char           msg[TOPICLEN + 3]; /* (, ), and \0 */
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -278,10 +258,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "KILL");
 
   user = parv[1];
-  path = parv[parc - 1];
-
-  if (strlen(path) > TOPICLEN)
-    path[TOPICLEN] = '\0';
+  ircd_snprintf(0, msg, sizeof(msg), "(%.*s)", TOPICLEN, parv[parc - 1]);
 
   if (!(victim = FindClient(user))) {
     /*
@@ -313,5 +290,6 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		  sptr, cli_name(victim));
     return 0;
   }
-  return do_kill(cptr, sptr, victim, cli_user(sptr)->host, path);
+  return do_kill(cptr, sptr, victim, cli_user(sptr)->host, cli_name(sptr),
+		 msg);
 }
