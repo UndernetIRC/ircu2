@@ -801,6 +801,9 @@ feature_int(enum Feature feat)
 int
 feature_bool(enum Feature feat)
 {
+  assert(feat <= FEAT_LAST_F);
+  if (FEAT_LAST_F < feat)
+    return 0;
   assert(features[feat].feat == feat);
   assert((features[feat].flags & FEAT_MASK) == FEAT_BOOL);
 

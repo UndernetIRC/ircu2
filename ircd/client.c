@@ -104,6 +104,7 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
 static struct
 {
   enum Priv priv;
+  enum Feature feat;
   enum
     {
       FEATFLAG_DISABLES_PRIV,
@@ -112,7 +113,6 @@ static struct
       FEATFLAG_LOCAL_OPERS,
       FEATFLAG_ALL_OPERS
     } flag;
-  enum Feature feat;
 } feattab[] =
   {
     { PRIV_WHOX, FEAT_LAST_F, FEATFLAG_ALL_OPERS },
@@ -201,7 +201,7 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   {
     if (PrivHas(&oper->privs_dirty, feattab[i].priv))
       continue;
-    if (feattab[i].feat != FEAT_LAST_F && !feature_bool(feattab[i].priv))
+    if (feattab[i].feat != FEAT_LAST_F && !feature_bool(feattab[i].feat))
       continue;
     switch (feattab[i].flag)
     {

@@ -1,3 +1,10 @@
+2003-01-11  Thomas Helvey <tom.helvey@cox.net>
+	* ircd/client.c, ircd/ircd_feature.c: Bugfix, the feature
+	table data was in a different order than the feature data
+	structure, which resulted in a wild index being used in
+	feature_bool. The feature_bool function didn't check it's
+	index before indexing the features array resulting in
+	a core dump on /oper.
 2003-01-10  Thomas Helvey <tom.helvey@cox.net>
 	* include/client.h, include/res.h, include/s_bsd.h,
 	ircd/ircd.c, ircd/list.c ircd/m_connect.c, ircd/res_adns.c,
