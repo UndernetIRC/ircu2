@@ -369,6 +369,32 @@ event_generate(enum EventType type, void* arg, int data)
   event_add(ptr); /* add event to queue */
 }
 
+#if 1
+/* Try to verify the timer list */
+void
+timer_verify(void)
+{
+  struct Timer* ptr;
+  struct Timer** ptr_p = &evInfo.gens.g_timer;
+  time_t lasttime = 0;
+
+  for (ptr = evInfo.gens.g_timer; ptr;
+       ptr = (struct Timer*) ptr->t_header.gh_next) {
+    /* verify timer is supposed to be in the list */
+    assert(ptr->t_header.gh_prev_p);
+    /* verify timer is correctly ordered */
+    assert((struct Timer**) ptr->t_header.gh_prev_p == ptr_p);
+    /* verify timer is active */
+    assert(ptr->t_header.gh_flags & GEN_ACTIVE);
+    /* verify timer ordering is correct */
+    assert(lasttime <= ptr->t_expire);
+
+    lasttime = ptr->t_expire; /* store time for ordering check */
+    ptr_p = (struct Timer**) &ptr->t_header.gh_next; /* store prev pointer */
+  }
+}
+#endif
+
 /* Initialize a timer structure */
 struct Timer*
 timer_init(struct Timer* timer)
@@ -455,6 +481,8 @@ timer_run(void)
   struct Timer* ptr;
   struct Timer* next = 0;
 
+  timer_verify();
+
   /* go through queue... */
   for (ptr = evInfo.gens.g_timer; ptr; ptr = next) {
     next = (struct Timer*) ptr->t_header.gh_next;
@@ -478,6 +506,8 @@ timer_run(void)
       ptr->t_header.gh_flags &= ~GEN_READD;
     }
   }
+
+  timer_verify();
 }
 
 /* Adds a signal to the event callback system */
