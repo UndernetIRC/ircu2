@@ -1,3 +1,11 @@
+2005-02-02  Michael Poole <mdpoole@troilus.org>
+
+	* Makefile.in (install): Do not create ${prefix}/include since it
+	is no longer used.
+
+	* ircd/Makefile.in (install-*): Remove commented-out code to touch
+	and chown MPATH and RPATH.
+
 2005-01-26  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_alloc.h (DoMallocZero): Parenthesize macro
@@ -7,7 +15,7 @@
 	* include/memdebug.h (fda_get_byte_count, fda_get_block_count):
 	Declare functions used outside memdebug.c.
 
-	* ircd/Makefile.c (UMKPASSWD_SRC): Add memdebug.c.
+	* ircd/Makefile.in (UMKPASSWD_SRC): Add memdebug.c.
 
 	* ircd/ircd_alloc.c (DoMalloc, DoMallocZero, DoRealloc): Do not
 	use these if using the memdebug version.

@@ -290,11 +290,6 @@ install-with-symlink: build mkbindir
 	@${RM} /tmp/ircd.tag
 	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} umkpasswd ${BINDIR}
 	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ${top_srcdir}/doc/example.conf ${DPATH}
-# 	( cd ${DPATH}; \
-# 	  ${TOUCH} ${MPATH}; \
-# 	  ${TOUCH} ${RPATH}; \
-# 	  ${CHOWN} ${IRCDOWN} ${MPATH} ${RPATH}; \
-# 	  ${CHGRP} ${IRCDGRP} ${MPATH} ${RPATH}; )
 
 install-no-symlink: build mkbindir
 	@if [ ! -d ${DPATH} -a ! -f ${DPATH} ]; then \
@@ -307,11 +302,6 @@ install-no-symlink: build mkbindir
 	@echo "Installing new ircd as ${BINDIR}/ircd :"
 	${INSTALL} -m ${IRCDMODE} -o ${IRCDOWN} -g ${IRCDGRP} ircd ${BINDIR}/ircd
 	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ${top_srcdir}/doc/example.conf ${DPATH}
-# 	( cd ${DPATH}; \
-# 	  ${TOUCH} ${MPATH}; \
-# 	  ${TOUCH} ${RPATH}; \
-# 	  ${CHOWN} ${IRCDOWN} ${MPATH} ${RPATH}; \
-# 	  ${CHGRP} ${IRCDGRP} ${MPATH} ${RPATH}; )
 
 uninstall:
 	@if [ "${BINDIR}" != "${DPATH}" ]; then \
