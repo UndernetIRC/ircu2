@@ -17,8 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of juped server handling functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -44,8 +46,16 @@
 #include <assert.h>
 #include <string.h>
 
+/** List of jupes. */
 static struct Jupe *GlobalJupeList = 0;
 
+/** Allocate a new jupe with the given parameters.
+ * @param[in] server Server name to jupe.
+ * @param[in] reason Reason for jupe.
+ * @param[in] expire Expiration time for jupe.
+ * @param[in] lastmod Last modification time for jupe.
+ * @param[in] flags Flags to set for the jupe.
+ */
 static struct Jupe *
 make_jupe(char *server, char *reason, time_t expire, time_t lastmod,
 	  unsigned int flags)
@@ -70,6 +80,11 @@ make_jupe(char *server, char *reason, time_t expire, time_t lastmod,
   return ajupe;
 }
 
+/** Apply a jupe.
+ * @param[in] cptr Local client that sent us the jupe.
+ * @param[in] sptr Originator of the jupe.
+ * @param[in] jupe Jupe to check.
+ */
 static int
 do_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
 {
@@ -87,6 +102,11 @@ do_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
   return exit_client_msg(cptr, acptr, &me, "Juped: %s", jupe->ju_reason);
 }
 
+/** Forward a jupe to another server.
+ * @param[in] cptr Local client that sent us the jupe.
+ * @param[in] sptr Originator of the jupe.
+ * @param[in] jupe Jupe to forward.
+ */
 static void
 propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
 {
@@ -99,6 +119,17 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
 			jupe->ju_reason);
 }
 
+/** Add a new server jupe.
+ * @param[in] cptr Local client that sent us the jupe.
+ * @param[in] sptr Originator of the jupe.
+ * @param[in] server Server name to jupe.
+ * @param[in] reason Reason for the jupe.
+ * @param[in] expire Jupe duration in seconds.
+ * @param[in] lastmod Last modification timestamp (or NULL).
+ * @param[in] flags Flags to set on jupe.
+ * @return Zero, unless the jupe causes \a cptr to be SQUIT, in which
+ * case CPTR_KILLED.
+ */
 int
 jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 	 time_t expire, time_t lastmod, unsigned int flags)
@@ -142,6 +173,15 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
   return do_jupe(cptr, sptr, ajupe); /* remove server if necessary */
 }
 
+/** Activate a jupe, optionally changing its lastmod and flags.
+ * @param[in] cptr Local client that sent us the jupe.
+ * @param[in] sptr Originator of the jupe.
+ * @param[in] jupe Jupe to activate.
+ * @param[in] lastmod New timestamp for last modification of the jupe.
+ * @param[in] flags Flags to set on the jupe.
+ * @return Zero, unless the jupe causes \a cptr to be SQUIT, in which
+ * case CPTR_KILLED.
+ */
 int
 jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 	      time_t lastmod, unsigned int flags)
@@ -185,6 +225,14 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   return do_jupe(cptr, sptr, jupe);
 }
 
+/** Deactivate a jupe.
+ * @param[in] cptr Local client that sent us the jupe.
+ * @param[in] sptr Originator of the jupe.
+ * @param[in] jupe Jupe to deactivate.
+ * @param[in] lastmod New timestamp for last modification of the jupe.
+ * @param[in] flags Flags to set on the jupe.
+ * @return Zero.
+ */
 int
 jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 		time_t lastmod, unsigned int flags)
@@ -234,6 +282,10 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   return 0;
 }
 
+/** Find a jupe by name.
+ * @param[in] server %Jupe name to search for.
+ * @return Matching jupe (or NULL if none match).
+ */
 struct Jupe *
 jupe_find(char *server)
 {
@@ -252,6 +304,9 @@ jupe_find(char *server)
   return 0;
 }
 
+/** Unlink and free an unused jupe.
+ * @param[in] jupe Server jupe to free.
+ */
 void
 jupe_free(struct Jupe* jupe)
 {
@@ -266,6 +321,9 @@ jupe_free(struct Jupe* jupe)
   MyFree(jupe);
 }
 
+/** Send the full list of active global jupes to \a cptr.
+ * @param[in] cptr Local server to send jupes to.
+ */
 void
 jupe_burst(struct Client *cptr)
 {
@@ -285,6 +343,10 @@ jupe_burst(struct Client *cptr)
   }
 }
 
+/** Forward a jupe to another server.
+ * @param[in] cptr %Server to send jupe to.
+ * @param[in] jupe Jupe to forward.
+ */
 int
 jupe_resend(struct Client *cptr, struct Jupe *jupe)
 {
@@ -299,6 +361,11 @@ jupe_resend(struct Client *cptr, struct Jupe *jupe)
   return 0;
 }
 
+/** Send a jupe (or a list of jupes) to a server.
+ * @param[in] sptr Client searching for jupes.
+ * @param[in] server Name of jupe to search for (if NULL, list all).
+ * @return Zero.
+ */
 int
 jupe_list(struct Client *sptr, char *server)
 {
@@ -331,6 +398,10 @@ jupe_list(struct Client *sptr, char *server)
   return send_reply(sptr, RPL_ENDOFJUPELIST);
 }
 
+/** Count jupes and memory used by them.
+ * @param[out] ju_size Receives total number of bytes allocated for jupes.
+ * @return Number of jupes currently allocated.
+ */
 int
 jupe_memory_count(size_t *ju_size)
 {
