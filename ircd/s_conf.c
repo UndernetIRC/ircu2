@@ -847,13 +847,16 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
   assert(0 != conf);
   memset(conf, 0, sizeof(struct DenyConf));
 
+  if (fields[1][0] == '$' && fields[1][1] == 'R')
+    conf->flags |= DENY_FLAGS_REALNAME;
+
   DupString(conf->hostmask, fields[1]);
   collapse(conf->hostmask);
 
   if (!EmptyString(fields[2])) {
     const char* p = fields[2];
     if ('!' == *p) {
-      conf->is_file = 1;
+      conf->flags |= DENY_FLAGS_FILE;
       ++p;
     }
     DupString(conf->message, p);
@@ -886,6 +889,7 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
     conf->s_addr = inet_addr(ipname);
     Debug((DEBUG_DEBUG, "IPkill: %s = %08x/%i (%08x)", ipname,
            conf->s_addr, conf->bits, NETMASK(conf->bits)));
+    conf->flags |= DENY_FLAGS_IP;
   }
   conf->next = denyConfList;
   denyConfList = conf;
@@ -1383,6 +1387,7 @@ int find_kill(struct Client *cptr)
 {
   const char*      host;
   const char*      name;
+  const char*      realname;
   struct DenyConf* deny;
   struct Gline*    agline = NULL;
 
@@ -1393,21 +1398,26 @@ int find_kill(struct Client *cptr)
 
   host = cli_sockhost(cptr);
   name = cli_user(cptr)->username;
+  realname = cli_info(cptr);
 
   assert(strlen(host) <= HOSTLEN);
   assert((name ? strlen(name) : 0) <= HOSTLEN);
-  
+  assert((realname ? strlen(realname) : 0) <= REALLEN);
+
   /* 2000-07-14: Rewrote this loop for massive speed increases.
    *             -- Isomer
    */
   for (deny = denyConfList; deny; deny = deny->next) {
     if (0 != match(deny->usermask, name))
       continue;
-            
+
     if (EmptyString(deny->hostmask))
       break;
-    
-    if (deny->ip_kill) { /* k: by IP */
+
+    if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
+      if (0 == match(deny->hostmask + 2, realname))
+	break;
+    } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
       Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
              cli_ip(cptr).s_addr, deny->s_addr, deny->bits, NETMASK(deny->bits)));
       if ((cli_ip(cptr).s_addr & NETMASK(deny->bits)) == deny->s_addr)
@@ -1421,7 +1431,7 @@ int find_kill(struct Client *cptr)
       send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
                  ":Connection from your host is refused on this server.");
     else {
-      if (deny->is_file)
+      if (deny->flags & DENY_FLAGS_FILE)
         killcomment(cptr, deny->message);
       else
         send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", deny->message);

@@ -394,6 +394,7 @@ struct Client {
 #define SetOper(x)              (cli_flags(x) |= FLAGS_OPER)
 #define SetUPing(x)             (cli_flags(x) |= FLAGS_UPING)
 #define SetWallops(x)           (cli_flags(x) |= FLAGS_WALLOP)
+#define SetServNotice(x)        (cli_flags(x) |= FLAGS_SERVNOTICE)
 
 #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
 #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)
@@ -407,6 +408,7 @@ struct Client {
 #define ClearOper(x)            (cli_flags(x) &= ~FLAGS_OPER)
 #define ClearUPing(x)           (cli_flags(x) &= ~FLAGS_UPING)
 #define ClearWallops(x)         (cli_flags(x) &= ~FLAGS_WALLOP)
+#define ClearServNotice(x)      (cli_flags(x) &= ~FLAGS_SERVNOTICE)
 
 /* server notice stuff */
 

@@ -166,7 +166,7 @@ void report_deny_list(struct Client* to)
 {
   const struct DenyConf* p = conf_get_deny_list();
   for ( ; p; p = p->next)
-    send_reply(to, RPL_STATSKLINE, (p->ip_kill) ? 'k' : 'K',
+    send_reply(to, RPL_STATSKLINE, (p->flags & DENY_FLAGS_IP) ? 'k' : 'K',
                p->hostmask, p->message, p->usermask);
 }
 

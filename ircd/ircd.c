@@ -62,6 +62,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 
@@ -99,7 +100,7 @@ static char   *dpath             = DPATH;
 time_t         nextconnect       = 1; // time for next try_connections call
 time_t         nextping          = 1; // same as above for check_pings()
 
-static struct Daemon thisServer  = { 0 };     // server process info 
+static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
 
 int running;
 
@@ -163,22 +164,45 @@ static void outofmemory(void) {
  * write_pidfile
  *--------------------------------------------------------------------------*/
 static void write_pidfile(void) {
-  FILE *pidf;
+  char buff[20];
 
-  if (!(pidf = fopen(feature_str(FEAT_PPATH), "w+"))) {
-    Debug((DEBUG_NOTICE, 
-	   "Error opening pid file \"%s\": %s", feature_str(FEAT_PPATH),
-	   strerror(errno)));
+  if (thisServer.pid_fd >= 0) {
+    memset(buff, 0, sizeof(buff));
+    sprintf(buff, "%5d\n", (int)getpid());
+    if (write(thisServer.pid_fd, buff, strlen(buff)) == -1)
+      Debug((DEBUG_NOTICE, "Error writing to pid file %s: %m",
+	     feature_str(FEAT_PPATH)));
     return;
   }
-    
-  if (fprintf(pidf, "%5d\n", getpid()) < 5)
-    Debug((DEBUG_NOTICE, "Error writing to pid file %s",
-	   feature_str(FEAT_PPATH)));
-
-  fclose(pidf);
+  Debug((DEBUG_NOTICE, "Error opening pid file %s: %m",
+	 feature_str(FEAT_PPATH)));
 }
 
+/* check_pid
+ * 
+ * inputs: 
+ *   none
+ * returns:
+ *   true - if the pid file exists (and is readable), and the pid refered
+ *          to in the file is still running.
+ *   false - otherwise.
+ */
+static int check_pid(void)
+{
+  struct flock lock;
+
+  lock.l_type = F_WRLCK;
+  lock.l_start = 0;
+  lock.l_whence = SEEK_SET;
+  lock.l_len = 0;
+
+  if ((thisServer.pid_fd = open(feature_str(FEAT_PPATH), O_CREAT | O_RDWR,
+				0600)) >= 0)
+    return fcntl(thisServer.pid_fd, F_SETLK, &lock);
+
+  return 0;
+}
+  
 
 /*----------------------------------------------------------------------------
  * try_connections
@@ -650,7 +674,10 @@ int main(int argc, char **argv) {
   setup_signals();
   feature_init(); /* initialize features... */
   log_init(*argv);
-
+  if (check_pid()) {
+    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
+    exit(2);
+  }
   set_nomem_handler(outofmemory);
   
   if (!init_string()) {

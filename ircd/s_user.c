@@ -34,6 +34,7 @@
 #include "ircd_chattr.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -362,8 +363,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
         {
           last_too_many1 = CurrentTime;
           sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections in "
-                               "class for %s.",
-                               get_client_name(sptr, HIDE_IP));
+                               "class %i for %s.", get_client_class(sptr),
+                               get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
         IPcheck_connect_fail(cli_ip(sptr));
@@ -376,7 +377,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
           last_too_many2 = CurrentTime;
           sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections from "
                                "same IP for %s.",
-                               get_client_name(sptr, HIDE_IP));
+                               get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
         return exit_client(cptr, sptr, &me,
@@ -1101,9 +1102,9 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
           tmpmask = (what == MODE_ADD) ?
               (IsAnOper(sptr) ? SNO_OPERDEFAULT : SNO_DEFAULT) : 0;
         if (tmpmask)
-          cli_flags(sptr) |= FLAGS_SERVNOTICE;
+	  SetServNotice(sptr);
         else
-          cli_flags(sptr) &= ~FLAGS_SERVNOTICE;
+	  ClearServNotice(sptr);
         break;
       case 'w':
         if (what == MODE_ADD)
@@ -1183,15 +1184,27 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     if (feature_bool(FEAT_WALLOPS_OPER_ONLY) && !IsAnOper(sptr) &&
 	!(setflags & FLAGS_WALLOP))
       ClearWallops(sptr);
+#ifdef SERVNOTICE_OPER_ONLY
+    if (MyConnect(sptr) && !IsAnOper(sptr) && !(setflags & FLAGS_SERVNOTICE)) {
+      ClearServNotice(sptr);
+      set_snomask(sptr, 0, SNO_SET);
+    }
+#endif
+#ifdef DEBUG_OPER_ONLY
+    if (!IsAnOper(sptr) && !(setflags & FLAGS_DEBUG))
+      ClearDebug(sptr);
+#endif
   }
   if (MyConnect(sptr)) {
     if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
 
-    if (tmpmask != cli_snomask(sptr))
-      set_snomask(sptr, tmpmask, SNO_SET);
-    if (cli_snomask(sptr) && snomask_given)
-      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
+    if (SendServNotice(sptr)) {
+      if (tmpmask != cli_snomask(sptr))
+	set_snomask(sptr, tmpmask, SNO_SET);
+      if (cli_snomask(sptr) && snomask_given)
+	send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
+    }
   }
   /*
    * Compare new flags with old flags and send string which

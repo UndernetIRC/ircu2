@@ -1,3 +1,87 @@
+2001-04-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c: keep the $R in memory so we can see it clearly
+	when we do a /stats k
+
+	* ircd/s_user.c (set_user_mode): pull-up of changes to prevent
+	users from turning on +s and +g
+
+	* ircd/s_misc.c (exit_client): pull-up of changes to turn off
+	net.split notice
+
+	* ircd/parse.c: pull-up of changes to disable /trace, /links, and
+	/map for users
+
+	* ircd/m_whois.c (do_whois): pull-up of server name masking for
+	/whois
+
+	* ircd/m_user.c (m_user): removal of umode and snomask defaulting
+	functions, pull-up
+
+	* ircd/m_stats.c (m_stats): pull-up of stats-disabling stuff
+
+	* ircd/m_map.c (m_map_redirect): pull-up of m_map_redirect()
+
+	* ircd/m_links.c (m_links_redirect): pull-up of m_links_redirect()
+
+	* ircd/channel.c (channel_modes): pull-up of channel key display
+	as *
+
+	* include/ircd_policy.h: pull-up of ircd_policy.h
+
+	* include/client.h: pull-up of Set/ClearServNotice()
+
+	* ircd/gline.c (do_gline): report client name in G-line message
+	(pull-up)
+
+	* ircd/s_user.c (register_user): pull-up--show IP address in some
+	server notices dealing only with users; report which connection
+	class has filled up
+
+	* ircd/s_stats.c (report_deny_list): use conf->flags &
+	DENY_FLAGS_IP insteaf of conf->ip_kill
+
+	* ircd/m_stats.c (report_klines): use conf->flags & DENY_FLAGS_IP
+	insteaf of conf->ip_kill
+
+	* ircd/s_conf.c: use flags field in struct DenyConf; pull-up of
+	K-line by real name
+
+	* include/s_conf.h: use a flags field in struct DenyConf; define
+	DENY_FLAGS_FILE, DENY_FLAGS_IP, and DENY_FLAGS_REALNAME for
+	pull-up of K-line by real name
+
+	* ircd/m_trace.c: pull-up of IP show for user connections
+
+	* doc/example.conf: pull-up of the realname K-line documentation
+
+	* ircd/ircd.c: forward port of pid file advisory locking mechanism
+
+2001-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (sendcmdto_flag_butone): recast to just broadcast to
+	all servers, rather than to only servers that have +w/+g/whatever
+	users on them; among other things, this removes that atrocity
+	known as sentalong[] from this function
+
+	* ircd/m_admin.c: must include ircd.h to declare "me"; must
+	include hash.h to declare FindUser()
+
+	* ircd/m_wallusers.c: implementation of WALLUSERS
+
+	* ircd/m_desynch.c (ms_desynch): only send DESYNCHs to opers
+
+	* ircd/m_wallops.c: only send WALLOPS to opers
+
+	* ircd/parse.c: add WALLUSERS command to parser table
+
+	* include/handlers.h: declare wallusers handlers
+
+	* include/msg.h: add WALLUSERS command
+
+	* ircd/send.c (sendcmdto_flag_butone): if FLAGS_OPER is or'd with
+	flag, send only to appropriate opers
+
 2001-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/uping.c: refit to use the new events interface

@@ -19,6 +19,7 @@
  *
  * $Id$
  */
+#include "config.h"
 #include "parse.h"
 #include "client.h"
 #include "channel.h"
@@ -28,6 +29,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -182,6 +184,13 @@ struct Message msgtab[] = {
     { m_unregistered, m_not_oper, ms_wallops, mo_wallops, m_ignore }
   },
   {
+    MSG_WALLUSERS,
+    TOK_WALLUSERS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_wallusers, mo_wallusers, m_ignore }
+  },
+  {
     MSG_DESYNCH,
     TOK_DESYNCH,
     0, MAXPARA, MFLG_SLOW, 0,
@@ -305,7 +314,11 @@ struct Message msgtab[] = {
     TOK_TRACE,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifdef HEAD_IN_SAND_TRACE
+    { m_unregistered, m_not_oper, ms_trace, mo_trace, m_ignore }
+#else
     { m_unregistered, m_trace, ms_trace, mo_trace, m_ignore }
+#endif
   },
   {
     MSG_PASS,
@@ -368,7 +381,11 @@ struct Message msgtab[] = {
     TOK_MAP,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifdef HEAD_IN_SAND_MAP
+    { m_unregistered, m_map_redirect, m_ignore, m_map, m_ignore }
+#else
     { m_unregistered, m_map, m_ignore, m_map, m_ignore }
+#endif
   },
   {
     MSG_VERSION,
@@ -389,7 +406,11 @@ struct Message msgtab[] = {
     TOK_LINKS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifdef HEAD_IN_SAND_LINKS
+    { m_unregistered, m_links_redirect, ms_links, m_links, m_ignore }
+#else
     { m_unregistered, m_links, ms_links, m_links, m_ignore }
+#endif
   },
   {
     MSG_ADMIN,

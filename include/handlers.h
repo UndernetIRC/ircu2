@@ -98,9 +98,11 @@ extern int m_join(struct Client*, struct Client*, int, char*[]);
 extern int m_jupe(struct Client*, struct Client*, int, char*[]);
 extern int m_kick(struct Client*, struct Client*, int, char*[]);
 extern int m_links(struct Client*, struct Client*, int, char*[]);
+extern int m_links_redirect(struct Client*, struct Client*, int, char*[]);
 extern int m_list(struct Client*, struct Client*, int, char*[]);
 extern int m_lusers(struct Client*, struct Client*, int, char*[]);
 extern int m_map(struct Client*, struct Client*, int, char*[]);
+extern int m_map_redirect(struct Client*, struct Client*, int, char*[]);
 extern int m_mode(struct Client*, struct Client*, int, char*[]);
 extern int m_motd(struct Client*, struct Client*, int, char*[]);
 extern int m_names(struct Client*, struct Client*, int, char*[]);
@@ -158,6 +160,7 @@ extern int mo_stats(struct Client*, struct Client*, int, char*[]);
 extern int mo_trace(struct Client*, struct Client*, int, char*[]);
 extern int mo_uping(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallops(struct Client*, struct Client*, int, char*[]);
+extern int mo_wallusers(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
 extern int mr_server(struct Client*, struct Client*, int, char*[]);
@@ -206,6 +209,7 @@ extern int ms_uping(struct Client*, struct Client*, int, char*[]);
 extern int ms_version(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallops(struct Client*, struct Client*, int, char*[]);
+extern int ms_wallusers(struct Client*, struct Client*, int, char*[]);
 
 
 #endif /* INCLUDED_handlers_h */

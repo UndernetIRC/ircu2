@@ -154,6 +154,10 @@ struct Client;
 #define TOK_WALLOPS             "WA"
 #define CMD_WALLOPS		MSG_WALLOPS, TOK_WALLOPS
 
+#define MSG_WALLUSERS           "WALLUSERS"     /* WALL */
+#define TOK_WALLUSERS           "WU"
+#define CMD_WALLUSERS		MSG_WALLUSERS, TOK_WALLUSERS
+
 #define MSG_DESYNCH             "DESYNCH"       /* DESY */
 #define TOK_DESYNCH             "DS"
 #define CMD_DESYNCH		MSG_DESYNCH, TOK_DESYNCH
