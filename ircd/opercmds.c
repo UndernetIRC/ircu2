@@ -68,7 +68,7 @@ char *militime_float(char* start)
   gettimeofday(&tv, NULL);
   if (start) {
     if ((p = strchr(start, '.'))) {
-      *p++;
+      *p++ = '\0';
       sprintf(timebuf, "%ld",
           (tv.tv_sec - atoi(start)) * 1000 + (tv.tv_usec - atoi(p)) / 1000);
     } else 
