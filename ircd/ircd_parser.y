@@ -69,7 +69,7 @@
 
   int yylex(void);
   /* Now all the globals we need :/... */
-  int tping, tconn, maxlinks, sendq, port;
+  int tping, tconn, maxlinks, sendq, port, invert;
   int stringno;
   char *name, *pass, *host;
   char *stringlist[MAX_STRINGS];
@@ -521,7 +521,7 @@ operblock: OPER
   }
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operlocal | operhost | operclass | operpriv | error;
+operitem: opername | operpass | operhost | operclass | operpriv | error;
 
 opername: NAME '=' QSTRING ';'
 {
@@ -533,17 +533,6 @@ operpass: PASS '=' QSTRING ';'
 {
   MyFree(aconf->passwd);
   DupString(aconf->passwd, yylval.text);
-};
-
-operlocal: LOCAL '=' YES ';'
-{
-  /* XXX it would be good to get rid of local operators and add same
-   * permission values here. But for now, I am just going with local 
-   * opers... */
-  aconf->status = CONF_LOCOP;
-} | LOCAL '=' NO ';'
-{
-  aconf->status = CONF_OPERATOR;
 };
 
 operhost: HOST '=' QSTRING ';'
@@ -567,16 +556,12 @@ operclass: CLASS '=' QSTRING ';'
 
 operpriv: privtype '=' yesorno ';'
 {
-  if ($3 == 1)
-  {
-    PrivSet(&aconf->privs_dirty, $1);
+  PrivSet(&aconf->privs_dirty, $1);
+  if (($3 == 1) ^ invert)
     PrivSet(&aconf->privs, $1);
-  }
   else
-  {
-    PrivSet(&aconf->privs_dirty, $1);
     PrivClr(&aconf->privs, $1);
-  }
+  invert = 0;
 };
 
 privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
@@ -605,7 +590,8 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
           TPRIV_UNLIMIT_QUERY { $$ = PRIV_UNLIMIT_QUERY; } |
           TPRIV_DISPLAY { $$ = PRIV_DISPLAY; } |
           TPRIV_SEE_OPERS { $$ = PRIV_SEE_OPERS; } |
-          TPRIV_WIDE_GLINE { $$ = PRIV_WIDE_GLINE; };
+          TPRIV_WIDE_GLINE { $$ = PRIV_WIDE_GLINE; } |
+          LOCAL { $$ = PRIV_PROPAGATE; invert = 1; };
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 

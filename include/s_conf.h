@@ -37,14 +37,12 @@ struct Message;
 #define CONF_MATCH              0x40000000
 #define CONF_CLIENT             0x0002
 #define CONF_SERVER             0x0004
-#define CONF_LOCOP              0x0010
 #define CONF_OPERATOR           0x0020
 #define CONF_LEAF               0x1000
 #define CONF_HUB                0x4000
 #define CONF_UWORLD             0x8000
 
-#define CONF_OPS                (CONF_OPERATOR | CONF_LOCOP)
-#define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPS | CONF_SERVER)
+#define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPERATOR | CONF_SERVER)
 
 #define IsIllegal(x)    ((x)->status & CONF_ILLEGAL)
 

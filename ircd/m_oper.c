@@ -138,10 +138,10 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(name) || EmptyString(password))
     return need_more_params(sptr, "OPER");
 
-  aconf = find_conf_exact(name, cli_username(sptr), cli_sockhost(sptr), CONF_OPS);
+  aconf = find_conf_exact(name, cli_username(sptr), cli_sockhost(sptr), CONF_OPERATOR);
   if (!aconf) 
     aconf = find_conf_exact(name, cli_username(sptr),
-                            ircd_ntoa((const char*) &(cli_ip(cptr))), CONF_OPS);
+                            ircd_ntoa((const char*) &(cli_ip(cptr))), CONF_OPERATOR);
 
   if (!aconf || IsIllegal(aconf))
   {
@@ -150,7 +150,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 parv[0], cli_user(sptr)->username, cli_sockhost(sptr));
     return 0;
   }
-  assert(0 != (aconf->status & CONF_OPS));
+  assert(0 != (aconf->status & CONF_OPERATOR));
 
   if (oper_password_match(password, aconf->passwd))
   {
@@ -163,7 +163,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			   cli_sockhost(sptr));
       return 0;
     }
-    if (CONF_LOCOP == aconf->status) {
+    if (!PrivHas(&aconf->privs, PRIV_PROPAGATE)) {
       ClearOper(sptr);
       SetLocOp(sptr);
     }

@@ -452,7 +452,7 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
     return ACR_ALREADY_AUTHORIZED;
   if (IsIllegal(aconf))
     return ACR_NO_AUTHORIZATION;
-  if ((aconf->status & (CONF_LOCOP | CONF_OPERATOR | CONF_CLIENT)) &&
+  if ((aconf->status & (CONF_OPERATOR | CONF_CLIENT)) &&
       ConfLinks(aconf) >= ConfMaxLinks(aconf) && ConfMaxLinks(aconf) > 0)
     return ACR_TOO_MANY_IN_CLASS;  /* Use this for printing error message */
   lp = make_link();
@@ -550,7 +550,7 @@ struct ConfItem* find_conf_exact(const char* name, const char* user,
      */
     if (match(tmp->host, userhost))
       continue;
-    if (tmp->status & (CONF_OPERATOR | CONF_LOCOP)) {
+    if (tmp->status & CONF_OPERATOR) {
       if (tmp->clients < MaxLinks(tmp->conn_class))
         return tmp;
       else

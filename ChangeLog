@@ -1,3 +1,22 @@
+2004-05-16  Michael Poole <mdpoole@troius.org>
+
+	Get rid of CONF_LOCOP; use PRIV_PROPAGATE instead.
+
+	* ircd/ircd_parser.y (invert): New variable.
+	(operlocal): Remove production.
+	(operpriv): Use "invert" variable.
+	(privtype): Add LOCAL alternative production.
+
+	* ircd/m_oper.c (m_oper): Remove references to CONF_LOCOP; replace
+	with CONF_OPERATOR or PRIV_PROPAGATE checks, as appropriate.
+
+	* ircd/s_conf.c (AuthorizationCheckResult, find_conf_exact):
+	Likewise.
+
+	* ircd/s_stats.c (report_array, statsinfo): Likewise.
+
+	* ircd/s_user.c (set_user_mode): Likewise.
+
 2004-05-15  Michael Poole <mdpoole@troilus.org>
 
 	* patches/diffs/astralnet.diff, patches/diffs/nocfv.diff: Remove

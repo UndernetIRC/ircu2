@@ -74,7 +74,6 @@ static unsigned int report_array[17][3] = {
   {CONF_LEAF, RPL_STATSLLINE, 'L'},
   {CONF_OPERATOR, RPL_STATSOLINE, 'O'},
   {CONF_HUB, RPL_STATSHLINE, 'H'},
-  {CONF_LOCOP, RPL_STATSOLINE, 'o'},
   {CONF_UWORLD, RPL_STATSULINE, 'U'},
   {0, 0}
 };
@@ -460,7 +459,7 @@ struct StatDesc statsinfo[] = {
     stats_commands, 0,
     "Message usage information." },
   { 'o', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
-    stats_configured_links, CONF_OPS,
+    stats_configured_links, CONF_OPERATOR,
     "Operator information." },
   { 'p', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
     show_ports, 0,
