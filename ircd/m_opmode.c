@@ -146,6 +146,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 3)
     return need_more_params(sptr, "OPMODE");
 
+  clean_channelname(parv[1]);
+
   if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
     return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 

@@ -89,6 +89,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_conf.h"
 #include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
@@ -97,6 +98,120 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef CONFIG_NEW_MODE
+int
+m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+{
+  struct Channel *chptr = 0;
+  struct ModeBuf mbuf;
+  struct Membership *member;
+
+  if (parc < 2)
+    return need_more_params(sptr, "MODE");
+
+  clean_channelname(parv[1]);
+
+  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
+    return set_user_mode(cptr, sptr, parc, parv);
+
+  sptr->flags &= ~FLAGS_TS8;
+
+  if (parc < 3) {
+    char modebuf[MODEBUFLEN];
+    char parabuf[MODEBUFLEN];
+
+    *modebuf = *parabuf = '\0';
+    modebuf[1] = '\0';
+    channel_modes(sptr, modebuf, parabuf, chptr);
+    sendto_one(sptr, rpl_str(RPL_CHANNELMODEIS), me.name, parv[0],
+	       chptr->chname, modebuf, parabuf);
+    sendto_one(sptr, rpl_str(RPL_CREATIONTIME), me.name, parv[0],
+	       chptr->chname, chptr->creationtime);
+    return 0;
+  }
+
+  if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
+#ifdef OPER_MODE_LCHAN
+    if (IsOperOnLocalChannel(sptr, chptr->chname)) {
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_CHANNEL | /* Send mode to channel */
+		    MODEBUF_DEST_HACK4));  /* Send HACK(4) notice */
+      mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+		 (MODE_PARSE_SET |    /* Set the mode */
+		  MODE_PARSE_FORCE)); /* Force it to take */
+      return modebuf_flush(&mbuf);
+    } else
+#endif
+      mode_parse(0, cptr, sptr, chptr, parc - 2, parv + 2,
+		 (member ? MODE_PARSE_NOTOPER : MODE_PARSE_NOTMEMBER));
+    return 0;
+  }
+
+  modebuf_init(&mbuf, sptr, cptr, chptr,
+	       (MODEBUF_DEST_CHANNEL | /* Send mode to channel */
+		MODEBUF_DEST_SERVER)); /* Send mode to servers */
+  mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2, MODE_PARSE_SET);
+  return modebuf_flush(&mbuf);
+}
+
+int
+ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+{
+  struct Channel *chptr = 0;
+  struct ModeBuf mbuf;
+  struct Membership *member;
+
+  if (parc < 3)
+    return need_more_params(sptr, "MODE");
+
+  if (IsLocalChannel(parv[1]))
+    return 0;
+
+  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
+    return set_user_mode(cptr, sptr, parc, parv);
+
+  sptr->flags &= ~FLAGS_TS8;
+
+  if (IsServer(sptr)) {
+    if (find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
+		    MODEBUF_DEST_SERVER  | /* Send mode to servers */
+		    MODEBUF_DEST_HACK4));  /* Send a HACK(4) message */
+    else
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
+		    MODEBUF_DEST_SERVER  | /* Send mode to servers */
+		    MODEBUF_DEST_HACK3));  /* Send a HACK(3) message */
+
+    mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+	       (MODE_PARSE_SET    | /* Set the mode */
+		MODE_PARSE_STRICT | /* Interpret it strictly */
+		MODE_PARSE_FORCE)); /* And force it to be accepted */
+  } else {
+    if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_SERVER |  /* Send mode to server */
+		    MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
+		    MODEBUF_DEST_DEOP   |  /* Deop the source */
+		    MODEBUF_DEST_BOUNCE)); /* And bounce the MODE */
+      mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+		 (MODE_PARSE_STRICT |  /* Interpret it strictly */
+		  MODE_PARSE_BOUNCE)); /* And bounce the MODE */
+    } else {
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
+		    MODEBUF_DEST_SERVER)); /* Send mode to servers */
+      mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+		 (MODE_PARSE_SET    | /* Set the mode */
+		  MODE_PARSE_STRICT | /* Interpret it strictly */
+		  MODE_PARSE_FORCE)); /* And force it to be accepted */
+    }
+  }
+
+  return modebuf_flush(&mbuf);
+}
+#else /* CONFIG_NEW_MODE */
 /*
  * m_mode - generic message handler
  */
@@ -311,6 +426,7 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
+#endif /* CONFIG_NEW_MODE */
 
 #if 0
 /*

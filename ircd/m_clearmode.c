@@ -292,6 +292,8 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc > 2)
     control = parv[2];
 
+  clean_channelname(parv[1]);
+
   if (!IsOper(sptr) && !IsLocalChannel(parv[1]))
     return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 

@@ -1084,3 +1084,8 @@ DEFAULTMAXSENDQLENGTH
   (see doc/example.conf for details on Y: lines).  You will probably
   always override this value in your "ircd.conf" with the Y: lines.
   The given value used to be an often used value for client sendqs.
+
+Use new MODE implementation
+CONFIG_NEW_MODE
+  This enables a new implementation of m_mode.  THIS IS AN EXPERIMENTAL
+  FEATURE; DO NOT ENABLE UNLESS YOU KNOW WHAT YOU ARE DOING!

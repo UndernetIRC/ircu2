@@ -384,3 +384,7 @@ comment 'Mandatory defines (you should leave these untouched)'
   int 'Max send queue (40000)' DEFAULTMAXSENDQLENGTH 40000
 endmenu
 
+mainmenu_option next_comment
+comment 'Experimental options (Do you know what you'\''re doing?'
+  bool 'Use new MODE implementation' CONFIG_NEW_MODE
+endmenu

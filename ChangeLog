@@ -1,5 +1,21 @@
 2000-03-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_mode.c (ms_mode): implemented a new m_mode in terms of
+	mode_parse() (version selectable at compile time)
+
+	* ircd/m_clearmode.c (mo_clearmode): clean_channelname(parv[1])
+
+	* ircd/m_opmode.c (mo_opmode): clean_channelname(parv[1])
+
+	* config/config-sh.in: add new config option to enable new m_mode
+	implementation
+
+	* doc/Configure.help: add documentation for new config option
+	CONFIG_NEW_MODE
+
+	* ircd/channel.c (mode_parse_client): /opmode #foobar -o -- 461
+	MODE -v : Not enough parameters
+
 	* ircd/m_clearmode.c (do_clearmode): do_clearmode() would remove
 	+k and +l even if they weren't set...
 
@@ -185,7 +201,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.44 2000-03-30 19:57:22 kev Exp $
+# $Id: ChangeLog,v 1.45 2000-03-30 22:03:36 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
