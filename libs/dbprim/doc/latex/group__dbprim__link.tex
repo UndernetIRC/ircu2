@@ -1,0 +1,549 @@
+\section{Linked lists}
+\label{group__dbprim__link}\index{Linked lists@{Linked lists}}
+Operations for linked lists. 
+\subsection*{Defines}
+\begin{CompactItemize}
+\item 
+\#define {\bf LINK\_\-HEAD\_\-INIT}(extra)
+\begin{CompactList}\small\item\em Linked list head static initializer.\item\end{CompactList}\item 
+\#define {\bf ll\_\-verify}(list)
+\begin{CompactList}\small\item\em Linked list head verification macro.\item\end{CompactList}\item 
+\#define {\bf ll\_\-count}(list)
+\begin{CompactList}\small\item\em Linked list count.\item\end{CompactList}\item 
+\#define {\bf ll\_\-first}(list)
+\begin{CompactList}\small\item\em First element in linked list.\item\end{CompactList}\item 
+\#define {\bf ll\_\-last}(list)
+\begin{CompactList}\small\item\em Last element in a linked list.\item\end{CompactList}\item 
+\#define {\bf ll\_\-extra}(list)
+\begin{CompactList}\small\item\em Extra pointer data in a linked list.\item\end{CompactList}\item 
+\#define {\bf LINK\_\-ELEM\_\-INIT}(obj)
+\begin{CompactList}\small\item\em Linked list element static initializer.\item\end{CompactList}\item 
+\#define {\bf le\_\-verify}(element)
+\begin{CompactList}\small\item\em Linked list element verification macro.\item\end{CompactList}\item 
+\#define {\bf le\_\-next}(elem)
+\begin{CompactList}\small\item\em Linked list element next pointer.\item\end{CompactList}\item 
+\#define {\bf le\_\-prev}(elem)
+\begin{CompactList}\small\item\em Linked list element previous pointer.\item\end{CompactList}\item 
+\#define {\bf le\_\-object}(elem)
+\begin{CompactList}\small\item\em Linked list element object pointer.\item\end{CompactList}\item 
+\#define {\bf le\_\-head}(elem)
+\begin{CompactList}\small\item\em Linked list element head pointer.\item\end{CompactList}\item 
+\#define {\bf le\_\-flags}(elem)
+\begin{CompactList}\small\item\em Linked list element flags.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Typedefs}
+\begin{CompactItemize}
+\item 
+typedef struct \_\-link\_\-head\_\-s {\bf link\_\-head\_\-t}
+\begin{CompactList}\small\item\em Linked list head.\item\end{CompactList}\item 
+typedef struct \_\-link\_\-elem\_\-s {\bf link\_\-elem\_\-t}
+\begin{CompactList}\small\item\em Linked list element.\item\end{CompactList}\item 
+typedef unsigned long ($\ast$ {\bf link\_\-iter\_\-t} )({\bf link\_\-head\_\-t} $\ast$, {\bf link\_\-elem\_\-t} $\ast$, void $\ast$)
+\begin{CompactList}\small\item\em Linked list iteration callback.\item\end{CompactList}\item 
+typedef unsigned long ($\ast$ {\bf link\_\-comp\_\-t} )({\bf db\_\-key\_\-t} $\ast$, void $\ast$)
+\begin{CompactList}\small\item\em Linked list comparison callback.\item\end{CompactList}\item 
+typedef enum {\bf \_\-link\_\-loc\_\-e} {\bf link\_\-loc\_\-t}
+\begin{CompactList}\small\item\em Linked list location.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Enumerations}
+\begin{CompactItemize}
+\item 
+enum {\bf \_\-link\_\-loc\_\-e} \{ {\bf LINK\_\-LOC\_\-HEAD}, 
+{\bf LINK\_\-LOC\_\-TAIL}, 
+{\bf LINK\_\-LOC\_\-BEFORE}, 
+{\bf LINK\_\-LOC\_\-AFTER}
+ \}
+\begin{CompactList}\small\item\em Linked list location.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Functions}
+\begin{CompactItemize}
+\item 
+unsigned long {\bf ll\_\-init} ({\bf link\_\-head\_\-t} $\ast$list, void $\ast$extra)
+\begin{CompactList}\small\item\em Dynamically initialize a linked list head.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-add} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-elem\_\-t} $\ast$new, {\bf link\_\-loc\_\-t} loc, {\bf link\_\-elem\_\-t} $\ast$elem)
+\begin{CompactList}\small\item\em Add an element to a linked list.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-move} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-elem\_\-t} $\ast$new, {\bf link\_\-loc\_\-t} loc, {\bf link\_\-elem\_\-t} $\ast$elem)
+\begin{CompactList}\small\item\em Move an element within a linked list.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-remove} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-elem\_\-t} $\ast$elem)
+\begin{CompactList}\small\item\em Remove an element from a linked list.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-find} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-elem\_\-t} $\ast$$\ast$elem\_\-p, {\bf link\_\-comp\_\-t} comp\_\-func, {\bf link\_\-elem\_\-t} $\ast$start, {\bf db\_\-key\_\-t} $\ast$key)
+\begin{CompactList}\small\item\em Find an element in a linked list.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-iter} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-iter\_\-t} iter\_\-func, void $\ast$extra)
+\begin{CompactList}\small\item\em Iterate over each entry in a linked list.\item\end{CompactList}\item 
+unsigned long {\bf ll\_\-flush} ({\bf link\_\-head\_\-t} $\ast$list, {\bf link\_\-iter\_\-t} flush\_\-func, void $\ast$extra)
+\begin{CompactList}\small\item\em Flush a linked list.\item\end{CompactList}\item 
+unsigned long {\bf le\_\-init} ({\bf link\_\-elem\_\-t} $\ast$elem, void $\ast$object)
+\begin{CompactList}\small\item\em Dynamically initialize a linked list element.\item\end{CompactList}\end{CompactItemize}
+
+
+\subsection{Detailed Description}
+Linked lists are a very basic data structure used in building databases. This library provides a simple yet powerful implementation of generic linked lists, based on two caller-allocated structures. The {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})} structure describes the head of a linked list and contains information regarding the number of elements in the linked list as well as pointers referencing the first and last elements in the list. The {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} structure describes a specific element in the linked list and contains pointers referencing the next and previous elements in the list, as well as a pointer to the object, a pointer to the head of the linked list, and a set of user-specified flags.
+
+Elements may be added at any arbitrary location in the linked list with {\bf ll\_\-add}() {\rm (p.\,\pageref{group__dbprim__link_a6})}; moved to any other arbitrary location in the linked list with {\bf ll\_\-move}() {\rm (p.\,\pageref{group__dbprim__link_a7})}, or removed from the list with {\bf ll\_\-remove}() {\rm (p.\,\pageref{group__dbprim__link_a8})}. In addition, the user may search the list using a user-defined comparison function with {\bf ll\_\-find}() {\rm (p.\,\pageref{group__dbprim__link_a9})}; iterate over every element in the list with {\bf ll\_\-iter}() {\rm (p.\,\pageref{group__dbprim__link_a10})}; or remove all items from the list with {\bf ll\_\-flush}() {\rm (p.\,\pageref{group__dbprim__link_a11})}, optionally executing a user-specified clean-up function. 
+
+\subsection{Define Documentation}
+\index{dbprim_link@{dbprim\_\-link}!LINK_ELEM_INIT@{LINK\_\-ELEM\_\-INIT}}
+\index{LINK_ELEM_INIT@{LINK\_\-ELEM\_\-INIT}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define LINK\_\-ELEM\_\-INIT(obj)}\label{group__dbprim__link_a19}
+
+
+
+
+ This macro statically initializes a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em obj}]A pointer to {\tt void} representing the object associated with the element. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!LINK_HEAD_INIT@{LINK\_\-HEAD\_\-INIT}}
+\index{LINK_HEAD_INIT@{LINK\_\-HEAD\_\-INIT}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define LINK\_\-HEAD\_\-INIT(extra)}\label{group__dbprim__link_a13}
+
+
+
+
+ This macro statically initializes a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em extra}]Extra pointer data that should be associated with the list head. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_flags@{le\_\-flags}}
+\index{le_flags@{le\_\-flags}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-flags(elem)}\label{group__dbprim__link_a25}
+
+
+
+
+ This macro retrieves a set of user-defined flags associated with the element. It may be used as an lvalue to set those flags.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the flags associated with the element. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_head@{le\_\-head}}
+\index{le_head@{le\_\-head}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-head(elem)}\label{group__dbprim__link_a24}
+
+
+
+
+ This macro retrieves a pointer to the head of the linked list that the element is in.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})} representing the head of the linked list the element is in. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_next@{le\_\-next}}
+\index{le_next@{le\_\-next}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-next(elem)}\label{group__dbprim__link_a21}
+
+
+
+
+ This macro retrieves a pointer to the next element in the linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} representing the next element in the linked list. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_object@{le\_\-object}}
+\index{le_object@{le\_\-object}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-object(elem)}\label{group__dbprim__link_a23}
+
+
+
+
+ This macro retrieves a pointer to the object represented by the element. It may be used as an lvalue to change the object pointed to. Care should be taken when using this feature.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\tt void} representing the object associated with the linked list element. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_prev@{le\_\-prev}}
+\index{le_prev@{le\_\-prev}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-prev(elem)}\label{group__dbprim__link_a22}
+
+
+
+
+ This macro retrieves a pointer to the previous element in the linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} representing the previous element in the linked list. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!le_verify@{le\_\-verify}}
+\index{le_verify@{le\_\-verify}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define le\_\-verify(element)}\label{group__dbprim__link_a20}
+
+
+
+
+ This macro verifies that a given pointer actually does point to a linked list element.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em element}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+Boolean true if {\tt element} is a valid linked list element or false otherwise. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_count@{ll\_\-count}}
+\index{ll_count@{ll\_\-count}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define ll\_\-count(list)}\label{group__dbprim__link_a15}
+
+
+
+
+ This macro retrieves the number of elements in a linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing a count of the number of elements in the linked list. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_extra@{ll\_\-extra}}
+\index{ll_extra@{ll\_\-extra}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define ll\_\-extra(list)}\label{group__dbprim__link_a18}
+
+
+
+
+ This macro retrieves the extra pointer data associated with a particular linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\tt void}. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_first@{ll\_\-first}}
+\index{ll_first@{ll\_\-first}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define ll\_\-first(list)}\label{group__dbprim__link_a16}
+
+
+
+
+ This macro retrieves the first element in a linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_last@{ll\_\-last}}
+\index{ll_last@{ll\_\-last}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define ll\_\-last(list)}\label{group__dbprim__link_a17}
+
+
+
+
+ This macro retrieves the last element in a linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}. \end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_verify@{ll\_\-verify}}
+\index{ll_verify@{ll\_\-verify}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define ll\_\-verify(list)}\label{group__dbprim__link_a14}
+
+
+
+
+ This macro verifies that a given pointer actually does point to a linked list head.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+Boolean true if {\tt list} is a valid linked list head or false otherwise. \end{Desc}
+
+
+\subsection{Typedef Documentation}
+\index{dbprim_link@{dbprim\_\-link}!link_comp_t@{link\_\-comp\_\-t}}
+\index{link_comp_t@{link\_\-comp\_\-t}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef unsigned long($\ast$ link\_\-comp\_\-t)({\bf db\_\-key\_\-t} $\ast$, void $\ast$)}\label{group__dbprim__link_a3}
+
+
+
+
+ This function pointer references a callback used by {\bf ll\_\-find}() {\rm (p.\,\pageref{group__dbprim__link_a9})}. It should return 0 if the entry passed as the second argument matches the key passed as the first argument. \index{dbprim_link@{dbprim\_\-link}!link_elem_t@{link\_\-elem\_\-t}}
+\index{link_elem_t@{link\_\-elem\_\-t}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-link\_\-elem\_\-s link\_\-elem\_\-t}\label{group__dbprim__link_a1}
+
+
+
+
+ This structure represents a single element of a linked list. \index{dbprim_link@{dbprim\_\-link}!link_head_t@{link\_\-head\_\-t}}
+\index{link_head_t@{link\_\-head\_\-t}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-link\_\-head\_\-s link\_\-head\_\-t}\label{group__dbprim__link_a0}
+
+
+
+
+ This structure is the head of all linked lists maintained by this library. \index{dbprim_link@{dbprim\_\-link}!link_iter_t@{link\_\-iter\_\-t}}
+\index{link_iter_t@{link\_\-iter\_\-t}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef unsigned long($\ast$ link\_\-iter\_\-t)({\bf link\_\-head\_\-t} $\ast$, {\bf link\_\-elem\_\-t} $\ast$, void $\ast$)}\label{group__dbprim__link_a2}
+
+
+
+
+ This function pointer references a callback used by {\bf ll\_\-iter}() {\rm (p.\,\pageref{group__dbprim__link_a10})} and {\bf ll\_\-flush}() {\rm (p.\,\pageref{group__dbprim__link_a11})}. It should return 0 for success. A non-zero return value will terminate the operation and will become the return value of the {\bf ll\_\-iter}() {\rm (p.\,\pageref{group__dbprim__link_a10})} or {\bf ll\_\-flush}() {\rm (p.\,\pageref{group__dbprim__link_a11})} call. \index{dbprim_link@{dbprim\_\-link}!link_loc_t@{link\_\-loc\_\-t}}
+\index{link_loc_t@{link\_\-loc\_\-t}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef enum {\bf \_\-link\_\-loc\_\-e} link\_\-loc\_\-t}\label{group__dbprim__link_a4}
+
+
+
+
+ See the documentation for the enumeration {\bf \_\-link\_\-loc\_\-e} {\rm (p.\,\pageref{group__dbprim__link_a26})}. 
+
+\subsection{Enumeration Type Documentation}
+\index{dbprim_link@{dbprim\_\-link}!_link_loc_e@{\_\-link\_\-loc\_\-e}}
+\index{_link_loc_e@{\_\-link\_\-loc\_\-e}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}enum \_\-link\_\-loc\_\-e}\label{group__dbprim__link_a26}
+
+
+
+
+ This enumeration is used to specify where an element in a linked list should be placed. It should be referenced by the typedef {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})}. \begin{Desc}
+\item[{\bf Enumeration values:}]\par
+\begin{description}
+\index{LINK_LOC_HEAD@{LINK\_\-LOC\_\-HEAD}!dbprim_link@{dbprim\_\-link}}\index{dbprim_link@{dbprim\_\-link}!LINK_LOC_HEAD@{LINK\_\-LOC\_\-HEAD}}\item[
+{\em LINK\_\-LOC\_\-HEAD}\label{group__dbprim__link_a26a98}
+]Element should be inserted at head of list. \index{LINK_LOC_TAIL@{LINK\_\-LOC\_\-TAIL}!dbprim_link@{dbprim\_\-link}}\index{dbprim_link@{dbprim\_\-link}!LINK_LOC_TAIL@{LINK\_\-LOC\_\-TAIL}}\item[
+{\em LINK\_\-LOC\_\-TAIL}\label{group__dbprim__link_a26a99}
+]Element should be inserted at tail of list. \index{LINK_LOC_BEFORE@{LINK\_\-LOC\_\-BEFORE}!dbprim_link@{dbprim\_\-link}}\index{dbprim_link@{dbprim\_\-link}!LINK_LOC_BEFORE@{LINK\_\-LOC\_\-BEFORE}}\item[
+{\em LINK\_\-LOC\_\-BEFORE}\label{group__dbprim__link_a26a100}
+]Element should be inserted before specified element. \index{LINK_LOC_AFTER@{LINK\_\-LOC\_\-AFTER}!dbprim_link@{dbprim\_\-link}}\index{dbprim_link@{dbprim\_\-link}!LINK_LOC_AFTER@{LINK\_\-LOC\_\-AFTER}}\item[
+{\em LINK\_\-LOC\_\-AFTER}\label{group__dbprim__link_a26a101}
+]Element should be inserted after specified element. \end{description}
+\end{Desc}
+
+
+
+\subsection{Function Documentation}
+\index{dbprim_link@{dbprim\_\-link}!le_init@{le\_\-init}}
+\index{le_init@{le\_\-init}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long le\_\-init ({\bf link\_\-elem\_\-t} $\ast$ {\em elem}, void $\ast$ {\em object})}\label{group__dbprim__link_a12}
+
+
+
+
+ This function dynamically initializes a linked list element.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} to be initialized. \item[
+{\em object}]A pointer to {\tt void} used to represent the object associated with the element. May not be {\tt NULL}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]A {\tt NULL} pointer was passed for {\tt elem} or {\tt object}. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_add@{ll\_\-add}}
+\index{ll_add@{ll\_\-add}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-add ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-elem\_\-t} $\ast$ {\em new}, {\bf link\_\-loc\_\-t} {\em loc}, {\bf link\_\-elem\_\-t} $\ast$ {\em elem})}\label{group__dbprim__link_a6}
+
+
+
+
+ This function adds a given element to a specified linked list in the specified location.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em new}]A pointer to the {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} to be added to the linked list. \item[
+{\em loc}]A {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})} indicating where the entry should be added. \item[
+{\em elem}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} describing another element in the list if {\tt loc} is {\bf LINK\_\-LOC\_\-BEFORE} {\rm (p.\,\pageref{group__dbprim__link_a26a100})} or {\bf LINK\_\-LOC\_\-AFTER} {\rm (p.\,\pageref{group__dbprim__link_a26a101})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-BUSY}]The element is already in a list. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt elem} is in a different list. \item[
+{\em DB\_\-ERR\_\-UNUSED}]{\tt elem} is not in any list. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_find@{ll\_\-find}}
+\index{ll_find@{ll\_\-find}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-find ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-elem\_\-t} $\ast$$\ast$ {\em elem\_\-p}, {\bf link\_\-comp\_\-t} {\em comp\_\-func}, {\bf link\_\-elem\_\-t} $\ast$ {\em start}, {\bf db\_\-key\_\-t} $\ast$ {\em key})}\label{group__dbprim__link_a9}
+
+
+
+
+ This function iterates through a linked list looking for an element that matches the given {\tt key}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em elem\_\-p}]A pointer to a pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})}. This is a result parameter. {\tt NULL} is an invalid value. \item[
+{\em comp\_\-func}]A pointer to a comparison function used to compare the key to a particular element. See the documentation for {\bf link\_\-comp\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a3})} for more information. \item[
+{\em start}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} describing where in the linked list to start. If {\tt NULL} is passed, the beginning of the list will be assumed. \item[
+{\em key}]A key to search for.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt start} is not in this linked list. \item[
+{\em DB\_\-ERR\_\-NOENTRY}]No matching entry was found. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_flush@{ll\_\-flush}}
+\index{ll_flush@{ll\_\-flush}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-flush ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-iter\_\-t} {\em flush\_\-func}, void $\ast$ {\em extra})}\label{group__dbprim__link_a11}
+
+
+
+
+ This function flushes a linked list--that is, it removes each element from the list. If a {\tt flush\_\-func} is specified, it will be called on the entry after it has been removed from the list, and may safely call {\tt free()}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em flush\_\-func}]A pointer to a callback function used to perform user-specified actions on an element after removing it from the list. May be {\tt NULL}. See the documentation for {\bf link\_\-iter\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a2})} for more information. \item[
+{\em extra}]A {\tt void} pointer that will be passed to {\tt flush\_\-func}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_init@{ll\_\-init}}
+\index{ll_init@{ll\_\-init}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-init ({\bf link\_\-head\_\-t} $\ast$ {\em list}, void $\ast$ {\em extra})}\label{group__dbprim__link_a5}
+
+
+
+
+ This function dynamically initializes a linked list head.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})} to be initialized. \item[
+{\em extra}]A pointer to {\tt void} containing extra pointer data associated with the linked list.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]A {\tt NULL} pointer was passed for {\tt list}. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_iter@{ll\_\-iter}}
+\index{ll_iter@{ll\_\-iter}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-iter ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-iter\_\-t} {\em iter\_\-func}, void $\ast$ {\em extra})}\label{group__dbprim__link_a10}
+
+
+
+
+ This function iterates over a linked list, executing the given {\tt iter\_\-func} for each entry.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em iter\_\-func}]A pointer to a callback function used to perform user-specified actions on an element in a linked list. {\tt NULL} is an invalid value. See the documentation for {\bf link\_\-iter\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a2})} for more information. \item[
+{\em extra}]A {\tt void} pointer that will be passed to {\tt iter\_\-func}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_move@{ll\_\-move}}
+\index{ll_move@{ll\_\-move}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-move ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-elem\_\-t} $\ast$ {\em elem}, {\bf link\_\-loc\_\-t} {\em loc}, {\bf link\_\-elem\_\-t} $\ast$ {\em elem2})}\label{group__dbprim__link_a7}
+
+
+
+
+ This function moves a specified element within the linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em elem}]A pointer to the {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} describing the element to be moved. \item[
+{\em loc}]A {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})} indicating where the entry should be moved to. \item[
+{\em elem2}]A pointer to a {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} describing another element in the list if {\tt loc} is {\bf LINK\_\-LOC\_\-BEFORE} {\rm (p.\,\pageref{group__dbprim__link_a26a100})} or {\bf LINK\_\-LOC\_\-AFTER} {\rm (p.\,\pageref{group__dbprim__link_a26a101})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-BUSY}]{\tt elem} and {\tt elem2} are the same element. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt elem} or {\tt elem2} are in a different list. \item[
+{\em DB\_\-ERR\_\-UNUSED}]{\tt elem} or {\tt elem2} are not in any list. \end{description}
+\end{Desc}
+\index{dbprim_link@{dbprim\_\-link}!ll_remove@{ll\_\-remove}}
+\index{ll_remove@{ll\_\-remove}!dbprim_link@{dbprim\_\-link}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long ll\_\-remove ({\bf link\_\-head\_\-t} $\ast$ {\em list}, {\bf link\_\-elem\_\-t} $\ast$ {\em elem})}\label{group__dbprim__link_a8}
+
+
+
+
+ This function removes a specified element from a linked list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em list}]A pointer to a {\bf link\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a0})}. \item[
+{\em elem}]A pointer to the {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} describing the element to be removed.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-UNUSED}]{\tt elem} is not in a linked list. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt elem} is not in this linked list. \end{description}
+\end{Desc}

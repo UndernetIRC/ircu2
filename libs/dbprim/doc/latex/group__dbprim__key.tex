@@ -1,0 +1,81 @@
+\section{Database keys}
+\label{group__dbprim__key}\index{Database keys@{Database keys}}
+\subsection*{Defines}
+\begin{CompactItemize}
+\item 
+\#define {\bf DB\_\-KEY\_\-INIT}(key, size)
+\begin{CompactList}\small\item\em Database key static initializer.\item\end{CompactList}\item 
+\#define {\bf dk\_\-key}(key)
+\begin{CompactList}\small\item\em Database key accessor macro.\item\end{CompactList}\item 
+\#define {\bf dk\_\-len}(key)
+\begin{CompactList}\small\item\em Database key length accessor macro.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Typedefs}
+\begin{CompactItemize}
+\item 
+typedef struct \_\-db\_\-key\_\-s {\bf db\_\-key\_\-t}
+\begin{CompactList}\small\item\em Database key.\item\end{CompactList}\end{CompactItemize}
+
+
+\subsection{Detailed Description}
+This module contains interfaces common to all database modules--mainly the macros concerned with manipulating database keys and the definition of the key structure.
+
+The key may be any arbitrary pointer, including a pointer to a string. Everything that handles a key either copies the contents of the {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})} structure or passes it to a user-defined function. If required, as in the case of a string, a length may also be represented in the key structure. 
+
+\subsection{Define Documentation}
+\index{dbprim_key@{dbprim\_\-key}!DB_KEY_INIT@{DB\_\-KEY\_\-INIT}}
+\index{DB_KEY_INIT@{DB\_\-KEY\_\-INIT}!dbprim_key@{dbprim\_\-key}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define DB\_\-KEY\_\-INIT(key, size)}\label{group__dbprim__key_a1}
+
+
+
+
+ This macro allows a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})} to be initialized statically.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em key}]A pointer to the key. \item[
+{\em size}]Size of the key. \end{description}
+\end{Desc}
+\index{dbprim_key@{dbprim\_\-key}!dk_key@{dk\_\-key}}
+\index{dk_key@{dk\_\-key}!dbprim_key@{dbprim\_\-key}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define dk\_\-key(key)}\label{group__dbprim__key_a2}
+
+
+
+
+ This macro allows access to the key field of a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}. It may be used as an lvalue in order to assign a key to a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em key}]A pointer to a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}. \end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a key ({\tt void $\ast$}). \end{Desc}
+\index{dbprim_key@{dbprim\_\-key}!dk_len@{dk\_\-len}}
+\index{dk_len@{dk\_\-len}!dbprim_key@{dbprim\_\-key}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define dk\_\-len(key)}\label{group__dbprim__key_a3}
+
+
+
+
+ This macro allows access to the key length field of a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}. It may be used as an lvalue in order to assign a length to a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em key}]A pointer to a {\bf db\_\-key\_\-t} {\rm (p.\,\pageref{group__dbprim__key_a0})}. \end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt int} describing the length of the key. \end{Desc}
+
+
+\subsection{Typedef Documentation}
+\index{dbprim_key@{dbprim\_\-key}!db_key_t@{db\_\-key\_\-t}}
+\index{db_key_t@{db\_\-key\_\-t}!dbprim_key@{dbprim\_\-key}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-db\_\-key\_\-s db\_\-key\_\-t}\label{group__dbprim__key_a0}
+
+
+
+
+ This structure is a generic key containing a void $\ast$ pointer and a length parameter. It should be accessed with $\ast$ {\bf dk\_\-key}() {\rm (p.\,\pageref{group__dbprim__key_a2})} and {\bf dk\_\-len}() {\rm (p.\,\pageref{group__dbprim__key_a3})}. 

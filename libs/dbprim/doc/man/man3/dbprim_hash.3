@@ -1,0 +1,783 @@
+.TH "Hash tables" 3 "6 Mar 2003" "dbprim" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Hash tables \- Operations for hash tables. 
+More...
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBHASH_FLAG_AUTOGROW\fP"
+.br
+.RI "\fIFlag permitting a hash table to automatically grow.\fP"
+.ti -1c
+.RI "#define \fBHASH_FLAG_AUTOSHRINK\fP"
+.br
+.RI "\fIFlag permitting a hash table to automatically shrink.\fP"
+.ti -1c
+.RI "#define \fBHASH_TABLE_INIT\fP(flags, func, comp, resize, extra)"
+.br
+.RI "\fIHash table static initializer.\fP"
+.ti -1c
+.RI "#define \fBht_verify\fP(table)"
+.br
+.RI "\fIHash table verification macro.\fP"
+.ti -1c
+.RI "#define \fBht_flags\fP(table)"
+.br
+.RI "\fIHash table flags.\fP"
+.ti -1c
+.RI "#define \fBht_frozen\fP(table)"
+.br
+.RI "\fIDetermine if a hash table is frozen.\fP"
+.ti -1c
+.RI "#define \fBht_modulus\fP(table)"
+.br
+.RI "\fIHash table modulus.\fP"
+.ti -1c
+.RI "#define \fBht_count\fP(table)"
+.br
+.RI "\fIHash table count.\fP"
+.ti -1c
+.RI "#define \fBht_func\fP(table)"
+.br
+.RI "\fIHash table hash function.\fP"
+.ti -1c
+.RI "#define \fBht_comp\fP(table)"
+.br
+.RI "\fIHash table comparison function.\fP"
+.ti -1c
+.RI "#define \fBht_rsize\fP(table)"
+.br
+.RI "\fIHash table resize callback function.\fP"
+.ti -1c
+.RI "#define \fBht_extra\fP(table)"
+.br
+.RI "\fIExtra pointer data in a hash table.\fP"
+.ti -1c
+.RI "#define \fBht_size\fP(table)"
+.br
+.RI "\fIHash table memory size.\fP"
+.ti -1c
+.RI "#define \fBHASH_ENTRY_INIT\fP(value)"
+.br
+.RI "\fIHash table entry static initializer.\fP"
+.ti -1c
+.RI "#define \fBhe_verify\fP(entry)"
+.br
+.RI "\fIHash table entry verification macro.\fP"
+.ti -1c
+.RI "#define \fBhe_link\fP(entry)"
+.br
+.RI "\fIHash table entry linked list element.\fP"
+.ti -1c
+.RI "#define \fBhe_flags\fP(entry)"
+.br
+.RI "\fIHash table entry flags.\fP"
+.ti -1c
+.RI "#define \fBhe_table\fP(entry)"
+.br
+.RI "\fIHash table entry table pointer.\fP"
+.ti -1c
+.RI "#define \fBhe_hash\fP(entry)"
+.br
+.RI "\fIHash table entry hash value.\fP"
+.ti -1c
+.RI "#define \fBhe_key\fP(entry)"
+.br
+.RI "\fIHash table entry key pointer.\fP"
+.ti -1c
+.RI "#define \fBhe_value\fP(entry)"
+.br
+.RI "\fIHash table entry value pointer.\fP"
+.ti -1c
+.RI "#define \fBst_rsize\fP(table)"
+.br
+.RI "\fISparse matrix table resize callback function.\fP"
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct _hash_table_s \fBhash_table_t\fP"
+.br
+.RI "\fIHash table.\fP"
+.ti -1c
+.RI "typedef struct _hash_entry_s \fBhash_entry_t\fP"
+.br
+.RI "\fIHash table entry.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBhash_iter_t\fP )(\fBhash_table_t\fP *, \fBhash_entry_t\fP *, void *)"
+.br
+.RI "\fIHash table iteration callback.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBhash_func_t\fP )(\fBhash_table_t\fP *, \fBdb_key_t\fP *)"
+.br
+.RI "\fIHash function callback.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBhash_comp_t\fP )(\fBhash_table_t\fP *, \fBdb_key_t\fP *, \fBdb_key_t\fP *)"
+.br
+.RI "\fIHash table comparison callback.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBhash_resize_t\fP )(\fBhash_table_t\fP *, unsigned long)"
+.br
+.RI "\fIHash table resize callback.\fP"
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "unsigned long \fBht_init\fP (\fBhash_table_t\fP *table, unsigned long flags, \fBhash_func_t\fP func, \fBhash_comp_t\fP comp, \fBhash_resize_t\fP resize, void *extra, unsigned long init_mod)"
+.br
+.RI "\fIDynamically initialize a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_add\fP (\fBhash_table_t\fP *table, \fBhash_entry_t\fP *entry, \fBdb_key_t\fP *key)"
+.br
+.RI "\fIAdd an entry to a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_move\fP (\fBhash_table_t\fP *table, \fBhash_entry_t\fP *entry, \fBdb_key_t\fP *key)"
+.br
+.RI "\fIMove an entry in the hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_remove\fP (\fBhash_table_t\fP *table, \fBhash_entry_t\fP *entry)"
+.br
+.RI "\fIRemove an element from a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_find\fP (\fBhash_table_t\fP *table, \fBhash_entry_t\fP **entry_p, \fBdb_key_t\fP *key)"
+.br
+.RI "\fIFind an entry in a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_iter\fP (\fBhash_table_t\fP *table, \fBhash_iter_t\fP iter_func, void *extra)"
+.br
+.RI "\fIIterate over each entry in a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_flush\fP (\fBhash_table_t\fP *table, \fBhash_iter_t\fP flush_func, void *extra)"
+.br
+.RI "\fIFlush a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_resize\fP (\fBhash_table_t\fP *table, unsigned long new_size)"
+.br
+.RI "\fIResize a hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBht_free\fP (\fBhash_table_t\fP *table)"
+.br
+.RI "\fIFree memory used by an empty hash table.\fP"
+.ti -1c
+.RI "unsigned long \fBhe_init\fP (\fBhash_entry_t\fP *entry, void *value)"
+.br
+.RI "\fIDynamically initialize a hash table entry.\fP"
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+Hash tables are a basic data structure used in building databases. Hash tables provide a means of storing data such that an arbitrary entry may be looked up efficiently. This library implements a hash table that may optionally grow and shrink to provide maximum efficiency. The implementation is with two kinds of caller-allocated structures--a \fBhash_table_t\fP structure that describes the table and a \fBhash_entry_t\fP structure for each entry in the table. The library allocates a bucket array which must be released with the \fBht_free\fP() function when the hash table has been emptied. Additionally, the hash table may be manually resized with the \fBht_resize\fP() function.
+.PP
+Entries may be added to and removed from the table using the \fBht_add\fP() and \fBht_remove\fP() functions. Additionally, the key on a given entry may be changed using the \fBht_move\fP() function. Of course, any given entry may be looked up using the \fBht_find\fP() function, and \fBht_iter\fP() will execute a user-defined function for each entry in the hash table (in an unspecified order). The \fBht_flush\fP() function will remove all entries from the hash table, optionally executing a user-specified clean-up function. 
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define HASH_ENTRY_INIT(value)"
+.PP
+.PP
+ This macro statically initializes a \fBhash_entry_t\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIvalue\fP\fP
+A pointer to \fCvoid\fP representing the object associated with the entry. 
+.SS "#define HASH_FLAG_AUTOGROW"
+.PP
+.PP
+ If passed in to \fBHASH_TABLE_INIT\fP() or \fBht_init\fP(), allows the hash table to grow automatically. 
+.SS "#define HASH_FLAG_AUTOSHRINK"
+.PP
+.PP
+ If passed in to \fBHASH_TABLE_INIT\fP() or \fBht_init\fP(), allows the hash table to shrink automatically. 
+.SS "#define HASH_TABLE_INIT(flags, func, comp, resize, extra)"
+.PP
+.PP
+ This macro statically initializes a \fBhash_table_t\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIflags\fP\fP
+A bit-wise OR of \fBHASH_FLAG_AUTOGROW\fP and \fBHASH_FLAG_AUTOSHRINK\fP. If neither behavior is desired, use 0. 
+.TP
+\fB\fIfunc\fP\fP
+A \fBhash_func_t\fP function pointer for a hash function. 
+.TP
+\fB\fIcomp\fP\fP
+A \fBhash_comp_t\fP function pointer for a comparison function. 
+.TP
+\fB\fIresize\fP\fP
+A \fBhash_resize_t\fP function pointer for determining whether resizing is permitted and/or for notification of the resize. 
+.TP
+\fB\fIextra\fP\fP
+Extra pointer data that should be associated with the hash table. 
+.SS "#define he_flags(entry)"
+.PP
+.PP
+ This macro retrieves a set of user-defined flags associated with the entry. It may be used as an lvalue to set those flags.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing the flags associated with the entry. 
+.SS "#define he_hash(entry)"
+.PP
+.PP
+ This macro retrieves the hash value of the given hash entry. If the hash table has been resized, this value may not be the same as a previous value.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing the hash code for the entry. 
+.SS "#define he_key(entry)"
+.PP
+.PP
+ This macro retrieves the key associated with the hash table entry.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBdb_key_t\fP. 
+.SS "#define he_link(entry)"
+.PP
+.PP
+ This macro provides access to the linked list element buried in the hash table entry. It should *not* be used on entries currently in a hash table. The purpose of this macro is to allow an object containing a hash table entry to be placed upon a free list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_elem_t\fP. 
+.SS "#define he_table(entry)"
+.PP
+.PP
+ This macro retrieves a pointer to the hash table the entry is in.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBhash_table_t\fP. 
+.SS "#define he_value(entry)"
+.PP
+.PP
+ This macro retrieves the value associated with the hash table entry. It may be treated as an lvalue to change that value. Care should be taken when using this option.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to \fCvoid\fP representing the value associated with this entry. 
+.SS "#define he_verify(entry)"
+.PP
+.PP
+ This macro verifies that a given pointer actually does point to a hash table entry.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+Boolean true if \fCentry\fP is a valid hash table entry or false otherwise. 
+.SS "#define ht_comp(table)"
+.PP
+.PP
+ This macro retrieves the comparison function pointer.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A \fBhash_comp_t\fP. 
+.SS "#define ht_count(table)"
+.PP
+.PP
+ This macro retrieves the total number of items actually in the hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing a count of the number of items in the hash table. 
+.SS "#define ht_extra(table)"
+.PP
+.PP
+ This macro retrieves the extra pointer data associated with a particular hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to \fCvoid\fP. 
+.SS "#define ht_flags(table)"
+.PP
+.PP
+ This macro retrieves the flags associated with the hash table. Only \fBHASH_FLAG_AUTOGROW\fP and \fBHASH_FLAG_AUTOSHRINK\fP have any meaning to the application; all other bits are reserved for use in the library. This macro may be used as an lvalue, but care must be taken to avoid modifying the library-specific bits.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing the flags for the hash table. 
+.SS "#define ht_frozen(table)"
+.PP
+.PP
+ This macro returns a non-zero value if the table is currently frozen. The hash table may be frozen if there is an iteration in progress.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A zero value if the table is not frozen or a non-zero value if the table is frozen. 
+.SS "#define ht_func(table)"
+.PP
+.PP
+ This macro retrieves the hash function pointer.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A \fBhash_func_t\fP. 
+.SS "#define ht_modulus(table)"
+.PP
+.PP
+ This macro retrieves the number of buckets allocated for the hash table. An application may wish to save this value between invocations to avoid the overhead of growing the table while filling it with data.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing the number of buckets allocated for the hash table. 
+.SS "#define ht_rsize(table)"
+.PP
+.PP
+ This macro retrieves the resize callback function pointer.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A \fBhash_resize_t\fP. 
+.SS "#define ht_size(table)"
+.PP
+.PP
+ This macro returns the physical size of the bucket array allocated by the library for this hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A \fCsize_t\fP. 
+.SS "#define ht_verify(table)"
+.PP
+.PP
+ This macro verifies that a given pointer actually does point to a hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+Boolean true if \fCtable\fP is a valid hash table or false otherwise. 
+.SS "#define st_rsize(table)"
+.PP
+.PP
+ This macro retrieves the resize callback function pointer.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBsmat_table_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A \fBsmat_resize_t\fP. 
+.SH "TYPEDEF DOCUMENTATION"
+.PP 
+.SS "typedef unsigned long(* hash_comp_t)(\fBhash_table_t\fP *, \fBdb_key_t\fP *, \fBdb_key_t\fP *)"
+.PP
+.PP
+ This function pointer references a callback used to compare entries in a hash table. It should return 0 for identical entries and non-zero otherwise. No assumptions should be made about the order in which the two keys are passed to this function. 
+.SS "typedef struct _hash_entry_s hash_entry_t"
+.PP
+.PP
+ This structure represents a single entry of a hash table. 
+.SS "typedef unsigned long(* hash_func_t)(\fBhash_table_t\fP *, \fBdb_key_t\fP *)"
+.PP
+.PP
+ This function is associated with a hash table, and is responsible for generating a hash value. The full 32-bit range of an \fCunsigned long\fP should be used--do *not* reduce the hash value by the modulus of the hash table. 
+.SS "typedef unsigned long(* hash_iter_t)(\fBhash_table_t\fP *, \fBhash_entry_t\fP *, void *)"
+.PP
+.PP
+ This function pointer references a callback used by \fBht_iter\fP() and \fBht_flush\fP(). It should return 0 for success. A non-zero return value will terminate the operation and will become the return value of the \fBht_iter\fP() or \fBht_flush\fP() call. 
+.SS "typedef unsigned long(* hash_resize_t)(\fBhash_table_t\fP *, unsigned long)"
+.PP
+.PP
+ This function pointer references a callback that will be called with both the old and new hash table sizes whenever a hash table is resized. It should return non-zero only when the resize should be inhibited. 
+.SS "typedef struct _hash_table_s hash_table_t"
+.PP
+.PP
+ This structure is the basis of all hash tables maintained by this library. 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "unsigned long he_init (\fBhash_entry_t\fP * entry, void * value)"
+.PP
+.PP
+ This function dynamically initializes a hash table entry.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP to be initialized. 
+.TP
+\fB\fIvalue\fP\fP
+A pointer to \fCvoid\fP which will be the value of the hash table entry.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+A \fCNULL\fP pointer was passed for \fCentry\fP. 
+.SS "unsigned long ht_add (\fBhash_table_t\fP * table, \fBhash_entry_t\fP * entry, \fBdb_key_t\fP * key)"
+.PP
+.PP
+ This function adds an entry to a hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP to be added to the table. 
+.TP
+\fB\fIkey\fP\fP
+A pointer to a \fBdb_key_t\fP containing the key for the entry.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An invalid argument was given. 
+.TP
+\fB\fIDB_ERR_BUSY\fP\fP
+The entry is already in a table. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+The table is currently frozen. 
+.TP
+\fB\fIDB_ERR_NOTABLE\fP\fP
+The bucket table has not been allocated and automatic growth is not enabled. 
+.TP
+\fB\fIDB_ERR_DUPLICATE\fP\fP
+The entry is a duplicate of an existing entry. 
+.TP
+\fB\fIDB_ERR_UNRECOVERABLE\fP\fP
+An unrecoverable error occurred while resizing the table. 
+.SS "unsigned long ht_find (\fBhash_table_t\fP * table, \fBhash_entry_t\fP ** entry_p, \fBdb_key_t\fP * key)"
+.PP
+.PP
+ This function looks up an entry matching the given \fCkey\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIentry_p\fP\fP
+A pointer to a pointer to a \fBhash_entry_t\fP. This is a result parameter. If \fCNULL\fP is passed, the lookup will be performed and an appropriate error code returned.  
+.TP
+\fB\fIkey\fP\fP
+A pointer to a \fBdb_key_t\fP describing the item to find.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_NOENTRY\fP\fP
+No matching entry was found. 
+.SS "unsigned long ht_flush (\fBhash_table_t\fP * table, \fBhash_iter_t\fP flush_func, void * extra)"
+.PP
+.PP
+ This function flushes a hash table--that is, it removes each entry from the table. If a \fCflush_func\fP is specified, it will be called on the entry after it has been removed from the table, and may safely call \fCfree()\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIflush_func\fP\fP
+A pointer to a callback function used to perform user-specified actions on an entry after removing it from the table. May be \fCNULL\fP. See the documentation for \fBhash_iter_t\fP for more information. 
+.TP
+\fB\fIextra\fP\fP
+A \fCvoid\fP pointer that will be passed to \fCflush_func\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+The hash table is frozen. 
+.SS "unsigned long ht_free (\fBhash_table_t\fP * table)"
+.PP
+.PP
+ This function releases the memory used by the bucket table in an empty hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An invalid argument was given. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+The table is frozen. 
+.TP
+\fB\fIDB_ERR_NOTEMPTY\fP\fP
+The table is not empty. 
+.SS "unsigned long ht_init (\fBhash_table_t\fP * table, unsigned long flags, \fBhash_func_t\fP func, \fBhash_comp_t\fP comp, \fBhash_resize_t\fP resize, void * extra, unsigned long init_mod)"
+.PP
+.PP
+ This function dynamically initializes a hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP to be initialized. 
+.TP
+\fB\fIflags\fP\fP
+A bit-wise OR of \fBHASH_FLAG_AUTOGROW\fP and \fBHASH_FLAG_AUTOSHRINK\fP. If neither behavior is desired, use 0. 
+.TP
+\fB\fIfunc\fP\fP
+A \fBhash_func_t\fP function pointer for a hash function. 
+.TP
+\fB\fIcomp\fP\fP
+A \fBhash_comp_t\fP function pointer for a comparison function. 
+.TP
+\fB\fIresize\fP\fP
+A \fBhash_resize_t\fP function pointer for determining whether resizing is permitted and/or for notification of the resize. 
+.TP
+\fB\fIextra\fP\fP
+Extra pointer data that should be associated with the hash table. 
+.TP
+\fB\fIinit_mod\fP\fP
+An initial modulus for the table. This will presumably be extracted by \fBht_modulus\fP() in a previous invocation of the application. A 0 value is valid.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An invalid argument was given. 
+.TP
+\fB\fIENOMEM\fP\fP
+Unable to allocate memory. 
+.SS "unsigned long ht_iter (\fBhash_table_t\fP * table, \fBhash_iter_t\fP iter_func, void * extra)"
+.PP
+.PP
+ This function iterates over every entry in a hash table (in an unspecified order), executing the given \fCiter_func\fP on each entry.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIiter_func\fP\fP
+A pointer to a callback function used to perform user-specified actions on an entry in a hash table. \fCNULL\fP is an invalid value. See the documentation for \fBhash_iter_t\fP for more information. 
+.TP
+\fB\fIextra\fP\fP
+A \fCvoid\fP pointer that will be passed to \fCiter_func\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+The hash table is frozen. 
+.SS "unsigned long ht_move (\fBhash_table_t\fP * table, \fBhash_entry_t\fP * entry, \fBdb_key_t\fP * key)"
+.PP
+.PP
+ This function moves an existing entry in the hash table to correspond to the new key.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP to be moved. It must already be in the hash table. 
+.TP
+\fB\fIkey\fP\fP
+A pointer to a \fBdb_key_t\fP describing the new key for the entry.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An invalid argument was given. 
+.TP
+\fB\fIDB_ERR_UNUSED\fP\fP
+Entry is not in a hash table. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+Entry is not in this hash table. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+Hash table is frozen. 
+.TP
+\fB\fIDB_ERR_DUPLICATE\fP\fP
+New key is a duplicate of an existing key. 
+.TP
+\fB\fIDB_ERR_READDFAILED\fP\fP
+Unable to re-add entry to table. 
+.SS "unsigned long ht_remove (\fBhash_table_t\fP * table, \fBhash_entry_t\fP * entry)"
+.PP
+.PP
+ This function removes the given element from the specified hash table.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fIentry\fP\fP
+A pointer to a \fBhash_entry_t\fP to be removed from the table.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An invalid argument was given. 
+.TP
+\fB\fIDB_ERR_UNUSED\fP\fP
+Entry is not in a hash table. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+Entry is not in this hash table. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+Hash table is frozen. 
+.TP
+\fB\fIDB_ERR_UNRECOVERABLE\fP\fP
+An unrecoverable error occurred while resizing the table. 
+.SS "unsigned long ht_resize (\fBhash_table_t\fP * table, unsigned long new_size)"
+.PP
+.PP
+ This function resizes a hash table to the given \fCnew_size\fP. If \fCnew_size\fP is 0, then an appropriate new size based on the current number of items in the hash table will be selected.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fItable\fP\fP
+A pointer to a \fBhash_table_t\fP. 
+.TP
+\fB\fInew_size\fP\fP
+A new size value for the table.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_FROZEN\fP\fP
+The table is currently frozen. 
+.TP
+\fB\fIDB_ERR_UNRECOVERABLE\fP\fP
+A catastrophic error was encountered. The table is now unusable. 
+.TP
+\fB\fIENOMEM\fP\fP
+No memory could be allocated for the new bucket table. 

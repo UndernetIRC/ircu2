@@ -1,0 +1,565 @@
+.TH "Linked lists" 3 "6 Mar 2003" "dbprim" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Linked lists \- Operations for linked lists. 
+More...
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBLINK_HEAD_INIT\fP(extra)"
+.br
+.RI "\fILinked list head static initializer.\fP"
+.ti -1c
+.RI "#define \fBll_verify\fP(list)"
+.br
+.RI "\fILinked list head verification macro.\fP"
+.ti -1c
+.RI "#define \fBll_count\fP(list)"
+.br
+.RI "\fILinked list count.\fP"
+.ti -1c
+.RI "#define \fBll_first\fP(list)"
+.br
+.RI "\fIFirst element in linked list.\fP"
+.ti -1c
+.RI "#define \fBll_last\fP(list)"
+.br
+.RI "\fILast element in a linked list.\fP"
+.ti -1c
+.RI "#define \fBll_extra\fP(list)"
+.br
+.RI "\fIExtra pointer data in a linked list.\fP"
+.ti -1c
+.RI "#define \fBLINK_ELEM_INIT\fP(obj)"
+.br
+.RI "\fILinked list element static initializer.\fP"
+.ti -1c
+.RI "#define \fBle_verify\fP(element)"
+.br
+.RI "\fILinked list element verification macro.\fP"
+.ti -1c
+.RI "#define \fBle_next\fP(elem)"
+.br
+.RI "\fILinked list element next pointer.\fP"
+.ti -1c
+.RI "#define \fBle_prev\fP(elem)"
+.br
+.RI "\fILinked list element previous pointer.\fP"
+.ti -1c
+.RI "#define \fBle_object\fP(elem)"
+.br
+.RI "\fILinked list element object pointer.\fP"
+.ti -1c
+.RI "#define \fBle_head\fP(elem)"
+.br
+.RI "\fILinked list element head pointer.\fP"
+.ti -1c
+.RI "#define \fBle_flags\fP(elem)"
+.br
+.RI "\fILinked list element flags.\fP"
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct _link_head_s \fBlink_head_t\fP"
+.br
+.RI "\fILinked list head.\fP"
+.ti -1c
+.RI "typedef struct _link_elem_s \fBlink_elem_t\fP"
+.br
+.RI "\fILinked list element.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBlink_iter_t\fP )(\fBlink_head_t\fP *, \fBlink_elem_t\fP *, void *)"
+.br
+.RI "\fILinked list iteration callback.\fP"
+.ti -1c
+.RI "typedef unsigned long (* \fBlink_comp_t\fP )(\fBdb_key_t\fP *, void *)"
+.br
+.RI "\fILinked list comparison callback.\fP"
+.ti -1c
+.RI "typedef enum \fB_link_loc_e\fP \fBlink_loc_t\fP"
+.br
+.RI "\fILinked list location.\fP"
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum \fB_link_loc_e\fP { \fBLINK_LOC_HEAD\fP, \fBLINK_LOC_TAIL\fP, \fBLINK_LOC_BEFORE\fP, \fBLINK_LOC_AFTER\fP }"
+.br
+.RI "\fILinked list location.\fP"
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "unsigned long \fBll_init\fP (\fBlink_head_t\fP *list, void *extra)"
+.br
+.RI "\fIDynamically initialize a linked list head.\fP"
+.ti -1c
+.RI "unsigned long \fBll_add\fP (\fBlink_head_t\fP *list, \fBlink_elem_t\fP *new, \fBlink_loc_t\fP loc, \fBlink_elem_t\fP *elem)"
+.br
+.RI "\fIAdd an element to a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBll_move\fP (\fBlink_head_t\fP *list, \fBlink_elem_t\fP *new, \fBlink_loc_t\fP loc, \fBlink_elem_t\fP *elem)"
+.br
+.RI "\fIMove an element within a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBll_remove\fP (\fBlink_head_t\fP *list, \fBlink_elem_t\fP *elem)"
+.br
+.RI "\fIRemove an element from a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBll_find\fP (\fBlink_head_t\fP *list, \fBlink_elem_t\fP **elem_p, \fBlink_comp_t\fP comp_func, \fBlink_elem_t\fP *start, \fBdb_key_t\fP *key)"
+.br
+.RI "\fIFind an element in a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBll_iter\fP (\fBlink_head_t\fP *list, \fBlink_iter_t\fP iter_func, void *extra)"
+.br
+.RI "\fIIterate over each entry in a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBll_flush\fP (\fBlink_head_t\fP *list, \fBlink_iter_t\fP flush_func, void *extra)"
+.br
+.RI "\fIFlush a linked list.\fP"
+.ti -1c
+.RI "unsigned long \fBle_init\fP (\fBlink_elem_t\fP *elem, void *object)"
+.br
+.RI "\fIDynamically initialize a linked list element.\fP"
+.in -1c
+.SH "DETAILED DESCRIPTION"
+.PP 
+Linked lists are a very basic data structure used in building databases. This library provides a simple yet powerful implementation of generic linked lists, based on two caller-allocated structures. The \fBlink_head_t\fP structure describes the head of a linked list and contains information regarding the number of elements in the linked list as well as pointers referencing the first and last elements in the list. The \fBlink_elem_t\fP structure describes a specific element in the linked list and contains pointers referencing the next and previous elements in the list, as well as a pointer to the object, a pointer to the head of the linked list, and a set of user-specified flags.
+.PP
+Elements may be added at any arbitrary location in the linked list with \fBll_add\fP(); moved to any other arbitrary location in the linked list with \fBll_move\fP(), or removed from the list with \fBll_remove\fP(). In addition, the user may search the list using a user-defined comparison function with \fBll_find\fP(); iterate over every element in the list with \fBll_iter\fP(); or remove all items from the list with \fBll_flush\fP(), optionally executing a user-specified clean-up function. 
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define LINK_ELEM_INIT(obj)"
+.PP
+.PP
+ This macro statically initializes a \fBlink_elem_t\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIobj\fP\fP
+A pointer to \fCvoid\fP representing the object associated with the element. 
+.SS "#define LINK_HEAD_INIT(extra)"
+.PP
+.PP
+ This macro statically initializes a \fBlink_head_t\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIextra\fP\fP
+Extra pointer data that should be associated with the list head. 
+.SS "#define le_flags(elem)"
+.PP
+.PP
+ This macro retrieves a set of user-defined flags associated with the element. It may be used as an lvalue to set those flags.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing the flags associated with the element. 
+.SS "#define le_head(elem)"
+.PP
+.PP
+ This macro retrieves a pointer to the head of the linked list that the element is in.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_head_t\fP representing the head of the linked list the element is in. 
+.SS "#define le_next(elem)"
+.PP
+.PP
+ This macro retrieves a pointer to the next element in the linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_elem_t\fP representing the next element in the linked list. 
+.SS "#define le_object(elem)"
+.PP
+.PP
+ This macro retrieves a pointer to the object represented by the element. It may be used as an lvalue to change the object pointed to. Care should be taken when using this feature.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to \fCvoid\fP representing the object associated with the linked list element. 
+.SS "#define le_prev(elem)"
+.PP
+.PP
+ This macro retrieves a pointer to the previous element in the linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_elem_t\fP representing the previous element in the linked list. 
+.SS "#define le_verify(element)"
+.PP
+.PP
+ This macro verifies that a given pointer actually does point to a linked list element.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelement\fP\fP
+A pointer to a \fBlink_elem_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+Boolean true if \fCelement\fP is a valid linked list element or false otherwise. 
+.SS "#define ll_count(list)"
+.PP
+.PP
+ This macro retrieves the number of elements in a linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+An \fCunsigned long\fP containing a count of the number of elements in the linked list. 
+.SS "#define ll_extra(list)"
+.PP
+.PP
+ This macro retrieves the extra pointer data associated with a particular linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to \fCvoid\fP. 
+.SS "#define ll_first(list)"
+.PP
+.PP
+ This macro retrieves the first element in a linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_elem_t\fP. 
+.SS "#define ll_last(list)"
+.PP
+.PP
+ This macro retrieves the last element in a linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+A pointer to a \fBlink_elem_t\fP. 
+.SS "#define ll_verify(list)"
+.PP
+.PP
+ This macro verifies that a given pointer actually does point to a linked list head.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP.
+.PP
+\fBReturns: \fP
+.in +1c
+Boolean true if \fClist\fP is a valid linked list head or false otherwise. 
+.SH "TYPEDEF DOCUMENTATION"
+.PP 
+.SS "typedef unsigned long(* link_comp_t)(\fBdb_key_t\fP *, void *)"
+.PP
+.PP
+ This function pointer references a callback used by \fBll_find\fP(). It should return 0 if the entry passed as the second argument matches the key passed as the first argument. 
+.SS "typedef struct _link_elem_s link_elem_t"
+.PP
+.PP
+ This structure represents a single element of a linked list. 
+.SS "typedef struct _link_head_s link_head_t"
+.PP
+.PP
+ This structure is the head of all linked lists maintained by this library. 
+.SS "typedef unsigned long(* link_iter_t)(\fBlink_head_t\fP *, \fBlink_elem_t\fP *, void *)"
+.PP
+.PP
+ This function pointer references a callback used by \fBll_iter\fP() and \fBll_flush\fP(). It should return 0 for success. A non-zero return value will terminate the operation and will become the return value of the \fBll_iter\fP() or \fBll_flush\fP() call. 
+.SS "typedef enum \fB_link_loc_e\fP link_loc_t"
+.PP
+.PP
+ See the documentation for the enumeration \fB_link_loc_e\fP. 
+.SH "ENUMERATION TYPE DOCUMENTATION"
+.PP 
+.SS "enum _link_loc_e"
+.PP
+.PP
+ This enumeration is used to specify where an element in a linked list should be placed. It should be referenced by the typedef \fBlink_loc_t\fP. 
+.PP
+\fBEnumeration values:\fP
+.in +1c
+.TP
+\fB\fILINK_LOC_HEAD\fP \fP
+Element should be inserted at head of list. 
+.TP
+\fB\fILINK_LOC_TAIL\fP \fP
+Element should be inserted at tail of list. 
+.TP
+\fB\fILINK_LOC_BEFORE\fP \fP
+Element should be inserted before specified element. 
+.TP
+\fB\fILINK_LOC_AFTER\fP \fP
+Element should be inserted after specified element. 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "unsigned long le_init (\fBlink_elem_t\fP * elem, void * object)"
+.PP
+.PP
+ This function dynamically initializes a linked list element.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP to be initialized. 
+.TP
+\fB\fIobject\fP\fP
+A pointer to \fCvoid\fP used to represent the object associated with the element. May not be \fCNULL\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+A \fCNULL\fP pointer was passed for \fCelem\fP or \fCobject\fP. 
+.SS "unsigned long ll_add (\fBlink_head_t\fP * list, \fBlink_elem_t\fP * new, \fBlink_loc_t\fP loc, \fBlink_elem_t\fP * elem)"
+.PP
+.PP
+ This function adds a given element to a specified linked list in the specified location.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fInew\fP\fP
+A pointer to the \fBlink_elem_t\fP to be added to the linked list. 
+.TP
+\fB\fIloc\fP\fP
+A \fBlink_loc_t\fP indicating where the entry should be added. 
+.TP
+\fB\fIelem\fP\fP
+A pointer to a \fBlink_elem_t\fP describing another element in the list if \fCloc\fP is \fBLINK_LOC_BEFORE\fP or \fBLINK_LOC_AFTER\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_BUSY\fP\fP
+The element is already in a list. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+\fCelem\fP is in a different list. 
+.TP
+\fB\fIDB_ERR_UNUSED\fP\fP
+\fCelem\fP is not in any list. 
+.SS "unsigned long ll_find (\fBlink_head_t\fP * list, \fBlink_elem_t\fP ** elem_p, \fBlink_comp_t\fP comp_func, \fBlink_elem_t\fP * start, \fBdb_key_t\fP * key)"
+.PP
+.PP
+ This function iterates through a linked list looking for an element that matches the given \fCkey\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fIelem_p\fP\fP
+A pointer to a pointer to a \fBlink_elem_t\fP. This is a result parameter. \fCNULL\fP is an invalid value. 
+.TP
+\fB\fIcomp_func\fP\fP
+A pointer to a comparison function used to compare the key to a particular element. See the documentation for \fBlink_comp_t\fP for more information. 
+.TP
+\fB\fIstart\fP\fP
+A pointer to a \fBlink_elem_t\fP describing where in the linked list to start. If \fCNULL\fP is passed, the beginning of the list will be assumed. 
+.TP
+\fB\fIkey\fP\fP
+A key to search for.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+\fCstart\fP is not in this linked list. 
+.TP
+\fB\fIDB_ERR_NOENTRY\fP\fP
+No matching entry was found. 
+.SS "unsigned long ll_flush (\fBlink_head_t\fP * list, \fBlink_iter_t\fP flush_func, void * extra)"
+.PP
+.PP
+ This function flushes a linked list--that is, it removes each element from the list. If a \fCflush_func\fP is specified, it will be called on the entry after it has been removed from the list, and may safely call \fCfree()\fP.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fIflush_func\fP\fP
+A pointer to a callback function used to perform user-specified actions on an element after removing it from the list. May be \fCNULL\fP. See the documentation for \fBlink_iter_t\fP for more information. 
+.TP
+\fB\fIextra\fP\fP
+A \fCvoid\fP pointer that will be passed to \fCflush_func\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.SS "unsigned long ll_init (\fBlink_head_t\fP * list, void * extra)"
+.PP
+.PP
+ This function dynamically initializes a linked list head.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP to be initialized. 
+.TP
+\fB\fIextra\fP\fP
+A pointer to \fCvoid\fP containing extra pointer data associated with the linked list.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+A \fCNULL\fP pointer was passed for \fClist\fP. 
+.SS "unsigned long ll_iter (\fBlink_head_t\fP * list, \fBlink_iter_t\fP iter_func, void * extra)"
+.PP
+.PP
+ This function iterates over a linked list, executing the given \fCiter_func\fP for each entry.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fIiter_func\fP\fP
+A pointer to a callback function used to perform user-specified actions on an element in a linked list. \fCNULL\fP is an invalid value. See the documentation for \fBlink_iter_t\fP for more information. 
+.TP
+\fB\fIextra\fP\fP
+A \fCvoid\fP pointer that will be passed to \fCiter_func\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.SS "unsigned long ll_move (\fBlink_head_t\fP * list, \fBlink_elem_t\fP * elem, \fBlink_loc_t\fP loc, \fBlink_elem_t\fP * elem2)"
+.PP
+.PP
+ This function moves a specified element within the linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fIelem\fP\fP
+A pointer to the \fBlink_elem_t\fP describing the element to be moved. 
+.TP
+\fB\fIloc\fP\fP
+A \fBlink_loc_t\fP indicating where the entry should be moved to. 
+.TP
+\fB\fIelem2\fP\fP
+A pointer to a \fBlink_elem_t\fP describing another element in the list if \fCloc\fP is \fBLINK_LOC_BEFORE\fP or \fBLINK_LOC_AFTER\fP.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_BUSY\fP\fP
+\fCelem\fP and \fCelem2\fP are the same element. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+\fCelem\fP or \fCelem2\fP are in a different list. 
+.TP
+\fB\fIDB_ERR_UNUSED\fP\fP
+\fCelem\fP or \fCelem2\fP are not in any list. 
+.SS "unsigned long ll_remove (\fBlink_head_t\fP * list, \fBlink_elem_t\fP * elem)"
+.PP
+.PP
+ This function removes a specified element from a linked list.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIlist\fP\fP
+A pointer to a \fBlink_head_t\fP. 
+.TP
+\fB\fIelem\fP\fP
+A pointer to the \fBlink_elem_t\fP describing the element to be removed.
+.PP
+\fBReturn values: \fP
+.in +1c
+.TP
+\fB\fIDB_ERR_BADARGS\fP\fP
+An argument was invalid. 
+.TP
+\fB\fIDB_ERR_UNUSED\fP\fP
+\fCelem\fP is not in a linked list. 
+.TP
+\fB\fIDB_ERR_WRONGTABLE\fP\fP
+\fCelem\fP is not in this linked list. 

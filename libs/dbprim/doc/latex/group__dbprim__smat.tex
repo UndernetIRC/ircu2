@@ -1,0 +1,1010 @@
+\section{Sparse matrices}
+\label{group__dbprim__smat}\index{Sparse matrices@{Sparse matrices}}
+Operations for sparse matrices. 
+\subsection*{Defines}
+\begin{CompactItemize}
+\item 
+\#define {\bf SMAT\_\-TABLE\_\-INIT}(flags, resize, extra)
+\begin{CompactList}\small\item\em Sparse matrix table static initializer.\item\end{CompactList}\item 
+\#define {\bf st\_\-verify}(table)
+\begin{CompactList}\small\item\em Sparse matrix table verification macro.\item\end{CompactList}\item 
+\#define {\bf st\_\-flags}(table)
+\begin{CompactList}\small\item\em Sparse matrix table flags.\item\end{CompactList}\item 
+\#define {\bf st\_\-frozen}(table)
+\begin{CompactList}\small\item\em Determine if a sparse matrix is frozen.\item\end{CompactList}\item 
+\#define {\bf st\_\-modulus}(table)
+\begin{CompactList}\small\item\em Sparse matrix table modulus.\item\end{CompactList}\item 
+\#define {\bf st\_\-count}(table)
+\begin{CompactList}\small\item\em Sparse matrix table count.\item\end{CompactList}\item 
+\#define {\bf st\_\-extra}(table)
+\begin{CompactList}\small\item\em Extra pointer data in a sparse matrix table.\item\end{CompactList}\item 
+\#define {\bf st\_\-size}(table)
+\begin{CompactList}\small\item\em Sparse matrix table memory size.\item\end{CompactList}\item 
+\#define {\bf SMAT\_\-HEAD\_\-INIT}(elem, object)
+\begin{CompactList}\small\item\em Sparse matrix list head static initializer.\item\end{CompactList}\item 
+\#define {\bf sh\_\-verify}(head)
+\begin{CompactList}\small\item\em Sparse matrix list head verification macro.\item\end{CompactList}\item 
+\#define {\bf sh\_\-elem}(head)
+\begin{CompactList}\small\item\em Sparse matrix list head element macro.\item\end{CompactList}\item 
+\#define {\bf sh\_\-table}(head)
+\begin{CompactList}\small\item\em Sparse matrix list head table pointer.\item\end{CompactList}\item 
+\#define {\bf sh\_\-frozen}(head)
+\begin{CompactList}\small\item\em Determine if a sparse matrix is frozen.\item\end{CompactList}\item 
+\#define {\bf sh\_\-count}(head)
+\begin{CompactList}\small\item\em Sparse matrix list count.\item\end{CompactList}\item 
+\#define {\bf sh\_\-first}(head)
+\begin{CompactList}\small\item\em First element in sparse matrix list.\item\end{CompactList}\item 
+\#define {\bf sh\_\-last}(head)
+\begin{CompactList}\small\item\em Last element in sparse matrix list.\item\end{CompactList}\item 
+\#define {\bf sh\_\-object}(head)
+\begin{CompactList}\small\item\em Object represented by a sparse matrix list head.\item\end{CompactList}\item 
+\#define {\bf sh\_\-size}(head)
+\begin{CompactList}\small\item\em Sparse matrix list memory size.\item\end{CompactList}\item 
+\#define {\bf se\_\-verify}(entry)
+\begin{CompactList}\small\item\em Sparse matrix entry verification macro.\item\end{CompactList}\item 
+\#define {\bf se\_\-table}(entry)
+\begin{CompactList}\small\item\em Sparse matrix entry table.\item\end{CompactList}\item 
+\#define {\bf \_\-se\_\-link}(entry)
+\begin{CompactList}\small\item\em Sparse matrix entry linked list element.\item\end{CompactList}\item 
+\#define {\bf se\_\-flags}(entry)
+\begin{CompactList}\small\item\em Sparse matrix entry flags.\item\end{CompactList}\item 
+\#define {\bf se\_\-hash}(entry)
+\begin{CompactList}\small\item\em Sparse matrix table entry hash value.\item\end{CompactList}\item 
+\#define {\bf se\_\-next}(entry, n)
+\begin{CompactList}\small\item\em Next element in sparse matrix list.\item\end{CompactList}\item 
+\#define {\bf se\_\-prev}(entry, n)
+\begin{CompactList}\small\item\em Previous element in sparse matrix list.\item\end{CompactList}\item 
+\#define {\bf se\_\-lflags}(entry, n)
+\begin{CompactList}\small\item\em Flags associated with an entry in a sparse matrix list.\item\end{CompactList}\item 
+\#define {\bf se\_\-object}(entry, n)
+\begin{CompactList}\small\item\em Object associated with an entry in a sparse matrix list.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Typedefs}
+\begin{CompactItemize}
+\item 
+typedef struct \_\-smat\_\-table\_\-s {\bf smat\_\-table\_\-t}
+\begin{CompactList}\small\item\em Sparse matrix table.\item\end{CompactList}\item 
+typedef struct \_\-smat\_\-head\_\-s {\bf smat\_\-head\_\-t}
+\begin{CompactList}\small\item\em Sparse matrix list head.\item\end{CompactList}\item 
+typedef struct \_\-smat\_\-entry\_\-s {\bf smat\_\-entry\_\-t}
+\begin{CompactList}\small\item\em Sparse matrix entry.\item\end{CompactList}\item 
+typedef unsigned long ($\ast$ {\bf smat\_\-resize\_\-t} )({\bf smat\_\-table\_\-t} $\ast$, unsigned long)
+\begin{CompactList}\small\item\em Sparse matrix table resize callback.\item\end{CompactList}\item 
+typedef unsigned long ($\ast$ {\bf smat\_\-iter\_\-t} )({\bf smat\_\-table\_\-t} $\ast$, {\bf smat\_\-entry\_\-t} $\ast$, void $\ast$)
+\begin{CompactList}\small\item\em Sparse matrix iteration callback.\item\end{CompactList}\item 
+typedef unsigned long ($\ast$ {\bf smat\_\-comp\_\-t} )({\bf db\_\-key\_\-t} $\ast$, {\bf smat\_\-entry\_\-t} $\ast$)
+\begin{CompactList}\small\item\em Sparse matrix comparison callback.\item\end{CompactList}\item 
+typedef enum {\bf \_\-smat\_\-loc\_\-e} {\bf smat\_\-loc\_\-t}
+\begin{CompactList}\small\item\em Sparse matrix location.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Enumerations}
+\begin{CompactItemize}
+\item 
+enum {\bf \_\-smat\_\-loc\_\-e} \{ {\bf SMAT\_\-LOC\_\-FIRST}, 
+{\bf SMAT\_\-LOC\_\-SECOND}
+ \}
+\begin{CompactList}\small\item\em Sparse matrix location.\item\end{CompactList}\end{CompactItemize}
+\subsection*{Functions}
+\begin{CompactItemize}
+\item 
+unsigned long {\bf smat\_\-cleanup} (void)
+\begin{CompactList}\small\item\em Clean up the smat free list.\item\end{CompactList}\item 
+unsigned long {\bf smat\_\-freemem} (void)
+\begin{CompactList}\small\item\em Report how much memory is used by the free list.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-init} ({\bf smat\_\-table\_\-t} $\ast$table, unsigned long flags, {\bf smat\_\-resize\_\-t} resize, void $\ast$extra, unsigned long init\_\-mod)
+\item 
+unsigned long {\bf st\_\-add} ({\bf smat\_\-table\_\-t} $\ast$table, {\bf smat\_\-entry\_\-t} $\ast$$\ast$entry\_\-p, {\bf smat\_\-head\_\-t} $\ast$head1, {\bf link\_\-loc\_\-t} loc1, {\bf smat\_\-entry\_\-t} $\ast$ent1, {\bf smat\_\-head\_\-t} $\ast$head2, {\bf link\_\-loc\_\-t} loc2, {\bf smat\_\-entry\_\-t} $\ast$ent2)
+\begin{CompactList}\small\item\em Add an entry to a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-remove} ({\bf smat\_\-table\_\-t} $\ast$table, {\bf smat\_\-entry\_\-t} $\ast$entry)
+\begin{CompactList}\small\item\em Remove an entry from a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-find} ({\bf smat\_\-table\_\-t} $\ast$table, {\bf smat\_\-entry\_\-t} $\ast$$\ast$entry\_\-p, {\bf smat\_\-head\_\-t} $\ast$head1, {\bf smat\_\-head\_\-t} $\ast$head2)
+\begin{CompactList}\small\item\em Find an entry in a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-iter} ({\bf smat\_\-table\_\-t} $\ast$table, {\bf smat\_\-iter\_\-t} iter\_\-func, void $\ast$extra)
+\begin{CompactList}\small\item\em Iterate over each entry in a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-flush} ({\bf smat\_\-table\_\-t} $\ast$table, {\bf smat\_\-iter\_\-t} flush\_\-func, void $\ast$extra)
+\begin{CompactList}\small\item\em Flush a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-resize} ({\bf smat\_\-table\_\-t} $\ast$table, unsigned long new\_\-size)
+\begin{CompactList}\small\item\em Resize a sparse matrix table.\item\end{CompactList}\item 
+unsigned long {\bf st\_\-free} ({\bf smat\_\-table\_\-t} $\ast$table)
+\begin{CompactList}\small\item\em Free memory used by an empty sparse matrix table.\item\end{CompactList}\item 
+unsigned long {\bf sh\_\-init} ({\bf smat\_\-head\_\-t} $\ast$head, {\bf smat\_\-loc\_\-t} elem, void $\ast$object)
+\begin{CompactList}\small\item\em Dynamically initialize a sparse matrix row or column head.\item\end{CompactList}\item 
+unsigned long {\bf sh\_\-move} ({\bf smat\_\-head\_\-t} $\ast$head, {\bf smat\_\-entry\_\-t} $\ast$elem, {\bf link\_\-loc\_\-t} loc, {\bf smat\_\-entry\_\-t} $\ast$elem2)
+\begin{CompactList}\small\item\em Move an entry within a row or column list.\item\end{CompactList}\item 
+unsigned long {\bf sh\_\-find} ({\bf smat\_\-head\_\-t} $\ast$head, {\bf smat\_\-entry\_\-t} $\ast$$\ast$elem\_\-p, {\bf smat\_\-comp\_\-t} comp\_\-func, {\bf smat\_\-entry\_\-t} $\ast$start, {\bf db\_\-key\_\-t} $\ast$key)
+\begin{CompactList}\small\item\em Find an entry in a row or column of a sparse matrix.\item\end{CompactList}\item 
+unsigned long {\bf sh\_\-iter} ({\bf smat\_\-head\_\-t} $\ast$head, {\bf smat\_\-iter\_\-t} iter\_\-func, void $\ast$extra)
+\begin{CompactList}\small\item\em Iterate over each entry in a row or column of a sparse matrix.\item\end{CompactList}\end{CompactItemize}
+
+
+\subsection{Detailed Description}
+Sparse matrices are advanced data structures used to represent associations. For instance, a manager may have several employees, but several of those employees may report to more than one manager. (Yes, this is a contrived example, so sue me.) The simplest way to represent such assocations is with a matrix, or a two-dimensional array. However, such an implementation cannot easily be extended dynamically--imagine if a manager retires and two more are hired, for instance. It would also use an enormous amount of memory, as most employees would only report to one or two managers.
+
+A sparse matrix solves this problem by only allocating memory for the cells in the full matrix which are actually used. That is, no memory is allocated to represent Alice reporting to Bob unless Alice actually does report to Bob. This is a simple concept, but fairly difficult to implement efficiently--how do you tell if Alice reports to Bob? The solution utilized by this library is to combine the strengths of linked lists and hash tables. Each cell is in two linked lists, rooted at the rows and columns of the matrix, but a hash table is used when attempting to look up a given cell. If the cell is allocated, then there will be an entry in the hash table, and finding the given cell is as fast as a hash table look-up.
+
+Because sparse matrices are so complicated, there are three structures and a variety of operations used. Two of the structures, {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})} and {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}, are caller-allocated. However, the third structure, {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}, must be allocated by the library. To avoid too much overhead from malloc(), a free list is used. The free list may be managed with the {\bf smat\_\-cleanup}() {\rm (p.\,\pageref{group__dbprim__smat_a7})} and {\bf smat\_\-freemem}() {\rm (p.\,\pageref{group__dbprim__smat_a8})} calls.
+
+The {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})} contains the hash table. Only one of these need be allocated per type of association--for instance, in the above example, only one {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})} needs to be allocated to represent the manager-employee relationship.
+
+The {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} contains the linked list. There are actually two kinds of these structures--one is {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})}, which could be regarded as a ``row,'' and the other is {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})}, which could be regarded as a ``column.'' Which one is used for which type of data is irrelevant, as long as consistency is maintained. For the above example, a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} for a manager may be {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})}, and one for an employee must then be {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})}. (These values are set when initializing the {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} structure.)
+
+An association may be created with the {\bf st\_\-add}() {\rm (p.\,\pageref{group__dbprim__smat_a10})} function, which allows an arbitrary ordering in the associated linked lists by the same mechanism as for the linked list component of the library. An association may be removed with {\bf st\_\-remove}() {\rm (p.\,\pageref{group__dbprim__smat_a11})}, or looked up with {\bf st\_\-find}() {\rm (p.\,\pageref{group__dbprim__smat_a12})}. If iteration over all associations is desired, use the {\bf st\_\-iter}() {\rm (p.\,\pageref{group__dbprim__smat_a13})} function. Removing all associations from a table may be performed with {\bf st\_\-flush}() {\rm (p.\,\pageref{group__dbprim__smat_a14})}, which optionally calls a user-defined clean-up function. The associated hash table may be resized with {\bf st\_\-resize}() {\rm (p.\,\pageref{group__dbprim__smat_a15})}, and the bucket table may be released with {\bf st\_\-free}() {\rm (p.\,\pageref{group__dbprim__smat_a16})}.
+
+An association may also be reordered within the linked lists using the {\bf sh\_\-move}() {\rm (p.\,\pageref{group__dbprim__smat_a18})} function. If a particular entry is desired, use the {\bf sh\_\-find}() {\rm (p.\,\pageref{group__dbprim__smat_a19})} function with a user-defined comparison function to locate it. Iteration may be performed with the {\bf sh\_\-iter}() {\rm (p.\,\pageref{group__dbprim__smat_a20})} function, and all entries in a given linked list may be removed with the sh\_\-flush() function, which again may optionally call a user-defined clean-up function. 
+
+\subsection{Define Documentation}
+\index{dbprim_smat@{dbprim\_\-smat}!SMAT_HEAD_INIT@{SMAT\_\-HEAD\_\-INIT}}
+\index{SMAT_HEAD_INIT@{SMAT\_\-HEAD\_\-INIT}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define SMAT\_\-HEAD\_\-INIT(elem, object)}\label{group__dbprim__smat_a29}
+
+
+
+
+ This macro statically initializes a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em elem}]One of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} specifing whether the object is a member of the set of rows or columns. \item[
+{\em object}]A pointer to {\tt void} representing the object associated with the list head. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!SMAT_TABLE_INIT@{SMAT\_\-TABLE\_\-INIT}}
+\index{SMAT_TABLE_INIT@{SMAT\_\-TABLE\_\-INIT}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define SMAT\_\-TABLE\_\-INIT(flags, resize, extra)}\label{group__dbprim__smat_a21}
+
+
+
+
+ This macro statically initializes a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em flags}]A bit-wise OR of {\bf HASH\_\-FLAG\_\-AUTOGROW} {\rm (p.\,\pageref{group__dbprim__hash_a16})} and {\bf HASH\_\-FLAG\_\-AUTOSHRINK} {\rm (p.\,\pageref{group__dbprim__hash_a17})}. If neither behavior is desired, use 0. \item[
+{\em resize}]A {\bf smat\_\-resize\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a3})} function pointer for determining whether resizing is permitted and/or for notification of the resize. \item[
+{\em extra}]Extra pointer data that should be associated with the sparse matrix. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!_se_link@{\_\-se\_\-link}}
+\index{_se_link@{\_\-se\_\-link}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define \_\-se\_\-link(entry)}\label{group__dbprim__smat_a41}
+
+
+
+
+For internal use only.\index{dbprim_smat@{dbprim\_\-smat}!se_flags@{se\_\-flags}}
+\index{se_flags@{se\_\-flags}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-flags(entry)}\label{group__dbprim__smat_a42}
+
+
+
+
+ This macro retrieves a set of user-defined flags associated with the entry. It may be used as an lvalue to set those flags.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the flags associated with the entry. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_hash@{se\_\-hash}}
+\index{se_hash@{se\_\-hash}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-hash(entry)}\label{group__dbprim__smat_a43}
+
+
+
+
+ This macro retrieves the hash value of the given sparse matrix entry. If the sparse matrix hash been resized, this value may not be the same as a previous value.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the hash code for the entry. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_lflags@{se\_\-lflags}}
+\index{se_lflags@{se\_\-lflags}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-lflags(entry, n)}\label{group__dbprim__smat_a46}
+
+
+
+
+ This macro retrieves a set of user-defined flags associated with the entry in a sparse matrix list. It may be used as an lvalue to set those flags.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \item[
+{\em n}]One of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} to specify which list thread is desired.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the flags associated with the entry. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_next@{se\_\-next}}
+\index{se_next@{se\_\-next}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-next(entry, n)}\label{group__dbprim__smat_a44}
+
+
+
+
+ This macro retrieves a pointer to the {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} for the next element in the sparse matrix list.
+
+\begin{Desc}
+\item[{\bf Warning: }]\par
+This macro may evaluate the {\tt entry} and {\tt n} arguments twice.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \item[
+{\em n}]One of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} to specify which list thread is desired.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_object@{se\_\-object}}
+\index{se_object@{se\_\-object}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-object(entry, n)}\label{group__dbprim__smat_a47}
+
+
+
+
+ This macro retrieves a pointer to one of the object represented by the entry. It may be used as an lvalue to change the object pointed to. Care should be taken when using this feature.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \item[
+{\em n}]One of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} to specify which list thread is desired.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\tt void} representing the object. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_prev@{se\_\-prev}}
+\index{se_prev@{se\_\-prev}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-prev(entry, n)}\label{group__dbprim__smat_a45}
+
+
+
+
+ This macro retrieves a pointer to the {\bf link\_\-elem\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a1})} for the previous element in the sparse matrix list.
+
+\begin{Desc}
+\item[{\bf Warning: }]\par
+This macro may evaluate the {\tt entry} and {\tt n} arguments twice.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \item[
+{\em n}]One of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} to specify which list thread is desired.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_table@{se\_\-table}}
+\index{se_table@{se\_\-table}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-table(entry)}\label{group__dbprim__smat_a40}
+
+
+
+
+ This macro retrieves a pointer to the table that the sparse matrix entry is in.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!se_verify@{se\_\-verify}}
+\index{se_verify@{se\_\-verify}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define se\_\-verify(entry)}\label{group__dbprim__smat_a39}
+
+
+
+
+ This macro verifies that a given pointer actually does point to a sparse matrix entry.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em entry}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+Boolean true if {\tt entry} is a valid sparse matrix entry or false otherwise. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_count@{sh\_\-count}}
+\index{sh_count@{sh\_\-count}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-count(head)}\label{group__dbprim__smat_a34}
+
+
+
+
+ This macro retrieves the number of elements in the sparse matrix list rooted at {\tt head}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing a count of the number of elements in the sparse matrix list. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_elem@{sh\_\-elem}}
+\index{sh_elem@{sh\_\-elem}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-elem(head)}\label{group__dbprim__smat_a31}
+
+
+
+
+ This macro retrieves the position indicator for the sparse matrix head. It will return one of {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\bf smat\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a6})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_first@{sh\_\-first}}
+\index{sh_first@{sh\_\-first}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-first(head)}\label{group__dbprim__smat_a35}
+
+
+
+
+ This macro retrieves a pointer to the {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} for the first element in the sparse matrix list.
+
+\begin{Desc}
+\item[{\bf Warning: }]\par
+This macro may evaluate the {\tt head} argument twice.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_frozen@{sh\_\-frozen}}
+\index{sh_frozen@{sh\_\-frozen}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-frozen(head)}\label{group__dbprim__smat_a33}
+
+
+
+
+ This macro returns a non-zero value if the matrix is currently frozen. The sparse matrix may be frozen if there is an iteration in progress.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A zero value if the matrix is not frozen or a non-zero value if the matrix is frozen. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_last@{sh\_\-last}}
+\index{sh_last@{sh\_\-last}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-last(head)}\label{group__dbprim__smat_a36}
+
+
+
+
+ This macro retrieves a pointer to the {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} for the last element in the sparse matrix list.
+
+\begin{Desc}
+\item[{\bf Warning: }]\par
+This macro may evaluate the {\tt head} argument twice.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_object@{sh\_\-object}}
+\index{sh_object@{sh\_\-object}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-object(head)}\label{group__dbprim__smat_a37}
+
+
+
+
+ This macro retrieves a pointer to the object referenced by the sparse matrix list head.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\tt void}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_size@{sh\_\-size}}
+\index{sh_size@{sh\_\-size}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-size(head)}\label{group__dbprim__smat_a38}
+
+
+
+
+ This macro returns the physical size of the memory allocated by the library for this sparse matrix list.
+
+\begin{Desc}
+\item[{\bf Note: }]\par
+The {\bf st\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a28})} macro already counts the memory for each list in the table. Summing the results of {\bf sh\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a38})} and {\bf st\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a28})} will over-count the amount of memory actually in use.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A {\tt size\_\-t}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_table@{sh\_\-table}}
+\index{sh_table@{sh\_\-table}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-table(head)}\label{group__dbprim__smat_a32}
+
+
+
+
+ If there are any elements in this sparse matrix list head, this macro will retrieve a pointer to the table in which they reside.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_verify@{sh\_\-verify}}
+\index{sh_verify@{sh\_\-verify}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define sh\_\-verify(head)}\label{group__dbprim__smat_a30}
+
+
+
+
+ This macro verifies that a given pointer actually does point to a sparse matrix head.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+Boolean true if {\tt head} is a valid sparse matrix head or false otherwise. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_count@{st\_\-count}}
+\index{st_count@{st\_\-count}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-count(table)}\label{group__dbprim__smat_a26}
+
+
+
+
+ This macro retrieves the total number of items actually in the sparse matrix table.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing a count of the number of items in the sparse matrix table. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_extra@{st\_\-extra}}
+\index{st_extra@{st\_\-extra}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-extra(table)}\label{group__dbprim__smat_a27}
+
+
+
+
+ This macro retrieves the extra pointer data associated with a particular sparse matrix table.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A pointer to {\tt void}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_flags@{st\_\-flags}}
+\index{st_flags@{st\_\-flags}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-flags(table)}\label{group__dbprim__smat_a23}
+
+
+
+
+ This macro retrieves the flags associated with the sparse matrix table. Only {\bf HASH\_\-FLAG\_\-AUTOGROW} {\rm (p.\,\pageref{group__dbprim__hash_a16})} and {\bf HASH\_\-FLAG\_\-AUTOSHRINK} {\rm (p.\,\pageref{group__dbprim__hash_a17})} have any meaning to the application; all other bits are reserved for use in the library. This macro may be used as an lvalue, but care must be taken to avoid modifying the library-specific bits.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the flags for the sparse matrix table. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_frozen@{st\_\-frozen}}
+\index{st_frozen@{st\_\-frozen}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-frozen(table)}\label{group__dbprim__smat_a24}
+
+
+
+
+ This macro returns a non-zero value if the matrix is currently frozen. The sparse matrix may be frozen if there is an iteration in progress.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A zero value if the matrix is not frozen or a non-zero value if the matrix is frozen. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_modulus@{st\_\-modulus}}
+\index{st_modulus@{st\_\-modulus}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-modulus(table)}\label{group__dbprim__smat_a25}
+
+
+
+
+ This macro retrieves the number of buckets allocated for the sparse matrix table. An application may wish to save this value between invocations to avoid the overhead of growing the table while filling it with data.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+An {\tt unsigned long} containing the number of buckets allocated for the sparse matrix table. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_size@{st\_\-size}}
+\index{st_size@{st\_\-size}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-size(table)}\label{group__dbprim__smat_a28}
+
+
+
+
+ This macro returns the physical size of the memory allocated by the library for this sparse matrix table.
+
+\begin{Desc}
+\item[{\bf Note: }]\par
+The {\bf st\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a28})} macro already counts the memory for each list in the table. Summing the results of {\bf sh\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a38})} and {\bf st\_\-size}() {\rm (p.\,\pageref{group__dbprim__smat_a28})} will over-count the amount of memory actually in use.\end{Desc}
+\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A {\tt size\_\-t}. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_verify@{st\_\-verify}}
+\index{st_verify@{st\_\-verify}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}\#define st\_\-verify(table)}\label{group__dbprim__smat_a22}
+
+
+
+
+ This macro verifies that a given pointer actually does point to a sparse matrix table.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.
+
+\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Returns: }]\par
+Boolean true if {\tt table} is a valid sparse matrix table or false otherwise. \end{Desc}
+
+
+\subsection{Typedef Documentation}
+\index{dbprim_smat@{dbprim\_\-smat}!smat_comp_t@{smat\_\-comp\_\-t}}
+\index{smat_comp_t@{smat\_\-comp\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef unsigned long($\ast$ smat\_\-comp\_\-t)({\bf db\_\-key\_\-t} $\ast$, {\bf smat\_\-entry\_\-t} $\ast$)}\label{group__dbprim__smat_a5}
+
+
+
+
+ This function pointer references a callback used by {\bf sh\_\-find}() {\rm (p.\,\pageref{group__dbprim__smat_a19})}. It should return 0 if the sparse matrix entry represented by the second argument matches the key passed as the first argument. \index{dbprim_smat@{dbprim\_\-smat}!smat_entry_t@{smat\_\-entry\_\-t}}
+\index{smat_entry_t@{smat\_\-entry\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-smat\_\-entry\_\-s smat\_\-entry\_\-t}\label{group__dbprim__smat_a2}
+
+
+
+
+ This structure is allocated by the library and represents a single element in a sparse matrix. \index{dbprim_smat@{dbprim\_\-smat}!smat_head_t@{smat\_\-head\_\-t}}
+\index{smat_head_t@{smat\_\-head\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-smat\_\-head\_\-s smat\_\-head\_\-t}\label{group__dbprim__smat_a1}
+
+
+
+
+ This structure is the head of a linked list of sparse matrix entries. \index{dbprim_smat@{dbprim\_\-smat}!smat_iter_t@{smat\_\-iter\_\-t}}
+\index{smat_iter_t@{smat\_\-iter\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef unsigned long($\ast$ smat\_\-iter\_\-t)({\bf smat\_\-table\_\-t} $\ast$, {\bf smat\_\-entry\_\-t} $\ast$, void $\ast$)}\label{group__dbprim__smat_a4}
+
+
+
+
+ This function pointer references a callback used by {\bf st\_\-iter}() {\rm (p.\,\pageref{group__dbprim__smat_a13})}, {\bf st\_\-flush}() {\rm (p.\,\pageref{group__dbprim__smat_a14})}, {\bf sh\_\-iter}() {\rm (p.\,\pageref{group__dbprim__smat_a20})}, and sh\_\-flush(). It should return 0 for success. A non-zero return value will terminate the operation and will become the return value of the call. \index{dbprim_smat@{dbprim\_\-smat}!smat_loc_t@{smat\_\-loc\_\-t}}
+\index{smat_loc_t@{smat\_\-loc\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef enum {\bf \_\-smat\_\-loc\_\-e} smat\_\-loc\_\-t}\label{group__dbprim__smat_a6}
+
+
+
+
+ See the documentation for the enumeration {\bf \_\-smat\_\-loc\_\-e} {\rm (p.\,\pageref{group__dbprim__smat_a48})}. \index{dbprim_smat@{dbprim\_\-smat}!smat_resize_t@{smat\_\-resize\_\-t}}
+\index{smat_resize_t@{smat\_\-resize\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef unsigned long($\ast$ smat\_\-resize\_\-t)({\bf smat\_\-table\_\-t} $\ast$, unsigned long)}\label{group__dbprim__smat_a3}
+
+
+
+
+ This function pointer references a callback that will be called with both the old and new sparse matrix table sizes whenever a sparse matrix's hash table table is resized. It should return non-zero only when the resize should be inhibited. \index{dbprim_smat@{dbprim\_\-smat}!smat_table_t@{smat\_\-table\_\-t}}
+\index{smat_table_t@{smat\_\-table\_\-t}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}typedef struct \_\-smat\_\-table\_\-s smat\_\-table\_\-t}\label{group__dbprim__smat_a0}
+
+
+
+
+ This structure is the basis of all sparse matrices maintained by this library. 
+
+\subsection{Enumeration Type Documentation}
+\index{dbprim_smat@{dbprim\_\-smat}!_smat_loc_e@{\_\-smat\_\-loc\_\-e}}
+\index{_smat_loc_e@{\_\-smat\_\-loc\_\-e}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}enum \_\-smat\_\-loc\_\-e}\label{group__dbprim__smat_a48}
+
+
+
+
+ This enumeration is used to specify whether an element is a row or column element. It should be referenced by the typedef {\bf smat\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a6})}. \begin{Desc}
+\item[{\bf Enumeration values:}]\par
+\begin{description}
+\index{SMAT_LOC_FIRST@{SMAT\_\-LOC\_\-FIRST}!dbprim_smat@{dbprim\_\-smat}}\index{dbprim_smat@{dbprim\_\-smat}!SMAT_LOC_FIRST@{SMAT\_\-LOC\_\-FIRST}}\item[
+{\em SMAT\_\-LOC\_\-FIRST}\label{group__dbprim__smat_a48a102}
+]First entry (``row''). \index{SMAT_LOC_SECOND@{SMAT\_\-LOC\_\-SECOND}!dbprim_smat@{dbprim\_\-smat}}\index{dbprim_smat@{dbprim\_\-smat}!SMAT_LOC_SECOND@{SMAT\_\-LOC\_\-SECOND}}\item[
+{\em SMAT\_\-LOC\_\-SECOND}\label{group__dbprim__smat_a48a103}
+]Second entry (``column''). \end{description}
+\end{Desc}
+
+
+
+\subsection{Function Documentation}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_find@{sh\_\-find}}
+\index{sh_find@{sh\_\-find}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long sh\_\-find ({\bf smat\_\-head\_\-t} $\ast$ {\em head}, {\bf smat\_\-entry\_\-t} $\ast$$\ast$ {\em elem\_\-p}, {\bf smat\_\-comp\_\-t} {\em comp\_\-func}, {\bf smat\_\-entry\_\-t} $\ast$ {\em start}, {\bf db\_\-key\_\-t} $\ast$ {\em key})}\label{group__dbprim__smat_a19}
+
+
+
+
+ This function iterates through the given row or column of a sparse matrix looking for an element that matches the given {\tt key}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}. \item[
+{\em elem\_\-p}]A pointer to a pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. This is a result pramater. {\tt NULL} is an invalid value. \item[
+{\em comp\_\-func}]A pointer to a comparison function used to compare the key to a particular entry. See the documentation for {\bf smat\_\-comp\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a5})} for more information. \item[
+{\em start}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} describing where in the row or column to start. If {\tt NULL} is passed, the beginning of the row or column will be assumed. \item[
+{\em key}]A key to search for.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt start} is not in this row or column. \item[
+{\em DB\_\-ERR\_\-NOENTRY}]No matching entry was found. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_init@{sh\_\-init}}
+\index{sh_init@{sh\_\-init}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long sh\_\-init ({\bf smat\_\-head\_\-t} $\ast$ {\em head}, {\bf smat\_\-loc\_\-t} {\em elem}, void $\ast$ {\em object})}\label{group__dbprim__smat_a17}
+
+
+
+
+ This function dynamically initializes a sparse matrix row or column linked list head. The {\tt elem} argument specifies whether the object is to be associated with a {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} list or a {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} list.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} to be initialized. \item[
+{\em elem}]Either {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} or {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})}. \item[
+{\em object}]A pointer to the object containing the sparse matrix row or column head.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An invalid argument was given. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_iter@{sh\_\-iter}}
+\index{sh_iter@{sh\_\-iter}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long sh\_\-iter ({\bf smat\_\-head\_\-t} $\ast$ {\em head}, {\bf smat\_\-iter\_\-t} {\em iter\_\-func}, void $\ast$ {\em extra})}\label{group__dbprim__smat_a20}
+
+
+
+
+ This function iterates over a row or column of a sparse matrix, executing the given {\tt iter\_\-func} for each entry.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}. \item[
+{\em iter\_\-func}]A pointer to a callback function used to perform user-specified actions on an entry in a row or column of a sparse matrix. {\tt NULL} is an invalid value. See the documentation for {\bf smat\_\-iter\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a4})} for more information. \item[
+{\em extra}]A {\tt void} pointer that will be passed to {\tt iter\_\-func}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!sh_move@{sh\_\-move}}
+\index{sh_move@{sh\_\-move}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long sh\_\-move ({\bf smat\_\-head\_\-t} $\ast$ {\em head}, {\bf smat\_\-entry\_\-t} $\ast$ {\em elem}, {\bf link\_\-loc\_\-t} {\em loc}, {\bf smat\_\-entry\_\-t} $\ast$ {\em elem2})}\label{group__dbprim__smat_a18}
+
+
+
+
+ This function allows the specified entry to be shifted within the linked list describing the row or column. It is very similar to the {\bf ll\_\-move}() {\rm (p.\,\pageref{group__dbprim__link_a7})} function.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em head}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})}. \item[
+{\em elem}]A pointer to the {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} describing the entry to be moved. \item[
+{\em loc}]A {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})} indicating where the entry should be moved to. \item[
+{\em elem2}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} describing another entry in the list if {\tt loc} is {\bf LINK\_\-LOC\_\-BEFORE} {\rm (p.\,\pageref{group__dbprim__link_a26a100})} or {\bf LINK\_\-LOC\_\-AFTER} {\rm (p.\,\pageref{group__dbprim__link_a26a101})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-BUSY}]{\tt elem} and {\tt elem2} are the same entry. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]{\tt elem} or {\tt elem2} are in a different row or column. \item[
+{\em DB\_\-ERR\_\-UNUSED}]{\tt elem} or {\tt elem2} are not in any row or column. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!smat_cleanup@{smat\_\-cleanup}}
+\index{smat_cleanup@{smat\_\-cleanup}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long smat\_\-cleanup (void)}\label{group__dbprim__smat_a7}
+
+
+
+
+ This function frees all smat\_\-entry\_\-t objects on the internal free list. It is always successful and returns 0. \index{dbprim_smat@{dbprim\_\-smat}!smat_freemem@{smat\_\-freemem}}
+\index{smat_freemem@{smat\_\-freemem}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long smat\_\-freemem (void)}\label{group__dbprim__smat_a8}
+
+
+
+
+ This function returns the amount of memory being used by the internal free list of smat\_\-entry\_\-t objects.
+
+\begin{Desc}
+\item[{\bf Returns: }]\par
+A number indicating the size, in bytes, of the memory allocated for smat\_\-entry\_\-t objects on the free list. \end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_add@{st\_\-add}}
+\index{st_add@{st\_\-add}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-add ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, {\bf smat\_\-entry\_\-t} $\ast$$\ast$ {\em entry\_\-p}, {\bf smat\_\-head\_\-t} $\ast$ {\em head1}, {\bf link\_\-loc\_\-t} {\em loc1}, {\bf smat\_\-entry\_\-t} $\ast$ {\em ent1}, {\bf smat\_\-head\_\-t} $\ast$ {\em head2}, {\bf link\_\-loc\_\-t} {\em loc2}, {\bf smat\_\-entry\_\-t} $\ast$ {\em ent2})}\label{group__dbprim__smat_a10}
+
+
+
+
+ This function adds an entry to a sparse matrix. The entry is referenced in three different places, thus the complex set of arguments. This function will allocate a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} and return it through the {\tt entry\_\-p} result parameter.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em entry\_\-p}]A pointer to a pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. This is a result parameter. If {\tt NULL} is passed, the addition will be performed and an appropriate error code returned. \item[
+{\em head1}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} representing a {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})} sparse matrix list. \item[
+{\em loc1}]A {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})} indicating where the entry should be added for {\tt head1}. \item[
+{\em ent1}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} describing another element in the list represented by {\tt head1} if {\tt loc1} is {\bf LINK\_\-LOC\_\-BEFORE} {\rm (p.\,\pageref{group__dbprim__link_a26a100})} or {\bf LINK\_\-LOC\_\-AFTER} {\rm (p.\,\pageref{group__dbprim__link_a26a101})}. \item[
+{\em head2}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} representing a {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})} sparse matrix list. \item[
+{\em loc2}]A {\bf link\_\-loc\_\-t} {\rm (p.\,\pageref{group__dbprim__link_a4})} indicating where the entry should be added for {\tt head2}. \item[
+{\em ent2}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} describing another element in the list represented by {\tt head2} if {\tt loc2} is {\bf LINK\_\-LOC\_\-BEFORE} {\rm (p.\,\pageref{group__dbprim__link_a26a100})} or {\bf LINK\_\-LOC\_\-AFTER} {\rm (p.\,\pageref{group__dbprim__link_a26a101})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-BUSY}]One of the arguments is already in the table. \item[
+{\em DB\_\-ERR\_\-FROZEN}]The table is currently frozen. \item[
+{\em DB\_\-ERR\_\-NOTABLE}]The bucket table has not been allocated and automatic growth is not enabled. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]One of the arguments was not in the proper table or list. \item[
+{\em DB\_\-ERR\_\-UNUSED}]One of the {\tt ent} arguments is not presently in a list. \item[
+{\em DB\_\-ERR\_\-UNRECOVERABLE}]An unrecoverable error occurred while resizing the table. \item[
+{\em ENOMEM}]No memory could be allocated for the {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} structure. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_find@{st\_\-find}}
+\index{st_find@{st\_\-find}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-find ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, {\bf smat\_\-entry\_\-t} $\ast$$\ast$ {\em entry\_\-p}, {\bf smat\_\-head\_\-t} $\ast$ {\em head1}, {\bf smat\_\-head\_\-t} $\ast$ {\em head2})}\label{group__dbprim__smat_a12}
+
+
+
+
+ This function looks up the entry matching the given {\tt head1} and {\tt head2}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em entry\_\-p}]A pointer to a pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})}. This is a result parameter. If {\tt NULL} is passed, the lookup will be performed and an appropriate error code returned. \item[
+{\em head1}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} initialized to {\bf SMAT\_\-LOC\_\-FIRST} {\rm (p.\,\pageref{group__dbprim__smat_a48a102})}. \item[
+{\em head2}]A pointer to a {\bf smat\_\-head\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a1})} initialized to {\bf SMAT\_\-LOC\_\-SECOND} {\rm (p.\,\pageref{group__dbprim__smat_a48a103})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]One or both of {\tt head1} or {\tt head2} are not referenced in this table. \item[
+{\em DB\_\-ERR\_\-NOENTRY}]No matching entry was found. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_flush@{st\_\-flush}}
+\index{st_flush@{st\_\-flush}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-flush ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, {\bf smat\_\-iter\_\-t} {\em flush\_\-func}, void $\ast$ {\em extra})}\label{group__dbprim__smat_a14}
+
+
+
+
+ This function flushes a sparse matrix--that is, it removes each entry from the matrix. If a {\tt flush\_\-func} is specified, it will be called on the entry after it has been removed from the table, and may safely call {\tt free()}.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em flush\_\-func}]A pointer to a callback function used to perform user-specified actions on an entry after removing it from the table. May be {\tt NULL}. See the documentation for {\bf smat\_\-iter\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a4})} for more information. \item[
+{\em extra}]A {\tt void} pointer that will be passed to {\tt iter\_\-func}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-FROZEN}]The sparse matrix is frozen. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_free@{st\_\-free}}
+\index{st_free@{st\_\-free}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-free ({\bf smat\_\-table\_\-t} $\ast$ {\em table})}\label{group__dbprim__smat_a16}
+
+
+
+
+ This function releases the memory used by the bucket table of the empty hash table associated with a sparse matrix.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An invalid argument was given. \item[
+{\em DB\_\-ERR\_\-FROZEN}]The table is frozen. \item[
+{\em DB\_\-ERR\_\-NOTEMPTY}]The table is not empty. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_init@{st\_\-init}}
+\index{st_init@{st\_\-init}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-init ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, unsigned long {\em flags}, {\bf smat\_\-resize\_\-t} {\em resize}, void $\ast$ {\em extra}, unsigned long {\em init\_\-mod})}\label{group__dbprim__smat_a9}
+
+
+This function dynamically initializes a sparse matrix table.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})} to be initialized. \item[
+{\em flags}]A bit-wise OR of {\bf HASH\_\-FLAG\_\-AUTOGROW} {\rm (p.\,\pageref{group__dbprim__hash_a16})} and {\bf HASH\_\-FLAG\_\-AUTOSHRINK} {\rm (p.\,\pageref{group__dbprim__hash_a17})}. If neither behavior is desired, use 0. \item[
+{\em resize}]A {\bf hash\_\-resize\_\-t} {\rm (p.\,\pageref{group__dbprim__hash_a5})} function pointer for determining whether resizing is permitted and/or for notification of the resize. \item[
+{\em extra}]Extra pointer data that should be associated with the sparse matrix table. \item[
+{\em init\_\-mod}]An initial modulus for the table. This will presumably be extracted by {\bf st\_\-modulus}() {\rm (p.\,\pageref{group__dbprim__smat_a25})} in a previous invocation of the application. A 0 value is valid.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An invalid argument was given. \item[
+{\em ENOMEM}]Unable to allocate memory. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_iter@{st\_\-iter}}
+\index{st_iter@{st\_\-iter}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-iter ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, {\bf smat\_\-iter\_\-t} {\em iter\_\-func}, void $\ast$ {\em extra})}\label{group__dbprim__smat_a13}
+
+
+
+
+ This function iterates over every entry in a sparse matrix (in an unspecified order), executing the given {\tt iter\_\-func} on each entry.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em iter\_\-func}]A pointer to a callback function used to perform user-specified actions on an entry in a sparse matrix. {\tt NULL} is an invalid value. See the documentation for {\bf smat\_\-iter\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a4})} for more information. \item[
+{\em extra}]A {\tt void} pointer that will be passed to {\tt iter\_\-func}.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-FROZEN}]The sparse matrix is frozen. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_remove@{st\_\-remove}}
+\index{st_remove@{st\_\-remove}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-remove ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, {\bf smat\_\-entry\_\-t} $\ast$ {\em entry})}\label{group__dbprim__smat_a11}
+
+
+
+
+ This function removes the given entry from the specified sparse matrix.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em entry}]A pointer to a {\bf smat\_\-entry\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a2})} to be removed from the table.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An invalid argument was given. \item[
+{\em DB\_\-ERR\_\-WRONGTABLE}]Entry is not in this sparse matrix. \item[
+{\em DB\_\-ERR\_\-UNRECOVERABLE}]An unrecoverable error occurred while removing the entry from the table. \end{description}
+\end{Desc}
+\index{dbprim_smat@{dbprim\_\-smat}!st_resize@{st\_\-resize}}
+\index{st_resize@{st\_\-resize}!dbprim_smat@{dbprim\_\-smat}}
+\subsubsection{\setlength{\rightskip}{0pt plus 5cm}unsigned long st\_\-resize ({\bf smat\_\-table\_\-t} $\ast$ {\em table}, unsigned long {\em new\_\-size})}\label{group__dbprim__smat_a15}
+
+
+
+
+ This function resizes the hash table associated with a sparse matrix based on the {\tt new\_\-size} parameter. See the documentation for {\bf ht\_\-resize}() {\rm (p.\,\pageref{group__dbprim__hash_a13})} for more information.\begin{Desc}
+\item[{\bf Parameters: }]\par
+\begin{description}
+\item[
+{\em table}]A pointer to a {\bf smat\_\-table\_\-t} {\rm (p.\,\pageref{group__dbprim__smat_a0})}. \item[
+{\em new\_\-size}]A new size value for the table.\end{description}
+\end{Desc}
+\begin{Desc}
+\item[{\bf Return values: }]\par
+\begin{description}
+\item[
+{\em DB\_\-ERR\_\-BADARGS}]An argument was invalid. \item[
+{\em DB\_\-ERR\_\-FROZEN}]The table is currently frozen. \item[
+{\em DB\_\-ERR\_\-UNRECOVERABLE}]A catastrophic error was encountered. The table is now unusable. \item[
+{\em ENOMEM}]No memory could be allocated for the new bucket table. \end{description}
+\end{Desc}
