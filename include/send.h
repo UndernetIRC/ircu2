@@ -108,6 +108,12 @@ extern void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 				  const char *tok, struct Client *one,
 				  unsigned int flag, const char *pattern, ...);
 
+/* Send command to all matching clients */
+extern void sendcmdto_match_butone(struct Client *from, const char *cmd,
+				   const char *tok, const char *to,
+				   struct Client *one, unsigned int who,
+				   const char *pattern, ...);
+
 /* Send server notice to opers but one--one can be NULL */
 extern void sendto_opmask_butone(struct Client *one, unsigned int mask,
 				 const char *pattern, ...);
