@@ -27,6 +27,7 @@
 #endif
 
 struct Client;
+struct StatDesc;
 struct ConfItem;
 
 /*
@@ -81,7 +82,8 @@ extern unsigned int get_client_class(struct Client *acptr);
 extern void add_class(unsigned int conclass, unsigned int ping,
                       unsigned int confreq, unsigned int maxli, unsigned int sendq);
 extern void check_class(void);
-extern void report_classes(struct Client *sptr);
+extern void report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
+			   char *param);
 extern unsigned int get_sendq(struct Client* cptr);
 
 extern void class_send_meminfo(struct Client* cptr);

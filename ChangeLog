@@ -1,5 +1,84 @@
 2002-07-13  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/userload.c (calc_load): turn into a stats dispatch function
+
+	* ircd/s_stats.c: implementation of all stats dispatch functions
+	that were here, in m_stats.c, or were in-line in the m_stats()
+	massive switch statement; removal of hunt_stats()--it's no longer
+	needed, since it's now easy for m_stats() to determine if it needs
+	to worry about an extra parameter; declare statsinfo[] array, in
+	which each stats character is listed and described; declare
+	statsmap[] array, which provides efficient lookup for stats;
+	define stats_init() which initializes the statsmap[] array from
+	the statsinfo[] array
+
+	* ircd/s_misc.c (tstats): turn into a stats dispatch function
+
+	* ircd/s_debug.c: turn send_usage() into a stats dispatch
+	function; turn count_memory() into a stats dispatch function
+
+	* ircd/parse.c: no longer need mo_stats() or ms_stats(), so use
+	m_stats() for all
+
+	* ircd/msgq.c (msgq_histogram): turn into a stats dispatch
+	function
+
+	* ircd/motd.c (motd_report): turn into a stats dispatch function
+
+	* ircd/m_stats.c: rewrote m_stats() from scratch--now uses a table
+	(defined in s_stats.c) to dispatch to a handler instead of a huge
+	select
+
+	* ircd/listener.c (show_ports): turn into a stats dispatch
+	function; moved policy decisions into show_ports()
+
+	* ircd/ircd_features.c (feature_report): turn into a stats
+	dispatch function
+
+	* ircd/ircd.c: initialize the stats system
+
+	* ircd/gline.c (gline_stats): turn into a stats dispatch function
+
+	* ircd/class.c (report_classes): turn into a stats dispatch
+	function
+
+	* include/userload.h: change calc_load() function so it can be a
+	stats dispatch function
+
+	* include/s_stats.h: include ircd_features.h for enum Features;
+	remove all formerly exported stats functions; typedef for
+	StatFunc, structure declaration for struct StatDesc, and
+	preprocessor declarations for STAT_FLAG_*; declaration of
+	statsinfo[] and statsmap[] arrays; declaration of stats_init()
+	function
+
+	* include/s_misc.h: change tstats() declaration so it can be a
+	stats dispatch function
+
+	* include/s_debug.h: change send_usage() declaration so it can be
+	a stats dispatch function; change count_memory() declaration so it
+	can be a stats dispatch function
+
+	* include/msgq.h: change msgq_histogram() declaration so it can be
+	a stats dispatch function
+
+	* include/motd.h: change motd_report() declaration so it can be a
+	stats dispatch function
+
+	* include/listener.h: change show_ports() declaration so it can be
+	a stats dispatch function
+
+	* include/ircd_features.h: change feature_report() declaration so
+	it can be a stats dispatch function
+
+	* include/gline.h: change gline_stats() declaration so it can be a
+	stats dispatch function
+
+	* include/class.h: change report_classes() declaration so it can
+	be a stats dispatch function
+
 	* ircd/m_gline.c (ms_gline): set a default reason, bashing an
 	uninitialized warning from gcc
 

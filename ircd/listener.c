@@ -34,6 +34,7 @@
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "sys.h"         /* MAXCLIENTS */
 
@@ -116,11 +117,19 @@ void count_listener_memory(int* count_out, size_t* size_out)
  * side effects - show ports
  * author       - Dianora
  */
-void show_ports(struct Client* sptr, int show_hidden, int port, int count)
+void show_ports(struct Client* sptr, struct StatDesc* sd, int stat,
+		char* param)
 {
   struct Listener* listener = 0;
   char             flags[8];
+  int show_hidden = IsOper(sptr);
+  int count = IsOper(sptr) || MyUser(sptr) ? 100 : 8;
+  int port = 0;
+
   assert(0 != sptr);
+
+  if (param)
+    port = atoi(param);
 
   for (listener = ListenerPollList; listener; listener = listener->next) {
     if (port && port != listener->port)

@@ -39,6 +39,7 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "support.h"
@@ -687,7 +688,7 @@ feature_init(void)
 
 /* report all F-lines */
 void
-feature_report(struct Client* to)
+feature_report(struct Client* to, struct StatDesc* sd, int stat, char* param)
 {
   int i;
 

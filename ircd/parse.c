@@ -400,7 +400,7 @@ struct Message msgtab[] = {
     TOK_STATS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_stats, ms_stats, mo_stats, m_ignore }
+    { m_unregistered, m_stats, m_stats, m_stats, m_ignore }
   },
   {
     MSG_LINKS,

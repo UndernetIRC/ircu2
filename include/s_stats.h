@@ -24,16 +24,34 @@
 
 #ifndef INCLUDED_s_stats_h
 #define INCLUDED_s_stats_h
+#ifndef INCLUDED_features_h
+#include "ircd_features.h"
+#endif
 
 struct Client;
 
-extern const char *statsinfo[];
-extern void report_stats(struct Client *sptr, char stat);
-extern void report_configured_links(struct Client *sptr, int mask);
-extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat, int MustBeOper);
+struct StatDesc;
 
-extern void report_crule_list(struct Client* to, int mask);
-extern void report_motd_list(struct Client* to);
-extern void report_deny_list(struct Client* to);
+/* Source of /stats, stats descriptor, stats char, extra param (might be 0) */
+typedef void (*StatFunc)(struct Client *, struct StatDesc *, int, char *);
+
+struct StatDesc {
+  char		sd_c;		/* stats character */
+  unsigned int	sd_flags;	/* flags to control the stats */
+  enum Feature	sd_control;	/* feature controlling stats */
+  StatFunc	sd_func;	/* function to dispatch to */
+  int		sd_funcdata;	/* extra data for the function */
+  char	       *sd_desc;	/* descriptive text */
+};
+
+#define STAT_FLAG_OPERONLY	0x01	/* Oper-only stat */
+#define STAT_FLAG_OPERFEAT	0x02	/* Oper-only if the feature is true */
+#define STAT_FLAG_CASESENS	0x04	/* Flag is case-sensitive */
+#define STAT_FLAG_VARPARAM	0x08	/* may have an extra parameter */
+
+extern struct StatDesc statsinfo[];
+extern struct StatDesc *statsmap[];
+
+extern void stats_init(void);
 
 #endif /* INCLUDED_s_stats_h */
