@@ -1,10 +1,12 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.3 2001-04-05 10:23:05 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.4 2001-04-15 03:10:09 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* According to CFV-165, buring our head in the sand to try and
+* hide from DoS - First pass -- Isomer
 * As requested by hop: hidden keys are shown as "*" not "" -- Isomer
 * As requested by Buff: allow admins to *disable* below behavour -- Isomer
 * As requested by Adriel, compile time option to disable mo_wallops 
