@@ -98,7 +98,6 @@
 #include "s_user.h"
 #include "s_misc.h"
 #include "send.h"
-#include "support.h"
 
 #include <assert.h>
 #include <stdlib.h>

@@ -1255,7 +1255,6 @@ char* rpl_str(int n)
 {
   static char numbuff[512];
   Numeric* p;
-  const char *ap;
 
   assert(0 < n);
   assert(n < ERR_LASTERROR);

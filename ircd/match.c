@@ -24,7 +24,6 @@
 #include "ircd_chattr.h"
 #include "ircd_string.h"
 #include "ircd_snprintf.h"
-#include "support.h"
 
 /*
  * mmatch()
@@ -812,6 +811,22 @@ static int ipmask_parse_ipv4(const char *in, struct in_addr *out)
   ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
   out->s_addr = inet_addr(ipname);
   return bits;
+}
+
+int check_if_ipmask(const char *mask)
+{
+  int has_digit = 0;
+  const char *p;
+
+  for (p = mask; *p; ++p)
+    if (*p != '*' && *p != '?' && *p != '.' && *p != '/')
+    {
+      if (!IsDigit(*p))
+        return 0;
+      has_digit = -1;
+    }
+
+  return has_digit;
 }
 
 int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_ptr)

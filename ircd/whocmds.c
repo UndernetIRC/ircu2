@@ -46,7 +46,6 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
-#include "support.h"
 #include "sys.h"
 #include "userload.h"
 #include "version.h"

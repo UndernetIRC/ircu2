@@ -40,7 +40,6 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
-#include "support.h"
 #include "whowas.h"
 
 #include <assert.h>

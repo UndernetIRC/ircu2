@@ -97,7 +97,6 @@
 #include "numnicks.h"
 #include "s_conf.h"
 #include "send.h"
-#include "support.h"
 
 #include <assert.h>
 

@@ -94,7 +94,6 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
-#include "support.h"
 #include "whocmds.h"
 
 #include <assert.h>

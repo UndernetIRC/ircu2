@@ -53,7 +53,6 @@
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
-#include "support.h"
 #include "sys.h"
 #include <stdlib.h>
 #include <stdio.h>
