@@ -298,8 +298,8 @@ exact_match:
             sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR),
                 me.name, parv[0], name);
 
-#ifdef HEAD_IN_SAND_IDLETIME
-          if (MyConnect(acptr) && (IsAnOper(sptr) || parc>=3))
+#ifdef HEAD_IN_SAND_WHOIS_IDLETIME
+          if (MyConnect(acptr) && (sptr == acptr || IsAnOper(sptr) || parc>=3))
 #else
           if (MyConnect(acptr))
 #endif

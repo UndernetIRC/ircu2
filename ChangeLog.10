@@ -1,10 +1,15 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.17.2.12 2001-06-25 15:57:04 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.17.2.13 2001-06-25 16:10:43 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Reverse sense of HEAD_IN_SAND_WHO_HOPCOUNT to do what was intended; use a
+  hopcount of 0 if user is using /who on him/herself -Kev
+* Allow a user to see his/her own idle time without having to do
+  /whois <nick> <nick>; correct spelling of HEAD_IN_SAND_IDLETIME to
+  HEAD_IN_SAND_WHOIS_IDLETIME -Kev
 * Fix a missing ')' in the idle time stuff -Kev
 * Include ircd_policy.h in whocmds.c -Kev
 * Fixed bug in idle time, thanks hektik -- Isomer
