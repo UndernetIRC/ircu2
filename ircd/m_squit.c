@@ -77,6 +77,8 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     acptr = FindServer(server);
 
   if (!acptr) {
+    protocol_violation(sptr, "Issued SQUIT for unknown server %s (ignored)",
+		       server);
     Debug((DEBUG_NOTICE, "Ignoring SQUIT to an unknown server"));
     return 0;
   }
@@ -93,6 +95,9 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * It will be our neighbour.
    */
   if ( timestamp != 0 && timestamp != cli_serv(acptr)->timestamp) {
+    protocol_violation(sptr, "Issued SQUIT for %C with wrong timestamp %Tu "
+		       "(%Tu) (ignored)", acptr, timestamp,
+		       cli_serv(acptr)->timestamp);
     Debug((DEBUG_NOTICE, "Ignoring SQUIT with the wrong timestamp"));
     return 0;
   }
@@ -155,5 +160,3 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return exit_client(cptr, acptr, sptr, comment);
 }
-
-

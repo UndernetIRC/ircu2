@@ -9,15 +9,15 @@
 #include <stdarg.h>         /* va_list */
 #define INCLUDED_stdarg_h 
 #endif
+#ifndef INCLUDED_time_h
+#include <time.h>	/* time_t */
+#define INCLUDED_time_h
+#endif
 
 struct Channel;
 struct Client;
 struct DBuf;
 struct MsgBuf;
-
-#define WALL_DESYNCH	1
-#define WALL_WALLOPS	2
-#define WALL_WALLUSERS	3
 
 /*
  * Prototypes
@@ -70,7 +70,12 @@ extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 
 /* Send command to all users having a particular flag set */
 extern void sendwallto_group_butone(struct Client *from, int type, 
-    				struct Client *one, const char *pattern, ...);
+				    struct Client *one, const char *pattern,
+				    ...);
+
+#define WALL_DESYNCH	1
+#define WALL_WALLOPS	2
+#define WALL_WALLUSERS	3
 
 /* Send command to all matching clients */
 extern void sendcmdto_match_butone(struct Client *from, const char *cmd,
@@ -81,6 +86,11 @@ extern void sendcmdto_match_butone(struct Client *from, const char *cmd,
 /* Send server notice to opers but one--one can be NULL */
 extern void sendto_opmask_butone(struct Client *one, unsigned int mask,
 				 const char *pattern, ...);
+
+/* Same as above, but rate limited */
+extern void sendto_opmask_butone_ratelimited(struct Client *one,
+					     unsigned int mask, time_t *rate,
+					     const char *pattern, ...);
 
 /* Same as above, but with variable argument list */
 extern void vsendto_opmask_butone(struct Client *one, unsigned int mask,

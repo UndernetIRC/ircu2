@@ -1,3 +1,29 @@
+2001-11-01  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: some minor white-space fiddling; recast selector
+	test in sendwallto_group_butone() to remove a warning regarding
+	putting & within parentheses [forward-port from u2.10.11]
+
+	* ircd/m_create.c (ms_create): use time_t instead of int as a
+	declaration for rate [forward-port from u2.10.11]
+
+	* ircd/ircd_reply.c (protocol_violation): it's supposed to be
+	WALL_DESYNCH, not CMD_DESYNCH, if I understand things right--no
+	wonder we weren't seeing any protocol violations! [forward-port
+	from u2.10.11]
+
+	* include/send.h: include time.h for time_t; move WALL_* closer to
+	the function they're used in; some white-space fiddling; add
+	declaration of sendto_opmask_butone_ratelimited() [forward-port
+	from u2.10.11]
+
+	* ircd/m_squit.c (ms_squit): add protocol_violation() calls in the
+	cases where we ignore a squit, so we aren't taken by surprise, at
+	least... [forward-port from u2.10.11]
+
+	* ircd/m_create.c (ms_create): Display origin server, not origin
+	user [forward-port from u2.10.11]
+
 2001-11-02  Perry Lorier  <isomer@coders.net>
 	* fixed TS drift message to use sptr, not cptr
 
