@@ -117,7 +117,7 @@
 int
 m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char stat = parc > 1 ? parv[1][0] : '\0';
+  unsigned char stat = parc > 1 ? parv[1][0] : '\0';
   struct StatDesc *sd;
   char *param = 0;
 

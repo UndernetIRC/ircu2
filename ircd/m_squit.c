@@ -60,7 +60,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char* server = parv[1];
   struct Client *acptr;
-  time_t timestamp;
+  time_t timestamp = 0;
   char *comment = 0;
   
   if (parc < 2) 
@@ -85,8 +85,10 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsMe(acptr)) {
     acptr = cptr; /* Bugfix by Prefect */
   }
-  	
+  if (parc>2)
   timestamp = atoi(parv[2]);
+  else
+   protocol_violation(cptr, "SQUIT with no timestamp/reason");  
 
   /* If atoi(parv[2]) == 0 we must indeed squit !
    * It will be our neighbour.
