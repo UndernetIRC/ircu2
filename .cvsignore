@@ -6,3 +6,4 @@ stamp-h
 config.status
 config.cache
 .project
+ircu.tags
