@@ -1,4 +1,13 @@
 2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/packet.c
+	* ircd/packet.h: (connect_dopacket): Made a dopacket function for
+	connecting links which sends the messages through the correct message
+	handler.
+	* ircd/s_bsd.c(read_packet): Put packets through the correct handler
+	for connecting links. Properly handle unknown links becoming
+	connecting or servers.
+	
+2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/class.c (make_class): Initialise the class reference count
 	to 0 on creation.
 	
