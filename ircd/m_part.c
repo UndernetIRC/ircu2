@@ -139,12 +139,15 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     assert(!IsZombie(member)); /* Local users should never zombie */
 
-    if (!member_can_send_to_channel(member))
+    if (!member_can_send_to_channel(member, 0))
     {
       flags |= CHFL_BANNED;
       /* Remote clients don't want to see a comment either. */
       parts.jb_comment = 0;
     }
+
+    if (IsDelayedJoin(member))
+      flags |= CHFL_DELAYED;
 
     joinbuf_join(&parts, chptr, flags); /* part client from channel */
   }
@@ -194,12 +197,15 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (IsZombie(member)) /* figure out special flags... */
       flags |= CHFL_ZOMBIE;
 
+    if (IsDelayedJoin(member))
+      flags |= CHFL_DELAYED;
+
     /*
      * XXX BUG: If a client /part's with a part notice, on channels where
      * he's banned, local clients will not see the part notice, but remote
      * clients will.
      */
-    if (!member_can_send_to_channel(member))
+    if (!member_can_send_to_channel(member, 0))
       flags |= CHFL_BANNED;
 
     /* part user from channel */

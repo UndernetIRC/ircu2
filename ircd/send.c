@@ -403,7 +403,7 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
    * loop through from's channels, and the members on their channels
    */
   for (chan = cli_user(from)->channel; chan; chan = chan->next_channel) {
-    if (IsZombie(chan))
+    if (IsZombie(chan) || IsDelayedJoin(chan))
       continue;
     for (member = chan->channel->members; member;
 	 member = member->next_member)

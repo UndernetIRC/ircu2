@@ -152,7 +152,9 @@ join0(struct JoinBuf *join, struct Client *cptr, struct Client *sptr,
 
   while ((member = cli_user(sptr)->channel))
     joinbuf_join(&part, member->channel,
-		 IsZombie(member) ? CHFL_ZOMBIE : 0);
+		 IsZombie(member) ? CHFL_ZOMBIE :
+                 IsDelayedJoin(member) ? CHFL_DELAYED :
+                 0);
 
   joinbuf_flush(&part);
 

@@ -154,8 +154,16 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
 			  comment);
 
-  sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
-			    comment);
+  if (IsDelayedJoin(member)) {
+    /* If it's a delayed join, only send the KICK to the person doing
+     * the kicking and the victim */
+    if (MyUser(who))
+      sendcmdto_one(sptr, CMD_KICK, who, "%H %C :%s", chptr, who, comment);
+    sendcmdto_one(sptr, CMD_KICK, sptr, "%H %C :%s", chptr, who, comment);
+    CheckDelayedJoins(chptr);
+  } else
+    sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
+                                     comment);
 
   make_zombie(member, who, cptr, sptr, chptr);
 

@@ -564,7 +564,13 @@ static int remove_member_from_channel(struct Membership* member)
     member->prev_member->next_member = member->next_member;
   else
     member->channel->members = member->next_member; 
-      
+
+  /*
+   * If this is the last delayed-join user, may have to clear WASDELJOINS.
+   */
+  if (IsDelayedJoin(member))
+    CheckDelayedJoins(chptr);
+
   /*
    * unlink client channel list
    */
@@ -657,7 +663,7 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
   return 0;
 }
 
-int member_can_send_to_channel(struct Membership* member)
+int member_can_send_to_channel(struct Membership* member, int reveal)
 {
   assert(0 != member);
 
@@ -680,10 +686,14 @@ int member_can_send_to_channel(struct Membership* member)
    */
   if (MyUser(member->user) && is_banned(member->user, member->channel, member))
     return 0;
+
+  if (IsDelayedJoin(member) && reveal)
+    RevealDelayedJoin(member);
+
   return 1;
 }
 
-int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
+int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal)
 {
   struct Membership *member;
   assert(0 != cptr); 
@@ -706,7 +716,7 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
     else
       return !is_banned(cptr, chptr, NULL);
   }
-  return member_can_send_to_channel(member); 
+  return member_can_send_to_channel(member, reveal);
 }
 
 /*
@@ -758,6 +768,10 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'n';
   if (chptr->mode.mode & MODE_REGONLY)
     *mbuf++ = 'r';
+  if (chptr->mode.mode & MODE_DELJOINS)
+    *mbuf++ = 'D';
+  else if (MyUser(cptr) && (chptr->mode.mode & MODE_WASDELJOINS))
+    *mbuf++ = 'd';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
@@ -1501,6 +1515,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_INVITEONLY,	'i',
     MODE_NOPRIVMSGS,	'n',
     MODE_REGONLY,	'r',
+    MODE_DELJOINS,      'D',
+    MODE_WASDELJOINS,   'd',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
 /*  MODE_LIMIT,		'l', */
@@ -1886,7 +1902,8 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
-	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY);
+	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
+           MODE_DELJOINS | MODE_WASDELJOINS);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;
@@ -1968,6 +1985,21 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 int
 modebuf_flush(struct ModeBuf *mbuf)
 {
+  struct Membership *memb;
+
+  /* Check if MODE_WASDELJOINS should be set */
+  if (!(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
+      && (mbuf->mb_rem & MODE_DELJOINS)) {
+    for (memb = mbuf->mb_channel->members; memb; memb = memb->next_member) {
+      if (IsDelayedJoin(memb)) {
+          mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
+          mbuf->mb_add |= MODE_WASDELJOINS;
+          mbuf->mb_rem &= ~MODE_WASDELJOINS;
+          break;
+      }
+    }
+  }
+
   return modebuf_flush_int(mbuf, 1);
 }
 
@@ -1992,6 +2024,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
+    MODE_DELJOINS,      'D',
     0x0, 0x0
   };
   unsigned int add;
@@ -2832,13 +2865,11 @@ mode_process_clients(struct ParseState *state)
       SetOpLevel(member, old_level == MAXOPLEVEL ? MAXOPLEVEL : (old_level + level_increment));
     }
 
-    /* accumulate the change */
-    modebuf_mode_client(state->mbuf, state->cli_change[i].flag,
-			state->cli_change[i].client);
-
     /* actually effect the change */
     if (state->flags & MODE_PARSE_SET) {
       if (state->cli_change[i].flag & MODE_ADD) {
+        if (IsDelayedJoin(member))
+          RevealDelayedJoin(member);
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
 	if (state->cli_change[i].flag & MODE_CHANOP)
@@ -2847,6 +2878,10 @@ mode_process_clients(struct ParseState *state)
 	member->status &= ~(state->cli_change[i].flag &
 			    (MODE_CHANOP | MODE_VOICE));
     }
+
+    /* accumulate the change */
+    modebuf_mode_client(state->mbuf, state->cli_change[i].flag,
+			state->cli_change[i].client);
   } /* for (i = 0; state->cli_change[i].flags; i++) */
 }
 
@@ -2875,6 +2910,10 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
     } else if (flag_p[0] & MODE_PRIVATE) {
       state->add &= ~MODE_SECRET;
       state->del |= MODE_SECRET;
+    }
+    if (flag_p[0] & MODE_DELJOINS) {
+      state->add &= ~MODE_WASDELJOINS;
+      state->del |= MODE_WASDELJOINS;
     }
   } else {
     state->add &= ~flag_p[0];
@@ -2911,6 +2950,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
+    MODE_DELJOINS,      'D',
     MODE_ADD,		'+',
     MODE_DEL,		'-',
     0x0, 0x0
@@ -3147,7 +3187,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     SetUserParting(member);
 
     /* Send notification to channel */
-    if (!(flags & CHFL_ZOMBIE))
+    if (!(flags & (CHFL_ZOMBIE | CHFL_DELAYED)))
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL,
 				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
 				":%H" : "%H :%s", chan, jbuf->jb_comment);
@@ -3167,20 +3207,26 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
     /* Add user to channel */
-    add_user_to_channel(chan, jbuf->jb_source, flags, 0);
+    if ((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))
+      add_user_to_channel(chan, jbuf->jb_source, flags | CHFL_DELAYED, 0);
+    else
+      add_user_to_channel(chan, jbuf->jb_source, flags, 0);
 
     /* send notification to all servers */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)
       sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
 			    "%H %Tu", chan, chan->creationtime);
 
-    /* Send the notification to the channel */
-    sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
+    if (!((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))) {
+      /* Send the notification to the channel */
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, "%H", chan);
 
-    /* send an op, too, if needed */
-    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
-				chan, jbuf->jb_source);
+      /* send an op, too, if needed */
+      if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
+	sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
+					 chan, jbuf->jb_source);
+    } else if (MyUser(jbuf->jb_source))
+      sendcmdto_one(jbuf->jb_source, CMD_JOIN, jbuf->jb_source, ":%H", chan);
   }
 
   if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
@@ -3257,4 +3303,32 @@ int IsInvited(struct Client* cptr, const void* chptr)
     if (lp->value.chptr == chptr)
       return 1;
   return 0;
+}
+
+/* RevealDelayedJoin: sends a join for a hidden user */
+
+void RevealDelayedJoin(struct Membership *member) {
+  ClearDelayedJoin(member);
+  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, ":%H",
+                                   member->channel);
+  CheckDelayedJoins(member->channel);
+}
+
+/* CheckDelayedJoins: checks and clear +d if necessary */
+
+void CheckDelayedJoins(struct Channel *chan) {
+  struct Membership *memb2;
+  
+  if (chan->mode.mode & MODE_WASDELJOINS) {
+    for (memb2=chan->members;memb2;memb2=memb2->next_member)
+      if (IsDelayedJoin(memb2))
+        break;
+    
+    if (!memb2) {
+      /* clear +d */
+      chan->mode.mode &= ~MODE_WASDELJOINS;
+      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan, NULL, 
+                                       "%H -d", chan);
+    }
+  }
 }

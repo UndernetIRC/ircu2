@@ -742,7 +742,7 @@ static Numeric replyTable[] = {
 /* 354 */
   { RPL_WHOSPCRPL, "%s", "354" },
 /* 355 */
-  { 0 },
+  { RPL_DELNAMREPLY, "%s", "355" },
 /* 356 */
   { 0 },
 /* 357 */

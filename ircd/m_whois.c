@@ -166,9 +166,11 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
        }
        if (IsDeaf(acptr))
          *(buf + len++) = '-';
-       if (is_chan_op(acptr, chptr))
+       if (IsDelayedJoin(chan) && (sptr != acptr))
+         *(buf + len++) = '<';
+       else if (IsChanOp(chan))
          *(buf + len++) = '@';
-       else if (has_voice(acptr, chptr))
+       else if (HasVoice(chan))
          *(buf + len++) = '+';
        else if (IsZombie(chan))
          *(buf + len++) = '!';

@@ -1082,8 +1082,14 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
    */
   for (chan = cli_user(cptr)->channel; chan; chan = chan->next_channel)
   {
-    sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
-                                     "%H", chan->channel);
+    /* For a user with no modes in a join-delayed channel, do not show
+     * the rejoin. */
+    if (!IsChanOp(chan) && !HasVoice(chan)
+        && (chan->channel->mode.mode & MODE_DELJOINS))
+      SetDelayedJoin(chan);
+    else
+      sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr,
+                                         "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan))
       sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan->channel, cptr,
                                        "%H +ov %C %C", chan->channel, cptr,

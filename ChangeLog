@@ -1,5 +1,85 @@
 2004-05-10  Michael Poole <mdpoole@troilus.org>
 
+	Forward port of delayed-join.patch from Quakenet's "Asuka" patch
+	set (which was a port of code I wrote for the other ircu).
+
+	* include/channel.h (CHFL_DELAYED): New membership flag.
+	(MODE_DELJOINS, MODE_WASDELJOINS): New channel modes.
+	(infochanmodes): Add +D to list of supported channel modes.
+	(IsDelayedJoin, SetDelayedJoin, ClearDelayedJoin): New macros.
+	(member_can_send_to_channel, client_can_send_to_channel): Add
+	"reveal" parameter to indicate whether a request should cause
+	a join-delayed user to become visible.
+	(RevealDelayedJoin, CheckDelayedJoins): New functions.
+
+	* include/numeric.h (RPL_DELNAMREPLY): New numeric.
+	
+	* include/s_user.h (NAMES_DEL): New flag for do_names().
+
+	* include/supported.h (FEATURESVALUES2): Add +D to list of
+	supported channel modes.
+
+	* ircd/channel.c (remove_member_from_channel,
+	member_can_send_to_channel, client_can_send_to_channel,
+	joinbuf_join): Handle join-delayed users.
+	(channel_modes, modebuf_flush_int, modebuf_mode, modebuf_flush,
+	modebuf_extract, mode_process_clients, mode_parse_mode,
+	mode_parse): Handle delayed-join channels.
+	(RevealDelayedJoin, CheckDelayedJoins): New functions.
+
+	* ircd/ircd_relay.c (relay_channel_message, relay_channel_notice,
+	server_relay_channel_message, server_relay_channel_notice): Add
+	argument for "reveal" parameter to client_can_send_to_channel().
+
+	* ircd/m_burst.c (ms_burst): Support MODE_DELJOINS channels.
+
+	* ircd/m_clearmode.c (do_clearmode): Support clearing mode +D.
+
+	* ircd/m_join.c (join0): Pass the CHFL_DELAYED flag when parting a
+	channel with JOIN 0.
+
+	* ircd/m_kick.c (m_kick): For join-delayed members, only send the
+	KICK to the kicker and kickee.  Then check whether +d can be
+	removed.
+
+	* ircd/m_names.c (do_names): Show join-delayed users if and only
+	if the NAMES_DEL flag is given.  If NAMES_DEL is given, also use
+	RPL_DELNAMREPLY instead of RPL_NAMREPLY.
+	(m_names): If NAMES -D, pass NAMES_DEL to do_names().
+
+	* ircd/m_part.c (m_part, ms_part): Add "reveal" argument for
+	member_can_send_to_channel().  Set CHFL_DELAYED join in joinbuf if
+	the user is join-delayed.
+
+	* ircd/m_quit.c (m_quit): Handle join-delayed users and new
+	argument for member_can_send_to_channel().
+
+	* ircd/m_topic.c (do_settopic): If a join-delayed channel member
+	changes the topic, reveal the member.
+
+	* ircd/m_wallchops.c (m_wallchops, ms_wallchops): Add argument for
+	"reveal" parameter to client_can_send_to_channel().
+
+	* ircd/m_wallvoices.c (m_wallvoices, ms_wallvoices): Likewise.
+
+	* ircd/m_who.c (m_who): Skip join-delayed members where we skip
+	zombies.
+
+	* ircd/m_whois.c (do_whois): Use '<' as a prefix for join-delayed
+	users.  Use slightly more efficient macros rather than function
+	calls to test for ops and voice.
+
+	* ircd/s_err.c (RPL_DELNAMREPLY): New numeric response string.
+
+	* ircd/s_user.c (hide_hostmask): For users with no modes in a
+	join-delayed channel, do not send JOIN to other members after the
+	QUIT :Registered.
+
+	* ircd/send.c (sendcmdto_common_channels_butone): Skip
+	join-delayed users where we skip zombies.
+	
+2004-05-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_events.c: Actually reference and try to use the epoll
 	event engine.  Omitted from yesterday's commit.
 

@@ -267,6 +267,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_NAMREPLY         353        /* See also RPL_ENDOFNAMES */
 #define RPL_WHOSPCRPL        354        /* Undernet extension,
                                            See also RPL_ENDOFWHO */
+#define RPL_DELNAMREPLY      355        /* QuakeNet extension */
 
 #define RPL_KILLDONE         361	/* not used */
 #define RPL_CLOSING          362

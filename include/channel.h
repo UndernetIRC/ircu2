@@ -70,7 +70,8 @@ struct Client;
 #define CHFL_BURST_ALREADY_OPPED	0x04000  /* In oob BURST, but was already joined and opped */
 #define CHFL_BURST_ALREADY_VOICED	0x08000  /* In oob BURST, but was already joined and voiced */
 #define CHFL_CHANNEL_MANAGER	0x10000	/* Set when creating channel or using Apass */
-#define CHFL_USER_PARTING       0x20000  /* User is already parting that channel */
+#define CHFL_USER_PARTING       0x20000 /* User is already parting that channel */
+#define CHFL_DELAYED            0x40000 /* User's join message is delayed */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -90,18 +91,20 @@ struct Client;
 #define MODE_BAN        0x0200
 #define MODE_LIMIT      0x0400
 #define MODE_REGONLY    0x0800  /* Only +r users may join */
+#define MODE_DELJOINS   0x1000  /* New join messages are delayed */
 #define MODE_LISTED     0x10000
 #define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
 #define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */
 #define MODE_BURSTADDED	0x80000	/* channel was created by a BURST */
 #define MODE_UPASS	0x100000
 #define MODE_APASS	0x200000
+#define MODE_WASDELJOINS 0x400000 /* Not DELJOINS, but some joins pending */
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
-#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "Abiklmnopstuvr" : "biklmnopstvr"
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstuvrD" : "biklmnopstvrD"
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "Abklouv" : "bklov"
 
 #define HoldChannel(x)          (!(x))
@@ -193,6 +196,7 @@ struct Membership {
 #define IsVoicedOrOpped(x)  ((x)->status & CHFL_VOICED_OR_OPPED)
 #define IsChannelManager(x) ((x)->status & CHFL_CHANNEL_MANAGER)
 #define IsUserParting(x)    ((x)->status & CHFL_USER_PARTING)
+#define IsDelayedJoin(x)    ((x)->status & CHFL_DELAYED)
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
@@ -203,12 +207,14 @@ struct Membership {
 #define SetChannelManager(x) ((x)->status |= CHFL_CHANNEL_MANAGER)
 #define SetOpLevel(x, v)    (void)((x)->oplevel = (v))
 #define SetUserParting(x)   ((x)->status |= CHFL_USER_PARTING)
+#define SetDelayedJoin(x)   ((x)->status |= CHFL_DELAYED)
 
 #define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
 #define ClearBanValid(x)    ((x)->status &= ~CHFL_BANVALID)
 #define ClearDeopped(x)     ((x)->status &= ~CHFL_DEOPPED)
 #define ClearServOpOk(x)    ((x)->status &= ~CHFL_SERVOPOK)
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
+#define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
 
 
 struct Mode {
@@ -345,8 +351,8 @@ int number_of_zombies(struct Channel *chptr);
 extern const char* find_no_nickchange_channel(struct Client* cptr);
 extern struct Membership* IsMember(struct Client *cptr, struct Channel *chptr);
 extern struct Membership* find_channel_member(struct Client* cptr, struct Channel* chptr);
-extern int member_can_send_to_channel(struct Membership* member);
-extern int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr);
+extern int member_can_send_to_channel(struct Membership* member, int reveal);
+extern int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal);
 
 extern void remove_user_from_channel(struct Client *sptr, struct Channel *chptr);
 extern void remove_user_from_all_channels(struct Client* cptr);
@@ -365,6 +371,9 @@ extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_next_channels(struct Client *cptr, int nr);
 extern void list_set_default(void); /* this belongs elsewhere! */
+
+extern void RevealDelayedJoin(struct Membership *member);
+extern void CheckDelayedJoins(struct Channel *chan);
 
 extern void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
 			 struct Client *connect, struct Channel *chan,
