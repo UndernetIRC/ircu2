@@ -20,8 +20,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Message-of-the-day manipulation implementation.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -50,23 +52,28 @@
 #include <string.h>
 #include <sys/stat.h>
 
+/** Global list of messages of the day. */
 static struct {
-  struct Motd*	    local;
-  struct Motd*	    remote;
-  struct Motd*	    other;
-  struct Motd*	    freelist;
-  struct MotdCache* cachelist;
+  struct Motd*	    local;     /**< Local MOTD. */
+  struct Motd*	    remote;    /**< Remote MOTD. */
+  struct Motd*	    other;     /**< MOTDs specified in configuration file. */
+  struct Motd*	    freelist;  /**< Currently unused Motd structs. */
+  struct MotdCache* cachelist; /**< List of MotdCache entries. */
 } MotdList = { 0, 0, 0, 0, 0 };
 
-/* Create a struct Motd and initialize it */
+/** Create a struct Motd and initialize it.
+ * @param[in] hostmask Hostmask (or connection class name) to filter on.
+ * @param[in] path Path to MOTD file.
+ * @param[in] maxcount Maximum number of lines permitted for MOTD.
+ */
 static struct Motd *
 motd_create(const char *hostmask, const char *path, int maxcount)
 {
   struct Motd* tmp;
   int type = MOTD_UNIVERSAL;
-  
+
   assert(0 != path);
-  
+
   if (hostmask != NULL && find_class(hostmask))
     type = MOTD_CLASS;
   else
@@ -78,13 +85,13 @@ motd_create(const char *hostmask, const char *path, int maxcount)
     MotdList.freelist = tmp->next;
   } else
     tmp = (struct Motd *)MyMalloc(sizeof(struct Motd));
-  
+
   tmp->next = 0;
   tmp->type = type;
-  
+
   if (hostmask != NULL)
     DupString(tmp->hostmask, hostmask);
-  
+
   DupString(tmp->path, path);
   tmp->maxcount = maxcount;
   tmp->cache = 0;
@@ -92,7 +99,12 @@ motd_create(const char *hostmask, const char *path, int maxcount)
   return tmp;
 }
 
-/* This function reads a motd out of a file (if needed) and caches it */
+/** This function reads a motd out of a file (if needed) and caches it.
+ * If a matching cache entry already exists, reuse it.  Otherwise,
+ * allocate and populate a new MotdCache for it.
+ * @param[in] motd Specification for MOTD file.
+ * @return Matching MotdCache entry.
+ */
 static struct MotdCache *
 motd_cache(struct Motd *motd)
 {
@@ -173,6 +185,10 @@ motd_cache(struct Motd *motd)
   return motd->cache;
 }
 
+/** Clear and dereference the Motd::cache element of \a motd.
+ * If the MotdCache::ref count goes to zero, free it.
+ * @param[in] motd MOTD to uncache.
+ */
 static void
 motd_decache(struct Motd *motd)
 {
@@ -196,7 +212,10 @@ motd_decache(struct Motd *motd)
   }
 }
 
-/* This function destroys a struct Motd, destroying the cache if needed */
+/** Deallocate a MOTD structure.
+ * If it has cached content, uncache it.
+ * @param[in] motd MOTD to destroy.
+ */
 static void
 motd_destroy(struct Motd *motd)
 {
@@ -211,8 +230,13 @@ motd_destroy(struct Motd *motd)
   MotdList.freelist = motd;
 }
 
-/* We use this routine to look up the struct Motd to send to any given
- * user.
+/** Find the first matching MOTD block for a user.
+ * If the user is remote, always use remote MOTD.
+ * Otherwise, if there is a hostmask- or class-based MOTD that matches
+ * the user, use it.
+ * Otherwise, use the local MOTD.
+ * @param[in] cptr Client to find MOTD for.
+ * @return Pointer to first matching MOTD for the client.
  */
 static struct Motd *
 motd_lookup(struct Client *cptr)
@@ -241,7 +265,11 @@ motd_lookup(struct Client *cptr)
   return MotdList.local; /* Ok, return the default motd */
 }
 
-/* Here is a routine that takes a MotdCache and sends it to a user */
+/** Send the content of a MotdCache to a user.
+ * If \a cache is NULL, simply send ERR_NOMOTD to the client.
+ * @param[in] cptr Client to send MOTD to.
+ * @param[in] cache MOTD body to send to client.
+ */
 static int
 motd_forward(struct Client *cptr, struct MotdCache *cache)
 {
@@ -265,7 +293,9 @@ motd_forward(struct Client *cptr, struct MotdCache *cache)
   return send_reply(cptr, RPL_ENDOFMOTD); /* end */
 }
 
-/* This routine is used to send the MOTD off to a user. */
+/** Find the MOTD for a client and send it.
+ * @param[in] cptr Client being greeted.
+ */
 int
 motd_send(struct Client* cptr)
 {
@@ -274,7 +304,12 @@ motd_send(struct Client* cptr)
   return motd_forward(cptr, motd_cache(motd_lookup(cptr)));
 }
 
-/* This routine sends the MOTD or something to newly-registered users. */
+/** Send the signon MOTD to a user.
+ * If FEAT_NODEFAULTMOTD is true and a matching MOTD exists for the
+ * user, direct the client to type /MOTD to read it.  Otherwise, call
+ * motd_forward() for the user.
+ * @param[in] cptr Client that has just connected.
+ */
 void
 motd_signon(struct Client* cptr)
 {
@@ -299,7 +334,9 @@ motd_signon(struct Client* cptr)
   }
 }
 
-/* motd_recache causes all the MOTD caches to be cleared */
+/** Clear all cached MOTD bodies.
+ * The local and remote MOTDs are re-cached immediately.
+ */
 void
 motd_recache(void)
 {
@@ -316,8 +353,8 @@ motd_recache(void)
   motd_cache(MotdList.remote);
 }
 
-/* motd_init initializes the MOTD routines, including reading the
- * ircd.motd and remote.motd files into cache
+/** Re-cache the local and remote MOTDs.
+ * If they already exist, they are deallocated first.
  */
 void
 motd_init(void)
@@ -335,7 +372,10 @@ motd_init(void)
   motd_cache(MotdList.remote); /* init remote and cache it */
 }
 
-/* This routine adds a MOTD */
+/** Add a new MOTD.
+ * @param[in] hostmask Hostmask (or connection class name) to send this to.
+ * @param[in] path Pathname of file to send.
+ */
 void
 motd_add(const char *hostmask, const char *path)
 {
@@ -347,7 +387,11 @@ motd_add(const char *hostmask, const char *path)
   MotdList.other = tmp;
 }
 
-/* This routine clears the list of MOTDs */
+/** Clear out all MOTDs.
+ * Compared to motd_recache(), this destroys all hostmask- or
+ * class-based MOTDs rather than simply uncaching them.
+ * Re-cache the local and remote MOTDs.
+ */
 void
 motd_clear(void)
 {
@@ -358,7 +402,7 @@ motd_clear(void)
 
   if (MotdList.other) /* destroy other MOTDs */
     for (ptr = MotdList.other; ptr; ptr = next)
-    { 
+    {
       next = ptr->next;
       motd_destroy(ptr);
     }
@@ -370,7 +414,11 @@ motd_clear(void)
   motd_cache(MotdList.remote);
 }
 
-/* This is called to report T-lines */
+/** Report list of non-default MOTDs.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 void
 motd_report(struct Client *to, const struct StatDesc *sd, char *param)
 {
@@ -381,6 +429,9 @@ motd_report(struct Client *to, const struct StatDesc *sd, char *param)
                ptr->hostmask, ptr->path);
 }
 
+/** Report MOTD memory usage to a client.
+ * @param[in] cptr Client requesting memory usage.
+ */
 void
 motd_memory_count(struct Client *cptr)
 {
@@ -398,7 +449,7 @@ motd_memory_count(struct Client *cptr)
     mtm += MotdList.local->path ? (strlen(MotdList.local->path) + 1) : 0;
   }
 
-  if (MotdList.remote) 
+  if (MotdList.remote)
   {
     mt++;
     mtm += sizeof(struct Motd);

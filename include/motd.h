@@ -19,9 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
  */
+/** @file
+ * @brief Message-of-the-day manipulation interface and declarations.
+ * @version $Id$
+ */
+
 #ifndef INCLUDED_time_h
 #include <time.h>		/* struct tm */
 #define INCLUDED_time_h
@@ -36,33 +39,40 @@ struct Client;
 struct TRecord;
 struct StatDesc;
 
+/** Entry for a single Message Of The Day (MOTD). */
 struct Motd {
-  struct Motd*		next;
-  int			type;
+  struct Motd*		next;     /**< Next MOTD in the linked list. */
+  int			type;     /**< Type of MOTD (MOTD_UNIVERSAL,
+                                     MOTD_HOSTMASK or MOTD_CLASS) */
   /* Used for classname if it is a class. */
-  char*		hostmask;
-  char*			path;
-  int			maxcount;
-  struct MotdCache*	cache;
+  char*			hostmask; /**< Hostmask if type==MOTD_HOSTMASK,
+                                     class name if type==MOTD_CLASS. */
+  char*			path;     /**< Pathname of MOTD file. */
+  int			maxcount; /**< Number of lines for MOTD. */
+  struct MotdCache*	cache;    /**< MOTD cache entry. */
 };
 
-#define MOTD_UNIVERSAL	0	/* MOTD selected by no criteria */
-#define MOTD_HOSTMASK	1	/* MOTD selected by hostmask */
-#define MOTD_CLASS	2	/* MOTD selected by connection class */
+#define MOTD_UNIVERSAL	0	  /**< MOTD selected by no criteria */
+#define MOTD_HOSTMASK	1	  /**< MOTD selected by hostmask */
+#define MOTD_CLASS	2	  /**< MOTD selected by connection class */
 
-#define MOTD_LINESIZE	81	/* 80 chars + '\0' */
+/** Length of one MOTD line(80 chars + '\\0'). */
+#define MOTD_LINESIZE	81
+/** Maximum number of lines for local MOTD */
 #define MOTD_MAXLINES	100
+/** Maximum number of lines for remote MOTD */
 #define MOTD_MAXREMOTE	3
 
+/** Cache entry for the contents of a MOTD file. */
 struct MotdCache {
-  struct MotdCache*	next; /* these fields let us read MOTDs only once */
-  struct MotdCache**	prev_p;
-  int			ref;
-  char*			path;
-  int			maxcount;
-  struct tm		modtime;
-  int			count;
-  char			motd[1][MOTD_LINESIZE];
+  struct MotdCache*	next;     /**< Next MotdCache in list. */
+  struct MotdCache**	prev_p;   /**< Pointer to previous node's next pointer. */
+  int			ref;      /**< Number of references to this entry. */
+  char*			path;     /**< Pathname of file. */
+  int			maxcount; /**< Number of lines allocated for message. */
+  struct tm		modtime;  /**< Last modification time from file. */
+  int			count;    /**< Actual number of lines used in message. */
+  char			motd[1][MOTD_LINESIZE]; /**< Message body. */
 };
 
 /* motd_send sends a MOTD off to a user */
