@@ -1,5 +1,5 @@
 #! /bin/sh
-chmod u+x config/install-sh config/configure ircd/crypt/sums ircd/crypt/crypter
+chmod u+x config/install-sh config/configure tools/sums tools/crypter
 cd config
 if test ! -f config.cache && test -r ../../.config.cache; then
 	cp ../../.config.cache config.cache;
