@@ -29,7 +29,7 @@ AWK=@AWK@
 
 all: build
 
-.PHONY: server build depend install config update diff patch export
+.PHONY: server build depend install config update diff patch export update
 # Some versions of make give a warning when this is empty:
 .SUFFIXES: .dummy
 
@@ -122,3 +122,7 @@ indent:
 	@test "`indent --version`" = "GNU indent 2.1.0" || \
 	  (echo "You need GNU indent 2.1.0; See doc/readme.indent" && exit -1);
 	VERSION_CONTROL=none indent include/*.h ircd/*.c
+
+# do a cvs update
+update:
+	cvs -z9 update
