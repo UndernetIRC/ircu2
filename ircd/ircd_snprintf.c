@@ -1927,7 +1927,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
     } else if ((fld_s.flags & CONV_MASK) == CONV_STRING ||
 	       fld_s.value.v_ptr == 0) { /* spaces or null pointers */
       int slen, plen;
-      char *str = fld_s.value.v_ptr;
+      char *str = (char*) fld_s.value.v_ptr;
 
       if (!str) /* NULL pointers print "(null)" */
 	str = "(null)";
@@ -1944,7 +1944,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	do_pad(buf_p, plen, spaces); /* post-padding */
     } else if ((fld_s.flags & CONV_MASK) == CONV_VARARGS) {
       struct BufData buf_s = BUFDATA_INIT;
-      struct VarData *vdata = fld_s.value.v_ptr;
+      struct VarData *vdata = (struct VarData*) fld_s.value.v_ptr;
       int plen, tlen;
 
       buf_s.buf = buf_p->buf + buf_p->buf_loc;
@@ -1992,7 +1992,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       vdata->vd_chars = buf_s.buf_loc; /* return relevant data */
       vdata->vd_overflow = SNP_MAX(buf_s.buf_overflow, buf_s.overflow);
     } else if ((fld_s.flags & CONV_MASK) == CONV_CLIENT) {
-      struct Client *cptr = fld_s.value.v_ptr;
+      struct Client *cptr = (struct Client*) fld_s.value.v_ptr;
       char *str1 = 0, *str2 = 0;
       int slen1 = 0, slen2 = 0, plen = 0;
 
@@ -2038,6 +2038,9 @@ ircd_snprintf(struct Client *dest, char *buf, size_t buf_len,
 
   buf_s.buf = buf; /* initialize buffer settings */
   buf_s.buf_size = buf_len - 1;
+  /*
+   * XXX - assignment of -1 to size_t
+   */
   buf_s.limit = -1;
 
   va_start(args, format);
@@ -2060,6 +2063,9 @@ ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 
   buf_s.buf = buf; /* initialize buffer settings */
   buf_s.buf_size = buf_len - 1;
+  /*
+   * XXX - assignment of -1 to size_t
+   */
   buf_s.limit = -1;
 
   doprintf(dest, &buf_s, format, args); /* fill the buffer */

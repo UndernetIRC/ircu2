@@ -83,9 +83,9 @@ const char *infotext[] = {
     "Bleep        Thomas Helvey            <tomh@inxpress.net>",
     "",
     "Contributors to this release:",
-    "Isomer, Gte-, WildThang, David M, Run, Nemesi",
+    "Kev, Isomer, Gte, Ghostwolf, Bleep",
     "Debugging and support:",
-    "SeKs, Maniac-, HeKTik, OmniDynmc, Aurorian, Quantum, Jesus",
+    "SeKs, Maniac-, HeKTik, OmniDynmc, Liandrin, Dianora",
     "Special thanks to Angel and Buff for believing in us and putting"
     "up with frantic late night phone calls"
     "",

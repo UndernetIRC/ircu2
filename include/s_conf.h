@@ -120,9 +120,8 @@ extern struct ConfItem* conf_find_server(const char* name);
 const char* conf_eval_crule(struct ConfItem* conf);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
-extern int attach_iline(struct Client *cptr);
 extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
-extern int attach_conf(struct Client *cptr, struct ConfItem *aconf);
+extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern struct ConfItem* find_admin(void);
 extern struct ConfItem* find_me(void);
 extern struct ConfItem* find_conf_exact(const char* name, 

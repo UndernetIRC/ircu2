@@ -118,9 +118,9 @@
 int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   char*        username;
-  char*        umode;
-  char*        snomask;
-  char*        info;
+  const char*  umode;
+  const char*  snomask;
+  const char*  info;
   struct User* user;
 
   assert(0 != cptr);

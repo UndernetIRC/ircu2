@@ -28,10 +28,6 @@
 #endif
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern size_t fda_get_byte_count(void);
 extern size_t fda_get_block_count(void);
 extern size_t fda_sizeof(const void* p);
@@ -61,9 +57,6 @@ extern void  fda_free(void* p);
 extern void fda_set_lowmem_handler(void (*fn)(void));
 extern void fda_set_nomem_handler(void (*fn)(void));
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* !defined(NDEBUG) */
 #endif /* INCLUDED_fda_h */

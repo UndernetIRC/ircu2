@@ -583,7 +583,7 @@ void add_connection(struct Listener* listener, int fd)
     return;
   }
 
-  new_client = make_client(NULL,
+  new_client = make_client(0,
       (listener->server) ? STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER);
   /*
    * Copy ascii address to 'sockhost' just in case. Then we

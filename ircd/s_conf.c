@@ -491,7 +491,8 @@ static int validate_hostent(struct hostent* hp)
 /*
  * check_limit_and_attach - check client limits and attach I:line
  */
-static int check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
+static enum AuthorizationCheckResult
+check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 {
   if (aconf->passwd) {
     /* Special case: exactly one digit */
@@ -521,7 +522,7 @@ static int check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 /*
  * Find the first (best) I line to attach.
  */
-int attach_iline(struct Client*  cptr)
+enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
 {
   struct ConfItem* aconf;
   const char*      hname;
@@ -634,7 +635,7 @@ static int is_attached(struct ConfItem *aconf, struct Client *cptr)
  * connection). Note, that this automaticly changes the
  * attachment if there was an old one...
  */
-int attach_conf(struct Client *cptr, struct ConfItem *aconf)
+enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf)
 {
   struct SLink *lp;
 
@@ -1500,7 +1501,7 @@ struct MotdItem* read_motd(const char* motdfile)
  */
 enum AuthorizationCheckResult conf_check_client(struct Client *cptr)
 {
-  int acr;
+  enum AuthorizationCheckResult acr = ACR_OK;
 
   ClearAccess(cptr);
 

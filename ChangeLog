@@ -1,3 +1,9 @@
+2000-04-15  Thomas Helvey <tomh@inxpress.net>
+
+	* ircd/*.c: const correctness and type safety cleanups to
+	get code to compile with C++ compiler. Still has
+	signed/unsigned comparison warnings.
+
 2000-04-15  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* ircd/userload.c: change <sys/time.h> include to <time.h> for
@@ -536,7 +542,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.88 2000-04-15 03:47:32 gte Exp $
+# $Id: ChangeLog,v 1.89 2000-04-15 04:20:14 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

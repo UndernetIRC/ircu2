@@ -20,8 +20,8 @@ extern unsigned int max_client_count;
 /*
  * Prototypes
  */
-extern int exit_new_server(struct Client *cptr, struct Client *sptr,
-                           char *host, time_t timestamp, char *fmt, ...);
+extern int exit_new_server(struct Client* cptr, struct Client* sptr,
+                           const char* host, time_t timestamp, const char* fmt, ...);
 extern int a_kills_b_too(struct Client *a, struct Client *b);
 extern int server_estab(struct Client *cptr, struct ConfItem *aconf);
 

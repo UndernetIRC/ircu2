@@ -31,6 +31,7 @@
 
 #include <assert.h>
 #include <stdio.h>          /* NULL ... bleah */
+#include <string.h>         /* memset */
 
 
 struct IPTargetEntry {

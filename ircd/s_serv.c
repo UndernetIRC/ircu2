@@ -60,8 +60,8 @@
 unsigned int max_connection_count = 0;
 unsigned int max_client_count = 0;
 
-int exit_new_server(struct Client *cptr, struct Client *sptr,
-    char *host, time_t timestamp, char *fmt, ...)
+int exit_new_server(struct Client* cptr, struct Client* sptr,
+                    const char* host, time_t timestamp, const char* fmt, ...)
 {
   va_list vl;
   char *buf =
