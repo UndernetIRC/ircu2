@@ -1,3 +1,7 @@
+2005-02-23  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Fix comment's description of "whox" privilege.
+
 2005-02-21  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h (ShowChannel): Remove PRIV_LIST_CHAN check
