@@ -2100,7 +2100,17 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 {
   struct SLink *lp;
   int overrideJoin = 0;  
+  
+  /*
+   * Now a banned user CAN join if invited -- Nemesi
+   * Now a user CAN escape channel limit if invited -- bfriendly
+   * Now a user CAN escape anything if invited -- Isomer
+   */
 
+  for (lp = sptr->user->invited; lp; lp = lp->next)
+    if (lp->value.chptr == chptr)
+      return 0;
+  
 #ifdef OPER_WALK_THROUGH_LMODES
   /* An oper can force a join on a local channel using "OVERRIDE" as the key. 
      a HACK(4) notice will be sent if he would not have been supposed
@@ -2110,36 +2120,25 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
     overrideJoin = MAGIC_OPER_OVERRIDE;
   }
 #endif
-  /*
-   * Now a banned user CAN join if invited -- Nemesi
-   * Now a user CAN escape channel limit if invited -- bfriendly
-   */
-  if ((chptr->mode.mode & MODE_INVITEONLY) || (is_banned(sptr, chptr, NULL)
-      || (chptr->mode.limit && chptr->users >= chptr->mode.limit)))
-  {
-    for (lp = sptr->user->invited; lp; lp = lp->next)
-      if (lp->value.chptr == chptr)
-        break;
-    if (!lp)
-    {
-      if (chptr->mode.limit && chptr->users >= chptr->mode.limit)
-        return (overrideJoin + ERR_CHANNELISFULL);
-      /*
-       * This can return an "Invite only" msg instead of the "You are banned"
-       * if _both_ conditions are true, but who can say what is more
-       * appropriate ? checking again IsBanned would be _SO_ cpu-xpensive !
-       */
-      return overrideJoin + ((chptr->mode.mode & MODE_INVITEONLY) ?
-          ERR_INVITEONLYCHAN : ERR_BANNEDFROMCHAN);
-    }
-  }
 
+  if (chptr->mode.mode & MODE_INVITEONLY)
+  	return overrideJoin + ERR_INVITEONLYCHAN;
+  	
+  if (chptr->mode.limit && chptr->users >= chptr->mode.limit)
+  	return overrideJoin + ERR_CHANNELISFULL;
+  	
+  if (is_banned(sptr, chptr, NULL))
+  	return overrideJoin + ERR_BANNEDFROMCHAN;
+  
   /*
    * now using compall (above) to test against a whole key ring -Kev
    */
   if (*chptr->mode.key && (EmptyString(key) || compall(chptr->mode.key, key)))
-    return overrideJoin + (ERR_BADCHANNELKEY);
+    return overrideJoin + ERR_BADCHANNELKEY;
 
+  if (overrideJoin) 	
+  	return ERR_DONTCHEAT;
+  	
   return 0;
 }
 

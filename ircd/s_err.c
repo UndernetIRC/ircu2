@@ -300,7 +300,9 @@ static Numeric numeric_errors[] = {
 /* 514 */
   { ERR_NOSUCHJUPE, "%s :No such jupe", "514" },
 /* 515 */
-  { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" }
+  { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" },
+/* 516 */
+  { ERR_DONTCHEAT, " :Don't Cheat.", 516 }
 };
 
 static Numeric numeric_replies[] = {
@@ -688,7 +690,7 @@ const struct Numeric* get_error_numeric(int numeric)
 {
   int num = numeric;
   assert(ERR_FIRSTERROR < num);
-  assert(num < ERR_INVALID_ERROR);
+  assert(num < ERR_LASTERROR);
 
   num -= ERR_FIRSTERROR;
   assert(0 != numeric_errors[num].value);

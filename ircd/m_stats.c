@@ -122,6 +122,33 @@
 #include <string.h>
 
 /*
+ *  Help info displayed when user provides no stats parameter. --Gte 
+ */
+const char *statsinfo[] = {
+    "The following statistics are available:",
+    "U - Service server & nick jupes information.",
+    "u - Current uptime & highest connection count.",
+    "p - Listening ports.",
+    "i - Connection authorisation lines.",
+    "y - Connection classes.",
+    "c - Remote server connection lines.",
+    "h - Hubs information (Oper only).",
+    "d - Dynamic routing configuration.", 
+    "l - Current connections information.",
+    "g - Global bans (G-lines).",
+    "k - Local bans (K-Lines).",
+    "o - Operator information.", 
+    "m - Message usage information.",
+    "t - Local connection statistics (Total SND/RCV, etc).", 
+    "w - Userload statistics.",
+    "M - Memory allocation & leak monitoring.", 
+    "z - Memory/Structure allocation information.",
+    "r - System resource usage (Debug only).", 
+    "x - List usage information (Debug only).",
+    0,
+};
+
+/*
  * m_stats - generic message handler
  *
  *    parv[0] = sender prefix
@@ -154,6 +181,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
+  const char **infotext = statsinfo;
   int i;
 
 /* m_stats is so obnoxiously full of special cases that the different
@@ -491,6 +519,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     default:
       stat = '*';
+      while (*infotext) sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], *infotext++); 
       break;
   }
   sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
@@ -906,6 +935,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
+  const char **infotext = statsinfo;
   int i;
 
 /* m_stats is so obnoxiously full of special cases that the different
@@ -1242,6 +1272,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     default:
       stat = '*';
+      while (*infotext) sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], *infotext++);
       break;
   }
   sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
