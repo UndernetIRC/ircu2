@@ -1,3 +1,10 @@
+2004-10-05  Michael Poole <mdpoole@troilus.org>, hikari <hikari@undernet.org>, Perry Lorier <isomer@undernet.org>
+
+	* include/*.h, ircd/*.c: Convert comments to Doxygen-compatible
+	format, and add new comments where needed.
+
+	* Doxyfile: New file to tell Doxygen how to run.
+
 2004-09-21  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (HeaderMessages): Make the compiler, not the
