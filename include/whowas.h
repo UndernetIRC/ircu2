@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Globally visible declarations to manipulate whowas information.
+ * @version $Id$
  */
 #ifndef INCLUDED_whowas_h
 #define INCLUDED_whowas_h
@@ -31,35 +33,36 @@ struct Client;
  * General defines
  */
 
-#define BITS_PER_COL            3
-#define BITS_PER_COL_MASK       0x7
-#define WW_MAX_INITIAL          16
+#define BITS_PER_COL            3   /**< Magic number used by whowas hash function. */
+#define BITS_PER_COL_MASK       0x7 /**< Mask with #BITS_PER_COL least significant bits set. */
+#define WW_MAX_INITIAL          16  /**< Magic number used by whowas hash function. */
 
-#define MAX_SUB (1 << BITS_PER_COL)
-#define WW_MAX_INITIAL_MASK (WW_MAX_INITIAL - 1)
-#define WW_MAX (WW_MAX_INITIAL * MAX_SUB)
+#define MAX_SUB (1 << BITS_PER_COL) /**< Magic number used by whowas hash function. */
+#define WW_MAX_INITIAL_MASK (WW_MAX_INITIAL - 1) /**< Magic number used by whowas hash function. */
+#define WW_MAX (WW_MAX_INITIAL * MAX_SUB) /**< Size of whowas hash table. */
 
 /*
  * Structures
  */
 
+/** Tracks previously used nicknames. */
 struct Whowas {
-  unsigned int hashv;
-  char *name;
-  char *username;
-  char *hostname;
-  char *realhost;
-  char *servername;
-  char *realname;
-  char *away;
-  time_t logoff;
-  struct Client *online;        /* Needed for get_history() (nick chasing) */
-  struct Whowas *hnext;         /* Next entry with the same hash value */
-  struct Whowas **hprevnextp;   /* Pointer to previous next pointer */
-  struct Whowas *cnext;         /* Next entry with the same 'online' pointer */
-  struct Whowas **cprevnextp;   /* Pointer to previous next pointer */
-  struct Whowas *wnext;		/* Next entry in whowas linked list */
-  struct Whowas *wprev;		/* Pointer to previous next pointer */
+  unsigned int hashv;           /**< Hash value for nickname. */
+  char *name;                   /**< Client's old nickname. */
+  char *username;               /**< Client's username. */
+  char *hostname;               /**< Client's hostname. */
+  char *realhost;               /**< Client's real hostname. */
+  char *servername;             /**< Name of client's server. */
+  char *realname;               /**< Client's realname (user info). */
+  char *away;                   /**< Client's away message. */
+  time_t logoff;                /**< When the client logged off. */
+  struct Client *online;        /**< Needed for get_history() (nick chasing). */
+  struct Whowas *hnext;         /**< Next entry with the same hash value. */
+  struct Whowas **hprevnextp;   /**< Pointer to previous next pointer. */
+  struct Whowas *cnext;         /**< Next entry with the same 'online' pointer. */
+  struct Whowas **cprevnextp;   /**< Pointer to previous next pointer. */
+  struct Whowas *wnext;		/**< Next entry in whowas linked list. */
+  struct Whowas *wprev;		/**< Pointer to previous next pointer. */
 };
 
 /*
