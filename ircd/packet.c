@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Input packet handling functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -32,6 +34,10 @@
 
 #include <assert.h>
 
+/** Add a certain number of bytes to a client's received statistics.
+ * @param[in,out] cptr Client to update.
+ * @param[in] length Number of newly received bytes to add.
+ */
 static void update_bytes_received(struct Client* cptr, unsigned int length)
 {
   cli_receiveB(&me)  += length;     /* Update bytes received */
@@ -47,31 +53,27 @@ static void update_bytes_received(struct Client* cptr, unsigned int length)
   }
 }
 
+/** Add one message to a client's received statistics.
+ * @param[in,out] cptr Client to update.
+ */
 static void update_messages_received(struct Client* cptr)
 {
   ++(cli_receiveM(&me));
   ++(cli_receiveM(cptr));
 }
 
-/*
- * dopacket
- *
- *    cptr - pointer to client structure for which the buffer data
- *           applies.
- *    buffer - pointer to the buffer containing the newly read data
- *    length - number of valid bytes of data in the buffer
- *
- *  Note:
- *    It is implicitly assumed that dopacket is called only
- *    with cptr of "local" variation, which contains all the
- *    necessary fields (buffer etc..)
+/** Handle received data from a directly connected server.
+ * @param[in] cptr Peer server that sent us data.
+ * @param[in] buffer Input buffer.
+ * @param[in] length Number of bytes in input buffer.
+ * @return 1 on success or CPTR_KILLED if the client is squit.
  */
 int server_dopacket(struct Client* cptr, const char* buffer, int length)
 {
   const char* src;
   char*       endp;
   char*       client_buffer;
-  
+
   assert(0 != cptr);
 
   update_bytes_received(cptr, length);
@@ -112,12 +114,18 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
   return 1;
 }
 
+/** Handle received data from a new (unregistered) connection.
+ * @param[in] cptr Unregistered connection that sent us data.
+ * @param[in] buffer Input buffer.
+ * @param[in] length Number of bytes in input buffer.
+ * @return 1 on success or CPTR_KILLED if the client is squit.
+ */
 int connect_dopacket(struct Client *cptr, const char *buffer, int length)
 {
   const char* src;
   char*       endp;
   char*       client_buffer;
-  
+
   assert(0 != cptr);
 
   update_bytes_received(cptr, length);
@@ -159,14 +167,16 @@ int connect_dopacket(struct Client *cptr, const char *buffer, int length)
     }
     else if (endp < client_buffer + BUFSIZE)
       /* There is always room for the null */
-      ++endp;                   
+      ++endp;
   }
   cli_count(cptr) = endp - cli_buffer(cptr);
-  return 1;  
+  return 1;
 }
 
-/*
- * client_dopacket - handle client messages
+/** Handle received data from a local client.
+ * @param[in] cptr Local client that sent us data.
+ * @param[in] length Total number of bytes in client's input buffer.
+ * @return 1 on success or CPTR_KILLED if the client is squit.
  */
 int client_dopacket(struct Client *cptr, unsigned int length)
 {
