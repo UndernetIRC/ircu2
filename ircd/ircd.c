@@ -28,6 +28,7 @@
 #include "ircd_log.h"
 #include "ircd_signal.h"
 #include "ircd_string.h"
+#include "jupe.h"
 #include "list.h"
 #include "listener.h"
 #include "match.h"
@@ -177,6 +178,7 @@ static time_t try_connections(void)
   time_t next = 0;
   struct ConfClass *cltmp;
   struct ConfItem *cconf, *con_conf = NULL;
+  struct Jupe *ajupe;
   unsigned int con_class = 0;
 
   connecting = FALSE;
@@ -186,6 +188,11 @@ static time_t try_connections(void)
     /* Also when already connecting! (update holdtimes) --SRB */
     if (!(aconf->status & CONF_SERVER) || aconf->port == 0)
       continue;
+
+    /* Also skip juped servers */
+    if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe))
+      continue;
+
     cltmp = aconf->confClass;
     /*
      * Skip this entry if the use of it is still on hold until
