@@ -972,8 +972,6 @@ enum AuthorizationCheckResult conf_check_client(struct Client *cptr)
 {
   enum AuthorizationCheckResult acr = ACR_OK;
 
-  ClearAccess(cptr);
-
   if ((acr = attach_iline(cptr))) {
     Debug((DEBUG_DNS, "ch_cl: access denied: %s[%s]", 
           cli_name(cptr), cli_sockhost(cptr)));
@@ -1017,8 +1015,6 @@ int conf_check_server(struct Client *cptr)
       return -1;
     }
   }
-
-  ClearAccess(cptr);
 
   if (!c_conf) {
     if (cli_dns_reply(cptr)) {

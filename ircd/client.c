@@ -143,18 +143,18 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   {
     memset(&privs_global, -1, sizeof(privs_global));
     memset(&privs_local, 0, sizeof(privs_local));
-    PrivSet(&privs_local, PRIV_CHAN_LIMIT);
-    PrivSet(&privs_local, PRIV_MODE_LCHAN);
-    PrivSet(&privs_local, PRIV_SHOW_INVIS);
-    PrivSet(&privs_local, PRIV_SHOW_ALL_INVIS);
-    PrivSet(&privs_local, PRIV_LOCAL_KILL);
-    PrivSet(&privs_local, PRIV_REHASH);
-    PrivSet(&privs_local, PRIV_LOCAL_GLINE);
-    PrivSet(&privs_local, PRIV_LOCAL_JUPE);
-    PrivSet(&privs_local, PRIV_LOCAL_OPMODE);
-    PrivSet(&privs_local, PRIV_WHOX);
-    PrivSet(&privs_local, PRIV_DISPLAY);
-    PrivSet(&privs_local, PRIV_FORCE_LOCAL_OPMODE);
+    FlagSet(&privs_local, PRIV_CHAN_LIMIT);
+    FlagSet(&privs_local, PRIV_MODE_LCHAN);
+    FlagSet(&privs_local, PRIV_SHOW_INVIS);
+    FlagSet(&privs_local, PRIV_SHOW_ALL_INVIS);
+    FlagSet(&privs_local, PRIV_LOCAL_KILL);
+    FlagSet(&privs_local, PRIV_REHASH);
+    FlagSet(&privs_local, PRIV_LOCAL_GLINE);
+    FlagSet(&privs_local, PRIV_LOCAL_JUPE);
+    FlagSet(&privs_local, PRIV_LOCAL_OPMODE);
+    FlagSet(&privs_local, PRIV_WHOX);
+    FlagSet(&privs_local, PRIV_DISPLAY);
+    FlagSet(&privs_local, PRIV_FORCE_LOCAL_OPMODE);
     privs_defaults_set = 1;
   }
   memset(&(cli_privs(client)), 0, sizeof(struct Privs));
@@ -164,7 +164,7 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   else if (!MyConnect(client))
   {
     memset(&(cli_privs(client)), 255, sizeof(struct Privs));
-    PrivClr(&(cli_privs(client)), PRIV_SET);
+    FlagClr(&(cli_privs(client)), PRIV_SET);
     return;
   }
   else if (oper == NULL)
@@ -174,10 +174,10 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   memset(&cli_privs(client), 0, sizeof(struct Privs));
 
   /* Decide whether to use global or local oper defaults. */
-  if (PrivHas(&oper->privs_dirty, PRIV_PROPAGATE))
-    defaults = PrivHas(&oper->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
-  else if (PrivHas(&oper->conn_class->privs_dirty, PRIV_PROPAGATE))
-    defaults = PrivHas(&oper->conn_class->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
+  if (FlagHas(&oper->privs_dirty, PRIV_PROPAGATE))
+    defaults = FlagHas(&oper->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
+  else if (FlagHas(&oper->conn_class->privs_dirty, PRIV_PROPAGATE))
+    defaults = FlagHas(&oper->conn_class->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
   else {
     assert(0 && "Oper has no propagation and neither does connection class");
     return;
@@ -189,32 +189,32 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   for (priv = 0; priv < PRIV_LAST_PRIV; ++priv)
   {
     /* Figure out most applicable definition for the privilege. */
-    if (PrivHas(&oper->privs_dirty, priv))
+    if (FlagHas(&oper->privs_dirty, priv))
       source = &oper->privs;
-    else if (PrivHas(&oper->conn_class->privs_dirty, priv))
+    else if (FlagHas(&oper->conn_class->privs_dirty, priv))
       source = &oper->conn_class->privs;
     else
       source = defaults;
 
     /* Set it if necessary (privileges were already cleared). */
-    if (PrivHas(source, priv))
-      PrivSet(&cli_privs(client), priv);
+    if (FlagHas(source, priv))
+      FlagSet(&cli_privs(client), priv);
   }
 
   /* This should be handled in the config, but lets be sure... */
-  if (PrivHas(&cli_privs(client), PRIV_PROPAGATE))
+  if (FlagHas(&cli_privs(client), PRIV_PROPAGATE))
   {
     /* force propagating opers to display */
-    PrivSet(&cli_privs(client), PRIV_DISPLAY);
+    FlagSet(&cli_privs(client), PRIV_DISPLAY);
   }
   else
   {
     /* if they don't propagate oper status, prevent desyncs */
-    PrivClr(&cli_privs(client), PRIV_KILL);
-    PrivClr(&cli_privs(client), PRIV_GLINE);
-    PrivClr(&cli_privs(client), PRIV_JUPE);
-    PrivClr(&cli_privs(client), PRIV_OPMODE);
-    PrivClr(&cli_privs(client), PRIV_BADCHAN);
+    FlagClr(&cli_privs(client), PRIV_KILL);
+    FlagClr(&cli_privs(client), PRIV_GLINE);
+    FlagClr(&cli_privs(client), PRIV_JUPE);
+    FlagClr(&cli_privs(client), PRIV_OPMODE);
+    FlagClr(&cli_privs(client), PRIV_BADCHAN);
   }
 }
 

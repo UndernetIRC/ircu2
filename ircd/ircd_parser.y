@@ -504,8 +504,8 @@ operblock: OPER
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
-    if (!PrivHas(&privs_dirty, PRIV_PROPAGATE)
-        && !PrivHas(&c_class->privs_dirty, PRIV_PROPAGATE))
+    if (!FlagHas(&privs_dirty, PRIV_PROPAGATE)
+        && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
       parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
   }
   else
@@ -548,11 +548,11 @@ operclass: CLASS '=' QSTRING ';'
 
 priv: privtype '=' yesorno ';'
 {
-  PrivSet(&privs_dirty, $1);
+  FlagSet(&privs_dirty, $1);
   if (($3 == 1) ^ invert)
-    PrivSet(&privs, $1);
+    FlagSet(&privs, $1);
   else
-    PrivClr(&privs, $1);
+    FlagClr(&privs, $1);
   invert = 0;
 };
 

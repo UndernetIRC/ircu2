@@ -83,11 +83,11 @@ typedef unsigned long flagpage_t;
   }
 
 /** Test whether a flag is set in a flagset. */
-#define FLAGSET_ISSET(set,flag) ((set).bits[FLAGSET_INDEX(flag)] & FLAGSET_MASK(flag))
+#define FlagHas(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] & FLAGSET_MASK(flag))
 /** Set a flag in a flagset. */
-#define FLAGSET_SET(set, flag) (set).bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag)
+#define FlagSet(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag))
 /** Clear a flag in a flagset. */
-#define FLAGSET_CLEAR(set, flag) (set).bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag)
+#define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containig valid user modes, in no particular order. */
 #define infousermodes "dioswkgx"
@@ -142,12 +142,8 @@ enum Flag
     FLAG_BLOCKED,                   /**< socket is in a blocked condition */
     FLAG_CLOSING,                   /**< set when closing to suppress errors */
     FLAG_UPING,                     /**< has active UDP ping request */
-    FLAG_CHKACCESS,                 /**< ok to check clients access if set
-                                     * @todo Remove (never set). */
     FLAG_HUB,                       /**< server is a hub */
     FLAG_SERVICE,                   /**< server is a service */
-    FLAG_LOCAL,                     /**< set for local clients
-                                     * @todo Remove (never used). */
     FLAG_GOTID,                     /**< successful ident lookup achieved */
     FLAG_DOID,                      /**< I-lines say must use ident return */
     FLAG_NONL,                      /**< No \n in buffer */
@@ -190,12 +186,14 @@ struct Connection
   struct Connection** con_prev_p;    /**< What points to us */
   struct Client*      con_client;    /**< Client associated with connection */
   unsigned int        con_count;     /**< Amount of data in buffer */
-  int                 con_fd;        /**< >= 0, for local clients */
   int                 con_freeflag;  /**< indicates if connection can be freed */
   int                 con_error;     /**< last socket level error for client */
+  int                 con_sentalong; /**< sentalong marker for connection */
   unsigned int        con_snomask;   /**< mask for server messages */
   time_t              con_nextnick;  /**< Next time a nick change is allowed */
   time_t              con_nexttarget;/**< Next time a target change is allowed */
+  time_t              con_lasttime;  /**< Last time data read from socket */
+  time_t              con_since;     /**< Last time we accepted a command */
   unsigned int        con_cookie;    /**< Random number the user must PONG */
   struct MsgQ         con_sendQ;     /**< Outgoing message queue */
   struct DBuf         con_recvQ;     /**< Incoming data yet to be parsed */
@@ -217,7 +215,6 @@ struct Connection
   unsigned int        con_ping_freq; /**< cached ping freq */
   unsigned short      con_lastsq;    /**< # 2k blocks when sendqueued
                                         called last. */
-  unsigned short      con_port;      /**< Remote port number. */
   unsigned char       con_targets[MAXTARGETS]; /**< Hash values of
 						  current targets. */
   char con_sock_ip[SOCKIPLEN + 1];   /**< Remote IP address as a string. */
@@ -251,25 +248,17 @@ struct Client {
   struct Whowas* cli_whowas;      /**< Pointer to ww struct to be freed on quit */
   char           cli_yxx[4];      /**< Numeric Nick: YY if this is a
                                      server, XXX if this is a user */
-  /*
-   * XXX - move these to local part for next release
-   * (lasttime, since)
-   */
-  time_t         cli_lasttime;     /**< last time data read from socket */
-  time_t         cli_since;        /**< last time we parsed something, flood control */
-
-  time_t         cli_firsttime;    /**< time client was created */
-  time_t         cli_lastnick;     /**< TimeStamp on nick */
-  int            cli_marker;       /**< /who processing marker */
-  struct Flags   cli_flags;        /**< client flags */
-  unsigned int   cli_hopcount;     /**< number of servers to this 0 = local */
-  struct irc_in_addr cli_ip;       /**< Real IP of client */
-  short          cli_status;       /**< Client type */
-  unsigned char  cli_local;        /**< local or remote client */
-  struct Privs   cli_privs;        /**< Oper privileges */
-  char cli_name[HOSTLEN + 1];      /**< Unique name of the client, nick or host */
-  char cli_username[USERLEN + 1];  /**< username here now for auth stuff */
-  char cli_info[REALLEN + 1];      /**< Free form additional client information */
+  time_t         cli_firsttime;   /**< time client was created */
+  time_t         cli_lastnick;    /**< TimeStamp on nick */
+  int            cli_marker;      /**< /who processing marker */
+  struct Flags   cli_flags;       /**< client flags */
+  unsigned int   cli_hopcount;    /**< number of servers to this 0 = local */
+  struct irc_in_addr cli_ip;      /**< Real IP of client */
+  short          cli_status;      /**< Client type */
+  struct Privs   cli_privs;       /**< Oper privileges */
+  char cli_name[HOSTLEN + 1];     /**< Unique name of the client, nick or host */
+  char cli_username[USERLEN + 1]; /**< username here now for auth stuff */
+  char cli_info[REALLEN + 1];     /**< Free form additional client information */
 };
 
 /** Magic constant to identify valid Client structures. */
@@ -288,7 +277,7 @@ struct Client {
 /** Get connection associated with client. */
 #define cli_connect(cli)	((cli)->cli_connect)
 /** Get local client that links us to \a cli. */
-#define cli_from(cli)		((cli)->cli_connect->con_client)
+#define cli_from(cli)		con_client(cli_connect(cli))
 /** Get User structure for client, if client is a user. */
 #define cli_user(cli)		((cli)->cli_user)
 /** Get Server structure for client, if client is a server. */
@@ -298,9 +287,9 @@ struct Client {
 /** Get client numnick. */
 #define cli_yxx(cli)		((cli)->cli_yxx)
 /** Get time we last read data from the client socket. */
-#define cli_lasttime(cli)	((cli)->cli_lasttime)
+#define cli_lasttime(cli)	con_lasttime(cli_connect(cli))
 /** Get time we last parsed something from the client. */
-#define cli_since(cli)		((cli)->cli_since)
+#define cli_since(cli)		con_since(cli_connect(cli))
 /** Get time client was created. */
 #define cli_firsttime(cli)	((cli)->cli_firsttime)
 /** Get time client last changed nickname. */
@@ -315,8 +304,8 @@ struct Client {
 #define cli_ip(cli)		((cli)->cli_ip)
 /** Get status bitmask for client. */
 #define cli_status(cli)		((cli)->cli_status)
-/** Get local status flag for client. */
-#define cli_local(cli)		((cli)->cli_local)
+/** Return non-zero if the client is local. */
+#define cli_local(cli)          (cli_from(cli) == cli)
 /** Get oper privileges for client. */
 #define cli_privs(cli)		((cli)->cli_privs)
 /** Get client name. */
@@ -327,73 +316,73 @@ struct Client {
 #define cli_info(cli)		((cli)->cli_info)
 
 /** Get number of incoming bytes queued for client. */
-#define cli_count(cli)		((cli)->cli_connect->con_count)
+#define cli_count(cli)		con_count(cli_connect(cli))
 /** Get file descriptor for sending in client's direction. */
-#define cli_fd(cli)		((cli)->cli_connect->con_fd)
+#define cli_fd(cli)		con_fd(cli_connect(cli))
 /** Get free flags for the client's connection. */
-#define cli_freeflag(cli)	((cli)->cli_connect->con_freeflag)
+#define cli_freeflag(cli)	con_freeflag(cli_connect(cli))
 /** Get last error code for the client's connection. */
-#define cli_error(cli)		((cli)->cli_connect->con_error)
+#define cli_error(cli)		con_error(cli_connect(cli))
 /** Get server notice mask for the client. */
-#define cli_snomask(cli)	((cli)->cli_connect->con_snomask)
+#define cli_snomask(cli)	con_snomask(cli_connect(cli))
 /** Get next time a nick change is allowed for the client. */
-#define cli_nextnick(cli)	((cli)->cli_connect->con_nextnick)
+#define cli_nextnick(cli)	con_nextnick(cli_connect(cli))
 /** Get next time a target change is allowed for the client. */
-#define cli_nexttarget(cli)	((cli)->cli_connect->con_nexttarget)
+#define cli_nexttarget(cli)	con_nexttarget(cli_connect(cli))
 /** Get required PING/PONG cookie for client. */
-#define cli_cookie(cli)		((cli)->cli_connect->con_cookie)
+#define cli_cookie(cli)		con_cookie(cli_connect(cli))
 /** Get SendQ for client. */
-#define cli_sendQ(cli)		((cli)->cli_connect->con_sendQ)
+#define cli_sendQ(cli)		con_sendQ(cli_connect(cli))
 /** Get RecvQ for client. */
-#define cli_recvQ(cli)		((cli)->cli_connect->con_recvQ)
+#define cli_recvQ(cli)		con_recvQ(cli_connect(cli))
 /** Get count of messages sent to client. */
-#define cli_sendM(cli)		((cli)->cli_connect->con_sendM)
+#define cli_sendM(cli)		con_sendM(cli_connect(cli))
 /** Get number of kilobytes sent to client. */
-#define cli_sendK(cli)		((cli)->cli_connect->con_sendK)
+#define cli_sendK(cli)		con_sendK(cli_connect(cli))
 /** Get number of messages received from client. */
-#define cli_receiveM(cli)	((cli)->cli_connect->con_receiveM)
+#define cli_receiveM(cli)	con_receiveM(cli_connect(cli))
 /** Get number of kilobytes received from client. */
-#define cli_receiveK(cli)	((cli)->cli_connect->con_receiveK)
+#define cli_receiveK(cli)	con_receiveK(cli_connect(cli))
 /** Get number of bytes (modulo 1024) sent to client. */
-#define cli_sendB(cli)		((cli)->cli_connect->con_sendB)
+#define cli_sendB(cli)		con_sendB(cli_connect(cli))
 /** Get number of bytes (modulo 1024) received from client. */
-#define cli_receiveB(cli)	((cli)->cli_connect->con_receiveB)
+#define cli_receiveB(cli)	con_receiveB(cli_connect(cli))
 /** Get listener that accepted the client's connection. */
-#define cli_listener(cli)	((cli)->cli_connect->con_listener)
+#define cli_listener(cli)	con_listener(cli_connect(cli))
 /** Get list of attached conf lines. */
-#define cli_confs(cli)		((cli)->cli_connect->con_confs)
+#define cli_confs(cli)		con_confs(cli_connect(cli))
 /** Get handler type for client. */
-#define cli_handler(cli)	((cli)->cli_connect->con_handler)
+#define cli_handler(cli)	con_handler(cli_connect(cli))
 /** Get DNS reply for client. */
-#define cli_dns_reply(cli)	((cli)->cli_connect->con_dns_reply)
+#define cli_dns_reply(cli)	con_dns_reply(cli_connect(cli))
 /** Get LIST status for client. */
-#define cli_listing(cli)	((cli)->cli_connect->con_listing)
+#define cli_listing(cli)	con_listing(cli_connect(cli))
 /** Get cached max SendQ for client. */
-#define cli_max_sendq(cli)	((cli)->cli_connect->con_max_sendq)
+#define cli_max_sendq(cli)	con_max_sendq(cli_connect(cli))
 /** Get ping frequency for client. */
-#define cli_ping_freq(cli)	((cli)->cli_connect->con_ping_freq)
+#define cli_ping_freq(cli)	con_ping_freq(cli_connect(cli))
 /** Get lastsq for client's connection. */
-#define cli_lastsq(cli)		((cli)->cli_connect->con_lastsq)
-/** Get remote port number for client. */
-#define cli_port(cli)		((cli)->cli_connect->con_port)
+#define cli_lastsq(cli)		con_lastsq(cli_connect(cli))
 /** Get the array of current targets for the client.  */
-#define cli_targets(cli)	((cli)->cli_connect->con_targets)
+#define cli_targets(cli)	con_targets(cli_connect(cli))
 /** Get the string form of the client's IP address. */
-#define cli_sock_ip(cli)	((cli)->cli_connect->con_sock_ip)
+#define cli_sock_ip(cli)	con_sock_ip(cli_connect(cli))
 /** Get the resolved hostname for the client. */
-#define cli_sockhost(cli)	((cli)->cli_connect->con_sockhost)
+#define cli_sockhost(cli)	con_sockhost(cli_connect(cli))
 /** Get the client's password. */
-#define cli_passwd(cli)		((cli)->cli_connect->con_passwd)
+#define cli_passwd(cli)		con_passwd(cli_connect(cli))
 /** Get the unprocessed input buffer for a client's connection.  */
-#define cli_buffer(cli)		((cli)->cli_connect->con_buffer)
+#define cli_buffer(cli)		con_buffer(cli_connect(cli))
 /** Get the Socket structure for sending to a client. */
-#define cli_socket(cli)		((cli)->cli_connect->con_socket)
+#define cli_socket(cli)		con_socket(cli_connect(cli))
 /** Get Timer for processing waiting messages from the client. */
-#define cli_proc(cli)		((cli)->cli_connect->con_proc)
+#define cli_proc(cli)		con_proc(cli_connect(cli))
 /** Get auth request for client. */
-#define cli_auth(cli)		((cli)->cli_connect->con_auth)
+#define cli_auth(cli)		con_auth(cli_connect(cli))
 /** Get iauth request for client. */
-#define cli_iauth(cli)          ((cli)->cli_connect->con_iauth)
+#define cli_iauth(cli)          con_iauth(cli_connect(cli))
+/** Get sentalong marker for client. */
+#define cli_sentalong(cli)      con_sentalong(cli_connect(cli))
 
 /** Verify that a connection is valid. */
 #define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
@@ -408,17 +397,23 @@ struct Client {
 /** Get number of unprocessed data bytes from connection. */
 #define con_count(con)		((con)->con_count)
 /** Get file descriptor for connection. */
-#define con_fd(con)		((con)->con_fd)
+#define con_fd(con)		s_fd(&(con)->con_socket)
 /** Get freeable flags for connection. */
 #define con_freeflag(con)	((con)->con_freeflag)
 /** Get last error code on connection. */
 #define con_error(con)		((con)->con_error)
+/** Get sentalong marker for connection. */
+#define con_sentalong(con)      ((con)->con_sentalong)
 /** Get server notice mask for connection. */
 #define con_snomask(con)	((con)->con_snomask)
 /** Get next nick change time for connection. */
 #define con_nextnick(con)	((con)->con_nextnick)
 /** Get next new target time for connection. */
 #define con_nexttarget(con)	((con)->con_nexttarget)
+/** Get last time we read from the connection. */
+#define con_lasttime(con)       ((con)->con_lasttime)
+/** Get last time we accepted a command from the connection. */
+#define con_since(con)          ((con)->con_since)
 /** Get PING/PONG confirmation cookie for connection. */
 #define con_cookie(con)		((con)->con_cookie)
 /** Get SendQ for connection. */
@@ -453,8 +448,6 @@ struct Client {
 #define con_ping_freq(con)	((con)->con_ping_freq)
 /** Get the lastsq for the connection. */
 #define con_lastsq(con)		((con)->con_lastsq)
-/** Get the remote port number for the connection. */
-#define con_port(con)		((con)->con_port)
 /** Get the current targets array for the connection. */
 #define con_targets(con)	((con)->con_targets)
 /** Get the string-formatted IP address for the connection. */
@@ -541,21 +534,13 @@ struct Client {
 /*
  * flags macros
  */
-/** Set a flag in a flagset. */
-#define FlagSet(fset, flag) FLAGSET_SET(*fset, flag)
-/** Clear a flag from a flagset. */
-#define FlagClr(fset, flag) FLAGSET_CLEAR(*fset, flag)
-/** Return non-zero if a flag is set in a flagset. */
-#define FlagHas(fset, flag) FLAGSET_ISSET(*fset, flag)
 /** Set a flag in a client's flags. */
-#define SetFlag(cli, flag)      FlagSet(&cli_flags(cli), flag)
+#define SetFlag(cli, flag)  FlagSet(&cli_flags(cli), flag)
 /** Clear a flag from a client's flags. */
-#define ClrFlag(cli, flag)      FlagClr(&cli_flags(cli), flag)
+#define ClrFlag(cli, flag)  FlagClr(&cli_flags(cli), flag)
 /** Return non-zero if a flag is set in a client's flags. */
-#define HasFlag(cli, flag)      FlagHas(&cli_flags(cli), flag)
+#define HasFlag(cli, flag)  FlagHas(&cli_flags(cli), flag)
 
-/** Return non-zero if we can check the client's access. */
-#define DoAccess(x)             HasFlag(x, FLAG_CHKACCESS)
 /** Return non-zero if the client is an IRC operator (global or local). */
 #define IsAnOper(x)             (HasFlag(x, FLAG_OPER) || HasFlag(x, FLAG_LOCOP))
 /** Return non-zero if the client's connection is blocked. */
@@ -585,8 +570,6 @@ struct Client {
 #define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
 /** Return non-zero if the client has set mode +O (local operator). */
 #define IsLocOp(x)              HasFlag(x, FLAG_LOCOP)
-/** Return non-zero if the client is directly connected. */
-#define IsLocal(x)              HasFlag(x, FLAG_LOCAL)
 /** Return non-zero if the client has set mode +o (global operator). */
 #define IsOper(x)               HasFlag(x, FLAG_OPER)
 /** Return non-zero if the client has an active UDP ping request. */
@@ -615,8 +598,6 @@ struct Client {
 /** Return non-zero if the client's host is hidden. */
 #define HasHiddenHost(x)        (IsHiddenHost(x) && IsAccount(x))
 
-/** Mark a client as being okay to check access. */
-#define SetAccess(x)            SetFlag(x, FLAG_CHKACCESS)
 /** Mark a client as having an in-progress net.burst. */
 #define SetBurst(x)             SetFlag(x, FLAG_BURST)
 /** Mark a client as being between EOB and EOB ACK. */
@@ -662,8 +643,6 @@ struct Client {
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
                             || HasPriv(sptr, PRIV_SEE_OPERS)))
 
-/** Clear the client's okay to check access flag. */
-#define ClearAccess(x)          ClrFlag(x, FLAG_CHKACCESS)
 /** Clear the client's net.burst in-progress flag. */
 #define ClearBurst(x)           ClrFlag(x, FLAG_BURST)
 /** Clear the client's between EOB and EOB ACK flag. */
@@ -741,19 +720,8 @@ struct Client {
 /** Noisy server notice bits that cause other bits to be cleared during connect. */
 #define SNO_NOISY (SNO_SERVKILL|SNO_UNAUTH)
 
-/** Set a privilege flag on a privilege flagset. */
-#define PrivSet(fset, flag) FLAGSET_SET(*fset, flag)
-/** Clear a privilege flag from a privilege flagset. */
-#define PrivClr(fset, flag) FLAGSET_CLEAR(*fset, flag)
-/** Test a privilege flag in a privilege flagset. */
-#define PrivHas(fset, flag) FLAGSET_ISSET(*fset, flag)
-
-/** Grant a privilege to a client. */
-#define GrantPriv(cli, priv)	(PrivSet(&(cli_privs(cli)), priv))
-/** Revoke a privilege from a client. */
-#define RevokePriv(cli, priv)	(PrivClr(&(cli_privs(cli)), priv))
-/** Test whether a privilege has been grated to a client. */
-#define HasPriv(cli, priv)	(PrivHas(&(cli_privs(cli)), priv))
+/** Test whether a privilege has been granted to a client. */
+#define HasPriv(cli, priv)  FlagHas(&cli_privs(cli), priv)
 
 #define HIDE_IP 0 /**< Do not show IP address in get_client_name() */
 #define SHOW_IP 1 /**< Show ident and IP address in get_client_name() */

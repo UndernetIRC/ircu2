@@ -47,9 +47,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-/** Marker values for last message sent to a particular connection. */
-static int sentalong[MAXCONNECTIONS];
 /** Last used marker value. */
 static int sentalong_marker;
 /** Array of users with the corresponding server notice mask bit set. */
@@ -398,18 +395,28 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
   msgq_clean(mb);
 }
 
-/* XXX sentalong_marker used XXX
- *
- * There is not an easy way to revoke the need for sentalong_marker
- * from this function.  Thoughts and ideas would be welcome... -Kev
- *
- * One possibility would be to internalize the sentalong array; that
- * could be prohibitively big, though.  We could get around that by
- * making one that's the number of connected servers or something...
- * or perhaps by adding a special flag to the servers we've sent a
- * message to, and then a final loop through the connected servers
- * to delete the flag. -Kev
+/** Safely increment the sentalong marker.
+ * This increments the sentalong marker.  Since new connections will
+ * have con_sentalong() == 0, and to avoid confusion when the counter
+ * wraps, we reset all sentalong markers to zero when the sentalong
+ * marker hits zero.
+ * @param[in,out] one Client to mark with new sentalong marker (if any).
  */
+static void
+bump_sentalong(struct Client *one)
+{
+  if (!++sentalong_marker)
+  {
+    int ii;
+    for (ii = 0; ii < HighestFd; ++ii)
+      if (LocalClientArray[ii])
+        cli_sentalong(LocalClientArray[ii]) = 0;
+    ++sentalong_marker;
+  }
+  if (one)
+    cli_sentalong(one) = sentalong_marker;
+}
+
 /** Send a (prefixed) command to all channels that \a from is on.
  * @param[in] from Client originating the command.
  * @param[in] cmd Long name of command.
@@ -439,9 +446,7 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
   mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
-  sentalong_marker++;
-  if (-1 < cli_fd(cli_from(from)))
-    sentalong[cli_fd(cli_from(from))] = sentalong_marker;
+  bump_sentalong(from);
   /*
    * loop through from's channels, and the members on their channels
    */
@@ -450,10 +455,11 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
       continue;
     for (member = chan->channel->members; member;
 	 member = member->next_member)
-      if (MyConnect(member->user) && -1 < cli_fd(cli_from(member->user)) &&
-          member->user != one &&
-	  sentalong[cli_fd(cli_from(member->user))] != sentalong_marker) {
-	sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
+      if (MyConnect(member->user)
+          && -1 < cli_fd(cli_from(member->user))
+          && member->user != one
+          && cli_sentalong(member->user) != sentalong_marker) {
+	cli_sentalong(member->user) = sentalong_marker;
 	send_buffer(member->user, mb, 0);
       }
   }
@@ -504,12 +510,6 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
   msgq_clean(mb);
 }
 
-/*
- * Send a (prefixed) command to all servers with users on the channel
- * specified by <to>; <cmd> and <skip> are ignored by this function.
- *
- * XXX sentalong_marker used XXX
- */
 /** Send a (prefixed) command to all servers with users on \a to.
  * @param[in] from Client originating the command.
  * @param[in] cmd Long name of command (ignored).
@@ -535,38 +535,21 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   /* send the buffer to each server */
+  bump_sentalong(one);
   sentalong_marker++;
   for (member = to->members; member; member = member->next_member) {
-    if (cli_from(member->user) == one
-        || MyConnect(member->user)
+    if (MyConnect(member->user)
         || IsZombie(member)
         || cli_fd(cli_from(member->user)) < 0
-        || sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
+        || cli_sentalong(member->user) == sentalong_marker)
       continue;
-    sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
+    cli_sentalong(member->user) = sentalong_marker;
     send_buffer(member->user, serv_mb, 0);
   }
   msgq_clean(serv_mb);
 }
 
 
-/*
- * Send a (prefixed) command to all users on this channel, including
- * remote users; users to skip may be specified by setting appropriate
- * flags in the <skip> argument.  <one> will also be skipped.
- */
-/* XXX sentalong_marker used XXX
- *
- * We can drop sentalong_marker from this function by adding a field to
- * channels and to connections; what we do is make a user's connection
- * a "member" of the channel by adding it to the new list, and we use
- * the struct Membership status as a reference count.  Then, to implement
- * this function, we just walk the list of connections.  Unfortunately,
- * this doesn't account for sending only to channel ops, or for not
- * sending to +d users; we could account for that by splitting those
- * counts out, but that would imply adding two more fields (at least) to
- * the struct Membership... -Kev
- */
 /** Send a (prefixed) command to all users on this channel, except for
  * \a one and those matching \a skip.
  * @param[in] from Client originating the command.
@@ -601,18 +584,18 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   /* send buffer along! */
-  sentalong_marker++;
+  bump_sentalong(one);
   for (member = to->members; member; member = member->next_member) {
     /* skip one, zombies, and deaf users... */
-    if (cli_from(member->user) == one || IsZombie(member) ||
+    if (IsZombie(member) ||
         (skip & SKIP_DEAF && IsDeaf(member->user)) ||
         (skip & SKIP_NONOPS && !IsChanOp(member)) ||
         (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)) ||
         (skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
         cli_fd(cli_from(member->user)) < 0 ||
-        sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)
+        cli_sentalong(member->user) == sentalong_marker)
       continue;
-    sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
+    cli_sentalong(member->user) = sentalong_marker;
 
     if (MyConnect(member->user)) /* pick right buffer to send */
       send_buffer(member->user, user_mb, 0);
@@ -695,24 +678,6 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   msgq_clean(mb);
 }
 
-/*
- * Send a (prefixed) command to all users who match <to>, under control
- * of <who>
- */
-/* XXX sentalong_marker used XXX
- *
- * This is also a difficult one to solve.  The basic approach would be
- * to walk the client list of each connected server until we find a
- * match--but then, we also have to walk the client list of all the
- * servers behind that one.  We could implement this recursively--or we
- * could add (yet another) field to the connection struct that would be
- * a linked list of clients introduced through that link, and just walk
- * that, making this into an iterative implementation.  Unfortunately,
- * we probably would not be able to use tail recursion for the recursive
- * solution, so a deep network could exhaust our stack space; therefore
- * I favor the extra linked list, even though that increases the
- * complexity of the database. -Kev
- */
 /** Send a (prefixed) command to all users matching \a to as \a who.
  * @param[in] from Source of the command.
  * @param[in] cmd Long name of command.
@@ -745,13 +710,13 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   /* send buffer along */
-  sentalong_marker++;
+  bump_sentalong(one);
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
-    if (!IsRegistered(cptr) || cli_from(cptr) == one || IsServer(cptr) ||
-	IsMe(cptr) || !match_it(from, cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
-	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
+    if (!IsRegistered(cptr) || IsServer(cptr) ||
+	!match_it(from, cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
+	cli_sentalong(cptr) == sentalong_marker)
       continue; /* skip it */
-    sentalong[cli_fd(cli_from(cptr))] = sentalong_marker;
+    cli_sentalong(cptr) = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, user_mb, 0);

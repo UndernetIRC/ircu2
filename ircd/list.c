@@ -218,7 +218,6 @@ static void dealloc_connection(struct Connection* con)
 struct Client* make_client(struct Client *from, int status)
 {
   struct Client* cptr = 0;
-  struct Connection* con = 0;
 
   assert(!from || cli_verify(from));
 
@@ -229,7 +228,7 @@ struct Client* make_client(struct Client *from, int status)
   assert(0 == from || 0 != cli_connect(from));
 
   if (!from) { /* local client, allocate a struct Connection */
-    con = alloc_connection();
+    struct Connection *con = alloc_connection();
 
     assert(0 != con);
     assert(!con_magic(con));
@@ -242,17 +241,15 @@ struct Client* make_client(struct Client *from, int status)
     con_handler(con) = UNREGISTERED_HANDLER;
     con_client(con) = cptr;
 
-    cli_local(cptr) = 1; /* Set certain fields of the struct Client */
+    cli_connect(cptr) = con; /* set the connection and other fields */
     cli_since(cptr) = cli_lasttime(cptr) = cli_firsttime(cptr) = CurrentTime;
     cli_lastnick(cptr) = TStime();
   } else
-    con = cli_connect(from); /* use 'from's connection */
+    cli_connect(cptr) = cli_connect(from); /* use 'from's connection */
 
-  assert(0 != con);
-  assert(con_verify(con));
+  assert(con_verify(cli_connect(cptr)));
 
   cli_magic(cptr) = CLIENT_MAGIC;
-  cli_connect(cptr) = con; /* set the connection and other fields */
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "unknown");

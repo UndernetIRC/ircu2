@@ -245,7 +245,6 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * save connection info in client
    */
   memcpy(&cli_ip(cptr), &aconf->address.addr, sizeof(cli_ip(cptr)));
-  cli_port(cptr) = aconf->address.port;
   ircd_ntoa_r(cli_sock_ip(cptr), &cli_ip(cptr));
   /*
    * we want a big buffer for server connections
@@ -579,7 +578,6 @@ void add_connection(struct Listener* listener, int fd) {
   ircd_ntoa_r(cli_sock_ip(new_client), &addr.addr);
   strcpy(cli_sockhost(new_client), cli_sock_ip(new_client));
   memcpy(&cli_ip(new_client), &addr.addr, sizeof(cli_ip(new_client)));
-  cli_port(new_client) = addr.port;
 
   if (next_target)
     cli_nexttarget(new_client) = next_target;

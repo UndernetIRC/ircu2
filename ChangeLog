@@ -1,5 +1,29 @@
 2004-10-12  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h: Rename FLAGSET_ISSET, _SET, _CLEAR to FlagHas,
+	Set, Clr respectively.  Get rid of FLAG_CHKACCESS and FLAG_LOCAL.
+	Delete con_fd (get from con_socket) and con_port.  Move sentalong
+	from send.c to struct Connection, and cli_lasttime and cli_since
+	from struct Client to struct Connection.  Update cli_*() macros to
+	use con_*(cli_connect(cli)).
+
+	* ircd/client.c: Replace PrivSet() with FlagSet(), PrivClr() with
+	FlagClr(), PrivHas() with FlagHas().
+
+	* ircd/ircd_parser.y: Likewise.
+
+	* ircd/list.c: Remove assignment to cli_local() since it is now a
+	calculated value.
+
+	* ircd/s_bsd.c: Remove uses of cli_port().
+
+	* ircd/s_conf.c: Remove uses of ClearAccess().
+
+	* ircd/send.c: Delete sentalong array and replace with references
+	to con_sentalong().
+
+2004-10-12  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Update example config to reflect the changes
 	made in the remainder of this patch.
 
