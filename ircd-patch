@@ -1,11 +1,27 @@
 #!/bin/sh
 #
-# ircd-patch
+# IRC - Internet Relay Chat, ircd-patch
 # Copyright (C) 2002 Alex Badea <vampire@p16.pub.ro>
 #
-# $Id: ircd-patch,v 1.3 2002-04-02 11:24:29 isomer Exp $
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 1, or (at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# $Id: ircd-patch,v 1.4 2002-04-09 22:40:56 vampire Exp $
+#
 #
 # Experimental centralized patch system for ircu
+# Run with no arguments to get help.
 #
 # Return codes:
 #   0 - success

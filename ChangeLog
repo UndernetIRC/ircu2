@@ -1,3 +1,12 @@
+2002-04-10  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/ircd_parser.y: fixed a "features" block parse bug
+
+	* tools/convert-conf.py: added a configuration file converter
+	from 2.10.11 to 2.10.12 format
+
+	* ircd-patch: added GPL information to top of file
+
 2002-04-09  Alex Badea  <vampire@p16.pub.ro>
 
 	* configure.in: added a human-readable report of configured

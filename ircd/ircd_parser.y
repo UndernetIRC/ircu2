@@ -845,12 +845,12 @@ featureitems: featureitems featureitem | featureitem;
 
 featureitem: QSTRING
 {
-  stringno = 0;
+  stringlist[0] = $1;
+  stringno = 1;
 } '=' stringlist ';';
 
 stringlist: QSTRING
 {
-  stringlist[0] = $1;
   stringlist[1] = $1;
   stringno = 2;
 } posextrastrings
