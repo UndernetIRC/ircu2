@@ -1,5 +1,15 @@
 2002-04-03  Alex Badea  <vampire@p16.pub.ro>
 
+	* include/channel.h: fix compiler warnings (paratheses around &&)
+
+	* ircd/channel.c (modebuf_extract): fix compiler warnings
+	(uninitialized variables)
+
+	* ircd/Makefile.in: make ircd properly compile outside the
+	source tree
+
+2002-04-03  Alex Badea  <vampire@p16.pub.ro>
+
 	* include/s_user.h: added a sptr parameter to InfoFormatter
 	function type
 

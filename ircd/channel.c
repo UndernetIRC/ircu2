@@ -1984,7 +1984,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   int i, bufpos = 0, len;
   int *flag_p;
   char *key = 0, limitbuf[20];
-  char *apass, *upass;
+  char *apass = 0, *upass = 0;
 
   assert(0 != mbuf);
   assert(0 != buf);

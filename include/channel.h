@@ -107,7 +107,7 @@ struct Client;
 #define HiddenChannel(x)        ((x) && ((x)->mode.mode & MODE_PRIVATE))
 /* channel visible */
 #define ShowChannel(v,c)        (PubChannel(c) || find_channel_member((v),(c)) || \
-                                 (IsAnOper(v)) && HasPriv(v, PRIV_LIST_CHAN))
+                                 (IsAnOper(v) && HasPriv(v, PRIV_LIST_CHAN)))
 #define PubChannel(x)           ((!x) || ((x)->mode.mode & \
                                     (MODE_PRIVATE | MODE_SECRET)) == 0)
 #define is_listed(x)            ((x)->mode.mode & MODE_LISTED)

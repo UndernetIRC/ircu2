@@ -240,7 +240,7 @@ version.c: version.c.SH s_serv.c s_user.c channel.c s_bsd.c s_misc.c ircd.c \
 	${SHELL} ${srcdir}/version.c.SH
 
 ../include/patchlist.h:
-	(cd .. ; ./ircd-patch update)
+	(cd ${top_srcdir} ; ./ircd-patch update)
 
 ircd_string.o: ircd_string.c chattr.tab.c
 
@@ -251,10 +251,10 @@ chattr.tab.c: table_gen
 	./table_gen > chattr.tab.c
 
 lex.yy.c: ircd_lexer.l y.tab.h
-	${LEX} ircd_lexer.l
+	${LEX} ${srcdir}/ircd_lexer.l
 
 y.tab.c y.tab.h: ircd_parser.y
-	${YACC} -d ircd_parser.y
+	${YACC} -d ${srcdir}/ircd_parser.y
 
 mkbindir:
 	@test -d ${BINDIR} || mkdir ${BINDIR}
