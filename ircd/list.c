@@ -259,8 +259,7 @@ void free_client(struct Client* cptr)
     else {
       if (-1 < cli_fd(cptr) && cli_freeflag(cptr) & FREEFLAG_SOCKET)
 	socket_del(&(cli_socket(cptr))); /* queue a socket delete */
-      if ((cli_freeflag(cptr) & FREEFLAG_TIMER) &&
-	  !t_active(&(cli_proc(cptr))))
+      if (cli_freeflag(cptr) & FREEFLAG_TIMER)
 	timer_del(&(cli_proc(cptr))); /* queue a timer delete */
     }
   }
