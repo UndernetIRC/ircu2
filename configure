@@ -3168,7 +3168,7 @@ echo "configure:3168: checking whether to enable head in sand 'features'" >&5
 # Check whether --enable-headinsand or --disable-headinsand was given.
 if test "${enable_headinsand+set}" = set; then
   enableval="$enable_headinsand"
-  unet_cv_enable_symbols=$enable_headinsand
+  unet_cv_enable_headinsand=$enable_headinsand
 else
   if eval "test \"`echo '$''{'unet_cv_enable_headinsand'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -3180,7 +3180,7 @@ fi
 
 echo "$ac_t""$unet_cv_enable_headinsand" 1>&6
 
-if test x"$unet_cv_enable_headinsand" = xyes; then
+if test x"$unet_cv_enable_headinsand" = xno; then
     CFLAGS="-DNO_HEAD_IN_SAND $CFLAGS"
 fi
 

@@ -276,12 +276,12 @@ dnl Check for --disable-headinsand
 AC_MSG_CHECKING([whether to enable head in sand 'features'])
 AC_ARG_ENABLE([headinsand],
 [  --disable-headinsand      Disable head in sand (-DNO_HEAD_IN_SAND)],
-[unet_cv_enable_symbols=$enable_headinsand],
+[unet_cv_enable_headinsand=$enable_headinsand],
 [AC_CACHE_VAL(unet_cv_enable_headinsand,
 [unet_cv_enable_headinsand=yes])])
 AC_MSG_RESULT([$unet_cv_enable_headinsand])
 
-if test x"$unet_cv_enable_headinsand" = xyes; then
+if test x"$unet_cv_enable_headinsand" = xno; then
     CFLAGS="-DNO_HEAD_IN_SAND $CFLAGS"
 fi
 
