@@ -355,6 +355,10 @@ struct Client;
 #define MSG_PRIVS		"PRIVS"		/* PRIV */
 #define TOK_PRIVS		"PRIVS"
 
+#define MSG_CAP			"CAP"
+#define TOK_CAP			"CAP"
+#define CMD_CAP			MSG_CAP, TOK_CAP
+
 /*
  * Constants
  */

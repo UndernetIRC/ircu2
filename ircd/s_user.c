@@ -408,6 +408,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     static time_t last_too_many2;
 
     assert(cptr == sptr);
+    assert(cli_unreg(sptr) == 0);
     if (!IsIAuthed(sptr)) {
       if (iauth_active)
         return iauth_start_client(iauth_active, sptr);
@@ -867,6 +868,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     }
     hAddClient(sptr);
 
+    cli_unreg(sptr) &= ~CLIREG_NICK; /* nickname now set */
+
     /*
      * If the client hasn't gotten a cookie-ping yet,
      * choose a cookie and send it. -record!jegelhof@cloud9.net
@@ -877,7 +880,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       } while (!cli_cookie(sptr));
       sendrawto_one(cptr, MSG_PING " :%u", cli_cookie(sptr));
     }
-    else if (*(cli_user(sptr))->host && cli_cookie(sptr) == COOKIE_VERIFIED) {
+    else if (!cli_unreg(sptr)) {
       /*
        * USER and PONG already received, now we have NICK.
        * register_user may reject the client and call exit_client

@@ -9,6 +9,49 @@
 	socket's FD is the same after processing as it was before; local
 	clients apparently have s_fd() == -1 after close.
 
+2004-12-18  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: make absolutely certain register_user() is never
+	called with cli_unreg non-zero; transition set_nick_name() over to
+	the new way of determining whether client is ready for
+	register_user()
+
+	* ircd/s_err.c: add ERR_UNKNOWNCAPCMD for reporting failure to
+	understand a given CAP subcommand
+
+	* ircd/parse.c: add "CAP" command
+
+	* ircd/m_user.c (m_user): transition over to new way of
+	determining whether client is ready for register_user()
+
+	* ircd/m_pong.c (mr_pong): transition over to new way of
+	determining whether client is ready for register_user()
+
+	* ircd/m_cap.c: implementation of the IRC capabilities draft
+
+	* ircd/list.c (make_client): initialize cli_unreg element of
+	client structure
+
+	* ircd/ircd_string.c: correct old bugs in ircd_strn?cmp()
+	functions that were never found because cross-case ordering has
+	not been needed until now
+
+	* ircd/Makefile.in: add m_cap.c to list of .c files
+
+	* include/numeric.h (ERR_UNKNOWNCAPCMD): define new error reply to
+	indicate an unknown CAP subcommand
+
+	* include/msg.h: add "CAP" command
+
+	* include/handlers.h: add m_cap() to list of handlers
+
+	* include/client.h: add support for client capabilities; rototill
+	the registration mechanism to dovetail well with the capability
+	system--i.e., allow the capability system to suspend registration
+	if the user issues one of the CAP commands
+
+	* include/capab.h: header file to define client capabilities
+
 2004-12-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.h (apply_ban): Add new flag to indicate whether

@@ -144,7 +144,9 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   user->server = &me;
   ircd_strncpy(cli_info(cptr), info, REALLEN);
 
-  if ((cli_name(cptr))[0] && cli_cookie(cptr) == COOKIE_VERIFIED) {
+  cli_unreg(sptr) &= ~CLIREG_USER; /* username now set */
+
+  if (!cli_unreg(sptr)) {
     /*
      * NICK and PONG already received, now we have USER...
      */

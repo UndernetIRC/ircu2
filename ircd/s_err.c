@@ -852,7 +852,7 @@ static Numeric replyTable[] = {
 /* 409 */
   { ERR_NOORIGIN, ":No origin specified", "409" },
 /* 410 */
-  { 0 },
+  { ERR_UNKNOWNCAPCMD, "%s :Unknown CAP subcommand", "410" },
 /* 411 */
   { ERR_NORECIPIENT, ":No recipient given (%s)", "411" },
 /* 412 */

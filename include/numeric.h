@@ -325,7 +325,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOSUCHSERVICE    408  IRCnet */
 /*	ERR_NOCOLORSONCHAN   408  Dalnet */
 #define ERR_NOORIGIN         409
-
+#define ERR_UNKNOWNCAPCMD    410
 #define ERR_NORECIPIENT      411
 #define ERR_NOTEXTTOSEND     412
 #define ERR_NOTOPLEVEL       413

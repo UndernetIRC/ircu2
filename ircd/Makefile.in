@@ -115,6 +115,7 @@ IRCD_SRC = \
 	m_asll.c \
 	m_away.c \
 	m_burst.c \
+	m_cap.c \
 	m_clearmode.c \
 	m_close.c \
 	m_connect.c \

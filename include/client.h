@@ -176,6 +176,8 @@ DECLARE_FLAGSET(Privs, PRIV_LAST_PRIV);
 /** Declare flagset type for user flags. */
 DECLARE_FLAGSET(Flags, FLAG_LAST_FLAG);
 
+#include "capab.h" /* client capabilities */
+
 /** Represents a local connection.
  * This contains a lot of stuff irrelevant to server connections, but
  * those are so rare as to not be worth special-casing.
@@ -255,10 +257,20 @@ struct Client {
   struct irc_in_addr cli_ip;      /**< Real IP of client */
   short          cli_status;      /**< Client type */
   struct Privs   cli_privs;       /**< Oper privileges */
+  struct CapSet  cli_capab;       /**< Client capabilities */
+  struct CapSet  cli_active;      /**< Active client capabilities */
+  unsigned long  cli_unreg;       /**< Indicate what still needs to be done */
   char cli_name[HOSTLEN + 1];     /**< Unique name of the client, nick or host */
   char cli_username[USERLEN + 1]; /**< username here now for auth stuff */
   char cli_info[REALLEN + 1];     /**< Free form additional client information */
 };
+
+#define CLIREG_NICK	0x0001	/**< Client must set nickname */
+#define CLIREG_USER	0x0002	/**< Client must set username */
+#define CLIREG_COOKIE	0x0004	/**< Client must return cookie */
+#define CLIREG_CAP	0x0008	/**< Client in capability negotiation */
+
+#define CLIREG_INIT	(CLIREG_NICK | CLIREG_USER | CLIREG_COOKIE)
 
 /** Magic constant to identify valid Client structures. */
 #define CLIENT_MAGIC 0x4ca08286
@@ -307,6 +319,12 @@ struct Client {
 #define cli_local(cli)          (cli_from(cli) == cli)
 /** Get oper privileges for client. */
 #define cli_privs(cli)		((cli)->cli_privs)
+/** Get client capabilities for client */
+#define cli_capab(cli)		(&((cli)->cli_capab))
+/** Get active client capabilities for client */
+#define cli_active(cli)		(&((cli)->cli_active))
+/** Get flags for remaining registration tasks */
+#define cli_unreg(cli)		((cli)->cli_unreg)
 /** Get client name. */
 #define cli_name(cli)		((cli)->cli_name)
 /** Get client username (ident). */
@@ -717,6 +735,11 @@ struct Client {
 
 /** Test whether a privilege has been granted to a client. */
 #define HasPriv(cli, priv)  FlagHas(&cli_privs(cli), priv)
+
+/** Test whether a client has a capability */
+#define HasCap(cli, cap)    CapHas(cli_capab(cli), (cap))
+/** Test whether a client has the capability active */
+#define CapActive(cli, cap) CapHas(cli_active(cli), (cap))
 
 #define HIDE_IP 0 /**< Do not show IP address in get_client_name() */
 #define SHOW_IP 1 /**< Show ident and IP address in get_client_name() */

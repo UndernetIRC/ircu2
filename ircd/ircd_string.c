@@ -262,7 +262,7 @@ int ircd_strcmp(const char *a, const char *b)
     else
       ++rb;
   }
-  return (*ra - *rb);
+  return (ToLower(*ra) - ToLower(*rb));
 }
 
 /** Case insensitive comparison of the starts of two strings.
@@ -285,7 +285,7 @@ int ircd_strncmp(const char *a, const char *b, size_t n)
     else
       ++rb;
   }
-  return (*ra - *rb);
+  return (ToLower(*ra) - ToLower(*rb));
 }
 
 /** Fill a vector of distinct names from a delimited input list.

@@ -170,7 +170,8 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (0 != cli_cookie(sptr) && COOKIE_VERIFIED != cli_cookie(sptr)) {
     if (parc > 1 && cli_cookie(sptr) == atol(parv[parc - 1])) {
       cli_cookie(sptr) = COOKIE_VERIFIED;
-      if (cli_user(sptr) && *(cli_user(sptr))->host && (cli_name(sptr))[0])
+      cli_unreg(sptr) &= ~CLIREG_COOKIE; /* cookie has been returned... */
+      if (!cli_unreg(sptr)) /* no more registration tasks... */
         /*
          * NICK and USER OK
          */
