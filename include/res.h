@@ -47,15 +47,5 @@ extern int      resolver_read(void);
 extern void     resolver_read_multiple(int count);
 extern void     flush_resolver_cache(void);
 
-/*
- * add_local_domain - append local domain suffix to hostnames that 
- * don't contain a dot '.'
- * name - string to append to
- * len  - total length of the buffer
- * name is modified only if there is enough space in the buffer to hold
- * the suffix
- */
-extern void add_local_domain(char* name, size_t len);
-
 #endif /* INCLUDED_res_h */
 

@@ -180,34 +180,29 @@ static struct ConfItem *chk_initconf(void)
     /*
      * Do quoting of characters and # detection.
      */
-    for (tmp = line; *tmp; tmp++)
-    {
-      if (*tmp == '\\')
-      {
-        switch (*(tmp + 1))
-        {
-          case 'n':
-            *tmp = '\n';
-            break;
-          case 'r':
-            *tmp = '\r';
-            break;
-          case 't':
-            *tmp = '\t';
-            break;
-          case '0':
-            *tmp = '\0';
-            break;
-          default:
-            *tmp = *(tmp + 1);
-            break;
+    for (tmp = line; *tmp; ++tmp) {
+      if (*tmp == '\\') {
+        switch (*(tmp + 1)) {
+        case 'n':
+          *tmp = '\n';
+          break;
+        case 'r':
+          *tmp = '\r';
+          break;
+        case 't':
+          *tmp = '\t';
+          break;
+        case '0':
+          *tmp = '\0';
+          break;
+        default:
+          *tmp = *(tmp + 1);
+          break;
         }
-        if (!*(tmp + 1))
+        if ('\0' == *(tmp + 1))
           break;
         else
-          for (s = tmp; *s; *s = *++s)
-            ;
-        tmp++;
+          strcpy(tmp + 1, tmp + 2);
       }
       else if (*tmp == '#')
         *tmp = '\0';

@@ -370,27 +370,6 @@ void restart_resolver(void)
 }
 
 /*
- * add_local_domain - Add the domain to hostname, if it is missing
- * (as suggested by eps@TOASTER.SFSU.EDU)
- */
-void add_local_domain(char* hname, unsigned int size)
-{
-  assert(0 != hname);
-  /* 
-   * try to fix up unqualified names 
-   */
-  if ((_res.options & RES_DEFNAMES) && !strchr(hname, '.')) {
-    if (_res.defdname[0]) {
-      unsigned len = strlen(hname);
-      if ((strlen(_res.defdname) + len + 2) < size) {
-        hname[len++] = '.';
-        strcpy(hname + len, _res.defdname);
-      }
-    }
-  }
-}
-
-/*
  * add_request - place a new request in the request list
  */
 static void add_request(struct ResRequest* request)
@@ -652,12 +631,6 @@ static void do_query_name(const struct DNSQuery* query,
 
   ircd_strncpy(hname, name, HOSTLEN);
   hname[HOSTLEN] = '\0';
-#if 0
-  /*
-   * removed, this is incorrect for anything it's used for
-   */
-  add_local_domain(hname, HOSTLEN);
-#endif
 
   if (!request) {
     request       = make_request(query);
@@ -888,10 +861,6 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
     /* 
      * Wait to set request->type until we verify this structure 
      */
-#if 0
-    add_local_domain(hostbuf, HOSTLEN);
-#endif
-
     switch(type) {
     case T_A:
       /*
