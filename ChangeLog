@@ -1,3 +1,8 @@
+2002-12-28  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c (ms_create): we must pass in a flag, not a
+	boolean 1 or 0!  Good spotting splidge...
+
 2002-12-18  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c (stats_init): er, should have started at 0--not
