@@ -383,6 +383,8 @@ engine_loop(struct Generators* gen)
 	break;
       }
 
+      assert(s_fd(sock) == pollfdList[i].fd);
+
       gen_ref_dec(sock); /* we're done with it */
     }
 

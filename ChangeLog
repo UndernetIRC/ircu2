@@ -1,5 +1,21 @@
 2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c: add some extra assertions to try to track down a
+	corruption problem
+
+	* ircd/engine_select.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_poll.c (engine_loop): add an extra assert to try to
+	track down a corruption problem
+
+	* ircd/engine_kqueue.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_devpoll.c (engine_loop): skip slots that have become
+	empty during processing; add an extra assert to try to track down
+	a corruption problem
+
 	* ircd/engine_kqueue.c (engine_delete): make sure to zero deleted
 	entries
 

@@ -393,6 +393,8 @@ engine_loop(struct Generators* gen)
 	break;
       }
 
+      assert(s_fd(sock) == events[i].ident);
+
       gen_ref_dec(sock); /* we're done with it */
     }
 

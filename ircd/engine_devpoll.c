@@ -289,6 +289,8 @@ engine_loop(struct Generators* gen)
       assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
       sock = sockList[polls[i].fd];
+      if (!sock) /* slots may become empty while processing events */
+	continue;
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
@@ -378,6 +380,8 @@ engine_loop(struct Generators* gen)
 	}
 	break;
       }
+
+      assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
       gen_ref_dec(sock); /* we're done with it */
     }

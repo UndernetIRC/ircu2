@@ -354,6 +354,8 @@ engine_loop(struct Generators* gen)
 	break;
       }
 
+      assert(s_fd(sockList[i]) == i);
+
       gen_ref_dec(sock); /* we're done with it */
     }
 

@@ -1020,6 +1020,8 @@ static void client_sock_callback(struct Event* ev)
     break;
   }
 
+  assert(0 == cptr || con == cli_connect(cptr));
+
   if (fallback) {
     const char* msg = (cli_error(cptr)) ? strerror(cli_error(cptr)) : fallback;
     if (!msg)
@@ -1046,6 +1048,8 @@ static void client_timer_callback(struct Event* ev)
 
   cptr = con_client(con);
 
+  assert(0 == cptr || con == cli_connect(cptr));
+
   if (ev_type(ev)== ET_DESTROY) {
     if (con_timer(con) == 1)
       con_timer(con) = 0; /* timer has been deleted */
@@ -1057,4 +1061,6 @@ static void client_timer_callback(struct Event* ev)
     cli_timer(cptr) = 0; /* timer has expired... */
     read_packet(cptr, 0); /* read_packet will re-add timer if needed */
   }
+
+  assert(0 == cptr || con == cli_connect(cptr));
 }
