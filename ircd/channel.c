@@ -21,7 +21,6 @@
  */
 #include "channel.h"
 #include "client.h"
-#include "gline.h"        /* bad_channel */
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
