@@ -335,6 +335,9 @@ extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 				struct Client *client);
 extern int modebuf_flush(struct ModeBuf *mbuf);
 
+extern void mode_ban_invalidate(struct Channel *chan);
+extern void mode_invite_clear(struct Channel *chan);
+
 extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
 		      struct Client *sptr, struct Channel *chptr,
 		      int parc, char *parv[], unsigned int flags);
