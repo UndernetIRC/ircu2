@@ -63,7 +63,6 @@ extern int          register_user(struct Client* cptr, struct Client* sptr,
 
 extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
 
-extern int user_set_away(struct User* user, char* message);
 extern int do_nick_name(char* nick);
 extern int set_nick_name(struct Client* cptr, struct Client* sptr,
                          const char* nick, int parc, char* parv[]);

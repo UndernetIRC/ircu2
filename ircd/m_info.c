@@ -96,6 +96,7 @@
 #include "numnicks.h"
 #include "s_misc.h"
 #include "s_user.h"
+#include "s_conf.h"
 #include "send.h"
 #include "version.h"
 
@@ -111,27 +112,21 @@ int m_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char **text = infotext;
 
-  if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) ==
+  if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) !=
       HUNTED_ISME)
+	return 0;
+
+  while (text[2])
   {
-    while (text[2])
-    {
-      if (!IsOper(sptr))
-	send_reply(sptr, RPL_INFO, *text);
-      text++;
-    }
-    if (IsOper(sptr))
-    {
-      while (*text)
-	send_reply(sptr, RPL_INFO, *text++);
-      send_reply(sptr, RPL_INFO, "");
-    }
-    send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
-	       creation, generation);
-    send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
-	       myctime(cli_firsttime(&me)));
-    send_reply(sptr, RPL_ENDOFINFO);
+    send_reply(sptr, RPL_INFO, *text);
+    text++;
   }
+  send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
+      creation, generation);
+  send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
+      myctime(cli_firsttime(&me)));
+  send_reply(sptr, RPL_ENDOFINFO);
+
   return 0;
 }
 
@@ -148,27 +143,26 @@ int ms_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsServer(sptr))
     return 0;
 
-  if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) ==
+  if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) !=
       HUNTED_ISME)
+	return 0;
+  while (text[2])
   {
-    while (text[2])
-    {
-      if (!IsOper(sptr))
-	send_reply(sptr, RPL_INFO, *text);
-      text++;
-    }
-    if (IsOper(sptr))
-    {
-      while (*text)
-	send_reply(sptr, RPL_INFO, *text++);
-      send_reply(sptr, RPL_INFO, "");
-    }
-    send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
-	       creation, generation);
-    send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
-	       myctime(cli_firsttime(&me)));
-    send_reply(sptr, RPL_ENDOFINFO);
+    if (!IsOper(sptr))
+      send_reply(sptr, RPL_INFO, *text);
+    text++;
   }
+  if (IsOper(sptr))
+  {
+    while (*text)
+      send_reply(sptr, RPL_INFO, *text++);
+    send_reply(sptr, RPL_INFO, "");
+  }
+  send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
+      creation, generation);
+  send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
+      myctime(cli_firsttime(&me)));
+  send_reply(sptr, RPL_ENDOFINFO);
   return 0;
 }
 
@@ -205,40 +199,4 @@ int mo_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
-
-  
-#if 0
-/*
- * m_info
- *
- * parv[0] = sender prefix
- * parv[1] = servername
- */
-int m_info(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  const char **text = infotext;
-
-  if (hunt_server(1, cptr, sptr, "%s%s " TOK_INFO " :%s", 1, parc, parv) == HUNTED_ISME) /* XXX DEAD */
-  {
-    while (text[2])
-    {
-      if (!IsOper(sptr))
-        sendto_one(sptr, rpl_str(RPL_INFO), me.name, parv[0], *text); /* XXX DEAD */
-      text++;
-    }
-    if (IsOper(sptr))
-    {
-      while (*text)
-        sendto_one(sptr, rpl_str(RPL_INFO), me.name, parv[0], *text++); /* XXX DEAD */
-      sendto_one(sptr, rpl_str(RPL_INFO), me.name, parv[0], ""); /* XXX DEAD */
-    }
-    sendto_one(sptr, ":%s %d %s :Birth Date: %s, compile # %s", /* XXX DEAD */
-        me.name, RPL_INFO, parv[0], creation, generation);
-    sendto_one(sptr, ":%s %d %s :On-line since %s", /* XXX DEAD */
-        me.name, RPL_INFO, parv[0], myctime(me.firsttime));
-    sendto_one(sptr, rpl_str(RPL_ENDOFINFO), me.name, parv[0]); /* XXX DEAD */
-  }
-  return 0;
-}
-#endif /* 0 */
 

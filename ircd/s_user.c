@@ -130,50 +130,6 @@ void user_count_memory(size_t* count_out, size_t* bytes_out)
   *bytes_out = userCount * sizeof(struct User);
 }
 
-/*
- * user_set_away - set user away state
- * returns 1 if client is away or changed away message, 0 if 
- * client is removing away status.
- * NOTE: this function may modify user and message, so they
- * must be mutable.
- */
-int user_set_away(struct User* user, char* message)
-{
-  char* away;
-  assert(0 != user);
-
-  away = user->away;
-
-  if (EmptyString(message)) {
-    /*
-     * Marking as not away
-     */
-    if (away) {
-      MyFree(away);
-      user->away = 0;
-    }
-  }
-  else {
-    /*
-     * Marking as away
-     */
-    unsigned int len = strlen(message);
-
-    if (len > TOPICLEN) {
-      message[TOPICLEN] = '\0';
-      len = TOPICLEN;
-    }
-    if (away)
-      away = (char*) MyRealloc(away, len + 1);
-    else
-      away = (char*) MyMalloc(len + 1);
-    assert(0 != away);
-
-    user->away = away;
-    strcpy(away, message);
-  }
-  return (user->away != 0);
-}
 
 /*
  * next_client

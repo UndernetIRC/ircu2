@@ -138,6 +138,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * checked it's args, if we don't have parc == 4, something
      * isn't right.
      */
+    protocol_violation(sptr, "Too few parameters to connect");
     return need_more_params(sptr, "CONNECT");
   }
 
