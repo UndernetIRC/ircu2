@@ -1,5 +1,7 @@
 2002-02-06  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/Makefile.in: add a hook for using ringlog; run make depend
+
 	* tools/ringlog.c: for the heck of it, add a comment including
 	rules for /etc/magic
 
