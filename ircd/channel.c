@@ -771,6 +771,9 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
         strcat(pbuf, " ");
       strcat(pbuf, chptr->mode.key);
     }
+    else {
+      strcat(pbuf,"*");
+    }
   }
   *mbuf = '\0';
 }
