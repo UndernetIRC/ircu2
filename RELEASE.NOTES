@@ -1,224 +1,84 @@
-Release Notes for ircu2.10.11
-Last Updated: August 17, 2001
-Written by Kev <klmitch@mit.edu>
-Based on a document written by Braden <dbtem@yahoo.com>
+Release notes for ircu2.10.12
+Last updated: 13 Jan 2005
+Written by Michael Poole <mdpoole@troilus.org>
+Based on earlier documents by Kev <klmitch@mit.edu> and
+Braden <dbtem@yahoo.com>.
 
-This is a brief description of the changes we have made to the server
-since the release of ircu2.10.10.
-
-This server is only compatible with other servers that are P10.  It is
-compatible and is verified to work with Undernet server versions
-u2.10.10 and above.  Note, however, that some advanced features are
-only compatible with u2.10.11 and above.
+This document briefly describes changes in ircu2.10.12 relative to
+ircu2.10.11.  ircu2.10.12 is only compatible with servers that
+implement the P10 protocol.  It has been tested to link against
+ircu2.10.11, but some features (notably IPv6 support) are not
+supported by ircu2.10.11.
 
 Enhancements:
 
-GLINE has been extended to allow IRC operators to issue global
-G-lines; see doc/readme.gline for more information about how to use
-this feature.  These extended features should not be used on networks
-with u2.10.10 servers.
+The configuration file format has changed to one that is easier to
+read.  It is based on the configuration parser found in ircd-hybrid.
+As usual, an example configuration file can be found in the doc
+subdirectory.
 
-A new JUPE command has been added to permit servers to be juped in a
-more reliable fashion.  This command should not be used on networks
-with u2.10.10 servers.
+ircu now supports IPv6 clients.  If your operating system provides
+IPv6 socket support, ircu can accept connections on IPv6 addresses.
+Even if your operating system does not support IPv6 sockets, you can
+link (using IPv4) to a server that has IPv6 clients, and ircu will
+treat the IPv6 clients correctly.
 
-Two new channel mode manipulation commands, OPMODE and CLEARMODE, have
-been added.  OPMODE works exactly like MODE, except that 1) only IRC
-operators can use it; 2) it ignores whether or not the operator is a
-channel operator.  CLEARMODE is a reliable means of eradicating
-certain channel modes; it is given an argument string consisting of
-the modes to clear.  If that argument string is not given, it defaults
-to "ovpsmikbl."  These commands should not be used on networks with
-u2.10.10 servers.
+The DNS resolver has been replaced with a streamlined version (also
+from ircd-hybrid) that avoids some of the complications from using
+the full libresolv or adns libraries.
 
-When a channel MODE command from a remote user must be bounced, a
-"MODE -o" for the user will also be sent, in order to attempt to
-"heal" the desync.  Also, the old anti-hack code has been removed,
-since servers never send MODEs except for bounces.
+The server can query an IAUTH external authorization server.  The
+protocol is described in doc/readme.iauth.  This allows an external
+program to accept or reject any client that connects to the server
+and allows that external program to assign an account stamp to the
+incoming user.
 
-Most compile-time options have been converted to run-time options
-which may be set through the configuration file or through the use of
-the new commands SET, RESET, and GET; for more information about
-these, please refer to doc/example.conf (for configuration file
-information), doc/readme.features (for a list and description of the
-options), and doc/readme.log (for a description of the logging
-subsystem configuration).
+A new feature called "oplevels" has been added.  It uses new channel
+keys (+A for the administrator, +U for users) to grant chanop status
+when you join using those keys.  Part of this channel protection is
+that you cannot be deopped in channel by someone who you opped.
 
-A new logging subsystem has been written, making it much easier to get
-ircd to write out log files, or to use syslog if that's desired.
+More than one hashing mechanism is now supported for oper passwords,
+and a new tool (ircd/umkpasswd) is provided to generate them.
 
-The old chroot() code has been removed; that should now be handled via
-an external wrapper.  Such a wrapper has been included in the tools
-subdirectory.  PLEASE READ doc/readme.chroot IF YOU WISH TO USE
-CHROOT-STYLE JAILS WITH IRCD.
-
-The build system has been completely revamped; since most compile-time
-options are now run-time, the few remaining ones can be placed in
-./configure and set with --with-* and --enable-*.  Please read INSTALL
-for more information on how to compile and install the daemon.
-
-All of the old select()- and poll()-based event loop has been
-completely ripped out and replaced, enabling ircd to use kqueue() and
-/dev/poll, on systems that support those interfaces.
-
-All changes made to the u2.10.10 branch have been forward-ported to
-u2.10.11.
-
-The server now uses extended numerics exclusively.
-
-A large number of code clean-ups, changes, and fixes have been made.
-Some of these should hopefully increase performance; others will make
-it easier to maintain the code.
-
+Clients may negotiate extensions and changes to the standard IRC
+client protocol by using the CAP command during registration.  There
+does not appear to be any documentation for the protocol, which should
+not matter since ircu does not currently features that do anything.
 
 Configuration Changes:
 
-Most compile-time options are now run-time configurable features, and
-can be set through the daemon configuration file.  Please see
-doc/example.conf for an illustration of the format (search for
-F-lines).  Documentation for the logging subsystem is in
-doc/readme.log, and the list and description of all the features is
-located in doc/readme.features.
-
+As mentioned above, the configuration file format has changed
+radically.  Please consult doc/example.conf for details on the
+new format.
 
 Compile Time Options:
 
-Again, most compile-time options are now set in the configuration
-file.  The remaining options are set through arguments to
-./configure.  A list of these options is available with ./configure
---help; a more detailed description follows:
+A listing of supported compile-time options may be seen by running
+"./configure --help".  The defaults should be sane.  In particular,
+you should NOT compile with --enable-debug or with --disable-symbols
+on a production network.
 
---enable-poll
-  The configure script attempts to only use poll on systems where that
-is a direct system call.  Sometimes, however, it will not properly
-detect this.  This option is meant to force ircd to use poll on
-systems where ./configure does not detect that it is a system call.
+Otherwise Undocumented Features:
 
---enable-debug
-  This option turns on DEBUGMODE, which enables code useful for
-debugging the server.  THIS FEATURE SHOULD NOT BE USED ON A PRODUCTION
-NETWORK; it represents a severe privacy risk.
-
---disable-asserts
-  Assertions are a means of checking that certain underlying
-assumptions are met.  This option disables those assertions.
-
---disable-symbols
-  By default, the -g compiler option is used to enable symbols on the
-binary.  These symbols are useful when attempting to track down the
-cause of a crash.  Please do not use this option.
-
---enable-profile
-  This option simply adds the -pg compiler option to enable profiling
-support.
-
---enable-pedantic
---enable-warnings
-  The Coder Committee attempts to release code that generates no
-compile-time warnings or errors.  These two options add gcc-specific
-warning flags to the compiler flags.  These options should not be used
-if your compiler is not gcc.
-
---disable-inlines
-  Some critical functions are forcefully inlined.  This flag disables
-that behavior.  It should not be used for performance reasons.
-
---disable-devpoll
-  On systems that have /dev/poll, the /dev/poll-based engine is
-automatically enabled.  This option inhibits that behavior.
-
---disable-kqueue
-  On systems that have kqueue(), the kqueue()-based engine is
-automatically enabled.  This option inhibits that behavior.
-
---with-symlink=name
-  When "make install" is executed, the daemon is installed in such a
-way that old versions are kept, and a symlink is made to the latest
-installed version.  This option selects the name given to that
-symlink.  Specify a symlink name of "no" or use "--without-symlink" to
-disable this behavior.
-
---with-mode=mode
-  The daemon binary is installed with permissions 711 by default; this
-option may be used to specify a different permission set for the
-binary.
-
---with-owner=owner
-  By default, the owner of the installed binary will be the same as
-the person that compiled it; this option permits a different owner to
-be specified.
-
---with-group=group
-  By default, the group owner of the installed binary will be the same
-as the primary group of the person that compiled it (at the time it
-was compiled); this option permits a different group owner to be
-specified.
-
---with-domain=domain
-  The daemon attempts to keep some statistics on the server's user
-load, including how many local users connect to the server.  A local
-user is determined by comparing the user's host name to a domain
-name.  The domain name can be set through the feature subsystem, as
-documented in doc/readme.features; however, it will default either to
-the domain specified with this flag, or to a name extracted from
-/etc/resolv.conf, if it exists.
-
---with-chroot=dir
-  Some admins may wish to run ircd within a chroot "jail," to enhance
-the security of their systems.  Although the chroot() code was removed
-from ircd, the build system still supports operation of this form.  If
-you wish to use chroot-based jails, read doc/readme.chroot and give
-this option to ./configure.
-
---with-dpath=dir
-  This option simply specifies the path to the data directory for the
-daemon.  If --with-chroot has been given, this path must be compatible
-with the chroot directory.  See doc/readme.chroot for more information
-about this restriction.
-
---with-cpath=file
-  This option simply specifies the path to the configuration file for
-the daemon, and may be either a relative or absolute path name.  If it
-is an absolute path, and if --with-chroot has been given, this path
-must be compatible with the chroot directory.  See doc/readme.chroot
-for more information about this restriction.
-
---with-lpath=file
-  When the server is compiled in DEBUGMODE (--enable-debug), the
-debugging logs will be sent to the file specified here (defaulting to
-"ircd.log" in the data directory).  If this is an absolute path,
---with-chroot has been given, and if that path is not compatible with
-the chroot directory, then a warning will be issued and the default
-will be used.  See doc/readme.chroot for more information about this
-restriction.
-
---with-maxcon=maxcon
-  The maximum number of sockets that the server may open is normally
-derived from the hard limit on the number of file descriptors.  If
-desired, a higher value may be used by specifying this option to
-./configure.
-
-
-Undocumented Features:
-
-Every Undernet server released has had at least one undocumented
-feature ;-) Here are a few of the ones available in ircu2.10.11.  I'm
-sure there are a few more we are unaware of, these are the ones we
-know about.
+Despite our preferences to keep these undocumented, they are
+occasionally useful, and are described here for users who may
+need them.
 
 To enable these, you need to add them to CFLAGS prior to running
 ./configure, usually as in: CFLAGS="-O2 -D<option>" ./configure
 
--DNICKLEN=15
-  This allows you do override the default nick length to 15
-characters.  If this has different values on different servers your
-network *WILL* fall apart.  Only use this option if you know what your
-doing. If you don't, ask in #coder-com on undernet.
+-DNICKLEN=20
 
--DNO_THROTTLE
+  This allows you change the maximum nick length from 15 to 20 (or
+whatever number you use at the end).  It MUST be the same on all
+servers on your network, or bad things will happen.  You should also
+use the NICKLEN feature in ircd.conf.
+
+-DNOTHROTTLE
   This disables the throttling code.  This is used for debugging
 *only*.  It lets you connect up to 255 clients from one host with no
-time considerations.  If this is enabled on a production server I will
+time considerations.  If this is enabled on a production server Kev will
 personally drive your server into the ground.  You have been warned.
 
 
