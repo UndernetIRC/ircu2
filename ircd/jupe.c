@@ -97,10 +97,9 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
 
 int
 jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
-	 time_t expire, time_t lastmod, int local, int active)
+	 time_t expire, time_t lastmod, unsigned int flags)
 {
   struct Jupe *ajupe;
-  unsigned int flags = 0;
 
   assert(0 != server);
   assert(0 != reason);
@@ -121,24 +120,21 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
     sendto_op_mask(SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
 		   TIME_T_FMT ": %s",
 		   IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		   local ? "local " : "", server, expire + TSoffset, reason);
+		   flags & JUPE_LOCAL ? "local " : "", server,
+		   expire + TSoffset, reason);
 
 #ifdef JPATH
   if (IsServer(sptr))
     write_log(JPATH, TIME_T_FMT " %s adding %sJUPE for %s, expiring at "
 	      TIME_T_FMT ": %s\n", TStime(), sptr->name,
-	      local ? "local " : "", server, expire + TSoffset, reason);
+	      flags & JUPE_LOCAL ? "local " : "", server, expire + TSoffset,
+	      reason);
   else
     write_log(JPATH, TIME_T_FMT, " %s!%s@%s adding %sJUPE for %s, expiring at "
 	      TIME_T_FMT ": %s\n", TStime(), sptr->name, sptr->user->username,
-	      sptr->user->host, local ? "local " : "", server,
+	      sptr->user->host, flags & JUPE_LOCAL ? "local " : "", server,
 	      expire + TSoffset, reason);
 #endif /* JPATH */
-
-  if (active) /* compute initial flags */
-    flags |= JUPE_ACTIVE;
-  if (local)
-    flags |= JUPE_LOCAL;
 
   /* make the jupe */
   ajupe = make_jupe(server, reason, expire, lastmod, flags);
@@ -150,7 +146,7 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
 
 int
 jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
-	      time_t lastmod)
+	      time_t lastmod, unsigned int flags)
 {
   assert(0 != jupe);
   assert(!JupeIsLocal(jupe));
@@ -187,7 +183,7 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
 
 int
 jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
-		time_t lastmod)
+		time_t lastmod, unsigned int flags)
 {
   assert(0 != jupe);
 

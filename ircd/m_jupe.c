@@ -125,7 +125,7 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr = 0;
   struct Jupe *ajupe;
-  int local = 0, active = 1;
+  unsigned int flags = 0;
   time_t expire_off, lastmod;
   char *server = parv[2], *target = parv[1], *reason = parv[5];
 
@@ -142,14 +142,13 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
     }
 
-    local = 1;
+    flags |= JUPE_LOCAL;
   }
 
-  if (*server == '-') {
-    active = 0;
+  if (*server == '-')
     server++;
-  } else if (*server == '+') {
-    active = 1;
+  else if (*server == '+') {
+    flags |= JUPE_ACTIVE;
     server++;
   }
 
@@ -159,21 +158,20 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ajupe = jupe_find(server);
 
   if (ajupe) {
-    if (JupeIsLocal(ajupe) && !local) /* global jupes override local ones */
+    if (JupeIsLocal(ajupe) && !(flags & JUPE_LOCAL)) /* global over local */
       jupe_free(ajupe);
     else if (JupeLastMod(ajupe) < lastmod) { /* new modification */
-      if (active)
-	return jupe_activate(cptr, sptr, ajupe, lastmod);
+      if (flags & JUPE_ACTIVE)
+	return jupe_activate(cptr, sptr, ajupe, lastmod, flags);
       else
-	return jupe_deactivate(cptr, sptr, ajupe, lastmod);
+	return jupe_deactivate(cptr, sptr, ajupe, lastmod, flags);
     } else if (JupeLastMod(ajupe) == lastmod) /* no changes */
       return 0;
     else
       return jupe_resend(cptr, ajupe); /* other server desynched WRT jupes */
   }
 
-  return jupe_add(cptr, sptr, server, reason, expire_off, lastmod, local,
-		  active);
+  return jupe_add(cptr, sptr, server, reason, expire_off, lastmod, flags);
 }
 
 /*
@@ -194,7 +192,7 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr = 0;
   struct Jupe *ajupe;
-  int local = 0, active = 1;
+  unsigned int flags = 0;
   time_t expire_off;
   char *server = parv[1], *target = parv[2], *reason = parv[4];
 
@@ -202,12 +200,11 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return jupe_list(sptr, 0);
 
   if (*server == '+') {
-    active = 1;
+    flags |= JUPE_ACTIVE;
     server++;
-  } else if (*server == '-') {
-    active = 0;
+  } else if (*server == '-')
     server++;
-  } else
+  else
     return jupe_list(sptr, server);
 
   if (parc < 5)
@@ -222,11 +219,12 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
       sendcmdto_one(acptr, CMD_JUPE, sptr, "%C %c%s %s %Tu :%s", acptr,
-		    active ? '+' : '-', server, parv[3], TStime(), reason);
+		    flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
+		    TStime(), reason);
       return 0;
     }
 
-    local = 1;
+    flags |= JUPE_LOCAL;
   } else if (!IsOper(sptr))
     return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
@@ -235,18 +233,17 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ajupe = jupe_find(server);
 
   if (ajupe) {
-    if (JupeIsLocal(ajupe) && !local) /* global jupes override local ones */
+    if (JupeIsLocal(ajupe) && !(flags & JUPE_LOCAL)) /* global over local */
       jupe_free(ajupe);
     else {
-      if (active)
-	return jupe_activate(cptr, sptr, ajupe, TStime());
+      if (flags & JUPE_ACTIVE)
+	return jupe_activate(cptr, sptr, ajupe, TStime(), flags);
       else
-	return jupe_deactivate(cptr, sptr, ajupe, TStime());
+	return jupe_deactivate(cptr, sptr, ajupe, TStime(), flags);
     }
   }
 
-  return jupe_add(cptr, sptr, server, reason, expire_off, TStime(), local,
-		  active);
+  return jupe_add(cptr, sptr, server, reason, expire_off, TStime(), flags);
 }
 #endif /* CONFIG_OPERCMDS */
 

@@ -242,7 +242,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
 int
 gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
-	       time_t lastmod)
+	       time_t lastmod, unsigned int flags)
 {
   assert(0 != gline);
   assert(!GlineIsLocal(gline));
@@ -288,7 +288,7 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
 int
 gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
-		 time_t lastmod)
+		 time_t lastmod, unsigned int flags)
 {
   assert(0 != gline);
 

@@ -1,5 +1,25 @@
 2000-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/gline.c: add flags argument to gline_activate and
+	gline_deactivate for future expansion
+
+	* ircd/m_gline.c: pass flags to gline_activate and
+	gline_deactivate
+
+	* include/gline.h: add flags argument to gline_activate and
+	gline_deactivate
+
+	* ircd/jupe.c: add flags argument to jupe_activate and
+	jupe_deactivate for future expansion
+
+	* include/jupe.h: add flags argument to jupe_activate and
+	jupe_deactivate
+
+	* ircd/m_jupe.c: pass a flags argument to jupe_add instead of
+	local, active; pass flags to jupe_activate and jupe_deactivate
+
+	* include/gline.h: remove dead code
+
 	* ircd/gline.c: make gline expire times relative to CurrentTime,
 	since that should be monotonically increasing, instead of
 	TStime(), which can be set backwards, and which can therefore
@@ -563,7 +583,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.90 2000-04-16 04:30:42 kev Exp $
+# $Id: ChangeLog,v 1.91 2000-04-16 05:12:01 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

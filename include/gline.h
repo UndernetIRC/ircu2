@@ -70,9 +70,11 @@ extern int gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		     char *reason, time_t expire, time_t lastmod,
 		     unsigned int flags);
 extern int gline_activate(struct Client *cptr, struct Client *sptr,
-			  struct Gline *gline, time_t lastmod);
+			  struct Gline *gline, time_t lastmod,
+			  unsigned int flags);
 extern int gline_deactivate(struct Client *cptr, struct Client *sptr,
-			    struct Gline *gline, time_t lastmod);
+			    struct Gline *gline, time_t lastmod,
+			    unsigned int flags);
 extern struct Gline *gline_find(char *userhost, unsigned int flags);
 extern struct Gline *gline_lookup(struct Client *cptr);
 extern void gline_free(struct Gline *gline);
@@ -80,30 +82,5 @@ extern void gline_burst(struct Client *cptr);
 extern int gline_resend(struct Client *cptr, struct Gline *gline);
 extern int gline_list(struct Client *sptr, char *userhost);
 extern void gline_stats(struct Client *sptr);
-
-#if 0 /* forget it! */
-#define SetActive(g)        ((g)->gl_flags |= GLINE_ACTIVE)
-#define ClearActive(g)      ((g)->gl_flags &= ~GLINE_ACTIVE)
-#define SetGlineIsIpMask(g) ((g)->gl_flags |= GLINE_IPMASK)
-#define SetGlineIsLocal(g)  ((g)->gl_flags |= GLINE_LOCAL)
-
-extern struct Gline* GlobalGlineList;
-extern struct Gline* BadChanGlineList;
-
-extern void gline_remove_expired(time_t now);
-
-extern void add_gline(struct Client *sptr, int ip_mask,
-                      char *host, char *comment, char *user,
-                      time_t expire, int local);
-extern struct Gline* make_gline(int is_ipmask, char *host, char *reason,
-                                char *name, time_t expire);
-extern struct Gline* find_gline(struct Client *cptr, struct Gline **pgline);
-extern void free_gline(struct Gline *gline, struct Gline *prev);
-
-#ifdef BADCHAN
-extern int bad_channel(const char* name);
-extern void bad_channel_remove_expired(time_t now);
-#endif
-#endif /* 0 */
 
 #endif /* INCLUDED_gline_h */
