@@ -105,6 +105,217 @@
 #include <string.h>
 
 /*
+ * 2000-07-01: Isomer
+ *  * Rewritten to make this understandable
+ *  * You can nolonger /whois unregistered clients.
+ *  
+ *
+ * General rules:
+ *  /whois nick always shows the nick.
+ *  /whois wild* shows the nick if:
+ *   * they aren't +i and aren't on any channels.
+ *   * they are on a common channel.
+ *   * they aren't +i and are on a public channel. (not +p and not +s)
+ *   * they aren't +i and are on a private channel. (+p but not +s)
+ *  Or to look at it another way (I think):
+ *   * +i users are only shown if your on a common channel.
+ *   * users on +s channels only aren't shown.
+ *
+ *  whois doesn't show what channels a +k client is on, for the reason that
+ *  /whois X or /whois W floods a user off the server. :)
+ *
+ * nb: if the code and this comment disagree, the codes right and I screwed
+ *     up.
+ */
+
+/*
+ * Send whois information for acptr to sptr
+ */
+static void do_whois(struct Client* sptr, struct Client *acptr)
+{
+  struct Client *a2cptr=0;
+  struct Channel *chptr=0;
+  int mlen;
+  int len;
+  static char buf[512];
+  
+  const struct User* user = acptr->user;
+  const char* name = (!*acptr->name) ? "?" : acptr->name;  
+  a2cptr = user->server;
+  assert(user);
+  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
+		   acptr->info);
+
+  /* Display the channels this user is on. */
+  if (!IsChannelService(acptr))
+  {
+    struct Membership* chan;
+    mlen = strlen(me.name) + strlen(sptr->name) + 12 + strlen(name);
+    len = 0;
+    *buf = '\0';
+    for (chan = user->channel; chan; chan = chan->next_channel)
+    {
+       chptr = chan->channel;
+       
+       if (!ShowChannel(sptr, chptr))
+          continue;
+          
+       if (acptr != sptr && IsZombie(chan))
+          continue;
+          
+       if (len+strlen(chptr->chname) + mlen > BUFSIZE - 5) 
+       {
+          send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS, "%s :%s", name, buf);
+          *buf = '\0';
+          len = 0;
+       }
+       if (IsDeaf(acptr))
+         *(buf + len++) = '-';
+       if (is_chan_op(acptr, chptr))
+         *(buf + len++) = '@';
+       else if (has_voice(acptr, chptr))
+         *(buf + len++) = '+';
+       else if (IsZombie(chan))
+         *(buf + len++) = '!';
+       if (len)
+          *(buf + len) = '\0';
+       strcpy(buf + len, chptr->chname);
+       len += strlen(chptr->chname);
+       strcat(buf + len, " ");
+       len++;
+     }
+     if (buf[0] != '\0')
+        send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
+  }
+  send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
+
+  if (user)
+  {
+    if (user->away)
+       send_reply(sptr, RPL_AWAY, name, user->away);
+
+    if (IsAnOper(acptr))
+       send_reply(sptr, RPL_WHOISOPERATOR, name);
+   
+    /* Hint: if your looking to add more flags to a user, eg +h, here's
+     *       probably a good place to add them :)
+     */
+     
+    if (MyConnect(acptr))
+       send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last, 
+                  acptr->firsttime);
+  }
+}
+
+/*
+ * Search and return as many people as matched by the wild 'nick'.
+ * returns the number of people found (or, obviously, 0, if none where
+ * found).
+ */
+static int do_wilds(struct Client* sptr,char *nick,int count)
+{
+  struct Client *acptr; /* Current client we're concidering */
+  struct User *user; 	/* the user portion of the client */
+  char *name; 		/* the name of this client */
+  struct Membership* chan; 
+  int invis; 		/* does +i apply? */
+  int member;		/* Is this user on any channels? */
+  int showperson;       /* Should we show this person? */
+  int found = 0 ;	/* How many were found? */
+  
+  /* Ech! This is hidious! */
+  for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
+      acptr = acptr->next)
+  {
+    if (!IsRegistered(acptr)) 
+      continue;
+      
+    if (IsServer(acptr))
+      continue;
+    /*
+     * I'm always last :-) and acptr->next == 0!!
+     *
+     * Isomer: Does this strike anyone else as being a horrible hidious
+     *         hack?
+     */
+    if (IsMe(acptr)) {
+      assert(!acptr->next);
+      break;
+    }
+    
+    /*
+     * 'Rules' established for sending a WHOIS reply:
+     *
+     * - if wildcards are being used dont send a reply if
+     *   the querier isnt any common channels and the
+     *   client in question is invisible.
+     *
+     * - only send replies about common or public channels
+     *   the target user(s) are on;
+     */
+    user = acptr->user;
+    name = (!*acptr->name) ? "?" : acptr->name;
+    assert(user);
+
+    invis = (acptr != sptr) && IsInvisible(acptr);
+    member = (user && user->channel) ? 1 : 0;
+    showperson = !invis && !member;
+    
+    /* Should we show this person now? */
+    if (showperson) {
+    	found++;
+    	do_whois(sptr,acptr);
+    	if (count+found>MAX_WHOIS_LINES)
+    	  return found;
+    	continue;
+    }
+    
+    /* Step through the channels this user is on */
+    for (chan = user->channel; chan; chan = chan->next_channel)
+    {
+      struct Channel *chptr = chan->channel;
+
+      /* If this is a public channel, show the person */
+      if (!invis && PubChannel(chptr)) {
+        showperson = 1;
+        break;
+      }
+      
+      /* if this channel is +p and not +s, show them */
+      if (!invis && HiddenChannel(chptr) && !SecretChannel(chptr)) {
+          showperson = 1;
+          break;
+      }
+      
+      member = find_channel_member(sptr, chptr) ? 1 : 0;
+      if (invis && !member)
+        continue;
+
+      /* If sptr isn't really on this channel, skip it */
+      if (IsZombie(chan))
+        continue;
+       
+      /* Is this a common channel? */ 
+      if (member) {
+        showperson = 1;
+        break;
+      }
+    } /* of for (chan in channels) */
+    
+    /* Don't show this person */
+    if (!showperson)
+      continue;
+      
+    do_whois(sptr,acptr);
+    found++;
+    if (count+found>MAX_WHOIS_LINES)
+       return found;  
+  } /* of global client list */
+  
+  return found;
+}
+
+/*
  * m_whois - generic message handler
  *
  * parv[0] = sender prefix
@@ -112,24 +323,16 @@
  *
  * or
  *
- * parv[1] = target server
+ * parv[1] = target server, or a nickname representing a server to target.
  * parv[2] = nickname masklist
  */
 int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct User*    user;
-  struct Client*  acptr;
-  struct Client*  a2cptr;
-  struct Channel* chptr;
   char*           nick;
   char*           tmp;
-  const char*     name;
   char*           p = 0;
-  int             found;
-  int             len;
-  int             mlen;
-  int             total;
-  static char     buf[512];
+  int             found = 0;
+  int		  total = 0;
 
   if (parc < 2)
   {
@@ -141,8 +344,11 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     struct Client *acptr;
     /* For convenience: Accept a nickname as first parameter, by replacing
-       it with the correct servername - as is needed by hunt_server() */
-    if (MyUser(sptr) && (acptr = FindUser(parv[1])))
+     * it with the correct servername - as is needed by hunt_server().
+     * This is the secret behind the /whois nick nick trick.
+     */
+    acptr = FindUser(parv[1]);
+    if (acptr)
       parv[1] = acptr->user->server->name;
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
@@ -150,165 +356,37 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     parv[1] = parv[2];
   }
 
-  total = 0;
   for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
   {
-    int invis, showperson, member, wilds;
+    int wilds;
 
     found = 0;
+    
     collapse(nick);
+    
     wilds = (strchr(nick, '?') || strchr(nick, '*'));
-    /* Do a hash lookup if the nick does not contain wilds */
-    if (wilds)
-    {
-      /*
-       * We're no longer allowing remote users to generate requests with wildcards.
-       */
-      if (!MyConnect(sptr))
-        continue;
-      for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
-          acptr = acptr->next)
-      {
-        if (!IsRegistered(acptr) || IsServer(acptr))
-          continue;
-        /*
-         * I'm always last :-) and acptr->next == 0!!
-         */
-        if (IsMe(acptr))
-          break;
-        /*
-         * 'Rules' established for sending a WHOIS reply:
-         *
-         * - if wildcards are being used dont send a reply if
-         *   the querier isnt any common channels and the
-         *   client in question is invisible and wildcards are
-         *   in use (allow exact matches only);
-         *
-         * - only send replies about common or public channels
-         *   the target user(s) are on;
-         */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-
-        invis = acptr != sptr && IsInvisible(acptr);
-        member = (user && user->channel) ? 1 : 0;
-        showperson = (wilds && !invis && !member) || !wilds;
-        if (user) {
-          struct Membership* chan;
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            member = find_channel_member(sptr, chptr) ? 1 : 0;
-            if (invis && !member)
-              continue;
-            if (IsZombie(chan))
-              continue;
-            if (member || (!invis && PubChannel(chptr)))
-            {
-              showperson = 1;
-              break;
-            }
-            if (!invis && HiddenChannel(chptr) && !SecretChannel(chptr))
-              showperson = 1;
-          }
-        }
-        if (!showperson)
-          continue;
-
-        if (user)
-        {
-          a2cptr = user->server;
-	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		     acptr->info);
-        }
-        else
-        {
-          a2cptr = &me;
-	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
-		     "<unknown>");
-        }
-
-        found = 1;
-
-exact_match:
-        if (user && !IsChannelService(acptr))
-        {
-          struct Membership* chan;
-          mlen = strlen(me.name) + strlen(parv[0]) + 12 + strlen(name);
-          len = 0;
-          *buf = '\0';
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            if (ShowChannel(sptr, chptr) &&
-                (acptr == sptr || !IsZombie(chan)))
-            {
-              if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
-              {
-		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS,
-			   "%s :%s", name, buf);
-                *buf = '\0';
-                len = 0;
-              }
-              if (IsDeaf(acptr))
-                *(buf + len++) = '-';
-              if (is_chan_op(acptr, chptr))
-                *(buf + len++) = '@';
-              else if (has_voice(acptr, chptr))
-                *(buf + len++) = '+';
-              else if (IsZombie(chan))
-                *(buf + len++) = '!';
-              if (len)
-                *(buf + len) = '\0';
-              strcpy(buf + len, chptr->chname);
-              len += strlen(chptr->chname);
-              strcat(buf + len, " ");
-              len++;
-            }
-          }
-          if (buf[0] != '\0')
-	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
-        }
-
-	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
-
-        if (user)
-        {
-          if (user->away)
-	    send_reply(sptr, RPL_AWAY, name, user->away);
-
-          if (IsAnOper(acptr))
-	    send_reply(sptr, RPL_WHOISOPERATOR, name);
-
-          if (MyConnect(acptr))
-	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
-		       acptr->firsttime);
-        }
-        if (found == 2 || total++ >= MAX_WHOIS_LINES)
-          break;
-      }
-    }
-    else
-    {
+    if (!wilds) {
+      struct Client *acptr = 0;
       /* No wildcards */
-      if ((acptr = FindUser(nick)))
-      {
-        found = 2;              /* Make sure we exit the loop after passing it once */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-        a2cptr = user->server;
-	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		   acptr->info);
-        goto exact_match;
+      acptr = FindUser(nick);
+      if (acptr && !IsServer(acptr)) {
+        do_whois(sptr,acptr);
+        found = 1;
       }
     }
+    else /* wilds */
+    	found=do_wilds(sptr,nick,total);
+
     if (!found)
       send_reply(sptr, ERR_NOSUCHNICK, nick);
+    total+=found;
+    if (total >= MAX_WHOIS_LINES) {
+      send_reply(sptr, ERR_QUERYTOOLONG, parv[1]);
+      break;
+    }
     if (p)
       p[-1] = ',';
-    if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
-      break;
-  }
+  } /* of tokenised parm[1] */
   send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
 
   return 0;
@@ -322,24 +400,16 @@ exact_match:
  *
  * or
  *
- * parv[1] = target server
+ * parv[1] = target server, or a nickname representing a server to target.
  * parv[2] = nickname masklist
  */
 int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct User*    user;
-  struct Client*  acptr;
-  struct Client*  a2cptr;
-  struct Channel* chptr;
   char*           nick;
   char*           tmp;
-  const char*     name;
   char*           p = 0;
-  int             found;
-  int             len;
-  int             mlen;
-  int             total;
-  static char     buf[512];
+  int             found = 0;
+  int		  total = 0;
 
   if (parc < 2)
   {
@@ -351,8 +421,11 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     struct Client *acptr;
     /* For convenience: Accept a nickname as first parameter, by replacing
-       it with the correct servername - as is needed by hunt_server() */
-    if (MyUser(sptr) && (acptr = FindUser(parv[1])))
+     * it with the correct servername - as is needed by hunt_server().
+     * This is the secret behind the /whois nick nick trick.
+     */
+    acptr = FindUser(parv[1]);
+    if (acptr)
       parv[1] = acptr->user->server->name;
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
@@ -361,594 +434,36 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   total = 0;
-  for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
-  {
-    int invis, showperson, member, wilds;
-
-    found = 0;
-    collapse(nick);
-    wilds = (strchr(nick, '?') || strchr(nick, '*'));
-    /* Do a hash lookup if the nick does not contain wilds */
-    if (wilds)
-    {
-      /*
-       * We're no longer allowing remote users to generate requests with wildcards.
-       */
-      if (!MyConnect(sptr))
-        continue;
-      for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
-          acptr = acptr->next)
-      {
-        if (!IsRegistered(acptr) || IsServer(acptr))
-          continue;
-        /*
-         * I'm always last :-) and acptr->next == 0!!
-         */
-        if (IsMe(acptr))
-          break;
-        /*
-         * 'Rules' established for sending a WHOIS reply:
-         *
-         * - if wildcards are being used dont send a reply if
-         *   the querier isnt any common channels and the
-         *   client in question is invisible and wildcards are
-         *   in use (allow exact matches only);
-         *
-         * - only send replies about common or public channels
-         *   the target user(s) are on;
-         */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-
-        invis = acptr != sptr && IsInvisible(acptr);
-        member = (user && user->channel) ? 1 : 0;
-        showperson = (wilds && !invis && !member) || !wilds;
-        if (user) {
-          struct Membership* chan;
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            member = find_channel_member(sptr, chptr) ? 1 : 0;
-            if (invis && !member)
-              continue;
-            if (IsZombie(chan))
-              continue;
-            if (member || (!invis && PubChannel(chptr)))
-            {
-              showperson = 1;
-              break;
-            }
-            if (!invis && HiddenChannel(chptr) && !SecretChannel(chptr))
-              showperson = 1;
-          }
-        }
-        if (!showperson)
-          continue;
-
-        if (user)
-        {
-          a2cptr = user->server;
-	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		     acptr->info);
-        }
-        else
-        {
-          a2cptr = &me;
-	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
-		     "<unknown>");
-        }
-
-        found = 1;
-
-exact_match:
-        if (user && !IsChannelService(acptr))
-        {
-          struct Membership* chan;
-          mlen = strlen(me.name) + strlen(parv[0]) + 12 + strlen(name);
-          len = 0;
-          *buf = '\0';
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            if (ShowChannel(sptr, chptr) &&
-                (acptr == sptr || !IsZombie(chan)))
-            {
-              if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
-              {
-		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS, 
-			   "%s :%s", name, buf);
-                *buf = '\0';
-                len = 0;
-              }
-              if (IsDeaf(acptr))
-                *(buf + len++) = '-';
-              if (is_chan_op(acptr, chptr))
-                *(buf + len++) = '@';
-              else if (has_voice(acptr, chptr))
-                *(buf + len++) = '+';
-              else if (IsZombie(chan))
-                *(buf + len++) = '!';
-              if (len)
-                *(buf + len) = '\0';
-              strcpy(buf + len, chptr->chname);
-              len += strlen(chptr->chname);
-              strcat(buf + len, " ");
-              len++;
-            }
-          }
-          if (buf[0] != '\0')
-	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
-        }
-
-	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
-
-        if (user)
-        {
-          if (user->away)
-	    send_reply(sptr, RPL_AWAY, name, user->away);
-
-          if (IsAnOper(acptr))
-	    send_reply(sptr, RPL_WHOISOPERATOR, name);
-
-          if (MyConnect(acptr))
-	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
-		       acptr->firsttime);
-        }
-        if (found == 2 || total++ >= MAX_WHOIS_LINES)
-          break;
-      }
-    }
-    else
-    {
-      /* No wildcards */
-      if ((acptr = FindUser(nick)))
-      {
-        found = 2;              /* Make sure we exit the loop after passing it once */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-        a2cptr = user->server;
-	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		   acptr->info);
-        goto exact_match;
-      }
-    }
-    if (!found)
-      send_reply(sptr, ERR_NOSUCHNICK, nick);
-    if (p)
-      p[-1] = ',';
-    if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
-      break;
-  }
-  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
-
-  return 0;
-}
-
-/*
- * mo_whois - oper message handler
- *
- * parv[0] = sender prefix
- * parv[1] = nickname masklist
- *
- * or
- *
- * parv[1] = target server
- * parv[2] = nickname masklist
- */
-int mo_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  struct User*    user;
-  struct Client*  acptr;
-  struct Client*  a2cptr;
-  struct Channel* chptr;
-  char*           nick;
-  char*           tmp;
-  const char*     name;
-  char*           p = 0;
-  int             found;
-  int             len;
-  int             mlen;
-  int             total;
-  static char     buf[512];
-
-  if (parc < 2)
-  {
-    send_reply(sptr, ERR_NONICKNAMEGIVEN);
-    return 0;
-  }
-
-  if (parc > 2)
-  {
-    struct Client *acptr;
-    /* For convenience: Accept a nickname as first parameter, by replacing
-       it with the correct servername - as is needed by hunt_server() */
-    if (MyUser(sptr) && (acptr = FindUser(parv[1])))
-      parv[1] = acptr->user->server->name;
-    if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
-        HUNTED_ISME)
-      return 0;
-    parv[1] = parv[2];
-  }
-
-  total = 0;
-  for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
-  {
-    int invis, showperson, member, wilds;
-
-    found = 0;
-    collapse(nick);
-    wilds = (strchr(nick, '?') || strchr(nick, '*'));
-    /* Do a hash lookup if the nick does not contain wilds */
-    if (wilds)
-    {
-      /*
-       * We're no longer allowing remote users to generate requests with wildcards.
-       */
-      if (!MyConnect(sptr))
-        continue;
-      for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
-          acptr = acptr->next)
-      {
-        if (!IsRegistered(acptr) || IsServer(acptr))
-          continue;
-        /*
-         * I'm always last :-) and acptr->next == 0!!
-         */
-        if (IsMe(acptr))
-          break;
-        /*
-         * 'Rules' established for sending a WHOIS reply:
-         *
-         * - if wildcards are being used dont send a reply if
-         *   the querier isnt any common channels and the
-         *   client in question is invisible and wildcards are
-         *   in use (allow exact matches only);
-         *
-         * - only send replies about common or public channels
-         *   the target user(s) are on;
-         */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-
-        invis = acptr != sptr && IsInvisible(acptr);
-        member = (user && user->channel) ? 1 : 0;
-        showperson = (wilds && !invis && !member) || !wilds;
-        if (user) {
-          struct Membership* chan;
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            member = find_channel_member(sptr, chptr) ? 1 : 0;
-            if (invis && !member)
-              continue;
-            if (IsZombie(chan))
-              continue;
-            if (member || (!invis && PubChannel(chptr)))
-            {
-              showperson = 1;
-              break;
-            }
-            if (!invis && HiddenChannel(chptr) && !SecretChannel(chptr))
-              showperson = 1;
-          }
-        }
-        if (!showperson)
-          continue;
-
-        if (user)
-        {
-          a2cptr = user->server;
-	  send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		     acptr->info);
-        }
-        else
-        {
-          a2cptr = &me;
-	  send_reply(sptr, RPL_WHOISUSER, name, "<unknown>", "<unknown>",
-		     "<unknown>");
-        }
-
-        found = 1;
-
-exact_match:
-        if (user && !IsChannelService(acptr))
-        {
-          struct Membership* chan;
-          mlen = strlen(me.name) + strlen(parv[0]) + 12 + strlen(name);
-          len = 0;
-          *buf = '\0';
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            if (ShowChannel(sptr, chptr) &&
-                (acptr == sptr || !IsZombie(chan)))
-            {
-              if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
-              {
-		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS,
-			   "%s :%s", name, buf);
-                *buf = '\0';
-                len = 0;
-              }
-              if (IsDeaf(acptr))
-                *(buf + len++) = '-';
-              if (is_chan_op(acptr, chptr))
-                *(buf + len++) = '@';
-              else if (has_voice(acptr, chptr))
-                *(buf + len++) = '+';
-              else if (IsZombie(chan))
-                *(buf + len++) = '!';
-              if (len)
-                *(buf + len) = '\0';
-              strcpy(buf + len, chptr->chname);
-              len += strlen(chptr->chname);
-              strcat(buf + len, " ");
-              len++;
-            }
-          }
-          if (buf[0] != '\0')
-	    send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
-        }
-
-	send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
-
-        if (user)
-        {
-          if (user->away)
-	    send_reply(sptr, RPL_AWAY, name, user->away);
-
-          if (IsAnOper(acptr))
-	    send_reply(sptr, RPL_WHOISOPERATOR, name);
-
-          if (MyConnect(acptr))
-	    send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
-		       acptr->firsttime);
-        }
-        if (found == 2 || total++ >= MAX_WHOIS_LINES)
-          break;
-      }
-    }
-    else
-    {
-      /* No wildcards */
-      if ((acptr = FindUser(nick)))
-      {
-        found = 2;              /* Make sure we exit the loop after passing it once */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-        a2cptr = user->server;
-	send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		   acptr->info);
-        goto exact_match;
-      }
-    }
-    if (!found)
-      send_reply(sptr, ERR_NOSUCHNICK, nick);
-    if (p)
-      p[-1] = ',';
-    if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
-      break;
-  }
-  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
-
-  return 0;
-}
-
   
-
-#if 0
-/*
- * m_whois
- *
- * parv[0] = sender prefix
- * parv[1] = nickname masklist
- *
- * or
- *
- * parv[1] = target server
- * parv[2] = nickname masklist
- */
-int m_whois(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct User*    user;
-  struct Client*  acptr;
-  struct Client*  a2cptr;
-  struct Channel* chptr;
-  char*           nick;
-  char*           tmp;
-  char*           name;
-  char*           p = 0;
-  int             found;
-  int             len;
-  int             mlen;
-  int             total;
-  static char     buf[512];
-
-  if (parc < 2)
-  {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-
-  if (parc > 2)
-  {
-    struct Client *acptr;
-    /* For convenience: Accept a nickname as first parameter, by replacing
-       it with the correct servername - as is needed by hunt_server() */
-    if (MyUser(sptr) && (acptr = FindUser(parv[1])))
-      parv[1] = acptr->user->server->name;
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_WHOIS " %s :%s", 1, parc, parv) != /* XXX DEAD */
-        HUNTED_ISME)
-      return 0;
-    parv[1] = parv[2];
-  }
-
-  total = 0;
   for (tmp = parv[1]; (nick = ircd_strtok(&p, tmp, ",")); tmp = 0)
   {
-    int invis, showperson, member, wilds;
+    struct Client *acptr = 0;
 
     found = 0;
+    
     collapse(nick);
-    wilds = (strchr(nick, '?') || strchr(nick, '*'));
-    /* Do a hash lookup if the nick does not contain wilds */
-    if (wilds)
-    {
-      /*
-       * We're no longer allowing remote users to generate requests with wildcards.
-       */
-      if (!MyConnect(sptr))
-        continue;
-      for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
-          acptr = acptr->next)
-      {
-        if (!IsRegistered(acptr) || IsServer(acptr))
-          continue;
-        /*
-         * I'm always last :-) and acptr->next == NULL!!
-         */
-        if (IsMe(acptr))
-          break;
-        /*
-         * 'Rules' established for sending a WHOIS reply:
-         *
-         * - if wildcards are being used dont send a reply if
-         *   the querier isnt any common channels and the
-         *   client in question is invisible and wildcards are
-         *   in use (allow exact matches only);
-         *
-         * - only send replies about common or public channels
-         *   the target user(s) are on;
-         */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
+    
 
-        invis = acptr != sptr && IsInvisible(acptr);
-        member = (user && user->channel) ? 1 : 0;
-        showperson = (wilds && !invis && !member) || !wilds;
-        if (user) {
-          struct Membership* chan;
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            member = find_channel_member(sptr, chptr) ? 1 : 0;
-            if (invis && !member)
-              continue;
-            if (IsZombie(chan))
-              continue;
-            if (member || (!invis && PubChannel(chptr)))
-            {
-              showperson = 1;
-              break;
-            }
-            if (!invis && HiddenChannel(chptr) && !SecretChannel(chptr))
-              showperson = 1;
-          }
-        }
-        if (!showperson)
-          continue;
-
-        if (user)
-        {
-          a2cptr = user->server;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
-              parv[0], name, user->username, user->host, acptr->info);
-        }
-        else
-        {
-          a2cptr = &me;
-          sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
-              parv[0], name, "<unknown>", "<unknown>", "<unknown>");
-        }
-
-        found = 1;
-
-exact_match:
-        if (user && !IsChannelService(acptr))
-        {
-          struct Membership* chan;
-          mlen = strlen(me.name) + strlen(parv[0]) + 12 + strlen(name);
-          len = 0;
-          *buf = '\0';
-          for (chan = user->channel; chan; chan = chan->next_channel)
-          {
-            chptr = chan->channel;
-            if (ShowChannel(sptr, chptr) &&
-                (acptr == sptr || !IsZombie(chan)))
-            {
-              if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
-              {
-                sendto_one(sptr, ":%s %d %s %s :%s", /* XXX DEAD */
-                    me.name, RPL_WHOISCHANNELS, parv[0], name, buf);
-                *buf = '\0';
-                len = 0;
-              }
-              if (IsDeaf(acptr))
-                *(buf + len++) = '-';
-              if (is_chan_op(acptr, chptr))
-                *(buf + len++) = '@';
-              else if (has_voice(acptr, chptr))
-                *(buf + len++) = '+';
-              else if (IsZombie(chan))
-                *(buf + len++) = '!';
-              if (len)
-                *(buf + len) = '\0';
-              strcpy(buf + len, chptr->chname);
-              len += strlen(chptr->chname);
-              strcat(buf + len, " ");
-              len++;
-            }
-          }
-          if (buf[0] != '\0')
-            sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), /* XXX DEAD */
-                me.name, parv[0], name, buf);
-        }
-
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, /* XXX DEAD */
-            parv[0], name, a2cptr->name, a2cptr->info);
-
-        if (user)
-        {
-          if (user->away)
-            sendto_one(sptr, rpl_str(RPL_AWAY), me.name, /* XXX DEAD */
-                parv[0], name, user->away);
-
-          if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISOPERATOR), /* XXX DEAD */
-                me.name, parv[0], name);
-
-          if (MyConnect(acptr))
-            sendto_one(sptr, rpl_str(RPL_WHOISIDLE), me.name, /* XXX DEAD */
-                parv[0], name, CurrentTime - user->last, acptr->firsttime);
-        }
-        if (found == 2 || total++ >= MAX_WHOIS_LINES)
-          break;
-      }
+    acptr = FindUser(nick);
+    if (acptr && !IsServer(acptr)) {
+      found++;
+      do_whois(sptr,acptr);
     }
-    else
-    {
-      /* No wildcards */
-      if ((acptr = FindUser(nick)))
-      {
-        found = 2;              /* Make sure we exit the loop after passing it once */
-        user = acptr->user;
-        name = (!*acptr->name) ? "?" : acptr->name;
-        a2cptr = user->server;
-        sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name, /* XXX DEAD */
-            parv[0], name, user->username, user->host, acptr->info);
-        goto exact_match;
-      }
-    }
+
     if (!found)
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
+      send_reply(sptr, ERR_NOSUCHNICK, nick);
+      
+    total+=found;
+      
+    if (total >= MAX_WHOIS_LINES) {
+      send_reply(sptr, ERR_QUERYTOOLONG, parv[1]);
+      break;
+    }
+      
     if (p)
       p[-1] = ',';
-    if (!MyConnect(sptr) || total >= MAX_WHOIS_LINES)
-      break;
-  }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]); /* XXX DEAD */
+  } /* of tokenised parm[1] */
+  send_reply(sptr, RPL_ENDOFWHOIS, parv[1]);
 
   return 0;
 }
-#endif /* 0 */
-

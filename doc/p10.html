@@ -12,7 +12,7 @@
 <I>(As of ircu 2.10.11)</I>
 <H2>
 Undernet Coder-com, <TT>coder-com@undernet.org</TT></H2>
-$Id: p10.html,v 1.4 2000-04-11 05:51:25 gte Exp $
+$Id: p10.html,v 1.5 2000-07-09 04:52:58 isomer Exp $
 <P>
 <HR ALIGN=CENTER WIDTH=100% SIZE=2><I>This document aims to be a practical
 guide for implementing and maintaining the protocol, not just a reference
@@ -623,7 +623,13 @@ This token is formatted exactly the same as a client numeric is formatted.
 The first 2 characters identify the server's numeric, whilst in this situation,
 the final 3 characters define the maximum number of clients that this server
 can hold (and more importantly, the maximum number of numerics it will
-generate).</LI>
+generate). This is always one less than a power of two, because the server
+uses this as a bitmask.  A server can give out a higher numeric than this,
+however it will be "anded" with this number to find it's entry slot.  The
+reason for this is so a server which is near the maximum number of clients
+can give out more numerics than it's using to prevent a new client getting a
+numeric that was used only seconds ago and maybe get messages destined to
+the old user.</LI>
 
 <LI>
 &nbsp;The example "AA]]]" shows that this is a server with numeric 0, which
@@ -633,7 +639,8 @@ will generate client numerics up to 262,143.</LI>
 <LI>
 This final parameter simply consists of a textual description of the server
 prefixed by a colon. This is displayed in a clients WHOIS line, aswell
-as in the LINKS reply.</LI>
+as in the LINKS reply.  By convention, if this is a leaf server it contains
+the servers IP in square brackets at the beginning of the string,</LI>
 </OL>
 <A NAME="chap3.2"></A><B><FONT SIZE=+1>3.2 Network Database resyncronisation</FONT></B>
 <P>After the connection has been established and verified, the next step
@@ -652,7 +659,8 @@ the originally recieved server message, with the only exception being that
 the message is numeric prefixed, to indicate which server sent this message
 (and also therefore, which hub this new server is linked too). There is
 also a fixed "0" present before the Description field, this is a placeholder
-for future use and currently unused.</FONT>
+for future use and currently unused. [Isomer: Question, what IS this
+reserved for?] </FONT>
 <P><B>3.2.2 - NICK Messages</B></BLOCKQUOTE>
 
 <BLOCKQUOTE>Client information is transmitted via "NICK" messages, of the
@@ -1137,6 +1145,7 @@ from msg.h. -Gte.
 <BR>[2000-04-10]: Added information about OPMODE and CLEARMODE tokens.
 -Kev
 <BR>[2000-04-11]: Started work on chapter 4. -Gte
+<BR>[2000-06-01]: Changed some info about the max number of clients -Isomer
 <P><A NAME="chap8.1"></A><B><FONT SIZE=+1>8.1 TODO</FONT></B>
 <UL>
 <LI>

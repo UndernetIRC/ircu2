@@ -317,6 +317,7 @@ comment 'Configuration'
   else
     int 'Max size of the total of of all sendqs (bytes)' BUFFERPOOL 9000000
   fi
+  bool 'Aggressively empty the sendqpool (Read Help!)' HAS_FERGUSON_FLUSHER n
   int 'Max receive queue for clients (bytes)' CLIENT_FLOOD 1024
   int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
   int 'Default port for connections to other servers' SERVER_PORT 4400
@@ -384,7 +385,7 @@ comment 'Mandatory defines (you should leave these untouched)'
     define_bool LOCAL_KILL_ONLY $LOCAL_KILL_ONLY
   fi
   int 'KILL nick chase time limit (30)' KILLCHASETIMELIMIT 30
-  int 'Max number of channels per user (recommended: 10)' MAXCHANNELSPERUSER 10
+  int 'Max number of channels per user' MAXCHANNELSPERUSER 10
   int 'Max number of silence masks (15!)' MAXSILES 15
   int 'Expected average banmask length (40!)' AVBANLEN 40
   eval define_macro MAXSILELENGTH \'\($AVBANLEN * MAXSILES\)\'

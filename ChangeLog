@@ -1,3 +1,12 @@
+2000-07-08  Perry Lorier       <Isomer@coders.net>
+	* doc/ircd.8: Updated the documentation, it was slightly out of date
+		      being updated around the 05 March 1988.
+	* ircd/m_whois.c: Rewrote for clarity, and probably a bit more speed.
+			  fixed a few minor glitches.
+	* doc/rfc1459.unet: Updated.
+	* ircd/IPcheck.c: Fixed more bugs.
+	* ircd/s_bsd.c: We now keep track of servers we've conected.
+
 2000-07-02  Perry Lorier       <Isomer@coders.net>
 	* ircd/s_misc.c: Fixed remote IPcheck bug.  Ok, I'm a moron, so sue
 			me.  Thanks to Hektik, thanks thanks thanks thanks
@@ -1260,7 +1269,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.153 2000-07-02 01:06:17 isomer Exp $
+# $Id: ChangeLog,v 1.154 2000-07-09 04:52:58 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -1417,6 +1417,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   LocalClientArray[cptr->fd] = cptr;
 
   Count_newunknown(UserStats);
+  ip_registry_add_local(aconf->ipnum.s_addr);
+
   add_client_to_list(cptr);
   hAddClient(cptr);
   nextping = CurrentTime;
