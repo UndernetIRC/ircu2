@@ -3944,7 +3944,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
        * exactly the same logic, albeit somewhat more concise, as was in
        * the original m_part.c */
 
-      if (jbuf->jb_type == JOINBUF_TYPE_PARTALL) /* got to remove user here */
+      if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
+	  IsLocalChannel(chan->chname)) /* got to remove user here */
 	remove_user_from_channel(jbuf->jb_source, chan);
     } else {
       /* Add user to channel */

@@ -1,3 +1,8 @@
+2000-06-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (joinbuf_join): really remove user from local
+	channels
+
 2000-05-29  Perry Lorier       <Isomer@coders.net>
 	* ircd/m_names.c: Removed redundant space. 
 	* ircd/s_bsd.c: Fixed incorrect syntax on ERROR line.
@@ -1154,7 +1159,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.138 2000-05-29 10:37:33 isomer Exp $
+# $Id: ChangeLog,v 1.139 2000-06-02 14:49:29 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
