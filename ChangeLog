@@ -1,5 +1,5 @@
 2000-05-01  Perry Lorier <isomer@coders.net>
-	* ircd/m_invite.c: Fix for the rest of m_invite.c
+	* ircd/m_invite.c: Fix for the rest of m_invite.c, and again.
 
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* config/config-sh.in: Fix for CONNEXIT
@@ -1049,7 +1049,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.121 2000-04-30 12:35:56 isomer Exp $
+# $Id: ChangeLog,v 1.122 2000-04-30 12:41:49 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
