@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/class.c
+ * IRC - Internet Relay Chat, ircd/client.c
  * Copyright (C) 1990 Darren Reed
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,8 +18,8 @@
  *
  * $Id$
  */
-#include "class.h"
 #include "client.h"
+#include "class.h"
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "list.h"
@@ -31,13 +31,35 @@
 
 #include <assert.h>
 
-#define BAD_CONF_CLASS          ((unsigned int)-1)
 #define BAD_PING                ((unsigned int)-2)
+
+unsigned int client_get_ping(const struct Client* acptr)
+{
+  unsigned int     ping = 0;
+  unsigned int     tmp;
+  struct ConfItem* aconf;
+  struct SLink*    link;
+
+  for (link = acptr->confs; link; link = link->next) {
+    aconf = link->value.aconf;
+    if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
+      tmp = get_conf_ping(aconf);
+      if ((tmp != BAD_PING) && ((ping > tmp) || !ping))
+        ping = tmp;
+    }
+  }
+  if (0 == ping)
+    ping = PINGFREQUENCY;
+
+  Debug((DEBUG_DEBUG, "Client %s Ping %d", acptr->name, ping));
+  return (ping);
+}
+
+#if 0
+#define BAD_CONF_CLASS          ((unsigned int)-1)
 #define BAD_CLIENT_CLASS        ((unsigned int)-3)
 
-struct ConfClass *classes;
-
-unsigned int get_conf_class(const struct ConfItem* aconf)
+unsigned int get_conf_class(struct ConfItem *aconf)
 {
   if ((aconf) && (aconf->confClass))
     return (ConfClass(aconf));
@@ -45,9 +67,10 @@ unsigned int get_conf_class(const struct ConfItem* aconf)
   Debug((DEBUG_DEBUG, "No Class For %s", (aconf) ? aconf->name : "*No Conf*"));
 
   return (BAD_CONF_CLASS);
+
 }
 
-unsigned int get_conf_ping(struct ConfItem *aconf)
+static unsigned int get_conf_ping(struct ConfItem *aconf)
 {
   if ((aconf) && (aconf->confClass))
     return (ConfPingFreq(aconf));
@@ -76,37 +99,6 @@ unsigned int get_client_class(struct Client *acptr)
 
   return (retc);
 }
-
-unsigned int get_client_ping(struct Client *acptr)
-{
-  unsigned int ping = 0;
-  unsigned int ping2;
-  struct ConfItem *aconf;
-  struct SLink *link;
-
-  link = acptr->confs;
-
-  if (link) {
-    while (link) {
-      aconf = link->value.aconf;
-      if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
-        ping2 = get_conf_ping(aconf);
-        if ((ping2 != BAD_PING) && ((ping > ping2) || !ping))
-          ping = ping2;
-      }
-      link = link->next;
-    }
-  }
-  else {
-    ping = PINGFREQUENCY;
-    Debug((DEBUG_DEBUG, "No Attached Confs for: %s", acptr->name));
-  }
-  if (ping <= 0)
-    ping = PINGFREQUENCY;
-  Debug((DEBUG_DEBUG, "Client %s Ping %d", acptr->name, ping));
-  return (ping);
-}
-
 unsigned int get_con_freq(struct ConfClass * clptr)
 {
   if (clptr)
@@ -225,4 +217,4 @@ unsigned int get_sendq(struct Client *cptr)
   }
   return DEFAULTMAXSENDQLENGTH;
 }
-
+#endif

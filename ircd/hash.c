@@ -178,9 +178,9 @@ static struct Channel *channelTable[HASHSIZE];
    be symmetric, if HASHEQ(a,b) then HASHEQ(b,a), obvious ok but... :) */
 #define HASHEQ(x,y) ((ToLower(x)) == (ToLower(y)))
 
-/* hash_init
+/* init_hash
  * Initialize the maps used by hash functions and clear the tables */
-void hash_init(void)
+void init_hash(void)
 {
   int           i;
   int           j;

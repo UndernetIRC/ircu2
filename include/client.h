@@ -22,6 +22,15 @@
  */
 #ifndef INCLUDED_client_h
 #define INCLUDED_client_h
+#ifndef INCLUDED_ircd_defs_h
+#include "ircd_defs.h"
+#endif
+#ifndef INCLUDED_dbuf_h
+#include "dbuf.h"
+#endif
+#ifndef INCLUDED_ircd_handler_h
+#include "ircd_handler.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>          /* time_t, size_t */
 #define INCLUDED_sys_types_h
@@ -29,15 +38,6 @@
 #ifndef INCLUDED_netinet_in_h
 #include <netinet/in.h>         /* in_addr */
 #define INCLUDED_netinet_in_h
-#endif
-#ifndef INCLUDED_dbuf_h
-#include "dbuf.h"
-#endif
-#ifndef INCLUDED_ircd_defs_h
-#include "ircd_defs.h"
-#endif
-#ifndef INCLUDED_ircd_handler_h
-#include "ircd_handler.h"
 #endif
 
 struct ConfItem;
@@ -121,6 +121,7 @@ struct Client {
   struct DNSReply*    dns_reply; /* DNS reply used during client registration */
   struct ListingArgs* listing;
   unsigned int        max_sendq; /* cached max send queue for client */
+  unsigned int        ping_freq; /* cached ping freq from client conf class */
   unsigned short      lastsq;    /* # 2k blocks when sendqueued called last */
   unsigned short      port;      /* and the remote port# too :-) */
   unsigned char       targets[MAXTARGETS]; /* Hash values of current targets */
@@ -309,6 +310,7 @@ typedef enum ShowIPType {
 } ShowIPType;
 
 extern const char* get_client_name(const struct Client* sptr, int showip);
+extern unsigned int client_get_ping(const struct Client* local_client);
 
 
 #endif /* INCLUDED_client_h */
