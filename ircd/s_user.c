@@ -571,7 +571,12 @@ int register_user(struct Client *cptr, struct Client *sptr,
     cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
 
-    send_reply(sptr, RPL_WELCOME, nick);
+    send_reply(
+	sptr, 
+	RPL_WELCOME, 
+	feature_str(FEAT_PROVIDER) ? " via " : "",
+	feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
+	nick);
     /*
      * This is a duplicate of the NOTICE but see below...
      */

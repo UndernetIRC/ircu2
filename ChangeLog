@@ -1,3 +1,78 @@
+2002-10-10  Perry Lorier <isomer@undernet.org>
+
+	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.02
+
+2002-10-10  Perry Lorier <isomer@undernet.org>
+
+	* ircd/ircd_relay.c: X doesn't announce +s yet, we can't enable this
+
+2002-10-09  splidge@quakenet.org
+
+	* ircd/m_stats.c: unsigned char index into array bug
+
+2002-10-05  Zoot <zoot@gamesnet.net>
+
+       * ircd/ircd_relay.c (relay_directed_message): fix a bug that had
+       completely broken directed messages
+                  
+2002-10-07  Perry Lorier <isomer@undernet.org>
+
+	* ircd/s_user.c: Fixed bugs as pointed out by Kev, doh!
+	* ircd/ircd_features.c: Fixed bugs as pointed out by Kev, doh!
+
+2002-10-06  Perry Lorier <isomer@undernet.org>
+
+	* ircd/s_err.c, ircd/s_user.c: Add pointless spam, as required by 
+	CFV-202.
+
+2002-10-05  Zoot <zoot@gamesnet.net> (and Isomer <isomer@undernet.org>)
+
+       * ircd/m_account.c (ms_account): check the length of the account;
+       ignore accounts that are too long and send a warning through wallops.
+       Updated by Isomer to use protocol_violation.
+
+2002-09-25  David Mansell  <splidge@quakenet.org>
+ 
+ 	* ircd/m_burst.c: Fixed list walking bug.
+ 
+2002-10-04  Perry Lorier <isomer@undernet.org>
+	* ircd/m_version.c: was showing 005 on VERSION for opers only(!?)
+
+2002-10-04  Perry Lorier <isomer@undernet.org>
+	* ircd/m_names.c: Fixed bug where RPL_ENDOFNAMES was not sent when
+	requesting names from a channel you are not on.  Reported by
+	mike2 and Liandrin.
+
+2002-09-02  Alexander Maassen <outsider@key2peace.org>
+
+	* doc/readme.features: Fixed bugs regarding certain features
+	being associated to WHOIS instead of WHO.
+ 
+2002-05-21  Andrew Miller  <a1kmm@mware.virtualave.net>
+
+	* ircd/ircd_relay.c: stop an information leak about the
+ 	network topography from relayed messages.
+ 
+2002-09-02  Mathieu Rene  <math@rootservices.net>
+	* ircd/m_squit.c (ms_squit): Fixed a bug that caused server
+        to crash when receiving a SQUIT without any reason or timestamp.
+ 
+2002-06-18  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_burst.c (ms_burst): kick local members if the channel
+	has a larger local TS and it's +i or +k remotely (anti net.ride)
+
+2002-09-16  Jochen Meesters <ekips@pandora.be>
+
+	* ircd/whocmds.h: Changed output of /who %a command, making it
+	easier to parse (puts field in front of realname, and reply 0
+	if user has no AC)
+
+2002-09-16  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel for
+	u2_10_11_02 development branch
+
 2002-09-14  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.01

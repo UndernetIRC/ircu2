@@ -128,6 +128,13 @@ MOTD_BANNER
 If you enable NODEFAULTMOTD, this specifies a one-line banner to be sent
 to the client in addition to the instructions mentioned above.
 
+PROVIDER
+ * Type: string
+ * Default: NULL
+
+This string as added to the 001 numeric prefixed with "via" before the nick.
+It's used for providing promotional space to providers as per CFV-202
+
 KILL_IPMISMATCH
  * Type: boolean
  * Default: FALSE
@@ -968,19 +975,19 @@ HIS_WHOIS_IDLETIME
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this removes idle time in replies to /WHOIS.
 
 HIS_WHO_SERVERNAME
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this removes server names in replies to /WHO.
 
 HIS_WHO_HOPCOUNT
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes server names in replies to /WHOIS.
+As per UnderNet CFV-165, this replaces hopcount to a static 3 in replies to /WHO.
 
 HIS_BANWHO
  * Type: boolean

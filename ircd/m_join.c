@@ -314,7 +314,6 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
-    clean_channelname(name);
 
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
