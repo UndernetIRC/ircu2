@@ -1,7 +1,7 @@
 #ifndef INCLUDED_ircd_snprintf_h
 #define INCLUDED_ircd_snprintf_h
 /*
- * IRC - Internet Relay Chat, include/jupe.h
+ * IRC - Internet Relay Chat, include/ircd_snprintf.h
  * Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify
