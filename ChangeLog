@@ -1,5 +1,12 @@
 2000-03-28  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* include/channel.h: added MODE_SAVE for the bounds checking stuff
+	in modebuf_flush
+
+	* ircd/channel.c: make modebuf_flush into modebuf_flush_int and
+	make it do bounds checking on the buffer; all modes are sent only
+	if the all parameter is 1; modebuf_flush is the exported wrapper
+
 	* include/channel.h: add BOUNCE, renumber flags to get a little
 	more space
 
@@ -116,7 +123,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.35 2000-03-28 05:33:39 kev Exp $
+# $Id: ChangeLog,v 1.36 2000-03-28 07:11:20 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -43,6 +43,7 @@
 #include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
+#include "sys.h"
 #include "whowas.h"
 
 #include <assert.h>
@@ -2660,119 +2661,6 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
 }
 
 /*
- * This routine just initializes a ModeBuf structure with the information
- * needed and the options given.
- */
-void
-modebuf_init(struct ModeBuf *mbuf, struct Client *source,
-	     struct Client *connect, struct Channel *chan, unsigned int dest)
-{
-  int i;
-
-  assert(0 != mbuf);
-  assert(0 != source);
-  assert(0 != chan);
-  assert(0 != dest);
-
-  mbuf->mb_add = 0;
-  mbuf->mb_rem = 0;
-  mbuf->mb_source = source;
-  mbuf->mb_connect = connect;
-  mbuf->mb_channel = chan;
-  mbuf->mb_dest = dest;
-  mbuf->mb_count = 0;
-
-  /* clear each mode-with-parameter slot */
-  for (i = 0; i < MAXMODEPARAMS; i++) {
-    MB_TYPE(mbuf, i) = 0;
-    MB_UINT(mbuf, i) = 0;
-  }
-}
-
-/*
- * This routine simply adds modes to be added or deleted; do a binary OR
- * with either MODE_ADD or MODE_DEL
- */
-void
-modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
-{
-  assert(0 != mbuf);
-  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
-
-  mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
-	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS);
-
-  if (mode & MODE_ADD) {
-    mbuf->mb_rem &= ~mode;
-    mbuf->mb_add |= mode;
-  } else {
-    mbuf->mb_add &= ~mode;
-    mbuf->mb_rem |= mode;
-  }
-}
-
-/*
- * This routine adds a mode to be added or deleted that takes a unsigned
- * int parameter; mode may *only* be the relevant mode flag ORed with one
- * of MODE_ADD or MODE_DEL
- */
-void
-modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
-{
-  assert(0 != mbuf);
-  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
-
-  MB_TYPE(mbuf, mbuf->mb_count) = mode;
-  MB_UINT(mbuf, mbuf->mb_count) = uint;
-
-  /* when we've reached the maximal count, flush the buffer */
-  if (++mbuf->mb_count >=
-      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
-    modebuf_flush(mbuf);
-}
-
-/*
- * This routine adds a mode to be added or deleted that takes a string
- * parameter; mode may *only* be the relevant mode flag ORed with one of
- * MODE_ADD or MODE_DEL
- */
-void
-modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
-{
-  assert(0 != mbuf);
-  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
-
-  MB_TYPE(mbuf, mbuf->mb_count) = mode;
-  MB_STRING(mbuf, mbuf->mb_count) = string;
-
-  /* when we've reached the maximal count, flush the buffer */
-  if (++mbuf->mb_count >=
-      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
-    modebuf_flush(mbuf);
-}
-
-/*
- * This routine adds a mode to be added or deleted that takes a client
- * parameter; mode may *only* be the relevant mode flag ORed with one of
- * MODE_ADD or MODE_DEL
- */
-void
-modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
-		    struct Client *client)
-{
-  assert(0 != mbuf);
-  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
-
-  MB_TYPE(mbuf, mbuf->mb_count) = mode;
-  MB_CLIENT(mbuf, mbuf->mb_count) = client;
-
-  /* when we've reached the maximal count, flush the buffer */
-  if (++mbuf->mb_count >=
-      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
-    modebuf_flush(mbuf);
-}
-
-/*
  * This helper function builds an argument string in strptr, consisting
  * of the original string, a space, and str1 and str2 concatenated (if,
  * of course, str2 is not NULL)
@@ -2796,8 +2684,8 @@ build_string(char *strptr, int *strptr_i, char *str1, char *str2)
  * This is the workhorse of our ModeBuf suite; this actually generates the
  * output MODE commands, HACK notices, or whatever.  It's pretty complicated.
  */
-int
-modebuf_flush(struct ModeBuf *mbuf)
+static int
+modebuf_flush_int(struct ModeBuf *mbuf, int all)
 {
   /* we only need the flags that don't take args right now */
   static int flags[] = {
@@ -2826,14 +2714,17 @@ modebuf_flush(struct ModeBuf *mbuf)
   char *bufptr; /* we make use of indirection to simplify the code */
   int *bufptr_i;
 
-  char addstr[MODEBUFLEN]; /* accumulates MODE parameters to add */
+  char addstr[BUFSIZE]; /* accumulates MODE parameters to add */
   int addstr_i;
-  char remstr[MODEBUFLEN]; /* accumulates MODE parameters to remove */
+  char remstr[BUFSIZE]; /* accumulates MODE parameters to remove */
   int remstr_i;
   char *strptr; /* more indirection to simplify the code */
   int *strptr_i;
 
-  char limitbuf[10]; /* convert limits to strings */
+  int totalbuflen = BUFSIZE - 200; /* fuzz factor -- don't overrun buffer! */
+  int tmp;
+
+  char limitbuf[20]; /* convert limits to strings */
 
   unsigned int limitdel = MODE_LIMIT;
 
@@ -2848,6 +2739,13 @@ modebuf_flush(struct ModeBuf *mbuf)
     app_source = mbuf->mb_source->user->server;
   else
     app_source = mbuf->mb_source;
+
+  /*
+   * Account for user we're bouncing; we have to get it in on the first
+   * bounced MODE, or we could have problems
+   */
+  if (mbuf->mb_dest & MODEBUF_DEST_DEOP)
+    totalbuflen -= 6; /* numeric nick == 5, plus one space */
 
   /* Calculate the simple flags */
   for (flag_p = flags; flag_p[0]; flag_p += 2) {
@@ -2867,19 +2765,54 @@ modebuf_flush(struct ModeBuf *mbuf)
       bufptr_i = &rembuf_i;
     }
 
-    if (MB_TYPE(mbuf, i) & MODE_CHANOP)
-      bufptr[(*bufptr_i)++] = 'o';
-    else if (MB_TYPE(mbuf, i) & MODE_VOICE)
-      bufptr[(*bufptr_i)++] = 'v';
-    else if (MB_TYPE(mbuf, i) & MODE_KEY)
-      bufptr[(*bufptr_i)++] = 'k';
-    else if (MB_TYPE(mbuf, i) & MODE_BAN)
-      bufptr[(*bufptr_i)++] = 'b';
-    else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
-      bufptr[(*bufptr_i)++] = 'l';
+    if (MB_TYPE(mbuf, i) & MODE_CHANOP) {
+      tmp = strlen(MB_CLIENT(mbuf, i)->name);
 
+      if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'o';
+	totalbuflen -= IRCD_MAX(5, tmp) + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_VOICE) {
+      tmp = strlen(MB_CLIENT(mbuf, i)->name);
+
+      if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'v';
+	totalbuflen -= IRCD_MAX(5, tmp) + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_KEY) {
+      tmp = strlen(MB_STRING(mbuf, i));
+
+      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'k';
+	totalbuflen -= tmp + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_BAN) {
+      tmp = strlen(MB_STRING(mbuf, i));
+
+      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'b';
+	totalbuflen -= tmp + 1;
+      }
+    } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
       /* if it's a limit, we also format the number */
-      sprintf_irc(limitbuf, "%d", MB_UINT(mbuf, i));
+      sprintf_irc(limitbuf, "%-15d", MB_UINT(mbuf, i));
+
+      tmp = strlen(limitbuf);
+
+      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
+	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
+      else {
+	bufptr[(*bufptr_i)++] = 'l';
+	totalbuflen -= tmp + 1;
+      }
     }
   }
 
@@ -2897,6 +2830,9 @@ modebuf_flush(struct ModeBuf *mbuf)
     remstr_i = 0;
 
     for (i = 0; i < mbuf->mb_count; i++) {
+      if (MB_TYPE(mbuf, i) & MODE_SAVE)
+	continue;
+
       if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
 	strptr = addstr;
 	strptr_i = &addstr_i;
@@ -2972,6 +2908,9 @@ modebuf_flush(struct ModeBuf *mbuf)
     limitdel |= (mbuf->mb_dest & MODEBUF_DEST_HACK2) ? MODE_DEL : MODE_ADD;
 
     for (i = 0; i < mbuf->mb_count; i++) {
+      if (MB_TYPE(mbuf, i) & MODE_SAVE)
+	continue;
+
       if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
 	strptr = addstr;
 	strptr_i = &addstr_i;
@@ -3063,10 +3002,144 @@ modebuf_flush(struct ModeBuf *mbuf)
 
   /* reinitialize the mode-with-arg slots */
   for (i = 0; i < MAXMODEPARAMS; i++) {
+    /* If we saved any, pack them down */
+    if (MB_TYPE(mbuf, i) & MODE_SAVE) {
+      mbuf->mb_modeargs[mbuf->mb_count] = mbuf->mb_modeargs[i];
+      MB_TYPE(mbuf, mbuf->mb_count) &= ~MODE_SAVE; /* don't save anymore */
+
+      if (mbuf->mb_count++ == i) /* don't overwrite our hard work */
+	continue;
+    }
+
     MB_TYPE(mbuf, i) = 0;
     MB_UINT(mbuf, i) = 0;
   }
 
+  /* If we're supposed to flush it all, do so--all hail tail recursion */
+  if (all && mbuf->mb_count)
+    return modebuf_flush_int(mbuf, 1);
+
   return 0;
 }
 
+/*
+ * This routine just initializes a ModeBuf structure with the information
+ * needed and the options given.
+ */
+void
+modebuf_init(struct ModeBuf *mbuf, struct Client *source,
+	     struct Client *connect, struct Channel *chan, unsigned int dest)
+{
+  int i;
+
+  assert(0 != mbuf);
+  assert(0 != source);
+  assert(0 != chan);
+  assert(0 != dest);
+
+  mbuf->mb_add = 0;
+  mbuf->mb_rem = 0;
+  mbuf->mb_source = source;
+  mbuf->mb_connect = connect;
+  mbuf->mb_channel = chan;
+  mbuf->mb_dest = dest;
+  mbuf->mb_count = 0;
+
+  /* clear each mode-with-parameter slot */
+  for (i = 0; i < MAXMODEPARAMS; i++) {
+    MB_TYPE(mbuf, i) = 0;
+    MB_UINT(mbuf, i) = 0;
+  }
+}
+
+/*
+ * This routine simply adds modes to be added or deleted; do a binary OR
+ * with either MODE_ADD or MODE_DEL
+ */
+void
+modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
+	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS);
+
+  if (mode & MODE_ADD) {
+    mbuf->mb_rem &= ~mode;
+    mbuf->mb_add |= mode;
+  } else {
+    mbuf->mb_add &= ~mode;
+    mbuf->mb_rem |= mode;
+  }
+}
+
+/*
+ * This routine adds a mode to be added or deleted that takes a unsigned
+ * int parameter; mode may *only* be the relevant mode flag ORed with one
+ * of MODE_ADD or MODE_DEL
+ */
+void
+modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_UINT(mbuf, mbuf->mb_count) = uint;
+
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
+    modebuf_flush_int(mbuf, 0);
+}
+
+/*
+ * This routine adds a mode to be added or deleted that takes a string
+ * parameter; mode may *only* be the relevant mode flag ORed with one of
+ * MODE_ADD or MODE_DEL
+ */
+void
+modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_STRING(mbuf, mbuf->mb_count) = string;
+
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
+    modebuf_flush_int(mbuf, 0);
+}
+
+/*
+ * This routine adds a mode to be added or deleted that takes a client
+ * parameter; mode may *only* be the relevant mode flag ORed with one of
+ * MODE_ADD or MODE_DEL
+ */
+void
+modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
+		    struct Client *client)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_CLIENT(mbuf, mbuf->mb_count) = client;
+
+  /* when we've reached the maximal count, flush the buffer */
+  if (++mbuf->mb_count >=
+      (MAXMODEPARAMS - (mbuf->mb_dest & MODEBUF_DEST_DEOP ? 1 : 0)))
+    modebuf_flush_int(mbuf, 0);
+}
+
+/*
+ * This is the exported binding for modebuf_flush()
+ */
+int
+modebuf_flush(struct ModeBuf *mbuf)
+{
+  return modebuf_flush_int(mbuf, 1);
+}
