@@ -229,7 +229,7 @@ void free_client(struct Client* cptr)
       dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
     else {
       cli_from(cptr) = 0;
-      if (cli_freeflag(cptr) & FREEFLAG_SOCKET)
+      if (-1 < cli_fd(cptr) && cli_freeflag(cptr) & FREEFLAG_SOCKET)
 	socket_del(&(cli_socket(cptr))); /* queue a socket delete */
       if (cli_freeflag(cptr) & FREEFLAG_TIMER)
 	timer_del(&(cli_proc(cptr))); /* queue a timer delete */

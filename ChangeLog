@@ -1,5 +1,8 @@
 2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/list.c (free_client): only try to delete the socket when
+	the fd hasn't already been closed, avoiding a double-free
+
 	* ircd/list.c (free_connection): make sure the client is really
 	gone before doing away with the connection
 
