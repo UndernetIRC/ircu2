@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of functions for handling local clients.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -36,12 +38,11 @@
 #include <assert.h>
 #include <string.h>
 
-#define BAD_PING                ((unsigned int)-2)
-
-/*
- * client_get_ping
- * returns shortest ping time in attached server or client conf
- * classes or PINGFREQUENCY
+/** Find the shortest non-zero ping time attached to a client.
+ * If all attached ping times are zero, return the value for
+ * FEAT_PINGFREQUENCY.
+ * @param[in] acptr Client to find ping time for.
+ * @return Ping time in seconds.
  */
 int client_get_ping(const struct Client* acptr)
 {
@@ -67,9 +68,9 @@ int client_get_ping(const struct Client* acptr)
   return ping;
 }
 
-/*
- * client_get_default_umode
- * returns default usermode in attached client connection class
+/** Find the default usermode for a client.
+ * @param[in] sptr Client to find default usermode for.
+ * @return Pointer to usermode string (or NULL, if there is no default).
  */
 const char* client_get_default_umode(const struct Client* sptr)
 {
@@ -86,10 +87,8 @@ const char* client_get_default_umode(const struct Client* sptr)
   return NULL;
 }
 
-/*
- * client_drop_sendq
- * removes the client's connection from the list of connections with
- * queued data
+/** Remove a connection from the list of connections with queued data.
+ * @param[in] con Connection with no queued data.
  */
 void client_drop_sendq(struct Connection* con)
 {
@@ -103,10 +102,9 @@ void client_drop_sendq(struct Connection* con)
   }
 }
 
-/*
- * client_add_sendq
- * adds the client's connection to the list of connections with
- * queued data
+/** Add a connection to the list of connections with queued data.
+ * @param[in] con Connection with queued data.
+ * @param[in,out] con_p Previous pointer to next connection.
  */
 void client_add_sendq(struct Connection* con, struct Connection** con_p)
 {
@@ -120,13 +118,20 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
   }
 }
 
+/** Default privilege set for global operators. */
 static struct Privs privs_global;
+/** Default privilege set for local operators. */
 static struct Privs privs_local;
+/** Non-zero if #privs_global and #privs_local have been initialized. */
 static int privs_defaults_set;
 
 /* client_set_privs(struct Client* client)
  *
  * Sets the privileges for opers.
+ */
+/** Set the privileges for a client.
+ * @param[in] client Client who has become an operator.
+ * @param[in] oper Configuration item describing oper's privileges.
  */
 void
 client_set_privs(struct Client *client, struct ConfItem *oper)
@@ -213,10 +218,12 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
   }
 }
 
+/** Array mapping privilege values to names and vice versa. */
 static struct {
-  char        *name;
-  unsigned int priv;
+  char        *name; /**< Name of privilege. */
+  unsigned int priv; /**< Enumeration value of privilege */
 } privtab[] = {
+/** Helper macro to define an array entry for a privilege. */
 #define P(priv)		{ #priv, PRIV_ ## priv }
   P(CHAN_LIMIT),     P(MODE_LCHAN),     P(WALK_LCHAN),    P(DEOP_LCHAN),
   P(SHOW_INVIS),     P(SHOW_ALL_INVIS), P(UNLIMIT_QUERY), P(KILL),
@@ -230,9 +237,10 @@ static struct {
   { 0, 0 }
 };
 
-/* client_report_privs(struct Client *to, struct Client *client)
- *
- * Sends a summary of the oper's privileges to the oper.
+/** Report privileges of \a client to \a to.
+ * @param[in] to Client requesting privilege list.
+ * @param[in] client Client whos privileges should be listed.
+ * @return Zero.
  */
 int
 client_report_privs(struct Client *to, struct Client *client)
