@@ -416,6 +416,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * --Run
    *
    */
+
+
   if (IsServer(sptr)) {
     /*
      * A new NICK being introduced by a neighbouring
@@ -462,11 +464,16 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
         cli_flags(sptr) |= FLAGS_KILLED;
 
-	return exit_client_msg(cptr, sptr, &me,
+	exit_client_msg(cptr, sptr, &me,
 			       "Killed (%s (Nick collision))",
 			       feature_str(FEAT_HIS_SERVERNAME));
 
+	sptr = 0; /* Make sure we don't use the dead client */
+
       }
+      /* If the two have the same TS then we want to kill both sides, so
+       * don't leave yet!
+       */
       if (lastnick != cli_lastnick(acptr))
         return 0;                /* Ignore the NICK */
     }

@@ -1,4 +1,10 @@
 2002-11-23  Perry Lorier <isomer@undernet.org>
+	* ircd/m_nick.c: ms_nick had mysteriously gained a "return" in the
+	middle of it.  This meant when two people had the same TS on a nick
+	collide it was only killing one of them.  Thus we have phantom clients
+	on the network, which desync channels and cause protocol violations...
+
+2002-11-23  Perry Lorier <isomer@undernet.org>
 	* ircd/m_nick.c: Minor cleanups and fixing some stuff I accidently
 	commited before
 
