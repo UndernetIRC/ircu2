@@ -26,6 +26,7 @@ void GC_set_leak_handler(void (*)(void*, int));
 void GC_gcollect(void);
 extern int GC_find_leak;
 
+/** Header block to track an allocated block's information. */
 struct MemHeader
 {
   uint32_t magic;
@@ -36,6 +37,10 @@ struct MemHeader
   time_t since;
 };
 
+/** Overwrite \a len byte at \a p with 0xDEADBEEF.
+ * @param[out] p Memory buffer to overwrite.
+ * @param[in] len Number of bytes to overwrite.
+ */
 void
 memfrob(void *p, size_t len)
 {
@@ -52,11 +57,18 @@ memfrob(void *p, size_t len)
     *s = pat[i++];
 }
 
-static size_t mdbg_bytes_allocated = 0, mdbg_blocks_allocated = 0;
+/** Total number of bytes allocated. */
+static size_t mdbg_bytes_allocated = 0;
+/** Total number of blocks allocated. */
+static size_t mdbg_blocks_allocated = 0;
+/** Last Unix time that we ran garbage collection. */
 static time_t last_gcollect = 0;
-
+/** Minimum interval for garbage collection. */
 #define GC_FREQ 5
 
+/** Check whether we should run garbage collection.
+ * If so, do it.
+ */
 void
 dbg_check_gcollect(void)
 {
@@ -66,6 +78,13 @@ dbg_check_gcollect(void)
   last_gcollect = CurrentTime;
 }
 
+/** Allocate a block of memory.
+ * @param[in] size Number of bytes needed.
+ * @param[in] type Memory operation for block.
+ * @param[in] file File name of allocating function.
+ * @param[in] line Line number of allocating function.
+ * @return Pointer to the newly allocated block.
+ */
 void*
 dbg_malloc(size_t size, const char *type, const char *file, int line)
 {
@@ -85,6 +104,13 @@ dbg_malloc(size_t size, const char *type, const char *file, int line)
   return (void*)(mh + 1);
 }
 
+/** Allocate a zero-initialized block of memory.
+ * @param[in] size Number of bytes needed.
+ * @param[in] type Memory operation for block.
+ * @param[in] file File name of allocating function.
+ * @param[in] line Line number of allocating function.
+ * @return Pointer to the newly allocated block.
+ */
 void*
 dbg_malloc_zero(size_t size, const char *type, const char *file, int line)
 {
@@ -103,6 +129,13 @@ dbg_malloc_zero(size_t size, const char *type, const char *file, int line)
   return (void*)(mh + 1);
 }
 
+/** Extend an allocated block of memory.
+ * @param[in] ptr Pointer to currently allocated block of memory (may be NULL).
+ * @param[in] size Minimum number of bytes for new block.
+ * @param[in] file File name of allocating function.
+ * @param[in] line Line number of allocating function.
+ * @return Pointer to the extended block of memory.
+ */
 void*
 dbg_realloc(void *ptr, size_t size, const char *file, int line)
 {
@@ -124,6 +157,11 @@ dbg_realloc(void *ptr, size_t size, const char *file, int line)
   return (void*)(mh2+1);
 }
 
+/** Deallocate a block of memory.
+ * @param[in] ptr Pointer to currently allocated block of memory (may be NULL).
+ * @param[in] file File name of deallocating function.
+ * @param[in] line Line number of deallocating function.
+ */
 void
 dbg_free(void *ptr, const char *file, int line)
 {
@@ -140,6 +178,9 @@ dbg_free(void *ptr, const char *file, int line)
   dbg_check_gcollect();
 }
 
+/** Report number of bytes currently allocated.
+ * @return Number of bytes allocated.
+ */
 size_t
 fda_get_byte_count(void)
 {
@@ -147,6 +188,9 @@ fda_get_byte_count(void)
   return mdbg_bytes_allocated;
 }
 
+/** Report number of blocks currently allocated.
+ * @return Number of blocks allocated.
+ */
 size_t
 fda_get_block_count(void)
 {
@@ -155,6 +199,10 @@ fda_get_block_count(void)
 
 #include <stdio.h>
 
+/** Callback for when the garbage collector detects a memory leak.
+ * @param[in] p Pointer to leaked memory.
+ * @param[in] sz Length of the block.
+ */
 void
 dbg_memory_leaked(void *p, int sz)
 {
@@ -173,6 +221,7 @@ dbg_memory_leaked(void *p, int sz)
          CurrentTime - mh->since));
 }
 
+/** Initialize the memory debugging subsystem. */
 void
 mem_dbg_initialise(void)
 {
