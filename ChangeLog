@@ -1,3 +1,7 @@
+2002-10-09  splidge@quakenet.org
+
+	* ircd/m_stats.c: unsigned char index into array bug
+
 2002-10-05  Zoot <zoot@gamesnet.net>
 
        * ircd/ircd_relay.c (relay_directed_message): fix a bug that had
