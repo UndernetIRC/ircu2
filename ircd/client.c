@@ -49,6 +49,10 @@ int client_get_ping(const struct Client* acptr)
   struct ConfItem* aconf;
   struct SLink*    link;
 
+  assert(cli_verify(acptr));
+
+  verify_client_list();
+
   for (link = cli_confs(acptr); link; link = link->next) {
     aconf = link->value.aconf;
     if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
@@ -61,6 +65,9 @@ int client_get_ping(const struct Client* acptr)
     ping = feature_int(FEAT_PINGFREQUENCY);
 
   Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
+
+  verify_client_list();
+
   return ping;
 }
 
