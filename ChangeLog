@@ -1,3 +1,7 @@
+2003-10-25 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Make sure we never use the gl_host variable when we
+	are dealing with a realname (or other magical) gline.
+
 2003-10-15 splidge <splidge@quakenet.org>
 	* ircd/channel.c: Fixed buggy MODE +k handling (broke with '+k :').
 
