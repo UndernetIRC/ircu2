@@ -1,5 +1,10 @@
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
+	* aclocal.m4, config.h.in, configure, ircd/Makefile.in: Regenerate
+	to reflect the changes since these files' last rebuild.
+
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_crypt.h (ircd_crypt): This should return char*, not
 	const char*, since it does not own the returned pointer.
 

@@ -366,9 +366,9 @@ IPcheck.o: IPcheck.c ../config.h ../include/IPcheck.h ../include/client.h \
   ../include/ircd_features.h ../include/s_debug.h ../include/s_user.h \
   ../include/send.h
 channel.o: channel.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/destruct_event.h ../include/hash.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/destruct_event.h ../include/hash.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
   ../include/ircd_chattr.h ../include/ircd_features.h \
   ../include/ircd_log.h ../include/ircd_reply.h \
@@ -402,9 +402,10 @@ dbuf.o: dbuf.c ../config.h ../include/dbuf.h ../include/ircd_alloc.h \
   ../include/ircd_chattr.h ../include/ircd_features.h ../include/send.h \
   ../include/sys.h
 destruct_event.o: destruct_event.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/s_debug.h ../include/ircd_alloc.h \
-  ../include/ircd.h ../include/struct.h ../include/ircd_events.h \
-  ../include/send.h ../include/msg.h ../include/ircd_handler.h
+  ../include/ircd_defs.h ../include/res.h ../include/s_debug.h \
+  ../include/ircd_alloc.h ../include/ircd.h ../include/struct.h \
+  ../include/ircd_events.h ../include/send.h ../include/msg.h \
+  ../include/ircd_handler.h
 fileio.o: fileio.c ../config.h ../include/fileio.h \
   ../include/ircd_alloc.h
 gline.o: gline.c ../config.h ../include/gline.h ../include/res.h \
@@ -464,9 +465,9 @@ ircd_events.o: ircd_events.c ../config.h ../include/ircd_events.h \
   ../include/ircd_alloc.h ../include/ircd_log.h \
   ../include/ircd_snprintf.h ../include/s_debug.h
 ircd_features.o: ircd_features.c ../config.h ../include/ircd_features.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/class.h \
-  ../include/client.h ../include/dbuf.h ../include/msgq.h \
-  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/class.h ../include/client.h ../include/dbuf.h \
+  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
   ../include/hash.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_alloc.h ../include/ircd_log.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/match.h \
@@ -482,9 +483,9 @@ ircd_log.o: ircd_log.c ../config.h ../include/ircd_log.h \
   ../include/ircd_chattr.h ../include/ircd.h ../include/struct.h \
   ../include/numeric.h ../include/s_debug.h ../include/send.h
 ircd_relay.o: ircd_relay.c ../config.h ../include/ircd_relay.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/hash.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/hash.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_chattr.h \
   ../include/ircd_features.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/match.h ../include/msg.h \
@@ -582,9 +583,9 @@ m_away.o: m_away.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_user.h \
   ../include/send.h
 m_burst.o: m_burst.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_alloc.h ../include/ircd_features.h \
   ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/list.h ../include/match.h \
@@ -621,9 +622,9 @@ m_cprivmsg.o: m_cprivmsg.c ../config.h ../include/client.h \
   ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/s_user.h
 m_create.o: m_create.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_debug.h ../include/s_misc.h \
@@ -656,9 +657,9 @@ m_die.o: m_die.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_bsd.h ../include/send.h
 m_endburst.o: m_endburst.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/send.h
@@ -699,9 +700,9 @@ m_info.o: m_info.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/numnicks.h ../include/s_misc.h ../include/s_user.h \
   ../include/s_conf.h ../include/send.h ../include/version.h
 m_invite.o: m_invite.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_features.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/list.h \
   ../include/msg.h ../include/numeric.h ../include/numnicks.h \
@@ -713,13 +714,14 @@ m_ison.o: m_ison.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/numeric.h \
   ../include/send.h
 m_join.o: m_join.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/gline.h ../include/hash.h ../include/ircd.h \
-  ../include/struct.h ../include/ircd_chattr.h ../include/ircd_features.h \
-  ../include/ircd_reply.h ../include/ircd_string.h ../include/msg.h \
-  ../include/numeric.h ../include/numnicks.h ../include/s_debug.h \
-  ../include/s_user.h ../include/send.h
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/gline.h ../include/hash.h \
+  ../include/ircd.h ../include/struct.h ../include/ircd_chattr.h \
+  ../include/ircd_features.h ../include/ircd_reply.h \
+  ../include/ircd_string.h ../include/msg.h ../include/numeric.h \
+  ../include/numnicks.h ../include/s_debug.h ../include/s_user.h \
+  ../include/send.h
 m_jupe.o: m_jupe.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
   ../include/ircd_handler.h ../include/res.h ../include/jupe.h \
@@ -729,9 +731,9 @@ m_jupe.o: m_jupe.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/msg.h ../include/numeric.h ../include/numnicks.h \
   ../include/s_conf.h ../include/s_misc.h ../include/send.h
 m_kick.o: m_kick.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/send.h ../include/ircd_features.h
@@ -753,9 +755,9 @@ m_links.o: m_links.c ../config.h ../include/client.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_user.h \
   ../include/send.h
 m_list.o: m_list.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_alloc.h ../include/ircd_chattr.h \
   ../include/ircd_features.h ../include/ircd_log.h \
   ../include/ircd_reply.h ../include/ircd_string.h ../include/msg.h \
@@ -778,9 +780,9 @@ m_map.o: m_map.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/msg.h ../include/numeric.h ../include/s_user.h \
   ../include/s_serv.h ../include/send.h ../include/querycmds.h
 m_mode.o: m_mode.c ../config.h ../include/handlers.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_conf.h ../include/s_debug.h \
@@ -794,9 +796,9 @@ m_motd.o: m_motd.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/numnicks.h ../include/s_conf.h ../include/class.h \
   ../include/s_user.h ../include/send.h
 m_names.o: m_names.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_user.h ../include/send.h
@@ -819,8 +821,9 @@ m_notice.o: m_notice.c ../config.h ../include/client.h \
 m_oper.o: m_oper.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
   ../include/ircd_handler.h ../include/res.h ../include/hash.h \
-  ../include/ircd.h ../include/struct.h ../include/ircd_features.h \
-  ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_string.h \
+  ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
+  ../include/ircd_features.h ../include/ircd_log.h \
+  ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/ircd_crypt.h ../include/msg.h \
   ../include/numeric.h ../include/numnicks.h ../include/querycmds.h \
   ../include/s_conf.h ../include/s_debug.h ../include/s_user.h \
@@ -834,9 +837,9 @@ m_opmode.o: m_opmode.c ../config.h ../include/client.h \
   ../include/numeric.h ../include/numnicks.h ../include/send.h \
   ../include/s_conf.h
 m_part.o: m_part.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/numeric.h ../include/numnicks.h \
   ../include/send.h
@@ -891,9 +894,9 @@ m_pseudo.o: m_pseudo.c ../config.h ../include/client.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_conf.h \
   ../include/s_user.h
 m_quit.o: m_quit.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/ircd.h ../include/struct.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/s_misc.h \
   ../include/ircd_reply.h
 m_rehash.o: m_rehash.c ../config.h ../include/client.h \
@@ -960,10 +963,11 @@ m_settime.o: m_settime.c ../config.h ../include/client.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_user.h \
   ../include/send.h
 m_silence.o: m_silence.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
-  ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
+  ../include/struct.h ../include/ircd_features.h ../include/ircd_reply.h \
+  ../include/ircd_snprintf.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/list.h ../include/msg.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_user.h \
   ../include/send.h
@@ -990,9 +994,9 @@ m_time.o: m_time.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_misc.h \
   ../include/s_user.h ../include/send.h
 m_topic.o: m_topic.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_features.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/msg.h \
   ../include/numeric.h ../include/numnicks.h ../include/send.h
@@ -1043,9 +1047,9 @@ m_version.o: m_version.c ../config.h ../include/client.h \
   ../include/send.h ../include/supported.h ../include/channel.h \
   ../include/version.h
 m_wallchops.o: m_wallchops.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_user.h ../include/send.h
@@ -1062,24 +1066,24 @@ m_wallusers.o: m_wallusers.c ../config.h ../include/client.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/send.h
 m_wallvoices.o: m_wallvoices.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/s_user.h ../include/send.h
 m_who.o: m_who.c ../config.h ../include/channel.h ../include/ircd_defs.h \
-  ../include/client.h ../include/dbuf.h ../include/msgq.h \
-  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
+  ../include/res.h ../include/client.h ../include/dbuf.h \
+  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
   ../include/hash.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_chattr.h ../include/ircd_features.h \
   ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/match.h ../include/numeric.h ../include/numnicks.h \
   ../include/send.h ../include/whocmds.h
 m_whois.o: m_whois.c ../config.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/hash.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/client.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_features.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/match.h \
   ../include/msg.h ../include/numeric.h ../include/numnicks.h \
@@ -1100,10 +1104,10 @@ memdebug.o: memdebug.c ../include/ircd.h ../include/struct.h \
   ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
   ../config.h ../include/ircd_handler.h ../include/res.h \
   ../include/s_debug.h
-motd.o: motd.c ../config.h ../include/motd.h ../include/class.h \
-  ../include/client.h ../include/ircd_defs.h ../include/dbuf.h \
-  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
-  ../include/res.h ../include/fileio.h ../include/ircd.h \
+motd.o: motd.c ../config.h ../include/motd.h ../include/res.h \
+  ../include/class.h ../include/client.h ../include/ircd_defs.h \
+  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
+  ../include/ircd_handler.h ../include/fileio.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_alloc.h ../include/ircd_features.h \
   ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/match.h ../include/msg.h \
@@ -1196,9 +1200,9 @@ s_conf.o: s_conf.c ../config.h ../include/s_conf.h ../include/client.h \
   ../include/parse.h ../include/s_bsd.h ../include/s_debug.h \
   ../include/s_misc.h ../include/send.h ../include/sys.h
 s_debug.o: s_debug.c ../config.h ../include/s_debug.h \
-  ../include/ircd_defs.h ../include/channel.h ../include/class.h \
-  ../include/client.h ../include/dbuf.h ../include/msgq.h \
-  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
+  ../include/ircd_defs.h ../include/channel.h ../include/res.h \
+  ../include/class.h ../include/client.h ../include/dbuf.h \
+  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
   ../include/gline.h ../include/hash.h ../include/ircd_alloc.h \
   ../include/ircd_features.h ../include/ircd_log.h \
   ../include/ircd_osdep.h ../include/ircd_reply.h ../include/ircd.h \
@@ -1209,9 +1213,9 @@ s_debug.o: s_debug.c ../config.h ../include/s_debug.h \
 s_err.o: s_err.c ../config.h ../include/numeric.h ../include/s_debug.h \
   ../include/ircd_defs.h
 s_misc.o: s_misc.c ../config.h ../include/s_misc.h ../include/IPcheck.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/hash.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/hash.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
   ../include/ircd_auth.h ../include/ircd_features.h ../include/ircd_log.h \
   ../include/ircd_reply.h ../include/ircd_snprintf.h \
@@ -1222,15 +1226,15 @@ s_misc.o: s_misc.c ../config.h ../include/s_misc.h ../include/IPcheck.h \
   ../include/s_stats.h ../include/s_user.h ../include/send.h \
   ../include/sys.h ../include/uping.h ../include/userload.h
 s_numeric.o: s_numeric.c ../config.h ../include/s_numeric.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/hash.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/hash.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_features.h \
   ../include/ircd_snprintf.h ../include/numnicks.h ../include/send.h
 s_serv.o: s_serv.c ../config.h ../include/s_serv.h ../include/IPcheck.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/gline.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/gline.h \
   ../include/hash.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_alloc.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/ircd_chattr.h \
@@ -1254,9 +1258,9 @@ s_stats.o: s_stats.c ../config.h ../include/class.h ../include/client.h \
   ../include/s_serv.h ../include/s_stats.h ../include/s_user.h \
   ../include/send.h ../include/userload.h
 s_user.o: s_user.c ../config.h ../include/s_user.h ../include/IPcheck.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/class.h \
-  ../include/client.h ../include/dbuf.h ../include/msgq.h \
-  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/class.h ../include/client.h ../include/dbuf.h \
+  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
   ../include/hash.h ../include/ircd.h ../include/struct.h \
   ../include/ircd_alloc.h ../include/ircd_auth.h ../include/ircd_chattr.h \
   ../include/ircd_features.h ../include/ircd_log.h \
@@ -1270,9 +1274,9 @@ s_user.o: s_user.c ../config.h ../include/s_user.h ../include/IPcheck.h \
   ../include/userload.h ../include/version.h ../include/whowas.h \
   ../include/handlers.h
 send.o: send.c ../config.h ../include/send.h ../include/channel.h \
-  ../include/ircd_defs.h ../include/class.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/ircd.h \
+  ../include/ircd_defs.h ../include/res.h ../include/class.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_features.h \
   ../include/ircd_snprintf.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/list.h ../include/match.h \
@@ -1296,9 +1300,9 @@ userload.o: userload.c ../config.h ../include/userload.h \
   ../include/s_misc.h ../include/s_stats.h ../include/send.h \
   ../include/sys.h
 whocmds.o: whocmds.c ../config.h ../include/whocmds.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/client.h \
-  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
-  ../include/ircd_handler.h ../include/res.h ../include/hash.h \
+  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+  ../include/client.h ../include/dbuf.h ../include/msgq.h \
+  ../include/ircd_events.h ../include/ircd_handler.h ../include/hash.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_chattr.h \
   ../include/ircd_features.h ../include/ircd_reply.h \
   ../include/ircd_snprintf.h ../include/ircd_string.h ../include/list.h \
