@@ -14,16 +14,10 @@ struct Channel;
 struct Client;
 struct DBuf;
 
-/*
- * Macros
- */
-
-#define LastDeadComment(cptr) ((cptr)->info)
 
 /*
  * Prototypes
  */
-
 extern void send_buffer(struct Client* to, char* buf);
 extern void flush_sendq_except(const struct DBuf* one);
 

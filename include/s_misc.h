@@ -64,16 +64,16 @@ struct ServerStatistics {
 extern int check_registered(struct Client *sptr);
 extern int check_registered_user(struct Client *sptr);
 extern int exit_client(struct Client *cptr, struct Client *bcptr,
-    struct Client *sptr, char *comment);
+    struct Client *sptr, const char *comment);
 extern char *myctime(time_t value);
 extern int exit_client_msg(struct Client *cptr, struct Client *bcptr,
-                           struct Client *sptr, char *pattern, ...);
+                           struct Client *sptr, const char *pattern, ...);
 extern void initstats(void);
 extern char *date(time_t clock);
 extern const char* get_client_host(const struct Client *cptr);
 extern void get_sockhost(struct Client *cptr, char *host);
 extern int vexit_client_msg(struct Client *cptr, struct Client *bcptr,
-    struct Client *sptr, char *pattern, va_list vl);
+    struct Client *sptr, const char *pattern, va_list vl);
 extern void tstats(struct Client *cptr, char *name);
 
 extern struct ServerStatistics* ServerStats;
