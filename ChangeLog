@@ -1,3 +1,8 @@
+2000-06-04  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/m_names.c: Re-factor code to remove unneccessary
+	GlobalChannelList iteration every time someone joins a channel.
+
 2000-06-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c: add struct Gline * argument to register_user;
@@ -1214,7 +1219,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.143 2000-06-03 03:01:10 kev Exp $
+# $Id: ChangeLog,v 1.144 2000-06-04 05:19:29 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #
