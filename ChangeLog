@@ -1,5 +1,10 @@
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_server.c (m_server, ms_server): Assign timestamp before
+	it might be used in exit_new_server().
+
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
 	* aclocal.m4, config.h.in, configure, ircd/Makefile.in: Regenerate
 	to reflect the changes since these files' last rebuild.
 

@@ -544,6 +544,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * Detect protocol
    */
+  hop = atoi(parv[2]);
+  start_timestamp = atoi(parv[3]);
+  timestamp = atoi(parv[4]);
   prot = parse_protocol(parv[5]);
   if (!prot)
     return exit_client_msg(cptr, sptr, &me, "Bogus protocol (%s)", parv[5]);
@@ -551,9 +554,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
 
-  hop = atoi(parv[2]);
-  start_timestamp = atoi(parv[3]);
-  timestamp = atoi(parv[4]);
   Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age %Tu (%Tu)",
 	 host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
 
@@ -688,6 +688,9 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * Detect protocol
    */
+  hop = atoi(parv[2]);
+  start_timestamp = atoi(parv[3]);
+  timestamp = atoi(parv[4]);
   prot = parse_protocol(parv[5]);
   if (!prot)
     return exit_client_msg(cptr, sptr, &me, "Bogus protocol (%s)", parv[5]);
@@ -695,9 +698,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
 
-  hop = atoi(parv[2]);
-  start_timestamp = atoi(parv[3]);
-  timestamp = atoi(parv[4]);
   Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age %Tu (%Tu)",
 	 host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
 
