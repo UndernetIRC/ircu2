@@ -102,206 +102,253 @@
 #include <assert.h>
 #include <string.h>
 
+#define NAMES_ALL 1 /* List all users in channel */
+#define NAMES_VIS 2 /* List only visible users in non-secret channels */
+
+/*
+ *  Sends a suitably formatted 'names' reply to 'sptr' consisting of nicks within
+ *  'chptr', depending on 'filter'.
+ *
+ *  NAMES_ALL - Lists all users on channel.
+ *  NAMES_VIS - Only list visible (-i) users. --Gte (04/06/2000).
+ *
+ */
+
+void do_names(struct Client* sptr, struct Channel* chptr, int filter)
+{ 
+  int mlen;
+  int idx;
+  int flag;
+  int needs_space; 
+  int len; 
+  char buf[BUFSIZE];
+  struct Client *c2ptr;
+  struct Membership* member;
+
+  /* Tag Pub/Secret channels accordingly. */
+
+  strcpy(buf, "* ");
+  if (PubChannel(chptr))
+    *buf = '=';
+  else if (SecretChannel(chptr))
+    *buf = '@';
+ 
+  len = strlen(chptr->chname);
+  strcpy(buf + 2, chptr->chname);
+  strcpy(buf + 2 + len, " :");
+
+  idx = len + 4;
+  flag = 1;
+  needs_space = 0;
+
+  if (!ShowChannel(sptr, chptr)) /* Don't list private channels unless we are on them. */
+    return;
+
+  /* Iterate over all channel members, and build up the list. */
+
+  mlen = strlen(me.name) + 10 + strlen(sptr->name);
+  
+  for (member = chptr->members; member; member = member->next_member)
+  {
+    c2ptr = member->user;
+
+    if ((filter == NAMES_VIS) && IsInvisible(c2ptr))
+      continue;
+
+    if (needs_space) {
+    	strcat(buf, " ");
+      idx++;
+    }
+    needs_space=1;
+    if (IsZombie(member))
+    {
+      if (member->user != sptr)
+        continue;
+      else
+      {
+        strcat(buf, "!");
+        idx++;
+      }
+    }
+    else if (IsChanOp(member))
+    {
+      strcat(buf, "@");
+      idx++;
+    }
+    else if (HasVoice(member))
+    {
+      strcat(buf, "+");
+      idx++;
+    }
+    strcat(buf, c2ptr->name);
+    idx += strlen(c2ptr->name) + 1;
+    flag = 1;
+    if (mlen + idx + NICKLEN + 5 > BUFSIZE)
+      /* space, modifier, nick, \r \n \0 */
+    { 
+      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, sptr->name, buf);
+      strcpy(buf, "* ");
+      ircd_strncpy(buf + 2, chptr->chname, len + 1);
+      buf[len + 2] = 0;
+      strcat(buf, " :");
+      if (PubChannel(chptr))
+        *buf = '=';
+      else if (SecretChannel(chptr))
+        *buf = '@';
+      idx = len + 4;
+      flag = 0;
+      needs_space=0;
+    }
+  }
+  if (flag)
+    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, sptr->name, buf); 
+}
+
 /*
  * m_names - generic message handler
  *
  * parv[0] = sender prefix
  * parv[1] = channel
  */
+
 int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Channel *chptr;
+  struct Channel *chptr; 
+  struct Channel *ch2ptr; 
   struct Client *c2ptr;
-  struct Membership* member;
-  struct Channel *ch2ptr = 0;
-  int idx, flag, len, mlen;
-  char *s, *para = parc > 1 ? parv[1] : 0;
-  char buf[BUFSIZE];
+  struct Membership* member; 
+  char* s;
+  char* para = parc > 1 ? parv[1] : 0; 
 
   if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
     return 0;
 
-  mlen = strlen(me.name) + 10 + strlen(sptr->name);
-
-  if (!EmptyString(para))
-  {
-    s = strchr(para, ',');
-    if (s)
-    {
-      parv[1] = ++s;
-      m_names(cptr, sptr, parc, parv);
-    }
-    clean_channelname(para);
-    ch2ptr = FindChannel(para);
+  if (EmptyString(para)) {
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*"); 
+    return 0;
   }
-
+  else if (*para == '0')
+    *para = '\0';
+  
+  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. Eww. */
+  if (s) {
+    parv[1] = ++s;
+    m_names(cptr, sptr, parc, parv);
+  }
+ 
   /*
-   * First, do all visible channels (public and the one user self is)
+   * Special Case 1: "/names 0". 
+   * Full list as per RFC. 
    */
 
-  for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
-  {
-    if ((chptr != ch2ptr) && !EmptyString(para))
-      continue;                 /* -- wanted a specific channel */
-    if (!MyConnect(sptr) && EmptyString(para))
-      continue;
-#ifndef GODMODE
-    if (!ShowChannel(sptr, chptr))
-      continue;                 /* -- users on this are not listed */
-#endif
+  if (!*para) { 
+    int idx; 
+    int mlen;
+    int flag;
+    struct Channel *ch3ptr;
+    char buf[BUFSIZE]; 
 
-    /* Find users on same channel (defined by chptr) */
+    mlen = strlen(me.name) + 10 + strlen(sptr->name);
 
-    strcpy(buf, "* ");
-    len = strlen(chptr->chname);
-    strcpy(buf + 2, chptr->chname);
-    strcpy(buf + 2 + len, " :");
+    /* List all visible channels/visible members */ 
 
-    if (PubChannel(chptr))
-      *buf = '=';
-    else if (SecretChannel(chptr))
-      *buf = '@';
-    idx = len + 4;
-    flag = 1;
-    for (member = chptr->members; member; member = member->next_member)
+    for (ch2ptr = GlobalChannelList; ch2ptr; ch2ptr = ch2ptr->next)
+    { 
+      if (!ShowChannel(sptr, ch2ptr))
+        continue;                 /* Don't show secret chans. */ 
+
+      if (find_channel_member(sptr, ch2ptr))
+      {
+        do_names(sptr, ch2ptr, NAMES_ALL); /* Full list if we're in this chan. */
+      } else { 
+        do_names(sptr, ch2ptr, NAMES_VIS);
+      }
+    } 
+
+    /* List all remaining users on channel '*' */
+
+    strcpy(buf, "* * :");
+    idx = 5;
+    flag = 0;
+
+    for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
     {
-      c2ptr = member->user;
-#ifndef GODMODE
-      if (sptr != c2ptr && IsInvisible(c2ptr) && !find_channel_member(sptr, chptr))
+      int showflag = 0;
+
+      if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
         continue;
-#endif
-      if (IsZombie(member))
+
+      member = c2ptr->user->channel; 
+
+      while (member)
       {
-        if (member->user != sptr)
-          continue;
-        else
-        {
-          strcat(buf, "!");
-          idx++;
-        }
+        ch3ptr = member->channel;
+  
+        if (PubChannel(ch3ptr) || find_channel_member(sptr, ch3ptr))
+          showflag = 1;
+ 
+        member = member->next_channel;
       }
-      else if (IsChanOp(member))
-      {
-        strcat(buf, "@");
-        idx++;
-      }
-      else if (HasVoice(member))
-      {
-        strcat(buf, "+");
-        idx++;
-      }
+
+      if (showflag)               /* Have we already shown them? */
+        continue;
+ 
       strcat(buf, c2ptr->name);
       strcat(buf, " ");
       idx += strlen(c2ptr->name) + 1;
       flag = 1;
-#ifdef GODMODE
+
+      if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
       {
-        char yxx[6];
-        sprintf_irc(yxx, "%s%s", NumNick(c2ptr));
-        assert(c2ptr == findNUser(yxx));
-        sprintf_irc(buf + strlen(buf), "(%s) ", yxx);
-        idx += 6;
-      }
-      if (mlen + idx + NICKLEN + 11 > BUFSIZE)
-#else
-      if (mlen + idx + NICKLEN + 5 > BUFSIZE)
-#endif
-        /* space, modifier, nick, \r \n \0 */
-      {
-        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-        strcpy(buf, "* ");
-        ircd_strncpy(buf + 2, chptr->chname, len + 1);
-        buf[len + 2] = 0;
-        strcat(buf, " :");
-        if (PubChannel(chptr))
-          *buf = '=';
-        else if (SecretChannel(chptr))
-          *buf = '@';
-        idx = len + 4;
+        sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf); 
+        strcpy(buf, "* * :");
+        idx = 5;
         flag = 0;
       }
     }
     if (flag)
       sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+    return 1; 
+  } 
+
+  /*
+   *  Special Case 2: User is on this channel, requesting full names list.
+   *  (As performed with each /join) - ** High frequency usage **
+   */
+
+  clean_channelname(para);
+  chptr = FindChannel(para); 
+ 
+  member = find_member_link(chptr, sptr); 
+  if (member)
+  { 
+    if (chptr) do_names(sptr, chptr, NAMES_ALL);
+    if (!EmptyString(para))
+    {
+      sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], chptr ? chptr->chname : para); 
+      return 1;
+    }
+
   }
-  if (!EmptyString(para))
+    else
   {
-    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0],
-        ch2ptr ? ch2ptr->chname : para);
-    return (1);
-  }
-
-  /* Second, do all non-public, non-secret channels in one big sweep */
-
-  strcpy(buf, "* * :");
-  idx = 5;
-  flag = 0;
-  for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
-  {
-    struct Channel *ch3ptr;
-    int showflag = 0, secret = 0;
-
-#ifndef GODMODE
-    if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
-#else
-    if (!IsUser(c2ptr))
-#endif
-      continue;
-    member = c2ptr->user->channel;
     /*
-     * Don't show a client if they are on a secret channel or when
-     * they are on a channel sptr is on since they have already
-     * been show earlier. -avalon
+     *  Special Case 3: User isn't on this channel, show all visible users, in 
+     *  non secret channels.
      */
-    while (member)
+     
+    if (chptr) do_names(sptr, chptr, NAMES_VIS);
+    if (!EmptyString(para))
     {
-      ch3ptr = member->channel;
-#ifndef GODMODE
-      if (PubChannel(ch3ptr) || find_channel_member(sptr, ch3ptr))
-#endif
-        showflag = 1;
-      if (SecretChannel(ch3ptr))
-        secret = 1;
-      member = member->next_channel;
-    }
-    if (showflag)               /* Have we already shown them ? */
-      continue;
-#ifndef GODMODE
-    if (secret)                 /* On any secret channels ? */
-      continue;
-#endif
-    strcat(buf, c2ptr->name);
-    strcat(buf, " ");
-    idx += strlen(c2ptr->name) + 1;
-    flag = 1;
-#ifdef GODMODE
-    {
-      char yxx[6];
-      sprintf_irc(yxx, "%s%s", NumNick(c2ptr));
-      assert(c2ptr == findNUser(yxx));
-      sprintf_irc(buf + strlen(buf), "(%s) ", yxx);
-      idx += 6;
-    }
-#endif
-#ifdef GODMODE
-    if (mlen + idx + NICKLEN + 9 > BUFSIZE)
-#else
-    if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
-#endif
-    {
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-      strcpy(buf, "* * :");
-      idx = 5;
-      flag = 0;
+      sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], para);
+      return 1;
     }
   }
-  if (flag)
-    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
   return 1;
-  return 0;
 }
 
+ 
 /*
  * ms_names - server message handler
  *
@@ -310,196 +357,139 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Channel *chptr;
+  struct Channel *chptr; 
+  struct Channel *ch2ptr; 
   struct Client *c2ptr;
-  struct Membership* member;
-  struct Channel *ch2ptr = 0;
-  int idx, flag, len, mlen;
-  char *s, *para = parc > 1 ? parv[1] : 0;
-  char buf[BUFSIZE];
+  struct Membership* member; 
+  char* s;
+  char* para = parc > 1 ? parv[1] : 0; 
 
-  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
+  if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv)) 
+    return 0; 
+
+  if (EmptyString(para)) {
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*"); 
     return 0;
-
-  mlen = strlen(me.name) + 10 + strlen(sptr->name);
-
-  if (!EmptyString(para))
-  {
-    s = strchr(para, ',');
-    if (s)
-    {
-      parv[1] = ++s;
-      m_names(cptr, sptr, parc, parv);
-    }
-    clean_channelname(para);
-    ch2ptr = FindChannel(para);
   }
-
+  else if (*para == '0')
+    *para = '\0';
+  
+  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. */
+  if (s) {
+    parv[1] = ++s;
+    m_names(cptr, sptr, parc, parv);
+  }
+ 
   /*
-   * First, do all visible channels (public and the one user self is)
+   * Special Case 1: "/names 0".
+   * Full list as per RFC. 
    */
 
-  for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
-  {
-    if ((chptr != ch2ptr) && !EmptyString(para))
-      continue;                 /* -- wanted a specific channel */
-    if (!MyConnect(sptr) && EmptyString(para))
-      continue;
-#ifndef GODMODE
-    if (!ShowChannel(sptr, chptr))
-      continue;                 /* -- users on this are not listed */
-#endif
+  if (!*para) { 
+    int idx; 
+    int mlen;
+    int flag;
+    struct Channel *ch3ptr;
+    char buf[BUFSIZE]; 
 
-    /* Find users on same channel (defined by chptr) */
+    mlen = strlen(me.name) + 10 + strlen(sptr->name);
 
-    strcpy(buf, "* ");
-    len = strlen(chptr->chname);
-    strcpy(buf + 2, chptr->chname);
-    strcpy(buf + 2 + len, " :");
+    /* List all visible channels/visible members */ 
 
-    if (PubChannel(chptr))
-      *buf = '=';
-    else if (SecretChannel(chptr))
-      *buf = '@';
-    idx = len + 4;
-    flag = 1;
-    for (member = chptr->members; member; member = member->next_member)
+    for (ch2ptr = GlobalChannelList; ch2ptr; ch2ptr = ch2ptr->next)
+    { 
+      if (!ShowChannel(sptr, ch2ptr))
+        continue;                 /* Don't show secret chans. */ 
+
+      if (find_channel_member(sptr, ch2ptr))
+      {
+        do_names(sptr, ch2ptr, NAMES_ALL); /* Full list if we're in this chan. */
+      } else { 
+        do_names(sptr, ch2ptr, NAMES_VIS);
+      }
+    } 
+ 
+    /* List all remaining users on channel '*' */
+
+    strcpy(buf, "* * :");
+    idx = 5;
+    flag = 0;
+
+    for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
     {
-      c2ptr = member->user;
-#ifndef GODMODE
-      if (sptr != c2ptr && IsInvisible(c2ptr) && !find_channel_member(sptr, chptr))
+      int showflag = 0;
+
+      if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
         continue;
-#endif
-      if (IsZombie(member))
+
+      member = c2ptr->user->channel; 
+
+      while (member)
       {
-        if (member->user != sptr)
-          continue;
-        else
-        {
-          strcat(buf, "!");
-          idx++;
-        }
+        ch3ptr = member->channel;
+  
+        if (PubChannel(ch3ptr) || find_channel_member(sptr, ch3ptr))
+          showflag = 1;
+ 
+        member = member->next_channel;
       }
-      else if (IsChanOp(member))
-      {
-        strcat(buf, "@");
-        idx++;
-      }
-      else if (HasVoice(member))
-      {
-        strcat(buf, "+");
-        idx++;
-      }
+
+      if (showflag)               /* Have we already shown them? */
+        continue;
+ 
       strcat(buf, c2ptr->name);
       strcat(buf, " ");
       idx += strlen(c2ptr->name) + 1;
       flag = 1;
-#ifdef GODMODE
-      {
-        char yxx[6];
-        sprintf_irc(yxx, "%s%s", NumNick(c2ptr));
-        assert(c2ptr == findNUser(yxx));
-        sprintf_irc(buf + strlen(buf), "(%s) ", yxx);
-        idx += 6;
-      }
-      if (mlen + idx + NICKLEN + 11 > BUFSIZE)
-#else
-      if (mlen + idx + NICKLEN + 5 > BUFSIZE)
-#endif
-        /* space, modifier, nick, \r \n \0 */
+
+      if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
       {
         sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-        strcpy(buf, "* ");
-        ircd_strncpy(buf + 2, chptr->chname, len + 1);
-        buf[len + 2] = 0;
-        strcat(buf, " :");
-        if (PubChannel(chptr))
-          *buf = '=';
-        else if (SecretChannel(chptr))
-          *buf = '@';
-        idx = len + 4;
+        strcpy(buf, "* * :");
+        idx = 5;
         flag = 0;
       }
     }
     if (flag)
       sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
+    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+    return 1; 
+  } 
+
+  /*
+   *  Special Case 2: User is on this channel, requesting full names list.
+   *  (As performed with each /join) - ** High frequency usage **
+   */
+
+  clean_channelname(para);
+  chptr = FindChannel(para); 
+ 
+  member = find_member_link(chptr, sptr); 
+  if (member)
+  { 
+    if (chptr) do_names(sptr, chptr, NAMES_ALL);
+    if (!EmptyString(para))
+    {
+      sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], chptr ? chptr->chname : para); 
+      return 1;
+    }
+
   }
-  if (!EmptyString(para))
+    else
   {
-    sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0],
-        ch2ptr ? ch2ptr->chname : para);
-    return (1);
-  }
-
-  /* Second, do all non-public, non-secret channels in one big sweep */
-
-  strcpy(buf, "* * :");
-  idx = 5;
-  flag = 0;
-  for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
-  {
-    struct Channel *ch3ptr;
-    int showflag = 0, secret = 0;
-
-#ifndef GODMODE
-    if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
-#else
-    if (!IsUser(c2ptr))
-#endif
-      continue;
-    member = c2ptr->user->channel;
     /*
-     * Don't show a client if they are on a secret channel or when
-     * they are on a channel sptr is on since they have already
-     * been show earlier. -avalon
+     *  Special Case 3: User isn't on this channel, show all visible users, in 
+     *  non secret channels.
      */
-    while (member)
+     
+    if (chptr) do_names(sptr, chptr, NAMES_VIS);
+    if (!EmptyString(para))
     {
-      ch3ptr = member->channel;
-#ifndef GODMODE
-      if (PubChannel(ch3ptr) || find_channel_member(sptr, ch3ptr))
-#endif
-        showflag = 1;
-      if (SecretChannel(ch3ptr))
-        secret = 1;
-      member = member->next_channel;
+        sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], para);
+      return 1;
     }
-    if (showflag)               /* Have we already shown them ? */
-      continue;
-#ifndef GODMODE
-    if (secret)                 /* On any secret channels ? */
-      continue;
-#endif
-    strcat(buf, c2ptr->name);
-    strcat(buf, " ");
-    idx += strlen(c2ptr->name) + 1;
-    flag = 1;
-#ifdef GODMODE
-    {
-      char yxx[6];
-      sprintf_irc(yxx, "%s%s", NumNick(c2ptr));
-      assert(c2ptr == findNUser(yxx));
-      sprintf_irc(buf + strlen(buf), "(%s) ", yxx);
-      idx += 6;
-    }
-#endif
-#ifdef GODMODE
-    if (mlen + idx + NICKLEN + 9 > BUFSIZE)
-#else
-    if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
-#endif
-    {
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-      strcpy(buf, "* * :");
-      idx = 5;
-      flag = 0;
-    }
-  }
-  if (flag)
-    sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-  sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], "*");
+  } 
   return 1;
-  return 0;
 }
 
 
