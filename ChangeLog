@@ -1,4 +1,11 @@
 2002-07-05 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/packet.c(connect_dopacket): Pass the job on to server_dopacket
+	when they become a server.
+	* ircd/s_bsd.c(read_packet): Check they are now a server *after* the
+	packet is sent.
+	* ircd/class.c(make_class): Fixed an assert to be more useful.
+	
+2002-07-05 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/packet.c
 	* ircd/packet.h: (connect_dopacket): Made a dopacket function for
 	connecting links which sends the messages through the correct message

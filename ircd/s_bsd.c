@@ -727,10 +727,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
   if (length <= 0)
     ;
   else if (IsServer(cptr))
-  {
     return server_dopacket(cptr, readbuf, length);
-  }
-  else if (IsHandshake(cptr) || IsConnecting(cptr))
+  else if (IsConnecting(cptr)  || IsHandshake(cptr))
     return connect_dopacket(cptr, readbuf, length);
   else
   {
@@ -747,24 +745,6 @@ static int read_packet(struct Client *cptr, int socket_ready)
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
            (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
     {
-      /*
-       * If it has become registered as a Server
-       * then skip the per-message parsing below.
-       */
-      if (IsHandshake(cptr) || IsServer(cptr))
-      {
-        int ret;
-        while (-1)
-        {
-          dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
-          if (dolen <= 0)
-            return 1;
-          ret = IsServer(cptr) ? server_dopacket(cptr, readbuf, dolen) :
-                                 connect_dopacket(cptr, readbuf, dolen);
-          if (ret != 1)
-            return ret;
-        }
-      }
       dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
       /*
        * Devious looking...whats it do ? well..if a client
@@ -783,6 +763,31 @@ static int read_packet(struct Client *cptr, int socket_ready)
       }
       else if (client_dopacket(cptr, dolen) == CPTR_KILLED)
         return CPTR_KILLED;
+      /*
+       * If it has become registered as a Server
+       * then skip the per-message parsing below.
+       */
+      if (IsHandshake(cptr) || IsServer(cptr))
+      {
+        while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr))
+        {
+          dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
+          if (dolen < 0)
+            return 1;
+          else if (dolen == 0)
+          {
+            if (DBufLength(&(cli_recvQ(cptr))) < 510)
+              cli_flags(cptr) |= FLAGS_NONL;
+            else
+              DBufClear(&(cli_recvQ(cptr)));
+          }
+          else if ((IsServer(cptr) &&
+                    server_dopacket(cptr, readbuf, dolen) == CPTR_KILLED) ||
+                   (!IsServer(cptr) &&
+                    connect_dopacket(cptr, readbuf, dolen) == CPTR_KILLED))
+            return CPTR_KILLED;
+        }
+      }
     }
 
     /* If there's still data to process, wait 2 seconds first */
