@@ -1,5 +1,11 @@
 2001-08-17  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/numnicks.c: include stdlib.h for exit()
+
+	* ircd/ircd_log.c: include stdlib.h for exit()
+
+	* ircd/ircd_events.c: include stdlib.h for exit()
+
 	* ircd/s_stats.c: remove description of /stats v, since it's gone
 
 	* ircd/m_wallops.c (mo_wallops): add "*" to the beginning of
