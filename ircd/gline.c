@@ -68,7 +68,8 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
   gline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
   assert(0 != gline);
 
-  gline->gl_expire = expire; /* initialize gline... */
+  DupString(gline->gl_reason, reason); /* initialize gline... */
+  gline->gl_expire = expire;
   gline->gl_lastmod = lastmod;
   gline->gl_flags = flags & GLINE_MASK;
 
@@ -147,7 +148,8 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
     return;
 
   if (IsUser(sptr)) { /* select appropriate source */
-    assert(0 != gline->gl_lastmod);
+    if (!gline->gl_lastmod)
+      return;
     sendto_serv_butone(cptr, "%s%s " TOK_GLINE " * %c%s%s%s " TIME_T_FMT " "
 		       TIME_T_FMT " :%s", NumNick(sptr),
 		       GlineIsActive(gline) ? '+' : '-', gline->gl_user,
@@ -353,7 +355,8 @@ gline_find(char *userhost, unsigned int flags)
 
       if (gline->gl_expire <= TStime())
 	gline_free(gline);
-      else if (match(gline->gl_user, userhost) == 0)
+      else if ((flags & GLINE_EXACT ? ircd_strcmp(gline->gl_user, userhost) :
+		match(gline->gl_user, userhost)) == 0)
 	return gline;
     }
   }
@@ -369,10 +372,17 @@ gline_find(char *userhost, unsigned int flags)
 
     if (gline->gl_expire <= TStime())
       gline_free(gline);
-    else if (match(gline->gl_host, host) == 0 &&
-	     ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
-	      match(gline->gl_user, user) == 0))
+    else if (flags & GLINE_EXACT) {
+      if (ircd_strcmp(gline->gl_host, host) == 0 &&
+	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
+	   ircd_strcmp(gline->gl_user, user) == 0))
+	break;
+    } else {
+      if (match(gline->gl_host, host) == 0 &&
+	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
+	   match(gline->gl_user, user) == 0))
       break;
+    }
   }
 
   MyFree(t_uh);

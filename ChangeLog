@@ -1,5 +1,18 @@
 2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_join.c: look up badchans with GLINE_EXACT
+
+	* ircd/m_gline.c: fix parc count problems; look up existing
+	G-lines with GLINE_EXACT; only set new lastmod when
+	activating/deactivating existing glines if old lastmod was not 0
+
+	* ircd/gline.c: forgot to copy the gline reason over; don't
+	propagate a gline with 0 lastmod if origin is user; add
+	GLINE_EXACT to force exact matching of gline mask
+
+	* ircd/ircd_snprintf.c (doprintf): forgot to deal with the zero
+	flag properly
+
 	* ircd/s_conf.c (find_kill): gline_find() takes a char *userhost,
 	but gline_lookup() actually takes a client--d'oh.
 
@@ -451,7 +464,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.82 2000-04-14 14:41:04 kev Exp $
+# $Id: ChangeLog,v 1.83 2000-04-14 16:53:09 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

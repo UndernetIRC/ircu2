@@ -133,13 +133,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   time_t expire_off, lastmod = 0;
   char *mask = parv[2], *target = parv[1], *reason;
 
-  if (parc == 4) {
+  if (parc == 5) {
     if (!find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
 
     reason = parv[4];
     flags |= GLINE_FORCE;
-  } else if (parc >= 5) {
+  } else if (parc > 5) {
     lastmod = atoi(parv[4]);
     reason = parv[5];
   } else
@@ -177,7 +177,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   expire_off = atoi(parv[3]);
 
-  agline = gline_find(mask, GLINE_ANY);
+  agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
 
   if (agline) {
     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
@@ -241,11 +241,11 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   }
 #endif
 
-  if (parc == 3) {
+  if (parc == 4) {
     expire_off = atoi(parv[2]);
     reason = parv[3];
     flags |= GLINE_LOCAL;
-  } else if (parc >= 4) {
+  } else if (parc > 4) {
     target = parv[2];
     expire_off = atoi(parv[3]);
     reason = parv[4];
@@ -279,16 +279,18 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
   }
 
-  agline = gline_find(mask, GLINE_ANY);
+  agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
 
   if (agline) {
     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
       gline_free(agline);
     else {
       if (flags & GLINE_ACTIVE)
-	return gline_activate(cptr, sptr, agline, TStime());
+	return gline_activate(cptr, sptr, agline,
+			      GlineLastMod(agline) ? TStime() : 0);
       else
-	return gline_deactivate(cptr, sptr, agline, TStime());
+	return gline_deactivate(cptr, sptr, agline,
+				GlineLastMod(agline) ? TStime() : 0);
     }
   }
 

@@ -1820,9 +1820,6 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       char intbuf[INTBUF_LEN], **table = 0, *tstr;
       int ibuf_loc = INTBUF_LEN, ilen, zlen = 0, plen = 0, elen = 0;
 
-      if (fld_s.prec < 0) /* default precision is 1 */
-	fld_s.prec = 1;
-
       if (fld_s.base == BASE_OCTAL) /* select string table to use */
 	table = octal;
       else if (fld_s.base == BASE_DECIMAL)
@@ -1831,6 +1828,15 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	table = (fld_s.flags & INFO_UPPERCASE) ? HEX : hex;
 	if (fld_s.flags & FLAG_ALT)
 	  elen = 2; /* account for the length of 0x */
+      }
+
+      if (fld_s.prec < 0) { /* default precision is 1 */
+	if ((fld_s.flags & (FLAG_MINUS | FLAG_ZERO)) == FLAG_ZERO &&
+	    fld_s.width) {
+	  fld_s.prec = fld_s.width - elen;
+	  fld_s.width = 0;
+	} else
+	  fld_s.prec = 1;
       }
 
       /* If there's a sign flag, account for it */

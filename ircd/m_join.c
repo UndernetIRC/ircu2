@@ -202,7 +202,7 @@ int m_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef BADCHAN
 	struct Gline *gline;
 
-        if ((gline = gline_find(name, GLINE_BADCHAN)) &&
+        if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
 	    GlineIsActive(gline) && !IsAnOper(sptr))
         {
           sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
@@ -629,7 +629,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #ifdef BADCHAN
 	struct Gline *gline;
 
-        if ((gline = gline_find(name, GLINE_BADCHAN)) &&
+        if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
 	    GlineIsActive(gline) && !IsAnOper(sptr))
         {
           sendto_one(sptr, err_str(ERR_BADCHANNAME), me.name, parv[0], name);
