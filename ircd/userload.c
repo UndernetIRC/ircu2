@@ -43,21 +43,19 @@
 #include <string.h>
 #include <time.h>
 
-struct current_load_st current_load;    /* The current load */
+struct current_load_st current_load;    /**< The current load */
 
-static struct current_load_st cspm_sum; /* Number of connections times number
+static struct current_load_st cspm_sum; /**< Number of connections times number
                                            of seconds per minute. */
-static struct current_load_st csph_sum; /* Number of connections times number
+static struct current_load_st csph_sum; /**< Number of connections times number
                                            of seconds per hour. */
-static struct current_load_st cspm[60]; /* Last 60 minutes */
-static struct current_load_st csph[72]; /* Last 72 hours */
+static struct current_load_st cspm[60]; /**< Last 60 minutes */
+static struct current_load_st csph[72]; /**< Last 72 hours */
 
-static int m_index, h_index;    /* Array indexes */
+static int m_index; /**< Next entry to use in #cspm. */
+static int h_index; /**< Next entry to use in #csph. */
 
-/*
- * update_load
- *
- * A new connection was added or removed.
+/** Update load average to reflect a change in the local client count.
  */
 void update_load(void)
 {
@@ -201,6 +199,11 @@ void update_load(void)
   last = CurrentTime;
 }
 
+/** Statistics callback to display userload.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 void
 calc_load(struct Client *sptr, const struct StatDesc *sd, char *param)
 {
@@ -257,6 +260,7 @@ calc_load(struct Client *sptr, const struct StatDesc *sd, char *param)
 		  times[2][i], times[3][i], times[4][i], what[i]);
 }
 
+/** Initialize the userload statistics. */
 void initload(void)
 {
   memset(&current_load, 0, sizeof(current_load));

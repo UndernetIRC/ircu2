@@ -32,10 +32,11 @@ struct StatDesc;
  * Structures
  */
 
+/** Tracks load of various types of users. */
 struct current_load_st {
-  unsigned int client_count;
-  unsigned int local_count;
-  unsigned int conn_count;
+  unsigned int client_count; /**< Count of locally connected clients. */
+  unsigned int local_count; /**< This field is updated but apparently meaningless. */
+  unsigned int conn_count; /**< Locally connected clients plus servers. */
 };
 
 /*
