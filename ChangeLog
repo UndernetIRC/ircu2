@@ -1,3 +1,94 @@
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y (parse_error): Convert to being a wrapper for
+	yyerror() so that configuration errors all go to the same place.
+
+	* ircd/s_conf.c: New variables conf_error and conf_already_read.
+	conf_error is cleared by read_configuration_file() and set by
+	yyerror(); conf_already_read is set by read_configuration_file()
+	and never cleared.  Make yyerror() display error to stderr before
+	conf_already_read is set.  Make configuration errors a fatal
+	condition in init_conf().
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/Makefile.in: Pass the source directory as an argument to
+	version.c.SH so it knows where to find the source files for an
+	out-of-srcdir build.
+
+	* ircd/version.c.SH: Use that information.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* Makefile.in: Ensure ${prefix}/include exists, since the adns
+	install puts files in that directory.  (The adns Makefile does
+	not use configure's ${includedir}.)
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features: The logic for F:AUTOHIDE was removed, but
+	not its documentation.  Fix that omission.
+
+	* include/ircd_features.h, ircd/ircd_features.c: Remove the unused
+	definitions for FEATURE_AUTOHIDE.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.who: Document the support for account matching and
+	display in the WHO command.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd.c (main): Move check_pid() call until after we read
+	the configuration file so that F:PPATH works correctly.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/match.c (match): Use ToLower() instead of tolower() for
+	character comparisons.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (register_user): Initialize "flag" (user's old
+	modes) passed to send_umode() so that the real set of modes are
+	sent to the user.
+	
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_server.c (ms_server): Apply +h/+s flags only to the new
+	server, not to a hub between us and the new server.
+
+	* ircd/ircd_relay.c (relay_directed_message): Check FLAG_SERVICE
+	on target server rather than FLAG_CHSERV (so that directed
+	messages work at all).
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Add checks for epoll_* system call family.
+
+	* configure: Regenerate.
+
+	* ircd/engine_epoll.c: New file; forward ported from 2.10.11
+	branch.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_alloc.h: Add definitions for MyRealloc, since they
+	are needed by kqueue and epoll event engines; kill #if 0'd block.
+
+	* include/memdebug.h: Declare dbg_realloc() helper function.
+
+	* ircd/ircd_alloc.c: Implement DoRealloc() helper function.
+
+	* ircd/memdebug.c: Implement dbg_realloc() helper function.
+
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (find_no_nickchange_channel): Disallow nick
+	changes on a moderated channel with neither ops nor voice.
+
+	* ircd/s_err.c: Update ERR_BANNICKCHANGE message to match.
+
 2004-01-20  Perry Lorier <isomer@undernet.org>
 
 	* ircd/ircd_parser.y: Fixed parser to work with a more modern bison

@@ -103,6 +103,27 @@ dbg_malloc_zero(size_t size, const char *type, const char *file, int line)
   return (void*)(mh + 1);
 }
 
+void*
+dbg_realloc(void *ptr, size_t size, const char *file, int line)
+{
+  struct MemHeader *mh, *mh2;
+  if (ptr == NULL)
+    return dbg_malloc(size, "realloc", file, line);
+  mh = (struct MemHeader*)ptr - 1;
+  assert(mh->magic == 0xA110CA7E);
+  if (mh->length >= size)
+    return mh;
+  mh2 = dbg_malloc(size, "realloc", file, line);
+  if (mh2 == NULL)
+  {
+    dbg_free(mh+1, file, line);
+    return NULL;
+  }
+  memcpy(mh2+1, mh+1, mh->length);
+  dbg_free(mh+1, file, line);
+  return (void*)(mh2+1);
+}
+
 void
 dbg_free(void *ptr, const char *file, int line)
 {

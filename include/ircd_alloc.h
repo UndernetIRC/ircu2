@@ -41,11 +41,8 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
   if (p) \
     DoFree(p, __FILE__, __LINE__)
 
-/* No realloc because it is not currently used, and it is not really the
- * nicest function to be using anyway(i.e. its evil if you want it
- * go ahead and write it).
- */
-
+#define MyRealloc(p, size) \
+  DoRealloc(p, size, __FILE__, __LINE__)
 
 /* First version: fast non-debugging macros... */
 #ifndef MDEBUG
@@ -59,25 +56,7 @@ extern OutOfMemoryHandler noMemHandler;
 #define DoFree(x, file, line) do { free((x)); (x) = 0; } while(0)
 extern void* DoMalloc(size_t len, const char*, const char*, int);
 extern void* DoMallocZero(size_t len, const char*, const char*, int);
-#if 0
-extern void *malloc_tmp;
-/*
-  Bleah, this is silly, the function call overhead for doing
-  the RightThing(tm) well worth the cost of avoiding this
-  non-reentrant mess of this macro, and accompanying global.
-*/
-#define DoMalloc(size, type, file, line) \
-  (\
-     (malloc_tmp = malloc(size), \
-     (malloc_tmp == NULL) ? (*noMemHandler)() : 0), \
-  malloc_tmp)
-
-#define DoMallocZero(size, type, file, line) \
-  (\
-    (DoMalloc(size, type, file, line), \
-    memset(malloc_tmp, 0, size)), \
-  malloc_tmp)
-#endif
+extern void *DoRealloc(void *, size_t, const char*, int);
 
 /* Second version: slower debugging versions... */
 #else /* defined(MDEBUG) */
@@ -90,6 +69,8 @@ extern void *malloc_tmp;
   dbg_malloc_zero(size, type, file, line)
 #define DoFree(p, file, line) \
   dbg_free(p, file, line)
+#define DoRealloc(p, size, file, line) \
+  dbg_realloc(p, size, file, line)
 #endif /* defined(MDEBUG) */
 
 #endif /* INCLUDED_ircd_alloc_h */

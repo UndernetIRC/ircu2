@@ -70,4 +70,10 @@ void* DoMallocZero(size_t size, const char* x, const char* y, int z)
   return t;
 }
 
-
+void* DoRealloc(void *orig, size_t size, const char *file, int line)
+{
+  void* t = realloc(orig, size);
+  if (!t)
+    (*noMemHandler)();
+  return t;
+}

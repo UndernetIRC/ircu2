@@ -79,14 +79,14 @@
   struct qline *qconf = NULL;
 
 static void parse_error(char *pattern,...) {
-	va_list vl;
-	struct VarData vd;
-	va_start(vl,pattern);
-	vd.vd_format = pattern;
-	vd.vd_args = vl;
-	sendto_opmask_butone(0, SNO_OLDSNO, "Config: %v", &vd);
-	va_end(vl);
+  static char error_buffer[1024];
+  va_list vl;
+  va_start(vl,pattern);
+  ircd_vsnprintf(NULL, error_buffer, sizeof(error_buffer), pattern, vl);
+  va_end(vl);
+  yyerror(error_buffer);
 }
+
 %}
 
 %token <text> QSTRING
@@ -175,7 +175,8 @@ static void parse_error(char *pattern,...) {
 blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        serverblock | operblock | portblock | jupeblock | clientblock |
-       killblock | cruleblock | motdblock | featuresblock | quarantineblock;
+       killblock | cruleblock | motdblock | featuresblock | quarantineblock |
+       error;
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -250,7 +251,7 @@ expr: NUMBER
 
 jupeblock: JUPE '{' jupeitems '}' ';' ;
 jupeitems: jupeitem jupeitems | jupeitem;
-jupeitem: jupenick;
+jupeitem: jupenick | error;
 jupenick: NICK '=' QSTRING
 {
   addNickJupes(yylval.text);
@@ -258,7 +259,7 @@ jupenick: NICK '=' QSTRING
 
 generalblock: GENERAL '{' generalitems '}' ';' ;
 generalitems: generalitem generalitems | generalitem;
-generalitem: generalnumeric | generalname | generalvhost | generaldesc;
+generalitem: generalnumeric | generalname | generalvhost | generaldesc | error;
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (localConf.numeric == 0)
@@ -301,7 +302,7 @@ adminblock: ADMIN '{' adminitems '}'
     DupString(localConf.contact, "");
 } ';';
 adminitems: adminitems adminitem | adminitem;
-adminitem: adminlocation | admincontact;
+adminitem: adminlocation | admincontact | error;
 adminlocation: LOCATION '=' QSTRING ';'
 {
  if (localConf.location1 == NULL)
@@ -335,7 +336,7 @@ classblock: CLASS {
 } ';';
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
-           classsendq;
+           classsendq | error;
 classname: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -393,7 +394,7 @@ connectblock: CONNECT
 }';';
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
-              | connectport;
+              | connectport | error;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -440,7 +441,7 @@ serverblock: SERVER
 } ';';
 serveritems: serveritem serveritems | serveritem;
 serveritem: servername | servermask | serverhub | serverleaf |
-             serveruworld;
+             serveruworld | error;
 servername: NAME '=' QSTRING
 {
  MyFree(aconf->name);
@@ -506,7 +507,7 @@ operblock: OPER
   }
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operlocal | operhost | operclass | operpriv;
+operitem: opername | operpass | operlocal | operhost | operclass | operpriv | error;
 
 opername: NAME '=' QSTRING ';'
 {
@@ -618,7 +619,7 @@ portblock: PORT {
   }
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portmask | portserver | porthidden;
+portitem: portnumber | portvhost | portmask | portserver | porthidden | error;
 portnumber: PORT '=' NUMBER ';'
 {
   port = yylval.num;
@@ -681,7 +682,7 @@ clientblock: CLIENT
   }
 } ';';
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientclass | clientpass | clientip;
+clientitem: clienthost | clientclass | clientpass | clientip | error;
 clientip: IP '=' QSTRING ';'
 {
   MyFree(aconf->host);
@@ -729,7 +730,7 @@ killblock: KILL
   }
 } ';';
 killitems: killitem killitems | killitem;
-killitem: killuhost | killreal | killreasonfile | killreason;
+killitem: killuhost | killreal | killreasonfile | killreason | error;
 killuhost: HOST '=' QSTRING ';'
 {
   char *u, *h;
@@ -818,7 +819,7 @@ cruleblock: CRULE
 } ';';
 
 cruleitems: cruleitem cruleitems | cruleitem;
-cruleitem: cruleserver | crulerule | cruleall;
+cruleitem: cruleserver | crulerule | cruleall | error;
 
 cruleserver: SERVER '=' QSTRING ';'
 {
@@ -853,7 +854,7 @@ motdblock: MOTD {
 } ';';
 
 motditems: motditem motditems | motditem;
-motditem: motdhost | motdfile;
+motditem: motdhost | motdfile | error;
 motdhost: HOST '=' QSTRING ';'
 {
   DupString(host, yylval.text);

@@ -618,6 +618,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   /* Send umode to client */
   if (MyUser(sptr))
   {
+    memset(&flag, 0, sizeof(flag));
     send_umode(cptr, sptr, &flag, ALL_UMODES);
     if (cli_snomask(sptr) != SNO_DEFAULT && HasFlag(sptr, FLAG_SERVNOTICE))
       send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));

@@ -197,7 +197,7 @@ int match(const char *mask, const char *name)
 
       return (*m != 0);
     }
-    if (tolower(*m) != tolower(*n) && *m != '?') {
+    if (ToLower(*m) != ToLower(*n) && *m != '?') {
       if (!wild)
         return 1;  /* failure! */
 

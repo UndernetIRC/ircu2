@@ -170,21 +170,21 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   *parv[5] = 'J';
 
+  prot = atoi(parv[5] + 1);
+  if (prot > atoi(MAJOR_PROTOCOL))
+    prot = atoi(MAJOR_PROTOCOL);
+
   if (*parv[7] == '+') {
     for (ch = parv[7] + 1; *ch; ch++)
       switch (*ch) {
       case 'h':
-	SetHub(cptr);
-	break;
+        SetHub(cptr);
+        break;
       case 's':
-	SetService(cptr);
-	break;
+        SetService(cptr);
+        break;
       }
   }
-
-  prot = atoi(parv[5] + 1);
-  if (prot > atoi(MAJOR_PROTOCOL))
-    prot = atoi(MAJOR_PROTOCOL);
 
   hop = atoi(parv[2]);
   start_timestamp = atoi(parv[3]);
@@ -702,18 +702,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (strlen(parv[5]) != 3 || (parv[5][0] != 'P' && parv[5][0] != 'J'))
     return exit_client_msg(cptr, sptr, &me, "Bogus protocol (%s)", parv[5]);
 
-  if (*parv[7] == '+') {
-    for (ch = parv[7] + 1; *ch; ch++)
-      switch (*ch) {
-      case 'h':
-	SetHub(cptr);
-	break;
-      case 's':
-	SetService(cptr);
-	break;
-      }
-  }
-
   prot = atoi(parv[5] + 1);
   if (prot > atoi(MAJOR_PROTOCOL))
     prot = atoi(MAJOR_PROTOCOL);
@@ -1071,6 +1059,18 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Use cptr, because we do protocol 9 -> 10 translation
      for numeric nicks ! */
   SetServerYXX(cptr, acptr, parv[6]);
+
+  if (*parv[7] == '+') {
+    for (ch = parv[7] + 1; *ch; ch++)
+      switch (*ch) {
+      case 'h':
+	SetHub(acptr);
+	break;
+      case 's':
+	SetService(acptr);
+	break;
+      }
+  }
 
   Count_newremoteserver(UserStats);
   add_client_to_list(acptr);

@@ -633,10 +633,6 @@ int main(int argc, char **argv) {
   setup_signals();
   feature_init(); /* initialize features... */
   log_init(*argv);
-  if (check_pid()) {
-    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
-    exit(2);
-  }
   set_nomem_handler(outofmemory);
   
   if (!init_string()) {
@@ -660,6 +656,11 @@ int main(int argc, char **argv) {
     log_write(LS_SYSTEM, L_CRIT, 0, "Failed to read configuration file %s",
 	      configfile);
     return 7;
+  }
+
+  if (check_pid()) {
+    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
+    exit(2);
   }
 
   init_server_identity();

@@ -906,7 +906,7 @@ static Numeric replyTable[] = {
 /* 436 */
   { ERR_NICKCOLLISION, "%s :Nickname collision KILL", "436" },
 /* 437 */
-  { ERR_BANNICKCHANGE, "%s :Cannot change nickname while banned on channel", "437" },
+  { ERR_BANNICKCHANGE, "%s :Cannot change nickname while banned on channel or channel is moderated", "437" },
 /* 438 */
   { ERR_NICKTOOFAST, "%s :Nick change too fast. Please wait %d seconds.", "438" },
 /* 439 */

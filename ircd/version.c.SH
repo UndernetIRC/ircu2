@@ -1,5 +1,7 @@
 echo "Extracting ircd/version.c ..."
 
+srcdir=$1
+
 if test -r version.c
 then
    generation=`sed -n 's/^char \*generation = \"\(.*\)\";/\1/p' < version.c`
@@ -11,18 +13,18 @@ fi
 generation=`expr $generation + 1`
 
 sum=sum
-if $sum s_serv.c 1> /dev/null 2>&1; then
+if $sum ${srcdir}/s_serv.c 1> /dev/null 2>&1; then
 :
 else
   sum=cksum
 fi
-sumsserv=`$sum s_serv.c 2> /dev/null`;
-sumsuser=`$sum s_user.c 2> /dev/null`;
-sumchan=`$sum channel.c 2> /dev/null`;
-sumsbsd=`$sum s_bsd.c 2> /dev/null`;
-sumhash=`$sum hash.c 2> /dev/null`;
-sumsmisc=`$sum s_misc.c 2> /dev/null`;
-sumircd=`$sum ircd.c 2> /dev/null`;
+sumsserv=`$sum ${srcdir}/s_serv.c 2> /dev/null`;
+sumsuser=`$sum ${srcdir}/s_user.c 2> /dev/null`;
+sumchan=`$sum ${srcdir}/channel.c 2> /dev/null`;
+sumsbsd=`$sum ${srcdir}/s_bsd.c 2> /dev/null`;
+sumhash=`$sum ${srcdir}/hash.c 2> /dev/null`;
+sumsmisc=`$sum ${srcdir}/s_misc.c 2> /dev/null`;
+sumircd=`$sum ${srcdir}/ircd.c 2> /dev/null`;
 
 creation=`date | \
 awk '{if (NF == 6) \

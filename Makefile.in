@@ -103,6 +103,7 @@ depend: ${IRCD_MAKEFILES}
 
 install: ${IRCD_MAKEFILES}
 	test -d ${prefix} || mkdir ${prefix}
+	test -d ${prefix}/include || mkdir ${prefix}/include
 	@for i in ${SUBDIRS}; do \
 		echo "Installing $$i..."; \
 		cd $$i; ${MAKE} install; cd ..; \

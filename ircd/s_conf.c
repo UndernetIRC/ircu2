@@ -971,11 +971,14 @@ void clear_quarantines(void)
 
 #define MAXCONFLINKS 150
 
+static int conf_error;
+static int conf_already_read;
 extern FILE *yyin;
 void init_lexer(void);
 
 int read_configuration_file(void)
 {
+  conf_error = 0;
   feature_unmark(); /* unmark all features for resetting later */
   /* Now just open an fd. The buffering isn't really needed... */
   init_lexer();
@@ -983,6 +986,7 @@ int read_configuration_file(void)
   fclose(yyin);
   yyin = NULL;
   feature_mark(); /* reset unmarked features */
+  conf_already_read = 1;
   return 1;
 }
 
@@ -993,6 +997,9 @@ yyerror(const char *msg)
                       lineno, msg);
  log_write(LS_CONFIG, L_ERROR, 0, "Config file parse error line %d: %s",
            lineno, msg);
+ if (!conf_already_read)
+   fprintf(stderr, "Config file parse error line %d: %s\n", lineno, msg);
+ conf_error = 1;
 }
 
 /*
@@ -1121,6 +1128,8 @@ int init_conf(void)
      */
     if (0 == localConf.name || 0 == localConf.numeric)
       return 0;
+    if (conf_error)
+      return 0;
 
     if (0 == localConf.location1)
       DupString(localConf.location1, "");
@@ -1128,7 +1137,7 @@ int init_conf(void)
       DupString(localConf.location2, "");
     if (0 == localConf.contact)
       DupString(localConf.contact, "");
-    
+
     return 1;
   }
   return 0;

@@ -113,7 +113,7 @@ AC_SEARCH_LIBS(res_mkquery, resolv, ,
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(poll.h sys/devpoll.h sys/event.h)
+AC_CHECK_HEADERS(poll.h sys/devpoll.h sys/epoll.h sys/event.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST
@@ -377,6 +377,32 @@ AC_MSG_RESULT([$unet_cv_enable_kqueue])
 if test x"$unet_cv_enable_kqueue" != xno; then
     AC_DEFINE([USE_KQUEUE], , [Define to enable the kqueue engine])
     ENGINE_C="engine_kqueue.c $ENGINE_C"
+fi
+
+dnl --disable-epoll check
+AC_MSG_CHECKING([whether to enable the epoll event engine])
+AC_ARG_ENABLE([epoll],
+[  --disable-epoll         Disable the epoll-based engine],
+[unet_cv_enable_epoll=$enable_epoll],
+[AC_CACHE_VAL(unet_cv_enable_epoll,
+[unet_cv_enable_epoll=yes])])
+
+if test x"$ac_cv_header_sys_epoll_h" = xno -o x"$ac_cv_func_epoll" = xno; then
+    unet_cv_enable_epoll=no
+fi
+
+AC_MSG_RESULT([$unet_cv_enable_epoll])
+
+dnl If we have the header and user has not refused epoll, we still need
+dnl to check whether the functions are properly defined.
+if test x"$unet_cv_enable_epoll" != xno; then
+    AC_MSG_CHECKING([whether epoll functions are properly defined])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <sys/epoll.h>], [epoll_create(10);])],
+        [AC_MSG_RESULT([yes])],
+        [AC_MSG_RESULT([no])
+         AC_DEFINE([EPOLL_NEED_BODY],,[Define to implement epoll system calls])])
+    AC_DEFINE([USE_EPOLL], , [Define to enable the epoll engine])
+    ENGINE_C="engine_epoll.c $ENGINE_C"
 fi
 
 dnl --disable-adns check...

@@ -711,7 +711,7 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
 
 /*
  * find_no_nickchange_channel
- * if a member and not opped or voiced and banned
+ * if a member and not (opped or voiced) and (banned or moderated)
  * return the name of the first channel banned on
  */
 const char* find_no_nickchange_channel(struct Client* cptr)
@@ -720,7 +720,9 @@ const char* find_no_nickchange_channel(struct Client* cptr)
     struct Membership* member;
     for (member = (cli_user(cptr))->channel; member;
 	 member = member->next_channel) {
-      if (!IsVoicedOrOpped(member) && is_banned(cptr, member->channel, member))
+        if (!IsVoicedOrOpped(member) &&
+            (is_banned(cptr, member->channel, member) ||
+             (member->channel->mode.mode & MODE_MODERATED)))
         return member->channel->chname;
     }
   }

@@ -251,12 +251,6 @@ HIDDEN_IP
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
 
-AUTOHIDE
- * Type: boolean
- * Default: TRUE
-
-If enabled, local users get umode +x by default when they connect.
-
 CONNEXIT_NOTICES
  * Type: boolean
  * Default: FALSE
