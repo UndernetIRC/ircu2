@@ -59,8 +59,9 @@
                         feature_int(FEAT_MAXBANS), feature_int(FEAT_NICKLEN), \
                         NICKLEN, TOPICLEN, AWAYLEN, TOPICLEN
 
-#define FEATURESVALUES2 feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#", "(ov)@+", "b,k,l,imnpstrD", "rfc1459", \
-                        feature_str(FEAT_NETWORK)
+#define FEATURESVALUES2 (feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#"), "(ov)@+", \
+                        (feature_bool(FEAT_OPLEVELS) ? "A,b,k,l,u,imnpstrD" : "b,k,l,imnpstrD"), \
+                        "rfc1459", feature_str(FEAT_NETWORK)
 
 #endif /* INCLUDED_supported_h */
 

@@ -1,5 +1,10 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* include/supported.h (FEATURESVALUES2): Include A,u, in CHANMODES
+	when oplevels are enabled.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (send_channel_modes): Only send oplevels for
 	channels that actually use them -- for -A channels, send chanops
 	as :o even if OPLEVELS is enabled.
