@@ -400,7 +400,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      *  If my ircd.conf sucks, I can try to connect to myself:
      */
     if (acptr == &me)
-      return exit_client_msg(cptr, cptr, &me, "nick collision with me (%s), check server number?", host);
+      return exit_client_msg(cptr, cptr, &me, "nick collision with me (%s), check server number in M:?", host);
     /*
      * Detect wrong numeric.
      */
@@ -1066,7 +1066,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     if (acptr == &me)
       return exit_client_msg(cptr, cptr, &me,
-          "nick collision with me (%s)", host);
+          "nick collision with me, check server number in M:? (%s)", host);
     /*
      * Detect wrong numeric.
      */
@@ -1731,7 +1731,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      */
     if (acptr == &me)
       return exit_client_msg(cptr, cptr, &me,
-          "nick collision with me (%s)", host);
+          "nick collision with me, check server number in M:? (%s)", host);
     /*
      * Detect wrong numeric.
      */
