@@ -378,7 +378,7 @@ static void check_pings(struct Event* ev) {
 		   ":Your client may not be compatible with this server.");
 	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Compatible clients are available at "
-		   "ftp://ftp.undernet.org/pub/irc/clients");
+		   URL_CLIENTS);
       }    
       exit_client_msg(cptr,cptr,&me, "Ping Timeout");
       continue;

@@ -83,6 +83,7 @@
 
 #include "client.h"
 #include "ircd.h"
+#include "ircd_defs.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -148,8 +149,7 @@ int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc,
 
   send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
   sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
-		"/LINKS has been disabled, from CFV-165.  "
-		"Visit http://www.undernet.org/servers.php");
+		"/LINKS has been disabled, from CFV-165.  Visit " URL_SERVERS );
   return 0;
 }
 #endif

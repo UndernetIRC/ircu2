@@ -83,6 +83,7 @@
 
 #include "client.h"
 #include "ircd.h"
+#include "ircd_defs.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
@@ -177,7 +178,7 @@ int m_map_redirect(struct Client* cptr, struct Client* sptr, int parc,
 {
   sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
 		"/MAP has been disabled, from CFV-165.  "
-		"Visit http://www.undernet.org/servers.php");
+		"Visit " URL_SERVERS);
   return 0;
 }
 #endif

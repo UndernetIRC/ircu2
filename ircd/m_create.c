@@ -132,9 +132,16 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       MAGIC_REMOTE_JOIN_TS != chanTS)
     cli_serv(cli_user(sptr)->server)->lag = TStime() - chanTS;
 
-  /* If this server is >5 minutes fast, squit it */
-  if (TStime() - chanTS<-5*60*60)
-  	return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
+  /* If this server is >1 minute fast, warn */
+  if (TStime() - chanTS<-60) {
+    static int rate;
+    sendto_opmask_butone_ratelimited(0,SNO_NETWORK,&rate,
+	"Timestamp drift from %s (%is)",cli_name(cptr),chanTS-TStime());
+
+    /* If this server is >5 minutes fast, squit it */
+    if (TStime() - chanTS<-5*60*60)
+      return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
+  }
 
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;

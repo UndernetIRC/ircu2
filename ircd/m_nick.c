@@ -88,6 +88,7 @@
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_policy.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -338,7 +339,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * if sptr is a server it is exited here, nothing else to do
      */
     return exit_client_msg(cptr, sptr, &me,
-			   "Killed (*.undernet.org (%s <- %s))",
+			   "Killed (" HEAD_IN_SAND_SERVERNAME " (%s <- %s))",
 			   cli_name(cli_from(acptr)), cli_name(cptr));
   }
 
@@ -446,7 +447,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
         cli_flags(sptr) |= FLAGS_KILLED;
         exit_client(cptr, sptr, &me,
-		    "Killed (*.undernet.org (Nick collision))");
+		    "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))");
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
          * again we'll know about it --Bleep
@@ -468,24 +469,24 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
 			  "overruled)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (*.undernet.org (older "
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (older "
 		    "nick overruled))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :*.undernet.org (older nick "
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
 		    "overruled)", acptr);
     }
-    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (older nick "
+    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (older nick "
 		"overruled))");
   }
   else {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
 			  "same user@host)", acptr, cli_name(&me));
     if (MyConnect(acptr)) {
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (*.undernet.org (nick "
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (" HEAD_IN_SAND_SERVERNAME " (nick "
 		    "collision from same user@host))");
-      sendcmdto_one(&me, CMD_KILL, acptr, "%C :*.undernet.org (older nick "
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :" HEAD_IN_SAND_SERVERNAME " (older nick "
 		    "overruled)", acptr);
     }
-    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (nick collision "
+    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME " (nick collision "
 		"from same user@host))");
   }
   if (lastnick == cli_lastnick(acptr))
