@@ -1,8 +1,9 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.13 2000-03-18 05:20:27 bleep Exp $
+# $Id: ChangeLog,v 1.14 2000-03-18 06:48:21 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
-* new version tag
+#-----------------------------------------------------------------------------
+* Start ircu2.10.11 development, beta branch u2_10_10 --Bleep
