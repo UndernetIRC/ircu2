@@ -1,4 +1,7 @@
 2003-11-06 Isomer <isomer@undernet.org>
+	* include/gline.c: a^b vs !(a^b)
+
+2003-11-06 Isomer <isomer@undernet.org>
 	* include/gline.c: Fix more cores in make_gline.c
 
 2003-11-06 Isomer <isomer@undernet.org>
