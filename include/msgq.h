@@ -36,17 +36,6 @@ struct iovec;
 
 struct Client;
 
-struct MsgCounts {
-  int alloc;
-  int used;
-};
-
-/*
- * These should be considered read-only
- */
-extern struct MsgCounts msgBufCounts;	/* resource count for struct MsgBuf */
-extern struct MsgCounts msgCounts;	/* resource count for struct Msg */
-
 struct Msg;
 struct MsgBuf;
 
@@ -92,8 +81,8 @@ extern void msgq_append(struct Client *dest, struct MsgBuf *mb,
 			const char *format, ...);
 extern void msgq_clean(struct MsgBuf *mb);
 extern void msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio);
-extern void msgq_count_memory(size_t *msg_alloc, size_t *msg_used,
-			      size_t *msgbuf_alloc, size_t *msgbuf_used);
+extern void msgq_count_memory(struct Client *cptr, size_t *msg_alloc,
+			      size_t *msgbuf_alloc);
 extern unsigned int msgq_bufleft(struct MsgBuf *mb);
 extern void msgq_histogram(struct Client *cptr);
 

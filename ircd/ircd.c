@@ -120,6 +120,17 @@ void server_die(const char* message) {
   running = 0;
 }
 
+/*----------------------------------------------------------------------------
+ * API: server_panic
+ *--------------------------------------------------------------------------*/
+void server_panic(const char* message) {
+  /* inhibit sending server notice--we may be panicing due to low memory */
+  log_write(LS_SYSTEM, L_CRIT, LOG_NOSNOTICE, "Server panic: %s", message);
+  flush_connections(0);
+  log_close();
+  close_connections(1);
+  exit(1);
+}
 
 /*----------------------------------------------------------------------------
  * API: server_restart

@@ -1,3 +1,33 @@
+2002-05-10  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+2002-05-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_debug.c (count_memory): msgq_count_memory() now sends the
+	replies itself
+
+	* ircd/msgq.c: implement a slab-style buffer allocation system
+	using powers of 2; collapsed all static data into a single struct;
+	add msgq_clear_freembs() (internal only) to clear the freelist in
+	a last-ditch attempt to get more memory to allocate for buffers;
+	make msgq_count_memory() send the replies itself, and send a
+	histogram for each slab at that; correct an off-by-one error in
+	the message size histogram accumulators
+
+	* ircd/ircd.c: implement server_panic() to get us out in an
+	emergency without allocating any more buffers
+
+	* ircd/Makefile.in: run "make depend"
+
+	* include/msgq.h: completely internalize MsgCounts stuff,
+	including changes to msgq_count_memory() to send the replies
+	itself
+
+	* include/ircd.h: declare a panic method to try to prohibit
+	allocation of memory in emergencies but still get a log message
+	out
+
 2002-05-05  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/msgq.c (msgq_histogram): minor off-by-n error--no harm
