@@ -1,3 +1,11 @@
+2002-06-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/m_server.c (ms_server): we weren't parsing the server flags
+	correctly in ms_server()--we were setting the flags on the cptr
+	instead of the introduced server!
+
 2002-06-07  Alex Badea  <vampire@p16.pub.ro)
 
 	* ircd/ircd.c (check_pings): use a timestamp on server pings
