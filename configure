@@ -2366,9 +2366,10 @@ ac_save_CC="$CC"
 # breaks some systems' header files.
 # AIX			-qlanglvl=ansi
 # Ultrix and OSF/1	-std1
-# HP-UX			-Aa -D_HPUX_SOURCE
+# HP-UX 10.20 and later	-Ae
+# HP-UX older versions	-Aa -D_HPUX_SOURCE
 # SVR4			-Xc -D__EXTENSIONS__
-for ac_arg in "" -qlanglvl=ansi -std1 "-Aa -D_HPUX_SOURCE" "-Xc -D__EXTENSIONS__"
+for ac_arg in "" -qlanglvl=ansi -std1 -Ae "-Aa -D_HPUX_SOURCE" "-Xc -D__EXTENSIONS__"
 do
   CC="$ac_save_CC $ac_arg"
   cat >conftest.$ac_ext <<_ACEOF
@@ -6050,9 +6051,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for u_int16_t" >&5
-echo $ECHO_N "checking for u_int16_t... $ECHO_C" >&6
-if test "${ac_cv_type_u_int16_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for uint16_t" >&5
+echo $ECHO_N "checking for uint16_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint16_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6065,9 +6066,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((u_int16_t *) 0)
+if ((uint16_t *) 0)
   return 0;
-if (sizeof (u_int16_t))
+if (sizeof (uint16_t))
   return 0;
   ;
   return 0;
@@ -6094,23 +6095,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_u_int16_t=yes
+  ac_cv_type_uint16_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_u_int16_t=no
+ac_cv_type_uint16_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_u_int16_t" >&5
-echo "${ECHO_T}$ac_cv_type_u_int16_t" >&6
-if test $ac_cv_type_u_int16_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_uint16_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint16_t" >&6
+if test $ac_cv_type_uint16_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define u_int16_t unsigned int
+#define uint16_t unsigned int
 _ACEOF
 
 fi
@@ -6181,9 +6182,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for u_int16_t" >&5
-echo $ECHO_N "checking for u_int16_t... $ECHO_C" >&6
-if test "${ac_cv_type_u_int16_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for uint16_t" >&5
+echo $ECHO_N "checking for uint16_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint16_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6196,9 +6197,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((u_int16_t *) 0)
+if ((uint16_t *) 0)
   return 0;
-if (sizeof (u_int16_t))
+if (sizeof (uint16_t))
   return 0;
   ;
   return 0;
@@ -6225,23 +6226,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_u_int16_t=yes
+  ac_cv_type_uint16_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_u_int16_t=no
+ac_cv_type_uint16_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_u_int16_t" >&5
-echo "${ECHO_T}$ac_cv_type_u_int16_t" >&6
-if test $ac_cv_type_u_int16_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_uint16_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint16_t" >&6
+if test $ac_cv_type_uint16_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define u_int16_t unsigned short
+#define uint16_t unsigned short
 _ACEOF
 
 fi
@@ -6317,9 +6318,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for u_int32_t" >&5
-echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
-if test "${ac_cv_type_u_int32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for uint32_t" >&5
+echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6332,9 +6333,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((u_int32_t *) 0)
+if ((uint32_t *) 0)
   return 0;
-if (sizeof (u_int32_t))
+if (sizeof (uint32_t))
   return 0;
   ;
   return 0;
@@ -6361,23 +6362,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_u_int32_t=yes
+  ac_cv_type_uint32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_u_int32_t=no
+ac_cv_type_uint32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
-echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
-if test $ac_cv_type_u_int32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
+if test $ac_cv_type_uint32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define u_int32_t unsigned int
+#define uint32_t unsigned int
 _ACEOF
 
 fi
@@ -6448,9 +6449,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for u_int32_t" >&5
-echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
-if test "${ac_cv_type_u_int32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for uint32_t" >&5
+echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6463,9 +6464,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((u_int32_t *) 0)
+if ((uint32_t *) 0)
   return 0;
-if (sizeof (u_int32_t))
+if (sizeof (uint32_t))
   return 0;
   ;
   return 0;
@@ -6492,23 +6493,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_u_int32_t=yes
+  ac_cv_type_uint32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_u_int32_t=no
+ac_cv_type_uint32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
-echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
-if test $ac_cv_type_u_int32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
+if test $ac_cv_type_uint32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define u_int32_t unsigned short
+#define uint32_t unsigned short
 _ACEOF
 
 fi
@@ -6579,9 +6580,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for u_int32_t" >&5
-echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
-if test "${ac_cv_type_u_int32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for uint32_t" >&5
+echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6594,9 +6595,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((u_int32_t *) 0)
+if ((uint32_t *) 0)
   return 0;
-if (sizeof (u_int32_t))
+if (sizeof (uint32_t))
   return 0;
   ;
   return 0;
@@ -6623,23 +6624,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_u_int32_t=yes
+  ac_cv_type_uint32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_u_int32_t=no
+ac_cv_type_uint32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
-echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
-if test $ac_cv_type_u_int32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
+if test $ac_cv_type_uint32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define u_int32_t unsigned long
+#define uint32_t unsigned long
 _ACEOF
 
 fi
@@ -7864,8 +7865,9 @@ fi
 echo "$as_me:$LINENO: result: $unet_cv_sys_nonblocking_posix" >&5
 echo "${ECHO_T}$unet_cv_sys_nonblocking_posix" >&6
 if test $unet_cv_sys_nonblocking_posix = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define NBLOCK_POSIX 1
+
+cat >>confdefs.h <<\_ACEOF
+#define NBLOCK_POSIX
 _ACEOF
 
 else
@@ -7937,13 +7939,15 @@ fi
 echo "$as_me:$LINENO: result: $unet_cv_sys_nonblocking_bsd" >&5
 echo "${ECHO_T}$unet_cv_sys_nonblocking_bsd" >&6
 if test $unet_cv_sys_nonblocking_bsd = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define NBLOCK_BSD 1
+
+cat >>confdefs.h <<\_ACEOF
+#define NBLOCK_BSD
 _ACEOF
 
 else
-  cat >>confdefs.h <<\_ACEOF
-#define NBLOCK_SYSV 1
+
+cat >>confdefs.h <<\_ACEOF
+#define NBLOCK_SYSV
 _ACEOF
 
 fi
@@ -8001,8 +8005,9 @@ fi
 echo "$as_me:$LINENO: result: $unet_cv_sys_signal_posix" >&5
 echo "${ECHO_T}$unet_cv_sys_signal_posix" >&6
 if test $unet_cv_sys_signal_posix = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define POSIX_SIGNALS 1
+
+cat >>confdefs.h <<\_ACEOF
+#define POSIX_SIGNALS
 _ACEOF
 
 else
@@ -8066,13 +8071,15 @@ fi
 echo "$as_me:$LINENO: result: $unet_cv_sys_signal_bsd" >&5
 echo "${ECHO_T}$unet_cv_sys_signal_bsd" >&6
 if test $unet_cv_sys_signal_bsd = yes; then
-  cat >>confdefs.h <<\_ACEOF
-#define BSD_RELIABLE_SIGNALS 1
+
+cat >>confdefs.h <<\_ACEOF
+#define BSD_RELIABLE_SIGNALS
 _ACEOF
 
 else
-  cat >>confdefs.h <<\_ACEOF
-#define SYSV_UNRELIABLE_SIGNALS 1
+
+cat >>confdefs.h <<\_ACEOF
+#define SYSV_UNRELIABLE_SIGNALS
 _ACEOF
 
 fi

@@ -1,3 +1,12 @@
+2004-09-19  Michael Poole <mdpoole@troilus.org>
+
+	* acinclude.m4: Clean up AC_DEFINE()s so we no longer need
+	acconfig.h.
+
+	* acconfig.h: Remove since it is now redundant.
+
+	* aclocal.m4, config.h.in, configure: Regenerate.
+
 2004-09-19  hikari <hikari@undernet.org>
 
 	* configure.in: Fixed configure script rules to fail if (f)lex or yacc/bison 

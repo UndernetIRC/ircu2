@@ -55,7 +55,7 @@ int main(void)
   exit(1);
 }], unet_cv_sys_nonblocking_posix=yes, unet_cv_sys_nonblocking_posix=no)])
 if test $unet_cv_sys_nonblocking_posix = yes; then
-  AC_DEFINE(NBLOCK_POSIX)
+  AC_DEFINE([NBLOCK_POSIX],,[Define if you have POSIX non-blocking sockets.])
 else
 AC_CACHE_CHECK([for bsd non-blocking], unet_cv_sys_nonblocking_bsd,
 [AC_TRY_RUN([#include <sys/types.h>
@@ -82,9 +82,9 @@ int main(void)
   exit(1);
 }], unet_cv_sys_nonblocking_bsd=yes, unet_cv_sys_nonblocking_bsd=no)])
 if test $unet_cv_sys_nonblocking_bsd = yes; then
-  AC_DEFINE(NBLOCK_BSD)
+  AC_DEFINE([NBLOCK_BSD],,[Define if you have BSD non-blocking sockets.])
 else
-  AC_DEFINE(NBLOCK_SYSV)
+  AC_DEFINE([NBLOCK_SYSV],,[Define if you have SysV non-blocking sockets.])
 fi
 fi])
 
@@ -102,7 +102,7 @@ AC_CACHE_CHECK([for posix signals], unet_cv_sys_signal_posix,
 [sigaction(SIGTERM, (struct sigaction *)0L, (struct sigaction *)0L)],
 unet_cv_sys_signal_posix=yes, unet_cv_sys_signal_posix=no)])
 if test $unet_cv_sys_signal_posix = yes; then
-  AC_DEFINE(POSIX_SIGNALS)
+  AC_DEFINE([POSIX_SIGNALS],,[Define if you have POSIX signals.])
 else
 AC_CACHE_CHECK([for bsd reliable signals], unet_cv_sys_signal_bsd,
 [AC_TRY_RUN([#include <signal.h>
@@ -121,9 +121,9 @@ int main(void)
   exit (0);
 }], unet_cv_sys_signal_bsd=yes, unet_cv_sys_signal_bsd=no)])
 if test $unet_cv_sys_signal_bsd = yes; then
-  AC_DEFINE(BSD_RELIABLE_SIGNALS)
+  AC_DEFINE([BSD_RELIABLE_SIGNALS],,[Define if you have (reliable) BSD signals.])
 else
-  AC_DEFINE(SYSV_UNRELIABLE_SIGNALS)
+  AC_DEFINE([SYSV_UNRELIABLE_SIGNALS],,[Define if you have (unreliable) SysV signals.])
 fi
 fi])
 
@@ -140,22 +140,22 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(void *)
 if test "$ac_cv_sizeof_int" = 2 ; then
   AC_CHECK_TYPE(int16_t, int)
-  AC_CHECK_TYPE(u_int16_t, unsigned int)
+  AC_CHECK_TYPE(uint16_t, unsigned int)
 elif test "$ac_cv_sizeof_short" = 2 ; then
   AC_CHECK_TYPE(int16_t, short)
-  AC_CHECK_TYPE(u_int16_t, unsigned short)
+  AC_CHECK_TYPE(uint16_t, unsigned short)
 else
   AC_MSG_ERROR([Cannot find a type with size of 16 bits])
 fi
 if test "$ac_cv_sizeof_int" = 4 ; then
   AC_CHECK_TYPE(int32_t, int)
-  AC_CHECK_TYPE(u_int32_t, unsigned int)
+  AC_CHECK_TYPE(uint32_t, unsigned int)
 elif test "$ac_cv_sizeof_short" = 4 ; then
   AC_CHECK_TYPE(int32_t, short)
-  AC_CHECK_TYPE(u_int32_t, unsigned short)
+  AC_CHECK_TYPE(uint32_t, unsigned short)
 elif test "$ac_cv_sizeof_long" = 4 ; then
   AC_CHECK_TYPE(int32_t, long)
-  AC_CHECK_TYPE(u_int32_t, unsigned long)
+  AC_CHECK_TYPE(uint32_t, unsigned long)
 else
   AC_MSG_ERROR([Cannot find a type with size of 32 bits])
 fi])
