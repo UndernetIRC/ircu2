@@ -1171,7 +1171,6 @@ top:
 
 int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 {
-  struct SLink *lp;
   int overrideJoin = 0;  
   
   /*
@@ -1180,9 +1179,8 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
    * Now a user CAN escape anything if invited -- Isomer
    */
 
-  for (lp = (cli_user(sptr))->invited; lp; lp = lp->next)
-    if (lp->value.chptr == chptr)
-      return 0;
+  if (IsInvited(sptr, chptr))
+    return 0;
   
   /* An oper can force a join on a local channel using "OVERRIDE" as the key. 
      a HACK(4) notice will be sent if he would not have been supposed
@@ -1346,17 +1344,19 @@ void list_next_channels(struct Client *cptr, int nr)
   {
     for (; chptr; chptr = chptr->next)
     {
-      if (!cli_user(cptr) || (!(HasPriv(cptr, PRIV_LIST_CHAN) && IsAnOper(cptr)) && 
+      if (!cli_user(cptr))
+        continue;
+      if (!(HasPriv(cptr, PRIV_LIST_CHAN) && IsAnOper(cptr)) && 
           SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
         continue;
       if (chptr->users > args->min_users && chptr->users < args->max_users &&
           chptr->creationtime > args->min_time &&
           chptr->creationtime < args->max_time &&
-          (!args->topic_limits || (*chptr->topic &&
+          (!(args->flags & LISTARG_TOPICLIMITS) || (*chptr->topic &&
           chptr->topic_time > args->min_topic_time &&
           chptr->topic_time < args->max_topic_time)))
       {
-        if (ShowChannel(cptr,chptr))
+        if ((args->flags & LISTARG_SHOWSECRET) || ShowChannel(cptr,chptr))
 	  send_reply(cptr, RPL_LIST, chptr->chname, chptr->users,
 		     chptr->topic);
         chptr = chptr->next;
@@ -1722,11 +1722,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
 			   "[%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+			   cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+                                    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
@@ -2175,6 +2172,9 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     state->parc--;
     state->max_args--;
 
+    if ((int)t_limit<0) /* don't permit a negative limit */
+      return;
+
     if (!(state->flags & MODE_PARSE_WIPEOUT) &&
 	(!t_limit || t_limit == state->chptr->mode.limit))
       return;
@@ -2186,6 +2186,16 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     send_notoper(state);
     return;
   }
+
+  /* Can't remove a limit that's not there */
+  if (state->dir == MODE_DEL && !state->chptr->mode.limit)
+    return;
+    
+  /* Skip if this is a burst and a lower limit than this is set already */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      (state->chptr->mode.mode & flag_p[0]) &&
+      (state->chptr->mode.limit < t_limit))
+    return;
 
   if (state->done & DONE_LIMIT) /* allow limit to be set only once */
     return;
@@ -2244,8 +2254,8 @@ mode_parse_key(struct ParseState *state, int *flag_p)
 
   /* clean up the key string */
   s = t_str;
-  while (*++s > ' ' && *s != ':' && --t_len)
-    ;
+  while (*s > ' ' && *s != ':' && *s != ',' && t_len--)
+    s++;
   *s = '\0';
 
   if (!*t_str) { /* warn if empty */
@@ -2256,6 +2266,13 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   }
 
   if (!state->mbuf)
+    return;
+
+  /* Skip if this is a burst, we have a key already and the new key is 
+   * after the old one alphabetically */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      *(state->chptr->mode.key) &&
+      ircd_strcmp(state->chptr->mode.key, t_str) <= 0)
     return;
 
   /* can't add a key if one is set, nor can one remove the wrong key */
@@ -2829,8 +2846,7 @@ mode_process_clients(struct ParseState *state)
       if (MyUser(state->sptr)) {
 
 	/* don't allow local opers to be deopped on local channels */
-	if (MyUser(state->sptr) &&
-            state->cli_change[i].client != state->sptr &&
+	if (state->cli_change[i].client != state->sptr &&
 	    IsLocalChannel(state->chptr->chname) &&
 	    HasPriv(state->cli_change[i].client, PRIV_DEOP_LCHAN)) {
 	  send_reply(state->sptr, ERR_ISOPERLCHAN,

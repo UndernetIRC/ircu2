@@ -119,9 +119,9 @@ struct Client;
                                     (MODE_PRIVATE | MODE_SECRET)) == 0)
 #define is_listed(x)            ((x)->mode.mode & MODE_LISTED)
 
+#define IsGlobalChannel(name)   (*(name) == '#')
 #define IsLocalChannel(name)    (*(name) == '&')
-#define IsChannelName(name)     (*(name) == '#' || \
-                                IsLocalChannel(name))
+#define IsChannelName(name)     (IsGlobalChannel(name) || IsLocalChannel(name))
 
 typedef enum ChannelGetType {
   CGT_NO_CREATE,
@@ -133,6 +133,11 @@ typedef enum ChannelGetType {
 #define MODE_NULL      0
 #define MODE_ADD       0x40000000
 #define MODE_DEL       0x20000000
+
+/* used in ListingArgs.flags */
+
+#define LISTARG_TOPICLIMITS     0x0001
+#define LISTARG_SHOWSECRET      0x0002
 
 /*
  * Maximum acceptable lag time in seconds: A channel younger than
@@ -247,7 +252,7 @@ struct ListingArgs {
   time_t min_time;
   unsigned int max_users;
   unsigned int min_users;
-  unsigned int topic_limits;
+  unsigned int flags;
   time_t max_topic_time;
   time_t min_topic_time;
   struct Channel *chptr;
