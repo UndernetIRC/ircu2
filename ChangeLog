@@ -1,3 +1,13 @@
+2004-09-11  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_relay.c (server_relay_channel_message,
+	server_relay_channel_notice): Do not allow other servers to send
+	or relay to local channels.
+
+	* ircd/m_wallchops (ms_wallchops): Likewise.
+
+	* ircd/m_wallvoices (ms_wallvoices): Likewise.
+
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/gline.c (gline_add): fix GLINE logging (Bug #750927)
