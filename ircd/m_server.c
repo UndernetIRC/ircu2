@@ -151,7 +151,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   recv_time = TStime();
   info[0] = '\0';
 
-  if (parc < 7)
+  if (parc < 8)
   {
     need_more_params(sptr, "SERVER");
     return exit_client(cptr, cptr, &me, "Need more parameters");
