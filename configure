@@ -1944,12 +1944,12 @@ else
 #line 1945 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(short));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:1956: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -1983,12 +1983,12 @@ else
 #line 1984 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(int));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:1995: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -2022,12 +2022,12 @@ else
 #line 2023 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(long));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:2034: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -2061,12 +2061,12 @@ else
 #line 2062 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(void *));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:2073: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -2430,57 +2430,64 @@ else
   { echo "configure: error: Cannot find a type with size of 32 bits" 1>&2; exit 1; }
 fi
 
-echo $ac_n "checking for kqueue""... $ac_c" 1>&6
-echo "configure:2435: checking for kqueue" >&5
-if eval "test \"`echo '$''{'ac_cv_func_kqueue'+set}'`\" = set"; then
+for ac_func in kqueue setrlimit getrusage times
+do
+echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
+echo "configure:2437: checking for $ac_func" >&5
+if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2440 "configure"
+#line 2442 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
-    which can conflict with char kqueue(); below.  */
+    which can conflict with char $ac_func(); below.  */
 #include <assert.h>
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
     builtin and then its argument prototype would still apply.  */
-char kqueue();
+char $ac_func();
 
 int main() {
 
 /* The GNU C library defines this for functions which it implements
     to always fail with ENOSYS.  Some functions are actually named
     something starting with __ and the normal name is an alias.  */
-#if defined (__stub_kqueue) || defined (__stub___kqueue)
+#if defined (__stub_$ac_func) || defined (__stub___$ac_func)
 choke me
 #else
-kqueue();
+$ac_func();
 #endif
 
 ; return 0; }
 EOF
-if { (eval echo configure:2463: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2465: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_func_kqueue=yes"
+  eval "ac_cv_func_$ac_func=yes"
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  eval "ac_cv_func_kqueue=no"
+  eval "ac_cv_func_$ac_func=no"
 fi
 rm -f conftest*
 fi
 
-if eval "test \"`echo '$ac_cv_func_'kqueue`\" = yes"; then
+if eval "test \"`echo '$ac_cv_func_'$ac_func`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  :
+    ac_tr_func=HAVE_`echo $ac_func | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+  cat >> confdefs.h <<EOF
+#define $ac_tr_func 1
+EOF
+ 
 else
   echo "$ac_t""no" 1>&6
 fi
+done
 
 
 echo $ac_n "checking for restartable system calls""... $ac_c" 1>&6
-echo "configure:2484: checking for restartable system calls" >&5
+echo "configure:2491: checking for restartable system calls" >&5
 if eval "test \"`echo '$''{'ac_cv_sys_restartable_syscalls'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2488,7 +2495,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2492 "configure"
+#line 2499 "configure"
 #include "confdefs.h"
 /* Exit 0 (true) if wait returns something other than -1,
    i.e. the pid of the child, which means that wait was restarted
@@ -2506,7 +2513,7 @@ main () {
 }
 
 EOF
-if { (eval echo configure:2510: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2517: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sys_restartable_syscalls=yes
 else
@@ -2530,15 +2537,15 @@ fi
 
 
 echo $ac_n "checking for donuts""... $ac_c" 1>&6
-echo "configure:2534: checking for donuts" >&5
+echo "configure:2541: checking for donuts" >&5
 echo "$ac_t""yes" 1>&6
 
-for ac_prog in mawk gawk nawk awk
+for ac_prog in gawk mawk nawk awk
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2542: checking for $ac_word" >&5
+echo "configure:2549: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_AWK'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2568,7 +2575,7 @@ test -n "$AWK" && break
 done
 
 echo $ac_n "checking whether ${MAKE-make} sets \${MAKE}""... $ac_c" 1>&6
-echo "configure:2572: checking whether ${MAKE-make} sets \${MAKE}" >&5
+echo "configure:2579: checking whether ${MAKE-make} sets \${MAKE}" >&5
 set dummy ${MAKE-make}; ac_make=`echo "$2" | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_prog_make_${ac_make}_set'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2606,7 +2613,7 @@ fi
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:2610: checking for a BSD compatible install" >&5
+echo "configure:2617: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2659,7 +2666,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 echo $ac_n "checking whether ln -s works""... $ac_c" 1>&6
-echo "configure:2663: checking whether ln -s works" >&5
+echo "configure:2670: checking whether ln -s works" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_LN_S'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2684,7 +2691,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2688: checking for $ac_word" >&5
+echo "configure:2695: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_RMPROG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2725,7 +2732,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2729: checking for $ac_word" >&5
+echo "configure:2736: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_SHPROG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2763,7 +2770,7 @@ test -n "$SHPROG" || SHPROG="/bin/sh"
 
 
 echo $ac_n "checking for posix non-blocking""... $ac_c" 1>&6
-echo "configure:2767: checking for posix non-blocking" >&5
+echo "configure:2774: checking for posix non-blocking" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_nonblocking_posix'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2771,7 +2778,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2775 "configure"
+#line 2782 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2797,7 +2804,7 @@ int main(void)
   exit(1);
 }
 EOF
-if { (eval echo configure:2801: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2808: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_nonblocking_posix=yes
 else
@@ -2819,7 +2826,7 @@ EOF
 
 else
 echo $ac_n "checking for bsd non-blocking""... $ac_c" 1>&6
-echo "configure:2823: checking for bsd non-blocking" >&5
+echo "configure:2830: checking for bsd non-blocking" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_nonblocking_bsd'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2827,7 +2834,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2831 "configure"
+#line 2838 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2853,7 +2860,7 @@ int main(void)
   exit(1);
 }
 EOF
-if { (eval echo configure:2857: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2864: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_nonblocking_bsd=yes
 else
@@ -2881,19 +2888,19 @@ EOF
 fi
 fi
 echo $ac_n "checking for posix signals""... $ac_c" 1>&6
-echo "configure:2885: checking for posix signals" >&5
+echo "configure:2892: checking for posix signals" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_signal_posix'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2890 "configure"
+#line 2897 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int main() {
 sigaction(SIGTERM, (struct sigaction *)0L, (struct sigaction *)0L)
 ; return 0; }
 EOF
-if { (eval echo configure:2897: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2904: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   unet_cv_sys_signal_posix=yes
 else
@@ -2913,7 +2920,7 @@ EOF
 
 else
 echo $ac_n "checking for bsd reliable signals""... $ac_c" 1>&6
-echo "configure:2917: checking for bsd reliable signals" >&5
+echo "configure:2924: checking for bsd reliable signals" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_signal_bsd'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2921,7 +2928,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2925 "configure"
+#line 2932 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int calls = 0;
@@ -2939,7 +2946,7 @@ int main(void)
   exit (0);
 }
 EOF
-if { (eval echo configure:2943: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2950: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_signal_bsd=yes
 else
@@ -2968,20 +2975,20 @@ fi
 fi
 
 echo $ac_n "checking if the compiler understands -pipe""... $ac_c" 1>&6
-echo "configure:2972: checking if the compiler understands -pipe" >&5
+echo "configure:2979: checking if the compiler understands -pipe" >&5
 unet_cv_pipe_flags="$ac_cv_prog_gcc"
 if test "$ac_cv_prog_gcc" = no; then
   OLDCFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS -pipe"
   cat > conftest.$ac_ext <<EOF
-#line 2978 "configure"
+#line 2985 "configure"
 #include "confdefs.h"
 
 int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:2985: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2992: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   unet_cv_pipe_flags=yes
 else
@@ -3001,7 +3008,7 @@ fi
 
 
 echo $ac_n "checking for OS-dependent information""... $ac_c" 1>&6
-echo "configure:3005: checking for OS-dependent information" >&5
+echo "configure:3012: checking for OS-dependent information" >&5
 case "$host" in
     *-linux*)
 	echo "$ac_t""Linux ($host) found." 1>&6
@@ -3061,7 +3068,7 @@ esac
 
 
 echo $ac_n "checking whether to enable use of poll()""... $ac_c" 1>&6
-echo "configure:3065: checking whether to enable use of poll()" >&5
+echo "configure:3072: checking whether to enable use of poll()" >&5
 # Check whether --enable-poll or --disable-poll was given.
 if test "${enable_poll+set}" = set; then
   enableval="$enable_poll"
@@ -3095,7 +3102,7 @@ fi
 
 
 echo $ac_n "checking whether to enable debug mode""... $ac_c" 1>&6
-echo "configure:3099: checking whether to enable debug mode" >&5
+echo "configure:3106: checking whether to enable debug mode" >&5
 # Check whether --enable-debug or --disable-debug was given.
 if test "${enable_debug+set}" = set; then
   enableval="$enable_debug"
@@ -3119,7 +3126,7 @@ EOF
 fi
 
 echo $ac_n "checking whether to enable asserts""... $ac_c" 1>&6
-echo "configure:3123: checking whether to enable asserts" >&5
+echo "configure:3130: checking whether to enable asserts" >&5
 # Check whether --enable-asserts or --disable-asserts was given.
 if test "${enable_asserts+set}" = set; then
   enableval="$enable_asserts"
@@ -3143,7 +3150,7 @@ EOF
 fi
 
 echo $ac_n "checking whether to enable debugging symbols""... $ac_c" 1>&6
-echo "configure:3147: checking whether to enable debugging symbols" >&5
+echo "configure:3154: checking whether to enable debugging symbols" >&5
 # Check whether --enable-symbols or --disable-symbols was given.
 if test "${enable_symbols+set}" = set; then
   enableval="$enable_symbols"
@@ -3164,7 +3171,7 @@ if test x"$unet_cv_enable_symbols" = xyes; then
 fi
 
 echo $ac_n "checking whether to enable head in sand 'features'""... $ac_c" 1>&6
-echo "configure:3168: checking whether to enable head in sand 'features'" >&5
+echo "configure:3175: checking whether to enable head in sand 'features'" >&5
 # Check whether --enable-headinsand or --disable-headinsand was given.
 if test "${enable_headinsand+set}" = set; then
   enableval="$enable_headinsand"
@@ -3185,7 +3192,7 @@ if test x"$unet_cv_enable_headinsand" = xno; then
 fi
 
 echo $ac_n "checking whether to enable profiling support (gprof)""... $ac_c" 1>&6
-echo "configure:3189: checking whether to enable profiling support (gprof)" >&5
+echo "configure:3196: checking whether to enable profiling support (gprof)" >&5
 # Check whether --enable-profile or --disable-profile was given.
 if test "${enable_profile+set}" = set; then
   enableval="$enable_profile"
@@ -3206,7 +3213,7 @@ if test x"$unet_cv_enable_profile" = xyes; then
 fi
 
 echo $ac_n "checking whether to enable pedantic compiler warnings""... $ac_c" 1>&6
-echo "configure:3210: checking whether to enable pedantic compiler warnings" >&5
+echo "configure:3217: checking whether to enable pedantic compiler warnings" >&5
 # Check whether --enable-pedantic or --disable-pedantic was given.
 if test "${enable_pedantic+set}" = set; then
   enableval="$enable_pedantic"
@@ -3227,7 +3234,7 @@ if test x"$unet_cv_enable_pedantic" = xyes; then
 fi
 
 echo $ac_n "checking whether to enable compiler warnings""... $ac_c" 1>&6
-echo "configure:3231: checking whether to enable compiler warnings" >&5
+echo "configure:3238: checking whether to enable compiler warnings" >&5
 # Check whether --enable-warnings or --disable-warnings was given.
 if test "${enable_warnings+set}" = set; then
   enableval="$enable_warnings"
@@ -3248,7 +3255,7 @@ if test x"$unet_cv_enable_warnings" = xyes; then
 fi
 
 echo $ac_n "checking whether to enable inlining for a few critical functions""... $ac_c" 1>&6
-echo "configure:3252: checking whether to enable inlining for a few critical functions" >&5
+echo "configure:3259: checking whether to enable inlining for a few critical functions" >&5
 # Check whether --enable-inlines or --disable-inlines was given.
 if test "${enable_inlines+set}" = set; then
   enableval="$enable_inlines"
@@ -3272,7 +3279,7 @@ EOF
 fi
 
 echo $ac_n "checking whether to enable the /dev/poll event engine""... $ac_c" 1>&6
-echo "configure:3276: checking whether to enable the /dev/poll event engine" >&5
+echo "configure:3283: checking whether to enable the /dev/poll event engine" >&5
 # Check whether --enable-devpoll or --disable-devpoll was given.
 if test "${enable_devpoll+set}" = set; then
   enableval="$enable_devpoll"
@@ -3302,7 +3309,7 @@ EOF
 fi
 
 echo $ac_n "checking whether to enable the kqueue event engine""... $ac_c" 1>&6
-echo "configure:3306: checking whether to enable the kqueue event engine" >&5
+echo "configure:3313: checking whether to enable the kqueue event engine" >&5
 # Check whether --enable-kqueue or --disable-kqueue was given.
 if test "${enable_kqueue+set}" = set; then
   enableval="$enable_kqueue"
@@ -3332,7 +3339,7 @@ EOF
 fi
 
 echo $ac_n "checking what name to give the symlink""... $ac_c" 1>&6
-echo "configure:3336: checking what name to give the symlink" >&5
+echo "configure:3343: checking what name to give the symlink" >&5
 # Check whether --with-symlink or --without-symlink was given.
 if test "${with_symlink+set}" = set; then
   withval="$with_symlink"
@@ -3364,7 +3371,7 @@ fi
 
 
 echo $ac_n "checking what permissions to set on the installed binary""... $ac_c" 1>&6
-echo "configure:3368: checking what permissions to set on the installed binary" >&5
+echo "configure:3375: checking what permissions to set on the installed binary" >&5
 # Check whether --with-mode or --without-mode was given.
 if test "${with_mode+set}" = set; then
   withval="$with_mode"
@@ -3390,7 +3397,7 @@ IRCDMODE=$unet_cv_with_mode
 
 unet_uid=`id | sed -e 's/.*uid=[0-9]*(//' -e 's/).*//' 2> /dev/null`
 echo $ac_n "checking which user should own the installed binary""... $ac_c" 1>&6
-echo "configure:3394: checking which user should own the installed binary" >&5
+echo "configure:3401: checking which user should own the installed binary" >&5
 # Check whether --with-owner or --without-owner was given.
 if test "${with_owner+set}" = set; then
   withval="$with_owner"
@@ -3416,7 +3423,7 @@ IRCDOWN=$unet_cv_with_owner
 
 unet_gid=`id | sed -e 's/.*gid=[0-9]*(//' -e 's/).*//' 2> /dev/null`
 echo $ac_n "checking which group should own the installed binary""... $ac_c" 1>&6
-echo "configure:3420: checking which group should own the installed binary" >&5
+echo "configure:3427: checking which group should own the installed binary" >&5
 # Check whether --with-group or --without-group was given.
 if test "${with_group+set}" = set; then
   withval="$with_group"
@@ -3448,7 +3455,7 @@ if test -f /etc/resolv.conf; then
     fi
 fi
 echo $ac_n "checking for site domain name""... $ac_c" 1>&6
-echo "configure:3452: checking for site domain name" >&5
+echo "configure:3459: checking for site domain name" >&5
 # Check whether --with-domain or --without-domain was given.
 if test "${with_domain+set}" = set; then
   withval="$with_domain"
@@ -3478,7 +3485,7 @@ EOF
 
 
 echo $ac_n "checking if chroot operation is desired""... $ac_c" 1>&6
-echo "configure:3482: checking if chroot operation is desired" >&5
+echo "configure:3489: checking if chroot operation is desired" >&5
 # Check whether --with-chroot or --without-chroot was given.
 if test "${with_chroot+set}" = set; then
   withval="$with_chroot"
@@ -3526,7 +3533,7 @@ prefix=$unet_save_prefix
 exec_prefix=$unet_save_exec_prefix
 
 echo $ac_n "checking where the binary will be for /restart""... $ac_c" 1>&6
-echo "configure:3530: checking where the binary will be for /restart" >&5
+echo "configure:3537: checking where the binary will be for /restart" >&5
 if test x"$unet_cv_with_symlink" = xno; then
     unet_spath="$unet_bindir/ircd"
 else
@@ -3548,7 +3555,7 @@ EOF
 
 
 echo $ac_n "checking what the data directory should be""... $ac_c" 1>&6
-echo "configure:3552: checking what the data directory should be" >&5
+echo "configure:3559: checking what the data directory should be" >&5
 # Check whether --with-dpath or --without-dpath was given.
 if test "${with_dpath+set}" = set; then
   withval="$with_dpath"
@@ -3591,7 +3598,7 @@ DPATH=$unet_cv_with_dpath
 
 
 echo $ac_n "checking where the default configuration file resides""... $ac_c" 1>&6
-echo "configure:3595: checking where the default configuration file resides" >&5
+echo "configure:3602: checking where the default configuration file resides" >&5
 # Check whether --with-cpath or --without-cpath was given.
 if test "${with_cpath+set}" = set; then
   withval="$with_cpath"
@@ -3633,7 +3640,7 @@ EOF
 
 
 echo $ac_n "checking where to put the debugging log if debugging enabled""... $ac_c" 1>&6
-echo "configure:3637: checking where to put the debugging log if debugging enabled" >&5
+echo "configure:3644: checking where to put the debugging log if debugging enabled" >&5
 # Check whether --with-lpath or --without-lpath was given.
 if test "${with_lpath+set}" = set; then
   withval="$with_lpath"
@@ -3679,7 +3686,7 @@ EOF
 unet_maxcon=`ulimit -Hn`
 unet_maxcon=`expr $unet_maxcon - 4`
 echo $ac_n "checking max connections""... $ac_c" 1>&6
-echo "configure:3683: checking max connections" >&5
+echo "configure:3690: checking max connections" >&5
 # Check whether --with-maxcon or --without-maxcon was given.
 if test "${with_maxcon+set}" = set; then
   withval="$with_maxcon"

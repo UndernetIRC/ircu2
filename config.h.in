@@ -2,7 +2,7 @@
 #ifndef INCLUDED_config_h
 #define INCLUDED_config_h
 /*
- * IRC - Internet Relay Chat, config.h.in
+ * IRC - Internet Relay Chat, acconfig.h
  * Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.3 2002-03-07 22:52:56 ghostwolf Exp $
+ * $Id: config.h.in,v 1.4 2002-03-28 15:10:21 kev Exp $
  */
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
@@ -80,6 +80,18 @@
 
 /* The number of bytes in a void *.  */
 #undef SIZEOF_VOID_P
+
+/* Define if you have the getrusage function.  */
+#undef HAVE_GETRUSAGE
+
+/* Define if you have the kqueue function.  */
+#undef HAVE_KQUEUE
+
+/* Define if you have the setrlimit function.  */
+#undef HAVE_SETRLIMIT
+
+/* Define if you have the times function.  */
+#undef HAVE_TIMES
 
 /* Define if you have the <poll.h> header file.  */
 #undef HAVE_POLL_H

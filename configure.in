@@ -125,7 +125,7 @@ AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
 
 dnl Checks for library functions.
-AC_CHECK_FUNC(kqueue)
+AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
 
 dnl Do we have restarting syscalls ?
 AC_SYS_RESTARTABLE_SYSCALLS
