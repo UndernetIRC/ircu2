@@ -1,4 +1,7 @@
 2001-10-31  Perry Lorier  <isomer@coders.net>
+	* include/m_ping.c: Forward port ping bug
+
+2001-10-31  Perry Lorier  <isomer@coders.net>
 	* include/patchlevel.h: We're beta now
 
 2001-10-31  Perry Lorier  <isomer@coders.net>
