@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.8 2001-04-15 05:29:38 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.9 2001-04-15 06:35:20 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* stats fixed -- Isomer
 * trace disabled from non opers -- Isomer
 * server name removed from whois (but not /who, shrug!) -- Isomer
 * netsplits are now represented with "*.net *.split" -- Isomer
