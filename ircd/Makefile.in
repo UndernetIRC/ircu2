@@ -107,6 +107,7 @@ IRCD_SRC = \
 	hash.c \
 	ircd.c \
 	ircd_alloc.c \
+	ircd_auth.c \
 	ircd_crypt.c \
 	ircd_events.c \
 	ircd_features.c \

@@ -1,0 +1,82 @@
+OVERVIEW
+========
+
+The IAUTH protocol used here is based on the one in ircd-hybrid 7.0,
+with minor changes to support login-on-connect and true IAUTH-side
+connection classes.  (Several networks use central authorities to vary
+per-netblock connection limits; for example, users from one ISP may
+only be allowed one connection per IP, or one shell provider's
+netblock may be limited to 50 total connections.)  IAUTH-side
+connection classes are controlled by a configuration option; if that
+is enabled, this document will say ICLASS is enabled.
+
+As in IRC, lines sent between the IRC and IAUTH servers are limited to
+512 characters, including the terminating <CR> <LF> sequence.  As in
+IRC, the final argument on a line may be prefixed with :, and must be
+prefixed with : if it contains a space (decimal 32) character.  Tokens
+are separated by single space characters, and each line is a separate
+command.  The first token on a line is a case-insensitive command
+name; unrecognized commands must be ignored.
+
+GREETING
+========
+
+The IRC server connects and sends the Server greeting:
+  Server <servername> [password]
+If ICLASS is enabled, it sends a list of currently connected users:
+  MyUsers <uid>:<username>@<hostname>:<ip> ...
+The IRC server may send several MyUsers lines.  When it has sent all
+MyUsers lines, it sends an EndUsers line:
+  EndUsers
+If ICLASS is disabled, EndUsers is sent immediately after Server.
+
+LOGIN REQUESTS
+==============
+
+When users connect, the IRC server sends a DoAuth request:
+  FullAuth <uid> <nickname> <username> <hostname> <ip> <account> <password> <realname>
+<uid> is a text string up to 20 characters long that identifies the
+client, and is unique a BadAuth response is received or until an
+ExitUser command is sent with the same uid (see below for details on
+those messages).  <uid> may not contain a colon character.  <nickname>
+is the client's initially requested nickname.  <username> is the
+username returned by the ident server (RFC 1413), or a tilde-prefixed
+username supplied by the user.  <hostname> is a text hostname,
+possibly in the form of a dotted quad or IPv6 address, or the
+character '?'.  <ip> is a dotted quad IPv4 address or an IPv6 hex
+address.  <account> and <password> are optional, and are used when the
+client attempts login-on-connect.  <realname> is the realname
+specified by the client's USER message, and may contain spaces.
+
+If the client is accepted, the IAUTH server responds:
+  DoneAuth <uid> <username> <hostname> <class> [account]
+<username> is a replacement username, and <hostname> is a replacement
+hostname.  If the <hostname> from DoAuth was ?, <hostname> is the
+result of a DNS lookup for the client.  <class> is the name of a
+connection class for the client.  <account> is optional and is
+provided if the user's login was successful.
+
+If the client is rejected, the IAUTH server responds:
+  BadAuth <uid> :<reason>
+<reason> may include spaces, and should have a leading ':' sentinel.
+
+DISCONNECTS
+===========
+
+If ICLASS is enabled, the IRC server sends ExitUser when a client
+disconnects:
+  ExitUser <uid>
+
+DIFFERENCES FROM IRCD-HYBRID
+============================
+
+The ircd-hybrid IAUTH code is slightly bitrotted and disabled in 7.0
+(through at least 7.0.1).  This code added the following items:
+  MyUsers, EndUsers and ExitUser commands
+  Server passwords may contain whitespace and be prefixed by :
+  DoneAuth may include an account name
+  FullAuth command replaces DoAuth command and adds account, password,
+    realname parameters
+The Class command is present in ircd-hybrid's code but not used here.
+IP addresses in ircd-hybrid are "in unsigned int format," which is
+limited to IPv4, and so it is not used here.

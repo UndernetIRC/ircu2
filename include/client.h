@@ -139,6 +139,7 @@ enum Flag
     FLAG_BURST,                     /* Server is receiving a net.burst */
     FLAG_BURST_ACK,                 /* Server is waiting for eob ack */
     FLAG_IPCHECK,                   /* Added or updated IPregistry data */
+    FLAG_IAUTHED,                   /* Got IAUTH response for user */
     FLAG_LOCOP,                     /* Local operator -- SRB */
     FLAG_SERVNOTICE,                /* server notices such as kill */
     FLAG_OPER,                      /* Operator */
@@ -211,6 +212,7 @@ struct Connection
   struct Socket       con_socket; /* socket descriptor for client */
   struct Timer        con_proc; /* process latent messages from client */
   struct AuthRequest* con_auth; /* auth request for client */
+  struct IAuthRequest* con_iauth; /* iauth request for client */
 };
 
 #define CONNECTION_MAGIC 0x12f955f3
@@ -308,6 +310,7 @@ struct Client {
 #define cli_socket(cli)		((cli)->cli_connect->con_socket)
 #define cli_proc(cli)		((cli)->cli_connect->con_proc)
 #define cli_auth(cli)		((cli)->cli_connect->con_auth)
+#define cli_iauth(cli)          ((cli)->cli_connect->con_iauth)
 
 #define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
 #define con_magic(con)		((con)->con_magic)
@@ -347,6 +350,7 @@ struct Client {
 #define con_socket(con)		((con)->con_socket)
 #define con_proc(con)		((con)->con_proc)
 #define con_auth(con)		((con)->con_auth)
+#define con_iauth(con)          ((con)->con_iauth)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */
@@ -414,6 +418,7 @@ struct Client {
 #define IsDead(x)               HasFlag(x, FLAG_DEADSOCKET)
 #define IsDeaf(x)               HasFlag(x, FLAG_DEAF)
 #define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
+#define IsIAuthed(x)            HasFlag(x, FLAG_IAUTHED)
 #define IsIdented(x)            HasFlag(x, FLAG_GOTID)
 #define IsInvisible(x)          HasFlag(x, FLAG_INVISIBLE)
 #define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
@@ -442,6 +447,7 @@ struct Client {
 #define SetDebug(x)             SetFlag(x, FLAG_DEBUG)
 #define SetGotId(x)             SetFlag(x, FLAG_GOTID)
 #define SetIPChecked(x)         SetFlag(x, FLAG_IPCHECK)
+#define SetIAuthed(x)           SetFlag(x, FLAG_IAUTHED)
 #define SetInvisible(x)         SetFlag(x, FLAG_INVISIBLE)
 #define SetJunction(x)          SetFlag(x, FLAG_JUNCTION)
 #define SetLocOp(x)             SetFlag(x, FLAG_LOCOP)

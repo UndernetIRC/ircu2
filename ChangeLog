@@ -1,3 +1,24 @@
+2004-06-30  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.iauth, include/ircd_auth.h, ircd/ircd_auth.c: New
+	files.
+
+	* doc/example.conf: Illustrate IAUTH configuration.
+
+	* include/client.h: Add fields to record IAUTH status.
+
+	* ircd/Makefile.in: Add ircd_auth.c to Makefile.
+
+	* ircd/ircd_lexer.l, ircd/ircd_parser.y: Add new IAUTH section.
+
+	* ircd/s_conf.c: Notify IAUTH code when reloading a configuration
+	so that an obsolete connection can be abandoned.
+
+	* ircd/s_misc.c: Report client exits via IAUTH.
+
+	* ircd/s_user.c: If IAUTH is active and a connecting user has not
+	been checked against it, interrogate the IAUTH server.
+
 2004-06-25  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Check for crypt.h as well.

@@ -32,6 +32,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_auth.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -1060,11 +1061,13 @@ int rehash(struct Client *cptr, int sig)
 
   class_mark_delete();
   mark_listeners_closing();
+  iauth_mark_closing();
 
   read_configuration_file();
 
   log_reopen(); /* reopen log files */
 
+  iauth_close_unused();
   close_listeners();
   class_delete_marked();         /* unless it fails */
 

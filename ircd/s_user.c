@@ -32,6 +32,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_auth.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
@@ -375,6 +376,12 @@ int register_user(struct Client *cptr, struct Client *sptr,
     static time_t last_too_many2;
 
     assert(cptr == sptr);
+    if (!IsIAuthed(sptr)) {
+      if (iauth_active)
+        return iauth_start_client(iauth_active, sptr);
+      else
+        SetIAuthed(sptr);
+    }
     switch (conf_check_client(sptr))
     {
       case ACR_OK:

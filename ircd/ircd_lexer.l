@@ -121,6 +121,8 @@ ip return IP;
 crule return CRULE;
 kill return KILL;
 quarantine return QUARANTINE;
+iauth return IAUTH;
+timeout return TIMEOUT;
 features return FEATURES;
 channel return CHANNEL;
 chan_limit return TPRIV_CHAN_LIMIT;

@@ -32,6 +32,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_auth.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -157,6 +158,8 @@ static void parse_error(char *pattern,...) {
 %token PSEUDO
 %token PREPEND
 %token USERMODE
+%token IAUTH
+%token TIMEOUT
 /* and now a lot of priviledges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -183,7 +186,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        serverblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | error;
+       pseudoblock | iauthblock | error;
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -996,4 +999,47 @@ pseudonick: NICK '=' QSTRING ';'
     nh->next = smap->services;
     smap->services = nh;
   }
+};
+
+iauthblock: IAUTH '{'
+{
+  pass = host = NULL;
+  port = 0;
+  tconn = 60;
+  tping = 60;
+} iauthitems '}' ';'
+{
+  if (!name || !host || !port) {
+    log_write(LS_CONFIG, L_ERROR, 0, "IAuth block needs a server name and port.");
+    return 0;
+  }
+  iauth_connect(host, port, pass, tconn, tping);
+  MyFree(pass);
+  MyFree(host);
+  pass = host = NULL;
+}
+
+iauthitems: iauthitem iauthitems | iauthitem;
+iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout | error;
+iauthpass: PASS '=' QSTRING ';'
+{
+  MyFree(pass);
+  DupString(pass, yylval.text);
+};
+iauthhost: HOST '=' QSTRING ';'
+{
+  MyFree(host);
+  DupString(host, yylval.text);
+};
+iauthport: PORT '=' NUMBER ';'
+{
+  port = yylval.num;
+};
+iauthconnfreq: CONNECTFREQ '=' timespec ';'
+{
+  tconn = yylval.num;
+};
+iauthtimeout: TIMEOUT '=' timespec ';'
+{
+  tping = yylval.num;
 };
