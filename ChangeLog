@@ -1,3 +1,8 @@
+2004-11-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_epoll.c (engine_delete): Do not attempt to remove a
+	socket from epoll on delete, since the kernel does that for us.
+
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_server.c (m_server, ms_server): Assign timestamp before

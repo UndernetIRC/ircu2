@@ -212,15 +212,10 @@ engine_set_events(struct Socket *sock, unsigned new_events)
 static void
 engine_delete(struct Socket *sock)
 {
-  struct epoll_event evt;
-
   assert(0 != sock);
-  memset(&evt, 0, sizeof(evt));
   Debug((DEBUG_ENGINE, "epoll: Deleting socket %d [%p], state %s",
 	 s_fd(sock), sock, state_to_name(s_state(sock))));
-  if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s_fd(sock), &evt) < 0)
-    log_write(LS_SOCKET, L_WARNING, 0,
-              "Unable to delete epoll item for socket %d", s_fd(sock));
+  /* No action necessary; epoll removes the socket on close(). */
 }
 
 /** Run engine event loop.
