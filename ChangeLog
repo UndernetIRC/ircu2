@@ -1,3 +1,8 @@
+2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* tools/Bouncer/*: Add comments/documentation/tags.
+	* tools/Bouncer/*: Add debug defines, make task fork().
+
 2000-04-12  Thomas Helvey <tomh@inxpress.net>
 	* ircd/s_err.c: Cleanup s_err.c make one table so we
 	don't have to do anything tricky to get an error string.
@@ -396,7 +401,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.76 2000-04-13 03:49:06 bleep Exp $
+# $Id: ChangeLog,v 1.77 2000-04-13 05:53:48 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #

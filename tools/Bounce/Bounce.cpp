@@ -1,21 +1,69 @@
-#include "Bounce.h"
-
 /*
- *  Lacking Comments. :)
- *  12/04/2000 --Gte
+ * IRC - Internet Relay Chat, tools/Bouncer/Bouncer.cpp
+ * Copyright (C) 1990 Jarkko Oikarinen and
+ *                    University of Oulu, Computing Center
+ *
+ * See file AUTHORS in IRC package for additional names of
+ * the programmers.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 1, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Port Bouncer.
+ *
+ * This tool is designed to set up a number of local listening ports, and
+ * then forward any data recived on those ports, to another host/port combo.
+ * Each listening port can bounce to a different host/port defined in the
+ * config file. --Gte 
+ *
+ * $Id: Bounce.cpp,v 1.2 2000-04-13 05:53:48 gte Exp $ 
+ *
  */
 
+#include "Bounce.h"
+ 
 int main() {
   Bounce* application = new Bounce();
 
   /*
    *  Ignore SIGPIPE.
    */
+
   struct sigaction act; 
   act.sa_handler = SIG_IGN;
   act.sa_flags = 0;
   sigemptyset(&act.sa_mask);
   sigaction(SIGPIPE, &act, 0);
+ 
+#ifndef DEBUG
+  /*
+   *  If we aren't debugging, we might as well
+   *  detach from the console.
+   */
+
+  pid_t forkResult = fork() ;
+  if(forkResult < 0)
+  { 
+    printf("Unable to fork new process.\n");
+    return -1 ;
+  } 
+  else if(forkResult != 0)
+  {
+    printf("Successfully Forked, New process ID is %i.\n", forkResult);
+    return 0;
+  } 
+#endif
 
   /*
    *  Create new application object, bind listeners and begin
@@ -28,7 +76,24 @@ int main() {
   } 
 }
 
+/*
+ ****************************************
+ *                                      *
+ *     Bounce class implementation.     *
+ *                                      *
+ ****************************************
+ */
+ 
 void Bounce::bindListeners() { 
+/*
+ *  bindListeners.
+ *  Inputs: Nothing.
+ *  Outputs: Nothing.
+ *  Process: 1. Reads the config file, and..
+ *           2. Creates a new listener for each 'P' line found.
+ *
+ */
+
   FILE* configFd;
   char tempBuf[256];
   int localPort = 0;
@@ -42,7 +107,7 @@ void Bounce::bindListeners() {
   
   if(!(configFd = fopen("bounce.conf", "r")))
   {
-    printf("Error, unable to open config.\n");
+    printf("Error, unable to open config file!\n");
     exit(0);
   } 
 
@@ -51,22 +116,24 @@ void Bounce::bindListeners() {
     switch(tempBuf[0])
     {
       case 'P': { /* Add new port listener */ 
-      strtok(tempBuf, ":");
-      vHost = strtok(NULL, ":");
-      localPort = atoi(strtok(NULL, ":"));
-      remoteServer = strtok(NULL, ":");
-      remotePort = atoi(strtok(NULL, ":")); 
+        strtok(tempBuf, ":");
+        vHost = strtok(NULL, ":");
+        localPort = atoi(strtok(NULL, ":"));
+        remoteServer = strtok(NULL, ":");
+        remotePort = atoi(strtok(NULL, ":")); 
 
-      Listener* newListener = new Listener();
-      strcpy(newListener->myVhost, vHost); 
-      strcpy(newListener->remoteServer, remoteServer);
-      newListener->remotePort = remotePort;
-      newListener->localPort = localPort;
-      printf("Adding new Listener: Local: %s:%i, Remote: %s:%i\n", vHost, localPort, remoteServer, remotePort);
+        Listener* newListener = new Listener();
+        strcpy(newListener->myVhost, vHost); 
+        strcpy(newListener->remoteServer, remoteServer);
+        newListener->remotePort = remotePort;
+        newListener->localPort = localPort;
+#ifdef DEBUG
+        printf("Adding new Listener: Local: %s:%i, Remote: %s:%i\n", vHost, localPort, remoteServer, remotePort);
+#endif
 
-      newListener->beginListening();
-      listenerList.insert(listenerList.begin(), newListener); 
-      break;
+        newListener->beginListening();
+        listenerList.insert(listenerList.begin(), newListener); 
+        break;
       }
     }
     } 
@@ -75,8 +142,14 @@ void Bounce::bindListeners() {
 
 void Bounce::checkSockets() { 
 /*
- *  Build up a Select FD set, and Select() 'em.
- */
+ *  checkSockets.
+ *  Inputs: Nothing.
+ *  Outputs: Nothing.
+ *  Process: 1. Builds up a FD_SET of all sockets we wish to check.
+ *              (Including all listeners & all open connections).
+ *           2. SELECT(2) the set, and forward/accept as needed.
+ *
+ */ 
   typedef std::list<Listener*> listenerContainer;
   typedef listenerContainer::iterator listIter;
 
@@ -94,6 +167,10 @@ void Bounce::checkSockets() {
   char* tempBuf;
 
   FD_ZERO(&readfds);
+ 
+  /*
+   *  Add all Listeners to the set.
+   */
 
   listIter a = listenerList.begin();
   while(a != listenerList.end())
@@ -103,6 +180,11 @@ void Bounce::checkSockets() {
     if (highestFd < tempFd) highestFd = tempFd;
     a++;
   }
+
+  /*
+   *  Add Local & Remote connections from each
+   *  connection object to the set.
+   */
 
   connIter b = connectionsList.begin();
   while(b != connectionsList.end())
@@ -119,9 +201,14 @@ void Bounce::checkSockets() {
   select(highestFd+1, &readfds, NULL, NULL, &tv); 
 
   /*
-   *  Check all connections for reading/writing
+   *  Check all connections for readability.
    *  First check Local FD's.
+   *  If the connection is closed on either side,
+   *  shutdown both sockets, and clean up.
+   *  Otherwise, send the data from local->remote, or
+   *  remote->local.
    */
+
   b = connectionsList.begin();
   while(b != connectionsList.end())
   { 
@@ -130,12 +217,14 @@ void Bounce::checkSockets() {
     if (FD_ISSET(tempFd, &readfds))
     { 
       tempBuf = (*b)->localSocket->read();
-      if ((tempBuf[0] == 0)) // Connection closed on one of our sockets.
+      if ((tempBuf[0] == 0)) // Connection closed.
       {
         close((*b)->localSocket->fd);
         close((*b)->remoteSocket->fd); 
+#ifdef DEBUG
         printf("Closing FD: %i\n", (*b)->localSocket->fd);
         printf("Closing FD: %i\n", (*b)->remoteSocket->fd); 
+#endif
         delete(*b);
         delCheck = 1;
         b = connectionsList.erase(b); 
@@ -158,12 +247,14 @@ void Bounce::checkSockets() {
     if (FD_ISSET(tempFd, &readfds))
     {
       tempBuf = (*b)->remoteSocket->read();
-      if ((tempBuf[0] == 0)) // Connection closed on one of our sockets.
+      if ((tempBuf[0] == 0)) // Connection closed.
       {
         close((*b)->localSocket->fd);
         close((*b)->remoteSocket->fd); 
+#ifdef DEBUG
         printf("Closing FD: %i\n", (*b)->localSocket->fd);
         printf("Closing FD: %i\n", (*b)->remoteSocket->fd);
+#endif
         delete(*b);
         delCheck = 1;
         b = connectionsList.erase(b); 
@@ -178,6 +269,7 @@ void Bounce::checkSockets() {
   /*
    *  Check all listeners for new connections.
    */
+
   a = listenerList.begin();
   while(a != listenerList.end())
   { 
@@ -191,8 +283,22 @@ void Bounce::checkSockets() {
 
 }
 
-void Bounce::recieveNewConnection(Listener* listener)
-{
+void Bounce::recieveNewConnection(Listener* listener) {
+/*
+ *  recieveNewConnection.
+ *  Inputs: A Listener Object.
+ *  Outputs: Nothing.
+ *  Process: 1. Recieves a new connection on a local port,
+ *              and creates a connection object for it.
+ *           2. Accepts the incomming connection.
+ *           3. Creates a new Socket object for the remote
+ *              end of the connection.
+ *           4. Connects up the remote Socket.
+ *           5. Adds the new Connection object to the
+ *              connections list.
+ *
+ */
+
   Connection* newConnection = new Connection(); 
   newConnection->localSocket = listener->handleAccept();
 
@@ -201,15 +307,34 @@ void Bounce::recieveNewConnection(Listener* listener)
   if(remoteSocket->connectTo(listener->remoteServer, listener->remotePort)) { 
     connectionsList.insert(connectionsList.begin(), newConnection);
   } else {
-    newConnection->localSocket->write("Unable to connect to remote host..\n");
+#ifdef DEBUG
+    newConnection->localSocket->write("Unable to connect to remote host.\n");
+#endif
     close(newConnection->localSocket->fd);
     delete(newConnection);
     delete(remoteSocket);
   } 
 }
  
+
+/*
+ ****************************************
+ *                                      *
+ *    Listener class implementation.    *
+ *                                      *
+ ****************************************
+ */
+
  
 Socket* Listener::handleAccept() {
+/*
+ *  handleAccept.
+ *  Inputs: Nothing.
+ *  Outputs: A Socket Object.
+ *  Process: 1. Accept's an incomming connection,
+ *              and returns a new socket object. 
+ */
+
   int new_fd = 0;
   int sin_size = sizeof(struct sockaddr_in);
 
@@ -220,6 +345,15 @@ Socket* Listener::handleAccept() {
 }
  
 void Listener::beginListening() {
+/*
+ *  beginListening.
+ *  Inputs: Nothing.
+ *  Outputs: Nothing.
+ *  Process: 1. Binds the local ports for all the
+ *              Listener objects.
+ *
+ */
+
   struct sockaddr_in my_addr;
   int bindRes;
   int optval;
@@ -247,31 +381,76 @@ void Listener::beginListening() {
    } 
 }
 
+/*
+ ****************************************
+ *                                      *
+ *     Socket class implementation.     *
+ *                                      *
+ ****************************************
+ */
+
+
 Socket::Socket() {
+/*
+ *  Socket Constructor.
+ *  Inputs: Nothing.
+ *  Outputs: Nothing.
+ *  Process: Initialises member variables.
+ *
+ */
+
   fd = -1;
   lastReadSize = 0;
 }
 
-int Socket::write(char *message, int len)
-{ 
+int Socket::write(char *message, int len) { 
+/*
+ *  write.
+ *  Inputs: Message string, and lenght.
+ *  Outputs: Amount written, or 0 on error.
+ *  Process: 1. Writes out 'len' amount of 'message'.
+ *              to this socket.
+ *
+ */
+
    if (fd == -1) return 0; 
  
    int amount = ::write(fd, message, len); 
+#ifdef DEBUG
    printf("Wrote %i Bytes.\n", amount);
+#endif
    return amount; 
 }
 
-int Socket::write(char *message)
-{ 
+int Socket::write(char *message) { 
+/*
+ *  write(2).
+ *  Inputs: Message string.
+ *  Outputs: Amount writte, or 0 on error.
+ *  Process: Writes out the whole of 'message'.
+ *
+ */
+
    if (fd == -1) return 0; 
  
    int amount = ::write(fd, message, strlen(message)); 
+#ifdef DEBUG
    printf("Wrote %i Bytes.\n", amount);
+#endif
    return amount; 
 }
 
 
 int Socket::connectTo(char *hostname, unsigned short portnum) { 
+/*
+ *  connectTo.
+ *  Inputs: Hostname and port.
+ *  Outputs: +ve on success, 0 on failure.
+ *  Process: 1. Connects this socket to remote 'hostname' on
+ *              port 'port'.
+ *
+ */
+
   struct hostent     *hp;
  
   if ((hp = gethostbyname(hostname)) == NULL) { 
@@ -294,8 +473,16 @@ int Socket::connectTo(char *hostname, unsigned short portnum) {
   return(1);
 }
 
-char* Socket::read()
-{ 
+char* Socket::read() { 
+/*
+ *  read.
+ *  Inputs: Nothing.
+ *  Outputs: char* to static buffer containing data.
+ *  Process: 1. Reads as much as possible from this socket, up to
+ *              4k.
+ *
+ */
+
   int amountRead = 0;
   static char buffer[4096];
 
@@ -304,8 +491,14 @@ char* Socket::read()
   if ((amountRead == -1)) buffer[0] = '\0';
   buffer[amountRead] = '\0';
 
+#ifdef DEBUG
   printf("Read %i Bytes.\n", amountRead);
-  /* Record this incase we're dealing with binary data with 0's in it. */
+#endif
+ 
+  /* 
+   * Record this just incase we're dealing with binary data with 0's in it.
+   */
   lastReadSize = amountRead;
   return (char *)&buffer;
 }
+
