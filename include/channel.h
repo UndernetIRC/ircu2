@@ -232,6 +232,33 @@ struct ListingArgs {
   struct Channel *chptr;
 };
 
+struct ModeBuf {
+  unsigned int		mb_add;		/* Modes to add */
+  unsigned int		mb_rem;		/* Modes to remove */
+  struct Client	       *mb_source;	/* Source of MODE changes */
+  struct Client	       *mb_connect;	/* Connection of MODE changes */
+  struct Channel       *mb_channel;	/* Channel they affect */
+  unsigned int		mb_dest;	/* Destination of MODE changes */
+  unsigned int		mb_count;	/* Number of modes w/args */
+  struct {
+    unsigned int	mbm_type;	/* Type of argument */
+    union {
+      unsigned int	mbma_uint;	/* A limit */
+      char	       *mbma_string;	/* A string */
+      struct Client    *mbma_client;	/* A client */
+    }			mbm_arg;	/* The mode argument */
+  }			mb_modeargs[MAXMODEPARAMS];
+					/* A mode w/args */
+};
+
+#define MODEBUF_DEST_CHANNEL	0x01	/* Mode is flushed to channel */
+/* #define MODEBUF_DEST_SERVER	0x02	/ * Mode is flushed to server */
+
+#define MB_TYPE(mb, i)		((mb)->mb_modeargs[(i)].mbm_type)
+#define MB_UINT(mb, i)		((mb)->mb_modeargs[(i)].mbm_arg.mbma_uint)
+#define MB_STRING(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_string)
+#define MB_CLIENT(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_client)
+
 extern struct Channel* GlobalChannelList;
 extern int             LocalChanOperMode;
 
@@ -288,5 +315,16 @@ extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_next_channels(struct Client *cptr, int nr);
 extern void send_user_joins(struct Client *cptr, struct Client *user);
 
+extern void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
+			 struct Client *connect, struct Channel *chan,
+			 unsigned int dest);
+extern void modebuf_mode(struct ModeBuf *mbuf, unsigned int mode);
+extern void modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode,
+			      unsigned int uint);
+extern void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
+				char *string);
+extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
+				struct Client *client);
+extern void modebuf_flush(struct ModeBuf *mbuf);
 
 #endif /* INCLUDED_channel_h */

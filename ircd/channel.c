@@ -2658,3 +2658,202 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
     }
   }
 }
+
+void
+modebuf_init(struct ModeBuf *mbuf, struct Client *source,
+	     struct Client *connect, struct Channel *chan, unsigned int dest)
+{
+  int i;
+
+  assert(0 != mbuf);
+  assert(0 != source);
+  assert(0 != chan);
+  assert(0 != dest);
+
+  mbuf->mb_add = 0;
+  mbuf->mb_rem = 0;
+  mbuf->mb_source = source;
+  mbuf->mb_connect = connect;
+  mbuf->mb_channel = chan;
+  mbuf->mb_dest = dest;
+  mbuf->mb_count = 0;
+
+  for (i = 0; i < MAXMODEPARAMS; i++) {
+    MB_TYPE(mbuf, i) = 0;
+    MB_UINT(mbuf, i) = 0;
+  }
+}
+
+void
+modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
+	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS);
+
+  if (mode & MODE_ADD) {
+    mbuf->mb_rem &= ~mode;
+    mbuf->mb_add |= mode;
+  } else {
+    mbuf->mb_add &= ~mode;
+    mbuf->mb_rem |= mode;
+  }
+}
+
+void
+modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_UINT(mbuf, mbuf->mb_count) = uint;
+
+  if (++mbuf->mb_count >= 6)
+    modebuf_flush(mbuf);
+}
+
+void
+modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_STRING(mbuf, mbuf->mb_count) = string;
+
+  if (++mbuf->mb_count >= 6)
+    modebuf_flush(mbuf);
+}
+
+void
+modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
+		    struct Client *client)
+{
+  assert(0 != mbuf);
+  assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  MB_TYPE(mbuf, mbuf->mb_count) = mode;
+  MB_CLIENT(mbuf, mbuf->mb_count) = client;
+
+  if (++mbuf->mb_count >= 6)
+    modebuf_flush(mbuf);
+}
+
+static void
+build_string(char *strptr, int *strptr_i, char *str)
+{
+  strptr[(*strptr_i)++] = ' ';
+
+  while (strptr[(*strptr_i)++] = *str)
+    ; /* very simple strcat */
+}
+
+void
+modebuf_flush(struct ModeBuf *mbuf)
+{
+  static int flags[] = {
+/*  MODE_CHANOP,	'o', */
+/*  MODE_VOICE,		'v', */
+    MODE_PRIVATE,	'p',
+    MODE_SECRET,	's',
+    MODE_MODERATED,	'm',
+    MODE_TOPICLIMIT,	't',
+    MODE_INVITEONLY,	'i',
+    MODE_NOPRIVMSGS,	'n',
+/*  MODE_KEY,		'k', */
+/*  MODE_BAN,		'b', */
+/*  MODE_LIMIT,		'l', */
+    0x0, 0x0
+  };
+  int i;
+  int *flag_p;
+
+  char addbuf[20] = "+";
+  int addbuf_i = 1;
+  char rembuf[20] = "-";
+  int rembuf_i = 1;
+  char *bufptr;
+  int *bufptr_i;
+
+  char addstr[MODEBUFLEN] = "";
+  int addstr_i = 0;
+  char remstr[MODEBUFLEN] = "";
+  int remstr_i = 0;
+  char *strptr;
+  int *strptr_i;
+
+  char limitbuf[10];
+
+  assert(0 != mbuf);
+
+  for (flag_p = flags; flag_p[0]; flag_p += 2) {
+    if (*flag_p & mbuf->mb_add)
+      addbuf[addbuf_i++] = flag_p[1];
+    else if (*flag_p & mbuf->mb_rem)
+      rembuf[rembuf_i++] = flag_p[1];
+  }
+
+  if (addbuf_i == 1)
+    addbuf[0] = '\0';
+  if (rembuf_i == 1)
+    rembuf[0] = '\0';
+
+  for (i = 0; i < mbuf->mb_count; i++) {
+    if (MB_TYPE(mbuf, i) & MODE_ADD) {
+      bufptr = addbuf;
+      bufptr_i = &addbuf_i;
+    } else {
+      bufptr = rembuf;
+      bufptr_i = &rembuf_i;
+    }
+
+    if (MB_TYPE(mbuf, i) & MODE_CHANOP)
+      bufptr[(*bufptr_i)++] = 'o';
+    else if (MB_TYPE(mbuf, i) & MODE_VOICE)
+      bufptr[(*bufptr_i)++] = 'v';
+    else if (MB_TYPE(mbuf, i) & MODE_KEY)
+      bufptr[(*bufptr_i)++] = 'k';
+    else if (MB_TYPE(mbuf, i) & MODE_BAN)
+      bufptr[(*bufptr_i)++] = 'b';
+    else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
+      bufptr[(*bufptr_i)++] = 'l';
+
+      sprintf_irc(limitbuf, "%d", MB_UINT(mbuf, i));
+    }
+  }
+
+  if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL) {
+    for (i = 0; i < mbuf->mb_count; i++) {
+      if (MB_TYPE(mbuf, i) & MODE_ADD) {
+	strptr = addstr;
+	strptr_i = &addstr_i;
+      } else {
+	strptr = remstr;
+	strptr_i = &remstr_i;
+      }
+
+      if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
+	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name);
+      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
+	build_string(strptr, strptr_i, MB_STRING(mbuf, i));
+      else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
+	build_string(strptr, strptr_i, limitbuf);
+    }
+
+    sendto_channel_butserv(mbuf->mb_channel, mbuf->mb_source,
+			   ":%s MODE %s %s%s%s%s", mbuf->mb_source->name,
+			   mbuf->mb_channel->name, addbuf, rembuf, addstr,
+			   remstr);
+  }
+
+  mbuf->mb_count = 0;
+
+  for (i = 0; i < MAXMODEPARAMS; i++) {
+    MB_TYPE(mbuf, i) = 0;
+    MB_UINT(mbuf, i) = 0;
+  }
+}
+
