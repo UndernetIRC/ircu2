@@ -1,3 +1,6 @@
+2000-04-12  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* Add port bouncer for http (x/w)
+
 2000-04-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c (find_kill): replaced call to find_gline() with a
@@ -389,7 +392,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.74 2000-04-13 02:29:53 kev Exp $
+# $Id: ChangeLog,v 1.75 2000-04-13 02:54:14 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
