@@ -237,7 +237,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       split = (MyConnect(acptr) && 
                0 != ircd_strcmp(acptr->name, acptr->sockhost) &&
                0 != ircd_strncmp(acptr->info, "JUPE", 4));
-      if ((ajupe = jupe_find(acptr->name)))
+      if ((ajupe = jupe_find(acptr->name)) && !JupeIsLocal(ajupe))
 	sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
 		      "%s %d 0 %Tu %s%u %s%s 0 %%%Tu :%s", acptr->name,
 		      acptr->hopcount + 1, acptr->serv->timestamp,
@@ -261,13 +261,25 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
     {
       char xxx_buf[8];
       char *s = umode_str(acptr);
-      sendcmdto_one(acptr->user->server, CMD_NICK, cptr, *s ?
-		    "%s %d %Tu %s %s +%s %s %s%s :%s" :
-		    "%s %d %Tu %s %s %s%s %s%s :%s",
-		    acptr->name, acptr->hopcount + 1, acptr->lastnick,
-		    acptr->user->username, acptr->user->host, s,
-		    inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
-		    NumNick(acptr), acptr->info);
+      struct Gline *agline = 0;
+      if ((agline = gline_lookup(acptr, GLINE_GLOBAL | GLINE_LASTMOD)))
+	sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
+		      "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
+		      acptr->name, acptr->hopcount + 1, acptr->lastnick,
+		      acptr->user->username, acptr->user->host,
+		      *s ? "+" : "", s, *s ? " " : "",
+		      GlineLastMod(agline), GlineUser(agline),
+		      GlineHost(agline),
+		      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
+		      NumNick(acptr), acptr->info);
+      else
+	sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
+		      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+		      acptr->name, acptr->hopcount + 1, acptr->lastnick,
+		      acptr->user->username, acptr->user->host,
+		      *s ? "+" : "", s, *s ? " " : "",
+		      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
+		      NumNick(acptr), acptr->info);
     }
   }
   /*

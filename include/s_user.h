@@ -12,6 +12,7 @@
 
 struct Client;
 struct User;
+struct Gline;
 
 /*
  * Macros
@@ -55,7 +56,8 @@ typedef char* (*InfoFormatter)(struct Client* who, char* buf);
 extern struct User* make_user(struct Client *cptr);
 extern void         free_user(struct User *user);
 extern int          register_user(struct Client* cptr, struct Client* sptr,
-                                  const char* nick, char* username);
+                                  const char* nick, char* username,
+				  struct Gline *agline);
 
 extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
 

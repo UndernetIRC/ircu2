@@ -381,6 +381,9 @@ gline_find(char *userhost, unsigned int flags)
 
       if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
+      else if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
+	       (flags & GLINE_LASTMOD && !gline->gl_lastmod))
+	continue;
       else if ((flags & GLINE_EXACT ? ircd_strcmp(gline->gl_user, userhost) :
 		match(gline->gl_user, userhost)) == 0)
 	return gline;
@@ -403,6 +406,9 @@ gline_find(char *userhost, unsigned int flags)
 
     if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
+    else if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
+	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
+      continue;
     else if (flags & GLINE_EXACT) {
       if (ircd_strcmp(gline->gl_host, host) == 0 &&
 	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
@@ -422,7 +428,7 @@ gline_find(char *userhost, unsigned int flags)
 }
 
 struct Gline *
-gline_lookup(struct Client *cptr)
+gline_lookup(struct Client *cptr, unsigned int flags)
 {
   struct Gline *gline;
   struct Gline *sgline;
@@ -432,6 +438,9 @@ gline_lookup(struct Client *cptr)
 
     if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
+    else if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
+	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
+      continue;
     else if ((GlineIsIpMask(gline) ?
 	      match(gline->gl_host, ircd_ntoa((const char *)&cptr->ip)) :
 	      match(gline->gl_host, cptr->user->host)) == 0 &&

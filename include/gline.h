@@ -54,6 +54,8 @@ struct Gline {
 #define GLINE_FORCE	0x0020
 #define GLINE_EXACT	0x0040
 #define GLINE_LDEACT	0x0080	/* locally deactivated */
+#define GLINE_GLOBAL	0x0100	/* find only global glines */
+#define GLINE_LASTMOD	0x0200	/* find only glines with non-zero lastmod */
 
 #define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL)
 #define GLINE_ACTMASK	(GLINE_ACTIVE | GLINE_LDEACT)
@@ -80,7 +82,7 @@ extern int gline_deactivate(struct Client *cptr, struct Client *sptr,
 			    struct Gline *gline, time_t lastmod,
 			    unsigned int flags);
 extern struct Gline *gline_find(char *userhost, unsigned int flags);
-extern struct Gline *gline_lookup(struct Client *cptr);
+extern struct Gline *gline_lookup(struct Client *cptr, unsigned int flags);
 extern void gline_free(struct Gline *gline);
 extern void gline_burst(struct Client *cptr);
 extern int gline_resend(struct Client *cptr, struct Gline *gline);
