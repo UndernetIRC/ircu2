@@ -22,6 +22,7 @@
 #include "ircd_snprintf.h"
 #include "struct.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -2012,7 +2013,9 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	fld_s.flags &= ~(FLAG_ALT | FLAG_COLON);
       } else {
 	str1 = *cptr->name ? cptr->name : "*";
-	if (!IsServer(dest) && fld_s.flags & FLAG_ALT) {
+	if (!IsServer(cptr) && !IsMe(cptr) && fld_s.flags & FLAG_ALT) {
+	  assert(0 != cptr->user);
+	  assert(0 != *cptr->name);
 	  str2 = cptr->user->username;
 	  str3 = cptr->user->host;
 	} else

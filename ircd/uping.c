@@ -170,18 +170,10 @@ static void uping_start(struct UPing* pptr)
 {
   assert(0 != pptr);
 
-  if (MyUser(pptr->client)) {
-    sendto_one(pptr->client,
-	       ":%s NOTICE %s :Sending %d ping%s to %s",
-	       me.name, pptr->client->name, pptr->count,
-	       (pptr->count == 1) ? "" : "s", pptr->name);
-  }
-  else {
-    sendto_one(pptr->client,
-	       "%s NOTICE %s%s :Sending %d ping%s to %s",
-	       NumServ(&me), NumNick(pptr->client), pptr->count,
-	       (pptr->count == 1) ? "" : "s", pptr->name);
-  }
+  sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :Sending %d ping%s to %s",
+		pptr->client, pptr->count, (pptr->count == 1) ? "" : "s",
+		pptr->name);
+
   pptr->timeout = CurrentTime + UPINGTIMEOUT;
   pptr->active = 1;
 }
@@ -214,14 +206,9 @@ void uping_send(struct UPing* pptr)
     const char* msg = strerror(errno);
     if (!msg)
       msg = "Unknown error";
-    if (pptr->client) {
-      if (MyUser(pptr->client))
-	sendto_one(pptr->client, ":%s NOTICE %s :UPING: send failed: %s",
-	           me.name, pptr->client->name, msg);
-      else
-	sendto_one(pptr->client, "%s NOTICE %s%s :UPING: sendto() failed: %s",
-	           NumServ(&me), NumNick(pptr->client), msg);
-    }
+    if (pptr->client)
+      sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING: send failed: "
+		    "%s", pptr->client, msg);
     Debug((DEBUG_DEBUG, "UPING: send_ping: sendto failed on %d: %s", pptr->fd, msg));
     uping_end(pptr);
     return;
@@ -253,12 +240,8 @@ void uping_read(struct UPing* pptr)
     const char* msg = strerror(errno);
     if (!msg)
       msg = "Unknown error";
-    if (MyUser(pptr->client))
-      sendto_one(pptr->client, ":%s NOTICE %s :UPING: receive error: %s",
-                 me.name, pptr->client->name, msg);
-    else
-      sendto_one(pptr->client, "%s NOTICE %s%s :UPING: receive error: %s",
-                 NumServ(&me), NumNick(pptr->client), msg);
+    sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING: receive error: "
+		  "%s", pptr->client, msg);
     uping_end(pptr);
     return;
   }    
@@ -300,34 +283,23 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   assert(0 != aconf);
 
   if (INADDR_NONE == aconf->ipnum.s_addr) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Host lookup failed for %s",
-                 me.name, sptr->name, aconf->name);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Host lookup failed for %s",
-                 NumServ(&me), NumNick(sptr), aconf->name);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Host lookup failed for "
+		  "%s", sptr, aconf->name);
+    return 0;
   }
 
   if (IsUPing(sptr))
     uping_cancel(sptr, sptr);  /* Cancel previous ping request */
 
   if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Unable to create udp ping socket",
-                 me.name, sptr->name);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Unable to create udp ping socket",
-                 NumServ(&me), NumNick(sptr));
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Unable to create udp "
+		  "ping socket", sptr);
     return 0;
   }
 
   if (!os_set_nonblocking(fd)) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :UPING: Can't set fd non-blocking",
-                 me.name, sptr->name);
-    else
-      sendto_one(sptr, "%s " TOK_NOTICE " %s%s :UPING: Can't set fd non-blocking",
-                 NumServ(&me), NumNick(sptr));
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Can't set fd non-"
+		  "blocking", sptr);
     close(fd);
     return 0;
   }
@@ -358,58 +330,23 @@ void uping_end(struct UPing* pptr)
   Debug((DEBUG_DEBUG, "uping_end: %p", pptr));
 
   if (pptr->client) {
-    if (MyUser(pptr->client)) {
-      if (pptr->lastsent) { 
-	if (0 < pptr->received)	{
-	  sendto_one(pptr->client, ":%s NOTICE %s :UPING %s%s",
-	             me.name, pptr->client->name, pptr->name, pptr->buf);
-          /*
-           * XXX - warning long unsigned int format, unsigned int arg (7, 8, 9)
-           */
-	  sendto_one(pptr->client,
-	             ":%s NOTICE %s :UPING Stats: sent %d recvd %d ; "
-	             "min/avg/max = %1lu/%1lu/%1lu ms",
-	             me.name, pptr->client->name, pptr->sent,
-	             pptr->received, pptr->ms_min,
-	             (2 * pptr->ms_ave) / (2 * pptr->received), 
-                     pptr->ms_max);
-	}
-	else
-	  sendto_one(pptr->client,
-	             ":%s NOTICE %s :UPING: no response from %s within %d seconds",
-	             me.name, pptr->client->name, pptr->name,
-	             UPINGTIMEOUT);
-      }
-      else
-	sendto_one(pptr->client,
-	           ":%s NOTICE %s :UPING: Could not start ping to %s",
-	           me.name, pptr->client->name, pptr->name);
-    }
-    else {
-      if (pptr->lastsent) {
-	if (0 < pptr->received) {
-	  sendto_one(pptr->client, "%s NOTICE %s%s :UPING %s%s",
-	             NumServ(&me), NumNick(pptr->client), pptr->name, pptr->buf);
-          /* XXX - warning: long unsigned int format, unsigned int arg(9, 10, 11) */
-	  sendto_one(pptr->client,
-	             "%s " TOK_NOTICE " %s%s :UPING Stats: sent %d recvd %d ; "
-	             "min/avg/max = %1lu/%1lu/%1lu ms",
-	             NumServ(&me), NumNick(pptr->client), pptr->sent,
-	             pptr->received, pptr->ms_min,
-	             (2 * pptr->ms_ave) / (2 * pptr->received), 
-                     pptr->ms_max);
-	}
-	else
-	  sendto_one(pptr->client,
-	             "%s " TOK_NOTICE " %s%s :UPING: no response from %s within %d seconds",
-	             NumServ(&me), NumNick(pptr->client), pptr->name, UPINGTIMEOUT);
-      }
-      else
-	sendto_one(pptr->client,
-	           "%s " TOK_NOTICE " %s%s :UPING: Could not start ping to %s",
-	           NumServ(&me), NumNick(pptr->client), pptr->name);
-    }
+    if (pptr->lastsent) {
+      if (0 < pptr->received) {
+	sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING %s%s",
+		      pptr->client, pptr->name, pptr->buf);
+	sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING Stats: "
+		      "sent %d recvd %d ; min/avg/max = %1lu/%1lu/%1lu ms",
+		      pptr->client, pptr->sent, pptr->received, pptr->ms_min,
+		      (2 * pptr->ms_ave) / (2 * pptr->received), pptr->ms_max);
+      } else
+	sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING: no response "
+		      "from %s within %d seconds", pptr->client, pptr->name,
+		      UPINGTIMEOUT);
+    } else
+      sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING: Could not "
+		    "start ping to %s", pptr->client, pptr->name);
   }
+
   close(pptr->fd);
   pptr->fd = -1;
   uping_erase(pptr);

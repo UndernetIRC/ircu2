@@ -27,10 +27,12 @@
 #include "hash.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd.h"
 #include "list.h"
 #include "listener.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "packet.h"
@@ -159,7 +161,7 @@ void report_error(const char* text, const char* who, int err)
     /*
      * pace error messages so opers don't get flooded by transients
      */
-    sendto_ops(text, who, errmsg);
+    sendto_opmask_butone(0, SNO_OLDSNO, text, who, errmsg);
     last_notice = CurrentTime;
   }
   ircd_log(L_ERROR, text, who, errmsg);
@@ -182,7 +184,8 @@ static void connect_dns_callback(void* vptr, struct DNSReply* reply)
     connect_server(aconf, 0, reply);
   }
   else
-    sendto_ops("Connect to %s failed: host lookup", aconf->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Connect to %s failed: host lookup",
+			 aconf->name);
 }
 
 /*
@@ -395,13 +398,15 @@ static int completed_connection(struct Client* cptr)
     const char* msg = strerror(cptr->error);
     if (!msg)
       msg = "Unknown error";
-    sendto_ops("Connection failed to %s: %s", cptr->name, msg);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Connection failed to %s: %s",
+			 cptr->name, msg);
     return 0;
   }
   if (!(aconf = find_conf_byname(cptr->confs, cptr->name, CONF_SERVER))) {
-    sendto_ops("Lost Server Line for %s", cptr->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Lost Server Line for %s", cptr->name);
     return 0;
   }
+  /* XXX sendto_one sending without a prefix; be careful! */
   if (!EmptyString(aconf->passwd))
     sendto_one(cptr, "PASS :%s", aconf->passwd);
 
@@ -429,6 +434,7 @@ static int completed_connection(struct Client* cptr)
    */
   cptr->lasttime = CurrentTime;
   cptr->flags |= FLAGS_PINGSENT;
+  /* XXX sendto_one sending without a prefix; be careful! */
   sendto_one(cptr, "SERVER %s 1 " TIME_T_FMT " " TIME_T_FMT " J%s %s%s :%s",
              me.name, me.serv->timestamp, newts, MAJOR_PROTOCOL, 
              NumServCap(&me), me.info);
@@ -533,8 +539,7 @@ int net_close_unregistered_connections(struct Client* source)
 
   for (i = HighestFd; i > 0; --i) {
     if ((cptr = LocalClientArray[i]) && !IsRegistered(cptr)) {
-      sendto_one(source, rpl_str(RPL_CLOSING), me.name, source->name,
-                 get_client_name(source, HIDE_IP));
+      send_reply(source, RPL_CLOSING, get_client_name(source, HIDE_IP));
       exit_client(source, cptr, &me, "Oper Closing");
       ++count;
     }
@@ -1300,7 +1305,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   assert(0 != aconf);
 
   if (aconf->dns_pending) {
-    sendto_ops("Server %s connect DNS pending");
+    sendto_opmask_butone(0, SNO_OLDSNO, "Server %s connect DNS pending",
+			 aconf->name);
     return 0;
   }
   Debug((DEBUG_NOTICE, "Connect to %s[@%s]", aconf->name,
@@ -1308,22 +1314,18 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 
   if ((cptr = FindClient(aconf->name))) {
     if (IsServer(cptr) || IsMe(cptr)) {
-      sendto_ops("Server %s already present from %s", 
-                 aconf->name, cptr->from->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Server %s already present from %s", 
+			   aconf->name, cptr->from->name);
       if (by && IsUser(by) && !MyUser(by)) {
-        sendto_one(by, "%s NOTICE %s%s :Server %s already present from %s",
-                     NumServ(&me), NumNick(by), aconf->name, cptr->from->name);
+	sendcmdto_one(&me, CMD_NOTICE, by, "%C :Server %s already present "
+		      "from %s", by, aconf->name, cptr->from->name);
       }
       return 0;
     }
     else if (IsHandshake(cptr) || IsConnecting(cptr)) {
       if (by && IsUser(by)) {
-        if (MyUser(by))
-          sendto_one(by, ":%s NOTICE %s :Connection to %s already in progress",
-                     me.name, by->name, cptr->name);
-        else
-          sendto_one(by, "%s NOTICE %s%s :Connection to %s already in progress",
-                     NumServ(&me), NumNick(by), cptr->name);
+	sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connection to %s already in "
+		      "progress", by, cptr->name);
       }
       return 0;
     }
@@ -1370,10 +1372,11 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   attach_confs_byhost(cptr, aconf->host, CONF_SERVER);
 
   if (!find_conf_byhost(cptr->confs, aconf->host, CONF_SERVER)) {
-    sendto_ops("Host %s is not enabled for connecting: no C-line", aconf->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "Host %s is not enabled for "
+			 "connecting: no C-line", aconf->name);
     if (by && IsUser(by) && !MyUser(by)) {
-      sendto_one(by, "%s NOTICE %s%s :Connect to host %s failed: no C-line",
-                 NumServ(&me), NumNick(by), aconf->name);
+      sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connect to host %s failed: no "
+		    "C-line", by, aconf->name);
     }
     det_confs_butmask(cptr, 0);
     free_client(cptr);
@@ -1384,8 +1387,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
    */
   if (!connect_inet(aconf, cptr)) {
     if (by && IsUser(by) && !MyUser(by)) {
-      sendto_one(by, "%s NOTICE %s%s :Couldn't connect to %s",
-                 NumServ(&me), NumNick(by), cptr->name);
+      sendcmdto_one(&me, CMD_NOTICE, by, "%C :Couldn't connect to %s", by,
+		    cptr->name);
     }
     det_confs_butmask(cptr, 0);
     free_client(cptr);

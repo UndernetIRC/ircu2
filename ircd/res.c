@@ -17,6 +17,7 @@
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "s_bsd.h"
 #include "s_debug.h"
@@ -1667,35 +1668,35 @@ int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parv[1] && *parv[1] == 'l') {
     for(cp = cacheTop; cp; cp = cp->list_next) {
       hp = &cp->he.h;
-      sendto_one(sptr, "NOTICE %s :Ex %d ttl %d host %s(%s)",
-                 parv[0], cp->expireat - CurrentTime, cp->ttl,
-                 hp->h_name, ircd_ntoa(hp->h_addr));
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Ex %d ttl %d host %s(%s)",
+		    sptr, cp->expireat - CurrentTime, cp->ttl,
+		    hp->h_name, ircd_ntoa(hp->h_addr));
       for (i = 0; hp->h_aliases[i]; i++)
-        sendto_one(sptr,"NOTICE %s : %s = %s (CN)",
-                   parv[0], hp->h_name, hp->h_aliases[i]);
+        sendcmdto_one(&me, CMD_NOTICE, sptr, "%C : %s = %s (CN)", sptr,
+		      hp->h_name, hp->h_aliases[i]);
       for (i = 1; hp->h_addr_list[i]; i++)
-        sendto_one(sptr,"NOTICE %s : %s = %s (IP)",
-                   parv[0], hp->h_name, ircd_ntoa(hp->h_addr_list[i]));
+        sendcmdto_one(&me, CMD_NOTICE, sptr, "%C : %s = %s (IP)", sptr,
+		      hp->h_name, ircd_ntoa(hp->h_addr_list[i]));
     }
     return 0;
   }
   if (parv[1] && *parv[1] == 'd') {
-    sendto_one(sptr, "NOTICE %s :ResolverFileDescriptor = %d", 
-               parv[0], ResolverFileDescriptor);
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :ResolverFileDescriptor = %d", 
+		  sptr, ResolverFileDescriptor);
     return 0;
   }
-  sendto_one(sptr,"NOTICE %s :Ca %d Cd %d Ce %d Cl %d Ch %d:%d Cu %d",
-             sptr->name,
-             cainfo.ca_adds, cainfo.ca_dels, cainfo.ca_expires,
-             cainfo.ca_lookups, cainfo.ca_na_hits, cainfo.ca_nu_hits, 
-             cainfo.ca_updates);
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Ca %d Cd %d Ce %d Cl %d Ch %d:%d "
+		"Cu %d", sptr,
+		cainfo.ca_adds, cainfo.ca_dels, cainfo.ca_expires,
+		cainfo.ca_lookups, cainfo.ca_na_hits, cainfo.ca_nu_hits, 
+		cainfo.ca_updates);
   
-  sendto_one(sptr,"NOTICE %s :Re %d Rl %d/%d Rp %d Rq %d",
-             sptr->name, reinfo.re_errors, reinfo.re_nu_look,
-             reinfo.re_na_look, reinfo.re_replies, reinfo.re_requests);
-  sendto_one(sptr,"NOTICE %s :Ru %d Rsh %d Rs %d(%d) Rt %d", sptr->name,
-             reinfo.re_unkrep, reinfo.re_shortttl, reinfo.re_sent,
-             reinfo.re_resends, reinfo.re_timeouts);
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Re %d Rl %d/%d Rp %d Rq %d",
+		sptr, reinfo.re_errors, reinfo.re_nu_look,
+		reinfo.re_na_look, reinfo.re_replies, reinfo.re_requests);
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :Ru %d Rsh %d Rs %d(%d) Rt %d", sptr,
+		reinfo.re_unkrep, reinfo.re_shortttl, reinfo.re_sent,
+		reinfo.re_resends, reinfo.re_timeouts);
 #endif
   return 0;
 }
@@ -1722,6 +1723,7 @@ size_t cres_mem(struct Client* sptr)
       request_mem += MAXGETHOSTLEN + 1;
     ++request_count;
   }
+  /* XXX sendto_one used to send STATSDEBUG */
   if (cachedCount != cache_count) {
     sendto_one(sptr, 
                ":%s %d %s :Resolver: cache count mismatch: %d != %d",

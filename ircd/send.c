@@ -1013,16 +1013,8 @@ void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   vd.vd_args = vl;
 
-  if (MyUser(to)) { /* :nick!user@host form; use cmd */
-    if (IsServer(from) || IsMe(from))
-      ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s %s %v",
-		    from->name, cmd, &vd);
-    else
-      ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v",
-		    from->name, from->user->username, from->user->host,
-		    cmd, &vd);
-  } else /* numeric form; use tok */
-    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
+  ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from,
+		IsServer(to) || IsMe(to) ? tok : cmd, &vd);
 
   send_buffer(to, sndbuf);
 }
@@ -1089,8 +1081,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   va_start(vd.vd_args, pattern);
 
   /* build the buffer */
-  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v", from->name,
-		from->user->username, from->user->host, cmd, &vd);
+  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   sentalong_marker++;
@@ -1128,12 +1119,7 @@ void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
   va_start(vd.vd_args, pattern);
 
   /* build the buffer */
-  if (IsServer(from) || IsMe(from))
-    ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s %s %v", from->name,
-		  cmd, &vd);
-  else
-    ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v", from->name,
-		  from->user->username, from->user->host, cmd, &vd);
+  ircd_snprintf(0, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* send the buffer to each local channel member */
@@ -1174,13 +1160,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  if (IsServer(from) || IsMe(from))
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s %s %v", from->name,
-		  cmd, &vd);
-  else
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s!%s@%s %s %v",
-		  from->name, from->user->username, from->user->host, cmd,
-		  &vd);
+  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
@@ -1234,13 +1214,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  if (IsServer(from) || IsMe(from))
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s %s %v", from->name,
-		  cmd, &vd);
-  else
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s!%s@%s %s %v",
-		  from->name, from->user->username, from->user->host, cmd,
-		  &vd);
+  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
@@ -1294,13 +1268,7 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  if (IsServer(from) || IsMe(from)) /* probably a bad idea :) */
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s %s %v", from->name,
-		  cmd, &vd);
-  else
-    ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, ":%s!%s@%s %s %v",
-		  from->name, from->user->username, from->user->host, cmd,
-		  &vd);
+  ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C %s %v", from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */

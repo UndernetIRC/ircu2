@@ -1,4 +1,33 @@
+2000-04-25  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c: use send_reply
+
+	* ircd/userload.c: use sendcmdto_one
+
+	* ircd/uping.c: use sendcmdto_one
+
+	* ircd/send.c: use new flags to %C format string; ':' prefixes
+	client name with a colon for local connects, '#' uses
+	nick!user@host form for local connects
+
+	* ircd/s_user.c: use send_reply, sendto_opmask_butone,
+	sendcmdto_one, sendcmdto_serv_butone, sendcmdto_flag_butone
+
+	* ircd/s_serv.c: use sendcmdto_one, sendto_opmask_butone
+
+	* ircd/s_bsd.c: use sendto_opmask_butone, send_reply,
+	sendcmdto_one
+
+	* ircd/s_auth.c: use sendto_opmask_butone
+
+	* ircd/res.c: use sendcmdto_one
+
+	* ircd/ircd_snprintf.c (doprintf): minor bug fixes and some
+	debugging assertions
+
 2000-04-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/support.c: dumpcore is no longer used, so get rid of it
 
 	* ircd/parse.c: use send_reply, sendcmdto_one
 
@@ -692,7 +721,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.100 2000-04-24 18:50:37 kev Exp $
+# $Id: ChangeLog,v 1.101 2000-04-25 20:22:25 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

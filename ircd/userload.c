@@ -28,6 +28,7 @@
 #include "userload.h"
 #include "client.h"
 #include "ircd.h"
+#include "msg.h"
 #include "numnicks.h"
 #include "querycmds.h"
 #include "s_misc.h"
@@ -243,29 +244,13 @@ void calc_load(struct Client *sptr)
     times[i][2] /= 86400;
   }
 
-  if (MyUser(sptr) || Protocol(sptr->from) < 10)
-  {
-    sendto_one(sptr, ":%s NOTICE %s :%s", me.name, sptr->name, header);
-    for (i = 0; i < 3; ++i)
-      sendto_one(sptr,
-          ":%s NOTICE %s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
-          me.name, sptr->name,
-          times[0][i] / 10, times[0][i] % 10,
-          times[1][i] / 10, times[1][i] % 10,
-          times[2][i], times[3][i], times[4][i], what[i]);
-  }
-  else
-  {
-    sendto_one(sptr, "%s NOTICE %s%s :%s",
-        NumServ(&me), NumNick(sptr), header);
-    for (i = 0; i < 3; ++i)
-      sendto_one(sptr,
-          "%s NOTICE %s%s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
-          NumServ(&me), NumNick(sptr),
-          times[0][i] / 10, times[0][i] % 10,
-          times[1][i] / 10, times[1][i] % 10,
-          times[2][i], times[3][i], times[4][i], what[i]);
-  }
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, header);
+  for (i = 0; i < 3; ++i)
+    sendcmdto_one(&me, CMD_NOTICE, sptr,
+		  "%C :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s", sptr,
+		  times[0][i] / 10, times[0][i] % 10,
+		  times[1][i] / 10, times[1][i] % 10,
+		  times[2][i], times[3][i], times[4][i], what[i]);
 }
 
 void initload(void)
