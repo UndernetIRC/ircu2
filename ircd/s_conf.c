@@ -32,6 +32,8 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
+#include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "listener.h"
@@ -90,7 +92,7 @@ static int is_comment(const char *comment)
 /*
  *  check against a set of time intervals
  */
-static int check_time_interval(char *interval, char *reply)
+static int check_time_interval(char *interval, char *reply, size_t reply_size)
 {
   struct tm* tptr;
   char*      p;
@@ -127,19 +129,18 @@ static int check_time_interval(char *interval, char *reply)
         ? (perm_min <= nowm && nowm <= perm_max)
         : (perm_min <= nowm || nowm <= perm_max))
     {
-      sprintf_irc(reply, ":%%s %%d %%s :%s %d:%02d to %d:%02d.",
-                  "You are not allowed to connect from",
-                  perm_min_hours, perm_min_minutes,
-                  perm_max_hours, perm_max_minutes);
+      ircd_snprintf(0, reply, reply_size, ":You are not allowed to connect "
+		    "from %d:%02d to %d:%02d.", perm_min_hours,
+		    perm_min_minutes, perm_max_hours, perm_max_minutes);
       return (ERR_YOUREBANNEDCREEP);
     }
     if ((perm_min < perm_max)
         ? (perm_min <= nowm + 5 && nowm + 5 <= perm_max)
         : (perm_min <= nowm + 5 || nowm + 5 <= perm_max))
     {
-      sprintf_irc(reply, ":%%s %%d %%s :%d minute%s%s",
-                  perm_min - nowm, (perm_min - nowm) > 1 ? "s " : " ",
-                  "and you will be denied for further access");
+      ircd_snprintf(0, reply, reply_size, ":%d minute%s and you will be "
+		    "denied for further access", perm_min - nowm,
+		    (perm_min - nowm) > 1 ? "s" : "");
       return (ERR_YOUWILLBEBANNED);
     }
     interval = p;
@@ -162,10 +163,9 @@ static void killcomment(struct Client *sptr, char *parv, char *filename)
   struct tm*  tm;
 
   if (NULL == (file = fbopen(filename, "r"))) {
-    sendto_one(sptr, err_str(ERR_NOMOTD), me.name, parv);
-    sendto_one(sptr,
-        ":%s %d %s :Connection from your host is refused on this server.",
-        me.name, ERR_YOUREBANNEDCREEP, parv);
+    send_reply(sptr, ERR_NOMOTD);
+    send_reply(sptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+	       ":Connection from your host is refused on this server.");
     return;
   }
   fbstat(&sb, file);
@@ -175,14 +175,10 @@ static void killcomment(struct Client *sptr, char *parv, char *filename)
       *tmp = '\0';
     if ((tmp = strchr(line, '\r')))
       *tmp = '\0';
-    /* sendto_one(sptr,
-     * ":%s %d %s : %s.",
-     * me.name, ERR_YOUREBANNEDCREEP, parv,line); */
-    sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv, line);
+    send_reply(sptr, RPL_MOTD, line);
   }
-  sendto_one(sptr,
-      ":%s %d %s :Connection from your host is refused on this server.",
-      me.name, ERR_YOUREBANNEDCREEP, parv);
+  send_reply(sptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+	     ":Connection from your host is refused on this server.");
   fbclose(file);
 }
 
@@ -741,11 +737,8 @@ struct ConfItem* find_conf_exact(const char* name, const char* user,
   struct ConfItem *tmp;
   char userhost[USERLEN + HOSTLEN + 3];
 
-  /*
-   * XXX - buffer overflow possible, unchecked variables
-   */
   if (user)
-    sprintf_irc(userhost, "%s@%s", user, host);
+    ircd_snprintf(0, userhost, sizeof(userhost), "%s@%s", user, host);
   else
     ircd_strncpy(userhost, host, sizeof(userhost) - 1);
 
@@ -898,7 +891,8 @@ int rehash(struct Client *cptr, int sig)
   int               found_g = 0;
 
   if (1 == sig)
-    sendto_ops("Got signal SIGHUP, reloading ircd conf. file");
+    sendto_opmask_butone(0, SNO_OLDSNO,
+			 "Got signal SIGHUP, reloading ircd conf. file");
 
   while ((tmp2 = *tmp)) {
     if (tmp2->clients) {
@@ -976,9 +970,10 @@ int rehash(struct Client *cptr, int sig)
                             CONF_HUB | CONF_LEAF | CONF_UWORLD);
       }
       if ((found_g = find_kill(acptr))) {
-        sendto_op_mask(found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
-            found_g == -2 ? "G-line active for %s" : "K-line active for %s",
-            get_client_name(acptr, HIDE_IP));
+        sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
+			     found_g == -2 ? "G-line active for %s" :
+			     "K-line active for %s",
+			     get_client_name(acptr, HIDE_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;
@@ -1252,7 +1247,7 @@ int conf_init(void)
         len += strlen(aconf->host);
         newhost = (char*) MyMalloc(len);
         assert(0 != newhost);
-        sprintf_irc(newhost, "*@%s", aconf->host);
+	ircd_snprintf(0, newhost, len, "*@%s", aconf->host);
         MyFree(aconf->host);
         aconf->host = newhost;
       }
@@ -1413,24 +1408,20 @@ int find_kill(struct Client *cptr)
         break;
       else if (is_comment(tmp->passwd))
         break;
-      else if (check_time_interval(tmp->passwd, reply))
+      else if (check_time_interval(tmp->passwd, reply, sizeof(reply)))
         break;
     }
   }
   if (reply[0])
-    sendto_one(cptr, reply, me.name, ERR_YOUREBANNEDCREEP, cptr->name);
+    send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, reply);
   else if (tmp) {
     if (EmptyString(tmp->passwd))
-      sendto_one(cptr,
-          ":%s %d %s :Connection from your host is refused on this server.",
-          me.name, ERR_YOUREBANNEDCREEP, cptr->name);
+      send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP,
+		 ":Connection from your host is refused on this server.");
     else {
       if (*tmp->passwd == '"') {
-        char *sbuf =
-            sprintf_irc(sendbuf, ":%s %d %s :%s", me.name, ERR_YOUREBANNEDCREEP,
-            cptr->name, &tmp->passwd[1]);
-        sbuf[-1] = '.';                /* Overwrite last quote with a dot */
-        sendbufto_one(cptr);
+	send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%*s.",
+		   strlen(tmp->passwd + 1) - 1, tmp->passwd + 1);
       }
       else if (*tmp->passwd == '!')
         killcomment(cptr, cptr->name, &tmp->passwd[1]);
@@ -1438,8 +1429,8 @@ int find_kill(struct Client *cptr)
 #ifdef COMMENT_IS_FILE
         killcomment(cptr, cptr->name, tmp->passwd);
 #else
-        sendto_one(cptr, ":%s %d %s :%s.", me.name, ERR_YOUREBANNEDCREEP,
-            cptr->name, tmp->passwd);
+	send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
+		   tmp->passwd);
 #endif
     }
   }
@@ -1447,8 +1438,8 @@ int find_kill(struct Client *cptr)
   /* find active glines */
   /* added a check against the user's IP address to find_gline() -Kev */
   else if ((agline = gline_lookup(cptr)) && GlineIsActive(agline))
-    sendto_one(cptr, ":%s %d %s :%s.", me.name, ERR_YOUREBANNEDCREEP,
-	       cptr->name, GlineReason(agline));
+    send_reply(cptr, RPL_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
+	       GlineReason(agline));
   else
     agline = NULL;                /* if a gline was found, it was inactive */
 
@@ -1548,7 +1539,8 @@ int conf_check_server(struct Client *cptr)
   if (IsConnecting(cptr) || IsHandshake(cptr)) {
     c_conf = find_conf_byname(lp, cptr->name, CONF_SERVER);
     if (!c_conf) {
-      sendto_ops("Connect Error: lost C:line for %s", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Connect Error: lost C:line for %s",
+			   cptr->name);
       det_confs_butmask(cptr, 0);
       return -1;
     }

@@ -435,16 +435,16 @@ static time_t check_pings(void)
     {
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
       {
-        sendto_ops("No response from %s, closing link", cptr->name);
+        sendto_ops("No response from %s, closing link", cptr->name); /* XXX DEAD */
         exit_client(cptr, cptr, &me, "Ping timeout");
         continue;
       }
       else {
         if (!IsRegistered(cptr) && *cptr->name && *cptr->user->username) {
-          sendto_one(cptr,
+          sendto_one(cptr, /* XXX DEAD */
               ":%s %d %s :Your client may not be compatible with this server.",
               me.name, ERR_BADPING, cptr->name);
-          sendto_one(cptr,
+          sendto_one(cptr, /* XXX DEAD */
               ":%s %d %s :Compatible clients are available at "
               "ftp://ftp.undernet.org/pub/irc/clients",
               me.name, ERR_BADPING, cptr->name);
@@ -465,9 +465,9 @@ static time_t check_pings(void)
        */
       cptr->lasttime = CurrentTime - ping;
       if (IsUser(cptr))
-        sendto_one(cptr, "PING :%s", me.name);
+        sendto_one(cptr, "PING :%s", me.name); /* XXX DEAD */
       else
-        sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name);
+        sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name); /* XXX DEAD */
     }
 ping_timeout:
     timeout = cptr->lasttime + max_ping;

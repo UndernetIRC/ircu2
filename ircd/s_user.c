@@ -913,7 +913,7 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
     else {
 #ifdef GODMODE
       /* XXX Let's get rid of GODMODE */
-      sendto_one(sptr, ":%s NOTICE %s :New target: %s; ft " TIME_T_FMT,
+      sendto_one(sptr, ":%s NOTICE %s :New target: %s; ft " TIME_T_FMT, /* XXX Possibly DEAD */
           me.name, sptr->name, name, (CurrentTime - sptr->nexttarget) / TARGET_DELAY);
 #endif
       sptr->nexttarget += TARGET_DELAY;

@@ -86,7 +86,7 @@ static void dead_link(struct Client *to, char *notice)
   ircd_strncpy(to->info, notice, REALLEN);
 
   if (!IsUser(to) && !IsUnknown(to) && !(to->flags & FLAGS_CLOSING))
-    sendto_ops("%s for %s", to->info, to->name);
+    sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", to->info, to->name);
   Debug((DEBUG_ERROR, to->info));
 }
 
@@ -234,8 +234,9 @@ void send_buffer(struct Client* to, char* buf)
 
   if (DBufLength(&to->sendQ) > get_sendq(to)) {
     if (IsServer(to))
-      sendto_ops("Max SendQ limit exceeded for %s: " SIZE_T_FMT " > " SIZE_T_FMT,
-                 to->name, DBufLength(&to->sendQ), get_sendq(to));
+      sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
+			   "%zu > %zu", to, DBufLength(&to->sendQ),
+			   get_sendq(to));
     dead_link(to, "Max sendQ exceeded");
     return;
   }
@@ -1026,6 +1027,8 @@ void vsendcmdto_one(struct Client *from, const char *cmd, const char *tok,
   struct VarData vd;
   char sndbuf[IRC_BUFSIZE];
 
+  to = to->from;
+
   vd.vd_format = pattern; /* set up the struct VarData for %v */
   vd.vd_args = vl;
 
@@ -1192,9 +1195,10 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
 	(skip & SKIP_NONOPS && !IsChanOp(member)) ||
 	(skip & SKIP_BURST && IsBurstOrBurstAck(member->user->from)) ||
-	member->user->from->fd < -1 ||
+	member->user->from->fd < 0 ||
 	sentalong[member->user->from->fd] == sentalong_marker)
       continue;
+    sentalong[member->user->from->fd] = sentalong_marker;
 
     if (MyConnect(member->user)) /* pick right buffer to send */
       send_buffer(member->user, userbuf);
@@ -1245,6 +1249,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
     if (cptr->from == one || IsServer(cptr) || !(cptr->flags & flag) ||
 	cptr->from->fd < 0 || sentalong[cptr->from->fd] == sentalong_marker)
       continue; /* skip it */
+    sentalong[cptr->from->fd] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, userbuf);
@@ -1296,9 +1301,11 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   /* send buffer along */
   sentalong_marker++;
   for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
-    if (cptr->from == one || IsServer(cptr) || !match_it(cptr, to, who) ||
-	cptr->from->fd < 0 || sentalong[cptr->from->fd] == sentalong_marker)
+    if (cptr->from == one || IsServer(cptr) || IsMe(cptr) ||
+	!match_it(cptr, to, who) || cptr->from->fd < 0 ||
+	sentalong[cptr->from->fd] == sentalong_marker)
       continue; /* skip it */
+    sentalong[cptr->from->fd] = sentalong_marker;
 
     if (MyConnect(cptr)) /* send right buffer */
       send_buffer(cptr, userbuf);

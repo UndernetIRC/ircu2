@@ -428,7 +428,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
         && IsClient(victim))    /* Not a Ping struct or Log file */
     {
       if (IsServer(victim) || IsHandshake(victim))
-	sendcmdto_one(killer, CMD_SQUIT, victim, "%C 0 :%s", &me, comment);
+	sendcmdto_one(killer, CMD_SQUIT, victim, "%s 0 :%s", me.name, comment);
       else if (!IsConnecting(victim)) {
         if (!IsDead(victim))
 	  sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
@@ -496,8 +496,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   for (dlp = me.serv->down; dlp; dlp = dlp->next) {
     if (dlp->value.cptr != killer->from && dlp->value.cptr != victim) {
       if (IsServer(victim))
-	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%C %Tu :%s",
-		      victim, victim->serv->timestamp, comment);
+	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%s %Tu :%s",
+		      victim->name, victim->serv->timestamp, comment);
       else if (IsUser(victim) && 0 == (victim->flags & FLAGS_KILLED))
 	sendcmdto_one(victim, CMD_QUIT, dlp->value.cptr, ":%s", comment);
     }

@@ -127,25 +127,20 @@ void report_configured_links(struct Client *sptr, int mask)
        */
       /* Special-case 'k' or 'K' lines as appropriate... -Kev */
       if ((tmp->status & CONF_KLINE))
-        sendto_one(sptr, rpl_str(p[1]), me.name,
-            sptr->name, c, host, pass, name, port, get_conf_class(tmp));
+	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       /*
        * connect rules are classless
        */
       else if ((tmp->status & CONF_CRULE))
-        sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, host, name);
+	send_reply(sptr, p[1], c, host, name);
       else if ((tmp->status & CONF_TLINES))
-        sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, host, pass);
+	send_reply(sptr, p[1], c, host, pass);
       else if ((tmp->status & CONF_UWORLD))
-        sendto_one(sptr, rpl_str(p[1]),
-            me.name, sptr->name, c, host, pass, name, port,
-            get_conf_class(tmp));
+	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
-        sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, "*", name,
-            port, get_conf_class(tmp));
+	send_reply(sptr, p[1], c, "*", name, port, get_conf_class(tmp));
       else
-        sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, host, name,
-            port, get_conf_class(tmp));
+	send_reply(sptr, p[1], c, host, name, port, get_conf_class(tmp));
     }
   }
 }

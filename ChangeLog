@@ -1,3 +1,36 @@
+2000-04-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c: *sigh* 2.10.10 doesn't support squitting by
+	numeric nick; therefore, we have to use the server name
+
+	* ircd/m_squit.c (ms_squit): allow to squit by server numeric nick
+
+	* ircd/send.c: fix minor bugs
+
+	* ircd/s_user.c (check_target_limit): mark dead code so I filter
+	it when I grep
+
+	* ircd/s_serv.c (exit_new_server): mark dead code so I filter it
+	when I grep
+
+	* ircd/parse.c: mark dead code so I filter it when I grep
+
+	* ircd/map.c: mark dead code so I filter it when I grep
+
+	* ircd/ircd.c: mark dead code so I filter it when I grep
+
+	* ircd/ircd_relay.c: convert over to new sendcmdto_*, send_reply
+	functions
+
+	* ircd/channel.c: mark dead code so I filter it when I grep
+
+	* ircd/s_stats.c: use send_reply instead of sendto_one w/rpl_str;
+	hope I'm not stepping on toes...
+
+	* ircd/s_conf.c: more sendto_opmask_butone / send_reply
+	conversions; use ircd_snprintf in a couple of cases to negate the
+	possibility of buffer overflow
+
 2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: convert as much as possible to new send
@@ -794,7 +827,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.105 2000-04-27 02:08:37 kev Exp $
+# $Id: ChangeLog,v 1.106 2000-04-27 20:24:11 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -78,8 +78,11 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (BadPtr(parv[parc - 1]))
   	comment=sptr->name;
   	
-  acptr = FindServer(server);
-  
+  acptr = FindNServer(server);
+
+  if (!acptr)
+    acptr = FindServer(server);
+
   if (!acptr) {
     Debug((DEBUG_NOTICE, "Ignoring SQUIT to an unknown server"));
     return 0;
