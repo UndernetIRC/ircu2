@@ -591,11 +591,6 @@ void add_connection(struct Listener* listener, int fd)
     return;
   }
   /*
-   * XXX - do we really want to do this? is it needed?
-   */
-  os_disable_options(fd);
-
-  /*
    * Add this local client to the IPcheck registry.
    * If it is a connection to a user port and if the site has been throttled,
    * reject the user.
