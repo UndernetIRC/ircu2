@@ -1,3 +1,6 @@
+2000-06-12 Joseph Bongaarts <foxxe@trms.com>
+	* ircd/m_stats.c: Iso forgot mo_stats when he added /stats v
+	
 2000-05-29  Perry Lorier       <Isomer@coders.net>
 	* ircd/m_stats.c: add /stats v to do only the last part of the /trace
 	* ircd/IPcheck.c: Cosmetic change, if we meddle with it enough do
@@ -1235,7 +1238,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.147 2000-06-13 03:01:21 isomer Exp $
+# $Id: ChangeLog,v 1.148 2000-06-13 04:55:42 ghostwolf Exp $
 #
 # Insert new changes at beginning of the change list.
 #

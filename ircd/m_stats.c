@@ -982,6 +982,16 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
+    case 'v':
+    {
+    	struct ConfClass *cltmp;
+    	
+    	for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp)) {
+    		if (Links(cltmp) > 0)
+    			send_reply(sptr,RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
+    	}
+    	break;
+    }
     case 'W':
     case 'w':
       calc_load(sptr);
