@@ -1,5 +1,11 @@
 2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/engine_select.c (engine_loop): duh...sockList[i] could
+	become 0
+
+	* ircd/engine_devpoll.c (engine_loop): duh...sockList[i] could
+	become 0
+
 	* ircd/s_bsd.c: add some extra assertions to try to track down a
 	corruption problem
 
