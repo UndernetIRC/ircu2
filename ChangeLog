@@ -1,4 +1,7 @@
 2001-10-31  Perry Lorier  <isomer@coders.net>
+	* include/patchlevel.h: We're beta now
+
+2001-10-31  Perry Lorier  <isomer@coders.net>
 	* ircd/s_user.c: fixed hunt_server
 
 2001-09-21  Perry Lorier  <isomer@coders.net>
