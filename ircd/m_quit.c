@@ -99,7 +99,7 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char* comment;
+  char comment[TOPICLEN];
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
@@ -111,15 +111,14 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
-  comment = cli_name(cptr);
 
   if (parc > 1) {
-    comment = parv[parc - 1];
-
-    if (0 == strncmp("Local kill", comment, 10) || 0 == strncmp(comment, "Killed", 6))
-       comment = cli_name(cptr);
-    else if (strlen(comment) > TOPICLEN)
-      comment[TOPICLEN] = '\0';
+    strcpy(comment,"Quit: ");
+    strncat(comment,parv[parc-1],sizeof(comment)-strlen("Quit: "));
+    comment[sizeof(comment)] = '\0';
+  }
+  else {
+    strncpy(comment,cli_name(cptr),sizeof(comment));
   }
   return exit_client(cptr, sptr, sptr, comment);
 }

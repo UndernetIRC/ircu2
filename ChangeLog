@@ -1,3 +1,11 @@
+2002-01-08  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* Makefile.in: change MAKEFILES to IRCD_MAKEFILES to work around a
+	new gmake "feature" (pull-up from trunk)
+
+	* ircd/m_quit.c (m_quit): prefix user quits with "Quit:" (pull-up
+	from trunk)
+
 2002-01-07  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c: add FLAGS_ACCOUNT, represented as 'r', to the
