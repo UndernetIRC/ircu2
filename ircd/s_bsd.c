@@ -97,6 +97,7 @@ const char* const REUSEADDR_ERROR_MSG = "error setting SO_REUSEADDR for %s: %s";
 const char* const SELECT_ERROR_MSG    = "select error for %s: %s";
 const char* const SETBUFS_ERROR_MSG   = "error setting buffer size for %s: %s";
 const char* const SOCKET_ERROR_MSG    = "error creating socket for %s: %s";
+const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
 
 
 #ifdef GODMODE

@@ -48,6 +48,7 @@ extern const char* const POLL_ERROR_MSG;
 extern const char* const SELECT_ERROR_MSG;
 extern const char* const CONNECT_ERROR_MSG;
 extern const char* const SETBUFS_ERROR_MSG;
+extern const char* const TOS_ERROR_MSG;
 
 
 extern int            HighestFd;
