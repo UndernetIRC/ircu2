@@ -104,72 +104,71 @@
  *
  * parv[0] = sender prefix
  * parv[1] = new time
- * parv[2] = servername (Only used when sptr is an Oper).
+ * parv[2] = server name (only used when sptr is an oper)
  */
-int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_settime(struct Client* cptr, struct Client* sptr, int parc,
+	       char* parv[])
 {
   time_t t;
-  long int dt;
+  long dt;
   static char tbuf[11];
   struct DLink *lp;
 
-  if (!IsPrivileged(sptr))
-    return 0;
-
-  if (parc < 2)
+  if (parc < 2) /* verify argument count */
     return need_more_params(sptr, "SETTIME");
 
-  if (parc == 2 && MyUser(sptr))
-    parv[parc++] = cli_name(&me);
-
-  t = atoi(parv[1]);
+  t = atoi(parv[1]); /* convert time and compute delta */
   dt = TStime() - t;
 
-  if (t < OLDEST_TS || dt < -9000000)
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
+  /* verify value */
+  if (t < OLDEST_TS || dt < -9000000) {
+    if (IsServer(sptr)) /* protocol violation if it's from a server */
+      protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %l)", t, dt);
+    else
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
+		    "delta %l)", sptr, t, dt);
     return 0;
   }
 
-  if (IsServer(sptr))           /* send to unlagged servers */
-  {
-    if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-      ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
-      parv[1] = tbuf;
-    }
-
-    for (lp = cli_serv(&me)->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
-	sendcmdto_prio_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
-  }
-  else
-  {
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) { /* reset time */
     ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
     parv[1] = tbuf;
-    if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
-			     parv) != HUNTED_ISME)
-      return 0;
   }
 
-  if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-    if ((dt > 600) || (dt < -600))
-      sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
-			    cli_name(sptr), t);
-    if (IsUser(sptr)) {
-      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld "
-		    "seconds %s : RELIABLE_CLOCK is defined", sptr,
-		    (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    }
+  if (BadPtr(parv[2])) { /* spam the network */
+    for (lp = cli_serv(&me)->down; lp; lp = lp->next)
+      if (cptr != lp->value.cptr)
+	sendcmdto_prio_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
   } else {
+    if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
+			     parv) != HUNTED_ISME) {
+      /* If the destination was *not* me, but I'm RELIABLE_CLOCK and the
+       * delta is more than 30 seconds off, bounce back a corrected
+       * SETTIME
+       */
+      if (feature_bool(FEAT_RELIABLE_CLOCK) && (dt > 30 || dt < -30))
+	sendcmdto_prio_one(&me, CMD_SETTIME, cptr, "%s %C", parv[1], cptr);
+      return 0;
+    }
+  }
+
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) { /* don't apply settime--reliable */
+    if (dt > 600 || dt < -600) /* If it was off more than 5 min, complain */
+      sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
+			    "(delta %l)", cli_name(sptr), t, dt);
+    if (IsUser(sptr)) /* Let user know we're ignoring him */
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
+		    "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
+		    (dt < 0) ? "forward" : "backward");
+  } else { /* tell opers about time change */
     sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
 			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-			 (dt < 0) ? "forwards" : "backwards");
-    TSoffset -= dt;
-    if (IsUser(sptr)) {
+			 (dt < 0) ? "forward" : "backward");
+    TSoffset -= dt; /* apply time change */
+    if (IsUser(sptr)) /* let user know what we did */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
 		    sptr, (dt < 0) ? -dt : dt,
-		    (dt < 0) ? "forwards" : "backwards");
-    }
+		    (dt < 0) ? "forward" : "backward");
   }
 
   return 0;
@@ -180,72 +179,63 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *
  * parv[0] = sender prefix
  * parv[1] = new time
- * parv[2] = servername (Only used when sptr is an Oper).
+ * parv[2] = server name (only used when sptr is an oper)
  */
-int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int mo_settime(struct Client* cptr, struct Client* sptr, int parc,
+	       char* parv[])
 {
   time_t t;
-  long int dt;
+  long dt = 0;
   static char tbuf[11];
-  struct DLink *lp;
 
-  if (!IsPrivileged(sptr))
-    return 0;
-
-  if (parc < 2)
+  if (!IsOper(sptr)) /* Must be a global oper */
+    return send_reply(sptr, ERR_NOPRIVILEGES);
+  if (parc < 2) /* verify argument count */
     return need_more_params(sptr, "SETTIME");
 
-  if (parc == 2 && MyUser(sptr))
+  if (parc == 2 && MyUser(sptr)) /* default to me */
     parv[parc++] = cli_name(&me);
 
-  t = atoi(parv[1]);
-  dt = TStime() - t;
+  t = atoi(parv[1]); /* convert the time */
 
-  if (t < OLDEST_TS || dt < -9000000)
-  {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
+  /* If we're reliable_clock or if the oper specified a 0 time, use current */
+  if (!t || feature_bool(FEAT_RELIABLE_CLOCK)) {
+    t = TStime();
+    ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
+    parv[1] = tbuf;
+  }
+
+  dt = TStime() - t; /* calculate the delta */
+
+  /* verify value */
+  if (t < OLDEST_TS || dt < -9000000) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
+		  "delta %l)", sptr, t, dt);
     return 0;
   }
 
-  if (IsServer(sptr))           /* send to unlagged servers */
-  {
-    if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-      ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
-      parv[1] = tbuf;
-    }
+  /* OK, send the message off to its destination */
+  if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
+			   parv) != HUNTED_ISME)
+    return 0;
 
-    for (lp = cli_serv(&me)->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && MsgQLength(&(cli_sendQ(lp->value.cptr))) < 8000)
-	sendcmdto_prio_one(sptr, CMD_SETTIME, lp->value.cptr, "%s", parv[1]);
-  }
-  else
-  {
-    ircd_snprintf(0, tbuf, sizeof(tbuf), "%Tu", TStime());
-    parv[1] = tbuf;
-    if (hunt_server_prio_cmd(sptr, CMD_SETTIME, cptr, 1, "%s %C", 2, parc,
-			     parv) != HUNTED_ISME)
-      return 0;
-  }
-
-  if (feature_bool(FEAT_RELIABLE_CLOCK)) {
-    if ((dt > 600) || (dt < -600))
-      sendcmdto_serv_butone(&me, CMD_WALLOPS, 0, ":Bad SETTIME from %s: %Tu",
-			    cli_name(sptr), t);
-    if (IsUser(sptr)) {
-      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld "
-		    "seconds %s : RELIABLE_CLOCK is defined", sptr,
-		    (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    }
-  } else {
+  if (feature_bool(FEAT_RELIABLE_CLOCK)) { /* don't apply settime--reliable */
+    if (dt > 600 || dt < -600) /* If it was off more than 5 min, complain */
+      sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
+			    "(delta %l)", cli_name(sptr), t, dt);
+    if (IsUser(sptr)) /* Let user know we're ignoring him */
+      sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
+		    "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
+		    (dt < 0) ? "forward" : "backward");
+  } else { /* tell opers about time change */
     sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
 			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-			 (dt < 0) ? "forwards" : "backwards");
-    TSoffset -= dt;
-    if (IsUser(sptr)) {
+			 (dt < 0) ? "forward" : "backward");
+    TSoffset -= dt; /* apply time change */
+    if (IsUser(sptr)) /* let user know what we did */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",
 		    sptr, (dt < 0) ? -dt : dt,
-		    (dt < 0) ? "forwards" : "backwards");
-    }
+		    (dt < 0) ? "forward" : "backward");
   }
 
   return 0;

@@ -24,6 +24,9 @@
 #ifndef INCLUDED_ircd_alloc_h
 #define INCLUDED_ircd_alloc_h
 
+#undef FROBONMALLOC
+#undef FROBONFREE
+
 /*
  * memory resource allocation and test functions
  */
@@ -39,7 +42,12 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
 #define INCLUDED_stdlib_h
 #endif
 
+#ifdef FROBONFREE
+extern void MyFrobulatingFree(void *x);
+#define MyFree(x) do { MyFrobulatingFree((x)); (x) = 0; } while(0)
+#else
 #define MyFree(x) do { free((x)); (x) = 0; } while(0)
+#endif
 
 extern void* MyMalloc(size_t size);
 extern void* MyCalloc(size_t nelem, size_t size);

@@ -170,6 +170,8 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *gline;
   unsigned int flags = 0;
   int i;
+  int j;
+  int k = 0;
   char *p = 0;
   char *chanlist;
   char *name;
@@ -197,6 +199,18 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
+    /* This checks if the channel contains control codes and rejects em
+     * until they are gone, then we will do it otherwise - *SOB Mode*
+     */
+    for (k = 0, j = 0; name[j]; j++)
+      if (IsCntrl(name[j]))
+	k++;
+
+    if ( k > 0 ) {
+      send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+      continue;
+    }
+
     /* BADCHANed channel */
     if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
 	GlineIsActive(gline) && !IsAnOper(sptr)) {
@@ -209,15 +223,9 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	continue; /* already on channel */
 
       flags = CHFL_DEOPPED;
-    } else {
-      if (IsModelessChannel(name)) {
-	/* Prohibit creation of new modeless channels */
-	send_reply(sptr, ERR_NOSUCHCHANNEL, name);
-	continue;
-      }
-
-      flags = CHFL_CHANOP;
     }
+    else
+      flags = CHFL_CHANOP;
 
     if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
@@ -245,6 +253,14 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
 	  case ERR_BADCHANNELKEY:
 	    i = 'k';
+	    break;
+
+	  case ERR_NEEDREGGEDNICK:
+	    i = 'r';
+	    break;
+
+	  default:
+	    i = '?';
 	    break;
 	  }
 
@@ -299,7 +315,11 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *name;
 
   if (IsServer(sptr)) {
-    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", cli_name(sptr));
+    return protocol_violation(cptr,
+	"%s tried to JOIN %s, duh!",
+	cli_name(sptr),
+	(parc < 2 || *parv[1] == '\0') ? "a channel":parv[1]
+	);
   }
 
   if (parc < 2 || *parv[1] == '\0')
@@ -319,7 +339,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
 
     if (IsLocalChannel(name) || !IsChannelName(name)) {
-      protocol_violation(sptr,"%s tried to join %s",cli_name(cptr),name);
+      protocol_violation(cptr,"%s tried to join %s",cli_name(sptr),name);
       continue;
     }
 
@@ -330,7 +350,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         		   name,cli_name(sptr));
       	continue;
       }
-      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
 
       /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */ 
       chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
@@ -344,7 +364,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	remove_user_from_channel(sptr, chptr);
 	chptr = FindChannel(name);
       } else
-	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+	flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
     } 
 
     joinbuf_join(&join, chptr, flags);

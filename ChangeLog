@@ -1,3 +1,340 @@
+2002-12-15 Isomer <Isomer@undernet.org>
+	* include/patchlevel.h: Release this sucker!
+
+2002-12-11 Isomer <Isomer@undernet.org>
+	* tools/linesync.sh: Update
+
+	* include/ircd_alloc.h: Disable the frobulator by default, it has
+	alignment issues on non intel.
+
+2002-12-10 Isomer <Isomer@undernet.org>
+	* RELEASE.NOTES: Note problem we've seen on larger FBSD boxen
+
+	* ircd/s_user.c: Don't set +x on connect, since other servers ignore
+	-x, and possible desyncs with -x.
+
+2002-12-03 hikari <shadow@undernet.org>
+
+        * ircd/Makefile.in: fluff to link ircd/m_wallvoices.c
+
+        * ircd/parse.c: addition of wallvoices parsers
+
+        * ircd/send.c: addition of a check for SKIP_NONVOICES which causes
+        a check for !IsChanOp() && !HasVoice()
+
+        * ircd/m_wallvoices.c: new m_wallvoices() and ms_wallvoices()
+        functions message is sent as "#channel :+ foo"
+
+        * ircd/m_wallchops.c: modifed so the format is now "#channel :@
+        * foo"
+        to match the WALLVOICES form...after a little "discussion" on the
+        mater
+
+        * include/send.h: addition of defintion for SKIP_NONVOICES
+
+        * include/msg.h: command defines
+
+        * include/handlers.h: function declarations
+
+2002-11-30  <splidge@quakenet.org>
+	* ircd/ircd_alloc.h: Patched frobulator bug overwriting too much
+
+2002-11-26  Perry Lorier  <isomer@undernet.org>
+	* ircd/m_join.c: Update messages
+
+2002-11-27  Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/channel.c: Don't access memory after it is freed.
+	* include/patchlevel.h: Bump patchlevel again to stop confusion.
+	
+2002-11-26  Perry Lorier  <isomer@undernet.org>
+	* include/patchlevel.h: Update version string
+
+2002-11-26  Perry Lorier  <isomer@undernet.org>
+	* ircd/m_kill.c: Overzealous assert(3).
+
+2002-11-25  Perry Lorier  <isomer@undernet.org>
+	* include/ircd_alloc.h, ircd_alloc.c: Readded the side effect of
+	MyFree() setting the pointer to NULL.
+
+2002-11-24  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c: rewrite m[so]_settime().  Critical changes
+	are: servers may also send SETTIMEs to specific remote servers
+	(but are not required to); if we handle such a SETTIME that is
+	*not* for us, not only forward it, but if it's more than 30
+	seconds off in either direction (automatically corrected by code
+	before this), bounce a corrective SETTIME to our previous hop
+	(only if we're RELIABLE_CLOCK, of course); opers may now specify a
+	time of "0" to SETTIME to have the server fill it
+	in--RELIABLE_CLOCK servers will always fill in their own time
+
+	* ircd/m_create.c (ms_create): initialize the joinbufs just before
+	the for loop; issue a SETTIME if the remote server is > 1 minute
+	ahead, rather than squiting if it's > 5 minutes ahead
+
+	* ircd/s_user.c (hunt_server_prio_cmd): comment out the assert--we
+	now permit servers to send SETTIME to targeted servers
+
+	* ircd/m_create.c (ms_create): exit the client's *server*, not the
+	client--I was wondering why we weren't seeing any of these squits
+	on the network!
+
+2002-11-24  Andrew Miller <a1kmm@mware.virtualave.net>
+	* include/ircd_alloc.h: Support FROBONMALLOC and FROBONFREE. Turned on
+	now for debugging.
+	
+	* ircd/ircd_alloc.c (MyMalloc,MyRealloc,MyCalloc,MyFree): Made these
+	functions work with frobbing.
+
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_kick.c (ms_kick): if a kick comes from a user, it should
+	*appear* to be from the user
+
+	* ircd/s_bsd.c (deliver_it): this should have been a ClrFlag(),
+	not a SetFlag()--caused crashes on /restart and probably other
+	nastiness
+
+	* ircd/client.c (client_set_privs): must count up through
+	PRIV_LAST_PRIV rather than 0, since we *start* at zero
+
+	* include/client.h: I was so inspired by the use of enum Flag by
+	Entrope that I decided to use an enum for privileges as well
+
+	* include/whocmds.h (SEE_LUSER): correct a bug in SEE_LUSER with
+	regard to the PRIV_SHOW_INVIS / PRIV_SHOW_ALL_INVIS privileges
+
+	* ircd/client.c: use enum Priv for privilage table
+
+	* include/client.h: remove a comma from the end of the enumerator
+	list--resulted in a gcc warning.
+
+2002-11-04  Entrope  <entrope@gamesnet.net>
+
+	* include/client.h: Convert cli_flags into a struct rather
+        than a plain integer.  Add and update helper macros to match.
+
+	* include/s_user.h: Update declarations to match ircd/s_user.c
+	changes (see below).
+
+	* ircd/client.c (client_set_privs): Update (and rework) to
+        match new changes to struct Client and FLAG_* values.
+
+	* ircd/m_oper.c (m_oper): Update to match new FLAG_* values,
+	access macros and send_umode_out() arguments.
+
+	* ircd/s_user.c (register_user): Update to match new FLAG_*
+        values and access macros.
+	(userModeList): Likewise; also change meaning of "flag" field
+        to be flag number rather than bitmask.
+	(set_nick_name): Update to match userModeList.
+	(send_umode_out): Update arguments and send_umode() call to
+        match new send_umode() arguments.
+	(hide_hostmask): Change meaning of "flag" argument to be flag
+        number rather than bitmask.  Update to match new FLAG_* values
+        and access macros.
+	(set_user_mode): Change "setflags" to struct Flags type, and
+        use new FLAG_* values and access macros.  Use new arguments
+        for send_umode_out().
+	(umode_str): Update to match new FLAG_* values and access
+        macros.  Update test for global modes.
+
+	(send_umode): Change "old" argument to struct Flags* type and
+        change "sendmask" bitmask to "sendset" enum.  Update test for
+        whether to send each mode.
+
+	* ircd/IPCheck.c (ip_registry_disconenct): Update comment to
+	reflect new FLAG_* names.
+
+	* ircd/m_server.c (mr_server): Update to use new FLAG_* values
+        and access macros.
+	(ms_server): Likewise.  Split out serv_flags into one variable
+        for each of the relevant flags.
+
+	* ircd/ircd.c (check_pings): Update to match new FLAG_* values
+	and access macros.
+
+	* ircd/channel.c (is_banned): Likewise.
+
+	* ircd/m_account.c (ms_account): Likewise.
+
+	* ircd/m_join.c (ms_join): Likewise.
+
+	* ircd/m_kick.c (m_kick): Likewise.
+	(ms_kick): Likewise.
+
+	* ircd/m_kill.c (do_kill): Likewise.
+
+	* ircd/m_map.c (dump_map): Likewise.
+
+	* ircd/m_mode.c (m_mode): Likewise.
+	(ms_mode): Likewise.
+
+	* ircd/m_nick.c (ms_nick): Likewise.
+
+	* ircd/m_notice.c (m_notice): Likewise.
+	(ms_notice): Likewise.
+	(mo_notice): Likewise.
+
+	* ircd/m_part.c (m_part): Likewise.
+	(ms_part): Likewise.
+
+	* ircd/m_pong.c (ms_pong): Likewise.
+	(mr_pong): Likewise.
+	(m_pong): Likewise.
+
+	* ircd/m_privmsg.c (m_privmsg): Likewise.
+	(ms_privmsg): Likewise.
+	(mo_privmsg): Likewise.
+
+	* ircd/m_wallchops.c (m_wallchops): Likewise.
+
+	* ircd/m_who.c (m_who): Likewise.
+
+	* ircd/numnicks.c (markMatchexServer): Likewise.
+
+	* ircd/s_bsd.c (deliver_it): Likewise.
+	(completed_connection): Likewise.
+	(close_connection): Likewise.
+	(read_packet): Likewise.
+	(client_sock_callback): Likewise.
+
+        * ircd/s_conf.c (attach_iline): Likewise.
+
+	* ircd/s_misc.c (exit_client): Likewise.
+
+	* ircd/send.c (dead_link): Likewise.
+	(sendwallto_group_butone): Likewise.
+
+2002-11-21  Aaron Catella <aaroncatella@yahoo.com>
+
+	* ircd/m_admin.c: allow /admin <local server>
+	* ircd/m_version.c: allow /version <local server>
+
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c (m_join): reset control character sentinel;
+	otherwise, all channels after the first control-charactered
+	channel get rejected as well
+
+	* ircd/m_create.c (ms_create): add missing )
+
+	* ircd/m_account.c: include string.h to stomp a "implicit
+	declaration of strlen" warning from gcc
+
+2002-11-20  Aaron Catella <aaroncatella@yahoo.com>
+
+	* include/channel.h, ircd/channel.c, ircd/gline.c, m_clearmode.c,
+	  m_create.c, m_invite.c, m_join.c, m_kick.c, m_mode.c, m_topic.c:
+	  removed modeless channel support
+
+2002-11-21  Alexander Maassen <outsider@key2peace.org>
+	* ircd/m_join.c: Deny joining channels with control chars.
+
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: change STAT_FLAG_OPERONLY into
+	STAT_FLAG_OPERFEAT so that /stats v is governed by
+	FEAT_HIS_STATS_v
+
+2002-11-24 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/m_server.c: Fixed the H: line hostname checking.
+	* docs/example.conf: Documented the max-hops feature.
+	
+2002-11-23  Perry Lorier <isomer@undernet.org>
+	* ircd/m_nick.c: ms_nick had mysteriously gained a "return" in the
+	middle of it.  This meant when two people had the same TS on a nick
+	collide it was only killing one of them.  Thus we have phantom clients
+	on the network, which desync channels and cause protocol violations...
+
+2002-11-23  Perry Lorier <isomer@undernet.org>
+	* ircd/m_nick.c: Minor cleanups and fixing some stuff I accidently
+	commited before
+
+2002-11-19  Perry Lorier <isomer@undernet.org>
+	* ircd/m_join.c: Fix the inevitable typo
+
+2002-11-19  Perry Lorier <isomer@undernet.org>
+	* ircd/m_join.c: Make the protocol violation warning more verbose
+
+	* ircd/m_channel.c: OUTsiders OVERRIDE overly-noisy join patch.
+
+	* ircd/m_join.c: OUTsiders OVERRIDE +r patch.
+
+	* ircd/s_stats.c: fixed a little bug to allow local opers to get a
+	complete /stats k reply.  -- Spike
+	
+2002-10-30  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_whois.c (do_whois): reply real host to the user himself,
+	in addition to opers
+
+2002-10-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: fix documentation--HIS_REMOTE is an integer
+	defaulting to 1, not a boolean defaulting to TRUE
+
+	* doc/ircd.conf.sample: fix documentation--HIS_REMOTE is an
+	integer defaulting to 1, not a boolean defaulting to TRUE; also
+	comment out the default F-lines, since you only need an F-line if
+	you want a non-default setting for a feature
+
+	* doc/example.conf: fix documentation--HIS_REMOTE is an integer
+	defaulting to 1, not a boolean defaulting to TRUE
+
+2002-10-21  Alex Badea  <vampire@p16.pub.ro>
+
+	* include/ircd_features.h: new feature FEAT_AUTOHIDE
+
+	* ircd/ircd_features.c: new feature FEAT_AUTOHIDE
+
+	* s_user.c: set umode +x in register_user if FEAT_AUTOHIDE is on;
+	allow toggling of umode +x while there is no account set
+
+	* doc/readme.features: documented FEAT_AUTOHIDE, also corrected
+	the HOST_HIDING default to match the code
+
+	* doc/ircd.conf.sample: default value for FEAT_AUTOHIDE
+
+2002-10-19  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_key): correct an off-by-one error
+	that failed to truncate passed-in keys correctly--this caused a
+	presentation error that made the client think the key was one
+	character longer than it actually was
+
+	* ircd/channel.c (mode_process_bans): correct an off-by-one error
+	that allowed only 29 (44) bans to be set instead of the full 30
+	(45)
+
+2002-10-19  Perry Lorier <isomer@undernet.org>
+
+	* doc/example.conf: Changed defaults for host hiding and maxbans.
+
+	* ircd/ircd_features.c: Changed defaults for host hiding and maxbans.
+
+	* ircd/m_kick: Fixed braino.
+	
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_kick.c (ms_kick): Don't HACK(3) when a server kicks it's own
+	users, opers get twitchy.  Hide the kickee's server.
+
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_away.c (m_away): Don't forward away messages if users are
+	already away.  It sucks a lot of bandwidth.
+
+2002-10-15  Tim Vogelsang <net@astrolink.org>
+
+       * ircd/channel.c (is_banned): users that are using account and not
+       using the hidden host feature should have their accounts checked
+       against other hidden hosts banned in a attempted channel join
+
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* include/patchlevel.h (PATCHLEVEL): branch u2.10.11.03
+
 2002-10-10  Perry Lorier <isomer@undernet.org>
 
 	* include/patchlevel.h (PATCHLEVEL): release u2.10.11.02

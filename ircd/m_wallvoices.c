@@ -1,7 +1,6 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_version.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * IRC - Internet Relay Chat, ircd/m_wallvoices.c
+ * Copyright (c) 2002 hikari
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -81,102 +80,75 @@
  */
 #include "config.h"
 
+#include "channel.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
-#include "ircd_features.h"
 #include "ircd_reply.h"
-#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
-#include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
-#include "supported.h"
-#include "version.h"
 
 #include <assert.h>
 
 /*
- * m_version - generic message handler
- *
- *   parv[0] = sender prefix
- *   parv[1] = servername
+ * m_wallvoices - local generic message handler
  */
-int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
+  struct Channel *chptr;
 
-  if (parc > 1 && (!(acptr = find_match_server(parv[1])) || !IsMe(acptr)))
-    send_reply(sptr, ERR_NOPRIVILEGES);
-  else {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-    send_supported(sptr);
+  assert(0 != cptr);
+  assert(cptr == sptr);
+
+  ClrFlag(sptr, FLAG_TS8);
+
+  if (parc < 2 || EmptyString(parv[1]))
+    return send_reply(sptr, ERR_NORECIPIENT, "WALLVOICES");
+
+  if (parc < 3 || EmptyString(parv[parc - 1]))
+    return send_reply(sptr, ERR_NOTEXTTOSEND);
+
+  if (IsChannelName(parv[1]) && (chptr = FindChannel(parv[1]))) {
+    if (client_can_send_to_channel(sptr, chptr)) {
+      if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
+          check_target_limit(sptr, chptr, chptr->chname, 0))
+        return 0;
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
+    }
+    else
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }
+  else
+    send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return 0;
 }
 
 /*
- * mo_version - generic message handler
- *
- *   parv[0] = sender prefix
- *   parv[1] = servername
+ * ms_wallvoices - server message handler
  */
-int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
+  struct Channel *chptr;
+  assert(0 != cptr);
+  assert(0 != sptr);
 
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
+  if (parc < 3 || !IsUser(sptr))
+    return 0;
+
+  if ((chptr = FindChannel(parv[1]))) {
+    if (client_can_send_to_channel(sptr, chptr)) {
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
+    } else
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }
-
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, feature_int(FEAT_HIS_REMOTE),
-		      ":%C", 1, parc, parv) == HUNTED_ISME)
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-    send_supported(sptr);
-  }
-
-  return 0;
-}
-
-/*
- * ms_version - server message handler
- *
- *   parv[0] = sender prefix
- *   parv[1] = servername
- */
-int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  struct Client *acptr;
-
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
-  }
-
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
-      HUNTED_ISME)
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
-  }
-
   return 0;
 }

@@ -397,7 +397,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
         uhost[sizeof(uhost) - 1] = 0;
         if (0 == match(aconf->name, uhost)) {
           if (strchr(uhost, '@'))
-            cli_flags(cptr) |= FLAGS_DOID;
+            SetFlag(cptr, FLAG_DOID);
           return check_limit_and_attach(cptr, aconf);
         }
       }
@@ -414,7 +414,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
     if (match(aconf->host, uhost))
       continue;
     if (strchr(uhost, '@'))
-      cli_flags(cptr) |= FLAGS_DOID;
+      SetFlag(cptr, FLAG_DOID);
 
     return check_limit_and_attach(cptr, aconf);
   }

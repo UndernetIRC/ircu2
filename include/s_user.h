@@ -14,6 +14,7 @@ struct Client;
 struct User;
 struct Channel;
 struct MsgBuf;
+struct Flags;
 
 /*
  * Macros
@@ -40,6 +41,11 @@ struct MsgBuf;
 #define HUNTED_ISME     0       /* if this server should execute the command */
 #define HUNTED_PASS     1       /* if message passed onwards successfully */
 
+/* send sets for send_umode() */
+#define ALL_UMODES           0  /* both local and global user modes */
+#define SEND_UMODES          1  /* global user modes only */
+#define SEND_UMODES_BUT_OPER 2  /* global user modes except for FLAG_OPER */
+
 /* used when sending to #mask or $mask */
 
 #define MATCH_SERVER  1
@@ -61,18 +67,17 @@ extern int          register_user(struct Client* cptr, struct Client* sptr,
 
 extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
 
-extern int do_nick_name(char* nick);
 extern int set_nick_name(struct Client* cptr, struct Client* sptr,
                          const char* nick, int parc, char* parv[]);
-extern void send_umode_out(struct Client* cptr, struct Client* sptr, int old,
-			   int prop);
+extern void send_umode_out(struct Client* cptr, struct Client* sptr,
+			   struct Flags* old, int prop);
 extern int whisper(struct Client* source, const char* nick,
                    const char* channel, const char* text, int is_notice);
 extern void send_user_info(struct Client* to, char* names, int rpl,
                            InfoFormatter fmt);
 extern int add_silence(struct Client* sptr, const char* mask);
 
-extern int hide_hostmask(struct Client *cptr, unsigned int flags);
+extern int hide_hostmask(struct Client *cptr, unsigned int flag);
 extern int set_user_mode(struct Client *cptr, struct Client *sptr,
                          int parc, char *parv[]);
 extern int is_silenced(struct Client *sptr, struct Client *acptr);
@@ -88,7 +93,8 @@ extern int hunt_server_prio_cmd(struct Client *from, const char *cmd,
 				int server, int parc, char *parv[]);
 extern struct Client* next_client(struct Client* next, const char* ch);
 extern char *umode_str(struct Client *cptr);
-extern void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask);
+extern void send_umode(struct Client *cptr, struct Client *sptr,
+                       struct Flags *old, int sendset);
 extern int del_silence(struct Client *sptr, char *mask);
 extern void set_snomask(struct Client *, unsigned int, int);
 extern int is_snomask(char *);

@@ -135,15 +135,15 @@ static void dump_map(struct Client *cptr, struct Client *server, char *mask, int
   strcpy(p, "|-");
   for (lp = cli_serv(server)->down; lp; lp = lp->next)
     if (match(mask, cli_name(lp->value.cptr)))
-      cli_flags(lp->value.cptr) &= ~FLAGS_MAP;
+      ClrFlag(lp->value.cptr, FLAG_MAP);
     else
     {
-      cli_flags(lp->value.cptr) |= FLAGS_MAP;
+      SetFlag(lp->value.cptr, FLAG_MAP);
       cnt++;
     }
   for (lp = cli_serv(server)->down; lp; lp = lp->next)
   {
-    if ((cli_flags(lp->value.cptr) & FLAGS_MAP) == 0)
+    if (!HasFlag(lp->value.cptr, FLAG_MAP))
       continue;
     if (--cnt == 0)
       *p = '`';

@@ -112,11 +112,10 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   clean_channelname(parv[1]);
 
-  if (('#' != *parv[1] && '&' != *parv[1] && '+' != *parv[1]) || 
-      !(chptr = FindChannel(parv[1])))
+  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3) {
     char modebuf[MODEBUFLEN];
@@ -165,10 +164,10 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsLocalChannel(parv[1]))
     return 0;
 
-  if (('#' != *parv[1] && '+' != *parv[1])|| !(chptr = FindChannel(parv[1])))
+  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (IsServer(sptr)) {
     if (find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))

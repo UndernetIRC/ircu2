@@ -232,7 +232,7 @@ number of clients" / 25.
 
 HOST_HIDING
  * Type: boolean
- * Default: FALSE
+ * Default: TRUE
 
 This selects whether local users can set umode +x, thus allowing them
 to hide their hostname if they have also registered with a channel
@@ -250,6 +250,12 @@ HIDDEN_IP
 
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
+
+AUTOHIDE
+ * Type: boolean
+ * Default: TRUE
+
+If enabled, local users get umode +x by default when they connect.
 
 CONNEXIT_NOTICES
  * Type: boolean
@@ -1010,8 +1016,8 @@ As per UnderNet CFV-165, this remaps remote numerics to come from the local
 server.
 
 HIS_REMOTE
- * Type: boolean
- * Default: TRUE
+ * Type: integer
+ * Default: 1
 
 As per UnderNet CFV-165, this disallows remote queries. (*sob!*)
 

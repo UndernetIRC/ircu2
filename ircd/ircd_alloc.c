@@ -26,6 +26,7 @@
 #include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "s_debug.h"
+#include <string.h>
 
 #include <assert.h>
 
@@ -47,29 +48,106 @@ void set_nomem_handler(OutOfMemoryHandler handler)
   noMemHandler = handler;
 }
 
+#if defined(FROBONFREE) || defined(FROBONMALLOC)
+static void
+memfrob(void *ptr, size_t size)
+{
+  unsigned char *p = ptr, *ep = p + size - 4;
+  while (p <= ep)
+  {
+    *(unsigned long*)p = 0xDEADBEEF;
+    p += 4;
+  }
+  switch (ep - p)
+  {
+  case 3:
+    *(unsigned short*)p = 0xDEAD;
+    p[2] = 0xBE;
+    return;
+  case 2:
+    *(unsigned short*)p = 0xDEAD;
+    return;
+  case 1:
+    *p++ = 0xDE;
+    return;
+  }
+  return;
+}
+#endif
+
 void* MyMalloc(size_t size)
 {
-  void* p = malloc(size);
+  void* p = 
+#ifdef FROBONFREE
+    malloc(size + sizeof(size_t));
+#else
+    malloc(size);
+#endif
   if (!p)
     (*noMemHandler)();
+#ifdef FROBONFREE
+  *(size_t*)p = size;
+  p =  ((size_t*)p) + 1;
+#endif
+#ifdef FROBONMALLOC
+  memfrob(p, size);
+#endif
   return p;
 }
 
-void* MyRealloc(void* p, size_t size)
+void* MyRealloc(void* x, size_t size)
 {
-  void* x = realloc(p, size);
+#ifdef FROBONFREE
+   size_t old_size = ((size_t*)x)[-1];
+   if (old_size > size)
+     memfrob(((char*)x) + size, old_size - size);
+   x = realloc(((size_t*)x) - 1, size + sizeof(size_t));
+#else
+  x = realloc(x, size);
+#endif
   if (!x)
     (*noMemHandler)();
+  /* Both are needed in all cases to work with realloc... */
+#if defined(FROBONMALLOC) && defined(FROBONFREE)
+  if (old_size < size)
+    memfrob(((char*)x) + old_size, size - old_size);
+#endif
+#ifdef FROBONFREE
+  *(size_t*)x = size;
+  x =  ((size_t*)x) + 1;
+#endif
   return x;
 }
 
 void* MyCalloc(size_t nelem, size_t size)
 {
-  void* p = calloc(nelem, size);
+  void* p =
+#ifdef FROBONFREE
+    malloc(nelem * size + sizeof(size_t));
+#else
+    malloc(nelem * size);
+#endif
   if (!p)
     (*noMemHandler)();
+#ifdef FROBONFREE
+  *((size_t*)p) = nelem * size;
+  p = ((size_t*)p) + 1;
+#endif
+  memset(p, 0, size * nelem);
   return p;
 }
+
+#ifdef FROBONFREE
+void
+MyFrobulatingFree(void *p)
+{
+  size_t *stp = (size_t*)p;
+  if (p == NULL)
+    return;
+  memfrob(p, stp[-1]);
+  free(stp - 1);
+}
+#endif
 
 #else /* defined(MDEBUG) */
 /*

@@ -331,7 +331,7 @@ int SetLocalNumNick(struct Client *cptr)
 /* 
  * markMatchexServer()
  * Mark all servers whose name matches the given (compiled) mask
- * and return their count, abusing FLAGS_MAP for this :)
+ * and return their count, abusing FLAG_MAP for this :)
  */
 int markMatchexServer(const char *cmask, int minlen)
 {
@@ -342,9 +342,9 @@ int markMatchexServer(const char *cmask, int minlen)
   for (i = 0; i < lastNNServer; i++) {
     if ((acptr = server_list[i])) {
       if (matchexec(cli_name(acptr), cmask, minlen))
-        cli_flags(acptr) &= ~FLAGS_MAP;
+        ClrFlag(acptr, FLAG_MAP);
       else {
-        cli_flags(acptr) |= FLAGS_MAP;
+        SetFlag(acptr, FLAG_MAP);
         cnt++;
       }
     }

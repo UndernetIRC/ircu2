@@ -42,7 +42,7 @@ struct Channel;
 
 #define IS_VISIBLE_USER(s,ac) ((s==ac) || (!IsInvisible(ac)))
 
-#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || ((b & WHOSELECT_EXTRA) && MyConnect(ac) && HasPriv((s), PRIV_SHOW_INVIS | PRIV_SHOW_ALL_INVIS)))
+#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || ((b & WHOSELECT_EXTRA) && MyConnect(ac) && (HasPriv((s), PRIV_SHOW_INVIS) || HasPriv((s), PRIV_SHOW_ALL_INVIS))))
 
 #define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b) || ((b & WHOSELECT_EXTRA) && HasPriv((s), PRIV_SHOW_ALL_INVIS)))
 

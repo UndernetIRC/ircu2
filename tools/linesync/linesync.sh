@@ -68,13 +68,27 @@ check_file() {
 }
 
 # Try to find programs we will need
-locate_program wget && locate_program egrep && locate_program md5sum
+locate_program wget && locate_program egrep
 
 # try to find GNU awk
 awk_cmd=`which gawk`
-if [ $? ]; then
-	awk_cmd=""
+if [ $? -ne 0 ]; then
+        awk_cmd=""
 fi
+
+# try to find an appropriate md5 program
+# BSD md5 capability courtesy of spale
+md5_cmd=`which md5sum`
+if [ -z "$md5_cmd" ]; then
+	md5_cmd=`which md5`
+	if [ -z "$md5_cmd" ]; then
+		echo "No MD5 capable programs found (I looked for md5sum and md5)."
+		exit
+	else
+		md5_cmd="$md5_cmd -q"
+	fi
+fi
+
 if [ -z "$awk_cmd" ]; then
 	locate_program awk
 	is_gawk=`echo | awk --version | head -1 | egrep '^GNU.+$'`
@@ -155,7 +169,7 @@ if [ $ircd_setup != 2 ]; then
                 }
 		dup_line=0
                 for (i=0; i<tlines; i++) {
-                        if ($0==template[i]) { dup_line++; break }
+                        if (tolower($0)==tolower(template[i])) { dup_line++; break }
                 }
 		if (!dup_line) print $0
         } ' tempfile=$TMPFILE < $cpath > $inpath
@@ -164,7 +178,7 @@ else
 fi
 
 # Get the checksum
-CKSUM=`md5sum $TMPFILE|cut -d' ' -f1`
+CKSUM=`$md5_cmd $TMPFILE|cut -d' ' -f1`
 
 check_file="$tmp_path/linesync.sum.$TS"
 for ck_server in $LINE_CHECK; do
@@ -185,16 +199,16 @@ done
 # Replace the marked block in ircd.conf with the new version
 
 $awk_cmd ' 
-$0=="# BEGIN LINESYNC" { chop++; print $0; next }
+$0=="# BEGIN LINESYNC" { chop++; print; next }
 $0=="# END LINESYNC" {
         command="cat " syncfile
-        #while ((command | getline avar) > 0) { print avar }
+        while ((command | getline avar) > 0) { print avar }
         close(command)
         chop--
 }
 { if (!chop) print $0 }
 ' syncfile=$TMPFILE < $inpath > $tmp_path/linesync.new.$TS
-exit
+
 # Back up the current ircd.conf and replace it with the new one
 cp $cpath  $dpath/ircd.conf.bk
 cp $tmp_path/linesync.new.$TS $cpath

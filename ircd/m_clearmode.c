@@ -134,10 +134,6 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   struct SLink *link, *next;
   struct Membership *member;
 
-  /* Um...yeah, like it's supposed to have any modes at all. */
-  if (IsModelessChannel(chptr->chname))
-    return 0;
-
   /* Ok, so what are we supposed to get rid of? */
   for (; *control; control++) {
     for (flag_p = flags; flag_p[0]; flag_p += 2)
