@@ -16,9 +16,9 @@ struct Daemon
 {
   int          argc;        /**< Number of command-line arguments. */
   char**       argv;        /**< Array of command-line arguments. */
-  pid_t        pid;         /**< &Daemon's process id. */
-  uid_t        uid;         /**< &Daemon's user id. */
-  uid_t        euid;        /**< &Daemon's effective user id. */
+  pid_t        pid;         /**< %Daemon's process id. */
+  uid_t        uid;         /**< %Daemon's user id. */
+  uid_t        euid;        /**< %Daemon's effective user id. */
   unsigned int bootopt;     /**< Boot option flags. */
   int          pid_fd;      /**< File descriptor for process id file. */
 };
