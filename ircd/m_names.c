@@ -240,7 +240,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else if (*para == '0')
     *para = '\0';
   
-  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. Eww. */
+  s = strchr(para, ','); /* Recursively call m_names for each comma-separated channel. Eww. */
   if (s) {
     parv[1+showingdelayed] = ++s;
     m_names(cptr, sptr, parc, parv);
@@ -382,7 +382,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else if (*para == '0')
     *para = '\0';
   
-  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. */
+  s = strchr(para, ','); /* Recursively call m_names for each comma-separated channel. */
   if (s) {
     parv[1] = ++s;
     m_names(cptr, sptr, parc, parv);

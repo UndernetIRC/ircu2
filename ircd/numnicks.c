@@ -88,7 +88,7 @@ static struct Client* server_list[NN_MAX_SERVER];
  *
  * '\\0' : Because we use '\\0' as end of line.
  *
- * ' '  : Because parse_*() uses this as parameter seperator.
+ * ' '  : Because parse_*() uses this as parameter separator.
  *
  * ':'  : Because parse_server() uses this to detect if a prefix is a
  *        numeric or a name.

@@ -149,7 +149,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
   joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
 
-  /* For each channel in the comma seperated list: */
+  /* For each channel in the comma separated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;
        name = ircd_strtok(&p, 0, ",")) {
     badop = 0;

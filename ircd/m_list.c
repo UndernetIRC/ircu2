@@ -138,7 +138,7 @@ show_usage(struct Client *sptr)
   send_reply(sptr, RPL_LISTUSAGE,
 	     "Usage: \002/QUOTE LIST\002 \037parameters\037");
   send_reply(sptr, RPL_LISTUSAGE,
-	     "Where \037parameters\037 is a space or comma seperated "
+	     "Where \037parameters\037 is a space or comma separated "
 	     "list of one or more of:");
   send_reply(sptr, RPL_LISTUSAGE,
 	     " \002<\002\037max_users\037    ; Show all channels with less "

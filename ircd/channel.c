@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /** @file
- * @brief Channel management and maintanance
+ * @brief Channel management and maintenance
  * @version $Id$
  */
 #include "config.h"
@@ -895,7 +895,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
     }
 
     /*
-     * Attach nicks, comma seperated " nick[:modes],nick[:modes],..."
+     * Attach nicks, comma separated " nick[:modes],nick[:modes],..."
      *
      * First find all opless members.
      * Run 2 times over all members, to group the members with
@@ -1015,7 +1015,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 
     if (!full)
     {
-      /* Attach all bans, space seperated " :%ban ban ..." */
+      /* Attach all bans, space separated " :%ban ban ..." */
       for (first = 2; lp2; lp2 = lp2->next)
       {
         len = strlen(lp2->banstr);
@@ -1172,7 +1172,7 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
  * This version contributed by SeKs \<intru@info.polymtl.ca\>
  *
  * @param key		Key to check
- * @param keyring	Comma seperated list of keys
+ * @param keyring	Comma separated list of keys
  *
  * @returns True if the key was found and matches, false otherwise.
  */
@@ -1532,7 +1532,7 @@ int number_of_zombies(struct Channel *chptr)
  * @param strptr_i	modified offset to the position to modify
  * @param str1		The string to contatenate from.
  * @param str2		The second string to contatenate from.
- * @param c		Charactor to seperate the string from str1 and str2.
+ * @param c		Charactor to separate the string from str1 and str2.
  */
 static void
 build_string(char *strptr, int *strptr_i, const char *str1,

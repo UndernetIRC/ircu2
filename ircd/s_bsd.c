@@ -193,10 +193,12 @@ static void connect_dns_callback(void* vptr, struct DNSReply* hp)
 void close_connections(int close_stderr)
 {
   int i;
-  close(0);
-  close(1);
   if (close_stderr)
+  {
+    close(0);
+    close(1);
     close(2);
+  }
   for (i = 3; i < MAXCONNECTIONS; ++i)
     close(i);
 }

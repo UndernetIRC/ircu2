@@ -1,4 +1,19 @@
-2005-03-19  Michael Poole <mdpoole@troilus.org>
+2005-03-20  Michael Poole <mdpoole@troilus.org>
+	(Thanks to Reed Loden for pointing these out.)
+
+	* ircd/channel.c: Fix typos in comments.
+
+	* ircd/m_create.c: Likewise.
+
+	* ircd/m_list.c: Likewise.
+
+	* ircd/m_names.c: Likewise.
+
+	* ircd/numnicks.c: Likewise.
+
+	* ircd/s_bsd.c: Likewise.
+
+2005-03-20  Michael Poole <mdpoole@troilus.org>
 	(Thanks to Reed Loden for pointing these out.)
 
 	* doc/Configure.help: Remove outdated file.
