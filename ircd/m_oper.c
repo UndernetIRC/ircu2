@@ -186,7 +186,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     set_snomask(sptr, SNO_OPERDEFAULT, SNO_ADD);
     client_set_privs(sptr);
-    send_umode_out(cptr, sptr, old_mode);
+    send_umode_out(cptr, sptr, old_mode, HasPriv(sptr, PRIV_PROPAGATE));
     send_reply(sptr, RPL_YOUREOPER);
 
     sendto_opmask_butone(0, SNO_OLDSNO, "%s (%s@%s) is now operator (%c)",
