@@ -1,7 +1,7 @@
-#ifndef INCLUDED_ircd_network_h
-#define INCLUDED_ircd_network_h
+#ifndef INCLUDED_ircd_events_h
+#define INCLUDED_ircd_events_h
 /*
- * IRC - Internet Relay Chat, include/ircd_network.h
+ * IRC - Internet Relay Chat, include/ircd_events.h
  * Copyright (C) 2001 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -78,6 +78,14 @@ struct Socket {
 #define SOCK_EVENT_READABLE	0x0001	/* interested in readable */
 #define SOCK_EVENT_WRITABLE	0x0002	/* interested in writable */
 
+#define SOCK_EVENT_MASK		(SOCK_EVENT_READABLE | SOCK_EVENT_WRITABLE)
+
+#define SOCK_ACTION_SET		0x0000	/* set interest set as follows */
+#define SOCK_ACTION_ADD		0x1000	/* add to interest set */
+#define SOCK_ACTION_REMOVE	0x2000	/* remove from interest set */
+
+#define SOCK_ACTION_MASK	0x3000	/* mask out the actions */
+
 struct Signal {
   struct GenHeader sig_header;	/* generator information */
   int		   sig_signal;	/* signal number */
@@ -91,24 +99,57 @@ struct Timer {
   time_t	   t_expire;	/* time at which timer expires */
 };
 
+union Generator {
+  struct GenHeader* gen_header;	/* Generator header */
+  struct Socket*    gen_socket;	/* Socket generating event */
+  struct Signal*    gen_signal;	/* signal generating event */
+  struct Timer*	    gen_timer;	/* Timer generating event */
+};
+
 struct Event {
   struct Event*	   ev_next;	/* linked list of events on queue */
   struct Event**   ev_prev_p;
   enum EventType   ev_type;	/* Event type */
-  union {
-    struct GenHeader* gen_header;	/* Generator header */
-    struct Socket*    gen_socket;	/* Socket generating event */
-    struct Signal*    gen_signal;	/* signal generating event */
-    struct Timer*     gen_timer;	/* Timer generating event */
-  }		   ev_gen;	/* object generating event */
+  union Generator  ev_gen;	/* object generating event */
 };
+
+struct Generators {
+  struct Socket* g_socket;
+  unsigned int	 g_socket_count;
+
+  struct Signal* g_signal;
+  unsigned int	 g_signal_count;
+
+  struct Timer*	 g_timer;
+  unsigned int	 g_timer_count;
+};
+
+typedef int (*EngineInit)(struct Engine*);
+typedef void (*EngineSignal)(struct Engine*, struct Signal*);
+typedef void (*EngineSocket)(struct Engine*, struct Socket*,
+			     unsigned int events);
+typedef void (*Engine)(struct Engine*, struct Generators*);
+
+struct Engine {
+  char*	       eng_name;	/* a name for the engine */
+  EngineInit   eng_init;	/* initialize engine */
+  EngineSignal eng_signal;	/* express interest in a signal */
+  EngineSocket eng_socket;	/* express interest in a socket */
+  Engine       eng_engine;	/* actual event loop */
+  unsigned int eng_flags;	/* what engine *will* do */
+};
+
+#define ENG_FLAGS_DIRECTSIGS	0x0001	/* event engine can do itself */
 
 void event_generate(enum EventType type, void* gen);
 
-void timer_init(struct Timer* timer, EventCallBack call, void* data);
-void timer_add(struct Timer* timer, enum TimerType type, time_t value);
+void timer_add(struct Timer* timer, EventCallBack call, void* data,
+	       enum TimerType type, time_t value);
 void timer_del(struct Timer* timer);
 time_t timer_next(void);
 void timer_run(void);
 
-#endif /* INCLUDED_ircd_network_h */
+void signal_add(struct Signal* signal, EventCallBack call, void* data,
+		int sig);
+
+#endif /* INCLUDED_ircd_events_h */

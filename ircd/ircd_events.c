@@ -18,20 +18,17 @@
  *
  * $Id$
  */
-#include "ircd_network.h"
+#include "ircd_events.h"
 
 #include "ircd.h"
 #include "ircd_alloc.h"
 
+#include <signal.h>
+
+static int sig_fd = -1;
+
 static struct {
-  struct Socket* sockets_head;
-  unsigned int	 sockets_count;
-
-  struct Timer*	 timers_head;
-  unsigned int	 timers_count;
-
-  struct Signal* signals_head;
-  unsigned int	 signals_count;
+  struct Generators gens;
 
   struct Event*	 events_head;
   struct Event*	 events_tail;
@@ -39,7 +36,9 @@ static struct {
 
   struct Event*	 events_free;
   unsigned int	 events_alloc;
-} netInfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+  struct Engine* engine;
+} netInfo = { { 0, 0, 0, 0, 0, 0 }, 0, 0, 0, 0, 0, 0 };
 
 /* Remove something from its queue */
 static void
@@ -159,7 +158,7 @@ timer_enqueue(struct Timer* timer)
   }
 
   /* Find a slot to insert timer */
-  for (ptr_p = &netInfo.timers_head; ; ptr_p = &(*ptr_p)->t_header.gh_next)
+  for (ptr_p = &netInfo.gens.g_timer; ; ptr_p = &(*ptr_p)->t_header.gh_next)
     if (!*ptr_p || timer->t_expire < (*ptr_p)->t_expire)
       break;
 
@@ -168,13 +167,18 @@ timer_enqueue(struct Timer* timer)
   if (*ptr_p)
     (*ptr_p)->t_header.gh_prev_p = &timer->t_header.gh_next;
   *ptr_p = timer;
+
+  netInfo.timers_count++;
 }
 
-/* Initialize a struct Timer */
+/* Add a timer to be processed */
 void
-timer_init(struct Timer* timer, EventCallBack call, void* data)
+timer_add(struct Timer* timer, EventCallBack call, void* data,
+	  enum TimerType type, time_t value)
 {
   assert(0 != timer);
+  assert(0 != call);
+  assert(0 != value);
 
   timer->t_header.gh_next = 0; /* initialize a timer... */
   timer->t_header.gh_prev_p = 0;
@@ -182,19 +186,9 @@ timer_init(struct Timer* timer, EventCallBack call, void* data)
   timer->t_header.gh_ref = 0;
   timer->t_header.gh_call = call;
   timer->t_header.gh_data = data;
-  timer->t_value = 0;
-  timer->t_expire = 0;
-}
-
-/* Add a timer to be processed */
-void
-timer_add(struct Timer* timer, enum TimerType type, time_t value)
-{
-  assert(0 != timer);
-  assert(0 != value);
-
-  timer->t_type = type; /* Set up the timer... */
+  timer->t_type = type;
   timer->t_value = value;
+  timer->t_expire = 0;
 
   timer_enqueue(timer); /* and enqueue it */
 }
@@ -217,7 +211,7 @@ timer_del(struct Timer* timer)
 time_t
 timer_next(void)
 {
-  return netInfo.timers_head ? netInfo.timers_head->t_expire : 0;
+  return netInfo.gens.g_timer ? netInfo.gens.g_timer->t_expire : 0;
 }
 
 /* Execute all expired timers */
@@ -228,7 +222,7 @@ timer_run(void)
   struct Timer* next;
 
   /* go through queue... */
-  for (ptr = netInfo.timers_head; ptr; ptr = next) {
+  for (ptr = netInfo.gens.g_timer; ptr; ptr = next) {
     next = ptr->next;
     if (CurrentTime < ptr->t_expire)
       break; /* processed all pending timers */
@@ -245,5 +239,75 @@ timer_run(void)
       timer_enqueue(ptr); /* re-queue periodic timer */
       break;
     }
+  }
+}
+
+static void
+signal_signal(struct Signal* signal)
+{
+  assert(0 != signal);
+
+  signal->sig_count++; /* count number of signals */
+  event_generate(ET_SIGNAL, signal); /* generate signal event */
+}
+
+static void
+signal_event(int sig)
+{
+  unsigned char c;
+
+  assert(sig_fd >= 0);
+
+  c = (unsigned char) sig; /* only write 1 byte to identify sig */
+
+  write(sig_fd, &c, 1);
+}
+
+static void
+signal_socket_callback(struct Event* event)
+{
+  unsigned char c = 0;
+  int sig;
+  struct Signal* ptr;
+
+  read(event->ev_gen.gen_socket->s_fd, &c, 1); /* which signal? */
+  sig = (int) c;
+
+  for (ptr = netInfo.gens.g_signal; ptr; ptr = ptr->sig_header.gh_next)
+    if (ptr->sig_signal) /* find its descriptor... */
+      break;
+
+  signal_signal(ptr); /* signal event */
+}
+
+void
+signal_add(struct Signal* signal, EventCallBack call, void* data, int sig)
+{
+  struct sigaction act;
+
+  assert(0 != signal);
+  assert(0 != call);
+  assert(0 != netInfo.engine);
+
+  signal->sig_header.gh_next = netInfo.gens.g_signal; /* set up struct */
+  signal->sig_header.gh_prev_p = &netInfo.gens.g_signal;
+  signal->sig_header.gh_flags = 0;
+  signal->sig_header.gh_ref = 0;
+  signal->sig_header.gh_call = call;
+  signal->sig_header.gh_data = data;
+  signal->sig_signal = sig;
+  signal->sig_count = 0;
+
+  if (netInfo.gens.g_signal) /* link into list */
+    netInfo.gens.g_signal->sig_header.gh_prev_p = &signal->sig_header.gh_next;
+  netInfo.gens.g_signal = signal;
+
+  if (netInfo.engine->eng_flags & ENG_FLAGS_DIRECTSIGS)
+    (*netInfo.engine->eng_signal)(netInfo.engine, signal); /* tell engine */
+  else {
+    act.sa_handler = signal_event; /* set up signal handler */
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
+    sigaction(sig, &act, 0);
   }
 }
