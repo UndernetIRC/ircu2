@@ -304,7 +304,8 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
 #endif /* GPATH */
 
-  propagate_gline(cptr, sptr, gline);
+  if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
+    propagate_gline(cptr, sptr, gline);
 
   return GlineIsBadChan(gline) ? 0 : do_gline(cptr, sptr, gline);
 }
@@ -314,12 +315,19 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 		 time_t lastmod, unsigned int flags)
 {
   unsigned int saveflags = 0;
+  char *msg;
 
   assert(0 != gline);
 
   saveflags = gline->gl_flags;
 
-  if (!GlineIsLocal(gline)) {
+  if (GlineIsLocal(gline))
+    msg = "removing local";
+  else if (!gline->gl_lastmod && !(flags & GLINE_LOCAL))
+    msg = "removing global";
+  else {
+    msg = "deactivating global";
+
     if (flags & GLINE_LOCAL)
       gline->gl_flags |= GLINE_LDEACT;
     else {
@@ -339,26 +347,22 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
 		       "%s",
 		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
-		       GlineIsLocal(gline) ? "removing local" :
-		       "deactivating global",
-		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
 		       gline->gl_expire + TSoffset, gline->gl_reason);
 
 #ifdef GPATH
   write_log(GPATH, "# %Tu %C %s %s for %s%s%s, expiring at %Tu: %s\n",
-	    TStime(), sptr,
-	    GlineIsLocal(gline) ? "removing local" : "deactivating global",
-	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+	    TStime(), sptr, msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 	    gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 	    GlineIsBadChan(gline) ? "" : gline->gl_host,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
 #endif /* GPATH */
 
-  if (GlineIsLocal(gline))
+  if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))
     gline_free(gline);
-  else
+  else if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
     propagate_gline(cptr, sptr, gline);
 
   return 0;

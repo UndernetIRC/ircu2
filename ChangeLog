@@ -1,5 +1,15 @@
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/gline.c: don't propagate local changes
+
+	* ircd/jupe.c: don't propagate local changes
+
+	* ircd/m_gline.c (mo_gline): force local flag when deactivating
+	glines with 0 lastmod
+
+	* ircd/gline.c (gline_deactivate): G-lines with zero lastmod time
+	are now removed instead of being deactivated
+
 	* ircd/m_gline.c (ms_gline): make G-lines of the form "GLINE *
 	-<mask>" be accepted
 
@@ -1122,7 +1132,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.133 2000-05-04 17:43:47 kev Exp $
+# $Id: ChangeLog,v 1.134 2000-05-04 18:09:46 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
