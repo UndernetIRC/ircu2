@@ -37,15 +37,12 @@ struct TRecord;
 #define CONF_SERVER             0x0004
 #define CONF_LOCOP              0x0010
 #define CONF_OPERATOR           0x0020
-#define CONF_KILL               0x0080
 #define CONF_LEAF               0x1000
 #define CONF_HUB                0x4000
 #define CONF_UWORLD             0x8000
-#define CONF_IPKILL             0x00010000
 
 #define CONF_OPS                (CONF_OPERATOR | CONF_LOCOP)
 #define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPS | CONF_SERVER)
-#define CONF_KLINE              (CONF_KILL | CONF_IPKILL)
 
 #define IsIllegal(x)    ((x)->status & CONF_ILLEGAL)
 
@@ -54,18 +51,18 @@ struct TRecord;
  */
 
 struct ConfItem {
-  struct ConfItem*   next;
-  unsigned int       status;    /* If CONF_ILLEGAL, delete when no clients */
-  unsigned int       clients;   /* Number of *LOCAL* clients using this */
-  struct in_addr     ipnum;     /* ip number of host field */
-  char 		     bits;      /* Number of bits for ipkills */
-  char*              host;
-  char*              passwd;
-  char*              name;
-  unsigned short int port;
-  time_t             hold;      /* Hold until this time (calendar time) */
-  int                dns_pending; /* a dns request is pending */
-  struct ConnectionClass*  confClass; /* Class of connection */
+  struct ConfItem*         next;
+  unsigned int             status;      /* If CONF_ILLEGAL, delete when no clients */
+  unsigned int             clients;     /* Number of *LOCAL* clients using this */
+  struct ConnectionClass*  conn_class;  /* Class of connection */
+  struct in_addr           ipnum;       /* ip number of host field */
+  char*                    host;
+  char*                    passwd;
+  char*                    name;
+  time_t                   hold;        /* Hold until this time (calendar time) */
+  int                      dns_pending; /* a dns request is pending */
+  unsigned short           port;
+  char 		           bits;        /* Number of bits for ipkills */
 };
 
 struct ServerConf {
@@ -78,7 +75,18 @@ struct ServerConf {
   int                dns_pending;
   int                connected;
   time_t             hold;
-  struct ConnectionClass*  confClass;
+  struct ConnectionClass*  conn_class;
+};
+
+struct DenyConf {
+  struct DenyConf*    next;
+  char*               hostmask;
+  char*               message;
+  char*               usermask;
+  unsigned int        s_addr;
+  char                is_file;
+  char                ip_kill;
+  char                bits;        /* Number of bits for ipkills */
 };
 
 /*
@@ -156,6 +164,7 @@ extern int init_conf(void);
 extern const struct LocalConf* conf_get_local(void);
 extern const struct MotdConf*  conf_get_motd_list(void);
 extern const struct CRuleConf* conf_get_crule_list(void);
+extern const struct DenyConf*  conf_get_deny_list(void);
 
 extern const char* conf_eval_crule(const char* name, int mask);
 
@@ -165,7 +174,6 @@ extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name, int
 extern struct ConfItem* conf_find_server(const char* name);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
-extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern struct ConfItem* find_conf_exact(const char* name, const char* user,
                                         const char* host, int statmask);

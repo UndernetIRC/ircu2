@@ -310,7 +310,7 @@ typedef enum ShowIPType {
 } ShowIPType;
 
 extern const char* get_client_name(const struct Client* sptr, int showip);
-extern unsigned int client_get_ping(const struct Client* local_client);
+extern int client_get_ping(const struct Client* local_client);
 
 
 #endif /* INCLUDED_client_h */

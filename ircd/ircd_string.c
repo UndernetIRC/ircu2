@@ -75,6 +75,20 @@ int string_is_address(const char* str)
   return (0 == regexec(&addrRegex, str, 0, 0, 0));
 }
 
+int string_has_wildcards(const char* str)
+{
+  assert(0 != str);
+  for ( ; *str; ++str) {
+    if ('\\' == *str) {
+      if ('\0' == *++str)
+        break;
+    }
+    else if ('*' == *str || '?' == *str)
+      return 1;
+  }
+  return 0;
+}
+
 /*
  * strtoken.c
  *

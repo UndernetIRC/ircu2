@@ -78,38 +78,41 @@ static struct LocalConf   localConf;
 static struct MotdConf*   motdConfList;
 static struct CRuleConf*  cruleConfList;
 static struct ServerConf* serverConfList;
+static struct DenyConf*   denyConfList;
 
 /*
  * output the reason for being k lined from a file  - Mmmm
- * sptr is server
- * parv is the sender prefix
+ * sptr is client being dumped
  * filename is the file that is to be output to the K lined client
  */
-static void killcomment(struct Client *sptr, char *parv, char *filename)
+static void killcomment(struct Client* sptr, const char* filename)
 {
-  FBFILE*     file = NULL;
+  FBFILE*     file = 0;
   char        line[80];
-  char*       tmp = NULL;
   struct stat sb;
   struct tm*  tm;
 
   if (NULL == (file = fbopen(filename, "r"))) {
     send_reply(sptr, ERR_NOMOTD);
     send_reply(sptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
-	       ":Connection from your host is refused on this server.");
+               ":Connection from your host is refused on this server.");
     return;
   }
   fbstat(&sb, file);
   tm = localtime((time_t*) &sb.st_mtime);        /* NetBSD needs cast */
   while (fbgets(line, sizeof(line) - 1, file)) {
-    if ((tmp = strchr(line, '\n')))
-      *tmp = '\0';
-    if ((tmp = strchr(line, '\r')))
-      *tmp = '\0';
+    char* end = line + strlen(line);
+    while (end > line) {
+      --end;
+      if ('\n' == *end || '\r' == *end)
+        *end = '\0';
+      else
+        break;
+    }
     send_reply(sptr, RPL_MOTD, line);
   }
   send_reply(sptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
-	     ":Connection from your host is refused on this server.");
+             ":Connection from your host is refused on this server.");
   fbclose(file);
 }
 
@@ -122,17 +125,9 @@ struct ConfItem* make_conf(void)
 #ifdef        DEBUGMODE
   ++GlobalConfCount;
 #endif
+  memset(aconf, 0, sizeof(struct ConfItem));
   aconf->status       = CONF_ILLEGAL;
-  aconf->clients      = 0;
   aconf->ipnum.s_addr = INADDR_NONE;
-  aconf->host         = 0;
-  aconf->passwd       = 0;
-  aconf->name         = 0;
-  aconf->port         = 0;
-  aconf->hold         = 0;
-  aconf->dns_pending  = 0;
-  aconf->confClass    = 0;
-  aconf->next         = 0;
   return aconf;
 }
 
@@ -147,7 +142,7 @@ void delist_conf(struct ConfItem *aconf)
       ;
     bconf->next = aconf->next;
   }
-  aconf->next = NULL;
+  aconf->next = 0;
 }
 
 void free_conf(struct ConfItem *aconf)
@@ -167,6 +162,37 @@ void free_conf(struct ConfItem *aconf)
 #ifdef        DEBUGMODE
   --GlobalConfCount;
 #endif
+}
+
+/*
+ * detach_conf - Disassociate configuration from the client.
+ */
+static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
+{
+  struct SLink** lp;
+  struct SLink*  tmp;
+
+  assert(0 != aconf);
+  assert(0 != cptr);
+  assert(0 < aconf->clients);
+
+  lp = &(cptr->confs);
+
+  while (*lp) {
+    if ((*lp)->value.aconf == aconf) {
+      if (aconf->conn_class && (aconf->status & CONF_CLIENT_MASK) && ConfLinks(aconf) > 0)
+        --ConfLinks(aconf);
+
+      assert(0 < aconf->clients);
+      if (0 == --aconf->clients && IsIllegal(aconf))
+        free_conf(aconf);
+      tmp = *lp;
+      *lp = tmp->next;
+      free_link(tmp);
+      return;
+    }
+    lp = &((*lp)->next);
+  }
 }
 
 /*
@@ -294,14 +320,16 @@ const char* conf_eval_crule(const char* name, int mask)
  * Remove all conf entries from the client except those which match
  * the status field mask.
  */
-void det_confs_butmask(struct Client *cptr, int mask)
+void det_confs_butmask(struct Client* cptr, int mask)
 {
-  struct SLink *tmp, *tmp2;
+  struct SLink* link;
+  struct SLink* next;
+  assert(0 != cptr);
 
-  for (tmp = cptr->confs; tmp; tmp = tmp2) {
-    tmp2 = tmp->next;
-    if ((tmp->value.aconf->status & mask) == 0)
-      detach_conf(cptr, tmp->value.aconf);
+  for (link = cptr->confs; link; link = next) {
+    next = link->next;
+    if ((link->value.aconf->status & mask) == 0)
+      detach_conf(cptr, link->value.aconf);
   }
 }
 
@@ -395,47 +423,15 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
   return ACR_NO_AUTHORIZATION;
 }
 
-/*
- * detach_conf - Disassociate configuration from the client.
- */
-int detach_conf(struct Client *cptr, struct ConfItem *aconf)
-{
-  struct SLink** lp;
-  struct SLink*  tmp;
-
-  assert(0 != aconf);
-  assert(0 != cptr);
-  assert(0 < aconf->clients);
-
-  lp = &(cptr->confs);
-
-  while (*lp) {
-    if ((*lp)->value.aconf == aconf) {
-      if (aconf->confClass && (aconf->status & CONF_CLIENT_MASK) && 
-          ConfLinks(aconf) > 0)
-        --ConfLinks(aconf);
-      if (0 == --aconf->clients && IsIllegal(aconf))
-        free_conf(aconf);
-      tmp = *lp;
-      *lp = tmp->next;
-      free_link(tmp);
-      return 0;
-    }
-    else
-      lp = &((*lp)->next);
-  }
-  return -1;
-}
-
 static int is_attached(struct ConfItem *aconf, struct Client *cptr)
 {
   struct SLink *lp;
 
-  for (lp = cptr->confs; lp; lp = lp->next)
+  for (lp = cptr->confs; lp; lp = lp->next) {
     if (lp->value.aconf == aconf)
-      break;
-
-  return (lp) ? 1 : 0;
+      return 1;
+  }
+  return 0;
 }
 
 /*
@@ -553,7 +549,7 @@ struct ConfItem* find_conf_exact(const char* name, const char* user,
     if (match(tmp->host, userhost))
       continue;
     if (tmp->status & (CONF_OPERATOR | CONF_LOCOP)) {
-      if (tmp->clients < MaxLinks(tmp->confClass))
+      if (tmp->clients < MaxLinks(tmp->conn_class))
         return tmp;
       else
         continue;
@@ -877,7 +873,7 @@ void conf_add_server(const char* const* fields, int count)
   server->dns_pending    = 0;
   server->connected      = 0;
   server->hold           = 0;
-  server->confClass      = find_class(atoi(fields[5]));
+  server->conn_class      = find_class(atoi(fields[5]));
 
   server->next = serverConfList;
   serverConfList = server;
@@ -886,6 +882,79 @@ void conf_add_server(const char* const* fields, int count)
     // lookup_confhost(server);
 }
 
+void conf_add_deny(const char* const* fields, int count, int ip_kill)
+{
+  struct DenyConf* conf;
+
+  if (count < 4 || EmptyString(fields[1]) || EmptyString(fields[3]))
+    return;
+  
+  conf = (struct DenyConf*) MyMalloc(sizeof(struct DenyConf));
+  assert(0 != conf);
+  memset(conf, 0, sizeof(struct DenyConf));
+
+  DupString(conf->hostmask, fields[1]);
+  collapse(conf->hostmask);
+
+  if (!EmptyString(fields[2])) {
+    const char* p = fields[2];
+    if ('!' == *p) {
+      conf->is_file = 1;
+      ++p;
+    }
+    DupString(conf->message, p);
+  }
+  DupString(conf->usermask, fields[3]);
+  collapse(conf->usermask);
+
+  if (ip_kill) {
+    /* 
+     * Here we use the same kludge as in listener.c to parse
+     * a.b.c.d, or a.b.c.*, or a.b.c.d/e.
+     */
+    int  c_class;
+    char ipname[16];
+    int  ad[4] = { 0 };
+    int  bits2 = 0;
+    c_class = sscanf(conf->hostmask, "%d.%d.%d.%d/%d",
+                     &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
+    if (c_class != 5) {
+      conf->bits = c_class * 8;
+    }
+    else {
+      conf->bits = bits2;
+    }
+    sprintf_irc(ipname, "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
+    
+    /*
+     * This ensures endian correctness
+     */
+    conf->s_addr = inet_addr(ipname);
+    Debug((DEBUG_DEBUG, "IPkill: %s = %08x/%i (%08x)", ipname,
+           conf->s_addr, conf->bits, NETMASK(conf->bits)));
+  }
+  conf->next = denyConfList;
+  denyConfList = conf;
+}
+
+void conf_erase_deny_list(void)
+{
+  struct DenyConf* next;
+  struct DenyConf* p = denyConfList;
+  for ( ; p; p = next) {
+    next = p->next;
+    MyFree(p->hostmask);
+    MyFree(p->usermask);
+    MyFree(p->message);
+    MyFree(p);
+  }
+  denyConfList = 0;
+}
+ 
+const struct DenyConf* conf_get_deny_list(void)
+{
+  return denyConfList;
+}
 
 /*
  * read_configuration_file
@@ -1049,10 +1118,12 @@ int read_configuration_file(void)
       aconf->status = CONF_CLIENT;
       break;
     case 'K':                /* Kill user line on irc.conf           */
-      aconf->status = CONF_KILL;
+      conf_add_deny(field_vector, field_count, 0);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'k':                /* Kill user line based on IP in ircd.conf */
-      aconf->status = CONF_IPKILL;
+      conf_add_deny(field_vector, field_count, 1);
+      aconf->status = CONF_ILLEGAL;
       break;
       /* Operator. Line should contain at least */
       /* password and host where connection is  */
@@ -1115,15 +1186,15 @@ int read_configuration_file(void)
         aconf->port = atoi(field_vector[4]); 
 
     if (field_count > 5 && !EmptyString(field_vector[5]))
-      aconf->confClass = find_class(atoi(field_vector[5]));
+      aconf->conn_class = find_class(atoi(field_vector[5]));
 
     /*
      * Associate each conf line with a class by using a pointer
      * to the correct class record. -avalon
      */
     if (aconf->status & CONF_CLIENT_MASK) {
-      if (aconf->confClass == 0)
-        aconf->confClass = find_class(0);
+      if (aconf->conn_class == 0)
+        aconf->conn_class = find_class(0);
     }
     if (aconf->status & CONF_CLIENT) {
       struct ConfItem *bconf;
@@ -1140,8 +1211,8 @@ int read_configuration_file(void)
           aconf->passwd = 0;
 
           ConfLinks(bconf) -= bconf->clients;
-          bconf->confClass = aconf->confClass;
-          if (bconf->confClass)
+          bconf->conn_class = aconf->conn_class;
+          if (bconf->conn_class)
             ConfLinks(bconf) += bconf->clients;
         }
         free_conf(aconf);
@@ -1161,7 +1232,7 @@ int read_configuration_file(void)
         len += strlen(aconf->host);
         newhost = (char*) MyMalloc(len);
         assert(0 != newhost);
-	ircd_snprintf(0, newhost, len, "*@%s", aconf->host);
+        ircd_snprintf(0, newhost, len, "*@%s", aconf->host);
         MyFree(aconf->host);
         aconf->host = newhost;
       }
@@ -1171,31 +1242,6 @@ int read_configuration_file(void)
         continue;
       lookup_confhost(aconf);
     }
-    if (aconf->status == CONF_IPKILL) {
-      /* 
-       * Here we use the same kludge as in listener.c to parse
-       * a.b.c.d, or a.b.c.*, or a.b.c.d/e.
-       */
-      int class;
-      char ipname[16];
-      int ad[4] = { 0 };
-      int bits2=0;
-      class=sscanf(aconf->host,"%d.%d.%d.%d/%d",
-                   &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
-      if (class!=5) {
-        aconf->bits=class*8;
-      }
-      else {
-        aconf->bits=bits2;
-      }
-      sprintf_irc(ipname,"%d.%d.%d.%d",ad[0], ad[1], ad[2], ad[3]);
-      
-      /* This ensures endian correctness */
-      aconf->ipnum.s_addr = inet_addr(ipname);
-      Debug((DEBUG_DEBUG,"IPkill: %s = %08x/%i (%08x)",ipname,
-      	aconf->ipnum.s_addr,aconf->bits,NETMASK(aconf->bits)));
-    }
-
     /*
      * Juped nicks are listed in the 'password' field of U:lines,
      * the list is comma separated and might be empty and/or contain
@@ -1210,7 +1256,7 @@ int read_configuration_file(void)
     Debug((DEBUG_NOTICE,
         "Read Init: (%d) (%s) (%s) (%s) (%u) (%p)",
         aconf->status, aconf->host, aconf->passwd,
-        aconf->name, aconf->port, aconf->confClass));
+        aconf->name, aconf->port, aconf->conn_class));
     aconf->next = GlobalConfList;
     GlobalConfList = aconf;
     aconf = NULL;
@@ -1241,7 +1287,7 @@ int rehash(struct Client *cptr, int sig)
 
   if (1 == sig)
     sendto_opmask_butone(0, SNO_OLDSNO,
-			 "Got signal SIGHUP, reloading ircd conf. file");
+                         "Got signal SIGHUP, reloading ircd conf. file");
 
   while ((tmp2 = *tmp)) {
     if (tmp2->clients) {
@@ -1266,6 +1312,7 @@ int rehash(struct Client *cptr, int sig)
   }
   conf_erase_motd_list(&motdConfList);
   conf_erase_crule_list();
+  conf_erase_deny_list();
 
   /*
    * delete the juped nicks list
@@ -1311,10 +1358,10 @@ int rehash(struct Client *cptr, int sig)
        */
       if ((found_g = find_kill(acptr))) {
         sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
-			     found_g == -2 ? "G-line active for %s%s" :
-			     "K-line active for %s%s",
-			     IsUnknown(acptr) ? "Unregistered Client ":"",		     
-			     get_client_name(acptr, HIDE_IP));
+                             found_g == -2 ? "G-line active for %s%s" :
+                             "K-line active for %s%s",
+                             IsUnknown(acptr) ? "Unregistered Client ":"",                     
+                             get_client_name(acptr, HIDE_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;
@@ -1431,7 +1478,7 @@ int find_kill(struct Client *cptr)
 {
   const char*      host;
   const char*      name;
-  struct ConfItem* tmp;
+  struct DenyConf* deny;
   struct Gline*    agline = NULL;
 
   assert(0 != cptr);
@@ -1448,66 +1495,44 @@ int find_kill(struct Client *cptr)
   /* 2000-07-14: Rewrote this loop for massive speed increases.
    *             -- Isomer
    */
-  for (tmp = GlobalConfList; tmp; tmp = tmp->next) {
-  
-    if ((tmp->status & CONF_KLINE) == 0)
-    	continue;
-    	
-    /*
-     * What is this for?  You can K: by port?!
-     *   -- Isomer
-     */
-    if (tmp->port && tmp->port != cptr->listener->port)
-    	continue;
-
-    if (!tmp->name || match(tmp->name, name) != 0)
-    	continue;
-    	
-    if (!tmp->host)
-    	break;
+  for (deny = denyConfList; deny; deny = deny->next) {
+    if (0 != match(deny->usermask, name))
+      continue;
+            
+    if (EmptyString(deny->hostmask))
+      break;
     
-    if (tmp->status != CONF_IPKILL) {
-    	if (match(tmp->host, host) == 0)
-    	  break;
+    if (deny->ip_kill) { /* k: by IP */
+      Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
+             cptr->ip.s_addr, deny->s_addr, deny->bits, NETMASK(deny->bits)));
+      if ((cptr->ip.s_addr & NETMASK(deny->bits)) == deny->s_addr)
+        break;
     }
-    else { /* k: by IP */
-  	Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
-  		cptr->ip.s_addr, tmp->ipnum.s_addr, tmp->bits, 
-  		NETMASK(tmp->bits)));
-    	if ((cptr->ip.s_addr & NETMASK(tmp->bits)) == tmp->ipnum.s_addr)
-    		break;
-    }
+    else if (0 == match(deny->hostmask, host))
+      break;
   }
-  if (tmp) {
-    if (EmptyString(tmp->passwd))
+  if (deny) {
+    if (EmptyString(deny->message))
       send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
-		 ":Connection from your host is refused on this server.");
+                 ":Connection from your host is refused on this server.");
     else {
-      if (*tmp->passwd == '"') {
-	send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%*s.",
-		   strlen(tmp->passwd + 1) - 1, tmp->passwd + 1);
-      }
-      else if (*tmp->passwd == '!')
-        killcomment(cptr, cptr->name, &tmp->passwd[1]);
+      if (deny->is_file)
+        killcomment(cptr, deny->message);
       else
-#ifdef COMMENT_IS_FILE
-        killcomment(cptr, cptr->name, tmp->passwd);
-#else
-	send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
-		   tmp->passwd);
-#endif
+        send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", deny->message);
     }
   }
-
-  /* find active glines */
-  /* added a check against the user's IP address to find_gline() -Kev */
-  else if ((agline = gline_lookup(cptr, 0)) && GlineIsActive(agline))
-    send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
-	       GlineReason(agline));
+  else if ((agline = gline_lookup(cptr, 0)) && GlineIsActive(agline)) {
+    /*
+     * find active glines
+     * added a check against the user's IP address to find_gline() -Kev
+     */
+    send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", GlineReason(agline));
+  }
   else
-    agline = NULL;                /* if a gline was found, it was inactive */
+    agline = 0;          /* if a gline was found, it was inactive */
 
-  if (tmp)
+  if (deny)
     return -1;
   if (agline)
     return -2;
@@ -1609,7 +1634,7 @@ int conf_check_server(struct Client *cptr)
     c_conf = find_conf_byname(lp, cptr->name, CONF_SERVER);
     if (!c_conf) {
       sendto_opmask_butone(0, SNO_OLDSNO, "Connect Error: lost C:line for %s",
-			   cptr->name);
+                           cptr->name);
       det_confs_butmask(cptr, 0);
       return -1;
     }

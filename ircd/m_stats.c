@@ -123,6 +123,53 @@
 #include <string.h>
 
 
+int report_klines(struct Client* sptr, char* mask, int limit_query)
+{
+  int   wilds = 0;
+  int   count = 3;
+  char* user  = 0;
+  char* host;
+  const struct DenyConf* conf;
+
+  if (EmptyString(mask)) {
+    if (limit_query)
+      return need_more_params(sptr, "STATS K");
+    else
+      report_deny_list(sptr);
+    return 1;
+  }
+
+  if (!limit_query) {
+    wilds = string_has_wildcards(mask);
+    count = 1000;
+  }
+
+  if ((host = strchr(mask, '@'))) {
+    user = mask;
+    *host++ = '\0';
+  }
+  else {
+    host = mask;
+  }
+
+  for (conf = conf_get_deny_list(); conf; conf = conf->next) {
+    if ((!wilds && ((user || conf->hostmask) &&
+	!match(conf->hostmask, host) &&
+	(!user || !match(conf->usermask, user)))) ||
+	(wilds && !mmatch(host, conf->hostmask) &&
+	(!user || !mmatch(user, conf->usermask))))
+    {
+      send_reply(sptr, RPL_STATSKLINE, (conf->ip_kill) ? 'k' : 'K',
+                 conf->hostmask, conf->message, conf->usermask);
+      if (--count == 0)
+	return 1;
+    }
+  }
+  /* send_reply(sptr, RPL_ENDOFSTATS, stat); */
+  return 1;
+}
+
+
 /*
  * m_stats - generic message handler
  *
@@ -163,19 +210,13 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'L':
     case 'l':
     {
-      int doall = 0, wilds = 0;
+      int doall = 0;
+      int wilds = 0;
       char *name = "*";
-      if (parc > 3 && *parv[3])
-      {
-        char *p;
+
+      if (parc > 3 && !EmptyString(parv[3])) {
         name = parv[3];
-        wilds = (*name == '*' || *name == '?');
-        for (p = name + 1; *p; ++p)
-          if ((*p == '*' || *p == '?') && p[-1] != '\\')
-          {
-            wilds = 1;
-            break;
-          }
+        wilds = string_has_wildcards(name);
       }
       else
         doall = 1;
@@ -223,92 +264,41 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'h':
       report_configured_links(sptr, CONF_HUB | CONF_LEAF);
       break;
+    case 'K':
+    case 'k':    /* display CONF_IPKILL as well as CONF_KILL -Kev */
+      if (0 == report_klines(sptr, (parc == 4) ? parv[3] : 0, 0))
+        return 0;
+      break;
     case 'I':
     case 'i':
-    case 'K':
-    case 'k':                   /* display CONF_IPKILL as well
-                                   as CONF_KILL -Kev */
     {
-      int wilds, count;
-      char *user, *host, *p;
-      int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if (parc < 4)
-      {
-        report_configured_links(sptr, conf_status);
+      int wilds = 0;
+      int count = 1000;
+      char* host;
+
+      if (parc < 4) {
+        report_configured_links(sptr, CONF_CLIENT);
         break;
       }
+      if (EmptyString(parv[3]))
+        return need_more_params(sptr, "STATS I");
 
-      wilds = 0;
-      for (p = parv[3]; *p; p++)
-      {
-        if (*p == '\\')
-        {
-          if (!*++p)
-            break;
-          continue;
-        }
-        if (*p == '?' || *p == '*')
-        {
-          wilds = 1;
-          break;
-        }
-      }
+      host = parv[3];
+      wilds = string_has_wildcards(host);
 
-      count = 1000;
-
-      if (conf_status == CONF_CLIENT)
-      {
-        user = 0;            /* Not used, but to avoid compiler warning. */
-
-        host = parv[3];
-      }
-      else
-      {
-        if ((host = strchr(parv[3], '@')))
-        {
-          user = parv[3];
-          *host++ = 0;;
-        }
-        else
-        {
-          user = 0;
-          host = parv[3];
-        }
-      }
-      for (aconf = GlobalConfList; aconf; aconf = aconf->next)
-      {
-        if ((aconf->status & conf_status))
-        {
-          if (conf_status == CONF_KLINE)
-          {
-            if ((!wilds && ((user || aconf->host[1]) &&
-                !match(aconf->host, host) &&
-                (!user || !match(aconf->name, user)))) ||
-                (wilds && !mmatch(host, aconf->host) &&
-                (!user || !mmatch(user, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSKLINE,
-                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-                         aconf->passwd, aconf->name, aconf->port,
-                         get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-          else if (conf_status == CONF_CLIENT)
-          {
-            if ((!wilds && (!match(aconf->host, host) ||
-                !match(aconf->name, host))) ||
-                (wilds && (!mmatch(host, aconf->host) ||
-                !mmatch(host, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-                         aconf->port, get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-        }
+      for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
+	if (CONF_CLIENT == aconf->status) {
+	  if ((!wilds && (!match(aconf->host, host) ||
+	      !match(aconf->name, host))) ||
+	      (wilds && (!mmatch(host, aconf->host) ||
+	      !mmatch(host, aconf->name))))
+	  {
+	    send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+		       aconf->port, get_conf_class(aconf));
+	    if (--count == 0)
+	      break;
+	  }
+	}
       }
       break;
     }
@@ -460,19 +450,13 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'L':
     case 'l':
     {
-      int doall = 0, wilds = 0;
+      int doall = 0;
+      int wilds = 0;
       char *name = "*";
-      if (parc > 3 && *parv[3])
-      {
-        char *p;
+
+      if (parc > 3 && !EmptyString(parv[3])) {
         name = parv[3];
-        wilds = (*name == '*' || *name == '?');
-        for (p = name + 1; *p; ++p)
-          if ((*p == '*' || *p == '?') && p[-1] != '\\')
-          {
-            wilds = 1;
-            break;
-          }
+        wilds = string_has_wildcards(name);
       }
       else
         doall = 1;
@@ -521,100 +505,45 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'h':
       report_configured_links(sptr, CONF_HUB | CONF_LEAF);
       break;
+    case 'K':
+    case 'k':    /* display CONF_IPKILL as well as CONF_KILL -Kev */
+      if (0 == report_klines(sptr, (parc > 3) ? parv[3] : 0, !IsOper(sptr)))
+        return 0;
+      break;
     case 'I':
     case 'i':
-    case 'K':
-    case 'k':                   /* display CONF_IPKILL as well
-                                   as CONF_KILL -Kev */
     {
-      int wilds, count;
-      char *user, *host, *p;
-      int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if (IsOper(sptr) && parc < 4)
-      {
-        report_configured_links(sptr, conf_status);
+      int   wilds = 0;
+      int   count = 3;
+      char* host;
+
+      if (parc < 4 && IsOper(sptr)) {
+        report_configured_links(sptr, CONF_CLIENT);
         break;
       }
-      if (parc < 4 || *parv[3] == '\0')
-        return need_more_params(sptr,
-                        (conf_status & CONF_KLINE) ? "STATS K" : "STATS I");
+      if (parc < 4 || EmptyString(parv[3]))
+        return need_more_params(sptr, "STATS I");
 
-      wilds = 0;
-      for (p = parv[3]; *p; p++)
-      {
-        if (*p == '\\')
-        {
-          if (!*++p)
-            break;
-          continue;
-        }
-        if (*p == '?' || *p == '*')
-        {
-          wilds = 1;
-          break;
-        }
-      }
-      if (!IsOper(sptr))
-      {
-        wilds = 0;
-        count = 3;
-      }
-      else
+      if (IsOper(sptr)) {
+        wilds = string_has_wildcards(parv[3]);
         count = 1000;
-
-      if (conf_status == CONF_CLIENT)
-      {
-        user = 0;            /* Not used, but to avoid compiler warning. */
-
-        host = parv[3];
       }
-      else
-      {
-        if ((host = strchr(parv[3], '@')))
-        {
-          user = parv[3];
-          *host++ = 0;;
-        }
-        else
-        {
-          user = 0;
-          host = parv[3];
-        }
-      }
-      for (aconf = GlobalConfList; aconf; aconf = aconf->next)
-      {
-        if ((aconf->status & conf_status))
-        {
-          if (conf_status == CONF_KLINE)
-          {
-            if ((!wilds && ((user || aconf->host[1]) &&
-                !match(aconf->host, host) &&
-                (!user || !match(aconf->name, user)))) ||
-                (wilds && !mmatch(host, aconf->host) &&
-                (!user || !mmatch(user, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSKLINE,
-                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-                         aconf->passwd, aconf->name, aconf->port,
-                         get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-          else if (conf_status == CONF_CLIENT)
-          {
-            if ((!wilds && (!match(aconf->host, host) ||
-                !match(aconf->name, host))) ||
-                (wilds && (!mmatch(host, aconf->host) ||
-                !mmatch(host, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-                         aconf->port, get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-        }
+
+      host = parv[3];
+
+      for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
+	if (CONF_CLIENT == aconf->status) {
+	  if ((!wilds && (!match(aconf->host, host) ||
+	      !match(aconf->name, host))) ||
+	      (wilds && (!mmatch(host, aconf->host) ||
+	      !mmatch(host, aconf->name))))
+	  {
+	    send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+		       aconf->port, get_conf_class(aconf));
+	    if (--count == 0)
+	      break;
+	  }
+	}
       }
       break;
     }
@@ -752,12 +681,12 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Message *mptr;
-  struct Client *acptr;
-  struct ConfItem *aconf;
-  char stat = parc > 1 ? parv[1][0] : '\0';
-  const char **infotext = statsinfo;
-  int i;
+  struct Message*  mptr;
+  struct Client*   acptr;
+  struct ConfItem* aconf;
+  char             stat = parc > 1 ? parv[1][0] : '\0';
+  const char**     infotext = statsinfo;
+  int              i;
 
   if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
     return 0;
@@ -768,18 +697,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'l':
     {
       int doall = 0, wilds = 0;
-      char *name = "*";
-      if (parc > 3 && *parv[3])
-      {
-        char *p;
+      char* name = "*";
+      if (parc > 3 && !EmptyString(parv[3])) {
         name = parv[3];
-        wilds = (*name == '*' || *name == '?');
-        for (p = name + 1; *p; ++p)
-          if ((*p == '*' || *p == '?') && p[-1] != '\\')
-          {
-            wilds = 1;
-            break;
-          }
+        wilds = string_has_wildcards(name);
       }
       else
         doall = 1;
@@ -824,95 +745,44 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'h':
       report_configured_links(sptr, CONF_HUB | CONF_LEAF);
       break;
+    case 'K':
+    case 'k':    /* display CONF_IPKILL as well as CONF_KILL -Kev */
+      if (0 == report_klines(sptr, (parc > 3) ? parv[3] : 0, 0))
+        return 0;
+      break;
     case 'I':
     case 'i':
-    case 'K':
-    case 'k':                   /* display CONF_IPKILL as well
-                                   as CONF_KILL -Kev */
-    {
-      int wilds, count;
-      char *user, *host, *p;
-      int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if (parc < 4)
       {
-        report_configured_links(sptr, conf_status);
-        break;
-      }
+	int   wilds = 0;
+	int   count = 1000;
+	char* host;
 
-      wilds = 0;
-      for (p = parv[3]; *p; p++)
-      {
-        if (*p == '\\')
-        {
-          if (!*++p)
-            break;
-          continue;
-        }
-        if (*p == '?' || *p == '*')
-        {
-          wilds = 1;
-          break;
-        }
-      }
+	if (parc < 4) {
+	  report_configured_links(sptr, CONF_CLIENT);
+	  break;
+	}
+        if (EmptyString(parv[3]))
+          return need_more_params(sptr, "STATS I");
 
-      count = 1000;
+	host = parv[3];
+	wilds = string_has_wildcards(host);
 
-      if (conf_status == CONF_CLIENT)
-      {
-        user = 0;            /* Not used, but to avoid compiler warning. */
-
-        host = parv[3];
-      }
-      else
-      {
-        if ((host = strchr(parv[3], '@')))
-        {
-          user = parv[3];
-          *host++ = 0;;
-        }
-        else
-        {
-          user = 0;
-          host = parv[3];
-        }
-      }
-      for (aconf = GlobalConfList; aconf; aconf = aconf->next)
-      {
-        if ((aconf->status & conf_status))
-        {
-          if (conf_status == CONF_KLINE)
-          {
-            if ((!wilds && ((user || aconf->host[1]) &&
-                !match(aconf->host, host) &&
-                (!user || !match(aconf->name, user)))) ||
-                (wilds && !mmatch(host, aconf->host) &&
-                (!user || !mmatch(user, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSKLINE,
-                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-                         aconf->passwd, aconf->name, aconf->port,
-                         get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-          else if (conf_status == CONF_CLIENT)
-          {
-            if ((!wilds && (!match(aconf->host, host) ||
-                !match(aconf->name, host))) ||
-                (wilds && (!mmatch(host, aconf->host) ||
-                !mmatch(host, aconf->name))))
-            {
-              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-                         aconf->port, get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-        }
+	for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
+	  if (CONF_CLIENT == aconf->status) {
+	    if ((!wilds && (!match(aconf->host, host) ||
+		!match(aconf->name, host))) ||
+		(wilds && (!mmatch(host, aconf->host) ||
+		!mmatch(host, aconf->name))))
+	    {
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+			 aconf->port, get_conf_class(aconf));
+	      if (--count == 0)
+		break;
+	    }
+	  }
+	}
       }
       break;
-    }
     case 'M':
 #if !defined(NDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
