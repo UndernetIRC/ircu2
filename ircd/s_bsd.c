@@ -759,6 +759,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
     /* If there's still data to process, wait 2 seconds first */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
 	!cli_timer(cptr)) {
+      Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_timer(cptr) = 1;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
 		TT_RELATIVE, 2);
@@ -1004,7 +1005,7 @@ static void client_sock_callback(struct Event* ev)
     break;
 
   case ET_READ: /* socket is readable */
-    if (!NoNewLine(cptr) && !IsDead(cptr)) {
+    if (!IsDead(cptr)) {
       Debug((DEBUG_DEBUG, "Reading data from %C", cptr));
       if (read_packet(cptr, 1) == 0) /* error while reading packet */
 	fallback = "EOF from client";
@@ -1049,8 +1050,9 @@ static void client_timer_callback(struct Event* ev)
       con_timer(con) = 0; /* timer has been deleted */
     else if (con_timer(con) == 2)
       free_connection(con); /* client is being destroyed */
-  } else if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	     (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10)) {
+  } else {
+    Debug((DEBUG_LIST, "Client process timer for %C expired; processing",
+	   cptr));
     cli_timer(cptr) = 0; /* timer has expired... */
     read_packet(cptr, 0); /* read_packet will re-add timer if needed */
   }

@@ -1,5 +1,13 @@
 2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c: add Debug messages; call read_packet() even if the
+	no newline flag is set; call read_packet() when the timer expires,
+	regardless of what's in the buffer--read_packet() should be able
+	to deal properly
+
+	* ircd/IPcheck.c (ip_registry_connect_succeeded): correct a NOTICE
+	sent to clients to include the client nickname (duh)
+
 	* ircd/ircd_events.c: don't destroy a timer if it's already marked
 	for destruction; replace a missing ! in socket_del()
 

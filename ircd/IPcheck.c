@@ -363,8 +363,8 @@ void ip_registry_connect_succeeded(struct Client *cptr)
     free_targets = entry->target->count;
     tr = " tr";
   }
-  sendcmdto_one(&me, CMD_NOTICE, cptr, ":on %u ca %u(%u) ft %u(%u)%s",
-		entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
+  sendcmdto_one(&me, CMD_NOTICE, cptr, "%C :on %u ca %u(%u) ft %u(%u)%s",
+		cptr, entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
 		free_targets, STARTTARGETS, tr);
 }
 
