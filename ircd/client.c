@@ -34,6 +34,7 @@
 #include "struct.h"
 
 #include <assert.h>
+#include <string.h>
 
 #define BAD_PING                ((unsigned int)-2)
 

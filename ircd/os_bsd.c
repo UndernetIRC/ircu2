@@ -59,8 +59,8 @@
  */
 int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 {
-  char buf[256];
 #ifdef HAVE_GETRUSAGE
+  char buf[256];
   struct rusage rus;
   time_t secs;
 
@@ -113,6 +113,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 
 #else /* HAVE_GETRUSAGE */
 #if HAVE_TIMES
+  char buf[256];
   struct tms tmsbuf;
   time_t secs, mins;
   int hzz = 1, ticpermin;

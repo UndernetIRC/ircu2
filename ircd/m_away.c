@@ -93,6 +93,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * user_set_away - set user away state
