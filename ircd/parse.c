@@ -996,8 +996,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       return 0;
     }
   }
-  else if (Protocol(cptr) > 9)  /* Well, not ALWAYS, 2.9 can send no prefix */
-  {
+  else {
     char numeric_prefix[6];
     int  i;
     for (i = 0; i < 5; ++i) {
@@ -1006,12 +1005,17 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       }
     }
     numeric_prefix[i] = '\0';
+
     /*
      * We got a numeric nick as prefix
      * 1 or 2 character prefixes are from servers
      * 3 or 5 chars are from clients
      */
-    if (' ' == ch[1] || ' ' == ch[2])
+    if (0 == i) {
+      protocol_violation(cptr,"Missing Prefix");
+      from = cptr;
+    }
+    else if (' ' == ch[1] || ' ' == ch[2])
       from = FindNServer(numeric_prefix);
     else 
       from = findNUser(numeric_prefix);

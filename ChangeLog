@@ -1,3 +1,7 @@
+2000-12-16  Isomer <Isomer@coders.net>
+	* ircd/parse.c: detect if the prefix is missing and try and recover
+	instead of coring.
+
 2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_log.c: found and fixed some bugs in the debug logging
