@@ -118,7 +118,7 @@ int oper_password_match(const char* to_match, const char* passwd)
    * passwd may be NULL. Head it off at the pass...
    */
   if (to_match && passwd) {
-    encr = ircd_crypt(to_match, passwd);
+    char *encr = ircd_crypt(to_match, passwd);
     return (0 == strcmp(encr, passwd));
   }
   return 0;
