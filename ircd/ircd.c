@@ -437,7 +437,25 @@ static void parse_command_line(int argc, char** argv) {
     case 'd':  dpath      = optarg;                    break;
     case 'f':  configfile = optarg;                    break;
     case 'h':  ircd_strncpy(cli_name(&me), optarg, HOSTLEN); break;
-    case 'v':  printf("ircd %s\n", version);           exit(0);
+    case 'v':
+      printf("ircd %s\n", version);
+      printf("Event engines: ");
+#ifdef USE_KQUEUE
+      printf("kqueue() ");
+#endif
+#ifdef USE_DEVPOLL
+      printf("/dev/poll ");
+#endif
+#ifdef USE_POLL
+      printf("poll()");
+#else
+      printf("select()");
+#endif
+      printf("\nCompiled for a maximum of %d connections.\n", MAXCONNECTIONS);
+
+
+      exit(0);
+      break;
       
     case 'x':
       debuglevel = atoi(optarg);
