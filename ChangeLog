@@ -1,4 +1,7 @@
 2002-11-26  Perry Lorier  <isomer@undernet.org>
+	* include/patchlevel.h: Update version string
+
+2002-11-26  Perry Lorier  <isomer@undernet.org>
 	* ircd/m_kill.c: Overzealous assert(3).
 
 2002-11-25  Perry Lorier  <isomer@undernet.org>
