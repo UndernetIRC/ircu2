@@ -1,5 +1,7 @@
 2002-01-28  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/jupe.c (jupe_activate): remove a bogus assertion
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 	* ircd/s_err.c: added new channel mode 'r' to list of supported
