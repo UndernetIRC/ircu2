@@ -1,5 +1,9 @@
 2001-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/engine_kqueue.c: include ircd_alloc.h; set_or_clear returns
+	void in this file; add a missing semi-colon; declare errcode,
+	codesize
+
 	* ircd/uping.c (uping_sender_callback): it's pptr, not uping
 
 	* ircd/s_user.c (register_user): comment out spurious reference to

@@ -23,6 +23,7 @@
 #include "ircd_events.h"
 
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_log.h"
 
 #include <assert.h>
@@ -130,7 +131,7 @@ state_to_events(enum SocketState state, unsigned int events)
 }
 
 /* Activate kqueue filters as appropriate */
-static int
+static void
 set_or_clear(struct Socket* sock, unsigned int clear, unsigned int set)
 {
   int i = 0;
@@ -229,7 +230,7 @@ engine_events(struct Socket* sock, unsigned int new_events)
 static void
 engine_delete(struct Socket* sock)
 {
-  struct kevent dellist[2]
+  struct kevent dellist[2];
 
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
@@ -263,6 +264,8 @@ engine_loop(struct Generators* gen)
   struct timespec wait;
   int nevs;
   int i;
+  int errcode;
+  size_t codesize;
 
   while (running) {
     wait.tv_sec = timer_next(gen); /* set up the sleep time */
