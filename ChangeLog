@@ -1,5 +1,11 @@
 2004-10-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/hash.c: Replace the old hash function with one based on
+	randomized CRC-32.  The new one avoids a big table from the old
+	function.
+
+2004-10-05  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/random.c: Convert to use ircd_md5 interface and hopefully
 	keep more internal random state.
 
