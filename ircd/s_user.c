@@ -540,9 +540,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
     cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
 
-    if (feature_bool(FEAT_AUTOHIDE))
-      SetHiddenHost(sptr);
-
     send_reply(
 	sptr, 
 	RPL_WELCOME, 
@@ -1235,8 +1232,6 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
       case 'x':
         if (what == MODE_ADD)
 	  do_host_hiding = 1;
-	else if (!IsAccount(sptr))
-	  ClearHiddenHost(sptr);
 	break;
       default:
         break;

@@ -1,3 +1,9 @@
+2002-12-03 Isomer <Isomer@undernet.org>
+	* RELEASE.NOTES: Note problem we've seen on larger FBSD boxen
+
+	* ircd/s_user.c: Don't set +x on connect, since other servers ignore
+	-x, and possible desyncs with -x.
+
 2002-12-03 hikari <shadow@undernet.org>
 
         * ircd/Makefile.in: fluff to link ircd/m_wallvoices.c
