@@ -810,7 +810,8 @@ gline_stats(struct Client *sptr, struct StatDesc *sd, int stat, char *param)
 
     if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
-    send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user, 
+    else
+      send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user, 
 		 gline->gl_host ? "@" : "",
 		 gline->gl_host ? gline->gl_host : "",
 		 gline->gl_expire + TSoffset, gline->gl_reason);

@@ -1,3 +1,8 @@
+2004-03-07  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c (gline_stats): gotta have an else here or we end up
+	with some nice server crashes
+
 2004-01-31  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): update patchlevel...
