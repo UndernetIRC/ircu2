@@ -727,8 +727,7 @@ int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (!aconf)
     for (aconf = conf; aconf; aconf = aconf->next)
       if (aconf->status == CONF_CONNECT_SERVER &&
-	  (match(parv[1], aconf->host) == 0 ||
-	  match(parv[1], strchr(aconf->host, '@') + 1) == 0))
+	  (match(parv[1], aconf->host) == 0))
 	break;
 
   if (!aconf)

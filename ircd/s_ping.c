@@ -115,26 +115,16 @@ int start_ping(aClient *cptr)
   if (MyUser(cptr->acpt) || Protocol(cptr->acpt->from) < 10)
   {
     sendto_one(cptr->acpt,
-	":%s NOTICE %s :Sending %d ping%s to %s[%s] port %u",
+	":%s NOTICE %s :Sending %d ping%s to %s",
 	me.name, cptr->acpt->name, cptr->hopcount,
-	(cptr->hopcount == 1) ? "" : "s", cptr->name,
-#ifdef TESTNET
-	inetntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port) - 10000);
-#else
-	inetntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
-#endif
+	(cptr->hopcount == 1) ? "" : "s", cptr->name);
   }
   else
   {
     sendto_one(cptr->acpt,
-	"%s NOTICE %s%s :Sending %d ping%s to %s[%s] port %u",
+	"%s NOTICE %s%s :Sending %d ping%s to %s",
 	NumServ(&me), NumNick(cptr->acpt), cptr->hopcount,
-	(cptr->hopcount == 1) ? "" : "s", cptr->name,
-#ifdef TESTNET
-	inetntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port) - 10000);
-#else
-	inetntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
-#endif
+	(cptr->hopcount == 1) ? "" : "s", cptr->name);
   }
 
   cptr->firsttime = now + UPINGTIMEOUT;
