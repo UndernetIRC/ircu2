@@ -1,4 +1,8 @@
 2004-02-27  Entrope <entrope@clan-dk.org>
+        * ircd/ircd.c: Move the PID file acquisition after reading
+        the config file, so that F:PPATH works.
+
+2004-02-27  Entrope <entrope@clan-dk.org>
 
         * doc/readme.who: Describe the support for matching on and
         showing account names.
