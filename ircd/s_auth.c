@@ -304,6 +304,7 @@ static void auth_kill_client(struct AuthRequest* auth)
     delete_resolver_queries(auth);
   IPcheck_disconnect(auth->client);
   Count_unknowndisconnects(UserStats);
+  cli_auth(auth->client) = 0;
   free_client(auth->client);
   free_auth_request(auth);
 }
