@@ -376,8 +376,8 @@ msgq_count_memory(size_t *msg_alloc, size_t *msg_used, size_t *msgbuf_alloc,
 
   *msg_alloc = msgCounts.alloc * sizeof(struct Msg);
   *msg_used = msgCounts.used * sizeof(struct Msg);
-  *msgbuf_alloc = msgCounts.alloc * sizeof(struct MsgBuf);
-  *msgbuf_used = msgCounts.used * sizeof(struct MsgBuf);
+  *msgbuf_alloc = msgBufCounts.alloc * sizeof(struct MsgBuf);
+  *msgbuf_used = msgBufCounts.used * sizeof(struct MsgBuf);
 }
 
 /*

@@ -1,3 +1,10 @@
+2002-04-24  Greg Sikorski <gte@atomicrevs.demon.co.uk
+
+	* ircd/msgq.c (msgq_count_memory): Have stats z report the
+	correct amount of memory used by all the MsgBuf's.
+	
+	* include/patchlevel.h (PATCHLEVEL): patchlevel++
+	
 2002-04-19  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_who.c (m_who): disallow non-opers to /who server.name
