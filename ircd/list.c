@@ -260,6 +260,10 @@ void free_client(struct Client* cptr)
   if (cli_auth(cptr))
     destroy_auth_request(cli_auth(cptr), 0);
 
+  /* Make sure we didn't magically get re-added to the list */
+  assert(cli_next(cptr) == 0);
+  assert(cli_prev(cptr) == 0);
+
   if (cli_from(cptr) == cptr) { /* in other words, we're local */
     cli_from(cptr) = 0;
     /* timer must be marked as not active */

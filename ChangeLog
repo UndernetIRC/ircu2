@@ -1,5 +1,16 @@
 2002-01-09  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/list.c (free_client): verify that destroy_auth_request()
+	didn't automagically re-add us to the list; we might have to think
+	about this interaction more carefully, actually
+
+	* ircd/s_auth.c (auth_kill_client): zero the auth pointer before
+	calling free_client(); otherwise, free_client() will try to free
+	the auth by calling destroy_auth_request(), which will call
+	add_client_to_list()
+
 	* ircd/s_misc.c (exit_one_client): liberally sprinkle calls to
 	verify_client_list() around to catch any corruption that might
 	occur here
