@@ -1,3 +1,11 @@
+2001-01-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: static data and event manipulation
+	functions for new event processing system
+
+	* include/ircd_network.h: data structures for new event processing
+	system
+
 2001-01-03  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/whowas.c: Completely re-did the old allocation scheme by
