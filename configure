@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP AWK SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN_S LEX LEXLIB LEX_OUTPUT_ROOT YACC RMPROG SHPROG ENGINE_C INSTALL_RULE SYMLINK IRCDMODE IRCDOWN IRCDGRP DPATH LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP AWK SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN_S RMPROG SHPROG LEX LEXLIB LEX_OUTPUT_ROOT YACC ENGINE_C INSTALL_RULE SYMLINK IRCDMODE IRCDOWN IRCDGRP DPATH LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -6050,9 +6050,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for uint16_t" >&5
-echo $ECHO_N "checking for uint16_t... $ECHO_C" >&6
-if test "${ac_cv_type_uint16_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for u_int16_t" >&5
+echo $ECHO_N "checking for u_int16_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int16_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6065,9 +6065,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((uint16_t *) 0)
+if ((u_int16_t *) 0)
   return 0;
-if (sizeof (uint16_t))
+if (sizeof (u_int16_t))
   return 0;
   ;
   return 0;
@@ -6094,23 +6094,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_uint16_t=yes
+  ac_cv_type_u_int16_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_uint16_t=no
+ac_cv_type_u_int16_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_uint16_t" >&5
-echo "${ECHO_T}$ac_cv_type_uint16_t" >&6
-if test $ac_cv_type_uint16_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int16_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int16_t" >&6
+if test $ac_cv_type_u_int16_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define uint16_t unsigned int
+#define u_int16_t unsigned int
 _ACEOF
 
 fi
@@ -6181,9 +6181,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for uint16_t" >&5
-echo $ECHO_N "checking for uint16_t... $ECHO_C" >&6
-if test "${ac_cv_type_uint16_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for u_int16_t" >&5
+echo $ECHO_N "checking for u_int16_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int16_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6196,9 +6196,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((uint16_t *) 0)
+if ((u_int16_t *) 0)
   return 0;
-if (sizeof (uint16_t))
+if (sizeof (u_int16_t))
   return 0;
   ;
   return 0;
@@ -6225,23 +6225,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_uint16_t=yes
+  ac_cv_type_u_int16_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_uint16_t=no
+ac_cv_type_u_int16_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_uint16_t" >&5
-echo "${ECHO_T}$ac_cv_type_uint16_t" >&6
-if test $ac_cv_type_uint16_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int16_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int16_t" >&6
+if test $ac_cv_type_u_int16_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define uint16_t unsigned short
+#define u_int16_t unsigned short
 _ACEOF
 
 fi
@@ -6317,9 +6317,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for uint32_t" >&5
-echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
-if test "${ac_cv_type_uint32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for u_int32_t" >&5
+echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6332,9 +6332,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((uint32_t *) 0)
+if ((u_int32_t *) 0)
   return 0;
-if (sizeof (uint32_t))
+if (sizeof (u_int32_t))
   return 0;
   ;
   return 0;
@@ -6361,23 +6361,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_uint32_t=yes
+  ac_cv_type_u_int32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_uint32_t=no
+ac_cv_type_u_int32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
-echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
-if test $ac_cv_type_uint32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
+if test $ac_cv_type_u_int32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define uint32_t unsigned int
+#define u_int32_t unsigned int
 _ACEOF
 
 fi
@@ -6448,9 +6448,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for uint32_t" >&5
-echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
-if test "${ac_cv_type_uint32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for u_int32_t" >&5
+echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6463,9 +6463,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((uint32_t *) 0)
+if ((u_int32_t *) 0)
   return 0;
-if (sizeof (uint32_t))
+if (sizeof (u_int32_t))
   return 0;
   ;
   return 0;
@@ -6492,23 +6492,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_uint32_t=yes
+  ac_cv_type_u_int32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_uint32_t=no
+ac_cv_type_u_int32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
-echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
-if test $ac_cv_type_uint32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
+if test $ac_cv_type_u_int32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define uint32_t unsigned short
+#define u_int32_t unsigned short
 _ACEOF
 
 fi
@@ -6579,9 +6579,9 @@ _ACEOF
 
 fi
 
-  echo "$as_me:$LINENO: checking for uint32_t" >&5
-echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
-if test "${ac_cv_type_uint32_t+set}" = set; then
+  echo "$as_me:$LINENO: checking for u_int32_t" >&5
+echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int32_t+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -6594,9 +6594,9 @@ $ac_includes_default
 int
 main ()
 {
-if ((uint32_t *) 0)
+if ((u_int32_t *) 0)
   return 0;
-if (sizeof (uint32_t))
+if (sizeof (u_int32_t))
   return 0;
   ;
   return 0;
@@ -6623,23 +6623,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_type_uint32_t=yes
+  ac_cv_type_u_int32_t=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_type_uint32_t=no
+ac_cv_type_u_int32_t=no
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
-echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
-if test $ac_cv_type_uint32_t = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
+if test $ac_cv_type_u_int32_t = yes; then
   :
 else
 
 cat >>confdefs.h <<_ACEOF
-#define uint32_t unsigned long
+#define u_int32_t unsigned long
 _ACEOF
 
 fi
@@ -7361,6 +7361,97 @@ else
 echo "${ECHO_T}no, using $LN_S" >&6
 fi
 
+for ac_prog in rm
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_RMPROG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $RMPROG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_RMPROG="$RMPROG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_RMPROG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+RMPROG=$ac_cv_path_RMPROG
+
+if test -n "$RMPROG"; then
+  echo "$as_me:$LINENO: result: $RMPROG" >&5
+echo "${ECHO_T}$RMPROG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$RMPROG" && break
+done
+test -n "$RMPROG" || RMPROG="/bin/rm"
+
+for ac_prog in sh
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_SHPROG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SHPROG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SHPROG="$SHPROG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_SHPROG="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+SHPROG=$ac_cv_path_SHPROG
+
+if test -n "$SHPROG"; then
+  echo "$as_me:$LINENO: result: $SHPROG" >&5
+echo "${ECHO_T}$SHPROG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$SHPROG" && break
+done
+test -n "$SHPROG" || SHPROG="/bin/sh"
+
+
 for ac_prog in flex lex
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -7632,6 +7723,30 @@ _ACEOF
 fi
 
 fi
+if test -x "$LEX"
+then
+  { { echo "$as_me:$LINENO: error: Cannot find flex." >&5
+echo "$as_me: error: Cannot find flex." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+if test -z "$LEXLIB"
+then
+  { { echo "$as_me:$LINENO: error:
+  Cannot find a library with yywrap() in, but flex was found.
+  It's possible the compiler you're using ($CC) is incompatible with the
+  installed library.
+See \`config.log' for more details." >&5
+echo "$as_me: error:
+  Cannot find a library with yywrap() in, but flex was found.
+  It's possible the compiler you're using ($CC) is incompatible with the
+  installed library.
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+LIBS="$LEXLIB $LIBS"
+
 for ac_prog in 'bison -y' byacc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -7673,98 +7788,13 @@ fi
 done
 test -n "$YACC" || YACC="yacc"
 
-for ac_prog in rm
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_RMPROG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $RMPROG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_RMPROG="$RMPROG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_RMPROG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-RMPROG=$ac_cv_path_RMPROG
-
-if test -n "$RMPROG"; then
-  echo "$as_me:$LINENO: result: $RMPROG" >&5
-echo "${ECHO_T}$RMPROG" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
+if test -z "$YACC"
+then
+  { { echo "$as_me:$LINENO: error: Cannot find yacc." >&5
+echo "$as_me: error: Cannot find yacc." >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
-  test -n "$RMPROG" && break
-done
-test -n "$RMPROG" || RMPROG="/bin/rm"
-
-for ac_prog in sh
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_SHPROG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $SHPROG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_SHPROG="$SHPROG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_SHPROG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-SHPROG=$ac_cv_path_SHPROG
-
-if test -n "$SHPROG"; then
-  echo "$as_me:$LINENO: result: $SHPROG" >&5
-echo "${ECHO_T}$SHPROG" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$SHPROG" && break
-done
-test -n "$SHPROG" || SHPROG="/bin/sh"
-
-
-LIBS="$LEXLIB $LIBS"
 
 echo "$as_me:$LINENO: checking for posix non-blocking" >&5
 echo $ECHO_N "checking for posix non-blocking... $ECHO_C" >&6
@@ -9732,12 +9762,12 @@ s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@LN_S@,$LN_S,;t t
+s,@RMPROG@,$RMPROG,;t t
+s,@SHPROG@,$SHPROG,;t t
 s,@LEX@,$LEX,;t t
 s,@LEXLIB@,$LEXLIB,;t t
 s,@LEX_OUTPUT_ROOT@,$LEX_OUTPUT_ROOT,;t t
 s,@YACC@,$YACC,;t t
-s,@RMPROG@,$RMPROG,;t t
-s,@SHPROG@,$SHPROG,;t t
 s,@ENGINE_C@,$ENGINE_C,;t t
 s,@INSTALL_RULE@,$INSTALL_RULE,;t t
 s,@SYMLINK@,$SYMLINK,;t t

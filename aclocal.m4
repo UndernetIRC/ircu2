@@ -1,6 +1,6 @@
-dnl aclocal.m4 generated automatically by aclocal 1.4
+dnl aclocal.m4t generated automatically by aclocal 1.4-p6
 
-dnl Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+dnl Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -152,22 +152,22 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(void *)
 if test "$ac_cv_sizeof_int" = 2 ; then
   AC_CHECK_TYPE(int16_t, int)
-  AC_CHECK_TYPE(uint16_t, unsigned int)
+  AC_CHECK_TYPE(u_int16_t, unsigned int)
 elif test "$ac_cv_sizeof_short" = 2 ; then
   AC_CHECK_TYPE(int16_t, short)
-  AC_CHECK_TYPE(uint16_t, unsigned short)
+  AC_CHECK_TYPE(u_int16_t, unsigned short)
 else
   AC_MSG_ERROR([Cannot find a type with size of 16 bits])
 fi
 if test "$ac_cv_sizeof_int" = 4 ; then
   AC_CHECK_TYPE(int32_t, int)
-  AC_CHECK_TYPE(uint32_t, unsigned int)
+  AC_CHECK_TYPE(u_int32_t, unsigned int)
 elif test "$ac_cv_sizeof_short" = 4 ; then
   AC_CHECK_TYPE(int32_t, short)
-  AC_CHECK_TYPE(uint32_t, unsigned short)
+  AC_CHECK_TYPE(u_int32_t, unsigned short)
 elif test "$ac_cv_sizeof_long" = 4 ; then
   AC_CHECK_TYPE(int32_t, long)
-  AC_CHECK_TYPE(uint32_t, unsigned long)
+  AC_CHECK_TYPE(u_int32_t, unsigned long)
 else
   AC_MSG_ERROR([Cannot find a type with size of 32 bits])
 fi])
@@ -244,7 +244,7 @@ AC_DEFUN(AC_LIBRARY_NET, [
 # program @code{ansi2knr}, which comes with Ghostscript.
 # @end defmac
 
-AC_DEFUN(AM_PROG_CC_STDC,
+AC_DEFUN([AM_PROG_CC_STDC],
 [AC_REQUIRE([AC_PROG_CC])
 AC_BEFORE([$0], [AC_C_INLINE])
 AC_BEFORE([$0], [AC_C_CONST])
