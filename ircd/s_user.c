@@ -1671,7 +1671,7 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
 /** Check whether \a sptr is allowed to send a message to \a acptr.
  * If \a sptr is a remote user, it means some server has an outdated
  * SILENCE list for \a acptr, so send the missing SILENCE mask(s) back
- * in the direction of \a sptr.
+ * in the direction of \a sptr.  Skip the check if \a sptr is a server.
  * @param[in] sptr Client trying to send a message.
  * @param[in] acptr Destination of message.
  * @return Non-zero if \a sptr is SILENCEd by \a acptr, zero if not.
@@ -1683,7 +1683,7 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   size_t buf_used, slen;
   char buf[BUFSIZE];
 
-  if (!(user = cli_user(acptr))
+  if (IsServer(sptr) || !(user = cli_user(acptr))
       || !(found = find_ban(sptr, user->silence)))
     return 0;
   assert(!(found->flags & BAN_EXCEPTION));
