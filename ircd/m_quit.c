@@ -99,7 +99,6 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *comment = parv[parc - 1];
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
