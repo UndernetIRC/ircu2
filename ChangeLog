@@ -1,3 +1,11 @@
+2001-04-23  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_err.c: Suggested wording change.
+	* ircd/s_user.c: Users aren't target limited against +k users.
+	* ircd/chkconf.c: Made it compile again, who knows if it works, but
+		now I can at least make install
+        * various: Cleanups on m_*.c files.
+
+
 2001-04-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_misc.c (exit_client): make netsplit server notice say the

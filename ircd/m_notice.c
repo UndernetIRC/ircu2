@@ -328,7 +328,8 @@ static int m_message(struct Client *cptr, struct Client *sptr,
         acptr = 0;
       if (acptr)
       {
-        if (MyUser(sptr) && check_target_limit(sptr, acptr, acptr->name, 0))
+        if (MyUser(sptr) && !IsChannelService(acptr) && 
+	    check_target_limit(sptr, acptr, acptr->name, 0))
           continue;
         if (!is_silenced(sptr, acptr))
         {
