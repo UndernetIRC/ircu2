@@ -735,7 +735,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
 
-    ret = server_estab(cptr, aconf, ajupe);
+    ret = server_estab(cptr, aconf);
   }
   else
     ret = 0;
@@ -766,8 +766,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *    parv[6] = "YMM", where 'Y' is the server numeric and "MM" is the
  *              numeric nick mask of this server.
  *    parv[7] = 0 (not used yet, mandatory unsigned int after u2.10.06)
- *    parv[8] = %<lastmod> - optional parameter only present if there's an
- *		outstanding JUPE; specifies the JUPE's lastmod field
  */
 int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -780,7 +778,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client*   LHcptr = 0;
   struct ConfItem* aconf = 0;
   struct ConfItem* lhconf = 0;
-  struct Jupe*     ajupe = 0;
   int              hop;
   int              ret;
   int              active_lh_line = 0;
@@ -789,7 +786,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   time_t           timestamp = 0;
   time_t           recv_time;
   time_t           ghost = 0;
-  time_t           lastmod = 0;
 
   if (IsUserPort(cptr))
     return exit_client_msg(cptr, cptr, &me,
@@ -840,16 +836,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
   }
-  if (parc > 9 && *parv[8] == '%')
-    lastmod = atoi(parv[8] + 1);
-  /* If there's a jupe that matches, and it's a global jupe, and the
-   * introducer didn't indicate it knew of the jupe or has an older
-   * version of the jupe, and the connection isn't in a BURST, resynch
-   * the jupe.
-   */
-  if ((ajupe = jupe_find(host)) && !JupeIsLocal(ajupe) &&
-      JupeLastMod(ajupe) > lastmod && !IsBurstOrBurstAck(cptr))
-    jupe_resend(cptr, ajupe);
   /*
    * Check for "FRENCH " infection ;-) (actually this should
    * be replaced with routine to check the hostname syntax in
@@ -1369,7 +1355,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
 
-    ret = server_estab(cptr, aconf, ajupe);
+    ret = server_estab(cptr, aconf);
   }
   else
     ret = 0;

@@ -26,6 +26,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -260,8 +261,13 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   /* Inform ops... */
   sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s, expiring at "
-		       "%Tu: %s", IsServer(sptr) ? cli_name(sptr) :
+		       "%Tu: %s",
+#ifdef HEAD_IN_SAND_SNOTICES
+		       cli_name(sptr),
+#else
+		       IsServer(sptr) ? cli_name(sptr) :
 		       cli_name((cli_user(sptr))->server),
+#endif
 		       flags & GLINE_LOCAL ? "local" : "global",
 		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
 		       expire + TSoffset, reason);
@@ -315,8 +321,13 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
-		       "expiring at %Tu: %s", IsServer(sptr) ? cli_name(sptr) :
+		       "expiring at %Tu: %s",
+#ifdef HEAD_IN_SAND_SNOTICES
+		       cli_name(sptr),
+#else
+		       IsServer(sptr) ? cli_name(sptr) :
 		       cli_name((cli_user(sptr))->server),
+#endif
 		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -373,8 +384,13 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
-		       "%s", IsServer(sptr) ? cli_name(sptr) :
+		       "%s",
+#ifdef HEAD_IN_SAND_SNOTICES
+		       cli_name(sptr),
+#else
+		       IsServer(sptr) ? cli_name(sptr) :
 		       cli_name((cli_user(sptr))->server),
+#endif
 		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,

@@ -1,3 +1,46 @@
+2001-06-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: remove deprecated struct Gline* argument to
+	register_user(); remove GLINE rebroadcast; do not send GLINE
+	acknowledgement parameter to NICK; do not look for GLINE
+	acknowledgement parameter to NICK while parsing
+
+	* ircd/s_serv.c (server_estab): remove deprecated struct Jupe*
+	argument to server_estab(); do not send JUPE/GLINE acknowledgement
+	parameters for SERVER or NICK
+
+	* ircd/m_user.c (m_user): remove deprecated argument to
+	register_user()
+
+	* ircd/m_server.c: remove deprecated argument to server_estab();
+	remove documentation comment regarding JUPE acknowledgement
+	parameter to SERVER; remove JUPE rebroadcast
+
+	* ircd/m_pong.c (mr_pong): remove deprecated argument to
+	register_user()
+
+	* ircd/m_nick.c: remove documentation comment regarding GLINE
+	acknowledgement parameter to NICK
+
+	* ircd/jupe.c: use user's real name in JUPE server notices if
+	HEAD_IN_SAND_SNOTICES is defined
+
+	* ircd/ircd.c: remove deprecated chroot() code; remove deprecated
+	setuid code; correct ancient DEBUG vs DEBUGMODE typo
+
+	* ircd/gline.c: use user's real name in GLINE server notices if
+	HEAD_IN_SAND_SNOTICES is defined
+
+	* ircd/channel.c (modebuf_flush_int): make apparent source be
+	local server, not oper's server; use user's real name in hack
+	notices and DESYNC notices if HEAD_IN_SAND_SNOTICES is defined
+
+	* include/s_user.h: remove struct Gline pre-declaration; remove
+	deprecated struct Gline argument from register_user()
+
+	* include/s_serv.h: remove struct Jupe pre-declaration; remove
+	deprecated struct Jupe argument from server_estab()
+
 2001-06-07  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c (hunt_stats): forward-port from pl15 of all the

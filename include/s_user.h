@@ -12,7 +12,6 @@
 
 struct Client;
 struct User;
-struct Gline;
 struct Channel;
 struct MsgBuf;
 
@@ -58,8 +57,7 @@ typedef void (*InfoFormatter)(struct Client* who, struct MsgBuf* buf);
 extern struct User* make_user(struct Client *cptr);
 extern void         free_user(struct User *user);
 extern int          register_user(struct Client* cptr, struct Client* sptr,
-                                  const char* nick, char* username,
-				  struct Gline *agline);
+                                  const char* nick, char* username);
 
 extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
 

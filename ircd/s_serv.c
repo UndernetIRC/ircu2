@@ -94,8 +94,7 @@ int a_kills_b_too(struct Client *a, struct Client *b)
  * May only be called after a SERVER was received from cptr,
  * and thus make_server was called, and serv->prot set. --Run
  */
-int server_estab(struct Client *cptr, struct ConfItem *aconf,
-                 struct Jupe *ajupe)
+int server_estab(struct Client *cptr, struct ConfItem *aconf)
 {
   struct Client* acptr = 0;
   const char*    inpath;
@@ -176,16 +175,10 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       continue;
     if (!match(cli_name(&me), cli_name(cptr)))
       continue;
-    if (ajupe)
-      sendcmdto_one(&me, CMD_SERVER, acptr,
-                    "%s 2 0 %Tu J%02u %s%s 0 %%%Tu :%s", cli_name(cptr),
-                    cli_serv(cptr)->timestamp, Protocol(cptr), NumServCap(cptr),
-                    JupeLastMod(ajupe), cli_info(cptr));
-    else
-      sendcmdto_one(&me, CMD_SERVER, acptr,
-                    "%s 2 0 %Tu J%02u %s%s 0 :%s", cli_name(cptr),
-                    cli_serv(cptr)->timestamp, Protocol(cptr), NumServCap(cptr),
-                    cli_info(cptr));
+    sendcmdto_one(&me, CMD_SERVER, acptr,
+		  "%s 2 0 %Tu J%02u %s%s 0 :%s", cli_name(cptr),
+		  cli_serv(cptr)->timestamp, Protocol(cptr), NumServCap(cptr),
+		  cli_info(cptr));
   }
 
   /*
@@ -220,18 +213,11 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       split = (MyConnect(acptr) && 
                0 != ircd_strcmp(cli_name(acptr), cli_sockhost(acptr)) &&
                0 != ircd_strncmp(cli_info(acptr), "JUPE", 4));
-      if ((ajupe = jupe_find(cli_name(acptr))) && !JupeIsLocal(ajupe))
-        sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
-                      "%s %d 0 %Tu %s%u %s%s 0 %%%Tu :%s", cli_name(acptr),
-                      cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
-                      protocol_str, Protocol(acptr), NumServCap(acptr),
-                      JupeLastMod(ajupe), cli_info(acptr));
-      else
-        sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
-                      "%s %d 0 %Tu %s%u %s%s 0 :%s", cli_name(acptr),
-                      cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
-                      protocol_str, Protocol(acptr), NumServCap(acptr),
-                      cli_info(acptr));
+      sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
+		    "%s %d 0 %Tu %s%u %s%s 0 :%s", cli_name(acptr),
+		    cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
+		    protocol_str, Protocol(acptr), NumServCap(acptr),
+		    cli_info(acptr));
     }
   }
 
@@ -244,25 +230,13 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
     {
       char xxx_buf[8];
       char *s = umode_str(acptr);
-      struct Gline *agline = 0;
-      if ((agline = gline_lookup(acptr, GLINE_GLOBAL | GLINE_LASTMOD)))
-        sendcmdto_one(cli_user(acptr)->server, CMD_NICK, cptr,
-                      "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
-                      cli_name(acptr), cli_hopcount(acptr) + 1, cli_lastnick(acptr),
-                      cli_user(acptr)->username, cli_user(acptr)->host,
-                      *s ? "+" : "", s, *s ? " " : "",
-                      GlineLastMod(agline), GlineUser(agline),
-                      GlineHost(agline),
-                      inttobase64(xxx_buf, ntohl(cli_ip(acptr).s_addr), 6),
-                      NumNick(acptr), cli_info(acptr));
-      else
-        sendcmdto_one(cli_user(acptr)->server, CMD_NICK, cptr,
-                      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                      cli_name(acptr), cli_hopcount(acptr) + 1, cli_lastnick(acptr),
-                      cli_user(acptr)->username, cli_user(acptr)->host,
-                      *s ? "+" : "", s, *s ? " " : "",
-                      inttobase64(xxx_buf, ntohl(cli_ip(acptr).s_addr), 6),
-                      NumNick(acptr), cli_info(acptr));
+      sendcmdto_one(cli_user(acptr)->server, CMD_NICK, cptr,
+		    "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+		    cli_name(acptr), cli_hopcount(acptr) + 1, cli_lastnick(acptr),
+		    cli_user(acptr)->username, cli_user(acptr)->host,
+		    *s ? "+" : "", s, *s ? " " : "",
+		    inttobase64(xxx_buf, ntohl(cli_ip(acptr).s_addr), 6),
+		    NumNick(acptr), cli_info(acptr));
     }
   }
   /*

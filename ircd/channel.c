@@ -1431,7 +1431,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   /* Ok, if we were given the OPMODE flag, hide the source if its a user */
   if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
-    app_source = (cli_user(mbuf->mb_source))->server;
+    app_source = &me;
   else
     app_source = mbuf->mb_source;
 
@@ -1539,14 +1539,24 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     /* send the messages off to their destination */
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
       sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]", cli_name(app_source),
+			   "[%Tu]",
+#ifdef HEAD_IN_SAND_SNOTICES
+			   cli_name(mbuf->mb_source),
+#else
+			   cli_name(app_source),
+#endif
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
       sendcmdto_serv_butone(&me, CMD_DESYNCH, mbuf->mb_connect,
 			    ":HACK: %s MODE %s %s%s%s%s%s%s [%Tu]",
-			    cli_name(app_source), mbuf->mb_channel->chname,
+#ifdef HEAD_IN_SAND_SNOTICES
+			    cli_name(mbuf->mb_source),
+#else
+			    cli_name(app_source),
+#endif
+			    mbuf->mb_channel->chname,
 			    rembuf_i ? "-" : "", rembuf,
 			    addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			    mbuf->mb_channel->creationtime);
@@ -1554,14 +1564,24 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
-			   "%s%s%s%s%s%s [%Tu]", cli_name(app_source),
+			   "%s%s%s%s%s%s [%Tu]",
+#ifdef HEAD_IN_SAND_SNOTICES
+			   cli_name(mbuf->mb_source),
+#else
+			   cli_name(app_source),
+#endif
 			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
 			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]", cli_name(app_source),
+			   "[%Tu]",
+#ifdef HEAD_IN_SAND_SNOTICES
+			   cli_name(mbuf->mb_source),
+#else
+			   cli_name(app_source),
+#endif
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
