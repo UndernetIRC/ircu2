@@ -1,3 +1,8 @@
+2000-03-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: finished mode_parse(), then broke it up into a
+	dozen or so helper functions to make the code easier to read
+
 2000-03-29  Thomas Helvey <tomh@inxpress.net>
 	* ircd/ircd.c: refactor server initialization a bit, use
 	getopt for parsing command line, refactor init_sys, main,
@@ -161,7 +166,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.41 2000-03-30 08:07:48 bleep Exp $
+# $Id: ChangeLog,v 1.42 2000-03-30 17:34:32 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
