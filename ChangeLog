@@ -1,3 +1,8 @@
+2002-10-05  Zoot <zoot@gamesnet.net>
+
+       * ircd/ircd_relay.c (relay_directed_message): fix a bug that had
+       completely broken directed messages
+                  
 2002-10-07  Perry Lorier <isomer@undernet.org>
 
 	* ircd/s_user.c: Fixed bugs as pointed out by Kev, doh!

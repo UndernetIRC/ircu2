@@ -160,7 +160,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != server);
 
   if ((acptr = FindServer(server + 1)) == NULL ||
-      !IsChannelService(acptr)) {
+      !IsService(acptr)) {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
