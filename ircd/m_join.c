@@ -209,8 +209,15 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	continue; /* already on channel */
 
       flags = CHFL_DEOPPED;
-    } else
-      flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
+    } else {
+      if (IsModelessChannel(name)) {
+	/* Prohibit creation of new modeless channels */
+	send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+	continue;
+      }
+
+      flags = CHFL_CHANOP;
+    }
 
     if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
