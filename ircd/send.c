@@ -481,7 +481,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
  * <flag> set.
  */
 void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
-			    const char *pattern, ...)
+			     const char *pattern, ...)
 {
   struct VarData vd;
   struct Client *cptr;
@@ -516,11 +516,11 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
 
   /* send buffer along! */
   for (i = 0; i <= HighestFd; i++) {
-    if (!(cptr = LocalClientArray[i]) 
-	|| (cli_fd(cli_from(cptr)) < 0)
-	|| (type==WALL_DESYNCH && (cli_flags(cptr)&FLAGS_DEBUG==0))
-	|| (type==WALL_WALLOPS && (cli_flags(cptr)&FLAGS_WALLOP==0))
-        || (type==WALL_WALLUSERS && (cli_flags(cptr)&FLAGS_WALLOP==0)))
+    if (!(cptr = LocalClientArray[i]) ||
+	(cli_fd(cli_from(cptr)) < 0) ||
+	(type == WALL_DESYNCH && !(cli_flags(cptr) & FLAGS_DEBUG)) ||
+	(type == WALL_WALLOPS && !(cli_flags(cptr) & FLAGS_WALLOP)) ||
+        (type == WALL_WALLUSERS && !(cli_flags(cptr) & FLAGS_WALLOP)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);
   }
@@ -620,7 +620,7 @@ void sendto_opmask_butone(struct Client *one, unsigned int mask,
  * except for <one> - Ratelimited 1 / 30sec
  */
 void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
-			  time_t *rate, const char *pattern, ...)
+				      time_t *rate, const char *pattern, ...)
 {
   va_list vl;
 
