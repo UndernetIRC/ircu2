@@ -650,20 +650,24 @@ clientblock: CLIENT
 }
 '{' clientitems '}' ';'
 {
-  struct ConfItem *aconf = make_conf(CONF_CLIENT);
+  struct irc_in_addr addr;
   unsigned char addrbits;
-  aconf->username = username;
-  aconf->host = host;
-  if (ip && ipmask_parse(ip, &aconf->address.addr, &addrbits)) {
+
+  if (ip && !ipmask_parse(ip, &addr, &addrbits)) {
+    parse_error("Invalid IP address in block");
+    MyFree(username);
+    MyFree(host);
+    MyFree(ip);
+  } else {
+    struct ConfItem *aconf = make_conf(CONF_CLIENT);
+    aconf->username = username;
+    aconf->host = host;
+    memcpy(&aconf->address.addr, &addr, sizeof(aconf->address.addr));
     aconf->addrbits = addrbits;
     aconf->name = ip;
-  } else {
-    MyFree(ip);
-    aconf->addrbits = -1;
-    DupString(aconf->name, "*");
+    aconf->conn_class = c_class ? c_class : find_class("default");
+    aconf->maximum = maxlinks;
   }
-  aconf->conn_class = c_class ? c_class : find_class("default");
-  aconf->maximum = maxlinks;
   host = NULL;
   username = NULL;
   c_class = NULL;

@@ -100,12 +100,16 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
       hub_limit = BadPtr(tmp->hub_limit) ? null : tmp->hub_limit;
       maximum = tmp->maximum;
       port = tmp->address.port;
+
       if (tmp->status & CONF_UWORLD)
 	send_reply(sptr, RPL_STATSULINE, host);
       else if (tmp->status & CONF_SERVER)
 	send_reply(sptr, RPL_STATSCLINE, name, (host[0] == ':' ? "0" : ""), host, port, maximum, hub_limit, get_conf_class(tmp));
       else if (tmp->status & CONF_CLIENT)
-        send_reply(sptr, RPL_STATSILINE, host, maximum, (name[0] == ':' ? "0" : ""), name, port, get_conf_class(tmp));
+        send_reply(sptr, RPL_STATSILINE,
+                   (tmp->host ? tmp->host : "*"), maximum,
+                   (name[0] == ':' ? "0" : ""), (tmp->name ? tmp->name : "*"),
+                   port, get_conf_class(tmp));
       else if (tmp->status & CONF_OPERATOR)
 	send_reply(sptr, RPL_STATSOLINE, username, host, name, get_conf_class(tmp));
     }

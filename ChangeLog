@@ -11,6 +11,9 @@
 
 2005-02-19  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y (clientblock): Parse IP address before
+	allocating ConfItem; if the parse fails, generate an error.
+
 	* ircd/s_err.c (RPL_STATSCLINE): Add format field to prefix IPv6
 	addresses starting with ':'.
 	(RPL_STATSILINE): Likewise.
@@ -18,6 +21,8 @@
 
 	* ircd/s_stats.c (stats_configured_links): Pass the appropriate
 	argument for the RPL_STATSxLINE changes.
+	Change RPL_STATSILINE to use * instead of <NULL> when IP or host
+	is null.
 
 2005-02-18  Michael Poole <mdpoole@troilus.org>
 
