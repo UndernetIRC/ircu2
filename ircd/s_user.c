@@ -1545,9 +1545,9 @@ send_supported(struct Client *cptr)
   char featurebuf[512];
 
   ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES1, FEATURESVALUES1);
-  send_reply(sptr, RPL_ISUPPORT, featurebuf);
+  send_reply(cptr, RPL_ISUPPORT, featurebuf);
   ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES2, FEATURESVALUES2);
-  send_reply(sptr, RPL_ISUPPORT, featurebuf);
+  send_reply(cptr, RPL_ISUPPORT, featurebuf);
 
   return 0; /* convenience return, if it's ever needed */
 }
