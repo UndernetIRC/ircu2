@@ -25,7 +25,9 @@
 #include "ircd_alloc.h"
 #include "ircd_defs.h"
 #include "ircd_features.h"
+#include "ircd_reply.h"
 #include "ircd_snprintf.h"
+#include "numeric.h"
 #include "send.h"
 #include "s_debug.h"
 
@@ -53,6 +55,11 @@ static struct {
   struct MsgBuf *free_mbs;
   struct Msg *free_msgs;
 } MQData = { 0, 0, 0 };
+
+static struct MsgSizes {
+  unsigned int msgs;
+  unsigned int sizes[BUFSIZE];
+} msgSizes = { 0 };
 
 struct MsgCounts msgBufCounts = { 0, 0 };
 struct MsgCounts msgCounts = { 0, 0 };
@@ -409,7 +416,12 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
   msg->sent = 0;
   msg->msg = mb;
 
-  mb->ref++; /* increment the ref count on the buffer */
+  /* increment the ref count on the buffer */
+  if (mb->ref++ == 1) {
+    /* Keep a histogram of message sizes */
+    msgSizes.msgs++;
+    msgSizes.sizes[mb->length]++;
+  }
 
   if (!qlist->head) /* queue list was empty; head and tail point to msg */
     qlist->head = qlist->tail = msg;
@@ -451,4 +463,27 @@ msgq_bufleft(struct MsgBuf *mb)
   assert(0 != mb);
 
   return sizeof(mb->msg) - mb->length - 1; /* \r\n counted in mb->length */
+}
+
+/*
+ * This just generates and sends a histogram of message lengths to the
+ * requesting client
+ */
+void
+msgq_histogram(struct Client *cptr)
+{
+  struct MsgSizes tmp = msgSizes; /* All hail structure copy! */
+  int i;
+
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+	     ":Histogram of message lengths (%lu messages)", tmp.msgs);
+  for (i = 0; i + 16 < BUFSIZE; i += 16)
+    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":% 4d: %lu %lu %lu %lu "
+	       "%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu", i,
+	       tmp.sizes[i +  0], tmp.sizes[i +  1], tmp.sizes[i +  2],
+	       tmp.sizes[i +  3], tmp.sizes[i +  4], tmp.sizes[i +  5],
+	       tmp.sizes[i +  6], tmp.sizes[i +  7], tmp.sizes[i +  8],
+	       tmp.sizes[i +  9], tmp.sizes[i + 10], tmp.sizes[i + 11],
+	       tmp.sizes[i + 12], tmp.sizes[i + 13], tmp.sizes[i + 14],
+	       tmp.sizes[i + 15]);
 }

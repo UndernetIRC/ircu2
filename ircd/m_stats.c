@@ -104,6 +104,7 @@
 #include "match.h"
 #include "motd.h"
 #include "msg.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
@@ -348,6 +349,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	}
       }
     }
+#endif
+      break;
+
+    case 'J':
+    case 'j':
+#ifdef HEAD_IN_SAND_STATS_j
+      return m_not_oper(sptr, cptr, parc, parv);
+#else
+      msgq_histogram(sptr);
 #endif
       break;
 
@@ -659,6 +669,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
       break;
     }
+    case 'J':
+    case 'j':
+      msgq_histogram(sptr);
+      break;
     case 'M':
 #if defined(MDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
@@ -878,6 +892,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	  }
 	}
       }
+      break;
+    case 'J':
+    case 'j':
+      msgq_histogram(sptr);
       break;
     case 'M':
 #if defined(MDEBUG)
