@@ -177,6 +177,7 @@ static void auth_kill_client(struct AuthRequest* auth)
 
   if (IsDNSPending(auth))
     delete_resolver_queries(auth);
+  IPcheck_disconnect(auth->client);
   Count_unknowndisconnects(UserStats);
   free_client(auth->client);
   free_auth_request(auth);
@@ -539,7 +540,7 @@ void start_auth(struct Client* client)
       ++client->dns_reply->ref_count;
       ircd_strncpy(client->sockhost, client->dns_reply->hp->h_name, HOSTLEN);
       if (IsUserPort(auth->client))
-        sendheader(client, REPORT_FIN_DNSC);
+	sendheader(client, REPORT_FIN_DNSC);
     }
     else
       SetDNSPending(auth);

@@ -1,10 +1,53 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.7 2000-03-28 06:40:56 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+--------------------------- Released 2.10.10.pl11.(release)
+* Fixed G-lined (reason), thanks to dfx -- Isomer
+* Added reason to the "G-lined (reason)" quit messages. -- Isomer
+* Removed 'for nick[1.2.3.4]' from quit messages, they're redundant
+  and make hub hiding more reliable --Isomer
+* ircd/s_user.c (hunt_server): add 'No such server' message back 
+  --Isomer
+* ircd/s_bsd.c: remove ALWAYSFLUSH - the problem wasn't ircu's fault 
+  -- Isomer
+* ircd/m_names.c (m_names): don't add a space if the user's a
+  zombie; fixes an overrun where we generate a huge number of spaces
+  in the names reply without length-checking them properly -- Kev
+* added 'ALWAYSFLUSH', if you thought the furgeson flusher was bad...
+  --Isomer
+* Fixed /USERHOST again.  Horribly embarrased.  Thanks again Liandrin 
+  --Isomer
+* Added extra field to /stats Y showing how many people are in that class.
+  Information was previously available via /trace, however tended to flood
+  you off if you weren't on a good connection.  Requested by Mr_RIP
+  -- Isomer
+* Fixed 'BADCHAN' resetting itself to 'Y', reported by Gator --Isomer
+--------------------------- Released 2.10.10.pl10
+* Released 2.10.10.pl10
+* Backported /names optimisation from 2.10.11.
+  '/names 0' now returns verbose listing, '/names' simply returns
+  ENDOFNAMES. Disallow harmfull /names usage. --Gte
+* Fixed ERR_NOSUCHNICK bug in userhost, thanks to Liandrin --Isomer
+* Conceal more bugs in IPcheck --Isomer
+* Add 'POST' as a unregistered command to disconnect people abusing web
+  proxies --Isomer.
+* Conceal bugs in IPcheck --Isomer
+* Fix for changing the wrong define --Isomer
+* Fix for the easter buggy. --Isomer
+* Fix for rpong --Run
+* Fix for other IPcheck bug, thanks BLMet. --Bleep
+* Fix for IPcheck bug, rewrite IPcheck from scratch (mostly),
+  add changes for new code to s_user.c, ircd.c --Bleep
+* Shorten connection timeout for auth queries to 60 seconds
+  If connection is from localhost use the server alias for the
+  client host. --Bleep
+* Fix for ident bug --Isomer
+* Fix for rping/rpong --Gte
+* Add m_pong to parser handler --Bleep
+* Fix for EXTENDED_NUMERICS bug doh!!! --Bleep
 * Fix for Max Undernet Server bug --Bleep
 * Fix for PRIVMSG<->NOTICE translation from hubs --Bleep
 * Fix for Bogus protocol strings for P9 servers --Bleep

@@ -238,8 +238,11 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
   {
     /* Make sure it's a server */
     if (!strchr(parv[server], '*')) {
-      if (0 == (acptr = FindClient(parv[server])))
+      if (0 == (acptr = FindClient(parv[server]))) {
+        sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
+            me.name, parv[0], parv[server]);
         return HUNTED_NOSUCH;
+      }
       if (acptr->user)
         acptr = acptr->user->server;
     }
@@ -273,8 +276,8 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
 }
 
 int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
-		    struct Client *one, int MustBeOper, const char *pattern,
-		    int server, int parc, char *parv[])
+                    struct Client *one, int MustBeOper, const char *pattern,
+                    int server, int parc, char *parv[])
 {
   struct Client *acptr;
   char *to;
@@ -312,7 +315,7 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
   parv[server] = (char *) acptr; /* HACK! HACK! HACK! ARGH! */
 
   sendcmdto_one(from, cmd, tok, acptr, pattern, parv[1], parv[2], parv[3],
-		parv[4], parv[5], parv[6], parv[7], parv[8]);
+                parv[4], parv[5], parv[6], parv[7], parv[8]);
 
   return (HUNTED_PASS);
 }
@@ -443,37 +446,39 @@ int register_user(struct Client *cptr, struct Client *sptr,
         break;
       case ACR_NO_AUTHORIZATION:
         sendto_opmask_butone(0, SNO_UNAUTH, "Unauthorized connection from %s.",
-			     get_client_name(sptr, HIDE_IP));
+                             get_client_name(sptr, HIDE_IP));
         ++ServerStats->is_ref;
         return exit_client(cptr, sptr, &me,
-			   "No Authorization - use another server");
+                           "No Authorization - use another server");
       case ACR_TOO_MANY_IN_CLASS:
         if (CurrentTime - last_too_many1 >= (time_t) 60)
         {
           last_too_many1 = CurrentTime;
           sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections in "
-			       "class for %s.",
-			       get_client_name(sptr, HIDE_IP));
+                               "class for %s.",
+                               get_client_name(sptr, HIDE_IP));
         }
         ++ServerStats->is_ref;
+        IPcheck_connect_fail(sptr->ip);
         return exit_client(cptr, sptr, &me,
-			   "Sorry, your connection class is full - try "
-			   "again later or try another server");
+                           "Sorry, your connection class is full - try "
+                           "again later or try another server");
       case ACR_TOO_MANY_FROM_IP:
         if (CurrentTime - last_too_many2 >= (time_t) 60)
         {
           last_too_many2 = CurrentTime;
           sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections from "
-			       "same IP for %s.",
-			       get_client_name(sptr, HIDE_IP));
+                               "same IP for %s.",
+                               get_client_name(sptr, HIDE_IP));
         }
         ++ServerStats->is_ref;
         return exit_client(cptr, sptr, &me,
-			   "Too many connections from your host");
+                           "Too many connections from your host");
       case ACR_ALREADY_AUTHORIZED:
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
+        IPcheck_connect_fail(sptr->ip);
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, sptr->sockhost, HOSTLEN);
@@ -492,6 +497,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         && strcmp(sptr->passwd, aconf->passwd))
     {
       ServerStats->is_ref++;
+      IPcheck_connect_fail(sptr->ip);
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
@@ -501,6 +507,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
      */
     if (find_kill(sptr)) {
       ServerStats->is_ref++;
+      IPcheck_connect_fail(sptr->ip);
       return exit_client(cptr, sptr, &me, "K-lined");
     }
     /*
@@ -573,12 +580,12 @@ int register_user(struct Client *cptr, struct Client *sptr,
       ServerStats->is_ref++;
 
       send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-		 ":Your username is invalid.");
+                 ":Your username is invalid.");
       send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-		 ":Connect with your real username, in lowercase.");
+                 ":Connect with your real username, in lowercase.");
       send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-		 ":If your mail address were foo@bar.com, your username "
-		 "would be foo.");
+                 ":If your mail address were foo@bar.com, your username "
+                 "would be foo.");
       return exit_client(cptr, sptr, &me, "USER: Bad username");
     }
     Count_unknownbecomesclient(sptr, UserStats);
@@ -625,6 +632,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
       set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);
+    IPcheck_connect_succeeded(sptr);
   }
   else
     /* if (IsServer(cptr)) */
@@ -635,8 +643,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
     if (acptr->from != sptr->from)
     {
       sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s != %s[%s])",
-		    sptr, me.name, user->server->name, acptr->from->name,
-		    acptr->from->sockhost);
+                    sptr, me.name, user->server->name, acptr->from->name,
+                    acptr->from->sockhost);
       sptr->flags |= FLAGS_KILLED;
       return exit_client(cptr, sptr, &me, "NICK server wrong direction");
     }
@@ -653,26 +661,34 @@ int register_user(struct Client *cptr, struct Client *sptr,
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
     }
+    if (!IPcheck_remote_connect(sptr, (acptr != &me))) {
+      /*
+       * We ran out of bits to count this
+       */
+      sendcmdto_one(&me, CMD_KILL, sptr, "%C :%s (Too many connections from your host -- Ghost)",
+                    sptr, me.name);
+      return exit_client(cptr, sptr, &me,"Too many connections from your host -- throttled");
+    }
   }
   tmpstr = umode_str(sptr);
   if (agline)
     sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
-			  "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
-			  nick, sptr->hopcount + 1, sptr->lastnick,
-			  user->username, user->host,
-			  *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-			  GlineLastMod(agline), GlineUser(agline),
-			  GlineHost(agline),
-			  inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
-			  NumNick(sptr), sptr->info);
+                          "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
+                          nick, sptr->hopcount + 1, sptr->lastnick,
+                          user->username, user->host,
+                          *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                          GlineLastMod(agline), GlineUser(agline),
+                          GlineHost(agline),
+                          inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
+                          NumNick(sptr), sptr->info);
   else
     sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
-			  "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-			  nick, sptr->hopcount + 1, sptr->lastnick,
-			  user->username, user->host,
-			  *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-			  inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
-			  NumNick(sptr), sptr->info);
+                          "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                          nick, sptr->hopcount + 1, sptr->lastnick,
+                          user->username, user->host,
+                          *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                          inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
+                          NumNick(sptr), sptr->info);
   
   /* Send umode to client */
   if (MyUser(sptr))
@@ -776,16 +792,10 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       lastmod = atoi(parv[parc - 4] + 1);
 
       if (lastmod &&
-	  (agline = gline_find(t, GLINE_EXACT | GLINE_GLOBAL | GLINE_LASTMOD))
-	  && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
-	gline_resend(cptr, agline);
+          (agline = gline_find(t, GLINE_EXACT | GLINE_GLOBAL | GLINE_LASTMOD))
+          && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
+        gline_resend(cptr, agline);
     }
-    if (!ip_registry_remote_connect(new_client)) {
-    	sendcmdto_one(&me, CMD_KILL, new_client, "%C :%s (Too many connections from your host -- Ghost)",
-    		      new_client,me.name);
-    	return exit_client(cptr,new_client,&me,"Too many connections from your host -- throttled");
-    }
-    sendto_ops("Registering new remote client");
     return register_user(cptr, new_client, new_client->name, parv[4], agline);
   }
   else if (sptr->name[0]) {
@@ -799,7 +809,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     if (MyUser(sptr)) {
       const char* channel_name;
       if ((channel_name = find_no_nickchange_channel(sptr))) {
-	return send_reply(cptr, ERR_BANNICKCHANGE, channel_name);
+        return send_reply(cptr, ERR_BANNICKCHANGE, channel_name);
       }
       /*
        * Refuse nick change if the last nick change was less
@@ -811,10 +821,10 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
        */
       if (CurrentTime < cptr->nextnick) {
         cptr->nextnick += 2;
-	send_reply(cptr, ERR_NICKTOOFAST, parv[1],
-		   cptr->nextnick - CurrentTime);
+        send_reply(cptr, ERR_NICKTOOFAST, parv[1],
+                   cptr->nextnick - CurrentTime);
         /* Send error message */
-	sendcmdto_one(cptr, CMD_NICK, cptr, "%s", cptr->name);
+        sendcmdto_one(cptr, CMD_NICK, cptr, "%s", cptr->name);
         /* bounce NICK to user */
         return 0;                /* ignore nick change! */
       }
@@ -841,7 +851,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       sendcmdto_common_channels(sptr, CMD_NICK, ":%s", nick);
       add_history(sptr, 1);
       sendcmdto_serv_butone(sptr, CMD_NICK, cptr, "%s %Tu", nick,
-			    sptr->lastnick);
+                            sptr->lastnick);
     }
     else
       sendcmdto_one(sptr, CMD_NICK, sptr, ":%s", nick);
@@ -965,8 +975,8 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
          * No server flooding
          */
         sptr->nexttarget += 2;
-	send_reply(sptr, ERR_TARGETTOOFAST, name,
-		   sptr->nexttarget - CurrentTime);
+        send_reply(sptr, ERR_TARGETTOOFAST, name,
+                   sptr->nexttarget - CurrentTime);
       }
       return 1;
     }
@@ -1110,8 +1120,7 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
     if (5 == ++arg_count)
       break;
   }
-  if (users_found)
-    send_buffer(sptr, buf);
+  send_buffer(sptr, buf);
 }
 
 
@@ -1150,8 +1159,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   {
     if (IsServer(cptr))
       sendcmdto_flag_butone(&me, CMD_WALLOPS, 0, FLAGS_WALLOP,
-			    ":MODE for User %s from %s!%s", parv[1],
-			    cptr->name, sptr->name);
+                            ":MODE for User %s from %s!%s", parv[1],
+                            cptr->name, sptr->name);
     else
       send_reply(sptr, ERR_USERSDONTMATCH);
     return 0;
@@ -1531,8 +1540,8 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
     {
       if (!MyConnect(sptr))
       {
-	sendcmdto_one(acptr, CMD_SILENCE, sptr->from, "%C %s", sptr,
-		      lp->value.cp);
+        sendcmdto_one(acptr, CMD_SILENCE, sptr->from, "%C %s", sptr,
+                      lp->value.cp);
       }
       return 1;
     }
@@ -1590,7 +1599,7 @@ int add_silence(struct Client* sptr, const char* mask)
       len += strlen(lp->value.cp);
       if ((len > MAXSILELENGTH) || (++cnt >= MAXSILES))
       {
-	send_reply(sptr, ERR_SILELISTFULL, mask);
+        send_reply(sptr, ERR_SILELISTFULL, mask);
         return -1;
       }
       else if (!mmatch(lp->value.cp, mask))

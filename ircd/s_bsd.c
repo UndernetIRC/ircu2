@@ -151,6 +151,7 @@ void report_error(const char* text, const char* who, int err)
   static time_t last_notice = 0;
   int           errtmp = errno;   /* debug may change 'errno' */
   const char*   errmsg = (err) ? strerror(err) : "";
+
   if (!errmsg)
     errmsg = "Unknown error"; 
 
@@ -185,7 +186,7 @@ static void connect_dns_callback(void* vptr, struct DNSReply* reply)
   }
   else
     sendto_opmask_butone(0, SNO_OLDSNO, "Connect to %s failed: host lookup",
-			 aconf->name);
+                         aconf->name);
 }
 
 /*
@@ -403,7 +404,7 @@ static int completed_connection(struct Client* cptr)
     if (!msg)
       msg = "Unknown error";
     sendto_opmask_butone(0, SNO_OLDSNO, "Connection failed to %s: %s",
-			 cptr->name, msg);
+                         cptr->name, msg);
     return 0;
   }
   if (!(aconf = find_conf_byname(cptr->confs, cptr->name, CONF_SERVER))) {
@@ -440,8 +441,8 @@ static int completed_connection(struct Client* cptr)
   cptr->flags |= FLAGS_PINGSENT;
 
   sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s",
-		me.name, me.serv->timestamp, newts, MAJOR_PROTOCOL, 
-		NumServCap(&me), me.info);
+                me.name, me.serv->timestamp, newts, MAJOR_PROTOCOL, 
+                NumServCap(&me), me.info);
 
   return (IsDead(cptr)) ? 0 : 1;
 }
@@ -510,7 +511,6 @@ void close_connection(struct Client *cptr)
 
   if (-1 < cptr->fd) {
     flush_connections(cptr);
-    ip_registry_local_disconnect(cptr);
     LocalClientArray[cptr->fd] = 0;
     close(cptr->fd);
     cptr->fd = -1;
@@ -588,15 +588,15 @@ void add_connection(struct Listener* listener, int fd) {
    *
    * If they're throttled, murder them, but tell them why first.
    */
-  if ( !ip_registry_check_local(addr.sin_addr.s_addr,&next_target) ) {
-  	++ServerStats->is_ref;
-  	write(fd,throttle_message,strlen(throttle_message));
-  	close(fd);
-  	return;
+  if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
+    ++ServerStats->is_ref;
+     write(fd, throttle_message, strlen(throttle_message));
+     close(fd);
+     return;
   }
 
   new_client = make_client(0, ((listener->server) ? 
-			       STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
+                               STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
 
   /*
    * Copy ascii address to 'sockhost' just in case. Then we have something
@@ -615,7 +615,6 @@ void add_connection(struct Listener* listener, int fd) {
   ++listener->ref_count;
 
   Count_newunknown(UserStats);
-  ip_registry_connect_succeeded(new_client);
   /* if we've made it this far we can put the client on the auth query pile */
   start_auth(new_client);
 }
@@ -1061,8 +1060,7 @@ int read_message(time_t delay)
       const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
       if (!msg)
         msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error: %s",
-                      msg);
+      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
     }
   }
   return 0;
@@ -1275,8 +1273,7 @@ int read_message(time_t delay)
       const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
       if (!msg)
         msg = "Unknown error";
-      exit_client_msg(cptr, cptr, &me, "Read error: %s",
-                      msg);
+      exit_client_msg(cptr, cptr, &me, "Read error: %s", msg);
     }
   }
   return 0;
@@ -1305,7 +1302,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 
   if (aconf->dns_pending) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Server %s connect DNS pending",
-			 aconf->name);
+                         aconf->name);
     return 0;
   }
   Debug((DEBUG_NOTICE, "Connect to %s[@%s]", aconf->name,
@@ -1314,17 +1311,17 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   if ((cptr = FindClient(aconf->name))) {
     if (IsServer(cptr) || IsMe(cptr)) {
       sendto_opmask_butone(0, SNO_OLDSNO, "Server %s already present from %s", 
-			   aconf->name, cptr->from->name);
+                           aconf->name, cptr->from->name);
       if (by && IsUser(by) && !MyUser(by)) {
-	sendcmdto_one(&me, CMD_NOTICE, by, "%C :Server %s already present "
-		      "from %s", by, aconf->name, cptr->from->name);
+        sendcmdto_one(&me, CMD_NOTICE, by, "%C :Server %s already present "
+                      "from %s", by, aconf->name, cptr->from->name);
       }
       return 0;
     }
     else if (IsHandshake(cptr) || IsConnecting(cptr)) {
       if (by && IsUser(by)) {
-	sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connection to %s already in "
-		      "progress", by, cptr->name);
+        sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connection to %s already in "
+                      "progress", by, cptr->name);
       }
       return 0;
     }
@@ -1372,10 +1369,10 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 
   if (!find_conf_byhost(cptr->confs, aconf->host, CONF_SERVER)) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Host %s is not enabled for "
-			 "connecting: no C-line", aconf->name);
+                         "connecting: no C-line", aconf->name);
     if (by && IsUser(by) && !MyUser(by)) {
       sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connect to host %s failed: no "
-		    "C-line", by, aconf->name);
+                    "C-line", by, aconf->name);
     }
     det_confs_butmask(cptr, 0);
     free_client(cptr);
@@ -1387,7 +1384,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   if (!connect_inet(aconf, cptr)) {
     if (by && IsUser(by) && !MyUser(by)) {
       sendcmdto_one(&me, CMD_NOTICE, by, "%C :Couldn't connect to %s", by,
-		    cptr->name);
+                    cptr->name);
     }
     det_confs_butmask(cptr, 0);
     free_client(cptr);
@@ -1421,12 +1418,10 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   LocalClientArray[cptr->fd] = cptr;
 
   Count_newunknown(UserStats);
-  ip_registry_add_local(aconf->ipnum.s_addr);
   /* Actually we lie, the connect hasn't succeeded yet, but we have a valid
    * cptr, so we register it now.
    * Maybe these two calls should be merged.
    */
-  ip_registry_connect_succeeded(cptr);
   add_client_to_list(cptr);
   hAddClient(cptr);
   nextping = CurrentTime;

@@ -97,7 +97,7 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
   assert(0 != chptr);
   
   /* Servers don't have member links */
-  if (IsServer(cptr))
+  if (IsServer(cptr)||IsMe(cptr))
      return 0;
   
   /* +k users are typically on a LOT of channels.  So we iterate over who

@@ -20,7 +20,6 @@
  * $Id$
  */
 #include "ircd.h"
-
 #include "IPcheck.h"
 #include "class.h"
 #include "client.h"
@@ -482,7 +481,7 @@ static void event_loop(void) {
     /* timeout pending queries that haven't been responded to */
     timeout_auth_queries(CurrentTime);
 
-    ip_registry_expire();
+    IPcheck_expire();
 
     if (GlobalRehashFlag) {
       rehash(&me, 1);
@@ -493,7 +492,6 @@ static void event_loop(void) {
       server_restart("caught signal: SIGINT");
   }
 }
-
 
 /*----------------------------------------------------------------------------
  * check_file_access:  random helper function to make sure that a file is
@@ -666,6 +664,7 @@ int main(int argc, char **argv) {
   }
 
   uping_init();
+
   read_tlines();
 
   rmotd       = read_motd(RPATH);

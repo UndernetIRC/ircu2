@@ -182,7 +182,7 @@ NTL_HDR_strChattr { NTL_SRC_strChattr }
 NTL_HDR_strCasediff { NTL_SRC_strCasediff }
 #endif /* !FORCEINLINE */
 
-/*=============================================================================
+/*
  * Other functions visible externally
  */
 

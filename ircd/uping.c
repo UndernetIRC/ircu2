@@ -173,7 +173,6 @@ static void uping_start(struct UPing* pptr)
   sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :Sending %d ping%s to %s",
 		pptr->client, pptr->count, (pptr->count == 1) ? "" : "s",
 		pptr->name);
-
   pptr->timeout = CurrentTime + UPINGTIMEOUT;
   pptr->active = 1;
 }
