@@ -232,7 +232,7 @@ struct ConnectionClass* find_class(const char *name)
 }
 
 void
-report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
+report_classes(struct Client *sptr, const struct StatDesc *sd,
                char *param)
 {
   struct ConnectionClass *cltmp;

@@ -118,7 +118,7 @@ void count_listener_memory(int* count_out, size_t* size_out)
  * side effects - show ports
  * author       - Dianora
  */
-void show_ports(struct Client* sptr, struct StatDesc* sd, int stat,
+void show_ports(struct Client* sptr, const struct StatDesc* sd,
                 char* param)
 {
   struct Listener *listener = 0;

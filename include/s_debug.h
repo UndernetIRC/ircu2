@@ -49,7 +49,7 @@ struct StatDesc;
 
 extern void vdebug(int level, const char *form, va_list vl);
 extern void debug(int level, const char *form, ...);
-extern void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
+extern void send_usage(struct Client *cptr, const struct StatDesc *sd,
                        char *param);
 
 #else /* !DEBUGMODE */
@@ -61,7 +61,7 @@ extern void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
 
 extern const char* debug_serveropts(void);
 extern void debug_init(int use_tty);
-extern void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
+extern void count_memory(struct Client *cptr, const struct StatDesc *sd,
                          char *param);
 
 #endif /* INCLUDED_s_debug_h */

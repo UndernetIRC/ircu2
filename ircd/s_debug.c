@@ -170,7 +170,7 @@ static void debug_enumerator(struct Client* cptr, const char* msg)
  * different field names for "struct rusage".
  * -avalon
  */
-void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
+void send_usage(struct Client *cptr, const struct StatDesc *sd,
                 char *param)
 {
   os_get_rusage(cptr, CurrentTime - cli_since(&me), debug_enumerator);
@@ -180,7 +180,7 @@ void send_usage(struct Client *cptr, struct StatDesc *sd, int stat,
 }
 #endif /* DEBUGMODE */
 
-void count_memory(struct Client *cptr, struct StatDesc *sd, int stat,
+void count_memory(struct Client *cptr, const struct StatDesc *sd,
                   char *param)
 {
   struct Client *acptr;

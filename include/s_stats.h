@@ -32,12 +32,13 @@ struct Client;
 
 struct StatDesc;
 
-/* Source of /stats, stats descriptor, stats char, extra param (might be 0) */
-typedef void (*StatFunc)(struct Client *, struct StatDesc *, int, char *);
+/* Source of /stats, stats descriptor, extra param (might be 0) */
+typedef void (*StatFunc)(struct Client *, const struct StatDesc *, char *);
 
 struct StatDesc
 {
   char         sd_c;           /* stats character */
+  char        *sd_name;        /* full name for stats */
   unsigned int sd_flags;       /* flags to control the stats */
   enum Feature sd_control;     /* feature controlling stats */
   StatFunc     sd_func;        /* function to dispatch to */
@@ -50,9 +51,7 @@ struct StatDesc
 #define STAT_FLAG_CASESENS 0x04    /* Flag is case-sensitive */
 #define STAT_FLAG_VARPARAM 0x08    /* may have an extra parameter */
 
-extern struct StatDesc statsinfo[];
-extern struct StatDesc *statsmap[];
-
 extern void stats_init(void);
+const struct StatDesc *stats_find(const char *name_or_char);
 
 #endif /* INCLUDED_s_stats_h */

@@ -1,5 +1,33 @@
 2004-09-11  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_stats.h: Add sd_name to struct StatDesc.  Stop
+	publishing the statsinfo and statsmap arrays; replace them with
+	stats_find().  Change argument list of StatFunc() to work with
+	names.
+
+	* ircd/m_stats.c: Use stats_find() instead of statsmap[].  Use the
+	full argument instead of just the first character in reports.
+
+	* ircd/s_stats.c: Adapt individual stats handler functions to new
+	argument list.  Add long names to statsinfo[].  Add new functions
+	stats_cmp(), stats_search(), stats_find().  Sort statsinfo[] in
+	stats_init().
+
+	* ircd/s_err.c: Change ENDOFSTATS to display a string rather than
+	a single character.
+
+	* ircd/s_user.c: Send an error to the user when a message loses
+	its target in transit.
+
+	* include/class.h include/gline.h include/ircd_features.h
+	include/listener.h include/motd.h include/msgq.h include/res.h
+	include/s_debug.h include/s_misc.h include/userload.h ircd/class.c
+	ircd/gline.c ircd/ircd_features.c ircd/ircd_res.c ircd/listener.c
+	ircd/motd.c ircd/msgq.c ircd/s_debug.c ircd/s_misc.c
+	ircd/userload.c: Adjust stats handlers to new argument list.
+
+2004-09-11  Michael Poole <mdpoole@troilus.org>
+
 	* include/numeric.h, ircd/s_err.c: Remove RPL_TRACEPING, and
 	replace with RPL_TRACEEND.
 

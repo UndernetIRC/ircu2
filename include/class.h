@@ -88,7 +88,7 @@ extern void add_class(char *name, unsigned int ping,
                       unsigned int confreq, unsigned int maxli,
                       unsigned int sendq);
 extern void check_class(void);
-extern void report_classes(struct Client *sptr, struct StatDesc *sd, int stat,
+extern void report_classes(struct Client *sptr, const struct StatDesc *sd,
                            char *param);
 extern unsigned int get_sendq(struct Client* cptr);
 

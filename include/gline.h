@@ -95,7 +95,7 @@ extern void gline_free(struct Gline *gline);
 extern void gline_burst(struct Client *cptr);
 extern int gline_resend(struct Client *cptr, struct Gline *gline);
 extern int gline_list(struct Client *sptr, char *userhost);
-extern void gline_stats(struct Client *sptr, struct StatDesc *sd, int stat,
+extern void gline_stats(struct Client *sptr, const struct StatDesc *sd,
                         char *param);
 extern int gline_memory_count(size_t *gl_size);
 

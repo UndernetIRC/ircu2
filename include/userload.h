@@ -43,7 +43,7 @@ struct current_load_st {
  */
 
 extern void update_load(void);
-extern void calc_load(struct Client *sptr, struct StatDesc *sd, int stat,
+extern void calc_load(struct Client *sptr, const struct StatDesc *sd,
                       char *param);
 extern void initload(void);
 

@@ -117,15 +117,12 @@
 int
 m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  unsigned char stat = parc > 1 ? parv[1][0] : '\0';
-  struct StatDesc *sd;
+  const struct StatDesc *sd;
   char *param = 0;
 
   /* If we didn't find a descriptor and this is my client, send them help */
-  if (!(sd = statsmap[(int)stat])) {
-    stat = '*';
-    sd = statsmap[(int)stat];
-  }
+  if ((parc < 2) || !(sd = stats_find(parv[1])))
+      parv[1] = "*", sd = stats_find("*");
 
   assert(sd != 0);
 
@@ -152,8 +149,8 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(sd->sd_func != 0);
 
   /* Ok, dispatch the stats function */
-  (*sd->sd_func)(sptr, sd, stat, param);
+  (*sd->sd_func)(sptr, sd, param);
 
   /* Done sending them the stats */
-  return send_reply(sptr, RPL_ENDOFSTATS, stat);
+  return send_reply(sptr, RPL_ENDOFSTATS, parv[1]);
 }

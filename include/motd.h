@@ -86,7 +86,7 @@ void motd_add(const char *hostmask, const char *path);
 void motd_clear(void);
 
 /* This is called to report T-lines */
-void motd_report(struct Client *to, struct StatDesc *sd, int stat,
+void motd_report(struct Client *to, const struct StatDesc *sd,
                  char *param);
 void motd_memory_count(struct Client *cptr);
 

@@ -859,7 +859,7 @@ make_dnsreply(struct reslist *request)
 }
 
 void
-report_dns_servers(struct Client *source_p, struct StatDesc *sd, int stat, char *param)
+report_dns_servers(struct Client *source_p, const struct StatDesc *sd, char *param)
 {
   int i;
   char ipaddr[128];

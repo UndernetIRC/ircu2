@@ -470,7 +470,7 @@ static Numeric replyTable[] = {
 /* 218 */
   { RPL_STATSYLINE, "%c %s %d %d %d %ld %d", "218" },
 /* 219 */
-  { RPL_ENDOFSTATS, "%c :End of /STATS report", "219" },
+  { RPL_ENDOFSTATS, "%s :End of /STATS report", "219" },
 /* 220 */
   { 0 },
 /* 221 */

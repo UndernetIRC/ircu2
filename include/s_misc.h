@@ -75,7 +75,7 @@ extern const char* get_client_host(const struct Client *cptr);
 extern void get_sockhost(struct Client *cptr, char *host);
 extern int vexit_client_msg(struct Client *cptr, struct Client *bcptr,
     struct Client *sptr, const char *pattern, va_list vl);
-extern void tstats(struct Client *cptr, struct StatDesc *sd, int stat,
+extern void tstats(struct Client *cptr, const struct StatDesc *sd,
                    char *param);
 
 extern struct ServerStatistics* ServerStats;

@@ -713,7 +713,7 @@ feature_init(void)
 
 /* report all F-lines */
 void
-feature_report(struct Client* to, struct StatDesc* sd, int stat, char* param)
+feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 {
   int i;
 

@@ -551,7 +551,7 @@ void initstats(void)
   memset(&ircst, 0, sizeof(ircst));
 }
 
-void tstats(struct Client *cptr, struct StatDesc *sd, int stat, char *param)
+void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
   struct Client *acptr;
   int i;

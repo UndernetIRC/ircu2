@@ -62,7 +62,7 @@ extern void        close_listeners(void);
 extern void        count_listener_memory(int* count_out, size_t* size_out);
 extern const char* get_listener_name(const struct Listener* listener);
 extern void        mark_listeners_closing(void);
-extern void show_ports(struct Client* client, struct StatDesc* sd, int stat,
+extern void show_ports(struct Client* client, const struct StatDesc* sd,
                        char* param);
 extern void        release_listener(struct Listener* listener);
 

@@ -576,7 +576,7 @@ msgq_bufleft(struct MsgBuf *mb)
  * requesting client
  */
 void
-msgq_histogram(struct Client *cptr, struct StatDesc *sd, int stat, char *param)
+msgq_histogram(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
   struct MsgSizes tmp = MQData.sizes; /* All hail structure copy! */
   int i;

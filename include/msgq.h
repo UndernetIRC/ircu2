@@ -84,7 +84,7 @@ extern void msgq_clean(struct MsgBuf *mb);
 extern void msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio);
 extern void msgq_count_memory(struct Client *cptr,
                               size_t *msg_alloc, size_t *msg_used);
-extern void msgq_histogram(struct Client *cptr, struct StatDesc *sd, int stat,
+extern void msgq_histogram(struct Client *cptr, const struct StatDesc *sd,
                            char *param);
 extern unsigned int msgq_bufleft(struct MsgBuf *mb);
 

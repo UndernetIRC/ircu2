@@ -218,8 +218,10 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
       send_reply(from, ERR_NOSUCHSERVER, to);
       return (HUNTED_NOSUCH);
     }
-  } else if (!(acptr = FindNServer(to)))
+  } else if (!(acptr = FindNServer(to))) {
+    send_reply(from, SND_EXPLICIT | ERR_NOSUCHSERVER, "* :Server has disconnected");
     return (HUNTED_NOSUCH);        /* Server broke off in the meantime */
+  }
 
   if (IsMe(acptr))
     return (HUNTED_ISME);

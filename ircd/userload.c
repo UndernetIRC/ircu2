@@ -202,7 +202,7 @@ void update_load(void)
 }
 
 void
-calc_load(struct Client *sptr, struct StatDesc *sd, int stat, char *param)
+calc_load(struct Client *sptr, const struct StatDesc *sd, char *param)
 {
   /* *INDENT-OFF* */
   static const char *header =

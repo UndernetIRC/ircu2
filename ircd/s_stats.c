@@ -64,7 +64,7 @@
  * m_stats/s_stats
  *
  * Report configuration lines and other statistics from this
- * server. 
+ * server.
  *
  * Note: The info is reported in the order the server uses
  *       it--not reversed as in ircd.conf!
@@ -80,8 +80,14 @@ static unsigned int report_array[17][3] = {
   {0, 0}
 };
 
+/* The statsinfo array should only be used in this file, but just TRY
+ * telling the compiler that you want to forward declare a static array,
+ * and see how it responds.  So we forward declare it "extern".
+ */
+extern struct StatDesc statsinfo[];
+
 static void
-stats_configured_links(struct Client *sptr, struct StatDesc* sd, int stat,
+stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                        char* param)
 {
   static char null[] = "<NULL>";
@@ -90,7 +96,7 @@ stats_configured_links(struct Client *sptr, struct StatDesc* sd, int stat,
   unsigned int *p;
   unsigned short int port;
   char c, *host, *pass, *name;
-  
+
   mask = sd->sd_funcdata;
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next) 
@@ -135,29 +141,26 @@ stats_configured_links(struct Client *sptr, struct StatDesc* sd, int stat,
  * {CONF_CRULEAUTO, RPL_STATSDLINE, 'd'},
  */
 static void
-stats_crule_list(struct Client* to, struct StatDesc *sd, int stat,
+stats_crule_list(struct Client* to, const struct StatDesc *sd,
                  char *param)
 {
-  int mask;
   const struct CRuleConf* p = conf_get_crule_list();
-
-  mask = (stat == 'D') ? CRULE_ALL : CRULE_MASK;
 
   for ( ; p; p = p->next)
   {
-    if (p->type & mask)
-      send_reply(to, RPL_STATSDLINE, stat, p->hostmask, p->rule);
+    if (p->type & sd->sd_funcdata)
+      send_reply(to, RPL_STATSDLINE, sd->sd_c, p->hostmask, p->rule);
   }
 }
 
 static void
-stats_engine(struct Client *to, struct StatDesc *sd, int stat, char *param)
+stats_engine(struct Client *to, const struct StatDesc *sd, char *param)
 {
   send_reply(to, RPL_STATSENGINE, engine_name());
 }
 
 static void
-stats_access(struct Client *to, struct StatDesc *sd, int stat, char *param)
+stats_access(struct Client *to, const struct StatDesc *sd, char *param)
 {
   struct ConfItem *aconf;
   int wilds = 0;
@@ -165,7 +168,7 @@ stats_access(struct Client *to, struct StatDesc *sd, int stat, char *param)
 
   if (!param)
   {
-    stats_configured_links(to, sd, stat, param);
+    stats_configured_links(to, sd, param);
     return;
   }
 
@@ -204,7 +207,7 @@ report_deny_list(struct Client* to)
 }
 
 static void
-stats_klines(struct Client *sptr, struct StatDesc *sd, int stat, char *mask)
+stats_klines(struct Client *sptr, const struct StatDesc *sd, char *mask)
 {
   int wilds = 0;
   int count = 3;
@@ -212,10 +215,10 @@ stats_klines(struct Client *sptr, struct StatDesc *sd, int stat, char *mask)
   char *user  = 0;
   char *host;
   const struct DenyConf* conf;
- 
+
   if (!IsAnOper(sptr))
     limit_query = 1;
-  
+
   if (!mask)
   {
     if (limit_query)
@@ -256,7 +259,7 @@ stats_klines(struct Client *sptr, struct StatDesc *sd, int stat, char *mask)
 }
 
 static void
-stats_links(struct Client* sptr, struct StatDesc* sd, int stat, char* name)
+stats_links(struct Client* sptr, const struct StatDesc* sd, char* name)
 {
   struct Client *acptr;
   int i;
@@ -301,7 +304,7 @@ stats_links(struct Client* sptr, struct StatDesc* sd, int stat, char* name)
 
 /* hopefuly this will be where we'll spit out info about loaded modules */
 static void
-stats_modules(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_modules(struct Client* to, const struct StatDesc* sd, char* param)
 {
 crypt_mechs_t* mechs;
 
@@ -333,7 +336,7 @@ crypt_mechs_t* mechs;
 }
 
 static void
-stats_commands(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_commands(struct Client* to, const struct StatDesc* sd, char* param)
 {
   struct Message *mptr;
 
@@ -343,7 +346,7 @@ stats_commands(struct Client* to, struct StatDesc* sd, int stat, char* param)
 }
 
 static void
-stats_quarantine(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_quarantine(struct Client* to, const struct StatDesc* sd, char* param)
 {
   struct qline *qline;
 
@@ -354,9 +357,9 @@ stats_quarantine(struct Client* to, struct StatDesc* sd, int stat, char* param)
     send_reply(to, RPL_STATSQLINE, qline->chname, qline->reason);
   }
 }
- 
+
 static void
-stats_mapping(struct Client *to, struct StatDesc* sd, int stat, char* param)
+stats_mapping(struct Client *to, const struct StatDesc* sd, char* param)
 {
   struct s_map *map;
 
@@ -371,7 +374,7 @@ stats_mapping(struct Client *to, struct StatDesc* sd, int stat, char* param)
 }
 
 static void
-stats_uptime(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_uptime(struct Client* to, const struct StatDesc* sd, char* param)
 {
   time_t nowr;
 
@@ -382,20 +385,25 @@ stats_uptime(struct Client* to, struct StatDesc* sd, int stat, char* param)
 }
 
 static void
-stats_servers_verbose(struct Client* sptr, struct StatDesc* sd, int stat,
+stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
 		      char* param)
 {
   struct Client *acptr;
-  
+  const char *fmt;
+
   /*
    * lowercase 'v' is for human-readable,
    * uppercase 'V' is for machine-readable
    */
-  if (stat == 'v')
+  if (sd->sd_funcdata) {
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE,
                "%-20s %-20s Flags Hops Numeric   Lag  RTT   Up Down "
                "Clients/Max Proto %-10s :Info", "Servername", "Uplink",
                "LinkTS");
+    fmt = "%-20s %-20s %c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i P%-2i   %Tu :%s";
+  } else {
+    fmt = "%s %s %c%c%c%c %i %s %i %i %i %i %i %i %i P%i %Tu :%s";
+  }
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
   {
@@ -404,10 +412,7 @@ stats_servers_verbose(struct Client* sptr, struct StatDesc* sd, int stat,
     /* narrow search */
     if (param && match(param, cli_name(acptr)))
       continue;
-    send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
-               "%-20s %-20s %c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i "
-               "P%-2i   %Tu :%s" :
-               "%s %s %c%c%c%c %i %s %i %i %i %i %i %i %i P%i %Tu :%s",
+    send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, fmt,
                cli_name(acptr),
                cli_name(cli_serv(acptr)->up),
                IsBurst(acptr) ? 'B' : '-',
@@ -431,7 +436,7 @@ stats_servers_verbose(struct Client* sptr, struct StatDesc* sd, int stat,
 
 #ifdef DEBUGMODE
 static void
-stats_meminfo(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 {
   class_send_meminfo(to);
   send_listinfo(to, 0);
@@ -439,122 +444,152 @@ stats_meminfo(struct Client* to, struct StatDesc* sd, int stat, char* param)
 #endif
 
 static void
-stats_help(struct Client* to, struct StatDesc* sd, int stat, char* param)
+stats_help(struct Client* to, const struct StatDesc* sd, char* param)
 {
   struct StatDesc *asd;
 
   /* only if it's my user */
   if (MyUser(to))
-    for (asd = statsinfo; asd->sd_c; asd++)
-      if (asd->sd_c != sd->sd_c) /* don't send the help for us */
-        sendcmdto_one(&me, CMD_NOTICE, to, "%C :%c - %s", to, asd->sd_c,
-                      asd->sd_desc);
+    for (asd = statsinfo; asd->sd_name; asd++)
+      if (asd != sd) /* don't send the help for us */
+        sendcmdto_one(&me, CMD_NOTICE, to, "%C :%c (%s) - %s", to, asd->sd_c,
+                      asd->sd_name, asd->sd_desc);
 }
 
 /* This array of structures contains information about all single-character
  * stats.  Struct StatDesc is defined in s_stats.h.
  */
 struct StatDesc statsinfo[] = {
-  { 'a', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_a,
+  { 'a', "nameservers", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_a,
     report_dns_servers, 0,
     "DNS servers." },
-  { 'c', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
+  { 'c', "connect", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
     stats_configured_links, CONF_SERVER,
     "Remote server connection lines." },
-  { 'd', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_d,
-    stats_crule_list, 0,
+  { 'd', "maskrules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
+    stats_crule_list, CRULE_MASK,
     "Dynamic routing configuration." },
-  { 'e', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_e,
+  { 'D', "crules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
+    stats_crule_list, CRULE_ALL,
+    "Dynamic routing configuration." },
+  { 'e', "engine", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_e,
     stats_engine, 0,
     "Report server event loop engine." },
-  { 'f', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_f,
+  { 'f', "features", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_f,
     feature_report, 0,
     "Feature settings." },
-  { 'g', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
+  { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
     gline_stats, 0,
     "Global bans (G-lines)." },
-  { 'h', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_h,
+  { 'h', "hubs", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_h,
     stats_configured_links, (CONF_HUB | CONF_LEAF),
     "Hubs information." },
-  { 'i', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
+  { 'i', "access", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
     stats_access, CONF_CLIENT,
     "Connection authorization lines." },
-  { 'j', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_j,
+  { 'j', "histogram", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_j,
     msgq_histogram, 0,
     "Message length histogram." },
-  { 'k', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
+  { 'k', "klines", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
     stats_klines, 0,
     "Local bans (K-Lines)." },
-  { 'l', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), 
+  { 'l', "links", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS),
     FEAT_HIS_STATS_l,
     stats_links, 0,
     "Current connections information." },
-  { 'L', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), 
+  { 'L', "modules", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS),
     FEAT_HIS_STATS_L,
     stats_modules, 0,
-    "Dynamicly loaded modules." },
-#if 0
-  { 'M', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_M,
-    stats_memtotal, 0,
-    "Memory allocation & leak monitoring." },
-#endif
-  { 'm', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_m,
+    "Dynamically loaded modules." },
+  { 'm', "commands", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_m,
     stats_commands, 0,
     "Message usage information." },
-  { 'o', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
+  { 'o', "operators", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
     stats_configured_links, CONF_OPERATOR,
     "Operator information." },
-  { 'p', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
+  { 'p', "ports", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
     show_ports, 0,
     "Listening ports." },
-  { 'q', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
+  { 'q', "quarantines", (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
     stats_quarantine, 0,
     "Quarantined channels list." },
-  { 'R', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_R,
+  { 'R', "mappings", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_R,
     stats_mapping, 0,
     "Service mappings." },
 #ifdef DEBUGMODE
-  { 'r', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_r,
+  { 'r', "usage", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_r,
     send_usage, 0,
     "System resource usage (Debug only)." },
 #endif
-  { 'T', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
+  { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
     motd_report, 0,
     "Configured Message Of The Day files." },
-  { 't', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_t,
+  { 't', "locals", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_t,
     tstats, 0,
     "Local connection statistics (Total SND/RCV, etc)." },
-  { 'U', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_U,
+  { 'U', "uworld", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_U,
     stats_configured_links, CONF_UWORLD,
     "Service server & nick jupes information." },
-  { 'u', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
+  { 'u', "uptime", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
     stats_uptime, 0,
     "Current uptime & highest connection count." },
-  { 'v', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_v,
+  { 'v', "vservers", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
+    stats_servers_verbose, 1,
+    "Verbose server information." },
+  { 'V', "vserversmach", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
     stats_servers_verbose, 0,
     "Verbose server information." },
-  { 'w', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
+  { 'w', "userload", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
     calc_load, 0,
     "Userload statistics." },
 #ifdef DEBUGMODE
-  { 'x', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
+  { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
     stats_meminfo, 0,
     "List usage information (Debug only)." },
 #endif
-  { 'y', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
+  { 'y', "classes", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
     report_classes, 0,
     "Connection classes." },
-  { 'z', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
+  { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
-  { '*', (STAT_FLAG_CASESENS | STAT_FLAG_VARPARAM), FEAT_LAST_F,
+  { '*', "help", (STAT_FLAG_CASESENS | STAT_FLAG_VARPARAM), FEAT_LAST_F,
     stats_help, 0,
     "Send help for stats." },
   { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
 };
 
 /* This array is for mapping from characters to statistics descriptors */
-struct StatDesc *statsmap[256];
+static struct StatDesc *statsmap[256];
+static int statscount;
+
+static int
+stats_cmp(const void *a_, const void *b_)
+{
+  const struct StatDesc *a = a_;
+  const struct StatDesc *b = b_;
+  return ircd_strcmp(a->sd_name, b->sd_name);
+}
+
+static int
+stats_search(const void *key, const void *sd_)
+{
+  const struct StatDesc *sd = sd_;
+  return ircd_strcmp(key, sd->sd_name);
+}
+
+/* Look up a stats handler.  If name_or_char is just one character
+ * long, use that as a character index; otherwise, look it up by
+ * name in statsinfo.
+ */
+const struct StatDesc *
+stats_find(const char *name_or_char)
+{
+  if (!name_or_char[1])
+    return statsmap[(int)name_or_char[0]];
+  else
+    return bsearch(name_or_char, statsinfo, statscount, sizeof(statsinfo[0]), stats_search);
+}
 
 /* Function to build the statsmap from the statsinfo array */
 void
@@ -567,10 +602,16 @@ stats_init(void)
   for (i = 0; i < 256; i++)
     statsmap[i] = 0;
 
+  /* Count number of stats entries and sort them. */
+  for (statscount = 0, sd = statsinfo; sd->sd_name; sd++, statscount++) {}
+  qsort(statsinfo, statscount, sizeof(statsinfo[0]), stats_cmp);
+
   /* Build the mapping */
-  for (sd = statsinfo; sd->sd_c; sd++)
+  for (sd = statsinfo; sd->sd_name; sd++)
   {
-    if (sd->sd_flags & STAT_FLAG_CASESENS)
+    if (!sd->sd_c)
+      continue;
+    else if (sd->sd_flags & STAT_FLAG_CASESENS)
       /* case sensitive character... */
       statsmap[(int)sd->sd_c] = sd;
     else
