@@ -122,9 +122,6 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   chanTS = atoi(parv[2]);
 
-  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
-  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
-
   /* A create that didn't appear during a burst has that servers idea of
    * the current time.  Use it for lag calculations.
    */
@@ -136,15 +133,19 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (TStime() - chanTS<-60) {
     static time_t rate;
     sendto_opmask_butone_ratelimited(0, SNO_NETWORK, &rate,
-				     "Timestamp drift from %C (%is)",
+				     "Timestamp drift from %C (%is); issuing "
+				     "SETTIME to correct this",
 				     cli_user(sptr)->server,
 				     chanTS - TStime());
-
-    /* If this server is >5 minutes fast, squit it */
-    if (TStime() - chanTS<-5*60*60)
-      return exit_client(cptr, cli_user(sptr)->server, &me,
-			 "Timestamp Drift/Bogus TS");
+    /* Now issue a SETTIME to resync.  If we're in the wrong, our
+     * (RELIABLE_CLOCK) hub will bounce a SETTIME back to us.
+     */
+    sendcmdto_prio_one(&me, CMD_SETTIME, cli_user(sptr)->server,
+		       "%Tu %C", TStime(), cli_user(sptr)->server);
   }
+
+  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
+  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
 
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;

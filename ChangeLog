@@ -1,5 +1,22 @@
 2002-11-24  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_settime.c: rewrite m[so]_settime().  Critical changes
+	are: servers may also send SETTIMEs to specific remote servers
+	(but are not required to); if we handle such a SETTIME that is
+	*not* for us, not only forward it, but if it's more than 30
+	seconds off in either direction (automatically corrected by code
+	before this), bounce a corrective SETTIME to our previous hop
+	(only if we're RELIABLE_CLOCK, of course); opers may now specify a
+	time of "0" to SETTIME to have the server fill it
+	in--RELIABLE_CLOCK servers will always fill in their own time
+
+	* ircd/m_create.c (ms_create): initialize the joinbufs just before
+	the for loop; issue a SETTIME if the remote server is > 1 minute
+	ahead, rather than squiting if it's > 5 minutes ahead
+
+	* ircd/s_user.c (hunt_server_prio_cmd): comment out the assert--we
+	now permit servers to send SETTIME to targeted servers
+
 	* ircd/m_create.c (ms_create): exit the client's *server*, not the
 	client--I was wondering why we weren't seeing any of these squits
 	on the network!

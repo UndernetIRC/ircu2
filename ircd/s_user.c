@@ -276,7 +276,7 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
     return HUNTED_NOSUCH;
   }
 
-  assert(!IsServer(from));
+  /* assert(!IsServer(from)); SETTIME to particular destinations permitted */
 
   parv[server] = (char *) acptr; /* HACK! HACK! HACK! ARGH! */
 
