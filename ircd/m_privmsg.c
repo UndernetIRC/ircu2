@@ -114,12 +114,12 @@ int m_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   assert(0 != cptr);
   assert(cptr == sptr);
-  assert(0 != sptr->user);
+  assert(0 != cli_user(sptr));
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
 #ifdef IDLE_FROM_MSG
-  sptr->user->last = CurrentTime;
+  cli_user(sptr)->last = CurrentTime;
 #endif
 
   if (parc < 2 || EmptyString(parv[1]))
@@ -158,7 +158,7 @@ int ms_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* name;
   char* server;
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 3) {
     /*
@@ -205,12 +205,12 @@ int mo_privmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char*           vector[MAXTARGETS];
   assert(0 != cptr);
   assert(cptr == sptr);
-  assert(0 != sptr->user);
+  assert(0 != cli_user(sptr));
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
 #ifdef IDLE_FROM_MSG
-  sptr->user->last = CurrentTime;
+  cli_user(sptr)->last = CurrentTime;
 #endif
 
   if (parc < 2 || EmptyString(parv[1]))

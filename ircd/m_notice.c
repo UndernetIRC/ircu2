@@ -118,7 +118,7 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
@@ -161,7 +161,7 @@ int ms_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* name;
   char* server;
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 3) {
     /*
@@ -208,7 +208,7 @@ int mo_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);

@@ -112,19 +112,19 @@ static void dump_map(struct Client *cptr, struct Client *server, char *mask, int
 
   *p = '\0';
   if (prompt_length > 60)
-    send_reply(cptr, RPL_MAPMORE, prompt, server->name);
+    send_reply(cptr, RPL_MAPMORE, prompt, cli_name(server));
   else {
     char lag[512];
-    if (server->serv->lag>10000)
+    if (cli_serv(server)->lag>10000)
     	lag[0]=0;
-    else if (server->serv->lag<0)
+    else if (cli_serv(server)->lag<0)
     	strcpy(lag,"(0s)");
     else
-    	sprintf(lag,"(%is)",server->serv->lag);
+    	sprintf(lag,"(%is)",cli_serv(server)->lag);
     send_reply(cptr, RPL_MAP, prompt, (
     		(IsBurst(server)) ? "*" : (IsBurstAck(server) ? "!" : "")),
-	       server->name, lag, (server == &me) ? UserStats.local_clients :
-	       server->serv->clients);
+	       cli_name(server), lag, (server == &me) ? UserStats.local_clients :
+	       cli_serv(server)->clients);
   }
   if (prompt_length > 0)
   {
@@ -135,17 +135,17 @@ static void dump_map(struct Client *cptr, struct Client *server, char *mask, int
   if (prompt_length > 60)
     return;
   strcpy(p, "|-");
-  for (lp = server->serv->down; lp; lp = lp->next)
-    if (match(mask, lp->value.cptr->name))
-      lp->value.cptr->flags &= ~FLAGS_MAP;
+  for (lp = cli_serv(server)->down; lp; lp = lp->next)
+    if (match(mask, cli_name(lp->value.cptr)))
+      cli_flags(lp->value.cptr) &= ~FLAGS_MAP;
     else
     {
-      lp->value.cptr->flags |= FLAGS_MAP;
+      cli_flags(lp->value.cptr) |= FLAGS_MAP;
       cnt++;
     }
-  for (lp = server->serv->down; lp; lp = lp->next)
+  for (lp = cli_serv(server)->down; lp; lp = lp->next)
   {
-    if ((lp->value.cptr->flags & FLAGS_MAP) == 0)
+    if ((cli_flags(lp->value.cptr) & FLAGS_MAP) == 0)
       continue;
     if (--cnt == 0)
       *p = '`';

@@ -524,7 +524,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       else if ((!lower && !upper) || !IsAlnum(c))
         badid = 1;
     }
-    if (badid && (!(sptr->flags & FLAGS_GOTID) ||
+    if (badid && (!(cli_flags(sptr) & FLAGS_GOTID) ||
         strcmp(cli_username(sptr), username) != 0))
     {
       ServerStats->is_ref++;
@@ -576,7 +576,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     update_load();
     motd_signon(sptr);
     nextping = CurrentTime;
-    if (sptr->snomask & SNO_NOISY)
+    if (cli_snomask(sptr) & SNO_NOISY)
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     IPcheck_connect_succeeded(sptr);
   }
@@ -812,7 +812,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       do {
         cli_cookie(sptr) = (ircrandom() & 0x7fffffff);
       } while (!cli_cookie(sptr));
-      sendrawto_one(cptr, MSG_PING " :%u", sptr->cookie);
+      sendrawto_one(cptr, MSG_PING " :%u", cli_cookie(sptr));
     }
     else if (*(cli_user(sptr))->host && cli_cookie(sptr) == COOKIE_VERIFIED) {
       /*
@@ -1305,7 +1305,7 @@ void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask)
         *m++ = userModeList[i].c;
       }
     }
-    else if (!(flag & old) && (sptr->flags & flag))
+    else if (!(flag & old) && (cli_flags(sptr) & flag))
     {
       if (what == MODE_ADD)
         *m++ = userModeList[i].c;

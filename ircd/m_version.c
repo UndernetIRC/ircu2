@@ -120,7 +120,7 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
       return 0;
     }
-    parv[1] = acptr->name;
+    parv[1] = cli_name(acptr);
   }
 
   if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
@@ -130,7 +130,7 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     
     sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
     
-    send_reply(sptr, RPL_VERSION, version, debugmode, me.name, serveropts);
+    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me), serveropts);
     send_reply(sptr, RPL_ISUPPORT, featurebuf);
   }
 
@@ -154,13 +154,13 @@ int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
       return 0;
     }
-    parv[1] = acptr->name;
+    parv[1] = cli_name(acptr);
   }
 
   if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
-    send_reply(sptr, RPL_VERSION, version, debugmode, me.name, serveropts);
+    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me), serveropts);
   }
 
   return 0;

@@ -139,18 +139,18 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
   int len;
   static char buf[512];
   
-  const struct User* user = acptr->user;
-  const char* name = (!*acptr->name) ? "?" : acptr->name;  
+  const struct User* user = cli_user(acptr);
+  const char* name = (!*(cli_name(acptr))) ? "?" : cli_name(acptr);  
   a2cptr = user->server;
   assert(user);
   send_reply(sptr, RPL_WHOISUSER, name, user->username, user->host,
-		   acptr->info);
+		   cli_info(acptr));
 
   /* Display the channels this user is on. */
   if (!IsChannelService(acptr))
   {
     struct Membership* chan;
-    mlen = strlen(me.name) + strlen(sptr->name) + 12 + strlen(name);
+    mlen = strlen(cli_name(&me)) + strlen(cli_name(sptr)) + 12 + strlen(name);
     len = 0;
     *buf = '\0';
     for (chan = user->channel; chan; chan = chan->next_channel)
@@ -187,7 +187,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
      if (buf[0] != '\0')
         send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
   }
-  send_reply(sptr, RPL_WHOISSERVER, name, a2cptr->name, a2cptr->info);
+  send_reply(sptr, RPL_WHOISSERVER, name, cli_name(a2cptr), cli_info(a2cptr));
 
   if (user)
   {
@@ -203,7 +203,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
      
     if (MyConnect(acptr))
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last, 
-                  acptr->firsttime);
+                  cli_firsttime(acptr));
   }
 }
 
@@ -225,7 +225,7 @@ static int do_wilds(struct Client* sptr,char *nick,int count)
   
   /* Ech! This is hidious! */
   for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
-      acptr = acptr->next)
+      acptr = cli_next(acptr))
   {
     if (!IsRegistered(acptr)) 
       continue;
@@ -239,7 +239,7 @@ static int do_wilds(struct Client* sptr,char *nick,int count)
      *         hack?
      */
     if (IsMe(acptr)) {
-      assert(!acptr->next);
+      assert(!cli_next(acptr));
       break;
     }
     
@@ -253,8 +253,8 @@ static int do_wilds(struct Client* sptr,char *nick,int count)
      * - only send replies about common or public channels
      *   the target user(s) are on;
      */
-    user = acptr->user;
-    name = (!*acptr->name) ? "?" : acptr->name;
+    user = cli_user(acptr);
+    name = (!*(cli_name(acptr))) ? "?" : cli_name(acptr);
     assert(user);
 
     invis = (acptr != sptr) && IsInvisible(acptr);
@@ -349,7 +349,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     acptr = FindUser(parv[1]);
     if (acptr)
-      parv[1] = acptr->user->server->name;
+      parv[1] = cli_name(cli_user(acptr)->server);
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;
@@ -426,7 +426,7 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     acptr = FindUser(parv[1]);
     if (acptr)
-      parv[1] = acptr->user->server->name;
+      parv[1] = cli_name(cli_user(acptr)->server);
     if (hunt_server_cmd(sptr, CMD_WHOIS, cptr, 0, "%C :%s", 1, parc, parv) !=
         HUNTED_ISME)
       return 0;

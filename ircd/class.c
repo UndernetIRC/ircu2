@@ -260,7 +260,7 @@ void report_classes(struct Client *sptr)
 unsigned int get_sendq(struct Client *cptr)
 {
   assert(0 != cptr);
-  assert(0 != cptr->local);
+  assert(0 != cli_local(cptr));
 
   if (cli_max_sendq(cptr))
     return cli_max_sendq(cptr);

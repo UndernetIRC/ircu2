@@ -117,7 +117,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    newtopic=ircd_strncmp(chptr->topic,topic,TOPICLEN)!=0;
    /* setting a topic */
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
-   ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
+   ircd_strncpy(chptr->topic_nick, cli_name(sptr), NICKLEN);
    chptr->topic_time = CurrentTime;
    /* Fixed in 2.10.11: Don't propergate local topics */
    if (!IsLocalChannel(chptr->chname))

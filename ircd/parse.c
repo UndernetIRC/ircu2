@@ -861,7 +861,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   i = bufend - ((s) ? s : ch);
   mptr->bytes += i;
   if ((mptr->flags & MFLG_SLOW))
-    cptr->since += (2 + i / 120);
+    cli_since(cptr) += (2 + i / 120);
   /*
    * Allow only 1 msg per 2 seconds
    * (on average) to prevent dumping.

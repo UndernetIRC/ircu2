@@ -125,7 +125,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * parv[0] will be empty for clients connecting for the first time
    */
-  client_name = (*sptr->name) ? sptr->name : "*";
+  client_name = (*(cli_name(sptr))) ? cli_name(sptr) : "*";
 
   if (parc < 2) {
     send_reply(sptr, ERR_NONICKNAMEGIVEN);
@@ -187,7 +187,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * is concerned (user is changing the case of his/her
      * nickname or somesuch)
      */
-    if (0 != strcmp(acptr->name, nick)) {
+    if (0 != strcmp(cli_name(acptr), nick)) {
       /*
        * Allows change of case in his/her nick
        */
@@ -217,7 +217,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
-    IPcheck_connect_fail(acptr->ip);
+    IPcheck_connect_fail(cli_ip(acptr));
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -273,12 +273,12 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsServer(sptr)) {
     lastnick = atoi(parv[3]);
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr)) 
-      sptr->serv->lag = TStime() - lastnick;
+      cli_serv(sptr)->lag = TStime() - lastnick;
   }
   else {
     lastnick = atoi(parv[2]); 
     if (lastnick > OLDEST_TS && !IsBurstOrBurstAck(sptr))
-      sptr->user->server->serv->lag = TStime() - lastnick;
+      cli_serv(cli_user(sptr)->server)->lag = TStime() - lastnick;
   }
   /*
    * If do_nick_name() returns a null name OR if the server sent a nick
@@ -293,17 +293,17 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendto_opmask_butone(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
 			 parv[0], cptr);
     sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s <- %s[%s])",
-		  IsServer(sptr) ? parv[parc - 2] : parv[0], me.name, parv[1],
-		  nick, cptr->name);
+		  IsServer(sptr) ? parv[parc - 2] : parv[0], cli_name(&me), parv[1],
+		  nick, cli_name(cptr));
     if (!IsServer(sptr)) {
       /*
        * bad nick _change_
        */
       sendcmdto_serv_butone(&me, CMD_KILL, 0, "%s :%s (%s <- %s!%s@%s)",
-			    parv[0], me.name, cptr->name, parv[0],
-			    sptr->user ? sptr->username : "",
-			    sptr->user ? sptr->user->server->name :
-			    cptr->name);
+			    parv[0], cli_name(&me), cli_name(cptr), parv[0],
+			    cli_user(sptr) ? cli_username(sptr) : "",
+			    cli_user(sptr) ? cli_name(cli_user(sptr)->server) :
+			    cli_name(cptr));
     }
     return 0;
   }
@@ -334,13 +334,13 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * Ultimate way to jupiter a nick ? >;-). -avalon
      */
     sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C(%C <- %C)", sptr,
-			 acptr->from, cptr);
+			 cli_from(acptr), cptr);
     ++ServerStats->is_kill;
 
-    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s <- %s)", sptr, me.name,
-		  acptr->from->name, cptr->name);
+    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s <- %s)", sptr, cli_name(&me),
+		  cli_name(cli_from(acptr)), cli_name(cptr));
 
-    sptr->flags |= FLAGS_KILLED;
+    cli_flags(sptr) |= FLAGS_KILLED;
     /*
      * if sptr is a server it is exited here, nothing else to do
      */
@@ -354,7 +354,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * nickname or somesuch)
    */
   if (acptr == sptr) {
-    if (strcmp(acptr->name, nick) != 0)
+    if (strcmp(cli_name(acptr), nick) != 0)
       /*
        * Allows change of case in his/her nick
        */
@@ -383,7 +383,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
-    IPcheck_connect_fail(acptr->ip);
+    IPcheck_connect_fail(cli_ip(acptr));
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -412,11 +412,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      *
      * compare IP address and username
      */
-    differ =  (acptr->ip.s_addr != htonl(base64toint(parv[parc - 3]))) ||
-              (0 != ircd_strcmp(acptr->user->username, parv[4]));
+    differ =  (cli_ip(acptr).s_addr != htonl(base64toint(parv[parc - 3]))) ||
+              (0 != ircd_strcmp(cli_user(acptr)->username, parv[4]));
     sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C (%C %Tu <- "
-			 "%C %Tu (%s user@host))", acptr, acptr->from,
-			 acptr->lastnick, cptr, lastnick,
+			 "%C %Tu (%s user@host))", acptr, cli_from(acptr),
+			 cli_lastnick(acptr), cptr, lastnick,
 			 differ ? "Different" : "Same");
   }
   else {
@@ -425,11 +425,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      *
      * compare IP address and username
      */
-    differ =  (acptr->ip.s_addr != sptr->ip.s_addr) ||
-              (0 != ircd_strcmp(acptr->user->username, sptr->user->username));              
+    differ =  (cli_ip(acptr).s_addr != cli_ip(sptr).s_addr) ||
+              (0 != ircd_strcmp(cli_user(acptr)->username, cli_user(sptr)->username));              
     sendto_opmask_butone(0, SNO_OLDSNO, "Nick change collision from %C to "
-			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, acptr->from,
-			 acptr->lastnick, cptr, lastnick);
+			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
+			 cli_lastnick(acptr), cptr, lastnick);
   }
   /*
    * Now remove (kill) the nick on our side if it is the youngest.
@@ -440,23 +440,17 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    *
    * This exits the client sending the NICK message
    */
-  if (acptr->from != cptr) {
-    if ((differ && lastnick >= acptr->lastnick) || (!differ && lastnick <= acptr->lastnick)) {
+  if (cli_from(acptr) != cptr) {
+    if ((differ && lastnick >= cli_lastnick(acptr)) ||
+	(!differ && lastnick <= cli_lastnick(acptr))) {
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
 	sendcmdto_serv_butone(&me, CMD_KILL, sptr, "%C :%s (%s <- %s (Nick "
-			      "collision))", sptr, me.name, acptr->from->name,
-			      cptr->name);
+			      "collision))", sptr, cli_name(&me), cli_name(cli_from(acptr)),
+			      cli_name(cptr));
         assert(!MyConnect(sptr));
-#if 0
-        /*
-         * XXX - impossible
-         */
-        if (MyConnect(sptr))
-          sendto_one(cptr, "%s " TOK_KILL " %s%s :%s (Ghost 2)", /* XXX DEAD */
-                     NumServ(&me), NumNick(sptr), me.name);
-#endif
-        sptr->flags |= FLAGS_KILLED;
+
+        cli_flags(sptr) |= FLAGS_KILLED;
         exit_client(cptr, sptr, &me, "Nick collision (you're a ghost)");
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
@@ -464,36 +458,36 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          */
         sptr = 0;
       }
-      if (lastnick != acptr->lastnick)
+      if (lastnick != cli_lastnick(acptr))
         return 0;                /* Ignore the NICK */
     }
     send_reply(acptr, ERR_NICKCOLLISION, nick);
   }
 
   ++ServerStats->is_kill;
-  acptr->flags |= FLAGS_KILLED;
+  cli_flags(acptr) |= FLAGS_KILLED;
   /*
    * This exits the client we had before getting the NICK message
    */
   if (differ) {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (older "
-			  "nick overruled))", acptr, me.name,
-			  acptr->from->name, cptr->name);
+			  "nick overruled))", acptr, cli_name(&me),
+			  cli_name(cli_from(acptr)), cli_name(cptr));
     if (MyConnect(acptr))
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost)",
-		    me.name);
+		    cli_name(&me));
     exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
   }
   else {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (%s <- %s (nick "
-			  "collision from same user@host))", acptr, me.name,
-			  acptr->from->name, cptr->name);
+			  "collision from same user@host))", acptr, cli_name(&me),
+			  cli_name(cli_from(acptr)), cli_name(cptr));
     if (MyConnect(acptr))
       sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost: ",
-		    "switched servers too fast)", me.name);
+		    "switched servers too fast)", cli_name(&me));
     exit_client(cptr, acptr, &me, "Nick collision (You collided yourself)");
   }
-  if (lastnick == acptr->lastnick)
+  if (lastnick == cli_lastnick(acptr))
     return 0;
 
   assert(0 != sptr);

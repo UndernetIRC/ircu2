@@ -193,12 +193,12 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc == 2) {
     parv[parc++] = UDP_PORT;
-    parv[parc++] = me.name;
+    parv[parc++] = cli_name(&me);
     parv[parc++] = "5";
   }
   else if (parc == 3) {
     if (IsDigit(*parv[2]))
-      parv[parc++] = me.name;
+      parv[parc++] = cli_name(&me);
     else {
       parv[parc++] = parv[2];
       parv[2] = UDP_PORT;
@@ -209,7 +209,7 @@ int mo_uping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (IsDigit(*parv[2])) {
       if (IsDigit(*parv[3])) {
         parv[parc++] = parv[3];
-        parv[3] = me.name;
+        parv[3] = cli_name(&me);
       }
       else
         parv[parc++] = "5";

@@ -119,15 +119,15 @@ static void move_marker(void)
     struct Client *cptr = GlobalClientList;
     while (cptr)
     {
-      cptr->marker = 0;
-      cptr = cptr->next;
+      cli_marker(cptr) = 0;
+      cptr = cli_next(cptr);
     }
     who_marker++;
   }
 }
 
 #define CheckMark(x, y) ((x == y) ? 0 : (x = y))
-#define Process(cptr) CheckMark(cptr->marker, who_marker)
+#define Process(cptr) CheckMark(cli_marker(cptr), who_marker)
 
 /*
  * m_who - generic message handler
@@ -369,7 +369,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if ((!(counter < 1)) && matchsel) {
       struct Membership* member;
       struct Membership* chan;
-      for (chan = sptr->user->channel; chan; chan = chan->next_channel) {
+      for (chan = cli_user(sptr)->channel; chan; chan = chan->next_channel) {
         chptr = chan->channel;
         for (member = chptr->members; member; member = member->next_member)
         {
@@ -381,19 +381,19 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             continue;
           if ((mask) &&
               ((!(matchsel & WHO_FIELD_NIC))
-              || matchexec(acptr->name, mymask, minlen))
+              || matchexec(cli_name(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_UID))
-              || matchexec(acptr->user->username, mymask, minlen))
+              || matchexec(cli_user(acptr)->username, mymask, minlen))
               && ((!(matchsel & WHO_FIELD_SER))
-              || (!(acptr->user->server->flags & FLAGS_MAP)))
+              || (!(cli_flags(cli_user(acptr)->server) & FLAGS_MAP)))
               && ((!(matchsel & WHO_FIELD_HOS))
-              || matchexec(acptr->user->host, mymask, minlen))
+              || matchexec(cli_user(acptr)->host, mymask, minlen))
               && ((!(matchsel & WHO_FIELD_REN))
-              || matchexec(acptr->info, mymask, minlen))
+              || matchexec(cli_info(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_NIP))
-              || ((((acptr->ip.s_addr & imask.mask.s_addr) !=
+              || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) !=
               imask.bits.s_addr)) || (imask.fall
-              && matchexec(ircd_ntoa((const char*) &acptr->ip), mymask, minlen)))))
+              && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
             continue;
           if (!SHOW_MORE(sptr, counter))
             break;
@@ -404,7 +404,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* Loop through all clients :-\, if we still have something to match to 
        and we can show more clients */
     if ((!(counter < 1)) && matchsel)
-      for (acptr = me.prev; acptr; acptr = acptr->prev)
+      for (acptr = cli_prev(&me); acptr; acptr = cli_prev(acptr))
       {
         if (!(IsUser(acptr) && Process(acptr)))
           continue;
@@ -414,19 +414,19 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         if ((mask) &&
             ((!(matchsel & WHO_FIELD_NIC))
-            || matchexec(acptr->name, mymask, minlen))
+            || matchexec(cli_name(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_UID))
-            || matchexec(acptr->user->username, mymask, minlen))
+            || matchexec(cli_user(acptr)->username, mymask, minlen))
             && ((!(matchsel & WHO_FIELD_SER))
-            || (!(acptr->user->server->flags & FLAGS_MAP)))
+            || (!(cli_flags(cli_user(acptr)->server) & FLAGS_MAP)))
             && ((!(matchsel & WHO_FIELD_HOS))
-            || matchexec(acptr->user->host, mymask, minlen))
+            || matchexec(cli_user(acptr)->host, mymask, minlen))
             && ((!(matchsel & WHO_FIELD_REN))
-            || matchexec(acptr->info, mymask, minlen))
+            || matchexec(cli_info(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_NIP))
-            || ((((acptr->ip.s_addr & imask.mask.s_addr) != imask.bits.s_addr))
+            || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) != imask.bits.s_addr))
             || (imask.fall
-            && matchexec(ircd_ntoa((const char*) &acptr->ip), mymask, minlen)))))
+            && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
           continue;
         if (!SHOW_MORE(sptr, counter))
           break;

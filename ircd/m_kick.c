@@ -115,7 +115,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member = 0;
   char *name, *comment;
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
@@ -134,17 +134,17 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   /* Don't allow the channel service to be kicked */
   if (IsChannelService(who))
-    return send_reply(sptr, ERR_ISCHANSERVICE, who->name, chptr->chname);
+    return send_reply(sptr, ERR_ISCHANSERVICE, cli_name(who), chptr->chname);
 
 #ifdef NO_OPER_DEOP_LCHAN
   /* Prevent kicking opers from local channels -DM- */
   if (IsOperOnLocalChannel(who, chptr->chname))
-    return send_reply(sptr, ERR_ISOPERLCHAN, who->name, chptr->chname);
+    return send_reply(sptr, ERR_ISOPERLCHAN, cli_name(who), chptr->chname);
 #endif
 
   /* check if kicked user is actually on the channel */
   if (!(member = find_member_link(chptr, who)) || IsZombie(member))
-    return send_reply(sptr, ERR_USERNOTINCHANNEL, who->name, chptr->chname);
+    return send_reply(sptr, ERR_USERNOTINCHANNEL, cli_name(who), chptr->chname);
 
   /* We rely on ircd_snprintf to truncate the comment */
   comment = EmptyString(parv[parc - 1]) ? parv[0] : parv[parc - 1];
@@ -176,7 +176,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member = 0, *sptr_link = 0;
   char *name, *comment;
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
@@ -203,7 +203,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    * here), if kicker is not on channel, or if kicker is not a channel
    * operator, bounce the kick
    */
-  if (!IsServer(sptr) && member && who->from != cptr &&
+  if (!IsServer(sptr) && member && cli_from(who) != cptr &&
       (!(sptr_link = find_member_link(chptr, sptr)) || !IsChanOp(sptr_link))) {
     sendto_opmask_butone(0, SNO_HACK2, "HACK: %C KICK %H %C %s", sptr, chptr,
 			 who, comment);

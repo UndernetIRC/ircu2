@@ -124,17 +124,17 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 2)
     return need_more_params(sptr, "ISON");
 
-  mb = msgq_make(sptr, rpl_str(RPL_ISON), me.name, sptr->name);
+  mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me), cli_name(sptr));
 
   for (name = ircd_strtok(&p, parv[1], " "); name;
        name = ircd_strtok(&p, 0, " ")) {
     if ((acptr = FindUser(name))) {
-      if (msgq_bufleft(mb) < strlen(acptr->name) + 1) {
+      if (msgq_bufleft(mb) < strlen(cli_name(acptr)) + 1) {
 	send_buffer(sptr, mb, 0); /* send partial response */
 	msgq_clean(mb); /* then do another round */
-	mb = msgq_make(sptr, rpl_str(RPL_ISON), me.name, sptr->name);
+	mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me), cli_name(sptr));
       }
-      msgq_append(0, mb, "%s ", acptr->name); /* append nickname */
+      msgq_append(0, mb, "%s ", cli_name(acptr)); /* append nickname */
     }
   }
 
@@ -143,5 +143,3 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   return 0;
 }
-
-

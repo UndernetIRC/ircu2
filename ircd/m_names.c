@@ -149,7 +149,7 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
 
   /* Iterate over all channel members, and build up the list. */
 
-  mlen = strlen(me.name) + 10 + strlen(sptr->name);
+  mlen = strlen(cli_name(&me)) + 10 + strlen(cli_name(sptr));
   
   for (member = chptr->members; member; member = member->next_member)
   {
@@ -181,8 +181,8 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
       strcat(buf, "+");
       idx++;
     }
-    strcat(buf, c2ptr->name);
-    idx += strlen(c2ptr->name) + 1;
+    strcat(buf, cli_name(c2ptr));
+    idx += strlen(cli_name(c2ptr)) + 1;
     flag = 1;
     if (mlen + idx + NICKLEN + 5 > BUFSIZE)
       /* space, modifier, nick, \r \n \0 */
@@ -251,7 +251,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     struct Channel *ch3ptr;
     char buf[BUFSIZE]; 
 
-    mlen = strlen(me.name) + 10 + strlen(sptr->name);
+    mlen = strlen(cli_name(&me)) + 10 + strlen(cli_name(sptr));
 
     /* List all visible channels/visible members */ 
 
@@ -274,14 +274,14 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     idx = 5;
     flag = 0;
 
-    for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
+    for (c2ptr = GlobalClientList; c2ptr; c2ptr = cli_next(c2ptr))
     {
       int showflag = 0;
 
       if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
         continue;
 
-      member = c2ptr->user->channel; 
+      member = cli_user(c2ptr)->channel;
 
       while (member)
       {
@@ -296,9 +296,9 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (showflag)               /* Have we already shown them? */
         continue;
  
-      strcat(buf, c2ptr->name);
+      strcat(buf, cli_name(c2ptr));
       strcat(buf, " ");
-      idx += strlen(c2ptr->name) + 1;
+      idx += strlen(cli_name(c2ptr)) + 1;
       flag = 1;
 
       if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */
@@ -392,7 +392,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     struct Channel *ch3ptr;
     char buf[BUFSIZE]; 
 
-    mlen = strlen(me.name) + 10 + strlen(sptr->name);
+    mlen = strlen(cli_name(&me)) + 10 + strlen(cli_name(sptr));
 
     /* List all visible channels/visible members */ 
 
@@ -415,14 +415,14 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     idx = 5;
     flag = 0;
 
-    for (c2ptr = GlobalClientList; c2ptr; c2ptr = c2ptr->next)
+    for (c2ptr = GlobalClientList; c2ptr; c2ptr = cli_next(c2ptr))
     {
       int showflag = 0;
 
       if (!IsUser(c2ptr) || (sptr != c2ptr && IsInvisible(c2ptr)))
         continue;
 
-      member = c2ptr->user->channel; 
+      member = cli_user(c2ptr)->channel; 
 
       while (member)
       {
@@ -437,9 +437,9 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (showflag)               /* Have we already shown them? */
         continue;
  
-      strcat(buf, c2ptr->name);
+      strcat(buf, cli_name(c2ptr));
       strcat(buf, " ");
-      idx += strlen(c2ptr->name) + 1;
+      idx += strlen(cli_name(c2ptr)) + 1;
       flag = 1;
 
       if (mlen + idx + NICKLEN + 3 > BUFSIZE)     /* space, \r\n\0 */

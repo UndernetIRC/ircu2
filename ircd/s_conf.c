@@ -424,7 +424,7 @@ static int is_attached(struct ConfItem *aconf, struct Client *cptr)
 {
   struct SLink *lp;
 
-  for (lp = cptr->confs; lp; lp = lp->next) {
+  for (lp = cli_confs(cptr); lp; lp = lp->next) {
     if (lp->value.aconf == aconf)
       return 1;
   }
@@ -451,9 +451,9 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
       ConfLinks(aconf) >= ConfMaxLinks(aconf) && ConfMaxLinks(aconf) > 0)
     return ACR_TOO_MANY_IN_CLASS;  /* Use this for printing error message */
   lp = make_link();
-  lp->next = cptr->confs;
+  lp->next = cli_confs(cptr);
   lp->value.aconf = aconf;
-  cptr->confs = lp;
+  cli_confs(cptr) = lp;
   ++aconf->clients;
   if (aconf->status & CONF_CLIENT_MASK)
     ConfLinks(aconf)++;
@@ -1313,7 +1313,7 @@ int rehash(struct Client *cptr, int sig)
       if (IsServer(acptr)) {
         det_confs_butmask(acptr,
             ~(CONF_HUB | CONF_LEAF | CONF_UWORLD | CONF_ILLEGAL));
-        attach_confs_byname(acptr, acptr->name,
+        attach_confs_byname(acptr, cli_name(acptr),
                             CONF_HUB | CONF_LEAF | CONF_UWORLD);
       }
       /* Because admin's are getting so uppity about people managing to

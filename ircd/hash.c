@@ -355,7 +355,7 @@ int hChangeClient(struct Client *cptr, const char *newname)
   assert(0 != cptr);
   hRemClient(cptr);
 
-  cptr->hnext = clientTable[newhash];
+  cli_hnext(cptr) = clientTable[newhash];
   clientTable[newhash] = cptr;
   return 0;
 }
@@ -402,7 +402,7 @@ struct Client* hSeekClient(const char *name, int TMask)
   if (cptr) {
     if (0 == (cli_status(cptr) & TMask) || 0 != ircd_strcmp(name, cli_name(cptr))) {
       struct Client* prev;
-      while (prev = cptr, cptr = cptr->hnext) {
+      while (prev = cptr, cptr = cli_hnext(cptr)) {
         if ((cli_status(cptr) & TMask) && (0 == ircd_strcmp(name, cli_name(cptr)))) {
           cli_hnext(prev) = cli_hnext(cptr);
           cli_hnext(cptr) = clientTable[hashv];

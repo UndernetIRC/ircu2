@@ -113,7 +113,7 @@ int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (user_set_away(sptr->user, away_message)) {
+  if (user_set_away(cli_user(sptr), away_message)) {
     sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
     send_reply(sptr, RPL_NOWAWAY);
   }
@@ -143,7 +143,7 @@ int ms_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsServer(sptr))
     return protocol_violation(sptr,"Server trying to set itself away");
 
-  if (user_set_away(sptr->user, away_message))
+  if (user_set_away(cli_user(sptr), away_message))
     sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
   else
     sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, "");

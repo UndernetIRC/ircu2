@@ -482,7 +482,7 @@ void close_connection(struct Client *cptr)
        * CONF_ILLEGAL). But only do this if it was a "good" link.
        */
       aconf->hold = CurrentTime;
-      aconf->hold += (aconf->hold - cptr->since > HANGONGOODLINK) ?
+      aconf->hold += (aconf->hold - cli_since(cptr) > HANGONGOODLINK) ?
                      HANGONRETRYDELAY : ConfConFreq(aconf);
       if (nextconnect > aconf->hold)
         nextconnect = aconf->hold;
@@ -698,7 +698,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
        */
       if (0 == dolen) {
         if (DBufLength(&(cli_recvQ(cptr))) < 510)
-          cptr->flags |= FLAGS_NONL;
+          cli_flags(cptr) |= FLAGS_NONL;
         else
           DBufClear(&(cli_recvQ(cptr)));
       }
@@ -1399,8 +1399,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
   if (by && IsUser(by)) {
     sprintf_irc(cli_serv(cptr)->by, "%s%s", NumNick(by));
     assert(0 == cli_serv(cptr)->user);
-    cli_serv(cptr)->user = by->user;
-    by->user->refcnt++;
+    cli_serv(cptr)->user = cli_user(by);
+    cli_user(by)->refcnt++;
   }
   else {
     *(cli_serv(cptr))->by = '\0';

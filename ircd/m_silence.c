@@ -130,11 +130,11 @@ int m_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   acptr = sptr;
 
   if (parc < 2 || EmptyString(parv[1]) || (acptr = FindUser(parv[1]))) {
-    if (!(acptr->user))
+    if (!(cli_user(acptr)))
       return 0;
-    for (lp = acptr->user->silence; lp; lp = lp->next)
-      send_reply(sptr, RPL_SILELIST, acptr->name, lp->value.cp);
-    send_reply(sptr, RPL_ENDOFSILELIST, acptr->name);
+    for (lp = cli_user(acptr)->silence; lp; lp = lp->next)
+      send_reply(sptr, RPL_SILELIST, cli_name(acptr), lp->value.cp);
+    send_reply(sptr, RPL_ENDOFSILELIST, cli_name(acptr));
     return 0;
   }
   cp = parv[1];
@@ -187,7 +187,7 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else {
     add_silence(sptr, parv[2]);
-    if (acptr && IsServer(acptr->from)) {
+    if (acptr && IsServer(cli_from(acptr))) {
       sendcmdto_one(sptr, CMD_SILENCE, acptr, "%C %s", acptr, parv[2]);
     }
   }

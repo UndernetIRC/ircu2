@@ -1,3 +1,137 @@
+2000-12-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: missed a couple of accesses to a struct Client
+
+	* ircd/uping.c: missed a couple of accesses to a struct Client
+
+	* ircd/send.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_user.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_misc.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_conf.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_bsd.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_auth.c: missed a couple of accesses to a struct Client
+
+	* ircd/res.c: missed a couple of accesses to a struct Client
+
+	* ircd/parse.c: missed a couple of accesses to a struct Client
+
+	* ircd/m_whois.c: use new accessor macros for struct Client
+
+	* ircd/m_who.c: use new accessor macros for struct Client
+
+	* ircd/m_wallchops.c: use new accessor macros for struct Client
+
+	* ircd/m_version.c: use new accessor macros for struct Client
+
+	* ircd/m_userip.c: use new accessor macros for struct Client
+
+	* ircd/m_userhost.c: use new accessor macros for struct Client
+
+	* ircd/m_user.c: use new accessor macros for struct Client
+
+	* ircd/m_uping.c: use new accessor macros for struct Client
+
+	* ircd/m_trace.c: use new accessor macros for struct Client
+
+	* ircd/m_topic.c: use new accessor macros for struct Client
+
+	* ircd/m_time.c: use new accessor macros for struct Client
+
+	* ircd/m_stats.c: use new accessor macros for struct Client
+
+	* ircd/m_squit.c: use new accessor macros for struct Client
+
+	* ircd/m_silence.c: use new accessor macros for struct Client
+
+	* ircd/m_server.c: use new accessor macros for struct Client;
+	remove dead code
+
+	* ircd/m_rpong.c: use new accessor macros for struct Client
+
+	* ircd/m_rping.c: use new accessor macros for struct Client
+
+	* ircd/m_quit.c: use new accessor macros for struct Client
+
+	* ircd/m_privmsg.c: use new accessor macros for struct Client
+
+	* ircd/m_pong.c: use new accessor macros for struct Client; remove
+	dead code
+
+	* ircd/m_ping.c: use new accessor macros for struct Client
+
+	* ircd/m_pass.c: use new accessor macros for struct Client
+
+	* ircd/m_part.c: use new accessor macros for struct Client
+
+	* ircd/m_oper.c: use new accessor macros for struct Client
+
+	* ircd/m_notice.c: use new accessor macros for struct Client
+
+	* ircd/m_nick.c: use new accessor macros for struct Client
+
+	* ircd/m_names.c: use new accessor macros for struct Client
+
+	* ircd/m_mode.c: use new accessor macros for struct Client
+
+	* ircd/m_map.c: use new accessor macros for struct Client
+
+	* ircd/m_list.c: use new accessor macros for struct Client
+
+	* ircd/m_links.c: use new accessor macros for struct Client;
+	remove some dead code
+
+	* ircd/m_kill.c: use new accessor macros for struct Client; remove
+	some dead code
+
+	* ircd/m_kick.c: use new accessor macros for struct Client
+
+	* ircd/m_join.c: use new accessor macros for struct Client; remove
+	some dead code
+
+	* ircd/m_ison.c: use new accessor macros for struct Client
+
+	* ircd/m_invite.c: use new accessor macros for struct Client
+
+	* ircd/m_info.c: use new accessor macros for struct Client
+
+	* ircd/m_gline.c: use new accessor macros for struct Client
+
+	* ircd/m_error.c: use new accessor macros for struct Client
+
+	* ircd/m_create.c: use new accessor macros for struct Client
+
+	* ircd/m_connect.c: use new accessor macros for struct Client;
+	removed some dead code
+
+	* ircd/m_burst.c: use new accessor macros for struct Client
+
+	* ircd/m_away.c: use new accessor macros for struct Client
+
+	* ircd/m_admin.c: use new accessor macros for struct Client
+
+	* ircd/hash.c: missed a couple of accesses to a struct Client
+
+	* ircd/gline.c: missed a couple of accesses to a struct Client
+
+	* ircd/crule.c: missed a couple of accesses to a struct Client
+
+	* ircd/class.c: missed an access to a struct Client
+
+	* ircd/channel.c: missed a couple of accesses to a struct Client
+
+	* ircd/IPcheck.c: missed an access to a struct Client
+
+	* include/querycmds.h: fix a couple of stats macros to use
+	structure accessor macros
+
+	* include/client.h: change structure member names to highlight any
+	places in the code I've missed
+
 2000-12-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/whowas.c: use new struct Client accessor macros

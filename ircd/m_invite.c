@@ -129,7 +129,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * list the channels you have an invite to.
      */
     struct SLink *lp;
-    for (lp = sptr->user->invited; lp; lp = lp->next)
+    for (lp = cli_user(sptr)->invited; lp; lp = lp->next)
       send_reply(cptr, RPL_INVITELIST, lp->value.chptr->chname);
     send_reply(cptr, RPL_ENDOFINVITELIST);
     return 0;
@@ -160,15 +160,15 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* Do not disallow to invite to non-existant #channels, otherwise they
        would simply first be created, causing only MORE bandwidth usage. */
 
-    if (check_target_limit(sptr, acptr, acptr->name, 0))
+    if (check_target_limit(sptr, acptr, cli_name(acptr), 0))
       return 0;
 
-    send_reply(sptr, RPL_INVITING, acptr->name, parv[2]);
+    send_reply(sptr, RPL_INVITING, cli_name(acptr), parv[2]);
 
-    if (acptr->user->away)
-      send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
+    if (cli_user(acptr)->away)
+      send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
 
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", acptr->name, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", cli_name(acptr), parv[2]);
 
     return 0;
   }
@@ -179,7 +179,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   if (find_channel_member(acptr, chptr)) {
-    send_reply(sptr, ERR_USERONCHANNEL, acptr->name, chptr->chname);
+    send_reply(sptr, ERR_USERONCHANNEL, cli_name(acptr), chptr->chname);
     return 0;
   }
 
@@ -190,18 +190,18 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* If we get here, it was a VALID and meaningful INVITE */
 
-  if (check_target_limit(sptr, acptr, acptr->name, 0))
+  if (check_target_limit(sptr, acptr, cli_name(acptr), 0))
     return 0;
 
-  send_reply(sptr, RPL_INVITING, acptr->name, chptr->chname);
+  send_reply(sptr, RPL_INVITING, cli_name(acptr), chptr->chname);
 
-  if (acptr->user->away)
-    send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
+  if (cli_user(acptr)->away)
+    send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
 
   if (MyConnect(acptr))
     add_invite(acptr, chptr);
 
-  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", acptr->name, chptr);
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
 
   return 0;
 }
@@ -254,7 +254,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * just relay the message
      */
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", acptr->name, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", cli_name(acptr), parv[2]);
     return 0;
   }
 
@@ -275,11 +275,11 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
   if (find_channel_member(acptr, chptr)) {
-    send_reply(sptr, ERR_USERONCHANNEL, acptr->name, chptr->chname);
+    send_reply(sptr, ERR_USERONCHANNEL, cli_name(acptr), chptr->chname);
     return 0;
   }
   add_invite(acptr, chptr);
-  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", acptr->name, chptr);
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
   return 0;
 }
 

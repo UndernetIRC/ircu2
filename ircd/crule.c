@@ -176,7 +176,7 @@ static int crule_connected(int numargs, void *crulearg[])
   struct Client *acptr;
 
   /* taken from m_links */
-  for (acptr = GlobalClientList; acptr; acptr = acptr->next)
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
@@ -223,14 +223,14 @@ static int crule_via(int numargs, void *crulearg[])
   struct Client *acptr;
 
   /* adapted from m_links */
-  for (acptr = GlobalClientList; acptr; acptr = acptr->next)
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
     if (match((char *)crulearg[1], cli_name(acptr)))
       continue;
     if (match((char *)crulearg[0],
-	      cli_name(LocalClientArray[(cli_from(acptr))->fd])))
+	      cli_name(LocalClientArray[cli_fd(cli_from(acptr))])))
       continue;
     return (1);
   }

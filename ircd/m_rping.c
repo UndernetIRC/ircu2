@@ -151,7 +151,7 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * if it's not for me, pass it on
        */
       if (IsMe(destination))
-	sendcmdto_one(&me, CMD_RPONG, sptr, "%s %s %s %s :%s", sptr->name,
+	sendcmdto_one(&me, CMD_RPONG, sptr, "%s %s %s %s :%s", cli_name(sptr),
 		      parv[2], parv[3], parv[4], parv[5]);
       else
 	sendcmdto_one(sptr, CMD_RPING, destination, "%C %s %s %s :%s",
@@ -216,7 +216,7 @@ int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 2) {
     if ((acptr = find_match_server(parv[2])) && !IsMe(acptr)) {
-      parv[2] = acptr->name;
+      parv[2] = cli_name(acptr);
       if (3 == parc) {
         /*
          * const_cast<char*>(start_time);

@@ -37,7 +37,7 @@ extern struct UserStatistics UserStats;
  */
 
 /* Macros for remote connections: */
-#define Count_newremoteclient(UserStats, cptr)  (++UserStats.clients, ++cptr->serv->clients)
+#define Count_newremoteclient(UserStats, cptr)  (++UserStats.clients, ++(cli_serv(cptr)->clients))
 #define Count_newremoteserver(UserStats)  (++UserStats.servers)
 #if 0
 #define Count_remoteclientquits(UserStats)      (--UserStats.clients)
@@ -47,7 +47,7 @@ extern struct UserStatistics UserStats;
   do { \
     --UserStats.clients; \
     if (!IsServer(cptr)) \
-      --cptr->user->server->serv->clients; \
+      --(cli_serv(cli_user(cptr)->server)->clients); \
   } while (0)
 
 #define Count_remoteserverquits(UserStats)      (--UserStats.servers)
@@ -57,7 +57,7 @@ extern struct UserStatistics UserStats;
 #define Count_unknownbecomesclient(cptr, UserStats) \
   do { \
     --UserStats.unknowns; ++UserStats.local_clients; ++UserStats.clients; \
-    if (match("*" DOMAINNAME, cptr->sockhost) == 0) \
+    if (match("*" DOMAINNAME, cli_sockhost(cptr)) == 0) \
       ++current_load.local_count; \
     if (UserStats.local_clients > max_client_count) \
       max_client_count = UserStats.local_clients; \
@@ -74,7 +74,7 @@ extern struct UserStatistics UserStats;
   do \
   { \
     --UserStats.local_clients; --UserStats.clients; \
-    if (match("*" DOMAINNAME, cptr->sockhost) == 0) \
+    if (match("*" DOMAINNAME, cli_sockhost(cptr)) == 0) \
       --current_load.local_count; \
   } while(0)
 #define Count_serverdisconnects(UserStats)              do { --UserStats.local_servers; --UserStats.servers; } while(0)
