@@ -188,7 +188,7 @@ void server_reboot(void)
   close(1);
   if ((bootopt & BOOT_CONSOLE) || isatty(0))
     close(0);
-  if (!(bootopt & (BOOT_INETD | BOOT_OPER)))
+  if (!(bootopt & BOOT_INETD))
     execv(SPATH, myargv);
 #ifdef USE_SYSLOG
   /* Have to reopen since it has been closed above */
@@ -646,11 +646,6 @@ int main(int argc, char *argv[])
 	  setuid((uid_t) uid);
 	dpath = p;
 	break;
-      case 'o':		/* Per user local daemon... */
-	if (euid != uid)
-	  setuid((uid_t) uid);
-	bootopt |= BOOT_OPER;
-	break;
 #ifdef CMDLINE_CONFIG
       case 'f':
 	if (euid != uid)
@@ -886,16 +881,7 @@ int main(int argc, char *argv[])
   hAddClient(&me);
 
   check_class();
-  if ((bootopt & BOOT_OPER))
-  {
-    aClient *tmp = add_connection(&me, 0, ADCON_TTY);
-
-    if (!tmp)
-      exit(1);
-    SetMaster(tmp);
-  }
-  else
-    write_pidfile();
+  write_pidfile();
 
   init_counters();
 

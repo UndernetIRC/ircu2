@@ -387,7 +387,8 @@ static int register_user(aClient *cptr, aClient *sptr,
   Reg1 aConfItem *aconf;
   char *parv[3], *tmpstr, *tmpstr2;
   char c = 0 /* not alphanum */ , d = 'a' /* not a digit */ ;
-  short oldstatus_ismaster = IsMaster(sptr), upper = 0, lower = 0;
+  short upper = 0;
+  short lower = 0;
   short pos = 0, leadcaps = 0, other = 0, digits = 0, badid = 0;
   short digitgroups = 0;
   anUser *user = sptr->user;
@@ -560,10 +561,6 @@ static int register_user(aClient *cptr, aClient *sptr,
 	  me.name, ERR_INVALIDUSERNAME, cptr->name);
       return exit_client(cptr, sptr, &me, "USER: Bad username");
     }
-
-    if (oldstatus_ismaster && MyConnect(sptr))
-      m_oper(&me, sptr, 1, parv);
-
     Count_unknownbecomesclient(sptr, nrof);
   }
   else
@@ -755,13 +752,13 @@ static int user_modes[] = {
  */
 int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
-  aClient *acptr;
-  aClient *server = NULL;
-  char nick[NICKLEN + 2];
-  char *s;
-  Link *lp;
-  time_t lastnick = (time_t) 0;
-  int differ = 1;
+  aClient* acptr;
+  aClient* server = NULL;
+  char     nick[NICKLEN + 2];
+  char*    s;
+  Link*    lp;
+  time_t   lastnick = (time_t) 0;
+  int      differ = 1;
 
   if (parc < 2)
   {
@@ -839,18 +836,13 @@ int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[])
    * is present in the nicklist (due to the way the below for loop is
    * constructed). -avalon
    */
-  if ((acptr = FindServer(nick)))
+  if ((acptr = FindServer(nick))) {
     if (MyConnect(sptr))
     {
       sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
 	  BadPtr(parv[0]) ? "*" : parv[0], nick);
       return 0;			/* NICK message ignored */
     }
-  /*
-   * acptr already has result from previous FindServer()
-   */
-  if (acptr)
-  {
     /*
      * We have a nickname trying to use the same name as
      * a server. Send out a nick collision KILL to remove
