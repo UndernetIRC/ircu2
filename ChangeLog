@@ -1,4 +1,14 @@
-2003-03-11  Landon Fuller (landonf) <landonf@sf.net>
+2003-03-26  splidge  <splidge@quakenet.org>
+	* ircd/m_nick.c: Added collidefix - should eliminate some nick 
+	collision races.
+
+2002-11-23  Aaron Catella <acatella@users.sourceforge.net>
+ 
+ 	* include/channel.h: create new IsGlobalChannel()
+ 
+ 	* ircd/m_clearmode.c, ircd/m_invite.c, m_mode.c, m_opmode.c: clean-up
+ 
+ 2003-03-11  Landon Fuller (landonf) <landonf@sf.net>
 	* configure.in: allow ircu to build on MacOS X.
 
 2003-04-12  David Mansell (splidge) <splidge@sf.net>

@@ -236,7 +236,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     protocol_violation(sptr,"Too few arguments to invite");
     return need_more_params(sptr,"INVITE");
   }
-  if ('#' != *parv[2]) {
+  if (!IsGlobalChannel(parv[2])) {
     /*
      * should not be sent
      */

@@ -105,8 +105,9 @@ struct Client;
                                     (MODE_PRIVATE | MODE_SECRET)) == 0)
 #define is_listed(x)            ((x)->mode.mode & MODE_LISTED)
 
+#define IsGlobalChannel(name)	(*(name) == '#')
 #define IsLocalChannel(name)    (*(name) == '&')
-#define IsChannelName(name)     (*(name) == '#' || IsLocalChannel(name))
+#define IsChannelName(name)     (IsGlobalChannel(name) || IsLocalChannel(name))
 
 typedef enum ChannelGetType {
   CGT_NO_CREATE,
