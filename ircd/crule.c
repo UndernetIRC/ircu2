@@ -102,15 +102,14 @@ enum crule_errcode {
  */
 typedef int (*crule_funcptr) (int, void **);
 
-struct crule_treestruct {
+struct CRuleNode {
   crule_funcptr funcptr;
   int numargs;
   void *arg[CR_MAXARGS];        /* For operators arg points to a tree element;
                                    for functions arg points to a char string. */
 };
 
-typedef struct crule_treestruct crule_treeelem;
-typedef crule_treeelem *crule_treeptr;
+typedef struct CRuleNode* CRuleNodePtr;
 
 /* local rule function prototypes */
 static int crule_connected(int, void **);
@@ -121,23 +120,23 @@ static int crule__andor(int, void **);
 static int crule__not(int, void **);
 
 /* local parsing function prototypes */
-static int crule_gettoken(int *, char **);
-static void crule_getword(char *, int *, size_t, char **);
-static int crule_parseandexpr(crule_treeptr *, int *, char **);
-static int crule_parseorexpr(crule_treeptr *, int *, char **);
-static int crule_parseprimary(crule_treeptr *, int *, char **);
-static int crule_parsefunction(crule_treeptr *, int *, char **);
-static int crule_parsearglist(crule_treeptr, int *, char **);
+static int crule_gettoken(int* token, const char** str);
+static void crule_getword(char*, int*, size_t, const char**);
+static int crule_parseandexpr(CRuleNodePtr*, int *, const char**);
+static int crule_parseorexpr(CRuleNodePtr*, int *, const char**);
+static int crule_parseprimary(CRuleNodePtr*, int *, const char**);
+static int crule_parsefunction(CRuleNodePtr*, int *, const char**);
+static int crule_parsearglist(CRuleNodePtr, int *, const char**);
 
 #if defined(CR_DEBUG) || defined(CR_CHKCONF)
 /*
  * Prototypes for the test parser; if not debugging,
  * these are defined in h.h
  */
-char *crule_parse(char *);
-void crule_free(char **);
+struct CRuleNode* crule_parse(const char*);
+void crule_free(struct CRuleNode**);
 #ifdef CR_DEBUG
-void print_tree(crule_treeptr);
+void print_tree(CRuleNodePtr);
 #endif
 #endif
 
@@ -264,37 +263,36 @@ static int crule__andor(int numargs, void *crulearg[])
 {
   int result1;
 
-  result1 = ((crule_treeptr) crulearg[0])->funcptr
-      (((crule_treeptr) crulearg[0])->numargs,
-      ((crule_treeptr) crulearg[0])->arg);
+  result1 = ((CRuleNodePtr) crulearg[0])->funcptr
+      (((CRuleNodePtr) crulearg[0])->numargs,
+      ((CRuleNodePtr) crulearg[0])->arg);
   if (crulearg[2])              /* or */
     return (result1 ||
-        ((crule_treeptr) crulearg[1])->funcptr
-        (((crule_treeptr) crulearg[1])->numargs,
-        ((crule_treeptr) crulearg[1])->arg));
+        ((CRuleNodePtr) crulearg[1])->funcptr
+        (((CRuleNodePtr) crulearg[1])->numargs,
+        ((CRuleNodePtr) crulearg[1])->arg));
   else
     return (result1 &&
-        ((crule_treeptr) crulearg[1])->funcptr
-        (((crule_treeptr) crulearg[1])->numargs,
-        ((crule_treeptr) crulearg[1])->arg));
+        ((CRuleNodePtr) crulearg[1])->funcptr
+        (((CRuleNodePtr) crulearg[1])->numargs,
+        ((CRuleNodePtr) crulearg[1])->arg));
 }
 
 static int crule__not(int numargs, void *crulearg[])
 {
-  return (!((crule_treeptr) crulearg[0])->funcptr
-      (((crule_treeptr) crulearg[0])->numargs,
-      ((crule_treeptr) crulearg[0])->arg));
+  return (!((CRuleNodePtr) crulearg[0])->funcptr
+      (((CRuleNodePtr) crulearg[0])->numargs,
+      ((CRuleNodePtr) crulearg[0])->arg));
 }
 
 #if !defined(CR_DEBUG) && !defined(CR_CHKCONF)
-int crule_eval(char *rule)
+int crule_eval(struct CRuleNode* rule)
 {
-  return (((crule_treeptr) rule)->funcptr
-      (((crule_treeptr) rule)->numargs, ((crule_treeptr) rule)->arg));
+  return (rule->funcptr(rule->numargs, rule->arg));
 }
 #endif
 
-static int crule_gettoken(int *next_tokp, char **ruleptr)
+static int crule_gettoken(int* next_tokp, const char** ruleptr)
 {
   char pending = '\0';
 
@@ -351,8 +349,7 @@ static int crule_gettoken(int *next_tokp, char **ruleptr)
   return CR_NOERR;
 }
 
-static void crule_getword(char *word, int *wordlenp, size_t maxlen,
-    char **ruleptr)
+static void crule_getword(char* word, int* wordlenp, size_t maxlen, const char** ruleptr)
 {
   char *word_ptr;
 
@@ -387,22 +384,18 @@ static void crule_getword(char *word, int *wordlenp, size_t maxlen,
  *    word
  *    word , arglist
  */
-char *crule_parse(char *rule)
+struct CRuleNode* crule_parse(const char *rule)
 {
-  char *ruleptr = rule;
+  const char* ruleptr = rule;
   int next_tok;
-  crule_treeptr ruleroot = NULL;
+  struct CRuleNode* ruleroot = 0;
   int errcode = CR_NOERR;
 
-  if ((errcode = crule_gettoken(&next_tok, &ruleptr)) == CR_NOERR)
-  {
-    if ((errcode = crule_parseorexpr(&ruleroot, &next_tok, &ruleptr))
-        == CR_NOERR)
-    {
-      if (ruleroot != NULL)
-      {
+  if ((errcode = crule_gettoken(&next_tok, &ruleptr)) == CR_NOERR) {
+    if ((errcode = crule_parseorexpr(&ruleroot, &next_tok, &ruleptr)) == CR_NOERR) {
+      if (ruleroot != NULL) {
         if (next_tok == CR_END)
-          return ((char *)ruleroot);
+          return (ruleroot);
         else
           errcode = CR_UNEXPCTTOK;
       }
@@ -411,21 +404,20 @@ char *crule_parse(char *rule)
     }
   }
   if (ruleroot != NULL)
-    crule_free((char **)&ruleroot);
+    crule_free(&ruleroot);
 #if !defined(CR_DEBUG) && !defined(CR_CHKCONF)
   Debug((DEBUG_ERROR, "%s in rule: %s", crule_errstr[errcode], rule));
 #else
   fprintf(stderr, "%s in rule: %s\n", crule_errstr[errcode], rule);
 #endif
-  return NULL;
+  return 0;
 }
 
-static int crule_parseorexpr(crule_treeptr * orrootp, int *next_tokp,
-    char **ruleptr)
+static int crule_parseorexpr(CRuleNodePtr * orrootp, int *next_tokp, const char** ruleptr)
 {
   int errcode = CR_NOERR;
-  crule_treeptr andexpr;
-  crule_treeptr orptr;
+  CRuleNodePtr andexpr;
+  CRuleNodePtr orptr;
 
   *orrootp = NULL;
   while (errcode == CR_NOERR)
@@ -433,7 +425,7 @@ static int crule_parseorexpr(crule_treeptr * orrootp, int *next_tokp,
     errcode = crule_parseandexpr(&andexpr, next_tokp, ruleptr);
     if ((errcode == CR_NOERR) && (*next_tokp == CR_OR))
     {
-      orptr = (crule_treeptr) MyMalloc(sizeof(crule_treeelem));
+      orptr = (CRuleNodePtr) MyMalloc(sizeof(struct CRuleNode));
 #ifdef CR_DEBUG
       fprintf(stderr, "allocating or element at %ld\n", orptr);
 #endif
@@ -476,12 +468,11 @@ static int crule_parseorexpr(crule_treeptr * orrootp, int *next_tokp,
   return (errcode);
 }
 
-static int crule_parseandexpr(crule_treeptr * androotp, int *next_tokp,
-    char **ruleptr)
+static int crule_parseandexpr(CRuleNodePtr * androotp, int *next_tokp, const char** ruleptr)
 {
   int errcode = CR_NOERR;
-  crule_treeptr primary;
-  crule_treeptr andptr;
+  CRuleNodePtr primary;
+  CRuleNodePtr andptr;
 
   *androotp = NULL;
   while (errcode == CR_NOERR)
@@ -489,7 +480,7 @@ static int crule_parseandexpr(crule_treeptr * androotp, int *next_tokp,
     errcode = crule_parseprimary(&primary, next_tokp, ruleptr);
     if ((errcode == CR_NOERR) && (*next_tokp == CR_AND))
     {
-      andptr = (crule_treeptr) MyMalloc(sizeof(crule_treeelem));
+      andptr = (CRuleNodePtr) MyMalloc(sizeof(struct CRuleNode));
 #ifdef CR_DEBUG
       fprintf(stderr, "allocating and element at %ld\n", andptr);
 #endif
@@ -532,10 +523,9 @@ static int crule_parseandexpr(crule_treeptr * androotp, int *next_tokp,
   return (errcode);
 }
 
-static int crule_parseprimary(crule_treeptr * primrootp,
-    int *next_tokp, char **ruleptr)
+static int crule_parseprimary(CRuleNodePtr* primrootp, int *next_tokp, const char** ruleptr)
 {
-  crule_treeptr *insertionp;
+  CRuleNodePtr *insertionp;
   int errcode = CR_NOERR;
 
   *primrootp = NULL;
@@ -547,8 +537,7 @@ static int crule_parseprimary(crule_treeptr * primrootp,
       case CR_OPENPAREN:
         if ((errcode = crule_gettoken(next_tokp, ruleptr)) != CR_NOERR)
           break;
-        if ((errcode = crule_parseorexpr(insertionp, next_tokp,
-            ruleptr)) != CR_NOERR)
+        if ((errcode = crule_parseorexpr(insertionp, next_tokp, ruleptr)) != CR_NOERR)
           break;
         if (*insertionp == NULL)
         {
@@ -563,14 +552,14 @@ static int crule_parseprimary(crule_treeptr * primrootp,
         errcode = crule_gettoken(next_tokp, ruleptr);
         break;
       case CR_NOT:
-        *insertionp = (crule_treeptr) MyMalloc(sizeof(crule_treeelem));
+        *insertionp = (CRuleNodePtr) MyMalloc(sizeof(struct CRuleNode));
 #ifdef CR_DEBUG
         fprintf(stderr, "allocating primary element at %ld\n", *insertionp);
 #endif
         (*insertionp)->funcptr = crule__not;
         (*insertionp)->numargs = 1;
         (*insertionp)->arg[0] = NULL;
-        insertionp = (crule_treeptr *) & ((*insertionp)->arg[0]);
+        insertionp = (CRuleNodePtr *) & ((*insertionp)->arg[0]);
         if ((errcode = crule_gettoken(next_tokp, ruleptr)) != CR_NOERR)
           break;
         continue;
@@ -589,8 +578,7 @@ static int crule_parseprimary(crule_treeptr * primrootp,
   return (errcode);
 }
 
-static int crule_parsefunction(crule_treeptr * funcrootp,
-    int *next_tokp, char **ruleptr)
+static int crule_parsefunction(CRuleNodePtr* funcrootp, int* next_tokp, const char** ruleptr)
 {
   int errcode = CR_NOERR;
   char funcname[CR_MAXARGLEN];
@@ -612,7 +600,7 @@ static int crule_parsefunction(crule_treeptr * funcrootp,
     }
     if ((errcode = crule_gettoken(next_tokp, ruleptr)) != CR_NOERR)
       return (errcode);
-    *funcrootp = (crule_treeptr) MyMalloc(sizeof(crule_treeelem));
+    *funcrootp = (CRuleNodePtr) MyMalloc(sizeof(struct CRuleNode));
 #ifdef CR_DEBUG
     fprintf(stderr, "allocating function element at %ld\n", *funcrootp);
 #endif
@@ -634,8 +622,7 @@ static int crule_parsefunction(crule_treeptr * funcrootp,
     return (CR_EXPCTOPEN);
 }
 
-static int crule_parsearglist(crule_treeptr argrootp, int *next_tokp,
-    char **ruleptr)
+static int crule_parsearglist(CRuleNodePtr argrootp, int *next_tokp, const char** ruleptr)
 {
   int errcode = CR_NOERR;
   char *argelemp = NULL;
@@ -693,55 +680,55 @@ static int crule_parsearglist(crule_treeptr argrootp, int *next_tokp,
  * DO NOT CALL THIS FUNTION WITH A POINTER TO A NULL POINTER
  * (ie: If *elem is NULL, you're doing it wrong - seg fault)
  */
-void crule_free(char **elem)
+void crule_free(struct CRuleNode** elem)
 {
   int arg, numargs;
 
-  if ((*((crule_treeptr *) elem))->funcptr == crule__not)
+  if ((*(elem))->funcptr == crule__not)
   {
     /* type conversions and ()'s are fun! ;)  here have an asprin.. */
-    if ((*((crule_treeptr *) elem))->arg[0] != NULL)
-      crule_free((char **)&((*((crule_treeptr *) elem))->arg[0]));
+    if ((*(elem))->arg[0] != NULL)
+      crule_free((struct CRuleNode**) &((*(elem))->arg[0]));
   }
-  else if ((*((crule_treeptr *) elem))->funcptr == crule__andor)
+  else if ((*(elem))->funcptr == crule__andor)
   {
-    crule_free((char **)&((*((crule_treeptr *) elem))->arg[0]));
-    if ((*((crule_treeptr *) elem))->arg[1] != NULL)
-      crule_free((char **)&((*((crule_treeptr *) elem))->arg[1]));
+    crule_free((struct CRuleNode**) &((*(elem))->arg[0]));
+    if ((*(elem))->arg[1] != NULL)
+      crule_free((struct CRuleNode**) &((*(elem))->arg[1]));
   }
   else
   {
-    numargs = (*((crule_treeptr *) elem))->numargs;
+    numargs = (*(elem))->numargs;
     for (arg = 0; arg < numargs; arg++)
-      MyFree((*((crule_treeptr *) elem))->arg[arg]);
+      MyFree((*(elem))->arg[arg]);
   }
 #ifdef CR_DEBUG
   fprintf(stderr, "freeing element at %ld\n", *elem);
 #endif
   MyFree(*elem);
-  *elem = NULL;
+  *elem = 0;
 }
 
 #ifdef CR_DEBUG
-static void print_tree(crule_treeptr printelem)
+static void print_tree(CRuleNodePtr printelem)
 {
   int funcnum, arg;
 
   if (printelem->funcptr == crule__not)
   {
     printf("!( ");
-    print_tree((crule_treeptr) printelem->arg[0]);
+    print_tree((CRuleNodePtr) printelem->arg[0]);
     printf(") ");
   }
   else if (printelem->funcptr == crule__andor)
   {
     printf("( ");
-    print_tree((crule_treeptr) printelem->arg[0]);
+    print_tree((CRuleNodePtr) printelem->arg[0]);
     if (printelem->arg[2])
       printf("|| ");
     else
       printf("&& ");
-    print_tree((crule_treeptr) printelem->arg[1]);
+    print_tree((CRuleNodePtr) printelem->arg[1]);
     printf(") ");
   }
   else
@@ -770,7 +757,7 @@ static void print_tree(crule_treeptr printelem)
 int main(void)
 {
   char indata[256];
-  char *rule;
+  CRuleNode* rule;
 
   printf("rule: ");
   while (fgets(indata, 256, stdin) != NULL)
@@ -779,7 +766,7 @@ int main(void)
     if ((rule = crule_parse(indata)) != NULL)
     {
       printf("equivalent rule: ");
-      print_tree((crule_treeptr) rule);
+      print_tree((CRuleNodePtr) rule);
       printf("\n");
       crule_free(&rule);
     }

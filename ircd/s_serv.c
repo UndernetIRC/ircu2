@@ -26,7 +26,6 @@
 #include "IPcheck.h"
 #include "channel.h"
 #include "client.h"
-#include "crule.h"
 #include "gline.h"
 #include "hash.h"
 #include "ircd.h"

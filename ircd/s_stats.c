@@ -25,7 +25,6 @@
 #include "s_stats.h"
 #include "class.h"
 #include "client.h"
-#include "crule.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
@@ -92,10 +91,7 @@ static unsigned int report_array[17][3] = {
   {CONF_OPERATOR, RPL_STATSOLINE, 'O'},
   {CONF_HUB, RPL_STATSHLINE, 'H'},
   {CONF_LOCOP, RPL_STATSOLINE, 'o'},
-  {CONF_CRULEALL, RPL_STATSDLINE, 'D'},
-  {CONF_CRULEAUTO, RPL_STATSDLINE, 'd'},
   {CONF_UWORLD, RPL_STATSULINE, 'U'},
-  {CONF_TLINES, RPL_STATSTLINE, 'T'},
   {0, 0}
 };
 
@@ -129,11 +125,6 @@ void report_configured_links(struct Client *sptr, int mask)
       /* Special-case 'k' or 'K' lines as appropriate... -Kev */
       if ((tmp->status & CONF_KLINE))
 	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
-      /*
-       * connect rules are classless
-       */
-      else if ((tmp->status & CONF_CRULE))
-	send_reply(sptr, p[1], c, host, name);
       else if ((tmp->status & CONF_UWORLD))
 	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
@@ -152,6 +143,19 @@ void report_motd_list(struct Client* to)
   const struct MotdConf* conf = conf_get_motd_list();
   for ( ; conf; conf = conf->next)
     send_reply(to, RPL_STATSTLINE, 'T', conf->hostmask, conf->path);
+}
+
+/*
+ * {CONF_CRULEALL, RPL_STATSDLINE, 'D'},
+ * {CONF_CRULEAUTO, RPL_STATSDLINE, 'd'},
+ */
+void report_crule_list(struct Client* to, int mask)
+{
+  const struct CRuleConf* p = conf_get_crule_list();
+  for ( ; p; p = p->next) {
+    if (0 != (p->type & mask))
+      send_reply(to, RPL_STATSDLINE, (CRULE_ALL == p->type) ? 'D' : 'd', p->hostmask, p->rule);
+  }
 }
 
 /* m_stats is so obnoxiously full of special cases that the different
@@ -178,11 +182,9 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'P':
     {
       if (parc > 3)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s %C :%s", 2, parc,
-			       parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s %C :%s", 2, parc, parv);
       else
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc,
-			       parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 0, "%s :%C", 2, parc, parv);
     }
 
       /* oper only, varying # of params */
@@ -191,20 +193,16 @@ int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[],
     case 'M':
     {
       if (parc == 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C :%s", 2, parc,
-			       parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C :%s", 2, parc, parv);
       else if (parc > 4)
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C %s :%s", 2,
-			       parc, parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s %C %s :%s", 2, parc, parv);
       else 
-	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc,
-			       parv);
+	return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc, parv);
     }
 
       /* oper only, standard # of params */
     default:
-      return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc,
-			     parv);
+      return hunt_server_cmd(sptr, CMD_STATS, cptr, 1, "%s :%C", 2, parc, parv);
   }
 }
 

@@ -76,6 +76,7 @@ struct tm        motd_tm;
 
 static struct LocalConf  localConf;
 static struct MotdConf*  motdConfList;
+static struct CRuleConf* cruleConfList;
 
 /*
  * output the reason for being k lined from a file  - Mmmm
@@ -272,17 +273,17 @@ struct ConfItem* conf_find_server(const char* name)
  * Evaluate connection rules...  If no rules found, allow the
  * connect.   Otherwise stop with the first true rule (ie: rules
  * are ored together.  Oper connects are effected only by D
- * lines (CRULEALL) not d lines (CRULEAUTO).
+ * lines (CRULE_ALL) not d lines (CRULE_AUTO).
  */
-const char* conf_eval_crule(struct ConfItem* conf)
+const char* conf_eval_crule(const char* name, int mask)
 {
-  struct ConfItem* rule;
-  assert(0 != conf);
+  struct CRuleConf* p = cruleConfList;
+  assert(0 != name);
 
-  for (rule = GlobalConfList; rule; rule = rule->next) {
-    if ((CONF_CRULEALL == rule->status) && (0 == match(rule->host, conf->name))) {
-      if (crule_eval(rule->passwd))
-        return rule->name;
+  for ( ; p; p = p->next) {
+    if (0 != (p->type & mask) && 0 == match(p->hostmask, name)) {
+      if (crule_eval(p->node))
+        return p->rule;
     }
   }
   return 0;
@@ -755,7 +756,7 @@ void conf_add_motd(const char* const* fields, int count, struct MotdConf** list)
   *list = conf;
 }
 
-void erase_motd_conf_list(struct MotdConf** list)
+void conf_erase_motd_list(struct MotdConf** list)
 {
   struct MotdConf* p;
   struct MotdConf* next;
@@ -774,6 +775,54 @@ void erase_motd_conf_list(struct MotdConf** list)
 const struct MotdConf* conf_get_motd_list(void)
 {
   return motdConfList;
+}
+
+/*
+ * conf_add_crule - Create expression tree from connect rule and add it
+ * to the crule list
+ */
+void conf_add_crule(const char* const* fields, int count, int type)
+{
+  struct CRuleNode* node;
+  assert(0 != fields);
+  
+  if (count < 4 || EmptyString(fields[1]) || EmptyString(fields[3]))
+    return;
+  
+  if ((node = crule_parse(fields[3]))) {
+    struct CRuleConf* p = (struct CRuleConf*) MyMalloc(sizeof(struct CRuleConf));
+    assert(0 != p);
+
+    DupString(p->hostmask, fields[1]);
+    collapse(p->hostmask);
+
+    DupString(p->rule, fields[3]);
+
+    p->type = type;
+    p->node = node;
+    p->next = cruleConfList;
+    cruleConfList = p;
+  } 
+}
+
+void conf_erase_crule_list(void)
+{
+  struct CRuleConf* next;
+  struct CRuleConf* p = cruleConfList;
+
+  for ( ; p; p = next) {
+    next = p->next;
+    crule_free(&p->node);
+    MyFree(p->hostmask);
+    MyFree(p->rule);
+    MyFree(p);
+  }
+  cruleConfList = 0;
+}
+
+const struct CRuleConf* conf_get_crule_list(void)
+{
+  return cruleConfList;
 }
 
 /*
@@ -873,7 +922,10 @@ int read_configuration_file(void)
           quoted = 0;
         else
           quoted = 1;
-        *dest++ = *src++;
+        /*
+         * strip quotes
+         */
+        ++src;
         break;
       case ':':
         if (quoted)
@@ -917,12 +969,14 @@ int read_configuration_file(void)
       aconf->status = CONF_SERVER;
       break;
       /* Connect rule */
-    case 'D':
-      aconf->status = CONF_CRULEALL;
+    case 'D':  /* CONF_CRULEALL */
+      conf_add_crule(field_vector, field_count, CRULE_ALL);
+      aconf->status = CONF_ILLEGAL;
       break;
       /* Connect rule - autos only */
-    case 'd':
-      aconf->status = CONF_CRULEAUTO;
+    case 'd':  /* CONF_CRULEAUTO */
+      conf_add_crule(field_vector, field_count, CRULE_AUTO);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'H':                /* Hub server line */
     case 'h':
@@ -1065,18 +1119,6 @@ int read_configuration_file(void)
         continue;
       lookup_confhost(aconf);
     }
-
-    /* Create expression tree from connect rule...
-     * If there's a parsing error, nuke the conf structure */
-    if (aconf->status & (CONF_CRULEALL | CONF_CRULEAUTO)) {
-      MyFree(aconf->passwd);
-      if ((aconf->passwd = (char *)crule_parse(aconf->name)) == NULL) {
-        free_conf(aconf);
-        aconf = NULL;
-        continue;
-      }
-    }
-
     /*
      * Own port and name cannot be changed after the startup.
      * (or could be allowed, but only if all links are closed first).
@@ -1180,14 +1222,12 @@ int rehash(struct Client *cptr, int sig)
     }
     else {
       *tmp = tmp2->next;
-      /* free expression trees of connect rules */
-      if ((tmp2->status & (CONF_CRULEALL | CONF_CRULEAUTO)) &&
-          (tmp2->passwd != NULL))
-        crule_free(&(tmp2->passwd));
       free_conf(tmp2);
     }
   }
-  erase_motd_conf_list(&motdConfList);
+  conf_erase_motd_list(&motdConfList);
+  conf_erase_crule_list();
+
   /*
    * We don't delete the class table, rather mark all entries
    * for deletion. The table is cleaned up by check_class(). - avalon
@@ -1208,10 +1248,6 @@ int rehash(struct Client *cptr, int sig)
   if (!read_configuration_file())        /* This calls check_class(), */
     check_class();         /* unless it fails */
 
-  /*
-   * make sure that the server listener is re-added so it doesn't get
-   * closed
-   */
   close_listeners();
 
   /*

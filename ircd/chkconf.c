@@ -39,13 +39,28 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+/*
+ * stuff that isn't used by s_conf.c anymore
+ */
+#define CONF_ADMIN              0x0100
+#define CONF_CLASS              0x0400
+#define CONF_LISTEN_PORT        0x2000
+#define CONF_CRULEALL           0x00200000
+#define CONF_CRULEAUTO          0x00400000
+#define CONF_TLINES             0x00800000
+
+
+#define CONF_CRULE              (CONF_CRULEALL | CONF_CRULEAUTO)
+
 
 /*
  * For the connect rule patch..  these really should be in a header,
  * but i see h.h isn't included for some reason..  so they're here.
  */
-char *crule_parse(char *rule);
-void crule_free(char **elem);
+struct CRuleNode;
+
+struct CRuleNode* crule_parse(const char* rule);
+void crule_free(struct CRuleNode** elem);
 
 static void new_class(int cn);
 static char confchar(unsigned int status);
@@ -145,7 +160,9 @@ int main(int argc, char *argv[])
 static struct ConfItem *chk_initconf(void)
 {
   FBFILE *file;
-  char line[512], *tmp, *crule;
+  char line[512];
+  char *tmp;
+  struct CRuleNode* crule;
   int ccount = 0, flags = 0;
   struct ConfItem *aconf = NULL, *ctop = NULL;
 
@@ -409,7 +426,7 @@ static struct ConfItem *chk_initconf(void)
      *  any allocated storage immediately -- we're just looking
      *  for errors..  */
     if (aconf->status & CONF_CRULE)
-      if ((crule = (char *)crule_parse(aconf->name)) != NULL)
+      if ((crule = crule_parse(aconf->name)) != NULL)
         crule_free(&crule);
 
     if (!aconf->confClass)

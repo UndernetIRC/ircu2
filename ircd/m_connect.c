@@ -120,7 +120,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   unsigned short   port;
   unsigned short   tmpport;
-  const char*      crule_name;
+  const char*      rule;
   struct ConfItem* aconf;
   struct Client*   acptr;
   struct Jupe*     ajupe;
@@ -168,9 +168,8 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * are ored together.  Oper connects are effected only by D
    * lines (CRULEALL) not d lines (CRULEAUTO).
    */
-  if ((crule_name = conf_eval_crule(aconf))) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Disallowed by rule: %s",
-		  sptr, crule_name);
+  if ((rule = conf_eval_crule(aconf->name, CRULE_ALL))) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Disallowed by rule: %s", sptr, rule);
     return 0;
   }
   /*
@@ -230,7 +229,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   unsigned short   port;
   unsigned short   tmpport;
-  const char*      crule_name;
+  const char*      rule;
   struct ConfItem* aconf;
   struct Client*   acptr;
   struct Jupe*     ajupe;
@@ -300,9 +299,8 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * are ored together.  Oper connects are effected only by D
    * lines (CRULEALL) not d lines (CRULEAUTO).
    */
-  if ((crule_name = conf_eval_crule(aconf))) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Disallowed by rule: %s",
-		  sptr, crule_name);
+  if ((rule = conf_eval_crule(aconf->name, CRULE_ALL))) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Disallowed by rule: %s", sptr, rule);
     return 0;
   }
   /*
@@ -368,6 +366,7 @@ int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ConfItem* cconf;
   struct Client*   acptr;
   struct Jupe*     ajupe;
+  const char*      rule;
 
   if (!IsPrivileged(sptr)) {
     sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
@@ -471,19 +470,14 @@ int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    * are ored together.  Oper connects are effected only by D
    * lines (CRULEALL) not d lines (CRULEAUTO).
    */
-  for (cconf = GlobalConfList; cconf; cconf = cconf->next) {
-    if ((CONF_CRULEALL == cconf->status) &&
-        (0 == match(cconf->host, aconf->name))) {
-      if (crule_eval(cconf->passwd)) {
-        if (MyUser(sptr))
-          sendto_one(sptr, ":%s NOTICE %s :Connect: Disallowed by rule: %s", /* XXX DEAD */
-                     me.name, parv[0], cconf->name);
-        else
-          sendto_one(sptr, "%s NOTICE %s%s :Connect: Disallowed by rule: %s", /* XXX DEAD */
-                     NumServ(&me), NumNick(sptr), cconf->name);
-        return 0;
-      }
-    }
+  if ((rule = conf_eval_crule(aconf->name, CRULE_ALL))) {
+    if (MyUser(sptr))
+       sendto_one(sptr, ":%s NOTICE %s :Connect: Disallowed by rule: %s", /* XXX DEAD */
+                   me.name, parv[0], cconf->name);
+    else
+      sendto_one(sptr, "%s NOTICE %s%s :Connect: Disallowed by rule: %s", /* XXX DEAD */
+                   NumServ(&me), NumNick(sptr), cconf->name);
+    return 0;
   }
   /*
    * Check to see if the server is juped; if it is, disallow the connect

@@ -88,7 +88,6 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
-#include "crule.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
@@ -138,7 +137,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client*   bcptr;
   struct Client*   LHcptr = 0;
   struct ConfItem* aconf = 0;
-  struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
   struct Jupe*     ajupe = 0;
   int              hop;
@@ -301,16 +299,12 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cptr->hopcount = hop;
 
     /* check connection rules */
-    for (cconf = GlobalConfList; cconf; cconf = cconf->next) {
-      if ((cconf->status == CONF_CRULEALL) && (match(cconf->host, host) == 0)) {
-        if (crule_eval(cconf->passwd)) {
-          ServerStats->is_ref++;
-          sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.",
-			       cptr->name);
-          return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
-        }
-      }
+    if (0 != conf_eval_crule(host, CRULE_ALL)) {
+      ServerStats->is_ref++;
+      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cptr->name);
+      return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
     }
+
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
@@ -813,7 +807,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client*   bcptr;
   struct Client*   LHcptr = 0;
   struct ConfItem* aconf = 0;
-  struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
   struct Jupe*     ajupe = 0;
   int              hop;
@@ -978,16 +971,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cptr->hopcount = hop;
 
     /* check connection rules */
-    for (cconf = GlobalConfList; cconf; cconf = cconf->next) {
-      if ((cconf->status == CONF_CRULEALL) && (match(cconf->host, host) == 0)) {
-        if (crule_eval(cconf->passwd))
-        {
-          ServerStats->is_ref++;
-          sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.",
-			       cptr->name);
-          return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
-        }
-      }
+    if (0 != conf_eval_crule(host, CRULE_ALL)) {
+      ServerStats->is_ref++;
+      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cptr->name);
+      return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
@@ -1489,7 +1476,6 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Client*   bcptr;
   struct Client*   LHcptr = 0;
   struct ConfItem* aconf = 0;
-  struct ConfItem* cconf;
   struct ConfItem* lhconf = 0;
   struct Jupe*     ajupe = 0;
   int              hop;
@@ -1649,15 +1635,10 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     cptr->hopcount = hop;
 
     /* check connection rules */
-    for (cconf = GlobalConfList; cconf; cconf = cconf->next) {
-      if ((cconf->status == CONF_CRULEALL) && (match(cconf->host, host) == 0)) {
-        if (crule_eval(cconf->passwd))
-        {
-          ServerStats->is_ref++;
-          sendto_ops("Refused connection from %s.", cptr->name); /* XXX DEAD */
-          return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
-        }
-      }
+    if (0 != conf_eval_crule(host, CRULE_ALL)) {
+      ServerStats->is_ref++;
+      sendto_ops("Refused connection from %s.", cptr->name); /* XXX DEAD */
+      return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;

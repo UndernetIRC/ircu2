@@ -40,20 +40,13 @@ struct hostent;
 #define CONF_OPERATOR           0x0020
 #define CONF_ME                 0x0040
 #define CONF_KILL               0x0080
-#define CONF_ADMIN              0x0100
-#define CONF_CLASS              0x0400
 #define CONF_LEAF               0x1000
-#define CONF_LISTEN_PORT        0x2000
 #define CONF_HUB                0x4000
 #define CONF_UWORLD             0x8000
-#define CONF_CRULEALL           0x00200000
-#define CONF_CRULEAUTO          0x00400000
-#define CONF_TLINES             0x00800000
 #define CONF_IPKILL             0x00010000
 
 #define CONF_OPS                (CONF_OPERATOR | CONF_LOCOP)
 #define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPS | CONF_SERVER)
-#define CONF_CRULE              (CONF_CRULEALL | CONF_CRULEAUTO)
 #define CONF_KLINE              (CONF_KILL | CONF_IPKILL)
 
 #define IsIllegal(x)    ((x)->status & CONF_ILLEGAL)
@@ -100,7 +93,23 @@ struct MotdConf {
   char* path;
   struct MotdConf* next;
 };
-  
+
+enum {
+  CRULE_AUTO = 1,
+  CRULE_ALL  = 2,
+  CRULE_MASK = 3
+};
+
+struct CRuleNode;
+
+struct CRuleConf {
+  char*             hostmask;
+  char*             rule;
+  int               type;
+  struct CRuleNode* node;
+  struct CRuleConf* next;
+};
+
 struct TRecord {
   char *hostmask;
   struct MotdItem *tmotd;
@@ -132,7 +141,10 @@ extern struct TRecord*  tdata;
  */
 
 extern const struct LocalConf* conf_get_local(void);
-extern const struct MotdConf* conf_get_motd_list(void);
+extern const struct MotdConf*  conf_get_motd_list(void);
+extern const struct CRuleConf* conf_get_crule_list(void);
+
+extern const char* conf_crule_eval(const char* host, int mask);
 
 extern struct ConfItem* attach_confs_byhost(struct Client* cptr, 
                                             const char* host, int statmask);
@@ -141,7 +153,7 @@ extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
 extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name,
                                          int statmask);
 extern struct ConfItem* conf_find_server(const char* name);
-const char* conf_eval_crule(struct ConfItem* conf);
+const char* conf_eval_crule(const char* name, int mask);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
 extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);

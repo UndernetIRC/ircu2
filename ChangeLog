@@ -1,3 +1,11 @@
+2000-09-16  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: add code for new crule data structs, strip quotes
+	* ircd/crule.c: clean up scary casting a bit, type safety stuff
+	* include/s_conf.h: add CRuleConf struct and support, remove
+	unused constants
+	* include/crule.h: type safety cleanups
+	* ircd/*.c: fixup code that depended on stuff I changed
+
 2000-09-15  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c: start adding code for new conf data structs, changed
 	listeners, admin line, motd lines, class lines. Move validate_hostent
@@ -1317,7 +1325,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.162 2000-09-15 07:27:08 bleep Exp $
+# $Id: ChangeLog,v 1.163 2000-09-16 05:35:01 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
