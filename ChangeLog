@@ -1,12 +1,16 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.10 2000-03-07 00:56:36 bleep Exp $
+# $Id: ChangeLog,v 1.11 2000-03-14 01:35:20 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* s_auth.c (start_auth): Bugfix - uninitialized len variable caused binding to
+  client local address to fail, initialize to sizeof(struct sockaddr_in).
+  Clean up leaking file descriptors, set authfd to -1 when closed for error.
+  Bug stomping and fix by Gte. --Bleep
 * Add Run's pline patch. --Run
 * channel.c (send_channel_modes): send modes for second line for channels with
   a lot of ops. --Gte

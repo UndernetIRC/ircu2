@@ -66,7 +66,8 @@ RCSTAG_CC("$Id$");
 void start_auth(aClient *cptr)
 {
   struct sockaddr_in sock;
-  int err, len;
+  int err;
+  int len = sizeof(struct sockaddr_in);
 
   Debug((DEBUG_NOTICE, "start_auth(%p) fd %d status %d",
       cptr, cptr->fd, cptr->status));
@@ -96,6 +97,7 @@ void start_auth(aClient *cptr)
   {
     sendto_ops("Can't allocate fd for auth on %s", get_client_name(cptr, TRUE));
     close(cptr->authfd);
+    cptr->authfd = -1;
     return;
   }
 
@@ -106,7 +108,14 @@ void start_auth(aClient *cptr)
       || bind(cptr->authfd, (struct sockaddr *)&sock, len) == -1)
   {
     report_error("binding auth stream socket %s: %s", cptr);
-    close(cptr->fd);
+    close(cptr->authfd);
+    cptr->authfd = -1;
+    /*
+     * fsck can't return exit_client here ... let read_message
+     * do it when we get done here. At any rate this error is
+     * fatal for the client, mark it dead.
+     */
+    cptr->flags |= FLAGS_DEADSOCKET;
     return;
   }
 
