@@ -104,7 +104,7 @@ int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, "WALLVOICES");
