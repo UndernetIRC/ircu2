@@ -114,7 +114,7 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 3) {
     char modebuf[MODEBUFLEN];
@@ -168,10 +168,10 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (('#' != *parv[1] && '+' != *parv[1])|| !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
-  sptr->flags &= ~FLAGS_TS8;
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (IsServer(sptr)) {
-    if (find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
+    if (find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
 		    MODEBUF_DEST_SERVER  | /* Send mode to servers */

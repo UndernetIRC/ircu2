@@ -550,7 +550,7 @@ void IPcheck_disconnect(struct Client *cptr)
 unsigned short IPcheck_nr(struct Client *cptr)
 {
   assert(0 != cptr);
-  return ip_registry_count(cptr->ip.s_addr);
+  return ip_registry_count(cli_ip(cptr).s_addr);
 }
 
 void IPcheck_expire()

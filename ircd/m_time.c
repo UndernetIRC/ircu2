@@ -112,7 +112,7 @@ int m_time(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       HUNTED_ISME)
     return 0;
 
-  send_reply(sptr, RPL_TIME, me.name, TStime(), TSoffset, date((long)0));
+  send_reply(sptr, RPL_TIME, cli_name(&me), TStime(), TSoffset, date((long)0));
   return 0;
 }
 

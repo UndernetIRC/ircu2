@@ -118,21 +118,15 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(IsServer(cptr));
 
   if (parc < 2 || EmptyString(parv[1])) {
-#if 0
-    /*
-     * ignore there is nothing the server sending it can do about it
-     */
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
-#endif
     return protocol_violation(sptr,"No Origin on PONG");
   }
   origin      = parv[1];
   destination = parv[2];
-  cptr->flags &= ~FLAGS_PINGSENT;
-  sptr->flags &= ~FLAGS_PINGSENT;
-  cptr->lasttime = CurrentTime;
+  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  cli_flags(sptr) &= ~FLAGS_PINGSENT;
+  cli_lasttime(cptr) = CurrentTime;
 
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
+  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     struct Client* acptr;
     if ((acptr = FindClient(destination))) {
       sendcmdto_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
@@ -154,24 +148,24 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
-  cptr->flags &= ~FLAGS_PINGSENT;
-  cptr->lasttime = CurrentTime;
+  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  cli_lasttime(cptr) = CurrentTime;
   /*
    * Check to see if this is a PONG :cookie reply from an
    * unregistered user.  If so, process it. -record
    */
-  if (0 != sptr->cookie && COOKIE_VERIFIED != sptr->cookie) {
-    if (parc > 1 && sptr->cookie == atol(parv[parc - 1])) {
-      sptr->cookie = COOKIE_VERIFIED;
-      if (sptr->user && *sptr->user->host && sptr->name[0])
+  if (0 != cli_cookie(sptr) && COOKIE_VERIFIED != cli_cookie(sptr)) {
+    if (parc > 1 && cli_cookie(sptr) == atol(parv[parc - 1])) {
+      cli_cookie(sptr) = COOKIE_VERIFIED;
+      if (cli_user(sptr) && *(cli_user(sptr))->host && (cli_name(sptr))[0])
         /*
          * NICK and USER OK
          */
-        return register_user(cptr, sptr, sptr->name, sptr->user->username, 0);
+        return register_user(cptr, sptr, cli_name(sptr), cli_user(sptr)->username, 0);
     }
     else  
       send_reply(sptr, SND_EXPLICIT | ERR_BADPING,
-		 ":To connect, type /QUOTE PONG %u", sptr->cookie);
+		 ":To connect, type /QUOTE PONG %u", cli_cookie(sptr));
   }
   return 0;
 }
@@ -187,8 +181,8 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != cptr);
   assert(cptr == sptr);
-  cptr->flags &= ~FLAGS_PINGSENT;
-  cptr->lasttime = CurrentTime;
+  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  cli_lasttime(cptr) = CurrentTime;
   return 0;
 }
 

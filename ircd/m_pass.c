@@ -114,7 +114,7 @@ int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   	/* Do something here */
   }
 #endif
-  ircd_strncpy(cptr->passwd, password, PASSWDLEN);
+  ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
   return 0;
 }
 

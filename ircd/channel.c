@@ -611,7 +611,7 @@ void remove_user_from_all_channels(struct Client* cptr)
 {
   struct Membership* chan;
   assert(0 != cptr);
-  assert(0 != cptr->user);
+  assert(0 != cli_user(cptr));
 
   while ((chan = (cli_user(cptr))->channel))
     remove_user_from_channel(cptr, chan->channel);
@@ -2127,7 +2127,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     newban->next = 0;
 
     DupString(newban->value.ban.banstr, t_str);
-    newban->value.ban.who = state->sptr->name;
+    newban->value.ban.who = cli_name(state->sptr);
     newban->value.ban.when = TStime();
 
     newban->flags = CHFL_BAN | MODE_ADD;

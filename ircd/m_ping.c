@@ -171,7 +171,7 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
+  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination)))
       sendcmdto_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
     else
@@ -187,7 +187,7 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* Is this supposed to be here? */
     acptr = FindClient(origin);
     if (acptr && acptr != sptr)
-      origin = cptr->name;
+      origin = cli_name(cptr);
     
     if (strlen(origin) > 64)
       origin[64] = '\0';
@@ -222,15 +222,12 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * don't bother sending the error back
      */
-#if 0
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
-#endif
     return 0;
   }
   origin      = parv[1];
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
+  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination))) {
       /*
        * Servers can just forward the origin

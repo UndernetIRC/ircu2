@@ -151,7 +151,7 @@ void send_queued(struct Client *to)
 
     if ((len = deliver_it(to, &(cli_sendQ(to))))) {
       msgq_delete(&(cli_sendQ(to)), len);
-      to->lastsq = MsgQLength(&(cli_sendQ(to))) / 1024;
+      cli_lastsq(to) = MsgQLength(&(cli_sendQ(to))) / 1024;
       if (IsBlocked(to))
         break;
     }
@@ -303,7 +303,7 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   /* send it to our downlinks */
-  for (lp = me.serv->down; lp; lp = lp->next) {
+  for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
     send_buffer(lp->value.cptr, mb, 0);
@@ -558,7 +558,7 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
 
   /* send buffer along */
   sentalong_marker++;
-  for (cptr = GlobalClientList; cptr; cptr = cptr->next) {
+  for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
     if (cli_from(cptr) == one || IsServer(cptr) || IsMe(cptr) ||
 	!match_it(cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
 	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
@@ -612,7 +612,8 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
    */
   vd.vd_format = pattern;
   vd.vd_args = vl;
-  mb = msgq_make(0, ":%s " MSG_NOTICE " * :*** Notice -- %v", me.name, &vd);
+  mb = msgq_make(0, ":%s " MSG_NOTICE " * :*** Notice -- %v", cli_name(&me),
+		 &vd);
 
   for (; opslist; opslist = opslist->next)
     send_buffer(opslist->value.cptr, mb, 0);

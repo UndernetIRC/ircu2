@@ -127,11 +127,11 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     0                        /* chptr */
   };
 
-  if (sptr->listing)            /* Already listing ? */
+  if (cli_listing(sptr))            /* Already listing ? */
   {
-    sptr->listing->chptr->mode.mode &= ~MODE_LISTED;
-    MyFree(sptr->listing);
-    sptr->listing = 0;
+    cli_listing(sptr)->chptr->mode.mode &= ~MODE_LISTED;
+    MyFree(cli_listing(sptr));
+    cli_listing(sptr) = 0;
     send_reply(sptr, RPL_LISTEND);
     if (parc < 2)
       return 0;                 /* Let LIST abort a listing. */
@@ -297,17 +297,17 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (args.max_users > args.min_users + 1 && args.max_time > args.min_time &&
         args.max_topic_time > args.min_topic_time)      /* Sanity check */
     {
-      sptr->listing = (struct ListingArgs*) MyMalloc(sizeof(struct ListingArgs));
-      assert(0 != sptr->listing);
-      memcpy(sptr->listing, &args, sizeof(struct ListingArgs));
-      if ((sptr->listing->chptr = GlobalChannelList)) {
+      cli_listing(sptr) = (struct ListingArgs*) MyMalloc(sizeof(struct ListingArgs));
+      assert(0 != cli_listing(sptr));
+      memcpy(cli_listing(sptr), &args, sizeof(struct ListingArgs));
+      if ((cli_listing(sptr)->chptr = GlobalChannelList)) {
         int m = GlobalChannelList->mode.mode & MODE_LISTED;
         list_next_channels(sptr, 64);
         GlobalChannelList->mode.mode |= m;
         return 0;
       }
-      MyFree(sptr->listing);
-      sptr->listing = 0;
+      MyFree(cli_listing(sptr));
+      cli_listing(sptr) = 0;
     }
     send_reply(sptr, RPL_LISTEND);
     return 0;
@@ -316,7 +316,7 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
   {
     chptr = FindChannel(name);
-    if (chptr && ShowChannel(sptr, chptr) && sptr->user)
+    if (chptr && ShowChannel(sptr, chptr) && cli_user(sptr))
       send_reply(sptr, RPL_LIST, chptr->chname,
 		 chptr->users - number_of_zombies(chptr), chptr->topic);
   }

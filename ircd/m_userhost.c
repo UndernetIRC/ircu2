@@ -100,9 +100,9 @@
 static void userhost_formatter(struct Client* cptr, struct MsgBuf* mb)
 {
   assert(IsUser(cptr));
-  msgq_append(0, mb, "%s%s=%c%s@%s", cptr->name, IsAnOper(cptr) ? "*" : "",
-	      cptr->user->away ? '-' : '+', cptr->user->username,
-	      cptr->user->host);
+  msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr), IsAnOper(cptr) ? "*" : "",
+	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
+	      cli_user(cptr)->host);
 }
 
 /*

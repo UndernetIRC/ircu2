@@ -60,7 +60,7 @@ struct hostent;
  * Macros
  */
 #define CLIENT_LOCAL_SIZE sizeof(struct Client)
-#define CLIENT_REMOTE_SIZE offsetof(struct Client, count)
+#define CLIENT_REMOTE_SIZE offsetof(struct Client, cli_count)
 
 /*
  * Structures
@@ -71,33 +71,33 @@ struct hostent;
  */
 
 struct Client {
-  struct Client* next;          /* link in GlobalClientList */
-  struct Client* prev;          /* link in GlobalClientList */
-  struct Client* hnext;         /* link in hash table bucket or this */
-  struct Client* from;          /* == self, if Local Client, *NEVER* NULL! */
-  struct User*   user;          /* ...defined, if this is a User */
-  struct Server* serv;          /* ...defined, if this is a server */
-  struct Whowas* whowas;        /* Pointer to ww struct to be freed on quit */
-  char           yxx[4];        /* Numeric Nick: YMM if this is a server,
+  struct Client* cli_next;          /* link in GlobalClientList */
+  struct Client* cli_prev;          /* link in GlobalClientList */
+  struct Client* cli_hnext;         /* link in hash table bucket or this */
+  struct Client* cli_from;          /* == self, if Local Client, *NEVER* NULL! */
+  struct User*   cli_user;          /* ...defined, if this is a User */
+  struct Server* cli_serv;          /* ...defined, if this is a server */
+  struct Whowas* cli_whowas;        /* Pointer to ww struct to be freed on quit */
+  char           cli_yxx[4];        /* Numeric Nick: YMM if this is a server,
                                    XX0 if this is a user */
   /*
    * XXX - move these to local part for next release
    * (lasttime, since)
    */
-  time_t         lasttime;      /* last time data read from socket */
-  time_t         since;         /* last time we parsed something, flood control */
+  time_t         cli_lasttime;      /* last time data read from socket */
+  time_t         cli_since;         /* last time we parsed something, flood control */
 
-  time_t         firsttime;     /* time client was created */
-  time_t         lastnick;      /* TimeStamp on nick */
-  int            marker;        /* /who processing marker */
-  unsigned int   flags;         /* client flags */
-  unsigned int   hopcount;      /* number of servers to this 0 = local */
-  struct in_addr ip;            /* Real ip# NOT defined for remote servers! */
-  short          status;        /* Client type */
-  unsigned char  local;         /* local or remote client */
-  char name[HOSTLEN + 1];       /* Unique name of the client, nick or host */
-  char username[USERLEN + 1];   /* username here now for auth stuff */
-  char info[REALLEN + 1];       /* Free form additional client information */
+  time_t         cli_firsttime;     /* time client was created */
+  time_t         cli_lastnick;      /* TimeStamp on nick */
+  int            cli_marker;        /* /who processing marker */
+  unsigned int   cli_flags;         /* client flags */
+  unsigned int   cli_hopcount;      /* number of servers to this 0 = local */
+  struct in_addr cli_ip;            /* Real ip# NOT defined for remote servers! */
+  short          cli_status;        /* Client type */
+  unsigned char  cli_local;         /* local or remote client */
+  char cli_name[HOSTLEN + 1];       /* Unique name of the client, nick or host */
+  char cli_username[USERLEN + 1];   /* username here now for auth stuff */
+  char cli_info[REALLEN + 1];       /* Free form additional client information */
   /*
    *  The following fields are allocated only for local clients
    *  (directly connected to *this* server with a socket.
@@ -105,91 +105,91 @@ struct Client {
    *  to which the allocation is tied to! *Never* refer to
    *  these fields, if (from != self).
    */
-  unsigned int count;            /* Amount of data in buffer, DON'T PUT
+  unsigned int cli_count;            /* Amount of data in buffer, DON'T PUT
                                     variables ABOVE this one! */
-  int                 fd;        /* >= 0, for local clients */
-  int                 error;     /* last socket level error for client */
-  unsigned int        snomask;   /* mask for server messages */
-  time_t              nextnick;  /* Next time a nick change is allowed */
-  time_t              nexttarget; /* Next time a target change is allowed */
-  unsigned int        cookie;    /* Random number the user must PONG */
-  struct MsgQ         sendQ;     /* Outgoing message queue--if socket full */
-  struct DBuf         recvQ;     /* Hold for data incoming yet to be parsed */
-  unsigned int        sendM;     /* Statistics: protocol messages send */
-  unsigned int        sendK;     /* Statistics: total k-bytes send */
-  unsigned int        receiveM;  /* Statistics: protocol messages received */
-  unsigned int        receiveK;  /* Statistics: total k-bytes received */
-  unsigned short      sendB;     /* counters to count upto 1-k lots of bytes */
-  unsigned short      receiveB;  /* sent and received. */
-  struct Listener*    listener;  /* listening client which we accepted from */
-  struct SLink*       confs;     /* Configuration record associated */
-  HandlerType         handler;   /* message index into command table for parsing */
-  struct DNSReply*    dns_reply; /* DNS reply used during client registration */
-  struct ListingArgs* listing;
-  unsigned int        max_sendq; /* cached max send queue for client */
-  unsigned int        ping_freq; /* cached ping freq from client conf class */
-  unsigned short      lastsq;    /* # 2k blocks when sendqueued called last */
-  unsigned short      port;      /* and the remote port# too :-) */
-  unsigned char       targets[MAXTARGETS]; /* Hash values of current targets */
-  char sock_ip[SOCKIPLEN + 1];  /* this is the ip address as a string */
-  char sockhost[HOSTLEN + 1];   /* This is the host name from the socket and
+  int                 cli_fd;        /* >= 0, for local clients */
+  int                 cli_error;     /* last socket level error for client */
+  unsigned int        cli_snomask;   /* mask for server messages */
+  time_t              cli_nextnick;  /* Next time a nick change is allowed */
+  time_t              cli_nexttarget; /* Next time a target change is allowed */
+  unsigned int        cli_cookie;    /* Random number the user must PONG */
+  struct MsgQ         cli_sendQ;     /* Outgoing message queue--if socket full */
+  struct DBuf         cli_recvQ;     /* Hold for data incoming yet to be parsed */
+  unsigned int        cli_sendM;     /* Statistics: protocol messages send */
+  unsigned int        cli_sendK;     /* Statistics: total k-bytes send */
+  unsigned int        cli_receiveM;  /* Statistics: protocol messages received */
+  unsigned int        cli_receiveK;  /* Statistics: total k-bytes received */
+  unsigned short      cli_sendB;     /* counters to count upto 1-k lots of bytes */
+  unsigned short      cli_receiveB;  /* sent and received. */
+  struct Listener*    cli_listener;  /* listening client which we accepted from */
+  struct SLink*       cli_confs;     /* Configuration record associated */
+  HandlerType         cli_handler;   /* message index into command table for parsing */
+  struct DNSReply*    cli_dns_reply; /* DNS reply used during client registration */
+  struct ListingArgs* cli_listing;
+  unsigned int        cli_max_sendq; /* cached max send queue for client */
+  unsigned int        cli_ping_freq; /* cached ping freq from client conf class */
+  unsigned short      cli_lastsq;    /* # 2k blocks when sendqueued called last */
+  unsigned short      cli_port;      /* and the remote port# too :-) */
+  unsigned char       cli_targets[MAXTARGETS]; /* Hash values of current targets */
+  char cli_sock_ip[SOCKIPLEN + 1];  /* this is the ip address as a string */
+  char cli_sockhost[HOSTLEN + 1];   /* This is the host name from the socket and
                                    after which the connection was accepted. */
-  char passwd[PASSWDLEN + 1];
-  char buffer[BUFSIZE];         /* Incoming message buffer; or the error that
+  char cli_passwd[PASSWDLEN + 1];
+  char cli_buffer[BUFSIZE];         /* Incoming message buffer; or the error that
                                    caused this clients socket to be `dead' */
 };
 
-#define cli_next(cli)		((cli)->next)
-#define cli_prev(cli)		((cli)->prev)
-#define cli_hnext(cli)		((cli)->hnext)
-#define cli_from(cli)		((cli)->from)
-#define cli_user(cli)		((cli)->user)
-#define cli_serv(cli)		((cli)->serv)
-#define cli_whowas(cli)		((cli)->whowas)
-#define cli_yxx(cli)		((cli)->yxx)
-#define cli_lasttime(cli)	((cli)->lasttime)
-#define cli_since(cli)		((cli)->since)
-#define cli_firsttime(cli)	((cli)->firsttime)
-#define cli_lastnick(cli)	((cli)->lastnick)
-#define cli_marker(cli)		((cli)->marker)
-#define cli_flags(cli)		((cli)->flags)
-#define cli_hopcount(cli)	((cli)->hopcount)
-#define cli_ip(cli)		((cli)->ip)
-#define cli_status(cli)		((cli)->status)
-#define cli_local(cli)		((cli)->local)
-#define cli_name(cli)		((cli)->name)
-#define cli_username(cli)	((cli)->username)
-#define cli_info(cli)		((cli)->info)
+#define cli_next(cli)		((cli)->cli_next)
+#define cli_prev(cli)		((cli)->cli_prev)
+#define cli_hnext(cli)		((cli)->cli_hnext)
+#define cli_from(cli)		((cli)->cli_from)
+#define cli_user(cli)		((cli)->cli_user)
+#define cli_serv(cli)		((cli)->cli_serv)
+#define cli_whowas(cli)		((cli)->cli_whowas)
+#define cli_yxx(cli)		((cli)->cli_yxx)
+#define cli_lasttime(cli)	((cli)->cli_lasttime)
+#define cli_since(cli)		((cli)->cli_since)
+#define cli_firsttime(cli)	((cli)->cli_firsttime)
+#define cli_lastnick(cli)	((cli)->cli_lastnick)
+#define cli_marker(cli)		((cli)->cli_marker)
+#define cli_flags(cli)		((cli)->cli_flags)
+#define cli_hopcount(cli)	((cli)->cli_hopcount)
+#define cli_ip(cli)		((cli)->cli_ip)
+#define cli_status(cli)		((cli)->cli_status)
+#define cli_local(cli)		((cli)->cli_local)
+#define cli_name(cli)		((cli)->cli_name)
+#define cli_username(cli)	((cli)->cli_username)
+#define cli_info(cli)		((cli)->cli_info)
 
-#define cli_count(cli)		((cli)->count)
-#define cli_fd(cli)		((cli)->fd)
-#define cli_error(cli)		((cli)->error)
-#define cli_snomask(cli)	((cli)->snomask)
-#define cli_nextnick(cli)	((cli)->nextnick)
-#define cli_nexttarget(cli)	((cli)->nexttarget)
-#define cli_cookie(cli)		((cli)->cookie)
-#define cli_sendQ(cli)		((cli)->sendQ)
-#define cli_recvQ(cli)		((cli)->recvQ)
-#define cli_sendM(cli)		((cli)->sendM)
-#define cli_sendK(cli)		((cli)->sendK)
-#define cli_receiveM(cli)	((cli)->receiveM)
-#define cli_receiveK(cli)	((cli)->receiveK)
-#define cli_sendB(cli)		((cli)->sendB)
-#define cli_receiveB(cli)	((cli)->receiveB)
-#define cli_listener(cli)	((cli)->listener)
-#define cli_confs(cli)		((cli)->confs)
-#define cli_handler(cli)	((cli)->handler)
-#define cli_dns_reply(cli)	((cli)->dns_reply)
-#define cli_listing(cli)	((cli)->listing)
-#define cli_max_sendq(cli)	((cli)->max_sendq)
-#define cli_ping_freq(cli)	((cli)->ping_freq)
-#define cli_lastsq(cli)		((cli)->lastsq)
-#define cli_port(cli)		((cli)->port)
-#define cli_targets(cli)	((cli)->targets)
-#define cli_sock_ip(cli)	((cli)->sock_ip)
-#define cli_sockhost(cli)	((cli)->sockhost)
-#define cli_passwd(cli)		((cli)->passwd)
-#define cli_buffer(cli)		((cli)->buffer)
+#define cli_count(cli)		((cli)->cli_count)
+#define cli_fd(cli)		((cli)->cli_fd)
+#define cli_error(cli)		((cli)->cli_error)
+#define cli_snomask(cli)	((cli)->cli_snomask)
+#define cli_nextnick(cli)	((cli)->cli_nextnick)
+#define cli_nexttarget(cli)	((cli)->cli_nexttarget)
+#define cli_cookie(cli)		((cli)->cli_cookie)
+#define cli_sendQ(cli)		((cli)->cli_sendQ)
+#define cli_recvQ(cli)		((cli)->cli_recvQ)
+#define cli_sendM(cli)		((cli)->cli_sendM)
+#define cli_sendK(cli)		((cli)->cli_sendK)
+#define cli_receiveM(cli)	((cli)->cli_receiveM)
+#define cli_receiveK(cli)	((cli)->cli_receiveK)
+#define cli_sendB(cli)		((cli)->cli_sendB)
+#define cli_receiveB(cli)	((cli)->cli_receiveB)
+#define cli_listener(cli)	((cli)->cli_listener)
+#define cli_confs(cli)		((cli)->cli_confs)
+#define cli_handler(cli)	((cli)->cli_handler)
+#define cli_dns_reply(cli)	((cli)->cli_dns_reply)
+#define cli_listing(cli)	((cli)->cli_listing)
+#define cli_max_sendq(cli)	((cli)->cli_max_sendq)
+#define cli_ping_freq(cli)	((cli)->cli_ping_freq)
+#define cli_lastsq(cli)		((cli)->cli_lastsq)
+#define cli_port(cli)		((cli)->cli_port)
+#define cli_targets(cli)	((cli)->cli_targets)
+#define cli_sock_ip(cli)	((cli)->cli_sock_ip)
+#define cli_sockhost(cli)	((cli)->cli_sockhost)
+#define cli_passwd(cli)		((cli)->cli_passwd)
+#define cli_buffer(cli)		((cli)->cli_buffer)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */

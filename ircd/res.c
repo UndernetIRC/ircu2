@@ -332,12 +332,12 @@ static void start_resolver(void)
     ResolverFileDescriptor = socket(AF_INET, SOCK_DGRAM, 0);
     if (-1 == ResolverFileDescriptor) {
       report_error("Resolver: error creating socket for %s: %s", 
-                   me.name, errno);
+                   cli_name(&me), errno);
       return;
     }
     if (!os_set_nonblocking(ResolverFileDescriptor))
       report_error("Resolver: error setting non-blocking for %s: %s", 
-                   me.name, errno);
+                   cli_name(&me), errno);
   }
 }
 

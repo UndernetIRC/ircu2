@@ -120,7 +120,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int badop; /* a flag */
 
   if (IsServer(sptr))
-    return protocol_violation(sptr,"%s tried to CREATE a channel", sptr->name);
+    return protocol_violation(sptr,"%s tried to CREATE a channel", cli_name(sptr));
 
   /* sanity checks: Only accept CREATE messages from servers */
   if (parc < 3 || *parv[2] == '\0')
@@ -136,7 +136,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (!IsBurstOrBurstAck(sptr) && 0 != chanTS &&
       MAGIC_REMOTE_JOIN_TS != chanTS)
-    sptr->user->server->serv->lag = TStime() - chanTS;
+    cli_serv(cli_user(sptr)->server)->lag = TStime() - chanTS;
 
 #if 1
   /* If this server is >5 minutes fast, squit it */
@@ -147,7 +147,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* If we recieve a CREATE for a channel from a server before that server
    * was linked, then it's a HACK
    */
-  if (MyConnect(sptr) && chanTS<sptr->timestamp+5*60*60)
+  if (MyConnect(sptr) && chanTS<cli_timestamp(sptr)+5*60*60)
   	return exit_client(sptr,sptr,"HACK: Bogus TS on CREATE before server link");
 #endif
 

@@ -134,7 +134,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!(acptr = findNUser(parv[2])))
         return 0;
 
-      sendcmdto_one(&me, CMD_RPONG, acptr, "%C %s %s :%s", acptr, sptr->name,
+      sendcmdto_one(&me, CMD_RPONG, acptr, "%C %s %s :%s", acptr, cli_name(sptr),
 		    militime(parv[3], parv[4]), parv[5]);
     } else
       sendcmdto_one(sptr, CMD_RPONG, acptr, "%s %s %s %s :%s", parv[1],

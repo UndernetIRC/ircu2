@@ -110,20 +110,20 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != sptr);
   assert(cptr == sptr);
 
-  if (sptr->user) {
+  if (cli_user(sptr)) {
     struct Membership* chan;
-    for (chan = sptr->user->channel; chan; chan = chan->next_channel) {
+    for (chan = cli_user(sptr)->channel; chan; chan = chan->next_channel) {
       if (!IsZombie(chan) && !member_can_send_to_channel(chan))
         return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
-  comment = cptr->name;
+  comment = cli_name(cptr);
 
   if (parc > 1) {
     comment = parv[parc - 1];
 
     if (0 == strncmp("Local kill", comment, 10) || 0 == strncmp(comment, "Killed", 6))
-       comment = cptr->name;
+       comment = cli_name(cptr);
     else if (strlen(comment) > TOPICLEN)
       comment[TOPICLEN] = '\0';
   }

@@ -128,20 +128,15 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     mask = parc < 2 ? 0 : parv[1];
 
-  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = acptr->next)
+  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = cli_next(acptr))
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
-    if (!BadPtr(mask) && match(mask, acptr->name))
+    if (!BadPtr(mask) && match(mask, cli_name(acptr)))
       continue;
-    send_reply(sptr, RPL_LINKS, acptr->name, acptr->serv->up->name,
-#ifndef GODMODE
-        acptr->hopcount, acptr->serv->prot,
-#else /* GODMODE */
-        acptr->hopcount, acptr->serv->prot, acptr->serv->timestamp,
-        NumServ(acptr),
-#endif /* GODMODE */
-        (acptr->info[0] ? acptr->info : "(Unknown Location)"));
+    send_reply(sptr, RPL_LINKS, cli_name(acptr), cli_name(cli_serv(acptr)->up),
+        cli_hopcount(acptr), cli_serv(acptr)->prot,
+        ((cli_info(acptr))[0] ? cli_info(acptr) : "(Unknown Location)"));
   }
 
   send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
@@ -175,20 +170,15 @@ int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     mask = parc < 2 ? 0 : parv[1];
 
-  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = acptr->next)
+  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = cli_next(acptr))
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
-    if (!BadPtr(mask) && match(mask, acptr->name))
+    if (!BadPtr(mask) && match(mask, cli_name(acptr)))
       continue;
-    send_reply(sptr, RPL_LINKS, acptr->name, acptr->serv->up->name,
-#ifndef GODMODE
-        acptr->hopcount, acptr->serv->prot,
-#else /* GODMODE */
-        acptr->hopcount, acptr->serv->prot, acptr->serv->timestamp,
-        NumServ(acptr),
-#endif /* GODMODE */
-        (acptr->info[0] ? acptr->info : "(Unknown Location)"));
+    send_reply(sptr, RPL_LINKS, cli_name(acptr), cli_name(cli_serv(acptr)->up),
+        cli_hopcount(acptr), cli_serv(acptr)->prot,
+        ((cli_info(acptr))[0] ? cli_info(acptr) : "(Unknown Location)"));
   }
 
   send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);

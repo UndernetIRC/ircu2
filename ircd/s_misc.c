@@ -327,7 +327,7 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
     /* Remove the downlinks and client of the downlink */
     exit_downlinks(acptr, sptr, comment);
     /* Remove the downlink itself */
-    exit_one_client(acptr, me.name);
+    exit_one_client(acptr, cli_name(&me));
   }
   /* Remove all clients of this server */
   acptrp = cli_serv(cptr)->client_list;

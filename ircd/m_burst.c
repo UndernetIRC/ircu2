@@ -155,7 +155,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!IsBurst(sptr)) /* don't allow BURST outside of burst */
     return exit_client_msg(cptr, cptr, &me, "HACK: BURST message outside "
-			   "net.burst from %s", sptr->name);
+			   "net.burst from %s", cli_name(sptr));
 
   if (!(chptr = get_channel(sptr, parv[1], CGT_CREATE)))
     return 0; /* can't create the channel? */
@@ -245,7 +245,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    newban = make_link(); /* create new ban */
 
 	    DupString(newban->value.ban.banstr, ban);
-	    DupString(newban->value.ban.who, sptr->name);
+	    DupString(newban->value.ban.who, cli_name(sptr));
 	    newban->value.ban.when = TStime();
 
 	    newban->flags = CHFL_BAN | CHFL_BURST_BAN; /* set flags */
@@ -289,7 +289,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    }
 	  }
 
-	  if (!(acptr = findNUser(nick)) || acptr->from != cptr)
+	  if (!(acptr = findNUser(nick)) || cli_from(acptr) != cptr)
 	    continue; /* ignore this client */
 
 	  /* Build nick buffer */

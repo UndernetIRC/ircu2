@@ -166,7 +166,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return exit_client_msg(cptr, sptr, &me, "Juped: %s", JupeReason(ajupe));
 
   log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "SERVER: %s %s[%s]", parv[1],
-	    cptr->sockhost, cptr->sock_ip);
+	    cli_sockhost(cptr), cli_sock_ip(cptr));
 
   /*
    * Detect protocol
@@ -190,7 +190,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   start_timestamp = atoi(parv[3]);
   timestamp = atoi(parv[4]);
   Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age " TIME_T_FMT " ("
-        TIME_T_FMT ")", host, parv[4], start_timestamp, me.serv->timestamp));
+        TIME_T_FMT ")", host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
 
   if ((timestamp < OLDEST_TS || (hop == 1 && start_timestamp < OLDEST_TS)))
   {
@@ -201,7 +201,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   info[REALLEN] = '\0';
   if (prot < atoi(MINOR_PROTOCOL)) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Got incompatible protocol version "
-			 "(%s) from %s", parv[5], cptr->name);
+			 "(%s) from %s", parv[5], cli_name(cptr));
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
   }
@@ -222,7 +222,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   if (*ch || !strchr(host, '.')) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Bogus server name (%s) from %s",
-			 host, cptr->name);
+			 host, cli_name(cptr));
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -239,7 +239,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * See if the newly found server is behind a guaranteed
      * leaf (L-line). If so, close the link.
      */
-    if ((lhconf = find_conf_byhost(cptr->confs, cptr->name, CONF_LEAF)) &&
+    if ((lhconf = find_conf_byhost(cli_confs(cptr), cli_name(cptr), CONF_LEAF)) &&
         (!lhconf->port || (hop > lhconf->port)))
     {
       /*
@@ -248,12 +248,12 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * both.
        */
       active_lh_line = 1;
-      if (timestamp <= cptr->serv->timestamp)
+      if (timestamp <= cli_serv(cptr)->timestamp)
         LHcptr = 0;          /* Kill incoming server */
       else
         LHcptr = cptr;          /* Squit ourselfs */
     }
-    else if (!(lhconf = find_conf_byname(cptr->confs, cptr->name, CONF_HUB)) ||
+    else if (!(lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_HUB)) ||
              (lhconf->port && (hop > lhconf->port)))
     {
       struct Client *ac3ptr;
@@ -261,7 +261,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Look for net junction causing this: */
       LHcptr = 0;            /* incoming server */
       if (*parv[5] != 'J') {
-        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up) {
+        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up) {
           if (IsJunction(ac3ptr)) {
             LHcptr = ac3ptr;
             break;
@@ -291,70 +291,59 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * and not mess with hash internals. 
      *                          --Nemesi
      */
-    if (!EmptyString(cptr->name) && 
+    if (!EmptyString(cli_name(cptr)) && 
         (IsUnknown(cptr) || IsHandshake(cptr)) &&
-        0 != ircd_strcmp(cptr->name, host))
+        0 != ircd_strcmp(cli_name(cptr), host))
       hChangeClient(cptr, host);
-    ircd_strncpy(cptr->name, host, HOSTLEN);
-    ircd_strncpy(cptr->info, info[0] ? info : me.name, REALLEN);
-    cptr->hopcount = hop;
+    ircd_strncpy(cli_name(cptr), host, HOSTLEN);
+    ircd_strncpy(cli_info(cptr), info[0] ? info : cli_name(&me), REALLEN);
+    cli_hopcount(cptr) = hop;
 
     /* check connection rules */
     if (0 != conf_eval_crule(host, CRULE_ALL)) {
       ServerStats->is_ref++;
-      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cli_name(cptr));
       return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
     }
 
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
-			   "from %s.", cptr->name);
+			   "from %s.", cli_name(cptr));
       return exit_client(cptr, cptr, &me, "No C:line");
     }
 
-    host = cptr->name;
+    host = cli_name(cptr);
 
     update_load();
 
-    if (!(aconf = find_conf_byname(cptr->confs, host, CONF_SERVER))) {
+    if (!(aconf = find_conf_byname(cli_confs(cptr), host, CONF_SERVER))) {
       ++ServerStats->is_ref;
-#ifndef GODMODE
       sendto_opmask_butone(0, SNO_OLDSNO, "Access denied. No conf line for "
-			   "server %s", cptr->name);
+			   "server %s", cli_name(cptr));
       return exit_client_msg(cptr, cptr, &me,
-          "Access denied. No conf line for server %s", cptr->name);
-#else /* GODMODE */
-      sendto_opmask_butone(0, SNO_OLDSNO, "General C: line active: No line "
-			   "for server %s", cptr->name);
-      aconf = find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
-      if (!aconf) {
-        sendto_opmask_butone(0, SNO_OLDSNO, "Neither C lines for server %s "
-			     "nor \"general.undernet.org\"", cptr->name);
-        return exit_client_msg(cptr, cptr, &me, "No C lines for server %s", cptr->name);
-      }
-#endif /* GODMODE */
+          "Access denied. No conf line for server %s", cli_name(cptr));
     }
 #ifdef CRYPT_LINK_PASSWORD
     /* passwd may be NULL. Head it off at the pass... */
-    if (*cptr->passwd) {
-      encr = ircd_crypt(cptr->passwd, aconf->passed);
+    if (*(cli_passwd(cptr))) {
+      encr = ircd_crypt(cli_passwd(cptr), aconf->passed);
     }
     else
       encr = "";
 #else
-    encr = cptr->passwd;
+    encr = cli_passwd(cptr);
 #endif /* CRYPT_LINK_PASSWORD */
-#ifndef GODMODE
+
     if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
-			   cptr->name);
+			   cli_name(cptr));
       return exit_client_msg(cptr, cptr, &me,
-          "No Access (passwd mismatch) %s", cptr->name);
+          "No Access (passwd mismatch) %s", cli_name(cptr));
     }
-#endif /* not GODMODE */
-    memset(cptr->passwd, 0, sizeof(cptr->passwd));
+
+    memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
 #ifndef HUB
     for (i = 0; i <= HighestFd; i++)
@@ -394,13 +383,13 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * Detect wrong numeric.
      */
-    if (0 != ircd_strcmp(acptr->name, host)) {
+    if (0 != ircd_strcmp(cli_name(acptr), host)) {
       sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
 			    ":SERVER Numeric Collision: %s != %s",
-			    acptr->name, host);
+			    cli_name(acptr), host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
-          " Is your server numeric correct ?", host, acptr->name);
+          " Is your server numeric correct ?", host, cli_name(acptr));
     }
     /*
      *  Kill our try, if we had one.
@@ -429,15 +418,15 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * Our new server might be a juped server,
      * or someone trying abuse a second Uworld:
      */
-    else if (IsServer(acptr) && (0 == ircd_strncmp(acptr->info, "JUPE", 4) ||
-        find_conf_byhost(cptr->confs, acptr->name, CONF_UWORLD)))
+    else if (IsServer(acptr) && (0 == ircd_strncmp(cli_info(acptr), "JUPE", 4) ||
+        find_conf_byhost(cli_confs(cptr), cli_name(acptr), CONF_UWORLD)))
     {
       if (!IsServer(sptr))
-        return exit_client(cptr, sptr, &me, acptr->info);
+        return exit_client(cptr, sptr, &me, cli_info(acptr));
       sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
 			    ":Received :%s SERVER %s from %s !?!", parv[0],
-			    parv[1], cptr->name);
-      return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
+			    parv[1], cli_name(cptr));
+      return exit_new_server(cptr, sptr, host, timestamp, "%s", cli_info(acptr));
     }
     /*
      * Of course we find the handshake this link was before :)
@@ -458,41 +447,41 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       struct Client* ac3ptr;
 
       /* Search youngest link: */
-      for (ac3ptr = acptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up)
-        if (ac3ptr->serv->timestamp > c3ptr->serv->timestamp)
+      for (ac3ptr = acptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up)
+        if (cli_serv(ac3ptr)->timestamp > cli_serv(c3ptr)->timestamp)
           c3ptr = ac3ptr;
       if (IsServer(sptr))
       {
-        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up)
-          if (ac3ptr->serv->timestamp > c3ptr->serv->timestamp)
+        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up)
+          if (cli_serv(ac3ptr)->timestamp > cli_serv(c3ptr)->timestamp)
             c3ptr = ac3ptr;
       }
-      if (timestamp > c3ptr->serv->timestamp)
+      if (timestamp > cli_serv(c3ptr)->timestamp)
       {
         c3ptr = 0;
         c2ptr = acptr;          /* Make sure they differ */
       }
       /* Search second youngest link: */
-      for (ac2ptr = acptr; ac2ptr != &me; ac2ptr = ac2ptr->serv->up)
+      for (ac2ptr = acptr; ac2ptr != &me; ac2ptr = cli_serv(ac2ptr)->up)
         if (ac2ptr != c3ptr &&
-            ac2ptr->serv->timestamp >
-            (c2ptr ? c2ptr->serv->timestamp : timestamp))
+            cli_serv(ac2ptr)->timestamp >
+            (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
           c2ptr = ac2ptr;
       if (IsServer(sptr))
       {
-        for (ac2ptr = sptr; ac2ptr != &me; ac2ptr = ac2ptr->serv->up)
+        for (ac2ptr = sptr; ac2ptr != &me; ac2ptr = cli_serv(ac2ptr)->up)
           if (ac2ptr != c3ptr &&
-              ac2ptr->serv->timestamp >
-              (c2ptr ? c2ptr->serv->timestamp : timestamp))
+              cli_serv(ac2ptr)->timestamp >
+              (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
             c2ptr = ac2ptr;
       }
-      if (c3ptr && timestamp > (c2ptr ? c2ptr->serv->timestamp : timestamp))
+      if (c3ptr && timestamp > (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
         c2ptr = 0;
       /* If timestamps are equal, decide which link to break
        *  by name.
        */
-      if ((c2ptr ? c2ptr->serv->timestamp : timestamp) ==
-          (c3ptr ? c3ptr->serv->timestamp : timestamp))
+      if ((c2ptr ? cli_serv(c2ptr)->timestamp : timestamp) ==
+          (c3ptr ? cli_serv(c3ptr)->timestamp : timestamp))
       {
         char* n2;
         char* n2up;
@@ -500,23 +489,23 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         char* n3up;
         if (c2ptr)
         {
-          n2 = c2ptr->name;
-          n2up = MyConnect(c2ptr) ? me.name : c2ptr->serv->up->name;
+          n2 = cli_name(c2ptr);
+          n2up = MyConnect(c2ptr) ? cli_name(&me) : cli_name(cli_serv(c2ptr)->up);
         }
         else
         {
           n2 = host;
-          n2up = IsServer(sptr) ? sptr->name : me.name;
+          n2up = IsServer(sptr) ? cli_name(sptr) : cli_name(&me);
         }
         if (c3ptr)
         {
-          n3 = c3ptr->name;
-          n3up = MyConnect(c3ptr) ? me.name : c3ptr->serv->up->name;
+          n3 = cli_name(c3ptr);
+          n3up = MyConnect(c3ptr) ? cli_name(&me) : cli_name(cli_serv(c3ptr)->up);
         }
         else
         {
           n3 = host;
-          n3up = IsServer(sptr) ? sptr->name : me.name;
+          n3up = IsServer(sptr) ? cli_name(sptr) : cli_name(&me);
         }
         if (strcmp(n2, n2up) > 0)
           n2 = n2up;
@@ -533,10 +522,10 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!c2ptr)
         return exit_new_server(cptr, sptr, host, timestamp,
                                "server %s already exists and is %ld seconds younger.",
-                               host, (long)acptr->serv->timestamp - (long)timestamp);
-      else if (c2ptr->from == cptr || IsServer(sptr))
+                               host, (long)cli_serv(acptr)->timestamp - (long)timestamp);
+      else if (cli_from(c2ptr) == cptr || IsServer(sptr))
       {
-        struct Client *killedptrfrom = c2ptr->from;
+        struct Client *killedptrfrom = cli_from(c2ptr);
         if (active_lh_line)
         {
           /*
@@ -549,7 +538,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
            * If breaking the loop here solves the L: or H:
            * line problem, we don't squit that.
            */
-          if (c2ptr->from == cptr || (LHcptr && a_kills_b_too(c2ptr, LHcptr)))
+          if (cli_from(c2ptr) == cptr || (LHcptr && a_kills_b_too(c2ptr, LHcptr)))
             active_lh_line = 0;
           else
           {
@@ -568,16 +557,16 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          * a Ghost... (20 seconds is more then enough because all
          * SERVER messages are at the beginning of a net.burst). --Run
          */
-        if (CurrentTime - cptr->serv->ghost < 20)
+        if (CurrentTime - cli_serv(cptr)->ghost < 20)
         {
-          killedptrfrom = acptr->from;
+          killedptrfrom = cli_from(acptr);
           if (exit_client(cptr, acptr, &me, "Ghost loop") == CPTR_KILLED)
             return CPTR_KILLED;
         }
         else if (exit_client_msg(cptr, c2ptr, &me,
             "Loop <-- %s (new link is %ld seconds younger)", host,
-            (c3ptr ? (long)c3ptr->serv->timestamp : timestamp) -
-            (long)c2ptr->serv->timestamp) == CPTR_KILLED)
+            (c3ptr ? (long)cli_serv(c3ptr)->timestamp : timestamp) -
+            (long)cli_serv(c2ptr)->timestamp) == CPTR_KILLED)
           return CPTR_KILLED;
         /*
          * Did we kill the incoming server off already ?
@@ -591,7 +580,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         {
           if (LHcptr && a_kills_b_too(LHcptr, acptr))
             break;
-          if (acptr->from == cptr || (LHcptr && a_kills_b_too(acptr, LHcptr)))
+          if (cli_from(acptr) == cptr || (LHcptr && a_kills_b_too(acptr, LHcptr)))
             active_lh_line = 0;
           else
           {
@@ -620,7 +609,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return exit_new_server(cptr, sptr, host, timestamp,
           (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" : 
                                    "Leaf-only link %s <- %s(%s), check L:",
-          cptr->name, host, 
+          cli_name(cptr), host, 
           lhconf ? (lhconf->name ? lhconf->name : "*") : "!");
     }
     else
@@ -631,7 +620,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (exit_client_msg(cptr, LHcptr, &me,
             (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s), check H:" : 
                                      "Leaf-only link %s <- %s(%s), check L:",
-            cptr->name, host,
+            cli_name(cptr), host,
             lhconf ? (lhconf->name ? lhconf->name : "*") : "!") == CPTR_KILLED)
           return CPTR_KILLED;
       }
@@ -660,27 +649,27 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     acptr = make_client(cptr, STAT_SERVER);
     make_server(acptr);
-    acptr->serv->prot = prot;
-    acptr->serv->timestamp = timestamp;
-    acptr->hopcount = hop;
-    ircd_strncpy(acptr->name, host, HOSTLEN);
-    ircd_strncpy(acptr->info, info, REALLEN);
-    acptr->serv->up = sptr;
-    acptr->serv->updown = add_dlink(&sptr->serv->down, acptr);
+    cli_serv(acptr)->prot = prot;
+    cli_serv(acptr)->timestamp = timestamp;
+    cli_hopcount(acptr) = hop;
+    ircd_strncpy(cli_name(acptr), host, HOSTLEN);
+    ircd_strncpy(cli_info(acptr), info, REALLEN);
+    cli_serv(acptr)->up = sptr;
+    cli_serv(acptr)->updown = add_dlink(&(cli_serv(sptr))->down, acptr);
     /* Use cptr, because we do protocol 9 -> 10 translation
        for numeric nicks ! */
     SetServerYXX(cptr, acptr, parv[6]);
 
     Count_newremoteserver(UserStats);
     if (Protocol(acptr) < 10)
-      acptr->flags |= FLAGS_TS8;
+      cli_flags(acptr) |= FLAGS_TS8;
     add_client_to_list(acptr);
     hAddClient(acptr);
     if (*parv[5] == 'J')
     {
       SetBurst(acptr);
       sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
-          sptr->name, acptr->name);
+          cli_name(sptr), cli_name(acptr));
       SetJunction(acptr);
     }
     /*
@@ -695,11 +684,11 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!(bcptr = LocalClientArray[i]) || !IsServer(bcptr) ||
           bcptr == cptr || IsMe(bcptr))
         continue;
-      if (0 == match(me.name, acptr->name))
+      if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
       sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
-		    acptr->name, hop + 1, parv[4], parv[5], NumServCap(acptr),
-		    acptr->info);
+		    cli_name(acptr), hop + 1, parv[4], parv[5], NumServCap(acptr),
+		    cli_info(acptr));
     }
     return 0;
   }
@@ -707,32 +696,32 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsUnknown(cptr) || IsHandshake(cptr))
   {
     make_server(cptr);
-    cptr->serv->timestamp = timestamp;
-    cptr->serv->prot = prot;
-    cptr->serv->ghost = ghost;
+    cli_serv(cptr)->timestamp = timestamp;
+    cli_serv(cptr)->prot = prot;
+    cli_serv(cptr)->ghost = ghost;
     SetServerYXX(cptr, cptr, parv[6]);
     if (start_timestamp > OLDEST_TS)
     {
 #ifndef RELIABLE_CLOCK
 #ifdef TESTNET
       sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
-			   "others start time: %Tu", me.serv->timestamp,
+			   "others start time: %Tu", cli_serv(&me)->timestamp,
 			   start_timestamp);
       sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
 			   "received timestamp: %Tu ; difference %ld",
 			   recv_time, timestamp, timestamp - recv_time);
 #endif
-      if (start_timestamp < me.serv->timestamp)
+      if (start_timestamp < cli_serv(&me)->timestamp)
       {
         sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
-			     "%Tu < %Tu", start_timestamp, me.serv->timestamp);
-        me.serv->timestamp = start_timestamp;
+			     "%Tu < %Tu", start_timestamp, cli_serv(&me)->timestamp);
+        cli_serv(&me)->timestamp = start_timestamp;
         TSoffset += timestamp - recv_time;
         sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
 			     (int)(timestamp - recv_time));
       }
-      else if ((start_timestamp > me.serv->timestamp) && IsUnknown(cptr))
-        cptr->serv->timestamp = TStime();
+      else if ((start_timestamp > cli_serv(&me)->timestamp) && IsUnknown(cptr))
+        cli_serv(cptr)->timestamp = TStime();
 
       else if (timestamp != recv_time)
       {
@@ -742,7 +731,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          * attempts.
          */
         if (IsUnknown(cptr))
-          cptr->serv->timestamp = TStime();
+          cli_serv(cptr)->timestamp = TStime();
         else if (IsHandshake(cptr))
         {
           sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
@@ -751,10 +740,10 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         }
       }
 #else /* RELIABLE CLOCK IS TRUE, we _always_ use our own clock */
-      if (start_timestamp < me.serv->timestamp)
-        me.serv->timestamp = start_timestamp;
+      if (start_timestamp < cli_serv(&me)->timestamp)
+        cli_serv(&me)->timestamp = start_timestamp;
       if (IsUnknown(cptr))
-        cptr->serv->timestamp = TStime();
+        cli_serv(cptr)->timestamp = TStime();
 #endif
     }
 
@@ -763,13 +752,13 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     ret = 0;
 #ifdef RELIABLE_CLOCK
-  if (abs(cptr->serv->timestamp - recv_time) > 30)
+  if (abs(cli_serv(cptr)->timestamp - recv_time) > 30)
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! "
 			 "Used SETTIME to correct this.",
 			 timestamp - recv_time);
-    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), me.name);
+    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
   }
 #endif
 
@@ -850,7 +839,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   start_timestamp = atoi(parv[3]);
   timestamp = atoi(parv[4]);
   Debug((DEBUG_INFO, "Got SERVER %s with timestamp [%s] age " TIME_T_FMT " ("
-      TIME_T_FMT ")", host, parv[4], start_timestamp, me.serv->timestamp));
+      TIME_T_FMT ")", host, parv[4], start_timestamp, cli_serv(&me)->timestamp));
   if ((timestamp < OLDEST_TS || (hop == 1 && start_timestamp < OLDEST_TS)))
   {
     return exit_client_msg(cptr, sptr, &me,
@@ -860,7 +849,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   info[REALLEN] = '\0';
   if (prot < atoi(MINOR_PROTOCOL)) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Got incompatible protocol version "
-			 "(%s) from %s", parv[5], cptr->name);
+			 "(%s) from %s", parv[5], cli_name(cptr));
     return exit_new_server(cptr, sptr, host, timestamp,
                            "Incompatible protocol: %s", parv[5]);
   }
@@ -889,7 +878,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
   if (*ch || !strchr(host, '.')) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Bogus server name (%s) from %s",
-			 host, cptr->name);
+			 host, cli_name(cptr));
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -906,7 +895,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * See if the newly found server is behind a guaranteed
      * leaf (L-line). If so, close the link.
      */
-    if ((lhconf = find_conf_byhost(cptr->confs, cptr->name, CONF_LEAF)) &&
+    if ((lhconf = find_conf_byhost(cli_confs(cptr), cli_name(cptr), CONF_LEAF)) &&
         (!lhconf->port || (hop > lhconf->port)))
     {
       /*
@@ -915,12 +904,12 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * both.
        */
       active_lh_line = 1;
-      if (timestamp <= cptr->serv->timestamp)
+      if (timestamp <= cli_serv(cptr)->timestamp)
         LHcptr = 0;          /* Kill incoming server */
       else
         LHcptr = cptr;          /* Squit ourselfs */
     }
-    else if (!(lhconf = find_conf_byname(cptr->confs, cptr->name, CONF_HUB)) ||
+    else if (!(lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_HUB)) ||
              (lhconf->port && (hop > lhconf->port)))
     {
       struct Client *ac3ptr;
@@ -928,7 +917,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Look for net junction causing this: */
       LHcptr = 0;            /* incoming server */
       if (*parv[5] != 'J') {
-        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up) {
+        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up) {
           if (IsJunction(ac3ptr)) {
             LHcptr = ac3ptr;
             break;
@@ -958,72 +947,58 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * and not mess with hash internals. 
      *                          --Nemesi
      */
-    if ((!(EmptyString(cptr->name)))
+    if ((!(EmptyString(cli_name(cptr))))
         && (IsUnknown(cptr) || IsHandshake(cptr))
-        && 0 != ircd_strcmp(cptr->name, host))
+        && 0 != ircd_strcmp(cli_name(cptr), host))
       hChangeClient(cptr, host);
-    ircd_strncpy(cptr->name, host, HOSTLEN);
-    ircd_strncpy(cptr->info, info[0] ? info : me.name, REALLEN);
-    cptr->hopcount = hop;
+    ircd_strncpy(cli_name(cptr), host, HOSTLEN);
+    ircd_strncpy(cli_info(cptr), info[0] ? info : cli_name(&me), REALLEN);
+    cli_hopcount(cptr) = hop;
 
     /* check connection rules */
     if (0 != conf_eval_crule(host, CRULE_ALL)) {
       ServerStats->is_ref++;
-      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cptr->name);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cli_name(cptr));
       return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
     }
     if (conf_check_server(cptr)) {
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
-			   "from %s.", cptr->name);
+			   "from %s.", cli_name(cptr));
       return exit_client(cptr, cptr, &me, "No C conf lines");
     }
 
-    host = cptr->name;
+    host = cli_name(cptr);
 
     update_load();
 
-    if (!(aconf = find_conf_byname(cptr->confs, host, CONF_SERVER))) {
+    if (!(aconf = find_conf_byname(cli_confs(cptr), host, CONF_SERVER))) {
       ++ServerStats->is_ref;
-#ifndef GODMODE
       sendto_opmask_butone(0, SNO_OLDSNO, "Access denied. No conf line for "
-			   "server %s", cptr->name);
+			   "server %s", cli_name(cptr));
       return exit_client_msg(cptr, cptr, &me,
-                             "Access denied. No conf line for server %s", cptr->name);
-#else /* GODMODE */
-      sendto_opmask_butone(0, SNO_OLDSNO, "General C line active: No line "
-			   "for server %s", cptr->name);
-      aconf =
-          find_conf_byname(cptr->confs, "general.undernet.org", CONF_SERVER);
-      if (!aconf) {
-        sendto_opmask_butone(0, SNO_OLDSNO, "Neither C lines for server %s "
-			     "nor \"general.undernet.org\"", cptr->name);
-        return exit_client_msg(cptr, cptr, &me,
-            "No C lines for server %s", cptr->name);
-      }
-#endif /* GODMODE */
+                             "Access denied. No conf line for server %s", cli_name(cptr));
     }
 #ifdef CRYPT_LINK_PASSWORD
     /* passwd may be NULL. Head it off at the pass... */
-    if (*cptr->passwd)
+    if (*(cli_passwd(cptr)))
     {
-      encr = ircd_crypt(cptr->passwd, aconf->passwd);
+      encr = ircd_crypt(cli_passwd(cptr), cli_passwd(aconf));
     }
     else
       encr = "";
 #else
-    encr = cptr->passwd;
+    encr = cli_passwd(cptr);
 #endif /* CRYPT_LINK_PASSWORD */
-#ifndef GODMODE
-    if (*aconf->passwd && !!strcmp(aconf->passwd, encr)) {
+
+    if (*(aconf->passwd) && !!strcmp(aconf->passwd, encr)) {
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
-			   cptr->name);
+			   cli_name(cptr));
       return exit_client_msg(cptr, cptr, &me,
-                             "No Access (passwd mismatch) %s", cptr->name);
+                             "No Access (passwd mismatch) %s", cli_name(cptr));
     }
-#endif /* not GODMODE */
-    memset(cptr->passwd, 0, sizeof(cptr->passwd));
+    memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
 #ifndef HUB
     for (i = 0; i <= HighestFd; i++)
@@ -1064,14 +1039,14 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * Detect wrong numeric.
      */
-    if (0 != ircd_strcmp(acptr->name, host))
+    if (0 != ircd_strcmp(cli_name(acptr), host))
     {
       sendcmdto_serv_butone(&me, CMD_WALLOPS, cptr,
-			    ":SERVER Numeric Collision: %s != %s", acptr->name,
+			    ":SERVER Numeric Collision: %s != %s", cli_name(acptr),
 			    host);
       return exit_client_msg(cptr, cptr, &me,
           "NUMERIC collision between %s and %s."
-          " Is your server numeric correct ?", host, acptr->name);
+          " Is your server numeric correct ?", host, cli_name(acptr));
     }
     /*
      *  Kill our try, if we had one.
@@ -1100,14 +1075,14 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * Our new server might be a juped server,
      * or someone trying abuse a second Uworld:
      */
-    else if (IsServer(acptr) && (0 == ircd_strncmp(acptr->info, "JUPE", 4) ||
-        find_conf_byhost(cptr->confs, acptr->name, CONF_UWORLD)))
+    else if (IsServer(acptr) && (0 == ircd_strncmp(cli_info(acptr), "JUPE", 4) ||
+        find_conf_byhost(cli_confs(cptr), cli_name(acptr), CONF_UWORLD)))
     {
       if (!IsServer(sptr))
-        return exit_client(cptr, sptr, &me, acptr->info);
+        return exit_client(cptr, sptr, &me, cli_info(acptr));
       sendcmdto_one(&me, CMD_WALLOPS, cptr, ":Received :%s SERVER %s "
-		    "from %s !?!", parv[0], parv[1], cptr->name);
-      return exit_new_server(cptr, sptr, host, timestamp, "%s", acptr->info);
+		    "from %s !?!", parv[0], parv[1], cli_name(cptr));
+      return exit_new_server(cptr, sptr, host, timestamp, "%s", cli_info(acptr));
     }
     /*
      * Of course we find the handshake this link was before :)
@@ -1128,41 +1103,41 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       struct Client* ac3ptr;
 
       /* Search youngest link: */
-      for (ac3ptr = acptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up)
-        if (ac3ptr->serv->timestamp > c3ptr->serv->timestamp)
+      for (ac3ptr = acptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up)
+        if (cli_serv(ac3ptr)->timestamp > cli_serv(c3ptr)->timestamp)
           c3ptr = ac3ptr;
       if (IsServer(sptr))
       {
-        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = ac3ptr->serv->up)
-          if (ac3ptr->serv->timestamp > c3ptr->serv->timestamp)
+        for (ac3ptr = sptr; ac3ptr != &me; ac3ptr = cli_serv(ac3ptr)->up)
+          if (cli_serv(ac3ptr)->timestamp > cli_serv(c3ptr)->timestamp)
             c3ptr = ac3ptr;
       }
-      if (timestamp > c3ptr->serv->timestamp)
+      if (timestamp > cli_serv(c3ptr)->timestamp)
       {
         c3ptr = 0;
         c2ptr = acptr;          /* Make sure they differ */
       }
       /* Search second youngest link: */
-      for (ac2ptr = acptr; ac2ptr != &me; ac2ptr = ac2ptr->serv->up)
+      for (ac2ptr = acptr; ac2ptr != &me; ac2ptr = cli_serv(ac2ptr)->up)
         if (ac2ptr != c3ptr &&
-            ac2ptr->serv->timestamp >
-            (c2ptr ? c2ptr->serv->timestamp : timestamp))
+            cli_serv(ac2ptr)->timestamp >
+            (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
           c2ptr = ac2ptr;
       if (IsServer(sptr))
       {
-        for (ac2ptr = sptr; ac2ptr != &me; ac2ptr = ac2ptr->serv->up)
+        for (ac2ptr = sptr; ac2ptr != &me; ac2ptr = cli_serv(ac2ptr)->up)
           if (ac2ptr != c3ptr &&
-              ac2ptr->serv->timestamp >
-              (c2ptr ? c2ptr->serv->timestamp : timestamp))
+              cli_serv(ac2ptr)->timestamp >
+              (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
             c2ptr = ac2ptr;
       }
-      if (c3ptr && timestamp > (c2ptr ? c2ptr->serv->timestamp : timestamp))
+      if (c3ptr && timestamp > (c2ptr ? cli_serv(c2ptr)->timestamp : timestamp))
         c2ptr = 0;
       /* If timestamps are equal, decide which link to break
        *  by name.
        */
-      if ((c2ptr ? c2ptr->serv->timestamp : timestamp) ==
-          (c3ptr ? c3ptr->serv->timestamp : timestamp))
+      if ((c2ptr ? cli_serv(c2ptr)->timestamp : timestamp) ==
+          (c3ptr ? cli_serv(c3ptr)->timestamp : timestamp))
       {
         char* n2;
         char* n2up;
@@ -1170,23 +1145,23 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         char* n3up;
         if (c2ptr)
         {
-          n2 = c2ptr->name;
-          n2up = MyConnect(c2ptr) ? me.name : c2ptr->serv->up->name;
+          n2 = cli_name(c2ptr);
+          n2up = MyConnect(c2ptr) ? cli_name(&me) : cli_name(cli_serv(c2ptr)->up);
         }
         else
         {
           n2 = host;
-          n2up = IsServer(sptr) ? sptr->name : me.name;
+          n2up = IsServer(sptr) ? cli_name(sptr) : cli_name(&me);
         }
         if (c3ptr)
         {
-          n3 = c3ptr->name;
-          n3up = MyConnect(c3ptr) ? me.name : c3ptr->serv->up->name;
+          n3 = cli_name(c3ptr);
+          n3up = MyConnect(c3ptr) ? cli_name(&me) : cli_name(cli_serv(c3ptr)->up);
         }
         else
         {
           n3 = host;
-          n3up = IsServer(sptr) ? sptr->name : me.name;
+          n3up = IsServer(sptr) ? cli_name(sptr) : cli_name(&me);
         }
         if (strcmp(n2, n2up) > 0)
           n2 = n2up;
@@ -1203,10 +1178,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!c2ptr)
         return exit_new_server(cptr, sptr, host, timestamp,
             "server %s already exists and is %ld seconds younger.",
-            host, (long)acptr->serv->timestamp - (long)timestamp);
-      else if (c2ptr->from == cptr || IsServer(sptr))
+            host, (long)cli_serv(acptr)->timestamp - (long)timestamp);
+      else if (cli_from(c2ptr) == cptr || IsServer(sptr))
       {
-        struct Client *killedptrfrom = c2ptr->from;
+        struct Client *killedptrfrom = cli_from(c2ptr);
         if (active_lh_line)
         {
           /*
@@ -1219,7 +1194,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
            * If breaking the loop here solves the L: or H:
            * line problem, we don't squit that.
            */
-          if (c2ptr->from == cptr || (LHcptr && a_kills_b_too(c2ptr, LHcptr)))
+          if (cli_from(c2ptr) == cptr || (LHcptr && a_kills_b_too(c2ptr, LHcptr)))
             active_lh_line = 0;
           else
           {
@@ -1238,16 +1213,16 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          * a Ghost... (20 seconds is more then enough because all
          * SERVER messages are at the beginning of a net.burst). --Run
          */
-        if (CurrentTime - cptr->serv->ghost < 20)
+        if (CurrentTime - cli_serv(cptr)->ghost < 20)
         {
-          killedptrfrom = acptr->from;
+          killedptrfrom = cli_from(acptr);
           if (exit_client(cptr, acptr, &me, "Ghost loop") == CPTR_KILLED)
             return CPTR_KILLED;
         }
         else if (exit_client_msg(cptr, c2ptr, &me,
             "Loop <-- %s (new link is %ld seconds younger)", host,
-            (c3ptr ? (long)c3ptr->serv->timestamp : timestamp) -
-            (long)c2ptr->serv->timestamp) == CPTR_KILLED)
+            (c3ptr ? (long)cli_serv(c3ptr)->timestamp : timestamp) -
+            (long)cli_serv(c2ptr)->timestamp) == CPTR_KILLED)
           return CPTR_KILLED;
         /*
          * Did we kill the incoming server off already ?
@@ -1261,7 +1236,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         {
           if (LHcptr && a_kills_b_too(LHcptr, acptr))
             break;
-          if (acptr->from == cptr || (LHcptr && a_kills_b_too(acptr, LHcptr)))
+          if (cli_from(acptr) == cptr || (LHcptr && a_kills_b_too(acptr, LHcptr)))
             active_lh_line = 0;
           else
           {
@@ -1289,7 +1264,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (LHcptr == 0) {
       return exit_new_server(cptr, sptr, host, timestamp,
           (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
-          cptr->name, host,
+          cli_name(cptr), host,
           lhconf ? (lhconf->name ? lhconf->name : "*") : "!");
     }
     else
@@ -1299,7 +1274,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       {
         if (exit_client_msg(cptr, LHcptr, &me,
             (active_lh_line == 2) ?  "Non-Hub link %s <- %s(%s)" : "Leaf-only link %s <- %s(%s)",
-            cptr->name, host,
+            cli_name(cptr), host,
             lhconf ? (lhconf->name ? lhconf->name : "*") : "!") == CPTR_KILLED)
           return CPTR_KILLED;
       }
@@ -1328,27 +1303,27 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     acptr = make_client(cptr, STAT_SERVER);
     make_server(acptr);
-    acptr->serv->prot = prot;
-    acptr->serv->timestamp = timestamp;
-    acptr->hopcount = hop;
-    ircd_strncpy(acptr->name, host, HOSTLEN);
-    ircd_strncpy(acptr->info, info, REALLEN);
-    acptr->serv->up = sptr;
-    acptr->serv->updown = add_dlink(&sptr->serv->down, acptr);
+    cli_serv(acptr)->prot = prot;
+    cli_serv(acptr)->timestamp = timestamp;
+    cli_hopcount(acptr) = hop;
+    ircd_strncpy(cli_name(acptr), host, HOSTLEN);
+    ircd_strncpy(cli_info(acptr), info, REALLEN);
+    cli_serv(acptr)->up = sptr;
+    cli_serv(acptr)->updown = add_dlink(&(cli_serv(sptr))->down, acptr);
     /* Use cptr, because we do protocol 9 -> 10 translation
        for numeric nicks ! */
     SetServerYXX(cptr, acptr, parv[6]);
 
     Count_newremoteserver(UserStats);
     if (Protocol(acptr) < 10)
-      acptr->flags |= FLAGS_TS8;
+      cli_flags(acptr) |= FLAGS_TS8;
     add_client_to_list(acptr);
     hAddClient(acptr);
     if (*parv[5] == 'J')
     {
       SetBurst(acptr);
       sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s",
-			   sptr->name, acptr->name);
+			   cli_name(sptr), cli_name(acptr));
       SetJunction(acptr);
     }
     /*
@@ -1360,11 +1335,11 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!(bcptr = LocalClientArray[i]) || !IsServer(bcptr) ||
           bcptr == cptr || IsMe(bcptr))
         continue;
-      if (0 == match(me.name, acptr->name))
+      if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
       sendcmdto_one(sptr, CMD_SERVER, bcptr, "%s %d 0 %s %s %s%s 0 :%s",
-		    acptr->name, hop + 1, parv[4], parv[5], NumServCap(acptr),
-		    acptr->info);
+		    cli_name(acptr), hop + 1, parv[4], parv[5], NumServCap(acptr),
+		    cli_info(acptr));
     }
     return 0;
   }
@@ -1372,32 +1347,32 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsUnknown(cptr) || IsHandshake(cptr))
   {
     make_server(cptr);
-    cptr->serv->timestamp = timestamp;
-    cptr->serv->prot = prot;
-    cptr->serv->ghost = ghost;
+    cli_serv(cptr)->timestamp = timestamp;
+    cli_serv(cptr)->prot = prot;
+    cli_serv(cptr)->ghost = ghost;
     SetServerYXX(cptr, cptr, parv[6]);
     if (start_timestamp > OLDEST_TS)
     {
 #ifndef RELIABLE_CLOCK
 #ifdef TESTNET
       sendto_opmask_butone(0, SNO_OLDSNO, "Debug: my start time: %Tu ; "
-			   "others start time: %Tu", me.serv->timestamp,
+			   "others start time: %Tu", cli_serv(&me)->timestamp,
 			   start_timestamp);
       sendto_opmask_butone(0, SNO_OLDSNO, "Debug: receive time: %Tu ; "
 			   "received timestamp: %Tu ; difference %ld",
 			   recv_time, timestamp, timestamp - recv_time);
 #endif
-      if (start_timestamp < me.serv->timestamp)
+      if (start_timestamp < cli_serv(&me)->timestamp)
       {
         sendto_opmask_butone(0, SNO_OLDSNO, "got earlier start time: "
-			     "%Tu < %Tu", start_timestamp, me.serv->timestamp);
-        me.serv->timestamp = start_timestamp;
+			     "%Tu < %Tu", start_timestamp, cli_serv(&me)->timestamp);
+        cli_serv(&me)->timestamp = start_timestamp;
         TSoffset += timestamp - recv_time;
         sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
 			     (int)(timestamp - recv_time));
       }
-      else if ((start_timestamp > me.serv->timestamp) && IsUnknown(cptr))
-        cptr->serv->timestamp = TStime();
+      else if ((start_timestamp > cli_serv(&me)->timestamp) && IsUnknown(cptr))
+        cli_serv(cptr)->timestamp = TStime();
 
       else if (timestamp != recv_time)
       {
@@ -1407,7 +1382,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          * attempts.
          */
         if (IsUnknown(cptr))
-          cptr->serv->timestamp = TStime();
+          cli_serv(cptr)->timestamp = TStime();
         else if (IsHandshake(cptr))
         {
           sendto_opmask_butone(0, SNO_OLDSNO, "clock adjusted by adding %d",
@@ -1416,10 +1391,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         }
       }
 #else /* RELIABLE CLOCK IS TRUE, we _always_ use our own clock */
-      if (start_timestamp < me.serv->timestamp)
-        me.serv->timestamp = start_timestamp;
+      if (start_timestamp < cli_serv(&me)->timestamp)
+        cli_serv(&me)->timestamp = start_timestamp;
       if (IsUnknown(cptr))
-        cptr->serv->timestamp = TStime();
+        cli_serv(cptr)->timestamp = TStime();
 #endif
     }
 
@@ -1428,12 +1403,12 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     ret = 0;
 #ifdef RELIABLE_CLOCK
-  if (abs(cptr->serv->timestamp - recv_time) > 30)
+  if (abs(cli_serv(cptr)->timestamp - recv_time) > 30)
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! Used "
 			 "SETTIME to correct this.", timestamp - recv_time);
-    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), me.name);
+    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
   }
 #endif
 

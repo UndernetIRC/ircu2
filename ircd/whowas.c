@@ -191,7 +191,7 @@ void add_history(struct Client *cptr, int still_on)
   /* Should be changed to server numeric */
   DupString(ww.newww->servername, cli_name(cli_user(cptr)->server));
   DupString(ww.newww->realname, cli_info(cptr));
-  if (cptr->user->away)
+  if (cli_user(cptr)->away)
     DupString(ww.newww->away, cli_user(cptr)->away);
   else
     ww.newww->away = NULL;

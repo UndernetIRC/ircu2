@@ -134,7 +134,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *mask = parv[2], *target = parv[1], *reason;
 
   if ((parc == 3 && *mask == '-') || parc == 5) {
-    if (!find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
+    if (!find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
 
     reason = parv[4];

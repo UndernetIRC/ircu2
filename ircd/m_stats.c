@@ -240,16 +240,16 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (IsInvisible(acptr) && (doall || wilds) && !IsAnOper(acptr) && (acptr != sptr))
           continue;
         /* Only show the ones that match the given mask - if any */
-        if (!doall && wilds && match(name, acptr->name))
+        if (!doall && wilds && match(name, cli_name(acptr)))
           continue;
         /* Skip all that do not match the specific query */
-        if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
+        if (!(doall || wilds) && 0 != ircd_strcmp(name, cli_name(acptr)))
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-                   "%s %u %u %u %u %u :%Tu", (*acptr->name) ? acptr->name : "<unregistered>",
-                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
-                   (int)acptr->sendK, (int)acptr->receiveM,
-                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+                   "%s %u %u %u %u %u :%Tu", (*(cli_name(acptr))) ? cli_name(acptr) : "<unregistered>",
+                   (int)MsgQLength(&(cli_sendQ(acptr))), (int)cli_sendM(acptr),
+                   (int)cli_sendK(acptr), (int)cli_receiveM(acptr),
+                   (int)cli_receiveK(acptr), CurrentTime - cli_firsttime(acptr));
       }
       break;
     }
@@ -312,20 +312,6 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
-
-#if 0
-#ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
-          me.name, parv[0], get_mem_size(), get_alloc_cnt());
-#endif
-#ifdef MEMLEAKSTATS
-      report_memleak_stats(sptr, parc, parv);
-#endif
-#if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
-          "is not enabled on this server", me.name, parv[0]);
-#endif
-#endif /* 0 */
       break;
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
@@ -371,7 +357,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       time_t nowr;
 
-      nowr = CurrentTime - me.since;
+      nowr = CurrentTime - cli_since(&me);
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
                  (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
@@ -475,16 +461,16 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
          * Not here, because ms_stats is specifically a remote command, 
          * thus the check was removed. -Ghostwolf */
         /* Only show the ones that match the given mask - if any */
-        if (!doall && wilds && match(name, acptr->name))
+        if (!doall && wilds && match(name, cli_name(acptr)))
           continue;
         /* Skip all that do not match the specific query */
-        if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
+        if (!(doall || wilds) && 0 != ircd_strcmp(name, cli_name(acptr)))
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-                   "%s %u %u %u %u %u :%Tu", acptr->name,
-                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
-                   (int)acptr->sendK, (int)acptr->receiveM,
-                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+                   "%s %u %u %u %u %u :%Tu", cli_name(acptr),
+                   (int)MsgQLength(&(cli_sendQ(acptr))), (int)cli_sendM(acptr),
+                   (int)cli_sendK(acptr), (int)cli_receiveM(acptr),
+                   (int)cli_receiveK(acptr), CurrentTime - cli_firsttime(acptr));
       }
       break;
     }
@@ -551,20 +537,6 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
-
-#if 0
-#ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
-          me.name, parv[0], get_mem_size(), get_alloc_cnt());
-#endif
-#ifdef MEMLEAKSTATS
-      report_memleak_stats(sptr, parc, parv);
-#endif
-#if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
-          "is not enabled on this server", me.name, parv[0]);
-#endif
-#endif /* 0 */
       break;
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
@@ -611,7 +583,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       time_t nowr;
 
-      nowr = CurrentTime - me.since;
+      nowr = CurrentTime - cli_since(&me);
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
                  (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
@@ -708,16 +680,16 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (doall && IsUser(acptr))
           continue;
         /* Only show the ones that match the given mask - if any */
-        if (!doall && wilds && match(name, acptr->name))
+        if (!doall && wilds && match(name, cli_name(acptr)))
           continue;
         /* Skip all that do not match the specific query */
-        if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
+        if (!(doall || wilds) && 0 != ircd_strcmp(name, cli_name(acptr)))
           continue;
         send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-                   "%s %u %u %u %u %u :%Tu", acptr->name,
-                   (int)MsgQLength(&acptr->sendQ), (int)acptr->sendM,
-                   (int)acptr->sendK, (int)acptr->receiveM,
-                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+                   "%s %u %u %u %u %u :%Tu", cli_name(acptr),
+                   (int)MsgQLength(&(cli_sendQ(acptr))), (int)cli_sendM(acptr),
+                   (int)cli_sendK(acptr), (int)cli_receiveM(acptr),
+                   (int)cli_receiveK(acptr), CurrentTime - cli_firsttime(acptr));
       }
       break;
     }
@@ -780,20 +752,6 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
-
-#if 0
-#ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
-          me.name, parv[0], get_mem_size(), get_alloc_cnt());
-#endif
-#ifdef MEMLEAKSTATS
-      report_memleak_stats(sptr, parc, parv);
-#endif
-#if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
-          "is not enabled on this server", me.name, parv[0]);
-#endif
-#endif /* 0 */
       break;
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
@@ -840,7 +798,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       time_t nowr;
 
-      nowr = CurrentTime - me.since;
+      nowr = CurrentTime - cli_since(&me);
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
                  (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);

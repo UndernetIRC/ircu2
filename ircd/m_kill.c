@@ -141,26 +141,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		    "before I got him :(", sptr);
     return 0;
   }
-#if 0
-  /*
-   * XXX - strictly speaking, the next 2 checks shouldn't be needed
-   * this function only handles kills from servers, and the check
-   * is done before the message is propagated --Bleep
-   */
-  if (IsServer(victim) || IsMe(victim)) {
-    return send_error_to_client(sptr, ERR_CANTKILLSERVER); /* XXX DEAD */
-    return 0;
-  }
-  if (IsLocOp(sptr) && !MyConnect(victim)) {
-    return send_error_to_client(sptr, ERR_NOPRIVILEGES); /* XXX DEAD */
-    return 0;
-  }
-  /*
-   * XXX - this is guaranteed by the parser not to happen
-   */
-  if (EmptyString(path))
-    path = "*no-path*";                /* Bogus server sending??? */
-#endif
+
   /*
    * Notify all *local* opers about the KILL (this includes the one
    * originating the kill, if from this server--the special numeric
@@ -169,19 +150,19 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * Note: "victim->name" is used instead of "user" because we may
    *       have changed the target because of the nickname change.
    */
-  inpath = cptr->name;
+  inpath = cli_name(cptr);
 
   sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
 		       "Received KILL message for %s. From %s Path: %C!%s",
 		       get_client_name(victim,SHOW_IP), parv[0], cptr, path);
 
-  log_write_kill(victim, sptr, cptr->name, path);
+  log_write_kill(victim, sptr, cli_name(cptr), path);
   /*
    * And pass on the message to other servers. Note, that if KILL
    * was changed, the message has to be sent to all links, also
    * back.
    */
-  sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, cptr->name,
+  sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s", victim, cli_name(cptr),
 			path);
   /*
    * We *can* have crossed a NICK with this numeric... --Run
@@ -201,13 +182,13 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (MyConnect(victim))
     sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
-		  victim, cptr->name, path);
+		  victim, cli_name(cptr), path);
   /*
    * Set FLAGS_KILLED. This prevents exit_one_client from sending
    * the unnecessary QUIT for this. (This flag should never be
    * set in any other place)
    */
-  victim->flags |= FLAGS_KILLED;
+  cli_flags(victim) |= FLAGS_KILLED;
 
   /*
    * Tell the victim she/he has been zapped, but *only* if
@@ -279,7 +260,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return send_reply(sptr, ERR_NOSUCHNICK, user);
 
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Changed KILL %s into %s", sptr,
-		  user, victim->name);
+		  user, cli_name(victim));
   }
   if (!MyConnect(victim) && IsLocOp(cptr))
     return send_reply(sptr, ERR_NOPRIVILEGES);
@@ -291,13 +272,13 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * if the user is +k, prevent a kill from local user
    */
   if (IsChannelService(victim))
-    return send_reply(sptr, ERR_ISCHANSERVICE, "KILL", victim->name);
+    return send_reply(sptr, ERR_ISCHANSERVICE, "KILL", cli_name(victim));
 
 
 #ifdef LOCAL_KILL_ONLY
   if (!MyConnect(victim)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server", sptr,
-	       victim->name);
+	       cli_name(victim));
     return 0;
   }
 #endif
@@ -315,10 +296,10 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (strlen(comment) > TOPICLEN)
     comment[TOPICLEN] = '\0';
 
-  inpath = sptr->user->host;
+  inpath = cli_user(sptr)->host;
 
   sprintf_irc(buf,
-              "%s%s (%s)", cptr->name, IsOper(sptr) ? "" : "(L)", comment);
+              "%s%s (%s)", cli_name(cptr), IsOper(sptr) ? "" : "(L)", comment);
   path = buf;
 
   /*
@@ -349,9 +330,9 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     * the unnecessary QUIT for this. (This flag should never be
     * set in any other place)
     */
-    victim->flags |= FLAGS_KILLED;
+    cli_flags(victim) |= FLAGS_KILLED;
 
-    sprintf_irc(buf, "Killed by %s (%s)", sptr->name, comment);
+    sprintf_irc(buf, "Killed by %s (%s)", cli_name(sptr), comment);
   }
   else {
   /*
@@ -361,7 +342,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * anyway (as this user don't exist there any more either)
    */
     sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, inpath, path);
-    sprintf_irc(buf, "Local kill by %s (%s)", sptr->name, comment);
+    sprintf_irc(buf, "Local kill by %s (%s)", cli_name(sptr), comment);
   }
 
   return exit_client(cptr, victim, sptr, buf);

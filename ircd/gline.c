@@ -168,7 +168,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
       if (!cli_user(acptr))
 	continue;
 	
-      if (acptr->user->username && 
+      if (cli_user(acptr)->username && 
           match (gline->gl_user, (cli_user(acptr))->username) != 0)
                continue;
           
@@ -178,7 +178,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
           continue;
       }
       else {
-        if (match(gline->gl_host, acptr->sockhost) != 0)
+        if (match(gline->gl_host, cli_sockhost(acptr)) != 0)
           continue;
       }
 

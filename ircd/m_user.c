@@ -152,24 +152,24 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   user = make_user(cptr);
 
   if (!strchr(umode, '.'))        /* Not an IP# as hostname ? */
-    cptr->flags |= (UFLAGS & atoi(umode));
+    cli_flags(cptr) |= (UFLAGS & atoi(umode));
 
-  if ((cptr->flags & FLAGS_SERVNOTICE))
+  if ((cli_flags(cptr) & FLAGS_SERVNOTICE))
     set_snomask(cptr, (IsDigit(*snomask) && !strchr(snomask, '.')) ?
                 (atoi(snomask) & SNO_USER) : SNO_DEFAULT, SNO_SET);
 
   user->server = &me;
-  ircd_strncpy(cptr->info, info, REALLEN);
+  ircd_strncpy(cli_info(cptr), info, REALLEN);
 
-  if (cptr->name[0] && cptr->cookie == COOKIE_VERIFIED) {
+  if ((cli_name(cptr))[0] && cli_cookie(cptr) == COOKIE_VERIFIED) {
     /*
      * NICK and PONG already received, now we have USER...
      */
-    return register_user(cptr, sptr, sptr->name, username, 0);
+    return register_user(cptr, sptr, cli_name(sptr), username, 0);
   }
   else {
     ircd_strncpy(user->username, username, USERLEN);
-    ircd_strncpy(user->host, cptr->sockhost, HOSTLEN);
+    ircd_strncpy(user->host, cli_sockhost(cptr), HOSTLEN);
   }
   return 0;
 }

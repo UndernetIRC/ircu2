@@ -113,7 +113,7 @@ int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!(acptr = find_match_server(parv[1])))
       return send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
 
-    parv[1] = acptr->name;
+    parv[1] = cli_name(acptr);
     if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, 0, ":%C", 1, parc, parv) != HUNTED_ISME)
       return 0;
   }

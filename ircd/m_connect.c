@@ -159,7 +159,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if ((acptr = FindServer(aconf->name))) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Server %s already "
-		  "exists from %s", sptr, parv[1], acptr->from->name);
+		  "exists from %s", sptr, parv[1], cli_name(cli_from(acptr)));
     return 0;
   }
   /*
@@ -185,17 +185,6 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * Allow opers to /connect foo.* 0 bah.* to connect foo and bah
    * using the conf's configured port
    */
-#if 0
-  /*
-   * Get port number from params, port must be non-zero if it comes from a
-   * server.
-   */
-  if ((port = atoi(parv[2])) == 0) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Invalid port number",
-		  sptr);
-    return 0;
-  }
-#endif
   port = atoi(parv[2]);
   /*
    * save the old port
@@ -278,11 +267,11 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * Look for closest matching server 
        * needed for "/connect blah 4400 *"?
        */
-      for (acptr2 = acptr3; acptr2 != &me; acptr2 = acptr2->serv->up) {
-        if (!match(parv[3], acptr2->name))
+      for (acptr2 = acptr3; acptr2 != &me; acptr2 = cli_serv(acptr2)->up) {
+        if (!match(parv[3], cli_name(acptr2)))
           acptr3 = acptr2;
       }
-      parv[3] = acptr3->name;
+      parv[3] = cli_name(acptr3);
       if (hunt_server_cmd(sptr, CMD_CONNECT, cptr, 1, "%s %s :%C", 3, parc,
 			  parv) != HUNTED_ISME)
         return 0;
@@ -303,7 +292,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if ((acptr = FindServer(aconf->name))) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Server %s already "
-		  "exists from %s", sptr, parv[1], acptr->from->name);
+		  "exists from %s", sptr, parv[1], cli_name(cli_from(acptr)));
     return 0;
   }
   /*
@@ -358,179 +347,3 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   aconf->port = tmpport;
   return 0;
 }
-
-  
-#if 0
-/*
- * XXX - remove when regression testing complete
- *
- *  m_connect                           - Added by Jto 11 Feb 1989
- *
- *    parv[0] = sender prefix
- *    parv[1] = servername
- *    parv[2] = port number
- *    parv[3] = remote server
- */
-int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  unsigned short   port;
-  unsigned short   tmpport;
-  struct ConfItem* aconf;
-  struct ConfItem* cconf;
-  struct Client*   acptr;
-  struct Jupe*     ajupe;
-  const char*      rule;
-
-  if (!IsPrivileged(sptr)) {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
-    return -1;
-  }
-
-  if (IsLocOp(sptr) && parc > 3)        /* Only allow LocOps to make */
-    return 0;                   /* local CONNECTS --SRB      */
-
-  if (parc > 3 && MyUser(sptr)) {
-    struct Client* acptr2;
-    struct Client* acptr3;
-    if (!(acptr3 = find_match_server(parv[3]))) {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[3]); /* XXX DEAD */
-      return 0;
-    }
-
-    /* Look for closest matching server */
-    for (acptr2 = acptr3; acptr2 != &me; acptr2 = acptr2->serv->up)
-      if (!match(parv[3], acptr2->name))
-        acptr3 = acptr2;
-
-    parv[3] = acptr3->name;
-  }
-
-  if (hunt_server(1, cptr, sptr, /* XXX DEAD */
-                  "%s%s " TOK_CONNECT " %s %s :%s", 3, parc, parv) != HUNTED_ISME)
-    return 0;
-
-  if (parc < 2 || *parv[1] == '\0') {
-    return need_more_params(sptr, "CONNECT");
-#if 0
-    return -1;
-#endif
-  }
-
-  if ((acptr = FindServer(parv[1]))) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :Connect: Server %s %s %s.", /* XXX DEAD */
-          me.name, parv[0], parv[1], "already exists from", acptr->from->name);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s %s %s.", /* XXX DEAD */
-          NumServ(&me), NumNick(sptr), parv[1], "already exists from",
-          acptr->from->name);
-    return 0;
-  }
-
-  for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    if (CONF_SERVER == aconf->status && 0 == match(parv[1], aconf->name))
-      break;
-  }
-#if 0
-  /*
-   * Checked first servernames, then try hostnames.
-   */
-  if (!aconf) {
-    for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-      if (CONF_SERVER == aconf->status && 0 == match(parv[1], aconf->host))
-        break;
-    }
-  }
-#endif
-  if (!aconf) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :Connect: Host %s not listed in ircd.conf", /* XXX DEAD */
-                 me.name, parv[0], parv[1]);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :Connect: Host %s not listed in ircd.conf", /* XXX DEAD */
-                 NumServ(&me), NumNick(sptr), parv[1]);
-    return 0;
-  }
-  /*
-   *  Get port number from user, if given. If not specified,
-   *  use the default from configuration structure. If missing
-   *  from there, then use the precompiled default.
-   */
-  tmpport = port = aconf->port;
-  if (parc > 2 && !BadPtr(parv[2])) {
-    if ((port = atoi(parv[2])) == 0) {
-      if (MyUser(sptr))
-        sendto_one(sptr, ":%s NOTICE %s :Connect: Invalid port number", me.name, parv[0]); /* XXX DEAD */
-      else
-        sendto_one(sptr, "%s NOTICE %s%s :Connect: Invalid port number", /* XXX DEAD */
-                   NumServ(&me), NumNick(sptr));
-      return 0;
-    }
-  }
-  else if (port == 0 && (port = PORTNUM) == 0) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :Connect: missing port number", /* XXX DEAD */
-                 me.name, parv[0]);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :Connect: missing port number", /* XXX DEAD */
-                 NumServ(&me), NumNick(sptr));
-    return 0;
-  }
-
-  /*
-   * Evaluate connection rules...  If no rules found, allow the
-   * connect.   Otherwise stop with the first true rule (ie: rules
-   * are ored together.  Oper connects are effected only by D
-   * lines (CRULEALL) not d lines (CRULEAUTO).
-   */
-  if ((rule = conf_eval_crule(aconf->name, CRULE_ALL))) {
-    if (MyUser(sptr))
-       sendto_one(sptr, ":%s NOTICE %s :Connect: Disallowed by rule: %s", /* XXX DEAD */
-                   me.name, parv[0], cconf->name);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :Connect: Disallowed by rule: %s", /* XXX DEAD */
-                   NumServ(&me), NumNick(sptr), cconf->name);
-    return 0;
-  }
-  /*
-   * Check to see if the server is juped; if it is, disallow the connect
-   */
-  if ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)) {
-    sendto_one(sptr, "%s NOTICE %s%s :Connect: Server %s is juped: %s", /* XXX DEAD */
-	       NumServ(&me), NumNick(sptr), JupeServer(ajupe),
-	       JupeReason(ajupe));
-    return 0;
-  }
-
-  /*
-   * Notify all operators about remote connect requests
-   */
-  if (!IsAnOper(cptr)) {
-    sendto_ops_butone(0, &me, ":%s WALLOPS :Remote CONNECT %s %s from %s", /* XXX DEAD */
-                      me.name, parv[1], parv[2] ? parv[2] : "",
-                      get_client_name(sptr, HIDE_IP));
-    ircd_log(L_INFO, "CONNECT From %s : %s %d", /* XXX DEAD */
-             parv[0], parv[1], parv[2] ? parv[2] : "");
-  }
-  aconf->port = port;
-  if (connect_server(aconf, sptr, 0)) {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :*** Connecting to %s.", /* XXX DEAD */
-                 me.name, parv[0], aconf->name);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :*** Connecting to %s.", /* XXX DEAD */
-                 NumServ(&me), NumNick(sptr), aconf->name);
-  }
-  else {
-    if (MyUser(sptr))
-      sendto_one(sptr, ":%s NOTICE %s :*** Connection to %s failed", /* XXX DEAD */
-                 me.name, parv[0], aconf->name);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :*** Connection to %s failed", /* XXX DEAD */
-                 NumServ(&me), NumNick(sptr), aconf->name);
-  }
-  aconf->port = tmpport;
-  return 0;
-}
-#endif /* 0 */
-

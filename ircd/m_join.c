@@ -106,10 +106,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(XXX_BOGUS_TEMP_HACK)
-#include "handlers.h"      /* m_names */
-#endif
-
 /*
  * Helper function to find last 0 in a comma-separated list of
  * channel names.
@@ -159,7 +155,7 @@ join0(struct JoinBuf *join, struct Client *cptr, struct Client *sptr,
   joinbuf_init(&part, sptr, cptr, JOINBUF_TYPE_PARTALL,
 	       "Left all channels", 0);
 
-  while ((member = sptr->user->channel))
+  while ((member = cli_user(sptr)->channel))
     joinbuf_join(&part, member->channel,
 		 IsZombie(member) ? CHFL_ZOMBIE : 0);
 
@@ -196,8 +192,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   keys = parv[2]; /* remember where keys are */
 
-  parv[2] = 0; /* for call to m_names below */
-
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
     clean_channelname(name);
@@ -227,7 +221,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     } else
       flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
 
-    if (sptr->user->joined >= MAXCHANNELSPERUSER
+    if (cli_user(sptr)->joined >= MAXCHANNELSPERUSER
 #ifdef OPER_NO_CHAN_LIMIT
 	/* Opers are allowed to join any number of channels */
 	&& !IsAnOper(sptr)
@@ -316,7 +310,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *name;
 
   if (IsServer(sptr)) {
-    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", sptr->name);
+    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", cli_name(sptr));
   }
 
   if (parc < 2 || *parv[1] == '\0')
@@ -348,9 +342,9 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	remove_user_from_channel(sptr, chptr);
 	chptr = FindChannel(name);
       } else
-	flags = CHFL_DEOPPED | ((sptr->flags & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
     } else {
-      flags = CHFL_DEOPPED | ((sptr->flags & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
 
       if ((chptr = get_channel(sptr, name, CGT_CREATE)))
 	chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;

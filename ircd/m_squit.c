@@ -76,7 +76,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   comment = parv[parc-1];
   
   if (BadPtr(parv[parc - 1]))
-  	comment=sptr->name;
+  	comment = cli_name(sptr);
   	
   acptr = FindNServer(server);
 
@@ -99,7 +99,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* If atoi(parv[2]) == 0 we must indeed squit !
    * It will be our neighbour.
    */
-  if ( timestamp != 0 && timestamp != acptr->serv->timestamp) {
+  if ( timestamp != 0 && timestamp != cli_serv(acptr)->timestamp) {
     Debug((DEBUG_NOTICE, "Ignoring SQUIT with the wrong timestamp"));
     return 0;
   }
@@ -126,7 +126,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "SQUIT");
 
   if (parc < 3 || BadPtr(parv[2]))
-    comment = sptr->name;
+    comment = cli_name(sptr);
   else
     comment = parv[2];
 
@@ -136,7 +136,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * when the command is issued by an oper.
    */
   for (acptr = GlobalClientList; (acptr = next_client(acptr, server));
-      acptr = acptr->next) {
+      acptr = cli_next(acptr)) {
     if (IsServer(acptr) || IsMe(acptr))
       break;
   }
@@ -151,9 +151,9 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * servers like davis.* and davis-r.* when typing
    * /SQUIT davis*
    */
-  for (acptr2 = acptr->serv->up; acptr2 != &me;
-      acptr2 = acptr2->serv->up)
-    if (!match(server, acptr2->name))
+  for (acptr2 = cli_serv(acptr)->up; acptr2 != &me;
+      acptr2 = cli_serv(acptr2)->up)
+    if (!match(server, cli_name(acptr2)))
       acptr = acptr2;
   
   /* Disallow local opers to squit remote servers */

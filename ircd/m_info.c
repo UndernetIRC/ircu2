@@ -129,7 +129,7 @@ int m_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
 	       creation, generation);
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
-	       myctime(me.firsttime));
+	       myctime(cli_firsttime(&me)));
     send_reply(sptr, RPL_ENDOFINFO);
   }
   return 0;
@@ -166,7 +166,7 @@ int ms_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
 	       creation, generation);
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
-	       myctime(me.firsttime));
+	       myctime(cli_firsttime(&me)));
     send_reply(sptr, RPL_ENDOFINFO);
   }
   return 0;
@@ -200,7 +200,7 @@ int mo_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
 	       creation, generation);
     send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
-	       myctime(me.firsttime));
+	       myctime(cli_firsttime(&me)));
     send_reply(sptr, RPL_ENDOFINFO);
   }
   return 0;

@@ -92,7 +92,7 @@ typedef enum {
 } ReportType;
 
 #define sendheader(c, r) \
-   send((c)->fd, HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
+   send(cli_fd(c), HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
 
 struct AuthRequest* AuthPollList = 0; /* GLOBAL - auth queries pending io */
 static struct AuthRequest* AuthIncompleteList = 0;
@@ -523,7 +523,7 @@ void start_auth(struct Client* client)
 
 #if !defined(NODNS)
   if (LOOPBACK == inet_netof(cli_ip(client))) {
-    strcpy(client->sockhost, cli_name(&me));
+    strcpy(cli_sockhost(client), cli_name(&me));
   }
   else {
     struct DNSQuery query;
@@ -534,7 +534,7 @@ void start_auth(struct Client* client)
     if (IsUserPort(auth->client))
       sendheader(client, REPORT_DO_DNS);
 
-    client->dns_reply = gethost_byaddr((const char*) &(cli_ip(client)), &query);
+    cli_dns_reply(client) = gethost_byaddr((const char*) &(cli_ip(client)), &query);
 
     if (cli_dns_reply(client)) {
       ++(cli_dns_reply(client))->ref_count;
