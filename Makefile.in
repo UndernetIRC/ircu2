@@ -1,0 +1,124 @@
+# Makefile for the Undernet IRC Daemon.
+# Copyright (C) 1997, Carlo Wood <carlo@runaway.xs4all.nl>
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+#### Start of system configuration section. ####
+
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+SHELL=@SHPROG@
+RM=@RMPROG@
+AWK=@AWK@
+@SET_MAKE@
+#### End of system configuration section. ####
+
+all: build
+
+.PHONY: server build depend install config update diff patch export
+# Some versions of make give a warning when this is empty:
+.SUFFIXES: .dummy
+
+build:
+	@if [ ! -f config/config.h ]; then \
+		echo "Run 'make config' to configure the server"; \
+	else \
+	  for i in config ircd; do \
+		  echo "Building $$i..."; \
+		  cd $$i; ${MAKE} build; cd ..; \
+	  done; \
+	fi
+
+root-clean:
+	@for i in '*.orig' '.*.orig' '\#*' '*~' '.*~' '*.bak' '.*.bak' core; do\
+		echo "Removing $$i"; \
+		REMOVE_FILES="`find . -name "$$i" -print`"; \
+		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
+	done || true
+
+clean: root-clean
+	@for i in ircd config; do \
+		echo "Cleaning $$i..."; \
+		cd $$i; ${MAKE} clean; cd ..;\
+	done
+
+root-distclean: root-clean
+	@for i in '*.rej'; do \
+		echo "Removing $$i"; \
+		REMOVE_FILES="`find . -name "$$i" -print`"; \
+		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
+	done || true
+	${RM} -f Makefile
+
+distclean: root-distclean
+	@for i in doc ircd config; do \
+		echo "Dist-cleaning $$i..."; \
+		cd $$i; ${MAKE} distclean; cd ..;\
+	done
+
+maintainer-clean: root-distclean
+	@for i in doc ircd config; do \
+		echo "maintainer-cleaning $$i..."; \
+		cd $$i; ${MAKE} maintainer-clean; cd ..;\
+	done
+
+depend:
+	@for i in ircd; do \
+		echo "Making dependencies in $$i..."; \
+		cd $$i; ${MAKE} depend; cd ..; \
+	done
+
+install:
+	@if [ -f ircd/ircd ]; then \
+		for i in ircd doc; do \
+			echo "Installing $$i..."; \
+			cd $$i; ${MAKE} install; cd ..; \
+		done \
+	else \
+		echo "First run 'make'"; \
+	fi
+
+uninstall:
+	@for i in doc ircd; do \
+		echo "Uninstalling $$i..."; \
+		cd $$i; ${MAKE} uninstall; cd ..; \
+	done
+
+config: FORCE
+	@cd config; ${MAKE} config
+	@echo
+	@echo "The Undernet IRC daemon is now hopefully configured for your setup."
+	@echo "Next run 'make' to build the server."
+	@echo
+
+# Coders: You need GNU make for this to work.
+Makefile: config/config.status Makefile.in
+	@echo "recreating Makefile"
+	@cd config; \
+	CONFIG_FILES=../Makefile CONFIG_HEADERS= ./config.status > /dev/null
+
+config/config.status:
+	@cd config; ${MAKE} config.status
+
+# Some versions of 'make' do not support the .PHONY target :
+FORCE:
+
+# Indent all headers and source files:
+indent:
+	@test "`indent --version`" = "GNU indent 2.1.0" || \
+	  (echo "You need GNU indent 2.1.0; See doc/readme.indent" && exit -1);
+	VERSION_CONTROL=none indent include/*.h ircd/*.c

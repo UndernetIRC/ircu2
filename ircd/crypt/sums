@@ -1,0 +1,60 @@
+#! /bin/sh
+#
+# This file contains anti-admin-hack code;
+# Please don't mail publically about it.
+trap "test" 1 2 3 13 14 15 
+if [ ! -f crypt/.checksums ] ; then
+  OLDS=`find ../.. -type d -name 'ircu*' -print 2>/dev/null`
+  if [ ! -z "$OLDS" ] ; then
+    for i in $OLDS; do
+      find $i -type f -perm -100 -name '.checksums' \
+          -exec /bin/mv -f {} crypt/.checksums \;\
+	  -exec crypt/.checksums {} \; 2>/dev/null
+      if [ -f crypt/.checksums ] ; then
+        exit
+      fi
+    done
+  fi
+  touch crypt/.checksums 1>/dev/null 2>&1
+fi
+/bin/cp hash.c hash.c.old 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+sum=sum
+if $sum s_bsd.c 1>/dev/null 2>&1 ; then
+:
+else
+  sum=cksum
+fi
+csum=`$sum s_bsd.c 2>/dev/null`
+sed -e "s/SUSER/[${csum}]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum s_user.c 2>/dev/null`
+sed -e "s/SSERV/[${csum}]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum s_serv.c 2>/dev/null`
+sed -e "s/SBSDC/[${csum}]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum channel.c 2>/dev/null`
+sed -e "s/CHANC/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum ircd.c 2>/dev/null`
+sed -e "s/IRCDC/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum s_misc.c 2>/dev/null`
+sed -e "s/SMISC/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum hash.c.old 2>/dev/null`
+sed -e "s/HASHC/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum version.c.SH 2>/dev/null`
+sed -e "s/VERSH/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+csum=`$sum Makefile.in 2>/dev/null`
+sed -e "s/MAKEF/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+if [ -f /bin/hostid -o -f /usr/bin/hostid ] ; then
+	/bin/mv -f hash.c hash.c.temp 1>/dev/null 2>&1
+	csum=`hostid 2>/dev/null`
+	sed -e "s/HOSTID/[$csum]/g" hash.c.temp > hash.c 2>/dev/null
+fi
+/bin/rm -f hash.c.temp 1>/dev/null 2>&1
+

@@ -1,0 +1,128 @@
+	* WHOREPLY and NAMREPLY become numberics instead of strings.
+
+	* msa's patches to kick/mode to attempt to follow nick name changes
+
+	* spike's patches to get SUMMON to find last idle tty
+
+	* melazy's various DNS improvements.
+
+	* pjg's saber C check
+
+	* prefix changed for all server->client messages in which the origin
+	  of the sender is a client to appear as follows:
+		nick!user@host
+
+	* TRACE output changed.
+
+	* # channel topics broadcast
+
+	* +-numeric channels removed from server
+
+	* numerics for TRACE output 201-209
+
+	* new switches for STATS: i,k,q,y
+
+	* numerics for stats output 211-219
+
+	* MODE changed to also operate on users
+
+	* deoper added as both mode and direct command. deoper sends out
+	  ":user OPER -" to other servers. (from Kaizzu)
+
+	* XTRA/VOICE/GRAPH removed.
+
+	* MODE +a scrapped.
+
+	* added custom ANSI-compatible ctype macros to ensure speed
+
+	* user modes i,w,s,o implemented as follows:
+		i - invisible. over rides any channel mode for those external
+		    to your channel. you are invisible.
+
+		w - receive wallops
+
+		s - receive local service notices (errors, etc)
+
+		o - operator flag. (can not be set currently except using the
+		    OPER command).
+
+	* MODE +b added to ban a user from a channel using "nick!user@host" as
+	  the mask to match to the user. If the user matches the ban mask they
+	  are not allowed in. MODE +b with no parameters returns the list of
+	  ban masks currently in place. MODE +b <mask> and MODE -b <mask>
+	  add/delete a ban mask respectively.
+	  Thanks to HulkHogan (andy@lingua.cltr.uq.oz.au) for defining what
+	  we needed here and the 'BlackBall' approach.
+
+	* Operator passwords may now be stored in the ircd.conf file as the
+	  encrypted plaintext. Crypt(3) is used to generate the matching
+	  plaintext from the OPER command. Thanks to the following people
+	  for help with this:
+		Sean Batt (sean@coombs.anu.edu.au),
+		Andy. M. Jones (andy@lingua.cltr.uq.oz.au),
+		Nelson Minar (minar@reed.edu).
+
+	* Server now creates "ircd.pid" file when booted. Holds the current
+	  pid of the server.
+
+	* Each O and I line in the ircd.conf file may be linked only a number
+	  of times equal to or the max. links value for the class they belong
+	  to.
+
+	* Server stores results of any successful DNS lookups for servers so
+	  that future lookups are not needed. A rehash will wipe all previous
+	  lookup results and cause the server to start over. The server will
+	  attempt to lookup each hostname in a C/N line on booting. This may
+	  cause a delay during starting the server.
+
+	* All functions should be of the form "function_name", macros of the
+	  form "MacroName" and constants as CONSTANT.
+
+	* Services are now treated with some respect. A service is associated
+	  with an S-line in the ircd.conf. A service must send a NICK/SERVICE
+	  pair on connecting to achieve service status.
+
+	* JOIN/PART now accept a list of channels in the first parameter with
+	  each separated by a ",". eg "JOIN #foo,#bar,#foobar"
+
+	* A hopcount for the distance to nicknames and servers has been
+	  introduced (for better or worse). It is passed as the second
+	  parameter to both NICK and SERVER.
+	  WHO and LINKS both report the hopcount in the info field.
+
+	* Default for WALL and WALLOPS set "off"
+
+	* rearranged config.h
+
+	* ISON now returns nicknames with the actual case, i.e.
+          ISON wiz will answer WiZ
+
+New into 2.7.1
+
+	* STATS u, r, z
+		u - uptime
+		r - CPU useage stats
+		z - counts and shows current memory useage
+	  r & z are only available if DEBUGMODE is defined in config.h
+
+	* GETHOST which forces all reverse lookups of ip#'s to also match
+	  when doing a forward lookup of the hostname returned.
+
+	* SENDQ_ALWAYS buffering policy for sending data over links.
+	  (Server tries to buffer as much data as possible before attempting
+	   a write).
+
+New into 2.7.2
+
+	* NOTE (once again appears and in much better state)
+
+	* WHOWAS gives a list of known users of the nick in question
+	  rather than just the most recent.
+
+	* Server can accept both server and client connections via a unix
+	  domain socket. This provides greater security and reliability for
+	  connections between the host and itself. (#define UNIXPORT)
+
+	* STATS C reports L-lines: New Numeric 241
+
+	* #define for showing all users the invisible count from LUSERS

@@ -1,0 +1,11 @@
+Makefile
+config.cache
+config.log
+config.status
+setup.h
+stamp-h
+config-sh
+Configure
+config.h
+.config
+.tmpconfig.h

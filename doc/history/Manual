@@ -1,0 +1,316 @@
+/************************************************************************
+ *   IRC - Internet Relay Chat, doc/MANUAL
+ *   Copyright (C) 1990, Karl Kleinpaste
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 1, or (at your option)
+ *   any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+                                        Date: 04 Apr 1989
+                                      Author: Karl Kleinpaste
+                                              karl@cis.ohio-state.edu
+                                                
+                           Last modification: 15 May 1992
+                                          by  Mauri Haikola 
+                                              mjh@stekt.oulu.fi
+
+		       Modified for undernet: 7 Feb 1995
+			   		  by  Carlo Wood
+			   		      carlo@runaway.xs4all.nl 
+
+
+		      INTERNET RELAY CHAT (IRC)
+		  a real-time conversational system
+
+
+* 1: IRC - replacement for talk(1)
+
+IRC is a functional replacement for and improvement to talk(1).  Talk
+is an old, primitive, atrocious, minimalist sort of keyboard/screen
+conversation tool, using a grotesque, machine-dependent protocol.
+IRC does everything talk does, but with a better protocol, allowing
+more than 2 users to talk at once, with access across the aggregate
+Internet, and providing a whole raft of other useful features.
+
+Note (added Apr 7, 1998): The above statement has been left there for
+historical reasons.  It should be noted however that IRC is not any
+longer a replacement for talk(1).  At the time IRC was first developed,
+people connected to internet all were using accounts on UNIX Operating
+Systems, which almost all did run a non-restricted fingerd and a talkd.
+This allowed to see if someone was logged in (with finger) and then
+summon him to talk by connecting to his talk daemon.  For IRC however it
+is necessary to already be connected to an IRC server and one needs
+to pay attention to the window of the IRC client in order to see if someone
+wants to talk to you.  Therefore IRC has become more of a 'chat box':
+a Real Time Chat environment for chatting, making friends and exchanging
+information.  It has little resemblance anyore with talk(1).
+
+* 2: Entering Internet Relay Chat
+
+To enter Internet Relay Chat you need to run a client, which will start
+connecting to its default server.  More info on clients can be achieved
+from ftp://ftp.undernet.org/pub/irc/docs/faq/underfaq.1.  A lot of clients
+for all kinds of Operating Systems and (programming) languages can be
+found in ftp://ftp.undernet.org/pub/irc/clients/index.html.
+
+* 3: How much can be seen from here
+
+The universe - seriously.
+
+This is most formally called Internet Relay Chat.  Server hosts are
+connected via a tree structure.  The various servers relay control and
+message data among themselves to advertise the existence of other
+servers, users, and the channels and other resources being occupied by
+those users.
+
+* 4: Structure
+
+There is quite a lot of structure to the operation of IRC, as compared
+to crufty old talk(1).  Since so little could be done with talk(1), it
+needed little structure.  But to keep track of people spread literally
+around the world, the structure is useful so that one can speak to exactly
+those people with whom one wishes to speak.  The structure is outlined in
+more detail in the paragraphs below.
+
+** 4.1: Nicknames
+
+All users of IRC are known to the system by a `nickname.'  A nickname
+can be chosen at the moment the client connects, but can be changed at
+any time.  Nickname clashes are not allowed; this is enforced by the servers.
+If one's intended nickname clashes with someone else as one enters chat, one
+will not be able to complete entry to IRC until one changes one's nickname
+to something else.
+
+** 4.2: Presence on a channel
+
+Fundamental to the operation of IRC is the concept of a channel.  All
+users are `on a channel' while inside IRC.  One enters the `null
+channel' first.  One cannot send any messages while not in any
+chatting channel unless one has set up a private conversation in some
+way.  The number of channels is virtually unlimited - whatever will
+fit in a string of 200 characters and starts with a #, & or + sign.
+A channel which is prefixed with a '#' (pound sign) is a global channel;
+available to everyone on the network.  A channel prefixed with a
+'&' (ampersand) is a local channel; only available to users on the server
+you are connected to.  While a channel prefixed with a + (addition sign)
+are global and modeless; those channels do accept mode changes.
+
+** 4.3: Main modes of #channels
+
+Public
+
+This is the default mode for a channel.  When one is on a public
+channel, one can be seen by all other users (if one's own user mode
+permits this).  Anyone can notice users on a public channel and join
+such a channel's conversation.
+
+Private
+
+This means that, although anyone can see that one is using chat, no
+one can tell what channel one is using unless one is already on that
+channel with oneself.  Since the number of potential channels is in
+the billions, this is quite some security - all one gives away is the
+acknowledgement that one is using chat.
+
+Secret
+
+While one is on a secret channel, no one who is not on one's channel
+with oneself can even see that one is there.  One's name does not show
+up in a wildcard search of active users.  Of course, making a channel
+like '#test' secret gives a huge change to be discovered anyway.
+
+Changing the mode
+
+The mode of a channel (private, secret, invite-only, moderated,
+topic-limited, person-number-limited, no-messages-to-channel, ban
+someone from channel, etc.) is set by a channel operator, who is the
+first person to join a channel, or someone who has had channel
+operatorship bestowed on them by another channel operator. 
+
+Local channels
+
+Channels which are prefixed with the ampersand (&) sign are local
+channels which mean they can only be accessed to users who are on
+the same server.  For example, &help may exist on every server on
+the network, however each of them are different channels whereas
+global (#) channels are just one channel for the entire network.
+
+Modeless channels
+
+Channels that have a name that start with a plus sign (+) instead,
+are modeless.  This means that nobody is channel operator and hence
+no mode changes can be done.  The default mode of a +channel is "+nt".
+The intention of modeless channels is to avoid channel wars by making
+all users on that channel a-priori equal.  The only possible abuse,
+channel flooding, should be solved with /ignore.
+
+*** 4.4: Conversations not using channels
+
+It is possible to conduct conversations with others without using the
+formalized channel structure.  Doing so requires that two people set
+themselves up for private conversation using special commands; see
+User Commands below.
+
+** 5: Getting help
+
+Type "/help."  Follow the instructions.  Since this is a client feature
+it might not work for you, in which case you'd have to consult your
+local IRC guru or someone on the net.
+
+** 5.1: User commands
+
+In most clients, commands must start with a '/' (for example: /join #test).
+The most important commands supported by IRC are:
+
+      help      quit       who     whois
+      list     topic      join      part
+     links       msg    invite   silence
+     names     stats      nick      away
+      info     clear     query    ignore
+      mode
+
+Also read the file ADD-TO-IRCRC for a description of Undernet specific
+commands and an example script for the ircII client.
+
+*** 5.1.1: /quit [comment]
+
+/quit exits chat.  Optional comment may be included; see above.
+
+*** 5.1.2: /who [channelname_mask | user@host.mask]
+
+/who returns information on who is using chat.  Users of public channels
+show up with one of their channels identified, if any.  Users of private
+channels appear, but they are specified as being on a private, unspecified
+channel.  Users of secret channels and users whose user mode is +i (invisible)
+do not appear at all.
+
+Giving a channel name as an argument to /who returns only those users of the
+specified channel.  This still doesn't show users of secret channel or
+invisible users one is actually on the same channel with them.  Users
+of private channels are shown, if an exact channel name is given.
+
+For a detailed explanation of the many options of /who, see doc/readme.who !
+
+*** 5.1.3: /whois <nickname>
+
+This returns information about individual users.  Type "/whois nickname"
+to get information on the login name and host from which the nicknamed
+user comes.  You can specify multiple nicknames to query by seperating
+each with a comma.
+
+*** 5.1.4: /topic <some topic string>
+
+Channels can be given off-the-cuff "topics."  Saying "/topic some
+string of text" will associate that topic with the current channel.
+
+*** 5.1.5: /list [options] [channel.mask]
+
+/list will give lists of active channels, the number of users of each,
+and the topics therewith associated.  Again, secret channels do not
+appear and private channels only appear as Prv.
+
+[options] is a comma seperated list of one or more of the following options:
+
+	>nnn
+	<nnn
+	C<ccc
+	C>ccc
+	T<ttt
+    and T>ttt
+
+This comma seperated list may not contain spaces.
+Here `nnn' is the minimum or maximum number of users on a channel,
+`ccc' is the minimum or maximum age or creation time of a channel, in
+respectively seconds or UTC.  And `ttt' is the minimum or maximum age
+or creation time of the topic of the channel, in respectively seconds
+or UTC.
+
+On most servers, if no options are given, the server will use a
+default option (like "T<10") in order to strongly reduce the of number
+of listed channels.
+
+*** 5.1.6: /join <channel> [key]
+
+/join <channel_name> is the means to enter a channel.  Give the channel
+name as an argument.  If this is a secret or hidden channel, /who
+commands will show oneself and any other users of one's channel.
+
+One's arrival on a channel is announced to the rest of the users
+already on that channel.  Silent, anonymous "lurking" is not
+supported.
+
+If the channel is locked with a key, you need to add the [key]
+parameter which acts as a password (cannot contain spaces).
+
+*** 5.1.7: /msg <nick> <some text string>
+
+A single message can be sent privately to a certain user with /msg.
+Type /msg nickname and the text to be sent.  It will be sent privately
+to the indicated nickname.
+
+*** 5.1.8: /invite <nick> <#channel>
+
+If there is a user online to whom one wishes to speak, one may invite
+that user to join oneself on a certain channel.  One types "/invite
+nickname" with an optional channel name.  The receiving user gets a
+one-line message indicating the sender and the invitation.  The
+receiving user is free to ignore the invitation, of course.  You
+cannot invite users to a modeless channel.
+
+*** 5.1.9: /ignore <nick!user@host.mask>
+
+If one wants to ignore messages sent by some other user or users, it
+may be done with /ignore command.  One can ignore someone by their
+nickname, or by their user@host data.  Wildcards may be used.  /ignore
+is only intended to ignore annoying public messages (messages sent to
+a channel), to stop flooding (a huge number of messages per second)
+you have to use banning for channel messages, and /silence for private
+messages.  /mode <your nick> +d stops all messages from ALL channels.
+
+*** 5.1.12: /silence [nick!user@host.mask]
+
+This command effectively stops private message flooding at the server
+of the flooder.  You can use "/silence nick" to get a list of the
+silence masks of 'nick'.  This command is undernet specific and therefor
+not supported by all clients unless you add specifically a line to your
+clients configuration file.
+
+*** 5.1.11: /nick <new_nick>
+
+One can change nicknames by issuing "/nick new-nickname."  All users
+on one's channel will be informed about the change.  NOTE: If one enters
+chat with a nickname clash (e.g., one's login name is the same as
+someone else's, and the other user got there first), the system will
+not let one enter until one issues a /nick command with a unique
+nickname.  Nicknames are limited to nine characters in length on the
+Undernet.
+
+*** 5.1.12: /mode #channel [lots of parameters]
+
+This command can be used for altering the various modes of a channel
+(see the explanation of channel modes above).  /mode command can only
+be issued by channel operators.  Please use /help, or the manual of
+your client to find out about this command.
+
+If you would like a list of the current modes in the channel, type
+/mode <channel> (you do not need to be a channel operator to do this).
+For a list of channel bans, type /mode <channel> +b.
+
+* 6: Questions, problems, troubles?
+
+If you have problems, please get and read the FAQs from
+ftp.undernet.org:/pub/irc/docs/underfaq.1 and underfaq.2.
+You can also ask for help on some of the operator channels on IRC,
+for example #help.  They will be able to assist you in whatever
+problems you are having with IRC.
