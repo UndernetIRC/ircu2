@@ -97,8 +97,6 @@
 #include "support.h"
 #include "whocmds.h"
 
-#include "list.h"
-
 #include <assert.h>
 #include <string.h>
 
