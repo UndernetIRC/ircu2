@@ -1,11 +1,13 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.20 2000-03-22 04:43:59 bleep Exp $
+# $Id: ChangeLog,v 1.21 2000-03-24 10:14:20 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
 #-----------------------------------------------------------------------------
+2000-03-23 Thomas Helvey <tomh@inxpress.net>
+  * Merge in changes from production
 2000-03-22 Thomas Helvey <tomh@inxpress.net>
   * numicks.c: Tweak to numnick generator to reduce possibility of duplicates.
   * rfc1459.unet: Add Maniac's documentation for /names 0

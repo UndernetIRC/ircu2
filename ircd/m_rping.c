@@ -101,6 +101,15 @@
 
 #include <assert.h>
 
+
+/*
+ * Old P10:
+ * Sending [:defiant.atomicrevs.net RPING Z Gte- 953863987 524184 :<No client start time>] to 
+ * alphatest.atomicrevs.net
+ * Full P10:
+ * Parsing: j RI Z jAA 953865133 0 :<No client start time>
+ */
+
 /*
  * ms_rping - server message handler
  * -- by Run
@@ -119,52 +128,59 @@
  */
 int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
+  struct Client* destination = FindNServer(parv[1]);
+  assert(0 != cptr);
+  assert(0 != sptr);
+  assert(IsServer(cptr));
 
+  /*
+   * shouldn't happen
+   */
   if (!IsPrivileged(sptr))
     return 0;
 
-  if (parc < (IsAnOper(sptr) ? (MyConnect(sptr) ? 2 : 3) : 6))
-  {
-    return need_more_params(sptr, "RPING");
-    return 0;
+  if (IsServer(sptr)) {
+    if (parc < 6) {
+      /*
+       * PROTOCOL ERROR
+       */
+      return need_more_params(sptr, "RPING");
+    }
+    if ((destination = FindNServer(parv[1]))) {
+      /*
+       * if it's not for me, pass it on
+       */
+      if (IsMe(destination))
+        sendto_one(cptr, "%s " TOK_RPONG " %s %s %s %s :%s", NumServ(&me),
+                   parv[0], parv[2], parv[3], parv[4], parv[5]);
+      else
+        sendto_one(destination, "%s " TOK_RPING " %s %s %s %s :%s",
+                   parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]); 
+    }
   }
-  if (MyUser(sptr))
-  {
-    if (parc == 2)
-      parv[parc++] = me.name;
-    else if (!(acptr = find_match_server(parv[2])))
-    {
-      parv[3] = parv[2];
-      parv[2] = me.name;
-      parc++;
+  else {
+    if (parc < 3) {
+      /*
+       * PROTOCOL ERROR
+       */
+      return need_more_params(sptr, "RPING");
+    }
+    /*
+     * Haven't made it to the start server yet, if I'm not the start server
+     * pass it on.
+     */
+    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) != HUNTED_ISME)
+      return 0;
+    /*
+     * otherwise ping the destination from here
+     */
+    if ((destination = find_match_server(parv[1]))) {
+      assert(IsServer(destination));
+      sendto_one(destination, "%s " TOK_RPING " %s %s%s %s :%s",
+                 NumServ(&me), NumServ(destination), NumNick(sptr), militime(0, 0), parv[3]);
     }
     else
-      parv[2] = acptr->name;
-    if (parc == 3)
-      parv[parc++] = "<No client start time>";
-  }
-
-  if (IsAnOper(sptr))
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) !=
-        HUNTED_ISME)
-      return 0;
-    if (!(acptr = find_match_server(parv[1])) || !IsServer(acptr))
-    {
       sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
-      return 0;
-    }
-    sendto_one(acptr, ":%s RPING %s %s %s :%s",
-         me.name, NumServ(acptr), sptr->name, militime(0, 0), parv[3]);
-  }
-  else
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s %s %s :%s", 1, parc, parv)
-        != HUNTED_ISME)
-      return 0;
-    sendto_one(cptr, ":%s RPONG %s %s %s %s :%s", me.name, parv[0],
-        parv[2], parv[3], parv[4], parv[5]);
   }
   return 0;
 }
@@ -173,67 +189,57 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * mo_rping - oper message handler
  * -- by Run
  *
+ *
+ * Receive:
+ *          RPING blah.*
+ *          RPING blah.* :<start time>
+ *          RPING blah.* server.* :<start time>
+ *
  *    parv[0] = sender (sptr->name thus)
- * if sender is a person: (traveling towards start server)
- *    parv[1] = pinged server[mask]
- *    parv[2] = start server (current target)
- *    parv[3] = optional remark
- * if sender is a server: (traveling towards pinged server)
- *    parv[1] = pinged server (current target)
- *    parv[2] = original sender (person)
- *    parv[3] = start time in s
- *    parv[4] = start time in us
- *    parv[5] = the optional remark
+ *    parv[1] = pinged server name or mask (required)
+ *    parv[2] = start server name or mask (optional, defaults to me)
+ *    parv[3] = client start time (optional) 
+ * 
+ * Send: NumNick(sptr) RPING blah.* server.net :<start time> (hunt_server)
+ *       NumServ(&me) RPING NumServ(blah.bar.net) NumNick(sptr) :<start time> (here)
  */
 int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
+  struct Client* acptr = 0;
+  const char*    start_time = "<No client start time>";
 
-  if (!IsPrivileged(sptr))
-    return 0;
+  assert(0 != cptr);
+  assert(0 != sptr);
+  assert(cptr == sptr);
+  assert(IsAnOper(sptr));
 
-  if (parc < (IsAnOper(sptr) ? (MyConnect(sptr) ? 2 : 3) : 6))
-  {
+  if (parc < 2)
     return need_more_params(sptr, "RPING");
-    return 0;
-  }
-  if (MyUser(sptr))
-  {
-    if (parc == 2)
-      parv[parc++] = me.name;
-    else if (!(acptr = find_match_server(parv[2])))
-    {
-      parv[3] = parv[2];
-      parv[2] = me.name;
-      parc++;
+
+  if (parc > 2) {
+    if ((acptr = find_match_server(parv[2])) && !IsMe(acptr)) {
+      parv[2] = acptr->name;
+      if (3 == parc) {
+        /*
+         * const_cast<char*>(start_time);
+         */
+        parv[parc++] = (char*) start_time;
+      }
+      hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv);
+      return 0;
     }
     else
-      parv[2] = acptr->name;
-    if (parc == 3)
-      parv[parc++] = "<No client start time>";
+      start_time = parv[2];
   }
 
-  if (IsAnOper(sptr))
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) !=
-        HUNTED_ISME)
-      return 0;
-    if (!(acptr = find_match_server(parv[1])) || !IsServer(acptr))
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
-      return 0;
-    }
-    sendto_one(acptr, ":%s RPING %s %s %s :%s",
-         me.name, NumServ(acptr), sptr->name, militime(0, 0), parv[3]);
+  if ((acptr = find_match_server(parv[1]))) {
+    assert(IsServer(acptr));
+    sendto_one(acptr, "%s " TOK_RPING " %s %s%s %s :%s",
+               NumServ(&me), NumServ(acptr), NumNick(sptr), militime(0, 0), start_time);
   }
   else
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s %s %s :%s", 1, parc, parv)
-        != HUNTED_ISME)
-      return 0;
-    sendto_one(cptr, ":%s RPONG %s %s %s %s :%s", me.name, parv[0],
-        parv[2], parv[3], parv[4], parv[5]);
-  }
+    sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]);
+
   return 0;
 }
 

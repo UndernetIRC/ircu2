@@ -356,7 +356,8 @@ int init_resolver(void)
   errno = h_errno = 0;
   start_resolver();
   Debug((DEBUG_DNS, "Resolver: fd %d errno: %d h_errno: %d: %s",
-         ResolverFileDescriptor, errno, h_errno, strerror(errno)));
+         ResolverFileDescriptor, errno, h_errno, 
+         (strerror(errno)) ? strerror(errno) : "Unknown"));
   return ResolverFileDescriptor;
 }
 
@@ -561,7 +562,8 @@ static int send_res_msg(const u_char* msg, int len, int rcount)
       ++sent;
     }
     else
-      ircd_log(L_ERROR, "Resolver: send failed %s", strerror(errno));
+      ircd_log(L_ERROR, "Resolver: send failed %s", 
+               (strerror(errno)) ? strerror(errno) : "Unknown");
   }
   return sent;
 }
@@ -965,7 +967,8 @@ int resolver_read(void)
     return 0;
   }
   if (rc < sizeof(HEADER)) {
-    Debug((DEBUG_DNS, "Resolver: short reply %d: %s", rc, strerror(errno)));
+    Debug((DEBUG_DNS, "Resolver: short reply %d: %s", rc, 
+           (strerror(errno)) ? strerror(errno) : "Unknown"));
     return 0;
   }
   /*
