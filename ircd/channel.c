@@ -2804,7 +2804,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   /* If we're building a user visible MODE or HACK... */
   if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK2 |
-		       MODEBUF_DEST_HACK3   | MODEBUF_DEST_HACK4)) {
+		       MODEBUF_DEST_HACK3   | MODEBUF_DEST_HACK4 |
+		       MODEBUF_DEST_LOG)) {
     /* Set up the parameter strings */
     addstr[0] = '\0';
     addstr_i = 0;
@@ -2866,6 +2867,22 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		     "]", app_source->name, mbuf->mb_channel->chname,
 		     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
 		     remstr, addstr, mbuf->mb_channel->creationtime);
+
+#ifdef OPATH
+    if (mbuf->mb_dest & MODEBUF_DEST_LOG) {
+      if (IsServer(mbuf->mb_source))
+	write_log(OPATH, TIME_T_FMT " %s OPMODE %s %s%s%s%s%s%s\n", TStime(),
+		  mbuf->mb_source->name, mbuf->mb_channel->chname,
+		  rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
+		  remstr, addstr);
+      else
+	write_log(OPATH, TIME_T_FMT " %s!%s@%s OPMODE %s %s%s%s%s%s%s\n",
+		  TStime(), mbuf->mb_source->name,
+		  mbuf->mb_source->user->username, mbuf->mb_source->user->host,
+		  mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
+		  addbuf_i ? "+" : "", addbuf, remstr, addstr);
+    }
+#endif
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
       sendto_channel_butserv(mbuf->mb_channel, app_source,

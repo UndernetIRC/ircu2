@@ -235,6 +235,10 @@ comment 'Bad Channel G-Lines allow operators to add channel masks to a list whic
     if [ "$CONFIG_LOG_JUPES" = "y" ]; then
       string '   Give the path and(or) filename of this log file' JPATH 'jupe.log'
     fi
+  bool 'Do you want to log OPMODEs and CLEARMODEs to a separate file' CONFIG_LOG_OPMODES y
+    if [ "$CONFIG_LOG_OPMODES" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' OPATH 'opmode.log'
+    fi
   bool 'Do you want to log connecting users to a separate file' CONFIG_LOG_USERS
     if [ "$CONFIG_LOG_USERS" = "y" ]; then
       string '   Give the path and(or) filename of this log file' FNAME_USERLOG $DPATH/users
@@ -385,6 +389,6 @@ comment 'Mandatory defines (you should leave these untouched)'
 endmenu
 
 mainmenu_option next_comment
-comment 'Experimental options (Do you know what you'\''re doing?'
+comment 'Experimental options (Do you know what you'\''re doing?)'
   bool 'Use new MODE implementation' CONFIG_NEW_MODE
 endmenu

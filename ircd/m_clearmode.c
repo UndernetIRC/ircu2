@@ -223,9 +223,11 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   if (del_mode & MODE_KEY)
     chptr->mode.key[0] = '\0';
 
+#ifndef OPATH
   /* Don't propagate CLEARMODE if it's a local channel */
   if (IsLocalChannel(chptr->chname))
     return 0;
+#endif
 
   /* Ok, build control string again */
   for (flag_p = flags; flag_p[0]; flag_p += 2)
@@ -234,13 +236,25 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
   control_buf[control_buf_i] = '\0';
 
-  /* Then send it */
+#ifdef OPATH
   if (IsServer(sptr))
-    sendto_serv_butone(cptr, "%s " TOK_CLEARMODE " %s %s", NumServ(sptr),
-		       chptr->chname, control_buf);
+    write_log(OPATH, TIME_T_FMT " %s CLEARMODE %s %s\n", TStime(), sptr->name,
+	      chptr->chname, control_buf);
   else
-    sendto_serv_butone(cptr, "%s%s " TOK_CLEARMODE " %s %s", NumNick(sptr),
-		       chptr->chname, control_buf);
+    write_log(OPATH, TIME_T_FMT " %s!%s@%s CLEARMODE %s %s\n", TStime(),
+	      sptr->name, sptr->user->username, sptr->user->host,
+	      chptr->chname, control_buf);
+#endif
+
+  /* Then send it */
+  if (!IsLocalChannel(chptr->chname)) {
+    if (IsServer(sptr))
+      sendto_serv_butone(cptr, "%s " TOK_CLEARMODE " %s %s", NumServ(sptr),
+			 chptr->chname, control_buf);
+    else
+      sendto_serv_butone(cptr, "%s%s " TOK_CLEARMODE " %s %s", NumNick(sptr),
+			 chptr->chname, control_buf);
+  }
 
   return 0;
 }
