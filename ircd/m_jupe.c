@@ -194,6 +194,7 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * parv[4] = [Comment]
  *
  */
+#ifdef CONFIG_OPERCMDS
 int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr = 0;
@@ -259,6 +260,7 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return jupe_add(cptr, sptr, server, reason, expire_off, TStime(), local,
 		  active);
 }
+#endif /* CONFIG_OPERCMDS */
 
 /*
  * m_jupe - user message handler

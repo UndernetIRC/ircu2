@@ -1,5 +1,34 @@
 2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/gline.c: remove old, dead code.
+
+	* ircd/m_gline.c (mo_gline): disallow setting of global G-lines
+	unless CONFIG_OPERCMDS is enabled; disallow listing of all G-lines
+	(don't advertise proxies); remove dead code
+
+	* ircd/parse.c: oper handler for JUPE only lists jupes unless
+	CONFIG_OPERCMDS is enabled
+
+	* ircd/m_jupe.c (mo_jupe): don't compile mo_jupe() if
+	CONFIG_OPERCMDS is not enabled; we'll disable it in parse.c
+
+	* ircd/m_opmode.c (mo_opmode): if CONFIG_OPERCMDS is not enabled,
+	always return ERR_DISABLED
+
+	* ircd/m_clearmode.c (mo_clearmode): if CONFIG_OPERCMDS is not
+	enabled, always return ERR_DISABLED
+
+	* ircd/s_err.c: add error message to indicate disabled commands
+
+	* include/numeric.h (ERR_DISABLED): to indicate disabled commands
+
+	* doc/Configure.help: add documentation for CONFIG_OPERCMDS
+
+	* config/config-sh.in: add CONFIG_OPERCMDS, default both it and
+	CONFIG_NEW_MODE to 'y' for now
+
+	* ircd/gline.c (gline_list): fix a minor formatting bogon
+
 	* BUGS: since I fixed that bug, might as well mark it fixed.
 
 	* ircd/m_join.c: look up badchans with GLINE_EXACT
@@ -466,7 +495,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.84 2000-04-14 17:08:06 kev Exp $
+# $Id: ChangeLog,v 1.85 2000-04-14 17:37:00 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

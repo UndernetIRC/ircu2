@@ -140,6 +140,9 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+#ifndef CONFIG_OPERCMDS
+  return send_error_to_client(sptr, ERR_DISABLED, "OPMODE");
+#else
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
   struct Membership *member;
@@ -169,5 +172,6 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   modebuf_flush(&mbuf); /* flush the modes */
 
   return 0;
+#endif /* CONFIG_OPERCMDS */
 }
 

@@ -295,6 +295,9 @@ ms_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int
 mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+#ifndef CONFIG_OPERCMDS
+  return send_error_to_client(sptr, ERR_DISABLED, "CLEARMODE");
+#else
   struct Channel *chptr;
   char *control = "ovpsmikbl"; /* default control string */
 
@@ -313,4 +316,5 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return do_clearmode(cptr, sptr, chptr, control);
+#endif /* CONFIG_OPERCMDS */
 }

@@ -390,5 +390,6 @@ endmenu
 
 mainmenu_option next_comment
 comment 'Experimental options (Do you know what you'\''re doing?)'
-  bool 'Use new MODE implementation' CONFIG_NEW_MODE
+  bool 'Use new MODE implementation' CONFIG_NEW_MODE y
+  bool 'Use new oper commands (JUPE, CLEARMODE, OPMODE, GLINE)' CONFIG_OPERCMDS y
 endmenu
