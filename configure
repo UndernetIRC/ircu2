@@ -1944,12 +1944,12 @@ else
 #line 1945 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-int main()
+main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) return(1);
+  if (!f) exit(1);
   fprintf(f, "%d\n", sizeof(short));
-  return(0);
+  exit(0);
 }
 EOF
 if { (eval echo configure:1956: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -1983,12 +1983,12 @@ else
 #line 1984 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-int main()
+main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) return(1);
+  if (!f) exit(1);
   fprintf(f, "%d\n", sizeof(int));
-  return(0);
+  exit(0);
 }
 EOF
 if { (eval echo configure:1995: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -2022,12 +2022,12 @@ else
 #line 2023 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-int main()
+main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) return(1);
+  if (!f) exit(1);
   fprintf(f, "%d\n", sizeof(long));
-  return(0);
+  exit(0);
 }
 EOF
 if { (eval echo configure:2034: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -2061,12 +2061,12 @@ else
 #line 2062 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-int main()
+main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) return(1);
+  if (!f) exit(1);
   fprintf(f, "%d\n", sizeof(void *));
-  return(0);
+  exit(0);
 }
 EOF
 if { (eval echo configure:2073: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -4087,3 +4087,27 @@ chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
 
+
+echo "
+ircu is now hopefully configured for your system.
+
+  Host system:         $host_os
+  Prefix:              $prefix
+  Asserts:             $unet_cv_enable_asserts
+  Warnings:            $unet_cv_enable_warnings
+  Debug:               $unet_cv_enable_debug
+  Profile:             $unet_cv_enable_profile
+  Head-in-sand:        $unet_cv_enable_headinsand
+  Owner/mode:          $unet_cv_with_owner.$unet_cv_with_group ($unet_cv_with_mode)
+  Chroot:              $unet_cv_with_chroot
+  
+  Domain:              $unet_cv_with_domain
+  DPath:               $unet_cv_with_dpath
+  CPath:               $unet_cv_with_cpath
+  LPath:               $unet_cv_with_lpath
+  Maximum connections: $unet_cv_with_maxcon
+  
+  poll() engine:       $unet_cv_enable_poll
+  kqueue() engine:     $unet_cv_enable_kqueue
+  /dev/poll engine:    $unet_cv_enable_devpoll
+"

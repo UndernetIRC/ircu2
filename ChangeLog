@@ -1,3 +1,10 @@
+2002-04-09  Alex Badea  <vampire@p16.pub.ro>
+
+	* configure.in: added a human-readable report of configured
+	options at the end of the configure process
+
+	* configure: regenerated with autoconf
+
 2002-04-08  Gavin Grieve  <ggrieve@ihug.co.nz>
 
 	* include/supported.h: change CHARSET to CASEMAPPING after
