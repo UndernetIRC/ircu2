@@ -19,11 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.7 2004-08-19 04:00:43 entrope Exp $
+ * $Id: config.h.in,v 1.8 2004-09-09 19:43:01 entrope Exp $
  */
-
-/* Define if you have the setrlimit function */
-#undef HAVE_SETRLIMIT
 
 /* Define one of these, depending on wether you have
  * POSIX, BSD or SYSV non-blocking stuff
@@ -45,13 +42,6 @@
  */
 #undef uint16_t
 #undef uint32_t
-
-/* Define to force the poll() function to be used */
-#undef USE_POLL
-/* Define to enable the /dev/poll engine */
-#undef USE_DEVPOLL
-/* Define to enable the kqueue engine */
-#undef USE_KQUEUE
 
 /* Define to enable various debugging code in the server; DO NOT USE
  * THIS ON PRODUCTION SERVERS ON PAIN OF DELINKING!
@@ -82,24 +72,8 @@
 /* Define to be the maximum number of network connections */
 #undef MAXCONNECTIONS
 
-
-/* Configuration file name */
-#undef CPATH
-
-/* Enable debugging code */
-#undef DEBUGMODE
-
-/* Domain name to be used for some statistics gathering */
-#undef DOMAINNAME
-
-/* Path to data directory */
-#undef DPATH
-
 /* Define to implement epoll system calls */
 #undef EPOLL_NEED_BODY
-
-/* Force inlining for a few critical functions */
-#undef FORCEINLINE
 
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
@@ -177,30 +151,6 @@
 /* Define if we have __va_copy */
 #undef HAVE___VA_COPY
 
-/* Path to debugging log file */
-#undef LPATH
-
-/* Maximum number of network connections */
-#undef MAXCONNECTIONS
-
-/* Disable assertions */
-#undef NDEBUG
-
-/* Define to the address where bug reports for this package should be sent. */
-#undef PACKAGE_BUGREPORT
-
-/* Define to the full name of this package. */
-#undef PACKAGE_NAME
-
-/* Define to the full name and version of this package. */
-#undef PACKAGE_STRING
-
-/* Define to the one symbol short name of this package. */
-#undef PACKAGE_TARNAME
-
-/* Define to the version of this package. */
-#undef PACKAGE_VERSION
-
 /* The size of a `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
@@ -213,9 +163,6 @@
 /* The size of a `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
 
-/* Path to executable for restarts */
-#undef SPATH
-
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
@@ -224,9 +171,6 @@
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
-
-/* Define to enable the adns resolver */
-#undef USE_ADNS
 
 /* Define to enable the /dev/poll engine */
 #undef USE_DEVPOLL
