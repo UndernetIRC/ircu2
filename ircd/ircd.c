@@ -654,6 +654,8 @@ int main(int argc, char **argv) {
 
   init_resolver();
 
+  motd_init();
+
   if (!init_conf()) {
     ircd_log(L_CRIT, "Failed to read configuration file %s", configfile);
     return 7;
@@ -662,8 +664,6 @@ int main(int argc, char **argv) {
   init_server_identity();
 
   uping_init();
-
-  motd_init();
 
   CurrentTime = time(NULL);
 

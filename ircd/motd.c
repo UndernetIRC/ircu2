@@ -57,21 +57,19 @@ static struct Motd *
 motd_create(const char *hostmask, const char *path, int maxcount)
 {
   struct Motd* tmp;
-  int class = -1;
   int type = MOTD_UNIVERSAL;
   const char* s;
 
   assert(0 != path);
 
   if (hostmask) { /* figure out if it's a class or hostmask */
+    type = MOTD_CLASS; /* all digits, convert to class */
+
     for (s = hostmask; *s; s++)
       if (!IsDigit(*s)) { /* not a digit, not a class... */
 	type = MOTD_HOSTMASK;
 	break;
       }
-
-    type = MOTD_CLASS; /* all digits, convert to class */
-    class = atoi(hostmask);
   }
 
   /* allocate memory and initialize the structure */
@@ -79,10 +77,17 @@ motd_create(const char *hostmask, const char *path, int maxcount)
 
   tmp->next = 0;
   tmp->type = type;
-  if (type == MOTD_HOSTMASK)
+
+  switch (type) {
+  case MOTD_HOSTMASK:
     DupString(tmp->id.hostmask, hostmask);
-  else if (type == MOTD_CLASS)
-    tmp->id.class = class;
+    break;
+
+  case MOTD_CLASS:
+    tmp->id.class = atoi(hostmask);
+    break;
+  }
+
   DupString(tmp->path, path);
   tmp->maxcount = maxcount;
   tmp->cache = 0;
@@ -319,6 +324,8 @@ motd_clear(void)
       next = ptr->next;
       motd_destroy(ptr);
     }
+
+  MotdList.other = 0;
 
   /* now recache local and remote MOTDs */
   motd_cache(MotdList.local);

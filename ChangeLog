@@ -1,3 +1,13 @@
+2000-11-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/motd.c: we were setting type to MOTD_CLASS unconditionally,
+	which was of course stupid; switched to using switch/case in
+	initialization in motd_create(); zero the MotdList.other pointer
+	from motd_clear()
+
+	* ircd/ircd.c (main): motd_init() has to come before init_conf(),
+	or we overwrite init_conf()'s hard work with respect to T-lines
+
 2000-11-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c: comment out report_motd_list and include a
