@@ -1,4 +1,7 @@
 2000-10-30  Isomer <isomer@coders.net>
+	* ircd/m_oper.c: Fixed over agressive cut and no paste
+
+2000-10-30  Isomer <isomer@coders.net>
 
 	* ircd/m_topic.c: Restructured, fixed bug where topics on local
 	channels are propergated (I forget who pointed this out to me, but
