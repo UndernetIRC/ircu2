@@ -1,3 +1,19 @@
+2001-01-29  Thomas Helvey <twhelvey1@home.com>
+
+	* ircd/ircd_reply.c (need_more_params): fix bug that allowed
+	unregistered clients to spam opers with protocol violation
+	messages. Note: the bugfix may have eliminated some useful
+	protocol violation messages.
+	Please send protocol violation messages explicitly from the
+	functions they are discovered in, you have much better context
+	for the error there and it helps to document the behavior of the
+	server. This was also a design bug in that it violated the
+	"A function should do one thing" heuristic. Patching this one
+	would have resulted in a continuous spawning of other bugs over
+	the next 3 years, so I killed it. Check around for stuff this
+	broke and readd the calls to protocol_violation in the functions
+	that need to send the message.
+
 2001-01-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c (mode_parse_ban): stopper a tiny leak--if a ban
