@@ -1,3 +1,7 @@
+2000-04-12  Thomas Helvey <tomh@inxpress.net>
+	* ircd/s_err.c: Cleanup s_err.c make one table so we
+	don't have to do anything tricky to get an error string.
+
 2000-04-12  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* Add port bouncer for http (x/w)
 
@@ -392,7 +396,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.75 2000-04-13 02:54:14 bleep Exp $
+# $Id: ChangeLog,v 1.76 2000-04-13 03:49:06 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
