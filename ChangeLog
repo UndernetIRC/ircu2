@@ -1,3 +1,6 @@
+2003-11-06 Isomer <isomer@undernet.org>
+	* ircd/s_err.c: Fix bug with ERR_UMODEUNKNOWNFLAG introduced by Isomer
+
 2003-11-05 Isomer <isomer@undernet.org>
 	* ircd/gline.c: Display realname glines in /stats g
 

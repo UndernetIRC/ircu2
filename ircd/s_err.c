@@ -1034,7 +1034,7 @@ static Numeric replyTable[] = {
 /* 500 */
   { 0 },
 /* 501 */
-  { ERR_UMODEUNKNOWNFLAG, "%s :Unknown MODE flag", "501" },
+  { ERR_UMODEUNKNOWNFLAG, "%c :Unknown User mode flag", "501" },
 /* 502 */
   { ERR_USERSDONTMATCH, ":Cant change mode for other users", "502" },
 /* 503 */
