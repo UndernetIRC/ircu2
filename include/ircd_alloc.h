@@ -43,7 +43,8 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
 #endif
 
 #ifdef FROBONFREE
-extern void MyFree(void *x);
+extern void MyFrobulatingFree(void *x);
+#define MyFree(x) do { MyFrobulatingFree((x)); (x) = 0; } while(0)
 #else
 #define MyFree(x) do { free((x)); (x) = 0; } while(0)
 #endif

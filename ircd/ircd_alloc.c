@@ -139,7 +139,7 @@ void* MyCalloc(size_t nelem, size_t size)
 
 #ifdef FROBONFREE
 void
-MyFree(void *p)
+MyFrobulatingFree(void *p)
 {
   size_t *stp = (size_t*)p;
   if (p == NULL)
