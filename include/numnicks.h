@@ -20,6 +20,9 @@
  */
 #ifndef INCLUDED_numnicks_h
 #define INCLUDED_numnicks_h
+#ifndef INCLUDED_client_h
+#include "client.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
@@ -41,17 +44,17 @@
 /*
  * Use this macro as follows: sprintf(buf, "%s%s ...", NumNick(cptr), ...);
  */
-#define NumNick(c) (c)->user->server->yxx, (c)->yxx
+#define NumNick(c) cli_yxx((cli_user(c))->server), cli_yxx(c)
 
 /*
  * Use this macro as follows: sprintf(buf, "%s ...", NumServ(cptr), ...);
  */
-#define NumServ(c) (c)->yxx
+#define NumServ(c) cli_yxx(c)
 
 /*
  * Use this macro as follows: sprintf(buf, "%s%s ...", NumServCap(cptr), ...);
  */
-#define NumServCap(c) (c)->yxx, (c)->serv->nn_capacity
+#define NumServCap(c) cli_yxx(c), (cli_serv(c))->nn_capacity
 
 /*
  * Structures

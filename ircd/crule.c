@@ -180,7 +180,7 @@ static int crule_connected(int numargs, void *crulearg[])
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
-    if (match((char *)crulearg[0], acptr->name))
+    if (match((char *)crulearg[0], cli_name(acptr)))
       continue;
     return (1);
   }
@@ -204,7 +204,7 @@ static int crule_directcon(int numargs, void *crulearg[])
   {
     if (!(acptr = LocalClientArray[i]) || !IsServer(acptr))
       continue;
-    if (match((char *)crulearg[0], acptr->name))
+    if (match((char *)crulearg[0], cli_name(acptr)))
       continue;
     return (1);
   }
@@ -227,9 +227,10 @@ static int crule_via(int numargs, void *crulearg[])
   {
     if (!IsServer(acptr) && !IsMe(acptr))
       continue;
-    if (match((char *)crulearg[1], acptr->name))
+    if (match((char *)crulearg[1], cli_name(acptr)))
       continue;
-    if (match((char *)crulearg[0], (LocalClientArray[acptr->from->fd])->name))
+    if (match((char *)crulearg[0],
+	      cli_name(LocalClientArray[(cli_from(acptr))->fd])))
       continue;
     return (1);
   }

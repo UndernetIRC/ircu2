@@ -1,5 +1,26 @@
 2000-12-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/hash.c: use struct Client accessor macros
+
+	* ircd/gline.c: use struct Client accessor macros
+
+	* ircd/crule.c: use struct Client accessor macros
+
+	* ircd/client.c: use struct Client accessor macros; remove some
+	dead code
+
+	* ircd/class.c: use struct Client accessor macros
+
+	* ircd/channel.c: use struct Client accessor macros; remove some
+	dead code
+
+	* ircd/IPcheck.c: use struct Client accessor macros
+
+	* include/numnicks.h: use struct Client accessor macros
+
+	* include/client.h: first step to divorcing struct Client and
+	struct Connection--define accessor macros and use them
+
 	* ircd/gline.c: When Uworld removed Uworld-set G-lines, only the
 	uplink would remove them.  This is because the removal protocol
 	message wasn't being sent to the uplinks.  This is fixed by fixing

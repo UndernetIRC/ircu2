@@ -150,8 +150,8 @@ unsigned int get_client_class(struct Client *acptr)
   struct ConnectionClass *cl;
   unsigned int retc = BAD_CLIENT_CLASS;
 
-  if (acptr && !IsMe(acptr) && (acptr->confs))
-    for (tmp = acptr->confs; tmp; tmp = tmp->next)
+  if (acptr && !IsMe(acptr) && (con_confs(acptr)))
+    for (tmp = con_confs(acptr); tmp; tmp = tmp->next)
     {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
@@ -159,7 +159,7 @@ unsigned int get_client_class(struct Client *acptr)
         retc = ConClass(cl);
     }
 
-  Debug((DEBUG_DEBUG, "Returning Class %d For %s", retc, acptr->name));
+  Debug((DEBUG_DEBUG, "Returning Class %d For %s", retc, cli_name(acptr)));
 
   return (retc);
 }
@@ -171,7 +171,7 @@ unsigned int get_client_ping(struct Client *acptr)
   struct ConfItem *aconf;
   struct SLink *link;
 
-  link = acptr->confs;
+  link = con_confs(acptr);
 
   if (link) {
     while (link) {
@@ -186,11 +186,11 @@ unsigned int get_client_ping(struct Client *acptr)
   }
   else {
     ping = PINGFREQUENCY;
-    Debug((DEBUG_DEBUG, "No Attached Confs for: %s", acptr->name));
+    Debug((DEBUG_DEBUG, "No Attached Confs for: %s", cli_name(acptr)));
   }
   if (ping <= 0)
     ping = PINGFREQUENCY;
-  Debug((DEBUG_DEBUG, "Client %s Ping %d", acptr->name, ping));
+  Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
   return (ping);
 }
 
@@ -262,19 +262,19 @@ unsigned int get_sendq(struct Client *cptr)
   assert(0 != cptr);
   assert(0 != cptr->local);
 
-  if (cptr->max_sendq)
-    return cptr->max_sendq;
+  if (con_max_sendq(cptr))
+    return con_max_sendq(cptr);
 
-  else if (cptr->confs) {
+  else if (con_confs(cptr)) {
     struct SLink*     tmp;
     struct ConnectionClass* cl;
 
-    for (tmp = cptr->confs; tmp; tmp = tmp->next) {
+    for (tmp = con_confs(cptr); tmp; tmp = tmp->next) {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
       if (ConClass(cl) != BAD_CLIENT_CLASS) {
-        cptr->max_sendq = MaxSendq(cl);
-        return cptr->max_sendq;
+        con_max_sendq(cptr) = MaxSendq(cl);
+        return con_max_sendq(cptr);
       }
     }
   }

@@ -165,16 +165,16 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
      * get the users!
      */
     if ((acptr = LocalClientArray[fd])) {
-      if (!acptr->user)
+      if (!cli_user(acptr))
 	continue;
 	
       if (acptr->user->username && 
-          match (gline->gl_user, acptr->user->username) != 0)
+          match (gline->gl_user, (cli_user(acptr))->username) != 0)
                continue;
           
       if (GlineIsIpMask(gline)) {
-        Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",cptr->ip.s_addr,gline->ipnum.s_addr,gline->bits));
-        if ((acptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+        Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",(cli_ip(cptr)).s_addr,gline->ipnum.s_addr,gline->bits));
+        if (((cli_ip(acptr)).s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
           continue;
       }
       else {
@@ -257,8 +257,8 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   /* Inform ops... */
   sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s, expiring at "
-		       "%Tu: %s",
-		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       "%Tu: %s", IsServer(sptr) ? cli_name(sptr) :
+		       cli_name((cli_user(sptr))->server),
 		       flags & GLINE_LOCAL ? "local" : "global",
 		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
 		       expire + TSoffset, reason);
@@ -310,8 +310,8 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
-		       "expiring at %Tu: %s",
-		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       "expiring at %Tu: %s", IsServer(sptr) ? cli_name(sptr) :
+		       cli_name((cli_user(sptr))->server),
 		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -366,8 +366,8 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Inform ops and log it */
   sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
-		       "%s",
-		       IsServer(sptr) ? sptr->name : sptr->user->server->name,
+		       "%s", IsServer(sptr) ? cli_name(sptr) :
+		       cli_name((cli_user(sptr))->server),
 		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
 		       gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
@@ -467,16 +467,16 @@ gline_lookup(struct Client *cptr, unsigned int flags)
 	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
      
-    if (match(gline->gl_user, cptr->user->username) != 0)
+    if (match(gline->gl_user, (cli_user(cptr))->username) != 0)
       continue;
     	 
     if (GlineIsIpMask(gline)) {
-      Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",cptr->ip.s_addr,gline->ipnum.s_addr,gline->bits));
-      if ((cptr->ip.s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+      Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",(cli_ip(cptr)).s_addr,gline->ipnum.s_addr,gline->bits));
+      if (((cli_ip(cptr)).s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
         continue;
     }
     else {
-      if (match(gline->gl_host, cptr->user->host) != 0) 
+      if (match(gline->gl_host, (cli_user(cptr))->host) != 0) 
         continue;
     }
     return gline;
