@@ -24,6 +24,7 @@
 #include "ircd_alloc.h"
 #include "ircd_log.h"
 
+#include <assert.h>
 #include <sys/poll.h>
 #include <time.h>
 #include <unistd.h>
@@ -178,6 +179,7 @@ engine_events(struct Socket* sock, unsigned int new_events)
 	       state_to_events(sock->s_state, new_events)); /* new events */
 }
 
+/* socket going away */
 static void
 engine_delete(struct Socket* sock)
 {
@@ -197,6 +199,7 @@ engine_delete(struct Socket* sock)
     poll_count--;
 }
 
+/* socket event loop */
 static void
 engine_loop(struct Generators* gen)
 {

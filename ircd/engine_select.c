@@ -24,6 +24,7 @@
 #include "ircd.h"
 #include "ircd_log.h"
 
+#include <assert.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
@@ -160,6 +161,7 @@ engine_delete(struct Socket* sock)
     highest_fd--;
 }
 
+/* engine event loop */
 static void
 engine_loop(struct Generators* gen)
 {
