@@ -1,7 +1,10 @@
 2002-02-18 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Changed m_kill() to do_kill() because its not
-	a message handler.
+	a message handler, and some general cleanups and bug fixes. 
+
+	* include/ircd_policy.h: Added HEAD_IN_SAND_KILLWHO for hiding
+	kill source.
 	
 2002-02-16  Tim Vogelsang <net@astrolink.org>
 
