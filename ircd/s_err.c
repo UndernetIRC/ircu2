@@ -556,7 +556,7 @@ static Numeric replyTable[] = {
 /* 261 */
   { RPL_TRACELOG, "File %s %d", "261" },
 /* 262 */
-  { RPL_TRACEPING, "Ping %s %s", "262" },
+  { RPL_TRACEEND, ":End of TRACE", "262" },
 /* 263 */
   { 0 },
 /* 264 */

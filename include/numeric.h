@@ -156,8 +156,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ADMINEMAIL       259
 
 #define RPL_TRACELOG         261	/* unused */
-#define RPL_TRACEPING        262        /* Extension to RFC1459, unused */
-/*	RPL_TRACEEND	     262	   efnet(?) Numerics List: IRCnet */
+#define RPL_TRACEEND	     262	/* efnet/IRCnet */
 /*      RPL_LOAD_THROTTLED   263           efnet/hybrid */
 /*	RPL_TRYAGAIN	     263	   Numerics List: IRCnet */
 /*	RPL_LOAD2HI	     263	   Dalnet */

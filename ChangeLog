@@ -1,3 +1,11 @@
+2004-09-11  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h, ircd/s_err.c: Remove RPL_TRACEPING, and
+	replace with RPL_TRACEEND.
+
+	* ircd/s_trace.c: Move all the duplicated code in m*_trace() to
+	do_trace().  Implement RPL_TRACEEND, per RFE#830291.
+
 2003-06-20  Alexander Maassen <outsider@key2peace.org>
 
 	* ircd/m_topic.c : Don't allow banned users to set a topic in a
