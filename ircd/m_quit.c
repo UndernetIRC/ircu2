@@ -169,7 +169,7 @@ int m_quit(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
-  if (strlen(comment) > (size_t)TOPICLEN)
+  if (strlen(comment) > TOPICLEN)
     comment[TOPICLEN] = '\0';
   return IsServer(sptr) ? 0 : exit_client(cptr, sptr, sptr, comment);
 }

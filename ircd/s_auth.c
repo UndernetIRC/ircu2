@@ -64,8 +64,8 @@
  * this replaces the original sendheader macros
  */
 static struct {
-  const char* message;
-  size_t      length;
+  const char*  message;
+  unsigned int length;
 } HeaderMessages [] = {
   /* 123456789012345678901234567890123456789012345678901234567890 */
   { "NOTICE AUTH :*** Looking up your hostname\r\n",       43 },
@@ -604,7 +604,7 @@ void send_auth_query(struct AuthRequest* auth)
   struct sockaddr_in us;
   struct sockaddr_in them;
   char               authbuf[32];
-  size_t             count;
+  unsigned int       count;
 
   assert(0 != auth);
   assert(0 != auth->client);
@@ -635,8 +635,8 @@ void send_auth_query(struct AuthRequest* auth)
  */
 void read_auth_reply(struct AuthRequest* auth)
 {
-  char*  username = 0;
-  size_t len;
+  char*        username = 0;
+  unsigned int len;
   /*
    * rfc1453 sez we MUST accept 512 bytes
    */

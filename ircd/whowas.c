@@ -259,24 +259,28 @@ void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
 {
   struct Whowas *tmp;
   int i;
-  int u = 0, a = 0;
-  size_t um = 0, am = 0;
+  int u = 0;
+  int a = 0;
+  size_t um = 0;
+  size_t am = 0;
+  assert(0 != wwu);
+  assert(0 != wwum);
+  assert(0 != wwa);
+  assert(0 != wwam);
 
-  for (i = 0, tmp = whowas; i < NICKNAMEHISTORYLENGTH; i++, tmp++)
-    if (tmp->hashv != WHOWAS_UNUSED)
-    {
+  for (i = 0, tmp = whowas; i < NICKNAMEHISTORYLENGTH; i++, tmp++) {
+    if (tmp->hashv != WHOWAS_UNUSED) {
       u++;
       um += (strlen(tmp->name) + 1);
       um += (strlen(tmp->username) + 1);
       um += (strlen(tmp->hostname) + 1);
       um += (strlen(tmp->servername) + 1);
-      if (tmp->away)
-      {
+      if (tmp->away) {
         a++;
         am += (strlen(tmp->away) + 1);
       }
     }
-
+  }
   *wwu = u;
   *wwum = um;
   *wwa = a;

@@ -237,9 +237,8 @@ void add_gline(struct Client *sptr, int ip_mask, char *host, char *comment,
       /*
        * whee!! :)
        */
-      if (!acptr->user || strlen(acptr->sockhost) > (size_t)HOSTLEN ||
-          (acptr->user->username ? strlen(acptr->user->username) : 0) >
-          (size_t)HOSTLEN)
+      if (!acptr->user || strlen(acptr->sockhost) > HOSTLEN ||
+          (acptr->user->username ? strlen(acptr->user->username) : 0) > HOSTLEN)
         continue;               /* these tests right out of
                                    find_kill for safety's sake */
 #endif

@@ -30,7 +30,7 @@
 
 #include <assert.h>
 
-static void update_bytes_received(struct Client* cptr, size_t length)
+static void update_bytes_received(struct Client* cptr, unsigned int length)
 {
   me.receiveB    += length;     /* Update bytes received */
   cptr->receiveB += length;
@@ -113,7 +113,7 @@ int server_dopacket(struct Client* cptr, const char* buffer, int length)
 /*
  * client_dopacket - handle client messages
  */
-int client_dopacket(struct Client *cptr, size_t length)
+int client_dopacket(struct Client *cptr, unsigned int length)
 {
   assert(0 != cptr);
 

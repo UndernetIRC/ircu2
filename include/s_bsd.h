@@ -76,7 +76,7 @@ struct Pollable {
 /*
  * Proto types
  */
-extern size_t deliver_it(struct Client *cptr, const char *str, size_t len);
+extern unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len);
 extern int connect_server(struct ConfItem* aconf, struct Client* by,
                           struct DNSReply* reply);
 extern void release_dns_reply(struct Client* cptr);

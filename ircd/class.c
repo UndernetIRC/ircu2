@@ -123,7 +123,7 @@ unsigned int get_con_freq(struct ConfClass * clptr)
  * immeadiately after the first one (class 0).
  */
 void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
-    unsigned int maxli, size_t sendq)
+    unsigned int maxli, unsigned int sendq)
 {
   struct ConfClass *t, *p;
 
@@ -203,7 +203,7 @@ void report_classes(struct Client *sptr)
         MaxLinks(cltmp), MaxSendq(cltmp));
 }
 
-size_t get_sendq(struct Client *cptr)
+unsigned int get_sendq(struct Client *cptr)
 {
   assert(0 != cptr);
   assert(0 != cptr->local);

@@ -294,7 +294,8 @@ char *vsprintf_irc(char *str, const char *format, va_list vl)
                                            [ 100000000 , 4294967295 ]
                                            Actually prints like "%09lu" */
       {
-        unsigned long v1, v2;
+        unsigned long v1;
+        unsigned long v2;
         const char *ap;
         ++format;
         v1 = va_arg(vl, unsigned long);

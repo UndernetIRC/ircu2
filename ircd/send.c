@@ -151,7 +151,7 @@ void send_queued(struct Client *to)
     return;                     /* Don't bother */
 
   while (DBufLength(&to->sendQ) > 0) {
-    size_t len;
+    unsigned int len;
     const char* msg = dbuf_map(&to->sendQ, &len);
 
     if ((len = deliver_it(to, msg, len))) {
@@ -191,7 +191,7 @@ static void send_to_god(struct Client* to, const char* buf)
 {
   if (!sdbflag && !IsUser(to)) {
     char sbuf2[BUFSIZE + 1];
-    size_t len = strlen(buf) - 2;   /* Remove "\r\n" */
+    unsigned int len = strlen(buf) - 2;   /* Remove "\r\n" */
 
     sdbflag = 1;
     len = IRCD_MIN(len, BUFSIZE);
@@ -213,7 +213,7 @@ static void send_to_god(struct Client* to, const char* buf)
 
 void send_buffer(struct Client* to, char* buf)
 {
-  size_t len;
+  unsigned int len;
   assert(0 != to);
   assert(0 != buf);
 
@@ -639,7 +639,8 @@ void sendto_channel_butserv(struct Channel *chptr, struct Client *from, const ch
   va_start(vl, pattern);
 
   for (member = chptr->members; member; member = member->next_member) {
-    if (MyConnect(acptr = member->user) && !IsZombie(member))
+    acptr = member->user;
+    if (MyConnect(acptr) && !IsZombie(member))
       vsendto_prefix_one(acptr, from, pattern, vl);
   }
   va_end(vl);

@@ -120,7 +120,7 @@ struct Client {
   HandlerType         handler;   /* message index into command table for parsing */
   struct DNSReply*    dns_reply; /* DNS reply used during client registration */
   struct ListingArgs* listing;
-  size_t              max_sendq; /* cached max send queue for client */
+  unsigned int        max_sendq; /* cached max send queue for client */
   unsigned short      lastsq;    /* # 2k blocks when sendqueued called last */
   unsigned short      port;      /* and the remote port# too :-) */
   unsigned char       targets[MAXTARGETS]; /* Hash values of current targets */

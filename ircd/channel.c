@@ -798,7 +798,7 @@ static int send_mode_list(struct Client *cptr, char *chname,
       name = lp->value.ban.banstr;
     else
       name = lp->value.cptr->name;
-    if (strlen(parabuf) + strlen(name) + 11 < (size_t)MODEBUFLEN)
+    if (strlen(parabuf) + strlen(name) + 11 < MODEBUFLEN)
     {
       strcat(parabuf, " ");
       strcat(parabuf, name);
@@ -1305,7 +1305,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
           {
             lp = &chops[opcnt++];
             lp->value.cp = *parv;
-            if (strlen(lp->value.cp) > (size_t)KEYLEN)
+            if (strlen(lp->value.cp) > KEYLEN)
               lp->value.cp[KEYLEN] = '\0';
             lp->flags = MODE_KEY | MODE_ADD;
             keychange = 1;
@@ -1666,14 +1666,14 @@ int set_mode(struct Client* cptr, struct Client* sptr,
       }
 
       /* What could be added: cp+' '+' '+<TS>+'\0' */
-      if (len + strlen(cp) + 13 > (size_t)MODEBUFLEN ||
-          nlen + strlen(cp) + NUMNICKLEN + 12 > (size_t)MODEBUFLEN)
+      if (len + strlen(cp) + 13 > MODEBUFLEN ||
+          nlen + strlen(cp) + NUMNICKLEN + 12 > MODEBUFLEN)
         break;
 
       switch (lp->flags & MODE_WPARAS)
       {
         case MODE_KEY:
-          if (strlen(cp) > (size_t)KEYLEN)
+          if (strlen(cp) > KEYLEN)
             *(cp + KEYLEN) = '\0';
           if ((whatt == MODE_ADD && (*mode->key == '\0' ||
                0 != ircd_strcmp(mode->key, cp))) ||
@@ -2044,9 +2044,11 @@ int set_mode(struct Client* cptr, struct Client* sptr,
         MyFree(banstr[cnt]);
         sblen += len[cnt];
       }
-      for (member_z = chptr->members; member_z; member_z = member_z->next_member)
-        if (MyConnect(acptr = member_z->user) && !IsZombie(member_z))
+      for (member_z = chptr->members; member_z; member_z = member_z->next_member) {
+        acptr = member_z->user;
+        if (MyConnect(acptr) && !IsZombie(member_z))
           sendbufto_one(acptr);
+      }
       if (delayed)
       {
         banstr[0] = banstr[delayed - 1];

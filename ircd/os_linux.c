@@ -115,7 +115,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 int os_get_sockerr(int fd)
 {
   int    err = 0;
-  size_t len = sizeof(err);
+  unsigned int len = sizeof(err);
   getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len);
   return err;
 }
@@ -141,13 +141,13 @@ int os_set_nonblocking(int fd)
  */
 int os_set_reuseaddr(int fd)
 {
-  size_t opt = 1;
+  unsigned int opt = 1;
   return (0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)));
 }
 
 int os_set_sockbufs(int fd, unsigned int size)
 {
-  size_t opt = size;
+  unsigned int opt = size;
   return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) &&
           0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)));
 }
@@ -209,7 +209,7 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
                           unsigned int* length_out, struct sockaddr_in* sin_out)
 {
   int    res;
-  size_t len = sizeof(struct sockaddr_in);
+  unsigned int len = sizeof(struct sockaddr_in);
   assert(0 != buf);
   assert(0 != length_out);
   assert(0 != sin_out);
@@ -265,14 +265,14 @@ int os_connect_nonb(int fd, const struct sockaddr_in* sin)
       
 int os_get_sockname(int fd, struct sockaddr_in* sin_out)
 {
-  size_t len = sizeof(struct sockaddr_in);
+  unsigned int len = sizeof(struct sockaddr_in);
   assert(0 != sin_out);
   return (0 == getsockname(fd, (struct sockaddr*) sin_out, &len));
 }
 
 int os_get_peername(int fd, struct sockaddr_in* sin_out)
 {
-  size_t len = sizeof(struct sockaddr_in);
+  unsigned int len = sizeof(struct sockaddr_in);
   assert(0 != sin_out);
   return (0 == getpeername(fd, (struct sockaddr*) sin_out, &len));
 }
