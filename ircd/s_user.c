@@ -580,11 +580,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
     {
       ServerStats->is_ref++;
 
-      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
 		 ":Your username is invalid.");
-      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
 		 ":Connect with your real username, in lowercase.");
-      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
 		 ":If your mail address were foo@bar.com, your username "
 		 "would be foo.");
       return exit_client(cptr, sptr, &me, "USER: Bad username");

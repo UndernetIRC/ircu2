@@ -1,5 +1,19 @@
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* include/ircd_reply.h (SND_EXPLICIT): use instead of RPL_EXPLICIT
+
+	* ircd/ircd_reply.c (send_reply): use SND_EXPLICIT instead of
+	RPL_EXPLICIT
+
+	* ircd/m_userhost.c (m_userhost): add a dead code comment
+
+	* ircd/m_desynch.c: forgot one...
+
+	* ircd/m_rehash.c (mo_rehash): er, duplicates :)
+
+	* ircd/m_proto.c (proto_send_supported): just change a comment so
+	it doesn't show up in my scans
+
 	* ircd/ircd_reply.c (send_reply): fix a slight bug...
 
 	* ircd/s_numeric.c (do_numeric): use new sendcmdto_* functions,
@@ -955,7 +969,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.111 2000-04-28 16:16:06 kev Exp $
+# $Id: ChangeLog,v 1.112 2000-04-28 17:34:44 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

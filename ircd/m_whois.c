@@ -245,7 +245,7 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS,
+		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS,
 			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;
@@ -455,7 +455,7 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS, 
+		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS, 
 			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;
@@ -665,7 +665,7 @@ exact_match:
             {
               if (len + strlen(chptr->chname) + mlen > BUFSIZE - 5)
               {
-		send_reply(sptr, RPL_EXPLICIT | RPL_WHOISCHANNELS,
+		send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS,
 			   "%s :%s", name, buf);
                 *buf = '\0';
                 len = 0;

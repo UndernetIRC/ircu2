@@ -315,34 +315,34 @@ void send_listinfo(struct Client *cptr, char *name)
 {
   int inuse = 0, mem = 0, tmp = 0;
 
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Local: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Local: inuse: %d(%d)",
 	     inuse += cloc.inuse, tmp = cloc.inuse * CLIENT_LOCAL_SIZE);
   mem += tmp;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Remote: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Remote: inuse: %d(%d)",
 	     crem.inuse, tmp = crem.inuse * CLIENT_REMOTE_SIZE);
   mem += tmp;
   inuse += crem.inuse;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Users: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Users: inuse: %d(%d)",
 	     users.inuse, tmp = users.inuse * sizeof(struct User));
   mem += tmp;
   inuse += users.inuse;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Servs: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Servs: inuse: %d(%d)",
 	     servs.inuse, tmp = servs.inuse * sizeof(struct Server));
   mem += tmp;
   inuse += servs.inuse;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Links: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Links: inuse: %d(%d)",
 	     links.inuse, tmp = links.inuse * sizeof(struct SLink));
   mem += tmp;
   inuse += links.inuse;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
 	     classs.inuse, tmp = classs.inuse * sizeof(struct ConfClass));
   mem += tmp;
   inuse += classs.inuse;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Confs: inuse: %d(%d)",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Confs: inuse: %d(%d)",
 	     GlobalConfCount, tmp = GlobalConfCount * sizeof(struct ConfItem));
   mem += tmp;
   inuse += GlobalConfCount;
-  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Totals: inuse %d %d",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Totals: inuse %d %d",
 	     inuse, mem);
 }
 

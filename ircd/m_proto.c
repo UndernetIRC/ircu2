@@ -130,7 +130,7 @@ int proto_handle_req(struct Client* cptr, const char* msg)
 int proto_send_supported(struct Client* cptr)
 {
   /*
-   * sendto_one(cptr, RPL_PROTOLIST, me.name, cptr->name, "stuff");
+   * send_reply(cptr, RPL_PROTOLIST, "stuff");
    */
   return 0;
 }

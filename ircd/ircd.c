@@ -340,9 +340,9 @@ static time_t check_pings(void)
        * nospoof PONG.
        */
       if (*cptr->name && cptr->user && *cptr->user->username) {
-	send_reply(cptr, RPL_EXPLICIT | ERR_BADPING,
+	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Your client may not be compatible with this server.");
-	send_reply(cptr, RPL_EXPLICIT | ERR_BADPING,
+	send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
 		   ":Compatible clients are available at "
 		   "ftp://ftp.undernet.org/pub/irc/clients");
       }    

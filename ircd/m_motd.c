@@ -178,7 +178,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (tm)                     /* Not remote? */
     {
       send_reply(sptr, RPL_MOTDSTART, me.name);
-      send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, "- %d/%d/%d %d:%02d",
+      send_reply(sptr, SND_EXPLICIT | RPL_MOTD, "- %d/%d/%d %d:%02d",
 		 tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, tm->tm_hour,
 		 tm->tm_min);
       count = 100;
@@ -196,9 +196,9 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
   {
     send_reply(sptr, RPL_MOTDSTART, me.name);
-    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
+    send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
 	       "AUP before continuing using this service.");
-    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":The message of the day was "
+    send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was "
 	       "last changed: %d/%d/%d", tm->tm_mday, tm->tm_mon + 1,
 	       1900 + tm->tm_year);
   }
@@ -284,7 +284,7 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (tm)                     /* Not remote? */
     {
       send_reply(sptr, RPL_MOTDSTART, me.name);
-      send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":- %d/%d/%d %d:%02d",
+      send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":- %d/%d/%d %d:%02d",
 		 tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, tm->tm_hour,
 		 tm->tm_min);
       count = 100;
@@ -302,9 +302,9 @@ int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
   {
     send_reply(sptr, RPL_MOTDSTART, me.name);
-    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
+    send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":Type /MOTD to read the "
 	       "AUP before continuing using this service.");
-    send_reply(sptr, RPL_EXPLICIT | RPL_MOTD, ":The message of the day was "
+    send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was "
 	       "last changed: %d/%d/%d", tm->tm_mday, tm->tm_mon + 1,
 	       1900 + tm->tm_year);
   }

@@ -115,7 +115,6 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
   {
     send_reply(sptr, ERR_NOPRIVILEGES);
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
     return 0;
   }
   send_reply(sptr, RPL_REHASHING, configfile);

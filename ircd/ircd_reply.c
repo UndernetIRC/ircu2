@@ -101,11 +101,11 @@ int send_reply(struct Client *to, int reply, ...)
   assert(0 != to);
   assert(0 != reply);
 
-  num = get_error_numeric(reply & ~RPL_EXPLICIT); /* get reply... */
+  num = get_error_numeric(reply & ~SND_EXPLICIT); /* get reply... */
 
   va_start(vd.vd_args, reply);
 
-  if (reply & RPL_EXPLICIT) /* get right pattern */
+  if (reply & SND_EXPLICIT) /* get right pattern */
     vd.vd_format = (const char *) va_arg(vd.vd_args, char *);
   else
     vd.vd_format = num->format;
