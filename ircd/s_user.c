@@ -714,7 +714,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     new_client->user->server = sptr;
     SetRemoteNumNick(new_client, parv[parc - 2]);
     /*
-     * IP address of remote client
+     * IP# of remote client
      */
     new_client->ip.s_addr = htonl(base64toint(parv[parc - 3]));
 

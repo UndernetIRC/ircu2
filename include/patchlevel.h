@@ -22,6 +22,9 @@
 
 #define RELEASE ".11.alpha."
 
+/*
+ * Deliberate empty lines
+ */
 /* Do NOT edit those: */
 
 #ifndef BASE_VERSION
