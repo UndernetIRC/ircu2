@@ -149,5 +149,7 @@ unlimited_who_queries return TPRIV_UNLIMIT_QUERY;
 oper_status_display return TPRIV_DISPLAY;
 see_other_opers return TPRIV_SEE_OPERS;
 wide_glines return TPRIV_WIDE_GLINE;
+pseudo return PSEUDO;
+prepend return PREPEND;
 \n lineno++;
 . return yytext[0];

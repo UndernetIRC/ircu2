@@ -22,6 +22,7 @@
 struct Client;
 struct SLink;
 struct TRecord;
+struct Message;
 
 
 /*
@@ -160,6 +161,21 @@ enum AuthorizationCheckResult {
   ACR_BAD_SOCKET
 };
 
+struct nick_host {
+  struct nick_host *next;
+  int nicklen; /* offset of @ part of server string */
+  char nick[1]; /* start of nick@server string */
+};
+
+struct s_map {
+  struct s_map *next;
+  struct Message *msg;
+  char *name;
+  char *command;
+  char *prepend;
+  struct nick_host *services;
+};
+
 
 /*
  * GLOBALS
@@ -170,7 +186,8 @@ extern struct tm        motd_tm;
 extern struct MotdItem* motd;
 extern struct MotdItem* rmotd;
 extern struct TRecord*  tdata;
-extern struct qline*   GlobalQuarantineList;
+extern struct s_map*    GlobalServiceMapList;
+extern struct qline*    GlobalQuarantineList;
 
 /*
  * Proto types

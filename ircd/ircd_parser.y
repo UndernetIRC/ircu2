@@ -63,7 +63,8 @@
   extern struct DenyConf*   denyConfList;
   extern struct CRuleConf*  cruleConfList;
   extern struct ServerConf* serverConfList;
-  extern struct qline     *GlobalQuarantineList;
+  extern struct s_map*      GlobalServiceMapList;
+  extern struct qline*      GlobalQuarantineList;
  
 
   int yylex(void);
@@ -77,6 +78,7 @@
   struct DenyConf *dconf;
   struct ServerConf *sconf;
   struct qline *qconf = NULL;
+  struct s_map *smap;
 
 static void parse_error(char *pattern,...) {
   static char error_buffer[1024];
@@ -150,6 +152,8 @@ static void parse_error(char *pattern,...) {
 %token IP
 %token FEATURES
 %token QUARANTINE
+%token PSEUDO
+%token PREPEND
 /* and now a lot of priviledges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_KILL TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -176,7 +180,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        serverblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       error;
+       pseudoblock | error;
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -921,4 +925,61 @@ quarantineitems: CHANNEL NAME '=' QSTRING ';'
 } | REASON '=' QSTRING ';'
 {
   DupString(qconf->reason, yylval.text);
+};
+
+pseudoblock: PSEUDO QSTRING '{'
+{
+  smap = MyCalloc(1, sizeof(struct s_map));
+  DupString(smap->command, $2);
+}
+pseudoitems '}' ';'
+{
+  if (!smap->name || !smap->services)
+  {
+    log_write(LS_CONFIG, L_ERROR, 0, "pseudo commands need a service name and list of target nicks.");
+    return 0;
+  }
+  if (register_mapping(smap))
+  {
+    smap->next = GlobalServiceMapList;
+    GlobalServiceMapList = smap;
+  }
+  else
+  {
+    struct nick_host *nh, *next;
+    for (nh = smap->services; nh; nh = next)
+    {
+      next = nh->next;
+      MyFree(nh);
+    }
+    MyFree(smap->name);
+    MyFree(smap->command);
+    MyFree(smap->prepend);
+    MyFree(smap);
+  }
+  smap = NULL;
+};
+
+pseudoitems: pseudoitem pseudoitems | pseudoitem;
+pseudoitem: pseudoname | pseudoprepend | pseudonick | error;
+pseudoname: NAME '=' QSTRING ';'
+{
+  DupString(smap->name, yylval.text);
+};
+pseudoprepend: PREPEND '=' QSTRING ';'
+{
+  DupString(smap->prepend, yylval.text);
+};
+pseudonick: NICK '=' QSTRING ';'
+{
+  char *sep = strchr(yylval.text, '@');
+
+  if (sep != NULL) {
+    size_t slen = strlen(yylval.text);
+    struct nick_host *nh = MyMalloc(sizeof(*nh) + slen);
+    memcpy(nh->nick, yylval.text, slen + 1);
+    nh->nicklen = sep - yylval.text;
+    nh->next = smap->services;
+    smap->services = nh;
+  }
 };

@@ -1,5 +1,53 @@
 2004-05-09  Michael Poole <mdpoole@troilus.org>
 
+	Forward port of Paul "Zoot" Chang's pseudo-command.patch and
+	pseudo-support.patch.
+
+	* doc/example.conf: Illustrate how to use the feature.
+
+	* include/handlers.h (m_pseudo): Declare new handler function.
+
+	* include/ircd_features.h (HIS_STATS_R): Add a feature to control
+	user visibility of the pseudo-commands.
+
+	* include/msg.h: Add flag and field for the extra information used
+	to select a pseudo-command's target.
+
+	* include/numeric.h (RPL_STATSRLINE, ERR_SERVICESDOWN): Add
+	definitions.
+
+	* include/parse.h (register_mapping, unregister_mapping): Declare.
+
+	* include/s_conf.h (struct nick_host, struct s_map,
+	GlobalServiceMapList): Define.
+
+	* ircd/Makefile.in: Add m_pseudo.c to IRCD_SRC.  Add generated
+	files to "make depend" dependency list.  Update dependencies.
+
+	* ircd/ircd_features.c (HIS_STATS_R): Define feature type and
+	default value.
+
+	* ircd/ircd_lexer.l (pseudo, prepend): Recognize new tokens.
+
+	* ircd/ircd_parser.y: Support "Pseudo" configuration blocks.
+
+	* ircd/parse.c (msgtab): Add initializer for field "extra" to all
+	commands.
+	(msg_tree_insert, msg_tree_remove, register_mapping,
+	unregister_mapping): New functions.
+	(parse_client): Implement MFLG_EXTRA extra argument passing.
+
+	* ircd/s_conf.c (GlobalServiceMapList): New variable.
+
+	* ircd/s_err.c (RPL_STATRLINE, ERR_SERVICESDOWN): Add format
+	strings for new numeric responses.
+
+	* ircd/s_stats.c (stats_mapping): New function.
+	(statsinfo): Add entry for /stats R and make old /stats r entry
+	case-sensitive.
+	
+2004-05-09  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y (parse_error): Convert to being a wrapper for
 	yyerror() so that configuration errors all go to the same place.
 

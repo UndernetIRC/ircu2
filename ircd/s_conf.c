@@ -71,6 +71,7 @@
 
 struct ConfItem  *GlobalConfList  = 0;
 int              GlobalConfCount = 0;
+struct s_map     *GlobalServiceMapList = 0;
 struct qline     *GlobalQuarantineList = 0;
 
 void yyparse(void);

@@ -101,518 +101,518 @@ struct Message msgtab[] = {
   {
     MSG_PRIVATE,
     TOK_PRIVATE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_privmsg, ms_privmsg, mo_privmsg, m_ignore }
   },
   {
     MSG_NICK,
     TOK_NICK,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_nick, m_nick, ms_nick, m_nick, m_ignore }
   },
   {
     MSG_NOTICE,
     TOK_NOTICE,
-    0, MAXPARA, MFLG_SLOW | MFLG_IGNORE, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_IGNORE, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_notice, ms_notice, mo_notice, m_ignore }
   },
   {
     MSG_WALLCHOPS,
     TOK_WALLCHOPS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_wallchops, ms_wallchops, m_wallchops, m_ignore }
   },
   {
     MSG_WALLVOICES,
     TOK_WALLVOICES,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_wallvoices, ms_wallvoices, m_wallvoices, m_ignore }
   },
   {
     MSG_CPRIVMSG,
     TOK_CPRIVMSG,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_cprivmsg, m_ignore, m_cprivmsg, m_ignore }
   },
   {
     MSG_CNOTICE,
     TOK_CNOTICE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_cnotice, m_ignore, m_cnotice, m_ignore }
   },
   {
     MSG_JOIN,
     TOK_JOIN,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_join, ms_join, m_join, m_ignore }
   },
   {
     MSG_MODE,
     TOK_MODE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_mode, ms_mode, m_mode, m_ignore }
   },
   {
     MSG_BURST,
     TOK_BURST,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_burst, m_ignore, m_ignore }
   },
   {
     MSG_CREATE,
     TOK_CREATE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_create, m_ignore, m_ignore }
   },
   {
     MSG_DESTRUCT,
     TOK_DESTRUCT,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_destruct, m_ignore, m_ignore }
   },
   {
     MSG_QUIT,
     TOK_QUIT,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_quit, m_quit, ms_quit, m_quit, m_ignore }
   },
   {
     MSG_PART,
     TOK_PART,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_part, ms_part, m_part, m_ignore }
   },
   {
     MSG_TOPIC,
     TOK_TOPIC,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_topic, ms_topic, m_topic, m_ignore }
   },
   {
     MSG_INVITE,
     TOK_INVITE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_invite, ms_invite, m_invite, m_ignore }
   },
   {
     MSG_KICK,
     TOK_KICK,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_kick, ms_kick, m_kick, m_ignore }
   },
   {
     MSG_WALLOPS,
     TOK_WALLOPS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_wallops, mo_wallops, m_ignore }
   },
   {
     MSG_WALLUSERS,
     TOK_WALLUSERS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_wallusers, mo_wallusers, m_ignore }
   },
   {
     MSG_DESYNCH,
     TOK_DESYNCH,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_desynch, m_ignore, m_ignore }
   },
   {
     MSG_PING,
     TOK_PING,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ping, ms_ping, mo_ping, m_ignore }
   },
   {
     MSG_PONG,
     TOK_PONG,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_pong, m_pong, ms_pong, m_pong, m_ignore }
   },
   {
     MSG_ERROR,
     TOK_ERROR,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_error, m_ignore, ms_error, m_ignore, m_ignore }
   },
   {
     MSG_KILL,
     TOK_KILL,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_kill, mo_kill, m_ignore }
   },
   {
     MSG_USER,
     TOK_USER,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_user, m_registered, m_ignore, m_registered, m_ignore }
   },
   {
     MSG_AWAY,
     TOK_AWAY,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_away, ms_away, m_away, m_ignore }
   },
   {
     MSG_ISON,
     TOK_ISON,
-    0, 1, MFLG_SLOW, 0,
+    0, 1, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ison, m_ignore, m_ison, m_ignore }
   },
   {
     MSG_SERVER,
     TOK_SERVER,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_server, m_registered, ms_server, m_registered, m_ignore }
   },
   {
     MSG_SQUIT,
     TOK_SQUIT,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_squit, mo_squit, m_ignore }
   },
   {
     MSG_WHOIS,
     TOK_WHOIS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_whois, ms_whois, m_whois, m_ignore }
   },
   {
     MSG_WHO,
     TOK_WHO,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_who, m_ignore, m_who, m_ignore }
   },
   {
     MSG_WHOWAS,
     TOK_WHOWAS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_whowas, m_whowas, m_whowas, m_ignore }
   },
   {
     MSG_LIST,
     TOK_LIST,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_list, m_ignore, m_list, m_ignore }
   },
   {
     MSG_NAMES,
     TOK_NAMES,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_names, ms_names, m_names, m_ignore }
   },
   {
     MSG_USERHOST,
     TOK_USERHOST,
-    0, 1, MFLG_SLOW, 0,
+    0, 1, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_userhost, m_ignore, m_userhost, m_ignore }
   },
   {
     MSG_USERIP,
     TOK_USERIP,
-    0, 1, MFLG_SLOW, 0,
+    0, 1, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_userip, m_ignore, m_userip, m_ignore }
   },
   {
     MSG_TRACE,
     TOK_TRACE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_trace, ms_trace, mo_trace, m_ignore }
   },
   {
     MSG_PASS,
     TOK_PASS,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { mr_pass, m_registered, m_ignore, m_registered, m_ignore }
   },
   {
     MSG_LUSERS,
     TOK_LUSERS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_lusers, ms_lusers, m_lusers, m_ignore }
   },
   {
     MSG_TIME,
     TOK_TIME,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_time, m_time, m_time, m_ignore }
   },
   {
     MSG_SETTIME,
     TOK_SETTIME,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ignore, ms_settime, mo_settime, m_ignore }
   },
   {
     MSG_RPING,
     TOK_RPING,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_rping, mo_rping, m_ignore }
   },
   {
     MSG_RPONG,
     TOK_RPONG,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_ignore, ms_rpong, m_ignore, m_ignore }
   },
   {
     MSG_OPER,
     TOK_OPER,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_oper, ms_oper, mo_oper, m_ignore }
   },
   {
     MSG_CONNECT,
     TOK_CONNECT,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_connect, mo_connect, m_ignore }
   },
   {
     MSG_MAP,
     TOK_MAP,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_map, m_ignore, m_map, m_ignore }
   },
   {
     MSG_VERSION,
     TOK_VERSION,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_version, m_version, ms_version, mo_version, m_ignore }
   },
   {
     MSG_STATS,
     TOK_STATS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_stats, m_stats, m_stats, m_ignore }
   },
   {
     MSG_LINKS,
     TOK_LINKS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_links, ms_links, m_links, m_ignore }
   },
   {
     MSG_ADMIN,
     TOK_ADMIN,
-    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,  NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_admin, m_admin, ms_admin, mo_admin, m_ignore }
   },
   {
     MSG_HELP,
     TOK_HELP,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_help, m_ignore, m_help, m_ignore }
   },
   {
     MSG_INFO,
     TOK_INFO,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_info, ms_info, mo_info, m_ignore }
   },
   {
     MSG_MOTD,
     TOK_MOTD,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_motd, m_motd, m_motd, m_ignore }
   },
   {
     MSG_CLOSE,
     TOK_CLOSE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_close, m_ignore }
   },
   {
     MSG_SILENCE,
     TOK_SILENCE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_silence, ms_silence, m_silence, m_ignore }
   },
   {
     MSG_GLINE,
     TOK_GLINE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_gline, ms_gline, mo_gline, m_ignore }
   },
   {
     MSG_JUPE,
     TOK_JUPE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_jupe, ms_jupe, mo_jupe, m_ignore }
   },
   {
     MSG_OPMODE,
     TOK_OPMODE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_opmode, mo_opmode, m_ignore }
   },
   {
     MSG_CLEARMODE,
     TOK_CLEARMODE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_clearmode, mo_clearmode, m_ignore }
   },
   {
     MSG_UPING,
     TOK_UPING,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, ms_uping, mo_uping, m_ignore }
   },
   {
     MSG_END_OF_BURST,
     TOK_END_OF_BURST,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_end_of_burst, m_ignore, m_ignore }
   },
   {
     MSG_END_OF_BURST_ACK,
     TOK_END_OF_BURST_ACK,
-    0, MAXPARA, 1, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_end_of_burst_ack, m_ignore, m_ignore }
   },
   {
     MSG_HASH,
     TOK_HASH,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_hash, m_hash, m_hash, m_ignore }
   },
   {
     MSG_DNS,
     TOK_DNS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_dns, m_dns, m_dns, m_ignore }
   },
   {
     MSG_REHASH,
     TOK_REHASH,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_rehash, m_ignore }
   },
   {
     MSG_RESTART,
     TOK_RESTART,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_restart, m_ignore }
   },
   {
     MSG_DIE,
     TOK_DIE,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_die, m_ignore }
   },
   {
     MSG_PROTO,
     TOK_PROTO,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_proto, m_proto, m_proto, m_proto, m_ignore }
   },
   {
     MSG_SET,
     TOK_SET,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_set, m_ignore }
   },
   {
     MSG_RESET,
     TOK_RESET,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_reset, m_ignore }
   },
   {
     MSG_GET,
     TOK_GET,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_get, m_ignore }
   },
   {
     MSG_PRIVS,
     TOK_PRIVS,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_unregistered, m_not_oper, m_ignore, mo_privs, m_ignore }
   },
   {
     MSG_ACCOUNT,
     TOK_ACCOUNT,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_ignore, ms_account, m_ignore, m_ignore }
   },
   {
     MSG_ASLL,
     TOK_ASLL,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_not_oper, ms_asll, mo_asll, m_ignore }
    },
@@ -625,7 +625,7 @@ struct Message msgtab[] = {
   {
     MSG_POST,
     TOK_POST,
-    0, MAXPARA, MFLG_SLOW, 0,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_quit, m_ignore, m_ignore, m_ignore, m_ignore }
   },
@@ -748,6 +748,104 @@ msg_tree_parse(char *cmd, struct MessageTree *root)
   return NULL;
 }
 
+/* Inserts a single entry into a message tree; must use this function
+   when inserting messages at runtime. */
+static void msg_tree_insert(struct MessageTree *mtree, int pfxlen,
+    char *key, struct Message *mptr)
+{
+  struct MessageTree *child;
+  int c;
+
+  if (!key[pfxlen])
+  {
+    mtree->msg = mptr;
+    return;
+  }
+  c = key[pfxlen];
+  child = mtree->pointers[c & (MAXPTRLEN-1)];
+  if(!child)
+  {
+    child = (struct MessageTree *)MyCalloc(1, sizeof(struct MessageTree));
+    mtree->pointers[c & (MAXPTRLEN-1)] = child;
+  }
+  msg_tree_insert(child, pfxlen+1, key, mptr);
+}
+
+/* Removes an entry from the message tree; suitable for use at runtime. */
+static struct MessageTree *msg_tree_remove(struct MessageTree *root, char *key)
+{
+  int c;
+
+  if (*key)
+  {
+    struct MessageTree *child = root->pointers[*key & (MAXPTRLEN-1)];
+    if (msg_tree_remove(child, key + 1))
+      return root;
+    root->pointers[*key & (MAXPTRLEN-1)] = NULL;
+  }
+  else
+  {
+    root->msg = NULL;
+  }
+  for (c = 0; c < MAXPTRLEN; ++c)
+  {
+    if (root->pointers[c])
+      return root;
+  }
+  MyFree(root);
+  return NULL;
+}
+
+/* Registers a service mapping to the pseudocommand handler. */
+int register_mapping(struct s_map *map)
+{
+  struct Message *msg;
+
+  if (msg_tree_parse(map->command, &msg_tree))
+    return 0;
+
+  msg = (struct Message *)MyMalloc(sizeof(struct Message));
+  msg->cmd = map->command;
+  msg->tok = map->command;
+  msg->count = 0;
+  msg->parameters = 2;
+  msg->flags = MFLG_SLOW | MFLG_EXTRA;
+  msg->bytes = 0;
+  msg->extra = map;
+
+  msg->handlers[UNREGISTERED_HANDLER] = m_ignore;
+  msg->handlers[CLIENT_HANDLER] = m_pseudo;
+  msg->handlers[SERVER_HANDLER] = m_ignore;
+  msg->handlers[OPER_HANDLER] = m_pseudo;
+  msg->handlers[SERVICE_HANDLER] = m_ignore;
+
+  /* Service mappings are only applicable to clients; insert the
+     pseudocommand into the command tree only. */
+  msg_tree_insert(&msg_tree, 0, msg->cmd, msg);
+  map->msg = msg;
+
+  return 1;
+}
+
+/* Removes a service mapping. */
+int unregister_mapping(struct s_map *map)
+{
+  if (!msg_tree_parse(map->command, &msg_tree))
+  {
+    /* This simply should never happen. */
+    assert(0);
+    return 0;
+  }
+
+  msg_tree_remove(&msg_tree, map->msg->cmd);
+
+  map->msg->extra = NULL;
+  MyFree(map->msg);
+  map->msg = NULL;
+
+  return 1;
+}
+
 /*
  * parse a buffer.
  *
@@ -839,7 +937,14 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
 
   /* Note initially true: s==NULL || *(s-1) == '\0' !! */
 
-  i = 0;
+  if (mptr->flags & MFLG_EXTRA) {
+    /* This is a horrid kludge to avoid changing the command handler
+     * argument list. */
+    para[1] = (char*)mptr->extra;
+    i = 1;
+  } else {
+    i = 0;
+  }
   if (s)
   {
     if (paramcount > MAXPARA)

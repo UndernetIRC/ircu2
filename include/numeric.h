@@ -172,6 +172,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_END_NOTIFY       274           aircd */
 /*      RPL_STATSDELTA       274           IRCnet extension */
 #define RPL_STATSDLINE       275        /* Undernet extension */
+#define RPL_STATSRLINE       276        /* Undernet extension */
 
 #define RPL_GLIST            280        /* Undernet extension */
 #define RPL_ENDOFGLIST       281        /* Undernet extension */
@@ -351,7 +352,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_NICKTOOFAST      438        /* Undernet extension */
      /* ERR_DEAD             438           IRCnet reserved for later use */
 #define ERR_TARGETTOOFAST    439        /* Undernet extension */
-/*	ERR_SERVICESDOWN     440	Dalnet,unreal */
+#define ERR_SERVICESDOWN     440	/* Dalnet,unreal,Undernet */
 #define ERR_USERNOTINCHANNEL 441
 #define ERR_NOTONCHANNEL     442
 #define ERR_USERONCHANNEL    443

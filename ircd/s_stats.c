@@ -318,9 +318,24 @@ stats_quarantine(struct Client* to, struct StatDesc* sd, int stat, char* param)
     if (param && match(param, qline->chname)) /* narrow search */
       continue;
     send_reply(to, RPL_STATSQLINE, qline->chname, qline->reason);
-   }
- }
+  }
+}
  
+static void
+stats_mapping(struct Client *to, struct StatDesc* sd, int stat, char* param)
+{
+  struct s_map *map;
+
+  send_reply(to, RPL_STATSRLINE, "Command", "Name", "Prepend", "Target");
+  for (map = GlobalServiceMapList; map; map = map->next) {
+    struct nick_host *nh;
+    for (nh = map->services; nh; nh = nh->next) {
+      send_reply(to, RPL_STATSRLINE, map->command, map->name,
+                 (map->prepend ? map->prepend : "*"), nh->nick);
+    }
+  }
+}
+
 static void
 stats_uptime(struct Client* to, struct StatDesc* sd, int stat, char* param)
 {
@@ -453,8 +468,11 @@ struct StatDesc statsinfo[] = {
   { 'q', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
     stats_quarantine, 0,
     "Quarantined channels list." },
+  { 'R', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_R,
+    stats_mapping, 0,
+    "Service mappings." },
 #ifdef DEBUGMODE
-  { 'r', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_r,
+  { 'r', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_r,
     send_usage, 0,
     "System resource usage (Debug only)." },
 #endif

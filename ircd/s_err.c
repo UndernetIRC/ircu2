@@ -584,7 +584,7 @@ static Numeric replyTable[] = {
 /* 275 */
   { RPL_STATSDLINE, "%c %s %s", "275" },
 /* 276 */
-  { 0 },
+  { RPL_STATSRLINE, "%-9s %-9s %-10s %s", "276" },
 /* 277 */
   { 0 },
 /* 278 */
@@ -912,7 +912,7 @@ static Numeric replyTable[] = {
 /* 439 */
   { ERR_TARGETTOOFAST, "%s :Target change too fast. Please wait %d seconds.", "439" },
 /* 440 */
-  { 0 },
+  { ERR_SERVICESDOWN, "%s :Services are currently unavailable.", "440" },
 /* 441 */
   { ERR_USERNOTINCHANNEL, "%s %s :They aren't on that channel", "441" },
 /* 442 */

@@ -362,6 +362,8 @@ struct Client;
                                          * clients.                           */
 #define   MFLG_IGNORE            0x04   /* silently ignore command from
                                          * unregistered clients */
+#define   MFLG_EXTRA             0x08   /* Handler requests that mptr->extra
+                                         * be passed in parv[1] */
 
 /*
  * Structures
@@ -375,6 +377,7 @@ struct Message {
                                    to be used only on the average of once per 2
                                    seconds -SRB */
   unsigned int bytes;         /* bytes received for this message */
+  void *extra;                /* extra pointer to be passed in parv[1] */
   /*
    * cptr = Connected client ptr
    * sptr = Source client ptr

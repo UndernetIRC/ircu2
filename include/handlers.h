@@ -118,6 +118,7 @@ extern int m_pong(struct Client*, struct Client*, int, char*[]);
 extern int m_private(struct Client*, struct Client*, int, char*[]);
 extern int m_privmsg(struct Client*, struct Client*, int, char*[]);
 extern int m_proto(struct Client*, struct Client*, int, char*[]);
+extern int m_pseudo(struct Client*, struct Client*, int, char*[]);
 extern int m_quit(struct Client*, struct Client*, int, char*[]);
 extern int m_registered(struct Client*, struct Client*, int, char*[]);
 extern int m_silence(struct Client*, struct Client*, int, char*[]);
