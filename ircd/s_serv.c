@@ -211,6 +211,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     if (IsServer(acptr))
     {
       char *protocol_str = IsBurst(acptr) ? "J" : "P";
+      
       if (0 == match(me.name, acptr->name))
         continue;
       split = (MyConnect(acptr) && 
