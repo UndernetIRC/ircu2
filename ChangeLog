@@ -1,3 +1,9 @@
+2002-03-25  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (set_nick_name): invalidate all ban valid caching
+	when a user changes his nickname so we can catch if he now matches
+	a ban
+
 2002-03-11 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Last of the bug fixes for do_kill()
