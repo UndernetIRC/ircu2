@@ -697,6 +697,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
         }
       }
     }
+    client_set_privs(new_client); /* set privs on user */
     /*
      * Set new nick name.
      */
