@@ -722,7 +722,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
    */
-  if (length > 0 && (IsServer(cptr) || IsHandshake(cptr))) {
+  if (length > 0 &&
+      (IsServer(cptr) || IsHandshake(cptr) || IsConnecting(cptr))) {
     return server_dopacket(cptr, readbuf, length);
   }
   else {
