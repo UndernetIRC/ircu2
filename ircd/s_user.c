@@ -364,7 +364,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
   int              killreason;
-  char             ip_base64[8];
+  char             ip_base64[25];
 
   user->last = CurrentTime;
   parv[0] = cli_name(sptr);
@@ -401,7 +401,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                                get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(cli_ip(sptr));
+        IPcheck_connect_fail(&cli_ip(sptr));
         return exit_client(cptr, sptr, &me,
                            "Sorry, your connection class is full - try "
                            "again later or try another server");
@@ -420,7 +420,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(cli_ip(sptr));
+        IPcheck_connect_fail(&cli_ip(sptr));
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
@@ -630,9 +630,9 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
 			user->username, user->realhost,
 			*tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-			inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
+			iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64)),
 			NumNick(sptr), cli_info(sptr));
-  
+
   /* Send server notice mask to client */
   if (MyUser(sptr) && (cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
     send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
@@ -707,7 +707,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     /*
      * IP# of remote client
      */
-    cli_ip(new_client).s_addr = htonl(base64toint(parv[parc - 3]));
+    base64toip(parv[parc - 3], &cli_ip(new_client));
 
     add_client_to_list(new_client);
     hAddClient(new_client);
@@ -1619,7 +1619,7 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   ircd_snprintf(0, sender, sizeof(sender), "%s!%s@%s", cli_name(sptr),
 		user->username, user->host);
   ircd_snprintf(0, senderip, sizeof(senderip), "%s!%s@%s", cli_name(sptr),
-		user->username, ircd_ntoa((const char*) &(cli_ip(sptr))));
+		user->username, ircd_ntoa(&cli_ip(sptr)));
   if (HasHiddenHost(sptr))
     ircd_snprintf(0, senderh, sizeof(senderh), "%s!%s@%s", cli_name(sptr),
 		  user->username, user->realhost);

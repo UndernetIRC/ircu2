@@ -120,7 +120,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
      * XXX - if this comes from a server port, it will not have been added
      * to the IP check registry, see add_connection in s_bsd.c
      */
-    IPcheck_connect_fail(cli_ip(cptr));
+    IPcheck_connect_fail(&cli_ip(cptr));
   }
 
   det_confs_butmask(cptr, CONF_LEAF | CONF_HUB | CONF_SERVER | CONF_UWORLD);
@@ -233,14 +233,14 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       continue;
     if (IsUser(acptr))
     {
-      char xxx_buf[8];
+      char xxx_buf[25];
       char *s = umode_str(acptr);
       sendcmdto_one(cli_user(acptr)->server, CMD_NICK, cptr,
 		    "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
 		    cli_name(acptr), cli_hopcount(acptr) + 1, cli_lastnick(acptr),
 		    cli_user(acptr)->username, cli_user(acptr)->realhost,
 		    *s ? "+" : "", s, *s ? " " : "",
-		    inttobase64(xxx_buf, ntohl(cli_ip(acptr).s_addr), 6),
+		    iptobase64(xxx_buf, &cli_ip(acptr), sizeof(xxx_buf)),
 		    NumNick(acptr), cli_info(acptr));
     }
   }

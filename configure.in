@@ -119,6 +119,8 @@ AC_STRUCT_TM
 AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
 AC_CHECK_TYPE(socklen_t, unsigned int)
+AC_CHECK_TYPE(struct sockaddr_in6, [unet_have_sockaddr_in6="yes"], [unet_have_sockaddr_in6="no"], [#include <sys/types.h>
+#include <netinet/in.h>])
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
@@ -253,6 +255,15 @@ if test x"$unet_cv_with_leak_detect" != xno; then
     if test x"$unet_cv_with_leak_detect" != xyes; then
        LIBS="-L$unet_cv_with_leak_detect $LIBS"
     fi
+fi
+
+AC_ARG_WITH([ipv6],
+    AS_HELP_STRING([--without-ipv6], [disable IPv6 support (default is autodetect)]),
+    [ac_cv_use_ipv6=$withval],
+    [ac_cv_use_ipv6=$unet_have_sockaddr_in6])
+AC_CACHE_CHECK([whether to use IPv6], [ac_cv_use_ipv6], [ac_cv_use_ipv6=no])
+if test x"$ac_cv_use_ipv6" != "xno" ; then
+    AC_DEFINE([IPV6], , [Enable IPv6 support])
 fi
 
 dnl And now for --disable-asserts

@@ -89,8 +89,7 @@ struct IAuth {
   char i_buffer[BUFSIZE+1];             /* partial unprocessed line from server */
   char i_passwd[PASSWDLEN+1];           /* password for connection */
   char i_host[HOSTLEN+1];               /* iauth server hostname */
-  uint32_t i_addr;                      /* iauth server ip address */
-  unsigned short i_port;                /* iauth server port */
+  struct irc_sockaddr i_addr;           /* iauth server ip address and port */
   struct IAuth *i_next;                 /* next connection in list */
 };
 
@@ -133,7 +132,7 @@ struct IAuth {
 #define i_passwd(iauth) ((iauth)->i_passwd)
 #define i_host(iauth) ((iauth)->i_host)
 #define i_addr(iauth) ((iauth)->i_addr)
-#define i_port(iauth) ((iauth)->i_port)
+#define i_port(iauth) ((iauth)->i_addr.port)
 #define i_next(iauth) ((iauth)->i_next)
 
 struct IAuthCmd {
@@ -182,8 +181,7 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
     msgq_init(&i_sendQ(iauth));
     ircd_strncpy(i_host(iauth), host, HOSTLEN);
     i_port(iauth) = port;
-    i_addr(iauth) = INADDR_NONE;
-    i_next(iauth) = iauth_active;
+    memset(&i_addr(iauth), 0, sizeof(i_addr(iauth)));
     iauth_active = iauth;
     i_reconnect(iauth) = reconnect;
     iauth_reconnect(iauth);
@@ -328,13 +326,10 @@ static void iauth_dns_callback(void *vptr, struct DNSReply *he)
   struct IAuth *iauth = vptr;
   if (!he) {
     sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host lookup failed", i_host(iauth));
-  } else if (he->h_addrtype != AF_INET) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: bad host type %d", i_host(iauth), he->h_addrtype);
   } else {
-    struct sockaddr_in *sin = (struct sockaddr_in*)&he->addr;
-    i_addr(iauth) = sin->sin_addr.s_addr;
-    if (INADDR_NONE == i_addr(iauth)) {
-      sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host came back as INADDR_NONE", i_host(iauth));
+    memcpy(&i_addr(iauth).addr, &he->addr, sizeof(i_addr(iauth).addr));
+    if (!irc_in_addr_valid(&i_addr(iauth).addr)) {
+      sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host came back as unresolved", i_host(iauth));
       return;
     }
     iauth_reconnect(iauth);
@@ -357,46 +352,25 @@ static void iauth_schedule_reconnect(struct IAuth *iauth)
 
 static void iauth_reconnect(struct IAuth *iauth)
 {
-  extern struct sockaddr_in VirtualHost;
-  struct sockaddr_in sin;
   IOResult result;
   int fd;
 
-  if (INADDR_NONE == i_addr(iauth)) {
-    i_addr(iauth) = inet_addr(i_host(iauth));
-    if (INADDR_NONE == i_addr(iauth)) {
-      i_query(iauth).vptr = iauth;
-      i_query(iauth).callback = iauth_dns_callback;
-      gethost_byname(i_host(iauth), &i_query(iauth));
-      return;
-    }
-  }
-  fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (0 > fd) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to allocate socket: %s", strerror(errno));
+  if (!irc_in_addr_valid(&i_addr(iauth).addr)
+      && !ircd_aton(&i_addr(iauth).addr, i_host(iauth))) {
+    i_query(iauth).vptr = iauth;
+    i_query(iauth).callback = iauth_dns_callback;
+    gethost_byname(i_host(iauth), &i_query(iauth));
     return;
   }
-  if (feature_bool(FEAT_VIRTUAL_HOST)
-      && bind(fd, (struct sockaddr*)&VirtualHost, sizeof(VirtualHost)) != 0) {
-    close(fd);
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to bind vhost: %s", strerror(errno));
+  fd = os_socket((feature_bool(FEAT_VIRTUAL_HOST) ? &VirtualHost : NULL), SOCK_STREAM, "IAuth");
+  if (fd < 0)
     return;
-  }
   if (!os_set_sockbufs(fd, SERVER_TCP_WINDOW, SERVER_TCP_WINDOW)) {
     close(fd);
     sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to set socket buffers: %s", strerror(errno));
     return;
   }
-  if (!os_set_nonblocking(fd)) {
-    close(fd);
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to make socket non-blocking: %s", strerror(errno));
-    return;
-  }
-  memset(&sin, 0, sizeof(sin));
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = i_addr(iauth);
-  sin.sin_port = htons(i_port(iauth));
-  result = os_connect_nonb(fd, &sin);
+  result = os_connect_nonb(fd, &i_addr(iauth));
   if (result == IO_FAILURE) {
     close(fd);
     sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to initiate connection: %s", strerror(errno));

@@ -22,9 +22,13 @@
 #include "config.h"
 
 #define _XOPEN_SOURCE	500 /* make limits.h #define IOV_MAX */
+#define __EXTENSIONS__  1   /* make Solaris netinet/in.h know IPv6 */
 
 #include "ircd_osdep.h"
 #include "msgq.h"
+#include "res.h"
+#include "s_bsd.h"
+#include "sys.h"
 
 /* Include file dependency notes:
  * FreeBSD requires struct timeval from sys/time.h before struct
@@ -61,6 +65,48 @@
 #ifdef HPUX
 #include <sys/syscall.h>
 #define getrusage(a,b) syscall(SYS_GETRUSAGE, a, b)
+#endif
+
+#ifdef IPV6
+#define sockaddr_native sockaddr_in6
+
+void sockaddr_to_irc(const struct sockaddr_in6 *v6, struct irc_sockaddr *irc)
+{
+    assert(v6->sin6_family == AF_INET6);
+    memcpy(&irc->addr.in6_16[0], &v6->sin6_addr, sizeof(v6->sin6_addr));
+    irc->port = ntohs(v6->sin6_port);
+}
+
+void sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int persist)
+{
+    memset(v6, 0, sizeof(*v6));
+    v6->sin6_family = AF_INET6;
+    memcpy(&v6->sin6_addr, &irc->addr.in6_16[0], sizeof(v6->sin6_addr));
+    if (persist && irc_in_addr_is_ipv4(&irc->addr))
+        v6->sin6_addr.s6_addr[10] = v6->sin6_addr.s6_addr[11] = '\xff';
+    v6->sin6_port = htons(irc->port);
+}
+
+#else
+#define sockaddr_native sockaddr_in
+
+void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
+{
+    assert(v4->sin_family == AF_INET);
+    memset(&irc->addr, 0, 6*sizeof(irc->addr.in6_16[0]));
+    memcpy(&irc->addr.in6_16[6], &v4->sin_addr, sizeof(v4->sin_addr));
+    irc->port = ntohs(v4->sin_port);
+}
+
+void sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int persist)
+{
+    v4->sin_family = AF_INET6;
+    assert(!irc->addr.in6_16[0] && !irc->addr.in6_16[1] && !irc->addr.in6_16[2] && !irc->addr.in6_16[3] && !irc->addr.in6_16[4] && (!irc->addr.in6_16[5] || irc->addr.in6_16[5] == 0xffff));
+    memcpy(&v4->sin_addr, &irc->addr.in6_16[7], sizeof(v4->sin_addr));
+    v4->sin_port = htons(irc->port);
+    (void)persist;
+}
+
 #endif
 
 /*
@@ -327,17 +373,19 @@ IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
 }
 
 IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
-                          unsigned int* length_out, struct sockaddr_in* sin_out)
+                          unsigned int* length_out,
+                          struct irc_sockaddr* addr_out)
 {
+  struct sockaddr_native addr;
+  unsigned int len = sizeof(addr);
   int    res;
-  unsigned int len = sizeof(struct sockaddr_in);
   assert(0 != buf);
   assert(0 != length_out);
-  assert(0 != sin_out);
+  assert(0 != addr_out);
   errno = 0;
   *length_out = 0;
 
-  res = recvfrom(fd, buf, length, 0, (struct sockaddr*) sin_out, &len);
+  res = recvfrom(fd, buf, length, 0, (struct sockaddr*) &addr, &len);
   if (-1 == res) {
     if (EWOULDBLOCK == errno || ENOMEM == errno
 #ifdef ENOMEM
@@ -350,8 +398,45 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
       return IO_BLOCKED;
     return IO_FAILURE;
   }
+  sockaddr_to_irc(&addr, addr_out);
   *length_out = res;
   return IO_SUCCESS;
+}
+
+/*
+ * os_sendto_nonb - non blocking send to a UDP socket
+ * returns:
+ *  1  if data was written, *count_out contains number of bytes
+ *  0  if sendto call blocked
+ *  -1 if an unrecoverable error occurred
+ */
+IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
+                        unsigned int* count_out, unsigned int flags,
+                        const struct irc_sockaddr* peer)
+{
+  struct sockaddr_native addr;
+  int res;
+  assert(0 != buf);
+  if (count_out)
+    *count_out = 0;
+  errno = 0;
+
+  sockaddr_from_irc(&addr, peer, 1);
+  if (-1 < (res = sendto(fd, buf, length, flags, (struct sockaddr*)&addr, sizeof(addr)))) {
+    if (count_out)
+      *count_out = (unsigned) res;
+    return IO_SUCCESS;
+  }
+  else if (EWOULDBLOCK == errno || EAGAIN == errno
+#ifdef ENOMEM
+	   || ENOMEM == errno
+#endif
+#ifdef ENOBUFS
+	   || ENOBUFS == errno
+#endif
+      )
+    return IO_BLOCKED;
+  return IO_FAILURE;
 }
 
 /*
@@ -422,25 +507,92 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
   return IO_FAILURE;
 }
 
-IOResult os_connect_nonb(int fd, const struct sockaddr_in* sin)
+int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
 {
-  if (connect(fd, (struct sockaddr*) sin, sizeof(struct sockaddr_in)))
+  int family, fd;
+#ifdef IPV6
+  family = AF_INET6;
+#else
+  family = AF_INET;
+#endif
+  fd = socket(family, type, 0);
+  if (fd < 0) {
+    report_error(SOCKET_ERROR_MSG, port_name, errno);
+    return -1;
+  }
+  if (fd > MAXCLIENTS - 1) {
+    report_error(CONNLIMIT_ERROR_MSG, port_name, 0);
+    close(fd);
+    return -1;
+  }
+  if (!os_set_reuseaddr(fd)) {
+    report_error(REUSEADDR_ERROR_MSG, port_name, errno);
+    close(fd);
+    return -1;
+  }
+  if (!os_set_nonblocking(fd)) {
+    report_error(NONB_ERROR_MSG, port_name, errno);
+    close(fd);
+    return -1;
+  }
+  if (local) {
+    struct sockaddr_native addr;
+    sockaddr_from_irc(&addr, local, 1);
+    if (bind(fd, (struct sockaddr*)&addr, sizeof(addr))) {
+      report_error(BIND_ERROR_MSG, port_name, errno);
+      close(fd);
+      return -1;
+    }
+  }
+  return fd;
+}
+
+int os_accept(int fd, struct irc_sockaddr* peer)
+{
+  struct sockaddr_native addr;
+  socklen_t addrlen;
+  int new_fd;
+
+  addrlen = sizeof(addr);
+  new_fd = accept(fd, (struct sockaddr*)&addr, &addrlen);
+  if (new_fd < 0)
+    memset(peer, 0, sizeof(*peer));
+  else
+    sockaddr_to_irc(&addr, peer);
+  return new_fd;
+}
+
+IOResult os_connect_nonb(int fd, const struct irc_sockaddr* sin)
+{
+  struct sockaddr_native addr;
+  sockaddr_from_irc(&addr, sin, 1);
+  if (connect(fd, (struct sockaddr*) &addr, sizeof(addr)))
     return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
   return IO_SUCCESS;
 }
 
-int os_get_sockname(int fd, struct sockaddr_in* sin_out)
+int os_get_sockname(int fd, struct irc_sockaddr* sin_out)
 {
-  unsigned int len = sizeof(struct sockaddr_in);
+  struct sockaddr_native addr;
+  unsigned int len = sizeof(addr);
+
   assert(0 != sin_out);
-  return (0 == getsockname(fd, (struct sockaddr*) sin_out, &len));
+  if (getsockname(fd, (struct sockaddr*) &addr, &len))
+    return 0;
+  sockaddr_to_irc(&addr, sin_out);
+  return 1;
 }
 
-int os_get_peername(int fd, struct sockaddr_in* sin_out)
+int os_get_peername(int fd, struct irc_sockaddr* sin_out)
 {
-  unsigned int len = sizeof(struct sockaddr_in);
+  struct sockaddr_native addr;
+  unsigned int len = sizeof(addr);
+
   assert(0 != sin_out);
-  return (0 == getpeername(fd, (struct sockaddr*) sin_out, &len));
+  if (getpeername(fd, (struct sockaddr*) &addr, &len))
+    return 0;
+  sockaddr_to_irc(&addr, sin_out);
+  return 1;
 }
 
 int os_set_listen(int fd, int backlog)

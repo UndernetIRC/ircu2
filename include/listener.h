@@ -26,13 +26,12 @@
 #ifndef INCLUDED_ircd_events_h
 #include "ircd_events.h"
 #endif
+#ifndef INCLUDED_res_h
+#include "res.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>       /* size_t, broken BSD system headers */
 #define INCLUDED_sys_types_h
-#endif
-#ifndef INCLUDED_netinet_in_h
-#include <netinet/in.h>      /* in_addr */
-#define INCLUDED_netinet_in_h
 #endif
 
 struct Client;
@@ -41,15 +40,15 @@ struct StatDesc;
 struct Listener {
   struct Listener* next;               /* list node pointer */
   int              fd;                 /* file descriptor */
-  int              port;               /* listener IP port */
   int              ref_count;          /* number of connection references */
   unsigned char    active;             /* current state of listener */
   unsigned char    hidden;             /* hidden in stats output for clients */
   unsigned char    server;             /* 1 if port is a server listener */
+  unsigned char    mask_bits;          /* number of bits in mask address */
   int              index;              /* index into poll array */
   time_t           last_accept;        /* last time listener accepted */
-  struct in_addr   addr;               /* virtual address or INADDR_ANY */
-  struct in_addr   mask;               /* listener hostmask */
+  struct irc_sockaddr addr;            /* virtual address and port */
+  struct irc_in_addr mask;             /* listener hostmask */
   struct Socket    socket;             /* describe socket to event system */
 };
 

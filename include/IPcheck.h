@@ -10,19 +10,16 @@
 #include <sys/types.h>          /* time_t, size_t */
 #define INCLUDED_sys_types_h
 #endif
-#ifndef INCLUDED_netinet_in_h
-#include <netinet/in.h>         /* in_addr */
-#define INCLUDED_netinet_in_h
-#endif
 
 struct Client;
+struct irc_in_addr;
 
 /*
  * Prototypes
  */
 extern void IPcheck_init(void);
-extern int IPcheck_local_connect(struct in_addr ip, time_t* next_target_out);
-extern void IPcheck_connect_fail(struct in_addr ip);
+extern int IPcheck_local_connect(const struct irc_in_addr *ip, time_t *next_target_out);
+extern void IPcheck_connect_fail(const struct irc_in_addr *ip);
 extern void IPcheck_connect_succeeded(struct Client *cptr);
 extern int IPcheck_remote_connect(struct Client *cptr, int is_burst);
 extern void IPcheck_disconnect(struct Client *cptr);

@@ -66,10 +66,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifndef INADDR_NONE
-#define INADDR_NONE 0xffffffff
-#endif
-
 struct ConfItem  *GlobalConfList  = 0;
 int              GlobalConfCount = 0;
 struct s_map     *GlobalServiceMapList = 0;
@@ -130,7 +126,6 @@ struct ConfItem* make_conf(void)
 #endif
   memset(aconf, 0, sizeof(struct ConfItem));
   aconf->status       = CONF_ILLEGAL;
-  aconf->ipnum.s_addr = INADDR_NONE;
   return aconf;
 }
 
@@ -153,7 +148,7 @@ void free_conf(struct ConfItem *aconf)
   Debug((DEBUG_DEBUG, "free_conf: %s %s %d",
          aconf->host ? aconf->host : "*",
          aconf->name ? aconf->name : "*",
-         aconf->port));
+         aconf->address.port));
   if (aconf->dns_pending)
     delete_resolver_queries(aconf);
   MyFree(aconf->host);
@@ -210,8 +205,7 @@ static void conf_dns_callback(void* vptr, struct DNSReply* hp)
   assert(aconf);
   aconf->dns_pending = 0;
   if (hp) {
-    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
-    memcpy(&aconf->ipnum, &sin->sin_addr, sizeof(struct in_addr));
+    memcpy(&aconf->address.addr, &hp->addr, sizeof(aconf->address.addr));
     MyFree(hp);
   }
 }
@@ -255,18 +249,13 @@ lookup_confhost(struct ConfItem *aconf)
    * Do name lookup now on hostnames given and store the
    * ip numbers in conf structure.
    */
-  if (IsDigit(*aconf->host)) {
-    /*
-     * rfc 1035 sez host names may not start with a digit
-     * XXX - this has changed code needs to be updated
-     */
-    aconf->ipnum.s_addr = inet_addr(aconf->host);
-    if (INADDR_NONE == aconf->ipnum.s_addr) {
+  if (IsIP6Char(*aconf->host)) {
+    if (!ircd_aton(&aconf->address.addr, aconf->host)) {
       Debug((DEBUG_ERROR, "Host/server name error: (%s) (%s)",
-            aconf->host, aconf->name));
+          aconf->host, aconf->name));
     }
   }
-  else 
+  else
     conf_dns_lookup(aconf);
 }
 
@@ -380,7 +369,7 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
-    if (aconf->port && aconf->port != cli_listener(cptr)->port)
+    if (aconf->address.port && aconf->address.port != cli_listener(cptr)->addr.port)
       continue;
     if (!aconf->host || !aconf->name)
       continue;
@@ -609,17 +598,16 @@ struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
  * Find a conf line using the IP# stored in it to search upon.
  * Added 1/8/92 by Avalon.
  */
-struct ConfItem* find_conf_byip(struct SLink* lp, const char* ip, 
+struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
                                 int statmask)
 {
   struct ConfItem* tmp;
 
   for (; lp; lp = lp->next) {
     tmp = lp->value.aconf;
-    if (0 != (tmp->status & statmask)) {
-      if (0 == memcmp(&tmp->ipnum, ip, sizeof(struct in_addr)))
-        return tmp;
-    }
+    if (0 != (tmp->status & statmask)
+        && 0 == memcmp(&tmp->address.addr, ip, sizeof(*ip)))
+      return tmp;
   }
   return 0;
 }
@@ -803,106 +791,6 @@ const struct CRuleConf* conf_get_crule_list(void)
   return cruleConfList;
 }
 
-#if 0
-void conf_add_server(const char* const* fields, int count)
-{
-  struct ServerConf* server;
-  struct in_addr    addr;
-  assert(0 != fields);
-  /*
-   * missing host, password, or alias?
-   */
-  if (count < 6 || EmptyString(fields[1]) || EmptyString(fields[2]) || EmptyString(fields[3]))
-    return;
-  /*
-   * check the host
-   */
-  if (string_is_hostname(fields[1]))
-    addr.s_addr = INADDR_NONE;
-  else if (INADDR_NONE == (addr.s_addr = inet_addr(fields[1])))
-    return;
-
-  server = (struct ServerConf*) MyMalloc(sizeof(struct ServerConf));
-  assert(0 != server);
-  DupString(server->hostname, fields[1]);
-  DupString(server->passwd,   fields[2]);
-  DupString(server->alias,    fields[3]);
-  server->address.s_addr = addr.s_addr;
-  server->port           = atoi(fields[4]);
-  server->dns_pending    = 0;
-  server->connected      = 0;
-  server->hold           = 0;
-  server->conn_class      = find_class(atoi(fields[5]));
-
-  server->next = serverConfList;
-  serverConfList = server;
-
-  /* if (INADDR_NONE == server->address.s_addr) */
-    /* lookup_confhost(server); */
-}
-
-void conf_add_deny(const char* const* fields, int count, int ip_kill)
-{
-  struct DenyConf* conf;
-
-  if (count < 4 || EmptyString(fields[1]) || EmptyString(fields[3]))
-    return;
-  
-  conf = (struct DenyConf*) MyMalloc(sizeof(struct DenyConf));
-  assert(0 != conf);
-  memset(conf, 0, sizeof(struct DenyConf));
-
-  if (fields[1][0] == '$' && fields[1][1] == 'R')
-    conf->flags |= DENY_FLAGS_REALNAME;
-
-  DupString(conf->hostmask, fields[1]);
-  collapse(conf->hostmask);
-
-  if (!EmptyString(fields[2])) {
-    const char* p = fields[2];
-    if ('!' == *p) {
-      conf->flags |= DENY_FLAGS_FILE;
-      ++p;
-    }
-    DupString(conf->message, p);
-  }
-  DupString(conf->usermask, fields[3]);
-  collapse(conf->usermask);
-
-  if (ip_kill) {
-    /* 
-     * Here we use the same kludge as in listener.c to parse
-     * a.b.c.d, or a.b.c.*, or a.b.c.d/e.
-     */
-    int  c_class;
-    char ipname[16];
-    int  ad[4] = { 0 };
-    int  bits2 = 0;
-    c_class = sscanf(conf->hostmask, "%d.%d.%d.%d/%d",
-                     &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
-    if (c_class != 5) {
-      conf->bits = c_class * 8;
-    }
-    else {
-      conf->bits = bits2;
-    }
-    ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
-		  ad[2], ad[3]);
-    
-    /*
-     * This ensures endian correctness
-     */
-    conf->address = inet_addr(ipname);
-    Debug((DEBUG_DEBUG, "IPkill: %s = %08x/%i (%08x)", ipname,
-           conf->address, conf->bits, NETMASK(conf->bits)));
-    conf->flags |= DENY_FLAGS_IP;
-  }
-  conf->next = denyConfList;
-  denyConfList = conf;
-}
-#endif
-
-
 void conf_erase_deny_list(void)
 {
   struct DenyConf* next;
@@ -916,30 +804,17 @@ void conf_erase_deny_list(void)
   }
   denyConfList = 0;
 }
- 
+
 const struct DenyConf* conf_get_deny_list(void)
 {
   return denyConfList;
 }
 
-#if 0
-void conf_add_quarantine(const char *chname, const char *reason)
-{
-  struct qline *qline;
-
-  qline = (struct qline *) MyMalloc(sizeof(struct qline));
-  DupString(qline->chname, chname);
-  DupString(qline->reason, reason);
-  qline->next = GlobalQuarantineList;
-  GlobalQuarantineList = qline;
-}
-#endif
-
 const char*
 find_quarantine(const char *chname)
 {
   struct qline *qline;
-  
+
   for (qline = GlobalQuarantineList; qline; qline = qline->next)
     if (!ircd_strcmp(qline->chname, chname))
       return qline->reason;
@@ -1192,9 +1067,12 @@ int find_kill(struct Client *cptr)
       if (0 == match(deny->hostmask + 2, realname))
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
-      Debug((DEBUG_DEBUG, "ip: %08x network: %08x/%i mask: %08x",
-             cli_ip(cptr).s_addr, deny->address, deny->bits, NETMASK(deny->bits)));
-      if ((cli_ip(cptr).s_addr & NETMASK(deny->bits)) == deny->address)
+#ifdef DEBUGMODE
+      char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
+      Debug((DEBUG_DEBUG, "ip: %s network: %s/%u",
+             ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &deny->address), deny->bits));
+#endif
+      if (ipmask_check(&cli_ip(cptr), &deny->address, deny->bits))
         break;
     }
     else if (0 == match(deny->hostmask, host))
@@ -1300,7 +1178,7 @@ int conf_check_server(struct Client *cptr)
       if ((c_conf = find_conf_byhost(lp, hp->h_name, CONF_SERVER)))
         ircd_strncpy(cli_sockhost(cptr), name, HOSTLEN);
       else
-          c_conf = find_conf_byip(lp, (char*)&((struct sockaddr_in*)&hp->addr)->sin_addr, CONF_SERVER);
+        c_conf = find_conf_byip(lp, &hp->addr, CONF_SERVER);
     }
     else {
       /*
@@ -1317,7 +1195,7 @@ int conf_check_server(struct Client *cptr)
    * happen when using DNS in the way the irc server does. -avalon
    */
   if (!c_conf)
-    c_conf = find_conf_byip(lp, (const char*) &(cli_ip(cptr)), CONF_SERVER);
+    c_conf = find_conf_byip(lp, &cli_ip(cptr), CONF_SERVER);
   /*
    * detach all conf lines that got attached by attach_confs()
    */
@@ -1337,8 +1215,8 @@ int conf_check_server(struct Client *cptr)
   attach_conf(cptr, c_conf);
   attach_confs_byname(cptr, cli_name(cptr), CONF_HUB | CONF_LEAF | CONF_UWORLD);
 
-  if (INADDR_NONE == c_conf->ipnum.s_addr)
-    c_conf->ipnum.s_addr = cli_ip(cptr).s_addr;
+  if (!irc_in_addr_valid(&c_conf->address.addr))
+    memcpy(&c_conf->address.addr, &cli_ip(cptr), sizeof(c_conf->address.addr));
 
   Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]",
          cli_name(cptr), cli_sockhost(cptr)));

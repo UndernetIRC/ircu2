@@ -27,7 +27,9 @@
 #define INCLUDED_sys_types_h
 #endif
 
-#include <netinet/in.h>
+#ifndef INCLUDED_res_h
+#include "res.h"
+#endif
 
 struct Client;
 struct StatDesc;
@@ -42,8 +44,8 @@ struct Gline {
   char	       *gl_reason;
   time_t	gl_expire;
   time_t	gl_lastmod;
-  struct in_addr ipnum;  /* We store the IP in binary for ip glines */
-  char 		bits;
+  struct irc_in_addr gl_addr;  /* We store the IP in binary for ip glines */
+  unsigned char gl_bits;
   unsigned int	gl_flags;
 };
 

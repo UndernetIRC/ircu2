@@ -23,6 +23,7 @@
 %{
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "config.h"
 #include "ircd.h"
 #include "ircd_string.h"
@@ -42,6 +43,7 @@ static struct lexer_token {
   TOKEN(CONTACT),
   TOKEN(CLASS),
   TOKEN(PINGFREQ),
+  TOKEN(CONNECT),
   TOKEN(CONNECTFREQ),
   TOKEN(MAXLINKS),
   TOKEN(SENDQ),

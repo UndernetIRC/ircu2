@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.6 2004-08-16 16:32:05 entrope Exp $
+ * $Id: config.h.in,v 1.7 2004-08-19 04:00:43 entrope Exp $
  */
 
 /* Define if you have the setrlimit function */
@@ -261,5 +261,8 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef socklen_t
+
+/* Define if you want IPv6 support. */
+#undef IPV6
 
 #endif /* INCLUDED_config_h */

@@ -312,7 +312,7 @@ static void release_auth_client(struct Client* client)
   Debug((DEBUG_INFO, "Auth: release_auth_client %s@%s[%s]",
          cli_username(client), cli_sockhost(client), cli_sock_ip(client)));
 }
- 
+
 static void auth_kill_client(struct AuthRequest* auth)
 {
   assert(0 != auth);
@@ -347,17 +347,16 @@ static void auth_dns_callback(void* vptr, struct DNSReply* hp)
   ClearDNSPending(auth);
 
   if (hp) {
-    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
     /*
      * Verify that the host to ip mapping is correct both ways and that
      * the ip#(s) for the socket is listed for the host.
      */
-    if (memcmp(&sin->sin_addr, &cli_ip(auth->client), sizeof(struct in_addr))) {
+    if (irc_in_addr_cmp(&hp->addr, &cli_ip(auth->client))) {
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_IP_MISMATCH);
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-			   cli_sock_ip(auth->client), hp->h_name, 
-			   ircd_ntoa((const char*)&sin->sin_addr));
+			   cli_sock_ip(auth->client), hp->h_name,
+			   ircd_ntoa(&hp->addr));
       if (feature_bool(FEAT_KILL_IPMISMATCH)) {
 	auth_kill_client(auth);
 	return;
@@ -430,55 +429,39 @@ static void auth_error(struct AuthRequest* auth, int kill)
 }
 
 /*
- * start_auth_query - Flag the client to show that an attempt to 
+ * start_auth_query - Flag the client to show that an attempt to
  * contact the ident server on the client's host.  The connect and
- * subsequently the socket are all put into 'non-blocking' mode.  
+ * subsequently the socket are all put into 'non-blocking' mode.
  * Should the connect or any later phase of the identifing process fail,
  * it is aborted and the user is given a username of "unknown".
  */
 static int start_auth_query(struct AuthRequest* auth)
 {
-  struct sockaddr_in remote_addr;
-  struct sockaddr_in local_addr;
+  struct irc_sockaddr remote_addr;
+  struct irc_sockaddr local_addr;
   int                fd;
   IOResult           result;
 
   assert(0 != auth);
   assert(0 != auth->client);
 
-  if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    ++ServerStats->is_abad;
-    return 0;
-  }
-  if ((MAXCONNECTIONS - 10) < fd) {
-    close(fd);
-    return 0;
-  }
-  if (!os_set_nonblocking(fd)) {
-    close(fd);
-    return 0;
-  }
-  if (IsUserPort(auth->client))
-    sendheader(auth->client, REPORT_DO_ID);
-  /* 
+  /*
    * get the local address of the client and bind to that to
    * make the auth request.  This used to be done only for
    * ifdef VIRTTUAL_HOST, but needs to be done for all clients
    * since the ident request must originate from that same address--
    * and machines with multiple IP addresses are common now
    */
-  memset(&local_addr, 0, sizeof(struct sockaddr_in));
+  memset(&local_addr, 0, sizeof(local_addr));
   os_get_sockname(cli_fd(auth->client), &local_addr);
-  local_addr.sin_port = htons(0);
-
-  if (bind(fd, (struct sockaddr*) &local_addr, sizeof(struct sockaddr_in))) {
-    close(fd);
+  local_addr.port = 0;
+  fd = os_socket(&local_addr, SOCK_STREAM, "auth query");
+  if (fd < 0)
     return 0;
-  }
-
-  remote_addr.sin_addr.s_addr = (cli_ip(auth->client)).s_addr;
-  remote_addr.sin_port = htons(113);
-  remote_addr.sin_family = AF_INET;
+  if (IsUserPort(auth->client))
+    sendheader(auth->client, REPORT_DO_ID);
+  memcpy(&remote_addr.addr, &cli_ip(auth->client), sizeof(remote_addr.addr));
+  remote_addr.port = 113;
 
   if ((result = os_connect_nonb(fd, &remote_addr)) == IO_FAILURE ||
       !socket_add(&auth->socket, auth_sock_callback, (void*) auth,
@@ -598,7 +581,7 @@ void start_auth(struct Client* client)
   Debug((DEBUG_INFO, "Beginning auth request on client %p", client));
 
   if (!feature_bool(FEAT_NODNS)) {
-    if (LOOPBACK == inet_netof(cli_ip(client)))
+    if (irc_in_addr_is_loopback(&cli_ip(client)))
       strcpy(cli_sockhost(client), cli_name(&me));
     else {
       struct DNSQuery query;
@@ -609,7 +592,7 @@ void start_auth(struct Client* client)
       if (IsUserPort(auth->client))
 	sendheader(client, REPORT_DO_DNS);
 
-      gethost_byinaddr(&(cli_ip(client)), &query);
+      gethost_byaddr(&cli_ip(client), &query);
       SetDNSPending(auth);
     }
   }
@@ -639,8 +622,8 @@ void start_auth(struct Client* client)
  */
 void send_auth_query(struct AuthRequest* auth)
 {
-  struct sockaddr_in us;
-  struct sockaddr_in them;
+  struct irc_sockaddr us;
+  struct irc_sockaddr them;
   char               authbuf[32];
   unsigned int       count;
 
@@ -653,8 +636,8 @@ void send_auth_query(struct AuthRequest* auth)
     return;
   }
   ircd_snprintf(0, authbuf, sizeof(authbuf), "%u , %u\r\n",
-		(unsigned int) ntohs(them.sin_port),
-		(unsigned int) ntohs(us.sin_port));
+		(unsigned int) them.port,
+		(unsigned int) us.port);
 
   if (IO_SUCCESS == os_send_nonb(auth->fd, authbuf, strlen(authbuf), &count)) {
     ClearAuthConnect(auth);

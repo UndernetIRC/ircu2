@@ -247,7 +247,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
-    IPcheck_connect_fail(cli_ip(acptr));
+    IPcheck_connect_fail(&cli_ip(acptr));
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -377,7 +377,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsUnknown(acptr) && MyConnect(acptr))
   {
     ServerStats->is_ref++;
-    IPcheck_connect_fail(cli_ip(acptr));
+    IPcheck_connect_fail(&cli_ip(acptr));
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -401,13 +401,15 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsServer(sptr))
   {
+    struct irc_in_addr ip;
     /*
      * A new NICK being introduced by a neighbouring
      * server (e.g. message type ":server NICK new ..." received)
      *
      * compare IP address and username
      */
-    differ =  (cli_ip(acptr).s_addr != htonl(base64toint(parv[parc - 3]))) ||
+    base64toip(parv[parc - 3], &ip);
+    differ =  (0 != memcmp(&cli_ip(acptr), &ip, sizeof(cli_ip(acptr)))) ||
               (0 != ircd_strcmp(cli_user(acptr)->username, parv[4]));
     sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C (%C %Tu <- "
 			 "%C %Tu (%s user@host))", acptr, cli_from(acptr),
@@ -421,8 +423,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      *
      * compare IP address and username
      */
-    differ =  (cli_ip(acptr).s_addr != cli_ip(sptr).s_addr) ||
-              (0 != ircd_strcmp(cli_user(acptr)->username, cli_user(sptr)->username));              
+    differ =  (0 != memcmp(&cli_ip(acptr), &cli_ip(sptr), sizeof(cli_ip(acptr)))) ||
+              (0 != ircd_strcmp(cli_user(acptr)->username, cli_user(sptr)->username));
     sendto_opmask_butone(0, SNO_OLDSNO, "Nick change collision from %C to "
 			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
 			 cli_lastnick(acptr), cptr, lastnick);

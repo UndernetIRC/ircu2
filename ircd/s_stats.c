@@ -106,7 +106,7 @@ stats_configured_links(struct Client *sptr, struct StatDesc* sd, int stat,
       host = BadPtr(tmp->host) ? null : tmp->host;
       pass = BadPtr(tmp->passwd) ? null : tmp->passwd;
       name = BadPtr(tmp->name) ? null : tmp->name;
-      port = tmp->port;
+      port = tmp->address.port;
       /*
        * On K line the passwd contents can be
        * displayed on STATS reply.    -Vesa
@@ -181,7 +181,7 @@ stats_access(struct Client *to, struct StatDesc *sd, int stat, char *param)
                    !mmatch(param, aconf->name))))
     {
       send_reply(to, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-                 aconf->port, get_conf_class(aconf));
+                 aconf->address.port, get_conf_class(aconf));
       if (--count == 0)
         break;
     }

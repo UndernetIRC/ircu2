@@ -30,6 +30,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "match.h"
 #include "numeric.h"
 #include "s_bsd.h"
 #include "s_conf.h"
@@ -56,17 +57,17 @@ struct Listener* ListenerPollList = 0;
 
 static void accept_connection(struct Event* ev);
 
-static struct Listener* make_listener(int port, struct in_addr addr)
+static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 {
-  struct Listener* listener = 
+  struct Listener* listener =
     (struct Listener*) MyMalloc(sizeof(struct Listener));
   assert(0 != listener);
 
   memset(listener, 0, sizeof(struct Listener));
 
   listener->fd          = -1;
-  listener->port        = port;
-  listener->addr.s_addr = addr.s_addr;
+  listener->addr.port   = port;
+  memcpy(&listener->addr.addr, addr, sizeof(listener->addr.addr));
 
 #ifdef NULL_POINTER_NOT_ZERO
   listener->next = NULL;
@@ -91,7 +92,7 @@ const char* get_listener_name(const struct Listener* listener)
 {
   static char buf[HOSTLEN + PORTNAMELEN + 4];
   assert(0 != listener);
-  ircd_snprintf(0, buf, sizeof(buf), "%s:%u", cli_name(&me), listener->port);
+  ircd_snprintf(0, buf, sizeof(buf), "%s:%u", cli_name(&me), listener->addr.port);
   return buf;
 }
 
@@ -132,7 +133,7 @@ void show_ports(struct Client* sptr, struct StatDesc* sd, int stat,
     port = atoi(param);
 
   for (listener = ListenerPollList; listener; listener = listener->next) {
-    if (port && port != listener->port)
+    if (port && port != listener->addr.port)
       continue;
     flags[0] = (listener->server) ? 'S' : 'C';
     if (listener->hidden) {
@@ -144,7 +145,7 @@ void show_ports(struct Client* sptr, struct StatDesc* sd, int stat,
     else
       flags[1] = '\0';
 
-    send_reply(sptr, RPL_STATSPLINE, listener->port, listener->ref_count,
+    send_reply(sptr, RPL_STATSPLINE, listener->addr.port, listener->ref_count,
 	       flags, (listener->active) ? "active" : "disabled");
     if (--count == 0)
       break;
@@ -168,41 +169,14 @@ void show_ports(struct Client* sptr, struct StatDesc* sd, int stat,
 
 static int inetport(struct Listener* listener)
 {
-  struct sockaddr_in sin;
   int                fd;
 
   /*
    * At first, open a new socket
    */
-  if (-1 == (fd = socket(AF_INET, SOCK_STREAM, 0))) {
-    report_error(SOCKET_ERROR_MSG, get_listener_name(listener), errno);
+  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener));
+  if (fd < 0)
     return 0;
-  }
-  else if (fd > MAXCLIENTS - 1) {
-    report_error(CONNLIMIT_ERROR_MSG, get_listener_name(listener), 0);
-    close(fd);
-    return 0;
-  }
-
-  if (!os_set_reuseaddr(fd)) {
-    report_error(REUSEADDR_ERROR_MSG, get_listener_name(listener), errno);
-    close(fd);
-    return 0;
-  }
-  /*
-   * Bind a port to listen for new connections if port is non-null,
-   * else assume it is already open and try get something from it.
-   */
-  memset(&sin, 0, sizeof(sin));
-  sin.sin_family = AF_INET;
-  sin.sin_addr   = listener->addr;
-  sin.sin_port   = htons(listener->port);
-
-  if (bind(fd, (struct sockaddr*) &sin, sizeof(sin))) {
-    report_error(BIND_ERROR_MSG, get_listener_name(listener), errno);
-    close(fd);
-    return 0;
-  }
   /*
    * Set the buffer sizes for the listener. Accepted connections
    * inherit the accepting sockets settings for SO_RCVBUF S_SNDBUF
@@ -219,14 +193,6 @@ static int inetport(struct Listener* listener)
   }
   if (!os_set_listen(fd, HYBRID_SOMAXCONN)) {
     report_error(LISTEN_ERROR_MSG, get_listener_name(listener), errno);
-    close(fd);
-    return 0;
-  }
-  /*
-   * XXX - this should always work, performance will suck if it doesn't
-   */
-  if (!os_set_nonblocking(fd)) {
-    report_error(NONB_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
     return 0;
   }
@@ -255,70 +221,27 @@ static int inetport(struct Listener* listener)
  * XXX - this function does N comparisons so if the list is huge
  * we may want to do something else for this. (rehash and init use this)
  */
-static struct Listener* find_listener(int port, struct in_addr addr)
+static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
 {
   struct Listener* listener;
   for (listener = ListenerPollList; listener; listener = listener->next) {
-    if (port == listener->port && addr.s_addr == listener->addr.s_addr)
+    if (port == listener->addr.port && !memcmp(addr, &listener->addr.addr, sizeof(*addr)))
       return listener;
   }
   return 0;
 }
 
 /*
- * set_listener_mask - set the connection mask for this listener
- */
-static void set_listener_mask(struct Listener* listener, const char* mask)
-{
-  int  ad[4];
-  char ipname[20];
-
-  assert(0 != listener);
-
-  if (EmptyString(mask) || 0 == strcmp(mask, "*")) {
-    listener->mask.s_addr = 0;
-    return;
-  }
-  ad[0] = ad[1] = ad[2] = ad[3] = 0;
-  /*
-   * do it this way because building ip# from separate values for each
-   * byte requires endian knowledge or some nasty messing. Also means
-   * easy conversion of "*" 0.0.0.0 or 134.* to 134.0.0.0 :-)
-   */
-  sscanf(mask, "%d.%d.%d.%d", &ad[0], &ad[1], &ad[2], &ad[3]);
-  ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1], ad[2],
-		ad[3]);
-  listener->mask.s_addr = inet_addr(ipname);
-}
-
-/*
- * connection_allowed - spin through mask and addr passed to see if connect 
- * allowed on a listener, uses mask generated by set_listener_mask
- */
-static int connection_allowed(const char* addr, const char* mask)
-{
-  int i = 4;
-  for ( ; i > 0; --i) {
-    if (*mask && *addr != *mask)
-      break;
-    ++addr;
-    ++mask;
-  }
-  return (0 == i);
-}
-
-
-/*
- * add_listener- create a new listener 
+ * add_listener- create a new listener
  * port - the port number to listen on
  * vhost_ip - if non-null must contain a valid IP address string in
  * the format "255.255.255.255"
  */
 void add_listener(int port, const char* vhost_ip, const char* mask,
-                  int is_server, int is_hidden) 
+                  int is_server, int is_hidden)
 {
   struct Listener* listener;
-  struct in_addr   vaddr;
+  struct irc_in_addr vaddr;
 
   /*
    * if no port in conf line, don't bother
@@ -326,35 +249,40 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   if (0 == port)
     return;
 
-  vaddr.s_addr = INADDR_ANY;
+  memset(&vaddr, 0, sizeof(vaddr));
 
-  if (!EmptyString(vhost_ip) && strcmp(vhost_ip,"*") != 0) {
-    vaddr.s_addr = inet_addr(vhost_ip);
-    if (INADDR_NONE == vaddr.s_addr)
+  if (!EmptyString(vhost_ip)
+      && strcmp(vhost_ip, "*")
+      && !ircd_aton(&vaddr, vhost_ip))
       return;
-  }
 
-  if ((listener = find_listener(port, vaddr))) {
+  if ((listener = find_listener(port, &vaddr))) {
     /*
-     * set active flag and change connect mask here, it's the only thing 
+     * set active flag and change connect mask here, it's the only thing
      * that can change on a rehash
      */
     listener->active = 1;
-    set_listener_mask(listener, mask);
+    if (mask)
+      ipmask_parse(mask, &listener->mask, &listener->mask_bits);
+    else
+      listener->mask_bits = 0;
     listener->hidden = is_hidden;
     listener->server = is_server;
     return;
   }
 
-  listener = make_listener(port, vaddr);
+  listener = make_listener(port, &vaddr);
 
   if (inetport(listener)) {
     listener->active = 1;
-    set_listener_mask(listener, mask);
+    if (mask)
+      ipmask_parse(mask, &listener->mask, &listener->mask_bits);
+    else
+      listener->mask_bits = 0;
     listener->hidden = is_hidden;
     listener->server = is_server;
     listener->next   = ListenerPollList;
-    ListenerPollList = listener; 
+    ListenerPollList = listener;
   }
   else
     free_listener(listener);
@@ -426,10 +354,9 @@ void release_listener(struct Listener* listener)
  */
 static void accept_connection(struct Event* ev)
 {
-  struct Listener* listener;
-  struct sockaddr_in addr = { 0 };
-  unsigned int       addrlen = sizeof(struct sockaddr_in);
-  int                fd;
+  struct Listener*    listener;
+  struct irc_sockaddr addr;
+  int                 fd;
 
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
@@ -462,8 +389,7 @@ static void accept_connection(struct Event* ev)
      */
     while (1)
     {
-      if ((fd = accept(listener->fd, (struct sockaddr*) &addr, &addrlen))
-          == -1)
+      if ((fd = os_accept(listener->fd, &addr)) == -1)
       {
         if (errno == EAGAIN ||
 #ifdef EWOULDBLOCK
@@ -507,8 +433,7 @@ static void accept_connection(struct Event* ev)
       /*
        * check to see if connection is allowed for this address mask
        */
-      if (!connection_allowed((const char*) &addr,
-                              (const char*) &listener->mask))
+      if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
       {
         ++ServerStats->is_ref;
         send(fd, "ERROR :Use another port\r\n", 25, 0);

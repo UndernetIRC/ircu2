@@ -141,43 +141,8 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
     else
       gline->gl_host = NULL;
 
-    if (*user != '$' && check_if_ipmask(host)) { /* mark if it's an IP mask */
-      int c_class;
-      char ipname[16];
-      int ad[4] = { 0 };
-      int bits2 = 0;
-      char *ch;
-      int seenwild;
-      int badmask=0;
-      
-      /* Sanity check for dodgy IP masks 
-       * Any mask featuring a digit after a wildcard will 
-       * not behave as expected. */
-      for (seenwild=0,ch=host;*ch;ch++) {
-        if (*ch=='*' || *ch=='?') 
-          seenwild=1;
-        if (IsDigit(*ch) && seenwild) {
-          badmask=1;
-          break;
-        }
-      }
-      
-      if (badmask) {
-        /* It's bad - let's make it match 0.0.0.0/32 */
-        gline->bits=32;
-        gline->ipnum.s_addr=0;
-      } else {
-        c_class = sscanf(host,"%d.%d.%d.%d/%d",
-                         &ad[0],&ad[1],&ad[2],&ad[3], &bits2);
-        if (c_class!=5)
-          gline->bits=c_class*8;
-        else
-          gline->bits=bits2;
-        ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
-                      ad[2], ad[3]);
-        gline->ipnum.s_addr = inet_addr(ipname);
-      }
-      Debug((DEBUG_DEBUG,"IP gline: %08x/%i",gline->ipnum.s_addr,gline->bits));
+    if (*user != '$' && ipmask_parse(host, &gline->gl_addr, &gline->gl_bits)) {
+      Debug((DEBUG_DEBUG,"IP gline: %s/%u", ircd_ntoa(&gline->gl_addr), gline->gl_bits));
       gline->gl_flags |= GLINE_IPMASK;
     }
 
@@ -215,7 +180,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
     if ((acptr = LocalClientArray[fd])) {
       if (!cli_user(acptr))
 	continue;
-	
+
       if (GlineIsRealName(gline)) { /* Realname Gline */
 	Debug((DEBUG_DEBUG,"Realname Gline: %s %s",(cli_info(acptr)),
 					gline->gl_user+2));
@@ -223,13 +188,16 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
             continue;
         Debug((DEBUG_DEBUG,"Matched!"));
       } else { /* Host/IP gline */
-        if (cli_user(acptr)->username && 
+        if (cli_user(acptr)->username &&
             match(gline->gl_user, (cli_user(acptr))->username) != 0)
-            continue;
-          
+          continue;
+
         if (GlineIsIpMask(gline)) {
-          Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",(cli_ip(cptr)).s_addr,gline->ipnum.s_addr,gline->bits));
-          if (((cli_ip(acptr)).s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+#ifdef DEBUGMODE
+          char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
+          Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
+#endif
+          if (!ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits))
             continue;
         }
         else {
@@ -282,17 +250,24 @@ gline_checkmask(char *mask)
       ++mask;
       ipmask = strtoul(mask, &mask, 10);
 
-      if (*mask || dots != 3 || ipmask > 32 || /* sanity-check to date */
-	  (flags & (MASK_WILDS | MASK_IP)) != MASK_IP)
-	return CHECK_REJECTED; /* how strange... */
-
-      if (ipmask < 32) /* it's a masked address; mark wilds */
-	flags |= MASK_WILDS;
+      /* sanity-check to date */
+      if (*mask || (flags & (MASK_WILDS | MASK_IP)) != MASK_IP)
+	return CHECK_REJECTED;
+      if (!dots) {
+        if (ipmask > 128)
+          return CHECK_REJECTED;
+        if (ipmask < 128)
+          flags |= MASK_WILDS;
+      } else {
+        if (dots != 3 || ipmask > 3)
+          return CHECK_REJECTED;
+        if (ipmask < 32)
+	  flags |= MASK_WILDS;
+      }
 
       flags |= MASK_HALT; /* Halt the ipmask calculation */
-
       break; /* get out of the loop */
-    } else if (!IsDigit(*mask)) {
+    } else if (!IsIP6Char(*mask)) {
       flags &= ~MASK_IP; /* not an IP anymore! */
       ipmask = 0;
     }
@@ -343,7 +318,7 @@ gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
   return 0;
 }
 
-int 
+int
 gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	  char *reason, time_t expire, time_t lastmod, unsigned int flags)
 {
@@ -355,28 +330,14 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   assert(0 != userhost);
   assert(0 != reason);
 
-  /* NO_OLD_GLINE allows *@#channel to work correctly */
-  if (*userhost == '#' || *userhost == '&'
-# ifndef NO_OLD_GLINE
-      || ((userhost[2] == '#' || userhost[2] == '&') && (userhost[1] == '@'))
-# endif /* OLD_GLINE */
-      ) {
+  if (*userhost == '#' || *userhost == '&') {
     if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
       return send_reply(sptr, ERR_NOPRIVILEGES);
 
     flags |= GLINE_BADCHAN;
-# ifndef NO_OLD_GLINE
-    if ((userhost[2] == '#' || userhost[2] == '&') && (userhost[1] == '@'))
-      user = userhost + 2;
-    else
-# endif /* OLD_GLINE */
-      user = userhost;
+    user = userhost;
     host = 0;
-  } else if (*userhost == '$' 
-# ifndef NO_OLD_GLINE
-  || userhost[2] == '$'
-# endif /* OLD_GLINE */
-  ) {
+  } else if (*userhost == '$') {
     switch (*userhost == '$' ? userhost[1] : userhost[3]) {
       case 'R': flags |= GLINE_REALNAME; break;
       default:
@@ -593,11 +554,7 @@ gline_find(char *userhost, unsigned int flags)
   }
 
   if ((flags & (GLINE_BADCHAN | GLINE_ANY)) == GLINE_BADCHAN ||
-      *userhost == '#' || *userhost == '&'
-#ifndef NO_OLD_GLINE
-      || userhost[2] == '#' || userhost[2] == '&'
-#endif /* NO_OLD_GLINE */
-      )
+      *userhost == '#' || *userhost == '&')
     return 0;
 
   DupString(t_uh, userhost);
@@ -663,14 +620,17 @@ gline_lookup(struct Client *cptr, unsigned int flags)
     else {
       if (match(gline->gl_user, (cli_user(cptr))->username) != 0)
         continue;
-    	 
+
       if (GlineIsIpMask(gline)) {
-        Debug((DEBUG_DEBUG,"IP gline: %08x %08x/%i",(cli_ip(cptr)).s_addr,gline->ipnum.s_addr,gline->bits));
-        if (((cli_ip(cptr)).s_addr & NETMASK(gline->bits)) != gline->ipnum.s_addr)
+#ifdef DEBUGMODE
+        char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
+        Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
+#endif
+        if (!ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits))
           continue;
       }
       else {
-        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0) 
+        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0)
           continue;
       }
     }
@@ -822,7 +782,7 @@ gline_memory_count(size_t *gl_size)
 {
   struct Gline *gline;
   unsigned int gl = 0;
-  
+
   for (gline = GlobalGlineList; gline; gline = gline->gl_next)
   {
     gl++;
@@ -833,4 +793,3 @@ gline_memory_count(size_t *gl_size)
   }
   return gl;
 }
-

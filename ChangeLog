@@ -1,5 +1,78 @@
 2004-08-17  Michael Poole <mdpoole@troilus.org>
 
+	IPv6 support, with lots of code and design borrowed from a patch
+	by Alex Badea.
+
+	* config.h.in: Add place to #define IPV6 support.
+
+	* configure.in: Check for struct sockaddr_in6, and use that as
+	the default choice for IPv6 support.
+
+	* configure: Regenerate.
+
+	* include/IPcheck.h, include/client.h, include/gline.h,
+	include/ircd_string.h, include/listener.h, include/match.h,
+	include/res.h, include/s_bsd.h: Convert from struct in_addr (from
+	<netinet/in.h>) to struct irc_in_addr (from "res.h").
+
+	* include/ircd_osdep.h, include/s_conf.h, include/uping.h: Convert
+	from struct sockaddr_in (from <netinet/in.h>) to struct
+	irc_sockaddr (from "res.h").  Add new functions os_socket(),
+	os_accept(), os_sendto_nonb() to help abstract away actual
+	sockaddr types.
+
+	* include/ircd_chattr.h, ircd/table_gen.c: Define new bit to mark
+	characters valid in IPv6 addresses.
+
+	* include/numnicks.h, ircd/numnicks.c: New functions iptobase64()
+	and base64toip() to convert from base64 to struct irc_in_addr.
+
+	* ircd/IPcheck.c, ircd/channel.c, ircd/m_nick.c, ircd/m_oper.c,
+	ircd/m_userip.c, ircd/m_who.c, ircd/m_whois.c, ircd/s_misc.c,
+	ircd/s_serv.c, ircd/s_user.c, ircd/whocmds.c: Use struct
+	irc_in_addr instead of unsigned int or struct in_addr.
+
+	* ircd/gline.c: Use new more-generic ipmask functions.
+
+	* ircd/ircd.c: Use struct irc_sockaddr instead of separate port
+	fields.
+
+	* ircd/ircd_reslib.c: Use struct irc_sockaddr and ircd_aton()
+	instead of irc_ssaddr and irc_getaddrinfo().
+
+	* ircd/ircd_string.c: Implement new functions: IPv6-capable
+	ircd_ntoa_r(), ircd_aton_ip4(), ircd_aton().
+
+	* ircd/match.c: Delete IPv4-only matchcompIP().  Replace with
+	IPv6-capable ipmask_parse() and ipmask_check().
+
+	* ircd/numnicks.c: Implement new functions: iptobase64() and
+	base64toip().
+
+	* ircd/os_generic: Convert external parameters to be struct
+	irc_addrinfo.  When using IPv6 support, sockaddr_in6 is native.
+	Implement new functions os_sendto_nonb(), os_socket() and
+	os_accept().
+
+	* ircd/ircd_auth.c, ircd/ircd_parser.y, ircd/ircd_res.c,
+	ircd/listener.c, ircd/m_connect.c, ircd/s_auth.c, ircd/s_bsd.c,
+	ircd/s_conf.c, ircd/s_stats.c, ircd/uping.c: Use struct
+	irc_sockaddr instead of separate in_addr and port fields and new
+	OS support functions.
+
+	* include/ircd_addrinfo.h, ircd/ircd_getaddrinfo.c,
+	ircd/ircd_getnameinfo.c: Remove, since these functions are no
+	longer used.
+
+	* ircd/os_bsd.c, ircd/os_linux.c, ircd/os_openbsd.c,
+	ircd/os_solaris.c, ircd/res_adns.c, ircd/res_libresolv.c: Remove,
+	since these are unused and not compatible with IPv6 support.
+
+	* ircd/Makefile.in: Remove references to ircd_getXxxxinfo.c.
+	Regenerate dependencies.
+
+2004-08-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_lexer.l: Change tokenizer to reduce number of lexer
 	states and be case-insensitive again.
 

@@ -185,13 +185,12 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * save the old port
    */
-  tmpport = aconf->port;
-  if (port) { 
-    aconf->port = port;
-  }
-  else {
-    port = aconf->port;
-  }
+  tmpport = aconf->address.port;
+  if (port)
+    aconf->address.port = port;
+  else
+    port = aconf->address.port;
+
   /*
    * Notify all operators about remote connect requests
    */
@@ -210,7 +209,7 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connection to %s failed",
 		  sptr, aconf->name);
   }
-  aconf->port = tmpport;
+  aconf->address.port = tmpport;
   return 0;
 }
 
@@ -314,7 +313,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    *  use the default from configuration structure. If missing
    *  from there, then use the precompiled default.
    */
-  port = aconf->port;
+  port = aconf->address.port;
   if (parc > 2) {
     assert(0 != parv[2]);
     if (0 == (port = atoi(parv[2]))) {
@@ -329,8 +328,8 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
-  tmpport = aconf->port;
-  aconf->port = port;
+  tmpport = aconf->address.port;
+  aconf->address.port = port;
 
   if (connect_server(aconf, sptr)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connecting to %s.", sptr,
@@ -340,6 +339,6 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connection to %s failed",
 		  sptr, aconf->name);
   }
-  aconf->port = tmpport;
+  aconf->address.port = tmpport;
   return 0;
 }

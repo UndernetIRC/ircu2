@@ -209,15 +209,15 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 
     if (HasHiddenHost(acptr) && (IsAnOper(sptr) || acptr == sptr))
       send_reply(sptr, RPL_WHOISACTUALLY, name, user->username,
-                 user->realhost, ircd_ntoa((const char*) &(cli_ip(acptr))));
-    
+                 user->realhost, ircd_ntoa(&cli_ip(acptr)));
+
     /* Hint: if your looking to add more flags to a user, eg +h, here's
      *       probably a good place to add them :)
      */
-     
+
     if (MyConnect(acptr) && (!feature_bool(FEAT_HIS_WHOIS_IDLETIME) ||
                              (sptr == acptr || IsAnOper(sptr) || parc >= 3)))
-       send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last, 
+       send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
                   cli_firsttime(acptr));
   }
 }

@@ -75,13 +75,9 @@
 #include <sys/poll.h>
 #endif /* USE_POLL */
 
-#ifndef INADDR_NONE
-#define INADDR_NONE 0xffffffff
-#endif
-
 struct Client*            LocalClientArray[MAXCONNECTIONS];
 int                       HighestFd = -1;
-struct sockaddr_in        VirtualHost;
+struct irc_sockaddr       VirtualHost;
 static char               readbuf[SERVER_TCP_WINDOW];
 
 /*
@@ -181,8 +177,7 @@ static void connect_dns_callback(void* vptr, struct DNSReply* hp)
   assert(aconf);
   aconf->dns_pending = 0;
   if (hp) {
-    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
-    memcpy(&aconf->ipnum, &sin->sin_addr, sizeof(struct in_addr));
+    memcpy(&aconf->address, &hp->addr, sizeof(aconf->address));
     MyFree(hp);
     connect_server(aconf, 0);
   }
@@ -231,7 +226,6 @@ int init_connection_limits(void)
  */
 static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
-  static struct sockaddr_in sin;
   IOResult result;
   assert(0 != aconf);
   assert(0 != cptr);
@@ -239,53 +233,16 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * Might as well get sockhost from here, the connection is attempted
    * with it so if it fails its useless.
    */
-  cli_fd(cptr) = socket(AF_INET, SOCK_STREAM, 0);
-  if (-1 == cli_fd(cptr)) {
-    cli_error(cptr) = errno;
-    report_error(SOCKET_ERROR_MSG, cli_name(cptr), errno);
+  cli_fd(cptr) = os_socket((feature_bool(FEAT_VIRTUAL_HOST) ? &VirtualHost : NULL), SOCK_STREAM, cli_name(cptr));
+  if (cli_fd(cptr) < 0)
     return 0;
-  }
-  if (cli_fd(cptr) >= MAXCLIENTS) {
-    report_error(CONNLIMIT_ERROR_MSG, cli_name(cptr), 0);
-    close(cli_fd(cptr));
-    cli_fd(cptr) = -1;
-    return 0;
-  }
-  /*
-   * Bind to a local IP# (with unknown port - let unix decide) so
-   * we have some chance of knowing the IP# that gets used for a host
-   * with more than one IP#.
-   *
-   * No we don't bind it, not all OS's can handle connecting with
-   * an already bound socket, different ip# might occur anyway
-   * leading to a freezing select() on this side for some time.
-   * I had this on my Linux 1.1.88 --Run
-   */
 
-  /*
-   * No, we do bind it if we have virtual host support. If we don't
-   * explicitly bind it, it will default to IN_ADDR_ANY and we lose
-   * due to the other server not allowing our base IP --smg
-   */
-  if (feature_bool(FEAT_VIRTUAL_HOST) &&
-      bind(cli_fd(cptr), (struct sockaddr*) &VirtualHost,
-	   sizeof(VirtualHost))) {
-    report_error(BIND_ERROR_MSG, cli_name(cptr), errno);
-    close(cli_fd(cptr));
-    cli_fd(cptr) = -1;
-    return 0;
-  }
-
-  memset(&sin, 0, sizeof(sin));
-  sin.sin_family      = AF_INET;
-  sin.sin_addr.s_addr = aconf->ipnum.s_addr;
-  sin.sin_port        = htons(aconf->port);
   /*
    * save connection info in client
    */
-  (cli_ip(cptr)).s_addr = aconf->ipnum.s_addr;
-  cli_port(cptr)        = aconf->port;
-  ircd_ntoa_r(cli_sock_ip(cptr), (const char*) &(cli_ip(cptr)));
+  memcpy(&cli_ip(cptr), &aconf->address.addr, sizeof(cli_ip(cptr)));
+  cli_port(cptr) = aconf->address.port;
+  ircd_ntoa_r(cli_sock_ip(cptr), &cli_ip(cptr));
   /*
    * we want a big buffer for server connections
    */
@@ -296,17 +253,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
     cli_fd(cptr) = -1;
     return 0;
   }
-  /*
-   * ALWAYS set sockets non-blocking
-   */
-  if (!os_set_nonblocking(cli_fd(cptr))) {
-    cli_error(cptr) = errno;
-    report_error(NONB_ERROR_MSG, cli_name(cptr), errno);
-    close(cli_fd(cptr));
-    cli_fd(cptr) = -1;
-    return 0;
-  }
-  if ((result = os_connect_nonb(cli_fd(cptr), &sin)) == IO_FAILURE) {
+  if ((result = os_connect_nonb(cli_fd(cptr), &aconf->address)) == IO_FAILURE) {
     cli_error(cptr) = errno;
     report_error(CONNECT_ERROR_MSG, cli_name(cptr), errno);
     close(cli_fd(cptr));
@@ -587,7 +534,7 @@ int net_close_unregistered_connections(struct Client* source)
  * passed off to the auth handler for dns and ident queries.
  *--------------------------------------------------------------------------*/
 void add_connection(struct Listener* listener, int fd) {
-  struct sockaddr_in addr;
+  struct irc_sockaddr addr;
   struct Client      *new_client;
   time_t             next_target = 0;
 
@@ -596,14 +543,13 @@ void add_connection(struct Listener* listener, int fd) {
        /* 12345678901234567890123456789012345679012345678901234567890123456 */
   const char* const register_message =
          "ERROR :Unable to complete your registration\r\n";
-  
+
   assert(0 != listener);
 
- 
   /*
    * Removed preliminary access check. Full check is performed in m_server and
    * m_user instead. Also connection time out help to get rid of unwanted
-   * connections.  
+   * connections.
    */
   if (!os_get_peername(fd, &addr) || !os_set_nonblocking(fd)) {
     ++ServerStats->is_ref;
@@ -626,7 +572,7 @@ void add_connection(struct Listener* listener, int fd) {
    *
    * If they're throttled, murder them, but tell them why first.
    */
-  if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server)
+  if (!IPcheck_local_connect(&addr.addr, &next_target) && !listener->server)
   {
     ++ServerStats->is_ref;
     write(fd, throttle_message, strlen(throttle_message));
@@ -634,18 +580,18 @@ void add_connection(struct Listener* listener, int fd) {
     return;
   }
 
-  new_client = make_client(0, ((listener->server) ? 
+  new_client = make_client(0, ((listener->server) ?
                                STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
 
   /*
    * Copy ascii address to 'sockhost' just in case. Then we have something
-   * valid to put into error messages...  
+   * valid to put into error messages...
    */
   SetIPChecked(new_client);
-  ircd_ntoa_r(cli_sock_ip(new_client), (const char*) &addr.sin_addr);   
+  ircd_ntoa_r(cli_sock_ip(new_client), &addr.addr);
   strcpy(cli_sockhost(new_client), cli_sock_ip(new_client));
-  (cli_ip(new_client)).s_addr = addr.sin_addr.s_addr;
-  cli_port(new_client)        = ntohs(addr.sin_port);
+  memcpy(&cli_ip(new_client), &addr.addr, sizeof(cli_ip(new_client)));
+  cli_port(new_client) = addr.port;
 
   if (next_target)
     cli_nexttarget(new_client) = next_target;
@@ -829,7 +775,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
     return 0;
   }
   Debug((DEBUG_NOTICE, "Connect to %s[@%s]", aconf->name,
-         ircd_ntoa((const char*) &aconf->ipnum)));
+         ircd_ntoa(&aconf->address.addr)));
 
   if ((cptr = FindClient(aconf->name))) {
     if (IsServer(cptr) || IsMe(cptr)) {
@@ -850,22 +796,21 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
     }
   }
   /*
-   * If we dont know the IP# for this host and itis a hostname and
+   * If we dont know the IP# for this host and it is a hostname and
    * not a ip# string, then try and find the appropriate host record.
    */
-  if (INADDR_NONE == aconf->ipnum.s_addr) {
-    if (INADDR_NONE == (aconf->ipnum.s_addr = inet_addr(aconf->host))) {
-      char buf[HOSTLEN + 1];
-      struct DNSQuery  query;
+  if (!irc_in_addr_valid(&aconf->address.addr)
+      && !ircd_aton(&aconf->address.addr, aconf->host)) {
+    char buf[HOSTLEN + 1];
+    struct DNSQuery  query;
 
-      query.vptr     = aconf;
-      query.callback = connect_dns_callback;
-      host_from_uh(buf, aconf->host, HOSTLEN);
-      buf[HOSTLEN] = '\0';
+    query.vptr     = aconf;
+    query.callback = connect_dns_callback;
+    host_from_uh(buf, aconf->host, HOSTLEN);
+    buf[HOSTLEN] = '\0';
 
-      gethost_byname(buf, &query);
-      aconf->dns_pending = 1;
-    }
+    gethost_byname(buf, &query);
+    aconf->dns_pending = 1;
     return 0;
   }
   cptr = make_client(NULL, STAT_UNKNOWN_SERVER);
@@ -949,12 +894,11 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
 /*
  * Setup local socket structure to use for binding to.
  */
-void set_virtual_host(struct in_addr addr)
+void set_virtual_host(const struct irc_in_addr *addr)
 {
   memset(&VirtualHost, 0, sizeof(VirtualHost));
-  VirtualHost.sin_family = AF_INET;
-  VirtualHost.sin_addr.s_addr = addr.s_addr;
-}  
+  memcpy(&VirtualHost.addr, addr, sizeof(VirtualHost.addr));
+}
 
 /*
  * Find the real hostname for the host running the server (or one which

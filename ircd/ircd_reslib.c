@@ -86,7 +86,6 @@
 #include "ircd_defs.h"
 #include "fileio.h"
 #include "ircd_string.h"
-#include "ircd_addrinfo.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -100,7 +99,7 @@
 
 /* $Id$ */
 
-struct irc_ssaddr irc_nsaddr_list[IRCD_MAXNS];
+struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 int irc_nscount = 0;
 char irc_domain[HOSTLEN + 1];
 
@@ -221,26 +220,18 @@ parse_resvconf(void)
 static void
 add_nameserver(char *arg)
 {
-  struct addrinfo hints, *res;
+  struct irc_sockaddr res;
+
   /* Done max number of nameservers? */
   if ((irc_nscount + 1) >= IRCD_MAXNS)
     return;
 
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family   = PF_UNSPEC;
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags    = AI_PASSIVE | AI_NUMERICHOST;
-
-  if (irc_getaddrinfo(arg, "domain", &hints, &res))
-    return;
-
-  if (res == NULL)
-    return;
-
-  memcpy(&irc_nsaddr_list[irc_nscount].ss, res->ai_addr, res->ai_addrlen);
-  irc_nsaddr_list[irc_nscount].ss_len = res->ai_addrlen;
+  /* Failure converting from numeric string? */
+  if (!ircd_aton(&res.addr, arg))
+      return;
+  res.port = 53;
+  memcpy(&irc_nsaddr_list[irc_nscount], &res, sizeof(irc_nsaddr_list[irc_nscount]));
   irc_nscount++;
-  irc_freeaddrinfo(res);
 }
 
 /*

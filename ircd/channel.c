@@ -174,12 +174,11 @@ static char *make_nick_user_host(char *namebuf, const char *nick,
  * Create a string of form "foo!bar@123.456.789.123" given foo, bar and the
  * IP-number as the parameters.  If NULL, they become "*".
  */
-#define NUI_BUFSIZE	(NICKLEN + USERLEN + 16 + 3)
+#define NUI_BUFSIZE	(NICKLEN + USERLEN + SOCKIPLEN + 4)
 static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
-			       struct in_addr ip)
+			       const struct irc_in_addr *ip)
 {
-  ircd_snprintf(0, ipbuf, NUI_BUFSIZE, "%s!%s@%s", nick, name,
-		ircd_ntoa((const char*) &ip));
+  ircd_snprintf(0, ipbuf, NUI_BUFSIZE, "%s!%s@%s", nick, name, ircd_ntoa(ip));
   return ipbuf;
 }
 
@@ -480,7 +479,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
     if ((tmp->flags & CHFL_BAN_IPMASK)) {
       if (!ip_s)
         ip_s = make_nick_user_ip(nu_ip, cli_name(cptr),
-				 (cli_user(cptr))->username, cli_ip(cptr));
+				 (cli_user(cptr))->username, &cli_ip(cptr));
       if (match(tmp->value.ban.banstr, ip_s) == 0)
         break;
     }

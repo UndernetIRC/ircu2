@@ -24,9 +24,14 @@
 #include "ircd_defs.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
+#include "res.h"
+
 #include <assert.h>
 #include <string.h>
 #include <regex.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+
 /*
  * include the character attribute tables here
  */
@@ -385,7 +390,7 @@ char* host_from_uh(char* host, const char* userhost, size_t n)
   return host;
 }
 
-/* 
+/*
  * this new faster inet_ntoa was ripped from:
  * From: Thomas Helvey <tomh@inxpress.net>
  */
@@ -430,40 +435,229 @@ static const char* IpQuadTab[] =
  *      argv 11/90).
  *  inet_ntoa --  its broken on some Ultrix/Dynix too. -avalon
  */
-const char* ircd_ntoa(const char* in)
+const char* ircd_ntoa(const struct irc_in_addr* in)
 {
-  static char buf[20];
+  static char buf[SOCKIPLEN];
   return ircd_ntoa_r(buf, in);
+}
+
+/* This doesn't really belong here, but otherwise umkpasswd breaks. */
+int irc_in_addr_is_ipv4(const struct irc_in_addr *addr)
+{
+  return addr->in6_16[0] == 0
+    && addr->in6_16[1] == 0
+    && addr->in6_16[2] == 0
+    && addr->in6_16[3] == 0
+    && addr->in6_16[4] == 0
+    && (addr->in6_16[5] == 0 || addr->in6_16[5] == 0xffff)
+    && addr->in6_16[6] != 0;
 }
 
 /*
  * reentrant version of above
  */
-const char* ircd_ntoa_r(char* buf, const char* in)
+const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
 {
-  char*                p = buf;
-  const unsigned char* a = (const unsigned char*)in;
-  const char*          n;
+    assert(buf != NULL);
+    assert(in != NULL);
 
-  assert(0 != buf);
-  assert(0 != in);
+    if (irc_in_addr_is_ipv4(in)) {
+      unsigned int pos, len;
+      unsigned char *pch;
 
-  n = IpQuadTab[*a++];
-  while ((*p = *n++))
-    ++p;
-  *p++ = '.';
-  n = IpQuadTab[*a++];
-  while ((*p = *n++))
-    ++p;
-  *p++ = '.';
-  n = IpQuadTab[*a++];
-  while ((*p = *n++))
-    ++p;
-  *p++ = '.';
-  n = IpQuadTab[*a];
-  while ((*p = *n++))
-    ++p;
-  return buf;
+      pch = (unsigned char*)&in->in6_16[6];
+      len = strlen(IpQuadTab[*pch]);
+      memcpy(buf, IpQuadTab[*pch++], len);
+      pos = len;
+      buf[pos++] = '.';
+      len = strlen(IpQuadTab[*pch]);
+      memcpy(buf+pos, IpQuadTab[*pch++], len);
+      pos += len;
+      buf[pos++] = '.';
+      len = strlen(IpQuadTab[*pch]);
+      memcpy(buf+pos, IpQuadTab[*pch++], len);
+      pos += len;
+      buf[pos++] = '.';
+      len = strlen(IpQuadTab[*pch]);
+      memcpy(buf+pos, IpQuadTab[*pch++], len);
+      buf[pos + len] = '\0';
+      return buf;
+    } else {
+      static const char hexdigits[] = "0123456789abcdef";
+      unsigned int pos, part, max_start, max_zeros, curr_zeros, ii;
+
+      /* Find longest run of zeros. */
+      for (max_start = ii = 1, max_zeros = curr_zeros = 0; ii < 8; ++ii) {
+        if (!in->in6_16[ii])
+          curr_zeros++;
+        else if (curr_zeros > max_zeros) {
+          max_start = ii - curr_zeros;
+          max_zeros = curr_zeros;
+          curr_zeros = 0;
+        }
+      }
+      if (curr_zeros > max_zeros) {
+        max_start = ii - curr_zeros;
+        max_zeros = curr_zeros;
+      }
+
+      /* Print out address. */
+#define APPEND(CH) do { buf[pos++] = (CH); } while (0)
+      for (pos = ii = 0; (ii < 8); ++ii) {
+        if ((max_zeros > 0) && (ii == max_start)) {
+          APPEND(':');
+          ii += max_zeros - 1;
+          continue;
+        }
+        part = ntohs(in->in6_16[ii]);
+        if (part >= 0x1000)
+          APPEND(hexdigits[part >> 12]);
+        if (part >= 0x100)
+          APPEND(hexdigits[(part >> 8) & 15]);
+        if (part >= 0x10)
+          APPEND(hexdigits[(part >> 4) & 15]);
+        APPEND(hexdigits[part & 15]);
+        if (ii < 7)
+          APPEND(':');
+      }
+      if (max_zeros + max_start == 8)
+        APPEND(':');
+#undef APPEND
+
+      /* Nul terminate and return number of characters used. */
+      buf[pos++] = '\0';
+      return buf;
+    }
 }
 
+static unsigned int
+ircd_aton_ip4(const char *input, unsigned int *output)
+{
+  unsigned int dots = 0, pos = 0, part = 0, ip = 0;
 
+  /* Intentionally no support for bizarre IPv4 formats (plain
+   * integers, octal or hex components) -- only vanilla dotted
+   * decimal quads.
+   */
+  if (input[0] == '.')
+    return 0;
+  while (1) {
+    if (IsDigit(input[pos])) {
+      part = part * 10 + input[pos++] - '0';
+      if (part > 255)
+        return 0;
+      if ((dots == 3) && !IsDigit(input[pos])) {
+        *output = htonl(ip | part);
+        return pos;
+      }
+    } else if (input[pos] == '.') {
+      if (input[++pos] == '.')
+        return 0;
+      ip |= part << (24 - 8 * dots++);
+      part = 0;
+    } else
+      return 0;
+  }
+}
+
+/* ircd_aton - Parse a numeric IPv4 or IPv6 address into an irc_in_addr.
+ * Returns number of characters used by address, or 0 if the address was
+ * unparseable or malformed.
+ */
+int
+ircd_aton(struct irc_in_addr *ip, const char *input)
+{
+  char *colon;
+  char *dot;
+
+  assert(ip);
+  assert(input);
+  memset(ip, 0, sizeof(*ip));
+  colon = strchr(input, ':');
+  dot = strchr(input, '.');
+
+  if (colon && (!dot || (dot > colon))) {
+    unsigned int part = 0, pos = 0, ii = 0, colon = 8;
+    const char *part_start = NULL;
+
+    /* Parse IPv6, possibly like ::127.0.0.1.
+     * This is pretty straightforward; the only trick is borrowed
+     * from Paul Vixie (BIND): when it sees a "::" continue as if
+     * it were a single ":", but note where it happened, and fill
+     * with zeros afterwards.
+     */
+    if (input[pos] == ':') {
+      if ((input[pos+1] != ':') || (input[pos+2] == ':'))
+        return 0;
+      colon = 0;
+      pos += 2;
+    }
+    while (ii < 8) {
+      unsigned char chval;
+
+      switch (input[pos]) {
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+          chval = input[pos] - '0';
+      use_chval:
+        part = (part << 4) | chval;
+        if (part > 0xffff)
+          return 0;
+        pos++;
+        break;
+      case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+          chval = input[pos] - 'A' + 10;
+          goto use_chval;
+      case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+          chval = input[pos] - 'a' + 10;
+          goto use_chval;
+      case ':':
+        part_start = input + ++pos;
+        if (input[pos] == '.')
+          return 0;
+        ip->in6_16[ii++] = htons(part);
+        part = 0;
+        if (input[pos] == ':') {
+          if (colon < 8)
+            return 0;
+          colon = ii;
+          pos++;
+        }
+        break;
+      case '.': {
+        uint32_t ip4;
+        unsigned int len;
+        len = ircd_aton_ip4(input + pos, &ip4);
+        if (!len || (ii > 6))
+          return 0;
+        ip->in6_16[ii++] = htons(ntohl(ip4) >> 16);
+        ip->in6_16[ii++] = htons(ntohl(ip4) & 65535);
+        pos += len;
+        break;
+      }
+      default: {
+        unsigned int jj;
+        if (colon >= 8)
+          return 0;
+        /* Shift stuff after "::" up and fill middle with zeros. */
+        ip->in6_16[ii++] = htons(part);
+        for (jj = 0; jj < ii - colon; jj++)
+          ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
+        for (jj = 0; jj < 8 - ii; jj++)
+          ip->in6_16[colon + jj] = 0;
+        return pos;
+      }
+      }
+    }
+    return pos;
+  } else if (dot) {
+    unsigned int addr;
+    int len = ircd_aton_ip4(input, &addr);
+    if (len) {
+      ip->in6_16[6] = htons(ntohl(addr) >> 16);
+      ip->in6_16[7] = htons(ntohl(addr) & 65535);
+      return len;
+    }
+  }
+  return 0; /* parse failed */
+}

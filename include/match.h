@@ -9,19 +9,9 @@
 #include <sys/types.h>         /* XXX - broken BSD system headers */
 #define INCLUDED_sys_types_h
 #endif
-#ifndef INCLUDED_netinet_in_h
-#include <netinet/in.h>        /* struct in_addr */
-#define INCLUDED_netinet_in_h
+#ifndef INCLUDED_res_h
+#include "res.h"
 #endif
-
-/*
- * Structures
- */
-struct in_mask {
-  struct in_addr bits;
-  struct in_addr mask;
-  int fall;
-};
 
 /*
  * Prototypes
@@ -39,6 +29,8 @@ extern int matchcomp(char *cmask, int *minlen, int *charset, const char *mask);
 extern int matchexec(const char *string, const char *cmask, int minlen);
 extern int matchdecomp(char *mask, const char *cmask);
 extern int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen);
-extern int matchcompIP(struct in_mask *imask, const char *mask);
+
+extern int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_ptr);
+extern int ipmask_check(const struct irc_in_addr *addr, const struct irc_in_addr *mask, unsigned char bits);
 
 #endif /* INCLUDED_match_h */

@@ -53,10 +53,6 @@
 
 #define UPINGTIMEOUT 60   /* Timeout waiting for ping responses */
 
-#ifndef INADDR_NONE
-#define INADDR_NONE 0xffffffff
-#endif
-
 static struct UPing* pingList = 0;
 int UPingFileDescriptor       = -1; /* UDP listener socket for upings */
 
@@ -104,42 +100,15 @@ static void uping_echo_callback(struct Event* ev)
  */
 int uping_init(void)
 {
-  struct sockaddr_in from = { 0 };
+  struct irc_sockaddr from;
   int fd;
 
-  memset(&from, 0, sizeof(from));
-  from.sin_addr = VirtualHost.sin_addr;
-  from.sin_port = htons(atoi(UDP_PORT));
-  from.sin_family = AF_INET;
+  memcpy(&from, &VirtualHost, sizeof(from));
+  from.port = atoi(UDP_PORT);
 
-  if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    Debug((DEBUG_ERROR, "UPING: UDP listener socket call failed: %s", 
-           (strerror(errno)) ? strerror(errno) : "Unknown error"));
+  fd = os_socket(&from, SOCK_DGRAM, "UDP listener socket");
+  if (fd < 0)
     return -1;
-  }
-  if (!os_set_reuseaddr(fd)) {
-    log_write(LS_SOCKET, L_ERROR, 0,
-	      "UPING: set reuseaddr on UDP listener failed: %m (fd %d)", fd);
-    Debug((DEBUG_ERROR, "UPING: set reuseaddr on UDP listener failed: %s",
-           (strerror(errno)) ? strerror(errno) : "Unknown error"));
-    close(fd);
-    return -1;
-  }
-  if (bind(fd, (struct sockaddr*) &from, sizeof(from)) == -1) {
-    log_write(LS_SOCKET, L_ERROR, 0,
-	      "UPING: bind on UDP listener (%d fd %d) failed: %m",
-	      htons(from.sin_port), fd);
-    Debug((DEBUG_ERROR, "UPING: bind on UDP listener failed : %s",
-           (strerror(errno)) ? strerror(errno) : "Unknown error"));
-    close(fd);
-    return -1;
-  }
-  if (!os_set_nonblocking(fd)) {
-    Debug((DEBUG_ERROR, "UPING: set non-blocking: %s",
-           (strerror(errno)) ? strerror(errno) : "Unknown error"));
-    close(fd);
-    return -1;
-  }
   if (!socket_add(&upingSock, uping_echo_callback, 0, SS_DATAGRAM,
 		  SOCK_EVENT_READABLE, fd)) {
     Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
@@ -156,7 +125,7 @@ int uping_init(void)
  */
 void uping_echo()
 {
-  struct sockaddr_in from = { 0 };
+  struct irc_sockaddr from;
   unsigned int       len = 0;
   static time_t      last = 0;
   static int         counter = 0;
@@ -181,7 +150,7 @@ void uping_echo()
   }
   if (len < 19)
     return;
-  sendto(UPingFileDescriptor, buf, len, 0, (struct sockaddr*) &from, sizeof(from));
+  os_sendto_nonb(UPingFileDescriptor, buf, len, NULL, 0, &from);
 }
 
 
@@ -302,11 +271,10 @@ void uping_send(struct UPing* pptr)
 
   Debug((DEBUG_SEND, "send_ping: sending [%s %s] to %s.%d on %d",
 	  buf, &buf[12],
-          ircd_ntoa((const char*) &pptr->sin.sin_addr), ntohs(pptr->sin.sin_port),
+          ircd_ntoa(&pptr->addr.addr), pptr->addr.port,
 	  pptr->fd));
 
-  if (sendto(pptr->fd, buf, BUFSIZE, 0, (struct sockaddr*) &pptr->sin,
-             sizeof(struct sockaddr_in)) != BUFSIZE)
+  if (os_sendto_nonb(pptr->fd, buf, BUFSIZE, NULL, 0, &pptr->addr) != IO_SUCCESS)
   {
     const char* msg = strerror(errno);
     if (!msg)
@@ -326,7 +294,7 @@ void uping_send(struct UPing* pptr)
  */
 void uping_read(struct UPing* pptr)
 {
-  struct sockaddr_in sin;
+  struct irc_sockaddr sin;
   struct timeval     tv;
   unsigned int       len;
   unsigned int       pingtime;
@@ -349,11 +317,11 @@ void uping_read(struct UPing* pptr)
 		  "%s", pptr->client, msg);
     uping_end(pptr);
     return;
-  }    
+  }
 
   if (len < 19)
     return;			/* Broken packet */
-   
+
   ++pptr->received;
 
   buf[len] = 0;
@@ -384,7 +352,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   assert(0 != sptr);
   assert(0 != aconf);
 
-  if (INADDR_NONE == aconf->ipnum.s_addr) {
+  if (!irc_in_addr_valid(&aconf->address.addr)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Host lookup failed for "
 		  "%s", sptr, aconf->name);
     return 0;
@@ -393,18 +361,10 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   if (IsUPing(sptr))
     uping_cancel(sptr, sptr);  /* Cancel previous ping request */
 
-  if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Unable to create udp "
-		  "ping socket", sptr);
+  fd = os_socket(NULL, SOCK_DGRAM, "UDP ping socket");
+  if (fd < 0)
     return 0;
-  }
 
-  if (!os_set_nonblocking(fd)) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :UPING: Can't set fd non-"
-		  "blocking", sptr);
-    close(fd);
-    return 0;
-  }
   pptr = (struct UPing*) MyMalloc(sizeof(struct UPing));
   assert(0 != pptr);
   memset(pptr, 0, sizeof(struct UPing));
@@ -419,9 +379,8 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   }
 
   pptr->fd                  = fd;
-  pptr->sin.sin_port        = htons(port);
-  pptr->sin.sin_addr.s_addr = aconf->ipnum.s_addr;
-  pptr->sin.sin_family      = AF_INET;
+  memcpy(&pptr->addr.addr, &aconf->address.addr, sizeof(pptr->addr.addr));
+  pptr->addr.port           = port;
   pptr->count               = IRCD_MIN(20, count);
   pptr->client              = sptr;
   pptr->index               = -1;

@@ -124,7 +124,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   {
     const char* p2 = HasHiddenHost(acptr) && !IsAnOper(sptr) ?
       feature_str(FEAT_HIDDEN_IP) :
-      ircd_ntoa((const char*) &(cli_ip(acptr)));
+      ircd_ntoa(&cli_ip(acptr));
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
@@ -261,7 +261,7 @@ count_users(char *mask)
     ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
 		  cli_user(acptr)->username, cli_user(acptr)->host);
     ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s@%s", cli_user(acptr)->username,
-		  ircd_ntoa((const char *) &(cli_ip(acptr))));
+		  ircd_ntoa(&cli_ip(acptr)));
 
     if (!match(mask, namebuf) || !match(mask, ipbuf))
       count++;

@@ -37,13 +37,12 @@
 #ifndef INCLUDED_ircd_handler_h
 #include "ircd_handler.h"
 #endif
+#ifndef INCLUDED_res_h
+#include "res.h"
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>          /* time_t, size_t */
 #define INCLUDED_sys_types_h
-#endif
-#ifndef INCLUDED_netinet_in_h
-#include <netinet/in.h>         /* in_addr */
-#define INCLUDED_netinet_in_h
 #endif
 
 struct ConfItem;
@@ -234,13 +233,13 @@ struct Client {
    */
   time_t         cli_lasttime;  /* last time data read from socket */
   time_t         cli_since;     /* last time we parsed something, flood control */
-				
+
   time_t         cli_firsttime; /* time client was created */
   time_t         cli_lastnick;  /* TimeStamp on nick */
   int            cli_marker;    /* /who processing marker */
   struct Flags   cli_flags;     /* client flags */
   unsigned int   cli_hopcount;  /* number of servers to this 0 = local */
-  struct in_addr cli_ip;        /* Real ip# NOT defined for remote servers! */
+  struct irc_in_addr cli_ip;    /* Real IP of client */
   short          cli_status;    /* Client type */
   unsigned char  cli_local;     /* local or remote client */
   struct Privs   cli_privs;     /* Oper privileges */

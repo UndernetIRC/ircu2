@@ -351,12 +351,14 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      real mask and try to match all relevant fields */
   if (!(commas || (counter < 1)))
   {
+    struct irc_in_addr imask;
     int minlen, cset;
-    static struct in_mask imask;
+    unsigned char ibits;
+
     if (mask)
     {
       matchcomp(mymask, &minlen, &cset, mask);
-      if (matchcompIP(&imask, mask))
+      if (!ipmask_parse(mask, &imask, &ibits))
         matchsel &= ~WHO_FIELD_NIP;
       if ((minlen > NICKLEN) || !(cset & NTL_IRCNK))
         matchsel &= ~WHO_FIELD_NIC;
@@ -401,9 +403,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               || matchexec(cli_info(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_NIP))
 	      || (HasHiddenHost(acptr) && !IsAnOper(sptr))
-              || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) !=
-              imask.bits.s_addr)) || (imask.fall
-              && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
+              || !ipmask_check(&cli_ip(acptr), &imask, ibits)))
             continue;
           if (!SHOW_MORE(sptr, counter))
             break;
@@ -439,9 +439,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             || matchexec(cli_info(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_NIP))
 	    || (HasHiddenHost(acptr) && !IsAnOper(sptr))
-            || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) != imask.bits.s_addr))
-            || (imask.fall
-            && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
+            || !ipmask_check(&cli_ip(acptr), &imask, ibits)))
           continue;
         if (!SHOW_MORE(sptr, counter))
           break;

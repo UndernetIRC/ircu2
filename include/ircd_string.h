@@ -9,6 +9,8 @@
 #include "ircd_chattr.h"
 #endif
 
+struct irc_in_addr;
+
 /*
  * Macros
  */
@@ -32,8 +34,9 @@ extern int         unique_name_vector(char* names, char token,
                                       char** vector, int size);
 extern int         token_vector(char* names, char token,
                                 char** vector, int size);
-extern const char* ircd_ntoa(const char* addr);
-extern const char* ircd_ntoa_r(char* buf, const char* addr);
+extern const char* ircd_ntoa(const struct irc_in_addr* addr);
+extern const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* addr);
+extern int         ircd_aton(struct irc_in_addr *addr, const char *str);
 extern char*       host_from_uh(char* buf, const char* userhost, size_t len);
 extern char*       ircd_strtok(char** save, char* str, char* fs);
 

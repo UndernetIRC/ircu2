@@ -34,6 +34,9 @@
 #ifndef INCLUDED_ircd_events_h
 #include "ircd_events.h"
 #endif
+#ifndef INCLUDED_res_h
+#include "res.h"
+#endif
 
 struct Client;
 struct ConfItem;
@@ -42,7 +45,7 @@ struct UPing
 {
   struct UPing*      next;     /* next ping in list, usually null */
   int                fd;       /* socket file descriptor */
-  struct sockaddr_in sin;      /* socket name (ip addr, port, family ) */
+  struct irc_sockaddr addr;      /* socket name (ip addr, port, family ) */
   char               count;    /* number of pings requested */
   char               sent;     /* pings sent */
   char               received; /* pings received */

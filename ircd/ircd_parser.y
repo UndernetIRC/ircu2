@@ -295,9 +295,7 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 
 generalvhost: VHOST '=' QSTRING ';'
 {
-  if (INADDR_NONE ==
-      (localConf.vhost_address.s_addr = inet_addr(yylval.text)))
-    localConf.vhost_address.s_addr = INADDR_ANY;
+  ircd_aton(&localConf.vhost_address, yylval.text);
 };
 
 adminblock: ADMIN '{' adminitems '}'
@@ -389,20 +387,18 @@ connectblock: CONNECT
  port = 0;
 } '{' connectitems '}'
 {
- if (name != NULL && pass != NULL && host != NULL && c_class != NULL && 
-     /*ccount < MAXCONFLINKS &&*/ !strchr(host, '*') &&
-     !strchr(host, '?'))
+ if (name != NULL && pass != NULL && host != NULL && c_class != NULL
+     && !strchr(host, '*') && !strchr(host, '?'))
  {
    aconf = make_conf();
    aconf->status = CONF_SERVER;
    aconf->name = name;
    aconf->passwd = pass;
    aconf->conn_class = c_class;
-   aconf->port = port;
+   aconf->address.port = port;
    aconf->status = CONF_SERVER;
    aconf->host = host;
    aconf->next = GlobalConfList;
-   aconf->ipnum.s_addr = INADDR_NONE;
    lookup_confhost(aconf);
    GlobalConfList = aconf;
  }
@@ -768,25 +764,7 @@ killuhost: HOST '=' QSTRING ';'
   }
   DupString(dconf->hostmask, h);
   DupString(dconf->usermask, u);
-  if (strchr(yylval.text, '.'))
-  {
-    int  c_class;
-    char ipname[16];
-    int  ad[4] = { 0 };
-    int  bits2 = 0;
-    dconf->flags |= DENY_FLAGS_IP;
-    c_class = sscanf(dconf->hostmask, "%d.%d.%d.%d/%d",
-                     &ad[0], &ad[1], &ad[2], &ad[3], &bits2);
-    if (c_class != 5) {
-      dconf->bits = c_class * 8;
-    }
-    else {
-      dconf->bits = bits2;
-    }
-    ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
-		  ad[2], ad[3]);
-    dconf->address = inet_addr(ipname);
-  }
+  ipmask_parse(dconf->hostmask, &dconf->address, &dconf->bits);
 };
 
 killreal: REAL '=' QSTRING ';'

@@ -403,7 +403,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
                            "Client exiting: %s (%s@%s) [%s] [%s] <%s%s>",
                            cli_name(victim), cli_user(victim)->username,
                            cli_user(victim)->host, comment,
-                           ircd_ntoa((const char*) &(cli_ip(victim))),
+                           ircd_ntoa(&cli_ip(victim)),
                            NumNick(victim) /* two %s's */);
     update_load();
 
@@ -413,7 +413,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
       log_write(LS_USER, L_TRACE, 0, "%Tu %i %s@%s %s %s %s%s %s :%s",
 		cli_firsttime(victim), on_for,
 		cli_user(victim)->username, cli_sockhost(victim),
-                ircd_ntoa((const char*) &(cli_ip(victim))),
+                ircd_ntoa(&cli_ip(victim)),
                 IsAccount(victim) ? cli_username(victim) : "0",
                 NumNick(victim), /* two %s's */
                 cli_name(victim), cli_info(victim));

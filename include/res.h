@@ -7,13 +7,35 @@
 #ifndef INCLUDED_res_h
 #define INCLUDED_res_h
 
-#include "listener.h"
-#include "ircd_addrinfo.h"
-
-#ifndef INADDR_NONE
-#define INADDR_NONE ((uint32_t)-1)
+#ifndef INCLUDED_config_h
+#include "config.h"
 #endif
 
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>
+#define INCLUDED_sys_types_h
+#endif
+
+#ifndef INCLUDED_sys_socket_h
+#include <sys/socket.h>
+#define INCLUDED_sys_socket_h
+#endif
+
+#include <netdb.h>
+
+#ifndef INCLUDED_netinet_in_h
+#include <netinet/in.h>
+#define INCLUDED_netinet_in_h
+#endif
+
+#ifdef HAVE_STDINT_H
+#ifndef INCLUDED_stdint_h
+#include <stdint.h>
+#define INCLUDED_stdint_h
+#endif
+#endif
+
+struct Client;
 struct StatDesc;
 
 /* Here we define some values lifted from nameser.h */
@@ -38,17 +60,22 @@ struct StatDesc;
 #define RRFIXEDSZ 10
 #define HFIXEDSZ 12
 
-struct irc_ssaddr
+struct irc_in_addr
 {
-  struct sockaddr_storage ss;
-  size_t ss_len;
+  unsigned short in6_16[8];
+};
+
+struct irc_sockaddr
+{
+  struct irc_in_addr addr;
+  unsigned short port;
 };
 
 struct DNSReply
 {
   char *h_name;
   int h_addrtype;
-  struct irc_ssaddr addr;
+  struct irc_in_addr addr;
 };
 
 struct DNSQuery
@@ -102,7 +129,10 @@ extern void delete_resolver_queries(const void *vptr);
 extern void report_dns_servers(struct Client *source_p, struct StatDesc *sd, int stat, char *param);
 extern void gethost_byname_type(const char *name, const struct DNSQuery *query, int type);
 extern void gethost_byname(const char *name, const struct DNSQuery *query);
-extern void gethost_byaddr(const struct irc_ssaddr *addr, const struct DNSQuery *query);
-extern void gethost_byinaddr(const struct in_addr *addr, const struct DNSQuery *query);
+extern void gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query);
+extern int irc_in_addr_valid(const struct irc_in_addr *addr);
+extern int irc_in_addr_cmp(const struct irc_in_addr *a, const struct irc_in_addr *b);
+extern int irc_in_addr_is_ipv4(const struct irc_in_addr *addr);
+extern int irc_in_addr_is_loopback(const struct irc_in_addr *addr);
 
 #endif

@@ -61,6 +61,7 @@
 #define NTL_EOL    0x10000  /* \r\n                                */
 #define NTL_KTIME  0x20000  /* Valid character for a k:line time   */
 #define NTL_CHPFX  0x40000  /* channel prefix char # & +           */
+#define NTL_IRCIP6 0x80000  /* Numeric IPv6 character (hex or colon) */
 
 /*
  * Tables used for translation and classification macros
@@ -98,6 +99,7 @@ extern const unsigned int  IRCD_CharAttrTab[];
 #define IsUserChar(c)      (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_IRCUI)
 #define IsHostChar(c)      (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_IRCHN)
 #define IsIPChar(c)        (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_IRCIP)
+#define IsIP6Char(c)       (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_IRCIP6)
 #define IsEol(c)           (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_EOL)
 #define IsKTimeChar(c)     (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_KTIME)
 

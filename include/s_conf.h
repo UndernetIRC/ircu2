@@ -13,10 +13,6 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
-#ifndef INCLUDED_netinet_in_h
-#include <netinet/in.h>        /* struct in_addr */
-#define INCLUDED_netinet_in_h
-#endif
 #include "client.h"
 
 struct Client;
@@ -56,13 +52,12 @@ struct ConfItem
   unsigned int status;      /* If CONF_ILLEGAL, delete when no clients */
   unsigned int clients;     /* Number of *LOCAL* clients using this */
   struct ConnectionClass *conn_class;  /* Class of connection */
-  struct in_addr ipnum;       /* ip number of host field */
+  struct irc_sockaddr address; /* ip and port */
   char *host;
   char *passwd;
   char *name;
   time_t hold; /* Hold until this time (calendar time) */
   int dns_pending; /* a dns request is pending */
-  unsigned short port;
   unsigned char bits; /* Number of bits for ipkills. */
   struct Privs privs; /* Priviledges for opers. */
   /* Used to detect if a privilege has been touched. */
@@ -74,8 +69,7 @@ struct ServerConf {
   char*              hostname;
   char*              passwd;
   char*              alias;
-  struct in_addr     address;
-  int                port;
+  struct irc_in_addr address;
   int                dns_pending;
   int                connected;
   time_t             hold;
@@ -94,9 +88,9 @@ struct DenyConf {
   char*               hostmask;
   char*               message;
   char*               usermask;
-  unsigned int        address;
+  struct irc_in_addr  address;
   unsigned int        flags;
-  char                bits;        /* Number of bits for ipkills */
+  unsigned char       bits;        /* Number of bits for ipkills */
 };
 
 #define DENY_FLAGS_FILE     0x0001 /* Comment is a filename */
@@ -109,7 +103,7 @@ struct DenyConf {
 struct LocalConf {
   char*          name;
   char*          description;
-  struct in_addr vhost_address;
+  struct irc_in_addr vhost_address;
   unsigned int   numeric;
   char*          location1;
   char*          location2;

@@ -100,7 +100,7 @@ static void userip_formatter(struct Client* cptr, struct Client *sptr, struct Ms
 	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
 	      HasHiddenHost(cptr) && !IsAnOper(sptr) && (sptr != cptr) ?
 	      feature_str(FEAT_HIDDEN_IP) :
-	      ircd_ntoa((const char*) &(cli_ip(cptr))));
+	      ircd_ntoa(&cli_ip(cptr)));
 }
 
 /*

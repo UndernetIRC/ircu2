@@ -47,7 +47,7 @@ struct IPTargetEntry {
 struct IPRegistryEntry {
   struct IPRegistryEntry*  next;
   struct IPTargetEntry*    target;
-  unsigned int             addr;
+  struct irc_in_addr       addr;
   int		           last_connect;
   unsigned short           connected;
   unsigned char            attempts;
@@ -75,31 +75,40 @@ static struct IPRegistryEntry* freeList = 0;
 
 static struct Timer expireTimer;
 
-static unsigned int ip_registry_hash(unsigned int ip)
+static unsigned int ip_registry_hash(const struct irc_in_addr *ip)
 {
-  return ((ip >> 16) ^ ip) & (IP_REGISTRY_TABLE_SIZE - 1);
+  unsigned int res;
+
+  if (ip->in6_16[0] || ip->in6_16[1] || ip->in6_16[2] || ip->in6_16[3] || ip->in6_16[4]) {
+      /* Only use the first 64 bits of address, since the last 64 bits
+       * tend to be under user control. */
+      res = ip->in6_16[0] ^ ip->in6_16[1] ^ ip->in6_16[2] ^ ip->in6_16[3];
+  } else {
+      /* Looks like an IPv4 address. */
+      res = ip->in6_16[6] ^ ip->in6_16[7];
+  }
+  return res & (IP_REGISTRY_TABLE_SIZE - 1);
 }
 
-static struct IPRegistryEntry* ip_registry_find(unsigned int ip)
+static struct IPRegistryEntry* ip_registry_find(const struct irc_in_addr *ip)
 {
   struct IPRegistryEntry* entry = hashTable[ip_registry_hash(ip)];
-  for ( ; entry; entry = entry->next) {
-    if (entry->addr == ip)
+  for ( ; entry; entry = entry->next)
+    if (!irc_in_addr_cmp(ip, &entry->addr))
       break;
-  }
   return entry;
 }
 
 static void ip_registry_add(struct IPRegistryEntry* entry)
 {
-  unsigned int bucket = ip_registry_hash(entry->addr);
+  unsigned int bucket = ip_registry_hash(&entry->addr);
   entry->next = hashTable[bucket];
   hashTable[bucket] = entry;
 }
-  
+
 static void ip_registry_remove(struct IPRegistryEntry* entry)
 {
-  unsigned int bucket = ip_registry_hash(entry->addr);
+  unsigned int bucket = ip_registry_hash(&entry->addr);
   if (hashTable[bucket] == entry)
     hashTable[bucket] = entry->next;
   else {
@@ -112,7 +121,7 @@ static void ip_registry_remove(struct IPRegistryEntry* entry)
     }
   }
 }
- 
+
 static struct IPRegistryEntry* ip_registry_new_entry()
 {
   struct IPRegistryEntry* entry = freeList;
@@ -227,14 +236,14 @@ void IPcheck_init(void)
  * cptr->nexttarget to be `now - (TARGET_DELAY * (FREE_TARGETS - 1))',
  * where FREE_TARGETS may range from 0 till STARTTARGETS.
  */
-int ip_registry_check_local(unsigned int addr, time_t* next_target_out)
+int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_out)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
   unsigned int free_targets = STARTTARGETS;
- 
+
   if (0 == entry) {
     entry       = ip_registry_new_entry();
-    entry->addr = addr;    /* The IP number of registry entry */
+    memcpy(&entry->addr, addr, sizeof(entry->addr));
     ip_registry_add(entry);
     return 1;
   }
@@ -290,7 +299,7 @@ int ip_registry_check_local(unsigned int addr, time_t* next_target_out)
  */
 int ip_registry_check_remote(struct Client* cptr, int is_burst)
 {
-  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
 
   /*
    * Mark that we did add/update an IPregistry entry
@@ -298,7 +307,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
   SetIPChecked(cptr);
   if (0 == entry) {
     entry = ip_registry_new_entry();
-    entry->addr = (cli_ip(cptr)).s_addr;
+    memcpy(&entry->addr, &cli_ip(cptr), sizeof(entry->addr));
     if (is_burst)
       entry->attempts = 0;
     ip_registry_add(entry);
@@ -337,7 +346,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
  *   a way that the client won't be penalized when trying to reconnect
  *   again.
  */
-void ip_registry_connect_fail(unsigned int addr)
+void ip_registry_connect_fail(const struct irc_in_addr *addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
   if (entry)
@@ -359,7 +368,7 @@ void ip_registry_connect_succeeded(struct Client *cptr)
 {
   const char*             tr    = "";
   unsigned int free_targets     = STARTTARGETS;
-  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
 
   if (!entry) {
     Debug((DEBUG_ERROR, "Missing registry entry for: %s", cli_sock_ip(cptr)));
@@ -388,7 +397,7 @@ void ip_registry_connect_succeeded(struct Client *cptr)
  */
 void ip_registry_disconnect(struct Client *cptr)
 {
-  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
   if (0 == entry) {
     /*
      * trying to find an entry for a server causes this to happen,
@@ -464,7 +473,7 @@ void ip_registry_disconnect(struct Client *cptr)
  *
  * Returns number of clients with the same IP number
  */
-int ip_registry_count(unsigned int addr)
+int ip_registry_count(const struct irc_in_addr *addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
   return (entry) ? entry->connected : 0;
@@ -496,10 +505,10 @@ int ip_registry_count(unsigned int addr)
  * cptr->nexttarget to be `now - (TARGET_DELAY * (FREE_TARGETS - 1))',
  * where FREE_TARGETS may range from 0 till STARTTARGETS.
  */
-int IPcheck_local_connect(struct in_addr a, time_t* next_target_out)
+int IPcheck_local_connect(const struct irc_in_addr *a, time_t* next_target_out)
 {
   assert(0 != next_target_out);
-  return ip_registry_check_local(a.s_addr, next_target_out);
+  return ip_registry_check_local(a, next_target_out);
 }
 
 /*
@@ -530,9 +539,9 @@ int IPcheck_remote_connect(struct Client *cptr, int is_burst)
  *   a way that the client won't be penalized when trying to reconnect
  *   again.
  */
-void IPcheck_connect_fail(struct in_addr a)
+void IPcheck_connect_fail(const struct irc_in_addr *a)
 {
-  ip_registry_connect_fail(a.s_addr);
+  ip_registry_connect_fail(a);
 }
 
 /*
@@ -574,5 +583,5 @@ void IPcheck_disconnect(struct Client *cptr)
 unsigned short IPcheck_nr(struct Client *cptr)
 {
   assert(0 != cptr);
-  return ip_registry_count(cli_ip(cptr).s_addr);
+  return ip_registry_count(&cli_ip(cptr));
 }

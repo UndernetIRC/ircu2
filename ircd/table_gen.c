@@ -110,6 +110,9 @@ static void makeTables(void)
   moveMacro(NTL_DIGIT, NTL_IRCIP);
   markString(NTL_IRCIP, ".");
 
+  moveMacro(NTL_DIGIT, NTL_IRCIP6);
+  markString(NTL_IRCIP6, ":.ABCDEFabcdef");
+
   moveMacro(NTL_DIGIT | NTL_ALPHA, NTL_IRCNK);
   markString(NTL_IRCNK, "-_`");
 

@@ -369,4 +369,74 @@ struct Client* find_match_server(char *mask)
   return 0;
 }
 
+const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int count)
+{
+  if (irc_in_addr_is_ipv4(addr)) {
+    assert(count >= 6);
+    inttobase64(buf, (htons(addr->in6_16[6]) << 16) | htons(addr->in6_16[7]), 6);
+  } else {
+    unsigned int max_start, max_zeros, curr_zeros, zero, ii;
+    char *output = buf;
 
+    assert(count >= 25);
+    /* Can start by printing out the leading non-zero parts. */
+    for (ii = 0; (addr->in6_16[ii]) && (ii < 8); ++ii) {
+      inttobase64(output, ntohs(addr->in6_16[ii]), 3);
+      output += 3;
+    }
+    /* Find the longest run of zeros. */
+    for (max_start = zero = ii, max_zeros = curr_zeros = 0; ii < 8; ++ii) {
+      if (!addr->in6_16[ii])
+        curr_zeros++;
+      else if (curr_zeros > max_zeros) {
+        max_start = ii - curr_zeros;
+        max_zeros = curr_zeros;
+        curr_zeros = 0;
+      }
+    }
+    if (curr_zeros > max_zeros) {
+      max_start = ii - curr_zeros;
+      max_zeros = curr_zeros;
+      curr_zeros = 0;
+    }
+    /* Print the rest of the address */
+    for (ii = zero; ii < 8; ) {
+      if ((ii == max_start) && max_zeros) {
+        *output++ = '_';
+        ii += max_zeros;
+      } else {
+        inttobase64(output, ntohs(addr->in6_16[ii]), 3);
+        output += 3;
+        ii++;
+      }
+    }
+    *output = '\0';
+  }
+  return buf;
+}
+
+void base64toip(const char* input, struct irc_in_addr* addr)
+{
+  memset(addr, 0, sizeof(*addr));
+  if (strlen(input) == 6) {
+    unsigned int in = base64toint(input);
+    addr->in6_16[6] = htons(in >> 16);
+    addr->in6_16[7] = htons(in & 65535);
+  } else {
+    unsigned int pos = 0;
+    do {
+      if (*input == '_') {
+        unsigned int left;
+        for (left = (strlen(input) - 1) / 3; left; left--)
+          addr->in6_16[pos++] = 0;
+        input++;
+      } else {
+        unsigned short accum = convert2n[(unsigned char)*input++];
+        accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
+        accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
+        addr->in6_16[pos++] = ntohs(accum);
+        input += 3;
+      }
+    } while (pos < 8);
+  }
+}

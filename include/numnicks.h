@@ -81,6 +81,8 @@ extern struct Client* FindNServer(const char* numeric);
 
 extern unsigned int   base64toint(const char* str);
 extern const char*    inttobase64(char* buf, unsigned int v, unsigned int count);
+extern const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int count);
+extern void base64toip(const char* s, struct irc_in_addr* addr);
 
 #endif /* INCLUDED_numnicks_h */
 
