@@ -188,7 +188,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         case 'x':
         case 'X':
           bitsel |= WHOSELECT_EXTRA;
-          if (IsAnOper(sptr))
+          if (HasPriv(sptr, PRIV_WHOX))
 	    log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
 		      (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
           continue;
@@ -316,7 +316,9 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           for (member = chptr->members; member; member = member->next_member)
           {
             acptr = member->user;
-            if ((bitsel & WHOSELECT_OPER) && !(IsAnOper(acptr)))
+            if ((bitsel & WHOSELECT_OPER) &&
+		!(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
+				      HasPriv(sptr, PRIV_SEE_OPERS))))
               continue;
             if ((acptr != sptr) && (member->status & CHFL_ZOMBIE))
               continue;
@@ -333,7 +335,9 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       else
       {
         if ((acptr = FindUser(nick)) &&
-            ((!(bitsel & WHOSELECT_OPER)) || IsAnOper(acptr)) &&
+            ((!(bitsel & WHOSELECT_OPER)) ||
+	     (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
+				  HasPriv(sptr, PRIV_SEE_OPERS)))) &&
             Process(acptr) && SHOW_MORE(sptr, counter))
         {
           do_who(sptr, acptr, 0, fields, qrt);
@@ -377,8 +381,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           if (!(IsUser(acptr) && Process(acptr)))
             continue;           /* Now Process() is at the beginning, if we fail
                                    we'll never have to show this acptr in this query */
-          if ((bitsel & WHOSELECT_OPER) && !IsAnOper(acptr))
-            continue;
+	  if ((bitsel & WHOSELECT_OPER) &&
+	      !(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
+				    HasPriv(sptr, PRIV_SEE_OPERS))))
+	    continue;
           if ((mask) &&
               ((!(matchsel & WHO_FIELD_NIC))
               || matchexec(cli_name(acptr), mymask, minlen))
@@ -408,8 +414,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       {
         if (!(IsUser(acptr) && Process(acptr)))
           continue;
-        if ((bitsel & WHOSELECT_OPER) && !IsAnOper(acptr))
-          continue;
+	if ((bitsel & WHOSELECT_OPER) &&
+	    !(IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
+				  HasPriv(sptr, PRIV_SEE_OPERS))))
+	  continue;
         if (!(SEE_USER(sptr, acptr, bitsel)))
           continue;
         if ((mask) &&

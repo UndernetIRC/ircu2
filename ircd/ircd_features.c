@@ -205,16 +205,58 @@ static struct FeatureDesc {
   feat_report_call report;  /* report feature values */
 } features[] = {
 #define F(type, flags, v_int, v_str, set, reset, get, unmark, mark, report)   \
-  { FEAT_##type, #type, (flags),					      \
-    0, (v_int), 0, (v_str),						      \
-    (set), (reset), (get),						      \
-    (unmark), (mark),							      \
-    (report) }
+  { FEAT_ ## type, #type, (flags), 0, (v_int), 0, (v_str),		      \
+    (set), (reset), (get), (unmark), (mark), (report) }
+#define F_I(type, v_int)						      \
+  { FEAT_ ## type, #type, FEAT_INT, 0, (v_int), 0, 0, 0, 0, 0, 0, 0, 0 }
+#define F_B(type, v_int)						      \
+  { FEAT_ ## type, #type, FEAT_BOOL, 0, (v_int), 0, 0, 0, 0, 0, 0, 0, 0 }
+#define F_S(type, flags, v_int)						      \
+  { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
+    0, 0, 0, 0, 0, 0 }
 
   F(LOG, FEAT_NONE | FEAT_MYOPER, 0, 0,
     feature_log_set, feature_log_reset, feature_log_get,
     log_feature_unmark, log_feature_mark, log_feature_report),
 
+  F_B(OPER_NO_CHAN_LIMIT, 1),
+  F_B(OPER_MODE_LCHAN, 1),
+  F_B(OPER_WALK_THROUGH_LMODES, 0),
+  F_B(NO_OPER_DEOP_LCHAN, 0),
+  F_B(SHOW_INVISIBLE_USERS, 1),
+  F_B(SHOW_ALL_INVISIBLE_USERS, 1),
+  F_B(UNLIMIT_OPER_QUERY, 0),
+  F_B(LOCAL_KILL_ONLY, 0),
+  F_B(CONFIG_OPERCMDS, 1), /* XXX change default before release */
+
+  F_B(OPER_KILL, 1),
+  F_B(OPER_REHASH, 1),
+  F_B(OPER_RESTART, 1),
+  F_B(OPER_DIE, 1),
+  F_B(OPER_GLINE, 1),
+  F_B(OPER_LGLINE, 1),
+  F_B(OPER_JUPE, 1),
+  F_B(OPER_LJUPE, 1),
+  F_B(OPER_OPMODE, 1),
+  F_B(OPER_LOPMODE, 1),
+  F_B(OPER_BADCHAN, 0),
+  F_B(OPER_LBADCHAN, 0),
+  F_B(OPERS_SEE_IN_SECRET_CHANNELS, 1),
+
+  F_B(LOCOP_KILL, 0),
+  F_B(LOCOP_REHASH, 1),
+  F_B(LOCOP_RESTART, 0),
+  F_B(LOCOP_DIE, 0),
+  F_B(LOCOP_LGLINE, 1),
+  F_B(LOCOP_LJUPE, 1),
+  F_B(LOCOP_LOPMODE, 1),
+  F_B(LOCOP_LBADCHAN, 0),
+  F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0),
+
+#undef F_S
+#undef F_B
+#undef F_I
+#undef F
   { FEAT_LAST_F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
@@ -245,6 +287,9 @@ feature_set(struct Client* from, const char* const* fields, int count)
 {
   int i;
   struct FeatureDesc *feat;
+
+  if (from && !HasPriv(from, PRIV_SET))
+    return send_reply(from, ERR_NOPRIVILEGES);
 
   if (count < 1) {
     if (from) /* report an error in the number of arguments */
@@ -347,6 +392,9 @@ feature_reset(struct Client* from, const char* const* fields, int count)
   struct FeatureDesc *feat;
 
   assert(0 != from);
+
+  if (!HasPriv(from, PRIV_SET))
+    return send_reply(from, ERR_NOPRIVILEGES);
 
   if (count < 1) /* check arguments */
     need_more_params(from, "RESET");

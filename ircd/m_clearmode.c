@@ -93,6 +93,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -281,11 +282,11 @@ ms_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int
 mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#ifndef CONFIG_OPERCMDS
-  return send_reply(sptr, ERR_DISABLED, "CLEARMODE");
-#else
   struct Channel *chptr;
   char *control = "ovpsmikbl"; /* default control string */
+
+  if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+    return send_reply(sptr, ERR_DISABLED, "CLEARMODE");
 
   if (parc < 2)
     return need_more_params(sptr, "CLEARMODE");
@@ -295,12 +296,12 @@ mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   clean_channelname(parv[1]);
 
-  if (!IsOper(sptr) && !IsLocalChannel(parv[1]))
+  if (!HasPriv(sptr,
+	       IsLocalChannel(parv[1]) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
+  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   return do_clearmode(cptr, sptr, chptr, control);
-#endif /* CONFIG_OPERCMDS */
 }

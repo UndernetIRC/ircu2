@@ -105,22 +105,11 @@
  */
 int mo_die(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#if defined(OPER_DIE) || defined(LOCOP_DIE)
   struct Client *acptr;
   int i;
 
-#ifndef LOCOP_DIE
-  if (!MyUser(sptr) || !IsOper(sptr))
-#else
-#ifdef  OPER_DIE
-  if (!MyUser(sptr) || !IsAnOper(sptr))
-#else
-  if (!MyUser(sptr) || !IsLocOp(sptr))
-#endif
-#endif
-  {
+  if (!HasPriv(sptr, PRIV_DIE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
-  }
 
   for (i = 0; i <= HighestFd; i++)
   {
@@ -134,49 +123,6 @@ int mo_die(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		    get_client_name(sptr, HIDE_IP));
   }
   server_die("received DIE");
-#endif /* defined(OPER_DIE) || defined(LOCOP_DIE) */
+
   return 0;
 }
-
-  
-#if 0
-#if defined(OPER_DIE) || defined(LOCOP_DIE)
-/*
- * m_die
- */
-int m_die(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-  int i;
-
-#ifndef LOCOP_DIE
-  if (!MyUser(sptr) || !IsOper(sptr))
-#else
-#ifdef  OPER_DIE
-  if (!MyUser(sptr) || !IsAnOper(sptr))
-#else
-  if (!MyUser(sptr) || !IsLocOp(sptr))
-#endif
-#endif
-  {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-
-  for (i = 0; i <= HighestFd; i++)
-  {
-    if (!(acptr = LocalClientArray[i]))
-      continue;
-    if (IsUser(acptr))
-      sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s", /* XXX DEAD */
-                 me.name, acptr->name, get_client_name(sptr, HIDE_IP));
-    else if (IsServer(acptr))
-      sendto_one(acptr, ":%s ERROR :Terminated by %s", /* XXX DEAD */
-                 me.name, get_client_name(sptr, HIDE_IP));
-  }
-  server_die("received DIE");
-  return 0;
-}
-#endif
-#endif /* 0 */
-

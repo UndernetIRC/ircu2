@@ -116,12 +116,6 @@ struct Client;
 #define IsChannelName(name)     (*(name) == '#' || \
                                 IsModelessChannel(name) || IsLocalChannel(name))
 
-/*
- * Check if a sptr is an oper, and chptr is a local channel.
- */
-#define IsOperOnLocalChannel(sptr,chname) \
-                ((IsAnOper(sptr)) && (IsLocalChannel(chname)))
-
 typedef enum ChannelGetType {
   CGT_NO_CREATE,
   CGT_CREATE
@@ -153,12 +147,10 @@ typedef enum ChannelGetType {
  */
 #define MAGIC_REMOTE_JOIN_TS 1270080000
 
-#ifdef OPER_WALK_THROUGH_LMODES
 /*
  * used in can_join to determine if an oper forced a join on a channel
  */
 #define MAGIC_OPER_OVERRIDE 1000
-#endif
 
 
 extern const char* const PartFmt1;

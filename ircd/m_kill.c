@@ -244,8 +244,6 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(IsAnOper(sptr));
 
-#if defined(OPER_KILL)
-
   if (parc < 3 || EmptyString(parv[parc - 1]))
     return need_more_params(sptr, "KILL");
 
@@ -262,7 +260,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Changed KILL %s into %s", sptr,
 		  user, cli_name(victim));
   }
-  if (!MyConnect(victim) && IsLocOp(cptr))
+  if (!HasPriv(sptr, MyConnect(victim) ? PRIV_LOCAL_KILL : PRIV_KILL))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (IsServer(victim) || IsMe(victim)) {
@@ -275,13 +273,12 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return send_reply(sptr, ERR_ISCHANSERVICE, "KILL", cli_name(victim));
 
 
-#ifdef LOCAL_KILL_ONLY
-  if (!MyConnect(victim)) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server", sptr,
-	       cli_name(victim));
+  if (!MyConnect(victim) && !HasPriv(sptr, PRIV_KILL)) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server",
+		  sptr, cli_name(victim));
     return 0;
   }
-#endif
+
   /*
    * The kill originates from this server, initialize path.
    * (In which case the 'path' may contain user suplied
@@ -346,12 +343,6 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   return exit_client(cptr, victim, sptr, buf);
-
-#else /* !defined(OPER_KILL) */
-
-  return send_reply(sptr, ERR_NOPRIVILEGES);
-
-#endif /* !defined(OPER_KILL) */
 }
 
 #if 0
