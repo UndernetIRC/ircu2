@@ -1,4 +1,8 @@
 2002-04-02  Alex Badea <vampire@p16.pub.ro>
+
+	* ircd-patch: Automatically generate a version string from patches
+
+2002-04-02  Alex Badea <vampire@p16.pub.ro>
 	
 	* ircd-patch: Test before doing anything dangerous, provide -f to
 		to it anyway.  exit levels for easy scripting.

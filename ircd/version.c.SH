@@ -64,10 +64,11 @@ else \
 
 #include "version.h"
 #include "patchlevel.h"
+#include "patchlist.h"
 
 const char *generation = "$generation";
 const char *creation = "$creation";
-const char *version = BASE_VERSION RELEASE PATCHLEVEL;
+const char *version = BASE_VERSION RELEASE PATCHLEVEL PATCHLIST;
 
 const char *infotext[] = {
     "IRC --",
