@@ -1,3 +1,8 @@
+2000-12-04  Isomer <isomer@coders.net>
+	* ircd/m_names.c: Add NAMES_EON to do_names to say add a
+	'end_of_names' reply when done.
+	* ircd/m_join.c: use NAMES_EON as mentioned above
+
 2000-12-01  net  <simms@LUCIDA.QC.CA>
 
 	* ircd/motd.c: add a freelist for struct Motds

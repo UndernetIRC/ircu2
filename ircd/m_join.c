@@ -292,7 +292,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		 chptr->topic_time);
     }
 
-    do_names(sptr, chptr, NAMES_ALL); /* send /names list */
+    do_names(sptr, chptr, NAMES_ALL|NAMES_EON); /* send /names list */
   }
 
   joinbuf_flush(&join); /* must be first, if there's a JOIN 0 */
