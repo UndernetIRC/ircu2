@@ -98,7 +98,7 @@ static void userip_formatter(struct Client* cptr, struct Client *sptr, struct Ms
   msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
 	      SeeOper(sptr,cptr) ? "*" : "",
 	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
-	      HasHiddenHost(cptr) && !IsAnOper(sptr) ?
+	      HasHiddenHost(cptr) && !IsAnOper(sptr) && (sptr != cptr) ?
 	      feature_str(FEAT_HIDDEN_IP) :
 	      ircd_ntoa((const char*) &(cli_ip(cptr))));
 }

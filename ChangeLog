@@ -1,3 +1,11 @@
+2004-05-15  volta <volta2@gmx.de>
+
+	[Original ChangeLog date: 2003-04-26 -MDP]
+
+         * ircd/m_userip.c, ircd/m_userhost.c: Small fix, that
+         allows users to see their own ip & hostname. (Should solve
+         all problems with dcc)
+
 2004-05-15  Kevin L Mitchell  <klmitch@mit.edu>
 
 	[Original ChangeLog date: 2003-06-13 -MDP]
@@ -49,6 +57,16 @@
 	* ircd/os_*.c, ircd/ircd_features.c: Default changing window sizes
 	to off.  if an admin is smart enough to understand these features
 	they can enable them manually.
+
+2004-05-15  splidge  <splidge@quakenet.org>
+
+	[Original ChangeLog date: 2003-03-26 -MDP]
+
+	* ircd/include/ircd_features.h, include/ircd_osdep.h,
+	  ircd/ircd_features.c, ircd/listener.c, ircd/os_bsd.c, 
+	  ircd/os_generic.c, ircd/os_linux.c, ircd/os_openbsd.c
+	  ircd/os_solaris.c, ircd/s_bsd.c: Patch to allow socket bufs to be 
+	  altered via F: lines
 
 2004-05-15  Isomer <isomer@undernet.org>
 
