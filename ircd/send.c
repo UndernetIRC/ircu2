@@ -511,12 +511,13 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
 }
 
 /** Send a (prefixed) command to all servers with users on \a to.
+ * Skip \a from and \a one plus those indicated in \a skip.
  * @param[in] from Client originating the command.
  * @param[in] cmd Long name of command (ignored).
  * @param[in] tok Short name of command.
  * @param[in] to Destination channel.
  * @param[in] one Client direction to skip (or NULL).
- * @param[in] skip Ignored field.
+ * @param[in] skip Bitmask of SKIP_NONOPS and SKIP_NONVOICES indicating which clients to skip.
  * @param[in] pattern Format string for command arguments.
  */
 void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
@@ -536,12 +537,14 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
 
   /* send the buffer to each server */
   bump_sentalong(one);
-  sentalong_marker++;
+  cli_sentalong(from) = sentalong_marker;
   for (member = to->members; member; member = member->next_member) {
     if (MyConnect(member->user)
         || IsZombie(member)
         || cli_fd(cli_from(member->user)) < 0
-        || cli_sentalong(member->user) == sentalong_marker)
+        || cli_sentalong(member->user) == sentalong_marker
+        || (skip & SKIP_NONOPS && !IsChanOp(member))
+        || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
       continue;
     cli_sentalong(member->user) = sentalong_marker;
     send_buffer(member->user, serv_mb, 0);

@@ -181,17 +181,17 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!IsLocalChannel(chptr->chname) || MyConnect(acptr)) {
     if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
+      /* Announce to channel operators. */
       sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
                                        NULL, chptr, sptr, SKIP_NONOPS, 
                                        "%H %C %C :%C has been invited by %C",
                                        chptr, acptr, sptr, acptr, sptr);
-      sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
+      /* Announce to servers with channel operators, but skip acptr,
+       * since they will be notified below. */
+      sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
                                        "%s :%H", cli_name(acptr), chptr);
-      if (MyConnect(acptr))
-        sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
     }
-    else
-      sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
   }
 
   return 0;
@@ -269,11 +269,14 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       add_invite(acptr, chptr);
 
   if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
+    /* Announce to channel operators. */
     sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
-                                     NULL, chptr, sptr, SKIP_NONOPS, 
+                                     NULL, chptr, sptr, SKIP_NONOPS,
                                      "%H %C %C :%C has been invited by %C",
                                      chptr, acptr, sptr, acptr, sptr);
-    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
+    /* Announce to servers with channel operators, but skip acptr,
+     * since they will be notified below. */
+    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
                                      "%s :%H", cli_name(acptr), chptr);
   }
 
