@@ -1,5 +1,7 @@
 2002-03-27  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 	* ircd/m_burst.c (ms_burst): use MODEBUF_DEST_NOKEY to suppress
 	sending of the key to the channel
 
