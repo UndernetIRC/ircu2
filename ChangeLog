@@ -1,3 +1,8 @@
+2004-01-21 Gavin Grieve <hektik@dimebox.net>
+
+	* ircd/channel.c, include/channel.h: bring forward the IsUserParting()
+	  code to resolve the multiple part messages bug written by Entrope.
+
 2003-08-12 Timothy Vogelsang <net@astrolink.org>
 
         * ircd/match.c: (match) rewrote function based on existing

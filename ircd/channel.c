@@ -3139,6 +3139,11 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
+    struct Membership *member = find_member_link(chan, jbuf->jb_source);
+    if (IsUserParting(member))
+      return;
+    SetUserParting(member);
+
     /* Send notification to channel */
     if (!(flags & CHFL_ZOMBIE))
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL,
