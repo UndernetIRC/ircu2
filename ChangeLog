@@ -1,3 +1,8 @@
+2005-03-27  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_burst.c (ms_burst): Do not send numeric oplevels in a -A
+	channel when forwarding a channel burst line.
+
 2005-03-25  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_server.c (set_server_flags): New function.  Unlike the

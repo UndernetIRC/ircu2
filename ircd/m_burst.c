@@ -472,7 +472,12 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    if (current_mode & CHFL_VOICE)
 	      nickstr[nickpos++] = 'v';
 	    if (current_mode & CHFL_CHANOP)
-	      nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel);
+            {
+              if (chptr->mode.apass[0])
+	        nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel);
+              else
+                nickstr[nickpos++] = 'o';
+            }
 	  } else if (current_mode & CHFL_CHANOP && oplevel != last_oplevel) { /* if just op level changed... */
 	    nickstr[nickpos++] = ':'; /* add a specifier */
 	    nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel - last_oplevel);
