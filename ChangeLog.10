@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.17 2001-05-12 11:11:44 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.18 2001-06-02 00:10:22 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fixed /whowas showing server name -- Isomer
 -------------------------- Released 2.10.10.pl14 (You got any issues with that punk?)
 * Changed (then fixed) /LINKS to output an empty links list -- Isomer
 * Make netsplit server notice say the right thing
