@@ -1,5 +1,7 @@
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_lusers.c: accidentally left out sptr for a %C
+
 	* ircd/send.c: hack to support doing wallchops...
 
 	* ircd/m_whowas.c: convert to new send functions
@@ -942,7 +944,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.108 2000-04-28 15:04:58 kev Exp $
+# $Id: ChangeLog,v 1.109 2000-04-28 15:10:14 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
