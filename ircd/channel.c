@@ -3238,7 +3238,8 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_LIMIT;
 
-  assert(0 != state->mbuf);
+  if (!state->mbuf)
+    return;
 
   modebuf_mode_uint(state->mbuf, state->dir | flag_p[0], t_limit);
 
@@ -3301,6 +3302,9 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   }
 
+  if (!state->mbuf)
+    return;
+
   /* can't add a key if one is set, nor can one remove the wrong key */
   if (!(state->flags & MODE_PARSE_FORCE))
     if ((state->dir == MODE_ADD && *state->chptr->mode.key) ||
@@ -3313,8 +3317,6 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
       !ircd_strcmp(state->chptr->mode.key, t_str))
     return; /* no key change */
-
-  assert(0 != state->mbuf);
 
   if (state->flags & MODE_PARSE_BOUNCE) {
     if (*state->chptr->mode.key) /* reset old key */
@@ -3690,7 +3692,8 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
     return;
   }
 
-  assert(0 != state->mbuf);
+  if (!state->mbuf)
+    return;
 
   modebuf_mode(state->mbuf, state->dir | flag_p[0]);
 
@@ -3864,10 +3867,10 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     return state.args_used; /* tell our parent how many args we gobbled */
 
   if (state.flags & MODE_PARSE_WIPEOUT) {
-    if (!(state.done & DONE_LIMIT)) /* remove the old limit */
+    if (state.chptr->mode.limit && !(state.done & DONE_LIMIT))
       modebuf_mode_uint(state.mbuf, MODE_DEL | MODE_LIMIT,
 			state.chptr->mode.limit);
-    if (!(state.done & DONE_KEY)) /* remove the old key */
+    if (*state.chptr->mode.key && !(state.done & DONE_KEY))
       modebuf_mode_string(state.mbuf, MODE_DEL | MODE_KEY,
 			  state.chptr->mode.key, 0);
   }
@@ -3940,6 +3943,9 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
        * when we gang all the channel parts together.  Note that this is
        * exactly the same logic, albeit somewhat more concise, as was in
        * the original m_part.c */
+
+      if (jbuf->jb_type == JOINBUF_TYPE_PARTALL) /* got to remove user here */
+	remove_user_from_channel(jbuf->jb_source, chan);
     } else {
       /* Add user to channel */
       add_user_to_channel(chan, jbuf->jb_source, flags);
@@ -3948,7 +3954,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       sendcmdto_channel_butserv(jbuf->jb_source, CMD_JOIN, chan, ":%H", chan);
 
       /* send an op, too, if needed */
-      if (jbuf->jb_type == JOINBUF_TYPE_CREATE &&
+      if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
 	  !IsModelessChannel(chan->chname))
 	sendcmdto_channel_butserv(jbuf->jb_source, CMD_MODE, chan, "%H +o %C",
 				  chan, jbuf->jb_source);
