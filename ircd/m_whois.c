@@ -190,7 +190,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
   }
 
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-  if (!IsOper(sptr))
+  if (!IsOper(sptr) || sptr == a2cptr)
     send_reply(sptr, RPL_WHOISSERVER, name, "*.undernet.org",
 	       "The Undernet Underworld");
   else

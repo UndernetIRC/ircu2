@@ -1,3 +1,15 @@
+2001-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c (do_whois): display proper server name if the
+	user is looking up himself
+
+	* ircd/m_who.c (m_who): disable match by servername or display of
+	server names by non-opers
+
+	* include/ircd_policy.h: add define for
+	HEAD_IN_SAND_WHO_SERVERNAME to cover full intent of sub-motion 15
+	of CFV 165
+
 2001-04-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c: keep the $R in memory so we can see it clearly
