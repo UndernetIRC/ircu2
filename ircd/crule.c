@@ -280,8 +280,7 @@ static int crule_via(int numargs, void *crulearg[])
       continue;
     if (match((char *)crulearg[1], cli_name(acptr)))
       continue;
-    if (match((char *)crulearg[0],
-	      cli_name(LocalClientArray[cli_fd(cli_from(acptr))])))
+    if (match((char *)crulearg[0], cli_name(cli_from(acptr))))
       continue;
     return (1);
   }

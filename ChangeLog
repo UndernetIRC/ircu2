@@ -1,3 +1,8 @@
+2004-10-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/crule.c (crule_via): Simplify the lookup for the directly
+	connected server name.
+
 2004-10-16  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/class.c: Make find_class() return NULL for unknown classes,
