@@ -128,7 +128,8 @@ int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	     UserStats.local_servers);
 
   sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", max_connection_count, max_client_count);
+		"%d (%d clients)", sptr, max_connection_count,
+		max_client_count);
 
   return 0;
 }
@@ -160,7 +161,8 @@ int ms_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	     UserStats.local_servers);
 
   sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Highest connection count: "
-		"%d (%d clients)", max_connection_count, max_client_count);
+		"%d (%d clients)", sptr, max_connection_count,
+		max_client_count);
 
   return 0;
 }
