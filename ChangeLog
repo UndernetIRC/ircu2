@@ -1,3 +1,7 @@
+2000-12-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (modebuf_mode): don't add empty modes...
+
 2000-12-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/send.h: add prio argument to send_buffer to select
