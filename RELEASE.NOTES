@@ -112,12 +112,17 @@ These settings may be a bit light for netbreaks under full client load
 you will need to experiment a bit to find the right settings for your
 server.
 
-FreeBSD
+FreeBSD --WildThang
 You may want to increase your kernel resources if you want to put
 a lot of clients on your machine here are a few values to start with:
 CHILD_MAX=4096
 OPEN_MAX=4096
 FD_SETSIZE=4096
 NMBCLUSTERS=8096
+
+Solaris 2.6  --Tar
+Increase the default hard limit for file descriptors in /etc/system
+set rlim_fd_max = 4096
+The server will raise the soft limit to the hard limit.
 
 
