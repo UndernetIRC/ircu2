@@ -83,6 +83,7 @@
 
 #include "channel.h"
 #include "client.h"
+#include "ircd.h"
 #include "ircd_string.h"
 #include "struct.h"
 #include "s_misc.h"
@@ -110,9 +111,10 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
-
-  return exit_client_msg(cptr, sptr, sptr, "%s%s", parc > 1 ? "Quit: " : "",
-			 parc > 1 ? parv[parc - 1] : cli_name(cptr));
+  if (parc > 1 && !BadPtr(parv[parc - 1]))
+    return exit_client_msg(cptr, sptr, sptr, "Quit: %s", parv[parc - 1]);
+  else
+    return exit_client(cptr, sptr, sptr, "Quit");
 }
 
 
