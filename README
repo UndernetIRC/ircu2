@@ -13,6 +13,9 @@ New features include:
   - New F: (feature) lines in ircd.conf, and the GET/SET commands allow
     many settings to be changed dynamically, rather than by with compile-
     time configuration.
+  - The new "account" feature added to the P10 protocol, allows people to
+    remain into service bots (i.e., gnuworld) during a netsplit. This means
+    people will not have to login again once the network rejoins.
 
 INSTALLATION
 
@@ -33,7 +36,7 @@ will serve large numbers (thousands) of clients simultaenously. If your
 server serves a small amount of users, you will not really have to do much
 of anything about performance tuning.
 
- - Run an OS that supports an asynchronous netwerk event engine; currently
+ - Run an OS that supports an asynchronous network event engine; currently
    these are FreeBSD (kqueue), and Solaris (/dev/poll); possibly other BSDs
    will also support kqueue. This will have a dramatic effect on performance.
  - Make things as lean as possible: Make your server dedicated to ircu,
@@ -43,7 +46,7 @@ of anything about performance tuning.
    as your OS documentation for more information.
  - With many clients connecting each second, ircu will be doing lots of DNS
    lookups. Make sure that the DNS server(s) in your /etc/resolv.conf are as
-   close as possible, or run a local caching DNS server on your IRC box.
+   close as possible, or run a local caching DNS server on your IRC server.
 
 TIME SYNCHRONIZATION
 
@@ -57,7 +60,9 @@ INFORMATION HIDING
 As per undernet-admins CFV-165, this server contains code that will,
 by default, hide certain information from ordinary users. If you do
 not want this, please make sure you add -DINCLUDED_ircd_policy_h to
-CFLAGS prior to running ./configure.
+CFLAGS prior to running ./configure, like in:
+
+> CFLAGS=-DINCLUDED_ircd_policy_h ./configure
 
 MORE INFORMATION
 

@@ -68,7 +68,22 @@ check_file() {
 }
 
 # Try to find programs we will need
-locate_program awk && locate_program wget && locate_program egrep && locate_program md5sum
+locate_program wget && locate_program egrep && locate_program md5sum
+
+# try to find GNU awk
+awk_cmd=`which gawk`
+if [ $? ]; then
+	awk_cmd=""
+fi
+if [ -z "$awk_cmd" ]; then
+	locate_program awk
+	is_gawk=`echo | awk --version | head -1 | egrep '^GNU.+$'`
+	if [ -z "$is_gawk" ]; then
+		echo "Your version of awk is not GNU awk. Sorry."
+		exit 1
+	fi
+	awk_cmd="awk"	
+fi
 
 # Check for required command line parameters
 if [ -z "$1" -o -z "$2" ]; then
@@ -77,7 +92,6 @@ if [ -z "$1" -o -z "$2" ]; then
         echo "      <pid_path>      Full path to ircd.pid (/home/irc/lib/ircd.pid)"
         exit 1
 fi
-
 
 # check and set up stuff
 cpath=$1
@@ -88,6 +102,8 @@ lpath="$dpath/linesync.conf"
 check_file $lpath
 save_dir=$PWD; cd $dpath
 tpath=$PWD; cd $save_dir
+tmp_path="$dpath/tmp"
+mkdir $tmp_path > /dev/null 2>&1
 
 # load and check configuration
 . $lpath
@@ -98,7 +114,7 @@ fi
 
 # Not all versions of date support %s, work around it
 TS=`date +%Y%m%d%H%M%S`
-TMPFILE="/tmp/linesync.$TS"
+TMPFILE="$tmp_path/linesync.$TS"
 LSFILE="$LINE_SERVER""linesync"
 # Attempt to download our .conf update
 wget --cache=off --quiet --output-document=$TMPFILE $LSFILE > /dev/null 2>&1
@@ -128,8 +144,8 @@ if [ $ircd_setup != 2 ]; then
         echo "# Do not remove the previous line, linesync.sh depends on it!" >> $cpath
 
 	# Do an initial merge to remove duplicates
-	inpath="/tmp/linesync.tmp.$TS"
-	awk '
+	inpath="$tmp_path/linesync.tmp.$TS"
+	$awk_cmd '
 	{
                 if (!loaded_template) {
                         command="cat " tempfile; tlines=0;
@@ -150,7 +166,7 @@ fi
 # Get the checksum
 CKSUM=`md5sum $TMPFILE|cut -d' ' -f1`
 
-check_file="/tmp/linesync.sum.$TS"
+check_file="$tmp_path/linesync.sum.$TS"
 for ck_server in $LINE_CHECK; do
 	sumfile="$ck_server""linesync.sum"
 	wget --cache=off --quiet --output-document=$check_file $sumfile > /dev/null 2>&1
@@ -167,26 +183,26 @@ done
 # It all checks out, proceed...
 
 # Replace the marked block in ircd.conf with the new version
-awk ' 
+
+$awk_cmd ' 
 $0=="# BEGIN LINESYNC" { chop++; print $0; next }
 $0=="# END LINESYNC" {
         command="cat " syncfile
-        while ((command | getline avar) > 0) { print avar }
+        #while ((command | getline avar) > 0) { print avar }
         close(command)
         chop--
 }
 { if (!chop) print $0 }
-' syncfile=$TMPFILE < $inpath > /tmp/linesync.new.$TS
-
+' syncfile=$TMPFILE < $inpath > $tmp_path/linesync.new.$TS
+exit
 # Back up the current ircd.conf and replace it with the new one
 cp $cpath  $dpath/ircd.conf.bk
-cp /tmp/linesync.new.$TS $cpath
+cp $tmp_path/linesync.new.$TS $cpath
 
 # Rehash ircd (without caring wether or not it succeeds)
 kill -HUP `cat $ppath 2>/dev/null` > /dev/null 2>&1
 
 # (Try to) clean up
-rm -f /tmp/linesync.* > /dev/null 2>&1
+rm -rf $tmp_path > /dev/null 2>&1
 
 # That's it...
-

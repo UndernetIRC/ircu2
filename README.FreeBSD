@@ -4,6 +4,14 @@ When running on FreeBSD, ircu can make use of the kqueue() event engine, which
 results in much improved performance over the old poll()-based method. kqueue
 is included in the more recent 4.x release of FreeBSD.
 
+In order for ircu to be able to serve many clients simultaneously, you need
+to increase the maximum allowable number of open files in the system. To do
+this, add lines execute commands such as the following during your system's
+boot sequence:
+
+sysctl -w kern.maxfiles=16384
+sysctl -w kern.maxfilesperproc=16384
+
 Unless you will be serving thousands of clients simultaneously, you will not
 need to do the following, unless of course you just can't stand having a
 system that is not optimized to its limits :)

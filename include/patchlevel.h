@@ -18,9 +18,9 @@
  * $Id$
  *
  */
-#define PATCHLEVEL "2"
+#define PATCHLEVEL "00"
 
-#define RELEASE ".11.rc."
+#define RELEASE ".11."
 
 /*
  * Deliberate empty lines
