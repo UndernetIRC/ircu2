@@ -1,5 +1,22 @@
 2004-09-11  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Add examples for FEAT_HIS_* features.
+
+2003-06-08 Matthias Crauwels <ultimate_@wol.be>
+	[Feature renamed to FEAT_HIS_WHOIS_LOCALCHAN by Michael Poole.]
+
+	* include/ircd_features.h: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/ircd_features.c: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/m_whois.c: hide local channels in local WHOIS, this breaks HIS
+
+	* doc/readme.features: documented FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* doc/ircd.conf.sample: default value for FEAT_HIS_LOCAL_CHAN_WHOIS
+
+2004-09-11  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_relay.c (server_relay_channel_message,
 	server_relay_channel_notice): Do not allow other servers to send
 	or relay to local channels.

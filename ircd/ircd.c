@@ -160,7 +160,7 @@ void server_restart(const char *message)
 
   log_close();
 
-  close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG)));
+  close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG | BOOT_CHKCONF)));
 
   execv(SPATH, thisServer.argv);
 
@@ -641,7 +641,7 @@ int main(int argc, char **argv) {
   if (!init_connection_limits())
     return 9;
 
-  close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY)));
+  close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY | BOOT_CHKCONF)));
 
   event_init(MAXCONNECTIONS);
 
@@ -678,7 +678,7 @@ int main(int argc, char **argv) {
   }
 
   if(thisServer.bootopt & BOOT_CHKCONF) {
-    fprintf(stdout, "Configuration file checked okay.\n");
+    fprintf(stderr, "Configuration file checked okay.\n");
     return 0;
   }
 
