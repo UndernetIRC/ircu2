@@ -98,6 +98,7 @@
 #include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
+#include "supported.h"
 #include "version.h"
 
 #include <assert.h>
@@ -124,8 +125,16 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) ==
       HUNTED_ISME)
+  {
+    char featurebuf[512];
+    
+    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
+    
     sendto_one(sptr, rpl_str(RPL_VERSION),
         me.name, parv[0], version, debugmode, me.name, serveropts);
+    sendto_one(sptr, rpl_str(RPL_ISUPPORT),
+    	me.name, parv[0], featurebuf);
+  }
 
   return 0;
 }
@@ -152,8 +161,16 @@ int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) ==
       HUNTED_ISME)
+  {
+    char featurebuf[512];
+    
+    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
+    
     sendto_one(sptr, rpl_str(RPL_VERSION),
         me.name, parv[0], version, debugmode, me.name, serveropts);
+    sendto_one(sptr, rpl_str(RPL_ISUPPORT),
+    	me.name, parv[0], featurebuf);
+  }
 
   return 0;
 }

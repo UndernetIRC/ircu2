@@ -1,3 +1,22 @@
+2000-04-09  Perry Lorier  <Isomer@coders.net>
+	* include/numeric.h: Cleaned up numerics, added which ones are
+	in use by other networks and what they are in use for.
+
+	* ircd/channel.c: cleaned can_join(), allow anyone through anything
+	if /invited, simplified the function.  Opers overusing OPEROVERRIDE
+	will get a message explaining to them not to cheat.
+
+	* ircd/m_join.c: cleaned up the various join functions, should be
+	a lot more efficient.  Still needs work.  Now assumes that s<->s
+	won't send it a JOIN 0.  Service coders - note this and tread with
+	care.
+
+	* ircd/m_stats.c: added Gte-'s stats doc patch.
+
+	* ircd/m_version.c: /version now returns the 005 numeric as well.
+	as requested by Liandrin.
+
+
 2000-04-07  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_clearmode.c: add include for support.h for write_log()
@@ -311,7 +330,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.64 2000-04-07 16:46:28 kev Exp $
+# $Id: ChangeLog,v 1.65 2000-04-09 11:53:12 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

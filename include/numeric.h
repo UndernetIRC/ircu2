@@ -361,10 +361,13 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define ERR_SILELISTFULL     511        /* Undernet extension */
 /*      ERR_NOTIFYFULL       512           aircd */
+/*	ERR_TOOMANYWATCH     512           Numeric List: Dalnet */
 #define ERR_NOSUCHGLINE      512        /* Undernet extension */
 #define ERR_BADPING          513        /* Undernet extension */
+/*      ERR_NEEDPONG	     512           Numeric List: Dalnet */
 #define ERR_NOSUCHJUPE       514        /* Undernet extension - jupe -Kev */
 #define ERR_BADEXPIRE        515        /* Undernet extension - jupe -Kev */
-#define ERR_INVALID_ERROR    516
+#define ERR_DONTCHEAT	     516	/* Undernet extension */
+#define ERR_LASTERROR    517
 
 #endif /* INCLUDED_numeric_h */
