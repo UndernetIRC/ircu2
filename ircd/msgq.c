@@ -38,51 +38,62 @@
 #include <sys/types.h>
 #include <sys/uio.h>	/* struct iovec */
 
-#define MB_BASE_SHIFT	5
-#define MB_MAX_SHIFT	9
+#define MB_BASE_SHIFT	5 /**< Log2 of smallest message body to allocate. */
+#define MB_MAX_SHIFT	9 /**< Log2 of largest message body to allocate. */
 
+/** Buffer for a single message. */
 struct MsgBuf {
-  struct MsgBuf *next;		/* next msg in global queue */
-  struct MsgBuf **prev_p;	/* what points to us in linked list */
-  struct MsgBuf *real;		/* the actual MsgBuf we're attaching */
-  unsigned int ref;		/* reference count */
-  unsigned int length;		/* length of message */
-  unsigned int power;		/* size of buffer (power of 2) */
-  char msg[1];			/* the message */
+  struct MsgBuf *next;		/**< next msg in global queue */
+  struct MsgBuf **prev_p;	/**< what points to us in linked list */
+  struct MsgBuf *real;		/**< the actual MsgBuf we're attaching */
+  unsigned int ref;		/**< reference count */
+  unsigned int length;		/**< length of message */
+  unsigned int power;		/**< size of buffer (power of 2) */
+  char msg[1];			/**< the message */
 };
 
+/** Return allocated length of the buffer of \a buf. */
 #define bufsize(buf)	(1 << (buf)->power)
 
+/** Message body for a particular destination. */
 struct Msg {
-  struct Msg *next;		/* next msg */
-  unsigned int sent;		/* bytes in msg that have already been sent */
-  struct MsgBuf *msg;		/* actual message in queue */
+  struct Msg *next;		/**< next msg */
+  unsigned int sent;		/**< bytes in msg that have already been sent */
+  struct MsgBuf *msg;		/**< actual message in queue */
 };
 
+/** Statistics tracking for message sizes. */
 struct MsgSizes {
-  unsigned int msgs;		/* total number of messages */
-  unsigned int sizes[BUFSIZE];	/* histogram of message sizes */
+  unsigned int msgs;		/**< total number of messages */
+  unsigned int sizes[BUFSIZE];	/**< histogram of message sizes */
 };
 
+/** Global tracking data for message buffers. */
 static struct {
-  struct MsgBuf *msglist;	/* list of in-use MsgBuf's */
+  struct MsgBuf *msglist;	/**< list of in-use MsgBuf's */
   struct {
-    unsigned int alloc;		/* number of Msg's allocated */
-    unsigned int used;		/* number of Msg's in use */
-    struct Msg *free;		/* freelist of Msg's */
-  } msgs;
-  size_t tot_bufsize;		/* total amount of memory in buffers */
+    unsigned int alloc;		/**< number of Msg's allocated */
+    unsigned int used;		/**< number of Msg's in use */
+    struct Msg *free;		/**< freelist of Msg's */
+  } msgs;                       /**< tracking info for Msg structs */
+  size_t tot_bufsize;		/**< total amount of memory in buffers */
+  /** Array of MsgBuf information, one entry for each used bucket size. */
   struct {
-    unsigned int alloc;		/* total MsgBuf's of this size */
-    unsigned int used;		/* number of MsgBuf's of this size in use */
-    struct MsgBuf *free;	/* list of free MsgBuf's */
+    unsigned int alloc;		/**< total MsgBuf's of this size */
+    unsigned int used;		/**< number of MsgBuf's of this size in use */
+    struct MsgBuf *free;	/**< list of free MsgBuf's */
   } msgBufs[MB_MAX_SHIFT - MB_BASE_SHIFT + 1];
-  struct MsgSizes sizes;	/* histogram of message sizes */
+  struct MsgSizes sizes;	/**< histogram of message sizes */
 } MQData;
 
 /*
  * This routine is used to remove a certain amount of data from a given
  * queue and release the Msg (and MsgBuf) structure if needed
+ */
+/** Remove some data from a list within a message queue.
+ * @param[in,out] mq Message queue to remove from.
+ * @param[in,out] qlist Particular list within queue to remove from.
+ * @param[in,out] length_p Number of bytes left to remove.
  */
 static void
 msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
@@ -123,8 +134,8 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
   }
 }
 
-/*
- * This just initializes a struct MsgQ.
+/** Initialize \a mq.
+ * @param[in] mq MsgQ to initialize.
  */
 void
 msgq_init(struct MsgQ *mq)
@@ -139,11 +150,9 @@ msgq_init(struct MsgQ *mq)
   mq->prio.tail = 0;
 }
 
-/*
- * This routine is used to delete the specified number of bytes off
- * of the queue.  We only really need to worry about one struct Msg*,
- * but this allows us to retain the flexibility to deal with more,
- * which means we could do something fancy involving writev...
+/** Delete bytes from the front of a message queue.
+ * @param[in] mq Queue to drop data from.
+ * @param[in] length Number of bytes to drop.
  */
 void
 msgq_delete(struct MsgQ *mq, unsigned int length)
@@ -162,9 +171,12 @@ msgq_delete(struct MsgQ *mq, unsigned int length)
   }
 }
 
-/*
- * This is the more intelligent routine that can fill in an array of
- * struct iovec's.
+/** Map data from a message queue to an I/O vector.
+ * @param[in] mq Message queue to send from.
+ * @param[out] iov Output vector.
+ * @param[in] count Number of elements in \a iov.
+ * @param[out] len Number of bytes mapped from \a mq to \a iov.
+ * @return Number of elements filled in \a iov.
  */
 int
 msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
@@ -231,8 +243,11 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
   return i;
 }
 
-/*
- * This is a helper routine to allocate a buffer
+/** Allocate a message buffer large enough to hold \a length bytes.
+ * TODO: \a in_mb needs better documentation.
+ * @param[in] in_mb Some other message buffer(?).
+ * @param[in] length Number of bytes of space to reserve in output.
+ * @return Pointer to some usable message buffer.
  */
 static struct MsgBuf *
 msgq_alloc(struct MsgBuf *in_mb, int length)
@@ -281,8 +296,7 @@ msgq_alloc(struct MsgBuf *in_mb, int length)
   return mb; /* return the buffer */
 }
 
-/*
- * This routine simply empties the free list
+/** Deallocate unused message buffers.
  */
 static void
 msgq_clear_freembs(void)
@@ -301,10 +315,11 @@ msgq_clear_freembs(void)
     }
 }
 
-/*
- * This routine builds a struct MsgBuf with the appropriate contents
- * and returns it; this saves us from having to worry about the contents
- * of struct MsgBuf in anything other than this module
+/** Format a message buffer for a client from a format string.
+ * @param[in] dest %Client that receives the data (may be NULL).
+ * @param[in] format Format string for message.
+ * @param[in] vl Argument list for \a format.
+ * @return Allocated MsgBuf.
  */
 struct MsgBuf *
 msgq_vmake(struct Client *dest, const char *format, va_list vl)
@@ -373,6 +388,11 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
   return mb;
 }
 
+/** Format a message buffer for a client from a format string.
+ * @param[in] dest %Client that receives the data (may be NULL).
+ * @param[in] format Format string for message.
+ * @return Allocated MsgBuf.
+ */
 struct MsgBuf *
 msgq_make(struct Client *dest, const char *format, ...)
 {
@@ -386,8 +406,10 @@ msgq_make(struct Client *dest, const char *format, ...)
   return mb;
 }
 
-/*
- * This routine is used to append a formatted string to a struct MsgBuf.
+/** Append text to an existing message buffer.
+ * @param[in] dest %Client for whom to format the message.
+ * @param[in] mb Message buffer to append to.
+ * @param[in] format Format string of what to append.
  */
 void
 msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
@@ -418,9 +440,8 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
   assert(mb->length <= bufsize(mb));
 }
 
-/*
- * This routine is called to decrement the reference count on a
- * struct MsgBuf and delete it if necessary.
+/** Decrement the reference count on \a mb, freeing it if needed.
+ * @param[in] mb MsgBuf to release.
  */
 void
 msgq_clean(struct MsgBuf *mb)
@@ -446,8 +467,10 @@ msgq_clean(struct MsgBuf *mb)
   }
 }
 
-/*
- * This routine simply adds a struct Msg to the end of a user's MsgQ.
+/** Append a message to a peer's message queue.
+ * @param[in] mq Message queue to append to.
+ * @param[in] mb Message to append.
+ * @param[in] prio If non-zero, use the high-priority (lag-busting) message list; else use the normal list.
  */
 void
 msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
@@ -521,8 +544,10 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
   mq->count++; /* and the queue count */
 }
 
-/*
- * This is for reporting memory usage by the msgq system.
+/** Report memory statistics for message buffers.
+ * @param[in] cptr Client requesting information.
+ * @param[out] msg_alloc Receives number of bytes allocated in Msg structs.
+ * @param[out] msgbuf_alloc Receives number of bytes allocated in MsgBuf structs.
  */
 void
 msgq_count_memory(struct Client *cptr, size_t *msg_alloc, size_t *msgbuf_alloc)
@@ -560,8 +585,9 @@ msgq_count_memory(struct Client *cptr, size_t *msg_alloc, size_t *msgbuf_alloc)
   *msgbuf_alloc = total;
 }
 
-/*
- * This routine is used simply to report how much bufferspace is left.
+/** Report remaining space in a MsgBuf.
+ * @param[in] mb Message buffer to check.
+ * @return Number of additional bytes that can be appended to the message.
  */
 unsigned int
 msgq_bufleft(struct MsgBuf *mb)
@@ -571,9 +597,10 @@ msgq_bufleft(struct MsgBuf *mb)
   return bufsize(mb) - mb->length; /* \r\n counted in mb->length */
 }
 
-/*
- * This just generates and sends a histogram of message lengths to the
- * requesting client
+/** Send histogram of message lengths to a client.
+ * @param[in] cptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
  */
 void
 msgq_histogram(struct Client *cptr, const struct StatDesc *sd, char *param)

@@ -40,30 +40,27 @@ struct StatDesc;
 struct Msg;
 struct MsgBuf;
 
+/** Queue of individual messages. */
 struct MsgQList {
-  struct Msg *head;		/* First Msg in queue list */
-  struct Msg *tail;		/* Last Msg in queue list */
+  struct Msg *head;		/**< First Msg in queue list */
+  struct Msg *tail;		/**< Last Msg in queue list */
 };
 
+/** Entire two-priority message queue for a destination. */
 struct MsgQ {
-  unsigned int length;		/* Current number of bytes stored */
-  unsigned int count;		/* Current number of messages stored */
-  struct MsgQList queue;	/* Normal Msg queue */
-  struct MsgQList prio;		/* Priority Msg queue */
+  unsigned int length;		/**< Current number of bytes stored */
+  unsigned int count;		/**< Current number of messages stored */
+  struct MsgQList queue;	/**< Normal Msg queue */
+  struct MsgQList prio;		/**< Priority Msg queue */
 };
 
-/*
- * MsgQLength - Returns the current number of bytes stored in the buffer.
- */
+/** Returns the current number of bytes stored in \a mq. */
 #define MsgQLength(mq) ((mq)->length)
 
-/*
- * MsgQCount - Returns the current number of messages stored in the buffer
- */
+/** Returns the current number of messages stored in \a mq. */
 #define MsgQCount(mq) ((mq)->count)
 
-/*
- * MsgQClear - Scratch the current content of the buffer.
+/** Scratch the current content of the buffer.
  * Release all allocated buffers and make it empty.
  */
 #define MsgQClear(mq) msgq_delete((mq), MsgQLength(mq))
