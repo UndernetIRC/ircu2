@@ -29,27 +29,29 @@
 
 struct Client;
 
+/** Stores state of the DNS and RFC 1413 ident lookups for a client. */
 struct AuthRequest {
-  struct AuthRequest* next;      /* linked list node ptr */
-  struct AuthRequest* prev;      /* linked list node ptr */
-  struct Client*      client;    /* pointer to client struct for request */
-  unsigned int        flags;     /* current state of request */
-  int                 fd;        /* file descriptor for auth queries */
-  struct Socket       socket;    /* socket descriptor for auth queries */
-  struct Timer        timeout;   /* timeout timer for auth queries */
+  struct AuthRequest* next;      /**< linked list node ptr */
+  struct AuthRequest* prev;      /**< linked list node ptr */
+  struct Client*      client;    /**< pointer to client struct for request */
+  unsigned int        flags;     /**< current state of request */
+  int                 fd;        /**< file descriptor for auth queries */
+  struct Socket       socket;    /**< socket descriptor for auth queries */
+  struct Timer        timeout;   /**< timeout timer for auth queries */
 };
 
 /*
  * flag values for AuthRequest
  * NAMESPACE: AM_xxx - Authentication Module
  */
-#define AM_AUTH_CONNECTING   0x01
-#define AM_AUTH_PENDING      0x02
-#define AM_DNS_PENDING       0x04
+#define AM_AUTH_CONNECTING   0x01 /**< waiting for ident connect to complete */
+#define AM_AUTH_PENDING      0x02 /**< ident connected, waiting for response */
+#define AM_DNS_PENDING       0x04 /**< dns request sent, waiting for response */
 
-#define AM_SOCKET            0x40 /* socket structure not destroyed */
-#define AM_TIMEOUT           0x80 /* timer structure not destroyed */
+#define AM_SOCKET            0x40 /**< socket structure not destroyed */
+#define AM_TIMEOUT           0x80 /**< timer structure not destroyed */
 
+/** If any of AM_FREE_MASK bits are set, operations are still in progress. */
 #define AM_FREE_MASK         (AM_SOCKET | AM_TIMEOUT)
 
 #define SetDNSPending(x)     ((x)->flags |= AM_DNS_PENDING)
@@ -66,9 +68,6 @@ struct AuthRequest {
 
 #define ClearAuth(x)         ((x)->flags &= ~(AM_AUTH_PENDING | AM_AUTH_CONNECTING))
 #define IsDoingAuth(x)       ((x)->flags &  (AM_AUTH_PENDING | AM_AUTH_CONNECTING))
-
-
-extern struct AuthRequest* AuthPollList; /* GLOBAL - auth queries pending io */
 
 extern void start_auth(struct Client *);
 extern void read_auth_reply(struct AuthRequest* req);
