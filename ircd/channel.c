@@ -1809,6 +1809,9 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS);
 
+  if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
+    return;
+
   if (mode & MODE_ADD) {
     mbuf->mb_rem &= ~mode;
     mbuf->mb_add |= mode;
