@@ -15,12 +15,13 @@ struct Connection;
 struct Channel;
 struct ConfItem;
 
-/* 
+/*
  * Structures
  */
 
+/** Node in a singly linked list. */
 struct SLink {
-  struct SLink *next;
+  struct SLink *next; /**< Next element in list. */
   union {
     struct Client *cptr;
     struct Channel *chptr;
@@ -31,18 +32,19 @@ struct SLink {
       char *who;
       time_t when;
     } ban;
-  } value;
-  unsigned int flags;
+  } value; /**< Value of list element. */
+  unsigned int flags; /**< Modifier flags for list element. */
 };
 
+/** Node in a doubly linked list. */
 struct DLink {
-  struct DLink*  next;
-  struct DLink*  prev;
+  struct DLink*  next; /**< Next element in list. */
+  struct DLink*  prev; /**< Previous element in list. */
   union {
     struct Client*  cptr;
     struct Channel* chptr;
     char*           ch;
-  } value;
+  } value; /**< Value of list element. */
 };
 
 /*
@@ -62,7 +64,6 @@ extern void add_client_to_list(struct Client *cptr);
 extern struct DLink *add_dlink(struct DLink **lpp, struct Client *cp);
 extern void remove_dlink(struct DLink **lpp, struct DLink *lp);
 extern struct ConfItem *make_conf(void);
-extern void delist_conf(struct ConfItem *aconf);
 extern void free_conf(struct ConfItem *aconf);
 extern void send_listinfo(struct Client *cptr, char *name);
 
