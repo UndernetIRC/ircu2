@@ -3,6 +3,7 @@
 mv ../ircd/Makefile ../ircd/Makefile.tmp
 sed -e "s:^CC=.*:CC=$CC:" \
     -e "s:^CFLAGS=.*:CFLAGS=$CFLAGS:" \
+    -e "s:^DEBUGFLAGS=.*:DEBUGFLAGS=$DEBUGFLAGS:" \
     -e "s:^CPPFLAGS=.*:CPPFLAGS=$CPPFLAGS:" \
     -e "s:^LDFLAGS=.*:LDFLAGS=$LDFLAGS:" \
     -e "s:^IRCDLIBS=.*:IRCDLIBS=$IRCDLIBS:" \

@@ -1,6 +1,26 @@
-2000-04-30  Steven M. Doyle <grep@doyle.net>
-        * config/config-sh.in: Fix for CHROOT
-	* ircd/ircd.c: General Cleanup
+2000-04-30  Perry Lorier <isomer@coders.net>
+	* config/config-sh.in: Fix for CONNEXIT
+	* ircd/s_{user,misc}.c: Fix for CONNEXIT
+
+2000-04-30  Steven M. Doyle <steven@doyle.net>
+ 	* ircd/ircd.c
+ 	  - general cleanups and readability enhancements
+ 	  - rewrite of setuid/chroot code.
+ 	  - server will no longer run as root
+ 	  - -DPROFIL compile option removed
+ 
+ 	* config/config-sh.in
+ 	  - Fixed up chroot compile options
+ 	  - Added options for debug and profile compiles
+ 
+ 	* config/gen.ircd.Makefile
+ 	  - Support for new debug/profile options
+ 
+ 	* ircd/Makefile.in
+ 	  - Support for new debug/profile options
+ 
+ 	* ircd/ircd_signal.c
+ 	  - Removed -DPROFIL
 
 2000-04-30  Perry Lorier <isomer@coders.net>
 	* ircd/s_bsd.c: Sigh. :)
@@ -1000,7 +1020,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.117 2000-04-30 06:44:27 isomer Exp $
+# $Id: ChangeLog,v 1.118 2000-04-30 10:22:14 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

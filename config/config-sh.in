@@ -103,6 +103,16 @@ comment 'Compile stuff'
     LIBS=none
   fi
   string 'Which extra libraries do you need [none]' IRCDLIBS "$LIBS"
+  bool 'Generate debug symbols?' DEBUGSYMBOLS "y"
+  bool 'Compile in profiling support (gcc and maybe SUNpro)?' IRCUPROFILE "n"
+  unset ZSTEMP
+  if [ "$DEBUGSYMBOLS" = "y" ] ; then
+    ZSTEMP="-g"
+  fi
+  if [ "$IRCUPROFILE" = "y" ] ; then
+    ZSTEMP="-pg $ZSTEMP"
+  fi
+  define_string DEBUGFLAGS "$ZSTEMP"
   eval bindir="$bindir"
   string 'In which directory should I install the ircd binary' BINDIR $bindir
   if [ ! -d "$BINDIR" ]; then
@@ -311,10 +321,6 @@ comment 'Configuration'
   int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
   int 'Default port for connections to other servers' SERVER_PORT 4400
   int 'Nickname history length' NICKNAMEHISTORYLENGTH 800
-  bool 'Allow Opers to see (dis)connects of local clients' ALLOW_SNO_CONNEXIT
-  if [ "$ALLOW_SNO_CONNEXIT" = "y" ]; then
-    bool 'Show IP address in client connection notices' SNO_CONNEXIT_IP
-  fi
   bool 'Do you want to use R: lines in your configuration file' R_LINES
   if [ "$R_LINES" = "y" ]; then
     bool 'Process R: lines every rehash' R_LINES_REHASH y

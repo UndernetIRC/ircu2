@@ -29,17 +29,6 @@ static struct tag_SignalCounter {
   unsigned int hup;
 } SignalCounter;
 
-#ifdef PROFIL
-void s_monitor(int sig)
-{
-  static int mon = 0;
-
-  moncontrol(mon);
-  mon = 1 - mon;
-}
-
-#endif
-
 void sigalrm_handler(int sig)
 {
   ++SignalCounter.alrm;
