@@ -621,30 +621,6 @@ INT_LOCAL
   Well if you got this far and still need help, then I think you should
   go back and specify 'n' at the question "Do you want to use syslog".
 
-Use m4 as a preprocessor on CPATH
-M4_PREPROC
-  If you use m4 macro's in your "ircd.conf" file, then you need to specify 'y',
-  which will enable m4 preprocessing of the "ircd.conf" file.
-  If you are unsure specify 'n'.  Note using m4 macros has often lead to
-  problems (passwords or server names that match a macro name for instance),
-  while the benefits of using m4 are highly doubtful.  Unless you are
-  already a m4 wizard and insist on using it I recommend to specify 'n' here.
-
-Use crypted passwords for N: lines
-CRYPT_LINK_PASSWORD
-  In order to allow other servers to connect to you, you need to specify
-  two configuration lines in the "ircd.conf" configuration file (CPATH).
-  Each of these lines contains a password; the C: line is used for connecting
-  to a remote server and contains the password that is sent to the remote
-  server for authentication, thus this password must be in plain text.
-  The other is the N: line and contains the password that the remote server
-  is sending to you.  For security reasons it is advised to store this
-  password in DES encrypted form.  If you specify 'y' here, you will be
-  allowed to use the DES encrypted password in the password field of the
-  N: line, see doc/example.conf for more details.  Note that you should
-  use *different* passwords in the C: and N: lines respectively for obvious
-  reasons.
-
 Use crypted passwords for operators
 CRYPT_OPER_PASSWORD
   In order to allow certain users to become IRC OPERators, they must
@@ -719,16 +695,6 @@ MAXCONNECTIONS
   connect MORE clients - but in this case you certainly need kernel
   hacking.  Find an experienced admin with the same Operating System and
   ask him what the maximum is and how to achieve it.
-
-Default client listen port
-PORTNUM
-  This is the default listen port.  You can specify more listen ports
-  in the "ircd.conf" file with 'P: lines'; see doc/example.conf for more
-  details on P: lines.  Note that /stats p currently only shows P: lines,
-  which might be a reason for you to use a less often used value here.
-  Note that there is actually no difference between client and server
-  listen ports, but it is good practice to separate them for statistical
-  purpose (bandwidth usage statistics).
 
 Nickname history length
 NICKNAMEHISTORYLENGTH

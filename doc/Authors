@@ -141,7 +141,7 @@ UNDERNET (1991 - 1999)
 --------
 
 The Undernet versions (TSpre8, u2.9 and u2.10) are based on ircd-2.8.10 and
-contain thousands of hours of work by Carlo Wood <carlo@runaway.xs4all.nl>
+contain thousands of hours of work by Carlo Wood <carlo@alinoe.com>
 (Run on IRC). The number of protocol enhancements, changes and additions
 that have been added are too many to summarize.  All patches are kept in the
 cvs repository at http://coder-com.undernet.org/.  Discussions on this
@@ -161,7 +161,7 @@ Cym <cym@acrux.net>
 Derrick <dirk@servtech.com>
 Ensor <dholmes@rahul.net>
 flux <cmlambertus@ucdavis.edu>
-Ghostwolf <foxxe@wolfspirit.org>
+Ghostwolf <foxxe@trms.com>
 Gte- <gte@atomicrevs.demon.co.uk>
 Isomer <isomer@coders.net>
 Jamey <woodjr@durrance.Colorado.EDU>
