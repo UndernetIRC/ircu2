@@ -113,8 +113,11 @@ int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
   
-  sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :%s", parv[0],
-	      sptr->user->username, sptr->user->host, parv[parc - 1]);
+  if (IsUser(sptr))
+    sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :%s", parv[0],
+		sptr->user->username, sptr->user->host, parv[parc - 1]);
+  else
+    sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :* %s", parv[0], parv[parc - 1]);
   for (i = 0; i <= HighestFd; ++i) {
     if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && SendWallops(acptr))
       sendbufto_one(acptr);
@@ -135,6 +138,7 @@ int mo_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
   
+  /* always from a user anyway */
   sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :%s", parv[0],
 	      sptr->user->username, sptr->user->host, parv[parc - 1]);
   for (i = 0; i <= HighestFd; ++i) {
