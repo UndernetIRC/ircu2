@@ -1,3 +1,6 @@
+2003-04-26  David Mansell <splidge@quakenet.org>
+	* ircd/channel.c: removed extra :, it confuses broken clients.
+
 2003-04-19  Perry Lorier <isomer@undernet.org>
 	* ircd/gline.c, include/gline.c: Added realname glines.  I feel dirty
 	after working with this code.  As punishment for not fixing it, I'll
