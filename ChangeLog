@@ -1,3 +1,9 @@
+2004-09-19  hikari <hikari@undernet.org>
+
+	* configure.in: Fixed configure script rules to fail if (f)lex or yacc/bison 
+	aren't found as they're essential for compilation.  Regenerated files with 
+	autreconf.
+		
 2004-09-18  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Add NETWORK feature example.  Fix typos in
