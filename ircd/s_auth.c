@@ -81,7 +81,8 @@ static struct {
   { "NOTICE AUTH :*** Got ident response\r\n",             37 },
   { "NOTICE AUTH :*** No ident response\r\n",              36 },
   { "NOTICE AUTH :*** Your forward and reverse DNS do not match, " \
-    "ignoring hostname.\r\n",                              80 }
+    "ignoring hostname.\r\n",                              80 },
+  { "NOTICE AUTH :*** Invalid hostname\r\n",               35 }
 };
 
 typedef enum {
@@ -92,7 +93,8 @@ typedef enum {
   REPORT_DO_ID,
   REPORT_FIN_ID,
   REPORT_FAIL_ID,
-  REPORT_IP_MISMATCH
+  REPORT_IP_MISMATCH,
+  REPORT_INVAL_DNS
 } ReportType;
 
 #define sendheader(c, r) \
@@ -310,6 +312,23 @@ static void auth_kill_client(struct AuthRequest* auth)
   free_auth_request(auth);
 }
 
+/* auth_verify_hostname - verify that a hostname is valid, i.e., only
+ * contains characters valid for a hostname and that a hostname is not
+ * too long.
+ */
+static int auth_verify_hostname(char *host, int maxlen)
+{
+  int i;
+
+  /* Walk through the host name */
+  for (i = 0; host[i]; i++)
+    /* If it's not a hostname character or if it's too long, return false */
+    if (!IsHostChar(host[i]) || i >= maxlen)
+      return 0;
+
+  return 1; /* it's a valid hostname */
+}
+
 /*
  * auth_dns_callback - called when resolver query finishes
  * if the query resulted in a successful search, hp will contain
@@ -352,8 +371,10 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
 	auth_kill_client(auth);
 	return;
       }
-    }
-    else {
+    } else if (!auth_verify_hostname(hp->h_name, HOSTLEN)) {
+      if (IsUserPort(auth->client))
+	sendheader(auth->client, REPORT_INVAL_DNS);
+    } else {
       ++reply->ref_count;
       cli_dns_reply(auth->client) = reply;
       ircd_strncpy(cli_sockhost(auth->client), hp->h_name, HOSTLEN);
