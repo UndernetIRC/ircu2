@@ -32,24 +32,29 @@ struct Client;
 
 struct StatDesc;
 
-/* Source of /stats, stats descriptor, extra param (might be 0) */
-typedef void (*StatFunc)(struct Client *, const struct StatDesc *, char *);
+/** Statistics callback function.
+ * @param[in] cptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Extra parameter from user (may be NULL).
+ */
+typedef void (*StatFunc)(struct Client *cptr, const struct StatDesc *sd, char *param);
 
+/** Statistics entry. */
 struct StatDesc
 {
-  char         sd_c;           /* stats character */
-  char        *sd_name;        /* full name for stats */
-  unsigned int sd_flags;       /* flags to control the stats */
-  enum Feature sd_control;     /* feature controlling stats */
-  StatFunc     sd_func;        /* function to dispatch to */
-  int          sd_funcdata;    /* extra data for the function */
-  char        *sd_desc;        /* descriptive text */
+  char         sd_c;           /**< stats character (or '\0') */
+  char        *sd_name;        /**< full name for stats */
+  unsigned int sd_flags;       /**< flags to control the stats */
+  enum Feature sd_control;     /**< feature controlling stats */
+  StatFunc     sd_func;        /**< function to dispatch to */
+  int          sd_funcdata;    /**< extra data for the function */
+  char        *sd_desc;        /**< descriptive text */
 };
 
-#define STAT_FLAG_OPERONLY 0x01    /* Oper-only stat */
-#define STAT_FLAG_OPERFEAT 0x02    /* Oper-only if the feature is true */
-#define STAT_FLAG_CASESENS 0x04    /* Flag is case-sensitive */
-#define STAT_FLAG_VARPARAM 0x08    /* may have an extra parameter */
+#define STAT_FLAG_OPERONLY 0x01    /**< Oper-only stat */
+#define STAT_FLAG_OPERFEAT 0x02    /**< Oper-only if the feature is true */
+#define STAT_FLAG_CASESENS 0x04    /**< Flag is case-sensitive */
+#define STAT_FLAG_VARPARAM 0x08    /**< May have an extra parameter */
 
 extern void stats_init(void);
 const struct StatDesc *stats_find(const char *name_or_char);

@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
  */
 #include "config.h"
 
@@ -59,18 +57,17 @@
 #include <string.h>
 #include <sys/time.h>
 
-
-/*
- * m_stats/s_stats
- *
- * Report configuration lines and other statistics from this
+/** @file
+ * @brief Report configuration lines and other statistics from this
  * server.
+ * @version $Id$
  *
  * Note: The info is reported in the order the server uses
  *       it--not reversed as in ircd.conf!
  */
 
-static unsigned int report_array[17][3] = {
+/** Stats response to use for various ConfItem types. */
+static unsigned int report_array[][3] = {
   {CONF_SERVER, RPL_STATSCLINE, 'C'},
   {CONF_CLIENT, RPL_STATSILINE, 'I'},
   {CONF_LEAF, RPL_STATSLLINE, 'L'},
@@ -81,11 +78,18 @@ static unsigned int report_array[17][3] = {
 };
 
 /* The statsinfo array should only be used in this file, but just TRY
- * telling the compiler that you want to forward declare a static array,
- * and see how it responds.  So we forward declare it "extern".
+ * telling the compiler that you want to forward declare a static
+ * array without specifying a length, and see how it responds.  So we
+ * forward declare it "extern".
  */
 extern struct StatDesc statsinfo[];
 
+/** Report items from #GlobalConfList.
+ * Uses sd->sd_funcdata as a filter for ConfItem::status.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                        char* param)
@@ -136,9 +140,11 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
   }
 }
 
-/*
- * {CONF_CRULEALL, RPL_STATSDLINE, 'D'},
- * {CONF_CRULEAUTO, RPL_STATSDLINE, 'd'},
+/** Report connection rules from conf_get_crule_list().
+ * Uses sd->sd_funcdata as a filter for CRuleConf::type.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Extra parameter from user (ignored).
  */
 static void
 stats_crule_list(struct Client* to, const struct StatDesc *sd,
@@ -153,12 +159,22 @@ stats_crule_list(struct Client* to, const struct StatDesc *sd,
   }
 }
 
+/** Report active event engine name.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_engine(struct Client *to, const struct StatDesc *sd, char *param)
 {
   send_reply(to, RPL_STATSENGINE, engine_name());
 }
 
+/** Report client access lists.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Filter for hostname or IP (NULL to show all).
+ */
 static void
 stats_access(struct Client *to, const struct StatDesc *sd, char *param)
 {
@@ -192,10 +208,8 @@ stats_access(struct Client *to, const struct StatDesc *sd, char *param)
 }
 
 
-
-/*
- * {CONF_KILL, RPL_STATSKLINE, 'K'},
- * {CONF_IPKILL, RPL_STATSKLINE, 'k'},
+/** Report DenyConf entries.
+ * @param[in] to Client requesting list.
  */
 static void
 report_deny_list(struct Client* to)
@@ -206,6 +220,11 @@ report_deny_list(struct Client* to)
                p->hostmask, p->message, p->usermask);
 }
 
+/** Report K/k-lines to a user.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] mask Filter for hostmasks to show.
+ */
 static void
 stats_klines(struct Client *sptr, const struct StatDesc *sd, char *mask)
 {
@@ -258,6 +277,11 @@ stats_klines(struct Client *sptr, const struct StatDesc *sd, char *mask)
   }
 }
 
+/** Report on servers and/or clients connected to the network.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] name Filter for client names to show.
+ */
 static void
 stats_links(struct Client* sptr, const struct StatDesc* sd, char* name)
 {
@@ -302,7 +326,11 @@ stats_links(struct Client* sptr, const struct StatDesc* sd, char* name)
     }
 }
 
-/* hopefuly this will be where we'll spit out info about loaded modules */
+/** Report on loaded modules.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_modules(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -335,6 +363,11 @@ crypt_mechs_t* mechs;
 
 }
 
+/** Report how many times each command has been used.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_commands(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -345,6 +378,11 @@ stats_commands(struct Client* to, const struct StatDesc* sd, char* param)
       send_reply(to, RPL_STATSCOMMANDS, mptr->cmd, mptr->count, mptr->bytes);
 }
 
+/** List channel quarantines.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Filter for quarantined channel names.
+ */
 static void
 stats_quarantine(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -358,6 +396,11 @@ stats_quarantine(struct Client* to, const struct StatDesc* sd, char* param)
   }
 }
 
+/** List service pseudo-command mappings.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_mapping(struct Client *to, const struct StatDesc* sd, char* param)
 {
@@ -373,6 +416,11 @@ stats_mapping(struct Client *to, const struct StatDesc* sd, char* param)
   }
 }
 
+/** Report server uptime and maximum connection/client counts.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_uptime(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -384,6 +432,12 @@ stats_uptime(struct Client* to, const struct StatDesc* sd, char* param)
   send_reply(to, RPL_STATSCONN, max_connection_count, max_client_count);
 }
 
+/** Verbosely report on servers connected to the network.
+ * If sd->sd_funcdata != 0, then display in a more human-friendly format.
+ * @param[in] sptr Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Filter for server names to display.
+ */
 static void
 stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
 		      char* param)
@@ -435,6 +489,12 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
 }
 
 #ifdef DEBUGMODE
+/** Display objects allocated (and total memory used by them) for
+ * several types of structures.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -443,6 +503,11 @@ stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 }
 #endif
 
+/** Send a list of available statistics.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request.
+ * @param[in] param Extra parameter from user (ignored).
+ */
 static void
 stats_help(struct Client* to, const struct StatDesc* sd, char* param)
 {
@@ -456,9 +521,7 @@ stats_help(struct Client* to, const struct StatDesc* sd, char* param)
                       asd->sd_name, asd->sd_desc);
 }
 
-/* This array of structures contains information about all single-character
- * stats.  Struct StatDesc is defined in s_stats.h.
- */
+/** Contains information about all statistics. */
 struct StatDesc statsinfo[] = {
   { 'a', "nameservers", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_a,
     report_dns_servers, 0,
@@ -559,10 +622,19 @@ struct StatDesc statsinfo[] = {
   { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
 };
 
-/* This array is for mapping from characters to statistics descriptors */
+/** Maps from characters to statistics descriptors.
+ * Statistics descriptors with no single-character alias are not included.
+ */
 static struct StatDesc *statsmap[256];
+/** Number of statistics descriptors. */
 static int statscount;
 
+/** Compare two StatDesc structures by long name (StatDesc::sd_name).
+ * @param[in] a_ Pointer to a StatDesc.
+ * @param[in] b_ Pointer to a StatDesc.
+ * @return Less than, equal to, or greater than zero if \a a_ is
+ * lexicographically less than, equal to, or greater than \a b_.
+ */
 static int
 stats_cmp(const void *a_, const void *b_)
 {
@@ -571,6 +643,13 @@ stats_cmp(const void *a_, const void *b_)
   return ircd_strcmp(a->sd_name, b->sd_name);
 }
 
+/** Compare a StatDesc's name against a string.
+ * @param[in] key Pointer to a null-terminated string.
+ * @param[in] sd_ Pointer to a StatDesc.
+ * @return Less than,e qual to, or greater than zero if \a key is
+ * lexicographically less than, equal to, or greater than \a
+ * sd_->sd_name.
+ */
 static int
 stats_search(const void *key, const void *sd_)
 {
@@ -578,9 +657,11 @@ stats_search(const void *key, const void *sd_)
   return ircd_strcmp(key, sd->sd_name);
 }
 
-/* Look up a stats handler.  If name_or_char is just one character
- * long, use that as a character index; otherwise, look it up by
- * name in statsinfo.
+/** Look up a stats handler.  If name_or_char is just one character
+ * long, use that as a character index; otherwise, look it up by name
+ * in #statsinfo.
+ * @param[in] name_or_char Null-terminated string to look up.
+ * @return The statistics descriptor for \a name_or_char (NULL if none).
  */
 const struct StatDesc *
 stats_find(const char *name_or_char)
@@ -591,7 +672,7 @@ stats_find(const char *name_or_char)
     return bsearch(name_or_char, statsinfo, statscount, sizeof(statsinfo[0]), stats_search);
 }
 
-/* Function to build the statsmap from the statsinfo array */
+/** Build statsmap from the statsinfo array. */
 void
 stats_init(void)
 {
