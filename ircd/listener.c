@@ -347,11 +347,12 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
 
   listener = make_listener(port, vaddr);
 
+  set_listener_mask(listener, mask);
+  listener->hidden = is_hidden;
+  listener->server = is_server;
+
   if (inetport(listener)) {
     listener->active = 1;
-    set_listener_mask(listener, mask);
-    listener->hidden = is_hidden;
-    listener->server = is_server;
     listener->next   = ListenerPollList;
     ListenerPollList = listener; 
   }
