@@ -1,3 +1,10 @@
+2005-01-19  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_invite.c (m_invite, ms_invite): Include timestamp in
+	outbound INVITE messages.  On incoming INVITEs, ignore if the
+	timestamp is too recent or if the timestamp is missing and the
+	peer server is in burst.
+
 2005-01-15  Michael Poole <mdpoole@troilus.org>
 
 	* RELEASE.NOTES: Mention CIDR support for Client, Operator, bans

@@ -190,9 +190,11 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Announce to servers with channel operators, but skip acptr,
        * since they will be notified below. */
       sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
-                                       "%s :%H", cli_name(acptr), chptr);
+                                       "%s %H %Tu", cli_name(acptr),
+                                       chptr, chptr->creationtime);
     }
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr),
+                  chptr, chptr->creationtime);
   }
 
   return 0;
@@ -204,6 +206,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *   parv[0] - sender prefix
  *   parv[1] - user to invite
  *   parv[2] - channel name
+ *   parv[3] - (optional) channel timestamp
  *
  * - INVITE now is accepted only if who does it is chanop (this of course
  *   implies that channel must exist and he must be on it).
@@ -213,11 +216,15 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *
  * - Invite with no parameters now lists the channels you are invited to.
  *                                                         - Isomer 23 Oct 99
+ *
+ * - Invite with too-late timestamp, or with no timestamp from a bursting
+ *   server, is silently discarded.                   - Entrope 19 Jan 05
  */
 int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr;
   struct Channel *chptr;
+  time_t invite_ts;
   
   if (IsServer(sptr)) {
     /*
@@ -253,6 +260,13 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
+  if (parc > 3) {
+    invite_ts = atoi(parv[3]);
+    if (invite_ts > chptr->creationtime)
+      return 0;
+  } else if (IsBurstOrBurstAck(cptr))
+    return 0;
+
   if (!IsChannelService(sptr) && !find_channel_member(sptr, chptr)) {
     send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
     return 0;
@@ -278,10 +292,13 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* Announce to servers with channel operators, but skip acptr,
      * since they will be notified below. */
     sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
-                                     "%s :%H", cli_name(acptr), chptr);
+                                     "%s %H %Tu", cli_name(acptr), chptr,
+                                     chptr->creationtime);
   }
 
-  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
+  sendcmdto_one(sptr, CMD_INVITE, acptr,
+                "%s %H %Tu",
+                cli_name(acptr), chptr, chptr->creationtime);
   return 0;
 }
 
