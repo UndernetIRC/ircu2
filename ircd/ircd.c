@@ -26,6 +26,7 @@
 #include "crule.h"
 #include "hash.h"
 #include "ircd_alloc.h" /* set_nomem_handler */
+#include "ircd_defs.h"
 #include "ircd_log.h"
 #include "ircd_signal.h"
 #include "ircd_string.h"
@@ -332,7 +333,7 @@ static time_t check_pings(void)
               me.name, ERR_BADPING, cptr->name);
           sendto_one(cptr,
               ":%s %d %s :Compatible clients are available at "
-              "ftp://ftp.undernet.org/pub/irc/clients",
+              UNDERNET_CLIENT,
               me.name, ERR_BADPING, cptr->name);
         }
         exit_client_msg(cptr, cptr, &me, "Ping timeout");
@@ -379,13 +380,11 @@ ping_timeout:
  */
 static int bad_command(void)
 {
-  printf("Usage: ircd %s[-h servername] [-x loglevel] [-t]\n",
 #ifdef CMDLINE_CONFIG
-      "[-f config] "
+  printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-t]\n");
 #else
-      ""
+  printf("Usage: ircd [-h servername] [-x loglevel] [-t]\n");
 #endif
-      );
   printf("Server not started\n\n");
   return (-1);
 }

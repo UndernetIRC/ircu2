@@ -30,6 +30,26 @@
  */
 
 /*
+ * NETWORK is the name of the network as announced by the server
+ */
+#define NETWORK		"Undernet"
+
+/* 
+ * Server name that is used when the server can't be found
+ */
+#define GENERIC_SERVER	"general.undernet.org"
+
+/* 
+ * URL to a web page listing servers (used for HEADINSAND)
+ */
+#define URL_SERVERS	"http://www.undernet.org/servers.php"
+
+/*
+ * URL to compatible clients
+ */
+#define UNDERNET_CLIENT		"ftp://ftp.undernet.org/pub/irc/clients"
+
+/*
  * NICKLEN is the maximum length allowed for a nickname
  */
 #define NICKLEN         9

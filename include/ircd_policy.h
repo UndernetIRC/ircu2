@@ -142,4 +142,7 @@
 /* (note, set this to 0 to reenable, not undef */
 #define HEAD_IN_SAND_REMOTE 1
 
+#define HEAD_IN_SAND_SERVERNAME	"*.undernet.org"
+#define HEAD_IN_SAND_SERVERINFO "The Undernet Underworld"
+
 #endif /* INCLUDED_ircd_policy_h */

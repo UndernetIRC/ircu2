@@ -243,6 +243,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     while ((lp = bcptr->user->silence))
       del_silence(bcptr, lp->value.cp);
 
+    /* Clean up snotice lists */
+    if (MyUser(bcptr))
+    	set_snomask(bcptr, ~0, SNO_DEL);
+
     if (IsInvisible(bcptr))
       --UserStats.inv_clients;
     if (IsOper(bcptr))

@@ -228,6 +228,12 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
   struct Client *acptr;
   char y[8];
 
+  if (MustBeOper && !IsPrivileged(sptr))
+  {
+    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, sptr->name);
+    return HUNTED_NOSUCH;
+  }
+
   /* Assume it's me, if no server or an unregistered client */
   if (parc <= server || EmptyString(parv[server]) || IsUnknown(sptr))
     return (HUNTED_ISME);
@@ -257,12 +263,6 @@ int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *
 
   if (IsMe(acptr))
     return (HUNTED_ISME);
-
-  if (MustBeOper && !IsPrivileged(sptr))
-  {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, sptr->name);
-    return HUNTED_NOSUCH;
-  }
 
   strcpy(y, acptr->yxx);
   parv[server] = y;

@@ -92,6 +92,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -339,7 +340,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * if sptr is a server it is exited here, nothing else to do
      */
     return exit_client_msg(cptr, sptr, &me,
-			   "Killed (*.undernet.org (%s <- %s))",
+			   "Killed (" HEAD_IN_SAND_SERVERNAME " (%s <- %s))",
 			   acptr->from->name, cptr->name);
   }
 
@@ -453,7 +454,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
         sptr->flags |= FLAGS_KILLED;
         exit_client(cptr, sptr, &me,
-		    "Killed (*.undernet.org (Nick collision))");
+		    "Killed (" HEAD_IN_SAND_SERVERNAME " (Nick collision))");
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
          * again we'll know about it --Bleep
@@ -477,13 +478,13 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
     if (MyConnect(acptr)) {
-      sendto_one(cptr, "%s%s " TOK_QUIT " :Killed (*.undernet.org (older nick "
-		 "overruled))", NumNick(acptr));
-      sendto_one(acptr, ":%s KILL %s :*.undernet.org (older nick overruled)",
-		 me.name, acptr->name);
+      sendto_one(cptr, "%s%s " TOK_QUIT " :Killed (" 
+	  HEAD_IN_SAND_SERVERNAME " (older nick overruled))", NumNick(acptr));
+      sendto_one(acptr, ":%s KILL %s :" HEAD_IN_SAND_SERVERNAME 
+	  " (older nick overruled)", me.name, acptr->name);
     }
-    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (older nick "
-		"overruled))");
+    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME 
+	" (older nick overruled))");
   }
   else {
     sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
@@ -492,13 +493,13 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                           cptr->name);
     if (MyConnect(acptr)) {
       sendto_one(cptr,
-                 "%s%s " TOK_QUIT " :Killed (*.undernet.org (nick collision "
-		 "from same user@host))", NumNick(acptr));
-      sendto_one(acptr, ":%s KILL %s :*.undernet.org (nick collision from "
-		 "same user@host)", me.name, acptr->name);
+                 "%s%s " TOK_QUIT " :Killed (" HEAD_IN_SAND_SERVERNAME 
+		 " (nick collision from same user@host))", NumNick(acptr));
+      sendto_one(acptr, ":%s KILL %s :" HEAD_IN_SAND_SERVERNAME 
+	  " (nick collision from same user@host)", me.name, acptr->name);
     }
-    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (nick collision "
-		"from same user@host))");
+    exit_client(cptr, acptr, &me, "Killed (" HEAD_IN_SAND_SERVERNAME 
+	" (nick collision from same user@host))");
   }
   if (lastnick == acptr->lastnick)
     return 0;

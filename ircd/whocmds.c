@@ -136,7 +136,17 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (!fields || (fields & WHO_FIELD_SER))
   {
-    char *p2 = acptr->user->server->name;
+    char *p2;
+#ifdef HEAD_IN_SAND_WHO_SERVERNAME
+    if (IsOper(sptr)) {
+#endif
+      	p2 = acptr->user->server->name;
+#ifdef HEAD_IN_SAND_WHO_SERVERNAME	
+    }
+    else {
+      	p2 = HEAD_IN_SAND_SERVERNAME;
+    }
+#endif
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
   }
@@ -182,8 +192,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     if (!fields)
       *p1++ = ':';              /* Place colon here for default reply */
 #ifdef HEAD_IN_SAND_WHO_HOPCOUNT
-    strcat(p1, sptr == acptr ? "0" : "3");
-    p1++;
+    *p1++ = (sptr == acptr) ? '0' : '3' ;
 #else
     p1 = sprintf_irc(p1, "%d", acptr->hopcount);
 #endif

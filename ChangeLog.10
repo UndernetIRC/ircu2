@@ -1,10 +1,34 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.19 2001-07-28 15:18:31 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.20 2001-10-02 11:39:40 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl16
+* Oops, missed a "* " in ms_wallops -- Isomer
+* Fix typo in ircd.c -- Isomer
+* Add prefixes to things before they are sent to clients -- Isomer
+* Make ircd.c compile on gcc 3.0 -- mbuna
+* fix core in s_user.c, thanks to mbuna -- Isomer
+* Make ircd.c compile again :)
+* Attempt fixing core with +s, the memory leak etc.  Thanks to [Tri]! -- Isomer
+* More hub hiding stuff -- Isomer
+* Fix bug in unique_name_vector -- Vampire
+* Don't send errors on directed privmsgs (suggested by Vampire-) -- Isomer
+* Don't core for invalid modes in burst -- Isomer
+* Cleanup to m_names.c, thanks to net -- Isomer
+* After a long battle, we lost to the superior strength of res.c.
+  res.c replaced with the original -- Isomer
+* Don't report "No such server" on remote commands.  oops -- Isomer
+* Changed Undernet -> NETWORK, *.undernet.org -> HEAD_IN_SAND_SERVERNAME,
+  "The Undernet Underworld" -> HEAD_IN_SAND_SERVERINFO -- Isomer
+* Remove servernames from /who, someones clinically blind, or stupid.  Sigh
+  -- Isomer
+* You now can't /msg a -n but +m or +b'd channel -- Isomer
+* Hacked DNS -- Isomer
+* Rewrote hop count for /who. -- Isomer
+* Removed DNS caching.  If it breaks, blame Mr RIP. -- Isomer
 -------------------------- Released 2.10.10.pl15
 * Fiddle with /KILL and various exits to make the user experience uniform,
   no matter who's doing the killing or where.  Previously, differences in

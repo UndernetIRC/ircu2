@@ -91,6 +91,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -247,10 +248,10 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (MyConnect(victim))
     sendto_prefix_one(victim, IsServer(sptr) ? &me : sptr, ":%s KILL %s :%s%s",
-                      IsServer(sptr) ? me.name : sptr->name, victim->name,
-		      IsServer(sptr) ? "*.undernet.org" : sptr->name, comment);
+         IsServer(sptr) ? me.name : sptr->name, victim->name,
+	 IsServer(sptr) ? HEAD_IN_SAND_SERVERNAME : sptr->name, comment);
 
-  sprintf_irc(buf, "Killed (%s%s)", IsServer(sptr) ? "*.undernet.org" :
+  sprintf_irc(buf, "Killed (%s%s)", IsServer(sptr) ? HEAD_IN_SAND_SERVERNAME :
 	      sptr->name, comment);
 
   return exit_client(cptr, victim, sptr, buf);

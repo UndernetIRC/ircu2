@@ -116,7 +116,7 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "WALLOPS");
 
   if (IsUser(sptr))
-    sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :%s", parv[0],
+    sprintf_irc(sendbuf, ":%s!%s@%s " MSG_WALLOPS " :* %s", parv[0],
 		sptr->user->username, sptr->user->host, parv[parc - 1]);
   else
     sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :* %s", parv[0], parv[parc - 1]);

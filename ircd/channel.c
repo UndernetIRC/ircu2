@@ -711,13 +711,14 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
 
   /*
    * You can't speak if your off channel, if the channel is modeless, or
-   * +n.(no external messages)
+   * +n (no external messages), +m (moderated) or you are banned.
    */
   if (!member) {
-    if ((chptr->mode.mode & MODE_NOPRIVMSGS) || IsModelessChannel(chptr->chname)) 
+    if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) 
+	|| IsModelessChannel(chptr->chname)) 
       return 0;
     else
-      return 1;
+      return !is_banned(cptr,chptr,NULL);
   }
   return member_can_send_to_channel(member); 
 }

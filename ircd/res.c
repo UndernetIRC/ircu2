@@ -682,8 +682,7 @@ static void query_name(const char* name, int query_class,
   Debug((DEBUG_DNS, "Resolver: query_name: %s %d %d", name, query_class, type));
   memset(buf, 0, sizeof(buf));
   if ((request_len = res_mkquery(QUERY, name, query_class, type, 
-                                 NULL, 0, NULL, (unsigned char *) buf,
-				 sizeof(buf))) > 0) {
+                                 NULL, 0, NULL, buf, sizeof(buf))) > 0) {
     HEADER* header = (HEADER*) buf;
 #ifndef LRAND48
     int            k = 0;
@@ -710,8 +709,7 @@ static void query_name(const char* name, int query_class,
     ++request->sends;
     Debug((DEBUG_DNS, "Resolver: query_name %d: %s %d %d", request->id, 
           name, query_class, type));
-    request->sent += send_res_msg((const unsigned char *) buf, request_len,
-				  request->sends);
+    request->sent += send_res_msg(buf, request_len, request->sends);
   }
 }
 
@@ -965,7 +963,7 @@ int resolver_read(void)
 
   Debug((DEBUG_DNS, "Resolver: read"));
   if (IO_SUCCESS != os_recvfrom_nonb(ResolverFileDescriptor,
-                                     (char *) buf, sizeof(buf), &rc, &sin)) {
+                                     buf, sizeof(buf), &rc, &sin)) {
     return 0;
   }
   if (rc < sizeof(HEADER)) {
@@ -1361,7 +1359,7 @@ static struct CacheEntry* add_to_cache(struct CacheEntry* ocp)
   ocp->hname_next = hashtable[hashv].name_list;
   hashtable[hashv].name_list = ocp;
 
-  hashv = hash_number((const unsigned char *) ocp->he.h.h_addr);
+  hashv = hash_number(ocp->he.h.h_addr);
 
   ocp->hnum_next = hashtable[hashv].num_list;
   hashtable[hashv].num_list = ocp;
@@ -1506,7 +1504,7 @@ static struct CacheEntry* find_cache_number(struct ResRequest* request,
   int     i;
 
   assert(0 != addr);
-  hashv = hash_number((const unsigned char *) addr);
+  hashv = hash_number(addr);
   cp = hashtable[hashv].num_list;
 
   for (; cp; cp = cp->hnum_next) {
@@ -1525,7 +1523,7 @@ static struct CacheEntry* find_cache_number(struct ResRequest* request,
      * are looking for, its been done already.
      */
     if (!cp->he.h.h_addr_list[1] || 
-        hashv == hash_number((const unsigned char *) cp->he.h.h_addr_list[0]))
+        hashv == hash_number(cp->he.h.h_addr_list[0]))
       continue;
     for (i = 1; cp->he.h.h_addr_list[i]; ++i) {
       if (!memcmp(cp->he.h.h_addr_list[i], addr, sizeof(struct in_addr))) {
@@ -1630,7 +1628,7 @@ static void rem_cache(struct CacheEntry* ocp)
   /*
    * remove cache entry from hashed number list
    */
-  hashv = hash_number((const unsigned char *) hp->h_addr);
+  hashv = hash_number(hp->h_addr);
   assert(-1 < hashv);
 
   for (cp = &hashtable[hashv].num_list; *cp; cp = &((*cp)->hnum_next)) {

@@ -349,8 +349,8 @@ static int m_message(struct Client *cptr, struct Client *sptr,
         sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], nick);
       else
         sendto_one(sptr,
-            ":%s %d %s * :Target left UnderNet. Failed to deliver: [%.50s]",
-            me.name, ERR_NOSUCHNICK, sptr->name, parv[parc - 1]);
+            ":%s %d %s * :Target left . Failed to deliver: [%.50s]",
+            me.name, ERR_NOSUCHNICK, sptr->name, NETWORK, parv[parc - 1]);
       continue;
     }
     /*

@@ -48,12 +48,13 @@
 
 #define FEATURES2 " PREFIX=%s" \
 		" CHANMODES=%s" \
-		" CHARSET=%s" 
+		" CHARSET=%s" \
+		" NETWORK=%s" 
 
 #define FEATURESVALUES1 MAXMODEPARAMS, MAXCHANNELSPERUSER, MAXBANS, \
         NICKLEN, TOPICLEN, TOPICLEN, "+#&"
 
-#define FEATURESVALUES2 "(ov)@+", "b,k,l,imnpst", "rfc1459"
+#define FEATURESVALUES2 "(ov)@+", "b,k,l,imnpst", "rfc1459", NETWORK
 
 #endif /* INCLUDED_supported_h */
 
