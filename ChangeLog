@@ -1,3 +1,23 @@
+2001-01-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: pass initializer information about how many
+	total _filedescriptors_ may be opened at once
+
+	* ircd/ircd.c: use exported "running" instead of unexported
+	thisServer.running
+
+	* ircd/engine_select.c: implementation of an event engine based on
+	select()
+
+	* ircd/engine_poll.c: implementation of an event engine based on
+	poll()
+
+	* include/ircd_events.h: pass the engine initializer an integer
+	specifing how many _filedescriptors_ may be opened at once
+
+	* include/ircd.h: running has to be exported for the engine_*
+	event loops
+
 2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c: include some needed headers; add some

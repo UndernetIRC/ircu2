@@ -101,6 +101,7 @@ time_t         nextping          = 1; // same as above for check_pings()
 
 static struct Daemon thisServer  = { 0 };     // server process info 
 
+int running;
 
 
 /*----------------------------------------------------------------------------
@@ -111,7 +112,7 @@ void server_die(const char* message) {
   log_write(LS_SYSTEM, L_CRIT, 0, "Server terminating: %s", message);
   flush_connections(0);
   close_connections(1);
-  thisServer.running = 0;
+  running = 0;
 }
 
 
@@ -449,8 +450,8 @@ static void event_loop(void) {
   time_t nextdnscheck = 0;
   time_t delay        = 0;
 
-  thisServer.running = 1;
-  while (thisServer.running) {
+  running = 1;
+  while (running) {
     /* We only want to connect if a connection is due, not every time through.
      * Note, if there are no active C lines, this call to Tryconnections is
      * made once only; it will return 0. - avalon

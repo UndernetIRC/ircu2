@@ -136,7 +136,7 @@ struct Generators {
 };
 
 /* returns 1 if successfully initialized, 0 if not */
-typedef int (*EngineInit)(void);
+typedef int (*EngineInit)(int);
 
 /* Tell engine about new signal; set to 0 if engine doesn't know signals */
 typedef void (*EngineSignal)(struct Signal*);
@@ -179,7 +179,7 @@ do {									      \
 
 void gen_dequeue(void* arg);
 
-void event_init(void);
+void event_init(int max_sockets);
 void event_loop(void);
 void event_generate(enum EventType type, void* arg);
 

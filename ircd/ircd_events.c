@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, ircd/gline.c
+ * IRC - Internet Relay Chat, ircd/ircd_events.c
  * Copyright (C) 2001 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -280,7 +280,7 @@ gen_dequeue(void* arg)
 
 /* Initializes the event system */
 void
-event_init(void)
+event_init(int max_sockets)
 {
   int i, p[2];
 
@@ -288,7 +288,7 @@ event_init(void)
     assert(0 != evEngines[i]->eng_name);
     assert(0 != evEngines[i]->eng_init);
 
-    if ((*evEngines[i]->eng_init)())
+    if ((*evEngines[i]->eng_init)(max_sockets))
       break; /* Found an engine that'll work */
   }
 
