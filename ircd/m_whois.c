@@ -163,7 +163,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 	* remote WHOIS --ULtimaTe_
 	*/
        if (IsLocalChannel(chptr->chname) && (parc == 2) &&
-	   feature_bool(FEAT_HIS_LOCAL_CHAN_WHOIS) && (acptr != sptr) &&
+	   feature_bool(FEAT_HIS_WHOIS_LOCALCHAN) && (acptr != sptr) &&
 	   !IsAnOper(sptr))
 	  continue; 
 
