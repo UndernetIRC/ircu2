@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Parse input from IRC clients and other servers.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -74,6 +76,7 @@
  *				 'i' -> [MessageTree *] -> 'e' and matches
  */
 
+/** Number of children under a trie node. */
 #define MAXPTRLEN	32	/* Must be a power of 2, and
 				 * larger than 26 [a-z]|[A-Z]
 				 * its used to allocate the set
@@ -90,13 +93,16 @@
 				 * - Dianora
 				 */
 
+/** Node in the command lookup trie. */
 struct MessageTree {
-  struct Message *msg;
-  struct MessageTree *pointers[MAXPTRLEN];
+  struct Message *msg; /**< Message (if any) if the string ends now. */
+  struct MessageTree *pointers[MAXPTRLEN]; /**< Child nodes for each letter. */
 };
 
+/** Root of command lookup trie. */
 static struct MessageTree msg_tree;
 
+/** Array of all supported commands. */
 struct Message msgtab[] = {
   {
     MSG_PRIVATE,
@@ -625,18 +631,14 @@ struct Message msgtab[] = {
   { 0 }
 };
 
-
+/** Array of command parameters. */
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
 
 
-/*
- * add_msg_element
- *
- * inputs	- Pointer to current piece of message tree
- *		- Pointer to struct Message to add at final token position
- *		- Pointer to current portion of cmd or token to add
- * output	- NONE
- * side effects	- recursively build the Message Tree ;-)
+/** Add a message to the lookup trie.
+ * @param[in,out] mtree_p Trie node to insert under.
+ * @param[in] msg_p Message to insert.
+ * @param[in] cmd Text of command to insert.
  */
 void
 add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
@@ -661,20 +663,9 @@ add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
   }
 }
 
-#if ircu_unused
-/* This is unused in ircu, trivial to do, but left here for later
- * use if desired.
- *
- * - Dianora
- */
-/*
- * del_msg_element
- *
- * inputs	- 
- *		-
- *		-
- * output	- NONE
- * side effects	- recursively deletes a token from the Message Tree ;-)
+/** Remove a message from the lookup trie.
+ * @param[in,out] mtree_p Trie node to remove command from.
+ * @param[in] cmd Text of command to remove.
  */
 void
 del_msg_element(struct MessageTree *mtree_p, char *cmd)
@@ -691,15 +682,8 @@ del_msg_element(struct MessageTree *mtree_p, char *cmd)
     mtree_p->pointers[*cmd & (MAXPTRLEN-1)] = NULL;
   }
 }
-#endif
 
-/*
- * initmsgtree()
- *
- * inputs	- none
- * output	- none
- * side effect	- zero the msg_tree, recursively populate it
- */
+/** Initialize the message lookup trie with all known commands. */
 void
 initmsgtree(void)
 {
@@ -714,17 +698,10 @@ initmsgtree(void)
   }
 }
 
-/*
- * msg_tree_parse
- *
- * inputs	- pointer to command/token 
- *		- pointer to MessageTree root
- * output	- found Message * for this token/command or NULL if not found
- * side effects	-
- * Generic tree parser which works for both commands and tokens.
- * Optimized by Run.
- * Re-written by Dianora (db) (tail recursive)
- *
+/** Look up a command in the message trie.
+ * @param cmd Text of command to look up.
+ * @param root Root of message trie.
+ * @return Pointer to matching message, or NULL if non exists.
  */
 static struct Message *
 msg_tree_parse(char *cmd, struct MessageTree *root)
@@ -740,55 +717,10 @@ msg_tree_parse(char *cmd, struct MessageTree *root)
   return NULL;
 }
 
-/* Inserts a single entry into a message tree; must use this function
-   when inserting messages at runtime. */
-static void msg_tree_insert(struct MessageTree *mtree, int pfxlen,
-    char *key, struct Message *mptr)
-{
-  struct MessageTree *child;
-  int c;
-
-  if (!key[pfxlen])
-  {
-    mtree->msg = mptr;
-    return;
-  }
-  c = key[pfxlen];
-  child = mtree->pointers[c & (MAXPTRLEN-1)];
-  if(!child)
-  {
-    child = (struct MessageTree *)MyCalloc(1, sizeof(struct MessageTree));
-    mtree->pointers[c & (MAXPTRLEN-1)] = child;
-  }
-  msg_tree_insert(child, pfxlen+1, key, mptr);
-}
-
-/* Removes an entry from the message tree; suitable for use at runtime. */
-static struct MessageTree *msg_tree_remove(struct MessageTree *root, char *key)
-{
-  int c;
-
-  if (*key)
-  {
-    struct MessageTree *child = root->pointers[*key & (MAXPTRLEN-1)];
-    if (msg_tree_remove(child, key + 1))
-      return root;
-    root->pointers[*key & (MAXPTRLEN-1)] = NULL;
-  }
-  else
-  {
-    root->msg = NULL;
-  }
-  for (c = 0; c < MAXPTRLEN; ++c)
-  {
-    if (root->pointers[c])
-      return root;
-  }
-  MyFree(root);
-  return NULL;
-}
-
-/* Registers a service mapping to the pseudocommand handler. */
+/** Registers a service mapping to the pseudocommand handler.
+ * @param[in] map Service mapping to add.
+ * @return Non-zero on success; zero if a command already used the name.
+ */
 int register_mapping(struct s_map *map)
 {
   struct Message *msg;
@@ -813,13 +745,16 @@ int register_mapping(struct s_map *map)
 
   /* Service mappings are only applicable to clients; insert the
      pseudocommand into the command tree only. */
-  msg_tree_insert(&msg_tree, 0, msg->cmd, msg);
+  add_msg_element(&msg_tree, msg, msg->cmd);
   map->msg = msg;
 
   return 1;
 }
 
-/* Removes a service mapping. */
+/** Removes a service mapping.
+ * @param[in] map Service mapping to remove.
+ * @return Non-zero on success; zero if no command used the name.
+ */
 int unregister_mapping(struct s_map *map)
 {
   if (!msg_tree_parse(map->command, &msg_tree))
@@ -829,7 +764,7 @@ int unregister_mapping(struct s_map *map)
     return 0;
   }
 
-  msg_tree_remove(&msg_tree, map->msg->cmd);
+  del_msg_element(&msg_tree, map->msg->cmd);
 
   map->msg->extra = NULL;
   MyFree(map->msg);
@@ -838,10 +773,13 @@ int unregister_mapping(struct s_map *map)
   return 1;
 }
 
-/*
- * parse a buffer.
- *
+/** Parse a line of data from a user.
  * NOTE: parse_*() should not be called recusively by any other functions!
+ * @param[in] cptr Client that sent the data.
+ * @param[in] buffer Start of input line.
+ * @param[in] bufend End of input line.
+ * @return 0 on success, -1 on parse error, or CPTR_KILLED if message
+ * handler returns it.
  */
 int
 parse_client(struct Client *cptr, char *buffer, char *bufend)
@@ -980,6 +918,13 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   return (*handler) (cptr, from, i, para);
 }
 
+/** Parse a line of data from a server.
+ * @param[in] cptr Client that sent the data.
+ * @param[in] buffer Start of input line.
+ * @param[in] bufend End of input line.
+ * @return 0 on success, -1 on parse error, or CPTR_KILLED if message
+ * handler returns it.
+ */
 int parse_server(struct Client *cptr, char *buffer, char *bufend)
 {
   struct Client*  from = cptr;
