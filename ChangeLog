@@ -3,6 +3,8 @@
 	* ircd/channel.c (sub1_from_channel): Check apass rather than mode
 	to determine whether an apass is set (MODE_KEY/APASS/UPASS are not
 	set in mode.mode).
+	(send_channel_modes): Use the same change when determining how to
+	send oplevels for channels.
 
 2005-03-19  Michael Poole <mdpoole@troilus.org>
 

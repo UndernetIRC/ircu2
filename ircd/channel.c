@@ -860,7 +860,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   int                 opped_members_index = 0;
   struct Membership** opped_members = NULL;
   int                 last_oplevel = 0;
-  int                 feat_oplevels = (chptr->mode.mode & MODE_APASS) != 0;
+  int                 feat_oplevels = (chptr->mode.apass[0]) != '\0';
 
   assert(0 != cptr);
   assert(0 != chptr); 
