@@ -1,3 +1,8 @@
+2002-06-18  Andrew Miller <a1kmm@mware.virtualave.net>
+
+	* ircd/s_bsd.c (read_packet): don't allow unregistered clients to flood
+	the server.
+	
 2002-06-18  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_burst.c (ms_burst): kick local members if the channel
