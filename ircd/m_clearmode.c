@@ -161,8 +161,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
   /* If we're removing invite, remove all the invites */
   if (del_mode & MODE_INVITEONLY)
-    while ((link = chptr->invites))
-      del_invite(link->value.cptr, chptr);
+    mode_invite_clear(chptr);
 
   /*
    * If we're removing the key, note that; note that we can't clear

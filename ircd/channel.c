@@ -3140,8 +3140,8 @@ mode_ban_invalidate(struct Channel *chan)
 void
 mode_invite_clear(struct Channel *chan)
 {
-  while (chptr->invites)
-    del_invite(chptr->invites->value.cptr, chptr);
+  while (chan->invites)
+    del_invite(chan->invites->value.cptr, chan);
 }
 
 /* What we've done for mode_parse so far... */
@@ -3157,14 +3157,14 @@ struct ParseState {
   struct Client *sptr;
   struct Channel *chptr;
   int parc;
-  char *parv[];
+  char **parv;
   unsigned int flags;
   unsigned int dir;
   unsigned int done;
   int args_used;
   int max_args;
   int numbans;
-  struct Slink banlist[MAXPARA];
+  struct SLink banlist[MAXPARA];
   struct {
     unsigned int flag;
     struct Client *client;
@@ -3179,10 +3179,10 @@ static void
 send_notoper(struct ParseState *state)
 {
   if (state->done & DONE_NOTOPER)
-    return 0;
+    return;
 
   sendto_one(state->sptr, err_str(state->flags & MODE_PARSE_NOTOPER ?
-				  (ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL)),
+				  ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL),
 	     me.name, state->sptr->name, state->chptr->chname);
 
   state->done |= DONE_NOTOPER;
@@ -3208,7 +3208,7 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
 
     t_limit = atoi(state->parv[state->args_used++]); /* grab arg */
     state->parc--;
-    state->maxargs--;
+    state->max_args--;
 
     if (!t_limit) /* if it was zero, ignore it */
       return;
@@ -3229,7 +3229,7 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
 
   modebuf_mode_uint(state->mbuf, state->dir | flag_p[0], t_limit);
 
-  if (state->flags & MODE_PARSE_SET) /* set the limit */
+  if (state->flags & MODE_PARSE_SET) { /* set the limit */
     if (state->dir & MODE_ADD) {
       state->chptr->mode.mode |= flag_p[0];
       state->chptr->mode.limit = t_limit;
@@ -3237,6 +3237,7 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
       state->chptr->mode.mode &= flag_p[0];
       state->chptr->mode.limit = 0;
     }
+  }
 }
 
 /*
@@ -3258,9 +3259,9 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   }
 
-  s = t_str = state->parv[state->args_used++]; /* grab arg */
+  t_str = state->parv[state->args_used++]; /* grab arg */
   state->parc--;
-  state->maxargs--;
+  state->max_args--;
 
   /* If they're not an oper, they can't change modes */
   if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
@@ -3275,6 +3276,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   t_len = KEYLEN + 1;
 
   /* clean up the key string */
+  s = t_str;
   while (*++s > ' ' && *s != ':' && --t_len)
     ;
   *s = '\0';
@@ -3290,7 +3292,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   if (!(state->flags & MODE_PARSE_FORCE))
     if ((state->dir == MODE_ADD && *state->chptr->mode.key) ||
 	(state->dir == MODE_DEL &&
-	 ircd_strcmp(state->chptr->mode->key, t_str))) {
+	 ircd_strcmp(state->chptr->mode.key, t_str))) {
       sendto_one(state->sptr, err_str(ERR_KEYSET), me.name, state->sptr->name,
 		 state->chptr->chname);
       return;
@@ -3322,7 +3324,7 @@ static void
 mode_parse_ban(struct ParseState *state, int *flag_p)
 {
   char *t_str, *s;
-  struct SLink *ban, *newban;
+  struct SLink *ban, *newban = 0;
 
   if (state->parc <= 0) { /* Not enough args, send ban list */
     if (MyUser(state->sptr) && !(state->done & DONE_BANLIST)) {
@@ -3338,7 +3340,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
 
   t_str = state->parv[state->args_used++]; /* grab arg */
   state->parc--;
-  state->maxargs--;
+  state->max_args--;
 
   /* If they're not an oper, they can't change modes */
   if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
@@ -3361,8 +3363,8 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     newban = state->banlist + (state->numbans++);
     newban->next = 0;
 
-    newban->value.ban.banstr = tstr;
-    newban->value.ban.who = sptr->who;
+    newban->value.ban.banstr = t_str;
+    newban->value.ban.who = state->sptr->name;
     newban->value.ban.when = CurrentTime;
 
     newban->flags = CHFL_BAN | MODE_ADD;
@@ -3462,8 +3464,8 @@ mode_process_bans(struct ParseState *state)
 
       if (state->flags & MODE_PARSE_SET) { /* create a new ban */
 	newban = make_link();
-	newban->value.ban.banstr = DupString(ban->value.ban.banstr);
-	newban->value.ban.who = DupString(ban->value.ban.who);
+	DupString(newban->value.ban.banstr, ban->value.ban.banstr);
+	DupString(newban->value.ban.who, ban->value.ban.who);
 	newban->value.ban.when = ban->value.ban.when;
 	newban->flags = ban->flags & (CHFL_BAN | CHFL_BAN_IPMASK);
 
@@ -3478,7 +3480,7 @@ mode_process_bans(struct ParseState *state)
   } /* for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) { */
 
   if (changed) /* if we changed the ban list, we must invalidate the bans */
-    mode_ban_invalidate(chptr);
+    mode_ban_invalidate(state->chptr);
 }
 
 /*
@@ -3504,7 +3506,7 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 
   t_str = state->parv[state->args_used++]; /* grab arg */
   state->parc--;
-  state->maxargs--;
+  state->max_args--;
 
   /* If they're not an oper, they can't change modes */
   if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
@@ -3523,8 +3525,8 @@ mode_parse_client(struct ParseState *state, int *flag_p)
       break; /* found a slot */
 
   /* Store what we're doing to them */
-  state->cli_change.flag = state->dir | flag_p[0];
-  state->cli_change.client = acptr;
+  state->cli_change[i].flag = state->dir | flag_p[0];
+  state->cli_change[i].client = acptr;
 }
 
 /*
@@ -3536,7 +3538,7 @@ mode_process_clients(struct ParseState *state)
   int i;
   struct Membership *member;
 
-  for (i = 0; state->cli_change[i].flags; i++) {
+  for (i = 0; state->cli_change[i].flag; i++) {
     /* look up member link */
     if (!(member = find_member_link(state->chptr,
 				    state->cli_change[i].client)) ||
@@ -3548,22 +3550,22 @@ mode_process_clients(struct ParseState *state)
       continue;
     }
 
-    if ((state->cli_change[i].flags & MODE_ADD &&
-	 (state->cli_change[i].flags & member->status)) ||
-	(state->cli_change[i].flags & MODE_DEL &&
-	 !(state->cli_change[i].flags & member->status)))
+    if ((state->cli_change[i].flag & MODE_ADD &&
+	 (state->cli_change[i].flag & member->status)) ||
+	(state->cli_change[i].flag & MODE_DEL &&
+	 !(state->cli_change[i].flag & member->status)))
       continue; /* no change made, don't do anything */
 
     /* see if the deop is allowed */
-    if (state->cli_change[i].flags & (MODE_DEL | MODE_CHANOP) ==
+    if ((state->cli_change[i].flag & (MODE_DEL | MODE_CHANOP)) ==
 	(MODE_DEL | MODE_CHANOP)) {
       /* prevent +k users from being deopped */
       if (IsChannelService(state->cli_change[i].client)) {
-	if (flags & MODE_PARSE_FORCE) /* it was forced */
+	if (state->flags & MODE_PARSE_FORCE) /* it was forced */
 	  sendto_op_mask(SNO_HACK4, ":%s NOTICE * :*** Notice -- "
 			 "Deop of +k user on %s by %s",me.name,
 			 state->chptr->chname,
-			 (IsServer(state->sptr->name) ? state->sptr->name :
+			 (IsServer(state->sptr) ? state->sptr->name :
 			  state->sptr->user->server->name));
 
 	else if (MyUser(state->sptr) && state->flags & MODE_PARSE_SET) {
@@ -3588,16 +3590,16 @@ mode_process_clients(struct ParseState *state)
     }
 
     /* accumulate the change */
-    modebuf_mode_client(state->mbuf, state->cli_change[i].flags,
+    modebuf_mode_client(state->mbuf, state->cli_change[i].flag,
 			state->cli_change[i].client);
 
     /* actually effect the change */
     if (state->flags & MODE_PARSE_SET) {
-      if (state->cli_change[i].flags & MODE_ADD)
-	member->status |= (state->cli_change[i].flags &
+      if (state->cli_change[i].flag & MODE_ADD)
+	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
       else
-	member->status &= ~(state->cli_change[i].flags &
+	member->status &= ~(state->cli_change[i].flag &
 			    (MODE_CHANOP | MODE_VOICE));
     }
   } /* for (i = 0; state->cli_change[i].flags; i++) { */
@@ -3678,8 +3680,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
   int i;
   int *flag_p;
   char *modestr;
-  struct ParseState state = { mbuf, cptr, sptr, chptr, parc, parv, flags,
-			      MODE_ADD, 0, 0, MAXMODEPARAMS, 0 };
+  struct ParseState state;
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -3687,7 +3688,25 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
   assert(0 != parc);
   assert(0 != parv);
 
+  state.mbuf = mbuf;
+  state.cptr = cptr;
+  state.sptr = sptr;
+  state.chptr = chptr;
+  state.parc = parc;
+  state.parv = parv;
+  state.flags = flags;
+  state.dir = MODE_ADD;
+  state.done = 0;
+  state.args_used = 0;
+  state.max_args = MAXMODEPARAMS;
+  state.numbans = 0;
+
   for (i = 0; i < MAXPARA; i++) { /* initialize ops/voices arrays */
+    state.banlist[i].next = 0;
+    state.banlist[i].value.ban.banstr = 0;
+    state.banlist[i].value.ban.who = 0;
+    state.banlist[i].value.ban.when = 0;
+    state.banlist[i].flags = 0;
     state.cli_change[i].flag = 0;
     state.cli_change[i].client = 0;
   }
@@ -3734,6 +3753,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	break;
 
       default: /* deal with other modes */
+	mode_parse_mode(&state, flag_p);
 	break;
       } /* switch (*modestr) { */
     } /* for (; *modestr; modestr++) { */
@@ -3746,8 +3766,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
       if (IsServer(state.sptr) && !state.parc && IsDigit(*modestr)) {
 	time_t recv_ts;
 
-	if (state.flags & MODE_PARSE_NOSET) /* don't set earlier TS if we're */
-	  break;			   /* then going to bounce the mode! */
+	if (!(state.flags & MODE_PARSE_SET))	  /* don't set earlier TS if */
+	  break;		     /* we're then going to bounce the mode! */
 
 	recv_ts = atoi(modestr);
 
@@ -3777,7 +3797,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     mode_process_bans(&state);
 
   /* process client changes */
-  if (state.cli_change[i].flags)
+  if (state.cli_change[i].flag)
     mode_process_clients(&state);
 
   return state.args_used; /* tell our parent how many args we gobbled */
