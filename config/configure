@@ -2881,6 +2881,10 @@ case "$uname" in
     echo "$ac_t""$uname found." 1>&6
     OSDEP_C="os_solaris.c"
   ;;
+  *OpenBSD*)
+    echo "$ac_t""$uname found." 1>&6
+    OSDEP_C="os_openbsd.c"
+  ;;
   *BSD*)
     echo "$ac_t""$uname found." 1>&6
     OSDEP_C="os_bsd.c"
