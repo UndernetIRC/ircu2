@@ -1,3 +1,8 @@
+2000-04-11  Thomas Helvey <tomh@inxpress.net>
+	* ircd/IPcheck.c: removed old dead code
+	* ircd/s_user.c (send_user_info): removed non-standard
+          user not found message for userhost/userip
+
 2000-04-11  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* ircd/s_err.c: Added missing quotes to ERR_DONTCHEAT numeric.
@@ -356,7 +361,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.70 2000-04-11 05:51:25 gte Exp $
+# $Id: ChangeLog,v 1.71 2000-04-11 05:57:24 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
