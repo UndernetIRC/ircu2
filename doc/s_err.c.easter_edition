@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_err.c.easter_edition,v 1.1.2.1 2001-04-12 12:03:38 isomer Exp $
+ * $Id: s_err.c.easter_edition,v 1.1.2.2 2001-04-12 23:13:51 isomer Exp $
  */
 #include "numeric.h"
 #include "s_debug.h"
