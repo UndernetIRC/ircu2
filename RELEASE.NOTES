@@ -134,4 +134,8 @@ Increase the default hard limit for file descriptors in /etc/system
 set rlim_fd_max = 4096
 The server will raise the soft limit to the hard limit.
 
+Linux 2.2 -- [Tri]/Isomer
+The kernel has a kernel destination cache size of 4096.  If the kernel sees
+more than 4096 IP's in 60s it warns 'dst cache overflow'.  This limit can be
+changed by modifying /proc/sys/net/ipv4/route/max_size.
 
