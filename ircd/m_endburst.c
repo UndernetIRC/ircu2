@@ -87,6 +87,7 @@
  */
 #include "handlers.h"
 #endif /* 0 */
+#include "channel.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -107,10 +108,15 @@
  * This the last message in a net.burst.
  * It clears a flag for the server sending the burst.
  *
+ * As of 10.11, to fix a bug in the way BURST is processed, it also
+ * makes sure empty channels are deleted
+ *
  * parv[0] - sender prefix
  */
 int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  struct Channel *chan, *next_chan;
+
   assert(0 != cptr);
   assert(0 != sptr);
   if (!IsServer(sptr))
@@ -122,6 +128,21 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   SetBurstAck(sptr);
   if (MyConnect(sptr))
     sendcmdto_one(&me, CMD_END_OF_BURST_ACK, sptr, "");
+
+  /* Count through channels... */
+  for (chan = GlobalChannelList; chan; chan = next_chan) {
+    next_chan = chan->next;
+
+    if (!chan->members) { /* empty channel */
+      if (!(chan->mode.mode & MODE_BURSTADDED))
+	sendto_opmask_butone(0, SNO_OLDSNO, "Empty channel %H not added by "
+			     "BURST!", chan);
+
+      sub1_from_channel(chan); /* ok, nuke channel now */
+    }
+
+    chan->mode.mode &= ~MODE_BURSTADDED;
+  }
 
   return 0;
 }

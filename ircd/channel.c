@@ -26,6 +26,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -3070,6 +3071,70 @@ modebuf_flush(struct ModeBuf *mbuf)
 }
 
 /*
+ * This extracts the simple modes contained in mbuf
+ */
+void
+modebuf_extract(struct ModeBuf *mbuf, char *buf)
+{
+  static int flags[] = {
+/*  MODE_CHANOP,	'o', */
+/*  MODE_VOICE,		'v', */
+    MODE_PRIVATE,	'p',
+    MODE_SECRET,	's',
+    MODE_MODERATED,	'm',
+    MODE_TOPICLIMIT,	't',
+    MODE_INVITEONLY,	'i',
+    MODE_NOPRIVMSGS,	'n',
+    MODE_KEY,		'k',
+/*  MODE_BAN,		'b', */
+    MODE_LIMIT,		'l',
+    0x0, 0x0
+  };
+  unsigned int add;
+  int i, bufpos = 0, len;
+  int *flag_p;
+  char *key = 0, limitbuf[20];
+
+  assert(0 != mbuf);
+  assert(0 != buf);
+
+  buf[0] = '\0';
+
+  add = mbuf->mb_add;
+
+  for (i = 0; i < mbuf->mb_count; i++) { /* find keys and limits */
+    if (MB_TYPE(mbuf, i) & MODE_ADD) {
+      add |= MB_TYPE(mbuf, i) & (MODE_KEY | MODE_LIMIT);
+
+      if (MB_TYPE(mbuf, i) & MODE_KEY) /* keep strings */
+	key = MB_STRING(mbuf, i);
+      else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
+	ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%d", MB_UINT(mbuf, i));
+    }
+  }
+
+  if (!add)
+    return;
+
+  buf[bufpos++] = '+'; /* start building buffer */
+
+  for (flag_p = flags; flag_p[0]; flag_p += 2)
+    if (*flag_p & add)
+      buf[bufpos++] = flag_p[1];
+
+  for (i = 0, len = bufpos; i < len; i++) {
+    if (buf[i] == 'k')
+      build_string(buf, &bufpos, key, 0, ' ');
+    else if (buf[i] == 'l')
+      build_string(buf, &bufpos, limitbuf, 0, ' ');
+  }
+
+  buf[bufpos] = '\0';
+
+  return;
+}
+
+/*
  * Simple function to invalidate bans
  */
 void
@@ -3156,7 +3221,8 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     state->parc--;
     state->max_args--;
 
-    if (!t_limit) /* if it was zero, ignore it */
+    if (!(state->flags & MODE_PARSE_WIPEOUT) &&
+	(!t_limit || t_limit == state->chptr->mode.limit))
       return;
   } else
     t_limit = state->chptr->mode.limit;
@@ -3242,6 +3308,10 @@ mode_parse_key(struct ParseState *state, int *flag_p)
       send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
       return;
     }
+
+  if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
+      !ircd_strcmp(state->chptr->mode.key, t_str))
+    return; /* no key change */
 
   assert(0 != state->mbuf);
 
@@ -3756,6 +3826,9 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
       } /* switch (*modestr) { */
     } /* for (; *modestr; modestr++) { */
 
+    if (state.flags & MODE_PARSE_BURST)
+      break; /* don't interpret any more arguments */
+
     if (state.parc > 0) { /* process next argument in string */
       modestr = state.parv[state.args_used++];
       state.parc--;
@@ -3786,10 +3859,17 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
    * the rest of the function finishes building resultant MODEs; if the
    * origin isn't a member or an oper, skip it.
    */
-  if (state.flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER))
+  if (!state.mbuf || state.flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER))
     return state.args_used; /* tell our parent how many args we gobbled */
 
-  assert(0 != state.mbuf);
+  if (state.flags & MODE_PARSE_WIPEOUT) {
+    if (!(state.done & DONE_LIMIT)) /* remove the old limit */
+      modebuf_mode_uint(state.mbuf, MODE_DEL | MODE_LIMIT,
+			state.chptr->mode.limit);
+    if (!(state.done & DONE_KEY)) /* remove the old key */
+      modebuf_mode_string(state.mbuf, MODE_DEL | MODE_KEY,
+			  state.chptr->mode.key, 0);
+  }
 
   if (state.done & DONE_BANCLEAN) /* process bans */
     mode_process_bans(&state);

@@ -94,6 +94,7 @@ struct Client;
 #define MODE_LISTED     0x10000
 #define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
 #define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */
+#define MODE_BURSTADDED	0x80000	/* channel was created by a BURST */
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
@@ -356,6 +357,7 @@ extern void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
 extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 				struct Client *client);
 extern int modebuf_flush(struct ModeBuf *mbuf);
+extern void modebuf_extract(struct ModeBuf *mbuf, char *buf);
 
 extern void mode_ban_invalidate(struct Channel *chan);
 extern void mode_invite_clear(struct Channel *chan);
@@ -370,6 +372,8 @@ extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
 #define MODE_PARSE_BOUNCE	0x08	/* we will be bouncing the modes */
 #define MODE_PARSE_NOTOPER	0x10	/* send "not chanop" to user */
 #define MODE_PARSE_NOTMEMBER	0x20	/* send "not member" to user */
+#define MODE_PARSE_WIPEOUT	0x40	/* wipe out +k and +l during burst */
+#define MODE_PARSE_BURST	0x80	/* be even more strict w/extra args */
 
 extern void joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
 			 struct Client *connect, unsigned int type,
