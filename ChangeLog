@@ -1,5 +1,8 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* ircd/channel.c (modebuf_flush): duh; it's sendto_server_butone,
+	not sendto_all_butone
+
 	* ircd/m_clearmode.c: define skeleton for m{o,s}_clearmode
 
 	* ircd/m_opmode.c: define skeleton for m{o,s}_opmode
@@ -48,7 +51,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.26 2000-03-27 16:15:06 kev Exp $
+# $Id: ChangeLog,v 1.27 2000-03-27 16:33:18 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
