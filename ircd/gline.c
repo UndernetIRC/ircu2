@@ -362,7 +362,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   /* NO_OLD_GLINE allows *@#channel to work correctly */
   if (*userhost == '#' || *userhost == '&'
 # ifndef NO_OLD_GLINE
-      || userhost[2] == '#' || userhost[2] == '&'
+      || ((userhost[2] == '#' || userhost[2] == '&') && (userhost[1] == '@'))
 # endif /* OLD_GLINE */
       ) {
     if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
@@ -370,7 +370,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
     flags |= GLINE_BADCHAN;
 # ifndef NO_OLD_GLINE
-    if (userhost[2] == '#' || userhost[2] == '&')
+    if ((userhost[2] == '#' || userhost[2] == '&') && (userhost[1] == '@'))
       user = userhost + 2;
     else
 # endif /* OLD_GLINE */
