@@ -1,3 +1,9 @@
+2002-09-06  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (modebuf_flush_int): somehow missed this--set
+	apparent source to me if actual source is a server or if its an
+	OPMODE
+
 2002-09-05  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* INSTALL: one-character typo
