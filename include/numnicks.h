@@ -61,8 +61,8 @@ struct Client;
 /*
  * Proto types
  */
-extern int  SetRemoteNumNick(struct Client* cptr, const char* yxx);
-extern void SetLocalNumNick(struct Client* cptr);
+extern void SetRemoteNumNick(struct Client* cptr, const char* yxx);
+extern int  SetLocalNumNick(struct Client* cptr);
 extern void RemoveYXXClient(struct Client* server, const char* yxx);
 extern void SetServerYXX(struct Client* cptr, 
                          struct Client* server, const char* yxx);
