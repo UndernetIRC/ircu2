@@ -284,7 +284,7 @@ static time_t check_pings(void) {
       continue;
     }
 
-    max_ping = IsRegistered(cptr) ? get_client_ping(cptr) : CONNECTTIMEOUT;
+    max_ping = IsRegistered(cptr) ? client_get_ping(cptr) : CONNECTTIMEOUT;
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
 	   cptr->name, (cptr->flags & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
@@ -599,7 +599,7 @@ int main(int argc, char **argv) {
 
 #ifdef CHROOTDIR
   if (!set_chroot_environment())
-    exit(1);
+    return 1;
 #endif
 
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
@@ -614,22 +614,22 @@ int main(int argc, char **argv) {
 
   if (chdir(dpath)) {
     fprintf(stderr, "Fail: Cannot chdir(%s): %s, check DPATH\n", dpath, strerror(errno));
-    exit(2);
+    return 2;
   }
 
   if (!set_userid_if_needed())
-    exit(3);
+    return 3;
 
   /* Check paths for accessibility */
   if (!check_file_access(SPATH, 'S', X_OK) ||
       !check_file_access(configfile, 'C', R_OK) ||
       !check_file_access(MPATH, 'M', R_OK) ||
       !check_file_access(RPATH, 'R', R_OK))
-    exit(4);
+    return 4;
       
 #ifdef DEBUG
   if (!check_file_access(LPATH, 'L', W_OK))
-    exit(5);
+    return 5;
 #endif
 
   debug_init(thisServer.bootopt & BOOT_TTY);
@@ -639,10 +639,15 @@ int main(int argc, char **argv) {
   open_log(*argv);
 
   set_nomem_handler(outofmemory);
+  
+  if (!init_string()) {
+    ircd_log(L_CRIT, "Failed to initialize string module");
+    return 6;
+  }
 
   initload();
   init_list();
-  hash_init();
+  init_hash();
   initclass();
   initwhowas();
   initmsgtree();
@@ -650,14 +655,14 @@ int main(int argc, char **argv) {
 
   init_resolver();
 
-  if (!conf_init()) {
+  if (!init_conf()) {
     ircd_log(L_CRIT, "Failed to read configuration file %s", configfile);
-    exit(6);
+    return 7;
   }
 
   if (!init_server_identity()) {
     ircd_log(L_CRIT, "Failed to initialize server identity");
-    exit(7);
+    return 8;
   }
 
   uping_init();

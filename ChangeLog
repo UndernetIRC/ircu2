@@ -1,4 +1,12 @@
 2000-09-16  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: add code for server struct
+	* ircd/client.c: copy of class.c sort of, new file for client
+	specific operations, will move things here as appropriate,
+	currently only one function is exported from here.
+	* ircd/*.c: general logic cleanups, convert negatives to
+	positives in places.
+
+2000-09-16  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c: add code for new crule data structs, strip quotes
 	* ircd/crule.c: clean up scary casting a bit, type safety stuff
 	* include/s_conf.h: add CRuleConf struct and support, remove
@@ -1325,7 +1333,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.163 2000-09-16 05:35:01 bleep Exp $
+# $Id: ChangeLog,v 1.164 2000-09-17 03:41:37 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

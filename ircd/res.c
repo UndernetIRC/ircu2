@@ -261,16 +261,6 @@ static  struct  resinfo {
   int  re_unkrep;
 } reinfo;
 
-/*
- * Disallow a hostname label to contain anything but a [-a-zA-Z0-9].
- * It may not start or end on a '.'.
- * A label may not end on a '-', the maximum length of a label is
- * 63 characters.
- * On top of that (which seems to be the RFC) we demand that the
- * top domain does not contain any digits.
- */
-static const char* hostExpr = "([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+";
-static regex_t hostRegex;
 
 /*
  * From bind 8.3, these aren't declared in earlier versions of bind
@@ -368,10 +358,6 @@ int init_resolver(void)
 
   errno = h_errno = 0;
 
-  if (regcomp(&hostRegex, hostExpr, REG_EXTENDED | REG_NOSUB)) {
-    ircd_log(L_CRIT, "Resolver: error compiling host expression %s", hostExpr);
-    exit(2);
-  }
   start_resolver();
   Debug((DEBUG_DNS, "Resolver: fd %d errno: %d h_errno: %d: %s",
          ResolverFileDescriptor, errno, h_errno, 
@@ -394,7 +380,7 @@ static int validate_hostent(const struct hostent* hp)
   int  i = 0;
   assert(0 != hp);
   for (name = hp->h_name; name; name = hp->h_aliases[i++]) {
-    if (HOSTLEN < strlen(name) || 0 != regexec(&hostRegex, name, 0, 0, 0))
+    if (!string_is_hostname(name))
       return 0;
   }
   return 1;

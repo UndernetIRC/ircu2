@@ -61,7 +61,7 @@ struct Channel;
  * Proto types
  */
 
-extern void hash_init(void);    /* Call me on startup */
+extern void init_hash(void);    /* Call me on startup */
 extern int hAddClient(struct Client *cptr);
 extern int hAddChannel(struct Channel *chptr);
 extern int hRemClient(struct Client *cptr);

@@ -21,12 +21,59 @@
 #include "ircd_string.h"
 #include "ircd_defs.h"
 #include "ircd_chattr.h"
+#include "ircd_log.h"
 #include <assert.h>
 #include <string.h>
+#include <regex.h>
 /*
  * include the character attribute tables here
  */
 #include "chattr.tab.c"
+
+
+/*
+ * Disallow a hostname label to contain anything but a [-a-zA-Z0-9].
+ * It may not start or end on a '.'.
+ * A label may not end on a '-', the maximum length of a label is
+ * 63 characters.
+ * On top of that (which seems to be the RFC) we demand that the
+ * top domain does not contain any digits.
+ */
+static const char* hostExpr = "^([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+$";
+static regex_t hostRegex;
+
+static const char* addrExpr =
+    "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){1,3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
+static regex_t addrRegex;
+
+int init_string(void)
+{
+  /*
+   * initialize matching expressions
+   * XXX - expressions MUST be correct, don't change expressions
+   * without testing them. Might be a good idea to exit if these fail,
+   * important code depends on them.
+   * TODO: use regerror for an error message
+   */
+  if (regcomp(&hostRegex, hostExpr, REG_EXTENDED | REG_NOSUB))
+    return 0;
+
+  if (regcomp(&addrRegex, addrExpr, REG_EXTENDED | REG_NOSUB))
+    return 0;
+  return 1;
+}
+
+int string_is_hostname(const char* str)
+{
+  assert(0 != str);
+  return (strlen(str) <= HOSTLEN && 0 == regexec(&hostRegex, str, 0, 0, 0));
+}
+
+int string_is_address(const char* str)
+{
+  assert(0 != str);
+  return (0 == regexec(&addrRegex, str, 0, 0, 0));
+}
 
 /*
  * strtoken.c

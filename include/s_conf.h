@@ -56,6 +56,7 @@ struct hostent;
  */
 
 struct ConfItem {
+  struct ConfItem*   next;
   unsigned int       status;    /* If CONF_ILLEGAL, delete when no clients */
   unsigned int       clients;   /* Number of *LOCAL* clients using this */
   struct in_addr     ipnum;     /* ip number of host field */
@@ -67,7 +68,19 @@ struct ConfItem {
   time_t             hold;      /* Hold until this time (calendar time) */
   int                dns_pending; /* a dns request is pending */
   struct ConfClass*  confClass; /* Class of connection */
-  struct ConfItem*   next;
+};
+
+struct ServerConf {
+  struct ServerConf* next;
+  char*              hostname;
+  char*              passwd;
+  char*              alias;
+  struct in_addr     address;
+  int                port;
+  int                dns_pending;
+  int                connected;
+  time_t             hold;
+  struct ConfClass*  confClass;
 };
 
 /*
@@ -89,9 +102,9 @@ struct MotdItem {
 };
 
 struct MotdConf {
+  struct MotdConf* next;
   char* hostmask;
   char* path;
-  struct MotdConf* next;
 };
 
 enum {
@@ -103,18 +116,18 @@ enum {
 struct CRuleNode;
 
 struct CRuleConf {
+  struct CRuleConf* next;
   char*             hostmask;
   char*             rule;
   int               type;
   struct CRuleNode* node;
-  struct CRuleConf* next;
 };
 
 struct TRecord {
+  struct TRecord *next;
   char *hostmask;
   struct MotdItem *tmotd;
   struct tm tmotd_tm;
-  struct TRecord *next;
 };
 
 enum AuthorizationCheckResult {
@@ -146,12 +159,9 @@ extern const struct CRuleConf* conf_get_crule_list(void);
 
 extern const char* conf_crule_eval(const char* host, int mask);
 
-extern struct ConfItem* attach_confs_byhost(struct Client* cptr, 
-                                            const char* host, int statmask);
-extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
-                                         int statmask);
-extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name,
-                                         int statmask);
+extern struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* host, int statmask);
+extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host, int statmask);
+extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name, int statmask);
 extern struct ConfItem* conf_find_server(const char* name);
 const char* conf_eval_crule(const char* name, int mask);
 
@@ -159,14 +169,13 @@ extern void det_confs_butmask(struct Client *cptr, int mask);
 extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern struct ConfItem* find_me(void);
-extern struct ConfItem* find_conf_exact(const char* name, 
-                                        const char* user,
+extern struct ConfItem* find_conf_exact(const char* name, const char* user,
                                         const char* host, int statmask);
 extern enum AuthorizationCheckResult conf_check_client(struct Client *cptr);
 extern int  conf_check_server(struct Client *cptr);
 extern struct ConfItem* find_conf_name(const char* name, int statmask);
 extern int rehash(struct Client *cptr, int sig);
-extern int conf_init(void);
+extern int init_conf(void);
 extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);
