@@ -138,7 +138,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   {
     char *p2;
 #ifdef HEAD_IN_SAND_WHO_SERVERNAME
-    if (IsOper(sptr))
+    if (IsAnOper(sptr))
 #endif
       p2 = cli_name(cli_user(acptr)->server);
 #ifdef HEAD_IN_SAND_WHO_SERVERNAME

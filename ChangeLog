@@ -1,3 +1,8 @@
+2002-02-19 Joseph Bongaarts <foxxe@wtfs.net>
+
+        * ircd/whocmds.c: Local opers should also be able to
+        see servernames in /who
+
 2002-02-19 John Buttery <john@io.com>
 
 	* ircd/ircd.c: Updated "No such file" error message.
