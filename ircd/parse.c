@@ -93,6 +93,13 @@ struct Message msgtab[] = {
     { m_unregistered, m_wallchops, ms_wallchops, m_wallchops, m_ignore }
   },
   {
+    MSG_WALLVOICES,
+    TOK_WALLVOICES,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_wallvoices, ms_wallvoices, m_wallvoices, m_ignore }
+  },
+  {
     MSG_CPRIVMSG,
     TOK_CPRIVMSG,
     0, MAXPARA, MFLG_SLOW, 0,

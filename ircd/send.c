@@ -480,8 +480,8 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
-  user_mb = msgq_make(0, skip & SKIP_NONOPS ? "%:#C %s @%v" : "%:#C %s %v",
-		      from, skip & SKIP_NONOPS ? MSG_NOTICE : cmd, &vd);
+  user_mb = msgq_make(0, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? "%:#C %s @%v" : "%:#C %s %v",
+     from, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? MSG_NOTICE : cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
@@ -496,6 +496,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
     if (cli_from(member->user) == one || IsZombie(member) ||
 	(skip & SKIP_DEAF && IsDeaf(member->user)) ||
 	(skip & SKIP_NONOPS && !IsChanOp(member)) ||
+	(skip & SKIP_NONVOICES && !HasVoice(member) && !IsChanOp(member)) ||
 	(skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
 	cli_fd(cli_from(member->user)) < 0 ||
 	sentalong[cli_fd(cli_from(member->user))] == sentalong_marker)

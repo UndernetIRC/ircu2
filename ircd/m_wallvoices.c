@@ -1,7 +1,6 @@
 /*
- * IRC - Internet Relay Chat, ircd/m_wallchops.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * IRC - Internet Relay Chat, ircd/m_wallvoices.c
+ * Copyright (c) 2002 hikari
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -96,19 +95,19 @@
 #include <assert.h>
 
 /*
- * m_wallchops - local generic message handler
+ * m_wallvoices - local generic message handler
  */
-int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
 
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  ClrFlag(sptr, FLAG_TS8);
+  cli_flags(sptr) &= ~FLAGS_TS8;
 
   if (parc < 2 || EmptyString(parv[1]))
-    return send_reply(sptr, ERR_NORECIPIENT, "WALLCHOPS");
+    return send_reply(sptr, ERR_NORECIPIENT, "WALLVOICES");
 
   if (parc < 3 || EmptyString(parv[parc - 1]))
     return send_reply(sptr, ERR_NOTEXTTOSEND);
@@ -118,9 +117,9 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
       if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
           check_target_limit(sptr, chptr, chptr->chname, 0))
         return 0;
-      sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
-			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
-			       "%H :@ %s", chptr, parv[parc - 1]);
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
     }
     else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
@@ -132,9 +131,9 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
 }
 
 /*
- * ms_wallchops - server message handler
+ * ms_wallvoices - server message handler
  */
-int ms_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   assert(0 != cptr);
@@ -145,9 +144,9 @@ int ms_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[
 
   if ((chptr = FindChannel(parv[1]))) {
     if (client_can_send_to_channel(sptr, chptr)) {
-      sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
-			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,
-			       "%H :@ %s", chptr, parv[parc - 1]);
+      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
+			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+			       "%H :+ %s", chptr, parv[parc - 1]);
     } else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }
