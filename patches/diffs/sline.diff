@@ -1,0 +1,245 @@
+Index: doc/example.conf
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/doc/example.conf,v
+retrieving revision 1.15.2.5
+diff -b -u -d -r1.15.2.5 example.conf
+--- doc/example.conf	2002/05/17 16:42:18	1.15.2.5
++++ doc/example.conf	2002/07/17 22:17:54
+@@ -365,6 +365,30 @@
+ # Y:10:90:0:100:160000
+ 
+ 
++# [S:lines]
++# Opers may wish to hide their IP mask and hostname, even if they are on
++# a bnc. This can prevent the risk of opers or their providers getting
++# dos'd or whatever the case may be.
++#
++# When a client connects, his or her IP is compared to the incoming_IP in 
++# each of the S:lines in the conf. If it finds an exact match (NOT a mask 
++# match, but a simple comparison), it will substitute the client's ip with 
++# modified_IP and the client's real hostname with modified_hostname (as 
++# shown below).
++#
++# Syntax:
++# S:<incoming_IP>:<modified_IP>:<modifed_hostname>
++#
++# Example:
++# S:193.178.138.13:192.168.128.1:undernet.org
++#
++# If a user connects to the server with the IP 193.178.138.13, it is
++# automatically changed to 192.168.128.1 and the user's host is set to
++# undernet.org.
++#
++# If no modified_IP is provided, only the host is modified.
++
++
+ # [P:lines]
+ # When your server gets more full, you will notice delays when trying to
+ # connect to your server's primary listening port. It is possible via the
+Index: include/client.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/client.h,v
+retrieving revision 1.23.2.4
+diff -b -u -d -r1.23.2.4 client.h
+--- include/client.h	2002/07/17 21:07:01	1.23.2.4
++++ include/client.h	2002/07/17 22:17:56
+@@ -370,6 +370,7 @@
+ #define FLAGS_DOID      0x00040000      /* I-lines say must use ident return */
+ #define FLAGS_NONL      0x00080000      /* No \n in buffer */
+ #define FLAGS_TS8       0x00100000      /* Why do you want to know? */
++#define FLAGS_SLINE     0x00200000      /* User is S-lined */
+ #define FLAGS_MAP       0x00800000      /* Show server on the map */
+ #define FLAGS_JUNCTION  0x01000000      /* Junction causing the net.burst */
+ #define FLAGS_DEAF      0x02000000      /* Makes user deaf */
+@@ -414,6 +415,7 @@
+ #define IsAccount(x)            (cli_flags(x) & FLAGS_ACCOUNT)
+ #define IsHiddenHost(x)		(cli_flags(x) & FLAGS_HIDDENHOST)
+ #define HasHiddenHost(x)	(IsAccount(x) && IsHiddenHost(x))
++#define HasSLine(x)             (cli_flags(x) & FLAGS_SLINE)
+ 
+ #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
+ 
+@@ -436,6 +438,7 @@
+ #define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
+ #define SetAccount(x)           (cli_flags(x) |= FLAGS_ACCOUNT)
+ #define SetHiddenHost(x)	(cli_flags(x) |= FLAGS_HIDDENHOST)
++#define SetSLined(x)            (cli_flags(x) |= FLAGS_SLINE)
+ 
+ #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
+ #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)
+Index: include/s_conf.h
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/include/s_conf.h,v
+retrieving revision 1.15.2.1
+diff -b -u -d -r1.15.2.1 s_conf.h
+--- include/s_conf.h	2002/05/17 16:42:19	1.15.2.1
++++ include/s_conf.h	2002/07/17 22:17:57
+@@ -33,6 +33,7 @@
+ 
+ #define CONF_ILLEGAL            0x80000000
+ #define CONF_MATCH              0x40000000
++#define CONF_SPOOF              0x20000000
+ #define CONF_CLIENT             0x0002
+ #define CONF_SERVER             0x0004
+ #define CONF_LOCOP              0x0010
+Index: ircd/s_auth.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_auth.c,v
+retrieving revision 1.21.2.5
+diff -b -u -d -r1.21.2.5 s_auth.c
+--- ircd/s_auth.c	2002/07/10 16:22:47	1.21.2.5
++++ ircd/s_auth.c	2002/07/17 22:17:59
+@@ -46,6 +46,7 @@
+ #include "querycmds.h"
+ #include "res.h"
+ #include "s_bsd.h"
++#include "s_conf.h"
+ #include "s_debug.h"
+ #include "s_misc.h"
+ #include "send.h"
+@@ -82,6 +83,7 @@
+   { "NOTICE AUTH :*** No ident response\r\n",              36 },
+   { "NOTICE AUTH :*** Your forward and reverse DNS do not match, " \
+     "ignoring hostname.\r\n",                              80 },
++  { "NOTICE AUTH :*** Using S-line privilege\r\n",         41 },
+   { "NOTICE AUTH :*** Invalid hostname\r\n",               35 }
+ };
+ 
+@@ -94,6 +96,7 @@
+   REPORT_FIN_ID,
+   REPORT_FAIL_ID,
+   REPORT_IP_MISMATCH,
++  REPORT_USING_SLINE,
+   REPORT_INVAL_DNS
+ } ReportType;
+ 
+@@ -597,6 +600,13 @@
+   struct AuthRequest* auth = 0;
+ 
+   assert(0 != client);
++
++  if (conf_check_slines(client)) {
++    sendheader(client, REPORT_USING_SLINE);
++    SetSLined(client);
++    release_auth_client(client);
++    return;
++  }
+ 
+   auth = make_auth_request(client);
+   assert(0 != auth);
+Index: ircd/s_conf.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_conf.c,v
+retrieving revision 1.44.2.3
+diff -b -u -d -r1.44.2.3 s_conf.c
+--- ircd/s_conf.c	2002/05/17 16:42:19	1.44.2.3
++++ ircd/s_conf.c	2002/07/17 22:18:03
+@@ -1158,6 +1158,10 @@
+       conf_add_quarantine(field_vector, field_count);
+       aconf->status = CONF_ILLEGAL;
+       break;
++    case 'S':
++    case 's':
++      aconf->status = CONF_SPOOF;
++      break;
+     case 'T':                /* print out different motd's */
+     case 't':                /* based on hostmask - CONF_TLINES */
+       motd_add(field_vector[1], field_vector[2]);
+@@ -1260,6 +1264,9 @@
+     if ((aconf->status == CONF_UWORLD) && (aconf->passwd) && (*aconf->passwd))
+       addNickJupes(aconf->passwd);
+ 
++    if (aconf->status & CONF_SPOOF)
++      lookup_confhost(aconf);
++
+     collapse(aconf->host);
+     collapse(aconf->name);
+     Debug((DEBUG_NOTICE,
+@@ -1625,6 +1632,70 @@
+     c_conf->ipnum.s_addr = cli_ip(cptr).s_addr;
+ 
+   Debug((DEBUG_DNS, "sv_cl: access ok: %s[%s]", cli_name(cptr), cli_sockhost(cptr)));
++  return 0;
++}
++
++/*
++ * conf_check_slines()
++ *
++ * Check S lines for the specified client, passed in cptr struct.
++ * If the client's IP is S-lined, process the substitution here.
++ * 1. cptr->cli_ip                    (cli_ip(cptr))
++ * 2. cptr->cli_connect->con_sock_ip  (cli_sock_ip(cptr))
++ * 3. cptr->cli_connect->sockhost     (cli_sockhost(cptr))
++ *
++ * If no substitued IP are specified, only change sockhost.
++ *
++ * Precondition
++ *  cptr != NULL
++ *
++ * Returns
++ *  0 = No S-line found
++ *  1 = S-line found and substitution done.
++ *
++ * -mbuna 9/2001
++ *
++ */
++
++int
++conf_check_slines(struct Client *cptr)
++{
++  struct ConfItem* aconf;
++  struct in_addr iptemp;
++  char* hostonly;
++
++  for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
++    if (aconf->status != CONF_SPOOF)
++      continue;
++    if ((aconf->dns_pending)
++      || (INADDR_NONE == aconf->ipnum.s_addr)
++      || EmptyString(aconf->name))
++      continue;
++
++    if (cli_ip(cptr).s_addr == aconf->ipnum.s_addr) {
++
++                               /* Ignore user part if u@h. */
++      if ((hostonly = strchr(aconf->name, '@')))
++        hostonly++;
++      else
++        hostonly = aconf->name;
++
++      if(!*hostonly)
++        continue;
++
++      if (!EmptyString(aconf->passwd)) {
++        iptemp.s_addr = inet_addr(aconf->passwd);
++        if (INADDR_NONE == iptemp.s_addr)
++          continue;
++        cli_ip(cptr).s_addr = iptemp.s_addr;
++      }
++
++                               /* Perform a luxurious ircd_ntoa for sanity. */
++      ircd_strncpy(cli_sock_ip(cptr), ircd_ntoa((const char*) &cli_ip(cptr)), SOCKIPLEN);
++      ircd_strncpy(cli_sockhost(cptr), hostonly, HOSTLEN);
++      return 1;
++    }
++  }
+   return 0;
+ }
+ 
+Index: ircd/s_user.c
+===================================================================
+RCS file: /home/coder-com/cvs/ircu2.10/ircd/s_user.c,v
+retrieving revision 1.52.2.10
+diff -b -u -d -r1.52.2.10 s_user.c
+--- ircd/s_user.c	2002/07/17 21:07:01	1.52.2.10
++++ ircd/s_user.c	2002/07/17 22:18:05
+@@ -453,7 +453,8 @@
+ 
+     clean_user_id(user->username,
+         (cli_flags(sptr) & FLAGS_GOTID) ? cli_username(sptr) : username,
+-        (cli_flags(sptr) & FLAGS_DOID) && !(cli_flags(sptr) & FLAGS_GOTID));
++        (cli_flags(sptr) & FLAGS_DOID) && !(cli_flags(sptr) & FLAGS_GOTID)
++        && !(HasSLine(sptr))); /* No tilde for S-lined users. */
+ 
+     if ((user->username[0] == '\0')
+         || ((user->username[0] == '~') && (user->username[1] == '\000')))
