@@ -1,5 +1,51 @@
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* tools/Bounce/Bounce.h: drop file location
+
+	* tools/Bounce/Bounce.cpp: drop file location
+
+	* tools/crypter: drop file location; do some minor fixup; does
+	anyone actually use this script?
+
+	* tools/Makefile.crypt: drop file location
+
+	* ircd/test/ircd_chattr.0.dat (IsChannelPrefix): drop + from
+	channel prefix list
+
+	* ircd/s_user.c (hide_hostmask): use the already calculated hidden
+	host
+
+	* ircd/s_err.c: use the already calculated hidden host
+
+	* ircd/m_version.c (mo_version): fix up a comment
+
+	* ircd/m_topic.c (ms_topic): fix up a couple of comments
+
+	* ircd/m_quit.c: drop the "template" moniker
+
+	* ircd/m_privmsg.c: drop the "template" moniker
+
+	* ircd/m_pong.c: drop the "template" moniker
+
+	* ircd/m_ping.c: drop the "template" moniker
+
+	* ircd/m_opmode.c: update file location
+
+	* ircd/m_notice.c: drop the "template" moniker
+
+	* ircd/m_kill.c: drop the "template" moniker
+
+	* ircd/m_clearmode.c: update file location
+
+	* ircd/m_away.c: drop the "template" moniker
+
+	* ircd/ircd_relay.c (relay_directed_message): X does say it's a
+	service, now...
+
+	* config.h.in: drop file location
+
+	* acconfig.h: drop file location
+
 	* ircd/m_whois.c (do_whois): rename FEAT_HIS_LOCAL_CHAN_WHOIS to
 	satisfy reed :P
 
