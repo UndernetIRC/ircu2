@@ -2,6 +2,15 @@
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
+	* ircd/s_auth.c (destroy_auth_request): overload send_reports
+	argument to also indicate whether or not to call
+	release_auth_client() and thereby enter the client into the linked
+	list
+
+	* ircd/engine_devpoll.c (engine_loop): remove bogus assertion
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 	* ircd/list.c (free_client): verify that destroy_auth_request()
 	didn't automagically re-add us to the list; we might have to think
 	about this interaction more carefully, actually

@@ -282,7 +282,6 @@ engine_loop(struct Generators* gen)
 
     for (i = 0; i < nfds; i++) {
       assert(-1 < polls[i].fd);
-      assert(0 != sockList[polls[i].fd]);
       assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
       sock = sockList[polls[i].fd];
