@@ -376,7 +376,14 @@ fi
 
 AC_MSG_RESULT([$unet_cv_enable_epoll])
 
+dnl If we have the header and user has not refused epoll, we still need
+dnl to check whether the functions are properly defined.
 if test x"$unet_cv_enable_epoll" != xno; then
+    AC_MSG_CHECKING([whether epoll functions are properly defined])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <sys/epoll.h>], [epoll_create(10);])],
+        [AC_MSG_RESULT([yes])],
+        [AC_MSG_RESULT([no])
+         AC_DEFINE([EPOLL_NEED_BODY],,[Define to implement epoll system calls])])
     AC_DEFINE([USE_EPOLL], , [Define to enable the epoll engine])
     ENGINE_C="engine_epoll.c $ENGINE_C"
 fi

@@ -40,7 +40,7 @@
 
 /* The GNU C library may have a valid header but stub implementations
  * of the epoll system calls.  If so, provide our own. */
-#if defined(__stub_epoll_create) || defined(__stub___epoll_create)
+#if defined(__stub_epoll_create) || defined(__stub___epoll_create) || defined(EPOLL_NEED_BODY)
 
 /* Oh, did we mention that some glibc releases do not even define the
  * syscall numbers? */
