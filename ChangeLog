@@ -1,3 +1,11 @@
+2001-01-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: ircd_vsnprintf() returns the number of bytes that
+	it would have written; upper-bound the number to prevent overflows
+	by proxy; also, tune buffer size given to ircd_vsnprintf() to take
+	into account the fact that ircd_vsnprintf() already takes the
+	terminal \0 into account
+
 2001-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/msgq.c: add an incredibly ugly hack to attempt to track

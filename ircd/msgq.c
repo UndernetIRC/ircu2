@@ -282,7 +282,10 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
   mb->ref = 1;
 
   /* fill the buffer */
-  mb->length = ircd_vsnprintf(dest, mb->msg, sizeof(mb->msg) - 3, format, vl);
+  mb->length = ircd_vsnprintf(dest, mb->msg, sizeof(mb->msg) - 2, format, vl);
+
+  if (mb->length > sizeof(mb->msg) - 3)
+    mb->length = sizeof(mb->msg) - 3;
 
   mb->msg[mb->length++] = '\r'; /* add \r\n to buffer */
   mb->msg[mb->length++] = '\n';
@@ -332,8 +335,11 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
 
   va_start(vl, format); /* append to the buffer */
   mb->length += ircd_vsnprintf(dest, mb->msg + mb->length,
-			       sizeof(mb->msg) - 3 - mb->length, format, vl);
+			       sizeof(mb->msg) - 2 - mb->length, format, vl);
   va_end(vl);
+
+  if (mb->length > sizeof(mb->msg) - 3)
+    mb->length = sizeof(mb->msg) - 3;
 
   mb->msg[mb->length++] = '\r'; /* add \r\n to buffer */
   mb->msg[mb->length++] = '\n';
