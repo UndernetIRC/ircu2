@@ -82,7 +82,7 @@ memxor(void *dest, void *src, int n)
   unsigned char *d = (unsigned char *)dest;
   unsigned char *s = (unsigned char *)src;
 
-  while (--n)
+  while (n--)
     d[n] ^= s[n];
 }
 
