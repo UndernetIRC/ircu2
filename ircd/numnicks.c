@@ -56,9 +56,9 @@
  */
 
 /*
- * when n2k comes, define this for more capacity
+ * Lets have *LOTS* of connections...
  */
-#undef  EXTENDED_NUMERICS
+#define  EXTENDED_NUMERICS
 
 /* These must be the same on ALL servers ! Do not change ! */
 

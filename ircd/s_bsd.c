@@ -1044,7 +1044,7 @@ int read_message(time_t delay)
       if (CPTR_KILLED == (length = read_packet(cptr, read_ready)))
         continue;
     }
-#if 0
+#if ALWAYSFLUSH
     /* Bullshit, why would we want to flush sockets while using non-blocking?
      * This uses > 4% cpu! --Run */
     if (length > 0)

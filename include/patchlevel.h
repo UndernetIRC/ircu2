@@ -25,9 +25,11 @@
  * versions /should/ have it on.  If you want to comment this out fine, it's
  * just to prevent accidently running the wrong code
  */
+#if 0
 #ifdef NDEBUG
-#error This version of ircu is development only.  Please wait until it's
-#error released
+#error "This version of ircu is development only.  Please wait until it's"
+#error "released"
+#endif
 #endif
 
 #define PATCHLEVEL "pl11"

@@ -200,7 +200,7 @@ void report_classes(struct Client *sptr)
   for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
     sendto_one(sptr, rpl_str(RPL_STATSYLINE), me.name, sptr->name,
         'Y', ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
-        MaxLinks(cltmp), MaxSendq(cltmp));
+        MaxLinks(cltmp), MaxSendq(cltmp), Links(cltmp));
 }
 
 unsigned int get_sendq(struct Client *cptr)

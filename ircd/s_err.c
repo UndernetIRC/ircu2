@@ -545,7 +545,7 @@ static Numeric numeric_replies[] = {
 /* 217 */
   { RPL_STATSPLINE, "P %d %d %s %s", "217" },
 /* 218 */
-  { RPL_STATSYLINE, "%c %d %d %d %d %ld", "218" },
+  { RPL_STATSYLINE, "%c %d %d %d %d %ld %d", "218" },
 /* 219 */
   { RPL_ENDOFSTATS, "%c :End of /STATS report", "219" },
 /* 220 */
