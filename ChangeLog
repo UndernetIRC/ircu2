@@ -1,5 +1,7 @@
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patch level
+
 	* ircd/channel.c (is_banned): apply patch #888640
 
 2003-06-08 Matthias Crauwels <ultimate_@wol.be>
