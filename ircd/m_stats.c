@@ -180,8 +180,11 @@ static int report_servers_verbose(struct Client *sptr, char stat)
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE,
 	       "%-20s Burst Hops Numeric   Lag Clients/Max Proto "
 	       "%-10s :Info", "Servername", "LinkTS");
-  for (i = 0; i <= HighestFd; i++) {
-    if (!(acptr = LocalClientArray[i]) || !IsServer(acptr))
+  for (i = -1; i <= HighestFd; i++) {
+    if (i == -1)
+      /* Hack 'me' in the list as well */
+      acptr = &me;
+    else if (!(acptr = LocalClientArray[i]) || !IsServer(acptr))
       continue;
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
 	       "%-20s %c%c    %4i %s %-4i %5i %5i %5i P%-2i   %Tu :%s" :

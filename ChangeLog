@@ -1,3 +1,8 @@
+2002-04-22  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_stats.c (report_servers_verbose): include 'me' in the
+	server list as well
+
 2002-21-05 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/ircd_relay.c: stop an information leak about the
 	the network topography from relayed messages.
