@@ -1,3 +1,6 @@
+2001-09-21  Vampire-  <unknown>
+	* ircd/ircd_string.c: unique_name_vector round II.
+
 2001-09-21  mbuna  <mbuna@undernet.org>
 	* configure.in: Add support for darwin
 
