@@ -1,3 +1,9 @@
+2002-10-05  Zoot <zoot@gamesnet.net> (and Isomer <isomer@undernet.org>)
+
+       * ircd/m_account.c (ms_account): check the length of the account;
+       ignore accounts that are too long and send a warning through wallops.
+       Updated by Isomer to use protocol_violation.
+
 2002-09-25  David Mansell  <splidge@quakenet.org>
  
  	* ircd/m_burst.c: Fixed list walking bug.

@@ -120,6 +120,10 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 
   assert(0 == cli_user(acptr)->account[0]);
 
+  if (strlen(parv[2]) > ACCOUNTLEN) {
+    return protocol_violation(cptr, "Received account (%s) longer than %d for %s; ignoring.", parv[2], ACCOUNTLEN, cli_name(acptr));
+  }
+
   ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
   hide_hostmask(acptr, FLAGS_ACCOUNT);
 
