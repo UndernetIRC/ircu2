@@ -38,6 +38,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
