@@ -1,3 +1,7 @@
+2002-02-22 Reed Loden <reed@redmagnet.com>
+
+       * ircd/m_connect.c: Removed an extra : in remote connect message.
+
 2002-02-19 Joseph Bongaarts <foxxe@wtfs.net>
 
         * ircd/whocmds.c: Local opers should also be able to
