@@ -22,8 +22,11 @@
 
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 
+#include <assert.h>
 #include <signal.h>
+#include <unistd.h>
 
 #define SIGS_PER_SOCK	10	/* number of signals to process per socket
 				   readable event */
@@ -50,29 +53,66 @@ extern struct Engine engine_select;
 #define ENGINE_FALLBACK	&engine_select,
 #endif /* USE_POLL */
 
-static struct Engine *evEngines[] = {
+/* list of engines to try */
+static const struct Engine *evEngines[] = {
   ENGINE_KQUEUE
   ENGINE_DEVPOLL
   ENGINE_FALLBACK
   0
 };
 
-static struct Socket sig_sock;
-
-static int sig_fd = -1;
-
+/* signal routines pipe data */
 static struct {
-  struct Generators gens;
+  int		fd;	/* signal routine's fd */
+  struct Socket	sock;	/* and its struct Socket */
+} sigInfo = { -1 };
 
-  struct Event*	 events_head;
-  struct Event*	 events_tail;
-  unsigned int	 events_count;
+/* All the thread info */
+static struct {
+  struct Generators    gens;		/* List of all generators */
+  struct Event*	       events_free;	/* struct Event free list */
+  unsigned int	       events_alloc;	/* count of allocated struct Events */
+  const struct Engine* engine;		/* core engine being used */
+#ifdef IRCD_THREADED
+  struct GenHeader*    genq_head;	/* head of generator event queue */
+  struct GenHeader*    genq_tail;	/* tail of generator event queue */
+  unsigned int	       genq_count;	/* count of generators on queue */
+#endif
+} evInfo = {
+  { 0, 0, 0 },
+  0, 0, 0
+#ifdef IRCD_THREADED
+  , 0, 0, 0
+#endif
+};
 
-  struct Event*	 events_free;
-  unsigned int	 events_alloc;
+/* Initialize a struct GenHeader */
+static void
+gen_init(struct GenHeader* gen, EventCallBack call, void* data,
+	 struct GenHeader* next, struct GenHeader** prev_p)
+{
+  assert(0 != gen);
 
-  struct Engine* engine;
-} evInfo = { { 0, 0, 0 }, 0, 0, 0, 0, 0, 0 };
+  gen->gh_next = next;
+  gen->gh_prev_p = prev_p;
+#ifdef IRCD_THREADED
+  gen->gh_qnext = 0;
+  gen->gh_qprev_p = 0;
+  gen->gh_head = 0;
+  gen->gh_tail = 0;
+#endif
+  gen->gh_flags = 0;
+  gen->gh_ref = 0;
+  gen->gh_call = call;
+  gen->gh_data = data;
+  gen->gh_engdata.ed_int = 0;
+
+  if (prev_p) { /* Going to link into list? */
+    if (next) /* do so */
+      next->gh_prev_p = &gen->gh_next;
+    *prev_p = gen;
+  }
+}
 
 /* Execute an event; optimizations should inline this */
 static void
@@ -91,8 +131,7 @@ event_execute(struct Event* event)
   if (event->ev_type != ET_DESTROY)
     gen_ref_dec(event->ev_gen.gen_header);
 
-  event->ev_callback = 0; /* clear event data */
-  event->ev_gen.gen_header = 0;
+  event->ev_gen.gen_header = 0; /* clear event data */
   event->ev_type = ET_DESTROY;
 
   event->ev_next = evInfo.events_free; /* add to free list */
@@ -105,28 +144,52 @@ event_execute(struct Event* event)
 
 #else
 /* add an event to the work queue */
+/* This is just a placeholder; don't expect ircd to be threaded soon */
+/* There should be locks all over the place in here */
 static void
 event_add(struct Event* event)
 {
-  /* This is just a placeholder; don't expect ircd to be threaded soon */
-  event->ev_next = 0; /* add event to end of event queue */
-  if (evInfo.events_head) {
-    assert(0 != evInfo.events_tail);
+  struct GenHeader* gen;
 
-    event->ev_prev_p = &evInfo.events_tail->ev_next;
-    evInfo.events_tail->ev_next = event;
-    evInfo.events_tail = event;
-  } else { /* queue was empty... */
-    assert(0 == evInfo.events_tail);
+  assert(0 != event);
 
-    event->ev_prev_p = &evInfo.events_head;
-    evInfo.events_head = event;
-    evInfo.events_tail = event;
+  gen = event->ev_gen.gen_header;
+
+  /* First, place event on generator's event queue */
+  event->ev_next = 0;
+  if (gen->gh_head) {
+    assert(0 != gen->gh_tail);
+
+    event->ev_prev_p = &gen->gh_tail->ev_next;
+    gen->gh_tail->ev_next = event;
+    gen->gh_tail = event;
+  } else { /* queue was empty */
+    assert(0 == gen->gh_tail);
+
+    event->ev_prev_p = &gen->gh_head;
+    gen->gh_head = event;
+    gen->gh_tail = event;
   }
 
-  evInfo.events_count++; /* update count of pending events */
+  /* Now, if the generator isn't on the queue yet... */
+  if (!gen->gh_qprev_p) {
+    gen->gh_qnext = 0;
+    if (evInfo.genq_head) {
+      assert(0 != evInfo.genq_tail);
 
-  /* We'd also have to signal the work crew here */
+      gen->gh_qprev_p = &evInfo.genq_tail->gh_qnext;
+      evInfo.genq_tail->gh_qnext = gen;
+      evInfo.genq_tail = gen;
+    } else { /* queue was empty */
+      assert(0 == evInfo.genq_tail);
+
+      gen->gh_qprev_p = &evInfo.genq_head;
+      evInfo.genq_head = gen;
+      evInfo.genq_tail = gen;
+    }
+
+    /* We'd also have to signal the work crew here */
+  }
 }
 #endif /* IRCD_THREADED */
 
@@ -151,12 +214,14 @@ timer_enqueue(struct Timer* timer)
   }
 
   /* Find a slot to insert timer */
-  for (ptr_p = &evInfo.gens.g_timer; ; ptr_p = &(*ptr_p)->t_header.gh_next)
+  for (ptr_p = &evInfo.gens.g_timer; ;
+       ptr_p = (struct Timer**) &(*ptr_p)->t_header.gh_next)
     if (!*ptr_p || timer->t_expire < (*ptr_p)->t_expire)
       break;
 
-  timer->t_header.gh_next = *ptr_p; /* link it in the right place */
-  timer->t_header.gh_prev_p = ptr_p;
+  /* link it in the right place */
+  timer->t_header.gh_next = (struct GenHeader*) *ptr_p;
+  timer->t_header.gh_prev_p = (struct GenHeader**) ptr_p;
   if (*ptr_p)
     (*ptr_p)->t_header.gh_prev_p = &timer->t_header.gh_next;
   *ptr_p = timer;
@@ -168,11 +233,11 @@ signal_handler(int sig)
 {
   unsigned char c;
 
-  assert(sig_fd >= 0);
+  assert(sigInfo.fd >= 0);
 
   c = (unsigned char) sig; /* only write 1 byte to identify sig */
 
-  write(sig_fd, &c, 1);
+  write(sigInfo.fd, &c, 1);
 }
 
 /* callback for signal "socket" events */
@@ -190,7 +255,8 @@ signal_callback(struct Event* event)
   for (i = 0; i < n_sigs; i++) {
     sig = (int) sigstr[i]; /* get signal */
 
-    for (ptr = evInfo.gens.g_signal; ptr; ptr = ptr->sig_header.gh_next)
+    for (ptr = evInfo.gens.g_signal; ptr;
+	 ptr = (struct Signal*) ptr->sig_header.gh_next)
       if (ptr->sig_signal) /* find its descriptor... */
 	break;
 
@@ -218,17 +284,17 @@ event_init(void)
 {
   int i, p[2];
 
-  for (i = 0; evEngine[i]; i++) { /* look for an engine... */
-    assert(0 != evEngine[i]->eng_name);
-    assert(0 != evEngine[i]->eng_init);
+  for (i = 0; evEngines[i]; i++) { /* look for an engine... */
+    assert(0 != evEngines[i]->eng_name);
+    assert(0 != evEngines[i]->eng_init);
 
-    if ((*evEngine[i]->eng_init)())
+    if ((*evEngines[i]->eng_init)())
       break; /* Found an engine that'll work */
   }
 
-  assert(0 != evEngine[i]);
+  assert(0 != evEngines[i]);
 
-  evInfo.engine = evEngine[i]; /* save engine */
+  evInfo.engine = evEngines[i]; /* save engine */
 
   if (!evInfo.engine->eng_signal) { /* engine can't do signals */
     if (pipe(p)) {
@@ -236,8 +302,8 @@ event_init(void)
       exit(8);
     }
 
-    sig_fd = p[1]; /* write end of pipe */
-    socket_add(&sock_sig, signal_callback, 0, SS_CONNECTED,
+    sigInfo.fd = p[1]; /* write end of pipe */
+    socket_add(&sigInfo.sock, signal_callback, 0, SS_CONNECTED,
 	       SOCK_EVENT_READABLE, p[0]); /* read end of pipe */
   }
 }
@@ -266,7 +332,7 @@ event_generate(enum EventType type, void* arg)
     return;
 
   if ((ptr = evInfo.events_free))
-    evInfo.events_free = ptr->next; /* pop one off the freelist */
+    evInfo.events_free = ptr->ev_next; /* pop one off the freelist */
   else { /* allocate another structure */
     ptr = (struct Event*) MyMalloc(sizeof(struct Event));
     evInfo.events_alloc++; /* count of allocated events */
@@ -289,13 +355,9 @@ timer_add(struct Timer* timer, EventCallBack call, void* data,
   assert(0 != call);
   assert(0 != value);
 
-  timer->t_header.gh_next = 0; /* initialize a timer... */
-  timer->t_header.gh_prev_p = 0;
-  timer->t_header.gh_flags = 0;
-  timer->t_header.gh_ref = 0;
-  timer->t_header.gh_call = call;
-  timer->t_header.gh_data = data;
-  timer->t_header.gh_engdata = 0;
+  /* initialize a timer... */
+  gen_init((struct GenHeader*) timer, call, data, 0, 0);
+
   timer->t_type = type;
   timer->t_value = value;
   timer->t_expire = 0;
@@ -322,11 +384,11 @@ void
 timer_run(void)
 {
   struct Timer* ptr;
-  struct Timer* next;
+  struct Timer* next = 0;
 
   /* go through queue... */
   for (ptr = evInfo.gens.g_timer; ptr; ptr = next) {
-    next = ptr->next;
+    next = (struct Timer*) ptr->t_header.gh_next;
     if (CurrentTime < ptr->t_expire)
       break; /* processed all pending timers */
 
@@ -355,19 +417,12 @@ signal_add(struct Signal* signal, EventCallBack call, void* data, int sig)
   assert(0 != call);
   assert(0 != evInfo.engine);
 
-  signal->sig_header.gh_next = evInfo.gens.g_signal; /* set up struct */
-  signal->sig_header.gh_prev_p = &evInfo.gens.g_signal;
-  signal->sig_header.gh_flags = 0;
-  signal->sig_header.gh_ref = 0;
-  signal->sig_header.gh_call = call;
-  signal->sig_header.gh_data = data;
-  signal->sig_header.gh_engdata = 0;
-  signal->sig_signal = sig;
-  signal->sig_count = 0;
+  /* set up struct */
+  gen_init((struct GenHeader*) signal, call, data,
+	   (struct GenHeader*) evInfo.gens.g_signal,
+	   (struct GenHeader**) &evInfo.gens.g_signal);
 
-  if (evInfo.gens.g_signal) /* link into list */
-    evInfo.gens.g_signal->sig_header.gh_prev_p = &signal->sig_header.gh_next;
-  evInfo.gens.g_signal = signal;
+  signal->sig_signal = sig;
 
   if (evInfo.engine->eng_signal)
     (*evInfo.engine->eng_signal)(signal); /* tell engine */
@@ -390,20 +445,14 @@ socket_add(struct Socket* sock, EventCallBack call, void* data,
   assert(0 != evInfo.engine);
   assert(0 != evInfo.engine->eng_add);
 
-  sock->s_header.gh_next = evInfo.gens.g_socket; /* set up struct */
-  sock->s_header.gh_prev_p = &evInfo.gens.g_socket;
-  sock->s_header.gh_flags = 0;
-  sock->s_header.gh_ref = 0;
-  sock->s_header.gh_call = call;
-  sock->s_header.gh_data = data;
-  sock->s_header.gh_engdata = 0;
+  /* set up struct */
+  gen_init((struct GenHeader*) sock, call, data,
+	   (struct GenHeader*) evInfo.gens.g_socket,
+	   (struct GenHeader**) &evInfo.gens.g_socket);
+
   sock->s_state = state;
   sock->s_events = events & SOCK_EVENT_MASK;
   sock->s_fd = fd;
-
-  if (evInfo.gens.g_socket) /* link into list */
-    evInfo.gens.g_socket->s_header.gh_prev_p = &sock->s_header.gh_next;
-  evInfo.gens.g_socket = sock;
 
   (*evInfo.engine->eng_add)(sock); /* tell engine about it */
 }
@@ -412,7 +461,7 @@ socket_add(struct Socket* sock, EventCallBack call, void* data,
 void
 socket_del(struct Socket* sock)
 {
-  assert(0 != timer);
+  assert(0 != sock);
   assert(0 != evInfo.engine);
   assert(0 != evInfo.engine->eng_closing);
 
@@ -456,7 +505,7 @@ socket_state(struct Socket* sock, enum SocketState state)
 void
 socket_events(struct Socket* sock, unsigned int events)
 {
-  unsigned int new_events;
+  unsigned int new_events = 0;
 
   assert(0 != sock);
   assert(0 != evInfo.engine);
@@ -483,7 +532,7 @@ socket_events(struct Socket* sock, unsigned int events)
 }
 
 /* Returns an engine's name for informational purposes */
-char*
+const char*
 engine_name(void)
 {
   assert(0 != evInfo.engine);

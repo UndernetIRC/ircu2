@@ -29,6 +29,8 @@
 #define INCLUDED_sys_types_h
 #endif
 
+struct Event;
+
 typedef void (*EventCallBack)(struct Event*);
 
 enum SocketState {
@@ -60,11 +62,20 @@ enum EventType {
 struct GenHeader {
   struct GenHeader*  gh_next;	/* linked list of generators */
   struct GenHeader** gh_prev_p;
+#ifdef IRCD_THREADED
+  struct GenHeader*  gh_qnext;	/* linked list of generators in queue */
+  struct GenHeader** gh_qprev_p;
+  struct Event*	     gh_head;	/* head of event queue */
+  struct Event*	     gh_tail;	/* tail of event queue */
+#endif
   unsigned int	     gh_flags;	/* generator flags */
   unsigned int	     gh_ref;	/* reference count */
   EventCallBack	     gh_call;	/* generator callback function */
   void*		     gh_data;	/* extra data */
-  void*		     gh_engdata;/* engine data */
+  union {
+    void*	     ed_ptr;	/* engine data == pointer */
+    int		     ed_int;	/* engine data == integer */
+  }		     gh_engdata;/* engine data */
 };
 
 #define GEN_DESTROY	0x0001	/* generator is to be destroyed */
@@ -146,7 +157,7 @@ typedef void (*EngineDelete)(struct Socket*);
 typedef void (*EngineLoop)(struct Generators*);
 
 struct Engine {
-  char*		eng_name;	/* a name for the engine */
+  const char*	eng_name;	/* a name for the engine */
   EngineInit	eng_init;	/* initialize engine */
   EngineSignal	eng_signal;	/* express interest in a signal */
   EngineAdd	eng_add;	/* express interest in a socket */
@@ -159,7 +170,7 @@ struct Engine {
 #define gen_ref_inc(gen)	(((struct Generator*) (gen))->gh_ref++)
 #define gen_ref_dec(gen)						      \
 do {									      \
-  struct Generator* _gen = (gen);					      \
+  struct GenHeader* _gen = (struct GenHeader*) (gen);			      \
   if (!--_gen->gh_ref && (_gen->gh_flags & GEN_DESTROY)) {		      \
     gen_dequeue(_gen);							      \
     event_generate(ET_DESTROY, _gen);					      \
@@ -187,6 +198,6 @@ void socket_del(struct Socket* sock);
 void socket_state(struct Socket* sock, enum SocketState state);
 void socket_events(struct Socket* sock, unsigned int events);
 
-char* engine_name(void);
+const char* engine_name(void);
 
 #endif /* INCLUDED_ircd_events_h */

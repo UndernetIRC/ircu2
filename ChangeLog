@@ -1,5 +1,20 @@
 2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_events.c: include some needed headers; add some
+	comments; make evEngines[] const; bundle sig_sock and sig_fd into
+	a struct named sigInfo; rework struct evInfo to have a queue of
+	_generators_, and only when threaded; added a gen_init() function
+	to centralize generator initialization; fix various compile-time
+	errors; rework event_add() for new queueing scheme and checked for
+	compile-time errors; add casts where needed; spell evEngines[]
+	correctly; make engine_name() return const char*
+
+	* include/ircd_events.h: type EventCallBack depends on struct
+	Event, so pre-declare it; put _event_ queue into generators, and
+	only when threaded; give engine data a union to store both ints
+	and pointers; make engine name a const; fix gen_ref_dec() macro;
+	make engine_name() return a const char*
+
 	* ircd/ircd_events.c: gen_dequeue() is now exported, so move it
 	down with the non-static functions; modify event_execute() to use
 	the new gen_ref_dec() to simplify code; make sure event_generate()
