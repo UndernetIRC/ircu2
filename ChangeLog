@@ -1,4 +1,7 @@
-2000-05-29  Perry Lorier       <Isomer@coders.net>
+2000-06-30  Perry Lorier       <Isomer@coders.net>
+	* ircd/ircd.c: Fix command line parameter bugs.
+
+2000-06-30  Perry Lorier       <Isomer@coders.net>
 	* ircd/m_kill.c: Fixed bug with LOCAL_KILL_ONLY
 	* ircd/m_nick.c: Tidied things up.
 
@@ -1242,7 +1245,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.149 2000-06-29 23:21:15 isomer Exp $
+# $Id: ChangeLog,v 1.150 2000-06-29 23:44:45 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

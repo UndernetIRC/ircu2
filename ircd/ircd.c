@@ -550,12 +550,12 @@ static char set_chroot_environment(void) {
   if (geteuid())
     seteuid(0);
 
-  if (chdir(DPATH)) {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", DPATH, strerror(errno));
+  if (chdir(dpath)) {
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, strerror(errno));
     return 0;
   }
-  if (chroot(DPATH)) {
-    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, strerror(errno));
+  if (chroot(dpath)) {
+    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", dpath, strerror(errno));
     return 0;
   }
   dpath = "/";
@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
 
   /* Check paths for accessibility */
   if (!check_file_access(SPATH, 'S', X_OK) ||
-      !check_file_access(CPATH, 'C', R_OK) ||
+      !check_file_access(configfile, 'C', R_OK) ||
       !check_file_access(MPATH, 'M', R_OK) ||
       !check_file_access(RPATH, 'R', R_OK))
     exit(4);
