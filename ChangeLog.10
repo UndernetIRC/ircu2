@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.19.2.11 2001-10-02 11:26:26 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.19.2.12 2001-10-02 11:35:51 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl16
 * Oops, missed a "* " in ms_wallops -- Isomer
 * Fix typo in ircd.c -- Isomer
 * Add prefixes to things before they are sent to clients -- Isomer
