@@ -1,3 +1,8 @@
+2004-07-20  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features: Change references to O:, Y:, etc lines into
+	references to the appropriate block types.
+
 2004-07-01  Michael Poole <mdpoole@troilus.org>
 
 	* include/fileio.h: Elaborate on "works for any file descriptor."

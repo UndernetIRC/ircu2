@@ -63,7 +63,7 @@ sendQ, but at peak moments this can easily increase to 2032 bytes per
 client (sendQs are allocated in chunks of 2032 bytes).  The maximum
 possible amount that can be allocated for sendQs is the number of
 connected clients times whatever you specified as the maximum sendQ in
-your Y: lines in the ircd.conf file.  That value will likely be larger
+your Class blocks in the ircd.conf file.  That value will likely be larger
 then the amount of RAM you have.  The educated guess I talked about
 earlier would be "number of clients" times * 2048 bytes + "size of
 net.burst" * n, where "n" is 1 for leafs and up to 5 for HUBs.  The
@@ -103,16 +103,16 @@ SERVER_PORT
 When an IRC operator attempts a connect to another server, he or she
 may not know which port the connect should go to.  In this server
 version, that operator may use the special port 0, in which case the
-server will take the port from the C-line.  If no port is specified in
-the C-line, however, the port specified by this option will be used
-instead.
+server will take the port from the Connect block.  If no port is
+specified in the Connect block, however, the port specified by this
+option will be used instead.
 
 NODEFAULTMOTD
  * Type: boolean
  * Default: TRUE
 
 Every time a client connects to your server, the full Message of the
-Day (as specified by the T-lines or by the file specified by the MPATH
+Day (as specified by the Motd blocks or by the file specified by the MPATH
 option) is sent to the client.  The server sends the Message of the
 Day even though many clients permit the user to ignore it.  Many users
 never read the message of the day anyway, making it a huge waste of
@@ -183,8 +183,8 @@ NODNS
 
 If you are playing with the server off-line, and no DNS is available,
 then long delays occur before the server starts up because it tries to
-resolve the name given on the M-line (which usually isn't given in
-/etc/hosts) and for each connecting client.  If you specify "TRUE"
+resolve the name given in the General block (which usually isn't given
+in /etc/hosts) and for each connecting client.  If you specify "TRUE"
 here, then a call to gethostbyname() will be done only for the real
 hostname, and the server will not try to resolve clients that connect
 to "localhost."  Note that other calls to gethostbyname() are still
@@ -362,9 +362,9 @@ If the daemon doesn't receive anything from any of its links within
 PINGFREQUENCY seconds, then the it will attempt to check for an active
 link with a PING message.  If no reply is received within
 (PINGFREQUENCY * 2) seconds, then the connection will be closed.  This
-value may be overridden by a Y-line in "ircd.conf" if the connection's
-I- or C-line in "ircd.conf" assigns a specific class to the connection
-(recommended).
+value may be overridden by a Class block in "ircd.conf" if the
+connection's Client or Connect block in "ircd.conf" assigns a specific
+class to the connection (recommended).
 
 CONNECTFREQUENCY
  * Type: integer
@@ -372,15 +372,15 @@ CONNECTFREQUENCY
 
 This is the default frequency that the server attempts to reconnect
 with its uplink server if it is set to auto connect to it. Note that
-this value is overridden by a Y-line in ircd.conf if the C-lines in
-ircd.conf assign a specific class to the connection (recommended).
+this value is overridden by a Class block in ircd.conf if the C-lines
+in ircd.conf assign a specific class to the connection (recommended).
 
 DEFAULTMAXSENDQLENGTH
  * Type: integer
  * Default: 40000
 
-This is the default value of the maximum sendQ length of Y-line
-classes (see doc/example.conf for details on Y-lines).  You will
+This is the default value of the maximum sendQ length of connection
+classes (see doc/example.conf for details on Class blocks).  You will
 probably always override this value in your "ircd.conf" with the
 Y-lines.  The given value used to be an often used value for client
 sendQs.
@@ -427,9 +427,9 @@ This option is only needed when you wish to run multiple IRC servers
 on the same machine, and they must share at least one port.  This will
 require having multiple IP addresses for the machine that will be
 hosting the servers.  If you specify "TRUE" here, you can cause the
-server to bind to one of these IP addresses.  Use the second field of
-the M-line (the "password" field) to specify the IP address.  If you
-are unsure, stick with "FALSE."
+server to bind to one of these IP addresses.  Use the vhost field of
+the General block to specify the IP address.  If you are unsure, stick
+with "FALSE."
 
 TOS_SERVER
  * Type: integer
@@ -462,7 +462,7 @@ CRYPT_OPER_PASSWORD
 
 In order to allow certain users to become IRC operators, they must
 authenticate themselves with a password.  This password is matched
-against an O-line in the "ircd.conf" configuration file; see
+against an Operator block in the "ircd.conf" configuration file; see
 doc/example.conf for more details.  If you specify "TRUE" here, you
 must use the crypted form of these passwords in your "ircd.conf" file.
 Since compromises of the "ircd.conf" file have happened in the past,
