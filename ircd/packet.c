@@ -150,6 +150,11 @@ int connect_dopacket(struct Client *cptr, const char *buffer, int length)
       /* Socket is dead so exit */
       if (IsDead(cptr))
         return exit_client(cptr, cptr, &me, cli_info(cptr));
+      else if (IsServer(cptr))
+      {
+        cli_count(cptr) = 0;
+        return server_dopacket(cptr, src, length);
+      }
       endp = client_buffer;
     }
     else if (endp < client_buffer + BUFSIZE)
