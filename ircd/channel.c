@@ -2729,12 +2729,14 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
         remove_count++;
       }
     }
+    if (remove_count)
+        return 0;
+    /* If no matches were found, fail. */
     if (do_free)
       free_ban(newban);
     else
       MyFree(newban->banstr);
-    /* If no matches were found, fail. */
-    return remove_count ? 0 : 3;
+    return 3;
   }
   if (do_free)
     free_ban(newban);

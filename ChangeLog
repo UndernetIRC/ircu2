@@ -3,6 +3,8 @@
 	* ircd/IPcheck.c (ip_registry_find): Use canonical form of IP
 	address to look up and compare against hash entries.
 
+	* ircd/channel.c (apply_ban): Do not free a succesful BAN_DEL ban.
+
 	* ircd/ircd_parser.y (clientblock): Stash IP string in aconf->name.
 	(clienthost): Split hosts that contain '@' into username and host.
 	(clientip): Split IPs that contain '@' into username and IP.
