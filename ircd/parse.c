@@ -769,7 +769,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   struct Message* mptr;
   MessageHandler  handler = 0;
 
-  Debug((DEBUG_DEBUG, "Parsing: %s", buffer));
+  Debug((DEBUG_DEBUG, "Client Parsing: %s", buffer));
 
   if (IsDead(cptr))
     return 0;
@@ -914,7 +914,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   int             paramcount;
   struct Message* mptr;
 
-  Debug((DEBUG_DEBUG, "Parsing: %s", buffer));
+  Debug((DEBUG_DEBUG, "Server Parsing: %s", buffer));
 
 #ifdef GODMODE
   len = strlen(buffer);

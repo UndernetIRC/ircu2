@@ -486,32 +486,26 @@ static int validate_hostent(struct hostent* hp)
 
 /*
  * check_limit_and_attach - check client limits and attach I:line
+ *
+ * Made it accept 1 charactor, and 2 charactor limits (0->99 now), 
+ * and dislallow more than 255 people here as well as in ipcheck.
+ * removed the old "ONE" scheme too.
+ *  -- Isomer 2000-06-22
  */
 static enum AuthorizationCheckResult
 check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 {
+  int number = 255;
+  
   if (aconf->passwd) {
-    /* Special case: exactly one digit */
-    if (IsDigit(*aconf->passwd) && !aconf->passwd[1]) {
-      /*
-       * Refuse connections when there are already <digit>
-       * clients connected with the same IP number
-       */
-      unsigned short nr = *aconf->passwd - '0';
-      if (ip_registry_count(cptr->ip.s_addr) > nr)
-        return ACR_TOO_MANY_FROM_IP; /* Already got nr with that ip# */
-    }
-#ifdef USEONE
-    else if (0 == strcmp(aconf->passwd, "ONE")) {
-      int i;
-      for (i = HighestFd; i > -1; --i) {
-        if (LocalClientArray[i] && MyUser(LocalClientArray[i]) &&
-            LocalClientArray[i]->ip.s_addr == cptr->ip.s_addr)
-          return ACR_TOO_MANY_FROM_IP; /* Already got one with that ip# */
-      }
-    }
-#endif
+    if (IsDigit(*aconf->passwd) && !aconf->passwd[1])
+      number = *aconf->passwd-'0';
+    else if (IsDigit(*aconf->passwd) && IsDigit(aconf->passwd[1]) && 
+             !aconf->passwd[2])
+      number = (*aconf->passwd-'0')*10+(aconf->passwd[1]-'0');
   }
+  if (ip_registry_count(cptr->ip.s_addr) > number)
+    return ACR_TOO_MANY_FROM_IP;
   return attach_conf(cptr, aconf);
 }
 

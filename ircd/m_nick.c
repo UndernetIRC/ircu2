@@ -217,7 +217,6 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
-    ip_registry_connect_fail(acptr->ip.s_addr);
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -385,7 +384,6 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (IsUnknown(acptr) && MyConnect(acptr)) {
     ++ServerStats->is_ref;
-    ip_registry_connect_fail(acptr->ip.s_addr);
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }
@@ -605,13 +603,20 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    * is present in the nicklist (due to the way the below for loop is
    * constructed). -avalon
    */
-  if ((acptr = FindServer(nick))) {
+   
+  acptr = FindServer(nick);
+  
+  if (acptr) { /* There is a nick collision with a server */
     if (MyConnect(sptr))
     {
+      /* Local user trying to use a nick thats a server
+       * Return an error message and ignore the command
+       */
       sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name, /* XXX DEAD */
           EmptyString(parv[0]) ? "*" : parv[0], nick);
       return 0;                        /* NICK message ignored */
     }
+    
     /*
      * We have a nickname trying to use the same name as
      * a server. Send out a nick collision KILL to remove
@@ -628,9 +633,12 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sptr->flags |= FLAGS_KILLED;
     return exit_client(cptr, sptr, &me, "Nick/Server collision");
   }
+  
+  acptr = FindClient(nick);
 
-  if (!(acptr = FindClient(nick)))
-    return set_nick_name(cptr, sptr, nick, parc, parv);  /* No collisions, all clear... */
+  /* No collisions?  Set the nick name and we're done */
+  if (!acptr)
+    return set_nick_name(cptr, sptr, nick, parc, parv);
   /*
    * If acptr == sptr, then we have a client doing a nick
    * change between *equivalent* nicknames as far as server
@@ -668,7 +676,6 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsUnknown(acptr) && MyConnect(acptr))
   {
     ++ServerStats->is_ref;
-    ip_registry_connect_fail(acptr->ip.s_addr);
     exit_client(cptr, acptr, &me, "Overridden by other sign on");
     return set_nick_name(cptr, sptr, nick, parc, parv);
   }

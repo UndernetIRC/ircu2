@@ -177,7 +177,6 @@ static void auth_kill_client(struct AuthRequest* auth)
 
   if (IsDNSPending(auth))
     delete_resolver_queries(auth);
-  ip_registry_disconnect(auth->client);
   Count_unknowndisconnects(UserStats);
   free_client(auth->client);
   free_auth_request(auth);

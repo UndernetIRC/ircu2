@@ -1,3 +1,9 @@
+2000-06-22  Perry Lorier       <Isomer@coders.net>
+	* ircd/IPcheck.c: Large chunks redone.
+	* ircd/s_conf.c: Changes due to IPcheck - ONE nolonger supported,
+			single AND double digit limits are allowed now.
+	* misc other: Changes to IPcheck.
+
 2000-06-30  Perry Lorier       <Isomer@coders.net>
 	* ircd/ircd.c: Fix command line parameter bugs.
 
@@ -1245,7 +1251,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.150 2000-06-29 23:44:45 isomer Exp $
+# $Id: ChangeLog,v 1.151 2000-07-01 05:24:55 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

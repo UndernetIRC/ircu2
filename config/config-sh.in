@@ -329,7 +329,6 @@ comment 'Configuration'
     define_bool R_LINES_REHASH $R_LINES_REHASH
     define_bool R_LINES_OFTEN $R_LINES_OFTEN
   fi
-  bool 'Do you want support for the old I:*:ONE:*:: construct (read help text!)' USEONE n
   bool 'Send a short message instead of the MOTD to connecting clients' NODEFAULTMOTD y
   bool 'Kill connecting clients when forward and reverse DNS mismatch' KILL_IPMISMATCH n
 endmenu
