@@ -939,7 +939,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	   * Do we have a nick with a new mode ?
 	   * Or are we starting a new BURST line?
 	   */
-	  if (new_mode || !feat_oplevels)
+	  if (new_mode)
 	  {
 	    /*
 	     * This means we are at the _first_ member that has only
@@ -967,7 +967,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	    msgq_append(&me, mb, tbuf);
 	    new_mode = 0;
 	  }
-	  else if (flag_cnt > 1 && last_oplevel != member->oplevel)
+	  else if (feat_oplevels && flag_cnt > 1 && last_oplevel != member->oplevel)
 	  {
 	    /*
 	     * This can't be the first member of a (continued) BURST

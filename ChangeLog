@@ -1,4 +1,9 @@
 2005-03-22  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (send_channel_modes): Fix test for when to send
+	membership mode suffix, to avoid sending it more than once.
+
+2005-03-22  Michael Poole <mdpoole@troilus.org>
 	(Many thanks to nex and Reed for helping hunt this down and
 	doing the testing of various patches.)
 
@@ -7,6 +12,8 @@
 
 	* ircd/ircd_res.c (check_resolver_timeout): Simplify the test for
 	whether to use timer_chg() or timer_add().
+	On second thought, use timer_add() unconditionally; the server
+	connection loop does.
 	(timeout_resolver): Do not try to re-schedule the DNS timeout
 	unless it is the expiration event.
 	(do_query_number): Properly initialize request->state.
