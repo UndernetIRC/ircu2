@@ -1083,7 +1083,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     m = buf;
     *m++ = '+';
     for (i = 0; i < USERMODELIST_SIZE; ++i) {
-      if ( (userModeList[i].flag & cli_flags(sptr)))
+      if ((userModeList[i].flag & cli_flags(sptr)) &&
+	  !(userModeList[i].flag & FLAGS_ACCOUNT))
         *m++ = userModeList[i].c;
     }
     *m = '\0';
@@ -1279,7 +1280,7 @@ char *umode_str(struct Client *cptr)
     char* t = cli_user(cptr)->account;
 
     *m++ = ' ';
-    while (*m++ = *t++)
+    while ((*m++ = *t++))
       ; /* Empty loop */
   }
 
