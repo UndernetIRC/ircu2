@@ -175,6 +175,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, "%H %C :Net Rider", chptr, member->user);
           make_zombie(member, member->user, &me, &me, chptr);
         }
+        /* Clear any outstanding rogue invites */
+        mode_invite_clear(chptr);
       }
       break;
     }
