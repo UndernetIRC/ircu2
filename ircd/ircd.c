@@ -312,7 +312,7 @@ static time_t check_pings(void)
    }
 
    /* Quit the client after max_ping*2 - they should have answered by now */
-   if (CurrentTime-cptr->lasttime <= (max_ping*2) ) {
+   if (CurrentTime-cptr->lasttime > (max_ping*2) ) {
       
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))

@@ -1,4 +1,8 @@
 2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: test in check_pings was wrong.  I move that we
+	disallow cvs commit after 10pm localtime....
+
+2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/m_pong.c: Fix it for servers too.
 
 2000-03-30  Perry Lorier <isomer@coders.net>
@@ -273,7 +277,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.54 2000-04-01 07:05:33 isomer Exp $
+# $Id: ChangeLog,v 1.55 2000-04-01 08:02:33 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
