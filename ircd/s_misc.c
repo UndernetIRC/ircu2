@@ -583,39 +583,15 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
     {
       sp->is_sbs += cli_sendB(acptr);
       sp->is_sbr += cli_receiveB(acptr);
-      sp->is_sks += cli_sendK(acptr);
-      sp->is_skr += cli_receiveK(acptr);
       sp->is_sti += CurrentTime - cli_firsttime(acptr);
       sp->is_sv++;
-      if (sp->is_sbs > 1023)
-      {
-        sp->is_sks += (sp->is_sbs >> 10);
-        sp->is_sbs &= 0x3ff;
-      }
-      if (sp->is_sbr > 1023)
-      {
-        sp->is_skr += (sp->is_sbr >> 10);
-        sp->is_sbr &= 0x3ff;
-      }
     }
     else if (IsUser(acptr))
     {
       sp->is_cbs += cli_sendB(acptr);
       sp->is_cbr += cli_receiveB(acptr);
-      sp->is_cks += cli_sendK(acptr);
-      sp->is_ckr += cli_receiveK(acptr);
       sp->is_cti += CurrentTime - cli_firsttime(acptr);
       sp->is_cl++;
-      if (sp->is_cbs > 1023)
-      {
-        sp->is_cks += (sp->is_cbs >> 10);
-        sp->is_cbs &= 0x3ff;
-      }
-      if (sp->is_cbr > 1023)
-      {
-        sp->is_ckr += (sp->is_cbr >> 10);
-        sp->is_cbr &= 0x3ff;
-      }
     }
     else if (IsUnknown(acptr))
       sp->is_ni++;
@@ -638,10 +614,10 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Client server");
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u",
 	     sp->is_cl, sp->is_sv);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %u.%uK %u.%uK",
-	     sp->is_cks, sp->is_cbs, sp->is_sks, sp->is_sbs);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %u.%uK %u.%uK",
-	     sp->is_ckr, sp->is_cbr, sp->is_skr, sp->is_sbr);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":time connected %Tu %Tu",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %Lu %Lu",
+	     sp->is_cbs, sp->is_sbs);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %Lu %Lu",
+	     sp->is_cbr, sp->is_sbr);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":time connected %Lu %Lu",
 	     sp->is_cti, sp->is_sti);
 }

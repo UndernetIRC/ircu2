@@ -198,11 +198,9 @@ struct Connection
   struct MsgQ         con_sendQ;     /**< Outgoing message queue */
   struct DBuf         con_recvQ;     /**< Incoming data yet to be parsed */
   unsigned int        con_sendM;     /**< Stats: protocol messages sent */
-  unsigned int        con_sendK;     /**< Stats: total k-bytes sent */
   unsigned int        con_receiveM;  /**< Stats: protocol messages received */
-  unsigned int        con_receiveK;  /**< Stats: total k-bytes received */
-  unsigned short      con_sendB;     /**< Bytes sent, mod 1024. */
-  unsigned short      con_receiveB;  /**< Bytes received, mod 1024. */
+  uint64_t            con_sendB;     /**< Bytes sent. */
+  uint64_t            con_receiveB;  /**< Bytes received. */
   struct Listener*    con_listener;  /**< Listening socket which we accepted
                                         from. */
   struct SLink*       con_confs;     /**< Associated configuration records. */
@@ -337,12 +335,8 @@ struct Client {
 #define cli_recvQ(cli)		con_recvQ(cli_connect(cli))
 /** Get count of messages sent to client. */
 #define cli_sendM(cli)		con_sendM(cli_connect(cli))
-/** Get number of kilobytes sent to client. */
-#define cli_sendK(cli)		con_sendK(cli_connect(cli))
 /** Get number of messages received from client. */
 #define cli_receiveM(cli)	con_receiveM(cli_connect(cli))
-/** Get number of kilobytes received from client. */
-#define cli_receiveK(cli)	con_receiveK(cli_connect(cli))
 /** Get number of bytes (modulo 1024) sent to client. */
 #define cli_sendB(cli)		con_sendB(cli_connect(cli))
 /** Get number of bytes (modulo 1024) received from client. */
@@ -422,12 +416,8 @@ struct Client {
 #define con_recvQ(con)		((con)->con_recvQ)
 /** Get number of messages sent to connection. */
 #define con_sendM(con)		((con)->con_sendM)
-/** Get number of kilobytes sent to connection. */
-#define con_sendK(con)		((con)->con_sendK)
 /** Get number of messages received from connection. */
 #define con_receiveM(con)	((con)->con_receiveM)
-/** Get number of kilobytes received from connection. */
-#define con_receiveK(con)	((con)->con_receiveK)
 /** Get number of bytes (modulo 1024) sent to connection. */
 #define con_sendB(con)		((con)->con_sendB)
 /** Get number of bytes (modulo 1024) received from connection. */

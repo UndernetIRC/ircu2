@@ -289,11 +289,11 @@ stats_links(struct Client* sptr, const struct StatDesc* sd, char* name)
       if (!(!name || wilds) && 0 != ircd_strcmp(name, cli_name(acptr)))
         continue;
       send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-                 "%s %u %u %u %u %u :%Tu",
+                 "%s %u %u %Lu %u %Lu :%Tu",
                  (*(cli_name(acptr))) ? cli_name(acptr) : "<unregistered>",
                  (int)MsgQLength(&(cli_sendQ(acptr))), (int)cli_sendM(acptr),
-                 (int)cli_sendK(acptr), (int)cli_receiveM(acptr),
-                 (int)cli_receiveK(acptr), CurrentTime - cli_firsttime(acptr));
+                 (cli_sendB(acptr) >> 10), (int)cli_receiveM(acptr),
+                 (cli_receiveB(acptr) >> 10), CurrentTime - cli_firsttime(acptr));
     }
 }
 

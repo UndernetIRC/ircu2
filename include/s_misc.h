@@ -30,21 +30,31 @@ struct ConfItem;
  * Structures
  */
 
+#ifdef HAVE_INTTYPES_H
+# ifndef INCLUDED_inttypes_h
+#  include <inttypes.h>
+#  define INCLUDED_inttypes_h
+# endif
+#else
+# ifdef HAVE_STDINT_H
+#  ifndef INCLUDED_stdint_h
+#   include <stdint.h>
+#   define INCLUDED_stdint_h
+#  endif
+# endif
+#endif
+
 /** Structure used to count many server-wide statistics. */
 struct ServerStatistics {
   unsigned int is_cl;           /**< number of client connections */
   unsigned int is_sv;           /**< number of server connections */
   unsigned int is_ni;           /**< connection but no idea who it was */
-  unsigned short int is_cbs;    /**< bytes sent to clients */
-  unsigned short int is_cbr;    /**< bytes received to clients */
-  unsigned short int is_sbs;    /**< bytes sent to servers */
-  unsigned short int is_sbr;    /**< bytes received to servers */
-  unsigned int is_cks;          /**< k-bytes sent to clients */
-  unsigned int is_ckr;          /**< k-bytes received to clients */
-  unsigned int is_sks;          /**< k-bytes sent to servers */
-  unsigned int is_skr;          /**< k-bytes received to servers */
-  time_t is_cti;                /**< time spent connected by clients */
-  time_t is_sti;                /**< time spent connected by servers */
+  uint64_t is_cbs;              /**< bytes sent to clients */
+  uint64_t is_cbr;              /**< bytes received to clients */
+  uint64_t is_sbs;              /**< bytes sent to servers */
+  uint64_t is_sbr;              /**< bytes received to servers */
+  uint64_t is_cti;              /**< time spent connected by clients */
+  uint64_t is_sti;              /**< time spent connected by servers */
   unsigned int is_ac;           /**< connections accepted */
   unsigned int is_ref;          /**< accepts refused */
   unsigned int is_unco;         /**< unknown commands */

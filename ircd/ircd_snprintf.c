@@ -1742,10 +1742,8 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  *((char *)va_arg(vp, int *)) = TOTAL(buf_p);
 	else if (fld_s.flags & TYPE_SHORT) /* eg, %hn */
 	  *((short *)va_arg(vp, int *)) = TOTAL(buf_p);
-#ifdef HAVE_LONG_LONG
 	else if (fld_s.flags & TYPE_QUAD) /* eg, %qn */
-	  *((my_quad_t *)va_arg(vp, my_quad_t *)) = TOTAL(buf_p);
-#endif /* HAVE_LONG_LONG */
+	  *((int64_t *)va_arg(vp, int64_t *)) = TOTAL(buf_p);
 	else if (fld_s.flags & TYPE_LONG) /* eg, %ln */
 	  *((long *)va_arg(vp, long *)) = TOTAL(buf_p);
 	else if (fld_s.flags & TYPE_INTMAX) /* eg, %jn */
@@ -1807,10 +1805,8 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  fld_s.value.v_int = (unsigned char)va_arg(vp, unsigned int);
 	else if (fld_s.flags & TYPE_SHORT) /* eg, %hu */
 	  fld_s.value.v_int = (short)va_arg(vp, unsigned int);
-#ifdef HAVE_LONG_LONG
 	else if (fld_s.flags & TYPE_QUAD) /* eg, %qu */
-	  fld_s.value.v_int = va_arg(vp, _large_t);
-#endif
+	  fld_s.value.v_int = va_arg(vp, uint64_t);
 	else if (fld_s.flags & TYPE_LONG) /* eg, %lu */
 	  fld_s.value.v_int = va_arg(vp, unsigned long);
 	else if (fld_s.flags & TYPE_INTMAX) /* eg, %ju */
@@ -1832,10 +1828,8 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	  signed_int = (char)va_arg(vp, unsigned int);
 	else if (fld_s.flags & TYPE_SHORT) /* eg, %hd */
 	  signed_int = (short)va_arg(vp, unsigned int);
-#ifdef HAVE_LONG_LONG
 	else if (fld_s.flags & TYPE_QUAD) /* eg, %qd */
-	  signed_int = va_arg(vp, _large_t);
-#endif
+	  signed_int = va_arg(vp, int64_t);
 	else if (fld_s.flags & TYPE_LONG) /* eg, %ld */
 	  signed_int = va_arg(vp, long);
 	else if (fld_s.flags & TYPE_INTMAX) /* eg, %jd */

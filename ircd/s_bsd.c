@@ -297,18 +297,7 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 
     cli_sendB(cptr) += bytes_written;
     cli_sendB(&me)  += bytes_written;
-    if (cli_sendB(cptr) > 1023) {
-      cli_sendK(cptr) += (cli_sendB(cptr) >> 10);
-      cli_sendB(cptr) &= 0x03ff;    /* 2^10 = 1024, 3ff = 1023 */
-    }
-    if (cli_sendB(&me) > 1023) {
-      cli_sendK(&me) += (cli_sendB(&me) >> 10);
-      cli_sendB(&me) &= 0x03ff;
-    }
-    /*
-     * XXX - hrmm.. set blocked here? the socket didn't
-     * say it was blocked
-     */
+    /* A partial write implies that future writes will block. */
     if (bytes_written < bytes_count)
       SetFlag(cptr, FLAG_BLOCKED);
     break;
@@ -415,17 +404,7 @@ void close_connection(struct Client *cptr)
     ServerStats->is_sv++;
     ServerStats->is_sbs += cli_sendB(cptr);
     ServerStats->is_sbr += cli_receiveB(cptr);
-    ServerStats->is_sks += cli_sendK(cptr);
-    ServerStats->is_skr += cli_receiveK(cptr);
     ServerStats->is_sti += CurrentTime - cli_firsttime(cptr);
-    if (ServerStats->is_sbs > 1023) {
-      ServerStats->is_sks += (ServerStats->is_sbs >> 10);
-      ServerStats->is_sbs &= 0x3ff;
-    }
-    if (ServerStats->is_sbr > 1023) {
-      ServerStats->is_skr += (ServerStats->is_sbr >> 10);
-      ServerStats->is_sbr &= 0x3ff;
-    }
     /*
      * If the connection has been up for a long amount of time, schedule
      * a 'quick' reconnect, else reset the next-connect cycle.
@@ -449,17 +428,7 @@ void close_connection(struct Client *cptr)
     ServerStats->is_cl++;
     ServerStats->is_cbs += cli_sendB(cptr);
     ServerStats->is_cbr += cli_receiveB(cptr);
-    ServerStats->is_cks += cli_sendK(cptr);
-    ServerStats->is_ckr += cli_receiveK(cptr);
     ServerStats->is_cti += CurrentTime - cli_firsttime(cptr);
-    if (ServerStats->is_cbs > 1023) {
-      ServerStats->is_cks += (ServerStats->is_cbs >> 10);
-      ServerStats->is_cbs &= 0x3ff;
-    }
-    if (ServerStats->is_cbr > 1023) {
-      ServerStats->is_ckr += (ServerStats->is_cbr >> 10);
-      ServerStats->is_cbr &= 0x3ff;
-    }
   }
   else
     ServerStats->is_ni++;

@@ -42,15 +42,6 @@ static void update_bytes_received(struct Client* cptr, unsigned int length)
 {
   cli_receiveB(&me)  += length;     /* Update bytes received */
   cli_receiveB(cptr) += length;
-
-  if (cli_receiveB(cptr) > 1023) {
-    cli_receiveK(cptr) += (cli_receiveB(cptr) >> 10);
-    cli_receiveB(cptr) &= 0x03ff;   /* 2^10 = 1024, 3ff = 1023 */
-  }
-  if (cli_receiveB(&me) > 1023) {
-    cli_receiveK(&me) += (cli_receiveB(&me) >> 10);
-    cli_receiveB(&me) &= 0x03ff;
-  }
 }
 
 /** Add one message to a client's received statistics.

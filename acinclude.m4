@@ -138,6 +138,8 @@ AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(int64_t)
+AC_CHECK_SIZEOF(long long)
 if test "$ac_cv_sizeof_int" = 2 ; then
   AC_CHECK_TYPE(int16_t, int)
   AC_CHECK_TYPE(uint16_t, unsigned int)
@@ -158,6 +160,15 @@ elif test "$ac_cv_sizeof_long" = 4 ; then
   AC_CHECK_TYPE(uint32_t, unsigned long)
 else
   AC_MSG_ERROR([Cannot find a type with size of 32 bits])
+fi
+if test "$ac_cv_sizeof_int64_t" = 8 ; then
+  AC_CHECK_TYPE(int64_t)
+  AC_CHECK_TYPE(uint64_t)
+elif test "$ac_cv_sizeof_long_long" = 8 ; then
+  AC_CHECK_TYPE(int64_t, long long)
+  AC_CHECK_TYPE(uint64_t, unsigned long long)
+else
+  AC_MSG_ERROR([Cannot find a type with size of 64 bits])
 fi])
 
 dnl Written by John Hawkinson <jhawk@mit.edu>. This code is in the Public

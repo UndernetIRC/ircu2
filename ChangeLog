@@ -1,5 +1,35 @@
 2004-11-07  Michael Poole <mdpoole@troilus.org>
 
+	* acinclude.m4: Look for a 64-bit integer type.
+
+	* configure.in: Look for inttypes.h, since some systems have that
+	but not stdint.h (and define 64-bit integers therein).
+
+	* include/client.h: Delete con_sendK, con_receiveK.  Make
+	con_sendB and con_receiveB 64 bits wide.
+
+	* include/s_misc.h: Delete is_cks, is_ckr, is_sks, is_skr.
+	Convert the other byte counters and the connected time counters to
+	64 bits wide.
+
+	* ircd/ircd_snprintf.c (doprintf): Unconditionalize the
+	HAVE_LONG_LONG bits, and use the 64-bit integer types from above.
+
+	* ircd/packet.c (update_bytes_received): Remove use of
+	cli_receiveK().
+
+	* ircd/s_bsd.c (deliver_it): Likewise.
+	(close_connection): Likewise.
+
+	* ircd/s_misc.c (tstats): Likewise.  Update format strings to use
+	%Lu for 64-bit integer parameters.
+
+	* ircd/s_stats (stats_links): Convert cli_sendK() and
+	cli_receiveK() use shifted versions of the byte counters, and
+	update format strings to use %Lu for 64-bit integer parameters.
+
+2004-11-07  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_user.h (add_silence): Delete.
 	(del_silence): Delete.
 
