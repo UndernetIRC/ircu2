@@ -67,6 +67,7 @@ enum Feature {
   FEAT_VIRTUAL_HOST,
   FEAT_TOS_SERVER,
   FEAT_TOS_CLIENT,
+  FEAT_POLLS_PER_LOOP,
 
   /* features that affect all operators */
   FEAT_CRYPT_OPER_PASSWORD,

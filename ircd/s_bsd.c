@@ -1066,9 +1066,9 @@ static void client_timer_callback(struct Event* ev)
 
   assert(0 == cptr || con == cli_connect(cptr));
 
-  con_freeflag(con) &= ~FREEFLAG_TIMER; /* timer has expired... */
-
   if (ev_type(ev)== ET_DESTROY) {
+    con_freeflag(con) &= ~FREEFLAG_TIMER; /* timer has expired... */
+
     if (!con_freeflag(con) && !cptr)
       free_connection(con); /* client is being destroyed */
   } else {

@@ -274,6 +274,7 @@ static struct FeatureDesc {
   F_B(VIRTUAL_HOST, 0, 0, 0),
   F_I(TOS_SERVER, 0, 0x08, 0),
   F_I(TOS_CLIENT, 0, 0x08, 0),
+  F_I(POLLS_PER_LOOP, 0, 200, 0),
 
   /* features that affect all operators */
   F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1, 0),
@@ -300,7 +301,7 @@ static struct FeatureDesc {
   F_B(OPER_LOPMODE, 0, 1, 0),
   F_B(OPER_BADCHAN, 0, 0, 0),
   F_B(OPER_LBADCHAN, 0, 0, 0),
-  F_B(OPER_SET, 0, 1, 0),
+  F_B(OPER_SET, 0, 0, 0),
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
   F_B(OPER_WIDE_GLINE, 0, 1, 0),
 

@@ -1,5 +1,22 @@
 2002-01-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_bsd.c (client_timer_callback): only clear the
+	FREEFLAG_TIMER flag when the timer is being destroyed
+
+	* ircd/ircd_features.c: create a new feature, POLLS_PER_LOOP, and
+	default it to 200; turn OPER_SET off by default
+
+	* ircd/engine_kqueue.c: dynamically allocate and reallocate the
+	array of events to obtain from the kernel
+
+	* ircd/engine_devpoll.c: dynamically allocate and reallocate the
+	array of events to obtain from the kernel
+
+	* include/ircd_features.h: add a new feature for tuning how many
+	events to get from the kernel, for engines that support that
+
 	* ircd/Makefile.in: re-run make depend to correct dependancies
 
 	* ircd/m_who.c: remove unneeded inclusion of list.h
