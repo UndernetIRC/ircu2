@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "channel.h"
 #include "client.h"
 #include "ircd_string.h"
@@ -152,33 +144,3 @@ int ms_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   return exit_client(cptr, sptr, sptr, parv[parc - 1]);
 }
-
-#if 0
-/*
- * m_quit
- *
- * parv[0] = sender prefix
- * parv[parc-1] = comment
- */
-int m_quit(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *comment = (parc > 1 && parv[parc - 1]) ? parv[parc - 1] : cptr->name;
-
-  if (MyUser(sptr))
-  {
-    if (!strncmp("Local Kill", comment, 10) || !strncmp(comment, "Killed", 6))
-      comment = parv[0];
-    if (sptr->user)
-    {
-      struct Membership* chan;
-      for (chan = sptr->user->channel; chan; chan = chan->next_channel)
-        if (!IsZombie(chan) && !member_can_send_to_channel(chan))
-          return exit_client(cptr, sptr, sptr, "Signed off");
-    }
-  }
-  if (strlen(comment) > TOPICLEN)
-    comment[TOPICLEN] = '\0';
-  return IsServer(sptr) ? 0 : exit_client(cptr, sptr, sptr, comment);
-}
-
-#endif /* 0 */

@@ -39,6 +39,7 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "numeric.h"
@@ -48,7 +49,6 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "sys.h"               /* TRUE bleah */
 
@@ -430,24 +430,14 @@ static int start_auth_query(struct AuthRequest* auth)
   assert(0 != auth->client);
 
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-#if 0
-    report_error(SOCKET_ERROR_MSG, get_client_name(auth->client, HIDE_IP), errno);
-#endif
     ++ServerStats->is_abad;
     return 0;
   }
   if ((MAXCONNECTIONS - 10) < fd) {
-#if 0
-    report_error(CONNLIMIT_ERROR_MSG, 
-                 get_client_name(auth->client, HIDE_IP), errno);
-#endif
     close(fd);
     return 0;
   }
   if (!os_set_nonblocking(fd)) {
-#if 0
-    report_error(NONB_ERROR_MSG, get_client_name(auth->client, HIDE_IP), errno);
-#endif
     close(fd);
     return 0;
   }
@@ -465,10 +455,6 @@ static int start_auth_query(struct AuthRequest* auth)
   local_addr.sin_port = htons(0);
 
   if (bind(fd, (struct sockaddr*) &local_addr, sizeof(struct sockaddr_in))) {
-#if 0
-    report_error(BIND_ERROR_MSG,
-                 get_client_name(auth->client, HIDE_IP), errno);
-#endif
     close(fd);
     return 0;
   }
@@ -578,69 +564,6 @@ static char* check_ident_reply(char* reply)
   return token;
 }
 
-#if 0
-/*
- * GetValidIdent - parse ident query reply from identd server
- * 
- * Inputs        - pointer to ident buf
- * Output        - NULL if no valid ident found, otherwise pointer to name
- * Side effects        -
- */
-static char* GetValidIdent(char *buf)
-{
-  int   remp = 0;
-  int   locp = 0;
-  char* colon1Ptr;
-  char* colon2Ptr;
-  char* colon3Ptr;
-  char* commaPtr;
-  char* remotePortString;
-
-  /* All this to get rid of a sscanf() fun. */
-  remotePortString = buf;
-  
-  colon1Ptr = strchr(remotePortString,':');
-  if(!colon1Ptr)
-    return 0;
-
-  *colon1Ptr = '\0';
-  colon1Ptr++;
-  colon2Ptr = strchr(colon1Ptr,':');
-  if(!colon2Ptr)
-    return 0;
-
-  *colon2Ptr = '\0';
-  colon2Ptr++;
-  commaPtr = strchr(remotePortString, ',');
-
-  if(!commaPtr)
-    return 0;
-
-  *commaPtr = '\0';
-  commaPtr++;
-
-  remp = atoi(remotePortString);
-  if(!remp)
-    return 0;
-              
-  locp = atoi(commaPtr);
-  if(!locp)
-    return 0;
-
-  /* look for USERID bordered by first pair of colons */
-  if(!strstr(colon1Ptr, "USERID"))
-    return 0;
-
-  colon3Ptr = strchr(colon2Ptr,':');
-  if(!colon3Ptr)
-    return 0;
-  
-  *colon3Ptr = '\0';
-  colon3Ptr++;
-  return(colon3Ptr);
-}
-#endif
-
 /*
  * start_auth - starts auth (identd) and dns queries for a client
  */
@@ -722,9 +645,9 @@ void send_auth_query(struct AuthRequest* auth)
     auth_error(auth, 1);
     return;
   }
-  sprintf_irc(authbuf, "%u , %u\r\n",
-             (unsigned int) ntohs(them.sin_port),
-             (unsigned int) ntohs(us.sin_port));
+  ircd_snprintf(0, authbuf, sizeof(authbuf), "%u , %u\r\n",
+		(unsigned int) ntohs(them.sin_port),
+		(unsigned int) ntohs(us.sin_port));
 
   if (IO_SUCCESS == os_send_nonb(auth->fd, authbuf, strlen(authbuf), &count)) {
     ClearAuthConnect(auth);
@@ -780,9 +703,6 @@ void read_auth_reply(struct AuthRequest* auth)
   }
   else {
     ++ServerStats->is_abad;
-#if 0
-    strcpy(cli_username(auth->client), "unknown");
-#endif
   }
   unlink_auth_request(auth, &AuthPollList);
 
@@ -793,5 +713,3 @@ void read_auth_reply(struct AuthRequest* auth)
     free_auth_request(auth);
   }
 }
-
-

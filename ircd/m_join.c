@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "channel.h"
 #include "client.h"
 #include "gline.h"

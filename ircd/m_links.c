@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd.h"
 #include "ircd_policy.h"
@@ -203,56 +195,3 @@ int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
   return 0;
 }
-
-
-#if 0
-/*
- * m_links
- *
- * parv[0] = sender prefix
- * parv[1] = servername mask
- *
- * or
- *
- * parv[0] = sender prefix
- * parv[1] = server to query
- * parv[2] = servername mask
- */
-int m_links(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *mask;
-  struct Client *acptr;
-
-  if (parc > 2)
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s LINKS %s :%s", 1, parc, parv) != /* XXX DEAD */
-        HUNTED_ISME)
-      return 0;
-    mask = parv[2];
-  }
-  else
-    mask = parc < 2 ? 0 : parv[1];
-
-  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = acptr->next)
-  {
-    if (!IsServer(acptr) && !IsMe(acptr))
-      continue;
-    if (!BadPtr(mask) && match(mask, acptr->name))
-      continue;
-    sendto_one(sptr, rpl_str(RPL_LINKS), /* XXX DEAD */
-        me.name, parv[0], acptr->name, acptr->serv->up->name,
-#ifndef GODMODE
-        acptr->hopcount, acptr->serv->prot,
-#else /* GODMODE */
-        acptr->hopcount, acptr->serv->prot, acptr->serv->timestamp,
-        NumServ(acptr),
-#endif /* GODMODE */
-        (acptr->info[0] ? acptr->info : "(Unknown Location)"));
-  }
-
-  sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0], /* XXX DEAD */
-      BadPtr(mask) ? "*" : mask);
-  return 0;
-}
-#endif /* 0 */
-

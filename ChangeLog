@@ -1,3 +1,199 @@
+2001-06-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c (do_who): use ircd_snprintf() instead of
+	sprintf_irc(); it's a bit hackish, but it'll do for now
+
+	* ircd/support.c: remove unused #include
+
+	* ircd/send.c: remove unused #include
+
+	* ircd/s_user.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/s_serv.c: remove unused #include
+
+	* ircd/s_misc.c: use ircd_snprintf() and friends instead of
+	sprintf_irc() and friends
+
+	* ircd/s_err.c: moved atoi_tab[] from ircd/sprintf_irc.c to
+	ircd/s_err.c, which is the only other file to refer to it
+
+	* ircd/s_conf.c (conf_add_deny): use ircd_snprintf() instead of
+	sprintf_irc()
+
+	* ircd/s_bsd.c (connect_server): use ircd_snprintf() instead of
+	sprintf_irc()
+
+	* ircd/s_auth.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/res.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/m_version.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/m_kill.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/listener.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/gline.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/channel.c: don't include sprintf_irc.h; use ircd_snprintf()
+	instead of sprintf_irc()
+
+	* ircd/Makefile.in: remove sprintf_irc.c from sources list; run
+	make depend
+
+	* include/ircd_string.h: remove declaration of sprintf_irc() (what
+	was it doing here anyway?)
+
+	* include/sprintf_irc.h: removed unneeded source file
+
+	* ircd/sprintf_irc.c: removed unneeded source file
+
+	* ircd/s_debug.c (count_memory): remove some dead code
+
+	* ircd/s_auth.c: remove some dead code
+
+	* ircd/res.c (update_list): remove some dead code
+
+	* ircd/m_whowas.c: remove some dead code
+
+	* ircd/m_whois.c: remove some dead code
+
+	* ircd/m_who.c: remove some dead code
+
+	* ircd/m_wallusers.c: remove some dead code
+
+	* ircd/m_wallops.c: remove some dead code
+
+	* ircd/m_wallchops.c: remove some dead code
+
+	* ircd/m_version.c: remove some dead code
+
+	* ircd/m_userip.c: remove some dead code
+
+	* ircd/m_userhost.c: remove some dead code
+
+	* ircd/m_uping.c: remove some dead code
+
+	* ircd/m_trace.c: remove some dead code
+
+	* ircd/m_topic.c: remove some dead code
+
+	* ircd/m_tmpl.c: remove some dead code
+
+	* ircd/m_time.c: remove some dead code
+
+	* ircd/m_squit.c: remove some dead code
+
+	* ircd/m_silence.c: remove some dead code
+
+	* ircd/m_settime.c: remove some dead code
+
+	* ircd/m_set.c: remove some dead code
+
+	* ircd/m_server.c: remove some dead code
+
+	* ircd/m_rpong.c: remove some dead code
+
+	* ircd/m_rping.c: remove some dead code
+
+	* ircd/m_restart.c: remove some dead code
+
+	* ircd/m_reset.c: remove some dead code
+
+	* ircd/m_rehash.c: remove some dead code
+
+	* ircd/m_quit.c: remove some dead code
+
+	* ircd/m_proto.c: remove some dead code
+
+	* ircd/m_privs.c: remove some dead code
+
+	* ircd/m_privmsg.c: remove some dead code
+
+	* ircd/m_pong.c: remove some dead code
+
+	* ircd/m_ping.c: remove some dead code
+
+	* ircd/m_pass.c: remove some dead code
+
+	* ircd/m_part.c: remove some dead code
+
+	* ircd/m_opmode.c: remove some dead code
+
+	* ircd/m_oper.c: remove some dead code
+
+	* ircd/m_notice.c: remove some dead code
+
+	* ircd/m_nick.c: remove some dead code
+
+	* ircd/m_map.c: remove some dead code
+
+	* ircd/m_lusers.c: remove some dead code
+
+	* ircd/m_list.c: remove some dead code
+
+	* ircd/m_links.c: remove some dead code
+
+	* ircd/m_kill.c: remove some dead code
+
+	* ircd/m_kick.c: remove some dead code
+
+	* ircd/m_jupe.c: remove some dead code
+
+	* ircd/m_join.c: remove some dead code
+
+	* ircd/m_ison.c: remove some dead code
+
+	* ircd/m_invite.c: remove some dead code
+
+	* ircd/m_info.c: remove some dead code
+
+	* ircd/m_help.c: remove some dead code
+
+	* ircd/m_gline.c: remove some dead code
+
+	* ircd/m_get.c: remove some dead code
+
+	* ircd/m_error.c: remove some dead code
+
+	* ircd/m_endburst.c: remove some dead code
+
+	* ircd/m_die.c: remove some dead code
+
+	* ircd/m_desynch.c: remove some dead code
+
+	* ircd/m_destruct.c: remove some dead code
+
+	* ircd/m_defaults.c: remove some dead code
+
+	* ircd/m_create.c: remove some dead code, along with an #if 1
+
+	* ircd/m_cprivmsg.c: remove some dead code
+
+	* ircd/m_connect.c: remove some dead code
+
+	* ircd/m_close.c: remove some dead code
+
+	* ircd/m_clearmode.c: remove some dead code
+
+	* ircd/m_burst.c: remove some dead code
+
+	* ircd/m_away.c: remove some dead code
+
+	* ircd/m_admin.c: remove some dead code
+
+	* ircd/listener.c (accept_connection): remove some dead code
+
+	* ircd/ircd_reply.c (need_more_params): remove some dead code
+
+	* ircd/channel.c (add_banid): remove some dead code
+
+	* include/support.h: remove some dead code
+
+	* include/querycmds.h: remove some dead code
+
+	* doc/readme.chroot: document how to do chroot operation
+
 2001-06-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/Makefile.in: tune for VPATH builds/installs; add a rule to

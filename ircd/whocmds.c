@@ -45,7 +45,6 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -201,7 +200,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     strcat(p1, sptr == acptr ? "0" : "3");
     p1++;
 #else
-    p1 = sprintf_irc(p1, "%d", cli_hopcount(acptr));
+    /* three digit hopcount maximum */
+    p1 += ircd_snprintf(0, p1, 3, "%d", cli_hopcount(acptr));
 #endif
   }
 
@@ -209,7 +209,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   {
     *p1++ = ' ';
     if (MyUser(acptr)) {
-	    p1 = sprintf_irc(p1, "%d", CurrentTime - cli_user(acptr)->last);
+	    p1 += ircd_snprintf(0, p1, 11, "%d",
+				CurrentTime - cli_user(acptr)->last);
     }    
     else {
     	    *p1++ = '0';

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "channel.h"
 #include "client.h"
 #include "hash.h"
@@ -161,60 +153,3 @@ int ms_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   }
   return 0;
 }
-
-#if 0
-/*
- * m_wallchops
- *
- * parv[0] = sender prefix
- * parv[1] = target channel
- * parv[parc - 1] = wallchops text
- */
-int m_wallchops(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Channel *chptr;
-
-  sptr->flags &= ~FLAGS_TS8;
-
-  if (parc < 2 || *parv[1] == '\0')
-  {
-    sendto_one(sptr, err_str(ERR_NORECIPIENT), me.name, parv[0], "WALLCHOPS"); /* XXX DEAD */
-    return -1;
-  }
-
-  if (parc < 3 || *parv[parc - 1] == '\0')
-  {
-    sendto_one(sptr, err_str(ERR_NOTEXTTOSEND), me.name, parv[0]); /* XXX DEAD */
-    return -1;
-  }
-
-  if (MyUser(sptr))
-    parv[1] = canonize(parv[1]);
-
-  if (IsChannelName(parv[1]))
-  {
-    if ((chptr = FindChannel(parv[1])))
-    {
-      if (client_can_send_to_channel(sptr, chptr))
-      {
-        if (MyUser(sptr) && (chptr->mode.mode & MODE_NOPRIVMSGS) &&
-            check_target_limit(sptr, chptr, chptr->chname, 0))
-          return 0;
-        /* Send to local clients: */
-        sendto_lchanops_butone(cptr, sptr, chptr, /* XXX DEAD */
-            ":%s NOTICE @%s :%s", parv[0], parv[1], parv[parc - 1]);
-        /* And to other servers: */
-        sendto_chanopsserv_butone(cptr, sptr, chptr, /* XXX DEAD */
-            ":%s WC %s :%s", parv[0], parv[1], parv[parc - 1]);
-      }
-      else
-        sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN), /* XXX DEAD */
-            me.name, parv[0], parv[1]);
-    }
-  }
-  else
-    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], parv[1]); /* XXX DEAD */
-
-  return 0;
-}
-#endif /* 0 */

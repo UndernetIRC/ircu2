@@ -43,9 +43,6 @@ extern struct UserStatistics UserStats;
 /* Macros for remote connections: */
 #define Count_newremoteclient(UserStats, cptr)  (++UserStats.clients, ++(cli_serv(cptr)->clients))
 #define Count_newremoteserver(UserStats)  (++UserStats.servers)
-#if 0
-#define Count_remoteclientquits(UserStats)      (--UserStats.clients)
-#endif
 
 #define Count_remoteclientquits(UserStats,cptr)                \
   do { \

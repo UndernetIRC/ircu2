@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -135,47 +127,3 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
 
   return 0;
 }
-
-#if 0 
-/*
- * m_destruct
- *
- * parv[0] = sender prefix
- * parv[1] = channel channelname
- * parv[2] = channel time stamp
- *
- * This function does nothing, it does passes DESTRUCT to the other servers.
- * In the future we will start to use this message.
- *
- */
-int m_destruct(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  time_t chanTS;                /* Creation time of the channel */
-
-  if (parc < 3 || *parv[2] == '\0')
-    return 0;
-
-#ifdef GODMODE
-  /* Allow DESTRUCT from user */
-  if (MyUser(sptr))
-    sptr = &me;
-  else
-#endif
-
-    /* sanity checks: Only accept DESTRUCT messages from servers */
-  if (!IsServer(sptr))
-    return 0;
-
-  /* Don't pass on DESTRUCT messages for channels that exist */
-  if (FindChannel(parv[1]))
-    return 0;
-
-  chanTS = atoi(parv[2]);
-
-  /* Pass on DESTRUCT message */
-  sendto_highprot_butone(cptr, 10, "%s DESTRUCT %s " TIME_T_FMT, /* XXX DEAD */
-      NumServ(sptr), parv[1], chanTS);
-
-  return 0;
-}
-#endif

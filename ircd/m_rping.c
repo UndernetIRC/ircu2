@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -242,73 +234,3 @@ int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-#if 0
-/*
- * m_rping  -- by Run
- *
- *    parv[0] = sender (sptr->name thus)
- * if sender is a person: (traveling towards start server)
- *    parv[1] = pinged server[mask]
- *    parv[2] = start server (current target)
- *    parv[3] = optional remark
- * if sender is a server: (traveling towards pinged server)
- *    parv[1] = pinged server (current target)
- *    parv[2] = original sender (person)
- *    parv[3] = start time in s
- *    parv[4] = start time in us
- *    parv[5] = the optional remark
- */
-int m_rping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-
-  if (!IsPrivileged(sptr))
-    return 0;
-
-  if (parc < (IsAnOper(sptr) ? (MyConnect(sptr) ? 2 : 3) : 6))
-  {
-    return need_more_params(sptr, "RPING");
-    return 0;
-  }
-  if (MyUser(sptr))
-  {
-    if (parc == 2)
-      parv[parc++] = me.name;
-    else if (!(acptr = find_match_server(parv[2])))
-    {
-      parv[3] = parv[2];
-      parv[2] = me.name;
-      parc++;
-    }
-    else
-      parv[2] = acptr->name;
-    if (parc == 3)
-      parv[parc++] = "<No client start time>";
-  }
-
-  if (IsAnOper(sptr))
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s :%s", 2, parc, parv) != /* XXX DEAD */
-        HUNTED_ISME)
-      return 0;
-    if (!(acptr = find_match_server(parv[1])) || !IsServer(acptr))
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAD */
-      return 0;
-    }
-    sendto_one(acptr, ":%s RPING %s %s %s :%s", /* XXX DEAD */
-         me.name, NumServ(acptr), sptr->name, militime(0, 0), parv[3]);
-  }
-  else
-  {
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_RPING " %s %s %s %s :%s", 1, parc, parv) /* XXX DEAD */
-        != HUNTED_ISME)
-      return 0;
-    sendto_one(cptr, ":%s RPONG %s %s %s %s :%s", me.name, parv[0], /* XXX DEAD */
-        parv[2], parv[3], parv[4], parv[5]);
-  }
-  return 0;
-}
-#endif /* 0 */
-

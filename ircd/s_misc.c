@@ -34,6 +34,7 @@
 #include "ircd_log.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -48,7 +49,6 @@
 #include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -168,7 +168,7 @@ const char* get_client_name(const struct Client* sptr, int showip)
 
   if (MyConnect(sptr)) {
     if (showip)
-      sprintf_irc(nbuf, "%s[%s@%s]", cli_name(sptr),
+      ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
             (IsIdented(sptr)) ? cli_username(sptr) : "", cli_sock_ip(sptr));
     else
         return cli_name(sptr);
@@ -498,7 +498,7 @@ int vexit_client_msg(struct Client *cptr, struct Client *bcptr, struct Client *s
     const char *pattern, va_list vl)
 {
   char msgbuf[1024];
-  vsprintf_irc(msgbuf, pattern, vl);
+  ircd_vsnprintf(0, msgbuf, sizeof(msgbuf), pattern, vl);
   return exit_client(cptr, bcptr, sptr, msgbuf);
 }
 
@@ -509,7 +509,7 @@ int exit_client_msg(struct Client *cptr, struct Client *bcptr,
   char msgbuf[1024];
 
   va_start(vl, pattern);
-  vsprintf_irc(msgbuf, pattern, vl);
+  ircd_vsnprintf(0, msgbuf, sizeof(msgbuf), pattern, vl);
   va_end(vl);
 
   return exit_client(cptr, bcptr, sptr, msgbuf);

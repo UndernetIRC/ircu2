@@ -33,8 +33,6 @@ extern const char* ircd_ntoa_r(char* buf, const char* addr);
 extern char*       host_from_uh(char* buf, const char* userhost, size_t len);
 extern char*       ircd_strtok(char** save, char* str, char* fs);
 
-extern char*       sprintf_irc(char* str, const char* format, ...); 
-
 extern char*       canonize(char* buf);
 
 #define DupString(x, y)  (strcpy((x = (char*) MyMalloc(strlen(y) + 1)), y))

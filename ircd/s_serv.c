@@ -51,7 +51,6 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "sys.h"
 #include "userload.h"

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd.h"
 #include "ircd_policy.h"
@@ -169,46 +161,3 @@ int ms_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-  
-#if 0
-/*
- * m_lusers
- *
- * parv[0] = sender
- * parv[1] = ignored
- * parv[2] = server to query
- */
-int m_lusers(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  int longoutput = MyUser(sptr) || IsOper(sptr);
-  if (parc > 2)
-    if (hunt_server(0, cptr, sptr, "%s%s " TOK_LUSERS " %s :%s", 2, parc, parv) != /* XXX DEAD */
-        HUNTED_ISME)
-      return 0;
-
-  sendto_one(sptr, rpl_str(RPL_LUSERCLIENT), me.name, parv[0], /* XXX DEAD */
-      UserStats.clients - UserStats.inv_clients, UserStats.inv_clients, UserStats.servers);
-  if (longoutput && UserStats.opers)
-    sendto_one(sptr, rpl_str(RPL_LUSEROP), me.name, parv[0], UserStats.opers); /* XXX DEAD */
-  if (UserStats.unknowns > 0)
-    sendto_one(sptr, rpl_str(RPL_LUSERUNKNOWN), me.name, parv[0], /* XXX DEAD */
-        UserStats.unknowns);
-  if (longoutput && UserStats.channels > 0)
-    sendto_one(sptr, rpl_str(RPL_LUSERCHANNELS), me.name, parv[0], /* XXX DEAD */
-        UserStats.channels);
-  sendto_one(sptr, rpl_str(RPL_LUSERME), me.name, parv[0], UserStats.local_clients, /* XXX DEAD */
-      UserStats.local_servers);
-
-  if (MyUser(sptr) || Protocol(cptr) < 10)
-    sendto_one(sptr, /* XXX DEAD */
-        ":%s NOTICE %s :Highest connection count: %d (%d clients)",
-        me.name, parv[0], max_connection_count, max_client_count);
-  else
-    sendto_one(sptr, /* XXX DEAD */
-        "%s NOTICE %s%s :Highest connection count: %d (%d clients)",
-        NumServ(&me), NumNick(sptr), max_connection_count, max_client_count);
-
-  return 0;
-}
-#endif /* 0 */

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -119,32 +111,3 @@ int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
   return 0;
 }
-
-#if 0
-/*
- * m_pass
- *
- * parv[0] = sender prefix
- * parv[1] = password
- */
-int m_pass(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *password = parc > 1 ? parv[1] : 0;
-
-  if (EmptyString(password))
-    return need_more_params(cptr, "PASS");
-
-  if (!MyConnect(sptr) || (!IsUnknown(cptr) && !IsHandshake(cptr)))
-  {
-    sendto_one(cptr, err_str(ERR_ALREADYREGISTRED), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-  if (ircd_strcmp("PROTO",password)) {
-  	proto_send_supported(sptr);
-  	return 0;
-  }
-  ircd_strncpy(cptr->passwd, password, PASSWDLEN);
-  return 0;
-}
-#endif
-

@@ -36,7 +36,6 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "sys.h"
 

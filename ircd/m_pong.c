@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -187,71 +179,3 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   cli_lasttime(cptr) = CurrentTime;
   return 0;
 }
-
-
-#if 0
-/*
- * m_pong
- *
- * parv[0] = sender prefix
- * parv[1] = origin
- * parv[2] = destination
- */
-int m_pong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-  char *origin, *destination;
-
-  if (MyUser(sptr))
-    return 0;
-
-  /* Check to see if this is a PONG :cookie reply from an
-   * unregistered user.  If so, process it. -record       */
-
-  if ((!IsRegistered(sptr)) && (sptr->cookie != 0) &&
-      (sptr->cookie != COOKIE_VERIFIED) && (parc > 1))
-  {
-    if (atol(parv[parc - 1]) == (long)sptr->cookie)
-    {
-      sptr->cookie = COOKIE_VERIFIED;
-      if (sptr->user && *sptr->user->host && sptr->name[0])        /* NICK and
-                                                                   USER OK */
-        return register_user(cptr, sptr, sptr->name, sptr->user->username); /* XXX DEAD */
-    }
-    else
-      sendto_one(sptr, ":%s %d %s :To connect, type /QUOTE PONG %u", /* XXX DEAD */
-          me.name, ERR_BADPING, sptr->name, sptr->cookie);
-
-    return 0;
-  }
-
-  if (parc < 2 || *parv[1] == '\0')
-  {
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-
-  origin = parv[1];
-  destination = parv[2];
-  cptr->flags &= ~FLAGS_PINGSENT;
-  sptr->flags &= ~FLAGS_PINGSENT;
-
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name))
-  {
-    if ((acptr = FindClient(destination)))
-      sendto_one(acptr, ":%s PONG %s %s", parv[0], origin, destination); /* XXX DEAD */
-    else
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), /* XXX DEAD */
-          me.name, parv[0], destination);
-      return 0;
-    }
-  }
-#ifdef        DEBUGMODE
-  else
-    Debug((DEBUG_NOTICE, "PONG: %s %s",
-        origin, destination ? destination : "*"));
-#endif
-  return 0;
-}
-#endif /* 0 */

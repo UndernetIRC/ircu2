@@ -145,7 +145,8 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
       else {
         gline->bits=bits2;
       }
-      sprintf_irc(ipname,"%d.%d.%d.%d",ad[0],ad[1],ad[2],ad[3]);
+      ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
+		    ad[2], ad[3]);
       gline->ipnum.s_addr = inet_addr(ipname);
       Debug((DEBUG_DEBUG,"IP gline: %08x/%i",gline->ipnum.s_addr,gline->bits));
       gline->gl_flags |= GLINE_IPMASK;

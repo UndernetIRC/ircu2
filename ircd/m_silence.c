@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "channel.h"
 #include "client.h"
 #include "hash.h"
@@ -195,89 +187,3 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
-
-
-#if 0
-/*
- * m_silence() - Added 19 May 1994 by Run.
- *
- *   parv[0] = sender prefix
- * From local client:
- *   parv[1] = mask (NULL sends the list)
- * From remote client:
- *   parv[1] = Numeric nick that must be silenced
- *   parv[2] = mask
- */
-int m_silence(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct SLink *lp;
-  struct Client *acptr;
-  char c, *cp;
-
-  if (MyUser(sptr))
-  {
-    acptr = sptr;
-    if (parc < 2 || *parv[1] == '\0' || (acptr = FindUser(parv[1])))
-    {
-      if (!(acptr->user))
-        return 0;
-      for (lp = acptr->user->silence; lp; lp = lp->next)
-        sendto_one(sptr, rpl_str(RPL_SILELIST), me.name, /* XXX DEAD */
-            sptr->name, acptr->name, lp->value.cp);
-      sendto_one(sptr, rpl_str(RPL_ENDOFSILELIST), me.name, sptr->name, /* XXX DEAD */
-          acptr->name);
-      return 0;
-    }
-    cp = parv[1];
-    c = *cp;
-    if (c == '-' || c == '+')
-      cp++;
-    else if (!(strchr(cp, '@') || strchr(cp, '.') ||
-        strchr(cp, '!') || strchr(cp, '*')))
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]); /* XXX DEAD */
-      return -1;
-    }
-    else
-      c = '+';
-    cp = pretty_mask(cp);
-    if ((c == '-' && !del_silence(sptr, cp)) ||
-        (c != '-' && !add_silence(sptr, cp)))
-    {
-      sendto_prefix_one(sptr, sptr, ":%s SILENCE %c%s", parv[0], c, cp); /* XXX DEAD */
-      if (c == '-')
-        sendto_serv_butone(0, ":%s SILENCE * -%s", sptr->name, cp); /* XXX DEAD */
-    }
-  }
-  else if (parc < 3 || *parv[2] == '\0')
-    return need_more_params(sptr, "SILENCE");
-
-  else
-  {
-    if (*parv[1])        /* can be a server */
-      acptr = findNUser(parv[1]);
-    else
-      acptr = FindNServer(parv[1]);
-
-    if (*parv[2] == '-')
-    {
-      if (!del_silence(sptr, parv[2] + 1))
-        sendto_serv_butone(cptr, ":%s SILENCE * %s", parv[0], parv[2]); /* XXX DEAD */
-    }
-    else
-    {
-      add_silence(sptr, parv[2]);
-      if (acptr && IsServer(acptr->from))
-      {
-        if (IsServer(acptr))
-          sendto_one(acptr, ":%s SILENCE %s %s", /* XXX DEAD */
-              parv[0], NumServ(acptr), parv[2]);
-        else
-          sendto_one(acptr, ":%s SILENCE %s%s %s", /* XXX DEAD */
-              parv[0], NumNick(acptr), parv[2]);
-      }
-    }
-  }
-  return 0;
-}
-#endif /* 0 */
