@@ -50,6 +50,7 @@ static struct {
   struct Motd*	local;
   struct Motd*	remote;
   struct Motd*	other;
+  struct Motd*	freelist;
 } MotdList;
 
 /* Create a struct Motd and initialize it */
@@ -73,7 +74,11 @@ motd_create(const char *hostmask, const char *path, int maxcount)
   }
 
   /* allocate memory and initialize the structure */
-  tmp = (struct Motd *)MyMalloc(sizeof(struct Motd));
+  if (MotdList.freelist) {
+    tmp = MotdList.freelist;
+    MotdList.freelist = tmp->next;
+  } else
+    tmp = (struct Motd *)MyMalloc(sizeof(struct Motd));
 
   tmp->next = 0;
   tmp->type = type;
@@ -180,7 +185,8 @@ motd_destroy(struct Motd *motd)
   if (motd->cache) /* drop the cache */
     motd_decache(motd);
 
-  MyFree(motd); /* free the structure */
+  motd->next = MotdList.freelist;
+  MotdList.freelist = motd;
 }
 
 /* We use this routine to look up the struct Motd to send to any given
