@@ -677,7 +677,7 @@ void read_auth_reply(struct AuthRequest* auth)
 
   assert(0 != auth);
   assert(0 != auth->client);
-  assert(auth = cli_auth(auth->client));
+  assert(auth == cli_auth(auth->client));
 
   if (IO_SUCCESS == os_recv_nonb(auth->fd, buf, BUFSIZE, &len)) {
     buf[len] = '\0';
