@@ -1,3 +1,9 @@
+2002-07-16  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: extend stats_quarantine() and
+	stats_servers_verbose() to take the extra parameter to limit their
+	searches to servers matching a given pattern
+
 2002-07-13  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel

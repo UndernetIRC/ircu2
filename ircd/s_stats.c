@@ -292,8 +292,11 @@ stats_quarantine(struct Client* to, struct StatDesc* sd, int stat, char* param)
 {
   struct qline *qline;
 
-  for (qline = GlobalQuarantineList; qline; qline = qline->next)
+  for (qline = GlobalQuarantineList; qline; qline = qline->next) {
+    if (param && match(param, qline->chname)) /* narrow search */
+      continue;
     send_reply(to, RPL_STATSQLINE, qline->chname, qline->reason);
+  }
 }
 
 static void
@@ -323,6 +326,8 @@ stats_servers_verbose(struct Client* sptr, struct StatDesc* sd, int stat,
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
     if (!IsServer(acptr) && !IsMe(acptr))
+      continue;
+    if (param && match(param, cli_name(acptr))) /* narrow search */
       continue;
     send_reply(sptr, SND_EXPLICIT | RPL_STATSVERBOSE, stat == 'v' ?
 	       "%-20s %-20s %c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i "
@@ -434,7 +439,7 @@ struct StatDesc statsinfo[] = {
   { 'p', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_P,
     show_ports, 0,
     "Listening ports." },
-  { 'q', STAT_FLAG_OPERONLY, FEAT_LAST_F,
+  { 'q', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_LAST_F,
     stats_quarantine, 0,
     "Quarantined channels list." },
 #ifdef DEBUGMODE
@@ -454,7 +459,7 @@ struct StatDesc statsinfo[] = {
   { 'u', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
     stats_uptime, 0,
     "Current uptime & highest connection count." },
-  { 'v', STAT_FLAG_OPERONLY, FEAT_LAST_F,
+  { 'v', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_LAST_F,
     stats_servers_verbose, 0,
     "Verbose server information." },
   { 'w', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_W,
