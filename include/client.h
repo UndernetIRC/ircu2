@@ -73,7 +73,7 @@ typedef unsigned long flagpage_t;
 /** Element number for flag \a flag. */
 #define FLAGSET_INDEX(flag) ((flag) / FLAGSET_NBITS)
 /** Element bit for flag \a flag. */
-#define FLAGSET_MASK(flag) (1<<((flag) % FLAGSET_NBITS))
+#define FLAGSET_MASK(flag) (1ul<<((flag) % FLAGSET_NBITS))
 
 /** Declare a flagset structure of a particular size. */
 #define DECLARE_FLAGSET(name,max) \
