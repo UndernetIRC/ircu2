@@ -1445,9 +1445,9 @@ int find_kill(struct Client *cptr)
 
   /* find active glines */
   /* added a check against the user's IP address to find_gline() -Kev */
-  else if ((agline = find_gline(cptr, NULL)) && GlineIsActive(agline))
+  else if ((agline = gline_find(cptr, 0)) && GlineIsActive(agline))
     sendto_one(cptr, ":%s %d %s :%s.", me.name, ERR_YOUREBANNEDCREEP,
-        cptr->name, agline->reason);
+	       cptr->name, GlineReason(agline));
   else
     agline = NULL;                /* if a gline was found, it was inactive */
 

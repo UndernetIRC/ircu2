@@ -294,7 +294,7 @@ static Numeric numeric_errors[] = {
 /* 511 */
   { ERR_SILELISTFULL, "%s :Your silence list is full", "511" },
 /* 512 */
-  { ERR_NOSUCHGLINE, "%s@%s :No such gline", "512" },
+  { ERR_NOSUCHGLINE, "%s :No such gline", "512" },
 /* 513 */
   { ERR_BADPING, "", "513" },
 /* 514 */
@@ -675,7 +675,7 @@ static Numeric numeric_replies[] = {
 /* 279 */
   { 0 },
 /* 280 */
-  { RPL_GLIST, "%s@%s " TIME_T_FMT " %s%s", "280" },
+  { RPL_GLIST, "%s%s%s " TIME_T_FMT " %s %c :%s", "280" },
 /* 281 */
   { RPL_ENDOFGLIST, ":End of G-line List", "281" },
 /* 282 */

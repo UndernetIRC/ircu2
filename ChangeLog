@@ -1,5 +1,24 @@
 2000-04-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_conf.c (find_kill): replaced call to find_gline() with a
+	call to gline_find(); also used GlineReason() instead of direct
+	reference to structure member
+
+	* ircd/m_join.c (m_join): replace bad_channel() calls with calls
+	to gline_find(name, GLINE_BADCHAN), and also check to see if gline
+	is active
+
+	* ircd/channel.c: nothing seems to be called anywhere...
+
+	* ircd/s_err.c: update a couple of replies to dovetail with new
+	semantics
+
+	* ircd/gline.c: begin complete re-implementation of gline.c along
+	the lines of the final design of jupe.c
+
+	* include/gline.h: begin complete re-implementation of gline.c
+	along the lines of the final design of jupe.c
+
 	* ircd/channel.c (mode_process_clients): fix "Deop of +k user on
 	%s by %s" message...
 
@@ -370,7 +389,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.73 2000-04-12 20:53:22 kev Exp $
+# $Id: ChangeLog,v 1.74 2000-04-13 02:29:53 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
