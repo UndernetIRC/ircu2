@@ -149,6 +149,8 @@ static struct Connection* alloc_connection(void)
 static void dealloc_connection(struct Connection* con)
 {
   assert(con_verify(con));
+  assert(!t_active(&(con_proc(con))));
+  assert(!t_onqueue(&(con_proc(con))));
 
   Debug((DEBUG_LIST, "Deallocating connection %p", con));
 

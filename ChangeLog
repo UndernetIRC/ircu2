@@ -1,3 +1,11 @@
+2002-01-13  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/list.c (dealloc_connection): assert that the process timer
+	has been removed from the timer queue before dealloc_connection()
+	is called
+
 2002-01-12  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/res.c: don't accept T_A when we're looking for T_PTR
