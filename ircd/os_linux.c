@@ -154,9 +154,12 @@ int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize)
 {
   unsigned int sopt = ssize;
   unsigned int ropt = rsize;
-  return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &ropt, sizeof(ropt)) &&
-          0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sopt, sizeof(sopt)));
+  return (((0 == rsize) || (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, 
+                          (const char*) &ropt, sizeof(ropt)))) &&
+          ((0 == ssize) || (0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
+                          (const char*) &sopt, sizeof(sopt)))));
 }
+
 
 int os_set_tos(int fd,int tos)
 {

@@ -1,3 +1,8 @@
+2003-11-23 Isomer <isomer@undernet.org>
+	* ircd/os_*.c, ircd/ircd_features.c: Default changing window sizes
+	to off.  if an admin is smart enough to understand these features
+	they can enable them manually.
+
 2003-11-23 Spike <spike@undernet.org>
 	* ircd/IPcheck.c: Make IPcheck constants configurable
 
