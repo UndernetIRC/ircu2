@@ -1,12 +1,15 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.1.1.1.2.1 2000-03-27 04:12:59 bleep Exp $
+# $Id: ChangeLog,v 1.1.1.1.2.1.2.1 2000-04-01 03:58:08 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* Fix bug in extended numerics that set capacity wrong, this does not affect
+  any servers currently in production, but you must use this version or above
+  to define them. --Bleep
 * Change extended numerics to use original shift mask method and full range
   to represent values. --Bleep
 * Added hostname hiding compatible with ircu2.10.10 to allow host hiding
