@@ -1,5 +1,4 @@
 2003-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
-
 	* libs: put third-party libraries in this subdirectory.
 	Started by copying adns into it--will fix the rest and remove
 	the top-level copy later.
@@ -11,11 +10,13 @@
 	* adns/src/check.c, adns/src/transmit.c, ircd/m_opmode.c,
 	ircd/motd.c, ircd/s_user.c: Cleanup warnings, fix precedence
 	bugs in transmit.c and m_opmode.c.
+
 2003-01-12  Thomas Helvey <tom.helvey@cox.net>
 	* include/class.h, include/ircd_string.h, ircd/class.c,
 	ircd/gline.c, ircd_string.c: Fix undefined order
 	of evaluation bug in gline.c, add general purpose hasher for
 	conf entries. 
+
 2003-01-11  Thomas Helvey <tom.helvey@cox.net>
 	* include/channel.h, include/ircd_alloc.h, ircd/channel.c,
 	ircd/client.c, ircd/gline.c, ircd/ircd_alloc.c,
@@ -25,6 +26,7 @@
 	ircd/s_auth.c, ircd/s_bsd.c, ircd/uping.c: Server compiles
 	with g++ again, type safety, const correctness fixes,
 	remove C++ keywords again :/
+
 2003-01-11  Thomas Helvey <tom.helvey@cox.net>
 	* ircd/client.c, ircd/ircd_feature.c: Bugfix, the feature
 	table data was in a different order than the feature data
@@ -32,15 +34,18 @@
 	feature_bool. The feature_bool function didn't check it's
 	index before indexing the features array resulting in
 	a core dump on /oper.
+
 2003-01-10  Thomas Helvey <tom.helvey@cox.net>
 	* include/client.h, include/res.h, include/s_bsd.h,
 	ircd/ircd.c, ircd/list.c ircd/m_connect.c, ircd/res_adns.c,
 	ircd/res_libresolv.c, ircd/s_auth.c, ircd/s_bsd.c, ircd/s_conf.c:
 	Remove resolver cache wart, change hostent representation, cleanup
 	resolver clients.
+
 2003-01-10  Thomas Helvey <tom.helvey@cox.net>
 	* ircd/map.c, ircd/Makefile.in, include/map.h: Remove 
         HEAD_IN_SAND macros to get server to build, rebuild dependencies.
+
 2003-01-08  Fredrik Soderblom <froo@quakenet.org>
         * ircd/s_err.c, ircd/s_user.c (hide_hostmask): Simplify
         RPL_HOSTHIDDEN and the use of it.
