@@ -175,6 +175,7 @@ struct Client* make_client(struct Client *from, int status)
   cptr = alloc_client();
 
   assert(0 != cptr);
+  assert(0 == from || 0 != cli_connect(from));
 
   if (!from) { /* local client, allocate a struct Connection */
     con = alloc_connection();

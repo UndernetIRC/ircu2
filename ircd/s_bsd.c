@@ -959,6 +959,8 @@ static void client_sock_callback(struct Event* ev)
 
   cptr = con_client(con);
 
+  assert(0 == cptr || con == cli_connect(cptr));
+
   switch (ev_type(ev)) {
   case ET_DESTROY:
     if (con_timer(con) == 1) {

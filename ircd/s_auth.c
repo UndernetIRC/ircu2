@@ -124,8 +124,11 @@ static void auth_timeout_callback(struct Event* ev)
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     auth->flags &= ~AM_TIMEOUT;
 
-    if (!(auth->flags & AM_FREE_MASK))
+    if (!(auth->flags & AM_FREE_MASK)) {
+      Debug((DEBUG_LIST, "Freeing auth from timeout callback; %p [%p]", auth,
+	     ev_timer(ev)));
       MyFree(auth); /* done with it, finally */
+    }
   } else {
     assert(ev_type(ev) == ET_EXPIRE);
 
@@ -172,8 +175,12 @@ static void auth_sock_callback(struct Event* ev)
   switch (ev_type(ev)) {
   case ET_DESTROY: /* being destroyed */
     auth->flags &= ~AM_SOCKET;
-    if (!(auth->flags & AM_FREE_MASK))
+
+    if (!(auth->flags & AM_FREE_MASK)) {
+      Debug((DEBUG_LIST, "Freeing auth from sock callback; %p [%p]", auth,
+	     ev_socket(ev)));
       MyFree(auth); /* done with it finally */
+    }
     break;
 
   case ET_CONNECT: /* socket connection completed */

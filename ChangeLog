@@ -1,5 +1,12 @@
 2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c (client_sock_callback): add an extra assertion
+	check
+
+	* ircd/s_auth.c: add more Debug messages
+
+	* ircd/list.c (make_client): add an extra assertion check
+
 	* ircd/ircd_events.c (socket_events): don't call the engine events
 	changer if we haven't actually made any changes to the event mask
 
