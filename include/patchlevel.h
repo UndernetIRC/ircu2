@@ -19,7 +19,7 @@
  *
  */
 
-#define PATCHLEVEL "08"
+#define PATCHLEVEL "08.(easter)"
 
 #define RELEASE ".10."
 

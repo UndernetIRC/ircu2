@@ -26,7 +26,7 @@
 /* Miscellaneous defines */
 
 #define UDP_PORT        "7007"
-#define MINOR_PROTOCOL  "10.(easter)"
+#define MINOR_PROTOCOL  "09"
 #define MAJOR_PROTOCOL  "10"
 #define BASE_VERSION    "u2.10"
 
