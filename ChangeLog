@@ -1,3 +1,10 @@
+2001-07-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c (exit_client): servers don't understand what the
+	numeric nick ERROR is supposed to mean, so they ignore error
+	messages, resulting in not knowing why we were rejected; use
+	sendcmdto_one for servers and sendrawto_one for clients
+
 2001-07-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_burst.c (ms_burst): in the case of a modeless channel and
