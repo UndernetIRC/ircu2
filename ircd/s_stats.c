@@ -363,6 +363,18 @@ stats_meminfo(struct Client* to, struct StatDesc* sd, int stat, char* param)
 }
 #endif
 
+static void
+stats_help(struct Client* to, struct StatDesc* sd, int stat, char* param)
+{
+  struct StatDesc *asd;
+
+  if (MyUser(to)) /* only if it's my user */
+    for (asd = statsinfo; asd->sd_c; asd++)
+      if (asd->sd_c != sd->sd_c) /* don't send the help for us */
+	sendcmdto_one(&me, CMD_NOTICE, to, "%C :%c - %s", to, asd->sd_c,
+		      asd->sd_desc);
+}
+
 /* This array of structures contains information about all single-character
  * stats.  Struct StatDesc is defined in s_stats.h.
  */
@@ -448,6 +460,9 @@ struct StatDesc statsinfo[] = {
   { 'z', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
+  { '*', (STAT_FLAG_CASESENS | STAT_FLAG_VARPARAM), FEAT_LAST_F,
+    stats_help, 0,
+    "Send help for stats." },
   { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
 };
 

@@ -123,12 +123,11 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* If we didn't find a descriptor and this is my client, send them help */
   if (!(sd = statsmap[(int)stat])) {
-    if (MyUser(sptr))
-      for (sd = statsinfo; sd->sd_c; sd++)
-	sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%c - %s", sptr, sd->sd_c,
-		      sd->sd_desc);
-    return send_reply(sptr, RPL_ENDOFSTATS, '*');
+    stat = '*';
+    sd = statsmap[(int)stat];
   }
+
+  assert(sd != 0);
 
   /* Check whether the client can issue this command.  If source is
    * not privileged (server or an operator), then the STAT_FLAG_OPERONLY
