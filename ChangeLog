@@ -1,3 +1,8 @@
+2002-04-08  Gavin Grieve  <ggrieve@ihug.co.nz>
+
+	* include/supported.h: change CHARSET to CASEMAPPING after
+	discussions as to what would be the preferred name.
+
 2002-04-05 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/s_conf.c, ircd_parser.y, ircd_lexer.l: Add privilege
 	specification.
