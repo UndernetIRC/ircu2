@@ -1,3 +1,28 @@
+2004-10-18  Michael Poole <mdpoole@troilus.org>
+
+	* include/list.h (SLink): Remove ban elements from here...
+
+	* include/channel.h (Ban): And move to the new struct Ban.
+	(Channel): Update banlist field to match.
+	(next_removed_overlapped_ban): Update return type to match.
+	(make_ban, free_ban): New functions.
+
+	* ircd/channel.c (next_ban, prev_ban, removed_bans_list): Update
+	list types.
+	(free_bans): New variable to hold unused Ban elements.
+	(make_ban, free_ban): New functions.
+	(destruct_channel, add_banid, next_removed_overlapped_ban): Update
+	to use struct Ban.
+	(is_banned, send_channel_modes, send_ban_list): Likewise.
+	(ParseState, mode_parse_ban, mode_process_bans): Likewise.
+	(mode_parse): Likewise.
+
+	* ircd/m_burst.c (ms_burst): Update to use struct Ban.
+
+	* ircd/m_clearmode.c (do_clearmode): Update to use struct Ban.
+
+	* ircd/s_debug.c (count_memory): Update to use struct Ban.
+
 2004-10-18  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/gline.c (gline_find): unless we're looking for an exact

@@ -205,7 +205,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel *chptr;
   time_t timestamp;
   struct Membership *member, *nmember;
-  struct SLink *lp, **lp_p;
+  struct Ban *lp, **lp_p;
   unsigned int parse_flags = (MODE_PARSE_FORCE | MODE_PARSE_BURST);
   int param, nickpos = 0, banpos = 0;
   char modestr[BUFSIZE], nickstr[BUFSIZE], banstr[BUFSIZE];
@@ -308,7 +308,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     case '%': /* parameter contains bans */
       if (parse_flags & MODE_PARSE_SET) {
 	char *banlist = parv[param] + 1, *p = 0, *ban, *ptr;
-	struct SLink *newban;
+	struct Ban *newban;
 
 	for (ban = ircd_strtok(&p, banlist, " "); ban;
 	     ban = ircd_strtok(&p, 0, " ")) {
@@ -323,15 +323,15 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	     * shown below *sigh*
 	     */
 	  for (lp = chptr->banlist; lp; lp = lp->next) {
-	    if (!ircd_strcmp(lp->value.ban.banstr, ban)) {
+	    if (!ircd_strcmp(lp->banstr, ban)) {
 	      ban = 0; /* don't add ban */
 	      lp->flags &= ~CHFL_BURST_BAN_WIPEOUT; /* not wiping out */
 	      break; /* new ban already existed; don't even repropagate */
 	    } else if (!(lp->flags & CHFL_BURST_BAN_WIPEOUT) &&
-		       !mmatch(lp->value.ban.banstr, ban)) {
+		       !mmatch(lp->banstr, ban)) {
 	      ban = 0; /* don't add ban unless wiping out bans */
 	      break; /* new ban is encompassed by an existing one; drop */
-	    } else if (!mmatch(ban, lp->value.ban.banstr))
+	    } else if (!mmatch(ban, lp->banstr))
 	      lp->flags |= CHFL_BAN_OVERLAPPED; /* remove overlapping ban */
 
 	    if (!lp->next)
@@ -349,13 +349,11 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    for (ptr = ban; *ptr; ptr++) /* add ban to buffer */
 	      banstr[banpos++] = *ptr;
 
-	    newban = make_link(); /* create new ban */
+	    newban = make_ban(ban); /* create new ban */
 
-	    DupString(newban->value.ban.banstr, ban);
-
-            DupString(newban->value.ban.who, 
+            DupString(newban->who, 
                       cli_name(feature_bool(FEAT_HIS_BANWHO) ? &me : sptr));
-	    newban->value.ban.when = TStime();
+	    newban->when = TStime();
 
 	    newban->flags = CHFL_BAN | CHFL_BURST_BAN; /* set flags */
 	    if ((ptr = strrchr(ban, '@')) && check_if_ipmask(ptr + 1))
@@ -528,15 +526,14 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       /* remove ban from channel */
       if (lp->flags & (CHFL_BAN_OVERLAPPED | CHFL_BURST_BAN_WIPEOUT)) {
 	modebuf_mode_string(mbuf, MODE_DEL | MODE_BAN,
-			    lp->value.ban.banstr, 1); /* let it free banstr */
-
+			    lp->banstr, 1); /* let it free banstr */
+        lp->banstr = NULL; /* do not free this string */
 	*lp_p = lp->next; /* clip out of list */
-	MyFree(lp->value.ban.who); /* free who */
-	free_link(lp); /* free ban */
+        free_ban(lp);
 	continue;
       } else if (lp->flags & CHFL_BURST_BAN) /* add ban to channel */
 	modebuf_mode_string(mbuf, MODE_ADD | MODE_BAN,
-			    lp->value.ban.banstr, 0); /* don't free banstr */
+			    lp->banstr, 0); /* don't free banstr */
 
       lp->flags &= (CHFL_BAN | CHFL_BAN_IPMASK); /* reset the flag */
       lp_p = &(*lp_p)->next;

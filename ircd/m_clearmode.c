@@ -131,7 +131,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   char control_buf[20];
   int control_buf_i = 0;
   struct ModeBuf mbuf;
-  struct SLink *link, *next;
+  struct Ban *link, *next;
   struct Membership *member;
 
   /* Ok, so what are we supposed to get rid of? */
@@ -180,10 +180,9 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
       next = link->next;
 
       modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, /* delete ban */
-			  link->value.ban.banstr, 1);
-
-      MyFree(link->value.ban.who); /* free up who string */
-      free_link(link); /* and of course the link itself */
+			  link->banstr, 1);
+      link->banstr = NULL;
+      free_ban(link);
     }
 
     chptr->banlist = 0;

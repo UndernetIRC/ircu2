@@ -74,9 +74,10 @@ const char* const PartFmt1serv = "%s%s " TOK_PART " %s";
 const char* const PartFmt2serv = "%s%s " TOK_PART " %s :%s";
 
 
-static struct SLink* next_ban;
-static struct SLink* prev_ban;
-static struct SLink* removed_bans_list;
+static struct Ban* next_ban;
+static struct Ban* prev_ban;
+static struct Ban* removed_bans_list;
+static struct Ban* free_bans;
 
 /**
  * Use a global variable to remember if an oper set a mode on a local channel. 
@@ -98,6 +99,38 @@ static int list_length(struct SLink *lp)
   return count;
 }
 #endif
+
+/** Allocate a new Ban structure.
+ * @param[in] banstr Ban mask to use.
+ * @return Newly allocated ban.
+ */
+struct Ban *
+make_ban(const char *banstr)
+{
+  struct Ban *ban;
+  if (free_bans) {
+    ban = free_bans;
+    free_bans = free_bans->next;
+  }
+  else if (!(ban = MyMalloc(sizeof(*ban))))
+    return NULL;
+  memset(ban, 0, sizeof(*ban));
+  if (banstr)
+    DupString(ban->banstr, banstr);
+  return ban;
+}
+
+/** Deallocate a ban structure.
+ * @param[in] ban Ban to deallocate.
+ */
+void
+free_ban(struct Ban *ban)
+{
+  MyFree(ban->who);
+  MyFree(ban->banstr);
+  ban->next = free_bans;
+  free_bans = ban;
+}
 
 /** return the struct Membership* that represents a client on a channel
  * This function finds a struct Membership* which holds the state about
@@ -286,25 +319,20 @@ int sub1_from_channel(struct Channel* chptr)
  */
 int destruct_channel(struct Channel* chptr)
 {
-  struct SLink *tmp;
-  struct SLink *obtmp;
+  struct Ban *ban, *next;
 
   assert(0 == chptr->members);
 
   /*
    * Now, find all invite links from channel structure
    */
-  while ((tmp = chptr->invites))
-    del_invite(tmp->value.cptr, chptr);
+  while (chptr->invites)
+    del_invite(chptr->invites->value.cptr, chptr);
 
-  tmp = chptr->banlist;
-  while (tmp)
+  for (ban = chptr->banlist; ban; ban = next)
   {
-    obtmp = tmp;
-    tmp = tmp->next;
-    MyFree(obtmp->value.ban.banstr);
-    MyFree(obtmp->value.ban.who);
-    free_link(obtmp);
+    next = ban->next;
+    free_ban(ban);
   }
   if (chptr->prev)
     chptr->prev->next = chptr->next;
@@ -354,8 +382,8 @@ int destruct_channel(struct Channel* chptr)
 int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
                      int change, int firsttime)
 {
-  struct SLink*  ban;
-  struct SLink** banp;
+  struct Ban*    ban;
+  struct Ban**   banp;
   int            cnt = 0;
   int            removed_bans = 0;
   int            len = strlen(banid);
@@ -370,27 +398,27 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     collapse(banid);
   for (banp = &chptr->banlist; *banp;)
   {
-    len += strlen((*banp)->value.ban.banstr);
+    len += strlen((*banp)->banstr);
     ++cnt;
     if (((*banp)->flags & CHFL_BURST_BAN_WIPEOUT))
     {
-      if (!strcmp((*banp)->value.ban.banstr, banid))
+      if (!strcmp((*banp)->banstr, banid))
       {
         (*banp)->flags &= ~CHFL_BURST_BAN_WIPEOUT;
         return -2;
       }
     }
-    else if (!mmatch((*banp)->value.ban.banstr, banid))
+    else if (!mmatch((*banp)->banstr, banid))
       return -1;
-    if (!mmatch(banid, (*banp)->value.ban.banstr))
+    if (!mmatch(banid, (*banp)->banstr))
     {
-      struct SLink *tmp = *banp;
+      struct Ban *tmp = *banp;
       if (change)
       {
         if (MyUser(cptr))
         {
           cnt--;
-          len -= strlen(tmp->value.ban.banstr);
+          len -= strlen(tmp->banstr);
         }
         *banp = tmp->next;
         /* These will be sent to the user later as -b */
@@ -426,20 +454,16 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
   {
     char*              ip_start;
     struct Membership* member;
-    ban = make_link();
+    ban = make_ban(banid);
     ban->next = chptr->banlist;
 
-    ban->value.ban.banstr = (char*) MyMalloc(strlen(banid) + 1);
-    assert(0 != ban->value.ban.banstr);
-    strcpy(ban->value.ban.banstr, banid);
-
     if (IsServer(cptr) && feature_bool(FEAT_HIS_BANWHO))
-      DupString(ban->value.ban.who, cli_name(&me));
+      DupString(ban->who, cli_name(&me));
     else
-      DupString(ban->value.ban.who, cli_name(cptr));
-    assert(0 != ban->value.ban.who);
+      DupString(ban->who, cli_name(cptr));
+    assert(0 != ban->who);
 
-    ban->value.ban.when = TStime();
+    ban->when = TStime();
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */
     if ((ip_start = strrchr(banid, '@')) && check_if_ipmask(ip_start + 1))
       ban->flags |= CHFL_BAN_IPMASK;
@@ -457,21 +481,16 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
 /** return the next ban that is removed 
  * @returns the next ban that is removed because of overlapping
  */
-struct SLink *next_removed_overlapped_ban(void)
+struct Ban *next_removed_overlapped_ban(void)
 {
-  struct SLink *tmp = removed_bans_list;
   if (prev_ban)
   {
-    if (prev_ban->value.ban.banstr)     /* Can be set to NULL in set_mode() */
-      MyFree(prev_ban->value.ban.banstr);
-    MyFree(prev_ban->value.ban.who);
-    free_link(prev_ban);
+    free_ban(prev_ban);
     prev_ban = 0;
   }
-  if (tmp)
+  if ((prev_ban = removed_bans_list))
     removed_bans_list = removed_bans_list->next;
-  prev_ban = tmp;
-  return tmp;
+  return prev_ban;
 }
 
 /** returns Membership * if a person is joined and not a zombie
@@ -505,7 +524,7 @@ struct Membership* find_channel_member(struct Client* cptr, struct Channel* chpt
 static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
-  struct SLink* tmp;
+  struct Ban*   tmp;
   char          tmphost[HOSTLEN + 1];
   char          nu_host[NUH_BUFSIZE];
   char          nu_realhost[NUH_BUFSIZE];
@@ -545,12 +564,12 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
       if (!ip_s)
         ip_s = make_nick_user_ip(nu_ip, cli_name(cptr),
 				 (cli_user(cptr))->username, &cli_ip(cptr));
-      if (match(tmp->value.ban.banstr, ip_s) == 0)
+      if (match(tmp->banstr, ip_s) == 0)
         break;
     }
-    if (match(tmp->value.ban.banstr, s) == 0)
+    if (match(tmp->banstr, s) == 0)
       break;
-    else if (sr && match(tmp->value.ban.banstr, sr) == 0)
+    else if (sr && match(tmp->banstr, sr) == 0)
       break;
   }
 
@@ -1016,7 +1035,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   int                new_mode = 0;
   size_t             len;
   struct Membership* member;
-  struct SLink*      lp2;
+  struct Ban*        lp2;
   char modebuf[MODEBUFLEN];
   char parabuf[MODEBUFLEN];
   struct MsgBuf *mb;
@@ -1182,7 +1201,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
       /* Attach all bans, space seperated " :%ban ban ..." */
       for (first = 2; lp2; lp2 = lp2->next)
       {
-        len = strlen(lp2->value.ban.banstr);
+        len = strlen(lp2->banstr);
 	if (msgq_bufleft(mb) < len + 1 + first)
           /* The +1 stands for the added ' '.
            * The +first stands for the added ":%".
@@ -1192,7 +1211,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
           break;
         }
 	msgq_append(&me, mb, " %s%s", first ? ":%" : "",
-		    lp2->value.ban.banstr);
+		    lp2->banstr);
 	first = 0;
       }
     }
@@ -1315,14 +1334,14 @@ char *pretty_mask(char *mask)
  */
 static void send_ban_list(struct Client* cptr, struct Channel* chptr)
 {
-  struct SLink* lp;
+  struct Ban* lp;
 
   assert(0 != cptr);
   assert(0 != chptr);
 
   for (lp = chptr->banlist; lp; lp = lp->next)
-    send_reply(cptr, RPL_BANLIST, chptr->chname, lp->value.ban.banstr,
-	       lp->value.ban.who, lp->value.ban.when);
+    send_reply(cptr, RPL_BANLIST, chptr->chname, lp->banstr,
+	       lp->who, lp->when);
 
   send_reply(cptr, RPL_ENDOFBANLIST, chptr->chname);
 }
@@ -2378,7 +2397,7 @@ struct ParseState {
   int args_used;
   int max_args;
   int numbans;
-  struct SLink banlist[MAXPARA];
+  struct Ban banlist[MAXPARA];
   struct {
     unsigned int flag;
     struct Client *client;
@@ -2807,7 +2826,7 @@ static void
 mode_parse_ban(struct ParseState *state, int *flag_p)
 {
   char *t_str, *s;
-  struct SLink *ban, *newban = 0;
+  struct Ban *ban, *newban = 0;
 
   if (state->parc <= 0) { /* Not enough args, send ban list */
     if (MyUser(state->sptr) && !(state->done & DONE_BANLIST)) {
@@ -2848,9 +2867,9 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     newban = state->banlist + (state->numbans++);
     newban->next = 0;
 
-    DupString(newban->value.ban.banstr, t_str);
-    newban->value.ban.who = cli_name(state->sptr);
-    newban->value.ban.when = TStime();
+    DupString(newban->banstr, t_str);
+    newban->who = cli_name(state->sptr);
+    newban->when = TStime();
 
     newban->flags = CHFL_BAN | MODE_ADD;
 
@@ -2888,23 +2907,23 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
      *			     it when we process added bans
      */
 
-    if (state->dir == MODE_DEL && !ircd_strcmp(ban->value.ban.banstr, t_str)) {
+    if (state->dir == MODE_DEL && !ircd_strcmp(ban->banstr, t_str)) {
       ban->flags |= MODE_DEL; /* delete one ban */
 
       if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	break;
     } else if (state->dir == MODE_ADD) {
       /* if the ban already exists, don't worry about it */
-      if (!ircd_strcmp(ban->value.ban.banstr, t_str)) {
+      if (!ircd_strcmp(ban->banstr, t_str)) {
 	newban->flags &= ~MODE_ADD; /* don't add ban at all */
-	MyFree(newban->value.ban.banstr); /* stopper a leak */
+        MyFree(newban->banstr); /* stopper a leak */
 	state->numbans--; /* deallocate last ban */
 	if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	  break;
-      } else if (!mmatch(ban->value.ban.banstr, t_str)) {
+      } else if (!mmatch(ban->banstr, t_str)) {
 	if (!(ban->flags & MODE_DEL))
 	  newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
-      } else if (!mmatch(t_str, ban->value.ban.banstr))
+      } else if (!mmatch(t_str, ban->banstr))
 	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
 
       if (!ban->next && (newban->flags & MODE_ADD))
@@ -2923,7 +2942,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
 static void
 mode_process_bans(struct ParseState *state)
 {
-  struct SLink *ban, *newban, *prevban, *nextban;
+  struct Ban *ban, *newban, *prevban, *nextban;
   int count = 0;
   int len = 0;
   int banlen;
@@ -2931,7 +2950,7 @@ mode_process_bans(struct ParseState *state)
 
   for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) {
     count++;
-    banlen = strlen(ban->value.ban.banstr);
+    banlen = strlen(ban->banstr);
     len += banlen;
     nextban = ban->next;
 
@@ -2944,12 +2963,12 @@ mode_process_bans(struct ParseState *state)
       count--;
       len -= banlen;
 
-      MyFree(ban->value.ban.banstr);
+      MyFree(ban->banstr);
 
       continue;
     } else if (ban->flags & MODE_DEL) { /* Deleted a ban? */
       modebuf_mode_string(state->mbuf, MODE_DEL | MODE_BAN,
-			  ban->value.ban.banstr,
+			  ban->banstr,
 			  state->flags & MODE_PARSE_SET);
 
       if (state->flags & MODE_PARSE_SET) { /* Ok, make it take effect */
@@ -2961,8 +2980,8 @@ mode_process_bans(struct ParseState *state)
 	count--;
 	len -= banlen;
 
-	MyFree(ban->value.ban.who);
-	free_link(ban);
+        ban->banstr = NULL; /* do not free this string */
+        free_ban(ban);
 
 	changed++;
 	continue; /* next ban; keep prevban like it is */
@@ -2979,29 +2998,26 @@ mode_process_bans(struct ParseState *state)
 	  !(state->flags & MODE_PARSE_BOUNCE)) {
 	count--;
 	len -= banlen;
-
-	MyFree(ban->value.ban.banstr);
+        MyFree(ban->banstr);
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
 	     count > feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
-		     ban->value.ban.banstr);
+		     ban->banstr);
 	  count--;
 	  len -= banlen;
-
-	  MyFree(ban->value.ban.banstr);
+          MyFree(ban->banstr);
 	} else {
 	  /* add the ban to the buffer */
 	  modebuf_mode_string(state->mbuf, MODE_ADD | MODE_BAN,
-			      ban->value.ban.banstr,
+			      ban->banstr,
 			      !(state->flags & MODE_PARSE_SET));
 
 	  if (state->flags & MODE_PARSE_SET) { /* create a new ban */
-	    newban = make_link();
-	    newban->value.ban.banstr = ban->value.ban.banstr;
-	    DupString(newban->value.ban.who, ban->value.ban.who);
-	    newban->value.ban.when = ban->value.ban.when;
+	    newban = make_ban(ban->banstr);
+	    DupString(newban->who, ban->who);
+	    newban->when = ban->when;
 	    newban->flags = ban->flags & (CHFL_BAN | CHFL_BAN_IPMASK);
 
 	    newban->next = state->chptr->banlist; /* and link it in */
@@ -3274,9 +3290,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 
   for (i = 0; i < MAXPARA; i++) { /* initialize ops/voices arrays */
     state.banlist[i].next = 0;
-    state.banlist[i].value.ban.banstr = 0;
-    state.banlist[i].value.ban.who = 0;
-    state.banlist[i].value.ban.when = 0;
+    state.banlist[i].who = 0;
+    state.banlist[i].when = 0;
     state.banlist[i].flags = 0;
     state.cli_change[i].flag = 0;
     state.cli_change[i].client = 0;

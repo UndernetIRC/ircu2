@@ -26,11 +26,6 @@ struct SLink {
     struct Channel *chptr;  /**< List element as a channel. */
     struct ConfItem *aconf; /**< List element as a configuration item. */
     char *cp;               /**< List element as a string. */
-    struct {
-      char *banstr;         /**< Ban hostmask. */
-      char *who;            /**< Name of client that set the ban. */
-      time_t when;          /**< Timestamp when ban was added. */
-    } ban;                  /**< List element as a ban. */
   } value;                  /**< Value of list element. */
   unsigned int flags;       /**< Modifier flags for list element. */
 };

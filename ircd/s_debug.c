@@ -203,6 +203,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
 {
   struct Client *acptr;
   struct SLink *link;
+  struct Ban *ban;
   struct Channel *chptr;
   struct ConfItem *aconf;
   const struct ConnectionClass* cltmp;
@@ -283,10 +284,10 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
     chm += (strlen(chptr->chname) + sizeof(struct Channel));
     for (link = chptr->invites; link; link = link->next)
       chi++;
-    for (link = chptr->banlist; link; link = link->next)
+    for (ban = chptr->banlist; link; ban = ban->next)
     {
       chb++;
-      chbm += (strlen(link->value.cp) + 1 + sizeof(struct SLink));
+      chbm += strlen(ban->who) + strlen(ban->banstr) + 2 + sizeof(*ban);
     }
   }
 

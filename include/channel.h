@@ -254,6 +254,18 @@ struct Mode {
   char apass[PASSLEN + 1];
 };
 
+/** A single ban for a channel. */
+struct Ban {
+  struct Ban* next;   /**< next ban in the channel */
+  time_t when;        /**< timestamp when ban was added */
+  unsigned int flags; /**< modifier flags for the ban
+                       * Zero or more of CHFL_BURST_BAN_WIPEOUT,
+                       * CHFL_BAN_OVERLAPPED
+                       */
+  char *who;          /**< name of client that set the ban */
+  char *banstr;       /**< hostmask that the ban matches */
+};
+
 /** Information about a channel */
 struct Channel {
   struct Channel*    next;	/**< next channel in the global channel list */
@@ -265,7 +277,7 @@ struct Channel {
   unsigned int       users;	   /**< Number of clients on this channel */
   struct Membership* members;	   /**< Pointer to the clients on this channel*/
   struct SLink*      invites;	   /**< List of invites on this channel */
-  struct SLink*      banlist;	   /**< List of bans on this channel */
+  struct Ban*        banlist;      /**< List of bans on this channel */
   struct Mode        mode;	   /**< This channels mode */
   char               topic[TOPICLEN + 1]; /**< Channels topic */
   char               topic_nick[NICKLEN + 1]; /**< Nick of the person who set
@@ -374,7 +386,7 @@ extern void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
                                  int *send_itp, char is_a_ban, int mode);
 extern int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
                      int change, int firsttime);
-extern struct SLink *next_removed_overlapped_ban(void);
+extern struct Ban *next_removed_overlapped_ban(void);
 extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
                         const char *param, int *count);
 extern void make_zombie(struct Membership* member, struct Client* who,
@@ -446,5 +458,7 @@ extern void joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
 extern void joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan,
 			 unsigned int flags);
 extern int joinbuf_flush(struct JoinBuf *jbuf);
+extern struct Ban *make_ban(const char *banstr);
+extern void free_ban(struct Ban *ban);
 
 #endif /* INCLUDED_channel_h */
