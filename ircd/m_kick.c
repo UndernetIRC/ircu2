@@ -187,7 +187,10 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     member = 0;
 
   /* Send HACK notice, but not for servers in BURST */
-  if (IsServer(sptr) && !IsBurstOrBurstAck(sptr))
+  /* 2002-10-17: Don't send HACK if the users local server is kicking them */
+  if (IsServer(sptr) 
+      && !IsBurstOrBurstAck(sptr)
+      && !sptr=cli_from(who))
     sendto_opmask_butone(0, SNO_HACK4, "HACK: %C KICK %H %C %s", sptr, chptr,
 			 who, comment);
 
@@ -224,7 +227,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 			  comment);
 
     if (member) { /* and tell the channel about it */
-      sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
+      sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
 				comment);
 
       make_zombie(member, who, cptr, sptr, chptr);

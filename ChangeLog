@@ -1,3 +1,13 @@
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_kick.c (ms_kick): Don't HACK(3) when a server kicks it's own
+	users, opers get twitchy.  Hide the kickee's server.
+
+2002-10-17  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_away.c (m_away): Don't forward away messages if users are
+	already away.  It sucks a lot of bandwidth.
+
 2002-10-15  Tim Vogelsang <net@astrolink.org>
 
        * ircd/channel.c (is_banned): users that are using account and not

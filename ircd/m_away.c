@@ -154,12 +154,14 @@ static int user_set_away(struct User* user, char* message)
 int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char* away_message = parv[1];
+  int was_away = cli_user(sptr)->away != 0;
 
   assert(0 != cptr);
   assert(cptr == sptr);
 
   if (user_set_away(cli_user(sptr), away_message)) {
-    sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
+    if (!was_away)
+    	sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
     send_reply(sptr, RPL_NOWAWAY);
   }
   else {
