@@ -406,7 +406,6 @@ int ms_join(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel* chptr;
   char*           name;
   char*           keysOrTS = NULL;
-  int             i = 0;
   int             zombie = 0;
   int             sendcreate = 0;
   unsigned int    flags = 0;

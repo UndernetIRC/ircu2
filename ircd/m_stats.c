@@ -90,6 +90,7 @@
 /*
  * XXX - ack!!!
  */
+#include "s_stats.h"
 #include "channel.h"
 #include "class.h"
 #include "client.h"
@@ -121,32 +122,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- *  Help info displayed when user provides no stats parameter. --Gte 
- */
-const char *statsinfo[] = {
-    "The following statistics are available:",
-    "U - Service server & nick jupes information.",
-    "u - Current uptime & highest connection count.",
-    "p - Listening ports.",
-    "i - Connection authorisation lines.",
-    "y - Connection classes.",
-    "c - Remote server connection lines.",
-    "h - Hubs information (Oper only).",
-    "d - Dynamic routing configuration.", 
-    "l - Current connections information.",
-    "g - Global bans (G-lines).",
-    "k - Local bans (K-Lines).",
-    "o - Operator information.", 
-    "m - Message usage information.",
-    "t - Local connection statistics (Total SND/RCV, etc).", 
-    "w - Userload statistics.",
-    "M - Memory allocation & leak monitoring.", 
-    "z - Memory/Structure allocation information.",
-    "r - System resource usage (Debug only).", 
-    "x - List usage information (Debug only).",
-    0,
-};
 
 /*
  * m_stats - generic message handler
@@ -178,84 +153,13 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
-  struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
   const char **infotext = statsinfo;
   int i;
 
-/* m_stats is so obnoxiously full of special cases that the different
- * hunt_server() possiblites were becoming very messy. It now uses a
- * switch() so as to be easier to read and update as params change. 
- * -Ghostwolf 
- */
-  switch (stat)
-  {
-      /* open to all, standard # of params */
-    case 'U':
-    case 'u':
-    {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* open to all, varying # of params */
-    case 'k':
-    case 'K':
-    case 'i':
-    case 'I':
-    case 'p':
-    case 'P':
-    {
-      if (parc > 3)
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      break;
-    }
-
-      /* oper only, varying # of params */
-    case 'l':
-    case 'L':
-    case 'M':
-    {
-      if (parc == 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else if (parc > 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc,
-            parv) != HUNTED_ISME)
-          return 0;
-      }
-      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* oper only, standard # of params */
-    default:
-    {
-      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-  }
+  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+    return 0;
 
   switch (stat)
   {
@@ -292,13 +196,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Don't return clients when this is a request for `all' */
         if (doall && IsUser(acptr))
           continue;
-        /* Don't show invisible people to unauthorized people when using
-         * wildcards  -- Is this still needed now /stats is oper only ? 
-         * Yeah it is -- non opers can /stats l, just not remotely.
-         */
-        if (IsInvisible(acptr) && (doall || wilds) &&
-            !(MyConnect(sptr) && IsOper(sptr)) &&
-            !IsAnOper(acptr) && (acptr != sptr))
+        /* Don't show invisible people to non opers unless they know the nick */
+        if (IsInvisible(acptr) && (doall || wilds) && !IsAnOper(acptr) && (acptr != sptr))
           continue;
         /* Only show the ones that match the given mask - if any */
         if (!doall && wilds && match(name, acptr->name))
@@ -319,15 +218,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     case 'G':
     case 'g': /* send glines */
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
-      }
+      gline_stats(sptr);
       break;
     case 'H':
     case 'h':
+      report_configured_links(sptr, CONF_HUB | CONF_LEAF);
       break;
     case 'I':
     case 'i':
@@ -338,14 +233,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       int wilds, count;
       char *user, *host, *p;
       int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if ((MyUser(sptr) || IsOper(sptr)) && parc < 4)
+      if (parc < 4)
       {
         report_configured_links(sptr, conf_status);
         break;
       }
-      if (parc < 4 || *parv[3] == '\0')
-        return need_more_params(sptr,
-                        (conf_status & CONF_KLINE) ? "STATS K" : "STATS I");
 
       wilds = 0;
       for (p = parv[3]; *p; p++)
@@ -362,13 +254,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           break;
         }
       }
-      if (!(MyConnect(sptr) || IsOper(sptr)))
-      {
-        wilds = 0;
-        count = 3;
-      }
-      else
-        count = 1000;
+
+      count = 1000;
 
       if (conf_status == CONF_CLIENT)
       {
@@ -402,7 +289,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (!user || !mmatch(user, aconf->name))))
             {
               sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, 'K', aconf->host, aconf->passwd, aconf->name,
+                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
+		  aconf->host, aconf->passwd, aconf->name,
                   aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
@@ -461,11 +349,9 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * show listener ports
        * show hidden ports to opers, if there are more than 3 parameters,
-       * interpret the fourth parameter as the port number, limit non-local
-       * or non-oper results to 8 ports.
+       * interpret the fourth parameter as the port number.
        */ 
-      show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
-                 (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);
+      show_ports(sptr, 0, (parc > 3) ? atoi(parv[3]) : 0, 100);
       break;
     case 'R':
     case 'r':
@@ -556,83 +442,12 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
-  struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
   int i;
 
-/* m_stats is so obnoxiously full of special cases that the different
- * hunt_server() possiblites were becoming very messy. It now uses a
- * switch() so as to be easier to read and update as params change. 
- * -Ghostwolf 
- */
-  switch (stat)
-  {
-      /* open to all, standard # of params */
-    case 'U':
-    case 'u':
-    {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* open to all, varying # of params */
-    case 'k':
-    case 'K':
-    case 'i':
-    case 'I':
-    case 'p':
-    case 'P':
-    {
-      if (parc > 3)
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      break;
-    }
-
-      /* oper only, varying # of params */
-    case 'l':
-    case 'L':
-    case 'M':
-    {
-      if (parc == 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else if (parc > 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc,
-            parv) != HUNTED_ISME)
-          return 0;
-      }
-      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* oper only, standard # of params */
-    default:
-    {
-      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-  }
+  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+    return 0;
 
   switch (stat)
   {
@@ -670,11 +485,9 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         if (doall && IsUser(acptr))
           continue;
         /* Don't show invisible people to unauthorized people when using
-         * wildcards  -- Is this still needed now /stats is oper only ? */
-        if (IsInvisible(acptr) && (doall || wilds) &&
-            !(MyConnect(sptr) && IsOper(sptr)) &&
-            !IsAnOper(acptr) && (acptr != sptr))
-          continue;
+         * wildcards  -- Is this still needed now /stats is oper only ? 
+	 * Not here, because ms_stats is specifically a remote command, 
+	 * thus the check was removed. -Ghostwolf */
         /* Only show the ones that match the given mask - if any */
         if (!doall && wilds && match(name, acptr->name))
           continue;
@@ -690,17 +503,11 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     case 'C':
     case 'c':
-      if (IsAnOper(sptr))
-        report_configured_links(sptr, CONF_SERVER);
+      report_configured_links(sptr, CONF_SERVER);
       break;
     case 'G':
     case 'g': /* send glines */
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
-      }
+      gline_stats(sptr);
       break;
     case 'H':
     case 'h':
@@ -715,7 +522,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       int wilds, count;
       char *user, *host, *p;
       int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if ((MyUser(sptr) || IsOper(sptr)) && parc < 4)
+      if (IsOper(sptr) && parc < 4)
       {
         report_configured_links(sptr, conf_status);
         break;
@@ -739,7 +546,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           break;
         }
       }
-      if (!(MyConnect(sptr) || IsOper(sptr)))
+      if (!IsOper(sptr))
       {
         wilds = 0;
         count = 3;
@@ -779,7 +586,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (!user || !mmatch(user, aconf->name))))
             {
               sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, 'K', aconf->host, aconf->passwd, aconf->name,
+                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
+		  aconf->host, aconf->passwd, aconf->name,
                   aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
@@ -841,8 +649,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * interpret the fourth parameter as the port number, limit non-local
        * or non-oper results to 8 ports.
        */ 
-      show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
-                 (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);
+      show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, IsOper(sptr) ? 100 : 8);
       break;
     case 'R':
     case 'r':
@@ -932,84 +739,13 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
-  struct Gline* gline;
   struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
   const char **infotext = statsinfo;
   int i;
 
-/* m_stats is so obnoxiously full of special cases that the different
- * hunt_server() possiblites were becoming very messy. It now uses a
- * switch() so as to be easier to read and update as params change. 
- * -Ghostwolf 
- */
-  switch (stat)
-  {
-      /* open to all, standard # of params */
-    case 'U':
-    case 'u':
-    {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* open to all, varying # of params */
-    case 'k':
-    case 'K':
-    case 'i':
-    case 'I':
-    case 'p':
-    case 'P':
-    {
-      if (parc > 3)
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      break;
-    }
-
-      /* oper only, varying # of params */
-    case 'l':
-    case 'L':
-    case 'M':
-    {
-      if (parc == 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
-            != HUNTED_ISME)
-          return 0;
-      }
-      else if (parc > 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc,
-            parv) != HUNTED_ISME)
-          return 0;
-      }
-      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* oper only, standard # of params */
-    default:
-    {
-      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-  }
+  if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
+    return 0;
 
   switch (stat)
   {
@@ -1046,12 +782,6 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Don't return clients when this is a request for `all' */
         if (doall && IsUser(acptr))
           continue;
-        /* Don't show invisible people to unauthorized people when using
-         * wildcards  -- Is this still needed now /stats is oper only ? */
-        if (IsInvisible(acptr) && (doall || wilds) &&
-            !(MyConnect(sptr) && IsOper(sptr)) &&
-            !IsAnOper(acptr) && (acptr != sptr))
-          continue;
         /* Only show the ones that match the given mask - if any */
         if (!doall && wilds && match(name, acptr->name))
           continue;
@@ -1071,12 +801,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     case 'G':
     case 'g': /* send glines */
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
-      }
+      gline_stats(sptr);
       break;
     case 'H':
     case 'h':
@@ -1091,14 +816,11 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       int wilds, count;
       char *user, *host, *p;
       int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if ((MyUser(sptr) || IsOper(sptr)) && parc < 4)
+      if (parc < 4)
       {
         report_configured_links(sptr, conf_status);
         break;
       }
-      if (parc < 4 || *parv[3] == '\0')
-        return need_more_params(sptr,
-                        (conf_status & CONF_KLINE) ? "STATS K" : "STATS I");
 
       wilds = 0;
       for (p = parv[3]; *p; p++)
@@ -1115,13 +837,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           break;
         }
       }
-      if (!(MyConnect(sptr) || IsOper(sptr)))
-      {
-        wilds = 0;
-        count = 3;
-      }
-      else
-        count = 1000;
+
+      count = 1000;
 
       if (conf_status == CONF_CLIENT)
       {
@@ -1155,7 +872,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (!user || !mmatch(user, aconf->name))))
             {
               sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, 'K', aconf->host, aconf->passwd, aconf->name,
+                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
+		  aconf->host, aconf->passwd, aconf->name,
                   aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
@@ -1217,8 +935,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * interpret the fourth parameter as the port number, limit non-local
        * or non-oper results to 8 ports.
        */ 
-      show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
-                 (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);
+      show_ports(sptr, 1, (parc > 3) ? atoi(parv[3]) : 0, 100);
       break;
     case 'R':
     case 'r':
@@ -1656,3 +1373,5 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   return 0;
 }
 #endif /* 0 */
+
+

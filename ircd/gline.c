@@ -23,6 +23,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "numeric.h"
@@ -30,9 +31,14 @@
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
+#include "support.h"
+#include "msg.h"
+#include "numnicks.h"
+#include "numeric.h"
 #include "sys.h"    /* FALSE bleah */
 
 #include <assert.h>
+#include <string.h>
 
 struct Gline* GlobalGlineList  = 0;
 struct Gline* BadChanGlineList = 0;
@@ -56,11 +62,11 @@ static struct Gline *
 make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
 	   unsigned int flags)
 {
-  struct Gline *agline;
+  struct Gline *gline;
   char *user, *host;
 
-  agline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
-  assert(0 != agline);
+  gline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
+  assert(0 != gline);
 
   gline->gl_expire = expire; /* initialize gline... */
   gline->gl_lastmod = lastmod;
@@ -73,8 +79,8 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
     gline->gl_next = BadChanGlineList; /* then link it into list */
     gline->gl_prev_p = &BadChanGlineList;
     if (BadChanGlineList)
-      BadChanGlineList->gl_prev_p = &agline->gl_next;
-    BadChanGlineList = agline;
+      BadChanGlineList->gl_prev_p = &gline->gl_next;
+    BadChanGlineList = gline;
   } else {
     canon_userhost(userhost, &user, &host, "*"); /* find user and host */
 
@@ -87,11 +93,11 @@ make_gline(char *userhost, char *reason, time_t expire, time_t lastmod,
     gline->gl_next = GlobalGlineList; /* then link it into list */
     gline->gl_prev_p = &GlobalGlineList;
     if (GlobalGlineList)
-      GlobalGlineList->gl_prev_p = &agline->gl_next;
-    GlobalGlineList = agline;
+      GlobalGlineList->gl_prev_p = &gline->gl_next;
+    GlobalGlineList = gline;
   }
 
-  return agline;
+  return gline;
 }
 
 static int
@@ -111,13 +117,13 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
       if (!acptr->user)
 	continue;
 
-      if ((GlineIsIpMask(gline) ? match(gline->host, acptr->sock_ip) :
-	   match(gline->host, acptr->sockhost)) == 0 &&
+      if ((GlineIsIpMask(gline) ? match(gline->gl_host, acptr->sock_ip) :
+	   match(gline->gl_host, acptr->sockhost)) == 0 &&
 	  (!acptr->user->username ||
-	   match(gline->name, acptr->user->username) == 0)) {
+	   match(gline->gl_user, acptr->user->username) == 0)) {
 	/* ok, here's one that got G-lined */
 	sendto_one(acptr, ":%s %d %s :*** %s.", me.name, ERR_YOUREBANNEDCREEP,
-		   acptr->name, gline->reason);
+		   acptr->name, gline->gl_reason);
 
 	/* let the ops know about it */
 	sendto_op_mask(SNO_GLINE, "G-line active for %s",
@@ -125,7 +131,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 
 	/* and get rid of him */
 	if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",
-				    gline->reason)))
+				    gline->gl_reason)))
 	  retval = tval; /* retain killed status */
       }
     }
@@ -363,9 +369,9 @@ gline_find(char *userhost, unsigned int flags)
 
     if (gline->gl_expire <= TStime())
       gline_free(gline);
-    else if (match(gline->host, host) == 0 &&
-	     ((!user && ircd_strcmp(gline->user, "*") == 0) ||
-	      match(gline->user, user) == 0))
+    else if (match(gline->gl_host, host) == 0 &&
+	     ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
+	      match(gline->gl_user, user) == 0))
       break;
   }
 
@@ -470,7 +476,7 @@ gline_list(struct Client *sptr, char *userhost)
     }
 
     /* send gline information along */
-    sendto_one(sptr, rpl_str(GLIST), me.name, sptr->name, gline->gl_user,
+    sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
 	       GlineIsBadChan(gline) ? "" : "@",
 	       GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire,
 	       GlineIsLocal(gline) ? me.name : "*",
@@ -482,7 +488,7 @@ gline_list(struct Client *sptr, char *userhost)
       if (gline->gl_expire <= TStime())
 	gline_free(gline);
       else
-	sendto_one(sptr, rpl_str(GLIST), me.name, sptr->name, gline->gl_user,
+	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
 		   "@", gline->gl_host, gline->gl_expire,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
@@ -494,7 +500,7 @@ gline_list(struct Client *sptr, char *userhost)
       if (gline->gl_expire <= TStime())
 	gline_free(gline);
       else
-	sendto_one(sptr, rpl_str(GLIST), me.name, sptr->name, gline->gl_user,
+	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
 		   "", "", gline->gl_expire,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
@@ -502,7 +508,7 @@ gline_list(struct Client *sptr, char *userhost)
   }
 
   /* end of gline information */
-  sendto_one(cptr, rpl_str(RPL_ENDOFGLIST), me.name, sptr->name);
+  sendto_one(sptr, rpl_str(RPL_ENDOFGLIST), me.name, sptr->name);
   return 0;
 }
 

@@ -161,6 +161,7 @@ SRC = \
 	s_misc.c \
 	s_numeric.c \
 	s_serv.c \
+	s_stats.c \
 	s_user.c \
 	send.c \
 	sprintf_irc.c \
@@ -723,7 +724,7 @@ m_stats.o: m_stats.c ../include/channel.h ../config/config.h \
  ../include/numnicks.h ../include/opercmds.h ../include/s_bsd.h \
  ../include/s_conf.h ../include/s_debug.h ../include/s_misc.h \
  ../include/s_serv.h ../include/s_user.h ../include/send.h \
- ../include/userload.h
+ ../include/userload.h ../include/s_stats.h
 m_time.o: m_time.c ../include/client.h ../include/dbuf.h \
  ../include/ircd_defs.h ../include/ircd_handler.h ../include/ircd.h \
  ../config/config.h ../config/setup.h ../include/struct.h \
