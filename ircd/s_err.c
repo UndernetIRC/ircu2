@@ -21,6 +21,7 @@
 #include "numeric.h"
 #include "s_debug.h"
 #include "sprintf_irc.h"
+#include "ircd_defs.h"
 
 #include <assert.h>
 

@@ -30,6 +30,11 @@
  */
 
 /*
+ * NETWORK is the name of the network as announced by the server
+ */
+#define NETWORK		"Undernet"
+
+/*
  * NICKLEN is the maximum length allowed for a nickname
  */
 #define NICKLEN         9

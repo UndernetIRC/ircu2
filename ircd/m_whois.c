@@ -283,7 +283,7 @@ exact_match:
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
         if (!IsAnOper(sptr) && sptr != acptr)
 	  sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-	      parv[0], name, "*.undernet.org","The Undernet Underworld");
+	      parv[0], name, HEAD_IN_SAND_SERVERNAME,HEAD_IN_SAND_SERVERINFO);
         else
 #endif
           sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
