@@ -1,3 +1,8 @@
+2004-01-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_numeric.c (do_numeric): fix a crash when a numeric is
+	sent to a channel...
+
 2003-12-31  Perry Lorier <isomer@undernet.org>
 	* ircd/s_misc.c: Fix bug in incorrect %Tu format specifier
 
