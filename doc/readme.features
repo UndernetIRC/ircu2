@@ -1,7 +1,9 @@
 Many of the old compile-time options are now configured through the
 server configuration file, ircd.conf.  This file is intended to
 document each of these features.  Logging, although also configured
-through the use of F-lines, is documented in doc/readme.log.
+through the use of F-lines, is documented in doc/readme.log.  NOTE
+THAT THESE NAMES ARE CASE SENSITIVE!  Values are not case sensitive
+unless stated otherwise in the documentation for that feature.
 
 DOMAINNAME
  * Type: string
