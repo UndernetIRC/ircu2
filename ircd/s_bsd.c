@@ -702,7 +702,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
     switch (os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length)) {
     case IO_SUCCESS:
       if (length) {
-        cli_lasttime(cptr) = CurrentTime;
+        if (!IsServer(cptr))
+          cli_lasttime(cptr) = CurrentTime;
         if (cli_lasttime(cptr) > cli_since(cptr))
           cli_since(cptr) = cli_lasttime(cptr);
         cli_flags(cptr) &= ~(FLAGS_PINGSENT | FLAGS_NONL);

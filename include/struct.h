@@ -52,6 +52,10 @@ struct Server {
   unsigned short  nn_last;      /* Last numeric nick for p9 servers only */
   unsigned int    nn_mask;      /* [Remote] FD_SETSIZE - 1 */
   char          nn_capacity[4]; /* numeric representation of server capacity */
+  
+  int		  asll_rtt;	/* AsLL round-trip time */
+  int		  asll_to;	/* AsLL upstream lag */
+  int		  asll_from;	/* AsLL downstream lag */
 
   char *last_error_msg;         /* Allocated memory with last message receive with an ERROR */
   char by[NICKLEN + 1];
