@@ -800,15 +800,15 @@ void vsendto_ops(const char *pattern, va_list vl)
 
   fmt_target = sprintf_irc(fmt, ":%s NOTICE ", me.name);
 
-  for (i = 0; i <= HighestFd; i++)
-    if ((cptr = LocalClientArray[i]) && !IsServer(cptr) &&
-        SendServNotice(cptr))
+  for (i = 0; i <= HighestFd; i++) {
+    if ((cptr = LocalClientArray[i]) && !IsServer(cptr) && SendServNotice(cptr))
     {
       strcpy(fmt_target, cptr->name);
       strcat(fmt_target, " :*** Notice -- ");
       strcat(fmt_target, pattern);
       vsendto_one(cptr, fmt, vl);
     }
+  }
 }
 
 void sendto_op_mask(unsigned int mask, const char *pattern, ...)

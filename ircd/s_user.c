@@ -1084,8 +1084,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (IsServer(sptr) || sptr != acptr)
   {
     if (IsServer(cptr))
-      sendto_ops_butone(NULL, &me, ":%s WALLOPS :MODE for User %s From %s!%s",
-          me.name, parv[1], cptr->name, sptr->name);
+      sendto_ops("MODE for User %s From %s!%s", parv[1], cptr->name, sptr->name);
     else
       sendto_one(sptr, err_str(ERR_USERSDONTMATCH), me.name, parv[0]);
     return 0;
