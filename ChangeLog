@@ -1,5 +1,9 @@
 2003-11-22  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* tools/wrapper.c: commit uid on chroot fix from ubra
+
+	* ircd/version.c.SH: fix generation generation
+
 	* ircd/m_nick.c (m_nick): truncate the nickname to the minimum of
 	the maximum allowed length (NICKLEN) or the allowed nickname
 	length specified as the NICKLEN feature
