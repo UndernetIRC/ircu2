@@ -47,6 +47,9 @@
 #define INADDR_NONE ((unsigned int) 0xffffffff)
 #endif
 
+int tos_server = 0x08; // Low delay
+int tos_client = 0x08; // Low delay
+
 struct Listener* ListenerPollList = 0;
 
 static struct Listener* make_listener(int port, struct in_addr addr)
@@ -212,6 +215,12 @@ static int inetport(struct Listener* listener)
     report_error(NONB_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
     return 0;
+  }
+  /*
+   * Set the TOS bits - this is nonfatal if it doesn't stick.
+   */
+  if (!os_set_tos(fd,(listener->server) ? tos_server : tos_client)) {
+    report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
   }
   listener->fd = fd;
 

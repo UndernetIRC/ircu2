@@ -157,6 +157,12 @@ int os_set_sockbufs(int fd, unsigned int size)
           0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)));
 }
 
+int os_set_tos(int fd,int tos)
+{
+  unsigned int opt = tos;
+  return (0 == setsockopt(fd, SOL_IP, IP_TOS, &opt, sizeof(opt)));
+}
+
 int os_disable_options(int fd)
 {
   return (0 == setsockopt(fd, IPPROTO_IP, IP_OPTIONS, NULL, 0));
