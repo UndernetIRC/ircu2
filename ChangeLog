@@ -1,3 +1,10 @@
+2001-06-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/table_gen.c (makeTables): finally got tired of the
+	"overflow in implicit conversion" warning, so just got rid of it
+	by explicitly casting UCHAR_MAX to a (default) char; diffs show no
+	differences in the tables generated
+
 2001-06-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c (sendcmdto_match_butone): don't let the server crash
