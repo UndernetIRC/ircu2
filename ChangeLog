@@ -1,3 +1,31 @@
+2002-04-03  Alex Badea  <vampire@p16.pub.ro>
+
+	* include/s_user.h: added a sptr parameter to InfoFormatter
+	function type
+
+	* ircd/m_who.c: don't match IPs for clients which have a hidden host,
+	except when the inquiring user is an oper
+
+	* ircd/whocmds.c: show the fake IP from FEAT_HIDDEN_IP if the
+	target has a hidden host, but show real IP to opers
+
+	* ircd/m_userip.c (userip_formatter): add sptr parameter; show the
+	fake IP from FEAT_HIDDEN_IP if the target has a hidden host, but
+	show real IP to opers
+
+	* ircd/m_userhost.c (userhost_formatter): add (unused) sptr parameter
+
+	* ircd/s_user.c (send_user_info): pass sptr to the formatting function
+
+	* include/ircd_features.h: new feature FEAT_HIDDEN_IP (stores which
+	fake IP to show for clients with a hidden host)
+
+	* ircd/ircd_features.c: new feature FEAT_HIDDEN_IP
+
+	* doc/example.conf: default value for FEAT_HIDDEN_IP
+
+	* doc/readme.features: documented FEAT_HIDDEN_IP
+
 2002-04-03 Andrew Miller <a1kmm@mware.virtualave.net>
 	* doc/example.conf: Cleaned up some comments that ended up in
 	  strange places due to problems in the merge process.

@@ -44,6 +44,7 @@ enum Feature {
   FEAT_NICKNAMEHISTORYLENGTH,
   FEAT_HOST_HIDING,
   FEAT_HIDDEN_HOST,
+  FEAT_HIDDEN_IP,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,

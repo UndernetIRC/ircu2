@@ -1036,7 +1036,7 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
     if ((acptr = FindUser(name))) {
       if (users_found++)
 	msgq_append(0, mb, " ");
-      (*fmt)(acptr, mb);
+      (*fmt)(acptr, sptr, mb);
     }
     if (5 == ++arg_count)
       break;

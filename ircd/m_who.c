@@ -401,6 +401,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               && ((!(matchsel & WHO_FIELD_REN))
               || matchexec(cli_info(acptr), mymask, minlen))
               && ((!(matchsel & WHO_FIELD_NIP))
+	      || (HasHiddenHost(acptr) && !IsAnOper(sptr))
               || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) !=
               imask.bits.s_addr)) || (imask.fall
               && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
@@ -440,6 +441,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             && ((!(matchsel & WHO_FIELD_REN))
             || matchexec(cli_info(acptr), mymask, minlen))
             && ((!(matchsel & WHO_FIELD_NIP))
+	    || (HasHiddenHost(acptr) && !IsAnOper(sptr))
             || ((((cli_ip(acptr).s_addr & imask.mask.s_addr) != imask.bits.s_addr))
             || (imask.fall
             && matchexec(ircd_ntoa((const char*) &(cli_ip(acptr))), mymask, minlen)))))
