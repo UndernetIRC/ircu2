@@ -172,9 +172,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel *chptr;
   struct JoinBuf join;
   struct JoinBuf create;
-#ifdef BADCHAN
   struct Gline *gline;
-#endif
   unsigned int flags = 0;
   int i;
   char *p = 0;
@@ -204,14 +202,12 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
-#ifdef BADCHAN
     /* BADCHANed channel */
     if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
 	GlineIsActive(gline) && !IsAnOper(sptr)) {
       send_reply(sptr, ERR_BANNEDFROMCHAN, name);
       continue;
     }
-#endif
 
     if ((chptr = FindChannel(name))) {
       if (find_member_link(chptr, sptr))
@@ -221,12 +217,8 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     } else
       flags = IsModelessChannel(name) ? CHFL_DEOPPED : CHFL_CHANOP;
 
-    if (cli_user(sptr)->joined >= MAXCHANNELSPERUSER
-#ifdef OPER_NO_CHAN_LIMIT
-	/* Opers are allowed to join any number of channels */
-	&& !IsAnOper(sptr)
-#endif
-	) {
+    if (cli_user(sptr)->joined >= MAXCHANNELSPERUSER &&
+	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
       send_reply(sptr, ERR_TOOMANYCHANNELS, chptr ? chptr->chname : name);
       break; /* no point processing the other channels */
     }
@@ -235,7 +227,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (check_target_limit(sptr, chptr, chptr->chname, 0))
 	continue; /* exceeded target limit */
       else if ((i = can_join(sptr, chptr, keys))) {
-#ifdef OPER_WALK_THROUGH_LMODES
 	if (i > MAGIC_OPER_OVERRIDE) { /* oper overrode mode */
 	  switch (i - MAGIC_OPER_OVERRIDE) {
 	  case ERR_CHANNELISFULL: /* figure out which mode */
@@ -262,10 +253,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  send_reply(sptr, i, chptr->chname);
 	  continue;
 	}
-#else
-	send_reply(sptr, i, chptr->chname);
-	continue;
-#endif
       } /* else if ((i = can_join(sptr, chptr, keys))) { */
 
       joinbuf_join(&join, chptr, flags);

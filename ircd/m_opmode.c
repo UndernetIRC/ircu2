@@ -92,6 +92,7 @@
 #include "channel.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -140,17 +141,21 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#ifndef CONFIG_OPERCMDS
-  return send_reply(sptr, ERR_DISABLED, "OPMODE");
-#else
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
   struct Membership *member;
+
+  if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+    return send_reply(sptr, ERR_DISABLED, "OPMODE");
 
   if (parc < 3)
     return need_more_params(sptr, "OPMODE");
 
   clean_channelname(parv[1]);
+
+  if (!HasPriv(sptr,
+	       IsLocalChannel(parv[1]) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
@@ -172,6 +177,5 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   modebuf_flush(&mbuf); /* flush the modes */
 
   return 0;
-#endif /* CONFIG_OPERCMDS */
 }
 

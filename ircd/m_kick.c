@@ -136,11 +136,9 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsChannelService(who))
     return send_reply(sptr, ERR_ISCHANSERVICE, cli_name(who), chptr->chname);
 
-#ifdef NO_OPER_DEOP_LCHAN
   /* Prevent kicking opers from local channels -DM- */
-  if (IsOperOnLocalChannel(who, chptr->chname))
+  if (IsLocalChannel(chptr->chname) && HasPriv(who, PRIV_DEOP_LCHAN))
     return send_reply(sptr, ERR_ISOPERLCHAN, cli_name(who), chptr->chname);
-#endif
 
   /* check if kicked user is actually on the channel */
   if (!(member = find_member_link(chptr, who)) || IsZombie(member))

@@ -21,6 +21,7 @@
 #include "client.h"
 #include "class.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "list.h"
 #include "numeric.h"
@@ -91,4 +92,104 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
       con_prev_p(*con_p) = &(con_next(con));
     *con_p = con;
   }
+}
+
+/* client_set_privs(struct Client* client)
+ *
+ * Sets the privileges for opers.
+ */
+void
+client_set_privs(struct Client* client)
+{
+  unsigned int privs = 0;
+  unsigned int antiprivs = 0;
+
+  if (!IsAnOper(client)) {
+    cli_privs(client) = 0; /* clear privilege mask */
+    return;
+  } else if (!MyConnect(client)) {
+    cli_privs(client) = ~(PRIV_SET); /* everything but set... */
+    return;
+  }
+
+  /* This sequence is temporary until the .conf is carefully rewritten */
+
+  privs |= (PRIV_WHOX | PRIV_DISPLAY);
+  if (feature_bool(FEAT_OPER_NO_CHAN_LIMIT))
+    privs |= PRIV_CHAN_LIMIT;
+  if (feature_bool(FEAT_OPER_MODE_LCHAN))
+    privs |= (PRIV_MODE_LCHAN | PRIV_LOCAL_OPMODE);
+  if (feature_bool(FEAT_OPER_WALK_THROUGH_LMODES))
+    privs |= PRIV_WALK_LCHAN;
+  if (feature_bool(FEAT_NO_OPER_DEOP_LCHAN))
+    privs |= PRIV_DEOP_LCHAN;
+  if (feature_bool(FEAT_SHOW_INVISIBLE_USERS))
+    privs |= PRIV_SHOW_INVIS;
+  if (feature_bool(FEAT_SHOW_ALL_INVISIBLE_USERS))
+    privs |= PRIV_SHOW_ALL_INVIS;
+  if (feature_bool(FEAT_UNLIMIT_OPER_QUERY))
+    privs |= PRIV_UNLIMIT_QUERY;
+  if (feature_bool(FEAT_LOCAL_KILL_ONLY))
+    antiprivs |= PRIV_KILL;
+  if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+    antiprivs |= (PRIV_GLINE | PRIV_JUPE | PRIV_OPMODE | PRIV_BADCHAN);
+
+  if (IsOper(client)) {
+    privs |= (PRIV_SET | PRIV_PROPAGATE | PRIV_SEE_OPERS);
+    if (feature_bool(FEAT_OPER_KILL))
+      privs |= (PRIV_KILL | PRIV_LOCAL_KILL);
+    if (feature_bool(FEAT_OPER_REHASH))
+      privs |= PRIV_REHASH;
+    if (feature_bool(FEAT_OPER_RESTART))
+      privs |= PRIV_RESTART;
+    if (feature_bool(FEAT_OPER_DIE))
+      privs |= PRIV_DIE;
+    if (feature_bool(FEAT_OPER_GLINE))
+      privs |= PRIV_GLINE;
+    if (feature_bool(FEAT_OPER_LGLINE))
+      privs |= PRIV_LOCAL_GLINE;
+    if (feature_bool(FEAT_OPER_JUPE))
+      privs |= PRIV_JUPE;
+    if (feature_bool(FEAT_OPER_LJUPE))
+      privs |= PRIV_LOCAL_JUPE;
+    if (feature_bool(FEAT_OPER_OPMODE))
+      privs |= PRIV_OPMODE;
+    if (feature_bool(FEAT_OPER_LOPMODE))
+      privs |= PRIV_LOCAL_OPMODE;
+    if (feature_bool(FEAT_OPER_BADCHAN))
+      privs |= PRIV_BADCHAN;
+    if (feature_bool(FEAT_OPER_LBADCHAN))
+      privs |= PRIV_LOCAL_BADCHAN;
+    if (feature_bool(FEAT_OPERS_SEE_IN_SECRET_CHANNELS))
+      privs |= PRIV_SEE_CHAN;
+  } else { /* is a local operator */
+    if (feature_bool(FEAT_LOCOP_KILL))
+      privs |= PRIV_LOCAL_KILL;
+    if (feature_bool(FEAT_LOCOP_REHASH))
+      privs |= PRIV_REHASH;
+    if (feature_bool(FEAT_LOCOP_RESTART))
+      privs |= PRIV_RESTART;
+    if (feature_bool(FEAT_LOCOP_DIE))
+      privs |= PRIV_DIE;
+    if (feature_bool(FEAT_LOCOP_LGLINE))
+      privs |= PRIV_LOCAL_GLINE;
+    if (feature_bool(FEAT_LOCOP_LJUPE))
+      privs |= PRIV_LOCAL_JUPE;
+    if (feature_bool(FEAT_LOCOP_LOPMODE))
+      privs |= PRIV_LOCAL_OPMODE;
+    if (feature_bool(FEAT_LOCOP_LBADCHAN))
+      privs |= PRIV_LOCAL_BADCHAN;
+    if (feature_bool(FEAT_LOCOP_SEE_IN_SECRET_CHANNELS))
+      privs |= PRIV_SEE_CHAN;
+  }
+
+  /* This is the end of the gross section */
+
+  if (privs & PRIV_PROPAGATE)
+    privs |= PRIV_DISPLAY;
+  else
+    antiprivs |= (PRIV_KILL | PRIV_GLINE | PRIV_JUPE | PRIV_OPMODE |
+		  PRIV_BADCHAN);
+
+  cli_privs(client) = privs & ~antiprivs;
 }

@@ -26,6 +26,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
@@ -51,129 +52,113 @@
 #include <string.h>
 #include <unistd.h>
 
-/* *INDENT-OFF* */
-
 /*
  * Option string.  Must be before #ifdef DEBUGMODE.
  */
-char serveropts[] = {
+static char serveropts[256]; /* should be large enough for anything */
+
+const char* debug_serveropts(void)
+{
+  int i = 0;
+#define AddC(c)	serveropts[i++] = (c)
+
 #if BUFFERPOOL < 1000000
-    'b',
+  AddC('b');
 #if BUFFERPOOL > 99999
-    (char)('0' + (BUFFERPOOL/100000)),
+  AddC((char)('0' + (BUFFERPOOL/100000)));
 #endif
 #if BUFFERPOOL > 9999
-    (char)('0' + (BUFFERPOOL/10000) % 10),
+  AddC((char)('0' + (BUFFERPOOL/10000) % 10));
 #endif
-    (char)('0' + (BUFFERPOOL/1000) % 10),
+  AddC((char)('0' + (BUFFERPOOL/1000) % 10));
 #else
-    'B',
+  AddC('B');
 #if BUFFERPOOL > 99999999
-    (char)('0' + (BUFFERPOOL/100000000)),
+  AddC((char)('0' + (BUFFERPOOL/100000000)));
 #endif
 #if BUFFERPOOL > 9999999
-    (char)('0' + (BUFFERPOOL/10000000) % 10),
+  AddC((char)('0' + (BUFFERPOOL/10000000) % 10));
 #endif
-    (char)('0' + (BUFFERPOOL/1000000) % 10),
+  AddC((char)('0' + (BUFFERPOOL/1000000) % 10));
 #endif
 #ifdef  CHROOTDIR
-    'c',
+  AddC('c');
 #endif
 #ifdef  CMDLINE_CONFIG
-    'C',
-#endif
-#ifdef  DO_ID
-    'd',
+  AddC('C');
 #endif
 #ifdef  DEBUGMODE
-    'D',
+  AddC('D');
 #endif
-#ifdef  LOCOP_REHASH
-    'e',
-#endif
-#ifdef  OPER_REHASH
-    'E',
-#endif
-#ifdef OPER_NO_CHAN_LIMIT
-    'F',
-#endif
-#ifdef OPER_MODE_LCHAN
-    'f',
-#endif
+
+  if (feature_bool(FEAT_LOCOP_REHASH))
+    AddC('e');
+
+  if (feature_bool(FEAT_OPER_REHASH))
+    AddC('E');
+
+  if (feature_bool(FEAT_OPER_NO_CHAN_LIMIT))
+    AddC('F');
+
+  if (feature_bool(FEAT_OPER_MODE_LCHAN))
+    AddC('f');
+
 #ifdef  HUB
-    'H',
+  AddC('H');
 #endif
-#if defined(SHOW_INVISIBLE_USERS) ||  defined(SHOW_ALL_INVISIBLE_USERS)
-#ifdef  SHOW_ALL_INVISIBLE_USERS
-    'I',
-#else
-    'i',
-#endif
-#endif
-#ifdef  OPER_KILL
-#ifdef  LOCAL_KILL_ONLY
-    'k',
-#else
-    'K',
-#endif
-#endif
-#ifdef  LEAST_IDLE
-    'L',
-#endif
-#ifdef OPER_WALK_THROUGH_LMODES
-    'l',
-#endif
+
+  if (feature_bool(FEAT_SHOW_ALL_INVISIBLE_USERS))
+    AddC('I');
+  else if (feature_bool(FEAT_SHOW_INVISIBLE_USERS))
+    AddC('i');
+
+  if (feature_bool(FEAT_OPER_KILL)) {
+    if (feature_bool(FEAT_LOCAL_KILL_ONLY))
+      AddC('k');
+    else
+      AddC('K');
+  }
+
+  if (feature_bool(FEAT_OPER_WALK_THROUGH_LMODES))
+    AddC('l');
+
 #ifdef  IDLE_FROM_MSG
-    'M',
+  AddC('M');
 #endif
 #ifdef  USEONE
-    'O',
+  AddC('O');
 #endif
-#ifdef NO_OPER_DEOP_LCHAN
-    'o',
-#endif
+
+  if (feature_bool(FEAT_NO_OPER_DEOP_LCHAN))
+    AddC('o');
+
 #ifdef  CRYPT_OPER_PASSWORD
-    'p',
+  AddC('p');
 #endif
 #ifdef  CRYPT_LINK_PASSWORD
-    'P',
-#endif
-#ifdef  DEBUGMALLOC
-#ifdef  MEMLEAKSTATS
-    'Q',
-#else
-    'q',
-#endif
+  AddC('P');
 #endif
 #ifdef  RELIABLE_CLOCK
-    'R',
+  AddC('R');
 #endif
-#ifdef  LOCOP_RESTART
-    's',
-#endif
-#ifdef  OPER_RESTART
-    'S',
-#endif
-#ifdef  OPER_REMOTE
-    't',
-#endif
+
+  if (feature_bool(FEAT_LOCOP_RESTART))
+    AddC('s');
+
+  if (feature_bool(FEAT_OPER_RESTART))
+    AddC('S');
+
 #if defined(USE_POLL) && defined(HAVE_POLL_H)
-    'U',
+  AddC('U');
 #endif
 #ifdef  VIRTUAL_HOST
-    'v',
+  AddC('v');
 #endif
-#ifdef BADCHAN
-    'W',
-#ifdef LOCAL_BADCHAN
-    'x',
-#endif
-#endif
-    '\0'
-};
 
-/* *INDENT-ON* */
+  serveropts[i] = '\0';
 
+  return serveropts;
+}
 
 /*
  * debug_init

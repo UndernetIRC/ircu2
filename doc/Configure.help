@@ -628,119 +628,6 @@ R_LINES_OFTEN
   Note that this is -very- likely to cause a severe drain on your resources.
   Use at your own risk, specify 'n' unless your really sure.
 
-Allow (local) Opers to see all local invisible users
-SHOW_INVISIBLE_USERS
-  If you specify 'y' here, then your (local) IRC Operators will be able to
-  see all local invisible users (clients connected to your own server).
-  The reason for this is to hunt for clone bots, make sure your Operators do
-  not use this "feature" for spying on individuals and respect the user that
-  wishes to be invisible (mostly meaning that they don't want to be found when
-  on certain channels).
-  Note: If you answer 'n' here, then you will also not be able to see remote
-  invisible users (if you specify 'y' you will also get a configuration
-  question that asks you to specify whether or not you want your Opers to see
-  remote invisible users or not).
-
-Allow Opers to see all invisible users
-SHOW_ALL_INVISIBLE_USERS
-  If you specify 'y' here, then your global IRC Operators (O:) will be able
-  to see ALL invisible users.  The reason for this is to hunt for clone bots,
-  make sure your Operators do not use this "feature" for spying on individuals
-  and respect the user that wishes to be invisible (mostly meaning that they
-  don't want to be found when on certain channels).
-
-Allow global Opers (O:) to see inside secret channels
-OPERS_SEE_IN_SECRET_CHANNELS
-  If you specify 'y' here, then your global IRC Operators (O:) will be able
-  to see who is on a specified, secret channel, without joining themselfs.
-  This can be needed to make a reasonable judgement in the case of a "channel
-  takeover" being reported, while the channel is set invite only.
-  See doc/readme.who for more details.
-
-Allow local Opers (o:) to see inside secret channels
-LOCOP_SEE_IN_SECRET_CHANNELS
-  If you specify 'y' here, then your local IRC Operators (o:) will be able
-  to see who is on a specified, secret channel, without joining themselfs.
-  This can be needed to make a reasonable judgement in the case of a "channel
-  takeover" being reported, while the channel is set invite only.
-  See doc/readme.who for more details.
-  If unsure, specify 'n'.
-
-Don't truncate obnoxiously long /who output for opers
-UNLIMIT_OPER_QUERY
-  A /who command can sometimes return several hundred lines of info. To
-  reduce flooding and sending too much, the output is truncated. By
-  answering 'y' to this, when an IRC Operator uses /who, the output will
-  not be truncated, no matter how much data is returned.
-
-Allow Opers to use the KILL command
-OPER_KILL
-  You can select 'n' if you don't think operators should be able
-  to use the KILL command, and wish to prevent your operators from
-  using it.  This will not, however, prevent operators on other
-  servers from issuing KILLs to your clients.  You probably want to
-  select 'y' for this unless you really really don't think KILL
-  should -ever- be used by an operator.
-
-Allow Opers to use the REHASH command
-OPER_REHASH
-  Allows operators to use the REHASH command to reload the servers
-  configuration file (ircd.conf) if you select 'n', you can still
-  reload the configuration file with a unix command,
-  kill -HUP `cat ircd.pid`.  If unsure, select 'y'.
-
-Allow Opers to use the RESTART command
-OPER_RESTART
-  Allows an operator to use the RESTART command to cause the server
-  to restart, using the ircd executable in SPATH.  If unsure, select 'y'.
-
-Allow Opers to use the DIE command
-OPER_DIE
-  Allows an operator to use the DIE command to shutdown the server
-  online.  If you select 'n' you will need to send the server a kill
-  signal to shutdown the server.  If unsure, select 'y'.
-
-Allow Opers to add local G-lines
-OPER_LGLINE
-  Allows operators to add local G-lines with the GLINE command.  This is
-  like a *local* KILL, except that the user being killed can't immediately
-  reconnect: He will have to wait for the G-line to expire.
-  The reason for adding this is that a KILL is rather useless for removing
-  (or 'warning') abusers (it is still THE command to remove ghosts and
-  a-like, the reason KILL was added in the first place).  However, adding
-  G-lines for a dynamic IP with expire times larger then 10 minutes is highly
-  discouraged: The user will already have dialed in via another IP or account
-  and the G-line would only harm other, innocent, users.
-
-Allow Opers to connect from a remote site
-OPER_REMOTE
-  If you select 'n' for this, clients must be on the 'same network' as
-  the server in order to gain oper privledges.  If you're not sure, just
-  select 'y'.
-
-Allow local opers to use the REHASH command
-LOCOP_REHASH
-  Allows a local operator (defined by a lowercase o:line in ircd.conf)
-  to cause the server to reload its configuration file (ircd.conf) with
-  the REHASH command.  If unsure, select 'n'.
-
-Allow local opers to use the RESTART command
-LOCOP_RESTART
-  Allows a local operator (defined by a lowercase o:line in ircd.conf)
-  to use the RESTART command.  If unsure, select 'n'.
-
-Allow local opers to use the DIE command
-LOCOP_DIE
-  Allows a local operator (defined by a lowercase o:line in ircd.conf)
-  to use the DIE command.  If unsure, select 'n'.
-
-Allow local opers to add local G-lines
-LOCOP_LGLINE
-  Allows a local operator (defined by a lowercase o:line in ircd.conf)
-  to add local G-lines with the GLINE command.  This is like a *local* KILL,
-  except that the user being killed can't immediately reconnect: He will
-  have to wait for the G-line to expire.
-
 Do you want to have a default LIST parameter
 CONFIG_LIST
   Pre-Undernet, the LIST command could either be given with one channel
@@ -826,14 +713,6 @@ MSGLOG_SIZE
   Number of messages to log. Keep this low as raising it to 1024 will use 800k
   of _static_ memory! Recommended value is 128. You must include this even if
   you selected 'n' for MSGLOG_ENABLED.
-
-Only allow KILLs of local clients
-LOCAL_KILL_ONLY
-  This only allows operators of this server to KILL clients directly connected
-  to this server.  Operators will not be able to issue KILLs for clients on
-  other servers.  Some networks (not Undernet) require that this be defined
-  for newly linking servers, but if you haven't been told to do otherwise,
-  specify 'n' here.
 
 Max server idle time (60)
 TIMESEC
@@ -937,11 +816,3 @@ DEFAULTMAXSENDQLENGTH
   (see doc/example.conf for details on Y: lines).  You will probably
   always override this value in your "ircd.conf" with the Y: lines.
   The given value used to be an often used value for client sendqs.
-
-Use new oper commands (JUPE, CLEARMODE, OPMODE, GLINE)
-CONFIG_OPERCMDS
-  Several new oper-only commands were added to the server source
-  during the Uworld integration project.  Until all servers are
-  upgraded to versions that understand the new server<->server
-  traffic, they must remain disabled, however.  This option activates
-  the client-side part of those changes.

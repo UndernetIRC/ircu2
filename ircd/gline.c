@@ -248,10 +248,9 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
       || userhost[2] == '#' || userhost[2] == '&' || userhost[2] == '+'
 # endif /* OLD_GLINE */
       ) {
-# ifndef LOCAL_BADCHAN
-    if (flags & GLINE_LOCAL)
-      return 0;
-# endif
+    if ((flags & GLINE_LOCAL) && !HasPriv(sptr, PRIV_LOCAL_BADCHAN))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+
     flags |= GLINE_BADCHAN;
   }
 

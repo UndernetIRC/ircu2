@@ -56,8 +56,8 @@ extern void send_usage(struct Client *cptr, char *nick);
 
 #endif /* !DEBUGMODE */
 
+extern const char* debug_serveropts(void);
 extern void debug_init(int use_tty);
 extern void count_memory(struct Client *cptr, char *nick);
-extern char serveropts[];
 
 #endif /* INCLUDED_s_debug_h */

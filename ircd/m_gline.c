@@ -91,6 +91,7 @@
 #include "gline.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -227,15 +228,11 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (*mask == '+') {
     flags |= GLINE_ACTIVE;
     mask++;
+
   } else if (*mask == '-')
     mask++;
   else
     return gline_list(sptr, mask);
-
-#ifndef LOCOP_LGLINE
-  if (!IsOper(sptr))
-    return send_reply(sptr, ERR_NOPRIVILEGES);
-#endif
 
   if (parc == 4) {
     expire_off = atoi(parv[2]);
@@ -254,28 +251,26 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-#ifndef CONFIG_OPERCMDS
-	return send_reply(sptr, ERR_DISABLED, "GLINE");
-#else
-	if (!IsOper(sptr))
+	if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+	  return send_reply(sptr, ERR_DISABLED, "GLINE");
+
+	if (!HasPriv(sptr, PRIV_GLINE))
 	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %c%s %s %Tu :%s", acptr,
-		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
+		      flags & GLINE_ACTIVE ? '+' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
-#endif
-      }
+      } else if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
+	return send_reply(sptr, ERR_NOPRIVILEGES);
 
       flags |= GLINE_LOCAL;
-    } else if (!IsOper(sptr))
+    } else if (!HasPriv(sptr, PRIV_GLINE))
       return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
-#ifndef CONFIG_OPERCMDS
-  if (!(flags & GLINE_LOCAL))
+  if (!(flags & GLINE_LOCAL) && !feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "GLINE");
-#endif /* CONFIG_OPERCMDS */
 
   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
 

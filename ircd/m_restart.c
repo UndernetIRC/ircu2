@@ -103,52 +103,11 @@
  */
 int mo_restart(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#if defined(OPER_RESTART) || defined(LOCOP_RESTART)
-#ifndef LOCOP_RESTART
-  if (!MyUser(sptr) || !IsOper(sptr))
-#else
-#ifdef  OPER_RESTART
-  if (!MyUser(sptr) || !IsAnOper(sptr))
-#else
-  if (!MyUser(sptr) || !IsLocOp(sptr))
-#endif
-#endif
-  {
-    send_reply(sptr, ERR_NOPRIVILEGES);
-    return 0;
-  }
+  if (!HasPriv(sptr, PRIV_RESTART))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
+
   log_write(LS_SYSTEM, L_NOTICE, 0, "Server RESTART by %#C", sptr);
   server_restart("received RESTART");
 
-#endif /* defined(OPER_RESTART) || defined(LOCOP_RESTART) */
   return 0;
 }
-
-
-#if 0
-#if defined(OPER_RESTART) || defined(LOCOP_RESTART)
-/*
- * m_restart
- */
-int m_restart(struct Client *cptr, struct Client *sptr, int parc,
-    char *parv[])
-{
-#ifndef LOCOP_RESTART
-  if (!MyUser(sptr) || !IsOper(sptr))
-#else
-#ifdef  OPER_RESTART
-  if (!MyUser(sptr) || !IsAnOper(sptr))
-#else
-  if (!MyUser(sptr) || !IsLocOp(sptr))
-#endif
-#endif
-  {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-  ircd_log(L_NOTICE, "Server RESTART by %s\n", get_client_name(sptr, HIDE_IP)); /* XXX DEAD */
-  server_restart("received RESTART");
-  return 0;
-}
-#endif
-#endif /* 0 */

@@ -108,19 +108,10 @@
  */
 int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#if defined(OPER_REHASH) || defined(LOCOP_REHASH)
   int flag = 0;
 
-# if !defined(OPER_REHASH) || !defined(LOCOP_REHASH)
-  if (
-#  ifdef OPER_REHASH
-      !IsOper(sptr)
-#  else
-      !IsLocOp(sptr)
-#  endif
-      )
+  if (!HasPriv(sptr, PRIV_REHASH))
     return send_reply(sptr, ERR_NOPRIVILEGES);
-# endif
 
   if (parc > 1) { /* special processing */
     if (*parv[1] == 'm') {
@@ -142,7 +133,5 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   log_write(LS_SYSTEM, L_INFO, 0, "REHASH From %#C", sptr);
 
   return rehash(cptr, flag);
-#endif /* defined(OPER_REHASH) || defined(LOCOP_REHASH) */
-  return 0;
 }
 

@@ -1005,7 +1005,8 @@ void send_umode_out(struct Client *cptr, struct Client *sptr, int old)
   int i;
   struct Client *acptr;
 
-  send_umode(NULL, sptr, old, SEND_UMODES);
+  send_umode(NULL, sptr, old,
+	     SEND_UMODES & ~(HasPriv(sptr, PRIV_PROPAGATE) ? 0 : FLAGS_OPER));
 
   for (i = HighestFd; i >= 0; i--) {
     if ((acptr = LocalClientArray[i]) && IsServer(acptr) &&
@@ -1238,10 +1239,14 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * Compare new flags with old flags and send string which
    * will cause servers to update correctly.
    */
-  if ((setflags & FLAGS_OPER) && !IsOper(sptr))
+  if ((setflags & FLAGS_OPER) && !IsOper(sptr)) {
     --UserStats.opers;
-  if (!(setflags & FLAGS_OPER) && IsOper(sptr))
+    client_set_privs(sptr);
+  }
+  if (!(setflags & FLAGS_OPER) && IsOper(sptr)) {
     ++UserStats.opers;
+    client_set_privs(sptr);
+  }
   if ((setflags & FLAGS_INVISIBLE) && !IsInvisible(sptr))
     --UserStats.inv_clients;
   if (!(setflags & FLAGS_INVISIBLE) && IsInvisible(sptr))
@@ -1261,7 +1266,11 @@ char *umode_str(struct Client *cptr)
   int   i;
   int   c_flags;
 
-  c_flags = cli_flags(cptr) & SEND_UMODES;        /* cleaning up the original code */
+  c_flags = cli_flags(cptr) & SEND_UMODES; /* cleaning up the original code */
+  if (HasPriv(cptr, PRIV_PROPAGATE))
+    c_flags |= FLAGS_OPER;
+  else
+    c_flags &= ~FLAGS_OPER;
 
   for (i = 0; i < USERMODELIST_SIZE; ++i) {
     if ( (c_flags & userModeList[i].flag))

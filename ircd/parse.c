@@ -448,11 +448,7 @@ struct Message msgtab[] = {
     TOK_JUPE,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-#ifdef CONFIG_OPERCMDS
     { m_unregistered, m_jupe, ms_jupe, mo_jupe, m_ignore }
-#else
-    { m_unregistered, m_jupe, ms_jupe, m_jupe, m_ignore }
-#endif /* CONFIG_OPERCMDS */
   },
   {
     MSG_OPMODE,

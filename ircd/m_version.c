@@ -130,7 +130,8 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     
     sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
     
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me), serveropts);
+    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
+	       debug_serveropts());
     send_reply(sptr, RPL_ISUPPORT, featurebuf);
   }
 
@@ -160,7 +161,8 @@ int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me), serveropts);
+    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
+	       debug_serveropts());
   }
 
   return 0;

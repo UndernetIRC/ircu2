@@ -100,7 +100,8 @@
 static void userip_formatter(struct Client* cptr, struct MsgBuf* mb)
 {
   assert(IsUser(cptr));
-  msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr), IsAnOper(cptr) ? "*" : "",
+  msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
+	      HasPriv(cptr, PRIV_DISPLAY) ? "*" : "",
 	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
 	      ircd_ntoa((const char*) &(cli_ip(cptr))));
 }

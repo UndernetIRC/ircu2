@@ -129,8 +129,7 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   }
 
   if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
-#ifdef OPER_MODE_LCHAN
-    if (IsOperOnLocalChannel(sptr, chptr->chname)) {
+    if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_MODE_LCHAN)) {
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to channel */
 		    MODEBUF_DEST_HACK4));  /* Send HACK(4) notice */
@@ -139,7 +138,6 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  MODE_PARSE_FORCE)); /* Force it to take */
       return modebuf_flush(&mbuf);
     } else
-#endif
       mode_parse(0, cptr, sptr, chptr, parc - 2, parv + 2,
 		 (member ? MODE_PARSE_NOTOPER : MODE_PARSE_NOTMEMBER));
     return 0;

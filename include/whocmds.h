@@ -44,33 +44,13 @@ struct Channel;
 
 #define IS_VISIBLE_USER(s,ac) ((s==ac) || (!IsInvisible(ac)))
 
-#if defined(SHOW_INVISIBLE_LUSERS) || defined(SHOW_ALL_INVISIBLE_USERS)
-#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || ((b & WHOSELECT_EXTRA) && MyConnect(ac) && IsAnOper(s)))
-#else
-#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac))
-#endif
+#define SEE_LUSER(s, ac, b) (IS_VISIBLE_USER(s, ac) || ((b & WHOSELECT_EXTRA) && MyConnect(ac) && HasPriv((s), PRIV_SHOW_INVIS | PRIV_SHOW_ALL_INVIS)))
 
-#ifdef SHOW_ALL_INVISIBLE_USERS
-#define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b) || ((b & WHOSELECT_EXTRA) && IsOper(s)))
-#else
-#define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b))
-#endif
+#define SEE_USER(s, ac, b) (SEE_LUSER(s, ac, b) || ((b & WHOSELECT_EXTRA) && HasPriv((s), PRIV_SHOW_ALL_INVIS)))
 
-#ifdef UNLIMIT_OPER_QUERY
-#define SHOW_MORE(sptr, counter) (IsAnOper(sptr) || (!(counter-- < 0)) )
-#else
-#define SHOW_MORE(sptr, counter) (!(counter-- < 0))
-#endif
+#define SHOW_MORE(sptr, counter) (HasPriv(sptr, PRIV_UNLIMIT_QUERY) || (!(counter-- < 0)) )
 
-#ifdef OPERS_SEE_IN_SECRET_CHANNELS
-#ifdef LOCOP_SEE_IN_SECRET_CHANNELS
-#define SEE_CHANNEL(s, chptr, b) (!SecretChannel(chptr) || ((b & WHOSELECT_EXTRA) && IsAnOper(s)))
-#else
-#define SEE_CHANNEL(s, chptr, b) (!SecretChannel(chptr) || ((b & WHOSELECT_EXTRA) && IsOper(s)))
-#endif
-#else
-#define SEE_CHANNEL(s, chptr, b) (!SecretChannel(chptr))
-#endif
+#define SEE_CHANNEL(s, chptr, b) (!SecretChannel(chptr) || ((b & WHOSELECT_EXTRA) && HasPriv((s), PRIV_SEE_CHAN)))
 
 #define MAX_WHOIS_LINES 50
 

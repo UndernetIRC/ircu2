@@ -226,19 +226,6 @@ comment 'Paths and files'
 endmenu
 
 mainmenu_option next_comment
-comment 'Logging (filenames are either full paths or files within DPATH)'
-
-comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
-  bool 'Do you want to enable Bad Channel G-lines' BADCHAN y
-    if [ "$BADCHAN" = "y" ]; then
-      echo " "
-      echo " WARNING DO _NOT_ USE LOCAL BADCHANNEL GLINES ON UNDERNET"
-      echo " Use of LOCAL BAD Channel G-Lines can be cause for REMOVAL"
-      bool 'Allow LOCAL BAD Channel G-lines' LOCAL_BADCHAN
-    fi
-endmenu
-
-mainmenu_option next_comment
 comment 'Configuration'
   bool 'Use crypted passwords for operators' CRYPT_OPER_PASSWORD y
   DUMMY=`echo "$BUFFERPOOL" | sed -e 's/[0-9]//g'`
@@ -268,34 +255,6 @@ comment 'Configuration'
 endmenu
 
 mainmenu_option next_comment
-comment 'Oper commands'
-  bool 'Allow (local) Opers to see all local invisible users' SHOW_INVISIBLE_USERS y
-  if [ "$SHOW_INVISIBLE_USERS" = "y" ]; then
-    bool 'Allow Opers to see all invisible users' SHOW_ALL_INVISIBLE_USERS y
-  fi
-  bool 'Allow global Opers (O:) to see inside secret channels' OPERS_SEE_IN_SECRET_CHANNELS y
-  if [ "$OPERS_SEE_IN_SECRET_CHANNELS" = "y" ]; then
-    bool 'Allow local Opers (o:) to see inside secret channels' LOCOP_SEE_IN_SECRET_CHANNELS n
-  fi
-  bool 'Do not truncate obnoxiously long /who output for opers' UNLIMIT_OPER_QUERY
-  bool 'Allow Opers to use the KILL command' OPER_KILL y
-  bool 'Allow Opers to use the REHASH command' OPER_REHASH y
-  bool 'Allow Opers to use the RESTART command' OPER_RESTART y
-  bool 'Allow Opers to use the DIE command' OPER_DIE y
-  bool 'Allow Opers to add local G-lines' OPER_LGLINE y
-  bool 'Allow Opers to connect from a remote site' OPER_REMOTE y
-  bool 'Allow local opers to use the REHASH command' LOCOP_REHASH y
-  bool 'Allow local opers to use the RESTART command' LOCOP_RESTART
-  bool 'Allow local opers to use the DIE command' LOCOP_DIE
-  bool 'Allow local opers to add local G-lines' LOCOP_LGLINE y
-  bool 'Allow local/global opers to be on any number of channels' OPER_NO_CHAN_LIMIT y
-  bool 'Allow local/global opers to set modes on local channels' OPER_MODE_LCHAN y
-  bool 'Allow local/global opers to walk through local channels modes' OPER_WALK_THROUGH_LMODES n
-  bool 'Prevent local/global opers from being kicked or deoped on local channels' NO_OPER_DEOP_LCHAN n
-
-endmenu
-
-mainmenu_option next_comment
 comment 'Server characteristics'
   bool 'Do you want to have a default LIST parameter' CONFIG_LIST y
   if [ "$CONFIG_LIST" = "y" ]; then
@@ -312,11 +271,6 @@ endmenu
 mainmenu_option next_comment
 comment 'Mandatory defines (you should leave these untouched)'
   int 'Max auto connects per class (1!)' MAXIMUM_LINKS 1
-  if [ "$OPER_KILL" = "y" ]; then
-    bool 'Only allow KILLs of local clients' LOCAL_KILL_ONLY
-  else
-    define_bool LOCAL_KILL_ONLY $LOCAL_KILL_ONLY
-  fi
   int 'KILL nick chase time limit (30)' KILLCHASETIMELIMIT 30
   int 'Max number of channels per user' MAXCHANNELSPERUSER 10
   int 'Max number of silence masks (15!)' MAXSILES 15
@@ -330,9 +284,4 @@ comment 'Mandatory defines (you should leave these untouched)'
   int 'Wait before reconnecting to good link (10!)' HANGONRETRYDELAY 10
   int 'connect(2) timeout (90!)' CONNECTTIMEOUT 90
   int 'Max send queue (40000)' DEFAULTMAXSENDQLENGTH 40000
-endmenu
-
-mainmenu_option next_comment
-comment 'Experimental options (Do you know what you'\''re doing?)'
-  bool 'Use new oper commands (JUPE, CLEARMODE, OPMODE, GLINE)' CONFIG_OPERCMDS y
 endmenu

@@ -92,6 +92,7 @@
 #include "jupe.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -192,7 +193,6 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * parv[4] = [Comment]
  *
  */
-#ifdef CONFIG_OPERCMDS
 int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr = 0;
@@ -212,6 +212,9 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     return jupe_list(sptr, server);
 
+  if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+    return send_reply(sptr, ERR_DISABLED, "JUPE");
+
   if (parc == 4) {
     expire_off = atoi(parv[2]);
     reason = parv[3];
@@ -229,17 +232,18 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-	if (!IsOper(sptr))
+	if (!HasPriv(sptr, PRIV_GLINE))
 	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 	sendcmdto_one(sptr, CMD_JUPE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
 		      TStime(), reason);
 	return 0;
-      }
+      } else if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
+	return send_reply(sptr, ERR_NOPRIVILEGES);
 
       flags |= JUPE_LOCAL;
-    } else if (!IsOper(sptr))
+    } else if (!HasPriv(sptr, PRIV_GLINE))
       return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
@@ -258,7 +262,6 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return jupe_add(cptr, sptr, server, reason, expire_off, TStime(), flags);
 }
-#endif /* CONFIG_OPERCMDS */
 
 /*
  * m_jupe - user message handler

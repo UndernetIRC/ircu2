@@ -1053,15 +1053,12 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
     if (lp->value.chptr == chptr)
       return 0;
   
-#ifdef OPER_WALK_THROUGH_LMODES
   /* An oper can force a join on a local channel using "OVERRIDE" as the key. 
      a HACK(4) notice will be sent if he would not have been supposed
      to join normally. */ 
-  if (IsOperOnLocalChannel(sptr,chptr->chname) && !BadPtr(key) && compall("OVERRIDE",key) == 0)
-  {
+  if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_WALK_LCHAN) &&
+      !BadPtr(key) && compall("OVERRIDE",key) == 0)
     overrideJoin = MAGIC_OPER_OVERRIDE;
-  }
-#endif
 
   if (chptr->mode.mode & MODE_INVITEONLY)
   	return overrideJoin + ERR_INVITEONLYCHAN;
@@ -2386,17 +2383,15 @@ mode_process_clients(struct ParseState *state)
 	}
       }
 
-#ifdef NO_OPER_DEOP_LCHAN
       /* don't allow local opers to be deopped on local channels */
       if (MyUser(state->sptr) && state->cli_change[i].client != state->sptr &&
-	  IsOperOnLocalChannel(state->cli_change[i].client,
-			       state->chptr->chname)) {
+	  IsLocalChannel(state->chptr->chname) &&
+	  HasPriv(state->cli_change[i].client, PRIV_DEOP_LCHAN)) {
 	send_reply(state->sptr, ERR_ISOPERLCHAN,
 		   cli_name(state->cli_change[i].client),
 		   state->chptr->chname);
 	continue;
       }
-#endif
     }
 
     /* accumulate the change */

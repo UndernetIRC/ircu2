@@ -1,3 +1,99 @@
+2000-12-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c (do_who): use HasPriv to determine whether or not
+	to indicate a user is an oper
+
+	* ircd/s_user.c: clear privileges setting when deopping; don't
+	propagate +o unless user has PRIV_PROPAGATE privilege
+
+	* ircd/s_debug.c (debug_serveropts): created debug_serveropts()
+	function and replaced how the server option string is generated
+
+	* ircd/parse.c: remove conditional on CONFIG_OPERCMDS
+
+	* ircd/m_whois.c (do_whois): use HasPriv to determine whether or
+	not to indicate the user is an operator
+
+	* ircd/m_who.c: use HasPriv to determine whether or not a user
+	should be displayed in the list of opers
+
+	* ircd/m_version.c: call debug_serveropts() to get server option
+	string
+
+	* ircd/m_userip.c (userip_formatter): use HasPriv to determine
+	whether or not to show oper status
+
+	* ircd/m_userhost.c (userhost_formatter): use HasPriv to determine
+	whether or not to show oper status
+
+	* ircd/m_restart.c (mo_restart): replace ugly #ifdef conditional
+	checks with HasPriv check; remove dead code
+
+	* ircd/m_rehash.c (mo_rehash): replace ugly #ifdef conditional
+	checks with HasPriv check
+
+	* ircd/m_opmode.c (mo_opmode): use HasPriv to check permissions;
+	use feature_bool to check if disabled
+
+	* ircd/m_oper.c (m_oper): set oper priviliges
+
+	* ircd/m_mode.c (m_mode): replace #ifdef conditional with HasPriv
+	check
+
+	* ircd/m_kill.c (mo_kill): use HasPriv checks to determine if we
+	can kill
+
+	* ircd/m_kick.c (m_kick): replace #ifdef conditional with HasPriv
+	check
+
+	* ircd/m_jupe.c (mo_jupe): rework permissions checking structure;
+	use feature_bool to check if disabled
+
+	* ircd/m_join.c (m_join): remove BADCHAN conditional; replace
+	#ifdef conditional with a HasPriv check
+
+	* ircd/m_gline.c (mo_gline): rework permissions checking
+	structure; use feature_bool to check if any part is disabled
+
+	* ircd/m_die.c: replace ugly #ifdef conditionals with HasPriv
+	check; remove dead code
+
+	* ircd/m_clearmode.c: use feature_bool() to detect if we're
+	disabled; use HasPriv to figure out what we're permitted to do;
+	only allow clearmode on moded channels
+
+	* ircd/ircd_features.c: define various features; use HasPriv to
+	verify permissions to set/reset
+
+	* ircd/gline.c (gline_add): use HasPriv instead of #ifdef
+	conditionals
+
+	* ircd/client.c (client_set_privs): function to set an oper's
+	privileges
+
+	* ircd/channel.c: use HasPriv calls instead of #ifdef conditionals
+
+	* include/whocmds.h: deconditionalize several macros and
+	substitute appropriate calls to HasPriv()
+
+	* include/s_debug.h: get rid of global serveropts[]; define new
+	function debug_serveropts() to build that string on the fly
+
+	* include/ircd_features.h: define some features
+
+	* include/client.h: add privs member to struct Connection; define
+	various priviledges
+
+	* include/channel.h: no longer using IsOperOnLocalChannel; remove
+	conditional of MAGIC_OPER_OVERRIDE on OPER_WALK_THROUGH_LMODES
+
+	* doc/Configure.help: remove help information for deprecated
+	options
+
+	* config/config-sh.in: remove certain deprecated options having to
+	do with what opers can and cannot do--first stage in moving
+	compile-time constants into the .conf
+
 2000-12-16  Isomer <Isomer@coders.net>
 	* ircd/parse.c: detect if the prefix is missing and try and recover
 	instead of coring.
