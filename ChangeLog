@@ -1,3 +1,21 @@
+2001-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/uping.c: refit to use the new events interface
+
+	* ircd/res.c: refit to use the new events interface
+
+	* ircd/ircd_events.c: create timer_chg(), which permits a
+	(non-periodic) timer's expire time to be modified; change the
+	logic in timer_run() so that timers that were re-added while the
+	event was being processed will not be destroyed prematurely
+
+	* include/uping.h: include the events header, declare some extra
+	fields in struct UPing, remove timeout value, and define some
+	flags for marking which cleanup items have yet to be done
+
+	* include/ircd_events.h: add a prototype for timer_chg() to change
+	the expire time of a running timer
+
 2001-01-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c (timer_run): it's possible that the timer got

@@ -212,6 +212,7 @@ void event_generate(enum EventType type, void* arg, int data);
 void timer_add(struct Timer* timer, EventCallBack call, void* data,
 	       enum TimerType type, time_t value);
 void timer_del(struct Timer* timer);
+void timer_chg(struct Timer* timer, enum TimerType type, time_t value);
 void timer_run(void);
 #define timer_next(gen)	((gen)->g_timer ? (gen)->g_timer->t_expire : 0)
 

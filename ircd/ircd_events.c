@@ -380,6 +380,24 @@ timer_del(struct Timer* timer)
   }
 }
 
+/* Change the time a timer expires */
+void
+timer_chg(struct Timer* timer, enum TimerType type, time_t value)
+{
+  assert(0 != timer);
+  assert(0 != value);
+  assert(TT_PERIODIC != timer->t_type);
+  assert(TT_PERIODIC != type);
+
+  gen_dequeue(timer); /* remove the timer from the queue */
+
+  timer->t_type = type; /* Set the new type and value */
+  timer->t_value = value;
+  timer->t_expire = 0;
+
+  timer_enqueue(timer); /* re-queue the timer */
+}
+
 /* Execute all expired timers */
 void
 timer_run(void)
@@ -394,11 +412,14 @@ timer_run(void)
       break; /* processed all pending timers */
 
     gen_dequeue(ptr); /* must dequeue timer here */
+    if (ptr->t_type == TT_ABSOLUTE || ptr->t_type == TT_RELATIVE)
+      timer->t_header.gh_flags |= GEN_DESTROY; /* mark for destruction */
     event_generate(ET_EXPIRE, ptr, 0); /* generate expire event */
 
     switch (ptr->t_type) {
     case TT_ABSOLUTE: case TT_RELATIVE:
-      timer_del(ptr); /* delete inactive timer */
+      if (timer->t_header.gh_flags & GEN_DESTROY) /* still marked */
+	event_generate(ET_DESTROY, timer, 0);
       break;
 
     case TT_PERIODIC:

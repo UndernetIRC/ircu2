@@ -31,6 +31,9 @@
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"
 #endif
+#ifndef INCLUDED_ircd_events_h
+#include "ircd_events.h"
+#endif
 
 struct Client;
 struct ConfItem;
@@ -46,14 +49,21 @@ struct UPing
   char               active;   /* ping active flag */
   struct Client*     client;   /* who requested the pings */
   time_t             lastsent; /* when last ping was sent */
-  time_t             timeout;  /* current ping timeout time */
   int                ms_min;   /* minimum time in milliseconds */
   int                ms_ave;   /* average time in milliseconds */
   int                ms_max;   /* maximum time in milliseconds */
   int                index;    /* index into poll array */
+  struct Socket      socket;   /* socket structure */
+  struct Timer       sender;   /* timer telling when next to send a ping */
+  struct Timer       killer;   /* timer to kill us */
+  unsigned int       freeable; /* zero when structure can be free()'d */
   char               name[HOSTLEN + 1]; /* server name to poing */
   char               buf[BUFSIZE];      /* buffer to hold ping times */
 };
+
+#define UPING_PENDING_SOCKET	0x01 /* pending socket destruction event */
+#define UPING_PENDING_SENDER	0x02 /* pending sender destruction event */
+#define UPING_PENDING_KILLER	0x04 /* pending killer destruction event */
 
 extern int UPingFileDescriptor;
 
