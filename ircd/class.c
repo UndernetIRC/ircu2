@@ -36,7 +36,7 @@
 #define BAD_PING                ((unsigned int)-2)
 #define BAD_CLIENT_CLASS        ((unsigned int)-3)
 
-static struct ConnectionClass* connClassList;
+static struct ConnectionClass* connClassList = 0;
 static unsigned int connClassAllocCount;
 
 const struct ConnectionClass* get_class_list(void)
@@ -68,7 +68,8 @@ void free_class(struct ConnectionClass* p)
  */
 void init_class(void)
 {
-  connClassList = (struct ConnectionClass*) make_class();
+  if (!connClassList)
+    connClassList = (struct ConnectionClass*) make_class();
 
   ConClass(connClassList) = 0;
   PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);

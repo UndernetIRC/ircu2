@@ -93,6 +93,8 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -103,6 +105,165 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define LPARAM_ERROR	-1
+#define LPARAM_SUCCESS	 0
+#define LPARAM_CHANNEL	 1
+
+static struct ListingArgs la_init = {
+  2147483647,                 /* max_time */
+  0,                          /* min_time */
+  4294967295U,                /* max_users */
+  0,                          /* min_users */
+  0,                          /* topic_limits */
+  2147483647,                 /* max_topic_time */
+  0,                          /* min_topic_time */
+  0                           /* chptr */
+};
+
+static struct ListingArgs la_default = {
+  2147483647,                 /* max_time */
+  0,                          /* min_time */
+  4294967295U,                /* max_users */
+  0,                          /* min_users */
+  0,                          /* topic_limits */
+  2147483647,                 /* max_topic_time */
+  0,                          /* min_topic_time */
+  0                           /* chptr */
+};
+
+static int
+show_usage(struct Client *sptr)
+{
+  if (!sptr) { /* configuration file error... */
+    log_write(LS_CONFIG, L_ERROR, 0, "Invalid default list parameter");
+    return LPARAM_ERROR;
+  }
+
+  send_reply(sptr, RPL_LISTUSAGE,
+	     "Usage: \002/QUOTE LIST\002 \037parameters\037");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     "Where \037parameters\037 is a space or comma seperated "
+	     "list of one or more of:");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002<\002\037max_users\037    ; Show all channels with less "
+	     "than \037max_users\037.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002>\002\037min_users\037    ; Show all channels with more "
+	     "than \037min_users\037.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002C<\002\037max_minutes\037 ; Channels that exist less "
+	     "than \037max_minutes\037.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002C>\002\037min_minutes\037 ; Channels that exist more "
+	     "than \037min_minutes\037.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002T<\002\037max_minutes\037 ; Channels with a topic last "
+	     "set less than \037max_minutes\037 ago.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     " \002T>\002\037min_minutes\037 ; Channels with a topic last "
+	     "set more than \037min_minutes\037 ago.");
+  send_reply(sptr, RPL_LISTUSAGE,
+	     "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 "
+	     "min., topic set.");
+
+  return LPARAM_ERROR; /* return error condition */
+}
+
+static int
+param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
+	    int permit_chan)
+{
+  int is_time = 0;
+  char dir;
+  unsigned int val;
+
+  assert(0 != args);
+
+  if (!param) /* NULL param == default--no list param */
+    return LPARAM_SUCCESS;
+
+  while (1) {
+    switch (*param) {
+    case 'T':
+    case 't':
+      is_time++;
+      args->topic_limits = 1;
+      /*FALLTHROUGH*/
+
+    case 'C':
+    case 'c':
+      is_time++;
+      param++;
+      if (*param != '<' && *param != '>')
+	return show_usage(sptr);
+      /*FALLTHROUGH*/
+
+    case '<':
+    case '>':
+      dir = *(param++);
+
+      if (!IsDigit(*param)) /* must start with a digit */
+	return show_usage(sptr);
+
+      val = strtol(param, (char **)&param, 10); /* convert it... */
+
+      if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
+	return show_usage(sptr);
+
+      if (is_time && val < 80000000) /* Toggle UTC/offset */
+	val = TStime() - val * 60;
+      
+      switch (is_time) {
+      case 0: /* number of users on channel */
+	if (dir == '<')
+	  args->max_users = val;
+	else
+	  args->min_users = val;
+	break;
+
+      case 1: /* channel topic */
+	if (dir == '<')
+	  args->min_topic_time = val;
+	else
+	  args->max_topic_time = val;
+	break;
+
+      case 2: /* channel creation time */
+	if (dir == '<')
+	  args->min_time = val;
+	else
+	  args->max_time = val;
+	break;
+      }
+      break;
+
+    default: /* channel name? */
+      if (!permit_chan || !IsChannelName(param))
+	return show_usage(sptr);
+
+      return LPARAM_CHANNEL;
+      break;
+    }
+
+    if (!*param) /* hit end of string? */
+      break;
+
+    param++;
+  }
+
+  return LPARAM_SUCCESS;
+}
+
+void
+list_set_default(void)
+{
+  la_default = la_init; /* start off with a clean slate... */
+
+  if (param_parse(0, feature_str(FEAT_DEFAULT_LIST_PARAM), &la_default, 0) !=
+      LPARAM_SUCCESS)
+    la_default = la_init; /* recover from error by switching to default */
+}
 
 /*
  * m_list - generic message handler
@@ -115,17 +276,8 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   char *name, *p = 0;
-  int show_usage = 0, show_channels = 0, param;
-  struct ListingArgs args = {
-    2147483647,                 /* max_time */
-    0,                          /* min_time */
-    4294967295U,                /* max_users */
-    0,                          /* min_users */
-    0,                          /* topic_limits */
-    2147483647,                 /* max_topic_time */
-    0,                          /* min_topic_time */
-    0                        /* chptr */
-  };
+  int show_channels = 0, param;
+  struct ListingArgs args;
 
   if (cli_listing(sptr))            /* Already listing ? */
   {
@@ -138,156 +290,24 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   if (parc < 2)                 /* No arguments given to /LIST ? */
-  {
-#ifdef DEFAULT_LIST_PARAM
-    static char *defparv[MAXPARA + 1];
-    static int defparc = 0;
-    static char lp[] = DEFAULT_LIST_PARAM;
-    int i;
+    args = la_default;
+  else {
+    args = la_init; /* initialize argument to blank slate */
 
-    /*
-     * XXX - strtok used
-     */
-    if (!defparc)
-    {
-      char *s = lp, *t;
+    for (param = 1; parv[param]; param++) { /* process each parameter */
+      switch (param_parse(sptr, parv[param], &args, parc != 2)) {
+      case LPARAM_ERROR: /* error encountered, usage already sent, return */
+	return 0;
+	break;
 
-      defparc = 1;
-      defparv[defparc++] = t = strtok(s, " ");
-      while (t && defparc < MAXPARA)
-      {
-        if ((t = strtok(0, " ")))
-          defparv[defparc++] = t;
+      case LPARAM_CHANNEL: /* show channel instead */
+	show_channels++;
+	break;
+
+      case LPARAM_SUCCESS: /* parse succeeded */
+	break;
       }
     }
-    for (i = 1; i < defparc; i++)
-      parv[i] = defparv[i];
-    parv[i] = 0;
-    parc = defparc;
-#endif /* DEFAULT_LIST_PARAM */
-  }
-
-  /* Decode command */
-  for (param = 1; !show_usage && parv[param]; param++)
-  {
-    char *p = parv[param];
-    do
-    {
-      int is_time = 0;
-      switch (*p)
-      {
-        case 'T':
-        case 't':
-          is_time++;
-          args.topic_limits = 1;
-          /* Fall through */
-        case 'C':
-        case 'c':
-          is_time++;
-          p++;
-          if (*p != '<' && *p != '>')
-          {
-            show_usage = 1;
-            break;
-          }
-          /* Fall through */
-        case '<':
-        case '>':
-        {
-          p++;
-          if (!IsDigit(*p))
-            show_usage = 1;
-          else
-          {
-            if (is_time)
-            {
-              time_t val = atoi(p);
-              if (p[-1] == '<')
-              {
-                if (val < 80000000)     /* Toggle UTC/offset */
-                {
-                  /*
-                   * Demands that
-                   * 'TStime() - chptr->creationtime < val * 60'
-                   * Which equals
-                   * 'chptr->creationtime > TStime() - val * 60'
-                   */
-                  if (is_time == 1)
-                    args.min_time = TStime() - val * 60;
-                  else
-                    args.min_topic_time = TStime() - val * 60;
-                }
-                else if (is_time == 1)  /* Creation time in UTC was entered */
-                  args.max_time = val;
-                else            /* Topic time in UTC was entered */
-                  args.max_topic_time = val;
-              }
-              else if (val < 80000000)
-              {
-                if (is_time == 1)
-                  args.max_time = TStime() - val * 60;
-                else
-                  args.max_topic_time = TStime() - val * 60;
-              }
-              else if (is_time == 1)
-                args.min_time = val;
-              else
-                args.min_topic_time = val;
-            }
-            else if (p[-1] == '<')
-              args.max_users = atoi(p);
-            else
-              args.min_users = atoi(p);
-            if ((p = strchr(p, ',')))
-              p++;
-          }
-          break;
-        }
-        default:
-          if (!IsChannelName(p))
-          {
-            show_usage = 1;
-            break;
-          }
-          if (parc != 2)        /* Don't allow a mixture of channels with <,> */
-            show_usage = 1;
-          show_channels = 1;
-          p = 0;
-          break;
-      }
-    }
-    while (!show_usage && p);   /* p points after comma, or is NULL */
-  }
-
-  if (show_usage)
-  {
-    send_reply(sptr, RPL_LISTUSAGE,
-	       "Usage: \002/QUOTE LIST\002 \037parameters\037");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       "Where \037parameters\037 is a space or comma seperated "
-	       "list of one or more of:");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002<\002\037max_users\037    ; Show all channels with less "
-	       "than \037max_users\037.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002>\002\037min_users\037    ; Show all channels with more "
-	       "than \037min_users\037.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002C<\002\037max_minutes\037 ; Channels that exist less "
-	       "than \037max_minutes\037.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002C>\002\037min_minutes\037 ; Channels that exist more "
-	       "than \037min_minutes\037.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002T<\002\037max_minutes\037 ; Channels with a topic last "
-	       "set less than \037max_minutes\037 ago.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       " \002T>\002\037min_minutes\037 ; Channels with a topic last "
-	       "set more than \037min_minutes\037 ago.");
-    send_reply(sptr, RPL_LISTUSAGE,
-	       "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 "
-	       "min., topic set.");
-    return 0;
   }
 
   send_reply(sptr, RPL_LISTSTART);
@@ -324,226 +344,3 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(sptr, RPL_LISTEND);
   return 0;
 }
-
-
-#if 0
-/*
- * m_list
- *
- * parv[0] = sender prefix
- * parv[1] = channel list or user/time limit
- * parv[2...] = more user/time limits
- */
-int m_list(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Channel *chptr;
-  char *name, *p = 0;
-  int show_usage = 0, show_channels = 0, param;
-  struct ListingArgs args = {
-    2147483647,                 /* max_time */
-    0,                          /* min_time */
-    4294967295U,                /* max_users */
-    0,                          /* min_users */
-    0,                          /* topic_limits */
-    2147483647,                 /* max_topic_time */
-    0,                          /* min_topic_time */
-    0                        /* chptr */
-  };
-
-  if (sptr->listing)            /* Already listing ? */
-  {
-    sptr->listing->chptr->mode.mode &= ~MODE_LISTED;
-    MyFree(sptr->listing);
-    sptr->listing = 0;
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, sptr->name); /* XXX DEAD */
-    if (parc < 2)
-      return 0;                 /* Let LIST abort a listing. */
-  }
-
-  if (parc < 2)                 /* No arguments given to /LIST ? */
-  {
-#ifdef DEFAULT_LIST_PARAM
-    static char *defparv[MAXPARA + 1];
-    static int defparc = 0;
-    static char lp[] = DEFAULT_LIST_PARAM;
-    int i;
-
-    if (!defparc)
-    {
-      char *s = lp, *t;
-
-      defparc = 1;
-      defparv[defparc++] = t = strtok(s, " ");
-      while (t && defparc < MAXPARA)
-      {
-        if ((t = strtok(0, " ")))
-          defparv[defparc++] = t;
-      }
-    }
-    for (i = 1; i < defparc; i++)
-      parv[i] = defparv[i];
-    parv[i] = 0;
-    parc = defparc;
-#endif /* DEFAULT_LIST_PARAM */
-  }
-
-  /* Decode command */
-  for (param = 1; !show_usage && parv[param]; param++)
-  {
-    char *p = parv[param];
-    do
-    {
-      int is_time = 0;
-      switch (*p)
-      {
-        case 'T':
-        case 't':
-          is_time++;
-          args.topic_limits = 1;
-          /* Fall through */
-        case 'C':
-        case 'c':
-          is_time++;
-          p++;
-          if (*p != '<' && *p != '>')
-          {
-            show_usage = 1;
-            break;
-          }
-          /* Fall through */
-        case '<':
-        case '>':
-        {
-          p++;
-          if (!IsDigit(*p))
-            show_usage = 1;
-          else
-          {
-            if (is_time)
-            {
-              time_t val = atoi(p);
-              if (p[-1] == '<')
-              {
-                if (val < 80000000)     /* Toggle UTC/offset */
-                {
-                  /*
-                   * Demands that
-                   * 'TStime() - chptr->creationtime < val * 60'
-                   * Which equals
-                   * 'chptr->creationtime > TStime() - val * 60'
-                   */
-                  if (is_time == 1)
-                    args.min_time = TStime() - val * 60;
-                  else
-                    args.min_topic_time = TStime() - val * 60;
-                }
-                else if (is_time == 1)  /* Creation time in UTC was entered */
-                  args.max_time = val;
-                else            /* Topic time in UTC was entered */
-                  args.max_topic_time = val;
-              }
-              else if (val < 80000000)
-              {
-                if (is_time == 1)
-                  args.max_time = TStime() - val * 60;
-                else
-                  args.max_topic_time = TStime() - val * 60;
-              }
-              else if (is_time == 1)
-                args.min_time = val;
-              else
-                args.min_topic_time = val;
-            }
-            else if (p[-1] == '<')
-              args.max_users = atoi(p);
-            else
-              args.min_users = atoi(p);
-            if ((p = strchr(p, ',')))
-              p++;
-          }
-          break;
-        }
-        default:
-          if (!IsChannelName(p))
-          {
-            show_usage = 1;
-            break;
-          }
-          if (parc != 2)        /* Don't allow a mixture of channels with <,> */
-            show_usage = 1;
-          show_channels = 1;
-          p = 0;
-          break;
-      }
-    }
-    while (!show_usage && p);   /* p points after comma, or is NULL */
-  }
-
-  if (show_usage)
-  {
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        "Usage: \002/QUOTE LIST\002 \037parameters\037");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        "Where \037parameters\037 is a space or comma seperated "
-        "list of one or more of:");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002<\002\037max_users\037    ; Show all channels with less "
-        "than \037max_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002>\002\037min_users\037    ; Show all channels with more "
-        "than \037min_users\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002C<\002\037max_minutes\037 ; Channels that exist less "
-        "than \037max_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002C>\002\037min_minutes\037 ; Channels that exist more "
-        "than \037min_minutes\037.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002T<\002\037max_minutes\037 ; Channels with a topic last "
-        "set less than \037max_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        " \002T>\002\037min_minutes\037 ; Channels with a topic last "
-        "set more than \037min_minutes\037 ago.");
-    sendto_one(sptr, rpl_str(RPL_LISTUSAGE), me.name, parv[0], /* XXX DEAD */
-        "Example: LIST <3,>1,C<10,T>0  ; 2 users, younger than 10 min., "
-        "topic set.");
-    return 0;
-  }
-
-  sendto_one(sptr, rpl_str(RPL_LISTSTART), me.name, parv[0]); /* XXX DEAD */
-
-  if (!show_channels)
-  {
-    if (args.max_users > args.min_users + 1 && args.max_time > args.min_time &&
-        args.max_topic_time > args.min_topic_time)      /* Sanity check */
-    {
-      sptr->listing = (struct ListingArgs*) MyMalloc(sizeof(struct ListingArgs));
-      assert(0 != sptr->listing);
-      memcpy(sptr->listing, &args, sizeof(struct ListingArgs));
-      if ((sptr->listing->chptr = GlobalChannelList)) {
-        int m = GlobalChannelList->mode.mode & MODE_LISTED;
-        list_next_channels(sptr, 64);
-        GlobalChannelList->mode.mode |= m;
-        return 0;
-      }
-      MyFree(sptr->listing);
-      sptr->listing = 0;
-    }
-    sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-
-  for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
-  {
-    chptr = FindChannel(name);
-    if (chptr && ShowChannel(sptr, chptr) && sptr->user)
-      sendto_one(sptr, rpl_str(RPL_LIST), me.name, parv[0], /* XXX DEAD */
-          ShowChannel(sptr, chptr) ? chptr->chname : "*",
-          chptr->users - number_of_zombies(chptr), chptr->topic);
-  }
-
-  sendto_one(sptr, rpl_str(RPL_LISTEND), me.name, parv[0]); /* XXX DEAD */
-  return 0;
-}
-#endif /* 0 */
-

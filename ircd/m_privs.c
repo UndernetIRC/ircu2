@@ -109,7 +109,7 @@ int mo_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int i;
 
   if (parc < 2)
-    return need_more_params(sptr, "PRIVS");
+    return client_report_privs(sptr, sptr);
 
   for (i = 1; i < parc; i++) {
     for (name = ircd_strtok(&p, parv[i], " "); name;

@@ -39,6 +39,7 @@ enum Feature {
   FEAT_WALLOPS_OPER_ONLY,
   FEAT_NODNS,
   FEAT_RANDOM_SEED,
+  FEAT_DEFAULT_LIST_PARAM,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
@@ -107,6 +108,8 @@ enum Feature {
 
   FEAT_LAST_F
 };
+
+extern void feature_init(void);
 
 extern int feature_set(struct Client* from, const char* const* fields,
 		       int count);

@@ -152,15 +152,19 @@ static struct {
 void
 client_set_privs(struct Client* client)
 {
-  unsigned int privs = 0;
-  unsigned int antiprivs = 0;
+  struct Privs privs;
+  struct Privs antiprivs;
   int i;
 
-  if (!IsAnOper(client)) {
-    cli_privs(client) = 0; /* clear privilege mask */
+  memset(&privs, 0, sizeof(struct Privs));
+  memset(&privs, 0, sizeof(struct Privs));
+
+  if (!IsAnOper(client)) { /* clear privilege mask */
+    memset(&(cli_privs(client)), 0, sizeof(struct Privs));
     return;
   } else if (!MyConnect(client)) {
-    cli_privs(client) = ~(PRIV_SET); /* everything but set... */
+    memset(&(cli_privs(client)), 255, sizeof(struct Privs));
+    PrivClr(&(cli_privs(client)), PRIV_SET);
     return;
   }
 
@@ -169,26 +173,33 @@ client_set_privs(struct Client* client)
   for (i = 0; feattab[i].priv; i++) {
     if (feattab[i].flag == 0) {
       if (feature_bool(feattab[i].feat))
-	antiprivs |= feattab[i].priv;
+	PrivSet(&antiprivs, feattab[i].priv);
     } else if (feattab[i].flag == ~0) {
       if (!feature_bool(feattab[i].feat))
-	antiprivs |= feattab[i].priv;
+	PrivSet(&antiprivs, feattab[i].priv);
     } else if (cli_flags(client) & feattab[i].flag) {
       if (feattab[i].feat == FEAT_LAST_F ||
 	  feature_bool(feattab[i].feat))
-	privs |= feattab[i].priv;
+	PrivSet(&privs, feattab[i].priv);
     }
   }
 
   /* This is the end of the gross section */
 
-  if (privs & PRIV_PROPAGATE)
-    privs |= PRIV_DISPLAY; /* force propagating opers to display */
-  else /* if they don't propagate oper status, prevent desyncs */
-    antiprivs |= (PRIV_KILL | PRIV_GLINE | PRIV_JUPE | PRIV_OPMODE |
-		  PRIV_BADCHAN);
+  if (PrivHas(&privs, PRIV_PROPAGATE))
+    PrivSet(&privs, PRIV_DISPLAY); /* force propagating opers to display */
+  else { /* if they don't propagate oper status, prevent desyncs */
+    PrivSet(&antiprivs, PRIV_KILL);
+    PrivSet(&antiprivs, PRIV_GLINE);
+    PrivSet(&antiprivs, PRIV_JUPE);
+    PrivSet(&antiprivs, PRIV_OPMODE);
+    PrivSet(&antiprivs, PRIV_BADCHAN);
+  }
 
-  cli_privs(client) = privs & ~antiprivs;
+  for (i = 0; i < _PRIV_IDX(PRIV_LAST_PRIV); i++)
+    privs.priv_mask[i] &= ~antiprivs.priv_mask[i];
+
+  cli_privs(client) = privs;
 }
 
 static struct {
@@ -222,7 +233,7 @@ client_report_privs(struct Client *to, struct Client *client)
 		 cli_name(client));
 
   for (i = 0; privtab[i].name; i++)
-    if (cli_privs(client) & privtab[i].priv)
+    if (HasPriv(client, privtab[i].priv))
       msgq_append(0, mb, "%s%s", found1++ ? " " : "", privtab[i].name);
 
   send_buffer(to, mb, 0); /* send response */

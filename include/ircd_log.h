@@ -89,7 +89,7 @@ extern int log_set_default(const char *facility);
 extern char *log_get_default(void);
 
 extern void log_feature_unmark(void);
-extern void log_feature_mark(int flag);
+extern int log_feature_mark(int flag);
 extern void log_feature_report(struct Client *to, int flag);
 
 #endif /* INCLUDED_ircd_log_h */

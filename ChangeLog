@@ -1,5 +1,55 @@
 2001-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* config/config-sh.in: get rid of DEFAULT_LIST_PARAMETER
+	compile-time option--now in features subsystem
+
+	* ircd/motd.c (motd_init): rework motd_init() to be called as the
+	notify function for MPATH and RPATH features (should probably
+	split it up a bit, though...)
+
+	* ircd/m_privs.c (mo_privs): if called with no parameters, return
+	privs of the caller, rather than an error
+
+	* ircd/m_list.c: pull usage message into its own function; pull
+	list parameter processing into its own function that does not
+	modify the contents of the parameter; add list_set_default() to
+	set the default list parameter (uses the notify hook); rework
+	m_list() to make use of these functions; removed dead code
+
+	* ircd/ircd_log.c (log_feature_mark): make sure to return 0, since
+	we have no notify handler
+
+	* ircd/ircd_features.c: add notify callback for notification of
+	value changes; give mark callback an int return value to indicate
+	whether or not to call the notify callback; fix up feature macros
+	for new notify callback; add DEFAULT_LIST_PARAM feature; rewrite
+	string handling in feature_set() to deal with def_str being a null
+	pointer; wrote feature_init() to set up all defaults appropriately
+
+	* ircd/ircd.c (main): call feature_init() instead of
+	feature_mark(), to avoid calling notify functions while setting up
+	defaults
+
+	* ircd/client.c: updated to deal with new privileges structure
+
+	* ircd/class.c: updated so init_class() can be called should one
+	of PINGFREQUENCY, CONNECTFREQUENCY, MAXIMUM_LINKS, or
+	DEFAULTMAXSENDQLENGTH be changed
+
+	* include/ircd_log.h: log_feature_mark() updated to fit with new
+	API changes
+
+	* include/ircd_features.h: added DEFAULT_LIST_PARAM feature and
+	feature_init() function (found necessary since adding the notify
+	stuff and notifying motd.c during start-up...before we defined
+	RPATH!)
+
+	* include/client.h: move privs around to enable addition of more
+	bits if necessary; based on the FD_* macros
+
+	* include/channel.h: declare list_set_default (actually located in
+	m_list.c *blanche*)
+
 	* ircd/s_user.c: retrieve MAXSILES and MAXSILELENGTH (now
 	AVBANLEN*MAXSILES) from features subsystem
 

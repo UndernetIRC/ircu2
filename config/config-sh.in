@@ -220,15 +220,3 @@ comment 'Configuration'
   int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
   int 'Nickname history length' NICKNAMEHISTORYLENGTH 800
 endmenu
-
-mainmenu_option next_comment
-comment 'Server characteristics'
-  bool 'Do you want to have a default LIST parameter' CONFIG_LIST y
-  if [ "$CONFIG_LIST" = "y" ]; then
-    string 'Give default LIST parameter' DEFAULT_LIST 'T<10'
-    define_string DEFAULT_LIST_PARAM "$DEFAULT_LIST"
-  else
-    define_string DEFAULT_LIST "$DEFAULT_LIST"
-    define_bool DEFAULT_LIST_PARAM n
-  fi
-endmenu
