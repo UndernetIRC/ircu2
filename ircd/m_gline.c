@@ -257,7 +257,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!IsOper(sptr))
 	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
-	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %c%s %s %Tu :%s", target,
+	sendcmdto_one(acptr, CMD_GLINE, sptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
