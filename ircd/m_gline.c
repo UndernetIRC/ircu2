@@ -131,8 +131,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (*mask == '!') {
     mask++;
 
-    if (HasPriv(sptr, PRIV_WIDE_GLINE))
-      flags |= GLINE_OPERFORCE;
+    flags |= GLINE_OPERFORCE; /* assume oper had WIDE_GLINE */
   }
 
   if ((parc == 3 && *mask == '-') || parc == 5) {
@@ -281,16 +280,17 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		      flags & GLINE_ACTIVE ? '+' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
-      } else if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
-	return send_reply(sptr, ERR_NOPRIVILEGES);
+      }
 
       flags |= GLINE_LOCAL;
-    } else if (!HasPriv(sptr, PRIV_GLINE))
-      return send_reply(sptr, ERR_NOPRIVILEGES);
+    }
   }
 
   if (!(flags & GLINE_LOCAL) && !feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "GLINE");
+
+  if (!HasPriv(sptr, (flags & GLINE_LOCAL ? PRIV_LOCAL_GLINE : PRIV_GLINE)))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
 
   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
 
