@@ -1632,7 +1632,8 @@ LINKS *.au                      ; list all servers which have a name
    a new connection to another server immediately.  CONNECT is a
    privileged command and is to be available only to IRC Operators.  If
    a remote server is given then the CONNECT attempt is made by that
-   server to <target server> and <port>.
+   server to <target server> and <port>.  A port of 0 means use the default
+   port number.  Most errors are reported in notice's.
 
    Numeric Replies:
 

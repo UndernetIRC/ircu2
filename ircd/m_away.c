@@ -141,7 +141,7 @@ int ms_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * servers can't set away
    */
   if (IsServer(sptr))
-    return 0;
+    return protocol_violation(sptr,"Server trying to set itself away");
 
   if (user_set_away(sptr->user, away_message))
     sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);

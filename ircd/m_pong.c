@@ -124,7 +124,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
 #endif
-    return 0;
+    return protocol_violation(sptr,"No Origin on PONG");
   }
   origin      = parv[1];
   destination = parv[2];

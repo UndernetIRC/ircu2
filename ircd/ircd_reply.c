@@ -27,6 +27,7 @@
 #include "ircd.h"
 #include "ircd_snprintf.h"
 #include "numeric.h"
+#include "msg.h"
 #include "s_conf.h"
 #include "s_debug.h"
 #include "send.h"
@@ -34,8 +35,29 @@
 #include <assert.h>
 #include <string.h>
 
+/* Report a protocol violation warning to anyone listening.  This can be
+ * easily used to cleanup the last couple of parts of the code up.
+ */
+ 
+int protocol_violation(struct Client* cptr, const char* pattern, ...)
+{
+	va_list vl;
+	char buffer[512];
+	assert(pattern);
+	assert(cptr);
+	va_start(vl,pattern);
+	ircd_snprintf(0,buffer,sizeof(buffer)-2, 
+		"Protocol Violation from %C: %v",vl);
+	sendcmdto_flag_butone(&me, CMD_DESYNCH, NULL, FLAGS_DEBUG, 
+		":%s", cptr, buffer);
+	va_end(vl);
+	return 0;
+}
+
 int need_more_params(struct Client* cptr, const char* cmd)
 {
+  if (!MyUser(cptr))
+    protocol_violation(cptr,"Not enough parameters for %s",cmd);
   send_reply(cptr, ERR_NEEDMOREPARAMS, cmd);
   return 0;
 }

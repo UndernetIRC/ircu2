@@ -97,7 +97,7 @@
 /*
  * mr_pass - registration message handler
  */
-int m_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char* password = parc > 1 ? parv[1] : 0;
 
@@ -108,6 +108,12 @@ int m_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(password))
     return need_more_params(cptr, "PASS");
 
+  /* TODO: For protocol negotiation */
+#if 0
+  if (ircd_strcmp(password,"PROT")==0) {
+  	/* Do something here */
+  }
+#endif
   ircd_strncpy(cptr->passwd, password, PASSWDLEN);
   return 0;
 }

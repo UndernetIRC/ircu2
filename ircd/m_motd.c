@@ -96,9 +96,11 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_conf.h"
+#include "class.h"
 #include "s_user.h"
 #include "send.h"
 
+#include <stdlib.h>
 #include <assert.h>
 
 /*
@@ -123,6 +125,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct TRecord *ptr;
   int count;
   struct MotdItem *temp;
+  int class = get_client_class(sptr);
 
 #ifdef NODEFAULTMOTD
   int no_motd;
@@ -142,30 +145,25 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     no_motd = 1;
   }
 #endif
-
-  /*
-   * Find out if this is a remote query or if we have a T line for our hostname
+  /* 2.10.11: Allow per Class T:'s
+   *    -- Isomer 2000-11-19
    */
-  if (IsServer(cptr))
+  for (ptr = tdata; ptr; ptr = ptr->next)
   {
-    tm = 0;                  /* Remote MOTD */
-    temp = rmotd;
-  }
-  else
-  {
-    for (ptr = tdata; ptr; ptr = ptr->next)
-    {
-      if (!match(ptr->hostmask, cptr->sockhost))
+    if (IsDigit(*ptr->hostmask)) {
+      if (atoi(ptr->hostmask)==class)
         break;
     }
-    if (ptr)
-    {
-      temp = ptr->tmotd;
-      tm = &ptr->tmotd_tm;
-    }
-    else
-      temp = motd;
+    else if (!match(ptr->hostmask, cptr->sockhost))
+      break;
   }
+  if (ptr)
+  {
+    temp = ptr->tmotd;
+    tm = &ptr->tmotd_tm;
+  }
+  else
+    temp = motd;
   if (temp == 0)
   {
     send_reply(sptr, ERR_NOMOTD);

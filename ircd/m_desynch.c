@@ -111,9 +111,11 @@
  */
 int ms_desynch(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (IsServer(sptr) && parc >= 2)
+  if (parc >= 2)
     sendcmdto_flag_butone(sptr, CMD_DESYNCH, cptr, FLAGS_DEBUG, ":%s",
 			  parv[parc - 1]);
+  else
+    need_more_params(sptr,"DESYNCH");			
 
   return 0;
 }

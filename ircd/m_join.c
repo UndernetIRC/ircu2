@@ -316,8 +316,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *name;
 
   if (IsServer(sptr)) {
-    Debug((DEBUG_ERROR, "%s tried to JOIN a channel", sptr->name));
-    return 0;
+    return protocol_violation(sptr,"%s tried to JOIN a channel, duh!", sptr->name);
   }
 
   if (parc < 2 || *parv[1] == '\0')

@@ -157,7 +157,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc < 7)
   {
-    return need_more_params(sptr, "SERVER");
+    need_more_params(sptr, "SERVER");
     return exit_client(cptr, cptr, &me, "Need more parameters");
   }
   host = parv[1];

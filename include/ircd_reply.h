@@ -24,6 +24,7 @@
 
 struct Client;
 
+extern int protocol_violation(struct Client* cptr, const char* pattern, ...);
 extern int need_more_params(struct Client* cptr, const char* cmd);
 extern int send_error_to_client(struct Client* cptr, int error, ...);
 extern int send_reply(struct Client* to, int reply, ...);

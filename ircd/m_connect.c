@@ -180,6 +180,12 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		  sptr, JupeServer(ajupe), JupeReason(ajupe));
     return 0;
   }
+
+  /*
+   * Allow opers to /connect foo.* 0 bah.* to connect foo and bah
+   * using the conf's configured port
+   */
+#if 0
   /*
    * Get port number from params, port must be non-zero if it comes from a
    * server.
@@ -189,11 +195,18 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		  sptr);
     return 0;
   }
+#endif
+  port = atoi(parv[2]);
   /*
    * save the old port
    */
   tmpport = aconf->port;
-  aconf->port = port;
+  if (port) { 
+    aconf->port = port;
+  }
+  else {
+    port = aconf->port;
+  }
   /*
    * Notify all operators about remote connect requests
    */

@@ -110,7 +110,7 @@ extern int m_notice(struct Client*, struct Client*, int, char*[]);
 extern int m_notice(struct Client*, struct Client*, int, char*[]);
 extern int m_oper(struct Client*, struct Client*, int, char*[]);
 extern int m_part(struct Client*, struct Client*, int, char*[]);
-extern int m_pass(struct Client*, struct Client*, int, char*[]);
+extern int mr_pass(struct Client*, struct Client*, int, char*[]);
 extern int m_ping(struct Client*, struct Client*, int, char*[]);
 extern int m_pong(struct Client*, struct Client*, int, char*[]);
 extern int m_private(struct Client*, struct Client*, int, char*[]);
