@@ -183,8 +183,8 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
       sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
                                        NULL, chptr, sptr, SKIP_NONOPS, 
-                                       "%C %C :%C has been invited by %C",
-                                       acptr, sptr, acptr, sptr);
+                                       "%H %C %C :%C has been invited by %C",
+                                       chptr, acptr, sptr, acptr, sptr);
       sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
                                        "%s :%H", cli_name(acptr), chptr);
       if (MyConnect(acptr))
@@ -242,27 +242,6 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
     return 0;
   }
-  if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
-    sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
-                                     NULL, chptr, sptr, SKIP_NONOPS, 
-                                     "%C %C :%C has been invited by %C",
-                                     acptr, sptr, acptr, sptr);
-    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
-                                     "%s :%H", cli_name(acptr), chptr);
-    if (MyConnect(acptr))
-      sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
-    return 0;
-  }
-  if (!MyUser(acptr)) {
-    /*
-     * just relay the message
-     */
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", cli_name(acptr), parv[2]);
-    return 0;
-  }
-
-  if (is_silenced(sptr, acptr))
-    return 0;
 
   if (!(chptr = FindChannel(parv[2]))) {
     /*
@@ -277,11 +256,27 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
     return 0;
   }
+
   if (find_channel_member(acptr, chptr)) {
     send_reply(sptr, ERR_USERONCHANNEL, cli_name(acptr), chptr->chname);
     return 0;
   }
-  add_invite(acptr, chptr);
+
+  if (is_silenced(sptr, acptr))
+    return 0;
+
+  if (MyConnect(acptr))
+      add_invite(acptr, chptr);
+
+  if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
+    sendcmdto_channel_butserv_butone(&me, get_error_numeric(RPL_ISSUEDINVITE)->str,
+                                     NULL, chptr, sptr, SKIP_NONOPS, 
+                                     "%H %C %C :%C has been invited by %C",
+                                     chptr, acptr, sptr, acptr, sptr);
+    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, sptr, 0,
+                                     "%s :%H", cli_name(acptr), chptr);
+  }
+
   sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
   return 0;
 }
