@@ -478,13 +478,14 @@ struct Client {
 #define SNO_THROTTLE    0x1000  /* host throttle add/remove notices */
 #define SNO_OLDREALOP   0x2000  /* old oper-only messages */
 #define SNO_CONNEXIT    0x4000  /* client connect/exit (ugh) */
-#define SNO_DEBUG       0x8000  /* debugging messages (DEBUGMODE only) */
+#define SNO_AUTO        0x8000  /* AUTO G-Lines */
+#define SNO_DEBUG       0x10000  /* debugging messages (DEBUGMODE only) */
 
 #ifdef DEBUGMODE
-# define SNO_ALL        0xffff  /* Don't make it larger then significant,
+# define SNO_ALL        0x1ffff  /* Don't make it larger than significant,
                                  * that looks nicer */
 #else
-# define SNO_ALL        0x7fff
+# define SNO_ALL        0xffff
 #endif
 
 #define SNO_USER        (SNO_ALL & ~SNO_OPER)

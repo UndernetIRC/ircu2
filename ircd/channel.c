@@ -995,7 +995,6 @@ top:
 
 int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 {
-  struct SLink *lp;
   int overrideJoin = 0;  
   
   /*
@@ -1004,9 +1003,8 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
    * Now a user CAN escape anything if invited -- Isomer
    */
 
-  for (lp = (cli_user(sptr))->invited; lp; lp = lp->next)
-    if (lp->value.chptr == chptr)
-      return 0;
+  if(IsInvited(sptr, chptr))
+    return 0;
   
   /* An oper can force a join on a local channel using "OVERRIDE" as the key. 
      a HACK(4) notice will be sent if he would not have been supposed
@@ -2767,6 +2765,19 @@ joinbuf_flush(struct JoinBuf *jbuf)
 			  jbuf->jb_comment);
     break;
   }
+
+  return 0;
+}
+
+/* Returns TRUE (1) if client is invited, FALSE (0) if not */
+
+int IsInvited(struct Client* cptr, struct Channel* chptr)
+{
+  struct SLink *lp;
+
+  for (lp = (cli_user(cptr))->invited; lp; lp = lp->next)
+    if (lp->value.chptr == chptr)
+      return 1;
 
   return 0;
 }

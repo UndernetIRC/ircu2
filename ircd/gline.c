@@ -369,7 +369,8 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops... */
-  sendto_opmask_butone(0, SNO_GLINE, "%s adding %s %s for %s%s%s, expiring at "
+  sendto_opmask_butone(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
+		       SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at "
 		       "%Tu: %s",
 #ifdef HEAD_IN_SAND_SNOTICES
 		       cli_name(sptr),
