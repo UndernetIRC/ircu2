@@ -785,7 +785,7 @@ struct ConfItem* find_conf_byname(struct SLink* lp, const char* name,
 struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
                                   int statmask)
 {
-  struct ConfItem* tmp;
+  struct ConfItem* tmp = NULL;
   assert(0 != host);
 
   if (HOSTLEN < strlen(host))
@@ -963,10 +963,15 @@ int rehash(struct Client *cptr, int sig)
         attach_confs_byname(acptr, acptr->name,
                             CONF_HUB | CONF_LEAF | CONF_UWORLD);
       }
+      /* Because admin's are getting so uppity about people managing to
+       * get past K/G's etc, we'll "fix" the bug by actually explaining
+       * whats going on.
+       */
       if ((found_g = find_kill(acptr))) {
         sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
-			     found_g == -2 ? "G-line active for %s" :
-			     "K-line active for %s",
+			     found_g == -2 ? "G-line active for %s%s" :
+			     "K-line active for %s%s",
+			     IsUnknown(acptr) ? "Unregistered Client ":"",		     
 			     get_client_name(acptr, HIDE_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)

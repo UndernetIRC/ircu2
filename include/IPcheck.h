@@ -23,5 +23,6 @@ extern void ip_registry_connect_succeeded(struct Client *cptr);
 extern void ip_registry_local_disconnect(struct Client *cptr);
 extern void ip_registry_remote_disconnect(struct Client *cptr);
 extern void ip_registry_connect_succeeded(struct Client *cptr);
+extern int ip_registry_count(unsigned int addr);
 
 #endif /* INCLUDED_ipcheck_h */
