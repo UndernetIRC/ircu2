@@ -624,7 +624,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
   }
 
-  check_start_timestamp(cptr, timestamp, start_timestamp, TStime());
+  recv_time = TStime();
+  check_start_timestamp(cptr, timestamp, start_timestamp, recv_time);
   ret = server_estab(cptr, aconf);
 
   if (feature_bool(FEAT_RELIABLE_CLOCK) &&
