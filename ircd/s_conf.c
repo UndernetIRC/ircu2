@@ -393,7 +393,7 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
     }
     if (hp) {
       Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), hp->h_name));
-      if (!match(aconf->name, hp->h_name))
+      if (!match(aconf->host, hp->h_name))
         return check_limit_and_attach(cptr, aconf);
     }
     if ((aconf->addrbits >= 0)

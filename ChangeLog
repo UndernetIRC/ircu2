@@ -1,3 +1,8 @@
+2004-10-21  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_conf.c (attach_iline): Test resolved host names against
+	aconf->host, not the (NULL) aconf->name.
+
 2004-10-19  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h: Move ban flags out of channel flags and
