@@ -1,5 +1,40 @@
 2002-01-07  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c: add FLAGS_ACCOUNT, represented as 'r', to the
+	list of user modes; process account name as part of user mode in
+	NICK decoding (set_nick_name()); add account name to usermode when
+	building the usermode to incorporate in outgoing NICK messages
+
+	* ircd/s_err.c: add RPL_WHOISACCOUNT for reporting what account a
+	user is logged in to
+
+	* ircd/parse.c: define the new ACCOUNT command, usable only by
+	servers and ignored by everything else
+
+	* ircd/m_whois.c: report what account name is associated with a
+	user, if any
+
+	* ircd/m_account.c: implement the ACCOUNT command
+
+	* ircd/Makefile.in: add m_account.c to the list of sources; ran
+	make depend
+
+	* include/struct.h: add an account field to struct User
+
+	* include/numeric.h: add a reply, RPL_WHOISACCOUNT, for reporting
+	what username a user is logged in under
+
+	* include/msg.h: add ACCOUNT command and token (AC)
+
+	* include/ircd_defs.h: define ACCOUNTLEN to be 12--this matches
+	the maximum length of a username for X
+
+	* include/handlers.h: add declaration for ms_account()
+
+	* include/client.h: add FLAGS_ACCOUNT to flag when a user account
+	name has been set; added FLAGS_ACCOUNT to SEND_UMODES; added
+	IsAccount() and SetAccount() to manipulate the flag
+
 	* ircd/m_squit.c (ms_squit): if we call FindNServer() on a server
 	name like "Amsterdam2.NL.EU.undernet.org", we get the struct
 	Client for the server with numeric "Am", which happens to be

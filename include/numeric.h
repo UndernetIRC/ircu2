@@ -240,6 +240,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_CHANNEL_URL      328           dalnet, anothernet */
 #define RPL_CREATIONTIME     329
 /*      RPL_WHOWAS_TIME      330               ? */
+#define RPL_WHOISACCOUNT     330
 #define RPL_NOTOPIC          331
 #define RPL_TOPIC            332
 #define RPL_TOPICWHOTIME     333        /* Undernet extension */

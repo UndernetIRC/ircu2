@@ -692,7 +692,7 @@ static Numeric replyTable[] = {
 /* 329 */
   { RPL_CREATIONTIME, "%s %Tu", "329" },
 /* 330 */
-  { 0 },
+  { RPL_WHOISACCOUNT, "%s %s :is logged in as", "330" },
 /* 331 */
   { RPL_NOTOPIC, "%s :No topic is set.", "331" },
 /* 332 */
