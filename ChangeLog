@@ -1,3 +1,16 @@
+2002-10-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.features: fix documentation--HIS_REMOTE is an integer
+	defaulting to 1, not a boolean defaulting to TRUE
+
+	* doc/ircd.conf.sample: fix documentation--HIS_REMOTE is an
+	integer defaulting to 1, not a boolean defaulting to TRUE; also
+	comment out the default F-lines, since you only need an F-line if
+	you want a non-default setting for a feature
+
+	* doc/example.conf: fix documentation--HIS_REMOTE is an integer
+	defaulting to 1, not a boolean defaulting to TRUE
+
 2002-10-21  Alex Badea  <vampire@p16.pub.ro>
 
 	* include/ircd_features.h: new feature FEAT_AUTOHIDE

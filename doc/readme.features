@@ -1016,8 +1016,8 @@ As per UnderNet CFV-165, this remaps remote numerics to come from the local
 server.
 
 HIS_REMOTE
- * Type: boolean
- * Default: TRUE
+ * Type: integer
+ * Default: 1
 
 As per UnderNet CFV-165, this disallows remote queries. (*sob!*)
 
