@@ -20,6 +20,7 @@
  */
 #include "ircd_network.h"
 
+#include "ircd.h"
 #include "ircd_alloc.h"
 
 static struct {
@@ -40,17 +41,44 @@ static struct {
   unsigned int	 events_alloc;
 } netInfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+/* Remove something from its queue */
+static void
+gen_dequeue(void *arg)
+{
+  struct GenHeader* gen = (struct GenHeader*) arg;
+
+  if (gen->gh_next) /* clip it out of the list */
+    gen->gh_next->gh_prev_p = gen->gh_prev_p;
+  *gen->gh_prev_p = gen->gh_next;
+
+  gen->gh_next = 0; /* mark that it's not in the list anymore */
+  gen->gh_prev_p = 0;
+}
+
 /* Execute an event; optimizations should inline this */
 static void
 event_execute(struct Event* event)
 {
   assert(0 == event->ev_prev_p); /* must be off queue first */
 
-  (*event->ev_callback)(event); /* execute the event */
+  (*event->ev_gen.gen_header->gh_call)(event); /* execute the event */
 
-  event->ev_type = ET_ERROR; /* clear event data */
-  event->ev_callback = 0;
-  event->ev_gen.gen_socket = 0;
+  /* The logic here is very careful; if the event was an ET_DESTROY,
+   * then we must assume the generator is now invalid; fortunately, we
+   * don't need to do anything to it if so.  Otherwise, we decrement
+   * the reference count; if reference count goes to zero, AND we need
+   * to destroy the generator, THEN we generate a DESTROY event.
+   */
+  if (event->ev_type != ET_DESTROY &&
+      !--event->ev_gen.gen_header->gh_ref &&
+      (event->ev_gen.gen_header->gh_flags & GEN_DESTROY)) {
+    gen_dequeue(event->ev_gen.gen_header);
+    event_generate(ET_DESTROY, event->ev_gen.gen_header);
+  }
+
+  event->ev_callback = 0; /* clear event data */
+  event->ev_gen.gen_header = 0;
+  event->ev_type = ET_DESTROY;
 
   event->ev_next = netInfo.events_free; /* add to free list */
   netInfo.events_free = event;
@@ -104,23 +132,118 @@ event_generate(enum EventType type, void* gen)
 
   ptr->ev_type = type; /* Record event type */
 
-  switch (type) { /* link to generator properly */
-  case ET_READ: case ET_WRITE: case ET_ACCEPT: case ET_EOF: case ET_ERROR:
-    /* event is for a socket */
-    ptr->ev_gen.gen_socket = (struct Socket*) gen;
-    ptr->ev_callback = ptr->ev_gen.gen_socket->s_callback;
+  ptr->ev_gen.gen_header = (struct GenHeader*) gen;
+  ptr->ev_gen.gen_header->gh_ref++;
+
+  event_add(ptr); /* add event to queue */
+}
+
+/* Place a timer in the correct spot on the queue */
+static void
+timer_enqueue(struct Timer* timer)
+{
+  struct Timer** ptr_p;
+
+  assert(0 != timer);
+  assert(0 == timer->t_header.gh_prev_p); /* not already on queue */
+
+  /* Calculate expire time */
+  switch (timer->t_type) {
+  case TT_ABSOLUTE: /* no need to consider it relative */
+    timer->t_expire = timer->t_value;
     break;
 
-  case ET_SIGNAL: /* event is for a signal */
-    ptr->ev_gen.gen_signal = (struct Signal*) gen;
-    ptr->ev_callback = ptr->ev_gen.gen_signal->sig_callback;
-    break;
-
-  case ET_TIMER: /* event is for a timer */
-    ptr->ev_gen.gen_timer = (struct Timer*) gen;
-    ptr->ev_callback = ptr->ev_gen.gen_timer->t_callback;
+  case TT_RELATIVE: case TT_PERIODIC: /* relative timer */
+    timer->t_expire = timer->t_value + CurrentTime;
     break;
   }
 
-  event_add(ptr); /* add event to queue */
+  /* Find a slot to insert timer */
+  for (ptr_p = &netInfo.timers_head; ; ptr_p = &(*ptr_p)->t_header.gh_next)
+    if (!*ptr_p || timer->t_expire < (*ptr_p)->t_expire)
+      break;
+
+  timer->t_header.gh_next = *ptr_p; /* link it in the right place */
+  timer->t_header.gh_prev_p = ptr_p;
+  if (*ptr_p)
+    (*ptr_p)->t_header.gh_prev_p = &timer->t_header.gh_next;
+  *ptr_p = timer;
+}
+
+/* Initialize a struct Timer */
+void
+timer_init(struct Timer* timer, EventCallBack call, void* data)
+{
+  assert(0 != timer);
+
+  timer->t_header.gh_next = 0; /* initialize a timer... */
+  timer->t_header.gh_prev_p = 0;
+  timer->t_header.gh_flags = 0;
+  timer->t_header.gh_ref = 0;
+  timer->t_header.gh_call = call;
+  timer->t_header.gh_data = data;
+  timer->t_value = 0;
+  timer->t_expire = 0;
+}
+
+/* Add a timer to be processed */
+void
+timer_add(struct Timer* timer, enum TimerType type, time_t value)
+{
+  assert(0 != timer);
+  assert(0 != value);
+
+  timer->t_type = type; /* Set up the timer... */
+  timer->t_value = value;
+
+  timer_enqueue(timer); /* and enqueue it */
+}
+
+/* Remove a timer from the processing queue */
+void
+timer_del(struct Timer* timer)
+{
+  assert(0 != timer);
+
+  if (timer->t_header.gh_ref) /* in use; mark for destruction */
+    timer->t_header.gh_flags |= GEN_DESTROY;
+  else { /* not in use; destroy right now */
+    gen_dequeue(timer);
+    event_generate(ET_DESTROY, timer);
+  }
+}
+
+/* Return 0 if no pending timers, else return next expire time (absolute) */
+time_t
+timer_next(void)
+{
+  return netInfo.timers_head ? netInfo.timers_head->t_expire : 0;
+}
+
+/* Execute all expired timers */
+void
+timer_run(void)
+{
+  struct Timer* ptr;
+  struct Timer* next;
+
+  /* go through queue... */
+  for (ptr = netInfo.timers_head; ptr; ptr = next) {
+    next = ptr->next;
+    if (CurrentTime < ptr->t_expire)
+      break; /* processed all pending timers */
+
+    gen_dequeue(ptr); /* must dequeue timer here */
+    event_generate(ET_EXPIRE, ptr); /* generate expire event */
+
+    switch (ptr->t_type) {
+    case TT_ABSOLUTE: case TT_RELATIVE:
+      timer_del(ptr); /* delete inactive timer */
+      break;
+
+    case TT_PERIODIC:
+      timer_enqueue(ptr); /* re-queue periodic timer */
+      break;
+    }
+  }
 }

@@ -1,3 +1,12 @@
+2001-01-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: implement timer API; add reference counts
+	appropriately
+
+	* include/ircd_network.h: firm up some pieces of the interface;
+	split out members everything has into a separate structure; add
+	reference counts; add timer API
+
 2001-01-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_network.c: static data and event manipulation

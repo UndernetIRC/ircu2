@@ -24,17 +24,10 @@
 #ifndef INCLUDED_config_h
 #include "config.h"
 #endif
-#ifndef INCLUDED_time_h
-#include <time.h>	/* struct timespec */
-#define INCLUDED_time_h
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>	/* time_t */
+#define INCLUDED_sys_types_h
 #endif
-
-#ifndef HAVE_STRUCT_TIMESPEC
-struct timespec {
-  long int tv_sec;	/* seconds */
-  long int tv_nsec;	/* nanoseconds */
-};
-#endif /* !HAVE_STRUCT_TIMESPEC */
 
 typedef void (*EventCallBack)(struct Event*);
 
@@ -60,54 +53,62 @@ enum EventType {
   ET_EOF,		/* End-of-file on connection */
   ET_ERROR,		/* Error condition detected */
   ET_SIGNAL,		/* A signal was received */
-  ET_TIMER		/* A timer expired */
+  ET_EXPIRE,		/* A timer expired */
+  ET_DESTROY		/* The generator is being destroyed */
 };
 
+struct GenHeader {
+  struct GenHeader*  gh_next;	/* linked list of generators */
+  struct GenHeader** gh_prev_p;
+  unsigned int	     gh_flags;	/* generator flags */
+  unsigned int	     gh_ref;	/* reference count */
+  EventCallBack	     gh_call;	/* generator callback function */
+  void*		     gh_data;	/* extra data */
+};
+
+#define GEN_DESTROY	0x0001	/* generator is to be destroyed */
+
 struct Socket {
-  struct Socket*   s_next;	/* linked list of sockets */
-  struct Socket**  s_prev_p;
+  struct GenHeader s_header;	/* generator information */
   enum SocketState s_state;	/* state socket's in */
-  unsigned int	   s_flags;	/* socket flags */
+  unsigned int	   s_events;	/* events socket is interested in */
   int		   s_fd;	/* file descriptor for socket */
-  EventCallBack	   s_callback;	/* single callback for socket */
-  void*		   s_data;	/* data for socket--struct Client, etc. */
 };
 
 #define SOCK_EVENT_READABLE	0x0001	/* interested in readable */
 #define SOCK_EVENT_WRITABLE	0x0002	/* interested in writable */
-#define SOCK_FLAG_CLOSED	0x0010	/* socket got closed at some point */
 
 struct Signal {
-  struct Signal*  sig_next;	/* linked list of signals */
-  struct Signal** sig_prev_p;
-  int		  sig_signal;	/* signal number */
-  unsigned int	  sig_count;	/* count of number of signals */
-  EventCallBack	  sig_callback;	/* signal callback function */
-  void*		  sig_data;	/* data for signal */
+  struct GenHeader sig_header;	/* generator information */
+  int		   sig_signal;	/* signal number */
+  unsigned int	   sig_count;	/* count of number of signals */
 };
 
 struct Timer {
-  struct Timer*   t_next;	/* linked list of timers */
-  struct Timer**  t_prev_p;
-  enum TimerType  t_type;	/* what type of timer this is */
-  struct timespec t_value;	/* value timer was added with */
-  struct timespec t_expire;	/* time at which timer expires */
-  EventCallBack	  t_callback;	/* timer callback function */
-  void*		  t_data;	/* data for timer--struct Auth, whatever */
+  struct GenHeader t_header;	/* generator information */
+  enum TimerType   t_type;	/* what type of timer this is */
+  time_t	   t_value;	/* value timer was added with */
+  time_t	   t_expire;	/* time at which timer expires */
 };
 
 struct Event {
   struct Event*	   ev_next;	/* linked list of events on queue */
   struct Event**   ev_prev_p;
   enum EventType   ev_type;	/* Event type */
-  EventCallBack	   ev_callback;	/* Event callback function */
   union {
-    struct Socket* gen_socket;	/* Socket generating event */
-    struct Signal* gen_signal;	/* signal generating event */
-    struct Timer*  gen_timer;	/* Timer generating event */
+    struct GenHeader* gen_header;	/* Generator header */
+    struct Socket*    gen_socket;	/* Socket generating event */
+    struct Signal*    gen_signal;	/* signal generating event */
+    struct Timer*     gen_timer;	/* Timer generating event */
   }		   ev_gen;	/* object generating event */
 };
 
 void event_generate(enum EventType type, void* gen);
+
+void timer_init(struct Timer* timer, EventCallBack call, void* data);
+void timer_add(struct Timer* timer, enum TimerType type, time_t value);
+void timer_del(struct Timer* timer);
+time_t timer_next(void);
+void timer_run(void);
 
 #endif /* INCLUDED_ircd_network_h */
