@@ -1,3 +1,30 @@
+2001-07-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: implement send_supported() to send two ISUPPORT
+	messages containing our feature buffers; make register_user() use
+	send_supported()
+
+	* ircd/s_misc.c (exit_client): make sure not to give away a remote
+	server in the ERROR message sent to the client; if the killer is a
+	server, we substitute our name in its place
+
+	* ircd/m_version.c (m_version): use send_supported() to send the
+	ISUPPORT values to the user
+
+	* ircd/m_nick.c: shave nick collision kills here a bit, too, for
+	the same reasons as for m_kill.c
+
+	* ircd/m_kill.c: shave kills a bit so that the results look
+	exactly the same no matter where you are; if we didn't do this, it
+	would be possible to map the network by looking at the differences
+	between kills originating under various circumstances
+
+	* include/supported.h: split the features into two, so as to not
+	bust the parameter count when sending the features list
+
+	* include/s_user.h: declare new send_supported() function to send
+	the ISUPPORT information
+
 2001-07-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_bsd.c: disable IP (*not* TCP) options to prevent

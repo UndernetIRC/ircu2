@@ -383,7 +383,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
   char             ip_base64[8];
-  char             featurebuf[512];
 
   user->last = CurrentTime;
   parv[0] = cli_name(sptr);
@@ -567,8 +566,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
     send_reply(sptr, RPL_CREATED, creation);
     send_reply(sptr, RPL_MYINFO, cli_name(&me), version);
-    ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES, FEATURESVALUES);
-    send_reply(sptr, RPL_ISUPPORT, featurebuf);
+    send_supported(sptr);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
     motd_signon(sptr);
@@ -1541,3 +1539,15 @@ int add_silence(struct Client* sptr, const char* mask)
   return 0;
 }
 
+int
+send_supported(struct Client *cptr)
+{
+  char featurebuf[512];
+
+  ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES1, FEATURESVALUES1);
+  send_reply(sptr, RPL_ISUPPORT, featurebuf);
+  ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES2, FEATURESVALUES2);
+  send_reply(sptr, RPL_ISUPPORT, featurebuf);
+
+  return 0; /* convenience return, if it's ever needed */
+}

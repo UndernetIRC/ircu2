@@ -31,7 +31,7 @@
 /* 
  * 'Features' supported by this ircd
  */
-#define FEATURES \
+#define FEATURES1 \
                 "WHOX"\
                 " WALLCHOPS"\
                 " USERIP"\
@@ -44,15 +44,18 @@
                 " NICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " KICKLEN=%i" \
-                " CHANTYPES=%s" \
-                " PREFIX=%s" \
+                " CHANTYPES=%s"
+
+#define FEATURES2 "PREFIX=%s" \
                 " CHANMODES=%s" \
                 " CHARSET=%s"
 
-#define FEATURESVALUES feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
-		       feature_int(FEAT_MAXCHANNELSPERUSER), \
-		       feature_int(FEAT_MAXBANS), NICKLEN, TOPICLEN, \
-		       TOPICLEN, "+#&", "(ov)@+", "b,k,l,imnpst", "rfc1459"
+#define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
+			feature_int(FEAT_MAXCHANNELSPERUSER), \
+			feature_int(FEAT_MAXBANS), NICKLEN, TOPICLEN, \
+			TOPICLEN, "+#&"
+
+#define FEATURESVALUES2 "(ov)@+", "b,k,l,imnpst", "rfc1459"
 
 #endif /* INCLUDED_supported_h */
 

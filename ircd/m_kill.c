@@ -113,7 +113,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char*    inpath;
   char*          user;
   char*          path;
-  char*          killer;
+  char*          comment;
   char           buf[BUFSIZE];
 
   assert(0 != cptr);
@@ -188,28 +188,25 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   cli_flags(victim) |= FLAGS_KILLED;
 
   /*
+   * the first space in path will be at the end of the
+   * opers name:
+   * bla.bla.bla!host.net.dom!opername (comment)
+   */
+  if (!(comment = strchr(path, ' ')))
+    comment = " (No reason given)";
+  /*
    * Tell the victim she/he has been zapped, but *only* if
    * the victim is on current server--no sense in sending the
    * notification chasing the above kill, it won't get far
    * anyway (as this user don't exist there any more either)
    */
   if (MyConnect(victim))
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, NumServ(cptr),
-		  path);
-  /*
-   * the first space in path will be at the end of the
-   * opers name:
-   * bla.bla.bla!host.net.dom!opername (comment)
-   */
-  if ((killer = strchr(path, ' '))) {
-    while (killer > path && '!' != *killer)
-      --killer;
-    if ('!' == *killer)
-      ++killer;
-  }
-  else
-    killer = path;
-  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s)", killer);
+    sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim,
+		  "%C :%s!%s", victim, IsServer(sptr) ? "*.undernet.org" :
+		  cli_name(sptr), comment);
+
+  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s%s)", IsServer(sptr) ?
+		"*.undernet.org" : cli_name(sptr), comment);
 
   return exit_client(cptr, victim, sptr, buf);
 }
@@ -292,8 +289,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   inpath = cli_user(sptr)->host;
 
-  ircd_snprintf(0, buf, sizeof(buf), "%s%s (%s)", cli_name(cptr),
-		IsOper(sptr) ? "" : "(L)", comment);
+  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", cli_name(cptr), comment);
   path = buf;
 
   /*
@@ -326,8 +322,6 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     */
     cli_flags(victim) |= FLAGS_KILLED;
 
-    ircd_snprintf(0, buf, sizeof(buf), "Killed by %s (%s)", cli_name(sptr),
-		  comment);
   }
   else {
   /*
@@ -336,10 +330,11 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * notification chasing the above kill, it won't get far
    * anyway (as this user don't exist there any more either)
    */
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, inpath, path);
-    ircd_snprintf(0, buf, sizeof(buf), "Local kill by %s (%s)",
-		  cli_name(sptr), comment);
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s", victim, path);
   }
+
+  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s (%s))", cli_name(sptr),
+		comment);
 
   return exit_client(cptr, victim, sptr, buf);
 }

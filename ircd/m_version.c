@@ -123,13 +123,9 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_VERSION, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
 		      parc, parv) == HUNTED_ISME)
   {
-    char featurebuf[512];
-    
-    ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES, FEATURESVALUES);
-    
     send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
 	       debug_serveropts());
-    send_reply(sptr, RPL_ISUPPORT, featurebuf);
+    send_supported(sptr);
   }
 
   return 0;

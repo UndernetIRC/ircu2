@@ -318,7 +318,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   assert(0 != acptr);
 
-  if (IsServer(acptr)) {
+  if (IsServer(acptr)) { /* shouldn't even happen, actually */
     /*
      * We have a nickname trying to use the same name as
      * a server. Send out a nick collision KILL to remove
@@ -337,7 +337,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * if sptr is a server it is exited here, nothing else to do
      */
-    return exit_client(cptr, sptr, &me, "Nick/Server collision");
+    return exit_client_msg(cptr, sptr, &me,
+			   "Killed (*.undernet.org (%s <- %s))",
+			   cli_name(cli_from(acptr)), cli_name(cptr));
   }
 
   /*
@@ -443,7 +445,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         assert(!MyConnect(sptr));
 
         cli_flags(sptr) |= FLAGS_KILLED;
-        exit_client(cptr, sptr, &me, "Nick collision (you're a ghost)");
+        exit_client(cptr, sptr, &me,
+		    "Killed (*.undernet.org (Nick collision))");
         /*
          * we have killed sptr off, zero out it's pointer so if it's used
          * again we'll know about it --Bleep
@@ -464,18 +467,26 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (differ) {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (older nick "
 			  "overruled)", acptr, cli_name(&me));
-    if (MyConnect(acptr))
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost)",
-		    cli_name(&me));
-    exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
+    if (MyConnect(acptr)) {
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (*.undernet.org (older "
+		    "nick overruled))");
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :*.undernet.org (older nick "
+		    "overruled)", acptr);
+    }
+    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (older nick "
+		"overruled))");
   }
   else {
     sendcmdto_serv_butone(&me, CMD_KILL, acptr, "%C :%s (nick collision from "
 			  "same user@host)", acptr, cli_name(&me));
-    if (MyConnect(acptr))
-      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Local kill by %s (Ghost: ",
-		    "switched servers too fast)", cli_name(&me));
-    exit_client(cptr, acptr, &me, "Nick collision (You collided yourself)");
+    if (MyConnect(acptr)) {
+      sendcmdto_one(acptr, CMD_QUIT, cptr, ":Killed (*.undernet.org (nick "
+		    "collision from same user@host))");
+      sendcmdto_one(&me, CMD_KILL, acptr, "%C :*.undernet.org (older nick "
+		    "overruled)", acptr);
+    }
+    exit_client(cptr, acptr, &me, "Killed (*.undernet.org (nick collision "
+		"from same user@host))");
   }
   if (lastnick == cli_lastnick(acptr))
     return 0;

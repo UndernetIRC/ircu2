@@ -410,7 +410,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 			  cli_name(killer), comment);
 	  else
 	    sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
-			  cli_name(victim), cli_name(killer), comment);
+			  cli_name(victim), IsServer(killer) ? cli_name(&me) :
+			  cli_name(killer), comment);
 	}
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&
