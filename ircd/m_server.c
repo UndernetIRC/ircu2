@@ -317,6 +317,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
 			   "from %s.", cli_name(cptr));
+      log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "Received unauthorized "
+		"connection from %C [%s]", cptr,
+		ircd_ntoa((const char *)&(cli_ip(cptr))));
       return exit_client(cptr, cptr, &me, "No C:line");
     }
 
@@ -957,6 +960,9 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       ++ServerStats->is_ref;
       sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
 			   "from %s.", cli_name(cptr));
+      log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "Received unauthorized "
+		"connection from %C [%s]", cptr,
+		ircd_ntoa((const char *)&(cli_ip(cptr))));
       return exit_client(cptr, cptr, &me, "No C conf lines");
     }
 
