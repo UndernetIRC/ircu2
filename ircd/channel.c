@@ -761,11 +761,12 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
 
   if (*chptr->mode.key) {
     *mbuf++ = 'k';
+    if (chptr->mode.limit)
+      strcat(pbuf, " ");
     if (is_chan_op(cptr, chptr) || IsServer(cptr)) {
-      if (chptr->mode.limit)
-        strcat(pbuf, " ");
       strcat(pbuf, chptr->mode.key);
-    }
+    } else
+      strcat(pbuf, "*");
   }
   *mbuf = '\0';
 }

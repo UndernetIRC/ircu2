@@ -30,6 +30,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -441,9 +442,13 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   if (IsServer(victim))
   {
+#ifdef HEAD_IN_SAND_NETSPLIT
+    strcpy(comment1, "*.net *.split");
+#else
     strcpy(comment1, cli_name(cli_serv(victim)->up));
     strcat(comment1, " ");
     strcat(comment1, cli_name(victim));
+#endif
     if (IsUser(killer))
       sendto_opmask_butone(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
 			   (cli_user(killer)->server == victim ||
