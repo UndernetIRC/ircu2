@@ -356,7 +356,7 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 
   switch (os_sendv_nonb(cli_fd(cptr), buf, &bytes_count, &bytes_written)) {
   case IO_SUCCESS:
-    cli_flags(cptr) &= ~FLAGS_BLOCKED;
+    SetFlag(cptr, FLAG_BLOCKED);
 
     cli_sendB(cptr) += bytes_written;
     cli_sendB(&me)  += bytes_written;
@@ -373,14 +373,14 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
      * say it was blocked
      */
     if (bytes_written < bytes_count)
-      cli_flags(cptr) |= FLAGS_BLOCKED;
+      SetFlag(cptr, FLAG_BLOCKED);
     break;
   case IO_BLOCKED:
-    cli_flags(cptr) |= FLAGS_BLOCKED;
+    SetFlag(cptr, FLAG_BLOCKED);
     break;
   case IO_FAILURE:
     cli_error(cptr) = errno;
-    cli_flags(cptr) |= FLAGS_DEADSOCKET;
+    SetFlag(cptr, FLAG_DEADSOCKET);
     break;
   }
   return bytes_written;
@@ -458,7 +458,7 @@ static int completed_connection(struct Client* cptr)
    * Make us timeout after twice the timeout for DNS look ups
    */
   cli_lasttime(cptr) = CurrentTime;
-  cli_flags(cptr) |= FLAGS_PINGSENT;
+  SetFlag(cptr, FLAG_PINGSENT);
 
   sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s :%s",
                 cli_name(&me), cli_serv(&me)->timestamp, newts,
@@ -538,7 +538,7 @@ void close_connection(struct Client *cptr)
     socket_del(&(cli_socket(cptr))); /* queue a socket delete */
     cli_fd(cptr) = -1;
   }
-  cli_flags(cptr) |= FLAGS_DEADSOCKET;
+  SetFlag(cptr, FLAG_DEADSOCKET);
 
   MsgQClear(&(cli_sendQ(cptr)));
   client_drop_sendq(cli_connect(cptr));
@@ -707,14 +707,15 @@ read_packet(struct Client *cptr, int socket_ready)
           cli_lasttime(cptr) = CurrentTime;
         if (cli_lasttime(cptr) > cli_since(cptr))
           cli_since(cptr) = cli_lasttime(cptr);
-        cli_flags(cptr) &= ~(FLAGS_PINGSENT | FLAGS_NONL);
+        ClrFlag(cptr, FLAG_PINGSENT);
+        ClrFlag(cptr, FLAG_NONL);
       }
       break;
     case IO_BLOCKED:
       break;
     case IO_FAILURE:
       cli_error(cptr) = errno;
-      /* cptr->flags |= FLAGS_DEADSOCKET; */
+      /* SetFlag(cptr, FLAG_DEADSOCKET); */
       return 0;
     }
   }
@@ -755,7 +756,7 @@ read_packet(struct Client *cptr, int socket_ready)
       if (dolen == 0)
       {
         if (DBufLength(&(cli_recvQ(cptr))) < 510)
-          cli_flags(cptr) |= FLAGS_NONL;
+          SetFlag(cptr, FLAG_NONL);
         else
           DBufClear(&(cli_recvQ(cptr)));
       }
@@ -775,7 +776,7 @@ read_packet(struct Client *cptr, int socket_ready)
           else if (dolen == 0)
           {
             if (DBufLength(&(cli_recvQ(cptr))) < 510)
-              cli_flags(cptr) |= FLAGS_NONL;
+              SetFlag(cptr, FLAG_NONL);
             else
               DBufClear(&(cli_recvQ(cptr)));
           }
@@ -1020,7 +1021,7 @@ static void client_sock_callback(struct Event* ev)
   case ET_EOF: /* end of file on socket */
     Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d", cli_fd(cptr),
 	   cli_error(cptr)));
-    cli_flags(cptr) |= FLAGS_DEADSOCKET;
+    SetFlag(cptr, FLAG_DEADSOCKET);
     if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0) {
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
 		      cli_name(cptr), cli_serv(cptr)->last_error_msg);
@@ -1032,7 +1033,7 @@ static void client_sock_callback(struct Event* ev)
     break;
 
   case ET_WRITE: /* socket is writable */
-    cli_flags(cptr) &= ~FLAGS_BLOCKED;
+    ClrFlag(cptr, FLAG_BLOCKED);
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
       list_next_channels(cptr, 64);
     Debug((DEBUG_SEND, "Sending queued data to %C", cptr));

@@ -117,8 +117,8 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   origin      = parv[1];
   destination = parv[2];
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
-  cli_flags(sptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
+  ClrFlag(sptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
 
   if (parc > 5) {
@@ -157,7 +157,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
   /*
    * Check to see if this is a PONG :cookie reply from an
@@ -190,7 +190,7 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   assert(0 != cptr);
   assert(cptr == sptr);
-  cli_flags(cptr) &= ~FLAGS_PINGSENT;
+  ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
   return 0;
 }

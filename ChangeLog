@@ -1,3 +1,105 @@
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/client.h: remove a comma from the end of the enumerator
+	list--resulted in a gcc warning.
+
+2002-11-04  Entrope  <entrope@gamesnet.net>
+
+	* include/client.h: Convert cli_flags into a struct rather
+        than a plain integer.  Add and update helper macros to match.
+
+	* include/s_user.h: Update declarations to match ircd/s_user.c
+	changes (see below).
+
+	* ircd/client.c (client_set_privs): Update (and rework) to
+        match new changes to struct Client and FLAG_* values.
+
+	* ircd/m_oper.c (m_oper): Update to match new FLAG_* values,
+	access macros and send_umode_out() arguments.
+
+	* ircd/s_user.c (register_user): Update to match new FLAG_*
+        values and access macros.
+	(userModeList): Likewise; also change meaning of "flag" field
+        to be flag number rather than bitmask.
+	(set_nick_name): Update to match userModeList.
+	(send_umode_out): Update arguments and send_umode() call to
+        match new send_umode() arguments.
+	(hide_hostmask): Change meaning of "flag" argument to be flag
+        number rather than bitmask.  Update to match new FLAG_* values
+        and access macros.
+	(set_user_mode): Change "setflags" to struct Flags type, and
+        use new FLAG_* values and access macros.  Use new arguments
+        for send_umode_out().
+	(umode_str): Update to match new FLAG_* values and access
+        macros.  Update test for global modes.
+
+	(send_umode): Change "old" argument to struct Flags* type and
+        change "sendmask" bitmask to "sendset" enum.  Update test for
+        whether to send each mode.
+
+	* ircd/IPCheck.c (ip_registry_disconenct): Update comment to
+	reflect new FLAG_* names.
+
+	* ircd/m_server.c (mr_server): Update to use new FLAG_* values
+        and access macros.
+	(ms_server): Likewise.  Split out serv_flags into one variable
+        for each of the relevant flags.
+
+	* ircd/ircd.c (check_pings): Update to match new FLAG_* values
+	and access macros.
+
+	* ircd/channel.c (is_banned): Likewise.
+
+	* ircd/m_account.c (ms_account): Likewise.
+
+	* ircd/m_join.c (ms_join): Likewise.
+
+	* ircd/m_kick.c (m_kick): Likewise.
+	(ms_kick): Likewise.
+
+	* ircd/m_kill.c (do_kill): Likewise.
+
+	* ircd/m_map.c (dump_map): Likewise.
+
+	* ircd/m_mode.c (m_mode): Likewise.
+	(ms_mode): Likewise.
+
+	* ircd/m_nick.c (ms_nick): Likewise.
+
+	* ircd/m_notice.c (m_notice): Likewise.
+	(ms_notice): Likewise.
+	(mo_notice): Likewise.
+
+	* ircd/m_part.c (m_part): Likewise.
+	(ms_part): Likewise.
+
+	* ircd/m_pong.c (ms_pong): Likewise.
+	(mr_pong): Likewise.
+	(m_pong): Likewise.
+
+	* ircd/m_privmsg.c (m_privmsg): Likewise.
+	(ms_privmsg): Likewise.
+	(mo_privmsg): Likewise.
+
+	* ircd/m_wallchops.c (m_wallchops): Likewise.
+
+	* ircd/m_who.c (m_who): Likewise.
+
+	* ircd/numnicks.c (markMatchexServer): Likewise.
+
+	* ircd/s_bsd.c (deliver_it): Likewise.
+	(completed_connection): Likewise.
+	(close_connection): Likewise.
+	(read_packet): Likewise.
+	(client_sock_callback): Likewise.
+
+        * ircd/s_conf.c (attach_iline): Likewise.
+
+	* ircd/s_misc.c (exit_client): Likewise.
+
+	* ircd/send.c (dead_link): Likewise.
+	(sendwallto_group_butone): Likewise.
+
 2002-11-21  Aaron Catella <aaroncatella@yahoo.com>
 
 	* ircd/m_admin.c: allow /admin <local server>

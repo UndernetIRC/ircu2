@@ -135,11 +135,11 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
                           inpath, path, msg);
 
     /*
-     * Set FLAGS_KILLED. This prevents exit_one_client from sending
+     * Set FLAG_KILLED. This prevents exit_one_client from sending
      * the unnecessary QUIT for this. (This flag should never be
      * set in any other place)
      */
-    cli_flags(victim) |= FLAGS_KILLED;
+    SetFlag(victim, FLAG_KILLED);
   }
 
   /*

@@ -350,7 +350,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         		   name,cli_name(sptr));
       	continue;
       }
-      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
 
       /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */ 
       chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
@@ -364,7 +364,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	remove_user_from_channel(sptr, chptr);
 	chptr = FindChannel(name);
       } else
-	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+	flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
     } 
 
     joinbuf_join(&join, chptr, flags);

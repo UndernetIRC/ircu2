@@ -462,7 +462,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			      sptr, cli_name(&me));
         assert(!MyConnect(sptr));
 
-        cli_flags(sptr) |= FLAGS_KILLED;
+        SetFlag(sptr, FLAG_KILLED);
 
 	exit_client_msg(cptr, sptr, &me,
 			       "Killed (%s (Nick collision))",
@@ -481,7 +481,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   ++ServerStats->is_kill;
-  cli_flags(acptr) |= FLAGS_KILLED;
+  SetFlag(acptr, FLAG_KILLED);
   /*
    * This exits the client we had before getting the NICK message
    */

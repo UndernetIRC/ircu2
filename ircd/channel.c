@@ -425,7 +425,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
 			  (cli_user(cptr))->host);
 
-  if (cli_flags(cptr) & FLAGS_ACCOUNT) {
+  if (IsAccount(cptr)) {
      if (HasHiddenHost(cptr))
         sr = make_nick_user_host(nu_realhost, cli_name(cptr),
                                 cli_user(cptr)->username,

@@ -57,7 +57,7 @@ static struct Connection *send_queues = 0;
  *
  * An error has been detected. The link *must* be closed,
  * but *cannot* call ExitClient (m_bye) from here.
- * Instead, mark it with FLAGS_DEADSOCKET. This should
+ * Instead, mark it with FLAG_DEADSOCKET. This should
  * generate ExitClient from the main loop.
  *
  * If 'notice' is not NULL, it is assumed to be a format
@@ -71,7 +71,7 @@ static struct Connection *send_queues = 0;
 
 static void dead_link(struct Client *to, char *notice)
 {
-  cli_flags(to) |= FLAGS_DEADSOCKET;
+  SetFlag(to, FLAG_DEADSOCKET);
   /*
    * If because of BUFFERPOOL problem then clean dbuf's now so that
    * notices don't hurt operators below.
@@ -85,7 +85,7 @@ static void dead_link(struct Client *to, char *notice)
    */
   ircd_strncpy(cli_info(to), notice, REALLEN);
 
-  if (!IsUser(to) && !IsUnknown(to) && !(cli_flags(to) & FLAGS_CLOSING))
+  if (!IsUser(to) && !IsUnknown(to) && !HasFlag(to, FLAG_CLOSING))
     sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", cli_info(to), cli_name(to));
   Debug((DEBUG_ERROR, cli_info(to)));
 }
@@ -554,11 +554,11 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   for (i = 0; i <= HighestFd; i++) {
     if (!(cptr = LocalClientArray[i]) ||
 	(cli_fd(cli_from(cptr)) < 0) ||
-	(type == WALL_DESYNCH && !(cli_flags(cptr) & FLAGS_DEBUG)) ||
+	(type == WALL_DESYNCH && !HasFlag(cptr, FLAG_DEBUG)) ||
 	(type == WALL_WALLOPS &&
-	 (!(cli_flags(cptr) & FLAGS_WALLOP) ||
+	 (!HasFlag(cptr, FLAG_WALLOP) ||
 	  (feature_bool(FEAT_HIS_WALLOPS) && !IsAnOper(cptr)))) ||
-        (type == WALL_WALLUSERS && !(cli_flags(cptr) & FLAGS_WALLOP)))
+        (type == WALL_WALLUSERS && !HasFlag(cptr, FLAG_WALLOP)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);
   }

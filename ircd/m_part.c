@@ -109,7 +109,7 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *p = 0;
   char *name;
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   /* check number of arguments */
   if (parc < 2 || parv[1][0] == '\0')
@@ -161,7 +161,7 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *p = 0;
   char *name;
 
-  cli_flags(sptr) &= ~FLAGS_TS8;
+  ClrFlag(sptr, FLAG_TS8);
 
   /* check number of arguments */
   if (parc < 2 || parv[1][0] == '\0')
