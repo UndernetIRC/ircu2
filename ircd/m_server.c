@@ -123,7 +123,7 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
   /*
    * Calculate type of connect limit and applicable config item.
    */
-  lhconf = find_conf_byname(cli_confs(cptr), host, CONF_SERVER);
+  lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER);
   assert(lhconf != NULL);
   if (cptr == sptr)
   {

@@ -1,3 +1,8 @@
+2004-10-16  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_server.c: Look up server configuration by name of our
+	directly connected peer rather than the server being introduced.
+
 2004-10-13  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h: Delete MODE_LISTED and is_listed().  Replace
