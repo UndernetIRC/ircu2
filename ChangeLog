@@ -1,3 +1,8 @@
+2000-10-26  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c (m_join): reply on attempt to join a BADCHANed
+	channel is now ERR_BANNEDFROMCHAN instead of ERR_BADCHANNAME
+
 2000-10-24  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: ok, now last mode rules; mode +ps will always
