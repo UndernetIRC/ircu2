@@ -12,20 +12,25 @@
  * with every copy.
  *
  * ircuified 2002 by hikari
- *
- * $Id$
-*/
+ */
+/** @file
+ * @brief MD5 implementation for ircu.
+ * @version $Id$
+ */
 #ifndef ircd_md5_h
 #define ircd_md5_h
 
+/** Macro to prepend MD5 variant to a function name. */
 #define MD5Name(x) Good##x
 
+/** Typedef for an unsigned 32-bit integer. */
 typedef unsigned int uint32;
 
+/** MD5 context structure. */
 struct MD5Context {
-	uint32 buf[4];
-	uint32 bits[2];
-	unsigned char in[64];
+	uint32 buf[4];        /**< Current digest state/value. */
+	uint32 bits[2];       /**< Number of bits hashed so far. */
+	unsigned char in[64]; /**< Residual input buffer. */
 };
 
 void GoodMD5Init(struct MD5Context *);
@@ -40,10 +45,7 @@ void BrokenMD5Transform(uint32 buf[4], uint32 const in[16]);
 char *Goodcrypt_md5(const char *pw, const char *salt);
 char *Brokencrypt_md5(const char *pw, const char *salt);
 
-/*
- * This is needed to make RSAREF happy on some MS-DOS compilers.
- */
-
+/** Helper typedef for the MD5 context structure. */
 typedef struct MD5Context MD5_CTX;
 
 #endif /* ircd_md5_h */

@@ -25,6 +25,7 @@
 #include "ircd_md5.h"
 
 #ifndef HIGHFIRST
+/** Bit-reverse bytes in a buffer. */
 #define byteReverse(buf, len)	/* Nothing */
 #else
 static void byteReverse(unsigned char *buf, unsigned longs);
@@ -46,9 +47,8 @@ static void byteReverse(unsigned char *buf, unsigned longs)
 #endif
 #endif
 
-/*
- * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
- * initialization constants.
+/** Iniitalize MD5 context.
+ * @param[out] ctx MD5 context to initialize.
  */
 void MD5Name(MD5Init)(struct MD5Context *ctx)
 {
@@ -61,9 +61,10 @@ void MD5Name(MD5Init)(struct MD5Context *ctx)
 	ctx->bits[1] = 0;
 }
 
-/*
- * Update context to reflect the concatenation of another buffer full
- * of bytes.
+/** Update MD5 context with data from a buffer.
+ * @param[in,out] ctx MD5 context to operate on.
+ * @param[in] buf Input buffer.
+ * @param[in] len Number of bytes in input buffer.
  */
 void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsigned len)
 {
@@ -109,9 +110,9 @@ void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsign
 	memcpy(ctx->in, buf, len);
 }
 
-/*
- * Final wrapup - pad to 64-byte boundary with the bit pattern 
- * 1 0* (64-bit count of bits processed, MSB-first)
+/** Perform final steps of MD5 hash.
+ * @param[out] digest Receives output hash value.
+ * @param[in,out] ctx MD5 context to finalize.
  */
 void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
 {
@@ -159,19 +160,23 @@ void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
 /* The four core functions - F1 is optimized somewhat */
 
 /* #define F1(x, y, z) (x & y | ~x & z) */
+/** Helper function for first round of MD5. */
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
+/** Helper function for second round of MD5. */
 #define F2(x, y, z) F1(z, x, y)
+/** Helper function for third round of MD5. */
 #define F3(x, y, z) (x ^ y ^ z)
+/** Helper function for fourth round of MD5. */
 #define F4(x, y, z) (y ^ (x | ~z))
 
-/* This is the central step in the MD5 algorithm. */
+/** Step function for each round of MD5 */
 #define MD5STEP(f, w, x, y, z, data, s) \
 	( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
-/*
- * The core of the MD5 algorithm, this alters an existing MD5 hash to
- * reflect the addition of 16 longwords of new data.  MD5Update blocks
- * the data and converts bytes into longwords for this routine.
+/** Perform the core MD5 update steps to update a 128-bit hash value
+ * with 512 bits of input data.
+ * @param[in,out] buf Hash value.
+ * @param[in] in Input buffer.
  */
 void MD5Name(MD5Transform)(uint32 buf[4], uint32 const in[16])
 {
