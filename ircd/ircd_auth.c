@@ -16,8 +16,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief IAuth client implementation for an IRC server.
+ * @version $Id$
  */
 
 #include "config.h"
@@ -52,95 +54,141 @@
 #include <stdint.h>
 #endif
 
+/** Describes state of a single pending IAuth request. */
 struct IAuthRequest {
-  struct IAuthRequest *iar_prev;        /* previous request struct */
-  struct IAuthRequest *iar_next;        /* next request struct */
-  struct Client *iar_client;            /* client being authenticated */
-  char iar_timed;                       /* if non-zero, using parent i_request_timer */
+  struct IAuthRequest *iar_prev;        /**< previous request struct */
+  struct IAuthRequest *iar_next;        /**< next request struct */
+  struct Client *iar_client;            /**< client being authenticated */
+  char iar_timed;                       /**< if non-zero, using parent i_request_timer */
 };
 
+/** Enumeration of IAuth connection flags. */
 enum IAuthFlag
 {
-  IAUTH_BLOCKED,                        /* socket buffer full */
-  IAUTH_CONNECTED,                      /* server greeting/handshake done */
-  IAUTH_ABORT,                          /* abort connection asap */
-  IAUTH_ICLASS,                         /* tell iauth about all local users */
-  IAUTH_CLOSING,                        /* candidate to be disposed */
-  IAUTH_LAST_FLAG
+  IAUTH_BLOCKED,                        /**< socket buffer full */
+  IAUTH_CONNECTED,                      /**< server greeting/handshake done */
+  IAUTH_ABORT,                          /**< abort connection asap */
+  IAUTH_ICLASS,                         /**< tell iauth about all local users */
+  IAUTH_CLOSING,                        /**< candidate to be disposed */
+  IAUTH_LAST_FLAG                       /**< total number of flags */
 };
+/** Declare a bitset structure indexed by IAuthFlag. */
 DECLARE_FLAGSET(IAuthFlags, IAUTH_LAST_FLAG);
 
+/** Describes state of an IAuth connection. */
 struct IAuth {
-  struct IAuthRequest i_list_head;      /* doubly linked list of requests */
-  struct MsgQ i_sendQ;                  /* messages queued to send */
-  struct Socket i_socket;               /* connection to server */
-  struct Timer i_reconn_timer;          /* when to reconnect the connection */
-  struct Timer i_request_timer;         /* when the current request times out */
-  struct IAuthFlags i_flags;            /* connection state/status/flags */
-  struct DNSQuery i_query;              /* DNS lookup for iauth server */
-  unsigned int i_recvM;                 /* messages received */
-  unsigned int i_sendM;                 /* messages sent */
-  unsigned int i_recvK;                 /* kilobytes received */
-  unsigned int i_sendK;                 /* kilobytes sent */
-  unsigned short i_recvB;               /* bytes received modulo 1024 */
-  unsigned short i_sendB;               /* bytes sent modulo 1024 */
-  time_t i_reconnect;                   /* seconds to wait before reconnecting */
-  time_t i_timeout;                     /* seconds to wait for a request */
-  unsigned int i_count;                 /* characters used in i_buffer */
-  char i_buffer[BUFSIZE+1];             /* partial unprocessed line from server */
-  char i_passwd[PASSWDLEN+1];           /* password for connection */
-  char i_host[HOSTLEN+1];               /* iauth server hostname */
-  struct irc_sockaddr i_addr;           /* iauth server ip address and port */
-  struct IAuth *i_next;                 /* next connection in list */
+  struct IAuthRequest i_list_head;      /**< doubly linked list of requests */
+  struct MsgQ i_sendQ;                  /**< messages queued to send */
+  struct Socket i_socket;               /**< connection to server */
+  struct Timer i_reconn_timer;          /**< when to reconnect the connection */
+  struct Timer i_request_timer;         /**< when the current request times out */
+  struct IAuthFlags i_flags;            /**< connection state/status/flags */
+  struct DNSQuery i_query;              /**< DNS lookup for iauth server */
+  unsigned int i_recvM;                 /**< messages received */
+  unsigned int i_sendM;                 /**< messages sent */
+  unsigned int i_recvK;                 /**< kilobytes received */
+  unsigned int i_sendK;                 /**< kilobytes sent */
+  unsigned short i_recvB;               /**< bytes received modulo 1024 */
+  unsigned short i_sendB;               /**< bytes sent modulo 1024 */
+  time_t i_reconnect;                   /**< seconds to wait before reconnecting */
+  time_t i_timeout;                     /**< seconds to wait for a request */
+  unsigned int i_count;                 /**< characters used in i_buffer */
+  char i_buffer[BUFSIZE+1];             /**< partial unprocessed line from server */
+  char i_passwd[PASSWDLEN+1];           /**< password for connection */
+  char i_host[HOSTLEN+1];               /**< iauth server hostname */
+  struct irc_sockaddr i_addr;           /**< iauth server ip address and port */
+  struct IAuth *i_next;                 /**< next connection in list */
 };
 
+/** Return flags element of \a iauth. */
 #define i_flags(iauth) ((iauth)->i_flags)
+/** Return whether flag \a flag is set on \a iauth. */
 #define IAuthGet(iauth, flag) FlagHas(&i_flags(iauth), flag)
+/** Set flag \a flag on \a iauth. */
 #define IAuthSet(iauth, flag) FlagSet(&i_flags(iauth), flag)
+/** Clear flag \a flag from \a iauth. */
 #define IAuthClr(iauth, flag) FlagClr(&i_flags(iauth), flag)
+/** Get blocked state for \a iauth. */
 #define i_GetBlocked(iauth) IAuthGet(iauth, IAUTH_BLOCKED)
+/** Set blocked state for \a iauth. */
 #define i_SetBlocked(iauth) IAuthSet(iauth, IAUTH_BLOCKED)
+/** Clear blocked state for \a iauth. */
 #define i_ClrBlocked(iauth) IAuthClr(iauth, IAUTH_BLOCKED)
+/** Get connected flag for \a iauth. */
 #define i_GetConnected(iauth) IAuthGet(iauth, IAUTH_CONNECTED)
+/** Set connected flag for \a iauth. */
 #define i_SetConnected(iauth) IAuthSet(iauth, IAUTH_CONNECTED)
+/** Clear connected flag for \a iauth. */
 #define i_ClrConnected(iauth) IAuthClr(iauth, IAUTH_CONNECTED)
+/** Get abort flag for \a iauth. */
 #define i_GetAbort(iauth) IAuthGet(iauth, IAUTH_ABORT)
+/** Set abort flag for \a iauth. */
 #define i_SetAbort(iauth) IAuthSet(iauth, IAUTH_ABORT)
+/** Clear abort flag for \a iauth. */
 #define i_ClrAbort(iauth) IAuthClr(iauth, IAUTH_ABORT)
+/** Get IClass flag for \a iauth. */
 #define i_GetIClass(iauth) IAuthGet(iauth, IAUTH_ICLASS)
+/** Set IClass flag for \a iauth. */
 #define i_SetIClass(iauth) IAuthSet(iauth, IAUTH_ICLASS)
+/** Clear IClass flag for \a iauth. */
 #define i_ClrIClass(iauth) IAuthClr(iauth, IAUTH_ICLASS)
+/** Get closing flag for \a iauth. */
 #define i_GetClosing(iauth) IAuthGet(iauth, IAUTH_CLOSING)
+/** Set closing flag for \a iauth. */
 #define i_SetClosing(iauth) IAuthSet(iauth, IAUTH_CLOSING)
+/** Clear closing flag for \a iauth. */
 #define i_ClrClosing(iauth) IAuthClr(iauth, IAUTH_CLOSING)
 
+/** Return head of request linked list for \a iauth. */
 #define i_list_head(iauth) ((iauth)->i_list_head)
+/** Return socket event generator for \a iauth. */
 #define i_socket(iauth) ((iauth)->i_socket)
+/** Return reconnect timer for \a iauth. */
 #define i_reconn_timer(iauth) ((iauth)->i_reconn_timer)
+/** Return request timeout timer for \a iauth. */
 #define i_request_timer(iauth) ((iauth)->i_request_timer)
+/** Return DNS query for \a iauth. */
 #define i_query(iauth) ((iauth)->i_query)
+/** Return received bytes (modulo 1024) for \a iauth. */
 #define i_recvB(iauth) ((iauth)->i_recvB)
+/** Return received kilobytes (modulo 1024) for \a iauth. */
 #define i_recvK(iauth) ((iauth)->i_recvK)
+/** Return received megabytes for \a iauth. */
 #define i_recvM(iauth) ((iauth)->i_recvM)
+/** Return sent bytes (modulo 1024) for \a iauth. */
 #define i_sendB(iauth) ((iauth)->i_sendB)
+/** Return sent kilobytes (modulo 1024) for \a iauth. */
 #define i_sendK(iauth) ((iauth)->i_sendK)
+/** Return sent megabytes for \a iauth. */
 #define i_sendM(iauth) ((iauth)->i_sendM)
+/** Return outbound message queue for \a iauth. */
 #define i_sendQ(iauth) ((iauth)->i_sendQ)
+/** Return reconnection interval for \a iauth. */
 #define i_reconnect(iauth) ((iauth)->i_reconnect)
+/** Return request timeout interval for \a iauth. */
 #define i_timeout(iauth) ((iauth)->i_timeout)
+/** Return length of unprocessed message data for \a iauth. */
 #define i_count(iauth) ((iauth)->i_count)
+/** Return start of unprocessed message data for \a iauth. */
 #define i_buffer(iauth) ((iauth)->i_buffer)
+/** Return password we send for \a iauth. */
 #define i_passwd(iauth) ((iauth)->i_passwd)
+/** Return server hostname for \a iauth. */
 #define i_host(iauth) ((iauth)->i_host)
+/** Return address of IAuth server for \a iauth. */
 #define i_addr(iauth) ((iauth)->i_addr)
+/** Return server port for \a iauth. */
 #define i_port(iauth) ((iauth)->i_addr.port)
+/** Return next IAuth connection after \a iauth. */
 #define i_next(iauth) ((iauth)->i_next)
 
+/** Command table entry. */
 struct IAuthCmd {
-  const char *iac_name;
-  void (*iac_func)(struct IAuth *iauth, int, char *[]);
+  const char *iac_name; /**< Name of command. */
+  void (*iac_func)(struct IAuth *iauth, int, char *[]); /**< Handler function. */
 };
 
+/** Active %IAuth connection(s). */
 struct IAuth *iauth_active;
 
 static void iauth_write(struct IAuth *iauth);
@@ -152,12 +200,24 @@ static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar)
 static void iauth_cmd_doneauth(struct IAuth *iauth, int argc, char *argv[]);
 static void iauth_cmd_badauth(struct IAuth *iauth, int argc, char *argv[]);
 
+/** Table of responses we might get from the IAuth server. */
 static const struct IAuthCmd iauth_cmdtab[] = {
   { "DoneAuth", iauth_cmd_doneauth },
   { "BadAuth", iauth_cmd_badauth },
   { NULL, NULL }
 };
 
+/** Start (or update) a connection to an %IAuth server.
+ * If a connection already exists for the specified server name and
+ * port, update it with the other parameters; otherwise allocate a new
+ * IAuth record.
+ * @param[in] host %IAuth server hostname.
+ * @param[in] port %IAuth server port.
+ * @param[in] passwd Password to send.
+ * @param[in] reconnect Reconnect interval.
+ * @param[in] timeout Request timeout interval.
+ * @return IAuth structure for that connection.
+ */
 struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_t reconnect, time_t timeout)
 {
   struct IAuth *iauth;
@@ -196,6 +256,7 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
   return iauth;
 }
 
+/** Mark all %IAuth connections as closing. */
 void iauth_mark_closing(void)
 {
   struct IAuth *iauth;
@@ -203,6 +264,9 @@ void iauth_mark_closing(void)
     i_SetClosing(iauth);
 }
 
+/** Close a particular %IAuth connection.
+ * @param[in] iauth %Connection to close.
+ */
 void iauth_close(struct IAuth *iauth)
 {
   /* Figure out what to do with the closing connection's requests. */
@@ -254,6 +318,7 @@ void iauth_close(struct IAuth *iauth)
   MyFree(iauth);
 }
 
+/** Close all %IAuth connections marked as closing. */
 void iauth_close_unused(void)
 {
   struct IAuth *prev, *iauth, *next;
@@ -274,6 +339,10 @@ void iauth_close_unused(void)
   }
 }
 
+/** Send a line to an %IAuth server.
+ * @param[in] iauth %Connection to send on.
+ * @param[in] format Format string for message.
+ */
 static void iauth_send(struct IAuth *iauth, const char *format, ...)
 {
   va_list vl;
@@ -286,6 +355,10 @@ static void iauth_send(struct IAuth *iauth, const char *format, ...)
   msgq_clean(mb);
 }
 
+/** Report a protocol violation from the %IAuth server.
+ * @param[in] iauth %Connection that experienced the violation.
+ * @param[in] format Format string for message to operators.
+ */
 static void iauth_protocol_violation(struct IAuth *iauth, const char *format, ...)
 {
   struct VarData vd;
@@ -297,6 +370,9 @@ static void iauth_protocol_violation(struct IAuth *iauth, const char *format, ..
   va_end(vd.vd_args);
 }
 
+/** Send on-connect burst to an %IAuth server.
+ * @param[in] iauth %Connection that has completed.
+ */
 static void iauth_on_connect(struct IAuth *iauth)
 {
   struct IAuthRequest *iar;
@@ -316,6 +392,9 @@ static void iauth_on_connect(struct IAuth *iauth)
   iauth_write(iauth);
 }
 
+/** Complete disconnection of an %IAuth connection.
+ * @param[in] iauth %Connection to fully close.
+ */
 static void iauth_disconnect(struct IAuth *iauth)
 {
   close(s_fd(&i_socket(iauth)));
@@ -323,6 +402,10 @@ static void iauth_disconnect(struct IAuth *iauth)
   s_fd(&i_socket(iauth)) = -1;
 }
 
+/** DNS completion callback for an %IAuth connection.
+ * @param[in] vptr Pointer to the IAuth struct.
+ * @param[in] he DNS reply parameters.
+ */
 static void iauth_dns_callback(void *vptr, struct DNSReply *he)
 {
   struct IAuth *iauth = vptr;
@@ -338,12 +421,18 @@ static void iauth_dns_callback(void *vptr, struct DNSReply *he)
   }
 }
 
+/** Timer callback for reconnecting to %IAuth.
+ * @param[in] ev Timer event for reconnect.
+ */
 static void iauth_reconnect_ev(struct Event *ev)
 {
   if (ev_type(ev) == ET_EXPIRE)
     iauth_reconnect(t_data(ev_timer(ev)));
 }
 
+/** Schedule a reconnection for \a iauth.
+ * @param[in] iauth %Connection that needs to be reconnected.
+ */
 static void iauth_schedule_reconnect(struct IAuth *iauth)
 {
   struct Timer *timer;
@@ -352,6 +441,9 @@ static void iauth_schedule_reconnect(struct IAuth *iauth)
   timer_add(timer, iauth_reconnect_ev, iauth, TT_RELATIVE, i_reconnect(iauth));
 }
 
+/** Initiate a (re-)connection to \a iauth.
+ * @param[in] iauth %Connection that should be initiated.
+ */
 static void iauth_reconnect(struct IAuth *iauth)
 {
   IOResult result;
@@ -388,6 +480,10 @@ static void iauth_reconnect(struct IAuth *iauth)
   }
 }
 
+/** Read input from \a iauth.
+ * Reads up to SERVER_TCP_WINDOW bytes per pass.
+ * @param[in] iauth Readable connection.
+ */
 static void iauth_read(struct IAuth *iauth)
 {
   char *src, *endp, *old_buffer, *argv[MAXPARA + 1];
@@ -447,6 +543,9 @@ static void iauth_read(struct IAuth *iauth)
   i_count(iauth) = endp - old_buffer;
 }
 
+/** Send queued output to \a iauth.
+ * @param[in] iauth Writable connection with queued data.
+ */
 static void iauth_write(struct IAuth *iauth)
 {
   unsigned int bytes_tried, bytes_sent;
@@ -480,6 +579,9 @@ static void iauth_write(struct IAuth *iauth)
   socket_events(&i_socket(iauth), SOCK_ACTION_DEL | SOCK_EVENT_WRITABLE);
 }
 
+/** Handle socket activity for an %IAuth connection.
+ * @param[in] ev &Socket event; the IAuth connection is the user data pointer for the socket.
+ */
 static void iauth_sock_callback(struct Event *ev)
 {
   struct IAuth *iauth;
@@ -520,6 +622,9 @@ static void iauth_sock_callback(struct Event *ev)
 
 /* Functions related to IAuthRequest structs */
 
+/** Handle timeout while waiting for a response.
+ * @param[in] ev Timer event that expired.
+ */
 static void iauth_request_ev(struct Event *ev)
 {
   /* TODO: this could probably be more intelligent */
@@ -529,6 +634,10 @@ static void iauth_request_ev(struct Event *ev)
   }
 }
 
+/** Send a authorization request to an %IAuth server.
+ * @param[in] iauth %Connection to send request on.
+ * @param[in] iar Request to send.
+ */
 static void iauth_send_request(struct IAuth *iauth, struct IAuthRequest *iar)
 {
   struct Client *client;
@@ -559,6 +668,11 @@ static void iauth_send_request(struct IAuth *iauth, struct IAuthRequest *iar)
   iauth_write(iauth);
 }
 
+/** Start independent authorization check for a client.
+ * @param[in] iauth %Connection to send request on.
+ * @param[in] cptr Client to check.
+ * @return Zero, or CPTR_KILLED in case of memory allocation failure.
+ */
 int iauth_start_client(struct IAuth *iauth, struct Client *cptr)
 {
   struct IAuthRequest *iar;
@@ -578,6 +692,10 @@ int iauth_start_client(struct IAuth *iauth, struct Client *cptr)
   return 0;
 }
 
+/** Handle a client that is disconnecting.
+ * If there is a pending %IAuth request for the client, close it.
+ * @param[in] cptr Client that is disconnecting.
+ */
 void iauth_exit_client(struct Client *cptr)
 {
   if (cli_iauth(cptr)) {
@@ -588,6 +706,11 @@ void iauth_exit_client(struct Client *cptr)
   }
 }
 
+/** Find pending request with a particular ID.
+ * @param[in] iauth %Connection context for the ID.
+ * @param[in] id Identifier to look up.
+ * @return IAuthRequest with that ID, or NULL.
+ */
 static struct IAuthRequest *iauth_find_request(struct IAuth *iauth, char *id)
 {
   struct IAuthRequest *curr;
@@ -603,6 +726,10 @@ static struct IAuthRequest *iauth_find_request(struct IAuth *iauth, char *id)
   return NULL;
 }
 
+/** Unlink and free a request.
+ * @param[in] iauth Connection that owns the request.
+ * @param[in] iar Request to free.
+ */
 static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar)
 {
   assert(iar->iar_client != NULL);
@@ -614,6 +741,12 @@ static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar)
   MyFree(iar);
 }
 
+/** Handle a DoneAuth response from %IAuth.
+ * THis means the client is authorized, so let them in.
+ * @param[in] iauth Connection that sent the message.
+ * @param[in] argc Argument count.
+ * @param[in] argv Argument list.
+ */
 static void iauth_cmd_doneauth(struct IAuth *iauth, int argc, char *argv[])
 {
   struct IAuthRequest *iar;
@@ -650,6 +783,12 @@ static void iauth_cmd_doneauth(struct IAuth *iauth, int argc, char *argv[])
   register_user(client, client, cli_name(client), username);
 }
 
+/** Handle a BadAuth response from %IAuth.
+ * This means the client is not authorized, so dump them.
+ * @param[in] iauth Connection that sent the message.
+ * @param[in] argc Argument count.
+ * @param[in] argv Argument list.
+ */
 static void iauth_cmd_badauth(struct IAuth *iauth, int argc, char *argv[])
 {
   struct IAuthRequest *iar;
