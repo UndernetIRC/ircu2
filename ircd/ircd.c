@@ -357,12 +357,16 @@ static void check_pings(struct Event* ev) {
 	   cli_name(cptr),
 	   HasFlag(cptr, FLAG_PINGSENT) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
-          
 
     /* Ok, the thing that will happen most frequently, is that someone will
      * have sent something recently.  Cover this first for speed.
-     */
-    if (CurrentTime-cli_lasttime(cptr) < max_ping) {
+     *
+     * If it's an unregisterd client and hasn't managed to register within
+     * max_ping then it's obviously having problems (broken client) or it's
+     * just up to no good, so we won't bother reseting its ping check. 
+     * -- hikari */
+    if ((CurrentTime-cli_lasttime(cptr) < max_ping) &&
+        (IsRegistered(cptr))) {
       expire = cli_lasttime(cptr) + max_ping;
       if (expire < next_check) 
 	next_check = expire;
