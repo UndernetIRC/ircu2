@@ -31,6 +31,9 @@
 #ifndef INCLUDED_dbuf_h
 #include "dbuf.h"
 #endif
+#ifndef INCLUDED_msgq_h
+#include "msgq.h"
+#endif
 #ifndef INCLUDED_ircd_handler_h
 #include "ircd_handler.h"
 #endif
@@ -110,7 +113,7 @@ struct Client {
   time_t              nextnick;  /* Next time a nick change is allowed */
   time_t              nexttarget; /* Next time a target change is allowed */
   unsigned int        cookie;    /* Random number the user must PONG */
-  struct DBuf         sendQ;     /* Outgoing message queue--if socket full */
+  struct MsgQ         sendQ;     /* Outgoing message queue--if socket full */
   struct DBuf         recvQ;     /* Hold for data incoming yet to be parsed */
   unsigned int        sendM;     /* Statistics: protocol messages send */
   unsigned int        sendK;     /* Statistics: total k-bytes send */

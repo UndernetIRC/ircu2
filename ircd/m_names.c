@@ -187,7 +187,7 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
     if (mlen + idx + NICKLEN + 5 > BUFSIZE)
       /* space, modifier, nick, \r \n \0 */
     { 
-      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, sptr->name, buf);
+      send_reply(sptr, RPL_NAMREPLY, buf);
       strcpy(buf, "* ");
       ircd_strncpy(buf + 2, chptr->chname, len + 1);
       buf[len + 2] = 0;

@@ -39,6 +39,7 @@
 #include "match.h"
 #include "motd.h"
 #include "msg.h"
+#include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "parse.h"
@@ -224,58 +225,6 @@ struct Client *next_client(struct Client *next, const char* ch)
  *
  *    returns: (see #defines)
  */
-int hunt_server(int MustBeOper, struct Client *cptr, struct Client *sptr, char *command,
-    int server, int parc, char *parv[])
-{
-  struct Client *acptr;
-  char y[8];
-
-  /* Assume it's me, if no server or an unregistered client */
-  if (parc <= server || EmptyString(parv[server]) || IsUnknown(sptr))
-    return (HUNTED_ISME);
-
-  /* Make sure it's a server */
-  if (MyUser(sptr) || Protocol(cptr) < 10)
-  {
-    /* Make sure it's a server */
-    if (!strchr(parv[server], '*')) {
-      if (0 == (acptr = FindClient(parv[server]))) {
-        sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
-            me.name, parv[0], parv[server]);
-        return HUNTED_NOSUCH;
-      }
-      if (acptr->user)
-        acptr = acptr->user->server;
-    }
-    else if (!(acptr = find_match_server(parv[server])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[server]);
-      return (HUNTED_NOSUCH);
-    }
-  }
-  else if (!(acptr = FindNServer(parv[server])))
-    return (HUNTED_NOSUCH);        /* Server broke off in the meantime */
-
-  if (IsMe(acptr))
-    return (HUNTED_ISME);
-
-  if (MustBeOper && !IsPrivileged(sptr))
-  {
-    send_reply(sptr, ERR_NOPRIVILEGES);
-    return HUNTED_NOSUCH;
-  }
-
-  strcpy(y, acptr->yxx);
-  parv[server] = y;
-
-  assert(!IsServer(sptr));
-  /* XXX sendto_one used with explicit command; must be very careful */
-  sendto_one(acptr, command, NumNick(sptr), parv[1], parv[2], parv[3], parv[4], /* XXX hunt_server */
-      parv[5], parv[6], parv[7], parv[8]);
-
-  return (HUNTED_PASS);
-}
-
 int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
                     struct Client *one, int MustBeOper, const char *pattern,
                     int server, int parc, char *parv[])
@@ -1094,30 +1043,30 @@ void send_umode_out(struct Client *cptr, struct Client *sptr, int old)
  */
 void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt)
 {
-  char*          sbuf;
   char*          name;
   char*          p = 0;
   int            arg_count = 0;
   int            users_found = 0;
   struct Client* acptr;
-  char           buf[BUFSIZE * 2];
+  struct MsgBuf* mb;
 
   assert(0 != sptr);
   assert(0 != names);
   assert(0 != fmt);
 
-  sbuf = sprintf_irc(buf, rpl_str(rpl), me.name, sptr->name);
+  mb = msgq_make(sptr, rpl_str(rpl), me.name, sptr->name);
 
   for (name = ircd_strtok(&p, names, " "); name; name = ircd_strtok(&p, 0, " ")) {
     if ((acptr = FindUser(name))) {
       if (users_found++)
-        *sbuf++ = ' ';
-      sbuf = (*fmt)(acptr, sbuf);
+	msgq_append(0, mb, " ");
+      (*fmt)(acptr, mb);
     }
     if (5 == ++arg_count)
       break;
   }
-  send_buffer(sptr, buf);
+  send_buffer(sptr, mb, 0);
+  msgq_clean(mb);
 }
 
 

@@ -487,123 +487,6 @@ PPATH
   server's PID so a ps(1) isn't necessary.
   Note that you should not include quotes here.
 
-Do you want to log the use of /WHO x% (recommended)
-CONFIG_LOG_WHOX
-  Specify 'y' here if you want to log the use of /WHO ... x%... by your
-  Opers (see doc/readme.who).  This is highly recommended since it will
-  reduce the abuse of this `spy' function.  Note: You can disable this
-  spy function completely below, in which case you can give 'n' here.
-  If unsure specify 'y'.
-
-Give the path and(or) filename of this log file
-WPATH
-  WPATH is the filename, relative to DPATH, or the full path, of the
-  log file where the use of /WHO ... x% ... by your Opers will be logged
-  (see doc/readme.who), mostly called "whox.log".
-  Note that you should not include quotes here.
-
-Do you want to log G-lines to a separate file
-CONFIG_LOG_GLINES
-  Specify 'y' here if you want to log G-lines (Global access bans)
-  to a local file.
-
-Give the path and(or) filename of this log file
-GPATH
-  GPATH is the filename, relative to DPATH, or the full path, of the
-  log file where the G-lines will be stored, mostly called "gline.log".
-  Note that you should not include quotes here.
-
-Do you want to log JUPEs to a separate file
-CONFIG_LOG_JUPES
-  Specify 'y' here if you want to log JUPEs (Jupiters) to a local file.
-
-Give the path and(or) filename of this log file
-JPATH
-  JPATH is the filename, relative to DPATH, or the full path, of the
-  log file where the logs of JUPEs will be stored; it is usually called
-  "jupe.log".  Note that you should not include quotes here.
-
-Do you want to log OPMODEs and CLEARMODEs to a separate file
-CONFIG_LOG_OPMODES
-  Specify 'y' here if you want to log OPMODEs and CLEARMODEs to a local
-  file.
-
-Give the path and(or) filename of this log file
-OPATH
-  OPATH is the filename, relative to DPATH, or the full path, of the
-  log file where the logs of OPMODEs and CLEARMODEs will be stored; it
-  is usually called "opmode.log".  Note that you should not include
-  quote here.
-
-Do you want to log connecting users to a separate file
-CONFIG_LOG_USERS
-  Specify 'y' here if you want to log who is connecting to your server.
-  This file can grow VERY fast on a large net work, so you probably
-  want to specify 'n' here.
-
-Give the path and(or) filename of this log file
-FNAME_USERLOG
-  Here you need to specify the name of the log file where the server
-  should write the data about connecting users to. You can also specify
-  a full path.  Note that you should not include quotes here.
-
-Do you want to log Opers to a separate file
-CONFIG_LOG_OPERS
-  Specify 'y' here if you want to log who is successfully becoming an
-  IRC Operator on your server.
-
-Give the path and(or) filename of this log file
-FNAME_OPERLOG
-  Here you need to specify the name of the log file where the server
-  should write the data about Opering users.  You can also specify a
-  full path.  Note that you should not include quotes here.
-
-Do you want to use syslog
-USE_SYSLOG
-  If you are the sys admin of this machine, or if you have permission
-  of the sys admin to do so, you can let the server write data about
-  certain events to the syslog.  You will be prompted for the events
-  that you want to log being one or more of: KILL's, SQUIT's, CONNECT's,
-  OPERing, Connecting Users and finally the log facility.
-  If you are unsure, specify 'n'.  It is probably not a good idea to use
-  this on a large IRC net work.
-
-Log all operator kills to syslog
-SYSLOG_KILL
-  Specify 'y' here if you want all KILLs to be written to syslog.
-  Note that on a large IRC net work this is a LOT of data.
-
-Log all remote squits for all servers to syslog
-SYSLOG_SQUIT
-  Specify 'y' here if you want all SQUITs to be written to syslog.
-  Note that on a large IRC net work this is a LOT of data.
-
-Log remote connect messages for other all servers
-SYSLOG_CONNECT
-  Specify 'y' here if you want all CONNECTs to be written to syslog.
-  Note that on a large IRC net work this is a LOT of data.
-
-Log all users who successfully become an Oper
-SYSLOG_OPER
-  Specify 'y' here if you want all OPERs to be written to syslog.
-  Note that on a large IRC net work this is a LOT of data.
-
-Send userlog stuff to syslog
-SYSLOG_USERS
-  Specify 'y' here if you want all connecting users to be written to syslog.
-  Note that on a large IRC net work this is EXTREMELY MUCH data.
-  You really want to specify 'n' here.
-
-Log facility (daemon, user, local0-7)
-CONFIG_DAEMON
-  Well if you got this far and still need help, then I think you should
-  go back and specify 'n' at the question "Do you want to use syslog".
-
-Which local facility (0-7)
-INT_LOCAL
-  Well if you got this far and still need help, then I think you should
-  go back and specify 'n' at the question "Do you want to use syslog".
-
 Use crypted passwords for operators
 CRYPT_OPER_PASSWORD
   In order to allow certain users to become IRC OPERators, they must
@@ -1054,12 +937,6 @@ DEFAULTMAXSENDQLENGTH
   (see doc/example.conf for details on Y: lines).  You will probably
   always override this value in your "ircd.conf" with the Y: lines.
   The given value used to be an often used value for client sendqs.
-
-Use new MODE implementation
-CONFIG_NEW_MODE
-  This enables a new implementation of m_mode.  THIS IS AN EXPERIMENTAL
-  FEATURE; DO NOT ENABLE UNLESS YOU KNOW WHAT YOU ARE DOING!  Note that,
-  due to apparent stability, this new implementation has been enabled.
 
 Use new oper commands (JUPE, CLEARMODE, OPMODE, GLINE)
 CONFIG_OPERCMDS

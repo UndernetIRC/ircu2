@@ -949,22 +949,6 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
 
   Debug((DEBUG_DEBUG, "Server Parsing: %s", buffer));
 
-#ifdef GODMODE
-  len = strlen(buffer);
-  sdbflag = 1;
-  if (len > 402)
-  {
-    char c = buffer[200];
-    buffer[200] = 0;
-    sendto_ops("RCV:%-8.8s(%.4d): \"%s...%s\"",
-        cptr->name, len, buffer, &buffer[len - 200]);
-    buffer[200] = c;
-  }
-  else
-    sendto_ops("RCV:%-8.8s(%.4d): \"%s\"", cptr->name, len, buffer);
-  sdbflag = 0;
-#endif /* GODMODE */
-
   if (IsDead(cptr))
     return 0;
 

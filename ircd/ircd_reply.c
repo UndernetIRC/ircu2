@@ -26,8 +26,9 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_snprintf.h"
-#include "numeric.h"
 #include "msg.h"
+#include "msgq.h"
+#include "numeric.h"
 #include "s_conf.h"
 #include "s_debug.h"
 #include "send.h"
@@ -64,63 +65,10 @@ int need_more_params(struct Client* cptr, const char* cmd)
   return 0;
 }
 
-/*
- * send_error_to_client - send an error message to a client
- * I don't know if this function is any faster than the other version
- * but it is a bit easier to use. It's reentrant until it hits vsendto_one
- * at least :) --Bleep
- */
-int send_error_to_client(struct Client* cptr, int error, ...)
-{
-  va_list               vl;
-  char                  buf[BUFSIZE];
-  char*                 dest = buf;
-  const char*           src  = me.name;
-  const struct Numeric* num  = get_error_numeric(error);
-
-  assert(0 != cptr);
-  assert(0 != num);
-  /*
-   * prefix
-   */
-  *dest++ = ':';
-  while ((*dest = *src++))
-    ++dest;
-  *dest++ = ' ';
-  /*
-   * numeric
-   */
-  src = num->str;
-  while ((*dest = *src++))
-    ++dest;
-  *dest++ = ' ';
-  /*
-   * client name (nick)
-   */
-  src = cptr->name;
-  while ((*dest = *src++))
-    ++dest;
-  *dest++ = ' ';
-  /*
-   * reply format
-   */
-  strcpy(dest, num->format);
-
-#if 0
-  Debug((DEBUG_INFO, "send_error_to_client: format: ->%s<-", buf));
-#endif
-
-  va_start(vl, error);
-  vsendto_one(cptr, buf, vl);
-  va_end(vl);
-  return 0;
-}
-
-
 int send_reply(struct Client *to, int reply, ...)
 {
   struct VarData vd;
-  char sndbuf[IRC_BUFSIZE];
+  struct MsgBuf *mb;
   const struct Numeric *num;
 
   assert(0 != to);
@@ -138,13 +86,14 @@ int send_reply(struct Client *to, int reply, ...)
   assert(0 != vd.vd_format);
 
   /* build buffer */
-  ircd_snprintf(to->from, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %C %v", &me,
-		num->str, to, &vd);
+  mb = msgq_make(to->from, "%:#C %s %C %v", &me, num->str, to, &vd);
 
   va_end(vd.vd_args);
 
   /* send it to the user */
-  send_buffer(to, sndbuf);
+  send_buffer(to, mb, 0);
+
+  msgq_clean(mb);
 
   return 0; /* convenience return */
 }
