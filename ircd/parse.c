@@ -447,6 +447,20 @@ struct Message msgtab[] = {
     { m_unregistered, m_jupe, ms_jupe, mo_jupe, m_ignore }
   },
   {
+    MSG_OPMODE,
+    TOK_OPMODE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_opmode, mo_opmode, m_ignore }
+  },
+  {
+    MSG_CLEARMODE,
+    TOK_CLEARMODE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_clearmode, mo_clearmode, m_ignore }
+  },
+  {
     MSG_UPING,
     TOK_UPING,
     0, MAXPARA, MFLG_SLOW, 0,

@@ -1,5 +1,29 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* ircd/m_clearmode.c: define skeleton for m{o,s}_clearmode
+
+	* ircd/m_opmode.c: define skeleton for m{o,s}_opmode
+
+	* ircd/Makefile.in (SRC): added m_opmode() and m_clearmode() to
+	the list
+
+	* ircd/parse.c: added messages for opmode and clearmode
+
+	* include/handlers.h: added declarations for mo_opmode(),
+	ms_opmode(), mo_clearmode(), and ms_clearmode()
+
+	* include/msg.h: define MSG_OPMODE, TOK_OPMODE, MSG_CLEARMODE, and
+	TOK_CLEARMODE
+
+	* include/channel.h (MODEBUF_DEST_OPMODE): Define the
+	MODEBUF_DEST_OPMODE flag
+
+	* ircd/channel.c (modebuf_flush): added new flag,
+	MODEBUF_DEST_OPMODE; causes channel MODE/HACK(4) notice to appear
+	to originate from source's server (or source itself, if
+	IsServer(source)); also causes a server-level MODE to be sent as
+	OPMODE instead
+
 	* include/channel.h: defined MODEBUF_DEST_SERVER,
 	MODEBUF_DEST_HACK4
 
@@ -24,7 +48,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.25 2000-03-27 15:36:41 kev Exp $
+# $Id: ChangeLog,v 1.26 2000-03-27 16:15:06 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

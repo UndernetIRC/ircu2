@@ -2775,6 +2775,8 @@ modebuf_flush(struct ModeBuf *mbuf)
   int i;
   int *flag_p;
 
+  struct Client *app_source;
+
   char addbuf[20] = "+";
   int addbuf_i = 1;
   char rembuf[20] = "-";
@@ -2792,6 +2794,11 @@ modebuf_flush(struct ModeBuf *mbuf)
   char limitbuf[10];
 
   assert(0 != mbuf);
+
+  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
+    app_source = mbuf->mb_source->from;
+  else
+    app_source = mbuf->mb_source;
 
   for (flag_p = flags; flag_p[0]; flag_p += 2) {
     if (*flag_p & mbuf->mb_add)
@@ -2853,13 +2860,13 @@ modebuf_flush(struct ModeBuf *mbuf)
     }
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendto_channel_butserv(mbuf->mb_channel, mbuf->mb_source,
-			     ":%s MODE %s %s%s%s%s", mbuf->mb_source->name,
+      sendto_channel_butserv(mbuf->mb_channel, app_source,
+			     ":%s MODE %s %s%s%s%s", app_source->name,
 			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
 			     remstr);
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s [" TIME_T_FMT
-		     "]", mbuf->mb_source->name, mbuf->mb_channel->chname,
+		     "]", app_source->name, mbuf->mb_channel->chname,
 		     addbuf, rembuf, addstr, remstr,
 		     mbuf->mb_channel->creationtime);
   }
@@ -2887,18 +2894,29 @@ modebuf_flush(struct ModeBuf *mbuf)
 	build_string(strptr, strptr_i, limitbuf, 0);
     }
 
-    if (IsServer(mbuf->mb_source))
-      sendto_all_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
-			TIME_T_FMT, NumServ(mbuf->mb_source),
-			mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			mbuf->mb_channel->creationtime);
-    else
-      sendto_all_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
-			TIME_T_FMT, NumNick(mbuf->mb_source),
-			mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			mbuf->mb_channel->creationtime);
+    if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
+      if (IsServer(mbuf->mb_source))
+	sendto_all_butone(mbuf->mb_connect, "%s " TOK_OPMODE " %s %s%s%s%s",
+			  NumServ(mbuf->mb_source), mbuf->mb_channel->chname,
+			  addbuf, rembuf, addstr, remstr);
+      else
+	sendto_all_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE " %s %s%s%s%s",
+			  NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
+			  addbuf, rembuf, addstr, remstr);
+    } else {
+      if (IsServer(mbuf->mb_source))
+	sendto_all_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
+			  TIME_T_FMT, NumServ(mbuf->mb_source),
+			  mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			  remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			  mbuf->mb_channel->creationtime);
+      else
+	sendto_all_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
+			  TIME_T_FMT, NumNick(mbuf->mb_source),
+			  mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			  remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			  mbuf->mb_channel->creationtime);
+    }
   }
 
   mbuf->mb_add = 0;
