@@ -1,3 +1,7 @@
+2002-11-27  Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/channel.c: Don't access memory after it is freed.
+	* include/patchlevel.h: Bump patchlevel again to stop confusion.
+	
 2002-11-26  Perry Lorier  <isomer@undernet.org>
 	* include/patchlevel.h: Update version string
 

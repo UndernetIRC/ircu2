@@ -2650,6 +2650,7 @@ void
 joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 {
   unsigned int len;
+  int is_local;
 
   assert(0 != jbuf);
 
@@ -2659,6 +2660,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     return;
   }
+
+  is_local = IsLocalChannel(chan->chname);
 
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
@@ -2678,8 +2681,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
      * exactly the same logic, albeit somewhat more concise, as was in
      * the original m_part.c */
 
-    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-	IsLocalChannel(chan->chname)) /* got to remove user here */
+    /* got to remove user here */
+    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || is_local)
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
     /* Add user to channel */
@@ -2700,7 +2703,8 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
   }
 
   if (jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
-      jbuf->jb_type == JOINBUF_TYPE_JOIN || IsLocalChannel(chan->chname))
+      jbuf->jb_type == JOINBUF_TYPE_JOIN ||
+      is_local)
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */
