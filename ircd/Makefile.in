@@ -364,7 +364,7 @@ IPcheck.o: IPcheck.c ../config.h ../include/IPcheck.h ../include/client.h \
   ../include/ircd.h ../include/struct.h ../include/msg.h \
   ../include/numnicks.h ../include/ircd_alloc.h \
   ../include/ircd_features.h ../include/s_debug.h ../include/s_user.h \
-  ../include/send.h
+  ../include/send.h ../include/match.h
 channel.o: channel.c ../config.h ../include/channel.h \
   ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
   ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
