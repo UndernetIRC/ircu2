@@ -315,7 +315,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *name;
 
   if (IsServer(sptr)) {
-    return protocol_violation(sptr,
+    return protocol_violation(cptr,
 	"%s tried to JOIN %s, duh!",
 	cli_name(sptr),
 	(parc < 2 || *parv[1] == '\0') ? "a channel":parv[1]
@@ -339,7 +339,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
 
     if (IsLocalChannel(name) || !IsChannelName(name)) {
-      protocol_violation(sptr,"%s tried to join %s",cli_name(cptr),name);
+      protocol_violation(cptr,"%s tried to join %s",cli_name(sptr),name);
       continue;
     }
 

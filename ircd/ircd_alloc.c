@@ -100,7 +100,7 @@ void* MyRealloc(void* x, size_t size)
 #ifdef FROBONFREE
    size_t old_size = ((size_t*)x)[-1];
    if (old_size > size)
-     memfrob(((char*)x) + size + sizeof(size_t), old_size - size);
+     memfrob(((char*)x) + size, old_size - size);
    x = realloc(((size_t*)x) - 1, size + sizeof(size_t));
 #else
   x = realloc(x, size);
@@ -110,7 +110,7 @@ void* MyRealloc(void* x, size_t size)
   /* Both are needed in all cases to work with realloc... */
 #if defined(FROBONMALLOC) && defined(FROBONFREE)
   if (old_size < size)
-    memfrob(((char*)x) + old_size + sizeof(size_t), size - old_size);
+    memfrob(((char*)x) + old_size, size - old_size);
 #endif
 #ifdef FROBONFREE
   *(size_t*)x = size;
