@@ -37,6 +37,7 @@
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
+#include "motd.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -624,11 +625,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     send_reply(sptr, RPL_ISUPPORT, featurebuf);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
-#ifdef NODEFAULTMOTD
-    m_motd(sptr, NULL, 1, parv);
-#else
-    m_motd(sptr, sptr, 1, parv);
-#endif
+    motd_signon(sptr);
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
       set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);

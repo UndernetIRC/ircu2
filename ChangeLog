@@ -1,3 +1,16 @@
+2000-11-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (register_user): use motd_signon() instead of
+	calling m_motd; much cleaner this way
+
+	* ircd/motd.c: write the new motd_* stuff to make MOTD handling
+	less of a crock
+
+	* ircd/m_motd.c: rewrite m{,s}_motd to call out to new motd_*
+	functions
+
+	* include/motd.h: define new MOTD API stuff
+
 2000-11-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_reply.c (protocol_violation): rewrite
