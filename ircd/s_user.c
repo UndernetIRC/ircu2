@@ -19,8 +19,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Miscellaneous user-related helper functions.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -72,12 +74,13 @@
 #include <string.h>
 #include <sys/stat.h>
 
-
+/** Count of allocated User structures. */
 static int userCount = 0;
 
-/*
- * 'make_user' add's an User information block to a client
- * if it was not previously allocated.
+/** Makes sure that \a cptr has a User information block.
+ * If cli_user(cptr) != NULL, does nothing.
+ * @param[in] cptr Client to attach User struct to.
+ * @return User struct associated with \a cptr.
  */
 struct User *make_user(struct Client *cptr)
 {
@@ -97,10 +100,10 @@ struct User *make_user(struct Client *cptr)
   return cli_user(cptr);
 }
 
-/*
- * free_user
- *
- * Decrease user reference count by one and release block, if count reaches 0.
+/** Dereference \a user.
+ * User structures are reference-counted; if the refcount of \a user
+ * becomes zero, free it.
+ * @param[in] user User to dereference.
  */
 void free_user(struct User* user)
 {
@@ -124,6 +127,10 @@ void free_user(struct User* user)
   }
 }
 
+/** Find number of User structs allocated and memory used by them.
+ * @param[out] count_out Receives number of User structs allocated.
+ * @param[out] bytes_out Receives number of bytes used by User structs.
+ */
 void user_count_memory(size_t* count_out, size_t* bytes_out)
 {
   assert(0 != count_out);
@@ -133,16 +140,14 @@ void user_count_memory(size_t* count_out, size_t* bytes_out)
 }
 
 
-/*
- * next_client
- *
- * Local function to find the next matching client. The search
- * can be continued from the specified client entry. Normal
- * usage loop is:
- *
+/** Find the next client (starting at \a next) with a name that matches \a ch.
+ * Normal usage loop is:
  * for (x = client; x = next_client(x,mask); x = x->next)
  *     HandleMatchingClient;
  *
+ * @param[in] next First client to check.
+ * @param[in] ch Name mask to check against.
+ * @return Next matching client found, or NULL if none.
  */
 struct Client *next_client(struct Client *next, const char* ch)
 {
@@ -163,28 +168,22 @@ struct Client *next_client(struct Client *next, const char* ch)
   return next;
 }
 
-/*
- * hunt_server
+/** Find the destination server for a command, and forward it if that is not us.
  *
- *    Do the basic thing in delivering the message (command)
- *    across the relays to the specific server (server) for
- *    actions.
+ * \a server may be a nickname, server name, server mask (if \a from
+ * is a local user) or server numnick (if \a is a server or remote
+ * user).
  *
- *    Note:   The command is a format string and *MUST* be
- *            of prefixed style (e.g. ":%s COMMAND %s ...").
- *            Command can have only max 8 parameters.
- *
- *    server  parv[server] is the parameter identifying the
- *            target server. It can be a nickname, servername,
- *            or server mask (from a local user) or a server
- *            numeric (from a remote server).
- *
- *    *WARNING*
- *            parv[server] is replaced with the pointer to the
- *            real servername from the matched client (I'm lazy
- *            now --msa).
- *
- *    returns: (see #defines)
+ * @param[in] from Client that sent the command to us.
+ * @param[in] cmd Long-form command text.
+ * @param[in] tok Token-form command text.
+ * @param[in] one Client that originated the command (ignored).
+ * @param[in] MustBeOper If non-zero and \a from is not an operator, return HUNTED_NOSUCH.
+ * @param[in] pattern Format string of arguments to command.
+ * @param[in] server Index of target name or mask in \a parv.
+ * @param[in] parc Number of valid elements in \a parv (must be less than 9).
+ * @param[in] parv Array of arguments to command.
+ * @return One of HUNTED_ISME, HUNTED_NOSUCH or HUNTED_PASS.
  */
 int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
                     struct Client *one, int MustBeOper, const char *pattern,
@@ -241,6 +240,26 @@ int hunt_server_cmd(struct Client *from, const char *cmd, const char *tok,
   return (HUNTED_PASS);
 }
 
+/** Find the destination server for a command, and forward it (as a
+ * high-priority command) if that is not us.
+ *
+ * \a server may be a nickname, server name, server mask (if \a from
+ * is a local user) or server numnick (if \a is a server or remote
+ * user).
+ * Unlike hunt_server_cmd(), this appends the message to the
+ * high-priority message queue for the destination server.
+ *
+ * @param[in] from Client that sent the command to us.
+ * @param[in] cmd Long-form command text.
+ * @param[in] tok Token-form command text.
+ * @param[in] one Client that originated the command (ignored).
+ * @param[in] MustBeOper If non-zero and \a from is not an operator, return HUNTED_NOSUCH.
+ * @param[in] pattern Format string of arguments to command.
+ * @param[in] server Index of target name or mask in \a parv.
+ * @param[in] parc Number of valid elements in \a parv (must be less than 9).
+ * @param[in] parv Array of arguments to command.
+ * @return One of HUNTED_ISME, HUNTED_NOSUCH or HUNTED_PASS.
+ */
 int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
 			 struct Client *one, int MustBeOper,
 			 const char *pattern, int server, int parc,
@@ -290,15 +309,13 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
 }
 
 
-/*
- * clean_user_id
- *
- * Copy `source' to `dest', replacing all occurances of '~' and characters that
- * are not `isIrcUi' by an underscore.
- * Copies at most USERLEN - 1 characters or up till the first control character.
- * If `tilde' is true, then a tilde is prepended to `dest'.
- * Note that `dest' and `source' can point to the same area or to different
- * non-overlapping areas.
+/** Copy a cleaned-up version of a username.
+ * Replace all instances of '~' and "invalid" username characters
+ * (!isIrcUi()) with underscores, truncating at USERLEN or the first
+ * control character.  \a dest and \a source may be the same buffer.
+ * @param[out] dest Destination buffer.
+ * @param[in] source Source buffer.
+ * @param[in] tilde If non-zero, prepend a '~' to \a dest.
  */
 static char *clean_user_id(char *dest, char *source, int tilde)
 {
@@ -346,6 +363,20 @@ static char *clean_user_id(char *dest, char *source, int tilde)
  *    would just issue "KILL foobar" to clean out dups. But,
  *    this is not fair. It should actually request another
  *    nick from local user or kill him/her...
+ */
+/** Finish registering a user who has sent both NICK and USER.
+ * For local connections, possibly check IAuth; make sure there is a
+ * matching Client config block; clean the username field; check
+ * K/k-lines; check for "hacked" looking usernames; assign a numnick;
+ * and send greeting (WELCOME, ISUPPORT, MOTD, etc).
+ * For all connections, update the invisible user and operator counts;
+ * run IPcheck against their address; and forward the NICK.
+ *
+ * @param[in] cptr Client who introduced the user.
+ * @param[in,out] sptr Client who has been fully introduced.
+ * @param[in] nick Client's new nickname.
+ * @param[in] username Client's username.
+ * @return Zero or CPTR_KILLED.
  */
 int register_user(struct Client *cptr, struct Client *sptr,
                   const char *nick, char *username)
@@ -642,10 +673,10 @@ int register_user(struct Client *cptr, struct Client *sptr,
   return 0;
 }
 
-
+/** List of user mode characters. */
 static const struct UserMode {
-  unsigned int flag;
-  char         c;
+  unsigned int flag; /**< User mode constant. */
+  char         c;    /**< Character corresponding to the mode. */
 } userModeList[] = {
   { FLAG_OPER,        'o' },
   { FLAG_LOCOP,       'O' },
@@ -659,13 +690,24 @@ static const struct UserMode {
   { FLAG_HIDDENHOST,  'x' }
 };
 
+/** Length of #userModeList. */
 #define USERMODELIST_SIZE sizeof(userModeList) / sizeof(struct UserMode)
 
 /*
  * XXX - find a way to get rid of this
  */
+/** Nasty global buffer used for communications with umode_str() and others. */
 static char umodeBuf[BUFSIZE];
 
+/** Try to set a user's nickname.
+ * If \a sptr is a server, the client is being introduced for the first time.
+ * @param[in] cptr Client to set nickname.
+ * @param[in] sptr Client sending the NICK.
+ * @param[in] nick New nickname.
+ * @param[in] parc Number of arguments to NICK.
+ * @param[in] parv Argument list to NICK.
+ * @return CPTR_KILLED if \a cptr was killed, else 0.
+ */
 int set_nick_name(struct Client* cptr, struct Client* sptr,
                   const char* nick, int parc, char* parv[])
 {
@@ -839,17 +881,18 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
   return 0;
 }
 
+/** Calculate the hash value for a target.
+ * @param[in] target Pointer to target, cast to unsigned int.
+ * @return Hash value constructed from the pointer.
+ */
 static unsigned char hash_target(unsigned int target)
 {
   return (unsigned char) (target >> 16) ^ (target >> 8);
 }
 
-/*
- * add_target
- *
- * sptr must be a local client!
- *
- * Cannonifies target for client `sptr'.
+/** Records \a target as a recent target for \a sptr.
+ * @param[in] sptr User who has sent to a new target.
+ * @param[in] target Target to add.
  */
 void
 add_target(struct Client *sptr, void *target)
@@ -879,13 +922,12 @@ add_target(struct Client *sptr, void *target)
   targets[RESERVEDTARGETS] = hash;
 }
 
-/*
- * check_target_limit
- *
- * sptr must be a local client !
- *
- * Returns 'true' (1) when too many targets are addressed.
- * Returns 'false' (0) when it's ok to send to this target.
+/** Check whether \a sptr can send to or join \a target yet.
+ * @param[in] sptr User trying to join a channel or send a message.
+ * @param[in] target Target of the join or message.
+ * @param[in] name Name of the target.
+ * @param[in] created If non-zero, trying to join a new channel.
+ * @return Non-zero if too many target changes; zero if okay to send.
  */
 int check_target_limit(struct Client *sptr, void *target, const char *name,
     int created)
@@ -940,23 +982,15 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
   return 0;
 }
 
-/*
- * whisper - called from m_cnotice and m_cprivmsg.
- *
- * parv[0] = sender prefix
- * parv[1] = nick
- * parv[2] = #channel
- * parv[3] = Private message text
- *
- * Added 971023 by Run.
- * Reason: Allows channel operators to sent an arbitrary number of private
- *   messages to users on their channel, avoiding the max.targets limit.
- *   Building this into m_private would use too much cpu because we'd have
- *   to a cross channel lookup for every private message!
- * Note that we can't allow non-chan ops to use this command, it would be
- *   abused by mass advertisers.
- *
+/** Allows a channel operator to avoid target change checks when
+ * sending messages to users on their channel.
+ * @param[in] source User sending the message.
+ * @param[in] nick Destination of the message.
+ * @param[in] channel Name of channel being sent to.
+ * @param[in] text Message to send.
+ * @param[in] is_notice If non-zero, use CNOTICE instead of CPRIVMSG.
  */
+/* Added 971023 by Run. */
 int whisper(struct Client* source, const char* nick, const char* channel,
             const char* text, int is_notice)
 {
@@ -1014,8 +1048,11 @@ int whisper(struct Client* source, const char* nick, const char* channel,
 }
 
 
-/*
- * added Sat Jul 25 07:30:42 EST 1992
+/** Send a user mode change for \a cptr to neighboring servers.
+ * @param[in] cptr User whose mode is changing.
+ * @param[in] sptr Client who sent us the mode change message.
+ * @param[in] old Prior set of user flags.
+ * @param[in] prop If non-zero, also include FLAG_OPER.
  */
 void send_umode_out(struct Client *cptr, struct Client *sptr,
                     struct Flags *old, int prop)
@@ -1036,10 +1073,11 @@ void send_umode_out(struct Client *cptr, struct Client *sptr,
 }
 
 
-/*
- * send_user_info - send user info userip/userhost
- * NOTE: formatter must put info into buffer and return a pointer to the end of
- * the data it put in the buffer.
+/** Call \a fmt for each Client named in \a names.
+ * @param[in] sptr Client requesting information.
+ * @param[in] names Space-delimited list of nicknames.
+ * @param[in] rpl Base reply string for messages.
+ * @param[in] fmt Formatting callback function.
  */
 void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt)
 {
@@ -1069,25 +1107,30 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
   msgq_clean(mb);
 }
 
-/*
- * hide_hostmask()
- *
- * If, after setting the flags, the user has both HiddenHost and Account
- * set, its hostmask is changed.
+/** Set \a flag on \a cptr and possibly hide the client's hostmask.
+ * @param[in,out] cptr User who is getting a new flag.
+ * @param[in] flag Some flag that affects host-hiding (FLAG_HIDDENHOST, FLAG_ACCOUNT).
+ * @return Zero.
  */
 int
 hide_hostmask(struct Client *cptr, unsigned int flag)
 {
   struct Membership *chan;
 
-  if (MyConnect(cptr) && !feature_bool(FEAT_HOST_HIDING) &&
-      flag == FLAG_HIDDENHOST)
+  switch (flag) {
+  case FLAG_HIDDENHOST:
+    /* Local users cannot set +x unless FEAT_HOST_HIDING is true. */
+    if (MyConnect(cptr) && !feature_bool(FEAT_HOST_HIDING))
+      return 0;
+    break;
+  case FLAG_ACCOUNT:
+    /* Invalidate all bans against the user so we check them again */
+    for (chan = (cli_user(cptr))->channel; chan;
+         chan = chan->next_channel)
+      ClearBanValid(chan);
+  default:
     return 0;
-
-/* Invalidate all bans against the user so we check them again */
-      for (chan = (cli_user(cptr))->channel; chan;
-           chan = chan->next_channel)
-        ClearBanValid(chan);
+  }
 
   SetFlag(cptr, flag);
   if (!HasFlag(cptr, FLAG_HIDDENHOST) || !HasFlag(cptr, FLAG_ACCOUNT))
@@ -1128,12 +1171,16 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   return 0;
 }
 
-/*
- * set_user_mode() added 15/10/91 By Darren Reed.
+/** Set a user's mode.  This function checks that \a cptr is trying to
+ * set his own mode, prevents local users from setting inappropriate
+ * modes through this function, and applies any other side effects of
+ * a successful mode change.
  *
- * parv[0] - sender
- * parv[1] - username to change mode for
- * parv[2] - modes to change
+ * @param[in,out] cptr User setting someone's mode.
+ * @param[in] sptr Client who sent the mode change message.
+ * @param[in] parc Number of parameters in \a parv.
+ * @param[in] parv Parameters to MODE.
+ * @return Zero.
  */
 int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
@@ -1371,9 +1418,9 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   return 0;
 }
 
-/*
- * Build umode string for BURST command
- * --Run
+/** Build a mode string to describe modes for \a cptr.
+ * @param[in] cptr Some user.
+ * @return Pointer to a static buffer.
  */
 char *umode_str(struct Client *cptr)
 {
@@ -1421,9 +1468,12 @@ char *umode_str(struct Client *cptr)
                                    overwritten by send_umode() */
 }
 
-/*
- * Send the MODE string for user (user) to connection cptr
- * -avalon
+/** Send a mode change string for \a sptr to \a cptr.
+ * @param[in] cptr Destination of mode change message.
+ * @param[in] sptr User whose mode has changed.
+ * @param[in] old Pre-change set of modes for \a sptr.
+ * @param[in] sendset One of ALL_UMODES, SEND_UMODES_BUT_OPER,
+ * SEND_UMODES, to select which changed user modes to send.
  */
 void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
                 int sendset)
@@ -1487,10 +1537,12 @@ void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
     sendcmdto_one(sptr, CMD_MODE, cptr, "%s :%s", cli_name(sptr), umodeBuf);
 }
 
-/*
+/**
  * Check to see if this resembles a sno_mask.  It is if 1) there is
  * at least one digit and 2) The first digit occurs before the first
  * alphabetic character.
+ * @param[in] word Word to check for sno_mask-ness.
+ * @return Non-zero if \a word looks like a server notice mask; zero if not.
  */
 int is_snomask(char *word)
 {
@@ -1505,9 +1557,11 @@ int is_snomask(char *word)
   return 0;
 }
 
-/*
- * If it begins with a +, count this as an additive mask instead of just
- * a replacement.  If what == MODE_DEL, "+" has no special effect.
+/** Update snomask \a oldmask according to \a arg and \a what.
+ * @param[in] oldmask Original user mask.
+ * @param[in] arg Update string (either a number or '+'/'-' followed by a number).
+ * @param[in] what MODE_ADD if adding the mask.
+ * @return New value of service notice mask.
  */
 unsigned int umode_make_snomask(unsigned int oldmask, char *arg, int what)
 {
@@ -1540,6 +1594,10 @@ unsigned int umode_make_snomask(unsigned int oldmask, char *arg, int what)
   return newmask;
 }
 
+/** Remove \a cptr from the singly linked list \a list.
+ * @param[in] cptr Client to remove from list.
+ * @param[in,out] list Pointer to head of list containing \a cptr.
+ */
 static void delfrom_list(struct Client *cptr, struct SLink **list)
 {
   struct SLink* tmp;
@@ -1558,10 +1616,10 @@ static void delfrom_list(struct Client *cptr, struct SLink **list)
   }
 }
 
-/*
- * This function sets a Client's server notices mask, according to
- * the parameter 'what'.  This could be even faster, but the code
- * gets mighty hard to read :)
+/** Set \a cptr's server notice mask, according to \a what.
+ * @param[in,out] cptr Client whose snomask is updating.
+ * @param[in] newmask Base value for new snomask.
+ * @param[in] what One of SNO_ADD, SNO_DEL, SNO_SET, to choose operation.
  */
 void set_snomask(struct Client *cptr, unsigned int newmask, int what)
 {
@@ -1600,13 +1658,13 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
   cli_snomask(cptr) = newmask;
 }
 
-/*
- * is_silenced : Does the actual check wether sptr is allowed
- *               to send a message to acptr.
- *               Both must be registered persons.
- * If sptr is silenced by acptr, his message should not be propagated,
- * but more over, if this is detected on a server not local to sptr
- * the SILENCE mask is sent upstream.
+/** Check whether \a sptr is allowed to send a message to \a acptr.
+ * If \a sptr is a remote user, it means some server has an outdated
+ * SILENCE list for \a acptr, so send the missing SILENCE back in the
+ * direction of \a sptr.
+ * @param[in] sptr Client trying to send a message.
+ * @param[in] acptr Destination of message.
+ * @return Non-zero if \a sptr is SILENCEd by \a acptr, zero if not.
  */
 int is_silenced(struct Client *sptr, struct Client *acptr)
 {
@@ -1642,11 +1700,10 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   return 0;
 }
 
-/*
- * del_silence
- *
- * Removes all silence masks from the list of sptr that fall within `mask'
- * Returns -1 if none where found, 0 otherwise.
+/** Remove all silence masks from \a sptr that match \a mask.
+ * @param[in,out] sptr Client to update.
+ * @param[in] mask Silence mask to remove.
+ * @return Zero if any silence masks were removed; non-zero if all were kept.
  */
 int del_silence(struct Client *sptr, char *mask)
 {
@@ -1669,6 +1726,12 @@ int del_silence(struct Client *sptr, char *mask)
   return ret;
 }
 
+/** Add \a mask to the silence masks for \a sptr.
+ * Removes any silence masks that are subsets of \a mask.
+ * @param[in,out] sptr Client adding silence mask.
+ * @param[in] mask Silence mask to add.
+ * @return Zero on success; non-zero on any failure.
+ */
 int add_silence(struct Client* sptr, const char* mask)
 {
   struct SLink *lp, **lpp;
@@ -1714,6 +1777,10 @@ int add_silence(struct Client* sptr, const char* mask)
   return 0;
 }
 
+/** Send RPL_ISUPPORT lines to \a cptr.
+ * @param[in] cptr Client to send ISUPPORT to.
+ * @return Zero.
+ */
 int
 send_supported(struct Client *cptr)
 {
