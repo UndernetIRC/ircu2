@@ -123,10 +123,10 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (t < OLDEST_TS || dt < -9000000)
   {
     if (IsServer(sptr)) /* protocol violation if it's from a server */
-      protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %l)", t, dt);
+      protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %ld)", t, dt);
     else
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
-                    "delta %l)", sptr, t, dt);
+                    "delta %d)", sptr, t, dt);
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
     return 0;
   }
@@ -164,7 +164,7 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* don't apply settime--reliable */
     if ((dt > 600) || (dt < -600))
       sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-                            "(delta %l)", cli_name(sptr), t, dt);
+                            "(delta %d)", cli_name(sptr), t, dt);
     /* Let user know we're ignoring him */
     if (IsUser(sptr))
     {
@@ -242,7 +242,7 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     if ((dt > 600) || (dt < -600))
       sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-                            "(delta %l)", cli_name(sptr), t, dt);
+                            "(delta %ld)", cli_name(sptr), t, dt);
     if (IsUser(sptr)) /* Let user know we're ignoring him */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
                     "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
