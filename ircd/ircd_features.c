@@ -381,6 +381,7 @@ static struct FeatureDesc {
   F_B(HIS_REWRITE, 0, 1, 0),
   F_I(HIS_REMOTE, 0, 1, 0),
   F_B(HIS_NETSPLIT, 0, 1, 0),
+  F_B(HIS_LOCAL_CHAN_WHOIS, 0, 1, 0),
   F_S(HIS_SERVERNAME, 0, "*.undernet.org", 0),
   F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", 0),
   F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),

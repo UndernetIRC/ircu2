@@ -1054,7 +1054,8 @@ HIS_WHO_HOPCOUNT
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this replaces hopcount to a static 3 in replies to /WHO.
+As per UnderNet CFV-165, this replaces hopcount to a static 3 in
+replies to /WHO.
 
 HIS_BANWHO
  * Type: boolean
@@ -1087,6 +1088,12 @@ HIS_NETSPLIT
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes server names in net break sign-offs.
+
+HIS_LOCAL_CHAN_WHOIS
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes local channels in replies to /WHOIS.
 
 HIS_SERVERNAME
  * Type: string
