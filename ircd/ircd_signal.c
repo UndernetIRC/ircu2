@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Signal handlers for ircu.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -29,20 +31,30 @@
 #include <assert.h>
 #include <signal.h>
 
+/** Counts various types of signals that we receive. */
 static struct tag_SignalCounter {
-  unsigned int alrm;
-  unsigned int hup;
+  unsigned int alrm; /**< Received SIGALRM count. */
+  unsigned int hup;  /**< Received SIGHUP count. */
 } SignalCounter;
 
+/** Event generator for SIGHUP. */
 static struct Signal sig_hup;
+/** Event generator for SIGINT. */
 static struct Signal sig_int;
+/** Event generator for SIGTERM. */
 static struct Signal sig_term;
 
+/** Signal handler for SIGALRM.
+ * @param[in] sig Signal number (ignored).
+ */
 static void sigalrm_handler(int sig)
 {
   ++SignalCounter.alrm;
 }
 
+/** Signal callback for SIGTERM.
+ * @param[in] ev Signal event descriptor.
+ */
 static void sigterm_callback(struct Event* ev)
 {
   assert(0 != ev_signal(ev));
@@ -53,6 +65,9 @@ static void sigterm_callback(struct Event* ev)
   server_die("received signal SIGTERM");
 }
 
+/** Signal callback for SIGHUP.
+ * @param[in] ev Signal event descriptor.
+ */
 static void sighup_callback(struct Event* ev)
 {
   assert(0 != ev_signal(ev));
@@ -64,6 +79,9 @@ static void sighup_callback(struct Event* ev)
   rehash(&me, 1);
 }
 
+/** Signal callback for SIGINT.
+ * @param[in] ev Signal event descriptor.
+ */
 static void sigint_callback(struct Event* ev)
 {
   assert(0 != ev_signal(ev));
@@ -74,6 +92,7 @@ static void sigint_callback(struct Event* ev)
   server_restart("caught signal: SIGINT");
 }
 
+/** Register all necessary signal handlers. */
 void setup_signals(void)
 {
   struct sigaction act;
