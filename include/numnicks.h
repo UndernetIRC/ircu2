@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Interface for numeric nickname functions.
+ * @version $Id$
  */
 #ifndef INCLUDED_numnicks_h
 #define INCLUDED_numnicks_h
@@ -35,23 +37,24 @@
 /*
  * used for buffer size calculations in channel.c
  */
+/** Maximum length of a full user numnick. */
 #define NUMNICKLEN 5            /* strlen("YYXXX") */
 
 /*
  * Macros
  */
 
-/*
+/** Provide format string arguments for a user's numnick.
  * Use this macro as follows: sprintf(buf, "%s%s ...", NumNick(cptr), ...);
  */
 #define NumNick(c) cli_yxx((cli_user(c))->server), cli_yxx(c)
 
-/*
+/** Provide format string arguments for a server's numnick.
  * Use this macro as follows: sprintf(buf, "%s ...", NumServ(cptr), ...);
  */
 #define NumServ(c) cli_yxx(c)
 
-/*
+/** Provide format string arguments for a server's capacity mask.
  * Use this macro as follows: sprintf(buf, "%s%s ...", NumServCap(cptr), ...);
  */
 #define NumServCap(c) cli_yxx(c), (cli_serv(c))->nn_capacity
