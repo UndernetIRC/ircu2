@@ -270,8 +270,9 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       Count_serverdisconnects(UserStats);
     else
       Count_remoteserverquits(UserStats);
-    
+#ifdef HEAD_IN_SAND_MAP    
     map_update(bcptr);
+#endif
   }
   else if (IsMe(bcptr))
   {

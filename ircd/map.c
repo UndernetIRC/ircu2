@@ -33,6 +33,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_alloc.h"
 #include "hash.h"
 #include "list.h"
 #include "match.h"
@@ -59,7 +60,7 @@ static void map_add(struct Client *server)
   assert(!IsHub(server));
   assert(!IsService(server));
 */
-  struct Map *map = (struct Map *)MyAlloc(sizeof(struct Map));
+  struct Map *map = (struct Map *)MyMalloc(sizeof(struct Map));
 
   map->lasttime = TStime();
   strcpy(map->name, cli_name(server));
