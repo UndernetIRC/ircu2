@@ -1,12 +1,13 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.5 1999-12-11 08:54:13 bleep Exp $
+# $Id: ChangeLog,v 1.6 2000-01-01 00:00:32 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* s_misc.c (date): add Runs Y2K patch --Bleep
 * hash.c (hChangeClient): bug fix. If the client pointer matched the first
   pointer in the bucket, the change was ignored (returned 0), leaving stale
   values in the hash table, eventually causing the server to die for mysterious
