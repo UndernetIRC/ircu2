@@ -180,9 +180,9 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       gline_free(agline);
     else if (!lastmod || GlineLastMod(agline) < lastmod) { /* new mod */
       if (flags & GLINE_ACTIVE)
-	return gline_activate(cptr, sptr, agline, lastmod);
+	return gline_activate(cptr, sptr, agline, lastmod, flags);
       else
-	return gline_deactivate(cptr, sptr, agline, lastmod);
+	return gline_deactivate(cptr, sptr, agline, lastmod, flags);
     } else if (GlineLastMod(agline) == lastmod)
       return 0;
     else
@@ -281,10 +281,10 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     else {
       if (flags & GLINE_ACTIVE)
 	return gline_activate(cptr, sptr, agline,
-			      GlineLastMod(agline) ? TStime() : 0);
+			      GlineLastMod(agline) ? TStime() : 0, flags);
       else
 	return gline_deactivate(cptr, sptr, agline,
-				GlineLastMod(agline) ? TStime() : 0);
+				GlineLastMod(agline) ? TStime() : 0, flags);
     }
   }
 

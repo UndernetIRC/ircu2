@@ -56,12 +56,14 @@ struct Jupe {
 #define JupeLastMod(j)		((j)->ju_lastmod)
 
 extern int jupe_add(struct Client *cptr, struct Client *sptr, char *server,
-		    char *reason, time_t expire, time_t lastmod, int local,
-		    int active);
+		    char *reason, time_t expire, time_t lastmod,
+		    unsigned int flags);
 extern int jupe_activate(struct Client *cptr, struct Client *sptr,
-			 struct Jupe *jupe, time_t lastmod);
+			 struct Jupe *jupe, time_t lastmod,
+			 unsigned int flags);
 extern int jupe_deactivate(struct Client *cptr, struct Client *sptr,
-			   struct Jupe *jupe, time_t lastmod);
+			   struct Jupe *jupe, time_t lastmod,
+			   unsigned int flags);
 extern struct Jupe* jupe_find(char *server);
 extern void jupe_free(struct Jupe *jupe);
 extern void jupe_burst(struct Client *cptr);
