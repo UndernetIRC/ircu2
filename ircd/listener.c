@@ -18,6 +18,8 @@
  *
  *  $Id$
  */
+#include "config.h"
+
 #include "listener.h"
 #include "client.h"
 #include "ircd.h"

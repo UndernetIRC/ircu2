@@ -23,6 +23,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "motd.h"
 #include "class.h"
 #include "client.h"

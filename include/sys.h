@@ -20,9 +20,6 @@
  */
 #ifndef INCLUDED_sys_h
 #define INCLUDED_sys_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 
 #if WORDS_BIGENDIAN
 # define BIT_ZERO_ON_LEFT

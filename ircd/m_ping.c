@@ -130,6 +130,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match

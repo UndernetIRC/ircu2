@@ -19,6 +19,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "send.h"
 #include "channel.h"
 #include "class.h"

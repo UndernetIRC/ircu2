@@ -79,6 +79,8 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
+#include "config.h"
+
 #include "handlers.h"
 #include "client.h"
 #include "ircd.h"

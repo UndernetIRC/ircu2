@@ -19,6 +19,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "packet.h"
 #include "client.h"
 #include "ircd.h"

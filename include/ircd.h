@@ -5,9 +5,6 @@
  */
 #ifndef INCLUDED_ircd_h
 #define INCLUDED_ircd_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_struct_h
 #include "struct.h"           /* struct Client */
 #endif

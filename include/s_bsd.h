@@ -5,9 +5,6 @@
  */
 #ifndef INCLUDED_s_bsd_h
 #define INCLUDED_s_bsd_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>         /* size_t, time_t */
 #define INCLUDED_sys_types_h

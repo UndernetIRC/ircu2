@@ -25,7 +25,6 @@
 #ifndef INCLUDED_supported_h
 #define INCLUDED_supported_h
 
-#include "config.h"
 #include "channel.h"
 #include "ircd_defs.h"
 

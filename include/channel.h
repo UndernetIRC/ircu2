@@ -21,9 +21,6 @@
  */
 #ifndef INCLUDED_channel_h
 #define INCLUDED_channel_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"        /* NICKLEN */
 #endif

@@ -20,6 +20,8 @@
  * $Id$
  *
  */
+#include "config.h"
+
 #include "s_debug.h"
 #include "channel.h"
 #include "class.h"

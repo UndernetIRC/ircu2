@@ -19,6 +19,7 @@
  * $Id$
  */
 #include "config.h"
+
 #include "ircd_features.h"
 #include "channel.h"	/* list_set_default */
 #include "class.h"

@@ -19,8 +19,9 @@
  *
  * $Id$
  */
-#include "s_conf.h"
+#include "config.h"
 
+#include "s_conf.h"
 #include "IPcheck.h"
 #include "class.h"
 #include "client.h"
@@ -832,8 +833,8 @@ void conf_add_server(const char* const* fields, int count)
   server->next = serverConfList;
   serverConfList = server;
 
-  // if (INADDR_NONE == server->address.s_addr)
-    // lookup_confhost(server);
+  /* if (INADDR_NONE == server->address.s_addr) */
+    /* lookup_confhost(server); */
 }
 
 void conf_add_deny(const char* const* fields, int count, int ip_kill)

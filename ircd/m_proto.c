@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #if 0
 /*
  * No need to include handlers.h here the signatures must match

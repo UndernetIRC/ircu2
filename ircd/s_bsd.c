@@ -19,6 +19,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_bsd.h"
 #include "client.h"
 #include "IPcheck.h"

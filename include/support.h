@@ -5,10 +5,6 @@
  */
 #ifndef INCLUDED_support_h
 #define INCLUDED_support_h
-#ifndef INCLUDED_config_h
-#include "config.h"
-#define INCLUDED_config_h
-#endif
 #if 0
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>         /* broken BSD system headers */
