@@ -395,7 +395,11 @@ static void check_pings(struct Event* ev) {
        continue;
       } else {
         /* OK, they still have enough time left, so we'll just skip to the
-         * next client -- hikari */
+         * next client.  Set the next check to be when their time is up, if
+         * that's before the currently scheduled next check -- hikari */
+        expire = cli_firsttime(cptr) + max_ping;
+        if (expire < next_check)
+          next_check = expire;
         continue;
       }
     }

@@ -1,3 +1,7 @@
+2003-06-27 hikari <shadow@undernet.org>
+	* ircd/ircd.c: After thought, update the next check time based on
+	when an unregistered client should expire.
+
 2003-06-27  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (register_user): stomp on a warning
