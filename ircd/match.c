@@ -904,7 +904,8 @@ int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_p
   if (check_if_ipmask(in)) {
     bits = ipmask_parse_ipv4(in, &ipv4);
     mask->in6_16[0] = mask->in6_16[1] = mask->in6_16[2] = 0;
-    mask->in6_16[3] = mask->in6_16[4] = mask->in6_16[5] = 0;
+    mask->in6_16[3] = mask->in6_16[4] = 0;
+    mask->in6_16[5] = 0xffff;
     memcpy(&mask->in6_16[6], &ipv4.s_addr, sizeof(ipv4.s_addr));
     bits += 96;
   } else {
@@ -941,7 +942,7 @@ int ipmask_check(const struct irc_in_addr *addr, const struct irc_in_addr *mask,
 
   for (k = 0; k < 8; k++) {
     if (bits < 16)
-      return (addr->in6_16[k] & ((unsigned char) (0xffff << (16-bits)))) == mask->in6_16[k];
+      return (addr->in6_16[k] & htons(0xffff << (16-bits))) == mask->in6_16[k];
     if (addr->in6_16[k] != mask->in6_16[k])
       return 0;
     if (!(bits -= 16))

@@ -1,5 +1,17 @@
 2004-10-16  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/class.c: Make find_class() return NULL for unknown classes,
+	rather than returning the start of connClassList.
+
+	* ircd/match.c (parse_ipmask): Translate IPv4 masks as
+	IPv4-compatible addresses.
+	(check_ipmask): Fix comparison of IP masks.
+
+	* ircd/motd.h, ircd/motd.c: Add a new MOTD type, MOTD_IPMASK, that
+	uses CIDR style masks in the hostname field of a Motd block.
+
+2004-10-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/numeric.h: Remove the unused RPL_STATMEM and
 	RPL_STATMEMTOT.  Move the RPL_BOUNCE comment to its current
 	value (the former RPL_STATMEM).

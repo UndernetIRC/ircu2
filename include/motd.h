@@ -33,28 +33,35 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
-
+#ifndef INCLUDED_res_H
+#include "res.h"
+#endif
 
 struct Client;
 struct TRecord;
 struct StatDesc;
 
+/** Type of MOTD. */
+enum MotdType {
+    MOTD_UNIVERSAL, /**< MOTD for all users */
+    MOTD_HOSTMASK,  /**< MOTD selected by hostmask */
+    MOTD_IPMASK,    /**< MOTD selected by IP mask */
+    MOTD_CLASS      /**< MOTD selected by connection class */
+};
+
 /** Entry for a single Message Of The Day (MOTD). */
 struct Motd {
   struct Motd*		next;     /**< Next MOTD in the linked list. */
-  int			type;     /**< Type of MOTD (MOTD_UNIVERSAL,
-                                     MOTD_HOSTMASK or MOTD_CLASS) */
-  /* Used for classname if it is a class. */
+  enum MotdType		type;     /**< Type of MOTD. */
   char*			hostmask; /**< Hostmask if type==MOTD_HOSTMASK,
-                                     class name if type==MOTD_CLASS. */
+                                     class name if type==MOTD_CLASS,
+                                     text IP mask if type==MOTD_IPMASK. */
+  struct irc_in_addr    address;  /**< Address if type==MOTD_IPMASK. */
+  unsigned char         addrbits; /**< Number of bits checked in Motd::address. */
   char*			path;     /**< Pathname of MOTD file. */
   int			maxcount; /**< Number of lines for MOTD. */
   struct MotdCache*	cache;    /**< MOTD cache entry. */
 };
-
-#define MOTD_UNIVERSAL	0	  /**< MOTD selected by no criteria */
-#define MOTD_HOSTMASK	1	  /**< MOTD selected by hostmask */
-#define MOTD_CLASS	2	  /**< MOTD selected by connection class */
 
 /** Length of one MOTD line(80 chars + '\\0'). */
 #define MOTD_LINESIZE	81

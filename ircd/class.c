@@ -38,7 +38,7 @@
 #include <assert.h>
 
 /** List of all connection classes. */
-static struct ConnectionClass* connClassList = 0;
+static struct ConnectionClass* connClassList;
 /** Number of allocated connection classes. */
 static unsigned int connClassAllocCount;
 
@@ -49,15 +49,21 @@ const struct ConnectionClass* get_class_list(void)
 }
 
 /** Allocate a new connection class.
+ * If #connClassList is not null, insert the new class just after it.
  * @return Newly allocated connection class structure.
  */
 struct ConnectionClass* make_class(void)
 {
   struct ConnectionClass *tmp;
 
-  tmp = (struct ConnectionClass*) MyMalloc(sizeof(struct ConnectionClass));
-  tmp->ref_count = 1;
+  tmp = (struct ConnectionClass*) MyCalloc(1, sizeof(struct ConnectionClass));
   assert(0 != tmp);
+  tmp->ref_count = 1;
+  if (connClassList)
+  {
+    tmp->next = connClassList->next;
+    connClassList->next = tmp;
+  }
   ++connClassAllocCount;
   return tmp;
 }
@@ -215,24 +221,16 @@ unsigned int get_con_freq(struct ConnectionClass * clptr)
 void add_class(char *name, unsigned int ping, unsigned int confreq,
                unsigned int maxli, unsigned int sendq)
 {
-  struct ConnectionClass* t;
   struct ConnectionClass* p;
 
-  t = find_class(name);
-  if ((t == connClassList) && (name != NULL))
-  {
-    p = (struct ConnectionClass *) make_class();
-    p->next = t->next;
-    t->next = p;
-  }
-  else
-  {
-    if (ConClass(t) != NULL)
-      MyFree(ConClass(t));
-    p = t;
-  }
   Debug((DEBUG_DEBUG, "Add Class %s: cf: %u pf: %u ml: %u sq: %d",
          name, confreq, ping, maxli, sendq));
+  assert(name != NULL);
+  p = find_class(name);
+  if (!p)
+    p = make_class();
+  else
+    MyFree(ConClass(p));
   ConClass(p) = name;
   ConFreq(p) = confreq;
   PingFreq(p) = ping;
@@ -240,8 +238,6 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
   MaxSendq(p) = (sendq > 0) ?
      sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   p->valid = 1;
-  if (p != t)
-    Links(p) = 0;
 }
 
 /** Find a connection class by name.
@@ -256,7 +252,7 @@ struct ConnectionClass* find_class(const char *name)
     if (!ircd_strcmp(ConClass(cltmp), name))
       return cltmp;
   }
-  return connClassList;
+  return NULL;
 }
 
 /** Report connection classes to a client.

@@ -70,14 +70,9 @@ static struct Motd *
 motd_create(const char *hostmask, const char *path, int maxcount)
 {
   struct Motd* tmp;
-  int type = MOTD_UNIVERSAL;
 
   assert(0 != path);
 
-  if (hostmask != NULL && find_class(hostmask))
-    type = MOTD_CLASS;
-  else
-    type = MOTD_HOSTMASK;
   /* allocate memory and initialize the structure */
   if (MotdList.freelist)
   {
@@ -85,9 +80,16 @@ motd_create(const char *hostmask, const char *path, int maxcount)
     MotdList.freelist = tmp->next;
   } else
     tmp = (struct Motd *)MyMalloc(sizeof(struct Motd));
-
   tmp->next = 0;
-  tmp->type = type;
+
+  if (hostmask == NULL)
+    tmp->type = MOTD_UNIVERSAL;
+  else if (find_class(hostmask))
+    tmp->type = MOTD_CLASS;
+  else if (ipmask_parse(hostmask, &tmp->address, &tmp->addrbits))
+    tmp->type = MOTD_IPMASK;
+  else
+    tmp->type = MOTD_HOSTMASK;
 
   if (hostmask != NULL)
     DupString(tmp->hostmask, hostmask);
@@ -250,15 +252,19 @@ motd_lookup(struct Client *cptr)
     return MotdList.remote;
 
   c_class = get_client_class(cptr);
+  assert(c_class != NULL);
 
   /* check the motd blocks first */
   for (ptr = MotdList.other; ptr; ptr = ptr->next)
   {
-    if (ptr->type == MOTD_CLASS &&
-        !match(ptr->hostmask, c_class))
+    if (ptr->type == MOTD_CLASS
+        && !match(ptr->hostmask, c_class))
       return ptr;
-    else if (ptr->type == MOTD_HOSTMASK && c_class != NULL &&
-             !match(ptr->hostmask, cli_sockhost(cptr)))
+    else if (ptr->type == MOTD_HOSTMASK
+             && !match(ptr->hostmask, cli_sockhost(cptr)))
+      return ptr;
+    else if (ptr->type == MOTD_IPMASK
+             && ipmask_check(&cli_ip(cptr), &ptr->address, ptr->addrbits))
       return ptr;
   }
 
