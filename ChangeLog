@@ -1,3 +1,8 @@
+2004-11-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_create.c (ms_create): Complain if a user tries to CREATE
+	a channel they are already in, but do not add them again.
+
 2004-11-09  Michael Poole <mdpoole@troilus.org>
 
 	* include/res.h (init_resolver): Delete, and initialize lazily.
