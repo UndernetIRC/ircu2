@@ -19,20 +19,7 @@
  *
  */
  
-/*
- * I choose NDEBUG - No production server should have it on (and if they do
- * I don't think they'd last long), however people that are testing development
- * versions /should/ have it on.  If you want to comment this out fine, it's
- * just to prevent accidently running the wrong code
- */
-#if 0
-#ifdef NDEBUG
-#error "This version of ircu is development only.  Please wait until it's"
-#error "released"
-#endif
-#endif
-
-#define PATCHLEVEL "pl11"
+#define PATCHLEVEL "pl11.(released)"
 
 #define RELEASE ".10."
 
