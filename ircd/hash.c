@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
  */
 #include "config.h"
 
@@ -41,16 +39,19 @@
 
 
 /************************* Nemesi's hash alghoritm ***********************/
-
-/* This hash function returns *exactly* N%HASHSIZE, where 'N'
- * is the string itself (included the trailing '\0') seen as 
+/** @file
+ * @brief Hash table management.
+ * @version $Id$
+ *
+ * This hash function returns *exactly* N%HASHSIZE, where 'N'
+ * is the string itself (included the trailing '\\0') seen as
  * a baseHASHSHIFT number whose "digits" are the bytes of the
  * number mapped through a "weight" transformation that gives
  * the same "weight" to caseless-equal chars, example:
  *
  * Hashing the string "Nick\0" the result will be:
- * N  i  c  k \0
- * |  |  |  |  `--->  ( (hash_weight('\0') * (HASHSHIFT**0) +
+ * N  i  c  k \\0
+ * |  |  |  |  `--->  ( (hash_weight('\\0') * (HASHSHIFT**0) +
  * |  |  |  `------>    (hash_weight('k')  * (HASHSHIFT**1) +
  * |  |  `--------->    (hash_weight('c')  * (HASHSHIFT**2) +
  * |  `------------>    (hash_weight('i')  * (HASHSHIFT**3) +
@@ -70,17 +71,20 @@
  * the effectiveness of RAM caches while accesing them).
  * These two pages of macros are here to make the following code
  * _more_ understandeable... I hope ;)
+ *
+ * If you ask me, this whole mess is ungodly complicated for very
+ * little benefit. -Entrope
  */
 
-/* Internal stuff, think well before changing this, it's how
-   much the weights of two lexicograhically contiguous chars 
-   differ, i.e. (hash_weight('b')-hash_weight('a')) == HASHSTEP
-   One seems to be fine but the alghoritm doesn't depend on it */
+/** Internal stuff, think well before changing this, it's how
+   much the weights of two lexicograhically contiguous chars
+   differ, i.e.\ (hash_weight('b')-hash_weight('a')) == HASHSTEP.
+   One seems to be fine but the algorithm doesn't depend on it. */
 #define HASHSTEP 1
 
-/* The smallest _prime_ int beeing HASHSTEP times bigger than a byte,
-   that is the first prime bigger than the maximum hash_weight
-   (since the maximum hash weight is gonne be the "biggest-byte * HASHSTEP") 
+/** The smallest _prime_ int beeing HASHSTEP times bigger than a byte.
+   That is, the first prime bigger than the maximum hash_weight
+   (since the maximum hash weight is gonna be the "biggest-byte * HASHSTEP")
  */
 #define HASHSHIFT 257
 
@@ -149,38 +153,42 @@
 #endif
 
 /* Now we are sure that HASHMEMS and HASHREGS can contain the following */
+/** Size of #hash_map array. */
 #define HASHMAPSIZE (HASHSIZE+HASHSHIFT+1)
 
 /* Static memory structures */
 
-/* We need a first function that, given an integer h between 1 and
-   HASHSIZE+HASHSHIFT, returns ( (h * HASHSHIFT) % HASHSIZE ) )
-   We'll map this function in this table */
+/** We need a first function that, given an integer h between 1 and
+   HASHSIZE+HASHSHIFT, returns ( (h * HASHSHIFT) % HASHSIZE ) ).
+   We'll map this function in this table. */
 static HASHMEMS hash_map[HASHMAPSIZE];
 
-/* Then we need a second function that "maps" a char to its weitgh,
-   changed to a table this one too, with this macro we can use a char
+/** Then we need a second function that "maps" a char to its weight.
+   Changed to a table this one too, with this macro we can use a char
    as index and not care if it is signed or not, no.. this will not
    cause an addition to take place at each access, trust me, the
    optimizer takes it out of the actual code and passes "label+shift"
    to the linker, and the linker does the addition :) */
 static HASHMEMS hash_weight_table[CHAR_MAX - CHAR_MIN + 1];
+/** Helper macro to look characters up in #hash_weight_table. */
 #define hash_weight(ch) hash_weight_table[ch-CHAR_MIN]
 
 /* The actual hash tables, both MUST be of the same HASHSIZE, variable
    size tables could be supported but the rehash routine should also
    rebuild the transformation maps, I kept the tables of equal size 
    so that I can use one hash function and one transformation map */
+/** Hash table for clients. */
 static struct Client *clientTable[HASHSIZE];
+/** Hash table for channels. */
 static struct Channel *channelTable[HASHSIZE];
 
 /* This is what the hash function will consider "equal" chars, this function 
    MUST be transitive, if HASHEQ(y,x)&&HASHEQ(y,z) then HASHEQ(y,z), and MUST
    be symmetric, if HASHEQ(a,b) then HASHEQ(b,a), obvious ok but... :) */
+/** Helper macro for character comparison. */
 #define HASHEQ(x,y) ((ToLower(x)) == (ToLower(y)))
 
-/* init_hash
- * Initialize the maps used by hash functions and clear the tables */
+/** Initialize the maps used by hash functions and clear the tables. */
 void init_hash(void)
 {
   int           i;
@@ -233,6 +241,7 @@ void init_hash(void)
    strhash("") _will_ coredump, it's responsibility
    the caller to eventually check BadPtr(nick). */
 
+/** Calculate hash value for a string. */
 static HASHREGS strhash(const char *n)
 {
   HASHREGS hash = hash_weight(*n++);
@@ -274,11 +283,9 @@ static HASHREGS strhash(const char *n)
  * use tmp2 myself wich would have given less freedom to the optimizer.
  */
 
-/*
- * hAddClient
- * Adds a client's name in the proper hash linked list, can't fail,
- * cptr must have a non-null name or expect a coredump, the name is
- * infact taken from cptr->name
+/** Prepend a client to the appropriate hash bucket.
+ * @param[in] cptr Client to add to hash table.
+ * @return Zero.
  */
 int hAddClient(struct Client *cptr)
 {
@@ -290,12 +297,9 @@ int hAddClient(struct Client *cptr)
   return 0;
 }
 
-/*
- * hAddChannel
- * Adds a channel's name in the proper hash linked list, can't fail.
- * chptr must have a non-null name or expect a coredump.
- * As before the name is taken from chptr->name, we do hash its entire
- * lenght since this proved to be statistically faster
+/** Prepend a channel to the appropriate hash bucket.
+ * @param[in] chptr Channel to add to hash table.
+ * @return Zero.
  */
 int hAddChannel(struct Channel *chptr)
 {
@@ -307,9 +311,9 @@ int hAddChannel(struct Channel *chptr)
   return 0;
 }
 
-/*
- * hRemClient
- * Removes a Client's name from the hash linked list
+/** Remove a client from its hash bucket.
+ * @param[in] cptr Client to remove from hash table.
+ * @return Zero if the client is found and removed, -1 if not found.
  */
 int hRemClient(struct Client *cptr)
 {
@@ -333,21 +337,10 @@ int hRemClient(struct Client *cptr)
   return -1;
 }
 
-/*
- * hChangeClient
- * Removes the old name of a client from a linked list and adds
- * the new one to another linked list, there is a slight chanche
- * that this is useless if the two hashes are the same but it still
- * would need to move the name to the top of the list.
- * As always it's responsibility of the caller to check that
- * both newname and cptr->name are valid names (not "" or NULL).
- * Typically, to change the nick of an already hashed client:
- * if (!BadPtr(newname) && ClearTheNameSomeHow(newname)) {
- *   hChangeClient(cptr, newname);
- *   strcpy(cptr->name, newname);
- *   };
- * There isn't an equivalent function for channels since they
- * don't change name.
+/** Rename a client in the hash table.
+ * @param[in] cptr Client whose nickname is changing.
+ * @param[in] newname New nickname for client.
+ * @return Zero.
  */
 int hChangeClient(struct Client *cptr, const char *newname)
 {
@@ -361,9 +354,9 @@ int hChangeClient(struct Client *cptr, const char *newname)
   return 0;
 }
 
-/*
- * hRemChannel
- * Removes the channel's name from the corresponding hash linked list
+/** Remove a channel from its hash bucket.
+ * @param[in] chptr Channel to remove from hash table.
+ * @return Zero if the channel is found and removed, -1 if not found.
  */
 int hRemChannel(struct Channel *chptr)
 {
@@ -388,12 +381,11 @@ int hRemChannel(struct Channel *chptr)
   return -1;
 }
 
-/*
- * hSeekClient
- * New semantics: finds a client whose name is 'name' and whose
- * status is one of those marked in TMask, if can't find one
- * returns NULL. If it finds one moves it to the top of the list
- * and returns it.
+/** Find a client by name, filtered by status mask.
+ * If a client is found, it is moved to the top of its hash bucket.
+ * @param[in] name Client name to search for.
+ * @param[in] TMask Bitmask of status bits, any of which are needed to match.
+ * @return Matching client, or NULL if none.
  */
 struct Client* hSeekClient(const char *name, int TMask)
 {
@@ -416,11 +408,10 @@ struct Client* hSeekClient(const char *name, int TMask)
   return cptr;
 }
 
-/*
- * hSeekChannel
- * New semantics: finds a channel whose name is 'name', 
- * if can't find one returns NULL, if can find it moves
- * it to the top of the list and returns it.
+/** Find a channel by name.
+ * If a channel is found, it is moved to the top of its hash bucket.
+ * @param[in] name Channel name to search for.
+ * @return Matching channel, or NULL if none.
  */
 struct Channel* hSeekChannel(const char *name)
 {
@@ -449,6 +440,13 @@ struct Channel* hSeekChannel(const char *name)
    coders are able to SIGCORE the server and look into what goes
    on themselves :-) */
 
+/** Report hash table statistics to a client.
+ * @param[in] cptr Client that sent us this message.
+ * @param[in] sptr Client that originated the message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument array.
+ * @return Zero.
+ */
 int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   int max_chain = 0;
@@ -501,17 +499,23 @@ int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    lowest 12 bits of the hash value are used, deletion is not supported,
    only addition, test for existence and cleanup of the table are.. */
 
+/** Number of bits in jupe hash value. */
 #define JUPEHASHBITS 12         /* 4096 entries, 64 nick jupes allowed */
+/** Size of jupe hash table. */
 #define JUPEHASHSIZE (1<<JUPEHASHBITS)
+/** Bitmask to select into jupe hash table. */
 #define JUPEHASHMASK (JUPEHASHSIZE-1)
+/** Maximum number of jupes allowed. */
 #define JUPEMAX      (1<<(JUPEHASHBITS-6))
 
+/** Hash table for jupes. */
 static char jupeTable[JUPEHASHSIZE][NICKLEN + 1];       /* About 40k */
+/** Count of jupes. */
 static int jupesCount;
 
-/*
- * isNickJuped()
- * Tells if a nick is juped (nonzero returned) or not (zero) 
+/** Check whether a nickname is juped.
+ * @param[in] nick Nickname to check.
+ * @return Non-zero of the nickname is juped, zero if not.
  */
 int isNickJuped(const char *nick)
 {
@@ -526,9 +530,9 @@ int isNickJuped(const char *nick)
   return 0;                     /* A bogus pointer is NOT a juped nick, right ? :) */
 }
 
-/*
- * addNickJupes()
- * Adds a (comma separated list of) nick jupes to the table 
+/** Add a comma-separated list of nick jupes.
+ * @param[in] nicks List of nicks to jupe, separated by commas.
+ * @return Zero on success, non-zero on error.
  */
 int addNickJupes(const char *nicks)
 {
@@ -567,10 +571,7 @@ loop:
   return 0;
 }
 
-/*
- * clearNickJupes()
- * Cleans up the juped nicks table 
- */
+/** Empty the table of juped nicknames. */
 void clearNickJupes(void)
 {
   int i;
