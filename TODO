@@ -15,6 +15,7 @@ High Priority:
   (No idea)
 
 Medium Priority:
+* crule parser coredumps on invalid input
 * why do the allocation counts change the first time you rehash
   after a server boot without changing the conf file:
   *** Allocations:  416(41848)

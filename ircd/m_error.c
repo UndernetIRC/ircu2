@@ -109,7 +109,7 @@
  */
 int ms_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *para;
+  const char *para;
 
   para = (parc > 1 && *parv[parc - 1] != '\0') ? parv[parc - 1] : "<>";
 
@@ -147,7 +147,7 @@ int ms_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mr_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char *para;
+  const char *para;
 
   para = (parc > 1 && *parv[parc - 1] != '\0') ? parv[parc - 1] : "<>";
 

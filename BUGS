@@ -1,7 +1,8 @@
 #
 # BUGS file for ircu2.10
 #
-# $Id: BUGS,v 1.5 2000-04-14 17:08:06 kev Exp $
+# $Id: BUGS,v 1.6 2000-04-15 04:20:14 bleep Exp $
 #
+* crule parser coredumps on invalid input
 * /mode #foo +o Thisnickdoesntexist -> Core dump.  Kev?
   - FIXED

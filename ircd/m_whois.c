@@ -123,7 +123,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel* chptr;
   char*           nick;
   char*           tmp;
-  char*           name;
+  const char*     name;
   char*           p = 0;
   int             found;
   int             len;
@@ -337,7 +337,7 @@ int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel* chptr;
   char*           nick;
   char*           tmp;
-  char*           name;
+  const char*     name;
   char*           p = 0;
   int             found;
   int             len;
@@ -551,7 +551,7 @@ int mo_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel* chptr;
   char*           nick;
   char*           tmp;
-  char*           name;
+  const char*     name;
   char*           p = 0;
   int             found;
   int             len;
