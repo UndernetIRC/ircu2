@@ -1,3 +1,6 @@
+2002-12-15 Isomer <Isomer@undernet.org>
+	* include/patchlevel.h: Release this sucker!
+
 2002-12-11 Isomer <Isomer@undernet.org>
 	* tools/linesync.sh: Update
 
