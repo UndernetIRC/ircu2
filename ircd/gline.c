@@ -753,10 +753,10 @@ gline_memory_count(size_t *gl_size)
   for (gline = GlobalGlineList; gline; gline = gline->gl_next)
   {
     gl++;
-    gl_size += sizeof(struct Gline);
-    gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
-    gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
-    gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
+    *gl_size += sizeof(struct Gline);
+    *gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
+    *gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
+    *gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
   }
   return gl;
 }

@@ -1,3 +1,11 @@
+2004-05-14  Matthias Crauwels <ultimate_@wol.be>
+
+	[Original ChangeLog date: 2003-06-08 -MP]
+	
+ 	* ircd/gline.c: fixed the counting bug in gline_memory_count
+ 
+ 	* ircd/jupe.c: fixed the counting bug in jupe_memory_count
+
 2004-05-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_mode.c (ms_mode): Do not always try to call
