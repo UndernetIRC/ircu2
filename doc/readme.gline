@@ -1,0 +1,67 @@
+GLINE documentation, last updated on 18 Mar 2000
+
+For an ordinary user, the syntax is:
+
+  GLINE [<mask>]
+
+If <mask> is given, and if a G-line for that server exists, all the
+information about that G-line is displayed.  If <mask> is not given,
+an error is returned.
+
+For an operator, the syntax is:
+
+  GLINE [[+|-]<mask> [[<target>] <expiration> :<reason>]]
+
+If <mask> is not given, or if it is not prefixed by "+" or "-", the
+operation is exactly the same as if it were issued by an ordinary
+user, except that a list of all G-lines may be returned.  If the "+"
+or "-" prefixes are used, the arguments <target>, <expiration>, and
+<reason> must be given, even if the G-line already exists.  If
+<target> is "*" and the currently existing G-line is a local G-line,
+the local G-line will be erased and recreated with the parameters
+given, as described below.  Otherwise, if the G-line currently exists,
+a prefix of "+" will cause an inactive G-line to be activated, whereas
+a prefix of "-" will cause an active G-line to be deactivated.  If an
+attempt is made to modify a G-line set by a U-lined service such as
+Uworld, the change will be forced to be local.
+
+If the G-line does not already exist, it is created. The <target>
+parameter is used to select whether the G-line is only to apply to a
+single server (which need not be the local server) or to the whole
+network; if <target> is not given, it is assumed to be the local
+server.  This could be useful if a single particular link is having
+problems, for instance.  The <expiration> parameter is a number of
+seconds, not to exceed 7 days, for the G-line to exist.  The <reason>
+argument is mandatory and should describe why this particular G-line
+was placed.
+
+For a server, the syntax is:
+
+  <prefix> GL <target> (+|-)<mask> <expiration> <lastmod> :<reason>
+
+The <target> may be a server numeric or the character "*", for a
+globally scoped G-line.  The <mask> argument is a server name, and
+must be prefixed by one of "+" (to indicate an active G-line) or "-"
+(to indicate an inactive G-line).  The parameter <expiration> is a
+total number of seconds the G-line is to live for, and <lastmod> is
+used for versioning.  Since GLINEs are propagated during netbursts,
+there must be some way of resolving conflicting states, which is the
+reason for this argument, and is also the reason G-lines cannot be
+deleted, only deactivated.  The <reason> parameter indicates the
+reason the G-line was placed.
+
+If a GLINE is received with a <target> of "*", any G-lines with local
+scope are deleted, in preference for the globally scoped version.  If
+the G-line already exists, the values of <lastmod> are compared; if
+the received <lastmod> is less than the stored <lastmod>, the existing
+G-line is resent to the server from which the GLINE message was
+received; otherwise, the G-line is activated or deactivated, depending
+on the <mask> prefix.  If the G-line does not currently exist, it is
+created with the parameters given.
+
+For a U-lined server, this syntax should be used:
+
+  <prefix> GL <target> +<mask> <expiration> :<reason>
+  <prefix> GL <target> -<mask>
+
+The <lastmod> parameter will be assumed to be 0.
