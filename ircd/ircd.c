@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
   }
   if (chroot(DPATH))
   {
-    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, (strerror(errno) ? strerror(errno) : "");
+    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, (strerror(errno)) ? strerror(errno) : "");
     exit(5);
   }
   dpath = "/";
