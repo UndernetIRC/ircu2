@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of string operations.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -46,14 +48,22 @@
  * On top of that (which seems to be the RFC) we demand that the
  * top domain does not contain any digits.
  */
+/** Regular expresion to match a hostname.
+ * Matches zero or more alphanumeric labels followed by '.' and a
+ * final label that may only contain alphabetic characters.
+ */
 static const char* hostExpr = "^([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+$";
+/** Compiled regex to match a hostname.  Built from #hostExpr. */
 static regex_t hostRegex;
 
+/** Regular expression to match an IP address. */
 static const char* addrExpr =
     "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){1,3}"
     "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
+/** Compiled regex to match an IP address.  Built from #addrExpr. */
 static regex_t addrRegex;
 
+/** Initialize the string matching code. */
 int init_string(void)
 {
   /*
@@ -71,18 +81,31 @@ int init_string(void)
   return 1;
 }
 
+/** Check whether \a str looks like a hostname.
+ * @param[in] str String that might be a hostname.
+ * @return Non-zero if it conforms to the rules, zero if not.
+ */
 int string_is_hostname(const char* str)
 {
   assert(0 != str);
   return (strlen(str) <= HOSTLEN && 0 == regexec(&hostRegex, str, 0, 0, 0));
 }
 
+/** Check whether \a str looks like an IP address.
+ * @param[in] str String that might be an address.
+ * @return Non-zero if it conforms to the rules, zero if not.
+ */
 int string_is_address(const char* str)
 {
   assert(0 != str);
   return (0 == regexec(&addrRegex, str, 0, 0, 0));
 }
 
+/** Check whether \a str contains wildcard characters.
+ * @param[in] str String that might contain wildcards.
+ * @return Non-zero if \a str contains naked (non-escaped) wildcards,
+ * zero if there are none or if they are all escaped.
+ */
 int string_has_wildcards(const char* str)
 {
   assert(0 != str);
@@ -97,27 +120,15 @@ int string_has_wildcards(const char* str)
   return 0;
 }
 
-unsigned int hash_pjw(const char* str)
-{
-  unsigned h = 0;
-  unsigned g;
-  assert(str);
-
-  for ( ; *str; ++str) {
-    h = (h << 4) + *str;
-    if ((g = h & 0xf0000000)) {
-      h ^= g >> 24;  /* fold top four bits onto ------X- */
-      h ^= g;        /* clear top four bits */
-    }
-  }
-  return h;
-}
-
-/*
- * strtoken.c
- *
- * Walk through a string of tokens, using a set of separators.
- * -argv 9/90
+/** Split a string on certain delimiters.
+ * This is a reentrant version of normal strtok().  The first call for
+ * a particular input string must use a non-NULL \a str; *save will be
+ * initialized based on that.  Later calls must use a NULL \a str;
+ * *save will be updated.
+ * @param[in,out] save Pointer to a position indicator.
+ * @param[in] str Pointer to the input string, or NULL to continue.
+ * @param[in] fs String that lists token delimiters.
+ * @return Next token in input string, or NULL if no tokens remain.
  */
 char* ircd_strtok(char **save, char *str, char *fs)
 {
@@ -147,11 +158,9 @@ char* ircd_strtok(char **save, char *str, char *fs)
   return (tmp);
 }
 
-/*
- * canonize
- *
- * reduce a string of duplicate list entries to contain only the unique
- * items.  Unavoidably O(n^2).
+/** Rewrite a comma-delimited list of items to remove duplicates.
+ * @param[in,out] buffer Comma-delimited list.
+ * @return The input buffer \a buffer.
  */
 char* canonize(char* buffer)
 {
@@ -194,12 +203,11 @@ char* canonize(char* buffer)
   return cbuf;
 }
 
-/*
- * ircd_strncpy - optimized strncpy
- * This may not look like it would be the fastest possible way to do it,
- * but it generally outperforms everything else on many platforms,
- * including asm library versions and memcpy, if compiled with the
- * optimizer on. (-O2 for gcc) --Bleep
+/** Copy one string to another, not to exceed a certain length.
+ * @param[in] s1 Output buffer.
+ * @param[in] s2 Source buffer.
+ * @param[in] n Maximum number of bytes to write, plus one.
+ * @return The original input buffer \a s1.
  */
 char* ircd_strncpy(char* s1, const char* s2, size_t n)
 {
@@ -224,7 +232,12 @@ NTL_HDR_strCasediff { NTL_SRC_strCasediff }
  * Other functions visible externally
  */
 
-int strnChattr(const char *s, size_t n)
+/** Find common character attributes for the start of a string.
+ * @param[in] s Input string to scan.
+ * @param[in] n Maximum number of bytes to check.
+ * @return Bitmask of all character attributes shared by the start of \a s.
+ */
+int strnChattr(const char *s, const size_t n)
 {
   const char *rs = s;
   unsigned int x = ~0;
@@ -234,9 +247,10 @@ int strnChattr(const char *s, size_t n)
   return x;
 }
 
-/*
- * ircd_strcmp - case insensitive comparison of 2 strings
- * NOTE: see ircd_chattr.h for notes on case mapping.
+/** Case insensitive string comparison.
+ * @param[in] a First string to compare.
+ * @param[in] b Second string to compare.
+ * @return Less than, equal to, or greater than zero if \a a is lexicographically less than, equal to, or greater than \a b.
  */
 int ircd_strcmp(const char *a, const char *b)
 {
@@ -251,9 +265,12 @@ int ircd_strcmp(const char *a, const char *b)
   return (*ra - *rb);
 }
 
-/*
- * ircd_strncmp - counted case insensitive comparison of 2 strings
- * NOTE: see ircd_chattr.h for notes on case mapping.
+/** Case insensitive comparison of the starts of two strings.
+ * @param[in] a First string to compare.
+ * @param[in] b Second string to compare.
+ * @param[in] n Maximum number of characters to compare.
+ * @return Less than, equal to, or greater than zero if \a a is
+ * lexicographically less than, equal to, or greater than \a b.
  */
 int ircd_strncmp(const char *a, const char *b, size_t n)
 {
@@ -271,23 +288,20 @@ int ircd_strncmp(const char *a, const char *b, size_t n)
   return (*ra - *rb);
 }
 
-/*
- * unique_name_vector - create a unique vector of names from
- * a token separated list
- * list   - [in]  a token delimited null terminated character array
- * token  - [in]  the token to replace 
- * vector - [out] vector of strings to be returned
- * size   - [in]  maximum number of elements to place in vector
- * Returns count of elements placed into the vector, if the list
- * is an empty string { '\0' } 0 is returned.
- * list, and vector must be non-null and size must be > 0 
- * Empty strings <token><token> are not placed in the vector or counted.
- * This function ignores all subsequent tokens when count == size
- *
- * NOTE: this function destroys it's input, do not use list after it
- * is passed to this function
+/** Fill a vector of distinct names from a delimited input list.
+ * Empty tokens (when \a token occurs at the start or end of \a list,
+ * or when \a token occurs adjacent to itself) are ignored.  When
+ * \a size tokens have been written to \a vector, the rest of the
+ * string is ignored.
+ * Unlike token_vector(), if a token repeats an earlier token, it is
+ * skipped.
+ * @param[in,out] names Input buffer.
+ * @param[in] token Delimiter used to split \a list.
+ * @param[out] vector Output vector.
+ * @param[in] size Maximum number of elements to put in \a vector.
+ * @return Number of elements written to \a vector.
  */
-int unique_name_vector(char* list, char token, char** vector, int size)
+int unique_name_vector(char* names, char token, char** vector, int size)
 {
   int   i;
   int   count = 0;
@@ -297,7 +311,7 @@ int unique_name_vector(char* list, char token, char** vector, int size)
   assert(0 != list);
   assert(0 != vector);
   assert(0 < size);
- 
+
   /*
    * ignore spurious tokens
    */
@@ -331,22 +345,18 @@ int unique_name_vector(char* list, char token, char** vector, int size)
   return count;
 }
 
-/*
- * token_vector - create a vector of tokens from
- * a token separated list
- * list   - [in]  a token delimited null terminated character array
- * token  - [in]  the token to replace 
- * vector - [out] vector of strings to be returned
- * size   - [in]  maximum number of elements to place in vector
- * returns count of elements placed into the vector, if the list
- * is an empty string { '\0' } 0 is returned.
- * list, and vector must be non-null and size must be > 1 
- * Empty tokens are counted and placed in the list
- *
- * NOTE: this function destroys it's input, do not use list after it
- * is passed to this function
+/** Fill a vector of tokens from a delimited input list.
+ * Empty tokens (when \a token occurs at the start or end of \a list,
+ * or when \a token occurs adjacent to itself) are ignored.  When
+ * \a size tokens have been written to \a vector, the rest of the
+ * string is ignored.
+ * @param[in,out] names Input buffer.
+ * @param[in] token Delimiter used to split \a list.
+ * @param[out] vector Output vector.
+ * @param[in] size Maximum number of elements to put in \a vector.
+ * @return Number of elements written to \a vector.
  */
-int token_vector(char* list, char token, char** vector, int size)
+int token_vector(char* names, char token, char** vector, int size)
 {
   int   count = 0;
   char* start = list;
@@ -355,7 +365,7 @@ int token_vector(char* list, char token, char** vector, int size)
   assert(0 != list);
   assert(0 != vector);
   assert(1 < size);
- 
+
   vector[count++] = start;
   for (end = strchr(start, token); end; end = strchr(start, token)) {
     *end++ = '\0';
@@ -368,13 +378,17 @@ int token_vector(char* list, char token, char** vector, int size)
     break;
   }
   return count;
-} 
+}
 
-/*
- * host_from_uh - get the host.domain part of a user@host.domain string
- * ripped from get_sockhost
+/** Copy all or part of the hostname in a string to another string.
+ * If \a userhost contains an '\@', the remaining portion is used;
+ * otherwise, the whole \a userhost is used.
+ * @param[out] buf Output buffer.
+ * @param[in] userhost user\@hostname or hostname string.
+ * @param[in] len Maximum number of bytes to write to \a host.
+ * @return The output buffer \a buf.
  */
-char* host_from_uh(char* host, const char* userhost, size_t n)
+char* host_from_uh(char* buf, const char* userhost, size_t len)
 {
   const char* s;
 
@@ -394,6 +408,7 @@ char* host_from_uh(char* host, const char* userhost, size_t n)
  * this new faster inet_ntoa was ripped from:
  * From: Thomas Helvey <tomh@inxpress.net>
  */
+/** Array of text strings for dotted quads. */
 static const char* IpQuadTab[] =
 {
     "0",   "1",   "2",   "3",   "4",   "5",   "6",   "7",   "8",   "9",
@@ -424,16 +439,10 @@ static const char* IpQuadTab[] =
   "250", "251", "252", "253", "254", "255"
 };
 
-/*
- * ircd_ntoa - rewrote and renamed yet again :) --Bleep
- * inetntoa - in_addr to string
- *      changed name to remove collision possibility and
- *      so behaviour is guaranteed to take a pointer arg.
- *      -avalon 23/11/92
- *  inet_ntoa --  returned the dotted notation of a given
- *      internet number
- *      argv 11/90).
- *  inet_ntoa --  its broken on some Ultrix/Dynix too. -avalon
+/** Convert an IP address to printable ASCII form.
+ * This is generally deprecated in favor of ircd_ntoa_r().
+ * @param[in] in Address to convert.
+ * @return Pointer to a static buffer containing the readable form.
  */
 const char* ircd_ntoa(const struct irc_in_addr* in)
 {
@@ -442,6 +451,10 @@ const char* ircd_ntoa(const struct irc_in_addr* in)
 }
 
 /* This doesn't really belong here, but otherwise umkpasswd breaks. */
+/** Check whether an IP address looks like an IPv4 address.
+ * @param[in] addr Address to check.
+ * @return Non-zero if the address is a valid IPv4 address, zero if not.
+ */
 int irc_in_addr_is_ipv4(const struct irc_in_addr *addr)
 {
   return addr->in6_16[0] == 0
@@ -453,8 +466,10 @@ int irc_in_addr_is_ipv4(const struct irc_in_addr *addr)
     && addr->in6_16[6] != 0;
 }
 
-/*
- * reentrant version of above
+/** Convert an IP address to printable ASCII form.
+ * @param[out] buf Output buffer to write to.
+ * @param[in] in Address to format.
+ * @return Pointer to the output buffer \a buf.
  */
 const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
 {
@@ -502,6 +517,7 @@ const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
       }
 
       /* Print out address. */
+/** Append \a CH to the output buffer. */
 #define APPEND(CH) do { buf[pos++] = (CH); } while (0)
       for (pos = ii = 0; (ii < 8); ++ii) {
         if ((max_zeros > 0) && (ii == max_start)) {
@@ -530,6 +546,11 @@ const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
     }
 }
 
+/** Attempt to parse an IPv4 address into a network-endian form.
+ * @param[in] input Input string.
+ * @param[out] output Network-endian representation of the address.
+ * @return Number of characters used from \a input, or 0 if the parse failed.
+ */
 static unsigned int
 ircd_aton_ip4(const char *input, unsigned int *output)
 {
@@ -560,9 +581,11 @@ ircd_aton_ip4(const char *input, unsigned int *output)
   }
 }
 
-/* ircd_aton - Parse a numeric IPv4 or IPv6 address into an irc_in_addr.
- * Returns number of characters used by address, or 0 if the address was
- * unparseable or malformed.
+/** Parse a numeric IPv4 or IPv6 address into an irc_in_addr.
+ * @param[out] ip Receives parsed IP address.
+ * @param[in] input Input buffer.
+ * @return Number of characters used from \a input, or 0 if the
+ * address was unparseable or malformed.
  */
 int
 ircd_aton(struct irc_in_addr *ip, const char *input)
