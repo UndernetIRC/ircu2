@@ -1,5 +1,7 @@
 2001-07-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c (send_supported): oops, minor typo...
+
 	* ircd/s_user.c: implement send_supported() to send two ISUPPORT
 	messages containing our feature buffers; make register_user() use
 	send_supported()
