@@ -18,14 +18,16 @@
 
 #### Start of system configuration section. ####
 
-srcdir=@srcdir@
-VPATH=@srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
 
-SHELL=@SHPROG@
-RM=@RMPROG@
-AWK=@AWK@
+SHELL = @SHPROG@
+RM = @RMPROG@
+AWK = @AWK@
 @SET_MAKE@
 #### End of system configuration section. ####
+
+SUBDIRS = doc ircd
 
 all: build
 
@@ -34,14 +36,10 @@ all: build
 .SUFFIXES: .dummy
 
 build:
-	@if [ ! -f config/config.h ]; then \
-		$(MAKE) config; \
-	else \
-	  for i in config ircd; do \
-		  echo "Building $$i..."; \
-		  cd $$i; ${MAKE} build; cd ..; \
-	  done; \
-	fi
+	@for i in ${SUBDIRS}; do \
+		echo "Building $$i..."; \
+		cd $$i; ${MAKE} build; cd ..; \
+	done
 
 root-clean:
 	@for i in '*.orig' '.*.orig' '\#*' '*~' '.*~' '*.bak' '.*.bak' core; do\
@@ -50,11 +48,13 @@ root-clean:
 		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
 	done || true
 
-clean: root-clean
-	@for i in ircd config; do \
+sub-clean:
+	@for i in ${SUBDIRS}; do \
 		echo "Cleaning $$i..."; \
 		cd $$i; ${MAKE} clean; cd ..;\
 	done
+
+clean: root-clean sub-clean
 
 root-distclean: root-clean
 	@for i in '*.rej'; do \
@@ -62,57 +62,68 @@ root-distclean: root-clean
 		REMOVE_FILES="`find . -name "$$i" -print`"; \
 		test -n "$$REMOVE_FILES" && ${RM} -f $$REMOVE_FILES; \
 	done || true
-	${RM} -f Makefile
 
-distclean: root-distclean
-	@for i in doc ircd config; do \
+sub-distclean:
+	@for i in ${SUBDIRS}; do \
 		echo "Dist-cleaning $$i..."; \
 		cd $$i; ${MAKE} distclean; cd ..;\
 	done
 
+distclean: root-distclean sub-distclean
+	${RM} -f Makefile config.h config.log config.cache config.status \
+		stamp-h
+
 maintainer-clean: root-distclean
-	@for i in doc ircd config; do \
+	@for i in ${SUBDIRS}; do \
 		echo "maintainer-cleaning $$i..."; \
 		cd $$i; ${MAKE} maintainer-clean; cd ..;\
 	done
 
 depend:
-	@for i in ircd; do \
+	@for i in ${SUBDIRS}; do \
 		echo "Making dependencies in $$i..."; \
 		cd $$i; ${MAKE} depend; cd ..; \
 	done
 
 install:
-	@if [ -f ircd/ircd ]; then \
-		for i in ircd doc; do \
-			echo "Installing $$i..."; \
-			cd $$i; ${MAKE} install; cd ..; \
-		done \
-	else \
-		echo "First run 'make'"; \
-	fi
+	@for i in ${SUBDIRS}; do \
+		echo "Installing $$i..."; \
+		cd $$i; ${MAKE} install; cd ..; \
+	done
 
 uninstall:
-	@for i in doc ircd; do \
+	@for i in ${SUBDIRS}; do \
 		echo "Uninstalling $$i..."; \
 		cd $$i; ${MAKE} uninstall; cd ..; \
 	done
 
-config: FORCE
-	@cd config; ${MAKE} config
-	@echo
-	@echo "The Undernet IRC daemon is now hopefully configured for your setup."
-	@echo "Next run 'make' to build the server."
-	@echo
+${srcdir}/aclocal.m4: acinclude.m4
+	cd ${srcdir} && aclocal
 
-# Coders: You need GNU make for this to work.
-Makefile: config/config.status Makefile.in
-	@echo "recreating Makefile"
-	@cd config; \
-	CONFIG_FILES=../Makefile CONFIG_HEADERS= ./config.status > /dev/null
+${srcdir}/configure: configure.in aclocal.m4
+	cd ${srcdir} && autoconf
 
-config/config.status:
-	@cd config; ${MAKE} config.status
+# autoheader might not change config.h.in, so touch a stamp file.
+${srcdir}/config.h.in: stamp-h.in
+${srcdir}/stamp-h.in: configure.in aclocal.m4 acconfig.h
+	cd ${srcdir} && autoheader
+	echo timestamp > ${srcdir}/stamp-h.in
+
+config.h: stamp-h
+stamp-h: config.h.in config.status
+	./config.status
+
+Makefile: Makefile.in config.status
+	./config.status
+
+doc/Makefile: doc/Makefile.in config.status
+	./config.status
+
+ircd/Makefile: ircd/Makefile.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
 
 # Some versions of 'make' do not support the .PHONY target :
 FORCE:

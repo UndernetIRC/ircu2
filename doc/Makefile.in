@@ -18,23 +18,31 @@
 
 #### Start of system configuration section. ####
 
-prefix=@prefix@
-INSTALL=@INSTALL@
-SHELL=@SHPROG@
-RM=@RMPROG@
+prefix = @prefix@
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+INSTALL = @INSTALL@
+SHELL = @SHPROG@
+RM = @RMPROG@
 @SET_MAKE@
-# The following variables are replaced by what you give during configuration :
 
-MANDIR=
+MANDIR = @mandir@
 
 #### End of system configuration section. ####
 
 all:
 
+build:
+
+clean:
+
 distclean:
 	${RM} -f Makefile stamp-m
 
 maintainer-clean: distclean
+
+depend:
 
 install:
 	(test -d ${MANDIR}/man8 || mkdir ${MANDIR}/man8 || mkdir -p ${MANDIR}/man8) 2> /dev/null && ${INSTALL} -m 644 ircd.8 ${MANDIR}/man8
@@ -43,15 +51,15 @@ uninstall:
 	${RM} -f ${MANDIR}/man8/ircd.8
 
 # You need GNU make for this to work.
-Makefile: ../config/config.status Makefile.in ../config/gen.doc.Makefile \
-	  ../config/.config stamp-m
-	@echo "recreating doc/Makefile"
-	@cd ../config; \
-	CONFIG_FILES=../doc/Makefile CONFIG_HEADERS= ./config.status > /dev/null; \
-	RM=${RM} ${SHELL} ./gen.doc.Makefile
+# Makefile: ../config/config.status Makefile.in ../config/gen.doc.Makefile \
+# 	  ../config/.config stamp-m
+# 	@echo "recreating doc/Makefile"
+# 	@cd ../config; \
+# 	CONFIG_FILES=../doc/Makefile CONFIG_HEADERS= ./config.status > /dev/null; \
+# 	RM=${RM} ${SHELL} ./gen.doc.Makefile
 
-stamp-m:
-	echo timestamp > stamp-m
+# stamp-m:
+# 	echo timestamp > stamp-m
 
-../config/config.status:
-	@cd ../config; ${MAKE} config.status
+# ../config/config.status:
+# 	@cd ../config; ${MAKE} config.status

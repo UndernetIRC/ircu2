@@ -1,0 +1,564 @@
+dnl Prefered emacs editing mode: -*- shell-script -*-
+dnl
+dnl Process this file with autoconf to produce a configure script.
+dnl
+dnl Copyright (c) 1997, by Carlo Wood <carlo@runaway.xs4all.nl>
+dnl Copyright (C) 2001  Kevin L. Mitchell <klmitch@mit.edu>
+dnl
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 1, or (at your option)
+dnl any later version.
+dnl
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+dnl
+dnl $Id$
+
+dnl Make sure we are in the correct directory (someone could have run
+dnl 'configure' with a wrong '--srcdir').
+AC_INIT(ircd/ircd.c)
+
+dnl Set the default prefix
+AC_PREFIX_DEFAULT([$HOME])
+AC_CACHE_VAL(unet_cv_prefix, [unet_cv_prefix=$HOME])
+if test x"$prefix" != xNONE; then
+    unet_cv_prefix=$prefix
+fi
+dnl HACK WARNING: We are referencing an autoconf internal variable.  This is
+dnl the only way to force the prefix to be retrieved from the config.cache
+dnl file!
+ac_default_prefix=$unet_cv_prefix
+
+dnl Define the input and output configuration header file.
+AC_CONFIG_HEADER([config.h])
+
+dnl Demand at least version 2.13 of autoconf
+AC_PREREQ(2.13)
+
+dnl Find out what type of system we are
+AC_CANONICAL_HOST
+
+dnl This should be done early.
+AC_PROG_CC
+
+dnl ANSIfy the C compiler whenever possible.
+AM_PROG_CC_STDC
+dnl Use -O3 instead of -O2.
+if test x"$CFLAGS" != x; then
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-O2/-O3/'`
+fi
+dnl Remove -pipe during configure
+if test x"$CFLAGS" != x; then
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pipe//g'`
+fi
+dnl Notice the -g flag and deal accordingly
+if test x"$CFLAGS" != x; then
+    unet_old_cflags=$CFLAGS
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-g//g'`
+fi
+if test x"$CFLAGS" != x"$unet_old_cflags"; then
+    # If -g was already there, force symbols to be enabled
+    unet_cv_enable_symbols=yes
+fi
+dnl Notice the -pg flag and deal accordingly
+if test x"$CFLAGS" != x; then
+    unet_old_cflags=$CFLAGS
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pg//g'`
+fi
+if test x"$CFLAGS" != x"$unet_old_cflags"; then
+    # If -pg was already there, force profiling to be enabled
+    unet_cv_enable_profile=yes
+fi
+
+dnl Checks for libraries.
+
+dnl Locate the library containing crypt
+AC_SEARCH_LIBS(crypt, descrypt crypt, ,
+[AC_MSG_ERROR([Unable to find library containing crypt()])])
+
+dnl Do all the checks necessary to figure out -lnsl / -lsocket stuff
+AC_LIBRARY_NET
+
+dnl Look for res_mkquery.  Done after AC_LIBRARY_NET in case res_mkquery
+dnl is in one of those libraries somewhere.
+AC_SEARCH_LIBS(res_mkquery, resolv, ,
+[AC_MSG_ERROR([Unable to find library containing res_mkquery()])])
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(poll.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics
+dnl AC_C_CONST
+AC_C_BIGENDIAN
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_TYPE_UID_T
+unet_CHECK_TYPE_SIZES
+
+dnl Checks for library functions.
+
+dnl Do we have restarting syscalls ?
+AC_SYS_RESTARTABLE_SYSCALLS
+
+dnl Check for required features for admins?
+AC_MSG_CHECKING([for donuts])
+AC_MSG_RESULT([yes])
+
+dnl Test for programs
+AC_PROG_AWK
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PATH_PROGS(RMPROG, rm, /bin/rm)
+AC_PATH_PROGS(SHPROG, sh, /bin/sh)
+
+unet_NONBLOCKING
+unet_SIGNALS
+
+dnl Add -pipe when possible
+unet_PIPE_CFLAGS
+
+dnl Check OS for os_dep files.
+AC_MSG_CHECKING(for OS-dependent information)
+case "$host" in
+    *-linux*)
+	AC_MSG_RESULT([Linux ($host) found.])
+	unet_poll_syscall=yes
+	OSDEP_C=os_linux.c
+	;;
+
+    *-solaris*)
+	AC_MSG_RESULT([Solaris ($host) found.])
+	if test x"$ac_cv_header_poll_h" = xyes; then
+	    unet_poll_syscall=yes
+	else
+	    unet_poll_syscall=no
+	fi
+	OSDEP_C=os_solaris.c
+	;;
+
+    *-sunos*)
+	AC_MSG_RESULT([Solaris ($host) found.])
+	unet_poll_syscall=no
+	OSDEP_C=os_solaris.c
+	;;
+
+    *-openbsd*)
+	AC_MSG_RESULT([OpenBSD ($host) found.])
+	if test x"$ac_cv_header_poll_h" = xyes; then
+	    unet_poll_syscall=yes
+	else
+	    unet_poll_syscall=no
+	fi
+	OSDEP_C=os_openbsd.c
+	;;
+
+    *-*bsd*)
+	AC_MSG_RESULT([Generic BSD ($host) found.])
+	if test x"$ac_cv_header_poll_h" = xyes; then
+	    unet_poll_syscall=yes
+	else
+	    unet_poll_syscall=no
+	fi
+	OSDEP_C=os_bsd.c
+	;;
+
+    *)
+	AC_MSG_RESULT([Unknown system type $host found.])
+	AC_MSG_WARN([Unknown OS type; using generic routines.])
+	unet_poll_syscall=no
+	OSDEP_C=os_generic.c
+	;;
+esac
+AC_SUBST(OSDEP_C)
+
+dnl Check user configuration options
+dnl Start with --enable-poll
+AC_MSG_CHECKING([whether to enable use of poll()])
+AC_ARG_ENABLE([poll],
+[  --enable-poll           Force poll to be used regardless of whether or not
+                          it is a system call],
+[unet_cv_enable_poll=$enable_poll],
+[AC_CACHE_VAL(unet_cv_enable_poll,
+[unet_cv_enable_poll=$unet_poll_syscall])])
+
+# Force poll to be disabled if there is no poll.h
+if test x"$ac_cv_header_poll_h" != xyes; then
+    unet_cv_enable_poll=no
+fi
+
+AC_MSG_RESULT([$unet_cv_enable_poll])
+
+if test x"$unet_cv_enable_poll" = xyes; then
+    AC_DEFINE([USE_POLL], , [Specify whether or not to use poll()])
+fi
+
+dnl Now look for --enable-debug
+AC_MSG_CHECKING([whether to enable debug mode])
+AC_ARG_ENABLE([debug],
+[  --enable-debug          Turn on debugging mode],
+[unet_cv_enable_debug=$enable_debug],
+[AC_CACHE_VAL(unet_cv_enable_debug,
+[unet_cv_enable_debug=no])])
+AC_MSG_RESULT([$unet_cv_enable_debug])
+
+if test x"$unet_cv_enable_debug" = xyes; then
+    AC_DEFINE([DEBUGMODE], , [Enable debugging code])
+fi
+
+dnl And now for --enable-asserts
+AC_MSG_CHECKING([whether to enable asserts])
+AC_ARG_ENABLE([asserts],
+[  --enable-asserts        Enable asserts],
+[unet_cv_enable_asserts=$enable_asserts],
+[AC_CACHE_VAL(unet_cv_enable_asserts,
+[unet_cv_enable_asserts=no])])
+AC_MSG_RESULT([$unet_cv_enable_asserts])
+
+if test x"$unet_cv_enable_asserts" = xno; then
+    AC_DEFINE([NDEBUG], , [Disable assertions])
+fi
+
+dnl Check for --enable-symbols
+AC_MSG_CHECKING([whether to enable debugging symbols])
+AC_ARG_ENABLE([symbols],
+[  --disable-symbols       Disable debugging symbols (remove -g from CFLAGS)],
+[unet_cv_enable_symbols=$enable_symbols],
+[AC_CACHE_VAL(unet_cv_enable_symbols,
+[unet_cv_enable_symbols=yes])])
+AC_MSG_RESULT([$unet_cv_enable_symbols])
+
+if test x"$unet_cv_enable_symbols" = xyes; then
+    CFLAGS="-g $CFLAGS"
+fi
+
+dnl Now check for --enable-profile
+AC_MSG_CHECKING([whether to enable profiling support (gprof)])
+AC_ARG_ENABLE([profile],
+[  --enable-profile        Enable profiling support (add -pg to CFLAGS)],
+[unet_cv_enable_profile=$enable_profile],
+[AC_CACHE_VAL(unet_cv_enable_profile,
+[unet_cv_enable_profile=no])])
+AC_MSG_RESULT([$unet_cv_enable_profile])
+
+if test x"$unet_cv_enable_profile" = xyes; then
+    CFLAGS="-pg $CFLAGS"
+fi
+
+dnl --disable-inlines check...
+AC_MSG_CHECKING([whether to enable inlining for a few critical functions])
+AC_ARG_ENABLE([inlines],
+[  --disable-inlines       Disable inlining for a few critical functions],
+[unet_cv_enable_inlines=$enable_inlines],
+[AC_CACHE_VAL(unet_cv_enable_inlines,
+[unet_cv_enable_inlines=yes])])
+AC_MSG_RESULT([$unet_cv_enable_inlines])
+
+if test x"$unet_cv_enable_inlines" = xyes; then
+    AC_DEFINE([FORCEINLINE], , [Force inlining for a few critical functions])
+fi
+
+dnl --with-symlink lets us set the name of the symlink; defaults to "ircd"
+AC_MSG_CHECKING([what name to give the symlink])
+AC_ARG_WITH([symlink],
+[  --with-symlink=name     Name to give the symlink; if name is "no," no
+                          symlink will be created.],
+[unet_cv_with_symlink=$with_symlink],
+[AC_CACHE_VAL(unet_cv_with_symlink,
+[unet_cv_with_symlink="ircd"])])
+
+if test x"$unet_cv_with_symlink" = xyes; then
+    unet_cv_with_symlink="ircd"
+fi
+
+AC_MSG_RESULT([$unet_cv_with_symlink])
+
+if test x"$unet_cv_with_symlink" = xno; then
+    INSTALL_RULE=install-no-symlink
+    SYMLINK=
+else
+    INSTALL_RULE=install-with-symlink
+    SYMLINK=$unet_cv_with_symlink
+fi
+AC_SUBST(INSTALL_RULE)
+AC_SUBST(SYMLINK)
+
+dnl --with-mode lets us set the permissions on the binary
+AC_MSG_CHECKING([what permissions to set on the installed binary])
+AC_ARG_WITH([mode],
+[  --with-mode=mode        Permissions (in octal) to give the binary],
+[unet_cv_with_mode=$with_mode],
+[AC_CACHE_VAL(unet_cv_with_mode,
+[unet_cv_with_mode=711])])
+
+if test x"$unet_cv_with_mode" = xyes -o x"$unet_cv_with_mode" = xno; then
+    unet_cv_with_mode=711
+fi
+
+AC_MSG_RESULT([$unet_cv_with_mode])
+
+IRCDMODE=$unet_cv_with_mode
+AC_SUBST(IRCDMODE)
+
+dnl --with-owner lets us set the owner of the binary
+changequote(,)dnl
+unet_uid=`id | sed -e 's/.*uid=[0-9]*(//' -e 's/).*//' 2> /dev/null`
+changequote([,])dnl
+AC_MSG_CHECKING([which user should own the installed binary])
+AC_ARG_WITH([owner],
+[  --with-owner=owner      Specify owner of the installed binary],
+[unet_cv_with_owner=$with_owner],
+[AC_CACHE_VAL(unet_cv_with_owner,
+[unet_cv_with_owner=$unet_uid])])
+
+if test x"$unet_cv_with_owner" = xyes -o x"$unet_cv_with_owner" = xno; then
+    unet_cv_with_owner=$unet_uid
+fi
+
+AC_MSG_RESULT([$unet_cv_with_owner])
+
+IRCDOWN=$unet_cv_with_owner
+AC_SUBST(IRCDOWN)
+
+dnl --with-group lets us set the group owner of the binary
+changequote(,)dnl
+unet_gid=`id | sed -e 's/.*gid=[0-9]*(//' -e 's/).*//' 2> /dev/null`
+changequote([,])dnl
+AC_MSG_CHECKING([which group should own the installed binary])
+AC_ARG_WITH([group],
+[  --with-group=group      Specify group owner of the installed binary],
+[unet_cv_with_group=$with_group],
+[AC_CACHE_VAL(unet_cv_with_group,
+[unet_cv_with_group=$unet_gid])])
+
+if test x"$unet_cv_with_group" = xyes -o x"$unet_cv_with_group" = xno; then
+    unet_cv_with_group=$unet_gid
+fi
+
+AC_MSG_RESULT([$unet_cv_with_group])
+
+IRCDGRP=$unet_cv_with_group
+AC_SUBST(IRCDGRP)
+
+dnl --with-domain lets us set the domain name for some statistics-gathering
+unet_domain=
+if test -f /etc/resolv.conf; then
+    unet_domain=`awk '/^domain/ { print $2; exit }' /etc/resolv.conf`
+    if test x"$unet_domain" = x; then
+	unet_domain=`awk '/^search/ { print $2; exit }' /etc/resolv.conf`
+    fi
+fi
+AC_MSG_CHECKING([for site domain name])
+AC_ARG_WITH([domain],
+[  --with-domain=domain    Domain name to use in local statistics gathering],
+[unet_cv_with_domain=$with_domain],
+[AC_CACHE_VAL(unet_cv_with_domain,
+[unet_cv_with_domain=$unet_domain])])
+
+if test x"$unet_cv_with_domain" = xyes -o x"$unet_cv_with_domain" = xno; then
+    unet_cv_with_domain=$unet_domain
+fi
+if test x"$unet_cv_with_domain" = xno; then
+    AC_MSG_ERROR([Unable to determine server DNS domain; use --with-domain to set it])
+fi
+
+AC_MSG_RESULT([$unet_cv_with_domain])
+
+AC_DEFINE_UNQUOTED(DOMAINNAME, "*$unet_cv_with_domain",
+[Domain name to be used for some statistics gathering])
+
+dnl --with-chroot lets us define a directory that we are going to be using
+dnl as the root of our filesystem
+AC_MSG_CHECKING([if chroot operation is desired])
+AC_ARG_WITH([chroot],
+[  --with-chroot=dir       Specify that the server will be operated under
+                          a different root directory given by dir.  See
+                          doc/readme.chroot for more information.],
+[unet_cv_with_chroot=$with_chroot],
+[AC_CACHE_VAL(unet_cv_with_chroot,
+[unet_cv_with_chroot=no])])
+
+if test x"$unet_cv_with_chroot" = xyes; then
+    AC_MSG_ERROR([--with-chroot given with no directory.  See doc/readme.chroot.])
+fi
+
+# Ensure there are no trailing /'s to mess us up
+unet_cv_with_chroot=`echo "$unet_cv_with_chroot" | sed 's%/*$%%'`
+
+AC_MSG_RESULT([$unet_cv_with_chroot])
+
+dnl Determine some default directory names
+dnl
+dnl HACK WARNING: We are referencing an autoconf internal variable.  This is
+dnl the only way to figure out what value $prefix will have when we go to do
+dnl the install--and the only way we can stick that value in our definitions
+dnl of SPATH, etc.
+# Deal with the annoying value "NONE" here
+unet_save_prefix=$prefix
+if test x"$prefix" = xNONE; then
+    prefix=$ac_default_prefix
+else
+    prefix=$prefix
+fi
+
+unet_save_exec_prefix=$exec_prefix
+if test x"$exec_prefix" = xNONE; then
+    exec_prefix=$prefix
+else
+    exec_prefix=$exec_prefix
+fi
+
+# Obtain the actual interesting directories
+unet_bindir=`eval echo "$bindir"`
+unet_libdir=`eval echo "$libdir"`
+
+# Restore the original settings of $prefix and $exec_prefix
+prefix=$unet_save_prefix
+exec_prefix=$unet_save_exec_prefix
+
+dnl Now compute the name of the binary and verify that it will work under
+dnl chroot operation
+AC_MSG_CHECKING([where the binary will be for /restart])
+if test x"$unet_cv_with_symlink" = xno; then
+    unet_spath="$unet_bindir/ircd"
+else
+    unet_spath="$unet_bindir/$unet_cv_with_symlink"
+fi
+AC_MSG_RESULT([$unet_spath])
+
+if test x"$unet_cv_with_chroot" != xno; then
+    if echo "$unet_spath" | grep "^$unet_cv_with_chroot" > /dev/null 2>&1; then
+	unet_spath=`echo "$unet_spath" | sed "s%^$unet_cv_with_chroot%%"`
+    else
+	AC_MSG_WARN([Binary $unet_spath not relative to root directory $unet_cv_with_chroot; restarts will probably fail])
+    fi
+fi
+
+AC_DEFINE_UNQUOTED(SPATH, "$unet_spath", [Path to executable for restarts])
+
+dnl --with-dpath sets the all-important DPATH
+AC_MSG_CHECKING([what the data directory should be])
+AC_ARG_WITH([dpath],
+[  --with-dpath=dir        Directory for all server data files],
+[unet_cv_with_dpath=$with_dpath],
+[AC_CACHE_VAL(unet_cv_with_dpath,
+[unet_cv_with_dpath=$unet_libdir])])
+
+if test x"$unet_cv_with_dpath" = xyes -o x"$unet_cv_with_dpath" = xno; then
+    unet_cv_with_dpath=$unet_libdir
+fi
+
+# Ensure there are no trailing /'s to mess us up
+unet_cv_with_dpath=`echo "$unet_cv_with_dpath" | sed 's%/*$%%'`
+
+AC_MSG_RESULT([$unet_cv_with_dpath])
+
+if test x"$unet_cv_with_chroot" != xno; then
+    if echo "$unet_cv_with_dpath" | grep "^$unet_cv_with_chroot" > /dev/null 2>&1; then
+	unet_dpath=`echo "$unet_cv_with_dpath" | sed "s%^$unet_cv_with_chroot%%"`
+    else
+	AC_MSG_ERROR([Data directory $unet_cv_with_dpath not relative to root directory $unet_cv_with_chroot])
+    fi
+else
+    unet_dpath=$unet_cv_with_dpath
+fi
+
+AC_DEFINE_UNQUOTED(DPATH, "$unet_dpath", [Path to data directory])
+
+DPATH=$unet_cv_with_dpath
+AC_SUBST(DPATH)
+
+dnl --with-cpath allows us to specify the configuration file
+AC_MSG_CHECKING([where the default configuration file resides])
+AC_ARG_WITH([cpath],
+[  --with-cpath=file       Set server configuration file],
+[unet_cv_with_cpath=$with_cpath],
+[AC_CACHE_VAL(unet_cv_with_cpath,
+[unet_cv_with_cpath="ircd.conf"])])
+
+if test x"$unet_cv_with_cpath" = xyes -o x"$unet_cv_with_cpath" = xno; then
+    unet_cv_with_cpath="ircd.conf"
+fi
+
+AC_MSG_RESULT([$unet_cv_with_cpath])
+
+if echo "$unet_cv_with_cpath" | grep '^/' > /dev/null 2>&1; then
+    # Absolute path; check against chroot stuff
+    if test x"$unet_cv_with_chroot" != xno; then
+	if echo "$unet_cv_with_cpath" | grep "^$unet_cv_with_chroot" > /dev/null 2>&1; then
+	    unet_cpath=`echo "$unet_cv_with_cpath" | sed "s%^$unet_cv_with_chroot%%"`
+	else
+	    AC_MSG_ERROR([Configuration file $unet_cv_with_cpath not relative to root directory $unet_cv_with_chroot])
+	fi
+    else
+	unet_cpath=$unet_cv_with_cpath
+    fi
+else
+    unet_cpath=$unet_cv_with_cpath
+fi
+
+AC_DEFINE_UNQUOTED(CPATH, "$unet_cpath", [Configuration file name])
+
+dnl --with-lpath allows us to specify the default debugging log file
+AC_MSG_CHECKING([where to put the debugging log if debugging enabled])
+AC_ARG_WITH([lpath],
+[  --with-lpath=file       Set the debugging log file],
+[unet_cv_with_lpath=$with_lpath],
+[AC_CACHE_VAL(unet_cv_with_lpath,
+[unet_cv_with_lpath="ircd.log"])])
+
+if test x"$unet_cv_with_lpath" = xyes -o x"$unet_cv_with_lpath" = xno; then
+    unet_cv_with_lpath="ircd.log"
+fi
+
+AC_MSG_RESULT([$unet_cv_with_lpath])
+
+if echo "$unet_cv_with_lpath" | grep '^/' > /dev/null 2>&1; then
+    # Absolute path; check against chroot stuff
+    if test x"$unet_cv_with_chroot" != xno; then
+	if echo "$unet_cv_with_lpath" | grep "^$unet_cv_with_chroot" > /dev/null 2>&1; then
+	    unet_lpath=`echo "$unet_cv_with_lpath" | sed "s%^$unet_cv_with_chroot%%"`
+	else
+	    AC_MSG_WARN([Log file $unet_cv_with_lpath not relative to root directory $unet_cv_with_chroot; using default ircd.log instead])
+	    unet_cv_with_lpath="ircd.log"
+	    unet_lpath="ircd.log"
+	fi
+    else
+	unet_lpath=$unet_cv_with_lpath
+    fi
+else
+    unet_lpath=$unet_cv_with_lpath
+fi
+
+AC_DEFINE_UNQUOTED(LPATH, "$unet_lpath", [Path to debugging log file])
+
+dnl --with-maxcon allows us to set the maximum connections
+unet_maxcon=`ulimit -Hn`
+unet_maxcon=`expr $unet_maxcon - 4`
+AC_MSG_CHECKING([max connections])
+AC_ARG_WITH([maxcon],
+[  --with-maxcon=maxcon    Maximum number of connections server will accept],
+[unet_cv_with_maxcon=$with_maxcon],
+[AC_CACHE_VAL(unet_cv_with_maxcon,
+[unet_cv_with_maxcon=$unet_maxcon])])
+
+if test x"$unet_cv_with_maxcon" = xyes -o x"$unet_cv_with_maxcon" = xno; then
+    unet_cv_with_maxcon=$unet_maxcon
+fi
+
+AC_MSG_RESULT([$unet_cv_with_maxcon])
+
+AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
+[Maximum number of network connections])
+
+dnl Finally really generate all output files:
+AC_OUTPUT(Makefile ircd/Makefile doc/Makefile, [echo timestamp > stamp-h])

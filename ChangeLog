@@ -1,3 +1,44 @@
+2001-05-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c: include ircd_snprintf.h
+
+	* ircd/ircd_relay.c: stomp a couple of gcc warnings suggesting
+	parens around a construct that had both || and &&
+
+	* ircd/chkconf.c: #include "config.h" to get some important
+	definitions
+
+	* ircd/Makefile.in: revamp ircd makefile for new build system
+
+	* doc/Makefile.in: revamp doc makefile for new build system
+
+	* config/*: Removed old build system files
+
+	* stamp-h.in: a stamp file
+
+	* install-sh: install-sh for new build system
+
+	* configure.in: configure.in for new build system
+
+	* configure: configure script for new build system (built by
+	autoconf)
+
+	* config.sub: config.sub for new build system
+
+	* config.h.in: config.h.in for new build system (built by
+	autoheader)
+
+	* config.guess: config.guess for new build system
+
+	* aclocal.m4: aclocal.m4 for new build system (built by aclocal
+	1.4)
+
+	* acinclude.m4: aclocal.m4 macros for new build system
+
+	* acconfig.h: config.h skeleton for new build system
+
+	* Makefile.in: modify for new build system
+
 2001-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_err.c: get rid of the last vestiges of TIME_T_FMT
