@@ -77,6 +77,19 @@ struct ConfItem {
   struct ConfItem*   next;
 };
 
+/*
+ * A line: A:<line 1>:<line 2>:<line 3>
+ */
+struct LocalConf {
+  char* server_alias;
+  char* vhost_address;
+  char* description;
+  char* numeric_id;
+  char* admin_line1;
+  char* admin_line2;
+  char* admin_line3;
+};
+
 struct MotdItem {
   char line[82];
   struct MotdItem *next;
