@@ -1,10 +1,21 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.9 2001-06-29 16:15:56 kev Exp $
+# $Id: ChangeLog.10,v 1.10 2001-07-28 16:57:33 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl15
+* Fiddle with /KILL and various exits to make the user experience uniform,
+  no matter who's doing the killing or where.  Previously, differences in
+  QUITs and in the messages sent to the killed client could help make a
+  partial map of the network; now that these messages are all uniform, there
+  is no way to tell. -Kev
+* Split ISUPPORT numeric into two numerics, so as not to exceed the 15
+  parameter limit imposed by the RFC -Kev
+* Turn on HEAD_IN_SAND_REMOTE...oops -Kev
+* Send prefixed error messages to other servers, so ERROR doesn't get
+  interpreted as a prefix -Kev
 * Reverse sense of HEAD_IN_SAND_WHO_HOPCOUNT to do what was intended; use a
   hopcount of 0 if user is using /who on him/herself -Kev
 * Allow a user to see his/her own idle time without having to do
@@ -45,6 +56,7 @@
 * Fixed /who showing server name -- Isomer
 * Fixed burst showing linking server -- Isomer
 * Fixed burst bans showing linked server -- Isomer
+* Fixed /whowas showing server name -- Isomer
 -------------------------- Released 2.10.10.pl14 (You got any issues with that punk?)
 * Changed (then fixed) /LINKS to output an empty links list -- Isomer
 * Make netsplit server notice say the right thing
