@@ -7,6 +7,8 @@
 	Make ping_freq and conn_freq unsigned short. (No more negative
 	numbers in /stats y.)
 
+	* ircd/ircd.c: Report configuration file name for "ircd -k".
+
 2004-09-18  hikari <hikari@undernet.org>
 
 	* ircd/Makefile.in: Fixed a missing internal build dependency.

@@ -677,8 +677,8 @@ int main(int argc, char **argv) {
     return 7;
   }
 
-  if(thisServer.bootopt & BOOT_CHKCONF) {
-    fprintf(stderr, "Configuration file checked okay.\n");
+  if (thisServer.bootopt & BOOT_CHKCONF) {
+    fprintf(stderr, "Configuration file %s checked okay.\n", configfile);
     return 0;
   }
 
