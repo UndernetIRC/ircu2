@@ -244,7 +244,7 @@ engine_loop(struct Generators *gen)
     }
 
     wait = timer_next(gen) ? (timer_next(gen) - CurrentTime) * 1000 : -1;
-    Debug((DEBUG_INFO, "epoll: delay: %d (%d) %d", timer_next(gen),
+    Debug((DEBUG_ENGINE, "epoll: delay: %d (%d) %d", timer_next(gen),
            CurrentTime, wait));
     nevs = epoll_wait(epoll_fd, events, events_count, wait);
     CurrentTime = time(0);
