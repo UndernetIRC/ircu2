@@ -281,9 +281,6 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   assert(0 != gline);
   assert(!GlineIsLocal(gline));
 
-  if (flags & GLINE_LOCAL)
-    sendto_ops("gline_activate called with GLINE_LOCAL");
-
   saveflags = gline->gl_flags;
 
   if (flags & GLINE_LOCAL)
@@ -339,9 +336,6 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   unsigned int saveflags = 0;
 
   assert(0 != gline);
-
-  if (flags & GLINE_LOCAL)
-    sendto_ops("gline_deactivate called with GLINE_LOCAL");
 
   saveflags = gline->gl_flags;
 
