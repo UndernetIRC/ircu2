@@ -1940,6 +1940,9 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     t_limit = strtoul(state->parv[state->args_used++], 0, 10); /* grab arg */
     state->parc--;
     state->max_args--;
+    
+    if ((int)t_limit<0) /* don't permit a negative limit */
+      return;
 
     if (!(state->flags & MODE_PARSE_WIPEOUT) &&
 	(!t_limit || t_limit == state->chptr->mode.limit))
@@ -1952,6 +1955,10 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
     send_notoper(state);
     return;
   }
+
+  /* Can't remove a limit that's not there */
+  if (state->dir == MODE_DEL && !state->chptr->mode.limit)
+    return;
 
   if (state->done & DONE_LIMIT) /* allow limit to be set only once */
     return;

@@ -1,3 +1,8 @@
+2002-12-28  David Mansell <splidge@quakenet.org>
+ 
+ 	* ircd/channel.c (mode_parse_limit): don't allow -l when no limit is
+ 	set, don't allow -l with negative parameter (or unsigned >2^31).
+ 
 2002-12-29  volta <volta2@gmx.de>
         
 	* ircd/whocmds.c: fixed a bug in the who reply for field 'l',
