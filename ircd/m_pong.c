@@ -156,6 +156,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(!IsRegistered(sptr));
 
   cptr->flags &= ~FLAGS_PINGSENT;
+  cptr->lasttime = CurrentTime;
   /*
    * Check to see if this is a PONG :cookie reply from an
    * unregistered user.  If so, process it. -record
@@ -189,6 +190,7 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
   cptr->flags &= ~FLAGS_PINGSENT;
+  cptr->lasttime = CurrentTime;
   return 0;
 }
 
