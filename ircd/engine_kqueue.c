@@ -270,6 +270,8 @@ engine_delete(struct Socket* sock)
   if (kevent(kqueue_id, dellist, 2, 0, 0, 0) < 0)
     log_write(LS_SOCKET, L_WARNING, 0,
 	      "Unable to delete kevent items for socket %d", s_fd(sock));
+
+  sockList[s_fd(sock)] = 0;
 }
 
 /* engine event loop */
