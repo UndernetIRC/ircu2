@@ -117,7 +117,7 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :%s", parv[0], parv[parc - 1]);
   for (i = 0; i <= HighestFd; ++i) {
-    if ((acptr == LocalClientArray[i]) && !IsServer(acptr) && 
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && 
          IsAnOper(acptr) && SendWallops(acptr))
       sendbufto_one(acptr);
   }
@@ -142,7 +142,7 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   sprintf_irc(sendbuf, ":%s " MSG_WALLOPS " :%s", parv[0], parv[parc - 1]);
   for (i = 0; i <= HighestFd; ++i) {
-    if ((acptr == LocalClientArray[i]) && !IsServer(acptr) && 
+    if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && 
          IsAnOper(acptr) && SendWallops(acptr))
       sendbufto_one(acptr);
   }
