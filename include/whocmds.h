@@ -1,7 +1,6 @@
-/*
- * whocmds.h
- *
- * $Id$
+/** @file whocmds.h
+ * @brief Support functions for /WHO-like commands.
+ * @version $Id$
  */
 #ifndef INCLUDED_whocmds_h
 #define INCLUDED_whocmds_h

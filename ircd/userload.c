@@ -1,7 +1,7 @@
 /*
  * Userload module by Michael L. VanLoon (mlv) <michaelv@iastate.edu>
  * Written 2/93.  Originally grafted into irc2.7.2g 4/93.
- * 
+ *
  * Rewritten 9/97 by Carlo Wood (Run) <carlo@runaway.xs4all.nl>
  * because previous version used ridiculous amounts of memory
  * (stored all loads of the passed three days ~ 8 megs).
@@ -22,8 +22,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Userload tracking and statistics.
+ * @version $Id$
  */
 #include "config.h"
 

@@ -17,9 +17,11 @@
  * will fill a supplied 16-byte array with the digest.
  *
  * ircuified 2002 by hikari
- *
- * $Id$
-*/
+ */
+/** @file
+ * @brief MD5 implementation for ircu.
+ * @version $Id$
+ */
 
 #include <string.h>
 #include "ircd_md5.h"

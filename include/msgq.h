@@ -17,8 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Outbound message queue interface and declarations.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"	/* BUFSIZE */

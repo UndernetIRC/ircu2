@@ -1,5 +1,6 @@
-/*
- * $Id$
+/** @file
+ * @brief Native crypt() function declarations.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_crypt_native_h
 #define INCLUDED_ircd_crypt_native_h

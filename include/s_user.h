@@ -1,7 +1,6 @@
-/*
- * s_user.h
- *
- * $Id$
+/** @file s_user.h
+ * @brief Miscellaneous user-related helper functions.
+ * @version $Id$
  */
 #ifndef INCLUDED_s_user_h
 #define INCLUDED_s_user_h

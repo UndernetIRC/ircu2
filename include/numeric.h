@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Declarations of numeric replies and supporting functions.
+ * @version $Id$
  */
 #ifndef INCLUDED_numeric_h
 #define INCLUDED_numeric_h

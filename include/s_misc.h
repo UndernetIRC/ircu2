@@ -1,7 +1,6 @@
-/*
- * s_misc.h
- *
- * $Id$
+/** @file s_misc.h
+ * @brief Miscellaneous support functions and declarations.
+ * @version $Id$
  */
 #ifndef INCLUDED_s_misc_h
 #define INCLUDED_s_misc_h

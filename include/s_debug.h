@@ -1,7 +1,6 @@
-/*
- * s_debug.h
- *
- * $Id$
+/* @file s_debug.h
+ * @brief Debug APIs for the ircd.
+ * @version $Id$
  */
 #ifndef INCLUDED_s_debug_h
 #define INCLUDED_s_debug_h

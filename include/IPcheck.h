@@ -1,7 +1,6 @@
-/*
- * IPcheck.h
- *
- * $Id$
+/** @file IPcheck.h
+ * @brief Interface to count users connected from particular IP addresses.
+ * @version $Id$
  */
 #ifndef INCLUDED_ipcheck_h
 #define INCLUDED_ipcheck_h

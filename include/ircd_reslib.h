@@ -1,8 +1,10 @@
 /*
  * include/ircd_reslib.h
  * (C)opyright 1992 Darren Reed.
- *
- * $Id$
+ */
+/** @file
+ * @brief Interface from ircd resolver to its support functions.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircdreslib_h
 #define INCLUDED_ircdreslib_h

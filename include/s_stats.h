@@ -18,8 +18,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Report configuration lines and other statistics from this server.
+ * @version $Id$
  */
 
 #ifndef INCLUDED_s_stats_h

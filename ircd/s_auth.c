@@ -16,8 +16,6 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id$
- *
  * Changes:
  *   July 6, 1999 - Rewrote most of the code here. When a client connects
  *     to the server and passes initial socket validation checks, it
@@ -26,6 +24,10 @@
  *     released, the server does not know it exists and does not process
  *     any messages from it.
  *     --Bleep  Thomas Helvey <tomh@inxpress.net>
+ */
+/** @file
+ * @brief Implementation of DNS and ident lookups.
+ * @version $Id$
  */
 #include "config.h"
 

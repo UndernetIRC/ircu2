@@ -1,7 +1,4 @@
-/*
- * match.h
- */
-/* @file
+/** @file match.h
  * @brief Interface for matching strings to IRC masks.
  * @version $Id$
  */

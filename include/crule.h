@@ -1,7 +1,6 @@
-/*
- * crule.h
- *
- * $Id$
+/** @file crule.h
+ * @brief Interfaces and declarations for connection rule checking.
+ * @version $Id$
  */
 #ifndef INCLUDED_crule_h
 #define INCLUDED_crule_h

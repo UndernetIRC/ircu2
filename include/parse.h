@@ -1,7 +1,6 @@
-/*
- * parse.h
- *
- * $Id$
+/** @file parse.h
+ * @brief Declarations for parsing input from users and other servers.
+ * @version $Id$
  */
 #ifndef INCLUDED_parse_h
 #define INCLUDED_parse_h

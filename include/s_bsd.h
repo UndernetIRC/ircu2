@@ -1,7 +1,6 @@
-/*
- * s_bsd.h
- *
- * $Id$
+/** @file s_bsd.h
+ * @brief Wrapper functions to avoid direct use of BSD APIs.
+ * @version $Id$
  */
 #ifndef INCLUDED_s_bsd_h
 #define INCLUDED_s_bsd_h
@@ -26,7 +25,9 @@ struct irc_in_addr;
  * set client to a smaller size to allow TCP flow control
  * to reduce flooding
  */
+/** Default TCP window size for server connections. */
 #define SERVER_TCP_WINDOW 61440
+/** Default TCP window size for client connections. */
 #define CLIENT_TCP_WINDOW 2048
 
 extern void report_error(const char* text, const char* who, int err);
