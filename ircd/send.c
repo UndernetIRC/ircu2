@@ -370,7 +370,9 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
   /*
    * loop through from's channels, and the members on their channels
    */
-  for (chan = cli_user(from)->channel; chan; chan = chan->next_channel)
+  for (chan = cli_user(from)->channel; chan; chan = chan->next_channel) {
+    if (IsZombie(chan))
+      continue;
     for (member = chan->channel->members; member;
 	 member = member->next_member)
       if (MyConnect(member->user) && -1 < cli_fd(cli_from(member->user)) &&
@@ -378,6 +380,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
 	sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
 	send_buffer(member->user, mb, 0);
       }
+  }
 
   if (MyConnect(from))
     send_buffer(from, mb, 0);

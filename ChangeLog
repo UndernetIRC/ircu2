@@ -1,3 +1,8 @@
+2002-01-22  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (sendcmdto_common_channels): don't send message to a
+	channel that the source is a zombie on
+
 2002-01-13  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c (timer_enqueue): one more assertion--make
