@@ -1,3 +1,8 @@
+2002-04-15  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/class.c (get_client_class): fixed typo which caused
+	/trace (and perhaps motd) to core
+
 2002-04-15  beware <steendijk@tomaatnet.nl>
 
 	* ircd/m_whois.c: Fixed /whois servermask nomatch bug
