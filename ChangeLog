@@ -1,6 +1,7 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
-	* ircd/m_clearmode.c: add msg.h to includes...
+	* ircd/m_clearmode.c: add msg.h to includes; other misc cleanups
+	to make it all compile
 
 	* ircd/m_opmode.c: add msg.h to includes...
 
@@ -70,7 +71,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.31 2000-03-27 21:04:57 kev Exp $
+# $Id: ChangeLog,v 1.32 2000-03-27 21:16:56 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
