@@ -75,6 +75,8 @@ struct Gline {
 #define GlineReason(g)		((g)->gl_reason)
 #define GlineLastMod(g)		((g)->gl_lastmod)
 
+extern int gline_propagate(struct Client *cptr, struct Client *sptr,
+			   struct Gline *gline);
 extern int gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		     char *reason, time_t expire, time_t lastmod,
 		     unsigned int flags);
