@@ -1,3 +1,8 @@
+2002-06-11  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/opercmds.c (militime_float): killing warning another way,
+	modifying the argument breaks AsLL
+
 2002-06-10  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/opercmds.c (militime_float): kill a warning--not critical
