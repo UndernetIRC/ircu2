@@ -102,7 +102,7 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
 }
 
 static struct {
-  unsigned int priv;
+  enum Priv priv;
   enum Feature feat;
   enum {
     FEATFLAG_DISABLES_PRIV,
@@ -163,7 +163,7 @@ static struct {
   { PRIV_SEE_CHAN, FEAT_LOCOP_SEE_IN_SECRET_CHANNELS, FEATFLAG_LOCAL_OPERS },
   { PRIV_WIDE_GLINE, FEAT_LOCOP_WIDE_GLINE, FEATFLAG_LOCAL_OPERS },
 
-  { 0, FEAT_LAST_F, 0 }
+  { PRIV_LAST_PRIV, FEAT_LAST_F, 0 }
 };
 
 /* client_set_privs(struct Client* client)
@@ -191,7 +191,7 @@ client_set_privs(struct Client* client)
 
   /* This sequence is temporary until the .conf is carefully rewritten */
 
-  for (i = 0; feattab[i].priv; i++) {
+  for (i = 0; feattab[i].priv != PRIV_LAST_PRIV; i++) {
     if (feattab[i].flag == FEATFLAG_ENABLES_PRIV) {
       if (!feature_bool(feattab[i].feat))
 	PrivSet(&antiprivs, feattab[i].priv);

@@ -1,5 +1,20 @@
 2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c (deliver_it): this should have been a ClrFlag(),
+	not a SetFlag()--caused crashes on /restart and probably other
+	nastiness
+
+	* ircd/client.c (client_set_privs): must count up through
+	PRIV_LAST_PRIV rather than 0, since we *start* at zero
+
+	* include/client.h: I was so inspired by the use of enum Flag by
+	Entrope that I decided to use an enum for privileges as well
+
+	* include/whocmds.h (SEE_LUSER): correct a bug in SEE_LUSER with
+	regard to the PRIV_SHOW_INVIS / PRIV_SHOW_ALL_INVIS privileges
+
+	* ircd/client.c: use enum Priv for privilage table
+
 	* include/client.h: remove a comma from the end of the enumerator
 	list--resulted in a gcc warning.
 

@@ -356,7 +356,7 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 
   switch (os_sendv_nonb(cli_fd(cptr), buf, &bytes_count, &bytes_written)) {
   case IO_SUCCESS:
-    SetFlag(cptr, FLAG_BLOCKED);
+    ClrFlag(cptr, FLAG_BLOCKED);
 
     cli_sendB(cptr) += bytes_written;
     cli_sendB(&me)  += bytes_written;

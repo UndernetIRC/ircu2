@@ -66,41 +66,43 @@ struct AuthRequest;
  * source file, or in the source file itself (when only used in that file).
  */
 
-#define PRIV_CHAN_LIMIT		 1 /* no channel limit on oper */
-#define PRIV_MODE_LCHAN		 2 /* oper can mode local chans */
-#define PRIV_WALK_LCHAN		 3 /* oper can walk thru local modes */
-#define PRIV_DEOP_LCHAN		 4 /* no deop oper on local chans */
-#define PRIV_SHOW_INVIS		 5 /* show local invisible users */
-#define PRIV_SHOW_ALL_INVIS	 6 /* show all invisible users */
-#define PRIV_UNLIMIT_QUERY	 7 /* unlimit who queries */
+enum Priv {
+  PRIV_CHAN_LIMIT,	/* no channel limit on oper */
+  PRIV_MODE_LCHAN,	/* oper can mode local chans */
+  PRIV_WALK_LCHAN,	/* oper can walk thru local modes */
+  PRIV_DEOP_LCHAN,	/* no deop oper on local chans */
+  PRIV_SHOW_INVIS,	/* show local invisible users */
+  PRIV_SHOW_ALL_INVIS,	/* show all invisible users */
+  PRIV_UNLIMIT_QUERY,	/* unlimit who queries */
 
-#define PRIV_KILL		 8 /* oper can KILL */
-#define PRIV_LOCAL_KILL		 9 /* oper can local KILL */
-#define PRIV_REHASH		10 /* oper can REHASH */
-#define PRIV_RESTART		11 /* oper can RESTART */
-#define PRIV_DIE		12 /* oper can DIE */
-#define PRIV_GLINE		13 /* oper can GLINE */
-#define PRIV_LOCAL_GLINE	14 /* oper can local GLINE */
-#define PRIV_JUPE		15 /* oper can JUPE */
-#define PRIV_LOCAL_JUPE		16 /* oper can local JUPE */
-#define PRIV_OPMODE		17 /* oper can OP/CLEARMODE */
-#define PRIV_LOCAL_OPMODE	18 /* oper can local OP/CLEARMODE */
-#define PRIV_SET		19 /* oper can SET */
-#define PRIV_WHOX		20 /* oper can use /who x */
-#define PRIV_BADCHAN		21 /* oper can BADCHAN */
-#define PRIV_LOCAL_BADCHAN	22 /* oper can local BADCHAN */
-#define PRIV_SEE_CHAN		23 /* oper can see in secret chans */
+  PRIV_KILL,		/* oper can KILL */
+  PRIV_LOCAL_KILL,	/* oper can local KILL */
+  PRIV_REHASH,		/* oper can REHASH */
+  PRIV_RESTART,		/* oper can RESTART */
+  PRIV_DIE,		/* oper can DIE */
+  PRIV_GLINE,		/* oper can GLINE */
+  PRIV_LOCAL_GLINE,	/* oper can local GLINE */
+  PRIV_JUPE,		/* oper can JUPE */
+  PRIV_LOCAL_JUPE,	/* oper can local JUPE */
+  PRIV_OPMODE,		/* oper can OP/CLEARMODE */
+  PRIV_LOCAL_OPMODE,	/* oper can local OP/CLEARMODE */
+  PRIV_SET,		/* oper can SET */
+  PRIV_WHOX,		/* oper can use /who x */
+  PRIV_BADCHAN,		/* oper can BADCHAN */
+  PRIV_LOCAL_BADCHAN,	/* oper can local BADCHAN */
+  PRIV_SEE_CHAN,	/* oper can see in secret chans */
 
-#define PRIV_PROPAGATE		24 /* propagate oper status */
-#define PRIV_DISPLAY		25 /* "Is an oper" displayed */
-#define PRIV_SEE_OPERS		26 /* display hidden opers */
+  PRIV_PROPAGATE,	/* propagate oper status */
+  PRIV_DISPLAY,		/* "Is an oper" displayed */
+  PRIV_SEE_OPERS,	/* display hidden opers */
 
-#define PRIV_WIDE_GLINE		27 /* oper can set wider G-lines */
+  PRIV_WIDE_GLINE,	/* oper can set wider G-lines */
 
-#define PRIV_FORCE_OPMODE	28 /* oper can override a Q-line */
-#define PRIV_FORCE_LOCAL_OPMODE	29 /* oper can override a local channel Q-line */
+  PRIV_FORCE_OPMODE,	/* oper can override a Q-line */
+  PRIV_FORCE_LOCAL_OPMODE,/* oper can override a local channel Q-line */
 
-#define PRIV_LAST_PRIV		29 /* must be the same as the last priv */
+  PRIV_LAST_PRIV	/* must be the same as the last priv */
+};
 
 #define _PRIV_NBITS		(8 * sizeof(unsigned long))
 
@@ -108,7 +110,7 @@ struct AuthRequest;
 #define _PRIV_BIT(priv)		(1 << ((priv) % _PRIV_NBITS))
 
 struct Privs {
-  unsigned long priv_mask[(PRIV_LAST_PRIV / _PRIV_NBITS) + 1];
+  unsigned long priv_mask[(PRIV_LAST_PRIV + _PRIV_NBITS - 1) / _PRIV_NBITS];
 };
 
 enum Flag {
