@@ -236,7 +236,7 @@ static void try_connections(struct Event* ev) {
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     /* Also when already connecting! (update holdtimes) --SRB */
-    if (!(aconf->status & CONF_SERVER) || aconf->port == 0 || aconf->hold == 0)
+    if (!(aconf->status & CONF_SERVER) || aconf->port == 0)
       continue;
 
     /* Also skip juped servers */
@@ -255,7 +255,10 @@ static void try_connections(struct Event* ev) {
 
     cltmp = aconf->conn_class;
     confrq = get_con_freq(cltmp);
-    aconf->hold = CurrentTime + confrq;
+    if(confrq == 0)
+      aconf->hold = next = 0;
+    else
+      aconf->hold = CurrentTime + confrq;
 
     /* Found a CONNECT config with port specified, scan clients and see if
      * this server is already connected?
