@@ -30,7 +30,7 @@ static Numeric replyTable[] = {
 /* 000 */
   { 0 },
 /* 001 */
-  { RPL_WELCOME, ":Welcome to the Internet Relay Network %s", "001" },
+  { RPL_WELCOME, ":Welcome to the Internet Relay Network%s%s, %s", "001" },
 /* 002 */
   { RPL_YOURHOST, ":Your host is %s, running version %s", "002" },
 /* 003 */

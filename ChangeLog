@@ -1,3 +1,8 @@
+2002-10-06  Perry Lorier <isomer@undernet.org>
+
+	* ircd/s_err.c, ircd/s_user.c: Add pointless spam, as required by 
+	CFV-202.
+
 2002-10-05  Zoot <zoot@gamesnet.net> (and Isomer <isomer@undernet.org>)
 
        * ircd/m_account.c (ms_account): check the length of the account;
