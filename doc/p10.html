@@ -2,17 +2,17 @@
 <HTML>
 <HEAD>
    <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
-   <META NAME="GENERATOR" CONTENT="Mozilla/4.07 [en] (X11; I; Linux 2.2.13 i586) [Netscape]">
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.07 [en] (X11; I; Linux 2.2.14 i586) [Netscape]">
    <TITLE>Undernet P10 Protocol and Interface Specification</TITLE>
 </HEAD>
 <BODY>
 
 <H2>
 <A NAME="top"></A><FONT SIZE=+3>Undernet P10 Protocol and Interface Specification</FONT></H2>
-<I>(As of ircu 2.10.10)</I>
+<I>(As of ircu 2.10.11)</I>
 <H2>
 Undernet Coder-com, <TT>coder-com@undernet.org</TT></H2>
-v0.10, 2nd March 2000.
+$Id: p10.html,v 1.4 2000-04-11 05:51:25 gte Exp $
 <P>
 <HR ALIGN=CENTER WIDTH=100% SIZE=2><I>This document aims to be a practical
 guide for implementing and maintaining the protocol, not just a reference
@@ -44,16 +44,19 @@ manual.</I>
 
 <UL>
 <LI>
-4.1 Channel operations.</LI>
+4.1 <A HREF="#chap4.1">Channel state operations.</A></LI>
 
 <LI>
-4.2 Messaging.</LI>
+4.2 <A HREF="#chap4.2">Client state operations.</A></LI>
 
 <LI>
-4.3 Setting G-Lines.</LI>
+4.3 <A HREF="#chap4.3">Channel/Client Messaging.</A></LI>
 
 <LI>
-4.4 ...</LI>
+4.4 Setting G-Lines.</LI>
+
+<LI>
+4.5 ...</LI>
 </UL>
 
 <H2>
@@ -812,14 +815,21 @@ line would be:</BLOCKQUOTE>
 
 <BLOCKQUOTE><B>3.2.4 - JUPE Messages</B></BLOCKQUOTE>
 
-<BLOCKQUOTE>Any currently unexpired JUPEs are transmitted via "JUPE"
-messages with the following format:</BLOCKQUOTE>
+<BLOCKQUOTE>Any currently unexpired JUPEs are transmitted via "JUPE" messages
+with the following format:</BLOCKQUOTE>
 
 <BLOCKQUOTE>
-<BLOCKQUOTE><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] JU * (+|-)[SERVER NAME]
-[LIFETIME] [LAST MOD] :[REASON]</FONT></TT></BLOCKQUOTE>
-</BLOCKQUOTE>
-<BLOCKQUOTE><I>Notes:</I></BLOCKQUOTE>
+<BLOCKQUOTE><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] JU * (+|-)[SERVER
+NAME] [LIFETIME] [LAST MOD] :[REASON]</FONT></TT></BLOCKQUOTE>
+For example:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE><TT>1&nbsp; 2&nbsp; 3 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+7</TT>
+<BR><TT><FONT COLOR="#000000">AZ JU * +juped.undernet.org 000003593 955419707
+:Juped Server</FONT></TT></BLOCKQUOTE>
+<I>Notes:</I></BLOCKQUOTE>
 
 <OL>
 <LI>
@@ -843,9 +853,7 @@ The last time the JUPE was modified.</LI>
 
 <LI>
 The reason the JUPE was applied.</LI>
-
 </OL>
-
 <A NAME="chap3.3"></A><B><FONT SIZE=+1>3.3 Summary</FONT></B>
 <P>The following table summarises the sequence of events that occur when
 a server connects to another server. S1 is our server, and S2 is a HUB
@@ -901,7 +909,200 @@ the END_OF_BURST from S2
 <BR>
 <HR WIDTH="100%">
 <BR><A NAME="chap4"></A><B><FONT SIZE=+2>4. Continuous Operation</FONT></B>
-<P><FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<P>This chapter provides details of the messages that can be sent after
+successfully linking to a network, and synchronising the channel/user database.
+<P><A NAME="chap4.1"></A><B><FONT SIZE=+1>4.1 Channel state operations</FONT></B>
+<P>There are a number of messages that can modify the state of a channel,
+these are:
+<OL><B>4.1.1 - MODE</B>
+<P>The MODE message can modify channel modes and bans, and also give or
+take operator/voice status from channel members.
+<OL>&nbsp;
+<BR><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] M [CHANNEL] (+|-)[MODESTRING]
+&lt;MODESTRING PARAMETERS></FONT></TT></OL>
+
+<P><BR>For Example:
+<OL>&nbsp;
+<BR><TT>1&nbsp;&nbsp;&nbsp;&nbsp; 2 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5</TT>
+<BR><TT>AZAAA M #coder-com +stinlko 500 TestKey BAC</TT></OL>
+<I></I>
+<P><BR><I>Notes:</I>
+<BR>&nbsp;
+<OL>
+<LI>
+The numeric of the user issuing this MODE command. It can be assumed this
+user is opped on the target channel.</LI>
+
+<LI>
+The "MODE" token.</LI>
+
+<LI>
+The target channel.</LI>
+
+<LI>
+The "Mode string".</LI>
+
+<OL>
+<LI>
+This consists of up to 6 '+' or '-' (add or remove) prefixed channel modes.
+(If no '+' or '-' are specified, a '+' is assumed unless a '-' has been
+encountered previously in the mode string). For example, '+s+t+n-l-io'
+is a valid mode string, as is '+stnmov'.</LI>
+
+<BR>&nbsp;
+<LI>
+Valid Mode modes are:</LI>
+</OL>
+</OL>
+
+<OL>
+<OL>&nbsp;
+<TABLE BORDER COLS=3 WIDTH="85%" NOSAVE >
+<TR NOSAVE>
+<TD NOSAVE><B>Token</B></TD>
+
+<TD><B>Function</B></TD>
+
+<TD><B>Parameters</B></TD>
+</TR>
+
+<TR NOSAVE>
+<TD NOSAVE>p</TD>
+
+<TD>Sets/Unsets 'Private' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>s</TD>
+
+<TD>Sets/Unsets 'Secret' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>m</TD>
+
+<TD>Sets/Unsets 'Moderated' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>n</TD>
+
+<TD>Sets/Unsets 'External Messages' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>t</TD>
+
+<TD>Sets/Unsets 'Topic Limit' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>i</TD>
+
+<TD>Sets/Unsets 'Invite only' Flag.</TD>
+
+<TD>None.</TD>
+</TR>
+
+<TR>
+<TD>l</TD>
+
+<TD>Sets/Unsets 'Channel Limit' Flag.</TD>
+
+<TD>The channel limit.</TD>
+</TR>
+
+<TR>
+<TD>k</TD>
+
+<TD>Sets/Unsets 'Channel Key' Flag.</TD>
+
+<TD>The channel keyword (Password).</TD>
+</TR>
+
+<TR>
+<TD>o</TD>
+
+<TD>Ops and Deops users.</TD>
+
+<TD>Numeric of user to be opped.</TD>
+</TR>
+
+<TR>
+<TD>v</TD>
+
+<TD>Voice</TD>
+
+<TD>Numeric of user to be voiced.</TD>
+</TR>
+
+<TR>
+<TD>b</TD>
+
+<TD>Ban</TD>
+
+<TD>Ban string.</TD>
+</TR>
+</TABLE>
+</OL>
+</OL>
+
+<OL>
+<LI>
+The "Mode string Parameters".</LI>
+
+<OL>
+<LI>
+This is a matching list of parameters to the modes supplied in the "Modestring".</LI>
+
+<BR><I>For Example:</I>
+<BR>If the Modestring is "+stnlo", a typical parameter string would be
+"500 AZAA". The first 3 modes, 's', 't' and 'n' do not require parameters,
+so non are present. The following two, 'l' and 'o' both require parameters,
+so they are 500 and AZAAA respectively (This sets the channel limit to
+500 users, and ops the numeric AZAAA).</OL>
+</OL>
+
+<P><BR>N.B: The "MODE" message is also used to modify a client's user modes,
+not just channel modes. See <A HREF="#chap4.2">section 4.2</A> for details.</OL>
+
+<OL><B>4.1.2 - OPMODE</B>
+<P>The OPMODE message is identical in syntax to the MODE message, however
+it will only ever have an operator as the source. It is likely that the
+source of this mode will not have ops in the target channel, but it should
+succeed never the less.
+<P><B>4.1.3 - JOIN</B>
+<P><B>4.1.4 - PART</B>
+<P><B>4.1.5 - KICK</B>
+<P><B>4.1.6 - TOPIC</B>
+<P><B>4.1.4 - CLEARMODE</B>
+<BR>&nbsp;
+<OL><TT>AZAAA CM #coder-com ovpsmikbl</TT></OL>
+</OL>
+<A NAME="chap4.2"></A><B><FONT SIZE=+1>4.2 Client state operations</FONT></B>
+<BLOCKQUOTE><B>4.2.1 - NICK</B>
+<BLOCKQUOTE><TT>AZAAA N Nick2 955423230</TT></BLOCKQUOTE>
+<B>4.2.2 - MODE</B>
+<BLOCKQUOTE><TT>AZAAA M Nick2 :+odi</TT></BLOCKQUOTE>
+</BLOCKQUOTE>
+<A NAME="chap4.3"></A><B><FONT SIZE=+1>4.3 Channel/Client Messaging.</FONT></B>
+<BLOCKQUOTE><B>4.3.1 - PRIVMSG</B>
+<P><B>4.3.2 - NOTICE</B>
+<P><B>4.3.3 - CNOTICE</B>
+<P><B>4.3.4 - CPRIVMSG</B>
+<BR>&nbsp;</BLOCKQUOTE>
+<FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
 <BR>
 <HR ALIGN=LEFT WIDTH=100% SIZE=2>
 <P><A NAME="chap5"></A><B><FONT SIZE=+2>5. Programmers reference: Client/Server
@@ -925,15 +1126,17 @@ A. ...</LI>
 <BR>
 <HR WIDTH="100%">
 <P><A NAME="chap8"></A><B><FONT SIZE=+2>8. Update History</FONT></B>
-<P>[20/01/2000]: Initial draft, structure, background info.
-<BR>[13/02/2000]: Added initial BURST documentation.
-<BR>[14/02/2000]: Continued BURST documentation / Begin NICK and SERVER
+<P>[2000-01-20]: Initial draft, structure, background info.
+<BR>[2000-02-13]: Added initial BURST documentation.
+<BR>[2000-02-14]: Continued BURST documentation / Begin NICK and SERVER
 documentation.
-<BR>[26/02/2000]: Continued chapter 5, few example fixes, added token table
-from msg.h. --Gte.
-<BR>[02/03/2000]: Added NICK spec. --Gte.
-<BR>[18/03/2000]: Added JUPE spec. -Kev
-<BR>[2000-04-10]: Added information about OPMODE and CLEARMODE tokens. -Kev
+<BR>[2000-02-26]: Continued chapter 5, few example fixes, added token table
+from msg.h. -Gte.
+<BR>[2000-03-02]: Added NICK spec. -Gte.
+<BR>[2000-03-18]: Added JUPE spec. -Kev
+<BR>[2000-04-10]: Added information about OPMODE and CLEARMODE tokens.
+-Kev
+<BR>[2000-04-11]: Started work on chapter 4. -Gte
 <P><A NAME="chap8.1"></A><B><FONT SIZE=+1>8.1 TODO</FONT></B>
 <UL>
 <LI>
@@ -946,7 +1149,7 @@ Go through examples, and ensure they are all correct.</LI>
 Add common function headers, with argv listings.</LI>
 
 <LI>
-Add description of further server&lt;&gt;server messages, with special cases
+Add description of further server to server messages, with special cases
 and outcomes.</LI>
 
 <LI>

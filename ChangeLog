@@ -1,3 +1,8 @@
+2000-04-11  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/s_err.c: Added missing quotes to ERR_DONTCHEAT numeric.
+	* doc/p10.html: Work on chapter 4.
+
 2000-04-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c (mode_parse_client): fix coredump on /mode
@@ -351,7 +356,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.69 2000-04-10 15:29:09 kev Exp $
+# $Id: ChangeLog,v 1.70 2000-04-11 05:51:25 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #
