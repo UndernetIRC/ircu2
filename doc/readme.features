@@ -119,6 +119,13 @@ MOTD to the client by default; instead, it will only tell the client
 when the MOTD was last changed, and give instructions on how to obtain
 it by typing /MOTD.
 
+MOTD_BANNER
+ * Type: string
+ * Default: NULL
+
+If you enable NODEFAULTMOTD, this specifies a one-line banner to be sent
+to the client in addition to the instructions mentioned above.
+
 KILL_IPMISMATCH
  * Type: boolean
  * Default: FALSE

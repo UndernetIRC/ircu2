@@ -240,6 +240,7 @@ static struct FeatureDesc {
   F_I(CLIENT_FLOOD, 0, 1024, 0),
   F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
   F_B(NODEFAULTMOTD, 0, 1, 0),
+  F_S(MOTD_BANNER, FEAT_NULL, 0, 0),
   F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
   F_B(IDLE_FROM_MSG, 0, 1, 0),
   F_B(HUB, 0, 0, 0),

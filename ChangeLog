@@ -1,3 +1,17 @@
+2002-02-04  Alex Badea  <vampire@p16.pub.ro>
+
+	* include/ircd_features.h: added new feature MOTD_BANNER
+
+	* ircd/ircd_features.c: added new feature MOTD_BANNER
+
+	* ircd/motd.c (motd_signon): send a one-line banner from
+	FEAT_MOTD_BANNER if it's not NULL and FEAT_NODEFAULTMOTD
+	is set
+
+	* doc/example.conf: default value for MOTD_BANNER feature
+
+	* doc/readme.features: documented the MOTD_BANNER feature
+
 2002-02-04  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_debug.c (debug_serveropts): remove deprecated CHROOTDIR

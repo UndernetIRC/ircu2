@@ -288,6 +288,7 @@ void
 motd_signon(struct Client* cptr)
 {
   struct MotdCache *cache;
+  const char *banner = NULL;
 
   cache = motd_cache(motd_lookup(cptr));
 
@@ -295,6 +296,8 @@ motd_signon(struct Client* cptr)
     motd_forward(cptr, cache);
   else {
     send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
+    if ((banner = feature_str(FEAT_MOTD_BANNER)))
+      send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":%s", banner);
     send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":\002Type /MOTD to read the "
 	       "AUP before continuing using this service.\002");
     send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was "
