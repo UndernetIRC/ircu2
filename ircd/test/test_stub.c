@@ -31,9 +31,9 @@ debug(int level, const char *form, ...)
 }
 
 int
-exit_client(struct Client *cptr, struct Client *bcptr, struct Client *sptr,
+exit_client(struct Client *cptr, struct Client *victim, struct Client *killer,
             const char *comment)
 {
-    Debug((DEBUG_LIST, "exit_client(%p, %p, %p, \"%s\")\n", cptr, bcptr, sptr, comment));
+    Debug((DEBUG_LIST, "exit_client(%p, %p, %p, \"%s\")\n", cptr, victim, killer, comment));
     return 0;
 }

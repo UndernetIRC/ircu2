@@ -156,7 +156,7 @@ static void parse_error(char *pattern,...) {
 %token USERMODE
 %token IAUTH
 %token TIMEOUT
-/* and now a lot of priviledges... */
+/* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
 %token TPRIV_GLINE TPRIV_LOCAL_GLINE TPRIV_LOCAL_JUPE TPRIV_LOCAL_BADCHAN
@@ -228,7 +228,7 @@ sizespec:	expr	{
 		}
 		;
 
-/* this is an arithmatic expression */
+/* this is an arithmetic expression */
 expr: NUMBER
 		{ 
 			$$ = $1;
@@ -246,8 +246,7 @@ expr: NUMBER
 			$$ = $1 / $3;
 		}
 /* leave this out until we find why it makes BSD yacc dump core -larne
-		| '-' expr  %prec NEG
-		= {
+		| '-' expr  %prec NEG {
 			$$ = -$2;
 		} */
 		| '(' expr ')' {

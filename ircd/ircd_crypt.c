@@ -24,12 +24,12 @@
  * @version $Id$
  * 
  * This is a new look crypto API for ircu, it can handle different
- * password formats by the grace of magic tokens at the begining of the 
+ * password formats by the grace of magic tokens at the beginning of the 
  * password e.g. $SMD5 for Salted MD5, $CRYPT for native crypt(), etc.
  *
  * Currently crypt routines are implemented for: the native crypt() 
  * function, Salted MD5 and a plain text mechanism which should only
- * be used for testing.  I intend to add Blowish, 3DES and possibly
+ * be used for testing.  I intend to add Blowfish, 3DES and possibly
  * SHA1 support as well at some point, but I'll need to check the
  * possible problems that'll cause with stupid crypto laws.
  *
@@ -74,7 +74,7 @@ int ircd_crypt_register_mech(crypt_mech_t* mechanism)
 {
 crypt_mechs_t* crypt_mech;
 
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: resistering mechanism: %s", mechanism->shortname));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registering mechanism: %s", mechanism->shortname));
 
  /* try to allocate some memory for the new mechanism */
  if ((crypt_mech = (crypt_mechs_t*)MyMalloc(sizeof(crypt_mechs_t))) == NULL)
@@ -104,7 +104,7 @@ crypt_mechs_t* crypt_mech;
  }
   
  /* we're done */
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: resistered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
  Debug((DEBUG_INFO, "ircd_crypt_register_mech: %s: %s", crypt_mech->mech->shortname, crypt_mech->mech->description));
  return 0;
 }
@@ -191,7 +191,7 @@ crypt_mechs_t* crypt_mech;
    ircd_strncpy(hashed_pass + crypt_mech->mech->crypt_token_size, temp_hashed_pass, strlen(temp_hashed_pass));
    Debug((DEBUG_DEBUG, "ircd_crypt: tagged pass is %s", hashed_pass));
   } else {
-   Debug((DEBUG_DEBUG, "ircd_crypt: will try next mechansim at 0x%X", 
+   Debug((DEBUG_DEBUG, "ircd_crypt: will try next mechanism at 0x%X", 
     crypt_mech->next));
    crypt_mech = crypt_mech->next;
    continue;
@@ -232,8 +232,8 @@ void ircd_crypt_init(void)
  crypt_mechs_root->mech = NULL;
  crypt_mechs_root->next = crypt_mechs_root->prev = NULL;
 
-/* temporary kludge until we're modular.  manualy call the
-   register funtions for crypt mechanisms */
+/* temporary kludge until we're modular.  manually call the
+   register functions for crypt mechanisms */
  ircd_register_crypt_smd5();
  ircd_register_crypt_plain();
  ircd_register_crypt_native();

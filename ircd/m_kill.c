@@ -258,7 +258,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(victim = FindClient(user))) {
     /*
-     * If the user has recently changed nick, we automaticly
+     * If the user has recently changed nick, we automatically
      * rewrite the KILL for this new nickname--this keeps
      * servers in synch when nick change and kill collide
      */
@@ -282,7 +282,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 
   if (!MyConnect(victim) && !HasPriv(sptr, PRIV_KILL)) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server",
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isn't on your server",
 		  sptr, cli_name(victim));
     return 0;
   }

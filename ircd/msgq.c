@@ -258,7 +258,7 @@ msgq_alloc(struct MsgBuf *in_mb, int length)
   struct MsgBuf *mb;
   int power;
 
-  /* Find the power of two size that will accomodate the message */
+  /* Find the power of two size that will accommodate the message */
   for (power = MB_BASE_SHIFT; power < MB_MAX_SHIFT + 1; power++)
     if ((length - 1) >> power == 0)
       break;

@@ -65,7 +65,7 @@
  *    not been destructed and recreated in the meantime,
  *    this means that the normal synchronization rules
  *    account and we react as if we decided to destruct
- *    the channel ourselfs: we destruct the channel and
+ *    the channel ourselves: we destruct the channel and
  *    send a DESTRUCT in all directions.
  * 2) The channel is not empty.  In case we cannot remove
  *    it and do not propagate the DESTRUCT message. Instead
@@ -84,7 +84,7 @@
  *    then could have generated the DESTRUCT.  In the meantime
  *    our user also left the channel.  We can ignore the
  *    destruct because it comes from an 'area' that will
- *    be overriden by our own CREATE: the state that generated
+ *    be overridden by our own CREATE: the state that generated
  *    this DESTRUCT is 'history'.
  */
 int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[])

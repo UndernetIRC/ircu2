@@ -97,7 +97,7 @@
 /*
  * m_ison
  *
- * Added by Darren Reed 13/8/91 to act as an efficent user indicator
+ * Added by Darren Reed 13/8/91 to act as an efficient user indicator
  * with respect to cpu/bandwidth used. Implemented for NOTIFY feature in
  * clients. Designed to reduce number of whois requests. Can process
  * nicknames in batches as long as the maximum buffer length.

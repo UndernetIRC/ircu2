@@ -1,4 +1,30 @@
 2005-03-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/IPcheck.c: Fix typos in comments and strings to reduce
+	future slumming for credit.
+
+	* ircd/channel.c, ircd/crule.c, ircd/engine_epoll.c: Likewise.
+	* ircd/fileio.c, ircd/hash.c, ircd/ircd.c: Likewise.
+	* ircd/ircd_auth.c, ircd/ircd_crypt.c: Likewise.
+	* ircd/ircd_crypt_native.c, ircd/ircd_crypt_smd5.c: Likewise.
+	* ircd/ircd_features.c, ircd/ircd_log.c: Likewise.
+	* ircd/ircd_parser.y, ircd/ircd_res.c: Likewise.
+	* ircd/ircd_reslib.c, ircd/ircd_string.c, ircd/list.c: Likewise.
+	* ircd/m_burst.c, ircd/m_clearmode.c, ircd/m_destruct.c: Likewise.
+	* ircd/m_invite.c, ircd/m_ison.c, ircd/m_kill.c: Likewise.
+	* ircd/m_server.c, ircd/m_squit.c, ircd/m_topic.c: Likewise.
+	* ircd/m_who.c, ircd/m_whois.c, ircd/m_whowas.c: Likewise.
+	* ircd/match.c, ircd/msgq.c, ircd/numnicks.c: Likewise.
+	* ircd/os_generic.c, ircd/parse.c, ircd/s_auth.c: Likewise.
+	* ircd/s_bsd.c, ircd/s_conf.c, ircd/s_debug.c: Likewise.
+	* ircd/s_misc.c, ircd/s_numeric.c, ircd/s_serv.c: Likewise.
+	* ircd/s_stats.c, ircd/s_user.c, ircd/table_gen.c: Likewise.
+	* ircd/umkpasswd.c, ircd/uping.c, ircd/whowas.c: Likewise.
+
+	* ircd/test/test_stub.c: Make exit_client() argument list
+	consistent with that in s_misc.c so doxygen is not confused.
+
+2005-03-20  Michael Poole <mdpoole@troilus.org>
 	(Thanks to Reed Loden for pointing these out.)
 
 	* ircd/channel.c: Fix typos in comments.

@@ -120,7 +120,7 @@ char *make_salt(const char *salts)
 char *tmp = NULL;
 long int n = 0;
 
- /* try and get around them running this time after time in quick sucession */
+ /* try and get around them running this time after time in quick succession */
  sleep(1);
  srandom((unsigned int)time(NULL));
 
@@ -140,12 +140,12 @@ long int n = 0;
 return tmp;
 }
 
-/* our implemenation of ircd_crypt_register_mech() */
+/* our implementation of ircd_crypt_register_mech() */
 int ircd_crypt_register_mech(crypt_mech_t* mechanism)
 {
 crypt_mechs_t* crypt_mech;
 
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: resistering mechanism: %s", mechanism->shortname));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registering mechanism: %s", mechanism->shortname));
 
  /* try to allocate some memory for the new mechanism */
  if ((crypt_mech = (crypt_mechs_t*)MyMalloc(sizeof(crypt_mechs_t))) == NULL)
@@ -175,7 +175,7 @@ crypt_mechs_t* crypt_mech;
  }
 
  /* we're done */
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: resistered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
  Debug((DEBUG_INFO, "ircd_crypt_register_mech: %s: %s", crypt_mech->mech->shortname, crypt_mech->mech->description));
 
 return 0;
@@ -356,9 +356,9 @@ const char* options = "a:d:lm:u:y:5:";
    break;
 
    case 'u':
-    if(umkpasswd_conf->flags && ACT_UPDOPER)
+    if(umkpasswd_conf->flags & ACT_ADDOPER)
     {
-     fprintf(stderr, "-a and -u are mutually exclussive.  Use either or neither.\n");
+     fprintf(stderr, "-a and -u are mutually exclusive.  Use either or neither.\n");
      abort(); /* b0rk b0rk b0rk */
     }
 
@@ -387,9 +387,9 @@ const char* options = "a:d:lm:u:y:5:";
    break;
 
    case 'a':
-    if(umkpasswd_conf->flags && ACT_UPDOPER) 
+    if(umkpasswd_conf->flags & ACT_UPDOPER) 
     {
-     fprintf(stderr, "-a and -u are mutually exclussive.  Use either or neither.\n");
+     fprintf(stderr, "-a and -u are mutually exclusive.  Use either or neither.\n");
      abort(); /* b0rk b0rk b0rk */
     }
 

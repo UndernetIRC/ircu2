@@ -396,7 +396,7 @@ static void auth_error(struct AuthRequest* auth, int kill)
 
 /** Flag the client to show an attempt to contact the ident server on
  * the client's host.  Should the connect or any later phase of the
- * identifing process fail, it is aborted and the user is given a
+ * identifying process fail, it is aborted and the user is given a
  * username of "unknown".
  * @param auth The request for which to start the ident lookup.
  * @return Non-zero on success; zero if unable to start the lookup.
@@ -414,7 +414,7 @@ static int start_auth_query(struct AuthRequest* auth)
   /*
    * get the local address of the client and bind to that to
    * make the auth request.  This used to be done only for
-   * ifdef VIRTTUAL_HOST, but needs to be done for all clients
+   * ifdef VIRTUAL_HOST, but needs to be done for all clients
    * since the ident request must originate from that same address--
    * and machines with multiple IP addresses are common now
    */
@@ -583,7 +583,7 @@ void start_auth(struct Client* client)
 
 /** Send the ident server a query giving "theirport , ourport". The
  * write is only attempted *once* so it is deemed to be a fail if the
- * entire write doesn't write all the data given.  This shouldnt be a
+ * entire write doesn't write all the data given.  This shouldn't be a
  * problem since the socket should have a write buffer far greater
  * than this message to store it in should problems arise. -avalon
  * @param auth The request to send.

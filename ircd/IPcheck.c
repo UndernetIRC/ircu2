@@ -428,7 +428,7 @@ void ip_registry_disconnect(struct Client *cptr)
   if (0 == --entry->connected) {
     if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_LIMIT * IPCHECK_CLONE_PERIOD) {
       /*
-       * Otherwise we'd penetalize for this old value if the client reconnects within 20 seconds
+       * Otherwise we'd penalize for this old value if the client reconnects within 20 seconds
        */
       entry->attempts = 0;
     }
@@ -450,7 +450,7 @@ void ip_registry_disconnect(struct Client *cptr)
     /*
      * This calculation can be pretty unfair towards large multi-user hosts, but
      * there is "nothing" we can do without also allowing spam bots to send more
-     * messages or by drastically increasing the ammount of memory used in the IPregistry.
+     * messages or by drastically increasing the amount of memory used in the IPregistry.
      *
      * The problem is that when a client disconnects, leaving no free targets, then
      * the next client from that IP number has to pay for it (getting no free targets).
@@ -477,7 +477,7 @@ void ip_registry_disconnect(struct Client *cptr)
        */
       free_targets += (CurrentTime - cli_firsttime(cptr) - 600) / TARGET_DELAY;
     /*
-     * Finally, store smallest value for Judgement Day
+     * Finally, store smallest value for Judgment Day
      */
     if (free_targets < entry->target->count)
       entry->target->count = free_targets;
@@ -520,7 +520,7 @@ int IPcheck_remote_connect(struct Client *cptr, int is_burst)
 /** Handle a client being rejected during connection through no fault
  * of their own.  This "undoes" the effect of ip_registry_check_local()
  * so the client's address is not penalized for the failure.
- * @param[in] a Address of rejected client.
+ * @param[in] cptr Client who has been rejected.
  */
 void IPcheck_connect_fail(const struct Client *cptr)
 {

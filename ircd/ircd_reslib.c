@@ -69,7 +69,7 @@
  */
 
 /* Original copyright ISC as above. 
- * Code modified specifically for ircd use from the following orginal files
+ * Code modified specifically for ircd use from the following original files
  * in bind ...
  *
  * res_comp.c
@@ -187,7 +187,7 @@ parse_resvconf(void)
       continue;
 
     p = input;
-    /* skip until something thats not a space is seen */
+    /* skip until something that's not a space is seen */
     while (IsSpace(*p))
       p++;
     /* if at this point, have a '\0' then continue */
@@ -243,7 +243,7 @@ add_nameserver(char *arg)
 /**
  * Expand compressed domain name to full domain name.
  * Like irc_ns_name_uncompress(), but checks for a well-formed result.
- * @param[in] msg Pointer to the begining of the message.
+ * @param[in] msg Pointer to the beginning of the message.
  * @param[in] eom First location after the message.
  * @param[in] src Pointer to where to starting decoding.
  * @param[out] dst Output buffer.
@@ -263,7 +263,7 @@ irc_dn_expand(const unsigned char *msg, const unsigned char *eom,
 
 /**
  * Expand compressed domain name to full domain name.
- * @param[in] msg Pointer to the begining of the message.
+ * @param[in] msg Pointer to the beginning of the message.
  * @param[in] eom First location after the message.
  * @param[in] src Pointer to where to starting decoding.
  * @param[out] dst Output buffer.
@@ -286,7 +286,7 @@ irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
 
 /**
  * Unpack compressed domain name to uncompressed form.
- * @param[in] msg Pointer to the begining of the message.
+ * @param[in] msg Pointer to the beginning of the message.
  * @param[in] eom First location after the message.
  * @param[in] src Pointer to where to starting decoding.
  * @param[out] dst Output buffer.
@@ -648,7 +648,7 @@ labellen(const unsigned char *lp)
       return((bitlen + 7 ) / 8 + 1);
     }
 
-    return(-1); /* unknwon ELT */
+    return(-1); /* unknown ELT */
   }
 
   return(l);
@@ -1012,7 +1012,7 @@ irc_encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
         if (beg_blen == NULL) {
 
           if (c == '0') {
-            /* blen never begings with 0 */
+            /* blen never begins with 0 */
             return(EINVAL);
           }
           beg_blen = cp;

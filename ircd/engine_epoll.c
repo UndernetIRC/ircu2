@@ -312,7 +312,7 @@ engine_loop(struct Generators *gen)
   MyFree(events);
 }
 
-/** Descriptor for dpoll event engine. */
+/** Descriptor for epoll event engine. */
 struct Engine engine_epoll = {
   "epoll()",
   engine_init,

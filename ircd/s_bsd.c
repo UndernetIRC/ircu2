@@ -119,7 +119,7 @@ static void client_timer_callback(struct Event* ev);
  *   defined FD_SETSIZE to MAXCONNECTIONS+4 before including the system's headers 
  *   but sys/types.h might have abruptly redefined it so the check is still 
  *   done), you might already need to recompile your kernel.
- * For larger FD_SETSIZE your milage may vary (kernel patches may be needed).
+ * For larger FD_SETSIZE your mileage may vary (kernel patches may be needed).
  * The check is _NOT_ done if we will not use FD_SETS at all (USE_POLL)
  */
 #error "FD_SETSIZE is too small or MAXCONNECTIONS too large."
@@ -340,7 +340,7 @@ void release_dns_reply(struct Client* cptr)
 
 /** Complete non-blocking connect()-sequence. Check access and
  * terminate connection, if trouble detected.
- * @param cptr Client to which we have connected, with all Confitem structs attached.
+ * @param cptr Client to which we have connected, with all ConfItem structs attached.
  * @return Zero on failure (caller should exit_client()), non-zero on success.
  */
 static int completed_connection(struct Client* cptr)
@@ -422,7 +422,7 @@ void close_connection(struct Client *cptr)
      */
     if ((aconf = find_conf_exact(cli_name(cptr), cptr, CONF_SERVER))) {
       /*
-       * Reschedule a faster reconnect, if this was a automaticly
+       * Reschedule a faster reconnect, if this was a automatically
        * connected configuration entry. (Note that if we have had
        * a rehash in between, the status has been changed to
        * CONF_ILLEGAL). But only do this if it was a "good" link.
@@ -629,7 +629,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
       break;
     case IO_FAILURE:
       cli_error(cptr) = errno;
-      /* SetFlag(cpt, FLAG_DEADSOCKET); */
+      /* SetFlag(cptr, FLAG_DEADSOCKET); */
       return 0;
     }
   }
@@ -753,7 +753,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
     }
   }
   /*
-   * If we dont know the IP# for this host and it is a hostname and
+   * If we don't know the IP# for this host and it is a hostname and
    * not a ip# string, then try and find the appropriate host record.
    */
   if (!irc_in_addr_valid(&aconf->address.addr)

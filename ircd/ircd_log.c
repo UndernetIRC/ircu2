@@ -829,7 +829,7 @@ log_get_snomask(const char *subsys)
   return log_sno_name(desc->snomask);
 }
 
-/** Set the verbosity level for a subystem.
+/** Set the verbosity level for a subsystem.
  * @param[in] subsys Subsystem name.
  * @param[in] level Minimum log level.
  * @return Zero on success; non-zero on error.

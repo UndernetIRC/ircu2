@@ -419,7 +419,7 @@ static int is_attached(struct ConfItem *aconf, struct Client *cptr)
 
 /** Associate a specific configuration entry to a *local* client (this
  * is the one which used in accepting the connection). Note, that this
- * automaticly changes the attachment if there was an old one...
+ * automatically changes the attachment if there was an old one...
  * @param cptr Client to attach \a aconf to
  * @param aconf ConfItem to attach
  * @return Authorization check result.

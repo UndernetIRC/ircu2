@@ -48,7 +48,7 @@
  * On top of that (which seems to be the RFC) we demand that the
  * top domain does not contain any digits.
  */
-/** Regular expresion to match a hostname.
+/** Regular expression to match a hostname.
  * Matches zero or more alphanumeric labels followed by '.' and a
  * final label that may only contain alphabetic characters.
  */
@@ -589,7 +589,7 @@ ircd_aton(struct irc_in_addr *ip, const char *input)
      * This is pretty straightforward; the only trick is borrowed
      * from Paul Vixie (BIND): when it sees a "::" continue as if
      * it were a single ":", but note where it happened, and fill
-     * with zeros afterwards.
+     * with zeros afterward.
      */
     if (input[pos] == ':') {
       if ((input[pos+1] != ':') || (input[pos+2] == ':'))

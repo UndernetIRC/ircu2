@@ -198,7 +198,7 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
  * numeric nicks is no longer quite as important.
  *
  * @param sptr	Pointer to the client that has requested the search
- * @param user	a string represeting the client to be found
+ * @param user	a string representing the client to be found
  * @param chasing a variable set to 0 if the user was found directly, 
  * 		1 otherwise
  * @returns a pointer the client, or NULL if the client wasn't found.
@@ -329,7 +329,7 @@ struct Membership* find_channel_member(struct Client* cptr, struct Channel* chpt
   return (member && !IsZombie(member)) ? member : 0;
 }
 
-/** Searches for a ban from a banlist that matches a user.
+/** Searches for a ban from a ban list that matches a user.
  * @param[in] cptr The client to test.
  * @param[in] banlist The list of bans to test.
  * @return Pointer to a matching ban, or NULL if none exit.
@@ -519,7 +519,7 @@ static int channel_all_zombies(struct Channel* chptr)
 
 /** Remove a user from a channel
  * This is the generic entry point for removing a user from a channel, this
- * function will remove the client from the channel, and destory the channel
+ * function will remove the client from the channel, and destroy the channel
  * if there are no more normal users left.
  *
  * @param cptr		The client
@@ -650,7 +650,7 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   if (IsVoicedOrOpped(member))
     return 1;
   /*
-   * If it's moderated, and you aren't a priviledged user, you can't
+   * If it's moderated, and you aren't a privileged user, you can't
    * speak.  
    */
   if (member->channel->mode.mode & MODE_MODERATED)
@@ -1211,8 +1211,8 @@ top:
  * @param chptr	The channel to join
  * @param key	The key to use
  *
- * @returns any error that occured bitwised OR'd with MAGIC_OPER_OVERRIDE
- *  	    if the oper used the magic key, 0 if no error occured.
+ * @returns any error that occurred bit-wise OR'd with MAGIC_OPER_OVERRIDE
+ *  	    if the oper used the magic key, 0 if no error occurred.
  */
 int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 {
@@ -1450,7 +1450,7 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
  *
  * We also need to turn 'who' into a zombie on servers 1 and 6,
  * because a KICK from 'who' (kicking someone else in that direction)
- * can arrive there afterwards - which should not be bounced itself.
+ * can arrive there afterward - which should not be bounced itself.
  * Therefore case a) also applies for servers 1 and 6.
  *
  * --Run
@@ -1530,7 +1530,7 @@ int number_of_zombies(struct Channel *chptr)
  *
  * @param strptr	The buffer to concatenate into
  * @param strptr_i	modified offset to the position to modify
- * @param str1		The string to contatenate from.
+ * @param str1		The string to concatenate from.
  * @param str2		The second string to contatenate from.
  * @param c		Charactor to separate the string from str1 and str2.
  */
@@ -2691,6 +2691,7 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
  *
  * @param[in,out] banlist Pointer to head of list.
  * @param[in] newban Ban (or exception) to add (or remove).
+ * @param[in] do_free If non-zero, free \a newban on failure.
  * @return Zero if \a newban could be applied, non-zero if not.
  */
 int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)

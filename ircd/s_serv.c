@@ -210,8 +210,8 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
    * Pass on my client information to the new server
    *
    * First, pass only servers (idea is that if the link gets
-   * cancelled beacause the server was already there,
-   * there are no NICK's to be cancelled...). Of course,
+   * canceled because the server was already there,
+   * there are no NICK's to be canceled...). Of course,
    * if cancellation occurs, all this info is sent anyway,
    * and I guess the link dies when a read is attempted...? --msa
    *

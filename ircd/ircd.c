@@ -143,7 +143,7 @@ void server_die(const char *message)
  */
 void server_panic(const char *message)
 {
-  /* inhibit sending server notice--we may be panicing due to low memory */
+  /* inhibit sending server notice--we may be panicking due to low memory */
   log_write(LS_SYSTEM, L_CRIT, LOG_NOSNOTICE, "Server panic: %s", message);
   flush_connections(0);
   log_close();
@@ -353,7 +353,7 @@ static void check_pings(struct Event* ev) {
     /* Ok, the thing that will happen most frequently, is that someone will
      * have sent something recently.  Cover this first for speed.
      * -- 
-     * If it's an unregisterd client and hasn't managed to register within
+     * If it's an unregistered client and hasn't managed to register within
      * max_ping then it's obviously having problems (broken client) or it's
      * just up to no good, so we won't skip it, even if its been sending
      * data to us. 
@@ -411,7 +411,7 @@ static void check_pings(struct Event* ev) {
     
     if (!IsPingSent(cptr))
     {
-      /* If we havent PINGed the connection and we havent heard from it in a
+      /* If we haven't PINGed the connection and we haven't heard from it in a
        * while, PING it to make sure it is still alive.
        */
       SetPingSent(cptr);
@@ -457,7 +457,7 @@ static void parse_command_line(int argc, char** argv) {
   if (thisServer.euid != thisServer.uid)
     setuid(thisServer.uid);
 
-  /* Do we really need to santiy check the non-NULLness of optarg?  That's
+  /* Do we really need to sanity check the non-NULLness of optarg?  That's
    * getopt()'s job...  Removing those... -zs
    */
   while ((opt = getopt(argc, argv, options)) != EOF)

@@ -204,7 +204,7 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
     }
     /*
      * Avoid other nick collisions...
-     * This is a doubtfull test though, what else would it be
+     * This is a doubtful test though, what else would it be
      * when it has a server.name ?
      */
     else if (!IsServer(acptr) && !IsHandshake(acptr))

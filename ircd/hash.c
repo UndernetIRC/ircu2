@@ -108,7 +108,7 @@ static HASHREGS strhash(const char *n)
  * I avoided introducing new variables to do the work myself and I did let
  * the optimizer play with more free registers, actual tests proved this
  * solution to be faster than doing things like tmp2=tmp->hnext... and then
- * use tmp2 myself wich would have given less freedom to the optimizer.
+ * use tmp2 myself which would have given less freedom to the optimizer.
  */
 
 /** Prepend a client to the appropriate hash bucket.

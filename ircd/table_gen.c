@@ -29,11 +29,11 @@
  * macros actually used by the server instead DO work and have been tested
  * on platforms where0 char is both signed or unsigned, this is true as long
  * as the <limits.h> macros are set properly and without any need to rebuild
- * the tables (wich as said an admin should NEVER do, tables need to be rebuilt
+ * the tables (which as said an admin should NEVER do, tables need to be rebuilt
  * only when one wants to really change the results or when one has to
  * compile on architectures where a char is NOT eight bits [?!], yes
  * it all is supposed to work in that case too... but I can't test it
- * because I've not found a machine in the world where this happes).
+ * because I've not found a machine in the world where this happens).
  *
  * NEVER -f[un]signed-char on gcc since that does NOT fix the named macros
  * and you end up in a non-ANSI environment where CHAR_MIN and CHAR_MAX

@@ -194,7 +194,7 @@ void get_sockhost(struct Client *cptr, char *host)
 
 /**
  * Exit one client, local or remote. Assuming for local client that
- * all dependants already have been removed, and socket is closed.
+ * all dependents already have been removed, and socket is closed.
  * @param bcptr Client being (s)quitted.
  * @param comment The QUIT comment to send.
  */
@@ -340,7 +340,7 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
 
 /* exit_client, rewritten 25-9-94 by Run */
 /**
- * Eexits a client of *any* type (user, server, etc)
+ * Exits a client of *any* type (user, server, etc)
  * from this server. Also, this generates all necessary prototol
  * messages that this exit may cause.
  *
@@ -348,13 +348,13 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
  * this connection.
  *
  * For convenience, this function returns a suitable value for
- * m_funtion return value:
+ * m_function return value:
  *
  *   CPTR_KILLED     if (cptr == bcptr)
  *   0                if (cptr != bcptr)
  *
  * This function can be called in two ways:
- * 1) From before or in parse(), exitting the 'cptr', in which case it was
+ * 1) From before or in parse(), exiting the 'cptr', in which case it was
  *    invoked as exit_client(cptr, cptr, &me,...), causing it to always
  *    return CPTR_KILLED.
  * 2) Via parse from a m_function call, in which case it was invoked as
@@ -439,7 +439,7 @@ int exit_client(struct Client *cptr,
             (acptr = findNUser(cli_serv(victim)->by))) {
           if (cli_user(acptr) == cli_serv(victim)->user) {
 	    sendcmdto_one(&me, CMD_NOTICE, acptr,
-			  "%C :Link with %s cancelled: %s", acptr,
+			  "%C :Link with %s canceled: %s", acptr,
 			  cli_name(victim), comment);
           }
           else {
@@ -451,7 +451,7 @@ int exit_client(struct Client *cptr,
           }
         }
         if (killer == &me)
-	  sendto_opmask_butone(acptr, SNO_OLDSNO, "Link with %s cancelled: %s",
+	  sendto_opmask_butone(acptr, SNO_OLDSNO, "Link with %s canceled: %s",
 			       cli_name(victim), comment);
       }
     }
@@ -508,7 +508,7 @@ int exit_client(struct Client *cptr,
 
   /*
    *  cptr can only have been killed if it was cptr itself that got killed here,
-   *  because cptr can never have been a dependant of victim    --Run
+   *  because cptr can never have been a dependent of victim    --Run
    */
   return (cptr == victim) ? CPTR_KILLED : 0;
 }

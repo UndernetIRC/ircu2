@@ -43,7 +43,7 @@
  * Called when we get a numeric message from a remote _server_ and we are
  * supposed to forward it somewhere. Note that we always ignore numerics sent
  * to 'me' and simply drop the message if we can't handle with this properly:
- * the savy approach is NEVER generate an error in response to an... error :)
+ * the savvy approach is NEVER generate an error in response to an... error :)
  */
 
 /** Forwards a numeric message from a remote server.

@@ -103,7 +103,7 @@
 /*
  * 2000-07-01: Isomer
  *  * Rewritten to make this understandable
- *  * You can nolonger /whois unregistered clients.
+ *  * You can no longer /whois unregistered clients.
  *  
  *
  * General rules:
@@ -237,7 +237,7 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
  */
 static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
 {
-  struct Client *acptr; /* Current client we're concidering */
+  struct Client *acptr; /* Current client we're considering */
   struct User *user; 	/* the user portion of the client */
   const char *name; 	/* the name of this client */
   struct Membership* chan; 
@@ -246,7 +246,7 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
   int showperson;       /* Should we show this person? */
   int found = 0 ;	/* How many were found? */
   
-  /* Ech! This is hidious! */
+  /* Ech! This is hideous! */
   for (acptr = GlobalClientList; (acptr = next_client(acptr, nick));
       acptr = cli_next(acptr))
   {
@@ -258,7 +258,7 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
     /*
      * I'm always last :-) and acptr->next == 0!!
      *
-     * Isomer: Does this strike anyone else as being a horrible hidious
+     * Isomer: Does this strike anyone else as being a horrible hideous
      *         hack?
      */
     if (IsMe(acptr)) {
@@ -269,8 +269,8 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
     /*
      * 'Rules' established for sending a WHOIS reply:
      *
-     * - if wildcards are being used dont send a reply if
-     *   the querier isnt any common channels and the
+     * - if wildcards are being used don't send a reply if
+     *   the querier isn't any common channels and the
      *   client in question is invisible.
      *
      * - only send replies about common or public channels

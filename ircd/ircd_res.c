@@ -110,7 +110,7 @@ struct reslist
   char type;               /**< Current request type. */
   char retries;            /**< Retry counter. */
   char sends;              /**< Number of sends (>1 means resent). */
-  char resend;             /**< Send flag; 0 == dont resend. */
+  char resend;             /**< Send flag; 0 == don't resend. */
   time_t sentat;           /**< Timestamp we last sent this request. */
   time_t timeout;          /**< When this request times out. */
   struct irc_in_addr addr; /**< Address for this request. */
@@ -573,7 +573,7 @@ resend_query(struct reslist *request)
       do_query_name(NULL, request->name, request, request->type);
       break;
     case T_AAAA:
-      /* didnt work, try A */
+      /* didn't work, try A */
       if (request->state == REQ_AAAA)
         do_query_name(NULL, request->name, request, T_A);
     default:
@@ -695,7 +695,7 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
 
         return(1);
         break;
-      case T_CNAME: /* first check we already havent started looking
+      case T_CNAME: /* first check we already haven't started looking
                        into a cname */
         if (request->type != T_PTR)
           return(0);
@@ -778,7 +778,7 @@ res_readreply(struct Event *ev)
     else
     {
       /*
-       * If we havent already tried this, and we're looking up AAAA, try A
+       * If we haven't already tried this, and we're looking up AAAA, try A
        * now
        */
 
@@ -797,7 +797,7 @@ res_readreply(struct Event *ev)
       else
       {
         /*
-         * If a bad error was returned, we stop here and dont send
+         * If a bad error was returned, we stop here and don't send
          * send any more (no retries granted).
          */
           Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d)", request, request->state, request->type));

@@ -443,7 +443,7 @@ void verify_client_list(void)
     /* Verify that the list hasn't become circular */
     assert(cli_next(client) != GlobalClientList);
     assert(visited <= clientAllocCount);
-    /* Remember what should preceed us */
+    /* Remember what should precede us */
     prev = client;
   }
 }

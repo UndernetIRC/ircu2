@@ -253,7 +253,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!(chptr = FindChannel(parv[2]))) {
     /*
-     * allow invites to non existant channels, bleah
+     * allow invites to non existent channels, bleah
      * avoid JOIN, INVITE, PART abuse
      */
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);

@@ -138,7 +138,7 @@ int mmatch(const char *old_mask, const char *new_mask)
  * Here `any' also includes \* and \? !
  *
  * After reworking the boolean expressions, we get:
- * (Optimized to use boolean shortcircuits, with most frequently occuring
+ * (Optimized to use boolean short-circuits, with most frequently occurring
  *  cases upfront (which took 2 hours!)).
  */
     if ((*m == '*' && !mq) ||
@@ -253,7 +253,7 @@ int match(const char *mask, const char *name)
  *
  * (C) Carlo Wood - 6 Oct 1998
  * Speedup rewrite by Andrea Cocito, December 1998.
- * Note that this new optimized alghoritm can *only* work in place.
+ * Note that this new optimized algorithm can *only* work in place.
  */
 
 /** Collapse a mask string to remove redundancies.
@@ -315,11 +315,11 @@ char *collapse(char *mask)
  * by means of matchcomp() that gets the plain text mask as input and writes
  * its result in the memory locations addressed by the 3 parameters:
  * - *cmask will contain the text of the compiled mask
- * - *minlen will contain the lenght of the shortest string that can match 
+ * - *minlen will contain the length of the shortest string that can match 
  *   the mask
  * - *charset will contain the minimal set of chars needed to match the mask
  * You can pass NULL as *charset and it will be simply not returned, but you
- * MUST pass valid pointers for *minlen and *cmask (wich must be big enough 
+ * MUST pass valid pointers for *minlen and *cmask (which must be big enough 
  * to contain the compiled mask text that is in the worst case as long as the 
  * text of the mask itself in plaintext format) and the return value of 
  * matchcomp() will be the number of chars actually written there (excluded 
@@ -335,7 +335,7 @@ char *collapse(char *mask)
  * of mmexec() that will tell if it completely overrides that mask (a lot like
  * what mmatch() does for plain text masks).
  * You can gain a lot of speed in many situations avoiding to matchexec() when:
- * - The maximum lenght of the field you are about to match() the mask to is
+ * - The maximum length of the field you are about to match() the mask to is
  *   shorter than minlen, in example when matching abc*def*ghil with a nick:
  *   It just cannot match since a nick is at most 9 chars long and the mask
  *   needs at least 10 chars (10 will be the value returned in minlen).
@@ -558,9 +558,9 @@ trychunk:
  * cmask).
  * The area pointed by *mask MUST be big enough (the mask might be up to
  * twice the size of its compiled form if it's made all of \? or \*, and
- * this function can NOT work in place since it might enflate the mask)
+ * this function can NOT work in place since it might inflate the mask)
  * The printed mask is not identical to the one that was compiled to cmask,
- * infact it is 1) forced to all lowercase, 2) collapsed, both things
+ * in fact it is 1) forced to all lowercase, 2) collapsed, both things
  * are supposed to NOT change it's meaning.
  * It returns the number of chars actually written to *mask;
  */
@@ -635,9 +635,9 @@ int matchdecomp(char *mask, const char *cmask)
  * "the wider overrides the restrict" means that any string that matches
  * the restrict one _will_ also match the wider one, always. 
  * In this we behave differently from mmatch() because in example we return 
- * true for " a?*cd overrides a*bcd " for wich the override happens for how 
+ * true for " a?*cd overrides a*bcd " for which the override happens for how 
  * we literally defined it, here mmatch() would have returned false.
- * The original concepts and the base alghoritm are copied from mmatch() 
+ * The original concepts and the base algorithm are copied from mmatch() 
  * written by Run (Carlo Wood), this function is written by
  * Nemesi (Andrea Cocito)
  */
@@ -703,7 +703,7 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
       if (!*w)                  /* Did last loop match the rest of chunk ? */
         return 0;               /* ... Yes, end of wm, matched !           */
       if (*w != 'Z')
-      {                         /* ... No, hitted non-star                 */
+      {                         /* ... No, hit non-star                    */
         w = bw;                 /* Rollback at beginning of chunk          */
         if (--trash < 0)        /* Trashed the char where this try started */
           return 1;             /* if we can't trash more chars fail       */
@@ -751,7 +751,7 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
       if (!(br < rz))
       {                         /* If we failed because we got the end of head */
         trash -= (br - rx);     /* it makes no sense to rollback, just trash   */
-        if (--trash < 0)        /* all the rest of the head wich isn't long    */
+        if (--trash < 0)        /* all the rest of the head which isn't long   */
           return 1;             /* enough for this chunk and go out of this    */
         break;                  /* loop, then we try with the chunks of rm     */
       };
@@ -774,8 +774,8 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
     while (*r)
     {
       bw = w;
-      while (eat && *r)         /* the '?' we had eated make us skip as many chars */
-        if (*r++ != 'Z')        /* here, but can't skip stars or trailing zero     */
+      while (eat && *r)         /* the '?' we ate makes us skip as many chars  */
+        if (*r++ != 'Z')        /* here, but can't skip stars or trailing zero */
           eat--;
       for (bw++; (*r) && (*bw != *r); r++)
         if ((*r != 'Z') && (--trash < 0))
@@ -813,7 +813,7 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
   }
 
   /* match the remaining chunks of wm against what remains of the tail of rm */
-  r = rz - eat - 1;             /* can't have <nul> or 'Z'within the tail, so just move r */
+  r = rz - eat - 1;             /* can't have <nul> or 'Z' within the tail, so just move r */
   while (r >= rx)
   {
     bw = w;

@@ -24,8 +24,8 @@
  * 
  * ircd_crypt_smd5 is largely taken from md5_crypt.c from the Linux PAM 
  * source code.  it's been modified to fit in with ircu and some of the 
- * undeeded code has been removed.  the source file md5_crypt.c has the 
- * following licence, so if any of our opers or admins are in Denmark
+ * unneeded code has been removed.  the source file md5_crypt.c has the 
+ * following license, so if any of our opers or admins are in Denmark
  * they better go buy them a drink ;) -- hikari
  *
  * ----------------------------------------------------------------------------
@@ -56,7 +56,7 @@ static unsigned char itoa64[] = /* 0 ... 63 => ascii - 64 */
  * @param v The unsigned long we're working on
  * @param n The number of bytes we're working with
  *  
- * This is used to produce the normal MD5 hash everyone is familar with.  
+ * This is used to produce the normal MD5 hash everyone is familiar with.  
  * It takes the value v and converts n bytes of it it into an ASCII string in 
  * 6-bit chunks, the resulting string is put at the address pointed to by s.
  * 
@@ -75,9 +75,9 @@ static void to64(char *s, unsigned long v, int n)
  * @return The Salted MD5 password of key and salt
  * 
  * Erm does exactly what the brief comment says.  If you think I'm writing a 
- * description of how MD5 works, you have another thing comming.  Go and read
- * Applied Cryptopgraphy by Bruce Schneier.  The only difference is we use a 
- * salt at the begining of the password to perturb it so that the same password
+ * description of how MD5 works, you have another think coming.  Go and read
+ * Applied Cryptography by Bruce Schneier.  The only difference is we use a 
+ * salt at the beginning of the password to perturb it so that the same password
  * doesn't always produce the same hash.
  * 
  */ 

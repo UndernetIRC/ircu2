@@ -5,7 +5,7 @@
  *
  * by Tony Vencill (Tonto on IRC) <vencill@bga.com>
  *
- * The majority of this file is a recusive descent parser used to convert
+ * The majority of this file is a recursive descent parser used to convert
  * connection rules into expression trees when the conf file is read.
  * All parsing structures and types are hidden in the interest of good
  * programming style and to make possible future data structure changes
@@ -85,7 +85,7 @@
         strcpy(x,y); \
         } while(0)
 
-/* We don't care about collation discrepacies here, it seems.... */
+/* We don't care about collation discrepancies here, it seems.... */
 #define ircd_strcmp strcasecmp
 
 #endif
@@ -754,9 +754,9 @@ static int crule_parsearglist(CRuleNodePtr argrootp, int *next_tokp, const char*
 
 /*
  * This function is recursive..  I wish I knew a nonrecursive way but
- * I dont.  anyway, recursion is fun..  :)
- * DO NOT CALL THIS FUNTION WITH A POINTER TO A NULL POINTER
- * (ie: If *elem is NULL, you're doing it wrong - seg fault)
+ * I don't.  Anyway, recursion is fun..  :)
+ * DO NOT CALL THIS FUNCTION WITH A POINTER TO A NULL POINTER
+ * (i.e.: If *elem is NULL, you're doing it wrong - seg fault)
  */
 /** Free a connection rule and all its children.
  * @param[in,out] elem Pointer to pointer to element to free.  MUST NOT BE NULL.
@@ -767,7 +767,7 @@ void crule_free(struct CRuleNode** elem)
 
   if ((*(elem))->funcptr == crule__not)
   {
-    /* type conversions and ()'s are fun! ;)  here have an asprin.. */
+    /* type conversions and ()'s are fun! ;)  here have an aspirin.. */
     if ((*(elem))->arg[0] != NULL)
       crule_free((struct CRuleNode**) &((*(elem))->arg[0]));
   }

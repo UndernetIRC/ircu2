@@ -104,7 +104,7 @@
  *
  * parv[0] = sender prefix
  * parv[1] = nickname queried
- * parv[2] = maximum returned items (optional, default is unlimitted)
+ * parv[2] = maximum returned items (optional, default is unlimited)
  * parv[3] = remote server target (Opers only, max returned items 20)
  */
 int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])

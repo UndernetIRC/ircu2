@@ -131,7 +131,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
    ircd_strncpy(chptr->topic_nick, cli_name(from), NICKLEN);
    chptr->topic_time = ts ? ts : TStime();
-   /* Fixed in 2.10.11: Don't propergate local topics */
+   /* Fixed in 2.10.11: Don't propagate local topics */
    if (!IsLocalChannel(chptr->chname))
      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H %Tu %Tu :%s", chptr,
 		           chptr->creationtime, chptr->topic_time, chptr->topic);

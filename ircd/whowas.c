@@ -75,7 +75,7 @@ struct Whowas* whowashash[WW_MAX];
  * like MODE +o &lt;nick>, KICK #chan &lt;nick>, KILL &lt;nick> etc), there is no
  * real important reason for a nick history anymore.
  * Nevertheless, there are two reason why we might want to keep it:
- * @li The /WHOWAS command, which is often useful to catch harrassing
+ * @li The /WHOWAS command, which is often useful to catch harassing
  *    users or abusers in general.
  * @li Clients still use the normal nicks in the client-server protocol,
  *    and it might be considered a nice feature that here we still have
@@ -107,7 +107,7 @@ struct Whowas* whowashash[WW_MAX];
  *    point to the start of the 'hash list': all entries with the same hashv.
  *    We'll have to search this list to find the entry with the correct &lt;nick>.
  *    Once we found the correct whowas entry, we have a pointer to the
- *    corresponding client - if still online - for nich chasing purposes.
+ *    corresponding client - if still online - for nick chasing purposes.
  *    Note that the same nick can occur multiple times in the whowas history,
  *    each of these having the same hash value of course.  While a /WHOWAS on
  *    just a nick will return all entries, nick chasing will only find the

@@ -782,7 +782,8 @@ int unregister_mapping(struct s_map *map)
 }
 
 /** Parse a line of data from a user.
- * NOTE: parse_*() should not be called recusively by any other functions!
+ * NOTE: parse_*() should not be called recursively by any other
+ * functions!
  * @param[in] cptr Client that sent the data.
  * @param[in] buffer Start of input line.
  * @param[in] bufend End of input line.
@@ -971,7 +972,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     /*
      * If the client corresponding to the
      * prefix is not found. We must ignore it,
-     * it is simply a lagged message travelling
+     * it is simply a lagged message traveling
      * upstream a SQUIT that removed the client
      * --Run
      */
@@ -1041,7 +1042,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     /*
      * If the client corresponding to the
      * prefix is not found. We must ignore it,
-     * it is simply a lagged message travelling
+     * it is simply a lagged message traveling
      * upstream a SQUIT that removed the client
      * --Run
      * There turned out to be other reasons that

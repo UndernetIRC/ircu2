@@ -637,9 +637,9 @@ int register_user(struct Client *cptr, struct Client *sptr,
       SetFlag(sptr, FLAG_TS8);
 
     /*
-     * Check to see if this user is being propogated
+     * Check to see if this user is being propagated
      * as part of a net.burst, or is using protocol 9.
-     * FIXME: This can be speeded up - its stupid to check it for
+     * FIXME: This can be sped up - its stupid to check it for
      * every NICK message in a burst again  --Run.
      */
     for (acptr = user->server; acptr != &me; acptr = cli_serv(acptr)->up)

@@ -54,7 +54,7 @@
 static struct LogTypes {
   char *type; /**< Settable name. */
   int (*set)(const char *, const char *); /**< Function to set the value. */
-  char *(*get)(const char *); /**< Functino to get the value. */
+  char *(*get)(const char *); /**< Function to get the value. */
 } logTypes[] = {
   { "FILE", log_set_file, log_get_file },
   { "FACILITY", log_set_facility, log_get_facility },
@@ -193,14 +193,14 @@ feature_log_get(struct Client* from, const char* const* fields, int count)
 
 /** Sets a feature to the given value.
  * @param[in] from Client trying to set parameters.
- * @param[in] fields Array of paraters to set.
+ * @param[in] fields Array of parameters to set.
  * @param[in] count Number of fields in \a count.
  * @return <0 to clear the feature mark, 0 to leave it, >0 to set the feature mark.
  */
 typedef int  (*feat_set_call)(struct Client* from, const char* const* fields, int count);
 /** Gets the value of a feature.
  * @param[in] from Client trying to get parameters.
- * @param[in] fields Array of paraters to set.
+ * @param[in] fields Array of parameters to set.
  * @param[in] count Number of fields in \a count.
  */
 typedef void (*feat_get_call)(struct Client* from, const char* const* fields, int count);

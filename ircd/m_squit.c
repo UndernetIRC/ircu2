@@ -128,7 +128,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   server = parv[1];
   /*
-   * The following allows wild cards in SQUIT. Only usefull
+   * The following allows wild cards in SQUIT. Only useful
    * when the command is issued by an oper.
    */
   for (acptr = GlobalClientList; (acptr = next_client(acptr, server));
@@ -143,7 +143,7 @@ int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /*
    * Look for a matching server that is closer,
-   * that way we won't accidently squit two close
+   * that way we won't accidentally squit two close
    * servers like davis.* and davis-r.* when typing
    * /SQUIT davis*
    */

@@ -101,8 +101,8 @@
 
 
 /*
- * A little spin-marking utility to tell us wich clients we have already
- * processed and wich not
+ * A little spin-marking utility to tell us which clients we have already
+ * processed and which not
  */
 static int who_marker = 0;
 static void move_marker(void)
@@ -143,7 +143,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client *acptr;         /* Client to show                           */
 
   int bitsel;                   /* Mask of selectors to apply               */
-  int matchsel;                 /* Wich fields the match should apply on    */
+  int matchsel;                 /* Which fields the match should apply on    */
   int counter;                  /* Query size counter,
                                    initially used to count fields           */
   int commas;                   /* Does our mask contain any comma ?

@@ -122,9 +122,9 @@ const char* debug_serveropts(void)
  * If the -t option is not given on the command line when the server is
  * started, all debugging output is sent to the file set by LPATH in config.h
  * Here we just open that file and make sure it is opened to fd 2 so that
- * any fprintf's to stderr also goto the logfile.  If the debuglevel is not
+ * any fprintf's to stderr also go to the logfile.  If the debuglevel is not
  * set from the command line by -x, use /dev/null as the dummy logfile as long
- * as DEBUGMODE has been defined, else dont waste the fd.
+ * as DEBUGMODE has been defined, else don't waste the fd.
  * @param use_tty Passed to log_debug_init().
  */
 void debug_init(int use_tty)

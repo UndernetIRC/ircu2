@@ -743,7 +743,7 @@ static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar)
 }
 
 /** Handle a DoneAuth response from %IAuth.
- * THis means the client is authorized, so let them in.
+ * This means the client is authorized, so let them in.
  * @param[in] iauth Connection that sent the message.
  * @param[in] argc Argument count.
  * @param[in] argv Argument list.

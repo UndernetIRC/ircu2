@@ -464,7 +464,7 @@ void uping_cancel(struct Client *sptr, struct Client* acptr)
   struct UPing* ping;
   struct UPing* ping_next;
 
-  Debug((DEBUG_DEBUG, "UPING: cancelling uping for %s", cli_name(sptr)));
+  Debug((DEBUG_DEBUG, "UPING: canceling uping for %s", cli_name(sptr)));
   for (ping = pingList; ping; ping = ping_next) {
     ping_next = ping->next;
     if (sptr == ping->client) {

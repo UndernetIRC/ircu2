@@ -413,7 +413,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    current_mode_needs_reset = 0;
 		  }
 		  current_mode = (current_mode & ~CHFL_DELAYED) | CHFL_VOICE;
-		  oplevel = -1;	/* subsequential digits are an absolute op-level value. */
+		  oplevel = -1;	/* subsequent digits are an absolute op-level value. */
                 }
 		else if (isdigit(*ptr)) {
 		  int level_increment = 0;

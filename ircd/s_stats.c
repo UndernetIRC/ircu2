@@ -619,7 +619,7 @@ stats_cmp(const void *a_, const void *b_)
 /** Compare a StatDesc's name against a string.
  * @param[in] key Pointer to a null-terminated string.
  * @param[in] sd_ Pointer to a StatDesc.
- * @return Less than,e qual to, or greater than zero if \a key is
+ * @return Less than, equal to, or greater than zero if \a key is
  * lexicographically less than, equal to, or greater than \a
  * sd_->sd_name.
  */

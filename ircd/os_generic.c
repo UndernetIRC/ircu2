@@ -163,8 +163,8 @@ int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, in
 #endif
 
 /*
- * This is part of the STATS replies. There is no offical numeric for this
- * since this isnt an official command, in much the same way as HASH isnt.
+ * This is part of the STATS replies. There is no official numeric for this
+ * since this isn't an official command, in much the same way as HASH isn't.
  * It is also possible that some systems wont support this call or have
  * different field names for "struct rusage".
  * -avalon

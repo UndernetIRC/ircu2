@@ -48,7 +48,7 @@
  * replaced by a 5 character string: YYXXX
  * Where 'YY' represents the server, and 'XXX' the nick on that server.
  *
- * 'YYXXX' should not interfer with the input parser, and therefore is
+ * 'YYXXX' should not interfere with the input parser, and therefore is
  * not allowed to contain spaces or a ':'.
  * Also, 'YY' can't start with a '+' because of m_server().
  *
@@ -439,6 +439,7 @@ struct Client* find_match_server(char *mask)
  * @param[out] buf Output buffer to write to.
  * @param[in] addr IP address to encode.
  * @param[in] count Number of bytes writable to \a buf.
+ * @param[in] v6_ok If non-zero, peer understands base-64 encoded IPv6 addresses.
  */
 const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int count, int v6_ok)
 {

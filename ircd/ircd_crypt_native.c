@@ -22,7 +22,7 @@
  * @version $Id$
  * 
  * Routines for handling passwords encrypted with the system's native crypt()
- * function (typicaly a DES encryption routine, but can be anything nowdays).
+ * function (typically a DES encryption routine, but can be anything nowadays).
  * 
  */
 #define _XOPEN_SOURCE
