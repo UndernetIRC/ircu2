@@ -1,5 +1,10 @@
 2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_log.c: found and fixed some bugs in the debug logging
+	code that would sometimes result in the log file not being
+	reopened--which meant that a user could connect and get the
+	logging output--oops
+
 	* ircd/Makefile.in: run make depend...
 
 	* ircd/s_stats.c: get rid of report_feature_list()
