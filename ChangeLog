@@ -1,3 +1,8 @@
+2000-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): er...that should have been a ",", not
+	a " "
+
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: replace bogus assertions with returns, which is
@@ -1145,7 +1150,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.136 2000-05-04 18:54:31 kev Exp $
+# $Id: ChangeLog,v 1.137 2000-05-18 23:05:04 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
