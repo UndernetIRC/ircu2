@@ -48,14 +48,14 @@
 #ifdef DEBUGMODE
 static struct liststats {
   int inuse;
-} cloc, crem, users, servs, links;
+} clients, connections, users, servs, links;
 #endif
 
-static unsigned int localClientAllocCount;
-static struct Client* localClientFreeList;
+static unsigned int clientAllocCount;
+static struct Client* clientFreeList;
 
-static unsigned int remoteClientAllocCount;
-static struct Client* remoteClientFreeList;
+static unsigned int connectionAllocCount;
+static struct Connection* connectionFreeList;
 
 static unsigned int slinkAllocCount;
 static struct SLink* slinkFreeList;
@@ -63,24 +63,97 @@ static struct SLink* slinkFreeList;
 void init_list(void)
 {
   struct Client* cptr;
+  struct Connection* con;
   int i;
   /*
-   * pre-allocate MAXCONNECTIONS local clients
+   * pre-allocate MAXCONNECTIONS clients and connections
    */
   for (i = 0; i < MAXCONNECTIONS; ++i) {
-    cptr = (struct Client*) MyMalloc(CLIENT_LOCAL_SIZE);
-    cli_next(cptr) = localClientFreeList;
-    localClientFreeList = cptr;
-    ++localClientAllocCount;
+    cptr = (struct Client*) MyMalloc(sizeof(struct Client));
+    cli_next(cptr) = clientFreeList;
+    clientFreeList = cptr;
+    ++clientAllocCount;
+
+    con = (struct Connection*) MyMalloc(sizeof(struct Connection));
+    con_next(con) = connectionFreeList;
+    connectionFreeList = con;
+    ++connectionAllocCount;
   }
 
 #ifdef DEBUGMODE
-  memset(&cloc, 0, sizeof(cloc));
-  memset(&crem, 0, sizeof(crem));
+  memset(&clients, 0, sizeof(clients));
+  memset(&connections, 0, sizeof(connections));
   memset(&users, 0, sizeof(users));
   memset(&servs, 0, sizeof(servs));
   memset(&links, 0, sizeof(links));
 #endif
+}
+
+static struct Client* alloc_client(void)
+{
+  struct Client* cptr = clientFreeList;
+
+  if (!cptr) {
+    cptr = (struct Client*) MyMalloc(sizeof(struct Client));
+    ++clientAllocCount;
+  } else
+    clientFreeList = cli_next(cptr);
+
+#ifdef DEBUGMODE
+  clients.inuse++;
+#endif
+
+  memset(cptr, 0, sizeof(struct Client));
+
+  return cptr;
+}
+
+static void dealloc_client(struct Client* cptr)
+{
+#ifdef DEBUGMODE
+  --clients.inuse;
+#endif
+
+  cli_next(cptr) = clientFreeList;
+  clientFreeList = cptr;
+}
+
+static struct Connection* alloc_connection(void)
+{
+  struct Connection* con = connectionFreeList;
+
+  if (!con) {
+    con = (struct Connection*) MyMalloc(sizeof(struct Connection));
+    ++connectionAllocCount;
+  } else
+    connectionFreeList = con_next(con);
+
+#ifdef DEBUGMODE
+  connections.inuse++;
+#endif
+
+  memset(con, 0, sizeof(struct Connection));
+
+  return con;
+}
+
+static void dealloc_connection(struct Connection* con)
+{
+  if (con_dns_reply(con))
+    --(con_dns_reply(con)->ref_count);
+  if (-1 < con_fd(con))
+    close(con_fd(con));
+  MsgQClear(&(con_sendQ(con)));
+  DBufClear(&(con_recvQ(con)));
+  if (con_listener(con))
+    release_listener(con_listener(con));
+
+#ifdef DEBUGMODE
+  --connections.inuse;
+#endif
+
+  con_next(con) = connectionFreeList;
+  connectionFreeList = con;
 }
 
 /*
@@ -95,63 +168,35 @@ void init_list(void)
 struct Client* make_client(struct Client *from, int status)
 {
   struct Client* cptr = 0;
-  /*
-   * Check freelists first to see if we can grab a client without
-   * having to call malloc.
-   */
-  if (from) {
-    /*
-     * remote client
-     */
-    if ((cptr = remoteClientFreeList))
-      remoteClientFreeList = cli_next(cptr);
-    else {
-      cptr = (struct Client*) MyMalloc(CLIENT_REMOTE_SIZE);
-      ++remoteClientAllocCount;
-    }
-    assert(0 != cptr);
-    /*
-     * NOTE: Do not remove this, a lot of code depends on the entire
-     * structure being zeroed out
-     */
-    memset(cptr, 0, CLIENT_REMOTE_SIZE);        /* All variables are 0 by default */
-    cli_from(cptr) = from;
-  }
-  else {
-    /*
-     * local client
-     */
-    if ((cptr = localClientFreeList))
-      localClientFreeList = cli_next(cptr);
-    else {
-      cptr = (struct Client*) MyMalloc(CLIENT_LOCAL_SIZE);
-      ++localClientAllocCount;
-    }
-    assert(0 != cptr);
-    /*
-     * NOTE: Do not remove this, a lot of code depends on the entire
-     * structure being zeroed out
-     */
-    memset(cptr, 0, CLIENT_LOCAL_SIZE);        /* All variables are 0 by default */
-    cli_fd(cptr) = -1;
-    cli_local(cptr) = 1;
+  struct Connection* con = 0;
+
+  cptr = alloc_client();
+
+  assert(0 != cptr);
+
+  if (!from) { /* local client, allocate a struct Connection */
+    con = alloc_connection();
+
+    assert(0 != con);
+
+    con_fd(con) = -1; /* initialize struct Connection */
+    con_nextnick(con) = CurrentTime - NICK_DELAY;
+    con_nexttarget(con) = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
+    con_handler(con) = UNREGISTERED_HANDLER;
+    con_client(con) = cptr;
+
+    cli_local(cptr) = 1; /* Set certain fields of the struct Client */
     cli_since(cptr) = cli_lasttime(cptr) = cli_firsttime(cptr) = CurrentTime;
     cli_lastnick(cptr) = TStime();
-    cli_nextnick(cptr) = CurrentTime - NICK_DELAY;
-    cli_nexttarget(cptr) = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
-    cli_handler(cptr) = UNREGISTERED_HANDLER;
-    cli_from(cptr) = cptr;      /* 'from' of local client is self! */
-  }
+  } else
+    con = cli_connect(from); /* use 'from's connection */
+
+  assert(0 != con);
+
+  cli_connect(cptr) = con; /* set the connection and other fields */
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
   strcpy(cli_username(cptr), "unknown");
-
-#ifdef  DEBUGMODE
-  if (from)
-    crem.inuse++;
-  else
-    cloc.inuse++;
-#endif
 
   return cptr;
 }
@@ -165,33 +210,9 @@ void free_client(struct Client* cptr)
    */
   assert(cli_hnext(cptr) == cptr);
 
-#ifdef  DEBUGMODE
-  if (cli_local(cptr))
-    --cloc.inuse;
-  else
-    --crem.inuse;
-#endif
-
-  if (cli_local(cptr)) {
-    /*
-     * make sure we have cleaned up local resources
-     */
-    if (cli_dns_reply(cptr))
-      --(cli_dns_reply(cptr))->ref_count;
-    if (-1 < cli_fd(cptr)) {
-      close(cli_fd(cptr));
-    }
-    MsgQClear(&(cli_sendQ(cptr)));
-    DBufClear(&(cli_recvQ(cptr)));
-    if (cli_listener(cptr))
-      release_listener(cli_listener(cptr));
-    cli_next(cptr) = localClientFreeList;
-    localClientFreeList = cptr;
-  }    
-  else {
-    cli_next(cptr) = remoteClientFreeList;
-    remoteClientFreeList = cptr;
-  }
+  if (cli_from(cptr) == cptr) /* in other words, we're local */
+    dealloc_connection(cli_connect(cptr)); /* deallocate the connection... */
+  dealloc_client(cptr); /* deallocate the client */
 }
 
 struct Server *make_server(struct Client *cptr)
@@ -349,13 +370,15 @@ void send_listinfo(struct Client *cptr, char *name)
 {
   int inuse = 0, mem = 0, tmp = 0;
 
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Local: inuse: %d(%d)",
-	     inuse += cloc.inuse, tmp = cloc.inuse * CLIENT_LOCAL_SIZE);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Clients: inuse: %d(%d)",
+	     clients.inuse, tmp = clients.inuse * sizeof(struct Client));
   mem += tmp;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Remote: inuse: %d(%d)",
-	     crem.inuse, tmp = crem.inuse * CLIENT_REMOTE_SIZE);
+  inuse += clients.inuse;
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, "Connections: inuse: %d(%d)",
+	     connections.inuse,
+	     tmp = connections.inuse * sizeof(struct Connection));
   mem += tmp;
-  inuse += crem.inuse;
+  inuse += connections.inuse;
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Users: inuse: %d(%d)",
 	     users.inuse, tmp = users.inuse * sizeof(struct User));
   mem += tmp;
