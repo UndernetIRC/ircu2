@@ -442,6 +442,7 @@ serverblock: SERVER
 {
  aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
  memset(aconf, 0, sizeof(*aconf));
+ aconf->status = CONF_LEAF;
 } '{' serveritems '}'
 {
  if (aconf->status == 0)

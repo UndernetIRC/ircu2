@@ -1,7 +1,14 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y (serverblock): Server blocks should default
+	to CONF_LEAF status.
+
+	* doc/example.conf: Update example to reflect this.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/parse.c (msg_tree_parse): Reject commands that contain
-	non-alphanumeric characters.
+	non-alphabetic characters.
 
 2004-09-09  Michael Poole <mdpoole@troilus.org>
 
