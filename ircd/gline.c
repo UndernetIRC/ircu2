@@ -672,11 +672,10 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       else {
         if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0) 
           continue;
-        if (!GlineIsActive(gline))
-          continue;
       }
     }
-    return gline;
+    if (GlineIsActive(gline))
+      return gline;
   }
   /*
    * No Glines matched

@@ -179,11 +179,11 @@ Trio <trio@b62897.STUDENT.CWRU.Edu>
 WildThang <dvmitche@antietam.nssl.uoknor.edu>
 Xorath <vorac@wheel.dcn.davis.ca.us>
 
-UNDERNET (2000 - 2003)
+UNDERNET (2000 - 2004)
 --------
 
-The Undernet versions (P9, P10 and u2.10.11) are based on ircu2.10.07
-and contain many hours of work by Coder Commitee.
+The Undernet versions (P9, P10, u2.10.11 and u2.10.12) are based on
+ircu2.10.07 and contain many hours of work by Coder Commitee.
 The number of protocol enhancements, changes and additions
 that have been added are too many to summarize. All patches are kept in the
 cvs repository at http://coder-com.undernet.org/.  Discussions on this
@@ -202,10 +202,24 @@ Kev <klmitch@mit.edu>
 Delete <delete@cyberabuse.org>
 Ghostwolf <foxxe@wtfs.net>
 Braden <dbtem@yahoo.com>
-net <simms@LUCIDA.QC.CA>
+net <net@astrolink.org>
 Steven <steven@doyle.net>
 OmniDynmc <omni@dynmc.net>
 Dianora <db@db.net>
-Sengaia <sengaia@hallucination.net>
+Sengaia <sengaia@undernet.org>
 Cyberdude <Cyberdude@undernet.org>
 Maniac- <maniac@cetlink.net>
+Vampire- <vampire@p16.pub.ro>
+mbuna <mbuna@bugged.org>
+beware <steendijk@tomaatnet.nl>
+n3tguy <netguy@spidernet.net>
+reed <reed@reedloden.com>
+Math <math@rootservices.net>
+hikari <shadow@undernet.org>
+Bleep <tom.helvey@cox.net>
+froo <froo@quakenet.org>
+splidge <splidge@quakenet.org>
+Zarjazz <zarjazz@quakenet.org>
+Spike <ekips@pandora.be>
+Jeekay <jeekay@netgamers.org>
+Entrope <entrope@gamesurge.net>

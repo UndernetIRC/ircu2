@@ -113,7 +113,7 @@ AC_SEARCH_LIBS(res_mkquery, resolv, ,
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(poll.h sys/devpoll.h sys/epoll.h sys/event.h)
+AC_CHECK_HEADERS(inttypes.h poll.h sys/devpoll.h sys/epoll.h sys/event.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST
@@ -742,7 +742,6 @@ ircu is now hopefully configured for your system.
   Warnings:            $unet_cv_enable_warnings
   Debug:               $unet_cv_enable_debug
   Profile:             $unet_cv_enable_profile
-  Head-in-sand:        $unet_cv_enable_headinsand
   ADNS:                $unet_cv_enable_adns
   Owner/mode:          $unet_cv_with_owner.$unet_cv_with_group ($unet_cv_with_mode)
   Chroot:              $unet_cv_with_chroot
@@ -756,4 +755,5 @@ ircu is now hopefully configured for your system.
   poll() engine:       $unet_cv_enable_poll
   kqueue() engine:     $unet_cv_enable_kqueue
   /dev/poll engine:    $unet_cv_enable_devpoll
+  epoll() engine:      $unet_cv_enable_epoll
 "])

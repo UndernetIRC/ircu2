@@ -43,13 +43,13 @@ The recommended way to get the ircu package now is to use CVS.  CVS makes
 upgrades a lot less painful and lets you get the latest package.
 
 The first thing you need to do is login to the cvs server:
-# cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
+# cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu login
 
 (we recommend that you cut and paste the above line to use it :)
-When it prompts you for a password enter "anoncvs".
+When it prompts you for a password hit enter since there isn't one.
 
 To check out the the last stable version of ircu, use:
-# cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout -P ircu2.10
+# cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu co -P ircu2.10
 
 To update your source tree to the latest version, run "cvs update -dP" from within the
 ircu2.10 directory. For more information, see http://coder-com.undernet.org.

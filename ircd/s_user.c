@@ -540,7 +540,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   if (MyConnect(sptr)) {
     cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
-
+    SetLocalNumNick(sptr);
     send_reply(sptr,
                RPL_WELCOME,
                feature_str(FEAT_NETWORK),
@@ -804,7 +804,6 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       cli_user(sptr) = make_user(sptr);
       cli_user(sptr)->server = &me;
     }
-    SetLocalNumNick(sptr);
     hAddClient(sptr);
 
     /*

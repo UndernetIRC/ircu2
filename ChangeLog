@@ -1,3 +1,26 @@
+2004-06-23  Michael Poole <mdpoole@troilus.org>
+
+	* doc/Authors: Add contributors to ircu2.10.11 and myself.
+
+	* ircd/gline.c: Fix buglet in my forward port of Alex Badea's fix.
+
+	* configure.in: Add missing check for inttypes.h; remove obsolete
+	display of Head-in-sand, add display of epoll() engine.
+
+	* INSTALL, INSTALL_FR, doc/readme.cvs: Update descriptions of how
+	to use SourceForge's CVS server, from the u2.10.11 branch.
+
+2003-11-09 beware <steendijk@xs4all.nl>
+
+        * ircd/s_user.c: move assigning a numeric to a local client from
+	when nick is set, to when connection becomes client, to not waste
+	numerics.
+
+2004-06-08  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/parse.c: don't let rank-and-file users escape HIS
+	limitations with /jupe...
+
 2004-06-18  Alex Badea  <decampos@users.sourceforge.net>
 
 	* ircd/gline.c (gline_lookup): only return a gline if it's
@@ -745,7 +768,6 @@
 	* ircd/res_adns.c: included sys/types.h, for non-Linux
 	headers
 
->>>>>>> 1.388
 2003-03-06  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* libs/dbprim: database primitives library, including

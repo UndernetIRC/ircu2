@@ -25,7 +25,7 @@ identifiez envers le serveur.
 
 Avec la commande que voici:
 
-cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
+cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu login
 
 (Nous recommandons que vous coupez et collez la ligne ci-dessus pour
 l'utiliser :). Quand il insiste pour un mot de passe écriver
@@ -53,12 +53,11 @@ branchement, n'employez aucun flag "-r".
 
 Pour vérifier la version, tapez:
 
-cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout
-   -P irc2.10
+cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu co -P ircu2.10
 
 Les deux lignes ci-dessus ne devraient pas avoir une entrée entre
 eux. Si vous voulez utiliser un autre version, placez le flag "-r"
-approprié après le "checkout".  Ceci créera un répertoire irc2.10, et
+approprié après le "co".  Ceci créera un répertoire ircu2.10, et
 mettra tous les fichiers dedans.
 
 Pour avoir la dernière version, tapez "cvs update -dP".
