@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Id: ircd-patch,v 1.4 2002-04-09 22:40:56 vampire Exp $
+# $Id: ircd-patch,v 1.5 2002-04-12 13:00:35 vampire Exp $
 #
 #
 # Experimental centralized patch system for ircu
@@ -59,7 +59,8 @@ update_patchlist() {
 [ ! -d $MARKS ] && (echo "*** Missing $MARKS, creating it" ; mkdir -p $MARKS)
 
 dry_run() {
-	patch -p0 -N -t --dry-run $2 >/dev/null < $1
+	rejects=`patch -p0 -N -t --dry-run $2 < $1 | grep "hunk FAILED" | sed -e 's/.*to file /  /;s/\.rej$//'`
+	test -z "$rejects"
 }
 
 patch_list() {
@@ -118,6 +119,8 @@ patch_add() {
 		echo -n "Testing $fname... "
 		if ! dry_run $fname ; then
 			echo "Failed (use -f to force)."
+			echo "The following files failed patching:"
+			echo "$rejects"
 			retcode=2
 			return
 		fi
@@ -153,6 +156,8 @@ patch_del() {
 		echo -n "Testing $fname... "
 		if ! dry_run $fname -R ; then
 			echo "Failed (use -f to force)."
+			echo "The following files failed patching:"
+			echo "$rejects"
 			retcode=2
 			return
 		fi

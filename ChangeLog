@@ -1,5 +1,11 @@
 2002-04-12  Alex Badea  <vampire@p16.pub.ro>
 
+	* ircd-patch: report which files failed the dry run (so the
+	user may force the patch if the rejects are in less-than-vital
+	files, such as ChangeLog or documentation)
+
+2002-04-12  Alex Badea  <vampire@p16.pub.ro>
+
 	* ircd/m_invite.c: don't propagate invites for local channels
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
