@@ -2140,20 +2140,22 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
  */
 void clean_channelname(char *cn)
 {
-  for (; *cn; ++cn) {
-    if (!IsChannelChar(*cn)) {
-      *cn = '\0';
+  int i;
+
+  for (i = 0; cn[i]; i++) {
+    if (i >= CHANNELLEN || !IsChannelChar(cn[i])) {
+      cn[i] = '\0';
       return;
     }
-    if (IsChannelLower(*cn)) {
-      *cn = ToLower(*cn);
+    if (IsChannelLower(cn[i])) {
+      cn[i] = ToLower(cn[i]);
 #ifndef FIXME
       /*
        * Remove for .08+
        * toupper(0xd0)
        */
-      if ((unsigned char)(*cn) == 0xd0)
-        *cn = (char) 0xf0;
+      if ((unsigned char)(cn[i]) == 0xd0)
+        cn[i] = (char) 0xf0;
 #endif
     }
   }
@@ -2659,9 +2661,10 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
  * of course, str2 is not NULL)
  */
 static void
-build_string(char *strptr, int *strptr_i, char *str1, char *str2)
+build_string(char *strptr, int *strptr_i, char *str1, char *str2, char c)
 {
-  strptr[(*strptr_i)++] = ' ';
+  if (c)
+    strptr[(*strptr_i)++] = c;
 
   while (*str1)
     strptr[(*strptr_i)++] = *(str1++);
@@ -2819,11 +2822,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
       /* deal with clients... */
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
-	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name, 0);
+	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name, 0, ' ');
 
       /* deal with strings... */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
-	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
+	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
 
       /*
        * deal with limit; note we cannot include the limit parameter if we're
@@ -2831,7 +2834,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
        */
       else if ((MB_TYPE(mbuf, i) & (MODE_ADD | MODE_LIMIT)) ==
 	       (MODE_ADD | MODE_LIMIT))
-	build_string(strptr, strptr_i, limitbuf, 0);
+	build_string(strptr, strptr_i, limitbuf, 0, ' ');
     }
 
     /* send the messages off to their destination */
@@ -2906,11 +2909,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
       /* deal with modes that take clients */
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
-	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)));
+	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)), ' ');
 
       /* deal with modes that take strings */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
-	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0);
+	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
 
       /*
        * deal with the limit.  Logic here is complicated; if HACK2 is set,
@@ -2918,14 +2921,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
        * include the original limit if it looks like it's being removed
        */
       else if ((MB_TYPE(mbuf, i) & limitdel) == limitdel)
-	build_string(strptr, strptr_i, limitbuf, 0);
+	build_string(strptr, strptr_i, limitbuf, 0, ' ');
     }
 
     /* we were told to deop the source */
     if (mbuf->mb_dest & MODEBUF_DEST_DEOP) {
       addbuf[addbuf_i++] = 'o'; /* remember, sense is reversed */
       addbuf[addbuf_i] = '\0'; /* terminate the string... */
-      build_string(addstr, &addstr_i, NumNick(mbuf->mb_source)); /* add user */
+      build_string(addstr, &addstr_i, NumNick(mbuf->mb_source), ' ');
 
       /* mark that we've done this, so we don't do it again */
       mbuf->mb_dest &= ~MODEBUF_DEST_DEOP;
@@ -3848,4 +3851,140 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     mode_process_clients(&state);
 
   return state.args_used; /* tell our parent how many args we gobbled */
+}
+
+/*
+ * Initialize a join buffer
+ */
+void
+joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
+	     struct Client *connect, unsigned int type, char *comment,
+	     time_t create)
+{
+  int i;
+
+  assert(0 != jbuf);
+  assert(0 != source);
+  assert(0 != connect);
+
+  jbuf->jb_source = source; /* just initialize struct JoinBuf */
+  jbuf->jb_connect = connect;
+  jbuf->jb_type = type;
+  jbuf->jb_comment = comment;
+  jbuf->jb_create = create;
+  jbuf->jb_count = 0;
+  jbuf->jb_strlen = (((type == JOINBUF_TYPE_JOIN ||
+		       type == JOINBUF_TYPE_PART ||
+		       type == JOINBUF_TYPE_PARTALL) ?
+		      STARTJOINLEN : STARTCREATELEN) +
+		     (comment ? strlen(comment) + 2 : 0));
+
+  for (i = 0; i < MAXJOINARGS; i++)
+    jbuf->jb_channels[i] = 0;
+}
+
+/*
+ * Add a channel to the join buffer
+ */
+void
+joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
+{
+  unsigned int len;
+
+  assert(0 != jbuf);
+
+  if (chan) {
+    if (jbuf->jb_type == JOINBUF_TYPE_PART ||
+	jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
+      /* Send notification to channel */
+      if (!(flags & CHFL_ZOMBIE))
+	sendcmdto_channel_butserv(jbuf->jb_source, CMD_PART, chan,
+				  (flags & CHFL_BANNED || !jbuf->jb_comment) ?
+				  ":%H" : "%H :%s", chan, jbuf->jb_comment);
+      else if (MyUser(jbuf->jb_source))
+	sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
+		      (flags & CHFL_BANNED || !jbuf->jb_comment) ?
+		      ":%H" : "%H :%s", chan, jbuf->jb_comment);
+
+      /* Remove user from channel */
+      remove_user_from_channel(jbuf->jb_source, chan);
+    } else {
+      /* Add user to channel */
+      add_user_to_channel(chan, jbuf->jb_source, flags);
+
+      /* Send the notification to the channel */
+      sendcmdto_channel_butserv(jbuf->jb_source, CMD_JOIN, chan, ":%H", chan);
+
+      /* send an op, too, if needed */
+      if (jbuf->jb_type == JOINBUF_TYPE_CREATE &&
+	  !IsModelessChannel(chan->chname))
+	sendcmdto_channel_butserv(jbuf->jb_source, CMD_MODE, chan, "%H +o %C",
+				  chan, jbuf->jb_source);
+    }
+
+    if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || IsLocalChannel(chan->chname))
+      return; /* don't send to remote */
+  }
+
+  /* figure out if channel name will cause buffer to be overflowed */
+  len = chan ? strlen(chan->chname) + 1 : 2;
+  if (jbuf->jb_strlen + len > IRC_BUFSIZE)
+    joinbuf_flush(jbuf);
+
+  /* add channel to list of channels to send and update counts */
+  jbuf->jb_channels[jbuf->jb_count++] = chan;
+  jbuf->jb_strlen += len;
+
+  /* if we've used up all slots, flush */
+  if (jbuf->jb_count >= MAXJOINARGS)
+    joinbuf_flush(jbuf);
+}
+
+/*
+ * Flush the channel list to remote servers
+ */
+int
+joinbuf_flush(struct JoinBuf *jbuf)
+{
+  char chanlist[IRC_BUFSIZE];
+  int chanlist_i = 0;
+  int i;
+
+  if (!jbuf->jb_count || jbuf->jb_type == JOINBUF_TYPE_PARTALL)
+    return 0; /* no joins to process */
+
+  for (i = 0; i < jbuf->jb_count; i++) { /* build channel list */
+    build_string(chanlist, &chanlist_i,
+		 jbuf->jb_channels[i] ? jbuf->jb_channels[i]->chname : "0", 0,
+		 i == 0 ? '\0' : ',');
+
+    jbuf->jb_channels[i] = 0; /* mark slot empty */
+  }
+
+  jbuf->jb_count = 0; /* reset base counters */
+  jbuf->jb_strlen = ((jbuf->jb_type == JOINBUF_TYPE_JOIN ||
+		      jbuf->jb_type == JOINBUF_TYPE_PART ?
+		      STARTJOINLEN : STARTCREATELEN) +
+		     (jbuf->jb_comment ? strlen(jbuf->jb_comment) + 2 : 0));
+
+  /* and send the appropriate command */
+  switch (jbuf->jb_type) {
+  case JOINBUF_TYPE_JOIN:
+    sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
+			  "%s", chanlist);
+    break;
+
+  case JOINBUF_TYPE_CREATE:
+    sendcmdto_serv_butone(jbuf->jb_source, CMD_CREATE, jbuf->jb_connect,
+			  "%s %Tu", chanlist, jbuf->jb_create);
+    break;
+
+  case JOINBUF_TYPE_PART:
+    sendcmdto_serv_butone(jbuf->jb_source, CMD_PART, jbuf->jb_connect,
+			  jbuf->jb_comment ? "%s :%s" : "%s", chanlist,
+			  jbuf->jb_comment);
+    break;
+  }
+
+  return 0;
 }

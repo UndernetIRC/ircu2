@@ -96,6 +96,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_debug.h"
 #include "send.h"
 
 #include <assert.h>
@@ -103,134 +104,23 @@
 #include <string.h>
 
 /*
- * m_create - generic message handler
- */
-int m_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  return 0;
-}
-
-/*
  * ms_create - server message handler
  */
 int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char            cbuf[BUFSIZE];  /* Buffer for list with channels
-                                     that `sptr' really creates */
-  time_t          chanTS;         /* Creation time for all channels
-                                     in the comma seperated list */
-  char*           p;
-  char*           name;
-  struct Channel* chptr;
-  int             badop;
+  time_t chanTS; /* channel creation time */
+  char *p; /* strtok state */
+  char *name; /* channel name */
+  struct Channel *chptr; /* channel */
+  struct JoinBuf join; /* join and create buffers */
+  struct JoinBuf create;
+  struct ModeBuf mbuf; /* a mode buffer */
+  int badop; /* a flag */
 
   if (IsServer(sptr)) {
-    /* PROTOCOL WARNING */
-    /* bail, don't core */
+    Debug((DEBUG_ERROR, "%s tried to CREATE a channel", sptr->name));
     return 0;
   }
-  /* sanity checks: Only accept CREATE messages from servers */
-  if (!IsServer(cptr) || parc < 3 || *parv[2] == '\0')
-    return 0;
-
-  chanTS = atoi(parv[2]);
-
-  /* A create that didn't appear during a burst has that servers idea of
-   * the current time.  Use it for lag calculations.
-   */
-  if (!IsBurstOrBurstAck(sptr) && 0 != chanTS && MAGIC_REMOTE_JOIN_TS != chanTS)
-    sptr->user->server->serv->lag = TStime() - chanTS;
-
-  *cbuf = '\0';                 /* Start with empty buffer */
-
-  /* For each channel in the comma seperated list: */
-  for (name = ircd_strtok(&p, parv[1], ","); name; name = ircd_strtok(&p, 0, ","))
-  {
-    badop = 0;                  /* Default is to accept the op */
-    if ((chptr = FindChannel(name)))
-    {
-      name = chptr->chname;
-      if (TStime() - chanTS > TS_LAG_TIME)
-      {
-        /* A bounce would not be accepted anyway - if we get here something
-           is wrong with the TS clock syncing (or we have more then
-           TS_LAG_TIME lag, or an admin is hacking */
-        badop = 2;
-        /* This causes a HACK notice on all upstream servers: */
-        sendto_one(cptr, "%s " TOK_MODE " %s -o %s%s 0", NumServ(&me), name, NumNick(sptr));
-        /* This causes a WALLOPS on all downstream servers and a notice to our
-           own opers: */
-        parv[1] = name;         /* Corrupt parv[1], it is not used anymore anyway */
-        send_hack_notice(cptr, sptr, parc, parv, badop, 2);
-      }
-      else if (chptr->creationtime && chanTS > chptr->creationtime &&
-          chptr->creationtime != MAGIC_REMOTE_JOIN_TS)
-      {
-        /* We (try) to bounce the mode, because the CREATE is used on an older
-           channel, probably a net.ride */
-        badop = 1;
-        /* Send a deop upstream: */
-        sendto_one(cptr, "%s " TOK_MODE " %s -o %s%s " TIME_T_FMT, NumServ(&me),
-                   name, NumNick(sptr), chptr->creationtime);
-      }
-    }
-    else                        /* Channel doesn't exist: create it */
-      chptr = get_channel(sptr, name, CGT_CREATE);
-
-    /* Add and mark ops */
-    add_user_to_channel(chptr, sptr,
-        (badop || IsModelessChannel(name)) ? CHFL_DEOPPED : CHFL_CHANOP);
-
-    /* Send user join to the local clients (if any) */
-    sendto_channel_butserv(chptr, sptr, ":%s " MSG_JOIN " :%s", parv[0], name);
-
-    if (badop)                  /* handle badop: convert CREATE into JOIN */
-      sendto_serv_butone(cptr, "%s%s " TOK_JOIN " %s " TIME_T_FMT,
-          NumNick(sptr), name, chptr->creationtime);
-    else
-    {
-      /* Send the op to local clients:
-         (if any; extremely unlikely, but it CAN happen) */
-      if (!IsModelessChannel(name))
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s +o %s",
-            sptr->user->server->name, name, parv[0]);
-
-      /* Set/correct TS and add the channel to the
-         buffer for accepted channels: */
-      chptr->creationtime = chanTS;
-      if (*cbuf)
-        strcat(cbuf, ",");
-      strcat(cbuf, name);
-    }
-  }
-
-  if (*cbuf)                    /* Any channel accepted with ops ? */
-  {
-    sendto_serv_butone(cptr, "%s%s " TOK_CREATE " %s " TIME_T_FMT,
-        NumNick(sptr), cbuf, chanTS);
-  }
-
-  return 0;
-}
-
-#if 0
-/*
- * m_create
- *
- * parv[0] = sender prefix
- * parv[1] = channel names
- * parv[2] = channel time stamp
- */
-int m_create(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char            cbuf[BUFSIZE];  /* Buffer for list with channels
-                                     that `sptr' really creates */
-  time_t          chanTS;         /* Creation time for all channels
-                                     in the comma seperated list */
-  char*           p;
-  char*           name;
-  struct Channel* chptr;
-  int             badop;
 
   /* sanity checks: Only accept CREATE messages from servers */
   if (!IsServer(cptr) || parc < 3 || *parv[2] == '\0')
@@ -238,82 +128,55 @@ int m_create(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   chanTS = atoi(parv[2]);
 
+  joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
+  joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, chanTS);
+
   /* A create that didn't appear during a burst has that servers idea of
    * the current time.  Use it for lag calculations.
    */
-  if (!IsBurstOrBurstAck(sptr) && 0 != chanTS && MAGIC_REMOTE_JOIN_TS != chanTS)
+  if (!IsBurstOrBurstAck(sptr) && 0 != chanTS &&
+      MAGIC_REMOTE_JOIN_TS != chanTS)
     sptr->user->server->serv->lag = TStime() - chanTS;
 
-  *cbuf = '\0';                 /* Start with empty buffer */
-
   /* For each channel in the comma seperated list: */
-  for (name = ircd_strtok(&p, parv[1], ","); name; name = ircd_strtok(&p, 0, ","))
-  {
-    badop = 0;                  /* Default is to accept the op */
-    if ((chptr = FindChannel(name)))
-    {
+  for (name = ircd_strtok(&p, parv[1], ","); name;
+       name = ircd_strtok(&p, 0, ",")) {
+    badop = 0;
+
+    if (IsLocalChannel(name))
+      continue;
+
+    if ((chptr = FindChannel(name))) {
       name = chptr->chname;
-      if (TStime() - chanTS > TS_LAG_TIME)
-      {
-        /* A bounce would not be accepted anyway - if we get here something
-           is wrong with the TS clock syncing (or we have more then
-           TS_LAG_TIME lag, or an admin is hacking */
-        badop = 2;
-        /* This causes a HACK notice on all upstream servers: */
-        sendto_one(cptr, "%s " TOK_MODE " %s -o %s%s 0", NumServ(&me), name, NumNick(sptr));
-        /* This causes a WALLOPS on all downstream servers and a notice to our
-           own opers: */
-        parv[1] = name;         /* Corrupt parv[1], it is not used anymore anyway */
-        send_hack_notice(cptr, sptr, parc, parv, badop, 2);
+
+      /* Check if we need to bounce a mode */
+      if (TStime() - chanTS > TS_LAG_TIME ||
+	  (chptr->creationtime && chanTS > chptr->creationtime &&
+	   chptr->creationtime != MAGIC_REMOTE_JOIN_TS)) {
+	modebuf_init(&mbuf, sptr, cptr, chptr,
+		     (MODEBUF_DEST_SERVER |  /* Send mode to server */
+		      MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
+		      MODEBUF_DEST_BOUNCE)); /* And bounce the mode */
+
+	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr);
+
+	modebuf_flush(&mbuf);
+
+	badop = 1;
       }
-      else if (chptr->creationtime && chanTS > chptr->creationtime &&
-          chptr->creationtime != MAGIC_REMOTE_JOIN_TS)
-      {
-        /* We (try) to bounce the mode, because the CREATE is used on an older
-           channel, probably a net.ride */
-        badop = 1;
-        /* Send a deop upstream: */
-        sendto_one(cptr, "%s " TOK_MODE " %s -o %s%s " TIME_T_FMT, NumServ(&me),
-                   name, NumNick(sptr), chptr->creationtime);
-      }
-    }
-    else                        /* Channel doesn't exist: create it */
+    } else                        /* Channel doesn't exist: create it */
       chptr = get_channel(sptr, name, CGT_CREATE);
 
-    /* Add and mark ops */
-    add_user_to_channel(chptr, sptr,
-        (badop || IsModelessChannel(name)) ? CHFL_DEOPPED : CHFL_CHANOP);
-
-    /* Send user join to the local clients (if any) */
-    sendto_channel_butserv(chptr, sptr, ":%s " MSG_JOIN " :%s", parv[0], name);
-
-    if (badop)                  /* handle badop: convert CREATE into JOIN */
-      sendto_serv_butone(cptr, "%s%s " TOK_JOIN " %s " TIME_T_FMT,
-          NumNick(sptr), name, chptr->creationtime);
-    else
-    {
-      /* Send the op to local clients:
-         (if any; extremely unlikely, but it CAN happen) */
-      if (!IsModelessChannel(name))
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s +o %s",
-            sptr->user->server->name, name, parv[0]);
-
-      /* Set/correct TS and add the channel to the
-         buffer for accepted channels: */
+    if (!badop) /* Set/correct TS */
       chptr->creationtime = chanTS;
-      if (*cbuf)
-        strcat(cbuf, ",");
-      strcat(cbuf, name);
-    }
+
+    joinbuf_join(badop ? &join : &create, chptr,
+		 (badop || IsModelessChannel(name)) ?
+		 CHFL_DEOPPED : CHFL_CHANOP);
   }
 
-  if (*cbuf)                    /* Any channel accepted with ops ? */
-  {
-    sendto_serv_butone(cptr, "%s%s " TOK_CREATE " %s " TIME_T_FMT,
-        NumNick(sptr), cbuf, chanTS);
-  }
+  joinbuf_flush(&join); /* flush out the joins and creates */
+  joinbuf_flush(&create);
 
   return 0;
 }
-#endif /* 0 */
-
