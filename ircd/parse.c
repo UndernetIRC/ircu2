@@ -209,7 +209,7 @@ struct Message msgtab[] = {
     TOK_PING,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_ping, ms_ping, m_ping, m_ignore }
+    { m_unregistered, m_ping, ms_ping, mo_ping, m_ignore }
   },
   {
     MSG_PONG,

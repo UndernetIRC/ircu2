@@ -160,6 +160,24 @@
  */
 int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  assert(0 != cptr);
+  assert(cptr == sptr);
+
+  if (parc < 2 || EmptyString(parv[1]))
+    return send_error_to_client(sptr, ERR_NOORIGIN);
+
+  sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, parv[1]);
+}
+
+/*
+ * m_ping - generic message handler
+ *
+ * parv[0] = sender prefix
+ * parv[1] = origin
+ * parv[2] = destination
+ */
+int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
   struct Client* acptr;
   char*          destination;
   assert(0 != cptr);
@@ -265,47 +283,4 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
-
-
-#if 0
-/*
- * m_ping
- *
- * parv[0] = sender prefix
- * parv[1] = origin
- * parv[2] = destination
- */
-int m_ping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-  char *origin, *destination;
-
-  if (parc < 2 || *parv[1] == '\0')
-  {
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]);
-    return 0;
-  }
-  origin = parv[1];
-  destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
-
-  acptr = FindClient(origin);
-  if (acptr && acptr != sptr)
-    origin = cptr->name;
-
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name) != 0)
-  {
-    if ((acptr = FindServer(destination)))
-      sendto_one(acptr, ":%s PING %s :%s", parv[0], origin, destination);
-    else
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
-          me.name, parv[0], destination);
-      return 0;
-    }
-  }
-  else
-    sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, origin);
-  return 0;
-}
-#endif
 
