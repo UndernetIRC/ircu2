@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.19.2.1 2001-08-17 10:56:18 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.19.2.2 2001-08-17 10:59:19 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Rewrote hop count for /who. -- Isomer
 * Removed DNS caching.  If it breaks, blame Mr RIP. -- Isomer
 -------------------------- Released 2.10.10.pl15
 * Fiddle with /KILL and various exits to make the user experience uniform,
