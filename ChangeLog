@@ -1,3 +1,6 @@
+2002-12-30  Perry Lorier <isomer@undernet.org>
+	* ircd/whocmds.c: s/&/&&/ as suggested by reed
+
 2002-12-28  David Mansell <splidge@quakenet.org>
  
  	* ircd/channel.c (mode_parse_limit): don't allow -l when no limit is
