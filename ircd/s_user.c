@@ -574,8 +574,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
     send_reply(
 	sptr, 
 	RPL_WELCOME, 
-	strlen(feature_str(FEAT_PROVIDER)) ? " via " : "",
-	strlen(feature_str(FEAT_PROVIDER)) ? feature_str(FEAT_PROVIDER) : "",
+	feature_str(FEAT_PROVIDER) ? " via " : "",
+	feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
 	nick);
     /*
      * This is a duplicate of the NOTICE but see below...
