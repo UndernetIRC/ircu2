@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief POSIX poll() event engine.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -35,8 +37,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define POLL_ERROR_THRESHOLD	20	/* after 20 poll errors, restart */
-#define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
+#define POLL_ERROR_THRESHOLD	20	/**< after 20 poll errors, restart */
+#define ERROR_EXPIRE_TIME	3600	/**< expire errors after an hour */
 
 /* Figure out what bits to set for read */
 #if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
@@ -58,15 +60,23 @@
 #  define POLLWRITEFLAGS POLLWRNORM
 #endif
 
+/** Array of active Socket structures, indexed by file descriptor. */
 static struct Socket** sockList;
+/** Array of poll() active elements. */
 static struct pollfd* pollfdList;
+/** Number of pollfd elements currently used. */
 static unsigned int poll_count;
+/** Maximum file descriptor supported, plus one. */
 static unsigned int poll_max;
 
+/** Number of recent errors from poll(). */
 static int errors = 0;
+/** Periodic timer to forget errors. */
 static struct Timer clear_error;
 
-/* decrements the error count once per hour */
+/** Decrement the error count (once per hour).
+ * @param[in] ev Expired timer event (ignored).
+ */
 static void
 error_clear(struct Event* ev)
 {
@@ -74,7 +84,10 @@ error_clear(struct Event* ev)
     timer_del(ev_timer(ev));
 }
 
-/* initialize the poll engine */
+/** Initialize the poll() engine.
+ * @param[in] max_sockets Maximum number of file descriptors to support.
+ * @return Non-zero on success, or zero on failure.
+ */
 static int
 engine_init(int max_sockets)
 {
@@ -98,7 +111,11 @@ engine_init(int max_sockets)
   return 1;
 }
 
-/* Figure out what events go with a given state */
+/** Figure out what events go with a given state.
+ * @param[in] state %Socket state to consider.
+ * @param[in] events User-specified preferred event set.
+ * @return Actual set of preferred events.
+ */
 static unsigned int
 state_to_events(enum SocketState state, unsigned int events)
 {
@@ -121,7 +138,11 @@ state_to_events(enum SocketState state, unsigned int events)
   return 0;
 }
 
-/* Toggle bits in the pollfd structs correctly */
+/** Set interest events in a pollfd as appropriate.
+ * @param[in] idx Index of pollfd to operate on.
+ * @param[in] clear Set of interest events to clear from socket.
+ * @param[in] set Set of interest events to set on socket.
+ */
 static void
 set_or_clear(int idx, unsigned int clear, unsigned int set)
 {
@@ -140,7 +161,10 @@ set_or_clear(int idx, unsigned int clear, unsigned int set)
   }
 }
 
-/* add a socket to be listened on */
+/** Add a socket to the event engine.
+ * @param[in] sock Socket to add to engine.
+ * @return Non-zero on success, or zero on error.
+ */
 static int
 engine_add(struct Socket* sock)
 {
@@ -179,7 +203,10 @@ engine_add(struct Socket* sock)
   return 1; /* success */
 }
 
-/* socket switching to new state */
+/** Handle state transition for a socket.
+ * @param[in] sock Socket changing state.
+ * @param[in] new_state New state for socket.
+ */
 static void
 engine_state(struct Socket* sock, enum SocketState new_state)
 {
@@ -196,7 +223,10 @@ engine_state(struct Socket* sock, enum SocketState new_state)
 	       state_to_events(new_state, s_events(sock))); /* new state */
 }
 
-/* socket events changing */
+/** Handle change to preferred socket events.
+ * @param[in] sock Socket getting new interest list.
+ * @param[in] new_events New set of interesting events for socket.
+ */
 static void
 engine_events(struct Socket* sock, unsigned int new_events)
 {
@@ -213,7 +243,9 @@ engine_events(struct Socket* sock, unsigned int new_events)
 	       state_to_events(s_state(sock), new_events)); /* new events */
 }
 
-/* socket going away */
+/** Remove a socket from the event engine.
+ * @param[in] sock Socket being destroyed.
+ */
 static void
 engine_delete(struct Socket* sock)
 {
@@ -236,7 +268,9 @@ engine_delete(struct Socket* sock)
     poll_count--;
 }
 
-/* socket event loop */
+/** Run engine event loop.
+ * @param[in] gen Lists of generators of various types.
+ */
 static void
 engine_loop(struct Generators* gen)
 {
@@ -392,6 +426,7 @@ engine_loop(struct Generators* gen)
   }
 }
 
+/** Descriptor for poll() event engine. */
 struct Engine engine_poll = {
   "poll()",		/* Engine name */
   engine_init,		/* Engine initialization function */

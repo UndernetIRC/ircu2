@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Linux epoll_*() event engine.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -69,14 +71,19 @@ _syscall4(int, epoll_wait, int, epfd, struct epoll_event *, pevents, int, maxeve
 
 #endif /* epoll_create defined as stub */
 
-#define EPOLL_ERROR_THRESHOLD 20   /* after 20 epoll errors, restart */
-#define ERROR_EXPIRE_TIME     3600 /* expire errors after an hour */
+#define EPOLL_ERROR_THRESHOLD 20   /**< after 20 epoll errors, restart */
+#define ERROR_EXPIRE_TIME     3600 /**< expire errors after an hour */
 
+/** File descriptor for epoll pseudo-file. */
 static int epoll_fd;
+/** Number of recent epoll errors. */
 static int errors;
+/** Periodic timer to forget errors. */
 static struct Timer clear_error;
 
-/* decrements the error count once per hour */
+/** Decrement the error count (once per hour).
+ * @param[in] ev Expired timer event (ignored).
+ */
 static void
 error_clear(struct Event *ev)
 {
@@ -84,7 +91,10 @@ error_clear(struct Event *ev)
     timer_del(ev_timer(ev));
 }
 
-/* initialize the epoll engine */
+/** Initialize the epoll engine.
+ * @param[in] max_sockets Maximum number of file descriptors to support.
+ * @return Non-zero on success, or zero on failure.
+ */
 static int
 engine_init(int max_sockets)
 {
@@ -96,6 +106,12 @@ engine_init(int max_sockets)
   return 1;
 }
 
+/** Set events for a particular socket.
+ * @param[in] sock Socket to calculate events for.
+ * @param[in] state Current socket state.
+ * @param[in] events User-specified event interest list.
+ * @param[out] evt epoll event structure for socket.
+ */
 static void
 set_events(struct Socket *sock, enum SocketState state, unsigned int events, struct epoll_event *evt)
 {
@@ -136,6 +152,10 @@ set_events(struct Socket *sock, enum SocketState state, unsigned int events, str
   }
 }
 
+/** Add a socket to the event engine.
+ * @param[in] sock Socket to add to engine.
+ * @return Non-zero on success, or zero on error.
+ */
 static int
 engine_add(struct Socket *sock)
 {
@@ -152,6 +172,10 @@ engine_add(struct Socket *sock)
   return 1;
 }
 
+/** Handle state transition for a socket.
+ * @param[in] sock Socket changing state.
+ * @param[in] new_state New state for socket.
+ */
 static void
 engine_set_state(struct Socket *sock, enum SocketState new_state)
 {
@@ -165,6 +189,10 @@ engine_set_state(struct Socket *sock, enum SocketState new_state)
     event_generate(ET_ERROR, sock, errno);
 }
 
+/** Handle change to preferred socket events.
+ * @param[in] sock Socket getting new interest list.
+ * @param[in] new_events New set of interesting events for socket.
+ */
 static void
 engine_set_events(struct Socket *sock, unsigned new_events)
 {
@@ -178,6 +206,9 @@ engine_set_events(struct Socket *sock, unsigned new_events)
     event_generate(ET_ERROR, sock, errno);
 }
 
+/** Remove a socket from the event engine.
+ * @param[in] sock Socket being destroyed.
+ */
 static void
 engine_delete(struct Socket *sock)
 {
@@ -192,6 +223,9 @@ engine_delete(struct Socket *sock)
               "Unable to delete epoll item for socket %d", s_fd(sock));
 }
 
+/** Run engine event loop.
+ * @param[in] gen Lists of generators of various types.
+ */
 static void
 engine_loop(struct Generators *gen)
 {
@@ -282,6 +316,7 @@ engine_loop(struct Generators *gen)
   }
 }
 
+/** Descriptor for dpoll event engine. */
 struct Engine engine_epoll = {
   "epoll()",
   engine_init,
