@@ -63,6 +63,9 @@
  */
 static char serveropts[256]; /* should be large enough for anything */
 
+/** Return a string describing important configuration information.
+ * @return Pointer to a static buffer.
+ */
 const char* debug_serveropts(void)
 {
   int bp;
@@ -111,15 +114,14 @@ const char* debug_serveropts(void)
   return serveropts;
 }
 
-/*
- * debug_init
- *
+/** Initialize debugging.
  * If the -t option is not given on the command line when the server is
  * started, all debugging output is sent to the file set by LPATH in config.h
  * Here we just open that file and make sure it is opened to fd 2 so that
  * any fprintf's to stderr also goto the logfile.  If the debuglevel is not
  * set from the command line by -x, use /dev/null as the dummy logfile as long
  * as DEBUGMODE has been defined, else dont waste the fd.
+ * @param use_tty Passed to log_debug_init().
  */
 void debug_init(int use_tty)
 {
@@ -132,6 +134,12 @@ void debug_init(int use_tty)
 }
 
 #ifdef DEBUGMODE
+/** Log a debug message using a va_list.
+ * If the current #debuglevel is less than \a level, do not display.
+ * @param level Debug level for message.
+ * @param form Format string, passed to log_vwrite().
+ * @param vl Varargs argument list for format string.
+ */
 void vdebug(int level, const char *form, va_list vl)
 {
   static int loop = 0;
@@ -146,6 +154,11 @@ void vdebug(int level, const char *form, va_list vl)
   errno = err;
 }
 
+/** Log a debug message using a variable number of arguments.
+ * This is a simple wrapper around debug(\a level, \a form, vl).
+ * @param level Debug level for message.
+ * @param form Format string of message.
+ */
 void debug(int level, const char *form, ...)
 {
   va_list vl;
@@ -154,18 +167,20 @@ void debug(int level, const char *form, ...)
   va_end(vl);
 }
 
+/** Send a literal RPL_STATSDEBUG message to a user.
+ * @param cptr Client to receive the message.
+ * @param msg Text message to send to user.
+ */
 static void debug_enumerator(struct Client* cptr, const char* msg)
 {
   assert(0 != cptr);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", msg);
 }
 
-/*
- * This is part of the STATS replies. There is no offical numeric for this
- * since this isnt an official command, in much the same way as HASH isnt.
- * It is also possible that some systems wont support this call or have
- * different field names for "struct rusage".
- * -avalon
+/** Send resource usage statistics to a client.
+ * @param cptr Client to send data to.
+ * @param sd StatDesc that generated the stats request (ignored).
+ * @param param Extra parameter from user (ignored).
  */
 void send_usage(struct Client *cptr, const struct StatDesc *sd,
                 char *param)
@@ -177,6 +192,11 @@ void send_usage(struct Client *cptr, const struct StatDesc *sd,
 }
 #endif /* DEBUGMODE */
 
+/** Report memory usage statistics to a client.
+ * @param cptr Client to send data to.
+ * @param sd StatDesc that generated the stats request (ignored).
+ * @param param Extra parameter from user (ignored).
+ */
 void count_memory(struct Client *cptr, const struct StatDesc *sd,
                   char *param)
 {
