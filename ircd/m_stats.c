@@ -358,10 +358,10 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
       break;
     case 'D':
-      report_configured_links(sptr, CONF_CRULEALL);
+      report_crule_list(sptr, CRULE_ALL);
       break;
     case 'd':
-      report_configured_links(sptr, CONF_CRULE);
+      report_crule_list(sptr, CRULE_MASK);
       break;
     case 't':
       tstats(sptr, parv[0]);
@@ -664,10 +664,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
       break;
     case 'D':
-      report_configured_links(sptr, CONF_CRULEALL);
+      report_crule_list(sptr, CRULE_ALL);
       break;
     case 'd':
-      report_configured_links(sptr, CONF_CRULE);
+      report_crule_list(sptr, CRULE_MASK);
       break;
     case 't':
       tstats(sptr, parv[0]);
@@ -958,10 +958,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
       break;
     case 'D':
-      report_configured_links(sptr, CONF_CRULEALL);
+      report_crule_list(sptr, CRULE_ALL);
       break;
     case 'd':
-      report_configured_links(sptr, CONF_CRULE);
+      report_crule_list(sptr, CRULE_MASK);
       break;
     case 't':
       tstats(sptr, parv[0]);
@@ -1346,10 +1346,10 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 #endif
       break;
     case 'D':
-      report_configured_links(sptr, CONF_CRULEALL);
+      report_crule_list(sptr, CRULE_ALL);
       break;
     case 'd':
-      report_configured_links(sptr, CONF_CRULE);
+      report_crule_list(sptr, CRULE_MASK);
       break;
     case 't':
       tstats(sptr, parv[0]);

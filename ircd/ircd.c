@@ -180,17 +180,16 @@ static void write_pidfile(void) {
  * is called earlier or later...)
  *--------------------------------------------------------------------------*/
 static time_t try_connections(void) {
-  struct ConfItem   *aconf;
-  struct Client     *cptr;
-  struct ConfItem  **pconf;
-  int                connecting;
-  int                confrq;
-  time_t             next        = 0;
-  struct ConfClass  *cltmp;
-  struct ConfItem   *cconf;
-  struct ConfItem   *con_conf    = NULL;
-  struct Jupe       *ajupe;
-  unsigned int       con_class   = 0;
+  struct ConfItem*  aconf;
+  struct Client*    cptr;
+  struct ConfItem** pconf;
+  int               connecting;
+  int               confrq;
+  time_t            next        = 0;
+  struct ConfClass* cltmp;
+  struct ConfItem*  con_conf    = 0;
+  struct Jupe*      ajupe;
+  unsigned int      con_class   = 0;
 
   connecting = FALSE;
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));
@@ -224,13 +223,10 @@ static time_t try_connections(void) {
 
     if (!cptr && (Links(cltmp) < MaxLinks(cltmp)) &&
         (!connecting || (ConClass(cltmp) > con_class))) {
-      /* Check connect rules to see if we're allowed to try */
-      for (cconf = GlobalConfList; cconf; cconf = cconf->next) {
-        if ((cconf->status & CONF_CRULE) && !match(cconf->host, aconf->name))
-          if (crule_eval(cconf->passwd))
-            break;
-      }
-      if (!cconf) {
+      /*
+       * Check connect rules to see if we're allowed to try
+       */
+      if (0 == conf_eval_crule(aconf->name, CRULE_MASK)) {
         con_class = ConClass(cltmp);
         con_conf = aconf;
         /* We connect only one at time... */
