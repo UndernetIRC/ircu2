@@ -8,6 +8,7 @@
 
 struct Client;
 struct sockaddr_in;
+struct MsgQ;
 
 typedef enum IOResult {
   IO_FAILURE = -1,
@@ -31,6 +32,8 @@ extern IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
                         unsigned int* length_out);
 extern IOResult os_send_nonb(int fd, const char* buf, unsigned int length,
                         unsigned int* length_out);
+extern IOResult os_sendv_nonb(int fd, struct MsgQ* buf,
+			      unsigned int* len_in, unsigned int* len_out);
 extern IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int len,
                                  unsigned int* length_out,
                                  struct sockaddr_in* from_out);

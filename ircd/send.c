@@ -148,9 +148,8 @@ void send_queued(struct Client *to)
 
   while (MsgQLength(&to->sendQ) > 0) {
     unsigned int len;
-    const char* msg = msgq_map(&to->sendQ, &len);
 
-    if ((len = deliver_it(to, msg, len))) {
+    if ((len = deliver_it(to, &to->sendQ))) {
       msgq_delete(&to->sendQ, len);
       to->lastsq = MsgQLength(&to->sendQ) / 1024;
       if (IsBlocked(to))

@@ -168,7 +168,8 @@ msgq_map(const struct MsgQ *mq, unsigned int *length_p)
  * struct iovec's.
  */
 int
-msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
+msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
+	    unsigned int *len)
 {
   struct Msg *queue;
   struct Msg *prio;
@@ -177,6 +178,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
   assert(0 != mq);
   assert(0 != iov);
   assert(0 != count);
+  assert(0 != len);
 
   if (mq->length <= 0) /* no data to map */
     return 0;
@@ -184,6 +186,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
   if (mq->queue.head && mq->queue.head->sent > 0) { /* partial msg on norm q */
     iov[i].iov_base = mq->queue.head->msg->msg + mq->queue.head->sent;
     iov[i].iov_len = mq->queue.head->msg->length - mq->queue.head->sent;
+    *len += iov[i].iov_len;
 
     queue = mq->queue.head->next; /* where we start later... */
 
@@ -196,6 +199,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
   if (mq->prio.head && mq->prio.head->sent > 0) { /* partial msg on prio q */
     iov[i].iov_base = mq->prio.head->msg->msg + mq->prio.head->sent;
     iov[i].iov_len = mq->prio.head->msg->length - mq->prio.head->sent;
+    *len += iov[i].iov_len;
 
     prio = mq->prio.head->next; /* where we start later... */
 
@@ -208,6 +212,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
   for (; prio; prio = prio->next) { /* go through prio queue */
     iov[i].iov_base = prio->msg->msg; /* store message */
     iov[i].iov_len = prio->msg->length;
+    *len += iov[i].iov_len;
 
     i++; /* filled an iovec... */
     if (!--count) /* check for space */
@@ -217,6 +222,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count)
   for (; queue; queue = queue->next) { /* go through normal queue */
     iov[i].iov_base = queue->msg->msg;
     iov[i].iov_len = queue->msg->length;
+    *len += iov[i].iov_len;
 
     i++; /* filled an iovec... */
     if (!--count) /* check for space */

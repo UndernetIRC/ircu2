@@ -21,6 +21,7 @@ struct Client;
 struct ConfItem;
 struct Listener;
 struct DNSReply;
+struct MsgQ;
 
 /*
  * TCP window sizes
@@ -78,7 +79,7 @@ struct Pollable {
 /*
  * Proto types
  */
-extern unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len);
+extern unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf);
 extern int connect_server(struct ConfItem* aconf, struct Client* by,
                           struct DNSReply* reply);
 extern void release_dns_reply(struct Client* cptr);
