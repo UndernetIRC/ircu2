@@ -58,13 +58,6 @@
 #  define POLLWRITEFLAGS POLLWRNORM
 #endif
 
-/* Figure out what bits indicate errors */
-#ifdef POLLHUP
-#  define POLLERRORS (POLLHUP|POLLERR)
-#else
-#  define POLLERRORS POLLERR
-#endif
-
 static struct Socket** sockList;
 static struct pollfd* pollfdList;
 static unsigned int poll_count;
@@ -309,6 +302,17 @@ engine_loop(struct Generators* gen)
 	  continue;
 	}
       }
+
+      assert(!(pollfdList[i].revents & POLLERR));
+
+#ifdef POLLHUP
+      if (pollfdList[i].revents & POLLHUP) { /* hang-up on socket */
+	Debug((DEBUG_ENGINE, "poll: EOF from client (POLLHUP)"));
+	event_generate(ET_EOF, sock, 0);
+	nfds--;
+	continue;
+      }
+#endif /* POLLHUP */
 
       switch (s_state(sock)) {
       case SS_CONNECTING:
