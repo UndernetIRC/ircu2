@@ -413,6 +413,12 @@ void accept_connection(struct Listener* listener)
    * be accepted until some old is closed first.
    */
   if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr, &addrlen))) {
+    /* Lotsa admins seem to have problems with not giving enough file descriptors
+     * to their server so we'll add a generic warning mechanism here.  If it
+     * turns out too many messages are generated for meaningless reasons we
+     * can filter them back.
+     */
+    sendto_op_mask(SNO_TCPCOMMON,"Unable to accept connection: %s", strerror(errno));
     return;
   }
   /*

@@ -2371,12 +2371,16 @@ EOF
 fi
 
 
+echo $ac_n "checking for donuts""... $ac_c" 1>&6
+echo "configure:2376: checking for donuts" >&5
+echo "$ac_t""yes" 1>&6
+
 for ac_prog in gawk mawk nawk awk
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2380: checking for $ac_word" >&5
+echo "configure:2384: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_AWK'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2406,7 +2410,7 @@ test -n "$AWK" && break
 done
 
 echo $ac_n "checking whether ${MAKE-make} sets \${MAKE}""... $ac_c" 1>&6
-echo "configure:2410: checking whether ${MAKE-make} sets \${MAKE}" >&5
+echo "configure:2414: checking whether ${MAKE-make} sets \${MAKE}" >&5
 set dummy ${MAKE-make}; ac_make=`echo "$2" | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_prog_make_${ac_make}_set'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2444,7 +2448,7 @@ fi
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:2448: checking for a BSD compatible install" >&5
+echo "configure:2452: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2497,7 +2501,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 echo $ac_n "checking whether ln -s works""... $ac_c" 1>&6
-echo "configure:2501: checking whether ln -s works" >&5
+echo "configure:2505: checking whether ln -s works" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_LN_S'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2522,7 +2526,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2526: checking for $ac_word" >&5
+echo "configure:2530: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_RMPROG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2563,7 +2567,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2567: checking for $ac_word" >&5
+echo "configure:2571: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_SHPROG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2601,7 +2605,7 @@ test -n "$SHPROG" || SHPROG="/bin/sh"
 
 
 echo $ac_n "checking for set -h""... $ac_c" 1>&6
-echo "configure:2605: checking for set -h" >&5
+echo "configure:2609: checking for set -h" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_set_h'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2620,7 +2624,7 @@ echo "$ac_t""$unet_cv_sys_set_h" 1>&6
 
 
 echo $ac_n "checking for posix non-blocking""... $ac_c" 1>&6
-echo "configure:2624: checking for posix non-blocking" >&5
+echo "configure:2628: checking for posix non-blocking" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_nonblocking_posix'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2628,7 +2632,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2632 "configure"
+#line 2636 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2654,7 +2658,7 @@ int main(void)
   exit(1);
 }
 EOF
-if { (eval echo configure:2658: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2662: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_nonblocking_posix=yes
 else
@@ -2676,7 +2680,7 @@ EOF
 
 else
 echo $ac_n "checking for bsd non-blocking""... $ac_c" 1>&6
-echo "configure:2680: checking for bsd non-blocking" >&5
+echo "configure:2684: checking for bsd non-blocking" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_nonblocking_bsd'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2684,7 +2688,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2688 "configure"
+#line 2692 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2710,7 +2714,7 @@ int main(void)
   exit(1);
 }
 EOF
-if { (eval echo configure:2714: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2718: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_nonblocking_bsd=yes
 else
@@ -2738,19 +2742,19 @@ EOF
 fi
 fi
 echo $ac_n "checking for posix signals""... $ac_c" 1>&6
-echo "configure:2742: checking for posix signals" >&5
+echo "configure:2746: checking for posix signals" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_signal_posix'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2747 "configure"
+#line 2751 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int main() {
 sigaction(SIGTERM, (struct sigaction *)0L, (struct sigaction *)0L)
 ; return 0; }
 EOF
-if { (eval echo configure:2754: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2758: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   unet_cv_sys_signal_posix=yes
 else
@@ -2770,7 +2774,7 @@ EOF
 
 else
 echo $ac_n "checking for bsd reliable signals""... $ac_c" 1>&6
-echo "configure:2774: checking for bsd reliable signals" >&5
+echo "configure:2778: checking for bsd reliable signals" >&5
 if eval "test \"`echo '$''{'unet_cv_sys_signal_bsd'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2778,7 +2782,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2782 "configure"
+#line 2786 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int calls = 0;
@@ -2796,7 +2800,7 @@ int main(void)
   exit (0);
 }
 EOF
-if { (eval echo configure:2800: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2804: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   unet_cv_sys_signal_bsd=yes
 else
@@ -2825,20 +2829,20 @@ fi
 fi
 
 echo $ac_n "checking if the compiler understands -pipe""... $ac_c" 1>&6
-echo "configure:2829: checking if the compiler understands -pipe" >&5
+echo "configure:2833: checking if the compiler understands -pipe" >&5
 unet_cv_pipe_flags="$ac_cv_prog_gcc"
 if test "$ac_cv_prog_gcc" = no; then
   OLDCFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS -pipe"
   cat > conftest.$ac_ext <<EOF
-#line 2835 "configure"
+#line 2839 "configure"
 #include "confdefs.h"
 
 int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:2842: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2846: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   unet_cv_pipe_flags=yes
 else
@@ -2863,7 +2867,7 @@ fi
 
 uname=`uname`
 echo $ac_n "checking for OS type""... $ac_c" 1>&6
-echo "configure:2867: checking for OS type" >&5
+echo "configure:2871: checking for OS type" >&5
 case "$uname" in
   *inux*)
     echo "$ac_t""$uname found." 1>&6

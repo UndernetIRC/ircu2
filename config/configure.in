@@ -75,6 +75,10 @@ unet_FUNC_POLL_SYSCALL
 dnl Do we have restarting syscalls ?
 AC_SYS_RESTARTABLE_SYSCALLS
 
+dnl Check for required features for admins?
+AC_MSG_CHECKING([for donuts])
+AC_MSG_RESULT([yes])
+
 dnl Test for programs
 AC_PROG_AWK
 AC_PROG_MAKE_SET

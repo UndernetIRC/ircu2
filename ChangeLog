@@ -1,3 +1,24 @@
+2000-10-30  Isomer <isomer@coders.net>
+
+	* ircd/m_topic.c: Restructured, fixed bug where topics on local
+	channels are propergated (I forget who pointed this out to me, but
+	thanks anyway).  Also to save bandwidth don't send the topic to
+	users if the topic is already the same on the server (but still
+	propergate to other servers).  X/W's "autotopic" feature must
+	chew a lot of bandwidth, hopefully this will help reduce this.
+
+	* doc/rfc1459.rfc: Updated documentation on /topic.
+
+	* ircd/listener.c: snotice warnings about failed accept()'s
+	potentially warning admins that they're running out of fd's.
+
+	* ircd/stats.c, ircd/class.c: Removed /stats v, added number of
+	people in a class in /stats y
+
+	* ircd/m_create.c: Checks for timewarp hacking and squit's
+	evil servers. (currently disabled)
+	
+
 2000-10-30  net <simms@lucida.qc.ca>
 	
 	* ircd/gline.c: Fixed various bugs Isomer left behind.

@@ -35,7 +35,7 @@ all: build
 
 build:
 	@if [ ! -f config/config.h ]; then \
-		echo "Run 'make config' to configure the server"; \
+		$(MAKE) config; \
 	else \
 	  for i in config ircd; do \
 		  echo "Building $$i..."; \

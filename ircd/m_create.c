@@ -123,7 +123,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   /* sanity checks: Only accept CREATE messages from servers */
-  if (!IsServer(cptr) || parc < 3 || *parv[2] == '\0')
+  if (parc < 3 || *parv[2] == '\0')
     return 0;
 
   chanTS = atoi(parv[2]);
@@ -137,6 +137,18 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!IsBurstOrBurstAck(sptr) && 0 != chanTS &&
       MAGIC_REMOTE_JOIN_TS != chanTS)
     sptr->user->server->serv->lag = TStime() - chanTS;
+
+#if 0  
+  /* If this server is >5 minutes fast, squit it */
+  if (TStime() - chanTS<-5*60*60)
+  	return exit_client(sptr,sptr,"Timestamp Drift/Bogus TS");
+  	
+  /* If we recieve a CREATE for a channel from a server before that server
+   * was linked, then it's a HACK
+   */
+  if (MyConnect(sptr) && chanTS<sptr->timestamp+5*60*60)
+  	return exit_client(sptr,sptr,"HACK: Bogus TS on CREATE before server link");
+#endif
 
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;

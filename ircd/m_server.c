@@ -337,12 +337,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #ifdef CRYPT_LINK_PASSWORD
     /* passwd may be NULL. Head it off at the pass... */
     if (*cptr->passwd) {
-      char salt[3];
-
-      salt[0] = aconf->passwd[0];
-      salt[1] = aconf->passwd[1];
-      salt[2] = '\0';
-      encr = ircd_crypt(cptr->passwd, salt);
+      encr = ircd_crypt(cptr->passwd, aconf->passed);
     }
     else
       encr = "";
@@ -1011,12 +1006,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /* passwd may be NULL. Head it off at the pass... */
     if (*cptr->passwd)
     {
-      char salt[3];
-
-      salt[0] = aconf->passwd[0];
-      salt[1] = aconf->passwd[1];
-      salt[2] = '\0';
-      encr = ircd_crypt(cptr->passwd, salt);
+      encr = ircd_crypt(cptr->passwd, aconf->passwd);
     }
     else
       encr = "";
@@ -1672,12 +1662,7 @@ int m_server(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /* passwd may be NULL. Head it off at the pass... */
     if (*cptr->passwd)
     {
-      char salt[3];
-
-      salt[0] = aconf->passwd[0];
-      salt[1] = aconf->passwd[1];
-      salt[2] = '\0';
-      encr = ircd_crypt(cptr->passwd, salt);
+      encr = ircd_crypt(cptr->passwd, aconf->passwd);
     }
     else
       encr = "";

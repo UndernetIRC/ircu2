@@ -372,16 +372,6 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
-    case 'v':
-      {
-        const struct ConnectionClass* cl = get_class_list();
-
-        for ( ; cl; cl = cl->next) {
-          if (Links(cl) > 0)
-            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
-        }
-      }
-      break;
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -618,17 +608,6 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
-    case 'v':
-      {
-        const struct ConnectionClass* cl = get_class_list();
-            
-        for ( ; cl; cl = cl->next) {
-          if (Links(cl) > 0)
-            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
-        }
-      }
-      break;
-    
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -854,16 +833,6 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
-    case 'v':
-      {
-        const struct ConnectionClass* cl = get_class_list();
-            
-        for ( ; cl; cl = cl->next) {
-          if (Links(cl) > 0)
-            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
-        }
-      }
-      break;
     case 'W':
     case 'w':
       calc_load(sptr);
