@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Functions that now (or in the past) relied on BSD APIs.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -75,9 +77,13 @@
 #include <sys/poll.h>
 #endif /* USE_POLL */
 
+/** Array of my own clients, indexed by file descriptor. */
 struct Client*            LocalClientArray[MAXCONNECTIONS];
+/** Maximum file descriptor in current use. */
 int                       HighestFd = -1;
+/** Default local address for outbound connections. */
 struct irc_sockaddr       VirtualHost;
+/** Temporary buffer for reading data from a peer. */
 static char               readbuf[SERVER_TCP_WINDOW];
 
 /*
@@ -127,19 +133,14 @@ static void client_timer_callback(struct Event* ev);
  * been reassigned to a normal connection...
  */
 
-/*
- * report_error
- *
- * This a replacement for perror(). Record error to log and
- * also send a copy to all *LOCAL* opers online.
- *
- * text    is a *format* string for outputting error. It must
- *         contain only two '%s', the first will be replaced
- *         by the sockhost from the cptr, and the latter will
- *         be taken from sys_errlist[errno].
- *
- * cptr    if not NULL, is the *LOCAL* client associated with
- *         the error.
+/** Replacement for perror(). Record error to log.  Send a copy to all
+ * *LOCAL* opers, but only if no errors were sent to them in the last
+ * 20 seconds.
+ * @param text A *format* string for outputting error. It must contain
+ * only two '%s', the first will be replaced by the sockhost from the
+ * cptr, and the latter will be taken from sys_errlist[errno].
+ * @param who The client associated with the error.
+ * @param err The errno value to display.
  */
 void report_error(const char* text, const char* who, int err)
 {
@@ -165,11 +166,11 @@ void report_error(const char* text, const char* who, int err)
 }
 
 
-/*
- * connect_dns_callback - called when resolver query finishes
- * if the query resulted in a successful search, reply will contain
- * a non-null pointer, otherwise reply will be null.
- * if successful start the connection, otherwise notify opers
+/** Called when resolver query finishes.  If the DNS lookup was
+ * successful, start the connection; otherwise notify opers of the
+ * failure.
+ * @param vptr The struct ConfItem representing the Connect block.
+ * @param hp A pointer to the DNS lookup results (NULL on failure).
  */
 static void connect_dns_callback(void* vptr, struct DNSReply* hp)
 {
@@ -186,9 +187,8 @@ static void connect_dns_callback(void* vptr, struct DNSReply* hp)
                          aconf->name);
 }
 
-/*
- * close_connections - closes all connections
- * close stderr if specified
+/** Closes all file descriptors.
+ * @param close_stderr If non-zero, also close stderr.
  */
 void close_connections(int close_stderr)
 {
@@ -201,9 +201,7 @@ void close_connections(int close_stderr)
     close(i);
 }
 
-/*
- * init_connection_limits - initialize process fd limit to
- * MAXCONNECTIONS
+/** Initialize process fd limit to MAXCONNECTIONS.
  */
 int init_connection_limits(void)
 {
@@ -221,8 +219,10 @@ int init_connection_limits(void)
   return 0;
 }
 
-/*
- * connect_inet - set up address and port and make a connection
+/** Set up address and port and make a connection.
+ * @param aconf Provides the connection information.
+ * @param cptr Client structure for the peer.
+ * @return Non-zero on success; zero on failure.
  */
 static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
@@ -279,28 +279,13 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   return 1;
 }
 
-/*
- * deliver_it
- *   Attempt to send a sequence of bytes to the connection.
- *   Returns
- *
- *   < 0     Some fatal error occurred, (but not EWOULDBLOCK).
- *           This return is a request to close the socket and
- *           clean up the link.
- *
- *   >= 0    No real error occurred, returns the number of
- *           bytes actually transferred. EWOULDBLOCK and other
- *           possibly similar conditions should be mapped to
- *           zero return. Upper level routine will have to
- *           decide what to do with those unwritten bytes...
- *
- *   *NOTE*  alarm calls have been preserved, so this should
- *           work equally well whether blocking or non-blocking
- *           mode is used...
- *
- *   We don't use blocking anymore, that is impossible with the
- *      net.loads today anyway. Commented out the alarms to save cpu.
- *      --Run
+/** Attempt to send a sequence of bytes to the connection.
+ * As a side effect, updates \a cptr's FLAG_BLOCKED setting
+ * and sendB/sendK fields.
+ * @param cptr Client that should receive data.
+ * @param buf Message buffer to send to client.
+ * @return Negative on connection-fatal error; otherwise
+ *  number of bytes sent.
  */
 unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
 {
@@ -340,7 +325,9 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
   return bytes_written;
 }
 
-
+/** Free the client's DNS reply, if any.
+ * @param cptr Client to operate on.
+ */
 void release_dns_reply(struct Client* cptr)
 {
   assert(0 != cptr);
@@ -353,14 +340,10 @@ void release_dns_reply(struct Client* cptr)
   }
 }
 
-/*
- * completed_connection
- *
- * Complete non-blocking connect()-sequence. Check access and
+/** Complete non-blocking connect()-sequence. Check access and
  * terminate connection, if trouble detected.
- *
- * Return  TRUE, if successfully completed
- *        FALSE, if failed and ClientExit
+ * @param cptr Client to which we have connected, with all Confitem structs attached.
+ * @return Zero on failure (caller should exit_client()), non-zero on success.
  */
 static int completed_connection(struct Client* cptr)
 {
@@ -422,11 +405,9 @@ static int completed_connection(struct Client* cptr)
   return (IsDead(cptr)) ? 0 : 1;
 }
 
-/*
- * close_connection
- *
- * Close the physical connection. This function must make
- * MyConnect(cptr) == FALSE, and set cptr->from == NULL.
+/** Close the physical connection.  Side effects: MyConnect(cptr)
+ * becomes false and cptr->from becomes NULL.
+ * @param cptr Client to disconnect.
  */
 void close_connection(struct Client *cptr)
 {
@@ -513,6 +494,10 @@ void close_connection(struct Client *cptr)
   }
 }
 
+/** Close all unregistered connections.
+ * @param source Oper who requested the close.
+ * @return Number of closed connections.
+ */
 int net_close_unregistered_connections(struct Client* source)
 {
   int            i;
@@ -530,14 +515,13 @@ int net_close_unregistered_connections(struct Client* source)
   return count;
 }
 
-/*----------------------------------------------------------------------------
- * add_connection
- *
- * Creates a client which has just connected to us on the given fd.
+/** Creates a client which has just connected to us on the given fd.
  * The sockhost field is initialized with the ip# of the host.
  * The client is not added to the linked list of clients, it is
  * passed off to the auth handler for dns and ident queries.
- *--------------------------------------------------------------------------*/
+ * @param listener Listening socket that received the connection.
+ * @param fd File descriptor of new connection.
+ */
 void add_connection(struct Listener* listener, int fd) {
   struct irc_sockaddr addr;
   struct Client      *new_client;
@@ -619,11 +603,9 @@ void add_connection(struct Listener* listener, int fd) {
   start_auth(new_client);
 }
 
-/*
- * update_write
- *
- * Determines whether to tell the events engine we're interested in
- * writable events
+/** Determines whether to tell the events engine we're interested in
+ * writable events.
+ * @param cptr Client for which to decide this.
  */
 void update_write(struct Client* cptr)
 {
@@ -637,13 +619,14 @@ void update_write(struct Client* cptr)
 		 SOCK_ACTION_ADD : SOCK_ACTION_DEL) | SOCK_EVENT_WRITABLE);
 }
 
-/*
- * read_packet
- *
- * Read a 'packet' of data from a connection and process it.  Read in 8k
- * chunks to give a better performance rating (for server connections).
- * Do some tricky stuff for client connections to make sure they don't do
- * any flooding >:-) -avalon
+/** Read a 'packet' of data from a connection and process it.  Read in
+ * 8k chunks to give a better performance rating (for server
+ * connections).  Do some tricky stuff for client connections to make
+ * sure they don't do any flooding >:-) -avalon
+ * @param cptr Client from which to read data.
+ * @param socket_ready If non-zero, more data can be read from the client's socket.
+ * @return Positive number on success, zero on connection-fatal failure, negative
+ *   if user is killed.
  */
 static int read_packet(struct Client *cptr, int socket_ready)
 {
@@ -756,18 +739,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
   return 1;
 }
 
-/*
- * connect_server - start or complete a connection to another server
- * returns true (1) if successful, false (0) otherwise
- *
- * aconf must point to a valid C:line
- * m_connect            calls this with a valid by client and a null reply
- * try_connections      calls this with a null by client, and a null reply
- * connect_dns_callback call this with a null by client, and a valid reply
- *
- * XXX - if this comes from an m_connect message and a dns query needs to
- * be done, we loose the information about who started the connection and
- * it's considered an auto connect.
+/** Start a connection to another server.
+ * @param aconf Connect block data for target server.
+ * @param by Client who requested the connection (if any).
+ * @return Non-zero on success; zero on failure.
  */
 int connect_server(struct ConfItem* aconf, struct Client* by)
 {
@@ -880,7 +855,6 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
   if (cli_fd(cptr) > HighestFd)
     HighestFd = cli_fd(cptr);
 
-  
   LocalClientArray[cli_fd(cptr)] = cptr;
 
   Count_newunknown(UserStats);
@@ -896,8 +870,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
     completed_connection(cptr) : 1;
 }
 
-/*
- * Find the real hostname for the host running the server (or one which
+/** Find the real hostname for the host running the server (or one which
  * matches the server's name) and its primary IP#.  Hostname is stored
  * in the client structure passed as a pointer.
  */
@@ -910,8 +883,9 @@ void init_server_identity(void)
   SetYXXServerName(&me, conf->numeric);
 }
 
-/*
- * Process events on a client socket
+/** Process events on a client socket.
+ * @param ev Socket event structure that has a struct Connection as
+ *   its associated data.
  */
 static void client_sock_callback(struct Event* ev)
 {
@@ -983,9 +957,7 @@ static void client_sock_callback(struct Event* ev)
     break;
 
   default:
-#ifndef NDEBUG
-    abort(); /* unrecognized event */
-#endif
+    assert(0 && "Unrecognized socket event in client_sock_callback()");
     break;
   }
 
@@ -999,8 +971,9 @@ static void client_sock_callback(struct Event* ev)
   }
 }
 
-/*
- * Process a timer on client socket
+/** Process a timer on client socket.
+ * @param ev Timer event that has a struct Connection as its
+ * associated data.
  */
 static void client_timer_callback(struct Event* ev)
 {
