@@ -34,6 +34,14 @@ enum LogLevel {
   L_LAST_LEVEL
 };
 
+/* WARNING WARNING WARNING -- Order is important; these are
+ * used as indexes into an array of LogDesc structures.
+ */
+enum LogSys {
+  LS_GLINE,
+  LS_LAST_SYSTEM
+};
+
 extern void open_log(const char* process_name);
 extern void close_log(void);
 extern void set_log_level(int level);
@@ -44,5 +52,12 @@ extern void ircd_log_kill(const struct Client* victim,
                           const struct Client* killer,
                           const char*          inpath,
                           const char*          path);
+
+extern void log_init(const char *process_name);
+extern void log_reopen(void);
+extern void log_close(void);
+
+extern void log_write(enum LogSys subsys, enum LogLevel severity,
+		      const char *fmt, ...);
 
 #endif /* INCLUDED_ircd_log_h */

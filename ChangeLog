@@ -1,5 +1,13 @@
 2000-11-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_log.c: make sure the various LOG_* constants are
+	defined (probably not needed, since #include <syslog.h> isn't
+	conditional); various static data needed for the new logging
+	functions; definitions of new logging functions
+
+	* include/ircd_log.h: new LogSys enum, declarations for part of
+	new logging API
+
 	* ircd/motd.c: we were setting type to MOTD_CLASS unconditionally,
 	which was of course stupid; switched to using switch/case in
 	initialization in motd_create(); zero the MotdList.other pointer
