@@ -1,3 +1,6 @@
+2001-09-21  Perry Lorier  <isomer@coders.net>
+	* ircd/s_user.c I'm stupid, s/acptr/from/, Hektik pointed it out
+
 2001-09-20  Perry Lorier  <isomer@coders.net>
 
 	* Pullups from 2.10.10.pl16
