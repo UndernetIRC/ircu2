@@ -59,6 +59,7 @@ in which:
    i   Numeric IP (the unresolved host)
    s   Servername (the canonic name of the server the guy is on)
    r   Info text (formerly "Realname")
+   a   Account name
 
    If no field-matching flags are specified they default to what old servers
    used to do: nuhsr (= everything except the numeric IP)
@@ -97,6 +98,7 @@ in which:
    s : Include server name
    t : Include the querytype in the reply
    u : Include userID with eventual ~
+   a : Include account name
 
 And the ,<querytype> final option can be used to specify what you want the
 server to say in the querytype field of the output, useful to filter the
@@ -111,7 +113,8 @@ out-of-standard 352 crashes EPIC and confuses several other clients. I used
 
 :"source" 354 "target" ["querytype"] ["channel"] ["user"] 
                        ["IP"] ["host"] ["server"] ["nick"] 
-                       ["flags"] ["hops"] ["idle"] [:"realname"]
+                       ["flags"] ["hops"] ["idle"] ["account"]
+                       [:"realname"]
 
 Where only the fields specified in the %fields options are present.
 
