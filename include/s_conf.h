@@ -85,9 +85,9 @@ struct LocalConf {
   char* vhost_address;
   char* description;
   char* numeric_id;
-  char* admin_line1;
-  char* admin_line2;
-  char* admin_line3;
+  char* location1;
+  char* location2;
+  char* contact;
 };
 
 struct MotdItem {
@@ -95,6 +95,12 @@ struct MotdItem {
   struct MotdItem *next;
 };
 
+struct MotdConf {
+  char* hostmask;
+  char* path;
+  struct MotdConf* next;
+};
+  
 struct TRecord {
   char *hostmask;
   struct MotdItem *tmotd;
@@ -124,6 +130,10 @@ extern struct TRecord*  tdata;
 /*
  * Proto types
  */
+
+extern const struct LocalConf* conf_get_local(void);
+extern const struct MotdConf* conf_get_motd_list(void);
+
 extern struct ConfItem* attach_confs_byhost(struct Client* cptr, 
                                             const char* host, int statmask);
 extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
@@ -136,7 +146,6 @@ const char* conf_eval_crule(struct ConfItem* conf);
 extern void det_confs_butmask(struct Client *cptr, int mask);
 extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);
-extern struct ConfItem* find_admin(void);
 extern struct ConfItem* find_me(void);
 extern struct ConfItem* find_conf_exact(const char* name, 
                                         const char* user,

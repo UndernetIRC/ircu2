@@ -23,12 +23,11 @@
 #define INCLUDED_ircd_reply_h
 
 struct Client;
-struct ConfItem;
 
 extern int need_more_params(struct Client* cptr, const char* cmd);
 extern int send_error_to_client(struct Client* cptr, int error, ...);
-extern int send_reply(struct Client *to, int reply, ...);
-extern int send_admin_info(struct Client* sptr, const struct ConfItem* data);
+extern int send_reply(struct Client* to, int reply, ...);
+extern int send_admin_info(struct Client* to);
 
 #define SND_EXPLICIT	0x40000000	/* first arg is a pattern to use */
 
