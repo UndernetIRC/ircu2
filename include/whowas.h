@@ -57,6 +57,8 @@ struct Whowas {
   struct Whowas **hprevnextp;   /* Pointer to previous next pointer */
   struct Whowas *cnext;         /* Next entry with the same 'online' pointer */
   struct Whowas **cprevnextp;   /* Pointer to previous next pointer */
+  struct Whowas *wnext;		/* Next entry in whowas linked list */
+  struct Whowas *wprev;		/* Pointer to previous next pointer */
 };
 
 /*
@@ -71,5 +73,7 @@ extern void add_history(struct Client *cptr, int still_on);
 extern void off_history(const struct Client *cptr);
 extern void initwhowas(void);
 extern void count_whowas_memory(int *wwu, size_t *wwm, int *wwa, size_t *wwam);
+
+extern void whowas_realloc(void);
 
 #endif /* INCLUDED_whowas_h */

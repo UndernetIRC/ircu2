@@ -39,9 +39,11 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "numeric.h"
+#include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
@@ -55,8 +57,12 @@
 #include <string.h>
 
 
-static struct Whowas  whowas[NICKNAMEHISTORYLENGTH];
-static struct Whowas* whowas_next = whowas;
+static struct {
+  struct Whowas *ww_list;	/* list of whowas structures */
+  struct Whowas *ww_tail;	/* tail of list for getting structures */
+  unsigned int	 ww_alloc;	/* alloc count */
+} wwList = { 0, 0, 0 };
+
 struct Whowas* whowashash[WW_MAX];
 
 /*
@@ -131,12 +137,134 @@ struct Whowas* whowashash[WW_MAX];
  * --Run
  */
 
-typedef union {
-  struct Whowas *newww;
-  struct Whowas *oldww;
-} Current;
+/* whowas_clean()
+ *
+ * Clean up a whowas structure
+ */
+static struct Whowas *
+whowas_clean(struct Whowas *ww)
+{
+  if (!ww)
+    return 0;
 
-#define WHOWAS_UNUSED ((unsigned int)-1)
+  Debug((DEBUG_LIST, "Cleaning whowas structure for %s", ww->name));
+
+  if (ww->online) { /* unlink from client */
+    if (ww->cnext) /* shouldn't happen, but I'm not confident of that */
+      ww->cnext->cprevnextp = ww->cprevnextp;
+    *ww->cprevnextp = ww->cnext;
+  }
+
+  if (ww->hnext) /* now unlink from hash table */
+    ww->hnext->hprevnextp = ww->hprevnextp;
+  *ww->hprevnextp = ww->hnext;
+
+  if (ww->wnext) /* unlink from whowas linked list... */
+    ww->wnext->wprev = ww->wprev;
+  if (ww->wprev)
+    ww->wprev->wnext = ww->wnext;
+
+  if (wwList.ww_tail == ww) /* update tail pointer appropriately */
+    wwList.ww_tail = ww->wprev;
+
+  /* Free old info */
+  if (ww->name)
+    MyFree(ww->name);
+  if (ww->username)
+    MyFree(ww->username);
+  if (ww->hostname)
+    MyFree(ww->hostname);
+  if (ww->servername)
+    MyFree(ww->servername);
+  if (ww->realname)
+    MyFree(ww->realname);
+  if (ww->away)
+    MyFree(ww->away);
+
+  return ww;
+}
+
+/* whowas_free()
+ *
+ * Free a struct Whowas...
+ */
+static void
+whowas_free(struct Whowas *ww)
+{
+  if (!ww)
+    return;
+
+  Debug((DEBUG_LIST, "Destroying whowas structure for %s", ww->name));
+
+  MyFree(whowas_clean(ww));
+
+  wwList.ww_alloc--;
+}
+
+/* whowas_init()
+ *
+ * Initializes a given whowas structure
+ */
+static struct Whowas *
+whowas_init(struct Whowas *ww)
+{
+  if (!ww)
+    return 0;
+
+  ww->hashv = 0;
+  ww->name = 0;
+  ww->username = 0;
+  ww->hostname = 0;
+  ww->servername = 0;
+  ww->realname = 0;
+  ww->away = 0;
+  ww->logoff = 0;
+  ww->online = 0;
+  ww->hnext = 0;
+  ww->hprevnextp = 0;
+  ww->cnext = 0;
+  ww->cprevnextp = 0;
+  ww->wnext = 0;
+  ww->wprev = 0;
+
+  return ww;
+}
+
+/* whowas_alloc()
+ *
+ * Returns a whowas structure to use
+ */
+static struct Whowas *
+whowas_alloc(void)
+{
+  if (wwList.ww_alloc >= feature_int(FEAT_NICKNAMEHISTORYLENGTH))
+    return whowas_init(whowas_clean(wwList.ww_tail));
+
+  wwList.ww_alloc++; /* going to allocate a new one... */
+  return whowas_init((struct Whowas *) MyMalloc(sizeof(struct Whowas)));
+}
+
+/* whowas_realloc()
+ *
+ * Prune whowas list
+ */
+void
+whowas_realloc(void)
+{
+  Debug((DEBUG_LIST, "whowas_realloc() called with alloc count %d, "
+	 "history length %d, tail pointer %p", wwList.ww_alloc,
+	 feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwList.ww_tail));
+
+  while (wwList.ww_alloc > feature_int(FEAT_NICKNAMEHISTORYLENGTH)) {
+    if (!wwList.ww_tail) { /* list is empty... */
+      Debug((DEBUG_LIST, "whowas list emptied with alloc count %d",
+	     wwList.ww_alloc));
+      return;
+    }
+
+    whowas_free(wwList.ww_tail); /* free oldest element of whowas list */
+  }
+}
 
 /*
  * add_history
@@ -149,75 +277,44 @@ typedef union {
  */
 void add_history(struct Client *cptr, int still_on)
 {
-  Current ww;
-  ww.newww = whowas_next;
+  struct Whowas *ww;
 
-  /* If this entry has already been used, remove it from the lists */
-  if (ww.newww->hashv != WHOWAS_UNUSED)
-  {
-    if (ww.oldww->online)       /* No need to update cnext/cprev when offline! */
-    {
-      /* Remove ww.oldww from the linked list with the same `online' pointers */
-      *ww.oldww->cprevnextp = ww.oldww->cnext;
+  if (!(ww = whowas_alloc()))
+    return; /* couldn't get a structure */
 
-      assert(0 == ww.oldww->cnext);
-
-    }
-    /* Remove ww.oldww from the linked list with the same `hashv' */
-    *ww.oldww->hprevnextp = ww.oldww->hnext;
-
-    assert(0 == ww.oldww->hnext);
-
-    if (ww.oldww->name)
-      MyFree(ww.oldww->name);
-    if (ww.oldww->username)
-      MyFree(ww.oldww->username);
-    if (ww.oldww->hostname)
-      MyFree(ww.oldww->hostname);
-    if (ww.oldww->servername)
-      MyFree(ww.oldww->servername);
-    if (ww.oldww->realname)
-      MyFree(ww.oldww->realname);
-    if (ww.oldww->away)
-      MyFree(ww.oldww->away);
-  }
-
-  /* Initialize aWhoWas struct `newww' */
-  ww.newww->hashv = hash_whowas_name(cli_name(cptr));
-  ww.newww->logoff = CurrentTime;
-  DupString(ww.newww->name, cli_name(cptr));
-  DupString(ww.newww->username, cli_user(cptr)->username);
-  DupString(ww.newww->hostname, cli_user(cptr)->host);
-  /* Should be changed to server numeric */
-  DupString(ww.newww->servername, cli_name(cli_user(cptr)->server));
-  DupString(ww.newww->realname, cli_info(cptr));
+  ww->hashv = hash_whowas_name(cli_name(cptr)); /* initialize struct */
+  ww->logoff = CurrentTime;
+  DupString(ww->name, cli_name(cptr));
+  DupString(ww->username, cli_user(cptr)->username);
+  DupString(ww->hostname, cli_user(cptr)->host);
+  DupString(ww->servername, cli_name(cli_user(cptr)->server));
+  DupString(ww->realname, cli_info(cptr));
   if (cli_user(cptr)->away)
-    DupString(ww.newww->away, cli_user(cptr)->away);
-  else
-    ww.newww->away = NULL;
+    DupString(ww->away, cli_user(cptr)->away);
 
-  /* Update/initialize online/cnext/cprev: */
-  if (still_on)                 /* User just changed nicknames */
-  {
-    ww.newww->online = cptr;
-    /* Add struct Whowas struct `newww' to start of 'online list': */
-    if ((ww.newww->cnext = cli_whowas(cptr)))
-      ww.newww->cnext->cprevnextp = &ww.newww->cnext;
-    ww.newww->cprevnextp = &(cli_whowas(cptr));
-    cli_whowas(cptr) = ww.newww;
-  }
-  else                          /* User quitting */
-    ww.newww->online = NULL;
+  if (still_on) { /* user changed nicknames... */
+    ww->online = cptr;
+    if ((ww->cnext = cli_whowas(cptr)))
+      ww->cnext->cprevnextp = &ww->cnext;
+    ww->cprevnextp = &(cli_whowas(cptr));
+    cli_whowas(cptr) = ww;
+  } else /* user quit */
+    ww->online = 0;
 
-  /* Add struct Whowas struct `newww' to start of 'hashv list': */
-  if ((ww.newww->hnext = whowashash[ww.newww->hashv]))
-    ww.newww->hnext->hprevnextp = &ww.newww->hnext;
-  ww.newww->hprevnextp = &whowashash[ww.newww->hashv];
-  whowashash[ww.newww->hashv] = ww.newww;
+  /* link new whowas structure to list */
+  ww->wnext = wwList.ww_list;
+  if (wwList.ww_list)
+    wwList.ww_list->wprev = ww;
+  wwList.ww_list = ww;
 
-  /* Advance `whowas_next' to next entry in the `whowas' table: */
-  if (++whowas_next == &whowas[NICKNAMEHISTORYLENGTH])
-    whowas_next = whowas;
+  if (!wwList.ww_tail) /* update the tail pointer... */
+    wwList.ww_tail = ww;
+
+  /* Now link it into the hash table */
+  if ((ww->hnext = whowashash[ww->hashv]))
+    ww->hnext->hprevnextp = &ww->hnext;
+  ww->hprevnextp = &whowashash[ww->hashv];
+  whowashash[ww->hashv] = ww;
 }
 
 /*
@@ -259,7 +356,6 @@ struct Client *get_history(const char *nick, time_t timelimit)
 void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
 {
   struct Whowas *tmp;
-  int i;
   int u = 0;
   int a = 0;
   size_t um = 0;
@@ -269,17 +365,15 @@ void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
   assert(0 != wwa);
   assert(0 != wwam);
 
-  for (i = 0, tmp = whowas; i < NICKNAMEHISTORYLENGTH; i++, tmp++) {
-    if (tmp->hashv != WHOWAS_UNUSED) {
-      u++;
-      um += (strlen(tmp->name) + 1);
-      um += (strlen(tmp->username) + 1);
-      um += (strlen(tmp->hostname) + 1);
-      um += (strlen(tmp->servername) + 1);
-      if (tmp->away) {
-        a++;
-        am += (strlen(tmp->away) + 1);
-      }
+  for (tmp = wwList.ww_list; tmp; tmp = tmp->wnext) {
+    u++;
+    um += (strlen(tmp->name) + 1);
+    um += (strlen(tmp->username) + 1);
+    um += (strlen(tmp->hostname) + 1);
+    um += (strlen(tmp->servername) + 1);
+    if (tmp->away) {
+      a++;
+      am += (strlen(tmp->away) + 1);
     }
   }
   *wwu = u;
@@ -293,8 +387,8 @@ void initwhowas(void)
 {
   int i;
 
-  for (i = 0; i < NICKNAMEHISTORYLENGTH; i++)
-    whowas[i].hashv = WHOWAS_UNUSED;
+  for (i = 0; i < WW_MAX; i++)
+    whowashash[i] = 0;
 }
 
 unsigned int hash_whowas_name(const char *name)

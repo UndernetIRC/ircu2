@@ -42,6 +42,7 @@
 #include "struct.h"
 #include "support.h"
 #include "sys.h"    /* FALSE bleah */
+#include "whowas.h"	/* whowas_realloc */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -245,6 +246,7 @@ static struct FeatureDesc {
   F_B(NODNS, 0, 0, 0),
   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
   F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
+  F_I(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),

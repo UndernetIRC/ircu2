@@ -157,7 +157,7 @@ client_set_privs(struct Client* client)
   int i;
 
   memset(&privs, 0, sizeof(struct Privs));
-  memset(&privs, 0, sizeof(struct Privs));
+  memset(&antiprivs, 0, sizeof(struct Privs));
 
   if (!IsAnOper(client)) { /* clear privilege mask */
     memset(&(cli_privs(client)), 0, sizeof(struct Privs));

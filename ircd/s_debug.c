@@ -255,7 +255,7 @@ void count_memory(struct Client *cptr, char *nick)
       totcl = 0, totch = 0, totww = 0, tot = 0;
 
   count_whowas_memory(&wwu, &wwm, &wwa, &wwam);
-  wwm += sizeof(struct Whowas) * NICKNAMEHISTORYLENGTH;
+  wwm += sizeof(struct Whowas) * feature_int(FEAT_NICKNAMEHISTORYLENGTH);
   wwm += sizeof(struct Whowas *) * WW_MAX;
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
@@ -349,7 +349,7 @@ void count_memory(struct Client *cptr, char *nick)
 	     ":Whowas users %d(%zu) away %d(%zu)", wwu,
 	     wwu * sizeof(struct User), wwa, wwam);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
-	     NICKNAMEHISTORYLENGTH, wwm);
+	     feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwm);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
