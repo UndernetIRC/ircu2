@@ -1,3 +1,8 @@
+2005-03-23  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_burst.c (ms_burst): Remove limit and keys when a channel
+	is wiped out during burst.
+
 2005-03-22  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_res.c (check_resolver_timeout): I give up.  Use the
