@@ -210,6 +210,8 @@ void free_connection(struct Connection* con)
   if (!con)
     return;
 
+  assert(0 == con_client(con));
+
   dealloc_connection(con); /* deallocate the connection */
 }
 

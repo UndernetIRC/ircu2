@@ -1,5 +1,8 @@
 2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/list.c (free_connection): make sure the client is really
+	gone before doing away with the connection
+
 	* ircd/s_bsd.c: record that socket has been added in con_freeflag
 	field; queue a socket_del() as soon as the socket is close()'d;
 	use con_freeflag & FREEFLAG_TIMER instead of con_timer; clear
