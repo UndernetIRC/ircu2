@@ -106,6 +106,31 @@
  */
 int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  struct Channel *chptr = 0;
+  struct ModeBuf mbuf;
+
+  if (parc < 3)
+    return need_more_params(sptr, "OPMODE");
+
+  if (IsLocalChannel(parv[1]))
+    return 0;
+
+  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
+    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+
+  modebuf_init(&mbuf, sptr, cptr, chptr,
+	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
+		MODEBUF_DEST_SERVER  | /* And to server */
+		MODEBUF_DEST_OPMODE  | /* Use OPMODE */
+		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
+
+  mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+	     (MODE_PARSE_SET    | /* Set the modes on the channel */
+	      MODE_PARSE_STRICT | /* Be strict about it */
+	      MODE_PARSE_FORCE)); /* And force them to be accepted */
+
+  modebuf_flush(&mbuf); /* flush the modes */
+
   return 0;
 }
 
@@ -114,6 +139,31 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  struct Channel *chptr = 0;
+  struct ModeBuf mbuf;
+  struct Membership *member;
+
+  if (parc < 3)
+    return need_more_params(sptr, "OPMODE");
+
+  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
+    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+
+  if (!(member = find_member_link(chptr, sptr)))
+    return send_error_to_client(sptr, ERR_NOTONCHANNEL, chptr->chname);
+
+  modebuf_init(&mbuf, sptr, cptr, chptr,
+	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
+		MODEBUF_DEST_SERVER  | /* And to server */
+		MODEBUF_DEST_OPMODE  | /* Use OPMODE */
+		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
+
+  mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
+	     (MODE_PARSE_SET |    /* set the modes on the channel */
+	      MODE_PARSE_FORCE)); /* And force them to be accepted */
+
+  modebuf_flush(&mbuf); /* flush the modes */
+
   return 0;
 }
 

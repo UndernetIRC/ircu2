@@ -1,5 +1,15 @@
 2000-03-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_clearmode.c (do_clearmode): do_clearmode() would remove
+	+k and +l even if they weren't set...
+
+	* ircd/m_opmode.c: implement the OPMODE command using mode_parse()
+
+	* ircd/channel.c: make mode_process_clients() clear the DEOPPED
+	flag; fix +s+p exclusivity; add MODE_ADD/MODE_DEL to flag list
+	for; test the 0-th member, not the i-th member, of the client
+	change state stuff
+
 	* ircd/m_clearmode.c (do_clearmode): use the new
 	mode_invite_clear() function
 
@@ -175,7 +185,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.43 2000-03-30 18:36:24 kev Exp $
+# $Id: ChangeLog,v 1.44 2000-03-30 19:57:22 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
