@@ -118,6 +118,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int flag;
   int len;
   int mlen;
+  int needs_space;
   char* s;
   char* para = parc > 1 ? parv[1] : 0;
   char buf[BUFSIZE];
@@ -169,13 +170,15 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       *buf = '@';
     idx = len + 4;
     flag = 1;
+    needs_space = 0;
     for (member = chptr->members; member; member = member->next_member)
     {
       c2ptr = member->user;
-#ifndef GODMODE
-      if (sptr != c2ptr && IsInvisible(c2ptr) && !find_channel_member(sptr, chptr))
-        continue;
-#endif
+      if (needs_space) {
+      	strcat(buf, " ");
+        idx++;
+      }
+      needs_space=1;
       if (IsZombie(member))
       {
         if (member->user != sptr)
@@ -197,21 +200,9 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         idx++;
       }
       strcat(buf, c2ptr->name);
-      strcat(buf, " ");
       idx += strlen(c2ptr->name) + 1;
       flag = 1;
-#ifdef GODMODE
-      {
-        char yxx[6];
-        sprintf_irc(yxx, "%s%s", NumNick(c2ptr));
-        assert(c2ptr == findNUser(yxx));
-        sprintf_irc(buf + strlen(buf), "(%s) ", yxx);
-        idx += 6;
-      }
-      if (mlen + idx + NICKLEN + 11 > BUFSIZE)
-#else
       if (mlen + idx + NICKLEN + 5 > BUFSIZE)
-#endif
         /* space, modifier, nick, \r \n \0 */
       {
 	send_reply(sptr, RPL_NAMREPLY, buf);
@@ -225,6 +216,7 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           *buf = '@';
         idx = len + 4;
         flag = 0;
+        needs_space=0;
       }
     }
     if (flag)

@@ -1,3 +1,7 @@
+2000-05-29  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_names.c: Removed redundant space. 
+	* ircd/s_bsd.c: Fixed incorrect syntax on ERROR line.
+
 2000-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_burst.c (ms_burst): er...that should have been a ",", not
@@ -1150,7 +1154,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.137 2000-05-18 23:05:04 kev Exp $
+# $Id: ChangeLog,v 1.138 2000-05-29 10:37:33 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

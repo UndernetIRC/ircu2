@@ -561,7 +561,7 @@ void add_connection(struct Listener* listener, int fd) {
   time_t             next_target = 0;
 
   const char* const throttle_message =
-         "ERROR: Your host is trying to (re)connect too fast -- throttled\r\n";
+         "ERROR :Your host is trying to (re)connect too fast -- throttled\r\n";
        /* 12345678901234567890123456789012345679012345678901234567890123456 */
   
   assert(0 != listener);
