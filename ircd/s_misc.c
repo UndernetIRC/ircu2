@@ -65,13 +65,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
+/** Array of English month names (0 = January). */
 static char *months[] = {
   "January", "February", "March", "April",
   "May", "June", "July", "August",
   "September", "October", "November", "December"
 };
 
+/** Array of English day names (0 = Sunday). */
 static char *weekdays[] = {
   "Sunday", "Monday", "Tuesday", "Wednesday",
   "Thursday", "Friday", "Saturday"
@@ -80,9 +81,16 @@ static char *weekdays[] = {
 /*
  * stats stuff
  */
+/** Global statistics structure. */
 static struct ServerStatistics ircst;
+/** Public pointer to global statistics structure. */
 struct ServerStatistics* ServerStats = &ircst;
 
+/** Formats a Unix time as a readable string.
+ * @param clock Unix time to format (0 means #CurrentTime).
+ * @return Pointer to a static buffer containing something like
+ * "Sunday January 1 2000 -- 09:30 +01:00"
+ */
 char *date(time_t clock)
 {
   static char buf[80], plus;
@@ -97,6 +105,9 @@ char *date(time_t clock)
   gm = &gmbuf;
   lt = localtime(&clock);
 
+  /* There is unfortunately no clean portable way to extract time zone
+   * offset information, so do ugly things.
+   */
   minswest = (gm->tm_hour - lt->tm_hour) * 60 + (gm->tm_min - lt->tm_min);
   if (lt->tm_yday != gm->tm_yday)
   {
@@ -119,19 +130,16 @@ char *date(time_t clock)
   return buf;
 }
 
-/*
- * myctime
- *
- * This is like standard ctime()-function, but it zaps away
- * the newline from the end of that string. Also, it takes
+/** Like ctime() but with no trailing newline. Also, it takes
  * the time value as parameter, instead of pointer to it.
- * Note that it is necessary to copy the string to alternate
- * buffer (who knows how ctime() implements it, maybe it statically
- * has newline there and never 'refreshes' it -- zapping that
- * might break things in other places...)
+ * @param value Unix time to format.
+ * @return Pointer to a static buffer containing formatted time.
  */
 char *myctime(time_t value)
 {
+  /* Use a secondary buffer in case ctime() would not replace an
+   * overwritten newline.
+   */
   static char buf[28];
   char *p;
 
@@ -142,27 +150,14 @@ char *myctime(time_t value)
   return buf;
 }
 
-/*
- *  get_client_name
- *       Return the name of the client for various tracking and
- *       admin purposes. The main purpose of this function is to
- *       return the "socket host" name of the client, if that
- *    differs from the advertised name (other than case).
- *    But, this can be used to any client structure.
- *
- *    Returns:
- *      "name[user@ip#.port]" if 'showip' is true;
- *      "name" if 'showip' is false.
- *
- *  NOTE 1:
- *    Watch out the allocation of "nbuf", if either sptr->name
- *    or sptr->sockhost gets changed into pointers instead of
- *    directly allocated within the structure...
- *
- *  NOTE 2:
- *    Function return either a pointer to the structure (sptr) or
- *    to internal buffer (nbuf). *NEVER* use the returned pointer
- *    to modify what it points!!!
+/** Return the name of the client for various tracking and admin
+ * purposes. The main purpose of this function is to return the
+ * "socket host" name of the client, if that differs from the
+ * advertised name (other than case).  But, this can be used on any
+ * client structure.
+ * @param sptr Client to operate on.
+ * @param showip If non-zero, append [username\@text-ip] to name.
+ * @return Either cli_name(\a sptr) or a static buffer.
  */
 const char* get_client_name(const struct Client* sptr, int showip)
 {
@@ -180,14 +175,11 @@ const char* get_client_name(const struct Client* sptr, int showip)
   return cli_name(sptr);
 }
 
-const char *get_client_host(const struct Client *cptr)
-{
-  return get_client_name(cptr, HIDE_IP);
-}
-
-/*
- * Form sockhost such that if the host is of form user@host, only the host
- * portion is copied.
+/** Set cli_sockhost(cptr) from \a host.
+ * If \a host contains an '@', copy starting after that byte.
+ * Otherwise copy all of \a host.
+ * @param cptr Client to operate on.
+ * @param host hostname or user\@hostname string.
  */
 void get_sockhost(struct Client *cptr, char *host)
 {
@@ -199,17 +191,13 @@ void get_sockhost(struct Client *cptr, char *host)
   ircd_strncpy(cli_sockhost(cptr), s, HOSTLEN);
 }
 
-/*
+/**
  * Exit one client, local or remote. Assuming for local client that
  * all dependants already have been removed, and socket is closed.
- *
- * Rewritten by Run - 24 sept 94
- *
- * bcptr : client being (s)quitted
- * sptr : The source (prefix) of the QUIT or SQUIT
- *
- * --Run
+ * @param bcptr Client being (s)quitted.
+ * @param comment The QUIT comment to send.
  */
+/* Rewritten by Run - 24 sept 94 */
 static void exit_one_client(struct Client* bcptr, const char* comment)
 {
   struct SLink *lp;
@@ -313,15 +301,13 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   remove_client_from_list(bcptr);
 }
 
-/*
- * exit_downlinks - added by Run 25-9-94
- *
+/* exit_downlinks - added by Run 25-9-94 */
+/**
  * Removes all clients and downlinks (+clients) of any server
  * QUITs are generated and sent to local users.
- *
- * cptr    : server that must have all dependents removed
- * sptr    : source who thought that this was a good idea
- * comment : comment sent as sign off message to local clients
+ * @param cptr server that must have all dependents removed
+ * @param sptr source who thought that this was a good idea
+ * @param comment comment sent as sign off message to local clients
  */
 static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comment)
 {
@@ -349,10 +335,9 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
   }
 }
 
-/*
- * exit_client, rewritten 25-9-94 by Run
- *
- * This function exits a client of *any* type (user, server, etc)
+/* exit_client, rewritten 25-9-94 by Run */
+/**
+ * Eexits a client of *any* type (user, server, etc)
  * from this server. Also, this generates all necessary prototol
  * messages that this exit may cause.
  *
@@ -380,13 +365,16 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
  * sptr->from. And CPTR_KILLED should be returned if cptr got removed (too).
  *
  * --Run
+ * @param cptr Connection currently being handled by read_message.
+ * @param victim Client being killed.
+ * @param killer Client that made the decision to remove \a victim.
+ * @param comment Reason for the exit.
+ * @return CPTR_KILLED if cptr == bcptr, else 0.
  */
-int exit_client(struct Client *cptr,    /* Connection being handled by
-                                   read_message right now */
-    struct Client* victim,              /* Client being killed */
-    struct Client* killer,              /* The client that made the decision
-                                   to remove this one, never NULL */
-    const char* comment)              /* Reason for the exit */
+int exit_client(struct Client *cptr,
+    struct Client* victim,
+    struct Client* killer,
+    const char* comment)
 {
   struct Client* acptr = 0;
   struct DLink *dlp;
@@ -522,9 +510,17 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   return (cptr == victim) ? CPTR_KILLED : 0;
 }
 
-/*
- * Exit client with formatted message, added 25-9-94 by Run
+/**
+ * Exit client with formatted va_list message.
+ * Thin wrapper around exit_client().
+ * @param cptr Connection being processed.
+ * @param bcptr Connection being closed.
+ * @param sptr Connection who asked to close the victim.
+ * @param pattern Format string for message.
+ * @param vl Stdargs argument list.
+ * @return Has a tail call to exit_client().
  */
+/* added 25-9-94 by Run */
 int vexit_client_msg(struct Client *cptr, struct Client *bcptr, struct Client *sptr,
     const char *pattern, va_list vl)
 {
@@ -533,6 +529,15 @@ int vexit_client_msg(struct Client *cptr, struct Client *bcptr, struct Client *s
   return exit_client(cptr, bcptr, sptr, msgbuf);
 }
 
+/**
+ * Exit client with formatted message using a variable-length argument list.
+ * Thin wrapper around exit_client().
+ * @param cptr Connection being processed.
+ * @param bcptr Connection being closed.
+ * @param sptr Connection who asked to close the victim.
+ * @param pattern Format string for message.
+ * @return Has a tail call to exit_client().
+ */
 int exit_client_msg(struct Client *cptr, struct Client *bcptr,
     struct Client *sptr, const char *pattern, ...)
 {
@@ -546,11 +551,18 @@ int exit_client_msg(struct Client *cptr, struct Client *bcptr,
   return exit_client(cptr, bcptr, sptr, msgbuf);
 }
 
+/** Initialize global server statistics. */
+/* (Kind of pointless since C guarantees it's already zero'ed, but... */
 void initstats(void)
 {
   memset(&ircst, 0, sizeof(ircst));
 }
 
+/** Report server statistics to a client.
+ * @param cptr Client who wants statistics.
+ * @param sd StatDesc structure being looked up (unused).
+ * @param param Extra parameter passed by user (unused).
+ */
 void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
   struct Client *acptr;
