@@ -162,6 +162,7 @@ extern int mo_uping(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallops(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallusers(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
+extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
 extern int mr_server(struct Client*, struct Client*, int, char*[]);
 extern int ms_admin(struct Client*, struct Client*, int, char*[]);

@@ -30,6 +30,16 @@
  */
 
 /*
+ * NETWORK is the name the server claims the network is
+ */
+#define NETWORK "UnderNet"
+
+/* 
+ * URL_CLIENTS is a URL to where to find compatible clients
+ */
+#define URL_CLIENTS "ftp://ftp.undernet.org/pub/irc/clients"
+
+/*
  * NICKLEN is the maximum length allowed for a nickname
  *
  * Because certain networks are very helpful in finding bugs, the below

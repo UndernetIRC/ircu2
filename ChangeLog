@@ -1,3 +1,8 @@
+2001-09-20  Perry Lorier  <isomer@coders.net>
+
+	* Pullups from 2.10.10.pl16
+	* Added some warnings, and the concept of rate limited snotices
+
 2001-08-31  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: use "%u" to format limit arguments; use
