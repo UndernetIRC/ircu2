@@ -540,7 +540,7 @@ void sendto_chanopsserv_butone(struct Client *one, struct Client *from, struct C
 }
 
 /*
- * sendto_server_butone
+ * sendto_serv_butone
  *
  * Send a message to all connected servers except the client 'one'.
  */

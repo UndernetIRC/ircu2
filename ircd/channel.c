@@ -2899,28 +2899,26 @@ modebuf_flush(struct ModeBuf *mbuf)
 
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
       if (IsServer(mbuf->mb_source))
-	sendto_server_butone(mbuf->mb_connect, "%s " TOK_OPMODE " %s %s%s%s%s",
-			     NumServ(mbuf->mb_source),
-			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			     remstr);
+	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_OPMODE " %s %s%s%s%s",
+			   NumServ(mbuf->mb_source), mbuf->mb_channel->chname,
+			   addbuf, rembuf, addstr, remstr);
       else
-	sendto_server_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE
-			     " %s %s%s%s%s", NumNick(mbuf->mb_source),
-			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			     remstr);
+	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE " %s %s%s%s%s",
+			   NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
+			   addbuf, rembuf, addstr, remstr);
     } else {
       if (IsServer(mbuf->mb_source))
-	sendto_server_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
-			     TIME_T_FMT, NumServ(mbuf->mb_source),
-			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			     remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			     mbuf->mb_channel->creationtime);
+	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s "
+			   TIME_T_FMT, NumServ(mbuf->mb_source),
+			   mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			   remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			   mbuf->mb_channel->creationtime);
       else
-	sendto_server_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
-			     TIME_T_FMT, NumNick(mbuf->mb_source),
-			     mbuf->mb_channel->chname, addbuf, rembuf, addstr,
-			     remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			     mbuf->mb_channel->creationtime);
+	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE " %s %s%s%s%s "
+			   TIME_T_FMT, NumNick(mbuf->mb_source),
+			   mbuf->mb_channel->chname, addbuf, rembuf, addstr,
+			   remstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
+			   mbuf->mb_channel->creationtime);
     }
   }
 
