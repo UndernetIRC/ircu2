@@ -308,6 +308,7 @@ static struct FeatureDesc {
   F_B(OPER_SET, 0, 0, 0),
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
   F_B(OPER_WIDE_GLINE, 0, 1, 0),
+  F_B(OPER_LIST_CHAN, 0, 1, 0),
 
   /* features that affect local opers on this server */
   F_B(LOCOP_KILL, 0, 1, 0),
@@ -321,6 +322,7 @@ static struct FeatureDesc {
   F_B(LOCOP_SET, 0, 0, 0),
   F_B(LOCOP_SEE_IN_SECRET_CHANNELS, 0, 0, 0),
   F_B(LOCOP_WIDE_GLINE, 0, 0, 0),
+  F_B(LOCOP_LIST_CHAN, 0, 0, 0),
 
 #undef F_S
 #undef F_B

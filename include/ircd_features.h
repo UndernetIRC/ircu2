@@ -101,6 +101,7 @@ enum Feature {
   FEAT_OPER_SET,
   FEAT_OPERS_SEE_IN_SECRET_CHANNELS,
   FEAT_OPER_WIDE_GLINE,
+  FEAT_OPER_LIST_CHAN,
 
   /* features that affect local opers on this server */
   FEAT_LOCOP_KILL,
@@ -114,6 +115,7 @@ enum Feature {
   FEAT_LOCOP_SET,
   FEAT_LOCOP_SEE_IN_SECRET_CHANNELS,
   FEAT_LOCOP_WIDE_GLINE,
+  FEAT_LOCOP_LIST_CHAN,
 
   FEAT_LAST_F
 };

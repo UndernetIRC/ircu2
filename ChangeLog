@@ -1,3 +1,8 @@
+2002-03-20 LordLuke <lordluke@undernet.org>
+	* ircd/client.c: Add LOCOP_LIST_CHAN feature.
+
+	* ircd/ircd_features.h: Add LOCOP_LIST_CHAN feature.
+
 2002-03-19 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_links.c: Make /links behave like /map for head_in_sand.
