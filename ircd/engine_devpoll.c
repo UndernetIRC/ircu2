@@ -291,11 +291,12 @@ engine_loop(struct Generators* gen)
 
     for (i = 0; i < nfds; i++) {
       assert(-1 < polls[i].fd);
-      assert(s_fd(sockList[polls[i].fd]) == polls[i].fd);
 
       sock = sockList[polls[i].fd];
       if (!sock) /* slots may become empty while processing events */
 	continue;
+
+      assert(s_fd(sock) == polls[i].fd);
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
