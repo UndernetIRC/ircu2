@@ -90,6 +90,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -134,10 +135,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
     struct Client* acptr;
     if ((acptr = FindClient(destination))) {
-      if (MyUser(acptr))
-        sendto_one(acptr, ":%s PONG %s %s", sptr->name, origin, destination);
-      else
-        sendto_one(acptr, "%s " TOK_PONG " %s %s", NumServ(sptr), origin, destination);
+      sendcmdto_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
     }
   }
   return 0;
@@ -172,9 +170,8 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         return register_user(cptr, sptr, sptr->name, sptr->user->username);
     }
     else  
-      sendto_one(sptr, ":%s %d %s :To connect, type /QUOTE PONG %u",
-                 me.name, ERR_BADPING, (sptr->name) ? sptr->name : "*",
-                 sptr->cookie);
+      send_reply(sptr, RPL_EXPLICIT | ERR_BADPING,
+		 ":To connect, type /QUOTE PONG %u", sptr->cookie);
   }
   return 0;
 }

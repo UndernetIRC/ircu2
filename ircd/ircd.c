@@ -27,6 +27,7 @@
 #include "hash.h"
 #include "ircd_alloc.h" /* set_nomem_handler */
 #include "ircd_log.h"
+#include "ircd_reply.h"
 #include "ircd_signal.h"
 #include "ircd_string.h"
 #include "jupe.h"
@@ -339,14 +340,11 @@ static time_t check_pings(void)
        * nospoof PONG.
        */
       if (*cptr->name && cptr->user && *cptr->user->username) {
-	/* XXX sendto_one used to send numeric XXX */
-        sendto_one(cptr,
-            ":%s %d %s :Your client may not be compatible with this server.",
-            me.name, ERR_BADPING, cptr->name);
-        sendto_one(cptr,
-            ":%s %d %s :Compatible clients are available at "
-            "ftp://ftp.undernet.org/pub/irc/clients",
-            me.name, ERR_BADPING, cptr->name);
+	send_reply(cptr, RPL_EXPLICIT | ERR_BADPING,
+		   ":Your client may not be compatible with this server.");
+	send_reply(cptr, RPL_EXPLICIT | ERR_BADPING,
+		   ":Compatible clients are available at "
+		   "ftp://ftp.undernet.org/pub/irc/clients");
       }    
       exit_client_msg(cptr,cptr,&me, "Ping Timeout");
       continue;
@@ -364,11 +362,10 @@ static time_t check_pings(void)
        */
       cptr->lasttime = CurrentTime - max_ping;
       
-      /* XXX sendto_one sending PING; must be very careful XXX */
       if (IsUser(cptr))
-        sendto_one(cptr, MSG_PING " :%s", me.name);
+	sendrawto_one(cptr, MSG_PING " :%s", me.name);
       else
-        sendto_one(cptr, "%s " TOK_PING " :%s", NumServ(&me), me.name);
+	sendcmdto_one(&me, CMD_PING, cptr, ":%s", me.name);
     } /* of if not ping sent... */
     
     expire=cptr->lasttime+max_ping*2;

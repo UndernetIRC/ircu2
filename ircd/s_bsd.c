@@ -406,9 +406,9 @@ static int completed_connection(struct Client* cptr)
     sendto_opmask_butone(0, SNO_OLDSNO, "Lost Server Line for %s", cptr->name);
     return 0;
   }
-  /* XXX sendto_one sending without a prefix; be careful! */
+
   if (!EmptyString(aconf->passwd))
-    sendto_one(cptr, "PASS :%s", aconf->passwd);
+    sendrawto_one(cptr, MSG_PASS " :%s", aconf->passwd);
 
 #if 0 
   /* dead code, already done in connect_server */
@@ -434,10 +434,10 @@ static int completed_connection(struct Client* cptr)
    */
   cptr->lasttime = CurrentTime;
   cptr->flags |= FLAGS_PINGSENT;
-  /* XXX sendto_one sending without a prefix; be careful! */
-  sendto_one(cptr, "SERVER %s 1 " TIME_T_FMT " " TIME_T_FMT " J%s %s%s :%s",
-             me.name, me.serv->timestamp, newts, MAJOR_PROTOCOL, 
-             NumServCap(&me), me.info);
+
+  sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s",
+		me.name, me.serv->timestamp, newts, MAJOR_PROTOCOL, 
+		NumServCap(&me), me.info);
 
   return (IsDead(cptr)) ? 0 : 1;
 }

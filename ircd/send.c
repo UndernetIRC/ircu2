@@ -990,6 +990,22 @@ void sendto_highprot_butone(struct Client *cptr, int p, const char *pattern, ...
 }
 
 /*
+ * Send a raw command to a single client; use *ONLY* if you absolutely
+ * must send a command without a prefix.
+ */
+void sendrawto_one(struct Client *to, const char *pattern, ...)
+{
+  char sndbuf[IRC_BUFSIZE];
+  va_list vl;
+
+  va_start(vl, pattern);
+  ircd_vsnprintf(to, sndbuf, sizeof(sndbuf) - 2, pattern, vl);
+  va_end(vl);
+
+  send_buffer(to, sndbuf);
+}
+
+/*
  * Send a (prefixed) command to a single client; select which of <cmd>
  * <tok> to use depending on if to is a server or not.  <from> is the
  * originator of the command.

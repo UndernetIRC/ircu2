@@ -33,6 +33,7 @@
 #include "ircd_alloc.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_snprintf.h"
 #include "ircd_xopen.h"
 #include "jupe.h"
 #include "list.h"
@@ -59,7 +60,7 @@
 
 unsigned int max_connection_count = 0;
 unsigned int max_client_count = 0;
-
+#if 0
 int exit_new_server(struct Client* cptr, struct Client* sptr,
                     const char* host, time_t timestamp, const char* fmt, ...)
 {
@@ -76,6 +77,26 @@ int exit_new_server(struct Client* cptr, struct Client* sptr,
   va_end(vl);
   MyFree(buf);
   return 0;
+}
+#endif /* 0 */
+
+int exit_new_server(struct Client *cptr, struct Client *sptr, const char *host,
+		    time_t timestamp, const char *pattern, ...)
+{
+  struct VarData vd;
+  int retval = 0;
+
+  vd.vd_format = pattern;
+  va_start(vd.vd_args, pattern);
+
+  if (!IsServer(sptr))
+    retval = vexit_client_msg(cptr, cptr, &me, pattern, vd.vd_args);
+  else
+    sendcmdto_one(&me, CMD_SQUIT, cptr, "%s %Tu :%v", host, timestamp, &vd);
+
+  va_end(vd.vd_args);
+
+  return retval;
 }
 
 int a_kills_b_too(struct Client *a, struct Client *b)
@@ -105,14 +126,13 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 
   if (IsUnknown(cptr)) {
     if (aconf->passwd[0])
-      sendto_one(cptr, "PASS :%s", aconf->passwd);
+      sendrawto_one(cptr, MSG_PASS " :%s", aconf->passwd);
     /*
      *  Pass my info to the new server
      */
-    sendto_one(cptr, "SERVER %s 1 " TIME_T_FMT " " TIME_T_FMT " J%s %s%s :%s",
-        me.name, me.serv->timestamp, cptr->serv->timestamp,
-        MAJOR_PROTOCOL, NumServCap(&me),
-        (me.info[0]) ? (me.info) : "IRCers United");
+    sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s", me.name,
+		  me.serv->timestamp, cptr->serv->timestamp, MAJOR_PROTOCOL,
+		  NumServCap(&me), *me.info ? me.info : "IRCers United");
     /*
      * Don't charge this IP# for connecting
      * XXX - if this comes from a server port, it will not have been added

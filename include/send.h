@@ -66,6 +66,11 @@ extern char sendbuf[2048];
 
 #define IRC_BUFSIZE	512
 
+/* Send a raw message to one client; USE ONLY IF YOU MUST SEND SOMETHING
+ * WITHOUT A PREFIX!
+ */
+extern void sendrawto_one(struct Client *to, const char *pattern, ...);
+
 /* Send a command to one client */
 extern void sendcmdto_one(struct Client *from, const char *cmd,
 			  const char *tok, struct Client *to,

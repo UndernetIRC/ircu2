@@ -16,6 +16,7 @@
 #include "ircd_alloc.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -1723,16 +1724,16 @@ size_t cres_mem(struct Client* sptr)
       request_mem += MAXGETHOSTLEN + 1;
     ++request_count;
   }
-  /* XXX sendto_one used to send STATSDEBUG */
+
   if (cachedCount != cache_count) {
-    sendto_one(sptr, 
-               ":%s %d %s :Resolver: cache count mismatch: %d != %d",
-               me.name, RPL_STATSDEBUG, sptr->name, cachedCount, cache_count);
+    send_reply(sptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	       ":Resolver: cache count mismatch: %d != %d", cachedCount,
+	       cache_count);
     assert(cachedCount == cache_count);
   }
-  sendto_one(sptr, ":%s %d %s :Resolver: cache %d(%d) requests %d(%d)",
-             me.name, RPL_STATSDEBUG, sptr->name, cache_count, cache_mem,
-             request_count, request_mem);
+  send_reply(sptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Resolver: cache %d(%d) requests %d(%d)", cache_count,
+	     cache_mem, request_count, request_mem);
   return cache_mem + request_mem;
 }
 

@@ -532,7 +532,7 @@ static Numeric replyTable[] = {
 /* 248 */
   { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
 /* 249 */
-  { 0 },
+  { RPL_STATSDEBUG, 0, "249" },
 /* 250 */
   { RPL_STATSCONN, ":Highest connection count: %d (%d clients)", "250" },
 /* 251 */
@@ -974,7 +974,7 @@ static Numeric replyTable[] = {
 /* 467 */
   { ERR_KEYSET, "%s :Channel key already set", "467" },
 /* 468 */
-  { ERR_INVALIDUSERNAME, "", "468" },
+  { ERR_INVALIDUSERNAME, 0, "468" },
 /* 469 */
   { 0 },
 /* 470 */
@@ -1064,7 +1064,7 @@ static Numeric replyTable[] = {
 /* 512 */
   { ERR_NOSUCHGLINE, "%s :No such gline", "512" },
 /* 513 */
-  { ERR_BADPING, "", "513" },
+  { ERR_BADPING, 0, "513" },
 /* 514 */
   { ERR_NOSUCHJUPE, "%s :No such jupe", "514" },
 /* 515 */

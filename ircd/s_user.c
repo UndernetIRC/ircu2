@@ -534,15 +534,14 @@ int register_user(struct Client *cptr, struct Client *sptr,
         strcmp(sptr->username, username) != 0))
     {
       ServerStats->is_ref++;
-      /* XXX sendto_one used with ERR_INVALIDUSERNAME--explanations */
-      sendto_one(cptr, ":%s %d %s :Your username is invalid.",
-                 me.name, ERR_INVALIDUSERNAME, cptr->name);
-      sendto_one(cptr,
-                 ":%s %d %s :Connect with your real username, in lowercase.",
-                 me.name, ERR_INVALIDUSERNAME, cptr->name);
-      sendto_one(cptr, ":%s %d %s :If your mail address were foo@bar.com, "
-                 "your username would be foo.",
-                 me.name, ERR_INVALIDUSERNAME, cptr->name);
+
+      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+		 ":Your username is invalid.");
+      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+		 ":Connect with your real username, in lowercase.");
+      send_reply(cptr, RPL_EXPLICIT | ERR_INVALIDUSERNAME,
+		 ":If your mail address were foo@bar.com, your username "
+		 "would be foo.");
       return exit_client(cptr, sptr, &me, "USER: Bad username");
     }
     Count_unknownbecomesclient(sptr, UserStats);
@@ -813,8 +812,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       do {
         sptr->cookie = (ircrandom() & 0x7fffffff);
       } while (!sptr->cookie);
-      /* XXX sendto_one used to send PING--must be very careful! */
-      sendto_one(cptr, "PING :%u", sptr->cookie);
+      sendrawto_one(cptr, MSG_PING " :%u", sptr->cookie);
     }
     else if (*sptr->user->host && sptr->cookie == COOKIE_VERIFIED) {
       /*
