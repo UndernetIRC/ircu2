@@ -23,35 +23,6 @@ fi
 ])
 
 dnl
-dnl Macro: unet_CHECK_LIB_RESOLV
-dnl
-dnl   Check for res_mkquery in -lresolv and add that to LIBS when needed.
-dnl
-AC_DEFUN(unet_CHECK_LIB_RESOLV,
-[AC_CACHE_CHECK([for res_mkquery in -lresolv], unet_cv_lib_resolv,
-[AC_TRY_LINK([struct rrec;
-extern int res_mkquery(int, const char *, int, int, const char *,
-    int, struct rrec *, unsigned char *, int);],
-[int op;
-const char *dname;
-int class, type;
-const char *data;
-int datalen;
-struct rrec *newrr;
-unsigned char *buf;
-int buflen;
-res_mkquery(op,dname,class,type,data,datalen,newrr,buf,buflen)],
-unet_cv_lib_resolv=no, [OLD_LIBS="$LIBS"
-LIBS="$LIBS -lresolv"
-AC_TRY_LINK([extern char *_res;], [*_res=0],
-unet_cv_lib_resolv=yes, unet_cv_lib_resolv=no)
-LIBS="$OLD_LIBS"])])
-if test $unet_cv_lib_resolv = yes; then
-  AC_DEFINE(HAVE_LIB_RESOLV)
-  LIBS="$LIBS -lresolv"
-fi])
-
-dnl
 dnl Macro: unet_NONBLOCKING
 dnl
 dnl   Check whether we have posix, bsd or sysv non-blocking sockets and
@@ -157,62 +128,6 @@ fi
 fi])
 
 dnl
-dnl Macro: unet_DEFINE_SIZE_T_FMT
-dnl
-dnl Define SIZE_T_FMT to be "%u" or "%lu", whichever seems more appropriate.
-dnl
-AC_DEFUN(unet_DEFINE_SIZE_T_FMT,
-[dnl Make educated guess :/, if size_t is a long or not
-AC_CHECK_SIZEOF(size_t)dnl
-AC_MSG_CHECKING(printf format of size_t)
-if test "$ac_cv_sizeof_size_t" = 4 ; then
-  AC_MSG_RESULT("%u")
-  AC_DEFINE(SIZE_T_FMT, "%u")
-else
-  AC_MSG_RESULT("%lu")
-  AC_DEFINE(SIZE_T_FMT, "%lu")
-fi])
-
-dnl
-dnl Macro: unet_DEFINE_TIME_T_FMT
-dnl
-dnl Try to figure out if time_t is an int or not, and if so define
-dnl TIME_T_FMT to be "%u", otherwise define it to be "%lu".
-dnl Likewise define STIME_T_FMT for the signed format.
-dnl
-AC_DEFUN(unet_DEFINE_TIME_T_FMT,
-[dnl Make educated guess :/, if time_t is a long or not
-AC_MSG_CHECKING(size of time_t)
-AC_CACHE_VAL(unet_cv_sizeof_time_t,
-[AC_TRY_RUN([#include <stdio.h>
-#include <sys/types.h>
-main()
-{
-  FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
-  fprintf(f, "%d\n", sizeof(time_t));
-  exit(0);
-}], unet_cv_sizeof_time_t=`cat conftestval`,
-unet_cv_sizeof_time_t=0, unet_cv_sizeof_time_t=0)])
-if test "$unet_cv_sizeof_time_t" = 0 ; then
-  AC_MSG_RESULT(unknown)
-  AC_DEFINE(TIME_T_FMT, "%lu")
-  AC_DEFINE(STIME_T_FMT, "%ld")
-else
-  AC_MSG_RESULT([$unet_cv_sizeof_time_t])
-  AC_MSG_CHECKING(printf format of time_t)
-  if test "$unet_cv_sizeof_time_t" = "$ac_cv_sizeof_long" ; then
-    AC_MSG_RESULT("%lu")
-    AC_DEFINE(TIME_T_FMT, "%lu")
-    AC_DEFINE(STIME_T_FMT, "%ld")
-  else
-    AC_MSG_RESULT("%u")
-    AC_DEFINE(TIME_T_FMT, "%u")
-    AC_DEFINE(STIME_T_FMT, "%d")
-  fi
-fi])
-
-dnl
 dnl Macro: unet_CHECK_TYPE_SIZES
 dnl
 dnl Check the size of several types and define a valid int16_t and int32_t.
@@ -222,6 +137,7 @@ AC_DEFUN(unet_CHECK_TYPE_SIZES,
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(void *)
 if test "$ac_cv_sizeof_int" = 2 ; then
   AC_CHECK_TYPE(int16_t, int)
   AC_CHECK_TYPE(u_int16_t, unsigned int)
@@ -244,47 +160,56 @@ else
   AC_MSG_ERROR([Cannot find a type with size of 32 bits])
 fi])
 
+dnl Written by John Hawkinson <jhawk@mit.edu>. This code is in the Public
+dnl Domain.
 dnl
-dnl Macro: unet_FUNC_POLL_SYSCALL
+dnl This test is for network applications that need socket() and
+dnl gethostbyname() -ish functions.  Under Solaris, those applications need to
+dnl link with "-lsocket -lnsl".  Under IRIX, they should *not* link with
+dnl "-lsocket" because libsocket.a breaks a number of things (for instance:
+dnl gethostbyname() under IRIX 5.2, and snoop sockets under most versions of
+dnl IRIX).
+dnl 
+dnl Unfortunately, many application developers are not aware of this, and
+dnl mistakenly write tests that cause -lsocket to be used under IRIX.  It is
+dnl also easy to write tests that cause -lnsl to be used under operating
+dnl systems where neither are necessary (or useful), such as SunOS 4.1.4, which
+dnl uses -lnsl for TLI.
+dnl 
+dnl This test exists so that every application developer does not test this in
+dnl a different, and subtly broken fashion.
+dnl 
+dnl It has been argued that this test should be broken up into two seperate
+dnl tests, one for the resolver libraries, and one for the libraries necessary
+dnl for using Sockets API. Unfortunately, the two are carefully intertwined and
+dnl allowing the autoconf user to use them independantly potentially results in
+dnl unfortunate ordering dependancies -- as such, such component macros would
+dnl have to carefully use indirection and be aware if the other components were
+dnl executed. Since other autoconf macros do not go to this trouble, and almost
+dnl no applications use sockets without the resolver, this complexity has not
+dnl been implemented.
 dnl
-dnl Try to figure out if we have a system call poll (not if it is emulated).
-dnl Manical laughter...
+dnl The check for libresolv is in case you are attempting to link statically
+dnl and happen to have a libresolv.a lying around (and no libnsl.a).
 dnl
-AC_DEFUN(unet_FUNC_POLL_SYSCALL,
-[AC_CHECK_HEADERS(poll.h)dnl
-if test -z "$unet_cv_func_poll_syscall" ; then
-  AC_MSG_CHECKING([if poll is a system call (please wait)])
-else
-  AC_MSG_CHECKING([if poll is a system call])
-fi
-AC_CACHE_VAL(unet_cv_func_poll_syscall,
-[unet_cv_func_poll_syscall=no
-dnl No need to go through the trouble when we don't have poll.h:
-changequote(, )dnl
-if test "$ac_cv_header_poll_h" = yes; then
-  unet_dirs=`find /usr/include/sys -type f -name '*.h' -exec egrep '^#include <[^/]*/.*>' {} \; | sed -e 's/^.*<//' -e 's%/.*$%%' | sort | uniq`
-  for i in $unet_dirs ; do
-    if test "$unet_cv_func_poll_syscall" = no ; then
-      unet_files=`ls /usr/include/$i/*.h 2> /dev/null`
-      if test -n "$unet_files" ; then
-	for j in $unet_files ; do
-	  if test "$unet_cv_func_poll_syscall" = no ; then
-	    unet_line=`egrep '^#define[[:space:]]+[[:alnum:]_]*[Pp][Oo][Ll][Ll]' $j`
-	    if test -n "$unet_line" ; then
-	      unet_sig=`echo "$unet_line" | sed -e 's/poll/fork/g' -e 's/POLL/FORK/g' -e 's/[[:space:]]//g' -e 's%/\*.*\*/%%g' -e 's/[0-9]//g'`
-	      unet_set=`for k in "$unet_sig" ; do echo $k; done | sed -e 's% %|%g'`
-	      unet_match=`sed -e 's/[[:space:]]//g' -e 's%/\*.*\*/%%g' -e 's/[0-9]//g' $j | egrep "$unet_set"`
-	      if test -n "$unet_match" ; then
-		unet_cv_func_poll_syscall=yes
-	      fi
-	    fi
-	  fi
-	done
-      fi
-    fi
-  done
-fi
-changequote([, ])dnl
-])
-AC_MSG_RESULT([$unet_cv_func_poll_syscall])
-])
+AC_DEFUN(AC_LIBRARY_NET, [
+   # Most operating systems have gethostbyname() in the default searched
+   # libraries (i.e. libc):
+   AC_CHECK_FUNC(gethostbyname, ,
+     # Some OSes (eg. Solaris) place it in libnsl:
+     AC_CHECK_LIB(nsl, gethostbyname, , 
+       # Some strange OSes (SINIX) have it in libsocket:
+       AC_CHECK_LIB(socket, gethostbyname, ,
+          # Unfortunately libsocket sometimes depends on libnsl.
+          # AC_CHECK_LIB's API is essentially broken so the following
+          # ugliness is necessary:
+          AC_CHECK_LIB(socket, gethostbyname,
+             LIBS="-lsocket -lnsl $LIBS",
+               AC_CHECK_LIB(resolv, gethostbyname),
+             -lnsl)
+       )
+     )
+   )
+  AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket, ,
+    AC_CHECK_LIB(socket, socket, LIBS="-lsocket -lnsl $LIBS", , -lnsl)))
+  ])

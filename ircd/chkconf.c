@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "s_conf.h"
 #include "client.h"
 #include "class.h"
