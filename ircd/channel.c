@@ -2951,7 +2951,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       sendto_one(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
 		 TIME_T_FMT, NumServ(&me), mbuf->mb_channel->chname,
 		 addbuf_i ? "-" : "", addbuf, rembuf_i ? "+" : "", rembuf,
-		 addstr, remstr, 0);
+		 addstr, remstr, mbuf->mb_channel->creationtime);
     } else {
       /*
        * We're propagating a normal MODE command to the rest of the network;
@@ -2962,18 +2962,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 			   TIME_T_FMT, NumServ(mbuf->mb_source),
 			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
 			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
-			   addstr, (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
-						     MODEBUF_DEST_HACK4)) ? 0 :
+			   addstr, (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
 			   mbuf->mb_channel->creationtime);
       else
 	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE
-			   " %s %s%s%s%s%s%s " TIME_T_FMT,
-			   NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
-			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			   addbuf, remstr, addstr,
-			   (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
-					     MODEBUF_DEST_HACK4)) ? 0 :
-			   mbuf->mb_channel->creationtime);
+			   " %s %s%s%s%s%s%s", NumNick(mbuf->mb_source),
+			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
+			   addstr);
     }
   }
 
@@ -3124,4 +3120,486 @@ int
 modebuf_flush(struct ModeBuf *mbuf)
 {
   return modebuf_flush_int(mbuf, 1);
+}
+
+/* What we've done for mode_parse so far... */
+#define DONE_LIMIT	0x01	/* We've set the limit */
+#define DONE_KEY	0x02	/* We've set the key */
+#define DONE_BANLIST	0x04	/* We've sent the ban list */
+#define DONE_NOTOPER	0x08	/* We've sent a "Not oper" error */
+#define DONE_BANCLEAN	0x10	/* We've cleaned bans... */
+
+/*
+ * Here's a helper function to deal with sending along "Not oper" or
+ * "Not member" messages
+ */
+static unsigned int
+send_notoper(struct Client *sptr, struct Channel *chptr, unsigned int flags,
+	     unsigned int done)
+{
+  if (done & DONE_NOTOPER)
+    return 0;
+
+  sendto_one(sptr, err_str(flags & MODE_PARSE_NOTOPER ?
+			   (ERR_CHANOPRIVSNEEDED : ERR_NOTONCHANNEL)),
+	     me.name, sptr->name, chptr->chname);
+
+  return DONE_NOTOPER;
+}
+
+/*
+ * This routine is intended to parse MODE or OPMODE commands and effect the
+ * changes (or just build the bounce buffer).  We pass the starting offset
+ * as a 
+ */
+int
+mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
+	   struct Channel *chptr, int parc, char *parv[], unsigned int flags)
+{
+  static int chan_flags[] = {
+    MODE_CHANOP,	'o',
+    MODE_VOICE,		'v',
+    MODE_PRIVATE,	'p',
+    MODE_SECRET,	's',
+    MODE_MODERATED,	'm',
+    MODE_TOPICLIMIT,	't',
+    MODE_INVITEONLY,	'i',
+    MODE_NOPRIVMSGS,	'n',
+    MODE_KEY,		'k',
+    MODE_BAN,		'b',
+    MODE_LIMIT,		'l',
+    0x0, 0x0
+  };
+  struct {
+    unsigned int flag;
+    struct Client *client;
+  } cli_change[MAXPARA];
+  int i;
+  int *flag_p;
+  unsigned int dir = MODE_ADD;
+  unsigned int done = 0;
+  char *modestr, *tstr, *s;
+  int args_used = 0;
+  int max_args = MAXMODEPARAMS;
+  unsigned int t_limit;
+  struct Client *acptr;
+  struct Membership *member;
+  struct SLink *ban, *newban;
+  struct SLink banlist[MAXPARA];
+  int numbans = 0;
+
+  assert(0 != cptr);
+  assert(0 != sptr);
+  assert(0 != chptr);
+  assert(0 != parc);
+  assert(0 != parv);
+
+  for (i = 0; i < MAXPARA; i++) { /* initialize ops/voices arrays */
+    cli_change[i].flag = 0;
+    cli_change[i].client = 0;
+  }
+
+  modestr = parv[args_used++];
+  parc--;
+
+  while (*modestr) {
+    for (; *modestr; modestr++) {
+      for (flag_p = chan_flags; flag_p[0]; flag_p += 2) /* look up flag */
+	if (flag_p[1] == *modestr)
+	  break;
+
+      if (!flag_p[0]) { /* didn't find it?  complain and continue */
+	if (MyUser(sptr))
+	  sendto_one(cptr, err_str(ERR_UNKNOWNMODE), me.name, cptr->name,
+		     *modestr);
+	continue;
+      }
+
+      switch (*modestr) {
+      case '+': /* switch direction to MODE_ADD */
+	dir = MODE_ADD;
+	break;
+      case '-': /* switch direction to MODE_DEL */
+	dir = MODE_DEL;
+	break;
+
+      case 'l': /* deal with limits */
+	if (dir == MODE_ADD) { /* convert arg only if adding limit */
+	  if (MyUser(sptr) && max_args <= 0) /* drop if too many args */
+	    break;
+
+	  if (parc <= 0) { /* warn if not enough args */
+	    if (MyUser(sptr))
+	      need_more_params(sptr, "MODE +l");
+	    break;
+	  }
+
+	  t_limit = atoi(parv[args_used++]); /* grab arg */
+	  parc--;
+	  maxargs--;
+
+	  if (!t_limit) /* if it was zero, ignore it */
+	    break;
+	} else
+	  t_limit = chptr->mode.limit;
+
+	/* If they're not an oper, they can't change modes */
+	if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+	  done |= send_notoper(sptr, chptr, flags, done);
+	  break;
+	}
+
+	if (done & DONE_LIMIT) /* allow limit to be set only once */
+	  break;
+	done |= DONE_LIMIT;
+
+	assert(0 != mbuf);
+
+	modebuf_mode_uint(mbuf, dir | flag_p[0], t_limit);
+
+	if (flags & MODE_PARSE_SET) /* set the limit */
+	  if (dir & MODE_ADD) {
+	    chptr->mode.mode |= flag_p[0];
+	    chptr->mode.limit = t_limit;
+	  } else {
+	    chptr->mode.mode &= flag_p[0];
+	    chptr->mode.limit = 0;
+	  }
+	break;
+
+      case 'k': /* deal with keys */
+	if (MyUser(sptr) && max_args <= 0) /* drop if too many args */
+	  break;
+
+	if (parc <= 0) { /* warn if not enough args */
+	  if (MyUser(sptr))
+	    need_more_params(sptr, dir == MODE_ADD ? "MODE +k" : "MODE -k");
+	  break;
+	}
+
+	s = tstr = parv[args_used++]; /* grab arg */
+	parc--;
+	maxargs--;
+
+	/* If they're not an oper, they can't change modes */
+	if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+	  done |= send_notoper(sptr, chptr, flags, done);
+	  break;
+	}
+
+	if (done & DONE_KEY) /* allow key to be set only once */
+	  break;
+	done |= DONE_KEY;
+
+	t_limit = KEYLEN + 1;
+
+	/* clean up the key string */
+	while (*++s > ' ' && *s != ':' && --t_limit)
+	  ;
+	*s = '\0';
+
+	if (!*tstr) { /* warn if empty */
+	  if (MyUser(sptr))
+	    need_more_params(sptr, dir == MODE_ADD ? "MODE +k" : "MODE -k");
+	  break;
+	}
+
+	/* can't add a key if one is set, nor can one remove the wrong key */
+	if (!(flags & MODE_PARSE_FORCE))
+	  if ((dir == MODE_ADD && *chptr->mode.key) ||
+	      (dir == MODE_DEL && ircd_strcmp(mode->key, tstr))) {
+	    sendto_one(sptr, err_str(ERR_KEYSET), me.name, sptr->name,
+		       chptr->chname);
+	    break;
+	  }
+
+	assert(0 != mbuf);
+
+	if (flags & MODE_PARSE_BOUNCE) {
+	  if (*chptr->mode.key) /* reset old key */
+	    modebuf_mode_string(mbuf, MODE_DEL | flag_p[0], chptr->mode.key);
+	  else /* remove new bogus key */
+	    modebuf_mode_string(mbuf, MODE_ADD | flag_p[0], tstr);
+	} else /* send new key */
+	  modebuf_mode_string(mbuf, dir | flag_p[0], tstr);
+
+	if (flags & MODE_PARSE_SET) {
+	  if (dir == MODE_ADD) /* set the new key */
+	    ircd_strncpy(chptr->mode.key, tstr, KEYLEN);
+	  else /* remove the old key */
+	    *chptr->mode.key = '\0';
+	}
+	break;
+
+      case 'b': /* deal with bans */
+	if (parc <= 0) { /* Not enough args, send ban list */
+	  if (MyUser(sptr) && !(done & DONE_BANLIST)) {
+	    send_ban_list(sptr, chptr);
+	    done |= DONE_BANLIST;
+	  }
+
+	  break;
+	}
+
+	if (MyUser(sptr) && max_args <= 0) /* drop if too many args */
+	  break;
+
+	tstr = parv[args_used++]; /* grab arg */
+	parc--;
+	maxargs--;
+
+	/* If they're not an oper, they can't change modes */
+	if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+	  done |= send_notoper(sptr, chptr, flags, done);
+	  break;
+	}
+
+	if ((s = strchr(tstr, ' ')))
+	  *s = '\0';
+
+	if (!*tstr || *tstr == ':') { /* warn if empty */
+	  if (MyUser(sptr))
+	    need_more_params(sptr, dir == MODE_ADD ? "MODE +b" : "MODE -b");
+	  break;
+	}
+
+	/* remember the ban for the moment... */
+	if (dir == MODE_ADD) {
+	  newban = banlist + (numbans++);
+	  newban->next = 0;
+
+	  newban->value.ban.banstr = tstr;
+	  newban->value.ban.who = sptr->who;
+	  newban->value.ban.when = CurrentTime;
+
+	  newban->flags = CHFL_BAN | MODE_ADD;
+
+	  if ((s = strrchr(tstr, '@')) && check_if_ipmask(s + 1))
+	    ban->flags |= CHFL_BAN_IPMASK;
+	}
+
+	/* Go through all bans */
+	for (ban = chptr->banlist; ban; ban = ban->next) {
+	  /* first, clean the ban flags up a bit */
+	  if (!(done & DONE_BANCLEAN))
+	    /* Note: We're overloading *lots* of bits here; be careful! */
+	    ban->flags &= ~(MODE_ADD | MODE_DEL | CHFL_BAN_OVERLAPPED);
+
+	  /* Bit meanings:
+	   *
+	   * MODE_ADD		 - Ban was added; if we're bouncing modes,
+	   *			   then we'll remove it below; otherwise,
+	   *			   we'll have to allocate a real ban
+	   *
+	   * MODE_DEL		 - Ban was marked for deletion; if we're
+	   *			   bouncing modes, we'll have to re-add it,
+	   *			   otherwise, we'll have to remove it
+	   *
+	   * CHFL_BAN_OVERLAPPED - The ban we added turns out to overlap
+	   *			   with a ban already set; if we're
+	   *			   bouncing modes, we'll have to bounce
+	   *			   this one; otherwise, we'll just ignore
+	   *			   it when we process added bans
+	   */
+
+	  if (dir == MODE_DEL && !ircd_strcmp(ban->value.ban.banstr, tstr)) {
+	    ban->flags |= MODE_DEL; /* delete one ban */
+
+	    if (done & DONE_BANCLEAN) /* If we're cleaning, finish */
+	      break;
+	  } else if (dir == MODE_ADD) {
+	    /* if the ban already exists, don't worry about it */
+	    if (!ircd_strcmp(ban->value.ban.banstr, tstr)) {
+	      if (done & DONE_BANCLEAN) /* If we're cleaning, finish */
+		break;
+	    } else if (!mmatch(ban->value.ban.banstr, tstr))
+	      newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
+	    else if (!mmatch(tstr, ban->value.ban.banstr))
+	      ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
+	    else if (!ban->next)
+	      ban->next = newban; /* add our ban with its flags */
+	  }
+	}
+	done |= DONE_BANCLEAN;
+	break;
+
+      case 'o': /* deal with ops/voice */
+      case 'v':
+	if (MyUser(sptr) && max_args <= 0) /* drop if too many args */
+	  break;
+
+	if (parc <= 0) { /* warn if not enough args */
+	  if (MyUser(sptr))
+	    need_more_params(sptr, dir == MODE_ADD ?
+			     (*modestr == 'o' ? "MODE +o" : "MODE +v") :
+			     (*modestr == 'v' ? "MODE -o" : "MODE -v"));
+	  break;
+	}
+
+	tstr = parv[args_used++]; /* grab arg */
+	parc--;
+	maxargs--;
+
+	/* If they're not an oper, they can't change modes */
+	if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+	  done |= send_notoper(sptr, chptr, flags, done);
+	  break;
+	}
+
+	if (MyUser(sptr)) /* find client we're manipulating */
+	  acptr = find_chasing(sptr, tstr, NULL);
+	else
+	  acptr = findNUser(tstr);
+
+	for (i = 0; i < MAXPARA; i++) /* find an element to stick them in */
+	  if (!cli_change[i].flag || (cli_change[i].client == acptr &&
+				      cli_change[i].flag & flag_p[0]))
+	    break; /* found a slot */
+
+	cli_change.flag = dir | flag_p[0]; /* store what we're doing to them */
+	cli_change.client = acptr;
+	break;
+
+      default: /* deal with other modes */
+	if ((dir == MODE_ADD &&  (flag_p[0] & chptr->mode.mode)) ||
+	    (dir == MODE_DEL && !(flag_p[0] & chptr->mode.mode)))
+	  break; /* no change */
+
+	/* If they're not an oper, they can't change modes */
+	if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+	  done |= send_notoper(sptr, chptr, flags, done);
+	  break;
+	}
+
+	assert(0 != mbuf);
+
+	modebuf_mode(mbuf, dir | flag_p[0]);
+
+	/* make +p and +s mutually exclusive */
+	if (dir == MODE_ADD && flag_p[0] & (MODE_SECRET | MODE_PRIVATE)) {
+	  if (flag_p[0] == MODE_SECRET)
+	    modebuf_mode(mbuf, MODE_DEL | MODE_SECRET);
+	  else
+	    modebuf_mode(mbuf, MODE_DEL | MODE_PRIVATE);
+	}
+
+	if (flags & MODE_PARSE_SET) { /* set the flags */
+	  if (dir == MODE_ADD) { /* add the mode to the channel */
+	    chptr->mode.mode |= flag_p[0];
+
+	    /* make +p and +s mutually exclusive */
+	    if (dir == MODE_ADD && flag_p[0] & (MODE_SECRET | MODE_PRIVATE)) {
+	      if (flag_p[0] == MODE_PRIVATE)
+		chptr->mode.mode &= ~MODE_SECRET;
+	      else
+		chptr->mode.mode &= ~MODE_PRIVATE;
+	    }
+	  } else /* remove the mode from the channel */
+	    chptr->mode.mode &= ~flag_p[0];
+	}
+
+	/* Clear out invite structures if we're removing invites */
+	if (flags & MODE_PARSE_SET && dir == MODE_DEL &&
+	    flag_p[0] == MODE_INVITEONLY)
+	  while (chptr->invites)
+	    del_invite(chptr->invites->value.cptr, chptr);
+	break;
+      } /* switch (*modestr) { */
+    } /* for (; *modestr; modestr++) { */
+
+    if (parc > 0) { /* process next argument in string */
+      modestr = parv[args_used++];
+      parc--;
+
+      if (IsServer(sptr) && !parc && IsDigit(*modestr)) { /* is it a TS? */
+	time_t recv_ts;
+
+	if (flags & MODE_PARSE_NOSET) /* don't set earlier TS if we're then */
+	  break;		      /* going to bounce the mode! */
+
+	recv_ts = atoi(modestr);
+
+	if (recv_ts && recv_ts < chptr->creationtime) /* respect earlier TS */
+	  chptr->creationtime = recv_ts;
+
+	break; /* break out of while loop */
+      } else if (flags & MODE_PARSE_STRICT ||
+		 (MyUser(sptr) && max_args <= 0)) {
+	parc++; /* we didn't actually gobble the argument */
+	args_used--;
+	break; /* break out of while loop */
+      }
+    }
+  } /* while (*modestr) { */
+
+  /*
+   * the rest of the function finishes building resultant MODEs; if the
+   * origin isn't a member or an oper, skip it.
+   */
+  if (flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER))
+    return args_used; /* tell our parent how many args we gobbled */
+
+  assert(0 != mbuf);
+
+  if (done & DONE_BANCLEAN) {
+    /* XXX Now process bans */
+  }
+
+  /* process client changes */
+  for (i = 0; cli_change[i].flags; i++) {
+    /* look up member link */
+    if (!(member = find_member_link(chptr, cli_change[i].client)) ||
+	(MyUser(sptr) && IsZombie(member))) {
+      if (MyUser(sptr))
+	sendto_one(sptr, err_str(ERR_USERNOTINCHANNEL), me.name, sptr->name,
+		   cli_change[i].client->name, chptr->chname);
+      continue;
+    }
+
+    if ((cli_change[i].flags & MODE_ADD &&
+	 (cli_change[i].flags & member->status)) ||
+	(cli_change[i].flags & MODE_DEL &&
+	 !(cli_change[i].flags & member->status)))
+      continue; /* no change made, don't do anything */
+
+    /* see if the deop is allowed */
+    if (cli_change[i].flags & (MODE_DEL | MODE_CHANOP) ==
+	 (MODE_DEL | MODE_CHANOP)) {
+      /* prevent +k users from being deopped */
+      if (IsChannelService(cli_change[i].client)) {
+	if (flags & MODE_PARSE_FORCE) /* it was forced */
+	  sendto_op_mask(SNO_HACK4, ":%s NOTICE * :*** Notice -- "
+			 "Deop of +k user on %s by %s",me.name, chptr->chname,
+			 sptr->name);
+	else if (MyUser(sptr) && flags & MODE_PARSE_SET) {
+	  sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name, sptr->name,
+		     cli_change[i].client->name, chptr->chname);
+	  continue;
+	}
+      }
+
+#ifdef NO_OPER_DEOP_LCHAN
+      /* don't allow local opers to be deopped on local channels */
+      if (MyUser(sptr) && cli_change[i].client != sptr &&
+	  IsOperOnLocalChannel(cli_change[i].client, chptr->chname)) {
+	sendto_one(sptr, err_str(ERR_ISOPERLCHAN), me.name, sptr->name,
+		   cli_change[i].client->name, chptr->chname);
+	break;
+      }
+#endif
+    }
+
+    /* accumulate the change */
+    modebuf_mode_client(mbuf, cli_change[i].flags, cli_change[i].client);
+
+    /* actually effect the change */
+    if (flags & MODE_PARSE_SET) {
+      if (cli_change[i].flags & MODE_ADD)
+	member->status |= cli_change[i].flags & (MODE_CHANOP | MODE_VOICE);
+      else
+	member->status &= ~(cli_change[i].flags & (MODE_CHANOP | MODE_VOICE));
+    }
+  } /* for (i = 0; cli_change[i].flags; i++) { */
+
+  return args_used; /* tell our parent how many args we gobbled */
 }

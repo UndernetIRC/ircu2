@@ -1,5 +1,15 @@
 2000-03-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c: initial definition of mode_parse(); flags to
+	prevent doing the same thing multiple times; helper method
+	send_notoper() to send a "Not oper"/"Not on channel" notice
+
+	* include/channel.h: declare mode_parse() and helper flags
+
+	* ircd/channel.c (modebuf_flush_int): fiddled with timestamp
+	sending to match the current action of set_mode() closely enough
+	that hopefully there won't be major conflicts
+
 	* ircd/channel.c (modebuf_flush_int): consolidated the mode string
 	building logic, reversed the order of the arguments to mode
 	commands to have '-' preceed '+'
@@ -140,7 +150,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.39 2000-03-29 15:58:36 kev Exp $
+# $Id: ChangeLog,v 1.40 2000-03-30 04:15:15 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

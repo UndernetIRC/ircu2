@@ -335,4 +335,15 @@ extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 				struct Client *client);
 extern int modebuf_flush(struct ModeBuf *mbuf);
 
+extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
+		      struct Client *sptr, struct Channel *chptr,
+		      int parc, char *parv[], unsigned int flags);
+
+#define MODE_PARSE_SET		0x01	/* actually set channel modes */
+#define MODE_PARSE_STRICT	0x02	/* +m +n +t style not supported */
+#define MODE_PARSE_FORCE	0x04	/* force the mode to be applied */
+#define MODE_PARSE_BOUNCE	0x08	/* we will be bouncing the modes */
+#define MODE_PARSE_NOTOPER	0x10	/* send "not chanop" to user */
+#define MODE_PARSE_NOTMEMBER	0x20	/* send "not member" to user */
+
 #endif /* INCLUDED_channel_h */
