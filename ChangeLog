@@ -1,3 +1,7 @@
+2004-10-05  Michael Poole <mdpoole@troilus.org>
+
+	* adns, lib/adns: Remove unused adns library.
+
 2004-10-05  Michael Poole <mdpoole@troilus.org>, hikari <hikari@undernet.org>, Perry Lorier <isomer@undernet.org>
 
 	* include/*.h, ircd/*.c: Convert comments to Doxygen-compatible

@@ -1,3 +1,0 @@
-The files in adns/ were borrowed from the ADNS library and slightly 
-modified to work with ircu's event loop. The original code's copyright
-notices are in the README file.
