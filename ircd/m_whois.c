@@ -158,7 +158,15 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
           
        if (acptr != sptr && IsZombie(chan))
           continue;
-          
+
+       /* Don't show local channels when HIS is defined, unless it's a
+	* remote WHOIS --ULtimaTe_
+	*/
+       if (IsLocalChannel(chptr->chname) && (parc == 2) &&
+	   feature_bool(FEAT_HIS_LOCAL_CHAN_WHOIS) && (acptr != sptr) &&
+	   !IsAnOper(sptr))
+	  continue; 
+
        if (len+strlen(chptr->chname) + mlen > BUFSIZE - 5) 
        {
           send_reply(sptr, SND_EXPLICIT | RPL_WHOISCHANNELS, "%s :%s", name, buf);

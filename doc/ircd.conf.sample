@@ -561,6 +561,7 @@ Q:\#coder-com:"What the hell do you think you are doing?!"
 #F:HIS_REWRITE:TRUE
 #F:HIS_REMOTE:1
 #F:HIS_NETSPLIT:TRUE
+#F:HIS_LOCAL_CHAN_WHOIS:TRUE
 #F:HIS_SERVERNAME:"*.undernet.org"
 #F:HIS_SERVERINFO:"The Undernet Underworld"
 #F:HIS_URLSERVERS:"http://www.undernet.org/servers.php"

@@ -1,3 +1,14 @@
+2003-06-08 Matthias Crauwels <ultimate_@wol.be>
+	* include/ircd_features.h: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/ircd_features.c: new feature FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* ircd/m_whois.c: hide local channels in local WHOIS, this breaks HIS
+
+	* doc/readme.features: documented FEAT_HIS_LOCAL_CHAN_WHOIS
+
+	* doc/ircd.conf.sample: default value for FEAT_HIS_LOCAL_CHAN_WHOIS
+
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_wallvoices.c (ms_wallvoices): Don't accept & channel
