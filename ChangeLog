@@ -1,3 +1,11 @@
+2004-05-15  Michael Poole <mdpoole@troilus.org>
+
+	* patches/diffs/astralnet.diff, patches/diffs/nocfv.diff: Remove
+	patches obsoleted by F: lines.
+
+	* patches/diffs/topicburst.diff: Remove patch that was integrated
+	into the main code.
+
 2004-05-15  Isomer <isomer@undernet.org>
 
 	[Original ChangeLog date: 2003-11-05 -MDP]
