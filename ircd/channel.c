@@ -621,11 +621,6 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
   return 0;
 }
 
-int is_level0_op(struct Client *cptr, struct Channel *chptr)
-{
-  return 0;
-}
-
 int is_zombie(struct Client *cptr, struct Channel *chptr)
 {
   struct Membership* member;
@@ -651,6 +646,10 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
 int member_can_send_to_channel(struct Membership* member)
 {
   assert(0 != member);
+
+  /* Discourage using the Apass to get op.  They should use the upass. */
+  if (IsChannelManager(member) && *member->channel->mode.upass)
+    return 0;
 
   if (IsVoicedOrOpped(member))
     return 1;
@@ -721,7 +720,7 @@ const char* find_no_nickchange_channel(struct Client* cptr)
  * with the parameters in pbuf.
  */
 void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
-                          struct Channel *chptr)
+                          struct Channel *chptr, struct Membership *member)
 {
   int previous_parameter = 0;
 
@@ -774,7 +773,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'u';
     if (previous_parameter)
       strcat(pbuf, " ");
-    if (is_level0_op(cptr, chptr) || IsServer(cptr)) {
+    if (IsServer(cptr) || (member && IsChanOp(member) && OpLevel(member) == 0)) {
       strcat(pbuf, chptr->mode.upass);
     } else
       strcat(pbuf, "*");
@@ -824,7 +823,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   lp2 = chptr->banlist;
 
   *modebuf = *parabuf = '\0';
-  channel_modes(cptr, modebuf, parabuf, sizeof(parabuf), chptr);
+  channel_modes(cptr, modebuf, parabuf, sizeof(parabuf), chptr, 0);
 
   for (first = 1; full; first = 0)      /* Loop for multiple messages */
   {
@@ -2255,6 +2254,20 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     return;
   }
 
+  /* If they are not the channel manager, they are not allowed to change it */
+  if (MyUser(state->sptr) && !IsChannelManager(state->member)) {
+    if (*state->chptr->mode.apass) {
+      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
+    } else {
+      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+	  "Re-create the channel.  The channel must be *empty* for",
+	  TStime() - state->chptr->creationtime >= 171000 ? "48 contigious hours" : "a minute or two",
+	  "before it can be recreated.");
+    }
+    return;
+  }
+ 
   if (state->done & DONE_UPASS) /* allow upass to be set only once */
     return;
   state->done |= DONE_UPASS;
@@ -2277,8 +2290,13 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   if (!state->mbuf)
     return;
 
-  /* can't add a upass if one is set, nor can one remove the wrong upass */
   if (!(state->flags & MODE_PARSE_FORCE))
+    /* can't add the upass while apass is not set */
+    if (state->dir == MODE_ADD && !*state->chptr->mode.apass) {
+      send_reply(state->sptr, ERR_UPASSNOTSET, state->chptr->chname, state->chptr->chname);
+      return;
+    }
+    /* can't add a upass if one is set, nor can one remove the wrong upass */
     if ((state->dir == MODE_ADD && *state->chptr->mode.upass) ||
 	(state->dir == MODE_DEL &&
 	 ircd_strcmp(state->chptr->mode.upass, t_str))) {
@@ -2336,6 +2354,25 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
     return;
   }
 
+  /* Don't allow to change the Apass if the channel is older than 48 hours. */
+  if (TStime() - state->chptr->creationtime >= 172800 && !IsAnOper(state->sptr)) {
+    send_reply(state->sptr, ERR_CHANSECURED, state->chptr->chname);
+    return;
+  }
+
+  /* If they are not the channel manager, they are not allowed to change it */
+  if (MyUser(state->sptr) && !IsChannelManager(state->member)) {
+    if (*state->chptr->mode.apass) {
+      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
+    } else {
+      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+	  "Re-create the channel.  The channel must be *empty* for",
+	  "at least a whole minute", "before it can be recreated.");
+    }
+    return;
+  }
+ 
   if (state->done & DONE_APASS) /* allow apass to be set only once */
     return;
   state->done |= DONE_APASS;
@@ -2358,14 +2395,19 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   if (!state->mbuf)
     return;
 
-  /* can't add a apass if one is set, nor can one remove the wrong apass */
-  if (!(state->flags & MODE_PARSE_FORCE))
+  if (!(state->flags & MODE_PARSE_FORCE)) {
+    /* can't remove the apass while upass is still set */
+    if (state->dir == MODE_DEL && *state->chptr->mode.upass) {
+      send_reply(state->sptr, ERR_UPASSSET, state->chptr->chname, state->chptr->chname);
+      return;
+    }
+    /* can't add an apass if one is set, nor can one remove the wrong apass */
     if ((state->dir == MODE_ADD && *state->chptr->mode.apass) ||
-	(state->dir == MODE_DEL &&
-	 ircd_strcmp(state->chptr->mode.apass, t_str))) {
+	(state->dir == MODE_DEL && ircd_strcmp(state->chptr->mode.apass, t_str))) {
       send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
       return;
     }
+  }
 
   if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
       !ircd_strcmp(state->chptr->mode.apass, t_str))
@@ -2381,10 +2423,30 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
     modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
 
   if (state->flags & MODE_PARSE_SET) {
-    if (state->dir == MODE_ADD) /* set the new apass */
+    if (state->dir == MODE_ADD) { /* set the new apass */
+      /* Make it VERY clear to the user that this is a one-time password */
       ircd_strncpy(state->chptr->mode.apass, t_str, PASSLEN);
-    else /* remove the old apass */
+      if (MyUser(state->sptr)) {
+	send_reply(state->sptr, RPL_APASSWARN,
+	    "Channel Admin password (+A) set to '", state->chptr->mode.apass, "'. ",
+	    "Are you SURE you want to use this as Admin password? ",
+	    "You will NOT be able to change this password anymore once the channel is more than 48 hours old!");
+	send_reply(state->sptr, RPL_APASSWARN,
+	    "Use \"/MODE ", state->chptr->chname, " -A ", state->chptr->mode.apass,
+	    "\" to remove the password and then immediatly set a new one. "
+	    "IMPORTANT: YOU CANNOT RECOVER THIS PASSWORD, EVER; "
+	    "WRITE THE PASSWORD DOWN (don't store this rescue password on disk)! "
+	    "Now set the channel user password (+u).");
+      }
+    } else { /* remove the old apass */
       *state->chptr->mode.apass = '\0';
+      if (MyUser(state->sptr))
+	send_reply(state->sptr, RPL_APASSWARN,
+	    "WARNING: You removed the channel Admin password MODE (+A). ",
+	    "If you would disconnect or leave the channel without setting a new password then you will ",
+	    "not be able to set it again and lose ownership of this channel! ",
+	    "SET A NEW PASSWORD NOW!", "");
+    }
   }
 }
 
@@ -2730,8 +2792,13 @@ mode_process_clients(struct ParseState *state)
     /* set op-level of member being opped */
     if ((state->cli_change[i].flag & (MODE_ADD | MODE_CHANOP)) ==
 	(MODE_ADD | MODE_CHANOP)) {
-      int old_level = (state->member == NULL) ? -1 : OpLevel(state->member);
-      SetOpLevel(member, old_level == MAXOPLEVEL ? MAXOPLEVEL : (old_level + 1));
+      /* If on a channel with upass set, someone with level x gives ops to someone else,
+         then that person gets level x-1.  On other channels, where upass is not set,
+	 the level stays the same. */
+      int level_increment = *state->chptr->mode.upass ? 1 : 0;
+      /* Someone being opped by a server gets op-level 0 */
+      int old_level = (state->member == NULL) ? -level_increment : OpLevel(state->member);
+      SetOpLevel(member, old_level == MAXOPLEVEL ? MAXOPLEVEL : (old_level + level_increment));
     }
 
     /* accumulate the change */

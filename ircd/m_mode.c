@@ -118,19 +118,21 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   cli_flags(sptr) &= ~FLAGS_TS8;
 
+  member = find_member_link(chptr, sptr);
+
   if (parc < 3) {
     char modebuf[MODEBUFLEN];
     char parabuf[MODEBUFLEN];
 
     *modebuf = *parabuf = '\0';
     modebuf[1] = '\0';
-    channel_modes(sptr, modebuf, parabuf, sizeof(parabuf), chptr);
+    channel_modes(sptr, modebuf, parabuf, sizeof(parabuf), chptr, member);
     send_reply(sptr, RPL_CHANNELMODEIS, chptr->chname, modebuf, parabuf);
     send_reply(sptr, RPL_CREATIONTIME, chptr->chname, chptr->creationtime);
     return 0;
   }
 
-  if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
+  if (!member || !IsChanOp(member)) {
     if (IsLocalChannel(chptr->chname) && HasPriv(sptr, PRIV_MODE_LCHAN)) {
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to channel */
@@ -178,10 +180,13 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    MODEBUF_DEST_SERVER  | /* Send mode to servers */
 		    MODEBUF_DEST_HACK4));  /* Send a HACK(4) message */
     else
+      /* Servers need to be able to op people who join using the Apass
+       * or upass, therefore we accept modes for channels with an Apass
+       * without generating a HACK3. */
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
-		    MODEBUF_DEST_SERVER  | /* Send mode to servers */
-		    MODEBUF_DEST_HACK3));  /* Send a HACK(3) message */
+		    MODEBUF_DEST_SERVER |   /* Send mode to servers */
+		    (*chptr->mode.apass ? 0 : MODEBUF_DEST_HACK3)));
 
     mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 	       (MODE_PARSE_SET    | /* Set the mode */

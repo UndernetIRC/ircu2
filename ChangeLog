@@ -1,3 +1,48 @@
+2002-03-13  Carlo Wood  <run@alinoe.com>
+
+	* include/channel.h: CHFL_CHANNEL_MANAGER, new local
+	channel flag set when someone creates a channel or joins
+	using the Apass.  IsChannelManager(), SetChannelManager():
+	macros to manipulate new channel flag.
+	channel_modes: Added new argument to avoid calling
+	find_member_link more often than needed.
+
+	* include/numeric.h: RPL_APASSWARN, ERR_NOTLOWEROPLEVEL,
+	ERR_NOTMANAGER, ERR_CHANSECURED, ERR_UPASSSET,
+	ERR_UPASSNOTSET: new numeric replies.
+
+	* ircd/channel.c: is_level0_op: removed.
+	member_can_send_to_channel: disallow channel manager
+	to talk.  channel_modes: show upass to level0 ops.
+	mode_parse_upass: Only the channel manager is allowed
+	to change the upass.  Only allow to set upass when apass
+	is also set.  mode_parse_apass: Don't allow to change the
+	Apass if the channel is older than 48 hours.  Only allow
+	to remove the apass when upass is not set.  Send clear
+	warnings regarding the importance of apass.
+	mode_process_clients: Don't change the oplevel of an opped
+	member in a channel where upass is not set.
+
+	* ircd/destruct_event.c: exec_expired_destruct_events:
+	Bug fix: send DESTRUCT message when destructing a channel.
+
+	* ircd/m_destruct.c: ms_destruct: Bug fix: use self as
+	prefix for DESTRUCT message.
+
+	* ircd/m_join.c: m_join: Handle apass and upass.
+
+	* ircd/m_kick.c: m_kick: Don't allow to kick member with
+	a higher or equal op-level.
+
+	* ircd/m_mode.c: m_mode: Now pass member to channel_modes.
+	ms_mode: Allow server to do modes on channels with apass
+	set.
+
+	* ircd/s_err.c: RPL_APASSWARN, ERR_NOTLOWEROPLEVEL,
+	ERR_NOTMANAGER, ERR_CHANSECURED, ERR_UPASSSET,
+	ERR_UPASSNOTSET: new numeric replies.
+
+
 2002-03-10 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Last of the bug fixes for do_kill()

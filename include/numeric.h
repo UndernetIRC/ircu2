@@ -63,6 +63,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_MAP               15        /* Undernet extension */
 #define RPL_MAPMORE           16        /* Undernet extension */
 #define RPL_MAPEND            17        /* Undernet extension */
+#define RPL_APASSWARN         30	/* Undernet extension */
 /*	RPL_YOURID	      42	IRCnet extension */
 /*      RPL_ATTEMPTINGJUNC    50           aircd extension */
 /*      RPL_ATTEMPTINGREROUTE 51           aircd extension */
@@ -444,8 +445,12 @@ extern const struct Numeric* get_error_numeric(int err);
 	ERR_WHOSYNTAX	     522        dalnet
 	ERR_WHOLIMEXCEED     523	dalnet */
 
-#define ERR_NOTLOWEROPLEVEL  550
-#define ERR_LASTERROR        551
+#define ERR_NOTLOWEROPLEVEL  550	/* Undernet extension */
+#define ERR_NOTMANAGER       551	/* Undernet extension */
+#define ERR_CHANSECURED      552	/* Undernet extension */
+#define ERR_UPASSSET         553	/* Undernet extension */
+#define ERR_UPASSNOTSET      554	/* Undernet extension */
+#define ERR_LASTERROR        555
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

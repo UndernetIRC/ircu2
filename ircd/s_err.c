@@ -92,7 +92,7 @@ static Numeric replyTable[] = {
 /* 029 */
   { 0 },
 /* 030 */
-  { 0 },
+  { RPL_APASSWARN, ":%s%s%s%s%s", "030" },
 /* 031 */
   { 0 },
 /* 032 */
@@ -1134,13 +1134,13 @@ static Numeric replyTable[] = {
 /* 550 */
   { ERR_NOTLOWEROPLEVEL, "%s %s %hu %hu :Cannot %s someone with %s op-level", "550" },
 /* 551 */
-  { 0 },
+  { ERR_NOTMANAGER, "%s :You must be channel Admin to add or remove a password. %s %s %s", "551" },
 /* 552 */
-  { 0 },
+  { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "552" },
 /* 553 */
-  { 0 },
+  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+u) is still set.  First use /MODE %s -u <userpass>", "553" },
 /* 554 */
-  { 0 },
+  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+u) while Admin pass (+A) is not set.  First use /MODE %s +A <adminpass>", "554" },
 /* 555 */
   { 0 },
 /* 556 */

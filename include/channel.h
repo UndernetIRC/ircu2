@@ -69,6 +69,7 @@ struct Client;
 #define CHFL_SILENCE_IPMASK     0x2000  /* silence mask is an IP-number mask */
 #define CHFL_BURST_ALREADY_OPPED	0x04000  /* In oob BURST, but was already joined and opped */
 #define CHFL_BURST_ALREADY_VOICED	0x08000  /* In oob BURST, but was already joined and voiced */
+#define CHFL_CHANNEL_MANAGER	0x10000	/* Set when creating channel or using Apass */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -186,6 +187,7 @@ struct Membership {
 #define IsServOpOk(x)       ((x)->status & CHFL_SERVOPOK)
 #define IsBurstJoined(x)    ((x)->status & CHFL_BURST_JOINED)
 #define IsVoicedOrOpped(x)  ((x)->status & CHFL_VOICED_OR_OPPED)
+#define IsChannelManager(x) ((x)->status & CHFL_CHANNEL_MANAGER)
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
@@ -193,6 +195,7 @@ struct Membership {
 #define SetServOpOk(x)      ((x)->status |= CHFL_SERVOPOK)
 #define SetBurstJoined(x)   ((x)->status |= CHFL_BURST_JOINED)
 #define SetZombie(x)        ((x)->status |= CHFL_ZOMBIE)
+#define SetChannelManager(x) ((x)->status |= CHFL_CHANNEL_MANAGER)
 #define SetOpLevel(x, v)    (void)((x)->oplevel = (v))
 
 #define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
@@ -299,7 +302,8 @@ extern int             LocalChanOperMode;
  */
 extern void clean_channelname(char* name);
 extern void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
-                          int buflen, struct Channel *chptr);
+                          int buflen, struct Channel *chptr,
+			  struct Membership *member);
 extern int set_mode(struct Client* cptr, struct Client* sptr,
                     struct Channel* chptr, int parc, char* parv[],
                     char* mbuf, char* pbuf, char* npbuf, int* badop);

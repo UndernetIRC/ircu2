@@ -25,6 +25,8 @@
 #include "ircd_alloc.h"
 #include "ircd.h"
 #include "ircd_events.h"
+#include "send.h"
+#include "msg.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -126,6 +128,8 @@ void exec_expired_destruct_events(struct Event* ev)
     while (*list_bottom && TStime() >= (*list_bottom)->expires)
     {
       struct Channel* chptr = (*list_bottom)->chptr;
+      /* Send DESTRUCT message */
+      sendcmdto_serv_butone(&me, CMD_DESTRUCT, 0, "%s %Tu", chptr->chname, chptr->creationtime);
       remove_destruct_event(chptr);
       destruct_channel(chptr);
     }

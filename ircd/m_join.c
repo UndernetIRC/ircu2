@@ -167,6 +167,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel *chptr;
   struct JoinBuf join;
   struct JoinBuf create;
+  struct ModeBuf mbuf;
   struct Gline *gline;
   unsigned int flags = 0;
   int i;
@@ -219,9 +220,24 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
 
     if (chptr) {
+      int is_level0_op = 0;
+      if (!BadPtr(keys) && *chptr->mode.apass) {
+	/* Don't use compall for the apass, only a single key is allowed.
+	   Test Apass first in case someone set Apass and upass equal. */
+	if (strcmp(chptr->mode.apass, keys) == 0) {
+	  is_level0_op = 1;
+	  flags &= ~CHFL_DEOPPED;
+	  flags |= CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
+	}
+	else if (*chptr->mode.upass && strcmp(chptr->mode.upass, keys) == 0) {
+	  is_level0_op = 1;
+	  flags &= ~CHFL_DEOPPED;
+	  flags |= CHFL_CHANOP;
+	}
+      }
       if (check_target_limit(sptr, chptr, chptr->chname, 0))
 	continue; /* exceeded target limit */
-      else if ((i = can_join(sptr, chptr, keys))) {
+      else if (!is_level0_op && (i = can_join(sptr, chptr, keys))) {
 	if (i > MAGIC_OPER_OVERRIDE) { /* oper overrode mode */
 	  switch (i - MAGIC_OPER_OVERRIDE) {
 	  case ERR_CHANNELISFULL: /* figure out which mode */
@@ -251,6 +267,16 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       } /* else if ((i = can_join(sptr, chptr, keys))) */
 
       joinbuf_join(&join, chptr, flags);
+      if (is_level0_op)
+      {
+	joinbuf_flush(&join);
+	modebuf_init(&mbuf, &me, cptr, chptr,
+	    MODEBUF_DEST_CHANNEL |		/* Send mode to channel */
+	    MODEBUF_DEST_SERVER);		/* And send it to the other servers */
+	modebuf_mode_client(&mbuf,
+	    MODE_ADD | MODE_CHANOP, sptr);	/* Give ops to the level0 op */
+	modebuf_flush(&mbuf);
+      }
     } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
       continue; /* couldn't get channel */
     else if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
@@ -259,7 +285,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       destruct_channel(chptr); /* created it... */
       continue;
     } else
-      joinbuf_join(&create, chptr, flags);
+      joinbuf_join(&create, chptr, flags | CHFL_CHANNEL_MANAGER);
 
     del_invite(sptr, chptr);
 

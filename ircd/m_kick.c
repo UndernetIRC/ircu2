@@ -107,6 +107,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Client *who;
   struct Channel *chptr;
   struct Membership *member = 0;
+  struct Membership* member2;
   char *name, *comment;
 
   cli_flags(sptr) &= ~FLAGS_TS8;
@@ -120,7 +121,8 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!(chptr = get_channel(sptr, name, CGT_NO_CREATE)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, name);
 
-  if (!is_chan_op(sptr, chptr) || IsModelessChannel(name))
+  if (!(member2 = find_member_link(chptr, sptr)) || IsZombie(member2)
+      || !IsChanOp(member2) || IsModelessChannel(name))
     return send_reply(sptr, ERR_CHANOPRIVSNEEDED, name);
 
   if (!(who = find_chasing(sptr, parv[2], 0)))
@@ -137,6 +139,12 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* check if kicked user is actually on the channel */
   if (!(member = find_member_link(chptr, who)) || IsZombie(member))
     return send_reply(sptr, ERR_USERNOTINCHANNEL, cli_name(who), chptr->chname);
+
+  /* Don't allow to kick member with a higher or equal op-level */
+  if (OpLevel(member) <= OpLevel(member2))
+    return send_reply(sptr, ERR_NOTLOWEROPLEVEL, cli_name(who), chptr->chname,
+	OpLevel(member2), OpLevel(member), "kick",
+	OpLevel(member) == OpLevel(member2) ? "the same" : "a higher");
 
   /* We rely on ircd_snprintf to truncate the comment */
   comment = EmptyString(parv[parc - 1]) ? parv[0] : parv[parc - 1];
