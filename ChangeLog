@@ -1,3 +1,7 @@
+2002-09-25  David Mansell  <splidge@quakenet.org>
+ 
+ 	* ircd/m_burst.c: Fixed list walking bug.
+ 
 2002-10-04  Perry Lorier <isomer@undernet.org>
 	* ircd/m_version.c: was showing 005 on VERSION for opers only(!?)
 

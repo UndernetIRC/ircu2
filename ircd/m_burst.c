@@ -139,7 +139,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct ModeBuf modebuf, *mbuf = 0;
   struct Channel *chptr;
   time_t timestamp;
-  struct Membership *member;
+  struct Membership *member, *nmember;
   struct SLink *lp, **lp_p;
   unsigned int parse_flags = (MODE_PARSE_FORCE | MODE_PARSE_BURST);
   int param, nickpos = 0, banpos = 0;
@@ -167,7 +167,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (parv[param][0] != '+')
         continue;
       if (strchr(parv[param], 'i') || strchr(parv[param], 'k')) {
-        for (member = chptr->members; member; member = member->next_member) {
+        for (member = chptr->members; member; member = nmember) {
+          nmember=member->next_member;
           if (!MyUser(member->user) || IsZombie(member))
             continue;
           sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
