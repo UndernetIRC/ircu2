@@ -32,14 +32,14 @@ struct ConfItem;
 /*
  * Structures
  */
-struct ConfClass {
+struct ConnectionClass {
   unsigned int conClass;
   unsigned int conFreq;
   unsigned int pingFreq;
   unsigned int maxLinks;
   unsigned int maxSendq;
   unsigned int links;
-  struct ConfClass *next;
+  struct ConnectionClass *next;
 };
 
 /*
@@ -60,31 +60,29 @@ struct ConfClass {
 #define ConfPingFreq(x) ((x)->confClass->pingFreq)
 #define ConfSendq(x)    ((x)->confClass->maxSendq)
 
-#define FirstClass()    classes
-#define NextClass(x)    ((x)->next)
-
-#define MarkDelete(x)   do { MaxLinks(x) = (unsigned int)-1; } while(0)
-#define IsMarkedDelete(x) (MaxLinks(x) == (unsigned int)-1)
-
 /*
  * Proto types
  */
 
-extern struct ConfClass *find_class(unsigned int cclass);
-extern struct ConfClass *make_class(void);
-extern void free_class(struct ConfClass * tmp);
-extern unsigned int get_con_freq(struct ConfClass * clptr);
+extern void init_class(void);
+
+extern const struct ConnectionClass* get_class_list(void);
+extern void class_mark_delete(void);
+extern void class_delete_marked(void);
+
+extern struct ConnectionClass *find_class(unsigned int cclass);
+extern struct ConnectionClass *make_class(void);
+extern void free_class(struct ConnectionClass * tmp);
+extern unsigned int get_con_freq(struct ConnectionClass * clptr);
 extern unsigned int get_client_ping(struct Client *acptr);
 extern unsigned int get_conf_class(const struct ConfItem *aconf);
 extern unsigned int get_conf_ping(const struct ConfItem *aconf);
 extern unsigned int get_client_class(struct Client *acptr);
 extern void add_class(unsigned int conclass, unsigned int ping,
-    unsigned int confreq, unsigned int maxli, unsigned int sendq);
+                      unsigned int confreq, unsigned int maxli, unsigned int sendq);
 extern void check_class(void);
-extern void initclass(void);
 extern void report_classes(struct Client *sptr);
 extern unsigned int get_sendq(struct Client* cptr);
 
-extern struct ConfClass *classes;
-
+extern void class_send_meminfo(struct Client* cptr);
 #endif /* INCLUDED_class_h */

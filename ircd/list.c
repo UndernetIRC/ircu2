@@ -21,7 +21,6 @@
  */
 #include "list.h"
 
-#include "class.h"
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -49,7 +48,7 @@
 #ifdef DEBUGMODE
 static struct liststats {
   int inuse;
-} cloc, crem, users, servs, links, classs;
+} cloc, crem, users, servs, links;
 #endif
 
 static unsigned int localClientAllocCount;
@@ -81,7 +80,6 @@ void init_list(void)
   memset(&users, 0, sizeof(users));
   memset(&servs, 0, sizeof(servs));
   memset(&links, 0, sizeof(links));
-  memset(&classs, 0, sizeof(classs));
 #endif
 }
 
@@ -346,26 +344,6 @@ void remove_dlink(struct DLink **lpp, struct DLink *lp)
   MyFree(lp);
 }
 
-struct ConfClass *make_class(void)
-{
-  struct ConfClass *tmp;
-
-  tmp = (struct ConfClass*) MyMalloc(sizeof(struct ConfClass));
-  assert(0 != tmp);
-#ifdef  DEBUGMODE
-  classs.inuse++;
-#endif
-  return tmp;
-}
-
-void free_class(struct ConfClass * tmp)
-{
-  MyFree(tmp);
-#ifdef  DEBUGMODE
-  classs.inuse--;
-#endif
-}
-
 #ifdef  DEBUGMODE
 void send_listinfo(struct Client *cptr, char *name)
 {
@@ -390,10 +368,6 @@ void send_listinfo(struct Client *cptr, char *name)
 	     links.inuse, tmp = links.inuse * sizeof(struct SLink));
   mem += tmp;
   inuse += links.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
-	     classs.inuse, tmp = classs.inuse * sizeof(struct ConfClass));
-  mem += tmp;
-  inuse += classs.inuse;
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Confs: inuse: %d(%d)",
 	     GlobalConfCount, tmp = GlobalConfCount * sizeof(struct ConfItem));
   mem += tmp;

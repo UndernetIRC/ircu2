@@ -1218,7 +1218,6 @@ int read_configuration_file(void)
   if (aconf)
     free_conf(aconf);
   fbclose(file);
-  check_class();
   nextping = nextconnect = CurrentTime;
   return 1;
 }
@@ -1234,7 +1233,6 @@ int rehash(struct Client *cptr, int sig)
 {
   struct ConfItem** tmp = &GlobalConfList;
   struct ConfItem*  tmp2;
-  struct ConfClass* cltmp;
   struct Client*    acptr;
   struct MotdItem*  temp;
   int               i;
@@ -1270,13 +1268,6 @@ int rehash(struct Client *cptr, int sig)
   conf_erase_crule_list();
 
   /*
-   * We don't delete the class table, rather mark all entries
-   * for deletion. The table is cleaned up by check_class(). - avalon
-   */
-  for (cltmp = NextClass(FirstClass()); cltmp; cltmp = NextClass(cltmp))
-    MarkDelete(cltmp);
-
-  /*
    * delete the juped nicks list
    */
   clearNickJupes();
@@ -1284,12 +1275,13 @@ int rehash(struct Client *cptr, int sig)
   if (sig != 2)
     flush_resolver_cache();
 
+  class_mark_delete();
   mark_listeners_closing();
 
-  if (!read_configuration_file())        /* This calls check_class(), */
-    check_class();         /* unless it fails */
+  read_configuration_file();
 
   close_listeners();
+  class_delete_marked();         /* unless it fails */
 
   /*
    * Flush out deleted I and P lines although still in use.

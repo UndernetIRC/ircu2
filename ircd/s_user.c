@@ -1285,26 +1285,34 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * Evaluate rules for new user mode
    * Stop users making themselves operators too easily:
    */
-  if (!(setflags & FLAGS_OPER) && IsOper(sptr) && !IsServer(cptr))
-    ClearOper(sptr);
-  if (!(setflags & FLAGS_LOCOP) && IsLocOp(sptr) && !IsServer(cptr))
-    ClearLocOp(sptr);
+  if (!IsServer(cptr)) {
+    if (!(setflags & FLAGS_OPER) && IsOper(sptr))
+      ClearOper(sptr);
+    if (!(setflags & FLAGS_LOCOP) && IsLocOp(sptr))
+      ClearLocOp(sptr);
+    /*
+     * new umode; servers can set it, local users cannot;
+     * prevents users from /kick'ing or /mode -o'ing
+     */
+    if (!(setflags & FLAGS_CHSERV))
+      ClearChannelService(sptr);
 #ifdef WALLOPS_OPER_ONLY
-  /*
-   * only send wallops to opers
-   */
-  if (!IsAnOper(sptr) && !(setflags & FLAGS_WALLOP) && !IsServer(cptr))
-    ClearWallops(sptr);
+    /*
+     * only send wallops to opers
+     */
+    if (!IsAnOper(sptr) && !(setflags & FLAGS_WALLOP))
+      ClearWallops(sptr);
 #endif
-  if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr) &&
-      MyConnect(sptr))
-    det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
-  /*
-   * new umode; servers can set it, local users cannot;
-   * prevents users from /kick'ing or /mode -o'ing
-   */
-  if (!(setflags & FLAGS_CHSERV) && !IsServer(cptr))
-    ClearChannelService(sptr);
+  }
+  if (MyConnect(sptr)) {
+    if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr))
+      det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
+
+    if (tmpmask != sptr->snomask)
+      set_snomask(sptr, tmpmask, SNO_SET);
+    if (sptr->snomask && snomask_given)
+      send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
+  }
   /*
    * Compare new flags with old flags and send string which
    * will cause servers to update correctly.
@@ -1318,13 +1326,6 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (!(setflags & FLAGS_INVISIBLE) && IsInvisible(sptr))
     ++UserStats.inv_clients;
   send_umode_out(cptr, sptr, setflags);
-
-  if (MyConnect(sptr)) {
-    if (tmpmask != sptr->snomask)
-      set_snomask(sptr, tmpmask, SNO_SET);
-    if (sptr->snomask && snomask_given)
-      send_reply(sptr, RPL_SNOMASK, sptr->snomask, sptr->snomask);
-  }
 
   return 0;
 }
