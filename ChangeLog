@@ -1,3 +1,18 @@
+2002-04-16  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/s_user.c (hunt_server_cmd): also send a "no such server"
+	reply if the servername contains a '*' and it doesn't exist
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+2002-04-16  beware <steendijk@tomaatnet.nl>
+
+	* ircd/m_whois.c: the previous patch broke whois, fixed it
+	another way
+
+	* ircd/m_admin.c: cleaned up m_admin too while we're here,
+	hunt_server_cmd can do all the work for us
+
 2002-04-15  beware <steendijk@tomaatnet.nl>
 
 	* ircd/m_whois.c: Fixed /whois servermask nomatch bug
