@@ -3,17 +3,35 @@
 # ircd-patch
 # Copyright (C) 2002 Alex Badea <vampire@p16.pub.ro>
 #
+# $Id: ircd-patch,v 1.2 2002-04-02 09:42:32 isomer Exp $
+#
 # Experimental centralized patch system for ircu
+#
+# Return codes:
+#   0 - success
+#   1 - at least one live patch failed
+#   2 - at least one simulation (dry run) failed 
+#   3 - invalid arguments (i.e. no such patch)
+#   4 - invalid operation (i.e. tried to apply when already applied)
 #
 
 DIFFS=patches/diffs
 MARKS=patches/marks
+retcode=0
+force=0
+
+[ ! -d $DIFFS ] && echo "*** Missing $DIFFS, creating it" ; mkdir -p $DIFFS
+[ ! -d $MARKS ] && echo "*** Missing $MARKS, creating it" ; mkdir -p $MARKS
 
 PLIST=""
 for fname in $DIFFS/*.diff ; do
 	name=`basename $fname | sed -e 's/\.diff//'`
 	PLIST="$PLIST $name"
 done
+
+dry_run() {
+	patch -p0 -N -t --dry-run $2 >/dev/null < $1
+}
 
 patch_list() {
 	echo "Available patches (* marks applied patches):"
@@ -30,23 +48,24 @@ patch_test() {
 	[ -z "$list" ] && list=$PLIST
 	for name in $list ; do
 		fname=$DIFFS/$name.diff
-		echo -n "  "
+		echo -ne "  $name\t"
 		if [ ! -f $MARKS/$name ] ; then
-			echo -n "        "
-			if patch -p0 -N -t --dry-run >/dev/null < $fname ; then
-				echo -n "     "
+			if dry_run "$fname" ; then
+				echo -n " OK"
 			else
-				echo -n "fail "
+				echo -n " PATCH FAILED"
+				retcode=2
 			fi
 		else
-			echo -n "applied "
-			if patch -p0 -R -t --dry-run >/dev/null < $fname ; then
-				echo -n "     "
+			echo -n " APPLIED"
+			if dry_run "$fname" -R ; then
+				echo -n " OK"
 			else
-				echo -n "fail "
+				echo -n " REVERSE FAILED"
+				retcode=2
 			fi
 		fi
-		echo " $name"
+		echo
 	done
 	echo "Done."
 }
@@ -56,18 +75,33 @@ patch_add() {
 	fname="$DIFFS/$name.diff"
 	if [ ! -f $fname ]; then
 		echo "Patch $name ($fname) does not exist"
-		return 1
+		retcode=3
+		return
 	fi
-	if [ -f $MARKS/$name ] ; then
+
+	if [ $force -lt 2 -a -f $MARKS/$name ] ; then
 		echo "Patch $name seems already applied"
-		return 1
+		retcode=4
+		return
 	fi
+
+	if [ $force -lt 1 ]; then
+		echo -n "Testing $fname... "
+		if ! dry_run $fname ; then
+			echo "Failed (use -f to force)."
+			retcode=2
+			return
+		fi
+		echo "seems ok."
+	fi
+
 	echo "Applying $fname..."
 	if patch -p0 -N -t < $fname ; then
 		touch $MARKS/$name
 		echo "Done."
 	else
 		echo "Failed."
+		retcode=1
 	fi
 }
 
@@ -76,30 +110,53 @@ patch_del() {
 	fname="$DIFFS/$name.diff"
 	if [ ! -f $fname ]; then
 		echo "Patch $name ($fname) does not exist"
-		return 1
+		retcode=3
+		return
 	fi
-	if [ ! -f $MARKS/$name ] ; then
+
+	if [ $force -lt 2 -a ! -f $MARKS/$name ] ; then
 		echo "Patch $name doesn't seem to be applied"
-		return 1
+		retcode=4
+		return
 	fi
+
+	if [ $force -lt 1 ]; then
+		echo -n "Testing $fname... "
+		if ! dry_run $fname -R ; then
+			echo "Failed (use -f to force)."
+			retcode=2
+			return
+		fi
+		echo "seems ok."
+	fi
+	
 	echo "Reversing $fname..."
 	if patch -p0 -R -t < $fname ; then
 		rm -f $MARKS/$name
 		echo "Done."
 	else
 		echo "Failed."
+		retcode=1
 	fi
 }
 
 do_help() {
-	echo "Usage: $0 [args]"
+	echo "Usage: $0 [-f [-f]] [args]"
 	echo "Arguments may be:"
-	echo "  help              Prints this help"
-	echo "  list              List available patches"
-	echo "  test [patch list] Tests whether patches can be (un)applied correctly"
-	echo "  add  <patch list> Applies a patch"
-	echo "  del  <patch list> Reverses a patch"
+	echo "  help                Prints this help"
+	echo "  list                List available patches"
+	echo "  test [patch list]   Tests whether patches can be (un)applied correctly"
+	echo "  add  <patch list>   Applies a patch"
+	echo "  del  <patch list>   Reverses a patch"
+	echo "The -f option forces patching even if a dry run fails (effective on 'add'"
+	echo "and 'del' commands only). Using it twice will also skip checking whether"
+	echo "a patch is already applied."
 }
+
+while [ "$1" == "-f" ]; do
+	force=$[$force + 1]
+	shift
+done
 
 case "$1" in
 	add)
@@ -125,3 +182,5 @@ case "$1" in
 		do_help
 		;;
 esac
+
+exit $retcode
