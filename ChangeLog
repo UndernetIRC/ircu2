@@ -10,6 +10,9 @@
 	G-lines by plain hostname (not *@host), thus preventing "GLINE
 	test ..." from inserting duplicate G-lines.
 
+	* ircd/motd.c (motd_create): Null out new Motd's hostmask when
+	appropriate, avoiding an uninitialized or stale pointer.
+
 2005-01-26  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_alloc.h (DoMallocZero): Parenthesize macro

@@ -94,6 +94,8 @@ motd_create(const char *hostmask, const char *path, int maxcount)
 
   if (hostmask != NULL)
     DupString(tmp->hostmask, hostmask);
+  else
+    tmp->hostmask = NULL;
 
   DupString(tmp->path, path);
   tmp->maxcount = maxcount;
