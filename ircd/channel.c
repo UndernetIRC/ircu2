@@ -682,6 +682,7 @@ static int remove_member_from_channel(struct Membership* member)
 /** Check if all the remaining members on the channel are zombies
  *
  * @returns False if the channel has any non zombie members, True otherwise.
+ * @see \ref zombie
  */
 static int channel_all_zombies(struct Channel* chptr)
 {
@@ -745,6 +746,7 @@ void remove_user_from_all_channels(struct Client* cptr)
  * @param chptr	Channel to check
  *
  * @returns True if the user is a chanop (And not a zombie), False otherwise.
+ * @see \ref zombie
  */
 int is_chan_op(struct Client *cptr, struct Channel *chptr)
 {
@@ -763,6 +765,8 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
  *
  * @returns True if the client (cptr) is a zombie on the channel (chptr),
  * 	    False otherwise.
+ *
+ * @see \ref zombie
  */
 int is_zombie(struct Client *cptr, struct Channel *chptr)
 {
@@ -781,6 +785,7 @@ int is_zombie(struct Client *cptr, struct Channel *chptr)
  * @param chptr	The channel
  *
  * @returns True if the client (cptr) is voiced on (chptr) and is not a zombie.
+ * @see \ref zombie
  */
 int has_voice(struct Client* cptr, struct Channel* chptr)
 {
@@ -1624,7 +1629,8 @@ void list_next_channels(struct Client *cptr, int nr)
   update_write(cptr);
 }
 
-/*
+/** @page zombie Explaination of Zombies
+ *
  * Consider:
  *
  *                     client
@@ -1669,8 +1675,18 @@ void list_next_channels(struct Client *cptr, int nr)
  *
  * --Run
  */
-void make_zombie(struct Membership* member, struct Client* who, struct Client* cptr,
-                 struct Client* sptr, struct Channel* chptr)
+
+/** Turn a user on a channel into a zombie
+ * This function turns a user into a zombie (see \ref zombie)
+ *
+ * @param member  The structure representing this user on this channel.
+ * @param who	  The client that is being kicked.
+ * @param cptr	  The connection the kick came from.
+ * @param sptr    The client that is doing the kicking.
+ * @param chptr	  The channel the user is being kicked from.
+ */
+void make_zombie(struct Membership* member, struct Client* who, 
+		struct Client* cptr, struct Client* sptr, struct Channel* chptr)
 {
   assert(0 != member);
   assert(0 != who);
@@ -1709,6 +1725,11 @@ void make_zombie(struct Membership* member, struct Client* who, struct Client* c
   */
 }
 
+/** returns the number of zombies on a channel
+ * @param chptr	Channel to count zombies in.
+ *
+ * @returns The number of zombies on the channel.
+ */
 int number_of_zombies(struct Channel *chptr)
 {
   struct Membership* member;
@@ -1722,10 +1743,16 @@ int number_of_zombies(struct Channel *chptr)
   return count;
 }
 
-/*
+/** Concatenate some strings together.
  * This helper function builds an argument string in strptr, consisting
  * of the original string, a space, and str1 and str2 concatenated (if,
  * of course, str2 is not NULL)
+ *
+ * @param strptr	The buffer to concatenate into
+ * @param strptr_i	modified offset to the position to modify
+ * @param str1		The string to contatenate from.
+ * @param str2		The second string to contatenate from.
+ * @param c		Charactor to seperate the string from str1 and str2.
  */
 static void
 build_string(char *strptr, int *strptr_i, const char *str1,
@@ -1744,9 +1771,15 @@ build_string(char *strptr, int *strptr_i, const char *str1,
   strptr[(*strptr_i)] = '\0';
 }
 
-/*
+/** Flush out the modes
  * This is the workhorse of our ModeBuf suite; this actually generates the
  * output MODE commands, HACK notices, or whatever.  It's pretty complicated.
+ *
+ * @param mbuf	The mode buffer to flush
+ * @param all	If true, flush all modes, otherwise leave partial modes in the
+ * 		buffer.
+ *
+ * @returns 0
  */
 static int
 modebuf_flush_int(struct ModeBuf *mbuf, int all)
@@ -2103,9 +2136,15 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   return 0;
 }
 
-/*
+/** Initialise a modebuf
  * This routine just initializes a ModeBuf structure with the information
  * needed and the options given.
+ *
+ * @param mbuf		The mode buffer to initialise.
+ * @param source	The client that is performing the mode.
+ * @param connect	?
+ * @param chan		The channel that the mode is being performed upon.
+ * @param dest		?
  */
 void
 modebuf_init(struct ModeBuf *mbuf, struct Client *source,
@@ -2135,9 +2174,12 @@ modebuf_init(struct ModeBuf *mbuf, struct Client *source,
   }
 }
 
-/*
+/** Append a new mode to a modebuf
  * This routine simply adds modes to be added or deleted; do a binary OR
  * with either MODE_ADD or MODE_DEL
+ *
+ * @param mbuf		Mode buffer
+ * @param mode		MODE_ADD or MODE_DEL OR'd with MODE_PRIVATE etc.
  */
 void
 modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
@@ -2161,10 +2203,15 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
   }
 }
 
-/*
+/** Append a mode that takes an int argument to the modebuf
+ *
  * This routine adds a mode to be added or deleted that takes a unsigned
  * int parameter; mode may *only* be the relevant mode flag ORed with one
  * of MODE_ADD or MODE_DEL
+ *
+ * @param mbuf		The mode buffer to append to.
+ * @param mode		The mode to append.
+ * @param uint		The argument to the mode.
  */
 void
 modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
@@ -2185,10 +2232,15 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
     modebuf_flush_int(mbuf, 0);
 }
 
-/*
+/** append a string mode
  * This routine adds a mode to be added or deleted that takes a string
  * parameter; mode may *only* be the relevant mode flag ORed with one of
  * MODE_ADD or MODE_DEL
+ *
+ * @param mbuf		The mode buffer to append to.
+ * @param mode		The mode to append.
+ * @param string	The string parameter to append.
+ * @param free		If the string should be free'd later.
  */
 void
 modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string,
@@ -2206,10 +2258,14 @@ modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string,
     modebuf_flush_int(mbuf, 0);
 }
 
-/*
+/** Append a mode on a client to a modebuf.
  * This routine adds a mode to be added or deleted that takes a client
  * parameter; mode may *only* be the relevant mode flag ORed with one of
  * MODE_ADD or MODE_DEL
+ *
+ * @param mbuf		The modebuf to append the mode to.
+ * @param mode		The mode to append.
+ * @param client	The client argument to append.
  */
 void
 modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
@@ -2227,8 +2283,11 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
     modebuf_flush_int(mbuf, 0);
 }
 
-/*
- * This is the exported binding for modebuf_flush()
+/** The exported binding for modebuf_flush()
+ *
+ * @param mbuf	The mode buffer to flush.
+ * 
+ * @see modebuf_flush_int()
  */
 int
 modebuf_flush(struct ModeBuf *mbuf)
@@ -2251,8 +2310,10 @@ modebuf_flush(struct ModeBuf *mbuf)
   return modebuf_flush_int(mbuf, 1);
 }
 
-/*
- * This extracts the simple modes contained in mbuf
+/* This extracts the simple modes contained in mbuf
+ *
+ * @param mbuf		The mode buffer to extract the modes from.
+ * @param buf		The string buffer to write the modes into.
  */
 void
 modebuf_extract(struct ModeBuf *mbuf, char *buf)
@@ -2328,8 +2389,11 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   return;
 }
 
-/*
- * Simple function to invalidate bans
+/** Simple function to invalidate bans
+ *
+ * This function sets all bans as being valid.
+ *
+ * @param chan	The channel to operate on.
  */
 void
 mode_ban_invalidate(struct Channel *chan)
@@ -2340,8 +2404,12 @@ mode_ban_invalidate(struct Channel *chan)
     ClearBanValid(member);
 }
 
-/*
- * Simple function to drop invite structures
+/** Simple function to drop invite structures
+ *
+ * Remove all the invites on the channel.
+ *
+ * @param chan		Channel to remove invites from.
+ *
  */
 void
 mode_invite_clear(struct Channel *chan)
@@ -2351,13 +2419,13 @@ mode_invite_clear(struct Channel *chan)
 }
 
 /* What we've done for mode_parse so far... */
-#define DONE_LIMIT	0x01	/* We've set the limit */
-#define DONE_KEY	0x02	/* We've set the key */
-#define DONE_BANLIST	0x04	/* We've sent the ban list */
-#define DONE_NOTOPER	0x08	/* We've sent a "Not oper" error */
-#define DONE_BANCLEAN	0x10	/* We've cleaned bans... */
-#define DONE_UPASS	0x20	/* We've set user pass */
-#define DONE_APASS	0x40	/* We've set admin pass */
+#define DONE_LIMIT	0x01	/**< We've set the limit */
+#define DONE_KEY	0x02	/**< We've set the key */
+#define DONE_BANLIST	0x04	/**< We've sent the ban list */
+#define DONE_NOTOPER	0x08	/**< We've sent a "Not oper" error */
+#define DONE_BANCLEAN	0x10	/**< We've cleaned bans... */
+#define DONE_UPASS	0x20	/**< We've set user pass */
+#define DONE_APASS	0x40	/**< We've set admin pass */
 
 struct ParseState {
   struct ModeBuf *mbuf;
@@ -2382,9 +2450,11 @@ struct ParseState {
   } cli_change[MAXPARA];
 };
 
-/*
+/** Helper function to send "Not oper" or "Not member" messages
  * Here's a helper function to deal with sending along "Not oper" or
  * "Not member" messages
+ *
+ * @param state 	Parsing State object
  */
 static void
 send_notoper(struct ParseState *state)
@@ -2398,8 +2468,11 @@ send_notoper(struct ParseState *state)
   state->done |= DONE_NOTOPER;
 }
 
-/*
+/** Parse a limit
  * Helper function to convert limits
+ *
+ * @param state		Parsing state object.
+ * @param flag_p	?
  */
 static void
 mode_parse_limit(struct ParseState *state, int *flag_p)
