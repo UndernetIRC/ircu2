@@ -32,6 +32,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 int need_more_params(struct Client* cptr, const char* cmd)
 {

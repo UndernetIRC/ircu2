@@ -26,6 +26,7 @@
 #include <stdio.h>              /* BUFSIZ, EOF */
 #include <sys/stat.h>           /* struct stat */
 #include <unistd.h>             /* read, write, open, close */
+#include <string.h>
 
 #define FB_EOF  0x01
 #define FB_FAIL 0x02

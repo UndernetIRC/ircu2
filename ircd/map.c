@@ -31,6 +31,7 @@
 #include "struct.h"
 
 #include <stdio.h> /* sprintf */
+#include <string.h>
 
 void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
 {

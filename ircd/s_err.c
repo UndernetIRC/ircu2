@@ -23,6 +23,7 @@
 #include "sprintf_irc.h"
 
 #include <assert.h>
+#include <string.h>
 
 static Numeric replyTable[] = {
 /* 000 */

@@ -39,6 +39,7 @@
 #include "sys.h"    /* FALSE bleah */
 
 #include <assert.h>
+#include <string.h>
 
 static struct Jupe *GlobalJupeList = 0;
 

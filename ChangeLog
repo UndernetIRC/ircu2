@@ -1,3 +1,5 @@
+2000-07-15  Perry Lorier       <Isomer@coders.net>
+	* various: Fixed warnings after compiling on an alpha.
 2000-07-09  Perry Lorier       <Isomer@coders.net>
 	* doc/ircd.8: Applied grammitical changes by Liandrin, applied
 		      changes suggested by various other people.
@@ -1277,7 +1279,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.156 2000-07-15 01:31:23 isomer Exp $
+# $Id: ChangeLog,v 1.157 2000-07-15 12:29:15 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
