@@ -1,7 +1,6 @@
-/*
- * list.h
- *
- * $Id$
+/* @file list.h
+ * @brief Singly and doubly linked list manipulation interface.
+ * @version $Id$
  */
 #ifndef INCLUDED_list_h
 #define INCLUDED_list_h
@@ -23,28 +22,28 @@ struct ConfItem;
 struct SLink {
   struct SLink *next; /**< Next element in list. */
   union {
-    struct Client *cptr;
-    struct Channel *chptr;
-    struct ConfItem *aconf;
-    char *cp;
+    struct Client *cptr;    /**< List element as a client. */
+    struct Channel *chptr;  /**< List element as a channel. */
+    struct ConfItem *aconf; /**< List element as a configuration item. */
+    char *cp;               /**< List element as a string. */
     struct {
-      char *banstr;
-      char *who;
-      time_t when;
-    } ban;
-  } value; /**< Value of list element. */
-  unsigned int flags; /**< Modifier flags for list element. */
+      char *banstr;         /**< Ban hostmask. */
+      char *who;            /**< Name of client that set the ban. */
+      time_t when;          /**< Timestamp when ban was added. */
+    } ban;                  /**< List element as a ban. */
+  } value;                  /**< Value of list element. */
+  unsigned int flags;       /**< Modifier flags for list element. */
 };
 
 /** Node in a doubly linked list. */
 struct DLink {
-  struct DLink*  next; /**< Next element in list. */
-  struct DLink*  prev; /**< Previous element in list. */
+  struct DLink*  next;      /**< Next element in list. */
+  struct DLink*  prev;      /**< Previous element in list. */
   union {
-    struct Client*  cptr;
-    struct Channel* chptr;
-    char*           ch;
-  } value; /**< Value of list element. */
+    struct Client*  cptr;   /**< List element as a client. */
+    struct Channel* chptr;  /**< List element as a channel. */
+    char*           ch;     /**< List element as a string. */
+  } value;                  /**< Value of list element. */
 };
 
 /*
