@@ -193,7 +193,7 @@ static struct ConfItem *chk_initconf(void)
     aconf->host        = NULL;
     aconf->passwd      = NULL;
     aconf->name        = NULL;
-    aconf->confClass   = NULL;
+    aconf->conn_class   = NULL;
     aconf->dns_pending = 0;
 
     if ((tmp = strchr(line, '\n')))
@@ -345,18 +345,18 @@ static struct ConfItem *chk_initconf(void)
         break;
       if (!(aconf->status & (CONF_CLASS | CONF_ME)))
       {
-        aconf->confClass = get_class(atoi(tmp), 0);
+        aconf->conn_class = get_class(atoi(tmp), 0);
         break;
       }
       if (aconf->status & CONF_ME)
-        aconf->confClass = get_class(atoi(tmp), 1);
+        aconf->conn_class = get_class(atoi(tmp), 1);
       break;
     }
-    if (!aconf->confClass && (aconf->status & (CONF_SERVER |
+    if (!aconf->conn_class && (aconf->status & (CONF_SERVER |
         CONF_ME | CONF_OPS | CONF_CLIENT)))
     {
       fprintf(stderr, "\tWARNING: No class.      Default 0\n");
-      aconf->confClass = get_class(0, 0);
+      aconf->conn_class = get_class(0, 0);
     }
     /*
      * If conf line is a class definition, create a class entry
@@ -378,7 +378,7 @@ static struct ConfItem *chk_initconf(void)
       else
         sprintf(maxsendq, "%d", atoi(tmp));
       new_class(atoi(aconf->host));
-      aconf->confClass = get_class(atoi(aconf->host), 0);
+      aconf->conn_class = get_class(atoi(aconf->host), 0);
       goto print_confline;
     }
 
@@ -389,7 +389,7 @@ static struct ConfItem *chk_initconf(void)
       else if (strchr(aconf->host, '/'))
         fprintf(stderr, "\t%s\n", "WARNING: / present in P-line "
             "for non-UNIXPORT configuration");
-      aconf->confClass = get_class(0, 0);
+      aconf->conn_class = get_class(0, 0);
       goto print_confline;
     }
 
@@ -432,8 +432,8 @@ static struct ConfItem *chk_initconf(void)
       if ((crule = crule_parse(aconf->name)) != NULL)
         crule_free(&crule);
 
-    if (!aconf->confClass)
-      aconf->confClass = get_class(0, 0);
+    if (!aconf->conn_class)
+      aconf->conn_class = get_class(0, 0);
     sprintf(maxsendq, "%d", ConfClass(aconf));
 
     if ((aconf->status & CONF_ADMIN) && (!aconf->name ||
@@ -476,20 +476,20 @@ static struct ConnectionClass *get_class(int cn, int ism)
   static struct ConnectionClass cls;
   if (ism == 1)
   {
-    cls.conClass = (unsigned int)-1;
+    cls.cc_class = (unsigned int)-1;
     if ((cn >= 1) && (cn <= 64))
-      cls.conClass = cn;
+      cls.cc_class = cn;
     else
       fprintf(stderr, "\tWARNING: server numeric %d is not 1-64\n", cn);
   }
   else
   {
     int i = numclasses - 1;
-    cls.conClass = (unsigned int)-1;
+    cls.cc_class = (unsigned int)-1;
     for (; i >= 0; i--)
       if (classarr[i] == cn)
       {
-        cls.conClass = cn;
+        cls.cc_class = cn;
         break;
       }
     if (i == -1)
@@ -555,7 +555,7 @@ static int validate(struct ConfItem *top)
       {
         if (bconf == aconf || !(bconf->status & otype))
           continue;
-        if (bconf->confClass == aconf->confClass &&
+        if (bconf->conn_class == aconf->conn_class &&
             0 == ircd_strcmp(bconf->name, aconf->name) &&
             0 == ircd_strcmp(bconf->host, aconf->host))
         {
