@@ -301,6 +301,7 @@ static void lookup_confhost(struct ConfItem *aconf)
   if (IsDigit(*aconf->host)) {
     /*
      * rfc 1035 sez host names may not start with a digit
+     * XXX - this has changed code needs to be updated
      */
     aconf->ipnum.s_addr = inet_addr(aconf->host);
     if (INADDR_NONE == aconf->ipnum.s_addr) {

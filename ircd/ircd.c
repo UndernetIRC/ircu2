@@ -44,6 +44,7 @@
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
+#include "uping.h"
 #include "userload.h"
 #include "version.h"
 #include "whowas.h"
@@ -639,6 +640,7 @@ int main(int argc, char *argv[])
     Debug((DEBUG_FATAL, "Failed to initialize server identity"));
     exit(2);
   }
+  uping_init();
   read_tlines();
   rmotd = read_motd(RPATH);
   motd = read_motd(MPATH);

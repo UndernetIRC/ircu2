@@ -22,7 +22,6 @@
 
 #define RELEASE ".11.alpha."
 
-
 /* Do NOT edit those: */
 
 #ifndef BASE_VERSION
