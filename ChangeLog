@@ -1,3 +1,7 @@
+2003-11-23 Beware <steendijk@xs4all.nl>
+	* doc/p10.txt: Bewares excellent reference on the p10 protocol as
+	implemented by Undernet.
+
 2003-11-13 Spike <spike@undernet.org>
 	* ircd/gline.c: Remove the possibility to add a BADCHAN by
 	setting a gline on $R#chan.
