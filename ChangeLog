@@ -1,3 +1,8 @@
+2000-07-02  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_misc.c: Fixed remote IPcheck bug.  Ok, I'm a moron, so sue
+			me.  Thanks to Hektik, thanks thanks thanks thanks
+			thanks thanks thanks thanks thank thanks thank thanks
+
 2000-07-01  Perry Lorier       <Isomer@coders.net>
 	* ircd/s_conf.c: "Fixed" the "bug" where people would "evade" K:'s.
 	* ircd/s_conf.c, include/IPcheck.h: Fixed compile warnings.
@@ -1255,7 +1260,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.152 2000-07-01 12:37:02 isomer Exp $
+# $Id: ChangeLog,v 1.153 2000-07-02 01:06:17 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
