@@ -193,7 +193,7 @@ struct Engine {
   EngineLoop	eng_loop;	/* actual event loop */
 };
 
-#define gen_ref_inc(gen)	(((struct Generator*) (gen))->gh_ref++)
+#define gen_ref_inc(gen)	(((struct GenHeader*) (gen))->gh_ref++)
 #define gen_ref_dec(gen)						      \
 do {									      \
   struct GenHeader* _gen = (struct GenHeader*) (gen);			      \

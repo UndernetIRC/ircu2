@@ -507,8 +507,8 @@ void close_connection(struct Client *cptr)
       aconf->hold += ((aconf->hold - cli_since(cptr) >
 		       feature_int(FEAT_HANGONGOODLINK)) ?
 		      feature_int(FEAT_HANGONRETRYDELAY) : ConfConFreq(aconf));
-      if (nextconnect > aconf->hold)
-        nextconnect = aconf->hold;
+/*        if (nextconnect > aconf->hold) */
+/*          nextconnect = aconf->hold; */
     }
   }
   else if (IsUser(cptr)) {
@@ -667,7 +667,7 @@ void update_write(struct Client* cptr)
    */
   socket_events(&(cli_socket(cptr)),
 		((MsgQLength(&cli_sendQ(cptr)) || cli_listing(cptr)) ?
-		 SOCK_ACTION_ADD | SOCK_ACTION_DEL) | SOCK_EVENT_WRITABLE);
+		 SOCK_ACTION_ADD : SOCK_ACTION_DEL) | SOCK_EVENT_WRITABLE);
 }
 
 /*
@@ -904,7 +904,7 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
    */
   add_client_to_list(cptr);
   hAddClient(cptr);
-  nextping = CurrentTime;
+/*    nextping = CurrentTime; */
 
   return (s_state(&cli_socket(cptr)) == SS_CONNECTED) ?
     completed_connection(cptr) : 1;
@@ -965,14 +965,15 @@ static void client_sock_callback(struct Event* ev)
 
   case ET_ERROR: /* an error occurred */
     fallback = cli_info(cptr);
-    cli_error = ev_data(ev);
+    cli_error(cptr) = ev_data(ev);
     if (s_state(&(con_socket(con))) == SS_CONNECTING) {
       completed_connection(cptr);
       break;
     }
     /*FALLTHROUGH*/
   case ET_EOF: /* end of file on socket */
-    Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d", i, cli_error(cptr)));
+    Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d", cli_fd(cptr),
+	   cli_error(cptr)));
     if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0) {
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
 		      cli_name(cptr), cli_serv(cptr)->last_error_msg);

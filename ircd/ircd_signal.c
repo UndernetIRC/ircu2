@@ -26,6 +26,7 @@
 #include "ircd_signal.h"
 #include "s_conf.h"
 
+#include <assert.h>
 #include <signal.h>
 
 static struct tag_SignalCounter {
@@ -47,7 +48,7 @@ static void sigterm_callback(struct Event* ev)
   assert(0 != ev_signal(ev));
   assert(ET_SIGNAL == ev_type(ev));
   assert(SIGTERM == sig_signal(ev_signal(ev)));
-  assert(SIGTERM == sig_data(ev_signal(ev)));
+  assert(SIGTERM == ev_data(ev));
 
   server_die("received signal SIGTERM");
 }
@@ -57,7 +58,7 @@ static void sighup_callback(struct Event* ev)
   assert(0 != ev_signal(ev));
   assert(ET_SIGNAL == ev_type(ev));
   assert(SIGHUP == sig_signal(ev_signal(ev)));
-  assert(SIGHUP == sig_data(ev_signal(ev)));
+  assert(SIGHUP == ev_data(ev));
 
   ++SignalCounter.hup;
   rehash(&me, 1);
@@ -68,7 +69,7 @@ static void sigint_callback(struct Event* ev)
   assert(0 != ev_signal(ev));
   assert(ET_SIGNAL == ev_type(ev));
   assert(SIGINT == sig_signal(ev_signal(ev)));
-  assert(SIGINT == sig_data(ev_signal(ev)));
+  assert(SIGINT == ev_data(ev));
 
   server_restart("caught signal: SIGINT");
 }

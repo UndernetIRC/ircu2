@@ -45,8 +45,8 @@
 
 static struct Socket* sockList[FD_SETSIZE];
 static int highest_fd;
-static fdset global_read_set;
-static fdset global_write_set;
+static fd_set global_read_set;
+static fd_set global_write_set;
 
 static int errors = 0;
 static struct Timer clear_error;
@@ -56,7 +56,7 @@ static void
 error_clear(struct Event* ev)
 {
   if (!--errors) /* remove timer when error count reaches 0 */
-    timer_del(&(ev_timer(ev)));
+    timer_del(ev_timer(ev));
 }
 
 /* initialize the select engine */
@@ -202,13 +202,13 @@ engine_loop(struct Generators* gen)
   int nfds;
   int i;
   int errcode;
-  int codesize;
+  size_t codesize;
 
   while (running) {
     read_set = global_read_set; /* all hail structure copy!! */
     write_set = global_write_set;
 
-    wait.tv_sec = time_next(gen); /* set up the sleep time */
+    wait.tv_sec = timer_next(gen); /* set up the sleep time */
     wait.tv_usec = 0;
 
     /* check for active files */

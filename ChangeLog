@@ -1,5 +1,59 @@
 2001-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/uping.c (uping_sender_callback): it's pptr, not uping
+
+	* ircd/s_user.c (register_user): comment out spurious reference to
+	nextping
+
+	* ircd/s_serv.c (server_estab): comment out spurious reference to
+	nextping
+
+	* ircd/s_conf.c (read_configuration_file): comment out spurious
+	reference to nextping and nextconnect
+
+	* ircd/s_bsd.c: comment out some spurious references to formerly
+	global (now non-existant) variables; correct a couple of typos
+
+	* ircd/s_auth.c: pre-declare some functions referenced in the
+	callback; correct a typo
+
+	* ircd/res.c (start_resolver): pass errno value of ENFILE
+
+	* ircd/listener.c (accept_connection): you know your API is messed
+	up when...variables that shouldn't have been global crop up in
+	other files
+
+	* ircd/list.c (free_client): substitution of == for =
+
+	* ircd/ircd_signal.c: include assert.h for assertion checking;
+	check ev_data() to find out what signal generated event
+
+	* ircd/ircd_events.c: some references to the variable "timer"
+	should have been references to the variable "ptr"
+
+	* ircd/engine_select.c: it's struct fd_set, not struct fdset;
+	ev_timer(ev) is already a timer pointer; declare codesize as a
+	size_t to correct signedness issue; use timer_next(), not
+	time_next()
+
+	* ircd/engine_poll.c: ev_timer(ev) is already a timer pointer;
+	select fd out of struct pollfd in assertion checking; declare
+	errcode and codesize; use timer_next(), not time_next()
+
+	* ircd/engine_kqueue.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/engine_devpoll.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/Makefile.in (IRCD_SRC): add ircd_events.c to the list of
+	compiled sources; do make depend
+
+	* include/list.h: pre-declare struct Connection
+
+	* include/ircd_events.h (gen_ref_inc): cast to the right structure
+	name
+
 	* include/s_auth.h: duh; missing */
 
 2001-05-10  Kevin L. Mitchell  <klmitch@mit.edu>

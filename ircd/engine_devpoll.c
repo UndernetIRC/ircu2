@@ -78,7 +78,7 @@ static void
 error_clear(struct Event* ev)
 {
   if (!--errors) /* remove timer when error count reaches 0 */
-    timer_del(&(ev_timer(ev)));
+    timer_del(ev_timer(ev));
 }
 
 /* initialize the devpoll engine */
@@ -235,7 +235,7 @@ engine_loop(struct Generators* gen)
     dopoll.dp_nfds = POLLS_PER_DEVPOLL;
 
     /* calculate the proper timeout */
-    dopoll.dp_timeout = time_next(gen) ? time_next(gen) * 1000 : -1;
+    dopoll.dp_timeout = timer_next(gen) ? timer_next(gen) * 1000 : -1;
 
     /* check for active files */
     nfds = ioctl(devpoll_fd, DP_POLL, &dopoll);

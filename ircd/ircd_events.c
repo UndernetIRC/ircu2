@@ -416,13 +416,13 @@ timer_run(void)
 
     gen_dequeue(ptr); /* must dequeue timer here */
     if (ptr->t_type == TT_ABSOLUTE || ptr->t_type == TT_RELATIVE)
-      timer->t_header.gh_flags |= GEN_DESTROY; /* mark for destruction */
+      ptr->t_header.gh_flags |= GEN_DESTROY; /* mark for destruction */
     event_generate(ET_EXPIRE, ptr, 0); /* generate expire event */
 
     switch (ptr->t_type) {
     case TT_ABSOLUTE: case TT_RELATIVE:
-      if (timer->t_header.gh_flags & GEN_DESTROY) /* still marked */
-	event_generate(ET_DESTROY, timer, 0);
+      if (ptr->t_header.gh_flags & GEN_DESTROY) /* still marked */
+	event_generate(ET_DESTROY, ptr, 0);
       break;
 
     case TT_PERIODIC:

@@ -11,6 +11,7 @@
 #endif
 
 struct Client;
+struct Connection;
 struct Channel;
 struct ConfItem;
 

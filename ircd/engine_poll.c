@@ -77,7 +77,7 @@ static void
 error_clear(struct Event* ev)
 {
   if (!--errors) /* remove timer when error count reaches 0 */
-    timer_del(&(ev_timer(ev)));
+    timer_del(ev_timer(ev));
 }
 
 /* initialize the poll engine */
@@ -182,7 +182,7 @@ engine_state(struct Socket* sock, enum SocketState new_state)
 {
   assert(0 != sock);
   assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
@@ -196,7 +196,7 @@ engine_events(struct Socket* sock, unsigned int new_events)
 {
   assert(0 != sock);
   assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
@@ -210,7 +210,7 @@ engine_delete(struct Socket* sock)
 {
   assert(0 != sock);
   assert(sock == sockList[s_ed_int(sock)]);
-  assert(s_fd(sock) == pollfdList[s_ed_int(sock)]);
+  assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
   /* clear the events */
   pollfdList[s_ed_int(sock)].fd = -1;
@@ -231,9 +231,11 @@ engine_loop(struct Generators* gen)
   unsigned int wait;
   int nfds;
   int i;
+  int errcode;
+  size_t codesize;
 
   while (running) {
-    wait = time_next(gen) * 1000; /* set up the sleep time */
+    wait = timer_next(gen) * 1000; /* set up the sleep time */
 
     /* check for active files */
     nfds = poll(pollfdList, poll_count, wait ? wait : -1);

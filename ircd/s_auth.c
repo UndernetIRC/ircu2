@@ -103,6 +103,11 @@ static struct AuthRequest* AuthIncompleteList = 0;
 
 enum { AUTH_TIMEOUT = 60 };
 
+static void release_auth_client(struct Client* client);
+static void unlink_auth_request(struct AuthRequest* request,
+                                struct AuthRequest** list);
+void free_auth_request(struct AuthRequest* auth);
+
 /*
  * auth_timeout - timeout a given auth request
  */
@@ -260,7 +265,7 @@ static void release_auth_client(struct Client* client)
   LocalClientArray[cli_fd(client)] = client;
 
   add_client_to_list(client);
-  socket_events(&(cli_socket(client)), SOCK_ACTION_SET | SOCK_EVENTS_READABLE);
+  socket_events(&(cli_socket(client)), SOCK_ACTION_SET | SOCK_EVENT_READABLE);
   Debug((DEBUG_INFO, "Auth: release_auth_client %s@%s[%s]",
          cli_username(client), cli_sockhost(client), cli_sock_ip(client)));
 }

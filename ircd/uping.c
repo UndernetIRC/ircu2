@@ -225,7 +225,7 @@ static void uping_sender_callback(struct Event* ev)
   } else {
     assert(ev_type(ev) == ET_EXPIRE);
 
-    uping->lastsent = CurrentTime; /* store last ping time */
+    pptr->lastsent = CurrentTime; /* store last ping time */
     uping_send(pptr); /* send a ping */
 
     if (pptr->sent == pptr->count) /* done sending pings, don't send more */

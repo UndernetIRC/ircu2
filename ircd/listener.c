@@ -492,7 +492,7 @@ static void accept_connection(struct Event* ev)
     }
 #endif
     ++ServerStats->is_ac;
-    nextping = CurrentTime;
+/*      nextping = CurrentTime; */
 
     add_connection(listener, fd);
   }

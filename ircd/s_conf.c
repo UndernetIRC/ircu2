@@ -1231,7 +1231,7 @@ int read_configuration_file(void)
   if (aconf)
     free_conf(aconf);
   fbclose(file);
-  nextping = nextconnect = CurrentTime;
+/*    nextping = nextconnect = CurrentTime; */
   feature_mark(); /* reset unmarked features */
   return 1;
 }

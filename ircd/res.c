@@ -358,7 +358,7 @@ static void start_resolver(void)
     if (!socket_add(&resSock, res_callback, 0, SS_DATAGRAM,
 		    SOCK_EVENT_READABLE, ResolverFileDescriptor))
       report_error("Resolver: unable to queue resolver file descriptor for %s",
-		   cli_name(&me));
+		   cli_name(&me), ENFILE);
   }
 }
 

@@ -52,7 +52,7 @@ static void
 error_clear(struct Event* ev)
 {
   if (!--errors) /* remove timer when error count reaches 0 */
-    timer_del(&(ev_timer(ev)));
+    timer_del(ev_timer(ev));
 }
 
 /* initialize the kqueue engine */
@@ -265,7 +265,7 @@ engine_loop(struct Generators* gen)
   int i;
 
   while (running) {
-    wait.tv_sec = time_next(gen); /* set up the sleep time */
+    wait.tv_sec = timer_next(gen); /* set up the sleep time */
     wait.tv_nsec = 0;
 
     /* check for active events */
