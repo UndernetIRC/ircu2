@@ -25,12 +25,11 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_snprintf.h"
 #include "numnicks.h"
 #include "send.h"
 #include "struct.h"
 
-
-static char buffer[1024];
 
 /*
  * do_numeric()
@@ -47,8 +46,7 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
 {
   struct Client *acptr = 0;
   struct Channel *achptr = 0;
-  char *p, *b;
-  int i;
+  char num[4];
 
   /* Avoid trash, we need it to come from a server and have a target  */
   if ((parc < 2) || !IsServer(sptr))
@@ -72,26 +70,13 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
   if (numeric < 100)
     numeric += 100;
 
-  /* Rebuild the buffer with all the parv[] without wasting cycles :) */
-  b = buffer;
-  if (parc > 2)
-  {
-    for (i = 2; i < (parc - 1); i++)
-      for (*b++ = ' ', p = parv[i]; *p; p++)
-        *b++ = *p;
-    for (*b++ = ' ', *b++ = ':', p = parv[parc - 1]; *p; p++)
-      *b++ = *p;
-  }
-  *b = '\000';
-
-  /* Since .06 this will implicitly use numeric nicks when needed     */
+  ircd_snprintf(0, num, sizeof(num), "%03d", numeric);
 
   if (acptr)
-    sendto_prefix_one(acptr, sptr, ":%s %d %s%s",
-        sptr->name, numeric, acptr->name, buffer);
+    sendcmdto_one(sptr, num, num, acptr, "%C %s", acptr, parv[2]);
   else
-    sendto_channel_butone(cptr, sptr, achptr, ":%s %d %s%s",
-        sptr->name, numeric, achptr->chname, buffer);
+    sendcmdto_channel_butone(sptr, num, num, achptr, cptr,
+			     SKIP_DEAF | SKIP_BURST, "%H %s", achptr, parv[2]);
 
   return 0;
 }
