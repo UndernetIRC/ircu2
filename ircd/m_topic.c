@@ -104,6 +104,10 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
       send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
       return;
    }
+   if (!client_can_send_to_channel(sptr, chptr, 1)) {
+     send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+     return;
+   }
    /* Note if this is just a refresh of an old topic, and don't
     * send it to all the clients to save bandwidth.  We still send
     * it to other servers as they may have split and lost the topic.

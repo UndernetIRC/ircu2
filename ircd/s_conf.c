@@ -1364,6 +1364,7 @@ int rehash(struct Client *cptr, int sig)
 
   if (sig != 2)
     flush_resolver_cache();
+  restart_resolver();
 
   class_mark_delete();
   mark_listeners_closing();
