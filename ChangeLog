@@ -1,3 +1,16 @@
+2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
+	* s_bsd.c (read_packet): Our daily addition to the list of entities to
+	treat as servers - Connecting servers.
+	
+2002-07-01 Andrew Miller <a1kmm@mware.virtualave.net>
+	* doc/debug_memleak_gc.patch,
+	* include/ircd_ircd_alloc.h,
+	* include/memdebug.h,
+	* configure.in,
+	* ircd/Makefile.in,
+	* ircd/memdebug.c: added a Boehm's gc based leak detector to find leaks
+	and notify the operators.
+	
 2002-06-29  Andrew Miller <a1kmm@mware.virtualave.net>
 
 	* ircd/s_bsd.c (read_packet): don't make handshaking servers go through
