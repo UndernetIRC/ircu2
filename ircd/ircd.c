@@ -115,7 +115,7 @@ static void server_reboot(const char* message)
 
   Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
          SPATH, (strerror(errno)) ? strerror(errno) : ""));
-  exit(-1);
+  exit(2);
 }
 
 void server_die(const char* message)
@@ -123,7 +123,7 @@ void server_die(const char* message)
   ircd_log(L_CRIT, "Server terminating: %s", message);
   sendto_ops("Server terminating: %s", message);
   flush_connections(0);
-  exit(-1);
+  exit(2);
 }
 
 void server_restart(const char* message)
@@ -148,16 +148,16 @@ static void write_pidfile(void)
 #ifdef PPATH
   int fd;
   char buff[20];
-  if ((fd = open(PPATH, O_CREAT | O_WRONLY, 0600)) >= 0) {
-    memset(buff, 0, sizeof(buff));
-    sprintf(buff, "%5d\n", (int)getpid());
-    if (write(fd, buff, strlen(buff)) == -1)
-      Debug((DEBUG_NOTICE, "Error writing to pid file %s", PPATH));
-    close(fd);
+  if ((fd = open(PPATH, O_CREAT | O_WRONLY, 0600)) == -1) {
+    Debug((DEBUG_NOTICE, "Error opening pid file \"%s\": %s",
+           PPATH, strerror(errno)));
     return;
   }
-  Debug((DEBUG_NOTICE, "Error opening pid file \"%s\": %s",
-        PPATH, (strerror(errno)) ? strerror(errno) : ""));
+  memset(buff, 0, sizeof(buff));
+  sprintf(buff, "%5d\n", getpid());
+  if (write(fd, buff, strlen(buff)) == -1)
+    Debug((DEBUG_NOTICE, "Error writing to pid file %s", PPATH));
+  close(fd);
 #endif
 }
 
@@ -172,15 +172,17 @@ static void write_pidfile(void)
  */
 static time_t try_connections(void)
 {
-  struct ConfItem *aconf;
-  struct Client *cptr;
-  struct ConfItem **pconf;
-  int connecting, confrq;
-  time_t next = 0;
-  struct ConfClass *cltmp;
-  struct ConfItem *cconf, *con_conf = NULL;
-  struct Jupe *ajupe;
-  unsigned int con_class = 0;
+  struct ConfItem*  aconf;
+  struct Client*    cptr;
+  struct ConfItem** pconf;
+  int               connecting;
+  int               confrq;
+  time_t            next = 0;
+  struct ConfClass* cltmp;
+  struct ConfItem*  cconf;
+  strcut ConfItem*  con_conf = NULL;
+  struct Jupe*      ajupe;
+  unsigned int      con_class = 0;
 
   connecting = FALSE;
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));

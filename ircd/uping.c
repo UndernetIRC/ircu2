@@ -196,6 +196,8 @@ void uping_send(struct UPing* pptr)
   char buf[BUFSIZE + 1];
 
   assert(0 != pptr);
+  if (pptr->sent == pptr->count)
+    return;
   memset(buf, 0, sizeof(buf));
 
   gettimeofday(&tv, NULL);
