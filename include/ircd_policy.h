@@ -136,6 +136,9 @@
 /* don't show which server set a ban */
 #define HEAD_IN_SAND_BANWHO
 
+/* don't show which server or oper performed a kill */
+#define HEAD_IN_SAND_KILLWHO
+
 /* remap remote numerics to come from the local server */
 #define HEAD_IN_SAND_REWRITE
 
