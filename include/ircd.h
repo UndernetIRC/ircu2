@@ -42,7 +42,6 @@ extern time_t now;
 extern aClient *client;
 extern time_t TSoffset;
 extern unsigned int bootopt;
-extern int have_server_port;
 extern time_t nextdnscheck;
 extern time_t nextconnect;
 extern int dorehash;

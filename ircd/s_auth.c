@@ -67,7 +67,6 @@ void start_auth(aClient *cptr)
 {
   struct sockaddr_in sock;
   int err;
-  int len = sizeof(struct sockaddr_in);
 
   Debug((DEBUG_NOTICE, "start_auth(%p) fd %d status %d",
       cptr, cptr->fd, cptr->status));
@@ -76,18 +75,15 @@ void start_auth(aClient *cptr)
   cptr->authfd = socket(AF_INET, SOCK_STREAM, 0);
   err = errno;
   alarm(0);
-  if (cptr->authfd < 0 && err == EAGAIN)
-    sendto_ops("Can't allocate fd for auth on %s : socket: No more sockets",
-	get_client_name(cptr, TRUE));
 
   if (cptr->authfd < 0)
   {
 #ifdef	USE_SYSLOG
     syslog(LOG_ERR, "Unable to create auth socket for %s:%m",
-	get_client_name(cptr, TRUE));
+	get_client_name(cptr, FALSE));
 #endif
     Debug((DEBUG_ERROR, "Unable to create auth socket for %s:%s",
-	get_client_name(cptr, TRUE), strerror(get_sockerr(cptr))));
+	get_client_name(cptr, FALSE), strerror(get_sockerr(cptr))));
     if (!DoingDNS(cptr))
       SetAccess(cptr);
     ircstp->is_abad++;
@@ -95,7 +91,6 @@ void start_auth(aClient *cptr)
   }
   if (cptr->authfd >= (MAXCONNECTIONS - 2))
   {
-    sendto_ops("Can't allocate fd for auth on %s", get_client_name(cptr, TRUE));
     close(cptr->authfd);
     cptr->authfd = -1;
     return;
@@ -103,22 +98,15 @@ void start_auth(aClient *cptr)
 
   set_non_blocking(cptr->authfd, cptr);
 
-  if (getsockname(cptr->fd, (struct sockaddr *)&sock, &len) == -1
-      || (sock.sin_port = 0)	/* Reset sin_port and let OS choose the port */
-      || bind(cptr->authfd, (struct sockaddr *)&sock, len) == -1)
+#ifdef VIRTUAL_HOST
+  if (bind(cptr->authfd, (struct sockaddr *)&vserv, sizeof(vserv)) == -1)
   {
     report_error("binding auth stream socket %s: %s", cptr);
     close(cptr->authfd);
     cptr->authfd = -1;
-    /*
-     * fsck can't return exit_client here ... let read_message
-     * do it when we get done here. At any rate this error is
-     * fatal for the client, mark it dead.
-     */
-    cptr->flags |= FLAGS_DEADSOCKET;
     return;
   }
-
+#endif
   memcpy(&sock.sin_addr, &cptr->ip, sizeof(struct in_addr));
 
   sock.sin_port = htons(113);
@@ -169,7 +157,7 @@ void send_authports(aClient *cptr)
   {
 #ifdef	USE_SYSLOG
     syslog(LOG_ERR, "auth get{sock,peer}name error for %s:%m",
-	get_client_name(cptr, TRUE));
+	get_client_name(cptr, FALSE));
 #endif
     goto authsenderr;
   }

@@ -159,7 +159,7 @@ extern int setsnomask(aClient *cptr, snomask_t newmask, int what);
 extern snomask_t umode_make_snomask(snomask_t oldmask, char *arg, int what);
 extern int connect_server(aConfItem *aconf, aClient *by, struct hostent *hp);
 extern void report_error(char *text, aClient *cptr);
-extern int inetport(aClient *cptr, char *name, char *bind_addr, unsigned short int port);
+extern int inetport(aClient *cptr, char *name, unsigned short int port);
 extern int add_listener(aConfItem *aconf);
 extern void close_listeners(void);
 extern void init_sys(void);
@@ -171,13 +171,14 @@ extern int get_sockerr(aClient *cptr);
 extern void set_non_blocking(int fd, aClient *cptr);
 extern aClient *add_connection(aClient *cptr, int fd, int type);
 extern int read_message(time_t delay);
-extern void get_my_name(aClient *cptr, char *name, size_t len);
+extern void get_my_name(aClient *cptr);
 extern int setup_ping(void);
 
 extern int highest_fd, resfd;
 extern unsigned int readcalls;
 extern aClient *loc_clients[MAXCONNECTIONS];
+#ifdef VIRTUAL_HOST
 extern struct sockaddr_in vserv;
-extern struct sockaddr_in cserv;
+#endif
 
 #endif /* S_BSD_H */

@@ -117,17 +117,15 @@ static char readbuf[8192];
 static struct pollfd poll_fds[MAXCONNECTIONS + 1];
 static aClient *poll_cptr[MAXCONNECTIONS + 1];
 #endif /* USE_POLL */
-struct sockaddr_in vserv;	/* Default address/interface to bind listen sockets to.
-                                   This is set with the -w commandline option OR whatever
-				   the name in the M: line resolves to OR INADDR_ANY. */
-struct sockaddr_in cserv;	/* Default address/interface to bind connecting sockets to.
-				   This is set with the -w commandline option OR whatever
-				   the name in the M: line resolves to OR the first
-				   interface specified in the ircd.conf file for the
-				   server port. */
+#ifdef VIRTUAL_HOST
+struct sockaddr_in vserv;
+#endif
 static int running_in_background;
 
 #ifdef GODMODE
+#ifndef NODNS
+#define NODNS
+#endif
 #ifndef NOFLOODCONTROL
 #define NOFLOODCONTROL
 #endif
@@ -193,12 +191,10 @@ void report_error(char *text, aClient *cptr)
 {
   Reg1 int errtmp = errno;	/* debug may change 'errno' */
   Reg2 char *host;
-#if defined(SO_ERROR) && !defined(SOL2)
   int err;
   size_t len = sizeof(err);
-#endif
 
-  host = (cptr) ? get_client_name(cptr, FALSE) : "";
+  host = (cptr) ? cptr->name : "";
 
   Debug((DEBUG_ERROR, text, host, strerror(errtmp)));
 
@@ -234,24 +230,19 @@ void report_error(char *text, aClient *cptr)
  * depending on the IP# mask given by 'name'.  Returns the fd of the
  * socket created or -1 on error.
  */
-int inetport(aClient *cptr, char *name, char *bind_addr, unsigned short int port)
+int inetport(aClient *cptr, char *name, unsigned short int port)
 {
-  unsigned short int sin_port;
+  static struct sockaddr_in server;
   int ad[4], opt;
+  size_t len = sizeof(server);
   char ipname[20];
-
-#ifdef TESTNET
-    sin_port = htons(port + 10000);
-#else
-    sin_port = htons(port);
-#endif
 
   ad[0] = ad[1] = ad[2] = ad[3] = 0;
 
   /*
    * do it this way because building ip# from separate values for each
    * byte requires endian knowledge or some nasty messing. Also means
-   * easy conversion of "*" to 0.0.0.0 or 134.* to 134.0.0.0 :-)
+   * easy conversion of "*" 0.0.0.0 or 134.* to 134.0.0.0 :-)
    */
   sscanf(name, "%d.%d.%d.%d", &ad[0], &ad[1], &ad[2], &ad[3]);
   sprintf_irc(ipname, "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
@@ -272,7 +263,7 @@ int inetport(aClient *cptr, char *name, char *bind_addr, unsigned short int port
     if (cptr->fd < 0 && errno == EAGAIN)
     {
       sendto_ops("opening stream socket %s: No more sockets",
-	  get_client_name(cptr, TRUE));
+	  cptr->name);
       return -1;
     }
   }
@@ -297,39 +288,52 @@ int inetport(aClient *cptr, char *name, char *bind_addr, unsigned short int port
    */
   if (port)
   {
-    struct sockaddr_in bindaddr;
-    memset(&bindaddr, 0, sizeof(struct sockaddr_in));
-    if (*bind_addr == '*' && bind_addr[1] == 0)
-      bindaddr.sin_addr.s_addr = htonl(INADDR_ANY);	/* Bind to all interfaces */
-    else if (*bind_addr)
-    {
-      bindaddr.sin_addr.s_addr = inet_addr(bind_addr);	/* Use name from P: line */
-      /* If server port and bind_addr isn't localhost: */
-      if (port == portnum && strcmp("127.0.0.1", bind_addr))
-        cserv.sin_addr.s_addr = bindaddr.sin_addr.s_addr;	/* Initialize /connect port */
-    }
-    else
-      bindaddr.sin_addr = vserv.sin_addr;		/* Default */
-    bindaddr.sin_family = AF_INET;
-    bindaddr.sin_port = sin_port;
-    if (bind(cptr->fd, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) == -1)
+    server.sin_family = AF_INET;
+#ifndef VIRTUAL_HOST
+    server.sin_addr.s_addr = INADDR_ANY;
+#else
+    server.sin_addr = vserv.sin_addr;
+#endif
+#ifdef TESTNET
+    server.sin_port = htons(port + 10000);
+#else
+    server.sin_port = htons(port);
+#endif
+    if (bind(cptr->fd, (struct sockaddr *)&server, sizeof(server)) == -1)
     {
       report_error("binding stream socket %s: %s", cptr);
       close(cptr->fd);
       return -1;
     }
   }
+  if (getsockname(cptr->fd, (struct sockaddr *)&server, &len))
+  {
+    report_error("getsockname failed for %s: %s", cptr);
+    close(cptr->fd);
+    return -1;
+  }
 
   if (cptr == &me)		/* KLUDGE to get it work... */
   {
     char buf[1024];
-    sprintf_irc(buf, rpl_str(RPL_MYPORTIS), me.name, "*", port);
+
+#ifdef TESTNET
+    sprintf_irc(buf, rpl_str(RPL_MYPORTIS), me.name, "*",
+	ntohs(server.sin_port) - 10000);
+#else
+    sprintf_irc(buf, rpl_str(RPL_MYPORTIS), me.name, "*",
+	ntohs(server.sin_port));
+#endif
     write(1, buf, strlen(buf));
   }
   if (cptr->fd > highest_fd)
     highest_fd = cptr->fd;
   cptr->ip.s_addr = inet_addr(ipname);
-  cptr->port = port;
+#ifdef TESTNET
+  cptr->port = ntohs(server.sin_port) - 10000;
+#else
+  cptr->port = ntohs(server.sin_port);
+#endif
   listen(cptr->fd, 128);	/* Use listen port backlog of 128 */
   loc_clients[cptr->fd] = cptr;
 
@@ -356,7 +360,7 @@ int unixport(aClient *cptr, char *path, unsigned short int port)
   if (cptr->fd == -1 && errno == EAGAIN)
   {
     sendto_ops("error opening unix domain socket %s: No more sockets",
-	get_client_name(cptr, TRUE));
+	cptr->name);
     return -1;
   }
   if (cptr->fd == -1)
@@ -437,7 +441,7 @@ int add_listener(aConfItem *aconf)
   }
   else
 #endif
-  if (inetport(cptr, aconf->host, aconf->passwd, aconf->port))
+  if (inetport(cptr, aconf->host, aconf->port))
     cptr->fd = -2;
 
   if (cptr->fd >= 0)
@@ -446,8 +450,6 @@ int add_listener(aConfItem *aconf)
     cptr->confs->next = NULL;
     cptr->confs->value.aconf = aconf;
     set_non_blocking(cptr->fd, cptr);
-    if (aconf->port == portnum)
-      have_server_port = 1;
   }
   else
     free_client(cptr);
@@ -630,7 +632,7 @@ static int check_init(aClient *cptr, char *sockn)
   /* If descriptor is a tty, special checking... */
   if (isatty(cptr->fd))
   {
-    strncpy(sockn, me.sockhost, HOSTLEN);
+    strncpy(sockn, me.name, HOSTLEN);
     memset(&sk, 0, sizeof(struct sockaddr_in));
   }
   else if (getpeername(cptr->fd, (struct sockaddr *)&sk, &len) == -1)
@@ -642,7 +644,7 @@ static int check_init(aClient *cptr, char *sockn)
   if (inet_netof(sk.sin_addr) == IN_LOOPBACKNET)
   {
     cptr->hostp = NULL;
-    strncpy(sockn, me.sockhost, HOSTLEN);
+    strncpy(sockn, me.name, HOSTLEN);
   }
   memcpy(&cptr->ip, &sk.sin_addr, sizeof(struct in_addr));
 #ifdef TESTNET
@@ -755,7 +757,7 @@ int check_server(aClient *cptr)
     n_conf = find_conf(lp, name, NFLAG);
     if (!c_conf || !n_conf)
     {
-      sendto_ops("Connecting Error: %s[%s]", name, cptr->sockhost);
+      sendto_ops("Connecting Error: %s", name);
       det_confs_butmask(cptr, 0);
       return -1;
     }
@@ -937,7 +939,7 @@ static int completed_connection(aClient *cptr)
   aconf = find_conf(cptr->confs, cptr->name, CONF_CONNECT_SERVER);
   if (!aconf)
   {
-    sendto_ops("Lost C-Line for %s", get_client_name(cptr, FALSE));
+    sendto_ops("Lost C-Line for %s", cptr->name);
     return -1;
   }
   if (!BadPtr(aconf->passwd))
@@ -946,7 +948,7 @@ static int completed_connection(aClient *cptr)
   aconf = find_conf(cptr->confs, cptr->name, CONF_NOCONNECT_SERVER);
   if (!aconf)
   {
-    sendto_ops("Lost N-Line for %s", get_client_name(cptr, FALSE));
+    sendto_ops("Lost N-Line for %s", cptr->name);
     return -1;
   }
   make_server(cptr);
@@ -1154,7 +1156,7 @@ static void set_sock_opts(int fd, aClient *cptr)
 	sprintf(s, "%02x:", *t++);
       *s = '\0';
       sendto_ops("Connection %s using IP opts: (%s)",
-	  get_client_name(cptr, TRUE), readbuf);
+	  get_client_name(cptr, FALSE), readbuf);
     }
     if (setsockopt(fd, IPPROTO_IP, IP_OPTIONS, (OPT_TYPE *)NULL, 0) < 0)
       report_error("setsockopt(IP_OPTIONS) %s: %s", cptr);
@@ -1164,10 +1166,9 @@ static void set_sock_opts(int fd, aClient *cptr)
 
 int get_sockerr(aClient *cptr)
 {
-  int errtmp = errno;
-#if defined(SO_ERROR) && !defined(SOL2)
-  int err = 0;
+  int errtmp = errno, err = 0;
   size_t len = sizeof(err);
+#if defined(SO_ERROR) && !defined(SOL2)
   if (cptr->fd >= 0)
     if (!getsockopt(cptr->fd, SOL_SOCKET, SO_ERROR, (OPT_TYPE *)&err, &len))
       if (err)
@@ -1219,6 +1220,8 @@ void set_non_blocking(int fd, aClient *cptr)
   return;
 }
 
+extern unsigned short server_port;
+
 /*
  * Creates a client which has just connected to us on the given fd.
  * The sockhost field is initialized with the ip# of the host.
@@ -1232,7 +1235,7 @@ aClient *add_connection(aClient *cptr, int fd, int type)
   aConfItem *aconf = NULL;
   acptr =
       make_client(NULL,
-      (cptr->port == portnum) ? STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER);
+      (cptr->port == server_port) ? STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER);
 
   if (cptr != &me)
     aconf = cptr->confs->value.aconf;
@@ -1293,11 +1296,25 @@ aClient *add_connection(aClient *cptr, int fd, int type)
 
     lin.flags = ASYNC_CLIENT;
     lin.value.cptr = acptr;
-    Debug((DEBUG_DNS, "lookup %s", inetntoa(addr.sin_addr)));
-    acptr->hostp = gethost_byaddr(&acptr->ip, &lin);
-    if (!acptr->hostp)
-      SetDNS(acptr);
-    nextdnscheck = 1;
+#ifdef NODNS
+    if (!strcmp("127.0.0.1", inetntoa(addr.sin_addr)))
+    {
+      static struct hostent lhe = { "localhost", NULL, 0, 0, NULL };
+      acptr->hostp = &lhe;
+      if (!DoingAuth(acptr))
+	SetAccess(acptr);
+    }
+    else
+    {
+#endif
+      Debug((DEBUG_DNS, "lookup %s", inetntoa(addr.sin_addr)));
+      acptr->hostp = gethost_byaddr(&acptr->ip, &lin);
+      if (!acptr->hostp)
+	SetDNS(acptr);
+      nextdnscheck = 1;
+#ifdef NODNS
+    }
+#endif
   }
 
   if (aconf)
@@ -1341,7 +1358,7 @@ static void add_unixconnection(aClient *cptr, int fd)
    * Copy ascii address to 'sockhost' just in case. Then we
    * have something valid to put into error messages...
    */
-  get_sockhost(acptr, me.sockhost);
+  strncpy(acptr->sockhost, me.name, HOSTLEN);
   if (cptr != &me)
     aconf = cptr->confs->value.aconf;
   if (aconf)
@@ -1852,8 +1869,7 @@ int read_message(time_t delay)
 		STIME_T_FMT " minutes", count, (now - last_time) / 60);
 	  }
 	  else
-	    sendto_ops("All connections in use. (%s)", get_client_name(cptr,
-		TRUE));
+	    sendto_ops("All connections in use. (%s)", cptr->name);
 	  count = 0;
 	  last_time = now;
 	}
@@ -1936,7 +1952,7 @@ int read_message(time_t delay)
       continue;
     nfds--;
     readcalls++;
-    if (length > 0 || length == CPTR_KILLED)
+    if (length > 0)
       continue;
 
     /*
@@ -1950,9 +1966,12 @@ int read_message(time_t delay)
      */
     Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d %d", LOC_FD(i), errno, length));
 
+    if (length == CPTR_KILLED)
+      continue;
+
     if ((IsServer(cptr) || IsHandshake(cptr)) && errno == 0 && length == 0)
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
-	  get_client_name(cptr, FALSE), cptr->serv->last_error_msg);
+	  cptr->name, cptr->serv->last_error_msg);
     else
       exit_client_msg(cptr, cptr, &me, "Read error to %s: %s",
 	  get_client_name(cptr, FALSE), (length < 0) ?
@@ -1999,11 +2018,11 @@ int connect_server(aConfItem *aconf, aClient *by, struct hostent *hp)
       {
 	if (MyUser(by) || Protocol(by->from) < 10)
 	  sendto_one(by, ":%s NOTICE %s :Connection to %s already in progress",
-	      me.name, by->name, get_client_name(c2ptr, TRUE));
+	      me.name, by->name, c2ptr->name);
 	else
 	  sendto_one(by,
 	      "%s NOTICE %s%s :Connection to %s already in progress",
-	      NumServ(&me), NumNick(by), get_client_name(c2ptr, TRUE));
+	      NumServ(&me), NumNick(by), c2ptr->name);
       }
       return -1;
     }
@@ -2066,11 +2085,11 @@ int connect_server(aConfItem *aconf, aClient *by, struct hostent *hp)
 #ifndef NO_PROTOCOL9
       if (Protocol(by->from) < 10)
 	sendto_one(by, ":%s NOTICE %s :Couldn't connect to %s",
-	    me.name, by->name, get_client_name(cptr, TRUE));
+	    me.name, by->name, cptr->name);
       else
 #endif
 	sendto_one(by, "%s NOTICE %s%s :Couldn't connect to %s",
-	    NumServ(&me), NumNick(by), get_client_name(cptr, TRUE));
+	    NumServ(&me), NumNick(by), cptr->name);
     }
     free_client(cptr);
     return -1;
@@ -2091,12 +2110,11 @@ int connect_server(aConfItem *aconf, aClient *by, struct hostent *hp)
 #ifndef NO_PROTOCOL9
       if (Protocol(by->from) < 10)
 	sendto_one(by, ":%s NOTICE %s :Connect to host %s failed: %s",
-	    me.name, by->name, get_client_name(cptr, TRUE), strerror(err));
+	    me.name, by->name, cptr->name, strerror(err));
       else
 #endif
 	sendto_one(by, "%s NOTICE %s%s :Connect to host %s failed: %s",
-	    NumServ(&me), NumNick(by), get_client_name(cptr, TRUE),
-	    strerror(err));
+	    NumServ(&me), NumNick(by), cptr->name, strerror(err));
     }
     close(cptr->fd);
     cptr->fd = -2;
@@ -2123,19 +2141,19 @@ int connect_server(aConfItem *aconf, aClient *by, struct hostent *hp)
       !find_conf_host(cptr->confs, aconf->host, CONF_CONNECT_SERVER))
   {
     sendto_ops("Host %s is not enabled for connecting:no C/N-line",
-	aconf->host);
+	       aconf->name);
     if (by && IsUser(by) && !MyUser(by))
     {
 #ifndef NO_PROTOCOL9
       if (Protocol(by->from) < 10)
 	sendto_one(by,
 	    ":%s NOTICE %s :Connect to host %s failed: no C/N-lines",
-	    me.name, by->name, get_client_name(cptr, TRUE));
+	    me.name, by->name, cptr->name);
       else
 #endif
 	sendto_one(by,
 	    "%s NOTICE %s%s :Connect to host %s failed: no C/N-lines",
-	    NumServ(&me), NumNick(by), get_client_name(cptr, TRUE));
+	    NumServ(&me), NumNick(by), cptr->name);
     }
     det_confs_butmask(cptr, 0);
     close(cptr->fd);
@@ -2182,7 +2200,6 @@ static struct sockaddr *connect_inet(aConfItem *aconf, aClient *cptr, int *lenp)
 {
   static struct sockaddr_in server;
   Reg3 struct hostent *hp;
-  struct sockaddr_in bindaddr;
 
   /*
    * Might as well get sockhost from here, the connection is attempted
@@ -2194,7 +2211,7 @@ static struct sockaddr *connect_inet(aConfItem *aconf, aClient *cptr, int *lenp)
   if (cptr->fd == -1 && errno == EAGAIN)
   {
     sendto_ops("opening stream socket to server %s: No more sockets",
-	get_client_name(cptr, TRUE));
+	cptr->name);
     return NULL;
   }
   if (cptr->fd == -1)
@@ -2208,23 +2225,37 @@ static struct sockaddr *connect_inet(aConfItem *aconf, aClient *cptr, int *lenp)
     return NULL;
   }
   mysk.sin_port = 0;
+
   memset(&server, 0, sizeof(server));
   server.sin_family = AF_INET;
   get_sockhost(cptr, aconf->host);
+
+#ifdef VIRTUAL_HOST
+  mysk.sin_addr = vserv.sin_addr;
+#endif
 
   /*
    * Bind to a local IP# (with unknown port - let unix decide) so
    * we have some chance of knowing the IP# that gets used for a host
    * with more than one IP#.
    */
-  memcpy(&bindaddr, &cserv, sizeof(bindaddr));
-  if (aconf->ipnum.s_addr == 0x100007f)
-    bindaddr.sin_addr.s_addr = 0x100007f;	/* bind with localhost when we are connecting to localhost */
-  if (bind(cptr->fd, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) == -1)
+  /* No we don't bind it, not all OS's can handle connecting with
+   * an already bound socket, different ip# might occur anyway
+   * leading to a freezing select() on this side for some time.
+   * I had this on my Linux 1.1.88 --Run
+   */
+#ifdef VIRTUAL_HOST
+  /*
+   * No, we do bind it if we have virtual host support. If we don't
+   * explicitly bind it, it will default to IN_ADDR_ANY and we lose
+   * due to the other server not allowing our base IP --smg
+   */
+  if (bind(cptr->fd, (struct sockaddr *)&mysk, sizeof(mysk)) == -1)
   {
     report_error("error binding to local port for %s: %s", cptr);
     return NULL;
   }
+#endif
 
   /*
    * By this point we should know the IP# of the host listed in the
@@ -2271,7 +2302,7 @@ static struct sockaddr *connect_unix(aConfItem *aconf, aClient *cptr, int *lenp)
   if (cptr->fd == -1 && errno == EAGAIN)
   {
     sendto_ops("Unix domain connect to host %s failed: No more sockets",
-	get_client_name(cptr, TRUE));
+	cptr->name);
     return NULL;
   }
   if (cptr->fd == -1)
@@ -2303,73 +2334,29 @@ static struct sockaddr *connect_unix(aConfItem *aconf, aClient *cptr, int *lenp)
  * matches the server's name) and its primary IP#.  Hostname is stored
  * in the client structure passed as a pointer.
  */
-void get_my_name(aClient *cptr, char *name, size_t len)
+void get_my_name(aClient *cptr)
 {
-  static char tmp[HOSTLEN + 1];
-#if HAVE_UNAME
-  struct utsname utsn;
-#endif
-  struct hostent *hp;
-  char *cname = cptr->name;
-  size_t len2;
-
+  struct ConfItem* aconf = find_me();
   /*
    * Setup local socket structure to use for binding to.
    */
   memset(&mysk, 0, sizeof(mysk));
   mysk.sin_family = AF_INET;
+  mysk.sin_addr.s_addr = INADDR_ANY; 
 
-#if HAVE_UNAME
-  if (uname(&utsn) == -1)
+  if (!aconf || BadPtr(aconf->host))
     return;
-  len2 = strlen(utsn.nodename);
-  if (len2 > len)
-    len2 = len;
-  strncpy(name, utsn.nodename, len2);
-#else /* HAVE_GETHOSTNAME */
-  if (gethostname(name, len) == -1)
-    return;
+  strncpy(me.name, aconf->host, sizeof(me.name) - 1);
+
+  if (!BadPtr(aconf->passwd) && 0 != strcmp(aconf->passwd, "*")) {
+    mysk.sin_addr.s_addr = inet_addr(aconf->passwd);
+    if (INADDR_NONE == mysk.sin_addr.s_addr)
+      mysk.sin_addr.s_addr = INADDR_ANY;
+#ifdef VIRTUAL_HOST
+    memcpy(&vserv, &mysk, sizeof(struct sockaddr_in));
 #endif
-  name[len] = '\0';
-
-  /* Assume that a name containing '.' is a FQDN */
-  if (!strchr(name, '.'))
-    add_local_domain(name, len - strlen(name));
-
-  /*
-   * If hostname gives another name than cname, then check if there is
-   * a CNAME record for cname pointing to hostname. If so accept
-   * cname as our name.   meLazy
-   */
-  if (BadPtr(cname))
-    return;
-  if ((hp = gethostbyname(cname)) || (hp = gethostbyname(name)))
-  {
-    const char *hname;
-    int i = 0;
-
-    for (hname = hp->h_name; hname; hname = hp->h_aliases[i++])
-    {
-      strncpy(tmp, hname, sizeof(tmp) - 1);
-      add_local_domain(tmp, sizeof(tmp) - 1 - strlen(tmp));
-
-      /*
-       * Copy the matching name over and store the
-       * 'primary' IP# as 'myip' which is used
-       * later for making the right one is used
-       * for connecting to other hosts.
-       */
-      if (!strCasediff(me.name, tmp))
-	break;
-    }
-    if (strCasediff(me.name, tmp))
-      strncpy(name, hp->h_name, len);
-    else
-      strncpy(name, tmp, len);
-    memcpy(&mysk.sin_addr, hp->h_addr, sizeof(struct in_addr));
-    Debug((DEBUG_DEBUG, "local name is %s", get_client_name(&me, TRUE)));
   }
-  return;
+  Debug((DEBUG_DEBUG, "local name is %s", get_client_name(&me, TRUE)));
 }
 
 /*
@@ -2381,7 +2368,11 @@ int setup_ping(void)
   int on = 1;
 
   memset(&from, 0, sizeof(from));
-  from.sin_addr = cserv.sin_addr;
+#ifdef VIRTUAL_HOST
+  from.sin_addr = vserv.sin_addr;
+#else
+  from.sin_addr.s_addr = htonl(INADDR_ANY);
+#endif
 #ifdef TESTNET
   from.sin_port = htons(atoi(UDP_PORT) + 10000);
 #else

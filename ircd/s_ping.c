@@ -325,7 +325,6 @@ int m_uping(aClient *cptr, aClient *sptr, int parc, char *parv[])
   aConfItem *aconf;
   unsigned short int port;
   int fd, opt;
-  char *p;
 
   if (!IsPrivileged(sptr))
   {
@@ -394,17 +393,9 @@ int m_uping(aClient *cptr, aClient *sptr, int parc, char *parv[])
   }
 
   /* Check if a CONNECT would be possible at all (adapted from m_connect) */
-  if (parc > 2 && !BadPtr(parv[2]))
-    p = strchr(parv[2], ':');
-  else
-    p = 0;
-  if (p)
-    *p = 0;
   for (aconf = conf; aconf; aconf = aconf->next)
     if (aconf->status == CONF_CONNECT_SERVER &&
-	match(parv[1], aconf->name) == 0 &&
-        (!p || match(parv[2], aconf->host) == 0 ||
-	match(parv[2], strchr(aconf->host, '@') + 1) == 0))
+	match(parv[1], aconf->name) == 0)
       break;
   if (!aconf)
     for (aconf = conf; aconf; aconf = aconf->next)
@@ -412,8 +403,6 @@ int m_uping(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	  (match(parv[1], aconf->host) == 0 ||
 	  match(parv[1], strchr(aconf->host, '@') + 1) == 0))
 	break;
-  if (p)
-    *p = ':';
   if (!aconf)
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
@@ -432,7 +421,7 @@ int m_uping(aClient *cptr, aClient *sptr, int parc, char *parv[])
   /*
    * Determine port: First user supplied, then default : 7007
    */
-  if (!p || (port = atoi(p + 1)) <= 0)
+  if (BadPtr(parv[2]) || (port = atoi(parv[2])) <= 0)
     port = atoi(UDP_PORT);
 
   alarm(2);
@@ -498,18 +487,6 @@ int m_uping(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	  me.name, parv[0]);
     else
       sendto_one(sptr, "%s NOTICE %s%s :UPING: All connections in use",
-	  NumServ(&me), NumNick(sptr));
-    close(fd);
-    return 0;
-  }
-  if (bind(fd, (struct sockaddr *)&cserv, sizeof(cserv)) == -1)
-  {
-    sendto_ops("Failure binding fd for uping");
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :UPING: failure binding udp socket",
-	  me.name, parv[0]);
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :UPING: failure binding udp socket",
 	  NumServ(&me), NumNick(sptr));
     close(fd);
     return 0;

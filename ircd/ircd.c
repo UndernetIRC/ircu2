@@ -48,7 +48,9 @@
 #include <arpa/nameser.h>
 #include <resolv.h>
 #endif
+#ifdef VIRTUAL_HOST
 #include <sys/socket.h>		/* Needed for AF_INET on some OS */
+#endif
 #include "h.h"
 #include "res.h"
 #include "struct.h"
@@ -282,8 +284,7 @@ static time_t try_connections(void)
       (*pconf = con_conf)->next = 0;
     }
     if (connect_server(con_conf, (aClient *)NULL, (struct hostent *)NULL) == 0)
-      sendto_ops("Connection to %s[%s] activated.",
-	  con_conf->name, con_conf->host);
+      sendto_ops("Connection to %s activated.", con_conf->name);
   }
   Debug((DEBUG_NOTICE, "Next connection check : %s", myctime(next)));
   return (next);
@@ -337,7 +338,7 @@ static time_t check_pings(void)
       if (!IsRegistered(cptr) && (DoingDNS(cptr) || DoingAuth(cptr)))
       {
 	Debug((DEBUG_NOTICE, "%s/%s timeout %s", DoingDNS(cptr) ? "DNS" : "",
-	    DoingAuth(cptr) ? "AUTH" : "", get_client_name(cptr, TRUE)));
+	    DoingAuth(cptr) ? "AUTH" : "", get_client_name(cptr, FALSE)));
 	if (cptr->authfd >= 0)
 	{
 	  close(cptr->authfd);
@@ -355,8 +356,7 @@ static time_t check_pings(void)
       }
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
       {
-	sendto_ops("No response from %s, closing link",
-	    get_client_name(cptr, FALSE));
+	sendto_ops("No response from %s, closing link", cptr->name);
 	exit_client(cptr, cptr, &me, "Ping timeout");
 	continue;
       }
@@ -385,7 +385,7 @@ static time_t check_pings(void)
 	      me.name, ERR_BADPING, cptr->name);
 	}
 	exit_client_msg(cptr, cptr, &me, "Ping timeout for %s",
-	    get_client_name(cptr, FALSE));
+	    IsServer(cptr) ? cptr->name : get_client_name(cptr, FALSE));
       }
       continue;
     }
@@ -519,7 +519,7 @@ static void open_debugfile(void)
     cptr->flags = 0;
     cptr->acpt = cptr;
     loc_clients[2] = cptr;
-    strcpy(cptr->sockhost, me.sockhost);
+    strcpy(cptr->sockhost, me.name);
 
     printf("isatty = %d ttyname = %#x\n", isatty(2), (unsigned int)ttyname(2));
     if (!(bootopt & BOOT_TTY))	/* leave debugging output on fd 2 */
@@ -550,8 +550,6 @@ static void open_debugfile(void)
 #endif
   return;
 }
-
-int have_server_port;
 
 int main(int argc, char *argv[])
 {
@@ -590,12 +588,9 @@ int main(int argc, char *argv[])
   myargv = argv;
   umask(077);			/* better safe than sorry --SRB */
   memset(&me, 0, sizeof(me));
+#ifdef VIRTUAL_HOST
   memset(&vserv, 0, sizeof(vserv));
-  vserv.sin_family = AF_INET;
-  vserv.sin_addr.s_addr = htonl(INADDR_ANY);
-  memset(&cserv, 0, sizeof(cserv));
-  cserv.sin_addr.s_addr = htonl(INADDR_ANY);
-  cserv.sin_family = AF_INET;
+#endif
 
   setup_signals();
   initload();
@@ -675,33 +670,31 @@ int main(int argc, char *argv[])
       case 'v':
 	printf("ircd %s\n", version);
 	exit(0);
+#ifdef VIRTUAL_HOST
       case 'w':
       {
 	struct hostent *hep;
 	if (!(hep = gethostbyname(p)))
 	{
-	  fprintf(stderr, "%s: Error resolving \"%s\" (h_errno == %d).\n",
-	      argv[-1], p, h_errno);
+	  fprintf(stderr, "%s: Error creating virtual host \"%s\": %d",
+	      argv[0], p, h_errno);
 	  return -1;
 	}
 	if (hep->h_addrtype == AF_INET && hep->h_addr_list[0] &&
 	    !hep->h_addr_list[1])
 	{
-	  int fd;
 	  memcpy(&vserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
-	  memcpy(&cserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
-	  /* Test if we can bind to this address */
-   	  fd = socket(AF_INET, SOCK_STREAM, 0);
-          if (bind(fd, (struct sockaddr *)&vserv, sizeof(vserv)) == 0)
-	  {
-	    close(fd);
-	    break;
-	  }
+	  vserv.sin_family = AF_INET;
 	}
-	fprintf(stderr, "%s:\tError binding to interface \"%s\".\n"
-	    "   \tUse `ifconfig -a' to check your interfaces.\n", argv[-1], p);
-	return -1;
+	else
+	{
+	  fprintf(stderr, "%s: Error creating virtual host \"%s\": "
+	      "Use -w <IP-number of interface>\n", argv[0], p);
+	  return -1;
+	}
+	break;
       }
+#endif
       case 'x':
 #ifdef	DEBUGMODE
 	if (euid != uid)
@@ -823,6 +816,9 @@ int main(int argc, char *argv[])
   initmsgtree();
   initstats();
   open_debugfile();
+  if (portnum == 0)
+    portnum = PORTNUM;
+  me.port = portnum;
   init_sys();
   me.flags = FLAGS_LISTEN;
   if ((bootopt & BOOT_INETD))
@@ -843,20 +839,26 @@ int main(int argc, char *argv[])
     printf("Couldn't open configuration file %s\n", configfile);
     exit(-1);
   }
+  get_my_name(&me);
+
   if (!(bootopt & BOOT_INETD))
   {
+    static char star[] = "*";
+    aConfItem *aconf;
+
+    if ((aconf = find_me()) && portarg == 0 && aconf->port != 0)
+      portnum = aconf->port;
     Debug((DEBUG_ERROR, "Port = %u", portnum));
-    if (!have_server_port && inetport(&me, "*", "", portnum))
+    if (inetport(&me, star, portnum))
       exit(1);
   }
-  else if (inetport(&me, "*", "*", 0))
+  else if (inetport(&me, "*", 0))
     exit(1);
 
   read_tlines();
   rmotd = read_motd(RPATH);
   motd = read_motd(MPATH);
   setup_ping();
-  get_my_name(&me, me.sockhost, sizeof(me.sockhost) - 1);
   now = time(NULL);
   me.hopcount = 0;
   me.authfd = -1;
