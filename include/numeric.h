@@ -117,10 +117,10 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_STATSXLINE       247           hybrid extension */
 /*	RPL_STATSBLINE	     247	   Numerics List: IRCnet */
 #define RPL_STATSULINE       248        /* Undernet extension */
-/*	RPL_STATSDEFINE	     248	/* Numerics List: IRCnet */
+/*	RPL_STATSDEFINE	     248	   Numerics List: IRCnet */
 #define RPL_STATSDEBUG       249        /* Extension to RFC1459 */
 #define RPL_STATSCONN        250        /* Undernet extension */
-/*	RPL_STATSDLINE	     250	/* Numerics List: IRCnet */
+/*	RPL_STATSDLINE	     250	   Numerics List: IRCnet */
 
 #define RPL_LUSERCLIENT      251
 #define RPL_LUSEROP          252
@@ -259,7 +259,7 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define RPL_YOUREOPER        381
 #define RPL_REHASHING        382
-/*	RPL_YOURSERVICE	     383	/* Numeric List: various */
+/*	RPL_YOURSERVICE	     383	   Numeric List: various */
 #define RPL_MYPORTIS         384	/* not used */
 #define RPL_NOTOPERANYMORE   385        /* Extension to RFC1459, not used */
 

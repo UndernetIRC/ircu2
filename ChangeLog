@@ -1,3 +1,7 @@
+2000-04-06  Thomas Helvey <tomh@inxpress.net>
+	* ircd/s_auth.c: Shorten auth connect timeout to 60 seconds
+          set client host to server alias if connection from localhost
+
 2000-04-06  Perry Lorier <isomer@coders.net>
 	* ircd/ircd.c: Fix core during pinging (oops)
 	
@@ -301,7 +305,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.61 2000-04-06 04:00:28 isomer Exp $
+# $Id: ChangeLog,v 1.62 2000-04-06 06:50:18 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
