@@ -640,6 +640,13 @@ This selects whether global IRC operators on this server are permitted
 to use the /GLINE command with the ! flag to force slightly wide
 G-lines to be set.
 
+OPER_LIST_CHAN 
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators are permitted to list secret 
+(+s) channels.
+
 LOCOP_KILL
  * Type: boolean
  * Default: TRUE
@@ -721,3 +728,11 @@ LOCOP_WIDE_GLINE
 This selects whether local IRC operators are permitted to use the
 /GLINE command with the ! flag to force slightly wide G-lines to be
 set.
+
+LOCOP_LIST_CHAN
+ * Type: boolean
+ * Default: FALSE
+ 
+This selects whether local IRC operators are permitted to list secret 
+(+s) channels.
+
