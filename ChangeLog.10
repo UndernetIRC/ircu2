@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.15 2000-12-09 23:34:06 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.15.2.1 2000-12-10 00:39:29 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+-------------------------- Released 2.10.10.pl12
 * Release 2.10.10.pl12 before Mr_RIP threatens physical violence -- Isomer
 * Don't 'hubhide' nick's in /trace (oops!) -- Isomer
 * Allow K:line by realname, updated client connection logging -- Gte-
