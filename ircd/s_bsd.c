@@ -723,11 +723,9 @@ read_packet(struct Client *cptr, int socket_ready)
    * For server connections, we process as many as we can without
    * worrying about the time of day or anything :)
    */
-  if (length <= 0)
-    ;
-  else if (IsServer(cptr))
+  if (length > 0 && IsServer(cptr))
     return server_dopacket(cptr, readbuf, length);
-  else if (IsHandshake(cptr) || IsConnecting(cptr))
+  else if (length > 0 && (IsHandshake(cptr) || IsConnecting(cptr)))
     return connect_dopacket(cptr, readbuf, length);
   else
   {
@@ -736,7 +734,7 @@ read_packet(struct Client *cptr, int socket_ready)
      * it on the end of the receive queue and do it when its
      * turn comes around.
      */
-    if (dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
+    if (length > 0 && dbuf_put(&(cli_recvQ(cptr)), readbuf, length) == 0)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
 
     if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
