@@ -1,5 +1,7 @@
 2000-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_stats.c: convert to sendcmdto_one / send_reply
+
 	* ircd/m_kick.c: Completely reimplement m_kick
 
 	* ircd/channel.c: send_user_joins removed; it was dead code,
@@ -1060,7 +1062,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.124 2000-05-01 16:50:41 kev Exp $
+# $Id: ChangeLog,v 1.125 2000-05-01 20:51:38 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -148,9 +148,6 @@
  */
 int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
   struct ConfItem *aconf;
@@ -188,7 +185,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * are invisible not being visible to 'foreigners' who use
        * a wild card based search to list it.
        */
-      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]);
+      send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
+		 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -205,10 +203,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
-                   acptr->name, (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-                   (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
-                   CurrentTime - acptr->firsttime);
+	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+		   "%s %u %u %u %u %u :%Tu", acptr->name,
+		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+		   (int)acptr->sendK, (int)acptr->receiveM,
+		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -288,10 +287,10 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
-		  aconf->host, aconf->passwd, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSKLINE,
+			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+			 aconf->passwd, aconf->name, aconf->port,
+			 get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -303,9 +302,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name,
-                  sptr->name, 'I', aconf->host, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+			 aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -316,20 +314,20 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     case 'M':
 #if !defined(NDEBUG)
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
-          me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
+      send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
+		 fda_get_block_count());
 #endif
 
 #if 0
 #ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
+      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
           me.name, parv[0], get_mem_size(), get_alloc_cnt());
 #endif
 #ifdef MEMLEAKSTATS
       report_memleak_stats(sptr, parc, parv);
 #endif
 #if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring "
+      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
           "is not enabled on this server", me.name, parv[0]);
 #endif
 #endif /* 0 */
@@ -337,8 +335,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+		     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -379,10 +377,9 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       time_t nowr;
 
       nowr = CurrentTime - me.since;
-      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0],
-          nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
-      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0],
-          max_connection_count, max_client_count);
+      send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
+		 (nowr / 60) % 60, nowr % 60);
+      send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'W':
@@ -405,10 +402,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     default:
       stat = '*';
-      while (*infotext) sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], *infotext++); 
+      while (*infotext)
+	sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
+  send_reply(sptr, RPL_ENDOFSTATS, stat);
   return 0;
 }
 
@@ -437,9 +435,6 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
   struct ConfItem *aconf;
@@ -476,7 +471,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * are invisible not being visible to 'foreigners' who use
        * a wild card based search to list it.
        */
-      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]);
+      send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
+		 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -494,10 +490,11 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
-            acptr->name, (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-            (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
-            CurrentTime - acptr->firsttime);
+	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+		   "%s %u %u %u %u %u :%Tu", acptr->name,
+		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+		   (int)acptr->sendK, (int)acptr->receiveM,
+		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -585,10 +582,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
-		  aconf->host, aconf->passwd, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSKLINE,
+			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+			 aconf->passwd, aconf->name, aconf->port,
+			 get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -600,9 +597,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name,
-                  sptr->name, 'I', aconf->host, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+			 aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -613,20 +609,20 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     case 'M':
 #if !defined(NDEBUG)
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
-          me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
+      send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
+		 fda_get_block_count());
 #endif
 
 #if 0
 #ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
+      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
           me.name, parv[0], get_mem_size(), get_alloc_cnt());
 #endif
 #ifdef MEMLEAKSTATS
       report_memleak_stats(sptr, parc, parv);
 #endif
 #if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring "
+      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
           "is not enabled on this server", me.name, parv[0]);
 #endif
 #endif /* 0 */
@@ -634,8 +630,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+		     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -677,10 +673,9 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       time_t nowr;
 
       nowr = CurrentTime - me.since;
-      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0],
-          nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
-      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0],
-          max_connection_count, max_client_count);
+      send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
+		 (nowr / 60) % 60, nowr % 60);
+      send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'W':
@@ -705,7 +700,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       stat = '*';
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
+  send_reply(sptr, RPL_ENDOFSTATS, stat);
   return 0;
 }
 
@@ -734,9 +729,6 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
   struct Message *mptr;
   struct Client *acptr;
   struct ConfItem *aconf;
@@ -774,7 +766,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * are invisible not being visible to 'foreigners' who use
        * a wild card based search to list it.
        */
-      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]);
+      send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
+		 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -788,10 +781,11 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
-            acptr->name, (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-            (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
-            CurrentTime - acptr->firsttime);
+	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+		   "%s %u %u %u %u %u :%Tu", acptr->name,
+		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+		   (int)acptr->sendK, (int)acptr->receiveM,
+		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -871,10 +865,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
-                  sptr->name, (aconf->status & CONF_KILL) ? 'K' : 'k',
-		  aconf->host, aconf->passwd, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSKLINE,
+			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+			 aconf->passwd, aconf->name, aconf->port,
+			 get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -886,9 +880,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name,
-                  sptr->name, 'I', aconf->host, aconf->name,
-                  aconf->port, get_conf_class(aconf));
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+			 aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -899,20 +892,20 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
     case 'M':
 #if !defined(NDEBUG)
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
-          me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
+      send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
+		 fda_get_block_count());
 #endif
 
 #if 0
 #ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
+      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
           me.name, parv[0], get_mem_size(), get_alloc_cnt());
 #endif
 #ifdef MEMLEAKSTATS
       report_memleak_stats(sptr, parc, parv);
 #endif
 #if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring "
+      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
           "is not enabled on this server", me.name, parv[0]);
 #endif
 #endif /* 0 */
@@ -920,8 +913,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
+	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+		     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -963,10 +956,9 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       time_t nowr;
 
       nowr = CurrentTime - me.since;
-      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0],
-          nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
-      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0],
-          max_connection_count, max_client_count);
+      send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
+		 (nowr / 60) % 60, nowr % 60);
+      send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'W':
@@ -989,10 +981,11 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       break;
     default:
       stat = '*';
-      while (*infotext) sendto_one(sptr, ":%s NOTICE %s :%s", me.name, parv[0], *infotext++);
+      while (*infotext)
+	sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
+  send_reply(sptr, RPL_ENDOFSTATS, stat);
   return 0;
 }
 
@@ -1043,7 +1036,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     case 'U':
     case 'u':
     {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
+      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
           != HUNTED_ISME)
         return 0;
       break;
@@ -1059,13 +1052,13 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       if (parc > 3)
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
+        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) /* XXX DEAD */
             != HUNTED_ISME)
           return 0;
       }
       else
       {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
+        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
             != HUNTED_ISME)
           return 0;
       }
@@ -1079,17 +1072,17 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       if (parc == 4)
       {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv)
+        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) /* XXX DEAD */
             != HUNTED_ISME)
           return 0;
       }
       else if (parc > 4)
       {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc,
+        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc, /* XXX DEAD */
             parv) != HUNTED_ISME)
           return 0;
       }
-      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
+      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
           != HUNTED_ISME)
         return 0;
       break;
@@ -1098,7 +1091,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       /* oper only, standard # of params */
     default:
     {
-      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv)
+      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
           != HUNTED_ISME)
         return 0;
       break;
@@ -1132,7 +1125,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
        * are invisible not being visible to 'foreigners' who use
        * a wild card based search to list it.
        */
-      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]);
+      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]); /* XXX DEAD */
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -1152,7 +1145,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0],
+        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0], /* XXX DEAD */
                    acptr->name,
                    (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
                    (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
@@ -1168,7 +1161,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     case 'g': /* send glines */
       gline_remove_expired(TStime());
       for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name,
+        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name, /* XXX DEAD */
                    sptr->name, 'G', gline->name, gline->host,
                    gline->expire, gline->reason);
       }
@@ -1249,7 +1242,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name,
+              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name, /* XXX DEAD */
                   sptr->name, 'K', aconf->host, aconf->passwd, aconf->name,
                   aconf->port, get_conf_class(aconf));
               if (--count == 0)
@@ -1263,7 +1256,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name,
+              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name, /* XXX DEAD */
                   sptr->name, 'I', aconf->host, aconf->name,
                   aconf->port, get_conf_class(aconf));
               if (--count == 0)
@@ -1276,20 +1269,20 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
     case 'M':
 #if !defined(NDEBUG)
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
+      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
           me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
 #endif
 
 #if 0
 #ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT),
+      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
           me.name, parv[0], get_mem_size(), get_alloc_cnt());
 #endif
 #ifdef MEMLEAKSTATS
       report_memleak_stats(sptr, parc, parv);
 #endif
 #if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring "
+      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
           "is not enabled on this server", me.name, parv[0]);
 #endif
 #endif /* 0 */
@@ -1297,7 +1290,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS),
+          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS), /* XXX DEAD */
               me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
       break;
     case 'o':
@@ -1341,9 +1334,9 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       time_t nowr;
 
       nowr = CurrentTime - me.since;
-      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0], /* XXX DEAD */
                  nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
-      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0],
+      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0], /* XXX DEAD */
                  max_connection_count, max_client_count);
       break;
     }
@@ -1369,7 +1362,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       stat = '*';
       break;
   }
-  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat);
+  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat); /* XXX DEAD */
   return 0;
 }
 #endif /* 0 */
