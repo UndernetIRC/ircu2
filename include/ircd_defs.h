@@ -77,6 +77,12 @@
  */
 #define HOSTLEN         63
 /*
+ * ACCOUNTLEN is the maximum length for the account name, which can be set
+ * with the ACCOUNT (AC) command.  This is used for keeping track of who's
+ * logged into which account, for the benefit of irc services.
+ */
+#define ACCOUNTLEN      12
+/*
  * REALLEN is the maximum length for user supplied information about a client
  * connection (gcos). This information is set at client/server registration
  * time.

@@ -166,6 +166,7 @@ extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
 extern int mr_server(struct Client*, struct Client*, int, char*[]);
+extern int ms_account(struct Client*, struct Client*, int, char*[]);
 extern int ms_admin(struct Client*, struct Client*, int, char*[]);
 extern int ms_away(struct Client*, struct Client*, int, char*[]);
 extern int ms_burst(struct Client*, struct Client*, int, char*[]);

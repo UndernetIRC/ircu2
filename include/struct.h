@@ -70,6 +70,7 @@ struct User {
   unsigned int       invites;         /* Number of channels we've been invited to */
   char               username[USERLEN + 1];
   char               host[HOSTLEN + 1];
+  char               account[ACCOUNTLEN + 1];
 };
 
 #endif /* INCLUDED_struct_h */

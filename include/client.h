@@ -355,6 +355,7 @@ struct Client {
 #define FLAGS_WALLOP     0x0040 /* send wallops to them */
 #define FLAGS_SERVNOTICE 0x0080 /* server notices such as kill */
 #define FLAGS_BLOCKED    0x0100 /* socket is in a blocked condition */
+#define FLAGS_ACCOUNT    0x0200 /* account name has been set */
 #define FLAGS_CLOSING    0x0400 /* set when closing to suppress errors */
 #define FLAGS_UPING      0x0800 /* has active UDP ping request */
 #define FLAGS_CHKACCESS  0x1000 /* ok to check clients access if set */
@@ -376,7 +377,7 @@ struct Client {
 #define FLAGS_IPCHECK   0x40000000      /* Added or updated IPregistry data */
 
 #define SEND_UMODES \
-    (FLAGS_INVISIBLE|FLAGS_OPER|FLAGS_WALLOP|FLAGS_DEAF|FLAGS_CHSERV|FLAGS_DEBUG)
+    (FLAGS_INVISIBLE|FLAGS_OPER|FLAGS_WALLOP|FLAGS_DEAF|FLAGS_CHSERV|FLAGS_DEBUG|FLAGS_ACCOUNT)
 #define ALL_UMODES (SEND_UMODES|FLAGS_SERVNOTICE|FLAGS_LOCOP)
 #define FLAGS_ID (FLAGS_DOID|FLAGS_GOTID)
 
@@ -406,6 +407,7 @@ struct Client {
 #define SendWallops(x)          (cli_flags(x) & FLAGS_WALLOP)
 #define IsHub(x)                (cli_flags(x) & FLAGS_HUB)
 #define IsService(x)            (cli_flags(x) & FLAGS_SERVICE)
+#define IsAccount(x)            (cli_flags(x) & FLAGS_ACCOUNT)
 
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
 
@@ -426,6 +428,7 @@ struct Client {
 #define SetServNotice(x)        (cli_flags(x) |= FLAGS_SERVNOTICE)
 #define SetHub(x)               (cli_flags(x) |= FLAGS_HUB)
 #define SetService(x)           (cli_flags(x) |= FLAGS_SERVICE)
+#define SetAccount(x)           (cli_flags(x) |= FLAGS_ACCOUNT)
 
 #define ClearAccess(x)          (cli_flags(x) &= ~FLAGS_CHKACCESS)
 #define ClearBurst(x)           (cli_flags(x) &= ~FLAGS_BURST)

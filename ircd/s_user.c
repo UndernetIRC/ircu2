@@ -649,7 +649,8 @@ static const struct UserMode {
   { FLAGS_SERVNOTICE,  's' },
   { FLAGS_DEAF,        'd' },
   { FLAGS_CHSERV,      'k' },
-  { FLAGS_DEBUG,       'g' }
+  { FLAGS_DEBUG,       'g' },
+  { FLAGS_ACCOUNT,     'r' }
 };
 
 #define USERMODELIST_SIZE sizeof(userModeList) / sizeof(struct UserMode)
@@ -664,6 +665,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 {
   if (IsServer(sptr)) {
     int   i;
+    const char* account = 0;
     const char* p;
 
     /*
@@ -679,6 +681,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
         for (i = 0; i < USERMODELIST_SIZE; ++i) {
           if (userModeList[i].c == *p) {
             cli_flags(new_client) |= userModeList[i].flag;
+	    if (userModeList[i].flag & FLAGS_ACCOUNT)
+	      account = parv[7];
             break;
           }
         }
@@ -704,6 +708,8 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     ircd_strncpy(cli_username(new_client), parv[4], USERLEN);
     ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
     ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
+    if (account)
+      ircd_strncpy(cli_user(new_client)->account, account, ACCOUNTLEN);
 
     return register_user(cptr, new_client, cli_name(new_client), parv[4]);
   }
@@ -1268,6 +1274,15 @@ char *umode_str(struct Client *cptr)
     if ( (c_flags & userModeList[i].flag))
       *m++ = userModeList[i].c;
   }
+
+  if (IsAccount(cptr)) {
+    char* t = cli_user(cptr)->account;
+
+    *m++ = ' ';
+    while (*m++ = *t++)
+      ; /* Empty loop */
+  }
+
   *m = '\0';
 
   return umodeBuf;                /* Note: static buffer, gets
