@@ -1,3 +1,7 @@
+2003-04-28 Jeekay <jeekay@netgamers.org>
+	* ircd/s_user.c: Store finduser() return value
+	instead of calling twice.
+
 2003-04-19  Perry Lorier <isomer@undernet.org>
 	* configure.in: Changed == to = in "if test" line from the MacOS X
 	compilation patch.
