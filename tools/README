@@ -1,5 +1,5 @@
 /************************************************************************
- *   IRC - Internet Relay Chat, ircd/crypt/README
+ *   IRC - Internet Relay Chat, tools/README
  *   Copyright (C) 1991 Nelson Minar
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -29,22 +29,24 @@ in your ircd.conf file, you have
 	O:*:sCnvYRmbFJ7oI:Nelson
 
 You still type "/oper Nelson goodboy" to become operator. However, if
-someone gets ahold of your irc.conf file, they can no longer figure
+someone gets ahold of your ircd.conf file, they can no longer figure
 out what the password is from reading it.  There are still other
 security holes, namely server-server passwords, but this closes one
 obvious problem.
 
-So how do you generate these icky looking strings for passwords?
-There's a simple program called mkpasswd to do that for you.  Just run
-mkpasswd, and at the prompt type in your plaintext password.  It will
-spit out the encrypted password, which you should then just copy into
-the irc.conf file. This should be done only when adding new passwords
-to your irc.conf file. To change over your irc.conf file to use
-encrypted passwords, define CRYPT_OPER_PASSWORD in config.h. You will
-need to recompile your server if you already compiled it with this
-feature disabled. Once compiled, edit the Makefile in this directory
-and chang "IRCDCONF" to your irc.conf file. Then "make install" in this
-directory to replace all the operator passwords in your irc.conf file
+So, how do you generate these icky looking strings for passwords?
+There's a simple program called mkpasswd to do that for you. To
+compile mkpasswd, just "make -f Makefile.crypt" in this directory. After it
+compiles, just run mkpasswd, and at the prompt type in your plaintext passwor\
+d.
+It will spit out the encrypted password, which you should then just copy
+into your ircd.conf file. This should be done only when adding new passwords
+to your ircd.conf file. Crypting of oper passwords is automatically done
+with the new F:lines so there is nothing to enable to be able to use
+crypted oper passwords. All you have to do is edit the Makefile.crypt in this
+directory and change "IRCDCONF = /usr/local/lib/irc/ircd.conf" to the full
+path to your ircd.conf file. Then "make -f Makefile.crypt install" in this
+directory to replace all the operator passwords in your ircd.conf file
 with the encrypted format.
 
 Choose your passwords carefully. Do not choose something in a

@@ -1,7 +1,7 @@
 #ifndef INCLUDED_config_h
 #define INCLUDED_config_h
 /*
- * IRC - Internet Relay Chat, include/config.h
+ * IRC - Internet Relay Chat, acconfig.h
  * Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>
  *
  * This program is free software; you can redistribute it and/or modify

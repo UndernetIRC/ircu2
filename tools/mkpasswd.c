@@ -1,6 +1,7 @@
 /* simple password generator by Nelson Minar (minar@reed.edu)
  * copyright 1991, all rights reserved.
  * You can use this code as long as my name stays with it.
+ * $Id$
  */
 #define _XOPEN_SOURCE
 #define _XOPEN_VERSION 4

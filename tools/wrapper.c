@@ -1,4 +1,5 @@
 /*
+** IRC - Internet Relay Chat, tools/wrapper.c
 ** Copyright (C) 2000 by Kevin L. Mitchell <klmitch@mit.edu>
 **
 ** This program is free software; you can redistribute it and/or modify

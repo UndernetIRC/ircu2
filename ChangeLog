@@ -1,3 +1,40 @@
+2002-02-27 Reed Loden <reed@redmagnet.com>
+
+       * tools/crypter: Updated some variables, added another notice,
+       added CVS Id tag, and updated Perl location.
+
+       * tools/ringlog.c: Added IRC - Internet Relay Chat, 
+       tools/ringlog.c
+
+       * tools/ringlog.pl: Added IRC - Internet Relay Chat, 
+       tools/ringlog.pl
+
+       * tools/wrapper.c: Added IRC - Internet Relay Chat, 
+       tools/wrapper.c
+
+       * tools/mkpasswd.c: Added CVS Id tag
+
+       * tools/sums: Updated to comply with sums being moved to tools/
+       and added CVS Id tag
+
+       * tools/README: Updated location of file and partly rewrote to fit 
+       u2.10.11's Features
+
+       * tools/Makefile.crypt: Updated location of file and added CVS Id 
+       tag
+
+       * acconfig.h: Updated location of file
+
+       * config.h.in: Updated location of file
+
+       * tools/Bounce/bounce.conf: Added CVS Id tag
+
+       * tools/Bounce/Bounce.cpp: Updated location of file
+
+       * tools/Bounce/Bounce.h: Updated location of file
+
+       * tools/hashtoy: Added CVS Id Tag
+
 2002-02-27  Carlo Wood  <run@alinoe.com>
 
         * /ircd/ircd.c: check_pings: First check if a PING was sent at all.
