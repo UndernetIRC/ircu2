@@ -438,9 +438,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
         sendto_highprot_butone(cptr, 10,        /* Kill old from outgoing servers */
-                              "%s " TOK_KILL " %s%s :%s (%s <- %s (Nick collision))",
-                              NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
-                              cptr->name);
+                              "%s " TOK_KILL " %s%s :%s (Nick collision)",
+                              NumServ(&me), NumNick(sptr), cptr->name);
         assert(!MyConnect(sptr));
 #if 0
         /*
@@ -471,7 +470,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    */
   if (differ) {
     sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
-                           "%s " TOK_KILL " %s%s :%s (%s <- %s (older nick overruled))",
+                           "%s " TOK_KILL " %s%s :%s (older nick overruled)",
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
     if (MyConnect(acptr))
@@ -481,7 +480,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else {
     sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
-                          "%s " TOK_KILL " %s%s :%s (%s <- %s (nick collision from same user@host))",
+                          "%s " TOK_KILL " %s%s :%s (nick collision from same user@host)",
                           NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                           cptr->name);
     if (MyConnect(acptr))
