@@ -1129,7 +1129,7 @@ int read_message(time_t delay)
       uping_next = uping->next;
       if (uping->active) {
         delay2 = 1;
-        if (uping->lastsent && CurrentTime > ping->timeout) {
+        if (uping->lastsent && CurrentTime > uping->timeout) {
           uping_end(uping);
           continue;
         }
