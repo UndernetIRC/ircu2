@@ -543,6 +543,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
 
     send_reply(sptr,
                RPL_WELCOME,
+               feature_str(FEAT_NETWORK),
                feature_str(FEAT_PROVIDER) ? " via " : "",
                feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
                nick);
@@ -562,9 +563,10 @@ int register_user(struct Client *cptr, struct Client *sptr,
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
       sendto_opmask_butone(0, SNO_CONNEXIT,
-                           "Client connecting: %s (%s@%s) [%s] {%d}",
+                           "Client connecting: %s (%s@%s) [%s] {%d} [%s] <%s%s>",
                            cli_name(sptr), user->username, user->host,
-                           cli_sock_ip(sptr), get_client_class(sptr));
+                           cli_sock_ip(sptr), get_client_class(sptr),
+                           cli_info(sptr), NumNick(cptr) /* two %s's */);
 
     IPcheck_connect_succeeded(sptr);
     /*
@@ -845,8 +847,6 @@ add_target(struct Client *sptr, void *target)
 
   targets = cli_targets(sptr);
 
-  if (IsChannelName(cli_name(sptr)) && IsInvited(sptr, target))
-    return;
   /* 
    * Already in table?
    */
@@ -880,6 +880,10 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
   assert(0 != sptr);
   assert(cli_local(sptr));
   targets = cli_targets(sptr);
+
+  /* If user is invited to channel, give him/her a free target */
+  if (IsChannelName(name) && IsInvited(sptr, target))
+    return 0;
 
   /*
    * Same target as last time?
@@ -1267,6 +1271,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
 	  do_host_hiding = 1;
 	break;
       default:
+        send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;
       }
     }

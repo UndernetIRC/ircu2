@@ -30,7 +30,7 @@ static Numeric replyTable[] = {
 /* 000 */
   { 0 },
 /* 001 */
-  { RPL_WELCOME, ":Welcome to the Internet Relay Network%s%s, %s", "001" },
+  { RPL_WELCOME, ":Welcome to the %s IRC Network%s%s, %s", "001" },
 /* 002 */
   { RPL_YOURHOST, ":Your host is %s, running version %s", "002" },
 /* 003 */
@@ -1034,7 +1034,7 @@ static Numeric replyTable[] = {
 /* 500 */
   { 0 },
 /* 501 */
-  { ERR_UMODEUNKNOWNFLAG, ":Unknown MODE flag", "501" },
+  { ERR_UMODEUNKNOWNFLAG, "%c :Unknown user MODE flag", "501" },
 /* 502 */
   { ERR_USERSDONTMATCH, ":Cant change mode for other users", "502" },
 /* 503 */

@@ -1,4 +1,26 @@
-2004-05-15 Isomer <isomer@undernet.org>
+2004-05-15  Isomer <isomer@undernet.org>
+
+	[Original ChangeLog date: 2003-11-05 -MDP]
+
+	* ircd/s_misc.c, ircd/s_user.c: added numnick to SNO_CONNEXIT
+	messages (so you can match EXIT's to CONN's)
+
+2004-05-15  Reed Loden <reed@reedloden.com>
+
+	[Original ChangeLog date: 2003-05-01 -MDP]
+
+	* ircd/s_err.c: Added network to text and edited 001 a bit.
+
+	* ircd/s_user.c: Send network with 001.
+
+2004-05-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (add_target): Move free target invite check...
+
+	* ircd/s_user.c (check_target_limit): to here, matching 2.10.11's
+	behavior.
+
+2004-05-15  Isomer <isomer@undernet.org>
 
 	[Original ChangeLog date: 2003-11-23 -MDP]
 
@@ -11,10 +33,12 @@
 
 	* ircd/s_user.c: Altered (K-lined) to depend on find_kill type
 
-2004-05-15  Michael Poole <mdpoole@troilus.org>
+2004-05-15  splidge <splidge@quakenet.org>
 
-	* ircd/s_user.c (hide_hostmask): Never send rejoins to a channel
-	when a zombie hides his hostmask.
+	[Original ChangeLog date: 2003-09-03 -MDP]
+
+	* ircd/s_user.c: Made hide_hostmask() not show bogus joins for
+	channels where the user is a zombie.
 
 2004-05-15  beware <steendijk@xs4all.nl>
 
