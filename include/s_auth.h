@@ -36,7 +36,7 @@ struct AuthRequest {
   unsigned int        flags;     /* current state of request */
   int                 fd;        /* file descriptor for auth queries */
   struct Socket       socket;    /* socket descriptor for auth queries */
-  struct Timer        timeout;   /* timeout timer for auth queries
+  struct Timer        timeout;   /* timeout timer for auth queries */
 };
 
 /*
