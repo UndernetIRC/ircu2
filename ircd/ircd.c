@@ -112,7 +112,7 @@ static void server_reboot(const char* message)
   ircd_log(L_CRIT, "execv(%s,%s) failed: %m\n", SPATH, myargv[0]);
 
   Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
-         SPATH, strerror(errno)));
+         SPATH, (strerror(errno)) ? strerror(errno) : ""));
   exit(-1);
 }
 
@@ -155,7 +155,7 @@ static void write_pidfile(void)
     return;
   }
   Debug((DEBUG_NOTICE, "Error opening pid file \"%s\": %s",
-        PPATH, strerror(errno)));
+        PPATH, (strerror(errno)) ? strerror(errno) : ""));
 #endif
 }
 
@@ -392,12 +392,12 @@ int main(int argc, char *argv[])
 #ifdef CHROOTDIR
   if (chdir(DPATH))
   {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", DPATH, strerror(errno));
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", DPATH, (strerror(errno)) ? strerror(errno) : "");
     exit(2);
   }
   if (chroot(DPATH))
   {
-    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, strerror(errno));
+    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, (strerror(errno) ? strerror(errno) : "");
     exit(5);
   }
   dpath = "/";
@@ -420,12 +420,12 @@ int main(int argc, char *argv[])
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
   if (getrlimit(RLIMIT_CORE, &corelim))
   {
-    fprintf(stderr, "Read of rlimit core size failed: %s\n", strerror(errno));
+    fprintf(stderr, "Read of rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
     corelim.rlim_max = RLIM_INFINITY;   /* Try to recover */
   }
   corelim.rlim_cur = corelim.rlim_max;
   if (setrlimit(RLIMIT_CORE, &corelim))
-    fprintf(stderr, "Setting rlimit core size failed: %s\n", strerror(errno));
+    fprintf(stderr, "Setting rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
 #endif
 
   /*
@@ -525,7 +525,7 @@ int main(int argc, char *argv[])
 
   if (chdir(dpath))
   {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, strerror(errno));
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, (strerror(errno)) ? strerror(errno) : "");
     exit(2);
   }
 
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
     if (c)
     {
       fprintf(stderr, "Check on %cPATH (%s) failed: %s\n", 
-              c, path, strerror(errno));
+              c, path, (strerror(errno)) ? strerror(errno) : "");
       fprintf(stderr,
           "Please create file and/or rerun `make config' and recompile to correct this.\n");
 #ifdef CHROOTDIR

@@ -122,7 +122,8 @@ int main(int argc, char *argv[])
 
   if (chdir(dpath))
   {
-    fprintf(stderr, "chdir(\"%s\") : %s\n", dpath, strerror(errno));
+    fprintf(stderr, "chdir(\"%s\") : %s\n", dpath, 
+            (strerror(errno)) ? strerror(errno) : "Unknown error");
     exit(-1);
   }
   else if (debugflag > 1)
@@ -144,7 +145,7 @@ int main(int argc, char *argv[])
 static struct ConfItem *chk_initconf(void)
 {
   FBFILE *file;
-  char line[512], *tmp, *s, *crule;
+  char line[512], *tmp, *crule;
   int ccount = 0, flags = 0;
   struct ConfItem *aconf = NULL, *ctop = NULL;
 

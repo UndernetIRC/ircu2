@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
@@ -116,34 +117,48 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!IsServer(sptr))
     return 0;
 
-  if (parc < 5)
-    return need_more_params(sptr, "RPING");
-
-  if (!(acptr = FindClient(parv[1])))
-    return 0;
-
-  if (!IsMe(acptr))
-  {
-    if (IsServer(acptr) && parc > 5)
-    {
-      sendto_one(acptr, ":%s RPONG %s %s %s %s :%s",
-          parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]);
+  if (parc < 5) {
+    /*
+     * PROTOCOL ERROR
+     */
+    return need_more_params(sptr, "RPONG");
+  }
+  if (parc == 6) {
+    /*
+     * from pinged server to source server
+     */
+    if (!(acptr = FindNServer(parv[1])))
       return 0;
+   
+    if (IsMe(acptr)) {
+      if (!(acptr = findNUser(parv[2])))
+        return 0;
+      if (MyConnect(acptr))
+        sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
+                   me.name, acptr->name, sptr->name,
+                   militime(parv[3], parv[4]), parv[5]);
+      else 
+        sendto_one(acptr, "%s " TOK_RPONG " %s%s %s %s :%s",
+                   NumServ(&me), NumNick(acptr), sptr->name,
+                   militime(parv[3], parv[4]), parv[5]);
     }
+    else
+      sendto_one(acptr, "%s " TOK_RPONG " %s %s %s %s :%s",
+                 parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]);
   }
-  else
-  {
-    parv[1] = parv[2];
-    parv[2] = sptr->name;
-    parv[0] = me.name;
-    parv[3] = militime(parv[3], parv[4]);
-    parv[4] = parv[5];
-    if (!(acptr = FindUser(parv[1])))
-      return 0;                 /* No bouncing between servers ! */
+  else {
+    /*
+     * returned from source server to client
+     */
+    if (!(acptr = findNUser(parv[1])))
+      return 0;
+    if (MyConnect(acptr))
+      sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
+                 sptr->name, acptr->name, parv[2], parv[3], parv[4]);
+    else
+      sendto_one(acptr, "%s " TOK_RPONG " %s %s %s :%s",
+                 parv[0], parv[1], parv[2], parv[3], parv[4]);
   }
-
-  sendto_one(acptr, ":%s RPONG %s %s %s :%s",
-      parv[0], parv[1], parv[2], parv[3], parv[4]);
   return 0;
 }
 

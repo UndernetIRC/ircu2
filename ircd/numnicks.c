@@ -395,7 +395,7 @@ struct Client* find_match_server(char *mask)
         return acptr;
     }
   }
-  return NULL;
+  return 0;
 }
 
 
