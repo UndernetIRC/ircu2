@@ -106,7 +106,7 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 	else
 	  after = gline; /* stick new gline after this one */
       } else if (!mmatch(user, gline->gl_user) && /* new mask contains gline */
-		 !mmatch(host, gline->gl_host) &&
+		 gline->gl_host && !mmatch(host, gline->gl_host) &&
 		 gline->gl_expire <= expire) /* gline expires before new one */
 	gline_free(gline); /* save some memory */
     }
@@ -366,6 +366,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
         break;
     }
      user = (*userhost =='$' ? userhost : userhost+2);
+     host = 0;
   } else {
     canon_userhost(userhost, &user, &host, "*");
     if (sizeof(uhmask) <

@@ -1,3 +1,7 @@
+2003-10-25 Isomer <isomer@undernet.org>
+	* ircd/gline.c: When comparing hosts for equality, check that
+	one isn't NULL.
+
 2003-10-25  Entrope <entrope@users.sourceforge.net>
         * ircd/channel.c: Move IsUserParting() test up so we do not
         send the part to other servers.
@@ -7,6 +11,7 @@
         parting a channel.
 
         * ircd/channel.c: Use it.
+
 2003-10-25 Isomer <isomer@undernet.org>
 	* ircd/gline.c: Make sure we never use the gl_host variable when we
 	are dealing with a realname (or other magical) gline.
