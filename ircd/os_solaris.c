@@ -91,6 +91,7 @@ int os_get_sockerr(int fd)
   int err = 0;
   int len = sizeof(err);
   getsockopt(fd, SOL_SOCKET, SO_ERROR, (void*) &err, &len);
+  return err;
 }
 
 /*

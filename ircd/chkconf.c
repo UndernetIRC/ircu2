@@ -122,7 +122,8 @@ int main(int argc, char *argv[])
 
   if (chdir(dpath))
   {
-    fprintf(stderr, "chdir(\"%s\") : %s\n", dpath, strerror(errno));
+    fprintf(stderr, "chdir(\"%s\") : %s\n", dpath, 
+            (strerror(errno)) ? strerror(errno) : "Unknown error");
     exit(-1);
   }
   else if (debugflag > 1)
