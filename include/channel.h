@@ -243,17 +243,19 @@ struct ModeBuf {
 					/* A mode w/args */
 };
 
-#define MODEBUF_DEST_CHANNEL	0x0001	/* Mode is flushed to channel */
-#define MODEBUF_DEST_SERVER	0x0002	/* Mode is flushed to server */
+#define MODEBUF_DEST_CHANNEL	0x00001	/* Mode is flushed to channel */
+#define MODEBUF_DEST_SERVER	0x00002	/* Mode is flushed to server */
 
-#define MODEBUF_DEST_OPMODE	0x0100	/* Send server mode as OPMODE */
-#define MODEBUF_DEST_DEOP	0x0200	/* Deop the offender */
-#define MODEBUF_DEST_BOUNCE	0x0400	/* Bounce the modes */
-#define MODEBUF_DEST_LOG	0x0800	/* Log the mode changes to OPATH */
+#define MODEBUF_DEST_OPMODE	0x00100	/* Send server mode as OPMODE */
+#define MODEBUF_DEST_DEOP	0x00200	/* Deop the offender */
+#define MODEBUF_DEST_BOUNCE	0x00400	/* Bounce the modes */
+#define MODEBUF_DEST_LOG	0x00800	/* Log the mode changes to OPATH */
 
-#define MODEBUF_DEST_HACK2	0x2000	/* Send a HACK(2) notice, reverse */
-#define MODEBUF_DEST_HACK3	0x4000	/* Send a HACK(3) notice, TS == 0 */
-#define MODEBUF_DEST_HACK4	0x8000	/* Send a HACK(4) notice, TS == 0 */
+#define MODEBUF_DEST_HACK2	0x02000	/* Send a HACK(2) notice, reverse */
+#define MODEBUF_DEST_HACK3	0x04000	/* Send a HACK(3) notice, TS == 0 */
+#define MODEBUF_DEST_HACK4	0x08000	/* Send a HACK(4) notice, TS == 0 */
+
+#define MODEBUF_DEST_NOKEY	0x10000	/* Don't send the real key */
 
 #define MB_TYPE(mb, i)		((mb)->mb_modeargs[(i)].mbm_type)
 #define MB_UINT(mb, i)		((mb)->mb_modeargs[(i)].mbm_arg.mbma_uint)
