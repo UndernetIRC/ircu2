@@ -1,3 +1,10 @@
+2000-12-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/os_generic.c: make sure IOV_MAX gets defined, just in case
+
+	* ircd/os_bsd.c: apparently BSD doesn't have IOV_MAX defined
+	anywhere intelligent...
+
 2000-12-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c (send_queued): call deliver_it with appropriate
