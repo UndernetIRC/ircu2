@@ -1,4 +1,6 @@
 2005-03-22  Michael Poole <mdpoole@troilus.org>
+	(Many thanks to nex and Reed for helping hunt this down and
+	doing the testing of various patches.)
 
 	* ircd/ircd_events.c (timer_chg): Properly change a timer that is
 	in the middle of executing its expiration event.
