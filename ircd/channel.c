@@ -1344,7 +1344,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_REGONLY,	'r',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
-/*  MODE_LIMIT,		'l', */
+    MODE_LIMIT,		'l',
     0x0, 0x0
   };
   int i;
@@ -1728,6 +1728,11 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
 {
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
+
+  if (mode == (MODE_LIMIT | MODE_DEL)) {
+    mbuf->mb_rem |= mode;
+    return;
+  }
 
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_UINT(mbuf, mbuf->mb_count) = uint;
