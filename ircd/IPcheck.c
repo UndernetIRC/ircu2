@@ -301,6 +301,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
       entry->last_connect = NOW;
     }
   }
+  SetIPChecked(cptr);
   return 1;
 }
 

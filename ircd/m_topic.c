@@ -114,7 +114,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
     * send it to all the clients to save bandwidth.  We still send
     * it to other servers as they may have split and lost the topic.
     */
-   newtopic=ircd_strncmp(chptr->topic,topic,TOPICLEN)==0;
+   newtopic=ircd_strncmp(chptr->topic,topic,TOPICLEN)!=0;
    /* setting a topic */
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
    ircd_strncpy(chptr->topic_nick, sptr->name, NICKLEN);
