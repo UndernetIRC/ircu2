@@ -510,7 +510,7 @@ operblock: OPER '{' operitems '}' ';'
   }
   else
   {
-    log_write(LS_CONFIG, L_ERROR, 0, "operator blocks need a name, password, and host.");
+    parse_error("operator blocks need a name, password, class and host.");
     MyFree(name);
     MyFree(pass);
     MyFree(host);
@@ -890,8 +890,7 @@ quarantineblock: QUARANTINE '{'
 {
   if (qconf->chname == NULL || qconf->reason == NULL)
   {
-    log_write(LS_CONFIG, L_ERROR, 0, "quarantine blocks need a channel name "
-              "and a reason.");
+    parse_error("quarantine blocks need a channel name and a reason.");
     return 0;
   }
   qconf->next = GlobalQuarantineList;
@@ -916,7 +915,7 @@ pseudoitems '}' ';'
 {
   if (!smap->name || !smap->services)
   {
-    log_write(LS_CONFIG, L_ERROR, 0, "pseudo commands need a service name and list of target nicks.");
+    parse_error("pseudo commands need a service name and list of target nicks.");
     return 0;
   }
   if (register_mapping(smap))
@@ -971,7 +970,7 @@ iauthblock: IAUTH '{'
 } iauthitems '}' ';'
 {
   if (!host || !port) {
-    log_write(LS_CONFIG, L_ERROR, 0, "IAuth block needs a server name and port.");
+    parse_error("IAuth block needs a server name and port.");
     return 0;
   }
   iauth_connect(host, port, pass, tconn, tping);

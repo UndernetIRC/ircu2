@@ -1,5 +1,11 @@
 2005-02-20  Perry Lorier <isomer@undernet.org>
 
+	* ircd/ircd_parser.y: Moved some parse errors from log_write()'s to
+	parse_error()'s so that ./ircd -k will display them.  Also clarified
+	the warning about oper blocks.
+
+2005-02-20  Perry Lorier <isomer@undernet.org>
+
 	* tools/convert-conf.py: A multitude of changes to deal with parsing
 	mistakes, generate a newer config file, better error handling,
 	being smarter about what config elements you generate etc.
