@@ -31,6 +31,7 @@
 #include "ircd.h"
 #include "numeric.h"
 #include "fileio.h" /* for fbopen / fbclose / fbputs */
+#include "random.h"
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_stats.h"
@@ -53,6 +54,8 @@
 static struct Socket res_socket;
 /** Next DNS lookup timeout. */
 static struct Timer res_timeout;
+/** Check for whether the resolver has been initialized yet. */
+#define resolver_started() (request_list.next != NULL)
 
 /** Maximum DNS packet length.
  * RFC says 512, but we add extra for expanded names.
@@ -169,25 +172,12 @@ restart_resolver(void)
   if (!s_active(&res_socket))
   {
     int fd;
-    fd = os_socket(NULL, SOCK_DGRAM, "Resolver UDP socket");
+    fd = os_socket(&VirtualHost, SOCK_DGRAM, "Resolver UDP socket");
     if (fd < 0) return;
     if (!socket_add(&res_socket, res_readreply, NULL, SS_DATAGRAM,
                     SOCK_EVENT_READABLE, fd)) return;
     timer_init(&res_timeout);
   }
-}
-
-/** Initialize resolver.
- * This seends the pseudo-random number generator and calls
- * restart_resolver().
- * @return Resolver socket file descriptor.
- */
-int
-init_resolver(void)
-{
-  srand(CurrentTime);
-  restart_resolver();
-  return(s_fd(&res_socket));
 }
 
 /** Append local domain to hostname if needed.
@@ -250,6 +240,9 @@ static struct reslist *
 make_request(const struct DNSQuery* query)
 {
   struct reslist *request;
+
+  if (!resolver_started())
+    restart_resolver();
 
   request = (struct reslist *)MyMalloc(sizeof(struct reslist));
   memset(request, 0, sizeof(struct reslist));
@@ -537,7 +530,7 @@ query_name(const char *name, int query_class, int type,
      */
     do
     {
-      header->id = (header->id + rand()) & 0xffff;
+      header->id = (header->id + ircrandom()) & 0xffff;
     } while (find_id(header->id));
     request->id = header->id;
     ++request->sends;

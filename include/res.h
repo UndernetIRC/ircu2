@@ -118,7 +118,6 @@ typedef struct
 	unsigned	arcount :16;	/**< number of resource entries */
 } HEADER;
 
-extern int init_resolver(void);
 extern void restart_resolver(void);
 extern void add_local_domain(char *hname, size_t size);
 extern size_t cres_mem(struct Client* cptr);

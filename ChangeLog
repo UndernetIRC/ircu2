@@ -1,5 +1,21 @@
 2004-11-09  Michael Poole <mdpoole@troilus.org>
 
+	* include/res.h (init_resolver): Delete, and initialize lazily.
+
+	* ircd/ircd.c (main): Do not call init_resolver().
+
+	* ircd/ircd_res.c (restart_resolver): Use default VirtualHost for
+	local resolver socket address.
+	(init_resolver): Delete.
+	(make_request): Call restart_resolver() if necessary.
+	(query_name): Use ircrandom() instead of rand().
+
+	* ircd/os_generic.c (sockaddr_from_irc): Convert last argument to
+	a file descriptor that indicates the socket family to use.
+	(os_sendto_nonb,os_socket,os_connect_nonb): Update to match.
+
+2004-11-09  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/engine_epoll.c (engine_delete): Do not attempt to remove a
 	socket from epoll on delete, since the kernel does that for us.
 

@@ -674,8 +674,6 @@ int main(int argc, char **argv) {
   initmsgtree();
   initstats();
 
-  init_resolver();
-
   /* we need this for now, when we're modular this 
      should be removed -- hikari */
   ircd_crypt_init();
