@@ -1,3 +1,7 @@
+2003-04-19  Perry Lorier <isomer@undernet.org>
+	* configure.in: Changed == to = in "if test" line from the MacOS X
+	compilation patch.
+
 2003-04-24 Jeekay <jeekay@netgamers.org>
 	* ircd/s_conf.c: Added check for FEAT_HUB after the configuration file 
 	is read.

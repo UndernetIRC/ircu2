@@ -3665,7 +3665,7 @@ EOF
 
 
 unet_maxcon=`ulimit -Hn`
-if test x"$unet_maxcon" == xunlimited; then
+if test x"$unet_maxcon" = xunlimited; then
     unet_maxcon=`ulimit -Sn`
 fi
 unet_maxcon=`expr $unet_maxcon - 4`
