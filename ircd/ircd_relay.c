@@ -244,7 +244,8 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
-  if (check_target_limit(sptr, acptr, cli_name(acptr), 0) ||
+  if (!IsChannelService(acptr) &&
+      check_target_limit(sptr, acptr, cli_name(acptr), 0) ||
       is_silenced(sptr, acptr))
     return;
 
@@ -271,7 +272,8 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
 
   if (0 == (acptr = FindUser(name)))
     return;
-  if (check_target_limit(sptr, acptr, cli_name(acptr), 0) ||
+  if (!IsChannelService(acptr) && 
+      check_target_limit(sptr, acptr, cli_name(acptr), 0) ||
       is_silenced(sptr, acptr))
     return;
   /*

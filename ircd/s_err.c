@@ -1001,7 +1001,7 @@ static Numeric replyTable[] = {
 /* 483 */
   { ERR_CANTKILLSERVER, ":You cant kill a server!", "483" },
 /* 484 */
-  { ERR_ISCHANSERVICE, "%s %s :Cannot kill, kick or deop channel service", "484" },
+  { ERR_ISCHANSERVICE, "%s %s :Cannot kill, kick or deop a network service", "484" },
 /* 485 */
   { 0 },
 /* 486 */
