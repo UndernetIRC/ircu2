@@ -1,5 +1,14 @@
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_wallvoices.c (ms_wallvoices): Don't accept & channel
+	WALLVOICES from servers (Bug #721494)
+
+	* ircd/m_wallchops.c (ms_wallchops): Don't accept & channel
+	WALLCHOPS from servers (Bug #721494)
+
+	* ircd/ircd_relay.c: Don't accept & channel messages/notices from
+	servers (Bug #721494)
+
 	* ircd/gline.c (gline_add): fix GLINE logging (Bug #750927)
 
 	* ircd/channel.c: removing limits shouldn't gobble an argument;
