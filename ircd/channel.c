@@ -2683,7 +2683,7 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
  * @param[in] newban Ban (or exception) to add (or remove).
  * @return Zero if \a newban could be applied, non-zero if not.
  */
-int apply_ban(struct Ban **banlist, struct Ban *newban, int free)
+int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
 {
   struct Ban *ban;
   size_t count = 0;
@@ -2694,7 +2694,7 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int free)
     /* If a less specific entry is found, fail.  */
     for (ban = *banlist; ban; ban = ban->next) {
       if (!bmatch(ban, newban)) {
-        if (free)
+        if (do_free)
           free_ban(newban);
         return 1;
       }
@@ -2721,14 +2721,15 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int free)
         remove_count++;
       }
     }
-    if (free)
+    if (do_free)
       free_ban(newban);
     else
       MyFree(newban->banstr);
     /* If no matches were found, fail. */
     return remove_count ? 0 : 3;
   }
-  free_ban(newban);
+  if (do_free)
+    free_ban(newban);
   return 4;
 }
 
