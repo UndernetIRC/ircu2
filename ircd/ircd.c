@@ -275,7 +275,7 @@ static time_t check_pings(void)
      * It's already done when "FLAGS_DEADSOCKET" is set.
      */
     if (IsDead(cptr)) {
-      exit_client(cptr, cptr, &me, LastDeadComment(cptr));
+      exit_client(cptr, cptr, &me, cptr->info);
       continue;
     }
 

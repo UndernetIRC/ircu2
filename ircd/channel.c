@@ -2928,7 +2928,7 @@ modebuf_flush(struct ModeBuf *mbuf)
 		     "]", app_source->name, mbuf->mb_channel->chname,
 		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
 		     addstr, remstr, mbuf->mb_channel->creationtime);
-      sendto_serv_butone(mbuf->connect, "%s " TOK_DESYNCH
+      sendto_serv_butone(mbuf->mb_connect, "%s " TOK_DESYNCH
 			 " :HACK: %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT "]",
 			 NumServ(&me), app_source->name,
 			 mbuf->mb_channel->chname, addbuf_i ? "+" : "", addbuf,

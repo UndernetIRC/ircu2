@@ -111,7 +111,7 @@ void report_configured_links(struct Client *sptr, int mask)
         sendto_one(sptr, rpl_str(p[1]),
             me.name, sptr->name, c, host, pass, name, port,
             get_conf_class(tmp));
-      else if ((tmp->status & CONF_SERVER))
+      else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
         sendto_one(sptr, rpl_str(p[1]), me.name, sptr->name, c, "*", name,
             port, get_conf_class(tmp));
       else
