@@ -22,6 +22,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -46,9 +47,6 @@
 #ifndef INADDR_NONE
 #define INADDR_NONE ((unsigned int) 0xffffffff)
 #endif
-
-int tos_server = 0x08; // Low delay
-int tos_client = 0x08; // Low delay
 
 struct Listener* ListenerPollList = 0;
 
@@ -219,7 +217,7 @@ static int inetport(struct Listener* listener)
   /*
    * Set the TOS bits - this is nonfatal if it doesn't stick.
    */
-  if (!os_set_tos(fd,(listener->server) ? tos_server : tos_client)) {
+  if (!os_set_tos(fd,feature_int((listener->server)?FEAT_TOS_SERVER : FEAT_TOS_CLIENT))) {
     report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
   }
   listener->fd = fd;

@@ -227,6 +227,8 @@ static struct FeatureDesc {
   F_B(SHOW_ALL_INVISIBLE_USERS, 1),
   F_B(UNLIMIT_OPER_QUERY, 0),
   F_B(LOCAL_KILL_ONLY, 0),
+  F_B(TOS_SERVER,0x08),
+  F_B(TOS_CLIENT,0x08),
   F_B(CONFIG_OPERCMDS, 1), /* XXX change default before release */
 
   F_B(OPER_KILL, 1),

@@ -1,4 +1,7 @@
 2000-12-17  Isomer <Isomer@coders.net>
+	* ircd/listener.c: added support for TOS twiddling as a 'feature'.
+
+2000-12-17  Isomer <Isomer@coders.net>
 	* ircd/os_linux.c: add TOS stuffs
 
 	* ircd/listener.c: add TOS stuffs
