@@ -1,5 +1,17 @@
 2005-03-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_events.c (timer_chg): Properly change a timer that is
+	in the middle of executing its expiration event.
+
+	* ircd/ircd_res.c (check_resolver_timeout): Simplify the test for
+	whether to use timer_chg() or timer_add().
+	(timeout_resolver): Do not try to re-schedule the DNS timeout
+	unless it is the expiration event.
+	(do_query_number): Properly initialize request->state.
+	(res_readreply): Mention the response code that was bad.
+
+2005-03-22  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/engine_kqueue.c (engine_delete): The kernel removes
 	close()'d FDs from the activity list, so don't try to remove the
 	FD here (the caller may have already close()'d it).

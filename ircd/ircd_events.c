@@ -525,12 +525,19 @@ timer_chg(struct Timer* timer, enum TimerType type, time_t value)
 	 "timeout %Tu", timer, timer_to_name(timer->t_type), timer->t_value,
 	 timer_to_name(type), value));
 
-  gen_dequeue(timer); /* remove the timer from the queue */
-
   timer->t_type = type; /* Set the new type and value */
   timer->t_value = value;
   timer->t_expire = 0;
 
+  /* If the timer expiration callback tries to change the timer
+   * expiration, flag the timer but do not dequeue it yet.
+   */
+  if (timer->t_header.gh_flags & GEN_MARKED)
+  {
+    timer->t_header.gh_flags |= GEN_READD;
+    return;
+  }
+  gen_dequeue(timer); /* remove the timer from the queue */
   timer_enqueue(timer); /* re-queue the timer */
 }
 

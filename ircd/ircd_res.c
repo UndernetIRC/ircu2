@@ -278,22 +278,25 @@ check_resolver_timeout(time_t when)
 {
   if (when > CurrentTime + AR_TTL)
     when = CurrentTime + AR_TTL;
-  if (!t_active(&res_timeout) || !t_onqueue(&res_timeout))
-    timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
-  else if (when < t_expire(&res_timeout))
+  if (t_onqueue(&res_timeout))
     timer_chg(&res_timeout, TT_ABSOLUTE, when);
+  else
+    timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
 }
 
 /** Drop pending DNS lookups which have timed out.
  * @param[in] notused Timer event data (ignored).
  */
 static void
-timeout_resolver(struct Event *notused)
+timeout_resolver(struct Event *ev)
 {
   struct dlink *ptr, *next_ptr;
   struct reslist *request;
   time_t next_time = 0;
   time_t timeout   = 0;
+
+  if (ev_type(ev) != ET_EXPIRE)
+    return;
 
   for (ptr = request_list.next; ptr != &request_list; ptr = next_ptr)
   {
@@ -509,6 +512,7 @@ do_query_number(const struct DNSQuery *query, const struct irc_in_addr *addr,
   if (request == NULL)
   {
     request       = make_request(query);
+    request->state= REQ_PTR;
     request->type = T_PTR;
     memcpy(&request->addr, addr, sizeof(request->addr));
     request->name = (char *)MyMalloc(HOSTLEN + 1);
@@ -800,7 +804,7 @@ res_readreply(struct Event *ev)
          * If a bad error was returned, we stop here and don't send
          * send any more (no retries granted).
          */
-          Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d)", request, request->state, request->type));
+        Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d rcode %d)", request, request->state, request->type, header->rcode));
         (*request->query.callback)(request->query.vptr, 0);
 	rem_request(request);
       }
