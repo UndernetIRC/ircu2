@@ -93,16 +93,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define NS_TYPE_ELT             0x40 /* EDNS0 extended label type */
-#define DNS_LABELTYPE_BITSTRING 0x41
-#define MAXLINE 128
+#define NS_TYPE_ELT             0x40 /**< EDNS0 extended label type */
+#define DNS_LABELTYPE_BITSTRING 0x41 /**< Bitstring label */
+#define MAXLINE 128 /**< Maximum line length for resolv.conf */
 
-/* $Id$ */
+/** @file
+ * @brief DNS resolver library functions.
+ * @version $Id$
+ */
 
+/** Array of nameserver addresses. */
 struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
+/** Number of nameservers in #irc_nsaddr_list. */
 int irc_nscount = 0;
+/** Local domain to use as a search suffix. */
 char irc_domain[HOSTLEN + 1];
 
+/** Maps hex digits to their values, or -1 for other characters. */
 static const char digitvalue[256] = {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*16*/
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*32*/
@@ -125,6 +132,7 @@ static const char digitvalue[256] = {
 static int parse_resvconf(void);
 static void add_nameserver(char *arg);
 
+/** Array of decimal digits, indexed by value. */
 static const char digits[] = "0123456789";
 static int labellen(const unsigned char *lp);
 static int special(int ch);
@@ -134,10 +142,13 @@ static int irc_ns_name_compress(const char *src, unsigned char *dst, size_t dsts
     const unsigned char **dnptrs, const unsigned char **lastdnptr);
 static int irc_dn_find(const unsigned char *, const unsigned char *, const unsigned char * const *,
                        const unsigned char * const *);
-static int irc_encode_bitsring(const char **, const char *, unsigned char **, unsigned char **, 
+static int irc_encode_bitsring(const char **, const char *, unsigned char **, unsigned char **,
                                const char *);
 static int mklower(int ch);
-  
+
+/** Initialize the resolver library.
+ * @return Zero on success, non-zero on failure.
+ */
 int
 irc_res_init(void)
 {
@@ -145,11 +156,10 @@ irc_res_init(void)
   return(parse_resvconf());
 }
 
-/* parse_resvconf()
- *
- * inputs - NONE
- * output - -1 if failure 0 if success
- * side effects - fills in irc_nsaddr_list
+/** Read resolver configuration file for domain and nameserver lines.
+ * The "domain" line is used to overwrite #irc_domain.
+ * Addresses in "nameserver" lines are appended to #irc_nsaddr_list.
+ * @return Zero on success, non-zero on failure.
  */
 static int
 parse_resvconf(void)
@@ -210,12 +220,8 @@ parse_resvconf(void)
   return(0);
 }
 
-/* add_nameserver()
- *
- * input        - either an IPV4 address in dotted quad
- *                or an IPV6 address in : format
- * output       - NONE
- * side effects - entry in irc_nsaddr_list is filled in as needed
+/** Add a resolver to #irc_nsaddr_list.
+ * @param[in] arg Dotted quad or IPv6 text form of nameserver address.
  */
 static void
 add_nameserver(char *arg)
@@ -234,12 +240,15 @@ add_nameserver(char *arg)
   irc_nscount++;
 }
 
-/*
- * Expand compressed domain name 'comp_dn' to full domain name.
- * 'msg' is a pointer to the begining of the message,
- * 'eomorig' points to the first location after the message,
- * 'exp_dn' is a pointer to a buffer of size 'length' for the result.
- * Return size of compressed name or -1 if there was an error.
+/**
+ * Expand compressed domain name to full domain name.
+ * Like irc_ns_name_uncompress(), but checks for a well-formed result.
+ * @param[in] msg Pointer to the begining of the message.
+ * @param[in] eom First location after the message.
+ * @param[in] src Pointer to where to starting decoding.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_dn_expand(const unsigned char *msg, const unsigned char *eom,
@@ -252,13 +261,14 @@ irc_dn_expand(const unsigned char *msg, const unsigned char *eom,
   return(n);
 }
 
-/*
- * irc_ns_name_uncompress(msg, eom, src, dst, dstsiz)
- *	Expand compressed domain name to presentation format.
- * return:
- *	Number of bytes read out of `src', or -1 (with errno set).
- * note:
- *	Root domain returns as "." not "".
+/**
+ * Expand compressed domain name to full domain name.
+ * @param[in] msg Pointer to the begining of the message.
+ * @param[in] eom First location after the message.
+ * @param[in] src Pointer to where to starting decoding.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
@@ -273,11 +283,15 @@ irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
     return(-1);
   return(n);
 }
-/*
- * irc_ns_name_unpack(msg, eom, src, dst, dstsiz)
- *	Unpack a domain name from a message, source may be compressed.
- * return:
- *	-1 if it fails, or consumed octets if it succeeds.
+
+/**
+ * Unpack compressed domain name to uncompressed form.
+ * @param[in] msg Pointer to the begining of the message.
+ * @param[in] eom First location after the message.
+ * @param[in] src Pointer to where to starting decoding.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_ns_name_unpack(const unsigned char *msg, const unsigned char *eom,
@@ -354,14 +368,12 @@ irc_ns_name_unpack(const unsigned char *msg, const unsigned char *eom,
 	return (len);
 }
 
-/*
- * irc_ns_name_ntop(src, dst, dstsiz)
- *	Convert an encoded domain name to printable ascii as per RFC1035.
- * return:
- *	Number of bytes written to buffer, or -1 (with errno set)
- * notes:
- *	The root is returned as "."
- *	All other domains are returned in non absolute form
+/**
+ * Convert RFC1035 length-prefixed tag sequence to printable ASCII.
+ * @param[in] src Input tag sequence (effectively NUL terminated).
+ * @param[out] dst Buffer for uncompressed output.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz)
@@ -455,10 +467,13 @@ irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz)
 	return (dn - dst);
 }
 
-/*
- * Pack domain name 'exp_dn' in presentation form into 'comp_dn'.
- * Return the size of the compressed name or -1.
- * 'length' is the size of the array pointed to by 'comp_dn'.
+/** Pack domain name from presentation form into compressed format.
+ * @param[in] src Presentation form of name.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @param[in,out] dnptrs Array of previously seen labels.
+ * @param[in] lastdnptr End of \a dnptrs array.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_dn_comp(const char *src, unsigned char *dst, int dstsiz,
@@ -469,8 +484,10 @@ irc_dn_comp(const char *src, unsigned char *dst, int dstsiz,
                               (const unsigned char **)lastdnptr));
 }
 
-/*
- * Skip over a compressed domain name. Return the size or -1.
+/** Skip over a compressed domain name.
+ * @param[in] ptr Start of compressed name.
+ * @param[in] eom End of message.
+ * @return Length of the compressed name, or -1 on error.
  */
 int
 irc_dn_skipname(const unsigned char *ptr, const unsigned char *eom) {
@@ -481,11 +498,10 @@ irc_dn_skipname(const unsigned char *ptr, const unsigned char *eom) {
   return(ptr - saveptr);
 }
 
-/*
- * ns_name_skip(ptrptr, eom)
- *	Advance *ptrptr to skip over the compressed name it points at.
- * return:
- *	0 on success, -1 (with errno set) on failure.
+/** Advance \a ptrptr to skip over the compressed name it points at.
+ * @param[in,out] ptrptr Pointer to the compressed name.
+ * @param[in] eom End of message.
+ * @return Zero on success; non-zero (with errno set) on failure.
  */
 int
 irc_ns_name_skip(const unsigned char **ptrptr, const unsigned char *eom)
@@ -534,6 +550,10 @@ irc_ns_name_skip(const unsigned char **ptrptr, const unsigned char *eom)
   return(0);
 }
 
+/** Read a 16-bit network-endian value from \a src.
+ * @param[in] src Input data buffer.
+ * @return Value retrieved from buffer.
+ */
 unsigned int
 irc_ns_get16(const unsigned char *src)
 {
@@ -543,6 +563,10 @@ irc_ns_get16(const unsigned char *src)
   return(dst);
 }
 
+/** Read a 32-bit network-endian value from \a src.
+ * @param[in] src Input data buffer.
+ * @return Value retrieved from buffer.
+ */
 unsigned long
 irc_ns_get32(const unsigned char *src)
 {
@@ -552,12 +576,20 @@ irc_ns_get32(const unsigned char *src)
   return(dst);
 }
 
+/** Write a 16-bit network-endian value to \a dst.
+ * @param[in] src Value to write.
+ * @param[out] dst Output buffer.
+ */
 void
 irc_ns_put16(unsigned int src, unsigned char *dst)
 {
   IRC_NS_PUT16(src, dst);
 }
 
+/** Write a 32-bit network-endian value to \a dst.
+ * @param[in] src Value to write.
+ * @param[out] dst Output buffer.
+ */
 void
 irc_ns_put32(unsigned long src, unsigned char *dst)
 {
@@ -566,12 +598,10 @@ irc_ns_put32(unsigned long src, unsigned char *dst)
 
 /* From ns_name.c */
 
-/*
- * special(ch)
- *      Thinking in noninternationalized USASCII (per the DNS spec),
- *      is this characted special ("in need of quoting") ?
- * return:
- *      boolean.
+/** Indicate whether a character needs quoting.
+ * (What RFC does this come from?)
+ * @param[in] ch Character to check for specialness.
+ * @return Non-zero if the character should be quoted.
  */
 static int
 special(int ch)
@@ -593,9 +623,13 @@ special(int ch)
   }
 }
 
+/** Calculate the length of a particular DNS label.
+ * @param[in] lp Start of label.
+ * @return Length of label, or -1 on error.
+ */
 static int
 labellen(const unsigned char *lp)
-{                               
+{
   int bitlen;
   unsigned char l = *lp;
 
@@ -621,12 +655,9 @@ labellen(const unsigned char *lp)
 }
 
 
-/*
- * printable(ch)
- *      Thinking in noninternationalized USASCII (per the DNS spec),
- *      is this character visible and not a space when printed ?
- * return:
- *      boolean.
+/** Indicate whether a character is printable.
+ * @param[in] ch Character to check for printability.
+ * @return Non-zero if the character is printable; zero if it is not.
  */
 static int
 printable(int ch)
@@ -634,6 +665,11 @@ printable(int ch)
   return(ch > 0x20 && ch < 0x7f);
 }
 
+/** Decode a bitstring label from DNS.
+ * @param[in,out] cpp Pointer to start of label.
+ * @param[in,out] dn Output buffer.
+ * @param[in] eom End of message.
+ */
 static int
 irc_decode_bitstring(const char **cpp, char *dn, const char *eom)
 {
@@ -666,15 +702,13 @@ irc_decode_bitstring(const char **cpp, char *dn, const char *eom)
         return(dn - beg);
 }
 
-/*
- * irc_ns_name_pton(src, dst, dstsiz)
- *  Convert a ascii string into an encoded domain name as per RFC1035.
- * return:
- *  -1 if it fails
- *  1 if string was fully qualified
- *  0 is string was not fully qualified
- * notes:
- *  Enforces label and domain length limits.
+/** Convert an ASCII name string into an encoded domain name.
+ * This function enforces per-label and total name lengths.
+ * @param[in] src ASCII name string.
+ * @param[out] dst Destination buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return -1 on failure, 0 if \a src was not fully qualified, 1 if \a
+ * src was fully qualified.
  */
 int
 irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz)
@@ -806,22 +840,13 @@ irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz)
   return (0);
 }
 
-/*
- * irc_ns_name_pack(src, dst, dstsiz, dnptrs, lastdnptr)
- *  Pack domain name 'domain' into 'comp_dn'.
- * return:
- *  Size of the compressed name, or -1.
- * notes:
- *  'dnptrs' is an array of pointers to previous compressed names.
- *  dnptrs[0] is a pointer to the beginning of the message. The array
- *  ends with NULL.
- *  'lastdnptr' is a pointer to the end of the array pointed to
- *  by 'dnptrs'.
- * Side effects:
- *  The list of pointers in dnptrs is updated for labels inserted into
- *  the message as we compress the name.  If 'dnptr' is NULL, we don't
- *  try to compress names. If 'lastdnptr' is NULL, we don't update the
- *  list.
+/** Compress a domain name.
+ * @param[in] src List of length-prefixed labels.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @param[in,out] dnptrs Array of pointers to previously compressed names.
+ * @param[in] lastdnptr End of \a dnptrs array.
+ * @return Number of bytes written to \a dst.
  */
 int
 irc_ns_name_pack(const unsigned char *src, unsigned char *dst, int dstsiz,
@@ -915,6 +940,13 @@ cleanup:
   return(dstp - dst);
 }
 
+/** Encode and compress an ASCII domain name.
+ * @param[in] src ASCII domain name.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @param[in] dnptrs Array of previously compressed names.
+ * @param[in] lastdnptr End of \a dnptrs array.
+ */
 static int
 irc_ns_name_compress(const char *src, unsigned char *dst, size_t dstsiz,
                      const unsigned char **dnptrs, const unsigned char **lastdnptr)
@@ -926,6 +958,13 @@ irc_ns_name_compress(const char *src, unsigned char *dst, size_t dstsiz,
   return(irc_ns_name_pack(tmp, dst, dstsiz, dnptrs, lastdnptr));
 }
 
+/** Encode a bitstring label.
+ * @param[in,out] bp Input buffer pointer.
+ * @param[in] end End of input buffer.
+ * @param[out] labelp Pointer to output label.
+ * @param[out] dst Output buffer.
+ * @param[out] eom End of output buffer.
+ */
 static int
 irc_encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
                     unsigned char **dst, const char *eom)
@@ -1031,14 +1070,12 @@ irc_encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
   return(0);
 }
 
-/*
- * dn_find(domain, msg, dnptrs, lastdnptr)
- *  Search for the counted-label name in an array of compressed names.
- * return:
- *  offset from msg if found, or -1.
- * notes:
- *  dnptrs is the pointer to the first name on the list,
- *  not the pointer to the start of the message.
+/** Find a name in an array of compressed name.
+ * @param[in] domain Name to search for.
+ * @param[in] msg Start of DNS message.
+ * @param[in] dnptrs Start of compressed name array.
+ * @param[in] lastdnptr End of compressed name array.
+ * @return Non-negative offset from \a msg, or -1 if not found.
  */
 static int
 irc_dn_find(const unsigned char *domain, const unsigned char *msg,
@@ -1100,12 +1137,12 @@ irc_dn_find(const unsigned char *domain, const unsigned char *msg,
   return (-1);
 }
 
-/*
- * Thinking in noninternationalized USASCII (per the DNS spec),
- * convert this character to lower case if it's upper case.
+/** Convert a character to lowercase, assuming ASCII encoded English.
+ * @param[in] ch Character to convert.
+ * @return Lower-case version of \a ch.
  */
 static int
-mklower(int ch) 
+mklower(int ch)
 {
   if (ch >= 0x41 && ch <= 0x5A)
     return(ch + 0x20);
@@ -1115,9 +1152,13 @@ mklower(int ch)
 
 /* From resolv/mkquery.c */
 
-/*
- * Form all types of queries.
- * Returns the size of the result or -1.
+/** Form a query for \a dname in \a buf.
+ * @param[in] dname Domain name to look up.
+ * @param[in] class Query class to set in header.
+ * @param[in] type Query type to set in header.
+ * @param[out] buf Output buffer for query.
+ * @param[in] buflen Number of bytes that can be written to \a buf.
+ * @return Length of message written to \a buf, or -1 on error.
  */
 int
 irc_res_mkquery(

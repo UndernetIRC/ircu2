@@ -12,6 +12,7 @@
 /*
  * Inline versions of get/put short/long.  Pointer is advanced.
  */
+/** Get a 16-bit network endian value from \a cp and assign to \a s. */
 #define IRC_NS_GET16(s, cp) { \
 	const unsigned char *t_cp = (const unsigned char *)(cp); \
 	(s) = ((uint16_t)t_cp[0] << 8) \
@@ -20,6 +21,7 @@
 	(cp) += NS_INT16SZ; \
 }
 
+/** Get a 32-bit network endian value from \a cp and assign to \a s. */
 #define IRC_NS_GET32(l, cp) { \
 	const unsigned char *t_cp = (const unsigned char *)(cp); \
 	(l) = ((uint32_t)t_cp[0] << 24) \
@@ -30,6 +32,7 @@
 	(cp) += NS_INT32SZ; \
 }
 
+/** Put \a s at \a cp as a 16-bit network endian value. */
 #define IRC_NS_PUT16(s, cp) { \
 	uint16_t t_s = (uint16_t)(s); \
 	unsigned char *t_cp = (unsigned char *)(cp); \
@@ -38,6 +41,7 @@
 	(cp) += NS_INT16SZ; \
 }
 
+/** Put \a s at \a cp as a 32-bit network endian value. */
 #define IRC_NS_PUT32(l, cp) { \
 	uint32_t t_l = (uint32_t)(l); \
 	unsigned char *t_cp = (unsigned char *)(cp); \
@@ -48,6 +52,7 @@
 	(cp) += NS_INT32SZ; \
 }
 
+/** Maximum number of nameservers to bother with. */
 #define IRCD_MAXNS 8
 
 int irc_res_init(void);
