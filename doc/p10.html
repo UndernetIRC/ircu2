@@ -12,7 +12,7 @@
 <I>(As of ircu 2.10.11)</I>
 <H2>
 Undernet Coder-com, <TT>coder-com@undernet.org</TT></H2>
-$Id: p10.html,v 1.5 2000-07-09 04:52:58 isomer Exp $
+$Id: p10.html,v 1.5.4.1 2002-01-11 16:02:13 kev Exp $
 <P>
 <HR ALIGN=CENTER WIDTH=100% SIZE=2><I>This document aims to be a practical
 guide for implementing and maintaining the protocol, not just a reference
@@ -552,6 +552,12 @@ by reducing the length of common message identifiers.
 
 <TD><FONT SIZE=-1>CM</FONT></TD>
 </TR>
+
+<TR>
+<TD><FONT SIZE=-1>ACCOUNT</FONT></TD>
+
+<TD><FONT SIZE=-1>AC</FONT></TD>
+</TR>
 </TABLE></CENTER>
 <FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
 <BR>
@@ -703,7 +709,8 @@ the "Host" part of the user@host mask.</LI>
 
 <LI>
 [<B>Optional</B>]: User modes. If present, this is always +&lt;user modes
-for this client>.</LI>
+for this client>.  Note that the special +r usermode is followed by the
+client's account name; see the documentation for ACCOUNT.</LI>
 
 <LI>
 The real IP address of this client, a Base64 encoded 32bit int.</LI>
@@ -1094,7 +1101,7 @@ succeed never the less.
 <P><B>4.1.4 - PART</B>
 <P><B>4.1.5 - KICK</B>
 <P><B>4.1.6 - TOPIC</B>
-<P><B>4.1.4 - CLEARMODE</B>
+<P><B>4.1.7 - CLEARMODE</B>
 <BR>&nbsp;
 <OL><TT>AZAAA CM #coder-com ovpsmikbl</TT></OL>
 </OL>
@@ -1103,6 +1110,12 @@ succeed never the less.
 <BLOCKQUOTE><TT>AZAAA N Nick2 955423230</TT></BLOCKQUOTE>
 <B>4.2.2 - MODE</B>
 <BLOCKQUOTE><TT>AZAAA M Nick2 :+odi</TT></BLOCKQUOTE>
+<B>4.2.3 - ACCOUNT</B>
+<BLOCKQUOTE><TT>AX AC AZAAA oper</TT></BLOCKQUOTE>
+<P>The ACCOUNT message provides a way for servers, such as the channel service
+server, to set the account name information that is associated with a client.
+Once set, it cannot be unset or changed, and will be propagated in NICK during
+net bursts using the special user mode +r followed by the account name.
 </BLOCKQUOTE>
 <A NAME="chap4.3"></A><B><FONT SIZE=+1>4.3 Channel/Client Messaging.</FONT></B>
 <BLOCKQUOTE><B>4.3.1 - PRIVMSG</B>
@@ -1146,6 +1159,8 @@ from msg.h. -Gte.
 -Kev
 <BR>[2000-04-11]: Started work on chapter 4. -Gte
 <BR>[2000-06-01]: Changed some info about the max number of clients -Isomer
+<BR>[2002-01-11]: Wrote a specification for ACCOUNT and noted that a usermode
+in a NICK message may have an argument. -Kev
 <P><A NAME="chap8.1"></A><B><FONT SIZE=+1>8.1 TODO</FONT></B>
 <UL>
 <LI>

@@ -1,5 +1,21 @@
 2002-01-11  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* doc/readme.features: document new POLLS_PER_LOOP feature; change
+	documentation to reflect that OPER_SET now defaults to FALSE
+
+	* doc/p10.html: documented the new ACCOUNT stuff
+
+	* doc/example.conf: document new POLLS_PER_LOOP default; change
+	default for OPER_SET
+
+	* RELEASE.NOTES: changed documentation to reflect the fact that
+	assertions are now enabled by default and do not cause memory
+	leaks
+
+	* ircd/res.c (make_cache): removed a bogus assertion we probably
+	never caught because assertions haven't been enabled on production
+	servers for any length of time before
+
 	* ircd/engine_devpoll.c (engine_loop): ditto for POLLS_PER_DEVPOLL
 
 	* ircd/engine_kqueue.c (engine_loop): stupid me forgot one
