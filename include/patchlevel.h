@@ -18,7 +18,7 @@
  * $Id$
  *
  */
-#define PATCHLEVEL "04dev1"
+#define PATCHLEVEL "04dev2"
 
 #define RELEASE ".11."
 
