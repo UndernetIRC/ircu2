@@ -110,7 +110,7 @@ void server_relay_channel_message(struct Client* sptr, const char* name, const c
   assert(0 != name);
   assert(0 != text);
 
-  if (0 == (chptr = FindChannel(name))) {
+  if (*name == '&' || 0 == (chptr = FindChannel(name))) {
     /*
      * XXX - do we need to send this back from a remote server?
      */
@@ -136,7 +136,7 @@ void server_relay_channel_notice(struct Client* sptr, const char* name, const ch
   assert(0 != name);
   assert(0 != text);
 
-  if (0 == (chptr = FindChannel(name)))
+  if (*name == '&' || 0 == (chptr = FindChannel(name)))
     return;
   /*
    * This first: Almost never a server/service
