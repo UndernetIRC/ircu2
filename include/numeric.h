@@ -203,7 +203,6 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_TEXT             304 	/* unused */
 #define RPL_UNAWAY           305
 #define RPL_NOWAWAY          306
-#define RPL_USERIP           307        /* Undernet extension */
                                         /* NotAway, aircd */
 /*	RPL_WHOISREGNICK     307 	Numeric List: Dalnet */
 /*	RPL_SUSERHOST	     307	austnet */
@@ -250,7 +249,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_CHANPASSOK       338           IRCnet extension (?)*/
 /*	RPL_WHOISACTUALLY    338	   dalnet */
 /*      RPL_BADCHANPASS      339           IRCnet extension (?)*/
-
+#define RPL_USERIP           340        /* Undernet extension */
 #define RPL_INVITING         341
 /*      RPL_SUMMONING        342           removed from RFC1459 */
 
@@ -384,7 +383,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_BANNEDFROMCHAN   474
 #define ERR_BADCHANNELKEY    475
 #define ERR_BADCHANMASK      476        /* Undernet extension */
-/*      ERR_NEEDREGGEDNICK   477           DalNet Extention */
+#define ERR_NEEDREGGEDNICK   477        /* DalNet&Undernet Extention */
 #define ERR_BANLISTFULL      478        /* Undernet extension */
 /* 	ERR_LINKFAIL	     479	unreal */
 

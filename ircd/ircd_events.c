@@ -369,7 +369,7 @@ event_generate(enum EventType type, void* arg, int data)
   event_add(ptr); /* add event to queue */
 }
 
-#if 1
+#if 0
 /* Try to verify the timer list */
 void
 timer_verify(void)
@@ -480,8 +480,6 @@ timer_run(void)
 {
   struct Timer* ptr;
 
-  timer_verify();
-
   /* go through queue... */
   while ((ptr = evInfo.gens.g_timer)) {
     if (CurrentTime < ptr->t_expire)
@@ -504,8 +502,6 @@ timer_run(void)
       ptr->t_header.gh_flags &= ~GEN_READD;
     }
   }
-
-  timer_verify();
 }
 
 /* Adds a signal to the event callback system */

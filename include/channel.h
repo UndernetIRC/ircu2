@@ -84,8 +84,7 @@ struct Client;
 #define MODE_KEY        0x0100
 #define MODE_BAN        0x0200
 #define MODE_LIMIT      0x0400
-#define MODE_SENDTS     0x0800  /* TS was 0 during a local user /join; send
-                                 * temporary TS; can be removed when all 2.10 */
+#define MODE_REGONLY    0x0800  /* Only +r users may join */
 #define MODE_LISTED     0x10000
 #define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
 #define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */

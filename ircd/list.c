@@ -129,9 +129,6 @@ static void dealloc_client(struct Client* cptr)
 static struct Connection* alloc_connection(void)
 {
   struct Connection* con = connectionFreeList;
-  void timer_verify(void);
-
-  timer_verify();
 
   if (!con) {
     con = (struct Connection*) MyMalloc(sizeof(struct Connection));
@@ -146,20 +143,14 @@ static struct Connection* alloc_connection(void)
   memset(con, 0, sizeof(struct Connection));
   timer_init(&(con_proc(con)));
 
-  timer_verify();
-
   return con;
 }
 
 static void dealloc_connection(struct Connection* con)
 {
-  void timer_verify(void);
-
   assert(con_verify(con));
   assert(!t_active(&(con_proc(con))));
   assert(!t_onqueue(&(con_proc(con))));
-
-  timer_verify();
 
   Debug((DEBUG_LIST, "Deallocating connection %p", con));
 
@@ -181,8 +172,6 @@ static void dealloc_connection(struct Connection* con)
   connectionFreeList = con;
 
   con_magic(con) = 0;
-
-  timer_verify();
 }
 
 /*
