@@ -1,3 +1,8 @@
+2004-05-10  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_events.c: Actually reference and try to use the epoll
+	event engine.  Omitted from yesterday's commit.
+
 2004-05-09  Michael Poole <mdpoole@troilus.org>
 
 	Forward port of Paul "Zoot" Chang's pseudo-command.patch and
