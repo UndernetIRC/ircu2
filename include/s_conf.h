@@ -132,7 +132,7 @@ extern enum AuthorizationCheckResult conf_check_client(struct Client *cptr);
 extern int  conf_check_server(struct Client *cptr);
 extern struct ConfItem* find_conf_name(const char* name, int statmask);
 extern int rehash(struct Client *cptr, int sig);
-extern int initconf(int opt);
+extern int conf_init(void);
 extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);

@@ -942,8 +942,8 @@ int rehash(struct Client *cptr, int sig)
 
   mark_listeners_closing();
 
-  if (initconf(0) == -1)        /* This calls check_class(), */
-    check_class();                /* unless it fails */
+  if (!conf_init())        /* This calls check_class(), */
+    check_class();         /* unless it fails */
 
   /*
    * make sure that the server listener is re-added so it doesn't get
@@ -1005,18 +1005,18 @@ int rehash(struct Client *cptr, int sig)
 }
 
 /*
- * initconf
+ * conf_init
  *
  * Read configuration file.
  *
- * returns -1, if file cannot be opened
- *          0, if file opened
+ * returns 0, if file cannot be opened
+ *         1, if file read
  */
 
 #define MAXCONFLINKS 150
 
 
-int initconf(int opt)
+int conf_init(void)
 {
   static char quotes[9][2] = {
     {'b', '\b'},
@@ -1035,9 +1035,9 @@ int initconf(int opt)
   int ccount = 0;
   struct ConfItem *aconf = 0;
 
-  Debug((DEBUG_DEBUG, "initconf(): ircd.conf = %s", configfile));
+  Debug((DEBUG_DEBUG, "conf_init: ircd.conf = %s", configfile));
   if (0 == (file = fbopen(configfile, "r"))) {
-    return -1;
+    return 0;
   }
   while (fbgets(line, sizeof(line) - 1, file)) {
     if ((tmp = strchr(line, '\n')))
@@ -1259,8 +1259,7 @@ int initconf(int opt)
     if (aconf->status & CONF_SERVER) {
       if (EmptyString(aconf->passwd))
         continue;
-      else if (!(opt & BOOT_QUICK))
-        lookup_confhost(aconf);
+      lookup_confhost(aconf);
     }
 
     /* Create expression tree from connect rule...
@@ -1316,7 +1315,7 @@ int initconf(int opt)
   fbclose(file);
   check_class();
   nextping = nextconnect = CurrentTime;
-  return 0;
+  return 1;
 }
 
 /* read_tlines 

@@ -64,6 +64,11 @@
 
 extern void init_counters(void);
 
+enum {
+  BOOT_DEBUG = 1,
+  BOOT_TTY   = 2
+};
+
 struct Client  me;                      /* That's me */
 struct Client* GlobalClientList = &me;  /* Pointer to beginning of Client list */
 time_t         TSoffset = 0;      /* Offset of timestamps to system clock */
@@ -71,10 +76,10 @@ int            GlobalRehashFlag = 0;    /* do a rehash if set */
 int            GlobalRestartFlag = 0;   /* do a restart if set */
 time_t         CurrentTime;       /* Updated every time we leave select() */
 
-char **myargv;
+static struct Daemon thisServer = { 0 };     /* server process info */
+
 char *configfile = CPATH;       /* Server configuration file */
 int debuglevel = -1;            /* Server debug level */
-unsigned int bootopt = 0;       /* Server boot option flags */
 char *debugmode = "";           /*  -"-    -"-   -"-  */
 static char *dpath = DPATH;
 
@@ -89,29 +94,20 @@ extern etext(void);
 
 static void server_reboot(const char* message)
 {
-  int i;
-
   sendto_ops("Restarting server: %s", message);
   Debug((DEBUG_NOTICE, "Restarting server..."));
   flush_connections(0);
-  /*
-   * fd 0 must be 'preserved' if either the -d or -i options have
-   * been passed to us before restarting.
-   */
+
   close_log();
+  close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG)));
 
-  for (i = 3; i < MAXCONNECTIONS; i++)
-    close(i);
-  if (!(bootopt & (BOOT_TTY | BOOT_DEBUG)))
-    close(2);
-  close(1);
-  close(0);
+  execv(SPATH, thisServer.argv);
 
-  execv(SPATH, myargv);
-
-  /* Have to reopen since it has been closed above */
-  open_log(myargv[0]);
-  ircd_log(L_CRIT, "execv(%s,%s) failed: %m\n", SPATH, myargv[0]);
+  /*
+   * Have to reopen since it has been closed above
+   */
+  open_log(*thisServer.argv);
+  ircd_log(L_CRIT, "execv(%s,%s) failed: %m\n", SPATH, *thisServer.argv);
 
   Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
          SPATH, (strerror(errno)) ? strerror(errno) : ""));
@@ -123,7 +119,8 @@ void server_die(const char* message)
   ircd_log(L_CRIT, "Server terminating: %s", message);
   sendto_ops("Server terminating: %s", message);
   flush_connections(0);
-  exit(2);
+  close_connections(1);
+  thisServer.running = 0;
 }
 
 void server_restart(const char* message)
@@ -359,321 +356,120 @@ ping_timeout:
  * This is called when the commandline is not acceptable.
  * Give error message and exit without starting anything.
  */
-static int bad_command(void)
+static void print_usage(void)
 {
-  printf("Usage: ircd %s[-h servername] [-x loglevel] [-t]\n",
-#ifdef CMDLINE_CONFIG
-      "[-f config] "
-#else
-      ""
-#endif
-      );
-  printf("Server not started\n\n");
-  return (-1);
+  printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv]\n");
+  printf("Server not started\n");
 }
 
-int main(int argc, char *argv[])
+
+/*
+ * for getopt
+ * ZZZ this is going to need confirmation on other OS's
+ *
+ * #include <getopt.h>
+ * Solaris has getopt.h, you should too... hopefully
+ * BSD declares them in stdlib.h
+ * extern char *optarg;
+ *
+ * for FreeBSD the following are defined:
+ *
+ * extern char *optarg;
+ * extern int optind;
+ * extern in optopt;
+ * extern int opterr;
+ * extern in optreset;
+ *
+ *
+ * All command line parameters have the syntax "-f string" or "-fstring"
+ * OPTIONS:
+ * -d filename - specify d:line file
+ * -f filename - specify config file
+ * -h hostname - specify server name
+ * -k filename - specify k:line file (hybrid)
+ * -l filename - specify log file
+ * -n          - do not fork, run in foreground
+ * -t          - do not fork send debugging info to tty
+ * -v          - print version and exit
+ * -x          - set debug level, if compiled for debug logging
+ */
+static void parse_command_line(int argc, char** argv)
 {
-  uid_t uid;
-  uid_t euid;
+  const char* options = "d:f:h:ntvx:";
+  int opt;
+
+  if (thisServer.euid != thisServer.uid)
+    setuid(thisServer.uid);
+
+  while ((opt = getopt(argc, argv, options)) != EOF) {
+    switch (opt) {
+    case 'd':
+      if (optarg)
+        dpath = optarg;
+      break;
+    case 'f':
+      if (optarg)
+        configfile = optarg;
+      break;
+    case 'h':
+      if (optarg)
+        ircd_strncpy(me.name, optarg, HOSTLEN);
+      break;
+    case 'n':
+    case 't':
+      thisServer.bootopt |= BOOT_TTY;
+      break;
+    case 'v':
+      printf("ircd %s\n", version);
+      exit(0);
+    case 'x':
+      if (optarg) {
+        debuglevel = atoi(optarg);
+        if (debuglevel < 0)
+          debuglevel = 0;
+        debugmode = optarg;
+        thisServer.bootopt |= BOOT_DEBUG;
+      }
+      break;
+    default:
+      print_usage();
+      exit(1);
+    }
+  }
+}
+
+/*
+ * daemon_init
+ */
+static void daemon_init(int no_fork)
+{
+  if (!init_connection_limits())
+    exit(2);
+
+  close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY)));
+  if (no_fork)
+    return;
+
+  if (fork())
+    exit(0);
+#ifdef TIOCNOTTY
+  {
+    int fd;
+    if ((fd = open("/dev/tty", O_RDWR)) > -1) {
+      ioctl(fd, TIOCNOTTY, 0);
+      close(fd);
+    }
+  }
+#endif
+  setsid();
+}
+
+
+static void event_loop(void)
+{
   time_t delay = 0;
-#if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
-  struct rlimit corelim;
-#endif
 
-  CurrentTime = time(NULL);
-
-  /*
-   * sanity check
-   */
-  if (MAXCONNECTIONS < 64 || MAXCONNECTIONS > 256000) {
-    fprintf(stderr, "%s: MAXCONNECTIONS insane: %d\n", *argv, MAXCONNECTIONS);
-    return 2;
-  }
-    
-  uid = getuid();
-  euid = geteuid();
-#ifdef PROFIL
-  monstartup(0, etext);
-  moncontrol(1);
-  signal(SIGUSR1, s_monitor);
-#endif
-
-#ifdef CHROOTDIR
-  if (chdir(DPATH))
-  {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", DPATH, (strerror(errno)) ? strerror(errno) : "");
-    exit(2);
-  }
-  if (chroot(DPATH))
-  {
-    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, (strerror(errno)) ? strerror(errno) : "");
-    exit(5);
-  }
-  dpath = "/";
-#endif /*CHROOTDIR */
-
-  myargv = argv;
-  umask(077);                   /* better safe than sorry --SRB */
-  memset(&me, 0, sizeof(me));
-  me.fd = -1;
-
-#if 0
-#ifdef VIRTUAL_HOST
-  memset(&vserv, 0, sizeof(vserv));
-#endif
-#endif
-
-  setup_signals();
-  initload();
-
-#if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
-  if (getrlimit(RLIMIT_CORE, &corelim))
-  {
-    fprintf(stderr, "Read of rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
-    corelim.rlim_max = RLIM_INFINITY;   /* Try to recover */
-  }
-  corelim.rlim_cur = corelim.rlim_max;
-  if (setrlimit(RLIMIT_CORE, &corelim))
-    fprintf(stderr, "Setting rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
-#endif
-
-  /*
-   * All command line parameters have the syntax "-fstring"
-   * or "-f string" (e.g. the space is optional). String may
-   * be empty. Flag characters cannot be concatenated (like
-   * "-fxyz"), it would conflict with the form "-fstring".
-   */
-  while (--argc > 0 && (*++argv)[0] == '-')
-  {
-    char *p = argv[0] + 1;
-    int flag = *p++;
-
-    if (flag == '\0' || *p == '\0')
-    {
-      if (argc > 1 && argv[1][0] != '-')
-      {
-        p = *++argv;
-        argc -= 1;
-      }
-      else
-        p = "";
-    }
-
-    switch (flag)
-    {
-      case 'q':
-        bootopt |= BOOT_QUICK;
-        break;
-      case 'd':
-        if (euid != uid)
-          setuid((uid_t) uid);
-        dpath = p;
-        break;
-#ifdef CMDLINE_CONFIG
-      case 'f':
-        if (euid != uid)
-          setuid((uid_t) uid);
-        configfile = p;
-        break;
-#endif
-      case 'h':
-        ircd_strncpy(me.name, p, HOSTLEN);
-        break;
-      case 't':
-        if (euid != uid)
-          setuid((uid_t) uid);
-        bootopt |= BOOT_TTY;
-        break;
-      case 'v':
-        printf("ircd %s\n", version);
-        exit(0);
-#if 0
-#ifdef VIRTUAL_HOST
-      case 'w':
-      {
-        struct hostent *hep;
-        if (!(hep = gethostbyname(p)))
-        {
-          fprintf(stderr, "%s: Error creating virtual host \"%s\": %d",
-              argv[0], p, h_errno);
-          return 2;
-        }
-        if (hep->h_addrtype == AF_INET && hep->h_addr_list[0] &&
-            !hep->h_addr_list[1])
-        {
-          memcpy(&vserv.sin_addr, hep->h_addr_list[0], sizeof(struct in_addr));
-          vserv.sin_family = AF_INET;
-        }
-        else
-        {
-          fprintf(stderr, "%s: Error creating virtual host \"%s\": "
-              "Use -w <IP-number of interface>\n", argv[0], p);
-          return 2;
-        }
-        break;
-      }
-#endif
-#endif
-      case 'x':
-#ifdef  DEBUGMODE
-        if (euid != uid)
-          setuid((uid_t) uid);
-        debuglevel = atoi(p);
-        debugmode = *p ? p : "0";
-        bootopt |= BOOT_DEBUG;
-        break;
-#else
-        fprintf(stderr, "%s: DEBUGMODE must be defined for -x y\n", myargv[0]);
-        exit(0);
-#endif
-      default:
-        bad_command();
-        break;
-    }
-  }
-
-  if (chdir(dpath))
-  {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, (strerror(errno)) ? strerror(errno) : "");
-    exit(2);
-  }
-
-#ifndef IRC_UID
-  if ((uid != euid) && !euid)
-  {
-    fprintf(stderr,
-        "ERROR: do not run ircd setuid root. Make it setuid a normal user.\n");
-    exit(2);
-  }
-#endif
-
-#if !defined(CHROOTDIR) || (defined(IRC_UID) && defined(IRC_GID))
-  if (euid != uid)
-  {
-    setuid(uid);
-    setuid(euid);
-  }
-
-  if (0 == getuid())
-  {
-#if defined(IRC_UID) && defined(IRC_GID)
-
-    /* run as a specified user */
-    fprintf(stderr, "WARNING: running ircd with uid = %d\n", IRC_UID);
-    fprintf(stderr, "         changing to gid %d.\n", IRC_GID);
-    setuid(IRC_UID);
-    setgid(IRC_GID);
-#else
-    /* check for setuid root as usual */
-    fprintf(stderr,
-        "ERROR: do not run ircd setuid root. Make it setuid a normal user.\n");
-    exit(2);
-#endif
-  }
-#endif /*CHROOTDIR/UID/GID */
-
-  if (argc > 0)
-    return bad_command();       /* This should exit out */
-
-  /* Sanity checks */
-  {
-    char c;
-    char *path;
-
-    c = 'S';
-    path = SPATH;
-    if (access(path, X_OK) == 0) {
-      c = 'C';
-      path = CPATH;
-      if (access(path, R_OK) == 0) {
-        c = 'M';
-        path = MPATH;
-        if (access(path, R_OK) == 0) {
-          c = 'R';
-          path = RPATH;
-          if (access(path, R_OK) == 0) {
-#ifndef DEBUG
-            c = 0;
-#else
-            c = 'L';
-            path = LPATH;
-            if (access(path, W_OK) == 0)
-              c = 0;
-#endif
-          }
-        }
-      }
-    }
-    if (c)
-    {
-      fprintf(stderr, "Check on %cPATH (%s) failed: %s\n", 
-              c, path, (strerror(errno)) ? strerror(errno) : "");
-      fprintf(stderr,
-          "Please create file and/or rerun `make config' and recompile to correct this.\n");
-#ifdef CHROOTDIR
-      fprintf(stderr,
-          "Keep in mind that all paths are relative to CHROOTDIR.\n");
-#endif
-      exit(2);
-    }
-  }
-
-  init_list();
-  hash_init();
-  initclass();
-  initwhowas();
-  initmsgtree();
-  initstats();
-  open_debugfile();
-  init_sys();
-  set_nomem_handler(outofmemory);
-
-  me.fd = -1;
-
-  open_log(myargv[0]);
-
-  if (initconf(bootopt) == -1) {
-    Debug((DEBUG_FATAL, "Failed in reading configuration file %s", configfile));
-    printf("Couldn't open configuration file %s\n", configfile);
-    exit(2);
-  }
-  if (!init_server_identity()) {
-    Debug((DEBUG_FATAL, "Failed to initialize server identity"));
-    exit(2);
-  }
-  uping_init();
-  read_tlines();
-  rmotd = read_motd(RPATH);
-  motd = read_motd(MPATH);
-  CurrentTime = time(NULL);
-  me.from = &me;
-  SetMe(&me);
-  make_server(&me);
-  /*
-   * Abuse own link timestamp as start timestamp:
-   */
-  me.serv->timestamp = TStime();
-  me.serv->prot = atoi(MAJOR_PROTOCOL);
-  me.serv->up = &me;
-  me.serv->down = NULL;
-  me.handler = SERVER_HANDLER;
-
-  SetYXXCapacity(&me, MAXCLIENTS);
-
-  me.lasttime = me.since = me.firsttime = CurrentTime;
-  hAddClient(&me);
-
-  check_class();
-  write_pidfile();
-
-  init_counters();
-
-  Debug((DEBUG_NOTICE, "Server ready..."));
-  ircd_log(L_NOTICE, "Server Ready");
-
-  for (;;)
-  {
+  while (thisServer.running) {
     /*
      * We only want to connect if a connection is due,
      * not every time through.   Note, if there are no
@@ -738,3 +534,195 @@ int main(int argc, char *argv[])
       server_restart("caught signal: SIGINT");
   }
 }
+
+int main(int argc, char *argv[])
+{
+#if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
+  struct rlimit corelim;
+#endif
+
+  CurrentTime = time(NULL);
+  /*
+   * sanity check
+   */
+  if (MAXCONNECTIONS < 64 || MAXCONNECTIONS > 256000) {
+    fprintf(stderr, "%s: MAXCONNECTIONS insane: %d\n", *argv, MAXCONNECTIONS);
+    return 2;
+  }
+  thisServer.argc = argc;
+  thisServer.argv = argv;
+  thisServer.uid  = getuid();
+  thisServer.euid = geteuid();
+#ifdef PROFIL
+  monstartup(0, etext);
+  moncontrol(1);
+  signal(SIGUSR1, s_monitor);
+#endif
+
+#ifdef CHROOTDIR
+  if (chdir(DPATH)) {
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", DPATH, strerror(errno));
+    exit(2);
+  }
+  if (chroot(DPATH)) {
+    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", DPATH, strerror(errno));
+    exit(5);
+  }
+  dpath = "/";
+#endif /*CHROOTDIR */
+
+  umask(077);                   /* better safe than sorry --SRB */
+  memset(&me, 0, sizeof(me));
+  me.fd = -1;
+
+  setup_signals();
+  initload();
+
+#if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
+  if (getrlimit(RLIMIT_CORE, &corelim))
+  {
+    fprintf(stderr, "Read of rlimit core size failed: %s\n", strerror(errno));
+    corelim.rlim_max = RLIM_INFINITY;   /* Try to recover */
+  }
+  corelim.rlim_cur = corelim.rlim_max;
+  if (setrlimit(RLIMIT_CORE, &corelim))
+    fprintf(stderr, "Setting rlimit core size failed: %s\n", strerror(errno));
+#endif
+  parse_command_line(argc, argv);
+
+  if (chdir(dpath)) {
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, strerror(errno));
+    exit(2);
+  }
+
+#ifndef IRC_UID
+  if ((thisServer.uid != thisServer.euid) && !thisServer.euid) {
+    fprintf(stderr,
+        "ERROR: do not run ircd setuid root. Make it setuid a normal user.\n");
+    exit(2);
+  }
+#endif
+
+#if !defined(CHROOTDIR) || (defined(IRC_UID) && defined(IRC_GID))
+  if (thisServer.euid != thisServer.uid) {
+    setuid(thisServer.uid);
+    setuid(thisServer.euid);
+  }
+
+  if (0 == getuid()) {
+#if defined(IRC_UID) && defined(IRC_GID)
+
+    /* run as a specified user */
+    fprintf(stderr, "WARNING: running ircd with uid = %d\n", IRC_UID);
+    fprintf(stderr, "         changing to gid %d.\n", IRC_GID);
+    setuid(IRC_UID);
+    setgid(IRC_GID);
+#else
+    /* check for setuid root as usual */
+    fprintf(stderr,
+        "ERROR: do not run ircd setuid root. Make it setuid a normal user.\n");
+    exit(2);
+#endif
+  }
+#endif /*CHROOTDIR/UID/GID */
+
+  /* Sanity checks */
+  {
+    char c;
+    char *path;
+
+    c = 'S';
+    path = SPATH;
+    if (access(path, X_OK) == 0) {
+      c = 'C';
+      path = CPATH;
+      if (access(path, R_OK) == 0) {
+        c = 'M';
+        path = MPATH;
+        if (access(path, R_OK) == 0) {
+          c = 'R';
+          path = RPATH;
+          if (access(path, R_OK) == 0) {
+#ifndef DEBUG
+            c = 0;
+#else
+            c = 'L';
+            path = LPATH;
+            if (access(path, W_OK) == 0)
+              c = 0;
+#endif
+          }
+        }
+      }
+    }
+    if (c) {
+      fprintf(stderr, "Check on %cPATH (%s) failed: %s\n", c, path, strerror(errno));
+      fprintf(stderr,
+          "Please create file and/or rerun `make config' and recompile to correct this.\n");
+#ifdef CHROOTDIR
+      fprintf(stderr, "Keep in mind that all paths are relative to CHROOTDIR.\n");
+#endif
+      exit(2);
+    }
+  }
+
+  init_list();
+  hash_init();
+  initclass();
+  initwhowas();
+  initmsgtree();
+  initstats();
+
+  debug_init(thisServer.bootopt & BOOT_TTY);
+  daemon_init(thisServer.bootopt & BOOT_TTY);
+
+  set_nomem_handler(outofmemory);
+  init_resolver();
+
+  open_log(*argv);
+
+  if (!conf_init()) {
+    Debug((DEBUG_FATAL, "Failed in reading configuration file %s", configfile));
+    printf("Couldn't open configuration file %s\n", configfile);
+    exit(2);
+  }
+  if (!init_server_identity()) {
+    Debug((DEBUG_FATAL, "Failed to initialize server identity"));
+    exit(2);
+  }
+  uping_init();
+  read_tlines();
+  rmotd = read_motd(RPATH);
+  motd = read_motd(MPATH);
+  CurrentTime = time(NULL);
+  me.from = &me;
+  SetMe(&me);
+  make_server(&me);
+  /*
+   * Abuse own link timestamp as start timestamp:
+   */
+  me.serv->timestamp = TStime();
+  me.serv->prot = atoi(MAJOR_PROTOCOL);
+  me.serv->up = &me;
+  me.serv->down = NULL;
+  me.handler = SERVER_HANDLER;
+
+  SetYXXCapacity(&me, MAXCLIENTS);
+
+  me.lasttime = me.since = me.firsttime = CurrentTime;
+  hAddClient(&me);
+
+  check_class();
+  write_pidfile();
+
+  init_counters();
+
+  Debug((DEBUG_NOTICE, "Server ready..."));
+  ircd_log(L_NOTICE, "Server Ready");
+  thisServer.running = 1;
+
+  event_loop();
+  return 0;
+}
+
+

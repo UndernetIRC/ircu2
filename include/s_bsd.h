@@ -79,10 +79,11 @@ extern int connect_server(struct ConfItem* aconf, struct Client* by,
                           struct DNSReply* reply);
 extern void release_dns_reply(struct Client* cptr);
 extern int  net_close_unregistered_connections(struct Client* source);
-extern void init_sys(void);
 extern void close_connection(struct Client *cptr);
 extern void add_connection(struct Listener* listener, int fd);
 extern int  read_message(time_t delay);
-extern int init_server_identity(void);
+extern int  init_server_identity(void);
+extern void close_connections(int close_stderr);
+extern int  init_connection_limits(void);
 
 #endif /* INCLUDED_s_bsd_h */

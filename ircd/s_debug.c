@@ -176,7 +176,7 @@ char serveropts[] = {
 
 
 /*
- * open_debugfile
+ * debug_init
  *
  * If the -t option is not given on the command line when the server is
  * started, all debugging output is sent to the file set by LPATH in config.h
@@ -185,12 +185,12 @@ char serveropts[] = {
  * set from the command line by -x, use /dev/null as the dummy logfile as long
  * as DEBUGMODE has been defined, else dont waste the fd.
  */
-void open_debugfile(void)
+void debug_init(int use_tty)
 {
 #ifdef  DEBUGMODE
   if (debuglevel >= 0) {
     printf("isatty = %d ttyname = %#x\n", isatty(2), (unsigned int)ttyname(2));
-    if (!(bootopt & BOOT_TTY)) {
+    if (!use_tty) {
       int fd;
       /* 
        * leave debugging output on fd 2
