@@ -1,4 +1,9 @@
-2005-01-13  Michael Poole <mdpoole@troilus.org>
+2005-01-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd.c (try_connections): Test Connect hold time before
+	updating it (spotted by Kev).
+
+2005-01-03  Michael Poole <mdpoole@troilus.org>
 
 	* Makefile.in: Add ircd/test as a subdirectory.
 

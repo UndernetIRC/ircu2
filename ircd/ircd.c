@@ -248,6 +248,7 @@ static void try_connections(struct Event* ev) {
   time_t            next        = 0;
   struct ConnectionClass* cltmp;
   struct Jupe*      ajupe;
+  int hold;
 
   assert(ET_EXPIRE == ev_type(ev));
   assert(0 != ev_timer(ev));
@@ -269,17 +270,19 @@ static void try_connections(struct Event* ev) {
 
     /* Update the next time we can consider this entry. */
     cltmp = aconf->conn_class;
+    hold = aconf->hold > CurrentTime; /* before we update aconf->hold */
     aconf->hold = ConFreq(cltmp) ? CurrentTime + ConFreq(cltmp) : 0;
 
     /* Do not try to connect if its use is still on hold until future,
      * too many links in its connection class, it is already linked,
      * or if connect rules forbid a link now.
      */
-    if ((aconf->hold > CurrentTime)
+    if (hold
         || (Links(cltmp) >= MaxLinks(cltmp))
         || FindServer(aconf->name)
-        || conf_eval_crule(aconf->name, CRULE_MASK))
+        || conf_eval_crule(aconf->name, CRULE_MASK)) {
       continue;
+    }
 
     /* Ensure it is at the end of the list for future checks. */
     if (aconf->next) {
