@@ -71,6 +71,11 @@ static void
 canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
 {
   char *tmp;
+  if (*userhost == '$') {
+    *user_p = userhost;
+    *host_p = NULL;
+    return;
+  }
 
   if (!(tmp = strchr(userhost, '@'))) {
     *user_p = def_user;
@@ -613,19 +618,20 @@ gline_find(char *userhost, unsigned int flags)
 	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
     else if (flags & GLINE_EXACT) {
-      if (gline->gl_host && ircd_strcmp(gline->gl_host, host) == 0 &&
+      if (!gline->gl_host && ircd_strcmp(gline->gl_host, host) == 0 &&
 	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
 	   ircd_strcmp(gline->gl_user, user) == 0))
 	break;
     } else {
-      if (gline->gl_host && match(gline->gl_host, host) == 0 &&
+      if (!gline->gl_host && match(gline->gl_host, host) == 0 &&
 	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
 	   match(gline->gl_user, user) == 0))
       break;
     }
   }
 
-  MyFree(t_uh);
+  if (!BadPtr(t_uh))
+    MyFree(t_uh);
 
   return gline;
 }

@@ -1,3 +1,8 @@
+2003-11-30  Perry Lorier <isomer@undernet.org>
+	* ircd/gline.c: Patch canon_userhost as suggested by netski
+
+	* ChangeLog: Fix up contributers name
+
 2003-11-22  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* tools/wrapper.c: commit uid on chroot fix from ubra
@@ -113,7 +118,7 @@
 	* ircd/engine_epoll.c, config.h.in, configure,in, ircd/ircd_events.h:
 	Added epoll(2) support.
 
-2003-07-18 Patrick N. <smash@web.de>
+2003-07-18 |SmAsH| <smash@web.de>
 	* ircd/s_user.c: added sending of ERR_UMODEUNKNOWNFLAG (Updated by
 	Isomer with suggestions from wasted)
 
