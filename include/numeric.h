@@ -21,16 +21,16 @@
 #ifndef INCLUDED_numeric_h
 #define INCLUDED_numeric_h
 
+/** Numeric reply information. */
 typedef struct Numeric {
-  int         value;
-  const char* format;
-  const char* str;
+  int         value;  /**< Numeric response. */
+  const char* format; /**< Format string to follow :My.Server NNN Dest */
+  const char* str;    /**< Text form for numeric. */
 } Numeric;
 
 /*
  * Prototypes
  */
-extern char* err_str(int numeric);
 extern char* rpl_str(int numeric);
 extern const struct Numeric* get_error_numeric(int err);
 
@@ -84,7 +84,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_TRACECLASS       209
 /*      RPL_STATS            210 aircd extension, used instead of having
                                  multiple stats numerics */
-/*      RPL_TRACERECONNECT   210 IRCnet extension */                                 
+/*      RPL_TRACERECONNECT   210 IRCnet extension */
 #define RPL_STATSLINKINFO    211
 #define RPL_STATSCOMMANDS    212
 #define RPL_STATSCLINE       213
@@ -452,7 +452,7 @@ extern const struct Numeric* get_error_numeric(int err);
 	ERR_WHOSYNTAX	     522        dalnet
 	ERR_WHOLIMEXCEED     523	dalnet */
 #define ERR_QUARANTINED      524       /* Undernet extension -Vampire */
- 
+
 #define ERR_NOTLOWEROPLEVEL  550	/* Undernet extension */
 #define ERR_NOTMANAGER       551	/* Undernet extension */
 #define ERR_CHANSECURED      552	/* Undernet extension */
@@ -472,12 +472,12 @@ extern const struct Numeric* get_error_numeric(int err);
 	RPL_MAPMORE          610	unreal
 
 	RPL_MAPMORE          615	PTlink
-	
+
 	RPL_DCCSTATUS        617	dalnet
 	RPL_DCCLIST          618	dalnet
 	RPL_ENDOFDCCLIST     619	dalnet
 	RPL_DCCINFO          620	dalnet
-	
+
 	RPL_DUMPING	     640	unreal
 	RPL_DUMPRPL	     641	unreal
 	RPL_EODUMP	     642	unreal
