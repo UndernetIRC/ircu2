@@ -404,9 +404,9 @@ struct Message msgtab[] = {
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
 #ifdef HEAD_IN_SAND_LINKS
-    { m_unregistered, m_links_redirect, ms_links, m_links, m_ignore }
+    { m_unregistered, m_links_redirect, m_links, m_links, m_ignore }
 #else
-    { m_unregistered, m_links, ms_links, m_links, m_ignore }
+    { m_unregistered, m_links, m_links, m_links, m_ignore }
 #endif
   },
   {

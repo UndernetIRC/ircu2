@@ -49,7 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef HEAD_IN_SAND_MAP
+#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
 
 static struct Map *MapList = 0;
 
@@ -64,6 +64,8 @@ static void map_add(struct Client *server)
 
   map->lasttime = TStime();
   strcpy(map->name, cli_name(server));
+  strcpy(map->info, cli_info(server));
+  map->prot = Protocol(server);
   map->maxclients = cli_serv(server)->clients;
 
   map->prev = 0;
@@ -108,6 +110,8 @@ void map_update(struct Client *cptr)
     if(!ircd_strcmp(cli_name(cptr), map->name)) 
     { 
       map->lasttime = TStime();
+      map->prot = Protocol(cptr);
+      strcpy(map->info, cli_info(cptr));
       if(map->maxclients < cli_serv(cptr)->clients) 
 	map->maxclients = cli_serv(cptr)->clients;  
       break;
@@ -129,6 +133,9 @@ void map_update(struct Client *cptr)
   if(!map)
     map_add(cptr);
 }
+#endif /* HEAD_IN_SAND_MAP || HEAD_IN_SAND_LINKS*/ 
+
+#ifdef HEAD_IN_SAND_MAP
 
 void map_dump_head_in_sand(struct Client *cptr)
 {
@@ -144,7 +151,7 @@ void map_dump_head_in_sand(struct Client *cptr)
     smap = map->next;
 
     /* Don't show servers we haven't seen in more than a week */
-    if(map->lasttime < TStime() - 604800)
+    if(map->lasttime < TStime() - MAP_CACHE_TIME)
     {
       acptr = FindServer(map->name);
       if(!acptr)
@@ -159,7 +166,42 @@ void map_dump_head_in_sand(struct Client *cptr)
   }
 }
 
-#endif /* HEAD_IN_SAND_MAP */ 
+#endif /* HEAD_IN_SAND_MAP */
+
+#ifdef HEAD_IN_SAND_LINKS
+void map_dump_links_head_in_sand(struct Client *sptr, char *mask)
+{
+  struct Map *link = 0;
+  struct Map *slink = 0;
+  struct Client *acptr = 0;
+
+  collapse(mask);
+  
+  for(link = MapList; link; link = slink)
+  {
+    slink = link->next;
+
+    if(link->lasttime < TStime() - MAP_CACHE_TIME)
+    {
+      acptr = FindServer(link->name);
+      if(!acptr)
+      {
+	map_remove(link);
+	continue;
+      }
+      else
+	map_update(acptr);
+    }
+    if (!BadPtr(mask) && match(mask, link->name))
+      continue;
+    send_reply(sptr, RPL_LINKS, link->name, cli_name(&me), 1, link->prot, 
+	       link->info);
+  }
+  /* don't forget to send me */
+  send_reply(sptr, RPL_LINKS, cli_name(&me), cli_name(&me), 0, Protocol(&me),
+	     cli_info(&me));
+}
+#endif /* HEAD_IN_SAND_LINKS */
   
 void map_dump(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
 {

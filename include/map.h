@@ -31,19 +31,25 @@
 #define INCLUDED_sys_types_h
 #endif
 
-#ifdef HEAD_IN_SAND_MAP
+#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
 
 struct Map {
   time_t lasttime;
   unsigned int maxclients;
   char name[HOSTLEN+1];
+  char info[REALLEN+1];
+  unsigned short prot;
   struct Map *next;
   struct Map *prev;
 };
 
 extern void map_update(struct Client *server);
+#endif /* defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS) */
+#ifdef HEAD_IN_SAND_LINKS
+extern void map_dump_links_head_in_sand(struct Client *sptr, char *mask);
+#endif /* HEAD_IN_SAND_LINKS */
+#ifdef HEAD_IN_SAND_MAP
 extern void map_dump_head_in_sand(struct Client *cptr);
-
 #endif /* HEAD_IN_SAND_MAP */
 
 extern void map_dump(struct Client *cptr, struct Client *server, char *mask, int prompt_length);

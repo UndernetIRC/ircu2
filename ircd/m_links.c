@@ -94,6 +94,7 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
+#include "map.h"
 
 #include <assert.h>
 
@@ -112,7 +113,7 @@
 int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char *mask;
-  struct Client *acptr;
+  struct Client *acptr = 0;
 
   if (parc > 2)
   {
@@ -136,62 +137,28 @@ int m_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
+
   return 0;
 }
 
 #ifdef HEAD_IN_SAND_LINKS
-int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc,
-		     char* parv[])
+int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-
   if (parc > 2)
     return send_reply(cptr, ERR_NOPRIVILEGES);
 
-  send_reply(sptr, RPL_ENDOFLINKS, parc < 2 ? "*" : parv[1]);
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
-		"/LINKS has been disabled, from CFV-165.  Visit " URL_SERVERS );
+  map_dump_links_head_in_sand(sptr, parv[1]);
+
+  send_reply(sptr, RPL_ENDOFLINKS, BadPtr(parv[1]) ? "*" : parv[1]);
+
   return 0;
 }
-#endif
 
-/*
- * ms_links - server message handler
- *
- * parv[0] = sender prefix
- * parv[1] = servername mask
- *
- * or
- *
- * parv[0] = sender prefix
- * parv[1] = server to query
- * parv[2] = servername mask
- */
-int ms_links(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  char *mask;
-  struct Client *acptr;
+#endif HEAD_IN_SAND_LINKS
 
-  if (parc > 2)
-  {
-    if (hunt_server_cmd(sptr, CMD_LINKS, cptr, 1, "%C :%s", 1, parc, parv) !=
-        HUNTED_ISME)
-      return 0;
-    mask = parv[2];
-  }
-  else
-    mask = parc < 2 ? 0 : parv[1];
 
-  for (acptr = GlobalClientList, collapse(mask); acptr; acptr = cli_next(acptr))
-  {
-    if (!IsServer(acptr) && !IsMe(acptr))
-      continue;
-    if (!BadPtr(mask) && match(mask, cli_name(acptr)))
-      continue;
-    send_reply(sptr, RPL_LINKS, cli_name(acptr), cli_name(cli_serv(acptr)->up),
-        cli_hopcount(acptr), cli_serv(acptr)->prot,
-        ((cli_info(acptr))[0] ? cli_info(acptr) : "(Unknown Location)"));
-  }
 
-  send_reply(sptr, RPL_ENDOFLINKS, BadPtr(mask) ? "*" : mask);
-  return 0;
-}
+
+
+
+

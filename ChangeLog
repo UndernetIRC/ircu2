@@ -1,5 +1,20 @@
 2002-03-19 Joseph Bongaarts <foxxe@wtfs.net>
 
+	* ircd/m_links.c: Make /links behave like /map for head_in_sand.
+	cleaned up excess code.
+
+	* ircd/map.c: Added map_dump_links_head_in_sand() Made changes in
+	map_add() and map_update() for links changes.
+
+	* include/map.h: Added info and prot to struct Map
+
+	* include/ircd_defs.h: Added MAP_CACHE_TIME for length of time
+	servers are cached in MapList
+
+	* ircd/s_misc.c: changed #ifdef for map_update()
+
+	* ircd/m_server.c: changed #ifdef for map_update()
+
 	* include/ircd_policy.h: added NO_HEAD_IN_SAND for easier removal of
 	hiding features.
 

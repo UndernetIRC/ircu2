@@ -639,7 +639,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else
     ret = 0;
 
-#ifdef HEAD_IN_SAND_MAP
+#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
   map_update(cptr);
 #endif
 
@@ -1077,7 +1077,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   Count_newremoteserver(UserStats);
   add_client_to_list(acptr);
   hAddClient(acptr);
-#ifdef HEAD_IN_SAND_MAP
+#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)
   map_update(acptr);
 #endif
 

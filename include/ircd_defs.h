@@ -115,5 +115,6 @@
 #define STARTTARGETS    10
 #define RESERVEDTARGETS 12
 
-#endif /* INCLUDED_ircd_defs_h */
+#define MAP_CACHE_TIME 604800
 
+#endif /* INCLUDED_ircd_defs_h */

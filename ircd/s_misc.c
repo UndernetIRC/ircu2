@@ -477,7 +477,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
 			 cli_serv(victim)->up, victim, comment);
 
-#ifdef HEAD_IN_SAND_MAP    
+#if defined(HEAD_IN_SAND_MAP) || defined(HEAD_IN_SAND_LINKS)    
     map_update(victim);
 #endif
   }
