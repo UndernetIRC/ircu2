@@ -344,7 +344,6 @@ extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_next_channels(struct Client *cptr, int nr);
-extern void send_user_joins(struct Client *cptr, struct Client *user);
 
 extern void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
 			 struct Client *connect, struct Channel *chan,

@@ -2490,7 +2490,10 @@ void make_zombie(struct Membership* member, struct Client* who, struct Client* c
   if (channel_all_zombies(chptr))
     remove_user_from_channel(who, chptr);
 
+  /* XXX Can't actually call Debug here; if the channel is all zombies,
+   * chptr will no longer exist when we get here.
   Debug((DEBUG_INFO, "%s is now a zombie on %s", who->name, chptr->chname));
+  */
 }
 
 int number_of_zombies(struct Channel *chptr)
@@ -2504,61 +2507,6 @@ int number_of_zombies(struct Channel *chptr)
       ++count;
   }
   return count;
-}
-
-/* XXX we can probably get rid of send_user_joins */
-void send_user_joins(struct Client *cptr, struct Client *user)
-{
-  struct Membership* chan;
-  struct Channel*    chptr;
-  int   cnt = 0;
-  int   len = 0;
-  int   clen;
-  char* mask;
-  char  buf[BUFSIZE];
-
-  *buf = ':';
-  strcpy(buf + 1, user->name);
-  strcat(buf, " JOIN ");
-  len = strlen(user->name) + 7;
-
-  for (chan = user->user->channel; chan; chan = chan->next_channel)
-  {
-    chptr = chan->channel;
-    assert(0 != chptr);
-
-    if ((mask = strchr(chptr->chname, ':')))
-      if (match(++mask, cptr->name))
-        continue;
-    if (*chptr->chname == '&')
-      continue;
-    if (IsZombie(chan))
-      continue;
-    clen = strlen(chptr->chname);
-    if (clen + 1 + len > BUFSIZE - 3)
-    {
-      if (cnt)
-      {
-        buf[len - 1] = '\0';
-        sendto_one(cptr, "%s", buf); /* XXX Possibly DEAD */
-      }
-      *buf = ':';
-      strcpy(buf + 1, user->name);
-      strcat(buf, " JOIN ");
-      len = strlen(user->name) + 7;
-      cnt = 0;
-    }
-    strcpy(buf + len, chptr->chname);
-    cnt++;
-    len += clen;
-    if (chan->next_channel)
-    {
-      len++;
-      strcat(buf, ",");
-    }
-  }
-  if (*buf && cnt)
-    sendto_one(cptr, "%s", buf); /* XXX Possibly DEAD */
 }
 
 /*
@@ -3905,8 +3853,12 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 	sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
 		      (flags & CHFL_BANNED || !jbuf->jb_comment) ?
 		      ":%H" : "%H :%s", chan, jbuf->jb_comment);
-	/* XXX: Shouldn't we send a PART here anyway? */
-
+      /* XXX: Shouldn't we send a PART here anyway? */
+      /* to users on the channel?  Why?  From their POV, the user isn't on
+       * the channel anymore anyway.  We don't send to servers until below,
+       * when we gang all the channel parts together.  Note that this is
+       * exactly the same logic, albeit somewhat more concise, as was in
+       * the original m_part.c */
     } else {
       /* Add user to channel */
       add_user_to_channel(chan, jbuf->jb_source, flags);

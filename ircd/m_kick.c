@@ -108,127 +108,55 @@
  * parv[2] = client to kick
  * parv[parc-1] = kick comment
  */
-int m_kick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
-  struct Client*  who;
-  struct Channel* chptr;
-  struct Membership* member = 0;
-  char*           channel_name;
+  struct Client *who;
+  struct Channel *chptr;
+  struct Membership *member = 0;
+  char *name, *comment;
 
   sptr->flags &= ~FLAGS_TS8;
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
 
-  channel_name = parv[1];
+  name = parv[1];
 
-  if (IsLocalChannel(channel_name) && !MyUser(sptr))
-    return 0;
+  /* simple checks */
+  if (!(chptr = get_channel(sptr, name, CGT_NO_CREATE)))
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, name);
 
-  if (IsModelessChannel(channel_name)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
-               channel_name);
-    return 0;
-  }
+  if (!is_chan_op(sptr, chptr) || IsModelessChannel(name))
+    return send_reply(sptr, ERR_CHANOPRIVSNEEDED, name);
 
-  chptr = get_channel(sptr, channel_name, CGT_NO_CREATE);
-  if (!chptr) {
-    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], channel_name);
-    return 0;
-  }
+  if (!(who = find_chasing(sptr, parv[2], 0)))
+    return 0; /* find_chasing sends the reply for us */
 
-  if (!IsServer(cptr) && !is_chan_op(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-               me.name, parv[0], chptr->chname);
-    return 0;
-  }
-
-  if (MyUser(sptr)) {
-    if (!(who = find_chasing(sptr, parv[2], 0)))
-      return 0;                 /* No such user left! */
-  }
-  else if (!(who = findNUser(parv[2])))
-    return 0;                   /* No such user left! */
-
-  /*
-   * if the user is +k, prevent a kick from local user
-   */
-  if (IsChannelService(who) && MyUser(sptr)) {
-    sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name,
-        parv[0], who->name, chptr->chname);
-    return 0;
-  }
+  /* Don't allow the channel service to be kicked */
+  if (IsChannelService(who))
+    return send_reply(sptr, ERR_ISCHANSERVICE, who->name, chptr->chname);
 
 #ifdef NO_OPER_DEOP_LCHAN
-  /*
-   * Prevent kicking opers from local channels -DM-
-   */
-  if (IsOperOnLocalChannel(who, chptr->chname)) {
-    sendto_one(sptr, err_str(ERR_ISOPERLCHAN), me.name,
-               parv[0], who->name, chptr->chname);
-    return 0;
-  }
+  /* Prevent kicking opers from local channels -DM- */
+  if (IsOperOnLocalChannel(who, chptr->chname))
+    return send_reply(sptr, ERR_ISOPERLCHAN, who->name, chptr->chname);
 #endif
 
-  /* 
-   * Servers can now send kicks without hacks during a netburst - they
-   * are kicking users from a +i channel.
-   *  - Isomer 25-11-1999
-   */
-  if (IsServer(sptr)
-#if defined(NO_INVITE_NETRIDE)
-      && !IsBurstOrBurstAck(sptr)
-#endif
-     ) {
-    send_hack_notice(cptr, sptr, parc, parv, 1, 3);
-  }
+  /* check if kicked user is actually on the channel */
+  if (!(member = find_member_link(chptr, who)) || IsZombie(member))
+    return send_reply(sptr, ERR_USERNOTINCHANNEL, who->name, chptr->chname);
 
-  if (IsServer(sptr) ||
-      ((member = find_member_link(chptr, who)) && !IsZombie(member)))
-  {
-    struct Membership* sptr_link = find_member_link(chptr, sptr);
-    if (who->from != cptr &&
-        ((sptr_link && IsDeopped(sptr_link)) || (!sptr_link && IsUser(sptr))))
-    {
-      /*
-       * Bounce here:
-       * cptr must be a server (or cptr == sptr and
-       * sptr->flags can't have DEOPPED set
-       * when CHANOP is set).
-       */
-      sendto_one(cptr, "%s%s " TOK_JOIN " %s", NumNick(who), chptr->chname);
-      if (IsChanOp(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +o %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
-      if (HasVoice(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +v %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
-    }
-    else
-    {
-      char* comment = (EmptyString(parv[parc - 1])) ? parv[0] : parv[parc - 1];
-      if (strlen(comment) > TOPICLEN)
-        comment[TOPICLEN] = '\0';
+  /* We rely on ircd_snprintf to truncate the comment */
+  comment = EmptyString(parv[parc - 1]) ? parv[0] : parv[parc - 1];
 
-      if (!IsLocalChannel(channel_name))
-      {
-        sendto_highprot_butone(cptr, 10, "%s%s " TOK_KICK " %s %s%s :%s",
-            NumNick(sptr), chptr->chname, NumNick(who), comment);
-      }
-      if (member) {
-        sendto_channel_butserv(chptr, sptr,
-            ":%s KICK %s %s :%s", parv[0], chptr->chname, who->name, comment);
-        make_zombie(member, who, cptr, sptr, chptr);
-      }
-    }
-  }
-  else if (MyUser(sptr))
-    sendto_one(sptr, err_str(ERR_USERNOTINCHANNEL),
-        me.name, parv[0], who->name, chptr->chname);
+  if (!IsLocalChannel(name))
+    sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
+			  comment);
+
+  sendcmdto_channel_butserv(sptr, CMD_KICK, chptr, "%H %C :%s", chptr, who,
+			    comment);
+
+  make_zombie(member, who, cptr, sptr, chptr);
 
   return 0;
 }
@@ -241,271 +169,75 @@ int m_kick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * parv[2] = client to kick
  * parv[parc-1] = kick comment
  */
-int ms_kick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
-  struct Client*  who;
-  struct Channel* chptr;
-  struct Membership* member = 0;
-  char*           channel_name;
+  struct Client *who;
+  struct Channel *chptr;
+  struct Membership *member = 0, *sptr_link = 0;
+  char *name, *comment;
 
   sptr->flags &= ~FLAGS_TS8;
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
 
-  channel_name = parv[1];
+  name = parv[1];
+  comment = parv[parc - 1];
 
-  if (IsLocalChannel(channel_name) && !MyUser(sptr))
+  /* figure out who gets kicked from what */
+  if (IsLocalChannel(name) ||
+      !(chptr = get_channel(sptr, name, CGT_NO_CREATE)) ||
+      !(who = findNUser(parv[2])))
     return 0;
 
-  if (IsModelessChannel(channel_name)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
-               channel_name);
-    return 0;
-  }
+  /* We go ahead and pass on the KICK for users not on the channel */
+  if (!(member = find_member_link(chptr, who)) || IsZombie(member))
+    member = 0;
 
-  chptr = get_channel(sptr, channel_name, CGT_NO_CREATE);
-  if (!chptr) {
-    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], channel_name);
-    return 0;
-  }
+  /* Send HACK notice, but not for servers in BURST */
+  if (IsServer(sptr) && !IsBurstOrBurstAck(sptr))
+    sendto_opmask_butone(0, SNO_HACK4, "HACK: %C KICK %H %C %s", sptr, chptr,
+			 who, comment);
 
-  if (!IsServer(cptr) && !is_chan_op(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-               me.name, parv[0], chptr->chname);
-    return 0;
-  }
-
-  if (MyUser(sptr)) {
-    if (!(who = find_chasing(sptr, parv[2], 0)))
-      return 0;                 /* No such user left! */
-  }
-  else if (!(who = findNUser(parv[2])))
-    return 0;                   /* No such user left! */
-
-  /*
-   * if the user is +k, prevent a kick from local user
+  /* Unless someone accepted it downstream (or the user isn't on the channel
+   * here), if kicker is not on channel, or if kicker is not a channel
+   * operator, bounce the kick
    */
-  if (IsChannelService(who) && MyUser(sptr)) {
-    sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name,
-        parv[0], who->name, chptr->chname);
-    return 0;
-  }
+  if (!IsServer(sptr) && member && who->from != cptr &&
+      (!(sptr_link = find_member_link(chptr, sptr)) || !IsChanOp(sptr_link))) {
+    sendto_opmask_butone(0, SNO_HACK2, "HACK: %C KICK %H %C %s", sptr, chptr,
+			 who, comment);
 
-#ifdef NO_OPER_DEOP_LCHAN
-  /*
-   * Prevent kicking opers from local channels -DM-
-   */
-  if (IsOperOnLocalChannel(who, chptr->chname)) {
-    sendto_one(sptr, err_str(ERR_ISOPERLCHAN), me.name,
-               parv[0], who->name, chptr->chname);
-    return 0;
-  }
-#endif
+    sendcmdto_one(who, CMD_JOIN, cptr, "%H", chptr);
 
-#if defined(NO_INVITE_NETRIDE)
-  /* 
-   * Servers can now send kicks without hacks during a netburst - they
-   * are kicking users from a +i channel.
-   *  - Isomer 25-11-1999
-   */
-  if (IsServer(sptr) && !IsBurstOrBurstAck(sptr)) {
-#else
-  if (IsServer(sptr)) {
-#endif
-    send_hack_notice(cptr, sptr, parc, parv, 1, 3);
-  }
+    /* Reop/revoice member */
+    if (IsChanOp(member) || HasVoice(member)) {
+      struct ModeBuf mbuf;
 
-  if (IsServer(sptr) ||
-      ((member = find_member_link(chptr, who)) && !IsZombie(member)))
-  {
-    struct Membership* sptr_link = find_member_link(chptr, sptr);
-    if (who->from != cptr &&
-        ((sptr_link && IsDeopped(sptr_link)) || (!sptr_link && IsUser(sptr))))
-    {
-      /*
-       * Bounce here:
-       * cptr must be a server (or cptr == sptr and
-       * sptr->flags can't have DEOPPED set
-       * when CHANOP is set).
-       */
-      sendto_one(cptr, "%s%s " TOK_JOIN " %s", NumNick(who), chptr->chname);
+      modebuf_init(&mbuf, sptr, cptr, chptr,
+		   (MODEBUF_DEST_SERVER |  /* Send mode to a server */
+		    MODEBUF_DEST_DEOP   |  /* Deop the source */
+		    MODEBUF_DEST_BOUNCE)); /* And bounce the MODE */
+
       if (IsChanOp(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +o %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, who);
       if (HasVoice(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +v %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
-    }
-    else
-    {
-      char* comment = (EmptyString(parv[parc - 1])) ? parv[0] : parv[parc - 1];
-      if (strlen(comment) > TOPICLEN)
-        comment[TOPICLEN] = '\0';
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, who);
 
-      if (!IsLocalChannel(channel_name)) {
-        if (IsServer(sptr)) {
-          sendto_highprot_butone(cptr, 10, "%s " TOK_KICK " %s %s%s :%s",
-                                 NumServ(sptr), chptr->chname, NumNick(who),
-                                 comment);
-        }
-        else {
-          sendto_highprot_butone(cptr, 10, "%s%s " TOK_KICK " %s %s%s :%s",
-                                 NumNick(sptr), chptr->chname, NumNick(who),
-                                 comment);
-        }
-      }
-      if (member) {
-        sendto_channel_butserv(chptr, sptr,
-            ":%s KICK %s %s :%s", parv[0], chptr->chname, who->name, comment);
-        make_zombie(member, who, cptr, sptr, chptr);
-      }
+      modebuf_flush(&mbuf);
+    }
+  } else {
+    /* Propagate kick... */
+    sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
+			  comment);
+
+    if (member) { /* and tell the channel about it */
+      sendcmdto_channel_butserv(sptr, CMD_KICK, chptr, "%H %C :%s", chptr, who,
+				comment);
+
+      make_zombie(member, who, cptr, sptr, chptr);
     }
   }
-  else if (MyUser(sptr))
-    sendto_one(sptr, err_str(ERR_USERNOTINCHANNEL),
-        me.name, parv[0], who->name, chptr->chname);
 
   return 0;
 }
-
-
-#if 0
-/*
- * m_kick
- *
- * parv[0] = sender prefix
- * parv[1] = channel
- * parv[2] = client to kick
- * parv[parc-1] = kick comment
- */
-int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client*  who;
-  struct Channel* chptr;
-  struct Membership* member = 0;
-  char*           channel_name;
-
-  sptr->flags &= ~FLAGS_TS8;
-
-  if (parc < 3 || *parv[1] == '\0')
-    return need_more_params(sptr, "KICK");
-
-  channel_name = parv[1];
-
-  if (IsLocalChannel(channel_name) && !MyUser(sptr))
-    return 0;
-
-  if (IsModelessChannel(channel_name)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED), me.name, parv[0],
-               channel_name);
-    return 0;
-  }
-
-  chptr = get_channel(sptr, channel_name, CGT_NO_CREATE);
-  if (!chptr) {
-    sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0], channel_name);
-    return 0;
-  }
-
-  if (!IsServer(cptr) && !is_chan_op(sptr, chptr)) {
-    sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
-               me.name, parv[0], chptr->chname);
-    return 0;
-  }
-
-  if (MyUser(sptr)) {
-    if (!(who = find_chasing(sptr, parv[2], 0)))
-      return 0;                 /* No such user left! */
-  }
-  else if (!(who = findNUser(parv[2])))
-    return 0;                   /* No such user left! */
-
-  /*
-   * if the user is +k, prevent a kick from local user
-   */
-  if (IsChannelService(who) && MyUser(sptr)) {
-    sendto_one(sptr, err_str(ERR_ISCHANSERVICE), me.name,
-        parv[0], who->name, chptr->chname);
-    return 0;
-  }
-
-#ifdef NO_OPER_DEOP_LCHAN
-  /*
-   * Prevent kicking opers from local channels -DM-
-   */
-  if (IsOperOnLocalChannel(who, chptr->chname)) {
-    sendto_one(sptr, err_str(ERR_ISOPERLCHAN), me.name,
-               parv[0], who->name, chptr->chname);
-    return 0;
-  }
-#endif
-
-  /* 
-   * Servers can now send kicks without hacks during a netburst - they
-   * are kicking users from a +i channel.
-   *  - Isomer 25-11-1999
-   */
-  if (IsServer(sptr)
-#if defined(NO_INVITE_NETRIDE)
-      && !IsBurstOrBurstAck(sptr)
-#endif
-     ) {
-    send_hack_notice(cptr, sptr, parc, parv, 1, 3);
-  }
-
-  if (IsServer(sptr) ||
-      ((member = find_member_link(chptr, who)) && !IsZombie(member)))
-  {
-    struct Membership* sptr_link = find_member_link(chptr, sptr);
-    if (who->from != cptr &&
-        ((sptr_link && IsDeopped(sptr_link)) || (!sptr_link && IsUser(sptr))))
-    {
-      /*
-       * Bounce here:
-       * cptr must be a server (or cptr == sptr and
-       * sptr->flags can't have DEOPPED set
-       * when CHANOP is set).
-       */
-      sendto_one(cptr, "%s%s " TOK_JOIN " %s", NumNick(who), chptr->chname);
-      if (IsChanOp(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +o %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
-      if (HasVoice(member))
-      {
-         sendto_one(cptr, "%s " TOK_MODE " %s +v %s%s " TIME_T_FMT,
-              NumServ(&me), chptr->chname, NumNick(who), chptr->creationtime);
-      }
-    }
-    else
-    {
-      char* comment = (EmptyString(parv[parc - 1])) ? parv[0] : parv[parc - 1];
-      if (strlen(comment) > TOPICLEN)
-        comment[TOPICLEN] = '\0';
-
-      if (!IsLocalChannel(channel_name))
-      {
-        sendto_highprot_butone(cptr, 10, "%s%s " TOK_KICK " %s %s%s :%s",
-            NumNick(sptr), chptr->chname, NumNick(who), comment);
-      }
-      if (member) {
-        sendto_channel_butserv(chptr, sptr,
-            ":%s KICK %s %s :%s", parv[0], chptr->chname, who->name, comment);
-        make_zombie(member, who, cptr, sptr, chptr);
-      }
-    }
-  }
-  else if (MyUser(sptr))
-    sendto_one(sptr, err_str(ERR_USERNOTINCHANNEL),
-        me.name, parv[0], who->name, chptr->chname);
-
-  return 0;
-}
-#endif /* 0 */
-
