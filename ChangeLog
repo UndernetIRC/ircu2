@@ -1,5 +1,8 @@
 2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_kick.c (ms_kick): if a kick comes from a user, it should
+	*appear* to be from the user
+
 	* ircd/s_bsd.c (deliver_it): this should have been a ClrFlag(),
 	not a SetFlag()--caused crashes on /restart and probably other
 	nastiness

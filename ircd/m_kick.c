@@ -145,8 +145,8 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sendcmdto_serv_butone(sptr, CMD_KICK, cptr, "%H %C :%s", chptr, who,
 			  comment);
 
-  sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
-			    comment);
+  sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, "%H %C :%s",
+				   chptr, who, comment);
 
   make_zombie(member, who, cptr, sptr, chptr);
 
@@ -227,8 +227,9 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 			  comment);
 
     if (member) { /* and tell the channel about it */
-      sendcmdto_channel_butserv_butone(&me, CMD_KICK, chptr, NULL, "%H %C :%s", chptr, who,
-				comment);
+      sendcmdto_channel_butserv_butone(IsServer(sptr) ? &me : sptr, CMD_KICK,
+				       chptr, NULL, "%H %C :%s", chptr, who,
+				       comment);
 
       make_zombie(member, who, cptr, sptr, chptr);
     }
