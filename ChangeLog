@@ -1,3 +1,7 @@
+2004-09-18  hikari <hikari@undernet.org>
+
+	* ircd/Makefile.in: Fixed a missing internal build dependency.
+	
 2004-09-16  Michael Poole <mdpoole@troilus.org>
 
 	* INSTALL: Fix name of example.conf and mention its installed

@@ -244,7 +244,7 @@ ircd: ${OBJS} ../include/patchlevel.h version.o
 # must be a better solution...perhaps sum all of the .c files and include
 # only that one sum?
 #
-version.c: version.c.SH umkpasswd
+version.c: ../include/patchlist.h version.c.SH umkpasswd
 	${SHELL} ${srcdir}/version.c.SH ${top_srcdir}
 
 ../include/patchlist.h:
