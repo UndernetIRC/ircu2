@@ -1,5 +1,18 @@
 2004-12-13  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Update General block comment to mention
+	new RESOLVER option and to explain IPv6 support.
+
+	* ircd/ircd_lexer.l: Recognize RESOLVER token.
+
+	* ircd/ircd_parser.y: Declare RESOLVER token and use it in an
+	alternative for generalitem.
+
+	* ircd/ircd_res.c: Define global ResolverAddr variable.  If it is
+	valid, use it instead of VirtualHost in restart_resolver().
+
+2004-12-13  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Update configuration to move Client block
 	comment after sample Class blocks, and update entries in it.
 

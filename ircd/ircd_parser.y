@@ -65,6 +65,7 @@
   extern struct ServerConf* serverConfList;
   extern struct s_map*      GlobalServiceMapList;
   extern struct qline*      GlobalQuarantineList;
+  extern struct irc_sockaddr ResolverAddr;
 
   int yylex(void);
   /* Now all the globals we need :/... */
@@ -135,6 +136,7 @@ static void parse_error(char *pattern,...) {
 %token NO
 %token OPER
 %token VHOST
+%token RESOLVER
 %token HIDDEN
 %token MOTD
 %token JUPE
@@ -271,7 +273,7 @@ generalblock: GENERAL '{' generalitems '}'
     parse_error("Your General block must contain a numeric (between 1 and 4095).");
 } ';' ;
 generalitems: generalitem generalitems | generalitem;
-generalitem: generalnumeric | generalname | generalvhost | generaldesc | error;
+generalitem: generalnumeric | generalname | generalvhost | generalresolver | generaldesc | error;
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (localConf.numeric == 0)
@@ -300,6 +302,11 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 generalvhost: VHOST '=' QSTRING ';'
 {
   ircd_aton(&VirtualHost.addr, $3);
+};
+
+generalresolver: RESOLVER '=' QSTRING ';'
+{
+  ircd_aton(&ResolverAddr.addr, $3);
 };
 
 adminblock: ADMIN '{' adminitems '}'

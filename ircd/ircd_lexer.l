@@ -76,6 +76,7 @@ static struct lexer_token {
   TOKEN(OPER),
   TOKEN(LOCAL),
   TOKEN(VHOST),
+  TOKEN(RESOLVER),
   TOKEN(MASK),
   TOKEN(HIDDEN),
   TOKEN(MOTD),

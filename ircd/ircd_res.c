@@ -140,6 +140,8 @@ extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
 extern char irc_domain[HOSTLEN];
 
+struct irc_sockaddr ResolverAddr;
+
 /** Check whether \a inp is a nameserver we use.
  * @param[in] inp Nameserver address.
  * @return Non-zero if we trust \a inp; zero if not.
@@ -171,8 +173,10 @@ restart_resolver(void)
 
   if (!s_active(&res_socket))
   {
+    struct irc_sockaddr *local;
     int fd;
-    fd = os_socket(&VirtualHost, SOCK_DGRAM, "Resolver UDP socket");
+    local = irc_in_addr_valid(&ResolverAddr) ? &ResolverAddr : &VirtualHost;
+    fd = os_socket(local, SOCK_DGRAM, "Resolver UDP socket");
     if (fd < 0) return;
     if (!socket_add(&res_socket, res_readreply, NULL, SS_DATAGRAM,
                     SOCK_EVENT_READABLE, fd)) return;
