@@ -504,7 +504,7 @@ static Numeric replyTable[] = {
 /* 235 */
   { RPL_SERVLISTEND, 0, "235" },
 /* 236 */
-  { 0 },
+  { RPL_STATSVERBOSE, "V :Sent as explicit", "236" },
 /* 237 */
   { RPL_STATSENGINE, "%s :Event loop engine", "237" },
 /* 238 */

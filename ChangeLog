@@ -1,3 +1,14 @@
+2002-06-04  Alex Badea  <vampire@p16.pub.ro)
+
+	* ircd/m_stats.c: backported /stats v for verbose information
+	about servers on the network (opers only)
+
+	* ircd/s_err.c: added numeric 236 for /stats v
+
+	* include/numeric.h: added numeric 236 for /stats v
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 2002-05-30  Alex Badea  <vampire@p16.pub.ro)
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
