@@ -1,5 +1,7 @@
 2001-07-25  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* include/ircd_policy.h: enable HEAD_IN_SAND_REMOTE by default
+
 	* ircd/s_err.c: put in a . for reporting link version on /trace,
 	to match what /version does
 
