@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.12.2.3 2000-07-15 21:24:27 gte Exp $
+# $Id: ChangeLog.10,v 1.1.2.12.2.4 2000-07-21 04:02:30 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Released 2.10.10.pl10
 * Backported /names optimisation from 2.10.11.
   '/names 0' now returns verbose listing, '/names' simply returns
   ENDOFNAMES. Disallow harmfull /names usage. --Gte
