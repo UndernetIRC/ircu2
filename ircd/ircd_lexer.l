@@ -116,6 +116,7 @@ static struct lexer_token {
   { "local_gline", TPRIV_LOCAL_GLINE },
   { "local_jupe", TPRIV_LOCAL_JUPE },
   { "local_kill", TPRIV_LOCAL_KILL },
+  { "local_opmode", TPRIV_LOCAL_OPMODE },
   { "mb", MBYTES },
   { "megabytes", MBYTES },
   { "mode_lchan", TPRIV_MODE_LCHAN },

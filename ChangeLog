@@ -1,3 +1,13 @@
+2005-01-15  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Mention CIDR support for Client, Operator, bans
+	and silences.  Mention net.rider kick change.
+
+	* doc/example.conf (Class): Add documentation for restart and
+	local_opmode privileges.  Fix name of local_jupe privilege.
+
+	* ircd/ircd_lexer.l: Recognize local_opmode privilege.
+
 2005-01-14  Michael Poole <mdpoole@troilus.org>
 
 	* RELEASE.NOTES: Further updates (mention Pseudo blocks, clarify
