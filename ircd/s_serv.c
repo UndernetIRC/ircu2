@@ -97,13 +97,11 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 {
   struct Client* acptr = 0;
   const char*    inpath;
-  int split,     i;
+  int            i;
 
   assert(0 != cptr);
   assert(0 != cli_local(cptr));
 
-  split = (0 != ircd_strcmp(cli_name(cptr), cli_sockhost(cptr))
-      &&   0 != ircd_strncmp(cli_info(cptr), "JUPE", 4));
   inpath = cli_name(cptr);
 
   if (IsUnknown(cptr)) {
@@ -212,9 +210,6 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 
       if (0 == match(cli_name(&me), cli_name(acptr)))
         continue;
-      split = (MyConnect(acptr) && 
-               0 != ircd_strcmp(cli_name(acptr), cli_sockhost(acptr)) &&
-               0 != ircd_strncmp(cli_info(acptr), "JUPE", 4));
       sendcmdto_one(cli_serv(acptr)->up, CMD_SERVER, cptr,
 		    "%s %d 0 %Tu %s%u %s%s +%s%s :%s", cli_name(acptr),
 		    cli_hopcount(acptr) + 1, cli_serv(acptr)->timestamp,
