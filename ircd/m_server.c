@@ -788,6 +788,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int              ret;
   int              active_lh_line = 0;
   unsigned short   prot;
+  unsigned int     serv_flags = 0;
   time_t           start_timestamp;
   time_t           timestamp = 0;
   time_t           recv_time;
@@ -819,10 +820,10 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     for (ch = parv[7] + 1; *ch; ch++)
       switch (*ch) {
       case 'h':
-	SetHub(cptr);
+	serv_flags |= FLAGS_HUB;
 	break;
       case 's':
-	SetService(cptr);
+	serv_flags |= FLAGS_SERVICE;
 	break;
       }
   }
@@ -1287,6 +1288,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_serv(acptr)->prot = prot;
     cli_serv(acptr)->timestamp = timestamp;
     cli_hopcount(acptr) = hop;
+    cli_flags(acptr) |= serv_flags;
     ircd_strncpy(cli_name(acptr), host, HOSTLEN);
     ircd_strncpy(cli_info(acptr), info, REALLEN);
     cli_serv(acptr)->up = sptr;
