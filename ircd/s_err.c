@@ -134,7 +134,7 @@ static Numeric numeric_errors[] = {
 /* 431 */
   { ERR_NONICKNAMEGIVEN, ":No nickname given", "431" },
 /* 432 */
-  { ERR_ERRONEUSNICKNAME, "%s :Erroneus Nickname", "432" },
+  { ERR_ERRONEUSNICKNAME, "%s :Erroneous Nickname", "432" },
 /* 433 */
   { ERR_NICKNAMEINUSE, "%s :Nickname is already in use.", "433" },
 /* 434 */
@@ -427,11 +427,11 @@ static Numeric numeric_replies[] = {
 /* 360 */
   { 0 },
 /* 361 */
-  { RPL_KILLDONE, 0, "361" },
+  { RPL_KILLDONE, 0, "361" }, /* Not used */
 /* 362 */
-  { RPL_CLOSING, "%s :Closed. Status = %d", "362" },
+  { RPL_CLOSING, "%s :Operator enforced Close", "362" },
 /* 363 */
-  { RPL_CLOSEEND, "%d: Connections Closed", "363" },
+  { RPL_CLOSEEND, "%d :Connections Closed", "363" },
 /* 364 */
 #ifndef GODMODE
   { RPL_LINKS, "%s %s :%d P%u %s", "364" },
@@ -477,9 +477,9 @@ static Numeric numeric_replies[] = {
 /* 383 */
   { 0 },
 /* 384 */
-  { RPL_MYPORTIS, "%d :Port to local server is", "384" },
+  { RPL_MYPORTIS, "%d :Port to local server is", "384" }, /* not used */
 /* 385 */
-  { RPL_NOTOPERANYMORE, 0, "385" },
+  { RPL_NOTOPERANYMORE, 0, "385" }, /* not used */
 /* 386 */
   { 0 },
 /* 387 */
