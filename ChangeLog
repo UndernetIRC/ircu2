@@ -1,4 +1,10 @@
-2002-12-03 Isomer <Isomer@undernet.org>
+2002-12-11 Isomer <Isomer@undernet.org>
+	* tools/linesync.sh: Update
+
+	* include/ircd_alloc.h: Disable the frobulator by default, it has
+	alignment issues on non intel.
+
+2002-12-10 Isomer <Isomer@undernet.org>
 	* RELEASE.NOTES: Note problem we've seen on larger FBSD boxen
 
 	* ircd/s_user.c: Don't set +x on connect, since other servers ignore

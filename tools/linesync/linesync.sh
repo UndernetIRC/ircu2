@@ -155,7 +155,7 @@ if [ $ircd_setup != 2 ]; then
                 }
 		dup_line=0
                 for (i=0; i<tlines; i++) {
-                        if ($0==template[i]) { dup_line++; break }
+                        if (tolower($0)==tolower(template[i])) { dup_line++; break }
                 }
 		if (!dup_line) print $0
         } ' tempfile=$TMPFILE < $cpath > $inpath
@@ -188,13 +188,13 @@ $awk_cmd '
 $0=="# BEGIN LINESYNC" { chop++; print $0; next }
 $0=="# END LINESYNC" {
         command="cat " syncfile
-        #while ((command | getline avar) > 0) { print avar }
+        while ((command | getline avar) > 0) { print avar }
         close(command)
         chop--
 }
 { if (!chop) print $0 }
 ' syncfile=$TMPFILE < $inpath > $tmp_path/linesync.new.$TS
-exit
+
 # Back up the current ircd.conf and replace it with the new one
 cp $cpath  $dpath/ircd.conf.bk
 cp $tmp_path/linesync.new.$TS $cpath

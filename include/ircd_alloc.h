@@ -24,8 +24,8 @@
 #ifndef INCLUDED_ircd_alloc_h
 #define INCLUDED_ircd_alloc_h
 
-#define FROBONMALLOC
-#define FROBONFREE
+#undef FROBONMALLOC
+#undef FROBONFREE
 
 /*
  * memory resource allocation and test functions
