@@ -419,7 +419,7 @@ ircd_alloc.o: ircd_alloc.c ../config.h ../include/ircd_alloc.h \
 ircd_events.o: ircd_events.c ../config.h ../include/ircd_events.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
   ../include/ircd_alloc.h ../include/ircd_log.h \
-  ../include/ircd_snprintf.h ../include/s_debug.h ../include/list.h
+  ../include/ircd_snprintf.h ../include/s_debug.h
 ircd_features.o: ircd_features.c ../config.h ../include/ircd_features.h \
   ../include/channel.h ../include/ircd_defs.h ../include/class.h \
   ../include/client.h ../include/dbuf.h ../include/msgq.h \
@@ -974,7 +974,7 @@ m_who.o: m_who.c ../config.h ../include/channel.h ../include/ircd_defs.h \
   ../include/ircd_log.h ../include/ircd_policy.h ../include/ircd_reply.h \
   ../include/ircd_string.h ../include/match.h ../include/numeric.h \
   ../include/numnicks.h ../include/send.h ../include/support.h \
-  ../include/whocmds.h ../include/list.h
+  ../include/whocmds.h
 m_whois.o: m_whois.c ../config.h ../include/channel.h \
   ../include/ircd_defs.h ../include/client.h ../include/dbuf.h \
   ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \

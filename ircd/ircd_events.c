@@ -33,8 +33,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "list.h"
-
 #define SIGS_PER_SOCK	10	/* number of signals to process per socket
 				   readable event */
 
