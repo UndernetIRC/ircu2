@@ -1,3 +1,7 @@
+2000-04-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* configure: move ircd/crypt/* to tools/*
+
 2000-04-06  Thomas Helvey <tomh@inxpress.net>
 	* ircd/s_auth.c: Shorten auth connect timeout to 60 seconds
           set client host to server alias if connection from localhost
@@ -305,7 +309,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.62 2000-04-06 06:50:18 bleep Exp $
+# $Id: ChangeLog,v 1.63 2000-04-07 14:53:35 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
