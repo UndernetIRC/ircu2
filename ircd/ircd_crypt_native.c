@@ -18,17 +18,20 @@
  *
  * $Id$
  */
+#define _XOPEN_SOURCE
+#define _XOPEN_VERSION 4
+
 #include "config.h"
 #include "ircd_crypt.h"
 #include "ircd_crypt_native.h"
 #include "s_debug.h"
 #include "ircd_alloc.h"
 
-#define _XOPEN_SOURCE
-#define _XOPEN_VERSION 4
-
 #include <assert.h>
 #include <unistd.h>
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif
 
 /* well this bit is (kinda) intact :) -- hikari */
 const char* ircd_crypt_native(const char* key, const char* salt)

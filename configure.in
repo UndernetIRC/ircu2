@@ -113,7 +113,7 @@ AC_SEARCH_LIBS(res_mkquery, resolv, ,
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(inttypes.h poll.h sys/devpoll.h sys/epoll.h sys/event.h)
+AC_CHECK_HEADERS(crypt.h inttypes.h poll.h sys/devpoll.h sys/epoll.h sys/event.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST

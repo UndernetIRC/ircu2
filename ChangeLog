@@ -1,3 +1,15 @@
+2004-06-25  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Check for crypt.h as well.
+
+	* configure: Regenerate.
+
+	* ircd/ircd_crypt_native.c: Move XOPEN defines earlier so they
+	affect the first includes of system headers.  Include crypt.h if
+	it is available.
+
+	* ircd/umkpasswd.c: Quash a gcc warning.
+	
 2004-06-23  Michael Poole <mdpoole@troilus.org>
 
 	* doc/Authors: Add contributors to ircu2.10.11 and myself.

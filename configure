@@ -3881,7 +3881,9 @@ done
 
 
 
-for ac_header in poll.h sys/devpoll.h sys/epoll.h sys/event.h
+
+
+for ac_header in crypt.h inttypes.h poll.h sys/devpoll.h sys/epoll.h sys/event.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
