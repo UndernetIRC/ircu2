@@ -1,3 +1,31 @@
+2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: set up the list of engines to try; set up
+	the signal struct Socket; rename netInfo to evInfo; move static
+	functions near the beginning of the file; do away with
+	signal_signal() (since we no longer keep a signal count ourselves)
+	and call event_generate() directly from signal_callback--also
+	renamed some functions; allow signal_callback() to read up to
+	SIGS_PER_SOCK at once from the signal pipe; add event_init() to
+	initialize the entire event system; add event_loop() to call the
+	engine's event loop; initialize new struct GenHeader member,
+	gh_engdata; remove timer_next(); add socket_add() function to add
+	a socket; add socket_del() to mark a socket for deletion; add
+	socket_state() to transition a socket between states; add
+	socket_events() to set what events we're interested in on the
+	socket; add engine_name() to retrieve event engine's name
+
+	* include/ircd_events.h: add engine data field to struct
+	GenHeader; rename SOCK_ACTION_REMOVE to SOCK_ACTION_DEL; add a
+	note about states vs s_events; remove signal count; fold union
+	Generator back into struct Event; remove count members from struct
+	Generators; redefine engine callbacks to not take a struct
+	Engine*; add explanatory comments to callback definitions; add
+	some engine callbacks to handle operations; remove struct Engine
+	flag member--can detect single flag from eng_signal member; add
+	event_init(), event_loop(), engine_name(), and the socket_*()
+	functions; make timer_next() a macro to avoid a function call
+
 2001-01-08  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/ircd_events.h: rename to ircd_events.h, since it handles

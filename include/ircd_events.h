@@ -64,6 +64,7 @@ struct GenHeader {
   unsigned int	     gh_ref;	/* reference count */
   EventCallBack	     gh_call;	/* generator callback function */
   void*		     gh_data;	/* extra data */
+  void*		     gh_engdata;/* engine data */
 };
 
 #define GEN_DESTROY	0x0001	/* generator is to be destroyed */
@@ -82,14 +83,20 @@ struct Socket {
 
 #define SOCK_ACTION_SET		0x0000	/* set interest set as follows */
 #define SOCK_ACTION_ADD		0x1000	/* add to interest set */
-#define SOCK_ACTION_REMOVE	0x2000	/* remove from interest set */
+#define SOCK_ACTION_DEL		0x2000	/* remove from interest set */
 
 #define SOCK_ACTION_MASK	0x3000	/* mask out the actions */
+
+/* Note: The socket state overrides the socket event mask; that is, if
+ * it's an SS_CONNECTING socket, the engine selects its own definition
+ * of what that looks like and ignores s_events.  s_events is meaningful
+ * only for SS_CONNECTED, SS_DATAGRAM, and SS_CONNECTDG, but may be set
+ * prior to the state transition, if desired.
+ */
 
 struct Signal {
   struct GenHeader sig_header;	/* generator information */
   int		   sig_signal;	/* signal number */
-  unsigned int	   sig_count;	/* count of number of signals */
 };
 
 struct Timer {
@@ -99,57 +106,75 @@ struct Timer {
   time_t	   t_expire;	/* time at which timer expires */
 };
 
-union Generator {
-  struct GenHeader* gen_header;	/* Generator header */
-  struct Socket*    gen_socket;	/* Socket generating event */
-  struct Signal*    gen_signal;	/* signal generating event */
-  struct Timer*	    gen_timer;	/* Timer generating event */
-};
-
 struct Event {
-  struct Event*	   ev_next;	/* linked list of events on queue */
-  struct Event**   ev_prev_p;
-  enum EventType   ev_type;	/* Event type */
-  union Generator  ev_gen;	/* object generating event */
+  struct Event*	 ev_next;	/* linked list of events on queue */
+  struct Event** ev_prev_p;
+  enum EventType ev_type;	/* Event type */
+  union {
+    struct GenHeader* gen_header;	/* Generator header */
+    struct Socket*    gen_socket;	/* Socket generating event */
+    struct Signal*    gen_signal;	/* Signal generating event */
+    struct Timer*     gen_timer;	/* Timer generating event */
+  }		 ev_gen;	/* object generating event */
 };
 
 struct Generators {
-  struct Socket* g_socket;
-  unsigned int	 g_socket_count;
-
-  struct Signal* g_signal;
-  unsigned int	 g_signal_count;
-
-  struct Timer*	 g_timer;
-  unsigned int	 g_timer_count;
+  struct Socket* g_socket;	/* list of socket generators */
+  struct Signal* g_signal;	/* list of signal generators */
+  struct Timer*	 g_timer;	/* list of timer generators */
 };
 
-typedef int (*EngineInit)(struct Engine*);
-typedef void (*EngineSignal)(struct Engine*, struct Signal*);
-typedef void (*EngineSocket)(struct Engine*, struct Socket*,
-			     unsigned int events);
-typedef void (*Engine)(struct Engine*, struct Generators*);
+/* returns 1 if successfully initialized, 0 if not */
+typedef int (*EngineInit)(void);
+
+/* Tell engine about new signal; set to 0 if engine doesn't know signals */
+typedef void (*EngineSignal)(struct Signal*);
+
+/* Tell engine about new socket */
+typedef void (*EngineAdd)(struct Socket*);
+
+/* Tell engine about socket's new_state */
+typedef void (*EngineState)(struct Socket*, enum SocketState new_state);
+
+/* Tell engine about socket's new_events */
+typedef void (*EngineEvents)(struct Socket*, unsigned int new_events);
+
+/* Tell engine a socket's going away */
+typedef void (*EngineDelete)(struct Socket*);
+
+/* The actual event loop */
+typedef void (*EngineLoop)(struct Generators*);
 
 struct Engine {
-  char*	       eng_name;	/* a name for the engine */
-  EngineInit   eng_init;	/* initialize engine */
-  EngineSignal eng_signal;	/* express interest in a signal */
-  EngineSocket eng_socket;	/* express interest in a socket */
-  Engine       eng_engine;	/* actual event loop */
-  unsigned int eng_flags;	/* what engine *will* do */
+  char*		eng_name;	/* a name for the engine */
+  EngineInit	eng_init;	/* initialize engine */
+  EngineSignal	eng_signal;	/* express interest in a signal */
+  EngineAdd	eng_add;	/* express interest in a socket */
+  EngineState	eng_state;	/* mention a change in state to engine */
+  EngineEvents	eng_events;	/* express interest in socket events */
+  EngineDelete	eng_closing;	/* socket is being closed */
+  EngineLoop	eng_loop;	/* actual event loop */
 };
 
-#define ENG_FLAGS_DIRECTSIGS	0x0001	/* event engine can do itself */
-
+void event_init(void);
+void event_loop(void);
 void event_generate(enum EventType type, void* gen);
 
 void timer_add(struct Timer* timer, EventCallBack call, void* data,
 	       enum TimerType type, time_t value);
 void timer_del(struct Timer* timer);
-time_t timer_next(void);
 void timer_run(void);
+#define timer_next(gen)	((gen)->g_timer ? (gen)->g_timer->t_expire : 0)
 
 void signal_add(struct Signal* signal, EventCallBack call, void* data,
 		int sig);
+
+void socket_add(struct Socket* sock, EventCallBack call, void* data,
+		enum SocketState state, unsigned int events, int fd);
+void socket_del(struct Socket* sock);
+void socket_state(struct Socket* sock, enum SocketState state);
+void socket_events(struct Socket* sock, unsigned int events);
+
+char* engine_name(void);
 
 #endif /* INCLUDED_ircd_events_h */
