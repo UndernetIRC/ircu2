@@ -2923,18 +2923,18 @@ modebuf_flush(struct ModeBuf *mbuf)
     }
 
     /* send the messages off to their destination */
-    if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendto_channel_butserv(mbuf->mb_channel, app_source,
-			     ":%s MODE %s %s%s%s%s%s%s", app_source->name,
-			     mbuf->mb_channel->chname, addbuf_i ? "+" : "",
-			     addbuf, rembuf_i ? "-" : "", rembuf, addstr,
-			     remstr);
-
-    if (mbuf->mb_dest & MODEBUF_DEST_HACK2)
+    if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
       sendto_op_mask(SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
 		     "]", app_source->name, mbuf->mb_channel->chname,
 		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
 		     addstr, remstr, mbuf->mb_channel->creationtime);
+      sendto_serv_butone(mbuf->connect, "%s " TOK_DESYNCH
+			 " :HACK: %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT "]",
+			 NumServ(&me), app_source->name,
+			 mbuf->mb_channel->chname, addbuf_i ? "+" : "", addbuf,
+			 rembuf_i ? "-" : "", rembuf, addstr, remstr,
+			 mbuf->mb_channel->creationtime);
+    }
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_op_mask(SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s %s%s%s%s%s%s ["
@@ -2948,6 +2948,13 @@ modebuf_flush(struct ModeBuf *mbuf)
 		     "]", app_source->name, mbuf->mb_channel->chname,
 		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
 		     addstr, remstr, mbuf->mb_channel->creationtime);
+
+    if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
+      sendto_channel_butserv(mbuf->mb_channel, app_source,
+			     ":%s MODE %s %s%s%s%s%s%s", app_source->name,
+			     mbuf->mb_channel->chname, addbuf_i ? "+" : "",
+			     addbuf, rembuf_i ? "-" : "", rembuf, addstr,
+			     remstr);
   }
 
   /* Now are we supposed to propagate to other servers? */
@@ -3014,7 +3021,7 @@ modebuf_flush(struct ModeBuf *mbuf)
 			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
 			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
 			   remstr);
-    } else if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
+    } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to the
        * connection we got it from with the senses reversed and a TS of 0;
