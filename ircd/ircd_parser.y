@@ -654,28 +654,48 @@ clientblock: CLIENT
   unsigned char addrbits;
   aconf->username = username;
   aconf->host = host;
-  if (ip && ipmask_parse(ip, &aconf->address.addr, &addrbits))
+  if (ip && ipmask_parse(ip, &aconf->address.addr, &addrbits)) {
     aconf->addrbits = addrbits;
-  else
+    aconf->name = ip;
+  } else {
+    MyFree(ip);
     aconf->addrbits = -1;
+    DupString(aconf->name, "*");
+  }
   aconf->conn_class = c_class ? c_class : find_class("default");
   aconf->maximum = maxlinks;
   host = NULL;
   username = NULL;
   c_class = NULL;
-  MyFree(ip);
+  ip = NULL;
 };
 clientitems: clientitem clientitems | clientitem;
 clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks | error;
 clienthost: HOST '=' QSTRING ';'
 {
+  char *sep = strchr($3, '@');
   MyFree(host);
-  DupString(host, $3);
+  if (sep) {
+    *sep++ = '\0';
+    MyFree(username);
+    DupString(username, $3);
+    DupString(host, sep);
+  } else {
+    DupString(host, $3);
+  }
 };
 clientip: IP '=' QSTRING ';'
 {
+  char *sep = strchr($3, '@');
   MyFree(ip);
-  DupString(ip, $3);
+  if (sep) {
+    *sep++ = '\0';
+    MyFree(username);
+    DupString(username, $3);
+    DupString(ip, sep);
+  } else {
+    DupString(ip, $3);
+  }
 };
 clientusername: USERNAME '=' QSTRING ';'
 {
@@ -751,7 +771,7 @@ killreal: REAL '=' QSTRING ';'
 
 killreason: REASON '=' QSTRING ';'
 {
- dconf->flags &= DENY_FLAGS_FILE;
+ dconf->flags &= ~DENY_FLAGS_FILE;
  MyFree(dconf->message);
  DupString(dconf->message, $3);
 };
