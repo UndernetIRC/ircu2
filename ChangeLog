@@ -1,3 +1,12 @@
+2002-12-18  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c (stats_init): er, should have started at 0--not
+	that we'll ever see a /stats '\0', but just for completeness' sake
+	:)
+
+	* ircd/s_user.c (hide_hostmask): only send the reply if the user's
+	on my server
+
 2002-12-17 hikari <shadow@undernet.org>
 	* ircd/s_err.c: added RPL_HOSTHIDDEN reply text
 
