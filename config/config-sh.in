@@ -316,6 +316,7 @@ endmenu
 
 mainmenu_option next_comment
 comment 'Oper commands'
+  bool 'Allow opers to wallop' OPERS_WALLOPS
   bool 'Allow (local) Opers to see all local invisible users' SHOW_INVISIBLE_USERS y
   if [ "$SHOW_INVISIBLE_USERS" = "y" ]; then
     bool 'Allow Opers to see all invisible users' SHOW_ALL_INVISIBLE_USERS y

@@ -178,7 +178,11 @@ struct Message msgtab[] = {
     TOK_WALLOPS,
     0, MAXPARA, MFLG_SLOW, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+#ifdef OPER_WALLOPS    
     { m_unregistered, m_not_oper, ms_wallops, mo_wallops, m_ignore }
+#else
+    { m_unregistered, m_not_oper, ms_wallops, m_not_oper, m_ignore }
+#endif
   },
   {
     MSG_DESYNCH,
