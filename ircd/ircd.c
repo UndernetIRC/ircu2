@@ -236,7 +236,7 @@ static void try_connections(struct Event* ev) {
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     /* Also when already connecting! (update holdtimes) --SRB */
-    if (!(aconf->status & CONF_SERVER) || aconf->port == 0)
+    if (!(aconf->status & CONF_SERVER) || aconf->port == 0 || aconf->hold == 0)
       continue;
 
     /* Also skip juped servers */
