@@ -110,9 +110,11 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc > 1)
     send_reply(sptr, ERR_NOPRIVILEGES);
-  else
+  else {
     send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
 	       debug_serveropts());
+    send_supported(sptr);
+  }
 
   return 0;
 }

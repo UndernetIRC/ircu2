@@ -1,4 +1,7 @@
-2002-09-02  Perry Lorier <isomer@undernet.org>
+2002-10-04  Perry Lorier <isomer@undernet.org>
+	* ircd/m_version.c: was showing 005 on VERSION for opers only(!?)
+
+2002-10-04  Perry Lorier <isomer@undernet.org>
 	* ircd/m_names.c: Fixed bug where RPL_ENDOFNAMES was not sent when
 	requesting names from a channel you are not on.  Reported by
 	mike2 and Liandrin.
