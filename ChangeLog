@@ -4,6 +4,8 @@
 	see servernames in /who
 
 	* ircd/gline.c: Fixed core bug in gline_find()
+
+	* ircd/m_kill.c: Fixed bug in HIS_KILLWHO
 	
 2002-02-19 John Buttery <john@io.com>
 
