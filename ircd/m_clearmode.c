@@ -100,6 +100,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "support.h"
 
 #include <assert.h>
 
