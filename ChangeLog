@@ -1,5 +1,11 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y: Replace references to yylval.whatever with
+	references to the appropriate term.  This fixes bugs like
+	"1 hour 30 minutes" being misrecognized as 30 seconds.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_features.c (features): Change default values for
 	SOCKSENDBUF and SOCKRECVBUF to SERVER_TCP_WINDOW, so that users
 	need not specify them in ircd.conf.
