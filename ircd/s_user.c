@@ -382,7 +382,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            digitgroups = 0;
   struct User*     user = sptr->user;
   char             ip_base64[8];
-  char             featurebuf[512];
 
   user->last = CurrentTime;
   parv[0] = sptr->name;
@@ -568,8 +567,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                me.name, version);
     sendto_one(sptr, rpl_str(RPL_CREATED), me.name, nick, creation);
     sendto_one(sptr, rpl_str(RPL_MYINFO), me.name, parv[0], me.name, version);
-    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
-    sendto_one(sptr, rpl_str(RPL_ISUPPORT), me.name, nick, featurebuf);
+    send_supported(sptr);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
 #ifdef NODEFAULTMOTD
@@ -1568,3 +1566,15 @@ int add_silence(struct Client* sptr, const char* mask)
   return 0;
 }
 
+int
+send_supported(struct Client *cptr)
+{
+  char             featurebuf[512];
+
+  sprintf_irc(featurebuf, FEATURES1, FEATURESVALUES1);
+  sendto_one(cptr, rpl_str(RPL_ISUPPORT), me.name, cptr->name, featurebuf);
+  sprintf_irc(featurebuf, FEATURES2, FEATURESVALUES2);
+  sendto_one(cptr, rpl_str(RPL_ISUPPORT), me.name, cptr->name, featurebuf);
+
+  return 0; /* convenience return, if it's ever needed */
+}

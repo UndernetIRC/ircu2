@@ -449,7 +449,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 			 killer->name, comment);
 	  } else
 	    sendto_one(victim, "ERROR :Closing Link: %s by %s (%s)",
-		       victim->name, killer->name, comment);
+		       victim->name, IsServer(killer) ? me.name : killer->name,
+		       comment);
 	}
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&

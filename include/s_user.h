@@ -86,6 +86,6 @@ extern int check_target_limit(struct Client *sptr, void *target, const char *nam
 extern void add_target(struct Client *sptr, void *target);
 extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);
-
+extern int send_supported(struct Client *cptr);
 
 #endif /* INCLUDED_s_user_h */

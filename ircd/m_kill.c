@@ -122,7 +122,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char*    inpath;
   char*          user;
   char*          path;
-  char*          killer;
+  char*          comment;
   char           buf[BUFSIZE];
 
   assert(0 != cptr);
@@ -233,28 +233,25 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   victim->flags |= FLAGS_KILLED;
 
   /*
+   * the first space in path will be at the end of the
+   * opers name:
+   * bla.bla.bla!host.net.dom!opername (comment)
+   */
+  if (!(comment = strchr(path, ' ')))
+    comment = " (No reason given)";
+  /*
    * Tell the victim she/he has been zapped, but *only* if
    * the victim is on current server--no sense in sending the
    * notification chasing the above kill, it won't get far
    * anyway (as this user don't exist there any more either)
    */
   if (MyConnect(victim))
-    sendto_prefix_one(victim, sptr, ":%s KILL %s :%s!%s",
-                      sptr->name, victim->name, cptr->name, path);
-  /*
-   * the first space in path will be at the end of the
-   * opers name:
-   * bla.bla.bla!host.net.dom!opername (comment)
-   */
-  if ((killer = strchr(path, ' '))) {
-    while (killer > path && '!' != *killer)
-      --killer;
-    if ('!' == *killer)
-      ++killer;
-  }
-  else
-    killer = path;
-  sprintf_irc(buf, "Killed (%s)", killer);
+    sendto_prefix_one(victim, IsServer(sptr) ? &me : sptr, ":%s KILL %s :%s%s",
+                      IsServer(sptr) ? me.name : sptr->name, victim->name,
+		      IsServer(sptr) ? "*.undernet.org" : sptr->name, comment);
+
+  sprintf_irc(buf, "Killed (%s%s)", IsServer(sptr) ? "*.undernet.org" :
+	      sptr->name, comment);
 
   return exit_client(cptr, victim, sptr, buf);
 }
@@ -340,8 +337,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   inpath = sptr->user->host;
 
-  sprintf_irc(buf,
-              "%s%s (%s)", cptr->name, IsOper(sptr) ? "" : "(L)", comment);
+  sprintf_irc(buf, "%s (%s)", cptr->name, comment);
   path = buf;
 
   /*
@@ -375,8 +371,6 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     * set in any other place)
     */
     victim->flags |= FLAGS_KILLED;
-
-    sprintf_irc(buf, "Killed by %s (%s)", sptr->name, comment);
   }
   else {
   /*
@@ -385,10 +379,11 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * notification chasing the above kill, it won't get far
    * anyway (as this user don't exist there any more either)
    */
-    sendto_prefix_one(victim, sptr, ":%s KILL %s :%s!%s",
-                      parv[0], victim->name, inpath, path);
-    sprintf_irc(buf, "Local kill by %s (%s)", sptr->name, comment);
+    sendto_prefix_one(victim, sptr, ":%s KILL %s :%s",
+                      parv[0], victim->name, path);
   }
+
+  sprintf_irc(buf, "Killed (%s (%s))", sptr->name, comment);
 
   return exit_client(cptr, victim, sptr, buf);
 

@@ -1,10 +1,17 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.17.2.15 2001-07-26 01:35:14 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.17.2.16 2001-07-28 14:45:05 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fiddle with /KILL and various exits to make the user experience uniform,
+  no matter who's doing the killing or where.  Previously, differences in
+  QUITs and in the messages sent to the killed client could help make a
+  partial map of the network; now that these messages are all uniform, there
+  is no way to tell. -Kev
+* Split ISUPPORT numeric into two numerics, so as not to exceed the 15
+  parameter limit imposed by the RFC -Kev
 * Turn on HEAD_IN_SAND_REMOTE...oops -Kev
 * Send prefixed error messages to other servers, so ERROR doesn't get
   interpreted as a prefix -Kev
