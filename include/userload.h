@@ -19,12 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
+#ifndef INCLUDED_userload_h
+#define INCLUDED_userload_h
 
-#ifndef USERLOAD_H
-#define USERLOAD_H
+struct Client;
 
-/*=============================================================================
+/*
  * Structures
  */
 
@@ -34,14 +37,14 @@ struct current_load_st {
   unsigned int conn_count;
 };
 
-/*=============================================================================
+/*
  * Proto types
  */
 
 extern void update_load(void);
-extern void calc_load(aClient *sptr);
+extern void calc_load(struct Client *sptr);
 extern void initload(void);
 
 extern struct current_load_st current_load;
 
-#endif /* USERLOAD_H */
+#endif /* INCLUDED_userload_h */

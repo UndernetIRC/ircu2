@@ -1,93 +1,29 @@
-#ifndef S_SERV_H
-#define S_SERV_H
-
-#include "struct.h"
-
-/*=============================================================================
- * General defines
+/*
+ * s_serv.h
+ *
+ * $Id$
  */
+#ifndef INCLUDED_s_serv_h
+#define INCLUDED_s_serv_h
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>
+#define INCLUDED_sys_types_h
+#endif
 
-/*-----------------------------------------------------------------------------
- * Macro's
- */
+struct ConfItem;
+struct Client;
 
-#define STAT_PING		0
-#define STAT_LOG		1	/* logfile for -x */
-#define STAT_CONNECTING		2
-#define STAT_HANDSHAKE		3
-#define STAT_ME			4
-#define STAT_UNKNOWN		5
-#define STAT_UNKNOWN_USER	6	/* Connect to client port */
-#define STAT_UNKNOWN_SERVER	7	/* Connect to server port */
-#define STAT_SERVER		8
-#define STAT_USER		9
 
-/* 
- * for when you wanna create a bitmask of status values
- */
-#define StatusMask(T) (1<<(T))
-#define IsStatMask(x, s) (StatusMask((x)->status) & (s))
+extern unsigned int max_connection_count;
+extern unsigned int max_client_count;
 
 /*
- * status macros.
+ * Prototypes
  */
-#define IsRegistered(x)		(IsStatMask(x, \
-					StatusMask(STAT_SERVER)|\
-					StatusMask(STAT_USER)))
-#define IsConnecting(x)		((x)->status == STAT_CONNECTING)
-#define IsHandshake(x)		((x)->status == STAT_HANDSHAKE)
-#define IsMe(x)			((x)->status == STAT_ME)
-#define IsUnknown(x)		(IsStatMask(x, \
-					StatusMask(STAT_UNKNOWN)|\
-					StatusMask(STAT_UNKNOWN_USER)|\
-					StatusMask(STAT_UNKNOWN_SERVER)))
-#define IsServerPort(x)		((x)->status == STAT_UNKNOWN_SERVER )
-#define IsUserPort(x)		((x)->status == STAT_UNKNOWN_USER )
-#define IsClient(x)		(IsStatMask(x, \
-					StatusMask(STAT_HANDSHAKE)|\
-					StatusMask(STAT_ME)|\
-					StatusMask(STAT_UNKNOWN)|\
-					StatusMask(STAT_UNKNOWN_USER)|\
-					StatusMask(STAT_UNKNOWN_SERVER)|\
-					StatusMask(STAT_SERVER)|\
-					StatusMask(STAT_USER)))
-#define IsTrusted(x)		(IsStatMask(x, \
-					StatusMask(STAT_PING)|\
-					StatusMask(STAT_LOG)|\
-					StatusMask(STAT_CONNECTING)|\
-					StatusMask(STAT_HANDSHAKE)|\
-					StatusMask(STAT_ME)|\
-					StatusMask(STAT_SERVER)))
-#ifdef DEBUGMODE		/* Coredump if we miss something... */
-#define IsServer(x)		( ((x)->status == STAT_SERVER) && \
-                                  (((x)->serv) ? 1 : (*((char *) NULL) = 0)) )
-#define IsUser(x)		( ((x)->status == STAT_USER) && \
-                                  (((x)->user) ? 1 : (*((char *) NULL) = 0)) )
-#else
-#define IsServer(x)		((x)->status == STAT_SERVER)
-#define IsUser(x)		((x)->status == STAT_USER)
-#endif
-#define IsLog(x)		((x)->status == STAT_LOG)
-#define IsPing(x)		((x)->status == STAT_PING)
+extern int exit_new_server(struct Client *cptr, struct Client *sptr,
+                           char *host, time_t timestamp, char *fmt, ...);
+extern int a_kills_b_too(struct Client *a, struct Client *b);
+extern int server_estab(struct Client *cptr, struct ConfItem *aconf);
 
-#define SetConnecting(x)	((x)->status = STAT_CONNECTING)
-#define SetHandshake(x)		((x)->status = STAT_HANDSHAKE)
-#define SetServer(x)		((x)->status = STAT_SERVER)
-#define SetMe(x)		((x)->status = STAT_ME)
-#define SetUser(x)		((x)->status = STAT_USER)
 
-/*=============================================================================
- * Proto types
- */
-
-extern int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_server_estab(aClient *cptr, aConfItem *aconf, aConfItem *bconf);
-extern int m_error(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_end_of_burst(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_end_of_burst_ack(aClient *cptr, aClient *sptr,
-    int parc, char *parv[]);
-extern int m_desynch(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-
-extern unsigned int max_connection_count, max_client_count;
-
-#endif /* S_SERV_H */
+#endif /* INCLUDED_s_serv_h */

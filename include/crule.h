@@ -1,7 +1,12 @@
-#ifndef CRULE_H
-#define CRULE_H
+/*
+ * crule.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_crule_h
+#define INCLUDED_crule_h
 
-/*=============================================================================
+/*
  * Proto types
  */
 
@@ -9,4 +14,4 @@ extern void crule_free(char **elem);
 extern int crule_eval(char *rule);
 extern char *crule_parse(char *rule);
 
-#endif /* CRULE_H */
+#endif /* INCLUDED_crule_h */

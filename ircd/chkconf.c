@@ -15,33 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <ctype.h>
-#if HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
-#ifdef HPUX
-#include <arpa/inet.h>
-#endif /* HPUX */
-#ifdef	R_LINES
-#include <signal.h>
-#endif
-#include "h.h"
 #include "s_conf.h"
+#include "client.h"
 #include "class.h"
-#include "common.h"
-#include "ircd.h"
 #include "fileio.h"
+#include "ircd.h"
+#include "ircd_alloc.h"
+#include "ircd_chattr.h"
+#include "ircd_string.h"
+#include "sys.h"
 
-RCSTAG_CC("$Id$");
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 /*
  * For the connect rule patch..  these really should be in a header,
@@ -53,9 +50,9 @@ void crule_free(char **elem);
 static void new_class(int cn);
 static char confchar(unsigned int status);
 static char *getfield(char *newline);
-static int validate(aConfItem *top);
-static aConfItem *chk_initconf(void);
-static aConfClass *get_class(int cn, int ism);
+static int validate(struct ConfItem *top);
+static struct ConfItem *chk_initconf(void);
+static struct ConfClass *get_class(int cn, int ism);
 
 static int numclasses = 0, *classarr = (int *)NULL, debugflag = 0;
 static char *chk_configfile = CPATH;
@@ -63,12 +60,9 @@ static char nullfield[] = "";
 static char maxsendq[12];
 
 /* A few dummy variables and functions needed to link with runmalloc.o */
-time_t now;
-struct Client {
-  time_t since;
-  char name[1];
-} me;
-void debug(int UNUSED(level), const char *form, ...)
+time_t CurrentTime;
+struct Client me;
+void debug(int level, const char *form, ...)
 {
   va_list vl;
   va_start(vl, form);
@@ -79,10 +73,10 @@ void debug(int UNUSED(level), const char *form, ...)
   }
   va_end(vl);
 }
-void sendto_one(aClient *UNUSED(to), char *UNUSED(pattern), ...)
+void sendto_one(struct Client *to, char *pattern, ...)
 {
 }
-char *rpl_str(int UNUSED(numeric))
+char *rpl_str(int numeric)
 {
   return "";
 }
@@ -98,26 +92,26 @@ int main(int argc, char *argv[])
     {
       switch (argv[1][1])
       {
-	case 'd':
-	  if (argc > 2)
-	  {
-	    dpath = argv[2];
-	    --argc;
-	    ++argv;
-	  }
-	  else
-	  {
-	    fprintf(stderr, "-d: Missing path\n");
-	    exit(-1);
-	  }
-	  break;
-	case 'x':
-	  debugflag = 1;
-	  if (isdigit(argv[1][2]))
-	    debugflag = atoi(&argv[1][2]);
-	  break;
-	default:
-	  fprintf(stderr, "Ignoring unknown option -%c\n", argv[1][1]);
+        case 'd':
+          if (argc > 2)
+          {
+            dpath = argv[2];
+            --argc;
+            ++argv;
+          }
+          else
+          {
+            fprintf(stderr, "-d: Missing path\n");
+            exit(-1);
+          }
+          break;
+        case 'x':
+          debugflag = 1;
+          if (isdigit(argv[1][2]))
+            debugflag = atoi(&argv[1][2]);
+          break;
+        default:
+          fprintf(stderr, "Ignoring unknown option -%c\n", argv[1][1]);
       }
     }
     else
@@ -147,12 +141,12 @@ int main(int argc, char *argv[])
  * Returns -1, if file cannot be opened
  *          0, if file opened.
  */
-static aConfItem *chk_initconf(void)
+static struct ConfItem *chk_initconf(void)
 {
   FBFILE *file;
   char line[512], *tmp, *s, *crule;
-  int ccount = 0, ncount = 0, flags = 0;
-  aConfItem *aconf = NULL, *ctop = NULL;
+  int ccount = 0, flags = 0;
+  struct ConfItem *aconf = NULL, *ctop = NULL;
 
   fprintf(stderr, "chk_initconf(): ircd.conf = %s\n", chk_configfile);
   if (NULL == (file = fbopen(chk_configfile, "r")))
@@ -163,21 +157,24 @@ static aConfItem *chk_initconf(void)
 
   while (fbgets(line, sizeof(line) - 1, file))
   {
-    if (aconf)
-    {
+    if (aconf) {
       if (aconf->host)
-	RunFree(aconf->host);
+        MyFree(aconf->host);
       if (aconf->passwd)
-	RunFree(aconf->passwd);
+        MyFree(aconf->passwd);
       if (aconf->name)
-	RunFree(aconf->name);
+        MyFree(aconf->name);
     }
-    else
-      aconf = (aConfItem *)RunMalloc(sizeof(*aconf));
-    aconf->host = (char *)NULL;
-    aconf->passwd = (char *)NULL;
-    aconf->name = (char *)NULL;
-    aconf->confClass = (aConfClass *) NULL;
+    else {
+      aconf = (struct ConfItem*) MyMalloc(sizeof(struct ConfItem));
+      assert(0 != aconf);
+    }
+    aconf->host        = NULL;
+    aconf->passwd      = NULL;
+    aconf->name        = NULL;
+    aconf->confClass   = NULL;
+    aconf->dns_pending = 0;
+
     if ((tmp = strchr(line, '\n')))
       *tmp = 0;
     /*
@@ -187,36 +184,36 @@ static aConfItem *chk_initconf(void)
     {
       if (*tmp == '\\')
       {
-	switch (*(tmp + 1))
-	{
-	  case 'n':
-	    *tmp = '\n';
-	    break;
-	  case 'r':
-	    *tmp = '\r';
-	    break;
-	  case 't':
-	    *tmp = '\t';
-	    break;
-	  case '0':
-	    *tmp = '\0';
-	    break;
-	  default:
-	    *tmp = *(tmp + 1);
-	    break;
-	}
-	if (!*(tmp + 1))
-	  break;
-	else
-	  for (s = tmp; (*s = *++s);)
-	    ;
-	tmp++;
+        switch (*(tmp + 1))
+        {
+          case 'n':
+            *tmp = '\n';
+            break;
+          case 'r':
+            *tmp = '\r';
+            break;
+          case 't':
+            *tmp = '\t';
+            break;
+          case '0':
+            *tmp = '\0';
+            break;
+          default:
+            *tmp = *(tmp + 1);
+            break;
+        }
+        if (!*(tmp + 1))
+          break;
+        else
+          for (s = tmp; (*s = *++s);)
+            ;
+        tmp++;
       }
       else if (*tmp == '#')
-	*tmp = '\0';
+        *tmp = '\0';
     }
     if (!*line || *line == '#' || *line == '\n' ||
-	*line == ' ' || *line == '\t')
+        *line == ' ' || *line == '\t')
       continue;
 
     if (line[1] != ':')
@@ -240,121 +237,109 @@ static aConfItem *chk_initconf(void)
 
     switch (*tmp)
     {
-      case 'A':		/* Name, e-mail address of administrator */
-      case 'a':		/* of this server. */
-	aconf->status = CONF_ADMIN;
-	break;
-      case 'C':		/* Server where I should try to connect */
-      case 'c':		/* in case of lp failures             */
-	ccount++;
-	aconf->status = CONF_CONNECT_SERVER;
-	break;
-	/* Connect rule */
+      case 'A':         /* Name, e-mail address of administrator */
+      case 'a':         /* of this server. */
+        aconf->status = CONF_ADMIN;
+        break;
+      case 'C':         /* Server where I should try to connect */
+      case 'c':         /* in case of lp failures             */
+        ccount++;
+        aconf->status = CONF_SERVER;
+        break;
+        /* Connect rule */
       case 'D':
-	aconf->status = CONF_CRULEALL;
-	break;
-	/* Connect rule - autos only */
+        aconf->status = CONF_CRULEALL;
+        break;
+        /* Connect rule - autos only */
       case 'd':
-	aconf->status = CONF_CRULEAUTO;
-	break;
-      case 'H':		/* Hub server line */
+        aconf->status = CONF_CRULEAUTO;
+        break;
+      case 'H':         /* Hub server line */
       case 'h':
-	aconf->status = CONF_HUB;
-	break;
-      case 'I':		/* Just plain normal irc client trying  */
-      case 'i':		/* to connect me */
-	aconf->status = CONF_CLIENT;
-	break;
-      case 'K':		/* Kill user line on irc.conf           */
-	aconf->status = CONF_KILL;
-	break;
-      case 'k':		/* Kill user line based on IP in ircd.conf */
-	aconf->status = CONF_IPKILL;
-	break;
-	/* Operator. Line should contain at least */
-	/* password and host where connection is  */
-      case 'L':		/* guaranteed leaf server */
+        aconf->status = CONF_HUB;
+        break;
+      case 'I':         /* Just plain normal irc client trying  */
+      case 'i':         /* to connect me */
+        aconf->status = CONF_CLIENT;
+        break;
+      case 'K':         /* Kill user line on irc.conf           */
+        aconf->status = CONF_KILL;
+        break;
+      case 'k':         /* Kill user line based on IP in ircd.conf */
+        aconf->status = CONF_IPKILL;
+        break;
+        /* Operator. Line should contain at least */
+        /* password and host where connection is  */
+      case 'L':         /* guaranteed leaf server */
       case 'l':
-	aconf->status = CONF_LEAF;
-	break;
-	/* Me. Host field is name used for this host */
-	/* and port number is the number of the port */
+        aconf->status = CONF_LEAF;
+        break;
+        /* Me. Host field is name used for this host */
+        /* and port number is the number of the port */
       case 'M':
       case 'm':
-	aconf->status = CONF_ME;
-	break;
-      case 'N':		/* Server where I should NOT try to     */
-      case 'n':		/* connect in case of lp failures     */
-	/* but which tries to connect ME        */
-	++ncount;
-	aconf->status = CONF_NOCONNECT_SERVER;
-	break;
+        aconf->status = CONF_ME;
+        break;
       case 'O':
-	aconf->status = CONF_OPERATOR;
-	break;
-	/* Local Operator, (limited privs --SRB) */
+        aconf->status = CONF_OPERATOR;
+        break;
+        /* Local Operator, (limited privs --SRB) */
       case 'o':
-	aconf->status = CONF_LOCOP;
-	break;
-      case 'P':		/* listen port line */
+        aconf->status = CONF_LOCOP;
+        break;
+      case 'P':         /* listen port line */
       case 'p':
-	aconf->status = CONF_LISTEN_PORT;
-	break;
-#ifdef R_LINES
-      case 'R':		/* extended K line */
-      case 'r':		/* Offers more options of how to restrict */
-	aconf->status = CONF_RESTRICT;
-	break;
-#endif
+        aconf->status = CONF_LISTEN_PORT;
+        break;
       case 'T':
       case 't':
-	aconf->status = CONF_TLINES;
-	break;
+        aconf->status = CONF_TLINES;
+        break;
       case 'U':
       case 'u':
-	aconf->status = CONF_UWORLD;
-	break;
+        aconf->status = CONF_UWORLD;
+        break;
       case 'Y':
       case 'y':
-	aconf->status = CONF_CLASS;
-	break;
+        aconf->status = CONF_CLASS;
+        break;
       default:
-	fprintf(stderr, "\tERROR: unknown conf line letter (%c)\n", *tmp);
-	break;
+        fprintf(stderr, "\tERROR: unknown conf line letter (%c)\n", *tmp);
+        break;
     }
 
     if (IsIllegal(aconf))
       continue;
 
-    for (;;)			/* Fake loop, that I can use break here --msa */
+    for (;;)                    /* Fake loop, that I can use break here --msa */
     {
       if ((tmp = getfield(NULL)) == NULL)
-	break;
+        break;
       DupString(aconf->host, tmp);
       if ((tmp = getfield(NULL)) == NULL)
-	break;
+        break;
       DupString(aconf->passwd, tmp);
       if ((tmp = getfield(NULL)) == NULL)
-	break;
+        break;
       DupString(aconf->name, tmp);
       if ((tmp = getfield(NULL)) == NULL)
-	break;
+        break;
       aconf->port = atoi(tmp);
       if ((tmp = getfield(NULL)) == NULL)
-	break;
+        break;
       if (!(aconf->status & (CONF_CLASS | CONF_ME)))
       {
-	aconf->confClass = get_class(atoi(tmp), 0);
-	break;
+        aconf->confClass = get_class(atoi(tmp), 0);
+        break;
       }
       if (aconf->status & CONF_ME)
-	aconf->confClass = get_class(atoi(tmp), 1);
+        aconf->confClass = get_class(atoi(tmp), 1);
       break;
     }
-    if (!aconf->confClass && (aconf->status & (CONF_CONNECT_SERVER |
-	CONF_ME | CONF_NOCONNECT_SERVER | CONF_OPS | CONF_CLIENT)))
+    if (!aconf->confClass && (aconf->status & (CONF_SERVER |
+        CONF_ME | CONF_OPS | CONF_CLIENT)))
     {
-      fprintf(stderr, "\tWARNING: No class.	 Default 0\n");
+      fprintf(stderr, "\tWARNING: No class.      Default 0\n");
       aconf->confClass = get_class(0, 0);
     }
     /*
@@ -365,17 +350,17 @@ static aConfItem *chk_initconf(void)
     {
       if (!aconf->host)
       {
-	fprintf(stderr, "\tERROR: no class #\n");
-	continue;
+        fprintf(stderr, "\tERROR: no class #\n");
+        continue;
       }
       if (!tmp)
       {
-	fprintf(stderr, "\tWARNING: missing sendq field\n");
-	fprintf(stderr, "\t\t default: %d\n", DEFAULTMAXSENDQLENGTH);
-	sprintf(maxsendq, "%d", DEFAULTMAXSENDQLENGTH);
+        fprintf(stderr, "\tWARNING: missing sendq field\n");
+        fprintf(stderr, "\t\t default: %d\n", DEFAULTMAXSENDQLENGTH);
+        sprintf(maxsendq, "%d", DEFAULTMAXSENDQLENGTH);
       }
       else
-	sprintf(maxsendq, "%d", atoi(tmp));
+        sprintf(maxsendq, "%d", atoi(tmp));
       new_class(atoi(aconf->host));
       aconf->confClass = get_class(atoi(aconf->host), 0);
       goto print_confline;
@@ -383,62 +368,45 @@ static aConfItem *chk_initconf(void)
 
     if (aconf->status & CONF_LISTEN_PORT)
     {
-#ifdef	UNIXPORT
-      struct stat sb;
-
       if (!aconf->host)
-	fprintf(stderr, "\tERROR: %s\n", "null host field in P-line");
+        fprintf(stderr, "\tERROR: %s\n", "null host field in P-line");
       else if (strchr(aconf->host, '/'))
-      {
-	if (stat(aconf->host, &sb) == -1)
-	{
-	  fprintf(stderr, "\tERROR: (%s) ", aconf->host);
-	  perror("stat");
-	}
-	else if ((sb.st_mode & S_IFMT) != S_IFDIR)
-	  fprintf(stderr, "\tERROR: %s not directory\n", aconf->host);
-      }
-#else
-      if (!aconf->host)
-	fprintf(stderr, "\tERROR: %s\n", "null host field in P-line");
-      else if (strchr(aconf->host, '/'))
-	fprintf(stderr, "\t%s\n", "WARNING: / present in P-line "
-	    "for non-UNIXPORT configuration");
-#endif
+        fprintf(stderr, "\t%s\n", "WARNING: / present in P-line "
+            "for non-UNIXPORT configuration");
       aconf->confClass = get_class(0, 0);
       goto print_confline;
     }
 
-    if (aconf->status & CONF_SERVER_MASK &&
-	(!aconf->host || strchr(aconf->host, '*') || strchr(aconf->host, '?')))
+    if (aconf->status & CONF_SERVER &&
+        (!aconf->host || strchr(aconf->host, '*') || strchr(aconf->host, '?')))
     {
       fprintf(stderr, "\tERROR: bad host field\n");
       continue;
     }
 
-    if (aconf->status & CONF_SERVER_MASK && BadPtr(aconf->passwd))
+    if (aconf->status & CONF_SERVER && BadPtr(aconf->passwd))
     {
       fprintf(stderr, "\tERROR: empty/no password field\n");
       continue;
     }
 
-    if (aconf->status & CONF_SERVER_MASK && !aconf->name)
+    if (aconf->status & CONF_SERVER && !aconf->name)
     {
       fprintf(stderr, "\tERROR: bad name field\n");
       continue;
     }
 
-    if (aconf->status & (CONF_SERVER_MASK | CONF_OPS))
+    if (aconf->status & (CONF_OPS))
       if (!strchr(aconf->host, '@'))
       {
-	char *newhost;
-	int len = 3;		/* *@\0 = 3 */
+        char *newhost;
+        int len = 3;            /* *@\0 = 3 */
 
-	len += strlen(aconf->host);
-	newhost = (char *)RunMalloc(len);
-	sprintf(newhost, "*@%s", aconf->host);
-	RunFree(aconf->host);
-	aconf->host = newhost;
+        len += strlen(aconf->host);
+        newhost = (char *)MyMalloc(len);
+        sprintf(newhost, "*@%s", aconf->host);
+        MyFree(aconf->host);
+        aconf->host = newhost;
       }
 
     /* parse the connect rules to detect errors, but free
@@ -446,14 +414,14 @@ static aConfItem *chk_initconf(void)
      *  for errors..  */
     if (aconf->status & CONF_CRULE)
       if ((crule = (char *)crule_parse(aconf->name)) != NULL)
-	crule_free(&crule);
+        crule_free(&crule);
 
     if (!aconf->confClass)
       aconf->confClass = get_class(0, 0);
     sprintf(maxsendq, "%d", ConfClass(aconf));
 
     if ((aconf->status & CONF_ADMIN) && (!aconf->name ||
-	!aconf->passwd || !aconf->host))
+        !aconf->passwd || !aconf->host))
       fprintf(stderr, "ERROR: Your A: line must have 4 fields!\n");
 
     if (!aconf->name)
@@ -465,18 +433,18 @@ static aConfItem *chk_initconf(void)
     if (aconf->status & (CONF_ME | CONF_ADMIN))
     {
       if (flags & aconf->status)
-	fprintf(stderr, "ERROR: multiple %c-lines\n",
-	    toUpper(confchar(aconf->status)));
+        fprintf(stderr, "ERROR: multiple %c-lines\n",
+                ToUpper(confchar(aconf->status)));
       else
-	flags |= aconf->status;
+        flags |= aconf->status;
     }
-  print_confline:
+print_confline:
     if (debugflag > 8)
       printf("(%d) (%s) (%s) (%s) (%u) (%s)\n",
-	  aconf->status, aconf->host, aconf->passwd,
-	  aconf->name, aconf->port, maxsendq);
+          aconf->status, aconf->host, aconf->passwd,
+          aconf->name, aconf->port, maxsendq);
     fflush(stdout);
-    if (aconf->status & (CONF_SERVER_MASK | CONF_HUB | CONF_LEAF))
+    if (aconf->status & (CONF_SERVER | CONF_HUB | CONF_LEAF))
     {
       aconf->next = ctop;
       ctop = aconf;
@@ -487,9 +455,9 @@ static aConfItem *chk_initconf(void)
   return ctop;
 }
 
-static aConfClass *get_class(int cn, int ism)
+static struct ConfClass *get_class(int cn, int ism)
 {
-  static aConfClass cls;
+  static struct ConfClass cls;
   if (ism == 1)
   {
     cls.conClass = (unsigned int)-1;
@@ -505,8 +473,8 @@ static aConfClass *get_class(int cn, int ism)
     for (; i >= 0; i--)
       if (classarr[i] == cn)
       {
-	cls.conClass = cn;
-	break;
+        cls.conClass = cn;
+        break;
       }
     if (i == -1)
       fprintf(stderr, "\tWARNING: class %d not found\n", cn);
@@ -518,9 +486,9 @@ static void new_class(int cn)
 {
   numclasses++;
   if (classarr)
-    classarr = (int *)RunRealloc(classarr, sizeof(int) * numclasses);
+    classarr = (int *)MyRealloc(classarr, sizeof(int) * numclasses);
   else
-    classarr = (int *)RunMalloc(sizeof(int));
+    classarr = (int *)MyMalloc(sizeof(int));
   classarr[numclasses - 1] = cn;
 }
 
@@ -550,9 +518,9 @@ static char *getfield(char *newline)
   return (field);
 }
 
-static int validate(aConfItem *top)
+static int validate(struct ConfItem *top)
 {
-  Reg1 aConfItem *aconf, *bconf;
+  struct ConfItem *aconf, *bconf;
   unsigned int otype, valid = 0;
 
   if (!top)
@@ -563,49 +531,45 @@ static int validate(aConfItem *top)
     if (aconf->status & CONF_MATCH)
       continue;
 
-    if (aconf->status & CONF_SERVER_MASK)
+    if (aconf->status & CONF_SERVER)
     {
-      if (aconf->status & CONF_CONNECT_SERVER)
-	otype = CONF_NOCONNECT_SERVER;
-      else if (aconf->status & CONF_NOCONNECT_SERVER)
-	otype = CONF_CONNECT_SERVER;
-      else			/* Does this ever happen ? */
-	continue;
+      otype = CONF_SERVER;
 
       for (bconf = top; bconf; bconf = bconf->next)
       {
-	if (bconf == aconf || !(bconf->status & otype))
-	  continue;
-	if (bconf->confClass == aconf->confClass &&
-	    !strCasediff(bconf->name, aconf->name) &&
-	    !strCasediff(bconf->host, aconf->host))
-	{
-	  aconf->status |= CONF_MATCH;
-	  bconf->status |= CONF_MATCH;
-	  break;
-	}
+        if (bconf == aconf || !(bconf->status & otype))
+          continue;
+        if (bconf->confClass == aconf->confClass &&
+            0 == ircd_strcmp(bconf->name, aconf->name) &&
+            0 == ircd_strcmp(bconf->host, aconf->host))
+        {
+          aconf->status |= CONF_MATCH;
+          bconf->status |= CONF_MATCH;
+          break;
+        }
       }
     }
     else
       for (bconf = top; bconf; bconf = bconf->next)
       {
-	if ((bconf == aconf) || !(bconf->status & CONF_SERVER_MASK))
-	  continue;
-	if (!strCasediff(bconf->name, aconf->name))
-	{
-	  aconf->status |= CONF_MATCH;
-	  break;
-	}
+        if ((bconf == aconf) || !(bconf->status & CONF_SERVER))
+          continue;
+        if (0 == ircd_strcmp(bconf->name, aconf->name))
+        {
+          aconf->status |= CONF_MATCH;
+          break;
+        }
       }
   }
 
   fprintf(stderr, "\n");
-  for (aconf = top; aconf; aconf = aconf->next)
+  for (aconf = top; aconf; aconf = aconf->next) {
     if (aconf->status & CONF_MATCH)
       valid++;
-    else
+    else if ('N' != confchar(aconf->status)) 
       fprintf(stderr, "Unmatched %c:%s:%s:%s\n",
-	  confchar(aconf->status), aconf->host, aconf->passwd, aconf->name);
+          confchar(aconf->status), aconf->host, aconf->passwd, aconf->name);
+  }
   return valid ? 0 : -1;
 }
 

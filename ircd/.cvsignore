@@ -3,3 +3,5 @@ stamp-m
 version.c
 ircd
 chkconf
+table_gen
+chattr.tab.c

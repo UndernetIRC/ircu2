@@ -1,0 +1,201 @@
+<html>
+<head>
+<title>SNOMASK - Server Notice Masks</title>
+</head>
+<body bgcolor=#FFFFFF text=#000000 link=#700000 vlink=#404040>
+<center>
+<font face="arial">
+<h2>SNOMASK - Server Notice Masks</h2></font>
+<font face="arial" size="2">
+Written by <a href="mailto:foxxe@wolfspirit.org">Ghostwolf</a> 18th June 1997<br>
+Modified with permission by <a href="mailto:loki@undernet.org">loki</a> 12th November 1997
+</center>
+<p><hr width="80%" noshade>
+
+<blockquote>
+This document (hopefully) gives a brief explanation of the use of server
+notice masks new to ircu2.10.00. This mask allows clients to specify which
+types of server notices they will receive when usermode +s. The mask may
+optionally be omitted, and reasonable defaults will be used by the server.
+<p>
+Note: the descriptions here will be best understood by those with knowledge
+of C syntax. We do not attempt to explain either this or hexadecimal values
+in this document, and familiarity with these is assumed of the reader.
+<p>
+Usage:
+</font><kbd><strong>
+/mode &lt;nick&gt; +s [+/-][mask]</kbd></strong>
+<font face="arial" size="2">
+<p>
+<center>
+<table border=0 cellspacing=5 cellpadding=0 width=85%>
+<tr align=center valign=middle>
+<th align=left><font face="arial" size="2">Mask</th>
+<th align=left>&nbsp;</th>
+<th align=left><font face="arial" size="2">Hex value</th>
+<th align=left><font face="arial" size="2">Description</th>
+</tr>
+<tr>
+<td><font face="arial" size="2">1</td>
+<td><font face="arial" size="2">SNO_OLDSNO</td>
+<td><font face="arial" size="2">0x1</td>
+<td><font face="arial" size="2">/* unsorted old messages */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">2</td>
+<td><font face="arial" size="2">SNO_SERVKILL</td>
+<td><font face="arial" size="2">0x2</td>
+<td><font face="arial" size="2">/* server kills (nick collisions) */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">4</td>
+<td><font face="arial" size="2">SNO_OPERKILL</td>
+<td><font face="arial" size="2">0x4</td>
+<td><font face="arial" size="2">/* oper kills */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">8</td>
+<td><font face="arial" size="2">SNO_HACK2</td>
+<td><font face="arial" size="2">0x8</td>
+<td><font face="arial" size="2">/* desyncs */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">16</td>
+<td><font face="arial" size="2">SNO_HACK3
+<td><font face="arial" size="2">0x10</td>
+<td><font face="arial" size="2">/* temporary desyncs */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">32</td>
+<td><font face="arial" size="2">SNO_UNAUTH</td>
+<td><font face="arial" size="2">0x20</td>
+<td><font face="arial" size="2">/* unauthorized connections */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">64</td>
+<td><font face="arial" size="2">SNO_TCPCOMMON</td>
+<td><font face="arial" size="2">0x40</td>
+<td><font face="arial" size="2">/* common TCP or socket errors */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">128</td>
+<td><font face="arial" size="2">SNO_TOOMANY</td>
+<td><font face="arial" size="2">0x80</td>
+<td><font face="arial" size="2">/* too many connections */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">256</td>
+<td><font face="arial" size="2">SNO_HACK4</td>
+<td><font face="arial" size="2">0x100</td>
+<td><font face="arial" size="2">/* Uworld actions on channels */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">512</td>
+<td><font face="arial" size="2">SNO_GLINE</td>
+<td><font face="arial" size="2">0x200</td>
+<td><font face="arial" size="2">/* glines */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">1024</td>
+<td><font face="arial" size="2">SNO_NETWORK</td>
+<td><font face="arial" size="2">0x400</td>
+<td><font face="arial" size="2">/* net join/break, etc */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">2048</td>
+<td><font face="arial" size="2">SNO_IPMISMATCH</td>
+<td><font face="arial" size="2">0x800</td>
+<td><font face="arial" size="2">/* IP mismatches */</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">4096</td>
+<td><font face="arial" size="2">SNO_THROTTLE</td>
+<td><font face="arial" size="2">0x1000</td>
+<td><font face="arial" size="2">/* host throttle add/remove notices */</td>
+</tr>
+<td><font face="arial" size="2">8192</td>
+<td><font face="arial" size="2">SNO_OLDREALOP</td>
+<td><font face="arial" size="2">0x2000</td>
+<td><font face="arial" size="2">/* old oper-only messages */</td>
+</tr>
+<td><font face="arial" size="2">16384</td>
+<td><font face="arial" size="2">SNO_CONNEXIT</td>
+<td><font face="arial" size="2">0x4000</td>
+<td><font face="arial" size="2">/* client connect/exit (ugh) */</td>
+</tr>
+</table>
+</center>
+
+<p>
+
+<table border=0 cellpadding=0 cellspacing=5 width=90%>
+<tr>
+<td><font face="arial" size="2">standard +s</td>
+<td><font face="arial" size="2">SNO_DEFAULT (SNO_NETWORK | SNO_OPERKILL | SNO_GLINE)</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">standard +s when +o/O</td>
+<td><font face="arial" size="2">SNO_DEFAULT | SNO_HACK2 | SNO_HACK4 | SNO_OLDSNO)</td>
+</tr>
+<tr>
+<td><font face="arial" size="2">only opers may set</td>
+<td><font face="arial" size="2">SNO_OPER (SNO_CONNEXIT | SNO_OLDREALOP)</td>
+</tr>
+</table>
+
+<p><hr width="80%" noshade>
+<h3 align=center>Examples of Usage</h3>
+To receive only operkills, use /mode <nick> +s 4<br>
+To receive operkills and glines, add the values:
+</font>
+<blockquote><kbd><strong>
+/mode &lt;nick&gt; +s 516</kbd></strong><p>
+<font face="arial" size="2">
+(512+4=516)
+</blockquote>
+<p>
+If you are already receiving some notices and you wish to add notices of
+netjoins/breaks use:
+</font>
+<blockquote><kbd><strong>
+/mode Ghostwolf +s +1024</kbd></strong><p>
+</blockquote>
+<font face="arial" size="2">
+<p>
+If you wish to stop receiving netjoin/break notices, but continue to receive
+other notices, use:
+</font>
+<blockquote><kbd><strong>
+/mode Ghostwolf +s -1024<br>
+ OR<br>
+/mode Ghostwolf -s +1024</kbd></strong>
+</blockquote>
+<font face="arial" size="2">
+<p>
+A user typing <strong>/mode Ghostwolf +s </strong>will receive netsplits/joins, operkills, and g-lines.<p>
+
+Opers who are +s will additionally receive HACK notices and anything that
+was originally in sendto_ops() and wasn't changed. Only opers can choose to
+receive connect/exit notices and anything that originally was in
+sendtoreal_ops() and hasn't been changed (connect/exit notices also require
+a #define in config.h).
+<p>
+</font><center>
+<hr width=80% noshade><font size=-1><strong>
+If you have further questions about server notices (implementation, etc.),<br>
+please consult the ircu source code and/or e-mail <a
+href="mailto:coder-com@undernet.org">coder-com@undernet.org</a>.
+</strong></font></center>
+<hr width="80%" noshade><p>
+
+<p align="right">
+<em>
+<font face="times new roman" font size="-1">
+Return to <a href="http://www.user-com.undernet.org/documents/" target="nfo">main Documents Project page</a><br>
+</em>
+</font>
+
+</body>
+</html>
+
+

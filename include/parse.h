@@ -1,12 +1,19 @@
-#ifndef PARSE_H
-#define PARSE_H
+/*
+ * parse.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_parse_h
+#define INCLUDED_parse_h
 
-/*=============================================================================
- * Proto types
+struct Client;
+
+/*
+ * Prototypes
  */
 
-extern int parse_client(aClient *cptr, char *buffer, char *bufend);
-extern int parse_server(aClient *cptr, char *buffer, char *bufend);
+extern int parse_client(struct Client *cptr, char *buffer, char *bufend);
+extern int parse_server(struct Client *cptr, char *buffer, char *bufend);
 extern void initmsgtree(void);
 
-#endif /* PARSE_H */
+#endif /* INCLUDED_parse_h */

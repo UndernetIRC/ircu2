@@ -1,0 +1,897 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.07 [en] (X11; I; Linux 2.2.13 i586) [Netscape]">
+   <TITLE>Undernet P10 Protocol and Interface Specification</TITLE>
+</HEAD>
+<BODY>
+
+<H2>
+<A NAME="top"></A><FONT SIZE=+3>Undernet P10 Protocol and Interface Specification</FONT></H2>
+<I>(As of ircu 2.10.10)</I>
+<H2>
+Undernet Coder-com, <TT>coder-com@undernet.org</TT></H2>
+v0.10, 2nd March 2000.
+<P>
+<HR ALIGN=CENTER WIDTH=100% SIZE=2><I>This document aims to be a practical
+guide for implementing and maintaining the protocol, not just a reference
+manual.</I>
+<P>This document is "work in progress" and being continually updated :)
+<HR 
+  ALIGN=CENTER WIDTH=100% SIZE=2>
+<BR><FONT SIZE=+2>1. <B><A HREF="#chap1">Introduction</A></B></FONT>
+<P><FONT SIZE=+2>2. <B><A HREF="#chap2">General concepts and background</A></B></FONT>
+<BLOCKQUOTE><FONT SIZE=+0>2.1 <A HREF="#chap2.1">Concepts</A>.</FONT>
+<BR><FONT SIZE=+0>2.2 <A HREF="#chap2.2">Token Table</A>.</FONT></BLOCKQUOTE>
+
+<H2>
+3. <A HREF="#chap3">Registration and syncronisation</A></H2>
+
+<UL>
+<LI>
+<FONT SIZE=+0>3.1 <A HREF="#chap3.1">Server registration and authentication</A>.</FONT></LI>
+
+<LI>
+<FONT SIZE=+0>3.2 <A HREF="#chap3.2">Network database resyncronisation</A>.</FONT></LI>
+
+<LI>
+<FONT SIZE=+0>3.3 <A HREF="#chap3.3">Summary</A>.</FONT></LI>
+</UL>
+
+<H2>
+4. <A HREF="#chap4">Continous operation</A></H2>
+
+<UL>
+<LI>
+4.1 Channel operations.</LI>
+
+<LI>
+4.2 Messaging.</LI>
+
+<LI>
+4.3 Setting G-Lines.</LI>
+
+<LI>
+4.4 ...</LI>
+</UL>
+
+<H2>
+4. Programmers reference: Function headers</H2>
+
+<UL>
+<LI>
+<FONT SIZE=+0>4.1 ms_nick</FONT></LI>
+
+<LI>
+<FONT SIZE=+0>4.2 m_burst</FONT></LI>
+
+<LI>
+<FONT SIZE=+0>4.3 ..etc</FONT></LI>
+</UL>
+
+<H2>
+5. <A HREF="#chap5">Programmers reference: Client/Server Structures</A></H2>
+
+<H2>
+6. <A HREF="#chap7">FAQ</A></H2>
+
+<H2>
+7. Acknowledgements and disclaimer</H2>
+
+<H2>
+8. <A HREF="#chap8">Update History</A></H2>
+
+<BLOCKQUOTE>
+<LI>
+<A HREF="#chap8.1">TODO List</A></LI>
+</BLOCKQUOTE>
+
+<CENTER>
+<HR ALIGN=CENTER WIDTH=100% SIZE=2></CENTER>
+
+<P><A NAME="chap1"></A><B><FONT SIZE=+2>1. Introduction</FONT></B>
+<P><FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR ALIGN=LEFT WIDTH=100% SIZE=2>
+<P><A NAME="chap2"></A><B><FONT SIZE=+2>2. General concepts and background</FONT></B>
+<P><A NAME="chap2.1"></A><B><FONT SIZE=+1>2.1 Concepts</FONT></B>
+<P>The undernet P10 protocol uses a scheme of "Numerics" to uniquenly identify
+a client or server within the network. Each server has its own unique numeric
+(0 -> 4095) and each client has its own numeric within that server (0->262,143).
+<P>The numerics are encoded into a Base64 stream to maintain human readable
+data flow and reduce the size of the messages. The Base64 character set
+used in ircu is included below, this defines all valid characters allowed
+in a Base64 numeric with "A" representing 0 and "]" representing 63.
+<BLOCKQUOTE>
+<PRE><TT><FONT COLOR="#00007F">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]</FONT></TT></PRE>
+</BLOCKQUOTE>
+Server numerics consist of 2 characters, with the minimum, 0, being represented
+by "AA", and the maximum, 4095, being represented by "]]". Client numerics
+are 3 characters long, with the minimum, 0, being represented by "AAA",
+and the maximum, 262,143, being represented by "]]]". The unique identifier
+of a client on the network consists of a combination of both the server
+and client numeric in the format SSCCC.
+<P>As an example, consider a server "irc.undernet.org" which has a numeric
+of 2, translating to "AC" in Base64. On this server exists a client, whom
+has been allocated the numeric 63 (which translates to "AA]" in Base64).
+Therefore, the unique identifier of this client on the network is "ACAA]".
+From this, we can determine which server the message came from, aswell
+as the client who sent it.
+<P>These numerics are used to prefix every message issued on the stream
+except for the initial "PASS" or "SERVER" message, which are not prefixed.
+Therefore, every message that can be recieved from a server will consist
+of the format:
+<BLOCKQUOTE>
+<PRE><FONT COLOR="#00007F">[NUMERIC PREFIX] [TOKEN] [DATA]</FONT></PRE>
+</BLOCKQUOTE>
+For Example:
+<BLOCKQUOTE>
+<PRE><FONT COLOR="#00007F">A[A5j P ABAAA :Foo.</FONT></PRE>
+</BLOCKQUOTE>
+<A NAME="chap2.2"></A><B><FONT SIZE=+1>2.2 Token Table</FONT></B>
+<P>The following table lists all the acceptable messages, along with their
+relevant "Token", which is used in the server&lt;>server protocol. The
+aim of tokenisation is to reduce the bandwidth used during network communication
+by reducing the length of common message identifiers.
+<BR>&nbsp;
+<CENTER><TABLE BORDER COLS=2 WIDTH="40%" >
+<TR>
+<TD><B>Message</B></TD>
+
+<TD><B>Token</B></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PRIVMSG</FONT></TD>
+
+<TD><FONT SIZE=-1>P</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>WHO</FONT></TD>
+
+<TD><FONT SIZE=-1>H</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>WHOIS</FONT></TD>
+
+<TD><FONT SIZE=-1>W</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>WHOWAS</FONT></TD>
+
+<TD><FONT SIZE=-1>X</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>USER</FONT></TD>
+
+<TD><FONT SIZE=-1>USER</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>NICK</FONT></TD>
+
+<TD><FONT SIZE=-1>N</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>SERVER</FONT></TD>
+
+<TD><FONT SIZE=-1>S</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>LIST</FONT></TD>
+
+<TD><FONT SIZE=-1>LIST</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>TOPIC</FONT></TD>
+
+<TD><FONT SIZE=-1>T</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>INVITE</FONT></TD>
+
+<TD><FONT SIZE=-1>I</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>VERSION</FONT></TD>
+
+<TD><FONT SIZE=-1>V</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>QUIT</FONT></TD>
+
+<TD><FONT SIZE=-1>Q</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>SQUIT</FONT></TD>
+
+<TD><FONT SIZE=-1>SQ</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>KILL</FONT></TD>
+
+<TD><FONT SIZE=-1>D</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>INFO</FONT></TD>
+
+<TD><FONT SIZE=-1>F</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>LINKS</FONT></TD>
+
+<TD><FONT SIZE=-1>LI</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>STATS</FONT></TD>
+
+<TD><FONT SIZE=-1>R</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>HELP</FONT></TD>
+
+<TD><FONT SIZE=-1>HELP</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>ERROR</FONT></TD>
+
+<TD><FONT SIZE=-1>Y</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>AWAY</FONT></TD>
+
+<TD><FONT SIZE=-1>A</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>CONNECT</FONT></TD>
+
+<TD><FONT SIZE=-1>CO</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>MAP</FONT></TD>
+
+<TD><FONT SIZE=-1>MAP</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PING</FONT></TD>
+
+<TD><FONT SIZE=-1>G</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PONG</FONT></TD>
+
+<TD><FONT SIZE=-1>Z</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>OPER</FONT></TD>
+
+<TD><FONT SIZE=-1>OPER</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PASS</FONT></TD>
+
+<TD><FONT SIZE=-1>PA</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>WALLOPS</FONT></TD>
+
+<TD><FONT SIZE=-1>WA</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>DESYNCH</FONT></TD>
+
+<TD><FONT SIZE=-1>DS</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>TIME</FONT></TD>
+
+<TD><FONT SIZE=-1>TI</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>SETTIME</FONT></TD>
+
+<TD><FONT SIZE=-1>SE</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>RPING</FONT></TD>
+
+<TD><FONT SIZE=-1>RI</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>RPONG</FONT></TD>
+
+<TD><FONT SIZE=-1>RO</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>NAMES</FONT></TD>
+
+<TD><FONT SIZE=-1>E</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>ADMIN</FONT></TD>
+
+<TD><FONT SIZE=-1>AD</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>TRACE</FONT></TD>
+
+<TD><FONT SIZE=-1>TR</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>NOTICE</FONT></TD>
+
+<TD><FONT SIZE=-1>O</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>WALLCHOPS</FONT></TD>
+
+<TD><FONT SIZE=-1>WC</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>CPRIVMSG</FONT></TD>
+
+<TD><FONT SIZE=-1>CP</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>CNOTICE</FONT></TD>
+
+<TD><FONT SIZE=-1>CN</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>JOIN</FONT></TD>
+
+<TD><FONT SIZE=-1>J</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PART</FONT></TD>
+
+<TD><FONT SIZE=-1>L</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>LUSERS</FONT></TD>
+
+<TD><FONT SIZE=-1>LU</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>MOTD</FONT></TD>
+
+<TD><FONT SIZE=-1>MO</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>MODE</FONT></TD>
+
+<TD><FONT SIZE=-1>M</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>KICK</FONT></TD>
+
+<TD><FONT SIZE=-1>K</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>USERHOST</FONT></TD>
+
+<TD><FONT SIZE=-1>USERHOST</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>USERIP</FONT></TD>
+
+<TD><FONT SIZE=-1>USERIP</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>ISON</FONT></TD>
+
+<TD><FONT SIZE=-1>ISON</FONT></TD>
+</TR>
+
+<TR>
+<TD><I><FONT SIZE=-1>SQUERY</FONT></I></TD>
+
+<TD><I><FONT SIZE=-1>SQUERY</FONT></I></TD>
+</TR>
+
+<TR>
+<TD><I><FONT SIZE=-1>SERVLIST</FONT></I></TD>
+
+<TD><I><FONT SIZE=-1>SERVLIST</FONT></I></TD>
+</TR>
+
+<TR>
+<TD><I><FONT SIZE=-1>SERVSET</FONT></I></TD>
+
+<TD><I><FONT SIZE=-1>SERVSET</FONT></I></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>REHASH</FONT></TD>
+
+<TD><FONT SIZE=-1>REHASH</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>RESTART</FONT></TD>
+
+<TD><FONT SIZE=-1>RESTART</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>CLOSE</FONT></TD>
+
+<TD><FONT SIZE=-1>CLOSE</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>DIE</FONT></TD>
+
+<TD><FONT SIZE=-1>DIE</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>HASH</FONT></TD>
+
+<TD><FONT SIZE=-1>HASH</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>DNS</FONT></TD>
+
+<TD><FONT SIZE=-1>DNS</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>SILENCE</FONT></TD>
+
+<TD><FONT SIZE=-1>U</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>GLINE</FONT></TD>
+
+<TD><FONT SIZE=-1>GL</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>BURST</FONT></TD>
+
+<TD><FONT SIZE=-1>B</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>CREATE</FONT></TD>
+
+<TD><FONT SIZE=-1>C</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>DESTRUCT</FONT></TD>
+
+<TD><FONT SIZE=-1>DE</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>END_OF_BURST</FONT></TD>
+
+<TD><FONT SIZE=-1>EB</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>END_OF_BURST_ACK</FONT></TD>
+
+<TD><FONT SIZE=-1>EA</FONT></TD>
+</TR>
+
+<TR>
+<TD><FONT SIZE=-1>PROTO</FONT></TD>
+
+<TD><FONT SIZE=-1>PROTO</FONT></TD>
+</TR>
+</TABLE></CENTER>
+<FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR ALIGN=LEFT WIDTH=100% SIZE=2>
+<P><A NAME="chap3"></A><B><FONT SIZE=+2>3. Registration and syncronisation</FONT></B>
+<P><A NAME="chap3.1"></A><B><FONT SIZE=+1>3.1 Server registration and authentication</FONT></B>
+<P>After a TCP connection has been established, the server initally introduces
+itself via a "PASS" message as follows:
+<BLOCKQUOTE>
+<PRE><FONT COLOR="#00007F">PASS :[PASSWORD]</FONT></PRE>
+</BLOCKQUOTE>
+"PASSWORD" is simply compared with the password present in the destination
+servers config file, and is used to confirm credentials after the "SERVER"
+message has been recieved, as follows:
+<BLOCKQUOTE>
+<PRE><TT><FONT COLOR="#00007F">SERVER [SERVERNAME] [HOPCOUNT] [START TIME] [LINK TIME] [PROTOCOL] [NUMERIC/MAXCONN] :[DESCRIPTION]</FONT></TT></PRE>
+</BLOCKQUOTE>
+For Example:
+<BLOCKQUOTE>
+<PRE><B>1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6&nbsp;&nbsp; 7&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;
+</B>SERVER irc.undernet.org 1 933022556 947908144 J10 AA]]] :[127.0.0.1] A Undernet Server.</PRE>
+</BLOCKQUOTE>
+<I>Notes:</I>
+<OL>
+<LI>
+The SERVER message, indicating this connection wishes to introduce a new
+server to the network.</LI>
+
+<LI>
+&nbsp;The name of the server you are introducing, a valid server name consists
+of [..defn..].</LI>
+
+<LI>
+&nbsp;The hop count of the server you are introducing, this is always 1
+when you are introducing yourself.</LI>
+
+<LI>
+&nbsp;The epoch timestamp specifying when the ircd was started.</LI>
+
+<LI>
+&nbsp;The epoch timestamp specifying the time the server initiated the
+link to the network.</LI>
+
+<LI>
+&nbsp;The Protocol identifier of this server.</LI>
+
+<OL>
+<LI>
+This token informs the network which protocol it is compliant with, eg:
+If it is a P10 compliant server, then the token will be "P10".</LI>
+
+<LI>
+&nbsp;If the server being introduced has not yet successfully synced its
+database with the network (Completed its net.burst - see 3.2), then the
+Protocol token should be prefixed with a J, instead of a P (Eg: J10) to
+indicate it is currently still <B>j</B>oining the network.</LI>
+
+<LI>
+&nbsp;The protocol token should always be JXX when the server is introducing
+<B>itself</B>.</LI>
+</OL>
+
+<LI>
+The numeric, and maximum connections identifier for this server.</LI>
+
+<OL>
+<LI>
+This token is formatted exactly the same as a client numeric is formatted.
+The first 2 characters identify the server's numeric, whilst in this situation,
+the final 3 characters define the maximum number of clients that this server
+can hold (and more importantly, the maximum number of numerics it will
+generate).</LI>
+
+<LI>
+&nbsp;The example "AA]]]" shows that this is a server with numeric 0, which
+will generate client numerics up to 262,143.</LI>
+</OL>
+
+<LI>
+This final parameter simply consists of a textual description of the server
+prefixed by a colon. This is displayed in a clients WHOIS line, aswell
+as in the LINKS reply.</LI>
+</OL>
+<A NAME="chap3.2"></A><B><FONT SIZE=+1>3.2 Network Database resyncronisation</FONT></B>
+<P>After the connection has been established and verified, the next step
+is to syncronise the database of client/server/channel information between
+the two servers.
+<BLOCKQUOTE><B>3.2.1 - SERVER Messages</B></BLOCKQUOTE>
+
+<BLOCKQUOTE>Server details are transmitted via "SERVER" messages similar
+to the initial introduction message, with the following format:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE><TT><FONT COLOR="#00007F">[OWNING SERVER PREFIX] S [SERVERNAME]
+[HOPCOUNT] [START TIME] [LINK TIME] [PROTOCOL] [NUMERIC/MAXCONN] 0 :[DESCRIPTION]</FONT></TT></BLOCKQUOTE>
+<FONT COLOR="#000000">The syntax of this message is almost identical to
+the originally recieved server message, with the only exception being that
+the message is numeric prefixed, to indicate which server sent this message
+(and also therefore, which hub this new server is linked too). There is
+also a fixed "0" present before the Description field, this is a placeholder
+for future use and currently unused.</FONT>
+<P><B>3.2.2 - NICK Messages</B></BLOCKQUOTE>
+
+<BLOCKQUOTE>Client information is transmitted via "NICK" messages, of the
+following format:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<PRE><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] N [NICK] [HOPCOUNT] [TIMESTAMP] [USERNAME] [HOST] &lt;+modes> [BASE64 IP] [NUMERIC] :[USERINFO]</FONT></TT></PRE>
+</BLOCKQUOTE>
+<FONT COLOR="#00007F">For Example:</FONT>
+<BLOCKQUOTE><TT><FONT COLOR="#000000">1&nbsp; 2 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+4 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6&nbsp;&nbsp;&nbsp;&nbsp;
+7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;
+9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 10&nbsp;&nbsp;&nbsp; 11</FONT></TT>
+<BR><TT><FONT COLOR="#000000">AF N Client1 1 947957573 User userhost.net
++oiwg DAqAoB AFAAA :Generic Client.</FONT></TT></BLOCKQUOTE>
+<I>Notes:</I>
+<OL>
+<LI>
+The numeric of the server sending this message. (And hence, owning this
+client).</LI>
+
+<LI>
+The "NICK" token.</LI>
+
+<LI>
+The nickname of this client, currently max 9 chars.</LI>
+
+<LI>
+The "Hopcount" of this client, Ie: how many servers away it is on.</LI>
+
+<LI>
+The epoch timestamp indicating when the user was created.</LI>
+
+<LI>
+The "User" part of the user@host mask.</LI>
+
+<LI>
+the "Host" part of the user@host mask.</LI>
+
+<LI>
+[<B>Optional</B>]: User modes. If present, this is always +&lt;user modes
+for this client>.</LI>
+
+<LI>
+The real IP address of this client, a Base64 encoded 32bit int.</LI>
+
+<LI>
+This client's numeric, in SSCCC format.</LI>
+
+<LI>
+Free format user info line.</LI>
+
+<BR>&nbsp;</OL>
+</BLOCKQUOTE>
+
+<BLOCKQUOTE><B>3.2.3 - BURST Messages</B></BLOCKQUOTE>
+
+<BLOCKQUOTE>Channel details and membership information is synchronised
+in one (or more) BURST messages for each channel that exists, formatted
+as follows:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<PRE><TT><FONT COLOR="#00007F">[NUMERIC PREFIX] B [CHANNEL] [CREATION TIMESTAMP] &lt;+MODES> &lt;ARG1> &lt;ARG2> [MEMBER LIST] &lt;:%BANS></FONT></TT></PRE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<BLOCKQUOTE>For Example:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<PRE>1&nbsp; 2 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6&nbsp;&nbsp; 7&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9
+AZ B #coder-com 949217470 +tinkl key 56 AAAAA,AAAAB,AAAAC,ABAAA,ABAAB,ABAAC,ACAAA :%*!*@*.net</PRE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<BLOCKQUOTE><I>Notes:</I></BLOCKQUOTE>
+
+<OL>
+<LI>
+The numeric of the server sending this message.</LI>
+
+<LI>
+The "BURST" token.</LI>
+
+<LI>
+The name of the channel to which this data belongs. Currently #Channel
+and +Channel names can be sent in a BURST message, &amp;Channels are not
+because by definition they are local to the server.</LI>
+
+<LI>
+The epoch timestamp indicating when the channel was created.</LI>
+
+<LI>
+[<B>Optional</B>]: Channel Modes.</LI>
+
+<OL>
+<LI>
+The channel may have a number of modes set, aswell as relevant mode arguments
+in the following 2 parameters.</LI>
+</OL>
+
+<LI>
+[<B>Optional</B>]: Channel Key, this parameter is present if the channel
+modes contain a "k" mode.</LI>
+
+<LI>
+[<B>Optional</B>]: Channel Limit, this parameter is present if the channel
+modes contain a "l" mode.</LI>
+
+<LI>
+&nbsp;A <I>comma</I> seperated list of client numerics, with the following
+specific formatting rules to indicate +o, +v and +ov channel members.</LI>
+
+<OL>
+<LI>
+Numerics can have the following symbols appended on them; "<B>:ov</B>",
+"<B>:v</B>" or "<B>:o</B>". These indicate that this numeric is either
+Opped (<B>:o</B>), Voiced (<B>:v</B>) or both (<B>:ov</B>). This state
+applies to the numeric it is attached too, and all subsequent numerics
+until another state is encountered. <I>For Example:</I></LI>
+
+<LI>
+AAABA:ov, AAABB:o,AAABC,AAABD,AAABE:v,AAABZ</LI>
+
+<BR>Here, AAABA is both opped, and voiced, AAABB, AAABC and AAABD are opped
+leaving AAABE and AAABZ voiced.
+<LI>
+&nbsp;The first numeric of the member list will always contain a state
+symbol.</LI>
+</OL>
+
+<LI>
+A <I>space</I> seperated list of bans present in the channel. The start
+of the ban stream is indicated by a ":%", everything following the ":%"
+is the ban list.</LI>
+
+<BR><I>For Example:</I>
+<BR>:%*!*@*.foobar.net another!ban@*.com *!*fred@a.host.co.uk
+<BR>Would add the following bans to the channel:
+<P>*!*@*.foobar.net
+<BR>another!ban@*.com
+<BR>*!*fred@a.host.co.uk</OL>
+
+<BLOCKQUOTE>If the length of a BURST message exceeds the maximum lenght
+of a line (512 characters) then the remaining channel members/bans are
+sent in subsequent BURST lines. The subsequent burst lines are <B>only</B>
+used to add additional members to the channel, and if neccessary, channel
+bans. There will be no "Mode" parameters present. A sample additional burst
+line would be:</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<PRE>AZ BURST #coder-com 949217470 ACAAB:o,ACAAD :%*!*another@*.ban.com</PRE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<BLOCKQUOTE>Which adds two more opped members and a ban to the channel.</BLOCKQUOTE>
+<A NAME="chap3.3"></A><B><FONT SIZE=+1>3.3 Summary</FONT></B>
+<P>The following table summarises the sequence of events that occur when
+a server connects to another server. S1 is our server, and S2 is a HUB
+on the target network.
+<P>S1: Sends Password.
+<BR>S1: Sends initial SERVER message.
+<P><I>S2 Confirms S1 has the correct credentials, and if so, proceeds.
+If not, S1 is squit with a relevant reason.</I>
+<P>S2: Sends Password.
+<BR>S2: Sends initial SERVER message.
+<P><I>S1 Confirms S2 has the correct credentials, and if so, proceeds.
+If not, S2 is squit with a relevant reason.</I>
+<P><B><I>The follow occur asynchronously, however they have been shown
+seperately below for simplicity.</I></B>
+<P>S1: Sends all the servers it is aware of as a stream of SERVER messages.
+<BR>S1: Sends all the clients it is aware of as a stream of NICK messages.
+<BR>S1: Sends the database of channel states on the network, as a stream
+of BURST messages.
+<BR>S1: Sends a END_OF_BURST token (EB) to indicate it has finished sending.
+<P>S2: Sends all the servers it is aware of as a stream of SERVER messages.
+<BR>S2: Sends all the clients it is aware of as a stream of NICK messages.
+<BR>S2: Sends the database of channel states on the network, as a stream
+of BURST messages.
+<BR>S2: Sends a END_OF_BURST token (EB) to indicate it has finished sending.
+<P>S2: Sends an EOB_ACK token (EA) to indicate it has succesfully recieved
+the END_OF_BURST from S1
+<BR>S1: Sends an EOB_ACK token (EA) to indicate it has succesfully recieved
+the END_OF_BURST from S2
+<P><I>Example Session:</I>
+<PRE><FONT COLOR="#00007F">[WRITE]: PASS :54321
+[WRITE]: SERVER irc.undernet.org 1 947957852 947957852 J10 AB]]] :Undernet Client Server.
+[WRITE]: AB N MrFoo 1 947957852 ~me myhost.foobar.net +diksw DAqAoB ABAAA :Mr Foo (foo@bar.com).
+[WRITE]: AB B #mychannel 946101324 ABAAA:o
+[WRITE]: AB EB
+[ READ]: PASS :54321
+[ READ]: SERVER server1.undernet.org 1 947901540 947958150 J10 AFAD] :A Generic Server.
+[ READ]: AF S server2.undernet.org 2 0 947957585 P10 AZAD] 0 :[192.168.10.3] A Generic Server.
+[ READ]: AZ S server3.undernet.org 3 0 947957607 P10 AIAD] 0 :[192.168.10.5] A Generic Server.
+[ READ]: AF N Client1 1 947957573 Ident userhost.net +oiwg DAqAoB AFAAA :Generic Client.
+[ READ]: AZ N Client2 2 947957719 Ident userhost.net +iwg DAqAoB AZAAA :Generic Client.
+[ READ]: AI N Client3 3 947957742 Ident userhost.net +iwg DAqAoB AIAAA :Generic Client.
+[ READ]: AI N Client4 3 947958121 Ident userhost.net +iwg DAqAoB AIAAB :Generic Client.
+[ READ]: AF B #foobar 947957734 +tink akey AIAAB,AIAAA:v,AZAAA:o :%*!*another@*.ban.com *!*foo@bar.net
+[ READ]: AF B #coder-com 947957727 AIAAB,AZAAA:o
+[ READ]: AF B #another 946101321 AFAAA
+[ READ]: AF EB
+[WRITE]: AB EA
+[ READ]: AF EA</FONT></PRE>
+<FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR WIDTH="100%">
+<BR><A NAME="chap4"></A><B><FONT SIZE=+2>4. Continuous Operation</FONT></B>
+<P><FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR ALIGN=LEFT WIDTH=100% SIZE=2>
+<P><A NAME="chap5"></A><B><FONT SIZE=+2>5. Programmers reference: Client/Server
+Structures</FONT></B>
+<P>This section provides information on the standard Client/Server structures,
+for easy reference during development.
+<P><I>[..Link to autogenerated struct.html..]</I>
+<P><FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR ALIGN=LEFT WIDTH=100% SIZE=2>
+<BR><A NAME="chap7"></A><B><FONT SIZE=+2>7. FAQ</FONT></B>
+<P>Frequently asked questions.
+<UL>
+<LI>
+Q. How..</LI>
+
+<LI>
+A. ...</LI>
+</UL>
+<FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+<BR>
+<HR WIDTH="100%">
+<P><A NAME="chap8"></A><B><FONT SIZE=+2>8. Update History</FONT></B>
+<P>[20/01/2000]: Initial draft, structure, background info.
+<BR>[13/02/2000]: Added initial BURST documentation.
+<BR>[14/02/2000]: Continued BURST documentation / Begin NICK and SERVER
+documentation.
+<BR>[26/02/2000]: Continued chapter 5, few example fixes, added token table
+from msg.h. --Gte.
+<BR>[02/03/2000]: Added NICK spec. --Gte.
+<P><A NAME="chap8.1"></A><B><FONT SIZE=+1>8.1 TODO</FONT></B>
+<UL>
+<LI>
+Finish Chapter 5.</LI>
+
+<LI>
+Go through examples, and ensure they are all correct.</LI>
+
+<LI>
+Add common function headers, with argv listings.</LI>
+
+<LI>
+Add description of further server&lt;>server messages, with special cases
+and outcomes.</LI>
+
+<LI>
+Add FAQ Section.</LI>
+</UL>
+<FONT FACE="Arial,Helvetica"><FONT SIZE=-1><B>[</B><A HREF="#top">Back</A><B>]</B></FONT></FONT>
+</BODY>
+</HTML>

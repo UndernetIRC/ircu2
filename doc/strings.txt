@@ -1,0 +1,33 @@
+Strings Information for ircu
+
+Client:
+
+name: (nickname for clients, server name for servers)
+  set in s_conf.c when checking C/N lines for a server
+  set in s_user.c during client registration
+
+username: (user name string)
+  set in s_auth.c if the client RFC 931 authentication query successful.
+  set in s_user.c if auth query unsuccessful.
+  
+info: (string)
+  set in s_serv.c during server registration
+  set in s_user.c during client registration
+
+passwd: (password string)
+  set in xxx.c when
+  used in xxx.c
+  cleared in xxx.c when
+
+sock_ip: (ip address)
+  set in s_bsd.c when connection is established
+  used in s_conf.c when looking for conf entries
+  not cleared
+
+sockhost: (resolved host name or ip address)
+  set in s_bsd.c when connection is established (copied from sock_ip)
+  set in s_auth.c if dns query is successful
+  set in s_conf.c if a C line is found that matches something in dns_reply.hp
+  used in opercmds.c
+  
+

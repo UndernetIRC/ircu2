@@ -477,6 +477,11 @@ echo "#" >> $CONFIG
 echo "/*" > $CONFIG_H
 echo " * Automatically generated C config: don't edit" >> $CONFIG_H
 echo " */" >> $CONFIG_H
+echo "#ifndef INCLUDED_config_h" >> $CONFIG_H
+echo "#define INCLUDED_config_h" >> $CONFIG_H
+echo "#ifndef INCLUDED_setup_h" >> $CONFIG_H
+echo "#include \"setup.h\"">> $CONFIG_H
+echo "#endif" >> $CONFIG_H
 echo "#define AUTOCONF_INCLUDED" >> $CONFIG_H
 
 CONFIG_IN=./config-sh
@@ -509,6 +514,8 @@ else
 fi
 
 . $CONFIG_IN
+
+echo "#endif /* INCLUDED_config_h */" >> $CONFIG_H
 
 mv $CONFIG_H config.h
 $RM -f .config.old

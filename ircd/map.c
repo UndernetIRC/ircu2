@@ -15,38 +15,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include "h.h"
-#include "struct.h"
-#include "numeric.h"
-#include "send.h"
-#include "match.h"
-#include "list.h"
-#include "s_err.h"
-#include "ircd.h"
-#include "s_bsd.h"
-#include "s_misc.h"
 #include "map.h"
+#include "client.h"
+#include "ircd.h"
+#include "list.h"
+#include "match.h"
+#include "numeric.h"
+#include "numnicks.h"
+#include "querycmds.h"
+#include "send.h"
+#include "struct.h"
 
-RCSTAG_CC("$Id$");
 
-static void dump_map(aClient *cptr, aClient *server, char *mask,
-    int prompt_length)
+void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
 {
   static char prompt[64];
-  register Dlink *lp;
-  register char *p = &prompt[prompt_length];
-  register int cnt = 0;
+  struct DLink *lp;
+  char *p = &prompt[prompt_length];
+  int cnt = 0;
 
   *p = '\0';
   if (prompt_length > 60)
     sendto_one(cptr, rpl_str(RPL_MAPMORE), me.name, cptr->name,
-	prompt, server->name);
+        prompt, server->name);
   else
     sendto_one(cptr, rpl_str(RPL_MAP), me.name, cptr->name,
-	prompt, server->name);
+        prompt, NumServ(server), server->name, 
+        server->serv->lag>0 ? server->serv->lag : 0,
+        (server == &me) ? UserStats.local_clients : server->serv->clients);
   if (prompt_length > 0)
   {
     p[-1] = ' ';
@@ -76,13 +75,14 @@ static void dump_map(aClient *cptr, aClient *server, char *mask,
     p[-1] = '-';
 }
 
+#if 0
 /*
  * m_map  -- by Run
  *
  * parv[0] = sender prefix
  * parv[1] = server mask
  */
-int m_map(aClient *UNUSED(cptr), aClient *sptr, int parc, char *parv[])
+int m_map(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   if (parc < 2)
     parv[1] = "*";
@@ -92,3 +92,5 @@ int m_map(aClient *UNUSED(cptr), aClient *sptr, int parc, char *parv[])
 
   return 0;
 }
+#endif /* 0 */
+

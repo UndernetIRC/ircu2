@@ -15,24 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include "h.h"
-#include "struct.h"
-#include "common.h"
 #include "match.h"
-#include "ircd.h"
-
-RCSTAG_CC("$Id$");
-
+#include "ircd_chattr.h"
 /*
  * mmatch()
  *
  * Written by Run (carlo@runaway.xs4all.nl), 25-10-96
- */
-
-/*
+ *
+ *
  * From: Carlo Wood <carlo@runaway.xs4all.nl>
  * Message-Id: <199609021026.MAA02393@runaway.xs4all.nl>
  * Subject: [C-Com] Analysis for `mmatch' (was: gline4 problem)
@@ -50,8 +43,8 @@ RCSTAG_CC("$Id$");
 
 int mmatch(const char *old_mask, const char *new_mask)
 {
-  register const char *m = old_mask;
-  register const char *n = new_mask;
+  const char *m = old_mask;
+  const char *n = new_mask;
   const char *ma = m;
   const char *na = n;
   int wild = 0;
@@ -62,7 +55,7 @@ int mmatch(const char *old_mask, const char *new_mask)
     if (*m == '*')
     {
       while (*m == '*')
-	m++;
+        m++;
       wild = 1;
       ma = m;
       na = n;
@@ -71,25 +64,25 @@ int mmatch(const char *old_mask, const char *new_mask)
     if (!*m)
     {
       if (!*n)
-	return 0;
+        return 0;
       for (m--; (m > old_mask) && (*m == '?'); m--)
-	;
+        ;
       if ((*m == '*') && (m > old_mask) && (m[-1] != '\\'))
-	return 0;
+        return 0;
       if (!wild)
-	return 1;
+        return 1;
       m = ma;
 
       /* Added to `mmatch' : Because '\?' and '\*' now is one character: */
       if ((*na == '\\') && ((na[1] == '*') || (na[1] == '?')))
-	++na;
+        ++na;
 
       n = ++na;
     }
     else if (!*n)
     {
       while (*m == '*')
-	m++;
+        m++;
       return (*m != 0);
     }
     if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
@@ -116,7 +109,7 @@ int mmatch(const char *old_mask, const char *new_mask)
  *    *               any             (*m == '*' && !mq) ||
  *    ?               any except '*'  (*m == '?' && !mq && (*n != '*' || nq)) ||
  * any except * or ?  same as m       (!((*m == '*' || *m == '?') && !mq) &&
- *                                      toLower(*m) == toLower(*n) &&
+ *                                      ToLower(*m) == ToLower(*n) &&
  *                                        !((mq && !nq) || (!mq && nq)))
  *
  * Here `any' also includes \* and \? !
@@ -126,23 +119,23 @@ int mmatch(const char *old_mask, const char *new_mask)
  *  cases upfront (which took 2 hours!)).
  */
     if ((*m == '*' && !mq) ||
-	((!mq || nq) && toLower(*m) == toLower(*n)) ||
-	(*m == '?' && !mq && (*n != '*' || nq)))
+        ((!mq || nq) && ToLower(*m) == ToLower(*n)) ||
+        (*m == '?' && !mq && (*n != '*' || nq)))
     {
       if (*m)
-	m++;
+        m++;
       if (*n)
-	n++;
+        n++;
     }
     else
     {
       if (!wild)
-	return 1;
+        return 1;
       m = ma;
 
       /* Added to `mmatch' : Because '\?' and '\*' now is one character: */
       if ((*na == '\\') && ((na[1] == '*') || (na[1] == '?')))
-	++na;
+        ++na;
 
       n = ++na;
     }
@@ -169,53 +162,53 @@ int mmatch(const char *old_mask, const char *new_mask)
 
 int match(const char *mask, const char *string)
 {
-  register const char *m = mask, *s = string;
-  register char ch;
-  const char *bm, *bs;		/* Will be reg anyway on a decent CPU/compiler */
+  const char *m = mask, *s = string;
+  char ch;
+  const char *bm, *bs;          /* Will be reg anyway on a decent CPU/compiler */
 
   /* Process the "head" of the mask, if any */
   while ((ch = *m++) && (ch != '*'))
     switch (ch)
     {
       case '\\':
-	if (*m == '?' || *m == '*')
-	  ch = *m++;
+        if (*m == '?' || *m == '*')
+          ch = *m++;
       default:
-	if (toLower(*s) != toLower(ch))
-	  return 1;
+        if (ToLower(*s) != ToLower(ch))
+          return 1;
       case '?':
-	if (!*s++)
-	  return 1;
+        if (!*s++)
+          return 1;
     };
   if (!ch)
     return *s;
 
   /* We got a star: quickly find if/where we match the next char */
 got_star:
-  bm = m;			/* Next try rollback here */
+  bm = m;                       /* Next try rollback here */
   while ((ch = *m++))
     switch (ch)
     {
       case '?':
-	if (!*s++)
-	  return 1;
+        if (!*s++)
+          return 1;
       case '*':
-	bm = m;
-	continue;		/* while */
+        bm = m;
+        continue;               /* while */
       case '\\':
-	if (*m == '?' || *m == '*')
-	  ch = *m++;
+        if (*m == '?' || *m == '*')
+          ch = *m++;
       default:
-	goto break_while;	/* C is structured ? */
+        goto break_while;       /* C is structured ? */
     };
 break_while:
   if (!ch)
-    return 0;			/* mask ends with '*', we got it */
-  ch = toLower(ch);
-  while (toLower(*s++) != ch)
+    return 0;                   /* mask ends with '*', we got it */
+  ch = ToLower(ch);
+  while (ToLower(*s++) != ch)
     if (!*s)
       return 1;
-  bs = s;			/* Next try start from here */
+  bs = s;                       /* Next try start from here */
 
   /* Check the rest of the "chunk" */
   while ((ch = *m++))
@@ -223,20 +216,20 @@ break_while:
     switch (ch)
     {
       case '*':
-	goto got_star;
+        goto got_star;
       case '\\':
-	if (*m == '?' || *m == '*')
-	  ch = *m++;
+        if (*m == '?' || *m == '*')
+          ch = *m++;
       default:
-	if (toLower(*s) != toLower(ch))
-	{
-	  m = bm;
-	  s = bs;
-	  goto got_star;
-	};
+        if (ToLower(*s) != ToLower(ch))
+        {
+          m = bm;
+          s = bs;
+          goto got_star;
+        };
       case '?':
-	if (!*s++)
-	  return 1;
+        if (!*s++)
+          return 1;
     };
   };
   if (*s)
@@ -261,9 +254,9 @@ break_while:
 
 char *collapse(char *mask)
 {
-  register int star = 0;
-  register char *m = mask;
-  register char *b;
+  int star = 0;
+  char *m = mask;
+  char *b;
 
   if (m)
   {
@@ -271,30 +264,30 @@ char *collapse(char *mask)
     {
       if ((*m == '*') && ((m[1] == '*') || (m[1] == '?')))
       {
-	b = m;
-	do
-	{
-	  if (*m == '*')
-	    star = 1;
-	  else
-	  {
-	    if (star && (*m != '?'))
-	    {
-	      *b++ = '*';
-	      star = 0;
-	    };
-	    *b++ = *m;
-	    if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
-	      *b++ = *++m;
-	  };
-	}
-	while (*m++);
-	break;
+        b = m;
+        do
+        {
+          if (*m == '*')
+            star = 1;
+          else
+          {
+            if (star && (*m != '?'))
+            {
+              *b++ = '*';
+              star = 0;
+            };
+            *b++ = *m;
+            if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
+              *b++ = *++m;
+          };
+        }
+        while (*m++);
+        break;
       }
       else
       {
-	if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
-	  m++;
+        if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
+          m++;
       };
     }
     while (*m++);
@@ -386,8 +379,8 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
 {
   const char *m = mask;
   char *b = cmask;
-  char *fs = NULL;
-  char *ls = NULL;
+  char *fs = 0;
+  char *ls = 0;
   char *x1, *x2;
   int l1, l2, lmin, loop, sign;
   int star = 0;
@@ -400,29 +393,30 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
     while ((ch = *m++))
       switch (ch)
       {
-	case '*':
-	  star = 1;
-	  break;
-	case '?':
-	  cnt++;
-	  *b++ = 'A';
-	  chset2 &= ~NTL_LOWER;
-	  break;
-	case '\\':
-	  if ((*m == '?') || (*m == '*'))
-	    ch = *m++;
-	default:
-	  if (star)
-	  {
-	    ls = b;
-	    fs = fs ? fs : b;
-	    *b++ = 'Z';
-	    chset2 &= ~NTL_LOWER;
-	    star = 0;
-	  };
-	  cnt++;
-	  chset &= NTL_char_attrib[((*b++ = toLower(ch))) - CHAR_MIN];
-	  chset2 &= ~NTL_UPPER;
+        case '*':
+          star = 1;
+          break;
+        case '?':
+          cnt++;
+          *b++ = 'A';
+          chset2 &= ~NTL_LOWER;
+          break;
+        case '\\':
+          if ((*m == '?') || (*m == '*'))
+            ch = *m++;
+        default:
+          if (star)
+          {
+            ls = b;
+            fs = fs ? fs : b;
+            *b++ = 'Z';
+            chset2 &= ~NTL_LOWER;
+            star = 0;
+          };
+          cnt++;
+          *b = ToLower(ch);
+          chset &= IRCD_CharAttrTab[*b++ - CHAR_MIN];
+          chset2 &= ~NTL_UPPER;
       };
 
   if (charset)
@@ -451,9 +445,9 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
       x2 = x1 + l1;
       for (loop = 0; loop < lmin; loop++)
       {
-	ch = x1[loop];
-	x1[loop] = x2[loop];
-	x2[loop] = ch;
+        ch = x1[loop];
+        x1[loop] = x2[loop];
+        x2[loop] = ch;
       };
       x1 += lmin;
       sign = l1 - l2;
@@ -480,16 +474,16 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
 
 int matchexec(const char *string, const char *cmask, int minlen)
 {
-  register const char *s = string - 1;
-  register const char *b = cmask - 1;
-  register int trash;
-  register const char *bb, *bs;
-  register char ch;
+  const char *s = string - 1;
+  const char *b = cmask - 1;
+  int trash;
+  const char *bb, *bs;
+  char ch;
 
 tryhead:
-  while ((toLower(*++s) == *++b) && *s);
+  while ((ToLower(*++s) == *++b) && *s);
   if (!*s)
-    return ((*b != '\000') && ((*b++ != 'Z') || (*b != '\000')));
+    return ((*b != '\0') && ((*b++ != 'Z') || (*b != '\0')));
   if (*b != 'Z')
   {
     if (*b == 'A')
@@ -504,13 +498,13 @@ tryhead:
     return 2;
 
 trytail:
-  while ((toLower(*--s) == *++b) && *b && (toLower(*--s) == *++b) && *b
-      && (toLower(*--s) == *++b) && *b && (toLower(*--s) == *++b) && *b);
+  while ((ToLower(*--s) == *++b) && *b && (ToLower(*--s) == *++b) && *b
+      && (ToLower(*--s) == *++b) && *b && (ToLower(*--s) == *++b) && *b);
   if (*b != 'Z')
   {
     if (*b == 'A')
       goto trytail;
-    return (*b != '\000');
+    return (*b != '\0');
   };
 
   s = --bs;
@@ -518,13 +512,13 @@ trytail:
 
   while ((ch = *++b))
   {
-    while ((toLower(*++s) != ch))
+    while ((ToLower(*++s) != ch))
       if (--trash < 0)
-	return 4;
+        return 4;
     bs = s;
 
-  trychunk:
-    while ((toLower(*++s) == *++b) && *b);
+trychunk:
+    while ((ToLower(*++s) == *++b) && *b);
     if (!*b)
       return 0;
     if (*b == 'Z')
@@ -560,14 +554,14 @@ trytail:
 
 int matchdecomp(char *mask, const char *cmask)
 {
-  register char *rtb = mask;
-  register const char *rcm = cmask;
-  register const char *begtail, *endtail;
+  char *rtb = mask;
+  const char *rcm = cmask;
+  const char *begtail, *endtail;
 
-  if (rtb == NULL)
+  if (rtb ==0)
     return (-1);
 
-  if (rcm == NULL)
+  if (rcm == 0)
     return (-2);
 
   for (; (*rcm != 'Z'); rcm++, rtb++)
@@ -591,17 +585,17 @@ int matchdecomp(char *mask, const char *cmask)
     while (*++rcm)
       switch (*rcm)
       {
-	case 'A':
-	  *rtb++ = '?';
-	  break;
-	case 'Z':
-	  *rtb++ = '*';
-	  break;
-	case '*':
-	case '?':
-	  *rtb++ = '\\';
-	default:
-	  *rtb++ = *rcm;
+        case 'A':
+          *rtb++ = '?';
+          break;
+        case 'Z':
+          *rtb++ = '*';
+          break;
+        case '*':
+        case '?':
+          *rtb++ = '\\';
+        default:
+          *rtb++ = *rcm;
       };
     *rtb++ = '*';
   };
@@ -610,7 +604,7 @@ int matchdecomp(char *mask, const char *cmask)
     if ((*rcm == '?') || (*rcm == '*'))
       *rtb++ = '\\';
 
-  *rtb = '\000';
+  *rtb = '\0';
   return (rtb - mask);
 }
 
@@ -631,8 +625,8 @@ int matchdecomp(char *mask, const char *cmask)
 
 int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 {
-  register const char *w, *r, *br, *bw, *rx, *rz;
-  register int eat, trash;
+  const char *w, *r, *br, *bw, *rx, *rz;
+  int eat, trash;
 
   /* First of all rm must have enough non-stars to 'contain' wm */
   if ((trash = rminlen - wminlen) < 0)
@@ -648,12 +642,12 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
   /* Match the head of wm with the head of rm */
   for (; (*r) && (*r != 'Z') && ((*w == *r) || (*w == 'A')); r++, w++);
   if (*r == 'Z')
-    while (*w == 'A')		/* Eat extra '?' before '*' in wm if got '*' in rm */
+    while (*w == 'A')           /* Eat extra '?' before '*' in wm if got '*' in rm */
       w++, eat++;
-  if (*w != 'Z')		/* head1<any>.. can't match head2<any>.. */
-    return ((*w) || (*r)) ? 1 : 0;	/* and head<nul> matches only head<nul> */
+  if (*w != 'Z')                /* head1<any>.. can't match head2<any>.. */
+    return ((*w) || (*r)) ? 1 : 0;      /* and head<nul> matches only head<nul> */
   if (!*++w)
-    return 0;			/* headZ<nul> matches head<anything>    */
+    return 0;                   /* headZ<nul> matches head<anything>    */
 
   /* Does rm have any stars in it ? let's check */
   for (rx = r; *r && (*r != 'Z'); r++);
@@ -666,82 +660,82 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
     if (*w != 'Z')
     {
       for (; r--, (*w) && ((*w == *r) || (*w == 'A')); w++);
-      if (*w != 'Z')		/* headZliat1<any> fails on head<any>2tail  */
-	return (*w) ? 1 : 0;	/* but headZliat<nul> matches head<any>tail */
-    };
+      if (*w != 'Z')            /* headZliat1<any> fails on head<any>2tail  */
+        return (*w) ? 1 : 0;    /* but headZliat<nul> matches head<any>tail */
+    }
 
     /* match the chunks */
     while (1)
-    {				/* This loop can't break but only return   */
+    {                           /* This loop can't break but only return   */
 
-      for (bw = w++; (*w != *rx); rx++)	/* Seek the 1st char of the chunk */
-	if (--trash < 0)	/* See if we can trash one more char of rm */
-	  return 1;		/* If not we can only fail of course       */
+      for (bw = w++; (*w != *rx); rx++) /* Seek the 1st char of the chunk */
+        if (--trash < 0)        /* See if we can trash one more char of rm */
+          return 1;             /* If not we can only fail of course       */
       for (r = ++rx, w++; (*w) && ((*w == *r) || (*w == 'A')); r++, w++);
-      if (!*w)			/* Did last loop match the rest of chunk ? */
-	return 0;		/* ... Yes, end of wm, matched !           */
+      if (!*w)                  /* Did last loop match the rest of chunk ? */
+        return 0;               /* ... Yes, end of wm, matched !           */
       if (*w != 'Z')
-      {				/* ... No, hitted non-star                 */
-	w = bw;			/* Rollback at beginning of chunk          */
-	if (--trash < 0)	/* Trashed the char where this try started */
-	  return 1;		/* if we can't trash more chars fail       */
+      {                         /* ... No, hitted non-star                 */
+        w = bw;                 /* Rollback at beginning of chunk          */
+        if (--trash < 0)        /* Trashed the char where this try started */
+          return 1;             /* if we can't trash more chars fail       */
       }
       else
       {
-	rx = r;			/* Successfully matched a chunk, move rx   */
-      };			/* and go on with the next one             */
-    };
-  };
+        rx = r;                 /* Successfully matched a chunk, move rx   */
+      }                 /* and go on with the next one             */
+    }
+  }
 
   /* rm has at least one '*' and thus is a 'real' mask */
-  rz = r++;			/* rx = unused of head, rz = beg-tail */
+  rz = r++;                     /* rx = unused of head, rz = beg-tail */
 
   /* Match the tail of wm (if any) against the tail of rm */
   if (*w != 'Z')
   {
     for (; (*w) && (*r != 'Z') && ((*w == *r) || (*w == 'A')); w++, r++);
-    if (*r == 'Z')		/* extra '?' before tail are fluff, just flush 'em */
+    if (*r == 'Z')              /* extra '?' before tail are fluff, just flush 'em */
       while (*w == 'A')
-	w++;
-    if (*w != 'Z')		/* We aren't matching a chunk, can't rollback      */
+        w++;
+    if (*w != 'Z')              /* We aren't matching a chunk, can't rollback      */
       return (*w) ? 1 : 0;
-  };
+  }
 
   /* Match the chunks of wm against what remains of the head of rm */
   while (1)
   {
     bw = w;
-    for (bw++; (rx < rz) && (*bw != *rx); rx++)	/* Seek the first           */
-      if (--trash < 0)		/* waste some trash reserve */
-	return 1;
-    if (!(rx < rz))		/* head finished            */
+    for (bw++; (rx < rz) && (*bw != *rx); rx++) /* Seek the first           */
+      if (--trash < 0)          /* waste some trash reserve */
+        return 1;
+    if (!(rx < rz))             /* head finished            */
       break;
     for (bw++, (br = ++rx);
-	(br < rz) && (*bw) && ((*bw == *br) || (*bw == 'A')); br++, bw++);
-    if (!(br < rz))		/* Note that we didn't use any 'eat' char yet, if  */
-      while (*bw == 'A')	/* there were eat-en chars the head would be over  */
-	bw++, eat++;		/* Happens only at end of head, and eat is still 0 */
+        (br < rz) && (*bw) && ((*bw == *br) || (*bw == 'A')); br++, bw++);
+    if (!(br < rz))             /* Note that we didn't use any 'eat' char yet, if  */
+      while (*bw == 'A')        /* there were eat-en chars the head would be over  */
+        bw++, eat++;            /* Happens only at end of head, and eat is still 0 */
     if (!*bw)
       return 0;
     if (*bw != 'Z')
     {
       eat = 0;
       if (!(br < rz))
-      {				/* If we failed because we got the end of head */
-	trash -= (br - rx);	/* it makes no sense to rollback, just trash   */
-	if (--trash < 0)	/* all the rest of the head wich isn't long    */
-	  return 1;		/* enough for this chunk and go out of this    */
-	break;			/* loop, then we try with the chunks of rm     */
+      {                         /* If we failed because we got the end of head */
+        trash -= (br - rx);     /* it makes no sense to rollback, just trash   */
+        if (--trash < 0)        /* all the rest of the head wich isn't long    */
+          return 1;             /* enough for this chunk and go out of this    */
+        break;                  /* loop, then we try with the chunks of rm     */
       };
       if (--trash < 0)
-	return 1;
+        return 1;
     }
     else
     {
       w = bw;
       rx = br;
-    };
-  };
+    }
+  }
 
   /* Match the unused chunks of wm against the chunks of rm */
   rx = r;
@@ -752,56 +746,56 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
     while (*r)
     {
       bw = w;
-      while (eat && *r)		/* the '?' we had eated make us skip as many chars */
-	if (*r++ != 'Z')	/* here, but can't skip stars or trailing zero     */
-	  eat--;
+      while (eat && *r)         /* the '?' we had eated make us skip as many chars */
+        if (*r++ != 'Z')        /* here, but can't skip stars or trailing zero     */
+          eat--;
       for (bw++; (*r) && (*bw != *r); r++)
-	if ((*r != 'Z') && (--trash < 0))
-	  return 1;
+        if ((*r != 'Z') && (--trash < 0))
+          return 1;
       if (!*r)
-	break;
+        break;
       for ((br = ++r), bw++;
-	  (*br) && (*br != 'Z') && ((*bw == *br) || (*bw == 'A')); br++, bw++);
+          (*br) && (*br != 'Z') && ((*bw == *br) || (*bw == 'A')); br++, bw++);
       if (*br == 'Z')
-	while (*bw == 'A')
-	  bw++, eat++;
+        while (*bw == 'A')
+          bw++, eat++;
       if (!*bw)
-	return 0;
+        return 0;
       if (*bw != 'Z')
       {
-	eat = 0;
-	if ((!*br) || (*r == 'Z'))
-	{			/* If we hit the end of rm or a star in it */
-	  trash -= (br - r);	/* makes no sense to rollback within this  */
-	  if (trash < 0)	/* same chunk of br, skip it all and then  */
-	    return 1;		/* either rollback or break this loop if   */
-	  if (!*br)		/* it was the end of rm                    */
-	    break;
-	  r = br;
-	};
-	if (--trash < 0)
-	  return 1;
+        eat = 0;
+        if ((!*br) || (*r == 'Z'))
+        {                       /* If we hit the end of rm or a star in it */
+          trash -= (br - r);    /* makes no sense to rollback within this  */
+          if (trash < 0)        /* same chunk of br, skip it all and then  */
+            return 1;           /* either rollback or break this loop if   */
+          if (!*br)             /* it was the end of rm                    */
+            break;
+          r = br;
+        }
+        if (--trash < 0)
+          return 1;
       }
       else
       {
-	r = br;
-	w = bw;
-      };
-    };
-  };
+        r = br;
+        w = bw;
+      }
+    }
+  }
 
   /* match the remaining chunks of wm against what remains of the tail of rm */
-  r = rz - eat - 1;		/* can't have <nul> or 'Z'within the tail, so just move r */
+  r = rz - eat - 1;             /* can't have <nul> or 'Z'within the tail, so just move r */
   while (r >= rx)
   {
     bw = w;
     for (bw++; (*bw != *r); r--)
       if (--trash < 0)
-	return 1;
+        return 1;
     if (!(r >= rx))
       return 1;
     for ((br = --r), bw++;
-	(*bw) && (br >= rx) && ((*bw == *br) || (*bw == 'A')); br--, bw++);
+        (*bw) && (br >= rx) && ((*bw == *br) || (*bw == 'A')); br--, bw++);
     if (!*bw)
       return 0;
     if (!(br >= rx))
@@ -809,15 +803,15 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
     if (*bw != 'Z')
     {
       if (--trash < 0)
-	return 1;
+        return 1;
     }
     else
     {
       r = br;
       w = bw;
-    };
-  };
-  return 1;			/* Auch... something left out ? Fail */
+    }
+  }
+  return 1;                     /* Auch... something left out ? Fail */
 }
 
 /*
@@ -869,23 +863,23 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 
 int matchcompIP(struct in_mask *imask, const char *mask)
 {
-  register const char *m = mask;
-  register unsigned int bits = 0;
-  register unsigned int filt = 0;
-  register int unco = 0;
-  register int digits = 0;
-  register int shift = 24;
-  register int tmp = 0;
+  const char *m = mask;
+  unsigned int bits = 0;
+  unsigned int filt = 0;
+  int unco = 0;
+  int digits = 0;
+  int shift = 24;
+  int tmp = 0;
 
   do
   {
     switch (*m)
     {
       case '\\':
-	if ((m[1] == '\\') || (m[1] == '*') || (m[1] == '?')
-	    || (m[1] == '\000'))
-	  break;
-	continue;
+        if ((m[1] == '\\') || (m[1] == '*') || (m[1] == '?')
+            || (m[1] == '\0'))
+          break;
+        continue;
       case '0':
       case '1':
       case '2':
@@ -896,112 +890,112 @@ int matchcompIP(struct in_mask *imask, const char *mask)
       case '7':
       case '8':
       case '9':
-	if (digits && !tmp)	/* Leading zeros */
-	  break;
-	digits++;
-	tmp *= 10;
-	tmp += (*m - '0');	/* Can't overflow, INT_MAX > 2559 */
-	if (tmp > 255)
-	  break;
-	continue;
-      case '\000':
-	filt = 0xFFFFFFFF;
-	/* Intentional fallthrough */
+        if (digits && !tmp)     /* Leading zeros */
+          break;
+        digits++;
+        tmp *= 10;
+        tmp += (*m - '0');      /* Can't overflow, INT_MAX > 2559 */
+        if (tmp > 255)
+          break;
+        continue;
+      case '\0':
+        filt = 0xFFFFFFFF;
+        /* Intentional fallthrough */
       case '.':
-	if ((!shift) != (!*m))
-	  break;
-	/* Intentional fallthrough */
+        if ((!shift) != (!*m))
+          break;
+        /* Intentional fallthrough */
       case '/':
-	bits |= (tmp << shift);
-	shift -= 8;
-	digits = 0;
-	tmp = 0;
-	if (*m != '/')
-	  continue;
-	shift = 24;
-	do
-	{
-	  m++;
-	  if (isDigit(*m))
-	  {
-	    if (digits && !tmp)	/* Leading zeros */
-	      break;
-	    digits++;
-	    tmp *= 10;
-	    tmp += (*m - '0');	/* Can't overflow, INT_MAX > 2559 */
-	    if (tmp > 255)
-	      break;
-	  }
-	  else
-	  {
-	    switch (*m)
-	    {
-	      case '.':
-	      case '\000':
-		if ((!shift) && (*m))
-		  break;
-		filt |= (tmp << shift);
-		shift -= 8;
-		tmp = 0;
-		digits = 0;
-		continue;
-	      default:
-		break;
-	    }
-	    break;
-	  }
-	}
-	while (*m);
-	if (*m)
-	  break;
-	if (filt && (!(shift < 16)) && (!(filt & 0xE0FFFFFF)))
-	  filt = 0xFFFFFFFF << (32 - ((filt >> 24)));
-	bits &= filt;
-	continue;
+        bits |= (tmp << shift);
+        shift -= 8;
+        digits = 0;
+        tmp = 0;
+        if (*m != '/')
+          continue;
+        shift = 24;
+        do
+        {
+          m++;
+          if (IsDigit(*m))
+          {
+            if (digits && !tmp) /* Leading zeros */
+              break;
+            digits++;
+            tmp *= 10;
+            tmp += (*m - '0');  /* Can't overflow, INT_MAX > 2559 */
+            if (tmp > 255)
+              break;
+          }
+          else
+          {
+            switch (*m)
+            {
+              case '.':
+              case '\0':
+                if ((!shift) && (*m))
+                  break;
+                filt |= (tmp << shift);
+                shift -= 8;
+                tmp = 0;
+                digits = 0;
+                continue;
+              default:
+                break;
+            }
+            break;
+          }
+        }
+        while (*m);
+        if (*m)
+          break;
+        if (filt && (!(shift < 16)) && (!(filt & 0xE0FFFFFF)))
+          filt = 0xFFFFFFFF << (32 - ((filt >> 24)));
+        bits &= filt;
+        continue;
       case '?':
-	unco = 1;
-	/* Intentional fallthrough */
+        unco = 1;
+        /* Intentional fallthrough */
       case '*':
-	if (digits)
-	  unco = 1;
-	filt = (0xFFFFFFFF << (shift)) << 8;
-	while (*++m)
-	{
-	  if (isDigit(*m))
-	    unco = 1;
-	  else
-	  {
-	    switch (*m)
-	    {
-	      case '.':
-		if (m[1] != '*')
-		  unco = 1;
-		if (!shift)
-		  break;
-		shift -= 8;
-		continue;
-	      case '?':
-		unco = 1;
-	      case '*':
-		continue;
-	      default:
-		break;
-	    }
-	    break;
-	  }
-	}
-	if (*m)
-	  break;
-	continue;
+        if (digits)
+          unco = 1;
+        filt = (0xFFFFFFFF << (shift)) << 8;
+        while (*++m)
+        {
+          if (IsDigit(*m))
+            unco = 1;
+          else
+          {
+            switch (*m)
+            {
+              case '.':
+                if (m[1] != '*')
+                  unco = 1;
+                if (!shift)
+                  break;
+                shift -= 8;
+                continue;
+              case '?':
+                unco = 1;
+              case '*':
+                continue;
+              default:
+                break;
+            }
+            break;
+          }
+        }
+        if (*m)
+          break;
+        continue;
       default:
-	break;
+        break;
     }
 
     /* If we get here there is some error and this can't ever match */
     filt = 0;
     bits = ~0;
     unco = 0;
-    break;			/* This time break the loop :) */
+    break;                      /* This time break the loop :) */
 
   }
   while (*m++);

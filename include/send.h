@@ -1,62 +1,73 @@
-#ifndef SEND_H
-#define SEND_H
+/*
+ * send.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_send_h
+#define INCLUDED_send_h
+#ifndef INCLUDED_stdarg_h
+#include <stdarg.h>         /* va_list */
+#define INCLUDED_stdarg_h 
+#endif
 
-/*=============================================================================
+struct Channel;
+struct Client;
+struct DBuf;
+
+/*
  * Macros
  */
 
 #define LastDeadComment(cptr) ((cptr)->info)
 
-/*=============================================================================
- * Proto types
+/*
+ * Prototypes
  */
 
-extern void sendto_one(aClient *to, char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
-extern void sendbufto_one(aClient *to);
-extern void sendto_ops(const char *pattern, ...)
-    __attribute__ ((format(printf, 1, 2)));
-extern void sendto_channel_butserv(aChannel *chptr, aClient *from,
-    char *pattern, ...) __attribute__ ((format(printf, 3, 4)));
-extern void sendto_serv_butone(aClient *one, char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
-extern void sendto_match_servs(aChannel *chptr, aClient *from,
-    char *format, ...) __attribute__ ((format(printf, 3, 4)));
-extern void sendto_lowprot_butone(aClient *cptr, int p, char *pattern, ...)
-    __attribute__ ((format(printf, 3, 4)));
-extern void sendto_highprot_butone(aClient *cptr, int p, char *pattern, ...)
-    __attribute__ ((format(printf, 3, 4)));
-extern void sendto_prefix_one(Reg1 aClient *to, Reg2 aClient *from,
-    char *pattern, ...) __attribute__ ((format(printf, 3, 4)));
-extern void flush_connections(int fd);
-extern void send_queued(aClient *to);
-extern void vsendto_one(aClient *to, char *pattern, va_list vl);
-extern void sendto_channel_butone(aClient *one, aClient *from,
-    aChannel *chptr, char *pattern, ...) __attribute__ ((format(printf, 4, 5)));
-extern void sendto_lchanops_butone(aClient *one, aClient *from,
-    aChannel *chptr, char *pattern, ...) __attribute__ ((format(printf, 4, 5)));
-extern void sendto_chanopsserv_butone(aClient *one, aClient *from,
-    aChannel *chptr, char *pattern, ...) __attribute__ ((format(printf, 4, 5)));
-extern void sendto_common_channels(aClient *user, char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
-extern void sendto_match_butone(aClient *one, aClient *from, char *mask,
-    int what, char *pattern, ...) __attribute__ ((format(printf, 5, 6)));
-extern void sendto_lops_butone(aClient *one, char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
+extern void send_buffer(struct Client* to, char* buf);
+extern void flush_sendq_except(const struct DBuf* one);
+
+extern void sendto_one(struct Client *to, const char* fmt, ...);
+extern void sendbufto_one(struct Client *to);
+extern void sendto_ops(const char* fmt, ...);
+extern void sendto_channel_butserv(struct Channel *chptr, struct Client *from,
+                                   const char* fmt, ...);
+extern void sendto_serv_butone(struct Client *one, const char* fmt, ...);
+extern void sendto_match_servs(struct Channel* chptr, struct Client* from,
+                               const char* fmt, ...);
+extern void sendto_lowprot_butone(struct Client *cptr, int p,
+                                  const char* fmt, ...);
+extern void sendto_highprot_butone(struct Client *cptr, int p,
+                                   const char* fmt, ...);
+extern void sendto_prefix_one(struct Client *to, struct Client *from,
+                              const char* fmt, ...);
+extern void flush_connections(struct Client* cptr);
+extern void send_queued(struct Client *to);
+extern void vsendto_one(struct Client *to, const char* fmt, va_list vl);
+extern void sendto_channel_butone(struct Client *one, struct Client *from,
+                                  struct Channel *chptr, const char* fmt, ...);
+extern void sendmsgto_channel_butone(struct Client *one, struct Client *from,
+                                  struct Channel *chptr, const char *sender,
+                                  const char *cmd, const char *chname, const char *msg);
+extern void sendto_lchanops_butone(struct Client *one, struct Client *from,
+                                   struct Channel *chptr, const char* fmt, ...);
+extern void sendto_chanopsserv_butone(struct Client *one, struct Client *from,
+                                   struct Channel *chptr, const char* fmt, ...);
+extern void sendto_common_channels(struct Client *user, const char* fmt, ...);
+extern void sendto_match_butone(struct Client *one, struct Client *from,
+                                const char *mask, int what, const char* fmt, ...);
+extern void sendto_lops_butone(struct Client *one, const char* fmt, ...);
 extern void vsendto_ops(const char *pattern, va_list vl);
-extern void sendto_ops_butone(aClient *one, aClient *from, char *pattern, ...)
-    __attribute__ ((format(printf, 3, 4)));
-extern void sendto_g_serv_butone(aClient *one, char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
-extern void sendto_realops(const char *pattern, ...)
-    __attribute__ ((format(printf, 1, 2)));
-extern void vsendto_op_mask(register snomask_t mask,
-    const char *pattern, va_list vl);
-extern void sendto_op_mask(snomask_t mask, const char *pattern, ...)
-    __attribute__ ((format(printf, 2, 3)));
-extern void sendbufto_op_mask(snomask_t mask);
-extern void sendbufto_serv_butone(aClient *one);
+extern void sendto_ops_butone(struct Client *one, struct Client *from,
+                              const char* fmt, ...);
+extern void sendto_g_serv_butone(struct Client *one, const char* fmt, ...);
+extern void sendto_realops(const char* fmt, ...);
+extern void vsendto_op_mask(unsigned int mask,
+                            const char* fmt, va_list vl);
+extern void sendto_op_mask(unsigned int mask, const char* fmt, ...);
+extern void sendbufto_op_mask(unsigned int mask);
+extern void sendbufto_serv_butone(struct Client *one);
 
 extern char sendbuf[2048];
 
-#endif /* SEND_H */
+#endif /* INCLUDED_send_h */

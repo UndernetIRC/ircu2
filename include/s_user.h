@@ -1,8 +1,20 @@
-#ifndef S_USER_H
-#define S_USER_H
+/*
+ * s_user.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_s_user_h
+#define INCLUDED_s_user_h
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>
+#define INCLUDED_sys_types_h
+#endif
 
-/*=============================================================================
- * Macro's
+struct Client;
+struct User;
+
+/*
+ * Macros
  */
 
 /*
@@ -22,51 +34,58 @@
 
 /* return values for hunt_server() */
 
-#define HUNTED_NOSUCH	(-1)	/* if the hunted server is not found */
-#define HUNTED_ISME	0	/* if this server should execute the command */
-#define HUNTED_PASS	1	/* if message passed onwards successfully */
+#define HUNTED_NOSUCH   (-1)    /* if the hunted server is not found */
+#define HUNTED_ISME     0       /* if this server should execute the command */
+#define HUNTED_PASS     1       /* if message passed onwards successfully */
 
 /* used when sending to #mask or $mask */
 
 #define MATCH_SERVER  1
 #define MATCH_HOST    2
 
-/*=============================================================================
- * Proto types
- */
-
-extern int m_umode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int is_silenced(aClient *sptr, aClient *acptr);
-extern int hunt_server(int, aClient *cptr, aClient *sptr,
-    char *command, int server, int parc, char *parv[]);
-extern aClient *next_client(aClient *next, char *ch);
-extern int m_nick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_notice(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_wallchops(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_cprivmsg(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_cnotice(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_user(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_ping(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_pong(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_pass(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_userhost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_userip(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_ison(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern char *umode_str(aClient *cptr);
-extern void send_umode(aClient *cptr, aClient *sptr, int old, int sendmask);
-extern int del_silence(aClient *sptr, char *mask);
-extern int m_silence(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern void set_snomask(aClient *, snomask_t, int);
-extern int is_snomask(char *);
-extern int check_target_limit(aClient *sptr, void *target, const char *name,
-    int created);
-extern void add_target(aClient *sptr, void *target);
+#define COOKIE_VERIFIED 0xffffffff
 
 extern struct SLink *opsarray[];
 
-#endif /* S_USER_H */
+typedef char* (*InfoFormatter)(struct Client* who, char* buf);
+
+/*
+ * Prototypes
+ */
+extern struct User* make_user(struct Client *cptr);
+extern void         free_user(struct User *user);
+extern int          register_user(struct Client* cptr, struct Client* sptr,
+                                  const char* nick, char* username);
+
+extern void         user_count_memory(size_t* count_out, size_t* bytes_out);
+
+extern int user_set_away(struct User* user, char* message);
+extern int do_nick_name(char* nick);
+extern int set_nick_name(struct Client* cptr, struct Client* sptr,
+                         const char* nick, int parc, char* parv[]);
+extern void send_umode_out(struct Client* cptr, struct Client* sptr, int old);
+extern int whisper(struct Client* source, const char* nick,
+                   const char* channel, const char* text, int is_notice);
+extern void send_user_info(struct Client* to, char* names, int rpl,
+                           InfoFormatter fmt);
+extern int add_silence(struct Client* sptr, const char* mask);
+
+extern int set_user_mode(struct Client *cptr, struct Client *sptr,
+                         int parc, char *parv[]);
+extern int is_silenced(struct Client *sptr, struct Client *acptr);
+extern int hunt_server(int, struct Client *cptr, struct Client *sptr,
+    char *command, int server, int parc, char *parv[]);
+extern struct Client* next_client(struct Client* next, const char* ch);
+extern char *umode_str(struct Client *cptr);
+extern void send_umode(struct Client *cptr, struct Client *sptr, int old, int sendmask);
+extern int del_silence(struct Client *sptr, char *mask);
+extern void set_snomask(struct Client *, unsigned int, int);
+extern int is_snomask(char *);
+extern int check_target_limit(struct Client *sptr, void *target, const char *name,
+    int created);
+extern void add_target(struct Client *sptr, void *target);
+extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
+                                       int what);
+
+
+#endif /* INCLUDED_s_user_h */

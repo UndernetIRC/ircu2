@@ -1,14 +1,17 @@
+/*
+ * fileio.h
+ *
+ * $Id$
+ */
 #ifndef INCLUDED_fileio_h
 #define INCLUDED_fileio_h
 
 #ifndef INCLUDED_sys_types_h
-#include <sys/types.h>		/* size_t */
+#include <sys/types.h>          /* size_t */
 #define INCLUDED_sys_types_h
 #endif
-#ifndef INCLUDED_sys_stat_h
-#include <sys/stat.h>		/* struct stat */
-#define INCLUDED_sys_stat_h
-#endif
+
+struct stat;
 
 /*
  * FileBuf is a mirror of the ANSI FILE struct, but it works for any

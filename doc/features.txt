@@ -1,0 +1,208 @@
+Undernet server features.
+-------------------------
+
+This document is supposed to list the features that undernet supports and
+provides to clients, and which version of ircu this was added.  Additional
+numeric replies should be added here too.
+
+Extended Who information: (WHOX)
+ Version: unknown, but at least 2.10.07+
+
+ This is described in the file 'readme.who'
+
+USERIP:
+ Version: unknown, but at least 2.10.07+
+
+ This works the same as userhost, but returns the IP instead, useful for
+ setting a ban on someones IP address instead of their nick.
+ usage:
+  USERIP nick[,nick...]
+ returns:
+  RPL_USERIP (307)
+  :server.name 307 target nick[*]=[+|-]user@host...
+
+RPL_ISUPPORT:
+ version: 2.10.08+
+  
+ This sends a numeric during client signon that lists various features that
+ ircu supports.  This allows client and script writers to know what features
+ they can use, and various parameters about the irc server.  The numeric
+ used is '005' to try and maintain some semblance of compatibility with
+ dalnet which has a similar feature.  The 005 numeric may be split across
+ multiple lines if the length exceeds 512 characters.
+
+ The format is:
+  :servername 005 target feature1 feature2... :are supported by this server.
+  :servername 005 target feature200... :are supported by this server.
+
+ features are either a word describing the feature eg: 'SILENCE', or a word
+ describing the feature and an equals and a list of parameters.  
+ eg: SILENCE=15 (says that we support silence, and we support up to 15 of
+ them per user), or FOO=12,3 (says we support FOO with parameters 12 and 3)
+ for example 2.10.08 lists:
+
+ :test.undernet.org 005 test SILENCE=15 WHOX WALLCHOPS USERIP CPRIVMSG 
+   CNOTICE MODES=6 MAXCHANNELS=10 MAXBANS=30 NICKLEN=9 TOPICLEN=160
+   KICKLEN=160
+ 
+ NOTE: Versions prior to 2.10.08+ use numeric 005 as part of 'MAP', so
+ 005 should be /not/ be used after the server registration has occured.
+ (ie: after END_OF_MOTD has arrived).
+
+MAP:
+ Version: unknown, but since 2.9.30 at least, updated in 2.10.08
+ 
+ /map shows the servers as the server percieves them, who's connected
+ to who in a pretty display.  In version 2.10.08 it also lists the
+ amount time time it takes a message to get /from/ a server to the local
+ server - this measures the one way lag only, in 2.10.08 it also lists
+ the number of clients that are currently on that server.
+ The lag estimation is very approximate and depends on people changing nick
+ and joining channels, so the less clients on a server the less reliable the
+ lag estimation is.
+
+ Map prior to 2.10.08 uses:
+  RPL_MAP     005
+  RPL_MAPMORE 006
+  RPL_MAPEND  007
+ Map changed in 2.10.08 to allow for ISUPPORT on numeric 005, the new
+  numerics are:
+  RPL_MAP     015
+  RPL_MAPMORE 016
+  RPL_MAPEND  017
+ 
+WALLCHOPS:
+ Version: unknown, but since 2.10.07
+ 
+ WALLCHOPS sends a message to all channel operators (@)'s on a channel.
+ It does /not/ require you to be op'd (@'d) to do so.  This is a feature.
+ 
+ syntax:
+  WALLCHOPS #channel :message
+ or:
+  NOTICE @#channel :message
+
+ this sends:
+  :user NOTICE @#channel :message
+ to clients that are @'d on the channel.
+
+CPRIVMSG/CNOTICE:
+ Version: unknown, but since 2.10.07
+
+ CPRIVMSG/CNOTICE are a way around target limiting in recent undernet
+ servers.  Undernet servers prevent you from sending messages to too many
+ people at once in an attempt to help cut down the amount of spam that
+ occurs on the network.  Because there are several situations where you want
+ to send messages to lots of people that are on the same channel as you
+ (autogreet's and gamebots for example) an 'escape' was made in the form
+ of CPRIVMSG/CNOTICE.  These allow you to send a privmsg/notice to a person
+ on a common channel if you are op'd (@'d) without incuring a target
+ penalty.  If you see 'Target changed too fast' messages, you should
+ probably be using these commands.
+
+ Syntax:
+  CPRIVMSG #channel nick :Message
+  CNOTICE #channel nick :Message
+ 
+ Results are the same as for 'PRIVMSG' and 'NOTICE' respectively.
+
+SILENCE:
+ Version: unknown, 2.9.32 at least.
+
+ Silence is a server side ignore.  You can /silence +hostmask or
+ /silence +nick, to add someone to your silence list, or use /silence
+ -hostmask to remove it.  /silence will list your 'silence list'.
+ you can /silence nick, to see someone elses silence list (useful for
+ helping someone).  Silence is preferably used as a last resort as it
+ tends to use server CPU time.  Undernet typically only allows 15 silences
+ per user.  in 2.10.08+ this information is available in the RPL_ISUPPORT
+ line.
+
+ Syntax:
+  SILENCE +hostmask
+  SILENCE +nick
+  SILENCE -hostmask
+  SILENCE -nick
+  SILENCE nick
+
+ reply:
+  RPL_SILELIST      217
+  RPL_ENDOFSILELIST 218
+ 
+User modes:
+ Version: various
+
+ Undernet supports these additional user modes:
+  +d: Deaf & Dumb.  This user will not get any channel traffic.  Used for
+      bots.
+  +k: This user cannot be kicked, deop'd or /kill'd.  This usermode may only
+      be set by a server, it may not be set by a user.  This is used by
+      undernet service bots (X/W/UWorld etc)
+  +g: List channel HACK:'s
+  +s: Server messages - takes a parameter of which masks to send, see
+      'snomask.html' for more details. (2.10.0+)
+
+LIST:
+ Version: Unknown
+
+ List now takes various parameters to allow you to quickly and efficiently
+ find interesting channels.  These are:
+
+ >n or <n   show channels with less than or greater than 'n' users
+            respectively
+ C>n or C<n show channels that have existed for less than or greater than
+            'n' minutes.
+ T>n or C<n show channels that have had their topic changed in less than or 
+            greater than 'n' minutes.
+
+ Additional Numerics:
+  RPL_LISTHELP 334
+
+Additional Topic Numerics:
+ Version: Since the dawn of time.
+
+ Topic also lists who set it and when they set it.
+
+ Additional Numerics:
+  RPL_TOPICWHOTIME 333
+ 
+ Straight after the topic:
+  :server.name 333 #channel Isomer 923423442
+ where the number is seconds past 00:00 1970-01-01 that the topic was set.
+
+
+INVITE list:
+ Version: 2.10.08+
+
+ /invite without any parameters lists which channels you have an outstanding
+ invite to (ie: an invite to a channel which you haven't joined)
+ 
+ Additional Numerics:
+  RPL_INVITELIST      346
+  RPL_ENDOFINVITELIST 347
+
+NICK change:
+ Version: Since the dawn of time.
+
+ Undernet prevents you from changing nick on a channel while your banned.
+ Undernet prevents you changing nicks more than once per 30 seconds, you
+ get one 'free' nick change if you haven't changed nick recently.
+
+ Additional Numerics:
+  RPL_BANNICKCHANGE 347
+  RPL_NICKTOOFAST   349
+
+Target limiting:
+ Version: Recent 2.10.07ish at least.
+
+ Undernet prevents you from changing 20 targets per 2 minutes.  A target
+ is a 'Nick' or 'channel'.  This is to prevent spam.  If you message more
+ than 20 people or join more than 20 channels in two minutes then you'll
+ start getting 'Target change too fast' and will have to wait before you
+ can start talking.  See CPRIVMSG/CNOTICE above for information on how to
+ avoid this.
+
+ Additional Numerics:
+  ERR_TARGETTOOFAST 349
+
+

@@ -15,28 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include "h.h"
-#include "struct.h"
 #include "class.h"
-#include "s_conf.h"
-#include "s_serv.h"
-#include "send.h"
-#include "s_err.h"
-#include "numeric.h"
+#include "client.h"
 #include "ircd.h"
+#include "list.h"
+#include "numeric.h"
+#include "s_conf.h"
+#include "s_debug.h"
+#include "send.h"
+#include "struct.h"
 
-RCSTAG_CC("$Id$");
+#include <assert.h>
 
-#define BAD_CONF_CLASS		((unsigned int)-1)
-#define BAD_PING		((unsigned int)-2)
-#define BAD_CLIENT_CLASS	((unsigned int)-3)
+#define BAD_CONF_CLASS          ((unsigned int)-1)
+#define BAD_PING                ((unsigned int)-2)
+#define BAD_CLIENT_CLASS        ((unsigned int)-3)
 
-aConfClass *classes;
+struct ConfClass *classes;
 
-unsigned int get_conf_class(aConfItem *aconf)
+unsigned int get_conf_class(struct ConfItem *aconf)
 {
   if ((aconf) && (aconf->confClass))
     return (ConfClass(aconf));
@@ -47,7 +47,7 @@ unsigned int get_conf_class(aConfItem *aconf)
 
 }
 
-static unsigned int get_conf_ping(aConfItem *aconf)
+static unsigned int get_conf_ping(struct ConfItem *aconf)
 {
   if ((aconf) && (aconf->confClass))
     return (ConfPingFreq(aconf));
@@ -57,19 +57,19 @@ static unsigned int get_conf_ping(aConfItem *aconf)
   return (BAD_PING);
 }
 
-unsigned int get_client_class(aClient *acptr)
+unsigned int get_client_class(struct Client *acptr)
 {
-  Reg1 Link *tmp;
-  Reg2 aConfClass *cl;
+  struct SLink *tmp;
+  struct ConfClass *cl;
   unsigned int retc = BAD_CLIENT_CLASS;
 
-  if (acptr && !IsMe(acptr) && !IsPing(acptr) && (acptr->confs))
+  if (acptr && !IsMe(acptr) && (acptr->confs))
     for (tmp = acptr->confs; tmp; tmp = tmp->next)
     {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
-	continue;
+        continue;
       if (ConClass(cl) > retc || retc == BAD_CLIENT_CLASS)
-	retc = ConClass(cl);
+        retc = ConClass(cl);
     }
 
   Debug((DEBUG_DEBUG, "Returning Class %d For %s", retc, acptr->name));
@@ -77,31 +77,29 @@ unsigned int get_client_class(aClient *acptr)
   return (retc);
 }
 
-int unsigned get_client_ping(aClient *acptr)
+unsigned int get_client_ping(struct Client *acptr)
 {
-  unsigned int ping = 0, ping2;
-  aConfItem *aconf;
-  Link *link;
+  unsigned int ping = 0;
+  unsigned int ping2;
+  struct ConfItem *aconf;
+  struct SLink *link;
 
   link = acptr->confs;
 
-  if (link)
-    while (link)
-    {
+  if (link) {
+    while (link) {
       aconf = link->value.aconf;
-      if (aconf->status &
-	  (CONF_CLIENT | CONF_CONNECT_SERVER | CONF_NOCONNECT_SERVER))
-      {
-	ping2 = get_conf_ping(aconf);
-	if ((ping2 != BAD_PING) && ((ping > ping2) || !ping))
-	  ping = ping2;
+      if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
+        ping2 = get_conf_ping(aconf);
+        if ((ping2 != BAD_PING) && ((ping > ping2) || !ping))
+          ping = ping2;
       }
       link = link->next;
     }
-  else
-  {
+  }
+  else {
     ping = PINGFREQUENCY;
-    Debug((DEBUG_DEBUG, "No Attached Confs"));
+    Debug((DEBUG_DEBUG, "No Attached Confs for: %s", acptr->name));
   }
   if (ping <= 0)
     ping = PINGFREQUENCY;
@@ -109,7 +107,7 @@ int unsigned get_client_ping(aClient *acptr)
   return (ping);
 }
 
-unsigned int get_con_freq(aConfClass * clptr)
+unsigned int get_con_freq(struct ConfClass * clptr)
 {
   if (clptr)
     return (ConFreq(clptr));
@@ -127,12 +125,12 @@ unsigned int get_con_freq(aConfClass * clptr)
 void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
     unsigned int maxli, size_t sendq)
 {
-  aConfClass *t, *p;
+  struct ConfClass *t, *p;
 
   t = find_class(conClass);
   if ((t == classes) && (conClass != 0))
   {
-    p = (aConfClass *) make_class();
+    p = (struct ConfClass *) make_class();
     NextClass(p) = NextClass(t);
     NextClass(t) = p;
   }
@@ -149,9 +147,9 @@ void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
     Links(p) = 0;
 }
 
-aConfClass *find_class(unsigned int cclass)
+struct ConfClass *find_class(unsigned int cclass)
 {
-  aConfClass *cltmp;
+  struct ConfClass *cltmp;
 
   for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
     if (ConClass(cltmp) == cclass)
@@ -161,21 +159,21 @@ aConfClass *find_class(unsigned int cclass)
 
 void check_class(void)
 {
-  aConfClass *cltmp, *cltmp2;
+  struct ConfClass *cltmp, *cltmp2;
 
   Debug((DEBUG_DEBUG, "Class check:"));
 
   for (cltmp2 = cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp2))
   {
     Debug((DEBUG_DEBUG,
-	"Class %d : CF: %d PF: %d ML: %d LI: %d SQ: %d",
-	ConClass(cltmp), ConFreq(cltmp), PingFreq(cltmp),
-	MaxLinks(cltmp), Links(cltmp), MaxSendq(cltmp)));
+        "Class %d : CF: %d PF: %d ML: %d LI: %d SQ: %d",
+        ConClass(cltmp), ConFreq(cltmp), PingFreq(cltmp),
+        MaxLinks(cltmp), Links(cltmp), MaxSendq(cltmp)));
     if (IsMarkedDelete(cltmp))
     {
       NextClass(cltmp2) = NextClass(cltmp);
       if (Links(cltmp) == 0)
-	free_class(cltmp);
+        free_class(cltmp);
     }
     else
       cltmp2 = cltmp;
@@ -184,7 +182,7 @@ void check_class(void)
 
 void initclass(void)
 {
-  classes = (aConfClass *) make_class();
+  classes = (struct ConfClass *) make_class();
 
   ConClass(FirstClass()) = 0;
   ConFreq(FirstClass()) = CONNECTFREQUENCY;
@@ -195,29 +193,37 @@ void initclass(void)
   NextClass(FirstClass()) = NULL;
 }
 
-void report_classes(aClient *sptr)
+void report_classes(struct Client *sptr)
 {
-  aConfClass *cltmp;
+  struct ConfClass *cltmp;
 
   for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
     sendto_one(sptr, rpl_str(RPL_STATSYLINE), me.name, sptr->name,
-	'Y', ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
-	MaxLinks(cltmp), MaxSendq(cltmp));
+        'Y', ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
+        MaxLinks(cltmp), MaxSendq(cltmp));
 }
 
-size_t get_sendq(aClient *cptr)
+size_t get_sendq(struct Client *cptr)
 {
-  size_t sendq = DEFAULTMAXSENDQLENGTH;
-  Link *tmp;
-  aConfClass *cl;
+  assert(0 != cptr);
+  assert(0 != cptr->local);
 
-  if (cptr && !IsMe(cptr) && (cptr->confs))
-    for (tmp = cptr->confs; tmp; tmp = tmp->next)
-    {
+  if (cptr->max_sendq)
+    return cptr->max_sendq;
+
+  else if (cptr->confs) {
+    struct SLink*     tmp;
+    struct ConfClass* cl;
+
+    for (tmp = cptr->confs; tmp; tmp = tmp->next) {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
-	continue;
-      if (ConClass(cl) != BAD_CLIENT_CLASS)
-	sendq = MaxSendq(cl);
+        continue;
+      if (ConClass(cl) != BAD_CLIENT_CLASS) {
+        cptr->max_sendq = MaxSendq(cl);
+        return cptr->max_sendq;
+      }
     }
-  return sendq;
+  }
+  return DEFAULTMAXSENDQLENGTH;
 }
+

@@ -1,10 +1,15 @@
-#ifndef RANDOM_H
-#define RANDOM_H
+/*
+ * random.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_random_h
+#define INCLUDED_random_h
 
-/*=============================================================================
+/*
  * Proto types
  */
 
 extern unsigned int ircrandom(void);
 
-#endif /* RANDOM_H */
+#endif /* INCLUDED_random_h */

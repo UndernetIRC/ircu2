@@ -15,63 +15,65 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
 
-#ifndef HASH_H
-#define HASH_H
+#ifndef INCLUDED_hash_h
+#define INCLUDED_hash_h
 
-#include "s_serv.h"		/* For STAT_* values and StatusMask() macro */
+struct Client;
+struct Channel;
 
-/*=============================================================================
+/*
  * general defines
  */
 
 /* Now client and channel hash table must be of the same size */
-#define HASHSIZE		32000
+#define HASHSIZE                32000
 
-/*=============================================================================
+/*
  * Structures
  */
 
-/*=============================================================================
+/*
  * Macros for internal use
  */
 
-/*=============================================================================
+/*
  * Externally visible pseudofunctions (macro interface to internal functions)
  */
 
 /* Raw calls, expect a core if you pass a NULL or zero-length name */
-#define SeekChannel(name)	hSeekChannel((name))
-#define SeekClient(name)	hSeekClient((name), ~StatusMask(STAT_PING))
-#define SeekUser(name)   	hSeekClient((name), StatusMask(STAT_USER))
-#define SeekServer(name)	hSeekClient((name), StatusMask(STAT_ME) | \
-                                                    StatusMask(STAT_SERVER) )
+#define SeekChannel(name)       hSeekChannel((name))
+#define SeekClient(name)        hSeekClient((name), ~0)
+#define SeekUser(name)          hSeekClient((name), (STAT_USER))
+#define SeekServer(name)        hSeekClient((name), (STAT_ME | STAT_SERVER))
 
 /* Safer macros with sanity check on name, WARNING: these are _macros_,
    no side effects allowed on <name> ! */
-#define FindChannel(name)	(BadPtr((name))?NULL:SeekChannel(name))
-#define FindClient(name)	(BadPtr((name))?NULL:SeekClient(name))
-#define FindUser(name)		(BadPtr((name))?NULL:SeekUser(name))
-#define FindServer(name)	(BadPtr((name))?NULL:SeekServer(name))
+#define FindChannel(name)       (BadPtr((name)) ? 0 : SeekChannel(name))
+#define FindClient(name)        (BadPtr((name)) ? 0 : SeekClient(name))
+#define FindUser(name)          (BadPtr((name)) ? 0 : SeekUser(name))
+#define FindServer(name)        (BadPtr((name)) ? 0 : SeekServer(name))
 
-/*=============================================================================
+/*
  * Proto types
  */
 
-extern void hash_init(void);	/* Call me on startup */
-extern int hAddClient(aClient *cptr);
-extern int hAddChannel(aChannel *chptr);
-extern int hRemClient(aClient *cptr);
-extern int hChangeClient(aClient *cptr, char *newname);
-extern int hRemChannel(aChannel *chptr);
-extern aClient *hSeekClient(char *name, int TMask);
-extern aChannel *hSeekChannel(char *name);
+extern void hash_init(void);    /* Call me on startup */
+extern int hAddClient(struct Client *cptr);
+extern int hAddChannel(struct Channel *chptr);
+extern int hRemClient(struct Client *cptr);
+extern int hChangeClient(struct Client *cptr, const char *newname);
+extern int hRemChannel(struct Channel *chptr);
+extern struct Client *hSeekClient(const char *name, int TMask);
+extern struct Channel *hSeekChannel(const char *name);
 
-extern int m_hash(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+extern int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[]);
 
-extern int isNickJuped(char *nick);
-extern int addNickJupes(char *nicks);
+extern int isNickJuped(const char *nick);
+extern int addNickJupes(const char *nicks);
 extern void clearNickJupes(void);
 
-#endif /* HASH_H */
+#endif /* INCLUDED_hash_h */

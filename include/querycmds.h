@@ -1,75 +1,88 @@
-#ifndef QUERYCMDS_H
-#define QUERYCMDS_H
+/*
+ * querycmds.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_querycmds_h
+#define INCLUDED_querycmds_h
 
-/*=============================================================================
+struct Client;
+
+/*
  * Structs
  */
 
-struct lusers_st {
+struct UserStatistics {
   /* Local connections: */
-  unsigned int unknowns;	/* IsUnknown() || IsConnecting() || IsHandshake() */
-  unsigned int local_servers;	/* IsServer() && MyConnect() */
-  unsigned int local_clients;	/* IsUser() && MyConnect() */
+  unsigned int unknowns;  /* IsUnknown() || IsConnecting() || IsHandshake() */
+  unsigned int local_servers;   /* IsServer() && MyConnect() */
+  unsigned int local_clients;   /* IsUser() && MyConnect() */
+
   /* Global counts: */
-  unsigned int servers;		/* IsServer() || IsMe() */
-  unsigned int clients;		/* IsUser() */
+  unsigned int servers;         /* IsServer() || IsMe() */
+  unsigned int clients;         /* IsUser() */
+
   /* Global user mode changes: */
-  unsigned int inv_clients;	/* IsUser() && IsInvisible() */
-  unsigned int opers;		/* IsUser() && IsOper() */
+  unsigned int inv_clients;     /* IsUser() && IsInvisible() */
+  unsigned int opers;           /* IsUser() && IsOper() */
+
   /* Misc: */
   unsigned int channels;
 };
 
-/*=============================================================================
+extern struct UserStatistics UserStats;
+
+/*
  * Macros
  */
 
 /* Macros for remote connections: */
-#define Count_newremoteclient(nrof)		(++nrof.clients)
-#define Count_newremoteserver(nrof)		(++nrof.servers)
-#define Count_remoteclientquits(nrof)		(--nrof.clients)
-#define Count_remoteserverquits(nrof)		(--nrof.servers)
+#define Count_newremoteclient(UserStats, cptr)  (++UserStats.clients, ++cptr->serv->clients)
+#define Count_newremoteserver(UserStats)  (++UserStats.servers)
+#if 0
+#define Count_remoteclientquits(UserStats)      (--UserStats.clients)
+#endif
+
+#define Count_remoteclientquits(UserStats,cptr)                \
+  do { \
+    --UserStats.clients; \
+    if (!IsServer(cptr)) \
+      --cptr->user->server->serv->clients; \
+  } while (0)
+
+#define Count_remoteserverquits(UserStats)      (--UserStats.servers)
 
 /* Macros for local connections: */
-#define Count_newunknown(nrof)			(++nrof.unknowns)
-#define Count_unknownbecomesclient(cptr, nrof) \
+#define Count_newunknown(UserStats)                     (++UserStats.unknowns)
+#define Count_unknownbecomesclient(cptr, UserStats) \
   do { \
-    --nrof.unknowns; ++nrof.local_clients; ++nrof.clients; \
+    --UserStats.unknowns; ++UserStats.local_clients; ++UserStats.clients; \
     if (match("*" DOMAINNAME, cptr->sockhost) == 0) \
       ++current_load.local_count; \
-    if (nrof.local_clients > max_client_count) \
-      max_client_count = nrof.local_clients; \
-    if (nrof.local_clients + nrof.local_servers > max_connection_count) \
+    if (UserStats.local_clients > max_client_count) \
+      max_client_count = UserStats.local_clients; \
+    if (UserStats.local_clients + UserStats.local_servers > max_connection_count) \
     { \
-      max_connection_count = nrof.local_clients + nrof.local_servers; \
+      max_connection_count = UserStats.local_clients + UserStats.local_servers; \
       if (max_connection_count % 10 == 0) \
         sendto_ops("Maximum connections: %d (%d clients)", \
-	    max_connection_count, max_client_count); \
+            max_connection_count, max_client_count); \
     } \
   } while(0)
-#define Count_unknownbecomesserver(nrof)	do { --nrof.unknowns; ++nrof.local_servers; ++nrof.servers; } while(0)
-#define Count_clientdisconnects(cptr, nrof) \
+#define Count_unknownbecomesserver(UserStats)   do { --UserStats.unknowns; ++UserStats.local_servers; ++UserStats.servers; } while(0)
+#define Count_clientdisconnects(cptr, UserStats) \
   do \
   { \
-    --nrof.local_clients; --nrof.clients; \
+    --UserStats.local_clients; --UserStats.clients; \
     if (match("*" DOMAINNAME, cptr->sockhost) == 0) \
       --current_load.local_count; \
   } while(0)
-#define Count_serverdisconnects(nrof)		do { --nrof.local_servers; --nrof.servers; } while(0)
-#define Count_unknowndisconnects(nrof)		(--nrof.unknowns)
+#define Count_serverdisconnects(UserStats)              do { --UserStats.local_servers; --UserStats.servers; } while(0)
+#define Count_unknowndisconnects(UserStats)             (--UserStats.unknowns)
 
-/*=============================================================================
- * Proto types
+/*
+ * Prototypes
  */
 
-extern int m_version(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_info(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_help(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_lusers(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_admin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_motd(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
-extern struct lusers_st nrof;
-
-#endif /* QUERYCMDS_H */
+#endif /* INCLUDED_querycmds_h */

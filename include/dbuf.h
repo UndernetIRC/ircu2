@@ -15,26 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
 #ifndef INCLUDED_dbuf_h
 #define INCLUDED_dbuf_h
 #ifndef INCLUDED_sys_types_h
-#include <sys/types.h>		/* size_t */
+#include <sys/types.h>          /* size_t */
 #define INCLUDED_sys_types_h
 #endif
 
 /*
  * These two globals should be considered read only
  */
-extern int DBufAllocCount;	/* GLOBAL - count of dbufs allocated */
-extern int DBufUsedCount;	/* GLOBAL - count of dbufs in use */
+extern int DBufAllocCount;      /* GLOBAL - count of dbufs allocated */
+extern int DBufUsedCount;       /* GLOBAL - count of dbufs in use */
 
 struct DBufBuffer;
 
 struct DBuf {
-  size_t length;		/* Current number of bytes stored */
-  struct DBufBuffer *head;	/* First data buffer, if length > 0 */
-  struct DBufBuffer *tail;	/* last data buffer, if length > 0 */
+  size_t length;                /* Current number of bytes stored */
+  struct DBufBuffer *head;      /* First data buffer, if length > 0 */
+  struct DBufBuffer *tail;      /* last data buffer, if length > 0 */
 };
 
 /*

@@ -1,10 +1,17 @@
-#ifndef MAP_H
-#define MAP_H
+/*
+ * map.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_map_h
+#define INCLUDED_map_h
 
-/*=============================================================================
- * Proto types
+struct Client;
+
+/*
+ * Prototypes
  */
 
-extern int m_map(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+void dump_map(struct Client *cptr, struct Client *server, char *mask, int prompt_length);
 
-#endif /* MAP_H */
+#endif /* INCLUDED_map_h */

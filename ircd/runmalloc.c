@@ -23,15 +23,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
+#include "runmalloc.h"
+#include "client.h"
+#include "ircd.h"
+#include "numeric.h"
+#include "numnicks.h"
+#include "s_debug.h"
+#include "send.h"
+#include "struct.h"
 #include "sys.h"
 
-#ifdef DEBUGMALLOC
+#include <assert.h>
 #include <stdlib.h>
-#include "h.h"
+#include <string.h>
 
-RCSTAG_CC("$Id$");
+#if defined(DEBUGMALLOC)
 
 #define MALLOC_HASHTABLE_SIZE 16384
 #define MallocHash(x) \
@@ -49,13 +58,13 @@ typedef struct {
 #endif
 } location_st;
 
-#define LOCSIZE 1024		/* Maximum of 256 different locations */
+#define LOCSIZE 1024            /* Maximum of 256 different locations */
 static location_st location[LOCSIZE];
-static unsigned int locations;	/* Counter */
+static unsigned int locations;  /* Counter */
 
 static unsigned int find_location(const char *filename, int line)
 {
-  register unsigned int hash;
+  unsigned int hash;
   hash = line & 0xff;
   while (location[hash].filename && (location[hash].line != line ||
       location[hash].filename != filename))
@@ -70,32 +79,27 @@ static unsigned int find_location(const char *filename, int line)
   }
   return hash;
 }
-#endif
+#endif /* MEMLEAKSTATS */
 
 #ifdef MEMMAGICNUMS
 /* The size of this struct should be a multiple of 4 bytes, just in case... */
 typedef struct {
-#ifdef MEMMAGICNUMS
   unsigned int prefix_magicnumber;
-#endif
 } prefix_blk_st;
 
-#define SIZEOF_PREFIX sizeof(prefix_blk_st)
-#else
-typedef void prefix_blk_st;
-#define SIZEOF_PREFIX 0
-#endif
-
-#ifdef MEMMAGICNUMS
 typedef struct {
   unsigned int postfix_magicnumber;
 } postfix_blk_st;
 
 #define SIZEOF_POSTFIX sizeof(postfix_blk_st)
+#define SIZEOF_PREFIX sizeof(prefix_blk_st)
 #define HAS_POSTFIX
-#else
+
+#else /* !MEMMAGICNUMS */
+typedef void prefix_blk_st;
+#define SIZEOF_PREFIX 0
 #define SIZEOF_POSTFIX 0
-#endif
+#endif /* MEMMAGICNUMS */
 
 typedef struct hash_entry_st {
   struct hash_entry_st *next;
@@ -107,8 +111,8 @@ typedef struct hash_entry_st {
   unsigned int location;
 #ifdef MEMTIMESTATS
   time_t when;
-#endif
-#endif
+#endif /* MEMTIMESTATS */
+#endif /* MEMLEAKSTATS */
 } hash_entry_st;
 
 #define memblkp(prefix_ptr) \
@@ -120,26 +124,18 @@ typedef struct hash_entry_st {
 
 static hash_entry_st *hashtable[MALLOC_HASHTABLE_SIZE];
 #ifdef MEMSIZESTATS
-static size_t mem_size = 0;	/* Number of allocated bytes  */
-static unsigned int alloc_cnt = 0;	/* Number of allocated blocks */
+static size_t mem_size = 0;     /* Number of allocated bytes  */
+static unsigned int alloc_cnt = 0;      /* Number of allocated blocks */
 #endif
 
 #ifdef MEMLEAKSTATS
-#include "struct.h"
-#include "send.h"
-#include "numeric.h"
-#include "s_err.h"
-#include "ircd.h"
-#include "s_serv.h"
-#include "numnicks.h"
-
-void report_memleak_stats(aClient *sptr, int parc, char *parv[])
+void report_memleak_stats(struct Client *sptr, int parc, char *parv[])
 {
   unsigned int hash;
   location_st *loc = location;
 
 #ifdef MEMTIMESTATS
-  time_t till = now;
+  time_t till = CurrentTime;
   time_t from = me.since;
   if (parc > 3)
   {
@@ -151,50 +147,50 @@ void report_memleak_stats(aClient *sptr, int parc, char *parv[])
     if (parc > 4)
       from += atoi(parv[4]);
     for (start = &hashtable[0];
-	start < &hashtable[MALLOC_HASHTABLE_SIZE]; ++start)
+        start < &hashtable[MALLOC_HASHTABLE_SIZE]; ++start)
     {
       hash_entry_st *hash_entry;
       for (hash_entry = *start; hash_entry; hash_entry = hash_entry->next)
-	if (hash_entry->when >= from && hash_entry->when <= till)
-	{
+        if (hash_entry->when >= from && hash_entry->when <= till)
+        {
 #ifdef MEMSIZESTATS
-	  tmp_loc[hash_entry->location].size += hash_entry->size;
+          tmp_loc[hash_entry->location].size += hash_entry->size;
 #endif
-	  tmp_loc[hash_entry->location].number_of_allocations++;
-	}
+          tmp_loc[hash_entry->location].number_of_allocations++;
+        }
     }
     loc = tmp_loc;
     if (MyUser(sptr) || Protocol(sptr->from) < 10)
       sendto_one(sptr, ":%s NOTICE %s :Memory allocated between " TIME_T_FMT
-	  " (server start + %s s) and " TIME_T_FMT " (now - %s s):",
-	  me.name, parv[0], from, parc > 4 ? parv[4] : "0", till,
-	  parc > 3 ? parv[3] : "0");
+          " (server start + %s s) and " TIME_T_FMT " (CurrentTime - %s s):",
+          me.name, parv[0], from, parc > 4 ? parv[4] : "0", till,
+          parc > 3 ? parv[3] : "0");
     else
       sendto_one(sptr, "%s NOTICE %s%s :Memory allocated between " TIME_T_FMT
-	  " (server start + %s s) and " TIME_T_FMT " (now - %s s):",
-	  NumServ(&me), NumNick(sptr), from, parc > 4 ? parv[4] : "0", till,
-	  parc > 3 ? parv[3] : "0");
+          " (server start + %s s) and " TIME_T_FMT " (CurrentTime - %s s):",
+          NumServ(&me), NumNick(sptr), from, parc > 4 ? parv[4] : "0", till,
+          parc > 3 ? parv[3] : "0");
   }
-#endif
+#endif /* MEMTIMESTATS */
   for (hash = 0; hash < LOCSIZE; ++hash)
     if (loc[hash].number_of_allocations > 0)
       sendto_one(sptr, rpl_str(RPL_STATMEM), me.name, parv[0],
-	  loc[hash].number_of_allocations,
-	  location[hash].line, location[hash].filename
+          loc[hash].number_of_allocations,
+          location[hash].line, location[hash].filename
 #ifdef MEMSIZESTATS
-	  , loc[hash].size
+          , loc[hash].size
 #endif
-	  );
+          );
 }
 
 void *RunMalloc_memleak(size_t size, int line, const char *filename)
-#else
-void *RunMalloc(size_t size)
-#endif
+#else   /* !MEMLEAKSTATS */
+void *MyMalloc(size_t size)
+#endif  /* MEMLEAKSTATS */
 {
-  register prefix_blk_st *ptr;
-  register hash_entry_st *hash_entry;
-  register hash_entry_st **hashtablep;
+  prefix_blk_st *ptr;
+  hash_entry_st *hash_entry;
+  hash_entry_st **hashtablep;
 
 #ifdef HAS_POSTFIX
   size += 3;
@@ -207,8 +203,8 @@ void *RunMalloc(size_t size)
   {
     if (ptr)
       free(ptr);
-    Debug((DEBUG_FATAL, "Out of memory !"));
-    return NULL;
+    (*noMemHandler)();
+    return 0;
   }
 
   hashtablep = &hashtable[MallocHash(ptr)];
@@ -217,11 +213,11 @@ void *RunMalloc(size_t size)
   hash_entry->ptr = ptr;
 #ifdef MEMLEAKSTATS
 #ifdef MEMTIMESTATS
-  hash_entry->when = now;
+  hash_entry->when = CurrentTime;
 #endif
   location[(hash_entry->location =
       find_location(filename, line))].number_of_allocations++;
-#endif
+#endif /* MEMLEAKSTATS */
 #ifdef MEMSIZESTATS
   hash_entry->size = size;
 #ifdef MEMLEAKSTATS
@@ -229,13 +225,13 @@ void *RunMalloc(size_t size)
 #endif
   mem_size += size;
   ++alloc_cnt;
-#endif
+#endif /* MEMSIZESTATS */
 #ifdef MEMMAGICNUMS
   ptr->prefix_magicnumber = MAGIC_PREFIX;
   postfixp(memblkp(ptr), size)->postfix_magicnumber = MAGIC_POSTFIX;
 #endif
 
-  Debug((DEBUG_DEBUG, "RunMalloc(%u) = %p", size, memblkp(ptr)));
+  Debug((DEBUG_MALLOC, "MyMalloc(%u) = %p", size, memblkp(ptr)));
 
   return memblkp(ptr);
 }
@@ -244,37 +240,38 @@ void *RunMalloc(size_t size)
 void *RunCalloc_memleak(size_t nmemb, size_t size,
     int line, const char *filename)
 #else
-void *RunCalloc(size_t nmemb, size_t size)
-#endif
+void *MyCalloc(size_t nmemb, size_t size)
+#endif /* MEMLEAKSTATS */
 {
   void *ptr;
   size *= nmemb;
 #ifdef MEMLEAKSTATS
   if ((ptr = RunMalloc_memleak(size, line, filename)))
 #else
-  if ((ptr = RunMalloc(size)))
-#endif
+  if ((ptr = MyMalloc(size)))
+#endif /* MEMLEAKSTATS */
     memset(ptr, 0, size);
   return ptr;
 }
 
-int RunFree_test(void *memblk_ptr)
+int MyFree_test(void *memblk_ptr)
 {
-  register prefix_blk_st *prefix_ptr = prefixp(memblk_ptr);
-  register hash_entry_st *hash_entry;
+  prefix_blk_st* prefix_ptr = prefixp(memblk_ptr);
+  hash_entry_st* hash_entry;
   for (hash_entry = hashtable[MallocHash(prefix_ptr)];
       hash_entry && hash_entry->ptr != prefix_ptr;
       hash_entry = hash_entry->next);
   return hash_entry ? 1 : 0;
 }
 
-void RunFree(void *memblk_ptr)
+void MyFree(void* memblk_ptr)
 {
-  register prefix_blk_st *prefix_ptr = prefixp(memblk_ptr);
-  register hash_entry_st *hash_entry, *prev_hash_entry = NULL;
+  prefix_blk_st* prefix_ptr = prefixp(memblk_ptr);
+  hash_entry_st* hash_entry;
+  hash_entry_st* prev_hash_entry = NULL;
   unsigned int hash = MallocHash(prefix_ptr);
 
-  Debug((DEBUG_DEBUG, "RunFree(%p)", memblk_ptr));
+  Debug((DEBUG_MALLOC, "MyFree(%p)", memblk_ptr));
 
   if (!memblk_ptr)
     return;
@@ -285,23 +282,24 @@ void RunFree(void *memblk_ptr)
   if (!hash_entry)
   {
     Debug((DEBUG_FATAL, "FREEING NON MALLOC PTR !!!"));
-    MyCoreDump;
+    assert(0 != hash_entry);
   }
 #ifdef MEMMAGICNUMS
   if (prefix_ptr->prefix_magicnumber != MAGIC_PREFIX)
   {
     Debug((DEBUG_FATAL, "MAGIC_PREFIX CORRUPT !"));
-    MyCoreDump;
+    assert(MAGIC_PREFIX == prefix_ptr->prefix_magicnumber);
   }
   prefix_ptr->prefix_magicnumber = 12345678;
   if (postfixp(memblk_ptr, hash_entry->size)->postfix_magicnumber
       != MAGIC_POSTFIX)
   {
     Debug((DEBUG_FATAL, "MAGIC_POSTFIX CORRUPT !"));
-    MyCoreDump;
+    assert(MAGIC_POSTFIX == 
+           postfixp(memblk_ptr, hash_entry->size)->postfix_magicnumber);
   }
   postfixp(memblk_ptr, hash_entry->size)->postfix_magicnumber = 87654321;
-#endif
+#endif /* MEMMAGICNUMS */
 
   if (prev_hash_entry)
     prev_hash_entry->next = hash_entry->next;
@@ -320,18 +318,9 @@ void RunFree(void *memblk_ptr)
 #endif
 #ifdef DEBUGMODE
   /* Put 0xfefefefe.. in freed memory */
-#ifndef memset
   memset(prefix_ptr, 0xfe, hash_entry->size + SIZEOF_PREFIX);
-#else
-  {
-    register char *p = prefix_ptr;
-    size_t len = hash_entry->size + SIZEOF_PREFIX;
-    for (; len; --len)
-      *p++ = 0xfe;
-  }
-#endif
-#endif
-#endif
+#endif /* DEBUGMODE */
+#endif /* MEMSIZESTATS */
 
   free(hash_entry);
   free(prefix_ptr);
@@ -341,24 +330,24 @@ void RunFree(void *memblk_ptr)
 void *RunRealloc_memleak(void *memblk_ptr, size_t size,
     int line, const char *filename)
 #else
-void *RunRealloc(void *memblk_ptr, size_t size)
-#endif
+void *MyRealloc(void *memblk_ptr, size_t size)
+#endif /* MEMLEAKSTATS */
 {
-  register prefix_blk_st *ptr;
-  register prefix_blk_st *prefix_ptr = prefixp(memblk_ptr);
-  register hash_entry_st *hash_entry, *prev_hash_entry = NULL;
-  register hash_entry_st **hashtablep;
+  prefix_blk_st *ptr;
+  prefix_blk_st *prefix_ptr = prefixp(memblk_ptr);
+  hash_entry_st *hash_entry, *prev_hash_entry = NULL;
+  hash_entry_st **hashtablep;
   unsigned int hash;
 
   if (!memblk_ptr)
 #ifdef MEMLEAKSTATS
     return RunMalloc_memleak(size, line, filename);
 #else
-    return RunMalloc(size);
-#endif
+    return MyMalloc(size);
+#endif /* MEMLEAKSTATS */
   if (!size)
   {
-    RunFree(memblk_ptr);
+    MyFree(memblk_ptr);
     return NULL;
   }
 
@@ -368,22 +357,23 @@ void *RunRealloc(void *memblk_ptr, size_t size)
   if (!hash_entry)
   {
     Debug((DEBUG_FATAL, "REALLOCATING NON MALLOC PTR !!!"));
-    MyCoreDump;
+    assert(0 != hash_entry);
   }
 
 #ifdef MEMMAGICNUMS
   if (prefix_ptr->prefix_magicnumber != MAGIC_PREFIX)
   {
     Debug((DEBUG_FATAL, "MAGIC_PREFIX CORRUPT !"));
-    MyCoreDump;
+    assert(MAGIC_PREFIX == prefix_ptr->prefix_magicnumber);
   }
   if (postfixp(memblk_ptr, hash_entry->size)->postfix_magicnumber
       != MAGIC_POSTFIX)
   {
     Debug((DEBUG_FATAL, "MAGIC_POSTFIX CORRUPT !"));
-    MyCoreDump;
+    assert(MAGIC_POSTFIX ==
+           postfixp(memblk_ptr, hash_entry->size)->postfix_magicnumber);
   }
-#endif
+#endif /* MEMMAGICNUMS */
 
 #ifdef HAS_POSTFIX
   size += 3;
@@ -397,15 +387,15 @@ void *RunRealloc(void *memblk_ptr, size_t size)
   location[hash_entry->location].number_of_allocations--;
 #ifdef MEMSIZESTATS
   location[hash_entry->location].size -= hash_entry->size;
-#endif
-#endif
+#endif /* MEMSIZESTATS */
+#endif /* MEMLEAKSTATS */
 
   if (!(ptr =
       (prefix_blk_st *) realloc(prefix_ptr,
       SIZEOF_PREFIX + size + SIZEOF_POSTFIX)))
   {
-    Debug((DEBUG_FATAL, "RunRealloc: Out of memory :"));
-    return NULL;
+    (*noMemHandler)();
+    return 0;
   }
 
   if (prev_hash_entry)
@@ -419,23 +409,23 @@ void *RunRealloc(void *memblk_ptr, size_t size)
   hash_entry->ptr = ptr;
 #ifdef MEMLEAKSTATS
 #ifdef MEMTIMESTATS
-  hash_entry->when = now;
+  hash_entry->when = CurrentTime;
 #endif
   location[(hash_entry->location =
       find_location(filename, line))].number_of_allocations++;
-#endif
+#endif /* MEMLEAKSTATS */
 #ifdef MEMSIZESTATS
   mem_size += size - hash_entry->size;
   hash_entry->size = size;
 #ifdef MEMLEAKSTATS
   location[hash_entry->location].size += size;
 #endif
-#endif
+#endif /* MEMSIZESTATS */
 #ifdef MEMMAGICNUMS
   postfixp(memblkp(ptr), size)->postfix_magicnumber = MAGIC_POSTFIX;
 #endif
 
-  Debug((DEBUG_DEBUG, ": RunRealloc(%p, %u) = %p",
+  Debug((DEBUG_MALLOC, ": MyRealloc(%p, %u) = %p",
       memblk_ptr, size, memblkp(ptr)));
 
   return memblkp(ptr);
@@ -451,6 +441,6 @@ size_t get_mem_size(void)
 {
   return mem_size;
 }
-#endif
+#endif /* MEMSIZESTATS */
 
-#endif /* DEBUGMALLOC */
+#endif /* !defined(DEBUGMALLOC) */

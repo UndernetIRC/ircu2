@@ -58,6 +58,21 @@ mainmenu_option next_comment
 endmenu
 
 mainmenu_option next_comment
+comment 'Debugging (do not define this on production servers)'
+  bool 'Do you want to enable debugging output' DEBUGMODE
+  bool 'Do you want to enable asserts and memory allocation checking' CONFIG_NDEBUG
+  EXTRA_CPPFLAGS=""
+  if [ "$CONFIG_NDEBUG" = "n" ]; then
+    if [ -z "$EXTRA_CPPFLAGS" ]; then
+      EXTRA_CPPFLAGS="-DNDEBUG"
+    else
+      EXTRA_CPPFLAGS="-DNDEBUG $EXTRA_CPPFLAGS"
+    fi
+  fi
+  bool 'Are you testing on a host without DNS' NODNS
+endmenu
+
+mainmenu_option next_comment
 comment 'Compile stuff'
   if [ "$prefix" = "NONE" ]; then
     prefix=/usr/local
@@ -111,7 +126,6 @@ comment 'Compile stuff'
   if [ "$IRCDLIBS" = "none" ]; then
     IRCDLIBS=""
   fi
-  EXTRA_CPPFLAGS=""
   if [ -n "$EXTRA_INCLUDEDIRS" ]; then
     for i in $EXTRA_INCLUDEDIRS; do
       if [ -z "$EXTRA_CPPFLAGS" ]; then
@@ -122,9 +136,9 @@ comment 'Compile stuff'
     done
   fi
   if [ -z "$EXTRA_CPPFLAGS" ]; then
-    CPPFLAGS=-I../include
+    CPPFLAGS="-I../include -I../config"
   else
-    CPPFLAGS="-I../include $EXTRA_CPPFLAGS"
+    CPPFLAGS="-I../include -I../config $EXTRA_CPPFLAGS"
   fi
   echo "EXTRA_CPPFLAGS=\"$EXTRA_CPPFLAGS\"" >>$CONFIG
   echo "CPPFLAGS=\"$CPPFLAGS\"" >>$CONFIG
@@ -170,7 +184,6 @@ comment 'General defines'
       echo "   SECURITY: Then don't install the daemon SUID or SGID !"
     fi
   fi
-  bool 'Set up a Unix domain socket to connect clients/servers' UNIXPORT
   bool 'Do you need virtual hosting' VIRTUAL_HOST
   PREV_HUB=$HUB
   bool 'Will you connect to more then one server at a time' HUB
@@ -179,36 +192,12 @@ comment 'General defines'
   fi
 endmenu
 
-mainmenu_option next_comment
-comment 'Debugging (do not define this on production servers)'
-  bool 'Do you want to enable debugging output' DEBUGMODE
-  bool 'Do you want memory- allocation and/or leak checking' DEBUGMALLOC
-  if [ "$DEBUGMALLOC" = "y" ]; then
-    bool 'Do you want to have boundary checking' MEMMAGICNUMS
-    bool 'Do you want memory leak testing (stats M)' MEMLEAKSTATS y
-    if [ "$MEMLEAKSTATS" = "y" ]; then
-      if [ "$MEMMAGICNUMS" = "y" ]; then
-	echo "You will have extra info on allocated sizes too (MEMSIZESTATS)"
-	define_bool MEMSIZESTATS $MEMSIZESTATS
-      else
-        bool 'Do you want extra info on allocated sizes' MEMSIZESTATS y
-      fi
-      bool 'Do you want support for a time interval with /stats M' MEMTIMESTATS y
-    fi
-  else
-    define_bool MEMMAGICNUMS $MEMMAGICNUMS
-    define_bool MEMLEAKSTATS $MEMLEAKSTATS
-    define_bool MEMSIZESTATS $MEMSIZESTATS
-    define_bool MEMTIMESTATS $MEMTIMESTATS
-  fi
-  bool 'Are you testing on a host without DNS' NODNS
-endmenu
 
 mainmenu_option next_comment
 comment 'Paths and files'
   eval DPATH_DEFAULT="${prefix}/lib/ircd"
   string 'Directory where all ircd stuff resides' DPATH $DPATH_DEFAULT
-  define_string SPATH "$BINDIR/ircd"
+  define_string SPATH "$BINDIR/$SYMLINK"
   echo "The following filenames are either full paths or files within DPATH"
   string 'Server configuration file' CPATH 'ircd.conf'
   string 'Server MOTD file' MPATH 'ircd.motd'
@@ -228,7 +217,8 @@ comment 'Logging (filenames are either full paths or files within DPATH)'
       string '   Give the path and(or) filename of this log file' WPATH 'whox.log'
     fi
 
- comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
+comment 'Bad Channel G-Lines allow operators to add channel masks to a list which prohibits local clients from being able joining channels which match the mask.  Remote BadChan Glines allow Uworld to add or remove channels from the servers internal list of badchans'
+  BADCHAN=y
   bool 'Do you want to enable Bad Channel G-lines' BADCHAN y
     if [ "$BADCHAN" = "y" ]; then
       echo " "
@@ -294,7 +284,6 @@ endmenu
 
 mainmenu_option next_comment
 comment 'Configuration'
-  bool 'Use crypted passwords for N: lines' CRYPT_LINK_PASSWORD y
   bool 'Use crypted passwords for operators' CRYPT_OPER_PASSWORD y
   DUMMY=`echo "$BUFFERPOOL" | sed -e 's/[0-9]//g'`
   if [ "$DUMMY" != "" ]; then
@@ -307,7 +296,7 @@ comment 'Configuration'
   fi
   int 'Max receive queue for clients (bytes)' CLIENT_FLOOD 1024
   int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
-  int 'Default client listen port' PORTNUM 6667
+  int 'Default port for connections to other servers' SERVER_PORT 4400
   int 'Nickname history length' NICKNAMEHISTORYLENGTH 800
   bool 'Allow Opers to see (dis)connects of local clients' ALLOW_SNO_CONNEXIT
   if [ "$ALLOW_SNO_CONNEXIT" = "y" ]; then
@@ -323,6 +312,7 @@ comment 'Configuration'
   fi
   bool 'Do you want support for the old I:*:ONE:*:: construct (read help text!)' USEONE n
   bool 'Send a short message instead of the MOTD to connecting clients' NODEFAULTMOTD y
+  bool 'Kill connecting clients when forward and reverse DNS mismatch' KILL_IPMISMATCH n
 endmenu
 
 mainmenu_option next_comment
@@ -350,6 +340,7 @@ comment 'Oper commands'
   bool 'Allow local/global opers to set modes on local channels' OPER_MODE_LCHAN y
   bool 'Allow local/global opers to walk through local channels modes' OPER_WALK_THROUGH_LMODES n
   bool 'Prevent local/global opers from being kicked or deoped on local channels' NO_OPER_DEOP_LCHAN n
+
 endmenu
 
 mainmenu_option next_comment
@@ -369,11 +360,6 @@ endmenu
 mainmenu_option next_comment
 comment 'Mandatory defines (you should leave these untouched)'
   int 'Max auto connects per class (1!)' MAXIMUM_LINKS 1
-  echo '* Never define this on a production server:'
-  bool 'Enable message logging' MSGLOG_ENABLED
-  if [ "$MSGLOG_ENABLED" = "y" ]; then
-    int 'Message log size' MSGLOG_SIZE 128
-  fi
   if [ "$OPER_KILL" = "y" ]; then
     bool 'Only allow KILLs of local clients' LOCAL_KILL_ONLY
   else

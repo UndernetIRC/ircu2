@@ -16,101 +16,110 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
+#ifndef INCLUDED_channel_h
+#define INCLUDED_channel_h
+#ifndef INCLUDED_config_h
+#include "config.h"
+#endif
+#ifndef INCLUDED_ircd_defs_h
+#include "ircd_defs.h"        /* NICKLEN */
+#endif
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>
+#define INCLUDED_sys_types_h
+#endif
 
-#include "list.h"
+struct SLink;
+struct Client;
 
-#ifndef CHANNEL_H
-#define CHANNEL_H
-
-/*=============================================================================
+/*
  * General defines
  */
 
-#define MAXMODEPARAMS	6
-#define MODEBUFLEN	200
+#define MAXMODEPARAMS   6
+#define MODEBUFLEN      200
 
-#define KEYLEN		23
-#define TOPICLEN	160
-#define CHANNELLEN	200
-#define MAXBANS		30
-#define MAXBANLENGTH	1024
+#define KEYLEN          23
+#define CHANNELLEN      200
+#define MAXBANS         30
+#define MAXBANLENGTH    1024
 
-/*=============================================================================
+/*
  * Macro's
  */
 
-#define ChannelExists(n)	(FindChannel(n) != NullChn)
-#define NullChn ((aChannel *)0)
-#define CREATE 1		/* whether a channel should be
-				 * created or just tested for existance */
+#define ChannelExists(n)        (0 != FindChannel(n))
 
-#define CHFL_CHANOP		0x0001	/* Channel operator */
-#define CHFL_VOICE		0x0002	/* the power to speak */
-#define CHFL_DEOPPED		0x0004	/* Is de-opped by a server */
-#define CHFL_SERVOPOK		0x0008	/* Server op allowed */
-#define CHFL_ZOMBIE		0x0010	/* Kicked from channel */
-#define CHFL_BAN		0x0020	/* ban channel flag */
-#define CHFL_BAN_IPMASK		0x0040	/* ban mask is an IP-number mask */
-#define CHFL_BAN_OVERLAPPED	0x0080	/* ban overlapped, need bounce */
-#define CHFL_OVERLAP	(CHFL_CHANOP|CHFL_VOICE)
-#define CHFL_BURST_JOINED	0x0100	/* Just joined by net.junction */
-#define CHFL_BURST_BAN		0x0200	/* Ban part of last BURST */
-#define CHFL_BURST_BAN_WIPEOUT	0x0400	/* Ban will be wiped at end of BURST */
-#define CHFL_BANVALID		0x0800	/* CHFL_BANNED bit is valid */
-#define CHFL_BANNED		0x1000	/* Channel member is banned */
-#define CHFL_SILENCE_IPMASK	0x2000	/* silence mask is an IP-number mask */
+#define CHFL_CHANOP             0x0001  /* Channel operator */
+#define CHFL_VOICE              0x0002  /* the power to speak */
+#define CHFL_DEOPPED            0x0004  /* Is de-opped by a server */
+#define CHFL_SERVOPOK           0x0008  /* Server op allowed */
+#define CHFL_ZOMBIE             0x0010  /* Kicked from channel */
+#define CHFL_BAN                0x0020  /* ban channel flag */
+#define CHFL_BAN_IPMASK         0x0040  /* ban mask is an IP-number mask */
+#define CHFL_BAN_OVERLAPPED     0x0080  /* ban overlapped, need bounce */
+#define CHFL_BURST_JOINED       0x0100  /* Just joined by net.junction */
+#define CHFL_BURST_BAN          0x0200  /* Ban part of last BURST */
+#define CHFL_BURST_BAN_WIPEOUT  0x0400  /* Ban will be wiped at end of BURST */
+#define CHFL_BANVALID           0x0800  /* CHFL_BANNED bit is valid */
+#define CHFL_BANNED             0x1000  /* Channel member is banned */
+#define CHFL_SILENCE_IPMASK     0x2000  /* silence mask is an IP-number mask */
+
+#define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
+#define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
+#define CHFL_VOICED_OR_OPPED (CHFL_CHANOP | CHFL_VOICE)
 
 /* Channel Visibility macros */
 
-#define MODE_CHANOP	CHFL_CHANOP
-#define MODE_VOICE	CHFL_VOICE
-#define MODE_PRIVATE	0x0004
-#define MODE_SECRET	0x0008
-#define MODE_MODERATED	0x0010
+#define MODE_CHANOP     CHFL_CHANOP
+#define MODE_VOICE      CHFL_VOICE
+#define MODE_PRIVATE    0x0004
+#define MODE_SECRET     0x0008
+#define MODE_MODERATED  0x0010
 #define MODE_TOPICLIMIT 0x0020
 #define MODE_INVITEONLY 0x0040
 #define MODE_NOPRIVMSGS 0x0080
-#define MODE_KEY	0x0100
-#define MODE_BAN	0x0200
-#define MODE_LIMIT	0x0400
-#define MODE_SENDTS	0x0800	/* TS was 0 during a local user /join; send
-				 * temporary TS; can be removed when all 2.10 */
-#define MODE_LISTED	0x10000
+#define MODE_KEY        0x0100
+#define MODE_BAN        0x0200
+#define MODE_LIMIT      0x0400
+#define MODE_SENDTS     0x0800  /* TS was 0 during a local user /join; send
+                                 * temporary TS; can be removed when all 2.10 */
+#define MODE_LISTED     0x10000
 
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
-#define MODE_WPARAS	(MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT)
+#define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT)
 
-#define HoldChannel(x)		(!(x))
+#define HoldChannel(x)          (!(x))
 /* name invisible */
-#define SecretChannel(x)	((x) && ((x)->mode.mode & MODE_SECRET))
+#define SecretChannel(x)        ((x) && ((x)->mode.mode & MODE_SECRET))
 /* channel not shown but names are */
-#define HiddenChannel(x)	((x) && ((x)->mode.mode & MODE_PRIVATE))
+#define HiddenChannel(x)        ((x) && ((x)->mode.mode & MODE_PRIVATE))
 /* channel visible */
-#define ShowChannel(v,c)	(PubChannel(c) || IsMember((v),(c)))
-#define PubChannel(x)		((!x) || ((x)->mode.mode & \
-				    (MODE_PRIVATE | MODE_SECRET)) == 0)
-#define is_listed(x)		((x)->mode.mode & MODE_LISTED)
+#define ShowChannel(v,c)        (PubChannel(c) || find_channel_member((v),(c)))
+#define PubChannel(x)           ((!x) || ((x)->mode.mode & \
+                                    (MODE_PRIVATE | MODE_SECRET)) == 0)
+#define is_listed(x)            ((x)->mode.mode & MODE_LISTED)
 
-#define IsLocalChannel(name)	(*(name) == '&')
-#define IsModelessChannel(name)	(*(name) == '+')
-#define IsChannelName(name)	(*(name) == '#' || \
-				IsModelessChannel(name) || IsLocalChannel(name))
+#define IsLocalChannel(name)    (*(name) == '&')
+#define IsModelessChannel(name) (*(name) == '+')
+#define IsChannelName(name)     (*(name) == '#' || \
+                                IsModelessChannel(name) || IsLocalChannel(name))
 
-/* Check if a sptr is an oper, and chptr is a local channel. */
+/*
+ * Check if a sptr is an oper, and chptr is a local channel.
+ */
+#define IsOperOnLocalChannel(sptr,chname) \
+                ((IsAnOper(sptr)) && (IsLocalChannel(chname)))
 
-#define IsOperOnLocalChannel(sptr,chname) ((IsAnOper(sptr)) \
-                                          && (IsLocalChannel(chname)))
-
- 
-#ifdef OPER_WALK_THROUGH_LMODES
-  /* used in can_join to determine if an oper forced a join on a channel */
-  #define MAGIC_OPER_OVERRIDE 1000
-#endif
-
-
+typedef enum ChannelGetType {
+  CGT_NO_CREATE,
+  CGT_CREATE
+} ChannelGetType;
 
 /* used in SetMode() in channel.c and m_umode() in s_msg.c */
 
@@ -118,28 +127,96 @@
 #define MODE_ADD       0x40000000
 #define MODE_DEL       0x20000000
 
-/*=============================================================================
+/*
+ * Maximum acceptable lag time in seconds: A channel younger than
+ * this is not protected against hacking admins.
+ * Mainly here to check if the TS clocks really sync (otherwise this
+ * will start causing HACK notices.
+ * This value must be the same on all servers.
+ *
+ * This value has been increased to 1 day in order to distinguish this
+ * "normal" type of HACK wallops / desyncs, from possiblity still
+ * existing bugs.
+ */
+#define TS_LAG_TIME 86400
+
+/*
+ * A Magic TS that is used for channels that are created by JOIN,
+ * a channel with this TS accepts all TS without complaining that
+ * it might receive later via MODE or CREATE.
+ */
+#define MAGIC_REMOTE_JOIN_TS 1270080000
+
+ #ifdef OPER_WALK_THROUGH_LMODES
+   /* used in can_join to determine if an oper forced a join on a channel */
+   #define MAGIC_OPER_OVERRIDE 1000
+ #endif
+
+
+extern const char* const PartFmt1;
+extern const char* const PartFmt2;
+extern const char* const PartFmt1serv;
+extern const char* const PartFmt2serv;
+
+
+/*
  * Structures
  */
 
-struct SMode {
+struct Membership {
+  struct Client*     user;
+  struct Channel*    channel;
+  struct Membership* next_member;
+  struct Membership* prev_member;
+  struct Membership* next_channel;
+  struct Membership* prev_channel;
+  unsigned int       status;
+};
+
+#define IsZombie(x)         ((x)->status & CHFL_ZOMBIE)
+#define IsDeopped(x)        ((x)->status & CHFL_DEOPPED)
+#define IsBanned(x)         ((x)->status & CHFL_BANNED)
+#define IsBanValid(x)       ((x)->status & CHFL_BANVALID)
+#define IsChanOp(x)         ((x)->status & CHFL_CHANOP)
+#define HasVoice(x)         ((x)->status & CHFL_VOICE)
+#define IsServOpOk(x)       ((x)->status & CHFL_SERVOPOK)
+#define IsBurstJoined(x)    ((x)->status & CHFL_BURST_JOINED)
+#define IsVoicedOrOpped(x)  ((x)->status & CHFL_VOICED_OR_OPPED)
+
+#define SetBanned(x)        ((x)->status |= CHFL_BANNED)
+#define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
+#define SetDeopped(x)       ((x)->status |= CHFL_DEOPPED)
+#define SetServOpOk(x)      ((x)->status |= CHFL_SERVOPOK)
+#define SetBurstJoined(x)   ((x)->status |= CHFL_BURST_JOINED)
+#define SetZombie(x)        ((x)->status |= CHFL_ZOMBIE)
+
+#define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
+#define ClearBanValid(x)    ((x)->status &= ~CHFL_BANVALID)
+#define ClearDeopped(x)     ((x)->status &= ~CHFL_DEOPPED)
+#define ClearServOpOk(x)    ((x)->status &= ~CHFL_SERVOPOK)
+#define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
+
+
+struct Mode {
   unsigned int mode;
   unsigned int limit;
   char key[KEYLEN + 1];
 };
 
 struct Channel {
-  struct Channel *nextch, *prevch, *hnextch;
-  Mode mode;
-  time_t creationtime;
-  char topic[TOPICLEN + 1];
-  char topic_nick[NICKLEN + 1];
-  time_t topic_time;
-  unsigned int users;
-  struct SLink *members;
-  struct SLink *invites;
-  struct SLink *banlist;
-  char chname[1];
+  struct Channel*    next;
+  struct Channel*    prev;
+  struct Channel*    hnext;
+  time_t             creationtime;
+  time_t             topic_time;
+  unsigned int       users;
+  struct Membership* members;
+  struct SLink*      invites;
+  struct SLink*      banlist;
+  struct Mode        mode;
+  char               topic[TOPICLEN + 1];
+  char               topic_nick[NICKLEN + 1];
+  char               chname[1];
 };
 
 struct ListingArgs {
@@ -153,33 +230,61 @@ struct ListingArgs {
   struct Channel *chptr;
 };
 
-/*=============================================================================
+extern struct Channel* GlobalChannelList;
+extern int             LocalChanOperMode;
+
+/*
  * Proto types
  */
+extern void clean_channelname(char* name);
+extern void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
+                          struct Channel *chptr);
+extern int set_mode(struct Client* cptr, struct Client* sptr,
+                    struct Channel* chptr, int parc, char* parv[],
+                    char* mbuf, char* pbuf, char* npbuf, int* badop);
+extern void send_hack_notice(struct Client *cptr, struct Client *sptr,
+                             int parc, char *parv[], int badop, int mtype);
+extern struct Channel *get_channel(struct Client *cptr,
+                                   char *chname, ChannelGetType flag);
+extern struct Membership* find_member_link(struct Channel * chptr,
+                                           const struct Client* cptr);
+extern int sub1_from_channel(struct Channel* chptr);
+extern int can_join(struct Client *sptr, struct Channel *chptr, char *key);
+extern void add_user_to_channel(struct Channel* chptr, struct Client* who,
+                                unsigned int flags);
+extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
+                        const char *param, int *count);
+extern void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
+                                 int *send_itp, char is_a_ban, int mode);
+extern int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
+                     int change, int firsttime);
+extern struct SLink *next_removed_overlapped_ban(void);
+extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
+                        const char *param, int *count);
+extern void make_zombie(struct Membership* member, struct Client* who,
+                        struct Client* cptr, struct Client* sptr,
+                        struct Channel* chptr);
+extern struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing);
+void add_invite(struct Client *cptr, struct Channel *chptr);
+int number_of_zombies(struct Channel *chptr);
 
-extern int m_names(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern Link *IsMember(aClient *cptr, aChannel *chptr);
-extern void remove_user_from_channel(aClient *sptr, aChannel *chptr);
-extern int is_chan_op(aClient *cptr, aChannel *chptr);
-extern int is_zombie(aClient *cptr, aChannel *chptr);
-extern int has_voice(aClient *cptr, aChannel *chptr);
-extern int can_send(aClient *cptr, aChannel *chptr);
-extern void send_channel_modes(aClient *cptr, aChannel *chptr);
-extern int m_mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+extern const char* find_no_nickchange_channel(struct Client* cptr);
+extern struct Membership* IsMember(struct Client *cptr, struct Channel *chptr);
+extern struct Membership* find_channel_member(struct Client* cptr, struct Channel* chptr);
+extern int member_can_send_to_channel(struct Membership* member);
+extern int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr);
+
+extern void remove_user_from_channel(struct Client *sptr, struct Channel *chptr);
+extern void remove_user_from_all_channels(struct Client* cptr);
+
+extern int is_chan_op(struct Client *cptr, struct Channel *chptr);
+extern int is_zombie(struct Client *cptr, struct Channel *chptr);
+extern int has_voice(struct Client *cptr, struct Channel *chptr);
+extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
-extern void del_invite(aClient *cptr, aChannel *chptr);
-extern void list_next_channels(aClient *cptr, int nr);
-extern int m_join(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_create(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_destruct(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_burst(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_part(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern int m_list(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern void send_user_joins(aClient *cptr, aClient *user);
+extern void del_invite(struct Client *cptr, struct Channel *chptr);
+extern void list_next_channels(struct Client *cptr, int nr);
+extern void send_user_joins(struct Client *cptr, struct Client *user);
 
-extern aChannel *channel;
 
-#endif /* CHANNEL_H */
+#endif /* INCLUDED_channel_h */

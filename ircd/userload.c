@@ -22,34 +22,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include <stdio.h>
-#include <signal.h>
-#include <sys/resource.h>
-#include "h.h"
-#include "struct.h"
-#include "send.h"
-#include "s_misc.h"
 #include "userload.h"
+#include "client.h"
 #include "ircd.h"
 #include "numnicks.h"
-#include "s_serv.h"
 #include "querycmds.h"
+#include "s_misc.h"
+#include "send.h"
+#include "struct.h"
+#include "sys.h"
 
-RCSTAG_CC("$Id$");
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
 
-struct current_load_st current_load;	/* The current load */
+struct current_load_st current_load;    /* The current load */
 
-static struct current_load_st cspm_sum;	/* Number of connections times number
-					   of seconds per minute. */
-static struct current_load_st csph_sum;	/* Number of connections times number
-					   of seconds per hour. */
-static struct current_load_st cspm[60];	/* Last 60 minutes */
-static struct current_load_st csph[72];	/* Last 72 hours */
+static struct current_load_st cspm_sum; /* Number of connections times number
+                                           of seconds per minute. */
+static struct current_load_st csph_sum; /* Number of connections times number
+                                           of seconds per hour. */
+static struct current_load_st cspm[60]; /* Last 60 minutes */
+static struct current_load_st csph[72]; /* Last 72 hours */
 
-static int m_index, h_index;	/* Array indexes */
+static int m_index, h_index;    /* Array indexes */
 
 /*
  * update_load
@@ -58,26 +57,26 @@ static int m_index, h_index;	/* Array indexes */
  */
 void update_load(void)
 {
-  static struct tm tm_now;	/* Current time. */
-  static time_t last_sec;	/* Seconds of last time that
-				   update_load() called. */
+  static struct tm tm_now;      /* Current time. */
+  static time_t last_sec;       /* Seconds of last time that
+                                   update_load() called. */
   static time_t last_min;
-  static time_t last;		/* Last time that update_load() was called. */
-  static struct current_load_st last_load;	/* The load last time that
-						   update_load() was called. */
-  static int initialized;	/* Boolean, set when initialized. */
-  register int diff_time;	/* Temp. variable used to hold time intervals
-				   in seconds, minutes or hours. */
+  static time_t last;           /* Last time that update_load() was called. */
+  static struct current_load_st last_load;      /* The load last time that
+                                                   update_load() was called. */
+  static int initialized;       /* Boolean, set when initialized. */
+  int diff_time;        /* Temp. variable used to hold time intervals
+                                   in seconds, minutes or hours. */
 
   /* Update `current_load' */
-  current_load.client_count = nrof.local_clients;
-  current_load.conn_count = nrof.local_clients + nrof.local_servers;
+  current_load.client_count = UserStats.local_clients;
+  current_load.conn_count = UserStats.local_clients + UserStats.local_servers;
 
   /* Nothing needed when still in the same second */
-  if (!(diff_time = now - last))
+  if (!(diff_time = CurrentTime - last))
   {
-    last_load = current_load;	/* Update last_load to be the load last
-				   time that update_load() was called. */
+    last_load = current_load;   /* Update last_load to be the load last
+                                   time that update_load() was called. */
     return;
   }
 
@@ -98,13 +97,13 @@ void update_load(void)
       tm_now.tm_min -= 60 * diff_time;
       if ((tm_now.tm_hour += diff_time) > 23)
       {
-	tm_now = *localtime(&now);	/* Only called once a day */
-	if (!initialized)
-	{
-	  initialized = 1;
-	  last_sec = 60;
-	  last_min = tm_now.tm_min;
-	}
+        tm_now = *localtime(&CurrentTime);      /* Only called once a day */
+        if (!initialized)
+        {
+          initialized = 1;
+          last_sec = 60;
+          last_min = tm_now.tm_min;
+        }
       }
     }
 
@@ -129,10 +128,10 @@ void update_load(void)
     last_min = tm_now.tm_min;
 
     if (diff_time < 0)
-      diff_time += 60;		/* update_load() must be called at
-				   _least_ once an hour */
+      diff_time += 60;          /* update_load() must be called at
+                                   _least_ once an hour */
 
-    if (diff_time > 1)		/* Did more then one minute pass ? */
+    if (diff_time > 1)          /* Did more then one minute pass ? */
     {
       /* Calculate the constant load during those extra minutes */
       cspm_sum.conn_count = last_load.conn_count * 60;
@@ -145,21 +144,21 @@ void update_load(void)
       /* Increase minute index */
       if (++m_index == 60)
       {
-	m_index = 0;
-	/* Keep a list of the last 72 hours */
-	csph[h_index] = csph_sum;
-	if (++h_index == 72)
-	  h_index = 0;
+        m_index = 0;
+        /* Keep a list of the last 72 hours */
+        csph[h_index] = csph_sum;
+        if (++h_index == 72)
+          h_index = 0;
       }
 
-      if (--diff_time <= 0)	/* '<' to prevent endless loop if update_load()
-				   was not called once an hour :/ */
-	break;
+      if (--diff_time <= 0)     /* '<' to prevent endless loop if update_load()
+                                   was not called once an hour :/ */
+        break;
 
       /* Add extra minutes to the Connections*Seconds/Hour sum */
       csph_sum.conn_count += cspm_sum.conn_count - cspm[m_index].conn_count;
       csph_sum.client_count +=
-	  cspm_sum.client_count - cspm[m_index].client_count;
+          cspm_sum.client_count - cspm[m_index].client_count;
       csph_sum.local_count += cspm_sum.local_count - cspm[m_index].local_count;
 
       /* Store extra minutes in the array */
@@ -178,7 +177,7 @@ void update_load(void)
     /* How long did last_load last ? */
     diff_time = tm_now.tm_sec - last_sec;
     last_sec = tm_now.tm_sec;
-    if (diff_time == 1)		/* Just one second ? */
+    if (diff_time == 1)         /* Just one second ? */
     {
       cspm_sum.conn_count += last_load.conn_count;
       cspm_sum.client_count += last_load.client_count;
@@ -193,12 +192,12 @@ void update_load(void)
       cspm_sum.local_count += last_load.local_count * diff_time;
     }
   }
-  last_load = current_load;	/* Update last_load to be the load last
-				   time that update_load() was called. */
-  last = now;
+  last_load = current_load;     /* Update last_load to be the load last
+                                   time that update_load() was called. */
+  last = CurrentTime;
 }
 
-void calc_load(aClient *sptr)
+void calc_load(struct Client *sptr)
 {
   /* *INDENT-OFF* */
   static const char *header =
@@ -210,11 +209,11 @@ void calc_load(aClient *sptr)
     "total clients",
     "total connections"
   };
-  int i, j, times[5][3];	/* [min,hour,day,Yest,YYest]
-				   [local,client,conn] */
+  int i, j, times[5][3];        /* [min,hour,day,Yest,YYest]
+                                   [local,client,conn] */
   int last_m_index = m_index, last_h_index = h_index;
 
-  update_load();		/* We want stats accurate as of *now* */
+  update_load();                /* We want stats accurate as of *now* */
 
   if (--last_m_index < 0)
     last_m_index = 59;
@@ -234,7 +233,7 @@ void calc_load(aClient *sptr)
     for (j = 0; j < 24; ++j)
     {
       if (--last_h_index < 0)
-	last_h_index = 71;
+        last_h_index = 71;
       times[i][0] += csph[last_h_index].local_count;
       times[i][1] += csph[last_h_index].client_count;
       times[i][2] += csph[last_h_index].conn_count;
@@ -249,27 +248,28 @@ void calc_load(aClient *sptr)
     sendto_one(sptr, ":%s NOTICE %s :%s", me.name, sptr->name, header);
     for (i = 0; i < 3; ++i)
       sendto_one(sptr,
-	  ":%s NOTICE %s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
-	  me.name, sptr->name,
-	  times[0][i] / 10, times[0][i] % 10,
-	  times[1][i] / 10, times[1][i] % 10,
-	  times[2][i], times[3][i], times[4][i], what[i]);
+          ":%s NOTICE %s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
+          me.name, sptr->name,
+          times[0][i] / 10, times[0][i] % 10,
+          times[1][i] / 10, times[1][i] % 10,
+          times[2][i], times[3][i], times[4][i], what[i]);
   }
   else
   {
-    sendto_one(sptr, "%s NOTICE %s%s :%s", NumServ(&me), NumNick(sptr), header);
+    sendto_one(sptr, "%s NOTICE %s%s :%s",
+        NumServ(&me), NumNick(sptr), header);
     for (i = 0; i < 3; ++i)
       sendto_one(sptr,
-	  "%s NOTICE %s%s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
-	  NumServ(&me), NumNick(sptr),
-	  times[0][i] / 10, times[0][i] % 10,
-	  times[1][i] / 10, times[1][i] % 10,
-	  times[2][i], times[3][i], times[4][i], what[i]);
+          "%s NOTICE %s%s :%4d.%1d  %4d.%1d  %4d  %4d  %4d   %s",
+          NumServ(&me), NumNick(sptr),
+          times[0][i] / 10, times[0][i] % 10,
+          times[1][i] / 10, times[1][i] % 10,
+          times[2][i], times[3][i], times[4][i], what[i]);
   }
 }
 
 void initload(void)
 {
   memset(&current_load, 0, sizeof(current_load));
-  update_load();		/* Initialize the load list */
+  update_load();                /* Initialize the load list */
 }

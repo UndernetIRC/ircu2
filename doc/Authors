@@ -142,13 +142,19 @@ UNDERNET (1991 - 1999)
 
 The Undernet versions (TSpre8, u2.9 and u2.10) are based on ircd-2.8.10 and
 contain thousands of hours of work by Carlo Wood <carlo@runaway.xs4all.nl>
-(Run on IRC). The number of protocol enhancements, changes and additions that
-have been added are too many to summarize.  All patches are kept in the patch
-repository at http://www.xs4all.nl/~carlo17/ircd-dev/
+(Run on IRC). The number of protocol enhancements, changes and additions
+that have been added are too many to summarize.  All patches are kept in the
+cvs repository at http://coder-com.undernet.org/.  Discussions on this
+server code are currently on the mailing list coder-com@undernet.org, or in
+#coder-com on undernet.
+
+The current maintainer is Bleep.
 
 Various additions and bugfixes have been contributed by:
 
 Aaron <agifford@sci.dixie.edu>
+Bleep <tomh@inxpress.net>
+CaptJay <captjay@superlink.net>
 CapVideo <majdi@puck.nether.net>
 Chaos <simon@troll.elec.uow.edu.au>
 Cym <cym@acrux.net>
@@ -156,11 +162,14 @@ Derrick <dirk@servtech.com>
 Ensor <dholmes@rahul.net>
 flux <cmlambertus@ucdavis.edu>
 Ghostwolf <foxxe@wolfspirit.org>
+Gte- <gte@atomicrevs.demon.co.uk>
+Isomer <isomer@coders.net>
 Jamey <woodjr@durrance.Colorado.EDU>
 Jarle <jarlel@II.UIB.NO>
 Kev <klmitch@mit.edu>
 Nemesi <cocito@tin.it>
 Niels <niels@holding.pi.net>
+Run <carlo@alinoe.com>
 record <jegelhof@cloud9.net>
 smg <smg@lm.com>
 SeKs <intru@step.polymtl.ca>

@@ -5,21 +5,43 @@
  *
  * Headerfile of runmalloc.c
  *
+ * $Id$
  */
+#ifndef INCLUDED_runmalloc_h
+#define INCLUDED_runmalloc_h
+#ifndef INCLUDED_config_h
+#include "config.h"
+#endif
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>         /* size_t */
+#define INCLUDED_sys_types_h
+#endif
 
-#ifndef RUNMALLOC_H
-#define RUNMALLOC_H
+typedef void (*OutOfMemoryHandler)(void);
+
+extern void set_nomem_handler(OutOfMemoryHandler handler);
+
+#if 0
+/* 
+ * we want to be able to test in DEBUGMODE without turning
+ * DEBUGMALLOC on, change in the config not in the code
+ */
+#if defined(DEBUGMODE) && !defined(DEBUGMALLOC)
+#define DEBUGMALLOC
+#endif
+#endif
 
 #ifdef DEBUGMALLOC
 
 #if defined(MEMMAGICNUMS) && !defined(MEMSIZESTATS)
 #define MEMSIZESTATS
 #endif
+
 #ifndef MEMLEAKSTATS
 #undef MEMTIMESTATS
 #endif
 
-/*=============================================================================
+/*
  * Proto types
  */
 
@@ -31,16 +53,19 @@ extern void *RunRealloc_memleak(void *ptr, size_t size,
     int line, const char *filename);
 struct Client;
 extern void report_memleak_stats(struct Client *sptr, int parc, char *parv[]);
-#define RunMalloc(x) RunMalloc_memleak(x, __LINE__, __FILE__)
-#define RunCalloc(x,y) RunCalloc_memleak(x,y, __LINE__, __FILE__)
-#define RunRealloc(x,y) RunRealloc_memleak(x,y, __LINE__, __FILE__)
-#else
-extern void *RunMalloc(size_t size);
-extern void *RunCalloc(size_t nmemb, size_t size);
-extern void *RunRealloc(void *ptr, size_t size);
-#endif
-extern int RunFree_test(void *ptr);
-extern void RunFree(void *ptr);
+#define MyMalloc(x) RunMalloc_memleak(x, __LINE__, __FILE__)
+#define MyCalloc(x,y) RunCalloc_memleak(x,y, __LINE__, __FILE__)
+#define MyRealloc(x,y) RunRealloc_memleak(x,y, __LINE__, __FILE__)
+
+#else /* !MEMLEAKSTATS */
+extern void *MyMalloc(size_t size);
+extern void *MyCalloc(size_t nmemb, size_t size);
+extern void *MyRealloc(void *ptr, size_t size);
+#endif /* MEMLEAKSTATS */
+
+extern int MyFree_test(void *ptr);
+extern void MyFree(void *ptr);
+
 #ifdef MEMSIZESTATS
 extern unsigned int get_alloc_cnt(void);
 extern size_t get_mem_size(void);
@@ -48,19 +73,22 @@ extern size_t get_mem_size(void);
 
 #else /* !DEBUGMALLOC */
 
+#ifndef INCLUDED_stdlib_h
 #include <stdlib.h>
+#define INCLUDED_stdlib_h
+#endif
 
 #undef MEMSIZESTATS
 #undef MEMMAGICNUMS
 #undef MEMLEAKSTATS
 #undef MEMTIMESTATS
 
+#define MyFree(x) do { free((x)); (x) = 0; } while(0)
 #define Debug_malloc(x)
-#define RunMalloc(x) malloc(x)
-#define RunCalloc(x,y) calloc(x,y)
-#define RunRealloc(x,y) realloc(x,y)
-#define RunFree(x) free(x)
+extern void* MyMalloc(size_t size);
+extern void* MyCalloc(size_t nelem, size_t size);
+extern void* MyRealloc(void* x, size_t size);
 
 #endif /* DEBUGMALLOC */
 
-#endif /* RUNMALLOC_H */
+#endif /* INCLUDED_runmalloc_h */

@@ -2,24 +2,14 @@
  * copyright 1991, all rights reserved.
  * You can use this code as long as my name stays with it.
  */
-
+#define _XOPEN_SOURCE
+#define _XOPEN_VERSION 4
+#define _XOPEN_SOURCE_EXTENDED
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-#include "../../config/setup.h"
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-# endif
-char *strchr();
-#endif
-
-extern char *getpass();
 
 int main(int argc, char *argv[])
 {

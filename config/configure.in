@@ -22,10 +22,9 @@ AC_PROG_CC
 
 dnl UNIX Variants
 dnl Allow the use of BSD functions on AIX.
-AC_AIX
+dnl AC_AIX
 dnl Allow the use of POSIX functions on several OS.
-AC_ISC_POSIX
-AC_MINIX
+dnl AC_ISC_POSIX
 dnl ANSIfy the C compiler whenever possible.
 AM_PROG_CC_STDC
 dnl Use -O3 instead of -O2.
@@ -50,11 +49,9 @@ unet_CHECK_LIB_RESOLV
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(malloc.h sys/malloc.h fcntl.h string.h strings.h sys/file.h sys/ioctl.h sys/time.h syslog.h unistd.h memory.h errno.h net/errno.h sys/cdefs.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
+dnl AC_C_CONST
 AC_C_BIGENDIAN
 AC_TYPE_SIZE_T
 AC_HEADER_TIME
@@ -68,15 +65,9 @@ unet_DEFINE_SIZE_T_FMT
 unet_DEFINE_TIME_T_FMT
 
 dnl Checks for library functions.
-AC_PROG_GCC_TRADITIONAL
-AC_FUNC_MEMCMP
-AC_FUNC_SETVBUF_REVERSED
-AC_TYPE_SIGNAL
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(strchr memcpy memmove)
-AC_CHECK_FUNCS(gethostname gettimeofday mkdir strerror strtoken)
-AC_CHECK_FUNCS(select socket uname)
-AC_CHECK_FUNCS(setrlimit inet_netof getrusage times res_init)
+dnl AC_PROG_GCC_TRADITIONAL
+dnl AC_FUNC_MEMCMP
+dnl AC_FUNC_VPRINTF
 
 dnl Do we have a system call poll?
 unet_FUNC_POLL_SYSCALL
@@ -116,6 +107,33 @@ dnl Used in config-sh.
 AC_SUBST(ac_cv_header_poll_h)
 AC_SUBST(ac_cv_header_syslog_h)
 AC_SUBST(unet_cv_func_poll_syscall)
+
+dnl Check OS for os_dep files.
+uname=`uname`
+AC_MSG_CHECKING(for OS type)
+case "$uname" in
+  *inux*)
+    AC_MSG_RESULT($uname found.)
+    OSDEP_C="os_linux.c"
+  ;;
+  *olaris*)
+    AC_MSG_RESULT($uname found.)
+    OSDEP_C="os_solaris.c"
+  ;;
+  *SunOS*)
+    AC_MSG_RESULT($uname found.)
+    OSDEP_C="os_solaris.c"
+  ;;
+  *BSD*)
+    AC_MSG_RESULT($uname found.)
+    OSDEP_C="os_bsd.c"
+  ;;
+  *)
+    AC_MSG_RESULT(Unknown OS. Using generic routines.)
+    OSDEP_C="os_generic.c"
+  ;;
+esac
+AC_SUBST(OSDEP_C)
 
 dnl Finally really generate all output files:
 AC_OUTPUT(config-sh Configure ../Makefile ../ircd/Makefile ../doc/Makefile Makefile, [echo timestamp > stamp-h;],)
