@@ -1,5 +1,8 @@
 2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c (sendcmdto_flag_butone): explicitly send WALLOPS to
+	local users
+
 	* ircd/s_serv.c (exit_new_server): rewrite exit_new_server to be a
 	little less brain-dead
 
@@ -772,7 +775,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.103 2000-04-26 20:14:56 kev Exp $
+# $Id: ChangeLog,v 1.104 2000-04-26 20:58:37 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
