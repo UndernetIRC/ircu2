@@ -1,3 +1,11 @@
+2000-03-28  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* include/channel.h: add BOUNCE, renumber flags to get a little
+	more space
+
+	* ircd/channel.c (modebuf_flush): don't overload HACK2, add
+	BOUNCE; send DESYNCH message
+
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
 	* ircd/m_clearmode.c (do_clearmode): only mark the modes the
@@ -108,7 +116,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.34 2000-03-28 02:40:30 kev Exp $
+# $Id: ChangeLog,v 1.35 2000-03-28 05:33:39 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
