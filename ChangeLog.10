@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.10 2001-04-15 06:53:13 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.11 2001-04-15 07:26:47 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fixed whois (opers can see server names) -- Isomer
 * Implement walluser -- Bleep
 * stats fixed -- Isomer
 * trace disabled from non opers -- Isomer

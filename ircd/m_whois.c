@@ -273,11 +273,13 @@ exact_match:
         }
 
 #ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
-	sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-	    parv[0], name, "*.undernet.org","The Undernet Underworld");
+        if (!IsOper(sptr))
+	  sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
+	      parv[0], name, "*.undernet.org","The Undernet Underworld");
+        else
 #else
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
-            parv[0], name, a2cptr->name, a2cptr->info);
+          sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name,
+              parv[0], name, a2cptr->name, a2cptr->info);
 #endif
         if (user)
         {
