@@ -168,7 +168,7 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * mo_ping - generic message handler
+ * mo_ping - oper message handler
  *
  * parv[0] = sender prefix
  * parv[1] = origin
@@ -221,7 +221,7 @@ int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 
 /*
- * ms_ping - server message handler template
+ * ms_ping - server message handler
  */
 int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

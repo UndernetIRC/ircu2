@@ -142,7 +142,7 @@ static int user_set_away(struct User* user, char* message)
 
 
 /*
- * m_away - generic message handler template
+ * m_away - generic message handler
  * - Added 14 Dec 1988 by jto.
  *
  * parv[0] = sender prefix
@@ -172,7 +172,7 @@ int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * ms_away - server message handler template
+ * ms_away - server message handler
  * - Added 14 Dec 1988 by jto.
  *
  * parv[0] = sender prefix

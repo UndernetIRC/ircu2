@@ -1081,8 +1081,7 @@ int hide_hostmask(struct Client *cptr, unsigned int flag)
 
   /* ok, the client is now fully hidden, so let them know -- hikari */
   if (MyConnect(cptr))
-    send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->account,
-	       feature_str(FEAT_HIDDEN_HOST));
+    send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->host);
 
   /*
    * Go through all channels the client was on, rejoin him

@@ -824,7 +824,7 @@ static Numeric replyTable[] = {
 /* 395 */
   { 0 },
 /* 396 */
-  { RPL_HOSTHIDDEN, "%s.%s :is now your hidden host", "396" },
+  { RPL_HOSTHIDDEN, "%s :is now your hidden host", "396" },
 /* 397 */
   { 0 },
 /* 398 */

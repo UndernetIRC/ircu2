@@ -121,7 +121,7 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /*
- * mo_version - generic message handler
+ * mo_version - oper message handler
  *
  *   parv[0] = sender prefix
  *   parv[1] = servername

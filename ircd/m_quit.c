@@ -119,7 +119,7 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 
 /*
- * ms_quit - server message handler template
+ * ms_quit - server message handler
  *
  * parv[0] = sender prefix
  * parv[parc - 1] = comment

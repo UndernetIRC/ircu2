@@ -98,7 +98,7 @@
 #include <stdlib.h>
 
 /*
- * ms_pong - server message handler template
+ * ms_pong - server message handler
  *
  * parv[0] = sender prefix
  * parv[1] = origin

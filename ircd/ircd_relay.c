@@ -159,12 +159,7 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != text);
   assert(0 != server);
 
-  if ((acptr = FindServer(server + 1)) == NULL 
-#if 0
-/* X doesn't say it's a service yet! */
-      || !IsService(acptr)
-#endif
-      ) {
+  if ((acptr = FindServer(server + 1)) == NULL || !IsService(acptr)) {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
