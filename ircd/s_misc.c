@@ -437,9 +437,20 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 	  sendto_one(victim, "%s " TOK_SQUIT " %s 0 :%s", NumServ(killer),
 		     me.name, comment);
       } else if (!IsConnecting(victim)) {
-        if (!IsDead(victim))
-          sendto_one(victim, "ERROR :Closing Link: %s by %s (%s)",
-                     victim->name, killer->name, comment);
+        if (!IsDead(victim)) {
+	  if (IsServer(victim)) {
+	    if (IsUser(killer))
+	      sendto_one(victim, "%s%s " TOK_ERROR " :Closing Link: %s by "
+			 "%s (%s)", NumNick(killer), victim->name,
+			 killer->name, comment);
+	    else
+	      sendto_one(victim, "%s " TOK_ERROR " :Closing Link: %s by "
+			 "%s (%s)", NumServ(killer), victim->name,
+			 killer->name, comment);
+	  } else
+	    sendto_one(victim, "ERROR :Closing Link: %s by %s (%s)",
+		       victim->name, killer->name, comment);
+	}
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&
           (killer == &me || (IsServer(killer) &&
