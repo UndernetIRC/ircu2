@@ -1,3 +1,9 @@
+2003-05-01  Reed Loden  <reed@reedloden.com>
+	* ircd/s_err.c: Added network to text and edited 001 a bit.
+
+	* ircd/s_user.c: Send network with 001.
+
+
 2003-05-01 splidge <splidge@quakenet.org>
         * ircd/match.c: Added a check to detect the end of the string.
 
