@@ -1155,8 +1155,6 @@ static void set_sock_opts(int fd, aClient *cptr)
       for (*readbuf = '\0'; opt > 0; opt--, s += 3)
 	sprintf(s, "%02x:", *t++);
       *s = '\0';
-      sendto_ops("Connection %s using IP opts: (%s)",
-	  get_client_name(cptr, FALSE), readbuf);
     }
     if (setsockopt(fd, IPPROTO_IP, IP_OPTIONS, (OPT_TYPE *)NULL, 0) < 0)
       report_error("setsockopt(IP_OPTIONS) %s: %s", cptr);
