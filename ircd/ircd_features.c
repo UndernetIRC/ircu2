@@ -204,8 +204,8 @@ static struct FeatureDesc {
   feat_mark_call   mark;    /* reset to defaults all unchanged features */
   feat_report_call report;  /* report feature values */
 } features[] = {
-#define F(type, flags, v_int, v_str, set, reset, get, unmark, mark, report)   \
-  { FEAT_ ## type, #type, (flags), 0, (v_int), 0, (v_str),		      \
+#define F_N(type, flags, set, reset, get, unmark, mark, report)		      \
+  { FEAT_ ## type, #type, FEAT_NONE | (flags), 0, 0, 0, 0,		      \
     (set), (reset), (get), (unmark), (mark), (report) }
 #define F_I(type, flags, v_int)						      \
   { FEAT_ ## type, #type, FEAT_INT | (flags), 0, (v_int), 0, 0,		      \
@@ -213,14 +213,18 @@ static struct FeatureDesc {
 #define F_B(type, flags, v_int)						      \
   { FEAT_ ## type, #type, FEAT_BOOL | (flags), 0, (v_int), 0, 0,	      \
     0, 0, 0, 0, 0, 0 }
-#define F_S(type, flags, v_int)						      \
+#define F_S(type, flags, v_str)						      \
   { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
     0, 0, 0, 0, 0, 0 }
 
-  F(LOG, FEAT_NONE | FEAT_MYOPER, 0, 0,
-    feature_log_set, feature_log_reset, feature_log_get,
-    log_feature_unmark, log_feature_mark, log_feature_report),
+  F_N(LOG, FEAT_MYOPER, feature_log_set, feature_log_reset, feature_log_get,
+      log_feature_unmark, log_feature_mark, log_feature_report),
 
+  /* Networking features */
+  F_I(TOS_SERVER, 0, 0x08),
+  F_I(TOS_CLIENT, 0, 0x08),
+
+  /* features that affect all operators */
   F_B(OPER_NO_CHAN_LIMIT, 0, 1),
   F_B(OPER_MODE_LCHAN, 0, 1),
   F_B(OPER_WALK_THROUGH_LMODES, 0, 0),
@@ -229,10 +233,9 @@ static struct FeatureDesc {
   F_B(SHOW_ALL_INVISIBLE_USERS, 0, 1),
   F_B(UNLIMIT_OPER_QUERY, 0, 0),
   F_B(LOCAL_KILL_ONLY, 0, 0),
-  F_I(TOS_SERVER, 0, 0x08),
-  F_I(TOS_CLIENT, 0, 0x08),
   F_B(CONFIG_OPERCMDS, 0, 1), /* XXX change default before release */
 
+  /* features that affect global opers on this server */
   F_B(OPER_KILL, 0, 1),
   F_B(OPER_REHASH, 0, 1),
   F_B(OPER_RESTART, 0, 1),
@@ -248,6 +251,7 @@ static struct FeatureDesc {
   F_B(OPER_SET, 0, 1),
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1),
 
+  /* features that affect local opers on this server */
   F_B(LOCOP_KILL, 0, 0),
   F_B(LOCOP_REHASH, 0, 1),
   F_B(LOCOP_RESTART, 0, 0),
@@ -262,7 +266,7 @@ static struct FeatureDesc {
 #undef F_S
 #undef F_B
 #undef F_I
-#undef F
+#undef F_N
   { FEAT_LAST_F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
@@ -303,90 +307,93 @@ feature_set(struct Client* from, const char* const* fields, int count)
     else
       log_write(LS_CONFIG, L_ERROR, 0, "Not enough fields in F line");
   } else if ((feat = feature_desc(from, fields[0]))) { /* find feature */
-    if (feat->set && (i = (*feat->set)(from, fields + 1, count - 1))) {
-      if (i > 0) /* call the set callback and do marking */
-	feat->flags |= FEAT_MARK;
-      else /* i < 0 */
-	feat->flags &= ~FEAT_MARK;
-    } else /* Ok, it's a value we can fiddle with */
-      switch (feat->flags & FEAT_MASK) {
-      case FEAT_INT: /* an integer value */
-	if (count < 2) { /* reset value */
-	  feat->v_int = feat->def_int;
+    switch (feat->flags & FEAT_MASK) {
+    case FEAT_NONE:
+      if (feat->set && (i = (*feat->set)(from, fields + 1, count - 1))) {
+	if (i > 0) /* call the set callback and do marking */
+	  feat->flags |= FEAT_MARK;
+	else /* i < 0 */
 	  feat->flags &= ~FEAT_MARK;
-	} else { /* ok, figure out the value and whether to mark it */
-	  feat->v_int = atoi(fields[1]);
-	  if (feat->v_int == feat->def_int)
-	    feat->flags &= ~FEAT_MARK;
-	  else
-	    feat->flags |= FEAT_MARK;
-	}
-	break;
-
-      case FEAT_BOOL: /* it's a boolean value--true or false */
-	if (count < 2) { /* reset value */
-	  feat->v_int = feat->def_int;
-	  feat->flags &= ~FEAT_MARK;
-	} else { /* figure out the value and whether to mark it */
-	  if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
-	      !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
-	      (strlen(fields[1]) >= 2 &&
-	       !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
-	    feat->v_int = 1;
-	  else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
-		   !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
-		   (strlen(fields[1]) >= 2 &&
-		    !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
-	    feat->v_int = 0;
-	  else if (from) /* report an error... */
-	    return send_reply(from, ERR_BADFEATVALUE, fields[1], feat->type);
-	  else {
-	    log_write(LS_CONFIG, L_ERROR, 0, "Bad value \"%s\" for feature %s",
-		      fields[1], feat->type);
-	    return 0;
-	  }
-
-	  if (feat->v_int == feat->def_int) /* figure out whether to mark it */
-	    feat->flags &= ~FEAT_MARK;
-	  else
-	    feat->flags |= FEAT_MARK;
-	}
-	break;
-
-      case FEAT_STR: /* it's a string value */
-	if (count < 2 ||
-	    !(feat->flags & FEAT_CASE ? strcmp(fields[1], feat->def_str) :
-	      ircd_strcmp(fields[1], feat->def_str))) { /* reset to default */
-	  if (feat->v_str && feat->v_str != feat->def_str)
-	    MyFree(feat->v_str); /* free old value */
-	  feat->v_str = feat->def_str; /* very special... */
-
-	  feat->flags &= ~FEAT_MARK; /* unmark it */
-	} else {
-	  if (!*fields[1]) { /* empty string translates to NULL */
-	    if (feat->flags & FEAT_NULL) { /* permitted? */
-	      if (feat->v_str && feat->v_str != feat->def_str)
-		MyFree(feat->v_str); /* free old value */
-	      feat->v_str = 0; /* set it to NULL */
-	    } else if (from) /* hmmm...not permitted; report error */
-	      return send_reply(from, ERR_BADFEATVALUE, "NULL", feat->type);
-	    else {
-	      log_write(LS_CONFIG, L_ERROR, 0,
-			"Bad value \"NULL\" for feature %s", feat->type);
-	      return 0;
-	    }
-	  } else if ((feat->flags & FEAT_CASE ?
-		      strcmp(fields[1], feat->v_str) :
-		      ircd_strcmp(fields[1], feat->v_str))) { /* new value */
-	    if (feat->v_str && feat->v_str != feat->def_str)
-	      MyFree(feat->v_str); /* free old value */
-	    DupString(feat->v_str, fields[1]); /* store new value */
-	  }
-
-	  feat->flags |= FEAT_MARK; /* mark it as having been touched */
-	}
 	break;
       }
+
+    case FEAT_INT: /* an integer value */
+      if (count < 2) { /* reset value */
+	feat->v_int = feat->def_int;
+	feat->flags &= ~FEAT_MARK;
+      } else { /* ok, figure out the value and whether to mark it */
+	feat->v_int = atoi(fields[1]);
+	if (feat->v_int == feat->def_int)
+	  feat->flags &= ~FEAT_MARK;
+	else
+	  feat->flags |= FEAT_MARK;
+      }
+      break;
+
+    case FEAT_BOOL: /* it's a boolean value--true or false */
+      if (count < 2) { /* reset value */
+	feat->v_int = feat->def_int;
+	feat->flags &= ~FEAT_MARK;
+      } else { /* figure out the value and whether to mark it */
+	if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
+	    !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
+	    (strlen(fields[1]) >= 2 &&
+	     !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
+	  feat->v_int = 1;
+	else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
+		 !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
+		 (strlen(fields[1]) >= 2 &&
+		  !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
+	  feat->v_int = 0;
+	else if (from) /* report an error... */
+	  return send_reply(from, ERR_BADFEATVALUE, fields[1], feat->type);
+	else {
+	  log_write(LS_CONFIG, L_ERROR, 0, "Bad value \"%s\" for feature %s",
+		    fields[1], feat->type);
+	  return 0;
+	}
+
+	if (feat->v_int == feat->def_int) /* figure out whether to mark it */
+	  feat->flags &= ~FEAT_MARK;
+	else
+	  feat->flags |= FEAT_MARK;
+      }
+      break;
+
+    case FEAT_STR: /* it's a string value */
+      if (count < 2 ||
+	  !(feat->flags & FEAT_CASE ? strcmp(fields[1], feat->def_str) :
+	    ircd_strcmp(fields[1], feat->def_str))) { /* reset to default */
+	if (feat->v_str && feat->v_str != feat->def_str)
+	  MyFree(feat->v_str); /* free old value */
+	feat->v_str = feat->def_str; /* very special... */
+
+	feat->flags &= ~FEAT_MARK; /* unmark it */
+      } else {
+	if (!*fields[1]) { /* empty string translates to NULL */
+	  if (feat->flags & FEAT_NULL) { /* permitted? */
+	    if (feat->v_str && feat->v_str != feat->def_str)
+	      MyFree(feat->v_str); /* free old value */
+	    feat->v_str = 0; /* set it to NULL */
+	  } else if (from) /* hmmm...not permitted; report error */
+	    return send_reply(from, ERR_BADFEATVALUE, "NULL", feat->type);
+	  else {
+	    log_write(LS_CONFIG, L_ERROR, 0,
+		      "Bad value \"NULL\" for feature %s", feat->type);
+	    return 0;
+	  }
+	} else if ((feat->flags & FEAT_CASE ?
+		    strcmp(fields[1], feat->v_str) :
+		    ircd_strcmp(fields[1], feat->v_str))) { /* new value */
+	  if (feat->v_str && feat->v_str != feat->def_str)
+	    MyFree(feat->v_str); /* free old value */
+	  DupString(feat->v_str, fields[1]); /* store new value */
+	}
+
+	feat->flags |= FEAT_MARK; /* mark it as having been touched */
+      }
+      break;
+    }
   }
 
   return 0;
@@ -407,26 +414,28 @@ feature_reset(struct Client* from, const char* const* fields, int count)
   if (count < 1) /* check arguments */
     need_more_params(from, "RESET");
   else if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
-    if (feat->reset && (i = (*feat->reset)(from, fields + 1, count - 1))) {
-      if (i > 0) /* call reset callback and parse mark return */
-	feat->flags |= FEAT_MARK;
-      else /* i < 0 */
-	feat->flags &= ~FEAT_MARK;
-    } else { /* oh, it's something we own... */
-      switch (feat->flags & FEAT_MASK) {
-      case FEAT_INT:  /* Integer... */
-      case FEAT_BOOL: /* Boolean... */
-	feat->v_int = feat->def_int; /* set the default */
-	break;
-
-      case FEAT_STR: /* string! */
-	if (feat->v_str && feat->v_str != feat->def_str)
-	  MyFree(feat->v_str); /* free old value */
-	feat->v_str = feat->def_str; /* set it to default */
-	break;
+    switch (feat->flags & FEAT_MASK) {
+    case FEAT_NONE: /* None... */
+      if (feat->reset && (i = (*feat->reset)(from, fields + 1, count - 1))) {
+	if (i > 0) /* call reset callback and parse mark return */
+	  feat->flags |= FEAT_MARK;
+	else /* i < 0 */
+	  feat->flags &= ~FEAT_MARK;
       }
+      break;
 
+    case FEAT_INT:  /* Integer... */
+    case FEAT_BOOL: /* Boolean... */
+      feat->v_int = feat->def_int; /* set the default */
       feat->flags &= ~FEAT_MARK; /* unmark it */
+      break;
+
+    case FEAT_STR: /* string! */
+      if (feat->v_str && feat->v_str != feat->def_str)
+	MyFree(feat->v_str); /* free old value */
+      feat->v_str = feat->def_str; /* set it to default */
+      feat->flags &= ~FEAT_MARK; /* unmark it */
+      break;
     }
   }
 
@@ -448,30 +457,32 @@ feature_get(struct Client* from, const char* const* fields, int count)
 	(feat->flags & FEAT_OPER && !IsAnOper(from))) /* check privs */
       return send_reply(from, ERR_NOPRIVILEGES);
 
-    if (feat->get) /* if there's a callback, use it */
-      (*feat->get)(from, fields + 1, count - 1);
-    else /* something we own */
-      switch (feat->flags & FEAT_MASK) {
-      case FEAT_INT: /* integer, report integer value */
-	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		   ":Integer value of %s: %d", feat->type, feat->v_int);
-	break;
+    switch (feat->flags & FEAT_MASK) {
+    case FEAT_NONE: /* none, call the callback... */
+      if (feat->get) /* if there's a callback, use it */
+	(*feat->get)(from, fields + 1, count - 1);
+      break;
 
-      case FEAT_BOOL: /* boolean, report boolean value */
-	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		   ":Boolean value of %s: %s", feat->type,
-		   feat->v_int ? "TRUE" : "FALSE");
-	break;
+    case FEAT_INT: /* integer, report integer value */
+      send_reply(from, SND_EXPLICIT | RPL_FEATURE,
+		 ":Integer value of %s: %d", feat->type, feat->v_int);
+      break;
 
-      case FEAT_STR: /* string, report string value */
-	if (feat->v_str) /* deal with null case */
-	  send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		     ":String value of %s: %s", feat->type, feat->v_str);
-	else
-	  send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		     ":String value for %s not set", feat->type);
-	break;
-      }
+    case FEAT_BOOL: /* boolean, report boolean value */
+      send_reply(from, SND_EXPLICIT | RPL_FEATURE,
+		 ":Boolean value of %s: %s", feat->type,
+		 feat->v_int ? "TRUE" : "FALSE");
+      break;
+
+    case FEAT_STR: /* string, report string value */
+      if (feat->v_str) /* deal with null case */
+	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
+		   ":String value of %s: %s", feat->type, feat->v_str);
+      else
+	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
+		   ":String value for %s not set", feat->type);
+      break;
+    }
   }
 
   return 0;
@@ -496,25 +507,27 @@ feature_mark(void)
 {
   int i;
 
-  for (i = 0; features[i].type; i++) {
-    if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
-      switch (features[i].flags & FEAT_MASK) {
-      case FEAT_INT:  /* Integers or Booleans... */
-      case FEAT_BOOL:
-	features[i].v_int = features[i].def_int;
-	break;
+  for (i = 0; features[i].type; i++)
+    switch (features[i].flags & FEAT_MASK) {
+    case FEAT_NONE:
+      if (features[i].mark) /* call the mark callback if necessary */
+	(*features[i].mark)(features[i].flags & FEAT_MARK ? 1 : 0);
+      break;
 
-      case FEAT_STR: /* strings... */
+    case FEAT_INT:  /* Integers or Booleans... */
+    case FEAT_BOOL:
+      if (!(features[i].flags & FEAT_MARK)) /* not changed? */
+	features[i].v_int = features[i].def_int;
+      break;
+
+    case FEAT_STR: /* strings... */
+      if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
 	if (features[i].v_str && features[i].v_str != features[i].def_str)
 	  MyFree(features[i].v_str); /* free old value */
 	features[i].v_str = features[i].def_str;
-	break;
       }
+      break;
     }
-
-    if (features[i].mark) /* call the mark callback if necessary */
-      (*features[i].mark)(features[i].flags & FEAT_MARK ? 1 : 0);
-  }
 }
 
 /* report all F-lines */
@@ -528,29 +541,35 @@ feature_report(struct Client* to)
 	(features[i].flags & FEAT_OPER && !IsAnOper(to)))
       continue; /* skip this one */
 
-    if (features[i].report) /* let the callback handle this */
-      (*features[i].report)(to, features[i].flags & FEAT_MARK ? 1 : 0);
-    else if (features[i].flags & FEAT_MARK) { /* it's been changed */
-      switch (features[i].flags & FEAT_MASK) {
-      case FEAT_INT: /* Report an F-line with integer values */
+    switch (features[i].flags & FEAT_MASK) {
+    case FEAT_NONE:
+      if (features[i].report) /* let the callback handle this */
+	(*features[i].report)(to, features[i].flags & FEAT_MARK ? 1 : 0);
+      break;
+
+
+    case FEAT_INT: /* Report an F-line with integer values */
+      if (features[i].flags & FEAT_MARK) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %d",
 		   features[i].type, features[i].v_int);
-	break;
+      break;
 
-      case FEAT_BOOL: /* Report an F-line with boolean values */
+    case FEAT_BOOL: /* Report an F-line with boolean values */
+      if (features[i].flags & FEAT_MARK) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
 		   features[i].type, features[i].v_int ? "TRUE" : "FALSE");
-	break;
+      break;
 
-      case FEAT_STR: /* Report an F-line with string values */
+    case FEAT_STR: /* Report an F-line with string values */
+      if (features[i].flags & FEAT_MARK) { /* it's been changed */
 	if (features[i].v_str)
 	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
 		     features[i].type, features[i].v_str);
 	else /* Actually, F:<type> would reset it; you want F:<type>: */
 	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s",
 		     features[i].type);
-	break;
       }
+      break;
     }
   }
 }

@@ -1,0 +1,238 @@
+Old versions of ircu did not have very good means of dealing with
+logging.  In u2.10.11, an entirely new logging subsystem was written,
+allowing a server administrator much more power in determining what
+actions are to be logged where.  The new logging subsystem permits log
+messages to go to syslog, to a file, and to server operators via
+server notices, simultaneously (though having output to multiple log
+files is not presently supported).
+
+All log messages have two values that are passed in with them: the
+logging level, which must be one of the values in enum LogLevel, and a
+logging subsystem, which must be one of the values in enum LogSys;
+these values are used as indexes into arrays within ircd_log.c, so be
+careful should you change them.
+
+In addition to the LogLevel and LogSys, there is also a set of three
+flags that may be passed to the log_write() logging function; these
+flags may be used to suppress certain types of logging that may be
+undesirable.  For instance, when a server links, a log may be written
+containing the server's IP address; to prevent this IP address from
+ever showing up in a server notice, that invocation of log_write() is
+passed the LOG_NOSNOTICE flag.
+
+<enum>
+enum LogLevel {
+  L_CRIT,
+  L_ERROR,
+  L_WARNING,
+  L_NOTICE,
+  L_TRACE,
+  L_INFO,
+  L_DEBUG,
+  L_LAST_LEVEL
+};
+
+This enum describes the severity levels of a log message.  The
+severity decreases as you proceed upwards in the list, so L_DEBUG is
+less severe than L_INFO, and L_CRIT in the most severe of all.  The
+special value L_LAST_LEVEL should never be used; it merely marks the
+end of the list.
+</enum>
+
+<enum>
+enum LogSys {
+  LS_SYSTEM, LS_CONFIG, LS_OPERMODE, LS_GLINE, LS_JUPE, LS_WHO, LS_NETWORK,
+  LS_OPERKILL, LS_SERVKILL, LS_USER, LS_OPER, LS_RESOLVER, LS_SOCKET,
+  LS_DEBUG, LS_OLDLOG,
+  LS_LAST_SYSTEM
+};
+
+These are the various logging subsystems recognized by the logging
+subsystem.  Again, order is important, and again, LS_LAST_SYSTEM
+should never be used.
+</enum>
+
+<function>
+void log_debug_init(int usetty);
+
+This initializes the special-purpose debug logging code in the
+server.  If the _usetty_ parameter is non-zero, then all debugging
+output will go to the terminal regardless of file settings for the
+LS_DEBUG subsystem.  This function is not defined unless the server is
+compiled with -DDEBUGMODE.
+</function>
+
+<function>
+void log_init(const char *process_name);
+
+This initializes the entire logging subsystem, including special
+things such as storing the process name and opening syslog with the
+open_log() function.  It may only be called once.
+</function>
+
+<function>
+void log_reopen(void);
+
+All log files are persistently open, in order to avoid the overhead of
+re-opening the log file each time.  This function is used to close all
+the log files and to close and reopen syslog.  (Log files are opened
+again only when there is something to write to them.)
+</function>
+
+<function>
+void log_close(void);
+
+This closes all log files and the syslog prior to the server
+terminating.  Should logs need to be reopened after calling this
+function, call log_reopen() instead of log_init().
+</function>
+
+<function>
+void log_write(enum LogSys subsys, enum LogLevel severity,
+	       unsigned int flags, const char *fmt, ...);
+
+This is the actual logging function.  The _flags_ parameter is 0 or
+the bitwise OR of LOG_NOSYSLOG (suppresses syslogging), LOG_NOFILELOG
+(suppresses logging to a file) and LOG_NOSNOTICE (suppresses logging
+via server notices).  The _fmt_ parameter is a format string
+acceptable to ircd_snprintf(), which is the function called to
+actually format the log message.
+</function>
+
+<function>
+void log_vwrite(enum LogSys subsys, enum LogLevel severity,
+		unsigned int flags, const char *fmt, va_list vl);
+
+This is similar to log_write() except that it takes a va_list
+parameter.
+</function>
+
+<function>
+char *log_cannon(const char *subsys);
+
+This returns the canonical name for logging subsystem.  This probably
+should not be exposed here, but it is needed in ircd_features.c at
+present.
+</function>
+
+<function>
+int log_set_file(const char *subsys, const char *filename);
+
+This sets the file name for the specified logging subsystem to
+_filename_; returns 2 if the subsystem was undefined, 1 if the value
+of _filename_ was not understood, or 0 if there was no error.
+</function>
+
+<function>
+char *log_get_file(const char *subsys);
+
+This returns the current log file name for the given subsystem.
+</function>
+
+<function>
+int log_set_facility(const char *subsys, const char *facility);
+
+This sets the syslog facility for the specified logging subsystem to
+_facility_; returns 2 if the subsystem was undefined, 1 if the value
+of _facility_ was not understood, or 0 if there was no error.  Two
+special facility names may be given; "NONE" specifies that no
+syslogging should be performed, and "DEFAULT" specifies that ircd's
+default syslog facility should be used.
+</function>
+
+<function>
+char *log_get_facility(const char *subsys);
+
+This returns the current syslog facility for the given subsystem.  See
+the documentation for log_set_facility() for a description of the
+special facility names "NONE" and "DEFAULT."
+</function>
+
+<function>
+int log_set_snomask(const char *subsys, const char *snomask);
+
+This sets the server notice type for the specified logging subsystem
+to _snomask_; returns 2 if the subsystem was undefined, 1 if the value
+of _snomask_ was not understood, or 0 if there was no error.  The
+special server notice type "NONE" indicates that no server notices
+should be generated.  The other valid values for _snomask_ are:
+"OLDSNO," "SERVKILL," "OPERKILL," "HACK2," "HACK3," "UNAUTH,"
+"TCPCOMMON," "TOOMANY," "HACK4," "GLINE," "NETWORK," "IPMISMATCH,"
+"THROTTLE," "OLDREALOP," "CONNEXIT," and "DEBUG."
+</function>
+
+<function>
+char *log_get_snomask(const char *subsys);
+
+This returns the current server notice type for the given subsystem.
+See the documentation for log_set_snomask() for a description of the
+return values.
+</function>
+
+<function>
+int log_set_level(const char *subsys, const char *level);
+
+This function is used to set the minimum log level for a particular
+subsystem; returns 2 if the subsystem was undefined, 1 if the value of
+_level_ was not understood, or 0 if there was no error.  Any log
+notices generated with lower severity than that set with this function
+will not be logged.  Valid values are "CRIT," "ERROR," "WARNING,"
+"NOTICE," "TRACE," "INFO," and "DEBUG."
+</function>
+
+<function>
+char *log_get_level(const char *subsys);
+
+This returns the current minimum log level for the given subsystem.
+See the documentation for log_set_level() for a description of the
+return values.
+</function>
+
+<function>
+int log_set_default(const char *facility);
+
+This function sets the default syslog facility for all of ircd.  Valid
+values for _facility_ are as described for log_set_facility() with the
+exclusion of the "NONE" and "DEFAULT" facilities; returns 1 if the
+facility name was unrecognized (or proscribed) or 0 if there was no
+error.
+</function>
+
+<function>
+char *log_get_default(void);
+
+This simply returns ircd's default syslog facility.
+</function>
+
+<function>
+void log_feature_unmark(void);
+
+This function is called by the ircd_features.c subsystem and should
+not be called by any other part of ircd.  See the features API
+documentation for notes on what this function does.
+</function>
+
+<function>
+void log_feature_mark(int flag);
+
+This function is called by the ircd_features.c subsystem and should
+not be called by any other part of ircd.  See the features API
+documentation for notes on what this function does.
+</function>
+
+<function>
+void log_feature_report(struct Client *to, int flag);
+
+This function is called by the ircd_features.c subsystem and should
+not be called by any other part of ircd.  See the features API
+documentation for notes on what this function does.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2000-12-18 Kev] Wrote some documentation on how to use the logging
+subsystem.
+</changelog>

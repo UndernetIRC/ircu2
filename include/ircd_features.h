@@ -26,6 +26,11 @@ struct Client;
 enum Feature {
   FEAT_LOG,
 
+  /* Networking features */
+  FEAT_TOS_SERVER,
+  FEAT_TOS_CLIENT,
+
+  /* features that affect all operators */
   FEAT_OPER_NO_CHAN_LIMIT,
   FEAT_OPER_MODE_LCHAN,
   FEAT_OPER_WALK_THROUGH_LMODES,
@@ -34,10 +39,9 @@ enum Feature {
   FEAT_SHOW_ALL_INVISIBLE_USERS,
   FEAT_UNLIMIT_OPER_QUERY,
   FEAT_LOCAL_KILL_ONLY,
-  FEAT_TOS_SERVER,
-  FEAT_TOS_CLIENT,
   FEAT_CONFIG_OPERCMDS,
 
+  /* features that affect global opers on this server */
   FEAT_OPER_KILL,
   FEAT_OPER_REHASH,
   FEAT_OPER_RESTART,
@@ -53,6 +57,7 @@ enum Feature {
   FEAT_OPER_SET,
   FEAT_OPERS_SEE_IN_SECRET_CHANNELS,
 
+  /* features that affect local opers on this server */
   FEAT_LOCOP_KILL,
   FEAT_LOCOP_REHASH,
   FEAT_LOCOP_RESTART,
