@@ -1,3 +1,6 @@
+2000-07-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/m_oper.c: Clean up compiler warning.
+
 2000-07-08  Perry Lorier       <Isomer@coders.net>
 	* doc/ircd.8: Updated the documentation, it was slightly out of date
 		      being updated around the 05 March 1988.
@@ -1269,7 +1272,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.154 2000-07-09 04:52:58 isomer Exp $
+# $Id: ChangeLog,v 1.155 2000-07-09 14:19:43 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #
