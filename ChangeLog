@@ -1,3 +1,15 @@
+2002-07-26  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: create stats_help() to send the help information
+	(skipping the information for character '*') and add an entry for
+	'*' to the statsinfo[] table
+
+	* ircd/m_stats.c (m_stats): offload stats help into the stats
+	handler for stats flag '*'--as a side effect, we get back the
+	ability to propagate /stats flags that we ourselves do not
+	understand, and can even propagate a single extra parameter if one
+	is given
+
 2002-07-17  Reed Loden  <reed@redmagnet.com>
 
 	* ircd/m_server.c: Added a log_write to show the IP in the 
