@@ -1,3 +1,8 @@
+2002-04-10 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/ircd.c: The last fix broke autoconnects completely.
+	Fixed it another way.
+	
 2002-04-09  Brian Cline  <clineb@cs.winthrop.edu>
 
         * ircd/ircd.c (try_connections): To avoid problems with infinite event
