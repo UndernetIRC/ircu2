@@ -1,3 +1,8 @@
+2004-09-12  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.c (mode_parse_upass, mode_parse_apass): Only let
+	services (not normal opers) force a change of +A or +u.
+
 2004-09-11  Michael Poole <mdpoole@troilus.org>
 
 	* include/s_stats.h: Add sd_name to struct StatDesc.  Stop

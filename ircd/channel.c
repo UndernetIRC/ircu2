@@ -2340,6 +2340,13 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     return;
   }
 
+  /* If a non-service user is trying to force it, refuse. */
+  if (state->flags & MODE_PARSE_FORCE && !IsChannelService(state->sptr)) {
+    send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+               "Use /JOIN", state->chptr->chname, " <AdminPass>.");
+    return;
+  }
+
   /* If they are not the channel manager, they are not allowed to change it */
   if (MyUser(state->sptr) && !IsChannelManager(state->member)) {
     if (*state->chptr->mode.apass) {
@@ -2437,6 +2444,13 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   /* If they're not an oper, they can't change modes */
   if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
     send_notoper(state);
+    return;
+  }
+
+  /* If a non-service user is trying to force it, refuse. */
+  if (state->flags & MODE_PARSE_FORCE && !IsChannelService(state->sptr)) {
+    send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
+               "Use /JOIN", state->chptr->chname, " <AdminPass>.");
     return;
   }
 
