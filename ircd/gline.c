@@ -351,7 +351,7 @@ gline_find(char *userhost, unsigned int flags)
     for (gline = BadChanGlineList; gline; gline = sgline) {
       sgline = gline->gl_next;
 
-      if (gline->gl_expire <= TStime())
+      if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
       else if ((flags & GLINE_EXACT ? ircd_strcmp(gline->gl_user, userhost) :
 		match(gline->gl_user, userhost)) == 0)
@@ -373,7 +373,7 @@ gline_find(char *userhost, unsigned int flags)
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= TStime())
+    if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
     else if (flags & GLINE_EXACT) {
       if (ircd_strcmp(gline->gl_host, host) == 0 &&
@@ -402,7 +402,7 @@ gline_lookup(struct Client *cptr)
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= TStime())
+    if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
     else if ((GlineIsIpMask(gline) ?
 	      match(gline->gl_host, ircd_ntoa((const char *)&cptr->ip)) :
@@ -439,7 +439,7 @@ gline_burst(struct Client *cptr)
   for (gline = GlobalGlineList; gline; gline = sgline) { /* all glines */
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= TStime()) /* expire any that need expiring */
+    if (gline->gl_expire <= CurrentTime) /* expire any that need expiring */
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s@%s %Tu %Tu :%s",
@@ -451,7 +451,7 @@ gline_burst(struct Client *cptr)
   for (gline = BadChanGlineList; gline; gline = sgline) { /* all glines */
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= TStime()) /* expire any that need expiring */
+    if (gline->gl_expire <= CurrentTime) /* expire any that need expiring */
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(cptr, CMD_GLINE, &me, "* %c%s %Tu %Tu :%s",
@@ -490,18 +490,20 @@ gline_list(struct Client *sptr, char *userhost)
     /* send gline information along */
     sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name, gline->gl_user,
 	       GlineIsBadChan(gline) ? "" : "@",
-	       GlineIsBadChan(gline) ? "" : gline->gl_host, gline->gl_expire + TSoffset,
+	       GlineIsBadChan(gline) ? "" : gline->gl_host,
+	       gline->gl_expire + TSoffset,
 	       GlineIsLocal(gline) ? me.name : "*",
 	       GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
   } else {
     for (gline = GlobalGlineList; gline; gline = sgline) {
       sgline = gline->gl_next;
 
-      if (gline->gl_expire <= TStime())
+      if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
       else
 	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
-		   gline->gl_user, "@", gline->gl_host, gline->gl_expire + TSoffset,
+		   gline->gl_user, "@", gline->gl_host,
+		   gline->gl_expire + TSoffset,
 		   GlineIsLocal(gline) ? me.name : "*",
 		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
     }
@@ -509,7 +511,7 @@ gline_list(struct Client *sptr, char *userhost)
     for (gline = BadChanGlineList; gline; gline = sgline) {
       sgline = gline->gl_next;
 
-      if (gline->gl_expire <= TStime())
+      if (gline->gl_expire <= CurrentTime)
 	gline_free(gline);
       else
 	sendto_one(sptr, rpl_str(RPL_GLIST), me.name, sptr->name,
@@ -533,7 +535,7 @@ gline_stats(struct Client *sptr)
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
 
-    if (gline->gl_expire <= TStime())
+    if (gline->gl_expire <= CurrentTime)
       gline_free(gline);
     else
       sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name, sptr->name, 'G',
