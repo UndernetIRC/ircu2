@@ -1,3 +1,13 @@
+2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/whocmds.c: Don't make idle flag default in /who, to prevent:
+	  "/who * x"
+	  "Gte3 H*iwg Gte@212.49.240.217 :1 :0 I am the one that was."
+	  (Found by Plexus).
+
+	* ircd/whocmds.c: Change idle time calc from socket idle to user
+	  idle.
+
 2000-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* config/aclocal.m4 (unet_CHECK_TYPE_SIZES): check size of void *,
@@ -433,7 +443,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.79 2000-04-13 19:20:52 kev Exp $
+# $Id: ChangeLog,v 1.80 2000-04-13 20:07:13 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #

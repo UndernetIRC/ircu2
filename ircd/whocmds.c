@@ -21,8 +21,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * $Id$
- *
- * $Id$
  */
 #include "whocmds.h"
 #include "IPcheck.h"
@@ -197,13 +195,11 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     p1 = sprintf_irc(p1, "%d", acptr->hopcount);
   }
 
-  if (!fields || (fields & WHO_FIELD_IDL))
+  if (fields & WHO_FIELD_IDL)
   {
     *p1++ = ' ';
-    if (!fields)
-      *p1++ = ':';              /* Place colon here for default reply */
     if (MyUser(acptr)) {
-	    p1 = sprintf_irc(p1, "%d", CurrentTime-acptr->lasttime);
+	    p1 = sprintf_irc(p1, "%d", CurrentTime - acptr->user->last);
     }    
     else {
     	    *p1++ = '0';
