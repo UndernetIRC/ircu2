@@ -5,3 +5,6 @@ ircd
 chkconf
 table_gen
 chattr.tab.c
+lex.yy.c
+y.tab.c
+y.tab.h
