@@ -381,6 +381,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
   struct User*     user = sptr->user;
   char             ip_base64[8];
   char             featurebuf[512];
+  struct Gline*    gline;
 
   user->last = CurrentTime;
   parv[0] = sptr->name;
@@ -545,6 +546,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
   else {
     ircd_strncpy(user->username, username, USERLEN);
     Count_newremoteclient(UserStats, user->server);
+    if ((gline = gline_lookup(sptr)) && GlineIsActive(gline))
+      gline_resend(cptr, gline);
   }
   SetUser(sptr);
 
@@ -690,7 +693,6 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
   if (IsServer(sptr)) {
     int   i;
     const char* p;
-    struct Gline *gline;
 
     /*
      * A server introducing a new client, change source
@@ -729,8 +731,6 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     ircd_strncpy(new_client->username, parv[4], USERLEN);
     ircd_strncpy(new_client->user->host, parv[5], HOSTLEN);
     ircd_strncpy(new_client->info, parv[parc - 1], REALLEN);
-    if ((gline = gline_lookup(new_client)) && GlineIsActive(gline))
-      gline_resend(cptr, gline);
     return register_user(cptr, new_client, new_client->name, parv[4]);
   }
   else if (sptr->name[0]) {

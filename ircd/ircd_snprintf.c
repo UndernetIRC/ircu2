@@ -1996,8 +1996,9 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       char *str1 = 0, *str2 = 0;
       int slen1 = 0, slen2 = 0, plen = 0;
 
-      if (dest && IsServer(dest)) {
-	if (IsServer(cptr))
+      /* &me is used if it's not a definite server */
+      if (dest && (IsServer(dest) || IsMe(dest))) {
+	if (IsServer(cptr) || IsMe(cptr))
 	  str1 = cptr->yxx;
 	else {
 	  str1 = cptr->user->server->yxx;

@@ -25,6 +25,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "msg.h"
@@ -88,18 +89,10 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
   if (JupeIsLocal(jupe)) /* don't propagate local jupes */
     return;
 
-  if (IsUser(sptr)) /* select correct prefix */
-    sendto_serv_butone(cptr, "%s%s " TOK_JUPE " * %c%s " TIME_T_FMT " "
-		       TIME_T_FMT " :%s", NumNick(sptr),
-		       JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-		       jupe->ju_expire - TStime(), jupe->ju_lastmod,
-		       jupe->ju_reason);
-  else
-    sendto_serv_butone(cptr, "%s " TOK_JUPE " * %c%s " TIME_T_FMT " "
-		       TIME_T_FMT " :%s", NumServ(sptr),
-		       JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-		       jupe->ju_expire - TStime(), jupe->ju_lastmod,
-		       jupe->ju_reason);
+  sendcmdto_serv_butone(cptr, CMD_JUPE, sptr, "* %c%s %Tu %Tu :%s",
+			JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+			jupe->ju_expire - TStime(), jupe->ju_lastmod,
+			jupe->ju_reason);
 }
 
 int
@@ -118,7 +111,7 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
    */
   if (expire <= 0 || expire > JUPE_MAX_EXPIRE) {
     if (!IsServer(cptr) && MyConnect(cptr))
-      sendto_one(cptr, err_str(ERR_BADEXPIRE), me.name, cptr->name, expire);
+      send_error_to_client(cptr, ERR_BADEXPIRE, expire);
     return 0;
   }
 
@@ -283,10 +276,10 @@ jupe_burst(struct Client *cptr)
     if (jupe->ju_expire <= TStime()) /* expire any that need expiring */
       jupe_free(jupe);
     else if (!JupeIsLocal(jupe)) /* forward global jupes */
-      sendto_one(cptr, "%s " TOK_JUPE " * %c%s "TIME_T_FMT" "TIME_T_FMT" :%s",
-		 NumServ(&me), JupeIsActive(jupe) ? '+' : '-',
-		 jupe->ju_server, jupe->ju_expire - TStime(),
-		 jupe->ju_lastmod, jupe->ju_reason);
+      sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
+		    JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+		    jupe->ju_expire - TStime(), jupe->ju_lastmod,
+		    jupe->ju_reason);
   }
 }
 
@@ -296,9 +289,9 @@ jupe_resend(struct Client *cptr, struct Jupe *jupe)
   if (JupeIsLocal(jupe)) /* don't propagate local jupes */
     return 0;
 
-  sendto_one(cptr, "%s " TOK_JUPE " * %c%s " TIME_T_FMT " " TIME_T_FMT " :%s",
-	     NumServ(&me), JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
-	     jupe->ju_expire - TStime(), jupe->ju_lastmod, jupe->ju_reason);
+  sendcmdto_one(cptr, CMD_JUPE, &me, "* %c%s %Tu %Tu :%s",
+		JupeIsActive(jupe) ? '+' : '-', jupe->ju_server,
+		jupe->ju_expire - TStime(), jupe->ju_lastmod, jupe->ju_reason);
 
   return 0;
 }
@@ -310,10 +303,8 @@ jupe_list(struct Client *sptr, char *server)
   struct Jupe *sjupe;
 
   if (server) {
-    if (!(jupe = jupe_find(server))) { /* no such jupe */
-      sendto_one(sptr, err_str(ERR_NOSUCHJUPE), me.name, sptr->name, server);
-      return 0;
-    }
+    if (!(jupe = jupe_find(server))) /* no such jupe */
+      return send_error_to_client(sptr, ERR_NOSUCHJUPE, server);
 
     /* send jupe information along */
     sendto_one(sptr, rpl_str(RPL_JUPELIST), me.name, sptr->name,

@@ -1,5 +1,38 @@
 2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c: move gline_lookup function call into
+	register_user, where it'll have a username to lookup!
+
+	* ircd/m_gline.c: modify to utilize new sendcmdto_* series of
+	functions; also stuff send_error_to_client into return clauses
+
+	* ircd/m_jupe.c: modify to utilize new sendcmdto_* series of
+	functions; also use send_error_to_client where that makes sense
+
+	* ircd/jupe.c: modify to utilize new sendcmdto_* series of
+	functions; also use send_error_to_client where that makes sense
+
+	* ircd/gline.c: modify to utilize new sendcmdto_* series of
+	functions; also fix gline_lookup() to deal properly with remote
+	clients--boy, do struct Client and struct User need to be cleaned
+	up!
+
+	* ircd/ircd_snprintf.c (doprintf): a dest of &me is a server,
+	too...
+
+	* ircd/send.c: wrote sendcmdto_one(), vsendcmdto_one(), and
+	sendcmdto_serv_butone(), all utilizing the %v conversion of
+	ircd_snprintf()
+
+	* include/send.h: define IRC_BUFSIZE, max size of a message;
+	declare sendcmdto_one(), vsendcmdto_one(), and
+	sendcmdto_serv_butone()
+
+	* include/msg.h: define all the CMD_* constants needed to utilize
+	the new sendcmdto_* series of functions
+
+	* ircd/Makefile.in (SRC): list ircd_snprintf.c; run make depend
+
 	* ircd/gline.c: remove old, dead code.
 
 	* ircd/m_gline.c (mo_gline): disallow setting of global G-lines
@@ -495,7 +528,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.85 2000-04-14 17:37:00 kev Exp $
+# $Id: ChangeLog,v 1.86 2000-04-14 20:19:41 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

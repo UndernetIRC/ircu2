@@ -24,6 +24,7 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -188,6 +189,40 @@ void vsendto_one(struct Client *to, const char* pattern, va_list vl)
 {
   vsprintf_irc(sendbuf, pattern, vl);
   sendbufto_one(to);
+}
+
+/*
+ * Send a (prefixed) command to a single client; select which of <cmd>
+ * <tok> to use depending on if to is a server or not.  <from> is the
+ * originator of the command.
+ */
+void sendcmdto_one(struct Client *to, const char *cmd, const char *tok,
+		   struct Client *from, const char *pattern, ...)
+{
+  va_list vl;
+
+  va_start(vl, pattern);
+  vsendcmdto_one(to, cmd, tok, from, pattern, vl);
+  va_end(vl);
+}
+
+void vsendcmdto_one(struct Client *to, const char *cmd, const char *tok,
+		    struct Client *from, const char *pattern, va_list vl)
+{
+  struct VarData vd;
+  char sndbuf[IRC_BUFSIZE];
+
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+  vd.vd_args = vl;
+
+  if (MyUser(to)) /* :nick!user@host form; use cmd */
+    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s!%s@%s %s %v",
+		  from->name, from->user->username, from->user->host,
+		  cmd, &vd);
+  else /* numeric form; use tok */
+    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
+
+  send_buffer(to, sndbuf);
 }
 
 #ifdef GODMODE
@@ -559,6 +594,33 @@ void sendto_serv_butone(struct Client *one, const char* pattern, ...)
     sendbufto_one(lp->value.cptr);
   }
 
+}
+
+void sendcmdto_serv_butone(struct Client *one, const char *cmd,
+			   const char *tok, struct Client *from,
+			   const char *pattern, ...)
+{
+  struct VarData vd;
+  va_list vl;
+  char sndbuf[IRC_BUFSIZE];
+  struct DLink *lp;
+
+  cmd = 0; /* try to suppress compile warning */
+
+  va_start(vl, pattern);
+  vd.vd_format = pattern; /* set up the struct VarData for %v */
+  vd.vd_args = vl;
+
+  /* use token */
+  ircd_snprintf(&me, sndbuf, sizeof(sndbuf) - 2, "%C %s %v", from, tok, &vd);
+  va_end(vl);
+
+  /* send it to our downlinks */
+  for (lp = me.serv->down; lp; lp = lp->next) {
+    if (one && lp->value.cptr == one->from)
+      continue;
+    send_buffer(lp->value.cptr, sndbuf);
+  }
 }
 
 /*
