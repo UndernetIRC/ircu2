@@ -1,12 +1,14 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.7 2000-01-20 04:51:29 bleep Exp $
+# $Id: ChangeLog,v 1.8 2000-01-21 17:32:27 danny Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* Fixed default behavior for BADCHAN. supposed to DEFAULT yes, however
+  should not change each time a make config is done. -- WT
 * doc/readme.www: add Runs link update patch for linux info. --Bleep
 * channel.c, channel.h: add David M's fixup for local channel oper overrides.
   --Bleep
