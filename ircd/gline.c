@@ -106,9 +106,11 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 	  return 0;
 	else
 	  after = gline; /* stick new gline after this one */
-      } else if (!mmatch(user, gline->gl_user) && /* new mask contains gline */
-		 (gline->gl_host || !mmatch(host, gline->gl_host)) &&
-		 gline->gl_expire <= expire) /* gline expires before new one */
+      } else if (
+		 !((NULL == gline->gl_host) ^ (NULL==host))
+		 && !mmatch(user, gline->gl_user) /* new mask contains gline */
+		 && (gline->gl_host || !mmatch(host, gline->gl_host)) 
+		 && gline->gl_expire <= expire) /* old expires before new */
 	gline_free(gline); /* save some memory */
     }
   }

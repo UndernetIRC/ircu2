@@ -1,3 +1,7 @@
+2003-11-09 beware <steendijk@xs4all.nl>
+        * move assigning a numeric to a local client from when nick is set,
+	to when connection becomes client, to not waste numerics.
+
 2003-11-06 Isomer <isomer@undernet.org>
 	* include/gline.c: a^b vs !(a^b)
 
