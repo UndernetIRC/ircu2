@@ -1,5 +1,10 @@
 2002-06-38  Andrew Miller <a1kmm@mware.virtualave.net>
 
+	* ircd/s_bsd.c (read_packet): Do allow handshaking servers to
+	flood, as the whole burst can end up going through.
+	
+2002-06-38  Andrew Miller <a1kmm@mware.virtualave.net>
+
 	* ircd/s_bsd.c (read_packet): Don't allow unknown connections to
 	flood.
 
