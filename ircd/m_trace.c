@@ -85,6 +85,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -119,6 +120,9 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int cnt = 0;
   int wilds;
   int dow;
+
+  if (feature_bool(FEAT_HIS_TRACE))
+    return send_reply(cptr, ERR_NOPRIVILEGES);
 
   if (parc < 2 || BadPtr(parv[1])) {
     /* just "TRACE" without parameters. Must be from local client */

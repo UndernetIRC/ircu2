@@ -27,7 +27,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_snprintf.h"
 #include "numnicks.h"
 #include "send.h"
@@ -79,28 +79,17 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
 
   ircd_snprintf(0, num, sizeof(num), "%03d", numeric);
 
-#ifdef HEAD_IN_SAND_REWRITE
-  /* Since 2.10.10.pl14 we rewrite numerics from remote servers to appear to
-   * come from the local server
+  /* Since 2.10.10.pl14 we rewrite numerics from remote servers to appear
+   * to come from the local server.
    */
-  if (IsOper(acptr)) {
-#endif
     if (acptr)
-      sendcmdto_one(sptr, num, num, acptr, "%C %s", acptr, parv[2]);
+      sendcmdto_one(feature_bool(FEAT_HIS_REWRITE) && !IsOper(acptr) ?
+		    &me : sptr, num, num, acptr, "%C %s", acptr, parv[2]);
     else
-      sendcmdto_channel_butone(sptr, num, num, achptr, cptr,
+      sendcmdto_channel_butone(feature_bool(FEAT_HIS_REWRITE) && !IsOper(acptr)
+			       ? &me : sptr, num, num, achptr, cptr,
 			       SKIP_DEAF | SKIP_BURST, "%H %s", achptr,
 			       parv[2]);
-#ifdef HEAD_IN_SAND_REWRITE
-  } else {
-    if (acptr)
-      sendcmdto_one(&me, num, num, acptr, "%C %s", acptr, parv[2]);
-    else
-      sendcmdto_channel_butone(&me, num, num, achptr, cptr,
-			       SKIP_DEAF | SKIP_BURST, "%H %s", achptr,
-			       parv[2]);
-  }
-#endif
 
   return 0;
 }

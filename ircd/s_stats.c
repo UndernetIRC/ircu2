@@ -366,63 +366,35 @@ stats_meminfo(struct Client* to, struct StatDesc* sd, int stat, char* param)
 /* This array of structures contains information about all single-character
  * stats.  Struct StatDesc is defined in s_stats.h.
  */
-/* XXX This is temporary until the featurization of ircd_policy.h has been
- * committed to the tree.
- */
-#undef STAT_FLAG_OPERFEAT
-#define STAT_FLAG_OPERFEAT STAT_FLAG_OPERONLY
-#define FEAT_HIS_STATS_C FEAT_LAST_F
-#define FEAT_HIS_STATS_D FEAT_LAST_F
-#define FEAT_HIS_STATS_E FEAT_LAST_F
-#define FEAT_HIS_STATS_F FEAT_LAST_F
-#define FEAT_HIS_STATS_G FEAT_LAST_F
-#define FEAT_HIS_STATS_H FEAT_LAST_F
-#define FEAT_HIS_STATS_I FEAT_LAST_F
-#define FEAT_HIS_STATS_J FEAT_LAST_F
-#define FEAT_HIS_STATS_K FEAT_LAST_F
-#define FEAT_HIS_STATS_L FEAT_LAST_F
-#define FEAT_HIS_STATS_M FEAT_LAST_F
-#define FEAT_HIS_STATS_m FEAT_LAST_F
-#define FEAT_HIS_STATS_O FEAT_LAST_F
-#define FEAT_HIS_STATS_P FEAT_LAST_F
-#define FEAT_HIS_STATS_R FEAT_LAST_F
-#define FEAT_HIS_STATS_T FEAT_LAST_F
-#define FEAT_HIS_STATS_t FEAT_LAST_F
-#define FEAT_HIS_STATS_U FEAT_LAST_F
-#define FEAT_HIS_STATS_u FEAT_LAST_F
-#define FEAT_HIS_STATS_W FEAT_LAST_F
-#define FEAT_HIS_STATS_X FEAT_LAST_F
-#define FEAT_HIS_STATS_Y FEAT_LAST_F
-#define FEAT_HIS_STATS_Z FEAT_LAST_F
 struct StatDesc statsinfo[] = {
-  { 'c', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_C,
+  { 'c', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
     stats_configured_links, CONF_SERVER,
     "Remote server connection lines." },
-  { 'd', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_D,
+  { 'd', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_d,
     stats_crule_list, 0,
     "Dynamic routing configuration." },
-  { 'e', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_E,
+  { 'e', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_e,
     stats_engine, 0,
     "Report server event loop engine." },
-  { 'f', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_F,
+  { 'f', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_f,
     feature_report, 0,
     "Feature settings." },
-  { 'g', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_G,
+  { 'g', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
     gline_stats, 0,
     "Global bans (G-lines)." },
-  { 'h', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_H,
+  { 'h', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_h,
     stats_configured_links, (CONF_HUB | CONF_LEAF),
     "Hubs information." },
-  { 'i', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_I,
+  { 'i', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
     stats_access, CONF_CLIENT,
     "Connection authorization lines." },
-  { 'j', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_J,
+  { 'j', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_j,
     msgq_histogram, 0,
     "Message length histogram." },
-  { 'k', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_K,
+  { 'k', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
     stats_klines, 0,
     "Local bans (K-Lines)." },
-  { 'l', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_L,
+  { 'l', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_l,
     stats_links, 0,
     "Current connections information." },
 #if 0
@@ -433,17 +405,17 @@ struct StatDesc statsinfo[] = {
   { 'm', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_m,
     stats_commands, 0,
     "Message usage information." },
-  { 'o', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_O,
+  { 'o', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
     stats_configured_links, CONF_OPS,
     "Operator information." },
-  { 'p', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_P,
+  { 'p', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
     show_ports, 0,
     "Listening ports." },
-  { 'q', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_LAST_F,
+  { 'q', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
     stats_quarantine, 0,
     "Quarantined channels list." },
 #ifdef DEBUGMODE
-  { 'r', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_R,
+  { 'r', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_r,
     send_usage, 0,
     "System resource usage (Debug only)." },
 #endif
@@ -459,21 +431,21 @@ struct StatDesc statsinfo[] = {
   { 'u', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
     stats_uptime, 0,
     "Current uptime & highest connection count." },
-  { 'v', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_LAST_F,
+  { 'v', (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_v,
     stats_servers_verbose, 0,
     "Verbose server information." },
-  { 'w', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_W,
+  { 'w', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
     calc_load, 0,
     "Userload statistics." },
 #ifdef DEBUGMODE
-  { 'x', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_X,
+  { 'x', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
     stats_meminfo, 0,
     "List usage information (Debug only)." },
 #endif
-  { 'y', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_Y,
+  { 'y', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
     report_classes, 0,
     "Connection classes." },
-  { 'z', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_Z,
+  { 'z', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
   { '\0', 0, FEAT_LAST_F, 0, 0, 0 }

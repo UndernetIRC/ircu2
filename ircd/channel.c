@@ -30,7 +30,6 @@
 #include "ircd_defs.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -352,11 +351,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-#ifdef HEAD_IN_SAND_BANWHO
-    if (IsServer(cptr))
+    if (feature_bool(FEAT_HIS_BANWHO) && IsServer(cptr))
       DupString(ban->value.ban.who, cli_name(&me));
     else
-#endif
       DupString(ban->value.ban.who, cli_name(cptr));
     assert(0 != ban->value.ban.who);
 
@@ -1500,11 +1497,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2)
       sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
 			   "[%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+			   cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+				    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
@@ -1513,11 +1507,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
 			   "%s%s%s%s%s%s [%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+			   cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+				    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
 			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
@@ -1525,11 +1516,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
 			   "[%Tu]",
-#ifdef HEAD_IN_SAND_SNOTICES
-			   cli_name(mbuf->mb_source),
-#else
-			   cli_name(app_source),
-#endif
+			   cli_name(feature_bool(FEAT_HIS_SNOTICES) ? 
+				    mbuf->mb_source : app_source),
 			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,

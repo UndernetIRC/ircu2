@@ -1,3 +1,219 @@
+2002-07-17  Reed Loden  <reed@redmagnet.com>
+
+	* doc/Authors: Updated to latest info, fixed some
+	spelling/grammar errors, and added several people.
+
+	* doc/readme.features: Add documentation for all the new
+	HEAD_IN_SAND features and added info about HEAD_IN_SAND for /STATS
+	v and /STATS q.
+
+	* doc/example.conf: Correct the case in the string
+	HEAD_IN_SAND features, change /STATS u and /STATS W default to
+	FALSE and not TRUE, and add info about HEAD_IN_SAND for /STATS v
+	and /STATS q.
+
+	* include/ircd_features.h: Change the title of the HEAD_IN_SAND
+	section, add HEAD_IN_SAND for /STATS v and /STATS q, modify the
+	case of all HEAD_IN_SAND_STATS_* to lowercase due to s_stats.c
+	changes.
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/Makefile.in: Regenerated using "make depend".
+
+	* ircd/channel.c: Removed unnecessary line additions/removals,
+	removed extra whitespace at end of line, and used "?:" construct
+	instead of "if" statement on several ircd_policy.h -> features
+	places.
+
+	* ircd/gline.c: Used "?:" construct instead of "if" statement on
+	several ircd_policy.h -> features places and removed unnecessary
+	line additions.
+
+	* ircd/ircd_features.c: Change /stats u and /stats W default to
+	FALSE and not TRUE, change the title of the HEAD_IN_SAND
+	section, add stats for q and v, modify the case of all
+	HEAD_IN_SAND_STATS_* to lowercase due to s_stats.c changes.
+
+	* ircd/jupe.c: Put the #include for ircd_features.h in correct
+	alphabetical order, used "?:" construct instead of "if" statement on
+	several ircd_policy.h -> features places and removed unnecessary
+	line additions.
+
+	* ircd/m_admin.c: Re-word-wrap'ed a line.
+
+	* ircd/m_burst.c: Used "?:" construct instead of "if" statement on
+	an ircd_policy.h -> features place.
+
+	* ircd/m_kill.c: Put the #include for ircd_features.h in
+	correct alphabetical order, used "?:" construct instead of "if"
+	statement on an ircd_policy.h -> features place, and removed
+	C++-style comment.
+
+	* ircd/m_links.c: Changed a boolean AND (&) to a logic AND (&&),
+	redid some incorrect logic, and removed unnecessary comment'ed
+	out code.
+
+	* ircd/m_lusers.c: Re-word-wrap'ed a line.
+
+	* ircd/m_map.c: Fixed indentation and removed unnecessary 
+	comment'ed out code.
+
+	* ircd/m_motd.c: Re-word-wrap'ed a line.
+
+	* ircd/m_nick.c: Put the #include for ircd_features.h in correct
+	alphabetical order, removed unnecessary reason, re-word-wrap'ed a
+	line, used exit_client_msg() instead of exit_client() so %s could
+	be used, and removed a C++-style comment.
+
+	* ircd/m_time.c: Re-word-wrap'ed a line.
+
+	* ircd/m_trace.c: Put the #include for ircd_features.h in correct 
+	alphabetical order, changed m_not_oper() to send_reply(), removed
+	braces, used return send_reply() instead of return 0, and removed
+	unnecessary addition of line.
+
+	* ircd/m_version.c: Re-word-wrap'ed a line.
+
+	* ircd/m_who.c: Put the #include for ircd_features.h in correct
+	alphabetical order, incorporated feature_bool() test into
+	!IsAnOper() test, and removed multiple inclusions of
+	ircd_features.h created by myself earlier.
+
+	* ircd/m_whois.c: Optimized if statement by doing the
+	feature_bool() test first, consolidated logic used "?:" constant,
+	and fixed indentation.
+
+	* ircd/m_whowas.c: Used "?:" construct instead of "if" statement
+	on an ircd_policy.h -> features place.
+
+	* ircd/parse.c: Renamed mo_trace to m_trace.
+
+	* ircd/s_misc.c: Put the #include for ircd_features.h in correct
+	alphabetical order, removed multiple inclusion of ircd_features.h,
+	and added a missing double-quote on one of the #includes, and fixed
+	indentation.
+
+	* ircd/s_numeric.c: Consolidated logic using "?:" construct
+	instead of "if" statement on an ircd_policy.h -> features place.
+
+	* ircd/s_stats.c: Removed temporary #define's, removed #include
+	"ircd_policy.h" and added HEAD_IN_SAND for /STATS v and /STATS q.
+
+	* ircd/s_user.c: Simplified logic using "?:" construct instead of
+	"if" statements on ircd_policy.h -> features places.
+
+	* ircd/send.c: Simplified logic using "?:" construct instead of "if" 
+	statement on a ircd_policy.h -> feature place.
+
+	* ircd/whowas.c: Optimized an "if" statement, fixed indentation, added 
+	a cast to kill a warning, and added an !IsAnOper() test.
+
+	Thanks to Kev for helping me when I didn't have a clue what to do. 
+	:)
+
+2002-06-21  Andreas Louca <netguy@spidernet.net>
+
+	* include/ircd_features.h: Moved HEAD_IN_SAND Defines to Features.
+
+	* ircd/Makefile.in: Removed ircd_policy.h from the build list; it
+	is no longer needed.
+
+	* ircd/channel.c (modebuf_flush_int): Re-adjust the existing
+	ircd-policy code to work with the new policy-features. (Notice
+	opers on HACK)
+
+	* ircd/gline.c (gline_add/gline_active/gline_deactivate):
+	Re-adjust the existing ircd-policy code to work with the new
+	policy-features (Notice opers on gline add/activate/deactivate)
+
+	* ircd/features.c (struct FeatureDesc): Added new features (from
+	ircd_policy.h)
+
+	* ircd/jupe.c (jupe_add/jupe_activate/jupe_deactivate): Re-adjust
+	the existing ircd-policy code to work with the new policy-features
+	(Server Notices on jupe add/activate/deactivate)
+
+	* ircd/m_admin.c (mo_admin): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND REMOTE)
+
+	* ircd/m_burst.c (ms_burst):  Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND BANWHO)
+
+	* ircd/m_kill.c (do_kill):  Re-adjust the existing ircd-policy 
+	code to work with the new policy-features. (HEAD_IN_SAND
+	KILLWHO)
+
+	* ircd/m_links.c: Removed function m_links_redirect. User
+	privileges will now be checked from function m_links directly. 
+
+	* ircd/m_links.c (m_links):  Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND LINKS)
+
+	* ircd/m_lusers.c (m_lusers): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND REMOTE)
+
+	* ircd/m_map.c: Removed function m_map_redirect. User privileges
+	will now be checked from function m_map directly.
+
+	* ircd/m_map.c (m_map):  Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND MAP)
+
+	* ircd/m_motd.c (m_motd): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND REMOTE)
+
+	* ircd/m_nick.c (ms_nick): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND
+	SERVERNAME)
+
+	* ircd/m_stats.c (m_stats): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND STATS)
+	
+	* ircd/m_time.c (m_time): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND REMOTE)
+
+	* ircd/m_trace.c (mo_trace): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND TRACE)
+
+	* ircd/m_version.c (mo_version):  Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND REMOTE)
+
+	* ircd/m_who.c (m_who): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND WHO
+	SERVERNAME)
+
+	* ircd/m_whois (do_whois): Re-adjust the existing ircd-policy  
+	code to work with the new policy-features. (HEAD_IN_SAND WHOIS 
+	SERVERNAME)
+
+	* ircd/m_whowas.c (m_whowas): Re-adjust the existing ircd-policy  
+	code to work with the new policy-features. (HEAD_IN_SAND WHOIS
+	SERVERNAME)
+
+	* ircd/parce.c (struct Message): Modified TOK_TRACE, TOK_MAP,
+	TOK_LINKS so they use the main function, since the redirection was
+	removed. HEAD_IN_SAND checking will be performed by main
+	functions.
+
+	* ircd/s_misc.c (exit_client): Re-adjust the existing ircd-policy
+	code to work with the new policy-features. (HEAD_IN_SAND NETSPLIT)
+
+	* ircd/s_numeric.c (do_numeric): Re-adjust the existing
+	ircd-policy code to work with the new policy-features.
+	(HEAD_IN_SAND REWRITE)
+
+	* ircd/s_user.c (set_user_mode): Re-adjust the existing 
+	ircd-policy code to work with the new policy-features.
+	(HEAD_IN_SAND SNOTICES OPER ONLY, DEBUG OPER ONLY)
+
+	* ircd/send.c (sendwallto_group_butone):  Re-adjust the existing
+	ircd-policy code to work with the new policy-features.
+	(HEAD_IN_SAND WALLOPS OPER ONLY)
+
+	* ircd/whocmds.c (do_who): Re-adjust the existing
+	ircd-policy code to work with the new policy-features.
+	(HEAD_IN_SAND WHO SERVERNAME)
+
 2002-07-17  Mathieu Rene <math@rootservices.net>
 	    Reed Loden <reed@redmagnet.com>
 

@@ -84,8 +84,8 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -150,19 +150,15 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * In accordance with the new hiding rules, the victim
    * always sees the kill as coming from me.
    */
-#ifdef HEAD_IN_SAND_KILLWHO
   if (MyConnect(victim))
-    sendcmdto_one(&me, CMD_KILL, victim, "%C :%s %s", victim,
-                  HEAD_IN_SAND_SERVERNAME, msg);
-  return exit_client_msg(cptr, victim, &me, "Killed (%s %s)",
-			 HEAD_IN_SAND_SERVERNAME, msg);
-#else
-  if (MyConnect(victim))
-    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s %s", victim,
-                  cli_name(sptr), msg);
-  return exit_client_msg(cptr, victim, sptr, "Killed (%s %s)", cli_name(sptr),
+    sendcmdto_one(feature_bool(FEAT_HIS_KILLWHO) ? &me : sptr, CMD_KILL, 
+		  victim, "%C :%s %s", victim, feature_bool(FEAT_HIS_KILLWHO)
+		  ? feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr), msg);
+  return exit_client_msg(cptr, victim, feature_bool(FEAT_HIS_KILLWHO)
+			 ? &me : sptr, "Killed (%s %s)",
+			 feature_bool(FEAT_HIS_KILLWHO) ? 
+			 feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr),
 			 msg);
-#endif
 }
 
 /*

@@ -84,7 +84,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_defs.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -163,6 +163,12 @@ static void dump_map(struct Client *cptr, struct Client *server, char *mask, int
  */
 int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  if (feature_bool(FEAT_HIS_MAP) && !IsOper(sptr)) {
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s %s", sptr,
+		  "/MAP has been disabled, from CFV-165.  "
+		  "Visit ", feature_str(FEAT_HIS_URLSERVERS));
+    return 0;
+  }
   if (parc < 2)
     parv[1] = "*";
 
@@ -171,14 +177,3 @@ int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-#ifdef HEAD_IN_SAND_MAP
-int m_map_redirect(struct Client* cptr, struct Client* sptr, int parc,
-		   char* parv[])
-{
-  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr,
-		"/MAP has been disabled, from CFV-165.  "
-		"Visit " URL_SERVERS);
-  return 0;
-}
-#endif

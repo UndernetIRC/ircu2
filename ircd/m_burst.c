@@ -86,7 +86,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -242,11 +242,10 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    newban = make_link(); /* create new ban */
 
 	    DupString(newban->value.ban.banstr, ban);
-#ifdef HEAD_IN_SAND_BANWHO
-	    DupString(newban->value.ban.who, cli_name(&me));
-#else
-	    DupString(newban->value.ban.who, cli_name(sptr));
-#endif
+
+	    DupString(newban->value.ban.who, 
+		      cli_name(feature_bool(FEAT_HIS_BANWHO) ? &me : sptr));
+
 	    newban->value.ban.when = TStime();
 
 	    newban->flags = CHFL_BAN | CHFL_BURST_BAN; /* set flags */

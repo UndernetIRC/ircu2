@@ -86,8 +86,8 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
-#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -273,10 +273,8 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (!fields)
     counter = 7;
 
-#ifdef HEAD_IN_SAND_WHO_SERVERNAME
-  if (!IsAnOper(sptr))
+  if (feature_bool(FEAT_HIS_WHO_SERVERNAME) && !IsAnOper(sptr))
     matchsel &= ~WHO_FIELD_SER;
-#endif
 
   if (qrt && (fields & WHO_FIELD_QTY))
   {

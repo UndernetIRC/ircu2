@@ -84,7 +84,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
-#include "ircd_policy.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "msg.h"
 #include "numeric.h"
@@ -135,8 +135,8 @@ int mo_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, HEAD_IN_SAND_REMOTE, ":%C", 1,
-		      parc, parv) != HUNTED_ISME)
+  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, feature_int(FEAT_HIS_REMOTE), 
+		      ":%C", 1,	parc, parv) != HUNTED_ISME)
     return 0;
   return send_admin_info(sptr);
 }
