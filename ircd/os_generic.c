@@ -107,28 +107,18 @@ int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, i
     socklen_t slen;
     int family;
 
+    assert(irc != 0);
     slen = sizeof(sin6);
-    if (0 <= compat_fd) {
-        if (0 == getsockname(compat_fd, (struct sockaddr*)&sin6, &slen))
-            family = sin6.sin6_family;
-        else if (irc_in_addr_is_ipv4(&VirtualHost.addr))
-            family = AF_INET;
-        else
-            family = AF_INET6;
-    } else {
-        if (irc_in_addr_is_ipv4(&irc->addr))
-            family = AF_INET;
-        else
-            family = AF_INET6;
-    }
+    if ((0 <= compat_fd)
+        && (0 == getsockname(compat_fd, (struct sockaddr*)&sin6, &slen)))
+        family = sin6.sin6_family;
+    else if ((irc == &VirtualHost_v4) || irc_in_addr_is_ipv4(&irc->addr))
+        family = AF_INET;
+    else
+        family = AF_INET6;
 
     memset(v6, 0, sizeof(*v6));
-    if (!irc) {
-        memset(v6, 0, sizeof(v6));
-        v6->sin6_family = AF_INET6;
-        return sizeof(*v6);
-    }
-    else if ((family == AF_INET) && irc_in_addr_is_ipv4(&irc->addr)) {
+    if (family == AF_INET) {
         struct sockaddr_in *v4 = (struct sockaddr_in*)v6;
         v4->sin_family = AF_INET;
         memcpy(&v4->sin_addr, &irc->addr.in6_16[6], sizeof(v4->sin_addr));
@@ -157,6 +147,7 @@ void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
 
 int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int compat_fd)
 {
+    assert(irc != 0);
     v4->sin_family = AF_INET;
     if (irc) {
         assert(!irc->addr.in6_16[0] && !irc->addr.in6_16[1] && !irc->addr.in6_16[2] && !irc->addr.in6_16[3] && !irc->addr.in6_16[4] && (!irc->addr.in6_16[5] || irc->addr.in6_16[5] == 0xffff));
@@ -517,6 +508,7 @@ IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
   errno = 0;
 
   size = sockaddr_from_irc(&addr, peer, fd);
+  assert((addr.sn_family == AF_INET) == irc_in_addr_is_ipv4(&peer->addr));
   if (-1 < (res = sendto(fd, buf, length, flags, (struct sockaddr*)&addr, size))) {
     if (count_out)
       *count_out = (unsigned) res;
@@ -618,6 +610,7 @@ int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
   struct sockaddr_native addr;
   int size, fd;
 
+  assert(local != 0);
   size = sockaddr_from_irc(&addr, local, -1);
   fd = socket(addr.sn_family, type, 0);
   if (fd < 0) {

@@ -55,8 +55,8 @@
 #define UPINGTIMEOUT 60   /**< Timeout waiting for ping responses */
 
 static struct UPing* pingList = 0; /**< Linked list of UPing structs */
-static int UPingFileDescriptor       = -1; /**< UDP listener socket for upings */
-static struct Socket upingSock; /**< Socket struct for upings */
+static struct Socket upingSock_v4; /**< Socket struct for IPv4 upings */
+static struct Socket upingSock_v6; /**< Socket struct for IPv6 upings */
 
 /** Start iteration of uping list.
  * @return Start of uping list.
@@ -88,71 +88,77 @@ static void uping_erase(struct UPing* p)
 }
 
 /** Callback for uping listener socket.
+ * Reads a uping from the socket and respond, but not more than 10
+ * times per second.
  * @param[in] ev I/O event for uping socket.
  */
 static void uping_echo_callback(struct Event* ev)
 {
-  assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
-
-  uping_echo();
-}
-
-/** Initialize a UDP socket for upings.
- * @returns File descriptor of UDP socket (-1 on error).
- */
-int uping_init(void)
-{
-  struct irc_sockaddr from;
-  int fd;
-
-  memcpy(&from, &VirtualHost, sizeof(from));
-  from.port = atoi(UDP_PORT);
-
-  fd = os_socket(&from, SOCK_DGRAM, "UDP listener socket");
-  if (fd < 0)
-    return -1;
-  if (!socket_add(&upingSock, uping_echo_callback, 0, SS_DATAGRAM,
-		  SOCK_EVENT_READABLE, fd)) {
-    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
-    close(fd);
-    return -1;
-  }
-  UPingFileDescriptor = fd;
-  return fd;
-}
-
-
-/** Read a uping from the socket and respond (but not more than 10
- * times per second).
- */
-void uping_echo()
-{
+  struct Socket      *sock;
   struct irc_sockaddr from;
   unsigned int       len = 0;
   static time_t      last = 0;
   static int         counter = 0;
   char               buf[BUFSIZE + 1];
 
+  assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
+  sock = ev_socket(ev);
+  assert(sock == &upingSock_v4 || sock == &upingSock_v6);
+
   Debug((DEBUG_DEBUG, "UPING: uping_echo"));
 
-  if (IO_SUCCESS != os_recvfrom_nonb(UPingFileDescriptor, buf, BUFSIZE, &len, &from))
+  if (IO_SUCCESS != os_recvfrom_nonb(s_fd(sock), buf, BUFSIZE, &len, &from))
     return;
   /*
    * count em even if we're getting flooded so we can tell we're getting
    * flooded.
    */
   ++ServerStats->uping_recv;
-  if (CurrentTime == last) {
-    if (++counter > 10)
-      return;
-  }
-  else {
-    counter = 0;
-    last    = CurrentTime;
-  }
   if (len < 19)
     return;
-  os_sendto_nonb(UPingFileDescriptor, buf, len, NULL, 0, &from);
+  else if (CurrentTime != last) {
+    counter = 0;
+    last = CurrentTime;
+  } else if (++counter > 10)
+    return;
+  os_sendto_nonb(s_fd(sock), buf, len, NULL, 0, &from);
+}
+
+/** Initialize a UDP socket for upings.
+ * @returns 0 on success, -1 on error.
+ */
+int uping_init(void)
+{
+  struct irc_sockaddr from;
+  int fd;
+
+  memcpy(&from, &VirtualHost_v4, sizeof(from));
+  from.port = atoi(UDP_PORT);
+
+  fd = os_socket(&from, SOCK_DGRAM, "IPv4 uping listener");
+  if (fd < 0)
+    return -1;
+  if (!socket_add(&upingSock_v4, uping_echo_callback, 0, SS_DATAGRAM,
+                  SOCK_EVENT_READABLE, fd)) {
+    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
+    close(fd);
+    return -1;
+  }
+
+  memcpy(&from, &VirtualHost_v6, sizeof(from));
+  from.port = atoi(UDP_PORT);
+
+  fd = os_socket(&from, SOCK_DGRAM, "IPv6 uping listener");
+  if (fd < 0)
+    return -1;
+  if (!socket_add(&upingSock_v6, uping_echo_callback, 0, SS_DATAGRAM,
+                  SOCK_EVENT_READABLE, fd)) {
+    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
+    close(fd);
+    return -1;
+  }
+
+  return 0;
 }
 
 
@@ -363,6 +369,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
 {
   int fd;
   struct UPing* pptr;
+  struct irc_sockaddr *local;
 
   assert(0 != sptr);
   assert(0 != aconf);
@@ -376,7 +383,8 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   if (IsUPing(sptr))
     uping_cancel(sptr, sptr);  /* Cancel previous ping request */
 
-  fd = os_socket(NULL, SOCK_DGRAM, "UDP ping socket");
+  local = irc_in_addr_is_ipv4(&aconf->address.addr) ? &VirtualHost_v4 : &VirtualHost_v6;
+  fd = os_socket(local, SOCK_DGRAM, "Outbound uping socket");
   if (fd < 0)
     return 0;
 

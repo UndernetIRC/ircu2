@@ -1,5 +1,48 @@
 2004-12-28  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_bsd.h (VirtualHost): Replace with separate variables
+	for IPv4 and IPv6 virtual hosts.
+
+	* include/uping.h (uping_echo): Remove declaration.
+
+	* ircd/ircd_auth.c (iauth_reconnect): Select VirtualHost_v4 or
+	VirtualHost_v6 based on iauth server address family.
+
+	* ircd/ircd_lexer.l: Do not recognize RESOLVER token.
+
+	* ircd/ircd_parser.y (ResolverAddr): Remove declaration.
+	(RESOLVER): Remove definition.
+	(generalresolver): Remove.
+	(generalvhost): Assign address to either VirtualHost_v4 or
+	VirtualHost_v6, depending on format.
+
+	* ircd/ircd_res.c (res_socket): Replace with separate variables
+	for IPv4 and IPv6 resolver sockets.
+	(ResolverAddr): Remove definition.
+	(restart_resolver): Attempt to set up both IPv4 and IPv6 sockets.
+	(send_res_msg): Select outbound FD based on resolver address type.
+	(res_readreply): Recognize either inbound socket FD.
+
+	* ircd/os_generic.c (sockaddr_from_irc): Require irc != NULL.
+	(os_socket): Require local != NULL.
+
+	* ircd/s_bsd.c (VirtualHost): Replace with separate variables
+	for IPv4 and IPv6 virtual hosts.
+	(connect_inet): Select virtual host based on destination address.
+
+	* ircd/uping.c (UPingFIleDescriptor): Remove.
+	(upingSock): Split into separate IPv4 and IPv6 variables.
+	(uping_echo_callback): Incorporate uping_echo() body here, so the
+	proper socket FD can be used.
+	(uping_init): Attempt to set up both v4 and v6 UPING sockets.
+	(uping_server): Create uping socket with appropriate local address.
+
+	* doc/example.conf (General): Update example config file to
+	reflect removal of Resolver setting and support for separate IPv4
+	and IPv6 VHost settings.
+
+2004-12-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/sys.h (BITS_ZERO_ON_*, HAVE_RELIABLE_SIGNALS, DOCURSES,
 	DOTERMCAP, IRC_UID, IRC_GID, LIMIT_FMT, FALSE, TRUE): Remove
 	unused macros.

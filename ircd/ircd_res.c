@@ -50,8 +50,10 @@
 #error this code needs to be able to address individual octets 
 #endif
 
-/** Resolver UDP socket. */
-static struct Socket res_socket;
+/** IPv4 resolver UDP socket. */
+static struct Socket res_socket_v4;
+/** IPv6 resolver UDP socket. */
+static struct Socket res_socket_v6;
 /** Next DNS lookup timeout. */
 static struct Timer res_timeout;
 /** Check for whether the resolver has been initialized yet. */
@@ -140,8 +142,6 @@ extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
 extern char irc_domain[HOSTLEN];
 
-struct irc_sockaddr ResolverAddr;
-
 /** Check whether \a inp is a nameserver we use.
  * @param[in] inp Nameserver address.
  * @return Non-zero if we trust \a inp; zero if not.
@@ -171,17 +171,24 @@ restart_resolver(void)
   if (!request_list.next)
     request_list.next = request_list.prev = &request_list;
 
-  if (!s_active(&res_socket))
+  if (!s_active(&res_socket_v4))
   {
-    struct irc_sockaddr *local;
-    int fd;
-    local = irc_in_addr_valid(&ResolverAddr.addr) ? &ResolverAddr : &VirtualHost;
-    fd = os_socket(local, SOCK_DGRAM, "Resolver UDP socket");
-    if (fd < 0) return;
-    if (!socket_add(&res_socket, res_readreply, NULL, SS_DATAGRAM,
-                    SOCK_EVENT_READABLE, fd)) return;
-    timer_init(&res_timeout);
+    int fd = os_socket(&VirtualHost_v4, SOCK_DGRAM, "Resolver UDPv4 socket");
+    if (fd >= 0)
+      socket_add(&res_socket_v4, res_readreply, NULL,
+                 SS_DATAGRAM, SOCK_EVENT_READABLE, fd);
   }
+
+  if (!s_active(&res_socket_v6))
+  {
+    int fd = os_socket(&VirtualHost_v6, SOCK_DGRAM, "Resolver UDPv6 socket");
+    if (fd >= 0)
+      socket_add(&res_socket_v6, res_readreply, NULL,
+                 SS_DATAGRAM, SOCK_EVENT_READABLE, fd);
+  }
+
+  if (s_active(&res_socket_v4) || s_active(&res_socket_v6))
+    timer_init(&res_timeout);
 }
 
 /** Append local domain to hostname if needed.
@@ -365,9 +372,11 @@ send_res_msg(const char *msg, int len, int rcount)
   if (max_queries == 0)
     max_queries = 1;
 
-  for (i = 0; i < max_queries; i++)
-    if (os_sendto_nonb(s_fd(&res_socket), msg, len, NULL, 0, &irc_nsaddr_list[i]) == IO_SUCCESS)
+  for (i = 0; i < max_queries; i++) {
+    int fd = irc_in_addr_is_ipv4(&irc_nsaddr_list[i].addr) ? s_fd(&res_socket_v4) : s_fd(&res_socket_v6);
+    if (os_sendto_nonb(fd, msg, len, NULL, 0, &irc_nsaddr_list[i]) == IO_SUCCESS)
       ++sent;
+  }
 
   return(sent);
 }
@@ -733,7 +742,7 @@ res_readreply(struct Event *ev)
   unsigned int rc;
   int answer_count;
 
-  assert(ev_socket(ev) == &res_socket);
+  assert((ev_socket(ev) == &res_socket_v4) || (ev_socket(ev) == &res_socket_v6));
   sock = ev_socket(ev);
 
   if (IO_SUCCESS != os_recvfrom_nonb(s_fd(sock), buf, sizeof(buf), &rc, &lsin)

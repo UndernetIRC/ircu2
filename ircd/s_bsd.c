@@ -79,8 +79,10 @@
 struct Client*            LocalClientArray[MAXCONNECTIONS];
 /** Maximum file descriptor in current use. */
 int                       HighestFd = -1;
-/** Default local address for outbound connections. */
-struct irc_sockaddr       VirtualHost;
+/** Default local address for outbound IPv4 connections. */
+struct irc_sockaddr       VirtualHost_v4;
+/** Default local address for outbound IPv6 connections. */
+struct irc_sockaddr       VirtualHost_v6;
 /** Temporary buffer for reading data from a peer. */
 static char               readbuf[SERVER_TCP_WINDOW];
 
@@ -234,8 +236,10 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    */
   if (irc_in_addr_valid(&aconf->origin.addr))
     local = &aconf->origin;
+  else if (irc_in_addr_is_ipv4(&aconf->address.addr))
+    local = &VirtualHost_v4;
   else
-    local = &VirtualHost;
+    local = &VirtualHost_v6;
   cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr));
   if (cli_fd(cptr) < 0)
     return 0;

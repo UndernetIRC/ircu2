@@ -75,7 +75,6 @@ extern void uping_send(struct UPing* pptr);
 extern void uping_read(struct UPing* pptr);
 extern void uping_end(struct UPing* pptr);
 extern void uping_cancel(struct Client *sptr, struct Client *acptr);
-extern void uping_echo(void);
 extern struct UPing* uping_begin(void);
 extern int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int count);
 

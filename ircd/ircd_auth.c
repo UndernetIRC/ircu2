@@ -445,6 +445,7 @@ static void iauth_schedule_reconnect(struct IAuth *iauth)
  */
 static void iauth_reconnect(struct IAuth *iauth)
 {
+  struct irc_sockaddr *local;
   IOResult result;
   int fd;
 
@@ -456,7 +457,8 @@ static void iauth_reconnect(struct IAuth *iauth)
     gethost_byname(i_host(iauth), &i_query(iauth));
     return;
   }
-  fd = os_socket(&VirtualHost, SOCK_STREAM, "IAuth");
+  local = irc_in_addr_is_ipv4(&i_addr(iauth).addr) ? &VirtualHost_v4 : &VirtualHost_v6;
+  fd = os_socket(local, SOCK_STREAM, "IAuth");
   if (fd < 0)
     return;
   if (!os_set_sockbufs(fd, SERVER_TCP_WINDOW, SERVER_TCP_WINDOW)) {

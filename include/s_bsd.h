@@ -51,7 +51,8 @@ extern const char* const REGISTER_ERROR_MSG;
 
 extern int            HighestFd;
 extern struct Client* LocalClientArray[MAXCONNECTIONS];
-extern struct irc_sockaddr VirtualHost;
+extern struct irc_sockaddr VirtualHost_v4;
+extern struct irc_sockaddr VirtualHost_v6;
 
 /*
  * Proto types
