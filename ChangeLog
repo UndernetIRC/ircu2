@@ -28,9 +28,10 @@
         * include/support.h:
 	        Redefine the NETMASK macro to fix bits == 0 oddness.
 
-2003-04-09  Jochen (denspike) <denspike@sf.net>
-	* doc/example.conf:  This adds 2 F:lines to the default conf, to log
-	memoryproblems, which could cause the server to die,
+2003-04-09  Jochen Meesters <ekips@pandora.be>
+
+	* doc/example.conf:  Adding 2 F:lines to the default conf, to log
+	memoryproblems, which could cause the server to die.
 
 2003-04-15  Alex Badea  <vampire@p16.pub.ro>
 	* include/channel.h: added a 'flags' to struct ListingArgs
