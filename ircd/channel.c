@@ -2765,40 +2765,22 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       bufptr_i = &rembuf_i;
     }
 
-    if (MB_TYPE(mbuf, i) & MODE_CHANOP) {
+    if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE)) {
       tmp = strlen(MB_CLIENT(mbuf, i)->name);
 
       if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
-	bufptr[(*bufptr_i)++] = 'o';
+	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_CHANOP ? 'o' : 'v';
 	totalbuflen -= IRCD_MAX(5, tmp) + 1;
       }
-    } else if (MB_TYPE(mbuf, i) & MODE_VOICE) {
-      tmp = strlen(MB_CLIENT(mbuf, i)->name);
-
-      if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
-	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
-      else {
-	bufptr[(*bufptr_i)++] = 'v';
-	totalbuflen -= IRCD_MAX(5, tmp) + 1;
-      }
-    } else if (MB_TYPE(mbuf, i) & MODE_KEY) {
+    } else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN)) {
       tmp = strlen(MB_STRING(mbuf, i));
 
       if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
-	bufptr[(*bufptr_i)++] = 'k';
-	totalbuflen -= tmp + 1;
-      }
-    } else if (MB_TYPE(mbuf, i) & MODE_BAN) {
-      tmp = strlen(MB_STRING(mbuf, i));
-
-      if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
-	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
-      else {
-	bufptr[(*bufptr_i)++] = 'b';
+	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_KEY ? 'k' : 'b';
 	totalbuflen -= tmp + 1;
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
@@ -2862,35 +2844,35 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
       sendto_op_mask(SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
 		     "]", app_source->name, mbuf->mb_channel->chname,
-		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
-		     addstr, remstr, mbuf->mb_channel->creationtime);
+		     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
+		     remstr, addstr, mbuf->mb_channel->creationtime);
       sendto_serv_butone(mbuf->mb_connect, "%s " TOK_DESYNCH
 			 " :HACK: %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT "]",
 			 NumServ(&me), app_source->name,
-			 mbuf->mb_channel->chname, addbuf_i ? "+" : "", addbuf,
-			 rembuf_i ? "-" : "", rembuf, addstr, remstr,
+			 mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
+			 addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			 mbuf->mb_channel->creationtime);
     }
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_op_mask(SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s %s%s%s%s%s%s ["
 		     TIME_T_FMT "]", app_source->name,
-		     mbuf->mb_channel->chname, addbuf_i ? "+" : "", addbuf,
-		     rembuf_i ? "-" : "", rembuf, addstr, remstr,
+		     mbuf->mb_channel->chname, rembuf_i ? "-" : "", rembuf,
+		     addbuf_i ? "+" : "", addbuf, remstr, addstr,
 		     mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_op_mask(SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s [" TIME_T_FMT
 		     "]", app_source->name, mbuf->mb_channel->chname,
-		     addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "", rembuf,
-		     addstr, remstr, mbuf->mb_channel->creationtime);
+		     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "", addbuf,
+		     remstr, addstr, mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
       sendto_channel_butserv(mbuf->mb_channel, app_source,
 			     ":%s MODE %s %s%s%s%s%s%s", app_source->name,
-			     mbuf->mb_channel->chname, addbuf_i ? "+" : "",
-			     addbuf, rembuf_i ? "-" : "", rembuf, addstr,
-			     remstr);
+			     mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			     rembuf, addbuf_i ? "+" : "", addbuf, remstr,
+			     addstr);
   }
 
   /* Now are we supposed to propagate to other servers? */
@@ -2951,15 +2933,15 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       if (IsServer(mbuf->mb_source))
 	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_OPMODE
 			   " %s %s%s%s%s%s%s", NumServ(mbuf->mb_source),
-			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
-			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
-			   remstr);
+			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
+			   addstr);
       else
 	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_OPMODE
 			   " %s %s%s%s%s%s%s", NumNick(mbuf->mb_source),
-			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
-			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
-			   remstr);
+			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
+			   addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to the
@@ -2968,8 +2950,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
        */
       sendto_one(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
 		 TIME_T_FMT, NumServ(&me), mbuf->mb_channel->chname,
-		 rembuf_i ? "+" : "", rembuf, addbuf_i ? "-" : "", addbuf,
-		 remstr, addstr, 0);
+		 addbuf_i ? "-" : "", addbuf, rembuf_i ? "+" : "", rembuf,
+		 addstr, remstr, 0);
     } else {
       /*
        * We're propagating a normal MODE command to the rest of the network;
@@ -2978,17 +2960,17 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       if (IsServer(mbuf->mb_source))
 	sendto_serv_butone(mbuf->mb_connect, "%s " TOK_MODE " %s %s%s%s%s%s%s "
 			   TIME_T_FMT, NumServ(mbuf->mb_source),
-			   mbuf->mb_channel->chname, addbuf_i ? "+" : "",
-			   addbuf, rembuf_i ? "-" : "", rembuf, addstr,
-			   remstr, (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
+			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+			   rembuf, addbuf_i ? "+" : "", addbuf, remstr,
+			   addstr, (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
 						     MODEBUF_DEST_HACK4)) ? 0 :
 			   mbuf->mb_channel->creationtime);
       else
 	sendto_serv_butone(mbuf->mb_connect, "%s%s " TOK_MODE
 			   " %s %s%s%s%s%s%s " TIME_T_FMT,
 			   NumNick(mbuf->mb_source), mbuf->mb_channel->chname,
-			   addbuf_i ? "+" : "", addbuf, rembuf_i ? "-" : "",
-			   rembuf, addstr, remstr,
+			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+			   addbuf, remstr, addstr,
 			   (mbuf->mb_dest & (MODEBUF_DEST_HACK3 |
 					     MODEBUF_DEST_HACK4)) ? 0 :
 			   mbuf->mb_channel->creationtime);

@@ -1,3 +1,9 @@
+2000-03-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (modebuf_flush_int): consolidated the mode string
+	building logic, reversed the order of the arguments to mode
+	commands to have '-' preceed '+'
+
 2000-03-29  Thomas Helvey <tomh@inxpress.net>
 	* ircd/s_bsd.c (add_connection): don't disable socket options
 	let OS tune itself and allow important performance tweaks to 
@@ -134,7 +140,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.38 2000-03-29 08:13:51 bleep Exp $
+# $Id: ChangeLog,v 1.39 2000-03-29 15:58:36 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
