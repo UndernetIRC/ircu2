@@ -1053,6 +1053,8 @@ int rehash(struct Client *cptr, int sig)
    */
   clearNickJupes();
 
+  clear_quarantines();
+
   if (sig != 2)
     restart_resolver();
 
@@ -1097,8 +1099,8 @@ int rehash(struct Client *cptr, int sig)
         sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
                              found_g == -2 ? "G-line active for %s%s" :
                              "K-line active for %s%s",
-                             IsUnknown(acptr) ? "Unregistered Client ":"",                     
-                             get_client_name(acptr, HIDE_IP));
+                             IsUnknown(acptr) ? "Unregistered Client ":"",
+                             get_client_name(acptr, SHOW_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;
