@@ -1,3 +1,11 @@
+2002-04-15  beware <steendijk@tomaatnet.nl>
+
+	* ircd/m_whois.c: Fixed /whois servermask nomatch bug
+	where normal users could use the function to discover servers,
+	also the NOSUCHSERVER check code was missing.
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 2002-04-13  Stephane Thiell <mbuna@undernet.org>
 
 	* ircd/class.c: removed unused (and duplicated) code
