@@ -167,11 +167,11 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     flags |= GLINE_LOCAL;
   }
 
-  if (*server == '-')
-    server++;
-  else if (*server == '+') {
+  if (*mask == '-')
+    mask++;
+  else if (*mask == '+') {
     flags |= GLINE_ACTIVE;
-    server++;
+    mask++;
   } else
     flags |= GLINE_ACTIVE;
 

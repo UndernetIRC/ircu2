@@ -58,6 +58,8 @@
 #include "version.h"
 #include "whowas.h"
 
+#include "handlers.h" /* m_motd and m_lusers */
+
 #include <assert.h>
 #include <fcntl.h>
 #include <stdio.h>
