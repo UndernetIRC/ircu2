@@ -1,10 +1,14 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.17.2.5 2001-06-11 18:03:57 kev Exp $
+# $Id: ChangeLog.10,v 1.1.2.17.2.6 2001-06-14 17:55:34 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Hopefully make mode clears during bursts appear to originate from local
+  server -Kev
+* Fix several things to send server<->server protocol messages with numeric
+  origins -Kev
 * Rework directed notices and mass-messages to use numerics and tokens
   as appropriate; the latter required the modifications to
   sendto_match_butone() -Kev

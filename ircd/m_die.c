@@ -130,8 +130,8 @@ int mo_die(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       sendto_one(acptr, ":%s NOTICE %s :Server Terminating. %s",
                  me.name, acptr->name, get_client_name(sptr, HIDE_IP));
     else if (IsServer(acptr))
-      sendto_one(acptr, ":%s ERROR :Terminated by %s",
-                 me.name, get_client_name(sptr, HIDE_IP));
+      sendto_one(acptr, "%s ERROR :Terminated by %s", NumServ(&me),
+		 get_client_name(sptr, HIDE_IP));
   }
   server_die("received DIE");
 #endif /* defined(OPER_DIE) || defined(LOCOP_DIE) */

@@ -131,7 +131,8 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (t < OLDEST_TS || dt < -9000000)
   {
-    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]);
+    sendto_one(sptr, "%s NOTICE %s :SETTIME: Bad value", NumServ(&me),
+	       parv[0]);
     return 0;
   }
 
@@ -143,7 +144,8 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]);
+	  sendto_one(lp->value.cptr, "%s " TOK_SETTIME " %s", NumServ(sptr),
+		     parv[1]);
   }
   else
   {
@@ -156,8 +158,8 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 #ifdef RELIABLE_CLOCK
   if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
-                       me.name, sptr->name, t);
+    sendto_serv_butone(0, "%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
+                       NumServ(&me), sptr->name, t);
   if (IsUser(sptr))
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)
@@ -228,7 +230,8 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #endif
     for (lp = me.serv->down; lp; lp = lp->next)
       if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000)
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]);
+        sendto_one(lp->value.cptr, "%s " TOK_SETTIME " %s", NumServ(sptr),
+		   parv[1]);
   }
   else
   {
@@ -241,8 +244,8 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 #ifdef RELIABLE_CLOCK
   if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
-                       me.name, sptr->name, t);
+    sendto_serv_butone(0, "%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT,
+                       NumServ(&me), sptr->name, t);
   if (IsUser(sptr))
   {
     if (MyUser(sptr) || Protocol(cptr) < 10)

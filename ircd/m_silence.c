@@ -187,18 +187,32 @@ int ms_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     acptr = FindNServer(parv[1]);
 
   if (*parv[2] == '-') {
-    if (!del_silence(sptr, parv[2] + 1))
-      sendto_serv_butone(cptr, ":%s SILENCE * %s", parv[0], parv[2]);
+    if (!del_silence(sptr, parv[2] + 1)) {
+      if (IsUser(sptr))
+	sendto_serv_butone(cptr, "%s%s " TOK_SILENCE " * %s", NumNick(sptr),
+			   parv[2]);
+      else
+	sendto_serv_butone(cptr, "%s " TOK_SILENCE " * %s", NumServ(sptr),
+			   parv[2]);
   }
   else {
     add_silence(sptr, parv[2]);
     if (acptr && IsServer(acptr->from)) {
-      if (IsServer(acptr))
-	sendto_one(acptr, ":%s SILENCE %s %s",
-	           parv[0], NumServ(acptr), parv[2]);
-      else
-	sendto_one(acptr, ":%s SILENCE %s%s %s",
-	           parv[0], NumNick(acptr), parv[2]);
+      if (IsServer(acptr)) {
+	if (IsUser(sptr))
+	  sendto_one(acptr, "%s%s " TOK_SILENCE " %s %s", NumNick(sptr),
+		     NumServ(acptr), parv[2]);
+	else
+	  sendto_one(acptr, "%s " TOK_SILENCE " %s %s", NumServ(sptr),
+		     NumServ(acptr), parv[2]);
+      } else {
+	if (IsUser(sptr))
+	  sendto_one(acptr, "%s%s " TOK_SILENCE " %s%s %s", NumNick(sptr),
+		     NumNick(acptr), parv[2]);
+	else
+	  sendto_one(acptr, "%s " TOK_SILENCE " %s%s %s", NumServ(sptr),
+		     NumNick(acptr), parv[2]);
+      }
     }
   }
   return 0;

@@ -1474,12 +1474,21 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
     {
       if (!MyConnect(sptr))
       {
-        if (Protocol(sptr->from) < 10)
-          sendto_one(sptr->from, ":%s SILENCE %s %s", acptr->name,
-              sptr->name, lp->value.cp);
-        else
-          sendto_one(sptr->from, ":%s SILENCE %s%s %s", acptr->name,
-              NumNick(sptr), lp->value.cp);
+        if (Protocol(sptr->from) < 10) {
+	  if (IsUser(acptr))
+	    sendto_one(sptr->from, "%s%s " TOK_SILENCE " %s %s",
+		       NumNick(acptr), NumServ(sptr), lp->value.cp);
+	  else
+	    sendto_one(sptr->from, "%s " TOK_SILENCE " %s %s", NumServ(acptr),
+		       NumServ(sptr), lp->value.cp);
+	} else {
+	  if (IsUser(acptr))
+	    sendto_one(sptr->from, "%s%s " TOK_SILENCE " %s%s %s",
+		       NumNick(acptr), NumNick(sptr), lp->value.cp);
+	  else
+	    sendto_one(sptr->from, "%s " TOK_SILENCE " %s%s %s",
+		       NumServ(acptr), NumNick(sptr), lp->value.cp);
+	}
       }
       return 1;
     }
