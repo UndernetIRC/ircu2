@@ -1,7 +1,6 @@
-/*
- * ircd_osdep.h
- *
- * $Id$
+/** @file ircd_osdep.h
+ * @brief Public definitions and APIs for OS-dependent operations.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_osdep_h
 #define INCLUDED_ircd_osdep_h
@@ -10,10 +9,11 @@ struct Client;
 struct irc_sockaddr;
 struct MsgQ;
 
+/** Result of an input/output operation. */
 typedef enum IOResult {
-  IO_FAILURE = -1,
-  IO_BLOCKED = 0,
-  IO_SUCCESS = 1
+  IO_FAILURE = -1, /**< Serious I/O error (not due to blocking). */
+  IO_BLOCKED = 0,  /**< I/O could not start because it would block. */
+  IO_SUCCESS = 1   /**< I/O succeeded. */
 } IOResult;
 
 /*
@@ -21,7 +21,11 @@ typedef enum IOResult {
  * Client struct. When passed as a parameter, the pointer just needs
  * to be forwarded to the enumeration function.
  */
-typedef void (*EnumFn)(struct Client*, const char* msg);
+/** Callback function to show rusage information.
+ * @param cptr Client to receive the message.
+ * @param msg Text message to send to user.
+ */
+typedef void (*EnumFn)(struct Client* cptr, const char* msg);
 
 extern int os_disable_options(int fd);
 extern int os_get_rusage(struct Client* cptr, int uptime, EnumFn enumerator);
