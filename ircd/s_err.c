@@ -432,7 +432,7 @@ static Numeric replyTable[] = {
 /* 199 */
   { 0 },
 /* 200 */
-  { RPL_TRACELINK, "Link %s%s %s %s", "200" },
+  { RPL_TRACELINK, "Link %s.%s %s %s", "200" },
 /* 201 */
   { RPL_TRACECONNECTING, "Try. %d %s", "201" },
 /* 202 */
