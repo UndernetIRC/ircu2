@@ -165,7 +165,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if ((ajupe = jupe_find(host)) && JupeIsActive(ajupe))
     return exit_client_msg(cptr, sptr, &me, "Juped: %s", JupeReason(ajupe));
 
-  log_write(LS_NETWORK, L_NOTICE, 0, "SERVER: %s %s[%s]", parv[1],
+  log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "SERVER: %s %s[%s]", parv[1],
 	    cptr->sockhost, cptr->sock_ip);
 
   /*
