@@ -111,6 +111,7 @@ extern const struct Numeric* get_error_numeric(int err);
 	RPL_STATSNLINE	     226	   unreal
 	RPL_STATSGLINE	     227	   Dalnet 
 	RPL_STATSVLINE	     227	   unreal */
+#define RPL_STATSQLINE       228        /* Undernet extension */
 
 #define RPL_SERVICEINFO      231	/* unused */
 #define RPL_ENDOFSERVICES    232	/* unused */
@@ -440,10 +441,12 @@ extern const struct Numeric* get_error_numeric(int err);
 /*	ERR_OPERONLY	     520	unreal */
 #define ERR_MASKTOOWIDE	     520	/* Undernet extension -Kev */
 /*	ERR_WHOTRUNC	     520	austnet */
-#define ERR_LASTERROR        521
 /*	ERR_LISTSYNTAX       521	dalnet
 	ERR_WHOSYNTAX	     522        dalnet
 	ERR_WHOLIMEXCEED     523	dalnet */
+#define ERR_QUARANTINED      524	/* Undernet extension -Vampire */
+
+#define ERR_LASTERROR        525
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

@@ -71,6 +71,7 @@
 
 struct ConfItem* GlobalConfList  = 0;
 int              GlobalConfCount = 0;
+struct qline*    GlobalQuarantineList = 0;
 
 static struct LocalConf   localConf;
 static struct CRuleConf*  cruleConfList;
@@ -697,6 +698,42 @@ void conf_add_listener(const char* const* fields, int count)
   add_listener(atoi(fields[4]), fields[2], fields[1], is_server, is_hidden);
 }
 
+void conf_add_quarantine(const char* const* fields, int count)
+{
+  struct qline *qline;
+
+  if (count < 3 || EmptyString(fields[1]) || EmptyString(fields[2]) ||
+      (fields[1][0] != '#' && fields[1][0] != '&'))
+    return;
+ 
+  qline = (struct qline *) MyMalloc(sizeof(struct qline));
+  DupString(qline->chname, fields[1]);
+  DupString(qline->reason, fields[2]);
+  qline->next = GlobalQuarantineList;
+  GlobalQuarantineList = qline;
+}
+
+char* find_quarantine(const char* chname)
+{
+  struct qline *qline;
+  
+  for (qline = GlobalQuarantineList; qline; qline = qline->next)
+    if (!ircd_strcmp(qline->chname, chname))
+      return qline->reason;
+  return NULL;
+}
+
+void clear_quarantines(void)
+{
+  struct qline *qline;
+  while ((qline = GlobalQuarantineList)) {
+    GlobalQuarantineList = qline->next;
+    MyFree(qline->reason);
+    MyFree(qline->chname);
+    MyFree(qline);
+  }
+}
+
 void conf_add_local(const char* const* fields, int count)
 {
   if (count < 6 || EmptyString(fields[1]) || EmptyString(fields[5])) {
@@ -1116,6 +1153,11 @@ int read_configuration_file(void)
       conf_add_listener(field_vector, field_count);
       aconf->status = CONF_ILLEGAL;
       break;
+    case 'Q':                /* quarantine line */
+    case 'q':        /* CONF_QUARANTINE */
+      conf_add_quarantine(field_vector, field_count);
+      aconf->status = CONF_ILLEGAL;
+      break;
     case 'T':                /* print out different motd's */
     case 't':                /* based on hostmask - CONF_TLINES */
       motd_add(field_vector[1], field_vector[2]);
@@ -1285,6 +1327,8 @@ int rehash(struct Client *cptr, int sig)
    * delete the juped nicks list
    */
   clearNickJupes();
+
+  clear_quarantines();
 
   if (sig != 2)
     flush_resolver_cache();

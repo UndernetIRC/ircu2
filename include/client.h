@@ -97,7 +97,10 @@ struct AuthRequest;
 
 #define PRIV_WIDE_GLINE		27 /* oper can set wider G-lines */
 
-#define PRIV_LAST_PRIV		27 /* must be the same as the last priv */
+#define PRIV_FORCE_OPMODE	28 /* oper can override a Q-line */
+#define PRIV_FORCE_LOCAL_OPMODE	29 /* oper can override a local channel Q-line */
+
+#define PRIV_LAST_PRIV		29 /* must be the same as the last priv */
 
 #define _PRIV_NBITS		(8 * sizeof(unsigned long))
 

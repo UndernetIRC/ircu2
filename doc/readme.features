@@ -606,6 +606,20 @@ OPER_LOPMODE
 This selects whether global IRC operators on this server are permitted
 to use /OPMODE and /CLEARMODE on local ("&") channels.
 
+OPER_FORCE_OPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on ordinary ("#") channels
+
+OPER_FORCE_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
+
 OPER_BADCHAN
  * Type: boolean
  * Default: FALSE
@@ -695,6 +709,13 @@ LOCOP_LOPMODE
 
 This selects whether local IRC operators are permitted to use /OPMODE
 and /CLEARMODE on local ("&") channels.
+
+LOCOP_FORCE_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators on this server are permitted
+to override Q-lines set for /OPMODE and /CLEARMODE on local ("&") channels
 
 LOCOP_LBADCHAN
  * Type: boolean
