@@ -1,3 +1,8 @@
+2002-06-17  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/ircd_parser.y: fixed 'Connect' block processing so now
+	you can actually connect to other servers
+
 2002-06-04  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/m_stats.c (report_servers_verbose): oops, fixed it so

@@ -363,6 +363,7 @@ connectblock: CONNECT
   aconf->status = CONF_SERVER;
   aconf->host = host;
   aconf->next = GlobalConfList;
+  aconf->ipnum.s_addr = INADDR_NONE;
   GlobalConfList = aconf;
   printf("Server added: %s\n", name);
   /* ccount++; -- XXX fixme --- A1kmm */
