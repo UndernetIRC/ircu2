@@ -260,7 +260,6 @@ static void try_connections(struct Event* ev) {
      */
     if (!(aconf->status & CONF_SERVER)
         || aconf->address.port == 0
-        || aconf->hold == 0
         || ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)))
       continue;
 
@@ -278,11 +277,10 @@ static void try_connections(struct Event* ev) {
      * or if connect rules forbid a link now.
      */
     if (hold
-        || (Links(cltmp) >= MaxLinks(cltmp))
+        || (Links(cltmp) > MaxLinks(cltmp))
         || FindServer(aconf->name)
-        || conf_eval_crule(aconf->name, CRULE_MASK)) {
+        || conf_eval_crule(aconf->name, CRULE_MASK))
       continue;
-    }
 
     /* Ensure it is at the end of the list for future checks. */
     if (aconf->next) {

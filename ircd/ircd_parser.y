@@ -786,6 +786,7 @@ cruleblock: CRULE
     parse_error("Bad CRule block");
   }
   host = pass = NULL;
+  tconn = 0;
 };
 
 cruleitems: cruleitem cruleitems | cruleitem;
@@ -953,7 +954,7 @@ iauthblock: IAUTH '{'
   MyFree(pass);
   MyFree(host);
   pass = host = NULL;
-  port = 0;
+  port = tconn = tping = 0;
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;

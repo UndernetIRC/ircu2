@@ -8786,13 +8786,15 @@ _ACEOF
 fi
 
 fi
-if  "$LEX" eq ":"  ; then
+if test "$LEX" = ":" ; then
   { { echo "$as_me:$LINENO: error: Cannot find flex." >&5
 echo "$as_me: error: Cannot find flex." >&2;}
    { (exit 1); exit 1; }; }
 elif echo "" | $LEX -V -v --version > /dev/null 2>&1 ; then
-  { { echo "$as_me:$LINENO: error: Cannot find flex." >&5
-echo "$as_me: error: Cannot find flex." >&2;}
+  :
+else
+  { { echo "$as_me:$LINENO: error: Cannot use $LEX as flex." >&5
+echo "$as_me: error: Cannot use $LEX as flex." >&2;}
    { (exit 1); exit 1; }; }
 fi
 
@@ -8851,13 +8853,15 @@ fi
 done
 test -n "$YACC" || YACC="yacc"
 
-if  "$YACC" eq ":"  ; then
+if test "$YACC" = ":" ; then
   { { echo "$as_me:$LINENO: error: Cannot find yacc." >&5
 echo "$as_me: error: Cannot find yacc." >&2;}
    { (exit 1); exit 1; }; }
 elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
-  { { echo "$as_me:$LINENO: error: Cannot find yacc." >&5
-echo "$as_me: error: Cannot find yacc." >&2;}
+  :
+else
+  { { echo "$as_me:$LINENO: error: Cannot use $YACC as yacc." >&5
+echo "$as_me: error: Cannot use $YACC as yacc." >&2;}
    { (exit 1); exit 1; }; }
 fi
 

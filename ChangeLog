@@ -1,3 +1,19 @@
+2005-01-25  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Fix typos and thinkos in previous commut.
+
+	* configure: Regenerate.
+
+	* doc/example.conf: Change class name in Connect block to be
+	consistent with earlier Class block.
+
+	* ircd/ircd.c (try_connections): Consider Connect blocks with hold
+	time of 0.  Fix Links() vs MaxLinks() comparison to reflect ref
+	count starting at 1.
+
+	* ircd/ircd_parser.y (cruleblock, iauthblock): Clear unused
+	variables after use.
+
 2005-01-24  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Make sure that $LEX and $YACC are reasonable and

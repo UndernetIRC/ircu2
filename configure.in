@@ -143,10 +143,12 @@ AC_PATH_PROGS(SHPROG, sh, /bin/sh)
 dnl (F)LEX - needed for the new conf file parser
 AC_PROG_LEX
 dnl The autoconf docs say $LEX defaults to 'lex'.  They lie.
-if [ "$LEX" eq ":" ] ; then
+if test "$LEX" = ":" ; then
   AC_MSG_ERROR([Cannot find flex.])
 elif echo "" | $LEX -V -v --version > /dev/null 2>&1 ; then
-  AC_MSG_ERROR([Cannot find flex.])
+  :
+else
+  AC_MSG_ERROR([Cannot use $LEX as flex.])
 fi
 
 if test -z "$LEXLIB" ; then
@@ -161,10 +163,12 @@ dnl YACC - ditto
 AC_PROG_YACC
 dnl The autoconf docs say $YACC defaults to 'yacc'.  This seems to be true,
 dnl but judging from AC_PROG_LEX, it may not stay true.
-if [ "$YACC" eq ":" ] ; then
+if test "$YACC" = ":" ; then
   AC_MSG_ERROR([Cannot find yacc.])
 elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
-  AC_MSG_ERROR([Cannot find yacc.])
+  :
+else
+  AC_MSG_ERROR([Cannot use $YACC as yacc.])
 fi
 
 
