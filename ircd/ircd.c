@@ -35,6 +35,7 @@
 #include "ircd_reply.h"
 #include "ircd_signal.h"
 #include "ircd_string.h"
+#include "ircd_crypt.h"
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
@@ -663,6 +664,10 @@ int main(int argc, char **argv) {
   initstats();
 
   init_resolver();
+
+  /* we need this for now, when we're modular this 
+     should be removed -- hikari */
+  ircd_crypt_init();
 
   motd_init();
 

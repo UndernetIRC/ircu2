@@ -35,7 +35,7 @@
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd_snprintf.h"
-#include "ircd_xopen.h"
+#include "ircd_crypt.h"
 #include "jupe.h"
 #include "list.h"
 #include "match.h"

@@ -179,7 +179,7 @@ int mo_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	send_reply(sptr, RPL_INFO, *text);
       text++;
     }
-    if (IsOper(sptr))
+    if (IsOper(sptr) && (NULL != parv[1]))
     {
       while (*text)
 	send_reply(sptr, RPL_INFO, *text++);

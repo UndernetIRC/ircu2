@@ -30,6 +30,7 @@
 #include "ircd_chattr.h"
 #include "ircd_events.h"
 #include "ircd_features.h"
+#include "ircd_crypt.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -297,6 +298,39 @@ stats_links(struct Client* sptr, struct StatDesc* sd, int stat, char* name)
     }
 }
 
+/* hopefuly this will be where we'll spit out info about loaded modules */
+static void
+stats_modules(struct Client* to, struct StatDesc* sd, int stat, char* param)
+{
+crypt_mechs_t* mechs;
+
+  send_reply(to, SND_EXPLICIT | RPL_STATSLLINE, 
+   "Module  Description      Entry Point");
+
+ /* atm the only "modules" we have are the crypto mechanisms,
+    eventualy they'll be part of a global dl module list, for now
+    i'll just output data about them -- hikari */
+
+ if(crypt_mechs_root == NULL)
+  return;
+
+ mechs = crypt_mechs_root->next;
+
+ for(;;)
+ {
+  if(mechs == NULL)
+   return;
+
+  send_reply(to, SND_EXPLICIT | RPL_STATSLLINE, 
+   "%s  %s     0x%X", 
+   mechs->mech->shortname, mechs->mech->description, 
+   mechs->mech->crypt_function);
+
+  mechs = mechs->next;
+ }
+
+}
+
 static void
 stats_commands(struct Client* to, struct StatDesc* sd, int stat, char* param)
 {
@@ -447,9 +481,14 @@ struct StatDesc statsinfo[] = {
   { 'k', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
     stats_klines, 0,
     "Local bans (K-Lines)." },
-  { 'l', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_l,
+  { 'l', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), 
+    FEAT_HIS_STATS_l,
     stats_links, 0,
     "Current connections information." },
+  { 'L', (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), 
+    FEAT_HIS_STATS_L,
+    stats_modules, 0,
+    "Dynamicly loaded modules." },
 #if 0
   { 'M', (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_M,
     stats_memtotal, 0,

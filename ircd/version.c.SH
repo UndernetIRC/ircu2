@@ -1,3 +1,5 @@
+#! /bin/sh
+
 echo "Extracting ircd/version.c ..."
 
 srcdir=$1
@@ -12,33 +14,11 @@ fi
 
 generation=`expr $generation + 1`
 
-sum=sum
-if $sum ${srcdir}/s_serv.c 1> /dev/null 2>&1; then
-:
-else
-  sum=cksum
-fi
-sumsserv=`$sum ${srcdir}/s_serv.c 2> /dev/null`;
-sumsuser=`$sum ${srcdir}/s_user.c 2> /dev/null`;
-sumchan=`$sum ${srcdir}/channel.c 2> /dev/null`;
-sumsbsd=`$sum ${srcdir}/s_bsd.c 2> /dev/null`;
-sumhash=`$sum ${srcdir}/hash.c 2> /dev/null`;
-sumsmisc=`$sum ${srcdir}/s_misc.c 2> /dev/null`;
-sumircd=`$sum ${srcdir}/ircd.c 2> /dev/null`;
-
 creation=`date | \
 awk '{if (NF == 6) \
-	 { print $1 " "	 $2 " " $3 " "	$6 " at " $4 " " $5 } \
+	 { print $1 " " $2 " " $3 " " $6 " at " $4 " " $5 } \
 else \
-	 { print $1 " "	 $2 " " $3 " " $7 " at " $4 " " $5 " " $6 }}'`
-
-# cvsversion=`cat ../.patches | \
-#     awk -F. '{ \
-#         if ($(NF)~/\+$/) \
-# 	    printf(".0"); \
-# 	else \
-# 	    printf(".%s", $(NF)); \
-#     }'`
+	 { print $1 " " $2 " " $3 " " $7 " at " $4 " " $5 " " $6 }}'`
 
 /bin/cat >version.c <<!SUB!THIS!
 /*
@@ -77,13 +57,17 @@ const char *infotext[] = {
     "This program is free software; see LICENSE in the distribution",
     "",
     "Based on the original code written by Jarkko Oikarinen, version 2.6:",
-    "Wiz	  Jarkko Oikarinen	   <jto@tolsun.oulu.fi>",
+    "Wiz          Jarkko Oikarinen         <jto@tolsun.oulu.fi>",
     "",
     "The main developer of version u2.9 and u2.10 was:",
-    "Run	  Carlo Wood		   <carlo@runaway.xs4all.nl>",
+    "Run          Carlo Wood               <carlo@runaway.xs4all.nl>",
     "",
-    "The current head developer of the u2.10 source tree is:",
+    "The head developer of the u2.10 source tree was:",
     "Bleep        Thomas Helvey            <tomh@inxpress.net>",
+    "",
+    "The current maintainors of the u2.10 source tree are:",
+    "Isomer       Perry Lorier             <perry@coders.net>",
+    "Kev          Kevin Mitchell           <klmitch@mit.edu>",
     "",
     "Contributors to this release:",
     "Kev, Isomer, Gte, Ghostwolf, Bleep",
@@ -96,8 +80,21 @@ const char *infotext[] = {
     "A full listing of all coders can be found in doc/Authors in the",
     "source.",
     "",
-    "[$sumsserv] [$sumchan] [$sumsbsd] [$sumsuser]",
-    "[$sumhash] [$sumsmisc] [$sumircd]",
+    "Sources:",
+!SUB!THIS!
+
+for file in ${srcdir}/ircd/*.c ; do
+ echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
+done;
+
+echo "    \"\"," >> version.c
+echo "    \"Headers:\"," >> version.c
+
+for file in ${srcdir}/include/*.h ; do
+ echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
+done;
+
+/bin/cat >>version.c <<!SUB!THIS!
     0,
 };
 !SUB!THIS!

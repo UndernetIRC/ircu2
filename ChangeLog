@@ -1,3 +1,45 @@
+2002-11-11  hikari <shadow@undernet.org>
+	* ircd/ircd.c: added call to irc_crypt_init() - someone hurry up and 
+	modularise :P
+
+	* ircd/ircd_xopen.c: removed, superseded by new crypto system.
+
+	* ircd/ircd_crypt.c: wrote scary ircd_crypt() interface function,
+	wrote ircd_crypt_mech_register() function, various other bits 
+	designed to create a near-pluggable crypto system for ircu.  currently
+	this code also loads the various mechanisms i've written code for.
+
+	* ircd/ircd_crypt_smd5.c: imported the crypt_md5 function from 
+	elsewhere, manipulated to suit ircu, returns a salted MD5 password.
+
+	* ircd/ircd_crypt_native.c: replaces the old ircd_xopen.c file,
+	generate a crypted password using the systems native crypt() function.
+
+	* ircd/ircd_crypt_plain.c: plain text crypt mechanism, should really
+	only be used for testing purposes.
+
+	* ircd/ircd_md5.c: main gubbins of the MD5 hashing code, lifted from
+	elsewhere, ircuified.
+
+	* ircd/umkpasswd.c: mkpasswd program for ircu.
+
+	* include/ircd_xopen.h: removed, superseded by new crypto system.
+
+	* include/ircd_crypt.h: external definitions for the new ircd_crypt()
+	function and definition of the ircd_crypt_mech structure for containing
+	crypto mechanism data.
+
+	* include/ircd_crypt_smd5.h: sundary definitions for the salted MD5
+	mechanism.
+
+	* include/ircd_crypt_native.h: sundary definitions for the native 
+	crypt() mechanism.
+
+	* include/ircd_crypt_plain.h: sundary definitions for the plain text
+	mechanism.
+
+	* include/umkpasswd.h: fluff for umkpasswd.
+
 2003-03-11  Landon Fuller (landonf) <landonf@sf.net>
 
 	* configure.in: allow ircu to build on OS X.

@@ -83,6 +83,17 @@ RES_SRC = \
 	res_adns.c \
 	res_libresolv.c
 
+CRYPTO_SRC = \
+	ircd_md5.c \
+	ircd_crypt_plain.c \
+	ircd_crypt_smd5.c \
+	ircd_crypt_native.c
+
+UMKPASSWD_SRC = ${CRYPTO_SRC} \
+	ircd_alloc.c \
+	ircd_string.c \
+	umkpasswd.c
+
 IRCD_SRC = \
 	IPcheck.c \
 	channel.c \
@@ -96,6 +107,7 @@ IRCD_SRC = \
 	hash.c \
 	ircd.c \
 	ircd_alloc.c \
+	ircd_crypt.c \
 	ircd_events.c \
 	ircd_features.c \
 	ircd_log.c \
@@ -104,7 +116,6 @@ IRCD_SRC = \
 	ircd_signal.c \
 	ircd_snprintf.c \
 	ircd_string.c \
-	ircd_xopen.c \
 	jupe.c \
 	lex.yy.c \
 	list.c \
@@ -210,12 +221,13 @@ IRCD_SRC = \
 	whowas.c \
 	y.tab.c
 
-
-SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C} ${RES_C}
+SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C} ${RES_C} ${CRYPTO_SRC}
 
 OBJS = ${SRC:%.c=%.o}
 
-DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC} ${ENGINE_SRC}
+UMKPASSWD_OBJS = ${UMKPASSWD_SRC:%.c=%.o}
+
+DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC} ${ENGINE_SRC} ${CRYPTO_SRC}
 
 all:
 	( cd ..; make -f Makefile )
@@ -242,9 +254,8 @@ ircd: ${OBJS} ../include/patchlevel.h version.o
 # must be a better solution...perhaps sum all of the .c files and include
 # only that one sum?
 #
-version.c: version.c.SH s_serv.c s_user.c channel.c s_bsd.c s_misc.c ircd.c \
-	   ../include/version.h ../include/patchlevel.h ../include/patchlist.h
-	${SHELL} ${srcdir}/version.c.SH ${srcdir}
+version.c: version.c.SH umkpasswd
+	${SHELL} ${srcdir}/version.c.SH ${top_srcdir}
 
 ../include/patchlist.h:
 	(cd ${top_srcdir} ; ./ircd-patch update)
@@ -262,6 +273,9 @@ lex.yy.c: ircd_lexer.l y.tab.h
 
 y.tab.c y.tab.h: ircd_parser.y
 	${YACC} -d ${srcdir}/ircd_parser.y
+
+umkpasswd: ${UMKPASSWD_OBJS}
+	${CC} ${LDFLAGS} ${UMKPASSWD_OBJS} ${LIBS} -o $@
 
 mkbindir:
 	@test -d ${BINDIR} || mkdir ${BINDIR}
@@ -284,6 +298,7 @@ install-with-symlink: build mkbindir
 	  ${LN_S} ircd.`cat /tmp/ircd.tag` ${SYMLINK}; )
 	@${RM} /tmp/ircd.tag
 #	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} chkconf ${BINDIR}
+	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} umkpasswd ${BINDIR}
 	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ${top_srcdir}/doc/example.conf ${DPATH}
 # 	( cd ${DPATH}; \
 # 	  ${TOUCH} ${MPATH}; \
@@ -317,7 +332,7 @@ uninstall:
 	@echo "Please remove the contents of ${DPATH} manually"
 
 clean:
-	${RM} -f *.o *.bak ircd version.c chkconf ircd_osdep.c chattr.tab.c table_gen y.tab.* lex.yy.*
+	${RM} -f *.o *.bak ircd version.c chkconf umkpasswd ircd_osdep.c chattr.tab.c table_gen y.tab.* lex.yy.*
 
 distclean: clean
 	${RM} -f Makefile stamp-m
@@ -433,7 +448,7 @@ ircd.o: ircd.c ../config.h ../include/ircd.h ../include/struct.h \
   ../include/s_bsd.h ../include/s_conf.h ../include/s_debug.h \
   ../include/s_misc.h ../include/s_stats.h ../include/send.h \
   ../include/sys.h ../include/uping.h ../include/userload.h \
-  ../include/version.h ../include/whowas.h
+  ../include/version.h ../include/whowas.h ../include/ircd_crypt.h
 ircd_alloc.o: ircd_alloc.c ../config.h ../include/ircd_alloc.h \
   ../include/ircd_string.h ../include/ircd_chattr.h ../include/s_debug.h \
   ../include/ircd_defs.h
@@ -485,7 +500,16 @@ ircd_snprintf.o: ircd_snprintf.c ../config.h ../include/client.h \
 ircd_string.o: ircd_string.c ../config.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/ircd_defs.h ../include/ircd_log.h \
   chattr.tab.c
-ircd_xopen.o: ircd_xopen.c ../config.h ../include/ircd_xopen.h
+ircd_md5.o: ircd_md5.c ../config.h ../include/ircd_md5.h 
+ircd_crypt.o: ircd_crypt.c ../config.h ../include/ircd_crypt.h \
+  ../include/ircd_alloc.h ../include/s_debug.h
+ircd_crypt_native.o: ircd_crypt_native.c ../config.h \
+  ../include/ircd_crypt_native.h ../include/ircd_crypt.h \
+  ../include/s_debug.h
+ircd_crypt_plain.o: ircd_crypt_plain.c ../config.h ../include/ircd_crypt.h \
+  ../include/ircd_crypt_plain.h ../include/s_debug.h
+ircd_crypt_smd5.o: ircd_crypt_smd5.c ../config.h ../include/ircd_crypt.h \
+  ../include/s_debug.h ../include/ircd_crypt_smd5.h
 jupe.o: jupe.c ../config.h ../include/jupe.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../include/ircd_handler.h ../include/hash.h \
@@ -776,7 +800,7 @@ m_oper.o: m_oper.c ../config.h ../include/client.h ../include/ircd_defs.h \
   ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_features.h ../include/ircd_log.h \
   ../include/ircd_reply.h ../include/ircd_string.h \
-  ../include/ircd_chattr.h ../include/ircd_xopen.h ../include/msg.h \
+  ../include/ircd_chattr.h ../include/ircd_crypt.h ../include/msg.h \
   ../include/numeric.h ../include/numnicks.h ../include/querycmds.h \
   ../include/s_conf.h ../include/s_debug.h ../include/s_user.h \
   ../include/s_misc.h ../include/send.h ../include/support.h
@@ -1181,7 +1205,7 @@ s_serv.o: s_serv.c ../config.h ../include/s_serv.h ../include/IPcheck.h \
   ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
   ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/ircd_snprintf.h \
-  ../include/ircd_xopen.h ../include/jupe.h ../include/list.h \
+  ../include/ircd_crypt.h ../include/jupe.h ../include/list.h \
   ../include/match.h ../include/msg.h ../include/numeric.h \
   ../include/numnicks.h ../include/parse.h ../include/querycmds.h \
   ../include/ircd_features.h ../include/s_bsd.h ../include/s_conf.h \
