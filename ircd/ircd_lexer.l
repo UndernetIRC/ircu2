@@ -23,10 +23,151 @@
 %{
 #include <unistd.h>
 #include <stdio.h>
+#include "config.h"
 #include "ircd.h"
+#include "ircd_string.h"
+#include "s_debug.h"
 #include "y.tab.h"
 
 extern int lineno;
+
+static struct lexer_token {
+  const char *string;
+  int value;
+} tokens[] = {
+#define TOKEN(NAME) { #NAME, NAME }
+  TOKEN(ADMIN),
+  TOKEN(GENERAL),
+  TOKEN(LOCATION),
+  TOKEN(CONTACT),
+  TOKEN(CLASS),
+  TOKEN(PINGFREQ),
+  TOKEN(CONNECTFREQ),
+  TOKEN(MAXLINKS),
+  TOKEN(SENDQ),
+  TOKEN(NAME),
+  TOKEN(HOST),
+  TOKEN(PASS),
+  TOKEN(SECONDS),
+  TOKEN(MINUTES),
+  TOKEN(HOURS),
+  TOKEN(DAYS),
+  TOKEN(WEEKS),
+  TOKEN(MONTHS),
+  TOKEN(YEARS),
+  TOKEN(DECADES),
+  TOKEN(BYTES),
+  TOKEN(KBYTES),
+  TOKEN(MBYTES),
+  TOKEN(GBYTES),
+  TOKEN(TBYTES),
+  TOKEN(PORT),
+  TOKEN(SERVER),
+  TOKEN(YES),
+  TOKEN(NO),
+  TOKEN(HUB),
+  TOKEN(LEAF),
+  TOKEN(UWORLD),
+  TOKEN(OPER),
+  TOKEN(LOCAL),
+  TOKEN(VHOST),
+  TOKEN(MASK),
+  TOKEN(HIDDEN),
+  TOKEN(MOTD),
+  TOKEN(NUMERIC),
+  TOKEN(NICK),
+  TOKEN(JUPE),
+  TOKEN(DESCRIPTION),
+  TOKEN(CLIENT),
+  TOKEN(REAL),
+  TOKEN(REASON),
+  TOKEN(RULE),
+  TOKEN(ALL),
+  TOKEN(IP),
+  TOKEN(CRULE),
+  TOKEN(KILL),
+  TOKEN(QUARANTINE),
+  TOKEN(IAUTH),
+  TOKEN(TIMEOUT),
+  TOKEN(FEATURES),
+  TOKEN(CHANNEL),
+  TOKEN(PSEUDO),
+  TOKEN(PREPEND),
+  TOKEN(USERMODE),
+#undef TOKEN
+  { "administrator", ADMIN },
+  { "b", BYTES },
+  { "badchan", TPRIV_BADCHAN },
+  { "chan_limit", TPRIV_CHAN_LIMIT },
+  { "deop_lchan", TPRIV_DEOP_LCHAN },
+  { "die", TPRIV_DIE },
+  { "display", TPRIV_DISPLAY },
+  { "file", TFILE },
+  { "force_local_opmode", TPRIV_FORCE_LOCAL_OPMODE },
+  { "force_opmode", TPRIV_FORCE_OPMODE },
+  { "gline", TPRIV_GLINE },
+  { "kb", KBYTES },
+  { "kilobytes", KBYTES },
+  { "local_badchan", TPRIV_LOCAL_BADCHAN },
+  { "local_gline", TPRIV_LOCAL_GLINE },
+  { "local_jupe", TPRIV_LOCAL_JUPE },
+  { "local_kill", TPRIV_LOCAL_KILL },
+  { "mb", MBYTES },
+  { "megabytes", MBYTES },
+  { "mode_lchan", TPRIV_MODE_LCHAN },
+  { "gb", GBYTES },
+  { "gigabytes", GBYTES },
+  { "operator", OPER },
+  { "opmode", TPRIV_OPMODE },
+  { "password", PASS },
+  { "propagate", TPRIV_PROPAGATE },
+  { "realname", REAL },
+  { "rehash", TPRIV_REHASH },
+  { "restart", TPRIV_RESTART },
+  { "see_chan", TPRIV_SEE_CHAN },
+  { "see_opers", TPRIV_SEE_OPERS },
+  { "set", TPRIV_SET },
+  { "show_all_invis", TPRIV_SHOW_ALL_INVIS },
+  { "show_invis", TPRIV_SHOW_INVIS },
+  { "tb", TBYTES },
+  { "terabytes", TBYTES },
+  { "unlimit_query", TPRIV_UNLIMIT_QUERY },
+  { "walk_lchan", TPRIV_WALK_LCHAN },
+  { "wide_gline", TPRIV_WIDE_GLINE },
+  { "whox", TPRIV_WHOX },
+  { NULL, 0 }
+};
+static int ntokens;
+
+static int
+token_compare(const void *pa, const void *pb)
+{
+  const struct lexer_token *ta = pa;
+  const struct lexer_token *tb = pb;
+  unsigned int ii = 0;
+  int res;
+  while (ta->string[ii] && (ToLower(ta->string[ii]) == ToLower(tb->string[ii])))
+    ii++;
+  res = ToLower(tb->string[ii]) - ToLower(ta->string[ii]);
+  return res;
+}
+
+static void
+init_ntokens(void)
+{
+  for (ntokens = 0; tokens[ntokens].string; ++ntokens) ;
+  qsort(tokens, ntokens, sizeof(tokens[0]), token_compare);
+}
+
+static int
+find_token(char *token)
+{
+  struct lexer_token *tok;
+  if (!ntokens)
+    init_ntokens();
+  tok = bsearch(&token, tokens, ntokens, sizeof(tokens[0]), token_compare);
+  return tok ? tok->value : 0;
+}
 
 void
 init_lexer(void)
@@ -45,11 +186,8 @@ init_lexer(void)
 #endif
   lineno = 1;
 }
-%}
 
-%e 1500
-%p 3000
-%n 1000
+%}
 
 WHITE [ \t\r]+
 SHCOMMENT #[^\n]*
@@ -62,104 +200,6 @@ QSTRING \"[^"\n]+[\"\n]
 {WHITE} ;
 {SHCOMMENT} ;
 
-admin return ADMIN;
-administrator return ADMIN;
-general return GENERAL;
-location return LOCATION;
-contact return CONTACT;
-connect return CONNECT;
-class return CLASS;
-pingfreq return PINGFREQ;
-connectfreq return CONNECTFREQ;
-maxlinks return MAXLINKS;
-sendq return SENDQ;
-name return NAME;
-host return HOST;
-password return PASS;
-pass return PASS;
-seconds return SECONDS;
-minutes return MINUTES;
-hours return HOURS;
-days return DAYS;
-weeks return WEEKS;
-months return MONTHS;
-years return YEARS;
-decades return DECADES;
-bytes return BYTES;
-b return BYTES;
-kbytes return KBYTES;
-kilobytes return KBYTES;
-kb return KBYTES;
-mbytes return MBYTES;
-megabytes return MBYTES;
-mb return MBYTES;
-gbytes return GBYTES;
-gigabytes return GBYTES;
-gb return GBYTES;
-tbytes return TBYTES;
-terabytes return TBYTES;
-tb return TBYTES;
-port return PORT;
-server return SERVER;
-yes return YES;
-no return NO;
-hub return HUB;
-leaf return LEAF;
-uworld return UWORLD;
-operator return OPER;
-oper return OPER;
-local return LOCAL;
-vhost return VHOST;
-mask return MASK;
-hidden return HIDDEN;
-motd return MOTD;
-numeric return NUMERIC;
-nick return NICK;
-jupe return JUPE;
-description return DESCRIPTION;
-client return CLIENT;
-real return REAL;
-realname return REAL;
-reason return REASON;
-file return TFILE;
-rule return RULE;
-all return ALL;
-ip return IP;
-crule return CRULE;
-kill return KILL;
-quarantine return QUARANTINE;
-iauth return IAUTH;
-timeout return TIMEOUT;
-features return FEATURES;
-channel return CHANNEL;
-chan_limit return TPRIV_CHAN_LIMIT;
-mode_lchan return TPRIV_MODE_LCHAN;
-deop_lchan return TPRIV_DEOP_LCHAN;
-walk_lchan return TPRIV_WALK_LCHAN;
-local_kill return TPRIV_LOCAL_KILL;
-rehash return TPRIV_REHASH;
-restart return TPRIV_RESTART;
-die return TPRIV_DIE;
-gline return TPRIV_GLINE;
-local_gline return TPRIV_LOCAL_GLINE;
-local_jupe return TPRIV_LOCAL_JUPE;
-opmode return TPRIV_OPMODE;
-set return TPRIV_SET;
-whox return TPRIV_WHOX;
-badchan return TPRIV_BADCHAN;
-local_badchan return TPRIV_LOCAL_BADCHAN;
-see_chan return TPRIV_SEE_CHAN;
-show_invis return TPRIV_SHOW_INVIS;
-show_all_invis return TPRIV_SHOW_ALL_INVIS;
-propagate return TPRIV_PROPAGATE;
-unlimit_query return TPRIV_UNLIMIT_QUERY;
-display return TPRIV_DISPLAY;
-see_opers return TPRIV_SEE_OPERS;
-wide_gline return TPRIV_WIDE_GLINE;
-force_opmode return TPRIV_FORCE_OPMODE;
-force_local_opmode return TPRIV_FORCE_LOCAL_OPMODE;
-pseudo return PSEUDO;
-prepend return PREPEND;
-usermode return USERMODE;
+[a-zA-Z_]+ { int res = find_token(yytext); if (res) return res; else REJECT; }
 \n lineno++;
 . return yytext[0];

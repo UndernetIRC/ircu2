@@ -1,3 +1,8 @@
+2004-08-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_lexer.l: Change tokenizer to reduce number of lexer
+	states and be case-insensitive again.
+
 2004-08-15  Michael Poole <mdpoole@troilus.org>
 
 	* aclocal.m4: Check for uintNN_t instead of u_intNN_t, since the
