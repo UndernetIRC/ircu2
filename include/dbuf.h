@@ -34,7 +34,7 @@ extern int DBufUsedCount;       /* GLOBAL - count of dbufs in use */
 struct DBufBuffer;
 
 struct DBuf {
-  size_t length;                /* Current number of bytes stored */
+  unsigned int length;          /* Current number of bytes stored */
   struct DBufBuffer *head;      /* First data buffer, if length > 0 */
   struct DBufBuffer *tail;      /* last data buffer, if length > 0 */
 };
@@ -53,11 +53,11 @@ struct DBuf {
 /*
  * Prototypes
  */
-extern void dbuf_delete(struct DBuf *dyn, size_t length);
-extern int dbuf_put(struct DBuf *dyn, const char *buf, size_t length);
-extern const char *dbuf_map(const struct DBuf *dyn, size_t *length);
-extern size_t dbuf_get(struct DBuf *dyn, char *buf, size_t length);
-extern size_t dbuf_getmsg(struct DBuf *dyn, char *buf, size_t length);
+extern void dbuf_delete(struct DBuf *dyn, unsigned int length);
+extern int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length);
+extern const char *dbuf_map(const struct DBuf *dyn, unsigned int *length);
+extern unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length);
+extern unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length);
 extern void dbuf_count_memory(size_t *allocated, size_t *used);
 
 

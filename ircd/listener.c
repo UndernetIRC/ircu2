@@ -395,8 +395,8 @@ void release_listener(struct Listener* listener)
  */
 void accept_connection(struct Listener* listener)
 {
-  struct sockaddr_in addr;
-  size_t             addrlen = sizeof(struct sockaddr_in);
+  struct sockaddr_in addr = { 0 };
+  unsigned int       addrlen = sizeof(struct sockaddr_in);
   int                fd;
 
   assert(0 != listener);

@@ -300,9 +300,9 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
  *      net.loads today anyway. Commented out the alarms to save cpu.
  *      --Run
  */
-size_t deliver_it(struct Client *cptr, const char *str, size_t len)
+unsigned int deliver_it(struct Client *cptr, const char *str, unsigned int len)
 {
-  size_t bytes_written = 0;
+  unsigned int bytes_written = 0;
   assert(0 != cptr);
 
   switch (os_send_nonb(cptr->fd, str, len, &bytes_written)) {
@@ -650,8 +650,8 @@ void add_connection(struct Listener* listener, int fd)
  */
 static int read_packet(struct Client *cptr, int socket_ready)
 {
-  size_t dolen = 0;
-  size_t length = 0;
+  unsigned int dolen = 0;
+  unsigned int length = 0;
 
   if (socket_ready && !(IsUser(cptr) && DBufLength(&cptr->recvQ) > CLIENT_FLOOD)) {
     switch (os_recv_nonb(cptr->fd, readbuf, sizeof(readbuf), &length)) {
@@ -857,7 +857,7 @@ int read_message(time_t delay)
   int read_ready;
   int write_ready;
 
-  unsigned long timeout;
+  unsigned int timeout;
 
   for ( ; ; ) {
     pfd_count = 0;
@@ -1050,7 +1050,7 @@ int read_message(time_t delay)
   int              nfds;
   struct timeval   wait;
   time_t           delay2 = delay;
-  unsigned long    usec = 0;
+  unsigned int     usec = 0;
   int              res = 0;
   int              length;
   int              i;

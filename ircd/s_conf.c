@@ -78,8 +78,8 @@ struct tm        motd_tm;
  */
 static int is_comment(const char *comment)
 {
-  size_t i;
-  size_t len = strlen(comment);
+  unsigned int i;
+  unsigned int len = strlen(comment);
   for (i = 0; i < len; ++i) {
     if (!IsKTimeChar(comment[i]))
       return 1;
@@ -437,8 +437,8 @@ static int validate_hostent(struct hostent* hp)
   const char* hname;
 
   for (hname = hp->h_name; hname; hname = hp->h_aliases[i++]) {
-    size_t fullnamelen = 0;
-    size_t label_count = 0;
+    unsigned int fullnamelen = 0;
+    unsigned int label_count = 0;
 
     ircd_strncpy(fullname, hname, HOSTLEN);
     fullname[HOSTLEN] = '\0';
@@ -1383,8 +1383,8 @@ int find_kill(struct Client *cptr)
    * whee :)
    * XXX - if this ever happens, we're already screwed
    */
-  if (strlen(host) > (size_t)HOSTLEN ||
-      (name ? strlen(name) : 0) > (size_t)HOSTLEN)
+  if (strlen(host) > HOSTLEN ||
+      (name ? strlen(name) : 0) > HOSTLEN)
     return (0);
 #endif
 

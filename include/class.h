@@ -78,11 +78,11 @@ extern unsigned int get_client_ping(struct Client *acptr);
 extern unsigned int get_conf_class(struct ConfItem *aconf);
 extern unsigned int get_client_class(struct Client *acptr);
 extern void add_class(unsigned int conclass, unsigned int ping,
-    unsigned int confreq, unsigned int maxli, size_t sendq);
+    unsigned int confreq, unsigned int maxli, unsigned int sendq);
 extern void check_class(void);
 extern void initclass(void);
 extern void report_classes(struct Client *sptr);
-extern size_t get_sendq(struct Client* cptr);
+extern unsigned int get_sendq(struct Client* cptr);
 
 extern struct ConfClass *classes;
 

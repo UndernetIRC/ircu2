@@ -68,7 +68,7 @@ extern void SetServerYXX(struct Client* cptr,
                          struct Client* server, const char* yxx);
 extern void ClearServerYXX(const struct Client* server);
 
-extern void SetYXXCapacity(struct Client* myself, size_t max_clients);
+extern void SetYXXCapacity(struct Client* myself, unsigned int max_clients);
 extern void SetYXXServerName(struct Client* myself, unsigned int numeric);
 
 extern int            markMatchexServer(const char* cmask, int minlen);
@@ -77,7 +77,7 @@ extern struct Client* findNUser(const char* yxx);
 extern struct Client* FindNServer(const char* numeric);
 
 extern unsigned int   base64toint(const char* str);
-extern const char*    inttobase64(char* buf, unsigned int v, size_t count);
+extern const char*    inttobase64(char* buf, unsigned int v, unsigned int count);
 
 #endif /* INCLUDED_numnicks_h */
 

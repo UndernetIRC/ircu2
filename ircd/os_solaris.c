@@ -113,14 +113,14 @@ int os_set_nonblocking(int fd)
  */
 int os_set_reuseaddr(int fd)
 {
-  size_t opt = 1;
+  unsigned int opt = 1;
   return (0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 
                           (const char*) &opt, sizeof(opt)));
 }
 
 int os_set_sockbufs(int fd, unsigned int size)
 {
-  size_t opt = size;
+  unsigned int opt = size;
   return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, 
                           (const char*) &opt, sizeof(opt)) &&
           0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
@@ -176,7 +176,7 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
                           unsigned int* length_out, struct sockaddr_in* sin_out)
 {
   int    res;
-  size_t len = sizeof(struct sockaddr_in);
+  unsigned int len = sizeof(struct sockaddr_in);
   assert(0 != buf);
   assert(0 != length_out);
   assert(0 != sin_out);

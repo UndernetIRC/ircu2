@@ -1,10 +1,14 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1 2000-03-18 05:20:28 bleep Exp $
+# $Id: ChangeLog.10,v 1.2 2000-03-19 05:49:04 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Merge u2_10_10_beta06 create branch u2_10_10_beta07 --Bleep
+* Remove size_t from socket calls, audit usage of size_t
+  values. --Bleep
+* Fix for OSF1, RES_NOALIASES not defined there. --Bleep
 * Don't bother doing hostname lookup or setting me.sockhost
   since we never want to display it there is really no reason
   to have the info. --Bleep
