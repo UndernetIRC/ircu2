@@ -1,3 +1,11 @@
+2005-03-19  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Operator): Correct the comment explaining
+	hashed passwords.
+
+	* ircd/m_oper.c (oper_password_match): Check correct variable to
+	determine whether the hashed password matched.
+
 2005-03-08  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/match.c (ipmask_parse): Explicitly zero-initialize the mask

@@ -121,7 +121,7 @@ int oper_password_match(const char* to_match, const char* passwd)
      crypt_clear if it's enabled -- hikari */
   crypted = ircd_crypt(to_match, passwd);
 
-  if (to_match == NULL)
+  if (!crypted)
    return 0;
   res = strcmp(crypted, passwd);
   MyFree(crypted);
