@@ -1,3 +1,8 @@
+2003-04-19  Perry Lorier <isomer@undernet.org>
+	* ircd/gline.c, include/gline.c: Added realname glines.  I feel dirty
+	after working with this code.  As punishment for not fixing it, I'll
+	fix it properly in 2.10.12. 
+
 2003-03-26  splidge  <splidge@quakenet.org>
 	* ircd/include/ircd_features.h, include/ircd_osdep.h,
 	  ircd/ircd_features.c, ircd/listener.c, ircd/os_bsd.c, 

@@ -58,14 +58,16 @@ struct Gline {
 #define GLINE_GLOBAL	0x0100	/* find only global glines */
 #define GLINE_LASTMOD	0x0200	/* find only glines with non-zero lastmod */
 #define GLINE_OPERFORCE	0x0400	/* oper forcing gline to be set */
+#define GLINE_REALNAME	0x0800	/* gline matches only the realname field */
 
-#define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL)
+#define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL | GLINE_REALNAME )
 #define GLINE_ACTMASK	(GLINE_ACTIVE | GLINE_LDEACT)
 
 #define GlineIsActive(g)	(((g)->gl_flags & GLINE_ACTMASK) == \
 				 GLINE_ACTIVE)
 #define GlineIsRemActive(g)	((g)->gl_flags & GLINE_ACTIVE)
 #define GlineIsIpMask(g)	((g)->gl_flags & GLINE_IPMASK)
+#define GlineIsRealName(g)	((g)->gl_flags & GLINE_REALNAME)
 #define GlineIsBadChan(g)	((g)->gl_flags & GLINE_BADCHAN)
 #define GlineIsLocal(g)		((g)->gl_flags & GLINE_LOCAL)
 
