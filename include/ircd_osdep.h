@@ -37,7 +37,7 @@ extern IOResult os_sendv_nonb(int fd, struct MsgQ* buf,
 extern IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int len,
                                  unsigned int* length_out,
                                  struct sockaddr_in* from_out);
-extern int os_connect_nonb(int fd, const struct sockaddr_in* sin);
+extern IOResult os_connect_nonb(int fd, const struct sockaddr_in* sin);
 extern int os_set_fdlimit(unsigned int max_descriptors);
 extern int os_set_listen(int fd, int backlog);
 extern int os_set_nonblocking(int fd);

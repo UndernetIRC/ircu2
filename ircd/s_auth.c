@@ -35,6 +35,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
@@ -103,6 +104,93 @@ static struct AuthRequest* AuthIncompleteList = 0;
 enum { AUTH_TIMEOUT = 60 };
 
 /*
+ * auth_timeout - timeout a given auth request
+ */
+static void auth_timeout_callback(struct Event* ev)
+{
+  struct AuthRequest* auth;
+  struct AuthRequest** authList;
+
+  assert(0 != ev_timer(ev));
+  assert(0 != t_data(ev_timer(ev)));
+
+  auth = t_data(ev_timer(ev));
+
+  if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
+    auth->flags &= ~AM_TIMEOUT;
+
+    if (!(auth->flags & AM_FREE_MASK))
+      MyFree(auth); /* done with it, finally */
+  } else {
+    assert(ev_type(ev) == ET_EXPIRE);
+
+    if (IsDoingAuth(auth)) {
+      authList = &AuthPollList;
+      if (-1 < auth->fd) {
+	close(auth->fd);
+	auth->fd = -1;
+	socket_del(&auth->socket);
+      }
+
+      if (IsUserPort(auth->client))
+	sendheader(auth->client, REPORT_FAIL_ID);
+    } else
+      authList = &AuthIncompleteList;
+
+    if (IsDNSPending(auth)) {
+      delete_resolver_queries(auth);
+      if (IsUserPort(auth->client))
+	sendheader(auth->client, REPORT_FAIL_DNS);
+    }
+
+    log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
+	      get_client_name(auth->client, HIDE_IP));
+
+    release_auth_client(auth->client);
+    unlink_auth_request(auth, authList);
+    free_auth_request(auth);
+  }
+}
+
+/*
+ * auth_sock_callback - called when an event occurs on the socket
+ */
+static void auth_sock_callback(struct Event* ev)
+{
+  struct AuthRequest* auth;
+
+  assert(0 != ev_socket(ev));
+  assert(0 != s_data(ev_socket(ev)));
+
+  auth = s_data(ev_socket(ev));
+
+  switch (ev_type(ev)) {
+  case ET_DESTROY: /* being destroyed */
+    auth->flags &= ~AM_SOCKET;
+    if (!(auth->flags & AM_FREE_MASK))
+      MyFree(auth); /* done with it finally */
+    break;
+
+  case ET_CONNECT: /* socket connection completed */
+    socket_state(&auth->socket, SS_CONNECTED);
+    send_auth_query(auth);
+    break;
+
+  case ET_READ: /* socket is readable */
+  case ET_EOF: /* end of file on socket */
+  case ET_ERROR: /* error on socket */
+    read_auth_reply(auth);
+    break;
+
+  default:
+#ifndef NDEBUG
+    abort(); /* unrecognized event */
+#endif
+    break;
+  }
+}
+
+/*
  * make_auth_request - allocate a new auth request
  */
 static struct AuthRequest* make_auth_request(struct Client* client)
@@ -111,9 +199,11 @@ static struct AuthRequest* make_auth_request(struct Client* client)
                (struct AuthRequest*) MyMalloc(sizeof(struct AuthRequest));
   assert(0 != auth);
   memset(auth, 0, sizeof(struct AuthRequest));
+  auth->flags   = AM_TIMEOUT;
   auth->fd      = -1;
   auth->client  = client;
-  auth->timeout = CurrentTime + AUTH_TIMEOUT;
+  timer_add(&auth->timeout, auth_timeout_callback, (void*) auth, TT_RELATIVE,
+	    AUTH_TIMEOUT);
   return auth;
 }
 
@@ -122,9 +212,11 @@ static struct AuthRequest* make_auth_request(struct Client* client)
  */
 void free_auth_request(struct AuthRequest* auth)
 {
-  if (-1 < auth->fd)
+  if (-1 < auth->fd) {
     close(auth->fd);
-  MyFree(auth);
+    socket_del(&auth->socket);
+  }
+  timer_del(&auth->timeout);
 }
 
 /*
@@ -263,6 +355,7 @@ static void auth_error(struct AuthRequest* auth, int kill)
   assert(0 != auth);
   close(auth->fd);
   auth->fd = -1;
+  socket_del(&auth->socket);
 
   if (IsUserPort(auth->client))
     sendheader(auth->client, REPORT_FAIL_ID);
@@ -301,6 +394,7 @@ static int start_auth_query(struct AuthRequest* auth)
   struct sockaddr_in remote_addr;
   struct sockaddr_in local_addr;
   int                fd;
+  IOResult           result;
 
   assert(0 != auth);
   assert(0 != auth->client);
@@ -353,7 +447,7 @@ static int start_auth_query(struct AuthRequest* auth)
   remote_addr.sin_port = htons(113);
   remote_addr.sin_family = AF_INET;
 
-  if (!os_connect_nonb(fd, &remote_addr)) {
+  if ((result = os_connect_nonb(fd, &remote_addr)) == IO_FAILURE) {
     ServerStats->is_abad++;
     /*
      * No error report from this...
@@ -362,11 +456,20 @@ static int start_auth_query(struct AuthRequest* auth)
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     return 0;
+  } else if (!socket_add(&auth->socket, auth_sock_callback, (void*) auth,
+			 result == IO_SUCCESS ? SS_CONNECTED : SS_CONNECTING,
+			 SOCK_EVENT_READABLE, fd)) {
+    close(fd);
+    return 0;
   }
 
+  auth->flags |= AM_SOCKET;
   auth->fd = fd;
 
   SetAuthConnect(auth);
+  if (result == IO_SUCCESS)
+    send_auth_query(auth); /* this does a SetAuthPending(auth) for us */
+
   return 1;
 }
 
@@ -561,54 +664,6 @@ void start_auth(struct Client* client)
 }
 
 /*
- * timeout_auth_queries - timeout resolver and identd requests
- * allow clients through if requests failed
- */
-void timeout_auth_queries(time_t now)
-{
-  struct AuthRequest* auth;
-  struct AuthRequest* auth_next = 0;
-
-  for (auth = AuthPollList; auth; auth = auth_next) {
-    auth_next = auth->next;
-    if (auth->timeout < CurrentTime) {
-      if (-1 < auth->fd) {
-        close(auth->fd);
-        auth->fd = -1;
-      }
-
-      if (IsUserPort(auth->client))
-        sendheader(auth->client, REPORT_FAIL_ID);
-      if (IsDNSPending(auth)) {
-        delete_resolver_queries(auth);
-        if (IsUserPort(auth->client))
-          sendheader(auth->client, REPORT_FAIL_DNS);
-      }
-      log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
-		get_client_name(auth->client, HIDE_IP));
-
-      release_auth_client(auth->client);
-      unlink_auth_request(auth, &AuthPollList);
-      free_auth_request(auth);
-    }
-  }
-  for (auth = AuthIncompleteList; auth; auth = auth_next) {
-    auth_next = auth->next;
-    if (auth->timeout < CurrentTime) {
-      delete_resolver_queries(auth);
-      if (IsUserPort(auth->client))
-        sendheader(auth->client, REPORT_FAIL_DNS);
-      log_write(LS_RESOLVER, L_INFO, 0, "DNS timeout %s",
-		get_client_name(auth->client, HIDE_IP));
-
-      release_auth_client(auth->client);
-      unlink_auth_request(auth, &AuthIncompleteList);
-      free_auth_request(auth);
-    }
-  }
-}
-
-/*
  * send_auth_query - send the ident server a query giving "theirport , ourport"
  * The write is only attempted *once* so it is deemed to be a fail if the
  * entire write doesn't write all the data given.  This shouldnt be a
@@ -668,6 +723,7 @@ void read_auth_reply(struct AuthRequest* auth)
 
   close(auth->fd);
   auth->fd = -1;
+  socket_del(&auth->socket);
   ClearAuth(auth);
   
   if (!EmptyString(username)) {

@@ -23,6 +23,9 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
+#ifndef INCLUDED_ircd_events_h
+#include "ircd_events.h"
+#endif
 
 struct Client;
 
@@ -32,8 +35,8 @@ struct AuthRequest {
   struct Client*      client;    /* pointer to client struct for request */
   unsigned int        flags;     /* current state of request */
   int                 fd;        /* file descriptor for auth queries */
-  int                 index;     /* select / poll index */
-  time_t              timeout;   /* time when query expires */
+  struct Socket       socket;    /* socket descriptor for auth queries */
+  struct Timer        timeout;   /* timeout timer for auth queries
 };
 
 /*
@@ -43,6 +46,11 @@ struct AuthRequest {
 #define AM_AUTH_CONNECTING   0x01
 #define AM_AUTH_PENDING      0x02
 #define AM_DNS_PENDING       0x04
+
+#define AM_SOCKET            0x40 /* socket structure not destroyed */
+#define AM_TIMEOUT           0x80 /* timer structure not destroyed */
+
+#define AM_FREE_MASK         (AM_SOCKET | AM_TIMEOUT)
 
 #define SetDNSPending(x)     ((x)->flags |= AM_DNS_PENDING)
 #define ClearDNSPending(x)   ((x)->flags &= ~AM_DNS_PENDING)
@@ -63,7 +71,6 @@ struct AuthRequest {
 extern struct AuthRequest* AuthPollList; /* GLOBAL - auth queries pending io */
 
 extern void start_auth(struct Client *);
-extern void timeout_auth_queries(time_t now);
 extern void read_auth_reply(struct AuthRequest* req);
 extern void send_auth_query(struct AuthRequest* req);
 extern void remove_auth_request(struct AuthRequest *req);

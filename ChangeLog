@@ -1,5 +1,28 @@
 2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/uping.c: correct a couple more typos
+
+	* ircd/s_auth.c: rework to use new events system
+
+	* ircd/os_solaris.c (os_connect_nonb): update to new interface
+
+	* ircd/os_openbsd.c (os_connect_nonb): update to new interface
+
+	* ircd/os_linux.c (os_connect_nonb): update to new interface
+
+	* ircd/os_generic.c (os_connect_nonb): update to new interface
+
+	* ircd/os_bsd.c (os_connect_nonb): update to new interface
+
+	* include/s_auth.h: remove deprecated members of struct
+	AuthRequest, replacing them with struct Socket and struct Timer
+	structures; add flags to indicate when these structures have been
+	released by the event system; remove the deprecated
+	timeout_auth_queries()
+
+	* include/ircd_osdep.h (os_connect_nonb): connect could complete
+	immediately, so change the interface to handle that possibility
+
 	* ircd/uping.c (uping_server): noticed and corrected a typo
 
 	* ircd/listener.c: set up to use ircd_event's struct Socket by

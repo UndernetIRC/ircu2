@@ -213,9 +213,9 @@ static void uping_sender_callback(struct Event* ev)
   struct UPing *pptr;
 
   assert(0 != ev_timer(ev));
-  assert(0 != s_data(ev_timer(ev)));
+  assert(0 != t_data(ev_timer(ev)));
 
-  pptr = s_data(ev_timer(ev));
+  pptr = t_data(ev_timer(ev));
 
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     pptr->freeable &= ~UPING_PENDING_SENDER;
@@ -239,9 +239,9 @@ static void uping_killer_callback(struct Event* ev)
   struct UPing *pptr;
 
   assert(0 != ev_timer(ev));
-  assert(0 != s_data(ev_timer(ev)));
+  assert(0 != t_data(ev_timer(ev)));
 
-  pptr = s_data(ev_timer(ev));
+  pptr = t_data(ev_timer(ev));
 
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     pptr->freeable &= ~UPING_PENDING_KILLER;
