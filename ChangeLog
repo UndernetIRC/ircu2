@@ -1,3 +1,7 @@
+2003-08-05 Diane Bruce  <db@db.net>
+
+        * ircd/parse.c: Fixed the typo the fix of the typo created
+
 2003-08-01 Diane Bruce  <db@db.net>
 
 	* ircd/parse.c: Fixed typo

@@ -662,7 +662,7 @@ add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
   }
   else
   {
-    ntree_p = (struct MessageTree *)MyCalloc(sizeof(struct MessageTree));
+    ntree_p = (struct MessageTree *)MyCalloc(sizeof(struct MessageTree), 1);
     mtree_p->pointers[*cmd & (MAXPTRLEN-1)] = ntree_p;
     add_msg_element(ntree_p, msg_p, cmd+1);
   }
