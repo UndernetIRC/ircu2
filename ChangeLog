@@ -1,3 +1,9 @@
+2001-06-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_poll.c (engine_loop): break out SS_NOTSOCK
+	case--it's not a socket; the check for writability is most likely
+	not needed, but present for completeness
+
 2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_bsd.c: add Debug messages; call read_packet() even if the

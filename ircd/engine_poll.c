@@ -324,8 +324,19 @@ engine_loop(struct Generators* gen)
 	}
 	break;
 
-      case SS_CONNECTED:
       case SS_NOTSOCK:
+	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
+	  /* can't peek; it's not a socket */
+	  Debug((DEBUG_LIST, "poll: non-socket readable"));
+	  event_generate(ET_READ, sock, 0);
+	}
+	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	  Debug((DEBUG_LIST, "poll: non-socket writable"));
+	  event_generate(ET_WRITE, sock, 0);
+	}
+	break;
+
+      case SS_CONNECTED:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
 	  char c;
 
