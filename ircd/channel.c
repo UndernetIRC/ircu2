@@ -850,6 +850,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   struct SLink*      lp2;
   char modebuf[MODEBUFLEN];
   char parabuf[MODEBUFLEN];
+  char sndbuf[IRC_BUFSIZE];
 
   assert(0 != cptr);
   assert(0 != chptr); 
@@ -869,21 +870,21 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
                                  all in one message */
 
     /* (Continued) prefix: "<Y> B <channel> <TS>" */
-    sprintf_irc(sendbuf, "%s B %s " TIME_T_FMT, NumServ(&me),
-                chptr->chname, chptr->creationtime);
-    sblen = strlen(sendbuf);
+    /* is there any better way we can do this? */
+    sblen = ircd_snprintf(&me, sndbuf, sizeof(sndbuf), "%C " TOK_BURST
+			  " %H %Tu", &me, chptr, chptr->creationtime);
 
     if (first && modebuf[1])    /* Add simple modes (iklmnpst)
                                  if first message */
     {
       /* prefix: "<Y> B <channel> <TS>[ <modes>[ <params>]]" */
-      sendbuf[sblen++] = ' ';
-      strcpy(sendbuf + sblen, modebuf);
+      sndbuf[sblen++] = ' ';
+      strcpy(sndbuf + sblen, modebuf);
       sblen += strlen(modebuf);
       if (*parabuf)
       {
-        sendbuf[sblen++] = ' ';
-        strcpy(sendbuf + sblen, parabuf);
+        sndbuf[sblen++] = ' ';
+        strcpy(sndbuf + sblen, parabuf);
         sblen += strlen(parabuf);
       }
     }
@@ -912,11 +913,11 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
                                  mode. --Gte */
           break;              /* Do not add this member to this message */
         }
-        sendbuf[sblen++] = first ? ' ' : ',';
+        sndbuf[sblen++] = first ? ' ' : ',';
         first = 0;              /* From now on, us comma's to add new nicks */
 
-        sprintf_irc(sendbuf + sblen, "%s%s", NumNick(member->user));
-        sblen += strlen(sendbuf + sblen);
+	sblen += ircd_snprintf(&me, sndbuf + sblen, sizeof(sndbuf) - sblen,
+			       "%C", member->user);
         /*
          * Do we have a nick with a new mode ?
          * Or are we starting a new BURST line?
@@ -925,11 +926,11 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
         {
           new_mode = 0;
           if (IsVoicedOrOpped(member)) {
-            sendbuf[sblen++] = ':';
+            sndbuf[sblen++] = ':';
             if (IsChanOp(member))
-              sendbuf[sblen++] = 'o';
+              sndbuf[sblen++] = 'o';
             if (HasVoice(member))
-              sendbuf[sblen++] = 'v';
+              sndbuf[sblen++] = 'v';
           }
         }
       }
@@ -955,19 +956,19 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
         if (first)
         {
           first = 0;
-          sendbuf[sblen++] = ' ';
-          sendbuf[sblen++] = ':';       /* Will be last parameter */
-          sendbuf[sblen++] = '%';       /* To tell bans apart */
+          sndbuf[sblen++] = ' ';
+          sndbuf[sblen++] = ':';       /* Will be last parameter */
+          sndbuf[sblen++] = '%';       /* To tell bans apart */
         }
         else
-          sendbuf[sblen++] = ' ';
-        strcpy(sendbuf + sblen, lp2->value.ban.banstr);
+          sndbuf[sblen++] = ' ';
+        strcpy(sndbuf + sblen, lp2->value.ban.banstr);
         sblen += len;
       }
     }
 
-    sendbuf[sblen] = '\0';
-    sendbufto_one(cptr);        /* Send this message */
+    sndbuf[sblen] = '\0';
+    send_buffer(cptr, sndbuf);  /* Send this message */
   }                             /* Continue when there was something
                                  that didn't fit (full==1) */
 }
@@ -1236,7 +1237,7 @@ int set_mode(struct Client* cptr, struct Client* sptr,
             break;
            }
            else {
-             sprintf_irc(sendbuf,":%s NOTICE * :*** Notice -- Deop of +k user on %s by %s",
+             sprintf_irc(sendbuf,":%s NOTICE * :*** Notice -- Deop of +k user on %s by %s", /* XXX set_mode only called by old m_mode */
                          me.name,chptr->chname,cptr->name);             
            }
         }
@@ -1965,8 +1966,8 @@ int set_mode(struct Client* cptr, struct Client* sptr,
       len[0] = strlen(ban[0]->value.ban.banstr);
       cnt = 1;                  /* We already got one ban :) */
       /* XXX sendbuf used to send ban bounces! */
-      sblen = sprintf_irc(sendbuf, ":%s MODE %s +b",
-          me.name, chptr->chname) - sendbuf;
+      sblen = sprintf_irc(sendbuf, ":%s MODE %s +b", /* XXX set_mode only called by old m_mode */
+          me.name, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
       total_len = sblen + 1 + len[0];   /* 1 = ' ' */
       /* Find more bans: */
       delayed = 0;
@@ -1978,16 +1979,16 @@ int set_mode(struct Client* cptr, struct Client* sptr,
           delayed = cnt + 1;    /* != 0 */
           break;                /* Flush */
         }
-        sendbuf[sblen++] = 'b';
+        sendbuf[sblen++] = 'b'; /* XXX set_mode only called by old m_mode */
         total_len += 2 + len[cnt++];    /* 2 = "b " */
       }
       while (cnt--)
       {
-        sendbuf[sblen++] = ' ';
-        strcpy(sendbuf + sblen, ban[cnt]->value.ban.banstr);
+        sendbuf[sblen++] = ' '; /* XXX set_mode only called by old m_mode */
+        strcpy(sendbuf + sblen, ban[cnt]->value.ban.banstr); /* XXX set_mode only called by old m_mode */
         sblen += len[cnt];
       }
-      sendbufto_one(cptr);      /* Send bounce to uplink */
+      sendbufto_one(cptr);      /* Send bounce to uplink */ /* XXX set_mode only called by old m_mode */
       if (delayed)
         ban[0] = ban[delayed - 1];
     }
@@ -2003,11 +2004,11 @@ int set_mode(struct Client* cptr, struct Client* sptr,
     struct Client *acptr;
     if (IsServer(sptr))
       /* XXX sendbuf used to send ban bounces! */
-      psblen = sprintf_irc(sendbuf, ":%s MODE %s -b",
-          sptr->name, chptr->chname) - sendbuf;
+      psblen = sprintf_irc(sendbuf, ":%s MODE %s -b", /* XXX set_mode only called by old m_mode */
+          sptr->name, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
     else                        /* We rely on IsRegistered(sptr) being true for MODE */
-      psblen = sprintf_irc(sendbuf, ":%s!%s@%s MODE %s -b", sptr->name,
-          sptr->user->username, sptr->user->host, chptr->chname) - sendbuf;
+      psblen = sprintf_irc(sendbuf, ":%s!%s@%s MODE %s -b", sptr->name, /* XXX set_mode only called by old m_mode */
+          sptr->user->username, sptr->user->host, chptr->chname) - sendbuf; /* XXX set_mode only called by old m_mode */
     while (delayed || (ban = next_removed_overlapped_ban()))
     {
       if (!delayed)
@@ -2029,20 +2030,20 @@ int set_mode(struct Client* cptr, struct Client* sptr,
           delayed = cnt + 1;    /* != 0 */
           break;                /* Flush */
         }
-        sendbuf[sblen++] = 'b';
+        sendbuf[sblen++] = 'b'; /* XXX set_mode only called by old m_mode */
         total_len += 2 + len[cnt++];    /* 2 = "b " */
       }
       while (cnt--)
       {
-        sendbuf[sblen++] = ' ';
-        strcpy(sendbuf + sblen, banstr[cnt]);
+        sendbuf[sblen++] = ' '; /* XXX set_mode only called by old m_mode */
+        strcpy(sendbuf + sblen, banstr[cnt]); /* XXX set_mode only called by old m_mode */
         MyFree(banstr[cnt]);
         sblen += len[cnt];
       }
       for (member_z = chptr->members; member_z; member_z = member_z->next_member) {
         acptr = member_z->user;
         if (MyConnect(acptr) && !IsZombie(member_z))
-          sendbufto_one(acptr);
+          sendbufto_one(acptr); /* XXX set_mode only called by old m_mode */
       }
       if (delayed)
       {
@@ -2314,18 +2315,18 @@ void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
     *firstp = 0;
     if (*send_itp == 0)
       *send_itp = 1;            /* Buffer contains data to be sent */
-    sendbuf[(*sblenp)++] = ' ';
+    sendbuf[(*sblenp)++] = ' '; /* XXX add_token_to_sendbuf only called by old m_burst */
     if (is_a_ban)
     {
-      sendbuf[(*sblenp)++] = ':';       /* Bans are always the last "parv" */
-      sendbuf[(*sblenp)++] = is_a_ban;
+      sendbuf[(*sblenp)++] = ':';       /* Bans are always the last "parv" */ /* XXX add_token_to_sendbuf only called by old m_burst */
+      sendbuf[(*sblenp)++] = is_a_ban; /* XXX add_token_to_sendbuf only called by old m_burst */
     }
   }
   else                          /* Of course, 'send_it' is already set here */
     /* Seperate banmasks with a space because
        they can contain commas themselfs: */
-    sendbuf[(*sblenp)++] = is_a_ban ? ' ' : ',';
-  strcpy(sendbuf + *sblenp, token);
+    sendbuf[(*sblenp)++] = is_a_ban ? ' ' : ','; /* XXX add_token_to_sendbuf only called by old m_burst */
+  strcpy(sendbuf + *sblenp, token); /* XXX add_token_to_sendbuf only called by old m_burst */
   *sblenp += strlen(token);
   if (!is_a_ban)                /* nick list ? Need to take care
                                    of modes for nicks: */
@@ -2337,13 +2338,13 @@ void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
     if (last_mode != mode)      /* Append mode like ':ov' if changed */
     {
       last_mode = mode;
-      sendbuf[(*sblenp)++] = ':';
+      sendbuf[(*sblenp)++] = ':'; /* XXX add_token_to_sendbuf only called by old m_burst */
       if (mode & CHFL_CHANOP)
-        sendbuf[(*sblenp)++] = 'o';
+        sendbuf[(*sblenp)++] = 'o'; /* XXX add_token_to_sendbuf only called by old m_burst */
       if (mode & CHFL_VOICE)
-        sendbuf[(*sblenp)++] = 'v';
+        sendbuf[(*sblenp)++] = 'v'; /* XXX add_token_to_sendbuf only called by old m_burst */
     }
-    sendbuf[*sblenp] = '\0';
+    sendbuf[*sblenp] = '\0'; /* XXX add_token_to_sendbuf only called by old m_burst */
   }
 }
 
@@ -2364,7 +2365,7 @@ void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
   {
     /* XXX sendbuf used! */
     sbp = sbpi =
-        sprintf_irc(sendbuf, ":%s MODE %s -", sptr->name, chptr->chname);
+        sprintf_irc(sendbuf, ":%s MODE %s -", sptr->name, chptr->chname); /* XXX cancel_mode only called from old ms_burst */
     pb = parabuf;
     *count = 0;
   }
@@ -2396,7 +2397,7 @@ void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
     strcpy(sbp, parabuf);
     for (member = chptr->members; member; member = member->next_member)
       if (MyUser(member->user))
-        sendbufto_one(member->user);
+        sendbufto_one(member->user); /* XXX cancel_mode only called from old ms_burst */
     sbp = sbpi;
     pb = parabuf;
     *count = 0;
@@ -2564,18 +2565,18 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
           strcat(params, parv[i]);
         i++;
       }
-      sprintf_irc(sendbuf,
+      sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
           ":%s NOTICE * :*** Notice -- %sHACK(%d): %s MODE %s %s%s ["
           TIME_T_FMT "]", me.name, (badop == 3) ? "BOUNCE or " : "", badop,
           parv[0], parv[1], parv[2], params, chptr->creationtime);
-      sendbufto_op_mask((badop == 3) ? SNO_HACK3 : (badop == /* XXX DYING */
+      sendbufto_op_mask((badop == 3) ? SNO_HACK3 : (badop == /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
           4) ? SNO_HACK4 : SNO_HACK2);
 
       if ((IsServer(sptr)) && (badop == 2))
       {
-        sprintf_irc(sendbuf, ":%s DESYNCH :HACK: %s MODE %s %s%s",
+        sprintf_irc(sendbuf, ":%s DESYNCH :HACK: %s MODE %s %s%s", /* XXX send_hack_notice only called from old m_mode */
             me.name, parv[0], parv[1], parv[2], params);
-        sendbufto_serv_butone(cptr); /* XXX DYING */
+        sendbufto_serv_butone(cptr); /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
       }
       break;
     }
@@ -2591,14 +2592,14 @@ void send_hack_notice(struct Client *cptr, struct Client *sptr, int parc,
     {
       struct Client *acptr;
       if ((acptr = findNUser(parv[2])) != NULL) /* attempt to convert nick */
-        sprintf_irc(sendbuf,
+        sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
             ":%s NOTICE * :*** Notice -- HACK: %s KICK %s %s :%s",
             me.name, sptr->name, parv[1], acptr->name, parv[3]);
       else                      /* if conversion fails, send it 'as is' in <>'s */
-        sprintf_irc(sendbuf,
+        sprintf_irc(sendbuf, /* XXX send_hack_notice only called from old m_mode */
             ":%s NOTICE * :*** Notice -- HACK: %s KICK %s <%s> :%s",
             me.name, sptr->name, parv[1], parv[2], parv[3]);
-      sendbufto_op_mask(SNO_HACK4); /* XXX DYING */
+      sendbufto_op_mask(SNO_HACK4); /* XXX DYING */ /* XXX send_hack_notice only called from old m_mode */
       break;
     }
   }

@@ -137,7 +137,7 @@ int m_userip(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 2)
     return need_more_params(sptr, "USERIP");
 
-  sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERIP), me.name, parv[0]);
+  sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERIP), me.name, parv[0]); /* XXX DEAD */
   for (i = j, s = ircd_strtok(&p, parv[1], " "); i && s;
       s = ircd_strtok(&p, (char *)0, " "), i--)
     if ((acptr = FindUser(s)))
@@ -153,7 +153,7 @@ int m_userip(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (i < j)
         sendbufto_one(sptr); /* XXX DEAD */
       sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], s); /* XXX DEAD */
-      sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERIP), me.name, parv[0]);
+      sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERIP), me.name, parv[0]); /* XXX DEAD */
       j = i - 1;
     }
   if (i < j)

@@ -135,7 +135,7 @@ int m_desynch(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     int i;
     struct Client *acptr;
     /* Send message to local +g clients as if it were a wallops */
-    sprintf_irc(sendbuf, ":%s WALLOPS :%s", parv[0], parv[parc - 1]);
+    sprintf_irc(sendbuf, ":%s WALLOPS :%s", parv[0], parv[parc - 1]); /* XXX DEAD */
     for (i = 0; i <= HighestFd; i++)
       if ((acptr = LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr) &&
           SendDebug(acptr))
