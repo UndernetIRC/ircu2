@@ -606,7 +606,7 @@ struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
   for (; lp; lp = lp->next) {
     tmp = lp->value.aconf;
     if (0 != (tmp->status & statmask)
-        && 0 == memcmp(&tmp->address.addr, ip, sizeof(*ip)))
+        && !irc_in_addr_cmp(&tmp->address.addr, ip))
       return tmp;
   }
   return 0;

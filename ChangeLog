@@ -1,3 +1,9 @@
+2004-08-22  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_conf.c: find_conf_byip() should use irc_in_addr_cmp()
+	instead of memcmp().  (Fixes IPv4 servers linking to an IPv6
+	server.)
+
 2004-08-22  Alex Badea  <decampos@users.sourceforge.net>
 
 	* include/ircd_defs.h: increased SOCKIPLEN to fit ipv6 addresses
