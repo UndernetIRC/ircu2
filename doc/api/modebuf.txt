@@ -1,0 +1,282 @@
+Generating and parsing channel mode strings is often a very
+complicated process.  The ModeBuf interface, along with the associated
+mode parsing functions, attempt to make this much more programmatic.
+The interface to the functions in this suite is itself very
+complicated, unfortunately, though most of the complication is in the
+effects of various flags on the operation of the functions.
+
+<struct>
+struct ModeBuf;
+
+This structure is used to accumulate and describe several mode
+changes.  None of its fields are directly or indirectly accessible to
+the application; a struct ModeBuf is only suitable for passing to the
+modebuf_*() suite of functions.  ModeBuf structures must be allocated
+by the caller.
+</struct>
+
+<function>
+void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
+		  struct Client *connect, struct Channel *chan,
+		  unsigned int dest);
+
+This function initializes a caller-allocated ModeBuf, _mbuf_, with the
+given parameters.  If the mode should not be sent to a particular
+server, perhaps because it was received from that server, that server
+should be specified by the _connect_ parameter.  The channel the mode
+change will take place on is given by the _chan_ parameter, and the
+disposition of the mode is given by the _dest_ parameter, which is the
+binary OR of the MODEBUF_DEST_* flags described below.
+</function>
+
+<macro>
+#define MODEBUF_DEST_CHANNEL	0x0001	/* Mode is flushed to channel */
+
+This flag, when set in a call to modebuf_init(), causes the accumulated
+mode change to be sent to the channel (in client<->server protocol, of
+course).
+</macro>
+
+<macro>
+#define MODEBUF_DEST_SERVER	0x0002	/* Mode is flushed to server */
+
+If other servers should be made aware of the mode change, this flag
+should be passed to modebuf_init().  One time when the mode change may
+not be passed is when processing the mode in a BURST message.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_OPMODE	0x0100	/* Send server mode as OPMODE */
+
+This flag is used to tell the modebuf_*() suite to send an OPMODE
+message to other servers, rather than an ordinary MODE message.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_DEOP	0x0200	/* Deop the offender */
+
+When bouncing a mode change, giving this flag to modebuf_init() causes
+the originating user to be deopped on the channel as part of the mode
+bounce.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_BOUNCE	0x0400	/* Bounce the modes */
+
+When a mode change is illegitimate, that is, when it originates from a
+user that is not (as far as this server knows) a channel operator, the
+mode change should be bounced.  This involves reversing the sense of
+the mode and sending it back to the originating server.  This flag is
+used to tell the modebuf_*() suite to do just that.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_LOG	0x0800	/* Log the mode changes to OPATH */
+
+The OPMODE command is reserved for IRC operators.  When it is used,
+the server should log the command for accountability purposes.  This
+flag, given to modebuf_init(), will cause the ModeBuf system to log
+the exact mode change to a log file.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_HACK2	0x2000	/* Send a HACK(2) notice, reverse */
+
+When a remote user that this server does not think is a channel
+operator proceeds to change a channel mode, that mode must be
+bounced.  In addition, in order to provide some debugging capability,
+a server notice may be sent, called a "HACK(2)" notice.  Passing
+modebuf_init() this flag causes that notice to be sent.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_HACK3	0x4000	/* Send a HACK(3) notice, TS == 0 */
+
+When the origin of a mode change is a server, we should always accept
+the mode change.  To provide accountability, however, a server notice
+should be sent.  This flag will cause the server to generate a
+"HACK(3)" notice.
+</macro>
+
+<macro>
+#define MODEBUF_DEST_HACK4	0x8000	/* Send a HACK(4) notice, TS == 0 */
+
+Some servers are special.  When a server that has a U-line issues a
+mode change, we send a "HACK(4)" message to differentiate it from an
+ordinary server changing a channel mode.  This is the flag that must
+be passed to modebuf_init() to cause that behavior.
+</macro>
+
+<function>
+void modebuf_mode(struct ModeBuf *mbuf, unsigned int mode);
+
+Certain channel modes take no arguments.  Those mode changes can be
+fed to the ModeBuf system using modebuf_mode().  The _mode_ parameter
+is a bit mask of the mode changes, and must have one of MODE_ADD or
+MODE_DEL set.
+</function>
+
+<function>
+void modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode,
+		       unsigned int uint);
+
+One channel mode, the "limit" mode ("+l"), takes a single integer
+argument.  This limit can be fed to the ModeBuf system with the
+modebuf_mode_uint() function.  The _mode_ parameter must be the binary
+OR of one of MODE_ADD or MODE_DEL with the MODE_LIMIT flag.  The
+_uint_ parameter specifies the limit.
+</function>
+
+<function>
+void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
+			 char *string, int free);
+
+Some channel modes take a string parameter.  These can be fed to
+ModeBuf with modebuf_mode_string().  The _mode_ parameter should be
+the binary OR of one of MODE_ADD or MODE_DEL with the flag for the
+mode.  The _string_ parameter specifies the string, and the _free_
+parameter indicates whether the ModeBuf system should call MyFree() on
+the string once it is done with it.
+</function>
+
+<function>
+void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
+			 struct Client *client);
+
+The remaining channel modes take a parameter specifying a client.
+These can be fed to ModeBuf with modebuf_mode_client().  The _mode_
+parameter should be the binary OR of one of MODE_ADD or MODE_DEL with
+the flag for the mode.  The _client_ parameter should be a pointer to
+a struct Client specifying which client the mode is supposed to act
+upon.
+</function>
+
+<function>
+int modebuf_flush(struct ModeBuf *mbuf);
+
+This function simply flushes the contents of the struct ModeBuf
+specified by _mbuf_ to the appropriate destinations, as was specified
+by the _dest_ parameter in the call to modebuf_init().  This function
+returns 0 for the convenience of callers that must return an integer.
+</function>
+
+<function>
+void modebuf_extract(struct ModeBuf *mbuf, char *buf);
+
+One use of the ModeBuf within ircd requires the ability to pull a
+simple mode string out of the struct ModeBuf for use elsewhere.  This
+can be accomplished with this function.  The _buf_ parameter should be
+large enough to accommodate the simple mode string.
+</function>
+
+<function>
+void mode_ban_invalidate(struct Channel *chan);
+
+Looking up bans affecting a particular user can be a fairly expensive
+operation, so the server caches the result of the lookup.  Should the
+ban list for a channel change, all the cached results must be
+invalidated to force rechecking.  This may be done with the
+mode_ban_invalidate() function, which acts upon the channel given by
+_chan_.
+</function>
+
+<function>
+void mode_invite_clear(struct Channel *chan);
+
+When a channel that was invite-only has the "+i" channel mode removed,
+the invite list that the server keeps is no longer necessary.  The
+mode_invite_clear() function flushes that invite list for the channel
+given by _chan_, reclaiming the memory used by the invite list.
+</function>
+
+<function>
+int mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
+	       struct Channel *chptr, int parc, char *parv[],
+	       unsigned int flags);
+
+This function parses a mode change command, given by the contents of
+_parv[]_, and under the control of _flags_.  The channel being modified
+is given by _chptr_, the source of the change is given by _sptr_, and
+the connection the change was received from is given by _cptr_.  The
+_parc_ parameter gives the count of the number of elements in the
+_parv[]_ array.  The ModeBuf must have already been initialized by a
+call to modebuf_init(), described above.  For more information on
+_flags_, see the MODE_PARSE_* macros described below.  This function
+returns an integer indicating the number of elements of _parv[]_ it
+used.  The modebuf_flush() function must be called upon return from
+mode_parse() to flush the mode changes to the channel.
+</function>
+
+<macro>
+#define MODE_PARSE_SET		0x01	/* actually set channel modes */
+
+When this flag is passed to mode_parse(), the channel mode being
+parsed will actually be effected on the channel.
+</macro>
+
+<macro>
+#define MODE_PARSE_STRICT	0x02	/* +m +n +t style not supported */
+
+Users are permitted to send complicated mode commands like "MODE #foo
++m +n +t +k foo +i"; servers are not.  Passing this flag to
+mode_parse() causes it to strictly enforce this restriction.
+</macro>
+
+<macro>
+#define MODE_PARSE_FORCE	0x04	/* force the mode to be applied */
+
+Some mode changes are not permitted under normal circumstances.  When
+this flag is passed to mode_parse(), these mode changes will be
+accepted.
+</macro>
+
+<macro>
+#define MODE_PARSE_BOUNCE	0x08	/* we will be bouncing the modes */
+
+This flag warns mode_parse() that the mode is to be bounced.  This
+will cause it to systematically feed each mode into ModeBuf in order
+for that interface to generate the proper bounce messages.
+</macro>
+
+<macro>
+#define MODE_PARSE_NOTOPER	0x10	/* send "not chanop" to user */
+
+This flag is used to warn mode_parse() that the user generating the
+mode change is not a channel operator.  If the user attempts to change
+a mode, an appropriate error message will be sent to the user (once).
+</macro>
+
+<macro>
+#define MODE_PARSE_NOTMEMBER	0x20	/* send "not member" to user */
+
+This flag is used to warn mode_parse() that the user generating the
+mode change is not even on the channel.  If the user attempts to
+change a mode, an appropriate error message will be sent to the user
+(once).
+</macro>
+
+<macro>
+#define MODE_PARSE_WIPEOUT	0x40	/* wipe out +k and +l during burst */
+
+When this flag is passed to mode_parse(), the channel key and limit
+will be reversed if the mode string doesn't update them.  This is used
+for processing BURST messages.
+</macro>
+
+<macro>
+#define MODE_PARSE_BURST	0x80	/* be even more strict w/extra args */
+
+The BURST message is even more strict than a standard MODE message.
+Processing *must* stop after reading the mode string itself, or
+mode_parse() could gobble up arguments not intended for it.  This flag
+tells mode_parse() about this restriction.
+</macro>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-15 Kev] Initial documentation of the ModeBuf and mode parsing
+subsystems.
+</changelog>
