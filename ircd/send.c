@@ -106,7 +106,7 @@ void kill_highest_sendq(int servers_too)
   struct Client *highest_client = 0;
 
   for (i = HighestFd; i >= 0; i--) {
-    if (!servers_too && cli_serv(LocalClientArray[i]))
+    if (!LocalClientArray[i] || (!servers_too && cli_serv(LocalClientArray[i])))
       continue; /* skip servers */
 
     /* If this sendq is higher than one we last saw, remember it */
