@@ -198,10 +198,10 @@ unsigned char buffer[1024], digest[16];
 
  if (NULL == (file = fopen(tmp, "r")))
   exit(0);
- MD5Name(MD5Init)(&context);
+ MD5Init(&context);
  while ((len = fread (buffer, 1, 1024, file)))
-  MD5Name(MD5Update)(&context, buffer, len);
- MD5Name(MD5Final)(digest, &context);
+  MD5Update(&context, buffer, len);
+ MD5Final(digest, &context);
  fclose(file);
 
  printf("%s: ", basename_into(tmp, (char*)buffer));

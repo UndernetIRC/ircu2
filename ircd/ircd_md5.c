@@ -52,7 +52,7 @@ static void byteReverse(unsigned char *buf, unsigned longs)
 /** Iniitalize MD5 context.
  * @param[out] ctx MD5 context to initialize.
  */
-void MD5Name(MD5Init)(struct MD5Context *ctx)
+void MD5Init(struct MD5Context *ctx)
 {
 	ctx->buf[0] = 0x67452301U;
 	ctx->buf[1] = 0xefcdab89U;
@@ -68,7 +68,7 @@ void MD5Name(MD5Init)(struct MD5Context *ctx)
  * @param[in] buf Input buffer.
  * @param[in] len Number of bytes in input buffer.
  */
-void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsigned len)
+void MD5Update(struct MD5Context *ctx, unsigned const char *buf, unsigned len)
 {
 	uint32 t;
 
@@ -93,7 +93,7 @@ void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsign
 		}
 		memcpy(p, buf, t);
 		byteReverse(ctx->in, 16);
-		MD5Name(MD5Transform)(ctx->buf, (uint32 *) ctx->in);
+		MD5Transform(ctx->buf, (uint32 *) ctx->in);
 		buf += t;
 		len -= t;
 	}
@@ -102,7 +102,7 @@ void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsign
 	while (len >= 64) {
 		memcpy(ctx->in, buf, 64);
 		byteReverse(ctx->in, 16);
-		MD5Name(MD5Transform)(ctx->buf, (uint32 *) ctx->in);
+		MD5Transform(ctx->buf, (uint32 *) ctx->in);
 		buf += 64;
 		len -= 64;
 	}
@@ -116,7 +116,7 @@ void MD5Name(MD5Update)(struct MD5Context *ctx, unsigned const char *buf, unsign
  * @param[out] digest Receives output hash value.
  * @param[in,out] ctx MD5 context to finalize.
  */
-void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
+void MD5Final(unsigned char digest[16], struct MD5Context *ctx)
 {
 	unsigned count;
 	unsigned char *p;
@@ -137,7 +137,7 @@ void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
 		/* Two lots of padding:  Pad the first block to 64 bytes */
 		memset(p, 0, count);
 		byteReverse(ctx->in, 16);
-		MD5Name(MD5Transform)(ctx->buf, (uint32 *) ctx->in);
+		MD5Transform(ctx->buf, (uint32 *) ctx->in);
 
 		/* Now fill the next block with 56 bytes */
 		memset(ctx->in, 0, 56);
@@ -151,7 +151,7 @@ void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
 	((uint32 *) ctx->in)[14] = ctx->bits[0];
 	((uint32 *) ctx->in)[15] = ctx->bits[1];
 
-	MD5Name(MD5Transform)(ctx->buf, (uint32 *) ctx->in);
+	MD5Transform(ctx->buf, (uint32 *) ctx->in);
 	byteReverse((unsigned char *) ctx->buf, 4);
 	memcpy(digest, ctx->buf, 16);
 	memset(ctx, 0, sizeof(ctx));	/* In case it's sensitive */
@@ -180,7 +180,7 @@ void MD5Name(MD5Final)(unsigned char digest[16], struct MD5Context *ctx)
  * @param[in,out] buf Hash value.
  * @param[in] in Input buffer.
  */
-void MD5Name(MD5Transform)(uint32 buf[4], uint32 const in[16])
+void MD5Transform(uint32 buf[4], uint32 const in[16])
 {
 	register uint32 a, b, c, d;
 

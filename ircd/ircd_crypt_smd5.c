@@ -110,25 +110,25 @@ unsigned long l;
  /* get the length of the true salt */
  sl = ep - sp;
 
- MD5Name(MD5Init)(&ctx);
+ MD5Init(&ctx);
 
  /* The password first, since that is what is most unknown */
- MD5Name(MD5Update)(&ctx,(unsigned const char *)key,strlen(key));
+ MD5Update(&ctx,(unsigned const char *)key,strlen(key));
 
  /* Then our magic string */
- MD5Name(MD5Update)(&ctx,(unsigned const char *)magic,strlen(magic));
+ MD5Update(&ctx,(unsigned const char *)magic,strlen(magic));
 
  /* Then the raw salt */
- MD5Name(MD5Update)(&ctx,(unsigned const char *)sp,sl);
+ MD5Update(&ctx,(unsigned const char *)sp,sl);
 
  /* Then just as many characters of the MD5(key,salt,key) */
- MD5Name(MD5Init)(&ctx1);
- MD5Name(MD5Update)(&ctx1,(unsigned const char *)key,strlen(key));
- MD5Name(MD5Update)(&ctx1,(unsigned const char *)sp,sl);
- MD5Name(MD5Update)(&ctx1,(unsigned const char *)key,strlen(key));
- MD5Name(MD5Final)(final,&ctx1);
+ MD5Init(&ctx1);
+ MD5Update(&ctx1,(unsigned const char *)key,strlen(key));
+ MD5Update(&ctx1,(unsigned const char *)sp,sl);
+ MD5Update(&ctx1,(unsigned const char *)key,strlen(key));
+ MD5Final(final,&ctx1);
  for (pl = strlen(key); pl > 0; pl -= 16)
-  MD5Name(MD5Update)(&ctx,(unsigned const char *)final,pl>16 ? 16 : pl);
+  MD5Update(&ctx,(unsigned const char *)final,pl>16 ? 16 : pl);
 
  /* Don't leave anything around in vm they could use. */
  memset(final, 0, sizeof final);
@@ -136,9 +136,9 @@ unsigned long l;
  /* Then something really weird... */
  for (j = 0, i = strlen(key); i; i >>= 1)
   if (i & 1)
-   MD5Name(MD5Update)(&ctx, (unsigned const char *)final+j, 1);
+   MD5Update(&ctx, (unsigned const char *)final+j, 1);
   else
-   MD5Name(MD5Update)(&ctx, (unsigned const char *)key+j, 1);
+   MD5Update(&ctx, (unsigned const char *)key+j, 1);
 
  /* Now make the output string
  strcpy(passwd, magic);
@@ -146,7 +146,7 @@ unsigned long l;
  strncpy(passwd, sp, sl);
  strcat(passwd, "$");
 
- MD5Name(MD5Final)(final,&ctx);
+ MD5Final(final,&ctx);
 
  /*
   * and now, just to make sure things don't run too fast
@@ -154,25 +154,25 @@ unsigned long l;
   * need 30 seconds to build a 1000 entry dictionary...
   */
  for (i = 0; i < 1000; i++) {
-  MD5Name(MD5Init)(&ctx1);
+  MD5Init(&ctx1);
 
   if (i & 1)
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)key,strlen(key));
+   MD5Update(&ctx1,(unsigned const char *)key,strlen(key));
   else
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)final,16);
+   MD5Update(&ctx1,(unsigned const char *)final,16);
 
   if (i % 3)
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)sp,sl);
+   MD5Update(&ctx1,(unsigned const char *)sp,sl);
 
   if (i % 7)
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)key,strlen(key));
+   MD5Update(&ctx1,(unsigned const char *)key,strlen(key));
 
   if (i & 1)
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)final,16);
+   MD5Update(&ctx1,(unsigned const char *)final,16);
   else
-   MD5Name(MD5Update)(&ctx1,(unsigned const char *)key,strlen(key));
+   MD5Update(&ctx1,(unsigned const char *)key,strlen(key));
 
-  MD5Name(MD5Final)(final,&ctx1);
+  MD5Final(final,&ctx1);
  }
 
  p = passwd + strlen(passwd);

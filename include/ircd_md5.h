@@ -20,9 +20,6 @@
 #ifndef ircd_md5_h
 #define ircd_md5_h
 
-/** Macro to prepend MD5 variant to a function name. */
-#define MD5Name(x) Good##x
-
 /** Typedef for an unsigned 32-bit integer. */
 typedef unsigned int uint32;
 
@@ -33,17 +30,12 @@ struct MD5Context {
 	unsigned char in[64]; /**< Residual input buffer. */
 };
 
-void GoodMD5Init(struct MD5Context *);
-void GoodMD5Update(struct MD5Context *, unsigned const char *, unsigned);
-void GoodMD5Final(unsigned char digest[16], struct MD5Context *);
-void GoodMD5Transform(uint32 buf[4], uint32 const in[16]);
-void BrokenMD5Init(struct MD5Context *);
-void BrokenMD5Update(struct MD5Context *, unsigned const char *, unsigned);
-void BrokenMD5Final(unsigned char digest[16], struct MD5Context *);
-void BrokenMD5Transform(uint32 buf[4], uint32 const in[16]);
+void MD5Init(struct MD5Context *);
+void MD5Update(struct MD5Context *, unsigned const char *, unsigned);
+void MD5Final(unsigned char digest[16], struct MD5Context *);
+void MD5Transform(uint32 buf[4], uint32 const in[16]);
 
-char *Goodcrypt_md5(const char *pw, const char *salt);
-char *Brokencrypt_md5(const char *pw, const char *salt);
+char *crypt_md5(const char *pw, const char *salt);
 
 /** Helper typedef for the MD5 context structure. */
 typedef struct MD5Context MD5_CTX;

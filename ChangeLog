@@ -1,5 +1,11 @@
 2004-10-05  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_md5.h, ircd/ircd_md5.c, ircd_crypt_smd5.c,
+	ircd/umkpasswd.c: Get rid of the GoodMD5xxx/BrokenMD5xxx
+	prefixes.
+
+2004-10-05  Michael Poole <mdpoole@troilus.org>
+
 	* adns, lib/adns: Remove unused adns library.
 
 2004-10-05  Michael Poole <mdpoole@troilus.org>, hikari <hikari@undernet.org>, Perry Lorier <isomer@undernet.org>
