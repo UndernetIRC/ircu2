@@ -412,13 +412,13 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
     {
       p =
-          sprintf_irc(sendbuf,
+          sprintf_irc(sendbuf, /* XXX DYING */
           ":%s NOTICE * :*** Notice -- HACK(4): %s BURST %s %s", me.name,
           sptr->name, parv[1], parv[2]);
       for (i = 3; i < parc - 1; ++i)
         p = sprintf_irc(p, " %s", parv[i]);
       sprintf_irc(p, " :%s", parv[parc - 1]);
-      sendbufto_op_mask(SNO_HACK4);
+      sendbufto_op_mask(SNO_HACK4); /* XXX DYING */
     }
     else
     {
@@ -475,8 +475,8 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   *modebuf = '+';
   mblen2 = 1;
   cnt = 0;
-  sblen = sprintf_irc(sendbuf, "%s B %s " TIME_T_FMT,
-      NumServ(sptr), chptr->chname, chptr->creationtime) - sendbuf;
+  sblen = sprintf_irc(sendbuf, "%s B %s " TIME_T_FMT, /* XXX DYING */
+      NumServ(sptr), chptr->chname, chptr->creationtime) - sendbuf; /* XXX DYING */
 
   /* Run over all remaining parameters */
   for (n = 3; n < parc; n++)
@@ -655,15 +655,15 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         }                       /* <-- while over all modes */
 
         bmodebuf[mblen] = '\0';
-        sendbuf[sblen] = '\0';
+        sendbuf[sblen] = '\0'; /* XXX DYING */
         if (mblen)              /* Anything to send at all ? */
         {
           send_it = 1;
-          strcpy(sendbuf + sblen, " +");
+          strcpy(sendbuf + sblen, " +"); /* XXX DYING */
           sblen += 2;
-          strcpy(sendbuf + sblen, bmodebuf);
+          strcpy(sendbuf + sblen, bmodebuf); /* XXX DYING */
           sblen += mblen;
-          strcpy(sendbuf + sblen, bparambuf);
+          strcpy(sendbuf + sblen, bparambuf); /* XXX DYING */
           sblen += strlen(bparambuf);
         }
         break;                  /* Done mode part */
@@ -695,7 +695,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           if (ret != -1)
             /* A new ban was added or an existing one needs to be passed on.
              * Also add it to sendbuf: */
-            add_token_to_sendbuf(ban, &sblen, &first, &send_it, '%', 0);
+            add_token_to_sendbuf(ban, &sblen, &first, &send_it, '%', 0); /* XXX DYING */
         }
         break;                  /* Done bans part */
       }
@@ -761,7 +761,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
              * - If sendbuf is full, send it, and prepare a new
              *   message in sendbuf.
              */
-            add_token_to_sendbuf(nick, &sblen, &first, &send_it, 0,
+            add_token_to_sendbuf(nick, &sblen, &first, &send_it, 0, /* XXX DYING */
                 default_mode);
             /* Let is take effect: (Note that in the case of a netride
              * 'default_mode' is always CHFL_DEOPPED here). */
@@ -797,7 +797,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (lp->value.cptr == cptr)
         continue;
       if (Protocol(lp->value.cptr) > 9)
-        sendbufto_one(lp->value.cptr);
+        sendbufto_one(lp->value.cptr); /* XXX DYING */
     }
 
     /*
@@ -814,7 +814,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     for (member = chptr->members; member; member = member->next_member)
       if (IsBurstJoined(member))
       {
-        sendto_channel_butserv(chptr, member->user, ":%s JOIN :%s",
+        sendto_channel_butserv(chptr, member->user, ":%s JOIN :%s", /* XXX DYING */
                                member->user->name, chptr->chname);
       }
 
@@ -837,7 +837,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               if (6 == ++cnt)
               {
                 modebuf[mblen2] = 0;
-                sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+                sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DYING */
                     parv[0], chptr->chname, modebuf, parabuf);
                 *parabuf = 0;
                 pblen2 = 0;
@@ -856,7 +856,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       if (cnt > 0 || mblen2 > 1)
       {
         modebuf[mblen2] = 0;
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DYING */
             parv[0], chptr->chname, modebuf, parabuf);
       }
     }
@@ -872,26 +872,26 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     /* Now cancel all previous simple modes */
     if ((prev_mode & MODE_SECRET))
-      cancel_mode(sptr, chptr, 's', 0, &count);
+      cancel_mode(sptr, chptr, 's', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_PRIVATE))
-      cancel_mode(sptr, chptr, 'p', 0, &count);
+      cancel_mode(sptr, chptr, 'p', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_MODERATED))
-      cancel_mode(sptr, chptr, 'm', 0, &count);
+      cancel_mode(sptr, chptr, 'm', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_TOPICLIMIT))
-      cancel_mode(sptr, chptr, 't', 0, &count);
+      cancel_mode(sptr, chptr, 't', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_INVITEONLY))
-      cancel_mode(sptr, chptr, 'i', 0, &count);
+      cancel_mode(sptr, chptr, 'i', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_NOPRIVMSGS))
-      cancel_mode(sptr, chptr, 'n', 0, &count);
+      cancel_mode(sptr, chptr, 'n', 0, &count); /* XXX DYING */
     if ((prev_mode & MODE_LIMIT))
     {
       current_mode->limit = 0;
-      cancel_mode(sptr, chptr, 'l', 0, &count);
+      cancel_mode(sptr, chptr, 'l', 0, &count); /* XXX DYING */
     }
     if ((prev_mode & MODE_KEY))
     {
       *current_mode->key = 0;
-      cancel_mode(sptr, chptr, 'k', prev_key, &count);
+      cancel_mode(sptr, chptr, 'k', prev_key, &count); /* XXX DYING */
     }
     current_mode->mode &= ~prev_mode;
 
@@ -924,16 +924,16 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 continue;
            }
 
-           sendto_highprot_butone(0, 10, "%s " TOK_KICK " %s %s%s :Net Rider",
+           sendto_highprot_butone(0, 10, "%s " TOK_KICK " %s %s%s :Net Rider", /* XXX DYING */
             NumServ(&me), chptr->chname, NumNick(member->user));
-           sendto_channel_butserv(chptr, sptr,
+           sendto_channel_butserv(chptr, sptr, /* XXX DYING */
             ":%s KICK %s %s :Net Rider", me.name, chptr->chname,
             member->user->name);
 
            if (MyUser(member->user)) {
-             sendto_lowprot_butone(0, 9, ":%s PART %s",
+             sendto_lowprot_butone(0, 9, ":%s PART %s", /* XXX DYING */
                member->user->name, chptr->chname, member->user->name);
-             sendto_highprot_butone(0, 10, "%s%s PART %s",
+             sendto_highprot_butone(0, 10, "%s%s PART %s", /* XXX DYING */
                NumNick(member->user), chptr->chname);
              remove_user_from_channel(member->user, chptr);
            }
@@ -948,7 +948,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           member->status &= ~mode;
           if (mode == CHFL_CHANOP)
             SetDeopped(member);
-          cancel_mode(sptr, chptr, m, member->user->name, &count);
+          cancel_mode(sptr, chptr, m, member->user->name, &count); /* XXX DYING */
         }
       }
       if (mode == CHFL_VOICE)
@@ -964,7 +964,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         struct Membership* member_z;
 
         *ban = tmp->next;
-        cancel_mode(sptr, chptr, 'b', tmp->value.ban.banstr, &count);
+        cancel_mode(sptr, chptr, 'b', tmp->value.ban.banstr, &count); /* XXX DYING */
 
         /* Copied from del_banid(): */
         MyFree(tmp->value.ban.banstr);
@@ -984,9 +984,9 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       struct SLink *ban;
       while ((ban = next_removed_overlapped_ban()))
-        cancel_mode(sptr, chptr, 'b', ban->value.ban.banstr, &count);
+        cancel_mode(sptr, chptr, 'b', ban->value.ban.banstr, &count); /* XXX DYING */
     }
-    cancel_mode(sptr, chptr, 0, 0, &count);  /* flush */
+    cancel_mode(sptr, chptr, 0, 0, &count);  /* flush */ /* XXX DYING */
   }
 
   if (send_it && !netride)
@@ -1020,7 +1020,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       {
         /* Time to send buffer */
         modebuf[mblen2] = 0;
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DYING */
             parv[0], chptr->chname, modebuf, parabuf);
         *modebuf = deban ? '-' : '+';
         mblen2 = 1;
@@ -1055,7 +1055,7 @@ int ms_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (cnt > 0 || mblen2 > 1)
     {
       modebuf[mblen2] = 0;
-      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DYING */
           parv[0], chptr->chname, modebuf, parabuf);
     }
   }
@@ -1127,13 +1127,13 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (find_conf_byhost(cptr->confs, sptr->name, CONF_UWORLD))
     {
       p =
-          sprintf_irc(sendbuf,
+          sprintf_irc(sendbuf, /* XXX DEAD */
           ":%s NOTICE * :*** Notice -- HACK(4): %s BURST %s %s", me.name,
           sptr->name, parv[1], parv[2]);
       for (i = 3; i < parc - 1; ++i)
         p = sprintf_irc(p, " %s", parv[i]);
       sprintf_irc(p, " :%s", parv[parc - 1]);
-      sendbufto_op_mask(SNO_HACK4);
+      sendbufto_op_mask(SNO_HACK4); /* XXX DEAD */
     }
     else
     {
@@ -1190,8 +1190,8 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   *modebuf = '+';
   mblen2 = 1;
   cnt = 0;
-  sblen = sprintf_irc(sendbuf, "%s B %s " TIME_T_FMT,
-      NumServ(sptr), chptr->chname, chptr->creationtime) - sendbuf;
+  sblen = sprintf_irc(sendbuf, "%s B %s " TIME_T_FMT, /* XXX DEAD */
+      NumServ(sptr), chptr->chname, chptr->creationtime) - sendbuf; /* XXX DEAD */
 
   /* Run over all remaining parameters */
   for (n = 3; n < parc; n++)
@@ -1370,15 +1370,15 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         }                       /* <-- while over all modes */
 
         bmodebuf[mblen] = '\0';
-        sendbuf[sblen] = '\0';
+        sendbuf[sblen] = '\0'; /* XXX DEAD */
         if (mblen)              /* Anything to send at all ? */
         {
           send_it = 1;
-          strcpy(sendbuf + sblen, " +");
+          strcpy(sendbuf + sblen, " +"); /* XXX DEAD */
           sblen += 2;
-          strcpy(sendbuf + sblen, bmodebuf);
+          strcpy(sendbuf + sblen, bmodebuf); /* XXX DEAD */
           sblen += mblen;
-          strcpy(sendbuf + sblen, bparambuf);
+          strcpy(sendbuf + sblen, bparambuf); /* XXX DEAD */
           sblen += strlen(bparambuf);
         }
         break;                  /* Done mode part */
@@ -1410,7 +1410,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           if (ret != -1)
             /* A new ban was added or an existing one needs to be passed on.
              * Also add it to sendbuf: */
-            add_token_to_sendbuf(ban, &sblen, &first, &send_it, '%', 0);
+            add_token_to_sendbuf(ban, &sblen, &first, &send_it, '%', 0); /* XXX DEAD */
         }
         break;                  /* Done bans part */
       }
@@ -1476,7 +1476,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
              * - If sendbuf is full, send it, and prepare a new
              *   message in sendbuf.
              */
-            add_token_to_sendbuf(nick, &sblen, &first, &send_it, 0,
+            add_token_to_sendbuf(nick, &sblen, &first, &send_it, 0, /* XXX DEAD */
                 default_mode);
             /* Let is take effect: (Note that in the case of a netride
              * 'default_mode' is always CHFL_DEOPPED here). */
@@ -1512,7 +1512,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (lp->value.cptr == cptr)
         continue;
       if (Protocol(lp->value.cptr) > 9)
-        sendbufto_one(lp->value.cptr);
+        sendbufto_one(lp->value.cptr); /* XXX DEAD */
     }
 
     /*
@@ -1529,7 +1529,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     for (member = chptr->members; member; member = member->next_member)
       if (IsBurstJoined(member))
       {
-        sendto_channel_butserv(chptr, member->user, ":%s JOIN :%s",
+        sendto_channel_butserv(chptr, member->user, ":%s JOIN :%s", /* XXX DEAD */
                                member->user->name, chptr->chname);
       }
 
@@ -1552,7 +1552,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
               if (6 == ++cnt)
               {
                 modebuf[mblen2] = 0;
-                sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+                sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DEAD */
                     parv[0], chptr->chname, modebuf, parabuf);
                 *parabuf = 0;
                 pblen2 = 0;
@@ -1571,7 +1571,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (cnt > 0 || mblen2 > 1)
       {
         modebuf[mblen2] = 0;
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DEAD */
             parv[0], chptr->chname, modebuf, parabuf);
       }
     }
@@ -1587,26 +1587,26 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     /* Now cancel all previous simple modes */
     if ((prev_mode & MODE_SECRET))
-      cancel_mode(sptr, chptr, 's', 0, &count);
+      cancel_mode(sptr, chptr, 's', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_PRIVATE))
-      cancel_mode(sptr, chptr, 'p', 0, &count);
+      cancel_mode(sptr, chptr, 'p', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_MODERATED))
-      cancel_mode(sptr, chptr, 'm', 0, &count);
+      cancel_mode(sptr, chptr, 'm', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_TOPICLIMIT))
-      cancel_mode(sptr, chptr, 't', 0, &count);
+      cancel_mode(sptr, chptr, 't', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_INVITEONLY))
-      cancel_mode(sptr, chptr, 'i', 0, &count);
+      cancel_mode(sptr, chptr, 'i', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_NOPRIVMSGS))
-      cancel_mode(sptr, chptr, 'n', 0, &count);
+      cancel_mode(sptr, chptr, 'n', 0, &count); /* XXX DEAD */
     if ((prev_mode & MODE_LIMIT))
     {
       current_mode->limit = 0;
-      cancel_mode(sptr, chptr, 'l', 0, &count);
+      cancel_mode(sptr, chptr, 'l', 0, &count); /* XXX DEAD */
     }
     if ((prev_mode & MODE_KEY))
     {
       *current_mode->key = 0;
-      cancel_mode(sptr, chptr, 'k', prev_key, &count);
+      cancel_mode(sptr, chptr, 'k', prev_key, &count); /* XXX DEAD */
     }
     current_mode->mode &= ~prev_mode;
 
@@ -1640,16 +1640,16 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
            }
            member->status = (member->status & ~mode) | CHFL_ZOMBIE;
 
-           sendto_highprot_butone(0, 10, "%s " TOK_KICK "%s %s%s :Net Rider",
+           sendto_highprot_butone(0, 10, "%s " TOK_KICK "%s %s%s :Net Rider", /* XXX DEAD */
             NumServ(&me), chptr->chname, NumNick(member->user));
-           sendto_channel_butserv(chptr, sptr,
+           sendto_channel_butserv(chptr, sptr, /* XXX DEAD */
             ":%s KICK %s %s :Net Rider", me.name, chptr->chname,
             member->user->name);
 
            if (MyUser(member->user)) {
-             sendto_lowprot_butone(0, 9, ":%s PART %s",
+             sendto_lowprot_butone(0, 9, ":%s PART %s", /* XXX DEAD */
                member->user->name, chptr->chname, member->user->name);
-             sendto_highprot_butone(0, 10, "%s%s PART %s",
+             sendto_highprot_butone(0, 10, "%s%s PART %s", /* XXX DEAD */
                NumNick(member->user), chptr->chname);
              remove_user_from_channel(member->user, chptr);
            }
@@ -1664,7 +1664,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           member->status &= ~mode;
           if (mode == CHFL_CHANOP)
             SetDeopped(member);
-          cancel_mode(sptr, chptr, m, member->user->name, &count);
+          cancel_mode(sptr, chptr, m, member->user->name, &count); /* XXX DEAD */
         }
       }
       if (mode == CHFL_VOICE)
@@ -1680,7 +1680,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         struct Membership* member_z;
 
         *ban = tmp->next;
-        cancel_mode(sptr, chptr, 'b', tmp->value.ban.banstr, &count);
+        cancel_mode(sptr, chptr, 'b', tmp->value.ban.banstr, &count); /* XXX DEAD */
 
         /* Copied from del_banid(): */
         MyFree(tmp->value.ban.banstr);
@@ -1700,9 +1700,9 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     {
       struct SLink *ban;
       while ((ban = next_removed_overlapped_ban()))
-        cancel_mode(sptr, chptr, 'b', ban->value.ban.banstr, &count);
+        cancel_mode(sptr, chptr, 'b', ban->value.ban.banstr, &count); /* XXX DEAD */
     }
-    cancel_mode(sptr, chptr, 0, 0, &count);  /* flush */
+    cancel_mode(sptr, chptr, 0, 0, &count);  /* flush */ /* XXX DEAD */
   }
 
   if (send_it && !netride)
@@ -1736,7 +1736,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       {
         /* Time to send buffer */
         modebuf[mblen2] = 0;
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DEAD */
             parv[0], chptr->chname, modebuf, parabuf);
         *modebuf = deban ? '-' : '+';
         mblen2 = 1;
@@ -1771,7 +1771,7 @@ int m_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (cnt > 0 || mblen2 > 1)
     {
       modebuf[mblen2] = 0;
-      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s",
+      sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s%s", /* XXX DEAD */
           parv[0], chptr->chname, modebuf, parabuf);
     }
   }

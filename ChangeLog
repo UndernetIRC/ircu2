@@ -1,5 +1,8 @@
 2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c (send_channel_modes): deal with one of the last
+	vestiges of sendbuf
+
 	* ircd/m_burst.c (ms_burst): debugged ban processing; removed
 	debugging hooks
 
@@ -1116,7 +1119,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.131 2000-05-04 15:33:35 kev Exp $
+# $Id: ChangeLog,v 1.132 2000-05-04 17:28:29 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
