@@ -156,9 +156,11 @@ motd_cache(struct Motd *motd)
   fbclose(file); /* close the file */
 
   /* trim memory usage a little */
-  motd->cache = (struct MotdCache *)MyRealloc(cache, sizeof(struct MotdCache) +
-					      (MOTD_LINESIZE *
-					       (cache->count - 1)));
+  motd->cache = (struct MotdCache*)MyMalloc(sizeof(struct MotdCache) +
+                                            (MOTD_LINESIZE * (cache->count - 1)));
+  memcpy(motd->cache, cache, sizeof(struct MotdCache) +
+         (MOTD_LINESIZE * (cache->count - 1)));
+  MyFree(cache);
 
   /* now link it in... */
   motd->cache->next = MotdList.cachelist;

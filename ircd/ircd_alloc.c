@@ -29,57 +29,25 @@
 
 #include <assert.h>
 
-#if !defined(MDEBUG)
-/*
- * RELEASE: allocation functions
- */
+static void nomem_handler(void);
 
-static void nomem_handler(void)
+/* Those ugly globals... */
+OutOfMemoryHandler noMemHandler = nomem_handler;
+void *malloc_tmp;
+
+static void
+nomem_handler(void)
 {
+#ifdef MDEBUG
+  assert(0);
+#else
   Debug((DEBUG_FATAL, "Out of memory, exiting"));
   exit(2);
+#endif
 }
 
-static OutOfMemoryHandler noMemHandler = nomem_handler;
-
-void set_nomem_handler(OutOfMemoryHandler handler)
+void
+set_nomem_handler(OutOfMemoryHandler handler)
 {
   noMemHandler = handler;
 }
-
-void* MyMalloc(size_t size)
-{
-  void* p = malloc(size);
-  if (!p)
-    (*noMemHandler)();
-  return p;
-}
-
-void* MyRealloc(void* p, size_t size)
-{
-  void* x = realloc(p, size);
-  if (!x)
-    (*noMemHandler)();
-  return x;
-}
-
-void* MyCalloc(size_t nelem, size_t size)
-{
-  void* p = calloc(nelem, size);
-  if (!p)
-    (*noMemHandler)();
-  return p;
-}
-
-#else /* defined(MDEBUG) */
-/*
- * DEBUG: allocation functions
- */
-void set_nomem_handler(OutOfMemoryHandler handler)
-{
-  assert(0 != handler);
-  fda_set_nomem_handler(handler);
-}
-
-#endif /* defined(MDEBUG) */
-

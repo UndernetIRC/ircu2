@@ -75,6 +75,7 @@
  * External stuff
  *--------------------------------------------------------------------------*/
 extern void init_counters(void);
+extern void mem_dbg_initialise(void);
 
 /*----------------------------------------------------------------------------
  * Constants / Enums
@@ -571,6 +572,10 @@ int main(int argc, char **argv) {
   thisServer.argv = argv;
   thisServer.uid  = getuid();
   thisServer.euid = geteuid();
+
+#ifdef MDEBUG
+  mem_dbg_initialise();
+#endif
 
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
   set_core_limit();

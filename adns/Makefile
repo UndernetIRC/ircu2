@@ -30,6 +30,8 @@ srcdir=		.
 
 SUBDIRS= src
 
+build: all
+
 all install uninstall clean distclean mostlyclean maintainer-clean distprep:
 	set -e; for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 	$(MAKE) $@-here
@@ -60,7 +62,7 @@ dist:			distprep
 	mv $(dist_tmp).tar.gz .
 
 README:			README.html
-	lynx -dump -number_links -cfg=/dev/null ./README.html >README.tmp
+	lynx -dump -number_links -cfg=/dev/null $(srcdir)/README.html >README.tmp
 	mv -f README.tmp README
 
 TAGS info dvi:

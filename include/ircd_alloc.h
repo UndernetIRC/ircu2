@@ -30,35 +30,56 @@
 typedef void (*OutOfMemoryHandler)(void);
 extern void set_nomem_handler(OutOfMemoryHandler handler);
 
-#if !defined(MDEBUG)
-/* 
- * RELEASE: allocation functions
+/* The mappings for the My* functions... */
+#define MyMalloc(size) \
+  DoMalloc(size, "malloc", __FILE__, __LINE__)
+
+#define MyCalloc(nelem, size) \
+  DoMallocZero(size * nelem, "calloc", __FILE__, __LINE__)
+
+#define MyFree(p) \
+  DoFree(p, __FILE__, __LINE__)
+
+/* No realloc because it is not currently used, and it is not really the
+ * nicest function to be using anyway(i.e. its evil if you want it
+ * go ahead and write it).
  */
+
+extern void *malloc_tmp;
+
+/* First version: fast non-debugging macros... */
+#ifndef MDEBUG
 #ifndef INCLUDED_stdlib_h
-#include <stdlib.h>       /* free */
+#include <stdlib.h> /* free */
 #define INCLUDED_stdlib_h
 #endif
 
-#define MyFree(x) do { free((x)); (x) = 0; } while(0)
+extern OutOfMemoryHandler noMemHandler;
 
-extern void* MyMalloc(size_t size);
-extern void* MyCalloc(size_t nelem, size_t size);
-extern void* MyRealloc(void* p, size_t size);
+#define DoFree(x, file, line) do { free((x)); (x) = 0; } while(0)
+#define DoMalloc(size, type, file, line) \
+  (\
+     (malloc_tmp = malloc(size), \
+     (malloc_tmp == NULL) ? noMemHandler() : 0), \
+  malloc_tmp)
 
+#define DoMallocZero(size, type, file, line) \
+  (\
+    (DoMalloc(size, type, file, line), \
+    memset(malloc_tmp, 0, size)), \
+  malloc_tmp)
+
+/* Second version: slower debugging versions... */
 #else /* defined(MDEBUG) */
-/*
- * DEBUG: allocation functions
- */
-#ifndef INCLUDED_fda_h
-#include "fda.h"
-#endif
+#include <sys/types.h>
+#include "memdebug.h"
 
-#define MyMalloc(s)     fda_malloc((s), __FILE__, __LINE__)
-#define MyCalloc(n, s)  fda_calloc((n), (s), __FILE__, __LINE__)
-#define MyFree(p)       fda_free((p))
-#define MyRealloc(p, s) fda_realloc((p), (s), __FILE__, __LINE__)
-
+#define DoMalloc(size, type, file, line) \
+  dbg_malloc(size, type, file, line)
+#define DoMallocZero(size, type, file, line) \
+  dbg_malloc_zero(size, type, file, line)
+#define DoFree(p, file, line) \
+  dbg_free(p, file, line)
 #endif /* defined(MDEBUG) */
 
 #endif /* INCLUDED_ircd_alloc_h */
-

@@ -129,9 +129,8 @@ static int user_set_away(struct User* user, char* message)
       len = AWAYLEN;
     }
     if (away)
-      away = (char*) MyRealloc(away, len + 1);
-    else
-      away = (char*) MyMalloc(len + 1);
+      MyFree(away);
+    away = (char*) MyMalloc(len + 1);
     assert(0 != away);
 
     user->away = away;

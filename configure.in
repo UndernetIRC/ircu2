@@ -241,6 +241,23 @@ if test x"$unet_cv_enable_debug" = xyes; then
     AC_DEFINE([DEBUGMODE], , [Enable debugging code])
 fi
 
+dnl Now look for --enable-leak-detect
+AC_MSG_CHECKING([whether to enable leak detection])
+AC_ARG_WITH([leak-detect],
+[  --with-leak-detect          Turn on the leak detector(requires patched boehm)],
+[unet_cv_with_leak_detect=$with_leak_detect],
+[AC_CACHE_VAL(unet_cv_with_leak_detect,
+[unet_cv_with_leak_detect=no])])
+AC_MSG_RESULT([$unet_cv_enable_leak_detect])
+
+if test x"$unet_cv_with_leak_detect" != xno; then
+    LIBS="-lgc $LIBS"
+    CFLAGS="-DMDEBUG $CFLAGS"
+    if test x"$unet_cv_with_leak_detect" != xyes; then
+       LIBS="-L$unet_cv_with_leak_detect $LIBS"
+    fi
+fi
+
 dnl And now for --disable-asserts
 AC_MSG_CHECKING([whether to enable asserts])
 AC_ARG_ENABLE([asserts],

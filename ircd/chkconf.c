@@ -505,10 +505,14 @@ static struct ConnectionClass *get_class(int cn, int ism)
 static void new_class(int cn)
 {
   numclasses++;
-  if (classarr)
-    classarr = (int *)MyRealloc(classarr, sizeof(int) * numclasses);
+  if (classarr && numclasses & 0xF == 0)
+  {
+    int **tmp_arr = MyMalloc(classarr * (numclasses + 0x10));
+    MyFree(classarr);
+    memcpy(tmp_arr, classarr, classarr * (numclasses - 1));
+  }
   else
-    classarr = (int *)MyMalloc(sizeof(int));
+    classarr = (int *)MyMalloc(sizeof(int) * numclasses);
   classarr[numclasses - 1] = cn;
 }
 
