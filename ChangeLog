@@ -1,5 +1,12 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* ircd/m_clearmode.c: implemented mo_clearchan()/ms_clearchan()
+
+	* ircd/channel.c (modebuf_flush): realized I forgot to
+	nul-terminate addbuf/rembuf properly...
+
+	* ircd/m_clearmode.c (do_clearmode): wrote do_clearmode()...
+
 	* ircd/channel.c (modebuf_flush): correct sendto_server_butone to
 	sendto_serv_butone--blah^2
 
@@ -59,7 +66,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.29 2000-03-27 18:13:44 kev Exp $
+# $Id: ChangeLog,v 1.30 2000-03-27 20:12:50 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

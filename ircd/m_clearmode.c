@@ -89,6 +89,7 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "channel.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_reply.h"
@@ -100,20 +101,198 @@
 #include <assert.h>
 
 /*
- * ms_clearmode - server message handler
+ * do_clearmode(struct Client *cptr, struct Client *sptr,
+ *		struct Channel *chptr, char *control)
+ *
+ * This is the function that actually clears the channel modes.
  */
-int ms_clearmode(struct Client* cptr, struct Client* sptr, int parc,
-		 char* parv[])
+static int
+do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
+	     char *control)
 {
-  return 0;
+  static int flags[] = {
+    MODE_CHANOP,	'o',
+    MODE_VOICE,		'v',
+    MODE_PRIVATE,	'p',
+    MODE_SECRET,	's',
+    MODE_MODERATED,	'm',
+    MODE_TOPICLIMIT,	't',
+    MODE_INVITEONLY,	'i',
+    MODE_NOPRIVMSGS,	'n',
+    MODE_KEY,		'k',
+    MODE_BAN,		'b',
+    MODE_LIMIT,		'l',
+    0x0, 0x0
+  };
+  int *flag_p;
+  unsigned int del_mode = 0;
+  char control_buf[20];
+  int control_buf_i = 0;
+  struct ModeBuf mbuf;
+  struct SLink *link, *next;
+  struct Membership *member;
+
+  /* Um...yeah, like it's supposed to have any modes at all. */
+  if (IsModelessChannel(chptr->chname))
+    return 0;
+
+  /* Ok, so what are we supposed to get rid of? */
+  for (; *control; control++) {
+    for (flag_p = flags; flag_p[0]; flag_p += 2)
+      if (*control == flag_p[1]) {
+	del_mode |= flag_p[0];
+	break;
+      }
+  }
+
+  if (!del_mode)
+    return 0; /* nothing to remove; ho hum. */
+
+  modebuf_init(&mbuf, sptr, cptr, chptr,
+	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */
+		MODEBUF_DEST_OPMODE  | /* Treat it like an OPMODE */
+		MODEBUF_DEST_HACK4));  /* Generate a HACK(4) notice */
+
+  modebuf_mode(&mbuf, MODE_DEL | del_mode); /* Mark modes for deletion */
+  chptr->mode.mode &= ~del_mode; /* and of course actually delete them */
+
+  /* If we're removing invite, remove all the invites */
+  if (del_mode & MODE_INVITE)
+    while ((link = chptr->invites))
+      del_invite(link->value.cptr, chptr);
+
+  /*
+   * If we're removing the key, note that; note that we can't clear
+   * the key until after modebuf_* are done with it
+   */
+  if (del_mode & MODE_KEY)
+    modebuf_mode_string(&mbuf, MODE_DEL | MODE_KEY, chptr->mode.key);
+
+  /* If we're removing the limit, note that and clear the limit */
+  if (del_mode & MODE_LIMIT) {
+    modebuf_mode_uint(&mbuf, MODE_DEL | MODE_LIMIT, chptr->mode.limit);
+    chptr->mode.limit = 0; /* not referenced, so safe */
+  }
+
+  /*
+   * Go through and mark the bans for deletion; note that we can't
+   * free them until after modebuf_* are done with them
+   */
+  if (del_mode & MODE_BAN)
+    for (link = chptr->banlist; link; link = link->next)
+      modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, link->value.ban.banstr);
+
+  /* Deal with users on the channel */
+  if (del_mode & (MODE_BAN | MODE_CHANOP | MODE_VOICE))
+    for (member = chptr->members; member; member = member->next_member) {
+      if (IsZombie(member)) /* we ignore zombies */
+	continue;
+
+      if (del_mode & MODE_BAN) /* If we cleared bans, clear the valid flags */
+	ClearBanValid(member);
+
+      /* Drop channel operator status */
+      if (IsChanOp(member) && del_mode & MODE_CHANOP) {
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user);
+	member->status &= ~CHFL_CHANOP;
+      }
+
+      /* Drop voice */
+      if (HasVoice(member) && del_mode & MODE_VOICE) {
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, member->user);
+	member->status &= ~CHFL_VOICE;
+      }
+    }
+
+  /* And flush the modes to the channel */
+  modebuf_flush(&mbuf);
+
+  /* Finally, we can clear the key... */
+  if (del_mode & MODE_KEY)
+    chptr->mode.key[0] = '\0';
+
+  /* and free the bans */
+  if (del_mode & MODE_BAN) {
+    for (link = chptr->banlist; link; link = next) {
+      next = link->next;
+
+      MyFree(link->value.ban.banstr);
+      MyFree(link->value.ban.who);
+      free_link(link);
+    }
+
+    chptr->banlist = 0;
+  }
+
+  /* Don't propagate CLEARMODE if it's a local channel */
+  if (IsLocalChannel(chptr->chname))
+    return 0;
+
+  /* Ok, build control string again */
+  for (flag_p = flags; flag_p[0]; flag_p += 2)
+    if (del_mode & flag_p[0])
+      control_buf[control_buf_i++] = flag_p[1];
+
+  control_buf[control_buf_i] = '\0';
+
+  /* Then send it */
+  if (IsServer(sptr))
+    sendto_serv_butone(cptr, "%s " TOK_CLEARMODE " %s %s", NumServ(sptr),
+		       chptr->chname, control_buf);
+  else
+    sendto_serv_butone(cptr, "%s%s " TOK_CLEARMODE " %s %s", NumNick(sptr),
+		       chptr->chname, control_buf);
+}
+
+/*
+ * ms_clearmode - server message handler
+ *
+ * parv[0] = Send prefix
+ * parv[1] = Channel name
+ * parv[2] = Control string
+ */
+int
+ms_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  struct Channel *chptr;
+
+  if (parc < 3)
+    return need_more_params(sptr, "CLEARMODE");
+
+  if (!IsPrivileged(sptr))
+    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+
+  if (!IsChannelName(parv[1]) || IsLocalChannel(parv[1]) ||
+      !(chptr = FindChannel(parv[1])))
+    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+
+  return do_clearmode(cptr, sptr, chptr, parv[2]);
 }
 
 /*
  * mo_clearmode - oper message handler
+ *
+ * parv[0] = Send prefix
+ * parv[1] = Channel name
+ * parv[2] = Control string
  */
-int mo_clearmode(struct Client* cptr, struct Client* sptr, int parc,
-		 char* parv[])
+int
+mo_clearmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  return 0;
-}
+  struct Channel *chptr;
+  char *control = "ovpsmikbl"; /* default control string */
 
+  if (parc < 2)
+    return need_more_params(sptr, "CLEARMODE");
+
+  if (parc > 2)
+    control = parv[2];
+
+  if (!IsOper(sptr) && !IsLocalChannel(parv[1]))
+    return send_error_to_client(sptr, ERR_NOPRIVILEGES);
+
+  if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
+    return send_error_to_client(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+
+  return do_clearmode(cptr, sptr, chptr, control);
+}
