@@ -302,7 +302,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 #ifdef LOCAL_KILL_ONLY
   if (!MyConnect(victim)) {
-    send_reply(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server", sptr,
+    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Nick %s isnt on your server", sptr,
 	       victim->name);
     return 0;
   }

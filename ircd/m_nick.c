@@ -317,7 +317,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * is present in the nicklist (due to the way the below for loop is
    * constructed). -avalon
    */
-  if (!(acptr = FindClient(nick))) {
+   
+  acptr = FindClient(nick);
+  if (!acptr) {
     /*
      * No collisions, all clear...
      */
