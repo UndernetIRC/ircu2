@@ -1,3 +1,6 @@
+2000-04-29  Perry Lorier <isomer@coders.net>
+	* include/s_bsd.c: Add debugging code to IPcheck
+
 2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/ircd_reply.h (SND_EXPLICIT): use instead of RPL_EXPLICIT
@@ -969,7 +972,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.112 2000-04-28 17:34:44 kev Exp $
+# $Id: ChangeLog,v 1.113 2000-04-29 04:42:51 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

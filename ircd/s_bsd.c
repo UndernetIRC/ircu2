@@ -579,12 +579,23 @@ void add_connection(struct Listener* listener, int fd)
    * reject the user.
    */
   if (!IPcheck_local_connect(addr.sin_addr, &next_target) && !listener->server) {
-    ++ServerStats->is_ref;
+#ifdef IPCHECKDEBUG     
+   char buff[512];
+   snprintf(buff,"\n%s [%i connections active]\n",
+   	throttle_message,
+   	IPcheck_nr(addr.sin_addr));
+   buff[511]=0;
+   send(fd,buff,strlen(buff));
+#else
     /*
      * strlen(throttle_message) == 66
+     *
+     * strlen is slow, so we use the constant here.
      */
     send(fd, throttle_message, 66, 0);
+#endif
     close(fd);
+    ++ServerStats->is_ref;
     return;
   }
 
