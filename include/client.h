@@ -25,6 +25,9 @@
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"
 #endif
+#ifndef INCLUDED_config_h
+#include "config.h"
+#endif
 #ifndef INCLUDED_dbuf_h
 #include "dbuf.h"
 #endif
@@ -292,13 +295,18 @@ struct Client {
 #define SNO_THROTTLE    0x1000  /* host throttle add/remove notices */
 #define SNO_OLDREALOP   0x2000  /* old oper-only messages */
 #define SNO_CONNEXIT    0x4000  /* client connect/exit (ugh) */
+#define SNO_DEBUG       0x8000  /* debugging messages (DEBUGMODE only) */
 
-#define SNO_ALL         0x7fff  /* Don't make it larger then significant,
+#ifdef DEBUGMODE
+# define SNO_ALL        0xffff  /* Don't make it larger then significant,
                                  * that looks nicer */
+#else
+# define SNO_ALL        0x7fff
+#endif
 
 #define SNO_USER        (SNO_ALL & ~SNO_OPER)
 
-#define SNO_DEFAULT (SNO_NETWORK|SNO_OPERKILL|SNO_GLINE)
+#define SNO_DEFAULT ((SNO_NETWORK|SNO_OPERKILL|SNO_GLINE|SNO_DEBUG)&SNO_ALL)
 #define SNO_OPERDEFAULT (SNO_DEFAULT|SNO_HACK2|SNO_HACK4|SNO_THROTTLE|SNO_OLDSNO)
 #define SNO_OPER (SNO_CONNEXIT|SNO_OLDREALOP)
 #define SNO_NOISY (SNO_SERVKILL|SNO_UNAUTH)

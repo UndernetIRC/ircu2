@@ -26,6 +26,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
 #include "ircd.h"
@@ -191,35 +192,22 @@ void debug_init(int use_tty)
 #ifdef  DEBUGMODE
   if (debuglevel >= 0) {
     printf("isatty = %d ttyname = %s\n", isatty(2), ttyname(2));
-    if (!use_tty) {
-      int fd;
-      /* 
-       * leave debugging output on fd 2
-       */
-      if ((fd = open(LOGFILE, O_CREAT | O_WRONLY | O_APPEND, 0600)) < 0) {
-        if ((fd = open("/dev/null", O_WRONLY)) < 0)
-          exit(-1);
-      }
-      if (fd != 2) {
-        dup2(fd, 2);
-        close(fd);
-      }
-    }
+    log_debug_init(use_tty ? 0 : LOGFILE);
   }
 #endif
 }
 
 #ifdef DEBUGMODE
-static char debugbuf[1024];
-
 void vdebug(int level, const char *form, va_list vl)
 {
+  static int loop = 0;
   int err = errno;
 
-  if ((debuglevel >= 0) && (level <= debuglevel))
+  if (!loop && (debuglevel >= 0) && (level <= debuglevel))
   {
-    vsprintf(debugbuf, form, vl);
-    fprintf(stderr, "%s\n", debugbuf);
+    loop = 1;
+    log_vwrite(LS_DEBUG, L_DEBUG, 0, form, vl);
+    loop = 0;
   }
   errno = err;
 }

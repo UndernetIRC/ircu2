@@ -1,6 +1,7 @@
 /************************************************************************
  *   IRC - Internet Relay Chat, src/ircd_log.c
  *   Copyright (C) 1999 Thomas Helvey (BleepSoft)
+ *   Copyright (C) 2000 Kevin L. Mitchell <klmitch@mit.edu>
  *                     
  *   See file AUTHORS in IRC package for additional names of
  *   the programmers. 
@@ -24,13 +25,16 @@
 #include "ircd_log.h"
 #include "client.h"
 #include "config.h"
+#include "ircd_alloc.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd.h"
 #include "s_debug.h"
+#include "send.h"
 #include "struct.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -43,39 +47,79 @@
 
 #define LOG_BUFSIZE 2048 
 
-/* These constants are present even if we don't use syslog */
-#ifndef LOG_CRIT
-# define LOG_CRIT 0
+/* select default log level cutoff */
+#ifdef DEBUGMODE
+# define L_DEFAULT	L_DEBUG
+#else
+# define L_DEFAULT	L_INFO
 #endif
-#ifndef LOG_ERR
-# define LOG_ERR 0
-#endif
-#ifndef LOG_WARNING
-# define LOG_WARNING 0
-#endif
-#ifndef LOG_NOTICE
-# define LOG_NOTICE 0
-#endif
-#ifndef LOG_INFO
-# define LOG_INFO 0
-#endif
+
+#define LOG_DOSYSLOG	0x10
+#define LOG_DOFILELOG	0x20
+#define LOG_DOSNOTICE	0x40
+
+#define LOG_DOMASK	(LOG_DOSYSLOG | LOG_DOFILELOG | LOG_DOSNOTICE)
 
 /* Map severity levels to strings and syslog levels */
 static struct LevelData {
   enum LogLevel level;
   char	       *string;
   int		syslog;
+  unsigned int	snomask; /* 0 means use default in LogDesc */
 } levelData[] = {
-#define L(level, syslog)   { L_ ## level, #level, (syslog) }
-  L(CRIT, LOG_CRIT),
-  L(ERROR, LOG_ERR),
-  L(WARNING, LOG_WARNING),
-  L(NOTICE, LOG_NOTICE),
-  L(TRACE, LOG_INFO),
-  L(INFO, LOG_INFO),
-  L(DEBUG, LOG_INFO),
+#define L(level, syslog, mask) { L_ ## level, #level, (syslog), (mask) }
+  L(CRIT, LOG_CRIT, SNO_OLDSNO),
+  L(ERROR, LOG_ERR, 0),
+  L(WARNING, LOG_WARNING, 0),
+  L(NOTICE, LOG_NOTICE, 0),
+  L(TRACE, LOG_INFO, 0),
+  L(INFO, LOG_INFO, 0),
+  L(DEBUG, LOG_INFO, SNO_DEBUG),
 #undef L
-  { L_LAST_LEVEL, 0 }
+  { L_LAST_LEVEL, 0, 0, 0 }
+};
+
+/* Just in case some implementation of syslog has them... */
+#undef LOG_NONE
+#undef LOG_DEFAULT
+#undef LOG_NOTFOUND
+
+#define LOG_NONE     -1 /* don't syslog */
+#define LOG_DEFAULT   0 /* syslog to logInfo.facility */
+#define LOG_NOTFOUND -2 /* didn't find a facility corresponding to name */
+
+/* Map names to syslog facilities--allows syslog configuration from .conf */
+static struct {
+  char *name;
+  int facility;
+} facilities[] = {
+#define F(fac) { #fac, LOG_ ## fac }
+  F(NONE),    F(DEFAULT), F(AUTH),
+#ifdef LOG_AUTHPRIV
+  F(AUTHPRIV),
+#endif
+  F(CRON),    F(DAEMON),  F(LOCAL0),  F(LOCAL1),  F(LOCAL2),  F(LOCAL3),
+  F(LOCAL4),  F(LOCAL5),  F(LOCAL6),  F(LOCAL7),  F(LPR),     F(MAIL),
+  F(NEWS),    F(USER),    F(UUCP),
+#undef F
+  { 0, 0 }
+};
+
+#define SNO_NONE     0x00000000 /* don't send server notices */
+#define SNO_NOTFOUND 0xffffffff /* didn't find a SNO_MASK value for name */
+
+/* Map names to snomask values--allows configuration from .conf */
+static struct {
+  char *name;
+  unsigned int snomask;
+} masks[] = {
+#define M(mask) { #mask, SNO_ ## mask }
+  M(NONE),       M(OLDSNO),     M(SERVKILL),   M(OPERKILL),   M(HACK2),
+  M(HACK3),      M(UNAUTH),     M(TCPCOMMON),  M(TOOMANY),    M(HACK4),
+  M(GLINE),      M(NETWORK),    M(IPMISMATCH), M(THROTTLE),   M(OLDREALOP),
+  M(CONNEXIT),   M(DEBUG),
+#undef M
+  { 0, 0 }
 };
 
 /* Descriptions of all logging subsystems */
@@ -83,139 +127,175 @@ static struct LogDesc {
   enum LogSys	  subsys;   /* number for subsystem */
   char		 *name;	    /* subsystem name */
   struct LogFile *file;	    /* file descriptor for subsystem */
+  int		  def_fac;  /* default facility */
+  unsigned int	  def_sno;  /* default snomask */
   int		  facility; /* -1 means don't use syslog */
+  unsigned int	  snomask;  /* 0 means no server message */
+  enum LogLevel	  level;    /* logging level */
 } logDesc[] = {
-#define S(system, defprio) { LS_ ## system, #system, 0, (defprio) }
-  S(GLINE, -1),
+#define S(sys, p, sn) { LS_ ## sys, #sys, 0, (p), (sn), (p), (sn), L_DEFAULT }
+  S(SYSTEM, -1, 0),
+  S(CONFIG, 0, SNO_OLDSNO),
+  S(OPERMODE, -1, SNO_HACK4),
+  S(GLINE, -1, SNO_GLINE),
+  S(JUPE, -1, SNO_NETWORK),
+  S(WHO, -1, 0),
+  S(NETWORK, -1, SNO_NETWORK),
+  S(OPERKILL, -1, 0),
+  S(SERVKILL, -1, 0),
+  S(OPER, -1, SNO_OLDREALOP),
+  S(OPERLOG, -1, 0),
+  S(USERLOG, -1, 0),
+  S(RESOLVER, -1, 0),
+  S(SOCKET, -1, 0),
+  S(DEBUG, -1, SNO_DEBUG),
+  S(OLDLOG, -1, 0),
 #undef S
-  { LS_LAST_SYSTEM, 0, 0, -1 }
+  { LS_LAST_SYSTEM, 0, 0, -1, 0, -1, 0 }
 };
 
+/* describes a log file */
 struct LogFile {
-  struct LogFile *next;	/* next log file descriptor */
-  int		  fd;	/* file's descriptor-- -1 if not open */
-  char		 *file;	/* file name */
+  struct LogFile  *next;   /* next log file descriptor */
+  struct LogFile **prev_p; /* what points to us */
+  int		   fd;	   /* file's descriptor-- -1 if not open */
+  int		   ref;	   /* how many things refer to us? */
+  char		  *file;   /* file name */
 };
 
-static struct LogFile *logFileList = 0; /* list of log files */
-
-static const char *procname = "ircd"; /* process's name */
-
-static int logLevel = L_INFO;
-
-#ifdef USE_SYSLOG
-static int sysLogLevel[] = {
-  LOG_CRIT,
-  LOG_ERR,
-  LOG_WARNING,
-  LOG_NOTICE,
-  LOG_INFO,
-  LOG_INFO,
-  LOG_INFO
-};
-#endif
+/* modifiable static information */
+static struct {
+  struct LogFile *filelist; /* list of log files */
+  struct LogFile *freelist; /* list of free'd log files */
+  int		  facility; /* default facility */
+  const char	 *procname; /* process's name */
+  struct LogFile *dbfile;   /* debug file */
+} logInfo = { 0, 0, LOG_USER, "ircd", 0 };
 
 void ircd_log(int priority, const char* fmt, ...)
 {
-#if defined(USE_SYSLOG) || defined(DEBUGMODE)
-  char    buf[LOG_BUFSIZE];
-  va_list args;
-  assert(-1 < priority);
-  assert(priority < L_LAST_LEVEL);
-  assert(0 != fmt);
+  va_list vl;
 
-  if (priority > logLevel)
+  va_start(vl, fmt);
+  log_vwrite(LS_OLDLOG, priority, 0, fmt, vl);
+  va_end(vl);
+}
+
+/* helper routine to open a log file if needed */
+static void
+log_open(struct LogFile *lf)
+{
+  /* only open the file if we haven't already */
+  if (lf && lf->fd < 0) {
+    alarm(3); /* if NFS hangs, we hang only for 3 seconds */
+    lf->fd = open(lf->file, O_WRONLY | O_CREAT | O_APPEND,
+		  S_IREAD | S_IWRITE);
+    alarm(0);
+  }
+}
+
+#ifdef DEBUGMODE
+
+/* reopen debug log */
+static void
+log_debug_reopen(void)
+{
+  if (!logInfo.dbfile) /* no open debugging file */
     return;
 
-  va_start(args, fmt);
-  vsprintf(buf, fmt, args);
-  va_end(args);
-#endif
-#ifdef USE_SYSLOG
-  syslog(sysLogLevel[priority], "%s", buf);
-#endif
-#ifdef DEBUGMODE
-  Debug((DEBUG_INFO, "LOG: %s", buf));
-#endif
-}
-
-void open_log(const char* process_name)
-{
-#ifdef USE_SYSLOG
-  if (EmptyString(process_name))
-    process_name = "ircd";
-  openlog(process_name, LOG_PID | LOG_NDELAY, LOG_USER);
-#endif
-}
-
-void close_log(void)
-{
-#ifdef USE_SYSLOG
-  closelog();
-#endif
-}
-
-void set_log_level(int level)
-{
-  if (L_ERROR < level && level < L_LAST_LEVEL)
-    logLevel = level;
-}
-
-int get_log_level(void)
-{
-  return(logLevel);
-}
-
-/*
- * ircd_log_kill - log information about a kill
- */
-void ircd_log_kill(const struct Client* victim, const struct Client* killer,
-                   const char* inpath, const char* path)
-{
-  if (MyUser(victim)) {
-    /*
-     * get more infos when your local clients are killed -- _dl
-     */
-    if (IsServer(killer))
-      ircd_log(L_TRACE,
-               "A local client %s!%s@%s KILLED from %s [%s] Path: %s!%s)",
-               victim->name, victim->user->username, victim->user->host,
-               killer->name, killer->name, inpath, path);
-    else
-      ircd_log(L_TRACE,
-               "A local client %s!%s@%s KILLED by %s [%s!%s@%s] (%s!%s)",
-               victim->name, victim->user->username, victim->user->host,
-               killer->name, killer->name, killer->user->username, killer->user->host,
-               inpath, path);
+  if (!logInfo.dbfile->file) { /* using terminal output */
+    logInfo.dbfile->fd = 2;
+    return;
   }
-  else
-    ircd_log(L_TRACE, "KILL From %s For %s Path %s!%s",
-             killer->name, victim->name, inpath, path);
+
+  /* Ok, it's a real file; close it if necessary and use log_open to open it */
+  if (logInfo.dbfile->fd >= 0)
+    close(logInfo.dbfile->fd);
+
+  log_open(logInfo.dbfile);
+
+  if (logInfo.dbfile->fd < 0) { /* try again with /dev/null */
+    if ((logInfo.dbfile->fd = open("/dev/null", O_WRONLY)) < 0)
+      exit(-1);
+  }
+
+  /* massage the file descriptor to be stderr */
+  if (logInfo.dbfile->fd != 2) {
+    dup2(logInfo.dbfile->fd, 2);
+    close(logInfo.dbfile->fd);
+    logInfo.dbfile->fd = 2;
+  }
 }
 
+/* initialize debugging log */
+void
+log_debug_init(char *file)
+{
+  logInfo.dbfile = MyMalloc(sizeof(struct LogFile));
 
+  logInfo.dbfile->next = 0; /* initialize debugging filename */
+  logInfo.dbfile->prev_p = 0;
+  logInfo.dbfile->fd = -1;
+  logInfo.dbfile->ref = 1;
+
+  if (file) /* store pathname to use */
+    DupString(logInfo.dbfile->file, file);
+  else
+    logInfo.dbfile->file = 0;
+
+  log_debug_reopen(); /* open the debug log */
+
+  logDesc[LS_DEBUG].file = logInfo.dbfile; /* remember where it went */
+}
+
+/* set the debug log file */
+static void
+log_debug_file(char *file)
+{
+  assert(0 != file);
+
+  /* If we weren't started with debugging enabled, or if we're using
+   * the terminal, don't do anything at all.
+   */
+  if (!logInfo.dbfile || !logInfo.dbfile->file)
+    return;
+
+  MyFree(logInfo.dbfile->file); /* free old pathname */
+  DupString(logInfo.dbfile->file, file); /* store new pathname */
+
+  log_debug_reopen(); /* reopen the debug log */
+}
+
+#endif /* DEBUGMODE */
+
+/* called in place of open_log(), this stores the process name and prepares
+ * for syslogging
+ */
 void
 log_init(const char *process_name)
 {
   /* store the process name; probably belongs in ircd.c, but oh well... */
   if (!EmptyString(process_name))
-    procname = process_name;
+    logInfo.procname = process_name;
 
-#ifdef USE_SYSLOG
   /* ok, open syslog; default facility: LOG_USER */
-  openlog(procname, LOG_PID | LOG_NDELAY, LOG_USER);
-#endif
+  openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
 }
 
+/* Files are persistently open; this closes and reopens them to allow
+ * log file rotation
+ */
 void
 log_reopen(void)
 {
   log_close(); /* close everything...we reopen on demand */
 
-#ifdef USE_SYSLOG
+#ifdef DEBUGMODE
+  log_debug_reopen(); /* reopen debugging log if necessary */
+#endif /* DEBUGMODE */
+
   /* reopen syslog, if needed; default facility: LOG_USER */
-  openlog(procname, LOG_PID | LOG_NDELAY, LOG_USER);
-#endif
+  openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
 }
 
 /* close the log files */
@@ -224,33 +304,38 @@ log_close(void)
 {
   struct LogFile *ptr;
 
-#ifdef USE_SYSLOG
   closelog(); /* close syslog */
-#endif
 
-  for (ptr = logFileList; ptr; ptr = ptr->next) {
+  for (ptr = logInfo.filelist; ptr; ptr = ptr->next) {
     if (ptr->fd >= 0)
-      close(ptr->fd);
+      close(ptr->fd); /* close all the files... */
 
     ptr->fd = -1;
   }
-}
 
-static void
-log_open(struct LogFile *lf)
-{
-  /* only open the file if we haven't already */
-  if (lf && lf->fd < 0) {
-    alarm(3);
-    lf->fd = open(lf->file, O_WRONLY | O_CREAT | O_APPEND,
-		     S_IREAD | S_IWRITE);
-    alarm(0);
+  if (logInfo.dbfile && logInfo.dbfile->file) {
+    if (logInfo.dbfile->fd >= 0)
+      close(logInfo.dbfile->fd); /* close the debug log file */
+
+    logInfo.dbfile->fd = -1;
   }
 }
 
-/* This writes an entry to a log file */
+/* These write entries to a log file */
 void
-log_write(enum LogSys subsys, enum LogLevel severity, const char *fmt, ...)
+log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
+	  const char *fmt, ...)
+{
+  va_list vl;
+
+  va_start(vl, fmt);
+  log_vwrite(subsys, severity, flags, fmt, vl);
+  va_end(vl);
+}
+
+void
+log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
+	   const char *fmt, va_list vl)
 {
   struct VarData vd;
   struct LogDesc *desc;
@@ -264,10 +349,11 @@ log_write(enum LogSys subsys, enum LogLevel severity, const char *fmt, ...)
   char timebuf[23];
 
   /* check basic assumptions */
-  assert(-1 < subsys);
-  assert(subsys < LS_LAST_SYSTEM);
-  assert(-1 < severity);
-  assert(severity < L_LAST_LEVEL);
+  assert(-1 < (int)subsys);
+  assert((int)subsys < LS_LAST_SYSTEM);
+  assert(-1 < (int)severity);
+  assert((int)severity < L_LAST_LEVEL);
+  assert(0 == (flags & ~LOG_NOMASK));
   assert(0 != fmt);
 
   /* find the log data and the severity data */
@@ -278,30 +364,39 @@ log_write(enum LogSys subsys, enum LogLevel severity, const char *fmt, ...)
   assert(desc->subsys == subsys);
   assert(ldata->level == severity);
 
-  /* if we don't have anything to log to, short-circuit */
-  if (!desc->file
-#ifdef USE_SYSLOG
-      && desc->facility < 0
-#endif
-      )
+  /* check severity... */
+  if (severity > desc->level)
+    return;
+
+  /* figure out where all we need to log */
+  if (!(flags & LOG_NOFILELOG) && desc->file) {
+    log_open(desc->file);
+    if (desc->file->fd >= 0) /* don't log to file if we can't open the file */
+      flags |= LOG_DOFILELOG;
+  }
+
+  if (!(flags & LOG_NOSYSLOG) && desc->facility >= 0)
+    flags |= LOG_DOSYSLOG; /* will syslog */
+
+  if (!(flags & LOG_NOSNOTICE) && (desc->snomask != 0 || ldata->snomask != 0))
+    flags |= LOG_DOSNOTICE; /* will send a server notice */
+
+  /* short-circuit if there's nothing to do... */
+  if (!(flags & LOG_DOMASK))
     return;
 
   /* Build the basic log string */
   vd.vd_format = fmt;
-  va_start(vd.vd_args, fmt);
+  vd.vd_args = vl;
 
   /* save the length for writev */
-  /* Log format: "SYSTEM [SEVERITY] log message */
+  /* Log format: "SYSTEM [SEVERITY]: log message" */
   vector[1].iov_len =
-    ircd_snprintf(0, buf, sizeof(buf), "%s [%s] %v", desc->name,
-		  ldata->string, &vd) - 1;
+    ircd_snprintf(0, buf, sizeof(buf), "%s [%s]: %v", desc->name,
+		  ldata->string, &vd);
 
-  va_end(vd.vd_args);
-
-  /* open the log file if we haven't already */
-  log_open(desc->file);
   /* if we have something to write to... */
-  if (desc->file && desc->file->fd >= 0) {
+  if (flags & LOG_DOFILELOG) {
     curtime = TStime();
     tstamp = localtime(&curtime); /* build the timestamp */
 
@@ -309,7 +404,7 @@ log_write(enum LogSys subsys, enum LogLevel severity, const char *fmt, ...)
       ircd_snprintf(0, timebuf, sizeof(timebuf), "[%d-%d-%d %d:%02d:%02d] ",
 		    tstamp->tm_year + 1900, tstamp->tm_mon + 1,
 		    tstamp->tm_mday, tstamp->tm_hour, tstamp->tm_min,
-		    tstamp->tm_sec) - 1;
+		    tstamp->tm_sec);
 
     /* set up the remaining parts of the writev vector... */
     vector[0].iov_base = timebuf;
@@ -322,9 +417,330 @@ log_write(enum LogSys subsys, enum LogLevel severity, const char *fmt, ...)
     writev(desc->file->fd, vector, 3);
   }
 
-#ifdef USE_SYSLOG
   /* oh yeah, syslog it too... */
-  if (desc->facility >= 0)
+  if (flags & LOG_DOSYSLOG)
     syslog(ldata->syslog | desc->facility, "%s", buf);
-#endif
+
+  /* can't forget server notices... */
+  if (flags & LOG_DOSNOTICE)
+    sendto_opmask_butone(0, ldata->snomask ? ldata->snomask : desc->snomask,
+			 "%s", buf);
+}
+
+/* log kills for fun and profit */
+void
+log_write_kill(const struct Client *victim, const struct Client *killer,
+	       const char *inpath, const char *path)
+{
+  if (MyUser(victim))
+    log_write(IsServer(killer) ? LS_SERVKILL : LS_OPERKILL, L_TRACE, 0,
+	      "A local client %#C KILLED by %#C Path: %s!%s",
+	      victim, killer, inpath, path);
+  else
+    log_write(IsServer(killer) ? LS_SERVKILL : LS_OPERKILL, L_TRACE, 0,
+	      "KILL from %C For %C Path: %s!%s", killer, victim, inpath, path);
+}
+
+/* return a struct LogFile for a specific filename--reference counted */
+static struct LogFile *
+log_file_create(const char *file)
+{
+  struct LogFile *tmp;
+
+  assert(0 != file);
+
+  /* if one already exists for that file, return it */
+  for (tmp = logInfo.filelist; tmp; tmp = tmp->next)
+    if (!strcmp(tmp->file, file)) {
+      tmp->ref++;
+      return tmp;
+    }
+
+  if (logInfo.freelist) { /* pop one off the free list */
+    tmp = logInfo.freelist;
+    logInfo.freelist = tmp->next;
+  } else /* allocate a new one */
+    tmp = MyMalloc(sizeof(struct LogFile));
+
+  tmp->fd = -1; /* initialize the structure */
+  tmp->ref = 1;
+  DupString(tmp->file, file);
+
+  tmp->next = logInfo.filelist; /* link it into the list... */
+  tmp->prev_p = &logInfo.filelist;
+  logInfo.filelist->prev_p = &tmp->next;
+  logInfo.filelist = tmp;
+
+  return tmp;
+}
+
+/* destroy a log file descriptor, under the control of the reference count */
+static void
+log_file_destroy(struct LogFile *lf)
+{
+  assert(0 != lf);
+
+  if (--lf->ref == 0) {
+    if (lf->next) /* clip it out of the list */
+      lf->next->prev_p = lf->prev_p;
+    *lf->prev_p = lf->next;
+
+    lf->prev_p = 0; /* we won't use it for the free list */
+    if (lf->fd >= 0)
+      close(lf->fd);
+    lf->fd = -1;
+    MyFree(lf->file); /* free the file name */
+
+    lf->next = logInfo.freelist; /* stack it onto the free list */
+    logInfo.freelist = lf;
+  }
+}
+
+/* finds a subsystem given its name */
+static struct LogDesc *
+log_find(char *subsys)
+{
+  int i;
+
+  assert(0 != subsys);
+
+  /* find the named subsystem */
+  for (i = 0; i < LS_LAST_SYSTEM; i++)
+    if (!ircd_strcmp(subsys, logDesc[i].name))
+      return &logDesc[i];
+
+  return 0; /* not found */
+}
+
+/* find a level given its name */
+static enum LogLevel
+log_lev_find(char *level)
+{
+  int i;
+
+  assert(0 != level);
+
+  /* find the named level */
+  for (i = 0; levelData[i].string; i++)
+    if (!ircd_strcmp(level, levelData[i].string))
+      return levelData[i].level;
+
+  return L_LAST_LEVEL; /* not found */
+}
+
+/* find a facility given its name */
+static int
+log_fac_find(char *facility)
+{
+  int i;
+
+  assert(0 != facility);
+
+  /* find the named facility */
+  for (i = 0; facilities[i].name; i++)
+    if (!ircd_strcmp(facility, facilities[i].name))
+      return facilities[i].facility;
+
+  return LOG_NOTFOUND; /* not found */
+}
+
+/* find a snomask value given its name */
+static unsigned int
+log_sno_find(char *maskname)
+{
+  int i;
+
+  assert(0 != maskname);
+
+  /* find the named snomask */
+  for (i = 0; masks[i].name; i++)
+    if (!ircd_strcmp(maskname, masks[i].name))
+      return masks[i].snomask;
+
+  return SNO_NOTFOUND; /* not found */
+}
+
+/* set the log file for a subsystem */
+void
+log_set_file(char *subsys, char *filename)
+{
+  struct LogDesc *desc;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return;
+
+  /* no change, don't go to the trouble of destroying and recreating */
+  if (filename && !strcmp(desc->file->file, filename))
+    return;
+
+  /* debug log is special, since it has to be opened on fd 2 */
+  if (desc->subsys == LS_DEBUG) {
+    log_debug_file(filename);
+    return;
+  }
+
+  if (desc->file) /* destroy previous entry... */
+    log_file_destroy(desc->file);
+
+  /* set the file to use */
+  desc->file = filename ? log_file_create(filename) : 0;
+}
+
+/* get the log file for a subsystem */
+char *
+log_get_file(char *subsys)
+{
+  struct LogDesc *desc;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return 0;
+
+  return desc->file ? desc->file->file : 0;
+}
+
+/* set the facility for a subsystem */
+void
+log_set_facility(char *subsys, char *facility)
+{
+  struct LogDesc *desc;
+  int fac;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return;
+
+  /* set syslog facility */
+  if (EmptyString(facility))
+    desc->facility = desc->def_fac;
+  else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND)
+    desc->facility = fac;
+}
+
+/* get the facility for a subsystem */
+char *
+log_get_facility(char *subsys)
+{
+  struct LogDesc *desc;
+  int i;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return 0;
+
+  /* find the facility's name */
+  for (i = 0; facilities[i].name; i++)
+    if (desc->facility == facilities[i].facility)
+      return facilities[i].name; /* found it... */
+
+  return 0; /* shouldn't ever happen */
+}
+
+/* set the snomask value for a subsystem */
+void
+log_set_snomask(char *subsys, char *snomask)
+{
+  struct LogDesc *desc;
+  unsigned int sno;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return;
+
+  /* set snomask value */
+  if (EmptyString(snomask))
+    desc->snomask = desc->def_sno;
+  else if ((sno = log_sno_find(snomask)) != SNO_NOTFOUND)
+    desc->snomask = sno;
+}
+
+/* get the snomask value for a subsystem */
+char *
+log_get_snomask(char *subsys)
+{
+  struct LogDesc *desc;
+  int i;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return 0;
+
+  /* find the snomask value's name */
+  for (i = 0; masks[i].name; i++)
+    if (desc->snomask == masks[i].snomask)
+      return masks[i].name; /* found it... */
+
+  return 0; /* shouldn't ever happen */
+}
+
+/* set the level for a subsystem */
+void
+log_set_level(char *subsys, char *level)
+{
+  struct LogDesc *desc;
+  enum LogLevel lev;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return;
+
+  /* set logging level */
+  if (EmptyString(level))
+    desc->level = L_DEFAULT;
+  else if ((lev = log_lev_find(level)) != L_LAST_LEVEL)
+    desc->level = lev;
+}
+
+/* get the level for a subsystem */
+char *
+log_get_level(char *subsys)
+{
+  struct LogDesc *desc;
+  int i;
+
+  /* find subsystem */
+  if (!(desc = log_find(subsys)))
+    return 0;
+
+  /* find the level's name */
+  for (i = 0; levelData[i].string; i++)
+    if (desc->level == levelData[i].level)
+      return levelData[i].string; /* found it... */
+
+  return 0; /* shouldn't ever happen */
+}
+
+/* set the overall default syslog facility */
+void
+log_set_default(char *facility)
+{
+  int fac, oldfac;
+
+  oldfac = logInfo.facility;
+
+  if (EmptyString(facility))
+    logInfo.facility = LOG_USER;
+  else if ((fac = log_fac_find(facility)) != LOG_NOTFOUND &&
+	   fac != LOG_NONE && fac != LOG_DEFAULT)
+    logInfo.facility = fac;
+
+  if (logInfo.facility != oldfac) {
+    closelog(); /* reopen syslog with new facility setting */
+    openlog(logInfo.procname, LOG_PID | LOG_NDELAY, logInfo.facility);
+  }
+}
+
+/* get the overall default syslog facility */
+char *
+log_get_default(void)
+{
+  int i;
+
+  /* find the facility's name */
+  for (i = 0; facilities[i].name; i++)
+    if (logInfo.facility == facilities[i].facility)
+      return facilities[i].name; /* found it... */
+
+  return 0; /* shouldn't ever happen */
 }

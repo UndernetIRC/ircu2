@@ -1281,6 +1281,8 @@ int rehash(struct Client *cptr, int sig)
 
   read_configuration_file();
 
+  log_reopen(); /* reopen log files */
+
   close_listeners();
   class_delete_marked();         /* unless it fails */
 

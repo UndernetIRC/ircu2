@@ -21,7 +21,16 @@
 #ifndef INCLUDED_ircd_log_h
 #define INCLUDED_ircd_log_h
 
+#ifndef INCLUDED_stdarg_h
+#include <stdarg.h>	    /* va_list */
+#define INCLUDED_stdarg_h
+#endif
+
 struct Client;
+
+/* WARNING WARNING WARNING -- Order is important; these enums are
+ * used as indexes into arrays.
+ */
 
 enum LogLevel {
   L_CRIT,
@@ -34,11 +43,10 @@ enum LogLevel {
   L_LAST_LEVEL
 };
 
-/* WARNING WARNING WARNING -- Order is important; these are
- * used as indexes into an array of LogDesc structures.
- */
 enum LogSys {
-  LS_GLINE,
+  LS_SYSTEM, LS_CONFIG, LS_OPERMODE, LS_GLINE, LS_JUPE, LS_WHO, LS_NETWORK,
+  LS_OPERKILL, LS_SERVKILL, LS_OPER, LS_OPERLOG, LS_USERLOG, LS_RESOLVER,
+  LS_SOCKET, LS_DEBUG, LS_OLDLOG,
   LS_LAST_SYSTEM
 };
 
@@ -53,11 +61,40 @@ extern void ircd_log_kill(const struct Client* victim,
                           const char*          inpath,
                           const char*          path);
 
+extern void log_debug_init(char *file);
 extern void log_init(const char *process_name);
 extern void log_reopen(void);
 extern void log_close(void);
 
 extern void log_write(enum LogSys subsys, enum LogLevel severity,
-		      const char *fmt, ...);
+		      unsigned int flags, const char *fmt, ...);
+extern void log_vwrite(enum LogSys subsys, enum LogLevel severity,
+		       unsigned int flags, const char *fmt, va_list vl);
+
+extern void log_write_kill(const struct Client *victim,
+			   const struct Client *killer,
+			   const char	       *inpath,
+			   const char	       *path);
+
+#define LOG_NOSYSLOG	0x01
+#define LOG_NOFILELOG	0x02
+#define LOG_NOSNOTICE	0x04
+
+#define LOG_NOMASK	(LOG_NOSYSLOG | LOG_NOFILELOG | LOG_NOSNOTICE)
+
+extern void log_set_file(char *subsys, char *filename);
+extern char *log_get_file(char *subsys);
+
+extern void log_set_facility(char *subsys, char *facility);
+extern char *log_get_facility(char *subsys);
+
+extern void log_set_snomask(char *subsys, char *facility);
+extern char *log_get_snomask(char *subsys);
+
+extern void log_set_level(char *subsys, char *level);
+extern char *log_get_level(char *subsys);
+
+extern void log_set_default(char *facility);
+extern char *log_get_default(void);
 
 #endif /* INCLUDED_ircd_log_h */
