@@ -1,3 +1,16 @@
+2002-01-26  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_bsd.c (read_packet): call timer_verify() after adding the
+	client process timer to catch any list corruption
+
+	* ircd/list.c: surround alloc_connection() and
+	dealloc_connection() with calls to timer_verify()
+
+	* ircd/ircd_events.c: add sledgehammer known as timer_verify() to
+	verify the timer list's structure; call it around timer_run()
+
 2002-01-22  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/send.c (sendcmdto_common_channels): don't send message to a
