@@ -19,11 +19,7 @@
  *
  */
  
-#warning "***************************************"
-#warning " This is a development version of ircu "
-#warning "***************************************"
-
-#define PATCHLEVEL "pl12.(development)"
+#define PATCHLEVEL "pl12"
 
 #define RELEASE ".10."
 
