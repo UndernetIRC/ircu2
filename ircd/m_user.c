@@ -147,7 +147,7 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /*
      * NICK and PONG already received, now we have USER...
      */
-    return register_user(cptr, sptr, cli_name(sptr), username, 0);
+    return register_user(cptr, sptr, cli_name(sptr), username);
   }
   else {
     ircd_strncpy(user->username, username, USERLEN);

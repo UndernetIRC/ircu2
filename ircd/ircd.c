@@ -496,10 +496,6 @@ static char check_file_access(const char *path, char which, int mode) {
 	  "recompile to correct this.\n",
 	  which, path, strerror(errno));
 
-#ifdef CHROOTDIR
-  fprintf(stderr, "Keep in mind that paths are relative to CHROOTDIR.\n");
-#endif
-
   return 0;
 }
 
@@ -525,40 +521,9 @@ static void set_core_limit(void) {
 
 
 /*----------------------------------------------------------------------------
- * set_chroot_environment
- *--------------------------------------------------------------------------*/
-#ifdef CHROOTDIR
-static char set_chroot_environment(void) {
-  /* Must be root to chroot! Silly if you ask me... */
-  if (geteuid())
-    seteuid(0);
-
-  if (chdir(dpath)) {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, strerror(errno));
-    return 0;
-  }
-  if (chroot(dpath)) {
-    fprintf(stderr, "Fail: Cannot chroot(%s): %s\n", dpath, strerror(errno));
-    return 0;
-  }
-  dpath = "/";
-  return 1;
-}
-#endif
-
-
-/*----------------------------------------------------------------------------
  * set_userid_if_needed()
  *--------------------------------------------------------------------------*/
 static int set_userid_if_needed(void) {
-  /* TODO: Drop privs correctly! */
-#if defined(IRC_GID) && defined(IRC_UID)
-  setgid (IRC_GID);
-  setegid(IRC_GID);
-  setuid (IRC_UID);
-  seteuid(IRC_UID);
-#endif
-
   if (getuid() == 0 || geteuid() == 0 ||
       getgid() == 0 || getegid() == 0) {
     fprintf(stderr, "ERROR:  This server will not run as superuser.\n");
@@ -583,11 +548,6 @@ int main(int argc, char **argv) {
   thisServer.argv = argv;
   thisServer.uid  = getuid();
   thisServer.euid = geteuid();
-
-#ifdef CHROOTDIR
-  if (!set_chroot_environment())
-    return 1;
-#endif
 
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
   set_core_limit();
@@ -614,7 +574,7 @@ int main(int argc, char **argv) {
       !check_file_access(configfile, 'C', R_OK))
     return 4;
       
-#ifdef DEBUG
+#ifdef DEBUGMODE
   if (!check_file_access(LPATH, 'L', W_OK))
     return 5;
 #endif

@@ -29,7 +29,6 @@
 #include "channel.h"
 #include "class.h"
 #include "client.h"
-#include "gline.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -320,7 +319,7 @@ static char *clean_user_id(char *dest, char *source, int tilde)
  *    nick from local user or kill him/her...
  */
 int register_user(struct Client *cptr, struct Client *sptr,
-                  const char *nick, char *username, struct Gline *agline)
+                  const char *nick, char *username)
 {
   struct ConfItem* aconf;
   char*            parv[3];
@@ -506,14 +505,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
   }
   SetUser(sptr);
 
-  /* a gline wasn't passed in, so find a matching global one that isn't
-   * a Uworld-set one, and propagate it if there is such an animal.
-   */
-  if (!agline &&
-      (agline = gline_lookup(sptr, GLINE_GLOBAL | GLINE_LASTMOD)) &&
-      !IsBurstOrBurstAck(cptr))
-    gline_resend(cptr, agline);
-  
   if (IsInvisible(sptr))
     ++UserStats.inv_clients;
   if (IsOper(sptr))
@@ -577,24 +568,13 @@ int register_user(struct Client *cptr, struct Client *sptr,
     }
   }
   tmpstr = umode_str(sptr);
-  if (agline)
-    sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
-                          "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
-                          nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
-                          user->username, user->host,
-                          *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-                          GlineLastMod(agline), GlineUser(agline),
-                          GlineHost(agline),
-                          inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
-                          NumNick(sptr), cli_info(sptr));
-  else
-    sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
-                          "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                          nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
-                          user->username, user->host,
-                          *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-                          inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
-                          NumNick(sptr), cli_info(sptr));
+  sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
+			"%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+			nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
+			user->username, user->host,
+			*tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+			inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
+			NumNick(sptr), cli_info(sptr));
   
   /* Send umode to client */
   if (MyUser(sptr))
@@ -635,8 +615,6 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
   if (IsServer(sptr)) {
     int   i;
     const char* p;
-    char *t;
-    struct Gline *agline = 0;
 
     /*
      * A server introducing a new client, change source
@@ -677,19 +655,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
     ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
 
-    /* Deal with GLINE parameters... */
-    if (*parv[parc - 4] == '%' && (t = strchr(parv[parc - 4] + 1, ':'))) {
-      time_t lastmod;
-
-      *(t++) = '\0';
-      lastmod = atoi(parv[parc - 4] + 1);
-
-      if (lastmod &&
-          (agline = gline_find(t, GLINE_EXACT | GLINE_GLOBAL | GLINE_LASTMOD))
-          && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
-        gline_resend(cptr, agline);
-    }
-    return register_user(cptr, new_client, cli_name(new_client), parv[4], agline);
+    return register_user(cptr, new_client, cli_name(new_client), parv[4]);
   }
   else if ((cli_name(sptr))[0]) {
     /*
@@ -782,7 +748,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
        * for it - must test this and exit m_nick too !
        */
       cli_lastnick(sptr) = TStime();        /* Always local client */
-      if (register_user(cptr, sptr, nick, cli_user(sptr)->username, 0) == CPTR_KILLED)
+      if (register_user(cptr, sptr, nick, cli_user(sptr)->username) == CPTR_KILLED)
         return CPTR_KILLED;
     }
   }

@@ -163,7 +163,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /*
          * NICK and USER OK
          */
-        return register_user(cptr, sptr, cli_name(sptr), cli_user(sptr)->username, 0);
+        return register_user(cptr, sptr, cli_name(sptr), cli_user(sptr)->username);
     }
     else  
       send_reply(sptr, SND_EXPLICIT | ERR_BADPING,
