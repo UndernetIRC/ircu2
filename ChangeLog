@@ -1,3 +1,10 @@
+2003-11-04 Isomer <isomer@undernet.org>
+	* include/patchlevel.h: 2.10.11.06 initial branch
+
+	* ircd/s_serv.c: Burst glines/jupes early
+
+	* ircd/gline.c: Don't add spirious @
+
 2003-11-01 Isomer <isomer@undernet.org>
 	* include/patchlevel.h: 2.10.11.05 release
 

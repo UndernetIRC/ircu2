@@ -683,8 +683,9 @@ gline_burst(struct Client *cptr)
     if (gline->gl_expire <= CurrentTime) /* expire any that need expiring */
       gline_free(gline);
     else if (!GlineIsLocal(gline) && gline->gl_lastmod)
-      sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s@%s %Tu %Tu :%s",
+      sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
+		    gline->gl_host ? gline->gl_host : "@",
 		    gline->gl_host ? gline->gl_host : "", 
 		    gline->gl_expire - CurrentTime, gline->gl_lastmod, 
 		    gline->gl_reason);

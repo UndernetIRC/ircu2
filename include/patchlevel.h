@@ -18,7 +18,7 @@
  * $Id$
  *
  */
-#define PATCHLEVEL "05"
+#define PATCHLEVEL "06.(pre0)"
 
 #define RELEASE ".11."
 
