@@ -1,3 +1,7 @@
+2004-08-22  Alex Badea  <decampos@users.sourceforge.net>
+
+	* include/ircd_defs.h: increased SOCKIPLEN to fit ipv6 addresses
+
 2004-08-19  Michael Poole <mdpoole@troilus.org>
 
 	* include/res.h: Remove unused function gethost_byname_type().

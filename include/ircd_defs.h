@@ -85,9 +85,10 @@
  */
 #define PASSWDLEN       20
 /*
- * SOCKIPLEN is the length of a dotted quad ip address "XXX.XXX.XXX.XXX"
+ * SOCKIPLEN is the maximum length of a numeric IP (v4 or v6) address
+ * "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255"
  */
-#define SOCKIPLEN 15
+#define SOCKIPLEN 45
 /*
  * TOPICLEN is the maximum length for channel topics and kill comments
  */
