@@ -371,6 +371,7 @@ void sendmsgto_channel_butone(struct Client *one, struct Client *from,
   int i;
   int flag=-1;
 
+  assert(0 != cmd);
   /* 
    * Precalculate the buffers we sent to the clients instead of doing an
    * expensive sprintf() per member that we send to.  We still have to
@@ -378,20 +379,16 @@ void sendmsgto_channel_butone(struct Client *one, struct Client *from,
    */
   if (IsServer(from)) {
     sprintf(userbuf,":%s %s %s :%s",
-        from->name, 
-        ((cmd[0] == 'P') ? MSG_PRIVATE : MSG_NOTICE),
-        chname, msg);
-    sprintf(servbuf,"%s " TOK_PRIVATE " %s :%s",
-        NumServ(from), chname, msg);
-  } else {
+            from->name, ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE),
+            chname, msg);
+    sprintf(servbuf,"%s %s %s :%s", NumServ(from), cmd, chname, msg);
+  }
+  else {
     sprintf(userbuf,":%s!%s@%s %s %s :%s",
-      from->name, from->username, from->user->host,
-      ((cmd[0] == 'P') ? MSG_PRIVATE : MSG_NOTICE),
-      chname, msg);
-    sprintf(servbuf,"%s%s %s %s :%s",
-      NumNick(from), 
-       ((cmd[0] == 'P') ? TOK_PRIVATE : TOK_NOTICE),
-     chname, msg);
+            from->name, from->username, from->user->host,
+            ('P' == *cmd) ? MSG_PRIVATE : MSG_NOTICE),
+            chname, msg);
+    sprintf(servbuf,"%s%s %s %s :%s", NumNick(from), cmd, chname, msg);
   }
 
   ++sentalong_marker;
