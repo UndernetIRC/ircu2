@@ -36,15 +36,15 @@ struct Client;
  * General defines
  */
 
-#define MAXMODEPARAMS   6
-#define MODEBUFLEN      200
+#define MAXMODEPARAMS   6	/**< Maximum number of mode parameters */
+#define MODEBUFLEN      200	/**< Maximum length of a mode */
 
-#define KEYLEN          23
-#define PASSLEN         23
-#define CHANNELLEN      200
+#define KEYLEN          23	/**< Maximum length of a key */
+#define PASSLEN         23	/**< Maximum length of a password */
+#define CHANNELLEN      200	/**< Maximum length of a channel */
 
-#define MAXJOINARGS	15 /* number of slots for join buffer */
-#define STARTJOINLEN	10 /* fuzzy numbers */
+#define MAXJOINARGS	15 	/**< number of slots for join buffer */
+#define STARTJOINLEN	10 	/**< fuzzy numbers */
 #define STARTCREATELEN	20
 
 /*
@@ -53,25 +53,35 @@ struct Client;
 
 #define ChannelExists(n)        (0 != FindChannel(n))
 
-#define CHFL_CHANOP             0x0001  /* Channel operator */
-#define CHFL_VOICE              0x0002  /* the power to speak */
-#define CHFL_DEOPPED            0x0004  /* Is de-opped by a server */
-#define CHFL_SERVOPOK           0x0008  /* Server op allowed */
-#define CHFL_ZOMBIE             0x0010  /* Kicked from channel */
-#define CHFL_BAN                0x0020  /* ban channel flag */
-#define CHFL_BAN_IPMASK         0x0040  /* ban mask is an IP-number mask */
-#define CHFL_BAN_OVERLAPPED     0x0080  /* ban overlapped, need bounce */
-#define CHFL_BURST_JOINED       0x0100  /* Just joined by net.junction */
-#define CHFL_BURST_BAN          0x0200  /* Ban part of last BURST */
-#define CHFL_BURST_BAN_WIPEOUT  0x0400  /* Ban will be wiped at end of BURST */
-#define CHFL_BANVALID           0x0800  /* CHFL_BANNED bit is valid */
-#define CHFL_BANNED             0x1000  /* Channel member is banned */
-#define CHFL_SILENCE_IPMASK     0x2000  /* silence mask is an IP-number mask */
-#define CHFL_BURST_ALREADY_OPPED	0x04000  /* In oob BURST, but was already joined and opped */
-#define CHFL_BURST_ALREADY_VOICED	0x08000  /* In oob BURST, but was already joined and voiced */
-#define CHFL_CHANNEL_MANAGER	0x10000	/* Set when creating channel or using Apass */
-#define CHFL_USER_PARTING       0x20000 /* User is already parting that channel */
-#define CHFL_DELAYED            0x40000 /* User's join message is delayed */
+#define CHFL_CHANOP             0x0001  /**< Channel operator */
+#define CHFL_VOICE              0x0002  /**< the power to speak */
+#define CHFL_DEOPPED            0x0004  /**< Is de-opped by a server */
+#define CHFL_SERVOPOK           0x0008  /**< Server op allowed */
+#define CHFL_ZOMBIE             0x0010  /**< Kicked from channel */
+#define CHFL_BAN                0x0020  /**< ban channel flag */
+#define CHFL_BAN_IPMASK         0x0040  /**< ban mask is an IP-number mask */
+#define CHFL_BAN_OVERLAPPED     0x0080  /**< ban overlapped, need bounce */
+#define CHFL_BURST_JOINED       0x0100  /**< Just joined by net.junction */
+#define CHFL_BURST_BAN          0x0200  /**< Ban part of last BURST */
+#define CHFL_BURST_BAN_WIPEOUT  0x0400  /**< Ban will be wiped at EOB */
+#define CHFL_BANVALID           0x0800  /**< CHFL_BANNED bit is valid */
+#define CHFL_BANNED             0x1000  /**< Channel member is banned */
+#define CHFL_SILENCE_IPMASK     0x2000  /**< silence mask is a CIDR */
+#define CHFL_BURST_ALREADY_OPPED	0x04000  
+					/**< In oob BURST, but was already 
+					 * joined and opped 
+					 */
+#define CHFL_BURST_ALREADY_VOICED	0x08000  
+					/**, In oob BURST, but was already 
+					 * joined and voiced 
+					 */
+#define CHFL_CHANNEL_MANAGER	0x10000	/**< Set when creating channel or using 
+					 * Apass 
+					 */
+#define CHFL_USER_PARTING       0x20000 /**< User is already parting that 
+					 * channel 
+					 */
+#define CHFL_DELAYED            0x40000 /**< User's join message is delayed */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -79,40 +89,44 @@ struct Client;
 
 /* Channel Visibility macros */
 
-#define MODE_CHANOP     CHFL_CHANOP
-#define MODE_VOICE      CHFL_VOICE
-#define MODE_PRIVATE    0x0004
-#define MODE_SECRET     0x0008
-#define MODE_MODERATED  0x0010
-#define MODE_TOPICLIMIT 0x0020
-#define MODE_INVITEONLY 0x0040
-#define MODE_NOPRIVMSGS 0x0080
-#define MODE_KEY        0x0100
-#define MODE_BAN        0x0200
-#define MODE_LIMIT      0x0400
-#define MODE_REGONLY    0x0800  /* Only +r users may join */
-#define MODE_DELJOINS   0x1000  /* New join messages are delayed */
+#define MODE_CHANOP     CHFL_CHANOP	/**< +o Chanop */
+#define MODE_VOICE      CHFL_VOICE	/**< +v Voice */
+#define MODE_PRIVATE    0x0004		/**< +p Private */
+#define MODE_SECRET     0x0008		/**< +s Secret */
+#define MODE_MODERATED  0x0010		/**< +m Moderated */
+#define MODE_TOPICLIMIT 0x0020		/**< +t Topic Limited */
+#define MODE_INVITEONLY 0x0040		/**< +i Invite only */
+#define MODE_NOPRIVMSGS 0x0080		/**< +n No Private Messages */
+#define MODE_KEY        0x0100		/**< +k Keyed */
+#define MODE_BAN        0x0200		/**< +b Ban */
+#define MODE_LIMIT      0x0400		/**< +l Limit */
+#define MODE_REGONLY    0x0800  	/**< Only +r users may join */
+#define MODE_DELJOINS   0x1000  	/**< New join messages are delayed */
 #define MODE_LISTED     0x10000
-#define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
-#define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */
-#define MODE_BURSTADDED	0x80000	/* channel was created by a BURST */
+#define MODE_SAVE	0x20000		/**< save this mode-with-arg 'til 
+					 * later */
+#define MODE_FREE	0x40000 	/**< string needs to be passed to 
+					 * MyFree() */
+#define MODE_BURSTADDED	0x80000		/**< channel was created by a BURST */
 #define MODE_UPASS	0x100000
 #define MODE_APASS	0x200000
-#define MODE_WASDELJOINS 0x400000 /* Not DELJOINS, but some joins pending */
-/*
- * mode flags which take another parameter (With PARAmeterS)
+#define MODE_WASDELJOINS 0x400000 	/**< Not DELJOINS, but some joins 
+					 * pending */
+/** mode flags which take another parameter (With PARAmeterS)
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
+/** Available Channel modes */
 #define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrD" : "biklmnopstvrD"
+/** Available Channel modes that take parameters */
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "AbkloUv" : "bklov"
 
 #define HoldChannel(x)          (!(x))
-/* name invisible */
+/** name invisible */
 #define SecretChannel(x)        ((x) && ((x)->mode.mode & MODE_SECRET))
-/* channel not shown but names are */
+/** channel not shown but names are */
 #define HiddenChannel(x)        ((x) && ((x)->mode.mode & MODE_PRIVATE))
-/* channel visible */
+/** channel visible */
 #define ShowChannel(v,c)        (PubChannel(c) || find_channel_member((v),(c)) || \
                                  (IsAnOper(v) && HasPriv(v, PRIV_LIST_CHAN)))
 #define PubChannel(x)           ((!x) || ((x)->mode.mode & \
@@ -139,7 +153,7 @@ typedef enum ChannelGetType {
 #define LISTARG_TOPICLIMITS     0x0001
 #define LISTARG_SHOWSECRET      0x0002
 
-/*
+/**
  * Maximum acceptable lag time in seconds: A channel younger than
  * this is not protected against hacking admins.
  * Mainly here to check if the TS clocks really sync (otherwise this
@@ -152,14 +166,16 @@ typedef enum ChannelGetType {
  */
 #define TS_LAG_TIME 86400
 
-/*
+/**
  * A Magic TS that is used for channels that are created by JOIN,
  * a channel with this TS accepts all TS without complaining that
  * it might receive later via MODE or CREATE.
+ *
+ * Part of the P9 compatibility, shouldn't occur on a P10 network.
  */
 #define MAGIC_REMOTE_JOIN_TS 1270080000
 
-/*
+/**
  * used in can_join to determine if an oper forced a join on a channel
  */
 #define MAGIC_OPER_OVERRIDE 1000
@@ -175,21 +191,29 @@ extern const char* const PartFmt2serv;
  * Structures
  */
 
+/** Information about a client on one channel
+ *
+ * This structure forms a sparse matrix with users down the side, and
+ * channels across the top.  This matrix holds all the information about
+ * which users are on what channels, and what modes that user has on that
+ * channel (if they are op'd, voice'd and cached information if they are
+ * banned or not)
+ */
 struct Membership {
-  struct Client*     user;
-  struct Channel*    channel;
-  struct Membership* next_member;
-  struct Membership* prev_member;
-  struct Membership* next_channel;
-  struct Membership* prev_channel;
-  unsigned int       status;
-  unsigned short     oplevel;
+  struct Client*     user;		/**< The user */
+  struct Channel*    channel;		/**< The channel */
+  struct Membership* next_member;	/**< The next user on this channel */
+  struct Membership* prev_member;	/**< The previous user on this channel*/
+  struct Membership* next_channel;	/**< Next channel this user is on */
+  struct Membership* prev_channel;	/**< Previous channel this user is on*/
+  unsigned int       status;		/**< Flags for op'd, voice'd, etc */
+  unsigned short     oplevel;		/**< Op level */
 };
 
 #define MAXOPLEVELDIGITS    3
 #define MAXOPLEVEL          999
 
-#define IsZombie(x)         ((x)->status & CHFL_ZOMBIE)
+#define IsZombie(x)         ((x)->status & CHFL_ZOMBIE) /**< see \ref zombie */
 #define IsDeopped(x)        ((x)->status & CHFL_DEOPPED)
 #define IsBanned(x)         ((x)->status & CHFL_BANNED)
 #define IsBanValid(x)       ((x)->status & CHFL_BANVALID)
@@ -221,7 +245,7 @@ struct Membership {
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
 #define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
 
-
+/** Mode information for a channel */
 struct Mode {
   unsigned int mode;
   unsigned int limit;
@@ -230,23 +254,29 @@ struct Mode {
   char apass[PASSLEN + 1];
 };
 
+/** Information about a channel */
 struct Channel {
-  struct Channel*    next;
-  struct Channel*    prev;
-  struct Channel*    hnext;
-  struct DestructEvent* destruct_event;
-  time_t             creationtime;
-  time_t             topic_time;
-  unsigned int       users;
-  struct Membership* members;
-  struct SLink*      invites;
-  struct SLink*      banlist;
-  struct Mode        mode;
-  char               topic[TOPICLEN + 1];
-  char               topic_nick[NICKLEN + 1];
-  char               chname[1];
+  struct Channel*    next;	/**< next channel in the global channel list */
+  struct Channel*    prev;	/**< previous channel */
+  struct Channel*    hnext;	/**< Next channel in the hash table */
+  struct DestructEvent* destruct_event;	
+  time_t             creationtime; /**< Creation time of this channel */
+  time_t             topic_time;   /**< Modification time of the topic */
+  unsigned int       users;	   /**< Number of clients on this channel */
+  struct Membership* members;	   /**< Pointer to the clients on this channel*/
+  struct SLink*      invites;	   /**< List of invites on this channel */
+  struct SLink*      banlist;	   /**< List of bans on this channel */
+  struct Mode        mode;	   /**< This channels mode */
+  char               topic[TOPICLEN + 1]; /**< Channels topic */
+  char               topic_nick[NICKLEN + 1]; /**< Nick of the person who set
+						*  The topic
+						*/
+  char               chname[1];	   /**< Dynamically allocated string of the 
+				     * channel name
+				     */
 };
 
+/** Information about a /list in progress */
 struct ListingArgs {
   time_t max_time;
   time_t min_time;
@@ -259,59 +289,60 @@ struct ListingArgs {
 };
 
 struct ModeBuf {
-  unsigned int		mb_add;		/* Modes to add */
-  unsigned int		mb_rem;		/* Modes to remove */
-  struct Client	       *mb_source;	/* Source of MODE changes */
-  struct Client	       *mb_connect;	/* Connection of MODE changes */
-  struct Channel       *mb_channel;	/* Channel they affect */
-  unsigned int		mb_dest;	/* Destination of MODE changes */
-  unsigned int		mb_count;	/* Number of modes w/args */
+  unsigned int		mb_add;		/**< Modes to add */
+  unsigned int		mb_rem;		/**< Modes to remove */
+  struct Client	       *mb_source;	/**< Source of MODE changes */
+  struct Client	       *mb_connect;	/**< Connection of MODE changes */
+  struct Channel       *mb_channel;	/**< Channel they affect */
+  unsigned int		mb_dest;	/**< Destination of MODE changes */
+  unsigned int		mb_count;	/**< Number of modes w/args */
   struct {
-    unsigned int	mbm_type;	/* Type of argument */
+    unsigned int	mbm_type;	/**< Type of argument */
     union {
-      unsigned int	mbma_uint;	/* A limit */
-      char	       *mbma_string;	/* A string */
-      struct Client    *mbma_client;	/* A client */
-    }			mbm_arg;	/* The mode argument */
+      unsigned int	mbma_uint;	/**< A limit */
+      char	       *mbma_string;	/**< A string */
+      struct Client    *mbma_client;	/**< A client */
+    }			mbm_arg;	/**< The mode argument */
   }			mb_modeargs[MAXMODEPARAMS];
-					/* A mode w/args */
+					/**< A mode w/args */
 };
 
-#define MODEBUF_DEST_CHANNEL	0x00001	/* Mode is flushed to channel */
-#define MODEBUF_DEST_SERVER	0x00002	/* Mode is flushed to server */
+#define MODEBUF_DEST_CHANNEL	0x00001	/**< Mode is flushed to channel */
+#define MODEBUF_DEST_SERVER	0x00002	/**< Mode is flushed to server */
 
-#define MODEBUF_DEST_OPMODE	0x00100	/* Send server mode as OPMODE */
-#define MODEBUF_DEST_DEOP	0x00200	/* Deop the offender */
-#define MODEBUF_DEST_BOUNCE	0x00400	/* Bounce the modes */
-#define MODEBUF_DEST_LOG	0x00800	/* Log the mode changes to OPATH */
+#define MODEBUF_DEST_OPMODE	0x00100	/**< Send server mode as OPMODE */
+#define MODEBUF_DEST_DEOP	0x00200	/**< Deop the offender */
+#define MODEBUF_DEST_BOUNCE	0x00400	/**< Bounce the modes */
+#define MODEBUF_DEST_LOG	0x00800	/**< Log the mode changes to OPATH */
 
-#define MODEBUF_DEST_HACK2	0x02000	/* Send a HACK(2) notice, reverse */
-#define MODEBUF_DEST_HACK3	0x04000	/* Send a HACK(3) notice, TS == 0 */
-#define MODEBUF_DEST_HACK4	0x08000	/* Send a HACK(4) notice, TS == 0 */
+#define MODEBUF_DEST_HACK2	0x02000	/**< Send a HACK(2) notice, reverse */
+#define MODEBUF_DEST_HACK3	0x04000	/**< Send a HACK(3) notice, TS == 0 */
+#define MODEBUF_DEST_HACK4	0x08000	/**< Send a HACK(4) notice, TS == 0 */
 
-#define MODEBUF_DEST_NOKEY	0x10000	/* Don't send the real key */
+#define MODEBUF_DEST_NOKEY	0x10000	/**< Don't send the real key */
 
 #define MB_TYPE(mb, i)		((mb)->mb_modeargs[(i)].mbm_type)
 #define MB_UINT(mb, i)		((mb)->mb_modeargs[(i)].mbm_arg.mbma_uint)
 #define MB_STRING(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_string)
 #define MB_CLIENT(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_client)
 
+/** A buffer represeting a list of joins to send */
 struct JoinBuf {
-  struct Client	       *jb_source;	/* Source of joins (ie, joiner) */
-  struct Client	       *jb_connect;	/* Connection of joiner */
-  unsigned int		jb_type;	/* Type of join (JOIN or CREATE) */
-  char		       *jb_comment;	/* part comment */
-  time_t		jb_create;	/* Creation timestamp */
-  unsigned int		jb_count;	/* Number of channels */
-  unsigned int		jb_strlen;	/* length so far */
+  struct Client	       *jb_source;	/**< Source of joins (ie, joiner) */
+  struct Client	       *jb_connect;	/**< Connection of joiner */
+  unsigned int		jb_type;	/**< Type of join (JOIN or CREATE) */
+  char		       *jb_comment;	/**< part comment */
+  time_t		jb_create;	/**< Creation timestamp */
+  unsigned int		jb_count;	/**< Number of channels */
+  unsigned int		jb_strlen;	/**< length so far */
   struct Channel       *jb_channels[MAXJOINARGS];
-					/* channels joined or whatever */
+					/**< channels joined or whatever */
 };
 
-#define JOINBUF_TYPE_JOIN	0	/* send JOINs */
-#define JOINBUF_TYPE_CREATE	1	/* send CREATEs */
-#define JOINBUF_TYPE_PART	2	/* send PARTs */
-#define JOINBUF_TYPE_PARTALL	3	/* send local PARTs, but not remote */
+#define JOINBUF_TYPE_JOIN	0	/**< send JOINs */
+#define JOINBUF_TYPE_CREATE	1	/**< send CREATEs */
+#define JOINBUF_TYPE_PART	2	/**< send PARTs */
+#define JOINBUF_TYPE_PARTALL	3	/**< send local PARTs, but not remote */
 
 extern struct Channel* GlobalChannelList;
 extern int             LocalChanOperMode;
@@ -401,14 +432,14 @@ extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
 		      int parc, char *parv[], unsigned int flags,
 		      struct Membership* member);
 
-#define MODE_PARSE_SET		0x01	/* actually set channel modes */
-#define MODE_PARSE_STRICT	0x02	/* +m +n +t style not supported */
-#define MODE_PARSE_FORCE	0x04	/* force the mode to be applied */
-#define MODE_PARSE_BOUNCE	0x08	/* we will be bouncing the modes */
-#define MODE_PARSE_NOTOPER	0x10	/* send "not chanop" to user */
-#define MODE_PARSE_NOTMEMBER	0x20	/* send "not member" to user */
-#define MODE_PARSE_WIPEOUT	0x40	/* wipe out +k and +l during burst */
-#define MODE_PARSE_BURST	0x80	/* be even more strict w/extra args */
+#define MODE_PARSE_SET		0x01	/**< actually set channel modes */
+#define MODE_PARSE_STRICT	0x02	/**< +m +n +t style not supported */
+#define MODE_PARSE_FORCE	0x04	/**< force the mode to be applied */
+#define MODE_PARSE_BOUNCE	0x08	/**< we will be bouncing the modes */
+#define MODE_PARSE_NOTOPER	0x10	/**< send "not chanop" to user */
+#define MODE_PARSE_NOTMEMBER	0x20	/**< send "not member" to user */
+#define MODE_PARSE_WIPEOUT	0x40	/**< wipe out +k and +l during burst */
+#define MODE_PARSE_BURST	0x80	/**< be even more strict w/extra args */
 
 extern void joinbuf_init(struct JoinBuf *jbuf, struct Client *source,
 			 struct Client *connect, unsigned int type,
