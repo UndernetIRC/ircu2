@@ -1,5 +1,9 @@
 2002-04-03  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* configure: regenerate configure
+
+	* configure.in: replace some "Enable"'s with "Disable"'s
+
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
 2002-04-03  Alex Badea  <vampire@p16.pub.ro>
