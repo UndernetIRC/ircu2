@@ -92,6 +92,7 @@
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
@@ -130,7 +131,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
    
     if (IsMe(acptr)) {
-      if (!(acptr = FindNUser(parv[2])))
+      if (!(acptr = findNUser(parv[2])))
         return 0;
       if (MyConnect(acptr))
         sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
@@ -149,7 +150,7 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * returned from source server to client
      */
-    if (!(acptr = FindNUser(parv[1])))
+    if (!(acptr = findNUser(parv[1])))
       return 0;
     if (MyConnect(acptr))
       sendto_one(acptr, ":%s " MSG_RPONG " %s %s %s :%s",
