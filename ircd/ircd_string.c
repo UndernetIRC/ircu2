@@ -305,10 +305,10 @@ int unique_name_vector(char* names, char token, char** vector, int size)
 {
   int   i;
   int   count = 0;
-  char* start = list;
+  char* start = names;
   char* end;
 
-  assert(0 != list);
+  assert(0 != names);
   assert(0 != vector);
   assert(0 < size);
 
@@ -359,10 +359,10 @@ int unique_name_vector(char* names, char token, char** vector, int size)
 int token_vector(char* names, char token, char** vector, int size)
 {
   int   count = 0;
-  char* start = list;
+  char* start = names;
   char* end;
 
-  assert(0 != list);
+  assert(0 != names);
   assert(0 != vector);
   assert(1 < size);
 
@@ -392,16 +392,16 @@ char* host_from_uh(char* buf, const char* userhost, size_t len)
 {
   const char* s;
 
-  assert(0 != host);
+  assert(0 != buf);
   assert(0 != userhost);
 
   if ((s = strchr(userhost, '@')))
     ++s;
   else
     s = userhost;
-  ircd_strncpy(host, s, n);
-  host[n] = '\0';
-  return host;
+  ircd_strncpy(buf, s, len);
+  buf[len] = '\0';
+  return buf;
 }
 
 /*
