@@ -24,6 +24,7 @@
 #include "ircd.h"
 #include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
 #include "ircd_alloc.h"
+#include "msg.h"
 #include "s_bsd.h"          /* SetIPChecked */
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
@@ -346,9 +347,9 @@ void ip_registry_connect_succeeded(struct Client *cptr)
     free_targets = entry->target->count;
     tr = " tr";
   }
-  sendto_one(cptr, ":%s NOTICE %s :on %u ca %u(%u) ft %u(%u)%s",
-             me.name, cptr->name, entry->connected, entry->attempts,
-             IPCHECK_CLONE_LIMIT, free_targets, STARTTARGETS, tr);
+  sendcmdto_one(&me, CMD_NOTICE, cptr, "%C :on %u ca %u(%u) ft %u(%u)%s",
+		cptr, entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
+		free_targets, STARTTARGETS, tr);
 }
 
 /*

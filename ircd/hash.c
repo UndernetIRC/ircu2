@@ -27,6 +27,7 @@
 #include "ircd_chattr.h"
 #include "ircd_string.h"
 #include "ircd.h"
+#include "msg.h"
 #include "send.h"
 #include "struct.h"
 #include "support.h"
@@ -456,7 +457,7 @@ int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel* ch;
   int i;
   
-  sendto_one(sptr, "NOTICE %s :Hash Table Statistics", parv[0]);
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Hash Table Statistics", sptr);
 
   for (i = 0; i < HASHSIZE; ++i) {
     if ((cl = clientTable[i])) {
@@ -470,8 +471,8 @@ int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
   } 
 
-  sendto_one(sptr, "NOTICE %s :Client: entries: %d buckets: %d max chain: %d",
-             parv[0], count, buckets, max_chain);
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Client: entries: %d buckets: %d "
+		"max chain: %d", sptr, count, buckets, max_chain);
 
   buckets = 0;
   count   = 0;
@@ -489,8 +490,8 @@ int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
   } 
 
-  sendto_one(sptr, "NOTICE %s :Channel: entries: %d buckets: %d max chain: %d",
-             parv[0], count, buckets, max_chain);
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Channel: entries: %d buckets: %d "
+		"max chain: %d", sptr, count, buckets, max_chain);
   return 0;
 }
 
