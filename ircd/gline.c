@@ -618,12 +618,14 @@ gline_find(char *userhost, unsigned int flags)
 	     (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
     else if (flags & GLINE_EXACT) {
-      if (!gline->gl_host && ircd_strcmp(gline->gl_host, host) == 0 &&
+      if (((gline->gl_host && host && ircd_strcmp(gline->gl_host,host) == 0)
+	 ||(!gline->gl_host && !host)) &&
 	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
 	   ircd_strcmp(gline->gl_user, user) == 0))
 	break;
     } else {
-      if (!gline->gl_host && match(gline->gl_host, host) == 0 &&
+      if (((gline->gl_host && host && ircd_strcmp(gline->gl_host,host) == 0)
+	 ||(!gline->gl_host && !host)) &&
 	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
 	   match(gline->gl_user, user) == 0))
       break;
