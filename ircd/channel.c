@@ -259,7 +259,7 @@ int sub1_from_channel(struct Channel* chptr)
    * who then will educate them on the use of Apass/upass.
    */
 
-  if (!(chptr->mode.mode & MODE_APASS))         /* If no Apass, destroy now. */
+  if (!chptr->mode.apass[0])         /* If no Apass, destroy now. */
     destruct_channel(chptr);
   else if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
     schedule_destruct_event_1m(chptr);		/* Get rid of it in approximately 4-5 minutes */

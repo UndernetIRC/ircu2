@@ -1,5 +1,11 @@
 2005-03-19  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (sub1_from_channel): Check apass rather than mode
+	to determine whether an apass is set (MODE_KEY/APASS/UPASS are not
+	set in mode.mode).
+
+2005-03-19  Michael Poole <mdpoole@troilus.org>
+
 	* include/IPcheck.h (IPcheck_connect_fail): Take a Client
 	parameter instead of irc_in_addr.
 
