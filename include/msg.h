@@ -241,6 +241,9 @@ struct Client;
 #define MSG_PROTO               "PROTO"         /* PROTO */
 #define TOK_PROTO               "PROTO"         /* PROTO */
 
+#define MSG_JUPE                "JUPE"          /* JUPE */
+#define TOK_JUPE                "JU"
+
 
 /*
  * Constants

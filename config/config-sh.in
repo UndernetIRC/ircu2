@@ -231,6 +231,10 @@ comment 'Bad Channel G-Lines allow operators to add channel masks to a list whic
     if [ "$CONFIG_LOG_GLINES" = "y" ]; then
       string '   Give the path and(or) filename of this log file' GPATH 'gline.log'
     fi
+  bool 'Do you want to log JUPEs to a separate file' CONFIG_LOG_JUPES y
+    if [ "$CONFIG_LOG_JUPES" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' JPATH 'jupe.log'
+    fi
   bool 'Do you want to log connecting users to a separate file' CONFIG_LOG_USERS
     if [ "$CONFIG_LOG_USERS" = "y" ]; then
       string '   Give the path and(or) filename of this log file' FNAME_USERLOG $DPATH/users

@@ -296,7 +296,11 @@ static Numeric numeric_errors[] = {
 /* 512 */
   { ERR_NOSUCHGLINE, "%s@%s :No such gline", "512" },
 /* 513 */
-  { ERR_BADPING, "", "513" }
+  { ERR_BADPING, "", "513" },
+/* 514 */
+  { ERR_NOSUCHJUPE, "%s :No such jupe", "514" },
+/* 515 */
+  { ERR_BADEXPIRE, TIME_T_FMT " :Bad expire time", "515" }
 };
 
 static Numeric numeric_replies[] = {
@@ -672,8 +676,10 @@ static Numeric numeric_replies[] = {
   { RPL_GLIST, "%s@%s " TIME_T_FMT " %s%s", "280" },
 /* 281 */
   { RPL_ENDOFGLIST, ":End of G-line List", "281" },
+/* 282 */
+  { RPL_JUPELIST, "%s " TIME_T_FMT " %s %c :%s", "282" },
 /* 283 */
-  { 0 },
+  { RPL_ENDOFJUPELIST, ":End of Jupe List", "283" },
 /* 284 */
   { 0 }
 };

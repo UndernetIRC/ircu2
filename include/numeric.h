@@ -104,7 +104,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_STATSSLINE       245           Reserved */
 #define RPL_STATSTLINE       246        /* Undernet extension */
 #define RPL_STATSGLINE       247        /* Undernet extension */
-/*      RPL_STATSXLINE       247           hybrid extension */                                        
+/*      RPL_STATSXLINE       247           hybrid extension */
 #define RPL_STATSULINE       248        /* Undernet extension */
 #define RPL_STATSDEBUG       249        /* Extension to RFC1459 */
 #define RPL_STATSCONN        250        /* Undernet extension */
@@ -139,6 +139,8 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define RPL_GLIST            280        /* Undernet extension */
 #define RPL_ENDOFGLIST       281        /* Undernet extension */
+#define RPL_JUPELIST         282        /* Undernet extension - jupe -Kev */
+#define RPL_ENDOFJUPELIST    283        /* Undernet extension - jupe -Kev */
 
 /*      RPL_CHANINFO_HANDLE  285           aircd */
 /*      RPL_CHANINFO_USERS   286           aircd */
@@ -338,6 +340,8 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOTIFYFULL       512           aircd */
 #define ERR_NOSUCHGLINE      512        /* Undernet extension */
 #define ERR_BADPING          513        /* Undernet extension */
-#define ERR_INVALID_ERROR    514
+#define ERR_NOSUCHJUPE       514        /* Undernet extension - jupe -Kev */
+#define ERR_BADEXPIRE        515        /* Undernet extension - jupe -Kev */
+#define ERR_INVALID_ERROR    516
 
 #endif /* INCLUDED_numeric_h */

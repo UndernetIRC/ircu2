@@ -78,6 +78,7 @@ SRC = \
 	ircd_signal.c \
 	ircd_string.c \
 	ircd_xopen.c \
+	jupe.c \
 	list.c \
 	listener.c \
 	m_admin.c \
@@ -99,6 +100,7 @@ SRC = \
 	m_invite.c \
 	m_ison.c \
 	m_join.c \
+	m_jupe.c \
 	m_kick.c \
 	m_kill.c \
 	m_links.c \
@@ -360,15 +362,23 @@ ircd_string.o: ircd_string.c ../include/ircd_string.h \
  ../config/config.h ../config/setup.h ../include/ircd_chattr.h \
  ../include/ircd_defs.h chattr.tab.c
 ircd_xopen.o: ircd_xopen.c ../include/ircd_xopen.h
+jupe.o: jupe.c ../include/jupe.h ../config/config.h ../config/setup.h \
+ ../include/client.h ../include/dbuf.h ../include/ircd_defs.h \
+ ../include/ircd_handler.h ../include/hash.h ../include/ircd.h \
+ ../include/struct.h ../include/ircd_alloc.h ../include/fda.h \
+ ../include/ircd_string.h ../include/ircd_chattr.h ../include/match.h \
+ ../include/msg.h ../include/numeric.h ../include/numnicks.h \
+ ../include/s_bsd.h ../include/s_misc.h ../include/send.h \
+ ../include/support.h ../include/sys.h
 list.o: list.c ../include/list.h ../include/class.h \
  ../include/client.h ../include/dbuf.h ../include/ircd_defs.h \
  ../include/ircd_handler.h ../include/ircd.h ../config/config.h \
  ../config/setup.h ../include/struct.h ../include/ircd_alloc.h \
  ../include/fda.h ../include/ircd_string.h ../include/ircd_chattr.h \
- ../include/match.h ../include/numeric.h ../include/res.h \
- ../include/s_bsd.h ../include/s_conf.h ../include/s_debug.h \
- ../include/s_misc.h ../include/s_user.h ../include/send.h \
- ../include/support.h ../include/whowas.h
+ ../include/listener.h ../include/match.h ../include/numeric.h \
+ ../include/res.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/s_debug.h ../include/s_misc.h ../include/s_user.h \
+ ../include/send.h ../include/support.h ../include/whowas.h
 listener.o: listener.c ../include/listener.h ../include/ircd_defs.h \
  ../include/client.h ../include/dbuf.h ../include/ircd_handler.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
@@ -405,9 +415,10 @@ m_connect.o: m_connect.c ../include/client.h ../include/dbuf.h \
  ../include/hash.h ../include/ircd.h ../config/config.h \
  ../config/setup.h ../include/struct.h ../include/ircd_log.h \
  ../include/ircd_reply.h ../include/ircd_string.h \
- ../include/ircd_chattr.h ../include/match.h ../include/msg.h \
- ../include/numeric.h ../include/numnicks.h ../include/s_bsd.h \
- ../include/s_conf.h ../include/s_user.h ../include/send.h
+ ../include/ircd_chattr.h ../include/jupe.h ../include/match.h \
+ ../include/msg.h ../include/numeric.h ../include/numnicks.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/s_user.h \
+ ../include/send.h
 m_cprivmsg.o: m_cprivmsg.c ../include/client.h ../include/dbuf.h \
  ../include/ircd_defs.h ../include/ircd_handler.h \
  ../include/ircd_reply.h ../include/ircd_string.h ../config/config.h \
@@ -496,6 +507,14 @@ m_join.o: m_join.c ../include/channel.h ../config/config.h \
  ../include/ircd_string.h ../include/msg.h ../include/numeric.h \
  ../include/numnicks.h ../include/s_user.h ../include/send.h \
  ../include/handlers.h
+m_jupe.o: m_jupe.c ../include/client.h ../include/dbuf.h \
+ ../include/ircd_defs.h ../include/ircd_handler.h ../include/jupe.h \
+ ../config/config.h ../config/setup.h ../include/hash.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_reply.h \
+ ../include/ircd_string.h ../include/ircd_chattr.h ../include/match.h \
+ ../include/msg.h ../include/numeric.h ../include/numnicks.h \
+ ../include/s_conf.h ../include/s_misc.h ../include/send.h \
+ ../include/support.h
 m_kick.o: m_kick.c ../include/channel.h ../config/config.h \
  ../config/setup.h ../include/ircd_defs.h ../include/client.h \
  ../include/dbuf.h ../include/ircd_handler.h ../include/hash.h \
@@ -647,8 +666,9 @@ m_rpong.o: m_rpong.c ../include/client.h ../include/dbuf.h \
 m_server.o: m_server.c ../include/client.h ../include/dbuf.h \
  ../include/ircd_defs.h ../include/ircd_handler.h ../include/crule.h \
  ../include/hash.h ../include/ircd.h ../config/config.h \
- ../config/setup.h ../include/struct.h ../include/ircd_reply.h \
- ../include/ircd_string.h ../include/ircd_chattr.h ../include/list.h \
+ ../config/setup.h ../include/struct.h ../include/ircd_log.h \
+ ../include/ircd_reply.h ../include/ircd_string.h \
+ ../include/ircd_chattr.h ../include/jupe.h ../include/list.h \
  ../include/match.h ../include/msg.h ../include/numeric.h \
  ../include/numnicks.h ../include/querycmds.h ../include/s_bsd.h \
  ../include/s_conf.h ../include/s_debug.h ../include/s_misc.h \
@@ -819,9 +839,9 @@ s_auth.o: s_auth.c ../include/s_auth.h ../config/config.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
  ../include/fda.h ../include/ircd_chattr.h ../include/ircd_log.h \
  ../include/ircd_osdep.h ../include/ircd_string.h ../include/list.h \
- ../include/numeric.h ../include/res.h ../include/s_bsd.h \
- ../include/s_debug.h ../include/s_misc.h ../include/send.h \
- ../include/sprintf_irc.h ../include/sys.h
+ ../include/numeric.h ../include/querycmds.h ../include/res.h \
+ ../include/s_bsd.h ../include/s_debug.h ../include/s_misc.h \
+ ../include/send.h ../include/sprintf_irc.h ../include/sys.h
 s_bsd.o: s_bsd.c ../include/s_bsd.h ../config/config.h \
  ../config/setup.h ../include/client.h ../include/dbuf.h \
  ../include/ircd_defs.h ../include/ircd_handler.h ../include/IPcheck.h \
@@ -883,12 +903,13 @@ s_serv.o: s_serv.c ../include/s_serv.h ../include/IPcheck.h \
  ../include/ircd_handler.h ../include/crule.h ../include/hash.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
  ../include/fda.h ../include/ircd_reply.h ../include/ircd_string.h \
- ../include/ircd_chattr.h ../include/ircd_xopen.h ../include/list.h \
- ../include/msg.h ../include/match.h ../include/numeric.h \
- ../include/numnicks.h ../include/parse.h ../include/querycmds.h \
- ../include/s_bsd.h ../include/s_conf.h ../include/s_debug.h \
- ../include/s_misc.h ../include/s_user.h ../include/send.h \
- ../include/sprintf_irc.h ../include/sys.h ../include/userload.h
+ ../include/ircd_chattr.h ../include/ircd_xopen.h ../include/jupe.h \
+ ../include/list.h ../include/msg.h ../include/match.h \
+ ../include/numeric.h ../include/numnicks.h ../include/parse.h \
+ ../include/querycmds.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/s_debug.h ../include/s_misc.h ../include/s_user.h \
+ ../include/send.h ../include/sprintf_irc.h ../include/sys.h \
+ ../include/userload.h
 s_user.o: s_user.c ../include/s_user.h ../include/IPcheck.h \
  ../include/channel.h ../config/config.h ../config/setup.h \
  ../include/ircd_defs.h ../include/class.h ../include/client.h \

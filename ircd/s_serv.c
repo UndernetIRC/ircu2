@@ -33,6 +33,7 @@
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd_xopen.h"
+#include "jupe.h"
 #include "list.h"
 #include "msg.h"
 #include "match.h"
@@ -265,6 +266,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
     for (chptr = GlobalChannelList; chptr; chptr = chptr->next)
       send_channel_modes(cptr, chptr);
   }
+  jupe_burst(cptr);
   sendto_one(cptr, "%s EB", NumServ(&me));
   return 0;
 }
