@@ -159,7 +159,7 @@ int m_links_redirect(struct Client* cptr, struct Client* sptr, int parc, char* p
     return send_error_to_client(cptr, ERR_NOPRIVILEGES);
 
   sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0], 
-	parc < 2 ? 0 : parv[1]);
+	parc < 2 ? "*" : parv[1]);
   sendto_one(sptr,":%s NOTICE %s :%s",me.name,parv[0],
         "/LINKS has been disabled, from CFV-165.  "
         "Visit http://www.undernet.org/servers.php"
