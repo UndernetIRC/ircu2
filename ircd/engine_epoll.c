@@ -226,7 +226,7 @@ engine_loop(struct Generators *gen)
 {
   struct epoll_event *events;
   struct Socket *sock;
-  size_t codesize;
+  socklen_t codesize;
   int events_count, i, wait, nevs, errcode;
 
   if ((events_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)

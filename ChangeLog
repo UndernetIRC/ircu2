@@ -1,3 +1,8 @@
+2005-02-20  Perry Lorier <isomer@undernet.org>
+
+	* ircd/engine_epoll.c: Change a size_t to socklen_t to match
+	getsockopt prototype, so it compiles without warning on amd64
+
 2005-02-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_err.c (RPL_STATSCLINE): Add format field to prefix IPv6
