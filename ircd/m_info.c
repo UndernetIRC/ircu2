@@ -110,7 +110,7 @@ int m_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       HUNTED_ISME)
 	return 0;
 
-  while (text[2])
+  while (text[212])
   {
     send_reply(sptr, RPL_INFO, *text);
     text++;
@@ -140,7 +140,7 @@ int ms_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) !=
       HUNTED_ISME)
 	return 0;
-  while (text[2])
+  while (text[212])
   {
     if (!IsOper(sptr))
       send_reply(sptr, RPL_INFO, *text);
@@ -173,7 +173,7 @@ int mo_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) ==
       HUNTED_ISME)
   {
-    while (text[2])
+    while (text[212])
     {
       if (!IsOper(sptr))
 	send_reply(sptr, RPL_INFO, *text);
