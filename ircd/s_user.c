@@ -348,7 +348,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                   const char *nick, char *username)
 {
   struct ConfItem* aconf;
-  char*            parv[3];
+  char*            parv[4];
   char*            tmpstr;
   char*            tmpstr2;
   char             c = 0;    /* not alphanum */
@@ -362,7 +362,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
   short            badid = 0;
   short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
-  struct Flags flag;
   char             ip_base64[8];
 
   user->last = CurrentTime;
@@ -567,6 +566,15 @@ int register_user(struct Client *cptr, struct Client *sptr,
                            cli_sock_ip(sptr), get_client_class(sptr));
 
     IPcheck_connect_succeeded(sptr);
+    /*
+     * Set user's initial modes
+     */
+    parv[0] = (char*)nick;
+    parv[1] = (char*)nick;
+    parv[2] = (char*)client_get_default_umode(sptr);
+    parv[3] = NULL; /* needed in case of +s */
+    set_user_mode(sptr, sptr, 3, parv);
+    ClearHiddenHost(sptr); /* just in case somebody stuck +x in there */
   }
   else
     /* if (IsServer(cptr)) */
@@ -615,14 +623,9 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			inttobase64(ip_base64, ntohl(cli_ip(sptr).s_addr), 6),
 			NumNick(sptr), cli_info(sptr));
   
-  /* Send umode to client */
-  if (MyUser(sptr))
-  {
-    memset(&flag, 0, sizeof(flag));
-    send_umode(cptr, sptr, &flag, ALL_UMODES);
-    if (cli_snomask(sptr) != SNO_DEFAULT && HasFlag(sptr, FLAG_SERVNOTICE))
-      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
-  }
+  /* Send server notice mask to client */
+  if (MyUser(sptr) && (cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
+    send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
 
   return 0;
 }

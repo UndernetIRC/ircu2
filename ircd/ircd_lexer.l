@@ -151,5 +151,6 @@ see_other_opers return TPRIV_SEE_OPERS;
 wide_glines return TPRIV_WIDE_GLINE;
 pseudo return PSEUDO;
 prepend return PREPEND;
+usermode return USERMODE;
 \n lineno++;
 . return yytext[0];

@@ -1,5 +1,27 @@
 2004-05-10  Michael Poole <mdpoole@troilus.org>
 
+	Implement a per-connection-class default usermode option.
+
+	* doc/example.conf: Illustrate how to use the option.
+
+	* include/class.h (struct ConnectionClass): New "default_umode"
+	field.
+	(ConfUmode): New macro.
+
+	* include/client.h (client_get_default_umode): New function.
+
+	* ircd/client.c (client_get_default_umode): Implement it.
+
+	* ircd/ircd_lexer.l (usermode): New token.
+
+	* ircd/ircd_parser.y (classblock, etc): New syntax.
+
+	* ircd/s_user.c (register_user): Set default user modes for user.
+	This sends the new mode to the user, so the explicit send later
+	is no longer necessary.
+
+2004-05-10  Michael Poole <mdpoole@troilus.org>
+
 	Forward port of asuka-topicburst.patch from Quakenet's "Asuka"
 	patch set.
 

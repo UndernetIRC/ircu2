@@ -154,6 +154,7 @@ static void parse_error(char *pattern,...) {
 %token QUARANTINE
 %token PSEUDO
 %token PREPEND
+%token USERMODE
 /* and now a lot of priviledges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_KILL TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -328,19 +329,22 @@ classblock: CLASS {
   tconn = 0;
   maxlinks = 0;
   sendq = 0;
+  pass = NULL;
 } '{' classitems '}'
 {
   if (name != NULL)
   {
    add_class(name, tping, tconn, maxlinks, sendq);
+   find_class(name)->default_umode = pass;
   }
   else {
    parse_error("Missing name in class block");
   }
+  pass = NULL;
 } ';';
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
-           classsendq | error;
+           classsendq | classusermode | error;
 classname: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -361,6 +365,12 @@ classmaxlinks: MAXLINKS '=' expr ';'
 classsendq: SENDQ '=' sizespec ';'
 {
   sendq = yylval.num;
+};
+classusermode: USERMODE '=' QSTRING ';'
+{
+  if (pass)
+    MyFree(pass);
+  DupString(pass, yylval.text);
 };
 
 connectblock: CONNECT

@@ -36,6 +36,7 @@ struct StatDesc;
 struct ConnectionClass {
   struct ConnectionClass* next;
   char                    *cc_name;
+  char                    *default_umode;
   unsigned int            max_sendq;
   short                   ping_freq;
   short                   conn_freq;
@@ -61,6 +62,7 @@ struct ConnectionClass {
 #define ConfMaxLinks(x) ((x)->conn_class->max_links)
 #define ConfSendq(x)    ((x)->conn_class->max_sendq)
 #define ConfLinks(x)    ((x)->conn_class->ref_count)
+#define ConfUmode(x)    ((x)->conn_class->default_umode)
 
 /*
  * Proto types

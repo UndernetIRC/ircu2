@@ -68,6 +68,25 @@ int client_get_ping(const struct Client* acptr)
 }
 
 /*
+ * client_get_default_umode
+ * returns default usermode in attached client connection class
+ */
+const char* client_get_default_umode(const struct Client* sptr)
+{
+  struct ConfItem* aconf;
+  struct SLink* link;
+
+  assert(cli_verify(sptr));
+
+  for (link = cli_confs(sptr); link; link = link->next) {
+    aconf = link->value.aconf;
+    if ((aconf->status & CONF_CLIENT) && ConfUmode(aconf))
+      return ConfUmode(aconf);
+  }
+  return NULL;
+}
+
+/*
  * client_drop_sendq
  * removes the client's connection from the list of connections with
  * queued data
