@@ -380,6 +380,7 @@ static void check_pings(struct Event* ev) {
      * lines
      */
     if (!IsRegistered(cptr)) {
+      assert(!IsServer(cptr));
       if ((CurrentTime-cli_firsttime(cptr) >= max_ping)) {
        /* Display message if they have sent a NICK and a USER but no
         * nospoof PONG.

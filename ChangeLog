@@ -1,3 +1,7 @@
+2003-08-31 hikari <shadow@undernet.org>
+	* ircd/s_stats.c: Fixed stats_servers_verbose() so that the client
+	count for the local server is actually displayed.
+
 2003-08-28 hikari <shadow@undernet.org>
 	* ircd/Makefile.in: Adding CFLAGS in a couple of places so building
 	with flags that effect linking works properly (-m64 for example).
