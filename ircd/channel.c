@@ -1462,7 +1462,8 @@ int number_of_zombies(struct Channel *chptr)
  * of course, str2 is not NULL)
  */
 static void
-build_string(char *strptr, int *strptr_i, char *str1, char *str2, char c)
+build_string(char *strptr, int *strptr_i, const char *str1,
+             const char *str2, char c)
 {
   if (c)
     strptr[(*strptr_i)++] = c;
@@ -3232,7 +3233,7 @@ joinbuf_flush(struct JoinBuf *jbuf)
 }
 
 /* Returns TRUE (1) if client is invited, FALSE (0) if not */
-int IsInvited(struct Client* cptr, struct Channel* chptr)
+int IsInvited(struct Client* cptr, const void* chptr)
 {
   struct SLink *lp;
 

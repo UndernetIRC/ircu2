@@ -46,7 +46,6 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
  * go ahead and write it).
  */
 
-extern void *malloc_tmp;
 
 /* First version: fast non-debugging macros... */
 #ifndef MDEBUG
@@ -58,10 +57,19 @@ extern void *malloc_tmp;
 extern OutOfMemoryHandler noMemHandler;
 
 #define DoFree(x, file, line) do { free((x)); (x) = 0; } while(0)
+extern void* DoMalloc(size_t len, const char*, const char*, int);
+extern void* DoMallocZero(size_t len, const char*, const char*, int);
+#if 0
+extern void *malloc_tmp;
+/*
+  Bleah, this is silly, the function call overhead for doing
+  the RightThing(tm) well worth the cost of avoiding this
+  non-reentrant mess of this macro, and accompanying global.
+*/
 #define DoMalloc(size, type, file, line) \
   (\
      (malloc_tmp = malloc(size), \
-     (malloc_tmp == NULL) ? noMemHandler() : 0), \
+     (malloc_tmp == NULL) ? (*noMemHandler)() : 0), \
   malloc_tmp)
 
 #define DoMallocZero(size, type, file, line) \
@@ -69,6 +77,7 @@ extern OutOfMemoryHandler noMemHandler;
     (DoMalloc(size, type, file, line), \
     memset(malloc_tmp, 0, size)), \
   malloc_tmp)
+#endif
 
 /* Second version: slower debugging versions... */
 #else /* defined(MDEBUG) */

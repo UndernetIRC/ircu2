@@ -132,15 +132,15 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
     DupString(gline->gl_host, host);
 
     if (check_if_ipmask(host)) { /* mark if it's an IP mask */
-      int class;
+      int c_class;
       char ipname[16];
       int ad[4] = { 0 };
       int bits2 = 0;
        
-      class = sscanf(host,"%d.%d.%d.%d/%d",
+      c_class = sscanf(host,"%d.%d.%d.%d/%d",
                      &ad[0],&ad[1],&ad[2],&ad[3], &bits2);
-      if (class!=5) {
-        gline->bits=class*8;
+      if (c_class!=5) {
+        gline->bits=c_class*8;
       }
       else {
         gline->bits=bits2;

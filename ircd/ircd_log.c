@@ -235,7 +235,7 @@ log_debug_reopen(void)
 void
 log_debug_init(int usetty)
 {
-  logInfo.dbfile = MyMalloc(sizeof(struct LogFile));
+  logInfo.dbfile = (struct LogFile*) MyMalloc(sizeof(struct LogFile));
 
   logInfo.dbfile->next = 0; /* initialize debugging filename */
   logInfo.dbfile->prev_p = 0;
@@ -418,7 +418,7 @@ log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
     vector[0].iov_base = timebuf;
     vector[1].iov_base = buf;
 
-    vector[2].iov_base = "\n"; /* terminate lines with a \n */
+    vector[2].iov_base = (void*) "\n"; /* terminate lines with a \n */
     vector[2].iov_len = 1;
 
     /* write it out to the log file */
@@ -469,7 +469,7 @@ log_file_create(const char *file)
     tmp = logInfo.freelist;
     logInfo.freelist = tmp->next;
   } else /* allocate a new one */
-    tmp = MyMalloc(sizeof(struct LogFile));
+    tmp = (struct LogFile*) MyMalloc(sizeof(struct LogFile));
 
   tmp->fd = -1; /* initialize the structure */
   tmp->ref = 1;

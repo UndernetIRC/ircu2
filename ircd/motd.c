@@ -219,22 +219,22 @@ static struct Motd *
 motd_lookup(struct Client *cptr)
 {
   struct Motd *ptr;
-  char *class = NULL;
+  char *c_class = NULL;
 
   assert(0 != cptr);
 
   if (!MyUser(cptr)) /* not my user, always return remote motd */
     return MotdList.remote;
 
-  class = get_client_class(cptr);
+  c_class = get_client_class(cptr);
 
   /* check the motd blocks first */
   for (ptr = MotdList.other; ptr; ptr = ptr->next)
   {
     if (ptr->type == MOTD_CLASS &&
-        !match(ptr->hostmask, class))
+        !match(ptr->hostmask, c_class))
       return ptr;
-    else if (ptr->type == MOTD_HOSTMASK && class != NULL &&
+    else if (ptr->type == MOTD_HOSTMASK && c_class != NULL &&
              !match(ptr->hostmask, cli_sockhost(cptr)))
       return ptr;
   }

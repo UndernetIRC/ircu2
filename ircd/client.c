@@ -101,18 +101,20 @@ void client_add_sendq(struct Connection* con, struct Connection** con_p)
   }
 }
 
+enum FeatureFlag {
+  FEATFLAG_NULL,
+  FEATFLAG_DISABLES_PRIV,
+  FEATFLAG_ENABLES_PRIV,
+  FEATFLAG_GLOBAL_OPERS,
+  FEATFLAG_LOCAL_OPERS,
+  FEATFLAG_ALL_OPERS
+};
+
 static struct
 {
   enum Priv priv;
   enum Feature feat;
-  enum
-    {
-      FEATFLAG_DISABLES_PRIV,
-      FEATFLAG_ENABLES_PRIV,
-      FEATFLAG_GLOBAL_OPERS,
-      FEATFLAG_LOCAL_OPERS,
-      FEATFLAG_ALL_OPERS
-    } flag;
+  enum FeatureFlag flag;
 } feattab[] =
   {
     { PRIV_WHOX, FEAT_LAST_F, FEATFLAG_ALL_OPERS },
@@ -166,7 +168,7 @@ static struct
     { PRIV_SEE_CHAN, FEAT_LOCOP_SEE_IN_SECRET_CHANNELS, FEATFLAG_LOCAL_OPERS },
     { PRIV_WIDE_GLINE, FEAT_LOCOP_WIDE_GLINE, FEATFLAG_LOCAL_OPERS },
     
-    { PRIV_LAST_PRIV, FEAT_LAST_F, 0 }
+    { PRIV_LAST_PRIV, FEAT_LAST_F, FEATFLAG_NULL }
   };
 
 /* client_set_privs(struct Client* client)
@@ -225,6 +227,8 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
       if (IsLocOp(client))
         PrivSet(&cli_privs(client), feattab[i].priv);
       continue;
+    default:
+      continue;  /* ?? */
     }
   }
 

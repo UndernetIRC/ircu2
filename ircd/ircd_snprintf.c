@@ -2010,7 +2010,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
       vdata->vd_overflow = SNP_MAX(buf_s.buf_overflow, buf_s.overflow);
     } else if ((fld_s.flags & CONV_MASK) == CONV_CLIENT) {
       struct Client *cptr = (struct Client*) fld_s.value.v_ptr;
-      char *str1 = 0, *str2 = 0, *str3 = 0;
+      const char *str1 = 0, *str2 = 0, *str3 = 0;
       int slen1 = 0, slen2 = 0, slen3 = 0, elen = 0, plen = 0;
 
       /* &me is used if it's not a definite server */

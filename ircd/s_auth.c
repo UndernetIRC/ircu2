@@ -138,7 +138,7 @@ static void auth_timeout_callback(struct Event* ev)
   assert(0 != ev_timer(ev));
   assert(0 != t_data(ev_timer(ev)));
 
-  auth = t_data(ev_timer(ev));
+  auth = (struct AuthRequest*) t_data(ev_timer(ev));
 
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     auth->flags &= ~AM_TIMEOUT;
@@ -165,7 +165,7 @@ static void auth_sock_callback(struct Event* ev)
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
 
-  auth = s_data(ev_socket(ev));
+  auth = (struct AuthRequest*) s_data(ev_socket(ev));
 
   switch (ev_type(ev)) {
   case ET_DESTROY: /* being destroyed */

@@ -193,7 +193,7 @@ static void uping_read_callback(struct Event* ev)
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
 
-  pptr = s_data(ev_socket(ev));
+  pptr = (struct UPing*) s_data(ev_socket(ev));
 
   Debug((DEBUG_SEND, "uping_read_callback called, %p (%d)", pptr,
 	 ev_type(ev)));
@@ -218,7 +218,7 @@ static void uping_sender_callback(struct Event* ev)
   assert(0 != ev_timer(ev));
   assert(0 != t_data(ev_timer(ev)));
 
-  pptr = t_data(ev_timer(ev));
+  pptr = (struct UPing*) t_data(ev_timer(ev));
 
   Debug((DEBUG_SEND, "uping_sender_callback called, %p (%d)", pptr,
 	 ev_type(ev)));
@@ -247,7 +247,7 @@ static void uping_killer_callback(struct Event* ev)
   assert(0 != ev_timer(ev));
   assert(0 != t_data(ev_timer(ev)));
 
-  pptr = t_data(ev_timer(ev));
+  pptr = (struct UPing*) t_data(ev_timer(ev));
 
   Debug((DEBUG_SEND, "uping_killer_callback called, %p (%d)", pptr,
 	 ev_type(ev)));

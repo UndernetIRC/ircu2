@@ -55,6 +55,7 @@
 #include "support.h"
 #include "sys.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
 #define MAX_STRINGS 80 /* Maximum number of feature params. */
@@ -71,7 +72,7 @@
   int stringno;
   char *name, *pass, *host;
   char *stringlist[MAX_STRINGS];
-  struct ConnectionClass *class;
+  struct ConnectionClass *c_class;
   struct ConfItem *aconf;
   struct DenyConf *dconf;
   struct ServerConf *sconf;
@@ -352,11 +353,11 @@ classsendq: SENDQ '=' sizespec ';'
 connectblock: CONNECT
 {
  name = pass = host = NULL;
- class = NULL;
+ c_class = NULL;
  port = 0;
 } '{' connectitems '}'
 {
- if (name != NULL && pass != NULL && host != NULL && class != NULL && 
+ if (name != NULL && pass != NULL && host != NULL && c_class != NULL && 
      /*ccount < MAXCONFLINKS &&*/ !strchr(host, '*') &&
      !strchr(host, '?'))
  {
@@ -364,7 +365,7 @@ connectblock: CONNECT
    aconf->status = CONF_SERVER;
    aconf->name = name;
    aconf->passwd = pass;
-   aconf->conn_class = class;
+   aconf->conn_class = c_class;
    aconf->port = port;
    aconf->status = CONF_SERVER;
    aconf->host = host;
@@ -396,7 +397,7 @@ connectpass: PASS '=' QSTRING ';'
 };
 connectclass: CLASS '=' QSTRING ';'
 {
- class = find_class(yylval.text);
+ c_class = find_class(yylval.text);
 };
 connecthost: HOST '=' QSTRING ';'
 {
@@ -410,7 +411,7 @@ connectport: PORT '=' NUMBER ';'
 
 serverblock: SERVER
 {
- aconf = MyMalloc(sizeof(*aconf));
+ aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
  memset(aconf, 0, sizeof(*aconf));
 } '{' serveritems '}'
 {
@@ -472,7 +473,7 @@ serveruworld: UWORLD '=' YES ';'
 
 operblock: OPER
 {
-  aconf = MyMalloc(sizeof(*aconf));
+  aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
   memset(aconf, 0, sizeof(*aconf));
   aconf->status = CONF_OPERATOR;
 } '{' operitems '}' ';'
@@ -524,7 +525,7 @@ operhost: HOST '=' QSTRING ';'
  if (!strchr(yylval.text, '@'))
  {
    int uh_len;
-   char *b = MyMalloc((uh_len = strlen(yylval.text)+3));
+   char *b = (char*) MyMalloc((uh_len = strlen(yylval.text)+3));
    ircd_snprintf(0, b, uh_len, "*@%s", yylval.text);
    aconf->host = b;
  }
@@ -640,7 +641,7 @@ porthidden: HIDDEN '=' YES ';'
 
 clientblock: CLIENT
 {
-  aconf = MyMalloc(sizeof(*aconf));
+  aconf = (struct ConfItem*) MyMalloc(sizeof(*aconf));
   memset(aconf, 0, sizeof(*aconf));
   aconf->status = CONF_CLIENT;
 } '{' clientitems '}'
@@ -692,7 +693,7 @@ clientpass: PASS '=' QSTRING ';'
 
 killblock: KILL
 {
-  dconf = MyMalloc(sizeof(*dconf));
+  dconf = (struct DenyConf*) MyMalloc(sizeof(*dconf));
   memset(dconf, 0, sizeof(*dconf));
 } '{' killitems '}'
 {
@@ -785,7 +786,7 @@ cruleblock: CRULE
   struct CRuleNode *node;
   if (host != NULL && pass != NULL && (node=crule_parse(pass)) != NULL)
   {
-    struct CRuleConf *p = MyMalloc(sizeof(*p));
+    struct CRuleConf *p = (struct CRuleConf*) MyMalloc(sizeof(*p));
     p->hostmask = host;
     p->rule = pass;
     p->type = tconn;
@@ -875,7 +876,7 @@ extrastring: QSTRING
 quarantineblock: QUARANTINE '{'
 {
   if (qconf != NULL)
-    qconf = MyMalloc(sizeof(*qconf));
+    qconf = (struct qline*) MyMalloc(sizeof(*qconf));
   else
   {
     if (qconf->chname != NULL)
@@ -890,7 +891,7 @@ quarantineblock: QUARANTINE '{'
   {
     log_write(LS_CONFIG, L_ERROR, 0, "quarantine blocks need a channel name "
               "and a reason.");
-    return;
+    return 0;
   }
   qconf->next = GlobalQuarantineList;
   GlobalQuarantineList = qconf;

@@ -93,6 +93,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "s_conf.h"
 
 #include <assert.h>
 
@@ -138,7 +139,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
-  char *chname, *qreason;
+  char *chname;
+  const char *qreason;
   int force = 0;
   struct Membership *member;
 

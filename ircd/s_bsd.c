@@ -983,7 +983,7 @@ static void client_sock_callback(struct Event* ev)
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
 
-  con = s_data(ev_socket(ev));
+  con = (struct Connection*) s_data(ev_socket(ev));
 
   assert(0 != con_client(con) || ev_type(ev) == ET_DESTROY);
 
@@ -1071,7 +1071,7 @@ static void client_timer_callback(struct Event* ev)
   assert(0 != t_data(ev_timer(ev)));
   assert(ET_DESTROY == ev_type(ev) || ET_EXPIRE == ev_type(ev));
 
-  con = t_data(ev_timer(ev));
+  con = (struct Connection*) t_data(ev_timer(ev));
 
   assert(0 != con_client(con) || ev_type(ev) == ET_DESTROY);
 

@@ -432,7 +432,7 @@ static void accept_connection(struct Event* ev)
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
 
-  listener = s_data(ev_socket(ev));
+  listener = (struct Listener*) s_data(ev_socket(ev));
 
   if (ev_type(ev) == ET_DESTROY) /* being destroyed */
     free_listener(listener);

@@ -227,7 +227,7 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
 {
   struct Client *acptr; /* Current client we're concidering */
   struct User *user; 	/* the user portion of the client */
-  char *name; 		/* the name of this client */
+  const char *name; 	/* the name of this client */
   struct Membership* chan; 
   int invis; 		/* does +i apply? */
   int member;		/* Is this user on any channels? */

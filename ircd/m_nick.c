@@ -284,7 +284,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char nick[NICKLEN + 2];
   time_t lastnick = 0;
   int differ = 1;
-  char *type;
+  const char *type;
 
   assert(0 != cptr);
   assert(0 != sptr);

@@ -663,7 +663,7 @@ struct {	\
 
 #define NM(name)	{ #name, name }
 
-#define NE		{ 0, 0 }
+#define NE		{ 0 }
 
 const char*
 state_to_name(enum SocketState state)

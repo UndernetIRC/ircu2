@@ -28,6 +28,7 @@
 #include "s_debug.h"
 
 #include <assert.h>
+#include <string.h>
 
 static void nomem_handler(void);
 
@@ -51,3 +52,22 @@ set_nomem_handler(OutOfMemoryHandler handler)
 {
   noMemHandler = handler;
 }
+
+void* DoMalloc(size_t size, const char* x, const char* y, int z)
+{
+  void* t = malloc(size);
+  if (!t)
+    (*noMemHandler)();
+  return t;
+}
+
+void* DoMallocZero(size_t size, const char* x, const char* y, int z)
+{
+  void* t = malloc(size);
+  if (!t)
+    (*noMemHandler)();
+  memset(t, 0, size);
+  return t;
+}
+
+
