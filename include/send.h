@@ -22,6 +22,8 @@ struct MsgBuf;
 /*
  * Prototypes
  */
+extern struct SLink *opsarray[];
+
 extern void send_buffer(struct Client* to, struct MsgBuf* buf, int prio);
 
 extern void kill_highest_sendq(int servers_too);
@@ -79,10 +81,10 @@ extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 				     struct Client *one, unsigned int skip,
 				     const char *pattern, ...);
 
-#define SKIP_DEAF	0x01	/* skip users that are +d */
-#define SKIP_BURST	0x02	/* skip users that are bursting */
-#define SKIP_NONOPS	0x04	/* skip users that aren't chanops */
-#define SKIP_NONVOICES  0x08    /* skip users that aren't voiced (includes
+#define SKIP_DEAF	0x01	/**< skip users that are +d */
+#define SKIP_BURST	0x02	/**< skip users that are bursting */
+#define SKIP_NONOPS	0x04	/**< skip users that aren't chanops */
+#define SKIP_NONVOICES  0x08    /**< skip users that aren't voiced (includes
                                    chanops) */
 
 /* Send command to all users having a particular flag set */
@@ -90,9 +92,9 @@ extern void sendwallto_group_butone(struct Client *from, int type,
 				    struct Client *one, const char *pattern,
 				    ...);
 
-#define WALL_DESYNCH	1
-#define WALL_WALLOPS	2
-#define WALL_WALLUSERS	3
+#define WALL_DESYNCH	1       /**< send as a DESYNCH message */
+#define WALL_WALLOPS	2       /**< send to all +w opers */
+#define WALL_WALLUSERS	3       /**< send to all +w users */
 
 /* Send command to all matching clients */
 extern void sendcmdto_match_butone(struct Client *from, const char *cmd,

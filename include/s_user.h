@@ -53,8 +53,6 @@ struct Flags;
 
 #define COOKIE_VERIFIED 0xffffffff /**< value for cli_cookie() to show completion */
 
-extern struct SLink *opsarray[]; /**< element N is a list of local opers with bit N set in their server notice mask (cli_snomask()) */
-
 /** Formatter function for send_user_info().
  * @param who Client being displayed.
  * @param sptr Client requesting information.
@@ -86,8 +84,6 @@ extern int hide_hostmask(struct Client *cptr, unsigned int flags);
 extern int set_user_mode(struct Client *cptr, struct Client *sptr,
                          int parc, char *parv[]);
 extern int is_silenced(struct Client *sptr, struct Client *acptr);
-extern int hunt_server(int, struct Client *cptr, struct Client *sptr,
-    char *command, int server, int parc, char *parv[]);
 extern int hunt_server_cmd(struct Client *from, const char *cmd,
 			   const char *tok, struct Client *one,
 			   int MustBeOper, const char *pattern, int server,
