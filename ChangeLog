@@ -1,3 +1,7 @@
+2002-02-13 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* Merged changes from u2_10_11 to main branch.
+	
 2002-02-08  Tim Vogelsang  <net@astrolink.org>
 
        * ircd/m_quit.c: don't prefix user quits with "Quit:" unless a
@@ -4745,5 +4749,4 @@
 
 	* include/channel.h: added definition of ModeBuf, modebuf_*
 	manipulation functions, and a couple of helper macros
->>>>>>> 1.290.2.46
 
