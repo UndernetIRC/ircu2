@@ -405,7 +405,7 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
 
   va_start(vl, format); /* append to the buffer */
   mb->length += ircd_vsnprintf(dest, mb->msg + mb->length,
-			       bufsize(mb) - mb->length - 2, format, vl);
+			       bufsize(mb) - mb->length - 1, format, vl);
   va_end(vl);
 
   if (mb->length > bufsize(mb) - 2)

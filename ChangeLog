@@ -1,3 +1,8 @@
+2002-08-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c (msgq_append): correct an off-by-one error that
+	jinxed the bursts
+
 2002-08-22  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/Makefile.in: apply Sengaia's patch to include LDFLAGS in
