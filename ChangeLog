@@ -1,3 +1,9 @@
+2004-12-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_kqueue.c (engine_loop): Remove an assertion that the
+	socket's FD is the same after processing as it was before; local
+	clients apparently have s_fd() == -1 after close.
+
 2004-12-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.h (apply_ban): Add new flag to indicate whether
