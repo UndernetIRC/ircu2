@@ -180,6 +180,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (agline) {
     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
       gline_free(agline);
+    else if (!lastmod && ((flags & GLINE_ACTIVE) == GlineIsRemActive(agline)))
+      return gline_propagate(cptr, sptr, agline);
     else if (!lastmod || GlineLastMod(agline) < lastmod) { /* new mod */
       if (flags & GLINE_ACTIVE)
 	return gline_activate(cptr, sptr, agline, lastmod, flags);
@@ -189,6 +191,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return 0;
     else
       return gline_resend(cptr, agline); /* other server desynched WRT gline */
+  } else if (parc == 3 && !(flags & GLINE_ACTIVE)) {
+    /* U-lined server removing a G-line we don't have; propagate the removal
+     * anyway.
+     */
+    if (!(flags & GLINE_LOCAL))
+      sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* -%s", mask);
+    return 0;
   } else if (parc < 5)
     return need_more_params(sptr, "GLINE");
 

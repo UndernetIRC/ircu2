@@ -1,3 +1,24 @@
+2001-02-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (ms_gline): propagate a G-line that happened to
+	have been added by a U-lined server, rather than going through the
+	activate/deactivate logic; propagate G-line removals by U-lined
+	servers as well
+
+	* ircd/gline.c: rename propagate_gline() to gline_propagate();
+	make gline_propagate() return an int 0 (convenience return); only
+	update lastmod in gline_activate() and gline_deactivate() if the
+	current lastmod is non-zero, since 0 lastmod is our flag of a
+	U-lined server having added a G-line
+
+	* include/gline.h (gline_propagate): exporting the G-line
+	propagation function
+
+	* ircd/m_list.c (m_list): duh; permit explicit channel name
+	specification only when /list gets two arguments ("Kev
+	#wasteland") rather than when /list gets more than two
+	arguments--nice braino
+
 2001-01-29  Thomas Helvey <twhelvey1@home.com>
 
 	* ircd/ircd_reply.c (need_more_params): fix bug that allowed
