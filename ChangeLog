@@ -1,5 +1,8 @@
 2001-06-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* doc/example.conf: updated example.conf from Braden
+	<dbtem@yahoo.com>
+
 	* include/supported.h: forward-port from pl15
 
 2001-06-25  Kevin L. Mitchell  <klmitch@mit.edu>
