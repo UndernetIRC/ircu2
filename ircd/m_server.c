@@ -905,7 +905,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         LHcptr = cptr;          /* Squit ourselfs */
     }
     else if (!(lhconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_HUB)) ||
-             (lhconf->port && (hop > lhconf->port)))
+             (lhconf->port && (hop > lhconf->port)) ||
+             (!BadPtr(lhconf->host) && match(lhconf->host, parv[1])))
     {
       struct Client *ac3ptr;
       active_lh_line = 2;

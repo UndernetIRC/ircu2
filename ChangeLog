@@ -1,3 +1,7 @@
+2002-11-24 Andrew Miller <a1kmm@mware.virtualave.net>
+	* ircd/m_server.c: Fixed the H: line hostname checking.
+	* docs/example.conf: Documented the max-hops feature.
+	
 2002-11-23  Perry Lorier <isomer@undernet.org>
 	* ircd/m_nick.c: ms_nick had mysteriously gained a "return" in the
 	middle of it.  This meant when two people had the same TS on a nick
