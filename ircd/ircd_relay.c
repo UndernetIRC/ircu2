@@ -159,11 +159,15 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   assert(0 != text);
   assert(0 != server);
 
-  if ((acptr = FindServer(server + 1)) == NULL ||
-      !IsService(acptr)) {
+#if 0
+  if ((acptr = FindServer(server + 1)) == NULL 
+/* X doesn't say it's a service yet! */
+      || !IsService(acptr)
+      ) {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
+#endif
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
