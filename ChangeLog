@@ -1,3 +1,7 @@
+2002-04-03  Perry Lorier  <isomer@undernet.org>
+
+	* ircd/res.c: validate hostnames.
+
 2002-04-02  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_kill.c: let ms_kill() and mo_kill() seperate the message

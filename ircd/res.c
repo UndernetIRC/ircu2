@@ -795,6 +795,21 @@ static void resend_query(struct ResRequest* request)
   }
 }
 
+/* Returns true if this is a valid name */
+static int validate_name(char *name)
+{
+  while (*name) {
+    if ((*name<'A' || *name>'Z') 
+     && (*name<'a' || *name>'z') 
+     && (*name<'0' || *name>'9')
+     && (*name!='-')) {
+      return 0;
+    }
+    name++;
+  }
+  return 1;
+}
+
 /*
  * proc_answer - process name server reply
  * build a hostent struct in the passed request
@@ -991,6 +1006,12 @@ static int proc_answer(struct ResRequest* request, HEADER* header,
        *  -Dianora
        */
       hostbuf[HOSTLEN] = '\0';
+
+      /* Validate the name meets RFC */
+      if (validate_name(hostbuf)) {
+	return 0;
+      }
+
       current += (size_t) n;
 
       Debug((DEBUG_DNS, "Resolver: PTR %s", hostbuf));
