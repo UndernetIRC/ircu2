@@ -131,7 +131,6 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char             info[REALLEN + 1];
   char*            host;
   struct Client*   acptr;
-  struct Client*   bcptr;
   struct Client*   LHcptr = 0;
   struct ConfItem* aconf = 0;
   struct ConfItem* lhconf = 0;
@@ -681,10 +680,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client*   acptr;
   struct Client*   bcptr;
   struct Client*   LHcptr = 0;
-  struct ConfItem* aconf = 0;
   struct ConfItem* lhconf = 0;
   int              hop;
-  int              ret;
   int              active_lh_line = 0;
   unsigned short   prot;
   time_t           start_timestamp;

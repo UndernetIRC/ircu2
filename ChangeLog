@@ -1,3 +1,7 @@
+2002-02-25  Carlo Wood  <carlo@alinoe.com>
+
+	* ircd/m_server.c: remove unused variables
+
 2002-02-25 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_map.c: Modified to show a useful output to non-opered
