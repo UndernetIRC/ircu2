@@ -168,7 +168,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (acptr->user->away)
       send_reply(sptr, RPL_AWAY, acptr->name, acptr->user->away);
 
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", acptr->name, parv[2]);
 
     return 0;
   }
@@ -201,7 +201,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (MyConnect(acptr))
     add_invite(acptr, chptr);
 
-  sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%H", acptr, chptr);
+  sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", acptr->invite, chptr);
 
   return 0;
 }
@@ -257,7 +257,7 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     /*
      * just relay the message
      */
-    sendcmdto_one(sptr, CMD_INVITE, acptr, "%C :%s", acptr, parv[2]);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%s", acptr->name, parv[2]);
     return 0;
   }
 
