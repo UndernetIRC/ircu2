@@ -216,35 +216,6 @@ static struct  resinfo {
 } reinfo;
 
 
-/*
- * int
- * res_isourserver(ina)
- *      looks up "ina" in _res.ns_addr_list[]
- * returns:
- *      0  : not found
- *      >0 : found
- * author:
- *      paul vixie, 29may94
- */
-static int
-res_ourserver(const struct __res_state* statp, const struct sockaddr_in* inp) 
-{
-  struct sockaddr_in ina;
-  int ns;
-
-  ina = *inp;
-  for (ns = 0;  ns < statp->nscount;  ns++) {
-    const struct sockaddr_in *srv = &statp->nsaddr_list[ns];
-
-    if (srv->sin_family == ina.sin_family &&
-         srv->sin_port == ina.sin_port &&
-         (srv->sin_addr.s_addr == INADDR_ANY ||
-          srv->sin_addr.s_addr == ina.sin_addr.s_addr))
-             return (1);
-  }
-  return (0);
-}
-
 /* Socket callback for resolver */
 static void res_socket_callback(struct Event* ev)
 {
@@ -525,21 +496,6 @@ static void do_query_number(const struct DNSQuery* query,
                              request, &request->aq, res_adns_callback);
   assert(!res);
   timer_chg(&resExpireDNS, TT_RELATIVE, 1);
-}
-
-/* Returns true if this is a valid name */
-static int validate_name(char *name)
-{
-  while (*name) {
-    if ((*name<'A' || *name>'Z') 
-     && (*name<'a' || *name>'z') 
-     && (*name<'0' || *name>'9')
-     && (*name!='-')) {
-      return 0;
-    }
-    name++;
-  }
-  return 1;
 }
 
 /*

@@ -1,3 +1,8 @@
+2004-05-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/res_adns.c (res_ourserver): Remove unused function.
+	(validate_name): Likewise.
+
 2004-05-17  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_features.h, ircd/ircd_features.c, ircd/s_debug.c:
