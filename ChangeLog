@@ -1,3 +1,7 @@
+2003-06-13  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c: it's supposed to be %ld, not %l
+
 2003-04-45  Reed Loden  <reed@reedloden.com>
 
 	* INSTALL: Updated the "howto" for CVS.
