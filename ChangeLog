@@ -1,5 +1,22 @@
 2002-01-09  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c (set_nick_name): bracket call to
+	add_client_to_list() with calls to verify_client_list()
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel (again)
+
+	* ircd/list.c (verify_client_list): add a probabilistic loop
+	detector: for every client added, there is a 2% probability that
+	it will be used to replace the value of sentinel; if at any time,
+	sentinel is found again, we know we're in a loop
+
+	* ircd/ircd_events.c (event_execute): add verify_client_list()
+	calls wrapping event_execute; at the very least, I'll figure out
+	what event the corruption occurred in
+
+	* ircd/list.c: moved verify_client_list() to try to keep it from
+	being inlined
+
 	* ircd/Makefile.in (version.c): version.c wasn't dependant on
 	version.h and patchlevel.h, like it was supposed to be
 

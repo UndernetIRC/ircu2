@@ -306,32 +306,6 @@ struct Server *make_server(struct Client *cptr)
   return cli_serv(cptr);
 }
 
-#ifdef DEBUGMODE
-/* WARNING: Major CPU sink!
- *
- * This is a debugging routine meant to verify the integrity of the client
- * linked list.  It is meant to be comprehensive, to detect *any* corruption
- * of that list.  This means that it will be majorly CPU-intensive, and
- * should *only* be enabled on servers that have DEBUGMODE enabled.  Ignore
- * this warning at your peril!
- */
-void verify_client_list(void)
-{
-  struct Client *client, *prev = 0;
-
-  for (client = GlobalClientList; client; client = cli_next(client)) {
-    /* Verify that this is a valid client, not a free'd one */
-    assert(cli_verify(client));
-    /* Verify that the list hasn't suddenly jumped around */
-    assert(cli_prev(client) == prev);
-    /* Verify that the list hasn't become circular */
-    assert(cli_next(client) != GlobalClientList);
-
-    prev = client; /* Remember what should preceed us */
-  }
-}
-#endif /* DEBUGMODE */
-
 /*
  * Taken the code from ExitOneClient() for this and placed it here.
  * - avalon
@@ -411,6 +385,36 @@ void add_client_to_list(struct Client *cptr)
 
   verify_client_list();
 }
+
+#ifdef DEBUGMODE
+/* WARNING: Major CPU sink!
+ *
+ * This is a debugging routine meant to verify the integrity of the client
+ * linked list.  It is meant to be comprehensive, to detect *any* corruption
+ * of that list.  This means that it will be majorly CPU-intensive, and
+ * should *only* be enabled on servers that have DEBUGMODE enabled.  Ignore
+ * this warning at your peril!
+ */
+void verify_client_list(void)
+{
+  struct Client *client, *prev = 0, *sentinel = 0;
+  extern unsigned int ircrandom(void);
+
+  for (client = GlobalClientList; client; client = cli_next(client)) {
+    /* Verify that this is a valid client, not a free'd one */
+    assert(cli_verify(client));
+    /* Verify that the list hasn't suddenly jumped around */
+    assert(cli_prev(client) == prev);
+    /* Verify that the list hasn't become circular */
+    assert(cli_next(client) != GlobalClientList);
+    assert(!sentinel || client != sentinel);
+
+    prev = client; /* Remember what should preceed us */
+    if (!(ircrandom() % 50)) /* probabilistic loop detector */
+      sentinel = client;
+  }
+}
+#endif /* DEBUGMODE */
 
 /*
  * Look for ptr in the linked listed pointed to by link.
