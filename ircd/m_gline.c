@@ -198,12 +198,12 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
  * parv[0] = Sender prefix
  * parv[1] = [[+|-]<G-line mask>]
  *
- * Old style:
+ * Local (to me) style:
  *
  * parv[2] = [Expiration offset]
  * parv[3] = [Comment]
  *
- * New style:
+ * Global (or remote local) style:
  *
  * parv[2] = [target]
  * parv[3] = [Expiration offset]
