@@ -1506,15 +1506,13 @@ int find_kill(struct Client *cptr)
         send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", deny->message);
     }
   }
-  else if ((agline = gline_lookup(cptr, 0)) && GlineIsActive(agline)) {
+  else if ((agline = gline_lookup(cptr, 0))) {
     /*
      * find active glines
      * added a check against the user's IP address to find_gline() -Kev
      */
     send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", GlineReason(agline));
   }
-  else
-    agline = 0;          /* if a gline was found, it was inactive */
 
   if (deny)
     return -1;
