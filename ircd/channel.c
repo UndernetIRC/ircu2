@@ -3635,8 +3635,7 @@ mode_process_clients(struct ParseState *state)
       /* prevent +k users from being deopped */
       if (IsChannelService(state->cli_change[i].client)) {
 	if (state->flags & MODE_PARSE_FORCE) /* it was forced */
-	  sendto_op_mask(SNO_HACK4, ":%s NOTICE * :*** Notice -- "
-			 "Deop of +k user on %s by %s",me.name,
+	  sendto_op_mask(SNO_HACK4, "Deop of +k user on %s by %s",
 			 state->chptr->chname,
 			 (IsServer(state->sptr) ? state->sptr->name :
 			  state->sptr->user->server->name));
