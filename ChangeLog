@@ -6,6 +6,8 @@
 
 	* include/numeric.h: addition of RPL_HOSTHIDDEN as 396
 
+	* include/patchlevel.h: bumped to 04dev1
+
 2002-12-14 hikari <shadow@undernet.org>
 	* ircd/m_wallchops.c: fixed ms_wallchops()
 
