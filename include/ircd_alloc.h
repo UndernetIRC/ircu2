@@ -1,7 +1,6 @@
 /*
  * IRC - Internet Relay Chat, include/ircd_alloc.h
  * Copyright (C) 1999 Thomas Helvey <tomh@inxpress.net>
- *                   
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +17,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Commentary by Bleep (Thomas Helvey)
- *
- * $Id$
+ */
+/** @file
+ * @brief IRC daemon memory allocation functions.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_alloc_h
 #define INCLUDED_ircd_alloc_h
@@ -27,20 +28,25 @@
 /*
  * memory resource allocation and test functions
  */
+/** Type of handler for out-of-memory conditions. */
 typedef void (*OutOfMemoryHandler)(void);
 extern void set_nomem_handler(OutOfMemoryHandler handler);
 
 /* The mappings for the My* functions... */
+/** Helper macro for standard allocations. */
 #define MyMalloc(size) \
   DoMalloc(size, "malloc", __FILE__, __LINE__)
 
+/** Helper macro for zero-initialized allocations. */
 #define MyCalloc(nelem, size) \
   DoMallocZero(size * nelem, "calloc", __FILE__, __LINE__)
 
+/** Helper macro for freeing memory. */
 #define MyFree(p) \
   if (p) \
     DoFree(p, __FILE__, __LINE__)
 
+/** Helper macro for reallocating memory. */
 #define MyRealloc(p, size) \
   DoRealloc(p, size, __FILE__, __LINE__)
 
@@ -51,8 +57,7 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
 #define INCLUDED_stdlib_h
 #endif
 
-extern OutOfMemoryHandler noMemHandler;
-
+/** Implementation macro for freeing memory. */
 #define DoFree(x, file, line) do { free((x)); (x) = 0; } while(0)
 extern void* DoMalloc(size_t len, const char*, const char*, int);
 extern void* DoMallocZero(size_t len, const char*, const char*, int);
