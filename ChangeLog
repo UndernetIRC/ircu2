@@ -1,5 +1,20 @@
 2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd_signal.c: massage the handlers for SIGHUP, SIGINT, and
+	SIGTERM into event callbacks; perform the actions in the
+	callbacks, since they're not called in the context of the signal;
+	set up the signal callbacks in the event engine
+
+	* ircd/ircd_events.c (signal_callback): we're supposed to look for
+	a specific signal; don't generate an event if there is no signal
+	structure for it
+
+	* ircd/ircd.c: nuke nextconnect and nextping and replace them with
+	connect_timer and ping_timer; massage try_connections() and
+	check_pings() into timer callbacks that re-add themselves at the
+	right time; remove ircd.c's "event_loop()"; initialize the event
+	system and the connect_timer and ping_timer
+
 	* ircd/uping.c: correct a couple more typos
 
 	* ircd/s_auth.c: rework to use new events system

@@ -21,8 +21,10 @@
  */
 #include "config.h"
 
-#include "ircd_signal.h"
 #include "ircd.h"
+#include "ircd_events.h"
+#include "ircd_signal.h"
+#include "s_conf.h"
 
 #include <signal.h>
 
@@ -31,25 +33,44 @@ static struct tag_SignalCounter {
   unsigned int hup;
 } SignalCounter;
 
-void sigalrm_handler(int sig)
+static struct Signal sig_hup;
+static struct Signal sig_int;
+static struct Signal sig_term;
+
+static void sigalrm_handler(int sig)
 {
   ++SignalCounter.alrm;
 }
 
-void sigterm_handler(int sig)
+static void sigterm_callback(struct Event* ev)
 {
+  assert(0 != ev_signal(ev));
+  assert(ET_SIGNAL == ev_type(ev));
+  assert(SIGTERM == sig_signal(ev_signal(ev)));
+  assert(SIGTERM == sig_data(ev_signal(ev)));
+
   server_die("received signal SIGTERM");
 }
 
-static void sighup_handler(int sig)
+static void sighup_callback(struct Event* ev)
 {
+  assert(0 != ev_signal(ev));
+  assert(ET_SIGNAL == ev_type(ev));
+  assert(SIGHUP == sig_signal(ev_signal(ev)));
+  assert(SIGHUP == sig_data(ev_signal(ev)));
+
   ++SignalCounter.hup;
-  GlobalRehashFlag = 1;
+  rehash(&me, 1);
 }
 
-static void sigint_handler(int sig)
+static void sigint_callback(struct Event* ev)
 {
-  GlobalRestartFlag = 1;
+  assert(0 != ev_signal(ev));
+  assert(ET_SIGNAL == ev_type(ev));
+  assert(SIGINT == sig_signal(ev_signal(ev)));
+  assert(SIGINT == sig_data(ev_signal(ev)));
+
+  server_restart("caught signal: SIGINT");
 }
 
 void setup_signals(void)
@@ -70,16 +91,9 @@ void setup_signals(void)
   act.sa_handler = sigalrm_handler;
   sigaction(SIGALRM, &act, 0);
 
-  sigemptyset(&act.sa_mask);
-
-  act.sa_handler = sighup_handler;
-  sigaction(SIGHUP, &act, 0);
-
-  act.sa_handler = sigint_handler;
-  sigaction(SIGINT, &act, 0);
-
-  act.sa_handler = sigterm_handler;
-  sigaction(SIGTERM, &act, 0);
+  signal_add(&sig_hup, sighup_callback, 0, SIGHUP);
+  signal_add(&sig_int, sigint_callback, 0, SIGINT);
+  signal_add(&sig_term, sigterm_callback, 0, SIGTERM);
 
 #ifdef HAVE_RESTARTABLE_SYSCALLS
   /*

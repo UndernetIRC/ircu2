@@ -259,10 +259,11 @@ signal_callback(struct Event* event)
 
     for (ptr = evInfo.gens.g_signal; ptr;
 	 ptr = (struct Signal*) ptr->sig_header.gh_next)
-      if (ptr->sig_signal) /* find its descriptor... */
+      if (ptr->sig_signal == sig) /* find its descriptor... */
 	break;
 
-    event_generate(ET_SIGNAL, ptr, sig); /* generate signal event */
+    if (ptr)
+      event_generate(ET_SIGNAL, ptr, sig); /* generate signal event */
   }
 }
 
