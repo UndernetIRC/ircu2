@@ -1,3 +1,11 @@
+2000-10-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: ok, now last mode rules; mode +ps will always
+	result in +s (and won't send a mode if the channel is already +s);
+	mode +sp will always result in +p; -n+n on a +n channel results in
+	no mode change; -n+n on a -n channel results in a +n mode change;
+	etc.
+
 2000-10-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: add "add" and "del" elements to ParseState to

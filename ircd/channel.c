@@ -3691,12 +3691,6 @@ mode_process_clients(struct ParseState *state)
 static void
 mode_parse_mode(struct ParseState *state, int *flag_p)
 {
-  if ((state->dir == MODE_ADD &&  ((flag_p[0] & state->chptr->mode.mode) ||
-				   (flag_p[0] & state->del))) ||
-      (state->dir == MODE_DEL && !((flag_p[0] & state->chptr->mode.mode) ||
-				   (flag_p[0] & state->add))))
-    return; /* no change */
-
   /* If they're not an oper, they can't change modes */
   if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
     send_notoper(state);
@@ -3707,31 +3701,24 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
     return;
 
   if (state->dir == MODE_ADD) {
-    if (state->del & flag_p[0]) /* if we're adding a deleted mode, ignore */
-      state->del &= ~flag_p[0];
-    else
-      state->add |= flag_p[0]; /* otherwise add it */
-  } else {
-    if (state->add & flag_p[0]) /* if we're deleting an added mode, ignore */
-      state->add &= ~flag_p[0];
-    else
-      state->del |= flag_p[0]; /* otherwise delete it */
-  }
+    state->add |= flag_p[0];
+    state->del &= ~flag_p[0];
 
-  /* make +p and +s mutually exclusive */
-  if (state->dir == MODE_ADD && (flag_p[0] & MODE_SECRET)) {
-    if (state->add & MODE_PRIVATE) /* deal with added modes first */
+    if (flag_p[0] & MODE_SECRET) {
       state->add &= ~MODE_PRIVATE;
-    if (state->chptr->mode.mode & MODE_PRIVATE) /* then channel modes */
       state->del |= MODE_PRIVATE;
-  } else if (state->dir == MODE_ADD && (flag_p[0] & MODE_PRIVATE)) {
-    if (state->add & MODE_SECRET) /* deal with added modes first */
+    } else if (flag_p[0] & MODE_PRIVATE) {
       state->add &= ~MODE_SECRET;
-    if (state->chptr->mode.mode & MODE_SECRET) /* then channel modes */
       state->del |= MODE_SECRET;
+    }
+  } else {
+    state->add &= ~flag_p[0];
+    state->del |= flag_p[0];
   }
 
   assert(0 == (state->add & state->del));
+  assert((MODE_SECRET | MODE_PRIVATE) !=
+	 (state->add & (MODE_SECRET | MODE_PRIVATE)));
 }
 
 /*
@@ -3761,6 +3748,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
   };
   int i;
   int *flag_p;
+  unsigned int t_mode;
   char *modestr;
   struct ParseState state;
 
@@ -3875,17 +3863,25 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
   if (!state.mbuf || state.flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER))
     return state.args_used; /* tell our parent how many args we gobbled */
 
-  if (state.add) /* add any modes to be added... */
-    modebuf_mode(state.mbuf, MODE_ADD | state.add);
-  if (state.del) /* delete any modes to be deleted... */
-    modebuf_mode(state.mbuf, MODE_DEL | state.del);
+  t_mode = state.chptr->mode.mode;
+
+  if (state.del & t_mode) { /* delete any modes to be deleted... */
+    modebuf_mode(state.mbuf, MODE_DEL | (state.del & t_mode));
+
+    t_mode &= ~state.del;
+  }
+  if (state.add & ~t_mode) { /* add any modes to be added... */
+    modebuf_mode(state.mbuf, MODE_ADD | (state.add & ~t_mode));
+
+    t_mode |= state.add;
+  }
 
   if (state.flags & MODE_PARSE_SET) { /* set the channel modes */
-    state.chptr->mode.mode |= state.add;
-    state.chptr->mode.mode &= ~state.del;
-
-    if (state.del & MODE_INVITEONLY) /* clear invites away if needed */
+    if ((state.chptr->mode.mode & MODE_INVITEONLY) &&
+	!(t_mode & MODE_INVITEONLY))
       mode_invite_clear(state.chptr);
+
+    state.chptr->mode.mode = t_mode;
   }
 
   if (state.flags & MODE_PARSE_WIPEOUT) {
