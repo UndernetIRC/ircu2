@@ -1,5 +1,11 @@
 2002-01-08  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* include/patchlevel.h (PATCHLEVEL): bump patch level, so we can
+	keep track of who's running what version
+
+	* ircd/m_squit.c (ms_squit): remove debugging calls to
+	protocol_violation()
+
 	* Makefile.in: change MAKEFILES to IRCD_MAKEFILES to work around a
 	new gmake "feature" (pull-up from trunk)
 
