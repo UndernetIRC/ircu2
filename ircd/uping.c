@@ -51,23 +51,22 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define UPINGTIMEOUT 60   /* Timeout waiting for ping responses */
+#define UPINGTIMEOUT 60   /**< Timeout waiting for ping responses */
 
-static struct UPing* pingList = 0;
-int UPingFileDescriptor       = -1; /* UDP listener socket for upings */
+static struct UPing* pingList = 0; /**< Linked list of UPing structs */
+static int UPingFileDescriptor       = -1; /**< UDP listener socket for upings */
+static struct Socket upingSock; /**< Socket struct for upings */
 
-static struct Socket upingSock;
-
-/*
- * pings_begin - iterator function for ping list 
+/** Start iteration of uping list.
+ * @return Start of uping list.
  */
 struct UPing* uping_begin(void)
 {
   return pingList;
 }
 
-/*
- * pings_erase - removes ping struct from ping list
+/** Removes \a p from uping list.
+ * @param[in,out] p UPing to remove from list.
  */
 static void uping_erase(struct UPing* p)
 {
@@ -75,7 +74,7 @@ static void uping_erase(struct UPing* p)
   struct UPing* last = 0;
 
   assert(0 != p);
-  
+
   for (it = pingList; it; last = it, it = it->next) {
     if (p == it) {
       if (last)
@@ -87,7 +86,9 @@ static void uping_erase(struct UPing* p)
   }
 }
 
-/* Called when the event engine detects activity on the UPing socket */
+/** Callback for uping listener socket.
+ * @param[in] ev I/O event for uping socket.
+ */
 static void uping_echo_callback(struct Event* ev)
 {
   assert(ev_type(ev) == ET_READ || ev_type(ev) == ET_ERROR);
@@ -95,8 +96,8 @@ static void uping_echo_callback(struct Event* ev)
   uping_echo();
 }
 
-/*
- * Setup a UDP socket and listen for incoming packets
+/** Initialize a UDP socket for upings.
+ * @returns File descriptor of UDP socket (-1 on error).
  */
 int uping_init(void)
 {
@@ -120,8 +121,8 @@ int uping_init(void)
 }
 
 
-/*
- * max # of pings set to 15/sec.
+/** Read a uping from the socket and respond (but not more than 10
+ * times per second).
  */
 void uping_echo()
 {
@@ -154,7 +155,9 @@ void uping_echo()
 }
 
 
-/* Callback when socket has data to read */
+/** Callback for socket activity on an outbound uping socket.
+ * @param[in] ev I/O event for socket.
+ */
 static void uping_read_callback(struct Event* ev)
 {
   struct UPing *pptr;
@@ -179,7 +182,9 @@ static void uping_read_callback(struct Event* ev)
   }
 }
 
-/* Callback to send another ping */
+/** Timer callback to send another outbound uping.
+ * @param[in] ev Event for uping timer.
+ */
 static void uping_sender_callback(struct Event* ev)
 {
   struct UPing *pptr;
@@ -208,7 +213,9 @@ static void uping_sender_callback(struct Event* ev)
   }
 }
 
-/* Callback to kill a ping */
+/** Timer callback to stop upings.
+ * @param[in] ev Event for uping expiration.
+ */
 static void uping_killer_callback(struct Event* ev)
 {
   struct UPing *pptr;
@@ -233,8 +240,9 @@ static void uping_killer_callback(struct Event* ev)
   }
 }
 
-/*
- * start_ping
+/** Start a uping.
+ * This sets up the timers, UPing flags, and sends a notice to the
+ * requesting client.
  */
 static void uping_start(struct UPing* pptr)
 {
@@ -252,9 +260,8 @@ static void uping_start(struct UPing* pptr)
   pptr->active = 1;
 }
 
-/*
- * uping_send
- *
+/** Send a uping to another server.
+ * @param[in] pptr Descriptor for uping.
  */
 void uping_send(struct UPing* pptr)
 {
@@ -289,8 +296,8 @@ void uping_send(struct UPing* pptr)
   ++pptr->sent;
 }
 
-/*
- * read_ping
+/** Read the response from an outbound uping.
+ * @param[in] pptr UPing to check.
  */
 void uping_read(struct UPing* pptr)
 {
@@ -344,6 +351,13 @@ void uping_read(struct UPing* pptr)
   return;
 }
 
+/** Start sending upings to a server.
+ * @param[in] sptr Client requesting the upings.
+ * @param[in] aconf ConfItem containing the address to ping.
+ * @param[in] port Port number to ping.
+ * @param[in] count Number of times to ping (should be at least 20).
+ * @return Zero.
+ */
 int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int count)
 {
   int fd;
@@ -383,7 +397,6 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   pptr->addr.port           = port;
   pptr->count               = IRCD_MIN(20, count);
   pptr->client              = sptr;
-  pptr->index               = -1;
   pptr->freeable            = UPING_PENDING_SOCKET;
   strcpy(pptr->name, aconf->name);
 
@@ -395,7 +408,9 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   return 0;
 }
 
-
+/** Clean up a UPing structure, reporting results to the requester.
+ * @param[in,out] pptr UPing results.
+ */
 void uping_end(struct UPing* pptr)
 {
   Debug((DEBUG_DEBUG, "uping_end: %p", pptr));
@@ -431,6 +446,10 @@ void uping_end(struct UPing* pptr)
     timer_del(&pptr->killer);
 }
 
+/** Change notifications for any upings by \a sptr.
+ * @param[in] sptr Client to stop notifying.
+ * @param[in] acptr New client to notify (or NULL).
+ */
 void uping_cancel(struct Client *sptr, struct Client* acptr)
 {
   struct UPing* ping;

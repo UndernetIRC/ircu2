@@ -41,34 +41,32 @@
 struct Client;
 struct ConfItem;
 
+/** Tracks state of a UDP ping to some other server. */
 struct UPing
 {
-  struct UPing*      next;     /* next ping in list, usually null */
-  int                fd;       /* socket file descriptor */
-  struct irc_sockaddr addr;      /* socket name (ip addr, port, family ) */
-  char               count;    /* number of pings requested */
-  char               sent;     /* pings sent */
-  char               received; /* pings received */
-  char               active;   /* ping active flag */
-  struct Client*     client;   /* who requested the pings */
-  time_t             lastsent; /* when last ping was sent */
-  int                ms_min;   /* minimum time in milliseconds */
-  int                ms_ave;   /* average time in milliseconds */
-  int                ms_max;   /* maximum time in milliseconds */
-  int                index;    /* index into poll array */
-  struct Socket      socket;   /* socket structure */
-  struct Timer       sender;   /* timer telling when next to send a ping */
-  struct Timer       killer;   /* timer to kill us */
-  unsigned int       freeable; /* zero when structure can be free()'d */
-  char               name[HOSTLEN + 1]; /* server name to poing */
-  char               buf[BUFSIZE];      /* buffer to hold ping times */
+  struct UPing*      next;     /**< next ping in list */
+  int                fd;       /**< socket file descriptor */
+  struct irc_sockaddr addr;    /**< socket name (ip addr, port, family ) */
+  char               count;    /**< number of pings requested */
+  char               sent;     /**< pings sent */
+  char               received; /**< pings received */
+  char               active;   /**< ping active flag */
+  struct Client*     client;   /**< who requested the pings */
+  time_t             lastsent; /**< when last ping was sent */
+  int                ms_min;   /**< minimum time in milliseconds */
+  int                ms_ave;   /**< average time in milliseconds */
+  int                ms_max;   /**< maximum time in milliseconds */
+  struct Socket      socket;   /**< socket structure */
+  struct Timer       sender;   /**< timer telling when next to send a ping */
+  struct Timer       killer;   /**< timer to kill us */
+  unsigned int       freeable; /**< zero when structure can be free()'d */
+  char               name[HOSTLEN + 1]; /**< server name to poing */
+  char               buf[BUFSIZE];      /**< buffer to hold ping times */
 };
 
-#define UPING_PENDING_SOCKET	0x01 /* pending socket destruction event */
-#define UPING_PENDING_SENDER	0x02 /* pending sender destruction event */
-#define UPING_PENDING_KILLER	0x04 /* pending killer destruction event */
-
-extern int UPingFileDescriptor;
+#define UPING_PENDING_SOCKET	0x01 /**< pending socket destruction event */
+#define UPING_PENDING_SENDER	0x02 /**< pending sender destruction event */
+#define UPING_PENDING_KILLER	0x04 /**< pending killer destruction event */
 
 extern int  uping_init(void);
 extern void uping_send(struct UPing* pptr);
