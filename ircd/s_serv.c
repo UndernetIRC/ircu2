@@ -111,7 +111,8 @@ int a_kills_b_too(struct Client *a, struct Client *b)
  * May only be called after a SERVER was received from cptr,
  * and thus make_server was called, and serv->prot set. --Run
  */
-int server_estab(struct Client *cptr, struct ConfItem *aconf)
+int server_estab(struct Client *cptr, struct ConfItem *aconf,
+		 struct Jupe *ajupe)
 {
   struct Client* acptr = 0;
   const char*    inpath;
@@ -192,9 +193,16 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       continue;
     if (!match(me.name, cptr->name))
       continue;
-    sendcmdto_one(&me, CMD_SERVER, acptr, "%s 2 0 %Tu J%02u %s%s 0 :%s",
-		  cptr->name, cptr->serv->timestamp, Protocol(cptr),
-		  NumServCap(cptr), cptr->info);
+    if (ajupe)
+      sendcmdto_one(&me, CMD_SERVER, acptr,
+		    "%s 2 0 %Tu J%02u %s%s 0 %%%Tu :%s", cptr->name,
+		    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
+		    JupeLastMod(ajupe), cptr->info);
+    else
+      sendcmdto_one(&me, CMD_SERVER, acptr,
+		    "%s 2 0 %Tu J%02u %s%s 0 :%s", cptr->name,
+		    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
+		    cptr->info);
   }
 
   /*
@@ -229,10 +237,18 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
       split = (MyConnect(acptr) && 
                0 != ircd_strcmp(acptr->name, acptr->sockhost) &&
                0 != ircd_strncmp(acptr->info, "JUPE", 4));
-      sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr, "%s %d 0 %Tu %s%u "
-		    "%s%s 0 :%s", acptr->name, acptr->hopcount + 1,
-		    acptr->serv->timestamp, protocol_str, Protocol(acptr),
-		    NumServCap(acptr), acptr->info);
+      if ((ajupe = jupe_find(acptr->name)))
+	sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
+		      "%s %d 0 %Tu %s%u %s%s 0 %%%Tu :%s", acptr->name,
+		      acptr->hopcount + 1, acptr->serv->timestamp,
+		      protocol_str, Protocol(acptr), NumServCap(acptr),
+		      JupeLastMod(ajupe), acptr->info);
+      else
+	sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
+		      "%s %d 0 %Tu %s%u %s%s 0 :%s", acptr->name,
+		      acptr->hopcount + 1, acptr->serv->timestamp,
+		      protocol_str, Protocol(acptr), NumServCap(acptr),
+		      acptr->info);
     }
   }
 
