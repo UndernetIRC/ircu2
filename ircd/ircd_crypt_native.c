@@ -43,7 +43,7 @@
 /** Simple routine that just calls crypt() with the supplied password and salt
  * @param key The password we're encrypting.
  * @param salt The salt we're using to encrypt key
- * @reutrn The encrypted password.
+ * @return The encrypted password.
  * 
  * Well this bit is (kinda) intact from the original oper password routines :) 
  * It's a very simple wrapper routine that just calls crypt and returns the 

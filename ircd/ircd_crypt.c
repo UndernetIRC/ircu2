@@ -109,7 +109,7 @@ crypt_mechs_t* crypt_mech;
 }
 
 /** Remove a crypt mechanism from the list 
- * @param Pointer to the mechanism we want to remove
+ * @param mechanism Pointer to the mechanism we want to remove
  * @return 0 on success, anything else on fail.
 */
 int ircd_crypt_unregister_mech(crypt_mech_t* mechanism)

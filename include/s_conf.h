@@ -128,7 +128,7 @@ enum AuthorizationCheckResult {
 struct nick_host {
   struct nick_host *next; /**< Next nick_host struct in struct s_map. */
   int nicklen;            /**< offset of @ part of server string */
-  char nick[1];           /**< start of nick@server string */
+  char nick[1];           /**< start of nick\@server string */
 };
 
 /** Target set for a service pseudo-command. */

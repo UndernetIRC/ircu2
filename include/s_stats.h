@@ -42,7 +42,7 @@ typedef void (*StatFunc)(struct Client *cptr, const struct StatDesc *sd, char *p
 /** Statistics entry. */
 struct StatDesc
 {
-  char         sd_c;           /**< stats character (or '\0') */
+  char         sd_c;           /**< stats character (or '\\0') */
   char        *sd_name;        /**< full name for stats */
   unsigned int sd_flags;       /**< flags to control the stats */
   enum Feature sd_control;     /**< feature controlling stats */
