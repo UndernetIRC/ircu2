@@ -1,3 +1,10 @@
+2004-05-15  Michael Poole <mdpoole@troilus.org>
+
+	* include/gline.h, ircd/gline.c, ircd/s_err.c: Forward port a lot
+	of gline-related fixes from 2.10.11.  Things that work are due to
+	Kev, Isomer, Spike, hikari, and probably others; CVS makes it hard
+	to figure out who did what.  Any mistakes are mine.
+
 2004-05-15  Isomer <isomer@undernet.org>
 
 	[Original ChangeLog date: 2003-11-05 -MDP]
