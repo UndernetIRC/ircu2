@@ -1,5 +1,10 @@
 2004-09-10  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/os_generic.c (sockaddr_from_irc): Fix IPv4 implementation
+	to use the correct address family and IP offset.
+
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_conf.h (struct ConfItem): Add origin and origin_name
 	fields.
 

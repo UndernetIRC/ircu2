@@ -100,9 +100,9 @@ void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
 
 void sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int persist)
 {
-    v4->sin_family = AF_INET6;
+    v4->sin_family = AF_INET;
     assert(!irc->addr.in6_16[0] && !irc->addr.in6_16[1] && !irc->addr.in6_16[2] && !irc->addr.in6_16[3] && !irc->addr.in6_16[4] && (!irc->addr.in6_16[5] || irc->addr.in6_16[5] == 0xffff));
-    memcpy(&v4->sin_addr, &irc->addr.in6_16[7], sizeof(v4->sin_addr));
+    memcpy(&v4->sin_addr, &irc->addr.in6_16[6], sizeof(v4->sin_addr));
     v4->sin_port = htons(irc->port);
     (void)persist;
 }
