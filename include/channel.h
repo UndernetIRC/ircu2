@@ -40,6 +40,7 @@ struct Client;
 #define MODEBUFLEN      200
 
 #define KEYLEN          23
+#define PASSLEN         23
 #define CHANNELLEN      200
 
 #define MAXJOINARGS	15 /* number of slots for join buffer */
@@ -89,10 +90,12 @@ struct Client;
 #define MODE_SAVE	0x20000	/* save this mode-with-arg 'til later */
 #define MODE_FREE	0x40000 /* string needs to be passed to MyFree() */
 #define MODE_BURSTADDED	0x80000	/* channel was created by a BURST */
+#define MODE_UPASS	0x100000
+#define MODE_APASS	0x200000
 /*
  * mode flags which take another parameter (With PARAmeterS)
  */
-#define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT)
+#define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
 #define HoldChannel(x)          (!(x))
 /* name invisible */
@@ -165,13 +168,18 @@ struct Membership {
   struct Membership* next_channel;
   struct Membership* prev_channel;
   unsigned int       status;
+  unsigned short     oplevel;
 };
+
+#define MAXOPLEVELDIGITS    3
+#define MAXOPLEVEL          999
 
 #define IsZombie(x)         ((x)->status & CHFL_ZOMBIE)
 #define IsDeopped(x)        ((x)->status & CHFL_DEOPPED)
 #define IsBanned(x)         ((x)->status & CHFL_BANNED)
 #define IsBanValid(x)       ((x)->status & CHFL_BANVALID)
 #define IsChanOp(x)         ((x)->status & CHFL_CHANOP)
+#define OpLevel(x)          ((x)->oplevel)
 #define HasVoice(x)         ((x)->status & CHFL_VOICE)
 #define IsServOpOk(x)       ((x)->status & CHFL_SERVOPOK)
 #define IsBurstJoined(x)    ((x)->status & CHFL_BURST_JOINED)
@@ -183,6 +191,7 @@ struct Membership {
 #define SetServOpOk(x)      ((x)->status |= CHFL_SERVOPOK)
 #define SetBurstJoined(x)   ((x)->status |= CHFL_BURST_JOINED)
 #define SetZombie(x)        ((x)->status |= CHFL_ZOMBIE)
+#define SetOpLevel(x, v)    (void)((x)->oplevel = (v))
 
 #define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
 #define ClearBanValid(x)    ((x)->status &= ~CHFL_BANVALID)
@@ -195,12 +204,15 @@ struct Mode {
   unsigned int mode;
   unsigned int limit;
   char key[KEYLEN + 1];
+  char upass[PASSLEN + 1];
+  char apass[PASSLEN + 1];
 };
 
 struct Channel {
   struct Channel*    next;
   struct Channel*    prev;
   struct Channel*    hnext;
+  struct DestructEvent* destruct_event;
   time_t             creationtime;
   time_t             topic_time;
   unsigned int       users;
@@ -296,9 +308,10 @@ extern struct Channel *get_channel(struct Client *cptr,
 extern struct Membership* find_member_link(struct Channel * chptr,
                                            const struct Client* cptr);
 extern int sub1_from_channel(struct Channel* chptr);
+extern int destruct_channel(struct Channel* chptr);
 extern int can_join(struct Client *sptr, struct Channel *chptr, char *key);
 extern void add_user_to_channel(struct Channel* chptr, struct Client* who,
-                                unsigned int flags);
+                                unsigned int flags, int oplevel);
 extern void cancel_mode(struct Client *sptr, struct Channel *chptr, char m,
                         const char *param, int *count);
 extern void add_token_to_sendbuf(char *token, size_t *sblenp, int *firstp,
@@ -351,7 +364,8 @@ extern void mode_invite_clear(struct Channel *chan);
 
 extern int mode_parse(struct ModeBuf *mbuf, struct Client *cptr,
 		      struct Client *sptr, struct Channel *chptr,
-		      int parc, char *parv[], unsigned int flags);
+		      int parc, char *parv[], unsigned int flags,
+		      struct Membership* member);
 
 #define MODE_PARSE_SET		0x01	/* actually set channel modes */
 #define MODE_PARSE_STRICT	0x02	/* +m +n +t style not supported */

@@ -23,6 +23,7 @@
 
 #include "channel.h"
 #include "client.h"
+#include "destruct_event.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -186,20 +187,50 @@ static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
 /*
  * Subtract one user from channel i (and free channel
  * block, if channel became empty).
- * Returns: true  (1) if channel still exists
- *          false (0) if the channel was destroyed
+ * Returns: true  (1) if channel still has members.
+ *          false (0) if the channel is now empty.
  */
 int sub1_from_channel(struct Channel* chptr)
 {
-  struct SLink *tmp;
-  struct SLink *obtmp;
-
   if (chptr->users > 1)         /* Can be 0, called for an empty channel too */
   {
     assert(0 != chptr->members);
     --chptr->users;
     return 1;
   }
+
+  chptr->users = 0;
+
+  /*
+   * Also channels without Apass set need to be kept alive,
+   * otherwise Bad Guys(tm) would be able to takeover
+   * existing channels too easily, and then set an Apass!
+   * However, if a channel without Apass becomes empty
+   * then we try to be kind to them and remove possible
+   * limiting modes.
+   */
+  chptr->mode.mode &= ~MODE_INVITEONLY;
+  chptr->mode.limit = 0;
+  /*
+   * We do NOT reset a possible key or bans because when
+   * the 'channel owners' can't get in because of a key
+   * or ban then apparently there was a fight/takeover
+   * on the channel and we want them to contact IRC opers
+   * who then will educate them on the use of Apass/upass.
+   */
+
+  if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
+    schedule_destruct_event_1m(chptr);		/* Get rid of it in approximately 4-5 minutes */
+  else
+    schedule_destruct_event_48h(chptr);		/* Get rid of it in approximately 48 hours */
+
+  return 0;
+}
+
+int destruct_channel(struct Channel* chptr)
+{
+  struct SLink *tmp;
+  struct SLink *obtmp;
 
   assert(0 == chptr->members);
 
@@ -465,7 +496,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
  * chain.
  */
 void add_user_to_channel(struct Channel* chptr, struct Client* who,
-                                unsigned int flags)
+                                unsigned int flags, int oplevel)
 {
   assert(0 != chptr);
   assert(0 != who);
@@ -484,6 +515,7 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
     member->user         = who;
     member->channel      = chptr;
     member->status       = flags;
+    member->oplevel      = oplevel;
 
     member->next_member  = chptr->members;
     if (member->next_member)
@@ -497,6 +529,8 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
     member->prev_channel = 0;
     (cli_user(who))->channel = member;
 
+    if (chptr->destruct_event)
+      remove_destruct_event(chptr);
     ++chptr->users;
     ++((cli_user(who))->joined);
   }
@@ -584,6 +618,11 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
   if ((member = find_member_link(chptr, cptr)))
     return (!IsZombie(member) && IsChanOp(member));
 
+  return 0;
+}
+
+int is_level0_op(struct Client *cptr, struct Channel *chptr)
+{
   return 0;
 }
 
@@ -684,6 +723,8 @@ const char* find_no_nickchange_channel(struct Client* cptr)
 void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
                           struct Channel *chptr)
 {
+  int previous_parameter = 0;
+
   assert(0 != mbuf);
   assert(0 != pbuf);
   assert(0 != chptr);
@@ -706,18 +747,48 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
+    previous_parameter = 1;
   }
 
   if (*chptr->mode.key) {
     *mbuf++ = 'k';
-    if (chptr->mode.limit)
+    if (previous_parameter)
       strcat(pbuf, " ");
     if (is_chan_op(cptr, chptr) || IsServer(cptr)) {
       strcat(pbuf, chptr->mode.key);
     } else
       strcat(pbuf, "*");
+    previous_parameter = 1;
+  }
+  if (*chptr->mode.apass) {
+    *mbuf++ = 'A';
+    if (previous_parameter)
+      strcat(pbuf, " ");
+    if (IsServer(cptr)) {
+      strcat(pbuf, chptr->mode.apass);
+    } else
+      strcat(pbuf, "*");
+    previous_parameter = 1;
+  }
+  if (*chptr->mode.upass) {
+    *mbuf++ = 'u';
+    if (previous_parameter)
+      strcat(pbuf, " ");
+    if (is_level0_op(cptr, chptr) || IsServer(cptr)) {
+      strcat(pbuf, chptr->mode.upass);
+    } else
+      strcat(pbuf, "*");
   }
   *mbuf = '\0';
+}
+
+int compare_member_oplevel(const void *mp1, const void *mp2)
+{
+  struct Membership const* member1 = *(struct Membership const**)mp1;
+  struct Membership const* member2 = *(struct Membership const**)mp2;
+  if (member1->oplevel == member2->oplevel)
+    return 0;
+  return (member1->oplevel < member2->oplevel) ? -1 : 1;
 }
 
 /*
@@ -725,8 +796,9 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
  */
 void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 {
+  /* The order in which modes are generated is now mandatory */
   static unsigned int current_flags[4] =
-      { 0, CHFL_CHANOP | CHFL_VOICE, CHFL_VOICE, CHFL_CHANOP };
+      { 0, CHFL_VOICE, CHFL_CHANOP, CHFL_CHANOP | CHFL_VOICE };
   int                first = 1;
   int                full  = 1;
   int                flag_cnt = 0;
@@ -737,6 +809,10 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   char modebuf[MODEBUFLEN];
   char parabuf[MODEBUFLEN];
   struct MsgBuf *mb;
+  int                 number_of_ops = 0;
+  int                 opped_members_index = 0;
+  struct Membership** opped_members = NULL;
+  int                 last_oplevel = 0;
 
   assert(0 != cptr);
   assert(0 != chptr); 
@@ -760,7 +836,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
     mb = msgq_make(&me, "%C " TOK_BURST " %H %Tu", &me, chptr,
 		   chptr->creationtime);
 
-    if (first && modebuf[1])    /* Add simple modes (iklmnpst)
+    if (first && modebuf[1])    /* Add simple modes (Aiklmnpstu)
                                  if first message */
     {
       /* prefix: "<Y> B <channel> <TS>[ <modes>[ <params>]]" */
@@ -773,52 +849,119 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
     /*
      * Attach nicks, comma seperated " nick[:modes],nick[:modes],..."
      *
-     * Run 4 times over all members, to group the members with the
-     * same mode together
+     * First find all opless members.
+     * Run 2 times over all members, to group the members with
+     * and without voice together.
+     * Then run 2 times over all opped members (which are ordered
+     * by op-level) to also group voice and non-voice together.
      */
-    for (first = 1; flag_cnt < 4;
-         member = chptr->members, new_mode = 1, flag_cnt++)
+    for (first = 1; flag_cnt < 4; new_mode = 1, ++flag_cnt)
     {
-      for (; member; member = member->next_member)
+      while (member)
       {
-        if ((member->status & CHFL_VOICED_OR_OPPED) !=
-            current_flags[flag_cnt])
-          continue;             /* Skip members with different flags */
-	if (msgq_bufleft(mb) < NUMNICKLEN + 4)
-          /* The 4 is a possible ",:ov" */
-        {
-          full = 1;           /* Make sure we continue after
-                                 sending it so far */
-          new_mode = 1;       /* Ensure the new BURST line contains the current
-                                 mode. --Gte */
-          break;              /* Do not add this member to this message */
-        }
-	msgq_append(&me, mb, "%c%C", first ? ' ' : ',', member->user);
-        first = 0;              /* From now on, us comma's to add new nicks */
+	if (flag_cnt < 2 && IsChanOp(member))
+	{
+	  /*
+	   * The first loop (to find all non-voice/op), we count the ops.
+	   * The second loop (to find all voiced non-ops), store the ops
+	   * in a dynamic array.
+	   */
+	  if (flag_cnt == 0)
+	    ++number_of_ops;
+	  else
+	    opped_members[opped_members_index++] = member;
+	}
+	/* Only handle the members with the flags that we are interested in. */
+        if ((member->status & CHFL_VOICED_OR_OPPED) == current_flags[flag_cnt])
+	{
+	  if (msgq_bufleft(mb) < NUMNICKLEN + 3 + MAXOPLEVELDIGITS)
+	    /* The 3 + MAXOPLEVELDIGITS is a possible ",:v999". */
+	  {
+	    full = 1;           /* Make sure we continue after
+				   sending it so far */
+	    /* Ensure the new BURST line contains the current
+	     * ":mode", except when there is no mode yet. */
+	    new_mode = (flag_cnt > 0) ? 1 : 0;
+	    break;              /* Do not add this member to this message */
+	  }
+	  msgq_append(&me, mb, "%c%C", first ? ' ' : ',', member->user);
+	  first = 0;              /* From now on, use commas to add new nicks */
 
-        /*
-         * Do we have a nick with a new mode ?
-         * Or are we starting a new BURST line?
-         */
-        if (new_mode)
-        {
-          new_mode = 0;
-          if (IsVoicedOrOpped(member)) {
-	    char tbuf[4] = ":";
+	  /*
+	   * Do we have a nick with a new mode ?
+	   * Or are we starting a new BURST line?
+	   */
+	  if (new_mode)
+	  {
+	    /*
+	     * This means we are at the _first_ member that has only
+	     * voice, or the first member that has only ops, or the
+	     * first member that has voice and ops (so we get here
+	     * at most three times, plus once for every start of
+	     * a continued BURST line where only these modes is current.
+	     * In the two cases where the current mode includes ops,
+	     * we need to add the _absolute_ value of the oplevel to the mode.
+	     */
+	    char tbuf[3 + MAXOPLEVELDIGITS] = ":";
 	    int loc = 1;
 
-            if (IsChanOp(member))
-	      tbuf[loc++] = 'o';
-            if (HasVoice(member))
+	    if (HasVoice(member))	/* flag_cnt == 1 or 3 */
 	      tbuf[loc++] = 'v';
+	    if (IsChanOp(member))	/* flag_cnt == 2 or 3 */
+	    {
+	      /* append the absolute value of the oplevel */
+	      loc += ircd_snprintf(0, tbuf + loc, sizeof(tbuf) - loc, "%u", member->oplevel);
+	      last_oplevel = member->oplevel;
+	    }
 	    tbuf[loc] = '\0';
 	    msgq_append(&me, mb, tbuf);
-          }
-        }
+	    new_mode = 0;
+	  }
+	  else if (flag_cnt > 1 && last_oplevel != member->oplevel)
+	  {
+	    /*
+	     * This can't be the first member of a (continued) BURST
+	     * message because then either flag_cnt == 0 or new_mode == 1
+	     * Now we need to append the incremental value of the oplevel.
+	     */
+            char tbuf[2 + MAXOPLEVELDIGITS];
+	    ircd_snprintf(0, tbuf, sizeof(tbuf), ":%u", member->oplevel - last_oplevel);
+	    last_oplevel = member->oplevel;
+	    msgq_append(&me, mb, tbuf);
+	  }
+	}
+	/* Go to the next `member'. */
+	if (flag_cnt < 2)
+	  member = member->next_member;
+	else
+	  member = opped_members[++opped_members_index];
       }
       if (full)
-        break;
-    }
+	break;
+
+      /* Point `member' at the start of the list again. */
+      if (flag_cnt == 0)
+      {
+	member = chptr->members;
+	/* Now, after one loop, we know the number of ops and can
+	 * allocate the dynamic array with pointer to the ops. */
+	opped_members = (struct Membership**)
+	  MyMalloc((number_of_ops + 1) * sizeof(struct Membership*));
+	opped_members[number_of_ops] = NULL;	/* Needed for loop termination */
+      }
+      else
+      {
+	/* At the end of the second loop, sort the opped members with
+	 * increasing op-level, so that we will output them in the
+	 * correct order (and all op-level increments stay positive) */
+	if (flag_cnt == 1)
+	  qsort(opped_members, number_of_ops,
+	        sizeof(struct Membership*), compare_member_oplevel);
+	/* The third and fourth loop run only over the opped members. */
+	member = opped_members[(opped_members_index = 0)];
+      }
+
+    } /* loop over 0,+v,+o,+ov */
 
     if (!full)
     {
@@ -844,6 +987,8 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
     msgq_clean(mb);
   }                             /* Continue when there was something
                                  that didn't fit (full==1) */
+  if (opped_members)
+    MyFree(opped_members);
 }
 
 /*
@@ -1342,6 +1487,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
 /*  MODE_LIMIT,		'l', */
+/*  MODE_APASS,		'A', */
+/*  MODE_UPASS,		'u', */
     0x0, 0x0
   };
   int i;
@@ -1416,13 +1563,29 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_CHANOP ? 'o' : 'v';
 	totalbuflen -= IRCD_MAX(5, tmp) + 1;
       }
-    } else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN)) {
+    } else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN | MODE_APASS | MODE_UPASS)) {
       tmp = strlen(MB_STRING(mbuf, i));
 
       if ((totalbuflen - tmp) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
-	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_KEY ? 'k' : 'b';
+	char mode_char;
+	switch(MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN | MODE_APASS | MODE_UPASS))
+	{
+	  case MODE_APASS:
+	    mode_char = 'A';
+	    break;
+	  case MODE_UPASS:
+	    mode_char = 'u';
+	    break;
+	  case MODE_KEY:
+	    mode_char = 'k';
+	    break;
+	  default:
+	    mode_char = 'b';
+	    break;
+	}
+	bufptr[(*bufptr_i)++] = mode_char;
 	totalbuflen -= tmp + 1;
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
@@ -1473,6 +1636,10 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       /* deal with strings... */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
+
+      /* deal with invisible passwords */
+      else if (MB_TYPE(mbuf, i) & (MODE_APASS | MODE_UPASS))
+	build_string(strptr, strptr_i, "*", 0, ' ');
 
       /*
        * deal with limit; note we cannot include the limit parameter if we're
@@ -1566,7 +1733,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)), ' ');
 
       /* deal with modes that take strings */
-      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
+      else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN | MODE_APASS | MODE_UPASS))
 	build_string(strptr, strptr_i, MB_STRING(mbuf, i), 0, ' ');
 
       /*
@@ -1794,6 +1961,8 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_INVITEONLY,	'i',
     MODE_NOPRIVMSGS,	'n',
     MODE_KEY,		'k',
+    MODE_APASS,		'A',
+    MODE_UPASS,		'u',
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
@@ -1803,6 +1972,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   int i, bufpos = 0, len;
   int *flag_p;
   char *key = 0, limitbuf[20];
+  char *apass, *upass;
 
   assert(0 != mbuf);
   assert(0 != buf);
@@ -1813,12 +1983,16 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
 
   for (i = 0; i < mbuf->mb_count; i++) { /* find keys and limits */
     if (MB_TYPE(mbuf, i) & MODE_ADD) {
-      add |= MB_TYPE(mbuf, i) & (MODE_KEY | MODE_LIMIT);
+      add |= MB_TYPE(mbuf, i) & (MODE_KEY | MODE_LIMIT | MODE_APASS | MODE_UPASS);
 
       if (MB_TYPE(mbuf, i) & MODE_KEY) /* keep strings */
 	key = MB_STRING(mbuf, i);
       else if (MB_TYPE(mbuf, i) & MODE_LIMIT)
 	ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%u", MB_UINT(mbuf, i));
+      else if (MB_TYPE(mbuf, i) & MODE_UPASS)
+	upass = MB_STRING(mbuf, i);
+      else if (MB_TYPE(mbuf, i) & MODE_APASS)
+	apass = MB_STRING(mbuf, i);
     }
   }
 
@@ -1836,6 +2010,10 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
       build_string(buf, &bufpos, key, 0, ' ');
     else if (buf[i] == 'l')
       build_string(buf, &bufpos, limitbuf, 0, ' ');
+    else if (buf[i] == 'u')
+      build_string(buf, &bufpos, upass, 0, ' ');
+    else if (buf[i] == 'A')
+      build_string(buf, &bufpos, apass, 0, ' ');
   }
 
   buf[bufpos] = '\0';
@@ -1871,12 +2049,15 @@ mode_invite_clear(struct Channel *chan)
 #define DONE_BANLIST	0x04	/* We've sent the ban list */
 #define DONE_NOTOPER	0x08	/* We've sent a "Not oper" error */
 #define DONE_BANCLEAN	0x10	/* We've cleaned bans... */
+#define DONE_UPASS	0x20	/* We've set user pass */
+#define DONE_APASS	0x40	/* We've set admin pass */
 
 struct ParseState {
   struct ModeBuf *mbuf;
   struct Client *cptr;
   struct Client *sptr;
   struct Channel *chptr;
+  struct Membership *member;
   int parc;
   char **parv;
   unsigned int flags;
@@ -2042,6 +2223,168 @@ mode_parse_key(struct ParseState *state, int *flag_p)
       ircd_strncpy(state->chptr->mode.key, t_str, KEYLEN);
     else /* remove the old key */
       *state->chptr->mode.key = '\0';
+  }
+}
+
+/*
+ * Helper function to convert user passes
+ */
+static void
+mode_parse_upass(struct ParseState *state, int *flag_p)
+{
+  char *t_str, *s;
+  int t_len;
+
+  if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
+    return;
+
+  if (state->parc <= 0) { /* warn if not enough args */
+    if (MyUser(state->sptr))
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +u" :
+		       "MODE -u");
+    return;
+  }
+
+  t_str = state->parv[state->args_used++]; /* grab arg */
+  state->parc--;
+  state->max_args--;
+
+  /* If they're not an oper, they can't change modes */
+  if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+    send_notoper(state);
+    return;
+  }
+
+  if (state->done & DONE_UPASS) /* allow upass to be set only once */
+    return;
+  state->done |= DONE_UPASS;
+
+  t_len = PASSLEN + 1;
+
+  /* clean up the upass string */
+  s = t_str;
+  while (*++s > ' ' && *s != ':' && --t_len)
+    ;
+  *s = '\0';
+
+  if (!*t_str) { /* warn if empty */
+    if (MyUser(state->sptr))
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +u" :
+		       "MODE -u");
+    return;
+  }
+
+  if (!state->mbuf)
+    return;
+
+  /* can't add a upass if one is set, nor can one remove the wrong upass */
+  if (!(state->flags & MODE_PARSE_FORCE))
+    if ((state->dir == MODE_ADD && *state->chptr->mode.upass) ||
+	(state->dir == MODE_DEL &&
+	 ircd_strcmp(state->chptr->mode.upass, t_str))) {
+      send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
+      return;
+    }
+
+  if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
+      !ircd_strcmp(state->chptr->mode.upass, t_str))
+    return; /* no upass change */
+
+  if (state->flags & MODE_PARSE_BOUNCE) {
+    if (*state->chptr->mode.upass) /* reset old upass */
+      modebuf_mode_string(state->mbuf, MODE_DEL | flag_p[0],
+			  state->chptr->mode.upass, 0);
+    else /* remove new bogus upass */
+      modebuf_mode_string(state->mbuf, MODE_ADD | flag_p[0], t_str, 0);
+  } else /* send new upass */
+    modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
+
+  if (state->flags & MODE_PARSE_SET) {
+    if (state->dir == MODE_ADD) /* set the new upass */
+      ircd_strncpy(state->chptr->mode.upass, t_str, PASSLEN);
+    else /* remove the old upass */
+      *state->chptr->mode.upass = '\0';
+  }
+}
+
+/*
+ * Helper function to convert admin passes
+ */
+static void
+mode_parse_apass(struct ParseState *state, int *flag_p)
+{
+  char *t_str, *s;
+  int t_len;
+
+  if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
+    return;
+
+  if (state->parc <= 0) { /* warn if not enough args */
+    if (MyUser(state->sptr))
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +A" :
+		       "MODE -A");
+    return;
+  }
+
+  t_str = state->parv[state->args_used++]; /* grab arg */
+  state->parc--;
+  state->max_args--;
+
+  /* If they're not an oper, they can't change modes */
+  if (state->flags & (MODE_PARSE_NOTOPER | MODE_PARSE_NOTMEMBER)) {
+    send_notoper(state);
+    return;
+  }
+
+  if (state->done & DONE_APASS) /* allow apass to be set only once */
+    return;
+  state->done |= DONE_APASS;
+
+  t_len = PASSLEN + 1;
+
+  /* clean up the apass string */
+  s = t_str;
+  while (*++s > ' ' && *s != ':' && --t_len)
+    ;
+  *s = '\0';
+
+  if (!*t_str) { /* warn if empty */
+    if (MyUser(state->sptr))
+      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +A" :
+		       "MODE -A");
+    return;
+  }
+
+  if (!state->mbuf)
+    return;
+
+  /* can't add a apass if one is set, nor can one remove the wrong apass */
+  if (!(state->flags & MODE_PARSE_FORCE))
+    if ((state->dir == MODE_ADD && *state->chptr->mode.apass) ||
+	(state->dir == MODE_DEL &&
+	 ircd_strcmp(state->chptr->mode.apass, t_str))) {
+      send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
+      return;
+    }
+
+  if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
+      !ircd_strcmp(state->chptr->mode.apass, t_str))
+    return; /* no apass change */
+
+  if (state->flags & MODE_PARSE_BOUNCE) {
+    if (*state->chptr->mode.apass) /* reset old apass */
+      modebuf_mode_string(state->mbuf, MODE_DEL | flag_p[0],
+			  state->chptr->mode.apass, 0);
+    else /* remove new bogus apass */
+      modebuf_mode_string(state->mbuf, MODE_ADD | flag_p[0], t_str, 0);
+  } else /* send new apass */
+    modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
+
+  if (state->flags & MODE_PARSE_SET) {
+    if (state->dir == MODE_ADD) /* set the new apass */
+      ircd_strncpy(state->chptr->mode.apass, t_str, PASSLEN);
+    else /* remove the old apass */
+      *state->chptr->mode.apass = '\0';
   }
 }
 
@@ -2356,15 +2699,39 @@ mode_process_clients(struct ParseState *state)
 	}
       }
 
-      /* don't allow local opers to be deopped on local channels */
-      if (MyUser(state->sptr) && state->cli_change[i].client != state->sptr &&
-	  IsLocalChannel(state->chptr->chname) &&
-	  HasPriv(state->cli_change[i].client, PRIV_DEOP_LCHAN)) {
-	send_reply(state->sptr, ERR_ISOPERLCHAN,
-		   cli_name(state->cli_change[i].client),
-		   state->chptr->chname);
-	continue;
+      /* check deop for local user */
+      if (MyUser(state->sptr)) {
+
+	/* don't allow local opers to be deopped on local channels */
+	if (state->cli_change[i].client != state->sptr &&
+	    IsLocalChannel(state->chptr->chname) &&
+	    HasPriv(state->cli_change[i].client, PRIV_DEOP_LCHAN)) {
+	  send_reply(state->sptr, ERR_ISOPERLCHAN,
+		     cli_name(state->cli_change[i].client),
+		     state->chptr->chname);
+	  continue;
+        }
+
+	/* don't allow to deop members with an op level that is <= our own level */
+	if (state->sptr != state->cli_change[i].client		/* but allow to deop oneself */
+	        && state->member
+		&& OpLevel(member) <= OpLevel(state->member)) {
+	    int equal = (OpLevel(member) == OpLevel(state->member));
+	    send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
+		       cli_name(state->cli_change[i].client),
+		       state->chptr->chname,
+		       OpLevel(state->member), OpLevel(member),
+		       "deop", equal ? "the same" : "a higher");
+	  continue;
+	}
       }
+    }
+
+    /* set op-level of member being opped */
+    if ((state->cli_change[i].flag & (MODE_ADD | MODE_CHANOP)) ==
+	(MODE_ADD | MODE_CHANOP)) {
+      int old_level = (state->member == NULL) ? -1 : OpLevel(state->member);
+      SetOpLevel(member, old_level == MAXOPLEVEL ? MAXOPLEVEL : (old_level + 1));
     }
 
     /* accumulate the change */
@@ -2382,7 +2749,7 @@ mode_process_clients(struct ParseState *state)
 	member->status &= ~(state->cli_change[i].flag &
 			    (MODE_CHANOP | MODE_VOICE));
     }
-  } /* for (i = 0; state->cli_change[i].flags; i++) { */
+  } /* for (i = 0; state->cli_change[i].flags; i++) */
 }
 
 /*
@@ -2428,7 +2795,8 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
  */
 int
 mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
-	   struct Channel *chptr, int parc, char *parv[], unsigned int flags)
+	   struct Channel *chptr, int parc, char *parv[], unsigned int flags,
+	   struct Membership* member)
 {
   static int chan_flags[] = {
     MODE_CHANOP,	'o',
@@ -2440,6 +2808,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_INVITEONLY,	'i',
     MODE_NOPRIVMSGS,	'n',
     MODE_KEY,		'k',
+    MODE_APASS,		'A',
+    MODE_UPASS,		'u',
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
@@ -2463,6 +2833,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
   state.cptr = cptr;
   state.sptr = sptr;
   state.chptr = chptr;
+  state.member = member;
   state.parc = parc;
   state.parv = parv;
   state.flags = flags;
@@ -2513,6 +2884,14 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	mode_parse_key(&state, flag_p);
 	break;
 
+      case 'A': /* deal with Admin passes */
+	mode_parse_apass(&state, flag_p);
+	break;
+
+      case 'u': /* deal with user passes */
+	mode_parse_upass(&state, flag_p);
+	break;
+
       case 'b': /* deal with bans */
 	mode_parse_ban(&state, flag_p);
 	break;
@@ -2525,8 +2904,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
       default: /* deal with other modes */
 	mode_parse_mode(&state, flag_p);
 	break;
-      } /* switch (*modestr) { */
-    } /* for (; *modestr; modestr++) { */
+      } /* switch (*modestr) */
+    } /* for (; *modestr; modestr++) */
 
     if (state.flags & MODE_PARSE_BURST)
       break; /* don't interpret any more arguments */
@@ -2555,7 +2934,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	break; /* break out of while loop */
       }
     }
-  } /* while (*modestr) { */
+  } /* while (*modestr) */
 
   /*
    * the rest of the function finishes building resultant MODEs; if the
@@ -2592,6 +2971,12 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     if (*state.chptr->mode.key && !(state.done & DONE_KEY))
       modebuf_mode_string(state.mbuf, MODE_DEL | MODE_KEY,
 			  state.chptr->mode.key, 0);
+    if (*state.chptr->mode.upass && !(state.done & DONE_UPASS))
+      modebuf_mode_string(state.mbuf, MODE_DEL | MODE_UPASS,
+			  state.chptr->mode.upass, 0);
+    if (*state.chptr->mode.apass && !(state.done & DONE_APASS))
+      modebuf_mode_string(state.mbuf, MODE_DEL | MODE_APASS,
+			  state.chptr->mode.apass, 0);
   }
 
   if (state.done & DONE_BANCLEAN) /* process bans */
@@ -2674,7 +3059,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
     /* Add user to channel */
-    add_user_to_channel(chan, jbuf->jb_source, flags);
+    add_user_to_channel(chan, jbuf->jb_source, flags, 0);
 
     /* send notification to all servers */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !IsLocalChannel(chan->chname))

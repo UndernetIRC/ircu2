@@ -99,10 +99,12 @@
 #include "send.h"
 #include "struct.h"
 #include "support.h"
+#include "ircd_snprintf.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 /*
  * ms_burst - server message handler
@@ -122,14 +124,46 @@
  *   parv[n] = %<ban> <ban> <ban> ...
  * If parv[n] starts with another character:
  *   parv[n] = <nick>[:<mode>],<nick>[:<mode>],...
- *   where <mode> is the channel mode (ov) of nick and all following nicks.
+ *   where <mode> defines the mode and op-level
+ *   for nick and all following nicks until the
+ *   next <mode> field.
+ *   Digits in the <mode> field have of two meanings:
+ *   1) if it is the first field in this BURST message
+ *      that contains digits, and/or when a 'v' is
+ *      present in the <mode>:
+ *      The absolute value of the op-level.
+ *   2) if there are only digits in this field and
+ *      it is not the first field with digits:
+ *      An op-level increment relative to the previous
+ *      op-level.
+ *   First all modeless nicks must be emmitted,
+ *   then all combinations of modes without ops
+ *   (currently that is only 'v') followed by the same
+ *   series but then with ops (currently 'o','ov').
  *
  * Example:
- * "S BURST #channel 87654321 +ntkl key 123 AAA,AAB:o,BAA,BAB:ov :%ban1 ban2"
+ * "A8 B #test 87654321 +ntkAl key secret 123 A8AAG,A8AAC:v,A8AAA:0,A8AAF:2,A8AAD,A8AAB:v1,A8AAE:1 :%ban1 ban2"
+ *
+ * <mode> list example:
+ *
+ * "xxx,sss:v,ttt,aaa:123,bbb,ccc:2,ddd,kkk:v2,lll:2,mmm"
+ *
+ * means
+ *
+ *  xxx		// first modeless nicks
+ *  sss +v	// then opless nicks
+ *  ttt +v	// no ":<mode>": everything stays the same
+ *  aaa -123	// first field with digit: absolute value
+ *  bbb -123
+ *  ccc -125	// only digits, not first field: increment
+ *  ddd -125
+ *  kkk -2 +v	// field with a 'v': absolute value
+ *  lll -4 +v	// only digits: increment
+ *  mmm -4 +v
  *
  * Anti net.ride code.
  *
- * When the channel already exist, and its TS is larger then
+ * When the channel already exist, and its TS is larger than
  * the TS in the BURST message, then we cancel all existing modes.
  * If its is smaller then the received BURST message is ignored.
  * If it's equal, then the received modes are just added.
@@ -190,7 +224,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     switch (*parv[param]) {
     case '+': /* parameter introduces a mode string */
       param += mode_parse(mbuf, cptr, sptr, chptr, parc - param,
-			  parv + param, parse_flags);
+			  parv + param, parse_flags, NULL);
       break;
 
     case '%': /* parameter contains bans */
@@ -266,8 +300,10 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       {
 	struct Client *acptr;
 	char *nicklist = parv[param], *p = 0, *nick, *ptr;
-	int default_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+	int current_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
 	int last_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+	int oplevel = -1;	/* Mark first field with digits: means the same as 'o' (but with level). */
+	int last_oplevel = 0;
 
 	for (nick = ircd_strtok(&p, nicklist, ","); nick;
 	     nick = ircd_strtok(&p, 0, ",")) {
@@ -276,12 +312,44 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    *ptr++ = '\0';
 
 	    if (parse_flags & MODE_PARSE_SET) {
-	      for (default_mode = CHFL_DEOPPED | CHFL_BURST_JOINED; *ptr;
-		   ptr++) {
-		if (*ptr == 'o') /* has oper status */
-		  default_mode = (default_mode & ~CHFL_DEOPPED) | CHFL_CHANOP;
-		else if (*ptr == 'v') /* has voice status */
-		  default_mode |= CHFL_VOICE;
+	      int current_mode_needs_reset;
+	      for (current_mode_needs_reset = 1; *ptr; ptr++) {
+		if (*ptr == 'o') { /* has oper status */
+		  /*
+		   * An 'o' is pre-oplevel protocol, so this is only for
+		   * backwards compatibility.  Give them an op-level of
+		   * MAXOPLEVEL so everyone can deop them.
+		   */
+		  oplevel = MAXOPLEVEL;
+		  if (current_mode_needs_reset) {
+		    current_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+		    current_mode_needs_reset = 0;
+		  }
+		  current_mode = (current_mode & ~CHFL_DEOPPED) | CHFL_CHANOP;
+		}
+		else if (*ptr == 'v') { /* has voice status */
+		  if (current_mode_needs_reset) {
+		    current_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+		    current_mode_needs_reset = 0;
+		  }
+		  current_mode |= CHFL_VOICE;
+		  oplevel = -1;	/* subsequential digits are an absolute op-level value. */
+                }
+		else if (isdigit(*ptr)) {
+		  int level_increment = 0;
+		  if (oplevel == -1) { /* op-level is absolute value? */
+		    if (current_mode_needs_reset) {
+		      current_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+		      current_mode_needs_reset = 0;
+		    }
+		    oplevel = 0;
+		  }
+		  current_mode = (current_mode & ~CHFL_DEOPPED) | CHFL_CHANOP;
+		  do {
+		    level_increment = 10 * level_increment + *ptr++ - '0';
+		  } while(isdigit(*ptr));
+		  oplevel += level_increment;
+		}
 		else /* I don't recognize that flag */
 		  break; /* so stop processing */
 	      }
@@ -298,17 +366,22 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  for (ptr = nick; *ptr; ptr++) /* store nick */
 	    nickstr[nickpos++] = *ptr;
 
-	  if (default_mode != last_mode) { /* if mode changed... */
-	    last_mode = default_mode;
+	  if (current_mode != last_mode) { /* if mode changed... */
+	    last_mode = current_mode;
+	    last_oplevel = oplevel;
 
 	    nickstr[nickpos++] = ':'; /* add a specifier */
-	    if (default_mode & CHFL_CHANOP)
-	      nickstr[nickpos++] = 'o';
-	    if (default_mode & CHFL_VOICE)
+	    if (current_mode & CHFL_VOICE)
 	      nickstr[nickpos++] = 'v';
+	    if (current_mode & CHFL_CHANOP)
+	      nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel);
+	  } else if (current_mode & CHFL_CHANOP && oplevel != last_oplevel) { /* if just op level changed... */
+	    nickstr[nickpos++] = ':'; /* add a specifier */
+	    nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel - last_oplevel);
+            last_oplevel = oplevel;
 	  }
 
-	  add_user_to_channel(chptr, acptr, default_mode);
+	  add_user_to_channel(chptr, acptr, current_mode, oplevel);
 	  sendcmdto_channel_butserv_butone(acptr, CMD_JOIN, chptr, NULL, "%H", chptr);
 	}
       }

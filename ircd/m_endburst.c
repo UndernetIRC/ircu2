@@ -127,11 +127,8 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
     next_chan = chan->next;
 
     if (!chan->members) { /* empty channel */
-      if (!(chan->mode.mode & MODE_BURSTADDED))
-	sendto_opmask_butone(0, SNO_OLDSNO, "Empty channel %H not added by "
-			     "BURST!", chan);
-
-      sub1_from_channel(chan); /* ok, nuke channel now */
+      if ((chan->mode.mode & MODE_BURSTADDED))
+	sub1_from_channel(chan); /* New empty channel, schedule it for removal. */
     }
 
     chan->mode.mode &= ~MODE_BURSTADDED;

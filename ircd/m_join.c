@@ -248,14 +248,15 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  send_reply(sptr, i, chptr->chname);
 	  continue;
 	}
-      } /* else if ((i = can_join(sptr, chptr, keys))) { */
+      } /* else if ((i = can_join(sptr, chptr, keys))) */
 
       joinbuf_join(&join, chptr, flags);
     } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
       continue; /* couldn't get channel */
     else if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
       /* Note: check_target_limit will only ever return 0 here */
-      sub1_from_channel(chptr); /* created it... */
+      chptr->members = 0;
+      destruct_channel(chptr); /* created it... */
       continue;
     } else
       joinbuf_join(&create, chptr, flags);

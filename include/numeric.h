@@ -439,11 +439,13 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_TOOMANYUSERS     519	/* Undernet extension -Kev */
 /*	ERR_OPERONLY	     520	unreal */
 #define ERR_MASKTOOWIDE	     520	/* Undernet extension -Kev */
-/*	ERR_WHOTRUNC	     520	austnet */
-#define ERR_LASTERROR        521
-/*	ERR_LISTSYNTAX       521	dalnet
+/*	ERR_WHOTRUNC	     520	austnet
+	ERR_LISTSYNTAX       521	dalnet
 	ERR_WHOSYNTAX	     522        dalnet
 	ERR_WHOLIMEXCEED     523	dalnet */
+
+#define ERR_NOTLOWEROPLEVEL  550
+#define ERR_LASTERROR        551
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

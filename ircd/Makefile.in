@@ -83,6 +83,7 @@ IRCD_SRC = \
 	client.c \
 	crule.c \
 	dbuf.c \
+	destruct_event.c \
 	fda.c \
 	fileio.c \
 	gline.c \

@@ -26,6 +26,7 @@
 #include "class.h"
 #include "client.h"
 #include "crule.h"
+#include "destruct_event.h"
 #include "hash.h"
 #include "ircd_alloc.h"
 #include "ircd_events.h"
@@ -103,6 +104,7 @@ static char   *dpath             = DPATH;
 
 static struct Timer connect_timer; /* timer structure for try_connections() */
 static struct Timer ping_timer; /* timer structure for check_pings() */
+static struct Timer destruct_event_timer; /* timer structure for exec_expired_destruct_events() */
 
 static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
 
@@ -617,6 +619,7 @@ int main(int argc, char **argv) {
   IPcheck_init();
   timer_add(timer_init(&connect_timer), try_connections, 0, TT_RELATIVE, 1);
   timer_add(timer_init(&ping_timer), check_pings, 0, TT_RELATIVE, 1);
+  timer_add(timer_init(&destruct_event_timer), exec_expired_destruct_events, 0, TT_PERIODIC, 60);
 
   CurrentTime = time(NULL);
 

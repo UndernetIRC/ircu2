@@ -476,11 +476,11 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 			   get_client_name(killer, HIDE_IP));
     sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
 			 cli_serv(victim)->up, victim, comment);
-  }
 
 #ifdef HEAD_IN_SAND_MAP    
-  map_update(victim);
+    map_update(victim);
 #endif
+  }
 
   /*
    * First generate the needed protocol for the other server links

@@ -36,7 +36,7 @@ static Numeric replyTable[] = {
 /* 003 */
   { RPL_CREATED, ":This server was created %s", "003" },
 /* 004 */
-  { RPL_MYINFO, "%s %s dioswkgx biklmnopstvr bklov", "004" },
+  { RPL_MYINFO, "%s %s dioswkgx Abiklmnopstuvr Abklouv", "004" },
 /* 005 */
   { RPL_ISUPPORT, "%s :are supported by this server", "005" },
 /* 006 */
@@ -1132,7 +1132,7 @@ static Numeric replyTable[] = {
 /* 549 */
   { 0 },
 /* 550 */
-  { 0 },
+  { ERR_NOTLOWEROPLEVEL, "%s %s %hu %hu :Cannot %s someone with %s op-level", "550" },
 /* 551 */
   { 0 },
 /* 552 */

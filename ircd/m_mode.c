@@ -137,18 +137,19 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    MODEBUF_DEST_HACK4));  /* Send HACK(4) notice */
       mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 		 (MODE_PARSE_SET |    /* Set the mode */
-		  MODE_PARSE_FORCE)); /* Force it to take */
+		  MODE_PARSE_FORCE),  /* Force it to take */
+		  member);
       return modebuf_flush(&mbuf);
     } else
       mode_parse(0, cptr, sptr, chptr, parc - 2, parv + 2,
-		 (member ? MODE_PARSE_NOTOPER : MODE_PARSE_NOTMEMBER));
+		 (member ? MODE_PARSE_NOTOPER : MODE_PARSE_NOTMEMBER), member);
     return 0;
   }
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
 	       (MODEBUF_DEST_CHANNEL | /* Send mode to channel */
 		MODEBUF_DEST_SERVER)); /* Send mode to servers */
-  mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2, MODE_PARSE_SET);
+  mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2, MODE_PARSE_SET, member);
   return modebuf_flush(&mbuf);
 }
 
@@ -185,7 +186,8 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 	       (MODE_PARSE_SET    | /* Set the mode */
 		MODE_PARSE_STRICT | /* Interpret it strictly */
-		MODE_PARSE_FORCE)); /* And force it to be accepted */
+		MODE_PARSE_FORCE),  /* And force it to be accepted */
+	        NULL);
   } else {
     if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
       modebuf_init(&mbuf, sptr, cptr, chptr,
@@ -195,7 +197,8 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    MODEBUF_DEST_BOUNCE)); /* And bounce the MODE */
       mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 		 (MODE_PARSE_STRICT |  /* Interpret it strictly */
-		  MODE_PARSE_BOUNCE)); /* And bounce the MODE */
+		  MODE_PARSE_BOUNCE),  /* And bounce the MODE */
+		  member);
     } else {
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
@@ -203,7 +206,8 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 		 (MODE_PARSE_SET    | /* Set the mode */
 		  MODE_PARSE_STRICT | /* Interpret it strictly */
-		  MODE_PARSE_FORCE)); /* And force it to be accepted */
+		  MODE_PARSE_FORCE),  /* And force it to be accepted */
+		  member);
     }
   }
 

@@ -1,3 +1,85 @@
+
+2002-03-01  Carlo Wood  <run@alinoe.com>
+
+	* include/channel.h: struct Channel: new attribute destruct_event.
+	Prototype for destruct_channel().
+
+	* include/destruct_event.h: new header file for destruct_event.c.
+
+	* ircd/Makefile.in: New source file: destruct_event.c.
+
+	* ircd/channel.c: sub1_from_channel: Don't destruct channel
+	immedeately but instead schedule it for destruction after
+	some time when a channel becomes empty (and clear invite
+	only and limit in that case).
+	destruct_channel: new function, was previously the destructing
+	part of sub1_from_channel.
+	add_user_to_channel: remove destruction request if any.
+
+	* ircd/destruct_event.c: New file.  Implementation of functions
+	schedule_destruct_event_1m, schedule_destruct_event_48h,
+	remove_destruct_event and exec_expired_destruct_events.
+
+	* ircd/ircd.c: destruct_event_timer: new timer.
+	main: use destruct_event_timer to call exec_expired_destruct_events
+	once per minute.
+
+	* ircd/m_endburst.c: ms_end_of_burst: Don't complain about empty
+	channels.  Schedule new empty channels for destruction.
+
+	* ircd/m_join.c: m_join: Destruct just-created channel immedeately.
+
+2002-03-01  Carlo Wood  <run@alinoe.com>
+	* ircd/s_misc.c: exit_client: Only call map_update()
+	for servers.
+
+2002-02-28  Carlo Wood  <run@alinoe.com>
+	* include/channel.h: New attribute 'oplevel' in struct Membership.
+	Added defines MAXOPLEVELDIGITS and MAXOPLEVEL.
+	New macros:  OpLevel(member): returns op-level of member and
+	SetOpLevel(member, value): sets op-level of member.
+	Prototype of add_user_to_channel: add oplevel to parameters.
+	Prototype of mode_parse: add member to to parameters.
+
+	* include/numeric.h: added ERR_NOTLOWEROPLEVEL.
+
+	* ircd/s_err.c: idem.
+
+	* ircd/channel.c: Removed unmatched '{' braces from comments
+	(confuses vi).  add_user_to_channel: oplevel is passed to function
+	and added in the created MemberShip structure.  send_channel_modes:
+	Generate the nick:mode list of the BURST msg in the new style (with
+	op-levels).  DONE_UPASS/DONE_APASS: fixed typo in comment.  struct
+	ParseState: New attribute: member.  mode_process_clients: Disallow
+	deopping someone with an equal or higher op-level, take care of
+	inheritance of op-level.  mode_parse: member is passed to function      
+      	and added in the created ParseState structure.  joinbuf_join: pass 0
+	as oplevel to add_user_to_channel as needed initialization of oplevel
+	in struct MemberShip.
+
+	* ircd/m_burst.c: ms_burst: Implementation of op-levels in the
+	decoding of a BURST message and passing on a BURST message.
+	Renamed default_mode to current_mode.
+
+	* ircd/m_mode.c: m_mode/ms_mode: pass on `member' to mode_parse.
+
+	* ircd/m_opmode.c: ms_opmode/mo_opmode: pass on NULL as member
+	to mode_parse (causes opped member to get op-level 0).                  
+
+2002-02-25  Carlo Wood  <run@alinoe.com>
+	* include/channel.h: Added two new strings to struct Mode,
+	upass and apass, both with maximum length PASSLEN (a new
+	define in this file).  Two new mode defines MODE_UPASS and
+	MODE_APASS.
+
+	* ircd/channel.c: is_level0_op: Added as dummy function.
+	channel_modes/modebuf_flush_int/modebuf_extract/mode_parse:
+	Added support for MODE_APASS (+A) and MODE_UPASS (+u).
+	mode_parse_upass: New function to parse mode +u.
+	mode_parse_apass: New function to parse mode +A.
+
+	* ircd/s_err.c: Added 'A' and 'u' to mode list (RPL_MYINFO).            
+
 2002-02-25  Carlo Wood  <carlo@alinoe.com>
 
 	* ircd/m_server.c: remove unused variables
