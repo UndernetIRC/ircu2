@@ -80,7 +80,7 @@ int exit_new_server(struct Client* cptr, struct Client* sptr,
 #endif /* 0 */
 
 int exit_new_server(struct Client *cptr, struct Client *sptr, const char *host,
-		    time_t timestamp, const char *pattern, ...)
+                    time_t timestamp, const char *pattern, ...)
 {
   struct VarData vd;
   int retval = 0;
@@ -111,7 +111,7 @@ int a_kills_b_too(struct Client *a, struct Client *b)
  * and thus make_server was called, and serv->prot set. --Run
  */
 int server_estab(struct Client *cptr, struct ConfItem *aconf,
-		 struct Jupe *ajupe)
+                 struct Jupe *ajupe)
 {
   struct Client* acptr = 0;
   const char*    inpath;
@@ -131,8 +131,14 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
      *  Pass my info to the new server
      */
     sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s", me.name,
-		  me.serv->timestamp, cptr->serv->timestamp, MAJOR_PROTOCOL,
-		  NumServCap(&me), *me.info ? me.info : "IRCers United");
+                  me.serv->timestamp, cptr->serv->timestamp, MAJOR_PROTOCOL,
+                  NumServCap(&me), *me.info ? me.info : "IRCers United");
+    /*
+     * Don't charge this IP# for connecting
+     * XXX - if this comes from a server port, it will not have been added
+     * to the IP check registry, see add_connection in s_bsd.c
+     */
+    IPcheck_connect_fail(cptr->ip);
   }
 
   det_confs_butmask(cptr, CONF_LEAF | CONF_HUB | CONF_SERVER | CONF_UWORLD);
@@ -157,7 +163,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       (acptr = findNUser(cptr->serv->by))) {
     if (acptr->user == cptr->serv->user) {
       sendcmdto_one(&me, CMD_NOTICE, acptr, "%C :Link with %s established.",
-		    acptr, inpath);
+                    acptr, inpath);
     }
     else {
       /*
@@ -172,7 +178,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
   cptr->serv->up = &me;
   cptr->serv->updown = add_dlink(&me.serv->down, cptr);
   sendto_opmask_butone(0, SNO_NETWORK, "Net junction: %s %s", me.name,
-		       cptr->name);
+                       cptr->name);
   SetJunction(cptr);
   /*
    * Old sendto_serv_but_one() call removed because we now
@@ -188,14 +194,14 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       continue;
     if (ajupe)
       sendcmdto_one(&me, CMD_SERVER, acptr,
-		    "%s 2 0 %Tu J%02u %s%s 0 %%%Tu :%s", cptr->name,
-		    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
-		    JupeLastMod(ajupe), cptr->info);
+                    "%s 2 0 %Tu J%02u %s%s 0 %%%Tu :%s", cptr->name,
+                    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
+                    JupeLastMod(ajupe), cptr->info);
     else
       sendcmdto_one(&me, CMD_SERVER, acptr,
-		    "%s 2 0 %Tu J%02u %s%s 0 :%s", cptr->name,
-		    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
-		    cptr->info);
+                    "%s 2 0 %Tu J%02u %s%s 0 :%s", cptr->name,
+                    cptr->serv->timestamp, Protocol(cptr), NumServCap(cptr),
+                    cptr->info);
   }
 
   /*
@@ -231,17 +237,17 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
                0 != ircd_strcmp(acptr->name, acptr->sockhost) &&
                0 != ircd_strncmp(acptr->info, "JUPE", 4));
       if ((ajupe = jupe_find(acptr->name)) && !JupeIsLocal(ajupe))
-	sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
-		      "%s %d 0 %Tu %s%u %s%s 0 %%%Tu :%s", acptr->name,
-		      acptr->hopcount + 1, acptr->serv->timestamp,
-		      protocol_str, Protocol(acptr), NumServCap(acptr),
-		      JupeLastMod(ajupe), acptr->info);
+        sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
+                      "%s %d 0 %Tu %s%u %s%s 0 %%%Tu :%s", acptr->name,
+                      acptr->hopcount + 1, acptr->serv->timestamp,
+                      protocol_str, Protocol(acptr), NumServCap(acptr),
+                      JupeLastMod(ajupe), acptr->info);
       else
-	sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
-		      "%s %d 0 %Tu %s%u %s%s 0 :%s", acptr->name,
-		      acptr->hopcount + 1, acptr->serv->timestamp,
-		      protocol_str, Protocol(acptr), NumServCap(acptr),
-		      acptr->info);
+        sendcmdto_one(acptr->serv->up, CMD_SERVER, cptr,
+                      "%s %d 0 %Tu %s%u %s%s 0 :%s", acptr->name,
+                      acptr->hopcount + 1, acptr->serv->timestamp,
+                      protocol_str, Protocol(acptr), NumServCap(acptr),
+                      acptr->info);
     }
   }
 
@@ -256,23 +262,23 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
       char *s = umode_str(acptr);
       struct Gline *agline = 0;
       if ((agline = gline_lookup(acptr, GLINE_GLOBAL | GLINE_LASTMOD)))
-	sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
-		      "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
-		      acptr->name, acptr->hopcount + 1, acptr->lastnick,
-		      acptr->user->username, acptr->user->host,
-		      *s ? "+" : "", s, *s ? " " : "",
-		      GlineLastMod(agline), GlineUser(agline),
-		      GlineHost(agline),
-		      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
-		      NumNick(acptr), acptr->info);
+        sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
+                      "%s %d %Tu %s %s %s%s%s%%%Tu:%s@%s %s %s%s :%s",
+                      acptr->name, acptr->hopcount + 1, acptr->lastnick,
+                      acptr->user->username, acptr->user->host,
+                      *s ? "+" : "", s, *s ? " " : "",
+                      GlineLastMod(agline), GlineUser(agline),
+                      GlineHost(agline),
+                      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
+                      NumNick(acptr), acptr->info);
       else
-	sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
-		      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-		      acptr->name, acptr->hopcount + 1, acptr->lastnick,
-		      acptr->user->username, acptr->user->host,
-		      *s ? "+" : "", s, *s ? " " : "",
-		      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
-		      NumNick(acptr), acptr->info);
+        sendcmdto_one(acptr->user->server, CMD_NICK, cptr,
+                      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                      acptr->name, acptr->hopcount + 1, acptr->lastnick,
+                      acptr->user->username, acptr->user->host,
+                      *s ? "+" : "", s, *s ? " " : "",
+                      inttobase64(xxx_buf, ntohl(acptr->ip.s_addr), 6),
+                      NumNick(acptr), acptr->info);
     }
   }
   /*

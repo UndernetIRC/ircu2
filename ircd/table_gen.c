@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/*=============================================================================
+/*
  * TABLE GENERATOR
  * The following part of code is NOT included in the actual server's
  * or library source, it's just used to build the above tables

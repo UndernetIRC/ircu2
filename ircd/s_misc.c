@@ -147,9 +147,7 @@ char *myctime(time_t value)
  *
  *    Returns:
  *      "name[user@ip#.port]" if 'showip' is true;
- *      "name[sockethost]", if name and sockhost are different and
- *      showip is false; else
- *      "name".
+ *      "name" if 'showip' is false.
  *
  *  NOTE 1:
  *    Watch out the allocation of "nbuf", if either sptr->name
@@ -169,12 +167,8 @@ const char* get_client_name(const struct Client* sptr, int showip)
     if (showip)
       sprintf_irc(nbuf, "%s[%s@%s]", sptr->name,
             (IsIdented(sptr)) ? sptr->username : "", sptr->sock_ip);
-    else {
-      if (0 != ircd_strcmp(sptr->name, sptr->sockhost))
-        sprintf_irc(nbuf, "%s[%s]", sptr->name, sptr->sockhost);
-      else
+    else
         return sptr->name;
-    }
     return nbuf;
   }
   return sptr->name;
@@ -256,7 +250,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       Count_clientdisconnects(bcptr, UserStats);
     else {
       Count_remoteclientquits(UserStats, bcptr);
-      ip_registry_remote_disconnect(bcptr);
     }
   }
   else if (IsServer(bcptr))
@@ -279,6 +272,11 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
     Count_unknowndisconnects(UserStats);
 
+  /*
+   * Update IPregistry
+   */
+  if (IsIPChecked(bcptr))
+    IPcheck_disconnect(bcptr);
 
   /* 
    * Remove from serv->client_list
@@ -302,6 +300,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
 #endif
   remove_client_from_list(bcptr);
 }
+
 /*
  * exit_downlinks - added by Run 25-9-94
  *

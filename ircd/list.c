@@ -23,7 +23,6 @@
 
 #include "class.h"
 #include "client.h"
-#include "IPcheck.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_reply.h"
@@ -182,7 +181,6 @@ void free_client(struct Client* cptr)
     if (cptr->dns_reply)
       --cptr->dns_reply->ref_count;
     if (-1 < cptr->fd) {
-      ip_registry_local_disconnect(cptr);
       close(cptr->fd);
     }
     DBufClear(&cptr->sendQ);

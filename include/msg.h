@@ -322,6 +322,9 @@ struct Client;
 #define TOK_CLEARMODE           "CM"
 #define CMD_CLEARMODE		MSG_CLEARMODE, TOK_CLEARMODE
 
+#define MSG_POST                "POST"          /* POST */
+#define TOK_POST                "POST"
+
 /*
  * Constants
  */

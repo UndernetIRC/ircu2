@@ -1,3 +1,9 @@
+2000-09-17  Thomas Helvey <helveytw@home.com>
+	* ircd/*.c: merged in changes from 2.10.10.pl12, cleanup
+	merge conflicts.
+	* ircd/*.h: merged in changes from 2.10.10.pl12, cleanup
+	merge conflicts
+
 2000-09-16  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c: add code for server struct
 	* ircd/client.c: copy of class.c sort of, new file for client
@@ -1330,10 +1336,3 @@
 * Merge in u2_10_10_beta06 changes --Bleep
 * Start ircu2.10.11 development, beta branch u2_10_10 --Bleep
 #-----------------------------------------------------------------------------
-#
-# ChangeLog for ircu2.10.11
-#
-# $Id: ChangeLog,v 1.164 2000-09-17 03:41:37 bleep Exp $
-#
-# Insert new changes at beginning of the change list.
-#

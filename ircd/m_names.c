@@ -183,8 +183,8 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
     flag = 1;
     if (mlen + idx + NICKLEN + 5 > BUFSIZE)
       /* space, modifier, nick, \r \n \0 */
-    {
-      send_reply(sptr, RPL_NAMREPLY, buf);
+    { 
+      sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, sptr->name, buf);
       strcpy(buf, "* ");
       ircd_strncpy(buf + 2, chptr->chname, len + 1);
       buf[len + 2] = 0;
@@ -218,16 +218,17 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* s;
   char* para = parc > 1 ? parv[1] : 0; 
 
-  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc,
-				  parv))
+  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc, parv))
     return 0; 
 
-  if (EmptyString(para))
+  if (EmptyString(para)) {
+    send_reply(sptr, RPL_ENDOFNAMES, "*");
     return 0;
+  }
   else if (*para == '0')
     *para = '\0';
   
-  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. */
+  s = strchr(para, ','); /* Recursively call m_names for each comma-seperated channel. Eww. */
   if (s) {
     parv[1] = ++s;
     m_names(cptr, sptr, parc, parv);
@@ -326,7 +327,6 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
       return 1;
     }
-
   }
     else
   {
@@ -361,12 +361,13 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char* s;
   char* para = parc > 1 ? parv[1] : 0; 
 
-  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc,
-				  parv))
+  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc, parv))
     return 0; 
 
-  if (EmptyString(para))
+  if (EmptyString(para)) {
+    send_reply(sptr, RPL_ENDOFNAMES, "*");
     return 0;
+  }
   else if (*para == '0')
     *para = '\0';
   
