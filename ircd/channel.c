@@ -2812,8 +2812,13 @@ modebuf_flush(struct ModeBuf *mbuf)
 
   if (addbuf_i == 1)
     addbuf[0] = '\0';
+  else
+    addbuf[addbuf_i] = '\0';
+
   if (rembuf_i == 1)
     rembuf[0] = '\0';
+  else
+    rembuf[rembuf_i] = '\0';
 
   for (i = 0; i < mbuf->mb_count; i++) {
     if (MB_TYPE(mbuf, i) & MODE_ADD) {
