@@ -1,0 +1,104 @@
+# config/Makefile for the Undernet IRC Daemon.
+# Copyright (C) 1997, Carlo Wood <carlo@runaway.xs4all.nl>
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+#### Start of system configuration section. ####
+
+SHELL=@SHPROG@
+RM=@RMPROG@
+TOUCH=touch
+@SET_MAKE@
+#### End of system configuration section. ####
+
+# Some versions of make give a warning when this is empty:
+.SUFFIXES: .dummy
+
+# These files need to be up to date when we are building the ircd
+build: config.h setup.h
+
+clean:
+	${RM} -f .tmpconfig.h .tmpconfig
+
+distclean: clean
+	${RM} -f .config setup.h stamp-h config.h .config.old \
+		config.cache config.log config.status Makefile config-sh \
+		Configure
+
+maintainer-clean: distclean
+	${RM} -f aclocal.m4 setup.h.in stamp-h.in configure
+	@echo Generating aclocal.m4...
+	aclocal
+	@echo Generating setup.h.in...
+	autoheader
+	@echo timestamp > stamp-h.in
+	@echo Generating configure...
+	autoconf
+
+config: configure setup.h.in config.status Configure FORCE
+	@CONFIG_BATCH=n ${SHELL} ./Configure || exit 1
+	@# Allow the use of non-GNU make with 'make config':
+	@cd ../ircd; ${MAKE} Makefile
+	@cd ../doc; ${MAKE} Makefile
+
+config.h: Configure config-sh
+	@echo Generating config.h...
+	@CONFIG_BATCH=y ${SHELL} ./Configure || exit 1
+	@cd ../ircd; ${MAKE} Makefile
+
+FORCE:
+
+#==============================================================================
+# Rules to automatically remake Configuration :
+
+Makefile: config.status Makefile.in
+	@echo "recreating config/Makefile"
+	@CONFIG_FILES=Makefile CONFIG_HEADERS= ./config.status > /dev/null
+
+aclocal.m4: acinclude.m4
+	@echo Generating aclocal.m4...
+	@echo aclocal
+	@aclocal || ( echo "NOT recreating 'aclocal.m4', you don't have 'aclocal'"; touch aclocal.m4 )
+
+configure: configure.in aclocal.m4
+	@echo Generating configure...
+	@echo autoconf
+	@autoconf || ( echo "NOT recreating 'configure', you don't have 'autoconf'"; touch configure )
+
+setup.h.in: stamp-h.in
+stamp-h.in: configure.in acconfig.h setup.h.top aclocal.m4 #setup.h.bot
+	@echo Generating setup.h.in...
+	@echo autoheader
+	@autoheader || ( echo "NOT recreating 'setup.h.in', you don't have 'autoheader'"; touch setup.h.in )
+	@echo timestamp > stamp-h.in
+
+setup.h: stamp-h
+stamp-h: stamp-h.in config.status
+	@echo Generating setup.h...
+	@CONFIG_FILES= CONFIG_HEADERS=setup.h ./config.status
+
+config.status: configure
+	@echo Generating config.status...
+	@CONFIG_FILES= CONFIG_HEADERS= ./config.status --recheck || \
+		(./configure && ${TOUCH} ../doc/stamp-m ../ircd/stamp-m)
+
+config-sh: config-sh.in config.status
+	@echo Generating config-sh...
+	@CONFIG_FILES=config-sh CONFIG_HEADERS= ./config.status
+
+Configure: Configure.in config.status
+	@echo Generating Configure...
+	@CONFIG_FILES=Configure CONFIG_HEADERS= ./config.status

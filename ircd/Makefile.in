@@ -1,0 +1,460 @@
+# ircd/Makefile for the Undernet IRC Daemon.
+# Copyright (C) 1990 Jarkko Oikarinen
+# Copyright (C) 1997 Carlo Wood
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+#### Start of system configuration section. ####
+
+# Output variables of the 'configure' script:
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+srcdir=@srcdir@
+DEFS=@DEFS@
+INSTALL=@INSTALL@
+SHELL=@SHPROG@
+RM=@RMPROG@
+AWK=@AWK@
+LN_S=@LN_S@
+MV=mv
+CHMOD=chmod
+CHOWN=chown
+CHGRP=chgrp
+MKDIR=mkdir
+TOUCH=touch
+GREP=grep
+@SET_MAKE@
+# The following variables are replaced by what you give during configuration :
+
+BINDIR=
+SYMLINK=
+IRCDMODE=
+IRCDOWN=
+IRCDGRP=
+DPATH=
+MPATH=
+RPATH=
+
+CC=
+CFLAGS=
+CPPFLAGS=
+LDFLAGS=
+IRCDLIBS=
+
+#### End of system configuration section. ####
+
+OBJS=IPcheck.o bsd.o channel.o class.o common.o crule.o dbuf.o fileio.o ircd.o \
+     list.o map.o match.o numnicks.o opercmds.o packet.o parse.o querycmds.o \
+     random.o res.o runmalloc.o s_auth.o s_bsd.o s_conf.o s_debug.o s_err.o \
+     s_misc.o s_numeric.o s_ping.o s_serv.o s_user.o send.o sprintf_irc.o \
+     support.o userload.o whocmds.o whowas.o hash.o
+
+SRC=${OBJS:%.o=%.c}
+
+all:
+	( cd ..; make -f Makefile )
+
+.SUFFIXES: .c .o
+
+.c.o:
+	${CC} ${CFLAGS} ${CPPFLAGS} -c $< -o $@
+
+build: ircd chkconf
+
+ircd: ${OBJS} ../include/patchlevel.h
+	${SHELL} version.c.SH
+	${CC} ${CFLAGS} ${CPPFLAGS} -c version.c
+	${CC} ${CFLAGS} ${OBJS} version.o ${LDFLAGS} ${IRCDLIBS} -o ircd
+	${CHMOD} ${IRCDMODE} ircd
+
+chkcrule.o: crule.c ../include/sys.h ../include/../config/config.h \
+	../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+	../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+	../include/whowas.h ../include/s_serv.h ../include/ircd.h \
+	../include/match.h ../include/s_bsd.h ../include/s_conf.h \
+	../include/list.h ../include/common.h ../include/crule.h
+	${CC} ${CFLAGS} ${CPPFLAGS} -DCR_CHKCONF -o chkcrule.o -c crule.c
+
+chkconf: chkconf.o match.o common.o chkcrule.o runmalloc.o fileio.o
+	${CC} ${CFLAGS} ${CPPFLAGS} \
+	    chkconf.o match.o common.o chkcrule.o runmalloc.o fileio.o \
+	    ${LDFLAGS} ${IRCDLIBS} -o chkconf
+
+install: build
+	@if [ ! -d ${DPATH} -a ! -f ${DPATH} ]; then \
+	  echo "Creating directory ${DPATH}"; \
+	  ${MKDIR} ${DPATH}; \
+	  ${CHMOD} 700 ${DPATH}; \
+	  ${CHOWN} ${IRCDOWN} ${DPATH}; \
+	  ${CHGRP} ${IRCDGRP} ${DPATH}; \
+	fi
+	@echo `date +%y%m%d%H%M`.`cat ../.patches | \
+	    ${AWK} -F . '{ if ($$(NF)~/\+$$/) { \
+	        for(i=1;i<NF;i++) \
+		  printf("%s_",$$i); \
+		  gsub("\\\\+","",$$(NF)); \
+		}; \
+		print $$(NF) }'` > /tmp/ircd.tag;
+	@echo "Installing new ircd as ${BINDIR}/ircd.`cat /tmp/ircd.tag` :"
+	${INSTALL} -m ${IRCDMODE} -o ${IRCDOWN} -g ${IRCDGRP} ircd ${BINDIR}/ircd.`cat /tmp/ircd.tag`
+	@( cd ${BINDIR}; \
+	  ${RM} -f ${SYMLINK}; \
+	  ${LN_S} ircd.`cat /tmp/ircd.tag` ${SYMLINK}; )
+	@${RM} /tmp/ircd.tag
+	${INSTALL} -s -m 700 -o ${IRCDOWN} -g ${IRCDGRP} chkconf ${BINDIR}
+	${INSTALL} -m 600 -o ${IRCDOWN} -g ${IRCDGRP} ../doc/example.conf ${DPATH}
+	( cd ${DPATH}; \
+	  ${TOUCH} ${MPATH}; \
+	  ${TOUCH} ${RPATH}; \
+	  ${CHOWN} ${IRCDOWN} ${MPATH} ${RPATH}; \
+	  ${CHGRP} ${IRCDGRP} ${MPATH} ${RPATH}; )
+
+uninstall:
+	@if [ "${BINDIR}" != "${DPATH}" ]; then \
+		echo "${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9* ${BINDIR}/chkconf"; \
+		${RM} -f ${BINDIR}/${SYMLINK} ${BINDIR}/ircd.9* ${BINDIR}/chkconf; \
+	fi
+	@echo "Please remove the contents of ${DPATH} manually"
+
+clean:
+	${RM} -f *.o ircd version.c chkconf
+
+distclean: clean
+	${RM} -f Makefile stamp-m
+
+maintainer-clean: distclean
+
+ctables: common.c
+	${CC} -I../include -DMAKETABLES common.c || exit 1
+	{ ${GREP} -A1 -B1000 ^...NTL_TOK_START common.c ; ./a.out ; \
+	  ${GREP} -A1000 -B1 ^...NTL_TOK_END common.c ; } > common.temp || exit 1;
+	${MV} common.temp common.c
+	${RM} a.out
+
+depend:
+	@if [ -f Makefile.in.bak ]; then \
+	  echo "make depend: First remove ircd/Makefile.in.bak"; \
+	else \
+	  ( ${MV} Makefile.in Makefile.in.bak; \
+	    ${GREP} -A1 -B1000 '^# DO NOT DELETE THIS LINE' Makefile.in.bak > Makefile.in;\
+	    ${CC} ${CFLAGS} -MM ${CPPFLAGS} ${SRC:hash.c=} >> Makefile.in; ) \
+	fi
+
+hash.o: hash.c ../include/sys.h ../config/config.h \
+ ../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/common.h ../include/match.h ../include/hash.h \
+ ../include/channel.h ../include/list.h ../include/send.h \
+ ../include/s_serv.h ../include/ircd.h \
+ ircd.c version.c.SH
+	@CC="${CC}" CFLAGS="${CFLAGS}" CPPFLAGS="${CPPFLAGS}" \
+	crypt/sums
+	${CC} ${CFLAGS} ${CPPFLAGS} -c hash.c -o hash.o
+	@${RM} -f hash.c
+	@${MV} -f hash.c.old hash.c
+	@${TOUCH} hash.o
+
+# Coders: You need GNU make for this to work
+Makefile: ../config/config.status Makefile.in ../config/gen.ircd.Makefile \
+	  ../config/config.h ../config/.config stamp-m
+	@echo "recreating ircd/Makefile"
+	@cd ../config; \
+	  CONFIG_FILES=../ircd/Makefile CONFIG_HEADERS= \
+	  ./config.status >/dev/null; \
+	  RM=${RM} ${SHELL} ./gen.ircd.Makefile
+
+stamp-m:
+	echo timestamp > stamp-m
+
+../config/config.status:
+	@cd ../config; ${MAKE} config.status
+
+../config/config.h:
+	@cd ../config; ${MAKE} config.h
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+
+IPcheck.o: IPcheck.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/IPcheck.h ../include/querycmds.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/s_user.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/numnicks.h ../include/send.h
+bsd.o: bsd.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/ircd.h ../include/bsd.h
+channel.o: channel.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/channel.h ../include/list.h \
+ ../include/parse.h ../include/send.h ../include/s_err.h \
+ ../include/numeric.h ../include/ircd.h ../include/common.h \
+ ../include/match.h ../include/hash.h ../include/s_serv.h \
+ ../include/s_misc.h ../include/s_user.h ../include/s_conf.h \
+ ../include/s_bsd.h ../include/msg.h ../include/support.h \
+ ../include/numnicks.h ../include/sprintf_irc.h ../include/querycmds.h
+class.o: class.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/class.h ../include/s_conf.h \
+ ../include/list.h ../include/s_serv.h ../include/send.h \
+ ../include/s_err.h ../include/numeric.h ../include/ircd.h
+common.o: common.c ../include/common.h ../include/sys.h \
+ ../include/../config/config.h ../include/../config/setup.h \
+ ../include/runmalloc.h
+crule.o: crule.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_serv.h ../include/ircd.h \
+ ../include/match.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/common.h ../include/crule.h
+dbuf.o: dbuf.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/dbuf.h
+ircd.o: ircd.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/res.h ../include/list.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/s_serv.h ../include/send.h ../include/ircd.h \
+ ../include/s_conf.h ../include/class.h ../include/s_misc.h \
+ ../include/parse.h ../include/match.h ../include/s_bsd.h \
+ ../include/crule.h ../include/userload.h ../include/numeric.h \
+ ../include/hash.h ../include/bsd.h ../include/version.h \
+ ../include/numnicks.h
+list.o: list.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/numeric.h ../include/send.h \
+ ../include/s_conf.h ../include/list.h ../include/class.h \
+ ../include/match.h ../include/ircd.h ../include/s_serv.h \
+ ../include/support.h ../include/s_misc.h ../include/s_bsd.h \
+ ../include/res.h ../include/common.h ../include/s_user.h \
+ ../include/opercmds.h
+map.o: map.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/numeric.h ../include/send.h \
+ ../include/match.h ../include/list.h ../include/s_err.h \
+ ../include/ircd.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/s_misc.h ../include/map.h
+match.o: match.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/common.h ../include/match.h \
+ ../include/ircd.h
+numnicks.o: numnicks.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/s_serv.h ../include/struct.h \
+ ../include/dbuf.h ../include/whowas.h ../include/common.h \
+ ../include/numnicks.h ../include/ircd.h ../include/parse.h \
+ ../include/s_misc.h ../include/match.h ../include/s_bsd.h \
+ ../include/s_conf.h ../include/list.h
+opercmds.o: opercmds.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/opercmds.h ../include/struct.h \
+ ../include/dbuf.h ../include/whowas.h ../include/ircd.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/list.h \
+ ../include/send.h ../include/s_err.h ../include/numeric.h \
+ ../include/match.h ../include/s_misc.h ../include/class.h \
+ ../include/s_user.h ../include/common.h ../include/msg.h \
+ ../include/sprintf_irc.h ../include/userload.h ../include/parse.h \
+ ../include/numnicks.h ../include/crule.h ../include/version.h \
+ ../include/support.h ../include/s_serv.h ../include/hash.h
+packet.o: packet.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_misc.h ../include/s_bsd.h \
+ ../include/s_conf.h ../include/list.h ../include/ircd.h \
+ ../include/msg.h ../include/parse.h ../include/send.h \
+ ../include/packet.h ../include/s_serv.h
+parse.o: parse.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_serv.h ../include/send.h \
+ ../include/parse.h ../include/common.h ../include/s_bsd.h \
+ ../include/s_conf.h ../include/list.h ../include/msg.h \
+ ../include/s_user.h ../include/channel.h ../include/s_ping.h \
+ ../include/res.h ../include/map.h ../include/hash.h \
+ ../include/numeric.h ../include/ircd.h ../include/s_misc.h \
+ ../include/s_numeric.h ../include/numnicks.h ../include/opercmds.h \
+ ../include/querycmds.h ../include/whocmds.h
+querycmds.o: querycmds.c ../include/sys.h \
+ ../include/../config/config.h ../include/../config/setup.h \
+ ../include/runmalloc.h ../include/h.h ../include/s_debug.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/parse.h ../include/send.h ../include/s_err.h \
+ ../include/numeric.h ../include/ircd.h ../include/s_user.h \
+ ../include/version.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/s_misc.h ../include/match.h \
+ ../include/s_serv.h ../include/msg.h ../include/channel.h \
+ ../include/numnicks.h ../include/userload.h ../include/support.h \
+ ../include/querycmds.h
+random.o: random.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h \
+ ../include/random.h
+res.o: res.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/res.h ../include/list.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/numeric.h ../include/send.h ../include/s_misc.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/ircd.h \
+ ../include/s_ping.h ../include/support.h ../include/common.h \
+ ../include/sprintf_irc.h
+runmalloc.o: runmalloc.c ../include/sys.h \
+ ../include/../config/config.h ../include/../config/setup.h \
+ ../include/runmalloc.h ../include/h.h ../include/s_debug.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/send.h ../include/numeric.h ../include/s_err.h \
+ ../include/ircd.h ../include/s_serv.h ../include/numnicks.h
+s_auth.o: s_auth.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/res.h ../include/list.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/common.h ../include/send.h ../include/s_bsd.h \
+ ../include/s_conf.h ../include/s_misc.h ../include/support.h \
+ ../include/ircd.h ../include/s_auth.h ../include/sprintf_irc.h
+s_bsd.o: s_bsd.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/res.h ../include/list.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/s_serv.h \
+ ../include/numeric.h ../include/send.h ../include/s_misc.h \
+ ../include/hash.h ../include/s_err.h ../include/ircd.h \
+ ../include/support.h ../include/s_auth.h ../include/class.h \
+ ../include/packet.h ../include/s_ping.h ../include/channel.h \
+ ../include/version.h ../include/parse.h ../include/common.h \
+ ../include/bsd.h ../include/numnicks.h ../include/s_user.h \
+ ../include/sprintf_irc.h ../include/querycmds.h ../include/IPcheck.h
+s_conf.o: s_conf.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_serv.h ../include/opercmds.h \
+ ../include/numeric.h ../include/send.h ../include/s_conf.h \
+ ../include/list.h ../include/class.h ../include/s_misc.h \
+ ../include/match.h ../include/common.h ../include/s_err.h \
+ ../include/s_bsd.h ../include/ircd.h ../include/crule.h \
+ ../include/res.h ../include/support.h ../include/parse.h \
+ ../include/numnicks.h ../include/sprintf_irc.h ../include/IPcheck.h \
+ ../include/hash.h
+s_debug.o: s_debug.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/numeric.h ../include/hash.h \
+ ../include/s_serv.h ../include/send.h ../include/s_conf.h \
+ ../include/list.h ../include/class.h ../include/ircd.h \
+ ../include/s_bsd.h ../include/bsd.h ../include/res.h \
+ ../include/channel.h ../include/numnicks.h
+s_err.o: s_err.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/numeric.h ../include/s_err.h \
+ ../include/sprintf_irc.h
+s_misc.o: s_misc.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_serv.h ../include/numeric.h \
+ ../include/send.h ../include/s_conf.h ../include/list.h \
+ ../include/s_misc.h ../include/common.h ../include/match.h \
+ ../include/hash.h ../include/s_bsd.h ../include/res.h \
+ ../include/ircd.h ../include/s_ping.h ../include/channel.h \
+ ../include/s_err.h ../include/support.h ../include/userload.h \
+ ../include/parse.h ../include/s_user.h ../include/numnicks.h \
+ ../include/sprintf_irc.h ../include/querycmds.h ../include/IPcheck.h
+s_numeric.o: s_numeric.c ../include/sys.h \
+ ../include/../config/config.h ../include/../config/setup.h \
+ ../include/runmalloc.h ../include/h.h ../include/s_debug.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/s_serv.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/send.h ../include/support.h \
+ ../include/parse.h ../include/numeric.h ../include/channel.h \
+ ../include/ircd.h ../include/hash.h ../include/numnicks.h \
+ ../include/s_numeric.h
+s_ping.o: s_ping.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/send.h ../include/s_conf.h \
+ ../include/list.h ../include/match.h ../include/res.h \
+ ../include/s_bsd.h ../include/s_serv.h ../include/ircd.h \
+ ../include/s_ping.h ../include/support.h ../include/numeric.h \
+ ../include/s_user.h ../include/s_err.h ../include/common.h \
+ ../include/numnicks.h
+s_serv.o: s_serv.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/ircd.h ../include/s_serv.h \
+ ../include/s_misc.h ../include/sprintf_irc.h ../include/send.h \
+ ../include/s_err.h ../include/numeric.h ../include/s_bsd.h \
+ ../include/s_conf.h ../include/list.h ../include/hash.h \
+ ../include/common.h ../include/match.h ../include/crule.h \
+ ../include/parse.h ../include/numnicks.h ../include/userload.h \
+ ../include/s_user.h ../include/channel.h ../include/querycmds.h \
+ ../include/IPcheck.h
+s_user.o: s_user.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/common.h ../include/s_serv.h \
+ ../include/numeric.h ../include/send.h ../include/s_conf.h \
+ ../include/list.h ../include/s_misc.h ../include/match.h \
+ ../include/hash.h ../include/s_bsd.h ../include/s_err.h \
+ ../include/parse.h ../include/ircd.h ../include/s_user.h \
+ ../include/support.h ../include/channel.h ../include/random.h \
+ ../include/version.h ../include/msg.h ../include/userload.h \
+ ../include/numnicks.h ../include/sprintf_irc.h ../include/querycmds.h \
+ ../include/IPcheck.h
+send.o: send.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/s_bsd.h ../include/s_conf.h \
+ ../include/list.h ../include/s_serv.h ../include/send.h \
+ ../include/s_misc.h ../include/common.h ../include/match.h \
+ ../include/ircd.h ../include/channel.h ../include/bsd.h \
+ ../include/class.h ../include/s_user.h ../include/sprintf_irc.h
+sprintf_irc.o: sprintf_irc.c ../include/sys.h \
+ ../include/../config/config.h ../include/../config/setup.h \
+ ../include/runmalloc.h ../include/h.h ../include/s_debug.h \
+ ../include/sprintf_irc.h
+support.o: support.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/send.h ../include/ircd.h \
+ ../include/s_bsd.h ../include/s_conf.h ../include/list.h \
+ ../include/support.h ../include/sprintf_irc.h ../include/common.h
+userload.o: userload.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/send.h ../include/s_misc.h \
+ ../include/userload.h ../include/ircd.h ../include/numnicks.h \
+ ../include/s_serv.h ../include/querycmds.h
+whocmds.o: whocmds.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h ../include/h.h \
+ ../include/s_debug.h ../include/struct.h ../include/dbuf.h \
+ ../include/whowas.h ../include/common.h ../include/s_serv.h \
+ ../include/numeric.h ../include/send.h ../include/s_conf.h \
+ ../include/list.h ../include/s_misc.h ../include/match.h \
+ ../include/hash.h ../include/s_bsd.h ../include/s_err.h \
+ ../include/parse.h ../include/ircd.h ../include/s_user.h \
+ ../include/support.h ../include/channel.h ../include/random.h \
+ ../include/version.h ../include/msg.h ../include/userload.h \
+ ../include/numnicks.h ../include/sprintf_irc.h ../include/querycmds.h \
+ ../include/IPcheck.h
+whowas.o: whowas.c ../include/sys.h ../include/../config/config.h \
+ ../include/../config/setup.h ../include/runmalloc.h \
+ ../include/common.h ../include/h.h ../include/s_debug.h \
+ ../include/struct.h ../include/dbuf.h ../include/whowas.h \
+ ../include/numeric.h ../include/send.h ../include/s_misc.h \
+ ../include/s_err.h ../include/ircd.h ../include/list.h \
+ ../include/s_user.h ../include/support.h

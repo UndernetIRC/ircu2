@@ -1,0 +1,206 @@
+Hi fellow undernetters,
+
+I forgot if it was requested on routing-com or here, but you won't see me
+cross posting, so I did choose 'wastelanders'.
+
+The request was to mail an overview of the changes 2.8 ==> u2.9,
+especially for the new Opers, but also as a reminder for others.
+
+The patch file from irc2.8.21.mu3.1 to ircu2.9.17.mu is 446652 bytes.
+So you will understand I can't cover every little change.
+
+New commands
+------------
+
+/UPING <server.to> [<port>] [<server.from>] [<number of packets>]
+
+Sends <number of packets> (default 5, max 20) size 1024 bytes, from (remote)
+server <server.from> (default local server) to <server.to>. The default
+port is 7007 and the same on all servers. If a server is down, you can
+still use port 7 (echo). Also 2.8 echo's, on port PORTNUM (config.h).
+UPING uses udp, you need CN lines (masks as server names are allowed) but
+the connection doesn't have to exist already.
+
+/RPING <server.to> [<server.from>] [<Optional remark>]
+
+Sends one 'RPING' message using the irc protocol over an existing link.
+It allows to measure the lag of remote links, respons is in ms accuracy.
+The <Optional remark> can be used to measure to total pingtime to your
+client (like the CTCP PING) or to add a serial number for automation.
+
+/MAP [server.mask]
+
+Shows a map in the layout as Router.
+
+/SETTIME
+
+Only for debugging, isn't needed. (Oper only).
+
+Changed commands
+----------------
+
+/CONNECT
+
+No doubt the biggest impact of 2.9 is on connecting:
+When the link is physically possible, your /connect ALWAYS succeeds
+except when an H: or L: line somewhere on the net forbids it, or when
+*after* your connect another connect is done that cause a loop. The only
+restriction is that you are not allowed to make deliberately a loop:
+you must first squit. Loops only happen when to connects are done
+simultaneously and the SERVER messages had not yet time to propagate
+over the whole net.
+When a connect (manual or automatically) is done for a link that used
+to get "server exists", with 2.9 the Ghost is squitted off the net,
+making it possible to recover faster from breaks caused by bad links.
+If on the other hand a loop occurs because two parts connect at two
+points, the servers that detect the server nick collision will squit
+the most logical link to break the loop, and only one link. This results
+thus in a connected net one way or the other (for this all 2.8 servers need
+to be off the net! Till that time the net will connect and then break
+at two places, giving more messages then right now with only 2.8).
+2.9 servers also notify the Opers (or users with +s) about net.junctions
+and net.breaks. It does this even better then Router: A lot faster, always
+correct (REAL junctions), and independent of Router: You will also see
+them when Router is 'on the other side'.
+
+/TIME
+
+Has changed. Now also shows the system clock / TimeStamp clock offset.
+
+/MODE +b
+
+You only have to be joined, not be chan op anymore.
+
+/MODE <nick> +d
+
+Makes the user 'Deaf'. Needed for the channel registration service.
+Channel messages are not routed to a Deaf person decreasing bandwidth use.
+
+/LINKS
+
+Output also shows used protocol for that link.
+
+New numerics
+------------
+
+RPL_MAP, RPL_MAPMORE, RPL_MAPEND and RPL_TRACEPING.
+
+Bug fixes
+---------
+
+- A handshaking link doesn't pingtime out; That can interfere with
+  slow nameserver lookups.
+
+- U: lines (and K: lines) now active directly after a /rehash
+
+- Don't bind() a socket before connect(), thats useless on machines
+  with just one ip number (like we all have), and can confuse
+  some OS's I found out.
+
+Significant Patches
+-------------------
+
+The following patches have been the objective. To realize them I needed to
+rewrite and change huge other parts of the code also, because lot of the code
+in 2.8 is under great tension of re-re-re-patches.
+
+- Rewrote m_server. Objective:
+  = Allow ghosted servers to reconnect (solution "server exists").
+  To allow for this:
+  - Added a timestamp to SQUIT, this timestamp functions as a label
+    which matches the corresponding SERVER (connect).
+  - Added a prefix for every message, absolutely necessary to keep track
+    of the correct order (direction actually).
+
+- The oci has been added (oper sees invisibles on own server).
+
+- A new NOTE is added, many bugs removed and extremely speeded up due to
+  a better interface with the rest of the code.
+
+- The TimeStamp clocks are now automatically synchronized, so a wrong
+  system clock isn't a problem anymore.
+
+- Added a Protocol-version and detection. This allows protocol changes
+  with a *MUCH* higher backwards compatibility.
+
+- Server now keeps track of the server map. This allowed for /MAP and
+  a lot of speed ups (don't have to scan through all clients to find a
+  server) but much more important: The disconnect burst could be brought
+  back to ONE message (instead of a QUIT for ever single client).
+  Apart from decreasing bandwidth use, this was necessary for other
+  important protocol changes, and even more to allow important future
+  changes that will reduce the connect.burst as well. The most important
+  current impact is that it allows SQUIT to travel down stream AND up stream.
+  Because directionless messages can loose the order, the timestamp on
+  SQUIT was needed to check the validity.
+
+- In the client structure a pointer to the server structure is used
+  rather then the full servername, using less memory AND speeding up
+  several places because you don't need to lookup the servername
+  anymore.
+
+- USER removed from the connect burst (now all in NICK).
+
+Other patches
+-------------
+
+- exit_client() is rewritten.
+  Added are exit_client_msg() and exit_new_server().
+  This has especially impact on the possibilities within the protocol.
+  The old exit_client() was clumsy and therefor already used in an incorrect
+  way at several places. The kludges around this part of the code made it
+  impossible to make any changes without breaking something else. Only after
+  the rewrite it was possible to make changes described else where.
+  This also allowed to improve the error message handling to the point that
+  Opers see *always* the error messages involved with routing (also those
+  from remote /connects, delayed errors and squit reasons 'from the other
+  side').
+
+- send.c is more or less rewritten. varargs are fixed now and send.c is
+  highly optimized for speed (possible because of new internal server map). 
+
+- All useable dog3 code speed ups have been added.
+  These include:
+  - Added a head pointer in the dyn buffer.
+  - several code optimisations
+  - continious kill line checking removed (I added the check at
+    the place where it belongs: after a /rehash).
+
+- Useable patches from dl:
+  - Stop as much as possible flooding from unregistered connections.
+  - VERSION and ADMIN available for unregistered users.
+  - syslog (if defined) KILLs of local clients.
+
+- Many compile warnings have been removed. Also a special fix for DYNIX to
+  make UPING/RPING also work there (needed gettimeofday()).
+
+Package changes
+---------------
+
+- The irc client is removed from the package as are several old files with
+  incorrect old useless info (Like 'WHATSNEW', ChangeLog that stopped at 1992).
+- A Makefile.dist is added.
+- Slighty changed doc/Manual
+- New doc/NOTE manual
+- NO_DEFAULT_INVISIBLE removed; users are always visible by default.
+- Last but not least: patchlevel.h is rewritten so any additional patch
+  can do the version update itself, without interfering: No need to edit
+  this by hand anymore.
+
+Summary
+=======
+
+- Less memory usage
+- Speeded up code
+- Less bandwidth use, especially disconnect burst
+- "Server exists" solved
+- Error messages concerning (remote) /connects now always visible.
+- New tools to do (remote) link testing
+- Intelligent and improved SQUIT handling, should stop unwanted breaks.
+- squits comments visible everywhere.
+- net.junction and net.break notices
+- Overall protocol streamlining allowing for future improvements
+  of the protocol.
+
+Run
+

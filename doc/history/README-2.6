@@ -1,0 +1,71 @@
+/************************************************************************
+ *   IRC - Internet Relay Chat, README
+ *   Copyright (C) 1990
+ *
+ *   For the list of authors and their e-mail addresses, see
+ *   file doc/AUTHORS
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 1, or (at your option)
+ *   any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+To install the new server, there is just a few changes to be made.
+
+* General Comments
+
+  Tue Nov 13 12:43:46 1990  Armin Gruner <gruner@informatik.tu-muenchen.de>
+
+      (APOLLO: Be sure to have NEED_INET_NETOF, NEED_INET_ADDR and
+       NEED_INET_NTOA undefined.)
+
+  Mon Nov 26 20:10:37 1990  Armin Gruner <gruner@informatik.tu-muenchen.de>
+
+      Comment: I just found that compiling on our SUN SPARC with GCC produces
+      code that dumps core.. (that might not happen on your machine, try it,
+      we may have out-of-date libraries). See netnews gnu.gcc.bug for a dis-
+      cussion about the matter. It seems that gcc passes struct's in a
+      different manner.
+
+* Server configuration
+
+  Edit the include/config.h to your hearts content, avoiding going
+  beyond the warning line, unless you are *absolute* sure you know
+  what you are doing.
+  If you happen to not take to this warning, you may end up with
+  a server that will not function properly and annoy not only you,
+  but users all around the world.
+
+  Old irc client can be found in this package and if you want to use it,
+  check Makefile in directory irc before compiling. There are other,
+  better irc clients in distribution and the client distributed with
+  this version is simply something to begin with if you don't happen
+  to have other clients available.
+
+  This version was brought to you by jto@tolsun.oulu.fi and send any
+  bug fixes and suggestions to me.
+
+NOTE: This server does *NOT* have MAIL system installed by default.
+      The reason is that it doesn't work with many systems.
+
+This version introduces you string channels, starting with
+a plus (+) sign. The first person joining a string channel
+claims it's ownership and after that is entitiled to use /mode
+command. Ownerships can be given and taken away with
+/mode <channel> +o <nickname>  and /mode <channel> -o <nickname>
+Other flags are: s - secret, p - private, l - limited, i - inviteonly.
+                 m - moderated, n - no private messages to channel,
+                 t - topic settable by operator only
+New command /KICK <channel> <user> kicks a user off channel.
+
+--Jarkko (jto@oulu.fi)

@@ -1,0 +1,289 @@
+WHO documentation, updated on 02 Jan 1999.
+
+Since ircu2.10.02 the WHO command had been changed from what
+described in RFC1459, while still keeping backward compatibility,
+actually it has been changed again in u2.10.05 so that since this
+release the format of the who query is now:
+
+[:source] WHO <mask1> [<options> [<mask2>]]
+
+<mask2> is optional, if mask2 is present it's used for matching and
+mask1 is ignored, otherwise mask1 is used for matching, since mask2
+is the last parameter it *can* contain a space and this can help
+when trying to match a "realname".
+
+When matching IP numbers the <mask> can be in 3 forms:
+
+- The old and well known IRC masks using * and ? as wanted
+- The IPmask form a.b.c.d/e.f.g.h as used in most firewalls and
+  system configurations, where what is before the / are the bits
+  we expect in the IP number and what is after the / is the 
+  "filter mask" telling wich bits whould be considered and wich 
+  should be ignored.
+- The IPmask form a.b.c.d/bitcount where bitcount is an integer 
+  between 0 and 31 (inclusive), the matching will be for the IPs
+  whose first "bitcount" bits are equal to those in a.b.c.d
+
+Note that:
+. The bitcount must be between 0 and 31, 32 is NOT good (and
+  makes no sense to use it... just match against the static IP
+  a.b.c.d)
+. The missing pieces of both the bitmask and the ipnumber in
+  the forms ipnumber/bitmask and ipnumber/bitcount default to
+  zero from right to left, this is NOT what inet_aton and most 
+  tools do but makes more sense here IMO, in example /who 194.243/16
+  is taken as /who 194.243.0.0/255.255.0.0 (inet_aton whould
+  take 194.243 as 194.0.0.243).
+. For the above reason and specified validity limits 1.2.3.4/31
+  becomes 1.2.3.4/255.255.255.254 while 1.2.3.4/32 becomes
+  1.2.3.4/32.0.0.0 :)
+
+For all the other fields th match happens as has always been,
+i.e. it's only considered the IRC mask with * and ? (that is:
+don't expect to catch an user with "realname" = "1.2.3.4" when
+doing "/who 1.2/16 h" :)
+
+For both the masks and the options (and thus for all flags) case is
+NOT significative (so "/who <any> o" is exactly the same as 
+"/who <ANY> O".
+
+The "options2 part can be as follows:
+
+ [<flags>][%[<fields>[,<querytype>]]]
+
+in wich:
+
+ <flags>: can be a sequence of field matching flags, use mode matching
+          flags and special purpose flags
+
+   Field matching flags, when one of these is specified the field in 
+   question is matched against the mask, otherwise it's not matched.
+
+   n   Nick (in nick!user@host)
+   u   Username (in nick!user@host)
+   h   Hostname (in nick!user@host)
+   i   Numeric IP (the unresolved host)
+   s   Servername (the canonic name of the server the guy is on)
+   r   Info text (formerly "Realname")
+
+   If no field-matching flags are specified they default to what
+   old servers used to do: nuhsr (= everything except the numeric IP)
+
+   User mode matching flags (specifying one of these means that only 
+   clients with that umode are considered, what is not specified
+   is always matched):
+
+   o   Irc operator
+       [In the future more flags will be supported, basically all
+        usermodes plus the +/- specificators to revert the filtering]
+
+   Special purpose flags:
+
+   x   If this is specified the extended visibility of information 
+       for opers is applied, what this means depends on the fact that
+       you are local or global operator and on how the admin configured
+       the server (global and eventually local irc opers might be
+       allowed with this flag to see +i local users, to see all +i users,
+       to see users into +p and/or +s channels, and so on). Using the 'x'
+       flag while not beeing irc operator is meaningless (it will be
+       ignored), using it while oper'd means that the query is almost
+       certainly logged and the admin might (rightfully) ask you an
+       explanation on why you did.
+
+   The rest, what follows the %, that is [%[fields[,<querytype>]]],
+   is as it has always been since the first who.patch, the <fields> part
+   specifies wich fields to include in the output as:
+
+   c : Include (first) channel name
+   d : Include "distance" in hops (hopcount)
+   f : Include flags (all of them)
+   h : Include hostname
+   i : Include IP
+   n : Include nick
+   r : Include real name
+   s : Include server name
+   t : Include the querytype in the reply
+   u : Include userID with eventual ~
+
+And the ,<querytype> final option can be used to specify what you want
+the server to say in the querytype field of the output, useful to
+filter the output in scripts that do a kind of "on 354 ..."
+
+If no %fields are specified the reply is _exactly_ the same as
+has always been, numeric 352, same fields, same order.
+
+If one or more %fields are specified the reply uses a new numeric,
+since an out-of-standard 352 crashes EPIC and confuses several other
+clients. I used 354.
+
+:"source" 354 "target" ["querytype"] ["channel"] ["user"] 
+                       ["IP"] ["host"] ["server"] ["nick"] 
+                       ["flags"] ["hops"] [:"realname"]
+
+Where only the fields specified in the %fields options are present.
+
+"querytype" is the same value passed in the /who command, it
+is provided to simplify scripting, in example one could pass
+a certain value in the query and have that value "signal" back
+what is to be done with those replies.
+
+The number of lines in the reply is still limited to avoid self-flooding
+and sooner or later another limitation will be added: you will be forced
+to do no more than one /who query every 'n' seconds where 'n' depends
+on the number of fields you actually match (the field-match flags specified
+before % in the option, defaulting to 6 if you don't specify an option
+at all), infact matching against many fields as the default query does
+severely affects the CPU usage of the server and is *much* better to
+specify with the field-atching flags what you are looking for, in example
+when you are looking for all french users a "/who *.fr h" is A LOT
+better than just "/who *.fr" (and actually you want users that have the
+_hostname_ matching *.fr, you wouldn't want to match a japanese user
+that has the realname "ku fung-kay aj.fr" in example...)
+
+Note that:
+
+- An user doing a "/who whatever" or a "/who whatever o"
+  will not see any change (except for the anti-flood limit
+  and sooner or later the CPU usage limit)
+
+- An user doing a "/who #wasteland %n" will get just a list
+  of nicks (lame, very lame way of doing it :-)
+
+- An user doing a "/who 0 o%nuhs" will get a list of the opers
+  with Nick, userID, server and hostname like:
+  
+:Amst* 354 Nemesi #wasteland nbakker pc73.a.sn.no Oslo*.org Niels
+
+- An user doing a "/who 0 o%tnuhs,166" will get a list of the opers
+  with Nick, userID, server and hostname like the above but with a
+  request type field of 166 like:
+
+  :Amst* 354 Nemesi 166 #wasteland nbakker pc73.a.sn.no 
+         Oslo-R.NO.EU.Undernet.org Niels
+  
+  So that he can have in example a script that does 
+  "on 354 * 166" display "There is an oper ..."
+
+- The client will have to sort/format the fields by itself,
+  the _order_ in wich flags are passed is not significant,
+  the fields in the reply will always have the same order.
+
+- The maximum number of _lines_ reported as reply for a query
+  is 2048/(n+4) where 'n' is the number of flags "enabled"
+  that is the number of fields included in each reply.
+
+  Actually:   1 field  returned = maximum 409 replies
+              2 fields returned = maximum 341 replies
+              3 fields returned = maximum 292 replies
+              4 fields returned = maximum 256 replies
+              5 fields returned = maximum 227 replies
+              6 fields returned = maximum 204 replies
+              7 fields returned = maximum 186 replies (default query)
+              8 fields returned = maximum 170 replies
+              9 fields returned = maximum 157 replies
+             10 fields returned = maximum 146 replies
+
+  If the limit is reached before completing the query the
+  reply is truncated and a new numeric error is issued after
+  the "End of WHO", anyway the "end of" numeric is _always_ 
+  sent (otherwise some scripts and clients get crazy).
+
+The actual "mask" to match can have one of the two following forms:
+
+- A comma-separated list of elements: in this case each element
+  is treated as a flat channel or nick name and is not matched
+  to the other elements. Nicks do count in the limit of output
+  lines (they should not be that many anyway), channels count
+  if who asks the query is not on the channel. (That is: a /who
+  #channel gives unlimited output if you are in there).
+
+- A _single_ mask: in this case (no commas, only one element) the
+  mask is first checked to be a full channel or nickname, then
+  it is matched against all relevant fiels as already known.
+  These happens in different steps with replicates-removal so
+  that if one has (?) something like "#wasteland" as "real name"
+  or is on a channel named "#***MyChan***" it all works nicely.
+
+Miscellaneous bug fixes / "undocumented feature" changes:
+
+- /who NickName did not show the user with nick = NickName  when it
+  was invisible, even if the nick was given completely (without 
+  wildchars) now it does, since one could always see him as /whois 
+  NickName.
+  It does not report him twice if he also has in example the 
+  userID == NickName and is -i.
+
+- ":source WHO :The Black Hacker" did not report an user having
+  "The Black Hacker" as real name, now it does. Since this can only
+  be done without the flags/format specificator because that would
+  become the "last parameter" an escape has been provided: if you
+  pass to m_who _3_ parameters the first one will be ignored and the
+  last one used for matching, like in example
+  ":source WHO foo %nuh :*Black Hacker*" where "foo" will not
+  be used and the match will happen on "*Black Hacker*".
+  (It was passed through clean_channelname() that prevented the mask
+  from containing spaces and such...)
+
+- When one user was umode -i he was shown or not depending on the 
+  fact he was on a +p or +s channel... since we are doing a lookup
+  on the _user_ this makes no sense to me, example:
+  Neme1 : umode -i, on no channels, was SEEN with a /who 0
+  Neme2 : umode -i, on channel #p with chmode +p, was NOT SEEN by /who 0
+  Neme3 : umode -i, on channel #s with chmode +s, was NOT SEEN by /who 0
+
+  Now all users "-i" are matched with a "/who mask", the +i users 
+  instead must bee on a _common_ channel to be seen. 
+
+  Basically beeing on "one" +s|p channel "forced" a +i status while
+  one might want to be on #secret (mode +s) and have nobody know that
+  he is in there but on the other side stay -i so others can find him.
+  Of course a +s|p channel is never shown in the reply unless who asks 
+  the query is in there, if no "visible" channels are available for 
+  a -i user he is shown on "channel *".
+
+- When one user is +i is shown _only_ if there is a common channel,
+  the first common channel found is shown in the reply.
+
+- As requested by many persons an escape has been provided for opers,
+  when #defined SHOW_ALL_CHANNELS opers can /who #channel from outside
+  and see users in there even if the channel is +s|+p
+  Each admin decides locally if this feature is enabled to his opers.
+
+- As requested by many admins an escape from the query-size limit
+  has been provided for opers, by #defining UNLIMIT_OPER_QUERY opers
+  can do unlimited sized /who-s (until they get disconnected by max
+  SendQ exceeded ;)
+  Again admins will decide if enable or not this feature.
+
+- A /who a,c,b,d,e,f used to return as many ** END OF WHO as there 
+  were elements in the list, since now the command is supposed to be
+  _efficient_ for /who nick1,nick2,nick3 .. I return a _single_ end
+  of query message.
+
+- /who did not work for a channel named in example #**StarWars**  
+  now it does handle it properly (the mask was passed through
+  collapse() and then.. did not find that channel, fixed).
+
+- "/who #John" did not report an user having '#John' as "Real name",
+  now it does (and does NOT report him twice if he is ALSO on a
+  channel named #John, strange but true: this can happen).
+
+- "/who a,b,c,d" where a b c and d are channelnames/nicks now uses 
+  an hash lookup and therefore is extremely efficient, if _only_ one
+  field is specified it is looked in all the fields; who really wants
+  _only_ users on a specific channel or a single nick (without looking 
+  for a match in the other fields) can force the server to consider
+  the parameter as a list adding a comma somewhere, like:
+
+  "/who #Italia," or "/who ,Nemesi"
+
+  Or even better to avoid misbehaviour with other servers:
+  "/who #Italia %... #Italia,"   or "/who Nemesi %... Nemesi,"
+
+  This will make old servers act properly and new ones and should 
+  be the reccomended way for GUI based clients to get
+  a channel's userlist and all the infos they want about users
+  on the channel.
+
+Regards, Andrea aka Nemesi
+

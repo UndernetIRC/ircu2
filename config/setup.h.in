@@ -1,0 +1,219 @@
+/* setup.h.in.  Generated automatically from configure.in by autoheader.  */
+/* Copyright (C) 1997, Carlo Wood <carlo@runaway.xs4all.nl>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+ * 02111-1307, USA.
+ */
+
+/* Define if on AIX 3.
+   System headers sometimes define this.
+   We just want to avoid a redefinition error message.  */
+#ifndef _ALL_SOURCE
+#undef _ALL_SOURCE
+#endif
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#undef gid_t
+
+/* Define if you don't have vprintf but do have _doprnt.  */
+#undef HAVE_DOPRNT
+
+/* Define if system calls automatically restart after interruption
+   by a signal.  */
+#undef HAVE_RESTARTABLE_SYSCALLS
+
+/* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
+#undef HAVE_SYS_WAIT_H
+
+/* Define if you have the vprintf function.  */
+#undef HAVE_VPRINTF
+
+/* Define if on MINIX.  */
+#undef _MINIX
+
+/* Define if the system does not provide POSIX.1 features except
+   with this defined.  */
+#undef _POSIX_1_SOURCE
+
+/* Define if you need to in order for stat and other things to work.  */
+#undef _POSIX_SOURCE
+
+/* Define as the return type of signal handlers (int or void).  */
+#undef RETSIGTYPE
+
+/* Define if the setvbuf function takes the buffering type as its second
+   argument and the buffer pointer as the third, as on System V
+   before release 3.  */
+#undef SETVBUF_REVERSED
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#undef uid_t
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
+/* Define if you have the resolv library (-lresolv) */
+#undef HAVE_LIB_RESOLV
+
+/* Define one of these, depending on wether you have
+   POSIX, BSD or SYSV non-blocking stuff */
+#undef NBLOCK_POSIX
+#undef NBLOCK_BSD
+#undef NBLOCK_SYSV
+
+/* Define on of these, depending on wether you have
+   POSIX, BSD or SYSV signal handling */
+#undef POSIX_SIGNALS
+#undef BSD_RELIABLE_SIGNALS
+#undef SYSV_UNRELIABLE_SIGNALS
+
+/* Define these to be unsigned integral internal types,
+ * of respecitvely 2 and 4 bytes in size, when not already
+ * defined in <sys/types.h>, <stdlib.h> or <stddef.h> */
+#undef u_int16_t
+#undef u_int32_t
+
+/* Define this to the printf format for size_t */
+#undef SIZE_T_FMT
+
+/* Define this to the printf format for time_t */
+#undef TIME_T_FMT
+
+/* Define this to the printf signed format for time_t */
+#undef STIME_T_FMT
+
+/* The number of bytes in a int.  */
+#undef SIZEOF_INT
+
+/* The number of bytes in a long.  */
+#undef SIZEOF_LONG
+
+/* The number of bytes in a short.  */
+#undef SIZEOF_SHORT
+
+/* The number of bytes in a size_t.  */
+#undef SIZEOF_SIZE_T
+
+/* Define if you have the gethostname function.  */
+#undef HAVE_GETHOSTNAME
+
+/* Define if you have the getrusage function.  */
+#undef HAVE_GETRUSAGE
+
+/* Define if you have the gettimeofday function.  */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the inet_netof function.  */
+#undef HAVE_INET_NETOF
+
+/* Define if you have the memcpy function.  */
+#undef HAVE_MEMCPY
+
+/* Define if you have the memmove function.  */
+#undef HAVE_MEMMOVE
+
+/* Define if you have the mkdir function.  */
+#undef HAVE_MKDIR
+
+/* Define if you have the res_init function.  */
+#undef HAVE_RES_INIT
+
+/* Define if you have the select function.  */
+#undef HAVE_SELECT
+
+/* Define if you have the setrlimit function.  */
+#undef HAVE_SETRLIMIT
+
+/* Define if you have the socket function.  */
+#undef HAVE_SOCKET
+
+/* Define if you have the strchr function.  */
+#undef HAVE_STRCHR
+
+/* Define if you have the strerror function.  */
+#undef HAVE_STRERROR
+
+/* Define if you have the strtoken function.  */
+#undef HAVE_STRTOKEN
+
+/* Define if you have the times function.  */
+#undef HAVE_TIMES
+
+/* Define if you have the uname function.  */
+#undef HAVE_UNAME
+
+/* Define if you have the <errno.h> header file.  */
+#undef HAVE_ERRNO_H
+
+/* Define if you have the <fcntl.h> header file.  */
+#undef HAVE_FCNTL_H
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H
+
+/* Define if you have the <memory.h> header file.  */
+#undef HAVE_MEMORY_H
+
+/* Define if you have the <net/errno.h> header file.  */
+#undef HAVE_NET_ERRNO_H
+
+/* Define if you have the <poll.h> header file.  */
+#undef HAVE_POLL_H
+
+/* Define if you have the <string.h> header file.  */
+#undef HAVE_STRING_H
+
+/* Define if you have the <strings.h> header file.  */
+#undef HAVE_STRINGS_H
+
+/* Define if you have the <sys/cdefs.h> header file.  */
+#undef HAVE_SYS_CDEFS_H
+
+/* Define if you have the <sys/file.h> header file.  */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have the <sys/ioctl.h> header file.  */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define if you have the <sys/malloc.h> header file.  */
+#undef HAVE_SYS_MALLOC_H
+
+/* Define if you have the <sys/time.h> header file.  */
+#undef HAVE_SYS_TIME_H
+
+/* Define if you have the <syslog.h> header file.  */
+#undef HAVE_SYSLOG_H
+
+/* Define if you have the <unistd.h> header file.  */
+#undef HAVE_UNISTD_H
+
+/* Define if you have the crypt library (-lcrypt).  */
+#undef HAVE_LIBCRYPT
