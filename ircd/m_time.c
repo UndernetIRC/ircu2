@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd.h"
 #include "ircd_policy.h"
@@ -118,20 +110,3 @@ int m_time(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(sptr, RPL_TIME, cli_name(&me), TStime(), TSoffset, date((long)0));
   return 0;
 }
-
-#if 0
-/*
- * m_time
- *
- * parv[0] = sender prefix
- * parv[1] = servername
- */
-int m_time(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  if (hunt_server(0, cptr, sptr, "%s%s TIME :%s", 1, parc, parv) == HUNTED_ISME) /* XXX DEAD */
-    sendto_one(sptr, rpl_str(RPL_TIME), me.name, /* XXX DEAD */
-        parv[0], me.name, TStime(), TSoffset, date((long)0));
-  return 0;
-}
-#endif /* 0 */
-

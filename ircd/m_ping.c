@@ -132,14 +132,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd_reply.h"
@@ -253,47 +245,3 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
-
-
-#if 0
-/*
- * m_ping
- *
- * parv[0] = sender prefix
- * parv[1] = origin
- * parv[2] = destination
- */
-int m_ping(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-  char *origin, *destination;
-
-  if (parc < 2 || *parv[1] == '\0')
-  {
-    sendto_one(sptr, err_str(ERR_NOORIGIN), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-  origin = parv[1];
-  destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
-
-  acptr = FindClient(origin);
-  if (acptr && acptr != sptr)
-    origin = cptr->name;
-
-  if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name) != 0)
-  {
-    if ((acptr = FindServer(destination)))
-      sendto_one(acptr, ":%s PING %s :%s", parv[0], origin, destination); /* XXX DEAD */
-    else
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), /* XXX DEAD */
-          me.name, parv[0], destination);
-      return 0;
-    }
-  }
-  else
-    sendto_one(sptr, ":%s PONG %s :%s", me.name, me.name, origin); /* XXX DEAD */
-  return 0;
-}
-#endif
-

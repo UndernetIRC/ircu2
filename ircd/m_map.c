@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd.h"
 #include "ircd_policy.h"
@@ -188,23 +180,3 @@ int m_map_redirect(struct Client* cptr, struct Client* sptr, int parc,
   return 0;
 }
 #endif
-
-#if 0
-/*
- * m_map  -- by Run
- *
- * parv[0] = sender prefix
- * parv[1] = server mask
- */
-int m_map(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  if (parc < 2)
-    parv[1] = "*";
-
-  dump_map(sptr, &me, parv[1], 0);
-  sendto_one(sptr, rpl_str(RPL_MAPEND), me.name, parv[0]); /* XXX DEAD */
-
-  return 0;
-}
-#endif /* 0 */
-

@@ -37,6 +37,7 @@
 #include "ircd_log.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -54,7 +55,6 @@
 #include "s_misc.h"
 #include "s_serv.h" /* max_client_count */
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "supported.h"
@@ -567,7 +567,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
     send_reply(sptr, RPL_YOURHOST, cli_name(&me), version);
     send_reply(sptr, RPL_CREATED, creation);
     send_reply(sptr, RPL_MYINFO, cli_name(&me), version);
-    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
+    ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES, FEATURESVALUES);
     send_reply(sptr, RPL_ISUPPORT, featurebuf);
     m_lusers(sptr, sptr, 1, parv);
     update_load();
@@ -1448,9 +1448,10 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
 
   if (!cli_user(acptr) || !(lp = cli_user(acptr)->silence) || !(user = cli_user(sptr)))
     return 0;
-  sprintf_irc(sender, "%s!%s@%s", cli_name(sptr), user->username, user->host);
-  sprintf_irc(senderip, "%s!%s@%s", cli_name(sptr), user->username,
-              ircd_ntoa((const char*) &(cli_ip(sptr))));
+  ircd_snprintf(0, sender, sizeof(sender), "%s!%s@%s", cli_name(sptr),
+		user->username, user->host);
+  ircd_snprintf(0, senderip, sizeof(senderip), "%s!%s@%s", cli_name(sptr),
+		user->username, ircd_ntoa((const char*) &(cli_ip(sptr))));
   for (; lp; lp = lp->next)
   {
     if ((!(lp->flags & CHFL_SILENCE_IPMASK) && !match(lp->value.cp, sender)) ||

@@ -61,16 +61,6 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
 
 int need_more_params(struct Client* cptr, const char* cmd)
 {
-#if 0
-  /*
-   * XXX - bug
-   * shouldn't try to do more than one thing at a time,
-   * call protocol_violation explicitly where it's needed and
-   * context is available.
-   */
-  if (!MyUser(cptr))
-    protocol_violation(cptr, "Not enough parameters for %s",cmd);
-#endif
   send_reply(cptr, ERR_NEEDMOREPARAMS, cmd);
   return 0;
 }

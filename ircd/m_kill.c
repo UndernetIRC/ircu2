@@ -81,19 +81,12 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -216,7 +209,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else
     killer = path;
-  sprintf_irc(buf, "Killed (%s)", killer);
+  ircd_snprintf(0, buf, sizeof(buf), "Killed (%s)", killer);
 
   return exit_client(cptr, victim, sptr, buf);
 }
@@ -299,8 +292,8 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   inpath = cli_user(sptr)->host;
 
-  sprintf_irc(buf,
-              "%s%s (%s)", cli_name(cptr), IsOper(sptr) ? "" : "(L)", comment);
+  ircd_snprintf(0, buf, sizeof(buf), "%s%s (%s)", cli_name(cptr),
+		IsOper(sptr) ? "" : "(L)", comment);
   path = buf;
 
   /*
@@ -333,7 +326,8 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     */
     cli_flags(victim) |= FLAGS_KILLED;
 
-    sprintf_irc(buf, "Killed by %s (%s)", cli_name(sptr), comment);
+    ircd_snprintf(0, buf, sizeof(buf), "Killed by %s (%s)", cli_name(sptr),
+		  comment);
   }
   else {
   /*
@@ -343,7 +337,8 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * anyway (as this user don't exist there any more either)
    */
     sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s!%s", victim, inpath, path);
-    sprintf_irc(buf, "Local kill by %s (%s)", cli_name(sptr), comment);
+    ircd_snprintf(0, buf, sizeof(buf), "Local kill by %s (%s)",
+		  cli_name(sptr), comment);
   }
 
   return exit_client(cptr, victim, sptr, buf);

@@ -290,13 +290,6 @@ void count_memory(struct Client *cptr, char *nick)
   {
     ch++;
     chm += (strlen(chptr->chname) + sizeof(struct Channel));
-#if 0
-    /*
-     * XXX - Members already counted in clients, don't count twice
-     */
-    for (member = chptr->members; member; member = member->next_member)
-      chu++;
-#endif
     for (link = chptr->invites; link; link = link->next)
       chi++;
     for (link = chptr->banlist; link; link = link->next)

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "channel.h"
 #include "client.h"
 #include "hash.h"
@@ -140,18 +132,9 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       MAGIC_REMOTE_JOIN_TS != chanTS)
     cli_serv(cli_user(sptr)->server)->lag = TStime() - chanTS;
 
-#if 1
   /* If this server is >5 minutes fast, squit it */
   if (TStime() - chanTS<-5*60*60)
   	return exit_client(sptr, sptr, &me, "Timestamp Drift/Bogus TS");
-#endif
-#if 0  	
-  /* If we recieve a CREATE for a channel from a server before that server
-   * was linked, then it's a HACK
-   */
-  if (MyConnect(sptr) && chanTS<cli_timestamp(sptr)+5*60*60)
-  	return exit_client(sptr,sptr,"HACK: Bogus TS on CREATE before server link");
-#endif
 
   /* For each channel in the comma seperated list: */
   for (name = ircd_strtok(&p, parv[1], ","); name;

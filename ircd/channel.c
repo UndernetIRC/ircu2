@@ -47,7 +47,6 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -169,7 +168,7 @@ static char *make_nick_user_host(const char *nick, const char *name,
                                  const char *host)
 {
   static char namebuf[NICKLEN + USERLEN + HOSTLEN + 3];
-  sprintf_irc(namebuf, "%s!%s@%s", nick, name, host);
+  ircd_snprintf(0, namebuf, sizeof(namebuf), "%s!%s@%s", nick, name, host);
   return namebuf;
 }
 
@@ -180,7 +179,8 @@ static char *make_nick_user_host(const char *nick, const char *name,
 static char *make_nick_user_ip(char *nick, char *name, struct in_addr ip)
 {
   static char ipbuf[NICKLEN + USERLEN + 16 + 3];
-  sprintf_irc(ipbuf, "%s!%s@%s", nick, name, ircd_ntoa((const char*) &ip));
+  ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s!%s@%s", nick, name,
+		ircd_ntoa((const char*) &ip));
   return ipbuf;
 }
 
@@ -313,18 +313,10 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
           len -= strlen(tmp->value.ban.banstr);
         }
         *banp = tmp->next;
-#if 0
-        /* Silently remove overlapping bans */
-        MyFree(tmp->value.ban.banstr);
-        MyFree(tmp->value.ban.who);
-        free_link(tmp);
-        tmp = 0;
-#else
         /* These will be sent to the user later as -b */
         tmp->next = removed_bans_list;
         removed_bans_list = tmp;
         removed_bans = 1;
-#endif
       }
       else if (!(tmp->flags & CHFL_BURST_BAN_WIPEOUT))
       {
@@ -763,7 +755,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
     *mbuf++ = 'n';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
-    sprintf_irc(pbuf, "%d", chptr->mode.limit);
+    ircd_snprintf(0, pbuf, sizeof(pbuf), "%d", chptr->mode.limit);
   }
 
   if (*chptr->mode.key) {
@@ -1480,7 +1472,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       }
     } else if (MB_TYPE(mbuf, i) & MODE_LIMIT) {
       /* if it's a limit, we also format the number */
-      sprintf_irc(limitbuf, "%d", MB_UINT(mbuf, i));
+      ircd_snprintf(0, limitbuf, sizeof(limitbuf), "%d", MB_UINT(mbuf, i));
 
       tmp = strlen(limitbuf);
 

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -258,91 +250,3 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-  
-#if 0
-/*
- * m_settime
- *
- * parv[0] = sender prefix
- * parv[1] = new time
- * parv[2] = servername (Only used when sptr is an Oper).
- */
-int m_settime(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  time_t t;
-  long int dt;
-  static char tbuf[11];
-  struct DLink *lp;
-
-  if (!IsPrivileged(sptr))
-    return 0;
-
-  if (parc < 2)
-    return need_more_params(sptr, "SETTIME");
-
-  if (parc == 2 && MyUser(sptr))
-    parv[parc++] = me.name;
-
-  t = atoi(parv[1]);
-  dt = TStime() - t;
-
-  if (t < OLDEST_TS || dt < -9000000)
-  {
-    sendto_one(sptr, ":%s NOTICE %s :SETTIME: Bad value", me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-
-  if (IsServer(sptr))           /* send to unlagged servers */
-  {
-#ifdef RELIABLE_CLOCK
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
-    parv[1] = tbuf;
-#endif
-    for (lp = me.serv->down; lp; lp = lp->next)
-      if (cptr != lp->value.cptr && DBufLength(&lp->value.cptr->sendQ) < 8000) /* XXX DEAD */
-        sendto_one(lp->value.cptr, ":%s SETTIME %s", parv[0], parv[1]); /* XXX DEAD */
-  }
-  else
-  {
-    sprintf_irc(tbuf, TIME_T_FMT, TStime());
-    parv[1] = tbuf;
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_SETTIME " %s %s", 2, parc, parv) != /* XXX DEAD */
-        HUNTED_ISME)
-      return 0;
-  }
-
-#ifdef RELIABLE_CLOCK
-  if ((dt > 600) || (dt < -600))
-    sendto_serv_butone(0, ":%s " TOK_WALLOPS " :Bad SETTIME from %s: " TIME_T_FMT, /* XXX DEAD */
-                       me.name, sptr->name, t);
-  if (IsUser(sptr))
-  {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is not set %ld seconds %s : " /* XXX DEAD */
-                 "RELIABLE_CLOCK is defined", me.name, parv[0],
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is not set %ld seconds %s : " /* XXX DEAD */
-                 "RELIABLE_CLOCK is defined", NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-  }
-#else
-  sendto_ops("SETTIME from %s, clock is set %ld seconds %s", /* XXX DEAD */
-             sptr->name, (dt < 0) ? -dt : dt,
-             (dt < 0) ? "forwards" : "backwards");
-  TSoffset -= dt;
-  if (IsUser(sptr))
-  {
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      sendto_one(sptr, ":%s NOTICE %s :clock is set %ld seconds %s", me.name, /* XXX DEAD */
-                 parv[0], (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-    else
-      sendto_one(sptr, "%s NOTICE %s%s :clock is set %ld seconds %s", /* XXX DEAD */
-                 NumServ(&me), NumNick(sptr),
-                 (dt < 0) ? -dt : dt, (dt < 0) ? "forwards" : "backwards");
-  }
-#endif
-  return 0;
-}
-#endif /* 0 */

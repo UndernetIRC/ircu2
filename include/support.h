@@ -5,12 +5,6 @@
  */
 #ifndef INCLUDED_support_h
 #define INCLUDED_support_h
-#if 0
-#ifndef INCLUDED_sys_types_h
-#include <sys/types.h>         /* broken BSD system headers */
-#define INCLUDED_sys_types_h
-#endif
-#endif /* 0 */
 
 /*
  * Given a number of bits, make a netmask out of it.

@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -122,49 +114,3 @@ int m_userhost(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_user_info(sptr, parv[1], RPL_USERHOST, userhost_formatter);
   return 0;
 }
-
-#if 0
-/*
- * m_userhost
- *
- * Added by Darren Reed 13/8/91 to aid clients and reduce the need for
- * complicated requests like WHOIS.
- *
- * Returns user/host information only (no spurious AWAY labels or channels).
- *
- * Rewritten to speed it up by Carlo Wood 3/8/97.
- */
-int m_userhost(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *s;
-  int i, j = 5;
-  char *p = 0, *sbuf;
-  struct Client *acptr;
-
-  if (parc < 2)
-    return need_more_params(sptr, "USERHOST");
-
-  sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERHOST), me.name, parv[0]); /* XXX DEAD */
-  for (i = j, s = ircd_strtok(&p, parv[1], " "); i && s;
-      s = ircd_strtok(&p, (char *)0, " "), i--)
-    if ((acptr = FindUser(s)))
-    {
-      if (i < j)
-        *sbuf++ = ' ';
-      sbuf = sprintf_irc(sbuf, "%s%s=%c%s@%s", acptr->name,
-          IsAnOper(acptr) ? "*" : "", (acptr->user->away) ? '-' : '+',
-          acptr->user->username, acptr->user->host);
-    }
-    else
-    {
-      if (i < j)
-        sendbufto_one(sptr); /* XXX DEAD */
-      sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], s); /* XXX DEAD */
-      sbuf = sprintf_irc(sendbuf, rpl_str(RPL_USERHOST), me.name, parv[0]); /* XXX DEAD */
-      j = i - 1;
-    }
-  if (j)
-    sendbufto_one(sptr); /* XXX DEAD */
-  return 0;
-}
-#endif

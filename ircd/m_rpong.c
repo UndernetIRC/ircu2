@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -153,54 +145,3 @@ int ms_rpong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   return 0;
 }
-
-
-#if 0
-/*
- * m_rpong  -- by Run too :)
- *
- * parv[0] = sender prefix
- * parv[1] = from pinged server: start server; from start server: sender
- * parv[2] = from pinged server: sender; from start server: pinged server
- * parv[3] = pingtime in ms
- * parv[4] = client info (for instance start time)
- */
-int m_rpong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-
-  if (!IsServer(sptr))
-    return 0;
-
-  if (parc < 5)
-    return need_more_params(sptr, "RPING");
-
-  if (!(acptr = FindClient(parv[1])))
-    return 0;
-
-  if (!IsMe(acptr))
-  {
-    if (IsServer(acptr) && parc > 5)
-    {
-      sendto_one(acptr, ":%s RPONG %s %s %s %s :%s", /* XXX DEAD */
-          parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]);
-      return 0;
-    }
-  }
-  else
-  {
-    parv[1] = parv[2];
-    parv[2] = sptr->name;
-    parv[0] = me.name;
-    parv[3] = militime(parv[3], parv[4]);
-    parv[4] = parv[5];
-    if (!(acptr = FindUser(parv[1])))
-      return 0;                 /* No bouncing between servers ! */
-  }
-
-  sendto_one(acptr, ":%s RPONG %s %s %s :%s", /* XXX DEAD */
-      parv[0], parv[1], parv[2], parv[3], parv[4]);
-  return 0;
-}
-#endif /* 0 */
-

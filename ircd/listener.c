@@ -28,13 +28,13 @@
 #include "ircd_features.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "numeric.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_misc.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "sys.h"         /* MAXCLIENTS */
 
 #include <assert.h>
@@ -90,7 +90,7 @@ const char* get_listener_name(const struct Listener* listener)
 {
   static char buf[HOSTLEN + PORTNAMELEN + 4];
   assert(0 != listener);
-  sprintf_irc(buf, "%s:%u", cli_name(&me), listener->port);
+  ircd_snprintf(0, buf, sizeof(buf), "%s:%u", cli_name(&me), listener->port);
   return buf;
 }
 
@@ -275,7 +275,8 @@ static void set_listener_mask(struct Listener* listener, const char* mask)
    * easy conversion of "*" 0.0.0.0 or 134.* to 134.0.0.0 :-)
    */
   sscanf(mask, "%d.%d.%d.%d", &ad[0], &ad[1], &ad[2], &ad[3]);
-  sprintf_irc(ipname, "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
+  ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1], ad[2],
+		ad[3]);
   listener->mask.s_addr = inet_addr(ipname);
 }
 
@@ -480,17 +481,6 @@ static void accept_connection(struct Event* ev)
       close(fd);
       return;
     }
-#if 0
-    /*
-     * check conf for ip address access
-     */
-    if (!conf_connect_allowed(addr.sin_addr)) {
-      ++ServerStats->is_ref;
-      send(fd, "ERROR :Not authorized\r\n", 23, 0);
-      close(fd);
-      return;
-    }
-#endif
     ++ServerStats->is_ac;
 /*      nextping = CurrentTime; */
 

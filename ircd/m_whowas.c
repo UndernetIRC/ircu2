@@ -81,14 +81,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -170,67 +162,3 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   send_reply(sptr, RPL_ENDOFWHOWAS, parv[1]);
   return 0;
 }
-
-
-#if 0
-/*
- * m_whowas
- *
- * parv[0] = sender prefix
- * parv[1] = nickname queried
- * parv[2] = maximum returned items (optional, default is unlimitted)
- * parv[3] = remote server target (Opers only, max returned items 20)
- */
-int m_whowas(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Whowas *temp;
-  int cur = 0;
-  int max = -1, found = 0;
-  char *p, *nick, *s;
-
-  if (parc < 2)
-  {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-  if (parc > 2)
-    max = atoi(parv[2]);
-  if (parc > 3)
-    if (hunt_server(1, cptr, sptr, "%s%s " TOK_WHOWAS " %s %s :%s", 3, parc, parv)) /* XXX DEAD */
-      return 0;
-
-  parv[1] = canonize(parv[1]);
-  if (!MyConnect(sptr) && (max > 20))
-    max = 20;                   /* Set max replies at 20 */
-  for (s = parv[1]; (nick = ircd_strtok(&p, s, ",")); s = 0)
-  {
-    /* Search through bucket, finding all nicknames that match */
-    found = 0;
-    for (temp = whowashash[hash_whowas_name(nick)]; temp; temp = temp->hnext)
-    {
-      if (0 == ircd_strcmp(nick, temp->name))
-      {
-        sendto_one(sptr, rpl_str(RPL_WHOWASUSER), /* XXX DEAD */
-            me.name, parv[0], temp->name, temp->username,
-            temp->hostname, temp->realname);
-        sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0], /* XXX DEAD */
-            temp->name, temp->servername, myctime(temp->logoff));
-        if (temp->away)
-          sendto_one(sptr, rpl_str(RPL_AWAY), /* XXX DEAD */
-              me.name, parv[0], temp->name, temp->away);
-        cur++;
-        found++;
-      }
-      if (max >= 0 && cur >= max)
-        break;
-    }
-    if (!found)
-      sendto_one(sptr, err_str(ERR_WASNOSUCHNICK), me.name, parv[0], nick); /* XXX DEAD */
-    /* To keep parv[1] intact for ENDOFWHOWAS */
-    if (p)
-      p[-1] = ',';
-  }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOWAS), me.name, parv[0], parv[1]); /* XXX DEAD */
-  return 0;
-}
-#endif /* 0 */

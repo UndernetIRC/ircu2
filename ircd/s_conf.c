@@ -50,7 +50,6 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -882,7 +881,8 @@ void conf_add_deny(const char* const* fields, int count, int ip_kill)
     else {
       conf->bits = bits2;
     }
-    sprintf_irc(ipname, "%d.%d.%d.%d", ad[0], ad[1], ad[2], ad[3]);
+    ircd_snprintf(0, ipname, sizeof(ipname), "%d.%d.%d.%d", ad[0], ad[1],
+		  ad[2], ad[3]);
     
     /*
      * This ensures endian correctness

@@ -20,6 +20,7 @@
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -27,7 +28,6 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -335,7 +335,8 @@ static void start_resolver(void)
   spare_fd = open("/dev/null",O_RDONLY,0);
   if ((spare_fd < 0) || (spare_fd > 255)) {
     char sparemsg[80];
-    sprintf_irc(sparemsg, "invalid spare_fd %d", spare_fd);
+    ircd_snprintf(0, sparemsg, sizeof(sparemsg), "invalid spare_fd %d",
+		  spare_fd);
     server_restart(sparemsg);
   }
 
@@ -715,9 +716,9 @@ static void do_query_number(const struct DNSQuery* query,
 
   assert(0 != addr);
   cp = (const unsigned char*) &addr->s_addr;
-  sprintf_irc(ipbuf, "%u.%u.%u.%u.in-addr.arpa.",
-              (unsigned int)(cp[3]), (unsigned int)(cp[2]),
-              (unsigned int)(cp[1]), (unsigned int)(cp[0]));
+  ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%u.%u.%u.%u.in-addr.arpa.",
+		(unsigned int)(cp[3]), (unsigned int)(cp[2]),
+		(unsigned int)(cp[1]), (unsigned int)(cp[0]));
 
   if (!request) {
     request              = make_request(query);
@@ -1449,9 +1450,6 @@ static struct CacheEntry* add_to_cache(struct CacheEntry* ocp)
 */
 static void update_list(struct ResRequest* request, struct CacheEntry* cachep)
 {
-#if 0
-  struct CacheEntry** cpp;
-#endif
   struct CacheEntry*  cp = cachep;
   char*    s;
   char*    t;
@@ -1466,17 +1464,6 @@ static void update_list(struct ResRequest* request, struct CacheEntry* cachep)
    * If found, move the entry to the top of the list and return.
    */
   ++cainfo.ca_updates;
-#if 0
-  for (cpp = &cacheTop; *cpp; cpp = &((*cpp)->list_next)) {
-    if (cp == *cpp)
-      break;
-  }
-  if (!*cpp)
-    return;
-  *cpp = cp->list_next;
-  cp->list_next = cacheTop;
-  cacheTop = cp;
-#endif
 
   if (!request)
     return;

@@ -28,7 +28,6 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "sys.h"
 
 #include <signal.h>   /* kill */

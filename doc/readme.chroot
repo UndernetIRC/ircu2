@@ -1,0 +1,91 @@
+Using Chroot With IRCD
+
+Introduction
+
+Many system administrators like to run certain daemons within a
+"jail," a secure area of the file system that the daemon supposedly
+cannot break out of.  That way, if the daemon is compromised somehow,
+the attacker cannot get out and affect the rest of the system in any
+way.  There are problems with this--the standard UNIX way of doing
+this is with the chroot() call, which has been deprecated by the
+UNIX98 standard.  Moreover, if an attacker has root within the jail,
+it is trivial to get *out* of the jail in most circumstances.
+Nevertheless, it is still often a good idea, and some systems can use
+more secure jails than other systems.
+
+Older versions of ircd supported chroot() operation within the server
+itself, but these were fraught with problems--chroot() can only be
+called by a process running as root, so ircd had to be started as
+root, typically by making it setuid, and would then have to drop those
+privileges after calling chroot().  Moreover, the design of the server
+would require that the server binary be in DPATH, or the /RESTART
+command would not work.  In fact, /RESTART still wouldn't work,
+because the server would then attempt to change directories to a DPATH
+relative to the current root directory--and of course, the root
+directory often would not contain the shared libraries necessary for
+the ircd to even start.
+
+Configuring the Server For Use With Chroot
+
+In the versions of ircd starting with u2.10.11, all the setuid and
+chroot() code has been removed from the server.  It is still possible
+to cause the daemon to run in a chroot() jail, however, through the
+use of a wrapper script.  This requires making all paths compiled in
+to the server be relative to the new root directory; fortunately, this
+can be done by giving the configure script the --with-chroot=<dir>
+option.  The <dir> argument specifies to configure where the root
+directory will be, and the server restart path, data path,
+configuration file, and debug log files will all be modified to be
+relative to this root directory.  If the data path or configuration
+files cannot be made relative to the specified root directory,
+configure will issue an error message and exit; if the server restart
+path is not relative to the specified root directory, configure will
+issue a warning.
+
+The various paths are made relative to the root directory through the
+use of simple edits to their string representation.  As an example,
+assume that we will be using the root directory "/home/ircd"; if the
+data path is "/home/ircd/lib," the data path that will be compiled
+into the server will be simply "/lib"; if, on the other hand, the
+specified data path were "/usr/local/lib/ircd," configure would issue
+an error, since there is no way to make the data path relative to the
+specified root directory.
+
+Preparing the Root Directory
+
+Most modern operating systems use shared libraries.  When using
+chroot(), these libraries are searched for relative to the new root
+directory, and they must be present in order for a program to
+execute.  The root directory must be prepared, therefore, by coping
+these libraries into the correct place.  A script for this purpose has
+been provided in tools/mkchroot.  This script relies on the command
+"ldd," which is used to report which shared libraries are used by a
+particular program; it also relies on ldd printing out the full path
+to those libraries.  If either of these conditions is not met, it will
+be necessary to track down the libraries by hand and place them into
+the appropriate locations.  The tools/mkchroot script takes as its
+first argument the path to the directory to be prepared as a root
+directory; following this argument should be a list of programs that
+will be running with that directory as the root directory.
+
+Using the Wrapper
+
+Also provided in the tools subdirectory are the sources for a simple
+wrapper program that can be used to start ircd.  The program can be
+compiled by executing "cc -o wrapper tools/wrapper.c"; it must be run
+as root, but do not install it as root, since that would be a major
+security risk.  This tool can be used to set the hard limit on file
+descriptors, as well as a root directory, and so may be useful to the
+administrator even if chroot() operation is not desired.  A summary of
+the command line options for the wrapper tool can be obtained with the
+"-h" option.  To set the file descriptor limit, use the "-l" option
+followed by the desired number of file descriptors; to select an
+alternative root directory, use "-c" followed by the desired root
+directory.  You must use the "-u" option to specify a user name (or
+user ID) that the command should be run as; otherwise, the command
+will be run as root, which is not what you want (and why you should
+never install this program setuid root).  Follow the command line
+arguments with "--" and the full path to the command that you wish to
+run, along with arguments to that command.  The "--" tells the wrapper
+program to stop interpreting options, and is very important if you
+must give the command any options.

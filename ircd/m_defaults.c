@@ -24,14 +24,6 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "ircd.h"
 #include "ircd_reply.h"
@@ -124,9 +116,5 @@ int m_ignore(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
 int m_unsupported(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-#if 0
-  send_reply(cptr, SND_EXPLICIT | ERR_UNSUPPORTED, "%s :Unsupported command",
-	     parv[0]);
-#endif
   return 0;
 }

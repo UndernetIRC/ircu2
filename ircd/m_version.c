@@ -81,20 +81,13 @@
  */
 #include "config.h"
 
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
-#include "handlers.h"
-#endif /* 0 */
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_features.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -132,7 +125,7 @@ int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     char featurebuf[512];
     
-    sprintf_irc(featurebuf,FEATURES,FEATURESVALUES);
+    ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES, FEATURESVALUES);
     
     send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
 	       debug_serveropts());
@@ -171,34 +164,3 @@ int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   return 0;
 }
-
-#if 0
-/*
- * m_version
- *
- *   parv[0] = sender prefix
- *   parv[1] = remote server
- */
-int m_version(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  struct Client *acptr;
-
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, parv[0], parv[1]); /* XXX DEAD */
-      return 0;
-    }
-    parv[1] = acptr->name;
-  }
-
-  if (hunt_server(0, cptr, sptr, "%s%s " TOK_VERSION " :%s", 1, parc, parv) == /* XXX DEAD */
-      HUNTED_ISME)
-    sendto_one(sptr, rpl_str(RPL_VERSION), /* XXX DEAD */
-        me.name, parv[0], version, debugmode, me.name, serveropts);
-
-  return 0;
-}
-#endif /* 0 */
-

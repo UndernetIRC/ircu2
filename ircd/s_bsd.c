@@ -31,6 +31,7 @@
 #include "ircd_features.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd.h"
 #include "list.h"
@@ -49,7 +50,6 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
-#include "sprintf_irc.h"
 #include "struct.h"
 #include "support.h"
 #include "sys.h"
@@ -890,7 +890,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
    */
   make_server(cptr);
   if (by && IsUser(by)) {
-    sprintf_irc(cli_serv(cptr)->by, "%s%s", NumNick(by));
+    ircd_snprintf(0, cli_serv(cptr)->by, sizeof(cli_serv(cptr)->by), "%s%s",
+		  NumNick(by));
     assert(0 == cli_serv(cptr)->user);
     cli_serv(cptr)->user = cli_user(by);
     cli_user(by)->refcnt++;
