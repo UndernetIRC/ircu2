@@ -1,7 +1,6 @@
-/*
- * include/ircd_res.h for referencing functions in ircd/ircd_res.c
- *
- * $Id$
+/** @file
+ * @brief IRC resolver API.
+ * @version $Id$
  */
 
 #ifndef INCLUDED_res_h
@@ -39,86 +38,84 @@ struct Client;
 struct StatDesc;
 
 /* Here we define some values lifted from nameser.h */
-#define NS_NOTIFY_OP 4
-#define NS_INT16SZ 2
-#define NS_IN6ADDRSZ    16
-#define NS_INADDRSZ	 4
-#define NS_INT32SZ 4
-#define NS_CMPRSFLGS    0xc0
-#define NS_MAXCDNAME 255
-#define QUERY 0
-#define IQUERY 1
-#define NO_ERRORS 0
-#define SERVFAIL 2
-#define T_A 1
-#define T_AAAA 28
-#define T_PTR 12
-#define T_CNAME 5
-#define T_NULL 10
-#define C_IN 1
-#define QFIXEDSZ 4
-#define RRFIXEDSZ 10
-#define HFIXEDSZ 12
+#define NS_INT16SZ 2 /**< Size of a 16-bit value. */
+#define NS_INT32SZ 4 /**< Size of a 32-bit value. */
+#define NS_CMPRSFLGS 0xc0 /**< Prefix flags that indicate special types */
+#define NS_MAXCDNAME 255 /**< Maximum length of a compressed domain name. */
+#define QUERY 0      /**< Forward (normal) DNS query operation. */
+#define NO_ERRORS 0  /**< No errors processing a query. */
+#define SERVFAIL 2   /**< Server error while processing a query. */
+#define T_A 1        /**< Hostname -> IPv4 query type. */
+#define T_AAAA 28    /**< Hostname -> IPv6 query type. */
+#define T_PTR 12     /**< IP(v4 or v6) -> hostname query type. */
+#define T_CNAME 5    /**< Canonical name resolution query type. */
+#define C_IN 1       /**< Internet query class. */
+#define QFIXEDSZ 4   /**< Length of fixed-size part of query. */
+#define HFIXEDSZ 12  /**< Length of fixed-size DNS header. */
 
+/** Structure to store an IP address. */
 struct irc_in_addr
 {
-  unsigned short in6_16[8];
+  unsigned short in6_16[8]; /**< IPv6 encoded parts, little-endian. */
 };
 
+/** Structure to store an IP address and port number. */
 struct irc_sockaddr
 {
-  struct irc_in_addr addr;
-  unsigned short port;
+  struct irc_in_addr addr; /**< IP address. */
+  unsigned short port;     /**< Port number, host-endian. */
 };
 
+/** DNS reply structure. */
 struct DNSReply
 {
-  char *h_name;
-  int h_addrtype;
-  struct irc_in_addr addr;
+  char *h_name;   /**< Hostname. */
+  struct irc_in_addr addr; /**< IP address. */
 };
 
+/** DNS callback structure. */
 struct DNSQuery
 {
-  void *vptr; /* pointer used by callback to identify request */
-  void (*callback)(void* vptr, struct DNSReply *reply); /* callback to call */
+  void *vptr; /**< pointer used by callback to identify request */
+  void (*callback)(void* vptr, struct DNSReply *reply); /**< callback to call */
 };
 
+/** DNS query and response header. */
 typedef struct
 {
-	unsigned	id :16;		/* query identification number */
+	unsigned	id :16;		/**< query identification number */
 #ifdef WORDS_BIGENDIAN
 			/* fields in third byte */
-	unsigned	qr: 1;		/* response flag */
-	unsigned	opcode: 4;	/* purpose of message */
-	unsigned	aa: 1;		/* authoritive answer */
-	unsigned	tc: 1;		/* truncated message */
-	unsigned	rd: 1;		/* recursion desired */
+	unsigned	qr: 1;		/**< response flag */
+	unsigned	opcode: 4;	/**< purpose of message */
+	unsigned	aa: 1;		/**< authoritive answer */
+	unsigned	tc: 1;		/**< truncated message */
+	unsigned	rd: 1;		/**< recursion desired */
 			/* fields in fourth byte */
-	unsigned	ra: 1;		/* recursion available */
-	unsigned	unused :1;	/* unused bits (MBZ as of 4.9.3a3) */
-	unsigned	ad: 1;		/* authentic data from named */
-	unsigned	cd: 1;		/* checking disabled by resolver */
-	unsigned	rcode :4;	/* response code */
+	unsigned	ra: 1;		/**< recursion available */
+	unsigned	unused :1;	/**< unused bits (MBZ as of 4.9.3a3) */
+	unsigned	ad: 1;		/**< authentic data from named */
+	unsigned	cd: 1;		/**< checking disabled by resolver */
+	unsigned	rcode :4;	/**< response code */
 #else
 			/* fields in third byte */
-	unsigned	rd :1;		/* recursion desired */
-	unsigned	tc :1;		/* truncated message */
-	unsigned	aa :1;		/* authoritive answer */
-	unsigned	opcode :4;	/* purpose of message */
-	unsigned	qr :1;		/* response flag */
+	unsigned	rd :1;		/**< recursion desired */
+	unsigned	tc :1;		/**< truncated message */
+	unsigned	aa :1;		/**< authoritive answer */
+	unsigned	opcode :4;	/**< purpose of message */
+	unsigned	qr :1;		/**< response flag */
 			/* fields in fourth byte */
-	unsigned	rcode :4;	/* response code */
-	unsigned	cd: 1;		/* checking disabled by resolver */
-	unsigned	ad: 1;		/* authentic data from named */
-	unsigned	unused :1;	/* unused bits (MBZ as of 4.9.3a3) */
-	unsigned	ra :1;		/* recursion available */
+	unsigned	rcode :4;	/**< response code */
+	unsigned	cd: 1;		/**< checking disabled by resolver */
+	unsigned	ad: 1;		/**< authentic data from named */
+	unsigned	unused :1;	/**< unused bits (MBZ as of 4.9.3a3) */
+	unsigned	ra :1;		/**< recursion available */
 #endif
 			/* remaining bytes */
-	unsigned	qdcount :16;	/* number of question entries */
-	unsigned	ancount :16;	/* number of answer entries */
-	unsigned	nscount :16;	/* number of authority entries */
-	unsigned	arcount :16;	/* number of resource entries */
+	unsigned	qdcount :16;	/**< number of question entries */
+	unsigned	ancount :16;	/**< number of answer entries */
+	unsigned	nscount :16;	/**< number of authority entries */
+	unsigned	arcount :16;	/**< number of resource entries */
 } HEADER;
 
 extern int init_resolver(void);

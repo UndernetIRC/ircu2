@@ -7,8 +7,6 @@
  * The authors takes no responsibility for any damage or loss
  * of property which results from the use of this software.
  *
- * $Id$
- *
  * July 1999 - Rewrote a bunch of stuff here. Change hostent builder code,
  *     added callbacks and reference counting of returned hostents.
  *     --Bleep (Thomas Helvey <tomh@inxpress.net>)
@@ -17,6 +15,10 @@
  * All we really care about is the IP -> hostname mappings. Thats all.
  *
  * Apr 28, 2003 --cryogen and Dianora
+ */
+/** @file
+ * @brief IRC resolver functions.
+ * @version $Id$
  */
 
 #include "client.h"
@@ -47,58 +49,71 @@
 #error this code needs to be able to address individual octets 
 #endif
 
+/** Resolver UDP socket. */
 static struct Socket res_socket;
+/** Next DNS lookup timeout. */
 static struct Timer res_timeout;
 
-#define MAXPACKET      1024  /* rfc sez 512 but we expand names so ... */
-#define RES_MAXALIASES 35    /* maximum aliases allowed */
-#define RES_MAXADDRS   35    /* maximum addresses allowed */
-#define AR_TTL         600   /* TTL in seconds for dns cache entries */
+/** Maximum DNS packet length.
+ * RFC says 512, but we add extra for expanded names.
+ */
+#define MAXPACKET      1024
+#define AR_TTL         600   /**< TTL in seconds for dns cache entries */
 
 /* RFC 1104/1105 wasn't very helpful about what these fields
  * should be named, so for now, we'll just name them this way.
  * we probably should look at what named calls them or something.
  */
+/** Size of TYPE field of a DNS RR header. */
 #define TYPE_SIZE         (size_t)2
+/** Size of CLASS field of a DNS RR header. */
 #define CLASS_SIZE        (size_t)2
+/** Size of TTL field of a DNS RR header. */
 #define TTL_SIZE          (size_t)4
+/** Size of RDLENGTH field of a DNS RR header. */
 #define RDLENGTH_SIZE     (size_t)2
+/** Size of fixed-format part of a DNS RR header. */
 #define ANSWER_FIXED_SIZE (TYPE_SIZE + CLASS_SIZE + TTL_SIZE + RDLENGTH_SIZE)
 
-typedef enum 
+/** Current request state. */
+typedef enum
 {
-  REQ_IDLE,  /* We're doing not much at all */
-  REQ_PTR,   /* Looking up a PTR */
-  REQ_A,     /* Looking up an A, possibly because AAAA failed */
-  REQ_AAAA,  /* Looking up an AAAA */
-  REQ_CNAME, /* We got a CNAME in response, we better get a real answer next */
-  REQ_INT    /* ip6.arpa failed, falling back to ip6.int */
+  REQ_IDLE,  /**< We're doing not much at all. */
+  REQ_PTR,   /**< Looking up a PTR. */
+  REQ_A,     /**< Looking up an A, possibly because AAAA failed. */
+  REQ_AAAA,  /**< Looking up an AAAA. */
+  REQ_CNAME, /**< We got a CNAME in response, we better get a real answer next. */
+  REQ_INT    /**< ip6.arpa failed, falling back to ip6.int. */
 } request_state;
 
+/** Doubly linked list node. */
 struct dlink
 {
-    struct dlink *prev;
-    struct dlink *next;
+    struct dlink *prev; /**< Previous element in list. */
+    struct dlink *next; /**< Next element in list. */
 };
 
+/** A single resolver request.
+ * (Do not be fooled by the "list" in the name.)
+ */
 struct reslist
 {
-  struct dlink node;
-  int id;
-  int sent;                /* number of requests sent */
-  request_state state;     /* State the resolver machine is in */
-  time_t ttl;
-  char type;
-  char retries;            /* retry counter */
-  char sends;              /* number of sends (>1 means resent) */
-  char resend;             /* send flag. 0 == dont resend */
-  time_t sentat;
-  time_t timeout;
-  struct irc_in_addr addr;
-  char *name;
-  struct DNSQuery query;   /* query callback for this request */
+  struct dlink node;       /**< Doubly linked list node. */
+  int id;                  /**< Request ID (from request header). */
+  int sent;                /**< Number of requests sent. */
+  request_state state;     /**< State the resolver machine is in. */
+  char type;               /**< Current request type. */
+  char retries;            /**< Retry counter. */
+  char sends;              /**< Number of sends (>1 means resent). */
+  char resend;             /**< Send flag; 0 == dont resend. */
+  time_t sentat;           /**< Timestamp we last sent this request. */
+  time_t timeout;          /**< When this request times out. */
+  struct irc_in_addr addr; /**< Address for this request. */
+  char *name;              /**< Hostname for this request. */
+  struct DNSQuery query;   /**< Query callback for this request. */
 };
 
+/** Base of request list. */
 static struct dlink request_list;
 
 static void rem_request(struct reslist *request);
@@ -122,16 +137,9 @@ extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
 extern char irc_domain[HOSTLEN];
 
-/*
- * int
- * res_ourserver(inp)
- *      looks up "inp" in irc_nsaddr_list[]
- * returns:
- *      0  : not found
- *      >0 : found
- * author:
- *      paul vixie, 29may94
- *      revised for ircd, cryogen(stu) may03
+/** Check whether \a inp is a nameserver we use.
+ * @param[in] inp Nameserver address.
+ * @return Non-zero if we trust \a inp; zero if not.
  */
 static int
 res_ourserver(const struct irc_sockaddr *inp)
@@ -146,12 +154,12 @@ res_ourserver(const struct irc_sockaddr *inp)
   return(0);
 }
 
-/*
- * start_resolver - do everything we need to read the resolv.conf file
- * and initialize the resolver file descriptor if needed
+/** Start (or re-start) resolver.
+ * This means read resolv.conf, initialize the list of pending
+ * requests, open the resolver socket and initialize its timeout.
  */
-static void
-start_resolver(void)
+void
+restart_resolver(void)
 {
   irc_res_init();
 
@@ -169,29 +177,23 @@ start_resolver(void)
   }
 }
 
-/*
- * init_resolver - initialize resolver and resolver library
+/** Initialize resolver.
+ * This seends the pseudo-random number generator and calls
+ * restart_resolver().
+ * @return Resolver socket file descriptor.
  */
 int
 init_resolver(void)
 {
   srand(CurrentTime);
-  start_resolver();
+  restart_resolver();
   return(s_fd(&res_socket));
 }
 
-/*
- * restart_resolver - reread resolv.conf, reopen socket
- */
-void
-restart_resolver(void)
-{
-  start_resolver();
-}
-
-/*
- * add_local_domain - Add the domain to hostname, if it is missing
- * (as suggested by eps@TOASTER.SFSU.EDU)
+/** Append local domain to hostname if needed.
+ * If \a hname does not contain any '.'s, append #irc_domain to it.
+ * @param[in,out] hname Hostname to check.
+ * @param[in] size Length of \a hname buffer.
  */
 void
 add_local_domain(char* hname, size_t size)
@@ -213,8 +215,9 @@ add_local_domain(char* hname, size_t size)
   }
 }
 
-/*
- * add_dlink - add a link to a doubly linked list
+/** Add a node to a doubly linked list.
+ * @param[in,out] node Node to add to list.
+ * @param[in,out] next Add \a node before this one.
  */
 static void
 add_dlink(struct dlink *node, struct dlink *next)
@@ -225,10 +228,8 @@ add_dlink(struct dlink *node, struct dlink *next)
     node->next->prev = node;
 }
 
-/*
- * rem_request - remove a request from the list.
- * This must also free any memory that has been allocated for
- * temporary storage of DNS results.
+/** Remove a request from the list and free it.
+ * @param[in] request Node to free.
  */
 static void
 rem_request(struct reslist *request)
@@ -241,8 +242,9 @@ rem_request(struct reslist *request)
   MyFree(request);
 }
 
-/*
- * make_request - Create a DNS request record for the server.
+/** Create a DNS request record for the server.
+ * @param[in] query Callback information for caller.
+ * @return Newly allocated and linked-in reslist.
  */
 static struct reslist *
 make_request(const struct DNSQuery* query)
@@ -252,22 +254,20 @@ make_request(const struct DNSQuery* query)
   request = (struct reslist *)MyMalloc(sizeof(struct reslist));
   memset(request, 0, sizeof(struct reslist));
 
+  request->state   = REQ_IDLE;
   request->sentat  = CurrentTime;
   request->retries = feature_int(FEAT_IRCD_RES_RETRIES);
   request->resend  = 1;
   request->timeout = feature_int(FEAT_IRCD_RES_TIMEOUT);
   memset(&request->addr, 0, sizeof(request->addr));
-  request->query.vptr     = query->vptr;
-  request->query.callback = query->callback;
-  request->state          = REQ_IDLE;
+  memcpy(&request->query, query, sizeof(request->query));
 
   add_dlink(&request->node, &request_list);
   return(request);
 }
 
-/*
- * check_resolver_timeout - Make sure that a timeout event will
- * happen by the given time.
+/** Make sure that a timeout event will happen by the given time.
+ * @param[in] when Latest time for timeout to run.
  */
 static void
 check_resolver_timeout(time_t when)
@@ -280,9 +280,8 @@ check_resolver_timeout(time_t when)
     timer_chg(&res_timeout, TT_ABSOLUTE, when);
 }
 
-/*
- * timeout_resolver - Remove queries from the list which have been
- * there too long without being resolved.
+/** Drop pending DNS lookups which have timed out.
+ * @param[in] notused Timer event data (ignored).
  */
 static void
 timeout_resolver(struct Event *notused)
@@ -326,9 +325,10 @@ timeout_resolver(struct Event *notused)
   check_resolver_timeout(next_time);
 }
 
-/*
- * delete_resolver_queries - cleanup outstanding queries
- * for which there no longer exist clients or conf lines.
+/** Drop queries that are associated with a particular pointer.
+ * This is used to clean up lookups for clients or conf blocks
+ * that went away.
+ * @param[in] vptr User callback pointer to search for.
  */
 void
 delete_resolver_queries(const void *vptr)
@@ -347,12 +347,11 @@ delete_resolver_queries(const void *vptr)
   }
 }
 
-/*
- * send_res_msg - sends msg to all nameservers found in the "_res" structure.
- * This should reflect /etc/resolv.conf. We will get responses
- * which arent needed but is easier than checking to see if nameserver
- * isnt present. Returns number of messages successfully sent to 
- * nameservers or -1 if no successful sends.
+/** Send a message to all of our nameservers.
+ * @param[in] msg Message to send.
+ * @param[in] len Length of message.
+ * @param[in] rcount Maximum number of servers to ask.
+ * @return Number of servers that were successfully asked.
  */
 static int
 send_res_msg(const char *msg, int len, int rcount)
@@ -374,8 +373,9 @@ send_res_msg(const char *msg, int len, int rcount)
   return(sent);
 }
 
-/*
- * find_id - find a dns request id (id is determined by dn_mkquery)
+/** Find a DNS request by ID.
+ * @param[in] id Identifier to find.
+ * @return Matching DNS request, or NULL if none are found.
  */
 static struct reslist *
 find_id(int id)
@@ -397,8 +397,9 @@ find_id(int id)
   return(NULL);
 }
 
-/*
- * gethost_byname - wrapper for _type - send T_AAAA first
+/** Try to look up address for a hostname, trying IPv6 (T_AAAA) first.
+ * @param[in] name Hostname to look up.
+ * @param[in] query Callback information.
  */
 void
 gethost_byname(const char *name, const struct DNSQuery *query)
@@ -406,8 +407,9 @@ gethost_byname(const char *name, const struct DNSQuery *query)
   do_query_name(query, name, NULL, T_AAAA);
 }
 
-/*
- * gethost_byaddr - get host name from address
+/** Try to look up hostname for an address.
+ * @param[in] addr Address to look up.
+ * @param[in] query Callback information.
  */
 void
 gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query)
@@ -415,8 +417,11 @@ gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query)
   do_query_number(query, addr, NULL);
 }
 
-/*
- * do_query_name - nameserver lookup name
+/** Send a query to look up the address for a name.
+ * @param[in] query Callback information.
+ * @param[in] name Hostname to look up.
+ * @param[in] request DNS lookup structure (may be NULL).
+ * @param[in] type Preferred request type.
  */
 static void
 do_query_name(const struct DNSQuery *query, const char *name,
@@ -430,9 +435,7 @@ do_query_name(const struct DNSQuery *query, const char *name,
   if (request == NULL)
   {
     request       = make_request(query);
-    request->name = (char *)MyMalloc(strlen(host_name) + 1);
-    request->type = type;
-    strcpy(request->name, host_name);
+    DupString(request->name, host_name);
 #ifdef IPV6
     if (type != T_A)
       request->state = REQ_AAAA;
@@ -446,8 +449,10 @@ do_query_name(const struct DNSQuery *query, const char *name,
   query_name(host_name, C_IN, type, request);
 }
 
-/*
- * do_query_number - Use this to do reverse IP# lookups.
+/** Send a query to look up the name for an address.
+ * @param[in] query Callback information.
+ * @param[in] addr Address to look up.
+ * @param[in] request DNS lookup structure (may be NULL).
  */
 static void
 do_query_number(const struct DNSQuery *query, const struct irc_in_addr *addr,
@@ -504,8 +509,11 @@ do_query_number(const struct DNSQuery *query, const struct irc_in_addr *addr,
   query_name(ipbuf, C_IN, T_PTR, request);
 }
 
-/*
- * query_name - generate a query based on class, type and name.
+/** Generate a query based on class, type and name.
+ * @param[in] name Domain name to look up.
+ * @param[in] query_class Query class (see RFC 1035).
+ * @param[in] type Query type (see RFC 1035).
+ * @param[in] request DNS request structure.
  */
 static void
 query_name(const char *name, int query_class, int type,
@@ -539,6 +547,9 @@ query_name(const char *name, int query_class, int type,
   }
 }
 
+/** Send a failed DNS lookup request again.
+ * @param[in] request Request to resend.
+ */
 static void
 resend_query(struct reslist *request)
 {
@@ -562,8 +573,12 @@ resend_query(struct reslist *request)
   }
 }
 
-/*
- * proc_answer - process name server reply
+/** Process the answer for a lookup request.
+ * @param[in] request DNS request that got an answer.
+ * @param[in] header Header of DNS response.
+ * @param[in] buf DNS response body.
+ * @param[in] eob Pointer to end of DNS response.
+ * @return Number of answers read from \a buf.
  */
 static int
 proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
@@ -627,7 +642,6 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
     query_class = irc_ns_get16(current);
     current += CLASS_SIZE;
 
-    request->ttl = irc_ns_get32(current);
     current += TTL_SIZE;
 
     rd_length = irc_ns_get16(current);
@@ -705,8 +719,8 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
   return(1);
 }
 
-/*
- * res_readreply - read a dns reply from the nameserver and process it.
+/** Read a DNS reply from the nameserver and process it.
+ * @param[in] ev I/O activity event for resolver socket.
  */
 static void
 res_readreply(struct Event *ev)
@@ -845,6 +859,10 @@ res_readreply(struct Event *ev)
   }
 }
 
+/** Build a DNSReply for a completed request.
+ * @param[in] request Completed DNS request.
+ * @return Newly allocated DNSReply containing host name and address.
+ */
 static struct DNSReply *
 make_dnsreply(struct reslist *request)
 {
@@ -858,6 +876,11 @@ make_dnsreply(struct reslist *request)
   return(cp);
 }
 
+/** Statistics callback to list DNS servers.
+ * @param[in] source_p Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
 void
 report_dns_servers(struct Client *source_p, const struct StatDesc *sd, char *param)
 {
@@ -871,6 +894,10 @@ report_dns_servers(struct Client *source_p, const struct StatDesc *sd, char *par
   }
 }
 
+/** Report memory usage to a client.
+ * @param[in] sptr Client requesting information.
+ * @return Total memory used by pending requests.
+ */
 size_t
 cres_mem(struct Client* sptr)
 {
@@ -892,6 +919,11 @@ cres_mem(struct Client* sptr)
   return request_mem;
 }
 
+/** Check whether an address looks valid.
+ * This means not all 0s and not all 1s.
+ * @param[in] addr Address to check for validity.
+ * @return Non-zero if the address looks valid.
+ */
 int irc_in_addr_valid(const struct irc_in_addr *addr)
 {
   unsigned int ii;
@@ -906,6 +938,11 @@ int irc_in_addr_valid(const struct irc_in_addr *addr)
   return 0;
 }
 
+/** Compare two IP addresses.
+ * @param[in] a First address to compare.
+ * @param[in] b Second address to compare.
+ * @return Non-zero if the two addresses differ, zero if they are identical.
+ */
 int irc_in_addr_cmp(const struct irc_in_addr *a, const struct irc_in_addr *b)
 {
   if (irc_in_addr_is_ipv4(a))
@@ -916,6 +953,10 @@ int irc_in_addr_cmp(const struct irc_in_addr *a, const struct irc_in_addr *b)
     return memcmp(a, b, sizeof(*a));
 }
 
+/** Indicate whether an IP address is a loopback address.
+ * @param[in] addr Address to check.
+ * @return Non-zero if the address is loopback; zero if not.
+ */
 int irc_in_addr_is_loopback(const struct irc_in_addr *addr)
 {
   if (addr->in6_16[0] != 0
