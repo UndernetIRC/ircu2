@@ -213,9 +213,10 @@ propagate_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			  gline->gl_expire - CurrentTime, gline->gl_lastmod,
 			  gline->gl_reason);
   else
-    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu :%s",
-			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
-			  GlineIsBadChan(gline) ? "" : "@",
+    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr,
+			  (GlineIsRemActive(gline) ?
+			   "* +%s%s%s %Tu :%s" : "* -%s%s%s"),
+			  gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
 			  GlineIsBadChan(gline) ? "" : gline->gl_host,
 			  gline->gl_expire - CurrentTime, gline->gl_reason);
 }
@@ -342,9 +343,10 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   if (GlineIsLocal(gline))
     msg = "removing local";
-  else if (!gline->gl_lastmod && !(flags & GLINE_LOCAL))
+  else if (!gline->gl_lastmod && !(flags & GLINE_LOCAL)) {
     msg = "removing global";
-  else {
+    gline->gl_flags &= ~GLINE_ACTIVE; /* propagate a -<mask> */
+  } else {
     msg = "deactivating global";
 
     if (flags & GLINE_LOCAL)
@@ -378,10 +380,12 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	    GlineIsBadChan(gline) ? "" : gline->gl_host,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
 
-  if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))
-    gline_free(gline);
-  else if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
+  if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
     propagate_gline(cptr, sptr, gline);
+
+  /* if it's a local gline or a Uworld gline (and not locally deactivated).. */
+  if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))
+    gline_free(gline); /* get rid of it */
 
   return 0;
 }

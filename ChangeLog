@@ -1,3 +1,13 @@
+2000-12-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c: When Uworld removed Uworld-set G-lines, only the
+	uplink would remove them.  This is because the removal protocol
+	message wasn't being sent to the uplinks.  This is fixed by fixing
+	propagate_gline() to send the proper number of arguments depending
+	on whether or not we're adding or deleting the Uworld gline, and
+	by having gline_deactivate() make sure to turn off the active bit
+	and call propagate_gline() if it's a Uworld gline
+
 2000-12-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/os_generic.c: make sure IOV_MAX gets defined, just in case
