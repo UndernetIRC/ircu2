@@ -301,11 +301,10 @@ int unique_name_vector(char* list, char token, char** vector, int size)
     start = end;
   }
   if (*start) {
-    for (i = 0; i < count; ++i) {
+    for (i = 0; i < count; ++i)
       if (0 == ircd_strcmp(vector[i], start))
         return count;
-      vector[count++] = start;
-    }
+    vector[count++] = start;
   }
   return count;
 }

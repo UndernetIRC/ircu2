@@ -8,6 +8,9 @@ Debugging is at least twice as difficult as programming.  So if you
 write a program that uses all of your ability, you'll never be able
 to debug it all.
 
+Current Bugs:
+* privmsg doesn't work because of bugs in unique_vector
+
 High Priority:
 
 * something is leaking "a meg a minute" with heap debugging on
