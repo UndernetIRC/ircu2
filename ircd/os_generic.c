@@ -69,26 +69,50 @@
 
 #ifdef IPV6
 #define sockaddr_native sockaddr_in6
+#define sn_family sin6_family
 
 void sockaddr_to_irc(const struct sockaddr_in6 *v6, struct irc_sockaddr *irc)
 {
-    assert(v6->sin6_family == AF_INET6);
-    memcpy(&irc->addr.in6_16[0], &v6->sin6_addr, sizeof(v6->sin6_addr));
-    irc->port = ntohs(v6->sin6_port);
+    if (v6->sin6_family == AF_INET6) {
+        memcpy(&irc->addr.in6_16[0], &v6->sin6_addr, sizeof(v6->sin6_addr));
+        irc->port = ntohs(v6->sin6_port);
+    }
+    else if (v6->sin6_family == AF_INET) {
+        const struct sockaddr_in *v4 = (const struct sockaddr_in*)v6;
+        memset(&irc->addr, 0, 5*sizeof(int16_t));
+        irc->addr.in6_16[5] = 0xffff;
+        memcpy(&irc->addr.in6_16[6], &v4->sin_addr, sizeof(v4->sin_addr));
+        irc->port = ntohs(v4->sin_port);
+    }
+    else assert(0 && "Unhandled native address family");
 }
 
-void sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int persist)
+int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int persist)
 {
     memset(v6, 0, sizeof(*v6));
-    v6->sin6_family = AF_INET6;
-    memcpy(&v6->sin6_addr, &irc->addr.in6_16[0], sizeof(v6->sin6_addr));
-    if (persist && irc_in_addr_is_ipv4(&irc->addr))
-        v6->sin6_addr.s6_addr[10] = v6->sin6_addr.s6_addr[11] = '\xff';
-    v6->sin6_port = htons(irc->port);
+    if (!irc) {
+        memset(v6, 0, sizeof(v6));
+        v6->sin6_family = AF_INET6;
+        return sizeof(*v6);
+    }
+    else if (persist && irc_in_addr_is_ipv4(&irc->addr)) {
+        struct sockaddr_in *v4 = (struct sockaddr_in*)v6;
+        v4->sin_family = AF_INET;
+        memcpy(&v4->sin_addr, &irc->addr.in6_16[6], sizeof(v4->sin_addr));
+        v4->sin_port = htons(irc->port);
+        return sizeof(*v4);
+    }
+    else {
+        v6->sin6_family = AF_INET6;
+        memcpy(&v6->sin6_addr, &irc->addr.in6_16[0], sizeof(v6->sin6_addr));
+        v6->sin6_port = htons(irc->port);
+        return sizeof(*v6);
+    }
 }
 
 #else
 #define sockaddr_native sockaddr_in
+#define sn_family sin_family
 
 void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
 {
@@ -98,13 +122,18 @@ void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
     irc->port = ntohs(v4->sin_port);
 }
 
-void sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int persist)
+int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int persist)
 {
     v4->sin_family = AF_INET;
-    assert(!irc->addr.in6_16[0] && !irc->addr.in6_16[1] && !irc->addr.in6_16[2] && !irc->addr.in6_16[3] && !irc->addr.in6_16[4] && (!irc->addr.in6_16[5] || irc->addr.in6_16[5] == 0xffff));
-    memcpy(&v4->sin_addr, &irc->addr.in6_16[6], sizeof(v4->sin_addr));
-    v4->sin_port = htons(irc->port);
+    if (irc) {
+        assert(!irc->addr.in6_16[0] && !irc->addr.in6_16[1] && !irc->addr.in6_16[2] && !irc->addr.in6_16[3] && !irc->addr.in6_16[4] && (!irc->addr.in6_16[5] || irc->addr.in6_16[5] == 0xffff));
+        memcpy(&v4->sin_addr, &irc->addr.in6_16[6], sizeof(v4->sin_addr));
+        v4->sin_port = htons(irc->port);
+    } else{
+        memset(&v4, 0, sizeof(v4));
+    }
     (void)persist;
+    return sizeof(*v4);
 }
 
 #endif
@@ -415,14 +444,14 @@ IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
                         const struct irc_sockaddr* peer)
 {
   struct sockaddr_native addr;
-  int res;
+  int res, size;
   assert(0 != buf);
   if (count_out)
     *count_out = 0;
   errno = 0;
 
-  sockaddr_from_irc(&addr, peer, 1);
-  if (-1 < (res = sendto(fd, buf, length, flags, (struct sockaddr*)&addr, sizeof(addr)))) {
+  size = sockaddr_from_irc(&addr, peer, 1);
+  if (-1 < (res = sendto(fd, buf, length, flags, (struct sockaddr*)&addr, size))) {
     if (count_out)
       *count_out = (unsigned) res;
     return IO_SUCCESS;
@@ -509,13 +538,11 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
 
 int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
 {
-  int family, fd;
-#ifdef IPV6
-  family = AF_INET6;
-#else
-  family = AF_INET;
-#endif
-  fd = socket(family, type, 0);
+  struct sockaddr_native addr;
+  int size, fd;
+
+  size = sockaddr_from_irc(&addr, local, 1);
+  fd = socket(addr.sn_family, type, 0);
   if (fd < 0) {
     report_error(SOCKET_ERROR_MSG, port_name, errno);
     return -1;
@@ -536,9 +563,7 @@ int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
     return -1;
   }
   if (local) {
-    struct sockaddr_native addr;
-    sockaddr_from_irc(&addr, local, 1);
-    if (bind(fd, (struct sockaddr*)&addr, sizeof(addr))) {
+    if (bind(fd, (struct sockaddr*)&addr, size)) {
       report_error(BIND_ERROR_MSG, port_name, errno);
       close(fd);
       return -1;
@@ -565,8 +590,10 @@ int os_accept(int fd, struct irc_sockaddr* peer)
 IOResult os_connect_nonb(int fd, const struct irc_sockaddr* sin)
 {
   struct sockaddr_native addr;
-  sockaddr_from_irc(&addr, sin, 1);
-  if (connect(fd, (struct sockaddr*) &addr, sizeof(addr)))
+  int size;
+
+  size = sockaddr_from_irc(&addr, sin, 1);
+  if (connect(fd, (struct sockaddr*) &addr, size))
     return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
   return IO_SUCCESS;
 }

@@ -88,7 +88,6 @@ extern int  read_message(time_t delay);
 extern void init_server_identity(void);
 extern void close_connections(int close_stderr);
 extern int  init_connection_limits(void);
-extern void set_virtual_host(const struct irc_in_addr *addr);
 extern void update_write(struct Client* cptr);
 
 #endif /* INCLUDED_s_bsd_h */

@@ -362,7 +362,7 @@ static void iauth_reconnect(struct IAuth *iauth)
     gethost_byname(i_host(iauth), &i_query(iauth));
     return;
   }
-  fd = os_socket((feature_bool(FEAT_VIRTUAL_HOST) ? &VirtualHost : NULL), SOCK_STREAM, "IAuth");
+  fd = os_socket(&VirtualHost, SOCK_STREAM, "IAuth");
   if (fd < 0)
     return;
   if (!os_set_sockbufs(fd, SERVER_TCP_WINDOW, SERVER_TCP_WINDOW)) {

@@ -265,7 +265,13 @@ jupenick: NICK '=' QSTRING
   addNickJupes($3);
 } ';';
 
-generalblock: GENERAL '{' generalitems '}' ';' ;
+generalblock: GENERAL '{' generalitems '}'
+{
+  if (localConf.name == NULL)
+    parse_error("Your General block must contain a name.");
+  if (localConf.numeric == 0)
+    parse_error("Your General block must contain a numeric (between 1 and 4095).");
+} ';' ;
 generalitems: generalitem generalitems | generalitem;
 generalitem: generalnumeric | generalname | generalvhost | generaldesc | error;
 generalnumeric: NUMERIC '=' NUMBER ';'
@@ -295,7 +301,7 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 
 generalvhost: VHOST '=' QSTRING ';'
 {
-  ircd_aton(&localConf.vhost_address, $3);
+  ircd_aton(&VirtualHost.addr, $3);
 };
 
 adminblock: ADMIN '{' adminitems '}'

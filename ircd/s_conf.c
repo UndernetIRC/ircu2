@@ -693,41 +693,6 @@ void conf_add_listener(const char* const* fields, int count)
   add_listener(atoi(fields[4]), fields[2], fields[1], is_server, is_hidden);
 }
 
-void conf_add_local(const char* const* fields, int count)
-{
-  if (count < 6 || EmptyString(fields[1]) || EmptyString(fields[5])) {
-    log_write(LS_CONFIG, L_CRIT, 0, "Your M: line must have 6 fields!");
-    return;
-  }
-  /*
-   * these two can only be set the first time
-   */
-  if (0 == localConf.name) {
-    if (string_is_hostname(fields[1]))
-      DupString(localConf.name, fields[1]);
-  }
-  if (0 == localConf.numeric) {
-    localConf.numeric = atoi(fields[5]);
-    if (0 == localConf.numeric)
-      log_write(LS_CONFIG, L_WARNING, 0,
-		"Your M: line must have a Numeric value greater than 0");
-  }
-  /*
-   * these two can be changed while the server is running
-   */
-  if (string_is_address(fields[2])) {
-    if (INADDR_NONE == (localConf.vhost_address.s_addr = inet_addr(fields[2])))
-      localConf.vhost_address.s_addr = INADDR_ANY;
-  }
-  MyFree(localConf.description);
-  DupString(localConf.description, fields[3]);
-  /*
-   * XXX - shouldn't be setting these directly here
-   */
-  ircd_strncpy(cli_info(&me), fields[3], REALLEN);
-  set_virtual_host(localConf.vhost_address);
-}
-
 void conf_add_admin(const char* const* fields, int count)
 {
   /*

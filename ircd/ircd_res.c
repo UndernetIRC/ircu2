@@ -898,7 +898,7 @@ int irc_in_addr_valid(const struct irc_in_addr *addr)
   unsigned short val;
 
   val = addr->in6_16[0];
-  if (val != 0 || val != 0xffff)
+  if (val != 0 && val != 0xffff)
     return 1;
   for (ii = 1; ii < 8; ii++)
     if (addr->in6_16[ii] != val)

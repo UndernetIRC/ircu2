@@ -105,7 +105,6 @@ struct DenyConf {
 struct LocalConf {
   char*          name;
   char*          description;
-  struct irc_in_addr vhost_address;
   unsigned int   numeric;
   char*          location1;
   char*          location2;

@@ -236,10 +236,8 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    */
   if (irc_in_addr_valid(&aconf->origin.addr))
     local = &aconf->origin;
-  else if (feature_bool(FEAT_VIRTUAL_HOST))
-    local = &VirtualHost;
   else
-    local = NULL;
+    local = &VirtualHost;
   cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr));
   if (cli_fd(cptr) < 0)
     return 0;
@@ -896,15 +894,6 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
 
   return (s_state(&cli_socket(cptr)) == SS_CONNECTED) ?
     completed_connection(cptr) : 1;
-}
-
-/*
- * Setup local socket structure to use for binding to.
- */
-void set_virtual_host(const struct irc_in_addr *addr)
-{
-  memset(&VirtualHost, 0, sizeof(VirtualHost));
-  memcpy(&VirtualHost.addr, addr, sizeof(VirtualHost.addr));
 }
 
 /*

@@ -285,7 +285,6 @@ static struct FeatureDesc {
   F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid", 0),
 
   /* Networking features */
-  F_B(VIRTUAL_HOST, 0, 0, 0),
   F_I(TOS_SERVER, 0, 0x08, 0),
   F_I(TOS_CLIENT, 0, 0x08, 0),
   F_I(POLLS_PER_LOOP, 0, 200, 0),

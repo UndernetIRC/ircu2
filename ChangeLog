@@ -1,5 +1,33 @@
 2004-09-13  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Remove sample VIRTUAL_HOST setting.
+
+	* doc/readme.features: Remove VIRTUAL_HOST documentation, and
+	update NODNS documentation to match current behavior.
+
+	* include/s_conf.h: Remove now-unused vhost_address field and
+	set_virtual_host() function.
+
+	* include/ircd_features.h, ircd/ircd_features.c, ircd/s_debug.c:
+	Remove VIRTUAL_HOST.
+
+	* ircd/ircd_auth.c, ircd/s_bsd.c: Use VirtualHost as local address
+	if we do not have a more specific alternate.
+
+	* ircd/ircd_parser.y: Check for sanity in General blocks (from old
+	conf_add_local()) and assign vhost directly to VirtualHost.
+
+	* ircd/ircd_res.c (irc_in_addr_valid): Fix thinko; obviously any
+	value will be either != 0 or != 0xffff.
+
+	* ircd/os_generic.c: Use AF_INET instead of AF_INET6 when the
+	local addresses are specified as IPv4 addresses.
+
+	* ircd/s_conf.c: Remove unused conf_add_local() and
+	set_virtual_host().
+
+2004-09-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/listener.c (add_listener): Consolidate duplicated code, and
 	make sure listener->server is set before calling inetport() on it.
 

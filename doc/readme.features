@@ -185,11 +185,10 @@ If you are playing with the server off-line, and no DNS is available,
 then long delays occur before the server starts up because it tries to
 resolve the name given in the General block (which usually isn't given
 in /etc/hosts) and for each connecting client.  If you specify "TRUE"
-here, then a call to gethostbyname() will be done only for the real
-hostname, and the server will not try to resolve clients that connect
-to "localhost."  Note that other calls to gethostbyname() are still
-done if you use VIRTUAL_HOST; also note that the server still tries to
-resolve clients that connect to the real IP address of the server.
+here, then a DNS lookup will be done only for the real hostname, and
+the server will not try to resolve clients that connect to
+"localhost."  Note that other DNS lookups are still done for outbound
+connections.
 
 RANDOM_SEED
  * Type: string
@@ -410,18 +409,6 @@ PPATH
 PPATH is the filename (relative to DPATH) or the full path of the
 "PID" file.  It is used for storing the server's process ID so that a
 ps(1) isn't necessary.
-
-VIRTUAL_HOST
- * Type: boolean
- * Default: FALSE
-
-This option is only needed when you wish to run multiple IRC servers
-on the same machine, and they must share at least one port.  This will
-require having multiple IP addresses for the machine that will be
-hosting the servers.  If you specify "TRUE" here, you can cause the
-server to bind to one of these IP addresses.  Use the vhost field of
-the General block to specify the IP address.  If you are unsure, stick
-with "FALSE."
 
 TOS_SERVER
  * Type: integer

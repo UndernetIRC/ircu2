@@ -106,9 +106,6 @@ const char* debug_serveropts(void)
   AddC('U');
 #endif
 
-  if (feature_bool(FEAT_VIRTUAL_HOST))
-    AddC('v');
-
   serveropts[i] = '\0';
 
   return serveropts;
