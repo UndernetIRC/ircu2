@@ -1,3 +1,8 @@
+2002-04-17  beware <steendijk@tomaatnet.nl>
+
+	* m_whois.c (m_whois): disallow remote queries for non-existent
+	local users when originated by a non-oper
+
 2002-04-16  Alex Badea  <vampire@p16.pub.ro>
 
 	* ircd/s_user.c (hunt_server_cmd): also send a "no such server"
