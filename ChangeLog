@@ -1,3 +1,10 @@
+2001-08-31  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: use "%u" to format limit arguments; use
+	strtoul() to process limit arguments in a /mode command--note:
+	most clients seem to truncate the integer, probably because
+	they're using atoi, and perhaps signed ints
+
 2001-08-17  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/numnicks.c: include stdlib.h for exit()
