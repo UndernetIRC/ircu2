@@ -156,7 +156,9 @@ void report_error(const char* text, const char* who, int err)
   static time_t last_notice = 0;
   int           errtmp = errno;   /* debug may change 'errno' */
   const char*   errmsg = (err) ? strerror(err) : "";
-  
+  if (!errmsg)
+    errmsg = "Unknown error"; 
+
   if (!who)
     who = "unknown";
 
@@ -418,8 +420,10 @@ static int completed_connection(struct Client* cptr)
    * connection actually succeeded
    */
   if ((cptr->error = os_get_sockerr(cptr->fd))) {
-    sendto_ops("Connection failed to %s: %s", cptr->name,
-               strerror(cptr->error));
+    const char* msg = strerror(cptr->error);
+    if (!msg)
+      msg = "Unknown error";
+    sendto_ops("Connection failed to %s: %s", cptr->name, msg);
     return 0;
   }
   if (!(aconf = find_conf_byname(cptr->confs, cptr->name, CONF_SERVER))) {
@@ -988,8 +992,10 @@ int read_message(time_t delay)
     }
     if (write_ready) {
       if (!on_write_unblocked(cptr) || IsDead(cptr)) {
-        exit_client(cptr, cptr, &me,
-                    cptr->error ? strerror(cptr->error) : LastDeadComment(cptr));
+        const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+        if (!msg)
+          msg = "Unknown error";
+        exit_client(cptr, cptr, &me, (char*) msg);
         continue;
       }
     }
@@ -1005,8 +1011,10 @@ int read_message(time_t delay)
       flush_connections(poll_cptr[i]);
 #endif
     if (IsDead(cptr)) {
-      exit_client(cptr, cptr, &me,
-         cptr->error ? strerror(cptr->error) : LastDeadComment(cptr));
+      const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+      if (!msg)
+        msg = "Unknown error";
+      exit_client(cptr, cptr, &me, (char*) msg);
       continue;
     }
     if (length > 0)
@@ -1026,10 +1034,13 @@ int read_message(time_t delay)
     if ((IsServer(cptr) || IsHandshake(cptr)) && cptr->error == 0 && length == 0)
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
                       cptr->name, cptr->serv->last_error_msg);
-    else
+    else {
+      const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
+      if (!msg)
+        msg = "Unknown error";
       exit_client_msg(cptr, cptr, &me, "Read error to %s: %s",
-                      get_client_name(cptr, HIDE_IP), 
-                      (cptr->error) ?  strerror(cptr->error) : "EOF from client");
+                      get_client_name(cptr, HIDE_IP), msg);
+    }
   }
   return 0;
 }
@@ -1159,10 +1170,12 @@ int read_message(time_t delay)
       if (FD_ISSET(i, &write_set)) {
         --nfds;
         if (!on_write_unblocked(cptr) || IsDead(cptr)) {
+          const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+          if (!msg)
+            msg = "Unknown error";
           if (FD_ISSET(i, &read_set))
             --nfds;
-          exit_client(cptr, cptr, &me,
-                      cptr->error ? strerror(cptr->error) : LastDeadComment(cptr));
+          exit_client(cptr, cptr, &me, msg);
           continue;
         }
       }
@@ -1181,8 +1194,10 @@ int read_message(time_t delay)
       flush_connections(LocalClientArray[i]);
 #endif
     if (IsDead(cptr)) {
-      exit_client(cptr, cptr, &me,
-              cptr->error ? strerror(cptr->error) : LastDeadComment(cptr));
+      const char* msg = (cptr->error) ? strerror(cptr->error) : LastDeadComment(cptr);
+      if (!msg)
+        msg = "Unknown error";
+      exit_client(cptr, cptr, &me, msg);
       continue;
     }
     if (length > 0)
@@ -1202,10 +1217,13 @@ int read_message(time_t delay)
     if ((IsServer(cptr) || IsHandshake(cptr)) && cptr->error == 0 && length == 0)
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
                       cptr->name, cptr->serv->last_error_msg);
-    else
+    else {
+      const char* msg = (cptr->error) ? strerror(cptr->error) : "EOF from client";
+      if (!msg)
+        msg = "Unknown error";
       exit_client_msg(cptr, cptr, &me, "Read error to %s: %s",
-                      get_client_name(cptr, HIDE_IP),
-                      cptr->error ? strerror(cptr->error) : "EOF from client");
+                      get_client_name(cptr, HIDE_IP), msg);
+    }
   }
   return 0;
 }

@@ -129,23 +129,27 @@ int uping_init(void)
   from.sin_family = AF_INET;
 
   if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    Debug((DEBUG_ERROR, "UPING: UDP listener socket call failed: %s", strerror(errno)));
+    Debug((DEBUG_ERROR, "UPING: UDP listener socket call failed: %s", 
+           (strerror(errno)) ? strerror(errno) : "Unknown error"));
     return -1;
   }
   if (!os_set_reuseaddr(fd)) {
     ircd_log(L_ERROR, "UPING: setsockopt UDP listener: fd %d", fd);
-    Debug((DEBUG_ERROR, "UPING: set reuseaddr on UDP listener failed: %s", strerror(errno)));
+    Debug((DEBUG_ERROR, "UPING: set reuseaddr on UDP listener failed: %s",
+           (strerror(errno)) ? strerror(errno) : "Unknown error"));
     close(fd);
     return -1;
   }
   if (bind(fd, (struct sockaddr*) &from, sizeof(from)) == -1) {
     ircd_log(L_ERROR, "UPING: bind UDP listener %d fd %d", htons(from.sin_port), fd);
-    Debug((DEBUG_ERROR, "UPING: bind on UDP listener failed : %s", strerror(errno)));
+    Debug((DEBUG_ERROR, "UPING: bind on UDP listener failed : %s",
+           (strerror(errno)) ? strerror(errno) : "Unknown error"));
     close(fd);
     return -1;
   }
   if (!os_set_nonblocking(fd)) {
-    Debug((DEBUG_ERROR, "UPING: set non-blocking: %s", strerror(errno)));
+    Debug((DEBUG_ERROR, "UPING: set non-blocking: %s",
+           (strerror(errno)) ? strerror(errno) : "Unknown error"));
     close(fd);
     return -1;
   }
@@ -274,12 +278,15 @@ void send_ping(struct UPing* pptr)
 #endif
 	  )
 	sendto_one(pptr->client, ":%s NOTICE %s :UPING: sendto() failed: %s",
-	           me.name, pptr->client->name, strerror(errno));
+	           me.name, pptr->client->name,
+                   (strerror(err)) ? strerror(err) : "Unknown error");
       else
 	sendto_one(pptr->client, "%s NOTICE %s%s :UPING: sendto() failed: %s",
-	           NumServ(&me), NumNick(pptr->client), strerror(errno));
+	           NumServ(&me), NumNick(pptr->client),
+                   (strerror(err)) ? strerror(err) : "Unknown error");
     }
-    Debug((DEBUG_DEBUG, "UPING: send_ping: sendto failed on %d: %s", pptr->fd, strerror(err)));
+    Debug((DEBUG_DEBUG, "UPING: send_ping: sendto failed on %d: %s", pptr->fd,
+           (strerror(err)) ? strerror(err) : "Unknown error"));
     end_ping(pptr);
     return;
   }
@@ -314,10 +321,12 @@ void read_ping(struct UPing* pptr)
 #endif
         )
       sendto_one(pptr->client, ":%s NOTICE %s :UPING: recvfrom: %s",
-                 me.name, pptr->client->name, strerror(err));
+                 me.name, pptr->client->name, 
+                 (strerror(err)) ? strerror(err) : "Unknown error");
     else
       sendto_one(pptr->client, "%s NOTICE %s%s :UPING: recvfrom: %s",
-                 NumServ(&me), NumNick(pptr->client), strerror(err));
+                 NumServ(&me), NumNick(pptr->client),
+                 (strerror(err)) ? strerror(err) : "Unknown error");
     Debug((DEBUG_SEND, "UPING: read_ping: recvfrom: %d", err));
     end_ping(pptr);
     return;
@@ -473,7 +482,7 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
   if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
     int err = errno;
     sendto_ops("m_uping: socket: %s", (err != EMFILE) 
-                ? strerror(err) : "No more sockets");
+                ? ((strerror(err)) ? strerror(err) : "Unknown error") : "No more sockets");
     if (MyUser(sptr) || Protocol(cptr) < 10)
       sendto_one(sptr, 
                  ":%s NOTICE %s :UPING: Unable to create udp ping socket",
