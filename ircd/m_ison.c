@@ -120,21 +120,28 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char*          name;
   char*          p = 0;
   struct MsgBuf* mb;
+  int found1 = 0;
+  int i;
 
   if (parc < 2)
     return need_more_params(sptr, "ISON");
 
   mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me), cli_name(sptr));
 
-  for (name = ircd_strtok(&p, parv[1], " "); name;
-       name = ircd_strtok(&p, 0, " ")) {
-    if ((acptr = FindUser(name))) {
-      if (msgq_bufleft(mb) < strlen(cli_name(acptr)) + 1) {
-	send_buffer(sptr, mb, 0); /* send partial response */
-	msgq_clean(mb); /* then do another round */
-	mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me), cli_name(sptr));
+  for (i = 1; i < parc; i++) {
+    for (name = ircd_strtok(&p, parv[i], " "); name;
+	 name = ircd_strtok(&p, 0, " ")) {
+      if ((acptr = FindUser(name))) {
+	if (msgq_bufleft(mb) < strlen(cli_name(acptr)) + 1) {
+	  send_buffer(sptr, mb, 0); /* send partial response */
+	  msgq_clean(mb); /* then do another round */
+	  mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me),
+			 cli_name(sptr));
+	  found1 = 0;
+	}
+	msgq_append(0, mb, "%s%s", found1 ? " " : "", cli_name(acptr));
+	found1++;
       }
-      msgq_append(0, mb, "%s ", cli_name(acptr)); /* append nickname */
     }
   }
 

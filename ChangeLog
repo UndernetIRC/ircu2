@@ -1,5 +1,8 @@
 2000-12-14  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_ison.c (m_ison): Apply Diane Bruce's patch to make ISON
+	parse all arguments
+
 	* ircd/s_debug.c (count_memory): modify to report for clients and
 	connections, not local clients and remote clients
 
