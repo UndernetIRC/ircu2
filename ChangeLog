@@ -1,3 +1,7 @@
+2000-06-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/m_names.c: Clean up compiler warnings.
+
 2000-06-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c (mode_parse_client): don't send warning if
@@ -1226,7 +1230,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.145 2000-06-09 19:18:11 kev Exp $
+# $Id: ChangeLog,v 1.146 2000-06-09 20:56:03 gte Exp $
 #
 # Insert new changes at beginning of the change list.
 #
