@@ -705,8 +705,17 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
     ircd_strncpy(cli_user(new_client)->realhost, parv[5], HOSTLEN);
     ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
-    if (account)
-      ircd_strncpy(cli_user(new_client)->account, account, ACCOUNTLEN);
+    if (account) {
+      int len = ACCOUNTLEN;
+      if ((p = strchr(account, ':'))) {
+	len = (p++) - account;
+	cli_user(new_client)->acc_create = atoi(p);
+	Debug((DEBUG_DEBUG, "Received timestamped account in user mode; "
+	       "account \"%s\", timestamp %Tu", account,
+	       cli_user(new_client)->acc_create));
+      }
+      ircd_strncpy(cli_user(new_client)->account, account, len);
+    }
     if (HasHiddenHost(new_client))
       ircd_snprintf(0, cli_user(new_client)->host, HOSTLEN, "%s.%s",
         account, feature_str(FEAT_HIDDEN_HOST));
@@ -1358,6 +1367,18 @@ char *umode_str(struct Client *cptr)
     *m++ = ' ';
     while ((*m++ = *t++))
       ; /* Empty loop */
+
+    if (cli_user(cptr)->acc_create) {
+      char nbuf[20];
+      Debug((DEBUG_DEBUG, "Sending timestamped account in user mode for "
+	     "account \"%s\"; timestamp %Tu", cli_user(cptr)->account,
+	     cli_user(cptr)->acc_create));
+      ircd_snprintf(0, t = nbuf, sizeof(nbuf), ":%Tu",
+		    cli_user(cptr)->acc_create);
+      m--; /* back up over previous nul-termination */
+      while ((*m++ = *t++))
+	; /* Empty loop */
+    }
   }
 
   *m = '\0';
