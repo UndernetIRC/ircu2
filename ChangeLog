@@ -1,3 +1,13 @@
+2001-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: add an incredibly ugly hack to attempt to track
+	down an apparent buffer overflow; remove msgq_map(), since it's no
+	longer used anywhere; slight tweaks to prevent off-by-one errors,
+	but these can't explain the problems we've seen
+
+	* include/msgq.h: remove msgq_map(), since it's no longer used
+	anywhere
+
 2001-01-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_user.c (set_nick_name): call client_set_privs() after
