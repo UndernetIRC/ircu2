@@ -1,3 +1,13 @@
+2002-02-18 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/m_kill.c: Changed m_kill() to do_kill() as it is not
+	actually a message handler.
+
+2002-02-16  Tim Vogelsang <net@astrolink.org>
+
+       * ircd/m_kill.c: added a new static function, m_kill, which
+       performs the actual kill.
+	
 2002-02-14 Joseph Bongaarts <foxxe@wtfs.net>
 
        * ircd/m_list.c: Backport of LIST STOP change.
