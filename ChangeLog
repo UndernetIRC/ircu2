@@ -4,6 +4,9 @@
 
 	* ircd/m_whois.c: Fix lost ! from ShowChannel()
 
+2003-11-18 Isomer <isomer@undernet.org>
+	* ircd/res.c: Minor cosmetic typo.
+
 2003-11-17 Entrope <entrope@clan-dk.org>
         * ircd/engine_epoll.c: #include <sys/types.h>, which is
         reportedly necessary on certain RedHat releases.

@@ -1767,10 +1767,10 @@ int m_dns(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
     return 0;
   }
-  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :\x02Cache\x02: "
+  sendcmdto_one(&me, CMD_NOTICE, sptr,"%C :""\x02""Cache\x02: "
 		  	"Adds %d Dels %d Expires %d Lookups %d "
-			"Hits(addr/name)) %d/%d "
-		"Cu %d", sptr,
+			"Hits(addr/name) %d/%d "
+			"Updates %d", sptr,
 		cainfo.ca_adds, cainfo.ca_dels, cainfo.ca_expires,
 		cainfo.ca_lookups, cainfo.ca_na_hits, cainfo.ca_nu_hits, 
 		cainfo.ca_updates);
