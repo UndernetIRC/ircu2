@@ -259,7 +259,7 @@ engine_loop(struct Generators* gen)
     }
 
     dopoll.dp_fds = polls; /* set up the struct dvpoll */
-    dopoll.dp_nfds = POLLS_PER_DEVPOLL;
+    dopoll.dp_nfds = polls_count;
 
     /* calculate the proper timeout */
     dopoll.dp_timeout = timer_next(gen) ?

@@ -304,7 +304,7 @@ engine_loop(struct Generators* gen)
 	   CurrentTime, wait.tv_sec));
 
     /* check for active events */
-    nevs = kevent(kqueue_id, 0, 0, events, POLLS_PER_KQUEUE,
+    nevs = kevent(kqueue_id, 0, 0, events, events_count,
 		  wait.tv_sec < 0 ? 0 : &wait);
 
     CurrentTime = time(0); /* set current time... */
