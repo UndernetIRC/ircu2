@@ -1,3 +1,13 @@
+2001-07-31  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_serv.c (server_estab): remove unused variable split
+
+	* ircd/parse.c: add mr_error to the parse table
+
+	* ircd/m_error.c (mr_error): add mr_error() to handle ERRORs from
+	unregistered connections--if IsUserPort() is true, the ERROR is
+	ignored, otherwise, the message is saved
+
 2001-07-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_kill.c (ms_kill): another minor typo *sigh*

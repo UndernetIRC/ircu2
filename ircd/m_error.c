@@ -97,6 +97,38 @@
 #include <string.h>
 
 /*
+ * mr_error - unregistered client message handler
+ *
+ * parv[0] = sender prefix
+ * parv[parc-1] = text
+ */
+int mr_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+  const char *para;
+
+  if (IsUserPort(cptr))
+    return 0; /* ignore ERROR from regular clients */
+
+  para = (parc > 1 && *parv[parc - 1] != '\0') ? parv[parc - 1] : "<>";
+
+  Debug((DEBUG_ERROR, "Received ERROR message from %s: %s", cli_name(sptr), para));
+
+  if (cptr == sptr)
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
+  else
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
+			 cptr, para);
+
+  if (cli_serv(sptr))
+  {
+    MyFree(cli_serv(sptr)->last_error_msg);
+    DupString(cli_serv(sptr)->last_error_msg, para);
+  }
+
+  return 0;
+}
+
+/*
  * ms_error - server message handler
  *
  * parv[0] = sender prefix

@@ -217,7 +217,7 @@ struct Message msgtab[] = {
     TOK_ERROR,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_ignore, m_ignore, ms_error, m_ignore, m_ignore }
+    { mr_error, m_ignore, ms_error, m_ignore, m_ignore }
   },
   {
     MSG_KILL,
