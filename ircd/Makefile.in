@@ -364,7 +364,7 @@ ircd.o: ircd.c ../include/ircd.h ../config/config.h ../config/setup.h \
 ircd_alloc.o: ircd_alloc.c ../include/ircd_alloc.h ../include/fda.h \
  ../include/ircd_string.h ../config/config.h ../config/setup.h \
  ../include/ircd_chattr.h ../include/s_debug.h ../include/ircd_defs.h
-ircd_features.o: ircd_features.c /usr/include/features.h \
+ircd_features.o: ircd_features.c ../include/ircd_features.h \
  ../include/client.h ../include/ircd_defs.h ../config/config.h \
  ../config/setup.h ../include/dbuf.h ../include/ircd_handler.h \
  ../include/hash.h ../include/ircd.h ../include/struct.h \

@@ -1,3 +1,9 @@
+2000-12-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: #include was supposed to be for
+	  ircd_features.h, not features.h--missed when I had to do a
+	  rename because of namespace collision
+
 2000-12-05  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* ircd/m_topic.c: Added missing braces that caused all remote
 	  topics to be ignored.

@@ -18,7 +18,7 @@
  *
  * $Id$
  */
-#include "features.h"
+#include "ircd_features.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
