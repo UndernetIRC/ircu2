@@ -118,20 +118,11 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
      if (!(comment = strchr(path, ' ')))
        comment = "No reason supplied";
      else
-       *comment++; /* Remove first character (space) */
-  }
-  else {
-    /*
-     * Do not allow operator specified reasons to exceed TOPICLEN.
-     */
-    if (strlen(path) > TOPICLEN)
-      path[TOPICLEN] = '\0';
-    comment = path;
+       comment++; /* Remove first character (space) */
   }
 
-#ifdef HEAD_IN_SAND_SERVERNAME
-  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", IsServer(sptr) ?
-                HEAD_IN_SAND_SERVERNAME : cli_name(sptr), comment);
+#ifdef HEAD_IN_SAND_KILLWHO
+  ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", HEAD_IN_SAND_SERVERNAME, comment);
 #else
   ircd_snprintf(0, buf, sizeof(buf), "%s (%s)", cli_name(sptr),
                 comment);
@@ -172,37 +163,23 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
     cli_flags(victim) |= FLAGS_KILLED;
   }
 
+  /*
+   * Tell the victim she/he has been zapped, but *only* if
+   * the victim is on current server--no sense in sending the
+   * notification chasing the above kill, it won't get far
+   * anyway (as this user don't exist there any more either)
+   * In accordance with the new hiding rules, the victim
+   * always sees the kill as coming from me.
+   */
   if (MyConnect(victim)) {
-    /*
-     * We *can* have crossed a NICK with this numeric... --Run
-     *
-     * Note the following situation:
-     *  KILL SAA -->       X
-     *  <-- S NICK ... SAA | <-- SAA QUIT <-- S NICK ... SAA <-- SQUIT S
-     * Where the KILL reaches point X before the QUIT does.
-     * This would then *still* cause an orphan because the KILL doesn't reach S
-     * (because of the SQUIT), the QUIT is ignored (because of the KILL)
-     * and the second NICK ... SAA causes an orphan on the server at the
-     * right (which then isn't removed when the SQUIT arrives).
-     * Therefore we still need to detect numeric nick collisions too.
-     *
-     * Bounce the kill back to the originator, if the client can't be found
-     * by the next hop (short lag) the bounce won't propagate further.
-     */
-    if (IsServer(cptr))
-      sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
-                    victim, inpath, path);
-
-    /*
-     * Tell the victim she/he has been zapped, but *only* if
-     * the victim is on current server--no sense in sending the
-     * notification chasing the above kill, it won't get far
-     * anyway (as this user don't exist there any more either)
-     */
-    sendcmdto_one(IsServer(sptr) ? &me : sptr, CMD_KILL, victim, "%C :%s", victim,
+#ifdef HEAD_IN_SAND_KILLWHO
+    sendcmdto_one(&me, CMD_KILL, victim, "%C :%s", victim,
                   comment);
+#else
+    sendcmdto_one(sptr, CMD_KILL, victim, "%C :%s", victim,
+                  comment);
+#endif
   }
-
   return exit_client_msg(cptr, victim, sptr, "Killed (%s)", comment);
 }
 
@@ -218,8 +195,6 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
 int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client* victim;
-  const char*    inpath;
-  char*          user;
   char*          path;
 
   assert(0 != cptr);
@@ -235,7 +210,6 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "KILL");
   }
 
-  user = parv[1];
   path = parv[parc - 1];        /* Either defined or NULL (parc >= 3) */
 
   if (!(victim = findNUser(parv[1]))) {
@@ -245,6 +219,26 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
+  /*
+   * We *can* have crossed a NICK with this numeric... --Run
+   *
+   * Note the following situation:
+   *  KILL SAA -->       X
+   *  <-- S NICK ... SAA | <-- SAA QUIT <-- S NICK ... SAA <-- SQUIT S
+   * Where the KILL reaches point X before the QUIT does.
+   * This would then *still* cause an orphan because the KILL doesn't reach S
+   * (because of the SQUIT), the QUIT is ignored (because of the KILL)
+   * and the second NICK ... SAA causes an orphan on the server at the
+   * right (which then isn't removed when the SQUIT arrives).
+   * Therefore we still need to detect numeric nick collisions too.
+   *
+   * Bounce the kill back to the originator, if the client can't be found
+   * by the next hop (short lag) the bounce won't propagate further.
+   */
+  if (MyConnect(victim)) {
+    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
+                  victim, inpath, path);
+  }
   return do_kill(cptr, sptr, victim, path);
 }
 
@@ -277,6 +271,10 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   user = parv[1];
   path = parv[parc - 1];
+
+  if (strlen(path) > TOPICLEN)
+    path[TOPICLEN] = '\0';
+
   if (!(victim = FindClient(user))) {
     /*
      * If the user has recently changed nick, we automaticly
