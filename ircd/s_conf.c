@@ -1397,7 +1397,7 @@ int rehash(struct Client *cptr, int sig)
                              found_g == -2 ? "G-line active for %s%s" :
                              "K-line active for %s%s",
                              IsUnknown(acptr) ? "Unregistered Client ":"",                     
-                             get_client_name(acptr, HIDE_IP));
+                             get_client_name(acptr, SHOW_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;

@@ -1,4 +1,7 @@
 2003-07-01 Isomer <isomer@undernet.org>
+	* ircd/s_nick.c: Add user@host information to client exiting notices
+
+2003-07-01 Isomer <isomer@undernet.org>
 	* ircd/s_user.c: Add realname information to client connect notices
 
 2003-06-29 hikari <shadow@undernet.org>
