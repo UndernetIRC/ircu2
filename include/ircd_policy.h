@@ -120,5 +120,6 @@
  */
 
 #define HEAD_IN_SAND_WHOIS_SERVERNAME
+#define HEAD_IN_SAND_WHO_SERVERNAME
 
 #endif /* INCLUDED_ircd_policy_h */

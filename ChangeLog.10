@@ -1,10 +1,15 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.13 2001-04-16 19:55:12 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.14 2001-04-20 20:51:26 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fix a bug with implementation of HEAD_IN_SAND_NETSPLIT
+* Permit users to find out what server they're on, since they already
+  know -- Kev
+* Added HEAD_IN_SAND_WHO_SERVERNAME to cover final source of server
+  names -- Kev
 * Fixed wallops, wallusers now sends wallops to local clients,
   wallusers to servers.
 * Added host to /kill messages -- Isomer

@@ -479,11 +479,11 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   if (IsServer(victim))
   {
 #ifdef HEAD_IN_SAND_NETSPLIT
+    strcpy(comment1, "*.net *.split");
+#else
     strcpy(comment1, victim->serv->up->name);
     strcat(comment1, " ");
     strcat(comment1, victim->name);
-#else
-    strcpy(comment1, "*.net *.split");
 #endif
     if (IsUser(killer))
       sendto_lops_butone(killer, "%s SQUIT by %s [%s]:",
