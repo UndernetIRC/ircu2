@@ -161,6 +161,32 @@ static void write_pidfile(void)
 #endif
 }
 
+/* check_pid
+ * 
+ * inputs: 
+ *   none
+ * returns:
+ *   true - if the pid file exists (and is readable), and the pid refered
+ *          to in the file is still running.
+ *   false - otherwise.
+ */
+static int check_pid(void)
+{
+#ifdef PPATH
+  int fd;
+  int pid;
+  char buff[20];
+  if ((fd=open(PPATH, O_RDONLY)) >= 0) {
+    memset(buff,0,sizeof(buff));
+    read(fd,buff,sizeof(buf)-1);
+    close(fd);
+    sscanf(buff,"%d",&pid);
+    return (kill(pid,0)==0);
+  }
+  return 0;
+#endif
+}
+  
 /*
  * try_connections
  *
@@ -406,6 +432,10 @@ int main(int argc, char *argv[])
 
   myargv = argv;
   umask(077);                   /* better safe than sorry --SRB */
+  if (check_pid()) {
+  	fprintf(stderr,"another ircd process is already running: aborting...\n");
+  	exit(6);
+  }
   memset(&me, 0, sizeof(me));
   me.fd = -1;
 
@@ -471,6 +501,7 @@ int main(int argc, char *argv[])
       case 'h':
         ircd_strncpy(me.name, p, HOSTLEN);
         break;
+        
       case 't':
         if (euid != uid)
           setuid((uid_t) uid);
