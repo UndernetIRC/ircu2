@@ -302,7 +302,7 @@ static struct FeatureDesc {
   F_B(OPERS_SEE_IN_SECRET_CHANNELS, 0, 1, 0),
 
   /* features that affect local opers on this server */
-  F_B(LOCOP_KILL, 0, 0, 0),
+  F_B(LOCOP_KILL, 0, 1, 0),
   F_B(LOCOP_REHASH, 0, 1, 0),
   F_B(LOCOP_RESTART, 0, 0, 0),
   F_B(LOCOP_DIE, 0, 0, 0),

@@ -1,3 +1,11 @@
+2001-01-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c (whowas_free): MyFree() is a macro that expects
+	its argument to be an lvalue, which means we can't use
+	whowas_clean()'s handy-dandy "return ww" feature
+
+	* ircd/ircd_features.c: default LOCOP_KILL to TRUE--oops...
+
 2001-01-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/client.c: fixed feattab; basically, when I changed features
