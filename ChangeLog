@@ -1,3 +1,10 @@
+2001-07-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: mark a client as having been IP checked
+
+	* ircd/IPcheck.c (ip_registry_check_remote): remove unneeded
+	second call to SetIPChecked()
+
 2001-07-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/engine_poll.c: deal with POLLHUP properly (hopefully)
