@@ -1172,16 +1172,16 @@ void list_next_channels(struct Client *cptr, int nr)
   {
     for (; chptr; chptr = chptr->next)
     {
-      if (!cli_user(cptr) || (SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
+      if (!cli_user(cptr))
         continue;
       if (chptr->users > args->min_users && chptr->users < args->max_users &&
           chptr->creationtime > args->min_time &&
           chptr->creationtime < args->max_time &&
-          (!args->topic_limits || (*chptr->topic &&
+          (!(args->flags & LISTARG_TOPICLIMITS) || (*chptr->topic &&
           chptr->topic_time > args->min_topic_time &&
           chptr->topic_time < args->max_topic_time)))
       {
-        if (ShowChannel(cptr,chptr))
+        if ((args->flags & LISTARG_SHOWSECRET) || ShowChannel(cptr,chptr))
 	  send_reply(cptr, RPL_LIST, chptr->chname, chptr->users,
 		     chptr->topic);
         chptr = chptr->next;
