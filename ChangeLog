@@ -1,3 +1,32 @@
+2005-03-29  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Add HIS_STATS_J entry.
+
+	* doc/readme.features: Likewise.
+
+2005-03-25  Reed Loden <reed@reedloden.com>
+
+	* include/hash.h: Add needed prototypes for new
+	stats_nickjupes() function.
+
+	* include/ircd_features.h: Add FEAT_HIS_STATS_J.
+
+	* include/numeric.h: Add RPL_STATSJLINE (222) for new nick
+	jupes stats. Correct a typo in a comment.
+
+	* ircd/hash.c: Add stats_nickjupes() function to report all
+	nick jupes to an oper. Because of the nature of hash tables,
+	there is no way to sort this list so the results look weird.
+
+	* ircd/ircd_features.c: Add FEAT_HIS_STATS_J (default: TRUE).
+
+	* ircd/s_err.c: Add RPL_STATSJLINE (222) for new nick jupes
+	stats.
+
+	* ircd/s_stats.c: Add RPL_STATSJLINE (222) for new nick jupes
+	stats. Make 'j' case sensitive. Modify the comment for stats
+	uworld.
+
 2005-03-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Do not send numeric oplevels in a -A

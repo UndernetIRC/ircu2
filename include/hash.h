@@ -26,6 +26,7 @@
 
 struct Client;
 struct Channel;
+struct StatDesc;
 
 /*
  * general defines
@@ -87,6 +88,8 @@ extern int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv
 extern int isNickJuped(const char *nick);
 extern int addNickJupes(const char *nicks);
 extern void clearNickJupes(void);
+extern void stats_nickjupes(struct Client* to, const struct StatDesc* sd,
+			    char* param);
 extern void list_next_channels(struct Client *cptr);
 
 #endif /* INCLUDED_hash_h */

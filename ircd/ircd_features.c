@@ -352,6 +352,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_f, 0, 1, 0),
   F_B(HIS_STATS_i, 0, 1, 0),
   F_B(HIS_STATS_j, 0, 1, 0),
+  F_B(HIS_STATS_J, 0, 1, 0),
   F_B(HIS_STATS_M, 0, 1, 0),
   F_B(HIS_STATS_m, 0, 1, 0),
   F_B(HIS_STATS_o, 0, 1, 0),
