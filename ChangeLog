@@ -1,3 +1,9 @@
+2004-11-21  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (mode_parse_upass): Allow forced mode changes to
+	be done by non-channel-managers, fixing a crash from OPMODE.
+	(mode_parse_apass): Likewise.
+
 2004-11-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_create.c (ms_create): Complain if a user tries to CREATE

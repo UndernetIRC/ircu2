@@ -2436,7 +2436,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   }
 
   /* If they are not the channel manager, they are not allowed to change it */
-  if (MyUser(state->sptr) && !IsChannelManager(state->member)) {
+  if (MyUser(state->sptr) && !(state->flags & MODE_PARSE_FORCE || IsChannelManager(state->member))) {
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
 	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
@@ -2549,7 +2549,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   }
 
   /* If they are not the channel manager, they are not allowed to change it */
-  if (MyUser(state->sptr) && !IsChannelManager(state->member)) {
+  if (MyUser(state->sptr) && !(state->flags & MODE_PARSE_FORCE || IsChannelManager(state->member))) {
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
 	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
