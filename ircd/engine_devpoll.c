@@ -24,6 +24,7 @@
 
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "s_debug.h"
 
@@ -39,8 +40,6 @@
 
 #define DEVPOLL_ERROR_THRESHOLD	20	/* after 20 devpoll errors, restart */
 #define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
-
-#define POLLS_PER_DEVPOLL	20	/* get 20 pollfd's per turn */
 
 /* Figure out what bits to set for read */
 #if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
@@ -241,14 +240,24 @@ static void
 engine_loop(struct Generators* gen)
 {
   struct dvpoll dopoll;
-  struct pollfd polls[POLLS_PER_DEVPOLL];
+  struct pollfd *polls;
+  int polls_count;
   struct Socket* sock;
   int nfds;
   int i;
   int errcode;
   size_t codesize;
 
+  if ((polls_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)
+    polls_count = 20;
+  polls = (struct pollfd *)MyMalloc(sizeof(struct pollfd) * polls_count);
+
   while (running) {
+    if ((i = feature_int(FEAT_POLLS_PER_LOOP)) >= 20 && i != polls_count) {
+      polls = (struct pollfd *)MyRealloc(polls, sizeof(struct pollfd) * i);
+      polls_count = i;
+    }
+
     dopoll.dp_fds = polls; /* set up the struct dvpoll */
     dopoll.dp_nfds = POLLS_PER_DEVPOLL;
 

@@ -24,6 +24,7 @@
 
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "s_debug.h"
 
@@ -39,8 +40,6 @@
 
 #define KQUEUE_ERROR_THRESHOLD	20	/* after 20 kqueue errors, restart */
 #define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
-
-#define POLLS_PER_KQUEUE	20	/* get 20 kevents per turn */
 
 static struct Socket** sockList;
 static int kqueue_max;
@@ -278,7 +277,8 @@ engine_delete(struct Socket* sock)
 static void
 engine_loop(struct Generators* gen)
 {
-  struct kevent events[POLLS_PER_KQUEUE];
+  struct kevent *events;
+  int events_count;
   struct Socket* sock;
   struct timespec wait;
   int nevs;
@@ -286,7 +286,16 @@ engine_loop(struct Generators* gen)
   int errcode;
   size_t codesize;
 
+  if ((events_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)
+    events_count = 20;
+  events = (struct kevent *)MyMalloc(sizeof(struct kevent) * events_count);
+
   while (running) {
+    if ((i = feature_int(FEAT_POLLS_PER_LOOP)) >= 20 && i != events_count) {
+      events = (struct kevent *)MyRealloc(events, sizeof(struct kevent) * i);
+      events_count = i;
+    }
+
     /* set up the sleep time */
     wait.tv_sec = timer_next(gen) ? (timer_next(gen) - CurrentTime) : -1;
     wait.tv_nsec = 0;
