@@ -30,6 +30,9 @@
 #include <sys/types.h>
 #define INCLUDED_sys_types_h
 #endif
+#ifndef INCLUDED_res_h
+#include "res.h"
+#endif
 
 struct SLink;
 struct Client;
@@ -259,8 +262,11 @@ struct Mode {
 /** A single ban for a channel. */
 struct Ban {
   struct Ban* next;   /**< next ban in the channel */
+  struct irc_in_addr address; /**< addres for BAN_IPMASK bans */
   time_t when;        /**< timestamp when ban was added */
-  unsigned int flags; /**< modifier flags for the ban */
+  unsigned short flags; /**< modifier flags for the ban */
+  unsigned char nu_len; /**< length of nick!user part of banstr */
+  unsigned char addrbits; /**< netmask length for BAN_IPMASK bans */
   char *who;          /**< name of client that set the ban */
   char *banstr;       /**< hostmask that the ban matches */
 };

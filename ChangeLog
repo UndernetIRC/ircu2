@@ -1,5 +1,18 @@
 2004-10-21  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h (Ban): Add fields address, nu_len, addrbits to
+	support netmask-based bans.
+
+	* ircd/channel.c (set_ban_mask): New function to parse a ban as
+	either netmask-based or not.
+	(make_ban): Use set_ban_mask().
+	(make_nick_user_ip): Becomes unused; remove it.
+	(is_banned): Rewrite to match only once against the nick!user part
+	of a ban, and compare addresses if BAN_IPMASK is set.
+	(mode_parse_ban): Use set_ban_mask().
+
+2004-10-21  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_conf.c (attach_iline): Test resolved host names against
 	aconf->host, not the (NULL) aconf->name.
 

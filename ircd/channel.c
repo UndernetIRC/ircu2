@@ -100,6 +100,26 @@ static int list_length(struct SLink *lp)
 }
 #endif
 
+/** Set the mask for a ban, checking for IP masks.
+ * @param[in,out] ban Ban structure to modify.
+ * @param[in] banstr Mask to ban.
+ */
+static void
+set_ban_mask(struct Ban *ban, const char *banstr)
+{
+  char *sep;
+  MyFree(ban->banstr);
+  if (!banstr)
+    return;
+  DupString(ban->banstr, banstr);
+  sep = strrchr(banstr, '@');
+  if (sep) {
+    ban->nu_len = sep - banstr;
+    if (ipmask_parse(sep + 1, &ban->address, &ban->addrbits))
+      ban->flags |= BAN_IPMASK;
+  }
+}
+
 /** Allocate a new Ban structure.
  * @param[in] banstr Ban mask to use.
  * @return Newly allocated ban.
@@ -115,8 +135,7 @@ make_ban(const char *banstr)
   else if (!(ban = MyMalloc(sizeof(*ban))))
     return NULL;
   memset(ban, 0, sizeof(*ban));
-  if (banstr)
-    DupString(ban->banstr, banstr);
+  set_ban_mask(ban, banstr);
   return ban;
 }
 
@@ -228,7 +247,6 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
  * @param name The ident
  * @param host the hostname
  * @returns namebuf
- * @see make_nick_user_ip()
  */
 static char *make_nick_user_host(char *namebuf, const char *nick,
 				 const char *name, const char *host)
@@ -236,26 +254,6 @@ static char *make_nick_user_host(char *namebuf, const char *nick,
 #define NUH_BUFSIZE	(NICKLEN + USERLEN + HOSTLEN + 3)
   ircd_snprintf(0, namebuf, NUH_BUFSIZE, "%s!%s@%s", nick, name, host);
   return namebuf;
-}
-
-/** Create a hostmask using an IP address
- * Create a string of form "foo!bar@123.456.789.123" given foo, bar and the
- * IP-number as the parameters.  If NULL, they become "*".
- *
- * @param ipbuf Buffer at least NICKLEN+USERLEN+SOCKIPLEN+4 to hold the final
- * 		match.
- * @param nick	The nickname (or NULL for *)
- * @param name	The ident (or NULL for *)
- * @param ip	The IP address
- * @returns ipbuf
- * @see make_nick_user_host()
- */
-#define NUI_BUFSIZE	(NICKLEN + USERLEN + SOCKIPLEN + 4)
-static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
-			       const struct irc_in_addr *ip)
-{
-  ircd_snprintf(0, ipbuf, NUI_BUFSIZE, "%s!%s@%s", nick, name, ircd_ntoa(ip));
-  return ipbuf;
 }
 
 /** Decrement the count of users, and free if empty.
@@ -524,13 +522,9 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
   struct Ban*   tmp;
+  char          nu[NICKLEN + USERLEN + 2];
   char          tmphost[HOSTLEN + 1];
-  char          nu_host[NUH_BUFSIZE];
-  char          nu_realhost[NUH_BUFSIZE];
-  char          nu_ip[NUI_BUFSIZE];
-  char*         s;
   char*         sr = NULL;
-  char*         ip_s = NULL;
 
   if (!IsUser(cptr))
     return 0;
@@ -538,37 +532,33 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   if (member && IsBanValid(member))
     return IsBanned(member);
 
-  s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
-			  (cli_user(cptr))->host);
+  ircd_snprintf(0, nu, sizeof(nu), "%s!%s",
+                cli_name(cptr), cli_user(cptr)->username);
   if (IsAccount(cptr))
   {
     if (HasHiddenHost(cptr))
     {
-      sr = make_nick_user_host(nu_realhost, cli_name(cptr),
-                               (cli_user(cptr))->username,
-                               cli_user(cptr)->realhost);
+      sr = cli_user(cptr)->realhost;
     }
     else
     {
       ircd_snprintf(0, tmphost, HOSTLEN, "%s.%s",
                     cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
-      sr = make_nick_user_host(nu_realhost, cli_name(cptr),
-                               cli_user(cptr)->username,
-                               tmphost);      
+      sr = tmphost;
     }
   }
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
-    if ((tmp->flags & BAN_IPMASK)) {
-      if (!ip_s)
-        ip_s = make_nick_user_ip(nu_ip, cli_name(cptr),
-				 (cli_user(cptr))->username, &cli_ip(cptr));
-      if (match(tmp->banstr, ip_s) == 0)
-        break;
-    }
-    if (match(tmp->banstr, s) == 0)
-      break;
-    else if (sr && match(tmp->banstr, sr) == 0)
+    int res;
+    tmp->banstr[tmp->nu_len] = '\0';
+    res = match(tmp->banstr, nu);
+    tmp->banstr[tmp->nu_len] = '@';
+    if (res)
+      continue;
+    if (((tmp->flags & BAN_IPMASK)
+         && ipmask_check(&cli_ip(cptr), &tmp->address, tmp->addrbits))
+        || match(tmp->banstr + tmp->nu_len + 1, cli_user(cptr)->host) == 0
+        || (sr && match(tmp->banstr + tmp->nu_len + 1, sr) == 0))
       break;
   }
 
@@ -2865,15 +2855,10 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
   if (state->dir == MODE_ADD) {
     newban = state->banlist + (state->numbans++);
     newban->next = 0;
-
-    DupString(newban->banstr, t_str);
+    newban->flags = BAN_ADD;
+    set_ban_mask(newban, t_str);
     newban->who = cli_name(state->sptr);
     newban->when = TStime();
-
-    newban->flags = BAN_ADD;
-
-    if ((s = strrchr(t_str, '@')) && check_if_ipmask(s + 1))
-      newban->flags |= BAN_IPMASK;
   }
 
   if (!state->chptr->banlist) {
