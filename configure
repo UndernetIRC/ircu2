@@ -7545,6 +7545,51 @@ echo "$as_me:$LINENO: result: $unet_cv_enable_epoll" >&5
 echo "${ECHO_T}$unet_cv_enable_epoll" >&6
 
 if test x"$unet_cv_enable_epoll" != xno; then
+    echo "$as_me:$LINENO: checking whether epoll functions are properly defined" >&5
+echo $ECHO_N "checking whether epoll functions are properly defined... $ECHO_C" >&6
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/epoll.h>
+int
+main ()
+{
+epoll_create(10);
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+cat >>confdefs.h <<\_ACEOF
+#define EPOLL_NEED_BODY
+_ACEOF
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 
 cat >>confdefs.h <<\_ACEOF
 #define USE_EPOLL

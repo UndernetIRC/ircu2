@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.2.2.2 2004-01-11 00:23:31 isomer Exp $
+ * $Id: config.h.in,v 1.2.2.2.2.1 2004-03-19 23:17:24 isomer Exp $
  */
 
 /* Define if you have the setrlimit function */
@@ -94,6 +94,9 @@
 
 /* Path to data directory */
 #undef DPATH
+
+/* Define to implement epoll system calls */
+#undef EPOLL_NEED_BODY
 
 /* Force inlining for a few critical functions */
 #undef FORCEINLINE

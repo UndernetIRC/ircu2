@@ -1,3 +1,11 @@
+2004-02-16  Entrope <entrope@gamesurge.net>
+
+        * configure.in: Check for missing epoll functions.
+
+        * ircd/engine_epoll.c: Use the results.
+
+        * config.h.in, configure: Regenerate.
+
 2004-03-07  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/gline.c (gline_stats): gotta have an else here or we end up
