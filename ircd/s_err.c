@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "numeric.h"
 #include "s_debug.h"
 #include "sprintf_irc.h"

@@ -32,6 +32,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "crule.h"
 #ifndef CR_DEBUG
 

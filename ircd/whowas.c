@@ -34,6 +34,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "whowas.h"
 #include "client.h"
 #include "ircd.h"

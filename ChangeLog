@@ -1,3 +1,24 @@
+2001-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: finally remove the msgq_integrity() hack, as it's
+	turned up no more bugs
+
+	* ircd/ircd.c: use /* */ comments instead of // comments--all the
+	world's not gcc :(
+
+	* ircd/s_conf.c (conf_add_server): use /* */ comments instead of
+	// comments--all the world's not gcc :(
+
+	* ircd/runmalloc.c: finally garbage-collect unused file
+
+	* include/runmalloc.h: finally garbage-collect unused file
+
+	* ircd/<multiple files>: addition of '#include "config.h"' before
+	all other includes in most .c files
+
+	* include/<multiple files>: remove includes of config.h, which are
+	now going into the raw .c files
+
 2001-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_whois.c (do_whois): display proper server name if the

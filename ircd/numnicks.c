@@ -18,6 +18,7 @@
  *
  * $Id$
  */
+#include "config.h"
 
 #include "numnicks.h"
 #include "client.h"

@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "querycmds.h"
 
 #include <string.h>

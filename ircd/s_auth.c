@@ -27,6 +27,8 @@
  *     any messages from it.
  *     --Bleep  Thomas Helvey <tomh@inxpress.net>
  */
+#include "config.h"
+
 #include "s_auth.h"
 #include "client.h"
 #include "IPcheck.h"

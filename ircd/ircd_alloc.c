@@ -21,6 +21,8 @@
  *
  *   $Id$
  */
+#include "config.h"
+
 #include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "s_debug.h"

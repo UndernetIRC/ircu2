@@ -25,9 +25,6 @@
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"
 #endif
-#ifndef INCLUDED_config_h
-#include "config.h"
-#endif
 #ifndef INCLUDED_dbuf_h
 #include "dbuf.h"
 #endif

@@ -22,6 +22,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_relay.h"
 #include "channel.h"
 #include "client.h"

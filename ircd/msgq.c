@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "msgq.h"
 #include "ircd_alloc.h"
 #include "ircd_defs.h"
@@ -52,32 +54,6 @@ static struct {
 struct MsgCounts msgBufCounts = { 0, 0 };
 struct MsgCounts msgCounts = { 0, 0 };
 
-/* XXX HACK HACK HACK XXX */
-#if 1
-/* First, force assertion checking */
-#undef NDEBUG
-#include <assert.h>
-
-/* This routine is TEMPORARY and is intended to track down a problem we're
- * having with apparent buffer overflows in this file.
- */
-static void
-msgq_integrity(void)
-{
-  struct MsgBuf *mb;
-  struct Msg *msg;
-
-  for (mb = MQData.msgs; mb; mb = mb->next)
-    assert(((unsigned long)mb) != 0x8000a0d);
-  for (mb = MQData.free_mbs; mb; mb = mb->next)
-    assert(((unsigned long)mb) != 0x8000a0d);
-  for (msg = MQData.free_msgs; msg; msg = msg->next)
-    assert(((unsigned long)msg) != 0x8000a0d);
-}
-#else
-#define msgq_integrity()	((void)0)
-#endif /* XXX HACK HACK HACK XXX */
-
 /*
  * This routine is used to remove a certain amount of data from a given
  * queue and release the Msg (and MsgBuf) structure if needed
@@ -87,8 +63,6 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
 {
   struct Msg *m;
   unsigned int msglen;
-
-  msgq_integrity();
 
   assert(0 != mq);
   assert(0 != qlist);
@@ -121,8 +95,6 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
     m->sent += *length_p; /* this much of the message has been sent */
     *length_p = 0; /* we've dealt with it all */
   }
-
-  msgq_integrity();
 }
 
 /*
@@ -131,8 +103,6 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
 void
 msgq_init(struct MsgQ *mq)
 {
-  msgq_integrity();
-
   assert(0 != mq);
 
   mq->length = 0;
@@ -141,8 +111,6 @@ msgq_init(struct MsgQ *mq)
   mq->queue.tail = 0;
   mq->prio.head = 0;
   mq->prio.tail = 0;
-
-  msgq_integrity();
 }
 
 /*
@@ -154,8 +122,6 @@ msgq_init(struct MsgQ *mq)
 void
 msgq_delete(struct MsgQ *mq, unsigned int length)
 {
-  msgq_integrity();
-
   assert(0 != mq);
 
   while (length > 0) {
@@ -168,8 +134,6 @@ msgq_delete(struct MsgQ *mq, unsigned int length)
     else
       break;
   }
-
-  msgq_integrity();
 }
 
 /*
@@ -184,17 +148,13 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
   struct Msg *prio;
   int i = 0;
 
-  msgq_integrity();
-
   assert(0 != mq);
   assert(0 != iov);
   assert(0 != count);
   assert(0 != len);
 
-  if (mq->length <= 0) { /* no data to map */
-    msgq_integrity();
+  if (mq->length <= 0) /* no data to map */
     return 0;
-  }
 
   if (mq->queue.head && mq->queue.head->sent > 0) { /* partial msg on norm q */
     iov[i].iov_base = mq->queue.head->msg->msg + mq->queue.head->sent;
@@ -204,10 +164,8 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
     queue = mq->queue.head->next; /* where we start later... */
 
     i++; /* filled an iovec... */
-    if (!--count) { /* check for space */
-      msgq_integrity();
+    if (!--count) /* check for space */
       return i;
-    }
   } else
     queue = mq->queue.head; /* start at head of queue */
 
@@ -219,10 +177,8 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
     prio = mq->prio.head->next; /* where we start later... */
 
     i++; /* filled an iovec... */
-    if (!--count) { /* check for space */
-      msgq_integrity();
+    if (!--count) /* check for space */
       return i;
-    }
   } else
     prio = mq->prio.head; /* start at head of prio */
 
@@ -232,10 +188,8 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
     *len += iov[i].iov_len;
 
     i++; /* filled an iovec... */
-    if (!--count) { /* check for space */
-      msgq_integrity();
+    if (!--count) /* check for space */
       return i;
-    }
   }
 
   for (; queue; queue = queue->next) { /* go through normal queue */
@@ -244,13 +198,9 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
     *len += iov[i].iov_len;
 
     i++; /* filled an iovec... */
-    if (!--count) { /* check for space */
-      msgq_integrity();
+    if (!--count) /* check for space */
       return i;
-    }
   }
-
-  msgq_integrity();
 
   return i;
 }
@@ -264,8 +214,6 @@ struct MsgBuf *
 msgq_vmake(struct Client *dest, const char *format, va_list vl)
 {
   struct MsgBuf *mb;
-
-  msgq_integrity();
 
   assert(0 != format);
 
@@ -297,8 +245,6 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
     MQData.msgs->prev_p = &mb->next;
   MQData.msgs = mb;
 
-  msgq_integrity();
-
   return mb;
 }
 
@@ -323,8 +269,6 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
 {
   va_list vl;
 
-  msgq_integrity();
-
   assert(0 != mb);
   assert(0 != format);
 
@@ -346,8 +290,6 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
   mb->msg[mb->length] = '\0'; /* not strictly necessary */
 
   assert(mb->length < sizeof(mb->msg));
-
-  msgq_integrity();
 }
 
 /*
@@ -357,8 +299,6 @@ msgq_append(struct Client *dest, struct MsgBuf *mb, const char *format, ...)
 void
 msgq_clean(struct MsgBuf *mb)
 {
-  msgq_integrity();
-
   assert(0 != mb);
   assert(0 < mb->ref);
   assert(0 != mb->prev_p);
@@ -375,8 +315,6 @@ msgq_clean(struct MsgBuf *mb)
 
     msgBufCounts.used--; /* decrement the usage count */
   }
-
-  msgq_integrity();
 }
 
 /*
@@ -387,8 +325,6 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
 {
   struct MsgQList *qlist;
   struct Msg *msg;
-
-  msgq_integrity();
 
   assert(0 != mq);
   assert(0 != mb);
@@ -424,8 +360,6 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
 
   mq->length += mb->length; /* update the queue length */
   mq->count++; /* and the queue count */
-
-  msgq_integrity();
 }
 
 /*
@@ -435,8 +369,6 @@ void
 msgq_count_memory(size_t *msg_alloc, size_t *msg_used, size_t *msgbuf_alloc,
 		  size_t *msgbuf_used)
 {
-  msgq_integrity();
-
   assert(0 != msg_alloc);
   assert(0 != msg_used);
   assert(0 != msgbuf_alloc);
@@ -446,8 +378,6 @@ msgq_count_memory(size_t *msg_alloc, size_t *msg_used, size_t *msgbuf_alloc,
   *msg_used = msgCounts.used * sizeof(struct Msg);
   *msgbuf_alloc = msgCounts.alloc * sizeof(struct MsgBuf);
   *msgbuf_used = msgCounts.used * sizeof(struct MsgBuf);
-
-  msgq_integrity();
 }
 
 /*

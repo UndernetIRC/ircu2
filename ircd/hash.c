@@ -21,6 +21,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "hash.h"
 #include "client.h"
 #include "channel.h"

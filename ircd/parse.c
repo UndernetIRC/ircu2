@@ -20,6 +20,7 @@
  * $Id$
  */
 #include "config.h"
+
 #include "parse.h"
 #include "client.h"
 #include "channel.h"

@@ -19,6 +19,8 @@
  * $Id$
  *
  */
+#include "config.h"
+
 #define _XOPEN_SOURCE /* Need this for IOV_MAX */
 
 /* These typedef's are needed for socket.h to be happy. Bleep PROMISES to make
@@ -30,7 +32,6 @@ typedef unsigned int u_int;
 typedef unsigned long u_long;
 
 #include "ircd_osdep.h"
-#include "config.h"
 #include "msgq.h"
 
 #include <assert.h>
