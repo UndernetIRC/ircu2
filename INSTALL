@@ -1,5 +1,6 @@
 INSTALL file        by Run <carlo@runaway.xs4all.nl>
             Updated by Isomer <isomer@coders.net>
+            Updated for u2.10.11 by Kev <klmitch@mit.edu>
 
 This is the UnderNet IRC daemon.
 
@@ -7,18 +8,17 @@ The installation of the IRC daemon (ircd) exists of the following steps:
 
 1) Retrieve the package.
 2) cd into the base directory.
-3) `./configure'
-4) `make config'
-5) `make'
-6) `make install'
+3) "./configure"
+4) "make"
+5) "make install"
 
 1) Retrieve the package.
-====================
+========================
 
 The recommended way to get the ircu package now is to use CVS.  CVS makes
 upgrades a lot less painful and lets you get the latest package.
 
-1.1) The first thing you need to do is 'authenticate' yourself against the
+1.1) The first thing you need to do is "authenticate" yourself against the
 server.  
 
 This is done with:
@@ -26,38 +26,45 @@ This is done with:
 cvs -d :pserver:anoncvs@coder.com.undernet.org:/home/coder-com/cvs login
 
 (we recommend that you cut and paste the above line to use it :)
-When it prompts you for a password enter 'anoncvs'.
+When it prompts you for a password enter "anoncvs".
 
-1.2) Then you have to decide which of the trees you want to use:
+1.2) The module you will check out is ircu2.10.  There are three branches
+you can check out.
 
-irc2.10 - This is the *STABLE* tree.  If in doubt use this one!
+stable - This branch is always the recommended version for use on the
+       Undernet.  To check out the stable tree, add "-r u2_10_11" to
+       the CVS command line.
 
-beta - This tree is undergoing testing before being promoted to ircu2.10
-       It may be buggy.  Use on the undernet production network is prohibited,
-       except for certain authorised servers.
+beta - This branch is undergoing testing before being promoted to the
+       stable branch.  It may be buggy.  Use on the Undernet's production
+       network is prohibited, except for certain authorized servers.  The
+       "-r" flag you need to check this branch out is documented on the
+       Coder Committee's web site, http://coder-com.undernet.org.
 
-alpha - This is the development tree, if you are planning on making patches
-       to be submitted to the main source tree we recommend you use this
-       tree.  However this tree is *not* guaranteed to compile, and should
-       be concidered HIGHLY unstable.  It is not intended for production
-       use.
+alpha - This is the development branch.  It is not guaranteed to even
+       compile, and should be considered HIGHLY unstable.  It is NOT
+       intended for production use.  If you wish to play with the server,
+       you may wish to investigate the test network.  To check this branch
+       out, use no "-r" flags.
+
 
 to check out the tree, type:
 
 cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout
-   -P irc2.10
+   -P ircu2.10
 
-The above two lines shouldn't have an enter between them.  if you want to
-use another tree, replace 'irc2.10' with the tree you want to use.  This
-will create a directory irc2.10, and put all the files in there.
+The above two lines shouldn't have an enter between them.  If you want to
+use another branch, place the appropriate "-r" flag after the "checkout"
+command.  This will create a directory ircu2.10, and put all the files in
+there.
 
-to get the latest version, from within the tree type "cvs update -dP".
+To get the latest version, from within the tree type "cvs update -dP".
 
 For more information see the coder-com website at
 http://coder-com.undernet.org/
 
 The old (tried and true) method that works even when the website isn't being
-DoS'd (sigh) is included below.  Using the method below means you /cant/
+DoS'd (sigh) is included below.  Using the method below means you can't
 just type 'cvs update -dP' to get the latest version.
 
  The name of the package is something like `ircu2.x.y.z.tgz', where
@@ -90,25 +97,18 @@ or ircu2.10 if you used cvs.
 
 where "ircu2.x.y.z" is the name of the unpacked directory.
 
-3) `./configure'
-==============
-
-This will generate 'config/setup.h', your Operating System dependend
-configuration.
-
-If this produces a 'Permission Denied' error message, then try typing
-`chmod a+x ./configure` first to give yourself permission to run the file.
-
-4) `make config'
+3) "./configure"
 ================
 
-This will (re)generate the include/config.h file.  You can run this
-as often as you like and it will use your last values as defaults.
-At every question you can type a '?' (followed by a return) to get
-extensive help, or a 'c' to continue using your old values by default
-(quickly finishing the script).
+This will generate "config.h", your operating system-dependent
+configuration.
 
-5) `make'
+If this produces a "Permission Denied" error message, then try typing
+"chmod a+x ./configure" first to give yourself permission to run the file.
+
+For information on configure command line options, type "./configure --help".
+
+4) "make"
 =========
 
 Type:
@@ -117,25 +117,16 @@ make
 
 in the base directory.  It should compile without errors or warnings.
 Please mail any problem to the maintainer, but only AFTER you made sure
-you did everything the right way.  If you want your Operating System
+you did everything the right way.  If you want your operating system
 to be supported in future releases, you best make a patch that
 actually fixes the problem.
 
-If you have problems here with it complaining about unresolved symbols in
-res.o, try "make config" again and add -lresolv to LDFLAGS. Note, there is
-no 'e' on the end of resolv.  It's not a typo, it's supposed to be like
-that.
-
-If you have problems here with it complaining about unresolved symbols
-possibly in s_user.c for 'crypt', add -lcrypt to LDFLAGS.
-
-6) `make install'
+5) "make install"
 =================
 
 This should install the ircd and the man page. Please recheck the
 permissions of the binary.
-You need to create some of the logfiles that you have chosen by hand
-(for instance with 'touch') before the ircd starts writing to them.
+
 Of course, you need a syntactically correct ircd.conf in DPATH.  See the
 docs for some info on this.  Also create an ircd.motd with the text of
 your MOTD.  And finally create a remote.motd with three lines of text
@@ -148,17 +139,20 @@ In case of problems
 
 If you have problems configuring the server you might consider installing
 GNU make in your PATH.  In some cases a brain-dead /bin/sh is causing the
-problem, in which case I suggest to install 'bash' and use that (as sh -> bash).
-Finally, any other compile problem should be solved when you install gcc.
+problem, in which case I suggest to install "bash" and use that (as sh ->
+bash).  Finally, any other compile problem should be solved when you install
+gcc.
 
-If you have problems with starting the ircd, run 'make config' again
-and define DEBUGMODE.  Recompile the ircd, and run it by hand as:
+If you have problems with starting the ircd, run "./configure" again
+and give it the "--enable-debug" command line option.  Recompile the ircd,
+and run it by hand as:
 
 ircd -t -x9
 
 This will write debug output to your screen, probably showing why it
 doesn't start.
 
-Don't use a server with DEBUGMODE defined on a production net.
+DO NOT USE A SERVER WITH DEBUGGING ENABLED ON A PRODUCTION NETWORK.  Doing
+so is a severe privacy risk.
 
 If things still don't work, try emailing coder-com@undernet.org
