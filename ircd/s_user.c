@@ -1218,7 +1218,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
 	set_snomask(sptr, tmpmask, SNO_SET);
       if (cli_snomask(sptr) && snomask_given)
 	send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
-    }
+    } else
+      set_snomask(sptr, 0, SNO_SET);
   }
   /*
    * Compare new flags with old flags and send string which

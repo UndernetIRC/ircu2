@@ -1,5 +1,8 @@
 2001-06-29  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_user.c (set_user_mode): clear the snomask if the user
+	isn't supposed to receive server notices anymore
+
 	* ircd/ircd_features.c: change CONFIG_OPERCMDS to default to FALSE
 
 	* configure.in: use AC_MSG_CHECKING/AC_MSG_RESULT when checking
