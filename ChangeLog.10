@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.2 2000-03-20 05:36:58 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.2.2.1 2000-03-24 07:12:15 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fixed core on RPING bug, tokenized RPING --Bleep
 * Remove add_local_domain entirely, unused --Bleep
 * Merge u2_10_10_beta06 create branch u2_10_10_beta07 --Bleep
 * Remove size_t from socket calls, audit usage of size_t
