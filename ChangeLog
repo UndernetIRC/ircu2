@@ -1,3 +1,14 @@
+2002-07-10  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* ircd/s_auth.c: added REPORT_INVAL_DNS for reporting that the
+	hostname is invalid; added auth_verify_hostname() to examine the
+	hostname character by character and verify that all characters fit
+	in the character set [a-zA-Z0-9_.-] and that the host name is not
+	too long; call auth_verify_hostname() from auth_dns_callback() as
+	the final check before accepting the hostname
+
 2002-07-05 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/packet.c(connect_dopacket): Pass the job on to server_dopacket
 	when they become a server.
