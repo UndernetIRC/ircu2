@@ -1,0 +1,4164 @@
+2001-10-14  Perry Lorier  <isomer@coders.net>
+	* Minor fixes to the below
+
+2001-09-21  Perry Lorier  <isomer@coders.net>
+	* ircd/send.c and various: replace sendcmdto_flag_butone with
+	sendwallto_group_butone
+
+2001-09-21  Vampire-  <unknown>
+	* ircd/ircd_string.c: unique_name_vector round II.
+
+2001-09-21  mbuna  <mbuna@undernet.org>
+	* configure.in: Add support for darwin
+
+2001-09-21  Perry Lorier  <isomer@coders.net>
+	* ircd/s_user.c I'm stupid, s/acptr/from/, Hektik pointed it out
+
+2001-09-20  Perry Lorier  <isomer@coders.net>
+
+	* Pullups from 2.10.10.pl16
+	* Added some warnings, and the concept of rate limited snotices
+
+2001-08-31  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: use "%u" to format limit arguments; use
+	strtoul() to process limit arguments in a /mode command--note:
+	most clients seem to truncate the integer, probably because
+	they're using atoi, and perhaps signed ints
+
+2001-08-17  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/numnicks.c: include stdlib.h for exit()
+
+	* ircd/ircd_log.c: include stdlib.h for exit()
+
+	* ircd/ircd_events.c: include stdlib.h for exit()
+
+	* ircd/s_stats.c: remove description of /stats v, since it's gone
+
+	* ircd/m_wallops.c (mo_wallops): add "*" to the beginning of
+	/wallops to distinguish wallops from wallusers
+
+	* ircd/m_error.c (mr_error): ignore ERROR from clients that aren't
+	in the "handshake" or "connecting" states--I think the latter will
+	never happen, but...
+
+	* doc/Authors: apply delete's Authors patch
+
+	* RELEASE.NOTES: rewrite RELEASE.NOTES, basing it a little on
+	Braden's version
+
+	* README: rewrite README
+
+2001-07-31  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_serv.c (server_estab): remove unused variable split
+
+	* ircd/parse.c: add mr_error to the parse table
+
+	* ircd/m_error.c (mr_error): add mr_error() to handle ERRORs from
+	unregistered connections--if IsUserPort() is true, the ERROR is
+	ignored, otherwise, the message is saved
+
+2001-07-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_kill.c (ms_kill): another minor typo *sigh*
+
+	* ircd/s_user.c (send_supported): oops, minor typo...
+
+	* ircd/s_user.c: implement send_supported() to send two ISUPPORT
+	messages containing our feature buffers; make register_user() use
+	send_supported()
+
+	* ircd/s_misc.c (exit_client): make sure not to give away a remote
+	server in the ERROR message sent to the client; if the killer is a
+	server, we substitute our name in its place
+
+	* ircd/m_version.c (m_version): use send_supported() to send the
+	ISUPPORT values to the user
+
+	* ircd/m_nick.c: shave nick collision kills here a bit, too, for
+	the same reasons as for m_kill.c
+
+	* ircd/m_kill.c: shave kills a bit so that the results look
+	exactly the same no matter where you are; if we didn't do this, it
+	would be possible to map the network by looking at the differences
+	between kills originating under various circumstances
+
+	* include/supported.h: split the features into two, so as to not
+	bust the parameter count when sending the features list
+
+	* include/s_user.h: declare new send_supported() function to send
+	the ISUPPORT information
+
+2001-07-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: disable IP (*not* TCP) options to prevent
+	source-routed spoofing attacks; this is only available under
+	u2.10.11, so don't even bother, since no one but testers are using
+	the source base
+
+2001-07-25  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/ircd_policy.h: enable HEAD_IN_SAND_REMOTE by default
+
+	* ircd/s_err.c: put in a . for reporting link version on /trace,
+	to match what /version does
+
+2001-07-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c (exit_client): servers don't understand what the
+	numeric nick ERROR is supposed to mean, so they ignore error
+	messages, resulting in not knowing why we were rejected; use
+	sendcmdto_one for servers and sendrawto_one for clients
+
+2001-07-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): in the case of a modeless channel and
+	a nick collide, a bare BURST may be propagated; adjust the
+	enforced parameter count to accept the bare BURST
+
+2001-07-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: mark a client as having been IP checked
+
+	* ircd/IPcheck.c (ip_registry_check_remote): remove unneeded
+	second call to SetIPChecked()
+
+2001-07-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_poll.c: deal with POLLHUP properly (hopefully)
+
+	* ircd/engine_devpoll.c: deal with POLLHUP properly (hopefully)
+
+2001-07-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/os_bsd.c (os_get_rusage): move buf into the two ifdef'd
+	sections so that if neither is used, the declaration of buf will
+	not elicit an "unused variable" warning under NetBSD
+
+	* ircd/m_map.c: include string.h to declare strcpy (fix warnings
+	on alpha)
+
+	* ircd/m_away.c: include string.h to declare strcpy/strlen (fix
+	warnings on alpha)
+
+	* ircd/ircd_log.c: include string.h to declare strcpy/strlen (fix
+	warnings on alpha)
+
+	* ircd/client.c: include string.h to declare memset (fix warnings
+	on alpha)
+
+	* ircd/channel.c: remove unused functions next_overlapped_ban,
+	del_banid, and is_deopped (fix warnings under -O1)
+
+	* ircd/IPcheck.c: include string.h to declare memset/memcpy (fix
+	warnings on alpha)
+
+2001-06-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (set_user_mode): clear the snomask if the user
+	isn't supposed to receive server notices anymore
+
+	* ircd/ircd_features.c: change CONFIG_OPERCMDS to default to FALSE
+
+	* configure.in: use AC_MSG_CHECKING/AC_MSG_RESULT when checking
+	installation prefix; default devpoll and kqueue to on (they get
+	turned off if the required headers aren't present)
+
+	* ircd/whocmds.c (do_who): use ircd_snprintf() instead of
+	sprintf_irc(); it's a bit hackish, but it'll do for now
+
+	* ircd/support.c: remove unused #include
+
+	* ircd/send.c: remove unused #include
+
+	* ircd/s_user.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/s_serv.c: remove unused #include
+
+	* ircd/s_misc.c: use ircd_snprintf() and friends instead of
+	sprintf_irc() and friends
+
+	* ircd/s_err.c: moved atoi_tab[] from ircd/sprintf_irc.c to
+	ircd/s_err.c, which is the only other file to refer to it
+
+	* ircd/s_conf.c (conf_add_deny): use ircd_snprintf() instead of
+	sprintf_irc()
+
+	* ircd/s_bsd.c (connect_server): use ircd_snprintf() instead of
+	sprintf_irc()
+
+	* ircd/s_auth.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/res.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/m_version.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/m_kill.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/listener.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/gline.c: use ircd_snprintf() instead of sprintf_irc()
+
+	* ircd/channel.c: don't include sprintf_irc.h; use ircd_snprintf()
+	instead of sprintf_irc()
+
+	* ircd/Makefile.in: remove sprintf_irc.c from sources list; run
+	make depend
+
+	* include/ircd_string.h: remove declaration of sprintf_irc() (what
+	was it doing here anyway?)
+
+	* include/sprintf_irc.h: removed unneeded source file
+
+	* ircd/sprintf_irc.c: removed unneeded source file
+
+	* ircd/s_debug.c (count_memory): remove some dead code
+
+	* ircd/s_auth.c: remove some dead code
+
+	* ircd/res.c (update_list): remove some dead code
+
+	* ircd/m_whowas.c: remove some dead code
+
+	* ircd/m_whois.c: remove some dead code
+
+	* ircd/m_who.c: remove some dead code
+
+	* ircd/m_wallusers.c: remove some dead code
+
+	* ircd/m_wallops.c: remove some dead code
+
+	* ircd/m_wallchops.c: remove some dead code
+
+	* ircd/m_version.c: remove some dead code
+
+	* ircd/m_userip.c: remove some dead code
+
+	* ircd/m_userhost.c: remove some dead code
+
+	* ircd/m_uping.c: remove some dead code
+
+	* ircd/m_trace.c: remove some dead code
+
+	* ircd/m_topic.c: remove some dead code
+
+	* ircd/m_tmpl.c: remove some dead code
+
+	* ircd/m_time.c: remove some dead code
+
+	* ircd/m_squit.c: remove some dead code
+
+	* ircd/m_silence.c: remove some dead code
+
+	* ircd/m_settime.c: remove some dead code
+
+	* ircd/m_set.c: remove some dead code
+
+	* ircd/m_server.c: remove some dead code
+
+	* ircd/m_rpong.c: remove some dead code
+
+	* ircd/m_rping.c: remove some dead code
+
+	* ircd/m_restart.c: remove some dead code
+
+	* ircd/m_reset.c: remove some dead code
+
+	* ircd/m_rehash.c: remove some dead code
+
+	* ircd/m_quit.c: remove some dead code
+
+	* ircd/m_proto.c: remove some dead code
+
+	* ircd/m_privs.c: remove some dead code
+
+	* ircd/m_privmsg.c: remove some dead code
+
+	* ircd/m_pong.c: remove some dead code
+
+	* ircd/m_ping.c: remove some dead code
+
+	* ircd/m_pass.c: remove some dead code
+
+	* ircd/m_part.c: remove some dead code
+
+	* ircd/m_opmode.c: remove some dead code
+
+	* ircd/m_oper.c: remove some dead code
+
+	* ircd/m_notice.c: remove some dead code
+
+	* ircd/m_nick.c: remove some dead code
+
+	* ircd/m_map.c: remove some dead code
+
+	* ircd/m_lusers.c: remove some dead code
+
+	* ircd/m_list.c: remove some dead code
+
+	* ircd/m_links.c: remove some dead code
+
+	* ircd/m_kill.c: remove some dead code
+
+	* ircd/m_kick.c: remove some dead code
+
+	* ircd/m_jupe.c: remove some dead code
+
+	* ircd/m_join.c: remove some dead code
+
+	* ircd/m_ison.c: remove some dead code
+
+	* ircd/m_invite.c: remove some dead code
+
+	* ircd/m_info.c: remove some dead code
+
+	* ircd/m_help.c: remove some dead code
+
+	* ircd/m_gline.c: remove some dead code
+
+	* ircd/m_get.c: remove some dead code
+
+	* ircd/m_error.c: remove some dead code
+
+	* ircd/m_endburst.c: remove some dead code
+
+	* ircd/m_die.c: remove some dead code
+
+	* ircd/m_desynch.c: remove some dead code
+
+	* ircd/m_destruct.c: remove some dead code
+
+	* ircd/m_defaults.c: remove some dead code
+
+	* ircd/m_create.c: remove some dead code, along with an #if 1
+
+	* ircd/m_cprivmsg.c: remove some dead code
+
+	* ircd/m_connect.c: remove some dead code
+
+	* ircd/m_close.c: remove some dead code
+
+	* ircd/m_clearmode.c: remove some dead code
+
+	* ircd/m_burst.c: remove some dead code
+
+	* ircd/m_away.c: remove some dead code
+
+	* ircd/m_admin.c: remove some dead code
+
+	* ircd/listener.c (accept_connection): remove some dead code
+
+	* ircd/ircd_reply.c (need_more_params): remove some dead code
+
+	* ircd/channel.c (add_banid): remove some dead code
+
+	* include/support.h: remove some dead code
+
+	* include/querycmds.h: remove some dead code
+
+	* doc/readme.chroot: document how to do chroot operation
+
+2001-06-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/Makefile.in: tune for VPATH builds/installs; add a rule to
+	force bin directory to be created if necessary prior to
+	installation; run make depend
+
+	* doc/Makefile.in (install): tune for VPATH installs by cd'ing to
+	the ${srcdir}
+
+	* Makefile.in: tune to detect Makefile.in changes in
+	subdirectories and to create installation directory indicated by
+	${prefix}
+
+	* ircd/whocmds.c (count_users): routine to count the number of
+	users matching a given user@host mask
+
+	* ircd/s_err.c: add error messages for ERR_LONGMASK,
+	ERR_TOOMANYUSERS, and ERR_MASKTOOWIDE
+
+	* ircd/m_gline.c: look for and advance past '!' flag on G-lines
+	from operators; only set GLINE_OPERFORCE flag if oper has the
+	PRIV_WIDE_GLINE privilege
+
+	* ircd/ircd_features.c: add GLINEMAXUSERCOUNT, which is the
+	maximum number of users a G-line can impact before it has to be
+	forced; OPER_WIDE_GLINE, to allow operators to use ! to force a
+	wide G-line to be set; and LOCOP_WIDE_GLINE, to allow local
+	operators to use ! to force a wide G-line to be set
+
+	* ircd/gline.c: make make_gline() be called with separate user and
+	host arguments, and not call canon_userhost() directly; implement
+	gline_checkmask() to verify that a host mask is acceptable; move
+	BADCHAN check up in gline_add(), and check passed-in mask under
+	certain circumstances for acceptability; fix call to
+	sendto_opmask_butone() to handle separation of userhost into user
+	and host in gline_add(); update call to make_gline()
+
+	* ircd/client.c: use FEAT_OPER_WIDE_GLINE and
+	FEAT_LOCOP_WIDE_GLINE to set PRIV_WIDE_GLINE for an operator; add
+	PRIV_WIDE_GLINE to privtab[] for client_report_privs()
+
+	* include/whocmds.h (count_users): declare routine to count users
+	matching a given user@host mask
+
+	* include/numeric.h: added three new error returns: ERR_LONGMASK
+	-- mask can't be formatted into a buffer; ERR_TOOMANYUSERS -- too
+	many users would be impacted by the mask; ERR_MASKTOOWIDE -- mask
+	contains wildcards in the wrong places
+
+	* include/ircd_features.h: add FEAT_GLINEMAXUSERCOUNT,
+	FEAT_OPER_WIDE_GLINE, and FEAT_LOCOP_WIDE_GLINE
+
+	* include/gline.h (GLINE_OPERFORCE): provides a way for m_gline()
+	to signal to gline_add() that the operator attempted to force the
+	G-line to be set
+
+	* include/client.h (PRIV_WIDE_GLINE): new privilege for operators
+
+	* doc/readme.gline: update to document new "!" prefix to a G-line
+	user@host mask
+
+	* doc/readme.features: document GLINEMAXUSERCOUNT,
+	OPER_WIDE_GLINE, and LOCOP_WIDE_GLINE
+
+	* doc/example.conf: update to mention new features along with
+	their defaults
+
+2001-06-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* doc/example.conf: updated example.conf from Braden
+	<dbtem@yahoo.com>
+
+	* include/supported.h: forward-port from pl15
+
+2001-06-25  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c: include ircd_policy.h and implement
+	HEAD_IN_SAND_WHO_OPCOUNT--forward-port from pl15
+
+	* ircd/m_whois.c: forward-port of the idle-time hiding code from
+	pl15; this also required passing parc into do_whois(), which also
+	meant passing parc into do_wilds()--*sigh*
+
+	* include/ircd_policy.h: add a couple more HEAD_IN_SAND
+	#define's--WHOIS_IDLETIME and WHO_HOPCOUNT
+
+2001-06-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* tools/wrapper.c: add a wrapper program that can be used to
+	adjust file descriptor limits and root directories; program must
+	be run as root--NOT SETUID!--and given appropriate -u arguments
+
+	* doc/readme.log: documentation of how to configure logging
+
+	* doc/readme.features: documentation of each feature (except for
+	logging)
+
+2001-06-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* Makefile.in (config): add a deprecation notice with a pointer to
+	tools/transition
+
+	* tools/transition: shell script to convert old compile-time
+	options into new compile-time options and appropriate F-lines
+
+	* tools/mkchroot: shell-script to prepare the chroot area by
+	copying over all the necessary libraries so they can be found
+
+2001-06-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* INSTALL: partial update of INSTALL for u2.10.11 release...
+
+2001-06-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/table_gen.c (makeTables): finally got tired of the
+	"overflow in implicit conversion" warning, so just got rid of it
+	by explicitly casting UCHAR_MAX to a (default) char; diffs show no
+	differences in the tables generated
+
+2001-06-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (sendcmdto_match_butone): don't let the server crash
+	if a client is in the STAT_CONNECTING status
+
+2001-06-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: remove unused vsendcmdto_one(), consolidating it
+	into sendcmdto_one(); define new sendcmdto_prio_one(), which
+	places the message into the priority queue
+
+	* ircd/s_user.c (hunt_server_prio_cmd): definition of
+	hunt_server_prio_cmd(), which simply calls sendcmdto_prio_one()
+	instead of sendcmdto_one()
+
+	* ircd/m_settime.c: use sendcmdto_prio_one() and
+	hunt_server_prio_cmd() to send SETTIME
+
+	* ircd/m_server.c: use sendcmdto_prio_one() to send SETTIME
+
+	* include/send.h: removed declaration for unused vsendcmdto_one();
+	added a declaration for sendcmdto_prio_one()
+
+	* include/s_user.h: declare hunt_server_prio_cmd(), which calls
+	sendcmdto_prio_one()
+
+	* ircd/send.c (sendcmdto_flag_butone): oops; /wallops should be
+	put in the server's priority queue, too...
+
+	* ircd/ircd.c: don't check LPATH for accessibility at all
+
+2001-06-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_serv.c (server_estab): send a +h flag in our SERVER
+	command if we're configured as a hub; send individual server flags
+	in SERVER commands
+
+	* ircd/s_bsd.c (completed_connection): send a +h flag in our
+	SERVER command if we're configured as a hub
+
+	* ircd/m_server.c: implement parv[7] as a mode-like string; +h
+	sets the FLAGS_HUB flag for a server; +s sets the FLAGS_SERVICE
+	flag for a server; +hs sets both flags; also modify CMD_SERVER
+	format string to send the flags
+
+	* include/client.h: define two new flags, FLAGS_HUB and
+	FLAGS_SERVICE to mark services and hubs as such; define testing
+	macros, setting macros
+
+	* ircd/s_user.c: remove deprecated struct Gline* argument to
+	register_user(); remove GLINE rebroadcast; do not send GLINE
+	acknowledgement parameter to NICK; do not look for GLINE
+	acknowledgement parameter to NICK while parsing
+
+	* ircd/s_serv.c (server_estab): remove deprecated struct Jupe*
+	argument to server_estab(); do not send JUPE/GLINE acknowledgement
+	parameters for SERVER or NICK
+
+	* ircd/m_user.c (m_user): remove deprecated argument to
+	register_user()
+
+	* ircd/m_server.c: remove deprecated argument to server_estab();
+	remove documentation comment regarding JUPE acknowledgement
+	parameter to SERVER; remove JUPE rebroadcast
+
+	* ircd/m_pong.c (mr_pong): remove deprecated argument to
+	register_user()
+
+	* ircd/m_nick.c: remove documentation comment regarding GLINE
+	acknowledgement parameter to NICK
+
+	* ircd/jupe.c: use user's real name in JUPE server notices if
+	HEAD_IN_SAND_SNOTICES is defined
+
+	* ircd/ircd.c: remove deprecated chroot() code; remove deprecated
+	setuid code; correct ancient DEBUG vs DEBUGMODE typo
+
+	* ircd/gline.c: use user's real name in GLINE server notices if
+	HEAD_IN_SAND_SNOTICES is defined
+
+	* ircd/channel.c (modebuf_flush_int): make apparent source be
+	local server, not oper's server; use user's real name in hack
+	notices and DESYNC notices if HEAD_IN_SAND_SNOTICES is defined
+
+	* include/s_user.h: remove struct Gline pre-declaration; remove
+	deprecated struct Gline argument from register_user()
+
+	* include/s_serv.h: remove struct Jupe pre-declaration; remove
+	deprecated struct Jupe argument from server_estab()
+
+2001-06-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c (hunt_stats): forward-port from pl15 of all the
+	changes required to control remote stats
+
+	* ircd/s_numeric.c (do_numeric): rewrite numeric origins if
+	recipient is not an operator and HEAD_IN_SAND_REWRITE is defined
+	[forward-port from pl15]
+
+	* ircd/m_whowas.c (m_whowas): report server name only if requester
+	is an operator [forward-port from pl15]
+
+	* ircd/m_whois.c (do_whois): /whois <mynick> now correctly reports
+	my server; if HEAD_IN_SAND_REMOTE is 1, ignore the middle argument
+	and obtain the report from the user's server [forward-port from
+	pl15]
+
+	* ircd/m_who.c: add missing include for ircd_policy.h
+	[forward-port from pl15]
+
+	* ircd/m_version.c (m_version): require oper access for remote
+	/version if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_time.c (m_time): require oper access for remote /time if
+	HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_stats.c: pass extra argument to hunt_stats(); correct
+	missing semicolon [forward-port from pl15]
+
+	* ircd/m_nick.c (ms_nick): hide the origin of certain collision
+	kills [forward-port from pl15]
+
+	* ircd/m_motd.c (m_motd): require oper access for remote /motd if
+	HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_lusers.c (m_lusers): require oper access for remote
+	/lusers if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/m_burst.c (ms_burst): server-added bans are stored using
+	local server name, to hide remote server names; modes also are to
+	originate from the local server [forward-port from pl15]
+
+	* ircd/m_admin.c (m_admin): require oper access for remote /admin
+	if HEAD_IN_SAND_REMOTE is 1 [forward-port from pl15]
+
+	* ircd/channel.c (add_banid): if a server is adding a ban, use my
+	server name to hide the remote server's name [forward-port from
+	pl15]
+
+	* ircd/Makefile.in: ran make depend
+
+	* include/s_stats.h: hunt_stats() has to have an extra argument to
+	support the forward-port from pl15
+
+	* include/ircd_policy.h: #define HEAD_IN_SAND_STATS_P; add
+	HEAD_IN_SAND_{BANWHO,REWRITE,REMOTE} [forward-port from pl15]
+
+	* ircd/engine_poll.c (engine_loop): remove bogus assert that I
+	forgot to check in the events branch
+
+2001-06-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/res.c (init_resolver): don't start DNS expires with a 0
+	relative timeout--if the server starts slow, timeouts could be
+	messy...there's probably a better solution, but this'll do for now
+
+	* ircd/os_solaris.c: _XOPEN_SOURCE doesn't get along with Solaris
+	headers very well; include stropts.h; define an os_set_tos()
+
+	* ircd/os_generic.c (os_set_tos): added an os_set_tos() for
+	os_generic.c
+
+	* ircd/ircd.c: if there are no C-lines, we don't want to have a
+	timer that expires at the absolute time of 0--it kinda blocks all
+	the other timers!
+
+	* ircd/engine_devpoll.c: some includes for open(); declare errcode
+	and codesize in engine_loop()
+
+	* ircd/list.c (free_client): remove bogus check on timer active
+	flag
+
+	* ircd/s_auth.c: pull out destruction code in
+	auth_timeout_request() into an externally-visible
+	destroy_auth_request(); manage cli_auth pointer in client
+	structure; use it for an extra assertion check
+
+	* ircd/list.c: include s_auth.h for destroy_auth_request(); add
+	debugging notices to show flow when deallocating
+	connections/clients; call destroy_auth_request() when free'ing a
+	client that has an auth outstanding; don't free the connection if
+	the process timer is unmarked but still active
+
+	* ircd/ircd_events.c: set GEN_ACTIVE when initializing a generator
+	and reset it before calling the event handler for an ET_DESTROY
+	event
+
+	* include/s_auth.h (destroy_auth_request): declare
+	destroy_auth_request(), which can be used to destroy an
+	outstanding auth request if a client socket goes away before the
+	auth exchange is completed
+
+	* include/ircd_events.h: add an active flag to keep track of
+	whether or not particular generators are active, for the
+	convenience of functions using the API
+
+	* include/client.h: add a pointer for auth requests to struct
+	Connection so we can kill outstanding auth requests if a client
+	socket closes unexpectedly
+
+	* ircd/s_bsd.c: cli_connect() could become 0 during the course of
+	the sock or timer callback; take that into account in the assert
+
+	* ircd/list.c: add magic number checking and setting--magic
+	numbers are zero'd on frees to detect double-frees; add back
+	setting of cli_from() to 0 to break the back-link from the struct
+	Connection (duh)
+
+	* ircd/ircd.c: set me's magic number correctly
+
+	* include/client.h: define magic numbers and accessor/verifier
+	macros
+
+	* ircd/list.c: assert that dealloc_client() is called with
+	cli_connect(cptr) == 0; set cli_connect(cptr) to 0 before calling
+	dealloc_client(); don't mess with cli_from(cptr)
+
+	* ircd/s_bsd.c: only attempt to dealloc a connection if the
+	associated client has already been destroyed, or at least delinked
+
+2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/list.c (free_client): only try to delete the socket when
+	the fd hasn't already been closed, avoiding a double-free
+
+	* ircd/list.c (free_connection): make sure the client is really
+	gone before doing away with the connection
+
+	* ircd/s_bsd.c: record that socket has been added in con_freeflag
+	field; queue a socket_del() as soon as the socket is close()'d;
+	use con_freeflag & FREEFLAG_TIMER instead of con_timer; clear
+	FREEFLAG_SOCKET on ET_DESTROY event in client_sock_callback(),
+	then dealloc the connection if safe; mark socket as dead when
+	there's a read error or EOF; clear FREEFLAG_TIMER flag upon entry
+	to client_timer_callback(); dealloc connection if safe upon
+	ET_DESTROY event in client_timer_callback()
+
+	* ircd/list.c: use con_freeflag instead of con_timer; only dealloc
+	the connection if both socket and timer have been destroyed;
+	destroy both socket and timer explicitly and carefully
+
+	* include/client.h: replace the con_timer field with a
+	con_freeflag field, to indicate what still needs freeing; define
+	the freeflags
+
+	* ircd/engine_select.c (engine_loop): duh...sockList[i] could
+	become 0
+
+	* ircd/engine_devpoll.c (engine_loop): duh...sockList[i] could
+	become 0
+
+	* ircd/s_bsd.c: add some extra assertions to try to track down a
+	corruption problem
+
+	* ircd/engine_select.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_poll.c (engine_loop): add an extra assert to try to
+	track down a corruption problem
+
+	* ircd/engine_kqueue.c (engine_loop): add an extra assert to try
+	to track down a corruption problem
+
+	* ircd/engine_devpoll.c (engine_loop): skip slots that have become
+	empty during processing; add an extra assert to try to track down
+	a corruption problem
+
+	* ircd/engine_kqueue.c (engine_delete): make sure to zero deleted
+	entries
+
+2001-06-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (client_sock_callback): client is no longer
+	blocked, so we must mark it as unblocked
+
+	* ircd/engine_select.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK; use a dummy sock variable to keep things from
+	disappearing on us; correct timeout calculation; update nfds for
+	efficiency
+
+	* ircd/engine_poll.c: use new debugging level (DEBUG_ENGINE);
+	remove a spurious "if (sock)" which will always be true; update
+	nfds for efficiency
+
+	* ircd/engine_kqueue.c: add Debug() calls galore; add handling for
+	SS_NOTSOCK (just in case); correct timeout calculation
+
+	* ircd/engine_devpoll.c: add Debug() calls galore; add handling
+	for SS_NOTSOCK; correct timeout calculation; add EAGAIN handling
+
+	* include/s_debug.h (DEBUG_ENGINE): add new debugging level;
+	pretty-indent numbers
+
+	* ircd/engine_poll.c (engine_loop): break out SS_NOTSOCK
+	case--it's not a socket; the check for writability is most likely
+	not needed, but present for completeness
+
+2001-05-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: add Debug messages; call read_packet() even if the
+	no newline flag is set; call read_packet() when the timer expires,
+	regardless of what's in the buffer--read_packet() should be able
+	to deal properly
+
+	* ircd/IPcheck.c (ip_registry_connect_succeeded): correct a NOTICE
+	sent to clients to include the client nickname (duh)
+
+	* ircd/ircd_events.c: don't destroy a timer if it's already marked
+	for destruction; replace a missing ! in socket_del()
+
+	* ircd/engine_poll.c (engine_loop): reference a temporary variable
+	so we don't have to worry about sockList[i] going away
+
+	* ircd/s_bsd.c (client_sock_callback): add Debug messages
+
+	* ircd/s_auth.c: add Debug messages all over the place
+
+	* ircd/ircd_events.c: add and edit some Debug messages; add a list
+	of routines to convert some of the enums and flags from numbers
+	into human-readable strings for the Debug messages
+
+	* ircd/engine_poll.c: hack some Debug messages to use the new name
+	conversion routines in ircd_events.c; add an extra assert for a
+	condition that shouldn't ever happen; apparently recv() can return
+	EAGAIN when poll() returns readable--I wonder why...
+
+	* include/ircd_events.h: declare some helper routines under
+	DEBUGMODE
+
+2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (client_sock_callback): add an extra assertion
+	check
+
+	* ircd/s_auth.c: add more Debug messages
+
+	* ircd/list.c (make_client): add an extra assertion check
+
+	* ircd/ircd_events.c (socket_events): don't call the engine events
+	changer if we haven't actually made any changes to the event mask
+
+	* ircd/uping.c: add some Debug messages
+
+	* ircd/s_stats.c: document new /STATS e
+
+	* ircd/s_err.c: add RPL_STATSENGINE to report the engine name
+
+	* ircd/s_bsd.c: remove static client_timer variable; in
+	read_packet(), if there's still data in the client's recvQ after
+	parsing, add a 2 second timer (con_proc); fix the ET_DESTROY case
+	of client_sock_callback to handle destroying the timer properly;
+	rewrote client_timer_callback from scratch to be called on an
+	individual client
+
+	* ircd/m_stats.c: add /STATS e to report the engine name
+
+	* ircd/list.c: deal with con_timer field in struct Connection
+	properly; correct a core-level bug in remove_client_from_list--if
+	the client is the only one in the list, we try to update
+	GlobalClientList's cli_prev pointer--not good
+
+	* ircd/ircd.c: remove call to init_client_timer()
+
+	* ircd/engine_poll.c: made Debug messages more uniform by
+	prepending "poll:" to them all; corrected an off-by-one error that
+	caused poll_count to be 1 less than the actual count and removed
+	my work-around; added Debug messages to indicate which socket is
+	being checked and what the results are
+
+	* ircd/Makefile.in: ran a make depend
+
+	* include/s_bsd.h: remove init_client_timer(), since we're doing
+	it differently now
+
+	* include/numeric.h (RPL_STATSENGINE): a stats reply to report the
+	engine name
+
+	* include/ircd_policy.h (HEAD_IN_SAND_STATS_E): turn off /stats e
+	reports for non-opers
+
+	* include/client.h: add con_timer and con_proc fields to struct
+	Connection and define accessor macros--con_timer marks that
+	con_proc contains a valid timer, and con_proc is used to pace user
+	data
+
+	* ircd/s_bsd.c (close_connection): let free_client() destroy the
+	socket
+
+	* ircd/s_auth.c (start_auth): add a Debug call to indicate when
+	auth has begun on a client
+
+	* ircd/ircd_events.c: ensure that event_execute() is called with a
+	non-NULL event; modify event_add() macro to properly zero list
+	bits; modify gen_dequeue() to not try to clip it out of a list
+	it's already been clipped out of; change signal socket
+	initialization to use state SS_NOTSOCK; permit timeout values of
+	0 in add_timer(); add many Debug calls; change socket_del() and
+	timer_del() to always set the GEN_DESTROY flag; use GEN_MARKED in
+	timer_run() instead of GEN_DESTROY so that event_generate() will
+	pass on the events; remove the switch and replace with a simpler
+	if-then-else tree in timer_run(); don't allow destroyed sockets to
+	be destroyed again, nor their states or event masks to be changed
+
+	* ircd/ircd.c: initialize "running" to 1
+
+	* ircd/engine_poll.c: deal with SS_NOTSOCK "sockets"; add Debug
+	messages all over the place; fix a counting problem in
+	engine_add(); turn wait into a signed integer and set it to -1
+	only if timer_next() returns 0; adjust wait time to be relative;
+	don't call gen_ref_dec() if socket disappeared while we were
+	processing it
+
+	* include/ircd_events.h: the pipe for signals is not a socket, so
+	we must mark it as such--added SS_NOTSOCK for that special socket;
+	events won't be generated if GEN_DESTROY is on, so add GEN_MARKED
+	for the benefit of timer_run()
+
+	* configure.in: add --enable-pedantic and --enable-warnings to
+	turn on (and off) -Wall -pedantic in CFLAGS
+
+2001-05-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c: change "s_addr" element accesses to "address"
+	element accesses
+
+	* include/s_conf.h: on some systems, "s_addr" is a macro; use
+	"address" instead
+
+2001-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/engine_kqueue.c: include ircd_alloc.h; set_or_clear returns
+	void in this file; add a missing semi-colon; declare errcode,
+	codesize
+
+	* ircd/uping.c (uping_sender_callback): it's pptr, not uping
+
+	* ircd/s_user.c (register_user): comment out spurious reference to
+	nextping
+
+	* ircd/s_serv.c (server_estab): comment out spurious reference to
+	nextping
+
+	* ircd/s_conf.c (read_configuration_file): comment out spurious
+	reference to nextping and nextconnect
+
+	* ircd/s_bsd.c: comment out some spurious references to formerly
+	global (now non-existant) variables; correct a couple of typos
+
+	* ircd/s_auth.c: pre-declare some functions referenced in the
+	callback; correct a typo
+
+	* ircd/res.c (start_resolver): pass errno value of ENFILE
+
+	* ircd/listener.c (accept_connection): you know your API is messed
+	up when...variables that shouldn't have been global crop up in
+	other files
+
+	* ircd/list.c (free_client): substitution of == for =
+
+	* ircd/ircd_signal.c: include assert.h for assertion checking;
+	check ev_data() to find out what signal generated event
+
+	* ircd/ircd_events.c: some references to the variable "timer"
+	should have been references to the variable "ptr"
+
+	* ircd/engine_select.c: it's struct fd_set, not struct fdset;
+	ev_timer(ev) is already a timer pointer; declare codesize as a
+	size_t to correct signedness issue; use timer_next(), not
+	time_next()
+
+	* ircd/engine_poll.c: ev_timer(ev) is already a timer pointer;
+	select fd out of struct pollfd in assertion checking; declare
+	errcode and codesize; use timer_next(), not time_next()
+
+	* ircd/engine_kqueue.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/engine_devpoll.c: ev_timer(ev) is already a timer pointer;
+	use function timer_next(), not time_next()
+
+	* ircd/Makefile.in (IRCD_SRC): add ircd_events.c to the list of
+	compiled sources; do make depend
+
+	* include/list.h: pre-declare struct Connection
+
+	* include/ircd_events.h (gen_ref_inc): cast to the right structure
+	name
+
+	* include/s_auth.h: duh; missing */
+
+2001-05-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: update write events status after sending data or
+	accumulating data to be sent
+
+	* ircd/m_list.c (m_list): update write events status after
+	canceling a running /list
+
+	* ircd/channel.c (list_next_channels): update write events status
+	after listing a few channels
+
+	* ircd/s_bsd.c: extensive changes to update to new events model;
+	remove on_write_unblocked() and the two implementations of
+	read_message(), which have been deprecated by this change
+
+	* ircd/s_auth.c: set the socket events we're interested in for
+	clients; simplify some logic that does the connect_nonb followed
+	by the socket_add
+
+	* ircd/list.c: define free_connection() to free a connection
+	that's become freeable once the struct Socket has been
+	deallocated; fix up free_client() to take this new behavior into
+	account
+
+	* ircd/ircd.c: call init_client_timer()
+
+	* include/s_bsd.h: declare new REGISTER_ERROR_MESSAGE when unable
+	to register connect-in-progress with events system; declare
+	init_client_timer() (HACK!) to preserve rate-limiting behavior
+
+	* include/list.h: declare new free_connection()
+
+	* include/client.h: add a struct Socket to struct Connection
+
+2001-05-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_signal.c: massage the handlers for SIGHUP, SIGINT, and
+	SIGTERM into event callbacks; perform the actions in the
+	callbacks, since they're not called in the context of the signal;
+	set up the signal callbacks in the event engine
+
+	* ircd/ircd_events.c (signal_callback): we're supposed to look for
+	a specific signal; don't generate an event if there is no signal
+	structure for it
+
+	* ircd/ircd.c: nuke nextconnect and nextping and replace them with
+	connect_timer and ping_timer; massage try_connections() and
+	check_pings() into timer callbacks that re-add themselves at the
+	right time; remove ircd.c's "event_loop()"; initialize the event
+	system and the connect_timer and ping_timer
+
+	* ircd/uping.c: correct a couple more typos
+
+	* ircd/s_auth.c: rework to use new events system
+
+	* ircd/os_solaris.c (os_connect_nonb): update to new interface
+
+	* ircd/os_openbsd.c (os_connect_nonb): update to new interface
+
+	* ircd/os_linux.c (os_connect_nonb): update to new interface
+
+	* ircd/os_generic.c (os_connect_nonb): update to new interface
+
+	* ircd/os_bsd.c (os_connect_nonb): update to new interface
+
+	* include/s_auth.h: remove deprecated members of struct
+	AuthRequest, replacing them with struct Socket and struct Timer
+	structures; add flags to indicate when these structures have been
+	released by the event system; remove the deprecated
+	timeout_auth_queries()
+
+	* include/ircd_osdep.h (os_connect_nonb): connect could complete
+	immediately, so change the interface to handle that possibility
+
+	* ircd/uping.c (uping_server): noticed and corrected a typo
+
+	* ircd/listener.c: set up to use ircd_event's struct Socket by
+	adding an socket_add() call to inetport(), replacing
+	free_listener() with socket_del() in close_listener(), and
+	reworking accept_connection to be called as the callback
+
+	* ircd/ircd.c: add a call to IPcheck_init()
+
+	* ircd/IPcheck.c: remove IPcheck_expire(); rework
+	ip_registry_expire() to be called from a timer; write
+	IPcheck_init() to set up the expiration timer (hard-coded for a
+	60-second expiration time)
+
+	* include/listener.h: add a struct Socket to the struct Listener;
+	remove accept_connection()
+
+	* include/IPcheck.h: add IPcheck_init(), remove IPcheck_expire()
+
+2001-05-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: include config.h; use USE_KQUEUE and
+	USE_DEVPOLL instead of HAVE_KQUEUE and HAVE_DEVPOLL_H
+
+	* ircd/engine_select.c: include config.h; set FD_SETSIZE to
+	MAXCONNECTIONS, not IRCD_FD_SETSIZE...
+
+	* ircd/engine_poll.c: include config.h
+
+	* ircd/engine_kqueue.c: include config.h
+
+	* ircd/engine_devpoll.c: include config.h
+
+	* ircd/Makefile.in: include engine sources in compilation and make
+	depend steps
+
+	* configure.in: add checks for enabling the /dev/poll- and
+	kqueue-based engines
+
+	* acconfig.h: add lines for USE_DEVPOLL and USE_KQUEUE
+
+	* ircd/Makefile.in: work in the engine sources
+
+2001-05-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_settime.c: include ircd_snprintf.h
+
+	* ircd/ircd_relay.c: stomp a couple of gcc warnings suggesting
+	parens around a construct that had both || and &&
+
+	* ircd/chkconf.c: #include "config.h" to get some important
+	definitions
+
+	* ircd/Makefile.in: revamp ircd makefile for new build system
+
+	* doc/Makefile.in: revamp doc makefile for new build system
+
+	* config/*: Removed old build system files
+
+	* stamp-h.in: a stamp file
+
+	* install-sh: install-sh for new build system
+
+	* configure.in: configure.in for new build system
+
+	* configure: configure script for new build system (built by
+	autoconf)
+
+	* config.sub: config.sub for new build system
+
+	* config.h.in: config.h.in for new build system (built by
+	autoheader)
+
+	* config.guess: config.guess for new build system
+
+	* aclocal.m4: aclocal.m4 for new build system (built by aclocal
+	1.4)
+
+	* acinclude.m4: aclocal.m4 macros for new build system
+
+	* acconfig.h: config.h skeleton for new build system
+
+	* Makefile.in: modify for new build system
+
+2001-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_settime.c: get rid of the last vestiges of TIME_T_FMT
+
+	* ircd/m_server.c: get rid of the last vestiges of TIME_T_FMT
+
+2001-05-01  Perry Lorier       <Isomer@coders.net>
+	* doc/iauth.doc: Protocol for iauth server. (from hybrid).
+	* doc/linux-poll.patch: Patch to make Linux under 2.2 not deadlock
+		when you have far far too many sockets in use.
+	* {include,ircd}/iauth.c: A start on iauth support.
+
+2001-05-01  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_err.c: Suggested wording change.
+	* ircd/s_user.c: Users aren't target limited against +k users.
+	* ircd/chkconf.c: Made it compile again, who knows if it works, but
+		now I can at least make install
+        * various: Cleanups on m_*.c files.
+
+
+2001-04-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_misc.c (exit_client): make netsplit server notice say the
+	right thing
+
+	* ircd/m_links.c (m_links_redirect): forward-port RPL_ENDOFLINKS
+	change to make Khaled happy...
+
+	* ircd/m_whois.c (do_whois): pull-up of m_whois() fix
+	(do_whois): duh...
+
+2001-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: finally remove the msgq_integrity() hack, as it's
+	turned up no more bugs
+
+	* ircd/ircd.c: use /* */ comments instead of // comments--all the
+	world's not gcc :(
+
+	* ircd/s_conf.c (conf_add_server): use /* */ comments instead of
+	// comments--all the world's not gcc :(
+
+	* ircd/runmalloc.c: finally garbage-collect unused file
+
+	* include/runmalloc.h: finally garbage-collect unused file
+
+	* ircd/<multiple files>: addition of '#include "config.h"' before
+	all other includes in most .c files
+
+	* include/<multiple files>: remove includes of config.h, which are
+	now going into the raw .c files
+
+2001-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c (do_whois): display proper server name if the
+	user is looking up himself
+
+	* ircd/m_who.c (m_who): disable match by servername or display of
+	server names by non-opers
+
+	* include/ircd_policy.h: add define for
+	HEAD_IN_SAND_WHO_SERVERNAME to cover full intent of sub-motion 15
+	of CFV 165
+
+2001-04-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c: keep the $R in memory so we can see it clearly
+	when we do a /stats k
+
+	* ircd/s_user.c (set_user_mode): pull-up of changes to prevent
+	users from turning on +s and +g
+
+	* ircd/s_misc.c (exit_client): pull-up of changes to turn off
+	net.split notice
+
+	* ircd/parse.c: pull-up of changes to disable /trace, /links, and
+	/map for users
+
+	* ircd/m_whois.c (do_whois): pull-up of server name masking for
+	/whois
+
+	* ircd/m_user.c (m_user): removal of umode and snomask defaulting
+	functions, pull-up
+
+	* ircd/m_stats.c (m_stats): pull-up of stats-disabling stuff
+
+	* ircd/m_map.c (m_map_redirect): pull-up of m_map_redirect()
+
+	* ircd/m_links.c (m_links_redirect): pull-up of m_links_redirect()
+
+	* ircd/channel.c (channel_modes): pull-up of channel key display
+	as *
+
+	* include/ircd_policy.h: pull-up of ircd_policy.h
+
+	* include/client.h: pull-up of Set/ClearServNotice()
+
+	* ircd/gline.c (do_gline): report client name in G-line message
+	(pull-up)
+
+	* ircd/s_user.c (register_user): pull-up--show IP address in some
+	server notices dealing only with users; report which connection
+	class has filled up
+
+	* ircd/s_stats.c (report_deny_list): use conf->flags &
+	DENY_FLAGS_IP insteaf of conf->ip_kill
+
+	* ircd/m_stats.c (report_klines): use conf->flags & DENY_FLAGS_IP
+	insteaf of conf->ip_kill
+
+	* ircd/s_conf.c: use flags field in struct DenyConf; pull-up of
+	K-line by real name
+
+	* include/s_conf.h: use a flags field in struct DenyConf; define
+	DENY_FLAGS_FILE, DENY_FLAGS_IP, and DENY_FLAGS_REALNAME for
+	pull-up of K-line by real name
+
+	* ircd/m_trace.c: pull-up of IP show for user connections
+
+	* doc/example.conf: pull-up of the realname K-line documentation
+
+	* ircd/ircd.c: forward port of pid file advisory locking mechanism
+
+2001-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (sendcmdto_flag_butone): recast to just broadcast to
+	all servers, rather than to only servers that have +w/+g/whatever
+	users on them; among other things, this removes that atrocity
+	known as sentalong[] from this function
+
+	* ircd/m_admin.c: must include ircd.h to declare "me"; must
+	include hash.h to declare FindUser()
+
+	* ircd/m_wallusers.c: implementation of WALLUSERS
+
+	* ircd/m_desynch.c (ms_desynch): only send DESYNCHs to opers
+
+	* ircd/m_wallops.c: only send WALLOPS to opers
+
+	* ircd/parse.c: add WALLUSERS command to parser table
+
+	* include/handlers.h: declare wallusers handlers
+
+	* include/msg.h: add WALLUSERS command
+
+	* ircd/send.c (sendcmdto_flag_butone): if FLAGS_OPER is or'd with
+	flag, send only to appropriate opers
+
+2001-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/uping.c: refit to use the new events interface
+
+	* ircd/res.c: refit to use the new events interface
+
+	* ircd/ircd_events.c: create timer_chg(), which permits a
+	(non-periodic) timer's expire time to be modified; change the
+	logic in timer_run() so that timers that were re-added while the
+	event was being processed will not be destroyed prematurely
+
+	* include/uping.h: include the events header, declare some extra
+	fields in struct UPing, remove timeout value, and define some
+	flags for marking which cleanup items have yet to be done
+
+	* include/ircd_events.h: add a prototype for timer_chg() to change
+	the expire time of a running timer
+
+2001-03-13 Joseph Bongaarts <foxxe@wtfs.net>
+	* ircd/os_openbsd.c: Tweaked the openbsd hack a bit.
+	
+2001-03-07  Joseph Bongaarts  <foxxe@wtfs.net>
+
+	* config/configure.in: Add check for OpenBSD
+
+	* ircd/os_openbsd.c: Add seperate os dep file for openbsd which
+	differs from generic BSD, particularly in its handling of
+	_XOPEN_SOURCE.
+	
+2001-02-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (ms_gline): propagate a G-line that happened to
+	have been added by a U-lined server, rather than going through the
+	activate/deactivate logic; propagate G-line removals by U-lined
+	servers as well
+
+	* ircd/gline.c: rename propagate_gline() to gline_propagate();
+	make gline_propagate() return an int 0 (convenience return); only
+	update lastmod in gline_activate() and gline_deactivate() if the
+	current lastmod is non-zero, since 0 lastmod is our flag of a
+	U-lined server having added a G-line
+
+	* include/gline.h (gline_propagate): exporting the G-line
+	propagation function
+
+	* ircd/m_list.c (m_list): duh; permit explicit channel name
+	specification only when /list gets two arguments ("Kev
+	#wasteland") rather than when /list gets more than two
+	arguments--nice braino
+
+2001-01-29  Thomas Helvey <twhelvey1@home.com>
+
+	* ircd/ircd_reply.c (need_more_params): fix bug that allowed
+	unregistered clients to spam opers with protocol violation
+	messages. Note: the bugfix may have eliminated some useful
+	protocol violation messages.
+	Please send protocol violation messages explicitly from the
+	functions they are discovered in, you have much better context
+	for the error there and it helps to document the behavior of the
+	server. This was also a design bug in that it violated the
+	"A function should do one thing" heuristic. Patching this one
+	would have resulted in a continuous spawning of other bugs over
+	the next 3 years, so I killed it. Check around for stuff this
+	broke and readd the calls to protocol_violation in the functions
+	that need to send the message.
+
+2001-01-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_ban): stopper a tiny leak--if a ban
+	already existed, then the logic would (attempt to) skip it, but
+	would not free the ban string; now the ban string is free'd and
+	the ban count is decremented, releasing the ban for use
+
+	* ircd/s_user.c: make send_umode_out() take a prop argument
+	instead of testing for the PRIV_PROPAGATE privilege itself; fix
+	set_umode() to use this new argument, calculating it before
+	calculating the new privileges for a -o'd user
+
+	* ircd/m_oper.c (m_oper): pass the new prop argument to
+	send_umode_out()
+
+	* ircd/channel.c (mode_parse_ban): turn off MODE_ADD bit in bans
+	that we're not actually going to add because they already exist;
+	test that particular bit before adding to the linked list
+
+	* include/s_user.h: add a prop argument to send_umode_out() to
+	indicate whether or not to propagate the user mode
+
+2001-01-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: ircd_vsnprintf() returns the number of bytes that
+	it would have written; upper-bound the number to prevent overflows
+	by proxy; also, tune buffer size given to ircd_vsnprintf() to take
+	into account the fact that ircd_vsnprintf() already takes the
+	terminal \0 into account
+
+2001-01-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/msgq.c: add an incredibly ugly hack to attempt to track
+	down an apparent buffer overflow; remove msgq_map(), since it's no
+	longer used anywhere; slight tweaks to prevent off-by-one errors,
+	but these can't explain the problems we've seen
+
+	* include/msgq.h: remove msgq_map(), since it's no longer used
+	anywhere
+
+2001-01-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (set_nick_name): call client_set_privs() after
+	parsing user modes
+
+2001-01-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (read_message): fix a typo in the select version of
+	read_message()
+
+	* ircd/whowas.c (whowas_free): MyFree() is a macro that expects
+	its argument to be an lvalue, which means we can't use
+	whowas_clean()'s handy-dandy "return ww" feature
+
+	* ircd/ircd_features.c: default LOCOP_KILL to TRUE--oops...
+
+2001-01-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c (timer_run): it's possible that the timer got
+	deleted during the callback processing, so don't go to the bother
+	of requeuing it if the destroy flag is set
+
+	* ircd/engine_select.c: define FD_SETSIZE to be IRCD_FD_SETSIZE
+	out of config.h if this is a *BSD; include errno.h (oops);
+	decrement error count after an hour using a timer; use FD_SETSIZE
+	constant instead of IRCD_FD_SETSIZE constant; fill in event
+	processing code
+
+	* ircd/engine_poll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
+	* ircd/engine_kqueue.c: include errno.h (oops); decrement error
+	count after an hour using a timer; assert events filter is either
+	EVFILT_READ or EVFILT_WRITE; fill in event processing code
+
+	* ircd/engine_devpoll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
+2001-01-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/client.c: fixed feattab; basically, when I changed features
+	to use small integers specifying bit positions, instead of the
+	bits themselves, I forgot to update feattab to not | these
+	privileges together; also fixed a bug in the antiprivs masking
+	loop in client_set_privs()--last index wouldn't get parsed
+
+2001-01-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: call event_generate() with new data
+	argument; make it set that field in struct Event; make
+	socket_add() return the value of the eng_add callback
+
+	* ircd/engine_select.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_poll.c: make engine_add() return a
+	successful/unsuccessful status; add bounds-checking outside of an
+	assert; use accessor macros; use log_write(), not the deprecated
+	ircd_log(); add an assert to engine_loop() to double-check for
+	data structure corruption
+
+	* ircd/engine_kqueue.c: implementation of an engine for kqueue()
+
+	* ircd/engine_devpoll.c: implementation of an engine for /dev/poll
+
+	* include/ircd_events.h: define some accessor macros; add ev_data
+	to struct Event for certain important data--errno values, for
+	instance; make EngineAdd callback tell us if it was successful or
+	not; add extra argument to event_generate(); make socket_add()
+	return the status from EngineAdd
+
+2001-01-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: pass initializer information about how many
+	total _filedescriptors_ may be opened at once
+
+	* ircd/ircd.c: use exported "running" instead of unexported
+	thisServer.running
+
+	* ircd/engine_select.c: implementation of an event engine based on
+	select()
+
+	* ircd/engine_poll.c: implementation of an event engine based on
+	poll()
+
+	* include/ircd_events.h: pass the engine initializer an integer
+	specifing how many _filedescriptors_ may be opened at once
+
+	* include/ircd.h: running has to be exported for the engine_*
+	event loops
+
+2001-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: include some needed headers; add some
+	comments; make evEngines[] const; bundle sig_sock and sig_fd into
+	a struct named sigInfo; rework struct evInfo to have a queue of
+	_generators_, and only when threaded; added a gen_init() function
+	to centralize generator initialization; fix various compile-time
+	errors; rework event_add() for new queueing scheme and checked for
+	compile-time errors; add casts where needed; spell evEngines[]
+	correctly; make engine_name() return const char*
+
+	* include/ircd_events.h: type EventCallBack depends on struct
+	Event, so pre-declare it; put _event_ queue into generators, and
+	only when threaded; give engine data a union to store both ints
+	and pointers; make engine name a const; fix gen_ref_dec() macro;
+	make engine_name() return a const char*
+
+	* ircd/ircd_events.c: gen_dequeue() is now exported, so move it
+	down with the non-static functions; modify event_execute() to use
+	the new gen_ref_dec() to simplify code; make sure event_generate()
+	does not generate new events for generators marked for destruction
+
+	* include/ircd_events.h: the engines, at least, may need to modify
+	reference counts to keep generators from going away while
+	something still points at them, so add reference counter
+	manipulators and export gen_dequeue() for them
+
+	* ircd/ircd_events.c: set up the list of engines to try; set up
+	the signal struct Socket; rename netInfo to evInfo; move static
+	functions near the beginning of the file; do away with
+	signal_signal() (since we no longer keep a signal count ourselves)
+	and call event_generate() directly from signal_callback--also
+	renamed some functions; allow signal_callback() to read up to
+	SIGS_PER_SOCK at once from the signal pipe; add event_init() to
+	initialize the entire event system; add event_loop() to call the
+	engine's event loop; initialize new struct GenHeader member,
+	gh_engdata; remove timer_next(); add socket_add() function to add
+	a socket; add socket_del() to mark a socket for deletion; add
+	socket_state() to transition a socket between states; add
+	socket_events() to set what events we're interested in on the
+	socket; add engine_name() to retrieve event engine's name
+
+	* include/ircd_events.h: add engine data field to struct
+	GenHeader; rename SOCK_ACTION_REMOVE to SOCK_ACTION_DEL; add a
+	note about states vs s_events; remove signal count; fold union
+	Generator back into struct Event; remove count members from struct
+	Generators; redefine engine callbacks to not take a struct
+	Engine*; add explanatory comments to callback definitions; add
+	some engine callbacks to handle operations; remove struct Engine
+	flag member--can detect single flag from eng_signal member; add
+	event_init(), event_loop(), engine_name(), and the socket_*()
+	functions; make timer_next() a macro to avoid a function call
+
+2001-01-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/ircd_events.h: rename to ircd_events.h, since it handles
+	events, not just networking stuff; add signal support; more
+	structural rearrangement
+
+	* ircd/ircd_events.c: rename to ircd_events.c, since it handles
+	events, not just networking stuff; add signal support; more
+	structural rearrangement
+
+2001-01-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: implement timer API; add reference counts
+	appropriately
+
+	* include/ircd_network.h: firm up some pieces of the interface;
+	split out members everything has into a separate structure; add
+	reference counts; add timer API
+
+2001-01-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_network.c: static data and event manipulation
+	functions for new event processing system
+
+	* include/ircd_network.h: data structures for new event processing
+	system
+
+2001-01-03  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: Completely re-did the old allocation scheme by
+	turning it into a linked list, permitting the
+	NICKNAMEHISTORYLENGTH feature to be changed on the fly
+
+	* ircd/s_debug.c (count_memory): use FEAT_NICKNAMEHISTORYLENGTH
+	feature instead of old #define
+
+	* ircd/ircd_features.c: add NICKNAMEHISTORYLENGTH feature as an
+	integer feature with a notify callback (whowas_realloc)
+
+	* ircd/client.c (client_set_privs): second memset was supposed to
+	be over antiprivs, not privs; thanks, Chris Behrens
+	<cbehrens@xo.com> for pointing that out...
+
+	* include/whowas.h: new elements for an extra linked list in
+	struct Whowas; a notify function for feature value changes
+
+	* include/ircd_features.h: new feature--FEAT_NICKNAMEHISTORYLENGTH
+
+	* config/config-sh.in: NICKNAMEHISTORYLENGTH is now a feature
+
+2001-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* config/config-sh.in: get rid of DEFAULT_LIST_PARAMETER
+	compile-time option--now in features subsystem
+
+	* ircd/motd.c (motd_init): rework motd_init() to be called as the
+	notify function for MPATH and RPATH features (should probably
+	split it up a bit, though...)
+
+	* ircd/m_privs.c (mo_privs): if called with no parameters, return
+	privs of the caller, rather than an error
+
+	* ircd/m_list.c: pull usage message into its own function; pull
+	list parameter processing into its own function that does not
+	modify the contents of the parameter; add list_set_default() to
+	set the default list parameter (uses the notify hook); rework
+	m_list() to make use of these functions; removed dead code
+
+	* ircd/ircd_log.c (log_feature_mark): make sure to return 0, since
+	we have no notify handler
+
+	* ircd/ircd_features.c: add notify callback for notification of
+	value changes; give mark callback an int return value to indicate
+	whether or not to call the notify callback; fix up feature macros
+	for new notify callback; add DEFAULT_LIST_PARAM feature; rewrite
+	string handling in feature_set() to deal with def_str being a null
+	pointer; wrote feature_init() to set up all defaults appropriately
+
+	* ircd/ircd.c (main): call feature_init() instead of
+	feature_mark(), to avoid calling notify functions while setting up
+	defaults
+
+	* ircd/client.c: updated to deal with new privileges structure
+
+	* ircd/class.c: updated so init_class() can be called should one
+	of PINGFREQUENCY, CONNECTFREQUENCY, MAXIMUM_LINKS, or
+	DEFAULTMAXSENDQLENGTH be changed
+
+	* include/ircd_log.h: log_feature_mark() updated to fit with new
+	API changes
+
+	* include/ircd_features.h: added DEFAULT_LIST_PARAM feature and
+	feature_init() function (found necessary since adding the notify
+	stuff and notifying motd.c during start-up...before we defined
+	RPATH!)
+
+	* include/client.h: move privs around to enable addition of more
+	bits if necessary; based on the FD_* macros
+
+	* include/channel.h: declare list_set_default (actually located in
+	m_list.c *blanche*)
+
+	* ircd/s_user.c: retrieve MAXSILES and MAXSILELENGTH (now
+	AVBANLEN*MAXSILES) from features subsystem
+
+	* ircd/s_debug.c (debug_serveropts): CMDLINE_CONFIG doesn't go to
+	anything anymore
+
+	* ircd/s_bsd.c: retrieve HANGONGOODLINK and HANGONRETRYDELAY from
+	the features subsystem
+
+	* ircd/s_auth.c (start_auth): NODNS migrated to the features
+	subsystem
+
+	* ircd/random.c: created random_seed_set() function to set seed
+	value, along with some stuff to make ircrandom() a little more
+	random--state preserving, xor of time instead of direct usage,
+	etc.; it's still a pseudo-random number generator, though, and
+	hopefully I haven't broken the randomness
+
+	* ircd/m_version.c: FEATUREVALUES makes use of feature_int() calls
+
+	* ircd/m_join.c: use features interface to retrieve
+	MAXCHANNELSPERUSER
+
+	* ircd/ircd_features.c: add NODISP flag for super-secret features;
+	add a whole bunch of new features migrated over from make config
+
+	* ircd/ircd.c: use features interface to retrieve PINGFREQUENCY,
+	CONNECTTIMEOUT, and TIMESEC
+
+	* ircd/client.c (client_get_ping): use features interface to
+	retrieve PINGFREQUENCY
+
+	* ircd/class.c: use features interface to retrieve PINGFREQUENCY,
+	CONNECTFREQUENCY, MAXIMUM_LINKS, and DEFAULTMAXSENDQLENGTH
+
+	* ircd/chkconf.c (DEFAULTMAXSENDQLENGTH): since it's now in the
+	features subsystem, we have to add something explicit
+
+	* ircd/channel.c: use features interface to retrieve
+	KILLCHASETIMELIMIT, MAXBANLENGTH, MAXBANS, and MAXCHANNELSPERUSER;
+	note that MAXBANLENGTH is now calculated dynamically from MAXBANS
+	and AVBANLEN
+
+	* ircd/Makefile.in: run make depend
+
+	* include/supported.h (FEATURESVALUES): update to reference
+	feature settings
+
+	* include/random.h: add prototype for random_seed_set
+
+	* include/ircd_features.h: add several more features
+
+	* include/channel.h: move MAXBANS and MAXBANLENGTH into feature
+	subsystem
+
+	* config/config-sh.in: feature-ized some more stuff
+
+	* include/motd.h: some new elements in motd.h for motd.c changes
+
+	* ircd/motd.c: motd_cache() now searches a list of already cached
+	MOTD files; saves us from having duplicate caches in memory if
+	there are two identical T-lines for two different sites...
+
+2001-01-02  Perry Lorier <isomer@coders.net>
+	* ircd/motd.c: don't core if the motd isn't found.  Bug found by
+	Amarande.
+
+2001-01-02  Perry Lorier <isomer@coders.net>
+	* ircd/s_err.c: Added third param to 004 - the channel modes that tage params.  Used by hybrid/epic.
+	* ircd/s_channels.c: Added fix for msg'ing a -n+m channel - thanks
+		to guppy for noticing, and hektik for providing the fix.
+	* misc others: Minor cleanups, added more protocol_violations, ripped
+		out more P09 stuffs, bit more protocol neg stuff.
+
+2000-12-19  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_ison.c (m_ison): Dianora says that ISON has to end with a
+	space (*sigh* stupid clients...)
+
+	* ircd/s_user.c: make WALLOPS_OPER_ONLY a feature managed through
+	ircd_features.[ch]
+
+	* ircd/s_err.c: get rid of GODMODE conditionals
+
+	* ircd/s_debug.c (debug_serveropts): switch to using appropriate
+	calls into the features subsystem for various serveropts
+	characters
+
+	* ircd/s_conf.c (find_conf_entry): get rid of USEONE conditional
+
+	* ircd/s_bsd.c: remove GODMODE conditional; use features subsystem
+	to get value of VIRTUAL_HOST and CLIENT_FLOOD; remove
+	NOFLOWCONTROL conditional
+
+	* ircd/s_auth.c: use features subsystem to determine value of
+	KILL_IPMISMATCH
+
+	* ircd/parse.c: get rid of NOOPER and GODMODE conditionals; use
+	features subsystem to determine the setting of IDLE_FROM_MSG
+
+	* ircd/numnicks.c: get rid of EXTENDED_NUMERICS conditionals
+
+	* ircd/motd.c: get value of NODEFAULTMOTD from features subsystem;
+	use features subsystem to get motd file names
+
+	* ircd/m_settime.c: get value of RELIABLE_CLOCK from features
+	subsystem
+
+	* ircd/m_server.c: get rid of CRYPT_LINK_PASSWORD, since it does
+	us no good; use features subsystem to figure out if we need to do
+	HUB-type stuff; make TESTNET debugging sendto_opmask_butone's use
+	the Debug(()) macro instead; get value of RELIABLE_CLOCK from
+	features subsystem
+
+	* ircd/m_privmsg.c: get IDLE_FROM_MSG from the features subsystem
+
+	* ircd/m_oper.c: get CRYPT_OPER_PASSWORD from the features
+	subsystem
+
+	* ircd/m_connect.c: get SERVER_PORT from the features subsystem
+
+	* ircd/ircd_log.c (log_set_file): fix a bug that kept log files
+	from getting marked if they were already set to something...
+
+	* ircd/ircd_features.c: add a flag to indicates read-only access;
+	add several new features that used to be compile-time selected
+
+	* ircd/ircd.c: grab pidfile out of feature subsystem; don't check
+	access to motd files (what the heck?); make sure to initialize the
+	feature subsystem before trying to write the config file
+
+	* ircd/dbuf.c: use feature_int() to retrieve BUFFERPOOL settings;
+	use feature_bool() to figure out if we're using the FERGUSON
+	flusher
+
+	* ircd/Makefile.in: MPATH and RPATH are now done differently, so
+	remove the clause that creates empty files of that name; also ran
+	make depend
+
+	* include/sys.h: CLIENT_FLOOD is now a feature; unfortunately,
+	there is no easy way to bounds-check it at present
+
+	* include/querycmds.h: make sure ircd_features.h is included; use
+	feature_str(FEAT_DOMAINNAME) in calls to match()
+
+	* include/ircd_features.h: many new features that used to be
+	compile-time selected
+
+	* config/config-sh.in: add * to DOMAINNAME; try also using first
+	argument to search in /etc/resolv.conf; removed many compile-time
+	options that now can be configured through the features system
+
+2000-12-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* doc/api/log.txt: how to use the logging API
+
+	* doc/api/features.txt: how to use the features API
+
+	* doc/api/api.txt: how to write API documentation
+
+	* include/ircd_features.h: rearranged a couple of features for
+	neatness purposes
+
+	* ircd/ircd_features.c: cleaned up the macros some; rearranged
+	some code to all go into the switch; rearranged a couple of
+	features for neatness purposes
+
+2000-12-16  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/os_bsd.c: Added os_set_tos for BSD users.
+
+2000-12-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: Isomer almost got it right; you need to
+	use F_I(), since it's an integer value, not a boolean value.  The
+	asserts in feature_int would catch you out...  Also made the F_*
+	macros take flags
+
+	* ircd/s_err.c: define RPL_PRIVS reply
+
+	* ircd/parse.c: put new PRIVS command into command table
+
+	* ircd/m_privs.c (mo_privs): message handler to report operator
+	privileges
+
+	* ircd/ircd_features.c: declare new features OPER_SET and
+	LOCOP_SET; redo boolean testing routine to accept TRUE, YES, and
+	ON for boolean TRUE, and FALSE, NO, and OFF for boolean FALSE
+
+	* ircd/client.c: simplify client_set_privs() with a table that
+	defines what features to test for; add new client_report_privs()
+
+	* ircd/Makefile.in: compile new m_privs.c; run make depend
+
+	* include/numeric.h (RPL_PRIVS): new reply numeric for displaying
+	an operator's privileges
+
+	* include/msg.h: define new command: PRIVS
+
+	* include/ircd_features.h: create new features OPER_SET and
+	LOCOP_SET for controlling access to /set
+
+	* include/handlers.h (mo_privs): declare message handler for
+	reporting oper privileges
+
+	* include/client.h (client_report_privs): declare function to
+	report what privileges an oper has
+
+	* ircd/m_whois.c (do_whois): fix a bug that caused /whois to
+	report that a user is an oper if the oper doing the /whois had
+	PRIV_SEE_OPERS
+
+2000-12-17  Isomer <Isomer@coders.net>
+	* ircd/listener.c: added support for TOS twiddling as a 'feature'.
+
+2000-12-17  Isomer <Isomer@coders.net>
+	* ircd/os_linux.c: add TOS stuffs
+
+	* ircd/listener.c: add TOS stuffs
+
+2000-12-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whocmds.c (do_who): use HasPriv to determine whether or not
+	to indicate a user is an oper
+
+	* ircd/s_user.c: clear privileges setting when deopping; don't
+	propagate +o unless user has PRIV_PROPAGATE privilege
+
+	* ircd/s_debug.c (debug_serveropts): created debug_serveropts()
+	function and replaced how the server option string is generated
+
+	* ircd/parse.c: remove conditional on CONFIG_OPERCMDS
+
+	* ircd/m_whois.c (do_whois): use HasPriv to determine whether or
+	not to indicate the user is an operator
+
+	* ircd/m_who.c: use HasPriv to determine whether or not a user
+	should be displayed in the list of opers
+
+	* ircd/m_version.c: call debug_serveropts() to get server option
+	string
+
+	* ircd/m_userip.c (userip_formatter): use HasPriv to determine
+	whether or not to show oper status
+
+	* ircd/m_userhost.c (userhost_formatter): use HasPriv to determine
+	whether or not to show oper status
+
+	* ircd/m_restart.c (mo_restart): replace ugly #ifdef conditional
+	checks with HasPriv check; remove dead code
+
+	* ircd/m_rehash.c (mo_rehash): replace ugly #ifdef conditional
+	checks with HasPriv check
+
+	* ircd/m_opmode.c (mo_opmode): use HasPriv to check permissions;
+	use feature_bool to check if disabled
+
+	* ircd/m_oper.c (m_oper): set oper priviliges
+
+	* ircd/m_mode.c (m_mode): replace #ifdef conditional with HasPriv
+	check
+
+	* ircd/m_kill.c (mo_kill): use HasPriv checks to determine if we
+	can kill
+
+	* ircd/m_kick.c (m_kick): replace #ifdef conditional with HasPriv
+	check
+
+	* ircd/m_jupe.c (mo_jupe): rework permissions checking structure;
+	use feature_bool to check if disabled
+
+	* ircd/m_join.c (m_join): remove BADCHAN conditional; replace
+	#ifdef conditional with a HasPriv check
+
+	* ircd/m_gline.c (mo_gline): rework permissions checking
+	structure; use feature_bool to check if any part is disabled
+
+	* ircd/m_die.c: replace ugly #ifdef conditionals with HasPriv
+	check; remove dead code
+
+	* ircd/m_clearmode.c: use feature_bool() to detect if we're
+	disabled; use HasPriv to figure out what we're permitted to do;
+	only allow clearmode on moded channels
+
+	* ircd/ircd_features.c: define various features; use HasPriv to
+	verify permissions to set/reset
+
+	* ircd/gline.c (gline_add): use HasPriv instead of #ifdef
+	conditionals
+
+	* ircd/client.c (client_set_privs): function to set an oper's
+	privileges
+
+	* ircd/channel.c: use HasPriv calls instead of #ifdef conditionals
+
+	* include/whocmds.h: deconditionalize several macros and
+	substitute appropriate calls to HasPriv()
+
+	* include/s_debug.h: get rid of global serveropts[]; define new
+	function debug_serveropts() to build that string on the fly
+
+	* include/ircd_features.h: define some features
+
+	* include/client.h: add privs member to struct Connection; define
+	various priviledges
+
+	* include/channel.h: no longer using IsOperOnLocalChannel; remove
+	conditional of MAGIC_OPER_OVERRIDE on OPER_WALK_THROUGH_LMODES
+
+	* doc/Configure.help: remove help information for deprecated
+	options
+
+	* config/config-sh.in: remove certain deprecated options having to
+	do with what opers can and cannot do--first stage in moving
+	compile-time constants into the .conf
+
+2000-12-16  Isomer <Isomer@coders.net>
+	* ircd/parse.c: detect if the prefix is missing and try and recover
+	instead of coring.
+
+2000-12-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_log.c: found and fixed some bugs in the debug logging
+	code that would sometimes result in the log file not being
+	reopened--which meant that a user could connect and get the
+	logging output--oops
+
+	* ircd/Makefile.in: run make depend...
+
+	* ircd/s_stats.c: get rid of report_feature_list()
+
+	* ircd/s_err.c: add the 'bad value' error message, shift error
+	messages over somewhat
+
+	* ircd/s_debug.c (debug_init): call log_debug_init with the
+	use_tty flag
+
+	* ircd/s_conf.c (read_configuration_file): unmark features before
+	reading the config file, then reset unmarked features after
+	reading the config file
+
+	* ircd/m_stats.c: use feature_report() instead of
+	report_feature_list()
+
+	* ircd/ircd_log.c: fix log_debug_file (bogus assertion); add
+	special 'mark' flags and use them; add the stuff needed by the
+	features API
+
+	* ircd/ircd_features.c: rework the features API and add gobs of
+	comments to try to explain what some of these complex functions
+	are actually doing
+
+	* include/s_stats.h: get rid of report_feature_list(); use
+	feature_report() instead
+
+	* include/numeric.h: added a new error message and shifted old
+	values over some--this is, after all, an alpha
+
+	* include/ircd_log.h: log_debug_init now takes an integer to tell
+	it if it should be using the tty; added a couple of functions
+	required by the features API
+
+	* include/ircd_features.h: add an enum and some more functions to
+	flesh out the feature API--it should now be possible to put all
+	those compile-time constants in the config file!
+
+	* ircd/send.c: got the direction of the assert incorrect...
+
+	* ircd/send.c: implement the efficiency of flush_connections by
+	creating a linked list of struct Connection's with queued data;
+	also get rid of flush_sendq_except and make sure to yank
+	connections out of the list when their sendQs become empty (notice
+	the assertion in flush_connections!)
+
+	* ircd/s_bsd.c (close_connection): must yank the Connection out of
+	the sendq list
+
+	* ircd/list.c (dealloc_connection): must yank the Connection out
+	of the sendq list
+
+	* ircd/dbuf.c (dbuf_put): call flush_connections instead of the
+	deprecated flush_sendq_except
+
+	* ircd/client.c: define a couple new helper functions for sendq
+	threading--this will make the flush_connections function in send.c
+	considerably more efficient by creating a linked list of
+	Connections that have queued data to send
+
+	* include/send.h: remove flush_sendq_except, as it's not used
+	anymore
+
+	* include/client.h: declare a couple new helper functions for the
+	sendq threading system
+
+2000-12-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_ison.c (m_ison): Apply Diane Bruce's patch to make ISON
+	parse all arguments
+
+	* ircd/s_debug.c (count_memory): modify to report for clients and
+	connections, not local clients and remote clients
+
+	* ircd/list.c: fiddle with the client-fiddling functions to take
+	into account the divorce of struct Connection from struct Client
+
+	* ircd/ircd.c: define a struct Connection for me, initialize it,
+	and link it into the right place (ewww, globals!)
+
+	* include/client.h: remove CLIENT_{LOCAL,REMOTE}_SIZE; split
+	struct Client into struct Client and struct Connection; redefine
+	local-portion accessor macros to go through struct Client to the
+	struct Connection; define struct Connection accessor macros
+
+2000-12-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: missed a couple of accesses to a struct Client
+
+	* ircd/uping.c: missed a couple of accesses to a struct Client
+
+	* ircd/send.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_user.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_misc.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_conf.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_bsd.c: missed a couple of accesses to a struct Client
+
+	* ircd/s_auth.c: missed a couple of accesses to a struct Client
+
+	* ircd/res.c: missed a couple of accesses to a struct Client
+
+	* ircd/parse.c: missed a couple of accesses to a struct Client
+
+	* ircd/m_whois.c: use new accessor macros for struct Client
+
+	* ircd/m_who.c: use new accessor macros for struct Client
+
+	* ircd/m_wallchops.c: use new accessor macros for struct Client
+
+	* ircd/m_version.c: use new accessor macros for struct Client
+
+	* ircd/m_userip.c: use new accessor macros for struct Client
+
+	* ircd/m_userhost.c: use new accessor macros for struct Client
+
+	* ircd/m_user.c: use new accessor macros for struct Client
+
+	* ircd/m_uping.c: use new accessor macros for struct Client
+
+	* ircd/m_trace.c: use new accessor macros for struct Client
+
+	* ircd/m_topic.c: use new accessor macros for struct Client
+
+	* ircd/m_time.c: use new accessor macros for struct Client
+
+	* ircd/m_stats.c: use new accessor macros for struct Client
+
+	* ircd/m_squit.c: use new accessor macros for struct Client
+
+	* ircd/m_silence.c: use new accessor macros for struct Client
+
+	* ircd/m_server.c: use new accessor macros for struct Client;
+	remove dead code
+
+	* ircd/m_rpong.c: use new accessor macros for struct Client
+
+	* ircd/m_rping.c: use new accessor macros for struct Client
+
+	* ircd/m_quit.c: use new accessor macros for struct Client
+
+	* ircd/m_privmsg.c: use new accessor macros for struct Client
+
+	* ircd/m_pong.c: use new accessor macros for struct Client; remove
+	dead code
+
+	* ircd/m_ping.c: use new accessor macros for struct Client
+
+	* ircd/m_pass.c: use new accessor macros for struct Client
+
+	* ircd/m_part.c: use new accessor macros for struct Client
+
+	* ircd/m_oper.c: use new accessor macros for struct Client
+
+	* ircd/m_notice.c: use new accessor macros for struct Client
+
+	* ircd/m_nick.c: use new accessor macros for struct Client
+
+	* ircd/m_names.c: use new accessor macros for struct Client
+
+	* ircd/m_mode.c: use new accessor macros for struct Client
+
+	* ircd/m_map.c: use new accessor macros for struct Client
+
+	* ircd/m_list.c: use new accessor macros for struct Client
+
+	* ircd/m_links.c: use new accessor macros for struct Client;
+	remove some dead code
+
+	* ircd/m_kill.c: use new accessor macros for struct Client; remove
+	some dead code
+
+	* ircd/m_kick.c: use new accessor macros for struct Client
+
+	* ircd/m_join.c: use new accessor macros for struct Client; remove
+	some dead code
+
+	* ircd/m_ison.c: use new accessor macros for struct Client
+
+	* ircd/m_invite.c: use new accessor macros for struct Client
+
+	* ircd/m_info.c: use new accessor macros for struct Client
+
+	* ircd/m_gline.c: use new accessor macros for struct Client
+
+	* ircd/m_error.c: use new accessor macros for struct Client
+
+	* ircd/m_create.c: use new accessor macros for struct Client
+
+	* ircd/m_connect.c: use new accessor macros for struct Client;
+	removed some dead code
+
+	* ircd/m_burst.c: use new accessor macros for struct Client
+
+	* ircd/m_away.c: use new accessor macros for struct Client
+
+	* ircd/m_admin.c: use new accessor macros for struct Client
+
+	* ircd/hash.c: missed a couple of accesses to a struct Client
+
+	* ircd/gline.c: missed a couple of accesses to a struct Client
+
+	* ircd/crule.c: missed a couple of accesses to a struct Client
+
+	* ircd/class.c: missed an access to a struct Client
+
+	* ircd/channel.c: missed a couple of accesses to a struct Client
+
+	* ircd/IPcheck.c: missed an access to a struct Client
+
+	* include/querycmds.h: fix a couple of stats macros to use
+	structure accessor macros
+
+	* include/client.h: change structure member names to highlight any
+	places in the code I've missed
+
+2000-12-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/whowas.c: use new struct Client accessor macros
+
+	* ircd/whocmds.c: use new struct Client accessor macros
+
+	* ircd/send.c: use new struct Client accessor macros
+
+	* ircd/s_user.c: use new struct Client accessor macros; removed
+	some dead code
+
+	* ircd/s_serv.c: use new struct Client accessor macros; removed
+	some dead code
+
+	* ircd/s_numeric.c: use new struct Client accessor macros
+
+	* ircd/s_misc.c: use new struct Client accessor macros
+
+	* ircd/s_debug.c: use new struct Client accessor macros
+
+	* ircd/s_conf.c: use new struct Client accessor macros
+
+	* ircd/s_bsd.c: use new struct Client accessor macros
+
+	* ircd/s_auth.c: use new struct Client accessor macros
+
+	* ircd/parse.c: use new struct Client accessor macros
+
+	* ircd/packet.c: use new struct Client accessor macros
+
+	* ircd/numnicks.c: use new struct Client accessor macros
+
+	* ircd/motd.c: use new struct Client accessor macros
+
+	* ircd/listener.c: use new struct Client accessor macros
+
+	* ircd/list.c: use new struct Client accessor macros
+
+	* ircd/jupe.c: use new struct Client accessor macros
+
+	* ircd/ircd_snprintf.c: use new struct Client accessor macros
+
+	* ircd/ircd_reply.c: use new struct Client accessor macros
+
+	* ircd/ircd_relay.c: use new struct Client accessor macros
+
+	* ircd/ircd.c: use new struct Client accessor macros
+
+	* ircd/gline.c: catch some instances of me.<stuff> I missed
+	previously
+
+	* ircd/client.c: use cli_ instead of con_
+
+	* ircd/class.c: use cli_ instead of con_
+
+	* ircd/channel.c: use cli_ instead of con_
+
+	* ircd/IPcheck.c: use cli_ instead of con_; catch some instances
+	of me.<stuff> I missed previously
+
+	* include/client.h: use cli_ instead of con_...seemed like a good
+	idea at the time *shrug*
+
+2000-12-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/hash.c: use struct Client accessor macros
+
+	* ircd/gline.c: use struct Client accessor macros
+
+	* ircd/crule.c: use struct Client accessor macros
+
+	* ircd/client.c: use struct Client accessor macros; remove some
+	dead code
+
+	* ircd/class.c: use struct Client accessor macros
+
+	* ircd/channel.c: use struct Client accessor macros; remove some
+	dead code
+
+	* ircd/IPcheck.c: use struct Client accessor macros
+
+	* include/numnicks.h: use struct Client accessor macros
+
+	* include/client.h: first step to divorcing struct Client and
+	struct Connection--define accessor macros and use them
+
+	* ircd/gline.c: When Uworld removed Uworld-set G-lines, only the
+	uplink would remove them.  This is because the removal protocol
+	message wasn't being sent to the uplinks.  This is fixed by fixing
+	propagate_gline() to send the proper number of arguments depending
+	on whether or not we're adding or deleting the Uworld gline, and
+	by having gline_deactivate() make sure to turn off the active bit
+	and call propagate_gline() if it's a Uworld gline
+
+2000-12-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/os_generic.c: make sure IOV_MAX gets defined, just in case
+
+	* ircd/os_bsd.c: apparently BSD doesn't have IOV_MAX defined
+	anywhere intelligent...
+
+2000-12-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c (send_queued): call deliver_it with appropriate
+	arguments
+
+	* ircd/s_serv.c: reorder a couple of headers--cosmetic
+
+	* ircd/s_bsd.c (deliver_it): make deliver_it work with a struct
+	MsgQ
+
+	* ircd/os_solaris.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_linux.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_generic.c (os_sendv_nonb): function for calling writev
+	with appropriate iovec
+
+	* ircd/os_bsd.c (os_sendv_nonb): function for calling writev with
+	appropriate iovec
+
+	* ircd/msgq.c (msgq_mapiov): add a len_p argument for totalling up
+	exactly how much we're trying to write out to the fd
+
+	* include/s_bsd.h: make deliver_it take a struct MsgQ
+
+	* include/msgq.h: add a len_p argument to msgq_mapiov to help
+	detect short writes that indicate possible socket blocking
+
+	* include/ircd_osdep.h: declare os_sendv_nonb()
+
+	* ircd/channel.c (modebuf_mode): don't add empty modes...
+
+2000-12-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/send.h: add prio argument to send_buffer to select
+	between normal and priority queues
+
+	* ircd/s_user.c (send_user_info): add prio argument to send_buffer
+	call
+
+	* ircd/m_ison.c (m_ison): add prio argument to send_buffer call
+
+	* ircd/ircd_reply.c (send_reply): add prio argument to send_buffer
+	call
+
+	* ircd/channel.c (send_channel_modes): add prio argument to
+	send_buffer call
+
+	* ircd/send.c (send_buffer): add a prio argument to select the
+	priority queue; update send.c functions to use it
+
+	* ircd/msgq.c (msgq_add): remove msgq_prio; fold msgq_link and
+	msgq_add; add a prio argument to msgq_add to select the priority
+	queue
+
+	* include/msgq.h: remove msgq_prio; add a prio argument to
+	msgq_add
+
+	* ircd/send.c: remove sendbuf; remove GODMODE code; switch to
+	using msgq functions instead of dbuf functions; remove old, dead
+	sendto_* functions; redo send_buffer to take a struct MsgBuf;
+	rework sendcmdto_* functions to make use of the new struct MsgBuf
+
+	* ircd/s_user.c: remove hunt_server; restructure send_user_info to
+	make appropriate use of struct MsgBuf
+
+	* ircd/s_debug.c (count_memory): count memory used by the MsgQ
+	system and report it
+
+	* ircd/s_conf.c (read_configuration_file): use
+	sendto_opmask_butone instead of the now dead sendto_op_mask
+
+	* ircd/s_bsd.c: switch to using appropriate MsgQLength and other
+	calls on sendQ
+
+	* ircd/parse.c (parse_server): get rid of a piece of GODMODE code
+
+	* ircd/msgq.c: add msgq_append and msgq_bufleft; fix a bug in
+	msgq_clean
+
+	* ircd/m_version.c: fix spelling in comments marking dead code
+
+	* ircd/m_userip.c (userip_formatter): restructure to make use of
+	struct MsgBuf
+
+	* ircd/m_userhost.c (userhost_formatter): restructure to make use
+	of struct MsgBuf
+
+	* ircd/m_stats.c: use MsgQLength on a sendQ
+
+	* ircd/m_settime.c: use MsgQLength instead of DBufLength on a
+	sendQ; mark a piece of dead code
+
+	* ircd/m_names.c: use send_reply instead of sendto_one
+
+	* ircd/m_mode.c: use new mode; remove old dead code
+
+	* ircd/m_ison.c (m_ison): restructure to make use of struct MsgBuf
+
+	* ircd/m_burst.c: use BUFSIZE instead of IRC_BUFSIZE; remove old
+	dead code
+
+	* ircd/listener.c (accept_connection): use sendto_opmask_butone
+	instead of sendto_op_mask
+
+	* ircd/list.c (free_client): use MsgQClear to clear sendQ
+
+	* ircd/ircd_reply.c: remove send_error_to_client; restructure
+	send_reply to make use of struct MsgBuf
+
+	* ircd/dbuf.c (dbuf_put): remove argument to flush_sendq_except,
+	since its no longer used (at least currently)
+
+	* ircd/channel.c: restructure send_channel_modes to make use of
+	struct MsgBuf; remove set_mode, add_token_to_sendbuf, cancel_mode,
+	and send_hack_notice; use BUFSIZE instead of IRC_BUFSIZE
+
+	* ircd/Makefile.in: add msgq.c to list of sources; run make depend
+
+	* ircd/IPcheck.c: use sendcmdto_one instead of sendto_one
+
+	* include/send.h: send_buffer now takes a struct MsgBuf * instead
+	of a char *; flush_sendq_except now takes no arguments, as sendq
+	flushing currently only happens in dbuf.h and sendQ is a struct
+	MsgQ; remove prototypes for a lot of old sendto_* functions that
+	aren't used anymore; remove sendbuf and IRC_BUFSIZE--the former is
+	no longer needed, and the latter is identical to BUFSIZE in
+	ircd_defs.h
+
+	* include/s_user.h: make InfoFormatter take a struct MsgBuf*
+	instead of a char *; also make it return void, instead of char *
+
+	* include/msgq.h: add msgq_append and msgq_bufleft functions
+
+	* include/client.h: use a struct MsgQ instead of a struct DBuf for
+	sendq
+
+	* doc/Configure.help: Remove help for compile-time options that
+	have gone away
+
+	* config/config-sh.in: remove CONFIG_NEWMODE
+
+	* ircd/m_server.c (mr_server): don't send server IPs in any server
+	notices
+
+	* ircd/msgq.c (msgq_vmake): add \r\n to messages
+
+2000-12-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/msgq.h: declare the MsgQ API
+
+	* ircd/msgq.c: implementation of new MsgQ system
+
+2000-12-06  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: #include was supposed to be for
+	  ircd_features.h, not features.h--missed when I had to do a
+	  rename because of namespace collision
+
+2000-12-05  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/m_topic.c: Added missing braces that caused all remote
+	  topics to be ignored.
+
+2000-12-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c: I'm tired of the exit_client warning :)
+	(ms_create): discovered that exit_client() was being called with
+	too few arguments
+
+	* ircd/s_misc.c (exit_client): remove all dependance on
+	FNAME_USERLOG, since that's now gone; log only to LS_USER
+
+	* ircd/s_debug.c: USE_SYSLOG no longer means anything
+
+	* ircd/m_oper.c (m_oper): no longer log to LS_OPERLOG--we already
+	log to LS_OPER
+
+	* ircd/m_kill.c: no longer conditionalize on SYSLOG_KILL
+
+	* ircd/ircd_log.c: remove LS_OPERLOG, LS_USERLOG
+
+	* include/ircd_log.h: remove LS_OPERLOG, LS_USERLOG--they serve
+	the same purpose as LS_USER and LS_OPER
+
+	* config/config-sh.in: remove no longer relevant log config
+	variables
+
+	* ircd/uping.c (uping_init): use log_write instead of ircd_log
+
+	* ircd/s_misc.c (exit_client): use log_write instead of ircd_log
+
+	* ircd/s_conf.c: use log_write instead of ircd_log
+
+	* ircd/s_bsd.c (report_error): use log_write instead of ircd_log
+
+	* ircd/s_auth.c (timeout_auth_queries): use log_write instead of
+	ircd_log
+
+	* ircd/res.c (send_res_msg): use log_write instead of ircd_log
+
+	* ircd/m_who.c: use log_write instead of write_log; no longer
+	conditionalize on WPATH; mark dead ircd_log calls
+
+	* ircd/m_uping.c: mark dead ircd_log call
+
+	* ircd/m_server.c (mr_server): use log_write instead of ircd_log
+
+	* ircd/m_restart.c: use log_write instead of ircd_log; mark dead
+	ircd_log calls
+
+	* ircd/m_rehash.c (mo_rehash): use log_write instead of ircd_log
+
+	* ircd/m_oper.c: use log_write instead of ircd_log; no longer
+	conditionalize on FNAME_OPERLOG; mark dead ircd_log calls
+
+	* ircd/m_kill.c: mark dead ircd_log calls
+
+	* ircd/m_connect.c: use log_write instead of ircd_log; mark dead
+	ircd_log
+
+	* ircd/m_clearmode.c: use log_write instead of write_log; no
+	longer conditionalize on OPATH
+
+	* ircd/jupe.c: use log_write instead of write_log; no longer
+	conditionalize on JPATH
+
+	* ircd/ircd_log.c: add USER subsystem; remove ircd_log() compat
+	function; fix a couple of bugs
+
+	* ircd/ircd_alloc.c: fixed a comment
+
+	* ircd/ircd.c: use log_write instead of ircd_log; fold server
+	notice generation in a couple of cases
+
+	* ircd/gline.c: use log_write instead of write_log; no longer
+	conditionalize on GPATH
+
+	* ircd/channel.c (modebuf_flush_int): use log_write instead of
+	write_log; no longer conditionalize on OPATH
+
+	* ircd/Makefile.in: run make depend, since dependencies have
+	changed
+
+	* doc/example.conf: add system USER to documentation
+
+	* include/ircd_log.h: add system USER; remove old ircd_log()
+	declarations
+
+2000-12-04  Isomer <isomer@coders.net>
+	* ircd/m_names.c: Add NAMES_EON to do_names to say add a
+	'end_of_names' reply when done.
+	* ircd/m_join.c: use NAMES_EON as mentioned above
+
+2000-12-01  net  <simms@LUCIDA.QC.CA>
+
+	* ircd/motd.c: add a freelist for struct Motds
+
+2000-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c (report_feature_list): report features--only
+	local opers can see logging configuration, since it doesn't really
+	mean anything to users
+
+	* ircd/s_err.c: add reply messages for new feature subsystem
+
+	* ircd/s_conf.c: add F lines to .conf
+
+	* ircd/parse.c: add the message descriptions for /set, /reset, and
+	/get
+
+	* ircd/m_stats.c: add /stats f
+
+	* ircd/m_set.c (mo_set): implement /set
+
+	* ircd/m_reset.c (mo_reset): implement /reset
+
+	* ircd/m_rehash.c: /rehash m now flushes MOTD cache, and /rehash l
+	reopens log files (for log file rotation)
+
+	* ircd/m_get.c (mo_get): implement /get
+
+	* ircd/ircd_log.c: use int instead of void return value; add
+	log_report_features() and log_canon(); fix a function that
+	disappears if DEBUGMODE not #define'd
+
+	* ircd/ircd_features.c: functions to manipulate feature settings
+	either from the config file or with the new /set, /reset, and /get
+	commands
+
+	* ircd/Makefile.in: add new .c files, run make depend
+
+	* include/s_stats.h: declare report_feature_list() (/stats f
+	handler)
+
+	* include/numeric.h: add RPL_STATSFLINE, RPL_FEATURE,
+	ERR_NOFEATURE, ERR_BADLOGTYPE, ERR_BADLOGSYS, and ERR_BADLOGVALUE
+	reply numerics
+
+	* include/msg.h: add defines for SET, RESET, and GET
+
+	* include/ircd_log.h: add a function to canonicalize subsystem
+	names; change some void return values to int
+
+	* include/ircd_features.h: new features subsystem handles all the
+	manipulation of special features, like log files
+
+	* include/handlers.h: declare new mo_{s,res,g}et message handlers
+	for fiddling with features run-time
+
+	* include/client.h (SNO_DEFAULT): don't set SNO_DEBUG by default;
+	seemed like a good idea at the time...
+
+	* doc/example.conf: document new F lines
+
+2000-11-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_debug.c: rewrite debug_init() and vdebug() in terms of
+	new logging functions, which have special support for the debug
+	log; added loop detection to vdebug(), so that I can
+	sendto_opmask_butone() from log_vwrite() without incurring another
+	call to vdebug()
+
+	* ircd/s_conf.c (rehash): call log_reopen() from rehash routine;
+	this allows log file rotations
+
+	* ircd/m_kill.c: call log_write_kill() instead of ircd_log_kill()
+
+	* ircd/ircd_log.c: much more work fleshing out the interface;
+	removed old interface; included backwards-compat ircd_log()
+	function that logs to subsystem LS_OLDLOG
+
+	* ircd/ircd.c: switch to new log_init()/log_close()/log_reopen()
+	functions
+
+	* include/ircd_log.h: include stdarg.h for va_list; move ordering
+	warning to top of file; fill out LogSys enum; declare new
+	log_debug_init(), log_vwrite(), log_write_kill(), and
+	log_[sg]et_*() functions; add flags argument to log_write();
+	defined flags to inhibit various logging actions
+
+	* include/client.h: added support for new SNO_DEBUG, enabled only
+	if DEBUGMODE is defined
+
+2000-11-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_log.c: make sure the various LOG_* constants are
+	defined (probably not needed, since #include <syslog.h> isn't
+	conditional); various static data needed for the new logging
+	functions; definitions of new logging functions
+
+	* include/ircd_log.h: new LogSys enum, declarations for part of
+	new logging API
+
+	* ircd/motd.c: we were setting type to MOTD_CLASS unconditionally,
+	which was of course stupid; switched to using switch/case in
+	initialization in motd_create(); zero the MotdList.other pointer
+	from motd_clear()
+
+	* ircd/ircd.c (main): motd_init() has to come before init_conf(),
+	or we overwrite init_conf()'s hard work with respect to T-lines
+
+2000-11-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: comment out report_motd_list and include a
+	reference to motd_report()
+
+	* ircd/s_conf.c: rip out the old MOTD manipulation functions; call
+	motd_add() from the conf parser; call motd_clear() from the rehash
+	routine; remove the no longer needed memory clearing and reloading
+	stuff from the rehash service routine
+
+	* ircd/motd.c: loads new API, including static internal functions
+	to do allocation/deallocation, etc.
+
+	* ircd/m_stats.c: use new motd_report() instead of
+	report_motd_list()
+
+	* ircd/m_motd.c: use new syntax for motd_send()
+
+	* ircd/ircd.c: use new motd_init() function
+
+	* ircd/Makefile.in (SRC): forgot to add motd.c to SRC in
+	Makefile.(in); also ran make depend
+
+	* include/motd.h: don't need config.h, but now do need time.h;
+	define new structures and constants; redefine old API and define
+	new functions
+
+2000-11-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (register_user): use motd_signon() instead of
+	calling m_motd; much cleaner this way
+
+	* ircd/motd.c: write the new motd_* stuff to make MOTD handling
+	less of a crock
+
+	* ircd/m_motd.c: rewrite m{,s}_motd to call out to new motd_*
+	functions
+
+	* include/motd.h: define new MOTD API stuff
+
+2000-11-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_reply.c (protocol_violation): rewrite
+	protocol_violation so it'll actually work
+
+	oh, yeah, use %s -> cptr->name, instead of %c -> cptr, so we get
+	the client's real name in there.
+
+	* ircd/m_motd.c (m_motd): Iso's addition of get_client_class(sptr)
+	resulted in core dumps if NODEFAULTMOTD is defined, because m_motd
+	gets called from register_user with a NULL sptr.  This is probably
+	a design problem, but this bandaid will do for now...
+
+2000-11-19  Isomer <isomer@coders.net>
+	* ircd/ircd_reply.c: added 'protocol_violation', thus alerting us
+	to problems in the server<->server protocol.
+
+	* ircd/m_connect.c: allow remote connects with a port of '0'
+	meaning to use the port in the config file.
+
+	* ircd/m_create.c: Enable hacking protection, lets see how far we
+	get.
+
+	* ircd/m_error.c: The RFC says never accept ERROR from unreg'd
+	clients, so we don't any more.
+
+	* ircd/m_kill.c: The kill path is now made up of numnicks of servers,
+	and the user@host is displayed of the victim.
+
+	* ircd/m_map.c: reloaded 'dump_map'.
+
+	* ircd/m_trace.c: allow per class T:
+
+	* ircd/m_stats.c: allow local opers /remote stats anywhere on the 'net.
+
+2000-11-17  Isomer <isomer@coders.net>
+
+	* ircd/m_topic.c: Fixed bug where we'd only send to clients topics
+	that were the *same* instead of different.  Oh the embarrasment!
+
+	* ircd/IPcheck.c: Merged net's fix.
+
+2000-11-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_whois.c: remove compiler warning by adding a newline to
+	end of file
+
+	* ircd/m_names.c: moved the flags up to s_user.h
+
+	* ircd/m_join.c: call do_names instead of m_names; restructure
+	ms_join to never transmute a JOIN into a CREATE, but use the TS in
+	the JOIN (if present) to timestamp the channel
+
+	* ircd/channel.c: send JOINs individually, instead of grouping
+	them, so that we can send the channel's creation time
+
+	* include/s_user.h: declare do_names()
+
+2000-10-30  Isomer <isomer@coders.net>
+	* ircd/m_oper.c: Fixed warning
+
+2000-10-30  Isomer <isomer@coders.net>
+	* ircd/m_oper.c: Fixed over agressive cut and no paste
+
+2000-10-30  Isomer <isomer@coders.net>
+
+	* ircd/m_topic.c: Restructured, fixed bug where topics on local
+	channels are propergated (I forget who pointed this out to me, but
+	thanks anyway).  Also to save bandwidth don't send the topic to
+	users if the topic is already the same on the server (but still
+	propergate to other servers).  X/W's "autotopic" feature must
+	chew a lot of bandwidth, hopefully this will help reduce this.
+
+	* doc/rfc1459.rfc: Updated documentation on /topic.
+
+	* ircd/listener.c: snotice warnings about failed accept()'s
+	potentially warning admins that they're running out of fd's.
+
+	* ircd/stats.c, ircd/class.c: Removed /stats v, added number of
+	people in a class in /stats y
+
+	* ircd/m_create.c: Checks for timewarp hacking and squit's
+	evil servers. (currently disabled)
+	
+
+2000-10-30  net <simms@lucida.qc.ca>
+	
+	* ircd/gline.c: Fixed various bugs Isomer left behind.
+
+2000-10-26  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c (m_join): reply on attempt to join a BADCHANed
+	channel is now ERR_BANNEDFROMCHAN instead of ERR_BADCHANNAME
+
+2000-10-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: ok, now last mode rules; mode +ps will always
+	result in +s (and won't send a mode if the channel is already +s);
+	mode +sp will always result in +p; -n+n on a +n channel results in
+	no mode change; -n+n on a -n channel results in a +n mode change;
+	etc.
+
+2000-10-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: add "add" and "del" elements to ParseState to
+	avoid not-too-pretty -p+s when +s is sufficient; fix a bug in
+	mode_parse_limit that caused it to clear all channel modes
+	prematurely; restructure mode_parse_mode to avoid calling
+	modebuf_mode too early (ties in with first mentioned change);
+	better logic for +p/+s mutual exclusivity; initialize "add" and
+	"del" elements in mode_parse; send simple modes down to
+	modebuf_mode after the loop in mode_parse
+
+2000-09-28  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/m_names.c: Fixed a non-lethal logic error that 
+	triggers an assert() in find_member_link while debugging.
+	(Spotted by Maniac-).
+2000-09-19  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: move K:lines to their own list and data
+	structures, add supporting code.
+	* ircd/m_stats.c: cleanup stats processing a bit move
+	kline listing code to a new function, haven't figured
+	out where it goes yet tho'
+	* ircd/s_stats.c: added K:line bulk lister
+	* include/s_conf.h: added new DenyConf struct
+	* *[ch]: fixeup code that depended on changes
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
+	* ircd/class.c: encapsulate class list
+	* include/class.h: clean up classes
+	* * fixup code that depended on changes
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: add me to local conf
+	* include/s_conf.h: move CONF_ME macro to chkconf.c
+	* ircd/s_bsd.c: cleanup initialization, allow virtual host
+	to be changed by rehash
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
+	* include/class.h: add missing prototype
+	* ircd/class.c: make argument to get_conf_class const
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
+	* ircd/*.c: merged in changes from 2.10.10.pl12, cleanup
+	merge conflicts.
+	* ircd/*.h: merged in changes from 2.10.10.pl12, cleanup
+	merge conflicts
+
+2000-09-16  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: add code for server struct
+	* ircd/client.c: copy of class.c sort of, new file for client
+	specific operations, will move things here as appropriate,
+	currently only one function is exported from here.
+	* ircd/*.c: general logic cleanups, convert negatives to
+	positives in places.
+
+2000-09-16  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: add code for new crule data structs, strip quotes
+	* ircd/crule.c: clean up scary casting a bit, type safety stuff
+	* include/s_conf.h: add CRuleConf struct and support, remove
+	unused constants
+	* include/crule.h: type safety cleanups
+	* ircd/*.c: fixup code that depended on stuff I changed
+
+2000-09-15  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: start adding code for new conf data structs, changed
+	listeners, admin line, motd lines, class lines. Move validate_hostent
+	to resolver. General mayhem.
+	* include/s_conf.h: new data structs and accessors
+	* ircd/res.c: move validate_hostent here, rewrite, use regular
+	expression for validation.
+	* doc/example.conf: update docs for port
+
+2000-09-14  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c (conf_init): rewrite conf file parser, start to break
+	up conf_init into managable chunks.
+	* ircd/listener.c (set_listener_mask): fix logic bug core dump.
+	* include/s_conf.h: add new data struct for local info (unwinding the mess).
+
+2000-09-13  Thomas Helvey <helveytw@home.com>
+	* ircd/list.c: put Clients in free lists, pre-allocate MAXCONNECTIONS
+	local clients.
+	* ircd/list.c: put SLinks in free lists
+	* ircd/channel.c: put Memberships in free lists
+	* ircd/ircd.c: rearrange initializations a bit in main
+	Note: With these changes, ircd NEVER frees Clients, SLinks or
+	Memberships. It will also rarely need to allocate new
+	ones during net bursts and other disruptions. This should
+	cut down on memory fragmentation a bit as well.
+
+2000-08-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_names.c (do_names): pull-up from do_names fix in
+	u2.10.10.pl11
+
+2000-07-15  Perry Lorier       <Isomer@coders.net>
+	* various: IP only k:'s and G:'s now do bit tests instead of two(!) 
+                 match()'s.  Major Major cpu savings.  Also speed up the
+                 other case slightly.  As a side effect you can now
+		 k/Gline *@10.0.0.0/8.  I'll do bans tomorrow, it's nearing
+		 3am.
+
+2000-07-15  Perry Lorier       <Isomer@coders.net>
+	* various: Fixed warnings after compiling on an alpha.
+2000-07-09  Perry Lorier       <Isomer@coders.net>
+	* doc/ircd.8: Applied grammitical changes by Liandrin, applied
+		      changes suggested by various other people.
+	* ircd/IPcheck.c: More bug fixes.  Current problem appears to be
+			that it gets a corrupt entry somehow.
+2000-07-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/m_oper.c: Clean up compiler warning.
+
+2000-07-08  Perry Lorier       <Isomer@coders.net>
+	* doc/ircd.8: Updated the documentation, it was slightly out of date
+		      being updated around 1989.
+	* ircd/m_whois.c: Rewrote for clarity, and probably a bit more speed.
+			  fixed a few minor glitches.
+	* doc/rfc1459.unet: Updated.
+	* ircd/IPcheck.c: Fixed more bugs.
+	* ircd/s_bsd.c: We now keep track of servers we've conected.
+
+2000-07-02  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_misc.c: Fixed remote IPcheck bug.  Ok, I'm a moron, so sue
+			me.  Thanks to Hektik, thanks thanks thanks thanks
+			thanks thanks thanks thanks thank thanks thank thanks
+
+2000-07-01  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_conf.c: "Fixed" the "bug" where people would "evade" K:'s.
+	* ircd/s_conf.c, include/IPcheck.h: Fixed compile warnings.
+
+2000-06-22  Perry Lorier       <Isomer@coders.net>
+	* ircd/IPcheck.c: Large chunks redone.
+	* ircd/s_conf.c: Changes due to IPcheck - ONE nolonger supported,
+			single AND double digit limits are allowed now.
+	* misc other: Changes to IPcheck.
+
+2000-06-30  Perry Lorier       <Isomer@coders.net>
+	* ircd/ircd.c: Fix command line parameter bugs.
+
+2000-06-30  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_kill.c: Fixed bug with LOCAL_KILL_ONLY
+	* ircd/m_nick.c: Tidied things up.
+
+2000-06-12 Joseph Bongaarts <foxxe@trms.com>
+	* ircd/m_stats.c: Iso forgot mo_stats when he added /stats v
+	
+2000-05-29  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_stats.c: add /stats v to do only the last part of the /trace
+	* ircd/IPcheck.c: Cosmetic change, if we meddle with it enough do
+ 			you think it'll get bored and fix itself?
+
+2000-06-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/m_names.c: Clean up compiler warnings.
+
+2000-06-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_client): don't send warning if
+	there's not enough arguments for a +/-o/v; means the habit of
+	doing "/mode #channel +oooooo bob" doesn't result in a bunch of
+	error messages
+
+2000-06-04  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/m_names.c: Re-factor code to remove unneccessary
+	GlobalChannelList iteration every time someone joins a channel.
+
+2000-06-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c: add struct Gline * argument to register_user;
+	look up global glines and repropagate them if necessary; send
+	acknowledgement of gline to remote servers when registering users
+
+	* ircd/s_serv.c (server_estab): don't send acknowledgement of
+	local glines to remote servers; do send gline acknowledgement of
+	bursted users
+
+	* ircd/m_user.c (m_user): pass new struct Gline * argument to
+	register_user
+
+	* ircd/m_pong.c: pass new struct Gline * argument to register_user
+
+	* ircd/m_nick.c (ms_nick): document protocol change
+
+	* ircd/gline.c: support GLINE_LASTMOD
+
+	* include/s_user.h: add struct Gline * argument to register_user
+
+	* include/gline.h: add GLINE_LASTMOD to look up non-zero lastmods
+
+	* ircd/s_conf.c (find_kill): add unsigned int argument to
+	gline_lookup()
+
+	* ircd/gline.c: add GLINE_GLOBAL to lookup or find only global
+	glines; add unsigned int argument to gline_lookup()
+
+	* include/gline.h: add GLINE_GLOBAL flag; add unsigned int
+	argument to gline_lookup()
+
+	* ircd/m_server.c: Resend jupe only when there is no %<lastmod>
+	parameter, or when it falls out of bounds: see comments prior to
+	call to jupe_resend(); call server_estab with struct Jupe
+	parameter, so that we place the appropriate %<lastmod> in the
+	appropriate place.
+
+	* ircd/s_serv.c (server_estab): send %<lastmod> for introduced
+	server, as well as for servers when we're sending the BURST
+
+	* include/s_serv.h: add a struct Jupe * to the arguments for
+	server_estab() so that we can send the appropriate lastmod
+	parameter
+
+	* ircd/m_gline.c (ms_gline): actually, this should be the
+	slightest bit more efficient...
+
+	* ircd/m_jupe.c (ms_jupe): actually, this should be the slightest
+	bit more efficient...
+
+	* ircd/m_gline.c (ms_gline): inhibit GLINE processing resends
+	during netburst
+
+	* ircd/m_jupe.c (ms_jupe): inhibit JUPE processing resends during
+	netburst
+
+	* ircd/channel.c (joinbuf_join): really remove user from local
+	channels
+
+2000-05-29  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_names.c: Removed redundant space. 
+	* ircd/s_bsd.c: Fixed incorrect syntax on ERROR line.
+
+2000-05-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): er...that should have been a ",", not
+	a " "
+
+2000-05-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: replace bogus assertions with returns, which is
+	logically correct; only wipe out limit/key if they were originally
+	set in the first place; remove user from channel when doing a
+	PARTALL; only send MODE +o for user CREATEing channel if user is
+	not MyUser--CREATE will only be used if the channel did not
+	originally exist, therefore we can assume no one local is on the
+	channel anyway, and we don't exactly need for the user to see an
+	explicit +o for themselves
+
+	* doc/readme.gline: describe the syntax of the GLINE command
+
+	* doc/readme.jupe: update to reflect a couple of changes to JUPE
+
+	* ircd/gline.c: don't propagate local changes
+
+	* ircd/jupe.c: don't propagate local changes
+
+	* ircd/m_gline.c (mo_gline): force local flag when deactivating
+	glines with 0 lastmod
+
+	* ircd/gline.c (gline_deactivate): G-lines with zero lastmod time
+	are now removed instead of being deactivated
+
+	* ircd/m_gline.c (ms_gline): make G-lines of the form "GLINE *
+	-<mask>" be accepted
+
+	* ircd/channel.c (send_channel_modes): deal with one of the last
+	vestiges of sendbuf
+
+	* ircd/m_burst.c (ms_burst): debugged ban processing; removed
+	debugging hooks
+
+	* ircd/channel.c (modebuf_extract): remove debugging
+	sendto_opmask_butone calls
+
+2000-05-03  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: support a couple of new flags to support using
+	mode_parse; fix some bugs with 0 struct ModeBuf *; implementation
+	of modebuf_extract to extract added flags for use by ms_burst
+
+	* include/channel.h: a couple of new flags to support using
+	mode_parse inside ms_burst
+
+	* ircd/m_burst.c (ms_burst): brand new implementation of BURST
+
+	* ircd/m_endburst.c: add loop to processing of end_of_burst to
+	free empty channels after the BURST is over.
+
+	* ircd/m_server.c: convert to use new send.c functions--I wanted
+	to rewrite it from scratch, but the logic's pretty complex; I may
+	still rewrite it, though...
+
+2000-05-02  Thomas Helvey <tomh@inxpress.net>
+
+	* ircd/ircd.c: fix broken header include ordering
+
+2000-05-02  Thomas Helvey <tomh@inxpress.net>
+	
+	* ircd/IPcheck.c: cleanups for ZenShadow's cleanups
+        review emailed privately
+
+	* include/IPcheck.h: removed unneeded include
+
+2000-05-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_user.c (hunt_server): throw in a comment so I know what
+	the sendto_one is for
+
+	* include/querycmds.h (Count_unknownbecomesclient): convert to
+	sendto_opmask_butone
+
+	* ircd/send.c: start removing dead code
+
+	* include/send.h: start removing dead code
+
+	* ircd/m_rping.c: convert to sendcmdto_one / send_reply /
+	hunt_server_cmd
+
+	* ircd/m_rpong.c: convert to sendcmdto_one / send_reply
+
+2000-05-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_stats.c: convert to sendcmdto_one / send_reply
+
+	* ircd/m_kick.c: Completely reimplement m_kick
+
+	* ircd/channel.c: send_user_joins removed; it was dead code,
+	anyway...
+
+2000-05-01  Perry Lorier <isomer@coders.net>
+	* ircd/m_invite.c: Fix for the rest of m_invite.c, and again.
+	* ircd/channels.c: My fix for the part problem.  Untested, probably
+		won't work.  Can't be much worse than the current problem.
+		it'll either work or core, take your pick.
+
+
+2000-04-30  Perry Lorier <isomer@coders.net>
+	* config/config-sh.in: Fix for CONNEXIT
+	* ircd/s_{user,misc}.c: Fix for CONNEXIT
+	* ircd/m_invite.c: Fix for incorrectly numnickified invite.
+			(Kev: Want to come talk to me about this?)
+
+2000-04-30  Steven M. Doyle <steven@doyle.net>
+ 	* ircd/ircd.c
+ 	  - general cleanups and readability enhancements
+ 	  - rewrite of setuid/chroot code.
+ 	  - server will no longer run as root
+ 	  - -DPROFIL compile option removed
+	  - Fixed IPcheck API calls
+ 
+ 	* config/config-sh.in
+ 	  - Fixed up chroot compile options
+ 	  - Added options for debug and profile compiles
+ 
+ 	* config/gen.ircd.Makefile
+ 	  - Support for new debug/profile options
+ 
+ 	* ircd/Makefile.in
+ 	  - Support for new debug/profile options
+ 
+ 	* ircd/ircd_signal.c
+ 	  - Removed -DPROFIL
+
+	* include/IPcheck.h
+	  - Removed old API prototypes, added new ones
+	
+	* ircd/IPcheck.c
+	  - Readability cleanups (well, I -think-...)
+	  - Changed IPRegistryEntry.last_connect to a time_t.  The previously
+	    used unsigned short was probably causing interesting things after
+	    a client had been connected longer than about 65,535 seconds...
+	  - Removed old API functions.
+
+	* ircd/whocmds.c
+	  - Removed IPcheck.h include
+	
+	* Additionally modified IPcheck API calls in:
+	  - ircd/m_nick.c
+	  - ircd/m_auth.c
+	  - ircd/s_bsd.c
+	  - ircd/s_conf.c
+	  - ircd/s_misc.c
+	  - ircd/s_serv.c
+	  - ircd/s_user.c
+	
+	
+2000-04-30  Perry Lorier <isomer@coders.net>
+	* ircd/s_bsd.c: Sigh. :)
+        * ircd/m_mode.c: fix for modeless channels by poptix.
+
+2000-04-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c: reimplement JOIN in terms of struct JoinBuf
+
+	* ircd/channel.c (clean_channelname): make clean_channelname also
+	truncate long channel names
+
+2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c: reimplement CREATE in terms of struct JoinBuf
+
+	* ircd/channel.c: implemented joinbuf_init, joinbuf_join,
+	joinbuf_flush
+
+	* include/channel.h: definitions and declarations for the struct
+	JoinBuf abstraction
+
+2000-04-29  Perry Lorier <isomer@coders.net>
+	* ircd/s_bsd.c: Ok, so I thought I compiled and tested this...
+
+2000-04-29  Perry Lorier <isomer@coders.net>
+	* ircd/s_bsd.c: Add debugging code to IPcheck
+
+2000-04-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/ircd_reply.h (SND_EXPLICIT): use instead of RPL_EXPLICIT
+
+	* ircd/ircd_reply.c (send_reply): use SND_EXPLICIT instead of
+	RPL_EXPLICIT
+
+	* ircd/m_userhost.c (m_userhost): add a dead code comment
+
+	* ircd/m_desynch.c: forgot one...
+
+	* ircd/m_rehash.c (mo_rehash): er, duplicates :)
+
+	* ircd/m_proto.c (proto_send_supported): just change a comment so
+	it doesn't show up in my scans
+
+	* ircd/ircd_reply.c (send_reply): fix a slight bug...
+
+	* ircd/s_numeric.c (do_numeric): use new sendcmdto_* functions,
+	kinda hackish...
+
+	* ircd/parse.c (parse_server): argument wrangling to make
+	processing in do_numeric a little easier to deal with
+
+	* ircd/s_serv.c (server_estab): SERVER should come from
+	acptr->serv->up, not &me
+
+	* ircd/m_lusers.c: accidentally left out sptr for a %C
+
+	* ircd/send.c: hack to support doing wallchops...
+
+	* ircd/m_whowas.c: convert to new send functions
+
+	* ircd/m_whois.c: convert to new send functions
+
+	* ircd/m_who.c: convert to new send functions
+
+	* ircd/m_wallops.c: convert to new send functions
+
+	* ircd/m_wallchops.c: convert to new send functions
+
+	* ircd/m_version.c: convert to new send functions
+
+	* ircd/m_userip.c: convert to new send functions
+
+	* ircd/m_userhost.c: convert to new send functions
+
+	* ircd/m_uping.c: convert to new send functions
+
+	* ircd/m_trace.c: convert to new send functions
+
+	* ircd/m_topic.c: convert to new send functions
+
+	* ircd/m_time.c: convert to new send functions
+
+	* ircd/m_squit.c: convert to new send functions
+
+	* ircd/m_silence.c: convert to new send functions
+
+	* ircd/m_settime.c: convert to new send functions
+
+	* ircd/m_restart.c: convert to new send functions
+
+	* ircd/m_rehash.c: convert to new send functions
+
+	* ircd/m_privmsg.c: convert to new send functions
+
+	* ircd/m_pong.c: convert to new send functions
+
+	* ircd/m_ping.c: convert to new send functions
+
+	* ircd/m_pass.c: convert to new send functions
+
+	* ircd/m_opmode.c: convert to new send functions
+
+	* ircd/m_oper.c: convert to new send functions
+
+	* ircd/m_notice.c: convert to new send functions
+
+	* ircd/m_nick.c: convert to new send functions
+
+	* ircd/m_names.c: convert to new send functions
+
+	* ircd/m_motd.c: convert to new send functions
+
+	* ircd/m_mode.c: convert to new send functions
+
+	* ircd/m_map.c: convert to new send functions
+
+	* ircd/m_lusers.c: convert to new send functions
+
+	* ircd/m_list.c: convert to new send functions
+
+	* ircd/m_links.c: convert to new send functions
+
+	* ircd/m_kill.c: convert to new send functions
+
+	* ircd/m_jupe.c: convert to new send functions
+
+	* ircd/m_invite.c: convert to new send functions
+
+	* ircd/m_info.c: convert to new send functions
+
+	* ircd/m_help.c: convert to new send functions
+
+	* ircd/m_gline.c: convert to new send functions
+
+	* ircd/m_error.c: convert to new send functions
+
+	* ircd/m_endburst.c: convert to new send functions
+
+	* ircd/m_die.c: convert to new send functions
+
+	* ircd/m_destruct.c: convert to new send functions
+
+	* ircd/m_defaults.c: convert to new send functions
+
+	* ircd/m_connect.c: convert to new send functions
+
+2000-04-28  Perry Lorier <isomer@coders.net>
+	* RELEASE.NOTES: Describe a few more undocumented features.
+	* config/config-sh.in: change the default paths for logging
+	and the recommended number of channels.
+	* include/supported.h: Rearrange slightly, added CHANTYPE's
+
+2000-04-27  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_close.c: convert to send_reply
+
+	* ircd/m_clearmode.c: convert to send_reply, sendcmdto_serv_butone
+
+	* ircd/m_away.c: convert to send_reply and sendcmdto_serv_butone
+
+	* ircd/m_admin.c: convert to send_reply and hunt_server_cmd
+
+	* ircd/s_user.c (hunt_server_cmd): new hunt_server replacement
+	that takes cmd and tok arguments, etc.  NOTE: THIS IMPLEMENTATION
+	HAS A MAJOR HACK!!!  The whole hunt_server architecture should be
+	carefully rethought...
+
+	* ircd/s_stats.c (hunt_stats): use new hunt_server_cmd
+
+	* include/s_user.h: hunt_server_cmd -- replacement for hunt_server
+
+	* ircd/s_misc.c: *sigh* 2.10.10 doesn't support squitting by
+	numeric nick; therefore, we have to use the server name
+
+	* ircd/m_squit.c (ms_squit): allow to squit by server numeric nick
+
+	* ircd/send.c: fix minor bugs
+
+	* ircd/s_user.c (check_target_limit): mark dead code so I filter
+	it when I grep
+
+	* ircd/s_serv.c (exit_new_server): mark dead code so I filter it
+	when I grep
+
+	* ircd/parse.c: mark dead code so I filter it when I grep
+
+	* ircd/map.c: mark dead code so I filter it when I grep
+
+	* ircd/ircd.c: mark dead code so I filter it when I grep
+
+	* ircd/ircd_relay.c: convert over to new sendcmdto_*, send_reply
+	functions
+
+	* ircd/channel.c: mark dead code so I filter it when I grep
+
+	* ircd/s_stats.c: use send_reply instead of sendto_one w/rpl_str;
+	hope I'm not stepping on toes...
+
+	* ircd/s_conf.c: more sendto_opmask_butone / send_reply
+	conversions; use ircd_snprintf in a couple of cases to negate the
+	possibility of buffer overflow
+
+2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: convert as much as possible to new send
+	semantics
+
+	* ircd/send.c (sendcmdto_common_channels): fix a subtle bug --
+	test member->user->from->fd, not from->fd
+
+	* ircd/gline.c (gline_add): go ahead and add badchans; we just
+	won't look for them in m_gline; this way, they always work...
+
+	* ircd/jupe.c: use ircd_vsnprintf conversion specifiers
+
+	* ircd/gline.c: since write_log now uses ircd_vsnprintf, use
+	ircd_vsnprintf conversion specifiers
+
+	* ircd/support.c (write_log): use ircd_vsnprintf for write_log, so
+	I have my conversion specifiers
+
+	* ircd/gline.c (do_gline): use send_reply for ERR_YOUREBANNEDCREEP
+
+	* ircd/send.c (sendcmdto_flag_butone): explicitly send WALLOPS to
+	local users
+
+	* ircd/s_serv.c (exit_new_server): rewrite exit_new_server to be a
+	little less brain-dead
+
+	* ircd/s_misc.c: use sendcmdto_one, sendrawto_one, and send_reply
+
+	* ircd/s_debug.c: use send_reply with RPL_EXPLICIT for
+	RPL_STATSDEBUG
+
+	* ircd/res.c (cres_mem): use send_reply with RPL_EXPLICIT for
+	RPL_STATSDEBUG
+
+	* ircd/list.c (send_listinfo): use send_reply with RPL_EXPLICIT
+	for RPL_STATSDEBUG
+
+	* ircd/m_pong.c: use RPL_EXPLICIT for ERR_BADPING
+
+	* ircd/ircd.c: use RPL_EXPLICIT for ERR_BADPING
+
+	* ircd/s_user.c (register_user): use RPL_EXPLICIT for
+	ERR_INVALIDUSERNAME
+
+	* ircd/ircd_reply.c (send_reply): support RPL_EXPLICIT
+
+	* include/ircd_reply.h (RPL_EXPLICIT): somewhat of a hack to mark
+	a numeric as needing to use an explicit pattern, which will be the
+	first argument in the variable argument list
+
+	* ircd/s_user.c: use sendrawto_one instead of sendto_one to send
+	non-prefixed nospoof PING
+
+	* ircd/s_bsd.c: use sendrawto_one instead of sendto_one to send
+	non-prefixed SERVER login
+
+	* ircd/ircd.c (check_pings): fix last sendto_one calls (except for
+	a numeric usage further up)
+
+	* include/send.h: declare sendrawto_one
+
+	* ircd/send.c (sendrawto_one): new function to use ONLY for
+	non-prefixed commands, like PING to client, or PASS/SERVER on
+	server registration
+
+2000-04-25  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_snprintf.c (doprintf): implement %H for possible
+	future expansion (channel numerics?)
+
+	* include/ircd_snprintf.h: added documentation to # to explain use
+	with %C; added documentation for : to explain use with %C; added
+	documentation for %H for channels
+
+	* ircd/whocmds.c: use send_reply
+
+	* ircd/userload.c: use sendcmdto_one
+
+	* ircd/uping.c: use sendcmdto_one
+
+	* ircd/send.c: use new flags to %C format string; ':' prefixes
+	client name with a colon for local connects, '#' uses
+	nick!user@host form for local connects
+
+	* ircd/s_user.c: use send_reply, sendto_opmask_butone,
+	sendcmdto_one, sendcmdto_serv_butone, sendcmdto_flag_butone
+
+	* ircd/s_serv.c: use sendcmdto_one, sendto_opmask_butone
+
+	* ircd/s_bsd.c: use sendto_opmask_butone, send_reply,
+	sendcmdto_one
+
+	* ircd/s_auth.c: use sendto_opmask_butone
+
+	* ircd/res.c: use sendcmdto_one
+
+	* ircd/ircd_snprintf.c (doprintf): minor bug fixes and some
+	debugging assertions
+
+2000-04-24  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/support.c: dumpcore is no longer used, so get rid of it
+
+	* ircd/parse.c: use send_reply, sendcmdto_one
+
+	* ircd/map.c: use send_reply
+
+	* ircd/listener.c: use send_reply
+
+	* ircd/jupe.c: use sendto_opmask_butone, send_reply
+
+	* ircd/ircd_reply.c: use send_reply
+
+	* ircd/ircd.c: use sendto_opmask_butone
+
+	* ircd/gline.c: use sendto_opmask_butone, send_reply
+
+	* ircd/ircd_snprintf.c (doprintf): make it deal with incompletely
+	registered clients; make FLAG_ALT print nick!user@host; make
+	FLAG_COLON print :blah
+
+	* ircd/class.c (report_classes): use send_reply instead of
+	sendto_one
+
+	* ircd/hash.c (m_hash): replace sendto_one with sendcmdto_one
+
+	* ircd/IPcheck.c (ip_registry_connect_succeeded): replace
+	sendto_one with sendcmdto_one
+
+2000-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: clean up logic in sendcmdto_channel_butone; use
+	MyConnect() instead of IsServer() in sendcmdto_flag_butone; define
+	sendcmdto_match_butone
+
+	* include/send.h: declare sendcmdto_match_butone
+
+2000-04-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/jupe.c: update to use send_reply()
+
+	* ircd/gline.c: update to use send_reply()
+
+	* include/ircd_reply.h: declare send_reply
+
+	* ircd/ircd_reply.c (send_reply): send_error_to_client, but for
+	replies; uses ircd_snprintf
+
+	* ircd/send.c: added comments to redirect searchers to appropriate
+	sendcmdto_* function; moved new functions to end of file; added
+	explanatory comments; reordered arguments; defined new functions
+	mentioned below
+
+	* ircd/m_jupe.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/m_gline.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/jupe.c: reorder arguments to sendcmdto_* functions
+
+	* ircd/gline.c: reorder arguments to sendcmdto_* functions
+
+	* include/send.h: reorder arguments, add explanatory comments,
+	declare new functions sendcmdto_flag_butone, sendto_opmask_butone,
+	and vsendto_opmask_butone
+
+2000-04-19  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: define sendcmdto_channel_butone, wrote a simplified
+	vsendto_op_mask that uses '*' instead of the receiving client
+	nickname
+
+	* include/send.h: declare sendcmdto_channel_butone; takes a skip
+	argument that allows you to skip (or not to skip) deaf users,
+	users behind bursting servers, and non channel operators
+
+2000-04-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/send.c: new sendcmdto_channel_butserv -- note that old
+	sendto_channel_butserv has a subtle bug; also wrote
+	sendcmdto_common_channels.
+
+	* include/send.h: declare new sendcmdto_* functions
+
+	* ircd/jupe.c: support local deactivations of jupes
+
+	* ircd/gline.c: support local deactivations of glines
+
+	* include/jupe.h: JUPE_LDEACT allows jupes to be locally
+	deactivated; if they aren't locally deactivated, then it slaves to
+	the net-wide activation status; JupeIsRemActive() tests only
+	whether the jupe is active everywhere else
+
+	* include/gline.h: GLINE_LDEACT allows glines to be locally
+	deactivated; if they aren't locally deactivated, then it slaves to
+	the net-wide activation status; GlineIsRemActive() tests only
+	whether the gline is active everywhere else
+
+	* ircd/gline.c: detect overlapping G-lines; if an existing, wider
+	gline expires after the new one will, we drop the new one,
+	otherwise we add the G-line after that one (so the wide one will
+	apply first); if the new one contains an existing G-line and if it
+	will expire after the existing one, we drop the existing one to
+	save memory
+
+	* ircd/m_gline.c (mo_gline): opers could issue remote local
+	glines when CONFIG_OPERCMDS was off; fixed
+
+2000-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_jupe.c (mo_jupe): allow target argument to be dropped if
+	this is a local JUPE
+
+	* ircd/gline.c: add flags argument to gline_activate and
+	gline_deactivate for future expansion
+
+	* ircd/m_gline.c: pass flags to gline_activate and
+	gline_deactivate
+
+	* include/gline.h: add flags argument to gline_activate and
+	gline_deactivate
+
+	* ircd/jupe.c: add flags argument to jupe_activate and
+	jupe_deactivate for future expansion
+
+	* include/jupe.h: add flags argument to jupe_activate and
+	jupe_deactivate
+
+	* ircd/m_jupe.c: pass a flags argument to jupe_add instead of
+	local, active; pass flags to jupe_activate and jupe_deactivate
+
+	* include/gline.h: remove dead code
+
+	* ircd/gline.c: make gline expire times relative to CurrentTime,
+	since that should be monotonically increasing, instead of
+	TStime(), which can be set backwards, and which can therefore
+	cause an expire time to increase; make local glines be removed
+	instead of just deactivated; don't let gline_find() look for
+	user@host glines if the mask being looked up is a channel mask
+
+	* ircd/send.c (vsendcmdto_one): forgot to account for the case
+	where origin is a server and destination is a user
+
+	* ircd/jupe.c: make jupe expire times relative to CurrentTime,
+	since that should be monotonically increasing, instead of
+	TStime(), which can be set backwards, and which can therefore
+	cause an expire time to increase; make local jupes be removed
+	instead of just deactivated
+
+	* ircd/ircd_snprintf.c: d'oh, thanks for catching that; short for
+	limit is fine.  any other warnings I should know about?
+
+2000-04-15  Thomas Helvey <tomh@inxpress.net>
+
+	* ircd/*.c: const correctness and type safety cleanups to
+	get code to compile with C++ compiler. Still has
+	signed/unsigned comparison warnings.
+
+2000-04-15  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/userload.c: change <sys/time.h> include to <time.h> for
+	  portability.
+
+2000-04-14  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (mo_gline): d'oh, target isn't a numeric; use %C
+	and convert acptr...
+
+	* ircd/s_user.c: move gline_lookup function call into
+	register_user, where it'll have a username to lookup!
+
+	* ircd/m_gline.c: modify to utilize new sendcmdto_* series of
+	functions; also stuff send_error_to_client into return clauses
+
+	* ircd/m_jupe.c: modify to utilize new sendcmdto_* series of
+	functions; also use send_error_to_client where that makes sense
+
+	* ircd/jupe.c: modify to utilize new sendcmdto_* series of
+	functions; also use send_error_to_client where that makes sense
+
+	* ircd/gline.c: modify to utilize new sendcmdto_* series of
+	functions; also fix gline_lookup() to deal properly with remote
+	clients--boy, do struct Client and struct User need to be cleaned
+	up!
+
+	* ircd/ircd_snprintf.c (doprintf): a dest of &me is a server,
+	too...
+
+	* ircd/send.c: wrote sendcmdto_one(), vsendcmdto_one(), and
+	sendcmdto_serv_butone(), all utilizing the %v conversion of
+	ircd_snprintf()
+
+	* include/send.h: define IRC_BUFSIZE, max size of a message;
+	declare sendcmdto_one(), vsendcmdto_one(), and
+	sendcmdto_serv_butone()
+
+	* include/msg.h: define all the CMD_* constants needed to utilize
+	the new sendcmdto_* series of functions
+
+	* ircd/Makefile.in (SRC): list ircd_snprintf.c; run make depend
+
+	* ircd/gline.c: remove old, dead code.
+
+	* ircd/m_gline.c (mo_gline): disallow setting of global G-lines
+	unless CONFIG_OPERCMDS is enabled; disallow listing of all G-lines
+	(don't advertise proxies); remove dead code
+
+	* ircd/parse.c: oper handler for JUPE only lists jupes unless
+	CONFIG_OPERCMDS is enabled
+
+	* ircd/m_jupe.c (mo_jupe): don't compile mo_jupe() if
+	CONFIG_OPERCMDS is not enabled; we'll disable it in parse.c
+
+	* ircd/m_opmode.c (mo_opmode): if CONFIG_OPERCMDS is not enabled,
+	always return ERR_DISABLED
+
+	* ircd/m_clearmode.c (mo_clearmode): if CONFIG_OPERCMDS is not
+	enabled, always return ERR_DISABLED
+
+	* ircd/s_err.c: add error message to indicate disabled commands
+
+	* include/numeric.h (ERR_DISABLED): to indicate disabled commands
+
+	* doc/Configure.help: add documentation for CONFIG_OPERCMDS
+
+	* config/config-sh.in: add CONFIG_OPERCMDS, default both it and
+	CONFIG_NEW_MODE to 'y' for now
+
+	* ircd/gline.c (gline_list): fix a minor formatting bogon
+
+	* BUGS: since I fixed that bug, might as well mark it fixed.
+
+	* ircd/m_join.c: look up badchans with GLINE_EXACT
+
+	* ircd/m_gline.c: fix parc count problems; look up existing
+	G-lines with GLINE_EXACT; only set new lastmod when
+	activating/deactivating existing glines if old lastmod was not 0
+
+	* ircd/gline.c: forgot to copy the gline reason over; don't
+	propagate a gline with 0 lastmod if origin is user; add
+	GLINE_EXACT to force exact matching of gline mask
+
+	* ircd/ircd_snprintf.c (doprintf): forgot to deal with the zero
+	flag properly
+
+	* ircd/s_conf.c (find_kill): gline_find() takes a char *userhost,
+	but gline_lookup() actually takes a client--d'oh.
+
+2000-04-13  Thomas Helvey <tomh@inxpress.net>
+	* ircd/IPcheck.c: Back port BLMet's bugfix from 2.10.10
+
+2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/whocmds.c: Don't make idle flag default in /who, to prevent:
+	  "/who * x"
+	  "Gte3 H*iwg Gte@212.49.240.217 :1 :0 I am the one that was."
+	  (Found by Plexus).
+
+	* ircd/whocmds.c: Change idle time calc from socket idle to user
+	  idle.
+
+2000-04-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* config/aclocal.m4 (unet_CHECK_TYPE_SIZES): check size of void *,
+	too, for ircd_snprintf.c
+
+	* include/ircd_snprintf.h: documentation for ircd_(v)snprintf, in
+	comments; mostly descended from the Linux manpage for printf, but
+	also documenting the extensions.
+
+	* ircd/ircd_snprintf.c: NULL dest is equivalent to going to a
+	client; make 'q' be the same as 'L'; remove __inline__; only
+	define EXTENSION if HAVE_LONG_LONG is defined
+
+	* include/handlers.h: declare m_gline()
+
+	* ircd/parse.c: gline can be called by users, but it only lists
+	the glines.
+
+	* ircd/s_user.c (set_nick_name): resend gline if a remote server
+	introduces a glined client
+
+	* ircd/s_serv.c (server_estab): burst glines, too
+
+	* ircd/gline.c: fix up all the expire times to be offsets;
+	simplify gline_resend()
+
+	* ircd/m_gline.c: begin coding replacements for ms_gline(),
+	mo_gline(), and m_gline()
+
+	* ircd/gline.c (gline_add): allow *@#channel to work correctly;
+	also, prohibit local BADCHANs if LOCAL_BADCHAN not defined
+
+2000-04-13  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* tools/Bouncer/*: Add comments/documentation/tags.
+	* tools/Bouncer/*: Add debug defines, make task fork().
+
+2000-04-12  Thomas Helvey <tomh@inxpress.net>
+	* ircd/s_err.c: Cleanup s_err.c make one table so we
+	don't have to do anything tricky to get an error string.
+
+2000-04-12  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* Add port bouncer for http (x/w)
+
+2000-04-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c (find_kill): replaced call to find_gline() with a
+	call to gline_find(); also used GlineReason() instead of direct
+	reference to structure member
+
+	* ircd/m_join.c (m_join): replace bad_channel() calls with calls
+	to gline_find(name, GLINE_BADCHAN), and also check to see if gline
+	is active
+
+	* ircd/channel.c: nothing seems to be called anywhere...
+
+	* ircd/s_err.c: update a couple of replies to dovetail with new
+	semantics
+
+	* ircd/gline.c: begin complete re-implementation of gline.c along
+	the lines of the final design of jupe.c
+
+	* include/gline.h: begin complete re-implementation of gline.c
+	along the lines of the final design of jupe.c
+
+	* ircd/channel.c (mode_process_clients): fix "Deop of +k user on
+	%s by %s" message...
+
+	* ircd/ircd_snprintf.c: my new snprintf()-like functions
+
+	* include/ircd_snprintf.h: my new snprintf()-like functions
+
+2000-04-11  Thomas Helvey <tomh@inxpress.net>
+	* ircd/IPcheck.c: removed old dead code
+	* ircd/s_user.c (send_user_info): removed non-standard
+          user not found message for userhost/userip
+
+2000-04-11  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+
+	* ircd/s_err.c: Added missing quotes to ERR_DONTCHEAT numeric.
+	* doc/p10.html: Work on chapter 4.
+
+2000-04-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (mode_parse_client): fix coredump on /mode
+	#foobar +o nosuchnick
+
+2000-04-10  Perry Lorier  <Isomer@coders.net>
+	* BUGS: Added bug.
+
+2000-04-09  Thomas Helvey <tomh@inxpress.net>
+	* include/IPcheck.h: fix prototype
+	* ircd/s_user.c: fix usage of IPcheck_remote_connect
+	* ircd/IPcheck.c: removed unused args
+
+2000-04-09  Thomas Helvey <tomh@inxpress.net>
+	* include/IPcheck.h: add proto for IPcheck_expire
+
+	* ircd/IPcheck.c: Rewrote
+
+	* ircd/ircd.c: Add IPcheck_expire to main message loop
+
+	* ircd/s_user.c: Redo target hashing, refactor target code
+
+	* include/numeric.h: Cleaned up numerics, added which ones are
+	in use by other networks and what they are in use for.
+
+	* ircd/channel.c: cleaned can_join(), allow anyone through anything
+	if /invited, simplified the function.  Opers overusing OPEROVERRIDE
+	will get a message explaining to them not to cheat.
+
+	* ircd/m_join.c: cleaned up the various join functions, should be
+	a lot more efficient.  Still needs work.  Now assumes that s<->s
+	won't send it a JOIN 0.  Service coders - note this and tread with
+	care.
+
+	* ircd/m_stats.c: added Gte-'s stats doc patch.
+
+	* ircd/m_version.c: /version now returns the 005 numeric as well.
+	as requested by Liandrin.
+
+
+2000-04-07  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_clearmode.c: add include for support.h for write_log()
+
+	* configure: move ircd/crypt/* to tools/*
+
+2000-04-06  Thomas Helvey <tomh@inxpress.net>
+	* ircd/s_auth.c: Shorten auth connect timeout to 60 seconds
+          set client host to server alias if connection from localhost
+
+2000-04-06  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: Fix core during pinging (oops)
+	
+2000-04-06  Perry Lorier <isomer@coders.net>
+	* ircd/send.c: fixed wrong ident being sent to channels bug.
+	* include/numerics.h: Updated some of the numerics from other
+	networks.  Flagged some as 'unused' by undernet.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: Lets see if this helps the ping problem at all.
+	* ircd/whocmds.c, /doc/readme.who: Added %l specifier to get idle
+	time for local clients. (as requested), extended who now returns all
+	the flags (@+!) so you can tell the complete state of a client.
+
+2000-03-30  Thomas Helvey <tomh@inxpress.net>
+	* m_rping.c m_rpong.c: add Gte's rping/rpong fixes
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/parse.c: oops, missed opers.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/parse.c: fixed mystifying ping bug thats been plaguing us
+	for so long.  Remember: m_ping MUST be in the parse array. :)
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: test in check_pings was wrong.  I move that we
+	disallow cvs commit after 10pm localtime....
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/m_pong.c: Fix it for servers too.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/m_pong.c: Fix ping timeout bugs
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/channel.c: Bans had CurrentTime in their when field instead
+	of TStime()
+
+2000-03-31  Thomas Helvey <tomh@ixpress.net>
+	* ircd/numnicks.c (SetXYYCapacity): fix for extended
+	numerics.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/m_nick.c: send kills both ways so when we add nick change
+	on collision we don't desync the network.
+
+	* ircd/map.c: Fixup the map a bit more.
+
+2000-03-31  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_clearmode.c (do_clearmode): Log the CLEARMODE to OPATH
+
+	* ircd/m_opmode.c: Log the mode changes to OPATH
+
+	* ircd/channel.c (modebuf_flush_int): Log the mode changes to
+	OPATH
+
+	* include/channel.h (MODEBUF_DEST_LOG): Log the mode changes to
+	OPATH
+
+	* doc/Configure.help: help text for CONFIG_LOG_OPMODE / OPATH
+
+	* config/config-sh.in: added OPATH for opmode log file
+
+	* ircd/m_clearmode.c (do_clearmode): updated uses of
+	modebuf_mode_string() for the new usage
+
+	* ircd/channel.c: added flag MODE_FREE and an int argument to
+	modebuf_mode_string() to indicate that the string must be free'd;
+	updated calls to modebuf_mode_string() for the new usage; called
+	collapse(pretty_mask()) on the ban string and use allocated memory
+	for it; added ban list length accounting; fixed a number of small
+	bugs in ban processing
+
+	* include/channel.h: added flag MODE_FREE and an int argument to
+	modebuf_mode_string() to indicate that the string must be free'd
+
+	* ircd/m_clearmode.c (do_clearmode): made sure clearmode removed
+	keys and limits that are set
+
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/ircd.c: rewrote check_pings() for maintainability
+	and speed.  Also changed quit msg's so they don't have
+	redundant nick[host] info in them.
+
+	* ircd/send.c: Changed write errors to report what error
+	occured (if possible).
+
+	* ircd/gline.c: added gline comment to the quit.
+
+	* ircd/m_server.c: Added suggestions to server quits mentioning
+	what went wrong so the admin can fix it earlier instead of asking
+	questions...
+
+	* ircd/map.c: Changed m_map() to hide numerics, show a * beside
+	servers that aren't fully burst yet.  And show '(--s)' for servers
+	where its not sure.
+
+	* doc/example.conf: Fixed wrapped U:
+
+2000-03-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_mode.c (ms_mode): implemented a new m_mode in terms of
+	mode_parse() (version selectable at compile time)
+
+	* ircd/m_clearmode.c (mo_clearmode): clean_channelname(parv[1])
+
+	* ircd/m_opmode.c (mo_opmode): clean_channelname(parv[1])
+
+	* config/config-sh.in: add new config option to enable new m_mode
+	implementation
+
+	* doc/Configure.help: add documentation for new config option
+	CONFIG_NEW_MODE
+
+	* ircd/channel.c (mode_parse_client): /opmode #foobar -o -- 461
+	MODE -v : Not enough parameters
+
+	* ircd/m_clearmode.c (do_clearmode): do_clearmode() would remove
+	+k and +l even if they weren't set...
+
+	* ircd/m_opmode.c: implement the OPMODE command using mode_parse()
+
+	* ircd/channel.c: make mode_process_clients() clear the DEOPPED
+	flag; fix +s+p exclusivity; add MODE_ADD/MODE_DEL to flag list
+	for; test the 0-th member, not the i-th member, of the client
+	change state stuff
+
+	* ircd/m_clearmode.c (do_clearmode): use the new
+	mode_invite_clear() function
+
+	* ircd/channel.c: cleared up all the compile-time warnings and
+	errors
+
+	* include/channel.h: added declarations for mode_ban_invalidate()
+	and mode_invite_clear()
+
+	* ircd/channel.c: finished mode_parse(), then broke it up into a
+	dozen or so helper functions to make the code easier to read
+
+2000-03-29  Thomas Helvey <tomh@inxpress.net>
+	* ircd/ircd.c: refactor server initialization a bit, use
+	getopt for parsing command line, refactor init_sys, main,
+	and other bits.
+
+	* ircd/s_bsd.c: add functions for initialization to clean
+	up logic a bit and remove duplicated code.
+
+	* include/ircd.h: add struct for server process related
+	variables.
+
+2000-03-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: initial definition of mode_parse(); flags to
+	prevent doing the same thing multiple times; helper method
+	send_notoper() to send a "Not oper"/"Not on channel" notice
+
+	* include/channel.h: declare mode_parse() and helper flags
+
+	* ircd/channel.c (modebuf_flush_int): fiddled with timestamp
+	sending to match the current action of set_mode() closely enough
+	that hopefully there won't be major conflicts
+
+	* ircd/channel.c (modebuf_flush_int): consolidated the mode string
+	building logic, reversed the order of the arguments to mode
+	commands to have '-' preceed '+'
+
+2000-03-29  Thomas Helvey <tomh@inxpress.net>
+	* ircd/s_bsd.c (add_connection): don't disable socket options
+	let OS tune itself and allow important performance tweaks to 
+	work.
+
+2000-03-28  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c (modebuf_flush_int): use %d, not %-15d; I got
+	confused by set_mode, which is doing some really weird logic;
+	guess what I'm going to rewrite next?  ;)
+
+2000-03-28  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* include/channel.h: added MODE_SAVE for the bounds checking stuff
+	in modebuf_flush
+
+	* ircd/channel.c: make modebuf_flush into modebuf_flush_int and
+	make it do bounds checking on the buffer; all modes are sent only
+	if the all parameter is 1; modebuf_flush is the exported wrapper
+
+	* include/channel.h: add BOUNCE, renumber flags to get a little
+	more space
+
+	* ircd/channel.c (modebuf_flush): don't overload HACK2, add
+	BOUNCE; send DESYNCH message
+
+2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* ircd/m_clearmode.c (do_clearmode): only mark the modes the
+	channel actually has in effect for deletion
+
+	* ircd/channel.c: added explanatory comments to all added
+	functions; made flushing take place at the correct place even if
+	the MODEBUF_DEST_DEOP flag is set; rewrote build_string() helper
+	to bash some stupid bugs; made modebuf_flush() return if ModeBuf
+	is empty, fixed the apparent source, removed some bogus	string
+	termination code, properly terminate the mode strings, add support
+	for HACK2 and HACK3, made limit strings not be sent if the limit
+	is being removed, changed where '+' and '-' come from in sent
+	strings, added support for DEOP flag, set up bouncing code for
+	HACK2
+
+	* ircd/Makefile.in: ran make depend
+
+	* include/channel.h: added new defines for future functionality,
+	made modebuf_flush() return int so I can use tail recursion
+
+	* ircd/m_clearmode.c: add msg.h to includes; other misc cleanups
+	to make it all compile
+
+	* ircd/m_opmode.c: add msg.h to includes...
+
+	* ircd/m_clearmode.c: implemented mo_clearchan()/ms_clearchan()
+
+	* ircd/channel.c (modebuf_flush): realized I forgot to
+	nul-terminate addbuf/rembuf properly...
+
+	* ircd/m_clearmode.c (do_clearmode): wrote do_clearmode()...
+
+	* ircd/channel.c (modebuf_flush): correct sendto_server_butone to
+	sendto_serv_butone--blah^2
+
+	* ircd/send.c (sendto_serv_butone): stupid comments confused me
+
+	* ircd/channel.c (modebuf_flush): if there are no mode changes to
+	propagate, we're done...
+
+	* ircd/channel.c (modebuf_flush): duh; it's sendto_server_butone,
+	not sendto_all_butone
+
+	* ircd/m_clearmode.c: define skeleton for m{o,s}_clearmode
+
+	* ircd/m_opmode.c: define skeleton for m{o,s}_opmode
+
+	* ircd/Makefile.in (SRC): added m_opmode() and m_clearmode() to
+	the list
+
+	* ircd/parse.c: added messages for opmode and clearmode
+
+	* include/handlers.h: added declarations for mo_opmode(),
+	ms_opmode(), mo_clearmode(), and ms_clearmode()
+
+	* include/msg.h: define MSG_OPMODE, TOK_OPMODE, MSG_CLEARMODE, and
+	TOK_CLEARMODE
+
+	* include/channel.h (MODEBUF_DEST_OPMODE): Define the
+	MODEBUF_DEST_OPMODE flag
+
+	* ircd/channel.c (modebuf_flush): added new flag,
+	MODEBUF_DEST_OPMODE; causes channel MODE/HACK(4) notice to appear
+	to originate from source's server (or source itself, if
+	IsServer(source)); also causes a server-level MODE to be sent as
+	OPMODE instead
+
+	* include/channel.h: defined MODEBUF_DEST_SERVER,
+	MODEBUF_DEST_HACK4
+
+	* ircd/channel.c: Add another argument to build_string() to handle
+	numeric nicks; implemented MODEBUF_DEST_SERVER to send MODEs to
+	servers; implemented MODEBUF_DEST_HACK4 to cause HACK(4) notices
+	to be sent out
+
+2000-03-27  Perry Lorier <isomer@coders.net>
+
+	* ircd/s_bsd.c: fixed missing 'u' typo.
+
+2000-03-26  Kevin L. Mitchell  <klmitch@emc.com>
+
+	* ircd/channel.c: implement modebuf_init(), _mode(), _mode_uint(),
+	_mode_string(), _mode_client(), _flush(); also implemented a
+	simple build_string()
+
+	* include/channel.h: added definition of ModeBuf, modebuf_*
+	manipulation functions, and a couple of helper macros
+
+2000-03-24 Thomas Helvey <tomh@inxpress.net>
+  * numicks.c: convert extended numerics to use original mask version
+  * numnicks.h: ""
+  * s_user.c:
+2000-03-23 Thomas Helvey <tomh@inxpress.net>
+  * Merge in changes from production
+2000-03-22 Thomas Helvey <tomh@inxpress.net>
+  * numicks.c: Tweak to numnick generator to reduce possibility of duplicates.
+  * rfc1459.unet: Add Maniac's documentation for /names 0
+* Fix misc. jupe bugs that somehow made it into the tree
+* Escape /names 0 to mean /names --Maniac
+* Don't core when server asks for info --Maniac 
+* Add Kev's jupe patch --Bleep
+* Add Maniacs squit patch --Bleep
+* Merge in u2_10_10_beta07 changes --Bleep
+* Merge in u2_10_10_beta06 changes --Bleep
+* Start ircu2.10.11 development, beta branch u2_10_10 --Bleep
+#-----------------------------------------------------------------------------

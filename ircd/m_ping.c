@@ -155,6 +155,25 @@
  */
 int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  assert(0 != cptr);
+  assert(cptr == sptr);
+
+  if (parc < 2 || EmptyString(parv[1]))
+    return send_reply(sptr, ERR_NOORIGIN);
+
+  sendcmdto_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
+  return 0;
+}
+
+/*
+ * mo_ping - oper message handler
+ *
+ * parv[0] = sender prefix
+ * parv[1] = origin
+ * parv[2] = destination
+ */
+int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
   struct Client* acptr;
   char*          destination;
   assert(0 != cptr);
