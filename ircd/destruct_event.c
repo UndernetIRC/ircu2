@@ -15,8 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Implementation of timed channel destruction events.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -31,18 +33,26 @@
 #include <assert.h>
 #include <stdlib.h>
 
+/** Structure describing a destruction event. */
 struct DestructEvent {
-  struct DestructEvent* next_event;
-  struct DestructEvent* prev_event;
-  time_t expires;
-  struct Channel* chptr;
+  struct DestructEvent* next_event; /**< Next event in the queue. */
+  struct DestructEvent* prev_event; /**< Previous event in the queue. */
+  time_t expires;                   /**< When the destruction should happen. */
+  struct Channel* chptr;            /**< Channel to destroy. */
 };
 
+/** Head of short-delay destruction events.  */
 static struct DestructEvent* minute_list_top;
+/** Tail of short-delay destruction events. */
 static struct DestructEvent* minute_list_bottom;
+/** Head of long-delay destruction events. */
 static struct DestructEvent* days_list_top;
+/** Tail of long-delay destruction events. */
 static struct DestructEvent* days_list_bottom;
 
+/** Schedule a short-delay destruction event for \a chptr.
+ * @param[in] chptr Channel to destroy.
+ */
 void schedule_destruct_event_1m(struct Channel* chptr)
 {
   struct DestructEvent* new_event;
@@ -67,6 +77,9 @@ void schedule_destruct_event_1m(struct Channel* chptr)
   chptr->destruct_event = new_event;
 }
 
+/** Schedule a long-delay destruction event for \a chptr.
+ * @param[in] chptr Channel to destroy.
+ */
 void schedule_destruct_event_48h(struct Channel* chptr)
 {
   struct DestructEvent* new_event;
@@ -91,6 +104,9 @@ void schedule_destruct_event_48h(struct Channel* chptr)
   chptr->destruct_event = new_event;
 }
 
+/** Unlink a destruction event for a channel.
+ * @param[in] chptr Channel that is being destroyed early.
+ */
 void remove_destruct_event(struct Channel* chptr)
 {
   struct DestructEvent* event = chptr->destruct_event;
@@ -119,6 +135,9 @@ void remove_destruct_event(struct Channel* chptr)
   chptr->destruct_event = NULL;
 }
 
+/** Execute expired channel destruction events.
+ * @param[in] ev Expired timer event (ignored).
+ */
 void exec_expired_destruct_events(struct Event* ev)
 {
   int i = 0;
