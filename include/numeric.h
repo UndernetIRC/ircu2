@@ -56,6 +56,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_SNOMASK            8        /* Undernet extension */
 #define RPL_STATMEMTOT         9        /* Undernet extension */
 #define RPL_STATMEM           10        /* Undernet extension */
+					/* Hybrid: server redirect */
 /*      RPL_YOURCOOKIE        14           IRCnet extension */
 #define RPL_MAP               15        /* Undernet extension */
 #define RPL_MAPMORE           16        /* Undernet extension */

@@ -1,3 +1,10 @@
+2001-01-02  Perry Lorier <isomer@coders.net>
+	* ircd/s_err.c: Added third param to 004 - the channel modes that tage params.  Used by hybrid/epic.
+	* ircd/s_channels.c: Added fix for msg'ing a -n+m channel - thanks
+		to guppy for noticing, and hektik for providing the fix.
+	* misc others: Minor cleanups, added more protocol_violations, ripped
+		out more P09 stuffs, bit more protocol neg stuff.
+
 2000-12-19  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_ison.c (m_ison): Dianora says that ISON has to end with a

@@ -317,10 +317,24 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
-    if (IsLocalChannel(name) || !IsChannelName(name))
+    if (IsLocalChannel(name) || !IsChannelName(name)) {
+      protocol_violation(sptr,"%s tried to join %s",cli_name(cptr),name);
       continue;
+    }
 
-    if ((chptr = FindChannel(name))) {
+    if (!(chptr = FindChannel(name))) {
+      /* No channel exists, so create one */
+      if (!(chptr = get_channel(sptr, name, CGT_CREATE))) {
+        protocol_violation(sptr,"couldn't get channel %s for %s",
+        		   name,cli_name(sptr));
+      	continue;
+      }
+      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+
+      /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */ 
+      chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
+    }
+    else { /* We have a valid channel? */
       if ((member = find_member_link(chptr, sptr))) {
 	if (!IsZombie(member)) /* already on channel */
 	  continue;
@@ -330,14 +344,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	chptr = FindChannel(name);
       } else
 	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
-    } else {
-      flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
-
-      if ((chptr = get_channel(sptr, name, CGT_CREATE)))
-	chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
-      else
-	continue; /* couldn't get channel */
-    }
+    } 
 
     joinbuf_join(&join, chptr, flags);
   }
