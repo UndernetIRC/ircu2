@@ -443,7 +443,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
     if (find_kill(sptr)) {
       ServerStats->is_ref++;
       IPcheck_connect_fail(cli_ip(sptr));
-      return exit_client(cptr, sptr, &me, "K-lined");
+      return exit_client(cptr, sptr, &me,
+        find_kill(sptr) == -1 ? "K-lined" : "G-lined");
     }
     /*
      * Check for mixed case usernames, meaning probably hacked.  Jon2 3-94

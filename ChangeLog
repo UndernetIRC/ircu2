@@ -1,3 +1,6 @@
+2003-04-24 Jeekay <jeekay@netgamers.org>
+	* ircd/s_user.c: Altered (K-lined) to depend on find_kill type
+
 2003-04-26  David Mansell <splidge@quakenet.org>
 	* ircd/m_invite.c: let +k users invite into channels they aren't on.
 
