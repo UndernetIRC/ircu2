@@ -1,3 +1,19 @@
+2002-07-17  Mathieu Rene <math@rootservices.net>
+	    Reed Loden <reed@redmagnet.com>
+
+	* include/channel.h: Added IsInvited function definition.
+
+	* include/client.h: Added SNO_AUTO, changed the hex of
+	SNO_DEBUG and the two SNO_ALL's.
+
+	* ircd/channel.c: Added function IsInvited(client,chan).
+
+	* ircd/gline.c: Add an ircd_strncmp to check for AUTO and if
+	found, use SNO_AUTO to hide it.
+
+	* ircd/s_user.c (check_target_limit): User gets a free target for
+	a channel on which they are invited to.
+
 2002-07-16  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_stats.c: extend stats_quarantine() and
