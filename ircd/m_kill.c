@@ -441,7 +441,7 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (EmptyString(path))
       return need_more_params(sptr, parv[0], "KILL");
 
-    if (strlen(path) > (size_t)TOPICLEN)
+    if (strlen(path) > TOPICLEN)
       path[TOPICLEN] = '\0';
   }
 

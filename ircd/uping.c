@@ -159,7 +159,7 @@ int uping_init(void)
 void polludp(int udpfd)
 {
   struct sockaddr_in from;
-  size_t             len = 0;
+  unsigned int       len = 0;
   static time_t      last = 0;
   static int         counter = 0;
   char               buf[BUFSIZE + 1];

@@ -147,10 +147,12 @@ typedef enum ChannelGetType {
  */
 #define MAGIC_REMOTE_JOIN_TS 1270080000
 
- #ifdef OPER_WALK_THROUGH_LMODES
-   /* used in can_join to determine if an oper forced a join on a channel */
-   #define MAGIC_OPER_OVERRIDE 1000
- #endif
+#ifdef OPER_WALK_THROUGH_LMODES
+/*
+ * used in can_join to determine if an oper forced a join on a channel
+ */
+#define MAGIC_OPER_OVERRIDE 1000
+#endif
 
 
 extern const char* const PartFmt1;

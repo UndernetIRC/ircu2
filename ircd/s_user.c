@@ -151,7 +151,7 @@ int user_set_away(struct User* user, char* message)
     /*
      * Marking as away
      */
-    size_t len = strlen(message);
+    unsigned int len = strlen(message);
 
     if (len > TOPICLEN) {
       message[TOPICLEN] = '\0';
@@ -842,7 +842,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 void add_target(struct Client *sptr, void *target)
 {
   unsigned char *p;
-  unsigned int tmp = ((size_t)target & 0xffff00) >> 8;
+  unsigned int tmp = ((size_t) target & 0xffff00) >> 8;
   unsigned char hash = (tmp * tmp) >> 12;
   if (sptr->targets[0] == hash)        /* Last person that we messaged ourself? */
     return;

@@ -130,7 +130,7 @@ unsigned int base64toint(const char* s)
   return i;
 }
 
-const char* inttobase64(char* buf, unsigned int v, size_t count)
+const char* inttobase64(char* buf, unsigned int v, unsigned int count)
 {
   buf[count] = '\0';  
   while (count > 0) {
@@ -152,7 +152,7 @@ static struct Client* FindXNServer(const char* numeric)
 
 struct Client* FindNServer(const char* numeric)
 {
-  size_t len = strlen(numeric);
+  unsigned int len = strlen(numeric);
 
   if (len < 3) {
     Debug((DEBUG_DEBUG, "FindNServer: %s(%d)", numeric, base64toint(numeric)));
@@ -232,7 +232,7 @@ void SetServerYXX(struct Client* cptr, struct Client* server, const char* yxx)
                                    sizeof(struct Client*));
 }
 
-void SetYXXCapacity(struct Client* c, size_t capacity)
+void SetYXXCapacity(struct Client* c, unsigned int capacity)
 {
   unsigned int max_clients;
 #if defined(EXTENDED_NUMERICS)
