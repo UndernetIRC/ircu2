@@ -177,7 +177,7 @@ struct Client* findNUser(const char* yxx)
   if (5 == strlen(yxx)) {
     if (0 != (server = FindXNServer(yxx))) {
       Debug((DEBUG_DEBUG, "findNUser: %s(%d)", yxx, 
-             base64toint(yxx + 2) & server->serv->nn_mask, server));
+             base64toint(yxx + 2) & server->serv->nn_mask));
       return server->serv->client_list[base64toint(yxx + 2) & server->serv->nn_mask];
     }
   }
