@@ -1,3 +1,14 @@
+2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/channel.c: removing limits shouldn't gobble an argument;
+	this was a subtle interaction issue with modebuf...fixed by adding
+	MODE_LIMIT to modebuf_flush_int() and short-circuiting
+	modebuf_mode_uint() to add MODE_LIMIT to mbuf->mb_rem in the
+	removal case.  Note that this is not proof against the sequence,
+	"modebuf_mode_uint(mbuf, MODE_ADD | MODE_LIMIT, 10);
+	modebuf_mode_uint(mbuf, MODE_DEL | MODE_LIMIT, 10);"
+	(Bug #916138)
+
 2004-08-31  Isomer <isomer@undernet.org>
 	* ircd/m_account.c: Back out untested login-on-connect extensions,
 	we'll relook at these for .12
