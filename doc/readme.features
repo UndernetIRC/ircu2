@@ -214,6 +214,20 @@ many client disappear that the whole "whowas" list is refreshed a few
 times (unless you make it rather large).  A reasonable value is "total
 number of clients" / 25.
 
+HOST_HIDING
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local users can set umode +x, thus allowing them
+to hide their hostname if they have also registered with a channel
+service (i.e. they have the ACCOUNT flag set).
+
+HIDDEN_HOST
+ * Type: string
+ * Default: users.undernet.org
+
+This selects the suffix for the hidden hostmask (see HOST_HIDING).
+
 KILLCHASETIMELIMIT
  * Type: integer
  * Default: 30

@@ -609,7 +609,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
         continue;
     }
     else {
-      if (match(gline->gl_host, (cli_user(cptr))->host) != 0) 
+      if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0) 
         continue;
     }
     return gline;

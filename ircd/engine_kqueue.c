@@ -176,7 +176,7 @@ set_or_clear(struct Socket* sock, unsigned int clear, unsigned int set)
     i++; /* advance count... */
   }
 
-  if (kevent(kqueue_id, chglist, i, 0, 0, 0) < 0)
+  if (kevent(kqueue_id, chglist, i, 0, 0, 0) < 0 && errno != EBADF)
     event_generate(ET_ERROR, sock, errno); /* report error */
 }
 

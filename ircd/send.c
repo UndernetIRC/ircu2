@@ -216,12 +216,13 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
  *  addition -- Armin, 8jun90 (gruner@informatik.tu-muenchen.de)
  */
 
-static int match_it(struct Client *one, const char *mask, int what)
+static int match_it(struct Client *from, struct Client *one, const char *mask, int what)
 {
   switch (what)
   {
     case MATCH_HOST:
-      return (match(mask, cli_user(one)->host) == 0);
+      return (match(mask, cli_user(one)->host) == 0 ||
+        (HasHiddenHost(one) && match(mask, cli_user(one)->realhost) == 0));
     case MATCH_SERVER:
     default:
       return (match(mask, cli_name(cli_user(one)->server)) == 0);
@@ -331,6 +332,8 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
  * Send a (prefix) command originating from <from> to all channels
  * <from> is locally on.  <from> must be a user. <tok> is ignored in
  * this function.
+ *
+ * Update: don't send to 'one', if any. --Vampire
  */
 /* XXX sentalong_marker used XXX
  *
@@ -344,8 +347,9 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
  * message to, and then a final loop through the connected servers
  * to delete the flag. -Kev
  */
-void sendcmdto_common_channels(struct Client *from, const char *cmd,
-			       const char *tok, const char *pattern, ...)
+void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
+				      const char *tok, struct Client *one,
+				      const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -377,13 +381,14 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
     for (member = chan->channel->members; member;
 	 member = member->next_member)
       if (MyConnect(member->user) && -1 < cli_fd(cli_from(member->user)) &&
+          member->user != one &&
 	  sentalong[cli_fd(cli_from(member->user))] != sentalong_marker) {
 	sentalong[cli_fd(cli_from(member->user))] = sentalong_marker;
 	send_buffer(member->user, mb, 0);
       }
   }
 
-  if (MyConnect(from))
+  if (MyConnect(from) && from != one)
     send_buffer(from, mb, 0);
 
   msgq_clean(mb);
@@ -392,10 +397,13 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
 /*
  * Send a (prefixed) command to all local users on the channel specified
  * by <to>; <tok> is ignored by this function
+ *
+ * Update: don't send to 'one', if any. --Vampire
  */
-void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
-			       const char *tok, struct Channel *to,
-			       const char *pattern, ...)
+void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
+				      const char *tok, struct Channel *to,
+				      struct Client *one, const char *pattern,
+				      ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -410,7 +418,7 @@ void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
 
   /* send the buffer to each local channel member */
   for (member = to->members; member; member = member->next_member) {
-    if (MyConnect(member->user) && !IsZombie(member))
+    if (MyConnect(member->user) && member->user != one && !IsZombie(member))
       send_buffer(member->user, mb, 0);
   }
 
@@ -595,7 +603,7 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   sentalong_marker++;
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
     if (!IsRegistered(cptr) || cli_from(cptr) == one || IsServer(cptr) ||
-	IsMe(cptr) || !match_it(cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
+	IsMe(cptr) || !match_it(from, cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
 	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
       continue; /* skip it */
     sentalong[cli_fd(cli_from(cptr))] = sentalong_marker;

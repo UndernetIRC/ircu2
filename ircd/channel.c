@@ -162,11 +162,11 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
  * Create a string of form "foo!bar@fubar" given foo, bar and fubar
  * as the parameters.  If NULL, they become "*".
  */
-static char *make_nick_user_host(const char *nick, const char *name,
-                                 const char *host)
+#define NUH_BUFSIZE	(NICKLEN + USERLEN + HOSTLEN + 3)
+static char *make_nick_user_host(char *namebuf, const char *nick,
+				 const char *name, const char *host)
 {
-  static char namebuf[NICKLEN + USERLEN + HOSTLEN + 3];
-  ircd_snprintf(0, namebuf, sizeof(namebuf), "%s!%s@%s", nick, name, host);
+  ircd_snprintf(0, namebuf, NUH_BUFSIZE, "%s!%s@%s", nick, name, host);
   return namebuf;
 }
 
@@ -174,10 +174,11 @@ static char *make_nick_user_host(const char *nick, const char *name,
  * Create a string of form "foo!bar@123.456.789.123" given foo, bar and the
  * IP-number as the parameters.  If NULL, they become "*".
  */
-static char *make_nick_user_ip(char *nick, char *name, struct in_addr ip)
+#define NUI_BUFSIZE	(NICKLEN + USERLEN + 16 + 3)
+static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
+			       struct in_addr ip)
 {
-  static char ipbuf[NICKLEN + USERLEN + 16 + 3];
-  ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s!%s@%s", nick, name,
+  ircd_snprintf(0, ipbuf, NUI_BUFSIZE, "%s!%s@%s", nick, name,
 		ircd_ntoa((const char*) &ip));
   return ipbuf;
 }
@@ -410,7 +411,11 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
 {
   struct SLink* tmp;
+  char          nu_host[NUH_BUFSIZE];
+  char          nu_realhost[NUH_BUFSIZE];
+  char          nu_ip[NUI_BUFSIZE];
   char*         s;
+  char*         sr = NULL;
   char*         ip_s = NULL;
 
   if (!IsUser(cptr))
@@ -419,18 +424,24 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   if (member && IsBanValid(member))
     return IsBanned(member);
 
-  s = make_nick_user_host(cli_name(cptr), (cli_user(cptr))->username,
+  s = make_nick_user_host(nu_host, cli_name(cptr), (cli_user(cptr))->username,
 			  (cli_user(cptr))->host);
+  if (HasHiddenHost(cptr))
+    sr = make_nick_user_host(nu_realhost, cli_name(cptr),
+			     (cli_user(cptr))->username,
+			     cli_user(cptr)->realhost);
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
     if ((tmp->flags & CHFL_BAN_IPMASK)) {
       if (!ip_s)
-        ip_s = make_nick_user_ip(cli_name(cptr), (cli_user(cptr))->username,
-				 cli_ip(cptr));
+        ip_s = make_nick_user_ip(nu_ip, cli_name(cptr),
+				 (cli_user(cptr))->username, cli_ip(cptr));
       if (match(tmp->value.ban.banstr, ip_s) == 0)
         break;
     }
     else if (match(tmp->value.ban.banstr, s) == 0)
+      break;
+    else if (sr && match(tmp->value.ban.banstr, sr) == 0)
       break;
   }
 
@@ -857,6 +868,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 char *pretty_mask(char *mask)
 {
   static char star[2] = { '*', 0 };
+  static char retmask[NUH_BUFSIZE];
   char *last_dot = NULL;
   char *ptr;
 
@@ -929,7 +941,7 @@ char *pretty_mask(char *mask)
     host = ptr - HOSTLEN;
     *host = '*';
   }
-  return make_nick_user_host(nick, user, host);
+  return make_nick_user_host(retmask, nick, user, host);
 }
 
 static void send_ban_list(struct Client* cptr, struct Channel* chptr)
@@ -1517,7 +1529,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		addbuf_i ? "+" : "", addbuf, remstr, addstr);
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendcmdto_channel_butserv(app_source, CMD_MODE, mbuf->mb_channel,
+      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL,
 				"%H %s%s%s%s%s%s", mbuf->mb_channel,
 				rembuf_i ? "-" : "", rembuf,
 				addbuf_i ? "+" : "", addbuf, remstr, addstr);
@@ -2643,7 +2655,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
     /* Send notification to channel */
     if (!(flags & CHFL_ZOMBIE))
-      sendcmdto_channel_butserv(jbuf->jb_source, CMD_PART, chan,
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL,
 				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
 				":%H" : "%H :%s", chan, jbuf->jb_comment);
     else if (MyUser(jbuf->jb_source))
@@ -2670,12 +2682,12 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 			    "%H %Tu", chan, chan->creationtime);
 
     /* Send the notification to the channel */
-    sendcmdto_channel_butserv(jbuf->jb_source, CMD_JOIN, chan, ":%H", chan);
+    sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
 
     /* send an op, too, if needed */
     if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
 	!IsModelessChannel(chan->chname))
-      sendcmdto_channel_butserv(jbuf->jb_source, CMD_MODE, chan, "%H +o %C",
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
 				chan, jbuf->jb_source);
   }
 

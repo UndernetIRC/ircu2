@@ -248,6 +248,8 @@ static struct FeatureDesc {
   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
   F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
   F_I(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
+  F_B(HOST_HIDING, 0, 0, 0),
+  F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
