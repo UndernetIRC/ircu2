@@ -114,8 +114,12 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Client *c2ptr;
   struct Membership* member;
   struct Channel *ch2ptr = 0;
-  int idx, flag, len, mlen;
-  char *s, *para = parc > 1 ? parv[1] : 0;
+  int idx;
+  int flag;
+  int len;
+  int mlen;
+  char* s;
+  char* para = parc > 1 ? parv[1] : 0;
   char buf[BUFSIZE];
 
   if (parc > 2 && hunt_server(1, cptr, sptr, "%s%s " TOK_NAMES " %s %s", 2, parc, parv))
@@ -123,17 +127,18 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   mlen = strlen(me.name) + 10 + strlen(sptr->name);
 
-  if (!EmptyString(para))
-  {
-    s = strchr(para, ',');
-    if (s)
-    {
-      parv[1] = ++s;
-      m_names(cptr, sptr, parc, parv);
-    }
-    clean_channelname(para);
-    ch2ptr = FindChannel(para);
+  if (EmptyString(para))
+    return 0;
+  else if (*para == '0')
+    *para = '\0';
+  
+  s = strchr(para, ',');
+  if (s) {
+    parv[1] = ++s;
+    m_names(cptr, sptr, parc, parv);
   }
+  clean_channelname(para);
+  ch2ptr = FindChannel(para);
 
   /*
    * First, do all visible channels (public and the one user self is)

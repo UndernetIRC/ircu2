@@ -1,11 +1,13 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.17 2000-03-21 01:05:16 bleep Exp $
+# $Id: ChangeLog,v 1.18 2000-03-21 03:48:11 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
 #-----------------------------------------------------------------------------
+* Escape /names 0 to mean /names --Maniac
+* Don't core when server asks for info --Maniac 
 * Add Kev's jupe patch --Bleep
 * Add Maniacs squit patch --Bleep
 * Merge in u2_10_10_beta07 changes --Bleep
