@@ -66,6 +66,7 @@ struct Client;
 #define CHFL_BANVALID           0x0800  /* CHFL_BANNED bit is valid */
 #define CHFL_BANNED             0x1000  /* Channel member is banned */
 #define CHFL_SILENCE_IPMASK     0x2000  /* silence mask is an IP-number mask */
+#define CHFL_USER_PARTING       0x4000  /* User is already parting that channel */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -180,6 +181,7 @@ struct Membership {
 #define IsServOpOk(x)       ((x)->status & CHFL_SERVOPOK)
 #define IsBurstJoined(x)    ((x)->status & CHFL_BURST_JOINED)
 #define IsVoicedOrOpped(x)  ((x)->status & CHFL_VOICED_OR_OPPED)
+#define IsUserParting(x)    ((x)->status & CHFL_USER_PARTING)
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
@@ -187,6 +189,7 @@ struct Membership {
 #define SetServOpOk(x)      ((x)->status |= CHFL_SERVOPOK)
 #define SetBurstJoined(x)   ((x)->status |= CHFL_BURST_JOINED)
 #define SetZombie(x)        ((x)->status |= CHFL_ZOMBIE)
+#define SetUserParting(x)   ((x)->status |= CHFL_USER_PARTING)
 
 #define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
 #define ClearBanValid(x)    ((x)->status &= ~CHFL_BANVALID)

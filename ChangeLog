@@ -1,3 +1,8 @@
+2003-10-24  Entrope <entrope@users.sourceforge.net>
+        * include/channel.h: Add new flag to indicate a user is
+        parting a channel.
+
+        * ircd/channel.c: Use it.
 2003-10-25 Isomer <isomer@undernet.org>
 	* ircd/gline.c: Make sure we never use the gl_host variable when we
 	are dealing with a realname (or other magical) gline.

@@ -2704,6 +2704,12 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     /* got to remove user here */
     if (jbuf->jb_type == JOINBUF_TYPE_PARTALL || is_local)
       remove_user_from_channel(jbuf->jb_source, chan);
+    else {
+      struct Membership *member = find_member_link(chan, jbuf->jb_source);
+      if (IsUserParting(member))
+        return;
+      SetUserParting(member);
+    }
   } else {
     /* Add user to channel */
     add_user_to_channel(chan, jbuf->jb_source, flags);
