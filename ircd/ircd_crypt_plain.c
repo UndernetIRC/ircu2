@@ -17,9 +17,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-/*
+/**
  * @file
- * @brief Routines for PLAIN passwords
+ * @brief Routines for PLAIN passwords.
  * @version $Id$
  * 
  * PLAIN text encryption.  Oxymoron and a half that.
