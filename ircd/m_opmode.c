@@ -89,10 +89,12 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "channel.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"

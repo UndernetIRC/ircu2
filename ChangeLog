@@ -1,5 +1,9 @@
 2000-03-27  Kevin L. Mitchell  <klmitch@emc.com>
 
+	* ircd/m_clearmode.c: add msg.h to includes...
+
+	* ircd/m_opmode.c: add msg.h to includes...
+
 	* ircd/m_clearmode.c: implemented mo_clearchan()/ms_clearchan()
 
 	* ircd/channel.c (modebuf_flush): realized I forgot to
@@ -66,7 +70,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.30 2000-03-27 20:12:50 kev Exp $
+# $Id: ChangeLog,v 1.31 2000-03-27 21:04:57 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
