@@ -88,5 +88,6 @@ void motd_clear(void);
 
 /* This is called to report T-lines */
 void motd_report(struct Client *to);
+void motd_memory_count(struct Client *cptr);
 
 #endif /* INCLUDED_motd_h */
