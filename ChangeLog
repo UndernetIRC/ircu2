@@ -1,3 +1,7 @@
+2003-06-22  Diane Bruce  <db@db.net>
+
+	* ircd/parse.c: Completely rewritten June 2, 2003 - Dianora
+
 2003-06-22  Bas Steendijk  <steendijk@xs4all.nl>
 
         * include/ircd_features.h, include/supported.h, ircd/ircd_features.c,

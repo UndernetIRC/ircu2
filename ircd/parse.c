@@ -54,14 +54,48 @@
 #include <string.h>
 #include <stdlib.h>
 
+/*
+ * Message Tree stuff mostly written by orabidoo, with changes by Dianora.
+ * Adapted to Undernet, adding token support, etc by comstud 10/06/97
+ *
+ * completely rewritten June 2, 2003 - Dianora
+ *
+ * This has always just been a trie. Look at volume III of Knuth ACP
+ *
+ *
+ * ok, you start out with an array of pointers, each one corresponds
+ * to a letter at the current position in the command being examined.
+ *
+ * so roughly you have this for matching 'trie' or 'tie'
+ *
+ * 't' points -> [MessageTree *] 'r' -> [MessageTree *] -> 'i'
+ *   -> [MessageTree *] -> [MessageTree *] -> 'e' and matches
+ *
+ *				 'i' -> [MessageTree *] -> 'e' and matches
+ */
 
+#define MAXPTRLEN	32	/* Must be a power of 2, and
+				 * larger than 26 [a-z]|[A-Z]
+				 * its used to allocate the set
+				 * of pointers at each node of the tree
+				 * There are MAXPTRLEN pointers at each node.
+				 * Obviously, there have to be more pointers
+				 * Than ASCII letters. 32 is a nice number
+				 * since there is then no need to shift
+				 * 'A'/'a' to base 0 index, at the expense
+				 * of a few never used pointers. For a small
+				 * parser like this, this is a good compromise
+				 * and does make it somewhat faster.
+				 *
+				 * - Dianora
+				 */
 
 struct MessageTree {
-  char *final;
   struct Message *msg;
-  struct MessageTree *pointers[26];
+  struct MessageTree *pointers[MAXPTRLEN];
 };
 
+static struct MessageTree msg_tree;
 
 struct Message msgtab[] = {
   {
@@ -601,223 +635,126 @@ struct Message msgtab[] = {
 
 static char *para[MAXPARA + 2]; /* leave room for prefix and null */
 
-/*
- * Message Tree stuff mostly written by orabidoo, with changes by Dianora.
- * Adapted to Undernet, adding token support, etc by comstud 10/06/97
- */
-
-static struct MessageTree msg_tree_cmd;
-static struct MessageTree msg_tree_tok;
 
 /*
- * Guts of making the token tree...
+ * add_msg_element
+ *
+ * inputs	- Pointer to current piece of message tree
+ *		- Pointer to struct Message to add at final token position
+ *		- Pointer to current portion of cmd or token to add
+ * output	- NONE
+ * side effects	- recursively build the Message Tree ;-)
  */
-static struct Message **do_msg_tree_tok(struct MessageTree *mtree, char *prefix,
-    struct Message **mptr)
+void
+add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
 {
-  char newprefix[64];           /* Must be longer than every command name */
-  int c, c2, lp;
-  struct MessageTree *mtree1;
+  struct MessageTree *ntree_p;
 
-  lp = strlen(prefix);
-  if (!lp || !strncmp((*mptr)->tok, prefix, lp))
+  if (*cmd == '\0')
   {
-    if (!mptr[1] || (lp && strncmp(mptr[1]->tok, prefix, lp)))
-    {
-      /* last command in the message struct or last command in this prefix */
-      mtree->final = (*mptr)->tok + lp;
-      mtree->msg = *mptr;
-      for (c = 0; c < 26; ++c)
-        mtree->pointers[c] = NULL;
-      return mptr + 1;
-    }
-    /* command in this prefix */
-    if (0 == ircd_strcmp((*mptr)->tok, prefix))
-    {
-      mtree->final = "";
-      mtree->msg = *mptr++;
-    }
-    else
-      mtree->final = NULL;
-
-    for (c = 'A'; c <= 'Z'; ++c)
-    {
-      if ((*mptr)->tok[lp] == c)
-      {
-        mtree1 = (struct MessageTree *)MyMalloc(sizeof(struct MessageTree));
-        mtree1->final = NULL;
-        mtree->pointers[c - 'A'] = mtree1;
-        strcpy(newprefix, prefix);
-        newprefix[lp] = c;
-        newprefix[lp + 1] = '\0';
-        mptr = do_msg_tree_tok(mtree1, newprefix, mptr);
-        if (!*mptr || strncmp((*mptr)->tok, prefix, lp))
-        {
-          for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
-            mtree->pointers[c2] = NULL;
-          return mptr;
-        }
-      }
-      else
-        mtree->pointers[c - 'A'] = NULL;
-    }
-    return mptr;
+    mtree_p->msg = msg_p;
+    return;
   }
-  /*
-   * XXX - should never be here, quick hack, this can be done better
-   */
-  assert(0);
-  exit(1);
-}
 
-/*
- * Guts of making the command tree...
- */
-static struct Message *do_msg_tree_cmd(struct MessageTree *mtree, char *prefix,
-    struct Message *mptr)
-{
-  char newprefix[64];           /* Must be longer than every command name */
-  int c, c2, lp;
-  struct MessageTree *mtree1;
-
-  lp = strlen(prefix);
-  if (!lp || !strncmp(mptr->cmd, prefix, lp))
+  if ((ntree_p = mtree_p->pointers[*cmd & (MAXPTRLEN-1)]) != NULL)
   {
-    if (!mptr[1].cmd || (lp && strncmp(mptr[1].cmd, prefix, lp)))
-    {
-      /* last command in the message struct or last command in this prefix */
-      mtree->final = mptr->cmd + lp;
-      mtree->msg = mptr;
-      for (c = 0; c < 26; ++c)
-        mtree->pointers[c] = NULL;
-      return mptr + 1;
-    }
-    /* command in this prefix */
-    if (0 == ircd_strcmp(mptr->cmd, prefix))
-    {
-      mtree->final = "";
-      mtree->msg = mptr++;
-    }
-    else
-      mtree->final = NULL;
-
-    for (c = 'A'; c <= 'Z'; ++c)
-    {
-      if (mptr->cmd[lp] == c)
-      {
-        mtree1 = (struct MessageTree *)MyMalloc(sizeof(struct MessageTree));
-        mtree1->final = NULL;
-        mtree->pointers[c - 'A'] = mtree1;
-        strcpy(newprefix, prefix);
-        newprefix[lp] = c;
-        newprefix[lp + 1] = '\0';
-        mptr = do_msg_tree_cmd(mtree1, newprefix, mptr);
-        if (!mptr->cmd || strncmp(mptr->cmd, prefix, lp))
-        {
-          for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
-            mtree->pointers[c2] = NULL;
-          return mptr;
-        }
-      }
-      else
-        mtree->pointers[c - 'A'] = NULL;
-    }
-    return mptr;
+    add_msg_element(ntree_p, msg_p, cmd+1);
   }
-  /*
-   * This should never happen
-   */
-  assert(0);
-  exit(1);
+  else
+  {
+    ntree_p = (struct MessageTree *)MyMalloc(sizeof(struct MessageTree));
+    mtree_p->pointers[*cmd & (MAXPTRLEN-1)] = ntree_p;
+    add_msg_element(ntree_p, msg_p, cmd+1);
+  }
 }
 
-static int mcmdcmp(const struct Message *m1, const struct Message *m2)
+#if ircu_unused
+/* This is unused in ircu, trivial to do, but left here for later
+ * use if desired.
+ *
+ * - Dianora
+ */
+/*
+ * del_msg_element
+ *
+ * inputs	- 
+ *		-
+ *		-
+ * output	- NONE
+ * side effects	- recursively deletes a token from the Message Tree ;-)
+ */
+void
+del_msg_element(struct MessageTree *mtree_p, char *cmd)
 {
-  return strcmp(m1->cmd, m2->cmd);
-}
+  struct MessageTree *ntree_p;
 
-static int mtokcmp(const struct Message **m1, const struct Message **m2)
-{
-  return strcmp((*m1)->tok, (*m2)->tok);
+  if (*cmd == '\0')
+    return;
+
+  if ((ntree_p = mtree_p->pointers[*cmd & (MAXPTRLEN-1)]) != NULL)
+  {
+    del_msg_element(ntree_p, cmd+1);
+    MyFree(ntree_p);
+    mtree_p->pointers[*cmd & (MAXPTRLEN-1)] = NULL;
+  }
 }
+#endif
 
 /*
- * Sort the command names.
- * Create table of pointers into msgtab for tokens.
- * Create trees for ->cmd and ->tok and free the token pointers.
+ * initmsgtree()
+ *
+ * inputs	- none
+ * output	- none
+ * side effect	- zero the msg_tree, recursively populate it
  */
-void initmsgtree(void)
+void
+initmsgtree(void)
 {
   int i;
-  struct Message *msg = msgtab;
-  int ii;
-  struct Message **msgtab_tok;
-  struct Message **msgtok;
 
-  for (i = 0; msg->cmd; ++i, ++msg)
-    continue;
-  qsort(msgtab, i, sizeof(struct Message),
-      (int (*)(const void *, const void *))mcmdcmp);
-  msgtab_tok = (struct Message **)MyMalloc((i + 1) * sizeof(struct Message *));
-  for (ii = 0; ii < i; ++ii)
-    msgtab_tok[ii] = msgtab + ii;
-  msgtab_tok[i] = NULL;         /* Needed by `do_msg_tree_tok' */
-  qsort(msgtab_tok, i, sizeof(struct Message *),
-      (int (*)(const void *, const void *))mtokcmp);
-  msg = do_msg_tree_cmd(&msg_tree_cmd, "", msgtab);
-  msgtok = do_msg_tree_tok(&msg_tree_tok, "", msgtab_tok);
-  MyFree(msgtab_tok);
+  memset(&msg_tree, 0, sizeof(msg_tree));
+
+  for (i = 0; msgtab[i].cmd != NULL ; i++)
+  {
+    add_msg_element(&msg_tree, &msgtab[i], msgtab[i].cmd);
+    add_msg_element(&msg_tree, &msgtab[i], msgtab[i].tok);
+  }
 }
 
 /*
+ * msg_tree_parse
+ *
+ * inputs	- pointer to command/token 
+ *		- pointer to MessageTree root
+ * output	- found Message * for this token/command or NULL if not found
+ * side effects	-
  * Generic tree parser which works for both commands and tokens.
  * Optimized by Run.
+ * Re-written by Dianora (db) (tail recursive)
+ *
  */
-static struct Message *msg_tree_parse(char *cmd, struct MessageTree *root)
+static struct Message *
+msg_tree_parse(char *cmd, struct MessageTree *root)
 {
   struct MessageTree *mtree;
-  unsigned char r = (0xdf & (unsigned char)*cmd) - 'A';
-  if (r > 25 || !(mtree = root->pointers[r]))
-    return NULL;
-  for (;;)
-  {
-    r = 0xdf & (unsigned char)*++cmd;
-    if (mtree->final && *mtree->final == r)
-      return mtree->msg;
-    if ((r -= 'A') > 25 || !(mtree = mtree->pointers[r]))
-      return NULL;
-  }
-}
 
-/*
- * This one is identical to the one above, but it is slower because it
- * makes sure that `cmd' matches the _full_ command, exactly.
- * This is to avoid confusion with commands like /quake on clients
- * that send unknown commands directly to the server.
- */
-static struct Message *msg_tree_parse_client(char *cmd,
-    struct MessageTree *root)
-{
-  struct MessageTree *mtree;
-  unsigned char q = (0xdf & (unsigned char)*cmd) - 'A';
-  if (q > 25 || !(mtree = root->pointers[q]))
-    return NULL;
-  for (;;)
+  for (mtree = root->pointers[(*cmd++) & (MAXPTRLEN-1)];
+           mtree != NULL;
+               mtree = mtree->pointers[(*cmd++) & (MAXPTRLEN-1)])
   {
-    q = 0xdf & (unsigned char)*++cmd;
-    if (mtree->final && 0 == ircd_strcmp(mtree->final, cmd))
+    if ((mtree->msg != NULL) && (*cmd == '\0'))
       return mtree->msg;
-    if ((q -= 'A') > 25 || !(mtree = mtree->pointers[q]))
-      return NULL;
   }
+  return NULL;
 }
 
 /*
  * parse a buffer.
  *
- * NOTE: parse_*() should not be called recusively by any other fucntions!
+ * NOTE: parse_*() should not be called recusively by any other functions!
  */
-int parse_client(struct Client *cptr, char *buffer, char *bufend)
+int
+parse_client(struct Client *cptr, char *buffer, char *bufend)
 {
   struct Client*  from = cptr;
   char*           ch;
@@ -855,11 +792,7 @@ int parse_client(struct Client *cptr, char *buffer, char *bufend)
   if ((s = strchr(ch, ' ')))
     *s++ = '\0';
 
-  /*
-   * This is a client/unregistered entity.
-   * Check long command list only.
-   */
-  if (!(mptr = msg_tree_parse_client(ch, &msg_tree_cmd)))
+  if ((mptr = msg_tree_parse(ch, &msg_tree)) == NULL)
   {
     /*
      * Note: Give error message *only* to recognized
@@ -992,7 +925,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      * upstream a SQUIT that removed the client
      * --Run
      */
-    if (!from)
+    if (from == NULL)
     {
       Debug((DEBUG_NOTICE, "Unknown prefix (%s)(%s) from (%s)",
           para[0], buffer, cli_name(cptr)));
@@ -1021,11 +954,14 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       return 0;
     }
   }
-  else {
+  else
+  {
     char numeric_prefix[6];
     int  i;
-    for (i = 0; i < 5; ++i) {
-      if ('\0' == ch[i] || ' ' == (numeric_prefix[i] = ch[i])) {
+    for (i = 0; i < 5; ++i)
+    {
+      if ('\0' == ch[i] || ' ' == (numeric_prefix[i] = ch[i]))
+      {
         break;
       }
     }
@@ -1036,7 +972,8 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      * 1 or 2 character prefixes are from servers
      * 3 or 5 chars are from clients
      */
-    if (0 == i) {
+    if (0 == i)
+    {
       protocol_violation(cptr,"Missing Prefix");
       from = cptr;
     }
@@ -1063,7 +1000,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      * allow a KILL to pass too.
      * --Run
      */
-    if (!from)
+    if (from == NULL)
     {
       ServerStats->is_unpf++;
       while (*ch == ' ')
@@ -1140,25 +1077,13 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      *
      * Clients/unreg servers always receive/
      * send long commands   -record
+     *
+     * And for the record, this trie parser really does not care. - Dianora
      */
 
-    /*
-     * This is a server. Check the token command list.
-     * -record!jegelhof@cloud9.net
-     */
-    mptr = msg_tree_parse(ch, &msg_tree_tok);
+    mptr = msg_tree_parse(ch, &msg_tree);
 
-#if 1                           /* for 2.10.0/2.10.10 */
-    /*
-     * This code supports 2.9 and 2.10.0 sending long commands.
-     * It makes more calls to ircd_strcmp() than the above
-     * so it will be somewhat slower.
-     */
-    if (!mptr)
-      mptr = msg_tree_parse(ch, &msg_tree_cmd);
-#endif /* 1 */
-
-    if (!mptr)
+    if (mptr == NULL)
     {
       /*
        * Note: Give error message *only* to recognized
