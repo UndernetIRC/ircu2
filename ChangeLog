@@ -1,3 +1,12 @@
+2004-10-19  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h: Move ban flags out of channel flags and
+	rename to reflect this.
+
+	* ircd/channel.c: Update ban constant names.
+
+	* ircd/m_burst.c: Likewise.
+
 2004-10-18  Michael Poole <mdpoole@troilus.org>
 
 	* include/list.h (SLink): Remove ban elements from here...

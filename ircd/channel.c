@@ -356,17 +356,17 @@ int destruct_channel(struct Channel* chptr)
  *
  * If `change' is true then add `banid' to channel `chptr'.
  * Returns 0 if the ban was added.
- * Returns -2 if the ban already existed and was marked CHFL_BURST_BAN_WIPEOUT.
+ * Returns -2 if the ban already existed and was marked BAN_BURST_WIPEOUT.
  * Return -1 otherwise.
  *
- * Those bans that overlapped with `banid' are flagged with CHFL_BAN_OVERLAPPED
+ * Those bans that overlapped with `banid' are flagged with BAN_OVERLAPPED
  * when `change' is false, otherwise they will be removed from the banlist.
  * Subsequently calls to next_overlapped_ban() or next_removed_overlapped_ban()
  * respectively will return these bans until NULL is returned.
  *
  * If `firsttime' is true, the ban list as returned by next_overlapped_ban()
  * is reset (unless a non-zero value is returned, in which case the
- * CHFL_BAN_OVERLAPPED flag might not have been reset!).
+ * BAN_OVERLAPPED flag might not have been reset!).
  *
  * @author Run
  * @param cptr 	Client adding the ban
@@ -376,7 +376,7 @@ int destruct_channel(struct Channel* chptr)
  * @param firsttime Reset the next_overlapped_ban() iteration.
  * @returns 
  * 	0 if the ban was added
- * 	-2 if the ban already existed and was marked CHFL_BURST_BAN_WIPEOUT
+ * 	-2 if the ban already existed and was marked BAN_BURST_WIPEOUT
  * 	-1 otherwise
  */
 int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
@@ -400,11 +400,11 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
   {
     len += strlen((*banp)->banstr);
     ++cnt;
-    if (((*banp)->flags & CHFL_BURST_BAN_WIPEOUT))
+    if (((*banp)->flags & BAN_BURST_WIPEOUT))
     {
       if (!strcmp((*banp)->banstr, banid))
       {
-        (*banp)->flags &= ~CHFL_BURST_BAN_WIPEOUT;
+        (*banp)->flags &= ~BAN_BURST_WIPEOUT;
         return -2;
       }
     }
@@ -426,9 +426,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
         removed_bans_list = tmp;
         removed_bans = 1;
       }
-      else if (!(tmp->flags & CHFL_BURST_BAN_WIPEOUT))
+      else if (!(tmp->flags & BAN_BURST_WIPEOUT))
       {
-        tmp->flags |= CHFL_BAN_OVERLAPPED;
+        tmp->flags |= BAN_OVERLAPPED;
         if (!next_ban)
           next_ban = tmp;
         banp = &tmp->next;
@@ -439,7 +439,7 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     else
     {
       if (firsttime)
-        (*banp)->flags &= ~CHFL_BAN_OVERLAPPED;
+        (*banp)->flags &= ~BAN_OVERLAPPED;
       banp = &(*banp)->next;
     }
   }
@@ -464,9 +464,8 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->who);
 
     ban->when = TStime();
-    ban->flags = CHFL_BAN;      /* This bit is never used I think... */
     if ((ip_start = strrchr(banid, '@')) && check_if_ipmask(ip_start + 1))
-      ban->flags |= CHFL_BAN_IPMASK;
+      ban->flags |= BAN_IPMASK;
     chptr->banlist = ban;
 
     /*
@@ -560,7 +559,7 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   }
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
-    if ((tmp->flags & CHFL_BAN_IPMASK)) {
+    if ((tmp->flags & BAN_IPMASK)) {
       if (!ip_s)
         ip_s = make_nick_user_ip(nu_ip, cli_name(cptr),
 				 (cli_user(cptr))->username, &cli_ip(cptr));
@@ -2871,10 +2870,10 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     newban->who = cli_name(state->sptr);
     newban->when = TStime();
 
-    newban->flags = CHFL_BAN | MODE_ADD;
+    newban->flags = BAN_ADD;
 
     if ((s = strrchr(t_str, '@')) && check_if_ipmask(s + 1))
-      newban->flags |= CHFL_BAN_IPMASK;
+      newban->flags |= BAN_IPMASK;
   }
 
   if (!state->chptr->banlist) {
@@ -2888,19 +2887,19 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
     /* first, clean the ban flags up a bit */
     if (!(state->done & DONE_BANCLEAN))
       /* Note: We're overloading *lots* of bits here; be careful! */
-      ban->flags &= ~(MODE_ADD | MODE_DEL | CHFL_BAN_OVERLAPPED);
+      ban->flags &= ~(BAN_ADD | BAN_DEL | BAN_OVERLAPPED);
 
     /* Bit meanings:
      *
-     * MODE_ADD		   - Ban was added; if we're bouncing modes,
+     * BAN_ADD		   - Ban was added; if we're bouncing modes,
      *			     then we'll remove it below; otherwise,
      *			     we'll have to allocate a real ban
      *
-     * MODE_DEL		   - Ban was marked for deletion; if we're
+     * BAN_DEL		   - Ban was marked for deletion; if we're
      *			     bouncing modes, we'll have to re-add it,
      *			     otherwise, we'll have to remove it
      *
-     * CHFL_BAN_OVERLAPPED - The ban we added turns out to overlap
+     * BAN_OVERLAPPED	   - The ban we added turns out to overlap
      *			     with a ban already set; if we're
      *			     bouncing modes, we'll have to bounce
      *			     this one; otherwise, we'll just ignore
@@ -2908,25 +2907,25 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
      */
 
     if (state->dir == MODE_DEL && !ircd_strcmp(ban->banstr, t_str)) {
-      ban->flags |= MODE_DEL; /* delete one ban */
+      ban->flags |= BAN_DEL; /* delete one ban */
 
       if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	break;
     } else if (state->dir == MODE_ADD) {
       /* if the ban already exists, don't worry about it */
       if (!ircd_strcmp(ban->banstr, t_str)) {
-	newban->flags &= ~MODE_ADD; /* don't add ban at all */
+	newban->flags &= ~BAN_ADD; /* don't add ban at all */
         MyFree(newban->banstr); /* stopper a leak */
 	state->numbans--; /* deallocate last ban */
 	if (state->done & DONE_BANCLEAN) /* If we're cleaning, finish */
 	  break;
       } else if (!mmatch(ban->banstr, t_str)) {
-	if (!(ban->flags & MODE_DEL))
-	  newban->flags |= CHFL_BAN_OVERLAPPED; /* our ban overlaps */
+	if (!(ban->flags & BAN_DEL))
+	  newban->flags |= BAN_OVERLAPPED; /* our ban overlaps */
       } else if (!mmatch(t_str, ban->banstr))
-	ban->flags |= MODE_DEL; /* mark ban for deletion: overlapping */
+	ban->flags |= BAN_DEL; /* mark ban for deletion: overlapping */
 
-      if (!ban->next && (newban->flags & MODE_ADD))
+      if (!ban->next && (newban->flags & BAN_ADD))
       {
 	ban->next = newban; /* add our ban with its flags */
 	break; /* get out of loop */
@@ -2954,7 +2953,7 @@ mode_process_bans(struct ParseState *state)
     len += banlen;
     nextban = ban->next;
 
-    if ((ban->flags & (MODE_DEL | MODE_ADD)) == (MODE_DEL | MODE_ADD)) {
+    if ((ban->flags & (BAN_DEL | BAN_ADD)) == (BAN_DEL | BAN_ADD)) {
       if (prevban)
 	prevban->next = 0; /* Break the list; ban isn't a real ban */
       else
@@ -2966,7 +2965,7 @@ mode_process_bans(struct ParseState *state)
       MyFree(ban->banstr);
 
       continue;
-    } else if (ban->flags & MODE_DEL) { /* Deleted a ban? */
+    } else if (ban->flags & BAN_DEL) { /* Deleted a ban? */
       modebuf_mode_string(state->mbuf, MODE_DEL | MODE_BAN,
 			  ban->banstr,
 			  state->flags & MODE_PARSE_SET);
@@ -2986,15 +2985,15 @@ mode_process_bans(struct ParseState *state)
 	changed++;
 	continue; /* next ban; keep prevban like it is */
       } else
-	ban->flags &= (CHFL_BAN | CHFL_BAN_IPMASK); /* unset other flags */
-    } else if (ban->flags & MODE_ADD) { /* adding a ban? */
+	ban->flags &= BAN_IPMASK; /* unset other flags */
+    } else if (ban->flags & BAN_ADD) { /* adding a ban? */
       if (prevban)
 	prevban->next = 0; /* Break the list; ban isn't a real ban */
       else
 	state->chptr->banlist = 0;
 
       /* If we're supposed to ignore it, do so. */
-      if (ban->flags & CHFL_BAN_OVERLAPPED &&
+      if (ban->flags & BAN_OVERLAPPED &&
 	  !(state->flags & MODE_PARSE_BOUNCE)) {
 	count--;
 	len -= banlen;
@@ -3018,7 +3017,7 @@ mode_process_bans(struct ParseState *state)
 	    newban = make_ban(ban->banstr);
 	    DupString(newban->who, ban->who);
 	    newban->when = ban->when;
-	    newban->flags = ban->flags & (CHFL_BAN | CHFL_BAN_IPMASK);
+	    newban->flags = ban->flags & BAN_IPMASK;
 
 	    newban->next = state->chptr->banlist; /* and link it in */
 	    state->chptr->banlist = newban;

@@ -60,12 +60,7 @@ struct Client;
 #define CHFL_DEOPPED            0x0004  /**< Is de-opped by a server */
 #define CHFL_SERVOPOK           0x0008  /**< Server op allowed */
 #define CHFL_ZOMBIE             0x0010  /**< Kicked from channel */
-#define CHFL_BAN                0x0020  /**< ban channel flag */
-#define CHFL_BAN_IPMASK         0x0040  /**< ban mask is an IP-number mask */
-#define CHFL_BAN_OVERLAPPED     0x0080  /**< ban overlapped, need bounce */
 #define CHFL_BURST_JOINED       0x0100  /**< Just joined by net.junction */
-#define CHFL_BURST_BAN          0x0200  /**< Ban part of last BURST */
-#define CHFL_BURST_BAN_WIPEOUT  0x0400  /**< Ban will be wiped at EOB */
 #define CHFL_BANVALID           0x0800  /**< CHFL_BANNED bit is valid */
 #define CHFL_BANNED             0x1000  /**< Channel member is banned */
 #define CHFL_SILENCE_IPMASK     0x2000  /**< silence mask is a CIDR */
@@ -254,14 +249,18 @@ struct Mode {
   char apass[PASSLEN + 1];
 };
 
+#define BAN_IPMASK         0x0001  /**< ban mask is an IP-number mask */
+#define BAN_OVERLAPPED     0x0002  /**< ban overlapped, need bounce */
+#define BAN_BURSTED        0x0004  /**< Ban part of last BURST */
+#define BAN_BURST_WIPEOUT  0x0008  /**< Ban will be wiped at EOB */
+#define BAN_DEL            0x4000  /**< Ban is being removed */
+#define BAN_ADD            0x8000  /**< Ban is being added */
+
 /** A single ban for a channel. */
 struct Ban {
   struct Ban* next;   /**< next ban in the channel */
   time_t when;        /**< timestamp when ban was added */
-  unsigned int flags; /**< modifier flags for the ban
-                       * Zero or more of CHFL_BURST_BAN_WIPEOUT,
-                       * CHFL_BAN_OVERLAPPED
-                       */
+  unsigned int flags; /**< modifier flags for the ban */
   char *who;          /**< name of client that set the ban */
   char *banstr;       /**< hostmask that the ban matches */
 };
