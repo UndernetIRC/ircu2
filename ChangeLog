@@ -1,4 +1,9 @@
 2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/send.c: fixed wrong ident being sent to channels bug.
+	* include/numerics.h: Updated some of the numerics from other
+	networks.  Flagged some as 'unused' by undernet.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/ircd.c: Lets see if this helps the ping problem at all.
 	* ircd/whocmds.c, /doc/readme.who: Added %l specifier to get idle
 	time for local clients. (as requested), extended who now returns all
@@ -293,7 +298,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.59 2000-04-01 23:51:18 isomer Exp $
+# $Id: ChangeLog,v 1.60 2000-04-06 03:48:04 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

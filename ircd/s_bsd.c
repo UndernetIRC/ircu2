@@ -534,7 +534,7 @@ int net_close_unregistered_connections(struct Client* source)
   for (i = HighestFd; i > 0; --i) {
     if ((cptr = LocalClientArray[i]) && !IsRegistered(cptr)) {
       sendto_one(source, rpl_str(RPL_CLOSING), me.name, source->name,
-                 get_client_name(source, HIDE_IP), cptr->status);
+                 get_client_name(source, HIDE_IP));
       exit_client(source, cptr, &me, "Oper Closing");
       ++count;
     }

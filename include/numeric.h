@@ -34,6 +34,13 @@ extern char* err_str(int numeric);
 extern char* rpl_str(int numeric);
 extern const struct Numeric* get_error_numeric(int err);
 
+/*
+ * References:
+ *  aircd - aircd source.  Doesn't appear to be available on the web.
+ *	    anywhere.  Ask me (Isomer) if you'd like a copy. (it's gpl)
+ *  Numeric List - http://www.contactor.se/~dast/irc/numerics.txt
+ */
+
 
 /*
  * Reserve numerics 000-099 for server-client connections where the client
@@ -76,7 +83,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_STATSLINKINFO    211
 #define RPL_STATSCOMMANDS    212
 #define RPL_STATSCLINE       213
-#define RPL_STATSNLINE       214
+#define RPL_STATSNLINE       214 /* unused */
 #define RPL_STATSILINE       215
 #define RPL_STATSKLINE       216
 #define RPL_STATSPLINE       217        /* Undernet extenstion */
@@ -85,29 +92,35 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ENDOFSTATS       219        /* See also RPL_STATSDLINE */
 /*      RPL_STATSPLINE       220           Hybrid - Because 217 was for
                                            old Q: lines. */
+/*      RPL_STATSBLINE       220	   Numerics List: Dalnet */
 #define RPL_UMODEIS          221
+/*	RPL_SQLINE_NICK	     222	   Numerics List: Dalnet */
 /*      RPL_STATSFLINE       224           Hybrid extension */
 /*      RPL_STATSDLINE       225           Hybrid extension */
 
-#define RPL_SERVICEINFO      231
-#define RPL_ENDOFSERVICES    232
-#define RPL_SERVICE          233
-#define RPL_SERVLIST         234
-#define RPL_SERVLISTEND      235
+#define RPL_SERVICEINFO      231	/* unused */
+#define RPL_ENDOFSERVICES    232	/* unused */
+#define RPL_SERVICE          233	/* unused */
+#define RPL_SERVLIST         234	/* unused */
+#define RPL_SERVLISTEND      235	/* unused */
 
 /*      RPL_STATSIAUTH       239           IRCnet extension */
 /*      RPL_STATSVLINE       240           IRCnet extension */
-#define RPL_STATSLLINE       241
+#define RPL_STATSLLINE       241	
 #define RPL_STATSUPTIME      242
 #define RPL_STATSOLINE       243
 #define RPL_STATSHLINE       244
-/*      RPL_STATSSLINE       245           Reserved */
+/*      RPL_STATSSLINE       245           Reserved / Dalnet / IRCnet / EFnet */
+/*	RPL_STATSSPING	     246	   Numerics List: IRCnet */
 #define RPL_STATSTLINE       246        /* Undernet extension */
 #define RPL_STATSGLINE       247        /* Undernet extension */
 /*      RPL_STATSXLINE       247           hybrid extension */
+/*	RPL_STATSBLINE	     247	   Numerics List: IRCnet */
 #define RPL_STATSULINE       248        /* Undernet extension */
+/*	RPL_STATSDEFINE	     248	/* Numerics List: IRCnet */
 #define RPL_STATSDEBUG       249        /* Extension to RFC1459 */
 #define RPL_STATSCONN        250        /* Undernet extension */
+/*	RPL_STATSDLINE	     250	/* Numerics List: IRCnet */
 
 #define RPL_LUSERCLIENT      251
 #define RPL_LUSEROP          252
@@ -119,10 +132,11 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ADMINLOC2        258
 #define RPL_ADMINEMAIL       259
 
-#define RPL_TRACELOG         261
-#define RPL_TRACEPING        262        /* Extension to RFC1459 */
-                                        /* efnet: END_TRACE */
+#define RPL_TRACELOG         261	/* unused */
+#define RPL_TRACEPING        262        /* Extension to RFC1459, unused */
+/*	RPL_TRACEEND	     262	   efnet(?) Numerics List: IRCnet */
 /*      RPL_LOAD_THROTTLED   263           efnet/hybrid */
+/*	RPL_TRYAGAIN	     263	   Numerics List: IRCnet */
 
 /*      RPL_CURRENT_LOCAL    265           aircd/efnet/hybrid*/
 /*      RPL_CURRENT_GLOBAL   266           aircd/efnet/hybrid */
@@ -148,27 +162,36 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_CHANINFO_VOICES  288           aircd */
 /*      RPL_CHANINFO_AWAY    289           aircd */
 /*      RPL_CHANINFO_OPERS   290           aircd */
+/*	RPL_HELPHDR	     290	Numeric List: Dalnet */
 /*      RPL_CHANINFO_BANNED  291           aircd */
+/*	RPL_HELPOP	     291	Numeric List: Dalnet */
 /*      RPL_CHANINFO_BANS    292           aircd */
+/*	RPL_HELPTLR	     292	Numeric List: Dalnet */
 /*      RPL_CHANINFO_INVITE  293           aircd */
+/*	RPL_HELPHLP	     293	Numeric List: Dalnet */
 /*      RPL_CHANINFO_INVITES 294           aircd */
+/*	RPL_HELPFWD	     294	Numeric List: Dalnet */
 /*      RPL_CHANINFO_KICK    295           aircd */
+/*	RPL_HELPIGN	     295	Numeric List: Dalnet */
 /*      RPL_CHANINFO_KICKS   296           aircd */
 
 /*      RPL_END_CHANINFO     299           aircd */
 
-#define RPL_NONE             300
+#define RPL_NONE             300	/* unused */
 #define RPL_AWAY             301
 #define RPL_USERHOST         302
 #define RPL_ISON             303
-#define RPL_TEXT             304
+#define RPL_TEXT             304 	/* unused */
 #define RPL_UNAWAY           305
 #define RPL_NOWAWAY          306
 #define RPL_USERIP           307        /* Undernet extension */
                                         /* NotAway, aircd */
+/*	RPL_WHOISREGNICK     307 	Numeric List: Dalnet */                                      
 /*      RPL_NOTIFYACTION     308         aircd */
+/*	RPL_WHOISADMIN	     308	Numeric List: Dalnet */
 /*      RPL_NICKTRACE        309         aircd */
-/*      RPL_DALNET_SOMETHING 310         Dalnet, unknown */                                        
+/*	RPL_WHOISSADMIN	     309	Numeric List: Dalnet */
+/*      RPL_WHOISHELPOP      310         Dalnet */
 #define RPL_WHOISUSER        311        /* See also RPL_ENDOFWHOIS */
 #define RPL_WHOISSERVER      312
 #define RPL_WHOISOPERATOR    313
@@ -212,7 +235,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_WHOSPCRPL        354        /* Undernet extension,
                                            See also RPL_ENDOFWHO */
 
-#define RPL_KILLDONE         361
+#define RPL_KILLDONE         361	/* not used */
 #define RPL_CLOSING          362
 #define RPL_CLOSEEND         363
 #define RPL_LINKS            364
@@ -224,7 +247,7 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define RPL_INFO             371
 #define RPL_MOTD             372
-#define RPL_INFOSTART        373
+#define RPL_INFOSTART        373	/* not used */
 #define RPL_ENDOFINFO        374
 #define RPL_MOTDSTART        375
 #define RPL_ENDOFMOTD        376
@@ -236,21 +259,21 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define RPL_YOUREOPER        381
 #define RPL_REHASHING        382
-/*      RPL_NOWSERVICE       383        ? */
-#define RPL_MYPORTIS         384
-#define RPL_NOTOPERANYMORE   385        /* Extension to RFC1459 */
+/*	RPL_YOURSERVICE	     383	/* Numeric List: various */
+#define RPL_MYPORTIS         384	/* not used */
+#define RPL_NOTOPERANYMORE   385        /* Extension to RFC1459, not used */
 
 #define RPL_TIME             391
-/*      RPL_START_USERS      392        ? */
-/*      RPL_USERS            393        ? */
-/*      RPL_END_USERS        394        ? */
-/*      RPL_NOUSERS          395        ? */
+/*      RPL_START_USERS      392        Dalnet/EFnet/IRCnet */
+/*      RPL_USERS            393        Dalnet/EFnet/IRCnet */
+/*      RPL_END_USERS        394        Dalnet/EFnet/IRCnet */
+/*      RPL_NOUSERS          395        Dalnet/EFnet/IRCnet */
 
 /*
  * Errors are in the range from 400-599 currently and are grouped by what
  * commands they come from.
  */
-#define ERR_FIRSTERROR       400
+#define ERR_FIRSTERROR       400	/* unused */
 #define ERR_NOSUCHNICK       401
 #define ERR_NOSUCHSERVER     402
 #define ERR_NOSUCHCHANNEL    403
@@ -268,7 +291,7 @@ extern const struct Numeric* get_error_numeric(int err);
      /* ERR_BADMASK          415           IRCnet extension */
 #define ERR_QUERYTOOLONG     416        /* Undernet extension */
      /* ERR_TOOMANYMATCHES   416           IRCnet extension */
-/*      ERR_LENGTHTRUNCATED  319           aircd */
+/*      ERR_LENGTHTRUNCATED  419           aircd */
 
 #define ERR_UNKNOWNCOMMAND   421
 #define ERR_NOMOTD           422
