@@ -197,7 +197,7 @@ log_open(struct LogFile *lf)
   if (lf && lf->fd < 0) {
     alarm(3); /* if NFS hangs, we hang only for 3 seconds */
     lf->fd = open(lf->file, O_WRONLY | O_CREAT | O_APPEND,
-		  S_IREAD | S_IWRITE);
+		  S_IRUSR | S_IWUSR);
     alarm(0);
   }
 }

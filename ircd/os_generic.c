@@ -22,7 +22,7 @@
  */
 #include "config.h"
 
-#define _XOPEN_SOURCE	500 /**< make limits.h #define IOV_MAX */
+#define _XOPEN_SOURCE	600 /**< make limits.h #define IOV_MAX */
 #define __EXTENSIONS__  1   /**< make Solaris netinet/in.h know IPv6 */
 
 #include "ircd_osdep.h"

@@ -62,7 +62,6 @@
 #include <fcntl.h>
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <sys/socket.h>
-#include <sys/file.h>
 #include <sys/ioctl.h>
 
 /** Array of message text (with length) pairs for AUTH status

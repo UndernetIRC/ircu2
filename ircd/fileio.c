@@ -68,11 +68,11 @@ FBFILE* fbopen(const char *filename, const char *mode)
       break;
     case 'w':
       openmode = O_WRONLY | O_CREAT | O_TRUNC;
-      pmode = S_IREAD | S_IWRITE;
+      pmode = S_IRUSR | S_IWUSR;
       break;
     case 'a':
       openmode = O_WRONLY | O_CREAT | O_APPEND;
-      pmode = S_IREAD | S_IWRITE;
+      pmode = S_IRUSR | S_IWUSR;
       break;
     case '+':
       openmode &= ~(O_RDONLY | O_WRONLY);

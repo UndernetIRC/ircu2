@@ -1,6 +1,22 @@
+2005-01-21  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_kqueue.c: Move <sys/types.h> earlier to fix build on
+	FreeBSD 5.x (which needs it for <sys/event.h>).
+
+	* ircd/fileio.c (fbopen): Replace BSDism S_IREAD, S_IWRITE with
+	portable equivalents.
+
+	* ircd/ircd_log.c (log_open): Likewise.
+
+	* ircd/os_generic.c (_XOPEN_SOURCE): Increase to 600 (SuSv3?) so
+	that IPv6 definitions become visible on FreeBSD 5.3.
+
+	* ircd/s_auth.c: Remove apparently unused <sys/file.h> because
+	it fails to compile on FreeBSD 5.3.
+
 2005-01-22  Perry Lorier <isomer@undernet.org>
 
-	* ircd/ircd_lexer.l: Fix missing ;
+	* ircd/ircd_parser.y: Fix missing ;
 
 2005-01-19  Michael Poole <mdpoole@troilus.org>
 
