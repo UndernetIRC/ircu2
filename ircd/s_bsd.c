@@ -737,11 +737,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
     }
 
-    /*
-     * XXX - cptr will always be a user or unregistered
-     */
-    if (IsUser(cptr) &&
-	DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
+    if (DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
