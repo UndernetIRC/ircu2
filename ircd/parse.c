@@ -1020,7 +1020,18 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      */
     if (0 == i)
     {
-      protocol_violation(cptr, "Missing prefix");
+      struct Client *acptr;
+      Debug((DEBUG_NOTICE, "Missing prefix (%s) from (%s)", buffer, cptr->name));
+      /* Send message to local +g clients as if it were a wallops */
+      sprintf_irc(sendbuf, ":%s WALLOPS :Missing prefix from %s", me.name,
+		  cptr->name);
+      for (i = 0; i <= HighestFd; i++)
+	if (LocalClientArray[i]) && !IsServer(acptr) && !IsMe(acptr)
+	    && SendDebug(acptr))
+	  sendbufto_one(acptr);
+      /* Send message to remote +g clients */
+      sendto_g_serv_butone(cptr, "%s DESYNCH :Missing prefix from %s", me.name,
+			   cptr->name);
       from = cptr;
     }
     else if (' ' == ch[1] || ' ' == ch[2])
