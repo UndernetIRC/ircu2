@@ -14,7 +14,7 @@
  *     --Bleep (Thomas Helvey <tomh@inxpress.net>)
  *
  * This was all needlessly complicated for irc. Simplified. No more hostent
- * All we really care about is the IP -> hostname mappings. Thats all. 
+ * All we really care about is the IP -> hostname mappings. Thats all.
  *
  * Apr 28, 2003 --cryogen and Dianora
  */
@@ -108,7 +108,7 @@ static void do_query_name(const struct DNSQuery *query,
 static void do_query_number(const struct DNSQuery *query,
                             const struct irc_in_addr *,
                             struct reslist *request);
-static void query_name(const char *name, int query_class, int query_type, 
+static void query_name(const char *name, int query_class, int query_type,
                        struct reslist *request);
 static int send_res_msg(const char *buf, int len, int count);
 static void resend_query(struct reslist *request);
@@ -166,7 +166,6 @@ start_resolver(void)
     if (!socket_add(&res_socket, res_readreply, NULL, SS_DATAGRAM,
                     SOCK_EVENT_READABLE, fd)) return;
     timer_init(&res_timeout);
-    timer_add(&res_timeout, timeout_resolver, NULL, TT_PERIODIC, 1);
   }
 }
 
@@ -176,9 +175,7 @@ start_resolver(void)
 int
 init_resolver(void)
 {
-#ifdef LRAND48
-  srand48(CurrentTime);
-#endif
+  srand(CurrentTime);
   start_resolver();
   return(s_fd(&res_socket));
 }
@@ -217,16 +214,6 @@ add_local_domain(char* hname, size_t size)
 }
 
 /*
- * remove_dlink - remove a link from a doubly linked list
- */
-static void
-remove_dlink(struct dlink *node)
-{
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
-}
-
-/*
  * add_dlink - add a link to a doubly linked list
  */
 static void
@@ -239,14 +226,17 @@ add_dlink(struct dlink *node, struct dlink *next)
 }
 
 /*
- * rem_request - remove a request from the list. 
- * This must also free any memory that has been allocated for 
+ * rem_request - remove a request from the list.
+ * This must also free any memory that has been allocated for
  * temporary storage of DNS results.
  */
 static void
 rem_request(struct reslist *request)
 {
-  remove_dlink(&request->node);
+  /* remove from dlist */
+  request->node.prev->next = request->node.next;
+  request->node.next->prev = request->node.prev;
+  /* free memory */
   MyFree(request->name);
   MyFree(request);
 }
@@ -276,11 +266,26 @@ make_request(const struct DNSQuery* query)
 }
 
 /*
- * timeout_query_list - Remove queries from the list which have been 
+ * check_resolver_timeout - Make sure that a timeout event will
+ * happen by the given time.
+ */
+static void
+check_resolver_timeout(time_t when)
+{
+  if (when > CurrentTime + AR_TTL)
+    when = CurrentTime + AR_TTL;
+  if (!t_active(&res_timeout))
+    timer_add(&res_timeout, timeout_resolver, NULL, TT_ABSOLUTE, when);
+  else if (when < t_expire(&res_timeout))
+    timer_chg(&res_timeout, TT_ABSOLUTE, when);
+}
+
+/*
+ * timeout_resolver - Remove queries from the list which have been
  * there too long without being resolved.
  */
-static time_t
-timeout_query_list(time_t now)
+static void
+timeout_resolver(struct Event *notused)
 {
   struct dlink *ptr, *next_ptr;
   struct reslist *request;
@@ -293,7 +298,7 @@ timeout_query_list(time_t now)
     request = (struct reslist*)ptr;
     timeout = request->sentat + request->timeout;
 
-    if (now >= timeout)
+    if (CurrentTime >= timeout)
     {
       if (--request->retries <= 0)
       {
@@ -304,7 +309,7 @@ timeout_query_list(time_t now)
       }
       else
       {
-        request->sentat = now;
+        request->sentat = CurrentTime;
         request->timeout += request->timeout;
         resend_query(request);
       }
@@ -316,20 +321,13 @@ timeout_query_list(time_t now)
     }
   }
 
-  return((next_time > now) ? next_time : (now + AR_TTL));
+  if (next_time <= CurrentTime)
+    next_time = CurrentTime + AR_TTL;
+  check_resolver_timeout(next_time);
 }
 
 /*
- * timeout_resolver - check request list
- */
-static void
-timeout_resolver(struct Event *notused)
-{
-  timeout_query_list(CurrentTime);
-}
-
-/*
- * delete_resolver_queries - cleanup outstanding queries 
+ * delete_resolver_queries - cleanup outstanding queries
  * for which there no longer exist clients or conf lines.
  */
 void
@@ -395,19 +393,8 @@ find_id(int id)
     }
   }
 
-  Debug((DEBUG_DNS, "find_id(%d) -> NULL", id, request));
+  Debug((DEBUG_DNS, "find_id(%d) -> NULL", id));
   return(NULL);
-}
-
-/* 
- * gethost_byname_type - get host address from name
- *
- */
-void
-gethost_byname_type(const char *name, const struct DNSQuery *query, int type)
-{
-  assert(name != 0);
-  do_query_name(query, name, NULL, type);
 }
 
 /*
@@ -416,7 +403,7 @@ gethost_byname_type(const char *name, const struct DNSQuery *query, int type)
 void
 gethost_byname(const char *name, const struct DNSQuery *query)
 {
-  gethost_byname_type(name, query, T_AAAA);
+  do_query_name(query, name, NULL, T_AAAA);
 }
 
 /*
@@ -533,34 +520,22 @@ query_name(const char *name, int query_class, int type,
       (unsigned char *)buf, sizeof(buf))) > 0)
   {
     HEADER *header = (HEADER *)buf;
-#ifndef LRAND48
-    int k = 0;
-    struct timeval tv;
-#endif
+
     /*
      * generate an unique id
      * NOTE: we don't have to worry about converting this to and from
      * network byte order, the nameserver does not interpret this value
      * and returns it unchanged
      */
-#ifdef LRAND48
     do
     {
-      header->id = (header->id + lrand48()) & 0xffff;
+      header->id = (header->id + rand()) & 0xffff;
     } while (find_id(header->id));
-#else
-    gettimeofday(&tv, NULL);
-
-    do
-    {
-      header->id = (header->id + k + tv.tv_usec) & 0xffff;
-      k++;
-    } while (find_id(header->id));
-#endif /* LRAND48 */
     request->id = header->id;
     ++request->sends;
 
     request->sent += send_res_msg(buf, request_len, request->sends);
+    check_resolver_timeout(request->sentat + request->timeout);
   }
 }
 
@@ -839,10 +814,10 @@ res_readreply(struct Event *ev)
        */
 #ifdef IPV6
       if (!irc_in_addr_is_ipv4(&request->addr))
-        gethost_byname_type(request->name, &request->query, T_AAAA);
+        do_query_name(&request->query, request->name, NULL, T_AAAA);
       else
 #endif
-      gethost_byname_type(request->name, &request->query, T_A);
+      do_query_name(&request->query, request->name, NULL, T_A);
       Debug((DEBUG_DNS, "Request %p switching to forward resolution", request));
       rem_request(request);
     }

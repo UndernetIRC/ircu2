@@ -1,3 +1,13 @@
+2004-08-19  Michael Poole <mdpoole@troilus.org>
+
+	* include/res.h: Remove unused function gethost_byname_type().
+
+	* ircd/ircd_res.c: Likewise, and clean up some small functions
+	only used once (remove_dlink(), timeout_resolver()).  Use rand()
+	for random request IDs instead of the deprecated *rand48().  Make
+	resolver timeout event fire only when needed instead of once a
+	second.
+
 2004-08-17  Michael Poole <mdpoole@troilus.org>
 
 	IPv6 support, with lots of code and design borrowed from a patch
