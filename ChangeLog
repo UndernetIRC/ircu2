@@ -1,3 +1,13 @@
+2000-11-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_reply.c (protocol_violation): rewrite
+	protocol_violation so it'll actually work
+
+	* ircd/m_motd.c (m_motd): Iso's addition of get_client_class(sptr)
+	resulted in core dumps if NODEFAULTMOTD is defined, because m_motd
+	gets called from register_user with a NULL sptr.  This is probably
+	a design problem, but this bandaid will do for now...
+
 2000-11-19  Isomer <isomer@coders.net>
 	* ircd/ircd_reply.c: added 'protocol_violation', thus alerting us
 	to problems in the server<->server protocol.

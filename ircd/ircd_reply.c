@@ -41,17 +41,19 @@
  
 int protocol_violation(struct Client* cptr, const char* pattern, ...)
 {
-	va_list vl;
-	char buffer[512];
-	assert(pattern);
-	assert(cptr);
-	va_start(vl,pattern);
-	ircd_snprintf(0,buffer,sizeof(buffer)-2, 
-		"Protocol Violation from %C: %v",vl);
-	sendcmdto_flag_butone(&me, CMD_DESYNCH, NULL, FLAGS_DEBUG, 
-		":%s", cptr, buffer);
-	va_end(vl);
-	return 0;
+  struct VarData vd;
+
+  assert(pattern);
+  assert(cptr);
+
+  vd.vd_format = pattern;
+  va_start(vd.vd_args, pattern);
+
+  sendcmdto_flag_butone(&me, CMD_DESYNCH, NULL, FLAGS_DEBUG,
+			":Protocol Violation from %C: %v", cptr, &vd);
+
+  va_end(vd.vd_args);
+  return 0;
 }
 
 int need_more_params(struct Client* cptr, const char* cmd)
