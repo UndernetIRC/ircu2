@@ -206,11 +206,12 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
       sendheader(auth->client, REPORT_FAIL_DNS);
   }
 
-  if (send_reports)
+  if (send_reports) {
     log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
 	      get_client_name(auth->client, HIDE_IP));
+    release_auth_client(auth->client);
+  }
 
-  release_auth_client(auth->client);
   unlink_auth_request(auth, authList);
   free_auth_request(auth);
 }
