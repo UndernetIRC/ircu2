@@ -106,11 +106,6 @@ AC_SEARCH_LIBS(crypt, descrypt crypt, ,
 dnl Do all the checks necessary to figure out -lnsl / -lsocket stuff
 AC_LIBRARY_NET
 
-dnl Look for res_mkquery.  Done after AC_LIBRARY_NET in case res_mkquery
-dnl is in one of those libraries somewhere.
-AC_SEARCH_LIBS(res_mkquery, resolv, ,
-[AC_MSG_ERROR([Unable to find library containing res_mkquery()])])
-
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(poll.h sys/devpoll.h sys/event.h)
@@ -374,6 +369,34 @@ if test x"$unet_cv_enable_kqueue" != xno; then
     AC_DEFINE([USE_KQUEUE], , [Define to enable the kqueue engine])
     ENGINE_C="engine_kqueue.c $ENGINE_C"
 fi
+
+dnl --disable-adns check...
+AC_MSG_CHECKING([whether to enable the adns resolver engine])
+AC_ARG_ENABLE([adns],
+[  --disable-adns          Disable adns resolver],
+[unet_cv_enable_adns=$enable_adns],
+[AC_CACHE_VAL(unet_cv_enable_adns,
+[unet_cv_enable_adns=yes])])
+
+AC_MSG_RESULT([$unet_cv_enable_adns])
+
+if test x"$unet_cv_enable_adns" != xno; then
+    AC_DEFINE([USE_ADNS], , [Define to enable the adns resolver])
+    AC_CONFIG_SUBDIRS([adns])
+    RES_C="res_adns.c"
+    LIBS="../adns/src/libadns.a $LIBS"
+    ADNS_SUBDIR="adns"
+else
+    RES_C="res_libresolv.c"
+    ADNS_SUBDIR=""
+
+    dnl Look for res_mkquery.  Done after AC_LIBRARY_NET in case res_mkquery
+    dnl is in one of those libraries somewhere.
+    AC_SEARCH_LIBS(res_mkquery, resolv, ,
+    [AC_MSG_ERROR([Unable to find library containing res_mkquery()])])
+fi
+AC_SUBST(RES_C)
+AC_SUBST(ADNS_SUBDIR)
 
 dnl --with-symlink lets us set the name of the symlink; defaults to "ircd"
 AC_MSG_CHECKING([what name to give the symlink])
@@ -672,7 +695,7 @@ dnl Finally really generate all output files:
 AC_OUTPUT(Makefile ircd/Makefile doc/Makefile, [echo timestamp > stamp-h])
 
 dnl Report configuration
-echo "
+AC_OUTPUT_COMMANDS([echo "
 ircu is now hopefully configured for your system.
 
   Host system:         $host_os
@@ -682,6 +705,7 @@ ircu is now hopefully configured for your system.
   Debug:               $unet_cv_enable_debug
   Profile:             $unet_cv_enable_profile
   Head-in-sand:        $unet_cv_enable_headinsand
+  ADNS:                $unet_cv_enable_adns
   Owner/mode:          $unet_cv_with_owner.$unet_cv_with_group ($unet_cv_with_mode)
   Chroot:              $unet_cv_with_chroot
   
@@ -694,4 +718,4 @@ ircu is now hopefully configured for your system.
   poll() engine:       $unet_cv_enable_poll
   kqueue() engine:     $unet_cv_enable_kqueue
   /dev/poll engine:    $unet_cv_enable_devpoll
-"
+"])

@@ -1,5 +1,18 @@
 2002-06-17  Alex Badea  <vampire@p16.pub.ro>
 
+	* adns/*: added a slightly hacked copy of adns
+
+	* configure.in: added a --disable-adns switch if you want
+	to use the old libresolv res.c
+
+	* configure: ran autoconf
+
+	* ircd/res_libresolv.c: renamed from res.c
+
+	* ircd/res_adns.c: added adns resolver
+
+2002-06-17  Alex Badea  <vampire@p16.pub.ro>
+
 	* ircd/ircd_parser.y: fixed 'Connect' block processing so now
 	you can actually connect to other servers
 

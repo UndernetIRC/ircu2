@@ -43,6 +43,7 @@ YACC = bison -y
 GREP = grep
 OSDEP_C = @OSDEP_C@
 ENGINE_C = @ENGINE_C@
+RES_C = @RES_C@
 @SET_MAKE@
 
 BINDIR = @bindir@
@@ -57,7 +58,7 @@ RPATH = ${DPATH}/remote.motd
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = -I. -I.. -I${top_srcdir}/include @CPPFLAGS@
+CPPFLAGS = -I. -I.. -I${top_srcdir}/include -I${top_srcdir}/adns/src @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 
@@ -77,6 +78,10 @@ ENGINE_SRC = \
 	engine_poll.c \
 	engine_kqueue.c \
 	engine_select.c
+
+RES_SRC = \
+	res_adns.c \
+	res_libresolv.c
 
 IRCD_SRC = \
 	IPcheck.c \
@@ -184,7 +189,6 @@ IRCD_SRC = \
 	parse.c \
 	querycmds.c \
 	random.c \
-	res.c \
 	s_auth.c \
 	s_bsd.c \
 	s_conf.c \
@@ -204,7 +208,7 @@ IRCD_SRC = \
 	y.tab.c
 
 
-SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C}
+SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C} ${RES_C}
 
 OBJS = ${SRC:%.c=%.o}
 

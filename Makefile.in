@@ -25,11 +25,12 @@ VPATH = @srcdir@
 SHELL = @SHPROG@
 RM = @RMPROG@
 AWK = @AWK@
+adns_subdir = @ADNS_SUBDIR@
 @SET_MAKE@
 #### End of system configuration section. ####
 
-SUBDIRS = doc ircd
-IRCD_MAKEFILES = Makefile doc/Makefile ircd/Makefile
+SUBDIRS = doc ${adns_subdir} ircd
+IRCD_MAKEFILES = Makefile doc/Makefile adns/Makefile ircd/Makefile
 
 all: build
 
