@@ -1059,6 +1059,18 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
  * <from> is locally on.  <from> must be a user. <tok> is ignored in
  * this function.
  */
+/* XXX sentalong_marker used XXX
+ *
+ * There is not an easy way to revoke the need for sentalong_marker
+ * from this function.  Thoughts and ideas would be welcome... -Kev
+ *
+ * One possibility would be to internalize the sentalong array; that
+ * could be prohibitively big, though.  We could get around that by
+ * making one that's the number of connected servers or something...
+ * or perhaps by adding a special flag to the servers we've sent a
+ * message to, and then a final loop through the connected servers
+ * to delete the flag. -Kev
+ */
 void sendcmdto_common_channels(struct Client *from, const char *cmd,
 			       const char *tok, const char *pattern, ...)
 {
@@ -1136,6 +1148,18 @@ void sendcmdto_channel_butserv(struct Client *from, const char *cmd,
  * remote users; users to skip may be specified by setting appropriate
  * flags in the <skip> argument.  <one> will also be skipped.
  */
+/* XXX sentalong_marker used XXX
+ *
+ * We can drop sentalong_marker from this function by adding a field to
+ * channels and to connections; what we do is make a user's connection
+ * a "member" of the channel by adding it to the new list, and we use
+ * the struct Membership status as a reference count.  Then, to implement
+ * this function, we just walk the list of connections.  Unfortunately,
+ * this doesn't account for sending only to channel ops, or for not
+ * sending to +d users; we could account for that by splitting those
+ * counts out, but that would imply adding two more fields (at least) to
+ * the struct Membership... -Kev
+ */
 void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 			      const char *tok, struct Channel *to,
 			      struct Client *one, unsigned int skip,
@@ -1187,6 +1211,16 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
  * Send a (prefixed) command to all users except <one> that have
  * <flag> set.
  */
+/* XXX sentalong_marker used XXX
+ *
+ * Again, we can solve this use of sentalong_marker by adding a field
+ * to connections--a count of the number of +w users, and another count
+ * of +g users.  Then, just walk through the local clients to send
+ * those messages, and another walk through the connected servers list,
+ * sending only if there's a non-zero count.  No caveats here, either,
+ * beyond remembering to decrement the count when a user /quit's or is
+ * killed, or a server is squit. -Kev
+ */
 void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 			   const char *tok, struct Client *one,
 			   unsigned int flag, const char *pattern, ...)
@@ -1231,6 +1265,20 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
 /*
  * Send a (prefixed) command to all users who match <to>, under control
  * of <who>
+ */
+/* XXX sentalong_marker used XXX
+ *
+ * This is also a difficult one to solve.  The basic approach would be
+ * to walk the client list of each connected server until we find a
+ * match--but then, we also have to walk the client list of all the
+ * servers behind that one.  We could implement this recursively--or we
+ * could add (yet another) field to the connection struct that would be
+ * a linked list of clients introduced through that link, and just walk
+ * that, making this into an iterative implementation.  Unfortunately,
+ * we probably would not be able to use tail recursion for the recursive
+ * solution, so a deep network could exhaust our stack space; therefore
+ * I favor the extra linked list, even though that increases the
+ * complexity of the database. -Kev
  */
 void sendcmdto_match_butone(struct Client *from, const char *cmd,
 			    const char *tok, const char *to,
