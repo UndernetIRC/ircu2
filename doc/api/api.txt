@@ -1,0 +1,105 @@
+This directory is intended for documents describing programming
+interfaces within ircu, including such things as modebuf's and the
+features interface.  Please write these documents as plain text; if we
+want HTML, we can write a script to convert the text versions into
+HTML versions.  Toward that end, I respectfully suggest everyone
+conform to a common format, which I will describe here:
+
+Every .txt file should begin with a couple of paragraphs giving an
+overview of the API, its purpose, and how to use it.  Paragraphs
+should be separated by blank lines, as shown here.  Paragraphs that do
+not end in some form of punctuation, such as a period, will be treated
+as section headings.  The introduction ends when the first API element
+appears.  API element documentation is introduced with "<" followed by
+the element type--"struct", "typedef", "function", "macro", or (heaven
+forbid) "global", followed by ">", all on a line by itself.  The next
+line should contain a declaration of the element as it would appear in
+a header file; this may spread across multiple lines and contain
+comments and blank lines.  The declaration ends for most elements when
+a ";" is encountered; for macros, the declaration ends on the last
+line not ending in "\".
+
+The documentation for the API element should immediately follow the
+declaration of that element, and should be separated from it by a
+single blank line.  This documentation should explain the purpose of
+the element and describe what each of its fields mean.  The
+documentation ends when the corresponding "</" tag is reached, just as
+in HTML or XML.  (I don't intend for the files to be either HTML or
+XML, I just want them to be easy to parse so they could be turned into
+either, as occasion warrants.)  An example follows:
+
+<struct>
+struct FooBar;	/* a sample structure with no definition */
+
+The comment, since it's on the same line as the ";", is associated
+with the declaration for struct FooBar.
+</struct>
+
+<struct>
+struct FooBar {
+  long     fb_magic;	/* a magic number */
+  char    *fb_string;	/* a string of some sort */
+};
+
+The sequence "};" ends the struct declaration.
+</struct>
+
+<typedef>
+typedef FooBar_t;	/* a simple typedef */
+
+This element shows how to hide the inner workings of typedefs.
+</typedef>
+
+<typedef>
+typedef struct FooBar FooBar_t;	/* a more complex typedef */
+
+Here we show the full typedef declaration.
+</typedef>
+
+<global>
+extern int fooBarFreeList;	/* global variables should be avoided */
+
+You should avoid global variables, but if you must have one for alloc
+counts or whatever, here's how to specify documentation for them.
+</global>
+
+<macro>
+#define HAVE_FOOBAR		/* We have FOOBAR, whatever it may be */
+
+This could be used for boolean macros (macros used in #ifdef's, for
+instance) or for simple value macros where you're hiding the values.
+Since there are so many variations on macros, I'll only show one other
+variation below:
+</macro>
+
+<macro>
+#define FooBarVerify(foobar)	((foobar) && \
+				 (foobar)->fb_magic == FOOBAR_STRUCT_MAGIC)
+
+This macro takes arguments.  Again, we could leave out the actual
+definition, or even treat the macro as a function rather than a
+macro.  This also shows how to do multi-line macros.
+</macro>
+
+<function>
+void *foobar(struct FooBar *blah, int flag);
+
+Since function definitions never appear in header files anyway, we
+don't have to worry about hiding information.  You should leave off
+"extern" in the function declaration, and please include names for the
+variables, so you can refer to them in the function documentation.
+</function>
+
+The API document may then end in some summary information, if you
+wish, or a ChangeLog of some form, such as follows.
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2000-12-18 Kev] Initial definition of how API documents should look.
+Further entries in the changelog should *precede* this one and should
+be separated from it by a blank line.  Also specify your name, as
+listed in the "<authors>" section, so we know who to blame ;)
+</changelog>

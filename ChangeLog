@@ -1,3 +1,18 @@
+2000-12-18  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* doc/api/log.txt: how to use the logging API
+
+	* doc/api/features.txt: how to use the features API
+
+	* doc/api/api.txt: how to write API documentation
+
+	* include/ircd_features.h: rearranged a couple of features for
+	neatness purposes
+
+	* ircd/ircd_features.c: cleaned up the macros some; rearranged
+	some code to all go into the switch; rearranged a couple of
+	features for neatness purposes
+
 2000-12-16  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* ircd/os_bsd.c: Added os_set_tos for BSD users.
 

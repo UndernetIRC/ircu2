@@ -1,0 +1,203 @@
+As of u2.10.11, most of the compile-time configuration options present
+in previous versions of ircu have been provided via the configuration
+file as "features."  This document is intended not only to give an
+explanation of how to use the features subsystem in new code, but also
+how to define new features.
+
+In the ircd_features.h header file is an enum Feature that lists all
+the features known to the features subsystem.  The order of entries in
+this list must match precisely the order of features as listed in the
+features[] table in ircd_features.c.  There are four kinds of
+features, five different flags that can be set for features, and six
+different call-backs for more complex features.
+
+Types of Features
+
+There are at present four different types of features: NONE, INT,
+BOOL, and STR.  Features of type "NONE" are complex features, such as
+the logging subsystem, that have complicated behavior that's managed
+through the use of call-backs.  The call-backs available are set,
+which is called to set the value of the feature; reset, which is
+called to reset the value of the feature back to its default; get,
+which is called to send the user a RPL_FEATURE to describe the feature
+setting; unmark, which is called prior to reading the configuration
+file; mark, which is called after reading the configuration file; and
+report, which is used to send a user a list of RPL_STATSFLINE
+replies.
+
+In comparison to type "NONE," the other types are very simple.  Type
+"INT" is used for features that take an integer value; "BOOL" is for
+those features that are boolean types; and "STR" is for those features
+that take simple string values.  The values for these feature types
+are handled directly by the features subsystem, and can be examined
+from code with the feature_int(), feature_bool(), and feature_str()
+functions, described below.
+
+Feature Flags
+
+There are five feature flags, one of which is used internally by the
+feature subsystem.  Two of these flags, FEAT_OPER and FEAT_MYOPER, are
+used to select who can see the settings of those features; FEAT_OPER
+permits any operator anywhere on the network to examine the settings
+of a particular feature, whereas FEAT_MYOPER only permits operators
+local to a server to examine feature values.  If neither of these two
+flags is specified, then any user may examine that feature's value.
+
+The other two flags only have any meaning for string values; they are
+FEAT_NULL, which is used to specify that a feature of type "STR" may
+have a NULL value, and FEAT_CASE, which specifies that the feature is
+case sensitive--this may be used on file names, for example.
+
+Marking Features
+
+When the configuration file is read, there must be some way to
+determine if a particular F-line has been removed since the last time
+the configuration file was read.  The way this is done in the features
+subsystem is to have a "mark" for each feature.  Prior to reading the
+configuration file, all marks are cleared for all features (and all
+"unmark" call-backs are called).  As each F-line is encountered and
+processed, that feature's mark is set.  Finally, when the
+configuration file has been fully read, all remaining unmarked
+features are reset to their default values (and all "mark" call-backs
+are called).
+
+Adding New Features
+
+To add a new feature, first determine the feature's name (which must
+begin with the string "FEAT_") and its type ("NONE," "INT," "BOOL," or
+"STR").  Then add the feature to the enum Feature in an appropriate
+place (i.e., it's good to group all features affecting operators
+separate from those features affecting networking code), and a
+corresponding entry in the features[] table in ircd_features.c.  It
+will be best to use one of the F_?() macros, which are documented
+below.  Then, whenever you need to refer to the value of a specific
+feature, call the appropriate feature_<type>() function, as documented
+below.
+
+<enum>
+enum Feature;
+
+The "Feature" enum lists all of the features known to the feature
+subsystem.  Each feature name *must* begin with "FEAT_"; the portion
+of the name following "FEAT_" will be what you use to set the feature
+from the configuration file or with the "set" or "reset" commands.
+</enum>
+
+<function>
+int feature_set(struct Client* from, const char* const* fields, int count);
+
+The feature_set() function takes an array of strings and a count of
+the number of strings in the array.  The first string is a feature
+name, and, for most features, the second string will be that feature's
+value.  The _from_ parameter is the struct Client describing the user
+that issued the "set" command.  This parameter may be NULL if
+feature_set() is being called from the configuration file subsystem.
+</function>
+
+<function>
+int feature_reset(struct Client* from, const char* const* fields, int count);
+
+The feature_reset() function is very similar in arguments to the
+feature_set() function, except that it may not be called from the
+configuration file subsystem.  It resets the named feature to its
+default value.
+</function>
+
+<function>
+int feature_get(struct Client* from, const char* const* fields, int count);
+
+Again, feature_get() is very similar in arguments to the feature_set()
+function, except that again it may not be called from the
+configuration file subsystem.  It reports the value of the named
+feature to the user that issued the "get" command.
+</function>
+
+<function>
+void feature_unmark(void);
+
+This function is used to unmark all feature values, as described in
+the subsection "Marking Features."  It takes no arguments and returns
+nothing.
+</function>
+
+<function>
+void feature_mark(void);
+
+The complement to feature_unmark(), feature_mark() resets all
+unchanged feature settings to their defaults.  See the subsection on
+"Marking Features."
+</function>
+
+<function>
+void feature_report(struct Client* to);
+
+Reports all F-lines to a user using RPL_STATSFLINE, except those which
+the user is not permitted to see due to flag settings.
+</function>
+
+<function>
+int feature_int(enum Feature feat);
+
+To retrieve the values of integer features, call this function.
+Calling this function on a different type of feature, such as a "BOOL"
+feature, will result in an assertion failure.
+</function>
+
+<function>
+int feature_bool(enum Feature feat);
+
+This function is the complement of feature_int() for features of type
+"BOOL."
+</function>
+
+<function>
+const char *feature_str(enum Feature feat);
+
+Use this function to retrieve strings values for features of type
+"STR"; you may not modify nor free the string value.
+</function>
+
+<macro>
+#define F_N(type, flags, set, reset, get, unmark, mark, report)
+
+This macro is used in the features[] table to simplify defining a
+feature of type "NONE."  The _type_ parameter is the name of the
+feature excluding the "FEAT_" prefix, and MUST NOT be in
+double-quotes.  The _flags_ parameter may be 0, FEAT_OPER, or
+FEAT_MYOPER--the bitwise OR of these two flags is permissible but
+would not make sense.  The rest of the arguments are pointers to
+functions implementing the named call-back.
+</macro>
+
+<macro>
+#define F_I(type, flags, v_int)
+
+To define integer features, use the F_I() macro.  The _type_ and
+_flags_ parameters are as for F_N(), and the _v_int_ macro specifies
+the default value of the feature.
+</macro>
+
+<macro>
+#define F_B(type, flags, v_int)
+
+This macro is used for defining features of type "BOOL"; it is very
+similar to F_I(), but _v_int_ should either 0 (for a "FALSE" value) or
+1 (for a "TRUE" value).
+</macro>
+
+<macro>
+#define F_S(type, flags, v_str)
+
+Also similar to F_I(), F_S() defines features of type "STR."  The
+_flags_ argument may be the bitwise OR of one of FEAT_OPER or
+FEAT_MYOPER with the special string flags FEAT_NULL and FEAT_CASE,
+which are described above in the section "Feature Flags."
+</macro>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2000-12-18 Kev] Document the features API
+</changelog>
