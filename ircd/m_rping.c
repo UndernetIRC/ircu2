@@ -155,7 +155,7 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                    parv[0], parv[2], parv[3], parv[4], parv[5]);
       else
         sendto_one(destination, "%s " TOK_RPING " %s %s %s %s :%s",
-                   parv[0], parv[1], parv[2], parv[3], parv[4], parv[5]); 
+                   NumServ(sptr), parv[1], parv[2], parv[3], parv[4], parv[5]); 
     }
   }
   else {

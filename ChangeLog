@@ -1,3 +1,6 @@
+2000-03-30  Thomas Helvey <tomh@inxpress.net>
+	* m_rping.c m_rpong.c: add Gte's rping/rpong fixes
+
 2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/parse.c: oops, missed opers.
 
@@ -284,7 +287,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.57 2000-04-01 10:58:16 isomer Exp $
+# $Id: ChangeLog,v 1.58 2000-04-01 22:53:49 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
