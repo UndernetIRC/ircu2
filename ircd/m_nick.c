@@ -298,7 +298,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * bad nick _change_
        */
-      sendto_highprot_butone(cptr, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
+      sendto_highprot_butone(&me, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
                              NumServ(&me), parv[0], me.name, cptr->name,
                              parv[0], sptr->user ? sptr->username : "",
                              sptr->user ? sptr->user->server->name : cptr->name);
@@ -439,7 +439,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if ((differ && lastnick >= acptr->lastnick) || (!differ && lastnick <= acptr->lastnick)) {
       if (!IsServer(sptr)) {
         ++ServerStats->is_kill;
-        sendto_highprot_butone(cptr, 10,        /* Kill old from outgoing servers */
+        sendto_highprot_butone(&me, 10,        /* Kill old from outgoing servers */
                               "%s " TOK_KILL " %s%s :%s (%s <- %s (Nick collision))",
                               NumServ(&me), NumNick(sptr), me.name, acptr->from->name,
                               cptr->name);
@@ -472,7 +472,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * This exits the client we had before getting the NICK message
    */
   if (differ) {
-    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
+    sendto_highprot_butone(&me, 10,        /* Kill our old from outgoing servers */
                            "%s " TOK_KILL " %s%s :%s (%s <- %s (older nick overruled))",
                            NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                            cptr->name);
@@ -482,7 +482,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     exit_client(cptr, acptr, &me, "Nick collision (older nick overruled)");
   }
   else {
-    sendto_highprot_butone(cptr, 10,        /* Kill our old from outgoing servers */
+    sendto_highprot_butone(&me, 10,        /* Kill our old from outgoing servers */
                           "%s " TOK_KILL " %s%s :%s (%s <- %s (nick collision from same user@host))",
                           NumServ(&me), NumNick(acptr), me.name, acptr->from->name,
                           cptr->name);
@@ -573,7 +573,7 @@ int m_nick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
             parv[1], nick, cptr->name);
       if (!IsServer(sptr))        /* bad nick _change_ */
       {
-        sendto_highprot_butone(cptr, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
+        sendto_highprot_butone(&me, 10, "%s " TOK_KILL " %s :%s (%s <- %s!%s@%s)",
             NumServ(&me), parv[0], me.name, cptr->name,
             parv[0], sptr->user ? sptr->username : "",
             sptr->user ? sptr->user->server->name : cptr->name);

@@ -153,7 +153,7 @@ struct Server *make_server(struct Client *cptr)
     servs.inuse++;
 #endif
     cptr->serv = serv;
-    cptr->serv->lag = 10000;
+    cptr->serv->lag = 60000;
     *serv->by = '\0';
     DupString(serv->last_error_msg, "<>");      /* String must be non-empty */
   }
