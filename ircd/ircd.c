@@ -28,6 +28,7 @@
 #include "crule.h"
 #include "hash.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -100,11 +101,12 @@ int            debuglevel        = -1;    /* Server debug level  */
 char          *debugmode         = "";    /* Server debug level */
 static char   *dpath             = DPATH;
 
-time_t         nextconnect       = 1; /* time for next try_connections call */
-time_t         nextping          = 1; /* same as above for check_pings() */
+static struct Timer connect_timer; /* timer structure for try_connections() */
+static struct Timer ping_timer; /* timer structure for check_pings() */
 
 static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
 
+int running = 1;
 
 
 /*----------------------------------------------------------------------------
@@ -115,7 +117,7 @@ void server_die(const char* message) {
   log_write(LS_SYSTEM, L_CRIT, 0, "Server terminating: %s", message);
   flush_connections(0);
   close_connections(1);
-  thisServer.running = 0;
+  running = 0;
 }
 
 
@@ -215,7 +217,7 @@ static int check_pid(void)
  * function should be made latest. (No harm done if this
  * is called earlier or later...)
  *--------------------------------------------------------------------------*/
-static time_t try_connections(void) {
+static void try_connections(struct Event* ev) {
   struct ConfItem*  aconf;
   struct Client*    cptr;
   struct ConfItem** pconf;
@@ -226,6 +228,9 @@ static time_t try_connections(void) {
   struct ConfItem*  con_conf    = 0;
   struct Jupe*      ajupe;
   unsigned int      con_class   = 0;
+
+  assert(ET_EXPIRE == ev_type(ev));
+  assert(0 != ev_timer(ev));
 
   connecting = FALSE;
   Debug((DEBUG_NOTICE, "Connection check at   : %s", myctime(CurrentTime)));
@@ -286,8 +291,12 @@ static time_t try_connections(void) {
 			   con_conf->name);
   }
 
+  if (next == 0)
+    next = CurrentTime + feature_int(FEAT_CONNECTFREQUENCY);
+
   Debug((DEBUG_NOTICE, "Next connection check : %s", myctime(next)));
-  return(next);
+
+  timer_add(&connect_timer, try_connections, 0, TT_ABSOLUTE, next);
 }
 
 
@@ -298,11 +307,14 @@ static time_t try_connections(void) {
  *       get right down to it.  Can't really be done until the server is more
  *       modular, however...
  *--------------------------------------------------------------------------*/
-static time_t check_pings(void) {
-  int expire     = 0; 
+static void check_pings(struct Event* ev) {
+  int expire     = 0;
   int next_check = CurrentTime;
   int max_ping   = 0;
   int i;
+
+  assert(ET_EXPIRE == ev_type(ev));
+  assert(0 != ev_timer(ev));
 
   next_check += feature_int(FEAT_PINGFREQUENCY);
   
@@ -326,7 +338,8 @@ static time_t check_pings(void) {
       feature_int(FEAT_CONNECTTIMEOUT);
    
     Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
-	   cli_name(cptr), (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
+	   cli_name(cptr),
+	   (cli_flags(cptr) & FLAGS_PINGSENT) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
           
 
@@ -345,7 +358,8 @@ static time_t check_pings(void) {
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
 	sendto_opmask_butone(0, SNO_OLDSNO,
-			     "No response from %s, closing link", cli_name(cptr));
+			     "No response from %s, closing link",
+			     cli_name(cptr));
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
     }
@@ -395,7 +409,7 @@ static time_t check_pings(void) {
   Debug((DEBUG_DEBUG, "[%i] check_pings() again in %is",
 	 CurrentTime, next_check-CurrentTime));
   
-  return next_check;
+  timer_add(&ping_timer, check_pings, 0, TT_ABSOLUTE, next_check);
 }
 
 
@@ -466,71 +480,6 @@ static void daemon_init(int no_fork) {
 #endif
 
   setsid();
-}
-
-
-/*----------------------------------------------------------------------------
- * event_loop
- *--------------------------------------------------------------------------*/
-static void event_loop(void) {
-  time_t nextdnscheck = 0;
-  time_t delay        = 0;
-
-  thisServer.running = 1;
-  while (thisServer.running) {
-    /* We only want to connect if a connection is due, not every time through.
-     * Note, if there are no active C lines, this call to Tryconnections is
-     * made once only; it will return 0. - avalon
-     */
-    if (nextconnect && CurrentTime >= nextconnect)
-      nextconnect = try_connections();
-
-    /* DNS checks. One to timeout queries, one for cache expiries. */
-    nextdnscheck = timeout_resolver(CurrentTime);
-
-    /* Take the smaller of the two 'timed' event times as the time of next
-     * event (stops us being late :) - avalon
-     * WARNING - nextconnect can return 0!
-     */
-    if (nextconnect)
-      delay = IRCD_MIN(nextping, nextconnect);
-    else
-      delay = nextping;
-
-    delay = IRCD_MIN(nextdnscheck, delay) - CurrentTime;
-
-    /* Adjust delay to something reasonable [ad hoc values] (one might think
-     * something more clever here... --msa) We don't really need to check that
-     * often and as long as we don't delay too long, everything should be ok.
-     * waiting too long can cause things to timeout...  i.e. PINGS -> a
-     * disconnection :( - avalon
-     */
-    if (delay < 1)
-      read_message(1);
-    else
-      read_message(IRCD_MIN(delay, feature_int(FEAT_TIMESEC)));
-
-    /* ...perhaps should not do these loops every time, but only if there is
-     * some chance of something happening (but, note that conf->hold times may
-     * be changed elsewhere--so precomputed next event time might be too far
-     * away... (similarly with ping times) --msa
-     */
-    if (CurrentTime >= nextping)
-      nextping = check_pings();
-    
-    /* timeout pending queries that haven't been responded to */
-    timeout_auth_queries(CurrentTime);
-
-    IPcheck_expire();
-
-    if (GlobalRehashFlag) {
-      rehash(&me, 1);
-      GlobalRehashFlag = 0;
-    }
-
-    if (GlobalRestartFlag)
-      server_restart("caught signal: SIGINT");
-  }
 }
 
 /*----------------------------------------------------------------------------
@@ -672,6 +621,7 @@ int main(int argc, char **argv) {
 
   debug_init(thisServer.bootopt & BOOT_TTY);
   daemon_init(thisServer.bootopt & BOOT_TTY);
+  event_init(MAXCONNECTIONS);
 
   setup_signals();
   feature_init(); /* initialize features... */
@@ -709,9 +659,14 @@ int main(int argc, char **argv) {
 
   uping_init();
 
+  IPcheck_init();
+  timer_add(&connect_timer, try_connections, 0, TT_RELATIVE, 1);
+  timer_add(&ping_timer, check_pings, 0, TT_RELATIVE, 1);
+
   CurrentTime = time(NULL);
 
   SetMe(&me);
+  cli_magic(&me) = CLIENT_MAGIC;
   cli_from(&me) = &me;
   make_server(&me);
 

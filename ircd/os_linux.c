@@ -303,13 +303,11 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
 }
 
 
-int os_connect_nonb(int fd, const struct sockaddr_in* sin)
+IOResult os_connect_nonb(int fd, const struct sockaddr_in* sin)
 {
-  if (connect(fd, (const struct sockaddr*) sin, sizeof(struct sockaddr_in))) {
-    if (errno != EINPROGRESS)
-      return 0;
-  }
-  return 1;
+  if (connect(fd, (const struct sockaddr*) sin, sizeof(struct sockaddr_in)))
+    return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
+  return IO_SUCCESS;
 }
       
 int os_get_sockname(int fd, struct sockaddr_in* sin_out)

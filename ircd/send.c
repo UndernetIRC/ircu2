@@ -140,8 +140,10 @@ void send_queued(struct Client *to)
     if ((len = deliver_it(to, &(cli_sendQ(to))))) {
       msgq_delete(&(cli_sendQ(to)), len);
       cli_lastsq(to) = MsgQLength(&(cli_sendQ(to))) / 1024;
-      if (IsBlocked(to))
+      if (IsBlocked(to)) {
+	update_write(to);
         return;
+      }
     }
     else {
       if (IsDead(to)) {
@@ -155,6 +157,7 @@ void send_queued(struct Client *to)
 
   /* Ok, sendq is now empty... */
   client_drop_sendq(cli_connect(to));
+  update_write(to);
 }
 
 void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
@@ -184,6 +187,7 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
 
   msgq_add(&(cli_sendQ(to)), buf, prio);
   client_add_sendq(cli_connect(to), &send_queues);
+  update_write(to);
 
   /*
    * Update statistics. The following is slightly incorrect

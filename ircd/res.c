@@ -16,6 +16,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
@@ -200,6 +201,10 @@ struct CacheTable {
 
 int ResolverFileDescriptor    = -1;   /* GLOBAL - used in s_bsd.c */
 
+static struct Socket resSock;		/* Socket describing resolver */
+static struct Timer  resExpireDNS;	/* Timer for DNS expiration */
+static struct Timer  resExpireCache;	/* Timer for cache expiration */
+
 static time_t nextDNSCheck    = 0;
 static time_t nextCacheExpire = 1;
 
@@ -222,6 +227,8 @@ static struct ResRequest* requestListTail;   /* tail of resolver request list */
 static void     add_request(struct ResRequest* request);
 static void     rem_request(struct ResRequest* request);
 static struct ResRequest*   make_request(const struct DNSQuery* query);
+static time_t   timeout_query_list(time_t now);
+static time_t   expire_cache(time_t now);
 static void     rem_cache(struct CacheEntry*);
 static void     do_query_name(const struct DNSQuery* query, 
                               const char* name, 
@@ -298,6 +305,14 @@ res_ourserver(const struct __res_state* statp, const struct sockaddr_in* inp)
   return (0);
 }
 
+/* Socket callback for resolver */
+static void res_callback(struct Event* ev)
+{
+  assert(ev_type(ev) == ET_READ);
+
+  resolver_read();
+}
+
 /*
  * start_resolver - do everything we need to read the resolv.conf file
  * and initialize the resolver file descriptor if needed
@@ -340,7 +355,31 @@ static void start_resolver(void)
     if (!os_set_nonblocking(ResolverFileDescriptor))
       report_error("Resolver: error setting non-blocking for %s: %s", 
                    cli_name(&me), errno);
+    if (!socket_add(&resSock, res_callback, 0, SS_DATAGRAM,
+		    SOCK_EVENT_READABLE, ResolverFileDescriptor))
+      report_error("Resolver: unable to queue resolver file descriptor for %s",
+		   cli_name(&me), ENFILE);
   }
+}
+
+/* Call the query timeout function */
+static void expire_DNS_callback(struct Event* ev)
+{
+  time_t next;
+
+  next = timeout_query_list(CurrentTime);
+
+  timer_add(&resExpireDNS, expire_DNS_callback, 0, TT_ABSOLUTE, next);
+}
+
+/* Call the cache expire function */
+static void expire_cache_callback(struct Event* ev)
+{
+  time_t next;
+
+  next = expire_cache(CurrentTime);
+
+  timer_add(&resExpireCache, expire_cache_callback, 0, TT_ABSOLUTE, next);
 }
 
 /*
@@ -357,6 +396,10 @@ int init_resolver(void)
   memset(&reinfo,   0, sizeof(reinfo));
 
   requestListHead = requestListTail = 0;
+
+  /* initiate the resolver timers */
+  timer_add(&resExpireDNS, expire_DNS_callback, 0, TT_RELATIVE, 1);
+  timer_add(&resExpireCache, expire_cache_callback, 0, TT_RELATIVE, 1);
 
   errno = h_errno = 0;
 

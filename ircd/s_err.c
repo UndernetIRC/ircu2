@@ -507,7 +507,7 @@ static Numeric replyTable[] = {
 /* 236 */
   { 0 },
 /* 237 */
-  { 0 },
+  { RPL_STATSENGINE, "%s :Event loop engine", "237" },
 /* 238 */
   { RPL_STATSFLINE, "%c %s %s", "238" },
 /* 239 */

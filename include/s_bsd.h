@@ -46,6 +46,7 @@ extern const char* const SELECT_ERROR_MSG;
 extern const char* const CONNECT_ERROR_MSG;
 extern const char* const SETBUFS_ERROR_MSG;
 extern const char* const TOS_ERROR_MSG;
+extern const char* const REGISTER_ERROR_MSG;
 
 
 extern int            HighestFd;
@@ -89,5 +90,6 @@ extern void init_server_identity(void);
 extern void close_connections(int close_stderr);
 extern int  init_connection_limits(void);
 extern void set_virtual_host(struct in_addr addr);
+extern void update_write(struct Client* cptr);
 
 #endif /* INCLUDED_s_bsd_h */

@@ -31,6 +31,9 @@
 #ifndef INCLUDED_msgq_h
 #include "msgq.h"
 #endif
+#ifndef INCLUDED_ircd_events_h
+#include "ircd_events.h"
+#endif
 #ifndef INCLUDED_ircd_handler_h
 #include "ircd_handler.h"
 #endif
@@ -53,6 +56,7 @@ struct Whowas;
 struct DNSReply;
 struct hostent;
 struct Privs;
+struct AuthRequest;
 
 /*
  * Structures
@@ -110,11 +114,13 @@ struct Connection {
    *  to which the allocation is tied to! *Never* refer to
    *  these fields, if (from != self).
    */
+  unsigned long       con_magic; /* magic number */
   struct Connection*  con_next;  /* Next connection with queued data */
   struct Connection** con_prev_p; /* What points to us */
   struct Client*      con_client; /* Client associated with connection */
   unsigned int        con_count; /* Amount of data in buffer */
   int                 con_fd;    /* >= 0, for local clients */
+  int                 con_freeflag; /* indicates if connection can be freed */
   int                 con_error; /* last socket level error for client */
   unsigned int        con_snomask; /* mask for server messages */
   time_t              con_nextnick; /* Next time a nick change is allowed */
@@ -149,9 +155,15 @@ struct Connection {
   char con_passwd[PASSWDLEN + 1];
   char con_buffer[BUFSIZE];     /* Incoming message buffer; or the error that
                                    caused this clients socket to be `dead' */
+  struct Socket       con_socket; /* socket descriptor for client */
+  struct Timer        con_proc; /* process latent messages from client */
+  struct AuthRequest* con_auth; /* auth request for client */
 };
 
+#define CONNECTION_MAGIC 0x12f955f3
+
 struct Client {
+  unsigned long  cli_magic;     /* magic number */
   struct Client* cli_next;      /* link in GlobalClientList */
   struct Client* cli_prev;      /* link in GlobalClientList */
   struct Client* cli_hnext;     /* link in hash table bucket or this */
@@ -182,6 +194,10 @@ struct Client {
   char cli_info[REALLEN + 1];   /* Free form additional client information */
 };
 
+#define CLIENT_MAGIC 0x4ca08286
+
+#define cli_verify(cli)		((cli)->cli_magic == CLIENT_MAGIC)
+#define cli_magic(cli)		((cli)->cli_magic)
 #define cli_next(cli)		((cli)->cli_next)
 #define cli_prev(cli)		((cli)->cli_prev)
 #define cli_hnext(cli)		((cli)->cli_hnext)
@@ -208,6 +224,7 @@ struct Client {
 
 #define cli_count(cli)		((cli)->cli_connect->con_count)
 #define cli_fd(cli)		((cli)->cli_connect->con_fd)
+#define cli_freeflag(cli)	((cli)->cli_connect->con_freeflag)
 #define cli_error(cli)		((cli)->cli_connect->con_error)
 #define cli_snomask(cli)	((cli)->cli_connect->con_snomask)
 #define cli_nextnick(cli)	((cli)->cli_connect->con_nextnick)
@@ -235,12 +252,18 @@ struct Client {
 #define cli_sockhost(cli)	((cli)->cli_connect->con_sockhost)
 #define cli_passwd(cli)		((cli)->cli_connect->con_passwd)
 #define cli_buffer(cli)		((cli)->cli_connect->con_buffer)
+#define cli_socket(cli)		((cli)->cli_connect->con_socket)
+#define cli_proc(cli)		((cli)->cli_connect->con_proc)
+#define cli_auth(cli)		((cli)->cli_connect->con_auth)
 
+#define con_verify(con)		((con)->con_magic == CONNECTION_MAGIC)
+#define con_magic(con)		((con)->con_magic)
 #define con_next(con)		((con)->con_next)
 #define con_prev_p(con)		((con)->con_prev_p)
 #define con_client(con)		((con)->con_client)
 #define con_count(con)		((con)->con_count)
 #define con_fd(con)		((con)->con_fd)
+#define con_freeflag(con)	((con)->con_freeflag)
 #define con_error(con)		((con)->con_error)
 #define con_snomask(con)	((con)->con_snomask)
 #define con_nextnick(con)	((con)->con_nextnick)
@@ -268,6 +291,9 @@ struct Client {
 #define con_sockhost(con)	((con)->con_sockhost)
 #define con_passwd(con)		((con)->con_passwd)
 #define con_buffer(con)		((con)->con_buffer)
+#define con_socket(con)		((con)->con_socket)
+#define con_proc(con)		((con)->con_proc)
+#define con_auth(con)		((con)->con_auth)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */
@@ -406,6 +432,10 @@ struct Client {
 #define ClearUPing(x)           (cli_flags(x) &= ~FLAGS_UPING)
 #define ClearWallops(x)         (cli_flags(x) &= ~FLAGS_WALLOP)
 #define ClearServNotice(x)      (cli_flags(x) &= ~FLAGS_SERVNOTICE)
+
+/* free flags */
+#define FREEFLAG_SOCKET	0x0001	/* socket needs to be freed */
+#define FREEFLAG_TIMER	0x0002	/* timer needs to be freed */
 
 /* server notice stuff */
 

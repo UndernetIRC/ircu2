@@ -30,6 +30,7 @@
 #include "msg.h"
 #include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"
@@ -70,6 +71,8 @@ struct IPRegistryEntry {
 
 static struct IPRegistryEntry* hashTable[IP_REGISTRY_TABLE_SIZE];
 static struct IPRegistryEntry* freeList = 0;
+
+static struct Timer expireTimer;
 
 static unsigned int ip_registry_hash(unsigned int ip)
 {
@@ -168,14 +171,15 @@ static void ip_registry_expire_entry(struct IPRegistryEntry* entry)
   }
 }
 
-/*
- * ip_registry_expire
- */
-static void ip_registry_expire()
+/* Callback to run an expiry of the IPcheck registry */
+static void ip_registry_expire(struct Event* ev)
 {
   int i;
   struct IPRegistryEntry* entry;
   struct IPRegistryEntry* entry_next;
+
+  assert(ET_EXPIRE == ev_type(ev));
+  assert(0 != ev_timer(ev));
 
   for (i = 0; i < IP_REGISTRY_TABLE_SIZE; ++i) {
     for (entry = hashTable[i]; entry; entry = entry_next) {
@@ -184,6 +188,16 @@ static void ip_registry_expire()
         ip_registry_expire_entry(entry);
     }
   }
+}
+
+/*
+ * IPcheck_init()
+ *
+ * Initializes the registry timer
+ */
+void IPcheck_init(void)
+{
+  timer_add(&expireTimer, ip_registry_expire, 0, TT_PERIODIC, 60);
 }
 
 /*
@@ -349,8 +363,8 @@ void ip_registry_connect_succeeded(struct Client *cptr)
     free_targets = entry->target->count;
     tr = " tr";
   }
-  sendcmdto_one(&me, CMD_NOTICE, cptr, ":on %u ca %u(%u) ft %u(%u)%s",
-		entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
+  sendcmdto_one(&me, CMD_NOTICE, cptr, "%C :on %u ca %u(%u) ft %u(%u)%s",
+		cptr, entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
 		free_targets, STARTTARGETS, tr);
 }
 
@@ -554,14 +568,3 @@ unsigned short IPcheck_nr(struct Client *cptr)
   assert(0 != cptr);
   return ip_registry_count(cli_ip(cptr).s_addr);
 }
-
-void IPcheck_expire()
-{
-  static time_t next_expire = 0;
-  if (next_expire < CurrentTime) {
-    ip_registry_expire();
-    next_expire = CurrentTime + 60;
-  }
-}
-
-

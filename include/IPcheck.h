@@ -20,12 +20,12 @@ struct Client;
 /*
  * Prototypes
  */
+extern void IPcheck_init(void);
 extern int IPcheck_local_connect(struct in_addr ip, time_t* next_target_out);
 extern void IPcheck_connect_fail(struct in_addr ip);
 extern void IPcheck_connect_succeeded(struct Client *cptr);
 extern int IPcheck_remote_connect(struct Client *cptr, int is_burst);
 extern void IPcheck_disconnect(struct Client *cptr);
 extern unsigned short IPcheck_nr(struct Client* cptr);
-extern void IPcheck_expire();
 
 #endif /* INCLUDED_ipcheck_h */

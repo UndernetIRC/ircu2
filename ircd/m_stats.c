@@ -94,6 +94,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_policy.h"
 #include "ircd_reply.h"
@@ -260,6 +261,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return m_not_oper(sptr,cptr,parc,parv);
 #else
       report_configured_links(sptr, CONF_SERVER);
+#endif
+      break;
+
+    case 'E':
+    case 'e': /* report engine name */
+#ifdef HEAD_IN_SAND_STATS_E
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
+      send_reply(sptr, RPL_STATSENGINE, engine_name());
 #endif
       break;
 
@@ -590,6 +600,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'c':
       report_configured_links(sptr, CONF_SERVER);
       break;
+    case 'E':
+    case 'e': /* report engine name */
+      send_reply(sptr, RPL_STATSENGINE, engine_name());
+      break;
     case 'G':
     case 'g': /* send glines */
       gline_stats(sptr);
@@ -808,6 +822,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'C':
     case 'c':
       report_configured_links(sptr, CONF_SERVER);
+      break;
+    case 'E':
+    case 'e': /* report engine name */
+      send_reply(sptr, RPL_STATSENGINE, engine_name());
       break;
     case 'G':
     case 'g': /* send glines */

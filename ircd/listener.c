@@ -24,6 +24,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
@@ -51,6 +52,8 @@
 #endif
 
 struct Listener* ListenerPollList = 0;
+
+static void accept_connection(struct Event* ev);
 
 static struct Listener* make_listener(int port, struct in_addr addr)
 {
@@ -222,6 +225,14 @@ static int inetport(struct Listener* listener)
   if (!os_set_tos(fd,feature_int((listener->server)?FEAT_TOS_SERVER : FEAT_TOS_CLIENT))) {
     report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
   }
+
+  if (!socket_add(&listener->socket, accept_connection, (void*) listener,
+		  SS_LISTENING, 0, fd)) {
+    /* Error should already have been reported to the logs */
+    close(fd);
+    return 0;
+  }
+
   listener->fd = fd;
 
   return 1;
@@ -370,7 +381,7 @@ void close_listener(struct Listener* listener)
   }
   if (-1 < listener->fd)
     close(listener->fd);
-  free_listener(listener);
+  socket_del(&listener->socket);
 }
  
 /*
@@ -401,77 +412,88 @@ void release_listener(struct Listener* listener)
 /*
  * accept_connection - accept a connection on a listener
  */
-void accept_connection(struct Listener* listener)
+static void accept_connection(struct Event* ev)
 {
+  struct Listener* listener;
   struct sockaddr_in addr = { 0 };
   unsigned int       addrlen = sizeof(struct sockaddr_in);
   int                fd;
 
-  assert(0 != listener);
+  assert(0 != ev_socket(ev));
+  assert(0 != s_data(ev_socket(ev)));
 
-  listener->last_accept = CurrentTime;
-  /*
-   * There may be many reasons for error return, but
-   * in otherwise correctly working environment the
-   * probable cause is running out of file descriptors
-   * (EMFILE, ENFILE or others?). The man pages for
-   * accept don't seem to list these as possible,
-   * although it's obvious that it may happen here.
-   * Thus no specific errors are tested at this
-   * point, just assume that connections cannot
-   * be accepted until some old is closed first.
-   */
-  if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr, &addrlen))) {
-    /* Lotsa admins seem to have problems with not giving enough file descriptors
-     * to their server so we'll add a generic warning mechanism here.  If it
-     * turns out too many messages are generated for meaningless reasons we
-     * can filter them back.
+  listener = s_data(ev_socket(ev));
+
+  if (ev_type(ev) == ET_DESTROY) /* being destroyed */
+    free_listener(listener);
+  else {
+    assert(ev_type(ev) == ET_ACCEPT);
+
+    listener->last_accept = CurrentTime;
+    /*
+     * There may be many reasons for error return, but
+     * in otherwise correctly working environment the
+     * probable cause is running out of file descriptors
+     * (EMFILE, ENFILE or others?). The man pages for
+     * accept don't seem to list these as possible,
+     * although it's obvious that it may happen here.
+     * Thus no specific errors are tested at this
+     * point, just assume that connections cannot
+     * be accepted until some old is closed first.
      */
-    sendto_opmask_butone(0, SNO_TCPCOMMON, "Unable to accept connection: %m");
-    return;
-  }
-  /*
-   * check for connection limit
-   */
-  if (fd > MAXCLIENTS - 1) {
-    ++ServerStats->is_ref;
-    send(fd, "ERROR :All connections in use\r\n", 32, 0);
-    close(fd);
-    return;
-  }
-  /*
-   * check to see if listener is shutting down
-   */
-  if (!listener->active) {
-    ++ServerStats->is_ref;
-    send(fd, "ERROR :Use another port\r\n", 25, 0);
-    close(fd);
-    return;
-  }
-  /*
-   * check to see if connection is allowed for this address mask
-   */
-  if (!connection_allowed((const char*) &addr, (const char*) &listener->mask)) {
-    ++ServerStats->is_ref;
-    send(fd, "ERROR :Use another port\r\n", 25, 0);
-    close(fd);
-    return;
-  }
+    if (-1 == (fd = accept(listener->fd, (struct sockaddr*) &addr,
+			   &addrlen))) {
+      /* Lotsa admins seem to have problems with not giving enough file
+       * descriptors to their server so we'll add a generic warning mechanism
+       * here.  If it turns out too many messages are generated for
+       * meaningless reasons we can filter them back.
+       */
+      sendto_opmask_butone(0, SNO_TCPCOMMON,
+			   "Unable to accept connection: %m");
+      return;
+    }
+    /*
+     * check for connection limit
+     */
+    if (fd > MAXCLIENTS - 1) {
+      ++ServerStats->is_ref;
+      send(fd, "ERROR :All connections in use\r\n", 32, 0);
+      close(fd);
+      return;
+    }
+    /*
+     * check to see if listener is shutting down
+     */
+    if (!listener->active) {
+      ++ServerStats->is_ref;
+      send(fd, "ERROR :Use another port\r\n", 25, 0);
+      close(fd);
+      return;
+    }
+    /*
+     * check to see if connection is allowed for this address mask
+     */
+    if (!connection_allowed((const char*) &addr,
+			    (const char*) &listener->mask)) {
+      ++ServerStats->is_ref;
+      send(fd, "ERROR :Use another port\r\n", 25, 0);
+      close(fd);
+      return;
+    }
 #if 0
-  /*
-   * check conf for ip address access
-   */
-  if (!conf_connect_allowed(addr.sin_addr)) {
-    ++ServerStats->is_ref;
-    send(fd, "ERROR :Not authorized\r\n", 23, 0);
-    close(fd);
-    return;
-  }
+    /*
+     * check conf for ip address access
+     */
+    if (!conf_connect_allowed(addr.sin_addr)) {
+      ++ServerStats->is_ref;
+      send(fd, "ERROR :Not authorized\r\n", 23, 0);
+      close(fd);
+      return;
+    }
 #endif
-  ++ServerStats->is_ac;
-  nextping = CurrentTime;
+    ++ServerStats->is_ac;
+/*      nextping = CurrentTime; */
 
-  add_connection(listener, fd);
+    add_connection(listener, fd);
+  }
 }
-
-
