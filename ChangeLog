@@ -1,3 +1,6 @@
+2000-12-16  Greg Sikorski <gte@atomicrevs.demon.co.uk>
+	* ircd/os_bsd.c: Added os_set_tos for BSD users.
+
 2000-12-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_features.c: Isomer almost got it right; you need to
