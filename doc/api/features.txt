@@ -31,7 +31,9 @@ those features that are boolean types; and "STR" is for those features
 that take simple string values.  The values for these feature types
 are handled directly by the features subsystem, and can be examined
 from code with the feature_int(), feature_bool(), and feature_str()
-functions, described below.
+functions, described below.  These features have a notify callback,
+which is used to warn subsystems that use the values of particular
+features that the value has changed.
 
 Feature Flags
 
@@ -188,9 +190,9 @@ functions implementing the named call-back.
 #define F_I(type, flags, v_int, notify)
 
 To define integer features, use the F_I() macro.  The _type_ and
-_flags_ parameters are as for F_N(), and the _v_int_ macro specifies
-the default value of the feature.  The _notify_ parameter, if
-non-zero, will be called whenever the value of the feature changes.
+_flags_ parameters are as for F_N(), and the _v_int_ parameter
+specifies the default value of the feature.  The _notify_ parameter,
+if non-zero, will be called whenever the value of the feature changes.
 </macro>
 
 <macro>
@@ -219,6 +221,8 @@ Kev <klmitch@mit.edu>
 </authors>
 
 <changelog>
+[2001-06-13 Kev] Mention notify with the other callbacks
+
 [2001-01-02 Kev] Add documentation for new flags and for the notify
 mechanism
 

@@ -1,0 +1,544 @@
+The IRC server is built around an event loop.  Until the u2.10.11
+release, this event loop has been rather ad-hoc; timed events are
+hard-coded in, signals are handled inside the signal handler, etc.
+All of this has changed with u2.10.11.  A new subsystem, the events
+subsystem, has been introduced; the new subsystem contains a
+generalization of the concept of an event.  An event is a signal, the
+expiration of a timer, or some form of activity on a network socket.
+This new subsystem has the potential to vastly simplify the code that
+is arguably the core of any network program, and makes it much simpler
+to support more exotic forms of network activity monitoring than the
+conventional select() and poll() calls.
+
+The primary concepts that the events subsystem works with are the
+"event," represented by a struct Event, and the "generator."  There
+are three types of generators: sockets, represented by struct Socket;
+signals, represented by struct Signal; and timers, represented by
+struct Timer.  Each of these generators will be described in turn.
+
+Signals
+
+The signal is perhaps the simplest generator in the entire events
+subsystem.  Basically, instead of setting a signal handler, the
+function signal_add() is called, specifying a function to be called
+when a given signal is detected.  Most importantly, that call-back
+function is called _outside_ the context of a signal handler,
+permitting the call-back to use more exotic functions that are
+anathema within a signal handler, such as MyMalloc().  Once a
+call-back for a signal has been established, it cannot be deleted;
+this design decision was driven by the fact that ircd never changes
+its signal handlers.
+
+Whenever a signal is received, an event of type ET_SIGNAL is
+generated, and that event is passed to the event call-back function
+specified in the signal_add() call.
+
+Timers
+
+Execution of the call-back functions for a timer occur when that timer
+_expires_; when a timer expires depends on the type of timer and the
+expiration time that was used for that timer.  A TT_ABSOLUTE timer,
+for instance, expires at exactly the time given as the expiration
+time.  This time is a standard UNIX time_t value, measuring seconds
+since the UNIX epoch.  The TT_ABSOLUTE timer type is complemented by
+the TT_RELATIVE timer; the time passed as its expiration time is
+relative to the current time.  If a TT_RELATIVE timer is given an
+expiration time of 5, for instance, it will expire 5 seconds after the
+present time.  Internally, TT_RELATIVE timers are converted into
+TT_ABSOLUTE timers, with the expiration time adjusted by addition of
+the current time.
+
+Those two types of timers, TT_ABSOLUTE and TT_RELATIVE, are
+single-shot timers.  Once they expire, they are removed from the timer
+list unless re-added by the event call-back or through some other
+mechanism.  There is another type of timer, however, the TT_PERIODIC
+timer, that is not removed from the timer list.  TT_PERIODIC timers
+are similar to TT_RELATIVE timers, in that one passes in the expire
+time as a relative number of seconds, but when they expire, they are
+re-added to the timer list with the same relative expire time.  This
+means that a TT_PERIODIC timer with an expire time of 5 seconds that
+is set at 11:50:00 will have its call-back called at 11:50:05,
+11:50:10, 11:50:15, and so on.
+
+Timers have to be run by the event engines explicitly by calling
+timer_run() on the generator list passed to the engine event loop.
+In addition, engines may determine the next (absolute) time that a
+timer needs to be run by calling the timer_next() macro; this may be
+used to set a timeout on the engine's network activity monitoring
+function.  Engines are described in detail below.
+
+When a timer expires, an event of ET_EXPIRE is generated, and the
+call-back function is called.  When a timer is destroyed, either as
+the result of an expiration or as a result of an explicit timer_del()
+call, an event of ET_DESTROY is generated, notifying the call-back
+that the struct Timer can be deallocated.
+
+Sockets
+
+Perhaps the most complicated event generator in all of the event
+system is the socket, as described by struct Socket.  This single
+classification covers datagram sockets and stream sockets.  To
+differentiate the different kinds of sockets, there is a socket state
+associated with each socket.  The available states are SS_CONNECTING,
+which indicates that a particular socket is in the process of
+completing a non-blocking connect(); SS_LISTENING, which indicates
+that a particular socket is a listening socket; SS_CONNECTED, which is
+the state of every other stream socket; SS_DATAGRAM, which is an
+ordinary datagram socket, and SS_CONNECTDG, which describes a
+connected datagram socket.  (The SS_NOTSOCK state is for the internal
+use of the events system and will not be described here.)
+
+In addition to the socket states, there's also an event mask for each
+socket; this set of flags is used to tell the events subsystem what
+events the application is interested in for the socket.  For
+SS_CONNECTING and SS_LISTENING sockets, this events mask has no
+meaning, but on the other socket states, the event mask is used to
+determine if the application is interested in readable
+(SOCK_EVENT_READABLE) or writable (SOCK_EVENT_WRITABLE) indications.
+
+Most of the defined event types have to do with socket generators.
+When a socket turns up readable, for instance, an event of type
+ET_READ is generated.  Similarly, ET_WRITE is generated when a socket
+can be written to.  The ET_ACCEPT event is generated when a listening
+socket indicates that there is a connection to be accepted; ET_CONNECT
+is generated when a non-blocking connect is completed.  Finally, if an
+end-of-file indication is detected, ET_EOF is generated, whereas if an
+error has occurred on the socket, ET_ERROR is generated.  Of course,
+when a socket has been deleted by the socket_del() function, an event
+of ET_DESTROY is generated when it is safe for the memory used by the
+struct Socket to be reclaimed.
+
+Events
+
+An event, represented by a struct Event, describes in detail all of
+the particulars of an event.  Each event has a type, and an optional
+integer piece of data may be passed with some events--in particular,
+ET_SIGNAL events pass the signal number, and ET_ERROR events pass the
+errno value.  The struct Event also contains a pointer to the
+structure describing the generated event--although it should be noted
+that the only way to disambiguate which type of generator is contained
+within the struct Event is by which call-back function has been
+called.
+
+All generators have a void pointer which can be used to pass important
+information to the call-back, such as a pointer to a struct Client.
+Additionally, generators have a reference count, and a union of a void
+pointer and an integer that should only be utilized by the event
+engine.  Finally, there is also a field for flags, although the only
+flag of concern to the application (or the engine) is the active flag,
+which may be tested using the test macros described below.
+
+Whatever the generator, the call-back function is a function returning
+nothing (void) and taking as its sole argument a pointer to struct
+Event.  This call-back function may be implemented as a single switch
+statement that calls out to appropriate external functions as needed.
+
+Engines
+
+Engines implement the actual socket event loop, and may also have some
+means of receiving signal events.  Each engine has a name, which
+should describe what its core function is; for instance, the engine
+based on the standard select() function is named, simply, "select()."
+Each engine must implement several call-backs which are used to
+initialize the engine, notify the engine of sockets the application is
+interested in, etc.  All of this data is described by a single struct
+Engine, which should be the only non-static variable or function in
+the engine's source file.
+
+The engine's event loop, pointed to by the eng_loop field of the
+struct Engine, must consist of a single while loop predicated on the
+global variable _running_.  Additionally, this loop's final statement
+must be a call to timer_run(), to execute all timers that have become
+due.  Ideally, this construction should be pulled out of each engine's
+eng_loop and put in the event_loop() function of the events
+subsystem.
+
+Reference Counts
+
+As mentioned previously, all generators keep a reference count.
+Should timer_del() or socket_del() be called on a generator with a
+non-zero reference count, for whatever reason, the actual destruction
+of the generator will be delayed until the reference count again
+reaches zero.  This is used by the event loop to keep sockets that it
+is currently referencing from being deallocated before it is done
+checking all pending events on them.  To increment the reference count
+by one, call gen_ref_inc() on the generator; the corresponding macro
+gen_ref_dec() decrements the reference counts, and will automatically
+destroy the generator if the appropriate conditions are met.
+
+Debugging Functions
+
+It can be difficult to debug an engines if, say, a socket state can
+only be expressed as a meaningless number.  Therefore, when DEBUGMODE
+is #define'd, five number-to-name functions are also defined to make
+the debugging data more meaningful.  These functions must only be
+called when DEBUGMODE is #define'd.  Calling them from within Debug()
+macro calls is safe; calling them from log_write() calls is not.
+
+<typedef>
+typedef void (*EventCallBack)(struct Event*);
+
+The _EventCallBack_ type is used to simplify declaration of event
+call-back functions.  It is used in timer_add(), signal_add(), and
+socket_add().  The event call-back should process the event, taking
+whatever actions are necessary.  The function should be declared as
+returning void.
+</typedef>
+
+<typedef>
+typedef int (*EngineInit)(int);
+
+The _EngineInit_ function takes an integer specifying the maximum
+number of sockets the event system is expecting to handle.  This
+number may be used by the engine initialization function for memory
+allocation computations.  If initialization succeeds, this function
+must return 1.  If initialization fails, the function should clean up
+after itself and return 0.  The events subsystem has the ability to
+fall back upon another engine, should an engine initialization fail.
+Needless to say, the engines based upon poll() and select() should
+never fail in this way.
+</typedef>
+
+<typedef>
+typedef void (*EngineSignal)(struct Signal*);
+
+If an engine has the capability to directly detect signals, it should
+set the eng_signal field of struct Engine non-zero.  When the
+application indicates interest in a particular signal, the
+_EngineSignal_ function will be called with the filled-in struct
+Signal, in order to register interest in that signal with the engine.
+</typedef>
+
+<typedef>
+typedef int (*EngineAdd)(struct Socket*);
+
+All engines must define an _EngineAdd_ function, which is used to
+inform the engine of the application's interest in the socket.  If the
+new socket cannot be accommodated by the engine for whatever reason,
+this function must return 0.  Otherwise, the function must return 1,
+informing the events subsystem that the interest has been noted.
+</typedef>
+
+<typedef>
+typedef void (*EngineState)(struct Socket*, enum SocketState new_state);
+
+Sockets can change state.  SS_CONNECTING sockets, for instance, can
+become SS_CONNECTED.  Whenever a socket state changes, the engine is
+informed, since some states require different notification procedures
+than others.  This is accomplished by calling the _EngineState_
+function with the new state.  The struct Socket passed to the engine
+will still have the old state, if the engine must reference that.
+</typedef>
+
+<typedef>
+typedef void (*EngineEvents)(struct Socket*, unsigned int new_events);
+
+Applications may only be interested in given events on a socket for a
+limited time.  When the application's interest shifts, a new events
+mask is set for the socket.  The engine is informed of this change by
+a call to its _EngineEvents_ function.
+</typedef>
+
+<typedef>
+typedef void (*EngineDelete)(struct Socket*);
+
+Eventually, an application will close all the sockets it has opened.
+When a socket is closed, and the corresponding struct Socket deleted
+with a call to socket_del(), the _EngineDelete_ function will be
+called to notify the engine of the change.
+</typedef>
+
+<typedef>
+typedef void (*EngineLoop)(struct Generators*);
+
+The workhorse of the entire events subsystem is the event loop,
+implemented by each engine as the _EngineLoop_ function.  This
+function is called with a single argument that may be passed to
+timer_next() to calculate the next time a timer will expire.
+</typedef>
+
+<enum>
+enum SocketState {
+  SS_CONNECTING,	/* Connection in progress on socket */
+  SS_LISTENING,		/* Socket is a listening socket */
+  SS_CONNECTED,		/* Socket is a connected socket */
+  SS_DATAGRAM,		/* Socket is a datagram socket */
+  SS_CONNECTDG,		/* Socket is a connected datagram socket */
+  SS_NOTSOCK		/* Socket isn't a socket at all */
+};
+
+This enumeration contains a list of all possible states a socket can
+be in.  Applications should not use SS_NOTSOCK; engines should treat
+it as a special socket state for non-sockets.  The only event that
+should be watched for on a struct Socket in the SS_NOTSOCK state is
+readability.  This socket state is used to implement the fall-back
+signal event generation.
+</enum>
+
+<enum>
+enum TimerType {
+  TT_ABSOLUTE,		/* timer that runs at a specific time */
+  TT_RELATIVE,		/* timer that runs so many seconds in the future */
+  TT_PERIODIC		/* timer that runs periodically */
+};
+
+The three possible timer types are defined by the TimerType
+enumeration.  More details can be found in the "Timers" sub-section.
+</enum>
+
+<enum>
+enum EventType {
+  ET_READ,		/* Readable event detected */
+  ET_WRITE,		/* Writable event detected */
+  ET_ACCEPT,		/* Connection can be accepted */
+  ET_CONNECT,		/* Connection completed */
+  ET_EOF,		/* End-of-file on connection */
+  ET_ERROR,		/* Error condition detected */
+  ET_SIGNAL,		/* A signal was received */
+  ET_EXPIRE,		/* A timer expired */
+  ET_DESTROY		/* The generator is being destroyed */
+};
+
+This enumeration contains all the types of events that can be
+generated by the events subsystem.  The first 6 are generated by
+socket generators, the next by signal generators, and the next by
+timer generators.  ET_DESTROY is generated by both socket and timer
+generators when the events subsystem is finished with the memory
+allocated by both.
+</enum>
+
+<struct>
+struct Socket;
+
+This structure describes everything the events subsystem knows about a
+given socket.  All of its fields may be accessed through the s_*
+macros described below.
+</struct>
+
+<struct>
+struct Timer;
+
+The struct Timer structure describes everything the events subsystem
+knows about a given timer.  Again, all of its fields may be accessed
+through the t_* macros described below.
+</struct>
+
+<struct>
+struct Signal;
+
+Signal generators are described by a struct Signal.  All of the fields
+of a struct Signal may be accessed by the sig_* macros described
+below.
+</struct>
+
+<struct>
+struct Event;
+
+Each event is described by a struct Event.  Its fields may be examined
+using the ev_* macros described below.
+</struct>
+
+<struct>
+struct Generators;
+
+Each engine is passed a list of all generators when the engine's
+_EngineLoop_ function is called.  The only valid way to access this
+structure is via the timer_next() function described below.
+</struct>
+
+<struct>
+struct Engine {
+  const char*	eng_name;	/* a name for the engine */
+  EngineInit	eng_init;	/* initialize engine */
+  EngineSignal	eng_signal;	/* express interest in a signal */
+  EngineAdd	eng_add;	/* express interest in a socket */
+  EngineState	eng_state;	/* mention a change in state to engine */
+  EngineEvents	eng_events;	/* express interest in socket events */
+  EngineDelete	eng_closing;	/* socket is being closed */
+  EngineLoop	eng_loop;	/* actual event loop */
+};
+
+Each engine is described by the struct Engine structure.  Each engine
+must define all of the functions described above except for the
+_EngineSignal_ function, which is optional.
+</struct>
+
+<macro>
+#define SOCK_EVENT_READABLE	0x0001	/* interested in readable */
+
+The SOCK_EVENT_READABLE flag indicates to the engine that the
+application is interested in readability on this particular socket.
+</macro>
+
+<macro>
+#define SOCK_EVENT_WRITABLE	0x0002	/* interested in writable */
+
+The SOCK_EVENT_WRITABLE flag indicates to the engine that the
+application is interested in this socket being writable.
+</macro>
+
+<macro>
+#define SOCK_EVENT_MASK		(SOCK_EVENT_READABLE | SOCK_EVENT_WRITABLE)
+
+SOCK_EVENT_MASK may be used to extract only the event interest flags
+from an event interest set.
+</macro>
+
+<macro>
+#define SOCK_ACTION_SET		0x0000	/* set interest set as follows */
+
+When socket_events() is called with a set of event interest flags and
+SOCK_ACTION_SET, the socket's event interest flags are set to those
+passed into socket_events().
+</macro>
+
+<macro>
+#define SOCK_ACTION_ADD		0x1000	/* add to interest set */
+
+When SOCK_ACTION_ADD is used in a call to socket_events(), the event
+interest flags passed in are added to the existing event interest
+flags for the socket.
+</macro>
+
+<macro>
+#define SOCK_ACTION_DEL		0x2000	/* remove from interest set */
+
+When SOCK_ACTION_DEL is used in a call to socket_events(), the event
+interest flags passed in are removed from the existing event interest
+flags for the socket.
+</macro>
+
+<macro>
+#define SOCK_ACTION_MASK	0x3000	/* mask out the actions */
+
+SOCK_ACTION_MASK is used to isolate the socket action desired.
+</macro>
+
+<function>
+enum SocketState s_state(struct Socket* sock);
+
+This macro returns the state of the given socket.
+</function>
+
+<function>
+unsigned int s_events(struct Socket* sock);
+
+This macro returns the current event interest mask for a given
+socket.  Note that if the socket is in the SS_CONNECTING or
+SS_LISTENING states, this mask has no meaning.
+</function>
+
+<function>
+int s_fd(struct Socket* sock);
+
+This macro simply returns the file descriptor for the given socket.
+</function>
+
+<function>
+void* s_data(struct Socket* sock);
+
+When a struct Socket is initialized, data that the call-back function
+may find useful, such as a pointer to a struct Connection, is stored
+in the struct Socket.  This macro returns that pointer.
+</function>
+
+<function>
+int s_ed_int(struct Socket* sock);
+
+Engines may find it convenient to associate an integer with a struct
+Socket.  This macro may be used to retrieve that integer or, when used
+as an lvalue, to assign a value to it.  Engine data must be either an
+int or a void*; use of both is prohibited.
+</function>
+
+<function>
+void* s_ed_ptr(struct Socket* sock);
+
+Engines may find it convenient to associate a void* pointer with a
+struct Socket.  This macro may be used to retrieve that pointer or,
+when used as an lvalue, to assign a value to it.  Engine data must be
+either an int or a void*; use of both is prohibited.
+</function>
+
+<function>
+int s_active(struct Socket* sock);
+
+A socket's active flag is set when initialized by socket_add(), and is
+cleared immediately prior to generating an event of type ET_DESTROY.
+This may be used by the application to determine whether or not the
+socket is still in use by the events subsystem.  If it is, s_active()
+returns a non-zero value; otherwise, its value is 0.
+</function>
+
+<function>
+int socket_add(struct Socket* sock, EventCallBack call, void* data,
+	       enum SocketState state, unsigned int events, int fd);
+
+This function is called to add a socket to the list of sockets to be
+monitored.  The _sock_ parameter is a pointer to a struct Socket that
+is allocated by the application.  The _call_ parameter is a pointer to
+a function to process any events on the socket.  The _data_ parameter
+is for use of the socket call-back and may be zero.  The _state_
+parameter must be one of the valid socket states.  The _events_
+parameter must be a valid events interest mask--0, or the binary OR of
+SOCK_EVENT_READABLE or SOCK_EVENT_WRITABLE.  Finally, the _fd_
+parameter specifies the socket's file descriptor.  This function
+returns 1 if successful or 0 otherwise.
+</function>
+
+<function>
+void socket_del(struct Socket* sock);
+
+When the application is no longer interested in a particular socket,
+it should call the socket_del() function.  This function must be
+called no later than when the socket has been closed, to avoid
+attempting to call select() or similar functions on closed sockets.
+</function>
+
+<function>
+void socket_state(struct Socket* sock, enum SocketState state);
+
+Occasionally, a socket's state will change.  This function is used to
+inform the events subsystem of that change.  Only certain state
+transitions are valid--a socket in the SS_LISTENING or SS_CONNECTED
+states cannot change states, nor can an SS_CONNECTING socket change to
+some state other than SS_CONNECTED.  Of course, SS_DATAGRAM sockets
+may change state only to SS_CONNECTDG, and SS_CONNECTDG sockets may
+only change states to SS_DATAGRAM.
+</function>
+
+<function>
+void socket_events(struct Socket* sock, unsigned int events);
+
+When the application changes the events it is interested in, it uses
+socket_events() to notify the events subsystem of that change.  The
+_events_ parameter is the binary OR of one of SOCK_ACTION_SET,
+SOCK_ACTION_ADD, or SOCK_ACTION_DEL with an events mask.  See the
+documentation for the SOCK_* macros for more information.
+</function>
+
+<function>
+const char* state_to_name(enum SocketState state);
+
+This function is defined only when DEBUGMODE is #define'd.  It takes
+the given _state_ and returns a string giving that state's name.  This
+function may safely be called from Debug() macros.
+</function>
+
+<function>
+const char* sock_flags(unsigned int flags);
+
+This function is defined only when DEBUGMODE is #define'd.  It takes
+the given event interest flags and returns a string naming each of
+those flags.  This function may safely be called from Debug() macros,
+but may only be called once, since it uses function static storage to
+store the flag strings.
+</function>
+
+<authors>
+Kev <klmitch@mit.edu>
+</authors>
+
+<changelog>
+[2001-6-13 Kev] Initial description of the events subsystem.
+</changelog>

@@ -33,7 +33,7 @@ enum LogLevel {
 };
 
 This enum describes the severity levels of a log message.  The
-severity decreases as you proceed upwards in the list, so L_DEBUG is
+severity decreases as you proceed downwards in the list, so L_DEBUG is
 less severe than L_INFO, and L_CRIT in the most severe of all.  The
 special value L_LAST_LEVEL should never be used; it merely marks the
 end of the list.
@@ -233,6 +233,8 @@ Kev <klmitch@mit.edu>
 </authors>
 
 <changelog>
+[2001-06-13 Kev] Fix a minor typo.
+
 [2000-12-18 Kev] Wrote some documentation on how to use the logging
 subsystem.
 </changelog>
