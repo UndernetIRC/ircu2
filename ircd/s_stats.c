@@ -87,7 +87,7 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
   struct ConfItem *tmp;
   unsigned short int port;
   int maximum;
-  char *host, *pass, *name, *hub_limit;
+  char *host, *pass, *name, *username, *hub_limit;
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next)
   {
@@ -96,17 +96,18 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
       host = BadPtr(tmp->host) ? null : tmp->host;
       pass = BadPtr(tmp->passwd) ? null : tmp->passwd;
       name = BadPtr(tmp->name) ? null : tmp->name;
+      username = BadPtr(tmp->username) ? null : tmp->username;
       hub_limit = BadPtr(tmp->hub_limit) ? null : tmp->hub_limit;
       maximum = tmp->maximum;
       port = tmp->address.port;
       if (tmp->status & CONF_UWORLD)
 	send_reply(sptr, RPL_STATSULINE, host);
       else if (tmp->status & CONF_SERVER)
-	send_reply(sptr, RPL_STATSCLINE, name, host, port, maximum, hub_limit, get_conf_class(tmp));
+	send_reply(sptr, RPL_STATSCLINE, name, (host[0] == ':' ? "0" : ""), host, port, maximum, hub_limit, get_conf_class(tmp));
       else if (tmp->status & CONF_CLIENT)
-        send_reply(sptr, RPL_STATSILINE, host, maximum, name, port, get_conf_class(tmp));
+        send_reply(sptr, RPL_STATSILINE, host, maximum, (name[0] == ':' ? "0" : ""), name, port, get_conf_class(tmp));
       else if (tmp->status & CONF_OPERATOR)
-	send_reply(sptr, RPL_STATSOLINE, host, name, port, get_conf_class(tmp));
+	send_reply(sptr, RPL_STATSOLINE, username, host, name, get_conf_class(tmp));
     }
   }
 }
