@@ -244,6 +244,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *   parv[4] = username
  *   parv[5] = hostname
  *   parv[6] = umode (optional)
+ *   parv[parc-4] = %<lastmod>:<mask>   <- Only if matching GLINE
  *   parv[parc-3] = IP#                 <- Only Protocol >= 10
  *   parv[parc-2] = YXX, numeric nick   <- Only Protocol >= 10
  *   parv[parc-1] = info

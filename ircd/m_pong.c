@@ -167,7 +167,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /*
          * NICK and USER OK
          */
-        return register_user(cptr, sptr, sptr->name, sptr->user->username);
+        return register_user(cptr, sptr, sptr->name, sptr->user->username, 0);
     }
     else  
       send_reply(sptr, SND_EXPLICIT | ERR_BADPING,
@@ -220,7 +220,7 @@ int m_pong(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       sptr->cookie = COOKIE_VERIFIED;
       if (sptr->user && *sptr->user->host && sptr->name[0])        /* NICK and
                                                                    USER OK */
-        return register_user(cptr, sptr, sptr->name, sptr->user->username);
+        return register_user(cptr, sptr, sptr->name, sptr->user->username); /* XXX DEAD */
     }
     else
       sendto_one(sptr, ":%s %d %s :To connect, type /QUOTE PONG %u", /* XXX DEAD */

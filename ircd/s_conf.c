@@ -1437,7 +1437,7 @@ int find_kill(struct Client *cptr)
 
   /* find active glines */
   /* added a check against the user's IP address to find_gline() -Kev */
-  else if ((agline = gline_lookup(cptr)) && GlineIsActive(agline))
+  else if ((agline = gline_lookup(cptr, 0)) && GlineIsActive(agline))
     send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.",
 	       GlineReason(agline));
   else
