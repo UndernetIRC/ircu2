@@ -24,6 +24,7 @@ struct Daemon
   uid_t        euid;
   unsigned int bootopt;
   int          running;
+  int          pid_fd;
   const char*  server_bin;
   const char*  server_root;
   const char*  server_log;

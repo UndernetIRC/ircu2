@@ -238,11 +238,11 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             !(dow && IsInvisible(acptr)))) || !dow || IsAnOper(acptr)) {
           if (IsAnOper(acptr))
 	    send_reply(sptr, RPL_TRACEOPERATOR, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
 		       CurrentTime - cli_lasttime(acptr));
           else
 	    send_reply(sptr, RPL_TRACEUSER, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
 		       CurrentTime - cli_lasttime(acptr));
           cnt++;
         }
@@ -438,11 +438,11 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             !(dow && IsInvisible(acptr)))) || !dow || IsAnOper(acptr)) {
           if (IsAnOper(acptr))
 	    send_reply(sptr, RPL_TRACEOPERATOR, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
 		       CurrentTime - cli_lasttime(acptr));
           else
 	    send_reply(sptr, RPL_TRACEUSER, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
 		       CurrentTime - cli_lasttime(acptr));
           cnt++;
         }
@@ -637,11 +637,11 @@ int mo_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             !(dow && IsInvisible(acptr)))) || !dow || IsAnOper(acptr)) {
           if (IsAnOper(acptr))
 	    send_reply(sptr, RPL_TRACEOPERATOR, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
                        CurrentTime - cli_lasttime(acptr));
           else
 	    send_reply(sptr, RPL_TRACEUSER, conClass,
-		       get_client_name(acptr, HIDE_IP),
+		       get_client_name(acptr, SHOW_IP),
                        CurrentTime - cli_lasttime(acptr));
           cnt++;
         }

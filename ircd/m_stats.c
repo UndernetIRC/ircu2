@@ -79,14 +79,7 @@
  *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
  *                    non-NULL pointers.
  */
-#if 0
-/*
- * No need to include handlers.h here the signatures must match
- * and we don't need to force a rebuild of all the handlers everytime
- * we add a new one to the list. --Bleep
- */
 #include "handlers.h"
-#endif /* 0 */
 /*
  * XXX - ack!!!
  */
@@ -100,6 +93,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -161,7 +155,8 @@ int report_klines(struct Client* sptr, char* mask, int limit_query)
 	(wilds && !mmatch(host, conf->hostmask) &&
 	(!user || !mmatch(user, conf->usermask))))
     {
-      send_reply(sptr, RPL_STATSKLINE, (conf->ip_kill) ? 'k' : 'K',
+      send_reply(sptr, RPL_STATSKLINE,
+		 (conf->flags & DENY_FLAGS_IP) ? 'k' : 'K',
                  conf->hostmask, conf->message, conf->usermask);
       if (--count == 0)
 	return 1;
@@ -197,12 +192,8 @@ int report_klines(struct Client* sptr, char* mask, int limit_query)
  */
 int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Message *mptr;
-  struct Client *acptr;
-  struct ConfItem *aconf;
   char stat = parc > 1 ? parv[1][0] : '\0';
   const char **infotext = statsinfo;
-  int i;
 
   if (hunt_stats(cptr, sptr, parc, parv, stat) != HUNTED_ISME)
     return 0;
@@ -211,7 +202,12 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     case 'L':
     case 'l':
+#ifdef HEAD_IN_SAND_STATS_L
+	return m_not_oper(sptr,cptr,parc,parv);
+#else
     {
+      struct Client *acptr;
+      int i;
       int doall = 0;
       int wilds = 0;
       char *name = "*";
@@ -252,32 +248,64 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                    (int)cli_sendK(acptr), (int)cli_receiveM(acptr),
                    (int)cli_receiveK(acptr), CurrentTime - cli_firsttime(acptr));
       }
-      break;
     }
+#endif
+      break;
+
     case 'C':
     case 'c':
+#ifdef HEAD_IN_SAND_STATS_C
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_SERVER);
+#endif
       break;
+
     case 'G':
     case 'g': /* send glines */
+#ifdef HEAD_IN_SAND_STATS_G
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       gline_stats(sptr);
+#endif
       break;
+
     case 'H':
     case 'h':
+#ifdef HEAD_IN_SAND_STATS_H
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_HUB | CONF_LEAF);
+#endif
       break;
+
     case 'K':
     case 'k':    /* display CONF_IPKILL as well as CONF_KILL -Kev */
+#ifdef HEAD_IN_SAND_STATS_K
+    /* Simple version - if you want to fix it - send in a patch */
+    return m_not_oper(sptr,cptr,parc,parv);
+#else
       if (0 == report_klines(sptr, (parc == 4) ? parv[3] : 0, 0))
         return 0;
+#endif
       break;
     case 'F':
     case 'f':
+#ifdef HEAD_IN_SAND_STATS_F
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       feature_report(sptr);
+#endif
       break;
+
     case 'I':
     case 'i':
+#ifdef HEAD_IN_SAND_STATS_I
+    /* Simple version - if you want to fix it - send in a patch */
+    return m_not_oper(sptr,cptr,parc,parv);
+#else
     {
+      struct ConfItem *aconf;
       int wilds = 0;
       int count = 1000;
       char* host;
@@ -306,24 +334,45 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	  }
 	}
       }
-      break;
     }
+#endif
+      break;
+
     case 'M':
+#ifdef HEAD_IN_SAND_STATS_M
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #if !defined(NDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
                  fda_get_block_count());
 #endif
+#endif
       break;
+
     case 'm':
+#ifdef HEAD_IN_SAND_STATS_m
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
+    {
+      struct Message *mptr;
+
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
           send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
                      mptr->bytes);
+    }
+#endif
       break;
+
     case 'o':
     case 'O':
+#ifdef HEAD_IN_SAND_STATS_O
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_OPS);
+#endif
       break;
+
     case 'p':
     case 'P':
       /*
@@ -331,30 +380,68 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * show hidden ports to opers, if there are more than 3 parameters,
        * interpret the fourth parameter as the port number.
        */ 
+#ifdef HEAD_IN_SAND_STATS_P
+      return m_not_oper(sptr,cptr,parc,parv)
+#else
       show_ports(sptr, 0, (parc > 3) ? atoi(parv[3]) : 0, 100);
+#endif
       break;
+
     case 'R':
     case 'r':
+#ifdef HEAD_IN_SAND_STATS_R
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #ifdef DEBUGMODE
       send_usage(sptr, parv[0]);
 #endif
+#endif
       break;
+
     case 'D':
+#ifdef HEAD_IN_SAND_STATS_D
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_crule_list(sptr, CRULE_ALL);
+#endif
       break;
+
     case 'd':
+#ifdef HEAD_IN_SAND_STATS_d
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_crule_list(sptr, CRULE_MASK);
+#endif
       break;
+
     case 't':
+#ifdef HEAD_IN_SAND_STATS_t
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       tstats(sptr, parv[0]);
+#endif
       break;
+
     case 'T':
+#ifdef HEAD_IN_SAND_STATS_T
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       motd_report(sptr);
+#endif
       break;
+
     case 'U':
+#ifdef HEAD_IN_SAND_STATS_U
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_configured_links(sptr, CONF_UWORLD);
+#endif
       break;
+
     case 'u':
+#ifdef HEAD_IN_SAND_STATS_u
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
     {
       time_t nowr;
 
@@ -362,27 +449,49 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
                  (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
-      break;
     }
+#endif
+      break;
+
     case 'W':
     case 'w':
+#ifdef HEAD_IN_SAND_STATS_W
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       calc_load(sptr);
+#endif
       break;
+
     case 'X':
     case 'x':
+#ifdef HEAD_IN_SAND_STATS_X
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
 #ifdef  DEBUGMODE
       class_send_meminfo(sptr);
       send_listinfo(sptr, parv[0]);
 #endif
+#endif
       break;
+
     case 'Y':
     case 'y':
+#ifdef HEAD_IN_SAND_STATS_Y
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       report_classes(sptr);
+#endif
       break;
+
     case 'Z':
     case 'z':
+#ifdef HEAD_IN_SAND_STATS_Z
+      return m_not_oper(sptr,cptr,parc,parv);
+#else
       count_memory(sptr, parv[0]);
+#endif
       break;
+
     default:
       stat = '*';
       while (*infotext)

@@ -91,6 +91,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -187,7 +188,15 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
      if (buf[0] != '\0')
         send_reply(sptr, RPL_WHOISCHANNELS, name, buf);
   }
-  send_reply(sptr, RPL_WHOISSERVER, name, cli_name(a2cptr), cli_info(a2cptr));
+
+#ifdef HEAD_IN_SAND_WHOIS_SERVERNAME
+  if (!IsOper(sptr))
+    send_reply(sptr, RPL_WHOISSERVER, name, "*.undernet.org",
+	       "The Undernet Underworld");
+  else
+#endif
+    send_reply(sptr, RPL_WHOISSERVER, name, cli_name(a2cptr),
+	       cli_info(a2cptr));
 
   if (user)
   {

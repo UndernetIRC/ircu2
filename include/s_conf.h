@@ -84,10 +84,13 @@ struct DenyConf {
   char*               message;
   char*               usermask;
   unsigned int        s_addr;
-  char                is_file;
-  char                ip_kill;
+  unsigned int        flags;
   char                bits;        /* Number of bits for ipkills */
 };
+
+#define DENY_FLAGS_FILE     0x0001 /* Comment is a filename */
+#define DENY_FLAGS_IP       0x0002 /* K-line by IP address */
+#define DENY_FLAGS_REALNAME 0x0004 /* K-line by real name */
 
 /*
  * A line: A:<line 1>:<line 2>:<line 3>
