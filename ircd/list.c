@@ -111,6 +111,8 @@ static struct Client* alloc_client(void)
 
 static void dealloc_client(struct Client* cptr)
 {
+  assert(0 == cli_connect(cptr));
+
 #ifdef DEBUGMODE
   --clients.inuse;
 #endif
@@ -228,13 +230,15 @@ void free_client(struct Client* cptr)
     if (!cli_freeflag(cptr))
       dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
     else {
-      cli_from(cptr) = 0;
       if (-1 < cli_fd(cptr) && cli_freeflag(cptr) & FREEFLAG_SOCKET)
 	socket_del(&(cli_socket(cptr))); /* queue a socket delete */
       if (cli_freeflag(cptr) & FREEFLAG_TIMER)
 	timer_del(&(cli_proc(cptr))); /* queue a timer delete */
     }
   }
+
+  cli_connect(cptr) = 0;
+
   dealloc_client(cptr); /* actually destroy the client */
 }
 
