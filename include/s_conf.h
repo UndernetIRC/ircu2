@@ -65,7 +65,7 @@ struct ConfItem {
   unsigned short int port;
   time_t             hold;      /* Hold until this time (calendar time) */
   int                dns_pending; /* a dns request is pending */
-  struct ConfClass*  confClass; /* Class of connection */
+  struct ConnectionClass*  confClass; /* Class of connection */
 };
 
 struct ServerConf {
@@ -78,7 +78,7 @@ struct ServerConf {
   int                dns_pending;
   int                connected;
   time_t             hold;
-  struct ConfClass*  confClass;
+  struct ConnectionClass*  confClass;
 };
 
 /*

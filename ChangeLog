@@ -1,4 +1,9 @@
 2000-09-17  Thomas Helvey <helveytw@home.com>
+	* ircd/class.c: encapsulate class list
+	* include/class.h: clean up classes
+	* * fixup code that depended on changes
+
+2000-09-17  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c: add me to local conf
 	* include/s_conf.h: move CONF_ME macro to chkconf.c
 	* ircd/s_bsd.c: cleanup initialization, allow virtual host

@@ -185,7 +185,7 @@ static time_t try_connections(void) {
   int               connecting;
   int               confrq;
   time_t            next        = 0;
-  struct ConfClass* cltmp;
+  struct ConnectionClass* cltmp;
   struct ConfItem*  con_conf    = 0;
   struct Jupe*      ajupe;
   unsigned int      con_class   = 0;
@@ -646,7 +646,7 @@ int main(int argc, char **argv) {
   initload();
   init_list();
   init_hash();
-  initclass();
+  init_class();
   initwhowas();
   initmsgtree();
   initstats();
@@ -684,7 +684,6 @@ int main(int argc, char **argv) {
 
   hAddClient(&me);
 
-  check_class();
   write_pidfile();
   init_counters();
 

@@ -68,7 +68,7 @@ static char confchar(unsigned int status);
 static char *getfield(char *newline);
 static int validate(struct ConfItem *top);
 static struct ConfItem *chk_initconf(void);
-static struct ConfClass *get_class(int cn, int ism);
+static struct ConnectionClass *get_class(int cn, int ism);
 
 static int numclasses = 0, *classarr = (int *)NULL, debugflag = 0;
 static char *chk_configfile = CPATH;
@@ -469,9 +469,9 @@ print_confline:
   return ctop;
 }
 
-static struct ConfClass *get_class(int cn, int ism)
+static struct ConnectionClass *get_class(int cn, int ism)
 {
-  static struct ConfClass cls;
+  static struct ConnectionClass cls;
   if (ism == 1)
   {
     cls.conClass = (unsigned int)-1;

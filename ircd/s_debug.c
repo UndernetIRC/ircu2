@@ -260,7 +260,7 @@ void count_memory(struct Client *cptr, char *nick)
   struct SLink *link;
   struct Channel *chptr;
   struct ConfItem *aconf;
-  struct ConfClass *cltmp;
+  const struct ConnectionClass* cltmp;
   struct Membership* member;
 
   int lc = 0,                   /* local clients */
@@ -352,7 +352,7 @@ void count_memory(struct Client *cptr, char *nick)
     com += sizeof(struct ConfItem);
   }
 
-  for (cltmp = classes; cltmp; cltmp = cltmp->next)
+  for (cltmp = get_class_list(); cltmp; cltmp = cltmp->next)
     cl++;
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
@@ -373,7 +373,7 @@ void count_memory(struct Client *cptr, char *nick)
 	     com);
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes %d(%zu)", cl,
-	     cl * sizeof(struct ConfClass));
+	     cl * sizeof(struct ConnectionClass));
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
@@ -412,7 +412,7 @@ void count_memory(struct Client *cptr, char *nick)
   rm = cres_mem(cptr);
 
   tot =
-      totww + totch + totcl + com + cl * sizeof(struct ConfClass) + dbufs_allocated +
+      totww + totch + totcl + com + cl * sizeof(struct ConnectionClass) + dbufs_allocated +
       rm;
   tot += sizeof(void *) * HASHSIZE * 3;
 

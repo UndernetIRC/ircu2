@@ -21,13 +21,13 @@
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_reply.h"
 #include "list.h"
 #include "numeric.h"
 #include "s_conf.h"
 #include "s_debug.h"
 #include "send.h"
-#include "struct.h"
 
 #include <assert.h>
 
@@ -35,7 +35,91 @@
 #define BAD_PING                ((unsigned int)-2)
 #define BAD_CLIENT_CLASS        ((unsigned int)-3)
 
-struct ConfClass *classes;
+static struct ConnectionClass* connClassList;
+static unsigned int connClassAllocCount;
+
+const struct ConnectionClass* get_class_list(void)
+{
+  return connClassList;
+}
+
+struct ConnectionClass* make_class(void)
+{
+  struct ConnectionClass *tmp;
+
+  tmp = (struct ConnectionClass*) MyMalloc(sizeof(struct ConnectionClass));
+  assert(0 != tmp);
+  ++connClassAllocCount;
+  return tmp;
+}
+
+void free_class(struct ConnectionClass* tmp)
+{
+  if (tmp) {
+    MyFree(tmp);
+    --connClassAllocCount;
+  }
+}
+
+/*
+ * init_class - initialize the class list
+ */
+void init_class(void)
+{
+  connClassList = (struct ConnectionClass*) make_class();
+
+  ConClass(connClassList) = 0;
+  ConFreq(connClassList)  = CONNECTFREQUENCY;
+  PingFreq(connClassList) = PINGFREQUENCY;
+  MaxLinks(connClassList) = MAXIMUM_LINKS;
+  MaxSendq(connClassList) = DEFAULTMAXSENDQLENGTH;
+  Links(connClassList)    = 0;
+  connClassList->next     = 0;
+}
+
+/*
+ * class_mark_delete - mark classes for delete
+ * We don't delete the class table, rather mark all entries
+ * for deletion. The table is cleaned up by class_delete_marked(). - avalon
+ * XXX - This destroys data
+ */
+void class_mark_delete(void)
+{
+  struct ConnectionClass* p;
+  assert(0 != connClassList);
+
+  for (p = connClassList->next; p; p = p->next)
+    p->maxLinks = BAD_CONF_CLASS;
+}
+
+/*
+ * check_class
+ * delete classes marked for deletion
+ * XXX - memory leak, no one deletes classes that become unused
+ * later
+ */
+void class_delete_marked(void)
+{
+  struct ConnectionClass* cl;
+  struct ConnectionClass* prev;
+
+  Debug((DEBUG_DEBUG, "Class check:"));
+
+  for (prev = cl = connClassList; cl; cl = prev->next) {
+    Debug((DEBUG_DEBUG, "Class %d : CF: %d PF: %d ML: %d LI: %d SQ: %d",
+           ConClass(cl), ConFreq(cl), PingFreq(cl), MaxLinks(cl), Links(cl), MaxSendq(cl)));
+    /*
+     * unlink marked classes, delete unreferenced ones
+     */
+    if (BAD_CONF_CLASS == cl->maxLinks) {
+      prev->next = cl->next;
+      if (0 == cl->links)
+        free_class(cl);
+    }
+    else
+      prev = cl;
+  }
+}
 
 unsigned int get_conf_class(const struct ConfItem* aconf)
 {
@@ -60,7 +144,7 @@ unsigned int get_conf_ping(const struct ConfItem *aconf)
 unsigned int get_client_class(struct Client *acptr)
 {
   struct SLink *tmp;
-  struct ConfClass *cl;
+  struct ConnectionClass *cl;
   unsigned int retc = BAD_CLIENT_CLASS;
 
   if (acptr && !IsMe(acptr) && (acptr->confs))
@@ -107,7 +191,7 @@ unsigned int get_client_ping(struct Client *acptr)
   return (ping);
 }
 
-unsigned int get_con_freq(struct ConfClass * clptr)
+unsigned int get_con_freq(struct ConnectionClass * clptr)
 {
   if (clptr)
     return (ConFreq(clptr));
@@ -123,21 +207,22 @@ unsigned int get_con_freq(struct ConfClass * clptr)
  * immeadiately after the first one (class 0).
  */
 void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
-    unsigned int maxli, unsigned int sendq)
+               unsigned int maxli, unsigned int sendq)
 {
-  struct ConfClass *t, *p;
+  struct ConnectionClass* t;
+  struct ConnectionClass* p;
 
   t = find_class(conClass);
-  if ((t == classes) && (conClass != 0))
+  if ((t == connClassList) && (conClass != 0))
   {
-    p = (struct ConfClass *) make_class();
-    NextClass(p) = NextClass(t);
-    NextClass(t) = p;
+    p = (struct ConnectionClass *) make_class();
+    p->next = t->next;
+    t->next = p;
   }
   else
     p = t;
-  Debug((DEBUG_DEBUG, "Add Class %u: p %p t %p - cf: %u pf: %u ml: %u sq: %d",
-      conClass, p, t, confreq, ping, maxli, sendq));
+  Debug((DEBUG_DEBUG, "Add Class %u: cf: %u pf: %u ml: %u sq: %d",
+         conClass, confreq, ping, maxli, sendq));
   ConClass(p) = conClass;
   ConFreq(p) = confreq;
   PingFreq(p) = ping;
@@ -147,57 +232,22 @@ void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
     Links(p) = 0;
 }
 
-struct ConfClass *find_class(unsigned int cclass)
+struct ConnectionClass* find_class(unsigned int cclass)
 {
-  struct ConfClass *cltmp;
+  struct ConnectionClass *cltmp;
 
-  for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
+  for (cltmp = connClassList; cltmp; cltmp = cltmp->next) {
     if (ConClass(cltmp) == cclass)
       return cltmp;
-  return classes;
-}
-
-void check_class(void)
-{
-  struct ConfClass *cltmp, *cltmp2;
-
-  Debug((DEBUG_DEBUG, "Class check:"));
-
-  for (cltmp2 = cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp2))
-  {
-    Debug((DEBUG_DEBUG,
-        "Class %d : CF: %d PF: %d ML: %d LI: %d SQ: %d",
-        ConClass(cltmp), ConFreq(cltmp), PingFreq(cltmp),
-        MaxLinks(cltmp), Links(cltmp), MaxSendq(cltmp)));
-    if (IsMarkedDelete(cltmp))
-    {
-      NextClass(cltmp2) = NextClass(cltmp);
-      if (Links(cltmp) == 0)
-        free_class(cltmp);
-    }
-    else
-      cltmp2 = cltmp;
   }
-}
-
-void initclass(void)
-{
-  classes = (struct ConfClass *) make_class();
-
-  ConClass(FirstClass()) = 0;
-  ConFreq(FirstClass()) = CONNECTFREQUENCY;
-  PingFreq(FirstClass()) = PINGFREQUENCY;
-  MaxLinks(FirstClass()) = MAXIMUM_LINKS;
-  MaxSendq(FirstClass()) = DEFAULTMAXSENDQLENGTH;
-  Links(FirstClass()) = 0;
-  NextClass(FirstClass()) = NULL;
+  return connClassList;
 }
 
 void report_classes(struct Client *sptr)
 {
-  struct ConfClass *cltmp;
+  struct ConnectionClass *cltmp;
 
-  for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp))
+  for (cltmp = connClassList; cltmp; cltmp = cltmp->next)
     send_reply(sptr, RPL_STATSYLINE, 'Y', ConClass(cltmp), PingFreq(cltmp),
 	       ConFreq(cltmp), MaxLinks(cltmp), MaxSendq(cltmp));
 }
@@ -212,7 +262,7 @@ unsigned int get_sendq(struct Client *cptr)
 
   else if (cptr->confs) {
     struct SLink*     tmp;
-    struct ConfClass* cl;
+    struct ConnectionClass* cl;
 
     for (tmp = cptr->confs; tmp; tmp = tmp->next) {
       if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
@@ -225,4 +275,11 @@ unsigned int get_sendq(struct Client *cptr)
   }
   return DEFAULTMAXSENDQLENGTH;
 }
+
+void class_send_meminfo(struct Client* cptr)
+{
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
+             connClassAllocCount, connClassAllocCount * sizeof(struct ConnectionClass));
+}
+
 

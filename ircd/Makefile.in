@@ -290,8 +290,8 @@ IPcheck.o: IPcheck.c ../include/IPcheck.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
  ../include/struct.h ../include/numnicks.h ../include/ircd_alloc.h \
- ../include/fda.h ../include/s_bsd.h ../include/s_debug.h \
- ../include/s_user.h ../include/send.h
+ ../include/fda.h ../include/s_debug.h ../include/s_user.h \
+ ../include/send.h
 channel.o: channel.c ../include/channel.h ../config/config.h \
  ../config/setup.h ../include/ircd_defs.h ../include/client.h \
  ../include/dbuf.h ../include/ircd_handler.h ../include/hash.h \
@@ -305,6 +305,12 @@ channel.o: channel.c ../include/channel.h ../config/config.h \
  ../include/support.h ../include/sys.h ../include/whowas.h
 class.o: class.c ../include/class.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
+ ../include/ircd.h ../config/config.h ../config/setup.h \
+ ../include/struct.h ../include/ircd_reply.h ../include/list.h \
+ ../include/numeric.h ../include/s_conf.h ../include/s_debug.h \
+ ../include/send.h
+client.o: client.c ../include/client.h ../include/ircd_defs.h \
+ ../include/dbuf.h ../include/ircd_handler.h ../include/class.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
  ../include/struct.h ../include/ircd_reply.h ../include/list.h \
  ../include/numeric.h ../include/s_conf.h ../include/s_debug.h \

@@ -117,10 +117,14 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   int i;
   struct Client *acptr;
-  struct ConfClass *cltmp;
-  char *tname;
-  int doall, link_s[MAXCONNECTIONS], link_u[MAXCONNECTIONS];
-  int cnt = 0, wilds, dow;
+  const struct ConnectionClass* cl;
+  char* tname;
+  int doall;
+  int link_s[MAXCONNECTIONS];
+  int link_u[MAXCONNECTIONS];
+  int cnt = 0;
+  int wilds;
+  int dow;
 
   if (parc < 2 || BadPtr(parv[1])) {
     /* just "TRACE" without parameters. Must be from local client */
@@ -298,9 +302,12 @@ int m_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                  me.serv->by : "*", "*", me.name, 0, 0);
     return 0;
   }
-  for (cltmp = FirstClass(); doall && cltmp; cltmp = NextClass(cltmp))
-    if (Links(cltmp) > 0)
-     send_reply(sptr, RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
+  if (doall) {
+    for (cl = get_class_list(); cl; cl = cl->next) {
+      if (Links(cl) > 0)
+       send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+    }
+  }
   return 0;
 }
 
@@ -315,10 +322,14 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   int i;
   struct Client *acptr;
-  struct ConfClass *cltmp;
+  const struct ConnectionClass* cl;
   char *tname;
-  int doall, link_s[MAXCONNECTIONS], link_u[MAXCONNECTIONS];
-  int cnt = 0, wilds, dow;
+  int doall;
+  int link_s[MAXCONNECTIONS];
+  int link_u[MAXCONNECTIONS];
+  int cnt = 0;
+  int wilds;
+  int dow;
 
   if (parc < 2 || BadPtr(parv[1])) {
     /* just "TRACE" without parameters. Must be from local client */
@@ -496,9 +507,12 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           me.serv->by : "*", "*", me.name, 0, 0);
     return 0;
   }
-  for (cltmp = FirstClass(); doall && cltmp; cltmp = NextClass(cltmp))
-    if (Links(cltmp) > 0)
-      send_reply(sptr, RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
+  if (doall) {
+    for (cl = get_class_list(); cl; cl = cl->next) {
+      if (Links(cl) > 0)
+        send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+    }
+  }
   return 0;
 }
 
@@ -511,12 +525,16 @@ int ms_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int mo_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  int i;
-  struct Client *acptr;
-  struct ConfClass *cltmp;
-  char *tname;
-  int doall, link_s[MAXCONNECTIONS], link_u[MAXCONNECTIONS];
-  int cnt = 0, wilds, dow;
+  int               i;
+  struct Client*    acptr;
+  const struct ConnectionClass* cl;
+  char*             tname;
+  int doall;
+  int link_s[MAXCONNECTIONS];
+  int link_u[MAXCONNECTIONS];
+  int cnt = 0;
+  int wilds;
+  int dow;
 
   if (parc < 2 || BadPtr(parv[1])) {
     /* just "TRACE" without parameters. Must be from local client */
@@ -693,221 +711,13 @@ int mo_trace(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                  me.serv->by : "*", "*", me.name, 0, 0);
     return 0;
   }
-  for (cltmp = FirstClass(); doall && cltmp; cltmp = NextClass(cltmp))
-    if (Links(cltmp) > 0)
-      send_reply(sptr, RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
+  if (doall) {
+    for (cl = get_class_list(); cl; cl = cl->next) {
+      if (Links(cl) > 0)
+        send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+    }
+  }
   return 0;
 }
 
-  
-#if 0
-/*
- * m_trace
- *
- * parv[0] = sender prefix
- * parv[1] = nick or servername
- * parv[2] = 'target' servername
- */
-int m_trace(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  int i;
-  struct Client *acptr;
-  struct ConfClass *cltmp;
-  char *tname;
-  int doall, link_s[MAXCONNECTIONS], link_u[MAXCONNECTIONS];
-  int cnt = 0, wilds, dow;
-
-  if (parc < 2 || BadPtr(parv[1]))
-  {
-    /* just "TRACE" without parameters. Must be from local client */
-    parc = 1;
-    acptr = &me;
-    tname = me.name;
-    i = HUNTED_ISME;
-  }
-  else if (parc < 3 || BadPtr(parv[2]))
-  {
-    /* No target specified. Make one before propagating. */
-    parc = 2;
-    tname = parv[1];
-    if ((acptr = find_match_server(parv[1])) ||
-        ((acptr = FindClient(parv[1])) && !MyUser(acptr)))
-    {
-      if (IsUser(acptr))
-        parv[2] = acptr->user->server->name;
-      else
-        parv[2] = acptr->name;
-      parc = 3;
-      parv[3] = 0;
-      if ((i = hunt_server(IsServer(acptr), cptr, sptr, /* XXX DEAD */
-          "%s%s " TOK_TRACE " %s :%s", 2, parc, parv)) == HUNTED_NOSUCH)
-        return 0;
-    }
-    else
-      i = HUNTED_ISME;
-  }
-  else
-  {
-    /* Got "TRACE <tname> :<target>" */
-    parc = 3;
-    if (MyUser(sptr) || Protocol(cptr) < 10)
-      acptr = find_match_server(parv[2]);
-    else
-      acptr = FindNServer(parv[2]);
-    if ((i = hunt_server(0, cptr, sptr, /* XXX DEAD */
-        "%s%s " TOK_TRACE " %s :%s", 2, parc, parv)) == HUNTED_NOSUCH)
-      return 0;
-    tname = parv[1];
-  }
-
-  if (i == HUNTED_PASS)
-  {
-    if (!acptr)
-      acptr = next_client(GlobalClientList, tname);
-    else
-      acptr = acptr->from;
-    sendto_one(sptr, rpl_str(RPL_TRACELINK), me.name, parv[0], /* XXX DEAD */
-#ifndef GODMODE
-        version, debugmode, tname, acptr ? acptr->from->name : "<No_match>");
-#else /* GODMODE */
-        version, debugmode, tname, acptr ? acptr->from->name : "<No_match>",
-        (acptr && acptr->from->serv) ? acptr->from->serv->timestamp : 0);
-#endif /* GODMODE */
-    return 0;
-  }
-
-  doall = (parv[1] && (parc > 1)) ? !match(tname, me.name) : TRUE;
-  wilds = !parv[1] || strchr(tname, '*') || strchr(tname, '?');
-  dow = wilds || doall;
-
-  /* Don't give (long) remote listings to lusers */
-  if (dow && !MyConnect(sptr) && !IsAnOper(sptr))
-    return 0;
-
-  for (i = 0; i < MAXCONNECTIONS; i++)
-    link_s[i] = 0, link_u[i] = 0;
-
-  if (doall)
-  {
-    for (acptr = GlobalClientList; acptr; acptr = acptr->next) {
-      if (IsUser(acptr))
-        link_u[acptr->from->fd]++;
-      else if (IsServer(acptr))
-        link_s[acptr->from->fd]++;
-    }
-  }
-
-  /* report all direct connections */
-
-  for (i = 0; i <= HighestFd; i++)
-  {
-    const char* name;
-    unsigned int conClass;
-
-    if (!(acptr = LocalClientArray[i])) /* Local Connection? */
-      continue;
-    if (IsInvisible(acptr) && dow && !(MyConnect(sptr) && IsOper(sptr)) &&
-        !IsAnOper(acptr) && (acptr != sptr))
-      continue;
-    if (!doall && wilds && match(tname, acptr->name))
-      continue;
-    if (!dow && 0 != ircd_strcmp(tname, acptr->name))
-      continue;
-    conClass = get_client_class(acptr);
-
-    switch (acptr->status)
-    {
-      case STAT_CONNECTING:
-        sendto_one(sptr, rpl_str(RPL_TRACECONNECTING), /* XXX DEAD */
-            me.name, parv[0], conClass, name);
-        cnt++;
-        break;
-      case STAT_HANDSHAKE:
-        sendto_one(sptr, rpl_str(RPL_TRACEHANDSHAKE), /* XXX DEAD */
-            me.name, parv[0], conClass, name);
-        cnt++;
-        break;
-      case STAT_ME:
-        break;
-      case STAT_UNKNOWN:
-      case STAT_UNKNOWN_USER:
-      case STAT_UNKNOWN_SERVER:
-        sendto_one(sptr, rpl_str(RPL_TRACEUNKNOWN), /* XXX DEAD */
-            me.name, parv[0], conClass, name);
-        cnt++;
-        break;
-      case STAT_USER:
-        /* Only opers see users if there is a wildcard
-           but anyone can see all the opers. */
-        if ((IsAnOper(sptr) && (MyUser(sptr) ||
-            !(dow && IsInvisible(acptr)))) || !dow || IsAnOper(acptr))
-        {
-          if (IsAnOper(acptr))
-            sendto_one(sptr, rpl_str(RPL_TRACEOPERATOR), /* XXX DEAD */
-                me.name, parv[0], conClass, name, CurrentTime - acptr->lasttime);
-          else
-            sendto_one(sptr, rpl_str(RPL_TRACEUSER), /* XXX DEAD */
-                me.name, parv[0], conClass, name, CurrentTime - acptr->lasttime);
-          cnt++;
-        }
-        break;
-        /*
-         * Connection is a server
-         *
-         * Serv <class> <nS> <nC> <name> <ConnBy> <last> <age>
-         *
-         * class        Class the server is in
-         * nS           Number of servers reached via this link
-         * nC           Number of clients reached via this link
-         * name         Name of the server linked
-         * ConnBy       Who established this link
-         * last         Seconds since we got something from this link
-         * age          Seconds this link has been alive
-         *
-         * Additional comments etc......        -Cym-<cym@acrux.net>
-         */
-
-      case STAT_SERVER:
-        if (acptr->serv->user)
-          sendto_one(sptr, rpl_str(RPL_TRACESERVER), /* XXX DEAD */
-              me.name, parv[0], conClass, link_s[i],
-              link_u[i], name, (*acptr->serv->by) ? acptr->serv->by : "*",
-              acptr->serv->user->username, acptr->serv->user->host,
-              CurrentTime - acptr->lasttime,
-              CurrentTime - acptr->serv->timestamp);
-        else
-          sendto_one(sptr, rpl_str(RPL_TRACESERVER), /* XXX DEAD */
-              me.name, parv[0], conClass, link_s[i],
-              link_u[i], name, (*acptr->serv->by) ?  acptr->serv->by : "*", "*",
-              me.name, CurrentTime - acptr->lasttime,
-              CurrentTime - acptr->serv->timestamp);
-        cnt++;
-        break;
-      default:                  /* We actually shouldn't come here, -msa */
-        sendto_one(sptr, rpl_str(RPL_TRACENEWTYPE), me.name, parv[0], name); /* XXX DEAD */
-        cnt++;
-        break;
-    }
-  }
-  /*
-   * Add these lines to summarize the above which can get rather long
-   * and messy when done remotely - Avalon
-   */
-  if (!IsAnOper(sptr) || !cnt)
-  {
-    if (!cnt)
-      /* let the user have some idea that its at the end of the trace */
-      sendto_one(sptr, rpl_str(RPL_TRACESERVER), /* XXX DEAD */
-          me.name, parv[0], 0, link_s[me.fd],
-          link_u[me.fd], "<No_match>", *(me.serv->by) ?
-          me.serv->by : "*", "*", me.name, 0, 0);
-    return 0;
-  }
-  for (cltmp = FirstClass(); doall && cltmp; cltmp = NextClass(cltmp))
-    if (Links(cltmp) > 0)
-      sendto_one(sptr, rpl_str(RPL_TRACECLASS), me.name, /* XXX DEAD */
-          parv[0], ConClass(cltmp), Links(cltmp));
-  return 0;
-}
-#endif /* 0 */
 

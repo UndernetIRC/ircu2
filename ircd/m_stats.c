@@ -186,7 +186,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * a wild card based search to list it.
        */
       send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
-		 "SendM SendKBytes RcveM RcveKBytes :Open since");
+                 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -203,11 +203,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-		   "%s %u %u %u %u %u :%Tu", (*acptr->name) ? acptr->name : "<unregistered>",
-		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-		   (int)acptr->sendK, (int)acptr->receiveM,
-		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+        send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+                   "%s %u %u %u %u %u :%Tu", (*acptr->name) ? acptr->name : "<unregistered>",
+                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)acptr->sendK, (int)acptr->receiveM,
+                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -287,10 +287,10 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSKLINE,
-			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-			 aconf->passwd, aconf->name, aconf->port,
-			 get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSKLINE,
+                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+                         aconf->passwd, aconf->name, aconf->port,
+                         get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -302,8 +302,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-			 aconf->port, get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+                         aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -315,7 +315,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'M':
 #if !defined(NDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
-		 fda_get_block_count());
+                 fda_get_block_count());
 #endif
 
 #if 0
@@ -335,8 +335,8 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
-		     mptr->bytes);
+          send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+                     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -378,20 +378,20 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
       nowr = CurrentTime - me.since;
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
-		 (nowr / 60) % 60, nowr % 60);
+                 (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'v':
-    {
-    	struct ConfClass *cltmp;
-    	
-    	for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp)) {
-    		if (Links(cltmp) > 0)
-    			send_reply(sptr,RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
-    	}
-    	break;
-    }
+      {
+        const struct ConnectionClass* cl = get_class_list();
+
+        for ( ; cl; cl = cl->next) {
+          if (Links(cl) > 0)
+            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+        }
+      }
+      break;
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -399,6 +399,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'X':
     case 'x':
 #ifdef  DEBUGMODE
+      class_send_meminfo(sptr);
       send_listinfo(sptr, parv[0]);
 #endif
       break;
@@ -413,7 +414,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     default:
       stat = '*';
       while (*infotext)
-	sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
+        sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
       break;
   }
   send_reply(sptr, RPL_ENDOFSTATS, stat);
@@ -482,7 +483,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * a wild card based search to list it.
        */
       send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
-		 "SendM SendKBytes RcveM RcveKBytes :Open since");
+                 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -492,19 +493,19 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         /* Don't show invisible people to unauthorized people when using
          * wildcards  -- Is this still needed now /stats is oper only ? 
-	 * Not here, because ms_stats is specifically a remote command, 
-	 * thus the check was removed. -Ghostwolf */
+         * Not here, because ms_stats is specifically a remote command, 
+         * thus the check was removed. -Ghostwolf */
         /* Only show the ones that match the given mask - if any */
         if (!doall && wilds && match(name, acptr->name))
           continue;
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-		   "%s %u %u %u %u %u :%Tu", acptr->name,
-		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-		   (int)acptr->sendK, (int)acptr->receiveM,
-		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+        send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+                   "%s %u %u %u %u %u :%Tu", acptr->name,
+                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)acptr->sendK, (int)acptr->receiveM,
+                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -592,10 +593,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSKLINE,
-			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-			 aconf->passwd, aconf->name, aconf->port,
-			 get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSKLINE,
+                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+                         aconf->passwd, aconf->name, aconf->port,
+                         get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -607,8 +608,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-			 aconf->port, get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+                         aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -620,7 +621,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'M':
 #if !defined(NDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
-		 fda_get_block_count());
+                 fda_get_block_count());
 #endif
 
 #if 0
@@ -640,8 +641,8 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
-		     mptr->bytes);
+          send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+                     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -684,20 +685,20 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
       nowr = CurrentTime - me.since;
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
-		 (nowr / 60) % 60, nowr % 60);
+                 (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'v':
-    {
-    	struct ConfClass *cltmp;
-    	
-    	for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp)) {
-    		if (Links(cltmp) > 0)
-    			send_reply(sptr,RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
-    	}
-    	break;
-    }
+      {
+        const struct ConnectionClass* cl = get_class_list();
+            
+        for ( ; cl; cl = cl->next) {
+          if (Links(cl) > 0)
+            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+        }
+      }
+      break;
     
     case 'W':
     case 'w':
@@ -706,6 +707,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'X':
     case 'x':
 #ifdef  DEBUGMODE
+      class_send_meminfo(sptr);
       send_listinfo(sptr, parv[0]);
 #endif
       break;
@@ -788,7 +790,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * a wild card based search to list it.
        */
       send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO, "Connection SendQ "
-		 "SendM SendKBytes RcveM RcveKBytes :Open since");
+                 "SendM SendKBytes RcveM RcveKBytes :Open since");
       for (i = 0; i <= HighestFd; i++)
       {
         if (!(acptr = LocalClientArray[i]))
@@ -802,11 +804,11 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         /* Skip all that do not match the specific query */
         if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
           continue;
-	send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
-		   "%s %u %u %u %u %u :%Tu", acptr->name,
-		   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-		   (int)acptr->sendK, (int)acptr->receiveM,
-		   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
+        send_reply(sptr, SND_EXPLICIT | RPL_STATSLINKINFO,
+                   "%s %u %u %u %u %u :%Tu", acptr->name,
+                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
+                   (int)acptr->sendK, (int)acptr->receiveM,
+                   (int)acptr->receiveK, CurrentTime - acptr->firsttime);
       }
       break;
     }
@@ -886,10 +888,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && !mmatch(host, aconf->host) &&
                 (!user || !mmatch(user, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSKLINE,
-			 (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
-			 aconf->passwd, aconf->name, aconf->port,
-			 get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSKLINE,
+                         (aconf->status & CONF_KILL) ? 'K' : 'k', aconf->host,
+                         aconf->passwd, aconf->name, aconf->port,
+                         get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -901,8 +903,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                 (wilds && (!mmatch(host, aconf->host) ||
                 !mmatch(host, aconf->name))))
             {
-	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-			 aconf->port, get_conf_class(aconf));
+              send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+                         aconf->port, get_conf_class(aconf));
               if (--count == 0)
                 break;
             }
@@ -914,7 +916,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'M':
 #if !defined(NDEBUG)
       send_reply(sptr, RPL_STATMEMTOT, fda_get_byte_count(),
-		 fda_get_block_count());
+                 fda_get_block_count());
 #endif
 
 #if 0
@@ -934,8 +936,8 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'm':
       for (mptr = msgtab; mptr->cmd; mptr++)
         if (mptr->count)
-	  send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
-		     mptr->bytes);
+          send_reply(sptr, RPL_STATSCOMMANDS, mptr->cmd, mptr->count,
+                     mptr->bytes);
       break;
     case 'o':
     case 'O':
@@ -978,20 +980,20 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
       nowr = CurrentTime - me.since;
       send_reply(sptr, RPL_STATSUPTIME, nowr / 86400, (nowr / 3600) % 24,
-		 (nowr / 60) % 60, nowr % 60);
+                 (nowr / 60) % 60, nowr % 60);
       send_reply(sptr, RPL_STATSCONN, max_connection_count, max_client_count);
       break;
     }
     case 'v':
-    {
-    	struct ConfClass *cltmp;
-    	
-    	for (cltmp = FirstClass(); cltmp; cltmp = NextClass(cltmp)) {
-    		if (Links(cltmp) > 0)
-    			send_reply(sptr,RPL_TRACECLASS, ConClass(cltmp), Links(cltmp));
-    	}
-    	break;
-    }
+      {
+        const struct ConnectionClass* cl = get_class_list();
+            
+        for ( ; cl; cl = cl->next) {
+          if (Links(cl) > 0)
+            send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+        }
+      }
+      break;
     case 'W':
     case 'w':
       calc_load(sptr);
@@ -999,6 +1001,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     case 'X':
     case 'x':
 #ifdef  DEBUGMODE
+      class_send_meminfo(sptr);
       send_listinfo(sptr, parv[0]);
 #endif
       break;
@@ -1013,389 +1016,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     default:
       stat = '*';
       while (*infotext)
-	sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
+        sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :%s", sptr, *infotext++);
       break;
   }
   send_reply(sptr, RPL_ENDOFSTATS, stat);
   return 0;
 }
-
-#if 0
-/*
- * m_stats
- *
- *    parv[0] = sender prefix
- *    parv[1] = statistics selector (defaults to Message frequency)
- *    parv[2] = target server (current server defaulted, if omitted)
- * And 'stats l' and 'stats' L:
- *    parv[3] = server mask ("*" defaulted, if omitted)
- * Or for stats p,P:
- *    parv[3] = port mask (returns p-lines when its port is matched by this)
- * Or for stats k,K,i and I:
- *    parv[3] = [user@]host.name  (returns which K/I-lines match this)
- *           or [user@]host.mask  (returns which K/I-lines are mmatched by this)
- *              (defaults to old reply if ommitted, when local or Oper)
- *              A remote mask (something containing wildcards) is only
- *              allowed for IRC Operators.
- * Or for stats M:
- *    parv[3] = time param
- *    parv[4] = time param 
- *    (see report_memleak_stats() in runmalloc.c for details)
- *
- * This function is getting really ugly. -Ghostwolf
- */
-int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  static char Sformat[] = ":%s %d %s Connection SendQ SendM SendKBytes "
-      "RcveM RcveKBytes :Open since";
-  static char Lformat[] = ":%s %d %s %s %u %u %u %u %u :" TIME_T_FMT;
-  struct Message *mptr;
-  struct Client *acptr;
-  struct Gline* gline;
-  struct ConfItem *aconf;
-  char stat = parc > 1 ? parv[1][0] : '\0';
-  int i;
-
-/* m_stats is so obnoxiously full of special cases that the different
- * hunt_server() possiblites were becoming very messy. It now uses a
- * switch() so as to be easier to read and update as params change. 
- * -Ghostwolf 
- */
-  switch (stat)
-  {
-      /* open to all, standard # of params */
-    case 'U':
-    case 'u':
-    {
-      if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* open to all, varying # of params */
-    case 'k':
-    case 'K':
-    case 'i':
-    case 'I':
-    case 'p':
-    case 'P':
-    {
-      if (parc > 3)
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) /* XXX DEAD */
-            != HUNTED_ISME)
-          return 0;
-      }
-      else
-      {
-        if (hunt_server(0, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
-            != HUNTED_ISME)
-          return 0;
-      }
-      break;
-    }
-
-      /* oper only, varying # of params */
-    case 'l':
-    case 'L':
-    case 'M':
-    {
-      if (parc == 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s :%s", 2, parc, parv) /* XXX DEAD */
-            != HUNTED_ISME)
-          return 0;
-      }
-      else if (parc > 4)
-      {
-        if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s %s %s :%s", 2, parc, /* XXX DEAD */
-            parv) != HUNTED_ISME)
-          return 0;
-      }
-      else if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-
-      /* oper only, standard # of params */
-    default:
-    {
-      if (hunt_server(1, cptr, sptr, "%s%s " TOK_STATS " %s :%s", 2, parc, parv) /* XXX DEAD */
-          != HUNTED_ISME)
-        return 0;
-      break;
-    }
-  }
-
-  switch (stat)
-  {
-    case 'L':
-    case 'l':
-    {
-      int doall = 0, wilds = 0;
-      char *name = "*";
-      if (parc > 3 && *parv[3])
-      {
-        char *p;
-        name = parv[3];
-        wilds = (*name == '*' || *name == '?');
-        for (p = name + 1; *p; ++p)
-          if ((*p == '*' || *p == '?') && p[-1] != '\\')
-          {
-            wilds = 1;
-            break;
-          }
-      }
-      else
-        doall = 1;
-      /*
-       * Send info about connections which match, or all if the
-       * mask matches me.name.  Only restrictions are on those who
-       * are invisible not being visible to 'foreigners' who use
-       * a wild card based search to list it.
-       */
-      sendto_one(sptr, Sformat, me.name, RPL_STATSLINKINFO, parv[0]); /* XXX DEAD */
-      for (i = 0; i <= HighestFd; i++)
-      {
-        if (!(acptr = LocalClientArray[i]))
-          continue;
-        /* Don't return clients when this is a request for `all' */
-        if (doall && IsUser(acptr))
-          continue;
-        /* Don't show invisible people to unauthorized people when using
-         * wildcards  -- Is this still needed now /stats is oper only ? */
-        if (IsInvisible(acptr) && (doall || wilds) &&
-            !(MyConnect(sptr) && IsOper(sptr)) &&
-            !IsAnOper(acptr) && (acptr != sptr))
-          continue;
-        /* Only show the ones that match the given mask - if any */
-        if (!doall && wilds && match(name, acptr->name))
-          continue;
-        /* Skip all that do not match the specific query */
-        if (!(doall || wilds) && 0 != ircd_strcmp(name, acptr->name))
-          continue;
-        sendto_one(sptr, Lformat, me.name, RPL_STATSLINKINFO, parv[0], /* XXX DEAD */
-                   acptr->name,
-                   (int)DBufLength(&acptr->sendQ), (int)acptr->sendM,
-                   (int)acptr->sendK, (int)acptr->receiveM, (int)acptr->receiveK,
-                   CurrentTime - acptr->firsttime);
-      }
-      break;
-    }
-    case 'C':
-    case 'c':
-      report_configured_links(sptr, CONF_SERVER);
-      break;
-    case 'G':
-    case 'g': /* send glines */
-      gline_remove_expired(TStime());
-      for (gline = GlobalGlineList; gline; gline = gline->next) {
-        sendto_one(sptr, rpl_str(RPL_STATSGLINE), me.name, /* XXX DEAD */
-                   sptr->name, 'G', gline->name, gline->host,
-                   gline->expire, gline->reason);
-      }
-      break;
-    case 'H':
-    case 'h':
-      report_configured_links(sptr, CONF_HUB | CONF_LEAF);
-      break;
-    case 'I':
-    case 'i':
-    case 'K':
-    case 'k':                   /* display CONF_IPKILL as well
-                                   as CONF_KILL -Kev */
-    {
-      int wilds, count;
-      char *user, *host, *p;
-      int conf_status = (stat == 'k' || stat == 'K') ? CONF_KLINE : CONF_CLIENT;
-      if ((MyUser(sptr) || IsOper(sptr)) && parc < 4)
-      {
-        report_configured_links(sptr, conf_status);
-        break;
-      }
-      if (parc < 4 || *parv[3] == '\0')
-        return need_more_params(sptr,
-                        (conf_status & CONF_KLINE) ? "STATS K" : "STATS I");
-
-      wilds = 0;
-      for (p = parv[3]; *p; p++)
-      {
-        if (*p == '\\')
-        {
-          if (!*++p)
-            break;
-          continue;
-        }
-        if (*p == '?' || *p == '*')
-        {
-          wilds = 1;
-          break;
-        }
-      }
-      if (!(MyConnect(sptr) || IsOper(sptr)))
-      {
-        wilds = 0;
-        count = 3;
-      }
-      else
-        count = 1000;
-
-      if (conf_status == CONF_CLIENT)
-      {
-        user = 0;            /* Not used, but to avoid compiler warning. */
-
-        host = parv[3];
-      }
-      else
-      {
-        if ((host = strchr(parv[3], '@')))
-        {
-          user = parv[3];
-          *host++ = 0;;
-        }
-        else
-        {
-          user = 0;
-          host = parv[3];
-        }
-      }
-      for (aconf = GlobalConfList; aconf; aconf = aconf->next)
-      {
-        if ((aconf->status & conf_status))
-        {
-          if (conf_status == CONF_KLINE)
-          {
-            if ((!wilds && ((user || aconf->host[1]) &&
-                !match(aconf->host, host) &&
-                (!user || !match(aconf->name, user)))) ||
-                (wilds && !mmatch(host, aconf->host) &&
-                (!user || !mmatch(user, aconf->name))))
-            {
-              sendto_one(sptr, rpl_str(RPL_STATSKLINE), me.name, /* XXX DEAD */
-                  sptr->name, 'K', aconf->host, aconf->passwd, aconf->name,
-                  aconf->port, get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-          else if (conf_status == CONF_CLIENT)
-          {
-            if ((!wilds && (!match(aconf->host, host) ||
-                !match(aconf->name, host))) ||
-                (wilds && (!mmatch(host, aconf->host) ||
-                !mmatch(host, aconf->name))))
-            {
-              sendto_one(sptr, rpl_str(RPL_STATSILINE), me.name, /* XXX DEAD */
-                  sptr->name, 'I', aconf->host, aconf->name,
-                  aconf->port, get_conf_class(aconf));
-              if (--count == 0)
-                break;
-            }
-          }
-        }
-      }
-      break;
-    }
-    case 'M':
-#if !defined(NDEBUG)
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
-          me.name, parv[0], fda_get_byte_count(), fda_get_block_count());
-#endif
-
-#if 0
-#ifdef MEMSIZESTATS
-      sendto_one(sptr, rpl_str(RPL_STATMEMTOT), /* XXX DEAD */
-          me.name, parv[0], get_mem_size(), get_alloc_cnt());
-#endif
-#ifdef MEMLEAKSTATS
-      report_memleak_stats(sptr, parc, parv);
-#endif
-#if !defined(MEMSIZESTATS) && !defined(MEMLEAKSTATS)
-      sendto_one(sptr, ":%s NOTICE %s :stats M : Memory allocation monitoring " /* XXX DEAD */
-          "is not enabled on this server", me.name, parv[0]);
-#endif
-#endif /* 0 */
-      break;
-    case 'm':
-      for (mptr = msgtab; mptr->cmd; mptr++)
-        if (mptr->count)
-          sendto_one(sptr, rpl_str(RPL_STATSCOMMANDS), /* XXX DEAD */
-              me.name, parv[0], mptr->cmd, mptr->count, mptr->bytes);
-      break;
-    case 'o':
-    case 'O':
-      report_configured_links(sptr, CONF_OPS);
-      break;
-    case 'p':
-    case 'P':
-      /*
-       * show listener ports
-       * show hidden ports to opers, if there are more than 3 parameters,
-       * interpret the fourth parameter as the port number, limit non-local
-       * or non-oper results to 8 ports.
-       */ 
-      show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, 
-                 (MyUser(sptr) || IsOper(sptr)) ? 100 : 8);
-      break;
-    case 'R':
-    case 'r':
-#ifdef DEBUGMODE
-      send_usage(sptr, parv[0]);
-#endif
-      break;
-    case 'D':
-      report_crule_list(sptr, CRULE_ALL);
-      break;
-    case 'd':
-      report_crule_list(sptr, CRULE_MASK);
-      break;
-    case 't':
-      tstats(sptr, parv[0]);
-      break;
-    case 'T':
-      report_motd_list(sptr);
-      break;
-    case 'U':
-      report_configured_links(sptr, CONF_UWORLD);
-      break;
-    case 'u':
-    {
-      time_t nowr;
-
-      nowr = CurrentTime - me.since;
-      sendto_one(sptr, rpl_str(RPL_STATSUPTIME), me.name, parv[0], /* XXX DEAD */
-                 nowr / 86400, (nowr / 3600) % 24, (nowr / 60) % 60, nowr % 60);
-      sendto_one(sptr, rpl_str(RPL_STATSCONN), me.name, parv[0], /* XXX DEAD */
-                 max_connection_count, max_client_count);
-      break;
-    }
-    case 'W':
-    case 'w':
-      calc_load(sptr);
-      break;
-    case 'X':
-    case 'x':
-#ifdef  DEBUGMODE
-      send_listinfo(sptr, parv[0]);
-#endif
-      break;
-    case 'Y':
-    case 'y':
-      report_classes(sptr);
-      break;
-    case 'Z':
-    case 'z':
-      count_memory(sptr, parv[0]);
-      break;
-    default:
-      stat = '*';
-      break;
-  }
-  sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat); /* XXX DEAD */
-  return 0;
-}
-#endif /* 0 */
-
 
