@@ -840,6 +840,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   int                 opped_members_index = 0;
   struct Membership** opped_members = NULL;
   int                 last_oplevel = 0;
+  int                 feat_oplevels =  feature_bool(FEAT_OPLEVELS);
 
   assert(0 != cptr);
   assert(0 != chptr); 
@@ -918,7 +919,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	   * Do we have a nick with a new mode ?
 	   * Or are we starting a new BURST line?
 	   */
-	  if (new_mode)
+	  if (new_mode || !feat_oplevels)
 	  {
 	    /*
 	     * This means we are at the _first_ member that has only
@@ -936,9 +937,11 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	      tbuf[loc++] = 'v';
 	    if (IsChanOp(member))	/* flag_cnt == 2 or 3 */
 	    {
-	      /* append the absolute value of the oplevel */
-	      loc += ircd_snprintf(0, tbuf + loc, sizeof(tbuf) - loc, "%u", member->oplevel);
-	      last_oplevel = member->oplevel;
+              /* append the absolute value of the oplevel */
+              if (feat_oplevels)
+                loc += ircd_snprintf(0, tbuf + loc, sizeof(tbuf) - loc, "%u", last_oplevel = member->oplevel);
+              else
+                tbuf[loc++] = 'o';
 	    }
 	    tbuf[loc] = '\0';
 	    msgq_append(&me, mb, tbuf);

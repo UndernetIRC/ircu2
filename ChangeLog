@@ -1,5 +1,10 @@
 2004-08-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (send_channel_modes): If oplevels are disabled,
+	send 'o' for chanops instead of the member's oplevel.
+
+2004-08-22  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_conf.c: find_conf_byip() should use irc_in_addr_cmp()
 	instead of memcmp().  (Fixes IPv4 servers linking to an IPv6
 	server.)
