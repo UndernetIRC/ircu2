@@ -26,11 +26,13 @@
  * braindead and silly.  These aren't configurable as they are network
  * policy, and should not be changed (depending on what network your 
  * on different ones of these should be defined
- * 
- * If you want nothing to do with any of this nonsense, add the line
- * #define INCLUDED_ircd_policy_h
- * *above* the #ifndef above.
  */
+
+/* If you want nothing to do with this nonsense, uncomment this or
+ *  add -DNO_HEAD_IN_SAND to CFLAGS. */
+/* #define NO_HEAD_IN_SAND */
+
+#ifndef NO_HEAD_IN_SAND
 
 /* CFV-165 - Hiding Nonessential information from non-opers
  *
@@ -145,6 +147,9 @@
 /* disallow remote queries (*sob!*) */
 /* (note, set this to 0 to reenable, not undef */
 #define HEAD_IN_SAND_REMOTE 1
+#else /* NO_HEAD_IN_SAND */
+#define HEAD_IN_SAND_REMOTE 0
+#endif /* NO_HEAD_IN_SAND */
 
 #define HEAD_IN_SAND_SERVERNAME "*.undernet.org"
 #define HEAD_IN_SAND_SERVERINFO "The Undernet Underworld"
@@ -152,3 +157,11 @@
 #define URL_SERVERS "http://www.undernet.org/servers.php"
 
 #endif /* INCLUDED_ircd_policy_h */
+
+
+
+
+
+
+
+
