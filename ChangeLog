@@ -1,3 +1,45 @@
+2002-05-16  Alex Badea  <vampire@p16.pub.ro>
+
+	* ircd/m_opmode.c (mo_opmode): check for Q:lines, with
+	an option to force
+
+	* ircd/m_clearmode.c (mo_clearmode): check for Q:lines, with
+	an option to force
+
+	* ircd/m_stats.c: added /stats Q for reporting Q:lines
+	(opers only)
+	
+	* ircd/s_conf.c: functions for quarantined list management
+	
+	* ircd/s_err.c: added replies for RPL_STATSQLINE, ERR_QUARANTINED;
+	changed ERR_NOPRIVILEGES reply to "Insufficient privileges"
+
+	* ircd/client.c: PRIV_* kludge
+
+	* ircd/ircd_features.c: added FEAT_OPER_FORCE_OPMODE,
+	FEAT_OPER_FORCE_LOPMODE, FEAT_LOCOP_FORCE_LOPMODE
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
+	* include/s_conf.h: declared struct qline for storing Q:lines,
+	a global Q:line list and a find_quarantine() function
+
+	* include/numeric.h: added RPL_STATSQLINE (228) for /stats Q
+	and RPL_QUARANTINED (524) for the quarantine warning
+
+	* include/ircd_features.h: added FEAT_OPER_FORCE_OPMODE,
+	FEAT_OPER_FORCE_LOPMODE, FEAT_LOCOP_FORCE_LOPMODE
+
+	* include/client.h: added PRIV_FORCE_OPMODE and
+	PRIV_FORCE_LOCAL_OPMODE
+
+	* doc/readme.features: documented the abovementioned features
+
+	* doc/example.conf: documented Q:lines and default values for
+	features
+
+	* doc/Authors: added self
+
 2002-05-10  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel

@@ -488,7 +488,7 @@ static Numeric replyTable[] = {
 /* 227 */
   { 0 },
 /* 228 */
-  { 0 },
+  { RPL_STATSQLINE, "Q %s :%s", "228" },
 /* 229 */
   { 0 },
 /* 230 */
@@ -994,7 +994,7 @@ static Numeric replyTable[] = {
 /* 480 */
   { 0 },
 /* 481 */
-  { ERR_NOPRIVILEGES, ":Permission Denied: You're not an IRC operator", "481" },
+  { ERR_NOPRIVILEGES, ":Permission Denied: Insufficient privileges", "481" },
 /* 482 */
   { ERR_CHANOPRIVSNEEDED, "%s :You're not channel operator", "482" },
 /* 483 */
@@ -1080,7 +1080,7 @@ static Numeric replyTable[] = {
 /* 523 */
   { 0 },
 /* 524 */
-  { 0 },
+  { ERR_QUARANTINED, "%s :%s", "524" },
 /* 525 */
   { 0 },
 /* 526 */

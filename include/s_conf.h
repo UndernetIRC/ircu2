@@ -148,6 +148,12 @@ enum AuthorizationCheckResult {
   ACR_BAD_SOCKET
 };
 
+struct qline {
+  struct qline *next;
+  char *chname;
+  char *reason;
+};
+
 /*
  * GLOBALS
  */
@@ -157,6 +163,7 @@ extern struct tm        motd_tm;
 extern struct MotdItem* motd;
 extern struct MotdItem* rmotd;
 extern struct TRecord*  tdata;
+extern struct qline*	GlobalQuarantineList;
 
 /*
  * Proto types
@@ -188,5 +195,6 @@ extern void read_tlines(void);
 extern int find_kill(struct Client *cptr);
 extern int find_restrict(struct Client *cptr);
 extern struct MotdItem* read_motd(const char* motdfile);
+extern char* find_quarantine(const char* chname);
 
 #endif /* INCLUDED_s_conf_h */

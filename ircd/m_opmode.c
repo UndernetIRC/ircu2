@@ -93,6 +93,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "s_conf.h"
 
 #include <assert.h>
 
@@ -138,6 +139,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel *chptr = 0;
   struct ModeBuf mbuf;
   struct Membership *member;
+  char *chname, *qreason;
+  int force = 0;
 
   if (!feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "OPMODE");
@@ -145,17 +148,27 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 3)
     return need_more_params(sptr, "OPMODE");
 
-  clean_channelname(parv[1]);
+  chname = parv[1];
+  if (*chname == '!') {
+    chname++;
+    if (!HasPriv(sptr, IsLocalChannel(chname) ? PRIV_FORCE_LOCAL_OPMODE : PRIV_FORCE_OPMODE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+    force = 1;
+  }
+  clean_channelname(chname);
 
   if (!HasPriv(sptr,
-	       IsLocalChannel(parv[1]) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
+	       IsLocalChannel(chname) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
-  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
-    return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+  if (('#' != *chname && '&' != *chname) || !(chptr = FindChannel(chname)))
+    return send_reply(sptr, ERR_NOSUCHCHANNEL, chname);
 
   if (!(member = find_member_link(chptr, sptr)))
     return send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
+
+  if (!force && (qreason = find_quarantine(chptr->chname)))
+    return send_reply(sptr, ERR_QUARANTINED, chptr->chname, qreason);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,
 	       (MODEBUF_DEST_CHANNEL | /* Send MODE to channel */

@@ -170,6 +170,14 @@ int report_klines(struct Client* sptr, char* mask, int limit_query)
   return 1;
 }
 
+int report_qlines(struct Client *sptr)
+{
+  struct qline *qline;
+
+  for (qline = GlobalQuarantineList; qline; qline = qline->next)
+    send_reply(sptr, RPL_STATSQLINE, qline->chname, qline->reason);
+  return 1;
+}
 
 /*
  * m_stats - generic message handler
@@ -408,6 +416,11 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 #else
       show_ports(sptr, 0, (parc > 3) ? atoi(parv[3]) : 0, 100);
 #endif
+      break;
+
+    case 'Q':
+    case 'q':
+      return m_not_oper(sptr,cptr,parc,parv);
       break;
 
     case 'R':
@@ -699,6 +712,10 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        */ 
       show_ports(sptr, IsOper(sptr), (parc > 3) ? atoi(parv[3]) : 0, IsOper(sptr) ? 100 : 8);
       break;
+    case 'Q':
+    case 'q':
+      report_qlines(sptr);
+      break;
     case 'R':
     case 'r':
 #ifdef DEBUGMODE
@@ -922,6 +939,10 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        * or non-oper results to 8 ports.
        */ 
       show_ports(sptr, 1, (parc > 3) ? atoi(parv[3]) : 0, 100);
+      break;
+    case 'Q':
+    case 'q':
+      report_qlines(sptr);
       break;
     case 'R':
     case 'r':
