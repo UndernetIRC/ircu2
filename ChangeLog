@@ -1,3 +1,44 @@
+2000-12-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: Isomer almost got it right; you need to
+	use F_I(), since it's an integer value, not a boolean value.  The
+	asserts in feature_int would catch you out...  Also made the F_*
+	macros take flags
+
+	* ircd/s_err.c: define RPL_PRIVS reply
+
+	* ircd/parse.c: put new PRIVS command into command table
+
+	* ircd/m_privs.c (mo_privs): message handler to report operator
+	privileges
+
+	* ircd/ircd_features.c: declare new features OPER_SET and
+	LOCOP_SET; redo boolean testing routine to accept TRUE, YES, and
+	ON for boolean TRUE, and FALSE, NO, and OFF for boolean FALSE
+
+	* ircd/client.c: simplify client_set_privs() with a table that
+	defines what features to test for; add new client_report_privs()
+
+	* ircd/Makefile.in: compile new m_privs.c; run make depend
+
+	* include/numeric.h (RPL_PRIVS): new reply numeric for displaying
+	an operator's privileges
+
+	* include/msg.h: define new command: PRIVS
+
+	* include/ircd_features.h: create new features OPER_SET and
+	LOCOP_SET for controlling access to /set
+
+	* include/handlers.h (mo_privs): declare message handler for
+	reporting oper privileges
+
+	* include/client.h (client_report_privs): declare function to
+	report what privileges an oper has
+
+	* ircd/m_whois.c (do_whois): fix a bug that caused /whois to
+	report that a user is an oper if the oper doing the /whois had
+	PRIV_SEE_OPERS
+
 2000-12-17  Isomer <Isomer@coders.net>
 	* ircd/listener.c: added support for TOS twiddling as a 'feature'.
 

@@ -448,6 +448,7 @@ extern void client_drop_sendq(struct Connection* con);
 extern void client_add_sendq(struct Connection* con,
 			     struct Connection** con_p);
 extern void client_set_privs(struct Client* client);
+extern int client_report_privs(struct Client* to, struct Client* client);
 
 #endif /* INCLUDED_client_h */
 

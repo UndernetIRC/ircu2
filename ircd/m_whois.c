@@ -194,7 +194,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr)
     if (user->away)
        send_reply(sptr, RPL_AWAY, name, user->away);
 
-    if (HasPriv(acptr, PRIV_DISPLAY) || HasPriv(sptr, PRIV_SEE_OPERS))
+    if (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) ||
+			    HasPriv(sptr, PRIV_SEE_OPERS)))
        send_reply(sptr, RPL_WHOISOPERATOR, name);
    
     /* Hint: if your looking to add more flags to a user, eg +h, here's
