@@ -1,5 +1,9 @@
 2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
 
+	* ircd/m_join.c (m_join): reset control character sentinel;
+	otherwise, all channels after the first control-charactered
+	channel get rejected as well
+
 	* ircd/m_create.c (ms_create): add missing )
 
 	* ircd/m_account.c: include string.h to stomp a "implicit

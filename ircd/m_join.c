@@ -202,7 +202,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /* This checks if the channel contains control codes and rejects em
      * until they are gone, then we will do it otherwise - *SOB Mode*
      */
-    for (j = 0; name[j]; j++)
+    for (k = 0, j = 0; name[j]; j++)
       if (IsCntrl(name[j]))
 	k++;
 
