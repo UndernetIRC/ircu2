@@ -207,8 +207,10 @@ log_debug_reopen(void)
   }
 
   /* Ok, it's a real file; close it if necessary and use log_open to open it */
-  if (logInfo.dbfile->fd >= 0)
+  if (logInfo.dbfile->fd >= 0) {
     close(logInfo.dbfile->fd);
+    logInfo.dbfile->fd = -1; /* mark that it's closed for log_open */
+  }
 
   log_open(logInfo.dbfile);
 
@@ -219,9 +221,10 @@ log_debug_reopen(void)
 
   /* massage the file descriptor to be stderr */
   if (logInfo.dbfile->fd != 2) {
-    dup2(logInfo.dbfile->fd, 2);
+    int fd;
+    fd = dup2(logInfo.dbfile->fd, 2);
     close(logInfo.dbfile->fd);
-    logInfo.dbfile->fd = 2;
+    logInfo.dbfile->fd = fd;
   }
 }
 
@@ -835,9 +838,7 @@ log_feature_mark(int flag)
 
   for (i = 0; i < LS_LAST_SYSTEM; i++) {
     if (!(logDesc[i].mark & LOG_MARK_FILE)) {
-      if (logDesc[i].subsys == LS_DEBUG)
-	log_debug_file(0); /* debug is special */
-      else {
+      if (logDesc[i].subsys != LS_DEBUG) { /* debug is special */
 	if (logDesc[i].file) /* destroy previous entry... */
 	  log_file_destroy(logDesc[i].file);
 	logDesc[i].file = 0;
