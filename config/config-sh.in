@@ -169,14 +169,17 @@ fi
 mainmenu_option next_comment
 comment 'Host specific defines'
   if [ -f /etc/resolv.conf ]; then
-    DOMAINNAME_DEFAULT="`awk '/^domain/ { print $2; exit }' /etc/resolv.conf`"
+    DOMAINNAME_DEFAULT="`awk '/^domain/ { print "*" $2; exit }' /etc/resolv.conf`"
   fi
-  string 'What is the domain name of your network' DOMAINNAME $DOMAINNAME_DEFAULT
-  if [ -z "$DOMAINNAME" ]; then
-    DOMAINNAME=none
+  if [ -z "$DOMAINNAME_DEFAULT" ]; then
+    DOMAINNAME_DEFAULT="`awk '/^search/ { print "*" $2; exit }' /etc/resolv.conf`"
   fi
+  if [ -z "$DOMAINNAME_DEFAULT" ]; then
+    DOMAINNAME_DEFAULT=none
+  fi
+  define_string DOMAINNAME $DOMAINNAME_DEFAULT
+
   string 'Please give a random seed of eight characters' RANDOM_SEED 12345678
-  bool 'Does your host have a reliable clock' RELIABLE_CLOCK
 endmenu
 
 mainmenu_option next_comment
@@ -195,12 +198,6 @@ comment 'General defines'
       echo "   SECURITY: Then don't install the daemon SUID or SGID !"
     fi
   fi
-  bool 'Do you need virtual hosting' VIRTUAL_HOST
-  PREV_HUB=$HUB
-  bool 'Will you connect to more then one server at a time' HUB
-  if [ "$PREV_HUB" != "$HUB" ]; then
-    BUFFERPOOL=
-  fi
 endmenu
 
 
@@ -215,43 +212,17 @@ comment 'Paths and files'
   fi
   echo "The following filenames are either full paths or files within DPATH"
   string 'Server configuration file' CPATH 'ircd.conf'
-  string 'Server MOTD file' MPATH 'ircd.motd'
-  string 'Server remote MOTD file (3 lines max)' RPATH 'remote.motd'
   if [ "$DEBUGMODE" = "y" ]; then
     string 'Debug file if DEBUGMODE' LPATH '/tmp/ircd.log'
   else
     define_string LPATH "$LPATH"
   fi
-  string 'File for server pid' PPATH 'ircd.pid'
 endmenu
 
 mainmenu_option next_comment
 comment 'Configuration'
-  bool 'Use crypted passwords for operators' CRYPT_OPER_PASSWORD y
-  DUMMY=`echo "$BUFFERPOOL" | sed -e 's/[0-9]//g'`
-  if [ "$DUMMY" != "" ]; then
-    BUFFERPOOL=
-  fi
-  if [ "$HUB" = "y" ]; then
-    int 'Max size of the total of of all sendqs (bytes)' BUFFERPOOL 27000000
-  else
-    int 'Max size of the total of of all sendqs (bytes)' BUFFERPOOL 9000000
-  fi
-  bool 'Aggressively empty the sendqpool (Read Help!)' HAS_FERGUSON_FLUSHER n
-  int 'Max receive queue for clients (bytes)' CLIENT_FLOOD 1024
   int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
-  int 'Default port for connections to other servers' SERVER_PORT 4400
   int 'Nickname history length' NICKNAMEHISTORYLENGTH 800
-  bool 'Do you want to use R: lines in your configuration file' R_LINES
-  if [ "$R_LINES" = "y" ]; then
-    bool 'Process R: lines every rehash' R_LINES_REHASH y
-    bool 'Process R: lines always' R_LINES_OFTEN
-  else
-    define_bool R_LINES_REHASH $R_LINES_REHASH
-    define_bool R_LINES_OFTEN $R_LINES_OFTEN
-  fi
-  bool 'Send a short message instead of the MOTD to connecting clients' NODEFAULTMOTD y
-  bool 'Kill connecting clients when forward and reverse DNS mismatch' KILL_IPMISMATCH n
 endmenu
 
 mainmenu_option next_comment
@@ -264,8 +235,6 @@ comment 'Server characteristics'
     define_string DEFAULT_LIST "$DEFAULT_LIST"
     define_bool DEFAULT_LIST_PARAM n
   fi
-  bool 'K: line comments treated as a file by default' COMMENT_IS_FILE y
-  bool 'Only nullify idle-time on PRIVMSG' IDLE_FROM_MSG y
 endmenu
 
 mainmenu_option next_comment

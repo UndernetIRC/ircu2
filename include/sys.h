@@ -51,14 +51,6 @@
 #undef DOTERMCAP
 #endif
 
-#if defined(CLIENT_FLOOD)
-#if (CLIENT_FLOOD > 8000) || (CLIENT_FLOOD < 512)
-#error CLIENT_FLOOD needs redefining.
-#endif
-#else
-#error CLIENT_FLOOD undefined
-#endif
-
 #ifndef CONFIG_SETUGID
 #undef IRC_UID
 #undef IRC_GID

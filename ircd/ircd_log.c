@@ -627,14 +627,14 @@ log_set_file(const char *subsys, const char *filename)
   if (!(desc = log_find(subsys)))
     return 2;
 
-  /* no change, don't go to the trouble of destroying and recreating */
-  if (desc->file && filename && !strcmp(desc->file->file, filename))
-    return 0;
-
   if (filename)
     desc->mark |= LOG_MARK_FILE; /* mark that file has been changed */
   else
     desc->mark &= ~LOG_MARK_FILE; /* file has been reset to defaults */
+
+  /* no change, don't go to the trouble of destroying and recreating */
+  if (desc->file && filename && !strcmp(desc->file->file, filename))
+    return 0;
 
   /* debug log is special, since it has to be opened on fd 2 */
   if (desc->subsys == LS_DEBUG)

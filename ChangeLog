@@ -1,3 +1,81 @@
+2000-12-19  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_ison.c (m_ison): Dianora says that ISON has to end with a
+	space (*sigh* stupid clients...)
+
+	* ircd/s_user.c: make WALLOPS_OPER_ONLY a feature managed through
+	ircd_features.[ch]
+
+	* ircd/s_err.c: get rid of GODMODE conditionals
+
+	* ircd/s_debug.c (debug_serveropts): switch to using appropriate
+	calls into the features subsystem for various serveropts
+	characters
+
+	* ircd/s_conf.c (find_conf_entry): get rid of USEONE conditional
+
+	* ircd/s_bsd.c: remove GODMODE conditional; use features subsystem
+	to get value of VIRTUAL_HOST and CLIENT_FLOOD; remove
+	NOFLOWCONTROL conditional
+
+	* ircd/s_auth.c: use features subsystem to determine value of
+	KILL_IPMISMATCH
+
+	* ircd/parse.c: get rid of NOOPER and GODMODE conditionals; use
+	features subsystem to determine the setting of IDLE_FROM_MSG
+
+	* ircd/numnicks.c: get rid of EXTENDED_NUMERICS conditionals
+
+	* ircd/motd.c: get value of NODEFAULTMOTD from features subsystem;
+	use features subsystem to get motd file names
+
+	* ircd/m_settime.c: get value of RELIABLE_CLOCK from features
+	subsystem
+
+	* ircd/m_server.c: get rid of CRYPT_LINK_PASSWORD, since it does
+	us no good; use features subsystem to figure out if we need to do
+	HUB-type stuff; make TESTNET debugging sendto_opmask_butone's use
+	the Debug(()) macro instead; get value of RELIABLE_CLOCK from
+	features subsystem
+
+	* ircd/m_privmsg.c: get IDLE_FROM_MSG from the features subsystem
+
+	* ircd/m_oper.c: get CRYPT_OPER_PASSWORD from the features
+	subsystem
+
+	* ircd/m_connect.c: get SERVER_PORT from the features subsystem
+
+	* ircd/ircd_log.c (log_set_file): fix a bug that kept log files
+	from getting marked if they were already set to something...
+
+	* ircd/ircd_features.c: add a flag to indicates read-only access;
+	add several new features that used to be compile-time selected
+
+	* ircd/ircd.c: grab pidfile out of feature subsystem; don't check
+	access to motd files (what the heck?); make sure to initialize the
+	feature subsystem before trying to write the config file
+
+	* ircd/dbuf.c: use feature_int() to retrieve BUFFERPOOL settings;
+	use feature_bool() to figure out if we're using the FERGUSON
+	flusher
+
+	* ircd/Makefile.in: MPATH and RPATH are now done differently, so
+	remove the clause that creates empty files of that name; also ran
+	make depend
+
+	* include/sys.h: CLIENT_FLOOD is now a feature; unfortunately,
+	there is no easy way to bounds-check it at present
+
+	* include/querycmds.h: make sure ircd_features.h is included; use
+	feature_str(FEAT_DOMAINNAME) in calls to match()
+
+	* include/ircd_features.h: many new features that used to be
+	compile-time selected
+
+	* config/config-sh.in: add * to DOMAINNAME; try also using first
+	argument to search in /etc/resolv.conf; removed many compile-time
+	options that now can be configured through the features system
+
 2000-12-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* doc/api/log.txt: how to use the logging API

@@ -33,6 +33,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_osdep.h"
 #include "ircd_string.h"
@@ -221,10 +222,10 @@ static void auth_dns_callback(void* vptr, struct DNSReply* reply)
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
 			   cli_sock_ip(auth->client), hp->h_name, 
 			   ircd_ntoa(hp->h_addr_list[0]));
-#if defined(KILL_IPMISMATCH)
-      auth_kill_client(auth);
-      return;
-#endif
+      if (feature_bool(FEAT_KILL_IPMISMATCH)) {
+	auth_kill_client(auth);
+	return;
+      }
     }
     else {
       ++reply->ref_count;

@@ -91,6 +91,7 @@
 #include "crule.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -327,7 +328,7 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
     }
   }
-  if (0 == port && 0 == (port = SERVER_PORT)) {
+  if (0 == port && 0 == (port = feature_int(FEAT_SERVER_PORT))) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: missing port number",
 		  sptr);
     return 0;

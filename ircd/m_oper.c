@@ -90,6 +90,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -109,7 +110,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef CRYPT_OPER_PASSWORD
 int oper_password_match(const char* to_match, const char* passwd)
 {
   /*
@@ -117,18 +117,14 @@ int oper_password_match(const char* to_match, const char* passwd)
    *
    * passwd may be NULL. Head it off at the pass...
    */
-  if (to_match && passwd) {
-    const char *encr = ircd_crypt(to_match, passwd);
-    return (0 == strcmp(encr, passwd));
-  }
-  return 0;
+  if (!to_match || !passwd)
+    return 0;
+
+  if (feature_bool(FEAT_CRYPT_OPER_PASSWORD))
+    to_match = ircd_crypt(to_match, passwd);
+
+  return (0 == strcmp(to_match, passwd));
 }
-#else
-int oper_password_match(const char* to_match, const char* passwd)
-{
-  return (to_match && passwd) ? (0 == strcmp(to_match, passwd)) : 0;
-}
-#endif
 
 /*
  * m_oper - generic message handler

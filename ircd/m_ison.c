@@ -120,7 +120,6 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char*          name;
   char*          p = 0;
   struct MsgBuf* mb;
-  int found1 = 0;
   int i;
 
   if (parc < 2)
@@ -137,10 +136,8 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  msgq_clean(mb); /* then do another round */
 	  mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me),
 			 cli_name(sptr));
-	  found1 = 0;
 	}
-	msgq_append(0, mb, "%s%s", found1 ? " " : "", cli_name(acptr));
-	found1++;
+	msgq_append(0, mb, "%s ", cli_name(acptr));
       }
     }
   }

@@ -18,6 +18,7 @@
  *
  * $Id$
  */
+#include "config.h"
 #include "ircd_features.h"
 #include "client.h"
 #include "hash.h"
@@ -189,6 +190,8 @@ typedef void (*feat_report_call)(struct Client*, int);
 #define FEAT_OPER   0x0100	/* set to display only to opers */
 #define FEAT_MYOPER 0x0200	/* set to display only to local opers */
 
+#define FEAT_READ   0x1000	/* feature is read-only (for now, perhaps?) */
+
 static struct FeatureDesc {
   enum Feature	   feat;    /* feature identifier */
   char*		   type;    /* string describing type */
@@ -217,14 +220,33 @@ static struct FeatureDesc {
   { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
     0, 0, 0, 0, 0, 0 }
 
+  /* Misc. features */
   F_N(LOG, FEAT_MYOPER, feature_log_set, feature_log_reset, feature_log_get,
       log_feature_unmark, log_feature_mark, log_feature_report),
+  F_S(DOMAINNAME, 0, DOMAINNAME),
+  F_B(RELIABLE_CLOCK, 0, 0),
+  F_I(BUFFERPOOL, 0, 27000000),
+  F_B(HAS_FERGUSON_FLUSHER, 0, 0),
+  F_I(CLIENT_FLOOD, 0, 1024),
+  F_I(SERVER_PORT, FEAT_OPER, 4400),
+  F_B(NODEFAULTMOTD, 0, 1),
+  F_B(KILL_IPMISMATCH, FEAT_OPER, 0),
+  F_B(IDLE_FROM_MSG, 0, 1),
+  F_B(HUB, 0, 0),
+  F_B(WALLOPS_OPER_ONLY, 0, 0),
+
+  /* Some misc. default paths */
+  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd"),
+  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd"),
+  F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid"),
 
   /* Networking features */
+  F_B(VIRTUAL_HOST, 0, 0),
   F_I(TOS_SERVER, 0, 0x08),
   F_I(TOS_CLIENT, 0, 0x08),
 
   /* features that affect all operators */
+  F_B(CRYPT_OPER_PASSWORD, FEAT_MYOPER | FEAT_READ, 1),
   F_B(OPER_NO_CHAN_LIMIT, 0, 1),
   F_B(OPER_MODE_LCHAN, 0, 1),
   F_B(OPER_WALK_THROUGH_LMODES, 0, 0),
@@ -307,6 +329,9 @@ feature_set(struct Client* from, const char* const* fields, int count)
     else
       log_write(LS_CONFIG, L_ERROR, 0, "Not enough fields in F line");
   } else if ((feat = feature_desc(from, fields[0]))) { /* find feature */
+    if (from && feat->flags & FEAT_READ)
+      return send_reply(from, ERR_NOFEATURE, fields[0]);
+
     switch (feat->flags & FEAT_MASK) {
     case FEAT_NONE:
       if (feat->set && (i = (*feat->set)(from, fields + 1, count - 1))) {
@@ -414,6 +439,9 @@ feature_reset(struct Client* from, const char* const* fields, int count)
   if (count < 1) /* check arguments */
     need_more_params(from, "RESET");
   else if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
+    if (from && feat->flags & FEAT_READ)
+      return send_reply(from, ERR_NOFEATURE, fields[0]);
+
     switch (feat->flags & FEAT_MASK) {
     case FEAT_NONE: /* None... */
       if (feat->reset && (i = (*feat->reset)(from, fields + 1, count - 1))) {

@@ -55,10 +55,6 @@
  * just-disconnected-client aren't confused with just-connected ones.
  */
 
-/*
- * Lets have *LOTS* of connections...
- */
-#define  EXTENDED_NUMERICS
 
 /* These must be the same on ALL servers ! Do not change ! */
 
@@ -67,11 +63,7 @@
 #define NUMNICKBASE 64          /* (2 << NUMNICKLOG) */
 #define NUMNICKMASK 63          /* (NUMNICKBASE-1) */
 #define NN_MAX_SERVER 4096      /* (NUMNICKBASE * NUMNICKBASE) */
-#if defined(EXTENDED_NUMERICS)
 #define NN_MAX_CLIENT 262144    /* NUMNICKBASE ^ 3 */
-#else
-#define NN_MAX_CLIENT 4096      /* (NUMNICKBASE * NUMNICKBASE) */
-#endif
 
 /*
  * The internal counter for the 'XX' of local clients
@@ -244,11 +236,7 @@ void SetYXXCapacity(struct Client* c, unsigned int capacity)
     exit(-1);
   }
   --max_clients;
-#if defined(EXTENDED_NUMERICS)
   inttobase64(cli_serv(c)->nn_capacity, max_clients, 3); 
-#else
-  inttobase64(cli_serv(c)->nn_capacity, max_clients, 2); 
-#endif
   cli_serv(c)->nn_mask = max_clients;       /* Our Numeric Nick mask */
   cli_serv(c)->client_list = (struct Client**) MyCalloc(max_clients + 1, 
                                                      sizeof(struct Client*));
@@ -260,12 +248,7 @@ void SetYXXServerName(struct Client* c, unsigned int numeric)
   assert(0 != c);
   assert(numeric < NN_MAX_SERVER);
 
-#if defined(EXTENDED_NUMERICS)
   inttobase64(cli_yxx(c), numeric, 2);
-#else
-  assert(numeric < NUMNICKBASE);
-  (cli_yxx(c))[0] = convert2y[numeric];
-#endif
   if (numeric >= lastNNServer)
     lastNNServer = numeric + 1;
   server_list[numeric] = c;
@@ -337,11 +320,7 @@ int SetLocalNumNick(struct Client *cptr)
   }
   client_list[last_nn & mask] = cptr;  /* Reserve the numeric ! */
 
-#if defined(EXTENDED_NUMERICS)
   inttobase64(cli_yxx(cptr), last_nn, 3);
-#else
-  inttobase64(cli_yxx(cptr), last_nn, 2);
-#endif
   if (++last_nn == NN_MAX_CLIENT)
     last_nn = 0;
   return 1;

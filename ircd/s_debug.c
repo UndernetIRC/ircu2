@@ -59,28 +59,27 @@ static char serveropts[256]; /* should be large enough for anything */
 
 const char* debug_serveropts(void)
 {
+  int bp;
   int i = 0;
 #define AddC(c)	serveropts[i++] = (c)
 
-#if BUFFERPOOL < 1000000
-  AddC('b');
-#if BUFFERPOOL > 99999
-  AddC((char)('0' + (BUFFERPOOL/100000)));
-#endif
-#if BUFFERPOOL > 9999
-  AddC((char)('0' + (BUFFERPOOL/10000) % 10));
-#endif
-  AddC((char)('0' + (BUFFERPOOL/1000) % 10));
-#else
-  AddC('B');
-#if BUFFERPOOL > 99999999
-  AddC((char)('0' + (BUFFERPOOL/100000000)));
-#endif
-#if BUFFERPOOL > 9999999
-  AddC((char)('0' + (BUFFERPOOL/10000000) % 10));
-#endif
-  AddC((char)('0' + (BUFFERPOOL/1000000) % 10));
-#endif
+  bp = feature_int(FEAT_BUFFERPOOL);
+  if (bp < 1000000) {
+    AddC('b');
+    if (bp > 99999)
+      AddC((char)('0' + (bp / 100000)));
+    if (bp > 9999)
+      AddC((char)('0' + (bp / 10000) % 10));
+    AddC((char)('0' + (bp / 1000) % 10));
+  } else {
+    AddC('B');
+    if (bp > 99999999)
+      AddC((char)('0' + (bp / 100000000)));
+    if (bp > 9999999)
+      AddC((char)('0' + (bp / 10000000) % 10));
+    AddC((char)('0' + (bp / 1000000) % 10));
+  }
+
 #ifdef  CHROOTDIR
   AddC('c');
 #endif
@@ -103,9 +102,8 @@ const char* debug_serveropts(void)
   if (feature_bool(FEAT_OPER_MODE_LCHAN))
     AddC('f');
 
-#ifdef  HUB
-  AddC('H');
-#endif
+  if (feature_bool(FEAT_HUB))
+    AddC('H');
 
   if (feature_bool(FEAT_SHOW_ALL_INVISIBLE_USERS))
     AddC('I');
@@ -122,25 +120,17 @@ const char* debug_serveropts(void)
   if (feature_bool(FEAT_OPER_WALK_THROUGH_LMODES))
     AddC('l');
 
-#ifdef  IDLE_FROM_MSG
-  AddC('M');
-#endif
-#ifdef  USEONE
-  AddC('O');
-#endif
+  if (feature_bool(FEAT_IDLE_FROM_MSG))
+    AddC('M');
 
   if (feature_bool(FEAT_NO_OPER_DEOP_LCHAN))
     AddC('o');
 
-#ifdef  CRYPT_OPER_PASSWORD
-  AddC('p');
-#endif
-#ifdef  CRYPT_LINK_PASSWORD
-  AddC('P');
-#endif
-#ifdef  RELIABLE_CLOCK
-  AddC('R');
-#endif
+  if (feature_bool(FEAT_CRYPT_OPER_PASSWORD))
+    AddC('p');
+
+  if (feature_bool(FEAT_RELIABLE_CLOCK))
+    AddC('R');
 
   if (feature_bool(FEAT_LOCOP_RESTART))
     AddC('s');
@@ -151,9 +141,9 @@ const char* debug_serveropts(void)
 #if defined(USE_POLL) && defined(HAVE_POLL_H)
   AddC('U');
 #endif
-#ifdef  VIRTUAL_HOST
-  AddC('v');
-#endif
+
+  if (feature_bool(FEAT_VIRTUAL_HOST))
+    AddC('v');
 
   serveropts[i] = '\0';
 

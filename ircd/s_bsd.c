@@ -26,6 +26,7 @@
 #include "class.h"
 #include "hash.h"
 #include "ircd_log.h"
+#include "ircd_features.h"
 #include "ircd_osdep.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -99,15 +100,6 @@ const char* const SETBUFS_ERROR_MSG   = "error setting buffer size for %s: %s";
 const char* const SOCKET_ERROR_MSG    = "error creating socket for %s: %s";
 const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
 
-
-#ifdef GODMODE
-#ifndef NODNS
-#define NODNS
-#endif
-#ifndef NOFLOODCONTROL
-#define NOFLOODCONTROL
-#endif
-#endif
 
 #if !defined(USE_POLL)
 #if FD_SETSIZE < (MAXCONNECTIONS + 4)
@@ -260,17 +252,18 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * leading to a freezing select() on this side for some time.
    * I had this on my Linux 1.1.88 --Run
    */
-#ifdef VIRTUAL_HOST
+
   /*
    * No, we do bind it if we have virtual host support. If we don't
    * explicitly bind it, it will default to IN_ADDR_ANY and we lose
    * due to the other server not allowing our base IP --smg
    */
-  if (bind(cli_fd(cptr), (struct sockaddr*) &VirtualHost, sizeof(VirtualHost))) {
+  if (feature_bool(FEAT_VIRTUAL_HOST) &&
+      bind(cli_fd(cptr), (struct sockaddr*) &VirtualHost,
+	   sizeof(VirtualHost))) {
     report_error(BIND_ERROR_MSG, cli_name(cptr), errno);
     return 0;
   }
-#endif
 
   memset(&sin, 0, sizeof(sin));
   sin.sin_family      = AF_INET;
@@ -633,7 +626,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
   unsigned int dolen = 0;
   unsigned int length = 0;
 
-  if (socket_ready && !(IsUser(cptr) && DBufLength(&(cli_recvQ(cptr))) > CLIENT_FLOOD)) {
+  if (socket_ready &&
+      !(IsUser(cptr) &&
+	DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))) {
     switch (os_recv_nonb(cli_fd(cptr), readbuf, sizeof(readbuf), &length)) {
     case IO_SUCCESS:
       if (length) {
@@ -668,18 +663,16 @@ static int read_packet(struct Client *cptr, int socket_ready)
     if (length > 0 && 0 == dbuf_put(&(cli_recvQ(cptr)), readbuf, length)) {
       return exit_client(cptr, cptr, &me, "dbuf_put fail");
     }
-#ifndef NOFLOODCONTROL
+
     /*
      * XXX - cptr will always be a user or unregistered
      */
-    if (IsUser(cptr) && DBufLength(&(cli_recvQ(cptr))) > CLIENT_FLOOD)
+    if (IsUser(cptr) &&
+	DBufLength(&(cli_recvQ(cptr))) > feature_int(FEAT_CLIENT_FLOOD))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
            (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
-#else
-    while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr))
-#endif
     {
       /*
        * If it has become registered as a Server

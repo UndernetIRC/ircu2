@@ -29,6 +29,7 @@
 #include "fileio.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -258,18 +259,18 @@ motd_signon(struct Client* cptr)
 
   cache = motd_cache(motd_lookup(cptr));
 
-#ifdef NODEFAULTMOTD
-  send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
-  send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":\002Type /MOTD to read the AUP "
-	     "before continuing using this service.\002");
-  send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was last "
-	     "changed: %d-%d-%d %d:%d", cache->modtime.tm_year + 1900,
-	     cache->modtime.tm_mon + 1, cache->modtime.tm_mday,
-	     cache->modtime.tm_hour, cache->modtime.tm_min);
-  send_reply(cptr, RPL_ENDOFMOTD);
-#else
-  motd_forward(cptr, cache);
-#endif
+  if (!feature_bool(FEAT_NODEFAULTMOTD))
+    motd_forward(cptr, cache);
+  else {
+    send_reply(cptr, RPL_MOTDSTART, cli_name(&me));
+    send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":\002Type /MOTD to read the "
+	       "AUP before continuing using this service.\002");
+    send_reply(cptr, SND_EXPLICIT | RPL_MOTD, ":The message of the day was "
+	       "last changed: %d-%d-%d %d:%d", cache->modtime.tm_year + 1900,
+	       cache->modtime.tm_mon + 1, cache->modtime.tm_mday,
+	       cache->modtime.tm_hour, cache->modtime.tm_min);
+    send_reply(cptr, RPL_ENDOFMOTD);
+  }
 }
 
 /* motd_recache causes all the MOTD caches to be cleared */
@@ -295,11 +296,11 @@ motd_recache(void)
 void
 motd_init(void)
 {
-  MotdList.local = motd_create(0, MPATH, MOTD_MAXLINES); /* init local */
-  motd_cache(MotdList.local); /* and cache it */
+  MotdList.local = motd_create(0, feature_str(FEAT_MPATH), MOTD_MAXLINES);
+  motd_cache(MotdList.local); /* init local and cache it */
 
-  MotdList.remote = motd_create(0, RPATH, MOTD_MAXREMOTE); /* init remote */
-  motd_cache(MotdList.remote); /* and cache it */
+  MotdList.remote = motd_create(0, feature_str(FEAT_RPATH), MOTD_MAXREMOTE);
+  motd_cache(MotdList.remote); /* init remote and cache it */
 
   MotdList.other = 0; /* no T-lines processed yet */
 }
