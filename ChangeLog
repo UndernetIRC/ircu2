@@ -1,5 +1,23 @@
 2004-05-10  Michael Poole <mdpoole@troilus.org>
 
+	Forward port of asuka-topicburst.patch from Quakenet's "Asuka"
+	patch set.
+
+	* include/ircd_features.h (FEAT_TOPIC_BURST): Add new feature.
+
+	* ircd/channel.c (send_channel_modes): If F:TOPIC_BURST:TRUE,
+	also send a TOPIC to the peer.
+
+	* ircd/ircd_features.c (FEAT_TOPIC_BURST): Add new boolean
+	feature, defaulting to FALSE.
+
+	* ircd/m_topic.c (do_settopic): Add argument for topic timestamp,
+	and allow F:HIS_BANWHO to hide the originator of the topic.
+	(ms_topic): Parse optional timestamp arguments to TOPIC, and use
+	them to decide whether to ignore the topic.
+
+2004-05-10  Michael Poole <mdpoole@troilus.org>
+
 	Forward port of delayed-join.patch from Quakenet's "Asuka" patch
 	set (which was a port of code I wrote for the other ircu).
 

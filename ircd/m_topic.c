@@ -85,6 +85,7 @@
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -93,12 +94,19 @@
 #include "send.h"
 
 #include <assert.h>
+#include <stdlib.h> /* for atoi() */
 
 static void do_settopic(struct Client *sptr, struct Client *cptr, 
-		        struct Channel *chptr,char *topic)
+		        struct Channel *chptr, char *topic, time_t ts)
 {
    struct Membership *member;
+   struct Client *from;
    int newtopic;
+
+   if (feature_bool(FEAT_HIS_BANWHO) && IsServer(sptr))
+       from = &me;
+   else
+       from = sptr;
    member = find_channel_member(sptr, chptr);
    /* if +n and not @'d, return an error and ignore the topic */
    if ((chptr->mode.mode & MODE_TOPICLIMIT) != 0 && (!member || !IsChanOp(member)))
@@ -115,12 +123,12 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    newtopic=ircd_strncmp(chptr->topic,topic,TOPICLEN)!=0;
    /* setting a topic */
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
-   ircd_strncpy(chptr->topic_nick, cli_name(sptr), NICKLEN);
-   chptr->topic_time = CurrentTime;
+   ircd_strncpy(chptr->topic_nick, cli_name(from), NICKLEN);
+   chptr->topic_time = ts ? ts : TStime();
    /* Fixed in 2.10.11: Don't propergate local topics */
    if (!IsLocalChannel(chptr->chname))
-     sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H :%s", chptr,
-		           chptr->topic);
+     sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H %Tu %Tu :%s", chptr,
+		           chptr->creationtime, chptr->topic_time, chptr->topic);
    if (newtopic)
       sendcmdto_channel_butserv_butone(sptr, CMD_TOPIC, chptr, NULL,
       				       "%H :%s", chptr, chptr->topic);
@@ -179,7 +187,7 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       }
     }
     else 
-     do_settopic(sptr,cptr,chptr,topic);
+      do_settopic(sptr,cptr,chptr,topic,0);
   }
   return 0;
 }
@@ -189,12 +197,15 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *
  * parv[0]        = sender prefix
  * parv[1]        = channel
+ * parv[2]        = channel timestamp (optional)
+ * parv[3]        = topic timestamp (optional)
  * parv[parc - 1] = topic
  */
 int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   char *topic = 0, *name, *p = 0;
+  time_t ts = 0;
 
   if (parc < 3)
     return need_more_params(sptr, "TOPIC");
@@ -218,7 +229,14 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       continue;
     }
 
-    do_settopic(sptr,cptr,chptr,topic);
+    /* If existing channel is older or has newer topic, ignore */
+    if (parc > 3 && (ts = atoi(parv[2])) && chptr->creationtime < ts)
+      continue;
+
+    if (parc > 4 && (ts = atoi(parv[3])) && chptr->topic_time > ts)
+      continue;
+
+    do_settopic(sptr,cptr,chptr,topic, ts);
   }
   return 0;
 }
