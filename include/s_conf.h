@@ -134,6 +134,8 @@ struct nick_host {
   char nick[1];           /**< start of nick\@server string */
 };
 
+#define SMAP_FAST 1           /**< Command does not have MFLG_SLOW. */
+
 /** Target set for a service pseudo-command. */
 struct s_map {
   struct s_map *next;         /**< Next element in #GlobalServiceMapList. */
@@ -141,6 +143,7 @@ struct s_map {
   char *name;                 /**< Text name of the mapping. */
   char *command;              /**< Command name to use. */
   char *prepend;              /**< Extra text to prepend to user's text. */
+  unsigned int flags;         /**< Bitwise map of SMAP_* flags. */
   struct nick_host *services; /**< Linked list of possible targets. */
 };
 

@@ -741,18 +741,18 @@ int register_mapping(struct s_map *map)
   msg->tok = map->command;
   msg->count = 0;
   msg->parameters = 2;
-  msg->flags = MFLG_SLOW | MFLG_EXTRA;
+  msg->flags = MFLG_EXTRA;
+  if (!(map->flags & SMAP_FAST))
+    msg->flags |= MFLG_SLOW;
   msg->bytes = 0;
   msg->extra = map;
 
   msg->handlers[UNREGISTERED_HANDLER] = m_ignore;
   msg->handlers[CLIENT_HANDLER] = m_pseudo;
   msg->handlers[SERVER_HANDLER] = m_ignore;
-  msg->handlers[OPER_HANDLER] = m_pseudo;
+  msg->handlers[OPER_HANDLER]   = m_pseudo;
   msg->handlers[SERVICE_HANDLER] = m_ignore;
 
-  /* Service mappings are only applicable to clients; insert the
-     pseudocommand into the command tree only. */
   add_msg_element(&msg_tree, msg, msg->cmd);
   map->msg = msg;
 
@@ -856,7 +856,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   paramcount = mptr->parameters;
   i = bufend - ((s) ? s : ch);
   mptr->bytes += i;
-  if ((mptr->flags & MFLG_SLOW))
+  if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
     cli_since(cptr) += (2 + i / 120);
   /*
    * Allow only 1 msg per 2 seconds

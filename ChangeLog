@@ -1,5 +1,19 @@
 2005-04-01  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_conf.h (SMAP_FAST): Define.
+	(s_map): Add 'flags' field.
+
+	* ircd/ircd_lexer.l: Recognize 'FAST' token.
+
+	* ircd/ircd_parser.y (FAST): New token.
+	(pseudoitem): Add pseudoflags alternative.
+	(pseudoflags): New production, recognizing FAST token.
+
+	* ircd/parse.c (register_mapping): Set MFLG_SLOW conditionally.
+	Remove outdated comment.
+
+2005-04-01  Michael Poole <mdpoole@troilus.org>
+
 	* include/handlers.h (ms_privs): Declare.
 
 	* include/msg.h (TOK_PRIVS): Assign token.

@@ -156,6 +156,7 @@ static void parse_error(char *pattern,...) {
 %token USERMODE
 %token IAUTH
 %token TIMEOUT
+%token FAST
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -943,7 +944,7 @@ pseudoitems '}' ';'
 };
 
 pseudoitems: pseudoitem pseudoitems | pseudoitem;
-pseudoitem: pseudoname | pseudoprepend | pseudonick | error;
+pseudoitem: pseudoname | pseudoprepend | pseudonick | pseudoflags | error;
 pseudoname: NAME '=' QSTRING ';'
 {
   DupString(smap->name, $3);
@@ -964,6 +965,10 @@ pseudonick: NICK '=' QSTRING ';'
     nh->next = smap->services;
     smap->services = nh;
   }
+};
+pseudoflags: FAST ';'
+{
+  smap->flags |= SMAP_FAST;
 };
 
 iauthblock: IAUTH '{'
