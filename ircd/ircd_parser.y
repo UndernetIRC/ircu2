@@ -72,7 +72,7 @@
   /* Now all the globals we need :/... */
   int tping, tconn, maxlinks, sendq, port, invert;
   int stringno;
-  char *name, *pass, *host;
+  char *name, *pass, *host, *origin;
   char *stringlist[MAX_STRINGS];
   struct ConnectionClass *c_class;
   struct ConfItem *aconf;
@@ -382,7 +382,7 @@ classusermode: USERMODE '=' QSTRING ';'
 
 connectblock: CONNECT
 {
- name = pass = host = NULL;
+ name = pass = host = origin = NULL;
  c_class = NULL;
  port = 0;
 } '{' connectitems '}'
@@ -393,6 +393,7 @@ connectblock: CONNECT
    aconf = make_conf();
    aconf->status = CONF_SERVER;
    aconf->name = name;
+   aconf->origin_name = origin;
    aconf->passwd = pass;
    aconf->conn_class = c_class;
    aconf->address.port = port;
@@ -407,13 +408,14 @@ connectblock: CONNECT
    MyFree(name);
    MyFree(pass);
    MyFree(host);
-   name = pass = host = NULL;
+   MyFree(origin);
    parse_error("Bad connect block");
  }
+ name = pass = host = origin = NULL;
 }';';
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
-              | connectport | error;
+              | connectport | connectvhost | error;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -436,6 +438,11 @@ connecthost: HOST '=' QSTRING ';'
 connectport: PORT '=' NUMBER ';'
 {
  port = $3;
+};
+connectvhost: VHOST '=' QSTRING ';'
+{
+ MyFree(origin);
+ DupString(origin, $3);
 };
 
 serverblock: SERVER

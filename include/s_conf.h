@@ -52,8 +52,10 @@ struct ConfItem
   unsigned int status;      /* If CONF_ILLEGAL, delete when no clients */
   unsigned int clients;     /* Number of *LOCAL* clients using this */
   struct ConnectionClass *conn_class;  /* Class of connection */
+  struct irc_sockaddr origin;  /* local address */
   struct irc_sockaddr address; /* ip and port */
   char *host;
+  char *origin_name;
   char *passwd;
   char *name;
   time_t hold; /* Hold until this time (calendar time) */

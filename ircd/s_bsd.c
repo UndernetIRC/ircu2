@@ -226,6 +226,7 @@ int init_connection_limits(void)
  */
 static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
+  const struct irc_sockaddr *local;
   IOResult result;
   assert(0 != aconf);
   assert(0 != cptr);
@@ -233,7 +234,13 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    * Might as well get sockhost from here, the connection is attempted
    * with it so if it fails its useless.
    */
-  cli_fd(cptr) = os_socket((feature_bool(FEAT_VIRTUAL_HOST) ? &VirtualHost : NULL), SOCK_STREAM, cli_name(cptr));
+  if (irc_in_addr_valid(&aconf->origin.addr))
+    local = &aconf->origin;
+  else if (feature_bool(FEAT_VIRTUAL_HOST))
+    local = &VirtualHost;
+  else
+    local = NULL;
+  cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr));
   if (cli_fd(cptr) < 0)
     return 0;
 

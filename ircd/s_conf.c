@@ -245,6 +245,11 @@ lookup_confhost(struct ConfItem *aconf)
            aconf->host, aconf->name));
     return;
   }
+  if (aconf->origin_name
+      && !ircd_aton(&aconf->origin.addr, aconf->origin_name)) {
+    Debug((DEBUG_ERROR, "Origin name error: (%s) (%s)",
+        aconf->origin_name, aconf->name));
+  }
   /*
    * Do name lookup now on hostnames given and store the
    * ip numbers in conf structure.

@@ -1,3 +1,19 @@
+2004-09-10  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_conf.h (struct ConfItem): Add origin and origin_name
+	fields.
+
+	* ircd/ircd_parser.y: Add new global variable "origin."  Add a new
+	"connectionvhost" production that accepts vhost = "IP" inside a
+	Connect block and assigns the IP to origin_name.
+
+	* ircd/s_bsd (connect_inet): If aconf has a valid origin, use it
+	as the local address.  Otherwise, fall back to the old logic (if
+	VIRTUAL_HOST="TRUE", use the virtual host setting).
+
+	* ircd/s_conf.c (lookup_confhost): If the ConfItem has an
+	origin_name, try to parse it as an IP address.
+
 2004-04-17  Isomer <isomer@undernet.org>
 	* ircd/parse.c: Don't rate limit /gline messages
 
