@@ -1,3 +1,7 @@
+2005-02-21  Perry Lorier <isomer@undernet.org>
+
+	* ircd/s_stats.c: Hide the hub IP's.  They're kinda important.
+
 2005-02-20  Perry Lorier <isomer@undernet.org>
 
 	* ircd/ircd_parser.y: Moved some parse errors from log_write()'s to
