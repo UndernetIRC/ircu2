@@ -139,7 +139,7 @@
 #define HEAD_IN_SAND_REWRITE
 
 /* disallow remote queries (*sob!*) */
-/* (note, set this to 1 to reenable, not undef */
-#define HEAD_IN_SAND_REMOTE 0
+/* (note, set this to 0 to reenable, not undef */
+#define HEAD_IN_SAND_REMOTE 1
 
 #endif /* INCLUDED_ircd_policy_h */
