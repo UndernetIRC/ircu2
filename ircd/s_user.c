@@ -617,7 +617,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
     }
-    if (IPcheck_remote_connect(sptr, user->host, (acptr != &me)) == -1)
+    if (!IPcheck_remote_connect(sptr, (acptr != &me)))
       /*
        * We ran out of bits to count this
        */

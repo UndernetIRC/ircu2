@@ -20,6 +20,7 @@
  * $Id$
  */
 #include "ircd.h"
+#include "IPcheck.h"
 #include "class.h"
 #include "client.h"
 #include "crule.h"
@@ -421,12 +422,12 @@ int main(int argc, char *argv[])
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
   if (getrlimit(RLIMIT_CORE, &corelim))
   {
-    fprintf(stderr, "Read of rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
+    fprintf(stderr, "Read of rlimit core size failed: %s\n", strerror(errno));
     corelim.rlim_max = RLIM_INFINITY;   /* Try to recover */
   }
   corelim.rlim_cur = corelim.rlim_max;
   if (setrlimit(RLIMIT_CORE, &corelim))
-    fprintf(stderr, "Setting rlimit core size failed: %s\n", (strerror(errno) ? strerror(errno) : "");
+    fprintf(stderr, "Setting rlimit core size failed: %s\n", strerror(errno));
 #endif
 
   /*
@@ -720,6 +721,8 @@ int main(int argc, char *argv[])
      * timeout pending queries that haven't been responded to
      */
     timeout_auth_queries(CurrentTime);
+
+    IPcheck_expire();
 
     if (GlobalRehashFlag) {
       rehash(&me, 1);
