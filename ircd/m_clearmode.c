@@ -167,11 +167,11 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
    * If we're removing the key, note that; note that we can't clear
    * the key until after modebuf_* are done with it
    */
-  if (del_mode & MODE_KEY && chptr->mode.mode & MODE_KEY)
+  if (del_mode & MODE_KEY && *chptr->mode.key)
     modebuf_mode_string(&mbuf, MODE_DEL | MODE_KEY, chptr->mode.key);
 
   /* If we're removing the limit, note that and clear the limit */
-  if (del_mode & MODE_LIMIT && chptr->mode.mode & MODE_KEY) {
+  if (del_mode & MODE_LIMIT && chptr->mode.limit) {
     modebuf_mode_uint(&mbuf, MODE_DEL | MODE_LIMIT, chptr->mode.limit);
     chptr->mode.limit = 0; /* not referenced, so safe */
   }
