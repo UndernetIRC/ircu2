@@ -1,3 +1,7 @@
+2000-07-01  Perry Lorier       <Isomer@coders.net>
+	* ircd/s_conf.c: "Fixed" the "bug" where people would "evade" K:'s.
+	* ircd/s_conf.c, include/IPcheck.h: Fixed compile warnings.
+
 2000-06-22  Perry Lorier       <Isomer@coders.net>
 	* ircd/IPcheck.c: Large chunks redone.
 	* ircd/s_conf.c: Changes due to IPcheck - ONE nolonger supported,
@@ -1251,7 +1255,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.151 2000-07-01 05:24:55 isomer Exp $
+# $Id: ChangeLog,v 1.152 2000-07-01 12:37:02 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
