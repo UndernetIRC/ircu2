@@ -129,6 +129,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   destination = parv[2];
   cptr->flags &= ~FLAGS_PINGSENT;
   sptr->flags &= ~FLAGS_PINGSENT;
+  cptr->lasttime = CurrentTime;
 
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, me.name)) {
     struct Client* acptr;
