@@ -1,3 +1,25 @@
+2001-01-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c (timer_run): it's possible that the timer got
+	deleted during the callback processing, so don't go to the bother
+	of requeuing it if the destroy flag is set
+
+	* ircd/engine_select.c: define FD_SETSIZE to be IRCD_FD_SETSIZE
+	out of config.h if this is a *BSD; include errno.h (oops);
+	decrement error count after an hour using a timer; use FD_SETSIZE
+	constant instead of IRCD_FD_SETSIZE constant; fill in event
+	processing code
+
+	* ircd/engine_poll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
+	* ircd/engine_kqueue.c: include errno.h (oops); decrement error
+	count after an hour using a timer; assert events filter is either
+	EVFILT_READ or EVFILT_WRITE; fill in event processing code
+
+	* ircd/engine_devpoll.c: include errno.h (oops); decrement error
+	count after an hour using a timer; fill in event processing code
+
 2001-01-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_events.c: call event_generate() with new data

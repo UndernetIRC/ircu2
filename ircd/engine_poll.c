@@ -25,11 +25,15 @@
 #include "ircd_log.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <sys/poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
 #define POLL_ERROR_THRESHOLD	20	/* after 20 poll errors, restart */
+#define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
 
 /* Figure out what bits to set for read */
 #if defined(POLLMSG) && defined(POLLIN) && defined(POLLRDNORM)
@@ -62,6 +66,17 @@ static struct Socket** sockList;
 static struct pollfd* pollfdList;
 static unsigned int poll_count;
 static unsigned int poll_max;
+
+static int errors = 0;
+static struct Timer clear_error;
+
+/* decrements the error count once per hour */
+static void
+error_clear(struct Event* ev)
+{
+  if (!--errors) /* remove timer when error count reaches 0 */
+    timer_del(&(ev_timer(ev)));
+}
 
 /* initialize the poll engine */
 static int
@@ -213,7 +228,6 @@ engine_loop(struct Generators* gen)
 {
   unsigned int wait;
   int nfds;
-  int errors = 0;
   int i;
 
   while (running) {
@@ -228,7 +242,10 @@ engine_loop(struct Generators* gen)
       if (errno != EINTR) { /* ignore poll interrupts */
 	/* Log the poll error */
 	log_write(LS_SOCKET, L_ERROR, 0, "poll() error: %m");
-	if (++errors > POLL_ERROR_THRESHOLD) /* too many errors, restart */
+	if (!errors++)
+	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+		    ERROR_EXPIRE_TIME);
+	else if (errors > POLL_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many poll errors");
       }
       /* old code did a sleep(1) here; with usage these days,
@@ -245,10 +262,58 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 
-      /* XXX Here's where we actually process sockets and figure out what
-       * XXX events have happened, be they errors, eofs, connects, or what
-       * XXX have you.  I'll fill this in sometime later.
-       */
+      errcode = 0; /* check for errors on socket */
+      codesize = sizeof(errcode);
+      if (getsockopt(s_fd(sockList[i]), SOL_SOCKET, SO_ERROR, &errcode,
+		     &codesize) < 0)
+	errcode = errno; /* work around Solaris implementation */
+
+      if (errcode) { /* an error occurred; generate an event */
+	event_generate(ET_ERROR, sockList[i], errcode);
+	gen_ref_dec(sockList[i]); /* careful not to leak reference counts */
+	continue;
+      }
+
+      switch (s_state(sockList[i])) {
+      case SS_CONNECTING:
+	if (pollfdList[i].revents & POLLWRITEFLAGS) /* connection completed */
+	  event_generate(ET_CONNECT, sockList[i], 0);
+	break;
+
+      case SS_LISTENING:
+	if (pollfdList[i].revents & POLLREADFLAGS) /* connect. to be accept. */
+	  event_generate(ET_ACCEPT, sockList[i], 0);
+	break;
+
+      case SS_CONNECTED:
+	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
+	  char c;
+
+	  switch (recv(s_fd(sockList[i]), &c, 1, MSG_PEEK)) { /* check EOF */
+	  case -1: /* error occurred?!? */
+	    event_generate(ET_ERROR, sockList[i], errno);
+	    break;
+
+	  case 0: /* EOF from client */
+	    event_generate(ET_EOF, sockList[i], 0);
+	    break;
+
+	  default: /* some data can be read */
+	    event_generate(ET_READ, sockList[i], 0);
+	    break;
+	  }
+	}
+	if (pollfdList[i].revents & POLLWRITEFLAGS) /* socket writable */
+	  event_generate(ET_WRITE, sockList[i], 0);
+	break;
+
+      case SS_DATAGRAM: case SS_CONNECTDG:
+	if (pollfdList[i].revents & POLLREADFLAGS) /* socket readable */
+	  event_generate(ET_READ, sockList[i], 0);
+	if (pollfdList[i].revents & POLLWRITEFLAGS) /* socket writable */
+	  event_generate(ET_WRITE, sockList[i], 0);
+	break;
+      }
 
       gen_ref_dec(sockList[i]); /* we're done with it */
     }

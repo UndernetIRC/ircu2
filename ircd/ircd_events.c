@@ -402,7 +402,8 @@ timer_run(void)
       break;
 
     case TT_PERIODIC:
-      timer_enqueue(ptr); /* re-queue periodic timer */
+      if (!(ptr->t_header.gh_flags & GEN_DESTROY))
+	timer_enqueue(ptr); /* re-queue periodic timer */
       break;
     }
   }

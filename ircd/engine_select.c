@@ -24,18 +24,39 @@
 #include "ircd.h"
 #include "ircd_log.h"
 
+/* On BSD, define FD_SETSIZE to what we want before including sys/types.h */
+#if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
+# if !defined(FD_SETSIZE)
+#  define FD_SETSIZE	IRCD_FD_SETSIZE
+# endif
+#endif
+
 #include <assert.h>
+#include <errno.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
 #define SELECT_ERROR_THRESHOLD	20	/* after 20 select errors, restart */
+#define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
 
-static struct Socket* sockList[IRCD_FD_SETSIZE];
+static struct Socket* sockList[FD_SETSIZE];
 static int highest_fd;
 static fdset global_read_set;
 static fdset global_write_set;
+
+static int errors = 0;
+static struct Timer clear_error;
+
+/* decrements the error count once per hour */
+static void
+error_clear(struct Event* ev)
+{
+  if (!--errors) /* remove timer when error count reaches 0 */
+    timer_del(&(ev_timer(ev)));
+}
 
 /* initialize the select engine */
 static int
@@ -43,17 +64,17 @@ engine_init(int max_sockets)
 {
   int i;
 
-  if (max_sockets > IRCD_FD_SETSIZE) { /* too many sockets */
+  if (max_sockets > FD_SETSIZE) { /* too many sockets */
     log_write(LS_SYSTEM, L_WARNING, 0,
 	      "select() engine cannot handle %d sockets (> %d)",
-	      max_sockets, IRCD_FD_SETSIZE);
+	      max_sockets, FD_SETSIZE);
     return 0;
   }
 
   FD_ZERO(&global_read_set); /* zero the global fd sets */
   FD_ZERO(&global_write_set);
 
-  for (i = 0; i < IRCD_FD_SETSIZE; i++) /* zero the sockList */
+  for (i = 0; i < FD_SETSIZE; i++) /* zero the sockList */
     sockList[i] = 0;
 
   highest_fd = -1; /* No fds in set */
@@ -110,10 +131,10 @@ engine_add(struct Socket* sock)
   assert(0 == sockList[s_fd(sock)]);
 
   /* bounds-check... */
-  if (s_fd(sock) >= IRCD_FD_SETSIZE) {
+  if (s_fd(sock) >= FD_SETSIZE) {
     log_write(LS_SYSTEM, L_ERROR, 0,
 	      "Attempt to add socket %d (> %d) to event engine", s_fd(sock),
-	      IRCD_FD_SETSIZE);
+	      FD_SETSIZE);
     return 0;
   }
 
@@ -178,8 +199,9 @@ engine_loop(struct Generators* gen)
   fd_set read_set;
   fd_set write_set;
   int nfds;
-  int errors = 0;
   int i;
+  int errcode;
+  int codesize;
 
   while (running) {
     read_set = global_read_set; /* all hail structure copy!! */
@@ -198,7 +220,10 @@ engine_loop(struct Generators* gen)
       if (errno != EINTR) { /* ignore select interrupts */
 	/* Log the select error */
 	log_write(LS_SOCKET, L_ERROR, 0, "select() error: %m");
-	if (++errors > SELECT_ERROR_THRESHOLD) /* too many errors, restart */
+	if (!errors++)
+	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+		    ERROR_EXPIRE_TIME);
+	else if (errors > SELECT_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many select errors");
       }
       /* old code did a sleep(1) here; with usage these days,
@@ -215,10 +240,57 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 
-      /* XXX Here's where we actually process sockets and figure out what
-       * XXX events have happened, be they errors, eofs, connects, or what
-       * XXX have you.  I'll fill this in sometime later.
-       */
+      errcode = 0; /* check for errors on socket */
+      codesize = sizeof(errcode);
+      if (getsockopt(i, SOL_SOCKET, SO_ERROR, &errcode, &codesize) < 0)
+	errcode = errno; /* work around Solaris implementation */
+
+      if (errcode) { /* an error occurred; generate an event */
+	event_generate(ET_ERROR, sockList[i], errcode);
+	gen_ref_dec(sockList[i]); /* careful not to leak reference counts */
+	continue;
+      }
+
+      switch (s_state(sockList[i])) {
+      case SS_CONNECTING:
+	if (FD_ISSET(i, &write_set)) /* connection completed */
+	  event_generate(ET_CONNECT, sockList[i], 0);
+	break;
+
+      case SS_LISTENING:
+	if (FD_ISSET(i, &read_set)) /* connection to be accepted */
+	  event_generate(ET_ACCEPT, sockList[i], 0);
+	break;
+
+      case SS_CONNECTED:
+	if (FD_ISSET(i, &read_set)) { /* data to be read from socket */
+	  char c;
+
+	  switch (recv(i, &c, 1, MSG_PEEK)) { /* check for EOF */
+	  case -1: /* error occurred?!? */
+	    event_generate(ET_ERROR, sockList[i], errno);
+	    break;
+
+	  case 0: /* EOF from client */
+	    event_generate(ET_EOF, sockList[i], 0);
+	    break;
+
+	  default: /* some data can be read */
+	    event_generate(ET_READ, sockList[i], 0);
+	    break;
+	  }
+	}
+	if (FD_ISSET(i, &write_set)) /* data can be written to socket */
+	  event_generate(ET_WRITE, sockList[i], 0);
+	break;
+
+      case SS_DATAGRAM: case SS_CONNECTDG:
+	if (FD_ISSET(i, &read_set)) /* data to be read from socket */
+	  event_generate(ET_READ, sockList[i], 0);
+	if (FD_ISSET(i, &write_set)) /* data can be written to socket */
+	  event_generate(ET_WRITE, sockList[i], 0);
+	break;
+      }
 
       gen_ref_dec(sockList[i]); /* we're done with it */
     }

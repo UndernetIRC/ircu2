@@ -24,18 +24,34 @@
 #include "ircd_log.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <signal.h>
 #include <sys/event.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
 #define KQUEUE_ERROR_THRESHOLD	20	/* after 20 kqueue errors, restart */
+#define ERROR_EXPIRE_TIME	3600	/* expire errors after an hour */
+
 #define POLLS_PER_KQUEUE	20	/* get 20 kevents per turn */
 
 static struct Socket** sockList;
 static int kqueue_max;
 static int kqueue_id;
+
+static int errors = 0;
+static struct Timer clear_error;
+
+/* decrements the error count once per hour */
+static void
+error_clear(struct Event* ev)
+{
+  if (!--errors) /* remove timer when error count reaches 0 */
+    timer_del(&(ev_timer(ev)));
+}
 
 /* initialize the kqueue engine */
 static int
@@ -244,7 +260,6 @@ engine_loop(struct Generators* gen)
   struct Socket* sock;
   struct timespec wait;
   int nevs;
-  int errors = 0;
   int i;
 
   while (running) {
@@ -261,7 +276,10 @@ engine_loop(struct Generators* gen)
       if (errno != EINTR) { /* ignore kevent interrupts */
 	/* Log the kqueue error */
 	log_write(LS_SOCKET, L_ERROR, 0, "kevent() error: %m");
-	if (++errors > KQUEUE_ERROR_THRESHOLD) /* too many errors, restart */
+	if (!errors++)
+	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+		    ERROR_EXPIRE_TIME);
+	else if (errors > KQUEUE_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many kevent errors");
       }
       /* old code did a sleep(1) here; with usage these days,
@@ -277,6 +295,9 @@ engine_loop(struct Generators* gen)
 	continue; /* skip socket processing loop */
       }
 
+      assert(events[i].filter == EVFILT_READ ||
+	     events[i].filter == EVFILT_WRITE);
+
       sock = sockList[events[i].ident];
       if (!sock) /* slots may become empty while processing events */
 	continue;
@@ -285,10 +306,43 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
-      /* XXX Here's where we actually process sockets and figure out what
-       * XXX events have happened, be they errors, eofs, connects, or what
-       * XXX have you.  I'll fill this in sometime later.
-       */
+      errcode = 0; /* check for errors on socket */
+      codesize = sizeof(errcode);
+      if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
+		     &codesize) < 0)
+	errcode = errno; /* work around Solaris implementation */
+
+      if (errcode) { /* an error occurred; generate an event */
+	event_generate(ET_ERROR, sock, errcode);
+	gen_ref_dec(sock); /* careful not to leak reference counts */
+	continue;
+      }
+
+      switch (s_state(sock)) {
+      case SS_CONNECTING:
+	if (events[i].filter == EVFILT_WRITE) /* connection completed */
+	  event_generate(ET_CONNECT, sock, 0);
+	break;
+
+      case SS_LISTENING:
+	if (events[i].filter == EVFILT_READ) /* connect. to be accept. */
+	  event_generate(ET_ACCEPT, sock, 0);
+	break;
+
+      case SS_CONNECTED:
+	if (events[i].filter == EVFILT_READ) /* data on socket */
+	  event_generate(events[i].flags & EV_EOF ? ET_EOF : ET_READ, sock, 0);
+	if (events[i].filter == EVFILT_WRITE) /* socket writable */
+	  event_generate(ET_WRITE, sock, 0);
+	break;
+
+      case SS_DATAGRAM: case SS_CONNECTDG:
+	if (events[i].filter == EVFILT_READ) /* socket readable */
+	  event_generate(ET_READ, sock, 0);
+	if (events[i].filter == EVFILT_WRITE) /* socket writable */
+	  event_generate(ET_WRITE, sock, 0);
+	break;
+      }
 
       gen_ref_dec(sock); /* we're done with it */
     }
