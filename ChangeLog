@@ -1,5 +1,11 @@
 2000-04-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c: new sendcmdto_channel_butserv -- note that old
+	sendto_channel_butserv has a subtle bug; also wrote
+	sendcmdto_common_channels.
+
+	* include/send.h: declare new sendcmdto_* functions
+
 	* ircd/jupe.c: support local deactivations of jupes
 
 	* ircd/gline.c: support local deactivations of glines
@@ -612,7 +618,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.94 2000-04-17 19:01:35 kev Exp $
+# $Id: ChangeLog,v 1.95 2000-04-17 20:41:57 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -75,5 +75,11 @@ extern void vsendcmdto_one(struct Client *one, const char *cmd,
 extern void sendcmdto_serv_butone(struct Client *one, const char *cmd,
 				  const char *tok, struct Client *from,
 				  const char *fmt, ...);
+extern void sendcmdto_common_channels(struct Client *cptr, const char *cmd,
+				      const char *tok, const char *pattern,
+				      ...);
+extern void sendcmdto_channel_butserv(struct Channel *chan, const char *cmd,
+				      const char *tok, struct Client *from,
+				      const char *pattern, ...);
 
 #endif /* INCLUDED_send_h */
