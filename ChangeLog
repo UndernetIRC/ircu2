@@ -1,3 +1,6 @@
+2001-11-22  Perry Lorier  <isomer@coders.net>
+	* ircd/m_squit.c: Bug fix in squit
+
 2001-11-03  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 	* ircd/parse.c, include/handlers.h: Give remote whois the correct
 	handler.

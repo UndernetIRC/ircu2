@@ -85,8 +85,7 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   
   /* If they are squitting me, we reverse it */
   if (IsMe(acptr)) {
-  	cptr = acptr;
-  	acptr = &me;
+    acptr = cptr; /* Bugfix by Prefect */
   }
   	
   timestamp = atoi(parv[2]);
