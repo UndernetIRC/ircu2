@@ -236,8 +236,8 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * by the next hop (short lag) the bounce won't propagate further.
    */
   if (MyConnect(victim)) {
-    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s!%s (Ghost 5 Numeric Collided)",
-                  victim, inpath, path);
+    sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (Ghost 5 Numeric Collided)",
+                  victim, path);
   }
   return do_kill(cptr, sptr, victim, path);
 }
