@@ -102,6 +102,21 @@
 #include <string.h>
 
 /*
+ * Helper function to see if there are any control characters
+ * in a given string
+ */
+static char *
+HasControlChars(char *mstring)
+{
+  char *j;
+  for(j = mstring; *j ; j++) {
+    if(*j <= 32) { return j; }
+  }
+
+  return 0;
+}
+
+/*
  * Helper function to find last 0 in a comma-separated list of
  * channel names.
  */
@@ -193,7 +208,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
-    if (!IsChannelName(name)) { /* bad channel name */
+    if (!IsChannelName(name) || HasControlChars(name)) { /* bad channel name */
       send_reply(sptr, ERR_NOSUCHCHANNEL, name);
       continue;
     }
