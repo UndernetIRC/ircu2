@@ -612,6 +612,9 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   cli_serv(cptr)->ghost = ghost;
   SetServerYXX(cptr, cptr, parv[6]);
 
+  /* Attach any necessary UWorld config items. */
+  attach_confs_byhost(cptr, host, CONF_UWORLD);
+
   if (*parv[7] == '+') {
     for (ch = parv[7] + 1; *ch; ch++)
       switch (*ch) {
@@ -732,6 +735,9 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Use cptr, because we do protocol 9 -> 10 translation
      for numeric nicks ! */
   SetServerYXX(cptr, acptr, parv[6]);
+
+  /* Attach any necessary UWorld config items. */
+  attach_confs_byhost(cptr, host, CONF_UWORLD);
 
   if (*parv[7] == '+') {
     for (ch = parv[7] + 1; *ch; ch++)

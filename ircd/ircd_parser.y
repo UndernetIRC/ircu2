@@ -477,7 +477,7 @@ uworldblock: UWORLD '{' uworlditems '}' ';'
  if (name)
  {
   struct ConfItem *aconf = make_conf(CONF_UWORLD);
-  aconf->name = name;
+  aconf->host = name;
  }
  else
  {

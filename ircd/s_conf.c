@@ -734,6 +734,17 @@ yyerror(const char *msg)
  conf_error = 1;
 }
 
+/** Attach CONF_UWORLD items to a server and everything attached to it. */
+static void
+attach_conf_uworld(struct Client *cptr)
+{
+  struct DLink *lp;
+
+  attach_confs_byhost(cptr, cli_name(cptr), CONF_UWORLD);
+  for (lp = cli_serv(cptr)->down; lp; lp = lp->next)
+    attach_conf_uworld(lp->value.cptr);
+}
+
 /** Reload the configuration file.
  * @param cptr Client that requested rehash (if a signal, &me).
  * @param sig Type of rehash (0 = oper-requested, 1 = signal, 2 =
@@ -818,10 +829,8 @@ int rehash(struct Client *cptr, int sig)
   for (i = 0; i <= HighestFd; i++) {
     if ((acptr = LocalClientArray[i])) {
       assert(!IsMe(acptr));
-      if (IsServer(acptr)) {
+      if (IsServer(acptr))
         det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
-        attach_confs_byname(acptr, cli_name(acptr), CONF_UWORLD);
-      }
       /* Because admin's are getting so uppity about people managing to
        * get past K/G's etc, we'll "fix" the bug by actually explaining
        * whats going on.
@@ -838,6 +847,8 @@ int rehash(struct Client *cptr, int sig)
       }
     }
   }
+
+  attach_conf_uworld(&me);
 
   return ret;
 }
@@ -1049,7 +1060,6 @@ int conf_check_server(struct Client *cptr)
    * attach the Connect block to the client structure for later use.
    */
   attach_conf(cptr, c_conf);
-  attach_confs_byname(cptr, cli_name(cptr), CONF_UWORLD);
 
   if (!irc_in_addr_valid(&c_conf->address.addr))
     memcpy(&c_conf->address.addr, &cli_ip(cptr), sizeof(c_conf->address.addr));

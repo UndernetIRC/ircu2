@@ -259,13 +259,12 @@ int sub1_from_channel(struct Channel* chptr)
    * who then will educate them on the use of Apass/upass.
    */
 
-   if (feature_bool(FEAT_OPLEVELS)) {
-  if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
+  if (!(chptr->mode.mode & MODE_APASS))         /* If no Apass, destroy now. */
+    destruct_channel(chptr);
+  else if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
     schedule_destruct_event_1m(chptr);		/* Get rid of it in approximately 4-5 minutes */
   else
     schedule_destruct_event_48h(chptr);		/* Get rid of it in approximately 48 hours */
-   } else
-       destruct_channel(chptr);
 
   return 0;
 }
@@ -2791,6 +2790,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
   newban->next = 0;
   newban->flags = ((state->dir == MODE_ADD) ? BAN_ADD : BAN_DEL)
       | (*flag_p == 'b' ? 0 : BAN_EXCEPTION);
+  newban->banstr = NULL;
   set_ban_mask(newban, collapse(pretty_mask(t_str)));
   newban->who = cli_name(state->sptr);
   newban->when = TStime();

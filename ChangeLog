@@ -1,3 +1,21 @@
+2004-12-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (sub1_from_channel): Immediately destroy
+	non-Apass channels when oplevels are enabled; otherwise, they can
+	stay opless for a considerable period.
+	(mode_parse_ban): Initialize banstr to NULL so that set_ban_mask()
+	does not try to free() an invalid pointer.
+
+	* ircd/ircd_parser.y (uworldblock): Put UWorld server name into
+	aconf->host, not aconf->name.
+
+	* ircd/m_server.c (mr_server, ms_server): Attach CONF_UWORLD items
+	by host here..
+
+	* ircd/s_conf.c (conf_check_server): .. rather than by name here.
+	(attach_conf_uworld): New function to attach CONF_UWORLD items.
+	(rehash): Use attach_conf_uworld() instead of attaching by name.
+
 2004-12-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_topic.c (do_settopic): Allow +k services to set topics on
