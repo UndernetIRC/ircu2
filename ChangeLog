@@ -1,3 +1,23 @@
+2005-03-07  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Consistently use a constant in AC_DEFINE().
+
+	* configure: Regenerate.
+
+	* doc/example.conf (Port): Add comment about the mask option.
+	(Port): Fix the vhosted Port example.
+
+	* ircd/ircd_parser.y (clientblock): Correctly initialize the IP
+	address and addrbits for a Client block with no IP mask.
+
+	* ircd/match.c (ipmask_parse): Accept * as a zero-bit mask.
+
+	* ircd/s_auth.c (start_auth_query): Count socket allocation
+	failure as a failed auth check, as .11 does.
+
+	* ircd/s_debug.c (debug_serveropts): Add '6' to server options
+	when compiled with IPv6 support.
+
 2005-02-23  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Explain apass_opmode privilege, pointing out

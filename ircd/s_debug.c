@@ -109,6 +109,9 @@ const char* debug_serveropts(void)
 #if defined(USE_POLL) && defined(HAVE_POLL_H)
   AddC('U');
 #endif
+#ifdef  IPV6
+  AddC('6');
+#endif
 
   serveropts[i] = '\0';
 

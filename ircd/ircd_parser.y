@@ -652,7 +652,7 @@ clientblock: CLIENT
 '{' clientitems '}' ';'
 {
   struct irc_in_addr addr;
-  unsigned char addrbits;
+  unsigned char addrbits = 0;
 
   if (ip && !ipmask_parse(ip, &addr, &addrbits)) {
     parse_error("Invalid IP address in block");
@@ -663,7 +663,10 @@ clientblock: CLIENT
     struct ConfItem *aconf = make_conf(CONF_CLIENT);
     aconf->username = username;
     aconf->host = host;
-    memcpy(&aconf->address.addr, &addr, sizeof(aconf->address.addr));
+    if (ip)
+      memcpy(&aconf->address.addr, &addr, sizeof(aconf->address.addr));
+    else
+      memset(&aconf->address.addr, 0, sizeof(aconf->address.addr));
     aconf->addrbits = addrbits;
     aconf->name = ip;
     aconf->conn_class = c_class ? c_class : find_class("default");

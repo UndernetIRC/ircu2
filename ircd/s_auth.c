@@ -422,8 +422,10 @@ static int start_auth_query(struct AuthRequest* auth)
   os_get_sockname(cli_fd(auth->client), &local_addr);
   local_addr.port = 0;
   fd = os_socket(&local_addr, SOCK_STREAM, "auth query");
-  if (fd < 0)
+  if (fd < 0) {
+    ++ServerStats->is_abad;
     return 0;
+  }
   if (IsUserPort(auth->client))
     sendheader(auth->client, REPORT_DO_ID);
   memcpy(&remote_addr.addr, &cli_ip(auth->client), sizeof(remote_addr.addr));

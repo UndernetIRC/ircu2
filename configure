@@ -9300,7 +9300,7 @@ echo "${ECHO_T}$unet_cv_enable_poll" >&6
 if test x"$unet_cv_enable_poll" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_POLL
+#define USE_POLL 1
 _ACEOF
 
     ENGINE_C=engine_poll.c
@@ -9329,7 +9329,7 @@ echo "${ECHO_T}$unet_cv_enable_debug" >&6
 if test x"$unet_cv_enable_debug" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
-#define DEBUGMODE
+#define DEBUGMODE 1
 _ACEOF
 
 fi
@@ -9380,7 +9380,7 @@ echo "${ECHO_T}$ac_cv_use_ipv6" >&6
 if test x"$ac_cv_use_ipv6" != "xno" ; then
 
 cat >>confdefs.h <<\_ACEOF
-#define IPV6
+#define IPV6 1
 _ACEOF
 
 fi
@@ -9405,7 +9405,7 @@ echo "${ECHO_T}$unet_cv_enable_asserts" >&6
 if test x"$unet_cv_enable_asserts" = xno; then
 
 cat >>confdefs.h <<\_ACEOF
-#define NDEBUG
+#define NDEBUG 1
 _ACEOF
 
 fi
@@ -9514,7 +9514,7 @@ echo "${ECHO_T}$unet_cv_enable_inlines" >&6
 if test x"$unet_cv_enable_inlines" = xyes; then
 
 cat >>confdefs.h <<\_ACEOF
-#define FORCEINLINE
+#define FORCEINLINE 1
 _ACEOF
 
 fi
@@ -9544,7 +9544,7 @@ echo "${ECHO_T}$unet_cv_enable_devpoll" >&6
 if test x"$unet_cv_enable_devpoll" != xno; then
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_DEVPOLL
+#define USE_DEVPOLL 1
 _ACEOF
 
     ENGINE_C="engine_devpoll.c $ENGINE_C"
@@ -9575,7 +9575,7 @@ echo "${ECHO_T}$unet_cv_enable_kqueue" >&6
 if test x"$unet_cv_enable_kqueue" != xno; then
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_KQUEUE
+#define USE_KQUEUE 1
 _ACEOF
 
     ENGINE_C="engine_kqueue.c $ENGINE_C"
@@ -9652,7 +9652,7 @@ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 
 cat >>confdefs.h <<\_ACEOF
-#define EPOLL_NEED_BODY
+#define EPOLL_NEED_BODY 1
 _ACEOF
 
 fi
@@ -9660,7 +9660,7 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 
 cat >>confdefs.h <<\_ACEOF
-#define USE_EPOLL
+#define USE_EPOLL 1
 _ACEOF
 
     ENGINE_C="engine_epoll.c $ENGINE_C"

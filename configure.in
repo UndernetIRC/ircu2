@@ -249,7 +249,7 @@ fi
 AC_MSG_RESULT([$unet_cv_enable_poll])
 
 if test x"$unet_cv_enable_poll" = xyes; then
-    AC_DEFINE([USE_POLL], , [Specify whether or not to use poll()])
+    AC_DEFINE([USE_POLL], 1, [Specify whether or not to use poll()])
     ENGINE_C=engine_poll.c
 else
     ENGINE_C=engine_select.c
@@ -266,7 +266,7 @@ AC_ARG_ENABLE([debug],
 AC_MSG_RESULT([$unet_cv_enable_debug])
 
 if test x"$unet_cv_enable_debug" = xyes; then
-    AC_DEFINE([DEBUGMODE], , [Enable debugging code])
+    AC_DEFINE([DEBUGMODE], 1, [Enable debugging code])
 fi
 
 dnl Now look for --enable-leak-detect
@@ -292,7 +292,7 @@ AC_ARG_WITH([ipv6],
     [ac_cv_use_ipv6=$unet_have_sockaddr_in6])
 AC_CACHE_CHECK([whether to use IPv6], [ac_cv_use_ipv6], [ac_cv_use_ipv6=no])
 if test x"$ac_cv_use_ipv6" != "xno" ; then
-    AC_DEFINE([IPV6], , [Enable IPv6 support])
+    AC_DEFINE([IPV6], 1, [Enable IPv6 support])
 fi
 
 dnl And now for --disable-asserts
@@ -305,7 +305,7 @@ AC_ARG_ENABLE([asserts],
 AC_MSG_RESULT([$unet_cv_enable_asserts])
 
 if test x"$unet_cv_enable_asserts" = xno; then
-    AC_DEFINE([NDEBUG], , [Disable assertions])
+    AC_DEFINE([NDEBUG], 1, [Disable assertions])
 fi
 
 dnl Check for --enable-symbols
@@ -370,7 +370,7 @@ AC_ARG_ENABLE([inlines],
 AC_MSG_RESULT([$unet_cv_enable_inlines])
 
 if test x"$unet_cv_enable_inlines" = xyes; then
-    AC_DEFINE([FORCEINLINE], , [Force inlining for a few critical functions])
+    AC_DEFINE([FORCEINLINE], 1, [Force inlining for a few critical functions])
 fi
 
 dnl --disable-devpoll check...
@@ -388,7 +388,7 @@ fi
 AC_MSG_RESULT([$unet_cv_enable_devpoll])
 
 if test x"$unet_cv_enable_devpoll" != xno; then
-    AC_DEFINE([USE_DEVPOLL], , [Define to enable the /dev/poll engine])
+    AC_DEFINE([USE_DEVPOLL], 1, [Define to enable the /dev/poll engine])
     ENGINE_C="engine_devpoll.c $ENGINE_C"
 fi
 
@@ -407,7 +407,7 @@ fi
 AC_MSG_RESULT([$unet_cv_enable_kqueue])
 
 if test x"$unet_cv_enable_kqueue" != xno; then
-    AC_DEFINE([USE_KQUEUE], , [Define to enable the kqueue engine])
+    AC_DEFINE([USE_KQUEUE], 1, [Define to enable the kqueue engine])
     ENGINE_C="engine_kqueue.c $ENGINE_C"
 fi
 
@@ -432,8 +432,8 @@ if test x"$unet_cv_enable_epoll" != xno; then
     AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <sys/epoll.h>], [epoll_create(10);])],
         [AC_MSG_RESULT([yes])],
         [AC_MSG_RESULT([no])
-         AC_DEFINE([EPOLL_NEED_BODY],,[Define to implement epoll system calls])])
-    AC_DEFINE([USE_EPOLL], , [Define to enable the epoll engine])
+         AC_DEFINE([EPOLL_NEED_BODY], 1, [Define to implement epoll system calls])])
+    AC_DEFINE([USE_EPOLL], 1, [Define to enable the epoll engine])
     ENGINE_C="engine_epoll.c $ENGINE_C"
 fi
 

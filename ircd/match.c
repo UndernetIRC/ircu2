@@ -905,6 +905,8 @@ int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_p
     mask->in6_16[5] = 0xffff;
     memcpy(&mask->in6_16[6], &ipv4.s_addr, sizeof(ipv4.s_addr));
     bits += 96;
+  } else if (in[0] == '*' && in[1] == '\0') {
+    /* accept as a 0-bit mask */
   } else {
     if (!(p = strchr(in, '/')))
       bits = 128;
