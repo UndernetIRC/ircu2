@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.1 2000-03-19 05:24:26 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.1.2.1 2000-03-19 07:51:41 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Remove add_local_domain entirely, unused --Bleep
 * Merge u2_10_10_beta06 create branch u2_10_10_beta07 --Bleep
 * Remove size_t from socket calls, audit usage of size_t
   values. --Bleep
