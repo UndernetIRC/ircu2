@@ -1,3 +1,12 @@
+2005-02-21  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h (ShowChannel): Remove PRIV_LIST_CHAN check
+	from here, so /whois does not show secret global channels.
+
+	* ircd/m_list.c (param_parse): Require PRIV_LIST_CHAN to use
+	"/list s".
+	(m_list): Allow opers with PRIV_LIST_CHAN to see secret channels.
+
 2005-02-21  Perry Lorier <isomer@undernet.org>
 
 	* ircd/s_stats.c: Hide the hub IP's.  They're kinda important.

@@ -238,7 +238,7 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 
     case 'S':
     case 's':
-      if (!IsAnOper(sptr))
+      if (!IsAnOper(sptr) || !HasPriv(sptr, PRIV_LIST_CHAN))
         return show_usage(sptr);
 
       args->flags |= LISTARG_SHOWSECRET;
@@ -340,7 +340,10 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   for (; (name = ircd_strtok(&p, parv[1], ",")); parv[1] = 0)
   {
     chptr = FindChannel(name);
-    if (chptr && ShowChannel(sptr, chptr) && cli_user(sptr))
+    if (!chptr)
+        continue;
+    if (ShowChannel(sptr, chptr)
+        || (IsAnOper(sptr) && HasPriv(sptr, PRIV_LIST_CHAN)))
       send_reply(sptr, RPL_LIST, chptr->chname,
 		 chptr->users - number_of_zombies(chptr), chptr->topic);
   }
