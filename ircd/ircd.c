@@ -573,11 +573,6 @@ int main(int argc, char **argv) {
   if (!check_file_access(SPATH, 'S', X_OK) ||
       !check_file_access(configfile, 'C', R_OK))
     return 4;
-      
-#ifdef DEBUGMODE
-  if (!check_file_access(LPATH, 'L', W_OK))
-    return 5;
-#endif
 
   debug_init(thisServer.bootopt & BOOT_TTY);
   daemon_init(thisServer.bootopt & BOOT_TTY);
