@@ -1,3 +1,7 @@
+2002-02-19 John Buttery <john@io.com>
+
+	* ircd/ircd.c: Updated "No such file" error message.
+	
 2002-02-18 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Changed m_kill() to do_kill() because its not
