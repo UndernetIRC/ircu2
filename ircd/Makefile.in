@@ -53,11 +53,15 @@ RPATH=
 CC=
 CFLAGS=
 CPPFLAGS=
+DEBUGFLAGS=
 LDFLAGS=
 IRCDLIBS=
 
 #### End of system configuration section. ####
 PURIFY =
+
+CFLAGS += $(DEBUGFLAGS)
+LDFLAGS += $(DEBUGFLAGS)
 
 SRC = \
 	IPcheck.c \

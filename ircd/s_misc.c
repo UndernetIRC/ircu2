@@ -389,23 +389,6 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 
   if (MyConnect(victim)) {
     victim->flags |= FLAGS_CLOSING;
-#ifdef ALLOW_SNO_CONNEXIT
-#ifdef SNO_CONNEXIT_IP
-    if (IsUser(victim)) {
-      sendto_opmask_butone(0, SNO_CONNEXIT,
-			   "Client exiting: %s (%s@%s) [%s] [%s]",
-			   victim->name, victim->user->username,
-			   victim->user->host, comment,
-			   ircd_ntoa((const char *)&victim->ip));
-    }
-#else /* SNO_CONNEXIT_IP */
-    if (IsUser(victim)) {
-      sendto_opmask_butone(0, SNO_CONNEXIT, "Client exiting: %s (%s@%s) [%s]",
-			   victim->name, victim->user->username,
-			   victim->user->host, comment);
-    }
-#endif /* SNO_CONNEXIT_IP */
-#endif /* ALLOW_SNO_CONNEXIT */
     update_load();
 #ifdef FNAME_USERLOG
     on_for = CurrentTime - victim->firsttime;

@@ -79,11 +79,6 @@
  *--------------------------------------------------------------------------*/
 extern void init_counters(void);
 
-#ifdef PROFIL
-extern etext(void);
-#endif
-
-
 /*----------------------------------------------------------------------------
  * Constants / Enums
  *--------------------------------------------------------------------------*/
@@ -608,12 +603,6 @@ static int set_userid_if_needed(void) {
  *        long and ugly control paths...  -smd
  *--------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
-#ifdef PROFIL
-  monstartup(0, etext);
-  moncontrol(1);
-  signal(SIGUSR1, s_monitor);
-#endif
-
   CurrentTime = time(NULL);
 
   thisServer.argc = argc;
@@ -719,4 +708,5 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+
 

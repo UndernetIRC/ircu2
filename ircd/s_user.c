@@ -627,16 +627,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
     nextping = CurrentTime;
     if (sptr->snomask & SNO_NOISY)
       set_snomask(sptr, sptr->snomask & SNO_NOISY, SNO_ADD);
-#ifdef ALLOW_SNO_CONNEXIT
-#ifdef SNO_CONNEXIT_IP
-    sendto_opmask_butone(0, SNO_CONNEXIT, "Client connecting: %s (%s@%s) "
-			 "[%s] {%d}", nick, user->username, user->host,
-			 cptr->sock_ip, get_client_class(sptr));
-#else /* SNO_CONNEXIT_IP */
-    sendto_opmask_butone(0, SNO_CONEXIT, "Client connecting: %s (%s@%s)",
-			 nick, user->username, user->host);
-#endif /* SNO_CONNEXIT_IP */
-#endif /* ALLOW_SNO_CONNEXIT */
     IPcheck_connect_succeeded(sptr);
   }
   else

@@ -36,6 +36,4 @@ Medium Priority:
 * Document undernet protocol as it is used in
   doc/rfc1459.unet
 * Finish tokenization.
-* Allow for /WHO by IP address. (for finding who's port scanning you
-  for example).  Suggested by Nuke
 
