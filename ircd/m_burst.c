@@ -167,6 +167,11 @@
  * the TS in the BURST message, then we cancel all existing modes.
  * If its is smaller then the received BURST message is ignored.
  * If it's equal, then the received modes are just added.
+ *
+ * BURST is also accepted outside a netburst now because it
+ * is sent upstream as reaction to a DESTRUCT message.  For
+ * these BURST messages it is possible that the listed channel
+ * members are already joined.
  */
 int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
@@ -182,10 +187,6 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 3)
     return protocol_violation(sptr,"Too few parameters for BURST");
 
-  if (!IsBurst(sptr)) /* don't allow BURST outside of burst */
-    return exit_client_msg(cptr, cptr, &me, "HACK: BURST message outside "
-			   "net.burst from %s", cli_name(sptr));
-
   if (!(chptr = get_channel(sptr, parv[1], CGT_CREATE)))
     return 0; /* can't create the channel? */
 
@@ -193,7 +194,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   /* turn off burst joined flag */
   for (member = chptr->members; member; member = member->next_member)
-    member->status &= ~CHFL_BURST_JOINED;
+    member->status &= ~(CHFL_BURST_JOINED|CHFL_BURST_ALREADY_OPPED|CHFL_BURST_ALREADY_VOICED);
 
   if (!chptr->creationtime) /* mark channel as created during BURST */
     chptr->mode.mode |= MODE_BURSTADDED;
@@ -304,6 +305,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	int last_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
 	int oplevel = -1;	/* Mark first field with digits: means the same as 'o' (but with level). */
 	int last_oplevel = 0;
+	struct Membership* member;
 
 	for (nick = ircd_strtok(&p, nicklist, ","); nick;
 	     nick = ircd_strtok(&p, 0, ",")) {
@@ -381,14 +383,29 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
             last_oplevel = oplevel;
 	  }
 
-	  add_user_to_channel(chptr, acptr, current_mode, oplevel);
-	  sendcmdto_channel_butserv_butone(acptr, CMD_JOIN, chptr, NULL, "%H", chptr);
+	  if (IsBurst(sptr) || !(member = find_member_link(chptr, acptr)))
+	  {
+	    add_user_to_channel(chptr, acptr, current_mode, oplevel);
+	    sendcmdto_channel_butserv_butone(acptr, CMD_JOIN, chptr, NULL, "%H", chptr);
+	  }
+	  else
+	  {
+	    /* The member was already joined (either by CREATE or JOIN).
+	       Remember the current mode. */
+	    if (member->status & CHFL_CHANOP)
+	      member->status |= CHFL_BURST_ALREADY_OPPED;
+	    if (member->status & CHFL_VOICE)
+	      member->status |= CHFL_BURST_ALREADY_VOICED;
+	    /* Synchronize with the burst. */
+	    member->status |= CHFL_BURST_JOINED | (current_mode & (CHFL_CHANOP|CHFL_VOICE));
+	    member->oplevel = oplevel;
+	  }
 	}
       }
       param++;
       break;
-    } /* switch (*parv[param]) { */
-  } /* while (param < parc) { */
+    } /* switch (*parv[param]) */
+  } /* while (param < parc) */
 
   nickstr[nickpos] = '\0';
   banstr[banpos] = '\0';
@@ -409,9 +426,9 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     /* first deal with channel members */
     for (member = chptr->members; member; member = member->next_member) {
       if (member->status & CHFL_BURST_JOINED) { /* joined during burst */
-	if (member->status & CHFL_CHANOP)
+	if ((member->status & CHFL_CHANOP) && !(member->status & CHFL_BURST_ALREADY_OPPED))
 	  modebuf_mode_client(mbuf, MODE_ADD | CHFL_CHANOP, member->user);
-	if (member->status & CHFL_VOICE)
+	if ((member->status & CHFL_VOICE) && !(member->status & CHFL_BURST_ALREADY_VOICED))
 	  modebuf_mode_client(mbuf, MODE_ADD | CHFL_VOICE, member->user);
       } else if (parse_flags & MODE_PARSE_WIPEOUT) { /* wipeout old ops */
 	if (member->status & CHFL_CHANOP)

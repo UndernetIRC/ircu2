@@ -1,5 +1,18 @@
-2002-02-27 Reed Loden <reed@redmagnet.com>
+2002-03-08  Carlo Wood  <run@alinoe.com>
+	* include/channel.h: Added CHFL_BURST_ALREADY_OPPED
+	and CHFL_BURST_ALREADY_VOICED.
 
+	* ircd/m_burst.c: Allow BURST outside net-burst
+	and take into account that users are already joined
+	to the channel in that case.
+
+	* ircd/m_destruct.c: Implementation of DESTRUCT
+	handling code.
+
+	* ircd/m_join.c: Set the channel creationtime to
+	the timestamp of a message when that timestamp is
+	smaller.
+2002-02-27 Reed Loden <reed@redmagnet.com>
        * tools/crypter: Updated some variables, added another notice,
        added CVS Id tag, and updated Perl location.
 

@@ -332,6 +332,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
     else { /* We have a valid channel? */
       if ((member = find_member_link(chptr, sptr))) {
+	/* It is impossible to get here --Run */
 	if (!IsZombie(member)) /* already on channel */
 	  continue;
 
@@ -340,6 +341,10 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	chptr = FindChannel(name);
       } else
 	flags = CHFL_DEOPPED | ((cli_flags(sptr) & FLAGS_TS8) ? CHFL_SERVOPOK : 0);
+      /* Always copy the timestamp when it is older, that is the only way to
+         ensure network-wide synchronization of creation times. */
+      if (creation && creation < chptr->creationtime)
+	chptr->creationtime = creation;
     } 
 
     joinbuf_join(&join, chptr, flags);

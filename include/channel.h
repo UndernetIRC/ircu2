@@ -67,6 +67,8 @@ struct Client;
 #define CHFL_BANVALID           0x0800  /* CHFL_BANNED bit is valid */
 #define CHFL_BANNED             0x1000  /* Channel member is banned */
 #define CHFL_SILENCE_IPMASK     0x2000  /* silence mask is an IP-number mask */
+#define CHFL_BURST_ALREADY_OPPED	0x04000  /* In oob BURST, but was already joined and opped */
+#define CHFL_BURST_ALREADY_VOICED	0x08000  /* In oob BURST, but was already joined and voiced */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)

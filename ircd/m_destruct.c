@@ -1,7 +1,6 @@
 /*
  * IRC - Internet Relay Chat, ircd/m_destruct.c
- * Copyright (C) 1990 Jarkko Oikarinen and
- *                    University of Oulu, Computing Center
+ * Copyright (C) 1997 Carlo Wood.
  *
  * See file AUTHORS in IRC package for additional names of
  * the programmers.
@@ -23,62 +22,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "client.h"
@@ -90,6 +33,8 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "channel.h"
+#include "destruct_event.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -97,17 +42,54 @@
 /*
  * ms_destruct - server message handler
  *
+ * Added 1997 by Run, actually coded and used since 2002.
+ *
  * parv[0] = sender prefix
  * parv[1] = channel channelname
  * parv[2] = channel time stamp
  *
- * This function does nothing, it does passes DESTRUCT to the other servers.
- * In the future we will start to use this message.
+ * This message is intended to destruct _empty_ channels.
  *
+ * The reason it is needed is to somehow add the notion
+ * "I destructed information" to the networks state
+ * (also messages that are still propagating are part
+ *  of the global state).  Without it the network could
+ * easily be desynced as a result of destructing a channel
+ * on only a part of the network while keeping the modes
+ * and creation time on others.
+ * There are three possible ways a DESTRUCT message is
+ * handled by remote servers:
+ * 1) The channel is empty and has the same timestamp
+ *    as on the message.  Conclusion: The channel has
+ *    not been destructed and recreated in the meantime,
+ *    this means that the normal synchronization rules
+ *    account and we react as if we decided to destruct
+ *    the channel ourselfs: we destruct the channel and
+ *    send a DESTRUCT in all directions.
+ * 2) The channel is not empty.  In case we cannot remove
+ *    it and do not propagate the DESTRUCT message. Instead
+ *    a resynchronizing BURST message is sent upstream
+ *    in order to restore the channel on that side (which
+ *    will have a TS younger than the current channel if
+ *    it was recreated and will thus be fully synced, just
+ *    like in the case of a real net-junction).
+ * 3) The channel is empty, but the creation time of the
+ *    channel is older than the timestamp on the message.
+ *    This can happen when there is more than one minute
+ *    lag and remotely a channel was created slightly
+ *    after we created the channel, being abandoned again
+ *    and staying empty for a minute without that our
+ *    CREATE reached that remote server.  The remote server
+ *    then could have generated the DESTRUCT.  In the meantime
+ *    our user also left the channel.  We can ignore the
+ *    destruct because it comes from an 'area' that will
+ *    be overriden by our own CREATE: the state that generated
+ *    this DESTRUCT is 'history'.
  */
 int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   time_t chanTS;                /* Creation time of the channel */
+  struct Channel* chptr;
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -116,14 +98,30 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   if (parc < 3 || EmptyString(parv[2]))
     return need_more_params(sptr,"DESTRUCT");
 
-  /* Don't pass on DESTRUCT messages for channels that exist */
-  if (FindChannel(parv[1]))
-    return 0;
-
   chanTS = atoi(parv[2]);
 
-  /* Pass on DESTRUCT message */
-  sendcmdto_serv_butone(sptr, CMD_DESTRUCT, cptr, "%s %Tu", parv[1], chanTS);
+  /* Ignore DESTRUCT messages for non-existing channels. */
+  if (!(chptr = FindChannel(parv[1])))
+    return 0;
+
+  /* Ignore DESTRUCT when the channel is older than the
+     timestamp on the message. */
+  if (chanTS > chptr->creationtime)
+    return 0;
+
+  /* Don't pass on DESTRUCT messages for channels that
+     are not empty, but instead send a BURST msg upstream. */
+  if (chptr->users > 0) {
+    send_channel_modes(cptr, chptr);
+    return 0;
+  }
+
+  /* Pass on DESTRUCT message and ALSO bounce it back! */
+  sendcmdto_serv_butone(sptr, CMD_DESTRUCT, 0, "%s %Tu", parv[1], chanTS);
+
+  /* Remove the empty channel. */
+  remove_destruct_event(chptr);
+  destruct_channel(chptr);
 
   return 0;
 }
