@@ -30,6 +30,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
 #include "match.h"
@@ -235,7 +236,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
      * that the client can show the "**signoff" message).
      * (Note: The notice is to the local clients *only*)
      */
-    sendto_common_channels(bcptr, ":%s QUIT :%s", bcptr->name, comment);
+    sendcmdto_common_channels(bcptr, CMD_QUIT, ":%s", comment);
 
     remove_user_from_all_channels(bcptr);
 
@@ -269,7 +270,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   }
   else if (IsMe(bcptr))
   {
-    sendto_ops("ERROR: tried to exit me! : %s", comment);
+    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR: tried to exit me! : %s",
+			 comment);
     return;                     /* ...must *never* exit self! */
   }
   else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
@@ -390,19 +392,17 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
 #ifdef ALLOW_SNO_CONNEXIT
 #ifdef SNO_CONNEXIT_IP
     if (IsUser(victim)) {
-      sprintf_irc(sendbuf,
-          ":%s NOTICE * :*** Notice -- Client exiting: %s (%s@%s) [%s] [%s]",
-          me.name, victim->name, victim->user->username, victim->user->host,
-          comment, ircd_ntoa((const char*) &victim->ip));
-      sendbufto_op_mask(SNO_CONNEXIT);
+      sendto_opmask_butone(0, SNO_CONNEXIT,
+			   "Client exiting: %s (%s@%s) [%s] [%s]",
+			   victim->name, victim->user->username,
+			   victim->user->host, comment,
+			   ircd_ntoa((const char *)&victim->ip));
     }
 #else /* SNO_CONNEXIT_IP */
     if (IsUser(victim)) {
-      sprintf_irc(sendbuf,
-          ":%s NOTICE * :*** Notice -- Client exiting: %s (%s@%s) [%s]",
-          me.name, victim->name, victim->user->username, victim->user->host,
-          comment);
-      sendbufto_op_mask(SNO_CONNEXIT);
+      sendto_opmask_butone(0, SNO_CONNEXIT, "Client exiting: %s (%s@%s) [%s]",
+			   victim->name, victim->user->username,
+			   victim->user->host, comment);
     }
 #endif /* SNO_CONNEXIT_IP */
 #endif /* ALLOW_SNO_CONNEXIT */
@@ -428,11 +428,11 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
         && IsClient(victim))    /* Not a Ping struct or Log file */
     {
       if (IsServer(victim) || IsHandshake(victim))
-        sendto_one(victim, ":%s " TOK_SQUIT " %s 0 :%s", killer->name, me.name, comment);
+	sendcmdto_one(killer, CMD_SQUIT, victim, "%C 0 :%s", &me, comment);
       else if (!IsConnecting(victim)) {
         if (!IsDead(victim))
-          sendto_one(victim, "ERROR :Closing Link: %s by %s (%s)",
-                     victim->name, killer->name, comment);
+	  sendrawto_one(victim, MSG_ERROR " :Closing Link: %s by %s (%s)",
+			victim->name, killer->name, comment);
       }
       if ((IsServer(victim) || IsHandshake(victim) || IsConnecting(victim)) &&
           (killer == &me || (IsServer(killer) &&
@@ -446,14 +446,9 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
         if (victim->serv->user && *victim->serv->by &&
             (acptr = findNUser(victim->serv->by))) {
           if (acptr->user == victim->serv->user) {
-            if (MyUser(acptr) || Protocol(acptr->from) < 10)
-              sendto_one(acptr,
-                         ":%s NOTICE %s :Link with %s cancelled: %s",
-                         me.name, acptr->name, victim->name, comment);
-            else
-              sendto_one(acptr,
-                         "%s NOTICE %s%s :Link with %s cancelled: %s",
-                         NumServ(&me), NumNick(acptr), victim->name, comment);
+	    sendcmdto_one(&me, CMD_NOTICE, acptr,
+			  "%C :Link with %s cancelled: %s", acptr,
+			  victim->name, comment);
           }
           else {
             /*
@@ -464,8 +459,8 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
           }
         }
         if (killer == &me)
-          sendto_lops_butone(acptr, "Link with %s cancelled: %s",
-                             victim->name, comment);
+	  sendto_opmask_butone(acptr, SNO_OLDSNO, "Link with %s cancelled: %s",
+			       victim->name, comment);
       }
     }
     /*
@@ -480,14 +475,18 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
     strcat(comment1, " ");
     strcat(comment1, victim->name);
     if (IsUser(killer))
-      sendto_lops_butone(killer, "%s SQUIT by %s [%s]:",
-                         (killer->user->server == victim ||
-                         killer->user->server == victim->serv->up) ? "Local" : "Remote",
-                         get_client_name(killer, HIDE_IP), killer->user->server->name);
+      sendto_opmask_butone(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
+			   (killer->user->server == victim ||
+			    killer->user->server == victim->serv->up) ?
+			   "Local" : "Remote",
+			   get_client_name(killer, HIDE_IP),
+			   killer->user->server->name);
     else if (killer != &me && victim->serv->up != killer)
-      sendto_ops("Received SQUIT %s from %s :", victim->name,
-                 IsServer(killer) ? killer->name : get_client_name(killer, HIDE_IP));
-    sendto_op_mask(SNO_NETWORK, "Net break: %s (%s)", comment1, comment);
+      sendto_opmask_butone(0, SNO_OLDSNO, "Received SQUIT %s from %s :",
+			   victim->name, IsServer(killer) ? killer->name :
+			   get_client_name(killer, HIDE_IP));
+    sendto_opmask_butone(0, SNO_NETWORK, "Net break: %s (%s)", comment1,
+			 comment);
   }
 
   /*
@@ -497,10 +496,10 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   for (dlp = me.serv->down; dlp; dlp = dlp->next) {
     if (dlp->value.cptr != killer->from && dlp->value.cptr != victim) {
       if (IsServer(victim))
-        sendto_one(dlp->value.cptr, ":%s " TOK_SQUIT " %s " TIME_T_FMT " :%s",
-                   killer->name, victim->name, victim->serv->timestamp, comment);
+	sendcmdto_one(killer, CMD_SQUIT, dlp->value.cptr, "%C %Tu :%s",
+		      victim, victim->serv->timestamp, comment);
       else if (IsUser(victim) && 0 == (victim->flags & FLAGS_KILLED))
-        sendto_one(dlp->value.cptr, "%s%s " TOK_QUIT " :%s", NumNick(victim), comment);
+	sendcmdto_one(victim, CMD_QUIT, dlp->value.cptr, ":%s", comment);
     }
   }
   /* Then remove the client structures */
@@ -599,29 +598,27 @@ void tstats(struct Client *cptr, char *name)
       sp->is_ni++;
   }
 
-  sendto_one(cptr, ":%s %d %s :accepts %u refused %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_ac, sp->is_ref);
-  sendto_one(cptr, ":%s %d %s :unknown commands %u prefixes %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_unco, sp->is_unpf);
-  sendto_one(cptr, ":%s %d %s :nick collisions %u unknown closes %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_kill, sp->is_ni);
-  sendto_one(cptr, ":%s %d %s :wrong direction %u empty %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_wrdi, sp->is_empt);
-  sendto_one(cptr, ":%s %d %s :numerics seen %u mode fakes %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_num, sp->is_fake);
-  sendto_one(cptr, ":%s %d %s :auth successes %u fails %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_asuc, sp->is_abad);
-  sendto_one(cptr, ":%s %d %s :local connections %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_loc);
-  sendto_one(cptr, ":%s %d %s :Client Server", me.name, RPL_STATSDEBUG, name);
-  sendto_one(cptr, ":%s %d %s :connected %u %u",
-      me.name, RPL_STATSDEBUG, name, sp->is_cl, sp->is_sv);
-  sendto_one(cptr, ":%s %d %s :bytes sent %u.%uK %u.%uK",
-      me.name, RPL_STATSDEBUG, name,
-      sp->is_cks, sp->is_cbs, sp->is_sks, sp->is_sbs);
-  sendto_one(cptr, ":%s %d %s :bytes recv %u.%uK %u.%uK",
-      me.name, RPL_STATSDEBUG, name,
-      sp->is_ckr, sp->is_cbr, sp->is_skr, sp->is_sbr);
-  sendto_one(cptr, ":%s %d %s :time connected " TIME_T_FMT " " TIME_T_FMT,
-      me.name, RPL_STATSDEBUG, name, sp->is_cti, sp->is_sti);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
+	     sp->is_ac, sp->is_ref);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":unknown commands %u prefixes %u", sp->is_unco, sp->is_unpf);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":nick collisions %u unknown closes %u", sp->is_kill, sp->is_ni);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":wrong direction %u empty %u", sp->is_wrdi, sp->is_empt);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":numerics seen %u mode fakes %u", sp->is_num, sp->is_fake);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":auth successes %u fails %u", sp->is_asuc, sp->is_abad);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":local connections %u",
+	     sp->is_loc);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Client server");
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u",
+	     sp->is_cl, sp->is_sv);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %u.%uK %u.%uK",
+	     sp->is_cks, sp->is_cbs, sp->is_sks, sp->is_sbs);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %u.%uK %u.%uK",
+	     sp->is_ckr, sp->is_cbr, sp->is_skr, sp->is_sbr);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":time connected %Tu %Tu",
+	     sp->is_cti, sp->is_sti);
 }

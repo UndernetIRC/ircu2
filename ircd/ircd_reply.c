@@ -101,18 +101,21 @@ int send_reply(struct Client *to, int reply, ...)
   assert(0 != to);
   assert(0 != reply);
 
-  num = get_error_numeric(reply); /* get information about reply... */
+  num = get_error_numeric(reply & ~RPL_EXPLICIT); /* get reply... */
 
-  vd.vd_format = num->format; /* select format... */
+  va_start(vd.vd_args, reply);
+
+  if (reply & RPL_EXPLICIT) /* get right pattern */
+    vd.vd_format = (const char *) va_arg(vd.vd_args, char *);
+  else
+    vd.vd_format = num->format;
+
+  assert(0 != vd.vd_format);
 
   /* build buffer */
-  va_start(vd.vd_args, reply);
-  if (MyUser(to))
-    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, ":%s %s %C %v", me.name,
-		  num->str, to, &vd);
-  else
-    ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%C %s %C %v", &me, num->str,
-		  to, &vd);
+  ircd_snprintf(to, sndbuf, sizeof(sndbuf) - 2, "%:#C %s %C %v", &me, num->str,
+		to, &vd);
+
   va_end(vd.vd_args);
 
   /* send it to the user */

@@ -1,3 +1,47 @@
+2000-04-26  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_serv.c (exit_new_server): rewrite exit_new_server to be a
+	little less brain-dead
+
+	* ircd/s_misc.c: use sendcmdto_one, sendrawto_one, and send_reply
+
+	* ircd/s_debug.c: use send_reply with RPL_EXPLICIT for
+	RPL_STATSDEBUG
+
+	* ircd/res.c (cres_mem): use send_reply with RPL_EXPLICIT for
+	RPL_STATSDEBUG
+
+	* ircd/list.c (send_listinfo): use send_reply with RPL_EXPLICIT
+	for RPL_STATSDEBUG
+
+	* ircd/m_pong.c: use RPL_EXPLICIT for ERR_BADPING
+
+	* ircd/ircd.c: use RPL_EXPLICIT for ERR_BADPING
+
+	* ircd/s_user.c (register_user): use RPL_EXPLICIT for
+	ERR_INVALIDUSERNAME
+
+	* ircd/ircd_reply.c (send_reply): support RPL_EXPLICIT
+
+	* include/ircd_reply.h (RPL_EXPLICIT): somewhat of a hack to mark
+	a numeric as needing to use an explicit pattern, which will be the
+	first argument in the variable argument list
+
+	* ircd/s_user.c: use sendrawto_one instead of sendto_one to send
+	non-prefixed nospoof PING
+
+	* ircd/s_bsd.c: use sendrawto_one instead of sendto_one to send
+	non-prefixed SERVER login
+
+	* ircd/ircd.c (check_pings): fix last sendto_one calls (except for
+	a numeric usage further up)
+
+	* include/send.h: declare sendrawto_one
+
+	* ircd/send.c (sendrawto_one): new function to use ONLY for
+	non-prefixed commands, like PING to client, or PASS/SERVER on
+	server registration
+
 2000-04-25  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_snprintf.c (doprintf): implement %H for possible
@@ -728,7 +772,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.102 2000-04-25 20:33:50 kev Exp $
+# $Id: ChangeLog,v 1.103 2000-04-26 20:14:56 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #

@@ -25,6 +25,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "listener.h"
 #include "match.h"
@@ -310,47 +311,39 @@ void free_class(struct ConfClass * tmp)
 }
 
 #ifdef  DEBUGMODE
-/* XXX uses sendto_one to send a RPL_STATSDEBUG -- no string for rpl */
 void send_listinfo(struct Client *cptr, char *name)
 {
   int inuse = 0, mem = 0, tmp = 0;
 
-  sendto_one(cptr, ":%s %d %s :Local: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, inuse += cloc.inuse,
-      tmp = cloc.inuse * CLIENT_LOCAL_SIZE);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Local: inuse: %d(%d)",
+	     inuse += cloc.inuse, tmp = cloc.inuse * CLIENT_LOCAL_SIZE);
   mem += tmp;
-  sendto_one(cptr, ":%s %d %s :Remote: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name,
-      crem.inuse, tmp = crem.inuse * CLIENT_REMOTE_SIZE);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Remote: inuse: %d(%d)",
+	     crem.inuse, tmp = crem.inuse * CLIENT_REMOTE_SIZE);
   mem += tmp;
   inuse += crem.inuse;
-  sendto_one(cptr, ":%s %d %s :Users: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, users.inuse,
-      tmp = users.inuse * sizeof(struct User));
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Users: inuse: %d(%d)",
+	     users.inuse, tmp = users.inuse * sizeof(struct User));
   mem += tmp;
-  inuse += users.inuse,
-      sendto_one(cptr, ":%s %d %s :Servs: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, servs.inuse,
-      tmp = servs.inuse * sizeof(struct Server));
+  inuse += users.inuse;
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Servs: inuse: %d(%d)",
+	     servs.inuse, tmp = servs.inuse * sizeof(struct Server));
   mem += tmp;
-  inuse += servs.inuse,
-      sendto_one(cptr, ":%s %d %s :Links: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, links.inuse,
-      tmp = links.inuse * sizeof(struct SLink));
+  inuse += servs.inuse;
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Links: inuse: %d(%d)",
+	     links.inuse, tmp = links.inuse * sizeof(struct SLink));
   mem += tmp;
-  inuse += links.inuse,
-      sendto_one(cptr, ":%s %d %s :Classes: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, classs.inuse,
-      tmp = classs.inuse * sizeof(struct ConfClass));
+  inuse += links.inuse;
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Classes: inuse: %d(%d)",
+	     classs.inuse, tmp = classs.inuse * sizeof(struct ConfClass));
   mem += tmp;
-  inuse += classs.inuse,
-      sendto_one(cptr, ":%s %d %s :Confs: inuse: %d(%d)",
-      me.name, RPL_STATSDEBUG, name, GlobalConfCount,
-      tmp = GlobalConfCount * sizeof(struct ConfItem));
+  inuse += classs.inuse;
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Confs: inuse: %d(%d)",
+	     GlobalConfCount, tmp = GlobalConfCount * sizeof(struct ConfItem));
   mem += tmp;
-  inuse += GlobalConfCount,
-      sendto_one(cptr, ":%s %d %s :Totals: inuse %d %d",
-      me.name, RPL_STATSDEBUG, name, inuse, mem);
+  inuse += GlobalConfCount;
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Totals: inuse %d %d",
+	     inuse, mem);
 }
 
 #endif

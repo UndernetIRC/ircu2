@@ -27,6 +27,7 @@
 #include "hash.h"
 #include "ircd_alloc.h"
 #include "ircd_osdep.h"
+#include "ircd_reply.h"
 #include "ircd.h"
 #include "list.h"
 #include "numeric.h"
@@ -234,7 +235,7 @@ void debug(int level, const char *form, ...)
 static void debug_enumerator(struct Client* cptr, const char* msg)
 {
   assert(0 != cptr);
-  sendto_one(cptr, ":%s %d %s :%s", me.name, RPL_STATSDEBUG, cptr->name, msg);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":%s", msg);
 }
 
 /*
@@ -248,8 +249,8 @@ void send_usage(struct Client *cptr, char *nick)
 {
   os_get_rusage(cptr, CurrentTime - me.since, debug_enumerator);
 
-  sendto_one(cptr, ":%s %d %s :DBUF alloc %d used %d",
-      me.name, RPL_STATSDEBUG, nick, DBufAllocCount, DBufUsedCount);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %d used %d",
+	     DBufAllocCount, DBufUsedCount);
 }
 #endif /* DEBUGMODE */
 
@@ -354,49 +355,46 @@ void count_memory(struct Client *cptr, char *nick)
   for (cltmp = classes; cltmp; cltmp = cltmp->next)
     cl++;
 
-  sendto_one(cptr, ":%s %d %s :Client Local %d(" SIZE_T_FMT
-      ") Remote %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, lc, lcm, rc, rcm);
-  sendto_one(cptr, ":%s %d %s :Users %d(" SIZE_T_FMT
-      ") Invites %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, us, us * sizeof(struct User), usi,
-      usi * sizeof(struct SLink));
-  sendto_one(cptr, 
-             ":%s %d %s :User channels %d(" SIZE_T_FMT ") Aways %d(" SIZE_T_FMT ")",
-             me.name, RPL_STATSDEBUG, nick, memberships,
-             memberships * sizeof(struct Membership), aw, awm);
-  sendto_one(cptr, ":%s %d %s :Attached confs %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, lcc, lcc * sizeof(struct SLink));
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Client Local %d(%zu) Remote %d(%zu)", lc, lcm, rc, rcm);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Users %d(%zu) Invites %d(%zu)", us, us * sizeof(struct User),
+	     usi, usi * sizeof(struct SLink));
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
+	     memberships * sizeof(struct Membership), aw, awm);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Attached confs %d(%zu)",
+	     lcc, lcc * sizeof(struct SLink));
 
   totcl = lcm + rcm + us * sizeof(struct User) + memberships * sizeof(struct Membership) + awm;
   totcl += lcc * sizeof(struct SLink) + usi * sizeof(struct SLink);
 
-  sendto_one(cptr, ":%s %d %s :Conflines %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, co, com);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu)", co,
+	     com);
 
-  sendto_one(cptr, ":%s %d %s :Classes %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, cl, cl * sizeof(struct ConfClass));
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Classes %d(%zu)", cl,
+	     cl * sizeof(struct ConfClass));
 
-  sendto_one(cptr, ":%s %d %s :Channels %d(" SIZE_T_FMT
-      ") Bans %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, ch, chm, chb, chbm);
-  sendto_one(cptr, ":%s %d %s :Channel membrs %d(" SIZE_T_FMT ") invite %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, memberships, memberships * sizeof(struct Membership),
-      chi, chi * sizeof(struct SLink));
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Channel membrs %d(%zu) invite %d(%zu)", memberships,
+	     memberships * sizeof(struct Membership), chi,
+	     chi * sizeof(struct SLink));
 
   totch = chm + chbm + chi * sizeof(struct SLink);
 
-  sendto_one(cptr, ":%s %d %s :Whowas users %d(" SIZE_T_FMT
-      ") away %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, wwu, wwu * sizeof(struct User), wwa, wwam);
-  sendto_one(cptr, ":%s %d %s :Whowas array %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, NICKNAMEHISTORYLENGTH, wwm);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Whowas users %d(%zu) away %d(%zu)", wwu,
+	     wwu * sizeof(struct User), wwa, wwam);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
+	     NICKNAMEHISTORYLENGTH, wwm);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
-  sendto_one(cptr, ":%s %d %s :Hash: client %d(" SIZE_T_FMT
-      "), chan is the same",
-      me.name, RPL_STATSDEBUG, nick, HASHSIZE, sizeof(void *) * HASHSIZE);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Hash: client %d(%zu), chan is the same", HASHSIZE,
+	     sizeof(void *) * HASHSIZE);
 
   /*
    * NOTE: this count will be accurate only for the exact instant that this
@@ -407,10 +405,9 @@ void count_memory(struct Client *cptr, char *nick)
    * are sent.
    */
   dbuf_count_memory(&dbufs_allocated, &dbufs_used);
-  sendto_one(cptr,
-      ":%s %d %s :DBufs allocated %d(" SIZE_T_FMT ") used %d(" SIZE_T_FMT ")",
-      me.name, RPL_STATSDEBUG, nick, DBufAllocCount, dbufs_allocated,
-      DBufUsedCount, dbufs_used);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
+	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
   rm = cres_mem(cptr);
 
@@ -420,13 +417,12 @@ void count_memory(struct Client *cptr, char *nick)
   tot += sizeof(void *) * HASHSIZE * 3;
 
 #if !defined(NDEBUG)
-  sendto_one(cptr, ":%s %d %s :Allocations: " SIZE_T_FMT "(" SIZE_T_FMT ")",
-             me.name, RPL_STATSDEBUG, nick, fda_get_block_count(),
-             fda_get_byte_count());
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG, ":Allocations: %zu(%zu)",
+	     fda_get_block_count(), fda_get_byte_count());
 #endif
 
-  sendto_one(cptr, ":%s %d %s :Total: ww " SIZE_T_FMT " ch " SIZE_T_FMT
-      " cl " SIZE_T_FMT " co " SIZE_T_FMT " db " SIZE_T_FMT,
-      me.name, RPL_STATSDEBUG, nick, totww, totch, totcl, com, dbufs_allocated);
+  send_reply(cptr, RPL_EXPLICIT | RPL_STATSDEBUG,
+	     ":Total: ww %zu ch %zu cl %zu co %zu db %zu", totww, totch,
+	     totcl, com, dbufs_allocated);
 }
 

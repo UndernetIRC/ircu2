@@ -19,6 +19,7 @@
  * $Id$
  */
 #include "client.h"
+#include "channel.h"
 #include "ircd_snprintf.h"
 #include "struct.h"
 
