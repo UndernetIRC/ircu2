@@ -1,3 +1,8 @@
+2004-10-28  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in (AC_PREREQ): Depend on autoconf 2.50 since we use
+	new macros like AC_LINK_IFELSE and AC_LANG_PROGRAM.
+
 2004-10-22  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_invite.c (m_invite, ms_invite): Fix INVITE forwarding
