@@ -1,4 +1,7 @@
 2003-04-26  David Mansell <splidge@quakenet.org>
+	* ircd/m_invite.c: let +k users invite into channels they aren't on.
+
+2003-04-26  David Mansell <splidge@quakenet.org>
 	* ircd/channel.c: removed extra :, it confuses broken clients.
 
 2003-04-19  Perry Lorier <isomer@undernet.org>

@@ -266,10 +266,13 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
-  if (!find_channel_member(sptr, chptr)) {
-    send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
-    return 0;
-  }
+  /* Allow remote +k users who aren't on the channel to invite people -
+   * needed for off-channel services to work properly */
+   if (!IsChannelService(sptr) && !find_channel_member(sptr, chptr)) {
+     send_reply(sptr, ERR_NOTONCHANNEL, chptr->chname);
+     return 0;
+   }
+
   if (find_channel_member(acptr, chptr)) {
     send_reply(sptr, ERR_USERONCHANNEL, cli_name(acptr), chptr->chname);
     return 0;
@@ -278,5 +281,4 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   sendcmdto_one(sptr, CMD_INVITE, acptr, "%s :%H", cli_name(acptr), chptr);
   return 0;
 }
-
 
