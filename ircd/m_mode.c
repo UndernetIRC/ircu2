@@ -111,7 +111,8 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   clean_channelname(parv[1]);
 
-  if (('#' != *parv[1] && '&' != *parv[1]) || !(chptr = FindChannel(parv[1])))
+  if (('#' != *parv[1] && '&' != *parv[1] && '+' != *parv[1]) || 
+      !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
   sptr->flags &= ~FLAGS_TS8;
@@ -165,7 +166,7 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (IsLocalChannel(parv[1]))
     return 0;
 
-  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
+  if (('#' != *parv[1] && '+' != *parv[1])|| !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
   sptr->flags &= ~FLAGS_TS8;
@@ -238,7 +239,7 @@ int m_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* 
    * try to find the channel
    */
-  if ('#' == *parv[1] || '&' == *parv[1])
+  if ('#' == *parv[1] || '&' == *parv[1] || '+' == *parv[1])
     chptr = FindChannel(parv[1]);
   if (!chptr)
     return set_user_mode(cptr, sptr, parc, parv);
@@ -338,7 +339,7 @@ int ms_mode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* 
    * try to find the channel
    */
-  if ('#' == *parv[1] || '&' == *parv[1])
+  if ('#' == *parv[1] || '&' == *parv[1] || '+' == *parv[1])
     chptr = FindChannel(parv[1]);
   if (!chptr)
     return set_user_mode(cptr, sptr, parc, parv);
@@ -439,7 +440,7 @@ int m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* 
    * try to find the channel
    */
-  if ('#' == *parv[1] || '&' == *parv[1])
+  if ('#' == *parv[1] || '&' == *parv[1] || '+' == *parv[1])
     chptr = FindChannel(parv[1]);
   if (!chptr)
     return set_user_mode(cptr, sptr, parc, parv);
