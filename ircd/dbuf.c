@@ -15,16 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
 #include "dbuf.h"
-#include "common.h"
-#include "sys.h"
+#include "ircd_alloc.h"
+#include "ircd_chattr.h"
+#include "send.h"
+#include "sys.h"       /* MIN */
 
 #include <assert.h>
 #include <string.h>
-
-RCSTAG_CC("$Id$");
 
 /*
  * dbuf is a collection of functions which can be used to
@@ -42,10 +43,10 @@ static struct DBufBuffer *dbufFreeList = 0;
 #define DBUF_SIZE 2048
 
 struct DBufBuffer {
-  struct DBufBuffer *next;	/* Next data buffer, NULL if last */
-  char *start;			/* data starts here */
-  char *end;			/* data ends here */
-  char data[DBUF_SIZE];		/* Actual data stored here */
+  struct DBufBuffer *next;      /* Next data buffer, NULL if last */
+  char *start;                  /* data starts here */
+  char *end;                    /* data ends here */
+  char data[DBUF_SIZE];         /* Actual data stored here */
 };
 
 void dbuf_count_memory(size_t *allocated, size_t *used)
@@ -62,20 +63,17 @@ void dbuf_count_memory(size_t *allocated, size_t *used)
  */
 static struct DBufBuffer *dbuf_alloc(void)
 {
-  struct DBufBuffer *db = dbufFreeList;
+  struct DBufBuffer* db = dbufFreeList;
 
-  if (db)
-  {
-    ++DBufUsedCount;
+  if (db) {
     dbufFreeList = db->next;
+    ++DBufUsedCount;
   }
-  else if (DBufAllocCount * DBUF_SIZE < BUFFERPOOL)
-  {
-    if ((db = (struct DBufBuffer *)RunMalloc(sizeof(struct DBufBuffer))))
-    {
-      ++DBufAllocCount;
-      ++DBufUsedCount;
-    }
+  else if (DBufAllocCount * DBUF_SIZE < BUFFERPOOL) {
+    db = (struct DBufBuffer*) MyMalloc(sizeof(struct DBufBuffer));
+    assert(0 != db);
+    ++DBufAllocCount;
+    ++DBufUsedCount;
   }
   return db;
 }
@@ -125,8 +123,8 @@ static int dbuf_malloc_error(struct DBuf *dyn)
  */
 int dbuf_put(struct DBuf *dyn, const char *buf, size_t length)
 {
-  struct DBufBuffer **h;
-  struct DBufBuffer *db;
+  struct DBufBuffer** h;
+  struct DBufBuffer*  db;
   size_t chunk;
 
   assert(0 != dyn);
@@ -146,23 +144,41 @@ int dbuf_put(struct DBuf *dyn, const char *buf, size_t length)
    */
   dyn->length += length;
 
-  for (; length > 0; h = &(db->next))
-  {
-    if (0 == (db = *h))
-    {
-      if (0 == (db = dbuf_alloc()))
-	return dbuf_malloc_error(dyn);
-
+  for (; length > 0; h = &(db->next)) {
+    if (0 == (db = *h)) {
+      if (0 == (db = dbuf_alloc())) {
+#if defined(HAS_FERGUSON_FLUSHER)
+        /*
+         * from "Married With Children" episode were Al bought a REAL toilet
+         * on the black market because he was tired of the wimpy water
+         * conserving toilets they make these days --Bleep
+         */
+        /*
+         * Apparently this doesn't work, the server _has_ to
+         * dump a few clients to handle the load. A fully loaded
+         * server cannot handle a net break without dumping some
+         * clients. If we flush the connections here under a full
+         * load we may end up starving the kernel for mbufs and
+         * crash the machine
+         */
+        /*
+         * attempt to recover from buffer starvation before
+         * bailing this may help servers running out of memory
+         */
+        flush_sendq_except(dyn);
+        if (0 == (db = dbuf_alloc()))
+#endif
+          return dbuf_malloc_error(dyn);
+      }
       dyn->tail = db;
       *h = db;
       db->next = 0;
       db->start = db->end = db->data;
     }
     chunk = (db->data + DBUF_SIZE) - db->end;
-    if (chunk)
-    {
+    if (chunk) {
       if (chunk > length)
-	chunk = length;
+        chunk = length;
 
       memcpy(db->end, buf, chunk);
 
@@ -308,7 +324,7 @@ static size_t dbuf_flush(struct DBuf *dyn)
   /*
    * flush extra line terms
    */
-  while (isEol(*db->start))
+  while (IsEol(*db->start))
   {
     if (++db->start == db->end)
     {
@@ -316,9 +332,9 @@ static size_t dbuf_flush(struct DBuf *dyn)
       dbuf_free(db);
       if (0 == (db = dyn->head))
       {
-	dyn->tail = 0;
-	dyn->length = 0;
-	break;
+        dyn->tail = 0;
+        dyn->length = 0;
+        break;
       }
     }
     --dyn->length;
@@ -361,8 +377,8 @@ size_t dbuf_getmsg(struct DBuf *dyn, char *buf, size_t length)
    */
   while (length > 0)
   {
-    end = MIN(db->end, (start + length));
-    while (start < end && !isEol(*start))
+    end = IRCD_MIN(db->end, (start + length));
+    while (start < end && !IsEol(*start))
       *buf++ = *start++;
 
     count = start - db->start;

@@ -1,45 +1,92 @@
-                           INSTALL file        by Run <carlo@runaway.xs4all.nl>
-
+INSTALL file        by Run <carlo@runaway.xs4all.nl>
+            Updated by Isomer <isomer@coders.net>
 
 This is the UnderNet IRC daemon.
 
 The installation of the IRC daemon (ircd) exists of the following steps:
 
-1) Untar the package.
+1) Retrieve the package.
 2) cd into the base directory.
-3 )`./configure'
+3) `./configure'
 4) `make config'
 5) `make'
 6) `make install'
 
-1) Untar the package
+1) Retrieve the package.
 ====================
 
-The name of the package is something like `ircu2.x.y.z.tgz', where
-"x.y.z" is the current release (at the time of writing we have
-ircu2.10.00.beta3.tgz).
+The recommended way to get the ircu package now is to use CVS.  CVS makes
+upgrades a lot less painful and lets you get the latest package.
 
-You need `gzip', the GNU unzip command, to uncompress this package.
-You can download this from every GNU ftp site for almost any Operating system.
+1.1) The first thing you need to do is 'authenticate' yourself against the
+server.  
 
-If you have GNU tar, type:
+This is done with:
 
-tar xzf ircu2.x.y.z.tgz
+cvs -d :pserver:anoncvs@coder.com.undernet.org:/home/coder-com/cvs login
 
-where "ircu2.x.y.z.tgz" is the name of the package.
+(we recommend that you cut and paste the above line to use it :)
+When it prompts you for a password enter 'anoncvs'.
 
-If your tar doesn't support the 'z' flag, you can type alternatively:
+1.2) Then you have to decide which of the trees you want to use:
 
-gzip -dc ircu2.x.y.z.tgz | tar xf -
+irc2.10 - This is the *STABLE* tree.  If in doubt use this one!
 
-Both methods result in a directory "ircu2.x.y.z" in your current directory.
+beta - This tree is undergoing testing before being promoted to ircu2.10
+       It may be buggy.  Use on the undernet production network is prohibited,
+       except for certain authorised servers.
 
+alpha - This is the development tree, if you are planning on making patches
+       to be submitted to the main source tree we recommend you use this
+       tree.  However this tree is *not* guaranteed to compile, and should
+       be concidered HIGHLY unstable.  It is not intended for production
+       use.
+
+to check out the tree, type:
+
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs checkout
+   -P irc2.10
+
+The above two lines shouldn't have an enter between them.  if you want to
+use another tree, replace 'irc2.10' with the tree you want to use.  This
+will create a directory irc2.10, and put all the files in there.
+
+to get the latest version, from within the tree type "cvs update -dP".
+
+For more information see the coder-com website at
+http://coder-com.undernet.org/
+
+The old (tried and true) method that works even when the website isn't being
+DoS'd (sigh) is included below.  Using the method below means you /cant/
+just type 'cvs update -dP' to get the latest version.
+
+ The name of the package is something like `ircu2.x.y.z.tgz', where
+ "x.y.z" is the current release (at the time of writing we have
+ ircu2.10.00.beta3.tgz).
+
+ You need `gzip', the GNU unzip command, to uncompress this package.
+ You can download this from every GNU ftp site for almost any Operating system.
+ 
+ If you have GNU tar, type:
+ 
+ tar xzf ircu2.x.y.z.tgz
+ 
+ where "ircu2.x.y.z.tgz" is the name of the package.
+ 
+ If your tar doesn't support the 'z' flag, you can type alternatively:
+ 
+ gzip -dc ircu2.x.y.z.tgz | tar xf -
+ 
+ Both methods result in a directory "ircu2.x.y.z" in your current directory.
+ 
 2) cd into the base directory
 =============================
 
 Make this directory your current directory by typing:
 
 cd ircu2.x.y.z
+
+or ircu2.10 if you used cvs.
 
 where "ircu2.x.y.z" is the name of the unpacked directory.
 
@@ -48,6 +95,9 @@ where "ircu2.x.y.z" is the name of the unpacked directory.
 
 This will generate 'config/setup.h', your Operating System dependend
 configuration.
+
+If this produces a 'Permission Denied' error message, then try typing
+`chmod a+x ./configure` first to give yourself permission to run the file.
 
 4) `make config'
 ================
@@ -70,6 +120,14 @@ Please mail any problem to the maintainer, but only AFTER you made sure
 you did everything the right way.  If you want your Operating System
 to be supported in future releases, you best make a patch that
 actually fixes the problem.
+
+If you have problems here with it complaining about unresolved symbols in
+res.o, try "make config" again and add -lresolv to LDFLAGS. Note, there is
+no 'e' on the end of resolv.  It's not a typo, it's supposed to be like
+that.
+
+If you have problems here with it complaining about unresolved symbols
+possibly in s_user.c for 'crypt', add -lcrypt to LDFLAGS.
 
 6) `make install'
 =================
@@ -102,3 +160,5 @@ This will write debug output to your screen, probably showing why it
 doesn't start.
 
 Don't use a server with DEBUGMODE defined on a production net.
+
+If things still don't work, try emailing coder-com@undernet.org

@@ -1,37 +1,61 @@
-#ifndef RES_H
-#define RES_H
-
-#include <netinet/in.h>
-#include <netdb.h>
-#ifdef HPUX
-#ifndef h_errno
-extern int h_errno;
-#endif
-#endif
-#include "list.h"
-
-/*=============================================================================
- * General defines
+/*
+ * irc2.7.2/ircd/res.h (C)opyright 1992 Darren Reed.
+ *
+ * $Id$
  */
+#ifndef INCLUDED_res_h
+#define INCLUDED_res_h
 
-#ifndef INADDR_NONE
-#define INADDR_NONE 0xffffffff
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>       /* time_t */
+#define INCLUDED_sys_types_h
 #endif
 
-/*=============================================================================
- * Proto types
+struct Client;
+struct hostent;
+
+struct DNSReply {
+  struct hostent* hp;        /* hostent struct  */
+  int             ref_count; /* reference count */
+};
+
+struct DNSQuery {
+  void* vptr;               /* pointer used by callback to identify request */
+  void (*callback)(void* vptr, struct DNSReply* reply); /* callback to call */
+};
+
+extern int ResolverFileDescriptor;  /* GLOBAL - file descriptor (s_bsd.c) */
+
+extern void get_res(void);
+extern struct DNSReply* gethost_byname(const char* name, 
+                                       const struct DNSQuery* req);
+extern struct DNSReply* gethost_byaddr(const char* name, 
+                                       const struct DNSQuery* req);
+extern int             init_resolver(void);
+extern void            restart_resolver(void);
+extern time_t          timeout_resolver(time_t now);
+/*
+ * delete_resolver_queries - delete all outstanding queries for the
+ * pointer arg, DO NOT call this from a resolver callback function the
+ * resolver will delete the query itself for the affected client.
  */
+extern void            delete_resolver_queries(const void* vptr);
+extern unsigned long   cres_mem(struct Client* cptr);
+extern int             m_dns(struct Client* cptr, struct Client* sptr,
+                             int parc, char* parv[]);
+extern int             resolver_read(void);
+extern void            resolver_read_multiple(int count);
+extern void            flush_resolver_cache(void);
 
-extern int init_resolver(void);
-extern time_t timeout_query_list(void);
-extern void del_queries(char *cp);
-extern void add_local_domain(char *hname, int size);
-extern struct hostent *gethost_byname(char *name, Link *lp);
-extern struct hostent *gethost_byaddr(struct in_addr *addr, Link *lp);
-extern struct hostent *get_res(char *lp);
-extern time_t expire_cache(void);
-extern void flush_cache(void);
-extern int m_dns(aClient *cptr, aClient *sptr, int parc, char *parv[]);
-extern size_t cres_mem(aClient *sptr);
+/*
+ * add_local_domain - append local domain suffix to hostnames that 
+ * don't contain a dot '.'
+ * name - string to append to
+ * len  - total length of the buffer
+ * name is modified only if there is enough space in the buffer to hold
+ * the suffix
+ */
+extern void add_local_domain(char* name, size_t len);
 
-#endif /* RES_H */
+#endif /* INCLUDED_res_h */
+

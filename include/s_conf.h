@@ -1,67 +1,79 @@
-#ifndef S_CONF_H
-#define S_CONF_H
+/*
+ * s_conf.h
+ *
+ * $Id$ 
+ */
+#ifndef INCLUDED_s_conf_h
+#define INCLUDED_s_conf_h
+#ifndef INCLUDED_time_h
+#include <time.h>              /* struct tm */
+#define INCLUDED_time_h
+#endif
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>
+#define INCLUDED_sys_types_h
+#endif
+#ifndef INCLUDED_netinet_in_h
+#include <netinet/in.h>        /* struct in_addr */
+#define INCLUDED_netinet_in_h
+#endif
 
-#include "list.h"
-#include <netinet/in.h>
-#include <netdb.h>
+struct Client;
+struct SLink;
+struct TRecord;
+struct hostent;
 
-/*=============================================================================
+
+/*
  * General defines
  */
 
 /*-----------------------------------------------------------------------------
- * Macro's
+ * Macros
  */
 
-#define CONF_ILLEGAL		0x80000000
-#define CONF_MATCH		0x40000000
-#define CONF_CLIENT		0x0002
-#define CONF_CONNECT_SERVER	0x0004
-#define CONF_NOCONNECT_SERVER	0x0008
-#define CONF_LOCOP		0x0010
-#define CONF_OPERATOR		0x0020
-#define CONF_ME			0x0040
-#define CONF_KILL		0x0080
-#define CONF_ADMIN		0x0100
-#ifdef	R_LINES
-#define CONF_RESTRICT		0x0200
-#endif
-#define CONF_CLASS		0x0400
-#define CONF_LEAF		0x1000
-#define CONF_LISTEN_PORT	0x2000
-#define CONF_HUB		0x4000
-#define CONF_UWORLD		0x8000
-#define CONF_CRULEALL		0x00200000
-#define CONF_CRULEAUTO		0x00400000
-#define CONF_TLINES		0x00800000
-#define CONF_IPKILL		0x00010000
+#define CONF_ILLEGAL            0x80000000
+#define CONF_MATCH              0x40000000
+#define CONF_CLIENT             0x0002
+#define CONF_SERVER             0x0004
+#define CONF_LOCOP              0x0010
+#define CONF_OPERATOR           0x0020
+#define CONF_ME                 0x0040
+#define CONF_KILL               0x0080
+#define CONF_ADMIN              0x0100
+#define CONF_CLASS              0x0400
+#define CONF_LEAF               0x1000
+#define CONF_LISTEN_PORT        0x2000
+#define CONF_HUB                0x4000
+#define CONF_UWORLD             0x8000
+#define CONF_CRULEALL           0x00200000
+#define CONF_CRULEAUTO          0x00400000
+#define CONF_TLINES             0x00800000
+#define CONF_IPKILL             0x00010000
 
-#define CONF_OPS		(CONF_OPERATOR | CONF_LOCOP)
-#define CONF_SERVER_MASK	(CONF_CONNECT_SERVER | CONF_NOCONNECT_SERVER)
-#define CONF_CLIENT_MASK	(CONF_CLIENT | CONF_OPS | CONF_SERVER_MASK)
-#define CONF_CRULE		(CONF_CRULEALL | CONF_CRULEAUTO)
-#define CONF_KLINE		(CONF_KILL | CONF_IPKILL)
+#define CONF_OPS                (CONF_OPERATOR | CONF_LOCOP)
+#define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPS | CONF_SERVER)
+#define CONF_CRULE              (CONF_CRULEALL | CONF_CRULEAUTO)
+#define CONF_KLINE              (CONF_KILL | CONF_IPKILL)
 
-#define IsIllegal(x)	((x)->status & CONF_ILLEGAL)
+#define IsIllegal(x)    ((x)->status & CONF_ILLEGAL)
 
-/*=============================================================================
+/*
  * Structures
  */
 
 struct ConfItem {
-  unsigned int status;		/* If CONF_ILLEGAL, delete when no clients */
-  unsigned int clients;		/* Number of *LOCAL* clients using this */
-  struct in_addr ipnum;		/* ip number of host field */
-  char *host;
-  char *passwd;
-  char *name;
+  unsigned int       status;    /* If CONF_ILLEGAL, delete when no clients */
+  unsigned int       clients;   /* Number of *LOCAL* clients using this */
+  struct in_addr     ipnum;     /* ip number of host field */
+  char*              host;
+  char*              passwd;
+  char*              name;
   unsigned short int port;
-  time_t hold;			/* Hold action until this time
-				   (calendar time) */
-#ifndef VMSP
-  struct ConfClass *confClass;	/* Class of connection */
-#endif
-  struct ConfItem *next;
+  time_t             hold;      /* Hold until this time (calendar time) */
+  int                dns_pending; /* a dns request is pending */
+  struct ConfClass*  confClass; /* Class of connection */
+  struct ConfItem*   next;
 };
 
 struct MotdItem {
@@ -69,11 +81,11 @@ struct MotdItem {
   struct MotdItem *next;
 };
 
-struct trecord {
+struct TRecord {
   char *hostmask;
   struct MotdItem *tmotd;
   struct tm tmotd_tm;
-  struct trecord *next;
+  struct TRecord *next;
 };
 
 enum AuthorizationCheckResult {
@@ -85,41 +97,46 @@ enum AuthorizationCheckResult {
   ACR_BAD_SOCKET
 };
 
-/*=============================================================================
+/*
+ * GLOBALS
+ */
+extern struct ConfItem* GlobalConfList;
+extern int              GlobalConfCount;
+extern struct tm        motd_tm;
+extern struct MotdItem* motd;
+extern struct MotdItem* rmotd;
+extern struct TRecord*  tdata;
+
+/*
  * Proto types
  */
+extern struct ConfItem* attach_confs_byhost(struct Client* cptr, 
+                                            const char* host, int statmask);
+extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
+                                         int statmask);
+extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name,
+                                         int statmask);
+extern struct ConfItem* conf_find_server(const char* name);
+const char* conf_eval_crule(struct ConfItem* conf);
 
-extern aConfItem *find_conf_host(Link *lp, char *host, int statmask);
-extern void det_confs_butmask(aClient *cptr, int mask);
-extern enum AuthorizationCheckResult attach_Iline(aClient *cptr,
-    struct hostent *hp, char *sockhost);
-extern aConfItem *count_cnlines(Link *lp);
-extern int detach_conf(aClient *cptr, aConfItem *aconf);
-extern enum AuthorizationCheckResult attach_conf(aClient *cptr,
-    aConfItem *aconf);
-extern aConfItem *find_admin(void);
-extern aConfItem *find_me(void);
-extern aConfItem *attach_confs(aClient *cptr, const char *name, int statmask);
-extern aConfItem *attach_confs_host(aClient *cptr, char *host, int statmask);
-extern aConfItem *find_conf_exact(char *name, char *user, char *host,
-    int statmask);
-extern aConfItem *find_conf_name(char *name, int statmask);
-extern aConfItem *find_conf(Link *lp, const char *name, int statmask);
-extern aConfItem *find_conf_ip(Link *lp, char *ip, char *user, int statmask);
-extern int rehash(aClient *cptr, int sig);
+extern void det_confs_butmask(struct Client *cptr, int mask);
+extern int attach_iline(struct Client *cptr);
+extern int detach_conf(struct Client *cptr, struct ConfItem *aconf);
+extern int attach_conf(struct Client *cptr, struct ConfItem *aconf);
+extern struct ConfItem* find_admin(void);
+extern struct ConfItem* find_me(void);
+extern struct ConfItem* find_conf_exact(const char* name, 
+                                        const char* user,
+                                        const char* host, int statmask);
+extern enum AuthorizationCheckResult conf_check_client(struct Client *cptr);
+extern int  conf_check_server(struct Client *cptr);
+extern struct ConfItem* find_conf_name(const char* name, int statmask);
+extern int rehash(struct Client *cptr, int sig);
 extern int initconf(int opt);
 extern void read_tlines(void);
-extern int find_kill(aClient *cptr);
-extern int find_restrict(aClient *cptr);
-extern int m_killcomment(aClient *sptr, char *parv, char *filename);
-extern aMotdItem *read_motd(char *motdfile);
+extern int find_kill(struct Client *cptr);
+extern int find_restrict(struct Client *cptr);
+extern int m_killcomment(struct Client *sptr, char *parv, char *filename);
+extern struct MotdItem* read_motd(const char* motdfile);
 
-extern aConfItem *conf;
-extern aGline *gline;
-extern aGline *badchan;
-extern struct tm motd_tm;
-extern aMotdItem *motd;
-extern aMotdItem *rmotd;
-extern atrecord *tdata;
-
-#endif /* S_CONF_H */
+#endif /* INCLUDED_s_conf_h */

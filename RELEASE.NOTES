@@ -1,0 +1,123 @@
+Release Notes for ircu2.10.10
+
+This is a brief description of the changes we have made to the server
+since the release of ircu2.10.07.
+
+This is the first Undernet server that is fully P10, it is no longer
+compatible with older P9 only servers. The server has been verified
+to be compatible with Undernet server versions 2.10.06 and above.
+
+Enhancements:
+All server to server communications use tokenization and numeric id's,
+this reduces the bandwidth requirements approximately 10-20%.
+
+Much of the network code has been rewritten and many old bugs relating
+to the networking core of the server have been fixed.
+
+The port handling code has been rewritten to allow much better control
+over listeners.
+
+The server supports extended numerics which theoretically would allow
+the entire population of the planet to participate on a network without
+running out of unique values.
+
+Added ISUPPORT messages on client connects to allow client coders to
+detect network specific enhancements to the client protocol.
+
+Server aliasing and virtual hosting (port forwarding) are available for
+larger DoS attack prone networks. This will be improved in the next
+release.
+
+Status messages are sent to connecting clients so connections don't
+seem to hang during client registration.
+
+The server now uses a bit less memory and cpu under full load, we
+estimate around a 10% improvement in resource usage over the previous
+version.
+
+Configuration Changes:
+Please read example.conf in the doc directory for detailed information
+on various configuration options.
+Virtual host IP addresses are now in the password field of the server M:line,
+there is no longer a command line option for specifying them. This is the
+address the server will bind to for all outgoing server to server connections.
+The port field of the server M:line is no longer used and is ignored when
+the server reads the configuration file, server ports are now specified
+only on P:lines.
+The server ignores N:lines, C:lines are used for all connect server
+information now. This means that the passwords for both sides of the
+connection must match, this change does not degrade server connection
+security of the existing protocol.
+There are several new configuration options for P:lines (listener ports).
+
+Compile Time Options:
+If you are planning on hosting more than 1000 clients on your server
+we recommend that you do not turn on asserts and heap checking or
+debug messages. This is known to cause problems.
+There are several new compile time options that you will automatically
+be prompted for when you configure the server which should be self
+explanitory.
+
+Undocumented Features:
+Every Undernet server released has had at least one undocumented
+feature ;-) Here are a few of the ones available in ircu2.10.10.
+I'm sure there are a few more we are unaware of, these are the ones
+we know about.
+To enable these you need to add them to the extra CFLAGS when you
+run make config.
+-DEXTENDED_NUMERICS This option configures the server to send
+extended numerics as well as parse them. This option should only
+be used on networks that run ircu2.10.07 and above only.
+-DFERGUSON_FLUSHER If you have a server with a lot of resources
+available this option will cause the server to attempt to flush
+it's internal buffers before dropping clients during a netbreak.
+Don't define this if you don't know, if you're not careful this
+can end up rebooting FreeBSD boxes.
+-DWALLOPS_OPER_ONLY Setting this option removes the ability for
+clients that are not opered to see wallops messages.
+
+Operating System and Kernel Requirements:
+If you plan allowing more than 1000 clients on your server, you
+may need to adjust your kernel resource limits for networking
+and I/O. There are two things you will need to pay particular
+attention to, the number of file descriptors available and the
+number of buffers the kernel has available to read and write
+data to the file descriptors.
+
+To calculate kernel buffer requirements a good place to start
+is to multipy the expected number connections expected on the machine
+by the amount of data we buffer for each connection.
+Doubling the result of the above calculation and dividing it by the
+size of the buffers the kernel uses for I/O should give you a starting
+place.
+
+The server uses 2K kernel buffers for clients, and 64K kernel
+buffers for servers (actual use may be somewhat higher).
+
+c_count - number of clients expected
+c_q     - number of bytes buffered for each client
+s_count - number of servers expected
+s_q     - number of bytes buffered for each server
+
+buffer count = (2 * (c_count * c_q + s_count * s_q)) / kernel buffer size
+
+If the client count is 2000 and the server count is 1 (normal leaf)
+and your server uses 2K as an I/O buffer size:
+
+You need (2 * (2000 * 2048 + 1 * 65536)) / 2048 or a minimum
+of 4064 buffers available, if the kernel uses 512 byte buffers you
+will need a minimum of 16256 kernel buffers.
+
+These settings may be a bit light for netbreaks under full client load
+you will need to experiment a bit to find the right settings for your
+server.
+
+FreeBSD
+You may want to increase your kernel resources if you want to put
+a lot of clients on your machine here are a few values to start with:
+CHILD_MAX=4096
+OPEN_MAX=4096
+FD_SETSIZE=4096
+NMBCLUSTERS=8096
+
+

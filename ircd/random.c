@@ -14,14 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
+#include "random.h"
+#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "random.h"
+#include <sys/time.h>
 
-RCSTAG_CC("$Id$");
 
 char localkey[9] = RANDOM_SEED;
 
@@ -48,7 +49,7 @@ char localkey[9] = RANDOM_SEED;
 
 /* This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
-	( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
+        ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
 /*
  * The core of the MD5 algorithm, this alters an existing MD5 hash to

@@ -16,136 +16,512 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include "h.h"
-#include "struct.h"
-#include "s_serv.h"
-#include "send.h"
 #include "parse.h"
-#include "common.h"
-#include "s_bsd.h"
-#include "msg.h"
-#include "s_user.h"
-#include "s_serv.h"
+#include "client.h"
 #include "channel.h"
-#include "whowas.h"
-#include "s_ping.h"
-#include "s_conf.h"
-#include "res.h"
-#include "map.h"
+#include "handlers.h"
 #include "hash.h"
-#include "numeric.h"
 #include "ircd.h"
-#include "s_misc.h"
-#include "common.h"
-#include "s_numeric.h"
+#include "ircd_alloc.h"
+#include "ircd_chattr.h"
+#include "ircd_string.h"
+#include "map.h"
+#include "msg.h"
+#include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
 #include "querycmds.h"
+#include "res.h"
+#include "s_bsd.h"
+#include "s_conf.h"
+#include "s_debug.h"
+#include "s_misc.h"
+#include "s_numeric.h"
+#include "s_user.h"
+#include "send.h"
+#include "struct.h"
+#include "sys.h"
 #include "whocmds.h"
+#include "whowas.h"
 
-RCSTAG_CC("$Id$");
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
-/* *INDENT-OFF* */
 
-aMessage msgtab[] = {
-    {CLASS_PRIVATE,	MSG_PRIVATE,	TOK_PRIVATE,	m_private,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_NICK,	MSG_NICK,	TOK_NICK,	m_nick,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_NOTICE,	MSG_NOTICE,	TOK_NOTICE,	m_notice,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_WALLCHOPS,	MSG_WALLCHOPS,	TOK_WALLCHOPS,	m_wallchops,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_CPRIVMSG,	MSG_CPRIVMSG,	TOK_CPRIVMSG,	m_cprivmsg,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_CNOTICE,	MSG_CNOTICE,	TOK_CNOTICE,	m_cnotice,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_JOIN,	MSG_JOIN,	TOK_JOIN,	m_join,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_MODE,	MSG_MODE,	TOK_MODE,	m_mode,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_BURST,	MSG_BURST,	TOK_BURST,	m_burst,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_CREATE,	MSG_CREATE,	TOK_CREATE,	m_create,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_DESTRUCT,	MSG_DESTRUCT,	TOK_DESTRUCT,	m_destruct,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_QUIT,	MSG_QUIT,	TOK_QUIT,	m_quit,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_PART,	MSG_PART,	TOK_PART,	m_part,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_TOPIC,	MSG_TOPIC,	TOK_TOPIC,	m_topic,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_INVITE,	MSG_INVITE,	TOK_INVITE,	m_invite,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_KICK,	MSG_KICK,	TOK_KICK,	m_kick,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_WALLOPS,	MSG_WALLOPS,	TOK_WALLOPS,	m_wallops,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_DESYNCH,     MSG_DESYNCH,    TOK_DESYNCH,    m_desynch,      0, MAXPARA,     MFLG_SLOW,      0L},
-    {CLASS_PING,	MSG_PING,	TOK_PING,	m_ping,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_PONG,	MSG_PONG,	TOK_PONG,	m_pong,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_ERROR,	MSG_ERROR,	TOK_ERROR,	m_error,	0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_KILL,	MSG_KILL,	TOK_KILL,	m_kill,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_USER,	MSG_USER,	TOK_USER,	m_user,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_AWAY,	MSG_AWAY,	TOK_AWAY,	m_away,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_ISON,	MSG_ISON,	TOK_ISON,	m_ison,		0, 1,		MFLG_SLOW,	0L},
-    {CLASS_SERVER,	MSG_SERVER,	TOK_SERVER,	m_server,	0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_SQUIT,	MSG_SQUIT,	TOK_SQUIT,	m_squit,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_WHOIS,	MSG_WHOIS,	TOK_WHOIS,	m_whois,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_WHO,		MSG_WHO,	TOK_WHO,	m_who,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_WHOWAS,	MSG_WHOWAS,	TOK_WHOWAS,	m_whowas,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_LIST,	MSG_LIST,	TOK_LIST,	m_list,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_NAMES,	MSG_NAMES,	TOK_NAMES,	m_names,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_USERHOST,	MSG_USERHOST,	TOK_USERHOST,	m_userhost,	0, 1,		MFLG_SLOW,	0L},
-    {CLASS_USERIP,	MSG_USERIP,	TOK_USERIP,	m_userip,	0, 1,		MFLG_SLOW,	0L},
-    {CLASS_TRACE,	MSG_TRACE,	TOK_TRACE,	m_trace,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_PASS,	MSG_PASS,	TOK_PASS,	m_pass,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_LUSERS,	MSG_LUSERS,	TOK_LUSERS,	m_lusers,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_TIME,	MSG_TIME,	TOK_TIME,	m_time,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_SETTIME,	MSG_SETTIME,	TOK_SETTIME,	m_settime,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_RPING,	MSG_RPING,	TOK_RPING,	m_rping,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_RPONG,	MSG_RPONG,	TOK_RPONG,	m_rpong,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_OPER,	MSG_OPER,	TOK_OPER,	m_oper,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_CONNECT,	MSG_CONNECT,	TOK_CONNECT,	m_connect,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_UPING,	MSG_UPING,	TOK_UPING,	m_uping,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_MAP,		MSG_MAP,	TOK_MAP,	m_map,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_VERSION,	MSG_VERSION,	TOK_VERSION,	m_version,	0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_STATS,	MSG_STATS,	TOK_STATS,	m_stats,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_LINKS,	MSG_LINKS,	TOK_LINKS,	m_links,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_ADMIN,	MSG_ADMIN,	TOK_ADMIN,	m_admin,	0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_HELP,	MSG_HELP,	TOK_HELP,	m_help,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_INFO,	MSG_INFO,	TOK_INFO,	m_info,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_MOTD,	MSG_MOTD,	TOK_MOTD,	m_motd,		0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_CLOSE,	MSG_CLOSE,	TOK_CLOSE,	m_close,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_SILENCE,	MSG_SILENCE,	TOK_SILENCE,	m_silence,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_GLINE,	MSG_GLINE,	TOK_GLINE,	m_gline,	0, MAXPARA,	MFLG_SLOW,	0L},
-    {CLASS_END_OF_BURST, MSG_END_OF_BURST, TOK_END_OF_BURST, m_end_of_burst, 0, MAXPARA, MFLG_SLOW,	0L},
-    {CLASS_END_OF_BURST_ACK, MSG_END_OF_BURST_ACK, TOK_END_OF_BURST_ACK, m_end_of_burst_ack, 0, MAXPARA, 1, 0L},
-    {CLASS_HASH,	MSG_HASH,	TOK_HASH,	m_hash,		0, MAXPARA,	MFLG_SLOW|MFLG_UNREG,	0L},
-    {CLASS_DNS,		MSG_DNS,	TOK_DNS,	m_dns,		0, MAXPARA,	MFLG_SLOW,	0L},
-#if defined(OPER_REHASH) || defined(LOCOP_REHASH)
-    {CLASS_REHASH,	MSG_REHASH,	TOK_REHASH,	m_rehash,	0, MAXPARA,	MFLG_SLOW,	0L},
-#endif
-#if defined(OPER_RESTART) || defined(LOCOP_RESTART)
-    {CLASS_RESTART,	MSG_RESTART,	TOK_RESTART,	m_restart,	0, MAXPARA,	MFLG_SLOW,	0L},
-#endif
-#if defined(OPER_DIE) || defined(LOCOP_DIE)
-    {CLASS_DIE,		MSG_DIE,	TOK_DIE,	m_die,		0, MAXPARA,	MFLG_SLOW,	0L},
-#endif
-    {0, (char *)0, (char *)0, (int (*)(aClient *, aClient *, int, char **))0,	0, 0, 0, 0L}
-}                                                                                                                                   ;
-/* *INDENT-ON* */
+
+struct MessageTree {
+  char *final;
+  struct Message *msg;
+  struct MessageTree *pointers[26];
+};
+
+
+struct Message msgtab[] = {
+  {
+    MSG_PRIVATE,
+    TOK_PRIVATE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_privmsg, ms_privmsg, mo_privmsg, m_ignore }
+  },
+  {
+    MSG_NICK,
+    TOK_NICK,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_nick, m_nick, ms_nick, m_nick, m_ignore }
+  },
+  {
+    MSG_NOTICE,
+    TOK_NOTICE,
+    0, MAXPARA, MFLG_SLOW | MFLG_IGNORE, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_notice, ms_notice, mo_notice, m_ignore }
+  },
+  {
+    MSG_WALLCHOPS,
+    TOK_WALLCHOPS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_wallchops, ms_wallchops, m_wallchops, m_ignore }
+  },
+  {
+    MSG_CPRIVMSG,
+    TOK_CPRIVMSG,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_cprivmsg, m_ignore, m_cprivmsg, m_ignore }
+  },
+  {
+    MSG_CNOTICE,
+    TOK_CNOTICE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_cnotice, m_ignore, m_cnotice, m_ignore }
+  },
+  {
+    MSG_JOIN,
+    TOK_JOIN,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_join, ms_join, m_join, m_ignore }
+  },
+  {
+    MSG_MODE,
+    TOK_MODE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_mode, ms_mode, m_mode, m_ignore }
+  },
+  {
+    MSG_BURST,
+    TOK_BURST,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_burst, m_ignore, m_ignore }
+  },
+  {
+    MSG_CREATE,
+    TOK_CREATE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_create, m_ignore, m_ignore }
+  },
+  {
+    MSG_DESTRUCT,
+    TOK_DESTRUCT,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_destruct, m_ignore, m_ignore }
+  },
+  {
+    MSG_QUIT,
+    TOK_QUIT,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_quit, m_quit, ms_quit, m_quit, m_ignore }
+  },
+  {
+    MSG_PART,
+    TOK_PART,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_part, ms_part, m_part, m_ignore }
+  },
+  {
+    MSG_TOPIC,
+    TOK_TOPIC,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_topic, ms_topic, m_topic, m_ignore }
+  },
+  {
+    MSG_INVITE,
+    TOK_INVITE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_invite, ms_invite, m_invite, m_ignore }
+  },
+  {
+    MSG_KICK,
+    TOK_KICK,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_kick, ms_kick, m_kick, m_ignore }
+  },
+  {
+    MSG_WALLOPS,
+    TOK_WALLOPS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_wallops, mo_wallops, m_ignore }
+  },
+  {
+    MSG_DESYNCH,
+    TOK_DESYNCH,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_desynch, m_ignore, m_ignore }
+  },
+  {
+    MSG_PING,
+    TOK_PING,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_ping, ms_ping, m_ping, m_ignore }
+  },
+  {
+    MSG_PONG,
+    TOK_PONG,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { mr_pong, m_ignore, ms_pong, m_ignore, m_ignore }
+  },
+  {
+    MSG_ERROR,
+    TOK_ERROR,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { mr_error, m_ignore, ms_error, m_ignore, m_ignore }
+  },
+  {
+    MSG_KILL,
+    TOK_KILL,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_kill, mo_kill, m_ignore }
+  },
+  {
+    MSG_USER,
+    TOK_USER,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_user, m_registered, m_ignore, m_registered, m_ignore }
+  },
+  {
+    MSG_AWAY,
+    TOK_AWAY,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_away, ms_away, m_away, m_ignore }
+  },
+  {
+    MSG_ISON,
+    TOK_ISON,
+    0, 1, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_ison, m_ignore, m_ison, m_ignore }
+  },
+  {
+    MSG_SERVER,
+    TOK_SERVER,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { mr_server, m_registered, ms_server, m_registered, m_ignore }
+  },
+  {
+    MSG_SQUIT,
+    TOK_SQUIT,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_squit, mo_squit, m_ignore }
+  },
+  {
+    MSG_WHOIS,
+    TOK_WHOIS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_whois, m_whois, m_whois, m_ignore }
+  },
+  {
+    MSG_WHO,
+    TOK_WHO,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_who, m_ignore, m_who, m_ignore }
+  },
+  {
+    MSG_WHOWAS,
+    TOK_WHOWAS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_whowas, m_whowas, m_whowas, m_ignore }
+  },
+  {
+    MSG_LIST,
+    TOK_LIST,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_list, m_ignore, m_list, m_ignore }
+  },
+  {
+    MSG_NAMES,
+    TOK_NAMES,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_names, ms_names, m_names, m_ignore }
+  },
+  {
+    MSG_USERHOST,
+    TOK_USERHOST,
+    0, 1, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_userhost, m_ignore, m_userhost, m_ignore }
+  },
+  {
+    MSG_USERIP,
+    TOK_USERIP,
+    0, 1, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_userip, m_ignore, m_userip, m_ignore }
+  },
+  {
+    MSG_TRACE,
+    TOK_TRACE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_trace, ms_trace, mo_trace, m_ignore }
+  },
+  {
+    MSG_PASS,
+    TOK_PASS,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_pass, m_registered, m_ignore, m_registered, m_ignore }
+  },
+  {
+    MSG_LUSERS,
+    TOK_LUSERS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_lusers, ms_lusers, m_lusers, m_ignore }
+  },
+  {
+    MSG_TIME,
+    TOK_TIME,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_time, m_time, m_time, m_ignore }
+  },
+  {
+    MSG_SETTIME,
+    TOK_SETTIME,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_ignore, ms_settime, mo_settime, m_ignore }
+  },
+  {
+    MSG_RPING,
+    TOK_RPING,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_rping, mo_rping, m_ignore }
+  },
+  {
+    MSG_RPONG,
+    TOK_RPONG,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_ignore, ms_rpong, m_ignore, m_ignore }
+  },
+  {
+    MSG_OPER,
+    TOK_OPER,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_oper, ms_oper, mo_oper, m_ignore }
+  },
+  {
+    MSG_CONNECT,
+    TOK_CONNECT,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_connect, mo_connect, m_ignore }
+  },
+  {
+    MSG_MAP,
+    TOK_MAP,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_map, m_ignore, m_map, m_ignore }
+  },
+  {
+    MSG_VERSION,
+    TOK_VERSION,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_version, m_version, ms_version, m_version, m_ignore }
+  },
+  {
+    MSG_STATS,
+    TOK_STATS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_stats, ms_stats, mo_stats, m_ignore }
+  },
+  {
+    MSG_LINKS,
+    TOK_LINKS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_links, ms_links, m_links, m_ignore }
+  },
+  {
+    MSG_ADMIN,
+    TOK_ADMIN,
+    0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_admin, m_admin, ms_admin, m_admin, m_ignore }
+  },
+  {
+    MSG_HELP,
+    TOK_HELP,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_help, m_ignore, m_help, m_ignore }
+  },
+  {
+    MSG_INFO,
+    TOK_INFO,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_info, ms_info, mo_info, m_ignore }
+  },
+  {
+    MSG_MOTD,
+    TOK_MOTD,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_motd, m_motd, m_motd, m_ignore }
+  },
+  {
+    MSG_CLOSE,
+    TOK_CLOSE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, m_ignore, mo_close, m_ignore }
+  },
+  {
+    MSG_SILENCE,
+    TOK_SILENCE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_silence, ms_silence, m_silence, m_ignore }
+  },
+  {
+    MSG_GLINE,
+    TOK_GLINE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, ms_gline, mo_gline, m_ignore }
+  },
+  {
+    MSG_END_OF_BURST,
+    TOK_END_OF_BURST,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_end_of_burst, m_ignore, m_ignore }
+  },
+  {
+    MSG_END_OF_BURST_ACK,
+    TOK_END_OF_BURST_ACK,
+    0, MAXPARA, 1, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_end_of_burst_ack, m_ignore, m_ignore }
+  },
+  {
+    MSG_HASH,
+    TOK_HASH,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_hash, m_hash, m_hash, m_ignore }
+  },
+  {
+    MSG_DNS,
+    TOK_DNS,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_dns, m_dns, m_dns, m_ignore }
+  },
+  {
+    MSG_REHASH,
+    TOK_REHASH,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, m_ignore, mo_rehash, m_ignore }
+  },
+  {
+    MSG_RESTART,
+    TOK_RESTART,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, m_ignore, mo_restart, m_ignore }
+  },
+  {
+    MSG_DIE,
+    TOK_DIE,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_unregistered, m_not_oper, m_ignore, mo_die, m_ignore }
+  },
+  {
+    MSG_PROTO,
+    TOK_PROTO,
+    0, MAXPARA, MFLG_SLOW, 0,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_proto, m_proto, m_proto, m_proto, m_ignore }
+  },
+  { 0 }
+}; 
+
 
 #ifdef GODMODE
 extern int sdbflag;
 #endif /* GODMODE */
 
-static char *para[MAXPARA + 2];	/* leave room for prefix and null */
+static char *para[MAXPARA + 2]; /* leave room for prefix and null */
 
 /*
  * Message Tree stuff mostly written by orabidoo, with changes by Dianora.
  * Adapted to Undernet, adding token support, etc by comstud 10/06/97
  */
 
-static aMessageTree msg_tree_cmd;
-static aMessageTree msg_tree_tok;
+static struct MessageTree msg_tree_cmd;
+static struct MessageTree msg_tree_tok;
 
 /*
  * Guts of making the token tree...
  */
-static aMessage **do_msg_tree_tok(aMessageTree *mtree, char *prefix,
-    aMessage **mptr)
+static struct Message **do_msg_tree_tok(struct MessageTree *mtree, char *prefix,
+    struct Message **mptr)
 {
-  char newprefix[64];		/* Must be longer than every command name */
+  char newprefix[64];           /* Must be longer than every command name */
   int c, c2, lp;
-  aMessageTree *mtree1;
+  struct MessageTree *mtree1;
 
   lp = strlen(prefix);
   if (!lp || !strncmp((*mptr)->tok, prefix, lp))
@@ -156,11 +532,11 @@ static aMessage **do_msg_tree_tok(aMessageTree *mtree, char *prefix,
       mtree->final = (*mptr)->tok + lp;
       mtree->msg = *mptr;
       for (c = 0; c < 26; ++c)
-	mtree->pointers[c] = NULL;
+        mtree->pointers[c] = NULL;
       return mptr + 1;
     }
     /* command in this prefix */
-    if (!strCasediff((*mptr)->tok, prefix))
+    if (0 == ircd_strcmp((*mptr)->tok, prefix))
     {
       mtree->final = "";
       mtree->msg = *mptr++;
@@ -172,38 +548,41 @@ static aMessage **do_msg_tree_tok(aMessageTree *mtree, char *prefix,
     {
       if ((*mptr)->tok[lp] == c)
       {
-	mtree1 = (aMessageTree *)RunMalloc(sizeof(aMessageTree));
-	mtree1->final = NULL;
-	mtree->pointers[c - 'A'] = mtree1;
-	strcpy(newprefix, prefix);
-	newprefix[lp] = c;
-	newprefix[lp + 1] = '\0';
-	mptr = do_msg_tree_tok(mtree1, newprefix, mptr);
-	if (!*mptr || strncmp((*mptr)->tok, prefix, lp))
-	{
-	  for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
-	    mtree->pointers[c2] = NULL;
-	  return mptr;
-	}
+        mtree1 = (struct MessageTree *)MyMalloc(sizeof(struct MessageTree));
+        mtree1->final = NULL;
+        mtree->pointers[c - 'A'] = mtree1;
+        strcpy(newprefix, prefix);
+        newprefix[lp] = c;
+        newprefix[lp + 1] = '\0';
+        mptr = do_msg_tree_tok(mtree1, newprefix, mptr);
+        if (!*mptr || strncmp((*mptr)->tok, prefix, lp))
+        {
+          for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
+            mtree->pointers[c2] = NULL;
+          return mptr;
+        }
       }
       else
-	mtree->pointers[c - 'A'] = NULL;
+        mtree->pointers[c - 'A'] = NULL;
     }
     return mptr;
   }
-  MyCoreDump;			/* This should never happen */
+  /*
+   * XXX - should never be here, quick hack, this can be done better
+   */
+  assert(0);
   exit(1);
 }
 
 /*
  * Guts of making the command tree...
  */
-static aMessage *do_msg_tree_cmd(aMessageTree *mtree, char *prefix,
-    aMessage *mptr)
+static struct Message *do_msg_tree_cmd(struct MessageTree *mtree, char *prefix,
+    struct Message *mptr)
 {
-  char newprefix[64];		/* Must be longer than every command name */
+  char newprefix[64];           /* Must be longer than every command name */
   int c, c2, lp;
-  aMessageTree *mtree1;
+  struct MessageTree *mtree1;
 
   lp = strlen(prefix);
   if (!lp || !strncmp(mptr->cmd, prefix, lp))
@@ -214,11 +593,11 @@ static aMessage *do_msg_tree_cmd(aMessageTree *mtree, char *prefix,
       mtree->final = mptr->cmd + lp;
       mtree->msg = mptr;
       for (c = 0; c < 26; ++c)
-	mtree->pointers[c] = NULL;
+        mtree->pointers[c] = NULL;
       return mptr + 1;
     }
     /* command in this prefix */
-    if (!strCasediff(mptr->cmd, prefix))
+    if (0 == ircd_strcmp(mptr->cmd, prefix))
     {
       mtree->final = "";
       mtree->msg = mptr++;
@@ -230,26 +609,29 @@ static aMessage *do_msg_tree_cmd(aMessageTree *mtree, char *prefix,
     {
       if (mptr->cmd[lp] == c)
       {
-	mtree1 = (aMessageTree *)RunMalloc(sizeof(aMessageTree));
-	mtree1->final = NULL;
-	mtree->pointers[c - 'A'] = mtree1;
-	strcpy(newprefix, prefix);
-	newprefix[lp] = c;
-	newprefix[lp + 1] = '\0';
-	mptr = do_msg_tree_cmd(mtree1, newprefix, mptr);
-	if (!mptr->cmd || strncmp(mptr->cmd, prefix, lp))
-	{
-	  for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
-	    mtree->pointers[c2] = NULL;
-	  return mptr;
-	}
+        mtree1 = (struct MessageTree *)MyMalloc(sizeof(struct MessageTree));
+        mtree1->final = NULL;
+        mtree->pointers[c - 'A'] = mtree1;
+        strcpy(newprefix, prefix);
+        newprefix[lp] = c;
+        newprefix[lp + 1] = '\0';
+        mptr = do_msg_tree_cmd(mtree1, newprefix, mptr);
+        if (!mptr->cmd || strncmp(mptr->cmd, prefix, lp))
+        {
+          for (c2 = c + 1 - 'A'; c2 < 26; ++c2)
+            mtree->pointers[c2] = NULL;
+          return mptr;
+        }
       }
       else
-	mtree->pointers[c - 'A'] = NULL;
+        mtree->pointers[c - 'A'] = NULL;
     }
     return mptr;
   }
-  MyCoreDump;			/* This should never happen */
+  /* 
+   * This should never happen
+   */
+  assert(0);
   exit(1);
 }
 
@@ -270,35 +652,35 @@ static int mtokcmp(const struct Message **m1, const struct Message **m2)
  */
 void initmsgtree(void)
 {
-  Reg1 int i;
-  Reg2 aMessage *msg = msgtab;
-  Reg3 int ii;
-  aMessage **msgtab_tok;
-  aMessage **msgtok;
+  int i;
+  struct Message *msg = msgtab;
+  int ii;
+  struct Message **msgtab_tok;
+  struct Message **msgtok;
 
   for (i = 0; msg->cmd; ++i, ++msg)
     continue;
-  qsort(msgtab, i, sizeof(aMessage),
+  qsort(msgtab, i, sizeof(struct Message),
       (int (*)(const void *, const void *))mcmdcmp);
-  msgtab_tok = (aMessage **)RunMalloc((i + 1) * sizeof(aMessage *));
+  msgtab_tok = (struct Message **)MyMalloc((i + 1) * sizeof(struct Message *));
   for (ii = 0; ii < i; ++ii)
     msgtab_tok[ii] = msgtab + ii;
-  msgtab_tok[i] = NULL;		/* Needed by `do_msg_tree_tok' */
-  qsort(msgtab_tok, i, sizeof(aMessage *),
+  msgtab_tok[i] = NULL;         /* Needed by `do_msg_tree_tok' */
+  qsort(msgtab_tok, i, sizeof(struct Message *),
       (int (*)(const void *, const void *))mtokcmp);
   msg = do_msg_tree_cmd(&msg_tree_cmd, "", msgtab);
   msgtok = do_msg_tree_tok(&msg_tree_tok, "", msgtab_tok);
-  RunFree(msgtab_tok);
+  MyFree(msgtab_tok);
 }
 
 /*
  * Generic tree parser which works for both commands and tokens.
  * Optimized by Run.
  */
-static struct Message *msg_tree_parse(register char *cmd, aMessageTree *root)
+static struct Message *msg_tree_parse(char *cmd, struct MessageTree *root)
 {
-  register aMessageTree *mtree;
-  register unsigned char r = (0xdf & (unsigned char)*cmd) - 'A';
+  struct MessageTree *mtree;
+  unsigned char r = (0xdf & (unsigned char)*cmd) - 'A';
   if (r > 25 || !(mtree = root->pointers[r]))
     return NULL;
   for (;;)
@@ -317,17 +699,17 @@ static struct Message *msg_tree_parse(register char *cmd, aMessageTree *root)
  * This is to avoid confusion with commands like /quake on clients
  * that send unknown commands directly to the server.
  */
-static struct Message *msg_tree_parse_client(register char *cmd,
-    aMessageTree *root)
+static struct Message *msg_tree_parse_client(char *cmd,
+    struct MessageTree *root)
 {
-  register aMessageTree *mtree;
-  register unsigned char q = (0xdf & (unsigned char)*cmd) - 'A';
+  struct MessageTree *mtree;
+  unsigned char q = (0xdf & (unsigned char)*cmd) - 'A';
   if (q > 25 || !(mtree = root->pointers[q]))
     return NULL;
   for (;;)
   {
     q = 0xdf & (unsigned char)*++cmd;
-    if (mtree->final && !strCasediff(mtree->final, cmd))
+    if (mtree->final && 0 == ircd_strcmp(mtree->final, cmd))
       return mtree->msg;
     if ((q -= 'A') > 25 || !(mtree = mtree->pointers[q]))
       return NULL;
@@ -339,35 +721,38 @@ static struct Message *msg_tree_parse_client(register char *cmd,
  *
  * NOTE: parse_*() should not be called recusively by any other fucntions!
  */
-int parse_client(aClient *cptr, char *buffer, char *bufend)
+int parse_client(struct Client *cptr, char *buffer, char *bufend)
 {
-  Reg1 aClient *from = cptr;
-  Reg2 char *ch, *s;
-  Reg3 int i, paramcount, noprefix = 0;
-  aMessage *mptr;
+  struct Client*  from = cptr;
+  char*           ch;
+  char*           s;
+  int             i;
+  int             paramcount;
+  int             noprefix = 0;
+  struct Message* mptr;
+  MessageHandler  handler = 0;
 
   Debug((DEBUG_DEBUG, "Parsing: %s", buffer));
-  StoreBuffer((buffer, cptr));	/* Store the buffer now, before
-				   we start working on it */
 
   if (IsDead(cptr))
     return 0;
 
   para[0] = from->name;
-  for (ch = buffer; *ch == ' '; ch++);	/* Eat leading spaces */
-  if (*ch == ':')		/* Is any client doing this ? */
+  for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
+  if (*ch == ':')               /* Is any client doing this ? */
   {
-    for (++ch; *ch && *ch != ' '; ++ch);	/* Ignore sender prefix from client */
+    for (++ch; *ch && *ch != ' '; ++ch)
+      ; /* Ignore sender prefix from client */
     while (*ch == ' ')
-      ch++;			/* Advance to command */
+      ch++;                     /* Advance to command */
   }
   else
     noprefix = 1;
   if (*ch == '\0')
   {
-    ircstp->is_empt++;
+    ServerStats->is_empt++;
     Debug((DEBUG_NOTICE, "Empty message from host %s:%s",
-	cptr->name, from->name));
+        cptr->name, from->name));
     return (-1);
   }
 
@@ -394,15 +779,14 @@ int parse_client(aClient *cptr, char *buffer, char *bufend)
     if (buffer[0] != '\0')
     {
       if (IsUser(from))
-	sendto_one(from, ":%s %d %s %s :Unknown command",
-	    me.name, ERR_UNKNOWNCOMMAND, from->name, ch);
+        sendto_one(from, ":%s %d %s %s :Unknown command",
+            me.name, ERR_UNKNOWNCOMMAND, from->name, ch);
       Debug((DEBUG_ERROR, "Unknown (%s) from %s",
-	  ch, get_client_name(cptr, FALSE)));
+            ch, get_client_name(cptr, HIDE_IP)));
     }
-    ircstp->is_unco++;
+    ServerStats->is_unco++;
     return (-1);
   }
-  LogMessage((cptr, mptr->msgclass));
 
   paramcount = mptr->parameters;
   i = bufend - ((s) ? s : ch);
@@ -439,57 +823,62 @@ int parse_client(aClient *cptr, char *buffer, char *bufend)
        * out *all* blanks.. --msa
        */
       while (*s == ' ')
-	*s++ = '\0';
+        *s++ = '\0';
 
       if (*s == '\0')
-	break;
+        break;
       if (*s == ':')
       {
-	/*
-	 * The rest is single parameter--can
-	 * include blanks also.
-	 */
-	para[++i] = s + 1;
-	break;
+        /*
+         * The rest is single parameter--can
+         * include blanks also.
+         */
+        para[++i] = s + 1;
+        break;
       }
       para[++i] = s;
       if (i >= paramcount)
-	break;
+        break;
       for (; *s != ' ' && *s; s++);
     }
   }
   para[++i] = NULL;
-  mptr->count++;
-  /* The "unregistered command check" was ugly and mildly inefficient.
+  ++mptr->count;
+#if 0
+  /*
+   * The "unregistered command check" was ugly and mildly inefficient.
    * I fixed it. :)  --Shadow
    */
-  if (!IsUser(cptr) && !(mptr->flags & MFLG_UNREG))
-  {
-    sendto_one(from, ":%s %d * %s :Register first.",
-	me.name, ERR_NOTREGISTERED, ch);
+  if (!IsUser(cptr) && 0 == (mptr->flags & MFLG_UNREG)) {
+    if (0 == (mptr->flags & MFLG_IGNORE))
+      sendto_one(from, ":%s %d * %s :Register first.",
+                 me.name, ERR_NOTREGISTERED, ch);
     return -1;
   }
-  if (IsUser(cptr) &&
-#ifdef	IDLE_FROM_MSG
-      mptr->func == m_private)
-#else
-      mptr->func != m_ping && mptr->func != m_pong)
 #endif
-      from->user->last = now;
+  handler = mptr->handlers[cptr->handler];
+  assert(0 != handler);
 
-  return (*mptr->func) (cptr, from, i, para);
+#ifndef IDLE_FROM_MSG
+  if (IsUser(cptr) && handler != m_ping && handler != m_ignore)
+    from->user->last = CurrentTime;
+#endif
+
+  return (*handler) (cptr, from, i, para);
 }
 
-int parse_server(aClient *cptr, char *buffer, char *bufend)
+int parse_server(struct Client *cptr, char *buffer, char *bufend)
 {
-  Reg1 aClient *from = cptr;
-  Reg2 char *ch = buffer, *s;
-  Reg3 int len, i, numeric = 0, paramcount;
-  aMessage *mptr;
+  struct Client*  from = cptr;
+  char*           ch = buffer;
+  char*           s;
+  int             len;
+  int             i;
+  int             numeric = 0;
+  int             paramcount;
+  struct Message* mptr;
 
   Debug((DEBUG_DEBUG, "Parsing: %s", buffer));
-  StoreBuffer((buffer, cptr));	/* Store the buffer now, before
-				 * we start working on it. */
 
 #ifdef GODMODE
   len = strlen(buffer);
@@ -499,7 +888,7 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
     char c = buffer[200];
     buffer[200] = 0;
     sendto_ops("RCV:%-8.8s(%.4d): \"%s...%s\"",
-	cptr->name, len, buffer, &buffer[len - 200]);
+        cptr->name, len, buffer, &buffer[len - 200]);
     buffer[200] = c;
   }
   else
@@ -539,10 +928,10 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
     if (!from)
     {
       Debug((DEBUG_NOTICE, "Unknown prefix (%s)(%s) from (%s)",
-	  para[0], buffer, cptr->name));
-      ircstp->is_unpf++;
+          para[0], buffer, cptr->name));
+      ++ServerStats->is_unpf;
       while (*ch == ' ')
-	ch++;
+        ch++;
       /*
        * However, the only thing that MUST be
        * allowed to travel upstream against an
@@ -551,29 +940,27 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
        */
       if (ch[1] == 'Q')
       {
-	para[0] = cptr->name;
-	from = cptr;
+        para[0] = cptr->name;
+        from = cptr;
       }
       else
-	return 0;
+        return 0;
     }
     else if (from->from != cptr)
     {
-      ircstp->is_wrdi++;
+      ++ServerStats->is_wrdi;
       Debug((DEBUG_NOTICE, "Fake direction: Message (%s) coming from (%s)",
-	  buffer, cptr->name));
+          buffer, cptr->name));
       return 0;
     }
   }
-  else if (Protocol(cptr) > 9)	/* Well, not ALWAYS, 2.9 can send no prefix */
+  else if (Protocol(cptr) > 9)  /* Well, not ALWAYS, 2.9 can send no prefix */
   {
     char numeric_prefix[6];
-    int i;
-    for (i = 0; i < 5; ++i)
-    {
-      if ('\0' == ch[i] || ' ' == (numeric_prefix[i] = ch[i]))
-      {
-	break;
+    int  i;
+    for (i = 0; i < 5; ++i) {
+      if ('\0' == ch[i] || ' ' == (numeric_prefix[i] = ch[i])) {
+        break;
       }
     }
     numeric_prefix[i] = '\0';
@@ -584,7 +971,7 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
      */
     if (' ' == ch[1] || ' ' == ch[2])
       from = FindNServer(numeric_prefix);
-    else
+    else 
       from = findNUser(numeric_prefix);
 
     do
@@ -607,28 +994,28 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
      */
     if (!from)
     {
-      ircstp->is_unpf++;
+      ServerStats->is_unpf++;
       while (*ch == ' ')
-	ch++;
+        ch++;
       if (*ch == 'N' && (ch[1] == ' ' || ch[1] == 'I'))
-	/* Only sent a KILL for a nick change */
+        /* Only sent a KILL for a nick change */
       {
-	aClient *server;
-	/* Kill the unknown numeric prefix upstream if
-	 * it's server still exists: */
-	if ((server = FindNServer(numeric_prefix)) && server->from == cptr)
-	  sendto_one(cptr, "%s KILL %s :%s (Unknown numeric nick)",
-	      NumServ(&me), numeric_prefix, me.name);
+        struct Client *server;
+        /* Kill the unknown numeric prefix upstream if
+         * it's server still exists: */
+        if ((server = FindNServer(numeric_prefix)) && server->from == cptr)
+          sendto_one(cptr, "%s KILL %s :%s (Unknown numeric nick)",
+                     NumServ(&me), numeric_prefix, me.name);
       }
       /*
        * Things that must be allowed to travel
        * upstream against an squit:
        */
       if (ch[1] == 'Q' || (*ch == 'D' && ch[1] == ' ') ||
-	  (*ch == 'K' && ch[2] == 'L'))
-	from = cptr;
+          (*ch == 'K' && ch[2] == 'L'))
+        from = cptr;
       else
-	return 0;
+        return 0;
     }
 
     /* Let para[0] point to the name of the sender */
@@ -636,9 +1023,9 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
 
     if (from->from != cptr)
     {
-      ircstp->is_wrdi++;
+      ServerStats->is_wrdi++;
       Debug((DEBUG_NOTICE, "Fake direction: Message (%s) coming from (%s)",
-	  buffer, cptr->name));
+          buffer, cptr->name));
       return 0;
     }
   }
@@ -647,9 +1034,9 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
     ch++;
   if (*ch == '\0')
   {
-    ircstp->is_empt++;
+    ServerStats->is_empt++;
     Debug((DEBUG_NOTICE, "Empty message from host %s:%s",
-	cptr->name, from->name));
+        cptr->name, from->name));
     return (-1);
   }
 
@@ -660,14 +1047,14 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
    * numerics must have parameters and thus a space after the command
    * code. -avalon
    */
-  s = strchr(ch, ' ');		/* s -> End of the command code */
+  s = strchr(ch, ' ');          /* s -> End of the command code */
   len = (s) ? (s - ch) : 0;
-  if (len == 3 && isDigit(*ch))
+  if (len == 3 && IsDigit(*ch))
   {
     numeric = (*ch - '0') * 100 + (*(ch + 1) - '0') * 10 + (*(ch + 2) - '0');
     paramcount = MAXPARA;
-    ircstp->is_num++;
-    mptr = NULL;		/* Init. to avoid stupid compiler warning :/ */
+    ServerStats->is_num++;
+    mptr = NULL;                /* Init. to avoid stupid compiler warning :/ */
   }
   else
   {
@@ -690,10 +1077,10 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
      */
     mptr = msg_tree_parse(ch, &msg_tree_tok);
 
-#if 1				/* for 2.10.0/2.10.10 */
+#if 1                           /* for 2.10.0/2.10.10 */
     /*
      * This code supports 2.9 and 2.10.0 sending long commands.
-     * It makes more calls to strCasediff() than the above
+     * It makes more calls to ircd_strcmp() than the above
      * so it will be somewhat slower.
      */
     if (!mptr)
@@ -716,14 +1103,13 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
 #ifdef DEBUGMODE
       if (buffer[0] != '\0')
       {
-	Debug((DEBUG_ERROR, "Unknown (%s) from %s",
-	    ch, get_client_name(cptr, FALSE)));
+        Debug((DEBUG_ERROR, "Unknown (%s) from %s",
+              ch, get_client_name(cptr, HIDE_IP)));
       }
 #endif
-      ircstp->is_unco++;
+      ServerStats->is_unco++;
       return (-1);
     }
-    LogMessage((cptr, mptr->msgclass));
 
     paramcount = mptr->parameters;
     i = bufend - ((s) ? s : ch);
@@ -751,22 +1137,22 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
        * out *all* blanks.. --msa
        */
       while (*s == ' ')
-	*s++ = '\0';
+        *s++ = '\0';
 
       if (*s == '\0')
-	break;
+        break;
       if (*s == ':')
       {
-	/*
-	 * The rest is single parameter--can
-	 * include blanks also.
-	 */
-	para[++i] = s + 1;
-	break;
+        /*
+         * The rest is single parameter--can
+         * include blanks also.
+         */
+        para[++i] = s + 1;
+        break;
       }
       para[++i] = s;
       if (i >= paramcount)
-	break;
+        break;
       for (; *s != ' ' && *s; s++);
     }
   }
@@ -775,5 +1161,5 @@ int parse_server(aClient *cptr, char *buffer, char *bufend)
     return (do_numeric(numeric, (*buffer != ':'), cptr, from, i, para));
   mptr->count++;
 
-  return (*mptr->func) (cptr, from, i, para);
+  return (*mptr->handlers[cptr->handler]) (cptr, from, i, para);
 }

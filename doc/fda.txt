@@ -1,0 +1,151 @@
+fdaman.txt - brief usage information for FDA (Free Debug Allocator)
+
+Copyright (C) 1998 Thomas Helvey <tomh@inxpress.net>
+
+1. Base Functionality
+Basic use of the fda tools is as simple as including the header
+and source file with your source defining DEBUG and using capitalized
+versions of malloc(), calloc(), realloc(), and free().
+The fda allocation functions verify all your arguments and will call
+assert() if something is wrong. FDA trashes all allocated memory
+in a predictable manner and applies prefix and postfix bounds checking
+signatures to every allocation. When a pointer is freed it's validated,
+and checked for overflows and underflows. The fda Realloc function
+does not allow malloc or free through realloc and forces reallocation
+if the required memory is larger than the current allocation.
+
+In both the DEBUG and non-debug versions of fda, if a memory allocation
+fails once, a low memory callback function is called to allow you to
+release some memory and allow malloc to succeed, the default version
+prints a warning message to stderr. If the low memory callback returns
+the allocation is attempted again, if the second allocation fails a
+no memory callback function is called to allow you to clean up before
+terminating the application, if you allow the no memory callback to
+return the results are undefined. (a NULL ptr will be returned from the
+allocation call) The default no memory handler prints an error message
+to stderr and calls abort(). The DEBUG version will assert if you allow
+the no memory function to return.
+Both the low memory and no memory callbacks have the signature of:
+void handler(void)
+
+The debug version of fda will not allow you to do the following:
+Allocate a zero length chunk of memory.
+Free a non-allocated pointer.
+Free a pointer twice.
+Free a pointer at the wrong offset.
+Use realloc to free memory. (realloc(p, 0))
+Use realloc to malloc memory. (realloc(0, s))
+Overwrite the bounds of the memory you allocated. (checked on free)
+
+The base functions for fda are:
+void* malloc(size_t)
+void* realloc(void*, size_t)
+void* calloc(size_t, size_t)
+void  free(void*)
+char* strdup(const char*)
+void  set_lowmem_handler(void (*fn)(void))
+void  set_nomem_handler(void (*fn)(void))
+
+FDA uses a hash table to lookup pointers. The size of the hash table can
+be changed at compile time by using -DFDA_HASH_TABLE_SIZE <prime>
+where prime is a prime number somewhere around the number of allocations
+expected. The default hash table size is 16339 which should be large enough
+to hold most medium sized applications. FDA allocates memory for it's
+debugging records so if your application uses a lot of memory you
+may want to make sure you have enough memory available to use the debug
+version. FDA allocates 20 bytes to store each allocation and 20 bytes
+to store location information (file and line info). This overhead only
+applies if you have DEBUG or _DEBUG defined.
+
+2. Extended functionality
+FDA provides a few handy functions for validating pointers and
+checking for overruns before they occur when debugging.
+The first function fda_sizeof(ptr) returns the size of the buffer
+pointed to by ptr, this allows you to verify that your pointer
+is what it says it is. fda_sizeof() will call assert() if the
+pointer you pass it is not at the start of an allocation.
+
+The second function valid_ptr(ptr, size) verifies that ptr lies within
+allocated memory and there are at least size bytes available in the buffer.
+You can pass valid_ptr() a pointer to any location in allocated memory.
+valid_ptr() calls assert if the pointer points outside of allocated memory
+or the remaining size is less than the size specified.
+valid_ptr() is more efficient if the pointer argument is the value
+returned from malloc because it's a simple hash table lookup, a more
+exhaustive algorithm is used if it's not found in the hash table.
+
+FDA extended functions:
+size_t fda_sizeof(const void*)
+int    valid_ptr(const void*, size_t)
+
+Typical usage for the fda extended functions:
+Note: the assert macro compiles to nothing if NDEBUG is defined.
+Verify a foo_ptr:
+assert(sizeof(struct foo) == fda_sizeof(foo_ptr));
+assert(valid_ptr(foo_ptr, sizeof(struct foo)));
+Check for room to write:
+assert(valid_ptr(buf, len));
+
+3. Leak checking and block validation
+FDA has several functions for leak checking, and reference marking.
+fda_clear_refs() iterates through all of the allocated blocks of
+memory and clears the referenced flag.
+fda_set_ref() marks a single allocation(block) as being referenced or
+in use by somebody.
+fda_assert_refs() iterates through all the allocated blocks of
+memory and calls assert() if it finds one that's not referenced.
+
+Typical usage of the block validation functions:
+fda_clear_refs();   /* clear all block references */
+
+for each allocation do
+fda_set_ref(allocation);  /* mark allocation in use */
+done
+
+fda_assert_refs();  /* this will assert if a leak is found */
+
+4. Reporting functions:
+FDA has 4 functions for reporting various aspects of allocation
+status.
+fda_get_byte_count() tells you the current total number of bytes
+your application has allocated. (this does not include debugging records)
+This will give you an idea of how much memory your application is
+using at any given time.
+
+fda_get_block_count() returns the total count of current allocations.
+
+fda_enum_locations() calls a user supplied enumeration function with
+file, line, count information, this allows you to see your file by
+file allocation density. ;) fda_enum_locations() returns the total
+number of locations that have memory allocated.
+
+fda_enum_leaks() calls a user supplied enumeration function with
+file, line, size, and ptr for every block not marked as referenced.
+One use for fda_enum_leaks() is checking for leaks when your program
+exits:
+void enum_fn(const char* file, int line, size_t size, void* ptr)
+{
+  printf("Memory leak: %s: %d - %d bytes at (%p)\n", file, line, size, ptr);
+}
+
+int main(void)
+{
+  ...
+#if defined(DEBUG)
+  /* check for memory leaks before exiting */
+  fda_clear_refs();
+  fda_enum_leaks(enum_fn);
+#endif
+  return 0;  /* return from main */
+}
+
+The test file fdatest.c gives examples of usage for most of the functions
+available with FDA.
+
+Please let me know if you encounter any problems with FDA.
+So far FDA has been built and tested on linux and Windows NT.
+If you find that it works with or without change on other platforms
+please let me know so I can make the appropriate changes to the
+code and add it to the list of tested platforms.
+
+

@@ -15,28 +15,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
+ *
+ * 
+ * This file should be edited in a window with a width of 141 characters
+ * ick
  */
-
-/* This file should be edited in a window with a width of 141 characters */
-
-#include "sys.h"
-#include <netinet/in.h>
-#include "h.h"
 #include "IPcheck.h"
-#include "querycmds.h"
-#include "struct.h"
-#include "s_user.h"
-#include "s_bsd.h"
-#include "struct.h"
-#ifdef GODMODE
-#include "numnicks.h"
-#endif
+#include "client.h"
+#include "ircd.h"
+#include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
+#include "querycmds.h"      /* UserStats */
+#include "ircd_alloc.h"
+#include "s_bsd.h"          /* SetIPChecked */
+#include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"
+#include "struct.h"
 
-RCSTAG_CC("$Id$");
-
-extern aClient me;
-extern time_t now;
+#include <assert.h>
+#include <stdio.h>          /* NULL ... bleah */
 
 /*
  * IP number and last targets of a user that just disconnected.
@@ -52,17 +50,19 @@ struct ip_targets_st {
 /* We keep one IPregistry for each IP number (for both, remote and local clients) */
 struct IPregistry {
   union {
-    struct in_addr ip;		/* The IP number of the registry entry. */
-    struct ip_targets_st *ptr;	/* The IP number of the registry entry, and a list of targets */
+    struct in_addr ip;          /* The IP number of the registry entry. */
+    struct ip_targets_st *ptr;  /* a list of targets */
   } ip_targets;
-  unsigned int last_connect:16;	/* Time of last connect (attempt), see BITMASK below,
-				   or time of last disconnect when `connected' is zero. */
-  unsigned int connected:8;	/* Used for IP# throttling: Number of currently on-line clients with this IP number */
-  unsigned int connect_attempts:4;	/* Used for connect speed throttling: Number of clients that connected with this IP number
-					   or `15' when then real value is >= 15.  This value is only valid when the last connect
-					   was less then IPCHECK_CLONE_PERIOD seconds ago, it should considered to be 0 otherwise. */
-  unsigned int free_targets:4;	/* Number of free targets that the next local client will inherit on connect,
-				   or HAS_TARGETS_MAGIC when ip_targets.ptr is a pointer to a ip_targets_st. */
+  unsigned int last_connect:16; /* Time of last connect (attempt), see BITMASK
+                                 * below, or time of last disconnect when 
+                                 * `connected' is zero. */
+  unsigned int connected:8;     /* Used for IP# throttling: Number of
+                                 * currently on-line clients with this IP */
+  unsigned int connect_attempts:4;      /* Used for connect speed throttling: Number of clients that connected with this IP number
+                                           or `15' when then real value is >= 15.  This value is only valid when the last connect
+                                           was less then IPCHECK_CLONE_PERIOD seconds ago, it should considered to be 0 otherwise. */
+  unsigned int free_targets:4;  /* Number of free targets that the next local client will inherit on connect,
+                                   or HAS_TARGETS_MAGIC when ip_targets.ptr is a pointer to a ip_targets_st. */
 };
 
 struct IPregistry_vector {
@@ -71,7 +71,7 @@ struct IPregistry_vector {
   struct IPregistry *vector;
 };
 
-#define HASHTABSIZE 0x2000	/* Must be power of 2 */
+#define HASHTABSIZE 0x2000      /* Must be power of 2 */
 static struct IPregistry_vector IPregistry_hashtable[HASHTABSIZE];
 
 /*
@@ -80,18 +80,19 @@ static struct IPregistry_vector IPregistry_hashtable[HASHTABSIZE];
  */
 #define CALCULATE_HASH(in_addr) \
   struct IPregistry_vector *hash; \
-  do { register unsigned int ip = (in_addr).s_addr; \
+  do { unsigned int ip = (in_addr).s_addr; \
        hash = &IPregistry_hashtable[((ip >> 14) + (ip >> 7) + ip) & (HASHTABSIZE - 1)]; } while(0)
 
 /*
- * Fit `now' in an unsigned short, the advantage is that we use less memory `struct IPregistry::last_connect' can be smaller
- * while the only disadvantage is that if someone reconnects after exactly 18 hours and 12 minutes, and NOBODY with the
- * same _hash_ value for this IP-number did disconnect in the meantime, then the server will think he reconnected immedeately.
- * In other words: No disadvantage at all.
+ * Fit `now' in an unsigned short, the advantage is that we use less memory
+ * `struct IPregistry::last_connect' can be smaller while the only disadvantage 
+ * is that if someone reconnects after exactly 18 hours and 12 minutes, and NOBODY with the
+ * same _hash_ value for this IP-number did disconnect in the meantime, then the server
+ * will think he reconnected immedeately. In other words: No disadvantage at all.
  */
-#define BITMASK 0xffff		/* Same number of bits as `struct IPregistry::last_connect' */
-#define NOW ((unsigned short)(now & BITMASK))
-#define CONNECTED_SINCE(x) ((unsigned short)((now & BITMASK) - (x)->last_connect))
+#define BITMASK 0xffff          /* Same number of bits as `struct IPregistry::last_connect' */
+#define NOW ((unsigned short)(CurrentTime & BITMASK))
+#define CONNECTED_SINCE(x) ((unsigned short)((CurrentTime & BITMASK) - (x)->last_connect))
 
 #define IPCHECK_CLONE_LIMIT 2
 #define IPCHECK_CLONE_PERIOD 20
@@ -112,12 +113,20 @@ static unsigned short count = 10000, average_length = 4;
 
 static struct IPregistry *IPregistry_add(struct IPregistry_vector *iprv)
 {
+  assert(0 != iprv);
   if (iprv->length == iprv->allocated_length)
   {
     iprv->allocated_length += 4;
-    iprv->vector =
-	(struct IPregistry *)RunRealloc(iprv->vector,
-	iprv->allocated_length * sizeof(struct IPregistry));
+    if (iprv->vector) {
+      iprv->vector = 
+              (struct IPregistry*) MyRealloc(iprv->vector,
+                       iprv->allocated_length * sizeof(struct IPregistry));
+    }
+    else {
+      iprv->vector = 
+              (struct IPregistry*) MyMalloc(
+                       iprv->allocated_length * sizeof(struct IPregistry));
+    }
   }
   return &iprv->vector[iprv->length++];
 }
@@ -130,7 +139,7 @@ static struct IPregistry *IPregistry_find(struct IPregistry_vector *iprv,
     struct IPregistry *i, *end = &iprv->vector[iprv->length];
     for (i = &iprv->vector[0]; i < end; ++i)
       if (IP(i).s_addr == ip.s_addr)
-	return i;
+        return i;
   }
   return NULL;
 }
@@ -138,9 +147,18 @@ static struct IPregistry *IPregistry_find(struct IPregistry_vector *iprv,
 static struct IPregistry *IPregistry_find_with_expire(struct IPregistry_vector
     *iprv, struct in_addr ip)
 {
-  struct IPregistry *last = &iprv->vector[iprv->length - 1];	/* length always > 0 because searched element always exists */
+  struct IPregistry *last;
   struct IPregistry *curr;
-  struct IPregistry *retval = NULL;	/* Core dump if we find nothing :/ - can be removed when code is stable */
+  struct IPregistry *retval = NULL;
+
+  /*
+   * if the vector is empty, IPcheck_disconnect will cause the server
+   * to core when NDEBUG is defined
+   */
+  if (iprv->length < 1)
+    return retval;
+
+  last = &iprv->vector[iprv->length - 1];
 
   for (curr = &iprv->vector[0]; curr < last;)
   {
@@ -149,30 +167,30 @@ static struct IPregistry *IPregistry_find_with_expire(struct IPregistry_vector
       retval = curr;
     else if (curr->connected == 0)
     {
-      if (CONNECTED_SINCE(curr) > 600U)	/* Don't touch this number, it has statistical significance */
+      if (CONNECTED_SINCE(curr) > 600U) /* Don't touch this number, it has statistical significance */
       {
-	/* `curr' expired */
-	if (HAS_TARGETS(curr))
-	  RunFree(curr->ip_targets.ptr);
-	*curr = *last--;
-	iprv->length--;
-	if (--count == 0)
-	{
-	  /* Make ever 10000 disconnects an estimation of the average vector length */
-	  count = 10000;
-	  average_length =
-	      (nrof.clients + nrof.unknowns + nrof.local_servers) / HASHTABSIZE;
-	}
-	/* Now check the new element (last) that was moved to this position */
-	continue;
+        /* `curr' expired */
+        if (HAS_TARGETS(curr))
+          MyFree(curr->ip_targets.ptr);
+        *curr = *last--;
+        iprv->length--;
+        if (--count == 0)
+        {
+          /* Make ever 10000 disconnects an estimation of the average vector length */
+          count = 10000;
+          average_length =
+              (UserStats.clients + UserStats.unknowns + UserStats.local_servers) / HASHTABSIZE;
+        }
+        /* Now check the new element (last) that was moved to this position */
+        continue;
       }
       else if (CONNECTED_SINCE(curr) > 120U && HAS_TARGETS(curr))
       {
-	/* Expire storage of targets */
-	struct in_addr ip1 = curr->ip_targets.ptr->ip;
-	curr->free_targets = curr->ip_targets.ptr->free_targets;
-	RunFree(curr->ip_targets.ptr);
-	curr->ip_targets.ip = ip1;
+        /* Expire storage of targets */
+        struct in_addr ip1 = curr->ip_targets.ptr->ip;
+        curr->free_targets = curr->ip_targets.ptr->free_targets;
+        MyFree(curr->ip_targets.ptr);
+        curr->ip_targets.ip = ip1;
       }
     }
     /* Did not expire, check next element */
@@ -184,18 +202,18 @@ static struct IPregistry *IPregistry_find_with_expire(struct IPregistry_vector
     retval = curr;
   else if (curr->connected == 0)
   {
-    if (CONNECTED_SINCE(curr) > 600U)	/* Don't touch this number, it has statistical significance */
+    if (CONNECTED_SINCE(curr) > 600U)   /* Don't touch this number, it has statistical significance */
     {
       /* `curr' expired */
       if (HAS_TARGETS(curr))
-	RunFree(curr->ip_targets.ptr);
+        MyFree(curr->ip_targets.ptr);
       iprv->length--;
       if (--count == 0)
       {
-	/* Make ever 10000 disconnects an estimation of the average vector length */
-	count = 10000;
-	average_length =
-	    (nrof.clients + nrof.unknowns + nrof.local_servers) / HASHTABSIZE;
+        /* Make ever 10000 disconnects an estimation of the average vector length */
+        count = 10000;
+        average_length =
+            (UserStats.clients + UserStats.unknowns + UserStats.local_servers) / HASHTABSIZE;
       }
     }
     else if (CONNECTED_SINCE(curr) > 120U && HAS_TARGETS(curr))
@@ -203,7 +221,7 @@ static struct IPregistry *IPregistry_find_with_expire(struct IPregistry_vector
       /* Expire storage of targets */
       struct in_addr ip1 = curr->ip_targets.ptr->ip;
       curr->free_targets = curr->ip_targets.ptr->free_targets;
-      RunFree(curr->ip_targets.ptr);
+      MyFree(curr->ip_targets.ptr);
       curr->ip_targets.ip = ip1;
     }
   }
@@ -214,13 +232,13 @@ static struct IPregistry *IPregistry_find_with_expire(struct IPregistry_vector
     struct IPregistry *newpos;
     iprv->allocated_length = iprv->length;
     newpos =
-	(struct IPregistry *)RunRealloc(iprv->vector,
-	iprv->allocated_length * sizeof(struct IPregistry));
-    if (newpos != iprv->vector)	/* Is this ever true? */
+        (struct IPregistry *)MyRealloc(iprv->vector,
+        iprv->allocated_length * sizeof(struct IPregistry));
+    if (newpos != iprv->vector) /* Is this ever true? */
     {
       retval =
-	  (struct IPregistry *)((char *)retval + ((char *)newpos -
-	  (char *)iprv->vector));
+          (struct IPregistry *)((char *)retval + ((char *)newpos -
+          (char *)iprv->vector));
       iprv->vector = newpos;
     }
   }
@@ -252,9 +270,9 @@ static void reset_connect_time(struct IPregistry *entry)
  *
  * Action:
  *   Update the IPcheck registry.
- *   Return < 0 if the connection should be rejected, otherwise 0.
- *     -1 : Throttled
- *     -2 : Too many connections from your host
+ *   Return:
+ *     1 : You're allowed to connect.
+ *     0 : You're not allowed to connect.
  *
  * Throttling:
  *
@@ -270,43 +288,49 @@ static void reset_connect_time(struct IPregistry *entry)
  * cptr->nexttarget to be `now - (TARGET_DELAY * (FREE_TARGETS - 1))',
  * where FREE_TARGETS may range from 0 till STARTTARGETS.
  */
-int IPcheck_local_connect(aClient *cptr)
+int IPcheck_local_connect(struct in_addr a, time_t* next_target_out)
 {
   struct IPregistry *entry;
-  CALCULATE_HASH(cptr->ip);
-  SetIPChecked(cptr);		/* Mark that we did add/update an IPregistry entry */
-  if (!(entry = IPregistry_find(hash, cptr->ip)))
+  CALCULATE_HASH(a);
+  assert(0 != next_target_out);
+
+  if (!(entry = IPregistry_find(hash, a)))
   {
     entry = IPregistry_add(hash);
-    entry->ip_targets.ip = cptr->ip;	/* The IP number of registry entry */
-    entry->last_connect = NOW;	/* Seconds since last connect (attempt) */
-    entry->connected = 1;	/* Number of currently connected clients with this IP number */
-    entry->connect_attempts = 1;	/* Number of clients that connected with this IP number */
-    entry->free_targets = STARTTARGETS;	/* Number of free targets that a client gets on connect */
-    return 0;
+    entry->ip_targets.ip = a;          /* The IP number of registry entry */
+    entry->last_connect = NOW;          /* Seconds since last connect attempt */
+    entry->connected = 1;               /* connected clients for this IP */
+    entry->connect_attempts = 1;        /* Number attempts for this IP */
+    entry->free_targets = STARTTARGETS; /* free targets a client gets */
+    return 1;
   }
-#ifdef GODMODE
-  sendto_one(cptr,
-      "ERROR :I saw your face before my friend (connected: %u; connect_attempts %u; free_targets %u)",
-      entry->connected, entry->connect_attempts, FREE_TARGETS(entry));
-#endif
-  /* Note that this also connects server connects.  It is hard and not interesting, to change that. */
-  if (++(entry->connected) == 0)	/* Don't allow more then 255 connects from one IP number, ever */
-    return -2;
+  /* Note that this also connects server connects.
+   * It is hard and not interesting, to change that.
+   *
+   * Don't allow more then 255 connects from one IP number, ever
+   */
+  if (0 == ++entry->connected)
+    return 0;
+
   if (CONNECTED_SINCE(entry) > IPCHECK_CLONE_PERIOD)
     entry->connect_attempts = 0;
+
   reset_connect_time(entry);
-  if (++(entry->connect_attempts) == 0)	/* Check for overflow */
-    --(entry->connect_attempts);
+
+  if (0 == ++entry->connect_attempts)   /* Check for overflow */
+    --entry->connect_attempts;
+
   if (entry->connect_attempts <= IPCHECK_CLONE_LIMIT)
-    cptr->nexttarget = now - (TARGET_DELAY * (FREE_TARGETS(entry) - 1));
-#ifdef DEBUGMODE
-  else
+    *next_target_out = CurrentTime - (TARGET_DELAY * (FREE_TARGETS(entry) - 1));
+
+  /* Don't refuse connection when we just rebooted the server */
+  else if (CurrentTime - me.since > IPCHECK_CLONE_DELAY)
+#ifndef NOTHROTTLE 
+    return 0;
 #else
-  else if (now - me.since > IPCHECK_CLONE_DELAY)	/* Don't refuse connection when we just rebooted the server */
-#endif
-    return -1;
-  return 0;
+    return 1;
+#endif        
+  return 1;
 }
 
 /*
@@ -320,37 +344,37 @@ int IPcheck_local_connect(aClient *cptr)
  *   Update the IPcheck registry.
  *   Return -1 on failure, 0 on success.
  */
-int IPcheck_remote_connect(aClient *cptr, const char *UNUSED(hostname),
+int IPcheck_remote_connect(struct Client *cptr, const char *hostname,
     int is_burst)
 {
   struct IPregistry *entry;
   CALCULATE_HASH(cptr->ip);
-  SetIPChecked(cptr);		/* Mark that we did add/update an IPregistry entry */
+  SetIPChecked(cptr);           /* Mark that we did add/update an IPregistry entry */
   if (!(entry = IPregistry_find(hash, cptr->ip)))
   {
     entry = IPregistry_add(hash);
-    entry->ip_targets.ip = cptr->ip;	/* The IP number of registry entry */
-    entry->last_connect = NOW;	/* Seconds since last connect (attempt) */
-    entry->connected = 1;	/* Number of currently connected clients with this IP number */
-    entry->connect_attempts = is_burst ? 1 : 0;	/* Number of clients that connected with this IP number */
-    entry->free_targets = STARTTARGETS;	/* Number of free targets that a client gets on connect */
+    entry->ip_targets.ip = cptr->ip;    /* The IP number of registry entry */
+    entry->last_connect = NOW;  /* Seconds since last connect (attempt) */
+    entry->connected = 1;       /* Number of currently connected clients with this IP number */
+    entry->connect_attempts = is_burst ? 1 : 0; /* Number of clients that connected with this IP number */
+    entry->free_targets = STARTTARGETS; /* Number of free targets that a client gets on connect */
   }
   else
   {
 #ifdef GODMODE
     sendto_one(cptr,
-	"%s NOTICE %s%s :I saw your face before my friend (connected: %u; connect_attempts %u; free_targets %u)",
-	NumServ(&me), NumNick(cptr), entry->connected, entry->connect_attempts,
-	FREE_TARGETS(entry));
+        "%s NOTICE %s%s :I saw your face before my friend (connected: %u; connect_attempts %u; free_targets %u)",
+        NumServ(&me), NumNick(cptr), entry->connected, entry->connect_attempts,
+        FREE_TARGETS(entry));
 #endif
-    if (++(entry->connected) == 0)	/* Don't allow more then 255 connects from one IP number, ever */
+    if (++(entry->connected) == 0)      /* Don't allow more then 255 connects from one IP number, ever */
       return -1;
     if (CONNECTED_SINCE(entry) > IPCHECK_CLONE_PERIOD)
       entry->connect_attempts = 0;
     if (!is_burst)
     {
-      if (++(entry->connect_attempts) == 0)	/* Check for overflow */
-	--(entry->connect_attempts);
+      if (++(entry->connect_attempts) == 0)     /* Check for overflow */
+        --(entry->connect_attempts);
       reset_connect_time(entry);
     }
   }
@@ -368,12 +392,12 @@ int IPcheck_remote_connect(aClient *cptr, const char *UNUSED(hostname),
  *   a way that the client won't be penalized when trying to reconnect
  *   again.
  */
-void IPcheck_connect_fail(aClient *cptr)
+void IPcheck_connect_fail(struct in_addr a)
 {
   struct IPregistry *entry;
-  CALCULATE_HASH(cptr->ip);
-  entry = IPregistry_find(hash, cptr->ip);
-  entry->connect_attempts--;
+  CALCULATE_HASH(a);
+  if ((entry = IPregistry_find(hash, a)))
+    --entry->connect_attempts;
 }
 
 /*
@@ -384,7 +408,7 @@ void IPcheck_connect_fail(aClient *cptr)
  *
  * Finish IPcheck registration of a successfully, locally connected client.
  */
-void IPcheck_connect_succeeded(aClient *cptr)
+void IPcheck_connect_succeeded(struct Client *cptr)
 {
   struct IPregistry *entry;
   const char *tr = "";
@@ -411,28 +435,43 @@ void IPcheck_connect_succeeded(aClient *cptr)
  *   Remove all expired IPregistry structures from the hash bucket
  *     that belongs to this clients IP number.
  */
-void IPcheck_disconnect(aClient *cptr)
+void IPcheck_disconnect(struct Client *cptr)
 {
   struct IPregistry *entry;
   CALCULATE_HASH(cptr->ip);
   entry = IPregistry_find_with_expire(hash, cptr->ip);
-  if (--(entry->connected) == 0)	/* If this was the last one, set `last_connect' to disconnect time (used for expiration) */
-  {
+  if (0 == entry) {
+    /*
+     * trying to find an entry for a server causes this to happen,
+     * servers should never have FLAGS_IPCHECK set
+     */
+    assert(0 != entry);
+    return;
+  }
+  /*
+   * If this was the last one, set `last_connect' to disconnect time (used for expiration)
+   */
+  if (--(entry->connected) == 0) {
     if (CONNECTED_SINCE(entry) > IPCHECK_CLONE_LIMIT * IPCHECK_CLONE_PERIOD)
-      entry->connect_attempts = 0;	/* Otherwise we'd penetalize for this old value if the client reconnects within 20 seconds */
+      /*
+       * Otherwise we'd penetalize for this old value if the client reconnects within 20 seconds
+       */
+      entry->connect_attempts = 0;
     reset_connect_time(entry);
   }
-  if (MyConnect(cptr))
-  {
+  if (MyConnect(cptr)) {
     unsigned int inheritance;
-    /* Copy the clients targets */
-    if (HAS_TARGETS(entry))
-    {
+    /*
+     * Copy the clients targets
+     */
+    if (HAS_TARGETS(entry)) {
       entry->free_targets = entry->ip_targets.ptr->free_targets;
-      RunFree(entry->ip_targets.ptr);
+      MyFree(entry->ip_targets.ptr);
     }
     entry->ip_targets.ptr =
-	(struct ip_targets_st *)RunMalloc(sizeof(struct ip_targets_st));
+        (struct ip_targets_st*) MyMalloc(sizeof(struct ip_targets_st));
+
+    assert(0 != entry->ip_targets.ptr);
     entry->ip_targets.ptr->ip = cptr->ip;
     entry->ip_targets.ptr->free_targets = entry->free_targets;
     entry->free_targets = HAS_TARGETS_MAGIC;
@@ -450,14 +489,24 @@ void IPcheck_disconnect(aClient *cptr)
      * ALL should get no free targets when reconnecting.  We'd need to store an entry
      * per client (instead of per IP number) to avoid this.
      */
-    if (cptr->nexttarget <= now)
-      inheritance = (now - cptr->nexttarget) / TARGET_DELAY + 1;	/* Number of free targets */
+    if (cptr->nexttarget <= CurrentTime)
+        /*
+         * Number of free targets
+         */
+      inheritance = (CurrentTime - cptr->nexttarget) / TARGET_DELAY + 1;
     else
       inheritance = 0;
-    /* Add bonus, this is pretty fuzzy, but it will help in some cases. */
-    if (now - cptr->firsttime > 600)	/* Was longer then 10 minutes online? */
-      inheritance += (now - cptr->firsttime - 600) / TARGET_DELAY;
-    /* Finally, store smallest value for Judgement Day */
+    /*
+     * Add bonus, this is pretty fuzzy, but it will help in some cases.
+     */
+    if (CurrentTime - cptr->firsttime > 600)
+      /*
+       * Was longer then 10 minutes online?
+       */
+      inheritance += (CurrentTime - cptr->firsttime - 600) / TARGET_DELAY;
+    /*
+     * Finally, store smallest value for Judgement Day
+     */
     if (inheritance < entry->ip_targets.ptr->free_targets)
       entry->ip_targets.ptr->free_targets = inheritance;
   }
@@ -468,10 +517,11 @@ void IPcheck_disconnect(aClient *cptr)
  *
  * Returns number of clients with the same IP number
  */
-unsigned short IPcheck_nr(aClient *cptr)
+unsigned short IPcheck_nr(struct Client *cptr)
 {
   struct IPregistry *entry;
   CALCULATE_HASH(cptr->ip);
   entry = IPregistry_find(hash, cptr->ip);
   return (entry ? entry->connected : 0);
 }
+

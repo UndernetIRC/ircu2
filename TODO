@@ -1,0 +1,40 @@
+
+Undernet Server TODO List
+This list contains things that still need to be done.
+
+Remember:
+Premature optimisation is the root of all evil - Knuth
+Debugging is at least twice as difficult as programming.  So if you
+write a program that uses all of your ability, you'll never be able
+to debug it all.
+
+High Priority:
+
+* something is leaking "a meg a minute" with heap debugging on
+  with 1300+ clients
+  (No idea)
+
+Medium Priority:
+* why do the allocation counts change the first time you rehash
+  after a server boot without changing the conf file:
+  *** Allocations:  416(41848)
+  *** ircd.conf : Rehashing
+  *** Allocations:  424(42006)
+  *** ircd.conf : Rehashing
+  *** Allocations:  424(42006)
+
+* Use numeric nicks for numeric replies to remote clients
+* Finish message handlers.
+* Clean up ircd.conf processing, lots of sub issues.
+* Implement PROTOCOL handshaking
+  http://www.xs4all.nl/~carlo17/irc/prot.html
+* Prepare network code to handle even more connections:
+  http://www.kegel.com/c10k.html
+* Implement zlib compression for server links.
+* Cleanups, lots of them.
+* Document undernet protocol as it is used in
+  doc/rfc1459.unet
+* Finish tokenization.
+* Allow for /WHO by IP address. (for finding who's port scanning you
+  for example).  Suggested by Nuke
+

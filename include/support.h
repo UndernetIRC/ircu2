@@ -1,22 +1,27 @@
-#ifndef SUPPORT_H
-#define SUPPORT_H
+/*
+ * support.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_support_h
+#define INCLUDED_support_h
+#ifndef INCLUDED_config_h
+#include "config.h"
+#define INCLUDED_config_h
+#endif
+#if 0
+#ifndef INCLUDED_sys_types_h
+#include <sys/types.h>         /* broken BSD system headers */
+#define INCLUDED_sys_types_h
+#endif
+#endif /* 0 */
 
-#include <netinet/in.h>
-
-/*=============================================================================
- * Proto types
+/*
+ * Prototypes
  */
 
-#ifndef HAVE_STRTOKEN
-extern char *strtoken(char **save, char *str, char *fs);
-#endif
-#ifndef HAVE_STRERROR
-extern char *strerror(int err_no);
-#endif
-extern void dumpcore(const char *pattern, ...)
-    __attribute__ ((format(printf, 1, 2)));
-extern char *inetntoa(struct in_addr in);
+extern void dumpcore(const char *pattern, ...);
 extern int check_if_ipmask(const char *mask);
 extern void write_log(const char *filename, const char *pattern, ...);
 
-#endif /* SUPPORT_H */
+#endif /* INCLUDED_support_h */

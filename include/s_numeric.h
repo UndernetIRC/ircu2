@@ -1,11 +1,18 @@
-#ifndef S_NUMERIC_H
-#define S_NUMERIC_H
+/*
+ * s_numeric.h
+ *
+ * $Id$
+ */
+#ifndef INCLUDED_s_numeric_h
+#define INCLUDED_s_numeric_h
 
-/*=============================================================================
- * Proto types
+struct Client;
+
+/*
+ * Prototypes
  */
 
-extern int do_numeric(int numeric, int nnn, aClient *cptr, aClient *sptr,
+extern int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
     int parc, char *parv[]);
 
-#endif /* S_NUMERIC_H */
+#endif /* INCLUDED_s_numeric_h */

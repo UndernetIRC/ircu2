@@ -17,24 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include "h.h"
-#include "struct.h"
-#include "s_serv.h"
-#include "s_bsd.h"
-#include "send.h"
-#include "support.h"
-#include "parse.h"
-#include "numeric.h"
-#include "channel.h"
-#include "ircd.h"
-#include "hash.h"
-#include "numnicks.h"
 #include "s_numeric.h"
+#include "channel.h"
+#include "client.h"
+#include "hash.h"
+#include "ircd.h"
+#include "numnicks.h"
+#include "send.h"
+#include "struct.h"
 
-RCSTAG_CC("$Id$");
 
 static char buffer[1024];
 
@@ -48,11 +42,11 @@ static char buffer[1024];
  * the savy approach is NEVER generate an error in response to an... error :)
  */
 
-int do_numeric(int numeric, int nnn, aClient *cptr, aClient *sptr,
+int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
     int parc, char *parv[])
 {
-  aClient *acptr = NULL;
-  aChannel *achptr = NULL;
+  struct Client *acptr = 0;
+  struct Channel *achptr = 0;
   char *p, *b;
   int i;
 
@@ -84,7 +78,7 @@ int do_numeric(int numeric, int nnn, aClient *cptr, aClient *sptr,
   {
     for (i = 2; i < (parc - 1); i++)
       for (*b++ = ' ', p = parv[i]; *p; p++)
-	*b++ = *p;
+        *b++ = *p;
     for (*b++ = ' ', *b++ = ':', p = parv[parc - 1]; *p; p++)
       *b++ = *p;
   }
@@ -94,10 +88,10 @@ int do_numeric(int numeric, int nnn, aClient *cptr, aClient *sptr,
 
   if (acptr)
     sendto_prefix_one(acptr, sptr, ":%s %d %s%s",
-	sptr->name, numeric, acptr->name, buffer);
+        sptr->name, numeric, acptr->name, buffer);
   else
     sendto_channel_butone(cptr, sptr, achptr, ":%s %d %s%s",
-	sptr->name, numeric, achptr->chname, buffer);
+        sptr->name, numeric, achptr->chname, buffer);
 
   return 0;
 }

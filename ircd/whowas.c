@@ -1,4 +1,3 @@
-
 /*
  * IRC - Internet Relay Chat, ircd/whowas.c
  * Copyright (C) 1990 Markku Savela
@@ -16,56 +15,48 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-/*
+ *
  * --- avalon --- 6th April 1992
  * rewritten to scrap linked lists and use a table of structures which
  * is referenced like a circular loop. Should be faster and more efficient.
- */
-
-/*
+ *
  * --- comstud --- 25th March 1997
  * Everything rewritten from scratch.  Avalon's code was bad.  My version
  * is faster and more efficient.  No more hangs on /squits and you can
  * safely raise NICKNAMEHISTORYLENGTH to a higher value without hurting
  * performance.
- */
-
-/*
+ *
  * --- comstud --- 5th August 1997
  * Fixed for Undernet..
- */
-
-/*
+ *
  * --- Run --- 27th August 1997
  * Speeded up the code, added comments.
+ *
+ * $Id$
  */
-
-#include "sys.h"
-#include <stdlib.h>
-#include "common.h"
-#include "h.h"
-#include "struct.h"
-#include "numeric.h"
-#include "send.h"
-#include "s_misc.h"
-#include "s_err.h"
 #include "whowas.h"
+#include "client.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
+#include "ircd_chattr.h"
+#include "ircd_string.h"
 #include "list.h"
+#include "numeric.h"
+#include "s_misc.h"
 #include "s_user.h"
+#include "send.h"
+#include "struct.h"
 #include "support.h"
+#include "sys.h"
+#include "msg.h"
 
-RCSTAG_CC("$Id$");
+#include <assert.h>
+#include <stdlib.h>
 
-static aWhowas whowas[NICKNAMEHISTORYLENGTH];
-static aWhowas *whowashash[WW_MAX];
-static aWhowas *whowas_next = whowas;
 
-static unsigned int hash_whowas_name(register const char *name);
-
-extern char *canonize(char *);
+static struct Whowas  whowas[NICKNAMEHISTORYLENGTH];
+static struct Whowas* whowas_next = whowas;
+struct Whowas* whowashash[WW_MAX];
 
 /*
  * Since the introduction of numeric nicks (at least for upstream messages,
@@ -86,7 +77,7 @@ extern char *canonize(char *);
  * But - it was written anyway.  So lets look at the structure of the
  * whowas history now:
  *
- * We still have a static table of 'aWhowas' structures in which we add
+ * We still have a static table of 'struct Whowas' structures in which we add
  * new nicks (plus info) as in a rotating buffer.  We keep a global pointer
  * `whowas_next' that points to the next entry to be overwritten - or to
  * the oldest entry in the table (which is the same).
@@ -140,8 +131,8 @@ extern char *canonize(char *);
  */
 
 typedef union {
-  aWhowas *newww;
-  aWhowas *oldww;
+  struct Whowas *newww;
+  struct Whowas *oldww;
 } Current;
 
 #define WHOWAS_UNUSED ((unsigned int)-1)
@@ -155,55 +146,44 @@ typedef union {
  * If the entry used was already in use, then this entry is
  * freed (lost).
  */
-void add_history(aClient *cptr, int still_on)
+void add_history(struct Client *cptr, int still_on)
 {
-  register Current ww;
+  Current ww;
   ww.newww = whowas_next;
 
   /* If this entry has already been used, remove it from the lists */
   if (ww.newww->hashv != WHOWAS_UNUSED)
   {
-    if (ww.oldww->online)	/* No need to update cnext/cprev when offline! */
+    if (ww.oldww->online)       /* No need to update cnext/cprev when offline! */
     {
       /* Remove ww.oldww from the linked list with the same `online' pointers */
       *ww.oldww->cprevnextp = ww.oldww->cnext;
 
-      if (ww.oldww->cnext)
-	MyCoreDump;
-#if 0
-      if (ww.oldww->cnext)	/* Never true, we always catch the
-				   oldwwest nick of this client first */
-	ww.oldww->cnext->cprevnextp = ww.oldww->cprevnextp;
-#endif
+      assert(0 == ww.oldww->cnext);
 
     }
     /* Remove ww.oldww from the linked list with the same `hashv' */
     *ww.oldww->hprevnextp = ww.oldww->hnext;
 
-    if (ww.oldww->hnext)
-      MyCoreDump;
-#if 0
-    if (ww.oldww->hnext)
-      ww.oldww->hnext->hprevnextp = ww.oldww->hprevnextp;
-#endif
+    assert(0 == ww.oldww->hnext);
 
     if (ww.oldww->name)
-      RunFree(ww.oldww->name);
+      MyFree(ww.oldww->name);
     if (ww.oldww->username)
-      RunFree(ww.oldww->username);
+      MyFree(ww.oldww->username);
     if (ww.oldww->hostname)
-      RunFree(ww.oldww->hostname);
+      MyFree(ww.oldww->hostname);
     if (ww.oldww->servername)
-      RunFree(ww.oldww->servername);
+      MyFree(ww.oldww->servername);
     if (ww.oldww->realname)
-      RunFree(ww.oldww->realname);
+      MyFree(ww.oldww->realname);
     if (ww.oldww->away)
-      RunFree(ww.oldww->away);
+      MyFree(ww.oldww->away);
   }
 
   /* Initialize aWhoWas struct `newww' */
   ww.newww->hashv = hash_whowas_name(cptr->name);
-  ww.newww->logoff = now;
+  ww.newww->logoff = CurrentTime;
   DupString(ww.newww->name, cptr->name);
   DupString(ww.newww->username, cptr->user->username);
   DupString(ww.newww->hostname, cptr->user->host);
@@ -216,19 +196,19 @@ void add_history(aClient *cptr, int still_on)
     ww.newww->away = NULL;
 
   /* Update/initialize online/cnext/cprev: */
-  if (still_on)			/* User just changed nicknames */
+  if (still_on)                 /* User just changed nicknames */
   {
     ww.newww->online = cptr;
-    /* Add aWhowas struct `newww' to start of 'online list': */
+    /* Add struct Whowas struct `newww' to start of 'online list': */
     if ((ww.newww->cnext = cptr->whowas))
       ww.newww->cnext->cprevnextp = &ww.newww->cnext;
     ww.newww->cprevnextp = &cptr->whowas;
     cptr->whowas = ww.newww;
   }
-  else				/* User quitting */
+  else                          /* User quitting */
     ww.newww->online = NULL;
 
-  /* Add aWhowas struct `newww' to start of 'hashv list': */
+  /* Add struct Whowas struct `newww' to start of 'hashv list': */
   if ((ww.newww->hnext = whowashash[ww.newww->hashv]))
     ww.newww->hnext->hprevnextp = &ww.newww->hnext;
   ww.newww->hprevnextp = &whowashash[ww.newww->hashv];
@@ -245,9 +225,9 @@ void add_history(aClient *cptr, int still_on)
  * Client `cptr' signed off: Set all `online' pointers
  * corresponding to this client to NULL.
  */
-void off_history(const aClient *cptr)
+void off_history(const struct Client *cptr)
 {
-  aWhowas *temp;
+  struct Whowas *temp;
 
   for (temp = cptr->whowas; temp; temp = temp->cnext)
     temp->online = NULL;
@@ -263,13 +243,13 @@ void off_history(const aClient *cptr)
  * nicks for "upstream" messages in ircu2.10, this is only used for
  * looking up non-existing nicks in client->server messages.
  */
-aClient *get_history(const char *nick, time_t timelimit)
+struct Client *get_history(const char *nick, time_t timelimit)
 {
-  aWhowas *temp = whowashash[hash_whowas_name(nick)];
-  timelimit = now - timelimit;
+  struct Whowas *temp = whowashash[hash_whowas_name(nick)];
+  timelimit = CurrentTime - timelimit;
 
   for (; temp; temp = temp->hnext)
-    if (!strCasediff(nick, temp->name) && temp->logoff > timelimit)
+    if (0 == ircd_strcmp(nick, temp->name) && temp->logoff > timelimit)
       return temp->online;
 
   return NULL;
@@ -277,8 +257,8 @@ aClient *get_history(const char *nick, time_t timelimit)
 
 void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
 {
-  register aWhowas *tmp;
-  register int i;
+  struct Whowas *tmp;
+  int i;
   int u = 0, a = 0;
   size_t um = 0, am = 0;
 
@@ -292,8 +272,8 @@ void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
       um += (strlen(tmp->servername) + 1);
       if (tmp->away)
       {
-	a++;
-	am += (strlen(tmp->away) + 1);
+        a++;
+        am += (strlen(tmp->away) + 1);
       }
     }
 
@@ -303,84 +283,24 @@ void count_whowas_memory(int *wwu, size_t *wwum, int *wwa, size_t *wwam)
   *wwam = am;
 }
 
-/*
- * m_whowas
- *
- * parv[0] = sender prefix
- * parv[1] = nickname queried
- * parv[2] = maximum returned items (optional, default is unlimitted)
- * parv[3] = remote server target (Opers only, max returned items 20)
- */
-int m_whowas(aClient *cptr, aClient *sptr, int parc, char *parv[])
-{
-  register aWhowas *temp;
-  register int cur = 0;
-  int max = -1, found = 0;
-  char *p, *nick, *s;
-
-  if (parc < 2)
-  {
-    sendto_one(sptr, err_str(ERR_NONICKNAMEGIVEN), me.name, parv[0]);
-    return 0;
-  }
-  if (parc > 2)
-    max = atoi(parv[2]);
-  if (parc > 3)
-    if (hunt_server(1, cptr, sptr, ":%s WHOWAS %s %s :%s", 3, parc, parv))
-      return 0;
-
-  parv[1] = canonize(parv[1]);
-  if (!MyConnect(sptr) && (max > 20))
-    max = 20;			/* Set max replies at 20 */
-  for (s = parv[1]; (nick = strtoken(&p, s, ",")); s = NULL)
-  {
-    /* Search through bucket, finding all nicknames that match */
-    found = 0;
-    for (temp = whowashash[hash_whowas_name(nick)]; temp; temp = temp->hnext)
-    {
-      if (!strCasediff(nick, temp->name))
-      {
-	sendto_one(sptr, rpl_str(RPL_WHOWASUSER),
-	    me.name, parv[0], temp->name, temp->username,
-	    temp->hostname, temp->realname);
-	sendto_one(sptr, rpl_str(RPL_WHOISSERVER), me.name, parv[0],
-	    temp->name, temp->servername, myctime(temp->logoff));
-	if (temp->away)
-	  sendto_one(sptr, rpl_str(RPL_AWAY),
-	      me.name, parv[0], temp->name, temp->away);
-	cur++;
-	found++;
-      }
-      if (max >= 0 && cur >= max)
-	break;
-    }
-    if (!found)
-      sendto_one(sptr, err_str(ERR_WASNOSUCHNICK), me.name, parv[0], nick);
-    /* To keep parv[1] intact for ENDOFWHOWAS */
-    if (p)
-      p[-1] = ',';
-  }
-  sendto_one(sptr, rpl_str(RPL_ENDOFWHOWAS), me.name, parv[0], parv[1]);
-  return 0;
-}
 
 void initwhowas(void)
 {
-  register int i;
+  int i;
 
   for (i = 0; i < NICKNAMEHISTORYLENGTH; i++)
     whowas[i].hashv = WHOWAS_UNUSED;
 }
 
-static unsigned int hash_whowas_name(register const char *name)
+unsigned int hash_whowas_name(const char *name)
 {
-  register unsigned int hash = 0;
-  register unsigned int hash2 = 0;
-  register char lower;
+  unsigned int hash = 0;
+  unsigned int hash2 = 0;
+  unsigned char lower;
 
   do
   {
-    lower = toLower(*name);
+    lower = ToLower(*name);
     hash = (hash << 1) + lower;
     hash2 = (hash2 >> 1) + lower;
   }
@@ -389,3 +309,4 @@ static unsigned int hash_whowas_name(register const char *name)
   return ((hash & WW_MAX_INITIAL_MASK) << BITS_PER_COL) +
       (hash2 & BITS_PER_COL_MASK);
 }
+

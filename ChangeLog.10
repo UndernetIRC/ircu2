@@ -1,0 +1,548 @@
+#
+# ChangeLog for ircu2.10.10
+#
+# $Id: ChangeLog.10,v 1.1 2000-03-18 05:20:28 bleep Exp $
+#
+# Insert new changes at beginning of the change list.
+#
+* Don't bother doing hostname lookup or setting me.sockhost
+  since we never want to display it there is really no reason
+  to have the info. --Bleep
+* Bugfix broken N:line check in chkconf --Maniac
+* Bugfix, fix clients occasionally getting stuck in IPcheck
+  code. Add note to members in client struct that aren't used
+  for any remote client code, didn't want to actually move them
+  this close to release (paranoia) --Bleep
+* A few little cleanups in check_pings, removed yet another
+  address display. --Bleep
+* Bugfix, autoconnects displaying server IP address to opers.
+  --Bleep
+* Remove names from /stats p, since its always the server
+  name from the M:line anyhow, (redundant information)
+  --Bleep
+* Unborked throttling. --Bleep
+* Fix two stupid bugs, related to IP mismatch kills. --Bleep
+* Clean up configuration, make it a bit easier for admins to
+  turn off asserts and heap checking code. Moved host name dns
+  query for listener virtual host ports to dead code and use
+  me.name for the listener name (no sense in looking up the name
+  if we don't want to display it). Change direct bump of unknowns
+  in s_bsd.c to Count_newunknowns(UserStats) for consistency.
+  --Bleep
+* Added option to kill any connecting client with a forward and
+  reverse DNS mismatch. Fixed bug in s_auth that that caused
+  incorrect counts for unknown clients. Replaced missing server
+  notice for SNO_IPMISMATCH. --Bleep
+* Added a few more little name tweaks, no sense in looking up
+  the hostname in the conf if no one knows it. --Bleep
+* Moved to beta archive, bumped patchlevel, fixed message for
+  lost C:line in s_conf.c (I don't think I've ever seen this happen)
+  --Bleep
+* Finished host hiding changes, it should not be possible for any
+  online user to discover the real hostname or IP address of any
+  connected or unconnected server listed in the configuration. This
+  applies to opers and regular users. The name in the M:line is the
+  name used for connecting and all informational messages. --Bleep
+* Removed code in dbuf.c that flushes the dbufs if the server runs out
+  it looks like a fully loaded server may not be able to handle a net
+  break without shedding a few clients. --Bleep
+* Finish IP address cleanup, alpha should be clean for not displaying
+  server hosts or IP addresses to users now. This needs to be verified.
+  Changed version to u2.10.10 per Isomers suggestion. --Bleep
+* Remove server IP address from info line for connecting servers.  
+  This almost completes the IP address hiding changes for alpha, there
+  are still a few stats commands available to users that will show the
+  server addresses, but they can be easily disabled or only show '*'s
+  to non-opers.  --Bleep
+* Fix possible (but not likely) memory leak in debug allocator, couldn't
+  find the "meg a minute" problem, using the debug allocator on the
+  production network with more than 1000 clients on a server may cause
+  problems if you don't have a lot of memory. (This does not seem to
+  be a problem with non-debug builds) --Bleep
+* Captialisation fixes, just to keep certain ppl quiet. --Isomer
+* Removed +s channels from /list.  They were shown sometimes, but not
+  others, and the information that was shown about them was inconsistant.
+  list is not an effective way to gain information anyway. Reformatted
+  and touched up readme.who as well.  --Isomer
+* Added MAP to ISUPPORT, added doc/features.txt --Isomer
+* Added suggestions made by scripters. more info for ISUPPORT, and
+  added stuff to 'TODO' --Isomer
+* More TODO items 'done'.  P:'s now ignore '*'s.  ping shouldn't do funky
+  stuff with mirc anymore, needs discussion --Isomer
+* Typo fixed. Now I'm annoyed.  --Isomer
+* Right, Makefile's gonna work now or I'm going to get REALLY annoyed at it.
+  --Isomer
+* TODO, m_ping, ircd/Makefile.in: Added note to TODO, added info to
+  m_ping, and fixed Makefile bug using bsdmake. --Isomer
+* s_bsd.c, listener.c, s_user.c, s_serv.c, s_bsd.h:
+  Set receive and send buffers in correct order to enable flow
+  control for clients and support fat pipes better for servers.
+  Finally got it right :)
+  See Stevens "Unix Network Programming" v1 p 191-193
+  --Bleep
+* ircd.c (main): added idiot checking to make sure MAXCONNECTIONS
+  is sane. --Bleep
+* send.c: Don't let negative fd's break stuff, audit sentalong
+  usage for sillyness. --Bleep
+* send.c (sendto_common_channels): bug fix, code assumed client
+  local, file descriptor is only in local client struct
+  --Bleep
+* table_gen.c, channel.c: make FIXME changes, removed
+  FIXME code from table_gen, readd FIXME code to channel.c,
+  I hope I got this right. --Bleep
+* Makefile.in: Add purify def, fix so CFLAGS don't error
+  off when using Solaris compiler --Bleep
+* fda.c (fda_free): fix compile error on Solaris --Bleep
+* configure.in: add SunOS case to detect Solaris --Bleep
+* os_solaris.c (os_send_nonb): fix solaris compile error --Bleep
+* exaconf.2: add file from conf design to docs directory to
+  have it available for new conf parser development --Bleep
+* fda.c (fda_free): fix memory leak, doh!!! --Bleep
+* hash.c (addNickJupes): fix buffer overrun --Bleep
+* s_bsd.c (read_message(poll)): fix uninitialized memory read
+  bogosity in poll macros. --Bleep
+* channel.c (send_user_modes): change to send XXX:ov instead
+  of XXX:o:v doesn't send XXX: if no modes set. --Bleep
+* s_bsd.c (connect_server): bugfix for connect/rehash/connect
+  multiple outstanding dns query core. --Bleep
+* channel.c (send_user_modes): bugfix for burst not sending modes
+  when burst line is created. --Gte
+* m_gline.c: change NumServ(cptr) to NumServ(sptr) found by Gte
+  --Bleep
+* config-sh.in: add WildThangs BADCHAN config fix --Bleep
+* config-sh.in: add Runs restart bugfix --Bleep
+* Makefile.in: make sure version.c gets regenerated when checksums
+  change --Bleep
+* Makefile.in: remove hash.c/crypt/sums idiocy, all of the ridiculous
+  anti-hack stuff is already done in version.c anyhow.
+  "Shhh..., don't tell the admins ( .)( .) you're being watched"
+  --Bleep
+* hash.c (m_hash): fix count bugs --Bleep
+* m_squit.c (mo_squit): fix off by one, /quote SQUIT bug --Bleep
+* ircd_relay.c: oops, changed the wrong one.  Fixed previous fix. --Isomer
+* Makefile.in, ircd_relay.c: Fixed 'make depend', added dependancies, fixed
+  bug where server would core on sending a server notice --Isomer
+* m_kick.c (ms_kick): fix core on kick message coming from
+  server --Bleep
+* config.in: remove CRYPT_LINK_PASSWORD option --Bleep
+* doc/readme.www: Applied Runs' doc patch --Bleep
+* client.h: Add member to client struct to try to aggravate the
+  bug found by Jesus --Bleep
+* client.h: Remove IsListening macros and flags, add FLAGS_UPUNG
+  and IsUPing/GetUPing/SetUPing macros --Bleep
+* m_silence.c, m_create.c: check for IsServer(sptr) don't
+  allow X SILENCE X +*@*.com or X C #blah 947477407 core the
+  server. --Bleep
+* os_*.c, res.c: clean interface for os_recvfrom_nonb --Bleep
+* uping.c, uping.h: new files for UDP pings, these aren't hooked up yet, or
+  finished or tested.
+  --Bleep
+* channel.c: find_member_link(): Fail fast for Servers, prevents core when
+  servers set a channel mode. --Isomer
+* channel.c, channel.h, various.c: Changed find_member_link() to take
+  a chptr instead of the first member, and special case'd +k users
+  (see comment in code for more details) --Isomer
+* ircd/Makefile.in: Changed gnu specific $^ for $< in table_gen
+  rules --Bleep
+* INSTALL: Explained about CVS --Isomer
+* example.conf: Point to coder-com@ for help configuring the server. --Isomer
+* INSTALL: Make things a bit more plain.  --Isomer
+* s_bsd.c (read_message (poll)): removed local_cptr array using
+  this temp made possible a bug where if a client lower in the list
+  managed to exit a client higher in the list, a dangling reference
+  to the already exited client would be left in the local_cptr array.
+  Found by Quantum by loading 100's of clones with the same nick.
+  --Bleep
+* INSTALL: Added instructions for -lcrypt FAQ --Isomer
+* INSTALL: Added instructions for -lresolv FAQ --Isomer
+* INSTALL: Added instructions for making ./configure executable --Isomer
+* numeric.h: Merged in some more numerics that other ircds user --Isomer
+* IPcheck.c: Fix gramatical error to keep pedants happy. --Isomer
+* IPcheck.c: Allow -DNOTHROTTLE for debugging purposes.  --Isomer
+* m_stats.c: make stats c available to opers only, TEMP_HACK --Bleep
+* IPcheck.c: Fixed outdated comment.  Thanks Quantum --Isomer
+* ircd_reply.c: Fix the fix, silly typo.  thanks Bleep --Isomer
+* ircd_reply.c: added check for people without nicks.  --Isomer
+* doc/Authors, ircd/version.c.SH: updated /info and maintainer 
+  lists. --Isomer
+* channel.h, channel.c, m_join.c, m_mode.c: add David M's
+  lchanmode patch update --Bleep
+* s_auth.c: fix ident bug, comment code for rule. --Bleep
+* m_invite.c (m_invite): Fix syntax error, missing ')'. -- Isomer.
+* m_invite.c (m_invite): tokenize invites, change from accidental
+  broadcast to directed message (bug fix). --Bleep
+* m_time.c (m_time): send tokenized time messages --Bleep
+* s_user.c (set_user_mode): Send wallops to everyone by default
+  allow compile option WALLOPS_OPER_ONLY for networks that want
+  to disable wallops for users. --Bleep
+* s_misc.c (exit_one_client): tokenize client quit message to other servers.
+  --Gte
+* m_kick.c: you would have thought I'd fix all of them the first time, but
+  no... -- Isomer
+* m_kick.c: Fixed missing space after TOK_KICK -- Isomer
+* m_burst.c: Fixed netrider kick bugs -- Isomer
+* s_user.c: Bug fix --Bleep
+* s_user.c: only send wallops to opers --Bleep
+* s_user.c: enforced undernet policy. -- Isomer
+* s_user.c: replace user_modes with struct UserMode array
+  change code to use new struct. --Bleep
+* s_user.c (set_user_mode): clean up switch statement --Bleep
+* channel.c (set_mode): fixed -k foo bug, extra == 0 typo in
+  conditional. --Bleep
+* dbuf.c (dbuf_alloc): fixed count bug, we _have_ to count it in
+  the branches. --Bleep
+* dbuf.c, send.c, s_bsd.c, send.h: bahh finally did it right,
+  if a dbuf allocation fails, attempt to flush all send buffers except
+  for the one we are trying to build (we're twiddling with the list etc..)
+  if the allocation fails a second time, _then_ bail. --Bleep
+* s_bsd.c, send.c: if dbuf_put fails for send or receive buffers,
+  call flush connections to free up some buffers (safe here). --Bleep
+* dbuf.c (dbuf_put): back out previous change, afaict it would fail
+  spectacularly --Bleep
+* dbuf.c (dbuf_put): call flush_connections(0) if we can't allocate
+  a dbuf the first time, this may prevent the server from dropping
+  connections during netbursts. --Bleep
+* m_privmsg.c: fix IDLE_ON_MSG fix -- Isomer
+* m_privmsg.c, parse.c: fix IDLE_ON_MSG bug --Bleep
+* m_ison.c (m_ison): Temp hack to fix missing null terminator. --Bleep
+* m_nick.c (m_nick): fix null nick reply bug --Bleep
+* ircd_string.c, match.c: fix a couple possible issues with
+  the character attribute changes --Bleep
+* s_auth.c, ircd.c: turn off connection status messages for
+  connections to server ports. --Bleep
+* ircd.c, s_conf.c, m_server.c, ircd.h, s_conf.h:
+  removed portnum and server_port global variables, server port
+  in M:lines is ignored, server ports now need to be defined in
+  the P:lines. Add SERVER_PORT config option to allow:
+  '/connect server.net.dom' without specifying the port. --Bleep
+* config-sh.in: change PORTNUM to SERVER_PORT now used for
+  default server port for outgoing connections in m_connect.
+  --Bleep
+* example.conf: document changes to M:line for server port --Bleep
+* ircd_chattr.h, ircd_string.h, ircd_string.c, table_gen.c:
+  put Nemesi's table generation code and macros back in, the
+  tables are now automagically generated whenever the table_gen.c
+  file is modified, use a slightly different mechanism to get the
+  tables in the executable. Add reference data file to test dir
+  for character attributes. --Bleep
+* s_auth.c (check_ident_reply): add function that implements
+  auth reply undernet rules checking. --Bleep
+* s_misc.c (date): added Runs Y2K patch --Bleep
+* m_privmsg.c: work on server handlers, hookup new code to parser,
+  test, fixed a couple bugs, fixed username bug in server NICK
+  processing --Bleep
+* ircd_chattr.c, m_privmsg.c: Work on privmsg code a bit more,
+  commit for review, still a bit more to do --Bleep
+* os_bsd.c, configure.in: add os dependency file for bsd
+  --Bleep
+* m_privmsg.c, ircd_string.c: little cleanups for privmsg
+  work on prototype handler for new parser. --Bleep
+* m_connect.c, s_conf.c: clean up /connect handling code
+  --Bleep
+* m_away.c, m_admin.c, m_close.c, m_connect.c:
+  start cleaning up handlers --Bleep
+* whocmds.c, whowas.c, *.c: split out handlers from whocmds.c
+  and whowas.c --Bleep
+* s_serv.c, m_*.c: split out handlers from s_serv.c
+  --Bleep
+* querycmds.c, m_*.c: split out handlers from querycmds.c
+  --Bleep
+* opercmds.c, m_stats.c, m_connect.c, parse.c, handlers.h, *.c
+  add new command handlers --Bleep
+* channel.c, m_names.c: new file for names handler --Bleep
+* channel.c, m_list.c: new file for list handler --Bleep
+* channel.c, m_topic.c: new file for topic handler --Bleep
+* channel.c, m_burst.c: new file for burst handler --Bleep
+* channel.c, m_create.c: new file for create handler --Bleep
+* channel.c, m_destroy.c: new file for destroy handler --Bleep
+* channel.c, send.c, m_join.c: new file for join handler,
+  const fixups for send.c --Bleep
+* channel.c, m_mode.c: new file for mode command handler,
+  clean up file scope buffer mess. --Bleep
+* m_silence.c: split out SILENCE handler to a new file,
+  cleanup --Bleep
+* m_ison.c: split out ISON handler to a new file, cleanup --Bleep
+* m_userip.c: split out to new file, change userhost and userip
+  to use same algorithm with different formatting functions --Bleep
+* m_userhost.c: split out to new file --Bleep
+* send.c: add new function send_buffer, cleanup godemode ick a bit
+  --Bleep
+* m_wallchops.c: split out wallchops handler --Bleep
+* m_cprivmsg.c: split out m_cprivmsg and m_cnotice.
+* m_pass.c, s_user.c: split out m_pass, pass message handler
+  --Bleep
+* m_oper.c: split out m_oper.c from s_user.c, setup to use
+  new parser. --Bleep
+* m_pong.c, m_ping.c, parse.c, s_user.c, channel.c:
+  Add new file for pong messages, convert ping and pong to use
+  numerics. Test pings and pongs on testnet. Fix numeric
+  nick bug in channel.c. --Bleep
+* m_ping.c, s_serv.c, parse.c: new file for pings, fixed a 
+  minor bug in ping handling. --Bleep
+* m_nick.c, m_kill.c: clean up nick code for servers, still needs work
+  fix string formatting bug in m_kill --Bleep
+* m_nick.c, s_user.c, ircd_chattr.c: add new file for NICK command,
+  clean up local client registration for nicks. --Bleep
+* m_away.c, s_user.c, parse.c: split out m_away handlers for client,
+  add user_set_away function. --Bleep
+* m_kill.c, ircd_reply: Rework handling of kill from server, add new error
+  message formatter. --Bleep
+* m_kill.c (mo_kill): Rework handling for kill from operator on server
+  kill originated from --Bleep
+* m_kill.c: new message handler file for kill --Bleep
+* configure.in, ircd/Makefile.in: added automatic os checking to autoconf
+  checked --Gte
+* m_quit.c: new message handler file for quit --Bleep
+* m_privmsg.c: new message handler file for privmsg --Bleep
+* ircd_string.c, support.c, support.h, *.c: moved strtoken to ircd_string
+  and renamed ircd_strtok --Bleep
+* channel.c, s_user.c, s_debug.c, send.c, channel.h: finish membership code
+  --Bleep
+* channel.c, more cleanups of membership code and macros --Bleep
+* channel.c, s_misc.c: more cleanup in channel link code, most likely
+  still a bit broken yet, more to come. --Bleep
+* querycmds.h (Count_remoteclientquits): fix minor bug --Bleep
+* ircd.h, querycmds.h, struct.h, channel.c, list.c, map.c, opercmds.c,
+  s_err.c, s_serv.c, s_user.c, s_misc.c: Add Isomers passivelag0-1.patch
+  fixed minor bug in macros --Bleep
+* channel.h, channel.c, s_user.c, s_debug.c, s_user.c:
+  added Membership struct for channel associations, change user/channel
+  lookups to use new struct. --Bleep
+* channel.c, channel.h, s_user.c: cleanup channel and user code
+  a bit, new function find_no_nickchange_channel --Bleep
+* parse.c, m_defaults.c: added default handlers and hooked up new
+  message handlers --Bleep
+* *.c, struct.h: added Isomer's passivelag patch and, the second
+  p10 patch --Bleep
+* ircd_reply.[ch]: new files for commonly used replies --Bleep
+* m_proto.[ch]: new file for protocol command support, needed for zip
+  links --Bleep
+* client.h, parse.c, msg.h: add code to support multiple message handlers
+  depending on client status. --Bleep
+* s_bsd.c, packet.c: code cleanup prep for zip links --Bleep
+* channel.c, opercmds.c, ircd.c, s_serv.c, s_user.c, querycmds.c, 
+  whocmds.c, whowas.c: Add Isomers p10ify patch, tokenize server to
+  server commands --Bleep
+* s_user.c (m_nick): killed goto --Bleep
+* client.h, *.c: moved client stuff to client.h --Bleep
+* version.c.SH, patchlevel.h, .patches: change version string
+  generation, patch level is now set in patchlevel.h by simply
+  bumping the number in the PATCHLEVEL string. --Bleep
+* ircd_alloc.c, channel.c: fixup warnings in release build (NDEBUG)
+  --Bleep
+* fda.h, ircd_alloc.h, fda.c, ircd_alloc.c, fda_t.c: new files,
+  runmalloc was core dumping on squits and unable to handle or
+  detect double frees, the memory debug code can be disabled by
+  compiling with NDEBUG defined --Bleep
+* channel.c (remove_user_from_channel): refactor function --Bleep
+* channel.c (m_kick): refactor function a bit, put all checks at top
+  move code out to new function (make_zombie) --Bleep
+* s_bsd.c (completed_connection): fixed stupid
+  "Write error to blah: Socket not connected" bug --Bleep
+* struct.h, send.h, send.c, s_bsd.c, IPcheck.c, s_user.c, *:
+  More socket code cleanup, move file descriptor to local part of
+  client struct, use cptr->error to handle the errno of any socket
+  error, fix bug in IPcheck that ends up only disallowing every
+  256th clone, Add more ipcheck forgiveness to s_user.c (needs work).
+  Changed IPcheck_local_connect and IPcheck_connect_fail interfaces to
+  use struct in_addrs instead of client structs to allow delaying the
+  allocation of the client struct till after the check was done.
+  Added can_send function to send.c (should be called before work is done
+  but right now it's called just before trying to send (needs work))
+* channel.c: Added Isomers netride2.patch, still needs a config option
+  to turn it on (NO_INVITE_NETRIDE) --Bleep
+* parse.c, msg.h: Added silent ignores for notices so connect progress
+  messages do not cause connecting server to spew ERR_REGISTER_FIRST
+  messages at the server it's connecting to. --Bleep
+* s_serv.c, s_user.c, channel.c, send.c: Tokenised BURST, NICK,
+  END_OF_BURST, EOB_ACK, PRIVMSG and NOTICE Server to Server.
+  About 8-10% Bandwidth saving on BURSTS. --Gte
+* channel.c (m_join): servjoin patch --Isomer
+* ircd_osdep.h, os_*.c, s_bsd.c, send.c: more cleanups in socket code,
+  use enumeration for IO results. --Bleep
+* s_bsd.c: clean up select and poll code a bit more, fixed message pacing bug
+  in poll. --Bleep
+* supported.h, numeric.h, s_user.c, s_err.c: Added Isomers features
+  patch. Use numeric 005 RPL_ISSUPPORT to convey server features to
+  clients. --Bleep
+* s_user.c (m_nick): IP differ patch, use IP address instead of host
+  name to determine different user@host for nick collides. --Isomer
+* hash.c (hChangeClient): Bug fix. Fixed bug that caused stale entries
+  to be left in client hash table after a name change. Discovered by
+  Quant and Isomer. --Bleep
+* hash.c (hSeekClient): fixed bug I introduced when reversing my hash
+  table code changes, thanks Quant and Isomer --Bleep
+* opercmds.c (m_lusers): send limited luser info to remote
+  clients --Isomer
+* numeric.h, channel.c, s_err.c: Changed invite list numerics
+  from 283/284 to 346/347 to match IRCnet numerics --Bleep
+* config-sh.in, gline.h, numeric.h, gline.c, opercmds.c, s_debug.c, s_err.c:
+  Add badchan patch by WildThang --Bleep
+* config-sh.in, channel.h, numeric.h, channel.c, s_debug.c, s_err.c:
+  Add lchanmode patch by David M --Bleep
+* channel.c (cancel_mode): removed incorrect assert --Bleep
+* *.c: removed P9 support, not everything is completely gone but most
+  of it is, the server builds and connects to other servers, but thats
+  as far as it's been tested so far. --Bleep
+* ircd.h, ircd.c, s_bsd.c:
+  removed BOOT_INETD/BOOT_CONSOLE code, unused non-functional --Bleep
+* struct.h, ircd.h, ircd.c, s_user.c, s_bsd.c:
+  removed BOOT_OPER/STAT_MASTER code, original patch by Isomer --Bleep
+* s_user.c (m_nick): removed redundant check for acptr
+* hash.c (hSeekClient, hSeekChannel): roll back some of hash.c changes
+* hash.c (hSeekClient, hSeekChannel): removed unused variable from previous
+   changes.
+* hash.c (hSeekClient, hSeekChannel): fix compile error from status changes,
+   fix logic bug that caused the first client that matched the mask to be
+   returned regardless of whether or not it's name matched, this can result
+   in wierd problems where the wrong server/client could be returned from the
+   hash table lookup. Removed code that moved client to head of hash table
+   chain for it's bucket when it's looked up, if the hash table is working
+   reasonably well this just wastes cpu.
+* hash.c, list.c: added code to zero out cptr->hnext when client removed
+   from hash table, added assert for hnext == 0 in list.c to make sure that
+   client was actually removed from the hash table before freeing it's memory.
+* various: misc cleanups
+* support.c: removed dead code
+* configure.in: remove unneeded checks for minix, aix, ansi/posix headers
+   these things are handled by porting layer code.
+* res.c: remove calls to add_local_domain, these were causing incorrect
+   behavior
+* opercmds.c: cleanups in gline code
+* s_bsd.c: increase socket buffers to 65535 for server connections
+* crypt/mkpasswd.c: mutter correct runes to get file to compile without warnings
+* gline.c, gline.h: add new files to attempt to encapsulate glines a bit,
+   some code from opercmds.c needs to be moved here still
+* opercmds.c (m_gline): fix local gline bug
+* s_conf.c (initconf): add password change on rehash fix
+* s_conf.c (rehash): fix rehash freeing and reloading the motd/rmotd files for
+   every client connected.
+* ircd_log.c: use 2K fixed buffer instead of vsnprintf, nothing we write to
+   the log should ever exceed 512 bytes, but it doesn't hurt to be paranoid.
+* res.c: change resolver timeouts to 5 seconds, per RFC1123
+* channel.c: more little cleanups, no code changes
+* channel.c: a) stops iterating over /invite list
+    b) adds /invite to list the channels you're currently invited to.
+    c) adds lotsa new numerics --Isomer
+* ircd_signal.c, ircd.c: fix bug in signals
+* channel.c (can_send) add Isomer's changes
+* channel.c: add send_ban_list, cleanup a few names, reformat some parts to make
+    more readable, fix bug introduced by name changes
+* ircd_chattr.[ch]: add new macro for checking K:line time chars vs comments
+* listener.c (show_ports): add code to show client/server and hidden status
+* s_conf.c: bug fixes, cleanups, add code to set server port and hidden
+    status for listeners (P:lines)
+* s_conf.c (initconf): add interface selection code to P:lines so ports can
+    be set on a single interface or multiple interfaces (multi-homed hosts)
+* s_conf.c: rewrote C/N line code, removed N:lines entirely, clean up server
+    conf line code.
+* s_conf.c (check_server): move ip checks out of resolved or not so they can
+    be checked for worse case situations on server connects
+* res.c (resolver_read): add Isomer's debug info for failed resolver queries
+* opercmds.c (m_stats): remove call to time(0) for each local client in 
+    stats l command, use CurrentTime instead
+* s_conf.c (initconf): only do lookups on C:lines instead of both C/N lines
+* res.c: fix resolver hang bugs
+* s_conf.c (rehash): remove extra semicolin that was causing c/n lines to
+    accumulate
+* s_conf.c (rehash): add portnum back to the listener list so we don't loose
+    the server port on a rehash
+* s_auth.c, listener.c: remove warnings for normal errors
+* s_auth.c, listener.c: use osdep non-blocking calls instead of locals
+* s_auth.c, listener.c: add code for non-blocking recovery for listeners and
+    auth queries
+* s_auth.c (auth_error): call IPcheck_connect_fail if the client socket dies
+    during the auth check so the reference count doesn't get borked in the
+    IPcheck code.
+* numnicks.c: yet another extended numerics bug fix... sheesh
+* s_bsd.c, s_conf.c: move conf line code from s_bsd.c to s_conf.c, cleanup
+    cleanup check_server, check_client (still not completely tested, may be
+    a bit buggy yet).
+* parse.h, parse.c, s_debug.c: remove privmsg logging code
+* numnicks.c (FindXNServer): fix off by one bug
+* common.h, common.c: removed unused files
+* s_bsd.c (net_connect_completed): new function, called after connection
+    establishment for servers and clients, release reference count for
+    the dns reply and set the socket buffer size to IRCD_READBUF_SIZE 
+    for servers and 2K for clients.
+* channel.c, crule.c: cleanup bogus casts
+* listener.h (add_listener): fix bug that caused server a server port listener
+    to think it was a client port listener.
+* s_user.c, s_serv.c: release reference to dns_reply when connection is
+    established.
+* s_bsd.c (completed_connection): removed call to start_auth for connects
+    the auth module expects connections not to be linked anywhere and owns
+    the client struct until it's done.
+* listener.c (release_listener): fix inverted assert client exit bug
+* ircd_chattr.c: fix signed/unsigned warnings with Sun Workshop (+w)
+* ircd_chattr.c, ircd_chattr.h: new files for character attributes and case
+    translation, hopefully they will be a bit easier to maintain.
+* s_conf.c (rehash): fixed logic bug that caused and infinite loop, 
+    fix port update bug (needed to call mark_listeners_closing before initconf)
+* *.c, runmalloc.[ch]: change the way the server deals with out of memory
+    conditions. On server startup a no-memory handler is installed which
+    calls server_restart if an allocation fails. Allocations are now checked
+    in the memory allocation functions. Added asserts after every allocation
+    to verify for debug.
+* *.c *.h: move authentication and dns to authentication module rename a few
+    globals, const correctness fixes, add ircd_string code, rework network
+    code, use dns callbacks, removed a lot of redundant code 
+* s_bsd.c: finish this stage of net code work
+* *.c, *.h: rewrite select and poll code, add listener.[ch] net.code overhaul
+    in progress, prepare for adding auth module
+* s_bsd.h, struct.h: moved client struct macros back into struct.h for now,
+    the last place they belonged was in the network code... feh
+* ircd.c (open_debugfile): removed client for debug file
+* ircd_string.h, ircd_string.c: new files for string processing, add
+    ircd_strncpy function
+* *.c, *.h: rename ircstp to ServerStats
+* *.c, *.h: rename now to CurrentTime
+* listener.h, listener.c: new files for listener ports
+* include/ircd_defs.h: new file for global definitions (HOSTLEN, USERLEN)
+* struct.h: add local_flag to client struct, to make local/remote detection simpler
+* s_bsd.c (read_message): split out separate versions for select and poll
+* s_bsd.h, various source files: remove the rest of the unix domain socket 
+    support this removes a number of comparisons that were unneeded in 
+    code that should run reasonably fast.
+* os_*.c, res.c, ircd_osdep.h: add os_recvfrom_nonb for resolver
+* os_*.c, s_bsd.c, s_auth.c, ircd_osdep.h: add os_get_sockname, os_get_peername
+* bsd.h, bsd.c: merge into s_bsd
+* ircd_osdep.h, os_generic.c, os_linux.c, ircd_osdep.h: move os variable stuff
+    to separate compilation units, os generic contains the original code
+    (start here). 
+* s_bsd.c, send.c, struct.h: remove pyr (pyramid) finally
+* res.h, res.c, s_misc.c: cleanup headers/dependencies in res.h
+* match.h: include sys/types.h before netinet/in.h, broken BSD system headers
+* ircd/Makefile.in: remove CFLAGS from link line, use LDFLAGS instead
+* ircd.c: add missing include for sys/socket.h
+* common.h (strChattr, strCasediff): remove pointless non-portable inline
+    decls. The functions are complex enough that inlining just bloats the code
+* ircd_xopen.h, ircd_xopen.c, s_user.c, s_serv.c: porting layer for crypt and
+    other xopen library calls, moved crypt to ircd_xopen.
+* s_uping.c, s_uping.h, s_bsd.c, s_misc.c, s_bsd.h, ircd.c, s_debug.c:
+    Removed s_ping. There are much better tools available that actually work
+    correctly. The s_ping code was a waste of resources, and has historically
+    given incorrect results (it never worked correctly).
+* ircd/s_bsd.c, res.c, s_user.c, s_serv.c: little fixups to allow code to
+    build on Solaris, still have some warnings there.
+    TODO: wrap crypt and things that depend on _XOPEN_SOURCE in their own
+    file so it doesn't bother the network code.
+* ircd/s_bsd.c: cast option arg to const char* for setsockopt (solaris)
+* ircd/Makefile.in: removed hard coded dependencies for hash.o chkconfig.o,
+    let the automatic stuff take care of it, it does it better than humans.
+* *.c *.h: remove register keywords, attribute macro junk, cleanup
+    dependencies, rename MIN and MAX to IRCD_MIN IRCD_MAX all headers in
+    C files are sorted, removed as many duplicate includes as I could find
+    (dozens) general cleanups. Mutter the correct runes to get the protoype
+    for crypt included where it was needed.
+* *.c *.h: dependency cleanups up to querycmds.c
+* ircd.c, bsd.c, s_bsd.c: move signal handling code to ircd_signal.c
+* ircd_signal.c, ircd_signal.h: new files, use only POSIX signals remove
+    support for unreliable signals.
+* *.h *.c: include guards, dependency cleanups
+* Configure.in, setup-sh.in: include guards, config.h includes setup.h
+    add config dir to include path
+* sys.h: include guards, remove hard coded path to config.h
+* s_user.c (hunt_server): fix logic bug
+* numnicks.c (SetServerYXX): fix off by one error
+* multiple files (n2k patch): add code to handle extended numerics
