@@ -1,3 +1,6 @@
+2002-02-27  Carlo Wood  <run@alinoe.com>
+
+        * /ircd/ircd.c: check_pings: First check if a PING was sent at all.
 
 2002-03-01  Carlo Wood  <run@alinoe.com>
 

@@ -355,17 +355,6 @@ static void check_pings(struct Event* ev) {
       continue;
     }
 
-    /* Quit the client after max_ping*2 - they should have answered by now */
-    if (CurrentTime-cli_lasttime(cptr) >= (max_ping*2) ) {
-      /* If it was a server, then tell ops about it. */
-      if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
-	sendto_opmask_butone(0, SNO_OLDSNO,
-			     "No response from %s, closing link",
-			     cli_name(cptr));
-      exit_client_msg(cptr, cptr, &me, "Ping timeout");
-      continue;
-    }
-    
     /* Unregistered clients pingout after max_ping seconds, they don't
      * get given a second chance - if they were then people could not quite
      * finish registration and hold resources without being subject to k/g
@@ -399,6 +388,17 @@ static void check_pings(struct Event* ev) {
 	sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
       else
 	sendcmdto_one(&me, CMD_PING, cptr, ":%s", cli_name(&me));
+    }
+    
+    /* Quit the client after max_ping*2 - they should have answered by now */
+    if (CurrentTime-cli_lasttime(cptr) >= (max_ping*2) ) {
+      /* If it was a server, then tell ops about it. */
+      if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
+	sendto_opmask_butone(0, SNO_OLDSNO,
+			     "No response from %s, closing link",
+			     cli_name(cptr));
+      exit_client_msg(cptr, cptr, &me, "Ping timeout");
+      continue;
     }
     
     expire = cli_lasttime(cptr) + max_ping * 2;
