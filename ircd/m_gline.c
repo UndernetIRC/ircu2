@@ -254,6 +254,9 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
+#ifndef CONFIG_OPERCMDS
+	return send_error_to_client(sptr, ERR_DISABLED, "GLINE");
+#else
 	if (!IsOper(sptr))
 	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
@@ -261,6 +264,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
 		      TStime(), reason);
 	return 0;
+#endif
       }
 
       flags |= GLINE_LOCAL;

@@ -1,3 +1,15 @@
+2000-04-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/gline.c: detect overlapping G-lines; if an existing, wider
+	gline expires after the new one will, we drop the new one,
+	otherwise we add the G-line after that one (so the wide one will
+	apply first); if the new one contains an existing G-line and if it
+	will expire after the existing one, we drop the existing one to
+	save memory
+
+	* ircd/m_gline.c (mo_gline): opers could issue remote local
+	glines when CONFIG_OPERCMDS was off; fixed
+
 2000-04-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_jupe.c (mo_jupe): allow target argument to be dropped if
@@ -586,7 +598,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.92 2000-04-16 05:19:02 kev Exp $
+# $Id: ChangeLog,v 1.93 2000-04-17 17:07:01 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
