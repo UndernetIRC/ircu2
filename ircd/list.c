@@ -182,6 +182,7 @@ struct Client* make_client(struct Client *from, int status)
     assert(0 != con);
 
     con_fd(con) = -1; /* initialize struct Connection */
+    con_timer(con) = 0;
     con_nextnick(con) = CurrentTime - NICK_DELAY;
     con_nexttarget(con) = CurrentTime - (TARGET_DELAY * (STARTTARGETS - 1));
     con_handler(con) = UNREGISTERED_HANDLER;
@@ -221,11 +222,12 @@ void free_client(struct Client* cptr)
   assert(cli_hnext(cptr) == cptr);
 
   if (cli_from(cptr) == cptr) { /* in other words, we're local */
-    if (-1 < cli_fd(cptr))
+    if (-1 < cli_fd(cptr) && !cli_timer(cptr))
       dealloc_connection(cli_connect(cptr)); /* connection not open anymore */
     else {
       cli_from(cptr) = 0;
       socket_del(&(cli_socket(cptr))); /* queue a socket delete */
+      /* socket delete will also queue a timer delete */
     }
   }
   dealloc_client(cptr); /* actually destroy the client */
@@ -261,7 +263,8 @@ void remove_client_from_list(struct Client *cptr)
     cli_next(cli_prev(cptr)) = cli_next(cptr);
   else {
     GlobalClientList = cli_next(cptr);
-    cli_prev(GlobalClientList) = 0;
+    if (GlobalClientList)
+      cli_prev(GlobalClientList) = 0;
   }
   if (cli_next(cptr))
     cli_prev(cli_next(cptr)) = cli_prev(cptr);

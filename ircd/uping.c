@@ -195,6 +195,9 @@ static void uping_read_callback(struct Event* ev)
 
   pptr = s_data(ev_socket(ev));
 
+  Debug((DEBUG_SEND, "uping_read_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
+
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     pptr->freeable &= ~UPING_PENDING_SOCKET;
 
@@ -216,6 +219,9 @@ static void uping_sender_callback(struct Event* ev)
   assert(0 != t_data(ev_timer(ev)));
 
   pptr = t_data(ev_timer(ev));
+
+  Debug((DEBUG_SEND, "uping_sender_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
 
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     pptr->freeable &= ~UPING_PENDING_SENDER;
@@ -242,6 +248,9 @@ static void uping_killer_callback(struct Event* ev)
   assert(0 != t_data(ev_timer(ev)));
 
   pptr = t_data(ev_timer(ev));
+
+  Debug((DEBUG_SEND, "uping_killer_callback called, %p (%d)", pptr,
+	 ev_type(ev)));
 
   if (ev_type(ev) == ET_DESTROY) { /* being destroyed */
     pptr->freeable &= ~UPING_PENDING_KILLER;

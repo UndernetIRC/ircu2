@@ -413,7 +413,8 @@ ircd_alloc.o: ircd_alloc.c ../config.h ../include/ircd_alloc.h \
  ../include/s_debug.h ../include/ircd_defs.h
 ircd_events.o: ircd_events.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
- ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h
+ ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h \
+ ../include/s_debug.h
 ircd_features.o: ircd_features.c ../config.h \
  ../include/ircd_features.h ../include/channel.h \
  ../include/ircd_defs.h ../include/class.h ../include/client.h \
@@ -1234,10 +1235,11 @@ engine_devpoll.o: engine_devpoll.c ../config.h \
  ../include/ircd_log.h
 engine_poll.o: engine_poll.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
- ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h
+ ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h \
+ ../include/s_debug.h
 engine_kqueue.o: engine_kqueue.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
- ../include/ircd_log.h
+ ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h
 engine_select.o: engine_select.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
  ../include/ircd_log.h

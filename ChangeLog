@@ -1,5 +1,49 @@
 2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/uping.c: add some Debug messages
+
+	* ircd/s_stats.c: document new /STATS e
+
+	* ircd/s_err.c: add RPL_STATSENGINE to report the engine name
+
+	* ircd/s_bsd.c: remove static client_timer variable; in
+	read_packet(), if there's still data in the client's recvQ after
+	parsing, add a 2 second timer (con_proc); fix the ET_DESTROY case
+	of client_sock_callback to handle destroying the timer properly;
+	rewrote client_timer_callback from scratch to be called on an
+	individual client
+
+	* ircd/m_stats.c: add /STATS e to report the engine name
+
+	* ircd/list.c: deal with con_timer field in struct Connection
+	properly; correct a core-level bug in remove_client_from_list--if
+	the client is the only one in the list, we try to update
+	GlobalClientList's cli_prev pointer--not good
+
+	* ircd/ircd.c: remove call to init_client_timer()
+
+	* ircd/engine_poll.c: made Debug messages more uniform by
+	prepending "poll:" to them all; corrected an off-by-one error that
+	caused poll_count to be 1 less than the actual count and removed
+	my work-around; added Debug messages to indicate which socket is
+	being checked and what the results are
+
+	* ircd/Makefile.in: ran a make depend
+
+	* include/s_bsd.h: remove init_client_timer(), since we're doing
+	it differently now
+
+	* include/numeric.h (RPL_STATSENGINE): a stats reply to report the
+	engine name
+
+	* include/ircd_policy.h (HEAD_IN_SAND_STATS_E): turn off /stats e
+	reports for non-opers
+
+	* include/client.h: add con_timer and con_proc fields to struct
+	Connection and define accessor macros--con_timer marks that
+	con_proc contains a valid timer, and con_proc is used to pace user
+	data
+
 	* ircd/s_bsd.c (close_connection): let free_client() destroy the
 	socket
 

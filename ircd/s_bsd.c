@@ -85,8 +85,6 @@ int                       HighestFd = -1;
 struct sockaddr_in        VirtualHost;
 static char               readbuf[SERVER_TCP_WINDOW];
 
-static struct Timer client_timer;
-
 /*
  * report_error text constants
  */
@@ -107,6 +105,7 @@ const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
 
 
 static void client_sock_callback(struct Event* ev);
+static void client_timer_callback(struct Event* ev);
 
 #if !defined(USE_POLL)
 #if FD_SETSIZE < (MAXCONNECTIONS + 4)
@@ -756,6 +755,14 @@ static int read_packet(struct Client *cptr, int socket_ready)
       else if (CPTR_KILLED == client_dopacket(cptr, dolen))
         return CPTR_KILLED;
     }
+
+    /* If there's still data to process, wait 2 seconds first */
+    if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
+	!cli_timer(cptr)) {
+      cli_timer(cptr) = 1;
+      timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
+		TT_RELATIVE, 2);
+    }
   }
   return 1;
 }
@@ -954,7 +961,11 @@ static void client_sock_callback(struct Event* ev)
 
   switch (ev_type(ev)) {
   case ET_DESTROY:
-    free_connection(con);
+    if (con_timer(con) == 1) {
+      con_timer(con) = 2; /* socket delete has now happened */
+      timer_del(&(con_proc(con)));
+    } else
+      free_connection(con);
     break;
 
   case ET_CONNECT: /* socket connection completed */
@@ -1012,26 +1023,31 @@ static void client_sock_callback(struct Event* ev)
 }
 
 /*
- * This sucks.  Every second or so, we loop through all local clients and
- * process any with incoming data outstanding.
+ * Process a timer on client socket
  */
 static void client_timer_callback(struct Event* ev)
 {
-  struct Client *cptr;
-  int i;
+  struct Client* cptr;
+  struct Connection* con;
 
-  assert(ET_EXPIRE == ev_type(ev));
   assert(0 != ev_timer(ev));
+  assert(0 != t_data(ev_timer(ev)));
+  assert(ET_DESTROY == ev_type(ev) || ET_EXPIRE == ev_type(ev));
 
-  for (i = HighestFd; i >= 0; i--) {
-    cptr = LocalClientArray[i];
-    if (cptr && DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	(IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
-      read_packet(cptr, 0);
+  con = t_data(ev_timer(ev));
+
+  assert(0 != con_client(con) || ev_type(ev) == ET_DESTROY);
+
+  cptr = con_client(con);
+
+  if (ev_type(ev)== ET_DESTROY) {
+    if (con_timer(con) == 1)
+      con_timer(con) = 0; /* timer has been deleted */
+    else if (con_timer(con) == 2)
+      free_connection(con); /* client is being destroyed */
+  } else if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
+	     (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10)) {
+    cli_timer(cptr) = 0; /* timer has expired... */
+    read_packet(cptr, 0); /* read_packet will re-add timer if needed */
   }
-}
-
-void init_client_timer(void)
-{
-  timer_add(&client_timer, client_timer_callback, 0, TT_PERIODIC, 1);
 }

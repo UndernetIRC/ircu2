@@ -118,6 +118,7 @@ struct Connection {
   struct Client*      con_client; /* Client associated with connection */
   unsigned int        con_count; /* Amount of data in buffer */
   int                 con_fd;    /* >= 0, for local clients */
+  int                 con_timer; /* > 0 if timer is active */
   int                 con_error; /* last socket level error for client */
   unsigned int        con_snomask; /* mask for server messages */
   time_t              con_nextnick; /* Next time a nick change is allowed */
@@ -153,6 +154,7 @@ struct Connection {
   char con_buffer[BUFSIZE];     /* Incoming message buffer; or the error that
                                    caused this clients socket to be `dead' */
   struct Socket       con_socket; /* socket descriptor for client */
+  struct Timer        con_proc; /* process latent messages from client */
 };
 
 struct Client {
@@ -212,6 +214,7 @@ struct Client {
 
 #define cli_count(cli)		((cli)->cli_connect->con_count)
 #define cli_fd(cli)		((cli)->cli_connect->con_fd)
+#define cli_timer(cli)		((cli)->cli_connect->con_timer)
 #define cli_error(cli)		((cli)->cli_connect->con_error)
 #define cli_snomask(cli)	((cli)->cli_connect->con_snomask)
 #define cli_nextnick(cli)	((cli)->cli_connect->con_nextnick)
@@ -240,12 +243,14 @@ struct Client {
 #define cli_passwd(cli)		((cli)->cli_connect->con_passwd)
 #define cli_buffer(cli)		((cli)->cli_connect->con_buffer)
 #define cli_socket(cli)		((cli)->cli_connect->con_socket)
+#define cli_proc(cli)		((cli)->cli_connect->con_proc)
 
 #define con_next(con)		((con)->con_next)
 #define con_prev_p(con)		((con)->con_prev_p)
 #define con_client(con)		((con)->con_client)
 #define con_count(con)		((con)->con_count)
 #define con_fd(con)		((con)->con_fd)
+#define con_timer(con)		((con)->con_timer)
 #define con_error(con)		((con)->con_error)
 #define con_snomask(con)	((con)->con_snomask)
 #define con_nextnick(con)	((con)->con_nextnick)
@@ -274,6 +279,7 @@ struct Client {
 #define con_passwd(con)		((con)->con_passwd)
 #define con_buffer(con)		((con)->con_buffer)
 #define con_socket(con)		((con)->con_socket)
+#define con_proc(con)		((con)->con_proc)
 
 #define STAT_CONNECTING         0x001 /* connecting to another server */
 #define STAT_HANDSHAKE          0x002 /* pass - server sent */

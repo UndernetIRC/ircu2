@@ -158,9 +158,9 @@ engine_add(struct Socket* sock)
   for (i = 0; sockList[i] && i < poll_count; i++) /* Find an empty slot */
     ;
 
-  Debug((DEBUG_LIST, "Looking at slot %d, contents %p", i, sockList[i]));
+  Debug((DEBUG_LIST, "poll: Looking at slot %d, contents %p", i, sockList[i]));
 
-  if (sockList[i]) { /* ok, need to allocate another off the list */
+  if (i >= poll_count) { /* ok, need to allocate another off the list */
     if (poll_count >= poll_max) { /* bounds-check... */
       log_write(LS_SYSTEM, L_ERROR, 0,
 		"Attempt to add socket %d (> %d) to event engine", sock->s_fd,
@@ -168,8 +168,8 @@ engine_add(struct Socket* sock)
       return 0;
     }
 
-    i = ++poll_count;
-    Debug((DEBUG_LIST, "Allocating a new slot: %d", i));
+    i = poll_count++;
+    Debug((DEBUG_LIST, "poll: Allocating a new slot: %d", i));
   }
 
   s_ed_int(sock) = i; /* set engine data */
@@ -255,7 +255,7 @@ engine_loop(struct Generators* gen)
   while (running) {
     wait = timer_next(gen) ? (timer_next(gen) - CurrentTime) * 1000 : -1;
 
-    Debug((DEBUG_INFO, "poll delay: %Tu (%Tu) %d", timer_next(gen),
+    Debug((DEBUG_INFO, "poll: delay: %Tu (%Tu) %d", timer_next(gen),
 	   CurrentTime, wait));
 
     /* check for active files */
@@ -287,6 +287,10 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 
+      Debug((DEBUG_LIST, "poll: Checking socket %p (fd %d, index %d, "
+	     "state %d, events %#x", sockList[i], s_fd(sockList[i]), i,
+	     s_state(sockList[i]), s_events(sockList[i])));
+
       if (s_state(sockList[i]) != SS_NOTSOCK) {
 	errcode = 0; /* check for errors on socket */
 	codesize = sizeof(errcode);
@@ -295,6 +299,8 @@ engine_loop(struct Generators* gen)
 	  errcode = errno; /* work around Solaris implementation */
 
 	if (errcode) { /* an error occurred; generate an event */
+	  Debug((DEBUG_LIST, "Poll: Error %d on fd %d (index %d), socket %p",
+		 errcode, s_fd(sockList[i]), i, sockList[i]));
 	  event_generate(ET_ERROR, sockList[i], errcode);
 	  if (sockList[i]) /* can go away upon an error */
 	    gen_ref_dec(sockList[i]); /* careful not to leak ref counts */
@@ -304,13 +310,17 @@ engine_loop(struct Generators* gen)
 
       switch (s_state(sockList[i])) {
       case SS_CONNECTING:
-	if (pollfdList[i].revents & POLLWRITEFLAGS) /* connection completed */
+	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* connect completed */
+	  Debug((DEBUG_LIST, "poll: Connection completed"));
 	  event_generate(ET_CONNECT, sockList[i], 0);
+	}
 	break;
 
       case SS_LISTENING:
-	if (pollfdList[i].revents & POLLREADFLAGS) /* connect. to be accept. */
+	if (pollfdList[i].revents & POLLREADFLAGS) { /* ready for accept */
+	  Debug((DEBUG_LIST, "poll: Ready for accept"));
 	  event_generate(ET_ACCEPT, sockList[i], 0);
+	}
 	break;
 
       case SS_CONNECTED:
@@ -320,27 +330,36 @@ engine_loop(struct Generators* gen)
 
 	  switch (recv(s_fd(sockList[i]), &c, 1, MSG_PEEK)) { /* check EOF */
 	  case -1: /* error occurred?!? */
+	    Debug((DEBUG_LIST, "poll: Uncaught error!"));
 	    event_generate(ET_ERROR, sockList[i], errno);
 	    break;
 
 	  case 0: /* EOF from client */
+	    Debug((DEBUG_LIST, "poll: EOF from client"));
 	    event_generate(ET_EOF, sockList[i], 0);
 	    break;
 
 	  default: /* some data can be read */
+	    Debug((DEBUG_LIST, "poll: Data to be read"));
 	    event_generate(ET_READ, sockList[i], 0);
 	    break;
 	  }
 	}
-	if (pollfdList[i].revents & POLLWRITEFLAGS) /* socket writable */
+	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	  Debug((DEBUG_LIST, "poll: Data can be written"));
 	  event_generate(ET_WRITE, sockList[i], 0);
+	}
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
-	if (pollfdList[i].revents & POLLREADFLAGS) /* socket readable */
+	if (pollfdList[i].revents & POLLREADFLAGS) { /* socket readable */
+	  Debug((DEBUG_LIST, "poll: Datagram to be read"));
 	  event_generate(ET_READ, sockList[i], 0);
-	if (pollfdList[i].revents & POLLWRITEFLAGS) /* socket writable */
+	}
+	if (pollfdList[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	  Debug((DEBUG_LIST, "poll: Datagram can be written"));
 	  event_generate(ET_WRITE, sockList[i], 0);
+	}
 	break;
       }
 
