@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/** @file
+ * @brief Channel management and maintanance
+ * @version $Id$
  */
 #include "config.h"
 
@@ -57,9 +59,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/** Linked list containing the full list of all channels */
 struct Channel* GlobalChannelList = 0;
 
+/** Number of struct Membership*'s allocated */
 static unsigned int membershipAllocCount;
+/** Freelist for struct Membership*'s */
 static struct Membership* membershipFreeList;
 
 void del_invite(struct Client *, struct Channel *);
@@ -74,15 +79,16 @@ static struct SLink* next_ban;
 static struct SLink* prev_ban;
 static struct SLink* removed_bans_list;
 
-/*
- * Use a global variable to remember if an oper set a mode on a local channel. Ugly,
- * but the only way to do it without changing set_mode intensively.
+/**
+ * Use a global variable to remember if an oper set a mode on a local channel. 
+ * Ugly, but the only way to do it without changing set_mode intensively.
  */
 int LocalChanOperMode = 0;
 
 #if !defined(NDEBUG)
-/*
- * return the length (>=0) of a chain of links.
+/** return the length (>=0) of a chain of links.
+ * @param lp	pointer to the start of the linked list
+ * @return the number of items in the list
  */
 static int list_length(struct SLink *lp)
 {
@@ -94,6 +100,20 @@ static int list_length(struct SLink *lp)
 }
 #endif
 
+/** return the struct Membership* that represents a client on a channel
+ * This function finds a struct Membership* which holds the state about
+ * a client on a specific channel.  The code is smart enough to iterate
+ * over the channels a user is in, or the users in a channel to find the
+ * user depending on which is likely to be more efficient.
+ *
+ * @param chptr	pointer to the channel struct
+ * @param cptr pointer to the client struct
+ *
+ * @returns pointer to the struct Membership representing this client on 
+ *          this channel.  Returns NULL if the client is not on the channel.
+ *          Returns NULL if the client is actually a server.
+ * @see find_channel_member()
+ */
 struct Membership* find_member_link(struct Channel* chptr, const struct Client* cptr)
 {
   struct Membership *m;
@@ -134,11 +154,20 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
   return 0;
 }
 
-/*
- * find_chasing - Find the client structure for a nick name (user)
+/** Find the client structure for a nick name (user) 
+ * Find the client structure for a nick name (user)
  * using history mechanism if necessary. If the client is not found, an error
  * message (NO SUCH NICK) is generated. If the client was found
  * through the history, chasing will be 1 and otherwise 0.
+ *
+ * This function was used extensively in the P09 days, and since we now have
+ * numeric nicks is no longer quite as important.
+ *
+ * @param sptr	Pointer to the client that has requested the search
+ * @param user	a string represeting the client to be found
+ * @param chasing a variable set to 0 if the user was found directly, 
+ * 		1 otherwise
+ * @returns a pointer the client, or NULL if the client wasn't found.
  */
 struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
 {
@@ -158,21 +187,36 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
   return who;
 }
 
-/*
+/** build up a hostmask
  * Create a string of form "foo!bar@fubar" given foo, bar and fubar
  * as the parameters.  If NULL, they become "*".
+ * @param namebuf the buffer to build the hostmask into.  Must be at least
+ * 		  NICKLEN+USERLEN+HOSTLEN+3 charactors long.
+ * @param nick The nickname
+ * @param name The ident
+ * @param host the hostname
+ * @returns namebuf
+ * @see make_nick_user_ip()
  */
-#define NUH_BUFSIZE	(NICKLEN + USERLEN + HOSTLEN + 3)
 static char *make_nick_user_host(char *namebuf, const char *nick,
 				 const char *name, const char *host)
 {
+#define NUH_BUFSIZE	(NICKLEN + USERLEN + HOSTLEN + 3)
   ircd_snprintf(0, namebuf, NUH_BUFSIZE, "%s!%s@%s", nick, name, host);
   return namebuf;
 }
 
-/*
+/** Create a hostmask using an IP address
  * Create a string of form "foo!bar@123.456.789.123" given foo, bar and the
  * IP-number as the parameters.  If NULL, they become "*".
+ *
+ * @param ipbuf Buffer at least NICKLEN+USERLEN+SOCKIPLEN+4 to hold the final
+ * 		match.
+ * @param nick	The nickname (or NULL for *)
+ * @param name	The ident (or NULL for *)
+ * @param ip	The IP address
+ * @returns ipbuf
+ * @see make_nick_user_host()
  */
 #define NUI_BUFSIZE	(NICKLEN + USERLEN + SOCKIPLEN + 4)
 static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
@@ -182,10 +226,13 @@ static char *make_nick_user_ip(char *ipbuf, char *nick, char *name,
   return ipbuf;
 }
 
-/*
- * Subtract one user from channel i (and free channel
- * block, if channel became empty).
- * Returns: true  (1) if channel still has members.
+/** Decrement the count of users, and free if empty.
+ * Subtract one user from channel i (and free channel * block, if channel 
+ * became empty).
+ *
+ * @param chptr The channel to subtract one from.
+ *
+ * @returns true  (1) if channel still has members.
  *          false (0) if the channel is now empty.
  */
 int sub1_from_channel(struct Channel* chptr)
@@ -228,6 +275,16 @@ int sub1_from_channel(struct Channel* chptr)
   return 0;
 }
 
+/** Destroy an empty channel
+ * This function destroys an empty channel, removing it from hashtables,
+ * and removing any resources it may have consumed.
+ *
+ * @param chptr The channel to destroy
+ *
+ * @returns 0 (success)
+ *
+ * FIXME: Change to return void, this function never fails.
+ */
 int destruct_channel(struct Channel* chptr)
 {
   struct SLink *tmp;
@@ -281,8 +338,7 @@ int destruct_channel(struct Channel* chptr)
   return 0;
 }
 
-/*
- * add_banid
+/** add a ban to a channel
  *
  * `cptr' must be the client adding the ban.
  *
@@ -300,7 +356,15 @@ int destruct_channel(struct Channel* chptr)
  * is reset (unless a non-zero value is returned, in which case the
  * CHFL_BAN_OVERLAPPED flag might not have been reset!).
  *
- * --Run
+ * @author Run
+ * @param cptr 	Client adding the ban
+ * @param chptr	Channel to add the ban to
+ * @param change True if adding a ban, false if old bans should just be flagged
+ * @param firsttime Reset the next_overlapped_ban() iteration.
+ * @returns 
+ * 	0 if the ban was added
+ * 	-2 if the ban already existed and was marked CHFL_BURST_BAN_WIPEOUT
+ * 	-1 otherwise
  */
 int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
                      int change, int firsttime)
@@ -405,6 +469,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
   return 0;
 }
 
+/** return the next ban that is removed 
+ * @returns the next ban that is removed because of overlapping
+ */
 struct SLink *next_removed_overlapped_ban(void)
 {
   struct SLink *tmp = removed_bans_list;
@@ -422,8 +489,13 @@ struct SLink *next_removed_overlapped_ban(void)
   return tmp;
 }
 
-/*
- * find_channel_member - returns Membership * if a person is joined and not a zombie
+/** returns Membership * if a person is joined and not a zombie
+ * @param cptr Client
+ * @param chptr Channel
+ * @returns pointer to the client's struct Membership * on the channel if that
+ *          user is a full member of the channel, or NULL otherwise.
+ *
+ * @see find_member_link()
  */
 struct Membership* find_channel_member(struct Client* cptr, struct Channel* chptr)
 {
@@ -434,8 +506,16 @@ struct Membership* find_channel_member(struct Client* cptr, struct Channel* chpt
   return (member && !IsZombie(member)) ? member : 0;
 }
 
-/*
- * is_banned - a non-zero value if banned else 0.
+/** return true if banned else false.
+ *
+ * This function returns true if the user is banned on the said channel.
+ * This function will check the ban cache if applicable, otherwise will
+ * do the comparisons and cache the result.
+ *
+ * @param cptr  The client to test
+ * @param chptr The channel
+ * @param member The Membership * of this client on this channel 
+ *               (may be NULL if the member is not on the channel).
  */
 static int is_banned(struct Client *cptr, struct Channel *chptr,
                      struct Membership* member)
@@ -504,9 +584,14 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   return (tmp != NULL);
 }
 
-/*
+/** add a user to a channel.
  * adds a user to a channel by adding another link to the channels member
  * chain.
+ *
+ * @param chptr The channel to add to.
+ * @param who   The user to add.
+ * @param flags The flags the user gets initially.
+ * @param oplevel The oplevel the user starts with.
  */
 void add_user_to_channel(struct Channel* chptr, struct Client* who,
                                 unsigned int flags, int oplevel)
@@ -549,6 +634,12 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
   }
 }
 
+/** Remove a person from a channel, given their Membership*
+ *
+ * @param member A member of a channel.
+ *
+ * @returns true if there are more people in the channel.
+ */
 static int remove_member_from_channel(struct Membership* member)
 {
   struct Channel* chptr;
@@ -588,6 +679,10 @@ static int remove_member_from_channel(struct Membership* member)
   return sub1_from_channel(chptr);
 }
 
+/** Check if all the remaining members on the channel are zombies
+ *
+ * @returns False if the channel has any non zombie members, True otherwise.
+ */
 static int channel_all_zombies(struct Channel* chptr)
 {
   struct Membership* member;
@@ -600,6 +695,14 @@ static int channel_all_zombies(struct Channel* chptr)
 }
       
 
+/** Remove a user from a channel
+ * This is the generic entry point for removing a user from a channel, this
+ * function will remove the client from the channel, and destory the channel
+ * if there are no more normal users left.
+ *
+ * @param cptr		The client
+ * @param channel	The channel
+ */
 void remove_user_from_channel(struct Client* cptr, struct Channel* chptr)
 {
   
@@ -620,6 +723,12 @@ void remove_user_from_channel(struct Client* cptr, struct Channel* chptr)
   }
 }
 
+/** Remove a user from all channels they are on.
+ *
+ * This function removes a user from all channels they are on.
+ *
+ * @param cptr	The client to remove.
+ */
 void remove_user_from_all_channels(struct Client* cptr)
 {
   struct Membership* chan;
@@ -630,6 +739,13 @@ void remove_user_from_all_channels(struct Client* cptr)
     remove_user_from_channel(cptr, chan->channel);
 }
 
+/** Check if this user is a legitimate chanop
+ *
+ * @param cptr	Client to check
+ * @param chptr	Channel to check
+ *
+ * @returns True if the user is a chanop (And not a zombie), False otherwise.
+ */
 int is_chan_op(struct Client *cptr, struct Channel *chptr)
 {
   struct Membership* member;
@@ -640,6 +756,14 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
   return 0;
 }
 
+/** Check if a user is a Zombie on a specific channel.
+ *
+ * @param cptr		The client to check.
+ * @param chptr		The channel to check.
+ *
+ * @returns True if the client (cptr) is a zombie on the channel (chptr),
+ * 	    False otherwise.
+ */
 int is_zombie(struct Client *cptr, struct Channel *chptr)
 {
   struct Membership* member;
@@ -651,6 +775,13 @@ int is_zombie(struct Client *cptr, struct Channel *chptr)
   return 0;
 }
 
+/** Returns if a user has voice on a channel.
+ *
+ * @param cptr 	The client
+ * @param chptr	The channel
+ *
+ * @returns True if the client (cptr) is voiced on (chptr) and is not a zombie.
+ */
 int has_voice(struct Client* cptr, struct Channel* chptr)
 {
   struct Membership* member;
@@ -662,6 +793,26 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
   return 0;
 }
 
+/** Can this member send to a channel
+ *
+ * A user can speak on a channel iff:
+ * <ol>
+ *  <li> They didn't use the Apass to gain ops.
+ *  <li> They are op'd or voice'd.
+ *  <li> You aren't banned.
+ *  <li> The channel isn't +m
+ *  <li> The channel isn't +n or you are on the channel.
+ * </ol>
+ *
+ * This function will optionally reveal a user on a delayed join channel if
+ * they are allowed to send to the channel.
+ *
+ * @param member	The membership of the user
+ * @param reveal	If true, the user will be "revealed" on a delayed
+ * 			joined channel. 
+ *
+ * @returns True if the client can speak on the channel.
+ */
 int member_can_send_to_channel(struct Membership* member, int reveal)
 {
   assert(0 != member);
@@ -692,6 +843,21 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   return 1;
 }
 
+/** Check if a client can send to a channel.
+ *
+ * Has the added check over member_can_send_to_channel() of servers can
+ * always speak.
+ *
+ * @param cptr	The client to check
+ * @param chptr	The channel to check
+ * @param reveal If the user should be revealed (see 
+ * 		member_can_send_to_channel())
+ *
+ * @returns true if the client is allowed to speak on the channel, false 
+ * 		otherwise
+ *
+ * @see member_can_send_to_channel()
+ */
 int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal)
 {
   struct Membership *member;
@@ -718,10 +884,14 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int r
   return member_can_send_to_channel(member, reveal);
 }
 
-/*
- * find_no_nickchange_channel
- * if a member and not (opped or voiced) and (banned or moderated)
- * return the name of the first channel banned on
+/** Returns the name of a channel that prevents the user from changing nick.
+ * if a member and not (opped or voiced) and (banned or moderated), return
+ * the name of the first channel banned on.
+ *
+ * @param cptr 	The client
+ *
+ * @returns the name of the first channel banned on, or NULL if the user
+ *          can change nicks.
  */
 const char* find_no_nickchange_channel(struct Client* cptr)
 {
@@ -739,9 +909,20 @@ const char* find_no_nickchange_channel(struct Client* cptr)
 }
 
 
-/*
+/** Fill mbuf/pbuf with modes from chptr
  * write the "simple" list of channel modes for channel chptr onto buffer mbuf
- * with the parameters in pbuf.
+ * with the parameters in pbuf as visible by cptr.
+ *
+ * This function will hide keys from non-op'd, non-server clients.
+ *
+ * @param cptr	The client to generate the mode for.
+ * @param mbuf	The buffer to write the modes into.
+ * @param pbuf  The buffer to write the mode parameters into.
+ * @param buflen The length of the buffers.
+ * @param chptr	The channel to get the modes from.
+ * @param membership The membership of this client on this channel (or NULL
+ * 		if this client isn't on this channel)
+ *
  */
 void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
                           struct Channel *chptr, struct Membership *member)
@@ -809,6 +990,15 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
   *mbuf = '\0';
 }
 
+/** Compare two members oplevel
+ *
+ * @param mp1	Pointer to a pointer to a membership
+ * @param mp2	Pointer to a pointer to a membership
+ *
+ * @returns 0 if equal, -1 if mp1 is lower, +1 otherwise.
+ *
+ * Used for qsort(3).
+ */
 int compare_member_oplevel(const void *mp1, const void *mp2)
 {
   struct Membership const* member1 = *(struct Membership const**)mp1;
@@ -818,8 +1008,12 @@ int compare_member_oplevel(const void *mp1, const void *mp2)
   return (member1->oplevel < member2->oplevel) ? -1 : 1;
 }
 
-/*
- * send "cptr" a full list of the modes for channel chptr.
+/* send "cptr" a full list of the modes for channel chptr.
+ *
+ * Sends a BURST line to cptr, bursting all the modes for the channel.
+ *
+ * @param cptr	Client pointer
+ * @param chptr	Channel pointer
  */
 void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 {
@@ -1024,12 +1218,11 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
                     chptr->creationtime, chptr->topic_time, chptr->topic);
 }
 
-/*
+/** Canonify a mask.
  * pretty_mask
  *
- * by Carlo Wood (Run), 05 Oct 1998.
- *
- * Canonify a mask.
+ * @author Carlo Wood (Run), 
+ * 05 Oct 1998.
  *
  * When the nick is longer then NICKLEN, it is cut off (its an error of course).
  * When the user name or host name are too long (USERLEN and HOSTLEN
@@ -1042,6 +1235,9 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
  * 3)   xxx!yyy         -> nick!user@*
  * 4)   xxx@yyy         -> *!user@host
  * 5)   xxx!yyy@zzz     -> nick!user@host
+ *
+ * @param mask	The uncanonified mask.
+ * @returns The updated mask in a static buffer.
  */
 char *pretty_mask(char *mask)
 {
@@ -1122,6 +1318,11 @@ char *pretty_mask(char *mask)
   return make_nick_user_host(retmask, nick, user, host);
 }
 
+/** send a banlist to a client for a channel
+ *
+ * @param cptr	Client to send the banlist to.
+ * @param chptr	Channel whose banlist to send.
+ */
 static void send_ban_list(struct Client* cptr, struct Channel* chptr)
 {
   struct SLink* lp;
@@ -1136,11 +1337,17 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
   send_reply(cptr, RPL_ENDOFBANLIST, chptr->chname);
 }
 
-/* We are now treating the <key> part of /join <channel list> <key> as a key
+/** Check a key against a keyring.
+ * We are now treating the <key> part of /join <channel list> <key> as a key
  * ring; that is, we try one key against the actual channel key, and if that
  * doesn't work, we try the next one, and so on. -Kev -Texaco
  * Returns: 0 on match, 1 otherwise
  * This version contributed by SeKs <intru@info.polymtl.ca>
+ *
+ * @param key		Key to check
+ * @param keyring	Comma seperated list of keys
+ *
+ * @returns True if the key was found and matches, false otherwise.
  */
 static int compall(char *key, char *keyring)
 {
@@ -1171,6 +1378,15 @@ top:
   goto top;                     /* and check it against the key */
 }
 
+/** Returns if a user can join a channel with a specific key.
+ *
+ * @param sptr	The client trying to join
+ * @param chptr	The channel to join
+ * @param key	The key to use
+ *
+ * @returns any error that occured bitwised OR'd with MAGIC_OPER_OVERRIDE
+ *  	    if the oper used the magic key, 0 if no error occured.
+ */
 int can_join(struct Client *sptr, struct Channel *chptr, char *key)
 {
   int overrideJoin = 0;  
@@ -1216,8 +1432,9 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
   return 0;
 }
 
-/*
- * Remove bells and commas from channel name
+/** Remove bells and commas from channel name
+ *
+ * @param ch	Channel name to clean, modified in place.
  */
 void clean_channelname(char *cn)
 {
@@ -1242,9 +1459,17 @@ void clean_channelname(char *cn)
   }
 }
 
-/*
- *  Get Channel block for i (and allocate a new channel
+/** Get a channel block, creating if necessary.
+ *  Get Channel block for chname (and allocate a new channel
  *  block, if it didn't exists before).
+ *
+ * @param cptr		Client joining the channel.
+ * @param chname	The name of the channel to join.
+ * @param flag		set to CGT_CREATE to create the channel if it doesn't 
+ * 			exist
+ *
+ * @returns NULL if the channel is invalid, doesn't exist and CGT_CREATE 
+ * 	wasn't specified or a pointer to the channel structure
  */
 struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType flag)
 {
@@ -1280,6 +1505,14 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
   return chptr;
 }
 
+/** invite a user to a channel.
+ *
+ * Adds an invite for a user to a channel.  Limits the number of invites
+ * to FEAT_MAXCHANNELSPERUSER.  Does not sent notification to the user.
+ *
+ * @param cptr	The client to be invited.
+ * @param chptr	The channel to be invited to.
+ */
 void add_invite(struct Client *cptr, struct Channel *chptr)
 {
   struct SLink *inv, **tmp;
@@ -1309,8 +1542,11 @@ void add_invite(struct Client *cptr, struct Channel *chptr)
   (cli_user(cptr))->invites++;
 }
 
-/*
+/** Delete an invite
  * Delete Invite block from channel invite list and client invite list
+ *
+ * @param cptr	Client pointer
+ * @param chptr	Channel pointer
  */
 void del_invite(struct Client *cptr, struct Channel *chptr)
 {
@@ -1336,7 +1572,13 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
     }
 }
 
-/* List and skip all channels that are listen */
+/** List a set of channels
+ * Lists a series of channels that match a filter, skipping channels that 
+ * have been listed before.
+ *
+ * @param cptr	Client to send the list to.
+ * @param nr	Number of channels to send this update.
+ */
 void list_next_channels(struct Client *cptr, int nr)
 {
   struct ListingArgs *args = cli_listing(cptr);
