@@ -314,7 +314,7 @@ engine_loop(struct Generators* gen)
 	/* Log the kqueue error */
 	log_write(LS_SOCKET, L_ERROR, 0, "kevent() error: %m");
 	if (!errors++)
-	  timer_add(&clear_error, error_clear, 0, TT_PERIODIC,
+	  timer_add(timer_init(&clear_error), error_clear, 0, TT_PERIODIC,
 		    ERROR_EXPIRE_TIME);
 	else if (errors > KQUEUE_ERROR_THRESHOLD) /* too many errors... */
 	  server_restart("too many kevent errors");

@@ -773,7 +773,7 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
     /* If there's still data to process, wait 2 seconds first */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	!(cli_freeflag(cptr) & FREEFLAG_TIMER)) {
+	!t_onqueue(&(cli_proc(cptr)))) {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_freeflag(cptr) |= FREEFLAG_TIMER;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
