@@ -1,3 +1,6 @@
+2003-03-11  Landon Fuller (landonf) <landonf@sf.net>
+	* configure.in: allow ircu to build on MacOS X.
+
 2003-04-12  David Mansell (splidge) <splidge@sf.net>
 	* ircd/channel.c: When keys and limits conflict on burst, the key
 	which is first alphabetically or the limit which is lower will be 
