@@ -526,7 +526,7 @@ static Numeric replyTable[] = {
 /* 246 */
   { RPL_STATSTLINE, "%c %s %s", "246" },
 /* 247 */
-  { RPL_STATSGLINE, "%c %s@%s %Tu :%s", "247" },
+  { RPL_STATSGLINE, "%c %s%s%s %Tu :%s", "247" },
 /* 248 */
   { RPL_STATSULINE, "%c %s %s %s %d %d", "248" },
 /* 249 */

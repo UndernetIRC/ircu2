@@ -1,4 +1,7 @@
 2003-11-05 Isomer <isomer@undernet.org>
+	* ircd/gline.c: Display realname glines in /stats g
+
+2003-11-05 Isomer <isomer@undernet.org>
 	* ircd/m_whois.c: On remote whois, show +s local channels with a *
 	prefix to opers.
 
