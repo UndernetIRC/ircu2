@@ -1,5 +1,22 @@
 2001-06-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_bsd.c: record that socket has been added in con_freeflag
+	field; queue a socket_del() as soon as the socket is close()'d;
+	use con_freeflag & FREEFLAG_TIMER instead of con_timer; clear
+	FREEFLAG_SOCKET on ET_DESTROY event in client_sock_callback(),
+	then dealloc the connection if safe; mark socket as dead when
+	there's a read error or EOF; clear FREEFLAG_TIMER flag upon entry
+	to client_timer_callback(); dealloc connection if safe upon
+	ET_DESTROY event in client_timer_callback()
+
+	* ircd/list.c: use con_freeflag instead of con_timer; only dealloc
+	the connection if both socket and timer have been destroyed;
+	destroy both socket and timer explicitly and carefully
+
+	* include/client.h: replace the con_timer field with a
+	con_freeflag field, to indicate what still needs freeing; define
+	the freeflags
+
 	* ircd/engine_select.c (engine_loop): duh...sockList[i] could
 	become 0
 

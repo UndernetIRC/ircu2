@@ -321,6 +321,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
     cli_fd(cptr) = -1;
     return 0;
   }
+  cli_freeflag(cptr) |= FREEFLAG_SOCKET;
   return 1;
 }
 
@@ -533,6 +534,7 @@ void close_connection(struct Client *cptr)
     flush_connections(cptr);
     LocalClientArray[cli_fd(cptr)] = 0;
     close(cli_fd(cptr));
+    socket_del(&(cli_socket(cptr))); /* queue a socket delete */
     cli_fd(cptr) = -1;
   }
   cli_flags(cptr) |= FLAGS_DEADSOCKET;
@@ -642,6 +644,7 @@ void add_connection(struct Listener* listener, int fd) {
     cli_fd(new_client) = -1;
     return;
   }
+  cli_freeflag(new_client) |= FREEFLAG_SOCKET;
   cli_listener(new_client) = listener;
   ++listener->ref_count;
 
@@ -758,9 +761,9 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
     /* If there's still data to process, wait 2 seconds first */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	!cli_timer(cptr)) {
+	!(cli_freeflag(cptr) & FREEFLAG_TIMER)) {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
-      cli_timer(cptr) = 1;
+      cli_freeflag(cptr) |= FREEFLAG_TIMER;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
 		TT_RELATIVE, 2);
     }
@@ -964,10 +967,9 @@ static void client_sock_callback(struct Event* ev)
 
   switch (ev_type(ev)) {
   case ET_DESTROY:
-    if (con_timer(con) == 1) {
-      con_timer(con) = 2; /* socket delete has now happened */
-      timer_del(&(con_proc(con)));
-    } else
+    con_freeflag(con) &= ~FREEFLAG_SOCKET;
+
+    if (!con_freeflag(con))
       free_connection(con);
     break;
 
@@ -987,6 +989,7 @@ static void client_sock_callback(struct Event* ev)
   case ET_EOF: /* end of file on socket */
     Debug((DEBUG_ERROR, "READ ERROR: fd = %d %d", cli_fd(cptr),
 	   cli_error(cptr)));
+    cli_flags(cptr) |= FLAGS_DEADSOCKET;
     if ((IsServer(cptr) || IsHandshake(cptr)) && cli_error(cptr) == 0) {
       exit_client_msg(cptr, cptr, &me, "Server %s closed the connection (%s)",
 		      cli_name(cptr), cli_serv(cptr)->last_error_msg);
@@ -1050,15 +1053,14 @@ static void client_timer_callback(struct Event* ev)
 
   assert(0 == cptr || con == cli_connect(cptr));
 
+  con_freeflag(con) &= ~FREEFLAG_TIMER; /* timer has expired... */
+
   if (ev_type(ev)== ET_DESTROY) {
-    if (con_timer(con) == 1)
-      con_timer(con) = 0; /* timer has been deleted */
-    else if (con_timer(con) == 2)
+    if (!con_freeflag(con))
       free_connection(con); /* client is being destroyed */
   } else {
     Debug((DEBUG_LIST, "Client process timer for %C expired; processing",
 	   cptr));
-    cli_timer(cptr) = 0; /* timer has expired... */
     read_packet(cptr, 0); /* read_packet will re-add timer if needed */
   }
 
