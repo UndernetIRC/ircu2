@@ -32,6 +32,7 @@
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
+#include "ircd_policy.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -1113,13 +1114,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
    * why not just copy them?
    */
   setflags = sptr->flags;
-#if 0
-  setflags = 0;
-  for (i = 0; i < USERMODELIST_SIZE; ++i) {
-    if (sptr->flags & userModeList[i].flag)
-      setflags |= userModeList[i].flag;
-  }
-#endif
+
   if (MyConnect(sptr))
     tmpmask = sptr->snomask;
 
@@ -1145,9 +1140,9 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
           tmpmask = (what == MODE_ADD) ?
               (IsAnOper(sptr) ? SNO_OPERDEFAULT : SNO_DEFAULT) : 0;
         if (tmpmask)
-          sptr->flags |= FLAGS_SERVNOTICE;
+          SetServNotice(sptr);
         else
-          sptr->flags &= ~FLAGS_SERVNOTICE;
+          ClearServNotice(sptr);
         break;
       case 'w':
         if (what == MODE_ADD)
@@ -1221,6 +1216,16 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (!IsAnOper(sptr) && !(setflags & FLAGS_WALLOP) && !IsServer(cptr))
     ClearWallops(sptr);
 #endif
+#ifdef SERVNOTICE_OPER_ONLY
+  if (MyConnect(sptr) && !IsAnOper(sptr) && !(setflags & FLAGS_SERVNOTICE)) {
+    ClearServNotice(sptr);
+    sptr->snomask = 0;
+  }
+#endif
+#ifdef DEBUG_OPER_ONLY
+  if (!IsAnOper(sptr) && !(setflags & FLAGS_DEBUG))
+    ClearDebug(sptr);
+#endif
   if ((setflags & (FLAGS_OPER | FLAGS_LOCOP)) && !IsAnOper(sptr) &&
       MyConnect(sptr))
     det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
@@ -1244,7 +1249,11 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     ++UserStats.inv_clients;
   send_umode_out(cptr, sptr, setflags);
 
+#ifdef SERVNOTICE_OPER_ONLY
+  if (MyConnect(sptr) && IsAnOper(sptr)) {
+#else
   if (MyConnect(sptr)) {
+#endif
     if (tmpmask != sptr->snomask)
       set_snomask(sptr, tmpmask, SNO_SET);
     if (sptr->snomask && snomask_given)

@@ -104,15 +104,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define UFLAGS  (FLAGS_INVISIBLE|FLAGS_SERVNOTICE)
-
 /*
  * m_user
  *
  * parv[0] = sender prefix
  * parv[1] = username           (login name, account)
- * parv[2] = umode mask         (host name)
- * parv[3] = server notice mask (server name)
+ * parv[2] = host name          (ignored)
+ * parv[3] = server name        (ignored)
  * parv[4] = users real name info
  */
 int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
@@ -145,18 +143,9 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   else
     username = "NoUser";
 
-  umode    = (EmptyString(parv[2])) ? "."       : parv[2];
-  snomask  = (EmptyString(parv[3])) ? "."       : parv[3];
   info     = (EmptyString(parv[4])) ? "No Info" : parv[4];
 
   user = make_user(cptr);
-
-  if (!strchr(umode, '.'))        /* Not an IP# as hostname ? */
-    cptr->flags |= (UFLAGS & atoi(umode));
-
-  if ((cptr->flags & FLAGS_SERVNOTICE))
-    set_snomask(cptr, (IsDigit(*snomask) && !strchr(snomask, '.')) ?
-                (atoi(snomask) & SNO_USER) : SNO_DEFAULT, SNO_SET);
 
   user->server = &me;
   ircd_strncpy(cptr->info, info, REALLEN);

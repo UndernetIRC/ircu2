@@ -35,6 +35,7 @@
  * This is implemented as disallowing users from setting +s
  */
 #define HEAD_IN_SAND_SNOTICES
+#define SERVNOTICE_OPER_ONLY
 
 /* CFV-165 - Hiding Nonessential information from non-opers
  * 
@@ -44,6 +45,7 @@
  * +g from normal users.
  */
 #define HEAD_IN_SAND_DESYNCS
+#define DEBUG_OPER_ONLY
 
 /* CFV-165 - Hiding Nonessential information from non-opers
  * 
@@ -52,6 +54,7 @@
  * This is implemented as disallowing users from setting +w
  */
 #define HEAD_IN_SAND_WALLOPS
+/* #define WALLOPS_OPER_ONLY */
 
 /* CFV-165 - Hiding Nonessential information from non-opers
  *

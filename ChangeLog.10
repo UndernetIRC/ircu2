@@ -1,10 +1,13 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.16.2.5 2001-04-15 03:22:17 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.16.2.6 2001-04-15 04:07:35 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* HEAD_IN_SAND_SNOTICES done -- Bleep
+* HEAD_IN_SAND_WALLOPS done -- Bleep
+* HEAD_IN_SAND_DESYNC done -- Bleep
 * HEAD_IN_SAND_MAP done -- Isomer
 * According to CFV-165, buring our head in the sand to try and
 * hide from DoS - First pass -- Isomer
