@@ -1,4 +1,8 @@
 2000-05-02  Thomas Helvey <tomh@inxpress.net>
+
+	* ircd/ircd.c: fix broken header include ordering
+
+2000-05-02  Thomas Helvey <tomh@inxpress.net>
 	
 	* ircd/IPcheck.c: cleanups for ZenShadow's cleanups
         review emailed privately
@@ -1086,7 +1090,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.128 2000-05-03 03:32:24 bleep Exp $
+# $Id: ChangeLog,v 1.129 2000-05-03 03:38:43 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #

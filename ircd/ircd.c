@@ -19,35 +19,13 @@
  *
  * $Id$
  */
-
-
-/*----------------------------------------------------------------------------
- * Platform Includes
- *--------------------------------------------------------------------------*/
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <netdb.h>
-
-
-/*----------------------------------------------------------------------------
- * ircu Includes
- *--------------------------------------------------------------------------*/
-#include "config.h"
+#include "ircd.h"
 
 #include "IPcheck.h"
 #include "class.h"
 #include "client.h"
 #include "crule.h"
 #include "hash.h"
-#include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -72,6 +50,19 @@
 #include "userload.h"
 #include "version.h"
 #include "whowas.h"
+
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 
 /*----------------------------------------------------------------------------
