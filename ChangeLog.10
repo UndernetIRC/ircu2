@@ -1,10 +1,12 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.20 2001-10-02 11:39:40 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.20.2.1 2001-10-10 21:14:20 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Admin's complaining that users can't see that their carefully written MOTD
+ -- Isomer
 -------------------------- Released 2.10.10.pl16
 * Oops, missed a "* " in ms_wallops -- Isomer
 * Fix typo in ircd.c -- Isomer
