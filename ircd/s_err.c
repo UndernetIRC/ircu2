@@ -1074,7 +1074,7 @@ static Numeric replyTable[] = {
 /* 517 */
   { 0 },
 /* 518 */
-  { ERR_POPTIX, " :While you have been watching us chat in your status window, we have HaX0rd your computer", "666" },
+  { 0 },
 /* 519 */
   { 0 },
 /* 520 */

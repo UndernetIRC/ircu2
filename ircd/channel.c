@@ -107,7 +107,7 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
       assert(m->channel == chptr);
       if (m->user == cptr)
         return m;
-      m=m->next_member;
+      m = m->next_member;
     }
   }
   /* Users on the other hand aren't allowed on more than 15 channels.  50%
@@ -120,7 +120,7 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
      assert(m->user == cptr);
      if (m->channel == chptr)
        return m;
-     m=m->next_channel;
+     m = m->next_channel;
    }
   }
   return 0;
