@@ -1,3 +1,8 @@
+2001-07-25  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: put in a . for reporting link version on /trace,
+	to match what /version does
+
 2001-07-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_misc.c (exit_client): servers don't understand what the
