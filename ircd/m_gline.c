@@ -150,16 +150,12 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return 0; /* no such server */
 
     if (!IsMe(acptr)) { /* manually propagate */
-      if (IsServer(sptr)) {
-	if (!lastmod)
-	  sendto_one(acptr, "%s " TOK_GLINE " %s %s %s :%s", NumServ(sptr),
-		     target, mask, parv[3], reason);
-	else
-	  sendto_one(acptr, "%s " TOK_GLINE " %s %s %s %s :%s", NumServ(sptr),
-		     target, mask, parv[3], parv[4], reason);
-      } else
-	sendto_one(acptr, "%s%s " TOK_GLINE " %s %s %s %s :%s", NumNick(sptr),
-		   target, mask, parv[3], parv[4], reason);
+      if (!lastmod)
+	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %s %s :%s", target, mask,
+		      parv[3], reason);
+      else
+	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %s %s %s :%s", target, mask,
+		      parv[3], parv[4], reason);
 
       return 0;
     }
@@ -254,29 +250,22 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (target) {
     if (!(target[0] == '*' && target[1] == '\0')) {
-      if (!(acptr = find_match_server(target))) {
-	send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
-	return 0;
-      }
+      if (!(acptr = find_match_server(target)))
+	return send_error_to_client(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-	if (!IsOper(sptr)) {
-	  send_error_to_client(sptr, ERR_NOPRIVILEGES);
-	  return 0;
-	}
+	if (!IsOper(sptr))
+	  return send_error_to_client(sptr, ERR_NOPRIVILEGES);
 
-	sendto_one(acptr, "%s%s " TOK_GLINE " %s %c%s %s " TIME_T_FMT " :%s",
-		   NumNick(sptr), NumServ(acptr),
-		   flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3], TStime(),
-		   reason);
+	sendcmdto_one(acptr, CMD_GLINE, sptr, "%s %c%s %s %Tu :%s", target,
+		      flags & GLINE_ACTIVE ? '?' : '-', mask, parv[3],
+		      TStime(), reason);
 	return 0;
       }
 
       flags |= GLINE_LOCAL;
-    } else if (!IsOper(sptr)) {
-      send_error_to_client(sptr, ERR_NOPRIVILEGES);
-      return 0;
-    }
+    } else if (!IsOper(sptr))
+      return send_error_to_client(sptr, ERR_NOPRIVILEGES);
   }
 
 #ifndef CONFIG_OPERCMDS

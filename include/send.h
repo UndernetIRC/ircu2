@@ -64,4 +64,16 @@ extern void sendbufto_serv_butone(struct Client *one);
 
 extern char sendbuf[2048];
 
+#define IRC_BUFSIZE	512
+
+extern void sendcmdto_one(struct Client *one, const char *cmd,
+			  const char *tok, struct Client *from,
+			  const char *fmt, ...);
+extern void vsendcmdto_one(struct Client *one, const char *cmd,
+			   const char *tok, struct Client *from,
+			   const char *fmt, va_list vl);
+extern void sendcmdto_serv_butone(struct Client *one, const char *cmd,
+				  const char *tok, struct Client *from,
+				  const char *fmt, ...);
+
 #endif /* INCLUDED_send_h */
