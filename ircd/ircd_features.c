@@ -253,6 +253,7 @@ static struct FeatureDesc {
   F_B(HOST_HIDING, 0, 0, 0),
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
+  F_B(CONNEXIT_NOTICES, 0, 0, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),

@@ -244,6 +244,14 @@ HIDDEN_IP
 This selects a fake IP to be shown on /USERIP and /WHO %i when the
 target has a hidden host (see HOST_HIDING).
 
+CONNEXIT_NOTICES
+ * Type: boolean
+ * Default: FALSE
+
+This feature controls the generation of server notices when a user
+connects to or disconnects from the server.  Enabling this feature may
+have a performance impact.
+
 KILLCHASETIMELIMIT
  * Type: integer
  * Default: 30
