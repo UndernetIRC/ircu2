@@ -1,5 +1,16 @@
 2001-06-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/Makefile.in: tune for VPATH builds/installs; add a rule to
+	force bin directory to be created if necessary prior to
+	installation; run make depend
+
+	* doc/Makefile.in (install): tune for VPATH installs by cd'ing to
+	the ${srcdir}
+
+	* Makefile.in: tune to detect Makefile.in changes in
+	subdirectories and to create installation directory indicated by
+	${prefix}
+
 	* ircd/whocmds.c (count_users): routine to count the number of
 	users matching a given user@host mask
 
