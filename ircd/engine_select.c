@@ -18,7 +18,8 @@
  *
  * $Id$
  */
-#include "config.h"	/* for IRCD_FD_SETSIZE */
+#include "config.h"
+
 #include "ircd_events.h"
 
 #include "ircd.h"
@@ -27,7 +28,7 @@
 /* On BSD, define FD_SETSIZE to what we want before including sys/types.h */
 #if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
 # if !defined(FD_SETSIZE)
-#  define FD_SETSIZE	IRCD_FD_SETSIZE
+#  define FD_SETSIZE	MAXCONNECTIONS
 # endif
 #endif
 

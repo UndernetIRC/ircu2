@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_events.h"
 
 #include "ircd.h"
@@ -31,19 +33,19 @@
 #define SIGS_PER_SOCK	10	/* number of signals to process per socket
 				   readable event */
 
-#ifdef HAVE_KQUEUE
+#ifdef USE_KQUEUE
 extern struct Engine engine_kqueue;
 #define ENGINE_KQUEUE	&engine_kqueue,
 #else
 #define ENGINE_KQUEUE
-#endif /* HAVE_KQUEUE */
+#endif /* USE_KQUEUE */
 
-#ifdef HAVE_DEVPOLL_H
+#ifdef USE_DEVPOLL
 extern struct Engine engine_devpoll;
 #define ENGINE_DEVPOLL	&engine_devpoll,
 #else
 #define ENGINE_DEVPOLL
-#endif /* HAVE_DEVPOLL_H */
+#endif /* USE_DEVPOLL */
 
 #ifdef USE_POLL
 extern struct Engine engine_poll;

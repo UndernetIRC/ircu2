@@ -1,3 +1,27 @@
+2001-05-08  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_events.c: include config.h; use USE_KQUEUE and
+	USE_DEVPOLL instead of HAVE_KQUEUE and HAVE_DEVPOLL_H
+
+	* ircd/engine_select.c: include config.h; set FD_SETSIZE to
+	MAXCONNECTIONS, not IRCD_FD_SETSIZE...
+
+	* ircd/engine_poll.c: include config.h
+
+	* ircd/engine_kqueue.c: include config.h
+
+	* ircd/engine_devpoll.c: include config.h
+
+	* ircd/Makefile.in: include engine sources in compilation and make
+	depend steps
+
+	* configure.in: add checks for enabling the /dev/poll- and
+	kqueue-based engines
+
+	* acconfig.h: add lines for USE_DEVPOLL and USE_KQUEUE
+
+	* ircd/Makefile.in: work in the engine sources
+
 2001-05-07  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_settime.c: include ircd_snprintf.h

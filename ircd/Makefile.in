@@ -40,6 +40,7 @@ MKDIR = mkdir
 TOUCH = touch
 GREP = grep
 OSDEP_C = @OSDEP_C@
+ENGINE_C = @ENGINE_C@
 @SET_MAKE@
 
 BINDIR = @bindir@
@@ -67,6 +68,12 @@ OSDEP_SRC = \
 	os_openbsd.c \
 	os_generic.c \
 	os_solaris.c
+
+ENGINE_SRC = \
+	engine_devpoll.c \
+	engine_poll.c \
+	engine_kqueue.c \
+	engine_select.c
 
 IRCD_SRC = \
 	IPcheck.c \
@@ -188,11 +195,11 @@ IRCD_SRC = \
 	whocmds.c \
 	whowas.c
 
-SRC = ${IRCD_SRC} ${OSDEP_C}
+SRC = ${IRCD_SRC} ${OSDEP_C} ${ENGINE_C}
 
 OBJS = ${SRC:%.c=%.o}
 
-DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC}
+DEP_SRC = ${IRCD_SRC} ${OSDEP_SRC} ${ENGINE_SRC}
 
 all:
 	( cd ..; make -f Makefile )
@@ -1171,3 +1178,16 @@ os_generic.o: os_generic.c ../config.h ../include/ircd_osdep.h \
  ../include/msgq.h ../include/ircd_defs.h
 os_solaris.o: os_solaris.c ../config.h ../include/ircd_osdep.h \
  ../include/msgq.h ../include/ircd_defs.h
+engine_devpoll.o: engine_devpoll.c ../config.h \
+ ../include/ircd_events.h ../include/ircd.h ../include/struct.h \
+ ../include/ircd_defs.h ../include/ircd_alloc.h ../include/fda.h \
+ ../include/ircd_log.h
+engine_poll.o: engine_poll.c ../config.h ../include/ircd_events.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
+ ../include/ircd_alloc.h ../include/fda.h ../include/ircd_log.h
+engine_kqueue.o: engine_kqueue.c ../config.h ../include/ircd_events.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
+ ../include/ircd_log.h
+engine_select.o: engine_select.c ../config.h ../include/ircd_events.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
+ ../include/ircd_log.h

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.1.2.1 2001-05-08 21:56:41 kev Exp $
+ * $Id: config.h.in,v 1.1.2.2 2001-05-08 22:37:45 kev Exp $
  */
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
@@ -84,6 +84,12 @@
 /* Define if you have the <poll.h> header file.  */
 #undef HAVE_POLL_H
 
+/* Define if you have the <sys/devpoll.h> header file.  */
+#undef HAVE_SYS_DEVPOLL_H
+
+/* Define if you have the <sys/event.h> header file.  */
+#undef HAVE_SYS_EVENT_H
+
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL
 
@@ -101,6 +107,12 @@
 
 /* Force inlining for a few critical functions */
 #undef FORCEINLINE
+
+/* Define to enable the /dev/poll engine */
+#undef USE_DEVPOLL
+
+/* Define to enable the kqueue engine */
+#undef USE_KQUEUE
 
 /* Domain name to be used for some statistics gathering */
 #undef DOMAINNAME

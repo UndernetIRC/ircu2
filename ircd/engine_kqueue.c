@@ -18,6 +18,8 @@
  *
  * $Id$
  */
+#include "config.h"
+
 #include "ircd_events.h"
 
 #include "ircd.h"
