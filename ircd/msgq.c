@@ -21,9 +21,12 @@
 #include "config.h"
 
 #include "msgq.h"
+#include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_defs.h"
+#include "ircd_features.h"
 #include "ircd_snprintf.h"
+#include "send.h"
 #include "s_debug.h"
 
 #include <assert.h>
@@ -206,6 +209,26 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
 }
 
 /*
+ * This is a helper routine to allocate a buffer
+ */
+static struct MsgBuf *
+msgq_alloc(void)
+{
+  struct MsgBuf *mb = MQData.free_mbs; /* start with freelist */
+
+  if (mb) /* if the freelist is non-empty, allocate one */
+    MQData.free_mbs = MQData.free_mbs->next;
+  /* Only malloc() another if we won't blow the top off the bufferpool */
+  else if (msgBufCounts.alloc * sizeof(struct MsgBuf) <
+	   feature_int(FEAT_BUFFERPOOL)) {
+    mb = (struct MsgBuf *)MyMalloc(sizeof(struct MsgBuf));
+    msgBufCounts.alloc++; /* we allocated another */
+  }
+
+  return mb;
+}
+
+/*
  * This routine builds a struct MsgBuf with the appropriate contents
  * and returns it; this saves us from having to worry about the contents
  * of struct MsgBuf in anything other than this module
@@ -217,11 +240,50 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
 
   assert(0 != format);
 
-  if (!(mb = MQData.free_mbs)) { /* do I need to allocate one? */
-    mb = (struct MsgBuf *)MyMalloc(sizeof(struct MsgBuf));
-    msgBufCounts.alloc++; /* we allocated another */
-  } else /* shift the free list */
-    MQData.free_mbs = MQData.free_mbs->next;
+/*    if (!(mb = MQData.free_mbs)) { / * do I need to allocate one? * / */
+/*      if (msgBufCounts.alloc * sizeof(struct MsgBuf) >= */
+/*  	feature_int(FEAT_BUFFERPOOL)) { */
+/*        return 0; */
+/*      } */
+/*      mb = (struct MsgBuf *)MyMalloc(sizeof(struct MsgBuf)); */
+/*      msgBufCounts.alloc++; / * we allocated another * / */
+/*    } else / * shift the free list * / */
+/*      MQData.free_mbs = MQData.free_mbs->next; */
+
+  if (!(mb = msgq_alloc())) {
+    if (feature_bool(FEAT_HAS_FERGUSON_FLUSHER)) {
+      /*
+       * from "Married With Children" episode were Al bought a REAL toilet
+       * on the black market because he was tired of the wimpy water
+       * conserving toilets they make these days --Bleep
+       */
+      /*
+       * Apparently this doesn't work, the server _has_ to
+       * dump a few clients to handle the load. A fully loaded
+       * server cannot handle a net break without dumping some
+       * clients. If we flush the connections here under a full
+       * load we may end up starving the kernel for mbufs and
+       * crash the machine
+       */
+      /*
+       * attempt to recover from buffer starvation before
+       * bailing this may help servers running out of memory
+       */
+      flush_connections(0);
+      mb = msgq_alloc();
+    }
+    if (!mb) { /* OK, try killing a client */
+      kill_highest_sendq(0); /* Don't kill any server connections */
+      mb = msgq_alloc();
+    }
+    if (!mb) { /* hmmm... */
+      kill_highest_sendq(1); /* Try killing a server connection now */
+      mb = msgq_alloc();
+    }
+    if (!mb) /* AIEEEE! */
+      server_die("Unable to allocate a buffer!");
+  }
+
 
   msgBufCounts.used++; /* we're using another */
 
