@@ -1,4 +1,7 @@
 2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/parse.c: oops, missed opers.
+
+2000-03-30  Perry Lorier <isomer@coders.net>
 	* ircd/parse.c: fixed mystifying ping bug thats been plaguing us
 	for so long.  Remember: m_ping MUST be in the parse array. :)
 
@@ -281,7 +284,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.56 2000-04-01 08:54:11 isomer Exp $
+# $Id: ChangeLog,v 1.57 2000-04-01 10:58:16 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #

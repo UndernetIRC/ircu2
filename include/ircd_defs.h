@@ -31,8 +31,15 @@
 
 /*
  * NICKLEN is the maximum length allowed for a nickname
+ *
+ * Because certain networks are very helpful in finding bugs, the below
+ * is a default that can easily be overridden in CFLAGS.  Just add 
+ * -DNICKLEN=15 to CFLAGS and save your config in .., and you can forget about
+ * it.  Thanks for helping debug guys.
  */
+#ifndef NICKLEN
 #define NICKLEN         9
+#endif
 /*
  * USERLEN is the maximum length allowed of a user name including an optional
  * leading '~' if the user name has not been authenticated by an auth (RFC 931)
