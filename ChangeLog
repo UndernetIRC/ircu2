@@ -1,4 +1,8 @@
 2003-01-12  Thomas Helvey <tom.helvey@cox.net>
+	* adns/src/check.c, adns/src/transmit.c, ircd/m_opmode.c,
+	ircd/motd.c, ircd/s_user.c: Cleanup warnings, fix precedence
+	bugs in transmit.c and m_opmode.c.
+2003-01-12  Thomas Helvey <tom.helvey@cox.net>
 	* include/class.h, include/ircd_string.h, ircd/class.c,
 	ircd/gline.c, ircd_string.c: Fix undefined order
 	of evaluation bug in gline.c, add general purpose hasher for

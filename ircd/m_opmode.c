@@ -142,7 +142,6 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *chname;
   const char *qreason;
   int force = 0;
-  struct Membership *member;
 
   if (!feature_bool(FEAT_CONFIG_OPERCMDS))
     return send_reply(sptr, ERR_DISABLED, "OPMODE");
@@ -154,7 +153,8 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (*chname == '!')
   {
     chname++;
-    if (!HasPriv(sptr, IsLocalChannel(chname) ? PRIV_FORCE_LOCAL_OPMODE : PRIV_FORCE_OPMODE))
+    if (!HasPriv(sptr, IsLocalChannel(chname) ? PRIV_FORCE_LOCAL_OPMODE
+                                              : PRIV_FORCE_OPMODE))
       return send_reply(sptr, ERR_NOPRIVILEGES);
     force = 1;
   }

@@ -64,7 +64,6 @@ motd_create(const char *hostmask, const char *path, int maxcount)
 {
   struct Motd* tmp;
   int type = MOTD_UNIVERSAL;
-  const char *s;
   
   assert(0 != path);
   

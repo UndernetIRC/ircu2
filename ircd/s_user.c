@@ -1286,8 +1286,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   }
   if (MyConnect(sptr))
   {
-    if (FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP) &&
-	!IsAnOper(sptr))
+    if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP)) &&
+        !IsAnOper(sptr))
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPS);
 
     if (SendServNotice(sptr))
