@@ -1,3 +1,8 @@
+2002-06-29  Andrew Miller <a1kmm@mware.virtualave.net>
+
+	* ircd/s_bsd.c (read_packet): don't make handshaking servers go through
+	the dbufs.
+	
 2002-06-18  Andrew Miller <a1kmm@mware.virtualave.net>
 
 	* ircd/s_bsd.c (read_packet): don't allow unregistered clients to flood
