@@ -474,6 +474,12 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
   struct Client *cptr;
   struct MsgBuf *user_mb;
   struct MsgBuf *serv_mb;
+  unsigned int oper_fl = 0;
+
+  if (flag & FLAGS_OPER) {
+    flag &= ~FLAGS_OPER;
+    oper_fl++;
+  }
 
   vd.vd_format = pattern;
 
@@ -491,6 +497,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
   sentalong_marker++;
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
     if (cli_from(cptr) == one || IsServer(cptr) || !(cli_flags(cptr) & flag) ||
+	(MyConnect(cptr) && oper_fl && !IsAnOper(cptr)) ||
 	cli_fd(cli_from(cptr)) < 0 ||
 	sentalong[cli_fd(cli_from(cptr))] == sentalong_marker)
       continue; /* skip it */

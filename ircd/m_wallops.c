@@ -109,7 +109,8 @@ int ms_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendcmdto_flag_butone(sptr, CMD_WALLOPS, cptr, FLAGS_WALLOP, ":%s", message);
+  sendcmdto_flag_butone(sptr, CMD_WALLOPS, cptr, FLAGS_WALLOP | FLAGS_OPER,
+			":%s", message);
   return 0;
 }
 
@@ -125,37 +126,7 @@ int mo_wallops(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (EmptyString(message))
     return need_more_params(sptr, "WALLOPS");
 
-  sendcmdto_flag_butone(sptr, CMD_WALLOPS, 0, FLAGS_WALLOP, ":%s", message);
+  sendcmdto_flag_butone(sptr, CMD_WALLOPS, 0, FLAGS_WALLOP | FLAGS_OPER,
+			":%s", message);
   return 0;
 }
-
-  
-#if 0
-/*
- * m_wallops
- *
- * Writes to all +w users currently online
- *
- * parv[0] = sender prefix
- * parv[1] = message text
- */
-int m_wallops(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
-{
-  char *message;
-
-  message = parc > 1 ? parv[1] : 0;
-
-  if (BadPtr(message))
-    return need_more_params(sptr, "WALLOPS");
-
-  if (!IsAnOper(sptr))
-  {
-    sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]); /* XXX DEAD */
-    return 0;
-  }
-  sendto_ops_butone(IsServer(cptr) ? cptr : 0, sptr, /* XXX DEAD */
-      ":%s WALLOPS :%s", parv[0], message);
-  return 0;
-}
-#endif /* 0 */
-

@@ -88,6 +88,8 @@
 #include "handlers.h"
 #endif /* 0 */
 #include "client.h"
+#include "hash.h"
+#include "ircd.h"
 #include "ircd_reply.h"
 #include "msg.h"
 #include "numeric.h"

@@ -152,6 +152,7 @@ SRC = \
 	m_version.c \
 	m_wallchops.c \
 	m_wallops.c \
+	m_wallusers.c \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \
