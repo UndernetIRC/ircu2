@@ -1,3 +1,10 @@
+2002-08-28  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c: trust remote servers to include ! for wide
+	glines only if its operator has the WIDE_GLINE privilege; check
+	gline addition/modification privilege after verifying that gline
+	is enabled, rather than in-line with the target tests
+
 2002-08-27  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_settime.c (ms_settime): SETTIME != NOTICE
