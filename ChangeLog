@@ -1,3 +1,9 @@
+2000-03-30  Perry Lorier <isomer@coders.net>
+	* ircd/m_nick.c: send kills both ways so when we add nick change
+	on collision we don't desync the network.
+
+	* ircd/map.c: Fixup the map a bit more.
+
 2000-03-31  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_clearmode.c (do_clearmode): Log the CLEARMODE to OPATH
@@ -253,7 +259,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.49 2000-03-31 19:42:03 kev Exp $
+# $Id: ChangeLog,v 1.50 2000-04-01 01:55:31 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
