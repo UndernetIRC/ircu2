@@ -540,13 +540,6 @@ struct Message msgtab[] = {
     { m_unregistered, m_hash, m_hash, m_hash, m_ignore }
   },
   {
-    MSG_DNS,
-    TOK_DNS,
-    0, MAXPARA, MFLG_SLOW, 0, NULL,
-    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_ignore, m_ignore, m_dns, m_ignore }
-  },
-  {
     MSG_REHASH,
     TOK_REHASH,
     0, MAXPARA, MFLG_SLOW, 0, NULL,

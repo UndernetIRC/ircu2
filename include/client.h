@@ -193,7 +193,7 @@ struct Connection
   struct SLink*       con_confs; /* Configuration record associated */
   HandlerType         con_handler; /* message index into command table
 				      for parsing */
-  struct hostent*    con_dns_reply; /* DNS reply used during client
+  struct DNSReply*    con_dns_reply; /* DNS reply used during client
 					registration */
   struct ListingArgs* con_listing;
   unsigned int        con_max_sendq; /* cached max send queue for client */

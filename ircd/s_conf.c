@@ -204,13 +204,14 @@ static void detach_conf(struct Client* cptr, struct ConfItem* aconf)
  * a non-null pointer, otherwise hp will be null.
  * if successful save hp in the conf item it was called with
  */
-static void conf_dns_callback(void* vptr, struct hostent* hp)
+static void conf_dns_callback(void* vptr, struct DNSReply* hp)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
   if (hp) {
-    memcpy(&aconf->ipnum, hp->h_addr, sizeof(struct in_addr));
+    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
+    memcpy(&aconf->ipnum, &sin->sin_addr, sizeof(struct in_addr));
     MyFree(hp);
   }
 }
@@ -367,11 +368,9 @@ check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
 {
   struct ConfItem* aconf;
-  const char*      hname;
-  int              i;
   static char      uhost[HOSTLEN + USERLEN + 3];
   static char      fullname[HOSTLEN + 1];
-  struct hostent*  hp = 0;
+  struct DNSReply* hp = 0;
 
   assert(0 != cptr);
 
@@ -386,25 +385,23 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
     if (!aconf->host || !aconf->name)
       continue;
     if (hp) {
-      for (i = 0, hname = hp->h_name; hname; hname = hp->h_aliases[i++]) {
-        ircd_strncpy(fullname, hname, HOSTLEN);
-        fullname[HOSTLEN] = '\0';
+      ircd_strncpy(fullname, hp->h_name, HOSTLEN);
+      fullname[HOSTLEN] = '\0';
 
-        Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), fullname));
+      Debug((DEBUG_DNS, "a_il: %s->%s", cli_sockhost(cptr), fullname));
 
-        if (strchr(aconf->name, '@')) {
-          strcpy(uhost, cli_username(cptr));
-          strcat(uhost, "@");
-        }
-        else
-          *uhost = '\0';
-        strncat(uhost, fullname, sizeof(uhost) - 1 - strlen(uhost));
-        uhost[sizeof(uhost) - 1] = 0;
-        if (0 == match(aconf->name, uhost)) {
-          if (strchr(uhost, '@'))
-            SetFlag(cptr, FLAG_DOID);
-          return check_limit_and_attach(cptr, aconf);
-        }
+      if (strchr(aconf->name, '@')) {
+        strcpy(uhost, cli_username(cptr));
+        strcat(uhost, "@");
+      }
+      else
+        *uhost = '\0';
+      strncat(uhost, fullname, sizeof(uhost) - 1 - strlen(uhost));
+      uhost[sizeof(uhost) - 1] = 0;
+      if (0 == match(aconf->name, uhost)) {
+        if (strchr(uhost, '@'))
+          SetFlag(cptr, FLAG_DOID);
+        return check_limit_and_attach(cptr, aconf);
       }
     }
     if (strchr(aconf->host, '@')) {
@@ -1294,25 +1291,16 @@ int conf_check_server(struct Client *cptr)
 
   if (!c_conf) {
     if (cli_dns_reply(cptr)) {
-      int             i;
-      struct hostent* hp = cli_dns_reply(cptr);
+      struct DNSReply* hp = cli_dns_reply(cptr);
       const char*     name = hp->h_name;
       /*
        * If we are missing a C or N line from above, search for
        * it under all known hostnames we have for this ip#.
        */
-      for (i = 0; name; name = hp->h_aliases[i++]) {
-        if ((c_conf = find_conf_byhost(lp, name, CONF_SERVER))) {
-          ircd_strncpy(cli_sockhost(cptr), name, HOSTLEN);
-          break;
-        }
-      }
-      if (!c_conf) {
-        for (i = 0; hp->h_addr_list[i]; i++) {
-          if ((c_conf = find_conf_byip(lp, hp->h_addr_list[i], CONF_SERVER)))
-            break;
-        }
-      }
+      if ((c_conf = find_conf_byhost(lp, hp->h_name, CONF_SERVER)))
+        ircd_strncpy(cli_sockhost(cptr), name, HOSTLEN);
+      else
+          c_conf = find_conf_byip(lp, (char*)&((struct sockaddr_in*)&hp->addr)->sin_addr, CONF_SERVER);
     }
     else {
       /*

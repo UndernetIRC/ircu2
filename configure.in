@@ -424,34 +424,6 @@ if test "$unet_cv_c___va_copy" = "yes" ; then
   AC_DEFINE(HAVE___VA_COPY, 1, [Define if we have __va_copy])
 fi
 
-dnl --disable-adns check...
-AC_MSG_CHECKING([whether to enable the adns resolver engine])
-AC_ARG_ENABLE([adns],
-[  --disable-adns          Disable adns resolver],
-[unet_cv_enable_adns=$enable_adns],
-[AC_CACHE_VAL(unet_cv_enable_adns,
-[unet_cv_enable_adns=yes])])
-
-AC_MSG_RESULT([$unet_cv_enable_adns])
-
-if test x"$unet_cv_enable_adns" != xno; then
-    AC_DEFINE([USE_ADNS], , [Define to enable the adns resolver])
-    AC_CONFIG_SUBDIRS([adns])
-    RES_C="res_adns.c"
-    LIBS="../adns/src/libadns.a $LIBS"
-    ADNS_SUBDIR="adns"
-else
-    RES_C="res_libresolv.c"
-    ADNS_SUBDIR=""
-
-    dnl Look for res_mkquery.  Done after AC_LIBRARY_NET in case res_mkquery
-    dnl is in one of those libraries somewhere.
-    AC_SEARCH_LIBS(res_mkquery, resolv, ,
-    [AC_MSG_ERROR([Unable to find library containing res_mkquery()])])
-fi
-AC_SUBST(RES_C)
-AC_SUBST(ADNS_SUBDIR)
-
 dnl --with-symlink lets us set the name of the symlink; defaults to "ircd"
 AC_MSG_CHECKING([what name to give the symlink])
 AC_ARG_WITH([symlink],

@@ -484,7 +484,7 @@ static Numeric replyTable[] = {
 /* 225 */
   { 0 },
 /* 226 */
-  { 0 },
+  { RPL_STATSALINE, "%s", "226" },
 /* 227 */
   { 0 },
 /* 228 */

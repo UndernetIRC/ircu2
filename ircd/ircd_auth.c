@@ -314,7 +314,7 @@ static void iauth_disconnect(struct IAuth *iauth)
   s_fd(&i_socket(iauth)) = -1;
 }
 
-static void iauth_dns_callback(void *vptr, struct hostent *he)
+static void iauth_dns_callback(void *vptr, struct DNSReply *he)
 {
   struct IAuth *iauth = vptr;
   if (!he) {
@@ -322,8 +322,8 @@ static void iauth_dns_callback(void *vptr, struct hostent *he)
   } else if (he->h_addrtype != AF_INET) {
     sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: bad host type %d", i_host(iauth), he->h_addrtype);
   } else {
-    assert(he->h_addrtype == sizeof(i_addr(iauth)));
-    memcpy(&i_addr(iauth), he->h_addr_list[0], sizeof(i_addr(iauth)));
+    struct sockaddr_in *sin = (struct sockaddr_in*)&he->addr;
+    i_addr(iauth) = sin->sin_addr.s_addr;
     if (INADDR_NONE == i_addr(iauth)) {
       sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host came back as INADDR_NONE", i_host(iauth));
       return;

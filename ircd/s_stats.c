@@ -42,6 +42,7 @@
 #include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "res.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -454,6 +455,9 @@ stats_help(struct Client* to, struct StatDesc* sd, int stat, char* param)
  * stats.  Struct StatDesc is defined in s_stats.h.
  */
 struct StatDesc statsinfo[] = {
+  { 'a', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_a,
+    report_dns_servers, 0,
+    "DNS servers." },
   { 'c', STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
     stats_configured_links, CONF_SERVER,
     "Remote server connection lines." },

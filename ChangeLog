@@ -1,3 +1,31 @@
+2004-07-21  Michael Poole <mdpoole@troilus.org>
+
+	New DNS resolver code, courtesy of Dianora and the rest of the
+	Hybrid team.  (Bugs are of course my fault.)
+
+	* configure.in, Makefile.in, ircd/Makefile.in: Remove adns and
+	libresolv from the build process.  Update dependencies.
+
+	* configure: Regenerate.
+
+	* include/client.h: Change connection's DNS reply type.
+
+	* include/ircd_features.h, ircd/ircd_features.c: New HIS_STATS_a.
+
+	* include/numeric.h, ircd/s_err.c, ircd/s_stats.c: Add new
+	RPL_STATSALINE and /stats a to list DNS servers.
+
+	* include/ircd_addrinfo.h, include/ircd_reslib.h, include/res.h,
+	ircd/ircd_getaddrinfo.c, ircd/ircd_getnameinfo.c, ircd/ircd_res.c,
+	ircd/ircd_reslib.c: New resolver files.
+
+	* ircd/ircd_auth.c, ircd/s_auth.c, ircd/s_bsd.c, ircd/s_conf.c:
+	Update to new resolver callback interface and to only deal with
+	one IP and one name per DNS reply.
+
+	* ircd/parse.c: Remove /DNS command, since new resolver does not
+	track those statistics.
+
 2004-07-20  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.features: Change references to O:, Y:, etc lines into

@@ -335,7 +335,7 @@ static void auth_kill_client(struct AuthRequest* auth)
  * set the client on it's way to a connection completion, regardless
  * of success of failure
  */
-static void auth_dns_callback(void* vptr, struct hostent* hp)
+static void auth_dns_callback(void* vptr, struct DNSReply* hp)
 {
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(auth);
@@ -347,22 +347,17 @@ static void auth_dns_callback(void* vptr, struct hostent* hp)
   ClearDNSPending(auth);
 
   if (hp) {
-    int i;
+    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
     /*
      * Verify that the host to ip mapping is correct both ways and that
      * the ip#(s) for the socket is listed for the host.
      */
-    for (i = 0; hp->h_addr_list[i]; ++i) {
-      if (0 == memcmp(hp->h_addr_list[i], &(cli_ip(auth->client)),
-                      sizeof(struct in_addr)))
-         break;
-    }
-    if (!hp->h_addr_list[i]) {
+    if (memcmp(&sin->sin_addr, &cli_ip(auth->client), sizeof(struct in_addr))) {
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_IP_MISMATCH);
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
 			   cli_sock_ip(auth->client), hp->h_name, 
-			   ircd_ntoa(hp->h_addr_list[0]));
+			   ircd_ntoa((const char*)&sin->sin_addr));
       if (feature_bool(FEAT_KILL_IPMISMATCH)) {
 	auth_kill_client(auth);
 	return;
@@ -614,7 +609,7 @@ void start_auth(struct Client* client)
       if (IsUserPort(auth->client))
 	sendheader(client, REPORT_DO_DNS);
 
-      gethost_byaddr((const char*) &(cli_ip(client)), &query);
+      gethost_byinaddr(&(cli_ip(client)), &query);
       SetDNSPending(auth);
     }
   }

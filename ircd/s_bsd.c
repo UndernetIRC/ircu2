@@ -58,12 +58,10 @@
 #include "version.h"
 
 #include <arpa/inet.h>
-#include <arpa/nameser.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <resolv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -177,13 +175,14 @@ void report_error(const char* text, const char* who, int err)
  * a non-null pointer, otherwise reply will be null.
  * if successful start the connection, otherwise notify opers
  */
-static void connect_dns_callback(void* vptr, struct hostent* hp)
+static void connect_dns_callback(void* vptr, struct DNSReply* hp)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
   if (hp) {
-    memcpy(&aconf->ipnum, hp->h_addr, sizeof(struct in_addr));
+    struct sockaddr_in *sin = (struct sockaddr_in*)&hp->addr;
+    memcpy(&aconf->ipnum, &sin->sin_addr, sizeof(struct in_addr));
     MyFree(hp);
     connect_server(aconf, 0);
   }
@@ -396,6 +395,7 @@ void release_dns_reply(struct Client* cptr)
   assert(MyConnect(cptr));
 
   if (cli_dns_reply(cptr)) {
+    MyFree(cli_dns_reply(cptr)->h_name);
     MyFree(cli_dns_reply(cptr));
     cli_dns_reply(cptr) = 0;
   }
