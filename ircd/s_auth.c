@@ -581,8 +581,8 @@ void timeout_auth_queries(time_t now)
         if (IsUserPort(auth->client))
           sendheader(auth->client, REPORT_FAIL_DNS);
       }
-      ircd_log(L_INFO, "DNS/AUTH timeout %s",
-               get_client_name(auth->client, HIDE_IP));
+      log_write(LS_RESOLVER, L_INFO, 0, "DNS/AUTH timeout %s",
+		get_client_name(auth->client, HIDE_IP));
 
       release_auth_client(auth->client);
       unlink_auth_request(auth, &AuthPollList);
@@ -595,7 +595,8 @@ void timeout_auth_queries(time_t now)
       delete_resolver_queries(auth);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_DNS);
-      ircd_log(L_INFO, "DNS timeout %s", get_client_name(auth->client, HIDE_IP));
+      log_write(LS_RESOLVER, L_INFO, 0, "DNS timeout %s",
+		get_client_name(auth->client, HIDE_IP));
 
       release_auth_client(auth->client);
       unlink_auth_request(auth, &AuthIncompleteList);

@@ -105,8 +105,8 @@ static struct Daemon thisServer  = { 0 };     // server process info
  * API: server_die
  *--------------------------------------------------------------------------*/
 void server_die(const char* message) {
-  ircd_log(L_CRIT, "Server terminating: %s", message);
-  sendto_opmask_butone(0, SNO_OLDSNO, "Server terminating: %s", message);
+  /* log_write will send out message to both log file and as server notice */
+  log_write(LS_SYSTEM, L_CRIT, 0, "Server terminating: %s", message);
   flush_connections(0);
   close_connections(1);
   thisServer.running = 0;
@@ -119,8 +119,10 @@ void server_die(const char* message) {
 void server_restart(const char* message) {
   static int restarting = 0;
 
-  ircd_log(L_WARNING, "Restarting Server: %s", message);
-  if (restarting)
+  /* inhibit sending any server notices; we may be in a loop */
+  log_write(LS_SYSTEM, L_WARNING, LOG_NOSNOTICE, "Restarting Server: %s",
+	    message);
+  if (restarting++) /* increment restarting to prevent looping */
     return;
 
   sendto_opmask_butone(0, SNO_OLDSNO, "Restarting server: %s", message);
@@ -136,7 +138,8 @@ void server_restart(const char* message) {
   /* Have to reopen since it has been closed above */
   log_reopen();
 
-  ircd_log(L_CRIT, "execv(%s,%s) failed: %m\n", SPATH, *thisServer.argv);
+  log_write(LS_SYSTEM, L_CRIT, 0, "execv(%s,%s) failed: %m", SPATH,
+	    *thisServer.argv);
 
   Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
          SPATH, (strerror(errno)) ? strerror(errno) : ""));
@@ -642,7 +645,7 @@ int main(int argc, char **argv) {
   set_nomem_handler(outofmemory);
   
   if (!init_string()) {
-    ircd_log(L_CRIT, "Failed to initialize string module");
+    log_write(LS_SYSTEM, L_CRIT, 0, "Failed to initialize string module");
     return 6;
   }
 
@@ -659,7 +662,8 @@ int main(int argc, char **argv) {
   motd_init();
 
   if (!init_conf()) {
-    ircd_log(L_CRIT, "Failed to read configuration file %s", configfile);
+    log_write(LS_SYSTEM, L_CRIT, 0, "Failed to read configuration file %s",
+	      configfile);
     return 7;
   }
 
@@ -689,7 +693,7 @@ int main(int argc, char **argv) {
   init_counters();
 
   Debug((DEBUG_NOTICE, "Server ready..."));
-  ircd_log(L_NOTICE, "Server Ready");
+  log_write(LS_SYSTEM, L_NOTICE, 0, "Server Ready");
 
   event_loop();
 

@@ -165,7 +165,7 @@ void report_error(const char* text, const char* who, int err)
     sendto_opmask_butone(0, SNO_OLDSNO, text, who, errmsg);
     last_notice = CurrentTime;
   }
-  ircd_log(L_ERROR, text, who, errmsg);
+  log_write(LS_SOCKET, L_ERROR, 0, text, who, errmsg);
   errno = errtmp;
 }
 

@@ -23,6 +23,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "match.h"
@@ -261,13 +262,12 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		       flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
 		       expire + TSoffset, reason);
 
-#ifdef GPATH
   /* and log it */
-  write_log(GPATH, "# %Tu %C adding %s %s for %s, expiring at %Tu: %s\n",
-	    TStime(), sptr, flags & GLINE_LOCAL ? "local" : "global",
+  log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
+	    "%#C adding %s %s for %s, expiring at %Tu: %s", sptr,
+	    flags & GLINE_LOCAL ? "local" : "global",
 	    flags & GLINE_BADCHAN ? "BADCHAN" : "GLINE", userhost,
 	    expire + TSoffset, reason);
-#endif /* GPATH */
 
   /* make the gline */
   agline = make_gline(userhost, reason, expire, lastmod, flags);
@@ -279,12 +279,6 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   if (GlineIsBadChan(agline))
     return 0;
-
-#ifdef GPATH
-  /* this can be inserted into the conf */
-  write_log(GPATH, "%c:%s:%s:%s\n", GlineIsIpMask(agline) ? 'k' : 'K',
-	    GlineHost(agline), GlineReason(agline), GlineUser(agline));
-#endif /* GPATH */
 
   return do_gline(cptr, sptr, agline); /* knock off users if necessary */
 }
@@ -322,14 +316,12 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
 		       gline->gl_expire + TSoffset, gline->gl_reason);
 
-#ifdef GPATH
-  write_log(GPATH, "# %Tu %C activating global %s for %s%s%s, expiring at "
-	    "%Tu: %s\n", TStime(), sptr,
-	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-	    gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+  log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
+	    "%#C activating global %s for %s%s%s, expiring at %Tu: %s", sptr,
+	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE", gline->gl_user,
+	    GlineIsBadChan(gline) ? "" : "@",
 	    GlineIsBadChan(gline) ? "" : gline->gl_host,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
-#endif /* GPATH */
 
   if (!(flags & GLINE_LOCAL)) /* don't propagate local changes */
     propagate_gline(cptr, sptr, gline);
@@ -379,13 +371,12 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 		       GlineIsBadChan(gline) ? "" : gline->gl_host,
 		       gline->gl_expire + TSoffset, gline->gl_reason);
 
-#ifdef GPATH
-  write_log(GPATH, "# %Tu %C %s %s for %s%s%s, expiring at %Tu: %s\n",
-	    TStime(), sptr, msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-	    gline->gl_user, GlineIsBadChan(gline) ? "" : "@",
+  log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
+	    "%#C %s %s for %s%s%s, expiring at %Tu: %s", sptr, msg,
+	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE", gline->gl_user,
+	    GlineIsBadChan(gline) ? "" : "@",
 	    GlineIsBadChan(gline) ? "" : gline->gl_host,
 	    gline->gl_expire + TSoffset, gline->gl_reason);
-#endif /* GPATH */
 
   if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))
     gline_free(gline);

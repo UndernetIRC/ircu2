@@ -1,5 +1,5 @@
 /************************************************************************
- *   IRC - Internet Relay Chat, src/ircd_log.c
+ *   IRC - Internet Relay Chat, ircd/ircd_alloc.c
  *   Copyright (C) 1999 Thomas Helvey (BleepSoft)
  *                     
  *   See file AUTHORS in IRC package for additional names of

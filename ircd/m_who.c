@@ -188,12 +188,9 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         case 'x':
         case 'X':
           bitsel |= WHOSELECT_EXTRA;
-#ifdef WPATH
           if (IsAnOper(sptr))
-            write_log(WPATH, "# " TIME_T_FMT " %#C WHO %s %s\n",
-		      CurrentTime, sptr, (BadPtr(parv[3]) ? parv[1] : parv[3]),
-		      parv[2]);
-#endif /* WPATH */
+	    log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
+		      (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
           continue;
         case 'n':
         case 'N':
@@ -513,7 +510,7 @@ int m_who(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           bitsel |= WHOSELECT_EXTRA;
 #ifdef WPATH
           if (IsAnOper(sptr))
-            write_log(WPATH, "# " TIME_T_FMT " %s!%s@%s WHO %s %s\n",
+            write_log(WPATH, "# " TIME_T_FMT " %s!%s@%s WHO %s %s\n", /* XXX DEAD */
                 CurrentTime, sptr->name, sptr->user->username, sptr->user->host,
                 (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
 #endif /* WPATH */

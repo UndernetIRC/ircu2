@@ -103,10 +103,6 @@
 #include <assert.h>
 #include <string.h>
 
-#if defined(DEBUGMODE)
-#define SYSLOG_KILL
-#endif
-
 /*
  * ms_kill - server message handler template
  *
@@ -179,9 +175,7 @@ int ms_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       "Received KILL message for %s. From %s Path: %C!%s",
 		       get_client_name(victim,SHOW_IP), parv[0], cptr, path);
 
-#if defined(SYSLOG_KILL)
   log_write_kill(victim, sptr, cptr->name, path);
-#endif
   /*
    * And pass on the message to other servers. Note, that if KILL
    * was changed, the message has to be sent to all links, also
@@ -339,9 +333,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		       "Received KILL message for %s. From %s Path: %s!%s",
 		       get_client_name(victim,SHOW_IP), parv[0], inpath, path);
 
-#if defined(SYSLOG_KILL)
   log_write_kill(victim, sptr, inpath, path);
-#endif
   /*
    * And pass on the message to other servers. Note, that if KILL
    * was changed, the message has to be sent to all links, also
@@ -526,19 +518,19 @@ int m_kill(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   {                                /* get more infos when your local
                                    clients are killed -- _dl */
     if (IsServer(sptr))
-      ircd_log(L_TRACE,
+      ircd_log(L_TRACE, /* XXX DEAD */
           "A local client %s!%s@%s KILLED from %s [%s] Path: %s!%s)",
           acptr->name, acptr->user->username, acptr->user->host,
           parv[0], sptr->name, inpath, path);
     else
-      ircd_log(L_TRACE,
+      ircd_log(L_TRACE, /* XXX DEAD */
           "A local client %s!%s@%s KILLED by %s [%s!%s@%s] (%s!%s)",
           acptr->name, acptr->user->username, acptr->user->host,
           parv[0], sptr->name, sptr->user->username, sptr->user->host,
           inpath, path);
   }
   else if (IsOper(sptr))
-    ircd_log(L_TRACE, "KILL From %s For %s Path %s!%s",
+    ircd_log(L_TRACE, "KILL From %s For %s Path %s!%s", /* XXX DEAD */
         parv[0], acptr->name, inpath, path);
 #endif
   /*

@@ -105,14 +105,17 @@ int uping_init(void)
     return -1;
   }
   if (!os_set_reuseaddr(fd)) {
-    ircd_log(L_ERROR, "UPING: setsockopt UDP listener: fd %d", fd);
+    log_write(LS_SOCKET, L_ERROR, 0,
+	      "UPING: set reuseaddr on UDP listener failed: %m (fd %d)", fd);
     Debug((DEBUG_ERROR, "UPING: set reuseaddr on UDP listener failed: %s",
            (strerror(errno)) ? strerror(errno) : "Unknown error"));
     close(fd);
     return -1;
   }
   if (bind(fd, (struct sockaddr*) &from, sizeof(from)) == -1) {
-    ircd_log(L_ERROR, "UPING: bind UDP listener %d fd %d", htons(from.sin_port), fd);
+    log_write(LS_SOCKET, L_ERROR, 0,
+	      "UPING: bind on UDP listener (%d fd %d) failed: %m",
+	      htons(from.sin_port), fd);
     Debug((DEBUG_ERROR, "UPING: bind on UDP listener failed : %s",
            (strerror(errno)) ? strerror(errno) : "Unknown error"));
     close(fd);

@@ -380,7 +380,7 @@ int m_uping(struct Client* cptr, struct Client *sptr, int parc, char *parv[])
       sendto_one(sptr, /* XXX DEAD */
                  "%s NOTICE %s%s :UPING: Unable to create udp ping socket",
                  NumServ(&me), NumNick(sptr));
-    ircd_log(L_ERROR, "UPING: Unable to create UDP socket");
+    ircd_log(L_ERROR, "UPING: Unable to create UDP socket"); /* XXX DEAD */
     return 0;
   }
 

@@ -93,6 +93,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "list.h"
@@ -224,12 +225,6 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
   if (del_mode & MODE_KEY)
     chptr->mode.key[0] = '\0';
 
-#ifndef OPATH
-  /* Don't propagate CLEARMODE if it's a local channel */
-  if (IsLocalChannel(chptr->chname))
-    return 0;
-#endif
-
   /* Ok, build control string again */
   for (flag_p = flags; flag_p[0]; flag_p += 2)
     if (del_mode & flag_p[0])
@@ -237,10 +232,9 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
   control_buf[control_buf_i] = '\0';
 
-#ifdef OPATH
-  write_log(OPATH, "%Tu %#C CLEARMODE %H %s\n", TStime(), sptr, chptr,
-	    control_buf);
-#endif
+  /* Log it... */
+  log_write(LS_OPERMODE, L_INFO, LOG_NOSNOTICE, "%#C CLEARMODE %H %s", sptr,
+	    chptr, control_buf);
 
   /* Then send it */
   if (!IsLocalChannel(chptr->chname))

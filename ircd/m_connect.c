@@ -214,8 +214,8 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			":Remote CONNECT %s %s from %s", parv[1],
 			parv[2] ? parv[2] : "",
 			get_client_name(sptr, HIDE_IP));
-  ircd_log(L_INFO, "CONNECT From %s : %s %d", parv[0], parv[1],
-	   parv[2] ? parv[2] : "");
+  log_write(LS_NETWORK, L_INFO, 0, "CONNECT From %C : %s %s", sptr, parv[1],
+	    parv[2] ? parv[2] : "");
 
   if (connect_server(aconf, sptr, 0)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connecting to %s.", sptr,
@@ -509,7 +509,7 @@ int m_connect(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sendto_ops_butone(0, &me, ":%s WALLOPS :Remote CONNECT %s %s from %s", /* XXX DEAD */
                       me.name, parv[1], parv[2] ? parv[2] : "",
                       get_client_name(sptr, HIDE_IP));
-    ircd_log(L_INFO, "CONNECT From %s : %s %d",
+    ircd_log(L_INFO, "CONNECT From %s : %s %d", /* XXX DEAD */
              parv[0], parv[1], parv[2] ? parv[2] : "");
   }
   aconf->port = port;
