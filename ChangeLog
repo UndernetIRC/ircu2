@@ -1,3 +1,16 @@
+2005-01-13  Michael Poole <mdpoole@troilus.org>
+
+	* Makefile.in: Add ircd/test as a subdirectory.
+
+	* ircd/.cvsignore: Ignore umkpasswd binary.
+
+	* ircd/Makefile.in: Update dependencies.
+
+	* ircd/test/.cvsignore: New file.
+
+	* ircd/test/Makefile.in: Use ${} instead of $().  Add build,
+	depend, distclean targets to integrate with rest of build system.
+
 2005-01-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/IPcheck.c (ip_registry_check_remote): Do not count clones

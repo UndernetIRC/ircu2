@@ -28,8 +28,8 @@ AWK = @AWK@
 @SET_MAKE@
 #### End of system configuration section. ####
 
-SUBDIRS = doc ircd
-IRCD_MAKEFILES = Makefile doc/Makefile ircd/Makefile
+SUBDIRS = doc ircd ircd/test
+IRCD_MAKEFILES = Makefile doc/Makefile ircd/Makefile ircd/test/Makefile
 
 all: build
 
@@ -137,6 +137,9 @@ doc/Makefile: doc/Makefile.in config.status
 	./config.status
 
 ircd/Makefile: ircd/Makefile.in config.status
+	./config.status
+
+ircd/test/Makefile: ircd/test/Makefile.in config.status
 	./config.status
 
 config.status: configure

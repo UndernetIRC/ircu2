@@ -4,6 +4,7 @@ version.c
 ircd
 chkconf
 table_gen
+umkpasswd
 chattr.tab.c
 lex.yy.c
 y.tab.c
