@@ -271,7 +271,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	int last_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
 
 	for (nick = ircd_strtok(&p, nicklist, ","); nick;
-	     nick = ircd_strtok(&p, 0, " ")) {
+	     nick = ircd_strtok(&p, 0, ",")) {
 
 	  if ((ptr = strchr(nick, ':'))) { /* new flags; deal */
 	    *ptr++ = '\0';
