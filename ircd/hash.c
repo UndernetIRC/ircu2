@@ -281,9 +281,9 @@ static HASHREGS strhash(const char *n)
  */
 int hAddClient(struct Client *cptr)
 {
-  HASHREGS hashv = strhash(cptr->name);
+  HASHREGS hashv = strhash(cli_name(cptr));
 
-  cptr->hnext = clientTable[hashv];
+  cli_hnext(cptr) = clientTable[hashv];
   clientTable[hashv] = cptr;
 
   return 0;
@@ -312,22 +312,22 @@ int hAddChannel(struct Channel *chptr)
  */
 int hRemClient(struct Client *cptr)
 {
-  HASHREGS hashv = strhash(cptr->name);
+  HASHREGS hashv = strhash(cli_name(cptr));
   struct Client *tmp = clientTable[hashv];
 
   if (tmp == cptr) {
-    clientTable[hashv] = cptr->hnext;
-    cptr->hnext = cptr;
+    clientTable[hashv] = cli_hnext(cptr);
+    cli_hnext(cptr) = cptr;
     return 0;
   }
 
   while (tmp) {
-    if (tmp->hnext == cptr) {
-      tmp->hnext = tmp->hnext->hnext;
-      cptr->hnext = cptr;
+    if (cli_hnext(tmp) == cptr) {
+      cli_hnext(tmp) = cli_hnext(cli_hnext(tmp));
+      cli_hnext(cptr) = cptr;
       return 0;
     }
-    tmp = tmp->hnext;
+    tmp = cli_hnext(tmp);
   }
   return -1;
 }
@@ -400,12 +400,12 @@ struct Client* hSeekClient(const char *name, int TMask)
   struct Client *cptr = clientTable[hashv];
 
   if (cptr) {
-    if (0 == (cptr->status & TMask) || 0 != ircd_strcmp(name, cptr->name)) {
+    if (0 == (cli_status(cptr) & TMask) || 0 != ircd_strcmp(name, cli_name(cptr))) {
       struct Client* prev;
       while (prev = cptr, cptr = cptr->hnext) {
-        if ((cptr->status & TMask) && (0 == ircd_strcmp(name, cptr->name))) {
-          prev->hnext = cptr->hnext;
-          cptr->hnext = clientTable[hashv];
+        if ((cli_status(cptr) & TMask) && (0 == ircd_strcmp(name, cli_name(cptr)))) {
+          cli_hnext(prev) = cli_hnext(cptr);
+          cli_hnext(cptr) = clientTable[hashv];
           clientTable[hashv] = cptr;
           break;
         }
@@ -463,7 +463,7 @@ int m_hash(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if ((cl = clientTable[i])) {
       int len = 0;
       ++buckets;
-      for ( ; cl; cl = cl->hnext)
+      for ( ; cl; cl = cli_hnext(cl))
         ++len; 
       if (len > max_chain)
         max_chain = len;

@@ -269,7 +269,7 @@ int ip_registry_check_local(unsigned int addr, time_t* next_target_out)
  */
 int ip_registry_check_remote(struct Client* cptr, int is_burst)
 {
-  struct IPRegistryEntry* entry = ip_registry_find(cptr->ip.s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
 
   /*
    * Mark that we did add/update an IPregistry entry
@@ -277,7 +277,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
   SetIPChecked(cptr);
   if (0 == entry) {
     entry = ip_registry_new_entry();
-    entry->addr = cptr->ip.s_addr;
+    entry->addr = (cli_ip(cptr)).s_addr;
     if (is_burst)
       entry->attempts = 0;
     ip_registry_add(entry);
@@ -336,14 +336,14 @@ void ip_registry_connect_succeeded(struct Client *cptr)
 {
   const char*             tr    = "";
   unsigned int free_targets     = STARTTARGETS;
-  struct IPRegistryEntry* entry = ip_registry_find(cptr->ip.s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
 
   if (!entry) {
-    Debug((DEBUG_ERROR, "Missing registry entry for: %s", cptr->sock_ip));
+    Debug((DEBUG_ERROR, "Missing registry entry for: %s", con_sock_ip(cptr)));
     return;
   }
   if (entry->target) {
-    memcpy(cptr->targets, entry->target->targets, MAXTARGETS);
+    memcpy(con_targets(cptr), entry->target->targets, MAXTARGETS);
     free_targets = entry->target->count;
     tr = " tr";
   }
@@ -365,7 +365,7 @@ void ip_registry_connect_succeeded(struct Client *cptr)
  */
 void ip_registry_disconnect(struct Client *cptr)
 {
-  struct IPRegistryEntry* entry = ip_registry_find(cptr->ip.s_addr);
+  struct IPRegistryEntry* entry = ip_registry_find((cli_ip(cptr)).s_addr);
   if (0 == entry) {
     /*
      * trying to find an entry for a server causes this to happen,
@@ -397,7 +397,7 @@ void ip_registry_disconnect(struct Client *cptr)
     }
     assert(0 != entry->target);
 
-    memcpy(entry->target->targets, cptr->targets, MAXTARGETS);
+    memcpy(entry->target->targets, con_targets(cptr), MAXTARGETS);
     /*
      * This calculation can be pretty unfair towards large multi-user hosts, but
      * there is "nothing" we can do without also allowing spam bots to send more
@@ -411,22 +411,22 @@ void ip_registry_disconnect(struct Client *cptr)
      * ALL should get no free targets when reconnecting.  We'd need to store an entry
      * per client (instead of per IP number) to avoid this.
      */
-    if (cptr->nexttarget < CurrentTime) {
+    if (con_nexttarget(cptr) < CurrentTime) {
         /*
          * Number of free targets
          */
-      free_targets = (CurrentTime - cptr->nexttarget) / TARGET_DELAY + 1;
+      free_targets = (CurrentTime - con_nexttarget(cptr)) / TARGET_DELAY + 1;
     }
     else
       free_targets = 0;
     /*
      * Add bonus, this is pretty fuzzy, but it will help in some cases.
      */
-    if ((CurrentTime - cptr->firsttime) > 600)
+    if ((CurrentTime - cli_firsttime(cptr)) > 600)
       /*
        * Was longer then 10 minutes online?
        */
-      free_targets += (CurrentTime - cptr->firsttime - 600) / TARGET_DELAY;
+      free_targets += (CurrentTime - cli_firsttime(cptr) - 600) / TARGET_DELAY;
     /*
      * Finally, store smallest value for Judgement Day
      */

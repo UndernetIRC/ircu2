@@ -122,7 +122,7 @@ struct Membership* find_member_link(struct Channel* chptr, const struct Client* 
    * and 99% are on 10 or less.
    */
   else {
-   m = cptr->user->channel;
+   m = (cli_user(cptr))->channel;
    while (m) {
      assert(m->user == cptr);
      if (m->channel == chptr)
@@ -180,33 +180,6 @@ static char *make_nick_user_ip(char *nick, char *name, struct in_addr ip)
   return ipbuf;
 }
 
-#if 0
-static int DoesOp(const char* modebuf)
-{
-  assert(0 != modebuf);
-  while (*modebuf) {
-    if (*modebuf == 'o' || *modebuf == 'v')
-      return 1;
-    ++modebuf;
-  }
-  return 0;
-}
-
-/*
- * This function should be removed when all servers are 2.10
- */
-static void sendmodeto_one(struct Client* cptr, const char* from,
-                           const char* name, const char* mode,
-                           const char* param, time_t creationtime)
-{
-  if (IsServer(cptr) && DoesOp(mode) && creationtime)
-    sendto_one(cptr, ":%s MODE %s %s %s " TIME_T_FMT, /* XXX DEAD */
-               from, name, mode, param, creationtime);
-  else
-    sendto_one(cptr, ":%s MODE %s %s %s", from, name, mode, param); /* XXX DEAD */
-}
-#endif /* 0 */
-
 /*
  * Subtract one user from channel i (and free channel
  * block, if channel became empty).
@@ -234,8 +207,8 @@ int sub1_from_channel(struct Channel* chptr)
     for (i = 0; i <= HighestFd; i++)
     {
       struct Client *acptr = 0;
-      if ((acptr = LocalClientArray[i]) && acptr->listing &&
-          acptr->listing->chptr == chptr)
+      if ((acptr = LocalClientArray[i]) && con_listing(acptr) &&
+          (con_listing(acptr))->chptr == chptr)
       {
         list_next_channels(acptr, 1);
         break;                  /* Only one client can list a channel */
@@ -382,9 +355,9 @@ int add_banid(struct Client *cptr, struct Channel *chptr, char *banid,
     assert(0 != ban->value.ban.banstr);
     strcpy(ban->value.ban.banstr, banid);
 
-    ban->value.ban.who = (char*) MyMalloc(strlen(cptr->name) + 1);
+    ban->value.ban.who = (char*) MyMalloc(strlen(cli_name(cptr)) + 1);
     assert(0 != ban->value.ban.who);
-    strcpy(ban->value.ban.who, cptr->name);
+    strcpy(ban->value.ban.who, cli_name(cptr));
 
     ban->value.ban.when = TStime();
     ban->flags = CHFL_BAN;      /* This bit is never used I think... */
@@ -497,12 +470,14 @@ static int is_banned(struct Client *cptr, struct Channel *chptr,
   if (member && IsBanValid(member))
     return IsBanned(member);
 
-  s = make_nick_user_host(cptr->name, cptr->user->username, cptr->user->host);
+  s = make_nick_user_host(cli_name(cptr), (cli_user(cptr))->username,
+			  (cli_user(cptr))->host);
 
   for (tmp = chptr->banlist; tmp; tmp = tmp->next) {
     if ((tmp->flags & CHFL_BAN_IPMASK)) {
       if (!ip_s)
-        ip_s = make_nick_user_ip(cptr->name, cptr->user->username, cptr->ip);
+        ip_s = make_nick_user_ip(cli_name(cptr), (cli_user(cptr))->username,
+				 cli_ip(cptr));
       if (match(tmp->value.ban.banstr, ip_s) == 0)
         break;
     }
@@ -535,7 +510,7 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
   assert(0 != chptr);
   assert(0 != who);
 
-  if (who->user) {
+  if (cli_user(who)) {
    
     struct Membership* member = membershipFreeList;
     if (member)
@@ -556,14 +531,14 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
     member->prev_member  = 0; 
     chptr->members       = member;
 
-    member->next_channel = who->user->channel;
+    member->next_channel = (cli_user(who))->channel;
     if (member->next_channel)
       member->next_channel->prev_channel = member;
     member->prev_channel = 0;
-    who->user->channel = member;
+    (cli_user(who))->channel = member;
 
     ++chptr->users;
-    ++who->user->joined;
+    ++((cli_user(who))->joined);
   }
 }
 
@@ -590,9 +565,9 @@ static int remove_member_from_channel(struct Membership* member)
   if (member->prev_channel)
     member->prev_channel->next_channel = member->next_channel;
   else
-    member->user->user->channel = member->next_channel;
+    (cli_user(member->user))->channel = member->next_channel;
 
-  --member->user->user->joined;
+  --(cli_user(member->user))->joined;
 
   member->next_member = membershipFreeList;
   membershipFreeList = member;
@@ -638,7 +613,7 @@ void remove_user_from_all_channels(struct Client* cptr)
   assert(0 != cptr);
   assert(0 != cptr->user);
 
-  while ((chan = cptr->user->channel))
+  while ((chan = (cli_user(cptr))->channel))
     remove_user_from_channel(cptr, chan->channel);
 }
 
@@ -741,7 +716,8 @@ const char* find_no_nickchange_channel(struct Client* cptr)
 {
   if (MyUser(cptr)) {
     struct Membership* member;
-    for (member = cptr->user->channel; member; member = member->next_channel) {
+    for (member = (cli_user(cptr))->channel; member;
+	 member = member->next_channel) {
       if (!IsVoicedOrOpped(member) && is_banned(cptr, member->channel, member))
         return member->channel->chname;
     }
@@ -789,64 +765,6 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
   }
   *mbuf = '\0';
 }
-
-#if 0
-static int send_mode_list(struct Client *cptr, char *chname,
-                          time_t creationtime, struct SLink *top,
-                          int mask, char flag)
-{
-  struct SLink* lp;
-  char*         cp;
-  char*         name;
-  int           count = 0;
-  int           send = 0;
-  int           sent = 0;
-
-  cp = modebuf + strlen(modebuf);
-  if (*parabuf)                 /* mode +l or +k xx */
-    count = 1;
-  for (lp = top; lp; lp = lp->next)
-  {
-    if (!(lp->flags & mask))
-      continue;
-    if (mask == CHFL_BAN)
-      name = lp->value.ban.banstr;
-    else
-      name = lp->value.cptr->name;
-    if (strlen(parabuf) + strlen(name) + 11 < MODEBUFLEN)
-    {
-      strcat(parabuf, " ");
-      strcat(parabuf, name);
-      count++;
-      *cp++ = flag;
-      *cp = '\0';
-    }
-    else if (*parabuf)
-      send = 1;
-    if (count == 6)
-      send = 1;
-    if (send)
-    {
-      /* cptr is always a server! So we send creationtimes */
-      sendmodeto_one(cptr, me.name, chname, modebuf, parabuf, creationtime);
-      sent = 1;
-      send = 0;
-      *parabuf = '\0';
-      cp = modebuf;
-      *cp++ = '+';
-      if (count != 6)
-      {
-        strcpy(parabuf, name);
-        *cp++ = flag;
-      }
-      count = 0;
-      *cp = '\0';
-    }
-  }
-  return sent;
-}
-
-#endif /* 0 */
 
 /*
  * send "cptr" a full list of the modes for channel chptr.
@@ -1131,7 +1049,7 @@ int can_join(struct Client *sptr, struct Channel *chptr, char *key)
    * Now a user CAN escape anything if invited -- Isomer
    */
 
-  for (lp = sptr->user->invited; lp; lp = lp->next)
+  for (lp = (cli_user(sptr))->invited; lp; lp = lp->next)
     if (lp->value.chptr == chptr)
       return 0;
   
@@ -1238,9 +1156,9 @@ void add_invite(struct Client *cptr, struct Channel *chptr)
   /*
    * Delete last link in chain if the list is max length
    */
-  assert(list_length(cptr->user->invited) == cptr->user->invites);
-  if (cptr->user->invites>=MAXCHANNELSPERUSER)
-    del_invite(cptr, cptr->user->invited->value.chptr);
+  assert(list_length((cli_user(cptr))->invited) == (cli_user(cptr))->invites);
+  if ((cli_user(cptr))->invites>=MAXCHANNELSPERUSER)
+    del_invite(cptr, (cli_user(cptr))->invited->value.chptr);
   /*
    * Add client to channel invite list
    */
@@ -1251,12 +1169,12 @@ void add_invite(struct Client *cptr, struct Channel *chptr)
   /*
    * Add channel to the end of the client invite list
    */
-  for (tmp = &(cptr->user->invited); *tmp; tmp = &((*tmp)->next));
+  for (tmp = &((cli_user(cptr))->invited); *tmp; tmp = &((*tmp)->next));
   inv = make_link();
   inv->value.chptr = chptr;
   inv->next = NULL;
   (*tmp) = inv;
-  cptr->user->invites++;
+  (cli_user(cptr))->invites++;
 }
 
 /*
@@ -1272,11 +1190,11 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
       *inv = tmp->next;
       free_link(tmp);
       tmp = 0;
-      cptr->user->invites--;
+      (cli_user(cptr))->invites--;
       break;
     }
 
-  for (inv = &(cptr->user->invited); (tmp = *inv); inv = &tmp->next)
+  for (inv = &((cli_user(cptr))->invited); (tmp = *inv); inv = &tmp->next)
     if (tmp->value.chptr == chptr)
     {
       *inv = tmp->next;
@@ -1289,14 +1207,14 @@ void del_invite(struct Client *cptr, struct Channel *chptr)
 /* List and skip all channels that are listen */
 void list_next_channels(struct Client *cptr, int nr)
 {
-  struct ListingArgs *args = cptr->listing;
+  struct ListingArgs *args = con_listing(cptr);
   struct Channel *chptr = args->chptr;
   chptr->mode.mode &= ~MODE_LISTED;
   while (is_listed(chptr) || --nr >= 0)
   {
     for (; chptr; chptr = chptr->next)
     {
-      if (!cptr->user || (SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
+      if (!cli_user(cptr) || (SecretChannel(chptr) && !find_channel_member(cptr, chptr)))
         continue;
       if (chptr->users > args->min_users && chptr->users < args->max_users &&
           chptr->creationtime > args->min_time &&
@@ -1314,15 +1232,15 @@ void list_next_channels(struct Client *cptr, int nr)
     }
     if (!chptr)
     {
-      MyFree(cptr->listing);
-      cptr->listing = NULL;
+      MyFree(con_listing(cptr));
+      con_listing(cptr) = NULL;
       send_reply(cptr, RPL_LISTEND);
       break;
     }
   }
   if (chptr)
   {
-    cptr->listing->chptr = chptr;
+    (con_listing(cptr))->chptr = chptr;
     chptr->mode.mode |= MODE_LISTED;
   }
 }
@@ -1391,11 +1309,11 @@ void make_zombie(struct Membership* member, struct Client* who, struct Client* c
     remove_user_from_channel(who, chptr);
     return;
   }
-  if (who->from == cptr)        /* True on servers 1, 5 and 6 */
+  if (cli_from(who) == cptr)        /* True on servers 1, 5 and 6 */
   {
-    struct Client *acptr = IsServer(sptr) ? sptr : sptr->user->server;
-    for (; acptr != &me; acptr = acptr->serv->up)
-      if (acptr == who->user->server)   /* Case d) (server 5) */
+    struct Client *acptr = IsServer(sptr) ? sptr : (cli_user(sptr))->server;
+    for (; acptr != &me; acptr = (cli_serv(acptr))->up)
+      if (acptr == (cli_user(who))->server)   /* Case d) (server 5) */
       {
         remove_user_from_channel(who, chptr);
         return;
@@ -1502,7 +1420,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   /* Ok, if we were given the OPMODE flag, hide the source if its a user */
   if (mbuf->mb_dest & MODEBUF_DEST_OPMODE && !IsServer(mbuf->mb_source))
-    app_source = mbuf->mb_source->user->server;
+    app_source = (cli_user(mbuf->mb_source))->server;
   else
     app_source = mbuf->mb_source;
 
@@ -1532,7 +1450,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     }
 
     if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE)) {
-      tmp = strlen(MB_CLIENT(mbuf, i)->name);
+      tmp = strlen(cli_name(MB_CLIENT(mbuf, i)));
 
       if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
@@ -1592,7 +1510,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
       /* deal with clients... */
       if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
-	build_string(strptr, strptr_i, MB_CLIENT(mbuf, i)->name, 0, ' ');
+	build_string(strptr, strptr_i, cli_name(MB_CLIENT(mbuf, i)), 0, ' ');
 
       /* deal with strings... */
       else if (MB_TYPE(mbuf, i) & (MODE_KEY | MODE_BAN))
@@ -1610,13 +1528,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     /* send the messages off to their destination */
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2) {
       sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]", app_source->name, mbuf->mb_channel->chname,
+			   "[%Tu]", cli_name(app_source),
+			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
       sendcmdto_serv_butone(&me, CMD_DESYNCH, mbuf->mb_connect,
 			    ":HACK: %s MODE %s %s%s%s%s%s%s [%Tu]",
-			    app_source->name, mbuf->mb_channel->chname,
+			    cli_name(app_source), mbuf->mb_channel->chname,
 			    rembuf_i ? "-" : "", rembuf,
 			    addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			    mbuf->mb_channel->creationtime);
@@ -1624,14 +1543,15 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
       sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
-			   "%s%s%s%s%s%s [%Tu]", app_source->name,
+			   "%s%s%s%s%s%s [%Tu]", cli_name(app_source),
 			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
 			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
       sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]", app_source->name, mbuf->mb_channel->chname,
+			   "[%Tu]", cli_name(app_source),
+			   mbuf->mb_channel->chname,
 			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
 			   addbuf, remstr, addstr,
 			   mbuf->mb_channel->creationtime);
@@ -2436,7 +2356,8 @@ mode_process_clients(struct ParseState *state)
 	(MyUser(state->sptr) && IsZombie(member))) {
       if (MyUser(state->sptr))
 	send_reply(state->sptr, ERR_USERNOTINCHANNEL,
-		   state->cli_change[i].client->name, state->chptr->chname);
+		   cli_name(state->cli_change[i].client),
+		   state->chptr->chname);
       continue;
     }
 
@@ -2454,12 +2375,13 @@ mode_process_clients(struct ParseState *state)
 	if (state->flags & MODE_PARSE_FORCE) /* it was forced */
 	  sendto_opmask_butone(0, SNO_HACK4, "Deop of +k user on %H by %s",
 			       state->chptr,
-			       (IsServer(state->sptr) ? state->sptr->name :
-				state->sptr->user->server->name));
+			       (IsServer(state->sptr) ? cli_name(state->sptr) :
+				cli_name((cli_user(state->sptr))->server)));
 
 	else if (MyUser(state->sptr) && state->flags & MODE_PARSE_SET) {
 	  send_reply(state->sptr, ERR_ISCHANSERVICE,
-		     state->cli_change[i].client->name, state->chptr->chname);
+		     cli_name(state->cli_change[i].client),
+		     state->chptr->chname);
 	  continue;
 	}
       }
@@ -2470,7 +2392,8 @@ mode_process_clients(struct ParseState *state)
 	  IsOperOnLocalChannel(state->cli_change[i].client,
 			       state->chptr->chname)) {
 	send_reply(state->sptr, ERR_ISOPERLCHAN,
-		   state->cli_change[i].client->name, state->chptr->chname);
+		   cli_name(state->cli_change[i].client),
+		   state->chptr->chname);
 	continue;
       }
 #endif

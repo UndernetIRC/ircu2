@@ -44,7 +44,7 @@ int client_get_ping(const struct Client* acptr)
   struct ConfItem* aconf;
   struct SLink*    link;
 
-  for (link = acptr->confs; link; link = link->next) {
+  for (link = con_confs(acptr); link; link = link->next) {
     aconf = link->value.aconf;
     if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
       int tmp = get_conf_ping(aconf);
@@ -55,55 +55,6 @@ int client_get_ping(const struct Client* acptr)
   if (0 == ping)
     ping = PINGFREQUENCY;
 
-  Debug((DEBUG_DEBUG, "Client %s Ping %d", acptr->name, ping));
+  Debug((DEBUG_DEBUG, "Client %s Ping %d", cli_name(acptr), ping));
   return ping;
 }
-
-#if 0
-#define BAD_CONF_CLASS          ((unsigned int)-1)
-#define BAD_CLIENT_CLASS        ((unsigned int)-3)
-
-unsigned int get_client_class(struct Client* acptr)
-{
-  struct SLink *tmp;
-  struct ConnectionClass *cl;
-  unsigned int retc = BAD_CLIENT_CLASS;
-
-  if (acptr && !IsMe(acptr) && (acptr->confs))
-    for (tmp = acptr->confs; tmp; tmp = tmp->next)
-    {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
-        continue;
-      if (ConClass(cl) > retc || retc == BAD_CLIENT_CLASS)
-        retc = ConClass(cl);
-    }
-
-  Debug((DEBUG_DEBUG, "Returning Class %d For %s", retc, acptr->name));
-
-  return (retc);
-}
-
-unsigned int get_sendq(struct Client *cptr)
-{
-  assert(0 != cptr);
-  assert(0 != cptr->local);
-
-  if (cptr->max_sendq)
-    return cptr->max_sendq;
-
-  else if (cptr->confs) {
-    struct SLink*     tmp;
-    struct ConnectionClass* cl;
-
-    for (tmp = cptr->confs; tmp; tmp = tmp->next) {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
-        continue;
-      if (ConClass(cl) != BAD_CLIENT_CLASS) {
-        cptr->max_sendq = MaxSendq(cl);
-        return cptr->max_sendq;
-      }
-    }
-  }
-  return DEFAULTMAXSENDQLENGTH;
-}
-#endif
