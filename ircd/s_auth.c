@@ -72,17 +72,18 @@ static struct {
   const char*  message;
   unsigned int length;
 } HeaderMessages [] = {
-  /* 123456789012345678901234567890123456789012345678901234567890 */
-  { "NOTICE AUTH :*** Looking up your hostname\r\n",       43 },
-  { "NOTICE AUTH :*** Found your hostname\r\n",            38 },
-  { "NOTICE AUTH :*** Found your hostname, cached\r\n",    46 },
-  { "NOTICE AUTH :*** Couldn't look up your hostname\r\n", 49 },
-  { "NOTICE AUTH :*** Checking Ident\r\n",                 33 },
-  { "NOTICE AUTH :*** Got ident response\r\n",             37 },
-  { "NOTICE AUTH :*** No ident response\r\n",              36 },
-  { "NOTICE AUTH :*** Your forward and reverse DNS do not match, "
-    "ignoring hostname.\r\n",                              80 },
-  {"NOTICE AUTH :*** Invalid hostname\r\n",                35 }
+#define MSG(STR) { STR, sizeof(STR) - 1 }
+  MSG("NOTICE AUTH :*** Looking up your hostname\r\n"),
+  MSG("NOTICE AUTH :*** Found your hostname\r\n"),
+  MSG("NOTICE AUTH :*** Found your hostname, cached\r\n"),
+  MSG("NOTICE AUTH :*** Couldn't look up your hostname\r\n"),
+  MSG("NOTICE AUTH :*** Checking Ident\r\n"),
+  MSG("NOTICE AUTH :*** Got ident response\r\n"),
+  MSG("NOTICE AUTH :*** No ident response\r\n"),
+  MSG("NOTICE AUTH :*** Your forward and reverse DNS do not match, "
+    "ignoring hostname.\r\n"),
+  MSG("NOTICE AUTH :*** Invalid hostname\r\n")
+#undef MSG
 };
 
 typedef enum {
@@ -99,9 +100,6 @@ typedef enum {
 
 #define sendheader(c, r) \
    send(cli_fd(c), HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
-
-struct AuthRequest* AuthPollList = 0; /* GLOBAL - auth queries pending io */
-static struct AuthRequest* AuthIncompleteList = 0;
 
 static void release_auth_client(struct Client* client);
 static void unlink_auth_request(struct AuthRequest* request,
@@ -203,10 +201,7 @@ static void auth_sock_callback(struct Event* ev)
  */
 void destroy_auth_request(struct AuthRequest* auth, int send_reports)
 {
-  struct AuthRequest** authList;
-
   if (IsDoingAuth(auth)) {
-    authList = &AuthPollList;
     if (-1 < auth->fd) {
       close(auth->fd);
       auth->fd = -1;
@@ -215,8 +210,7 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
 
     if (send_reports && IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
-  } else
-    authList = &AuthIncompleteList;
+  }
 
   if (IsDNSPending(auth)) {
     delete_resolver_queries(auth);
@@ -230,7 +224,6 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
     release_auth_client(auth->client);
   }
 
-  unlink_auth_request(auth, authList);
   free_auth_request(auth);
 }
 
@@ -317,8 +310,6 @@ static void auth_kill_client(struct AuthRequest* auth)
 {
   assert(0 != auth);
 
-  unlink_auth_request(auth, (IsDoingAuth(auth)) ? &AuthPollList : &AuthIncompleteList);
-
   if (IsDNSPending(auth))
     delete_resolver_queries(auth);
   IPcheck_disconnect(auth->client);
@@ -386,7 +377,6 @@ static void auth_dns_callback(void* vptr, struct DNSReply* hp)
   }
   if (!IsDoingAuth(auth)) {
     release_auth_client(auth->client);
-    unlink_auth_request(auth, &AuthIncompleteList);
     free_auth_request(auth);
   }
 }
@@ -418,11 +408,8 @@ static void auth_error(struct AuthRequest* auth, int kill)
   }
 
   ClearAuth(auth);
-  unlink_auth_request(auth, &AuthPollList);
 
-  if (IsDNSPending(auth))
-    link_auth_request(auth, &AuthIncompleteList);
-  else {
+  if (!IsDNSPending(auth)) {
     release_auth_client(auth->client);
     free_auth_request(auth);
   }
@@ -600,11 +587,9 @@ void start_auth(struct Client* client)
   if (start_auth_query(auth)) {
     Debug((DEBUG_LIST, "identd query for %p initiated successfully",
 	   auth->client));
-    link_auth_request(auth, &AuthPollList);
   } else if (IsDNSPending(auth)) {
     Debug((DEBUG_LIST, "identd query for %p not initiated successfully; "
 	   "waiting on DNS", auth->client));
-    link_auth_request(auth, &AuthIncompleteList);
   } else {
     Debug((DEBUG_LIST, "identd query for %p not initiated successfully; "
 	   "no DNS pending; releasing immediately", auth->client));
@@ -679,7 +664,7 @@ void read_auth_reply(struct AuthRequest* auth)
   Debug((DEBUG_LIST, "Deleting auth [%p] socket %p", auth, &auth->socket));
   socket_del(&auth->socket);
   ClearAuth(auth);
-  
+
   if (!EmptyString(username)) {
     ircd_strncpy(cli_username(auth->client), username, USERLEN);
     /*
@@ -694,11 +679,8 @@ void read_auth_reply(struct AuthRequest* auth)
   else {
     ++ServerStats->is_abad;
   }
-  unlink_auth_request(auth, &AuthPollList);
 
-  if (IsDNSPending(auth))
-    link_auth_request(auth, &AuthIncompleteList);
-  else {
+  if (!IsDNSPending(auth)) {
     release_auth_client(auth->client);
     free_auth_request(auth);
   }

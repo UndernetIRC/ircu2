@@ -1,3 +1,10 @@
+2004-09-21  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (HeaderMessages): Make the compiler, not the
+	programmer, generate magic numbers.
+	(AuthIncompleteList): Remove.
+	(AuthPollList): Remove.
+
 2004-09-19  Michael Poole <mdpoole@troilus.org>
 
 	* acinclude.m4: Clean up AC_DEFINE()s so we no longer need
