@@ -99,12 +99,9 @@ systems where ./configure does not detect that it is a system call.
 debugging the server.  THIS FEATURE SHOULD NOT BE USED ON A PRODUCTION
 NETWORK; it represents a severe privacy risk.
 
---enable-asserts
+--disable-asserts
   Assertions are a means of checking that certain underlying
-assumptions are met.  This option enables those assertions.  Note:
-This option should not be activated on production servers due to
-debugging code in the server's MyMalloc() implementation which will
-cause the server to leak memory.
+assumptions are met.  This option disables those assertions.
 
 --disable-symbols
   By default, the -g compiler option is used to enable symbols on the

@@ -1597,7 +1597,7 @@ static struct CacheEntry* make_cache(struct ResRequest* request)
    * shouldn't happen but it just might...
    */
   assert(0 != hp->h_name);
-  assert(0 != hp->h_addr_list[0]);
+/*    assert(0 != hp->h_addr_list[0]); */
   if (!hp->h_name || !hp->h_addr_list[0])
     return NULL;
   /*

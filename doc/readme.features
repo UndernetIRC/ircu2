@@ -402,6 +402,15 @@ This option is used to specify the type of service that will be
 requested for connections to users.  The value may be given as a
 hexadecimal integer.
 
+POLLS_PER_LOOP
+ * Type: integer
+ * Default: 200
+
+Some of the engines used by the event interface get a number of events
+from the kernel at once.  Since the number retrieved can impact
+performance, it can be tuned by modifying this value.  The engines
+enforce a lower limit of 20.
+
 CRYPT_OPER_PASSWORD
  * Type: boolean
  * Default: TRUE
@@ -587,7 +596,7 @@ REGULATED BY THE UNDERNET ADMINISTRATION.
 
 OPER_SET
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This selects whether global IRC operators on this server are permitted
 to use the /SET command to set various feature values.
