@@ -170,6 +170,8 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *gline;
   unsigned int flags = 0;
   int i;
+  int j;
+  int k = 0;
   char *p = 0;
   char *chanlist;
   char *name;
@@ -197,6 +199,18 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
+    /* This checks if the channel contains control codes and rejects em
+     * until they are gone, then we will do it otherwise - *SOB Mode*
+     */
+    for (j = 0; name[j]; j++)
+      if (IsCntrl(name[j]))
+	k++;
+
+    if ( k > 0 ) {
+      send_reply(sptr, ERR_NOSUCHCHANNEL, name);
+      continue;
+    }
+
     /* BADCHANed channel */
     if ((gline = gline_find(name, GLINE_BADCHAN | GLINE_EXACT)) &&
 	GlineIsActive(gline) && !IsAnOper(sptr)) {
@@ -209,15 +223,9 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	continue; /* already on channel */
 
       flags = CHFL_DEOPPED;
-    } else {
-      if (IsModelessChannel(name)) {
-	/* Prohibit creation of new modeless channels */
-	send_reply(sptr, ERR_NOSUCHCHANNEL, name);
-	continue;
-      }
-
-      flags = CHFL_CHANOP;
     }
+    else
+      flags = CHFL_CHANOP;
 
     if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
 	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {

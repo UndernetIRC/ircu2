@@ -1,3 +1,25 @@
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_create.c (ms_create): add missing )
+
+	* ircd/m_account.c: include string.h to stomp a "implicit
+	declaration of strlen" warning from gcc
+
+2002-11-20  Aaron Catella <aaroncatella@yahoo.com>
+
+	* include/channel.h, ircd/channel.c, ircd/gline.c, m_clearmode.c,
+	  m_create.c, m_invite.c, m_join.c, m_kick.c, m_mode.c, m_topic.c:
+	  removed modeless channel support
+
+2002-11-21  Alexander Maassen <outsider@key2peace.org>
+	* ircd/m_join.c: Deny joining channels with control chars.
+
+2002-11-23  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: change STAT_FLAG_OPERONLY into
+	STAT_FLAG_OPERFEAT so that /stats v is governed by
+	FEAT_HIS_STATS_v
+
 2002-11-24 Andrew Miller <a1kmm@mware.virtualave.net>
 	* ircd/m_server.c: Fixed the H: line hostname checking.
 	* docs/example.conf: Documented the max-hops feature.

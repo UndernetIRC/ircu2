@@ -90,6 +90,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * ms_account - server message handler

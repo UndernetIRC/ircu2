@@ -120,7 +120,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!(chptr = get_channel(sptr, name, CGT_NO_CREATE)))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, name);
 
-  if (!is_chan_op(sptr, chptr) || IsModelessChannel(name))
+  if (!is_chan_op(sptr, chptr))
     return send_reply(sptr, ERR_CHANOPRIVSNEEDED, name);
 
   if (!(who = find_chasing(sptr, parv[2], 0)))

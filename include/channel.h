@@ -106,9 +106,7 @@ struct Client;
 #define is_listed(x)            ((x)->mode.mode & MODE_LISTED)
 
 #define IsLocalChannel(name)    (*(name) == '&')
-#define IsModelessChannel(name) (*(name) == '+')
-#define IsChannelName(name)     (*(name) == '#' || \
-                                IsModelessChannel(name) || IsLocalChannel(name))
+#define IsChannelName(name)     (*(name) == '#' || IsLocalChannel(name))
 
 typedef enum ChannelGetType {
   CGT_NO_CREATE,

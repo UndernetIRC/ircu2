@@ -651,13 +651,9 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr)
 
   member = find_channel_member(cptr, chptr);
 
-  /*
-   * You can't speak if your off channel, if the channel is modeless, or
-   * +n (no external messages) or +m (moderated).
-   */
+  /* You can't speak if your off channel and +n (no external messages) or +m (moderated). */
   if (!member) {
     if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
-	IsModelessChannel(chptr->chname) ||
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
     else
@@ -2698,8 +2694,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, ":%H", chan);
 
     /* send an op, too, if needed */
-    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE &&
-	!IsModelessChannel(chan->chname))
+    if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, "%H +o %C",
 				chan, jbuf->jb_source);
   }

@@ -178,8 +178,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       chptr->creationtime = chanTS;
 
     joinbuf_join(badop ? &join : &create, chptr,
-		 (badop || IsModelessChannel(name)) ?
-		 CHFL_DEOPPED : CHFL_CHANOP);
+		 (badop || CHFL_CHANOP));
   }
 
   joinbuf_flush(&join); /* flush out the joins and creates */
