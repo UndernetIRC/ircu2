@@ -1,3 +1,8 @@
+2004-10-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y: Consistently zero out global variables after
+	they are used (prevents double frees and other problems).
+
 2004-10-12  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h: Rename FLAGSET_ISSET, _SET, _CLEAR to FlagHas,

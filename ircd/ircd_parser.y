@@ -328,14 +328,7 @@ admincontact: CONTACT '=' QSTRING ';'
 };
 
 classblock: CLASS {
-  name = NULL;
   tping = 90;
-  tconn = 0;
-  maxlinks = 0;
-  sendq = 0;
-  pass = NULL;
-  memset(&privs, 0, sizeof(privs));
-  memset(&privs_dirty, 0, sizeof(privs_dirty));
 } '{' classitems '}'
 {
   if (name != NULL)
@@ -350,7 +343,13 @@ classblock: CLASS {
   else {
    parse_error("Missing name in class block");
   }
+  name = NULL;
   pass = NULL;
+  tconn = 0;
+  maxlinks = 0;
+  sendq = 0;
+  memset(&privs, 0, sizeof(privs));
+  memset(&privs_dirty, 0, sizeof(privs_dirty));
 } ';';
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
@@ -378,16 +377,12 @@ classsendq: SENDQ '=' sizespec ';'
 };
 classusermode: USERMODE '=' QSTRING ';'
 {
-  if (pass)
-    MyFree(pass);
+  MyFree(pass);
   DupString(pass, $3);
 };
 
 connectblock: CONNECT
 {
- name = pass = host = origin = hub_limit = NULL;
- c_class = NULL;
- port = 0;
  maxlinks = 65535;
 } '{' connectitems '}'
 {
@@ -414,6 +409,9 @@ connectblock: CONNECT
    MyFree(hub_limit);
    parse_error("Bad connect block");
  }
+ name = pass = host = origin = hub_limit = NULL;
+ c_class = NULL;
+ port = 0;
 }';';
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
@@ -478,6 +476,7 @@ uworldblock: UWORLD '{' uworlditems '}' ';'
   MyFree(name);
   parse_error("Bad UWorld block");
  }
+ name = NULL;
 };
 uworlditems: uworlditem uworlditems | uworlditem;
 uworlditem: uworldname | error;
@@ -487,13 +486,7 @@ uworldname: NAME '=' QSTRING ';'
  DupString(name, $3);
 };
 
-operblock: OPER
-{
-  name = pass = host = NULL;
-  c_class = NULL;
-  memset(&privs, 0, sizeof(privs));
-  memset(&privs_dirty, 0, sizeof(privs_dirty));
-} '{' operitems '}' ';'
+operblock: OPER '{' operitems '}' ';'
 {
   if (name && pass && host && c_class)
   {
@@ -515,6 +508,10 @@ operblock: OPER
     MyFree(pass);
     MyFree(host);
   }
+  name = pass = host = NULL;
+  c_class = NULL;
+  memset(&privs, 0, sizeof(privs));
+  memset(&privs_dirty, 0, sizeof(privs_dirty));
 };
 operitems: operitem | operitems operitem;
 operitem: opername | operpass | operhost | operclass | priv | error;
@@ -590,15 +587,7 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
 /* The port block... */
-portblock: PORT {
-  port = 0;
-  host = NULL;
-  /* Hijack these for is_server, is_hidden to cut down on globals... */
-  tconn = 0;
-  tping = 0;
-  /* and this for mask... */
-  pass = NULL;
-} '{' portitems '}' ';'
+portblock: PORT '{' portitems '}' ';'
 {
   if (port > 0 && port <= 0xFFFF)
   {
@@ -611,6 +600,7 @@ portblock: PORT {
   MyFree(host);
   MyFree(pass);
   host = pass = NULL;
+  port = tconn = tping = 0;
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portmask | portserver | porthidden | error;
@@ -649,8 +639,6 @@ porthidden: HIDDEN '=' YES ';'
 
 clientblock: CLIENT
 {
-  host = name = NULL;
-  c_class = NULL;
   maxlinks = 65535;
 }
 '{' clientitems '}' ';'
@@ -669,6 +657,8 @@ clientblock: CLIENT
     MyFree(name);
     parse_error("Bad client block");
   }
+  host = name = NULL;
+  c_class = NULL;
 };
 clientitems: clientitem clientitems | clientitem;
 clientitem: clienthost | clientclass | clientpass | clientip
@@ -699,8 +689,7 @@ clientmaxlinks: MAXLINKS '=' expr ';'
 
 killblock: KILL
 {
-  dconf = (struct DenyConf*) MyMalloc(sizeof(*dconf));
-  memset(dconf, 0, sizeof(*dconf));
+  dconf = (struct DenyConf*) MyCalloc(1, sizeof(*dconf));
 } '{' killitems '}'
 {
   if (dconf->hostmask != NULL)
@@ -709,16 +698,15 @@ killblock: KILL
       DupString(dconf->usermask, "*");
     dconf->next = denyConfList;
     denyConfList = dconf;
-    dconf = NULL;
   }
   else
   {
     MyFree(dconf->hostmask);
     MyFree(dconf->message);
     MyFree(dconf);
-    dconf = NULL;
     parse_error("Bad kill block");
   }
+  dconf = NULL;
 } ';';
 killitems: killitem killitems | killitem;
 killitem: killuhost | killreal | killreasonfile | killreason | error;
@@ -768,9 +756,8 @@ killreasonfile: TFILE '=' QSTRING ';'
 
 cruleblock: CRULE
 {
-  host = pass = NULL;
   tconn = CRULE_AUTO;
-} '{' cruleitems '}'
+} '{' cruleitems '}' ';'
 {
   struct CRuleNode *node;
   if (host != NULL && pass != NULL && (node=crule_parse(pass)) != NULL)
@@ -789,7 +776,8 @@ cruleblock: CRULE
     MyFree(pass);
     parse_error("Bad CRule block");
   }
-} ';';
+  host = pass = NULL;
+};
 
 cruleitems: cruleitem cruleitems | cruleitem;
 cruleitem: cruleserver | crulerule | cruleall | error;
@@ -815,16 +803,14 @@ cruleall: ALL '=' YES ';'
  tconn = CRULE_AUTO;
 };
 
-motdblock: MOTD {
- pass = host = NULL;
-} '{' motditems '}'
+motdblock: MOTD '{' motditems '}' ';'
 {
   if (host != NULL && pass != NULL)
     motd_add(host, pass);
   MyFree(host);
   MyFree(pass);
   host = pass = NULL;
-} ';';
+};
 
 motditems: motditem motditems | motditem;
 motditem: motdhost | motdfile | error;
@@ -865,16 +851,7 @@ extrastring: QSTRING
 
 quarantineblock: QUARANTINE '{'
 {
-  if (qconf != NULL)
-    qconf = (struct qline*) MyMalloc(sizeof(*qconf));
-  else
-  {
-    if (qconf->chname != NULL)
-      MyFree(qconf->chname);
-    if (qconf->reason != NULL)
-      MyFree(qconf->reason);
-  }
-  memset(qconf, 0, sizeof(*qconf));
+  qconf = (struct qline*) MyCalloc(1, sizeof(*qconf));
 } quarantineitems '}' ';'
 {
   if (qconf->chname == NULL || qconf->reason == NULL)
@@ -955,8 +932,6 @@ pseudonick: NICK '=' QSTRING ';'
 
 iauthblock: IAUTH '{'
 {
-  pass = host = NULL;
-  port = 0;
   tconn = 60;
   tping = 60;
 } iauthitems '}' ';'
@@ -969,6 +944,7 @@ iauthblock: IAUTH '{'
   MyFree(pass);
   MyFree(host);
   pass = host = NULL;
+  port = 0;
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
