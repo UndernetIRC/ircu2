@@ -6,6 +6,10 @@
 	* ircd/Makefile.in (install-*): Remove commented-out code to touch
 	and chown MPATH and RPATH.
 
+	* ircd/gline.c (gline_find): Allow searching for host-based
+	G-lines by plain hostname (not *@host), thus preventing "GLINE
+	test ..." from inserting duplicate G-lines.
+
 2005-01-26  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_alloc.h (DoMallocZero): Parenthesize macro

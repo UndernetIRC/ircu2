@@ -641,10 +641,7 @@ gline_find(char *userhost, unsigned int flags)
     return 0;
 
   DupString(t_uh, userhost);
-  canon_userhost(t_uh, &user, &host, 0);
-
-  if (BadPtr(user))
-    return 0;
+  canon_userhost(t_uh, &user, &host, "*");
 
   for (gline = GlobalGlineList; gline; gline = sgline) {
     sgline = gline->gl_next;
@@ -657,14 +654,12 @@ gline_find(char *userhost, unsigned int flags)
     else if (flags & GLINE_EXACT) {
       if (((gline->gl_host && host && ircd_strcmp(gline->gl_host, host) == 0)
            || (!gline->gl_host && !host)) &&
-          ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
-	   ircd_strcmp(gline->gl_user, user) == 0))
+          (ircd_strcmp(gline->gl_user, user) == 0))
 	break;
     } else {
       if (((gline->gl_host && host && match(gline->gl_host, host) == 0)
            || (!gline->gl_host && !host)) &&
-	  ((!user && ircd_strcmp(gline->gl_user, "*") == 0) ||
-	   match(gline->gl_user, user) == 0))
+	  (match(gline->gl_user, user) == 0))
       break;
     }
   }
