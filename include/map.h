@@ -39,7 +39,7 @@ struct Map {
   char name[HOSTLEN+1];
   struct Map *next;
   struct Map *prev;
-}
+};
 
 extern void map_update(struct Client *server);
 extern void map_dump_head_in_sand(struct Client *cptr);

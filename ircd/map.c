@@ -33,6 +33,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "hash.h"
 #include "list.h"
 #include "match.h"
 #include "msg.h"
@@ -54,18 +55,18 @@ static struct Map *MapList = 0;
 /* Add a server to the map list. */
 static void map_add(struct Client *server)
 {
-  assert(server != 0);
+/*  assert(server != 0);
   assert(!IsHub(server));
   assert(!IsService(server));
+*/
+  struct Map *map = (struct Map *)MyAlloc(sizeof(struct Map));
 
-  struct Map *new = (struct Map *)MyAlloc(sizeof(struct Map));
+  map->lasttime = TStime();
+  strcpy(map->name, cli_name(server));
+  map->maxclients = cli_serv(server)->clients;
 
-  new->lasttime = TStime();
-  ircd_strcpy(new->name, cli_name(server));
-  new->maxclients = cli_serv(server)->clients;
-
-  new->prev = 0;
-  new->next = MapList;
+  map->prev = 0;
+  map->next = MapList;
 
   if(MapList)
     MapList->prev = new;
@@ -76,7 +77,7 @@ static void map_add(struct Client *server)
 /* Remove a server from the map list */
 static void map_remove(struct Map *cptr)
 {
-  assert(cptr != 0);
+  /*  assert(cptr != 0);*/
   
   if(cptr->next)
     cptr->next->prev = cptr->prev;
@@ -95,12 +96,12 @@ static void map_remove(struct Map *cptr)
  * splits, or we haven't checked in more than a week. */
 void map_update(struct Client *cptr)
 {
-  assert(IsServer(cptr));
+  /*  assert(IsServer(cptr)); */
 
   struct Map *map = 0;
   
   /* Find the server in the list and update it */ 
-  for(map = MapList.list; map; map = map->next)
+  for(map = MapList; map; map = map->next)
   {
     /* Show max clients not current, otherwise a split can be detected. */
     if(!ircd_strcmp(cli_name(cptr), map->name)) 
@@ -128,7 +129,7 @@ void map_update(struct Client *cptr)
     map_add(cli_name(cptr));
 }
 
-void dump_map_head_in_sand(struct Client *cptr)
+void map_dump_head_in_sand(struct Client *cptr)
 {
   struct Map *map = 0;
   struct Map *smap = 0;
@@ -144,7 +145,7 @@ void dump_map_head_in_sand(struct Client *cptr)
     /* Don't show servers we haven't seen in more than a week */
     if(map->lasttime < TStime() - 604800)
     {
-      acptr = find_match_server(map->name);
+      acptr = FindServer(map->name);
       if(!acptr)
       {
 	map_remove(map);
@@ -159,7 +160,7 @@ void dump_map_head_in_sand(struct Client *cptr)
 
 #endif /* HEAD_IN_SAND_MAP */ 
   
-(void map_dump(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
+void map_dump(struct Client *cptr, struct Client *server, char *mask, int prompt_length)
 {
   static char prompt[64];
   struct DLink *lp;

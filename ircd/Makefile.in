@@ -170,6 +170,7 @@ IRCD_SRC = \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \
+	map.c \
 	match.c \
 	motd.c \
 	msgq.c \
