@@ -26,6 +26,7 @@
 #include "crule.h"
 #include "hash.h"
 #include "ircd_alloc.h" /* set_nomem_handler */
+#include "ircd_defs.h"
 #include "ircd_log.h"
 #include "ircd_signal.h"
 #include "ircd_string.h"

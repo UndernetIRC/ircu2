@@ -47,7 +47,7 @@
 /*
  * URL to compatible clients
  */
-#define UNDERNET_CLIENTS	"ftp://ftp.undernet.org/pub/irc/clients"
+#define UNDERNET_CLIENT		"ftp://ftp.undernet.org/pub/irc/clients"
 
 /*
  * NICKLEN is the maximum length allowed for a nickname
