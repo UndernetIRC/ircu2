@@ -469,7 +469,7 @@ connecthublimit: HUB '=' QSTRING ';'
 connectmaxhops: MAXHOPS '=' expr ';'
 {
   maxlinks = $3;
-}
+};
 
 uworldblock: UWORLD '{' uworlditems '}' ';'
 {
@@ -676,12 +676,12 @@ clientip: IP '=' QSTRING ';'
 {
   MyFree(ip);
   DupString(ip, $3);
-}
+};
 clientusername: USERNAME '=' QSTRING ';'
 {
   MyFree(username);
   DupString(username, $3);
-}
+};
 clientclass: CLASS '=' QSTRING ';'
 {
   c_class = find_class($3);

@@ -1,3 +1,7 @@
+2005-01-22  Perry Lorier <isomer@undernet.org>
+
+	* ircd/ircd_lexer.l: Fix missing ;
+
 2005-01-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_invite.c (m_invite, ms_invite): Include timestamp in
