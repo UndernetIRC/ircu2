@@ -1,12 +1,14 @@
 #
 # ChangeLog for Undernet ircu Servers
 #
-# $Id: ChangeLog,v 1.12 2000-03-18 01:59:56 bleep Exp $
+# $Id: ChangeLog,v 1.12.4.1 2000-03-25 07:50:58 bleep Exp $
 #
 # Please insert new entries on the top of the list, a one or two line comment
 # is sufficient. Please include your name on the entries we know who to blame.
 # Please keep lines < 80 chars.
 #-------------------------------------------------------------------------------
+* Change extended numerics to use original shift mask method and full range
+  to represent values. --Bleep
 * Added hostname hiding compatible with ircu2.10.10 to allow host hiding
   for transitioning services, back out pline8 for now. --Bleep
 * Fixed default behavior for BADCHAN. supposed to DEFAULT yes, however

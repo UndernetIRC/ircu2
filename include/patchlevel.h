@@ -39,7 +39,7 @@
 		\
 		\
 		\
-		".07"
+		".7"
 
 /*
  * Deliberate empty lines

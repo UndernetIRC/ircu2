@@ -1080,29 +1080,13 @@ nickkilldone:
     sptr->user = make_user(sptr);
     sptr->user->server = server;
 #ifndef NO_PROTOCOL9
-    if (Protocol(cptr) < 10)
-    {
-      if (!SetRemoteNumNick(sptr, nnp9))
-      {
-	/*
-	 * if this fails squit the server and free the client
-	 */
-	free_client(sptr);
-	return exit_client_msg(cptr, server, &me, "Invalid numeric index");
-      }
+    if (Protocol(cptr) < 10) {
+      SetRemoteNumNick(sptr, nnp9);
       sptr->ip.s_addr = 0;
     }
-    else
-    {
+    else {
 #endif
-      if (!SetRemoteNumNick(sptr, parv[parc - 2]))
-      {
-	/*
-	 * if this fails squit the server and free the client
-	 */
-	free_client(sptr);
-	return exit_client_msg(cptr, server, &me, "Invalid numeric index");
-      }
+      SetRemoteNumNick(sptr, parv[parc - 2]);
       sptr->ip.s_addr = htonl(base64toint(parv[parc - 3]));
       /* IP# of remote client */
 #ifndef NO_PROTOCOL9
