@@ -53,10 +53,11 @@ struct ConnectionClass* make_class(void)
   return tmp;
 }
 
-void free_class(struct ConnectionClass* tmp)
+void free_class(struct ConnectionClass* p)
 {
-  if (tmp) {
-    MyFree(tmp);
+  if (p) {
+    assert(0 == p->valid);
+    MyFree(p);
     --connClassAllocCount;
   }
 }
@@ -69,10 +70,11 @@ void init_class(void)
   connClassList = (struct ConnectionClass*) make_class();
 
   ConClass(connClassList) = 0;
-  ConFreq(connClassList)  = CONNECTFREQUENCY;
   PingFreq(connClassList) = PINGFREQUENCY;
+  ConFreq(connClassList)  = CONNECTFREQUENCY;
   MaxLinks(connClassList) = MAXIMUM_LINKS;
   MaxSendq(connClassList) = DEFAULTMAXSENDQLENGTH;
+  connClassList->valid    = 1;
   Links(connClassList)    = 0;
   connClassList->next     = 0;
 }
@@ -89,11 +91,11 @@ void class_mark_delete(void)
   assert(0 != connClassList);
 
   for (p = connClassList->next; p; p = p->next)
-    p->maxLinks = BAD_CONF_CLASS;
+    p->valid = 0;
 }
 
 /*
- * check_class
+ * class_delete_marked
  * delete classes marked for deletion
  * XXX - memory leak, no one deletes classes that become unused
  * later
@@ -111,19 +113,19 @@ void class_delete_marked(void)
     /*
      * unlink marked classes, delete unreferenced ones
      */
-    if (BAD_CONF_CLASS == cl->maxLinks) {
+    if (cl->valid)
+      prev = cl;
+    else {
       prev->next = cl->next;
-      if (0 == cl->links)
+      if (0 == cl->ref_count)
         free_class(cl);
     }
-    else
-      prev = cl;
   }
 }
 
 unsigned int get_conf_class(const struct ConfItem* aconf)
 {
-  if ((aconf) && (aconf->confClass))
+  if ((aconf) && (aconf->conn_class))
     return (ConfClass(aconf));
 
   Debug((DEBUG_DEBUG, "No Class For %s", (aconf) ? aconf->name : "*No Conf*"));
@@ -131,14 +133,15 @@ unsigned int get_conf_class(const struct ConfItem* aconf)
   return (BAD_CONF_CLASS);
 }
 
-unsigned int get_conf_ping(const struct ConfItem *aconf)
+int get_conf_ping(const struct ConfItem* aconf)
 {
-  if ((aconf) && (aconf->confClass))
+  assert(0 != aconf);
+  if (aconf->conn_class)
     return (ConfPingFreq(aconf));
 
-  Debug((DEBUG_DEBUG, "No Ping For %s", (aconf) ? aconf->name : "*No Conf*"));
+  Debug((DEBUG_DEBUG, "No Ping For %s", aconf->name));
 
-  return (BAD_PING);
+  return -1;
 }
 
 unsigned int get_client_class(struct Client *acptr)
@@ -150,7 +153,7 @@ unsigned int get_client_class(struct Client *acptr)
   if (acptr && !IsMe(acptr) && (acptr->confs))
     for (tmp = acptr->confs; tmp; tmp = tmp->next)
     {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
+      if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
       if (ConClass(cl) > retc || retc == BAD_CLIENT_CLASS)
         retc = ConClass(cl);
@@ -228,6 +231,7 @@ void add_class(unsigned int conClass, unsigned int ping, unsigned int confreq,
   PingFreq(p) = ping;
   MaxLinks(p) = maxli;
   MaxSendq(p) = (sendq > 0) ? sendq : DEFAULTMAXSENDQLENGTH;
+  p->valid = 1;
   if (p != t)
     Links(p) = 0;
 }
@@ -265,7 +269,7 @@ unsigned int get_sendq(struct Client *cptr)
     struct ConnectionClass* cl;
 
     for (tmp = cptr->confs; tmp; tmp = tmp->next) {
-      if (!tmp->value.aconf || !(cl = tmp->value.aconf->confClass))
+      if (!tmp->value.aconf || !(cl = tmp->value.aconf->conn_class))
         continue;
       if (ConClass(cl) != BAD_CLIENT_CLASS) {
         cptr->max_sendq = MaxSendq(cl);

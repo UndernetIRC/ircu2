@@ -1,3 +1,13 @@
+2000-09-19  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: move K:lines to their own list and data
+	structures, add supporting code.
+	* ircd/m_stats.c: cleanup stats processing a bit move
+	kline listing code to a new function, haven't figured
+	out where it goes yet tho'
+	* ircd/s_stats.c: added K:line bulk lister
+	* include/s_conf.h: added new DenyConf struct
+	* *[ch]: fixeup code that depended on changes
+
 2000-09-17  Thomas Helvey <helveytw@home.com>
 	* ircd/class.c: encapsulate class list
 	* include/class.h: clean up classes

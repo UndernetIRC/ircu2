@@ -33,32 +33,33 @@ struct ConfItem;
  * Structures
  */
 struct ConnectionClass {
-  unsigned int conClass;
-  unsigned int conFreq;
-  unsigned int pingFreq;
-  unsigned int maxLinks;
-  unsigned int maxSendq;
-  unsigned int links;
-  struct ConnectionClass *next;
+  struct ConnectionClass* next;
+  int                     cc_class;
+  unsigned int            max_sendq;
+  short                   ping_freq;
+  short                   conn_freq;
+  short                   max_links;
+  unsigned char           valid;
+  int                     ref_count;
 };
 
 /*
  * Macro's
  */
 
-#define ConClass(x)     ((x)->conClass)
-#define ConFreq(x)      ((x)->conFreq)
-#define PingFreq(x)     ((x)->pingFreq)
-#define MaxLinks(x)     ((x)->maxLinks)
-#define MaxSendq(x)     ((x)->maxSendq)
-#define Links(x)        ((x)->links)
+#define ConClass(x)     ((x)->cc_class)
+#define PingFreq(x)     ((x)->ping_freq)
+#define ConFreq(x)      ((x)->conn_freq)
+#define MaxLinks(x)     ((x)->max_links)
+#define MaxSendq(x)     ((x)->max_sendq)
+#define Links(x)        ((x)->ref_count)
 
-#define ConfLinks(x)    ((x)->confClass->links)
-#define ConfMaxLinks(x) ((x)->confClass->maxLinks)
-#define ConfClass(x)    ((x)->confClass->conClass)
-#define ConfConFreq(x)  ((x)->confClass->conFreq)
-#define ConfPingFreq(x) ((x)->confClass->pingFreq)
-#define ConfSendq(x)    ((x)->confClass->maxSendq)
+#define ConfClass(x)    ((x)->conn_class->cc_class)
+#define ConfPingFreq(x) ((x)->conn_class->ping_freq)
+#define ConfConFreq(x)  ((x)->conn_class->conn_freq)
+#define ConfMaxLinks(x) ((x)->conn_class->max_links)
+#define ConfSendq(x)    ((x)->conn_class->max_sendq)
+#define ConfLinks(x)    ((x)->conn_class->ref_count)
 
 /*
  * Proto types
@@ -76,7 +77,7 @@ extern void free_class(struct ConnectionClass * tmp);
 extern unsigned int get_con_freq(struct ConnectionClass * clptr);
 extern unsigned int get_client_ping(struct Client *acptr);
 extern unsigned int get_conf_class(const struct ConfItem *aconf);
-extern unsigned int get_conf_ping(const struct ConfItem *aconf);
+extern int get_conf_ping(const struct ConfItem *aconf);
 extern unsigned int get_client_class(struct Client *acptr);
 extern void add_class(unsigned int conclass, unsigned int ping,
                       unsigned int confreq, unsigned int maxli, unsigned int sendq);

@@ -211,7 +211,7 @@ static time_t try_connections(void) {
       continue;
     }
 
-    cltmp = aconf->confClass;
+    cltmp = aconf->conn_class;
     confrq = get_con_freq(cltmp);
     aconf->hold = CurrentTime + confrq;
 

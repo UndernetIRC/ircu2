@@ -85,8 +85,6 @@ const char *statsinfo[] = {
 static unsigned int report_array[17][3] = {
   {CONF_SERVER, RPL_STATSCLINE, 'C'},
   {CONF_CLIENT, RPL_STATSILINE, 'I'},
-  {CONF_KILL, RPL_STATSKLINE, 'K'},
-  {CONF_IPKILL, RPL_STATSKLINE, 'k'},
   {CONF_LEAF, RPL_STATSLLINE, 'L'},
   {CONF_OPERATOR, RPL_STATSOLINE, 'O'},
   {CONF_HUB, RPL_STATSHLINE, 'H'},
@@ -123,9 +121,7 @@ void report_configured_links(struct Client *sptr, int mask)
        * displayed on STATS reply.    -Vesa
        */
       /* Special-case 'k' or 'K' lines as appropriate... -Kev */
-      if ((tmp->status & CONF_KLINE))
-	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
-      else if ((tmp->status & CONF_UWORLD))
+      if ((tmp->status & CONF_UWORLD))
 	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
 	send_reply(sptr, p[1], c, "*", name, port, get_conf_class(tmp));
@@ -156,6 +152,18 @@ void report_crule_list(struct Client* to, int mask)
     if (0 != (p->type & mask))
       send_reply(to, RPL_STATSDLINE, (CRULE_ALL == p->type) ? 'D' : 'd', p->hostmask, p->rule);
   }
+}
+
+/*
+ * {CONF_KILL, RPL_STATSKLINE, 'K'},
+ * {CONF_IPKILL, RPL_STATSKLINE, 'k'},
+ */
+void report_deny_list(struct Client* to)
+{
+  const struct DenyConf* p = conf_get_deny_list();
+  for ( ; p; p = p->next)
+    send_reply(to, RPL_STATSKLINE, (p->ip_kill) ? 'k' : 'K',
+               p->hostmask, p->message, p->usermask);
 }
 
 /* m_stats is so obnoxiously full of special cases that the different

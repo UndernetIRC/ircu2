@@ -306,9 +306,9 @@ channel.o: channel.c ../include/channel.h ../config/config.h \
 class.o: class.c ../include/class.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
- ../include/struct.h ../include/ircd_reply.h ../include/list.h \
- ../include/numeric.h ../include/s_conf.h ../include/s_debug.h \
- ../include/send.h
+ ../include/struct.h ../include/ircd_alloc.h ../include/fda.h \
+ ../include/ircd_reply.h ../include/list.h ../include/numeric.h \
+ ../include/s_conf.h ../include/s_debug.h ../include/send.h
 client.o: client.c ../include/client.h ../include/ircd_defs.h \
  ../include/dbuf.h ../include/ircd_handler.h ../include/class.h \
  ../include/ircd.h ../config/config.h ../config/setup.h \
@@ -396,11 +396,11 @@ jupe.o: jupe.c ../include/jupe.h ../config/config.h ../config/setup.h \
  ../include/numeric.h ../include/numnicks.h ../include/s_bsd.h \
  ../include/s_misc.h ../include/send.h ../include/support.h \
  ../include/sys.h
-list.o: list.c ../include/list.h ../include/class.h \
- ../include/client.h ../include/ircd_defs.h ../include/dbuf.h \
- ../include/ircd_handler.h ../include/ircd.h ../config/config.h \
- ../config/setup.h ../include/struct.h ../include/ircd_alloc.h \
- ../include/fda.h ../include/ircd_reply.h ../include/ircd_string.h \
+list.o: list.c ../include/list.h ../include/client.h \
+ ../include/ircd_defs.h ../include/dbuf.h ../include/ircd_handler.h \
+ ../include/ircd.h ../config/config.h ../config/setup.h \
+ ../include/struct.h ../include/ircd_alloc.h ../include/fda.h \
+ ../include/ircd_reply.h ../include/ircd_string.h \
  ../include/ircd_chattr.h ../include/listener.h ../include/match.h \
  ../include/numeric.h ../include/res.h ../include/s_bsd.h \
  ../include/s_conf.h ../include/s_debug.h ../include/s_misc.h \

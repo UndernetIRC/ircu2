@@ -31,7 +31,9 @@ extern const char *statsinfo[];
 extern void report_stats(struct Client *sptr, char stat);
 extern void report_configured_links(struct Client *sptr, int mask);
 extern int hunt_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[], char stat);
+
 extern void report_crule_list(struct Client* to, int mask);
 extern void report_motd_list(struct Client* to);
+extern void report_deny_list(struct Client* to);
 
 #endif /* INCLUDED_s_stats_h */

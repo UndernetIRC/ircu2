@@ -43,14 +43,16 @@
  * stuff that isn't used by s_conf.c anymore
  */
 #define CONF_ME                 0x0040
+#define CONF_KILL               0x0080
 #define CONF_ADMIN              0x0100
 #define CONF_CLASS              0x0400
 #define CONF_LISTEN_PORT        0x2000
+#define CONF_IPKILL             0x00010000
 #define CONF_CRULEALL           0x00200000
 #define CONF_CRULEAUTO          0x00400000
 #define CONF_TLINES             0x00800000
 
-
+#define CONF_KLINE              (CONF_KILL | CONF_IPKILL)
 #define CONF_CRULE              (CONF_CRULEALL | CONF_CRULEAUTO)
 
 

@@ -24,6 +24,7 @@ extern int init_string(void);
 
 extern int string_is_hostname(const char* str);
 extern int string_is_address(const char* str);
+extern int string_has_wildcards(const char* str);
 
 extern char*       ircd_strncpy(char* dest, const char* src, size_t len);
 extern int         ircd_strcmp(const char *a, const char *b);

@@ -38,18 +38,17 @@
  * returns shortest ping time in attached server or client conf
  * classes or PINGFREQUENCY
  */
-unsigned int client_get_ping(const struct Client* acptr)
+int client_get_ping(const struct Client* acptr)
 {
-  unsigned int     ping = 0;
-  unsigned int     tmp;
+  int     ping = 0;
   struct ConfItem* aconf;
   struct SLink*    link;
 
   for (link = acptr->confs; link; link = link->next) {
     aconf = link->value.aconf;
     if (aconf->status & (CONF_CLIENT | CONF_SERVER)) {
-      tmp = get_conf_ping(aconf);
-      if ((tmp != BAD_PING) && ((ping > tmp) || !ping))
+      int tmp = get_conf_ping(aconf);
+      if (0 < tmp && (ping > tmp || !ping))
         ping = tmp;
     }
   }
@@ -57,14 +56,14 @@ unsigned int client_get_ping(const struct Client* acptr)
     ping = PINGFREQUENCY;
 
   Debug((DEBUG_DEBUG, "Client %s Ping %d", acptr->name, ping));
-  return (ping);
+  return ping;
 }
 
 #if 0
 #define BAD_CONF_CLASS          ((unsigned int)-1)
 #define BAD_CLIENT_CLASS        ((unsigned int)-3)
 
-unsigned int get_client_class(struct Client *acptr)
+unsigned int get_client_class(struct Client* acptr)
 {
   struct SLink *tmp;
   struct ConnectionClass *cl;
