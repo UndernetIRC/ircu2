@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "s_debug.h"
 
 #include <assert.h>
 #include <signal.h>
@@ -120,6 +121,7 @@ gen_init(struct GenHeader* gen, EventCallBack call, void* data,
 static void
 event_execute(struct Event* event)
 {
+  assert(0 != event);
   assert(0 == event->ev_prev_p); /* must be off queue first */
 
   (*event->ev_gen.gen_header->gh_call)(event); /* execute the event */
@@ -142,7 +144,13 @@ event_execute(struct Event* event)
 
 #ifndef IRCD_THREADED
 /* we synchronously execute the event when not threaded */
-#define event_add(event)	event_execute(event)
+#define event_add(event)	\
+do {									      \
+  struct Event* _ev = (event);						      \
+  _ev->ev_next = 0;							      \
+  _ev->ev_prev_p = 0;							      \
+  event_execute(_ev);							      \
+} while (0)
 
 #else
 /* add an event to the work queue */
@@ -275,7 +283,8 @@ gen_dequeue(void* arg)
 
   if (gen->gh_next) /* clip it out of the list */
     gen->gh_next->gh_prev_p = gen->gh_prev_p;
-  *gen->gh_prev_p = gen->gh_next;
+  if (gen->gh_prev_p)
+    *gen->gh_prev_p = gen->gh_next;
 
   gen->gh_next = 0; /* mark that it's not in the list anymore */
   gen->gh_prev_p = 0;
@@ -306,7 +315,7 @@ event_init(int max_sockets)
     }
 
     sigInfo.fd = p[1]; /* write end of pipe */
-    socket_add(&sigInfo.sock, signal_callback, 0, SS_CONNECTED,
+    socket_add(&sigInfo.sock, signal_callback, 0, SS_NOTSOCK,
 	       SOCK_EVENT_READABLE, p[0]); /* read end of pipe */
   }
 }
@@ -357,7 +366,9 @@ timer_add(struct Timer* timer, EventCallBack call, void* data,
 {
   assert(0 != timer);
   assert(0 != call);
-  assert(0 != value);
+
+  Debug((DEBUG_LIST, "Adding timer %p; time out %Tu (type %i)", timer, value,
+	 type));
 
   /* initialize a timer... */
   gen_init((struct GenHeader*) timer, call, data, 0, 0);
@@ -375,9 +386,9 @@ timer_del(struct Timer* timer)
 {
   assert(0 != timer);
 
-  if (timer->t_header.gh_ref) /* in use; mark for destruction */
-    timer->t_header.gh_flags |= GEN_DESTROY;
-  else { /* not in use; destroy right now */
+  timer->t_header.gh_flags |= GEN_DESTROY;
+
+  if (!timer->t_header.gh_ref) { /* not in use; destroy right now */
     gen_dequeue(timer);
     event_generate(ET_DESTROY, timer, 0);
   }
@@ -415,20 +426,18 @@ timer_run(void)
       break; /* processed all pending timers */
 
     gen_dequeue(ptr); /* must dequeue timer here */
-    if (ptr->t_type == TT_ABSOLUTE || ptr->t_type == TT_RELATIVE)
-      ptr->t_header.gh_flags |= GEN_DESTROY; /* mark for destruction */
+    if (ptr->t_type == TT_ABSOLUTE || ptr->t_type == TT_RELATIVE) {
+      Debug((DEBUG_LIST, "Marking timer %p for later destruction", ptr));
+      ptr->t_header.gh_flags |= GEN_MARKED; /* mark for destruction */
+    }
     event_generate(ET_EXPIRE, ptr, 0); /* generate expire event */
 
-    switch (ptr->t_type) {
-    case TT_ABSOLUTE: case TT_RELATIVE:
-      if (ptr->t_header.gh_flags & GEN_DESTROY) /* still marked */
-	event_generate(ET_DESTROY, ptr, 0);
-      break;
-
-    case TT_PERIODIC:
-      if (!(ptr->t_header.gh_flags & GEN_DESTROY))
-	timer_enqueue(ptr); /* re-queue periodic timer */
-      break;
+    if (ptr->t_header.gh_flags & (GEN_MARKED | GEN_DESTROY)) {
+      Debug((DEBUG_LIST, "Destroying timer %p", ptr));
+      event_generate(ET_DESTROY, ptr, 0);
+    } else if (ptr->t_type == TT_PERIODIC) {
+      Debug((DEBUG_LIST, "Re-enqueuing periodic timer %p", ptr));
+      timer_enqueue(ptr); /* re-queue periodic timer */
     }
   }
 }
@@ -488,15 +497,16 @@ void
 socket_del(struct Socket* sock)
 {
   assert(0 != sock);
+  assert(!(sock->s_header.gh_flags & GEN_DESTROY));
   assert(0 != evInfo.engine);
   assert(0 != evInfo.engine->eng_closing);
 
   /* tell engine socket is going away */
   (*evInfo.engine->eng_closing)(sock);
 
-  if (sock->s_header.gh_ref) /* in use; mark for destruction */
-    sock->s_header.gh_flags |= GEN_DESTROY;
-  else { /* not in use; destroy right now */
+  sock->s_header.gh_flags |= GEN_DESTROY;
+
+  if (sock->s_header.gh_ref) { /* not in use; destroy right now */
     gen_dequeue(sock);
     event_generate(ET_DESTROY, sock, 0);
   }
@@ -521,6 +531,9 @@ socket_state(struct Socket* sock, enum SocketState state)
   /* connected datagram socket now unconnected */
   assert(sock->s_state != SS_CONNECTDG || state == SS_DATAGRAM);
 
+  if (sock->s_header.gh_flags & GEN_DESTROY) /* socket's been destroyed */
+    return;
+
   /* tell engine we're changing socket state */
   (*evInfo.engine->eng_state)(sock, state);
 
@@ -536,6 +549,9 @@ socket_events(struct Socket* sock, unsigned int events)
   assert(0 != sock);
   assert(0 != evInfo.engine);
   assert(0 != evInfo.engine->eng_events);
+
+  if (sock->s_header.gh_flags & GEN_DESTROY) /* socket's been destroyed */
+    return;
 
   switch (events & SOCK_ACTION_MASK) {
   case SOCK_ACTION_SET: /* set events to given set */

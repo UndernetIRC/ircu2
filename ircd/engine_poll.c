@@ -25,6 +25,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "s_debug.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -114,6 +115,7 @@ state_to_events(enum SocketState state, unsigned int events)
     break;
 
   case SS_LISTENING: /* listening socket */
+  case SS_NOTSOCK: /* our signal socket */
     return SOCK_EVENT_READABLE;
     break;
 
@@ -155,6 +157,9 @@ engine_add(struct Socket* sock)
 
   for (i = 0; sockList[i] && i < poll_count; i++) /* Find an empty slot */
     ;
+
+  Debug((DEBUG_LIST, "Looking at slot %d, contents %p", i, sockList[i]));
+
   if (sockList[i]) { /* ok, need to allocate another off the list */
     if (poll_count >= poll_max) { /* bounds-check... */
       log_write(LS_SYSTEM, L_ERROR, 0,
@@ -163,12 +168,16 @@ engine_add(struct Socket* sock)
       return 0;
     }
 
-    i = poll_count++;
+    i = ++poll_count;
+    Debug((DEBUG_LIST, "Allocating a new slot: %d", i));
   }
 
   s_ed_int(sock) = i; /* set engine data */
   sockList[i] = sock; /* enter socket into data structures */
   pollfdList[i].fd = s_fd(sock);
+
+  Debug((DEBUG_LIST, "poll: Adding socket %d to engine on %d [%p]", s_fd(sock),
+	 s_ed_int(sock), sock));
 
   /* set the appropriate bits */
   set_or_clear(i, 0, state_to_events(s_state(sock), s_events(sock)));
@@ -184,6 +193,9 @@ engine_state(struct Socket* sock, enum SocketState new_state)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
+  Debug((DEBUG_LIST, "poll: Changing state for socket %p to %d", sock,
+	 new_state));
+
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
 	       state_to_events(s_state(sock), s_events(sock)), /* old state */
@@ -198,6 +210,9 @@ engine_events(struct Socket* sock, unsigned int new_events)
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
 
+  Debug((DEBUG_LIST, "poll: Changing event mask for socket %p to %d", sock,
+	 new_events));
+
   /* set the correct events */
   set_or_clear(s_ed_int(sock),
 	       state_to_events(s_state(sock), s_events(sock)), /* old events */
@@ -211,6 +226,9 @@ engine_delete(struct Socket* sock)
   assert(0 != sock);
   assert(sock == sockList[s_ed_int(sock)]);
   assert(s_fd(sock) == pollfdList[s_ed_int(sock)].fd);
+
+  Debug((DEBUG_LIST, "poll: Deleting socket %d (%d) [%p]", s_fd(sock),
+	 s_ed_int(sock), sock));
 
   /* clear the events */
   pollfdList[s_ed_int(sock)].fd = -1;
@@ -228,17 +246,20 @@ engine_delete(struct Socket* sock)
 static void
 engine_loop(struct Generators* gen)
 {
-  unsigned int wait;
+  int wait;
   int nfds;
   int i;
   int errcode;
   size_t codesize;
 
   while (running) {
-    wait = timer_next(gen) * 1000; /* set up the sleep time */
+    wait = timer_next(gen) ? (timer_next(gen) - CurrentTime) * 1000 : -1;
+
+    Debug((DEBUG_INFO, "poll delay: %Tu (%Tu) %d", timer_next(gen),
+	   CurrentTime, wait));
 
     /* check for active files */
-    nfds = poll(pollfdList, poll_count, wait ? wait : -1);
+    nfds = poll(pollfdList, poll_count, wait);
 
     CurrentTime = time(0); /* set current time... */
 
@@ -266,16 +287,19 @@ engine_loop(struct Generators* gen)
 
       gen_ref_inc(sockList[i]); /* can't have it going away on us */
 
-      errcode = 0; /* check for errors on socket */
-      codesize = sizeof(errcode);
-      if (getsockopt(s_fd(sockList[i]), SOL_SOCKET, SO_ERROR, &errcode,
-		     &codesize) < 0)
-	errcode = errno; /* work around Solaris implementation */
+      if (s_state(sockList[i]) != SS_NOTSOCK) {
+	errcode = 0; /* check for errors on socket */
+	codesize = sizeof(errcode);
+	if (getsockopt(s_fd(sockList[i]), SOL_SOCKET, SO_ERROR, &errcode,
+		       &codesize) < 0)
+	  errcode = errno; /* work around Solaris implementation */
 
-      if (errcode) { /* an error occurred; generate an event */
-	event_generate(ET_ERROR, sockList[i], errcode);
-	gen_ref_dec(sockList[i]); /* careful not to leak reference counts */
-	continue;
+	if (errcode) { /* an error occurred; generate an event */
+	  event_generate(ET_ERROR, sockList[i], errcode);
+	  if (sockList[i]) /* can go away upon an error */
+	    gen_ref_dec(sockList[i]); /* careful not to leak ref counts */
+	  continue;
+	}
       }
 
       switch (s_state(sockList[i])) {
@@ -290,6 +314,7 @@ engine_loop(struct Generators* gen)
 	break;
 
       case SS_CONNECTED:
+      case SS_NOTSOCK:
 	if (pollfdList[i].revents & POLLREADFLAGS) { /* data on socket */
 	  char c;
 
@@ -319,7 +344,8 @@ engine_loop(struct Generators* gen)
 	break;
       }
 
-      gen_ref_dec(sockList[i]); /* we're done with it */
+      if (sockList[i]) /* could go away */
+	gen_ref_dec(sockList[i]); /* we're done with it */
     }
 
     timer_run(); /* execute any pending timers */

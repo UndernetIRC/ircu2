@@ -631,6 +631,8 @@ void start_auth(struct Client* client)
   auth = make_auth_request(client);
   assert(0 != auth);
 
+  Debug((DEBUG_INFO, "Beginning auth request on client %p", client));
+
   if (!feature_bool(FEAT_NODNS)) {
     if (LOOPBACK == inet_netof(cli_ip(client)))
       strcpy(cli_sockhost(client), cli_name(&me));

@@ -534,7 +534,6 @@ void close_connection(struct Client *cptr)
     flush_connections(cptr);
     LocalClientArray[cli_fd(cptr)] = 0;
     close(cli_fd(cptr));
-    socket_del(&(cli_socket(cptr))); /* has to be done as soon as we close */
     cli_fd(cptr) = -1;
   }
   cli_flags(cptr) |= FLAGS_DEADSOCKET;

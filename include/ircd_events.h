@@ -38,7 +38,8 @@ enum SocketState {
   SS_LISTENING,		/* Socket is a listening socket */
   SS_CONNECTED,		/* Socket is a connected socket */
   SS_DATAGRAM,		/* Socket is a datagram socket */
-  SS_CONNECTDG		/* Socket is a connected datagram socket */
+  SS_CONNECTDG,		/* Socket is a connected datagram socket */
+  SS_NOTSOCK		/* Socket isn't a socket at all */
 };
 
 enum TimerType {
@@ -79,6 +80,7 @@ struct GenHeader {
 };
 
 #define GEN_DESTROY	0x0001	/* generator is to be destroyed */
+#define GEN_MARKED	0x0002	/* generator is marked for destruction */
 
 struct Socket {
   struct GenHeader s_header;	/* generator information */

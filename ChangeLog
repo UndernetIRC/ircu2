@@ -1,3 +1,40 @@
+2001-05-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c (close_connection): let free_client() destroy the
+	socket
+
+	* ircd/s_auth.c (start_auth): add a Debug call to indicate when
+	auth has begun on a client
+
+	* ircd/ircd_events.c: ensure that event_execute() is called with a
+	non-NULL event; modify event_add() macro to properly zero list
+	bits; modify gen_dequeue() to not try to clip it out of a list
+	it's already been clipped out of; change signal socket
+	initialization to use state SS_NOTSOCK; permit timeout values of
+	0 in add_timer(); add many Debug calls; change socket_del() and
+	timer_del() to always set the GEN_DESTROY flag; use GEN_MARKED in
+	timer_run() instead of GEN_DESTROY so that event_generate() will
+	pass on the events; remove the switch and replace with a simpler
+	if-then-else tree in timer_run(); don't allow destroyed sockets to
+	be destroyed again, nor their states or event masks to be changed
+
+	* ircd/ircd.c: initialize "running" to 1
+
+	* ircd/engine_poll.c: deal with SS_NOTSOCK "sockets"; add Debug
+	messages all over the place; fix a counting problem in
+	engine_add(); turn wait into a signed integer and set it to -1
+	only if timer_next() returns 0; adjust wait time to be relative;
+	don't call gen_ref_dec() if socket disappeared while we were
+	processing it
+
+	* include/ircd_events.h: the pipe for signals is not a socket, so
+	we must mark it as such--added SS_NOTSOCK for that special socket;
+	events won't be generated if GEN_DESTROY is on, so add GEN_MARKED
+	for the benefit of timer_run()
+
+	* configure.in: add --enable-pedantic and --enable-warnings to
+	turn on (and off) -Wall -pedantic in CFLAGS
+
 2001-05-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c: change "s_addr" element accesses to "address"

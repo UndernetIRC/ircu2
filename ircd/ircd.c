@@ -106,7 +106,7 @@ static struct Timer ping_timer; /* timer structure for check_pings() */
 
 static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
 
-int running;
+int running = 1;
 
 
 /*----------------------------------------------------------------------------
