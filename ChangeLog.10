@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.19.2.7 2001-09-20 11:57:28 isomer Exp $
+# $Id: ChangeLog.10,v 1.1.2.19.2.8 2001-09-23 07:46:23 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* fix core in s_user.c, thanks to mbuna -- Isomer
 * Make ircd.c compile again :)
 * Attempt fixing core with +s, the memory leak etc.  Thanks to [Tri]! -- Isomer
 * More hub hiding stuff -- Isomer
