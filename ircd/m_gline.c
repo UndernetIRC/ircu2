@@ -126,7 +126,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *agline;
   unsigned int flags = 0;
   time_t expire_off, lastmod = 0;
-  char *mask = parv[2], *target = parv[1], *reason;
+  char *mask = parv[2], *target = parv[1], *reason = "No reason";
 
   if (*mask == '!') {
     mask++;
@@ -139,7 +139,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (!find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
       return need_more_params(sptr, "GLINE");
 
-    reason = parv[4];
+    if (parc > 4)
+      reason = parv[4];
     flags |= GLINE_FORCE;
   } else if (parc > 5) {
     lastmod = atoi(parv[4]);
