@@ -40,9 +40,7 @@
 #include <sys/times.h>
 #include <sys/uio.h>
 #include <sys/param.h>
-#if 0
 #include <unistd.h>
-#endif
 
 /*
  * This is part of the STATS replies. There is no offical numeric for this

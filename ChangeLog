@@ -1,3 +1,10 @@
+2003-11-17 Entrope <entrope@clan-dk.org>
+        * ircd/engine_epoll.c: #include <sys/types.h>, which is
+        reportedly necessary on certain RedHat releases.
+
+        * ircd/os_linux.c: Restore the #include <unistd.h>, which is
+        reportedly necessary on the Fedora Core 1 distribution.
+
 2003-11-18 Isomer <isomer@undernet.org>
 	* ircd/s_auth.c, ircd/res.c: Clean up the preregistration subsystem
 	allowing customisation of timers, make the dns resolver stats oper only,

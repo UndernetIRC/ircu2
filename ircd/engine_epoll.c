@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <sys/types.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <time.h>
