@@ -907,6 +907,8 @@ int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_p
     bits += 96;
   } else if (in[0] == '*' && in[1] == '\0') {
     /* accept as a 0-bit mask */
+    memset(&mask->in6_16, 0, sizeof(mask->in6_16));
+    bits = 0;
   } else {
     if (!(p = strchr(in, '/')))
       bits = 128;
@@ -941,7 +943,7 @@ int ipmask_check(const struct irc_in_addr *addr, const struct irc_in_addr *mask,
 
   for (k = 0; k < 8; k++) {
     if (bits < 16)
-      return (addr->in6_16[k] & htons(0xffff << (16-bits))) == mask->in6_16[k];
+      return !(htons(addr->in6_16[k] ^ mask->in6_16[k]) >> (16-bits));
     if (addr->in6_16[k] != mask->in6_16[k])
       return 0;
     if (!(bits -= 16))

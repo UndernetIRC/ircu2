@@ -1,3 +1,9 @@
+2005-03-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/match.c (ipmask_parse): Explicitly zero-initialize the mask
+	and bit count for "*".
+	(ipmask_check): Make more robust to similar errors.
+
 2005-03-07  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Consistently use a constant in AC_DEFINE().
