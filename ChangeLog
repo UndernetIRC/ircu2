@@ -1,3 +1,20 @@
+2002-03-19 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* include/ircd_policy.h: added NO_HEAD_IN_SAND for easier removal of
+	hiding features.
+
+	* configure.in: add --disable-headinsand
+
+	* configure: Ran autoconf
+
+	* ircd/m_stats.c: Fixed a bug in /stats i and made /stats i show 
+	connect limits
+
+	* ircd/s_stats.c: Made /stats i report connect limits
+
+	* ircd/s_err.c: Modified RPL_STATSILINE to use %s instead of 
+	"*" for the password field.
+	
 2002-03-19 LordLuke <lordluke@undernet.org>
 
 	* include/channel.h: Allow opers to view +s channels in /list

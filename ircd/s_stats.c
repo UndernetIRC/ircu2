@@ -128,6 +128,14 @@ void report_configured_links(struct Client *sptr, int mask)
 	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
 	send_reply(sptr, p[1], c, "*", name, port, get_conf_class(tmp));
+      else if ((tmp->status & CONF_CLIENT))
+      {
+	if(tmp->passwd && IsDigit(*tmp->passwd) && (!tmp->passwd[1] ||
+	    (IsDigit(tmp->passwd[1]) && !tmp->passwd[2])))
+	  send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
+	else
+	  send_reply(sptr, p[1], c, host, "*", name, port, get_conf_class(tmp));
+      }
       else
 	send_reply(sptr, p[1], c, host, name, port, get_conf_class(tmp));
     }

@@ -340,15 +340,15 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	      (wilds && (!mmatch(host, aconf->host) ||
 	      !mmatch(host, aconf->name))))
 	  {
-	    if (acptr->passwd && IsDigit(*aconf->passwd) && 
+	    if (aconf->passwd && IsDigit(*aconf->passwd) && 
 		(!aconf->passwd[1] || 
-		 (IsDigit(aconf->passwd[1]) && !aconf->passwd[2])
-	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->passwd, aconf->host, 
+		 (IsDigit(aconf->passwd[1]) && !aconf->passwd[2])))
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->passwd, 
 			aconf->name, aconf->port, get_conf_class(aconf));
-	    }
-	    else {
-	      send_reply(sptr, RPL_STATSILINE, 'I', "*", aconf->host, 
-			aconf->name, aconf->port, get_conf_class(aconf));
+	    else 
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, "*",
+			 aconf->name, aconf->port, get_conf_class(aconf));
+	    
 	    if (--count == 0)
 	      break;
 	  }
@@ -657,8 +657,16 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	      (wilds && (!mmatch(host, aconf->host) ||
 	      !mmatch(host, aconf->name))))
 	  {
-	    send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-		       aconf->port, get_conf_class(aconf));
+	    if (aconf->passwd && IsDigit(*aconf->passwd) &&
+		(!aconf->passwd[1] ||
+		 (IsDigit(aconf->passwd[1]) && !aconf->passwd[2])))
+	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host,
+			 aconf->passwd, aconf->name, aconf->port,
+			 get_conf_class(aconf));
+              else
+                send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, "*",
+                           aconf->name, aconf->port, get_conf_class(aconf));
+
 	    if (--count == 0)
 	      break;
 	  }
@@ -877,8 +885,16 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		(wilds && (!mmatch(host, aconf->host) ||
 		!mmatch(host, aconf->name))))
 	    {
-	      send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, aconf->name,
-			 aconf->port, get_conf_class(aconf));
+	      if (aconf->passwd && IsDigit(*aconf->passwd) &&
+		  (!aconf->passwd[1] ||
+		   (IsDigit(aconf->passwd[1]) && !aconf->passwd[2])))
+		send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, 
+			   aconf->passwd, aconf->name, aconf->port, 
+			   get_conf_class(aconf));
+	      else 
+		send_reply(sptr, RPL_STATSILINE, 'I', aconf->host, "*",
+			   aconf->name, aconf->port, get_conf_class(aconf));
+
 	      if (--count == 0)
 		break;
 	    }
