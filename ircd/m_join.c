@@ -108,7 +108,7 @@
 static char *
 HasControlChars(char *mstring)
 {
-  char *j;
+  unsigned char *j;
   for(j = mstring; *j ; j++) {
     if(*j <= 32) { return j; }
   }

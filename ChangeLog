@@ -1,4 +1,8 @@
 2002-05-26  Jeekay  <jeekay@irc.planetarion.com>
+	
+	* ircd/m_join.c (HasControlChars): fixed unsigned vs signed
+
+2002-05-26  Jeekay  <jeekay@irc.planetarion.com>
  
  	* ircd/m_join.c (m_join,HasControlChars): check if a channel
  	name has any control chars (<=32) in it before allowing a
