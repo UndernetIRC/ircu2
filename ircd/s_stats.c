@@ -477,7 +477,7 @@ stats_init(void)
   int i;
 
   /* Make darn sure the statsmap array is initialized to all zeros */
-  for (i = 1; i < 256; i++)
+  for (i = 0; i < 256; i++)
     statsmap[i] = 0;
 
   /* Build the mapping */
