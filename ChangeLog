@@ -1,5 +1,8 @@
 2001-04-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/s_misc.c (exit_client): make netsplit server notice say the
+	right thing
+
 	* ircd/m_links.c (m_links_redirect): forward-port RPL_ENDOFLINKS
 	change to make Khaled happy...
 
