@@ -124,9 +124,9 @@ static int user_set_away(struct User* user, char* message)
      */
     unsigned int len = strlen(message);
 
-    if (len > TOPICLEN) {
-      message[TOPICLEN] = '\0';
-      len = TOPICLEN;
+    if (len > AWAYLEN) {
+      message[AWAYLEN] = '\0';
+      len = AWAYLEN;
     }
     if (away)
       away = (char*) MyRealloc(away, len + 1);
