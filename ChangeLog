@@ -1,3 +1,8 @@
+2002-03-10 Joseph Bongaarts <foxxe@wtfs.net>
+
+	* ircd/list.c: Don't try to remove clients from the list
+	  unless they are actually in it.
+	
 2002-02-28 Joseph Bongaarts <foxxe@wtfs.net>
 
 	* ircd/m_kill.c: Strip the path from the comment for oper kills as 
