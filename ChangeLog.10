@@ -1,10 +1,11 @@
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog.10,v 1.1.2.8 2000-04-12 04:06:07 bleep Exp $
+# $Id: ChangeLog.10,v 1.1.2.9 2000-04-14 00:48:18 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
+* Fix for other IPcheck bug, thanks BLMet. --Bleep
 * Fix for IPcheck bug, rewrite IPcheck from scratch (mostly),
   add changes for new code to s_user.c, ircd.c --Bleep
 * Shorten connection timeout for auth queries to 60 seconds
