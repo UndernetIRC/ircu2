@@ -479,13 +479,11 @@ void
 timer_run(void)
 {
   struct Timer* ptr;
-  struct Timer* next = 0;
 
   timer_verify();
 
   /* go through queue... */
-  for (ptr = evInfo.gens.g_timer; ptr; ptr = next) {
-    next = (struct Timer*) ptr->t_header.gh_next;
+  while ((ptr = evInfo.gens.g_timer)) {
     if (CurrentTime < ptr->t_expire)
       break; /* processed all pending timers */
 
