@@ -40,9 +40,7 @@
 #include <sys/times.h>
 #include <sys/uio.h>
 #include <sys/param.h>
-#if 0
 #include <unistd.h>
-#endif
 
 /*
  * This is part of the STATS replies. There is no offical numeric for this
@@ -152,11 +150,14 @@ int os_set_reuseaddr(int fd)
   return (0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)));
 }
 
-int os_set_sockbufs(int fd, unsigned int size)
+int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize)
 {
-  unsigned int opt = size;
-  return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) &&
-          0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)));
+  unsigned int sopt = ssize;
+  unsigned int ropt = rsize;
+  return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, 
+                          (const char*) &ropt, sizeof(ropt)) &&
+          0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
+                          (const char*) &sopt, sizeof(sopt)));
 }
 
 int os_set_tos(int fd,int tos)

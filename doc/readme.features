@@ -1131,3 +1131,15 @@ code kicks in.  Even if a user connects repeditively during this period,
 they will never get throttled.  This is so after a restart users on a 
 multiuser box can all connect to a server simultaniously without being 
 considered an attack.
+
+SOCKSENDBUF
+ * Type: integer
+ * Default: 0
+
+The send window size used for connections to other servers.
+
+SOCKRECVBUF
+ * Type: integer
+ * Default: 0
+
+The receive window size used for connections to other servers.
