@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <regex.h>
 
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -157,10 +158,10 @@
  *  Nov. 17, 1997 --Bleep
  */
 
-typedef struct Hostent {
+struct Hostent {
   struct hostent h;      /* the hostent struct we are passing around */
   char*          buf;    /* buffer for data pointed to from hostent */
-} aHostent;
+};
 
 struct ResRequest {
   struct ResRequest* next;
@@ -176,7 +177,7 @@ struct ResRequest {
   struct in_addr     addr;
   char*              name;
   struct DNSQuery    query;         /* query callback for this request */
-  aHostent           he;
+  struct Hostent     he;
 };
 
 struct CacheEntry {
@@ -237,7 +238,7 @@ static struct CacheEntry*  find_cache_number(struct ResRequest* request,
                                              const char* addr);
 static struct ResRequest*   find_id(int);
 
-static  struct cacheinfo {
+static struct cacheinfo {
   int  ca_adds;
   int  ca_dels;
   int  ca_expires;
@@ -260,6 +261,16 @@ static  struct  resinfo {
   int  re_unkrep;
 } reinfo;
 
+/*
+ * Disallow a hostname label to contain anything but a [-a-zA-Z0-9].
+ * It may not start or end on a '.'.
+ * A label may not end on a '-', the maximum length of a label is
+ * 63 characters.
+ * On top of that (which seems to be the RFC) we demand that the
+ * top domain does not contain any digits.
+ */
+static const char* hostExpr = "([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+";
+static regex_t hostRegex;
 
 /*
  * From bind 8.3, these aren't declared in earlier versions of bind
@@ -277,7 +288,7 @@ extern u_int    _getlong(const u_char *);
  *      paul vixie, 29may94
  */
 static int
-res_ourserver(const struct __res_state* statp, const struct sockaddr_in *inp) 
+res_ourserver(const struct __res_state* statp, const struct sockaddr_in* inp) 
 {
   struct sockaddr_in ina;
   int ns;
@@ -353,9 +364,14 @@ int init_resolver(void)
   memset(hashtable, 0, sizeof(hashtable));
   memset(&reinfo,   0, sizeof(reinfo));
 
-  requestListHead = requestListTail = NULL;
+  requestListHead = requestListTail = 0;
 
   errno = h_errno = 0;
+
+  if (regcomp(&hostRegex, hostExpr, REG_EXTENDED | REG_NOSUB)) {
+    ircd_log(L_CRIT, "Resolver: error compiling host expression %s", hostExpr);
+    exit(2);
+  }
   start_resolver();
   Debug((DEBUG_DNS, "Resolver: fd %d errno: %d h_errno: %d: %s",
          ResolverFileDescriptor, errno, h_errno, 
@@ -370,6 +386,18 @@ void restart_resolver(void)
 {
   /* flush_cache();  flush the dns cache */
   start_resolver();
+}
+
+static int validate_hostent(const struct hostent* hp)
+{
+  const char* name;
+  int  i = 0;
+  assert(0 != hp);
+  for (name = hp->h_name; name; name = hp->h_aliases[i++]) {
+    if (HOSTLEN < strlen(name) || 0 != regexec(&hostRegex, name, 0, 0, 0))
+      return 0;
+  }
+  return 1;
 }
 
 /*
@@ -995,8 +1023,7 @@ int resolver_read(void)
    * check against possibly fake replies
    */
   if (!res_ourserver(&_res, &sin)) {
-    Debug((DEBUG_DNS, "Resolver: fake reply from: %s",
-           (const char*) &sin.sin_addr));
+    Debug((DEBUG_DNS, "Resolver: fake reply from: %s", (const char*) &sin.sin_addr));
     ++reinfo.re_unkrep;
     return 1;
   }
@@ -1049,7 +1076,7 @@ int resolver_read(void)
   answer_count = proc_answer(request, header, buf, buf + rc);
   if (answer_count) {
     if (T_PTR == request->type) {
-      struct DNSReply* reply = NULL;
+      struct DNSReply* reply = 0;
       if (0 == request->he.h.h_name) {
         /*
          * got a PTR response with no name, something bogus is happening
@@ -1068,7 +1095,10 @@ int resolver_read(void)
        * extra kludges.
        */
       reply = gethost_byname(request->he.h.h_name, &request->query);
-      if (0 == reply) {
+      if (reply) {
+        (*request->query.callback)(request->query.vptr, reply);
+      }
+      else {
         /*
          * If name wasn't found, a request has been queued and it will
          * be the last one queued.  This is rather nasty way to keep
@@ -1079,8 +1109,6 @@ int resolver_read(void)
         request->he.buf = 0;
         memcpy(&requestListTail->he.h, &request->he.h, sizeof(struct hostent));
       }
-      else
-        (*request->query.callback)(request->query.vptr, reply);
       rem_request(request);
     }
     else {
@@ -1091,9 +1119,12 @@ int resolver_read(void)
        * PTR returned a CNAME, cp was not checked before so the
        * callback was being called with a value of 0x2C != NULL.
        */
-      cp = make_cache(request);
-      (*request->query.callback)(request->query.vptr,
-                                 (cp) ? &cp->reply : 0);
+      struct DNSReply* reply = 0;
+      if (validate_hostent(&request->he.h)) {
+        if ((cp = make_cache(request)))
+          reply = &cp->reply;
+      }
+      (*request->query.callback)(request->query.vptr, reply);
       rem_request(request);
     }
   }
@@ -1152,7 +1183,7 @@ static size_t calc_hostent_buffer_size(const struct hostent* hp)
  * dup_hostent - Duplicate a hostent struct, allocate only enough memory for
  * the data we're putting in it.
  */
-static void dup_hostent(aHostent* new_hp, struct hostent* hp)
+static void dup_hostent(struct Hostent* new_hp, struct hostent* hp)
 {
   char*  p;
   char** ap;
@@ -1217,7 +1248,7 @@ static void dup_hostent(aHostent* new_hp, struct hostent* hp)
 /*
  * update_hostent - Add records to a Hostent struct in place.
  */
-static void update_hostent(aHostent* hp, char** addr, char** alias)
+static void update_hostent(struct Hostent* hp, char** addr, char** alias)
 {
   char*  p;
   char** ap;

@@ -367,7 +367,7 @@ int m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       tstats(sptr, parv[0]);
       break;
     case 'T':
-      report_configured_links(sptr, CONF_TLINES);
+      report_motd_list(sptr);
       break;
     case 'U':
       report_configured_links(sptr, CONF_UWORLD);
@@ -673,7 +673,7 @@ int ms_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       tstats(sptr, parv[0]);
       break;
     case 'T':
-      report_configured_links(sptr, CONF_TLINES);
+      report_motd_list(sptr);
       break;
     case 'U':
       report_configured_links(sptr, CONF_UWORLD);
@@ -967,7 +967,7 @@ int mo_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       tstats(sptr, parv[0]);
       break;
     case 'T':
-      report_configured_links(sptr, CONF_TLINES);
+      report_motd_list(sptr);
       break;
     case 'U':
       report_configured_links(sptr, CONF_UWORLD);
@@ -1355,7 +1355,7 @@ int m_stats(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       tstats(sptr, parv[0]);
       break;
     case 'T':
-      report_configured_links(sptr, CONF_TLINES);
+      report_motd_list(sptr);
       break;
     case 'U':
       report_configured_links(sptr, CONF_UWORLD);

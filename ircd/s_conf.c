@@ -74,6 +74,8 @@ struct MotdItem* rmotd = NULL;
 struct TRecord*  tdata = NULL;
 struct tm        motd_tm;
 
+static struct LocalConf  localConf;
+static struct MotdConf*  motdConfList;
 
 /*
  * output the reason for being k lined from a file  - Mmmm
@@ -286,53 +288,6 @@ const char* conf_eval_crule(struct ConfItem* conf)
   return 0;
 }
 
-
-/*
- * field breakup for ircd.conf file.
- */
-static char* getfield(char* newline, char fs)
-{
-  static char* gfline = NULL;
-  char*        end;
-  char*        field;
-
-  if (newline)
-    gfline = newline;
-
-  if (gfline == NULL)
-    return NULL;
-
-  end = field = gfline;
-
-  if (fs != ':') {
-    if (*end == fs)
-      ++end;
-    else
-      fs = ':';
-  }
-  do {
-    while (*end != fs) {
-      if (!*end) {
-        end = NULL;
-        break;
-      }
-      ++end;
-    }
-  } while (end && fs != ':' && *++end != ':' && *end != '\n') ;
-
-  if (end == NULL) {
-    gfline = NULL;
-    if ((end = strchr(field, '\n')) == NULL)
-      end = field + strlen(field);
-  }
-  else
-    gfline = end + 1;
-
-  *end = '\0';
-
-  return field;
-}
-
 /*
  * Remove all conf entries from the client except those which match
  * the status field mask.
@@ -346,69 +301,6 @@ void det_confs_butmask(struct Client *cptr, int mask)
     if ((tmp->value.aconf->status & mask) == 0)
       detach_conf(cptr, tmp->value.aconf);
   }
-}
-
-/*
- * validate_hostent - make sure hostnames are valid in a hostent struct
- * XXX - this is terrible, what's worse is it used to be in the inner
- * loop of scanning all the I:lines --Bleep
- */
-static int validate_hostent(struct hostent* hp)
-{
-  char        fullname[HOSTLEN + 1];
-  int         i     = 0;
-  int         error = 0;
-  const char* hname;
-
-  for (hname = hp->h_name; hname; hname = hp->h_aliases[i++]) {
-    unsigned int fullnamelen = 0;
-    unsigned int label_count = 0;
-
-    ircd_strncpy(fullname, hname, HOSTLEN);
-    fullname[HOSTLEN] = '\0';
-    /*
-     * Disallow a hostname label to contain anything but a [-a-zA-Z0-9].
-     * It may not start or end on a '.'.
-     * A label may not end on a '-', the maximum length of a label is
-     * 63 characters.
-     * On top of that (which seems to be the RFC) we demand that the
-     * top domain does not contain any digits.
-     */
-    error = (*hname == '.') ? 1 : 0;        /* May not start with a '.' */
-    if (!error) {
-      char *p;
-      for (p = fullname; *p; ++p, ++fullnamelen) {
-        if (*p == '.') { 
-          /* Label may not end on '-' and May not end on a '.' */
-          if (p[-1] == '-' || p[1] == 0) {
-            error = 1;
-            break;
-          }
-          label_count = 0;
-          error = 0;        /* Was not top domain */
-          continue;
-        }
-        if (++label_count > 63) {
-          /* Label not longer then 63 */
-          error = 1;
-          break;
-        }
-        if (*p >= '0' && *p <= '9') {
-          /* In case this is top domain */
-          error = 1;
-          continue;
-        }
-        if (!(*p >= 'a' && *p <= 'z')
-            && !(*p >= 'A' && *p <= 'Z') && *p != '-') {
-          error = 1;
-          break;
-        }
-      }
-    }
-    if (error)
-      break;
-  }
-  return (0 == error);
 }
 
 /*
@@ -448,11 +340,11 @@ enum AuthorizationCheckResult attach_iline(struct Client*  cptr)
   static char      fullname[HOSTLEN + 1];
   struct hostent*  hp = 0;
 
-  if (cptr->dns_reply) {
+  assert(0 != cptr);
+
+  if (cptr->dns_reply)
     hp = cptr->dns_reply->hp;
-    if (!validate_hostent(hp))
-      hp = 0;
-  }
+
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
@@ -573,15 +465,9 @@ enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *
   return ACR_OK;
 }
 
-struct ConfItem *find_admin(void)
+const struct LocalConf* conf_get_local(void)
 {
-  struct ConfItem *aconf;
-
-  for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
-    if (aconf->status & CONF_ADMIN)
-      break;
-  }
-  return aconf;
+  return &localConf;
 }
 
 struct ConfItem* find_me(void)
@@ -793,145 +679,12 @@ static struct ConfItem *find_conf_entry(struct ConfItem *aconf,
   return bconf;
 }
 
-/*
- * rehash
- *
- * Actual REHASH service routine. Called with sig == 0 if it has been called
- * as a result of an operator issuing this command, else assume it has been
- * called as a result of the server receiving a HUP signal.
- */
-int rehash(struct Client *cptr, int sig)
-{
-  struct ConfItem** tmp = &GlobalConfList;
-  struct ConfItem*  tmp2;
-  struct ConfClass* cltmp;
-  struct Client*    acptr;
-  struct MotdItem*  temp;
-  int               i;
-  int               ret = 0;
-  int               found_g = 0;
-
-  if (1 == sig)
-    sendto_opmask_butone(0, SNO_OLDSNO,
-			 "Got signal SIGHUP, reloading ircd conf. file");
-
-  while ((tmp2 = *tmp)) {
-    if (tmp2->clients) {
-      /*
-       * Configuration entry is still in use by some
-       * local clients, cannot delete it--mark it so
-       * that it will be deleted when the last client
-       * exits...
-       */
-      if (!(tmp2->status & CONF_CLIENT)) {
-        *tmp = tmp2->next;
-        tmp2->next = 0;
-      }
-      else
-        tmp = &tmp2->next;
-      tmp2->status |= CONF_ILLEGAL;
-    }
-    else {
-      *tmp = tmp2->next;
-      /* free expression trees of connect rules */
-      if ((tmp2->status & (CONF_CRULEALL | CONF_CRULEAUTO)) &&
-          (tmp2->passwd != NULL))
-        crule_free(&(tmp2->passwd));
-      free_conf(tmp2);
-    }
-  }
-
-  /*
-   * We don't delete the class table, rather mark all entries
-   * for deletion. The table is cleaned up by check_class(). - avalon
-   */
-  for (cltmp = NextClass(FirstClass()); cltmp; cltmp = NextClass(cltmp))
-    MarkDelete(cltmp);
-
-  /*
-   * delete the juped nicks list
-   */
-  clearNickJupes();
-
-  if (sig != 2)
-    flush_resolver_cache();
-
-  mark_listeners_closing();
-
-  if (!conf_init())        /* This calls check_class(), */
-    check_class();         /* unless it fails */
-
-  /*
-   * make sure that the server listener is re-added so it doesn't get
-   * closed
-   */
-  close_listeners();
-
-  /*
-   * Flush out deleted I and P lines although still in use.
-   */
-  for (tmp = &GlobalConfList; (tmp2 = *tmp);) {
-    if (!(tmp2->status & CONF_ILLEGAL))
-      tmp = &tmp2->next;
-    else
-    {
-      *tmp = tmp2->next;
-      tmp2->next = NULL;
-      if (!tmp2->clients)
-        free_conf(tmp2);
-    }
-  }
-  for (i = 0; i <= HighestFd; i++) {
-    if ((acptr = LocalClientArray[i])) {
-      assert(!IsMe(acptr));
-      if (IsServer(acptr)) {
-        det_confs_butmask(acptr,
-            ~(CONF_HUB | CONF_LEAF | CONF_UWORLD | CONF_ILLEGAL));
-        attach_confs_byname(acptr, acptr->name,
-                            CONF_HUB | CONF_LEAF | CONF_UWORLD);
-      }
-      /* Because admin's are getting so uppity about people managing to
-       * get past K/G's etc, we'll "fix" the bug by actually explaining
-       * whats going on.
-       */
-      if ((found_g = find_kill(acptr))) {
-        sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
-			     found_g == -2 ? "G-line active for %s%s" :
-			     "K-line active for %s%s",
-			     IsUnknown(acptr) ? "Unregistered Client ":"",		     
-			     get_client_name(acptr, HIDE_IP));
-        if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
-            "K-lined") == CPTR_KILLED)
-          ret = CPTR_KILLED;
-      }
-    }
-  }
-  /* 
-   * free old motd structs
-   */
-  while (motd) {
-    temp = motd->next;
-    MyFree(motd);
-    motd = temp;
-  }
-  while (rmotd) {
-    temp = rmotd->next;
-    MyFree(rmotd);
-    rmotd = temp;
-  }
-  /* reload motd files */
-  read_tlines();
-  rmotd = read_motd(RPATH);
-  motd = read_motd(MPATH);
-  return ret;
-}
-
 
 /*
  * If conf line is a class definition, create a class entry
  * for it and make the conf_line illegal and delete it.
  */
-void conf_create_class(const char* const* fields, int count)
+void conf_add_class(const char* const* fields, int count)
 {
   if (count < 6)
     return;
@@ -939,8 +692,92 @@ void conf_create_class(const char* const* fields, int count)
             atoi(fields[4]), atoi(fields[5]));
 }
 
+void conf_add_listener(const char* const* fields, int count)
+{
+  int is_server = 0;
+  int is_hidden = 0;
+
+  /*
+   * need a port
+   */
+  if (count < 5 || EmptyString(fields[4]))
+    return;
+
+  if (!EmptyString(fields[3])) {
+    const char* x = fields[3];
+    if ('S' == ToUpper(*x))
+      is_server = 1;
+    ++x;
+    if ('H' == ToUpper(*x))
+      is_hidden = 1;
+  }
+  /*           port             vhost      mask  */
+  add_listener(atoi(fields[4]), fields[2], fields[1], is_server, is_hidden);
+}
+
+void conf_add_admin(const char* const* fields, int count)
+{
+  /*
+   * if you have one, it MUST have 3 lines
+   */
+  if (count < 4) {
+    Debug((DEBUG_FATAL, "Your A: line must have 4 fields!\n"));
+    ircd_log(L_CRIT, "Your A: line must have 4 fields!\n");
+    exit(-1);
+  }
+  MyFree(localConf.location1);
+  DupString(localConf.location1, fields[1]);
+
+  MyFree(localConf.location2);
+  DupString(localConf.location2, fields[2]);
+
+  MyFree(localConf.contact);
+  DupString(localConf.contact, fields[3]);
+}
+
+void conf_add_motd(const char* const* fields, int count, struct MotdConf** list)
+{
+  struct MotdConf* conf;
+  if (count < 3 || EmptyString(fields[1]) || EmptyString(fields[2]))
+    return;
+
+  conf = (struct MotdConf*) MyMalloc(sizeof(struct MotdConf));
+  assert(0 != conf);
+
+  DupString(conf->hostmask, fields[1]);
+  collapse(conf->hostmask);
+
+  DupString(conf->path, fields[2]);
+
+  assert(0 != list);
+
+  conf->next = *list;
+  *list = conf;
+}
+
+void erase_motd_conf_list(struct MotdConf** list)
+{
+  struct MotdConf* p;
+  struct MotdConf* next;
+
+  assert(0 != list);
+
+  for (p = *list; p; p = next) {
+    next = p->next;
+    MyFree(p->hostmask);
+    MyFree(p->path);
+    MyFree(p);
+  }
+  *list = 0;
+}
+
+const struct MotdConf* conf_get_motd_list(void)
+{
+  return motdConfList;
+}
+
 /*
- * conf_init
+ * read_configuration_file
  *
  * Read configuration file.
  *
@@ -950,8 +787,7 @@ void conf_create_class(const char* const* fields, int count)
 
 #define MAXCONFLINKS 150
 
-
-int conf_init(void)
+int read_configuration_file(void)
 {
   enum { MAX_FIELDS = 15 };
 
@@ -966,7 +802,7 @@ int conf_init(void)
   int   field_count = 0;
   const char* field_vector[MAX_FIELDS + 1];
 
-  Debug((DEBUG_DEBUG, "conf_init: ircd.conf = %s", configfile));
+  Debug((DEBUG_DEBUG, "read_configuration_file: ircd.conf = %s", configfile));
   if (0 == (file = fbopen(configfile, "r"))) {
     return 0;
   }
@@ -1061,7 +897,7 @@ int conf_init(void)
     }
     *dest = '\0';
 
-    if (field_count < 3 || EmptyString(field_vector[0]))
+    if (field_count < 2 || EmptyString(field_vector[0]))
       continue;
 
     if (aconf)
@@ -1071,8 +907,9 @@ int conf_init(void)
 
     switch (*field_vector[0]) {
     case 'A':                /* Name, e-mail address of administrator */
-    case 'a':                /* of this server. */
-      aconf->status = CONF_ADMIN;
+    case 'a':                /* of this server. CONF_ADMIN */
+      conf_add_admin(field_vector, field_count);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'C':                /* Server where I should try to connect */
     case 'c':                /* in case of lp failures             */
@@ -1121,12 +958,14 @@ int conf_init(void)
       aconf->status = CONF_LOCOP;
       break;
     case 'P':                /* listen port line */
-    case 'p':
-      aconf->status = CONF_LISTEN_PORT;
+    case 'p':        /* CONF_LISTEN_PORT */
+      conf_add_listener(field_vector, field_count);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'T':                /* print out different motd's */
-    case 't':                /* based on hostmask */
-      aconf->status = CONF_TLINES;
+    case 't':                /* based on hostmask - CONF_TLINES */
+      conf_add_motd(field_vector, field_count, &motdConfList);
+      aconf->status = CONF_ILLEGAL;
       break;
     case 'U':      /* Underworld server, allowed to hack modes */
     case 'u':      /* *Every* server on the net must define the same !!! */
@@ -1134,7 +973,7 @@ int conf_init(void)
       break;
     case 'Y':
     case 'y':      /* CONF_CLASS */
-      conf_create_class(field_vector, field_count);
+      conf_add_class(field_vector, field_count);
       aconf->status = CONF_ILLEGAL;
       break;
     default:
@@ -1180,21 +1019,6 @@ int conf_init(void)
       if (aconf->confClass == 0)
         aconf->confClass = find_class(0);
     }
-    if (aconf->status & CONF_LISTEN_PORT) {
-      int         is_server = 0;
-      int         is_hidden = 0;
-      if (!EmptyString(aconf->name)) {
-        const char* x = aconf->name;
-        if ('S' == ToUpper(*x))
-          is_server = 1;
-        ++x;
-        if ('H' == ToUpper(*x))
-          is_hidden = 1;
-      }
-      add_listener(aconf->port, aconf->passwd, aconf->host, 
-                   is_server, is_hidden);
-      continue;
-    } 
     if (aconf->status & CONF_CLIENT) {
       struct ConfItem *bconf;
 
@@ -1298,13 +1122,6 @@ int conf_init(void)
     if ((aconf->status == CONF_UWORLD) && (aconf->passwd) && (*aconf->passwd))
       addNickJupes(aconf->passwd);
 
-    if (aconf->status & CONF_ADMIN) {
-      if (!aconf->host || !aconf->passwd || !aconf->name) {
-        Debug((DEBUG_FATAL, "Your A: line must have 4 fields!\n"));
-        ircd_log(L_WARNING, "Your A: line must have 4 fields!\n");
-        exit(-1);
-      }
-    }
     collapse(aconf->host);
     collapse(aconf->name);
     Debug((DEBUG_NOTICE,
@@ -1323,6 +1140,169 @@ int conf_init(void)
   return 1;
 }
 
+/*
+ * rehash
+ *
+ * Actual REHASH service routine. Called with sig == 0 if it has been called
+ * as a result of an operator issuing this command, else assume it has been
+ * called as a result of the server receiving a HUP signal.
+ */
+int rehash(struct Client *cptr, int sig)
+{
+  struct ConfItem** tmp = &GlobalConfList;
+  struct ConfItem*  tmp2;
+  struct ConfClass* cltmp;
+  struct Client*    acptr;
+  struct MotdItem*  temp;
+  int               i;
+  int               ret = 0;
+  int               found_g = 0;
+
+  if (1 == sig)
+    sendto_opmask_butone(0, SNO_OLDSNO,
+			 "Got signal SIGHUP, reloading ircd conf. file");
+
+  while ((tmp2 = *tmp)) {
+    if (tmp2->clients) {
+      /*
+       * Configuration entry is still in use by some
+       * local clients, cannot delete it--mark it so
+       * that it will be deleted when the last client
+       * exits...
+       */
+      if (!(tmp2->status & CONF_CLIENT)) {
+        *tmp = tmp2->next;
+        tmp2->next = 0;
+      }
+      else
+        tmp = &tmp2->next;
+      tmp2->status |= CONF_ILLEGAL;
+    }
+    else {
+      *tmp = tmp2->next;
+      /* free expression trees of connect rules */
+      if ((tmp2->status & (CONF_CRULEALL | CONF_CRULEAUTO)) &&
+          (tmp2->passwd != NULL))
+        crule_free(&(tmp2->passwd));
+      free_conf(tmp2);
+    }
+  }
+  erase_motd_conf_list(&motdConfList);
+  /*
+   * We don't delete the class table, rather mark all entries
+   * for deletion. The table is cleaned up by check_class(). - avalon
+   */
+  for (cltmp = NextClass(FirstClass()); cltmp; cltmp = NextClass(cltmp))
+    MarkDelete(cltmp);
+
+  /*
+   * delete the juped nicks list
+   */
+  clearNickJupes();
+
+  if (sig != 2)
+    flush_resolver_cache();
+
+  mark_listeners_closing();
+
+  if (!read_configuration_file())        /* This calls check_class(), */
+    check_class();         /* unless it fails */
+
+  /*
+   * make sure that the server listener is re-added so it doesn't get
+   * closed
+   */
+  close_listeners();
+
+  /*
+   * Flush out deleted I and P lines although still in use.
+   */
+  for (tmp = &GlobalConfList; (tmp2 = *tmp);) {
+    if (!(tmp2->status & CONF_ILLEGAL))
+      tmp = &tmp2->next;
+    else
+    {
+      *tmp = tmp2->next;
+      tmp2->next = NULL;
+      if (!tmp2->clients)
+        free_conf(tmp2);
+    }
+  }
+  for (i = 0; i <= HighestFd; i++) {
+    if ((acptr = LocalClientArray[i])) {
+      assert(!IsMe(acptr));
+      if (IsServer(acptr)) {
+        det_confs_butmask(acptr,
+            ~(CONF_HUB | CONF_LEAF | CONF_UWORLD | CONF_ILLEGAL));
+        attach_confs_byname(acptr, acptr->name,
+                            CONF_HUB | CONF_LEAF | CONF_UWORLD);
+      }
+      /* Because admin's are getting so uppity about people managing to
+       * get past K/G's etc, we'll "fix" the bug by actually explaining
+       * whats going on.
+       */
+      if ((found_g = find_kill(acptr))) {
+        sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
+			     found_g == -2 ? "G-line active for %s%s" :
+			     "K-line active for %s%s",
+			     IsUnknown(acptr) ? "Unregistered Client ":"",		     
+			     get_client_name(acptr, HIDE_IP));
+        if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
+            "K-lined") == CPTR_KILLED)
+          ret = CPTR_KILLED;
+      }
+    }
+  }
+  /* 
+   * free old motd structs
+   */
+  while (motd) {
+    temp = motd->next;
+    MyFree(motd);
+    motd = temp;
+  }
+  while (rmotd) {
+    temp = rmotd->next;
+    MyFree(rmotd);
+    rmotd = temp;
+  }
+  /* reload motd files */
+  read_tlines();
+  rmotd = read_motd(RPATH);
+  motd = read_motd(MPATH);
+  return ret;
+}
+
+/*
+ * conf_init
+ *
+ * Read configuration file.
+ *
+ * returns 0, if file cannot be opened
+ *         1, if file read
+ */
+
+int conf_init(void)
+{
+  if (read_configuration_file()) {
+    /*
+     * make sure we're sane to start if the config
+     * file read didn't get everything we need.
+     * XXX - should any of these abort the server?
+     * TODO: add warning messages
+     */
+    if (0 == localConf.location1)
+      DupString(localConf.location1, "");
+    if (0 == localConf.location2)
+      DupString(localConf.location2, "");
+    if (0 == localConf.contact)
+      DupString(localConf.contact, "");
+    
+    return 1;
+  }
+  return 0;
+}
+
 
 /* read_tlines 
  * Read info from T:lines into TRecords which include the file 
@@ -1331,17 +1311,15 @@ int conf_init(void)
  */
 void read_tlines()
 {
-  struct ConfItem *tmp;
+  struct MotdConf* conf;
   struct TRecord *temp;
   struct TRecord *last = NULL;        /* Init. to avoid compiler warning */
   struct MotdItem *amotd;
 
   /* Free the old trecords and the associated motd contents first */
-  while (tdata)
-  {
+  while (tdata) {
     last = tdata->next;
-    while (tdata->tmotd)
-    {
+    while (tdata->tmotd) {
       amotd = tdata->tmotd->next;
       MyFree(tdata->tmotd);
       tdata->tmotd = amotd;
@@ -1350,21 +1328,20 @@ void read_tlines()
     tdata = last;
   }
 
-  for (tmp = GlobalConfList; tmp; tmp = tmp->next) {
-    if (tmp->status == CONF_TLINES && tmp->host && tmp->passwd) {
-      temp = (struct TRecord*) MyMalloc(sizeof(struct TRecord));
-      assert(0 != temp);
+  for (conf = motdConfList; conf; conf = conf->next) {
+    temp = (struct TRecord*) MyMalloc(sizeof(struct TRecord));
+    assert(0 != temp);
 
-      temp->hostmask = tmp->host;
-      temp->tmotd = read_motd(tmp->passwd);
-      temp->tmotd_tm = motd_tm;
-      temp->next = NULL;
-      if (!tdata)
-        tdata = temp;
-      else
-        last->next = temp;
-      last = temp;
-    }
+    temp->hostmask = conf->hostmask;
+    temp->tmotd = read_motd(conf->path);
+    temp->tmotd_tm = motd_tm;
+    temp->next = 0;
+
+    if (!tdata)
+      tdata = temp;
+    else
+      last->next = temp;
+    last = temp;
   }
 }
 

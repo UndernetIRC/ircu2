@@ -125,17 +125,15 @@ int send_reply(struct Client *to, int reply, ...)
   return 0; /* convenience return */
 }
 
-int send_admin_info(struct Client* sptr, const struct ConfItem* admin)
+int send_admin_info(struct Client* sptr)
 {
+  const struct LocalConf* admin = conf_get_local();
   assert(0 != sptr);
-  if (admin) {
-    send_reply(sptr, RPL_ADMINME,    me.name);
-    send_reply(sptr, RPL_ADMINLOC1,  admin->host);
-    send_reply(sptr, RPL_ADMINLOC2,  admin->passwd);
-    send_reply(sptr, RPL_ADMINEMAIL, admin->name);
-  }
-  else
-    send_reply(sptr, ERR_NOADMININFO, me.name);
+
+  send_reply(sptr, RPL_ADMINME,    me.name);
+  send_reply(sptr, RPL_ADMINLOC1,  admin->location1);
+  send_reply(sptr, RPL_ADMINLOC2,  admin->location2);
+  send_reply(sptr, RPL_ADMINEMAIL, admin->contact);
   return 0;
 }
 

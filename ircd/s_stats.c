@@ -134,8 +134,6 @@ void report_configured_links(struct Client *sptr, int mask)
        */
       else if ((tmp->status & CONF_CRULE))
 	send_reply(sptr, p[1], c, host, name);
-      else if ((tmp->status & CONF_TLINES))
-	send_reply(sptr, p[1], c, host, pass);
       else if ((tmp->status & CONF_UWORLD))
 	send_reply(sptr, p[1], c, host, pass, name, port, get_conf_class(tmp));
       else if ((tmp->status & (CONF_SERVER | CONF_HUB)))
@@ -144,6 +142,16 @@ void report_configured_links(struct Client *sptr, int mask)
 	send_reply(sptr, p[1], c, host, name, port, get_conf_class(tmp));
     }
   }
+}
+
+/*
+ *  {CONF_TLINES, RPL_STATSTLINE, 'T'},
+ */
+void report_motd_list(struct Client* to)
+{
+  const struct MotdConf* conf = conf_get_motd_list();
+  for ( ; conf; conf = conf->next)
+    send_reply(to, RPL_STATSTLINE, 'T', conf->hostmask, conf->path);
 }
 
 /* m_stats is so obnoxiously full of special cases that the different

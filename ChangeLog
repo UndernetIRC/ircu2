@@ -1,3 +1,12 @@
+2000-09-15  Thomas Helvey <helveytw@home.com>
+	* ircd/s_conf.c: start adding code for new conf data structs, changed
+	listeners, admin line, motd lines, class lines. Move validate_hostent
+	to resolver. General mayhem.
+	* include/s_conf.h: new data structs and accessors
+	* ircd/res.c: move validate_hostent here, rewrite, use regular
+	expression for validation.
+	* doc/example.conf: update docs for port
+
 2000-09-14  Thomas Helvey <helveytw@home.com>
 	* ircd/s_conf.c (conf_init): rewrite conf file parser, start to break
 	up conf_init into managable chunks.
@@ -1308,7 +1317,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.161 2000-09-14 06:53:37 bleep Exp $
+# $Id: ChangeLog,v 1.162 2000-09-15 07:27:08 bleep Exp $
 #
 # Insert new changes at beginning of the change list.
 #
