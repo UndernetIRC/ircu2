@@ -1006,7 +1006,9 @@ int resolver_read(void)
       /*
        * got a name and address response, client resolved
        */
-      (*request->query.callback)(request->query.vptr, 0);
+      struct DNSReply reply;
+      reply.hp=&request->he.h;
+      (*request->query.callback)(request->query.vptr, &reply);
       rem_request(request);
     }
   }
