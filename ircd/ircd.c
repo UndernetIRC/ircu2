@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
+ */
+/* @file
+ * @brief Entry point and other initialization functions for the daemon.
+ * @version $Id$
  */
 #include "config.h"
 
@@ -84,41 +86,46 @@ extern void mem_dbg_initialise(void);
  * Constants / Enums
  *--------------------------------------------------------------------------*/
 enum {
-  BOOT_DEBUG = 1,
-  BOOT_TTY   = 2,
-  BOOT_CHKCONF = 4
+  BOOT_DEBUG = 1,  /**< Enable debug output. */
+  BOOT_TTY   = 2,  /**< Stay connected to TTY. */
+  BOOT_CHKCONF = 4 /**< Exit after reading configuration file. */
 };
 
 
 /*----------------------------------------------------------------------------
  * Global data (YUCK!)
  *--------------------------------------------------------------------------*/
-struct Client  me;                      /* That's me */
-struct Connection me_con;		/* That's me too */
-struct Client *GlobalClientList  = &me; /* Pointer to beginning of
+struct Client  me;                      /**< That's me */
+struct Connection me_con;		/**< That's me too */
+struct Client *GlobalClientList  = &me; /**< Pointer to beginning of
 					   Client list */
-time_t         TSoffset          = 0;/* Offset of timestamps to system clock */
-int            GlobalRehashFlag  = 0;   /* do a rehash if set */
-int            GlobalRestartFlag = 0;   /* do a restart if set */
-time_t         CurrentTime;          /* Updated every time we leave select() */
+time_t         TSoffset          = 0;   /**< Offset of timestamps to system clock */
+int            GlobalRehashFlag  = 0;   /**< do a rehash if set */
+int            GlobalRestartFlag = 0;   /**< do a restart if set */
+time_t         CurrentTime;             /**< Updated every time we leave select() */
 
-char          *configfile        = CPATH; /* Server configuration file */
-int            debuglevel        = -1;    /* Server debug level  */
-char          *debugmode         = "";    /* Server debug level */
-static char   *dpath             = DPATH;
+char          *configfile        = CPATH; /**< Server configuration file */
+int            debuglevel        = -1;    /**< Server debug level  */
+char          *debugmode         = "";    /**< Server debug level */
+static char   *dpath             = DPATH; /**< Working directory for daemon */
 
-static struct Timer connect_timer; /* timer structure for try_connections() */
-static struct Timer ping_timer; /* timer structure for check_pings() */
-static struct Timer destruct_event_timer; /* timer structure for exec_expired_destruct_events() */
+static struct Timer connect_timer; /**< timer structure for try_connections() */
+static struct Timer ping_timer; /**< timer structure for check_pings() */
+static struct Timer destruct_event_timer; /**< timer structure for exec_expired_destruct_events() */
 
-static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0 };
+/** Daemon information. */
+static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, -1 };
 
+/** Non-zero until we want to exit. */
 int running = 1;
 
 
 /*----------------------------------------------------------------------------
  * API: server_die
  *--------------------------------------------------------------------------*/
+/** Terminate the server with a message.
+ * @param[in] message Message to log and send to operators.
+ */
 void server_die(const char *message)
 {
   /* log_write will send out message to both log file and as server notice */
@@ -131,6 +138,9 @@ void server_die(const char *message)
 /*----------------------------------------------------------------------------
  * API: server_panic
  *--------------------------------------------------------------------------*/
+/** Immediately terminate the server with a message.
+ * @param[in] message Message to log, but not send to operators.
+ */
 void server_panic(const char *message)
 {
   /* inhibit sending server notice--we may be panicing due to low memory */
@@ -144,6 +154,9 @@ void server_panic(const char *message)
 /*----------------------------------------------------------------------------
  * API: server_restart
  *--------------------------------------------------------------------------*/
+/** Restart the server with a message.
+ * @param[in] message Message to log and send to operators.
+ */
 void server_restart(const char *message)
 {
   static int restarting = 0;
@@ -179,15 +192,17 @@ void server_restart(const char *message)
 /*----------------------------------------------------------------------------
  * outofmemory:  Handler for out of memory conditions...
  *--------------------------------------------------------------------------*/
+/** Handle out-of-memory condition. */
 static void outofmemory(void) {
   Debug((DEBUG_FATAL, "Out of memory: restarting server..."));
   server_restart("Out of Memory");
-} 
+}
 
 
 /*----------------------------------------------------------------------------
  * write_pidfile
  *--------------------------------------------------------------------------*/
+/** Write process ID to PID file. */
 static void write_pidfile(void) {
   char buff[20];
 
@@ -203,14 +218,8 @@ static void write_pidfile(void) {
 	 feature_str(FEAT_PPATH)));
 }
 
-/* check_pid
- * 
- * inputs: 
- *   none
- * returns:
- *   true - if the pid file exists (and is readable), and the pid refered
- *          to in the file is still running.
- *   false - otherwise.
+/** Try to create the PID file.
+ * @return Zero on success; non-zero on any error.
  */
 static int check_pid(void)
 {
@@ -223,21 +232,16 @@ static int check_pid(void)
 
   if ((thisServer.pid_fd = open(feature_str(FEAT_PPATH), O_CREAT | O_RDWR,
 				0600)) >= 0)
-    return fcntl(thisServer.pid_fd, F_SETLK, &lock);
+    return fcntl(thisServer.pid_fd, F_SETLK, &lock) == -1;
 
-  return 0;
+  return 1;
 }
-  
 
-/*----------------------------------------------------------------------------
- * try_connections
- *
- * Scan through configuration and try new connections.
- *
- * Returns the calendar time when the next call to this
- * function should be made latest. (No harm done if this
- * is called earlier or later...)
- *--------------------------------------------------------------------------*/
+
+/** Look for any connections that we should try to initiate.
+ * Reschedules itself to run again at the appropriate time.
+ * @param[in] ev Timer event (ignored).
+ */
 static void try_connections(struct Event* ev) {
   struct ConfItem*  aconf;
   struct Client*    cptr;
@@ -324,13 +328,10 @@ static void try_connections(struct Event* ev) {
 }
 
 
-/*----------------------------------------------------------------------------
- * check_pings
- *
- * TODO: This should be moved out of ircd.c.  It's protocol-specific when you
- *       get right down to it.  Can't really be done until the server is more
- *       modular, however...
- *--------------------------------------------------------------------------*/
+/** Check for clients that have not sent a ping response recently.
+ * Reschedules itself to run again at the appropriate time.
+ * @param[in] ev Timer event (ignored).
+ */
 static void check_pings(struct Event* ev) {
   int expire     = 0;
   int next_check = CurrentTime;
@@ -459,11 +460,13 @@ static void check_pings(struct Event* ev) {
 }
 
 
-/*----------------------------------------------------------------------------
- * parse_command_line
- * Side Effects: changes GLOBALS me, thisServer, dpath, configfile, debuglevel
- * debugmode
- *--------------------------------------------------------------------------*/
+/** Parse command line arguments.
+ * Global variables are updated to reflect the arguments.
+ * As a side effect, makes sure the process's effective user id is the
+ * same as the real user id.
+ * @param[in] argc Number of arguments on command line.
+ * @param[in,out] argv Command-lne arguments.
+ */
 static void parse_command_line(int argc, char** argv) {
   const char *options = "d:f:h:nktvx:";
   int opt;
@@ -519,9 +522,9 @@ static void parse_command_line(int argc, char** argv) {
 }
 
 
-/*----------------------------------------------------------------------------
- * daemon_init
- *--------------------------------------------------------------------------*/
+/** Become a daemon.
+ * @param[in] no_fork If non-zero, do not fork into the background.
+ */
 static void daemon_init(int no_fork) {
   if (no_fork)
     return;
@@ -542,10 +545,13 @@ static void daemon_init(int no_fork) {
   setsid();
 }
 
-/*----------------------------------------------------------------------------
- * check_file_access:  random helper function to make sure that a file is
- *                     accessible in a certain way, and complain if not.
- *--------------------------------------------------------------------------*/
+/** Check that we have access to a particular file.
+ * If we do not have access to the file, complain on stderr.
+ * @param[in] path File name to check for access.
+ * @param[in] which Configuration character associated with file.
+ * @param[in] mode Bitwise combination of R_OK, W_OK, X_OK and/or F_OK.
+ * @return Non-zero if we have the necessary access, zero if not.
+ */
 static char check_file_access(const char *path, char which, int mode) {
   if (!access(path, mode))
     return 1;
@@ -564,6 +570,7 @@ static char check_file_access(const char *path, char which, int mode) {
  * set_core_limit
  *--------------------------------------------------------------------------*/
 #if defined(HAVE_SETRLIMIT) && defined(RLIMIT_CORE)
+/** Set the core size soft limit to the same as the hard limit. */
 static void set_core_limit(void) {
   struct rlimit corelim;
 
@@ -580,9 +587,9 @@ static void set_core_limit(void) {
 
 
 
-/*----------------------------------------------------------------------------
- * set_userid_if_needed()
- *--------------------------------------------------------------------------*/
+/** Complain to stderr if any user or group ID belongs to the superuser.
+ * @return Non-zero if all IDs are okay, zero if some are 0.
+ */
 static int set_userid_if_needed(void) {
   if (getuid() == 0 || geteuid() == 0 ||
       getgid() == 0 || getegid() == 0) {
@@ -601,6 +608,10 @@ static int set_userid_if_needed(void) {
  *        we're doing waaaaaaaaay too much server initialization here.  I hate
  *        long and ugly control paths...  -smd
  *--------------------------------------------------------------------------*/
+/** Run the daemon.
+ * @param[in] argc Number of arguments in \a argv.
+ * @param[in] argv Arguments to program execution.
+ */
 int main(int argc, char **argv) {
   CurrentTime = time(NULL);
 

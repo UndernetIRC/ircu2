@@ -1,7 +1,6 @@
-/*
- * ircd.h
- *
- * $Id$
+/* @file ircd.h
+ * @brief Global data for the daemon.
+ * @version $Id$
  */
 #ifndef INCLUDED_ircd_h
 #define INCLUDED_ircd_h
@@ -12,34 +11,31 @@
 #include <sys/types.h>        /* size_t, time_t */
 #endif
 
+/** Describes status for a daemon. */
 struct Daemon
 {
-  int          argc;
-  char**       argv;
-  pid_t        pid;
-  uid_t        uid;
-  uid_t        euid;
-  unsigned int bootopt;
-  int          running;
-  int          pid_fd;
-  const char*  server_bin;
-  const char*  server_root;
-  const char*  server_log;
+  int          argc;        /**< Number of command-line arguments. */
+  char**       argv;        /**< Array of command-line arguments. */
+  pid_t        pid;         /**< &Daemon's process id. */
+  uid_t        uid;         /**< &Daemon's user id. */
+  uid_t        euid;        /**< &Daemon's effective user id. */
+  unsigned int bootopt;     /**< Boot option flags. */
+  int          pid_fd;      /**< File descriptor for process id file. */
 };
 
 /*
  * Macros
  */
-#define TStime() (CurrentTime + TSoffset)
-#define OLDEST_TS 780000000	/* Any TS older than this is bogus */
-#define BadPtr(x) (!(x) || (*(x) == '\0'))
+#define TStime() (CurrentTime + TSoffset) /**< Current network time*/
+#define OLDEST_TS 780000000	/**< Any TS older than this is bogus */
+#define BadPtr(x) (!(x) || (*(x) == '\0')) /**< Is \a x a bad string? */
 
 /* Miscellaneous defines */
 
-#define UDP_PORT        "7007"
-#define MINOR_PROTOCOL  "09"
-#define MAJOR_PROTOCOL  "10"
-#define BASE_VERSION    "u2.10"
+#define UDP_PORT        "7007"  /**< Default port for server-to-server pings. */
+#define MINOR_PROTOCOL  "09"    /**< Minimum protocol version supported. */
+#define MAJOR_PROTOCOL  "10"    /**< Current protocol version. */
+#define BASE_VERSION    "u2.10" /**< Base name of IRC daemon version. */
 
 /*
  * Proto types
@@ -52,11 +48,8 @@ extern struct Client  me;
 extern time_t         CurrentTime;
 extern struct Client* GlobalClientList;
 extern time_t         TSoffset;
-extern time_t         nextdnscheck;
-extern time_t         nextconnect;
 extern int            GlobalRehashFlag;      /* 1 if SIGHUP is received */
 extern int            GlobalRestartFlag;     /* 1 if SIGINT is received */
-extern time_t         nextping;
 extern char*          configfile;
 extern int            debuglevel;
 extern char*          debugmode;
