@@ -102,10 +102,10 @@ static struct IPRegistryEntry *ip_registry_find(unsigned int ip)
 
   for (entry = hashTable[ip_registry_hash(ip)]; entry; entry = entry->next) {
     if (entry->addr == ip)
-      break;
+      return entry;
   }
 
-  return entry;
+  return NULL;
 }
 
 

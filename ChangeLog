@@ -1,3 +1,8 @@
+2000-05-29  Perry Lorier       <Isomer@coders.net>
+	* ircd/m_stats.c: add /stats v to do only the last part of the /trace
+	* ircd/IPcheck.c: Cosmetic change, if we meddle with it enough do
+ 			you think it'll get bored and fix itself?
+
 2000-06-09  Greg Sikorski <gte@atomicrevs.demon.co.uk>
 
 	* ircd/m_names.c: Clean up compiler warnings.
@@ -1230,7 +1235,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.146 2000-06-09 20:56:03 gte Exp $
+# $Id: ChangeLog,v 1.147 2000-06-13 03:01:21 isomer Exp $
 #
 # Insert new changes at beginning of the change list.
 #
