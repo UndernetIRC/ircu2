@@ -1,3 +1,8 @@
+2004-06-20  Alex Badea  <decampos@users.sourceforge.net>
+
+	* ircd/m_account.c: login-on-connect extensions, part 1:
+	added message sub-types and implemented routing
+
 2004-06-18  Alex Badea  <decampos@users.sourceforge.net>
 
 	* ircd/gline.c (gline_lookup): only return a gline if it's
