@@ -1,4 +1,7 @@
 2003-09-03 splidge <splidge@quakenet.org>
+	* ircd/m_nick.c: Fixed use-after-free bug in nick collision code.
+
+2003-09-03 splidge <splidge@quakenet.org>
 	* ircd/m_nick.c: Made nick collides get sent to all servers (should
 	fix "ghost client" bug).
 

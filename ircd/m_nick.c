@@ -287,7 +287,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char           nick[NICKLEN + 2];
   time_t         lastnick = 0;
   int            differ = 1;
-
+  int            samelastnick = 0;
+  
   assert(0 != cptr);
   assert(0 != sptr);
   assert(IsServer(cptr));
@@ -486,6 +487,10 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   ++ServerStats->is_kill;
   SetFlag(acptr, FLAG_KILLED);
+  
+  if (lastnick == cli_lastnick(acptr))
+    samelastnick = 1;
+    
   /*
    * This exits the client we had before getting the NICK message
    */
@@ -515,7 +520,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     exit_client_msg(cptr, acptr, &me, "Killed (%s (nick collision from "
 		    "same user@host))", feature_str(FEAT_HIS_SERVERNAME));
   }
-  if (lastnick == cli_lastnick(acptr))
+  if (samelastnick)
     return 0;
 
   assert(0 != sptr);
