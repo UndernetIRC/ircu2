@@ -1,3 +1,8 @@
+2004-02-27  Entrope <entrope@clan-dk.org>
+
+        * doc/readme.who: Describe the support for matching on and
+        showing account names.
+
 2004-02-16  Entrope <entrope@gamesurge.net>
 
         * configure.in: Check for missing epoll functions.
