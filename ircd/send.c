@@ -1231,7 +1231,7 @@ void sendcmdto_flag_butone(struct Client *from, const char *cmd,
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
   ircd_snprintf(0, userbuf, sizeof(userbuf) - 2, "%:#C " MSG_WALLOPS " %v",
-		from, cmd, &vd);
+		from, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
