@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+#include <string.h>
 
 char localkey[9] = RANDOM_SEED;
 

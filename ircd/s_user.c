@@ -900,7 +900,9 @@ static unsigned char hash_target(unsigned int target)
  */
 void add_target(struct Client *sptr, void *target)
 {
-  unsigned char  hash = hash_target((unsigned int) target);
+  /* Ok, this shouldn't work esp on alpha
+  */
+  unsigned char  hash = hash_target((unsigned long) target);
   unsigned char* targets;
   int            i;
   assert(0 != sptr);
@@ -933,7 +935,7 @@ void add_target(struct Client *sptr, void *target)
 int check_target_limit(struct Client *sptr, void *target, const char *name,
     int created)
 {
-  unsigned char hash = hash_target((unsigned int) target);
+  unsigned char hash = hash_target((unsigned long) target);
   int            i;
   unsigned char* targets;
 

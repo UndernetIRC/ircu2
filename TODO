@@ -13,6 +13,8 @@ High Priority:
 * something is leaking "a meg a minute" with heap debugging on
   with 1300+ clients
   (No idea)
+* add_Target in s_user.c turns pointers to ints
+  this doesn't make much sence on alpha where sizeof(void *) != sizeof(int)
 
 Medium Priority:
 * crule parser coredumps on invalid input

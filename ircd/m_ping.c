@@ -150,6 +150,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * m_ping - generic message handler

@@ -100,6 +100,7 @@
 #include "send.h"
 
 #include <assert.h>
+#include <string.h>
 
 /*
  * ms_error - server message handler
