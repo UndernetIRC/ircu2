@@ -1,3 +1,9 @@
+2000-04-12  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_snprintf.c: my new snprintf()-like functions
+
+	* include/ircd_snprintf.h: my new snprintf()-like functions
+
 2000-04-11  Thomas Helvey <tomh@inxpress.net>
 	* ircd/IPcheck.c: removed old dead code
 	* ircd/s_user.c (send_user_info): removed non-standard
@@ -361,7 +367,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.71 2000-04-11 05:57:24 bleep Exp $
+# $Id: ChangeLog,v 1.72 2000-04-12 20:50:12 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
