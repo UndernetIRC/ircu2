@@ -1,5 +1,24 @@
 2001-06-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/send.c: remove unused vsendcmdto_one(), consolidating it
+	into sendcmdto_one(); define new sendcmdto_prio_one(), which
+	places the message into the priority queue
+
+	* ircd/s_user.c (hunt_server_prio_cmd): definition of
+	hunt_server_prio_cmd(), which simply calls sendcmdto_prio_one()
+	instead of sendcmdto_one()
+
+	* ircd/m_settime.c: use sendcmdto_prio_one() and
+	hunt_server_prio_cmd() to send SETTIME
+
+	* ircd/m_server.c: use sendcmdto_prio_one() to send SETTIME
+
+	* include/send.h: removed declaration for unused vsendcmdto_one();
+	added a declaration for sendcmdto_prio_one()
+
+	* include/s_user.h: declare hunt_server_prio_cmd(), which calls
+	sendcmdto_prio_one()
+
 	* ircd/send.c (sendcmdto_flag_butone): oops; /wallops should be
 	put in the server's priority queue, too...
 

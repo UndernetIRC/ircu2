@@ -759,7 +759,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 "timestamp-clock difference of %Td seconds! "
 			 "Used SETTIME to correct this.",
 			 timestamp - recv_time);
-    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
+    sendcmdto_prio_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(),
+		       cli_name(&me));
   }
 
   return ret;
@@ -1391,7 +1392,8 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! Used "
 			 "SETTIME to correct this.", timestamp - recv_time);
-    sendcmdto_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(), cli_name(&me));
+    sendcmdto_prio_one(&me, CMD_SETTIME, cptr, "%Tu :%s", TStime(),
+		       cli_name(&me));
   }
 
   return ret;
