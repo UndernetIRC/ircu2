@@ -23,7 +23,7 @@ server.
 
 This is done with:
 
-cvs -d :pserver:anoncvs@coder.com.undernet.org:/home/coder-com/cvs login
+cvs -d :pserver:anoncvs@coder-com.undernet.org:/home/coder-com/cvs login
 
 (we recommend that you cut and paste the above line to use it :)
 When it prompts you for a password enter "anoncvs".
