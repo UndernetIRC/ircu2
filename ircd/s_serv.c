@@ -163,7 +163,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (prot < atoi(MINOR_PROTOCOL))
   {
     sendto_ops("Got incompatible protocol version (%s) from %s",
-	parv[5], get_client_name(cptr, FALSE));
+	parv[5], cptr->name);
     return exit_new_server(cptr, sptr, host, timestamp,
 	"Incompatible protocol: %s", parv[5]);
   }
@@ -183,7 +183,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
   if (*ch || !strchr(host, '.'))
   {
     sendto_ops("Bogus server name (%s) from %s",
-	host, get_client_name(cptr, FALSE));
+	host, cptr->name);
     return exit_client_msg(cptr, cptr, &me, "Bogus server name (%s)", host);
   }
 
@@ -358,7 +358,7 @@ int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	*s = '@';
 	ircstp->is_ref++;
 	sendto_ops("Username mismatch [%s]v[%s] : %s",
-	    aconf->host, cptr->username, get_client_name(cptr, FALSE));
+	           aconf->name, cptr->username, cptr->name);
 	return exit_client(cptr, cptr, &me, "Bad Username");
       }
       *s = '@';
