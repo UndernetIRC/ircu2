@@ -1,5 +1,8 @@
 2000-04-12  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/channel.c (mode_process_clients): fix "Deop of +k user on
+	%s by %s" message...
+
 	* ircd/ircd_snprintf.c: my new snprintf()-like functions
 
 	* include/ircd_snprintf.h: my new snprintf()-like functions
@@ -367,7 +370,7 @@
 #
 # ChangeLog for ircu2.10.11
 #
-# $Id: ChangeLog,v 1.72 2000-04-12 20:50:12 kev Exp $
+# $Id: ChangeLog,v 1.73 2000-04-12 20:53:22 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
