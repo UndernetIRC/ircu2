@@ -2,6 +2,18 @@
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
 
+	* ircd/m_mode.c (m_mode): pass extra parameter to channel_modes()
+
+	* ircd/channel.c: pass a buflen parameter to channel_modes() for
+	pbuf--we were using sizeof(pbuf), which would always be
+	sizeof(char*) before; change send_channel_modes() to pass extra
+	parameter to channel_modes()
+
+	* include/channel.h: pass a buflen parameter to channel_modes()
+	for pbuf
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 	* ircd/uping.c (uping_start): initialize some timers
 
 	* ircd/s_bsd.c (read_packet): use new t_onqueue() macro to figure
