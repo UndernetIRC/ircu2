@@ -1,3 +1,8 @@
+2003-06-20  Alexander Maassen <outsider@key2peace.org>
+
+	* ircd/m_topic.c : Don't allow banned users to set a topic in a
+	channel.
+
 2004-09-11  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* config.h.in, tools/Makefile.crypt: Remove wrong pathname from
