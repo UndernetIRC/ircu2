@@ -1,3 +1,21 @@
+2004-05-15  hikari <shadow@undernet.org>
+
+	[Original ChangeLog date: 2003-07-13 -MDP]
+	
+	* ircd/IPcheck.c: Fixed (another) overflow problem in
+	ip_registry_check_local()
+
+	[Original ChangeLog date: 2003-06-29 -MDP]
+
+	* ircd/IPcheck.c: Fixed overflow problem in
+	ip_registry_connect_fail()
+
+2004-05-15 Isomer <isomer@undernet.org>
+
+	[Original ChangeLog date: 2003-05-02 -MDP]
+	
+	* ircd/IPcheck.c: Added assert()'s to check for underflow
+
 2004-05-15  Kevin L Mitchell  <klmitch@mit.edu>
 
 	[Original ChangeLog date: 2003-11-22 -MDP]
