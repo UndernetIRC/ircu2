@@ -106,14 +106,9 @@ AC_SEARCH_LIBS(crypt, descrypt crypt, ,
 dnl Do all the checks necessary to figure out -lnsl / -lsocket stuff
 AC_LIBRARY_NET
 
-dnl Look for res_mkquery.  Done after AC_LIBRARY_NET in case res_mkquery
-dnl is in one of those libraries somewhere.
-AC_SEARCH_LIBS(res_mkquery, resolv, ,
-[AC_MSG_ERROR([Unable to find library containing res_mkquery()])])
-
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(crypt.h inttypes.h poll.h sys/devpoll.h sys/epoll.h sys/event.h)
+AC_CHECK_HEADERS(crypt.h poll.h stdint.h sys/devpoll.h sys/epoll.h sys/event.h sys/param.h sys/socket.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST
@@ -123,6 +118,7 @@ AC_HEADER_TIME
 AC_STRUCT_TM
 AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
+AC_CHECK_TYPE(socklen_t, unsigned int)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
@@ -139,8 +135,12 @@ AC_PROG_AWK
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PROG_LEX
+AC_PROG_YACC
 AC_PATH_PROGS(RMPROG, rm, /bin/rm)
 AC_PATH_PROGS(SHPROG, sh, /bin/sh)
+
+LIBS="$LEXLIB $LIBS"
 
 unet_NONBLOCKING
 unet_SIGNALS
@@ -154,7 +154,6 @@ case "$host" in
     *-linux*)
 	AC_MSG_RESULT([Linux ($host) found.])
 	unet_poll_syscall=yes
-	OSDEP_C=os_linux.c
 	;;
 
     *-solaris*)
@@ -164,13 +163,11 @@ case "$host" in
 	else
 	    unet_poll_syscall=no
 	fi
-	OSDEP_C=os_solaris.c
 	;;
 
     *-sunos*)
 	AC_MSG_RESULT([Solaris ($host) found.])
 	unet_poll_syscall=no
-	OSDEP_C=os_solaris.c
 	;;
 
     *-openbsd*)
@@ -180,7 +177,6 @@ case "$host" in
 	else
 	    unet_poll_syscall=no
 	fi
-	OSDEP_C=os_openbsd.c
 	;;
 
     *-*bsd*)
@@ -190,23 +186,19 @@ case "$host" in
 	else
 	    unet_poll_syscall=no
 	fi
-	OSDEP_C=os_bsd.c
 	;;
 
     *-darwin*)
 	AC_MSG_RESULT([Darwin (Mac OS X) ($host) found.])
 	unet_poll_syscall=no
-	OSDEP_C=os_bsd.c
 	;;
 
     *)
 	AC_MSG_RESULT([Unknown system type $host found.])
 	AC_MSG_WARN([Unknown OS type; using generic routines.])
 	unet_poll_syscall=no
-	OSDEP_C=os_generic.c
 	;;
 esac
-AC_SUBST(OSDEP_C)
 
 dnl Check user configuration options
 dnl Start with --enable-poll
@@ -733,16 +725,15 @@ ircu is now hopefully configured for your system.
   Warnings:            $unet_cv_enable_warnings
   Debug:               $unet_cv_enable_debug
   Profile:             $unet_cv_enable_profile
-  ADNS:                $unet_cv_enable_adns
   Owner/mode:          $unet_cv_with_owner.$unet_cv_with_group ($unet_cv_with_mode)
   Chroot:              $unet_cv_with_chroot
-  
+
   Domain:              $unet_cv_with_domain
   DPath:               $unet_cv_with_dpath
   CPath:               $unet_cv_with_cpath
   LPath:               $unet_cv_with_lpath
   Maximum connections: $unet_cv_with_maxcon
-  
+
   poll() engine:       $unet_cv_enable_poll
   kqueue() engine:     $unet_cv_enable_kqueue
   /dev/poll engine:    $unet_cv_enable_devpoll

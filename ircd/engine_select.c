@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <string.h> /* needed for bzero() on OS X */
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>

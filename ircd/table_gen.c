@@ -267,28 +267,28 @@ static void dumphb(char *tbl, int beg)
 {
   int i, j, k;
   char *p = &tbl[beg - CHAR_MIN];
-  char c;
+  unsigned char c;
   for (i = 0; i <= SCHAR_MAX; i += ROWSIZE)
   {
     k = i + ROWSIZE - 1;
     if (k > SCHAR_MAX)
       k = SCHAR_MAX;
 
-    c = (char)(beg + i);
+    c = (unsigned char)(beg + i);
     printf("/*");
     if ((c > 0) && (c < SCHAR_MAX) && (isprint(c)) && (c != '\\')
 	&& (c != '\''))
       printf(" '%c'", c);
     else
-      printf(" x%02x", ((int)((unsigned char)c)));
+      printf(" x%02x", ((int)c));
 
-    c = (char)(beg + k);
+    c = (unsigned char)(beg + k);
     printf("-");
     if ((c > 0) && (c < SCHAR_MAX) && (isprint(c)) && (c != '\\')
 	&& (c != '\''))
       printf("'%c'", c);
     else
-      printf("x%02x", ((int)((unsigned char)c)));
+      printf("x%02x", ((int)c));
     printf(" */");
 
     for (j = i; j <= k; j++)
@@ -298,7 +298,7 @@ static void dumphb(char *tbl, int beg)
 	  && (c != '\''))
 	printf("    '%c'", c);
       else
-	printf(" '\\x%02x'", ((int)((unsigned char)c)));
+	printf(" '\\x%02x'", ((int)c));
       if (j < SCHAR_MAX)
 	printf(",");
     }
@@ -310,28 +310,28 @@ static void dumphw(int *tbl, int beg)
 {
   int i, j, k;
   int *p = &tbl[beg - CHAR_MIN];
-  char c;
+  unsigned char c;
   for (i = 0; i <= SCHAR_MAX; i += ROWSIZE)
   {
     k = i + ROWSIZE - 1;
     if (k > SCHAR_MAX)
       k = SCHAR_MAX;
 
-    c = (char)(beg + i);
+    c = (unsigned char)(beg + i);
     printf("/*");
     if ((c > 0) && (c < SCHAR_MAX) && (isprint(c)) && (c != '\\')
 	&& (c != '\''))
       printf(" '%c'", c);
     else
-      printf(" x%02x", ((int)((unsigned char)c)));
+      printf(" x%02x", ((int)c));
 
-    c = (char)(beg + k);
+    c = (unsigned char)(beg + k);
     printf("-");
     if ((c > 0) && (c < SCHAR_MAX) && (isprint(c)) && (c != '\\')
 	&& (c != '\''))
       printf("'%c'", c);
     else
-      printf("x%02x", ((int)((unsigned char)c)));
+      printf("x%02x", ((int)c));
     printf(" */");
 
     for (j = i; j <= k; j++)

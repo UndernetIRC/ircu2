@@ -47,6 +47,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
 
 struct IAuthRequest {
   struct IAuthRequest *iar_prev;        /* previous request struct */
@@ -86,7 +89,7 @@ struct IAuth {
   char i_buffer[BUFSIZE+1];             /* partial unprocessed line from server */
   char i_passwd[PASSWDLEN+1];           /* password for connection */
   char i_host[HOSTLEN+1];               /* iauth server hostname */
-  in_addr_t i_addr;                     /* iauth server ip address */
+  uint32_t i_addr;                      /* iauth server ip address */
   unsigned short i_port;                /* iauth server port */
   struct IAuth *i_next;                 /* next connection in list */
 };

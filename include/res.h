@@ -8,6 +8,11 @@
 #define INCLUDED_res_h
 
 #include "listener.h"
+#include "ircd_addrinfo.h"
+
+#ifndef INADDR_NONE
+#define INADDR_NONE ((uint32_t)-1)
+#endif
 
 struct StatDesc;
 
@@ -33,9 +38,10 @@ struct StatDesc;
 #define RRFIXEDSZ 10
 #define HFIXEDSZ 12
 
-struct irc_ssaddr {
-	struct sockaddr_storage ss;
-	size_t ss_len;
+struct irc_ssaddr
+{
+  struct sockaddr_storage ss;
+  size_t ss_len;
 };
 
 struct DNSReply

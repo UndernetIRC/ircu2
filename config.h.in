@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: config.h.in,v 1.5 2004-07-01 12:38:31 entrope Exp $
+ * $Id: config.h.in,v 1.6 2004-08-16 16:32:05 entrope Exp $
  */
 
 /* Define if you have the setrlimit function */
@@ -43,8 +43,8 @@
  * of respecitvely 2 and 4 bytes in size, when not already
  * defined in <sys/types.h>, <stdlib.h> or <stddef.h>
  */
-#undef u_int16_t
-#undef u_int32_t
+#undef uint16_t
+#undef uint32_t
 
 /* Define to force the poll() function to be used */
 #undef USE_POLL
@@ -256,12 +256,10 @@
 /* Define to `unsigned' if <sys/types.h> does not define. */
 #undef size_t
 
-/* Define to `unsigned short' if <sys/types.h> does not define. */
-#undef u_int16_t
-
-/* Define to `unsigned long' if <sys/types.h> does not define. */
-#undef u_int32_t
-
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef uid_t
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef socklen_t
+
 #endif /* INCLUDED_config_h */

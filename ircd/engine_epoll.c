@@ -30,8 +30,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h> /* bah */
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* bah */
 #endif
 #include <string.h>
 #include <sys/epoll.h>

@@ -1,3 +1,68 @@
+2004-08-15  Michael Poole <mdpoole@troilus.org>
+
+	* aclocal.m4: Check for uintNN_t instead of u_intNN_t, since the
+	former is from C99 (and the latter is absent on Solaris).
+
+	* configure.in: Remove check for inttypes.h (which is a C99 format
+	string header); replace with check for stdint.h.  Add checks for
+	sys/param.h and sys/socket.h.  Check for socklen_t being defined
+	(OS X does not set it).  Run program tests for lex and yacc, and
+	use them rather than assuming flex and bison.  Remove OSDEP_C and
+	mention to adns.  Remove check for res_mkquery().
+
+	* config.h.in: Update u_intNN_t #undef lines.  Add #undef
+	socklen_t so configure test can set it.
+
+	* configure: Regenerate.
+
+	* include/ircd_addrinfo.h: #include headers needed for netdb.h and
+	to define struct addrinfo and uintNN_t.
+
+	* include/ircd_reslib.h: Replace u_intNN_t with uintNN_t.
+
+	* include/res.h: #include "ircd_addrinfo.h" to get proper type
+	definitions.  #define INADDR_NONE if it is not defined (as on
+	Solaris).
+
+	* ircd/Makefile.in: Replace LEX and YACC definitions.  Remove
+	OSDEP_C and OSDEP_SRC; always compile os_generic.c.  Remove adns
+	directory from CPPFLAGS.  Regenerate dependencies.
+
+	* ircd/client.c: Return when no propagation set for oper, to
+	squash warning about use of "defaults" before it is set.
+
+	* ircd/engine_epoll.c: #include correct C99 integer header.
+
+	* ircd/engine_poll.c: Last argument to getsockopt() should be of
+	socklen_t, not size_t; fix.
+
+	* ircd/engine_select.c: Squash warning about bzero().
+
+	* ircd/ircd_auth.c: OS X does not define in_addr_t, so replace it
+	with uint32_t.  We need <stdint.h> for that, so include it.
+
+	* ircd/ircd_getnameinfo.c, ircd/memdebug.c: Replace u_int32_t with
+	uint32_t.
+
+	* ircd/ircd_lexer.l: Replace flex-isms with portable syntax.
+	There is no portable way to do %option, so remove that.  lex on
+	Solaris needs several of its internal tables to be bigger, so
+	increase those sizes.
+
+	* ircd/ircd_parser.y: Remove the second declarations of two
+	tokens, since standard yacc warns about changing precedence.
+
+	* ircd/os_generic.c: Make this compile on common OSes (Linux,
+	Solaris, OS X, FreeBSD, OpenBSD).
+
+	* ircd/table_gen.c: Make arguments to isprint() all unsigned char
+	to squash warnings on Solaris that array index is "char."
+
+	* ircd/umkpasswd.c: Remove #include <libgen.h> since it is not
+	portable, and replace basename() with an equivalent.
+
+	* ircd/uping.c: Typecast printf arguments for 64-bit OSes.
+
 2004-07-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c: Add new netride_modes() function to check

@@ -28,7 +28,7 @@ extern int GC_find_leak;
 
 struct MemHeader
 {
-  u_int32_t magic;
+  uint32_t magic;
   char type[32];
   char file[32];
   int line;
@@ -47,7 +47,7 @@ memfrob(void *p, size_t len)
   for (s = (char*)p, se = s + (len & ~3) - 4;
        s <= se;
        s += 4)
-    *(u_int32_t*)s = *(u_int32_t*)pat;
+    *(uint32_t*)s = *(uint32_t*)pat;
   for (se = s; se < s; s++)
     *s = pat[i++];
 }

@@ -173,8 +173,10 @@ client_set_privs(struct Client *client, struct ConfItem *oper)
     defaults = PrivHas(&oper->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
   else if (PrivHas(&oper->conn_class->privs_dirty, PRIV_PROPAGATE))
     defaults = PrivHas(&oper->conn_class->privs, PRIV_PROPAGATE) ? &privs_global : &privs_local;
-  else
-      assert(0 && "Oper has no propagation and neither does connection class");
+  else {
+    assert(0 && "Oper has no propagation and neither does connection class");
+    return;
+  }
 
   /* For each feature, figure out whether it comes from the operator
    * conf, the connection class conf, or the defaults, then apply it.

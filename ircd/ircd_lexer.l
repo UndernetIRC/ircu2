@@ -1,5 +1,5 @@
 /*
- * ircd_parser.y: A yacc/bison parser for ircd config files.
+ * ircd_lexer.l: A lexical scanner for ircd config files.
  * This is part of ircu, an Internet Relay Chat server.
  * The contents of this file are Copyright(C) 2001 by Andrew Miller, the
  * ircd-hybrid team and the ircu team.
@@ -33,16 +33,23 @@ init_lexer(void)
 {
   yyin = fopen(configfile, "r");
   if (yyin == NULL)
-    yy_fatal_error("Could not open the configuration file.");
+  {
+#ifdef YY_FATAL_ERROR
+    YY_FATAL_ERROR("Could not open the configuration file.");
+#else
+    fprintf(stderr, "Could not open the configuration file.");
+#endif
+  }
+#ifdef YY_NEW_FILE
   YY_NEW_FILE;
+#endif
   lineno = 1;
 }
-
 %}
-%option noyywrap
-%option case-insensitive
-%option nounput
 
+%e 1500
+%p 3000
+%n 1000
 
 WHITE [ \t\r]+
 SHCOMMENT #[^\n]*

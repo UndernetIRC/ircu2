@@ -21,26 +21,36 @@
  */
 #include "config.h"
 
-#define _XOPEN_SOURCE	/* make limits.h #define IOV_MAX */
+#define _XOPEN_SOURCE	500 /* make limits.h #define IOV_MAX */
 
 #include "ircd_osdep.h"
 #include "msgq.h"
 
+/* Include file dependency notes:
+ * FreeBSD requires struct timeval from sys/time.h before struct
+ * rusage in sys/resource.h.
+ * Solaris requires sys/time.h before struct rusage (indirectly) in
+ * netinet/in.h.
+ */
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <netinet/in.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/uio.h>
 
-#if 0
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
@@ -62,8 +72,8 @@
  */
 int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 {
-  char buf[256];
 #ifdef HAVE_GETRUSAGE
+  char buf[256];
   struct rusage rus;
   time_t secs;
 
@@ -89,7 +99,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
     secs = 1;
 
   sprintf(buf, "CPU Secs %ld:%ld User %ld:%ld System %ld:%ld",
-          secs / 60, secs % 60,
+          (long)(secs / 60), (long)(secs % 60),
           rus.ru_utime.tv_sec / 60, rus.ru_utime.tv_sec % 60,
           rus.ru_stime.tv_sec / 60, rus.ru_stime.tv_sec % 60);
   (*enumerator)(cptr, buf);
@@ -106,7 +116,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 
   sprintf(buf, "Block in %ld out %ld", rus.ru_inblock, rus.ru_oublock);
   (*enumerator)(cptr, buf);
-  
+
   sprintf(buf, "Msg Rcv %ld Send %ld", rus.ru_msgrcv, rus.ru_msgsnd);
   (*enumerator)(cptr, buf);
 
@@ -116,6 +126,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 
 #else /* HAVE_GETRUSAGE */
 #if HAVE_TIMES
+  char buf[256];
   struct tms tmsbuf;
   time_t secs, mins;
   int hzz = 1, ticpermin;
@@ -207,7 +218,7 @@ int os_set_nonblocking(int fd)
 int os_set_reuseaddr(int fd)
 {
   unsigned int opt = 1;
-  return (0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 
+  return (0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
                           (const char*) &opt, sizeof(opt)));
 }
 
@@ -215,9 +226,9 @@ int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize)
 {
   unsigned int sopt = ssize;
   unsigned int ropt = rsize;
-  return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF, 
+  return (0 == setsockopt(fd, SOL_SOCKET, SO_RCVBUF,
                           (const char*) &ropt, sizeof(ropt)) &&
-          0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF, 
+          0 == setsockopt(fd, SOL_SOCKET, SO_SNDBUF,
                           (const char*) &sopt, sizeof(sopt)));
 }
 
@@ -273,7 +284,16 @@ int os_set_fdlimit(unsigned int max_descriptors)
   return 0;
 }
 
-IOResult os_recv_nonb(int fd, char* buf, unsigned int length, 
+/*
+ * os_recv_nonb - non blocking read of a connection
+ * returns:
+ *  1  if data was read or socket is blocked (recoverable error)
+ *    count_out > 0 if data was read
+ *
+ *  0  if socket closed from other end
+ *  -1 if an unrecoverable error occurred
+ */
+IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
                  unsigned int* count_out)
 {
   int res;
@@ -287,11 +307,18 @@ IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
     return IO_SUCCESS;
   }
   else if (res < 0) {
-    if (EWOULDBLOCK == errno || EAGAIN == errno)
+    if (EWOULDBLOCK == errno || EAGAIN == errno
+#ifdef ENOMEM
+	|| ENOMEM == errno
+#endif
+#ifdef ENOBUFS
+	|| ENOBUFS == errno
+#endif
+	)
       return IO_BLOCKED;
     else
       return IO_FAILURE;
-  } 
+  }
   /*
    * 0   == client closed the connection
    * < 1 == error
@@ -299,7 +326,7 @@ IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
   return IO_FAILURE;
 }
 
-IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length, 
+IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
                           unsigned int* length_out, struct sockaddr_in* sin_out)
 {
   int    res;
@@ -308,10 +335,18 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
   assert(0 != length_out);
   assert(0 != sin_out);
   errno = 0;
+  *length_out = 0;
 
   res = recvfrom(fd, buf, length, 0, (struct sockaddr*) sin_out, &len);
   if (-1 == res) {
-    if (EWOULDBLOCK == errno || ENOMEM == errno)
+    if (EWOULDBLOCK == errno || ENOMEM == errno
+#ifdef ENOMEM
+	|| ENOMEM == errno
+#endif
+#ifdef ENOBUFS
+	|| ENOBUFS == errno
+#endif
+	)
       return IO_BLOCKED;
     return IO_FAILURE;
   }
@@ -319,6 +354,15 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
   return IO_SUCCESS;
 }
 
+/*
+ * os_send_nonb - non blocking read of a connection
+ * returns:
+ *  1  if data was written
+ *    count_out contains amount written
+ *
+ *  0  if write call blocked, recoverable error
+ *  -1 if an unrecoverable error occurred
+ */
 IOResult os_send_nonb(int fd, const char* buf, unsigned int length, 
                  unsigned int* count_out)
 {
@@ -332,8 +376,14 @@ IOResult os_send_nonb(int fd, const char* buf, unsigned int length,
     *count_out = (unsigned) res;
     return IO_SUCCESS;
   }
-  else if (EWOULDBLOCK == errno || EAGAIN == errno || 
-           ENOMEM == errno || ENOBUFS == errno)
+  else if (EWOULDBLOCK == errno || EAGAIN == errno
+#ifdef ENOMEM
+	   || ENOMEM == errno
+#endif
+#ifdef ENOBUFS
+	   || ENOBUFS == errno
+#endif
+      )
     return IO_BLOCKED;
   return IO_FAILURE;
 }
@@ -359,8 +409,14 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
     *count_out = (unsigned) res;
     return IO_SUCCESS;
   }
-  else if (EWOULDBLOCK == errno || EAGAIN == errno ||
-	   ENOMEM == errno || ENOBUFS == errno)
+  else if (EWOULDBLOCK == errno || EAGAIN == errno
+#ifdef ENOMEM
+	   || ENOMEM == errno
+#endif
+#ifdef ENOBUFS
+	   || ENOBUFS == errno
+#endif
+      )
     return IO_BLOCKED;
 
   return IO_FAILURE;
@@ -372,7 +428,7 @@ IOResult os_connect_nonb(int fd, const struct sockaddr_in* sin)
     return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
   return IO_SUCCESS;
 }
-      
+
 int os_get_sockname(int fd, struct sockaddr_in* sin_out)
 {
   unsigned int len = sizeof(struct sockaddr_in);
@@ -391,5 +447,3 @@ int os_set_listen(int fd, int backlog)
 {
   return (0 == listen(fd, backlog));
 }
-
-

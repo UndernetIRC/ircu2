@@ -135,9 +135,7 @@ static void parse_error(char *pattern,...) {
 %token YES
 %token NO
 %token OPER
-%token PORT
 %token VHOST
-%token MASK
 %token HIDDEN
 %token MOTD
 %token JUPE
