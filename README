@@ -1,97 +1,36 @@
+README for the ircu2.10.11 series
+PLEASE READ THIS COMPLETELY BEFORE RUNNING THE SERVER!
 
-README for ircu2.10.10.beta
-Please read this completely before running the server
+The u2.10.11 is the most advanced version of Undernet ircd to date.
+There are still plenty of rough edges, but many things have been
+cleaned up and redone.  The major changes for this version are
+documented in RELEASE.NOTES, in this directory.  A good description of
+compiling and installing the server is included in INSTALL.  Further
+documentation on many aspects of ircu is contained in the doc
+subdirectory.
 
-* If you run ircu2.10.10 on the production network and expect
-  more than 1000 local clients to connect you will want to make
-  sure you add -DNDEBUG to the extra CFLAGS setting when you do
-  a make config.
-* Ircu now uses asserts in a lot of places to insure referential
-  integrity and that impossible situations do not occur. Also
-  memory integrity checking is defaulted to on as well. The asserts
-  and memory checking both use cpu and in the case of memory checking
-  extra memory. We have not had an assert trigger in quite some time
-  but would prefer to leave the checks enabled for beta testing.
-  The asserts insure that if the server is going to core it will do
-  so in well defined places where the problem will be easy to trace,
-  without them the server could core in not so well defined places.
-  If you want to disable the checks, add -DNDEBUG in the extra CFLAGS 
-  when you do a make config.
+IF YOU ARE PLANNING ON USING IRCU IN A CHROOT "JAIL," YOU MUST READ
+doc/readme.chroot!  This document describes the intricacies of using
+the Undernet ircd daemon in such an environment.
 
-* Ircu no longer uses separate C/N lines, the functionality of both
-  has been combined in C:lines, see the example.conf for more information.
+This version of ircd no longer has the "make compile" step; most
+compile-time options have become features which can be set in the
+configuration file, or on the fly online through the SET and RESET
+commands; the current values may be obtained with GET.  The remaining
+compile-time options are set through arguments to ./configure.  A list
+of the compile-time options may be obtained with "./configure --help";
+see RELEASE.NOTES for a more comprehensive description of each
+option.  All features are documented in doc/readme.features, and log
+configuration is documented in doc/readme.log.
 
-* Ircu has an different mechanism for defining ports than the previous
-  versions. Please see the example.conf for information on configuring
-  them. Ircu also ignores the port specified on the M:line, you MUST define
-  a server port with a P:line if you want servers to connect to you.
+This server version is not compatible with Undernet ircd releases
+prior to u2.10.10, nor is it compatible with any other version of
+ircd.  Also note that this version incorporates the features requested
+by the Undernet administrators in CFV 165; if you don't want these
+hiding features enabled, you must add -DINCLUDED_ircd_policy_h to
+CFLAGS prior to running ./configure.
 
-* For beta releases, please understand that there may be bugs we haven't
-  found yet, (that's why you're beta testing it in the first place :)).
-  Please report any bugs found in the server to bugs@undernet.org or
-  coder-com@undernet.org with as much information as you can provide
-  about how to reproduce the problem. Stack traces for coredumps are
-  usually helpful, however we aren't expecting any of those ;-).
-
-* Ircu 2.10.08 is a P10 only server, and cannot be used to host P9 
-  links. On a mostly P10 network this is not a major issue, it does
-  mean that you cannot connect services directly to a 2.10.08 server,
-  but does not preclude it's use as a leaf or a hub. For now, services
-  need to continue to be hosted by 2.10.07 servers.
-
-* EXTENDED_NUMERICS is not defined by default, we need to get everyone
-  using 2.10.07 before we can allow it to be turned on anywhere. If you
-  are using 2.10.08 on a network where everyone is up to at least 2.10.07
-  it is safe to turn them on. We have tested them on testnet and they do
-  work. :)
-
-* The masked notices using #*.mask has changed to use $@*.mask instead.
-  Since most of the servers on the net will not understand the new masking
-  mechanism, this probably won't work for a while. The server notice mask
-  ($*.us.undernet.org) still functions properly. This was a trade off
-  between backwards compatibility and the improved protocol, we chose to
-  not maintain backwards compatibility for this command. The #*.mask
-  functionality is easily circumvented, and the command is rarely used
-  it is not considered to be a major issue.
- 
-* The server no longer sends notices for errors on connections that are
-  suddenly dropped during connection setup. If you really want to see
-  them, we suggest you get a life. :)
-
-* Removed: unix domain sockets, uping, m4 preprocessor spawning,
-  dozens of bugs.
-
-* New stuff:
-   Added ISUPPORT code to match dalnets.
-   Added connection progress notices.
-   Cleaned up operating system checks.
-   /invite with no arguments lists the channels you're invited to.
-   Many speedups, ipdiffer, faster strncpy, faster inetntoa.
-   Passive lag and numerics now displayed by map command.
-   Server to server tokenization.
-   Much larger TCP windows/kernel buffers for server connections,
-    smaller for clients.
-   Removed BOOT_OPER security hole.
-   Complete listener port specifications including per port virtual
-    hosting and hidden listeners.
-   Default server port for connects (config option).
-   Speed up some channel ops using new Membership struct.
-   Hash table performance stats are available now (basic).
-   Much of the socket code has been rewritten, we now only make one
-    pass through the local client array.
-   Added initial support for PROTOCOL command.
-   Many functions have been made reentrant.
-   Resolver now uses callbacks for all queries.
-   Almost every command that is sent to a server uses full P10 numerics
-    and tokenization, this reduces netburst sizes by at least 10% and
-    many server to server message sizes by 10-50%.
-   Major source code reorginization to support engine model.
-   Parser now uses an indexed table for commands, which elminates
-    the need to do IsServer IsUser IsOper checks and allows much more
-    efficient implementation of user/server/oper command handlers.
-
-* For a much longer winded explanation of all this stuff, see the
-  ChangeLog in this directory, or the cvs log at the coder-com
-  web site at http://coder-com.undernet.org/
-
-
+For more information on the changes in this release, see RELEASE.NOTES
+and ChangeLog, both in this directory.  You may also reference the CVS
+log on the Undernet Coder Committee web page at
+http://coder-com.undernet.org/.

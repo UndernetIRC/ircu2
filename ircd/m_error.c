@@ -106,7 +106,7 @@ int mr_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   const char *para;
 
-  if (IsUserPort(cptr))
+  if (!IsHandshake(cptr) && !IsConnecting(cptr))
     return 0; /* ignore ERROR from regular clients */
 
   para = (parc > 1 && *parv[parc - 1] != '\0') ? parv[parc - 1] : "<>";

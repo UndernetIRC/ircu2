@@ -1,3 +1,21 @@
+2001-08-17  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: remove description of /stats v, since it's gone
+
+	* ircd/m_wallops.c (mo_wallops): add "*" to the beginning of
+	/wallops to distinguish wallops from wallusers
+
+	* ircd/m_error.c (mr_error): ignore ERROR from clients that aren't
+	in the "handshake" or "connecting" states--I think the latter will
+	never happen, but...
+
+	* doc/Authors: apply delete's Authors patch
+
+	* RELEASE.NOTES: rewrite RELEASE.NOTES, basing it a little on
+	Braden's version
+
+	* README: rewrite README
+
 2001-07-31  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_serv.c (server_estab): remove unused variable split
