@@ -1,0 +1,669 @@
+Many of the old compile-time options are now configured through the
+server configuration file, ircd.conf.  This file is intended to
+document each of these features.  Logging, although also configured
+through the use of F-lines, is documented in doc/readme.log.
+
+DOMAINNAME
+ * Type: string
+ * Default: picked by ./configure from /etc/resolv.conf
+
+This option allows you to specify what you consider to be "local."  It
+is only used for statistics.  When you issue the IRC command /STATS w,
+the server will respond with statistics of how many clients have been
+connecting to your server in the last minute, hour and day.  It will
+give these statistics for all connections (including the servers), all
+clients (from anywhere) and also for clients whose hostname ends on
+the domain you specify here.  So if you are an ISP and you want to
+know what the client load from your own domain is, specify that domain
+here.  If you are unsure what to do, then it isn't really important
+what you give here, just don't give an empty string.  A good guess is
+the last two parts of your own hostname (i.e., if your hostname is
+foo.bar.nowhere.org, specify "nowhere.org").  Note that the string you
+give should NOT start with a "." and you should not use quotes.
+
+RELIABLE_CLOCK
+ * Type: boolean
+ * Default: FALSE
+
+You should really ONLY specify "TRUE" here when your system clock is
+stable and accurate at all times (within a few seconds).  If you are
+running ntpdate on a regular basis, or an equivalent like xntpd, to
+keep your system clock synchronized over the network, then you might
+have an accurate clock.  However, this is not guaranteed; for example,
+it is known that xntpd gives unstable results on Linux in some cases.
+Note that an unstable clock is worse then an clock that has a constant
+offset, because the servers attempt to correct for a constant offset,
+but do not correct jumps of your system clock!  In general you SHOULD
+be running ntpdate or equivalent AND make sure it works when you run a
+production server on Undernet.  Otherwise leave your clock alone and
+specify "FALSE" here.  If unsure specify "FALSE"!
+
+BUFFERPOOL
+ * Type: integer
+ * Default: 27000000
+
+This specifies the maximum amount of RAM that your server will
+allocate for buffering sendQs.  Small leafs can use a value as little
+as 1000000, while large HUBs need to specify a value as high as
+20000000.  If you run out of memory, clients and/or servers are
+dropped with the error "Buffer allocation error"; then you will have
+to increase this number (and install more RAM if appropriate).  If you
+want a more educated guess for this value then realize that any value
+is good if you _really_ would rather drop servers and clients than
+allocate more memory; this will be the case when there is the danger
+you may run out of memory for other allocations.  Even if you run the
+daemon on a dedicated machine, specifying all of the RAM you have is a
+bad thing, because running out of memory is a lot worse than dropping
+clients in a controlled way; if possible you should have memory left
+for all the internal structures (channels, clients, ban lists, receive
+buffers) at all times.  On average, clients seem to use 150 bytes of
+sendQ, but at peak moments this can easily increase to 2032 bytes per
+client (sendQs are allocated in chunks of 2032 bytes).  The maximum
+possible amount that can be allocated for sendQs is the number of
+connected clients times whatever you specified as the maximum sendQ in
+your Y: lines in the ircd.conf file.  That value will likely be larger
+then the amount of RAM you have.  The educated guess I talked about
+earlier would be "number of clients" times * 2048 bytes + "size of
+net.burst" * n, where "n" is 1 for leafs and up to 5 for HUBs.  The
+"size of net.burst" is about 125 bytes per online client (on the whole
+network).  For large HUBs with 4000 clients on a network with 30,000
+users, this results in 27 Mb.  Leafs could use 12 Mb.  Of course you
+can use less when you have less than 4000 local clients.  This value
+is in bytes.
+
+HAS_FERGUSON_FLUSHER
+ * Type: boolean
+ * Default: FALSE
+
+If you have a server with a lot of resources available, this option
+will cause the server to attempt to flush its internal buffers before
+dropping clients during a net break.  Don't define this if you don't
+know for certain; if you're not careful this can end up rebooting
+FreeBSD boxes.  For more information, refer to freebsd.txt, also in
+this directory.
+
+CLIENT_FLOOD
+ * Type: integer
+ * Default: 1024
+
+Currently, everything that a client sends to a server is read by the
+server and stored in a buffer (the clients receive queue).  The server
+will process messages from this queue one by one (running over all
+clients each time).  When a client sends new messages faster they get
+processed, and the size of its receive buffer reaches this value, the
+client is dropped with the error "Excess flood."  A reasonable value
+is 1024 bytes.  The maximum size is 8000 bytes.
+
+SERVER_PORT
+ * Type: integer
+ * Default: 4400
+
+When an IRC operator attempts a connect to another server, he or she
+may not know which port the connect should go to.  In this server
+version, that operator may use the special port 0, in which case the
+server will take the port from the C-line.  If no port is specified in
+the C-line, however, the port specified by this option will be used
+instead.
+
+NODEFAULTMOTD
+ * Type: boolean
+ * Default: TRUE
+
+Every time a client connects to your server, the full Message of the
+Day (as specified by the T-lines or by the file specified by the MPATH
+option) is sent to the client.  The server sends the Message of the
+Day even though many clients permit the user to ignore it.  Many users
+never read the message of the day anyway, making it a huge waste of
+bandwidth.  If you specify "TRUE" here, then the server won't send the
+MOTD to the client by default; instead, it will only tell the client
+when the MOTD was last changed, and give instructions on how to obtain
+it by typing /MOTD.
+
+KILL_IPMISMATCH
+ * Type: boolean
+ * Default: FALSE
+
+When a client connects to your server, the IP address of the client is
+reverse-resolved to obtain a hostname.  Then that hostname is resolved
+to an IP address and compared with the IP address of the client.  If
+they don't match, the client will appear with the IP address instead
+of the hostname, unless KILL_IPMISMATCH is "TRUE," in which case the
+client is simply disconnected.
+
+IDLE_FROM_MSG
+ * Type: boolean
+ * Default: TRUE
+
+The IRC command WHOIS gives an idle time for clients.  If you want
+this idle time to be set to zero only when the client sends a PRIVMSG,
+then you should specify "TRUE" here.  If you specify "FALSE," then the
+idle time will be nullified on all messages except the server
+PING/PONG.
+
+HUB
+ * Type: boolean
+ * Default: FALSE
+
+All servers of an IRC "network" are connected in a "tree" (no loops).
+Servers that are only connected to one other server (called the
+"uplink") are called "leafs"; servers that are connected to more than
+one other server are called HUBs.  If you specify "FALSE" here then
+your server will prevent itself from accidentally connecting to two
+servers at once, thus keeping servers in poor network locations from
+routing traffic.  Note that on Undernet, all newly linked servers are
+linked as leafs during their test phase, and should specify "FALSE"
+here.
+
+WALLOPS_OPER_ONLY
+ * Type: boolean
+ * Default: FALSE
+
+Setting this option removes the ability for clients that are not IRC
+operators to see wallops messages.
+
+NODNS
+ * Type: boolean
+ * Default: FALSE
+
+If you are playing with the server off-line, and no DNS is available,
+then long delays occur before the server starts up because it tries to
+resolve the name given on the M-line (which usually isn't given in
+/etc/hosts) and for each connecting client.  If you specify "TRUE"
+here, then a call to gethostbyname() will be done only for the real
+hostname, and the server will not try to resolve clients that connect
+to "localhost."  Note that other calls to gethostbyname() are still
+done if you use VIRTUAL_HOST; also note that the server still tries to
+resolve clients that connect to the real IP address of the server.
+
+RANDOM_SEED
+ * Type: string
+ * Default: none
+
+When a client connects, the server sends the client a "cookie,"
+consisting of a random number.  The client must return the cookie to
+the server verbatim.  This is done to prevent IP spoofing.  The cookie
+is generated by a pseudorandom number generator included in ircd.
+This generator must be seeded with a phrase that is kept secret, to
+ensure that the numbers it generates are not easily guessed.  The
+value given to RANDOM_SEED may be a string of any length.  It should
+not contain any characters that are considered special by the
+configuration file system, such as ":" or "#"; the string should be at
+least 8 characters long, but longer strings are better.  The
+RANDOM_SEED may not be retrieved online.
+
+DEFAULT_LIST_PARAM
+ * Type: string
+ * Default: none
+
+The LIST command takes a single optional argument.  If given, that
+argument is either a channel or a filter.  If that argument is not
+given, then by default, /LIST will list all channels on the network.
+Needless to say, this can generate a large amount of data on large
+networks with many channels, as well as chewing up a lot of CPU time.
+Server administrators can therefore set a default filter to be applied
+to the channel list if the optional argument to LIST is omitted.
+
+NICKNAMEHISTORYLENGTH
+ * Type: integer
+ * Default: 800
+
+This value specifies the length of the nick name history list, which
+is used for /WHOWAS and some nickname chasing in /KILL and /KICK.  It
+uses about 300 to 400 bytes per entry.  Note that at a net break, so
+many client disappear that the whole "whowas" list is refreshed a few
+times (unless you make it rather large).  A reasonable value is "total
+number of clients" / 25.
+
+KILLCHASETIMELIMIT
+ * Type: integer
+ * Default: 30
+
+If a user changes his or her nickname just before an operator issues a
+/KILL, the /KILL will be changed to follow the user the operator
+intended to get.  This option specifies the time limit, in seconds,
+for this nickname change; if the user changed his or her nickname more
+than this many seconds ago, the /KILL will not be changed.  Don't
+change this unless you really need to.
+
+MAXCHANNELSPERUSER
+ * Type: integer
+ * Default: 10
+
+This is the maximum number of channels a user can be in at a time.
+The "mandatory" value on Undernet is currently 10.  Since it only
+influences the local server when you decrease it, its up to you to
+decide if you want to use a smaller value.  Do not use a larger value
+however, because it DOES cost more memory and bandwidth on all other
+servers when you allow users to join more channels simultaneously.
+One of the most important reasons to choose a smaller value is the
+fact that the "GUI" clients tend to stay on every channel they join
+(they aren't bothered by flooding in other channels).  It DOES take
+your bandwidth however to send all those messages for 10 different
+channels to all your users.
+
+AVBANLEN
+ * Type: integer
+ * Default: 40
+
+This is the expected average ban mask length.  Leave it at 40.
+
+MAXBANS
+ * Type: integer
+ * Default: 30
+
+This is the maximum number of bans a user may set on a given channel.
+
+MAXSILES
+ * Type: integer
+ * Default: 15
+
+This is the maximum number of masks a user can silence at a time.  The
+silence command allows users to filter messages directed at them from
+certain users or domains, at the source server.  Increasing this
+number allows users to use up more memory with inefficient use of the
+command.  If you're not sure, don't change this.
+
+HANGONGOODLINK
+ * Type: integer
+ * Default: 300
+
+Often the net breaks for a short time and it is useful to try to
+reestablish the same connection faster than CONNECTFREQUENCY would
+allow, but to keep from trying again on a bad connection, we require
+that the connection be open for a certain minimum time. The
+recommended value is 300 seconds.
+
+HANGONRETRYDELAY
+ * Type: integer
+ * Default: 10
+
+When attempting to quickly reestablish a connection to a good link, we
+give the net a few seconds to calm down. This time must be long enough
+for the other end to also notice that the connection is broken. The
+recommended value is 10 seconds.
+
+CONNECTTIMEOUT
+ * Type: integer
+ * Default: 90
+
+Number of seconds to wait for a connect(2) call to complete.  NOTE:
+this must be at *LEAST* 10.  When a client connects, it has
+CONNECTTIMEOUT - 10 seconds for its host to respond to an ident lookup
+query and for a DNS lookup to complete. It is recommended that you not
+change this value, but if you do, consider the fact that users whose
+clients do not support NOSPOOF will have to type /QUOTE PING <big
+number> before registration.
+
+TIMESEC
+ * Type: integer
+ * Default: 60
+
+This is the maximum idle time for the server. If no messages are
+received in TIMESEC seconds, PINGFREQUENCY and CONNECTFREQUENCY are
+checked.  Recommended value is 60 seconds.
+
+MAXIMUM_LINKS
+ * Type: integer
+ * Default: 1
+
+This is the maximum number of links for the built-in client class 0.
+Leave this value at 1.
+
+PINGFREQUENCY
+ * Type: integer
+ * Default: 120
+
+If the daemon doesn't receive anything from any of its links within
+PINGFREQUENCY seconds, then the it will attempt to check for an active
+link with a PING message.  If no reply is received within
+(PINGFREQUENCY * 2) seconds, then the connection will be closed.  This
+value may be overridden by a Y-line in "ircd.conf" if the connection's
+I- or C-line in "ircd.conf" assigns a specific class to the connection
+(recommended).
+
+CONNECTFREQUENCY
+ * Type: integer
+ * Default: 600
+
+This is the default frequency that the server attempts to reconnect
+with its uplink server if it is set to auto connect to it. Note that
+this value is overridden by a Y-line in ircd.conf if the C-lines in
+ircd.conf assign a specific class to the connection (recommended).
+
+DEFAULTMAXSENDQLENGTH
+ * Type: integer
+ * Default: 40000
+
+This is the default value of the maximum sendQ length of Y-line
+classes (see doc/example.conf for details on Y-lines).  You will
+probably always override this value in your "ircd.conf" with the
+Y-lines.  The given value used to be an often used value for client
+sendQs.
+
+MPATH
+ * Type: string
+ * Default: "ircd.motd"
+
+MPATH is the filename (relative to DPATH) or the full path of the
+"Message of the Day" file.  The contents of this file will be sent to
+every client that connects to the server, after registration.
+
+RPATH
+ * Type: string
+ * Default: "remote.motd"
+
+RPATH is the filename (relative to DPATH) or the full path of the
+"Remote Message of the Day" file.  The contents of this file will be
+sent to every remote client that issues a /MOTD <your server name>.
+Only the first three lines are sent, so you might want to keep that in
+mind while writing the file.
+
+PPATH
+ * Type: string
+ * Default: "ircd.pid"
+
+PPATH is the filename (relative to DPATH) or the full path of the
+"PID" file.  It is used for storing the server's process ID so that a
+ps(1) isn't necessary.
+
+VIRTUAL_HOST
+ * Type: boolean
+ * Default: FALSE
+
+This option is only needed when you wish to run multiple IRC servers
+on the same machine, and they must share at least one port.  This will
+require having multiple IP addresses for the machine that will be
+hosting the servers.  If you specify "TRUE" here, you can cause the
+server to bind to one of these IP addresses.  Use the second field of
+the M-line (the "password" field) to specify the IP address.  If you
+are unsure, stick with "FALSE."
+
+TOS_SERVER
+ * Type: integer
+ * Default: 0x08
+
+This option is used to specify the type of service that will be
+requested for connections to other servers.  The value may be given as
+a hexadecimal integer.
+
+TOS_CLIENT
+ * Type: integer
+ * Default: 0x08
+
+This option is used to specify the type of service that will be
+requested for connections to users.  The value may be given as a
+hexadecimal integer.
+
+CRYPT_OPER_PASSWORD
+ * Type: boolean
+ * Default: TRUE
+
+In order to allow certain users to become IRC operators, they must
+authenticate themselves with a password.  This password is matched
+against an O-line in the "ircd.conf" configuration file; see
+doc/example.conf for more details.  If you specify "TRUE" here, you
+must use the crypted form of these passwords in your "ircd.conf" file.
+Since compromises of the "ircd.conf" file have happened in the past,
+you are highly encouraged to use this option.  You can find a program
+called "mkpasswd" in the tools directory that will allow you to
+generate crypted passwords.
+
+OPER_NO_CHAN_LIMIT
+ * Type: boolean
+ * Default: TRUE
+
+If this option is set to "TRUE," IRC operators may join as many
+channels as they need to.  This is primarily intended to permit
+administrators to run a channel service for local ("&") channels.
+
+OPER_MODE_LCHAN
+ * Type: boolean
+ * Default: TRUE
+
+If this option is set to "TRUE," IRC operators may change the channel
+modes on local ("&") channels.  This is primarily intended to permit
+administrators to run a channel service for local channels.
+
+OPER_WALK_THROUGH_LMODES
+ * Type: boolean
+ * Default: FALSE
+
+If this option is set to "TRUE," IRC operators may join local ("&")
+channels regardless of any restrictive modes, including bans.  This
+requires giving the special password "OVERRIDE."  This is primarily
+intended to permit administrators to run a channel service for local
+channels.
+
+NO_OPER_DEOP_LCHAN
+ * Type: boolean
+ * Default: FALSE
+
+If this option is set to "TRUE," IRC operators may not be deopped on
+local ("&") channels.  This is primarily intended to permit
+administrators to run a channel service for local channels.
+
+SHOW_INVISIBLE_USERS
+ * Type: boolean
+ * Default: TRUE
+
+If you specify "TRUE" here, then your (local) IRC Operators will be
+able to see all local invisible users (clients connected to your own
+server).  This should be used only for investigating instances of
+abuse; make sure your operators do not use this for spying on
+individuals.
+
+SHOW_ALL_INVISIBLE_USERS
+ * Type: boolean
+ * Default: TRUE
+
+If you specify "TRUE" here, then your global IRC Operators will be
+able to see ALL invisible users.  This should be used only for
+investigating instances of abuse; make sure your operators do not use
+this for spying on individuals.
+
+UNLIMIT_OPER_QUERY
+ * Type: boolean
+ * Default: FALSE
+
+A /WHO command can sometimes return several hundred lines of
+information.  To reduce the flood potential, the output is truncated.
+By setting this option to "TRUE," when an IRC Operator uses /WHO, the
+output will not be truncated, no matter how much data is returned.
+
+LOCAL_KILL_ONLY
+ * Type: boolean
+ * Default: FALSE
+
+If this option is set to "TRUE," operators of this server may only
+KILL clients directly connected to this server.  Operators will not be
+able to issue KILLs for clients on other servers.  Some networks may
+require that this be turned on for newly linking servers.
+
+CONFIG_OPERCMDS
+ * Type: boolean
+ * Default: FALSE
+
+For u2.10.11, several new oper-only features have been added that
+involve changes to the server<->server protocol.  Until the entire
+network is running the new version, these features cannot be enabled.
+This configuration option provides a single switch to prevent the use
+of these features until the entire network has been upgraded.  It is
+not required that all servers set this to "TRUE" in order for the
+features to be used.
+
+OPER_KILL
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue the /KILL command.
+
+OPER_REHASH
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue the /REHASH command.
+
+OPER_RESTART
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue the /RESTART command.
+
+OPER_DIE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue the /DIE command.
+
+OPER_GLINE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue global G-lines.
+
+OPER_LGLINE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue local G-lines.
+
+OPER_JUPE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue global jupes.
+
+OPER_LJUPE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to issue local jupes.
+
+OPER_OPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to use /OPMODE and /CLEARMODE on ordinary ("#") channels.
+
+OPER_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to use /OPMODE and /CLEARMODE on local ("&") channels.
+
+OPER_BADCHAN
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether global IRC operators on this server are permitted
+to issue global BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY
+REGULATED BY THE UNDERNET ADMINISTRATION.
+
+OPER_LBADCHAN
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether global IRC operators on this server are permitted
+to issue local BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY
+REGULATED BY THE UNDERNET ADMINISTRATION.
+
+OPER_SET
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether global IRC operators on this server are permitted
+to use the /SET command to set various feature values.
+
+OPERS_SEE_IN_SECRET_CHANNELS
+ * Type: boolean
+ * Default: TRUE
+
+If you specify "TRUE" here, then your global IRC Operators will be
+able to see who is on a specified secret channel, without joining
+themselves.  This can be used to make a reasonable judgment in the
+case of a "channel takeover" being reported, while the channel is set
+invite-only.  See doc/readme.who for more details.
+
+LOCOP_KILL
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators are permitted to use the
+/KILL command on local clients.
+
+LOCOP_REHASH
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators are permitted to use the
+/REHASH command.
+
+LOCOP_RESTART
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local IRC operators are permitted to use the
+/RESTART command.
+
+LOCOP_DIE
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local IRC operators are permitted to use the /DIE
+command.
+
+LOCOP_LGLINE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators are permitted to issue local
+G-lines.
+
+LOCOP_LJUPE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators are permitted to issue local
+jupes.
+
+LOCOP_LOPMODE
+ * Type: boolean
+ * Default: TRUE
+
+This selects whether local IRC operators are permitted to use /OPMODE
+and /CLEARMODE on local ("&") channels.
+
+LOCOP_LBADCHAN
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local IRC operators are permitted to issue local
+BADCHANs.  USE OF THIS ON THE UNDERNET IS STRICTLY REGULATED BY THE
+UNDERNET ADMINISTRATION.
+
+LOCOP_SET
+ * Type: boolean
+ * Default: FALSE
+
+This selects whether local IRC operators are permitted to use the /SET
+command to set various feature values.
+
+LOCOP_SEE_IN_SECRET_CHANNELS
+ * Type: boolean
+ * Default: FALSE
+
+If you specify "TRUE" here, then your local IRC Operators will be
+able to see who is on a specified secret channel, without joining
+themselves.  This can be used to make a reasonable judgment in the
+case of a "channel takeover" being reported, while the channel is set
+invite-only.  See doc/readme.who for more details.
