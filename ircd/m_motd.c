@@ -131,7 +131,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     no_motd = 0;
 #endif
-    if (hunt_server_cmd(sptr, CMD_MODE, cptr, 0, "%C", 1, parc, parv) !=
+    if (hunt_server_cmd(sptr, CMD_MOTD, cptr, 0, "%C", 1, parc, parv) !=
 	HUNTED_ISME)
       return 0;
 #ifdef NODEFAULTMOTD
@@ -178,7 +178,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (tm)                     /* Not remote? */
     {
       send_reply(sptr, RPL_MOTDSTART, me.name);
-      send_reply(sptr, SND_EXPLICIT | RPL_MOTD, "- %d/%d/%d %d:%02d",
+      send_reply(sptr, SND_EXPLICIT | RPL_MOTD, ":- %d/%d/%d %d:%02d",
 		 tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, tm->tm_hour,
 		 tm->tm_min);
       count = 100;
