@@ -513,6 +513,7 @@ int IPcheck_local_connect(const struct irc_in_addr *a, time_t* next_target_out)
 int IPcheck_remote_connect(struct Client *cptr, int is_burst)
 {
   assert(0 != cptr);
+  assert(!IsIPChecked(cptr));
   return ip_registry_check_remote(cptr, is_burst);
 }
 
@@ -521,9 +522,10 @@ int IPcheck_remote_connect(struct Client *cptr, int is_burst)
  * so the client's address is not penalized for the failure.
  * @param[in] a Address of rejected client.
  */
-void IPcheck_connect_fail(const struct irc_in_addr *a)
+void IPcheck_connect_fail(const struct Client *cptr)
 {
-  ip_registry_connect_fail(a);
+  assert(IsIPChecked(cptr));
+  ip_registry_connect_fail(&cli_ip(cptr));
 }
 
 /** Handle a client that has successfully connected.
@@ -535,6 +537,7 @@ void IPcheck_connect_fail(const struct irc_in_addr *a)
 void IPcheck_connect_succeeded(struct Client *cptr)
 {
   assert(0 != cptr);
+  assert(IsIPChecked(cptr));
   ip_registry_connect_succeeded(cptr);
 }
 
@@ -546,6 +549,7 @@ void IPcheck_connect_succeeded(struct Client *cptr)
 void IPcheck_disconnect(struct Client *cptr)
 {
   assert(0 != cptr);
+  assert(IsIPChecked(cptr));
   ip_registry_disconnect(cptr);
 }
 

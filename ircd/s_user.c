@@ -434,7 +434,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                                get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(&cli_ip(sptr));
+        IPcheck_connect_fail(sptr);
         return exit_client(cptr, sptr, &me,
                            "Sorry, your connection class is full - try "
                            "again later or try another server");
@@ -453,7 +453,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
-        IPcheck_connect_fail(&cli_ip(sptr));
+        IPcheck_connect_fail(sptr);
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);

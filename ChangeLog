@@ -1,5 +1,28 @@
 2005-03-19  Michael Poole <mdpoole@troilus.org>
 
+	* include/IPcheck.h (IPcheck_connect_fail): Take a Client
+	parameter instead of irc_in_addr.
+
+	* ircd/IPcheck.c (IPcheck_connect_fail): Likewise.  Assert that
+	the client has been IP-checked.
+	(IPcheck_remote_connect): Assert that the client has not yet been
+	charged for connecting.
+	(IPcheck_connect_succeeded): Assert that the client has been
+	charged for connecting.
+	(IPcheck_disconnect): Likewise.
+
+	* ircd/m_nick.c (m_nick): Pass rejected client to
+	IPcheck_connect_fail() when somebody takes the nick first.
+	(ms_nick): Likewise.
+
+	* ircd/s_serv.c (server_estab): Pass new server to
+	IPcheck_connect_fail().
+
+	* ircd/s_user.c (register_user): When rejecting a user, pass
+	the struct Client to IPcheck_connect_fail().
+
+2005-03-19  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Connect): Remove a buggy comment about leaf
 	directives; refer the reader to the Connect block instead.
 
