@@ -456,7 +456,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			       get_client_name(sptr, HIDE_IP));
         }
         ++ServerStats->is_ref;
-        ip_registry_connect_fail(sptr->ip.s_addr);
         return exit_client(cptr, sptr, &me,
 			   "Sorry, your connection class is full - try "
 			   "again later or try another server");
@@ -475,7 +474,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
         /* Can this ever happen? */
       case ACR_BAD_SOCKET:
         ++ServerStats->is_ref;
-        ip_registry_connect_fail(sptr->ip.s_addr);
         return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
     }
     ircd_strncpy(user->host, sptr->sockhost, HOSTLEN);
@@ -491,13 +489,9 @@ int register_user(struct Client *cptr, struct Client *sptr,
 
     if (!EmptyString(aconf->passwd)
         && !(IsDigit(*aconf->passwd) && !aconf->passwd[1])
-#ifdef USEONE
-        && strcmp("ONE", aconf->passwd)
-#endif
         && strcmp(sptr->passwd, aconf->passwd))
     {
       ServerStats->is_ref++;
-      ip_registry_connect_fail(sptr->ip.s_addr);
       send_reply(sptr, ERR_PASSWDMISMATCH);
       return exit_client(cptr, sptr, &me, "Bad Password");
     }
@@ -507,7 +501,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
      */
     if (find_kill(sptr)) {
       ServerStats->is_ref++;
-      ip_registry_connect_fail(sptr->ip.s_addr);
       return exit_client(cptr, sptr, &me, "K-lined");
     }
     /*
@@ -603,7 +596,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       (agline = gline_lookup(sptr, GLINE_GLOBAL | GLINE_LASTMOD)) &&
       !IsBurstOrBurstAck(cptr))
     gline_resend(cptr, agline);
-
+  
   if (IsInvisible(sptr))
     ++UserStats.inv_clients;
   if (IsOper(sptr))
@@ -661,13 +654,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
     }
-    if (!ip_registry_check_remote(sptr, (acptr != &me)))
-      /*
-       * We ran out of bits to count this
-       */
-      return exit_client(&me, sptr, &me, "More than 255 connections from this address");
   }
-
   tmpstr = umode_str(sptr);
   if (agline)
     sendcmdto_serv_butone(user->server, CMD_NICK, cptr,
@@ -687,7 +674,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
 			  *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
 			  inttobase64(ip_base64, ntohl(sptr->ip.s_addr), 6),
 			  NumNick(sptr), sptr->info);
-
+  
   /* Send umode to client */
   if (MyUser(sptr))
   {
@@ -794,7 +781,12 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 	  && GlineLastMod(agline) > lastmod && !IsBurstOrBurstAck(cptr))
 	gline_resend(cptr, agline);
     }
-
+    if (!ip_registry_remote_connect(sptr)) {
+    	sendcmdto_one(&me, CMD_KILL, new_client, "%C :%s (Too many connections from your host -- Ghost)",
+    		      new_client,me.name);
+    	return exit_client(cptr,new_client,&me,"Too many connections from your host -- throttled");
+    }
+    sendto_ops("Registering new remote client");
     return register_user(cptr, new_client, new_client->name, parv[4], agline);
   }
   else if (sptr->name[0]) {

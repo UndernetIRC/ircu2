@@ -254,8 +254,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       --UserStats.opers;
     if (MyConnect(bcptr))
       Count_clientdisconnects(bcptr, UserStats);
-    else
+    else {
       Count_remoteclientquits(UserStats, bcptr);
+      ip_registry_remote_disconnect(bcptr);
+    }
   }
   else if (IsServer(bcptr))
   {
@@ -276,9 +278,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   }
   else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
     Count_unknowndisconnects(UserStats);
-
-  /* Update IPregistry */
-  ip_registry_disconnect(bcptr);
 
 
   /* 
@@ -384,7 +383,7 @@ int exit_client(struct Client *cptr,    /* Connection being handled by
   time_t on_for;
 #endif
   char comment1[HOSTLEN + HOSTLEN + 2];
-
+  assert(killer);
   if (MyConnect(victim)) {
     victim->flags |= FLAGS_CLOSING;
     update_load();

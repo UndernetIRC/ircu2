@@ -332,23 +332,6 @@ HUB
   too bad to route traffic).  Note that on Undernet all newly linked servers
   are linked as leafs during their test phase, and should specify 'n' here.
 
-Do you want support for the old I:*:ONE:*:: construct
-USEONE
-  Server versions prior to ircu2.10.05 used to use the string "ONE"
-  as password in an I: line to indicate that only one connection was
-  allowed for any given IP number that matched that I: line.
-  This method only counted the *local* connections though.
-  As of ircu2.10.05 you can specifiy a single(!) digit as password
-  which then will allow that many connections from the same IP number.
-  However, now the IP numbers of ALL clients are counted, also those
-  that are connected to other servers.
-  If you do not use the depricated "ONE" password in your ircd.conf,
-  specify 'n' here.  Note that if you you DO use the "ONE" password
-  and you specify 'n' here, then you should change all occurances of
-  "ONE" to "1" (this is the recommended procedure).
-  If you are lazy and you don't want to change the "ONE" passwords
-  into a "1", then specify 'y' here.
-
 Send a short message instead of the MOTD to connecting clients
 NODEFAULTMOTD
   Every time a client connects to your server, the full Message Of

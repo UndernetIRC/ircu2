@@ -473,8 +473,6 @@ static void event_loop(void) {
     else
       read_message(IRCD_MIN(delay, TIMESEC));
 
-    Debug((DEBUG_DEBUG, "Got message(s)"));
-
     /* ...perhaps should not do these loops every time, but only if there is
      * some chance of something happening (but, note that conf->hold times may
      * be changed elsewhere--so precomputed next event time might be too far
@@ -620,7 +618,7 @@ int main(int argc, char **argv) {
   parse_command_line(argc, argv);
 
   if (chdir(dpath)) {
-    fprintf(stderr, "Fail: Cannot chdir(%s): %s\n", dpath, strerror(errno));
+    fprintf(stderr, "Fail: Cannot chdir(%s): %s, check DPATH\n", dpath, strerror(errno));
     exit(2);
   }
 

@@ -506,6 +506,7 @@ void close_connection(struct Client *cptr)
 
   if (-1 < cptr->fd) {
     flush_connections(cptr);
+    ip_registry_local_disconnect(cptr);
     LocalClientArray[cptr->fd] = 0;
     close(cptr->fd);
     cptr->fd = -1;
@@ -566,6 +567,7 @@ void add_connection(struct Listener* listener, int fd) {
   
   assert(0 != listener);
 
+ 
   /*
    * Removed preliminary access check. Full check is performed in m_server and
    * m_user instead. Also connection time out help to get rid of unwanted
@@ -577,26 +579,20 @@ void add_connection(struct Listener* listener, int fd) {
     return;
   }
 
-
   /*
    * Add this local client to the IPcheck registry.
    *
-   * If it is a connection to a user port and if the site has been throttled,
-   * reject the user.
+   * If they're throttled, murder them, but tell them why first.
    */
-  if (!ip_registry_check_local(addr.sin_addr.s_addr, &next_target) &&
-      !listener->server) {
-    send(fd, throttle_message, 66, 0);
-    close(fd);
-    ++ServerStats->is_ref;
-    return;
+  if ( !ip_registry_check_local(addr.sin_addr.s_addr,&next_target) ) {
+  	++ServerStats->is_ref;
+  	write(fd,throttle_message,strlen(throttle_message));
+  	close(fd);
+  	return;
   }
 
   new_client = make_client(0, ((listener->server) ? 
 			       STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
-
-  if (!listener->server)
-    ip_registry_local_connect(new_client);
 
   /*
    * Copy ascii address to 'sockhost' just in case. Then we have something
@@ -1247,12 +1243,6 @@ int read_message(time_t delay)
       if (CPTR_KILLED == (length = read_packet(cptr, read_ready)))
         continue;
     }
-#if 0
-    /* Bullshit, why would we want to flush sockets while using non-blocking?
-     * This uses > 4% cpu! --Run */
-    if (length > 0)
-      flush_connections(LocalClientArray[i]);
-#endif
     if (IsDead(cptr)) {
       const char* msg = (cptr->error) ? strerror(cptr->error) : cptr->info;
       if (!msg)
@@ -1422,6 +1412,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by,
 
   if (cptr->fd > HighestFd)
     HighestFd = cptr->fd;
+
+  
   LocalClientArray[cptr->fd] = cptr;
 
   Count_newunknown(UserStats);

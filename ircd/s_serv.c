@@ -134,12 +134,6 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf,
     sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s :%s", me.name,
 		  me.serv->timestamp, cptr->serv->timestamp, MAJOR_PROTOCOL,
 		  NumServCap(&me), *me.info ? me.info : "IRCers United");
-    /*
-     * Don't charge this IP# for connecting
-     * XXX - if this comes from a server port, it will not have been added
-     * to the IP check registry, see add_connection in s_bsd.c 
-     */
-    ip_registry_connect_fail(cptr->ip.s_addr);
   }
 
   det_confs_butmask(cptr, CONF_LEAF | CONF_HUB | CONF_SERVER | CONF_UWORLD);
