@@ -1,4 +1,10 @@
 2005-03-29  Michael Poole <mdpoole@troilus.org>
+	(The previously unapplied part of another patch (by Carlo Wood?).)
+
+	* ircd/m_part.c (ms_part): Remove a check that should already be
+	done by the user's own server.
+
+2005-03-29  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Add HIS_STATS_J entry.
 

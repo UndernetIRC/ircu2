@@ -201,14 +201,6 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (IsDelayedJoin(member))
       flags |= CHFL_DELAYED;
 
-    /*
-     * XXX BUG: If a client /part's with a part notice, on channels where
-     * he's banned, local clients will not see the part notice, but remote
-     * clients will.
-     */
-    if (!member_can_send_to_channel(member, 0))
-      flags |= CHFL_BANNED;
-
     /* part user from channel */
     joinbuf_join(&parts, chptr, flags);
   }
