@@ -1,7 +1,13 @@
+2000-08-29  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_names.c (m_names): don't add a space if the user's a
+	zombie; fixes an overrun where we generate a huge number of spaces
+	in the names reply without length-checking them properly
+
 #
 # ChangeLog for ircu2.10.10
 #
-# $Id: ChangeLog,v 1.13.2.1 2000-04-12 04:06:07 bleep Exp $
+# $Id: ChangeLog,v 1.13.2.1.10.1 2000-08-30 15:53:44 kev Exp $
 #
 # Insert new changes at beginning of the change list.
 #
