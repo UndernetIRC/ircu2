@@ -91,6 +91,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "ircd_features.h"
 
 #include <assert.h>
 
@@ -141,7 +142,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return send_reply(sptr, ERR_USERNOTINCHANNEL, cli_name(who), chptr->chname);
 
   /* Don't allow to kick member with a higher or equal op-level */
-  if (OpLevel(member) <= OpLevel(member2))
+  if ((OpLevel(member) <= OpLevel(member2)) && feature_bool(FEAT_OPLEVELS))
     return send_reply(sptr, ERR_NOTLOWEROPLEVEL, cli_name(who), chptr->chname,
 	OpLevel(member2), OpLevel(member), "kick",
 	OpLevel(member) == OpLevel(member2) ? "the same" : "a higher");

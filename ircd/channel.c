@@ -218,10 +218,13 @@ int sub1_from_channel(struct Channel* chptr)
    * who then will educate them on the use of Apass/upass.
    */
 
+   if (feature_bool(FEAT_OPLEVELS)) {
   if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
     schedule_destruct_event_1m(chptr);		/* Get rid of it in approximately 4-5 minutes */
   else
     schedule_destruct_event_48h(chptr);		/* Get rid of it in approximately 48 hours */
+   } else
+       destruct_channel(chptr);
 
   return 0;
 }
@@ -2796,6 +2799,7 @@ mode_process_clients(struct ParseState *state)
 	  continue;
         }
 
+        if (feature_bool(FEAT_OPLEVELS)) {
 	/* don't allow to deop members with an op level that is <= our own level */
 	if (state->sptr != state->cli_change[i].client		/* but allow to deop oneself */
 	        && state->member
@@ -2809,6 +2813,7 @@ mode_process_clients(struct ParseState *state)
 	  continue;
 	}
       }
+    }
     }
 
     /* set op-level of member being opped */
@@ -2974,10 +2979,12 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	break;
 
       case 'A': /* deal with Admin passes */
+        if (feature_bool(FEAT_OPLEVELS))
 	mode_parse_apass(&state, flag_p);
 	break;
 
       case 'u': /* deal with user passes */
+        if (feature_bool(FEAT_OPLEVELS))
 	mode_parse_upass(&state, flag_p);
 	break;
 

@@ -255,6 +255,7 @@ static struct FeatureDesc {
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
   F_B(AUTOHIDE, 0, 1, 0),
   F_B(CONNEXIT_NOTICES, 0, 0, 0),
+  F_B(OPLEVELS, 0, 1, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
