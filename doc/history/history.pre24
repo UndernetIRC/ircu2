@@ -1,0 +1,51 @@
+/************************************************************************
+ *   IRC - Internet Relay Chat, doc/HISTORY
+ *   Copyright (C) 1990
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 1, or (at your option)
+ *   any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+HISTORY of Recent IRC Versions.
+
+Previous version numbering schemes have caused some confusion, which this
+document attempts to resolve.
+
+The original test versions released by WiZ were numbered 2.01?6 where
+the ? refers to a letter.  The last known stable version was U6.
+Version 2.1.0/1 was rewritten by Mike Bolotski from the U6 sources but 
+several bugs were introduced during the rewrite.  After several weeks, 
+almost all servers backed up to U6.  Version v6 contained comparatively 
+minor modifications from U6.  
+
+Version 2.2 consists of the v6 source repackaged into multiple directories, 
+and with modified documentation.  From now on, the version number will
+stay relatively constant.  As minor changes and bug fixes are added, they
+will be distributed in the form of context diffs, to be applied with the
+'patch' command.  Each bugfix will bump the patchlevel (PL) of the release
+by 1.  The PL is documented in the version.c file in the lib/misc directory.
+
+Version 2.3 was unfortunate mistake containing copyright violations
+so it was soon taken off distribution.
+
+Version 2.4 contains *very* many bug fixes, enhancements, and "hooks" for
+use in future releases. The source tree has been restructured, and the
+Makefiles rewritten to be recursive and follow the new source tree layout.
+
+Version 2.5 contains string channels and channel modes (as well as
+channel operators). Also Wizible's MAIL system was included as an option.
+
+Hopefully, whoever provides a fix will also update the respective
+ChangeLogs to summarize the changes, as well as adding a description of
+the bug to the BugList file.

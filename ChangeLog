@@ -1,0 +1,11 @@
+#
+# ChangeLog for Undernet ircu Servers
+#
+# $Id: ChangeLog,v 1.1.1.1 1999-11-16 05:13:14 codercom Exp $
+#
+# Please insert new entries on the top of the list, a one or two line comment
+# is sufficient. Please include your name on the entries we know who to blame.
+# Please keep lines < 80 chars.
+#-------------------------------------------------------------------------------
+* ChangeLog (file): added ChangeLog, and BUGS files, import to ircu2.10 --Bleep
+

@@ -1,0 +1,478 @@
+/************************************************************************
+ *   IRC - Internet Relay Chat, 2.4.notes
+ *   Copyright (C) 1990   Markku Savela
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 1, or (at your option)
+ *   any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+IRC 2.4 release notes  6 May 1990/msa (Markku.Savela@vtt.fi)
+============================================================
+
+   This document explains the changes I have done up to this
+point. Some additional changes and packaging has been made by
+Chelsea (chelsea@earth.cchem.berkeley.edu). This is personal
+view of the changes.
+
+CHANGES TO LAST THE OFFICIAL RELEASE (2.2PL1)
+
+   This release of irc2.4 is based to 2.2PL1 release (see the
+HISTORY chapter later in this document). Aside from fixing the
+bugs, this version is in many ways different from the 2.2PL1.
+The purpose of the most changes is to make it easier to run an
+IRC server. Normal users benefit from these changes indirectly
+by getting a better maintained server.
+
+1. Changes visible to normal users
+
+   Even while mainly fixing bugs, some user visible changes have
+crept in too.
+
+1.1 General note on wildcards
+
+   Many commands accept now wildcard matching where applicable. All
+compares are case insensitive (e.g. "a" == "A"). The wild cards are
+
+	?	matches any single character
+
+	*	matches any number of characters, also empty
+		string. [PL1 had a bug, which caused "*du*"
+		not match "....edu"].
+
+1.2 Server supported wildcards for "/who mask" command.
+
+   Protocol message is "WHO mask", where mask can be
+
+	empty
+	0	List all users [No change from PL1]
+
+	*	List all users on the same channel where the user is
+		(or all, if user is on 0) [No change from PL1].
+
+	number	List all users on the specified channel [No change
+		from PL1]. Note, if the "mask" begings with a digit,
+		this form is assumed, and the remainder of mask is
+		ignored, e.g. "/who 12*.fi" gives all people from
+		channel 12 and ignores the "*.fi" part.
+
+	mask	If the mask is any string, it will be compared
+		*separately* to each information field of the user
+		and if a match is found in any field, that user
+		is included into the list. The fields searched
+		are
+
+			nickname
+			loginname (account name)
+			real name (text shown in parenthesis)
+			hostname (users machine)
+			servername (server he/she is using)
+
+		Note: servername is not usually shown on WHO output,
+		but is included in anyway. Example: finding all users
+		somehow connected with Finnish sites, can be achieved
+		with mask "*.fi".
+
+1.3 Changes to /whois command
+
+   As WHO, also /whois accepts wild cards as a parameters. WHOIS
+returns information for all users whose nickname matches the specified
+mask.
+
+   WHOIS automaticly calls WHOWAS [see below], if the attempted nickname
+is not found.
+
+1.4 Short term "WHOWAS" history
+
+   The server has a short in memory cache of the recent nickname changes
+(the current default is set to 200 last changes). The design goal of
+this is that it remembers changes in last few minutes, there is no
+intention of this to be a long term history. That must be a separate
+project, although it could use the hooks provided by this service.
+
+   "WHOWAS nickname" queries this cache and returns about the same
+information that WHOIS would do, if the nickname is found. Wildcards
+are not accepted here, this is a specifically designed feature. If
+the name is not found, WHOWAS doesn't reply anything. This is because
+the most useful use of WHOWAS is implicitly through "WHOIS".
+
+   This history is also implicitly utilized by KILL command.
+
+1.5 New SERVER-SERVER/SERVER-CLIENT protocol message WALLOPS
+
+   The message ":source WALLOPS :Message" sends the message text
+to all operators that are currently online. Any user can use this
+command, it's not restricted. How this function is activated, depends
+on the client, but if nothing else works, "/quote wallops text" should.
+
+   NOTE:This function will not be fully operational until *ALL*
+	servers have upgraded to version 2.4. Also, operators
+	must be using a client that recognizes this command.
+
+   This is really a hasty addition. But, done this way it follows
+the general IRC message philosophy, where messages are sent only
+to links where they are needed (e.g. WALLOPS goes only to servers
+that have opers online--it's not broadcast to every server).
+
+1.6 General use of wildcarding in server queries
+
+   All commands that previously took a servername as a parameter,
+now accept also a wildcarded mask. The mask is replaced with
+the first matching servername. The following user level commands
+are affected
+
+	/admin server	-- administrative info
+	/time server	-- local time
+	/version server	-- the server version
+	/motd server	-- "the message of the day"
+	/info server	-- info (usually same on same server version)
+	/stat f server	-- statistics information
+	/users server	-- users logged on server machine
+
+   Note: Remote capability is a new feature for "info" and "stat"
+commands. Until all servers have upgraded, these commands may not
+reach the intended target and may return the information from some
+intermediate server.
+
+1.7 Marking user AWAY
+
+   v2.2PL1 version and earlier showed the AWAY-state (G) only for
+the local users of the same server. AWAY status could be queried
+only by sending a message to a user. This release (or since msa.4)
+broadcasts the away status to every server and the commands /WHO and
+/WHOIS give this information reliably.
+
+   A side effect of this change is: when a user marks himself/herself
+as AWAY, all pre-msa.4 servers that are reached will send back an
+acknowlegde message. Until all servers are upgraged, use of AWAY
+is somewhat inconvenient. If you get extra messages from AWAY,
+they also contain the server information. Use /admin command and
+send a *friendly* request for the admin to upgrage his/her server
+to a working version, namely 2.4 :)
+
+1.8 Servers don't restrict characters within messages
+
+   The parameter fields of the messages can now contain any characters
+in range 1-255, except '\r', '\n' and '\0'. The client programs should
+by default filter away the "dangerous" control characters, but intelligent
+clients can utilize this change and allow exchanges with foreign
+8-bit (or wider) charactersets. (The actual command parts must still be
+represented with the ordinary 7-bit characters.)
+
+2. Changes visible to the server administrator
+
+2.1 Identifying servers
+
+   Servers/clients have now always two names (it was this way in
+PL1, but I think this version makes the idea more clear):
+
+	Announced Name:
+
+	The official name of the server (the name you use in
+	/time, /quote connect, etc) or users nickname. Servers
+	name is usually the hostname, but can actually be almost
+	any string of characters resembling hostname. This one
+	is given in M-line of ircd.conf.
+
+	Socket hostname:
+
+	Socket hostname of the server or client. This is the hostname
+	of the connecting server/client and this is resolved from the
+	connection. If resolve cannot be done, ircd defaults to using
+	numeric IP-address. *ALL* access checks are based on this
+	name, especially noteworthy fact, if your resolver cannot find
+	hostnames by IP-address, you must allow the access by IP-numbers
+	in your ircd.conf.
+
+   In many places, where servers name is shown, actually both are
+shown. The general format of the displayed name is
+
+	AnnouncedName[SocketHostName]
+
+When a connection is yet unkown, there is no AnnouncedName, and if the
+AnnouncedName is the same as SocketHostName, the "[..]"-part is omitted.
+
+2.2 Many notices to local operators
+
+   If an oper is signed on the server, he/she will receive many
+notices about exceptional conditions and servers actions. When
+something goes wrong, it should be much easier to fix the problems.
+
+   Few often occurring, inportant error messages are
+
+   "Write error to SERVERNAME, closing link"
+
+	write() to socket returned with an error. Server is
+	closing the link. This means usually network problems
+	which you can do nothing about.
+
+   "Max buffering limit exceeded for SERVERNAME"
+
+	This is the situation where old server would have been
+	"frozen". The socket buffers in your OS have been filled and
+	even servers own predefined internal buffering MAX for a link
+	has been exceeded. Exceeding this limit most likely means
+	that the link is really dead, so the server closes the link
+	and scratches all queued output for it. If the limit is
+	set high ( > 20000 bytes), you won't usually see this, but
+	just "No responce from SERVERNAME, closing link" as the
+	server does not reply to PING as it should.
+
+   "Link SERVERNAME cancelled, server SERVERNAME already exits"
+
+	Two different servers from your net fragment attempted
+	to connect same other net fragment about the same time
+	and this collision is detected at your server. IRC routing
+	does not allow loops, the link causing the loop is closed.
+	(Which of the two links gets closed is mostly determined
+	by pure chance and timing--you may lose a better link this
+	way. Collisions should be rare in normal operation, if
+	the timers in "config.h" are not messed up too much...)
+
+	Of course, you get this too, if you try to connect to a
+	server that is already connected by some other route. In
+	that case your attempted connection is just safely cancelled.
+
+   The notices attempt to be self explaining.
+
+2.3 Links statistics collecting
+
+   IRCD now counts the bytes and messages transmitted to each open
+link. This information can be output with a command "/stats l"
+("/stats" or "/stat m" will give the old message count statistics).
+
+   Sample output
+
+Link           SendQ  SendM SendBytes  RcveM RcveBytes Open since
+oddjob.uchicago    0    203      8067    772     34321 Sun May  6 02:15:45 1990
+cs.hut.fi[sauna    0   1916     79798     94      3082 Sun May  6 01:51:25 1990
+otax.tky.hut.fi    0   3722    151511    426     22690 Sun May  6 00:25:54 1990
+nada.kth.se        0   8775    355811   5333    223853 Sat May  5 14:11:49 1990
+vehka.cs.uta.fi    0  23816    882000    901     41156 Fri May  4 22:50:23 1990
+lut.fi             0  25145    943765   1068     35020 Fri May  4 22:34:16 1990
+kreeta.helsinki    0  24286    899191    957     47085 Fri May  4 22:33:28 1990
+naakka.tut.fi      0  27754   1067302   8288    362960 Fri May  4 22:33:14 1990
+joyx.joensuu.fi    0  30003   1172949   2300     80053 Fri May  4 22:33:05 1990
+tel4.tel.vtt.fi    04083771 167473890 863475  35022755 Mon Apr 23 00:15:17 1990
+                   |    |       |       |       |      |
+                   |    |       |       |       |      Link established
+                   |    |       |       |       The number of bytes received
+                   |    |       |       The number protocol messages received
+                   |    |       The number of bytes transmitted
+                   |    The number of protocol messages transmitted
+                   The amount of queued data in bytes (if socket is hung)
+
+   The last row (with the local servername) contains the total
+cumulative counts for all connections since the server was started.
+
+   One can query the statistics of a remote server by adding the servers
+name to the command "/stat l servername". Of course, this only works,
+if all intermediate servers have upgraged. The first "old" server
+will stop the propagation and return the message counts by default.
+
+2.4 Connecting servers
+
+   An oper can manually activate a connection phase to any server
+defined in ircd.conf C-lines (to successfully complete the connection,
+the N-line must be present too). The message achieving this is
+
+	CONNECT servername portnumber
+
+   where servername may be a mask string containing wildcards. This
+name is matched against entries in ircd.conf (notice: the testing
+is made in reverse order, e.g. the last C-line in ircd.conf is tested
+first).  If portnumber is omitted, the ircd uses the one given in the
+found C-line. If the C-line does not have the portnumber, the compiled
+default will be used (PORTNUM from config.h).
+
+   This release allows also for remote connecting. An oper can send
+a connect request to remote server with
+
+	CONNECT servername portnumber remoteserver
+
+This command is passed to the 'remoteserver' and it then tries to
+execute it like it was given locally. (If there are opers online on
+that server, they will get a notice about this happening.) Note, that
+one can remotely connect only what is defined in ircd.conf. Usually
+one needs and should use this only for immediate your neighbours. Nobody
+should randomly go and give connect requests to distant servers, unless
+one knows it's absolutely necessary and is very familiar about the
+linking setup there.
+
+2.4 Terminating connections
+
+   The SQUIT command in PL1 was not intended to be used manually and
+was very dangerous to use (it also created so called "ghost servers").
+Since msa.4, the SQUIT has been safer to use manually.
+
+
+   "SQUIT z" s                          a
+              \                        /
+               \                      /
+         ------- x ------- y --| |-- z ------- b
+                /               ^     \
+              /                 |       \
+            p                            c
+
+	"SQUIT z" will break the link between "y" and "z" if injected
+	into system from "s". After that the net will be in two fragmets,
+	broken between "y" and "z". Server "z" never sees the actual
+	SQUIT, all it observers is that the link to "y" suddenly closes
+	(opers on z would see it as "Server y closed the connection"
+	notice. Opers on y would see it as "Received remote SQUIT from
+	x", note that the actual source "s" is not identified in the
+	current version--for reasons too complicated to be explained
+	here).
+
+	*WARNING* *WARNING* If the server "y" is still running pre-msa.4
+	(like PL1), don't *EVER* issue a SQUIT for its links (unless the
+	link is to a leaf node or verifiably a "ghost server").
+
+	Note, that when the link between "y" and "z" breaks, y will spit
+	out SQUIT's for "z", "a", "b" and "c" to "x". At same time "z"
+	is sending SQUIT's for "x", "s", "p", etc to "a", "b" and "c".
+	SQUIT is normally generated by servers automaticly, it's just
+	a later modification (msa.4) that allows an OPER to use this
+	same message to "simulate" a link break at certain point.
+
+	*IMPORTANT* If server "z" has configuration "C:y::y:6667", it
+	automaticly attempts to reconnect after a short delay (currently
+	10 seconds), but only *if* the connection has been up long enough
+	reliably (currently set to 10 minutes). If the thus formed link is
+	squit another time, it will not attempt to come back immeatedly.
+	This gives an oper time to reconfigure the links if that first
+	short delay is not enough.
+	
+    As in all commands, also SQUIT accepts wildcards, but be careful to
+give sufficient identification. SQUIT of wrong server is not nice...
+
+2.5 KILL message
+
+    KILL will implicitly use the history database. If a KILL is
+issued for a nick that has been changed to another, the server
+will automaticly re-issue the kill with the new nickname, if
+the change has happened recently (current value should be 90
+seconds). If a "terrorist" is clearly distrupting channel by
+bombarding it with garbage from negative channels and changing
+nick all time, there is no need to consult the "WHOWAS" data
+base, just use the nickname that was used to send the garbage
+and ircd hunts the culprit down. When this change of target
+happens, the oper issuing the kill is notified.
+
+NOTE:	With automatic, kill-proof-reconnecting clients, the
+	value of KILL is becoming insignificant...
+
+2.6 Changing the server defaults from the command line
+
+    The servers activation command is now
+
+ircd[ -f configfile][ -h servername][ -p portnumber][ -x debuglevel]
+
+where parameters can be given in any order. If the "configfile"
+is defined, it will override the default specified in the file
+"config.h". If "servername" is defined, it will override the
+one defined in the M-line on the configuration line. "portnumber"
+will override the compiled default (from "config.h") or the
+one from the M-line of the configuration file. The "debuglevel"
+will determine the amout of logging the server does into a
+log file that has been define in "config.h". The "debuglevel"
+should never be defined for a server running normally, it can
+quickly generate megabytes of trace. Usually needed only when
+the server is incapable of starting properly at all, then one
+run with "-x9" usually is enough to reveal the problem.
+
+3. General cleaning up and commenting the code
+
+   This issue is controversial. My way of fixing bugs is not just
+fix them, I also want to program defensively, make it difficult to
+make new errors. Thus I have heavily reformatted and reorganized
+those files that I have had to touch. Some functions have been
+renamed intentionally to catch all uses of those functions [because
+the functions semantics or calling sequences have been changed].
+
+   This release (2.4) will be the last IRC version I'm contributing
+to. If you have any wishes or complains about the code or functioining
+of IRC, use the source or ask whomever it happens to be the current
+developer.
+
+HISTORY
+
+   There have been many different versions of IRC and many of those
+versions are still in use. The following attempt to bring some
+clarification to the versions. This starts from 2.01.6, hopefully
+no servers are running older versions...
+
+	...
+	...
+	2.01.6	A version from WiZ in summer 1989
+	...
+		2.01t6	A series of releases, which contained minor
+		2.01T6	adjustements and bug fixes to the base version.
+		2.01u6	Some of those fixes caused extra errors, of
+		2.01U6	this series versions 2.01U6 and 2.01v6 are at
+		2.01v6	least known to be rather stable.
+
+	2.1.0	Mike Bolotski created these versions from the sources
+	2.1.1	of 2.01U6, but unfortunale some devious bug crept in
+		and caused a lots of linking problems (the nasty "ghost
+		server problem" splintered the net constantly). These
+		versions must be deleted on sight :) [Autumn 1989]
+
+	2.2	This version is the 2.01v6 sources repackaged into
+		multiple directories by Mike again. Probably nobody
+		is running this base version, because is was promptly
+		followed by two patch releases [Autumn 1989]
+
+		2.2PL0	These two are the last major "official" releases
+		2.2PL1	and most of the servers upgraged to either of
+			these.
+
+	2.2msa	Unfortunately 2.2PL1 version had a tendency to die
+		mysteriously very often. So, I started to look into the
+		code from March 1990 and that resulted a series of
+		patches to the 2.2PL1 server code, but finally
+		decided to release full server code releases of which
+		few have got wider distribution
+
+		2.2msa.4
+			Has most of the known PL1 bugs fixed and seems
+			to be very reliable. But once servers started
+			staying up, a new problem appeared: socket
+			buffers started getting full and servers tended
+			to freeze very often for long intervals.
+
+	2.3alpha
+	2.3	Is an attempt to make an official release from 2.2msa.4
+		code, but hassles with changed copyrights make this
+		version unacceptable. Besides, 2.3alpha or 2.2msa.4 are
+		now obsolete, old versions :)
+
+	2.2msa.x
+		To solve the freezing problems, the server code is changed
+		to use non-blocking sockets.
+
+		2.2msa.7
+		2.2msa.9
+			Are intermediate test versions, of which .9 seems
+			to have most of the problems solved.
+
+		2.2msa.10
+			Never released. This is slightly improved version
+			of msa.9, some new features.
+
+	2.4	Is a release which combines 2.2msa.10 and Chelsea's
+		modifications to the server. Also, this release has
+		once again reorganized the directories and makefiles.
+
+
+-- msa (Markku.Savela@vtt.fi)

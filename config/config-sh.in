@@ -1,0 +1,382 @@
+# @configure_input@
+#
+# By Carlo Wood (carlo@runaway.xs4all.nl)
+#
+# For a description of the syntax of this configuration file,
+# see the config/Configure script.
+#
+# TO CONFIGURE THE SERVER, TYPE: 'make config' in the top level directory !
+#
+
+#### Start of system configuration section. ####
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+mandir=@mandir@
+CC_DEFAULT="@CC@"
+CFLAGS_DEFAULT="@CFLAGS@"
+CPPFLAGS_DEFAULT="@CPPFLAGS@"
+LDFLAGS_DEFAULT="@LDFLAGS@"
+LIBS="@LIBS@"
+ac_cv_header_poll_h=@ac_cv_header_poll_h@
+unet_cv_func_poll_syscall=@unet_cv_func_poll_syscall@
+ac_cv_header_syslog_h=@ac_cv_header_syslog_h@
+
+#### End of system configuration section. ####
+
+if [ -z "$CONFIG_BATCH" ]; then
+  echo "**************************************************************************"
+  echo "Error: Please run 'make config' that resides in the top level directory!"
+  echo "**************************************************************************"
+  exit -1
+fi
+
+mainmenu_name "Undernet IRC Daemon Configuration"
+mainmenu_option next_comment
+  if [ "$CONFIG_BATCH" = "n" ]; then
+    echo "* Welcome to the Undernet IRC Daemon Configuration script."
+    echo "* You can restart this configuration at any time by typing 'make config'."
+    echo "* If you need help with your decision on any question, type a '?'"
+    echo "*"
+    USE_DEFAULT=n
+  else
+    USE_DEFAULT=C
+  fi
+  CHANGE_CONFIG=n
+  if [ "$DEFAULTS" != "none" ]; then
+    bool 'Do you want to change your previous configuration' CHANGE_CONFIG
+    if [ "$CHANGE_CONFIG" = "n" ]; then
+      echo "Ok, I will only prompt you for NEW parameters."
+      USE_DEFAULT=C
+    else
+      USE_DEFAULT=n
+    fi
+  else
+    USE_DEFAULT=n
+  fi
+endmenu
+
+mainmenu_option next_comment
+comment 'Compile stuff'
+  if [ "$prefix" = "NONE" ]; then
+    prefix=/usr/local
+  fi
+  if [ "$exec_prefix" = "NONE" ]; then
+    eval exec_prefix="$prefix"
+  fi
+  string 'Which compiler do you want to use' CC "$CC_DEFAULT"
+  echo "* For the following four questions, specify 'none' when you want it to be empty."
+  if [ -z "$cflags_O3_remark" -a -n "$CFLAGS" ]; then
+    CFLAGS_DEFAULT=`echo "$CFLAGS" | sed -e 's%-O2%-O3%'`
+    if [ "$CFLAGS_DEFAULT" != "$CFLAGS" ]; then
+      echo "You are highly advised to use -O3 instead of -O2 if you're short in cpu cycles!"
+      echo "Please read documentation (press '?'):"
+      CFLAGS=
+    fi
+  fi
+  eval string "'What flags should I pass to $CC [none]'" CFLAGS "'$CFLAGS_DEFAULT'"
+  define_macro cflags_O3_remark done
+  string 'Do you need extra include directories [none]' EXTRA_INCLUDEDIRS none
+  if [ -z "$LDFLAGS_DEFAULT" ]; then
+    LDFLAGS_DEFAULT=none
+  else
+    eval LDFLAGS_DEFAULT="$LDFLAGS_DEFAULT"
+  fi
+  string 'Which linker flags do you need [none]' LDFLAGS "$LDFLAGS_DEFAULT"
+  if [ -z "$LIBS" ]; then
+    LIBS=none
+  fi
+  string 'Which extra libraries do you need [none]' IRCDLIBS "$LIBS"
+  eval bindir="$bindir"
+  string 'In which directory should I install the ircd binary' BINDIR $bindir
+  if [ ! -d "$BINDIR" ]; then
+    echo "$BINDIR : No such directory"
+  fi
+  string 'What should the name of the installed symbolic link to the exectuable be' SYMLINK ircd
+  string 'Which permissions do you want the binary to have' IRCDMODE 711
+  string 'Which owner do you want the binary to have' IRCDOWN "`id | sed -e 's/.*uid=[0-9]*(//' -e 's/).*//' 2> /dev/null`"
+  string 'Which group do you want the binary to have' IRCDGRP "`id | sed -e 's/.*gid=[0-9]*(//' -e 's/).*//' 2> /dev/null`"
+  eval mandir=$mandir
+  string 'Where should I install the man page' MANDIR $mandir
+  if [ "$CFLAGS" = "none" ]; then
+    CFLAGS=""
+  fi
+  if [ "$EXTRA_INCLUDEDIRS" = "none" ]; then
+    EXTRA_INCLUDEDIRS=""
+  fi
+  if [ "$LDFLAGS" = "none" ]; then
+    LDFLAGS=""
+  fi
+  if [ "$IRCDLIBS" = "none" ]; then
+    IRCDLIBS=""
+  fi
+  EXTRA_CPPFLAGS=""
+  if [ -n "$EXTRA_INCLUDEDIRS" ]; then
+    for i in $EXTRA_INCLUDEDIRS; do
+      if [ -z "$EXTRA_CPPFLAGS" ]; then
+	EXTRA_CPPFLAGS=-I$i
+      else
+	EXTRA_CPPFLAGS="$EXTRA_CPPFLAGS -I$i"
+      fi
+    done
+  fi
+  if [ -z "$EXTRA_CPPFLAGS" ]; then
+    CPPFLAGS=-I../include
+  else
+    CPPFLAGS="-I../include $EXTRA_CPPFLAGS"
+  fi
+  echo "EXTRA_CPPFLAGS=\"$EXTRA_CPPFLAGS\"" >>$CONFIG
+  echo "CPPFLAGS=\"$CPPFLAGS\"" >>$CONFIG
+  bool 'Use inlining for a few crucial functions' FORCEINLINE y
+endmenu
+
+if [ "$ac_cv_header_poll_h" = "yes" ]; then
+  if [ "$unet_cv_func_poll_syscall" = "yes" ]; then
+    define_bool USE_POLL y
+  else
+    mainmenu_option next_comment
+    comment 'Operating System specific defines.'
+      bool 'You have poll(), but do you want to use it' USE_POLL n
+    endmenu
+  fi
+fi
+
+mainmenu_option next_comment
+comment 'Host specific defines'
+  if [ -f /etc/resolv.conf ]; then
+    DOMAINNAME_DEFAULT="`awk '/^domain/ { print $2; exit }' /etc/resolv.conf`"
+  fi
+  string 'What is the domain name of your network' DOMAINNAME $DOMAINNAME_DEFAULT
+  if [ -z "$DOMAINNAME" ]; then
+    DOMAINNAME=none
+  fi
+  string 'Please give a random seed of eight characters' RANDOM_SEED 12345678
+  bool 'Does your host have a reliable clock' RELIABLE_CLOCK
+endmenu
+
+mainmenu_option next_comment
+comment 'General defines'
+  bool 'Change root ('/') after start of daemon' CHROOTDIR
+  bool 'Do you want the daemon set its own uid/gid' CONFIG_SETUGID
+  if [ "$CONFIG_SETUGID" = "y" ]; then
+    int '   UID of irc daemon' IRC_UID
+    int '   GID of irc daemon' IRC_GID
+  else
+    define_int IRC_UID $IRC_UID
+    define_int IRC_GID $IRC_GID
+    bool 'Allow to specify configuration file on command line' CMDLINE_CONFIG
+    if [ "$CMDLINE_CONFIG" = "y" ]; then
+      echo "   SECURITY: Then don't install the daemon SUID or SGID !"
+    fi
+  fi
+  bool 'Set up a Unix domain socket to connect clients/servers' UNIXPORT
+  bool 'Do you need virtual hosting' VIRTUAL_HOST
+  PREV_HUB=$HUB
+  bool 'Will you connect to more then one server at a time' HUB
+  if [ "$PREV_HUB" != "$HUB" ]; then
+    BUFFERPOOL=
+  fi
+endmenu
+
+mainmenu_option next_comment
+comment 'Debugging (do not define this on production servers)'
+  bool 'Do you want to enable debugging output' DEBUGMODE
+  bool 'Do you want memory- allocation and/or leak checking' DEBUGMALLOC
+  if [ "$DEBUGMALLOC" = "y" ]; then
+    bool 'Do you want to have boundary checking' MEMMAGICNUMS
+    bool 'Do you want memory leak testing (stats M)' MEMLEAKSTATS y
+    if [ "$MEMLEAKSTATS" = "y" ]; then
+      if [ "$MEMMAGICNUMS" = "y" ]; then
+	echo "You will have extra info on allocated sizes too (MEMSIZESTATS)"
+	define_bool MEMSIZESTATS $MEMSIZESTATS
+      else
+        bool 'Do you want extra info on allocated sizes' MEMSIZESTATS y
+      fi
+      bool 'Do you want support for a time interval with /stats M' MEMTIMESTATS y
+    fi
+  else
+    define_bool MEMMAGICNUMS $MEMMAGICNUMS
+    define_bool MEMLEAKSTATS $MEMLEAKSTATS
+    define_bool MEMSIZESTATS $MEMSIZESTATS
+    define_bool MEMTIMESTATS $MEMTIMESTATS
+  fi
+  bool 'Are you testing on a host without DNS' NODNS
+endmenu
+
+mainmenu_option next_comment
+comment 'Paths and files'
+  eval DPATH_DEFAULT="${prefix}/lib/ircd"
+  string 'Directory where all ircd stuff resides' DPATH $DPATH_DEFAULT
+  define_string SPATH "$BINDIR/ircd"
+  echo "The following filenames are either full paths or files within DPATH"
+  string 'Server configuration file' CPATH 'ircd.conf'
+  string 'Server MOTD file' MPATH 'ircd.motd'
+  string 'Server remote MOTD file (3 lines max)' RPATH 'remote.motd'
+  if [ "$DEBUGMODE" = "y" ]; then
+    string 'Debug file if DEBUGMODE' LPATH '/tmp/ircd.log'
+  else
+    define_string LPATH "$LPATH"
+  fi
+  string 'File for server pid' PPATH 'ircd.pid'
+endmenu
+
+mainmenu_option next_comment
+comment 'Logging (filenames are either full paths or files within DPATH)'
+  bool 'Do you want to log the use of /WHO x% (recommended)' CONFIG_LOG_WHOX y
+    if [ "$CONFIG_LOG_WHOX" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' WPATH 'whox.log'
+    fi
+  bool 'Do you want to log G-lines to a separate file' CONFIG_LOG_GLINES
+    if [ "$CONFIG_LOG_GLINES" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' GPATH 'gline.log'
+    fi
+  bool 'Do you want to log connecting users to a separate file' CONFIG_LOG_USERS
+    if [ "$CONFIG_LOG_USERS" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' FNAME_USERLOG $DPATH/users
+    fi
+  bool 'Do you want to log Opers to a separate file' CONFIG_LOG_OPERS
+    if [ "$CONFIG_LOG_OPERS" = "y" ]; then
+      string '   Give the path and(or) filename of this log file' FNAME_OPERLOG $DPATH/opers
+    fi
+  if [ "$ac_cv_header_syslog_h" = "yes" ]; then
+    bool 'Do you want to use syslog' USE_SYSLOG
+  else
+    USE_SYSLOG=n
+  fi
+    if [ "$USE_SYSLOG" = "y" ]; then
+      bool '   Log all operator kills to syslog' SYSLOG_KILL
+      bool '   Log all remote squits for all servers to syslog' SYSLOG_SQUIT
+      bool '   Log remote connect messages for other all servs' SYSLOG_CONNECT
+      bool '   Log all users who successfully become an Oper' SYSLOG_OPER
+      bool '   Send userlog stuff to syslog' SYSLOG_USERS
+      if [ "$SYSLOG_KILL" = "n" -a "$SYSLOG_SQUIT" = "n" -a \
+           "$SYSLOG_CONNECT" = "n" -a "$SYSLOG_OPER" = "n" -a \
+	   "$SYSLOG_USERS" = "n" ]; then
+	define_macro LOG_FACILITY $LOG_FACILITY
+        define_bool USE_SYSLOG n
+      else
+        choice '   Log facility' \
+		"daemon		CONFIG_DAEMON	\
+		user		CONFIG_USER	\
+		local0-7	CONFIG_LOCAL" daemon
+	if [ "$CONFIG_DAEMON" = "y" ]; then
+	  define_macro LOG_FACILITY LOG_DAEMON
+	else
+	  if [ "$CONFIG_USER" = "y" ]; then
+	    define_macro LOG_FACILITY LOG_USER
+	  else
+	    int '      Which local facility (0-7)' INT_LOCAL
+	    define_macro LOG_FACILITY LOG_LOCAL$INT_LOCAL
+	  fi
+	fi
+	echo "    Using log facility $LOG_FACILITY"
+      fi
+    else
+      define_bool SYSLOG_KILL $SYSLOG_KILL
+      define_bool SYSLOG_SQUIT $SYSLOG_SQUIT
+      define_bool SYSLOG_CONNECT $SYSLOG_CONNECT
+      define_bool SYSLOG_OPER $SYSLOG_OPER
+      define_bool SYSLOG_USERS $SYSLOG_USERS
+      define_macro LOG_FACILITY $LOG_FACILITY
+    fi
+endmenu
+
+mainmenu_option next_comment
+comment 'Configuration'
+  bool 'Use crypted passwords for N: lines' CRYPT_LINK_PASSWORD y
+  bool 'Use crypted passwords for operators' CRYPT_OPER_PASSWORD y
+  DUMMY=`echo "$BUFFERPOOL" | sed -e 's/[0-9]//g'`
+  if [ "$DUMMY" != "" ]; then
+    BUFFERPOOL=
+  fi
+  if [ "$HUB" = "y" ]; then
+    int 'Max size of the total of of all sendqs (bytes)' BUFFERPOOL 27000000
+  else
+    int 'Max size of the total of of all sendqs (bytes)' BUFFERPOOL 9000000
+  fi
+  int 'Max receive queue for clients (bytes)' CLIENT_FLOOD 1024
+  int 'Maximum number of network connections (23 - (FD_SETSIZE-4))' MAXCONNECTIONS 252
+  int 'Default client listen port' PORTNUM 6667
+  int 'Nickname history length' NICKNAMEHISTORYLENGTH 800
+  bool 'Allow Opers to see (dis)connects of local clients' ALLOW_SNO_CONNEXIT
+  if [ "$ALLOW_SNO_CONNEXIT" = "y" ]; then
+    bool 'Show IP address in client connection notices' SNO_CONNEXIT_IP
+  fi
+  bool 'Do you want to use R: lines in your configuration file' R_LINES
+  if [ "$R_LINES" = "y" ]; then
+    bool 'Process R: lines every rehash' R_LINES_REHASH y
+    bool 'Process R: lines always' R_LINES_OFTEN
+  else
+    define_bool R_LINES_REHASH $R_LINES_REHASH
+    define_bool R_LINES_OFTEN $R_LINES_OFTEN
+  fi
+  bool 'Do you want support for the old I:*:ONE:*:: construct (read help text!)' USEONE n
+  bool 'Send a short message instead of the MOTD to connecting clients' NODEFAULTMOTD y
+endmenu
+
+mainmenu_option next_comment
+comment 'Oper commands'
+  bool 'Allow (local) Opers to see all local invisible users' SHOW_INVISIBLE_USERS y
+  if [ "$SHOW_INVISIBLE_USERS" = "y" ]; then
+    bool 'Allow Opers to see all invisible users' SHOW_ALL_INVISIBLE_USERS y
+  fi
+  bool 'Allow global Opers (O:) to see inside secret channels' OPERS_SEE_IN_SECRET_CHANNELS y
+  if [ "$OPERS_SEE_IN_SECRET_CHANNELS" = "y" ]; then
+    bool 'Allow local Opers (o:) to see inside secret channels' LOCOP_SEE_IN_SECRET_CHANNELS n
+  fi
+  bool 'Do not truncate obnoxiously long /who output for opers' UNLIMIT_OPER_QUERY
+  bool 'Allow Opers to use the KILL command' OPER_KILL y
+  bool 'Allow Opers to use the REHASH command' OPER_REHASH y
+  bool 'Allow Opers to use the RESTART command' OPER_RESTART y
+  bool 'Allow Opers to use the DIE command' OPER_DIE y
+  bool 'Allow Opers to add local G-lines' OPER_LGLINE y
+  bool 'Allow Opers to connect from a remote site' OPER_REMOTE y
+  bool 'Allow local opers to use the REHASH command' LOCOP_REHASH y
+  bool 'Allow local opers to use the RESTART command' LOCOP_RESTART
+  bool 'Allow local opers to use the DIE command' LOCOP_DIE
+  bool 'Allow local opers to add local G-lines' LOCOP_LGLINE y
+endmenu
+
+mainmenu_option next_comment
+comment 'Server characteristics'
+  bool 'Do you want to have a default LIST parameter' CONFIG_LIST y
+  if [ "$CONFIG_LIST" = "y" ]; then
+    string 'Give default LIST parameter' DEFAULT_LIST 'T<10'
+    define_string DEFAULT_LIST_PARAM "$DEFAULT_LIST"
+  else
+    define_string DEFAULT_LIST "$DEFAULT_LIST"
+    define_bool DEFAULT_LIST_PARAM n
+  fi
+  bool 'K: line comments treated as a file by default' COMMENT_IS_FILE y
+  bool 'Only nullify idle-time on PRIVMSG' IDLE_FROM_MSG y
+endmenu
+
+mainmenu_option next_comment
+comment 'Mandatory defines (you should leave these untouched)'
+  int 'Max auto connects per class (1!)' MAXIMUM_LINKS 1
+  echo '* Never define this on a production server:'
+  bool 'Enable message logging' MSGLOG_ENABLED
+  if [ "$MSGLOG_ENABLED" = "y" ]; then
+    int 'Message log size' MSGLOG_SIZE 128
+  fi
+  if [ "$OPER_KILL" = "y" ]; then
+    bool 'Only allow KILLs of local clients' LOCAL_KILL_ONLY
+  else
+    define_bool LOCAL_KILL_ONLY $LOCAL_KILL_ONLY
+  fi
+  int 'KILL nick chase time limit (30)' KILLCHASETIMELIMIT 30
+  int 'Max number of channels per user (recommended: 5)' MAXCHANNELSPERUSER 10
+  int 'Max number of silence masks (15!)' MAXSILES 15
+  int 'Expected average banmask length (40!)' AVBANLEN 40
+  eval define_macro MAXSILELENGTH \'\($AVBANLEN * MAXSILES\)\'
+  echo '* These are default values, used for class 0:'
+  int 'Max server idle time (60)' TIMESEC 60
+  int 'Class 0 ping frequency (120)' PINGFREQUENCY 120
+  int 'Class 0 connect frequency (600)' CONNECTFREQUENCY 600
+  int 'Min time before a link is good (300)' HANGONGOODLINK 300
+  int 'Wait before reconnecting to good link (10!)' HANGONRETRYDELAY 10
+  int 'connect(2) timeout (90!)' CONNECTTIMEOUT 90
+  int 'Max send queue (40000)' DEFAULTMAXSENDQLENGTH 40000
+endmenu
+

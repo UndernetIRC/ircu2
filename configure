@@ -1,0 +1,9 @@
+#! /bin/sh
+chmod u+x config/install-sh config/configure ircd/crypt/sums ircd/crypt/crypter
+cd config
+if test ! -f config.cache && test -r ../../.config.cache; then
+	cp ../../.config.cache config.cache;
+fi
+./configure
+echo timestamp > ../doc/stamp-m
+echo timestamp > ../ircd/stamp-m

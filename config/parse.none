@@ -1,0 +1,9 @@
+if [ "$CFLAGS" = "none" ]; then
+  CFLAGS=""
+fi
+if [ "$LDFLAGS" = "none" ]; then
+  LDFLAGS=""
+fi
+if [ "$IRCDLIBS" = "none" ]; then
+  IRCDLIBS=""
+fi
