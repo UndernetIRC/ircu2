@@ -41,8 +41,8 @@ ac_default_prefix=$unet_cv_prefix
 dnl Define the input and output configuration header file.
 AC_CONFIG_HEADER([config.h])
 
-dnl Demand at least version 2.50 of autoconf
-AC_PREREQ(2.50)
+dnl Demand at least version 2.59 of autoconf (for AS_HELP_STRING)
+AC_PREREQ(2.59)
 
 dnl Find out what type of system we are
 AC_CANONICAL_HOST
@@ -63,10 +63,6 @@ if test "x$unet_cv_optimization" = "xno" ; then
 fi
 if test x"$CFLAGS" != x; then
     CFLAGS=`echo "$CFLAGS" | sed -e s/-O2/$unet_cv_optimization/`
-fi
-dnl Remove -pipe during configure
-if test x"$CFLAGS" != x; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pipe//g'`
 fi
 dnl Notice the -g flag and deal accordingly
 if test x"$CFLAGS" != x; then
@@ -180,12 +176,8 @@ dnl byacc does not seem to have any way to test for workingness, so only warn.
   AC_MSG_WARN([$YACC may not work as yacc.])
 fi
 
-
 unet_NONBLOCKING
 unet_SIGNALS
-
-dnl Add -pipe when possible
-unet_PIPE_CFLAGS
 
 dnl Check OS for os_dep files.
 AC_MSG_CHECKING(for OS-dependent information)

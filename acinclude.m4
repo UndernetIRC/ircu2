@@ -1,28 +1,4 @@
 dnl
-dnl Macro: unet_PIPE_CFLAGS
-dnl
-dnl   If the compiler understands -pipe, add it to CFLAGS if not already
-dnl   there.
-dnl
-AC_DEFUN(unet_PIPE_CFLAGS,
-[AC_MSG_CHECKING([if the compiler understands -pipe])
-unet_cv_pipe_flags="$ac_cv_prog_gcc"
-if test "$ac_cv_prog_gcc" = no; then
-  OLDCFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS -pipe"
-  AC_TRY_COMPILE(,,unet_cv_pipe_flags=yes,)
-  CFLAGS="$OLDCFLAGS"
-fi
-AC_MSG_RESULT($unet_cv_pipe_flags)
-if test "$unet_cv_pipe_flags" = yes ; then
-  x=`echo $CFLAGS | grep 'pipe' 2>/dev/null`
-  if test "$x" = "" ; then
-    CFLAGS="$CFLAGS -pipe"
-  fi
-fi
-])
-
-dnl
 dnl Macro: unet_NONBLOCKING
 dnl
 dnl   Check whether we have posix, bsd or sysv non-blocking sockets and

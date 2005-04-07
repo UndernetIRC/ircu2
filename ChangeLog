@@ -1,3 +1,16 @@
+2005-04-06  Michael Poole <mdpoole@troilus.org>
+
+	* acinclude.m4 (unet_PIPE_CFLAGS): Remove; -pipe is obsolete in
+	current gcc releases and is slower than files for previous
+	releases on most OSes.
+
+	* configure.in (AC_PREREQ): Bump to 2.59 because of AS_HELP_STRING.
+	(unet_PIPE_CFLAGS): Remove use of macro.
+
+	* aclocal.m4: Regenerate.
+
+	* configure: Likewise.
+
 2005-04-04  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: For developers' ease, allow passing an option to
