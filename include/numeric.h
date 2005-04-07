@@ -63,7 +63,9 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_MAP               15        /* Undernet extension */
 #define RPL_MAPMORE           16        /* Undernet extension */
 #define RPL_MAPEND            17        /* Undernet extension */
-#define RPL_APASSWARN         30	/* Undernet extension */
+#define RPL_APASSWARN_SET     30	/* Undernet extension */
+#define RPL_APASSWARN_SECRET  31	/* Undernet extension */
+#define RPL_APASSWARN_CLEAR   32	/* Undernet extension */
 /*	RPL_YOURID	      42	IRCnet extension */
 /*      RPL_ATTEMPTINGJUNC    50           aircd extension */
 /*      RPL_ATTEMPTINGREROUTE 51           aircd extension */
@@ -459,7 +461,9 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_CHANSECURED      552	/* Undernet extension */
 #define ERR_UPASSSET         553	/* Undernet extension */
 #define ERR_UPASSNOTSET      554	/* Undernet extension */
-#define ERR_LASTERROR        555
+#define ERR_NOMANAGER_LONG   555	/* Undernet extension */
+#define ERR_NOMANAGER_SHORT  556	/* Undernet extension */
+#define ERR_LASTERROR        557
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

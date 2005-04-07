@@ -2439,7 +2439,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_FORCE && MyUser(state->sptr)
       && !HasPriv(state->sptr, PRIV_APASS_OPMODE)) {
     send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-               "Use /JOIN", state->chptr->chname, " <AdminPass>.");
+               state->chptr->chname);
     return;
   }
 
@@ -2447,16 +2447,15 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   if (MyUser(state->sptr) && !(state->flags & MODE_PARSE_FORCE || IsChannelManager(state->member))) {
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
+                 state->chptr->chname);
+    } else if (TStime() - state->chptr->creationtime >= 171000) {
+      send_reply(state->sptr, ERR_NOMANAGER_LONG, state->chptr->chname);
     } else {
-      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-	  "Re-create the channel.  The channel must be *empty* for",
-	  TStime() - state->chptr->creationtime >= 171000 ? "48 contiguous hours" : "a minute or two",
-	  "before it can be recreated.");
+      send_reply(state->sptr, ERR_NOMANAGER_SHORT, state->chptr->chname);
     }
     return;
   }
- 
+
   if (state->done & DONE_UPASS) /* allow upass to be set only once */
     return;
   state->done |= DONE_UPASS;
@@ -2479,7 +2478,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   if (!state->mbuf)
     return;
 
-  if (!(state->flags & MODE_PARSE_FORCE))
+  if (!(state->flags & MODE_PARSE_FORCE)) {
     /* can't add the upass while apass is not set */
     if (state->dir == MODE_ADD && !*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_UPASSNOTSET, state->chptr->chname, state->chptr->chname);
@@ -2492,6 +2491,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
       send_reply(state->sptr, ERR_KEYSET, state->chptr->chname);
       return;
     }
+  }
 
   if (!(state->flags & MODE_PARSE_WIPEOUT) && state->dir == MODE_ADD &&
       !ircd_strcmp(state->chptr->mode.upass, t_str))
@@ -2547,7 +2547,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_FORCE && MyUser(state->sptr)
       && !HasPriv(state->sptr, PRIV_APASS_OPMODE)) {
     send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-               "Use /JOIN", state->chptr->chname, " <AdminPass>.");
+               state->chptr->chname);
     return;
   }
 
@@ -2561,15 +2561,15 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   if (MyUser(state->sptr) && !(state->flags & MODE_PARSE_FORCE || IsChannelManager(state->member))) {
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-	  "Use /JOIN", state->chptr->chname, "<AdminPass>.");
+                 state->chptr->chname);
+    } else if (TStime() - state->chptr->creationtime >= 171000) {
+      send_reply(state->sptr, ERR_NOMANAGER_LONG, state->chptr->chname);
     } else {
-      send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
-	  "Re-create the channel.  The channel must be *empty* for",
-	  "at least a whole minute", "before it can be recreated.");
+      send_reply(state->sptr, ERR_NOMANAGER_SHORT, state->chptr->chname);
     }
     return;
   }
- 
+
   if (state->done & DONE_APASS) /* allow apass to be set only once */
     return;
   state->done |= DONE_APASS;
@@ -2624,25 +2624,14 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
       /* Make it VERY clear to the user that this is a one-time password */
       ircd_strncpy(state->chptr->mode.apass, t_str, PASSLEN);
       if (MyUser(state->sptr)) {
-	send_reply(state->sptr, RPL_APASSWARN,
-	    "Channel Admin password (+A) set to '", state->chptr->mode.apass, "'. ",
-	    "Are you SURE you want to use this as Admin password? ",
-	    "You will NOT be able to change this password anymore once the channel is more than 48 hours old!");
-	send_reply(state->sptr, RPL_APASSWARN,
-	    "Use \"/MODE ", state->chptr->chname, " -A ", state->chptr->mode.apass,
-	    "\" to remove the password and then immediately set a new one. "
-	    "IMPORTANT: YOU CANNOT RECOVER THIS PASSWORD, EVER; "
-	    "WRITE THE PASSWORD DOWN (don't store this rescue password on disk)! "
-	    "Now set the channel user password (+U).");
+	send_reply(state->sptr, RPL_APASSWARN_SET, state->chptr->mode.apass);
+	send_reply(state->sptr, RPL_APASSWARN_SECRET, state->chptr->chname,
+                   state->chptr->mode.apass);
       }
     } else { /* remove the old apass */
       *state->chptr->mode.apass = '\0';
       if (MyUser(state->sptr))
-	send_reply(state->sptr, RPL_APASSWARN,
-	    "WARNING: You removed the channel Admin password MODE (+A). ",
-	    "If you would disconnect or leave the channel without setting a new password then you will ",
-	    "not be able to set it again and lose ownership of this channel! ",
-	    "SET A NEW PASSWORD NOW!", "");
+        send_reply(state->sptr, RPL_APASSWARN_CLEAR);
     }
   }
 }

@@ -1,5 +1,21 @@
 2005-04-06  Michael Poole <mdpoole@troilus.org>
 
+	* include/numeric.h (RPL_APASSWARN): Replace with three distinct
+	values.
+	(ERR_NOMANAGER_LONG): Assign new numeric.
+	(ERR_NOMANAGER_SHORT): Assign new numeric.
+
+	* ircd/channel.c (parse_mode_upass): Adapt to new formats for
+	ERR_NOTMANAGER separation.
+	(parse_mode_apass): Likewise.  Also adapt to RPL_APASSWARN split.
+
+	* ircd/s_err.c (RPL_APASSWARN): Replace with three message
+	strings, to avoid embedding long message strings in the logic
+	implementation.
+	(ERR_NOTMANAGER): Likewise (but not the same strings).
+
+2005-04-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y (clientblock): Use the password field.
 
 	* ircd/s_user.c (register_user): Allow aconf->password to be a

@@ -92,11 +92,11 @@ static Numeric replyTable[] = {
 /* 029 */
   { 0 },
 /* 030 */
-  { RPL_APASSWARN, ":%s%s%s%s%s", "030" },
+  { RPL_APASSWARN_SET, ":Channel Admin password (+A) set to '%s'.  Are you SURE you want to use this as Admin password? You will NOT be able to change this password anymore once the channel is more than 48 hours old!", "030" },
 /* 031 */
-  { 0 },
+  { RPL_APASSWARN_SECRET, ":Use \"/MODE %s -A %s\" to remove the password and then immediately set a new one.  IMPORTANT: YOU CANNOT RECOVER THIS PASSWORD, EVER; WRITE THE PASSWORD DOWN (don't store this rescue password on disk)! Now set the channel user password (+U).", "031" },
 /* 032 */
-  { 0 },
+  { RPL_APASSWARN_CLEAR, ":WARNING: You removed the channel Admin password (+A). If you disconnect or leave the channel without setting a new password then you will not be able to set it again!  SET A NEW PASSWORD NOW!", "032" },
 /* 033 */
   { 0 },
 /* 034 */
@@ -1134,7 +1134,7 @@ static Numeric replyTable[] = {
 /* 550 */
   { ERR_NOTLOWEROPLEVEL, "%s %s %hu %hu :Cannot %s someone with %s op-level", "550" },
 /* 551 */
-  { ERR_NOTMANAGER, "%s :You must be channel Admin to add or remove a password. %s %s %s", "551" },
+  { ERR_NOTMANAGER, "%s :You must be channel Admin to add or remove a password. Use /JOIN %s <AdminPass>.", "551" },
 /* 552 */
   { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "552" },
 /* 553 */
@@ -1142,9 +1142,9 @@ static Numeric replyTable[] = {
 /* 554 */
   { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "554" },
 /* 555 */
-  { 0 },
+  { ERR_NOMANAGER_LONG, "%s :Re-create the channel.  The channel must be *empty* for 48 continuous hours before it can be recreated.", "555" },
 /* 556 */
-  { 0 },
+  { ERR_NOMANAGER_SHORT, "%s :Re-create the channel.  The channel must be *empty* for a minute or two before it can be recreated.", "556" },
 /* 557 */
   { 0 },
 /* 558 */
