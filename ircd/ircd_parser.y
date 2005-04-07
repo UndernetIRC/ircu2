@@ -659,6 +659,7 @@ clientblock: CLIENT
     MyFree(username);
     MyFree(host);
     MyFree(ip);
+    MyFree(pass);
   } else {
     struct ConfItem *aconf = make_conf(CONF_CLIENT);
     aconf->username = username;
@@ -671,11 +672,13 @@ clientblock: CLIENT
     aconf->name = ip;
     aconf->conn_class = c_class ? c_class : find_class("default");
     aconf->maximum = maxlinks;
+    aconf->passwd = pass;
   }
   host = NULL;
   username = NULL;
   c_class = NULL;
   ip = NULL;
+  pass = NULL;
 };
 clientitems: clientitem clientitems | clientitem;
 clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks | error;

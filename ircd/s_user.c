@@ -469,7 +469,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
       return exit_client(cptr, sptr, &me, "USER: Bogus userid.");
 
     if (!EmptyString(aconf->passwd)
-        && !(IsDigit(*aconf->passwd) && !aconf->passwd[1])
         && strcmp(cli_passwd(sptr), aconf->passwd))
     {
       ServerStats->is_ref++;
