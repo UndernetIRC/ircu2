@@ -1,5 +1,10 @@
 2005-04-06  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_burst.c (ms_burst): Clear channel manager bit when wiping
+	out locally opped and voiced channel members.
+
+2005-04-06  Michael Poole <mdpoole@troilus.org>
+
 	* include/numeric.h (RPL_APASSWARN): Replace with three distinct
 	values.
 	(ERR_NOMANAGER_LONG): Assign new numeric.
