@@ -22,7 +22,7 @@
 # Usage:
 #   convert-conf.py < old.conf > new.conf
 #
-# $Id: convert-conf.py,v 1.3 2005-03-19 23:04:07 entrope Exp $
+# $Id: convert-conf.py,v 1.4 2005-04-09 03:54:24 isomer Exp $
 #
 
 import sys
@@ -108,9 +108,9 @@ def do_iline(parts):
 	if len(parts)!=6:
 		sys.stderr.write("WARNING: I:line doesn't have enough fields on line %i\n" % lno)
 		return
-	iline,ip,password,host,dummy,clss = parts
+	iline,ip,password,hostname,dummy,clss = parts
 	for i in [0,1]:
-		mask = [ip,host][i]
+		mask = [ip,hostname][i]
 		# Ignore things that aren't masks
 		if "." not in mask and "*" not in mask and "@" not in mask:
 			continue
