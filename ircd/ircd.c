@@ -108,6 +108,7 @@ char          *configfile        = CPATH; /**< Server configuration file */
 int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
 static char   *dpath             = DPATH; /**< Working directory for daemon */
+static char   *dbg_client;                /**< Client specifier for chkconf */
 
 static struct Timer connect_timer; /**< timer structure for try_connections() */
 static struct Timer ping_timer; /**< timer structure for check_pings() */
@@ -451,7 +452,7 @@ static void check_pings(struct Event* ev) {
  * @param[in,out] argv Command-lne arguments.
  */
 static void parse_command_line(int argc, char** argv) {
-  const char *options = "d:f:h:nktvx:";
+  const char *options = "d:f:h:nktvx:c:";
   int opt;
 
   if (thisServer.euid != thisServer.uid)
@@ -463,6 +464,7 @@ static void parse_command_line(int argc, char** argv) {
   while ((opt = getopt(argc, argv, options)) != EOF)
     switch (opt) {
     case 'k':  thisServer.bootopt |= BOOT_CHKCONF | BOOT_TTY; break;
+    case 'c':  dbg_client = optarg;                    break;
     case 'n':
     case 't':  thisServer.bootopt |= BOOT_TTY;         break;
     case 'd':  dpath      = optarg;                    break;
@@ -487,7 +489,7 @@ static void parse_command_line(int argc, char** argv) {
 
       exit(0);
       break;
-      
+
     case 'x':
       debuglevel = atoi(optarg);
       if (debuglevel < 0)
@@ -675,6 +677,8 @@ int main(int argc, char **argv) {
   }
 
   if (thisServer.bootopt & BOOT_CHKCONF) {
+    if (dbg_client)
+      conf_debug_iline(dbg_client);
     fprintf(stderr, "Configuration file %s checked okay.\n", configfile);
     return 0;
   }

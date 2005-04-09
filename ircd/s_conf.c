@@ -383,6 +383,9 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
+    /* If you change any of this logic, please make corresponding
+     * changes in conf_debug_iline() below.
+     */
     if (aconf->address.port && aconf->address.port != cli_listener(cptr)->addr.port)
       continue;
     if (aconf->username) {
@@ -398,6 +401,103 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
     return check_limit_and_attach(cptr, aconf);
   }
   return ACR_NO_AUTHORIZATION;
+}
+
+/** Interpret \a client as a client specifier and show which Client
+ * block(s) match that client.
+ *
+ * The client specifier may contain an IP address, hostname, listener
+ * port, or a combination of those separated by commas.  IP addresses
+ * and hostnamese may be preceded by "username@"; the last given
+ * username will be used for the match.
+ *
+ * @param[in] client Client specifier.
+ * @return Matching Client block structure.
+ */
+struct ConfItem *conf_debug_iline(const char *client)
+{
+  struct irc_in_addr address;
+  struct ConfItem *aconf;
+  char *sep;
+  unsigned short listener;
+  char username[USERLEN+1], hostname[HOSTLEN+1];
+
+  /* Initialize variables. */
+  listener = 0;
+  memset(&address, 0, sizeof(address));
+  memset(&username, 0, sizeof(username));
+  memset(&hostname, 0, sizeof(hostname));
+
+  /* Parse client specifier. */
+  while (*client) {
+    struct irc_in_addr tmpaddr;
+    long tmp;
+
+    /* Try to parse as listener port number first. */
+    tmp = strtol(client, &sep, 10);
+    if (tmp && (*sep == '\0' || *sep == ',')) {
+      listener = tmp;
+      client = sep + (*sep != '\0');
+      continue;
+    }
+
+    /* Maybe username@ before an IP address or hostname? */
+    tmp = strcspn(client, ",@");
+    if (client[tmp] == '@') {
+      if (tmp > USERLEN)
+        tmp = USERLEN;
+      ircd_strncpy(username, client, tmp);
+      /* and fall through */
+      client += tmp + 1;
+    }
+
+    /* Looks like an IP address? */
+    tmp = ircd_aton(&tmpaddr, client);
+    if (tmp && (client[tmp] == '\0' || client[tmp] == ',')) {
+        memcpy(&address, &tmpaddr, sizeof(address));
+        client += tmp + (client[tmp] != '\0');
+        continue;
+    }
+
+    /* Else must be a hostname. */
+    tmp = strcspn(client, ",");
+    if (tmp > HOSTLEN)
+      tmp = HOSTLEN;
+    ircd_strncpy(hostname, client, tmp);
+    client += tmp + (client[tmp] != '\0');
+  }
+
+  /* Walk configuration to find matching Client block. */
+  for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
+    if (aconf->status != CONF_CLIENT)
+      continue;
+    if (aconf->address.port && aconf->address.port != listener) {
+      fprintf(stdout, "Listener port mismatch: %u != %u\n", aconf->address.port, listener);
+      continue;
+    }
+    if (aconf->username && match(aconf->username, username)) {
+      fprintf(stdout, "Username mismatch: %s != %s\n", aconf->username, username);
+      continue;
+    }
+    if (aconf->host && match(aconf->host, hostname)) {
+      fprintf(stdout, "Hostname mismatch: %s != %s\n", aconf->host, hostname);
+      continue;
+    }
+    if ((aconf->addrbits >= 0)
+        && !ipmask_check(&address, &aconf->address.addr, aconf->addrbits)) {
+      fprintf(stdout, "IP address mismatch: %s != %s\n", aconf->name, ircd_ntoa(&address));
+      continue;
+    }
+    fprintf(stdout, "Match! username=%s host=%s ip=%s class=%s maxlinks=%u password=%s\n",
+            (aconf->username ? aconf->username : "(null)"),
+            (aconf->host ? aconf->host : "(null)"),
+            (aconf->name ? aconf->name : "(null)"),
+            ConfClass(aconf), aconf->maximum,  aconf->passwd);
+    return aconf;
+  }
+
+  fprintf(stdout, "No matches found.\n");
+  return NULL;
 }
 
 /** Check whether a particular ConfItem is already attached to a

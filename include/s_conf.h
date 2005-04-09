@@ -183,6 +183,7 @@ extern int find_kill(struct Client *cptr);
 extern const char *find_quarantine(const char* chname);
 extern void lookup_confhost(struct ConfItem *aconf);
 extern void conf_parse_userhost(struct ConfItem *aconf, char *host);
+extern struct ConfItem *conf_debug_iline(const char *client);
 
 extern void yyerror(const char *msg);
 

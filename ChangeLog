@@ -1,3 +1,19 @@
+2005-04-08  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_conf.h (conf_debug_iline): Declare new function.
+
+	* ircd/ircd.c (dbg_client): New file-scoped variable.
+	(parse_command_line): Set it from the new -c option.
+	(main): If dbg_client is set during chkconf, use it.
+
+	* ircd/ircd_string.c (ircd_aton): Generate IPv4-mapped addresses,
+	not IPv4-compatible addresses, to match ipmask_parse().
+
+	* ircd/m_whowas.c (m_whowas): Split display of real host to a
+	separate line, in hopes of not confusing opers in the future.
+
+	* ircd/s_conf.c (conf_debug_iline): Implement new function.
+
 2005-04-06  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Clear channel manager bit when wiping

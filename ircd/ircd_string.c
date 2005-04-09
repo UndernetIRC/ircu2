@@ -667,6 +667,7 @@ ircd_aton(struct irc_in_addr *ip, const char *input)
     unsigned int addr;
     int len = ircd_aton_ip4(input, &addr);
     if (len) {
+      ip->in6_16[5] = htons(65535);
       ip->in6_16[6] = htons(ntohl(addr) >> 16);
       ip->in6_16[7] = htons(ntohl(addr) & 65535);
       return len;
