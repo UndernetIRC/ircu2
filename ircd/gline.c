@@ -225,9 +225,9 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
         if (GlineIsIpMask(gline)) {
 #ifdef DEBUGMODE
           char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
-          Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
+          Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(acptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
 #endif
-          if (!ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits))
+          if (!ipmask_check(&cli_ip(acptr), &gline->gl_addr, gline->gl_bits))
             continue;
         }
         else {

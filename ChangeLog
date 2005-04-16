@@ -1,5 +1,10 @@
 2005-04-16  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/gline.c (do_gline): Fix typo when activating IP-based
+	G-lines.
+
+2005-04-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/class.c (free_class): Free default_umode field.
 
 	* ircd/ircd_parser.y (classblock): Free default_umode field before
