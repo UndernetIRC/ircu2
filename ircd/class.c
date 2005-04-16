@@ -77,8 +77,8 @@ void free_class(struct ConnectionClass* p)
   if (p)
   {
     assert(0 == p->valid);
-    if (p->cc_name)
-      MyFree(p->cc_name);
+    MyFree(p->cc_name);
+    MyFree(p->default_umode);
     MyFree(p);
     --connClassAllocCount;
   }

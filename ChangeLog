@@ -1,3 +1,15 @@
+2005-04-16  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/class.c (free_class): Free default_umode field.
+
+	* ircd/ircd_parser.y (classblock): Free default_umode field before
+	overwriting it.
+
+	* ircd/s_conf.c (free_conf): Free username, origin_name, hub_limit
+	fields.
+	(find_kill): Realname Kill blocks no longer have $R at the start,
+	so do not skip over the first two characters of the mask.
+
 2005-04-15  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Operator): Properly qualify plaintext password.

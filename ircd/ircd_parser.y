@@ -342,6 +342,7 @@ classblock: CLASS {
     struct ConnectionClass *c_class;
     add_class(name, tping, tconn, maxlinks, sendq);
     c_class = find_class(name);
+    MyFree(c_class->default_umode);
     c_class->default_umode = pass;
     memcpy(&c_class->privs, &privs, sizeof(c_class->privs));
     memcpy(&c_class->privs_dirty, &privs_dirty, sizeof(c_class->privs_dirty));

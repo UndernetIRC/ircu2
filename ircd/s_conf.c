@@ -150,11 +150,14 @@ void free_conf(struct ConfItem *aconf)
          aconf->address.port));
   if (aconf->dns_pending)
     delete_resolver_queries(aconf);
+  MyFree(aconf->username);
   MyFree(aconf->host);
+  MyFree(aconf->origin_name);
   if (aconf->passwd)
     memset(aconf->passwd, 0, strlen(aconf->passwd));
   MyFree(aconf->passwd);
   MyFree(aconf->name);
+  MyFree(aconf->hub_limit);
   MyFree(aconf);
 #ifdef        DEBUGMODE
   --GlobalConfCount;
@@ -1020,7 +1023,7 @@ int find_kill(struct Client *cptr)
       break;
 
     if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
-      if (0 == match(deny->hostmask + 2, realname))
+      if (0 == match(deny->hostmask, realname))
 	break;
     } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
 #ifdef DEBUGMODE
