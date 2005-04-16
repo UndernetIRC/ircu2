@@ -74,7 +74,6 @@
   struct ConnectionClass *c_class;
   struct DenyConf *dconf;
   struct ServerConf *sconf;
-  struct qline *qconf = NULL;
   struct s_map *smap;
   struct Privs privs;
   struct Privs privs_dirty;
@@ -764,7 +763,7 @@ killuhost: HOST '=' QSTRING ';'
   else
   {
     u = $3;
-    h++;
+    *h++ = '\0';
   }
   DupString(dconf->hostmask, h);
   DupString(dconf->usermask, u);
@@ -890,27 +889,15 @@ extrastring: QSTRING
     stringlist[stringno++] = $1;
 };
 
-quarantineblock: QUARANTINE '{'
+quarantineblock: QUARANTINE '{' quarantineitems '}' ';';
+quarantineitems: quarantineitems quarantineitem | quarantineitem;
+quarantineitem: QSTRING '=' QSTRING ';'
 {
-  qconf = (struct qline*) MyCalloc(1, sizeof(*qconf));
-} quarantineitems '}' ';'
-{
-  if (qconf->chname == NULL || qconf->reason == NULL)
-  {
-    parse_error("quarantine blocks need a channel name and a reason.");
-    return 0;
-  }
+  struct qline *qconf = MyCalloc(1, sizeof(*qconf));
+  DupString(qconf->chname, $1);
+  DupString(qconf->reason, $3);
   qconf->next = GlobalQuarantineList;
   GlobalQuarantineList = qconf;
-  qconf = NULL;
-};
-
-quarantineitems: CHANNEL NAME '=' QSTRING ';'
-{
-  DupString(qconf->chname, $4);
-} | REASON '=' QSTRING ';'
-{
-  DupString(qconf->reason, $3);
 };
 
 pseudoblock: PSEUDO QSTRING '{'

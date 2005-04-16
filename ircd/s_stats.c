@@ -41,6 +41,7 @@
 #include "msgq.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "querycmds.h"
 #include "res.h"
 #include "s_bsd.h"
 #include "s_conf.h"
@@ -457,7 +458,7 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
                cli_serv(acptr)->asll_rtt,
                cli_serv(acptr)->asll_to,
                cli_serv(acptr)->asll_from,
-               cli_serv(acptr)->clients,
+               (acptr == &me ? UserStats.local_clients : cli_serv(acptr)->clients),
                cli_serv(acptr)->nn_mask,
                cli_serv(acptr)->prot,
                cli_serv(acptr)->timestamp,
