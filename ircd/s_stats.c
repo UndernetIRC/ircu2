@@ -194,8 +194,11 @@ report_deny_list(struct Client* to)
 {
   const struct DenyConf* p = conf_get_deny_list();
   for ( ; p; p = p->next)
-    send_reply(to, RPL_STATSKLINE, (p->flags & DENY_FLAGS_IP) ? 'k' : 'K',
-               p->hostmask, p->message, p->usermask);
+    send_reply(to, RPL_STATSKLINE, p->bits > 0 ? 'k' : 'K',
+               p->usermask ? p->usermask : "*",
+               p->hostmask ? p->hostmask : "*",
+               p->message ? p->message : "(none)",
+               p->realmask ? p->realmask : "*");
 }
 
 /** Report K/k-lines to a user.
@@ -246,9 +249,11 @@ stats_klines(struct Client *sptr, const struct StatDesc *sd, char *mask)
         (wilds && !mmatch(host, conf->hostmask) &&
          (!user || !mmatch(user, conf->usermask))))
     {
-      send_reply(sptr, RPL_STATSKLINE,
-                 (conf->flags & DENY_FLAGS_IP) ? 'k' : 'K',
-                 conf->hostmask, conf->message, conf->usermask);
+      send_reply(sptr, RPL_STATSKLINE, conf->bits > 0 ? 'k' : 'K',
+                 conf->usermask ? conf->usermask : "*",
+                 conf->hostmask ? conf->hostmask : "*",
+                 conf->message ? conf->message : "(none)",
+                 conf->realmask ? conf->realmask : "*");
       if (--count == 0)
         return;
     }

@@ -1,3 +1,24 @@
+2005-04-16  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Kill): Document newly supported syntax.
+
+	* include/s_conf.h (DenyConf): Split realname mask into its own
+	field.  Remove the unused DENY_FLAGS_{IP,REALNAME}.
+
+	* ircd/ircd_parser.y (Kill): Only require one of usermask,
+	hostmask, realmask to be set for a valid block.
+	(killitem): Add new production killusername.
+
+	* ircd/s_conf.c (conf_erase_deny_list): Free realmask field.
+	(find_kill): Rearrange slightly to clarify control flow.
+
+	* ircd/s_err.c (RPL_STATSKLINE): Stick usermask before hostmask,
+	so the old usermask field can be adopted for realname mask.  Add
+	double quotes around the realmask field.
+
+	* ircd/s_stats.c (report_deny_list): Do so.
+	(stats_klines): Likewise.
+
 2005-04-17  Perry Lorier <isomer@undernet.org>
 	
 	* tools/convert-conf.py: Fix lots of conversion problems with

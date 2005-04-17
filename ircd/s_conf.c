@@ -756,6 +756,7 @@ void conf_erase_deny_list(void)
     MyFree(p->hostmask);
     MyFree(p->usermask);
     MyFree(p->message);
+    MyFree(p->realmask);
     MyFree(p);
   }
   denyConfList = 0;
@@ -1016,28 +1017,16 @@ int find_kill(struct Client *cptr)
    *             -- Isomer
    */
   for (deny = denyConfList; deny; deny = deny->next) {
-    if (0 != match(deny->usermask, name))
+    if (deny->usermask && match(deny->usermask, name))
+      continue;
+    if (deny->realmask && match(deny->realmask, realname))
+      continue;
+    if (deny->bits > 0) {
+      if (!ipmask_check(&cli_ip(cptr), &deny->address, deny->bits))
+        continue;
+    } else if (deny->hostmask && match(deny->hostmask, host))
       continue;
 
-    if (EmptyString(deny->hostmask))
-      break;
-
-    if (deny->flags & DENY_FLAGS_REALNAME) { /* K: by real name */
-      if (0 == match(deny->hostmask, realname))
-	break;
-    } else if (deny->flags & DENY_FLAGS_IP) { /* k: by IP */
-#ifdef DEBUGMODE
-      char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
-      Debug((DEBUG_DEBUG, "ip: %s network: %s/%u",
-             ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &deny->address), deny->bits));
-#endif
-      if (ipmask_check(&cli_ip(cptr), &deny->address, deny->bits))
-        break;
-    }
-    else if (0 == match(deny->hostmask, host))
-      break;
-  }
-  if (deny) {
     if (EmptyString(deny->message))
       send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP,
                  ":Connection from your host is refused on this server.");
@@ -1047,19 +1036,17 @@ int find_kill(struct Client *cptr)
       else
         send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", deny->message);
     }
+    return -1;
   }
-  else if ((agline = gline_lookup(cptr, 0))) {
+
+  if ((agline = gline_lookup(cptr, 0))) {
     /*
      * find active glines
      * added a check against the user's IP address to find_gline() -Kev
      */
     send_reply(cptr, SND_EXPLICIT | ERR_YOUREBANNEDCREEP, ":%s.", GlineReason(agline));
-  }
-
-  if (deny)
-    return -1;
-  if (agline)
     return -2;
+  }
 
   return 0;
 }

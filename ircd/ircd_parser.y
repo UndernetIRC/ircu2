@@ -732,16 +732,15 @@ killblock: KILL
   dconf = (struct DenyConf*) MyCalloc(1, sizeof(*dconf));
 } '{' killitems '}'
 {
-  if (dconf->hostmask != NULL)
-  {
-    if (dconf->usermask == NULL)
-      DupString(dconf->usermask, "*");
+  if (dconf->usermask || dconf->hostmask ||dconf->realmask) {
     dconf->next = denyConfList;
     denyConfList = dconf;
   }
   else
   {
+    MyFree(dconf->usermask);
     MyFree(dconf->hostmask);
+    MyFree(dconf->realmask);
     MyFree(dconf->message);
     MyFree(dconf);
     parse_error("Bad kill block");
@@ -749,11 +748,10 @@ killblock: KILL
   dconf = NULL;
 } ';';
 killitems: killitem killitems | killitem;
-killitem: killuhost | killreal | killreasonfile | killreason | error;
+killitem: killuhost | killreal | killusername | killreasonfile | killreason | error;
 killuhost: HOST '=' QSTRING ';'
 {
   char *u, *h;
-  dconf->flags &= ~DENY_FLAGS_REALNAME;
   MyFree(dconf->hostmask);
   MyFree(dconf->usermask);
   if ((h = strchr($3, '@')) == NULL)
@@ -771,13 +769,16 @@ killuhost: HOST '=' QSTRING ';'
   ipmask_parse(dconf->hostmask, &dconf->address, &dconf->bits);
 };
 
+killusername: USERNAME '=' QSTRING ';'
+{
+  MyFree(dconf->usermask);
+  DupString(dconf->usermask, $3);
+};
+
 killreal: REAL '=' QSTRING ';'
 {
- dconf->flags &= ~DENY_FLAGS_IP;
- dconf->flags |= DENY_FLAGS_REALNAME;
- MyFree(dconf->hostmask);
- /* Leave usermask so you can specify user and real... */
- DupString(dconf->hostmask, $3);
+ MyFree(dconf->realmask);
+ DupString(dconf->realmask, $3);
 };
 
 killreason: REASON '=' QSTRING ';'

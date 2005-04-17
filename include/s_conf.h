@@ -80,17 +80,16 @@ struct qline
 /** Local K-line structure. */
 struct DenyConf {
   struct DenyConf*    next;     /**< Next DenyConf in #denyConfList. */
-  char*               hostmask; /**< Mask for realname, IP or hostname. */
+  char*               hostmask; /**< Mask for  IP or hostname. */
   char*               message;  /**< Message to send to denied users. */
   char*               usermask; /**< Mask for client's username. */
+  char*               realmask; /**< Mask for realname. */
   struct irc_in_addr  address;  /**< Address for IP-based denies. */
   unsigned int        flags;    /**< Interpretation flags for the above.  */
   unsigned char       bits;     /**< Number of bits for ipkills */
 };
 
 #define DENY_FLAGS_FILE     0x0001 /**< Comment is a filename */
-#define DENY_FLAGS_IP       0x0002 /**< K-line by IP address */
-#define DENY_FLAGS_REALNAME 0x0004 /**< K-line by real name */
 
 /** Local server configuration. */
 struct LocalConf {
