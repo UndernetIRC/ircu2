@@ -1,3 +1,14 @@
+2005-04-17  Perry Lorier <isomer@undernet.org>
+	
+	* tools/convert-conf.py: Fix lots of conversion problems with
+	oper privielges (now they are converted), 
+	features (deprecated features commented out, most converted to
+	priviliges), 
+	realname klines (also add host= lines)
+	quarintines (generate blocks for them), 
+	connect blocks (don't generate empty port config lines)
+	etc...
+
 2005-04-16  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/gline.c (do_gline): Fix typo when activating IP-based
