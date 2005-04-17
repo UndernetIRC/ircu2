@@ -1,5 +1,21 @@
 2005-04-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_process_clients): Only prohibit deops of
+	users with the same or higher oplevel where apass is set.
+	Likewise, when opping users, give them MAXOPLEVEL for non-apass
+	channels.
+	(joinbuf_join): Give new ops MAXOPLEVEL for non-apass channels.
+
+	* ircd/m_kick.c (m_kick): Only prohibit kicks of users with the
+	same or higher oplevel where apass is set.
+
+	* ircd/s_user.c (register_user): Fix order of server version vs
+	various mode strings.
+
+	* tools/linesync/linesync.sh: Add revision id field.
+
+2005-04-17  Michael Poole <mdpoole@troilus.org>
+
 	* tools/linesync/linesync.sh: Fix typo comment.  Check for
 	multiple blocks per line in the linesync input.
 

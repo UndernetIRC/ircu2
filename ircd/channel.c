@@ -2999,11 +2999,11 @@ mode_process_clients(struct ParseState *state)
 	  continue;
         }
 
-        if (feature_bool(FEAT_OPLEVELS)) {
 	/* don't allow to deop members with an op level that is <= our own level */
 	if (state->sptr != state->cli_change[i].client		/* but allow to deop oneself */
-	        && state->member
-		&& OpLevel(member) <= OpLevel(state->member)) {
+            && state->chptr->mode.apass[0]
+            && state->member
+            && OpLevel(member) <= OpLevel(state->member)) {
 	    int equal = (OpLevel(member) == OpLevel(state->member));
 	    send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
 		       cli_name(state->cli_change[i].client),
@@ -3012,20 +3012,24 @@ mode_process_clients(struct ParseState *state)
 		       "deop", equal ? "the same" : "a higher");
 	  continue;
 	}
-      }
     }
     }
 
     /* set op-level of member being opped */
     if ((state->cli_change[i].flag & (MODE_ADD | MODE_CHANOP)) ==
 	(MODE_ADD | MODE_CHANOP)) {
-      /* If on a channel with upass set, someone with level x gives ops to someone else,
-         then that person gets level x-1.  On other channels, where upass is not set,
-	 the level stays the same. */
-      int level_increment = *state->chptr->mode.upass ? 1 : 0;
-      /* Someone being opped by a server gets op-level 0 */
-      int old_level = (state->member == NULL) ? -level_increment : OpLevel(state->member);
-      SetOpLevel(member, old_level == MAXOPLEVEL ? MAXOPLEVEL : (old_level + level_increment));
+      /* If being opped by an outsider, get oplevel 0 for an apass
+       *   channel, else MAXOPLEVEL.
+       * Otherwise, if not an apass channel, or state->member has
+       *   MAXOPLEVEL, get oplevel MAXOPLEVEL.
+       * Otherwise, get state->member's oplevel+1.
+       */
+      if (!state->member)
+        SetOpLevel(member, state->chptr->mode.apass[0] ? 0 : MAXOPLEVEL);
+      else if (!state->chptr->mode.apass[0] || OpLevel(state->member) == MAXOPLEVEL)
+        SetOpLevel(member, MAXOPLEVEL);
+      else
+        SetOpLevel(member, OpLevel(state->member) + 1);
     }
 
     /* actually effect the change */
@@ -3368,11 +3372,12 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 	is_local) /* got to remove user here */
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
+    int oplevel = chan->mode.apass[0] ? 0 : MAXOPLEVEL;
     /* Add user to channel */
     if ((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))
-      add_user_to_channel(chan, jbuf->jb_source, flags | CHFL_DELAYED, 0);
+      add_user_to_channel(chan, jbuf->jb_source, flags | CHFL_DELAYED, oplevel);
     else
-      add_user_to_channel(chan, jbuf->jb_source, flags, 0);
+      add_user_to_channel(chan, jbuf->jb_source, flags, oplevel);
 
     /* send notification to all servers */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)

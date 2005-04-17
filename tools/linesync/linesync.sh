@@ -2,6 +2,7 @@
 # linesync.sh, Copyright (c) 2002 Arjen Wolfs
 # 20020604, sengaia@undernet.org
 # 20050417, daniel@undernet.org  - modified for u2.10.12
+# $Id$
 #
 # The code contained is in this file is licenced under the terms
 # and conditions as specified in the GNU General Public License.
