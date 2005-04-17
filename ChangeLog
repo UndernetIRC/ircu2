@@ -1,3 +1,10 @@
+2005-04-17  Dan <daniel@undernet.org>
+
+	* tools/linesync/linesync.sh: Update to support new syntax and to
+	avoid rehashing the ircd when the config is the same.
+
+	* tools/linesync/linesync.conf: Update allowed conf items.
+
 2005-04-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Kill): Document newly supported syntax.

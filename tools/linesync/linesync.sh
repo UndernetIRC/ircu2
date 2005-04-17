@@ -1,6 +1,7 @@
 #!/bin/sh
 # linesync.sh, Copyright (c) 2002 Arjen Wolfs
 # 20020604, sengaia@undernet.org
+# 20050417, daniel@undernet.org  - modified for u2.10.12
 #
 # The code contained is in this file is licenced under the terms
 # and conditions as specified in the GNU General Public License.
@@ -8,8 +9,8 @@
 # linesync.sh - centralized ircd.conf updates.
 # The purpose of this little shell script is to allow a section of an ircd.conf to be 
 # updated from a central location. Hence it is intended to facilitate the automated 
-# distribution of k, K, Q, and U lines; or any other .conf lines you may wish to keep
-# synchronized accross all servers on a network.
+# distribution of Kill, Jupe, Quarantine and Uworld lines; or any other .conf lines you 
+# may wish to keep synchronized accross all servers on a network.
 #
 # This script will download a file called linesync from a specified web server (see 
 # below for configuration), and calculate an md5sum from it. It will then download
@@ -22,7 +23,7 @@
 # If all checksums match, the script inspects the .conf lines contained within the 
 # downloaded file. If any .conf lines are found that are not specifically allowed,
 # the program will abort. This will prevent malicious/dangerous .conf lines (such as
-# O: or C: lines) from being inserted into ircd.conf.
+# Operator or Connect lines) from being inserted into ircd.conf.
 #
 # If all the checks mentioned above are passed, the script checks ircd.conf for a section
 # that begins with "# BEGIN LINESYNC", and ends with "# END LINESYNC". The section contained
@@ -68,7 +69,7 @@ check_file() {
 }
 
 # Try to find programs we will need
-locate_program wget && locate_program egrep
+locate_program wget && locate_program egrep && locate_program diff
 
 # try to find GNU awk
 awk_cmd=`which gawk`
@@ -108,6 +109,7 @@ if [ -z "$1" -o -z "$2" ]; then
 fi
 
 # check and set up stuff
+diff_cmd="diff"
 cpath=$1
 ppath=$2
 check_file $cpath
@@ -139,7 +141,7 @@ if [ ! -s "$TMPFILE" ]; then
 fi
 
 # Check wether the file contains any disallowed .conf lines
-bad_lines=`egrep '^[^'$ALLOWED_LINES'#]+' $TMPFILE`
+bad_lines=`egrep '^[^'$ALLOWED_LINES'|#]+' $TMPFILE`
 if [ ! -z "$bad_lines" ]; then
         echo "The file downloaded in $TMPFILE contains the following disallowed line(s):"
         echo $bad_lines
@@ -209,12 +211,20 @@ $0=="# END LINESYNC" {
 { if (!chop) print $0 }
 ' syncfile=$TMPFILE < $inpath > $tmp_path/linesync.new.$TS
 
-# Back up the current ircd.conf and replace it with the new one
-cp $cpath  $dpath/ircd.conf.bk
-cp $tmp_path/linesync.new.$TS $cpath
+# run a diff between current and new confs to see if we updated anything
+# no point sending the ircd a -HUP if this is not needed, especially on a
+# busy network, such as Undernet.
+diff=`$diff_cmd $cpath $tmp_path/linesync.new.$TS`
+if [ ! -z "$diff" ]; then
+	# Changes were detected
 
-# Rehash ircd (without caring wether or not it succeeds)
-kill -HUP `cat $ppath 2>/dev/null` > /dev/null 2>&1
+	# Back up the current ircd.conf and replace it with the new one
+	cp $cpath  $dpath/ircd.conf.bk
+	cp $tmp_path/linesync.new.$TS $cpath
+
+	# Rehash ircd (without caring wether or not it succeeds)
+	kill -HUP `cat $ppath 2>/dev/null` > /dev/null 2>&1
+fi
 
 # (Try to) clean up
 rm -rf $tmp_path > /dev/null 2>&1
