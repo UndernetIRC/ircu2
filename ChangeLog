@@ -1,3 +1,8 @@
+2005-04-17  Michael Poole <mdpoole@troilus.org>
+
+	* tools/linesync/linesync.sh: Fix typo comment.  Check for
+	multiple blocks per line in the linesync input.
+
 2005-04-17  Dan <daniel@undernet.org>
 
 	* tools/linesync/linesync.sh: Update to support new syntax and to

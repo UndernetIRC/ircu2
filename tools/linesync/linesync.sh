@@ -140,10 +140,18 @@ if [ ! -s "$TMPFILE" ]; then
         exit 1
 fi
 
-# Check wether the file contains any disallowed .conf lines
+# Check whether the file contains any disallowed .conf lines
 bad_lines=`egrep '^[^'$ALLOWED_LINES'|#]+' $TMPFILE`
 if [ ! -z "$bad_lines" ]; then
         echo "The file downloaded in $TMPFILE contains the following disallowed line(s):"
+        echo $bad_lines
+        exit 1
+fi
+
+# Check whether somebody tried to sneak a second block onto some line
+bad_lines=`egrep -i '}[ 	]*;[ 	]*[a-z]+[ 	]*{' $TMPFILE`
+if [ ! -z "$bad_lines" ] ; then
+	echo "The file downloaded in $TMPFILE contains the following multi-block line(s):"
         echo $bad_lines
         exit 1
 fi
