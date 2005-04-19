@@ -1,3 +1,8 @@
+2005-04-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/support.c (check_if_ipmask): Do not interpret masks that
+	start with . or / as IP-based host masks.
+
 2004-09-17  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): Release the sucker.

@@ -42,6 +42,8 @@ int check_if_ipmask(const char *mask)
   int has_digit = 0;
   const char *p;
 
+  if (*mask == '.' || *mask == '/')
+    return 0;
   for (p = mask; *p; ++p)
     if (*p != '*' && *p != '?' && *p != '.' && *p != '/')
     {
