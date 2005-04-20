@@ -878,7 +878,8 @@ int check_if_ipmask(const char *mask)
   /* Given the bug that inspired this test, this may seem like a hasty
    * kludge.  It isn't: Wildcard characters should be matched from the
    * start, as when the username is the "interesting" part of the ban.
-   * Likewise, we cannot simply reject masks interpreted as */0.
+   * Likewise, we cannot simply reject masks interpreted as x/0 for
+   * all x.
    */
   if (mask[0] == '.' || mask[0] == '/')
     return 0;

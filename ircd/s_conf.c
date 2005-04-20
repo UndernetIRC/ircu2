@@ -421,15 +421,17 @@ struct ConfItem *conf_debug_iline(const char *client)
 {
   struct irc_in_addr address;
   struct ConfItem *aconf;
+  struct DenyConf *deny;
   char *sep;
   unsigned short listener;
-  char username[USERLEN+1], hostname[HOSTLEN+1];
+  char username[USERLEN+1], hostname[HOSTLEN+1], realname[REALLEN+1];
 
   /* Initialize variables. */
   listener = 0;
   memset(&address, 0, sizeof(address));
   memset(&username, 0, sizeof(username));
   memset(&hostname, 0, sizeof(hostname));
+  memset(&realname, 0, sizeof(realname));
 
   /* Parse client specifier. */
   while (*client) {
@@ -460,6 +462,18 @@ struct ConfItem *conf_debug_iline(const char *client)
         memcpy(&address, &tmpaddr, sizeof(address));
         client += tmp + (client[tmp] != '\0');
         continue;
+    }
+
+    /* Realname? */
+    if (client[0] == '$' && client[1] == 'R') {
+      client += 2;
+      for (tmp = 0; *client != '\0' && *client != ',' && tmp < REALLEN; ++client, ++tmp) {
+        if (*client == '\\')
+          realname[tmp] = *++client;
+        else
+          realname[tmp] = *client;
+      }
+      continue;
     }
 
     /* Else must be a hostname. */
@@ -496,11 +510,37 @@ struct ConfItem *conf_debug_iline(const char *client)
             (aconf->host ? aconf->host : "(null)"),
             (aconf->name ? aconf->name : "(null)"),
             ConfClass(aconf), aconf->maximum,  aconf->passwd);
-    return aconf;
+    break;
   }
 
-  fprintf(stdout, "No matches found.\n");
-  return NULL;
+  /* If no authorization, say so and exit. */
+  if (!aconf)
+  {
+    fprintf(stdout, "No authorization found.\n");
+    return NULL;
+  }
+
+  /* Look for a Kill block with the user's name on it. */
+  for (deny = denyConfList; deny; deny = deny->next) {
+    if (deny->usermask && match(deny->usermask, username))
+      continue;
+    if (deny->realmask && match(deny->realmask, realname))
+      continue;
+    if (deny->bits > 0) {
+      if (!ipmask_check(&address, &deny->address, deny->bits))
+        continue;
+    } else if (deny->hostmask && match(deny->hostmask, hostname))
+      continue;
+
+    /* Looks like a match; report it. */
+    fprintf(stdout, "Denied! usermask=%s realmask=\"%s\" hostmask=%s (bits=%u)\n",
+            deny->usermask ? deny->usermask : "(null)",
+            deny->realmask ? deny->realmask : "(null)",
+            deny->hostmask ? deny->hostmask : "(null)",
+            deny->bits);
+  }
+
+  return aconf;
 }
 
 /** Check whether a particular ConfItem is already attached to a

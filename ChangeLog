@@ -1,5 +1,14 @@
 2005-04-18  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/match.c (check_if_ipmask): Fix brown-paper-bag typo.
+
+	* ircd/s_conf.c (conf_debug_iline): Look for matching Kill blocks
+	once a matching Client block is found.
+
+	* ircd/m_whowas.c (m_whowas): Change strcmp() to ircd_strcmp().
+
+2005-04-18  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/match.c (check_if_ipmask): Do not interpret masks that
 	start with . or / as IP-based host masks.
 
