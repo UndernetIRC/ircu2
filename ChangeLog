@@ -1,4 +1,10 @@
-2005-04-18  Michael Poole <mdpoole@troilus.org>
+2005-04-19  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: When --enable-profile, add -pg to LDFLAGS.
+
+	* configure: Regenerate.
+
+2005-04-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/match.c (check_if_ipmask): Fix brown-paper-bag typo.
 

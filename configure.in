@@ -332,6 +332,7 @@ AC_MSG_RESULT([$unet_cv_enable_profile])
 
 if test x"$unet_cv_enable_profile" = xyes; then
     CFLAGS="-pg $CFLAGS"
+    LDFLAGS="-pg $LDFLAGS"
 fi
 
 dnl Now check for --enable-pedantic
