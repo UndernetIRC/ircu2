@@ -1,3 +1,10 @@
+2005-04-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd.c (parse_command_line): Update usage text.
+
+	* ircd/numnicks.c (base64toip): Use v4mapped address range instead
+	of v4compat address range, fixing IPv4-based /who.
+
 2005-04-19  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: When --enable-profile, add -pg to LDFLAGS.

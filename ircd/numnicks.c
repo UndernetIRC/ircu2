@@ -502,6 +502,7 @@ void base64toip(const char* input, struct irc_in_addr* addr)
   memset(addr, 0, sizeof(*addr));
   if (strlen(input) == 6) {
     unsigned int in = base64toint(input);
+    addr->in6_16[5] = htons(65535);
     addr->in6_16[6] = htons(in >> 16);
     addr->in6_16[7] = htons(in & 65535);
   } else {

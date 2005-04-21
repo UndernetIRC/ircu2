@@ -501,11 +501,18 @@ static void parse_command_line(int argc, char** argv) {
       debugmode = optarg;
       thisServer.bootopt |= BOOT_DEBUG;
       break;
-      
+
     default:
-      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntvk]\n");
-      printf("\n -n -t\t Don't detach\n -v\t display version\n -k\t exit after checking config\n\n");
-      printf("Server not started.\n");
+      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv] [-k [-c clispec]]\n"
+             "\n -f config\t specify explicit configuration file"
+             "\n -x loglevel\t set debug logging verbosity"
+             "\n -n or -t\t don't detach"
+             "\n -v\t\t display version"
+             "\n -k\t\t exit after checking config"
+             "\n -c clispec\t search for client/kill blocks matching client"
+             "\n\t\t clispec is comma-separated list of user@host,"
+             "\n\t\t user@ip, $Rrealname, and port number"
+             "\n\nServer not started.\n");
       exit(1);
     }
 }
