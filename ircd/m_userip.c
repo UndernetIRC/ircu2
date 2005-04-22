@@ -99,7 +99,13 @@ static void userip_formatter(struct Client* cptr, struct Client *sptr, struct Ms
   msgq_append(0, mb, "%s%s=%c%s@%s", cli_name(cptr),
 	      SeeOper(sptr,cptr) ? "*" : "",
 	      cli_user(cptr)->away ? '-' : '+', cli_user(cptr)->username,
-	      HasHiddenHost(cptr) && !IsAnOper(sptr) && (sptr != cptr) ?
+	      /* Do not *EVER* change this to give opers the real IP.
+	       * Too many scripts rely on this data and can inadvertently
+	       * publish the user's real IP, thus breaking the security
+	       * of +x.  If an oper wants the real IP, he should go to
+	       * /whois to get it.
+	       */
+	      HasHiddenHost(cptr) && (sptr != cptr) ?
 	      feature_str(FEAT_HIDDEN_IP) :
 	      ircd_ntoa(&cli_ip(cptr)));
 }

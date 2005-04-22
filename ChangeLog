@@ -1,3 +1,13 @@
+2005-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_userip.c (userip_formatter): /userip should *never*
+	report the user's real IP unless its answering the user
+	him/herself
+
+	* ircd/m_userhost.c (userhost_formatter): /userhost should *never*
+	report the user's real host unless its answering the user
+	him/herself
+
 2005-04-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd.c (parse_command_line): Update usage text.
