@@ -1,3 +1,12 @@
+2005-04-22  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Silence exceptions use ~, not -.  Oops!
+
+	* ircd/channel.c (mode_parse_ban): Use correct test for flag_p.
+
+	* ircd/m_silence.c (apply_silence): Make mask pretty so that later
+	processing does not convert * to @ (and match no one).
+
 2005-04-21  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_userip.c (userip_formatter): /userip should *never*

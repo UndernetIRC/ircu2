@@ -60,7 +60,7 @@
  * @return The new ban entry on success, NULL on failure.
  */
 static struct Ban *
-apply_silence(struct Client *sptr, const char *mask)
+apply_silence(struct Client *sptr, char *mask)
 {
   struct Ban *sile;
   int flags;
@@ -84,7 +84,7 @@ apply_silence(struct Client *sptr, const char *mask)
   }
 
   /* Make the silence, set flags, and apply it. */
-  sile = make_ban(mask);
+  sile = make_ban(pretty_mask(mask));
   sile->flags |= flags;
   return apply_ban(&cli_user(sptr)->silence, sile, 1) ? NULL : sile;
 }

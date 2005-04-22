@@ -63,8 +63,8 @@ By default, all of these are hidden from normal users.
 Client blocks (previously I: lines), Operator blocks (previously O:
 and o: lines), channel bans and silences may use CIDR notation instead
 of simple wildcards.  You may also have silence exceptions by putting
-'-' before the mask; for example, if you wish to silence everyone
-except X, you could use SILENCE *!*@*,-X!cservice@undernet.org.
+'~' before the mask; for example, if you wish to silence everyone
+except X, you could use SILENCE *!*@*,~X!cservice@undernet.org.
 
 The server will no longer kick "net riders" in keyed (+k) channels if
 both sides of the net join have the same key.

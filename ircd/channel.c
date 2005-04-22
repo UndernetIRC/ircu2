@@ -2787,7 +2787,7 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
   newban = state->banlist + (state->numbans++);
   newban->next = 0;
   newban->flags = ((state->dir == MODE_ADD) ? BAN_ADD : BAN_DEL)
-      | (*flag_p == 'b' ? 0 : BAN_EXCEPTION);
+      | (*flag_p == MODE_BAN ? 0 : BAN_EXCEPTION);
   newban->banstr = NULL;
   set_ban_mask(newban, collapse(pretty_mask(t_str)));
   newban->who = cli_name(state->sptr);
