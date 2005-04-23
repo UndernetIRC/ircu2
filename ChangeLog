@@ -1,3 +1,10 @@
+2005-04-23  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (UWorld): Illustrate new config extension.
+
+	* ircd/ircd_parser.y (uworldblock): Do the expected thing when
+	multiple name= entries are present.
+
 2005-04-22  Michael Poole <mdpoole@troilus.org>
 
 	* RELEASE.NOTES: Silence exceptions use ~, not -.  Oops!

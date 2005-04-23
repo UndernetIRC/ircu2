@@ -471,26 +471,14 @@ connectmaxhops: MAXHOPS '=' expr ';'
   maxlinks = $3;
 };
 
-uworldblock: UWORLD '{' uworlditems '}' ';'
-{
- if (name)
- {
-  struct ConfItem *aconf = make_conf(CONF_UWORLD);
-  aconf->host = name;
- }
- else
- {
-  MyFree(name);
-  parse_error("Bad UWorld block");
- }
- name = NULL;
-};
+uworldblock: UWORLD '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
 uworlditem: uworldname | error;
 uworldname: NAME '=' QSTRING ';'
 {
- MyFree(name);
- DupString(name, $3);
+ struct ConfItem *aconf;
+ aconf = make_conf(CONF_UWORLD);
+ DupString(aconf->host, $3);
 };
 
 operblock: OPER '{' operitems '}' ';'
