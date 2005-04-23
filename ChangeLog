@@ -2,6 +2,8 @@
 
 	* RELEASE.NOTES: Silence exceptions use ~, not -.  Oops!
 
+	* doc/example.conf: Fix typo in example Kill block.
+
 	* ircd/channel.c (mode_parse_ban): Use correct test for flag_p.
 
 	* ircd/m_silence.c (apply_silence): Make mask pretty so that later
