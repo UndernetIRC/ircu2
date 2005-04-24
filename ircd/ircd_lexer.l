@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "s_debug.h"
 #include "y.tab.h"
@@ -202,7 +203,7 @@ NUMBER [0-9]+
 QSTRING \"[^"\n]+[\"\n]
 %%
 
-{QSTRING} {yytext[yyleng-1] = 0; yylval.text = yytext+1; return QSTRING;}
+{QSTRING} {yytext[yyleng-1] = 0; DupString(yylval.text, yytext+1); return QSTRING;}
 {NUMBER} {yylval.num = strtoul(yytext, NULL, 10); return NUMBER;}
 {WHITE} ;
 {SHCOMMENT} ;

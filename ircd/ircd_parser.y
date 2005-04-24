@@ -91,7 +91,6 @@ static void parse_error(char *pattern,...) {
 
 %token <text> QSTRING
 %token <num> NUMBER
-%token <text> FNAME
 
 %token GENERAL
 %token ADMIN
@@ -260,6 +259,7 @@ jupeitem: jupenick | error;
 jupenick: NICK '=' QSTRING
 {
   addNickJupes($3);
+  MyFree($3);
 } ';';
 
 generalblock: GENERAL '{' generalitems '}'
@@ -283,16 +283,19 @@ generalnumeric: NUMERIC '=' NUMBER ';'
 generalname: NAME '=' QSTRING ';'
 {
   if (localConf.name == NULL)
-    DupString(localConf.name, $3);
-  else if (strcmp(localConf.name, $3))
-    parse_error("Redefinition of server name %s (%s)", $3,
-    		localConf.name);
+    localConf.name = $3;
+  else {
+    if (strcmp(localConf.name, $3))
+      parse_error("Redefinition of server name %s (%s)", $3,
+                  localConf.name);
+    MyFree($3);
+  }
 };
 
 generaldesc: DESCRIPTION '=' QSTRING ';'
 {
   MyFree(localConf.description);
-  DupString(localConf.description, $3);
+  localConf.description = $3;
   ircd_strncpy(cli_info(&me), $3, REALLEN);
 };
 
@@ -305,6 +308,7 @@ generalvhost: VHOST '=' QSTRING ';'
     memcpy(&VirtualHost_v4.addr, &addr, sizeof(addr));
   else
     memcpy(&VirtualHost_v6.addr, &addr, sizeof(addr));
+  MyFree($3);
 };
 
 adminblock: ADMIN '{' adminitems '}'
@@ -320,17 +324,17 @@ adminitems: adminitems adminitem | adminitem;
 adminitem: adminlocation | admincontact | error;
 adminlocation: LOCATION '=' QSTRING ';'
 {
- if (localConf.location1 == NULL)
-  DupString(localConf.location1, $3);
- else if (localConf.location2 == NULL)
-  DupString(localConf.location2, $3);
- /* Otherwise just drop it. -A1kmm */
+  if (localConf.location1 == NULL)
+    localConf.location1 = $3;
+  else if (localConf.location2 == NULL)
+    localConf.location2 = $3;
+  else /* Otherwise just drop it. -A1kmm */
+    MyFree($3);
 };
 admincontact: CONTACT '=' QSTRING ';'
 {
- if (localConf.contact != NULL)
-   MyFree(localConf.contact);
- DupString(localConf.contact, $3);
+ MyFree(localConf.contact);
+ localConf.contact = $3;
 };
 
 classblock: CLASS {
@@ -364,7 +368,7 @@ classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
 classname: NAME '=' QSTRING ';'
 {
   MyFree(name);
-  DupString(name, $3);
+  name = $3;
 };
 classpingfreq: PINGFREQ '=' timespec ';'
 {
@@ -385,7 +389,7 @@ classsendq: SENDQ '=' sizespec ';'
 classusermode: USERMODE '=' QSTRING ';'
 {
   MyFree(pass);
-  DupString(pass, $3);
+  pass = $3;
 };
 
 connectblock: CONNECT
@@ -427,12 +431,12 @@ connectitem: connectname | connectpass | connectclass | connecthost
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
- DupString(name, $3);
+ name = $3;
 };
 connectpass: PASS '=' QSTRING ';'
 {
  MyFree(pass);
- DupString(pass, $3);
+ pass = $3;
 };
 connectclass: CLASS '=' QSTRING ';'
 {
@@ -441,7 +445,7 @@ connectclass: CLASS '=' QSTRING ';'
 connecthost: HOST '=' QSTRING ';'
 {
  MyFree(host);
- DupString(host, $3);
+ host = $3;
 };
 connectport: PORT '=' NUMBER ';'
 {
@@ -450,7 +454,7 @@ connectport: PORT '=' NUMBER ';'
 connectvhost: VHOST '=' QSTRING ';'
 {
  MyFree(origin);
- DupString(origin, $3);
+ origin = $3;
 };
 connectleaf: LEAF ';'
 {
@@ -464,7 +468,7 @@ connecthub: HUB ';'
 connecthublimit: HUB '=' QSTRING ';'
 {
  MyFree(hub_limit);
- DupString(hub_limit, $3);
+ hub_limit = $3;
 };
 connectmaxhops: MAXHOPS '=' expr ';'
 {
@@ -476,9 +480,7 @@ uworlditems: uworlditem uworlditems | uworlditem;
 uworlditem: uworldname | error;
 uworldname: NAME '=' QSTRING ';'
 {
- struct ConfItem *aconf;
- aconf = make_conf(CONF_UWORLD);
- DupString(aconf->host, $3);
+  make_conf(CONF_UWORLD)->host = $3;
 };
 
 operblock: OPER '{' operitems '}' ';'
@@ -513,12 +515,12 @@ operitem: opername | operpass | operhost | operclass | priv | error;
 opername: NAME '=' QSTRING ';'
 {
   MyFree(name);
-  DupString(name, $3);
+  name = $3;
 };
 operpass: PASS '=' QSTRING ';'
 {
   MyFree(pass);
-  DupString(pass, $3);
+  pass = $3;
 };
 operhost: HOST '=' QSTRING ';'
 {
@@ -526,16 +528,17 @@ operhost: HOST '=' QSTRING ';'
  if (!strchr($3, '@'))
  {
    int uh_len;
-   char *b = (char*) MyMalloc((uh_len = strlen($3)+3));
-   ircd_snprintf(0, b, uh_len, "*@%s", $3);
-   host = b;
+   host = (char*) MyMalloc((uh_len = strlen($3)+3));
+   ircd_snprintf(0, host, uh_len, "*@%s", $3);
+   MyFree($3);
  }
  else
-   DupString(host, $3);
+   host = $3;
 };
 operclass: CLASS '=' QSTRING ';'
 {
  c_class = find_class($3);
+ MyFree($3);
 };
 
 priv: privtype '=' yesorno ';'
@@ -608,13 +611,13 @@ portnumber: PORT '=' NUMBER ';'
 portvhost: VHOST '=' QSTRING ';'
 {
   MyFree(host);
-  DupString(host, $3);
+  host = $3;
 };
 
 portmask: MASK '=' QSTRING ';'
 {
   MyFree(pass);
-  DupString(pass, $3);
+  pass = $3;
 };
 
 portserver: SERVER '=' YES ';'
@@ -677,38 +680,40 @@ clienthost: HOST '=' QSTRING ';'
   if (sep) {
     *sep++ = '\0';
     MyFree(username);
-    DupString(username, $3);
     DupString(host, sep);
+    username = $3;
   } else {
-    DupString(host, $3);
+    host = $3;
   }
 };
 clientip: IP '=' QSTRING ';'
 {
-  char *sep = strchr($3, '@');
+  char *sep;
+  sep = strchr($3, '@');
   MyFree(ip);
   if (sep) {
     *sep++ = '\0';
     MyFree(username);
-    DupString(username, $3);
     DupString(ip, sep);
+    username = $3;
   } else {
-    DupString(ip, $3);
+    ip = $3;
   }
 };
 clientusername: USERNAME '=' QSTRING ';'
 {
   MyFree(username);
-  DupString(username, $3);
+  username = $3;
 };
 clientclass: CLASS '=' QSTRING ';'
 {
   c_class = find_class($3);
+  MyFree($3);
 };
 clientpass: PASS '=' QSTRING ';'
 {
   MyFree(pass);
-  DupString(pass, $3);
+  pass = $3;
 };
 clientmaxlinks: MAXLINKS '=' expr ';'
 {
@@ -739,48 +744,47 @@ killitems: killitem killitems | killitem;
 killitem: killuhost | killreal | killusername | killreasonfile | killreason | error;
 killuhost: HOST '=' QSTRING ';'
 {
-  char *u, *h;
+  char *h;
   MyFree(dconf->hostmask);
   MyFree(dconf->usermask);
   if ((h = strchr($3, '@')) == NULL)
   {
-    u = "*";
-    h = $3;
+    DupString(dconf->usermask, "*");
+    dconf->hostmask = $3;
   }
   else
   {
-    u = $3;
     *h++ = '\0';
+    DupString(dconf->hostmask, h);
+    dconf->usermask = $3;
   }
-  DupString(dconf->hostmask, h);
-  DupString(dconf->usermask, u);
   ipmask_parse(dconf->hostmask, &dconf->address, &dconf->bits);
 };
 
 killusername: USERNAME '=' QSTRING ';'
 {
   MyFree(dconf->usermask);
-  DupString(dconf->usermask, $3);
+  dconf->usermask = $3;
 };
 
 killreal: REAL '=' QSTRING ';'
 {
  MyFree(dconf->realmask);
- DupString(dconf->realmask, $3);
+ dconf->realmask = $3;
 };
 
 killreason: REASON '=' QSTRING ';'
 {
  dconf->flags &= ~DENY_FLAGS_FILE;
  MyFree(dconf->message);
- DupString(dconf->message, $3);
+ dconf->message = $3;
 };
 
 killreasonfile: TFILE '=' QSTRING ';'
 {
  dconf->flags |= DENY_FLAGS_FILE;
  MyFree(dconf->message);
- DupString(dconf->message, $3);
+ dconf->message = $3;
 };
 
 cruleblock: CRULE
@@ -816,13 +820,13 @@ cruleserver: SERVER '=' QSTRING ';'
 {
   MyFree(host);
   collapse($3);
-  DupString(host, $3);
+  host = $3;
 };
 
 crulerule: RULE '=' QSTRING ';'
 {
  MyFree(pass);
- DupString(pass, $3);
+ pass = $3;
 };
 
 cruleall: ALL '=' YES ';'
@@ -846,12 +850,12 @@ motditems: motditem motditems | motditem;
 motditem: motdhost | motdfile | error;
 motdhost: HOST '=' QSTRING ';'
 {
-  DupString(host, $3);
+  host = $3;
 };
 
 motdfile: TFILE '=' QSTRING ';'
 {
-  DupString(pass, $3);
+  pass = $3;
 };
 
 featuresblock: FEATURES '{' featureitems '}' ';';
@@ -869,7 +873,10 @@ stringlist: QSTRING
   stringno = 2;
 } posextrastrings
 {
+  unsigned int ii;
   feature_set(NULL, (const char * const *)stringlist, stringno);
+  for (ii = 0; ii < stringno; ++ii)
+    MyFree(stringlist[ii]);
 };
 posextrastrings: /* empty */ | extrastrings;
 extrastrings: extrastrings extrastring | extrastring;
@@ -877,6 +884,8 @@ extrastring: QSTRING
 {
   if (stringno < MAX_STRINGS)
     stringlist[stringno++] = $1;
+  else
+    MyFree($1);
 };
 
 quarantineblock: QUARANTINE '{' quarantineitems '}' ';';
@@ -884,8 +893,8 @@ quarantineitems: quarantineitems quarantineitem | quarantineitem;
 quarantineitem: QSTRING '=' QSTRING ';'
 {
   struct qline *qconf = MyCalloc(1, sizeof(*qconf));
-  DupString(qconf->chname, $1);
-  DupString(qconf->reason, $3);
+  qconf->chname = $1;
+  qconf->reason = $3;
   qconf->next = GlobalQuarantineList;
   GlobalQuarantineList = qconf;
 };
@@ -893,7 +902,7 @@ quarantineitem: QSTRING '=' QSTRING ';'
 pseudoblock: PSEUDO QSTRING '{'
 {
   smap = MyCalloc(1, sizeof(struct s_map));
-  DupString(smap->command, $2);
+  smap->command = $2;
 }
 pseudoitems '}' ';'
 {
@@ -927,11 +936,11 @@ pseudoitems: pseudoitem pseudoitems | pseudoitem;
 pseudoitem: pseudoname | pseudoprepend | pseudonick | pseudoflags | error;
 pseudoname: NAME '=' QSTRING ';'
 {
-  DupString(smap->name, $3);
+  smap->name = $3;
 };
 pseudoprepend: PREPEND '=' QSTRING ';'
 {
-  DupString(smap->prepend, $3);
+  smap->prepend = $3;
 };
 pseudonick: NICK '=' QSTRING ';'
 {
@@ -945,6 +954,7 @@ pseudonick: NICK '=' QSTRING ';'
     nh->next = smap->services;
     smap->services = nh;
   }
+  MyFree($3);
 };
 pseudoflags: FAST ';'
 {
@@ -973,12 +983,12 @@ iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout | er
 iauthpass: PASS '=' QSTRING ';'
 {
   MyFree(pass);
-  DupString(pass, $3);
+  pass = $3;
 };
 iauthhost: HOST '=' QSTRING ';'
 {
   MyFree(host);
-  DupString(host, $3);
+  host = $3;
 };
 iauthport: PORT '=' NUMBER ';'
 {

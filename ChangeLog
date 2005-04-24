@@ -1,5 +1,15 @@
 2005-04-23  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h: Bump to being a beta.
+
+	* ircd/ircd_lexer.l (QSTRING): Return a copy of the string so that
+	parser actions don't have to be immediately after a QSTRING.
+
+	* ircd/ircd_parser.y (FNAME): Remove unused token.
+	(QSTRING): Adjust for QSTRING being an already-copied version.
+
+2005-04-23  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (UWorld): Illustrate new config extension.
 
 	* ircd/ircd_parser.y (uworldblock): Do the expected thing when
