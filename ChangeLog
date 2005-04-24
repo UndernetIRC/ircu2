@@ -1,3 +1,8 @@
+2005-04-24  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y: Rewrite so each error condition gets its own
+	error message, and so that invalid parameters are printed out.
+
 2005-04-23  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (apply_ban): Consistently free newban->banstr

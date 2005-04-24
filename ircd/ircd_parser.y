@@ -397,10 +397,19 @@ connectblock: CONNECT
  maxlinks = 65535;
 } '{' connectitems '}'
 {
- if (name != NULL && pass != NULL && host != NULL && c_class != NULL
-     && !strchr(host, '*') && !strchr(host, '?'))
- {
-   struct ConfItem *aconf = make_conf(CONF_SERVER);
+ struct ConfItem *aconf = NULL;
+ if (name == NULL)
+  parse_error("Missing name in connect block");
+ else if (pass == NULL)
+  parse_error("Missing password in connect block");
+ else if (host == NULL)
+  parse_error("Missing host in connect block");
+ else if (strchr(host, '*') || strchr(host, '?'))
+  parse_error("Invalid host '%s' in connect block", host);
+ else if (c_class == NULL)
+  parse_error("Missing class in connect block");
+ else {
+   aconf = make_conf(CONF_SERVER);
    aconf->name = name;
    aconf->origin_name = origin;
    aconf->passwd = pass;
@@ -411,14 +420,12 @@ connectblock: CONNECT
    aconf->hub_limit = hub_limit;
    lookup_confhost(aconf);
  }
- else
- {
+ if (!aconf) {
    MyFree(name);
    MyFree(pass);
    MyFree(host);
    MyFree(origin);
    MyFree(hub_limit);
-   parse_error("Bad connect block");
  }
  name = pass = host = origin = hub_limit = NULL;
  c_class = NULL;
@@ -486,9 +493,17 @@ uworldname: NAME '=' QSTRING ';'
 
 operblock: OPER '{' operitems '}' ';'
 {
-  if (name && pass && host && c_class)
-  {
-    struct ConfItem *aconf = make_conf(CONF_OPERATOR);
+  struct ConfItem *aconf = NULL;
+  if (name == NULL)
+    parse_error("Missing name in operator block");
+  else if (pass == NULL)
+    parse_error("Missing password in operator block");
+  else if (host == NULL)
+    parse_error("Missing host in operator block");
+  else if (c_class == NULL)
+    parse_error("Missing class in operator block");
+  else {
+    aconf = make_conf(CONF_OPERATOR);
     aconf->name = name;
     aconf->passwd = pass;
     conf_parse_userhost(aconf, host);
@@ -499,9 +514,7 @@ operblock: OPER '{' operitems '}' ';'
         && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
       parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
   }
-  else
-  {
-    parse_error("operator blocks need a name, password, class and host.");
+  if (!aconf) {
     MyFree(name);
     MyFree(pass);
     MyFree(host);
@@ -590,13 +603,9 @@ yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 portblock: PORT '{' portitems '}' ';'
 {
   if (port > 0 && port <= 0xFFFF)
-  {
     add_listener(port, host, pass, tconn, tping);
-  }
   else
-  {
-    parse_error("Bad port block");
-  }
+    parse_error("Port %d is out of range", port);
   MyFree(host);
   MyFree(pass);
   host = pass = NULL;
@@ -647,7 +656,7 @@ clientblock: CLIENT
   unsigned char addrbits = 0;
 
   if (ip && !ipmask_parse(ip, &addr, &addrbits)) {
-    parse_error("Invalid IP address in block");
+    parse_error("Invalid IP address %s in block", ip);
     MyFree(username);
     MyFree(host);
     MyFree(ip);
@@ -737,7 +746,7 @@ killblock: KILL
     MyFree(dconf->realmask);
     MyFree(dconf->message);
     MyFree(dconf);
-    parse_error("Bad kill block");
+    parse_error("Kill block must match on at least one of username, host or realname");
   }
   dconf = NULL;
 } ';';
@@ -793,8 +802,14 @@ cruleblock: CRULE
   tconn = CRULE_AUTO;
 } '{' cruleitems '}' ';'
 {
-  struct CRuleNode *node;
-  if (host != NULL && pass != NULL && (node=crule_parse(pass)) != NULL)
+  struct CRuleNode *node = NULL;
+  if (host == NULL)
+    parse_error("Missing host in crule block");
+  else if (pass == NULL)
+    parse_error("Missing rule in crule block");
+  else if ((node = crule_parse(pass)) == NULL)
+    parse_error("Invalid rule '%s' in crule block", pass);
+  else
   {
     struct CRuleConf *p = (struct CRuleConf*) MyMalloc(sizeof(*p));
     p->hostmask = host;
@@ -804,11 +819,10 @@ cruleblock: CRULE
     p->next = cruleConfList;
     cruleConfList = p;
   }
-  else
+  if (!node)
   {
     MyFree(host);
     MyFree(pass);
-    parse_error("Bad CRule block");
   }
   host = pass = NULL;
   tconn = 0;
@@ -907,12 +921,15 @@ pseudoblock: PSEUDO QSTRING '{'
 }
 pseudoitems '}' ';'
 {
-  if (!smap->name || !smap->services)
-  {
-    parse_error("pseudo commands need a service name and list of target nicks.");
-    return 0;
-  }
-  if (register_mapping(smap))
+  int valid = 0;
+
+  if (!smap->name)
+    parse_error("Missing name in pseudo %s block", smap->command);
+  else if (!smap->services)
+    parse_error("Missing nick in pseudo %s block", smap->command);
+  else
+    valid = 1;
+  if (valid && register_mapping(smap))
   {
     smap->next = GlobalServiceMapList;
     GlobalServiceMapList = smap;
@@ -970,11 +987,12 @@ iauthblock: IAUTH '{'
   tping = 60;
 } iauthitems '}' ';'
 {
-  if (!host || !port) {
-    parse_error("IAuth block needs a server name and port.");
-    return 0;
-  }
-  iauth_connect(host, port, pass, tconn, tping);
+  if (!host)
+    parse_error("Missing host in iauth block");
+  else if (!port)
+    parse_error("Missing port in iauth block");
+  else
+    iauth_connect(host, port, pass, tconn, tping);
   MyFree(pass);
   MyFree(host);
   pass = host = NULL;
