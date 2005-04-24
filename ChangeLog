@@ -1,5 +1,13 @@
 2005-04-23  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (apply_ban): Consistently free newban->banstr
+	when the function fails.
+	(mode_process_bans): Free banstr for all BAN_DEL bans.
+
+	* ircd/ircd_parser.y: Fix a few memory leaks from previous commit.
+
+2005-04-23  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h: Bump to being a beta.
 
 	* ircd/ircd_lexer.l (QSTRING): Return a copy of the string so that

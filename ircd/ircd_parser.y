@@ -441,6 +441,7 @@ connectpass: PASS '=' QSTRING ';'
 connectclass: CLASS '=' QSTRING ';'
 {
  c_class = find_class($3);
+ MyFree($3);
 };
 connecthost: HOST '=' QSTRING ';'
 {
@@ -936,10 +937,12 @@ pseudoitems: pseudoitem pseudoitems | pseudoitem;
 pseudoitem: pseudoname | pseudoprepend | pseudonick | pseudoflags | error;
 pseudoname: NAME '=' QSTRING ';'
 {
+  MyFree(smap->name);
   smap->name = $3;
 };
 pseudoprepend: PREPEND '=' QSTRING ';'
 {
+  MyFree(smap->prepend);
   smap->prepend = $3;
 };
 pseudonick: NICK '=' QSTRING ';'

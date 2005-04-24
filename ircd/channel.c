@@ -2696,6 +2696,8 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
       if (!bmatch(ban, newban)) {
         if (do_free)
           free_ban(newban);
+        else
+          MyFree(newban->banstr);
         return 1;
       }
       if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
@@ -2732,6 +2734,8 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
   }
   if (do_free)
     free_ban(newban);
+  else
+    MyFree(newban->banstr);
   return 4;
 }
 
@@ -2889,6 +2893,13 @@ mode_process_bans(struct ParseState *state)
 
     prevban = ban;
   } /* for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) { */
+
+  /* Release all masks of removed bans */
+  for (count = 0; count < state->numbans; ++count) {
+    ban = state->banlist + count;
+    if (ban->flags & BAN_DEL)
+      MyFree(ban->banstr);
+  }
 
   if (changed) /* if we changed the ban list, we must invalidate the bans */
     mode_ban_invalidate(state->chptr);
