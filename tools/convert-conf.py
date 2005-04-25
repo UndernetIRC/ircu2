@@ -22,7 +22,7 @@
 # Usage:
 #   convert-conf.py < old.conf > new.conf
 #
-# $Id: convert-conf.py,v 1.7 2005-04-25 04:00:50 isomer Exp $
+# $Id: convert-conf.py,v 1.8 2005-04-25 04:04:17 isomer Exp $
 #
 
 import sys
@@ -347,6 +347,8 @@ if len(connects.keys()):
 		else:
 			print "\tleaf;"
 		if not connects[i].has_key("port"):
+			print "# You can now specify ports without implying autoconnect"
+			print "#\tport = 4400;"
 			print "\tautoconnect = no;"
 			sys.stderr.write("NOTE: You should add a port for \"%s\", autoconnect is now specified seperately\n" % qstr(connects[i]["name"]))
 		print "};"
