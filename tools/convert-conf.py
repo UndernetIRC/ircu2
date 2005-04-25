@@ -22,7 +22,7 @@
 # Usage:
 #   convert-conf.py < old.conf > new.conf
 #
-# $Id: convert-conf.py,v 1.6 2005-04-25 02:51:18 isomer Exp $
+# $Id: convert-conf.py,v 1.7 2005-04-25 04:00:50 isomer Exp $
 #
 
 import sys
@@ -67,6 +67,9 @@ useable_features = [
 	"HIS_REWRITE", "HIS_REMOTE", "HIS_NETSPLIT", "HIS_SERVERNAME", 
 	"HIS_SERVERINFO", "HIS_URLSERVERS"
 	]
+deprecated_features = [ 
+			"VIRTUAL_HOST",
+			]
 
 # [ "old feature" => ( local oper priv, global oper priv ) ]
 # None means don't add this
@@ -196,7 +199,7 @@ def do_oline(parts):
 	opers.append(parts)
 
 cvtmap = {
-	'M': ('General', ('name', 'vhost', 'description', '', '!numeric'), ''),
+	'M': ('General', ('name', 'vhost', 'description', '-', '!numeric'), ''),
 	'A': ('Admin', ('location', 'contact', 'contact'), ''),
 	'Y': ('Class', ('name', '!pingfreq', '!connectfreq', '!maxlinks', '!sendq'), ''),
 	'I': do_iline,
@@ -270,6 +273,11 @@ for line in f.readlines():
 	for item in items:
 		if idx >= len(parts):
 			break
+		# This field is ignored
+		if parts[idx]=="-":
+			continue
+		if len(parts[idx]) and not len(item):
+			sys.stderr.write("WARNING: Unknown field %i on line %i\n" % (idx,lno))
 		if len(parts[idx]) and len(item):
 			if item[0] == '!':
 				print "\t%s = %s;" % (item[1:], istr(parts[idx]))
@@ -338,6 +346,9 @@ if len(connects.keys()):
 			print "\thub = \"%s\";" % qstr(connects[i]["hub"])
 		else:
 			print "\tleaf;"
+		if not connects[i].has_key("port"):
+			print "\tautoconnect = no;"
+			sys.stderr.write("NOTE: You should add a port for \"%s\", autoconnect is now specified seperately\n" % qstr(connects[i]["name"]))
 		print "};"
 		print
 
@@ -354,8 +365,11 @@ if len(feats):
 				print "# Option converted to locop privilege"
 			elif name.startswith("OPER_"):
 				print "# Option converted to oper privilege"
+			elif name in deprecated_features:
+				print "# Option is deprecated"
 			else:
-				print "# Option no longer exists in 2.10.12"
+				print "# Unknown option"
+				sys.stderr.write("WARNING: Unknown option \"%s\"\n" % qstr(name))
 			print "#\t\"%s\" = \"%s\";" % (qstr(name), qstr(value))
 	print "};"
 	print
