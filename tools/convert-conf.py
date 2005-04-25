@@ -22,7 +22,7 @@
 # Usage:
 #   convert-conf.py < old.conf > new.conf
 #
-# $Id: convert-conf.py,v 1.5 2005-04-17 02:18:55 isomer Exp $
+# $Id: convert-conf.py,v 1.6 2005-04-25 02:51:18 isomer Exp $
 #
 
 import sys
@@ -331,7 +331,7 @@ if len(connects.keys()):
 		print "\tname = \"%s\";" % qstr(connects[i]["name"])
 		print "\thost = \"%s\";" % qstr(connects[i]["host"])
 		print "\tpassword = \"%s\";" % qstr(connects[i]["password"])
-		if connects[i]["port"]:
+		if connects[i].has_key("port"):
 			print "\tport = %s;" % connects[i]["port"]
 		print "\tclass = \"%s\";" % qstr(connects[i]["class"])
 		if connects[i].has_key("hub"):
