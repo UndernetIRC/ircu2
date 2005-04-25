@@ -265,6 +265,7 @@ static void try_connections(struct Event* ev) {
      */
     if (!(aconf->status & CONF_SERVER)
         || aconf->address.port == 0
+        || !(aconf->flags & CONF_AUTOCONNECT)
         || ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)))
       continue;
 

@@ -1,5 +1,24 @@
 2005-04-24  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Document new autoconnect field of Connect.
+
+	* include/s_conf.h: Add CONF_AUTOCONNECT and field for it.
+
+	* ircd/ircd.c (try_connections): Skip non-autoconnect servers.
+
+	* ircd/ircd_lexer.l: Recognize autoconnect token.
+
+	* ircd/ircd_parser.y: Add autoconnect= option to Connect block.
+
+	* ircd/m_invite.c (m_invite): Avoid sending channel timestamp to
+	user being invited.
+	(ms_invite): Likewise.
+
+	* ircd/s_user.c (register_user): Show class name rather than
+	pointer-as-integer.
+
+2005-04-24  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y: Rewrite so each error condition gets its own
 	error message, and so that invalid parameters are printed out.
 

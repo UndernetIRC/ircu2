@@ -68,7 +68,7 @@
 
   int yylex(void);
   /* Now all the globals we need :/... */
-  int tping, tconn, maxlinks, sendq, port, invert, stringno;
+  int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   char *stringlist[MAX_STRINGS];
   struct ConnectionClass *c_class;
@@ -155,6 +155,7 @@ static void parse_error(char *pattern,...) {
 %token IAUTH
 %token TIMEOUT
 %token FAST
+%token AUTOCONNECT
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -395,6 +396,7 @@ classusermode: USERMODE '=' QSTRING ';'
 connectblock: CONNECT
 {
  maxlinks = 65535;
+ flags = CONF_AUTOCONNECT;
 } '{' connectitems '}'
 {
  struct ConfItem *aconf = NULL;
@@ -418,6 +420,7 @@ connectblock: CONNECT
    aconf->host = host;
    aconf->maximum = maxlinks;
    aconf->hub_limit = hub_limit;
+   aconf->flags = flags;
    lookup_confhost(aconf);
  }
  if (!aconf) {
@@ -429,12 +432,12 @@ connectblock: CONNECT
  }
  name = pass = host = origin = hub_limit = NULL;
  c_class = NULL;
- port = 0;
+ port = flags = 0;
 }';';
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
               | connectport | connectvhost | connectleaf | connecthub
-              | connecthublimit | connectmaxhops | error;
+              | connecthublimit | connectmaxhops | connectauto | error;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -482,6 +485,8 @@ connectmaxhops: MAXHOPS '=' expr ';'
 {
   maxlinks = $3;
 };
+connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
+ | AUTOCONNECT '=' NO ';' { flags &= ~CONF_AUTOCONNECT; };
 
 uworldblock: UWORLD '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;

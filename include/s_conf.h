@@ -32,6 +32,8 @@ struct Message;
 #define CONF_OPERATOR           0x0020     /**< ConfItem describes an Operator block */
 #define CONF_UWORLD             0x8000     /**< ConfItem describes a Uworld server */
 
+#define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
+
 /** Indicates ConfItem types that count associated clients. */
 #define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPERATOR | CONF_SERVER)
 
@@ -63,6 +65,7 @@ struct ConfItem
   time_t hold;        /**< Earliest time to attempt an outbound
                          connect on this ConfItem. */
   int dns_pending;    /**< A dns request is pending. */
+  int flags;          /**< Additional modifiers for item. */
   int addrbits;       /**< Number of bits valid in ConfItem::address. */
   struct Privs privs; /**< Privileges for opers. */
   /** Used to detect if a privilege has been set by this ConfItem. */

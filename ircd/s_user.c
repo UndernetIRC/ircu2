@@ -430,7 +430,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         {
           last_too_many1 = CurrentTime;
           sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections in "
-                               "class %i for %s.", get_client_class(sptr),
+                               "class %s for %s.", get_client_class(sptr),
                                get_client_name(sptr, SHOW_IP));
         }
         ++ServerStats->is_ref;
