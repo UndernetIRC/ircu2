@@ -1,3 +1,9 @@
+2005-04-25  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (register_user): Replace call with set_user_mode()
+	with a direct parsing of user modes.  To match this, revert the
+	initial display of usermode to how it was done before.
+
 2005-04-24  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Document new autoconnect field of Connect.

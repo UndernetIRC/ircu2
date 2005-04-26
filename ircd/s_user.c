@@ -611,12 +611,30 @@ int register_user(struct Client *cptr, struct Client *sptr,
     /*
      * Set user's initial modes
      */
-    parv[0] = (char*)nick;
-    parv[1] = (char*)nick;
-    parv[2] = (char*)client_get_default_umode(sptr);
-    parv[3] = NULL; /* needed in case of +s */
-    set_user_mode(sptr, sptr, 3, parv);
-    ClearHiddenHost(sptr); /* just in case somebody stuck +x in there */
+    for (tmpstr = (char*)client_get_default_umode(sptr); *tmpstr; ++tmpstr) {
+      switch (*tmpstr) {
+      case 's':
+        if (!feature_bool(FEAT_HIS_SNOTICES_OPER_ONLY)) {
+          SetServNotice(sptr);
+          set_snomask(sptr, SNO_DEFAULT, SNO_SET);
+        }
+        break;
+      case 'w':
+        if (!feature_bool(FEAT_WALLOPS_OPER_ONLY))
+          SetWallops(sptr);
+        break;
+      case 'i':
+        SetInvisible(sptr);
+        break;
+      case 'd':
+        SetDeaf(sptr);
+        break;
+      case 'g':
+        if (!feature_bool(FEAT_HIS_DEBUG_OPER_ONLY))
+          SetDebug(sptr);
+        break;
+      }
+    }
   }
   else
     /* if (IsServer(cptr)) */
@@ -676,10 +694,14 @@ int register_user(struct Client *cptr, struct Client *sptr,
                              iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 0),
                              NumNick(sptr), cli_info(sptr));
 
-  /* Send server notice mask to client */
-  if (MyUser(sptr) && (cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
-    send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
-
+  /* Send user mode to client */
+  if (MyUser(sptr))
+  {
+    static struct Flags flags; /* automatically initialized to zeros */
+    send_umode(cptr, sptr, &flags, ALL_UMODES);
+    if ((cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
+      send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
+  }
   return 0;
 }
 
