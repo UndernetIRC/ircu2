@@ -611,7 +611,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
     /*
      * Set user's initial modes
      */
-    for (tmpstr = (char*)client_get_default_umode(sptr); *tmpstr; ++tmpstr) {
+    tmpstr = (char*)client_get_default_umode(sptr);
+    if (tmpstr) for (; *tmpstr; ++tmpstr) {
       switch (*tmpstr) {
       case 's':
         if (!feature_bool(FEAT_HIS_SNOTICES_OPER_ONLY)) {
@@ -625,6 +626,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
         break;
       case 'i':
         SetInvisible(sptr);
+        ++UserStats.inv_clients;
         break;
       case 'd':
         SetDeaf(sptr);
