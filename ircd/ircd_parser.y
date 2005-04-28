@@ -409,7 +409,7 @@ connectblock: CONNECT
  else if (strchr(host, '*') || strchr(host, '?'))
   parse_error("Invalid host '%s' in connect block", host);
  else if (c_class == NULL)
-  parse_error("Missing class in connect block");
+  parse_error("Missing or non-existent class in connect block");
  else {
    aconf = make_conf(CONF_SERVER);
    aconf->name = name;
@@ -451,6 +451,8 @@ connectpass: PASS '=' QSTRING ';'
 connectclass: CLASS '=' QSTRING ';'
 {
  c_class = find_class($3);
+ if (!c_class)
+  parse_error("No such connection class '%s' for Connect block", $3);
  MyFree($3);
 };
 connecthost: HOST '=' QSTRING ';'
@@ -506,7 +508,7 @@ operblock: OPER '{' operitems '}' ';'
   else if (host == NULL)
     parse_error("Missing host in operator block");
   else if (c_class == NULL)
-    parse_error("Missing class in operator block");
+    parse_error("Invalid or missing class in operator block");
   else {
     aconf = make_conf(CONF_OPERATOR);
     aconf->name = name;
@@ -557,6 +559,8 @@ operhost: HOST '=' QSTRING ';'
 operclass: CLASS '=' QSTRING ';'
 {
  c_class = find_class($3);
+ if (!c_class)
+  parse_error("No such connection class '%s' for Operator block", $3);
  MyFree($3);
 };
 
@@ -657,17 +661,16 @@ clientblock: CLIENT
 }
 '{' clientitems '}' ';'
 {
+  struct ConfItem *aconf = 0;
   struct irc_in_addr addr;
   unsigned char addrbits = 0;
 
-  if (ip && !ipmask_parse(ip, &addr, &addrbits)) {
-    parse_error("Invalid IP address %s in block", ip);
-    MyFree(username);
-    MyFree(host);
-    MyFree(ip);
-    MyFree(pass);
-  } else {
-    struct ConfItem *aconf = make_conf(CONF_CLIENT);
+  if (!c_class)
+    parse_error("Invalid or missing class in Client block");
+  else if (ip && !ipmask_parse(ip, &addr, &addrbits))
+    parse_error("Invalid IP address %s in Client block", ip);
+  else {
+    aconf = make_conf(CONF_CLIENT);
     aconf->username = username;
     aconf->host = host;
     if (ip)
@@ -676,9 +679,15 @@ clientblock: CLIENT
       memset(&aconf->address.addr, 0, sizeof(aconf->address.addr));
     aconf->addrbits = addrbits;
     aconf->name = ip;
-    aconf->conn_class = c_class ? c_class : find_class("default");
+    aconf->conn_class = c_class;
     aconf->maximum = maxlinks;
     aconf->passwd = pass;
+  }
+  if (!aconf) {
+    MyFree(username);
+    MyFree(host);
+    MyFree(ip);
+    MyFree(pass);
   }
   host = NULL;
   username = NULL;
@@ -723,6 +732,8 @@ clientusername: USERNAME '=' QSTRING ';'
 clientclass: CLASS '=' QSTRING ';'
 {
   c_class = find_class($3);
+  if (!c_class)
+    parse_error("No such connection class '%s' for Class block", $3);
   MyFree($3);
 };
 clientpass: PASS '=' QSTRING ';'

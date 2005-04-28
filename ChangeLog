@@ -1,3 +1,8 @@
+2005-04-27  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y: Report non-existent class names as errors
+	earlier, and do not fall back to "default" for Client blocks.
+
 2005-04-25  Reed Loden  <reed@reedloden.com>
 
 	* ircd/ircd_lexer.l: Add missing header to squash a warning.
