@@ -107,14 +107,14 @@ higher will be logged.
  * SOCKET - Used to report problems with sockets.  By default, log
    messages to this subsystem go nowhere.
 
+ * IAUTH - Used to report connects, disconnects and errors for the
+   IAuth authorization mechanism.  By default, log messages to this
+   subsystem go to the "NETWORK" server notice mask.
+
  * DEBUG - Used only when debugging is enabled.  All log messages to
    this subsystem go either to the console or to the debug log file
    compiled into the server, as well as to the "DEBUG" server notice
    mask.  This is the only subsystem with a default log file.
-
- * OLDLOG - Not used anywhere.  This is a left-over from when the
-   logging subsystem was first created.  Log messages to this
-   subsystem go nowhere.
 
 Configuration
 

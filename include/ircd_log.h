@@ -63,8 +63,8 @@ enum LogSys {
   LS_OPER,       /**< Users becoming operators. */
   LS_RESOLVER,   /**< DNS resolver errors. */
   LS_SOCKET,     /**< Unexpected socket operation errors. */
+  LS_IAUTH,      /**< IAuth status. */
   LS_DEBUG,      /**< Debug messages. */
-  LS_OLDLOG,     /**< Old logging messages (no longer used). */
   LS_LAST_SYSTEM /**< Count of valid LogSys values. */
 };
 

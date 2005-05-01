@@ -1,3 +1,31 @@
+2005-05-01  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.log: Document IAUTH log target, remove docs for
+	OLDLOG log target.
+
+	* include/ircd_log.h: Add LS_IAUTH target, remove LS_OLDLOG.
+
+	* ircd/ircd_log.c (logDesc): Likewise.
+
+	* ircd/engine_epoll.c (engine_loop): Handle EPOLLHUP for all
+	sockets (e.g. when connecting) and do not generate read/write
+	events in the same pass as error or EOF events.
+
+	* ircd/ircd_auth.c: Convert old sendto and debug messages to use
+	the LS_IAUTH log target.  Consistently use IAUTH_CONNECTED flag
+	instead of comparing fd to -1.
+	(iauth_reconnect): If already connected, disconnect and schedule a
+	reconnect later, since an immediate reconnect can cause assertion
+	failure in the event engine.  Also schedule a reconnect when the
+	connection attempt fails.
+	(iauth_read): Reconnect on IO_FAILURE.
+	(iauth_sock_callback): Disconnect and schedule a reconnect on both
+	error (after reporting the error) and EOF.
+	(iauth_start_client): Record the IAuth request in the client.
+	(iauth_exit_client): Report the client exit.
+
+	* ircd/s_misc.c (exit_one_client): Fix formatting.
+
 2005-04-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_auth.c (iauth_connect): Initialize (but do not add)

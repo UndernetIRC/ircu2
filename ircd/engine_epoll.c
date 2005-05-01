@@ -276,9 +276,9 @@ engine_loop(struct Generators *gen)
           gen_ref_dec(sock);
           continue;
         }
-      }
-
-      switch (s_state(sock)) {
+      } else if (events[i].events & EPOLLHUP) {
+        event_generate(ET_EOF, sock, 0);
+      } else switch (s_state(sock)) {
       case SS_CONNECTING:
         if (events[i].events & EPOLLOUT) /* connection completed */
           event_generate(ET_CONNECT, sock, 0);
@@ -291,12 +291,6 @@ engine_loop(struct Generators *gen)
 
       case SS_NOTSOCK:
       case SS_CONNECTED:
-        if (events[i].events & EPOLLIN)
-          event_generate((events[i].events & EPOLLHUP) ? ET_EOF : ET_READ, sock, 0);
-        if (events[i].events & EPOLLOUT)
-          event_generate(ET_WRITE, sock, 0);
-        break;
-
       case SS_DATAGRAM:
       case SS_CONNECTDG:
         if (events[i].events & EPOLLIN)

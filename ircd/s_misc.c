@@ -245,9 +245,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       --UserStats.opers;
     if (MyConnect(bcptr))
       Count_clientdisconnects(bcptr, UserStats);
-    else {
+    else
       Count_remoteclientquits(UserStats, bcptr);
-    }
   }
   else if (IsServer(bcptr))
   {
@@ -284,7 +283,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /* bcptr->user->server->serv->client_list[IndexYXX(bcptr)] = NULL; */
     RemoveYXXClient(cli_user(bcptr)->server, cli_yxx(bcptr));
     if (IsIAuthed(bcptr) || cli_iauth(bcptr))
-        iauth_exit_client(bcptr);
+      iauth_exit_client(bcptr);
   }
 
   /* Remove bcptr from the client list */

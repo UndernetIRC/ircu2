@@ -245,7 +245,6 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
     iauth_active = iauth;
     timer_init(&i_reconn_timer(iauth));
     i_reconnect(iauth) = reconnect;
-    s_fd(&i_socket(iauth)) = -1;
     iauth_reconnect(iauth);
   }
   if (passwd)
@@ -313,7 +312,7 @@ void iauth_close(struct IAuth *iauth)
   if (t_active(&i_request_timer(iauth)))
     timer_del(&i_request_timer(iauth));
   /* Disconnect from the server. */
-  if (s_fd(&i_socket(iauth)) != -1)
+  if (i_GetConnected(iauth))
     iauth_disconnect(iauth);
   /* Free memory. */
   MyFree(iauth);
@@ -400,7 +399,7 @@ static void iauth_disconnect(struct IAuth *iauth)
 {
   close(s_fd(&i_socket(iauth)));
   socket_del(&i_socket(iauth));
-  s_fd(&i_socket(iauth)) = -1;
+  i_ClrConnected(iauth);
 }
 
 /** DNS completion callback for an %IAuth connection.
@@ -411,11 +410,11 @@ static void iauth_dns_callback(void *vptr, struct DNSReply *he)
 {
   struct IAuth *iauth = vptr;
   if (!he) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host lookup failed", i_host(iauth));
+    log_write(LS_IAUTH, L_NOTICE, 0, "IAuth connection to %s failed: host lookup failed", i_host(iauth));
   } else {
     memcpy(&i_addr(iauth).addr, &he->addr, sizeof(i_addr(iauth).addr));
     if (!irc_in_addr_valid(&i_addr(iauth).addr)) {
-      sendto_opmask_butone(0, SNO_OLDSNO, "IAuth connection to %s failed: host came back as unresolved", i_host(iauth));
+      log_write(LS_IAUTH, L_NOTICE, 0, "IAuth connection to %s failed: host came back as unresolved", i_host(iauth));
       return;
     }
     iauth_reconnect(iauth);
@@ -454,9 +453,12 @@ static void iauth_reconnect(struct IAuth *iauth)
   IOResult result;
   int fd;
 
-  if (s_fd(&i_socket(iauth)) != -1)
+  if (i_GetConnected(iauth)) {
     iauth_disconnect(iauth);
-  Debug((DEBUG_INFO, "IAuth attempt connection to %s port %p.", i_host(iauth), i_port(iauth)));
+    iauth_schedule_reconnect(iauth);
+    return;
+  }
+  log_write(LS_IAUTH, L_DEBUG, 0, "IAuth attempt connection to %s port %p.", i_host(iauth), i_port(iauth));
   if (!irc_in_addr_valid(&i_addr(iauth).addr)
       && !ircd_aton(&i_addr(iauth).addr, i_host(iauth))) {
     i_query(iauth).vptr = iauth;
@@ -466,27 +468,32 @@ static void iauth_reconnect(struct IAuth *iauth)
   }
   local = irc_in_addr_is_ipv4(&i_addr(iauth).addr) ? &VirtualHost_v4 : &VirtualHost_v6;
   fd = os_socket(local, SOCK_STREAM, "IAuth");
-  if (fd < 0)
-    return;
-  if (!os_set_sockbufs(fd, SERVER_TCP_WINDOW, SERVER_TCP_WINDOW)) {
-    close(fd);
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to set socket buffers: %s", strerror(errno));
+  if (fd < 0) {
+    iauth_schedule_reconnect(iauth);
     return;
   }
-  result = os_connect_nonb(fd, &i_addr(iauth));
-  if (result == IO_FAILURE) {
-    close(fd);
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to initiate connection: %s", strerror(errno));
-    return;
+  if (!os_set_sockbufs(fd, SERVER_TCP_WINDOW, SERVER_TCP_WINDOW)) {
+    log_write(LS_IAUTH, L_WARNING, 0, "IAuth reconnect unable to set socket buffers: %s", strerror(errno));
+    goto failure;
   }
   s_fd(&i_socket(iauth)) = fd;
+  result = os_connect_nonb(fd, &i_addr(iauth));
+  if (result == IO_FAILURE) {
+    log_write(LS_IAUTH, L_NOTICE, 0, "IAuth reconnect unable to initiate connection: %s", strerror(errno));
+    goto failure;
+  }
   if (!socket_add(&i_socket(iauth), iauth_sock_callback, iauth,
                   (result == IO_SUCCESS) ? SS_CONNECTED : SS_CONNECTING,
                   SOCK_EVENT_READABLE | SOCK_EVENT_WRITABLE, fd)) {
-    close(fd);
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to add socket: %s", strerror(errno));
-    return;
+    log_write(LS_IAUTH, L_WARNING, 0, "IAuth reconnect unable to add socket: %s", strerror(errno));
+    goto failure;
   }
+  return;
+failure:
+  close(fd);
+  i_ClrConnected(iauth);
+  iauth_schedule_reconnect(iauth);
+  return;
 }
 
 /** Read input from \a iauth.
@@ -500,9 +507,8 @@ static void iauth_read(struct IAuth *iauth)
   char readbuf[SERVER_TCP_WINDOW];
 
   length = 0;
-  if (IO_FAILURE == os_recv_nonb(s_fd(&i_socket(iauth)), readbuf, sizeof(readbuf), &length))
-    return;
-  if (length == 0) {
+  if (IO_FAILURE == os_recv_nonb(s_fd(&i_socket(iauth)), readbuf, sizeof(readbuf), &length)
+      || length == 0) {
       iauth_reconnect(iauth);
       return;
   }
@@ -619,13 +625,12 @@ static void iauth_sock_callback(struct Event *ev)
     i_ClrBlocked(iauth);
     iauth_write(iauth);
     break;
+  case ET_ERROR:
+    log_write(LS_IAUTH, L_ERROR, 0, "IAuth socket error: %s", strerror(ev_data(ev)));
+    /* and fall through to the ET_EOF case */
   case ET_EOF:
     iauth_disconnect(iauth);
-    break;
-  case ET_ERROR:
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth socket error: %s", strerror(ev_data(ev)));
-    log_write(LS_SOCKET, L_ERROR, 0, "IAuth socket error: %s", strerror(ev_data(ev)));
-    iauth_disconnect(iauth);
+    iauth_schedule_reconnect(iauth);
     break;
   default:
     assert(0 && "Unrecognized event type");
@@ -642,7 +647,7 @@ static void iauth_request_ev(struct Event *ev)
 {
   /* TODO: this could probably be more intelligent */
   if (ev_type(ev) == ET_EXPIRE) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "IAuth request timed out; reconnecting");
+    log_write(LS_IAUTH, L_NOTICE, 0, "IAuth request timed out; reconnecting");
     iauth_reconnect(t_data(ev_timer(ev)));
   }
 }
@@ -693,6 +698,7 @@ int iauth_start_client(struct IAuth *iauth, struct Client *cptr)
   /* Allocate and initialize IAuthRequest struct. */
   if (!(iar = MyCalloc(1, sizeof(*iar))))
     return exit_client(cptr, cptr, &me, "IAuth memory allocation failed");
+  cli_iauth(cptr) = iar;
   iar->iar_next = &i_list_head(iauth);
   iar->iar_prev = i_list_head(iauth).iar_prev;
   iar->iar_client = cptr;
@@ -714,9 +720,11 @@ void iauth_exit_client(struct Client *cptr)
   if (cli_iauth(cptr)) {
     iauth_dispose_request(iauth_active, cli_iauth(cptr));
     cli_iauth(cptr) = NULL;
-  } else if (IsIAuthed(cptr) && i_GetIClass(iauth_active)) {
-    /* TODO: report quit to iauth */
   }
+  if (!i_GetConnected(iauth_active))
+    return;
+  iauth_send(iauth_active, "ExitUser %x", cptr);
+  iauth_write(iauth_active);
 }
 
 /** Find pending request with a particular ID.
