@@ -1,3 +1,13 @@
+2005-04-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_auth.c (iauth_connect): Initialize (but do not add)
+	timer here and set fd to -1.
+	(iauth_schedule_reconnect): Rewrite to handle previously
+	initialized timer.
+	(iauth_reconnect): If server is connected, disconnect first.
+	Update socket generator fd before calling socket_add().
+	(iauth_read): When reading 0 bytes (EOF), reconnect.
+
 2005-04-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y: Report non-existent class names as errors

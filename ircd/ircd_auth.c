@@ -243,7 +243,9 @@ struct IAuth *iauth_connect(char *host, unsigned short port, char *passwd, time_
     memset(&i_addr(iauth), 0, sizeof(i_addr(iauth)));
     i_port(iauth) = port;
     iauth_active = iauth;
+    timer_init(&i_reconn_timer(iauth));
     i_reconnect(iauth) = reconnect;
+    s_fd(&i_socket(iauth)) = -1;
     iauth_reconnect(iauth);
   }
   if (passwd)
@@ -435,9 +437,12 @@ static void iauth_reconnect_ev(struct Event *ev)
 static void iauth_schedule_reconnect(struct IAuth *iauth)
 {
   struct Timer *timer;
-  assert(!t_active(&i_reconn_timer(iauth)));
-  timer = timer_init(&i_reconn_timer(iauth));
-  timer_add(timer, iauth_reconnect_ev, iauth, TT_RELATIVE, i_reconnect(iauth));
+  timer = &i_reconn_timer(iauth);
+  if (t_onqueue(timer))
+    timer_chg(timer, TT_RELATIVE, i_reconnect(iauth));
+  else
+    timer_add(&i_reconn_timer(iauth), iauth_reconnect_ev,
+              iauth, TT_RELATIVE, i_reconnect(iauth));
 }
 
 /** Initiate a (re-)connection to \a iauth.
@@ -449,6 +454,8 @@ static void iauth_reconnect(struct IAuth *iauth)
   IOResult result;
   int fd;
 
+  if (s_fd(&i_socket(iauth)) != -1)
+    iauth_disconnect(iauth);
   Debug((DEBUG_INFO, "IAuth attempt connection to %s port %p.", i_host(iauth), i_port(iauth)));
   if (!irc_in_addr_valid(&i_addr(iauth).addr)
       && !ircd_aton(&i_addr(iauth).addr, i_host(iauth))) {
@@ -472,6 +479,7 @@ static void iauth_reconnect(struct IAuth *iauth)
     sendto_opmask_butone(0, SNO_OLDSNO, "IAuth reconnect unable to initiate connection: %s", strerror(errno));
     return;
   }
+  s_fd(&i_socket(iauth)) = fd;
   if (!socket_add(&i_socket(iauth), iauth_sock_callback, iauth,
                   (result == IO_SUCCESS) ? SS_CONNECTED : SS_CONNECTING,
                   SOCK_EVENT_READABLE | SOCK_EVENT_WRITABLE, fd)) {
@@ -494,6 +502,10 @@ static void iauth_read(struct IAuth *iauth)
   length = 0;
   if (IO_FAILURE == os_recv_nonb(s_fd(&i_socket(iauth)), readbuf, sizeof(readbuf), &length))
     return;
+  if (length == 0) {
+      iauth_reconnect(iauth);
+      return;
+  }
   i_recvB(iauth) += length;
   if (i_recvB(iauth) > 1023) {
     i_recvK(iauth) += i_recvB(iauth) >> 10;
