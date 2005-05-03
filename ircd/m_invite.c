@@ -180,6 +180,9 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (MyConnect(acptr)) {
     add_invite(acptr, chptr);
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
+  } else {
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr), chptr,
+                  chptr->creationtime);
   }
 
   if (!IsLocalChannel(chptr->chname) || MyConnect(acptr)) {
@@ -190,7 +193,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                                        "%H %C %C :%C has been invited by %C",
                                        chptr, acptr, sptr, acptr, sptr);
       /* Announce to servers with channel operators. */
-      sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, NULL, SKIP_NONOPS,
+      sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
                                        "%s %H %Tu", cli_name(acptr),
                                        chptr, chptr->creationtime);
     }
@@ -280,8 +283,11 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (MyConnect(acptr)) {
-      add_invite(acptr, chptr);
-      sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
+    add_invite(acptr, chptr);
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
+  } else {
+    sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr), chptr,
+                  chptr->creationtime);
   }
 
   if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
@@ -291,12 +297,10 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                                      "%H %C %C :%C has been invited by %C",
                                      chptr, acptr, sptr, acptr, sptr);
     /* Announce to servers with channel operators. */
-    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, NULL, SKIP_NONOPS,
+    sendcmdto_channel_servers_butone(sptr, NULL, TOK_INVITE, chptr, acptr, SKIP_NONOPS,
                                      "%s %H %Tu", cli_name(acptr), chptr,
                                      chptr->creationtime);
   }
 
   return 0;
 }
-
-

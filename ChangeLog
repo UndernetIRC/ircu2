@@ -1,3 +1,23 @@
+2005-05-02  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h (ERR_UPASS_SAME_APASS): New error message when
+	trying to set +U pass to the same as the +A pass.
+
+	* ircd/channel.c (mode_parse_upass): Use it.
+
+	* ircd/ircd_auth.c (iauth_exit_client): Only send ExitUser if
+	there is an active IAuth connection, fixing PR#1193808.
+	(iauth_dispose_request): Only delete the timer if it is active.
+
+	* ircd/m_invite.c (m_invite): Always forward the invite in the
+	correct direction, and then skip it as 'one' if announcing.
+	(ms_invite): Likewise.
+
+	* ircd/numnicks.c (base64toip): Do not interpret AAAAAA as
+	::ffff:0.0.0.0; keep it as ::.
+
+	* ircd/s_err.c (replyTable): Add ERR_UPASS_SAME_APASS.
+
 2005-05-01  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.log: Document IAUTH log target, remove docs for

@@ -721,10 +721,10 @@ void iauth_exit_client(struct Client *cptr)
     iauth_dispose_request(iauth_active, cli_iauth(cptr));
     cli_iauth(cptr) = NULL;
   }
-  if (!i_GetConnected(iauth_active))
-    return;
-  iauth_send(iauth_active, "ExitUser %x", cptr);
-  iauth_write(iauth_active);
+  if (iauth_active && i_GetConnected(iauth_active)) {
+    iauth_send(iauth_active, "ExitUser %x", cptr);
+    iauth_write(iauth_active);
+  }
 }
 
 /** Find pending request with a particular ID.
@@ -754,7 +754,7 @@ static struct IAuthRequest *iauth_find_request(struct IAuth *iauth, char *id)
 static void iauth_dispose_request(struct IAuth *iauth, struct IAuthRequest *iar)
 {
   assert(iar->iar_client != NULL);
-  if (iar->iar_timed)
+  if (iar->iar_timed && t_active(&i_request_timer(iauth)))
     timer_del(&i_request_timer(iauth));
   cli_iauth(iar->iar_client) = NULL;
   iar->iar_prev->iar_next = iar->iar_next;

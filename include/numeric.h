@@ -463,7 +463,8 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_UPASSNOTSET      554	/* Undernet extension */
 #define ERR_NOMANAGER_LONG   555	/* Undernet extension */
 #define ERR_NOMANAGER_SHORT  556	/* Undernet extension */
-#define ERR_LASTERROR        557
+#define ERR_UPASS_SAME_APASS 557        /* Undernet extension */
+#define ERR_LASTERROR        558
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

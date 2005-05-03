@@ -1146,7 +1146,7 @@ static Numeric replyTable[] = {
 /* 556 */
   { ERR_NOMANAGER_SHORT, "%s :Re-create the channel.  The channel must be *empty* for a minute or two before it can be recreated.", "556" },
 /* 557 */
-  { 0 },
+  { ERR_UPASS_SAME_APASS, "%s :Cannot use the same pass for both admin (+A) and user (+U) pass.", "557" },
 /* 558 */
   { 0 },
 /* 559 */

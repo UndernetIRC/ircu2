@@ -2484,6 +2484,11 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
       send_reply(state->sptr, ERR_UPASSNOTSET, state->chptr->chname, state->chptr->chname);
       return;
     }
+    /* cannot set a +U password that is the same as +A */
+    if (state->dir == MODE_ADD && !ircd_strcmp(state->chptr->mode.apass, t_str)) {
+      send_reply(state->sptr, ERR_UPASS_SAME_APASS, state->chptr->chname);
+      return;
+    }
     /* can't add a upass if one is set, nor can one remove the wrong upass */
     if ((state->dir == MODE_ADD && *state->chptr->mode.upass) ||
 	(state->dir == MODE_DEL &&
