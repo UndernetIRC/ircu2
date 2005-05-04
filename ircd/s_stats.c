@@ -172,12 +172,15 @@ stats_access(struct Client *to, const struct StatDesc *sd, char *param)
   {
     if (aconf->status != CONF_CLIENT)
       continue;
-    if ((!wilds && (!match(aconf->host, param) ||
-                    !match(aconf->name, param))) ||
-        (wilds && (!mmatch(param, aconf->host) ||
-                   !mmatch(param, aconf->name))))
+    if (wilds ? ((aconf->host && !mmatch(aconf->host, param))
+                 || (aconf->name && !mmatch(aconf->name, param)))
+        : ((aconf->host && !match(param, aconf->host))
+           || (aconf->name && !match(param, aconf->name))))
     {
-      send_reply(to, RPL_STATSILINE, 'I', aconf->host, aconf->name,
+      send_reply(to, RPL_STATSILINE,
+                 (aconf->host ? aconf->host : "*"), aconf->maximum,
+                 (aconf->name && aconf->name[0] == ':' ? "0":""),
+                 aconf->name ? aconf->name : "*",
                  aconf->address.port, get_conf_class(aconf));
       if (--count == 0)
         break;
