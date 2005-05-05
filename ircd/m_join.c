@@ -170,7 +170,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel *chptr;
   struct JoinBuf join;
   struct JoinBuf create;
-  struct ModeBuf mbuf;
   struct Gline *gline;
   unsigned int flags = 0;
   int i, j, k = 0;
@@ -247,8 +246,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (chptr) {
       int is_level0_op = 0;
       if (!BadPtr(keys) && *chptr->mode.apass) {
-	/* Don't use compall for the apass, only a single key is allowed.
-	   Test Apass first in case someone set Apass and upass equal. */
+        /* Don't use compall for the apass, only a single key is allowed. */
 	if (strcmp(chptr->mode.apass, keys) == 0) {
 	  is_level0_op = 1;
 	  flags &= ~CHFL_DEOPPED;
@@ -304,16 +302,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       } /* else if ((i = can_join(sptr, chptr, keys))) */
 
       joinbuf_join(&join, chptr, flags);
-      if (is_level0_op)
-      {
-	joinbuf_flush(&join);
-	modebuf_init(&mbuf, &me, cptr, chptr,
-	    MODEBUF_DEST_CHANNEL |		/* Send mode to channel */
-	    MODEBUF_DEST_SERVER);		/* And send it to the other servers */
-	modebuf_mode_client(&mbuf,
-	    MODE_ADD | MODE_CHANOP, sptr);	/* Give ops to the level0 op */
-	modebuf_flush(&mbuf);
-      }
     } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
       continue; /* couldn't get channel */
     else if (check_target_limit(sptr, chptr, chptr->chname, 1))
@@ -351,7 +339,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member;
   struct Channel *chptr;
   struct JoinBuf join;
-  unsigned int flags = 0;
+  unsigned int flags;
   time_t creation = 0;
   char *p = 0;
   char *chanlist;
@@ -384,6 +372,19 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
       continue;
 
+    if (name[0] == '0' && name[1] == ':')
+    {
+      flags = CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
+      name += 2;
+    }
+    else if (name[0] == '1' && name[1] == ':')
+    {
+      flags = CHFL_CHANOP;
+      name += 2;
+    }
+    else
+      flags = CHFL_DEOPPED;
+
     if (IsLocalChannel(name) || !IsChannelName(name))
     {
       protocol_violation(cptr, "%s tried to join %s", cli_name(sptr), name);
@@ -399,9 +400,9 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         		   name,cli_name(sptr));
       	continue;
       }
-      flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
+      flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
 
-      /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */ 
+      /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */
       chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
     }
     else { /* We have a valid channel? */
@@ -416,12 +417,12 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	chptr = FindChannel(name);
       }
       else
-        flags = CHFL_DEOPPED | (HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0);
+        flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
       /* Always copy the timestamp when it is older, that is the only way to
          ensure network-wide synchronization of creation times. */
       if (creation && creation < chptr->creationtime)
 	chptr->creationtime = creation;
-    } 
+    }
 
     joinbuf_join(&join, chptr, flags);
   }

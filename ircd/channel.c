@@ -3388,7 +3388,9 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 	is_local) /* got to remove user here */
       remove_user_from_channel(jbuf->jb_source, chan);
   } else {
-    int oplevel = chan->mode.apass[0] ? 0 : MAXOPLEVEL;
+    int oplevel = !chan->mode.apass[0] ? MAXOPLEVEL
+        : (flags & CHFL_CHANNEL_MANAGER) ? 0
+        : 1;
     /* Add user to channel */
     if ((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))
       add_user_to_channel(chan, jbuf->jb_source, flags | CHFL_DELAYED, oplevel);
@@ -3397,16 +3399,22 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     /* send notification to all servers */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)
-      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
-			    "%H %Tu", chan, chan->creationtime);
+    {
+      if (flags & CHFL_CHANOP)
+        sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
+                              "%u:%H %Tu", oplevel, chan, chan->creationtime);
+      else
+        sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
+                              "%H %Tu", chan, chan->creationtime);
+    }
 
     if (!((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))) {
       /* Send the notification to the channel */
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, 0, "%H", chan);
 
       /* send an op, too, if needed */
-      if (!MyUser(jbuf->jb_source) && jbuf->jb_type == JOINBUF_TYPE_CREATE)
-	sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_MODE, chan, NULL, 0, "%H +o %C",
+      if (flags & CHFL_CHANOP)
+	sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan, NULL, 0, "%H +o %C",
 					 chan, jbuf->jb_source);
     } else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_JOIN, jbuf->jb_source, ":%H", chan);

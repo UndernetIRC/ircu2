@@ -1,5 +1,17 @@
 2005-05-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (joinbuf_join): Include channel manager flag in
+	determination of oplevel.  If opping the user for a non-local
+	non-create, include oplevel in message to other servers.  Send
+	"MODE +o <client>" to local users whenever opping the client.
+
+	* ircd/m_join.c (m_join): Remove logic that moved into
+	joinbuf_join().
+	(ms_join): Look for level 0 and 1 joins from remote servers
+	and adjust value of 'flags' appropriately.
+
+2005-05-04  Michael Poole <mdpoole@troilus.org>
+
 	* include/numeric.h: Remap oplevel numerics to new range.
 
 	* ircd/s_err.c: Likewise.
