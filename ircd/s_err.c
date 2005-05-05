@@ -1132,41 +1132,41 @@ static Numeric replyTable[] = {
 /* 549 */
   { 0 },
 /* 550 */
-  { ERR_NOTLOWEROPLEVEL, "%s %s %hu %hu :Cannot %s someone with %s op-level", "550" },
+  { 0 },
 /* 551 */
-  { ERR_NOTMANAGER, "%s :You must be channel Admin to add or remove a password. Use /JOIN %s <AdminPass>.", "551" },
+  { 0 },
 /* 552 */
-  { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "552" },
+  { 0 },
 /* 553 */
-  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set.  First use /MODE %s -U <userpass>", "553" },
+  { 0 },
 /* 554 */
-  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "554" },
+  { 0 },
 /* 555 */
-  { ERR_NOMANAGER_LONG, "%s :Re-create the channel.  The channel must be *empty* for 48 continuous hours before it can be recreated.", "555" },
+  { 0 },
 /* 556 */
-  { ERR_NOMANAGER_SHORT, "%s :Re-create the channel.  The channel must be *empty* for a minute or two before it can be recreated.", "556" },
+  { 0 },
 /* 557 */
-  { ERR_UPASS_SAME_APASS, "%s :Cannot use the same pass for both admin (+A) and user (+U) pass.", "557" },
+  { 0 },
 /* 558 */
   { 0 },
 /* 559 */
   { 0 },
 /* 560 */
-  { 0 },
+  { ERR_NOTLOWEROPLEVEL, "%s %s %hu %hu :Cannot %s someone with %s op-level", "560" },
 /* 561 */
-  { 0 },
+  { ERR_NOTMANAGER, "%s :You must be channel Admin to add or remove a password. Use /JOIN %s <AdminPass>.", "561" },
 /* 562 */
-  { 0 },
+  { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "562" },
 /* 563 */
-  { 0 },
+  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set.  First use /MODE %s -U <userpass>", "563" },
 /* 564 */
-  { 0 },
+  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "564" },
 /* 565 */
-  { 0 },
+  { ERR_NOMANAGER_LONG, "%s :Re-create the channel.  The channel must be *empty* for 48 continuous hours before it can be recreated.", "565" },
 /* 566 */
-  { 0 },
+  { ERR_NOMANAGER_SHORT, "%s :Re-create the channel.  The channel must be *empty* for a minute or two before it can be recreated.", "566" },
 /* 567 */
-  { 0 },
+  { ERR_UPASS_SAME_APASS, "%s :Cannot use the same pass for both admin (+A) and user (+U) pass.", "567" },
 /* 568 */
   { 0 },
 /* 569 */

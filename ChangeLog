@@ -1,8 +1,13 @@
+2005-05-04  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h: Remap oplevel numerics to new range.
+
+	* ircd/s_err.c: Likewise.
+
 2005-05-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_stats.c (stats_access): Update to use new CONF_CLIENT
 	fields, fixing crash found by nighty.
-	
 
 2005-05-02  Michael Poole <mdpoole@troilus.org>
 

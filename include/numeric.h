@@ -456,15 +456,15 @@ extern const struct Numeric* get_error_numeric(int err);
 	ERR_WHOLIMEXCEED     523	dalnet */
 #define ERR_QUARANTINED      524       /* Undernet extension -Vampire */
 
-#define ERR_NOTLOWEROPLEVEL  550	/* Undernet extension */
-#define ERR_NOTMANAGER       551	/* Undernet extension */
-#define ERR_CHANSECURED      552	/* Undernet extension */
-#define ERR_UPASSSET         553	/* Undernet extension */
-#define ERR_UPASSNOTSET      554	/* Undernet extension */
-#define ERR_NOMANAGER_LONG   555	/* Undernet extension */
-#define ERR_NOMANAGER_SHORT  556	/* Undernet extension */
-#define ERR_UPASS_SAME_APASS 557        /* Undernet extension */
-#define ERR_LASTERROR        558
+#define ERR_NOTLOWEROPLEVEL  560	/* Undernet extension */
+#define ERR_NOTMANAGER       561	/* Undernet extension */
+#define ERR_CHANSECURED      562	/* Undernet extension */
+#define ERR_UPASSSET         563	/* Undernet extension */
+#define ERR_UPASSNOTSET      564	/* Undernet extension */
+#define ERR_NOMANAGER_LONG   565	/* Undernet extension */
+#define ERR_NOMANAGER_SHORT  566	/* Undernet extension */
+#define ERR_UPASS_SAME_APASS 567        /* Undernet extension */
+#define ERR_LASTERROR        568
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal
