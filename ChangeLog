@@ -1,3 +1,8 @@
+2005-05-05  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (umode_str): Only clear the operator flag when not
+	propagating; never set it.
+
 2005-05-04  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (joinbuf_join): Include channel manager flag in
