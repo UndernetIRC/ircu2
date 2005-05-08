@@ -106,6 +106,7 @@ void do_trace(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   int i;
   struct Client *acptr;
+  struct Client *acptr2;
   const struct ConnectionClass* cl;
   char* tname;
   int doall;
@@ -260,14 +261,19 @@ void do_trace(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
          */
 
       case STAT_SERVER:
-        if (cli_serv(acptr)->user)
+        if (cli_serv(acptr)->user) {
+          if (!cli_serv(acptr)->by[0]
+              || !(acptr2 = findNUser(cli_serv(acptr)->by))
+              || (cli_user(acptr2) != cli_serv(acptr)->user))
+            acptr2 = NULL;
 	  send_reply(sptr, RPL_TRACESERVER, conClass, link_s[i],
                      link_u[i], cli_name(acptr),
-                     (*(cli_serv(acptr))->by) ? cli_serv(acptr)->by : "*",
-                     cli_serv(acptr)->user->username, cli_serv(acptr)->user->host,
+                     acptr2 ? cli_name(acptr2) : "*",
+                     cli_serv(acptr)->user->username,
+                     cli_serv(acptr)->user->host,
                      CurrentTime - cli_lasttime(acptr),
                      CurrentTime - cli_serv(acptr)->timestamp);
-	else
+        } else
 	  send_reply(sptr, RPL_TRACESERVER, conClass, link_s[i],
                      link_u[i], cli_name(acptr),
                      (*(cli_serv(acptr))->by) ?  cli_serv(acptr)->by : "*", "*",

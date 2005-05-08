@@ -1,3 +1,14 @@
+2005-05-04  Reed Loden <reed@reedloden.com>
+
+	* ircd/m_trace.c (do_trace): Show the real nickname instead of the
+	numnick.
+
+2005-05-02  Jan Krueger <jast@heapsort.de>
+
+	* ircd/channel.c (member_can_send_to_channel): if the channel can only
+	be joined by users with accounts (+r), do not allow users without
+	accounts to speak.
+
 2005-05-07  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/numnicks.c (base64toip): Fix bugs in parsing IPv6
