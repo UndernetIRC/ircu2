@@ -1,3 +1,8 @@
+2005-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (joinbuf_join): Be smarter about what source to
+	use when opping a user that joins a channel.
+
 2005-05-04  Reed Loden <reed@reedloden.com>
 
 	* ircd/m_trace.c (do_trace): Show the real nickname instead of the
