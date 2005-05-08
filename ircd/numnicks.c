@@ -513,7 +513,7 @@ void base64toip(const char* input, struct irc_in_addr* addr)
     do {
       if (*input == '_') {
         unsigned int left;
-        for (left = (25 - strlen(input)) / 3; left; left--)
+        for (left = (25 - strlen(input)) / 3 - pos; left; left--)
           addr->in6_16[pos++] = 0;
         input++;
       } else {
@@ -521,7 +521,6 @@ void base64toip(const char* input, struct irc_in_addr* addr)
         accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
         accum = (accum << NUMNICKLOG) | convert2n[(unsigned char)*input++];
         addr->in6_16[pos++] = ntohs(accum);
-        input += 3;
       }
     } while (pos < 8);
   }

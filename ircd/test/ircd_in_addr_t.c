@@ -43,6 +43,9 @@ static struct address_test test_addrs[] = {
     { "8352:0344:0:0:0:0:2001:1204", "8352:344::2001:1204",
       {{ 0x8352, 0x344, 0, 0, 0, 0, 0x2001, 0x1204 }},
       "AAAAAA", "INSANE_CABBIE", 1, 0, 0 },
+    { "1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8",
+      {{ 1, 2, 3, 4, 5, 6, 7, 8 }},
+      "AAAAAA", "AABAACAADAAEAAFAAGAAHAAI", 1, 0, 0 },
     { 0 },
 };
 
@@ -80,6 +83,15 @@ test_address(struct address_test *addr)
     assert(!!val == addr->is_ipv4);
     val = irc_in_addr_is_loopback(&parsed);
     assert(!!val == addr->is_loopback);
+    /* Check base64-to-IP conversion. */
+    if (addr->is_ipv4) {
+        base64toip(addr->base64_v4, &parsed);
+        assert(!memcmp(parsed.in6_16+6, addr->expected.in6_16+6, 4));
+    } else {
+        base64toip(addr->base64_v6, &parsed);
+        assert(!memcmp(&parsed, &addr->expected, sizeof(parsed)));
+    }
+    /* Tests completed. */
     printf("Passed: %s (%s/%s)\n", addr->text, base64_v4, base64_v6);
 }
 

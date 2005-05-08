@@ -1,3 +1,10 @@
+2005-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/numnicks.c (base64toip): Fix bugs in parsing IPv6
+	addresses.
+	* ircd/test/ircd_in_addr_t.c (test_addrs): Add new entry.
+	(test_address): Test base64toip() as well.
+
 2005-05-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (umode_str): Only clear the operator flag when not
