@@ -1,3 +1,9 @@
+2005-05-08  Jukka Ollila <jaollila@niksula.hut.fi>
+	(Adapted slightly by Michael Poole.)
+
+	* ircd/os_generic.c (sockaddr_to_irc): Change to use v4compat
+	addresses event when !defined(IPV6).
+
 2005-05-07  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (joinbuf_join): Be smarter about what source to

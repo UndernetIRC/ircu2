@@ -69,6 +69,17 @@
 #define getrusage(a,b) syscall(SYS_GETRUSAGE, a, b)
 #endif
 
+
+static void sockaddr_in_to_irc(const struct sockaddr_in *v4,
+                               struct irc_sockaddr *irc)
+{
+    memset(&irc->addr, 0, 5*sizeof(int16_t));
+    irc->addr.in6_16[5] = 0xffff;
+    memcpy(&irc->addr.in6_16[6], &v4->sin_addr, sizeof(v4->sin_addr));
+    irc->port = ntohs(v4->sin_port);
+}
+
+
 #ifdef IPV6
 /** Native socket address type. */
 #define sockaddr_native sockaddr_in6
@@ -86,11 +97,7 @@ void sockaddr_to_irc(const struct sockaddr_in6 *v6, struct irc_sockaddr *irc)
         irc->port = ntohs(v6->sin6_port);
     }
     else if (v6->sin6_family == AF_INET) {
-        const struct sockaddr_in *v4 = (const struct sockaddr_in*)v6;
-        memset(&irc->addr, 0, 5*sizeof(int16_t));
-        irc->addr.in6_16[5] = 0xffff;
-        memcpy(&irc->addr.in6_16[6], &v4->sin_addr, sizeof(v4->sin_addr));
-        irc->port = ntohs(v4->sin_port);
+        sockaddr_in_to_irc((struct sockaddr_in *)v6, irc);
     }
     else assert(0 && "Unhandled native address family");
 }
@@ -136,14 +143,7 @@ int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, i
 #else
 #define sockaddr_native sockaddr_in
 #define sn_family sin_family
-
-void sockaddr_to_irc(const struct sockaddr_in *v4, struct irc_sockaddr *irc)
-{
-    assert(v4->sin_family == AF_INET);
-    memset(&irc->addr, 0, 6*sizeof(irc->addr.in6_16[0]));
-    memcpy(&irc->addr.in6_16[6], &v4->sin_addr, sizeof(v4->sin_addr));
-    irc->port = ntohs(v4->sin_port);
-}
+#define sockaddr_to_irc sockaddr_in_to_irc
 
 int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int compat_fd)
 {
