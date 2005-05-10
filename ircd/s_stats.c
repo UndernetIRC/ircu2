@@ -133,7 +133,7 @@ stats_crule_list(struct Client* to, const struct StatDesc *sd,
   for ( ; p; p = p->next)
   {
     if (p->type & sd->sd_funcdata)
-      send_reply(to, RPL_STATSDLINE, sd->sd_c, p->hostmask, p->rule);
+      send_reply(to, RPL_STATSDLINE, (p->type & CRULE_ALL ? 'D' : 'd'), p->hostmask, p->rule);
   }
 }
 
@@ -246,20 +246,30 @@ stats_klines(struct Client *sptr, const struct StatDesc *sd, char *mask)
 
   for (conf = conf_get_deny_list(); conf; conf = conf->next)
   {
-    if ((!wilds && ((user || conf->hostmask) &&
-                    !match(conf->hostmask, host) &&
-                    (!user || !match(conf->usermask, user)))) ||
-        (wilds && !mmatch(host, conf->hostmask) &&
-         (!user || !mmatch(user, conf->usermask))))
-    {
-      send_reply(sptr, RPL_STATSKLINE, conf->bits > 0 ? 'k' : 'K',
-                 conf->usermask ? conf->usermask : "*",
-                 conf->hostmask ? conf->hostmask : "*",
-                 conf->message ? conf->message : "(none)",
-                 conf->realmask ? conf->realmask : "*");
-      if (--count == 0)
-        return;
-    }
+    /* Skip this block if the user is searching for a user-matching
+     * mask but the current Kill doesn't have a usermask, or if user
+     * is searching for a host-matching mask but the Kill has no
+     * hostmask, or if the user mask is specified and doesn't match,
+     * or if the host mask is specified and doesn't match.
+     */
+    if ((user && !conf->usermask)
+        || (host && !conf->hostmask)
+        || (user && conf->usermask
+            && (wilds
+                ? mmatch(user, conf->usermask)
+                : match(conf->usermask, user)))
+        || (host && conf->hostmask
+            && (wilds
+                ? mmatch(host, conf->hostmask)
+                : match(conf->hostmask, host))))
+      continue;
+    send_reply(sptr, RPL_STATSKLINE, conf->bits > 0 ? 'k' : 'K',
+               conf->usermask ? conf->usermask : "*",
+               conf->hostmask ? conf->hostmask : "*",
+               conf->message ? conf->message : "(none)",
+               conf->realmask ? conf->realmask : "*");
+    if (--count == 0)
+      return;
   }
 }
 
@@ -546,7 +556,7 @@ struct StatDesc statsinfo[] = {
     FEAT_HIS_STATS_l,
     stats_links, 0,
     "Current connections information." },
-  { 'L', "modules", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS),
+  { 'L', "modules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS),
     FEAT_HIS_STATS_L,
     stats_modules, 0,
     "Dynamically loaded modules." },
@@ -602,7 +612,7 @@ struct StatDesc statsinfo[] = {
   { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
-  { '*', "help", (STAT_FLAG_CASESENS | STAT_FLAG_VARPARAM), FEAT_LAST_F,
+  { '*', "help", STAT_FLAG_CASESENS, FEAT_LAST_F,
     stats_help, 0,
     "Send help for stats." },
   { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
@@ -653,7 +663,7 @@ const struct StatDesc *
 stats_find(const char *name_or_char)
 {
   if (!name_or_char[1])
-    return statsmap[(int)name_or_char[0]];
+    return statsmap[name_or_char[0] - CHAR_MIN];
   else
     return bsearch(name_or_char, statsinfo, statscount, sizeof(statsinfo[0]), stats_search);
 }
@@ -663,11 +673,6 @@ void
 stats_init(void)
 {
   struct StatDesc *sd;
-  int i;
-
-  /* Make darn sure the statsmap array is initialized to all zeros */
-  for (i = 0; i < 256; i++)
-    statsmap[i] = 0;
 
   /* Count number of stats entries and sort them. */
   for (statscount = 0, sd = statsinfo; sd->sd_name; sd++, statscount++) {}
@@ -680,12 +685,12 @@ stats_init(void)
       continue;
     else if (sd->sd_flags & STAT_FLAG_CASESENS)
       /* case sensitive character... */
-      statsmap[(int)sd->sd_c] = sd;
+      statsmap[sd->sd_c - CHAR_MIN] = sd;
     else
     {
       /* case insensitive--make sure to put in two entries */
-      statsmap[(int)ToLower((int)sd->sd_c)] = sd;
-      statsmap[(int)ToUpper((int)sd->sd_c)] = sd;
+      statsmap[ToLower(sd->sd_c) - CHAR_MIN] = sd;
+      statsmap[ToUpper(sd->sd_c) - CHAR_MIN] = sd;
     }
   }
 }

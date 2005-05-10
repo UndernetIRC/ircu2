@@ -182,7 +182,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | iauthblock | error;
+       pseudoblock | iauthblock | error ';';
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -256,22 +256,22 @@ expr: NUMBER
 
 jupeblock: JUPE '{' jupeitems '}' ';' ;
 jupeitems: jupeitem jupeitems | jupeitem;
-jupeitem: jupenick | error;
-jupenick: NICK '=' QSTRING
+jupeitem: jupenick;
+jupenick: NICK '=' QSTRING ';'
 {
   addNickJupes($3);
   MyFree($3);
-} ';';
+};
 
-generalblock: GENERAL '{' generalitems '}'
+generalblock: GENERAL '{' generalitems '}' ';'
 {
   if (localConf.name == NULL)
     parse_error("Your General block must contain a name.");
   if (localConf.numeric == 0)
     parse_error("Your General block must contain a numeric (between 1 and 4095).");
-} ';' ;
+};
 generalitems: generalitem generalitems | generalitem;
-generalitem: generalnumeric | generalname | generalvhost | generaldesc | error;
+generalitem: generalnumeric | generalname | generalvhost | generaldesc;
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (localConf.numeric == 0)
@@ -312,7 +312,7 @@ generalvhost: VHOST '=' QSTRING ';'
   MyFree($3);
 };
 
-adminblock: ADMIN '{' adminitems '}'
+adminblock: ADMIN '{' adminitems '}' ';'
 {
   if (localConf.location1 == NULL)
     DupString(localConf.location1, "");
@@ -320,9 +320,9 @@ adminblock: ADMIN '{' adminitems '}'
     DupString(localConf.location2, "");
   if (localConf.contact == NULL)
     DupString(localConf.contact, "");
-} ';';
+};
 adminitems: adminitems adminitem | adminitem;
-adminitem: adminlocation | admincontact | error;
+adminitem: adminlocation | admincontact;
 adminlocation: LOCATION '=' QSTRING ';'
 {
   if (localConf.location1 == NULL)
@@ -340,7 +340,7 @@ admincontact: CONTACT '=' QSTRING ';'
 
 classblock: CLASS {
   tping = 90;
-} '{' classitems '}'
+} '{' classitems '}' ';'
 {
   if (name != NULL)
   {
@@ -362,10 +362,10 @@ classblock: CLASS {
   sendq = 0;
   memset(&privs, 0, sizeof(privs));
   memset(&privs_dirty, 0, sizeof(privs_dirty));
-} ';';
+};
 classitems: classitem classitems | classitem;
 classitem: classname | classpingfreq | classconnfreq | classmaxlinks |
-           classsendq | classusermode | priv | error;
+           classsendq | classusermode | priv;
 classname: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -397,7 +397,7 @@ connectblock: CONNECT
 {
  maxlinks = 65535;
  flags = CONF_AUTOCONNECT;
-} '{' connectitems '}'
+} '{' connectitems '}' ';'
 {
  struct ConfItem *aconf = NULL;
  if (name == NULL)
@@ -433,11 +433,11 @@ connectblock: CONNECT
  name = pass = host = origin = hub_limit = NULL;
  c_class = NULL;
  port = flags = 0;
-}';';
+};
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
               | connectport | connectvhost | connectleaf | connecthub
-              | connecthublimit | connectmaxhops | connectauto | error;
+              | connecthublimit | connectmaxhops | connectauto;
 connectname: NAME '=' QSTRING ';'
 {
  MyFree(name);
@@ -492,7 +492,7 @@ connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
 
 uworldblock: UWORLD '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
-uworlditem: uworldname | error;
+uworlditem: uworldname;
 uworldname: NAME '=' QSTRING ';'
 {
   make_conf(CONF_UWORLD)->host = $3;
@@ -532,7 +532,7 @@ operblock: OPER '{' operitems '}' ';'
   memset(&privs_dirty, 0, sizeof(privs_dirty));
 };
 operitems: operitem | operitems operitem;
-operitem: opername | operpass | operhost | operclass | priv | error;
+operitem: opername | operpass | operhost | operclass | priv;
 opername: NAME '=' QSTRING ';'
 {
   MyFree(name);
@@ -621,7 +621,7 @@ portblock: PORT '{' portitems '}' ';'
   port = tconn = tping = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portmask | portserver | porthidden | error;
+portitem: portnumber | portvhost | portmask | portserver | porthidden;
 portnumber: PORT '=' NUMBER ';'
 {
   port = $3;
@@ -696,7 +696,7 @@ clientblock: CLIENT
   pass = NULL;
 };
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks | error;
+clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks;
 clienthost: HOST '=' QSTRING ';'
 {
   char *sep = strchr($3, '@');
@@ -749,7 +749,7 @@ clientmaxlinks: MAXLINKS '=' expr ';'
 killblock: KILL
 {
   dconf = (struct DenyConf*) MyCalloc(1, sizeof(*dconf));
-} '{' killitems '}'
+} '{' killitems '}' ';'
 {
   if (dconf->usermask || dconf->hostmask ||dconf->realmask) {
     dconf->next = denyConfList;
@@ -765,9 +765,9 @@ killblock: KILL
     parse_error("Kill block must match on at least one of username, host or realname");
   }
   dconf = NULL;
-} ';';
+};
 killitems: killitem killitems | killitem;
-killitem: killuhost | killreal | killusername | killreasonfile | killreason | error;
+killitem: killuhost | killreal | killusername | killreasonfile | killreason;
 killuhost: HOST '=' QSTRING ';'
 {
   char *h;
@@ -845,7 +845,7 @@ cruleblock: CRULE
 };
 
 cruleitems: cruleitem cruleitems | cruleitem;
-cruleitem: cruleserver | crulerule | cruleall | error;
+cruleitem: cruleserver | crulerule | cruleall;
 
 cruleserver: SERVER '=' QSTRING ';'
 {
@@ -878,7 +878,7 @@ motdblock: MOTD '{' motditems '}' ';'
 };
 
 motditems: motditem motditems | motditem;
-motditem: motdhost | motdfile | error;
+motditem: motdhost | motdfile;
 motdhost: HOST '=' QSTRING ';'
 {
   host = $3;
@@ -967,7 +967,7 @@ pseudoitems '}' ';'
 };
 
 pseudoitems: pseudoitem pseudoitems | pseudoitem;
-pseudoitem: pseudoname | pseudoprepend | pseudonick | pseudoflags | error;
+pseudoitem: pseudoname | pseudoprepend | pseudonick | pseudoflags;
 pseudoname: NAME '=' QSTRING ';'
 {
   MyFree(smap->name);
@@ -1016,7 +1016,7 @@ iauthblock: IAUTH '{'
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
-iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout | error;
+iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout;
 iauthpass: PASS '=' QSTRING ';'
 {
   MyFree(pass);

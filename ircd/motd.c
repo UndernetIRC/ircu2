@@ -447,10 +447,10 @@ motd_memory_count(struct Client *cptr)
   struct Motd *ptr;
   struct MotdCache *cache;
   unsigned int mt = 0,   /* motd count */
-               mtm = 0,  /* memory consumed by motd */
                mtc = 0,  /* motd cache count */
-               mtcm = 0, /* memory consumed by motd cache */
                mtf = 0;  /* motd free list count */
+  size_t mtm = 0,  /* memory consumed by motd */
+         mtcm = 0; /* memory consumed by motd cache */
   if (MotdList.local)
   {
     mt++;

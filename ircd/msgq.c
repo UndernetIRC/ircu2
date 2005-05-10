@@ -614,8 +614,8 @@ msgq_histogram(struct Client *cptr, const struct StatDesc *sd, char *param)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Histogram of message lengths (%lu messages)", tmp.msgs);
   for (i = 0; i + 16 <= BUFSIZE; i += 16)
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":% 4d: %lu %lu %lu %lu "
-	       "%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu", i + 1,
+    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":% 4d: %u %u %u %u "
+	       "%u %u %u %u %u %u %u %u %u %u %u %u", i + 1,
 	       tmp.sizes[i +  0], tmp.sizes[i +  1], tmp.sizes[i +  2],
 	       tmp.sizes[i +  3], tmp.sizes[i +  4], tmp.sizes[i +  5],
 	       tmp.sizes[i +  6], tmp.sizes[i +  7], tmp.sizes[i +  8],

@@ -1,3 +1,27 @@
+n2005-08-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y: Move error tokens to top level of parse, and
+	make ';' a synchronizing token for them.  This avoids crashes in
+	situations like missing ';' between two Kill blocks.  Move several
+	';'s earlier for earlier detection of syntax errors.
+
+	* ircd/motd.c (motd_memory_count): Use size_t for memory counts to
+	match the format strings used for those variables.
+
+	* ircd/msgq.c (msgq_histogram): tmp.sizes[] is an array of
+	unsigned int, not unsigned long; use correct format string.
+
+	* ircd/s_stats.c (stats_crule_list): Restore display of 'D' vs 'd'
+	based on crule type, rather than query type.
+	(statsinfo): Remove STAT_FLAG_VARPARAM from the "modules" and
+	"help" stats, which don't use the varparam.
+
+	* ircd/test/test-driver.pl: Interpreter for test scripts.b
+
+	* ircd/test/ircd-t1.conf: Configuration file for test scripts.
+
+	* ircd/test/*.cmd: New test scripts for test-driver.pl.
+
 2005-05-08  Jukka Ollila <jaollila@niksula.hut.fi>
 	(Adapted slightly by Michael Poole.)
 
