@@ -3416,7 +3416,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, 0, "%H", chan);
 
       /* send an op, too, if needed */
-      if (flags & CHFL_CHANOP)
+      if (flags & CHFL_CHANOP && (oplevel < MAXOPLEVEL || !MyUser(jbuf->jb_source)))
 	sendcmdto_channel_butserv_butone((chan->mode.apass[0] ? &me : jbuf->jb_source),
                                          CMD_MODE, chan, NULL, 0, "%H +o %C",
 					 chan, jbuf->jb_source);

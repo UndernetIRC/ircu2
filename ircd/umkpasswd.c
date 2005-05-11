@@ -310,7 +310,7 @@ char* salt, *untagged, *tagged;
  salt = make_salt(default_salts);
 
  untagged = (char *)CryptFunc(crypt_mech->mech)(pw, salt);
- tagged = (char *)MyMalloc(strlen(salt)+CryptTokSize(crypt_mech->mech)+1);
+ tagged = (char *)MyMalloc(strlen(untagged)+CryptTokSize(crypt_mech->mech)+1);
  memset(tagged, 0, strlen(untagged)+CryptTokSize(crypt_mech->mech)+1);
  strncpy(tagged, CryptTok(crypt_mech->mech), CryptTokSize(crypt_mech->mech));
  strncpy(tagged+CryptTokSize(crypt_mech->mech), untagged, strlen(untagged));

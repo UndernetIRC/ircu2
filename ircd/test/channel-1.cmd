@@ -45,6 +45,4 @@ connect cl2 Bubb bubb %srv% :Test client 2
 :cl2 wait cl1
 :cl2 mode #test2 -D
 :cl2 mode #test +v Alex
-:cl1 oper oper1 oper1
 :cl1 wait cl2
-:cl1 raw die :testing over

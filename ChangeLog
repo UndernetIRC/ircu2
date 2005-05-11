@@ -1,4 +1,18 @@
-n2005-08-09  Michael Poole <mdpoole@troilus.org>
+2005-08-10  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (joinbuf_join): Do not send a MODE +o when a
+	local user creates a channel.
+
+	* ircd/umkpasswd.c (crypt_pass): Allocate the proper amount of
+	memory for the tagged output string.
+
+	* ircd/test/test-driver.pl: Add -vhost=... option.
+
+	* ircd/test/ircd-t1.conf: Add new Operator blocks.
+
+	* ircd/test/*.cmd: Rearrange and add more coverage tests.
+
+2005-08-09  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y: Move error tokens to top level of parse, and
 	make ';' a synchronizing token for them.  This avoids crashes in

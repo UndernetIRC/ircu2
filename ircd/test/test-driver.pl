@@ -132,6 +132,8 @@ sub drv_start {
       $heap->{irc_debug} = 1;
     } elsif ($arg =~ /^-V$/) {
       $heap->{verbose} = 1;
+    } elsif ($arg =~ /^-vhost=(.*)$/) {
+      $heap->{vhost} = $1;
     } else {
       die "Extra command-line argument $arg\n" if $heap->{script};
       $heap->{script} = new FileHandle($arg, 'r')
@@ -215,6 +217,8 @@ sub drv_heartbeat {
                                  Debug    => $heap->{irc_debug},
                                }
                    };
+      $client->params->{LocalAddr} = $heap->{vhost}
+        if $heap->{vhost};
       $heap->{clients}->{$client->{name}} = $client;
       $heap->{sessions}->{$client->{irc}} = $client;
       $kernel->call($client->{irc}, 'register', 'all');
