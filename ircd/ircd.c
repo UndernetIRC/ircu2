@@ -656,6 +656,23 @@ int main(int argc, char **argv) {
    */
   daemon_init(thisServer.bootopt & BOOT_TTY);
 
+#ifdef DEBUGMODE
+  /* Must reserve fd 2... */
+  if (debuglevel >= 0 && !(thisServer.bootopt & BOOT_TTY)) {
+    int fd;
+    if ((fd = open("/dev/null", O_WRONLY)) < 0) {
+      fprintf(stderr, "Unable to open /dev/null (to reserve fd 2): %s\n",
+	      strerror(errno));
+      return 8;
+    }
+    if (fd != 2 && dup2(fd, 2) < 0) {
+      fprintf(stderr, "Unable to reserve fd 2; dup2 said: %s\n",
+	      strerror(errno));
+      return 8;
+    }
+  }
+#endif
+
   event_init(MAXCONNECTIONS);
 
   setup_signals();

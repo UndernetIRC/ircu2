@@ -1,3 +1,12 @@
+2005-05-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd.c: if debugging is enabled (both DEBUGMODE defined and
+	-x given), reserve fd 2 for the use of the debugging log;
+	otherwise, some engines may attempt to use fd 2, which would end
+	up getting closed by debug_init() (actually, by
+	log_debug_reopen(), called by log_debug_init(), called by
+	debug_init())
+
 2005-08-10  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (joinbuf_join): Do not send a MODE +o when a
