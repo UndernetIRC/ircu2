@@ -1,3 +1,13 @@
+2005-05-12  Michael Poole <mdpoole@troilus.org>
+
+	* configure.in: Do not try to outsmart the default CFLAGS.
+	Simply add parameters explicitly requested by the user.
+
+	* configure: Regenerate.
+
+	* ircd/ircd_crypt_native.c: Use _XOPEN_SOURCE 600 (which is
+	used in os_generic.c) to get crypt() on NetBSD.
+
 2005-05-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd.c: if debugging is enabled (both DEBUGMODE defined and

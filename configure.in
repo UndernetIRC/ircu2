@@ -52,54 +52,6 @@ AC_PROG_CC
 
 dnl ANSIfy the C compiler whenever possible.
 AM_PROG_CC_STDC
-dnl Allow specification of optimization level.
-AC_ARG_WITH([optimization],
-    AS_HELP_STRING([--with-optimization=[-O2]], [Explicitly set the compiler optimization flags (default: -O3)]),
-    [unet_cv_optimization=$withval],
-    [unet_cv_optimization='-O3'])
-AC_CACHE_CHECK([optimization level], [unet_cv_optimization], [unet_cv_optimization='-O3'])
-if test "x$unet_cv_optimization" = "xno" ; then
-    unet_cv_optimization=""
-fi
-if test x"$CFLAGS" != x; then
-    CFLAGS=`echo "$CFLAGS" | sed -e s/-O2/$unet_cv_optimization/`
-fi
-dnl Notice the -g flag and deal accordingly
-if test x"$CFLAGS" != x; then
-    unet_old_cflags=$CFLAGS
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-g//g'`
-fi
-if test x"$CFLAGS" != x"$unet_old_cflags"; then
-    # If -g was already there, force symbols to be enabled
-    unet_cv_enable_symbols=yes
-fi
-dnl Notice the -pg flag and deal accordingly
-if test x"$CFLAGS" != x; then
-    unet_old_cflags=$CFLAGS
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pg//g'`
-fi
-if test x"$CFLAGS" != x"$unet_old_cflags"; then
-    # If -pg was already there, force profiling to be enabled
-    unet_cv_enable_profile=yes
-fi
-dnl Notice the -Wall flag and deal accordingly
-if test x"$CFLAGS" != x; then
-    unet_old_cflags=$CFLAGS
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wall//g'`
-fi
-if test x"$CFLAGS" != x"$unet_old_cflags"; then
-    # If -Wall was already there, force warnings to be enabled
-    unet_cv_enable_warnings=yes
-fi
-dnl Notice the -pedantic flag and deal accordingly
-if test x"$CFLAGS" != x; then
-    unet_old_cflags=$CFLAGS
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-pedantic//g'`
-fi
-if test x"$CFLAGS" != x"$unet_old_cflags"; then
-    # If -pedantic was already there, force pedatic to be enabled
-    unet_cv_enable_pedantic=yes
-fi
 
 dnl Checks for libraries.
 
@@ -308,23 +260,10 @@ if test x"$unet_cv_enable_asserts" = xno; then
     AC_DEFINE([NDEBUG], 1, [Disable assertions])
 fi
 
-dnl Check for --enable-symbols
-AC_MSG_CHECKING([whether to enable debugging symbols])
-AC_ARG_ENABLE([symbols],
-[  --disable-symbols       Disable debugging symbols (remove -g from CFLAGS)],
-[unet_cv_enable_symbols=$enable_symbols],
-[AC_CACHE_VAL(unet_cv_enable_symbols,
-[unet_cv_enable_symbols=yes])])
-AC_MSG_RESULT([$unet_cv_enable_symbols])
-
-if test x"$unet_cv_enable_symbols" = xyes; then
-    CFLAGS="-g $CFLAGS"
-fi
-
 dnl Now check for --enable-profile
 AC_MSG_CHECKING([whether to enable profiling support (gprof)])
 AC_ARG_ENABLE([profile],
-[  --enable-profile        Enable profiling support (add -pg to CFLAGS)],
+[  --enable-profile        Enable profiling support (add -pg to CFLAGS and LDFLAGS)],
 [unet_cv_enable_profile=$enable_profile],
 [AC_CACHE_VAL(unet_cv_enable_profile,
 [unet_cv_enable_profile=no])])
