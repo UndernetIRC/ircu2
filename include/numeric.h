@@ -118,12 +118,12 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_STATSALINE       226        /* Hybrid, Undernet */
 #define RPL_STATSQLINE       228        /* Undernet extension */
 
-#define RPL_SERVICEINFO      231	/* unused */
-#define RPL_ENDOFSERVICES    232	/* unused */
+/*      RPL_SERVICEINFO      231	unused */
+/*      RPL_ENDOFSERVICES    232	unused */
 /*	RPL_RULES	     232	unreal */
-#define RPL_SERVICE          233	/* unused */
-#define RPL_SERVLIST         234	/* unused */
-#define RPL_SERVLISTEND      235	/* unused */
+/*      RPL_SERVICE          233	unused */
+/*      RPL_SERVLIST         234	unused */
+/*      RPL_SERVLISTEND      235	unused */
 
 #define RPL_STATSVERBOSE     236        /* Undernet verbose server list */
 #define RPL_STATSENGINE      237	/* Undernet engine name */
@@ -158,7 +158,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ADMINLOC2        258
 #define RPL_ADMINEMAIL       259
 
-#define RPL_TRACELOG         261	/* unused */
+/*      RPL_TRACELOG         261	   unused */
 #define RPL_TRACEEND	     262	/* efnet/IRCnet */
 /*      RPL_LOAD_THROTTLED   263           efnet/hybrid */
 /*	RPL_TRYAGAIN	     263	   Numerics List: IRCnet */
@@ -203,11 +203,11 @@ extern const struct Numeric* get_error_numeric(int err);
 
 /*      RPL_END_CHANINFO     299           aircd */
 
-#define RPL_NONE             300	/* unused */
+/*      RPL_NONE             300	unused */
 #define RPL_AWAY             301
 #define RPL_USERHOST         302
 #define RPL_ISON             303
-#define RPL_TEXT             304 	/* unused */
+/*      RPL_TEXT             304 	unused */
 #define RPL_UNAWAY           305
 #define RPL_NOWAWAY          306
                                         /* NotAway, aircd */
@@ -273,7 +273,7 @@ extern const struct Numeric* get_error_numeric(int err);
                                            See also RPL_ENDOFWHO */
 #define RPL_DELNAMREPLY      355        /* QuakeNet extension */
 
-#define RPL_KILLDONE         361	/* not used */
+/*      RPL_KILLDONE         361	not used */
 #define RPL_CLOSING          362
 #define RPL_CLOSEEND         363
 #define RPL_LINKS            364
@@ -285,7 +285,7 @@ extern const struct Numeric* get_error_numeric(int err);
 
 #define RPL_INFO             371
 #define RPL_MOTD             372
-#define RPL_INFOSTART        373	/* not used */
+/*      RPL_INFOSTART        373	not used */
 #define RPL_ENDOFINFO        374
 #define RPL_MOTDSTART        375
 #define RPL_ENDOFMOTD        376
@@ -299,13 +299,13 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_YOUREOPER        381
 #define RPL_REHASHING        382
 /*	RPL_YOURSERVICE	     383	   Numeric List: various */
-#define RPL_MYPORTIS         384	/* not used */
-#define RPL_NOTOPERANYMORE   385        /* Extension to RFC1459, not used */
+/*      RPL_MYPORTIS         384	not used */
+/*      RPL_NOTOPERANYMORE   385        Extension to RFC1459, not used */
 /*	RPL_QLIST	     386	unreal */
 /*	RPL_ENDOFQLIST	     387	unreal */
 /*	RPL_ALIST	     388	unreal */
-/*	RPL_ENDOFALIST	     389	unreal */ 
- 
+/*	RPL_ENDOFALIST	     389	unreal */
+
 #define RPL_TIME             391
 /*      RPL_START_USERS      392        Dalnet/EFnet/IRCnet */
 /*      RPL_USERS            393        Dalnet/EFnet/IRCnet */
@@ -317,7 +317,7 @@ extern const struct Numeric* get_error_numeric(int err);
  * Errors are in the range from 400-599 currently and are grouped by what
  * commands they come from.
  */
-#define ERR_FIRSTERROR       400	/* unused */
+/*      ERR_FIRSTERROR       400	unused */
 #define ERR_NOSUCHNICK       401
 #define ERR_NOSUCHSERVER     402
 #define ERR_NOSUCHCHANNEL    403

@@ -1,5 +1,16 @@
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
+	* include/numeric.h (RPL_TRACELOG, RPL_MYPORTIS,
+	RPL_NOTOPERANYMORE): Undefine unused numeric replies.
+
+	* ircd/s_err.c (replyTable): Fix format fields for certain numeric
+	arguments.  Remove some unused entries.
+
+	* ircd/s_stats.c (stats_configured_links): Move invariant
+	parameters to message format string.
+
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/client.c (privtab): Add missing LIST_CHAN privilege, move
 	WIDE_GLINE to reflect its enumerated value.
 

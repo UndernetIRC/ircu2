@@ -48,7 +48,7 @@ static Numeric replyTable[] = {
 /* 007 */
   { 0 },
 /* 008 */
-  { RPL_SNOMASK, "%d :: Server notice mask (%#x)", "008" },
+  { RPL_SNOMASK, "%u :: Server notice mask (%#x)", "008" },
 /* 009 */
   { 0 },
 /* 010 */
@@ -62,7 +62,7 @@ static Numeric replyTable[] = {
 /* 014 */
   { 0 },
 /* 015 */
-  { RPL_MAP, ":%s%s%s %s [%i clients]", "015" },
+  { RPL_MAP, ":%s%s%s %s [%u clients]", "015" },
 /* 016 */
   { RPL_MAPMORE, ":%s%s --> *more*", "016" },
 /* 017 */
@@ -450,7 +450,7 @@ static Numeric replyTable[] = {
 /* 208 */
   { RPL_TRACENEWTYPE, "<newtype> 0 %s", "208" },
 /* 209 */
-  { RPL_TRACECLASS, "Class %s %d", "209" },
+  { RPL_TRACECLASS, "Class %s %u", "209" },
 /* 210 */
   { 0 },
 /* 211 */
@@ -458,7 +458,7 @@ static Numeric replyTable[] = {
 /* 212 */
   { RPL_STATSCOMMANDS, "%s %u %u", "212" },
 /* 213 */
-  { RPL_STATSCLINE, "C %s %s%s %d %d %s %s", "213" },
+  { RPL_STATSCLINE, "C %s * %d %d %s %s", "213" },
 /* 214 */
   { 0 },
 /* 215 */
@@ -468,7 +468,7 @@ static Numeric replyTable[] = {
 /* 217 */
   { RPL_STATSPLINE, "P %d %d %s %s", "217" },
 /* 218 */
-  { RPL_STATSYLINE, "%c %s %d %d %d %ld %d", "218" },
+  { RPL_STATSYLINE, "%c %s %d %d %u %u %u", "218" },
 /* 219 */
   { RPL_ENDOFSTATS, "%s :End of /STATS report", "219" },
 /* 220 */
@@ -494,21 +494,21 @@ static Numeric replyTable[] = {
 /* 230 */
   { 0 },
 /* 231 */
-  { RPL_SERVICEINFO, 0, "231" },
+  { 0 },
 /* 232 */
-  { RPL_ENDOFSERVICES, 0, "232" },
+  { 0 },
 /* 233 */
-  { RPL_SERVICE, 0, "233" },
+  { 0 },
 /* 234 */
-  { RPL_SERVLIST, 0, "234" },
+  { 0 },
 /* 235 */
-  { RPL_SERVLISTEND, 0, "235" },
+  { 0 },
 /* 236 */
   { RPL_STATSVERBOSE, "V :Sent as explicit", "236" },
 /* 237 */
   { RPL_STATSENGINE, "%s :Event loop engine", "237" },
 /* 238 */
-  { RPL_STATSFLINE, "%c %s %s", "238" },
+  { RPL_STATSFLINE, "F %s %s", "238" },
 /* 239 */
   { 0 },
 /* 240 */
@@ -532,17 +532,17 @@ static Numeric replyTable[] = {
 /* 249 */
   { RPL_STATSDEBUG, 0, "249" },
 /* 250 */
-  { RPL_STATSCONN, ":Highest connection count: %d (%d clients)", "250" },
+  { RPL_STATSCONN, ":Highest connection count: %u (%u clients)", "250" },
 /* 251 */
-  { RPL_LUSERCLIENT, ":There are %d users and %d invisible on %d servers", "251" },
+  { RPL_LUSERCLIENT, ":There are %u users and %u invisible on %u servers", "251" },
 /* 252 */
-  { RPL_LUSEROP, "%d :operator(s) online", "252" },
+  { RPL_LUSEROP, "%u :operator(s) online", "252" },
 /* 253 */
-  { RPL_LUSERUNKNOWN, "%d :unknown connection(s)", "253" },
+  { RPL_LUSERUNKNOWN, "%u :unknown connection(s)", "253" },
 /* 254 */
-  { RPL_LUSERCHANNELS, "%d :channels formed", "254" },
+  { RPL_LUSERCHANNELS, "%u :channels formed", "254" },
 /* 255 */
-  { RPL_LUSERME, ":I have %d clients and %d servers", "255" },
+  { RPL_LUSERME, ":I have %u clients and %u servers", "255" },
 /* 256 */
   { RPL_ADMINME, ":Administrative info about %s", "256" },
 /* 257 */
@@ -554,7 +554,7 @@ static Numeric replyTable[] = {
 /* 260 */
   { 0 },
 /* 261 */
-  { RPL_TRACELOG, "File %s %d", "261" },
+  { 0 },
 /* 262 */
   { RPL_TRACEEND, ":End of TRACE", "262" },
 /* 263 */
@@ -632,7 +632,7 @@ static Numeric replyTable[] = {
 /* 299 */
   { 0 },
 /* 300 */
-  { RPL_NONE, 0, "300" },
+  { 0 },
 /* 301 */
   { RPL_AWAY, "%s :%s", "301" },
 /* 302 */
@@ -640,7 +640,7 @@ static Numeric replyTable[] = {
 /* 303 */
   { RPL_ISON, ":", "303" },
 /* 304 */
-  { RPL_TEXT, 0, "304" },
+  { 0 },
 /* 305 */
   { RPL_UNAWAY, ":You are no longer marked as being away", "305" },
 /* 306 */
@@ -676,7 +676,7 @@ static Numeric replyTable[] = {
 /* 321 */
   { RPL_LISTSTART, "Channel :Users  Name", "321" },
 /* 322 */
-  { RPL_LIST, "%s %d :%s", "322" },
+  { RPL_LIST, "%s %u :%s", "322" },
 /* 323 */
   { RPL_LISTEND, ":End of /LIST", "323" },
 /* 324 */
@@ -754,13 +754,13 @@ static Numeric replyTable[] = {
 /* 360 */
   { 0 },
 /* 361 */
-  { RPL_KILLDONE, 0, "361" }, /* Not used */
+  { 0 },
 /* 362 */
   { RPL_CLOSING, "%s :Operator enforced Close", "362" },
 /* 363 */
   { RPL_CLOSEEND, "%d :Connections Closed", "363" },
 /* 364 */
-  { RPL_LINKS, "%s %s :%d P%u %s", "364" },
+  { RPL_LINKS, "%s %s :%u P%u %s", "364" },
 /* 365 */
   { RPL_ENDOFLINKS, "%s :End of /LINKS list.", "365" },
 /* 366 */
@@ -778,7 +778,7 @@ static Numeric replyTable[] = {
 /* 372 */
   { RPL_MOTD, ":- %s", "372" },
 /* 373 */
-  { RPL_INFOSTART, ":Server INFO", "373" },
+  { 0 },
 /* 374 */
   { RPL_ENDOFINFO, ":End of /INFO list.", "374" },
 /* 375 */
@@ -800,9 +800,9 @@ static Numeric replyTable[] = {
 /* 383 */
   { 0 },
 /* 384 */
-  { RPL_MYPORTIS, "%d :Port to local server is", "384" }, /* not used */
+  { 0 },
 /* 385 */
-  { RPL_NOTOPERANYMORE, 0, "385" }, /* not used */
+  { 0 },
 /* 386 */
   { 0 },
 /* 387 */
@@ -832,7 +832,7 @@ static Numeric replyTable[] = {
 /* 399 */
   { 0 },
 /* 400 */
-  { ERR_FIRSTERROR, "", "400" },
+  { 0 },
 /* 401 */
   { ERR_NOSUCHNICK, "%s :No such nick", "401" },
 /* 402 */
