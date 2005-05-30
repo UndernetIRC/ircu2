@@ -27,11 +27,11 @@
 #include "ircd.h"
 #include "match.h"
 #include "msg.h"
-#include "numnicks.h"       /* NumNick, NumServ (GODMODE) */
 #include "ircd_alloc.h"
 #include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
+#include "ircd_string.h"    /* ircd_ntoa */
 #include "s_debug.h"        /* Debug */
 #include "s_user.h"         /* TARGET_DELAY */
 #include "send.h"
@@ -219,6 +219,7 @@ static void ip_registry_expire_entry(struct IPRegistryEntry* entry)
     /*
      * expired
      */
+    Debug((DEBUG_DNS, "IPcheck expiring registry for %s (no clients connected).", ircd_ntoa(&entry->addr)));
     ip_registry_remove(entry);
     ip_registry_delete_entry(entry);
   }
@@ -275,16 +276,17 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
     entry       = ip_registry_new_entry();
     ip_registry_canonicalize(&entry->addr, addr);
     ip_registry_add(entry);
+    Debug((DEBUG_DNS, "IPcheck added new registry for local connection from %s.", ircd_ntoa(&entry->addr)));
     return 1;
   }
-  /* Note that this also connects server connects.
+  /* Note that this also counts server connects.
    * It is hard and not interesting, to change that.
-   *
-   * Don't allow more then 255 connects from one IP number, ever
+   * Refuse connection if it would overflow the counter.
    */
   if (0 == ++entry->connected)
   {
     entry->connected--;
+    Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
     return 0;
   }
 
@@ -302,17 +304,17 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
       *next_target_out = CurrentTime - (TARGET_DELAY * free_targets - 1);
   }
   else if ((CurrentTime - cli_since(&me)) > IPCHECK_CLONE_DELAY) {
-    /* 
+    /*
      * Don't refuse connection when we just rebooted the server
      */
-#ifdef NOTHROTTLE 
-    return 1;
-#else
+#ifndef NOTHROTTLE
     assert(entry->connected > 0);
     --entry->connected;
+    Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(&entry->addr)));
     return 0;
-#endif        
+#endif
   }
+  Debug((DEBUG_DNS, "IPcheck accepting local connection from %s.", ircd_ntoa(&entry->addr)));
   return 1;
 }
 
@@ -332,8 +334,10 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
    * Mark that we did add/update an IPregistry entry
    */
   SetIPChecked(cptr);
-  if (!irc_in_addr_valid(&cli_ip(cptr)))
+  if (!irc_in_addr_valid(&cli_ip(cptr))) {
+    Debug((DEBUG_DNS, "IPcheck accepting remote connection from invalid %s.", ircd_ntoa(&cli_ip(cptr))));
     return 1;
+  }
   entry = ip_registry_find(&cli_ip(cptr));
   if (0 == entry) {
     entry = ip_registry_new_entry();
@@ -341,27 +345,27 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
     if (is_burst)
       entry->attempts = 0;
     ip_registry_add(entry);
+    Debug((DEBUG_DNS, "IPcheck added new registry for remote connection from %s.", ircd_ntoa(&entry->addr)));
+    return 1;
   }
-  else {
-    if (0 == ++entry->connected) {
-      /* 
-       * Don't allow more then 255 connects from one IP number, ever
+  /* Avoid overflowing the connection counter. */
+  if (0 == ++entry->connected) {
+    Debug((DEBUG_DNS, "IPcheck refusing remote connection from %s: counter overflow.", ircd_ntoa(&entry->addr)));
+    return 0;
+  }
+  if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_PERIOD)
+    entry->attempts = 0;
+  if (!is_burst) {
+    if (0 == ++entry->attempts) {
+      /*
+       * Check for overflow
        */
-      return 0;
+      --entry->attempts;
     }
-    if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_PERIOD)
-      entry->attempts = 0;
-    if (!is_burst) {
-      if (0 == ++entry->attempts) {
-        /*
-         * Check for overflow
-         */
-        --entry->attempts;
-      }
-      ip_registry_update_free_targets(entry);
-      entry->last_connect = NOW;
-    }
+    ip_registry_update_free_targets(entry);
+    entry->last_connect = NOW;
   }
+  Debug((DEBUG_DNS, "IPcheck counting remote connection from %s.", ircd_ntoa(&entry->addr)));
   return 1;
 }
 
@@ -373,10 +377,9 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
 void ip_registry_connect_fail(const struct irc_in_addr *addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
-  if (entry)
-  {
-    if (0 == --entry->attempts)
-      ++entry->attempts;
+  if (entry && 0 == --entry->attempts) {
+    Debug((DEBUG_DNS, "IPcheck noting local connection failure for %s.", ircd_ntoa(&entry->addr)));
+    ++entry->attempts;
   }
 }
 
@@ -392,15 +395,13 @@ void ip_registry_connect_succeeded(struct Client *cptr)
   unsigned int free_targets     = STARTTARGETS;
   struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
 
-  if (!entry) {
-    Debug((DEBUG_ERROR, "Missing registry entry for: %s", cli_sock_ip(cptr)));
-    return;
-  }
+  assert(entry);
   if (entry->target) {
     memcpy(cli_targets(cptr), entry->target->targets, MAXTARGETS);
     free_targets = entry->target->count;
     tr = " tr";
   }
+  Debug((DEBUG_DNS, "IPcheck noting local connection success for %s.", ircd_ntoa(&entry->addr)));
   sendcmdto_one(&me, CMD_NOTICE, cptr, "%C :on %u ca %u(%u) ft %u(%u)%s",
 		cptr, entry->connected, entry->attempts, IPCHECK_CLONE_LIMIT,
 		free_targets, STARTTARGETS, tr);
@@ -414,17 +415,16 @@ void ip_registry_connect_succeeded(struct Client *cptr)
 void ip_registry_disconnect(struct Client *cptr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
-  if (0 == entry) {
-    /*
-     * trying to find an entry for a server causes this to happen,
-     * servers should never have FLAG_IPCHECK set
-     */
+  if (!irc_in_addr_valid(&cli_ip(cptr))) {
+    Debug((DEBUG_DNS, "IPcheck noting dicconnect from invalid %s.", ircd_ntoa(&cli_ip(cptr))));
     return;
   }
+  assert(entry);
+  assert(entry->connected > 0);
+  Debug((DEBUG_DNS, "IPcheck noting disconnect from %s.", ircd_ntoa(&entry->addr)));
   /*
    * If this was the last one, set `last_connect' to disconnect time (used for expiration)
    */
-  /* assert(entry->connected > 0); */
   if (0 == --entry->connected) {
     if (CONNECTED_SINCE(entry->last_connect) > IPCHECK_CLONE_LIMIT * IPCHECK_CLONE_PERIOD) {
       /*
