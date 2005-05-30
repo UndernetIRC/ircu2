@@ -590,7 +590,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "Received unauthorized "
               "connection from %C [%s]", cptr,
               ircd_ntoa(&cli_ip(cptr)));
-    return exit_client(cptr, cptr, &me, "No C:line");
+    return exit_client(cptr, cptr, &me, "No Connect block");
   }
 
   host = cli_name(cptr);

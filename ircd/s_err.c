@@ -1014,7 +1014,7 @@ static Numeric replyTable[] = {
 /* 490 */
   { 0 },
 /* 491 */
-  { ERR_NOOPERHOST, ":No O-lines for your host", "491" },
+  { ERR_NOOPERHOST, ":No Operator block for your host", "491" },
 /* 492 */
   { 0 },
 /* 493 */

@@ -786,10 +786,10 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
 
   if (!find_conf_byhost(cli_confs(cptr), aconf->host, CONF_SERVER)) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Host %s is not enabled for "
-                         "connecting: no C-line", aconf->name);
+                         "connecting: no Connect block", aconf->name);
     if (by && IsUser(by) && !MyUser(by)) {
       sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connect to host %s failed: no "
-                    "C-line", by, aconf->name);
+                    "Connect block", by, aconf->name);
     }
     det_confs_butmask(cptr, 0);
     free_client(cptr);

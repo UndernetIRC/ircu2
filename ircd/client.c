@@ -229,8 +229,8 @@ static struct {
   P(GLINE),          P(LOCAL_GLINE),    P(JUPE),          P(LOCAL_JUPE),
   P(OPMODE),         P(LOCAL_OPMODE),   P(SET),           P(WHOX),
   P(BADCHAN),        P(LOCAL_BADCHAN),  P(SEE_CHAN),      P(PROPAGATE),
-  P(DISPLAY),        P(SEE_OPERS),      P(FORCE_OPMODE),  P(FORCE_LOCAL_OPMODE),
-  P(WIDE_GLINE),
+  P(DISPLAY),        P(SEE_OPERS),      P(WIDE_GLINE),    P(LIST_CHAN),
+  P(FORCE_OPMODE),   P(FORCE_LOCAL_OPMODE), P(APASS_OPMODE),
 #undef P
   { 0, 0 }
 };

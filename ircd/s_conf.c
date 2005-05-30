@@ -1137,7 +1137,8 @@ int conf_check_server(struct Client *cptr)
   if (IsConnecting(cptr) || IsHandshake(cptr)) {
     c_conf = find_conf_byname(lp, cli_name(cptr), CONF_SERVER);
     if (!c_conf) {
-      sendto_opmask_butone(0, SNO_OLDSNO, "Connect Error: lost C:line for %s",
+      sendto_opmask_butone(0, SNO_OLDSNO,
+                           "Connect Error: lost Connect block for %s",
                            cli_name(cptr));
       det_confs_butmask(cptr, 0);
       return -1;

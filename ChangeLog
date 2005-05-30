@@ -1,5 +1,21 @@
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/client.c (privtab): Add missing LIST_CHAN privilege, move
+	WIDE_GLINE to reflect its enumerated value.
+
+	* ircd/s_debug.c (count_memory): Use user_count_memory() function
+	to count User structs in-use.
+
+	* ircd/m_server.c (mr_server): Change "C:line" to "Connect block".
+
+	* ircd/s_bsd.c (connect_server): Likewise.
+
+	* ircd/s_conf.c (conf_check_server): Likewise.
+
+	* ircd/s_err.c (replyTable): Change "O-lines" to "Operator block".
+
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/match.c (match): Rewrite to handle globs that end in an
 	escaped wildcard (and hopefully clarify the code).
 
