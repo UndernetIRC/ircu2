@@ -518,7 +518,7 @@ static Numeric replyTable[] = {
 /* 242 */
   { RPL_STATSUPTIME, ":Server Up %d days, %d:%02d:%02d", "242" },
 /* 243 */
-  { RPL_STATSOLINE, "O %s@%s * %s %s", "243" },
+  { RPL_STATSOLINE, "%c %s@%s * %s %s", "243" },
 /* 244 */
   { 0 },
 /* 245 */

@@ -1,3 +1,13 @@
+2005-05-25 Reed Loden <reed@reedloden.com>
+
+	* ircd/s_err.c (replyTable): Allow for the specification of 'O' or
+	'o' in RPL_STATSOLINE.
+
+	* ircd/s_stats.c (stats_configured_links): In /stats o/O, display
+	'O' if either the oper block or the connection class has
+	PRIV_PROPAGATE (global oper) and 'o' if neither has PRIV_PROPAGATE
+	(local oper).
+
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/IPcheck.c: Add Debug()s to try to track why the connected
