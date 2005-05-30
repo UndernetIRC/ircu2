@@ -16,13 +16,6 @@ struct irc_in_addr;
 /** Check whether \a x is a NULL or empty string. */
 #define EmptyString(x) (!(x) || !(*x))
 
-/*
- * initialize recognizers
- */
-extern int init_string(void);
-
-extern int string_is_hostname(const char* str);
-extern int string_is_address(const char* str);
 extern int string_has_wildcards(const char* str);
 
 extern char*       ircd_strncpy(char* dest, const char* src, size_t len);
@@ -116,11 +109,6 @@ static __inline__ NTL_HDR_strChattr { NTL_SRC_strChattr }
 static __inline__ NTL_HDR_strCasediff { NTL_SRC_strCasediff }
 #endif
 #endif /* FORCEINLINE */
-
-/*
- * Proto types of other externally visible functions
- */
-extern int strnChattr(const char *s, const size_t n);
 
 #endif /* INCLUDED_ircd_string_h */
 

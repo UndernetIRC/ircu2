@@ -196,19 +196,6 @@ get_client_class(struct Client *acptr)
   return "(null-class)";
 }
 
-/** Get connection interval for a connection class.
- * @param[in] clptr Connection class to check (or NULL).
- * @return If \a clptr != NULL, its connection frequency; else default
- * connection frequency.
- */
-unsigned int get_con_freq(struct ConnectionClass * clptr)
-{
-  if (clptr)
-    return (ConFreq(clptr));
-  else
-    return feature_int(FEAT_CONNECTFREQUENCY);
-}
-
 /** Make sure we have a connection class named \a name.
  * If one does not exist, create it.  Then set its ping frequency,
  * connection frequency, maximum link count, and max SendQ according

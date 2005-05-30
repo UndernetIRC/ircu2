@@ -30,7 +30,6 @@
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
-#include <regex.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 
@@ -38,68 +37,6 @@
  * include the character attribute tables here
  */
 #include "chattr.tab.c"
-
-
-/*
- * Disallow a hostname label to contain anything but a [-a-zA-Z0-9].
- * It may not start or end on a '.'.
- * A label may not end on a '-', the maximum length of a label is
- * 63 characters.
- * On top of that (which seems to be the RFC) we demand that the
- * top domain does not contain any digits.
- */
-/** Regular expression to match a hostname.
- * Matches zero or more alphanumeric labels followed by '.' and a
- * final label that may only contain alphabetic characters.
- */
-static const char* hostExpr = "^([-0-9A-Za-z]*[0-9A-Za-z]\\.)+[A-Za-z]+$";
-/** Compiled regex to match a hostname.  Built from #hostExpr. */
-static regex_t hostRegex;
-
-/** Regular expression to match an IP address. */
-static const char* addrExpr =
-    "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){1,3}"
-    "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
-/** Compiled regex to match an IP address.  Built from #addrExpr. */
-static regex_t addrRegex;
-
-/** Initialize the string matching code. */
-int init_string(void)
-{
-  /*
-   * initialize matching expressions
-   * XXX - expressions MUST be correct, don't change expressions
-   * without testing them. Might be a good idea to exit if these fail,
-   * important code depends on them.
-   * TODO: use regerror for an error message
-   */
-  if (regcomp(&hostRegex, hostExpr, REG_EXTENDED | REG_NOSUB))
-    return 0;
-
-  if (regcomp(&addrRegex, addrExpr, REG_EXTENDED | REG_NOSUB))
-    return 0;
-  return 1;
-}
-
-/** Check whether \a str looks like a hostname.
- * @param[in] str String that might be a hostname.
- * @return Non-zero if it conforms to the rules, zero if not.
- */
-int string_is_hostname(const char* str)
-{
-  assert(0 != str);
-  return (strlen(str) <= HOSTLEN && 0 == regexec(&hostRegex, str, 0, 0, 0));
-}
-
-/** Check whether \a str looks like an IP address.
- * @param[in] str String that might be an address.
- * @return Non-zero if it conforms to the rules, zero if not.
- */
-int string_is_address(const char* str)
-{
-  assert(0 != str);
-  return (0 == regexec(&addrRegex, str, 0, 0, 0));
-}
 
 /** Check whether \a str contains wildcard characters.
  * @param[in] str String that might contain wildcards.
@@ -231,21 +168,6 @@ NTL_HDR_strCasediff { NTL_SRC_strCasediff }
 /*
  * Other functions visible externally
  */
-
-/** Find common character attributes for the start of a string.
- * @param[in] s Input string to scan.
- * @param[in] n Maximum number of bytes to check.
- * @return Bitmask of all character attributes shared by the start of \a s.
- */
-int strnChattr(const char *s, const size_t n)
-{
-  const char *rs = s;
-  unsigned int x = ~0;
-  int r = n;
-  while (*rs && r--)
-    x &= IRCD_CharAttrTab[*rs++ - CHAR_MIN];
-  return x;
-}
 
 /** Case insensitive string comparison.
  * @param[in] a First string to compare.

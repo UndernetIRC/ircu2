@@ -1,5 +1,24 @@
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
+	* include/class.h (get_con_freq): Remove unused function.
+
+	* include/list.h (find_user_link): Remove unused function.
+
+	* include/class.c (get_con_freq): Remove.
+
+	* ircd/list.c (find_user_link): Remove.
+
+	* include/string.h (string_is_hostname, string_is_address,
+	strnChattr): Remove unused functions.
+	(init_string): Remove function that becomes a noop.
+
+	* ircd/string.h (init_string): Remove.
+	(string_is_hostname, string_is_address, strnChattr): Likewise.
+
+	* ircd/ircd.c (main): Remove call to init_string().
+
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
 	* include/numeric.h (RPL_TRACELOG, RPL_MYPORTIS,
 	RPL_NOTOPERANYMORE): Undefine unused numeric replies.
 

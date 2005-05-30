@@ -680,11 +680,6 @@ int main(int argc, char **argv) {
   log_init(*argv);
   set_nomem_handler(outofmemory);
 
-  if (!init_string()) {
-    log_write(LS_SYSTEM, L_CRIT, 0, "Failed to initialize string module");
-    return 6;
-  }
-
   initload();
   init_list();
   init_hash();

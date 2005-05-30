@@ -449,23 +449,6 @@ void verify_client_list(void)
 }
 #endif /* DEBUGMODE */
 
-/** Find the list element that corresponds to a client.
- * @param[in] lp Head of singly linked list.
- * @param[in] ptr %Client to search for.
- * @return SLink element from \a lp that contains \a ptr, or NULL if none exist.
- */
-struct SLink *find_user_link(struct SLink *lp, struct Client *ptr)
-{
-  if (ptr) {
-    while (lp) {
-      if (lp->value.cptr == ptr)
-        return (lp);
-      lp = lp->next;
-    }
-  }
-  return NULL;
-}
-
 /** Allocate a new SLink element.
  * Pulls from #slinkFreeList if it contains anything, else it
  * allocates a new one from the heap.
