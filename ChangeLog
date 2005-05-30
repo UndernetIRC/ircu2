@@ -6,6 +6,9 @@
 	* ircd/m_endburst.c (ms_endofburst): Avoid dereferencing 'chan'
 	after it may be freed (in sub1_from_channel).
 
+	* ircd/s_user.c (register_user): Rearrange code to reduce number
+	of "if (MyConnect(sptr))" checks.
+
 2005-05-12  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Do not try to outsmart the default CFLAGS.

@@ -564,19 +564,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
       return exit_client(cptr, sptr, &me, "USER: Bad username");
     }
     Count_unknownbecomesclient(sptr, UserStats);
-  }
-  else {
-    ircd_strncpy(user->username, username, USERLEN);
-    Count_newremoteclient(UserStats, user->server);
-  }
-  SetUser(sptr);
 
-  if (IsInvisible(sptr))
-    ++UserStats.inv_clients;
-  if (IsOper(sptr))
-    ++UserStats.opers;
-
-  if (MyConnect(sptr)) {
+    SetUser(sptr);
     cli_handler(sptr) = CLIENT_HANDLER;
     release_dns_reply(sptr);
     SetLocalNumNick(sptr);
@@ -597,7 +586,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
     m_lusers(sptr, sptr, 1, parv);
     update_load();
     motd_signon(sptr);
-/*      nextping = CurrentTime; */
     if (cli_snomask(sptr) & SNO_NOISY)
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
@@ -626,7 +614,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
         break;
       case 'i':
         SetInvisible(sptr);
-        ++UserStats.inv_clients;
         break;
       case 'd':
         SetDeaf(sptr);
@@ -638,10 +625,11 @@ int register_user(struct Client *cptr, struct Client *sptr,
       }
     }
   }
-  else
-    /* if (IsServer(cptr)) */
-  {
+  else {
     struct Client *acptr;
+
+    ircd_strncpy(user->username, username, USERLEN);
+    Count_newremoteclient(UserStats, user->server);
 
     acptr = user->server;
     if (cli_from(acptr) != cli_from(sptr))
@@ -661,7 +649,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
      * FIXME: This can be sped up - its stupid to check it for
      * every NICK message in a burst again  --Run.
      */
-    for (acptr = user->server; acptr != &me; acptr = cli_serv(acptr)->up)
+    for (; acptr != &me; acptr = cli_serv(acptr)->up)
     {
       if (IsBurst(acptr) || Protocol(acptr) < 10)
         break;
@@ -675,7 +663,14 @@ int register_user(struct Client *cptr, struct Client *sptr,
                     sptr, cli_name(&me));
       return exit_client(cptr, sptr, &me,"Too many connections from your host -- throttled");
     }
+    SetUser(sptr);
   }
+
+  if (IsInvisible(sptr))
+    ++UserStats.inv_clients;
+  if (IsOper(sptr))
+    ++UserStats.opers;
+
   tmpstr = umode_str(sptr);
   /* Send full IP address to IPv6-grokking servers. */
   sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
