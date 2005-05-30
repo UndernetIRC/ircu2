@@ -1,4 +1,16 @@
-2005-05-25 Reed Loden <reed@reedloden.com>
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/match.c (match): Rewrite to handle globs that end in an
+	escaped wildcard (and hopefully clarify the code).
+
+	* ircd/test/Makefile.in: Add new ircd_match_t test program.
+
+	* ircd/test/ircd_match_t.c: New file.
+
+	* ircd/test/test_stub.c: Emite newlines after log and debug
+	messages.
+
+2005-05-25  Reed Loden <reed@reedloden.com>
 
 	* ircd/s_err.c (replyTable): Allow for the specification of 'O' or
 	'o' in RPL_STATSOLINE.

@@ -190,59 +190,56 @@ int match(const char *mask, const char *name)
 {
   const char *m = mask, *n = name;
   const char *m_tmp = mask, *n_tmp = name;
-  int wild = 0;
+  int star_p;
 
-  for (;;)
-  {
-    if (*m == '*') {
-      while (*m == '*')  /* clean up any additional wildcards */
-        m++;
-
-      m_tmp = m;
-      n_tmp = n;
-      wild = 1;
+  for (;;) switch (*m) {
+  case '\0':
+    if (!*n)
+      return 0;
+  backtrack:
+    if (m_tmp == mask)
+      return 1;
+    m = m_tmp;
+    n = ++n_tmp;
+    break;
+  case '\\':
+    m++;
+    /* allow escaping to force capitalization */
+    if (*m++ != *n++)
+      return 1;
+    break;
+  case '*': case '?':
+    for (star_p = 0; ; m++) {
+      if (*m == '*')
+        star_p = 1;
+      else if (*m == '?') {
+        if (!*n++)
+          goto backtrack;
+      } else break;
     }
-    if (*m == '\\')  /* next wildcard is disregarded */
-      m++;
-
-    if (!*m) {
-      if (!*n)
-        return 0;  /* match */
-
-      for (m--; (m > mask) && (*m == '?'); m--);
-        ;
-
-      if (*m == '*' && (m > mask))
-        return 0;  /* match */
-
-      if (!wild)
-        return 1;
-
-      m = m_tmp;
-      n = ++n_tmp;
+    if (star_p) {
+      if (!*m)
+        return 0;
+      else if (*m == '\\') {
+        m_tmp = ++m;
+        if (!*m)
+          return 1;
+        for (n_tmp = n; *n && *n != *m; n++) ;
+      } else {
+        m_tmp = m;
+        for (n_tmp = n; *n && ToLower(*n) != ToLower(*m); n++) ;
+      }
     }
-    else if (!*n) {
-      while (*m == '*')  /* clean up any additional wildcards */
-        m++;
-
-      return (*m != 0);
-    }
-    if (ToLower(*m) != ToLower(*n) && *m != '?') {
-      if (!wild)
-        return 1;  /* failure! */
-
-      m = m_tmp;
-      n = ++n_tmp;
-    }
-    else {
-      if (*m)
-        m++;
-      if (*n)
-        n++;
-    }
+    /* and fall through */
+  default:
+    if (!*n)
+      return *m != '\0';
+    if (ToLower(*m) != ToLower(*n))
+      goto backtrack;
+    m++;
+    n++;
+    break;
   }
-
-  return 1;  /* no match! */
 }
 
 /*

@@ -7,12 +7,14 @@ CC = @CC@
 
 TESTPROGS = \
 	ircd_chattr_t \
-	ircd_string_t \
-	ircd_in_addr_t
+	ircd_in_addr_t \
+	ircd_match_t \
+	ircd_string_t
 
 DEP_SRC = \
 	ircd_chattr_t.c \
 	ircd_in_addr_t.c \
+	ircd_match_t.c \
 	ircd_string_t.c \
 	test_stub.c
 
@@ -36,13 +38,17 @@ IRCD_CHATTR_T_OBJS = ircd_chattr_t.o test_stub.o ../ircd_string.o
 ircd_chattr_t: $(IRCD_CHATTR_T_OBJS)
 	${CC} -o $@ $(IRCD_CHATTR_T_OBJS)
 
-IRCD_STRING_T_OBJS = ircd_string_t.o test_stub.o ../ircd_string.o
-ircd_string_t: $(IRCD_STRING_T_OBJS)
-	${CC} -o $@ $(IRCD_STRING_T_OBJS)
-
 IRCD_IN_ADDR_T_OBJS = ircd_in_addr_t.o test_stub.o ../ircd_alloc.o ../ircd_string.o ../match.o ../numnicks.o
 ircd_in_addr_t: $(IRCD_IN_ADDR_T_OBJS)
 	${CC} -o $@ $(IRCD_IN_ADDR_T_OBJS)
+
+IRCD_MATCH_T_OBJS = ircd_match_t.o test_stub.o ../ircd_string.o ../match.o
+ircd_match_t: $(IRCD_MATCH_T_OBJS)
+	${CC} -o $@ $(IRCD_MATCH_T_OBJS)
+
+IRCD_STRING_T_OBJS = ircd_string_t.o test_stub.o ../ircd_string.o
+ircd_string_t: $(IRCD_STRING_T_OBJS)
+	${CC} -o $@ $(IRCD_STRING_T_OBJS)
 
 .c.o:
 	${CC} ${CFLAGS} ${CPPFLAGS} -c $< -o $@

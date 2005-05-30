@@ -17,6 +17,7 @@ log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
+    fputc('\n', stderr);
     va_end(args);
 }
 
@@ -27,6 +28,7 @@ debug(int level, const char *form, ...)
 
     va_start(args, form);
     vfprintf(stdout, form, args);
+    fputc('\n', stdout);
     va_end(args);
 }
 
