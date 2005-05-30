@@ -3,6 +3,9 @@
 	* ircd/IPcheck.c: Add Debug()s to try to track why the connected
 	count underflows.
 
+	* ircd/m_endburst.c (ms_endofburst): Avoid dereferencing 'chan'
+	after it may be freed (in sub1_from_channel).
+
 2005-05-12  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Do not try to outsmart the default CFLAGS.

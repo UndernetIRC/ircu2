@@ -126,13 +126,12 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   /* Count through channels... */
   for (chan = GlobalChannelList; chan; chan = next_chan) {
     next_chan = chan->next;
-
-    if (!chan->members) { /* empty channel */
-      if ((chan->mode.mode & MODE_BURSTADDED))
-	sub1_from_channel(chan); /* New empty channel, schedule it for removal. */
-    }
-
-    chan->mode.mode &= ~MODE_BURSTADDED;
+    if (!chan->members && (chan->mode.mode & MODE_BURSTADDED)) {
+      /* Newly empty channel, schedule it for removal. */
+      chan->mode.mode &= ~MODE_BURSTADDED;
+      sub1_from_channel(chan);
+   } else
+      chan->mode.mode &= ~MODE_BURSTADDED;
   }
 
   return 0;
