@@ -1,5 +1,10 @@
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_debug.c (count_memory): Use count_listener_memory() to
+	report memory used by listener structures.
+
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
 	* include/class.h (get_con_freq): Remove unused function.
 
 	* include/list.h (find_user_link): Remove unused function.

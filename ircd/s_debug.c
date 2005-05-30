@@ -37,6 +37,7 @@
 #include "ircd.h"
 #include "jupe.h"
 #include "list.h"
+#include "listener.h"
 #include "motd.h"
 #include "msgq.h"
 #include "numeric.h"
@@ -223,6 +224,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
       wwu = 0,                  /* whowas users */
       cl = 0,                   /* classes */
       co = 0,                   /* conf lines */
+      listeners = 0,            /* listeners */
       memberships = 0;          /* channel memberships */
 
   int usi = 0,                  /* users invited */
@@ -247,6 +249,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
       dbufs_used = 0,           /* memory used by dbufs */
       msg_allocated = 0,	/* memory used by struct Msg */
       msgbuf_allocated = 0,	/* memory used by struct MsgBuf */
+      listenersm = 0,           /* memory used by listetners */
       rm = 0,                   /* res memory used */
       totcl = 0, totch = 0, totww = 0, tot = 0;
 
@@ -357,6 +360,9 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
 	     ":Hash: client %d(%zu), chan is the same", HASHSIZE,
 	     sizeof(void *) * HASHSIZE);
 
+  count_listener_memory(&listeners, &listenersm);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":Listeners allocated %d(%zu)", listeners, listenersm);
   /*
    * NOTE: this count will be accurate only for the exact instant that this
    * message is being sent, so the count is affected by the dbufs that
