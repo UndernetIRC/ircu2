@@ -103,8 +103,11 @@ POE::Session->create(inline_states =>
                       irc_nick => sub {},
                       irc_part => sub {},
                       irc_ping => sub {},
+                      irc_pong => sub {},
+                      irc_rpong => sub {},
                       irc_quit => sub {},
                       irc_topic => sub {},
+                      irc_plugin_add => sub {},
                       irc_error => \&irc_error,
                       irc_disconnected => \&irc_disconnected,
                       irc_socketerr => \&irc_socketerr,
@@ -316,7 +319,8 @@ sub drv_default {
     }
     return undef;
   }
-  print "ERROR: Unexpected event $state to test driver (from ".$sender->ID.")\n";
+  print "ERROR: Unexpected event $state to test driver (from ".$sender->ID.")\n"
+    unless $state eq '_signal';
   return undef;
 }
 

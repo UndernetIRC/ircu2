@@ -33,6 +33,9 @@ connect cl1 Alex alex localhost:7701 :Test client 1
 :cl1 raw :stats z
 :cl1 raw :stats *
 
+# Remote stats requests
+:cl1 raw :stats f test-2.*
+
 # Named stats commands
 :cl1 raw :stats nameservers
 :cl1 raw :stats connect
@@ -65,6 +68,9 @@ connect cl1 Alex alex localhost:7701 :Test client 1
 :cl1 raw :stats memory
 :cl1 raw :stats help
 :cl1 raw :hash
+:cl1 raw :rehash m
+:cl1 raw :rehash l
+:cl1 raw :rehash q
 :cl1 raw :rehash
 :cl1 nick Alexey
 

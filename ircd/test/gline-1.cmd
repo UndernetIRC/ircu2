@@ -7,6 +7,9 @@ connect cl1 Alex alex %srv% :Test client 1
 :cl1 raw :gline !+127.2.* 3600 :Localclone?
 :cl1 sleep 5
 :cl1 raw :gline !+127.2.* 3600 :Localclone?
+:cl1 raw :gline !+127.2.*/15 3600 :Localclone?
+:cl1 raw :gline !+127.2.0.0/33 3600 :Localclone?
+:cl1 raw :gline !+127.2.0.0/15 3600 :Localclone?
 connect cl2 Bubb bubb %srv% :Test client 2
 :cl1 raw :gline
 :cl1 raw :gline $Rbubb

@@ -1,5 +1,37 @@
 2005-05-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/test/Makefile.in: Add LDFLAGS variable for profiling purposes.
+
+	* ircd/test/ircd_match_t.c: Test recovery from backtracking.
+
+	* ircd/test/channel-1.cmd: Modify to improve code coverage.
+
+	* ircd/test/client-1.cmd: Likewise.
+
+	* ircd/test/gline-1.cmd: Likewise.
+
+	* ircd/test/ircd-t1.conf: Likewise.
+
+	* ircd/test/stats-1.cmd: Likewise.
+
+	* ircd/test/run-tests.sh: Explicitly start ircds.  Add new test scripts.
+
+	* ircd/test/test-driver.pl: Silently handle more signals from IRC.
+
+	* ircd/test/commands-1.cmd: New test script.
+
+	* ircd/test/feature-1.cmd: New test script.
+
+	* ircd/test/jupe-1.cmd: New test script.
+
+	* ircd/test/kill-block-1.cmd: New test script.
+
+	* ircd/test/ircd-t1-2.conf: New configuration file for test scripts.
+
+	* ircd/test/ircd-t2.conf: Likewise.
+
+2005-05-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_debug.c (count_memory): Use count_listener_memory() to
 	report memory used by listener structures.
 

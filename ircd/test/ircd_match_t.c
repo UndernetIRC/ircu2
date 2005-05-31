@@ -27,7 +27,7 @@ const struct match_test match_tests[] = {
     "abc\0",
     "abcd\0cabc\0" },
   { "*abc",
-    "abc\0fooabc\0",
+    "abc\0fooabc\0ababc\0",
     "abra\0abcd\0" },
   { "\\?",
     "?\0",
