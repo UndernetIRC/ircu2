@@ -881,7 +881,7 @@ int check_if_ipmask(const char *mask)
   if (mask[0] == '.' || mask[0] == '/')
     return 0;
   for (p = mask; *p; ++p)
-    if (*p != '*' && *p != '?' && *p != '.' && *p != '/')
+    if (*p != '*' && *p != '.' && *p != '/')
     {
       if (!IsDigit(*p))
         return 0;
