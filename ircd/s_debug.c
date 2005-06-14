@@ -292,7 +292,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
     chm += (strlen(chptr->chname) + sizeof(struct Channel));
     for (link = chptr->invites; link; link = link->next)
       chi++;
-    for (ban = chptr->banlist; link; ban = ban->next)
+    for (ban = chptr->banlist; ban; ban = ban->next)
     {
       chb++;
       chbm += strlen(ban->who) + strlen(ban->banstr) + 2 + sizeof(*ban);
@@ -335,7 +335,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Channel membrs %d(%zu) invite %d(%zu)", memberships,
+	     ":Channel members %d(%zu) invite %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), chi,
 	     chi * sizeof(struct SLink));
 

@@ -129,9 +129,7 @@ struct ConfItem* make_conf(int type)
 
   aconf = (struct ConfItem*) MyMalloc(sizeof(struct ConfItem));
   assert(0 != aconf);
-#ifdef        DEBUGMODE
   ++GlobalConfCount;
-#endif
   memset(aconf, 0, sizeof(struct ConfItem));
   aconf->status  = type;
   aconf->next    = GlobalConfList;
@@ -159,9 +157,7 @@ void free_conf(struct ConfItem *aconf)
   MyFree(aconf->name);
   MyFree(aconf->hub_limit);
   MyFree(aconf);
-#ifdef        DEBUGMODE
   --GlobalConfCount;
-#endif
 }
 
 /** Disassociate configuration from the client.

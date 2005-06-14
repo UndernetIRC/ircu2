@@ -1,3 +1,16 @@
+2005-05-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (make_user): Unconditionally increment userCount.
+	(free_user): Unconditionally decrement it here.
+
+	* ircd/s_conf.c (make_conf): Unconditionally increment
+	GlobalConfCount.
+	(free_conf): Unconditionally decrement it here.
+
+	* ircd/s_debug.c (count_memory): Fix termination condition for
+	ban-walking loop.  Add missing "e" to "members".
+
+
 2005-05-10  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/match.c (check_if_ipmask): Strings that contain '?' cannot

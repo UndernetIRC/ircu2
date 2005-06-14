@@ -91,9 +91,7 @@ struct User *make_user(struct Client *cptr)
 
     /* All variables are 0 by default */
     memset(cli_user(cptr), 0, sizeof(struct User));
-#ifdef  DEBUGMODE
     ++userCount;
-#endif
     cli_user(cptr)->refcnt = 1;
   }
   return cli_user(cptr);
@@ -120,9 +118,7 @@ void free_user(struct User* user)
     assert(0 == user->channel);
 
     MyFree(user);
-#ifdef  DEBUGMODE
     --userCount;
-#endif
   }
 }
 
