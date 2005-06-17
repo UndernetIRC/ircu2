@@ -50,25 +50,19 @@
 #include <unistd.h>  /* close */
 #include <string.h>
 
-#ifdef DEBUGMODE
 /** Stores linked list statistics for various types of lists. */
 static struct liststats {
-  int inuse;
-} clients, connections, users, servs, links;
-#endif
+  size_t alloc; /**< Number of structures ever allocated. */
+  size_t inuse; /**< Number of structures currently in use. */
+  size_t mem;   /**< Memory used by in-use structures. */
+} clients, connections, servs, links;
 
-/** Count of allocated Client structures. */
-static unsigned int clientAllocCount;
 /** Linked list of currently unused Client structures. */
 static struct Client* clientFreeList;
 
-/** Count of allocated Connection structures. */
-static unsigned int connectionAllocCount;
 /** Linked list of currently unused Connection structures. */
 static struct Connection* connectionFreeList;
 
-/** Count of allocated SLink structures. */
-static unsigned int slinkAllocCount;
 /** Linked list of currently unused SLink structures. */
 static struct SLink* slinkFreeList;
 
@@ -87,21 +81,13 @@ void init_list(void)
     cptr = (struct Client*) MyMalloc(sizeof(struct Client));
     cli_next(cptr) = clientFreeList;
     clientFreeList = cptr;
-    ++clientAllocCount;
+    clients.alloc++;
 
     con = (struct Connection*) MyMalloc(sizeof(struct Connection));
     con_next(con) = connectionFreeList;
     connectionFreeList = con;
-    ++connectionAllocCount;
+    connections.alloc++;
   }
-
-#ifdef DEBUGMODE
-  memset(&clients, 0, sizeof(clients));
-  memset(&connections, 0, sizeof(connections));
-  memset(&users, 0, sizeof(users));
-  memset(&servs, 0, sizeof(servs));
-  memset(&links, 0, sizeof(links));
-#endif
 }
 
 /** Allocate a new Client structure.
@@ -115,13 +101,11 @@ static struct Client* alloc_client(void)
 
   if (!cptr) {
     cptr = (struct Client*) MyMalloc(sizeof(struct Client));
-    ++clientAllocCount;
+    clients.alloc++;
   } else
     clientFreeList = cli_next(cptr);
 
-#ifdef DEBUGMODE
   clients.inuse++;
-#endif
 
   memset(cptr, 0, sizeof(struct Client));
 
@@ -136,9 +120,7 @@ static void dealloc_client(struct Client* cptr)
   assert(cli_verify(cptr));
   assert(0 == cli_connect(cptr));
 
-#ifdef DEBUGMODE
   --clients.inuse;
-#endif
 
   cli_next(cptr) = clientFreeList;
   clientFreeList = cptr;
@@ -157,13 +139,11 @@ static struct Connection* alloc_connection(void)
 
   if (!con) {
     con = (struct Connection*) MyMalloc(sizeof(struct Connection));
-    ++connectionAllocCount;
+    connections.alloc++;
   } else
     connectionFreeList = con_next(con);
 
-#ifdef DEBUGMODE
   connections.inuse++;
-#endif
 
   memset(con, 0, sizeof(struct Connection));
   timer_init(&(con_proc(con)));
@@ -197,9 +177,7 @@ static void dealloc_connection(struct Connection* con)
   if (con_listener(con))
     release_listener(con_listener(con));
 
-#ifdef DEBUGMODE
   --connections.inuse;
-#endif
 
   con_next(con) = connectionFreeList;
   connectionFreeList = con;
@@ -337,9 +315,8 @@ struct Server *make_server(struct Client *cptr)
     serv = (struct Server*) MyMalloc(sizeof(struct Server));
     assert(0 != serv);
     memset(serv, 0, sizeof(struct Server)); /* All variables are 0 by default */
-#ifdef  DEBUGMODE
     servs.inuse++;
-#endif
+    servs.alloc++;
     cli_serv(cptr) = serv;
     cli_serv(cptr)->lag = 60000;
     *serv->by = '\0';
@@ -396,9 +373,8 @@ void remove_client_from_list(struct Client *cptr)
       MyFree(cli_serv(cptr)->client_list);
     MyFree(cli_serv(cptr)->last_error_msg);
     MyFree(cli_serv(cptr));
-#ifdef  DEBUGMODE
     --servs.inuse;
-#endif
+    --servs.alloc;
   }
   free_client(cptr);
 }
@@ -442,7 +418,7 @@ void verify_client_list(void)
     assert(cli_prev(client) == prev);
     /* Verify that the list hasn't become circular */
     assert(cli_next(client) != GlobalClientList);
-    assert(visited <= clientAllocCount);
+    assert(visited <= clients.alloc);
     /* Remember what should precede us */
     prev = client;
   }
@@ -461,12 +437,10 @@ struct SLink* make_link(void)
     slinkFreeList = lp->next;
   else {
     lp = (struct SLink*) MyMalloc(sizeof(struct SLink));
-    ++slinkAllocCount;
+    links.alloc++;
   }
   assert(0 != lp);
-#ifdef  DEBUGMODE
   links.inuse++;
-#endif
   return lp;
 }
 
@@ -479,9 +453,7 @@ void free_link(struct SLink* lp)
     lp->next = slinkFreeList;
     slinkFreeList = lp;
   }
-#ifdef  DEBUGMODE
   links.inuse--;
-#endif
 }
 
 /** Add an element to a doubly linked list.
@@ -522,42 +494,54 @@ void remove_dlink(struct DLink **lpp, struct DLink *lp)
   MyFree(lp);
 }
 
-#ifdef  DEBUGMODE
+/** Report memory usage of a list to \a cptr.
+ * @param[in] cptr Client requesting information.
+ * @param[in] lstats List statistics descriptor.
+ * @param[in] itemname Plural name of item type.
+ * @param[in,out] totals If non-null, accumulates item counts and memory usage.
+ */
+void send_liststats(struct Client *cptr, const struct liststats *lstats,
+                    const char *itemname, struct liststats *totals)
+{
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s: inuse %zu(%zu) alloc %zu",
+	     itemname, lstats->inuse, lstats->mem, lstats->alloc);
+  if (totals)
+  {
+    totals->inuse += lstats->inuse;
+    totals->alloc += lstats->alloc;
+    totals->mem += lstats->mem;
+  }
+}
+
 /** Report memory usage of list elements to \a cptr.
  * @param[in] cptr Client requesting information.
  * @param[in] name Unused pointer.
  */
 void send_listinfo(struct Client *cptr, char *name)
 {
-  int inuse = 0, mem = 0, tmp = 0;
+  struct liststats total;
+  struct liststats confs;
+  struct ConfItem *conf;
 
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Clients: inuse: %d(%d)",
-	     clients.inuse, tmp = clients.inuse * sizeof(struct Client));
-  mem += tmp;
-  inuse += clients.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, "Connections: inuse: %d(%d)",
-	     connections.inuse,
-	     tmp = connections.inuse * sizeof(struct Connection));
-  mem += tmp;
-  inuse += connections.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Users: inuse: %d(%d)",
-	     users.inuse, tmp = users.inuse * sizeof(struct User));
-  mem += tmp;
-  inuse += users.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Servs: inuse: %d(%d)",
-	     servs.inuse, tmp = servs.inuse * sizeof(struct Server));
-  mem += tmp;
-  inuse += servs.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Links: inuse: %d(%d)",
-	     links.inuse, tmp = links.inuse * sizeof(struct SLink));
-  mem += tmp;
-  inuse += links.inuse;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Confs: inuse: %d(%d)",
-	     GlobalConfCount, tmp = GlobalConfCount * sizeof(struct ConfItem));
-  mem += tmp;
-  inuse += GlobalConfCount;
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Totals: inuse %d %d",
-	     inuse, mem);
+  memset(&total, 0, sizeof(total));
+
+  clients.mem = clients.inuse * sizeof(struct Client);
+  send_liststats(cptr, &clients, "Clients", &total);
+
+  connections.mem = connections.inuse * sizeof(struct Connection);
+  send_liststats(cptr, &connections, "Connections", &total);
+
+  servs.mem = servs.inuse * sizeof(struct Server);
+  send_liststats(cptr, &servs, "Servers", &total);
+
+  links.mem = links.inuse * sizeof(struct SLink);
+  send_liststats(cptr, &links, "Links", &total);
+
+  confs.alloc = GlobalConfCount;
+  confs.mem = confs.alloc * sizeof(GlobalConfCount);
+  for (confs.inuse = 0, conf = GlobalConfList; conf; conf = conf->next)
+    confs.inuse++;
+  send_liststats(cptr, &confs, "Confs", &total);
+
+  send_liststats(cptr, &total, "Totals", NULL);
 }
-
-#endif

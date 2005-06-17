@@ -489,7 +489,6 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
   }
 }
 
-#ifdef DEBUGMODE
 /** Display objects allocated (and total memory used by them) for
  * several types of structures.
  * @param[in] to Client requesting statistics.
@@ -499,10 +498,12 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
 static void
 stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 {
+  extern void bans_send_meminfo(struct Client *cptr);
+
   class_send_meminfo(to);
+  bans_send_meminfo(to);
   send_listinfo(to, 0);
 }
-#endif
 
 /** Send a list of available statistics.
  * @param[in] to Client requesting statistics.
@@ -606,11 +607,9 @@ struct StatDesc statsinfo[] = {
   { 'w', "userload", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
     calc_load, 0,
     "Userload statistics." },
-#ifdef DEBUGMODE
   { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
     stats_meminfo, 0,
     "List usage information (Debug only)." },
-#endif
   { 'y', "classes", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
     report_classes, 0,
     "Connection classes." },

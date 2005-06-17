@@ -1,3 +1,47 @@
+2005-05-16  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h (struct Ban): Make 'who' and 'banstr' direct
+	arrays, rather than pointers.
+
+	* ircd/channel.c (bans_alloc): New variable to count number of ban
+	structures allocated.
+	(bans_inuse): New variable to count number of ban structures
+	currently in use.
+	(set_banmask): Adapt to changes in struct Ban.
+	(make_ban): Likewise, and update ban counts.
+	(free_ban): Likewise.
+	(bans_send_meminfo): New function.
+	(apply_ban): Adapt to changes in struct Ban.
+	(mode_parse_ban): Likewise.
+	(mode_process_bans): Likewise.
+	(mode_parse): Likewise.
+	(RevealDelayedJoin): Fix brace placement.
+	(CheckDelayedJoins): Fix brace placement and whitespace.
+
+	* ircd/list.c (struct liststats): Add new fields to eliminate the
+	separate count variables.
+	(init_list): Adapt to those changes.
+	(alloc_client): Likewise.
+	(dealloc_client): Likewise.
+	(alloc_connection): Likewise.
+	(dealloc_connection): Likewise.
+	(make_server): Likewise.
+	(remove_client_from_list): Likewise.
+	(verify_client_list): Likewise.
+	(make_link): Likewise.
+	(free_link): Likewise.
+	(send_liststats): New function.
+	(send_listinfo): Rewrite to use new struct liststats layout.
+
+	* ircd/m_burst.c (ms_burst): Adapt to changes in struct Ban.
+
+	* ircd/m_clearmode.c (do_clearmode): Adapt to changes in struct
+	Ban.
+
+	* ircd/s_stats.c (stats_meminfo): Define unconditionally and call
+	bans_send_meminfo().
+	(statsinfo): Always give access to stats_meminfo.
+
 2005-06-16  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_string.h: Include necessary <string.h> header.

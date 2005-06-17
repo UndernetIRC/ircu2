@@ -67,6 +67,10 @@ static unsigned int membershipAllocCount;
 static struct Membership* membershipFreeList;
 /** Freelist for struct Ban*'s */
 static struct Ban* free_bans;
+/** Number of ban structures allocated. */
+static size_t bans_alloc;
+/** Number of ban structures in use. */
+static size_t bans_inuse;
 
 #if !defined(NDEBUG)
 /** return the length (>=0) of a chain of links.
@@ -91,10 +95,8 @@ static void
 set_ban_mask(struct Ban *ban, const char *banstr)
 {
   char *sep;
-  MyFree(ban->banstr);
-  if (!banstr)
-    return;
-  DupString(ban->banstr, banstr);
+  assert(banstr != NULL);
+  ircd_strncpy(ban->banstr, banstr, sizeof(ban->banstr) - 1);
   sep = strrchr(banstr, '@');
   if (sep) {
     ban->nu_len = sep - banstr;
@@ -117,6 +119,9 @@ make_ban(const char *banstr)
   }
   else if (!(ban = MyMalloc(sizeof(*ban))))
     return NULL;
+  else
+    bans_alloc++;
+  bans_inuse++;
   memset(ban, 0, sizeof(*ban));
   set_ban_mask(ban, banstr);
   return ban;
@@ -128,10 +133,22 @@ make_ban(const char *banstr)
 void
 free_ban(struct Ban *ban)
 {
-  MyFree(ban->who);
-  MyFree(ban->banstr);
   ban->next = free_bans;
   free_bans = ban;
+  bans_inuse--;
+}
+
+/** Report ban usage to \a cptr.
+ * @param[in] cptr Client requesting information.
+ */
+void bans_send_meminfo(struct Client *cptr)
+{
+  struct Ban *ban;
+  size_t num_free;
+  for (num_free = 0, ban = free_bans; ban; ban = ban->next)
+    num_free++;
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Bans: inuse %zu(%zu) free %zu alloc %zu",
+	     bans_inuse, bans_inuse * sizeof(*ban), num_free, bans_alloc);
 }
 
 /** return the struct Membership* that represents a client on a channel
@@ -2704,8 +2721,6 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
       if (!bmatch(ban, newban)) {
         if (do_free)
           free_ban(newban);
-        else
-          MyFree(newban->banstr);
         return 1;
       }
       if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
@@ -2736,14 +2751,10 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
     /* If no matches were found, fail. */
     if (do_free)
       free_ban(newban);
-    else
-      MyFree(newban->banstr);
     return 3;
   }
   if (do_free)
     free_ban(newban);
-  else
-    MyFree(newban->banstr);
   return 4;
 }
 
@@ -2800,9 +2811,8 @@ mode_parse_ban(struct ParseState *state, int *flag_p)
   newban->next = 0;
   newban->flags = ((state->dir == MODE_ADD) ? BAN_ADD : BAN_DEL)
       | (*flag_p == MODE_BAN ? 0 : BAN_EXCEPTION);
-  newban->banstr = NULL;
   set_ban_mask(newban, collapse(pretty_mask(t_str)));
-  newban->who = cli_name(state->sptr);
+  ircd_strncpy(newban->who, cli_name(state->sptr), HOSTLEN);
   newban->when = TStime();
   apply_ban(&state->chptr->banlist, newban, 0);
 }
@@ -2834,12 +2844,12 @@ mode_process_bans(struct ParseState *state)
       count--;
       len -= banlen;
 
-      MyFree(ban->banstr);
-
       continue;
     } else if (ban->flags & BAN_DEL) { /* Deleted a ban? */
+      char *bandup;
+      DupString(bandup, ban->banstr);
       modebuf_mode_string(state->mbuf, MODE_DEL | MODE_BAN,
-			  ban->banstr, 1);
+			  bandup, 1);
 
       if (state->flags & MODE_PARSE_SET) { /* Ok, make it take effect */
 	if (prevban) /* clip it out of the list... */
@@ -2849,9 +2859,6 @@ mode_process_bans(struct ParseState *state)
 
 	count--;
 	len -= banlen;
-
-        ban->banstr = NULL; /* modebuf_mode_string() gave ownership of
-                             * the ban string to state->mbuf */
         free_ban(ban);
 
 	changed++;
@@ -2869,7 +2876,6 @@ mode_process_bans(struct ParseState *state)
 	  !(state->flags & MODE_PARSE_BOUNCE)) {
 	count--;
 	len -= banlen;
-        MyFree(ban->banstr);
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
@@ -2878,15 +2884,16 @@ mode_process_bans(struct ParseState *state)
 		     ban->banstr);
 	  count--;
 	  len -= banlen;
-          MyFree(ban->banstr);
 	} else {
+          char *bandup;
 	  /* add the ban to the buffer */
+          DupString(bandup, ban->banstr);
 	  modebuf_mode_string(state->mbuf, MODE_ADD | MODE_BAN,
-			      ban->banstr, 1);
+			      bandup, 1);
 
 	  if (state->flags & MODE_PARSE_SET) { /* create a new ban */
 	    newban = make_ban(ban->banstr);
-	    DupString(newban->who, ban->who);
+            strcpy(newban->who, ban->who);
 	    newban->when = ban->when;
 	    newban->flags = ban->flags & BAN_IPMASK;
 
@@ -2901,13 +2908,6 @@ mode_process_bans(struct ParseState *state)
 
     prevban = ban;
   } /* for (prevban = 0, ban = state->chptr->banlist; ban; ban = nextban) { */
-
-  /* Release all masks of removed bans */
-  for (count = 0; count < state->numbans; ++count) {
-    ban = state->banlist + count;
-    if (ban->flags & BAN_DEL)
-      MyFree(ban->banstr);
-  }
 
   if (changed) /* if we changed the ban list, we must invalidate the bans */
     mode_ban_invalidate(state->chptr);
@@ -3171,7 +3171,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 
   for (i = 0; i < MAXPARA; i++) { /* initialize ops/voices arrays */
     state.banlist[i].next = 0;
-    state.banlist[i].who = 0;
+    state.banlist[i].who[0] = '\0';
     state.banlist[i].when = 0;
     state.banlist[i].flags = 0;
     state.cli_change[i].flag = 0;
@@ -3502,7 +3502,8 @@ int IsInvited(struct Client* cptr, const void* chptr)
 
 /* RevealDelayedJoin: sends a join for a hidden user */
 
-void RevealDelayedJoin(struct Membership *member) {
+void RevealDelayedJoin(struct Membership *member)
+{
   ClearDelayedJoin(member);
   sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, 0, ":%H",
                                    member->channel);
@@ -3511,14 +3512,15 @@ void RevealDelayedJoin(struct Membership *member) {
 
 /* CheckDelayedJoins: checks and clear +d if necessary */
 
-void CheckDelayedJoins(struct Channel *chan) {
+void CheckDelayedJoins(struct Channel *chan)
+{
   struct Membership *memb2;
-  
+
   if (chan->mode.mode & MODE_WASDELJOINS) {
     for (memb2=chan->members;memb2;memb2=memb2->next_member)
       if (IsDelayedJoin(memb2))
         break;
-    
+
     if (!memb2) {
       /* clear +d */
       chan->mode.mode &= ~MODE_WASDELJOINS;

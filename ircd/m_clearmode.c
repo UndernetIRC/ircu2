@@ -177,12 +177,12 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
    */
   if (del_mode & MODE_BAN) {
     for (link = chptr->banlist; link; link = next) {
+      char *bandup;
       next = link->next;
 
+      DupString(bandup, link->banstr);
       modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, /* delete ban */
-			  link->banstr, 1);
-      link->banstr = NULL; /* modebuf_mode_string() gave ownership of
-                            * banstr to mbuf */
+			  bandup, 1);
       free_ban(link);
     }
 

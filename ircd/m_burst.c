@@ -369,9 +369,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	      banstr[banpos++] = *ptr;
 
 	    newban = make_ban(ban); /* create new ban */
-
-            DupString(newban->who, 
-                      cli_name(feature_bool(FEAT_HIS_BANWHO) ? &me : sptr));
+            strcpy(newban->who, "*");
 	    newban->when = TStime();
 
 	    newban->flags = BAN_BURSTED; /* set flags */
@@ -550,9 +548,10 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       /* remove ban from channel */
       if (lp->flags & (BAN_OVERLAPPED | BAN_BURST_WIPEOUT)) {
+        char *bandup;
+        DupString(bandup, lp->banstr);
 	modebuf_mode_string(mbuf, MODE_DEL | MODE_BAN,
-			    lp->banstr, 1); /* let it free banstr */
-        lp->banstr = NULL; /* do not free this string */
+			    bandup, 1);
 	*lp_p = lp->next; /* clip out of list */
         free_ban(lp);
 	continue;
