@@ -4,6 +4,9 @@
  */
 #ifndef INCLUDED_ircd_string_h
 #define INCLUDED_ircd_string_h
+
+#include <string.h> /* for DupString()'s strcpy, strlen */
+
 #ifndef INCLUDED_ircd_chattr_h
 #include "ircd_chattr.h"
 #endif

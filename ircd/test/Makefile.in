@@ -60,7 +60,7 @@ distclean: clean
 	rm -f Makefile
 
 clean:
-	rm -f core *.o ${TESTPROGS}
+	rm -f core *.o *.log ${TESTPROGS}
 
 # DO NOT DELETE THIS LINE (or the blank line after it) -- make depend depends on them.
 

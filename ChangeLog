@@ -1,4 +1,17 @@
-2005-05-13  Michael Poole <mdpoole@troilus.org>
+2005-06-16  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_string.h: Include necessary <string.h> header.
+
+	* ircd/test/.cvsignore: Ignore log output files.
+
+	* ircd/test/Makefile.in: Remove log output files.
+
+	* ircd/test/kill-block-1.cmd: Add sleeps to try to trigger Kills.
+
+	* ircd/test/run-tests.sh: Switch sense of argument.  Send an IRC
+	debug dump to log files.
+
+2005-06-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (make_user): Unconditionally increment userCount.
 	(free_user): Unconditionally decrement it here.
@@ -11,7 +24,7 @@
 	ban-walking loop.  Add missing "e" to "members".
 
 
-2005-05-10  Michael Poole <mdpoole@troilus.org>
+2005-06-10  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/match.c (check_if_ipmask): Strings that contain '?' cannot
 	be true IP masks.
