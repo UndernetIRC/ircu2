@@ -1,6 +1,6 @@
 /*
- * A rewrite of Darren Reeds original res.c As there is nothing
- * left of Darrens original code, this is now licensed by the hybrid group.
+ * A rewrite of Darren Reed's original res.c As there is nothing
+ * left of Darren's original code, this is now licensed by the hybrid group.
  * (Well, some of the function names are the same, and bits of the structs..)
  * You can use it where it is useful, free even. Buy us a beer and stuff.
  *
@@ -727,7 +727,13 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
          * but its possible its just a broken nameserver with still
          * valid answers. But lets do some rudimentary logging for now...
          */
-          log_write(LS_RESOLVER, L_ERROR, 0, "irc_res.c bogus type %d", type);
+        log_write(LS_RESOLVER, L_ERROR, 0, "irc_res.c bogus type %d", type);
+
+        if ((char*)current + rd_length >= (char*)current)
+          current += rd_length;
+        else
+          return(0);
+
         break;
     }
   }
@@ -758,6 +764,12 @@ res_readreply(struct Event *ev)
     return;
 
   /*
+   * check against possibly fake replies
+   */
+  if (!res_ourserver(&lsin))
+    return;
+
+  /*
    * convert DNS reply reader from Network byte order to CPU byte order.
    */
   header = (HEADER *)buf;
@@ -771,12 +783,6 @@ res_readreply(struct Event *ev)
    * just ignore this response.
    */
   if (0 == (request = find_id(header->id)))
-    return;
-
-  /*
-   * check against possibly fake replies
-   */
-  if (!res_ourserver(&lsin))
     return;
 
   if ((header->rcode != NO_ERRORS) || (header->ancount == 0))

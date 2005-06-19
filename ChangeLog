@@ -1,3 +1,11 @@
+2005-06-19  Andrew Miller  <a1kmm@amxl.com>
+
+	* ircd/ircd_res.c (proc_answer): Deal with unexpected record types more
+	gracefully.
+
+	* ircd/ircd_res.c (res_readreply): Check res_ourserver before walking
+	the pending request list, to make DoS attacks harder.
+
 2005-06-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_debug.c (count_memory): Consolidate several lines; make
