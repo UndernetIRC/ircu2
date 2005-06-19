@@ -320,32 +320,27 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), aw, awm);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Attached confs %d(%zu)",
-	     lcc, lcc * sizeof(struct SLink));
 
   totcl = cm + cnm + us * sizeof(struct User) + memberships * sizeof(struct Membership) + awm;
   totcl += lcc * sizeof(struct SLink) + usi * sizeof(struct SLink);
 
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu)", co,
-	     com);
-
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Classes %d(%zu)", cl,
-	     cl * sizeof(struct ConnectionClass));
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Conflines %d(%zu) Attached %d(%zu) Classes %d(%zu)",
+             co, com, lcc, lcc * sizeof(struct SLink),
+             cl, cl * sizeof(struct ConnectionClass));
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Channel members %d(%zu) invite %d(%zu)", memberships,
+	     ":Channel Members %d(%zu) Invites %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), chi,
 	     chi * sizeof(struct SLink));
 
   totch = chm + chbm + chi * sizeof(struct SLink);
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Whowas users %d(%zu) away %d(%zu)", wwu,
-	     wwu * sizeof(struct User), wwa, wwam);
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Whowas array %d(%zu)",
-	     feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwm);
+	     ":Whowas Users %d(%zu) Away %d(%zu) Array %d(%zu)",
+             wwu, wwu * sizeof(struct User), wwa, wwam,
+             feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwm);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
@@ -398,4 +393,3 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
 	     totww, totch, totcl, com, dbufs_allocated, msg_allocated,
 	     msgbuf_allocated);
 }
-

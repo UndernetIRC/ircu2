@@ -1,3 +1,8 @@
+2005-06-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_debug.c (count_memory): Consolidate several lines; make
+	initial letter capitalization consistent.
+
 2005-06-19  Andrew Miller  <a1kmm@amxl.com>
 
 	* ircd/s_stats.c: Remove the "debug only" label on memusage stats,
