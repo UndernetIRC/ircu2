@@ -609,7 +609,7 @@ struct StatDesc statsinfo[] = {
     "Userload statistics." },
   { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
     stats_meminfo, 0,
-    "List usage information (Debug only)." },
+    "List usage information." },
   { 'y', "classes", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
     report_classes, 0,
     "Connection classes." },
