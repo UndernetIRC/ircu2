@@ -6,6 +6,9 @@
 	* ircd/ircd_res.c (res_readreply): Check res_ourserver before walking
 	the pending request list, to make DoS attacks harder.
 
+	* ircd/m_invite.c (m_invite): Give no such channel rather than not on
+	channel when the channel being invited to does not exist.
+	
 2005-06-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_debug.c (count_memory): Consolidate several lines; make
