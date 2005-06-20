@@ -149,6 +149,7 @@ typedef enum ChannelGetType {
 
 #define LISTARG_TOPICLIMITS     0x0001
 #define LISTARG_SHOWSECRET      0x0002
+#define LISTARG_NEGATEWILDCARD  0x0004
 
 /**
  * Maximum acceptable lag time in seconds: A channel younger than
@@ -303,6 +304,7 @@ struct ListingArgs {
   time_t max_topic_time;
   time_t min_topic_time;
   unsigned int bucket;
+  char wildcard[CHANNELLEN];
 };
 
 struct ModeBuf {

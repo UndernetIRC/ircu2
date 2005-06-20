@@ -1,3 +1,10 @@
+2005-06-21  Andrew Miller  <a1kmm@amxl.com>
+
+	* ircd/m_list.c (param_parse): Add support for channel wildcards.
+	* ircd/m_list.c (show_usage): Document the new format.
+	* ircd/hash.c (list_next_channels): Check channel wildcard in list.
+	* include/channel.h (ListingArgs): Add the wildcard member.
+
 2005-06-19  Andrew Miller  <a1kmm@amxl.com>
 
 	* ircd/ircd_res.c (proc_answer): Deal with unexpected record types more

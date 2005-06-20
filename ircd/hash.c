@@ -440,6 +440,10 @@ void list_next_channels(struct Client *cptr)
           && chptr->users < args->max_users
           && chptr->creationtime > args->min_time
           && chptr->creationtime < args->max_time
+          && (!args->wildcard[0] || (args->flags & LISTARG_NEGATEWILDCARD) ||
+              (!match(args->wildcard, chptr->chname)))
+          && (!(args->flags & LISTARG_NEGATEWILDCARD) ||
+              match(args->wildcard, chptr->chname))
           && (!(args->flags & LISTARG_TOPICLIMITS)
               || (chptr->topic[0]
                   && chptr->topic_time > args->min_topic_time
