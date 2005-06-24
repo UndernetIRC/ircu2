@@ -180,7 +180,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (MyConnect(acptr)) {
     add_invite(acptr, chptr);
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
-  } else {
+  } else if (!IsLocalChannel(chptr->chname)) {
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr), chptr,
                   chptr->creationtime);
   }
