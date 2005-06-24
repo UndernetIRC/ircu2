@@ -202,9 +202,13 @@ crypt_mechs_t* crypt_mech;
  /* try to use native crypt for an old-style (untagged) password */
  if (strlen(salt) > 2)
  {
+   char *s;
    temp_hashed_pass = (char*)ircd_crypt_native(key, salt);
    if (!ircd_strcmp(temp_hashed_pass, salt))
-    return strdup(temp_hashed_pass);
+   {
+     DupString(s, temp_hashed_pass);
+     return s;
+   }
  }
 
  return NULL;

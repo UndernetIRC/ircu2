@@ -1,11 +1,7 @@
-The following patch has to be applied to Boehm gc6.0 from
-http://www.hpl.hp.com/personal/Hans_Boehm/gc/
-and you need to configure ircd with --with-leak-detect=path-to-gc6.0/.lib/
-
-diff -ru -x *.a -x *.so* -x *.o -x *.lo -x *.log -x *.*~ gc6.0/include/gc.h gc6.0-ircu/include/gc.h
---- gc6.0/include/gc.h	Tue Jul 24 05:02:02 2001
-+++ gc6.0-ircu/include/gc.h	Sat Jun 29 21:04:40 2002
-@@ -722,6 +722,11 @@
+diff -rbud gc6.5/include/gc.h gc6.5.patched/include/gc.h
+--- gc6.5/include/gc.h	Sat May 21 05:50:58 2005
++++ gc6.5.patched/include/gc.h	Sat Jun 25 00:11:18 2005
+@@ -779,6 +779,11 @@
  GC_API GC_PTR GC_call_with_alloc_lock
          	GC_PROTO((GC_fn_type fn, GC_PTR client_data));
  
@@ -16,46 +12,43 @@ diff -ru -x *.a -x *.so* -x *.o -x *.lo -x *.log -x *.*~ gc6.0/include/gc.h gc6.
 +
  /* The following routines are primarily intended for use with a 	*/
  /* preprocessor which inserts calls to check C pointer arithmetic.	*/
+ /* They indicate failure by invoking the corresponding _print_proc.	*/
+diff -rbud gc6.5/reclaim.c gc6.5.patched/reclaim.c
+--- gc6.5/reclaim.c	Tue Nov 23 06:58:18 2004
++++ gc6.5.patched/reclaim.c	Sat Jun 25 00:52:18 2005
+@@ -36,6 +36,14 @@
  
-diff -ru -x *.a -x *.so* -x *.o -x *.lo -x *.log -x *.*~ gc6.0/reclaim.c gc6.0-ircu/reclaim.c
---- gc6.0/reclaim.c	Tue Jun 12 10:21:28 2001
-+++ gc6.0-ircu/reclaim.c	Sat Jun 29 21:00:16 2002
-@@ -27,24 +27,23 @@
- 	/* nonzero.							*/
- #endif /* PARALLEL_MARK */
+ GC_bool GC_have_errors = FALSE;
  
--static void report_leak(p, sz)
--ptr_t p;
--word sz;
-+void (*leak_handler)(void*, int);
++static void (*leak_handler)(void*, int);
 +
 +void
 +GC_set_leak_handler(void (*lh)(void*, int))
 +{
-+  leak_handler = lh;
++    leak_handler = lh;
 +}
 +
-+static void
-+report_leak(ptr_t p, word sz)
+ void GC_add_leaked(leaked)
+ ptr_t leaked;
  {
--    if (HDR(p) -> hb_obj_kind == PTRFREE) {
--        GC_err_printf0("Leaked atomic object at ");
--    } else {
--        GC_err_printf0("Leaked composite object at ");
--    }
--    GC_print_heap_obj(p);
--    GC_err_printf0("\n");
-+  if (leak_handler != NULL)
-+    leak_handler((void*)p, (int)sz);
- }
- 
--#   define FOUND_FREE(hblk, word_no) \
--      { \
--         report_leak((ptr_t)hblk + WORDS_TO_BYTES(word_no), \
--         	     HDR(hblk) -> hb_sz); \
--      }
-+#define FOUND_FREE(hblk, word_no) \
-+  report_leak((ptr_t)hblk + WORDS_TO_BYTES(word_no), HDR(hblk)->hb_sz);
- 
- /*
-  * reclaim phase
+@@ -64,6 +72,12 @@
+     if (GC_debugging_started) GC_print_all_smashed();
+     for (i = 0; i < GC_n_leaked; ++i) {
+ 	ptr_t p = GC_leaked[i];
++        if (leak_handler)
++        {
++            leak_handler(GC_base(p), GC_size(GC_base(p)));
++        }
++        else
++        {
+ 	if (HDR(p) -> hb_obj_kind == PTRFREE) {
+ 	    GC_err_printf0("Leaked atomic object at ");
+ 	} else {
+@@ -71,6 +85,7 @@
+ 	}
+ 	GC_print_heap_obj(p);
+ 	GC_err_printf0("\n");
++        }
+ 	GC_free(p);
+ 	GC_leaked[i] = 0;
+     }
