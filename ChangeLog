@@ -1,3 +1,6 @@
+2005-06-24  Andrew Miller  <a1kmm@amxl.com>
+	* ircd/m_invite.c (m_invite): Don't propagate invites to local channels.
+	
 2005-06-21  Andrew Miller  <a1kmm@amxl.com>
 
 	* ircd/m_list.c (param_parse): Add support for channel wildcards.
