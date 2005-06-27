@@ -83,7 +83,6 @@ extern int exit_client_msg(struct Client *cptr, struct Client *bcptr,
                            struct Client *sptr, const char *pattern, ...);
 extern void initstats(void);
 extern char *date(time_t clock);
-extern void get_sockhost(struct Client *cptr, char *host);
 extern int vexit_client_msg(struct Client *cptr, struct Client *bcptr,
     struct Client *sptr, const char *pattern, va_list vl);
 extern void tstats(struct Client *cptr, const struct StatDesc *sd,

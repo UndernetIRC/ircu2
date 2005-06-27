@@ -172,22 +172,6 @@ const char* get_client_name(const struct Client* sptr, int showip)
   return nbuf;
 }
 
-/** Set cli_sockhost(cptr) from \a host.
- * If \a host contains an '@', copy starting after that byte.
- * Otherwise copy all of \a host.
- * @param cptr Client to operate on.
- * @param host hostname or user\@hostname string.
- */
-void get_sockhost(struct Client *cptr, char *host)
-{
-  char *s;
-  if ((s = strchr(host, '@')))
-    s++;
-  else
-    s = host;
-  ircd_strncpy(cli_sockhost(cptr), s, HOSTLEN);
-}
-
 /**
  * Exit one client, local or remote. Assuming for local client that
  * all dependents already have been removed, and socket is closed.

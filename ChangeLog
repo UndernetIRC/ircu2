@@ -1,3 +1,10 @@
+2005-06-27  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_misc.h (get_sockhost): Remove the unused (and
+	deceptively named) get_sockhost().
+
+	* ircd/s_misc.c (get_sockhost): Likewise.
+
 2005-06-25  Andrew Miller  <a1kmm@amxl.com>
 
 	* ircd/ircd_crypt.c (ircd_crypt): strdup is not allowed, change to
