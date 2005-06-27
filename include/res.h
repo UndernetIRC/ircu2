@@ -66,19 +66,8 @@ struct irc_sockaddr
   unsigned short port;     /**< Port number, host-endian. */
 };
 
-/** DNS reply structure. */
-struct DNSReply
-{
-  char *h_name;   /**< Hostname. */
-  struct irc_in_addr addr; /**< IP address. */
-};
-
-/** DNS callback structure. */
-struct DNSQuery
-{
-  void *vptr; /**< pointer used by callback to identify request */
-  void (*callback)(void* vptr, struct DNSReply *reply); /**< callback to call */
-};
+/** DNS callback function signature. */
+typedef void (*dns_callback_f)(void *vptr, const struct irc_in_addr *addr, const char *h_name);
 
 /** DNS query and response header. */
 typedef struct
@@ -123,8 +112,8 @@ extern void add_local_domain(char *hname, size_t size);
 extern size_t cres_mem(struct Client* cptr);
 extern void delete_resolver_queries(const void *vptr);
 extern void report_dns_servers(struct Client *source_p, const struct StatDesc *sd, char *param);
-extern void gethost_byname(const char *name, const struct DNSQuery *query);
-extern void gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query);
+extern void gethost_byname(const char *name, dns_callback_f callback, void *ctx);
+extern void gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callback, void *ctx);
 
 /** Evaluate to non-zero if \a ADDR is a valid address (not all 0s and not all 1s). */
 #define irc_in_addr_valid(ADDR) (((ADDR)->in6_16[0] && ~(ADDR)->in6_16[0]) \

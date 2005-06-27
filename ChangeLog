@@ -1,5 +1,56 @@
 2005-06-27  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h (struct Connection): Remove con_dns_reply (and
+	associated macros).
+
+	* include/res.h (gethost_byname): Change calling signature to
+	clarify memory ownership.
+	(gethost_byaddr): Likewise.
+
+	* include/s_bsd.h (release_dns_reply): Remove function.
+
+	* ircd/hash.c: #include "match.h" to quash warning.
+
+	* ircd/ircd_auth.c (struct IAuth): Remove i_query field.
+	(iauth_dns_callback): Adjust for new gethost_byname signature.
+	(iauth_reconnect): Likewise.
+
+	* ircd/ircd_res.c (struct reslist): Make elements of query field
+	inline rather than in a contained structure.
+	(make_request): Reflect removal of DNSQuery.
+	(do_query_name): Likewise.
+	(do_query_number): Likewise.
+	(make_dnsreply): Remove now-unused function.
+	(timeout_resolver): Adjust to new callback signature.
+	(delete_resolver_queries): Reflect removal of DNSQuery.
+	(gethost_byname): Update to new signature.
+	(gethost_byaddr): Likewise.
+	(res_readreply): Reflect removal of DNSReply.
+
+	* ircd/list.c (dealloc_connection): con_dns_reply no longer
+	exists, so do not free it.
+
+	* ircd/s_auth.c (auth_verify_hostname): constify.
+	(auth_dns_callback): Adjust to new callback signature.
+	(start_auth): Adjust to new gethost_byaddr() signature.
+
+	* ircd/s_bsd.c (connect_dns_callback): Adjust to new callback
+	signature.
+	(release_dns_reply): Remove unused function.
+	(connect_server): Adjust to new gethost_byname() signature.
+
+	* ircd/s_conf.c (conf_dns_callback): Adjust to new callback
+	signature.
+	(conf_dns_lookup): Adjust to new gethost_byname() signature.
+	(attach_iline): Use cli_sockhost() instead of DNS reply.
+	(conf_check_server): Simplify use of DNS results.
+
+	* ircd/s_serv.c (server_estab): Remove call to removed function.
+
+	* ircd/s_user.c (register_user): Remove call to removed function.
+
+2005-06-27  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_misc.h (get_sockhost): Remove the unused (and
 	deceptively named) get_sockhost().
 

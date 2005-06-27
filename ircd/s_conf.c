@@ -228,15 +228,13 @@ void conf_parse_userhost(struct ConfItem *aconf, char *host)
  * @param vptr Pointer to struct ConfItem for the block.
  * @param hp DNS reply, or NULL if the lookup failed.
  */
-static void conf_dns_callback(void* vptr, struct DNSReply* hp)
+static void conf_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
-  if (hp) {
-    memcpy(&aconf->address.addr, &hp->addr, sizeof(aconf->address.addr));
-    MyFree(hp);
-  }
+  if (addr)
+    memcpy(&aconf->address.addr, addr, sizeof(aconf->address.addr));
 }
 
 /** Start a nameserver lookup of the conf host.  If the conf entry is
@@ -247,13 +245,9 @@ static void conf_dns_lookup(struct ConfItem* aconf)
 {
   if (!aconf->dns_pending) {
     char            buf[HOSTLEN + 1];
-    struct DNSQuery query;
-    query.vptr     = aconf;
-    query.callback = conf_dns_callback;
-    host_from_uh(buf, aconf->host, HOSTLEN);
-    buf[HOSTLEN] = '\0';
 
-    gethost_byname(buf, &query);
+    host_from_uh(buf, aconf->host, HOSTLEN);
+    gethost_byname(buf, conf_dns_callback, aconf);
     aconf->dns_pending = 1;
   }
 }
@@ -374,11 +368,9 @@ check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
 enum AuthorizationCheckResult attach_iline(struct Client* cptr)
 {
   struct ConfItem* aconf;
-  struct DNSReply* hp;
 
   assert(0 != cptr);
 
-  hp = cli_dns_reply(cptr);
   for (aconf = GlobalConfList; aconf; aconf = aconf->next) {
     if (aconf->status != CONF_CLIENT)
       continue;
@@ -392,7 +384,7 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
       if (match(aconf->username, cli_username(cptr)))
         continue;
     }
-    if (aconf->host && (!hp || match(aconf->host, hp->h_name)))
+    if (aconf->host && match(aconf->host, cli_sockhost(cptr)))
       continue;
     if ((aconf->addrbits >= 0)
         && !ipmask_check(&cli_ip(cptr), &aconf->address.addr, aconf->addrbits))
@@ -1141,28 +1133,10 @@ int conf_check_server(struct Client *cptr)
     }
   }
 
-  if (!c_conf) {
-    if (cli_dns_reply(cptr)) {
-      struct DNSReply* hp = cli_dns_reply(cptr);
-      const char*     name = hp->h_name;
-      /*
-       * If we are missing a C or N line from above, search for
-       * it under all known hostnames we have for this ip#.
-       */
-      if ((c_conf = find_conf_byhost(lp, hp->h_name, CONF_SERVER)))
-        ircd_strncpy(cli_sockhost(cptr), name, HOSTLEN);
-      else
-        c_conf = find_conf_byip(lp, &hp->addr, CONF_SERVER);
-    }
-    else {
-      /*
-       * Check for C lines with the hostname portion the ip number
-       * of the host the server runs on. This also checks the case where
-       * there is a server connecting from 'localhost'.
-       */
-      c_conf = find_conf_byhost(lp, cli_sockhost(cptr), CONF_SERVER);
-    }
-  }
+  /* Try finding the Connect block by DNS name and IP next. */
+  if (!c_conf && !(c_conf = find_conf_byhost(lp, cli_sockhost(cptr), CONF_SERVER)))
+        c_conf = find_conf_byip(lp, &cli_ip(cptr), CONF_SERVER);
+
   /*
    * Attach by IP# only if all other checks have failed.
    * It is quite possible to get here with the strange things that can

@@ -148,9 +148,6 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
   SetServer(cptr);
   cli_handler(cptr) = SERVER_HANDLER;
   Count_unknownbecomesserver(UserStats);
-
-  release_dns_reply(cptr);
-
   SetBurst(cptr);
 
 /*    nextping = CurrentTime; */

@@ -172,14 +172,13 @@ void report_error(const char* text, const char* who, int err)
  * @param vptr The struct ConfItem representing the Connect block.
  * @param hp A pointer to the DNS lookup results (NULL on failure).
  */
-static void connect_dns_callback(void* vptr, struct DNSReply* hp)
+static void connect_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
-  if (hp) {
-    memcpy(&aconf->address, &hp->addr, sizeof(aconf->address));
-    MyFree(hp);
+  if (addr) {
+    memcpy(&aconf->address, addr, sizeof(aconf->address));
     connect_server(aconf, 0);
   }
   else
@@ -321,21 +320,6 @@ unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf)
     break;
   }
   return bytes_written;
-}
-
-/** Free the client's DNS reply, if any.
- * @param cptr Client to operate on.
- */
-void release_dns_reply(struct Client* cptr)
-{
-  assert(0 != cptr);
-  assert(MyConnect(cptr));
-
-  if (cli_dns_reply(cptr)) {
-    MyFree(cli_dns_reply(cptr)->h_name);
-    MyFree(cli_dns_reply(cptr));
-    cli_dns_reply(cptr) = 0;
-  }
 }
 
 /** Complete non-blocking connect()-sequence. Check access and
@@ -759,14 +743,9 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
   if (!irc_in_addr_valid(&aconf->address.addr)
       && !ircd_aton(&aconf->address.addr, aconf->host)) {
     char buf[HOSTLEN + 1];
-    struct DNSQuery  query;
 
-    query.vptr     = aconf;
-    query.callback = connect_dns_callback;
     host_from_uh(buf, aconf->host, HOSTLEN);
-    buf[HOSTLEN] = '\0';
-
-    gethost_byname(buf, &query);
+    gethost_byname(buf, connect_dns_callback, aconf);
     aconf->dns_pending = 1;
     return 0;
   }

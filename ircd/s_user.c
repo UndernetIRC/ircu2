@@ -563,7 +563,6 @@ int register_user(struct Client *cptr, struct Client *sptr,
 
     SetUser(sptr);
     cli_handler(sptr) = CLIENT_HANDLER;
-    release_dns_reply(sptr);
     SetLocalNumNick(sptr);
     send_reply(sptr,
                RPL_WELCOME,

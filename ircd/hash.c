@@ -30,6 +30,7 @@
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd.h"
+#include "match.h"
 #include "msg.h"
 #include "numeric.h"
 #include "random.h"

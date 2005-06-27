@@ -115,17 +115,18 @@ struct reslist
   time_t timeout;          /**< When this request times out. */
   struct irc_in_addr addr; /**< Address for this request. */
   char *name;              /**< Hostname for this request. */
-  struct DNSQuery query;   /**< Query callback for this request. */
+  dns_callback_f callback; /**< Callback function on completion. */
+  void *callback_ctx;      /**< Context pointer for callback. */
 };
 
 /** Base of request list. */
 static struct dlink request_list;
 
 static void rem_request(struct reslist *request);
-static struct reslist *make_request(const struct DNSQuery *query);
-static void do_query_name(const struct DNSQuery *query,
+static struct reslist *make_request(dns_callback_f callback, void *ctx);
+static void do_query_name(dns_callback_f callback, void *ctx,
                           const char* name, struct reslist *request, int);
-static void do_query_number(const struct DNSQuery *query,
+static void do_query_number(dns_callback_f callback, void *ctx,
                             const struct irc_in_addr *,
                             struct reslist *request);
 static void query_name(const char *name, int query_class, int query_type,
@@ -134,7 +135,6 @@ static int send_res_msg(const char *buf, int len, int count);
 static void resend_query(struct reslist *request);
 static int proc_answer(struct reslist *request, HEADER *header, char *, char *);
 static struct reslist *find_id(int id);
-static struct DNSReply *make_dnsreply(struct reslist *request);
 static void res_readreply(struct Event *ev);
 static void timeout_resolver(struct Event *notused);
 
@@ -248,7 +248,7 @@ rem_request(struct reslist *request)
  * @return Newly allocated and linked-in reslist.
  */
 static struct reslist *
-make_request(const struct DNSQuery* query)
+make_request(dns_callback_f callback, void *ctx)
 {
   struct reslist *request;
 
@@ -264,7 +264,8 @@ make_request(const struct DNSQuery* query)
   request->resend  = 1;
   request->timeout = feature_int(FEAT_IRCD_RES_TIMEOUT);
   memset(&request->addr, 0, sizeof(request->addr));
-  memcpy(&request->query, query, sizeof(request->query));
+  request->callback = callback;
+  request->callback_ctx = ctx;
 
   add_dlink(&request->node, &request_list);
   return(request);
@@ -313,7 +314,7 @@ timeout_resolver(struct Event *ev)
       if (--request->retries <= 0)
       {
         Debug((DEBUG_DNS, "Request %p out of retries; destroying", request));
-        (*request->query.callback)(request->query.vptr, 0);
+        (*request->callback)(request->callback_ctx, NULL, NULL);
         rem_request(request);
         continue;
       }
@@ -352,7 +353,7 @@ delete_resolver_queries(const void *vptr)
     {
       next_ptr = ptr->next;
       request = (struct reslist*)ptr;
-      if (vptr == request->query.vptr) {
+      if (vptr == request->callback_ctx) {
         Debug((DEBUG_DNS, "Removing request %p with vptr %p", request, vptr));
         rem_request(request);
       }
@@ -417,9 +418,9 @@ find_id(int id)
  * @param[in] query Callback information.
  */
 void
-gethost_byname(const char *name, const struct DNSQuery *query)
+gethost_byname(const char *name, dns_callback_f callback, void *ctx)
 {
-  do_query_name(query, name, NULL, T_AAAA);
+  do_query_name(callback, ctx, name, NULL, T_AAAA);
 }
 
 /** Try to look up hostname for an address.
@@ -427,9 +428,9 @@ gethost_byname(const char *name, const struct DNSQuery *query)
  * @param[in] query Callback information.
  */
 void
-gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query)
+gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callback, void *ctx)
 {
-  do_query_number(query, addr, NULL);
+  do_query_number(callback, ctx, addr, NULL);
 }
 
 /** Send a query to look up the address for a name.
@@ -439,7 +440,7 @@ gethost_byaddr(const struct irc_in_addr *addr, const struct DNSQuery *query)
  * @param[in] type Preferred request type.
  */
 static void
-do_query_name(const struct DNSQuery *query, const char *name,
+do_query_name(dns_callback_f callback, void *ctx, const char *name,
               struct reslist *request, int type)
 {
   char host_name[HOSTLEN + 1];
@@ -449,7 +450,7 @@ do_query_name(const struct DNSQuery *query, const char *name,
 
   if (request == NULL)
   {
-    request       = make_request(query);
+    request       = make_request(callback, ctx);
     DupString(request->name, host_name);
 #ifdef IPV6
     if (type != T_A)
@@ -470,7 +471,7 @@ do_query_name(const struct DNSQuery *query, const char *name,
  * @param[in] request DNS lookup structure (may be NULL).
  */
 static void
-do_query_number(const struct DNSQuery *query, const struct irc_in_addr *addr,
+do_query_number(dns_callback_f callback, void *ctx, const struct irc_in_addr *addr,
                 struct reslist *request)
 {
   char ipbuf[128];
@@ -515,7 +516,7 @@ do_query_number(const struct DNSQuery *query, const struct irc_in_addr *addr,
   }
   if (request == NULL)
   {
-    request       = make_request(query);
+    request       = make_request(callback, ctx);
     request->state= REQ_PTR;
     request->type = T_PTR;
     memcpy(&request->addr, addr, sizeof(request->addr));
@@ -575,15 +576,15 @@ resend_query(struct reslist *request)
   switch(request->type)
   {
     case T_PTR:
-      do_query_number(NULL, &request->addr, request);
+      do_query_number(NULL, NULL, &request->addr, request);
       break;
     case T_A:
-      do_query_name(NULL, request->name, request, request->type);
+      do_query_name(NULL, NULL, request->name, request, request->type);
       break;
     case T_AAAA:
       /* didn't work, try A */
       if (request->state == REQ_AAAA)
-        do_query_name(NULL, request->name, request, T_A);
+        do_query_name(NULL, NULL, request->name, request, T_A);
     default:
       break;
   }
@@ -752,7 +753,6 @@ res_readreply(struct Event *ev)
   char buf[sizeof(HEADER) + MAXPACKET];
   HEADER *header;
   struct reslist *request = NULL;
-  struct DNSReply *reply  = NULL;
   unsigned int rc;
   int answer_count;
 
@@ -815,7 +815,7 @@ res_readreply(struct Event *ev)
          * send any more (no retries granted).
          */
         Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d rcode %d)", request, request->state, request->type, header->rcode));
-        (*request->query.callback)(request->query.vptr, 0);
+        (*request->callback)(request->callback_ctx, NULL, NULL);
 	rem_request(request);
       }
     }
@@ -839,7 +839,7 @@ res_readreply(struct Event *ev)
          * don't bother trying again, the client address doesn't resolve
          */
         Debug((DEBUG_DNS, "Request %p PTR had empty name", request));
-        (*request->query.callback)(request->query.vptr, reply);
+        (*request->callback)(request->callback_ctx, NULL, NULL);
         rem_request(request);
         return;
       }
@@ -850,10 +850,10 @@ res_readreply(struct Event *ev)
        */
 #ifdef IPV6
       if (!irc_in_addr_is_ipv4(&request->addr))
-        do_query_name(&request->query, request->name, NULL, T_AAAA);
+        do_query_name(request->callback, request->callback_ctx, request->name, NULL, T_AAAA);
       else
 #endif
-      do_query_name(&request->query, request->name, NULL, T_A);
+      do_query_name(request->callback, request->callback_ctx, request->name, NULL, T_A);
       Debug((DEBUG_DNS, "Request %p switching to forward resolution", request));
       rem_request(request);
     }
@@ -862,8 +862,7 @@ res_readreply(struct Event *ev)
       /*
        * got a name and address response, client resolved
        */
-      reply = make_dnsreply(request);
-      (*request->query.callback)(request->query.vptr, (reply) ? reply : 0);
+      (*request->callback)(request->callback_ctx, &request->addr, request->name);
       Debug((DEBUG_DNS, "Request %p got forward resolution", request));
       rem_request(request);
     }
@@ -879,23 +878,6 @@ res_readreply(struct Event *ev)
     Debug((DEBUG_DNS, "Request %p was unexpected(!)", request));
     rem_request(request);
   }
-}
-
-/** Build a DNSReply for a completed request.
- * @param[in] request Completed DNS request.
- * @return Newly allocated DNSReply containing host name and address.
- */
-static struct DNSReply *
-make_dnsreply(struct reslist *request)
-{
-  struct DNSReply *cp;
-  assert(request != 0);
-
-  cp = (struct DNSReply *)MyMalloc(sizeof(struct DNSReply));
-
-  DupString(cp->h_name, request->name);
-  memcpy(&cp->addr, &request->addr, sizeof(cp->addr));
-  return(cp);
 }
 
 /** Statistics callback to list DNS servers.

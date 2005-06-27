@@ -210,8 +210,6 @@ struct Connection
   struct SLink*       con_confs;     /**< Associated configuration records. */
   HandlerType         con_handler;   /**< Message index into command table
                                         for parsing. */
-  struct DNSReply*    con_dns_reply; /**< DNS reply received during client
-					registration. */
   struct ListingArgs* con_listing;   /**< Current LIST status. */
   unsigned long       con_unreg;     /**< Indicate what still needs to be done */
   unsigned int        con_max_sendq; /**< cached max send queue for client */
@@ -367,8 +365,6 @@ struct Client {
 #define cli_confs(cli)		con_confs(cli_connect(cli))
 /** Get handler type for client. */
 #define cli_handler(cli)	con_handler(cli_connect(cli))
-/** Get DNS reply for client. */
-#define cli_dns_reply(cli)	con_dns_reply(cli_connect(cli))
 /** Get LIST status for client. */
 #define cli_listing(cli)	con_listing(cli_connect(cli))
 /** Get cached max SendQ for client. */
@@ -448,8 +444,6 @@ struct Client {
 #define con_confs(con)		((con)->con_confs)
 /** Get command handler for the connection. */
 #define con_handler(con)	((con)->con_handler)
-/** Get DNS reply for the connection. */
-#define con_dns_reply(con)	((con)->con_dns_reply)
 /** Get the LIST status for the connection. */
 #define con_listing(con)	((con)->con_listing)
 /** Get remining steps before registration completes. */

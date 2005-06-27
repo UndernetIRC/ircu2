@@ -111,7 +111,7 @@ void free_auth_request(struct AuthRequest* auth);
  * @return Non-zero if the hostname is valid.
  */
 static int
-auth_verify_hostname(char *host, int maxlen)
+auth_verify_hostname(const char *host, int maxlen)
 {
   int i;
 
@@ -304,7 +304,7 @@ static void auth_kill_client(struct AuthRequest* auth)
  * @param vptr The pending struct AuthRequest.
  * @param hp Pointer to the DNS reply (or NULL, if lookup failed).
  */
-static void auth_dns_callback(void* vptr, struct DNSReply* hp)
+static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
 {
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(auth);
@@ -315,31 +315,30 @@ static void auth_dns_callback(void* vptr, struct DNSReply* hp)
    */
   ClearDNSPending(auth);
 
-  if (hp) {
+  if (addr) {
     /*
      * Verify that the host to ip mapping is correct both ways and that
      * the ip#(s) for the socket is listed for the host.
      */
-    if (irc_in_addr_cmp(&hp->addr, &cli_ip(auth->client))) {
+    if (irc_in_addr_cmp(addr, &cli_ip(auth->client))) {
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_IP_MISMATCH);
       sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-			   cli_sock_ip(auth->client), hp->h_name,
-			   ircd_ntoa(&hp->addr));
+			   cli_sock_ip(auth->client), h_name,
+			   ircd_ntoa(addr));
       if (feature_bool(FEAT_KILL_IPMISMATCH)) {
 	auth_kill_client(auth);
 	return;
       }
     }
-    else if (!auth_verify_hostname(hp->h_name, HOSTLEN))
+    else if (!auth_verify_hostname(h_name, HOSTLEN))
     {
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_INVAL_DNS);
     }
     else
     {
-      cli_dns_reply(auth->client) = hp;
-      ircd_strncpy(cli_sockhost(auth->client), hp->h_name, HOSTLEN);
+      ircd_strncpy(cli_sockhost(auth->client), h_name, HOSTLEN);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FIN_DNS);
     }
@@ -554,15 +553,9 @@ void start_auth(struct Client* client)
     if (irc_in_addr_is_loopback(&cli_ip(client)))
       strcpy(cli_sockhost(client), cli_name(&me));
     else {
-      struct DNSQuery query;
-
-      query.vptr     = auth;
-      query.callback = auth_dns_callback;
-
       if (IsUserPort(auth->client))
 	sendheader(client, REPORT_DO_DNS);
-
-      gethost_byaddr(&cli_ip(client), &query);
+      gethost_byaddr(&cli_ip(client), auth_dns_callback, auth);
       SetDNSPending(auth);
     }
   }

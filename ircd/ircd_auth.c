@@ -82,7 +82,6 @@ struct IAuth {
   struct Timer i_reconn_timer;          /**< when to reconnect the connection */
   struct Timer i_request_timer;         /**< when the current request times out */
   struct IAuthFlags i_flags;            /**< connection state/status/flags */
-  struct DNSQuery i_query;              /**< DNS lookup for iauth server */
   unsigned int i_recvM;                 /**< messages received */
   unsigned int i_sendM;                 /**< messages sent */
   unsigned int i_recvK;                 /**< kilobytes received */
@@ -406,13 +405,13 @@ static void iauth_disconnect(struct IAuth *iauth)
  * @param[in] vptr Pointer to the IAuth struct.
  * @param[in] he DNS reply parameters.
  */
-static void iauth_dns_callback(void *vptr, struct DNSReply *he)
+static void iauth_dns_callback(void *vptr, const struct irc_in_addr *addr, const char *h_name)
 {
   struct IAuth *iauth = vptr;
-  if (!he) {
+  if (!addr) {
     log_write(LS_IAUTH, L_NOTICE, 0, "IAuth connection to %s failed: host lookup failed", i_host(iauth));
   } else {
-    memcpy(&i_addr(iauth).addr, &he->addr, sizeof(i_addr(iauth).addr));
+    memcpy(&i_addr(iauth).addr, addr, sizeof(i_addr(iauth).addr));
     if (!irc_in_addr_valid(&i_addr(iauth).addr)) {
       log_write(LS_IAUTH, L_NOTICE, 0, "IAuth connection to %s failed: host came back as unresolved", i_host(iauth));
       return;
@@ -461,9 +460,7 @@ static void iauth_reconnect(struct IAuth *iauth)
   log_write(LS_IAUTH, L_DEBUG, 0, "IAuth attempt connection to %s port %p.", i_host(iauth), i_port(iauth));
   if (!irc_in_addr_valid(&i_addr(iauth).addr)
       && !ircd_aton(&i_addr(iauth).addr, i_host(iauth))) {
-    i_query(iauth).vptr = iauth;
-    i_query(iauth).callback = iauth_dns_callback;
-    gethost_byname(i_host(iauth), &i_query(iauth));
+    gethost_byname(i_host(iauth), iauth_dns_callback, iauth);
     return;
   }
   local = irc_in_addr_is_ipv4(&i_addr(iauth).addr) ? &VirtualHost_v4 : &VirtualHost_v6;
