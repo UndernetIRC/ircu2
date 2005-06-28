@@ -518,27 +518,32 @@ void add_connection(struct Listener* listener, int fd) {
    */
   os_disable_options(fd);
 
-  /*
-   * Add this local client to the IPcheck registry.
-   *
-   * If they're throttled, murder them, but tell them why first.
-   */
-  if (!IPcheck_local_connect(&addr.addr, &next_target) && !listener->server)
+  if (listener->server)
   {
-    ++ServerStats->is_ref;
-    write(fd, throttle_message, strlen(throttle_message));
-    close(fd);
-    return;
+    new_client = make_client(0, STAT_UNKNOWN_SERVER);
   }
-
-  new_client = make_client(0, ((listener->server) ?
-                               STAT_UNKNOWN_SERVER : STAT_UNKNOWN_USER));
+  else
+  {
+    /*
+     * Add this local client to the IPcheck registry.
+     *
+     * If they're throttled, murder them, but tell them why first.
+     */
+    if (!IPcheck_local_connect(&addr.addr, &next_target))
+    {
+      ++ServerStats->is_ref;
+      write(fd, throttle_message, strlen(throttle_message));
+      close(fd);
+      return;
+    }
+    new_client = make_client(0, STAT_UNKNOWN_USER);
+    SetIPChecked(new_client);
+  }
 
   /*
    * Copy ascii address to 'sockhost' just in case. Then we have something
    * valid to put into error messages...
    */
-  SetIPChecked(new_client);
   ircd_ntoa_r(cli_sock_ip(new_client), &addr.addr);
   strcpy(cli_sockhost(new_client), cli_sock_ip(new_client));
   memcpy(&cli_ip(new_client), &addr.addr, sizeof(cli_ip(new_client)));

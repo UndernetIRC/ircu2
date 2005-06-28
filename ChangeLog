@@ -1,5 +1,13 @@
 2005-06-27  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_bsd.c (add_connection): Split logic for server versus
+	client listeners; only do IPcheck for client connections.
+
+	* ircd/s_serv.c (server_estab): There is no longer a need to
+	remove IPcheck reference, so don't.
+
+2005-06-27  Michael Poole <mdpoole@troilus.org>
+
 	* include/client.h (struct Connection): Remove con_dns_reply (and
 	associated macros).
 
