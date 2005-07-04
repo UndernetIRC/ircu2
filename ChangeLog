@@ -1,3 +1,9 @@
+2005-07-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/convert-conf.c: New file.
+
+	* ircd/Makefile: Compile it.
+
 2005-06-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_bsd.c (add_connection): Split logic for server versus

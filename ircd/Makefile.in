@@ -64,6 +64,9 @@ LIBS = @LIBS@
 PURIFY =
 RINGLOG_O =
 
+CONVERT_CONF_SRC = \
+	convert-conf.c
+
 ENGINE_SRC = \
 	engine_devpoll.c \
 	engine_poll.c \
@@ -218,6 +221,8 @@ OBJS = ${SRC:%.c=%.o}
 
 UMKPASSWD_OBJS = ${UMKPASSWD_SRC:%.c=%.o}
 
+CONVERT_CONF_OBJS = ${CONVERT_CONF_SRC:%.c=%.o}
+
 DEP_SRC = ${IRCD_SRC} ${ENGINE_SRC} ${CRYPTO_SRC}
 
 all:
@@ -228,12 +233,15 @@ all:
 .c.o:
 	${CC} ${CFLAGS} ${CPPFLAGS} -c $< -o $@
 
-build: ircd
+build: ircd convert-conf
 
 ircd: ${OBJS} ../include/patchlevel.h version.o
 	${PURIFY} ${CC} ${OBJS} version.o ${RINGLOG_O} ${LDFLAGS} ${LIBS} \
 		-o ircd
 	${CHMOD} ${IRCDMODE} ircd
+
+convert-conf: ${CONVERT_CONF_OBJS}
+	${PURIFY} ${CC} ${CONVERT_CONF_OBJS} ${LDFLAGS} -o convert-conf
 
 #
 # Make sure the anti hack checksums get included when things change
@@ -311,7 +319,7 @@ uninstall:
 	@echo "Please remove the contents of ${DPATH} manually"
 
 clean:
-	${RM} -f *.o *.bak ircd version.c umkpasswd ircd_osdep.c chattr.tab.c table_gen y.tab.* lex.yy.*
+	${RM} -f *.o *.bak ircd version.c umkpasswd convert-conf chattr.tab.c table_gen y.tab.* lex.yy.*
 
 distclean: clean
 	${RM} -f Makefile stamp-m
