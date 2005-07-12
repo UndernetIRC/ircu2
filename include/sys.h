@@ -28,13 +28,6 @@
  */
 #define MAXCLIENTS      (MAXCONNECTIONS-24)
 
-/* Define FD_SETSIZE to what we want before including sys/types.h on BSD */
-#if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
-#if ((!defined(USE_POLL)) && (!defined(FD_SETSIZE)))
-#define FD_SETSIZE ((MAXCONNECTIONS)+4)
-#endif
-#endif
-
 #define IRCD_MAX(a, b)  ((a) > (b) ? (a) : (b))
 #define IRCD_MIN(a, b)  ((a) < (b) ? (a) : (b))
 

@@ -71,10 +71,6 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#ifdef USE_POLL
-#include <sys/poll.h>
-#endif /* USE_POLL */
-
 /** Array of my own clients, indexed by file descriptor. */
 struct Client*            LocalClientArray[MAXCONNECTIONS];
 /** Maximum file descriptor in current use. */
@@ -107,24 +103,6 @@ const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
 
 static void client_sock_callback(struct Event* ev);
 static void client_timer_callback(struct Event* ev);
-
-#if !defined(USE_POLL)
-#if FD_SETSIZE < (MAXCONNECTIONS + 4)
-/*
- * Sanity check
- *
- * All operating systems work when MAXCONNECTIONS <= 252.
- * Most operating systems work when MAXCONNECTIONS <= 1020 and FD_SETSIZE is
- *   updated correctly in the system headers (on BSD systems our sys.h has
- *   defined FD_SETSIZE to MAXCONNECTIONS+4 before including the system's headers 
- *   but sys/types.h might have abruptly redefined it so the check is still 
- *   done), you might already need to recompile your kernel.
- * For larger FD_SETSIZE your mileage may vary (kernel patches may be needed).
- * The check is _NOT_ done if we will not use FD_SETS at all (USE_POLL)
- */
-#error "FD_SETSIZE is too small or MAXCONNECTIONS too large."
-#endif
-#endif
 
 
 /*

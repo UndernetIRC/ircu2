@@ -22,18 +22,18 @@
  */
 #include "config.h"
 
+/* On BSD, define FD_SETSIZE to what we want before including sys/types.h */
+#if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
+# if !defined(FD_SETSIZE)
+#  define FD_SETSIZE ((MAXCONNECTIONS)+4)
+# endif
+#endif
+
 #include "ircd_events.h"
 
 #include "ircd.h"
 #include "ircd_log.h"
 #include "s_debug.h"
-
-/* On BSD, define FD_SETSIZE to what we want before including sys/types.h */
-#if  defined(__FreeBSD__) || defined(__NetBSD__) || defined(__bsdi__)
-# if !defined(FD_SETSIZE)
-#  define FD_SETSIZE	MAXCONNECTIONS
-# endif
-#endif
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
@@ -43,6 +43,21 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+
+#if FD_SETSIZE < (MAXCONNECTIONS + 4)
+/*
+ * Sanity check
+ *
+ * All operating systems work when MAXCONNECTIONS <= 252.
+ * Most operating systems work when MAXCONNECTIONS <= 1020 and FD_SETSIZE is
+ *   updated correctly in the system headers (on BSD systems sys/types.h might
+ *   have abruptly redefined it so the check is still done), you might
+ *   already need to recompile your kernel.
+ * For larger FD_SETSIZE your mileage may vary (kernel patches may be needed).
+ * The check is _NOT_ done if we will not use FD_SETS at all (USE_POLL)
+ */
+# error FD_SETSIZE is too small or MAXCONNECTIONS too large.
+#endif
 
 #define SELECT_ERROR_THRESHOLD	20	/**< after 20 select errors, restart */
 #define ERROR_EXPIRE_TIME	3600	/**< expire errors after an hour */

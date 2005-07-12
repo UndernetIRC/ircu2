@@ -1,3 +1,14 @@
+2005-07-11  Reed Loden <reed@reedloden.com>
+
+	* include/sys.h: Move FD_SETSIZE redefinition to engine_select.c.
+
+	* ircd/s_bsd.c: Move FD_SETSIZE sanity check to engine_select.c
+	Remove unused #include <sys/poll.h>.
+
+	* ircd/engine_select.c: Put FD_SETSIZE redefinition and sanity
+	checks here, since they are not used elsewhere in the daemon.
+	[Order slightly changed by Michael Poole to compile.]
+
 2005-07-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/convert-conf.c: New file.
