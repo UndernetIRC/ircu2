@@ -1,3 +1,25 @@
+2005-07-11  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features: Document FEAT_CHANNELLEN.
+
+	* doc/example.conf: Give an example of it.
+
+	* ircd/m_join.c (ms_join): Do not clean channel names from remote
+	servers, to avoid desynchs.
+
+	* ircd/m_names.c (ms_names): Likewise.
+
+2005-07-11  Stephan Peijnik <speijnik@gmail.com>
+
+	* include/ircd_features.h: Declare new FEAT_CHANNELLEN.
+
+	* include/supported.h: Add it to the ISUPPORT display.
+
+	* ircd/channel.c (clean_channelname): Impose the lower limit
+	between FEAT_CHANNELLEN and CHANNELLEN.
+
+	* ircd/ircd_features.c: Define FEAT_CHANNELLEN.
+
 2005-07-11  Reed Loden <reed@reedloden.com>
 
 	* include/sys.h: Move FD_SETSIZE redefinition to engine_select.c.
