@@ -365,7 +365,7 @@ static void iauth_protocol_violation(struct IAuth *iauth, const char *format, ..
   assert(format != 0);
   vd.vd_format = format;
   va_start(vd.vd_args, format);
-  sendwallto_group_butone(&me, WALL_DESYNCH, NULL, "IAuth protocol violation: %v", &vd);
+  sendto_opmask_butone(NULL, SNO_CONNEXIT, "IAuth protocol violation: %v", &vd);
   va_end(vd.vd_args);
 }
 

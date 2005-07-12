@@ -398,7 +398,12 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
         /* uh, what to do here? */
         /* The answer, my dear Watson, is we throw a protocol_violation()
            -- hikari */
-        return protocol_violation(sptr,"%s has been smoking the sweet leaf and sent me a whacky gline",cli_name(sptr));
+        if (IsServer(cptr))
+          return protocol_violation(sptr,"%s has been smoking the sweet leaf and sent me a whacky gline",cli_name(sptr));
+        else {
+         sendto_opmask_butone(NULL, SNO_GLINE, "%s has been smoking the sweet leaf and sent me a whacky gline", cli_name(sptr));
+         return 0;
+        }
         break;
     }
      user = (*userhost =='$' ? userhost : userhost+2);

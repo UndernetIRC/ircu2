@@ -1,3 +1,13 @@
+2005-07-11  Stephan Peijnik <speijnik@gmail.com>
+
+	* ircd/gline.c (gline_add): It's only a protocol violation when a
+	server issues a "whacky" gline.  If it's an oper, only tell opers
+	with SNO_GLINE.
+
+	* ircd/ircd_auth.c (iauth_protocol_violation): Likewise, the whole
+	network is not likely to care about IAuth PVs, so only tell opers
+	with SNO_CONNEXIT.
+
 2005-07-11  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.features: Document FEAT_CHANNELLEN.
