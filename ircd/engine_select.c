@@ -54,7 +54,6 @@
  *   have abruptly redefined it so the check is still done), you might
  *   already need to recompile your kernel.
  * For larger FD_SETSIZE your mileage may vary (kernel patches may be needed).
- * The check is _NOT_ done if we will not use FD_SETS at all (USE_POLL)
  */
 # error FD_SETSIZE is too small or MAXCONNECTIONS too large.
 #endif

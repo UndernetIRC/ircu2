@@ -1,3 +1,11 @@
+2005-07-11  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_select.c: Remove outdated comment about USE_POLL.
+
+	* ircd/parse.c (msgtab): #if out CAP handler until we have caps.
+
+	* RELEASE.NOTES: Remove mention of capabilities for now.
+
 2005-07-11  Stephan Peijnik <speijnik@gmail.com>
 
 	* ircd/gline.c (gline_add): It's only a protocol violation when a

@@ -46,12 +46,6 @@ the configuration file by using Pseudo blocks.  This lets users use
 commands like /X or /CHANSERV from their client, without tying the
 admin to a particular arrangement or naming of services.
 
-Clients may negotiate extensions and changes to the standard IRC
-client protocol by using the CAP command during registration.  There
-does not appear to be any documentation for the protocol, which should
-not matter since ircu does not currently implement capabilities that
-affect the protocol.
-
 The /stats command accepts string identifiers in addition to
 single-character identifiers.  For example, "/stats access" shows the
 same data as "/stats i".  Supported names are shown by /stats.  New
