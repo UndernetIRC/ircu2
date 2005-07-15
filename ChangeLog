@@ -1,5 +1,8 @@
 2005-07-15  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_features.c (feature_init): Always call
+	feature_notify_server*() so that 'his' is initialized.
+
 	* ircd/m_whois.c (do_whois): Unswap sense of comparison to choose
 	between user->server and &his.
 

@@ -766,9 +766,6 @@ feature_init(void)
 {
   int i;
 
-  cli_magic(&his) = CLIENT_MAGIC;
-  cli_status(&his) = STAT_SERVER;
-
   for (i = 0; features[i].type; i++) {
     switch (features[i].flags & FEAT_MASK) {
     case FEAT_NONE: /* you're on your own */
@@ -785,6 +782,11 @@ feature_init(void)
       break;
     }
   }
+
+  cli_magic(&his) = CLIENT_MAGIC;
+  cli_status(&his) = STAT_SERVER;
+  feature_notify_servername();
+  feature_notify_serverinfo();
 }
 
 /** Report all F-lines to a user.
