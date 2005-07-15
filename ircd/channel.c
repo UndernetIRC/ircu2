@@ -1630,8 +1630,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
   /* Ok, if we were given the OPMODE flag, or its a server, hide the source.
    */
-  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE || IsServer(mbuf->mb_source))
-    app_source = &me;
+  if (mbuf->mb_dest & MODEBUF_DEST_OPMODE || IsServer(mbuf->mb_source) || IsMe(mbuf->mb_source))
+    app_source = &his;
   else
     app_source = mbuf->mb_source;
 

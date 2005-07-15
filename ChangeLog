@@ -1,5 +1,23 @@
 2005-07-14  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_features.h: Declare new "his" pseudo-server to hold
+	FEAT_HIS_SERVERNAME and FEAT_HIS_SERVERINFO in a convenient place.
+
+	* ircd/ircd_features.c: Initialize and update it.
+
+	* ircd/channel.c (modebuf_flush_int): Use it as the apparent
+	source for opmodes and server mode changes (also when the source
+	is me).
+
+	* ircd/m_burst.c (ms_burst): Use it as the apparent source for net
+	rider kicks.
+
+	* ircd/m_whois.c (do_whois): Use it to simplify code here.
+
+	* ircd/s_misc.c (exit_client): Use it as the apparent killer.
+
+2005-07-14  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (General): Update comment about vhost to match
 	the code change below.
 

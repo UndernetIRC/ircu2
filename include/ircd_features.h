@@ -26,6 +26,8 @@
 struct Client;
 struct StatDesc;
 
+extern struct Client his;
+
 /** Contains all feature settings for ircu.
  * For documentation of each, see doc/readme.features.
  */

@@ -50,6 +50,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct Client his;
+
 /** List of log output types that can be set */
 static struct LogTypes {
   char *type; /**< Settable name. */
@@ -158,6 +160,20 @@ feature_log_reset(struct Client* from, const char* const* fields, int count)
     (*desc->set)(fields[0], 0); /* default should always be accepted */
 
   return 0;
+}
+
+/** Handle an update to FEAT_HIS_SERVERNAME. */
+static void
+feature_notify_servername(void)
+{
+  ircd_strncpy(cli_name(&his), feature_str(FEAT_HIS_SERVERNAME), HOSTLEN);
+}
+
+/** Handle an update to FEAT_HIS_SERVERINFO. */
+static void
+feature_notify_serverinfo(void)
+{
+  ircd_strncpy(cli_info(&his), feature_str(FEAT_HIS_SERVERINFO), REALLEN);
 }
 
 /** Report the value of a log setting.
@@ -381,8 +397,8 @@ static struct FeatureDesc {
   F_B(HIS_REWRITE, 0, 1, 0),
   F_I(HIS_REMOTE, 0, 1, 0),
   F_B(HIS_NETSPLIT, 0, 1, 0),
-  F_S(HIS_SERVERNAME, 0, "*.undernet.org", 0),
-  F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", 0),
+  F_S(HIS_SERVERNAME, 0, "*.undernet.org", feature_notify_servername),
+  F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", feature_notify_serverinfo),
   F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
 
   /* Misc. random stuff */
@@ -749,6 +765,9 @@ void
 feature_init(void)
 {
   int i;
+
+  cli_magic(&his) = CLIENT_MAGIC;
+  cli_status(&his) = STAT_SERVER;
 
   for (i = 0; features[i].type; i++) {
     switch (features[i].flags & FEAT_MASK) {
