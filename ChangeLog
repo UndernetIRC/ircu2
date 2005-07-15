@@ -1,3 +1,8 @@
+2005-07-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_whois.c (do_whois): Unswap sense of comparison to choose
+	between user->server and &his.
+
 2005-07-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_apass): Update oplevels when setting
