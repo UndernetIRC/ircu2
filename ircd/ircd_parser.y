@@ -263,8 +263,12 @@ jupenick: NICK '=' QSTRING ';'
   MyFree($3);
 };
 
-generalblock: GENERAL '{' generalitems '}' ';'
+generalblock: GENERAL
 {
+    /* Zero out the vhost addresses, in case they were removed. */
+    memset(&VirtualHost_v4.addr, 0, sizeof(VirtualHost_v4.addr));
+    memset(&VirtualHost_v6.addr, 0, sizeof(VirtualHost_v6.addr));
+} '{' generalitems '}' ';' {
   if (localConf.name == NULL)
     parse_error("Your General block must contain a name.");
   if (localConf.numeric == 0)
@@ -303,8 +307,11 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 generalvhost: VHOST '=' QSTRING ';'
 {
   struct irc_in_addr addr;
-  if (!ircd_aton(&addr, $3))
-      parse_error("Invalid virtual host '%s'.", $3);
+  if (!strcmp($3, "*")) {
+    /* This traditionally meant bind to all interfaces and connect
+     * from the default. */
+  } else if (!ircd_aton(&addr, $3))
+    parse_error("Invalid virtual host '%s'.", $3);
   else if (irc_in_addr_is_ipv4(&addr))
     memcpy(&VirtualHost_v4.addr, &addr, sizeof(addr));
   else

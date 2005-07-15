@@ -258,24 +258,15 @@ int sub1_from_channel(struct Channel* chptr)
 
   chptr->users = 0;
 
-  /*
-   * Also channels without Apass set need to be kept alive,
-   * otherwise Bad Guys(tm) would be able to takeover
-   * existing channels too easily, and then set an Apass!
-   * However, if a channel without Apass becomes empty
-   * then we try to be kind to them and remove possible
-   * limiting modes.
+  /* There is a semantics problem here: Assuming no fragments across a
+   * split, a channel without Apass could be maliciously destroyed and
+   * recreated, and someone could set apass on the new instance.
+   *
+   * This could be fixed by preserving the empty non-Apass channel for
+   * the same time as if it had an Apass (but removing +i and +l), and
+   * reopping the first user to rejoin.  However, preventing net rides
+   * requires a backwards-incompatible protocol change..
    */
-  chptr->mode.mode &= ~MODE_INVITEONLY;
-  chptr->mode.limit = 0;
-  /*
-   * We do NOT reset a possible key or bans because when
-   * the 'channel owners' can't get in because of a key
-   * or ban then apparently there was a fight/takeover
-   * on the channel and we want them to contact IRC opers
-   * who then will educate them on the use of Apass/upass.
-   */
-
   if (!chptr->mode.apass[0])         /* If no Apass, destroy now. */
     destruct_channel(chptr);
   else if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */

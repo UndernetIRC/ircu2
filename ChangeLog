@@ -1,3 +1,15 @@
+2005-07-14  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (General): Update comment about vhost to match
+	the code change below.
+
+	* ircd/ircd_parser.y (generalvhost): Accept vhost="*"; as a
+	synonym for the default behavior (for backwards compatibility).
+	Spotted by Kev.
+
+	* ircd/channel.c (sub1_from_channel): Remove stale code and
+	comment, replacing with an up-to-date comment.  Spotted by skx.
+
 2005-07-11  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/engine_select.c: Remove outdated comment about USE_POLL.
