@@ -1,5 +1,10 @@
 2005-07-14  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_parse_apass): Update oplevels when setting
+	or removing the +A password.  Partial credit goes to Reed Loden.
+
+2005-07-14  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_features.h: Declare new "his" pseudo-server to hold
 	FEAT_HIS_SERVERNAME and FEAT_HIS_SERVERINFO in a convenient place.
 

@@ -2537,6 +2537,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
 static void
 mode_parse_apass(struct ParseState *state, int *flag_p)
 {
+  struct Membership *memb;
   char *t_str, *s;
   int t_len;
 
@@ -2645,10 +2646,18 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
 	send_reply(state->sptr, RPL_APASSWARN_SECRET, state->chptr->chname,
                    state->chptr->mode.apass);
       }
+      /* Give the channel manager level 0 ops. */
+      if (!(state->flags & MODE_PARSE_FORCE) && IsChannelManager(state->member))
+        SetOpLevel(state->member, 0);
     } else { /* remove the old apass */
       *state->chptr->mode.apass = '\0';
       if (MyUser(state->sptr))
         send_reply(state->sptr, RPL_APASSWARN_CLEAR);
+      /* Revert everyone to MAXOPLEVEL. */
+      for (memb = state->chptr->members; memb; memb = memb->next_member) {
+        if (memb->status & MODE_CHANOP)
+          memb->oplevel = MAXOPLEVEL;
+      }
     }
   }
 }
