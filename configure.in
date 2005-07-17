@@ -74,9 +74,34 @@ AC_HEADER_TIME
 AC_STRUCT_TM
 AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
-AC_CHECK_TYPE(socklen_t, unsigned int)
 AC_CHECK_TYPE(struct sockaddr_in6, [unet_have_sockaddr_in6="yes"], [unet_have_sockaddr_in6="no"], [#include <sys/types.h>
 #include <netinet/in.h>])
+
+dnl Check for socklen_t.  In traditional BSD this is an int, but some
+dnl OSes use a different type.  Test until we find something that will
+dnl work properly.  Test borrowed from a patch submitted for Python.
+AC_CHECK_TYPE([socklen_t], ,[
+  AC_MSG_CHECKING([for socklen_t equivalent])
+  AC_CACHE_VAL([curl_cv_socklen_t_equiv],
+  [
+dnl Systems have either "struct sockaddr*" or "void*" as second
+dnl arg to getpeername.
+    curl_cv_socklen_t_equiv=
+    for arg2 in "struct sockaddr" void ; do
+      for t in int size_t unsigned long "unsigned long" ; do
+        AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>
+int getpeername (int $arg2 *, $t *);],[$t len;
+  getpeername(0, 0, &len);], [curl_cv_socklen_t_equiv="$t"
+  break])
+      done
+    done
+  ])
+  AC_MSG_RESULT($curl_cv_socklen_t_equiv)
+  AC_DEFINE_UNQUOTED(socklen_t, $curl_cv_socklen_t_equiv,
+      [type to use in place of socklen_t if not defined])],
+  [#include <sys/types.h>
+#include<sys/socket.h>])
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])

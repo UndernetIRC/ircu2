@@ -1,5 +1,11 @@
 2005-07-16  Michael Poole <mdpoole@troilus.org>
 
+	* configure.in: Apply a test for socklen_t that Reed found.
+
+	* configure: Regenerate.
+
+2005-07-16  Michael Poole <mdpoole@troilus.org>
+
 	* RELEASE.NOTES: Mention that 2.10.11 does not support oplevels.
 
 	* README.FreeBSD: Remove (merged into README).
