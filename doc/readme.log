@@ -2,7 +2,7 @@ Older versions of ircd had no consistent way of logging various
 actions.  Some things, such as G-lines, were written out to log files
 with names compiled into the server.  Others could only be logged
 through syslog.  Some required that their log files exist beforehand.
-For u2.10.11, this situation has changed dramatically.
+Starting with u2.10.11, this situation has changed dramatically.
 
 All logging in the server is now unified through a single logging
 subsystem.  Unfortunately, the server still does not generate all the
@@ -137,30 +137,31 @@ Default Syslog Facility
 The IRC server has a default facility that it uses when sending log
 messages to syslog.  The default facility may be overridden for each
 individual subsystem, but the default itself can be changed with an
-appropriate F-line in the configuration file.  The facility normally
-defaults to "USER," but may be configured to be any of AUTH, CRON,
-DAEMON, LOCAL0, LOCAL1, LOCAL2, LOCAL3, LOCAL4, LOCAL5, LOCAL6,
+appropriate Feature entry in the configuration file.  The facility
+normally defaults to "USER," but may be configured to be any of AUTH,
+CRON, DAEMON, LOCAL0, LOCAL1, LOCAL2, LOCAL3, LOCAL4, LOCAL5, LOCAL6,
 LOCAL7, LPR, MAIL, NEWS, USER, or UUCP.  Some systems also have the
-AUTHPRIV facility.  To configure this default, add an F-line to the
-configuration file that looks like "F:LOG:<facility>"; <facility>
-should be replaced with the string for the desired default syslog
-facility.
+AUTHPRIV facility.  To configure this default, add a Feature line to
+the configuration file that looks like "LOG" = "<facility>";
+<facility> should be replaced with the string for the desired default
+syslog facility.
 
 Log Files
 
 Each subsystem may be configured to send its log messages to any
-single log file with an F-line like "F:LOG:<subsys>:FILE:<file>";
-<subsys> should be replaced with one of the subsystem names described
-above, and <file> should be a file name for the log file.  The file
-name may be relative to the server's data directory ("DPATH"), or it
-may be an absolute path name.  Note that if you're using chroot, these
-absolute path names will be relative to the server's root directory.
+single log file with a Feature entry like "LOG" = "<subsys>" "FILE"
+"<file>"; <subsys> should be replaced with one of the subsystem names
+described above, and <file> should be a file name for the log file.
+The file name may be relative to the server's data directory
+("DPATH"), or it may be an absolute path name.  Note that if you're
+using chroot, these absolute path names will be relative to the
+server's root directory.
 
 Logging to Syslog
 
 By default, except for the CONFIG subsystem, no logs are sent to
-syslog.  This can be overridden using an F-line like
-"F:LOG:<subsys>:FACILITY:<facility>"; <subsys>, as above, should be
+syslog.  This can be overridden using an Feature entry like "LOG" =
+"<subsys>" "FACILITY" "<facility>"; <subsys>, as above, should be
 replaced with one of the subsystem names described above, and
 <facility> must be one of the facility strings mentioned under
 "Default Syslog Facility."  The facility string may also be "NONE," to
@@ -180,14 +181,14 @@ notice masks, please see doc/snomask.html.)  The available mask names
 are OLDSNO, SERVKILL, OPERKILL, HACK2, HACK3, UNAUTH, TCPCOMMON,
 TOOMANY, HACK4, GLINE, NETWORK, IPMISMATCH, THROTTLE, OLDREALOP,
 CONNEXIT, and DEBUG.  The special mask name "NONE" inhibits sending of
-server notices for a particular subsystem.  The F-line for this
-configuration looks like "F:LOG:<subsys>:SNOMASK:<mask>"; again,
+server notices for a particular subsystem.  The Feature entry for this
+configuration looks like "LOG" = "<subsys>" "SNOMASK" "<mask>"; again,
 <subsys> is one of the subsystems described above, and <mask> is one
 of the mask names.
 
 Setting Minimum Logging Level
 
 The minimum log level for a particular subsystem may be set with an
-F-line like "F:LOG:<subsys>:LEVEL:<level>"; here, <subsys> is yet
-again one of the subsystems described above, and <level> is one of the
-level names, also described above.
+Feature entry like "LOG" = "<subsys>" "LEVEL" "<level>"; here,
+<subsys> is yet again one of the subsystems described above, and
+<level> is one of the level names, also described above.

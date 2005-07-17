@@ -19,12 +19,11 @@ int motd_send(struct Client* cptr);
 
 This function sends an appropriate MOTD to the client specified by
 _cptr_.  If _cptr_ is not a local client, the remote MOTD will be
-sent; otherwise, an attempt will be made to find a T-line in the
-configuration file that matches the client.  If no T-line can be
+sent; otherwise, an attempt will be made to find a Motd entry in the
+configuration file that matches the client.  If no Motd entry can be
 found, the default MOTD will be sent to the client.  This function
 returns 0 for the convenience of other functions that must have an
-integer return value.
-</function>
+integer return value.  </function>
 
 <function>
 void motd_signon(struct Client* cptr);
@@ -60,7 +59,7 @@ and remote MOTD are not affected by this function.
 <function>
 void motd_report(struct Client *to);
 
-The motd_report() function sends a list of the T-lines stored in
+The motd_report() function sends a list of the Motd entries stored in
 memory to the client specified by _to_.  Access control should be
 handled by the caller.
 </function>

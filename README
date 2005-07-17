@@ -1,7 +1,7 @@
 
-	Welcome to ircu2.10.11, the Undernet IRC daemon
+	Welcome to ircu2.10.12, the Undernet IRC daemon
 
-Version u2.10.11 of the Undernet ircd incorporates many new features
+Version u2.10.12 of the Undernet ircd incorporates many new features
 over its predecessor, and we feel that using it will make you very
 happy indeed.
 
@@ -26,24 +26,23 @@ README.<platform> files.
 COMPATIBILITY
 
 This version of ircu will only work with servers that use the P10 protocol,
-some of the new features will only work between ircu2.10.11 servers.
+some of the new features will only work between ircu2.10.12 servers.
 
 GENERAL PERFORMANCE HINTS
 
-For platform-specific notes and hints, see the various README.<platform>
-files included in this distribution. The notes below apply to servers that
-will serve large numbers (thousands) of clients simultaneously. If your
-server serves a small amount of users, you will not really have to do much
-of anything about performance tuning.
+For platform-specific notes and hints, see the platform-specific
+sections below.  These notes apply to servers that will serve large
+numbers (thousands) of clients simultaneously.  If your server serves
+a small amount of users, the defaults should work well enough.
 
  - Run an OS that supports an asynchronous network event engine; currently
    these are FreeBSD (kqueue), and Solaris (/dev/poll); possibly other BSDs
    will also support kqueue. This will have a dramatic effect on performance.
  - Make things as lean as possible: Make your server dedicated to ircu,
    disable anything that is not neccesary, and build a custom kernel (where
-   possible). 
- - Tune kernel parameters; see the various README.<platform> files as well
-   as your OS documentation for more information.
+   possible).
+ - Tune kernel parameters as described in the platform-specific
+   sections below.
  - With many clients connecting each second, ircu will be doing lots of DNS
    lookups. Make sure that the DNS server(s) in your /etc/resolv.conf are as
    close as possible, or run a local caching DNS server on your IRC server.
@@ -59,10 +58,8 @@ INFORMATION HIDING
 
 As per undernet-admins CFV-165, this server contains code that will,
 by default, hide certain information from ordinary users. If you do
-not want this, please make sure you add -DINCLUDED_ircd_policy_h to
-CFLAGS prior to running ./configure, like in:
-
-> CFLAGS=-DINCLUDED_ircd_policy_h ./configure
+not want this, override the default "HIS" feature settings in your
+ircd.conf.
 
 MORE INFORMATION
 
@@ -72,3 +69,72 @@ in the doc/ directory, as well as http://coder-com.undernet.org.
 For general information on the Undernet, vist http://www.undernet.org
 
 Happy IRCing!
+
+RUNNING THIS SERVER ON LINUX
+
+If you run Linux 2.6 or above (or 2.4 with appropriate patches), ircu
+can use the epoll family of system calls for much more efficient
+checks of which connections are active.  Most pre-epoll systems will
+use 100% CPU with 2000 clients; with epoll, a server may use only a
+few percent of CPU with the same load.
+
+To handle that many connections, the ircd must be started with a high
+enough file descriptor resource.  Check your distribution's docs on
+how to set the global and per-user limits according to your expected
+load.
+
+RUNNING THIS SERVER ON FREEBSD
+
+When running on FreeBSD, ircu can make use of the kqueue() event engine, which
+results in much improved performance over the old poll()-based method. kqueue
+is included in the more recent 4.x releases of FreeBSD.
+
+In order for ircu to be able to serve many clients simultaneously, you need
+to increase the maximum allowable number of open files in the system. To do
+this, add commands such as the following during your system's boot sequence:
+
+sysctl -w kern.maxfiles=16384
+sysctl -w kern.maxfilesperproc=16384
+
+Unless you will be serving thousands of clients simultaneously, you will not
+need to do the following, unless of course you just can't stand having a
+system that is not optimized to its limits :)
+
+Build a custom kernel: Make your kernel as lean as possible by removing all
+drivers and options you will not need. The following parameters will affect
+performance, they are listed with suggested values only. For more information
+on what they do exactly, see FreeBSD's documentation.
+
+maxusers        2048
+options         NMBCLUSTERS=65535
+options         ICMP_BANDLIM
+
+Also, you may wish to run the following at system startup (from /etc/rc.local,
+or whichever other method you prefer):
+
+sysctl -w net.inet.tcp.rfc1323=1
+sysctl -w net.inet.tcp.delayed_ack=0
+sysctl -w net.inet.tcp.restrict_rst=1
+sysctl -w kern.ipc.maxsockbuf=2097152
+sysctl -w kern.ipc.somaxconn=2048
+
+Created by Sengaia <sengaia@undernet.org>, July 20 2002.
+
+RUNNING THIS SERVER ON SOLARIS
+
+When running on Solaris, ircu can make use of the /dev/poll event engine, which
+results in much improved performance over the old poll()-based method. Solaris
+versions 8 and 9 include /dev/poll out of the box, for Solaris 7 you will have
+to grab and install Patch-ID 106541-21.
+
+In order to increase the number of clients ircu can handle, add lines such as
+the following to /etc/system:
+
+* set hard limit on file descriptors
+set rlim_fd_max = 16384
+* set soft limit on file descriptors
+set rlim_fd_cur = 8192
+
+For more useful hints see http://www.sean.de/Solaris/soltune.html
+
+Created by Sengaia <sengaia@undernet.org> on July 20, 2002.

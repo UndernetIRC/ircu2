@@ -1,7 +1,7 @@
 Many of the old compile-time options are now configured through the
 server configuration file, ircd.conf.  This file is intended to
 document each of these features.  Logging, although also configured
-through the use of F-lines, is documented in doc/readme.log.  NOTE
+through the use of Feature entries, is documented in doc/readme.log.  NOTE
 THAT THESE NAMES ARE CASE SENSITIVE!  Values are not case sensitive
 unless stated otherwise in the documentation for that feature.
 
@@ -363,8 +363,8 @@ CONNECTFREQUENCY
 
 This is the default frequency that the server attempts to reconnect
 with its uplink server if it is set to auto connect to it. Note that
-this value is overridden by a Class block in ircd.conf if the C-lines
-in ircd.conf assign a specific class to the connection (recommended).
+this value is overridden by a Class block in ircd.conf if the Connect
+entries in ircd.conf assign a specific class to the connection.
 
 DEFAULTMAXSENDQLENGTH
  * Type: integer
@@ -372,9 +372,7 @@ DEFAULTMAXSENDQLENGTH
 
 This is the default value of the maximum sendQ length of connection
 classes (see doc/example.conf for details on Class blocks).  You will
-probably always override this value in your "ircd.conf" with the
-Y-lines.  The given value used to be an often used value for client
-sendQs.
+generally override this value in your "ircd.conf" with a Class block.
 
 GLINEMAXUSERCOUNT
  * Type: integer
@@ -439,13 +437,12 @@ CONFIG_OPERCMDS
  * Type: boolean
  * Default: FALSE
 
-For u2.10.11, several new oper-only features have been added that
-involve changes to the server<->server protocol.  Until the entire
-network is running the new version, these features cannot be enabled.
-This configuration option provides a single switch to prevent the use
-of these features until the entire network has been upgraded.  It is
-not required that all servers set this to "TRUE" in order for the
-features to be used.
+Since u2.10.11, several new oper-only features have been added that
+involve changes to the server<->server protocol.  This configuration
+option provides a single switch to prevent the use of these features
+until the entire network has been upgraded.  It is not required that
+all servers set this to "TRUE" in order for the features to be used,
+as long as all servers are running u2.10.11 or above.
 
 HIS_MAP
  * Type: boolean

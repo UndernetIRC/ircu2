@@ -1,3 +1,31 @@
+2005-07-16  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Mention that 2.10.11 does not support oplevels.
+
+	* README.FreeBSD: Remove (merged into README).
+
+	* README.Solaris: Remove (merged into README).
+
+	* README: Merge in the above; also update for 2.10.12.
+
+	* doc/example.conf: Change mention of K-lines to say Kill blocks
+	instead.
+
+	* doc/iauth.txt: Remove (out of date).
+
+	* doc/readme.features: Update to reflect that 2.10.11 is not the
+	current release.  Change mention of various config lines to use
+	the equivalent config entries or blocks instead.
+
+	* doc/readme.log: Likewise.
+
+	* doc/api/features.txt: Change F-line mentions to say Feature
+	entry instead.
+
+	* doc/api/modebuf.txt: Change U-line mention to say Uworld entry.
+
+	* doc/api/motd.txt: Change T-line mentions to say Motd entry.
+
 2005-07-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_features.c (feature_init): Always call

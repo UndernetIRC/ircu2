@@ -61,13 +61,13 @@ through the configuration file.
 Marking Features
 
 When the configuration file is read, there must be some way to
-determine if a particular F-line has been removed since the last time
-the configuration file was read.  The way this is done in the features
-subsystem is to have a "mark" for each feature.  Prior to reading the
-configuration file, all marks are cleared for all features (and all
-"unmark" call-backs are called).  As each F-line is encountered and
-processed, that feature's mark is set.  Finally, when the
-configuration file has been fully read, all remaining unmarked
+determine if a particular Feature entry has been removed since the
+last time the configuration file was read.  The way this is done in
+the features subsystem is to have a "mark" for each feature.  Prior to
+reading the configuration file, all marks are cleared for all features
+(and all "unmark" call-backs are called).  As each Feature entry is
+encountered and processed, that feature's mark is set.  Finally, when
+the configuration file has been fully read, all remaining unmarked
 features are reset to their default values (and all "mark" call-backs
 are called).
 
@@ -148,8 +148,8 @@ values for all features correctly.
 <function>
 void feature_report(struct Client* to);
 
-Reports all F-lines to a user using RPL_STATSFLINE, except those which
-the user is not permitted to see due to flag settings.
+Reports all Feature entries to a user using RPL_STATSFLINE, except
+those which the user is not permitted to see due to flag settings.
 </function>
 
 <function>

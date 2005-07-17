@@ -7,8 +7,8 @@ Braden <dbtem@yahoo.com>.
 This document briefly describes changes in ircu2.10.12 relative to
 ircu2.10.11.  ircu2.10.12 is only compatible with servers that
 implement the P10 protocol.  It has been tested to link against
-ircu2.10.11, but some features (notably IPv6 support) are not
-supported by ircu2.10.11.
+ircu2.10.11, but some features (notably IPv6 support and oplevels) are
+not supported by ircu2.10.11.
 
 Enhancements:
 

@@ -101,10 +101,10 @@ should be sent.  This flag will cause the server to generate a
 <macro>
 #define MODEBUF_DEST_HACK4	0x8000	/* Send a HACK(4) notice, TS == 0 */
 
-Some servers are special.  When a server that has a U-line issues a
-mode change, we send a "HACK(4)" message to differentiate it from an
-ordinary server changing a channel mode.  This is the flag that must
-be passed to modebuf_init() to cause that behavior.
+Some servers are special.  When a server that has a Uworld entry
+issues a mode change, we send a "HACK(4)" message to differentiate it
+from an ordinary server changing a channel mode.  This is the flag
+that must be passed to modebuf_init() to cause that behavior.
 </macro>
 
 <function>
