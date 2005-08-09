@@ -1,3 +1,8 @@
+2005-08-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (find_ban): For non-IPmask bans, match the ban
+	string against the string form of the client's IP address.
+
 2005-07-16  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Apply a test for socklen_t that Reed found.

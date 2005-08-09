@@ -346,12 +346,15 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
 {
   char        nu[NICKLEN + USERLEN + 2];
   char        tmphost[HOSTLEN + 1];
+  char        iphost[SOCKIPLEN + 1];
+  char       *hostmask;
   char       *sr;
   struct Ban *found;
 
   /* Build nick!user and alternate host names. */
   ircd_snprintf(0, nu, sizeof(nu), "%s!%s",
                 cli_name(cptr), cli_user(cptr)->username);
+  ircd_ntoa_r(iphost, &cli_ip(cptr));
   if (!IsAccount(cptr))
     sr = NULL;
   else if (HasHiddenHost(cptr))
@@ -376,10 +379,12 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
     if (res)
       continue;
     /* Compare host portion of ban. */
-    if (!((banlist->flags & BAN_IPMASK)
-         && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
-        && match(banlist->banstr + banlist->nu_len + 1, cli_user(cptr)->host)
-        && !(sr && match(banlist->banstr + banlist->nu_len + 1, sr) == 0))
+    hostmask = banlist->banstr + banlist->nu_len + 1;
+    if (((banlist->flags & BAN_IPMASK)
+         ? !ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits)
+         : match(hostmask, iphost))
+        && match(hostmask, cli_user(cptr)->host)
+        && !(sr && match(hostmask, sr) == 0))
       continue;
     /* If an exception matches, no ban can match. */
     if (banlist->flags & BAN_EXCEPTION)
