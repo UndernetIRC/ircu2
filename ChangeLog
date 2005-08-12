@@ -1,3 +1,13 @@
+2005-08-12  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (pretty_mask): Recognize ':' as unique to the
+	host part of a ban mask.
+
+2005-08-03  Jan Krueger <jast@heapsort.de>
+
+	* ircd/m_kick.c (m_kick): Send JOIN prior to confirming KICK on
+	invisible member.
+
 2005-08-08  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (find_ban): For non-IPmask bans, match the ban

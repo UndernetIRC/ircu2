@@ -1109,9 +1109,10 @@ char *pretty_mask(char *mask)
       user = mask;
       host = ++ptr;
     }
-    else if (*ptr == '.')
+    else if (*ptr == '.' || *ptr == ':')
     {
-      /* Case 2: Found last '.' (without finding a '!' or '@' yet) */
+      /* Case 2: Found character specific to IP or hostname (without
+       * finding a '!' or '@' yet) */
       last_dot = ptr;
       continue;
     }
