@@ -1,3 +1,17 @@
+2005-08-15  Michael Poole <mdpoole@troilus.org>
+
+	* include/supported.h (FEATURESVALUES2): Add +d channel mode.
+
+	* ircd/IPcheck.c (ip_registry_new_entry): Clarify that this is not
+	a varadic function.  (Suggested by Ian Kumlien.)
+
+	* ircd/convert-conf.c (finish_operators): Likewise.
+
+	* ircd/listener.c (close_listeners): Likewise.
+
+	* ircd/channel.c (CheckDelayedJoins): Use HIS server name to
+	remove channel mode +d.
+
 2005-08-12  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (pretty_mask): Recognize ':' as unique to the

@@ -330,7 +330,7 @@ void close_listener(struct Listener* listener)
 }
 
 /** Close all inactive listeners. */
-void close_listeners()
+void close_listeners(void)
 {
   struct Listener* listener;
   struct Listener* listener_next = 0;

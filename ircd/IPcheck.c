@@ -160,7 +160,7 @@ static void ip_registry_remove(struct IPRegistryEntry* entry)
  * For members that have a sensible default value, that is used.
  * @return Newly allocated registry entry.
  */
-static struct IPRegistryEntry* ip_registry_new_entry()
+static struct IPRegistryEntry* ip_registry_new_entry(void)
 {
   struct IPRegistryEntry* entry = freeList;
   if (entry)

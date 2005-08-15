@@ -368,7 +368,7 @@ static void do_operator(int is_local)
     operators = oper;
 }
 
-static void finish_operators()
+static void finish_operators(void)
 {
     struct remapped_feature *remap;
     struct operator *oper;

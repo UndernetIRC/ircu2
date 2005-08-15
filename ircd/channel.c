@@ -3531,7 +3531,7 @@ void CheckDelayedJoins(struct Channel *chan)
     if (!memb2) {
       /* clear +d */
       chan->mode.mode &= ~MODE_WASDELJOINS;
-      sendcmdto_channel_butserv_butone(&me, CMD_MODE, chan, NULL, 0,
+      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
                                        "%H -d", chan);
     }
   }
