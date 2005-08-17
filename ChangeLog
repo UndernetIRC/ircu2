@@ -13,6 +13,8 @@
 	* ircd/m_invite.c (m_invite): Likewise.
 	(ms_invite): Likewise.
 
+	* ircd/m_kick.c (ms_kick): Likewise.
+
 2005-08-16  Jukka Ollila <jaollila@niksula.hut.fi>
 
 	* ircd/s_user.c (hide_hostmask): Use HIS_SERVERNAME instead of the
