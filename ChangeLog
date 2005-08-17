@@ -15,6 +15,9 @@
 
 	* ircd/m_kick.c (ms_kick): Likewise.
 
+	* ircd/m_topic.c (do_settopic): Another &me -> &his change for
+	HIS, and use that apparent source for the channel localcast.
+
 2005-08-16  Jukka Ollila <jaollila@niksula.hut.fi>
 
 	* ircd/s_user.c (hide_hostmask): Use HIS_SERVERNAME instead of the

@@ -104,7 +104,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    int newtopic;
 
    if (feature_bool(FEAT_HIS_BANWHO) && IsServer(sptr))
-       from = &me;
+       from = &his;
    else
        from = sptr;
    if (IsChannelService(sptr))
@@ -136,7 +136,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
      sendcmdto_serv_butone(sptr, CMD_TOPIC, cptr, "%H %Tu %Tu :%s", chptr,
 		           chptr->creationtime, chptr->topic_time, chptr->topic);
    if (newtopic)
-     sendcmdto_channel_butserv_butone(sptr, CMD_TOPIC, chptr, NULL, 0,
+     sendcmdto_channel_butserv_butone(from, CMD_TOPIC, chptr, NULL, 0,
       				       "%H :%s", chptr, chptr->topic);
       /* if this is the same topic as before we send it to the person that
        * set it (so they knew it went through ok), but don't bother sending
