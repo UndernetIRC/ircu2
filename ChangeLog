@@ -1,5 +1,10 @@
 2005-08-16  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_parse_ban): Avoid overwriting part of
+	newban->banstr[] when the source is a server.  (Spotted by jcq.)
+
+2005-08-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (joinbuf_join): Switch to &his instead of &me for
 	announcements to local users in a channel.
 
