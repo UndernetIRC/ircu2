@@ -1,3 +1,18 @@
+2005-08-16  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (joinbuf_join): Switch to &his instead of &me for
+	announcements to local users in a channel.
+
+	* ircd/m_burst.c (ms_burst): Likewise.
+
+	* ircd/m_invite.c (m_invite): Likewise.
+	(ms_invite): Likewise.
+
+2005-08-16  Jukka Ollila <jaollila@niksula.hut.fi>
+
+	* ircd/s_user.c (hide_hostmask): Use HIS_SERVERNAME instead of the
+	real thing for the post-mode-x rejoin.
+
 2005-08-15  Michael Poole <mdpoole@troilus.org>
 
 	* include/supported.h (FEATURESVALUES2): Add +d channel mode.

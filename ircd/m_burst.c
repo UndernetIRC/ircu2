@@ -306,7 +306,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       *chptr->topic = '\0';
       *chptr->topic_nick = '\0';
       chptr->topic_time = 0;
-      sendcmdto_channel_butserv_butone(&me, CMD_TOPIC, chptr, NULL, 0,
+      sendcmdto_channel_butserv_butone(&his, CMD_TOPIC, chptr, NULL, 0,
                                        "%H :%s", chptr, chptr->topic);
     }
   } else if (chptr->creationtime == timestamp) {
