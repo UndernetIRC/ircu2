@@ -151,12 +151,12 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * always sees the kill as coming from me.
    */
   if (MyConnect(victim))
-    sendcmdto_one(feature_bool(FEAT_HIS_KILLWHO) ? &me : sptr, CMD_KILL, 
+    sendcmdto_one(feature_bool(FEAT_HIS_KILLWHO) ? &his : sptr, CMD_KILL,
 		  victim, "%C :%s %s", victim, feature_bool(FEAT_HIS_KILLWHO)
 		  ? feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr), msg);
   return exit_client_msg(cptr, victim, feature_bool(FEAT_HIS_KILLWHO)
-			 ? &me : sptr, "Killed (%s %s)",
-			 feature_bool(FEAT_HIS_KILLWHO) ? 
+			 ? &his : sptr, "Killed (%s %s)",
+			 feature_bool(FEAT_HIS_KILLWHO) ?
 			 feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr),
 			 msg);
 }

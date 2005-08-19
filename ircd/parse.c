@@ -102,6 +102,7 @@ struct MessageTree {
 
 /** Root of command lookup trie. */
 static struct MessageTree msg_tree;
+static struct MessageTree tok_tree;
 
 /** Array of all supported commands. */
 struct Message msgtab[] = {
@@ -700,11 +701,12 @@ initmsgtree(void)
   int i;
 
   memset(&msg_tree, 0, sizeof(msg_tree));
+  memset(&tok_tree, 0, sizeof(tok_tree));
 
   for (i = 0; msgtab[i].cmd != NULL ; i++)
   {
     add_msg_element(&msg_tree, &msgtab[i], msgtab[i].cmd);
-    add_msg_element(&msg_tree, &msgtab[i], msgtab[i].tok);
+    add_msg_element(&tok_tree, &msgtab[i], msgtab[i].tok);
   }
 }
 
@@ -1134,7 +1136,12 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      * And for the record, this trie parser really does not care. - Dianora
      */
 
-    mptr = msg_tree_parse(ch, &msg_tree);
+    mptr = msg_tree_parse(ch, &tok_tree);
+
+    if (mptr == NULL)
+    {
+      mptr = msg_tree_parse(ch, &msg_tree);
+    }
 
     if (mptr == NULL)
     {

@@ -1,3 +1,14 @@
+2005-08-19  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/parse.c (tok_tree): Re-add token tree structure.
+	(initmsgtree): Populate it.
+	(parse_server): Prefer it to full message tree.
+
+2005-08-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_kill.c (do_kill): When FEAT_HIS_KILLWHO, change apparent
+	source of KILLs to &his instead of &me.
+
 2005-08-16  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_ban): Avoid overwriting part of
