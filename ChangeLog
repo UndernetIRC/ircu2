@@ -1,3 +1,15 @@
+2005-08-21  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_conf.h (free_mapping): Declare new function.
+
+	* ircd/ircd_parser.y (pseudoblock): Use it.
+
+	* ircd/s_conf.c (free_mapping): Define it.
+	(close_mappings): New function.
+	(rehash): Call close_mappings() before reading file.
+
+	* ircd/m_kill.c (do_kill): Revert 2005-08-18 change.
+
 2005-08-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/parse.c (tok_tree): Re-add token tree structure.

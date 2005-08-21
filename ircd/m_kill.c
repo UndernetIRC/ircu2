@@ -155,7 +155,7 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
 		  victim, "%C :%s %s", victim, feature_bool(FEAT_HIS_KILLWHO)
 		  ? feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr), msg);
   return exit_client_msg(cptr, victim, feature_bool(FEAT_HIS_KILLWHO)
-			 ? &his : sptr, "Killed (%s %s)",
+			 ? &me : sptr, "Killed (%s %s)",
 			 feature_bool(FEAT_HIS_KILLWHO) ?
 			 feature_str(FEAT_HIS_SERVERNAME) : cli_name(sptr),
 			 msg);

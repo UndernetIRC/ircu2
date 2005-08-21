@@ -959,16 +959,7 @@ pseudoitems '}' ';'
   }
   else
   {
-    struct nick_host *nh, *next;
-    for (nh = smap->services; nh; nh = next)
-    {
-      next = nh->next;
-      MyFree(nh);
-    }
-    MyFree(smap->name);
-    MyFree(smap->command);
-    MyFree(smap->prepend);
-    MyFree(smap);
+    free_mapping(smap);
   }
   smap = NULL;
 };

@@ -876,6 +876,35 @@ attach_conf_uworld(struct Client *cptr)
     attach_conf_uworld(lp->value.cptr);
 }
 
+/** Free all memory associated with service mapping \a smap.
+ * @param smap[in] The mapping to free.
+ */
+void free_mapping(struct s_map *smap)
+{
+  struct nick_host *nh, *next;
+  for (nh = smap->services; nh; nh = next)
+  {
+    next = nh->next;
+    MyFree(nh);
+  }
+  MyFree(smap->name);
+  MyFree(smap->command);
+  MyFree(smap->prepend);
+  MyFree(smap);
+}
+
+/** Unregister and free all current service mappings. */
+static void close_mappings(void)
+{
+  struct s_map *map, *next;
+
+  for (map = GlobalServiceMapList; map; map = next) {
+    next = map->next;
+    unregister_mapping(map);
+    free_mapping(map);
+  }
+}
+
 /** Reload the configuration file.
  * @param cptr Client that requested rehash (if a signal, &me).
  * @param sig Type of rehash (0 = oper-requested, 1 = signal, 2 =
@@ -934,6 +963,7 @@ int rehash(struct Client *cptr, int sig)
   class_mark_delete();
   mark_listeners_closing();
   iauth_mark_closing();
+  close_mappings();
 
   read_configuration_file();
 
