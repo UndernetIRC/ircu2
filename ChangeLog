@@ -1,5 +1,10 @@
 2005-08-24  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd.c (parse_command_line): Mention epoll engine when run
+	with -v.
+
+2005-08-24  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Increment.
 
 	* ircd/channel.c (joinbuf_join): Double check that oplevel is 0 or

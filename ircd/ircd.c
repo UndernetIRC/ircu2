@@ -484,6 +484,9 @@ static void parse_command_line(int argc, char** argv) {
 #ifdef USE_DEVPOLL
       printf("/dev/poll ");
 #endif
+#ifdef USE_EPOLL
+      printf("epoll_*() ");
+#endif
 #ifdef USE_POLL
       printf("poll()");
 #else
