@@ -1,3 +1,15 @@
+2005-08-24  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHLEVEL): Increment.
+
+	* ircd/channel.c (joinbuf_join): Double check that oplevel is 0 or
+	1 when propagating JOIN <level>:#channel, to avoid PV on receiver.
+
+	* ircd/engine_epoll.c: Add system call numbers for more CPU types.
+
+	* ircd/ircd_log.c (log_open): Remove NFS-oriented alarm() calls;
+	anyone who writes logs over NFS is mental.  (Thanks to D. Bruce.)
+
 2005-08-21  Michael Poole <mdpoole@troilus.org>
 
 	* include/s_conf.h (free_mapping): Declare new function.

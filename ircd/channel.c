@@ -3410,10 +3410,11 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     /* send notification to all servers */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)
     {
-      if (flags & CHFL_CHANOP)
+      if (flags & CHFL_CHANOP) {
+        assert(oplevel == 0 || oplevel == 1);
         sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
                               "%u:%H %Tu", oplevel, chan, chan->creationtime);
-      else
+      } else
         sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
                               "%H %Tu", chan, chan->creationtime);
     }
