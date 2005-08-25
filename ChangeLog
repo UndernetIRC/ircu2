@@ -1,3 +1,8 @@
+2005-08-25  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (mode_parse): Accept +A/+U from servers
+	regardless of FEAT_OPLEVELS.
+
 2005-08-24  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd.c (parse_command_line): Mention epoll engine when run

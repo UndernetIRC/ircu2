@@ -3215,12 +3215,12 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 	break;
 
       case 'A': /* deal with Admin passes */
-        if (feature_bool(FEAT_OPLEVELS))
+        if (IsServer(cptr) || feature_bool(FEAT_OPLEVELS))
 	mode_parse_apass(&state, flag_p);
 	break;
 
       case 'U': /* deal with user passes */
-        if (feature_bool(FEAT_OPLEVELS))
+        if (IsServer(cptr) || feature_bool(FEAT_OPLEVELS))
 	mode_parse_upass(&state, flag_p);
 	break;
 
