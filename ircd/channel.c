@@ -657,14 +657,15 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   assert(0 != member);
 
   /* Discourage using the Apass to get op.  They should use the upass. */
-  if (IsChannelManager(member) && *member->channel->mode.upass)
+  if (IsChannelManager(member) && member->channel->mode.apass[0])
     return 0;
 
   if (IsVoicedOrOpped(member))
     return 1;
+
   /*
    * If it's moderated, and you aren't a privileged user, you can't
-   * speak.  
+   * speak.
    */
   if (member->channel->mode.mode & MODE_MODERATED)
     return 0;

@@ -1,5 +1,14 @@
 2005-08-25  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (member_can_send_to_channel): At coekie's
+	suggestion, disallow channel manager talking after Apass is set,
+	so they set and use Upass sooner.
+
+	* ircd/class.c (report_classes): Return links count plus one to
+	match old output.
+
+2005-08-25  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (mode_parse): Accept +A/+U from servers
 	regardless of FEAT_OPLEVELS.
 
