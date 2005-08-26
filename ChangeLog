@@ -4,8 +4,11 @@
 	suggestion, disallow channel manager talking after Apass is set,
 	so they set and use Upass sooner.
 
-	* ircd/class.c (report_classes): Return links count plus one to
-	match old output.
+	* ircd/class.c (init_class): Default class should have 1 link.
+	(report_classes): Return links count minus one to match old output.
+
+	* ircd/m_trace.c (do_trace): Fix links count here, too (spotted by
+	Reed).
 
 2005-08-25  Michael Poole <mdpoole@troilus.org>
 

@@ -101,7 +101,7 @@ void init_class(void)
   MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
   MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   connClassList->valid    = 1;
-  Links(connClassList)    = 0;
+  Links(connClassList)    = 1;
   connClassList->next     = 0;
 }
 
@@ -257,7 +257,7 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next)
     send_reply(sptr, RPL_STATSYLINE, 'Y', ConClass(cltmp), PingFreq(cltmp),
 	       ConFreq(cltmp), MaxLinks(cltmp), MaxSendq(cltmp),
-	       Links(cltmp) ? Links(cltmp) - 1 : 0);
+	       Links(cltmp) - 1);
 }
 
 /** Return maximum SendQ length for a client.

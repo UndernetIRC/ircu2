@@ -293,8 +293,8 @@ void do_trace(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    */
   if (IsAnOper(sptr) && doall) {
     for (cl = get_class_list(); cl; cl = cl->next) {
-      if (Links(cl) > 0)
-       send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl));
+      if (Links(cl) > 1)
+       send_reply(sptr, RPL_TRACECLASS, ConClass(cl), Links(cl) - 1);
     }
   }
   send_reply(sptr, RPL_TRACEEND);
