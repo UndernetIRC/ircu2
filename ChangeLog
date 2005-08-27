@@ -1,3 +1,14 @@
+2005-08-27  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (add_user_to_channel): Use SetOpLevel() instead
+	of assigning directly to member->oplevel.
+	(mode_parse_apass): Likewise.
+	(mode_process_clients): Users opped by outsiders should get
+	oplevel 1, since they are not channel managers.
+
+	* ircd/m_burst.c (ms_burst): Use SetOpLevel() instead of assigning
+	directly to member->oplevel.
+
 2005-08-25  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (member_can_send_to_channel): At coekie's

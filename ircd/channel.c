@@ -447,7 +447,7 @@ void add_user_to_channel(struct Channel* chptr, struct Client* who,
     member->user         = who;
     member->channel      = chptr;
     member->status       = flags;
-    member->oplevel      = oplevel;
+    SetOpLevel(member, oplevel);
 
     member->next_member  = chptr->members;
     if (member->next_member)
@@ -2663,7 +2663,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
       /* Revert everyone to MAXOPLEVEL. */
       for (memb = state->chptr->members; memb; memb = memb->next_member) {
         if (memb->status & MODE_CHANOP)
-          memb->oplevel = MAXOPLEVEL;
+          SetOpLevel(memb, MAXOPLEVEL);
       }
     }
   }
@@ -3045,14 +3045,14 @@ mode_process_clients(struct ParseState *state)
     /* set op-level of member being opped */
     if ((state->cli_change[i].flag & (MODE_ADD | MODE_CHANOP)) ==
 	(MODE_ADD | MODE_CHANOP)) {
-      /* If being opped by an outsider, get oplevel 0 for an apass
+      /* If being opped by an outsider, get oplevel 1 for an apass
        *   channel, else MAXOPLEVEL.
        * Otherwise, if not an apass channel, or state->member has
        *   MAXOPLEVEL, get oplevel MAXOPLEVEL.
        * Otherwise, get state->member's oplevel+1.
        */
       if (!state->member)
-        SetOpLevel(member, state->chptr->mode.apass[0] ? 0 : MAXOPLEVEL);
+        SetOpLevel(member, state->chptr->mode.apass[0] ? 1 : MAXOPLEVEL);
       else if (!state->chptr->mode.apass[0] || OpLevel(state->member) == MAXOPLEVEL)
         SetOpLevel(member, MAXOPLEVEL);
       else
