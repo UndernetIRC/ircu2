@@ -1,3 +1,15 @@
+2005-08-29  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h (ERR_NOMANAGER_LONG): Undefine.
+	(ERR_NOMANAGER_SHORT): Rename to ERR_NOMANAGER.
+
+	* ircd/s_err.c (replyTable): Change to reflect that.
+
+	* ircd/channel.c (clean_key): New function.
+	(mode_parse_key): Use it, and check that keys do not start with :.
+	(mode_parse_upass): Likewise, and adjust for ERR_NOMANAGER.
+	(mode_parse_apass): Likewise.
+
 2005-08-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (add_user_to_channel): Use SetOpLevel() instead

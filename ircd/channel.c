@@ -2337,14 +2337,24 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
   }
 }
 
+/** Helper function to clean key-like parameters. */
+static void
+clean_key(char *s)
+{
+  int t_len = KEYLEN;
+
+  while (*s > ' ' && *s != ':' && *s != ',' && t_len--)
+    s++;
+  *s = '\0';
+}
+
 /*
  * Helper function to convert keys
  */
 static void
 mode_parse_key(struct ParseState *state, int *flag_p)
 {
-  char *t_str, *s;
-  int t_len;
+  char *t_str;
 
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
     return;
@@ -2370,15 +2380,9 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_KEY;
 
-  t_len = KEYLEN;
-
   /* clean up the key string */
-  s = t_str;
-  while (*s > ' ' && *s != ':' && *s != ',' && t_len--)
-    s++;
-  *s = '\0';
-
-  if (!*t_str) { /* warn if empty */
+  clean_key(t_str);
+  if (!*t_str || *t_str == ':') { /* warn if empty */
     if (MyUser(state->sptr))
       need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +k" :
 		       "MODE -k");
@@ -2431,8 +2435,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
 static void
 mode_parse_upass(struct ParseState *state, int *flag_p)
 {
-  char *t_str, *s;
-  int t_len;
+  char *t_str;
 
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
     return;
@@ -2467,10 +2470,8 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
                  state->chptr->chname);
-    } else if (TStime() - state->chptr->creationtime >= 171000) {
-      send_reply(state->sptr, ERR_NOMANAGER_LONG, state->chptr->chname);
     } else {
-      send_reply(state->sptr, ERR_NOMANAGER_SHORT, state->chptr->chname);
+      send_reply(state->sptr, ERR_NOMANAGER, state->chptr->chname);
     }
     return;
   }
@@ -2479,15 +2480,9 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_UPASS;
 
-  t_len = PASSLEN + 1;
-
   /* clean up the upass string */
-  s = t_str;
-  while (*++s > ' ' && *s != ':' && --t_len)
-    ;
-  *s = '\0';
-
-  if (!*t_str) { /* warn if empty */
+  clean_key(t_str);
+  if (!*t_str || *t_str == ':') { /* warn if empty */
     if (MyUser(state->sptr))
       need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +U" :
 		       "MODE -U");
@@ -2545,8 +2540,7 @@ static void
 mode_parse_apass(struct ParseState *state, int *flag_p)
 {
   struct Membership *memb;
-  char *t_str, *s;
-  int t_len;
+  char *t_str;
 
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
     return;
@@ -2577,7 +2571,9 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   }
 
   /* Don't allow to change the Apass if the channel is older than 48 hours. */
-  if (TStime() - state->chptr->creationtime >= 172800 && !IsAnOper(state->sptr)) {
+  if (MyUser(state->sptr)
+      && TStime() - state->chptr->creationtime >= 172800
+      && !IsAnOper(state->sptr)) {
     send_reply(state->sptr, ERR_CHANSECURED, state->chptr->chname);
     return;
   }
@@ -2587,10 +2583,8 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
     if (*state->chptr->mode.apass) {
       send_reply(state->sptr, ERR_NOTMANAGER, state->chptr->chname,
                  state->chptr->chname);
-    } else if (TStime() - state->chptr->creationtime >= 171000) {
-      send_reply(state->sptr, ERR_NOMANAGER_LONG, state->chptr->chname);
     } else {
-      send_reply(state->sptr, ERR_NOMANAGER_SHORT, state->chptr->chname);
+      send_reply(state->sptr, ERR_NOMANAGER, state->chptr->chname);
     }
     return;
   }
@@ -2599,15 +2593,9 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
     return;
   state->done |= DONE_APASS;
 
-  t_len = PASSLEN + 1;
-
   /* clean up the apass string */
-  s = t_str;
-  while (*++s > ' ' && *s != ':' && --t_len)
-    ;
-  *s = '\0';
-
-  if (!*t_str) { /* warn if empty */
+  clean_key(t_str);
+  if (!*t_str || *t_str == ':') { /* warn if empty */
     if (MyUser(state->sptr))
       need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +A" :
 		       "MODE -A");

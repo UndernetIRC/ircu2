@@ -461,8 +461,8 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_CHANSECURED      562	/* Undernet extension */
 #define ERR_UPASSSET         563	/* Undernet extension */
 #define ERR_UPASSNOTSET      564	/* Undernet extension */
-#define ERR_NOMANAGER_LONG   565	/* Undernet extension */
-#define ERR_NOMANAGER_SHORT  566	/* Undernet extension */
+/*      ERR_NOMANAGER_LONG   565	no longer used */
+#define ERR_NOMANAGER        566	/* Undernet extension */
 #define ERR_UPASS_SAME_APASS 567        /* Undernet extension */
 #define ERR_LASTERROR        568
 

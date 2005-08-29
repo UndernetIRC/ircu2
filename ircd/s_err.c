@@ -1162,9 +1162,9 @@ static Numeric replyTable[] = {
 /* 564 */
   { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "564" },
 /* 565 */
-  { ERR_NOMANAGER_LONG, "%s :Re-create the channel.  The channel must be *empty* for 48 continuous hours before it can be recreated.", "565" },
+  { 0 },
 /* 566 */
-  { ERR_NOMANAGER_SHORT, "%s :Re-create the channel.  The channel must be *empty* for a minute or two before it can be recreated.", "566" },
+  { ERR_NOMANAGER, "%s :Re-create the channel.  The channel must be completely empty before it can be recreated.", "566" },
 /* 567 */
   { ERR_UPASS_SAME_APASS, "%s :Cannot use the same pass for both admin (+A) and user (+U) pass.", "567" },
 /* 568 */
