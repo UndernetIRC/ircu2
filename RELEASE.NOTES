@@ -38,6 +38,19 @@ keys (+A for the administrator, +U for users) to grant chanop status
 when you join using those keys.  Part of this channel protection is
 that you cannot be deopped in channel by someone who you opped.
 
+A new channel mode, +D, has been added for auditorium-style channels.
+These are channels where most users listen but do not speak or receive
+ops or voice.  The effect of +D is that the server waits to send the
+JOIN message for new users until the user gets ops or voice or sends a
+message to the channel.  A list of join-delayed users in a channel may
+be retrieved by using /NAMES -d #channel.  The response to /NAMES -d
+uses the same format as numeric 353, but uses numeric 355 instead. If
+an op removes +D while there are still join-delayed users, the server
+automatically sets mode +d, and removes +d when the last user's join
+is shown.  It is not possible to set channel mode +d manually; its
+purpose is to warn channel users that there are "hidden" users in the
+channel.
+
 More than one hashing mechanism is now supported for oper passwords,
 and a new tool (ircd/umkpasswd) is provided to generate them.
 

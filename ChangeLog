@@ -1,3 +1,7 @@
+2005-08-30  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Document +D and +d channel modes.
+
 2005-08-29  Michael Poole <mdpoole@troilus.org>
 
 	* include/numeric.h (ERR_NOMANAGER_LONG): Undefine.
