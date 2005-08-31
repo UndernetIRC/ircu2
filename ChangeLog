@@ -1,5 +1,13 @@
 2005-08-30  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h (PASSLEN): Remove; use KEYLEN instead.
+
+	* ircd/channel.c (mode_parse_upass): Likewise.
+	(mode_parse_apass): Likewise.
+	The inconsistency (in clean_key()) was reported by Reed.
+
+2005-08-30  Michael Poole <mdpoole@troilus.org>
+
 	* RELEASE.NOTES: Document +D and +d channel modes.
 
 2005-08-29  Michael Poole <mdpoole@troilus.org>
@@ -13,6 +21,7 @@
 	(mode_parse_key): Use it, and check that keys do not start with :.
 	(mode_parse_upass): Likewise, and adjust for ERR_NOMANAGER.
 	(mode_parse_apass): Likewise.
+	The key and password changes fix bugs reported by coekie.
 
 2005-08-27  Michael Poole <mdpoole@troilus.org>
 

@@ -45,7 +45,6 @@ struct Client;
 #define MODEBUFLEN      200	/**< Maximum length of a mode */
 
 #define KEYLEN          23	/**< Maximum length of a key */
-#define PASSLEN         23	/**< Maximum length of a password */
 #define CHANNELLEN      200	/**< Maximum length of a channel */
 
 #define MAXJOINARGS	15 	/**< number of slots for join buffer */
@@ -248,8 +247,8 @@ struct Mode {
   unsigned int mode;
   unsigned int limit;
   char key[KEYLEN + 1];
-  char upass[PASSLEN + 1];
-  char apass[PASSLEN + 1];
+  char upass[KEYLEN + 1];
+  char apass[KEYLEN + 1];
 };
 
 #define BAN_IPMASK         0x0001  /**< ban mask is an IP-number mask */

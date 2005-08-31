@@ -2527,7 +2527,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
 
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_ADD) /* set the new upass */
-      ircd_strncpy(state->chptr->mode.upass, t_str, PASSLEN);
+      ircd_strncpy(state->chptr->mode.upass, t_str, KEYLEN);
     else /* remove the old upass */
       *state->chptr->mode.upass = '\0';
   }
@@ -2635,7 +2635,7 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_ADD) { /* set the new apass */
       /* Make it VERY clear to the user that this is a one-time password */
-      ircd_strncpy(state->chptr->mode.apass, t_str, PASSLEN);
+      ircd_strncpy(state->chptr->mode.apass, t_str, KEYLEN);
       if (MyUser(state->sptr)) {
 	send_reply(state->sptr, RPL_APASSWARN_SET, state->chptr->mode.apass);
 	send_reply(state->sptr, RPL_APASSWARN_SECRET, state->chptr->chname,
