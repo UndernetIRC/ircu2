@@ -172,10 +172,6 @@ typedef enum ChannelGetType {
  */
 #define MAGIC_REMOTE_JOIN_TS 1270080000
 
-/**
- * used in can_join to determine if an oper forced a join on a channel
- */
-#define MAGIC_OPER_OVERRIDE 1000
 
 
 extern const char* const PartFmt1;
@@ -383,7 +379,6 @@ extern struct Membership* find_member_link(struct Channel * chptr,
                                            const struct Client* cptr);
 extern int sub1_from_channel(struct Channel* chptr);
 extern int destruct_channel(struct Channel* chptr);
-extern int can_join(struct Client *sptr, struct Channel *chptr, char *key);
 extern void add_user_to_channel(struct Channel* chptr, struct Client* who,
                                 unsigned int flags, int oplevel);
 extern void make_zombie(struct Membership* member, struct Client* who,

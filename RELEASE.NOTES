@@ -1,5 +1,5 @@
 Release notes for ircu2.10.12
-Last updated: 14 Jan 2005
+Last updated: 1 Sep 2005
 Written by Michael Poole <mdpoole@troilus.org>
 Based on earlier documents by Kev <klmitch@mit.edu> and
 Braden <dbtem@yahoo.com>.
@@ -9,6 +9,15 @@ ircu2.10.11.  ircu2.10.12 is only compatible with servers that
 implement the P10 protocol.  It has been tested to link against
 ircu2.10.11, but some features (notably IPv6 support and oplevels) are
 not supported by ircu2.10.11.
+
+Semantic Changes (TAKE NOTE):
+
+Channel keys and passwords (see the "oplevels" enhancement below)
+listed in a JOIN are now only checked against the corresponding
+channel.  In ircu2.10.11, "JOIN #a,#b key" would attempt to use "key"
+as the key for both #a and #b.  ircu2.10.12 will only attempt to use
+it as the key for #a.  ircu2.10.12's behavior matches that documented
+in RFC 1459.
 
 Enhancements:
 

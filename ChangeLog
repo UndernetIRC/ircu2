@@ -1,3 +1,19 @@
+2005-09-01  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Bump revision date and highlight this change.
+
+	* include/channel.h (MAGIC_OPER_OVERRIDE): Remove.
+	(can_join): Remove declaration.
+
+	* ircd/channel.c (compall): Remove.
+	(can_join): Remove.
+
+	* ircd/m_join.c (m_join): Remove redundant check for control
+	characters (clean_channelname() will get them). Reorganize initial
+	flags calculation.  Accept channel keys like RFC 1459 says; this
+	requires the old compall()/can_join() logic to modify 'keys', so
+	inline the code and reorganize it.
+
 2005-08-30  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h (PASSLEN): Remove; use KEYLEN instead.
