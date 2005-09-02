@@ -161,10 +161,8 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
     else
       gline->gl_host = NULL;
 
-    if (*user != '$' && ipmask_parse(host, &gline->gl_addr, &gline->gl_bits)) {
-      Debug((DEBUG_DEBUG,"IP gline: %s/%u", ircd_ntoa(&gline->gl_addr), gline->gl_bits));
+    if (*user != '$' && ipmask_parse(host, &gline->gl_addr, &gline->gl_bits))
       gline->gl_flags |= GLINE_IPMASK;
-    }
 
     if (after) {
       gline->gl_next = after->gl_next;
@@ -223,10 +221,6 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
           continue;
 
         if (GlineIsIpMask(gline)) {
-#ifdef DEBUGMODE
-          char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
-          Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(acptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
-#endif
           if (!ipmask_check(&cli_ip(acptr), &gline->gl_addr, gline->gl_bits))
             continue;
         }
@@ -693,7 +687,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       gline_free(gline);
       continue;
     }
-    
+
     if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
         (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
@@ -702,19 +696,12 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       Debug((DEBUG_DEBUG,"realname gline: '%s' '%s'",gline->gl_user,cli_info(cptr)));
       if (match(gline->gl_user+2, cli_info(cptr)) != 0)
         continue;
-      if (!GlineIsActive(gline))
-        continue;
-      return gline;
     }
     else {
       if (match(gline->gl_user, (cli_user(cptr))->username) != 0)
         continue;
 
       if (GlineIsIpMask(gline)) {
-#ifdef DEBUGMODE
-        char tbuf1[SOCKIPLEN], tbuf2[SOCKIPLEN];
-        Debug((DEBUG_DEBUG,"IP gline: %s %s/%u", ircd_ntoa_r(tbuf1, &cli_ip(cptr)), ircd_ntoa_r(tbuf2, &gline->gl_addr), gline->gl_bits));
-#endif
         if (!ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits))
           continue;
       }

@@ -1,5 +1,12 @@
 2005-09-01  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/gline.c (make_gline): Remove debug output from when IPv6
+	support was being debugged.
+	(do_gline): Likewise.
+	(gline_lookup): Likewise, plus remove redundant code.
+
+2005-09-01  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (joinbuf_join): Ignore joinbuf type when joining
 	0, since no other call passes a null channel.
 
