@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "channel.h"
@@ -102,23 +46,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * Helper function to find last 0 in a comma-separated list of
- * channel names.
+/** Searches for and handles a 0 in a join list.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] chanlist List of channels to join.
+ * @return First token in \a chanlist after the final 0 entry, which
+ * may be its nul terminator (if the final entry is a 0 entry).
  */
 static char *
-last0(char *chanlist)
+last0(struct Client *cptr, struct Client *sptr, char *chanlist)
 {
   char *p;
+  int join0 = 0;
 
   for (p = chanlist; p[0]; p++) /* find last "JOIN 0" */
     if (p[0] == '0' && (p[1] == ',' || p[1] == '\0' || !IsChannelChar(p[1]))) {
-      chanlist = p; /* we'll start parsing here */
-
-      if (!p[1]) /* hit the end */
-	break;
-
-      p++;
+      if (*++p == ',')
+        p++;
+      chanlist = p;
+      join0 = 1;
     } else {
       while (p[0] != ',' && p[0] != '\0') /* skip past channel name */
 	p++;
@@ -127,43 +73,33 @@ last0(char *chanlist)
 	break;
     }
 
+  if (join0) {
+    struct JoinBuf part;
+    struct Membership *member;
+
+    joinbuf_init(&part, sptr, cptr, JOINBUF_TYPE_PARTALL,
+                 "Left all channels", 0);
+
+    joinbuf_join(&part, 0, 0);
+
+    while ((member = cli_user(sptr)->channel))
+      joinbuf_join(&part, member->channel,
+                   IsZombie(member) ? CHFL_ZOMBIE :
+                   IsDelayedJoin(member) ? CHFL_DELAYED :
+                   0);
+
+    joinbuf_flush(&part);
+  }
+
   return chanlist;
 }
 
-/*
- * Helper function to perform a JOIN 0 if needed; returns 0 if channel
- * name is not 0, else removes user from all channels and returns 1.
- */
-static int
-join0(struct JoinBuf *join, struct Client *cptr, struct Client *sptr,
-      char *chan)
-{
-  struct Membership *member;
-  struct JoinBuf part;
-
-  /* is it a JOIN 0? */
-  if (chan[0] != '0' || chan[1] != '\0')
-    return 0;
-  
-  joinbuf_join(join, 0, 0); /* join special channel 0 */
-
-  /* leave all channels */
-  joinbuf_init(&part, sptr, cptr, JOINBUF_TYPE_PARTALL,
-	       "Left all channels", 0);
-
-  while ((member = cli_user(sptr)->channel))
-    joinbuf_join(&part, member->channel,
-		 IsZombie(member) ? CHFL_ZOMBIE :
-                 IsDelayedJoin(member) ? CHFL_DELAYED :
-                 0);
-
-  joinbuf_flush(&part);
-
-  return 1;
-}
-
-/*
- * m_join - generic message handler
+/** Handle a JOIN message from a client connection.
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
@@ -171,7 +107,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct JoinBuf join;
   struct JoinBuf create;
   struct Gline *gline;
-  unsigned int flags;
   char *p = 0;
   char *chanlist;
   char *name;
@@ -183,22 +118,31 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
   joinbuf_init(&create, sptr, cptr, JOINBUF_TYPE_CREATE, 0, TStime());
 
-  chanlist = last0(parv[1]); /* find last "JOIN 0" */
+  chanlist = last0(cptr, sptr, parv[1]); /* find last "JOIN 0" */
 
   keys = parv[2]; /* remember where keys are */
 
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
+    char *key = 0;
+
+    /* If we have any more keys, take the first for this channel. */
+    if (!BadPtr(keys)
+        && (keys = strchr(key = keys, ',')))
+      *keys++ = '\0';
+
     clean_channelname(name);
-
-    if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
-      continue;
-
     if (!IsChannelName(name))
     {
       /* bad channel name */
       send_reply(sptr, ERR_NOSUCHCHANNEL, name);
       continue;
+    }
+
+    if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER)
+	&& !HasPriv(sptr, PRIV_CHAN_LIMIT)) {
+      send_reply(sptr, ERR_TOOMANYCHANNELS, name);
+      break; /* no point processing the other channels */
     }
 
     /* BADCHANed channel */
@@ -208,48 +152,40 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
-    if (!(chptr = FindChannel(name)))
-      flags = CHFL_CHANOP;
-    else if (find_member_link(chptr, sptr))
-      continue; /* already on channel */
-    else
-      flags = CHFL_DEOPPED;
-
-    /* disallow creating local channels */
-    if ((name[0] == '&') && !chptr && !feature_bool(FEAT_LOCAL_CHANNELS)) {
+    if (!(chptr = FindChannel(name))) {
+      if ((name[0] == '&') && !feature_bool(FEAT_LOCAL_CHANNELS)) {
         send_reply(sptr, ERR_NOSUCHCHANNEL, name);
         continue;
-    }
+      }
 
-    if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER) &&
-	!HasPriv(sptr, PRIV_CHAN_LIMIT)) {
-      send_reply(sptr, ERR_TOOMANYCHANNELS, chptr ? chptr->chname : name);
-      break; /* no point processing the other channels */
-    }
+      if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
+        continue;
 
-    if (chptr) {
-      char *key = 0;
-      int is_level0_op = 0;
+      /* Try to add the new channel as a recent target for the user. */
+      if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
+        chptr->members = 0;
+        destruct_channel(chptr);
+        continue;
+      }
+
+      joinbuf_join(&create, chptr, CHFL_CHANOP | CHFL_CHANNEL_MANAGER);
+    } else if (find_member_link(chptr, sptr)) {
+      continue; /* already on channel */
+    } else if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
+      continue;
+    } else {
+      int flags = CHFL_DEOPPED;
       int err = 0;
 
       /* Check target change limits. */
-      if (check_target_limit(sptr, chptr, chptr->chname, 0))
-	continue;
-
-      /* If we have any more keys, take the first for this channel. */
-      if (!BadPtr(keys)
-          && (keys = strchr(key = keys, ',')))
-        *keys++ = '\0';
 
       /* Check Apass/Upass -- since we only ever look at a single
        * "key" per channel now, this hampers brute force attacks. */
-      if (!BadPtr(key) && !strcmp(key, chptr->mode.apass)) {
-        is_level0_op = 1;
-        flags = (flags & ~CHFL_DEOPPED) | CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
-      } else if (!BadPtr(key) && !strcmp(key, chptr->mode.upass)) {
-        is_level0_op = 1;
-        flags = (flags & ~CHFL_DEOPPED) | CHFL_CHANOP;
-      } else if (IsInvited(sptr, chptr)) {
+      if (key && !strcmp(key, chptr->mode.apass))
+        flags = CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
+      else if (key && !strcmp(key, chptr->mode.upass))
+        flags = CHFL_CHANOP;
+      else if (IsInvited(sptr, chptr)) {
         /* Invites bypass these other checks. */
       } else if (chptr->mode.mode & MODE_INVITEONLY)
         err = ERR_INVITEONLYCHAN;
@@ -259,7 +195,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         err = ERR_NEEDREGGEDNICK;
       else if (find_ban(sptr, chptr->banlist))
         err = ERR_BANNEDFROMCHAN;
-      else if (*chptr->mode.key && (BadPtr(key) || strcmp(chptr->mode.key, key)))
+      else if (*chptr->mode.key && (!key || strcmp(key, chptr->mode.key)))
         err = ERR_BADCHANNELKEY;
 
       /* An oper with WALK_LCHAN privilege can join a local channel
@@ -268,9 +204,9 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
        * could normally join the channel. */
       if (IsLocalChannel(chptr->chname)
           && HasPriv(sptr, PRIV_WALK_LCHAN)
-          && !is_level0_op
-          && !BadPtr(key)
-          && !strcmp("OVERRIDE", key))
+          && !(flags & CHFL_CHANOP)
+          && key && !strcmp(key, "OVERRIDE")
+          && strcmp(chptr->mode.key, "OVERRIDE"))
       {
         switch (err) {
         case 0:
@@ -296,17 +232,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
 
       joinbuf_join(&join, chptr, flags);
-    } else if (!(chptr = get_channel(sptr, name, CGT_CREATE)))
-      continue; /* couldn't get channel */
-    else if (check_target_limit(sptr, chptr, chptr->chname, 1))
-    {
-      /* Note: check_target_limit will only ever return 0 here */
-      chptr->members = 0;
-      destruct_channel(chptr); /* created it... */
-      continue;
     }
-    else
-      joinbuf_join(&create, chptr, flags | CHFL_CHANNEL_MANAGER);
 
     del_invite(sptr, chptr);
 
@@ -325,8 +251,12 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   return 0;
 }
 
-/*
- * ms_join - server message handler
+/** Handle a JOIN message from a server connection.
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
@@ -357,13 +287,10 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   joinbuf_init(&join, sptr, cptr, JOINBUF_TYPE_JOIN, 0, 0);
 
-  chanlist = last0(parv[1]); /* find last "JOIN 0" */
+  chanlist = last0(cptr, sptr, parv[1]); /* find last "JOIN 0" */
 
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
-
-    if (join0(&join, cptr, sptr, name)) /* did client do a JOIN 0? */
-      continue;
 
     if (name[0] == '0' && name[1] == ':')
     {

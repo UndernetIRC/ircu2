@@ -3257,9 +3257,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
   assert(0 != jbuf);
 
   if (!chan) {
-    if (jbuf->jb_type == JOINBUF_TYPE_JOIN)
-      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect, "0");
-
+    sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect, "0");
     return;
   }
 

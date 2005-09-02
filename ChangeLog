@@ -1,5 +1,18 @@
 2005-09-01  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (joinbuf_join): Ignore joinbuf type when joining
+	0, since no other call passes a null channel.
+
+	* ircd/m_join.c: Remove comment discussing argument meanings.
+	(last0): Make this also handle the JOIN 0 logic, doxyfy.
+	(join0): Merge into last0.
+	(m_join): Doxygenate.  Remove check for join0.  Further
+	reorganize, so new versus old channel handling are moved to just
+	one place each within this function.
+	(ms_join): Doxygenate.  Remove check for join0.
+
+2005-09-01  Michael Poole <mdpoole@troilus.org>
+
 	* RELEASE.NOTES: Bump revision date and highlight this change.
 
 	* include/channel.h (MAGIC_OPER_OVERRIDE): Remove.
