@@ -259,7 +259,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         err = ERR_NEEDREGGEDNICK;
       else if (find_ban(sptr, chptr->banlist))
         err = ERR_BANNEDFROMCHAN;
-      else if (*chptr->mode.key && strcmp(chptr->mode.key, key))
+      else if (*chptr->mode.key && (BadPtr(key) || strcmp(chptr->mode.key, key)))
         err = ERR_BADCHANNELKEY;
 
       /* An oper with WALK_LCHAN privilege can join a local channel
