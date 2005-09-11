@@ -1,3 +1,8 @@
+2005-09-11  Alex Badea <vamposdecampos@gmail.com>
+
+	* ircd/m_ping.c (ms_ping, mo_ping): misplaced chunk of code
+	(probably during the forward port) which broke AsLL; fixed.
+
 2005-09-01  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/gline.c (make_gline): Remove debug output from when IPv6

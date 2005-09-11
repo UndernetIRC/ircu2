@@ -188,14 +188,6 @@ int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   origin = parv[1];
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
-  if (parc > 3)
-  {
-    /* AsLL ping, send reply back */
-    int diff = atoi(militime_float(parv[3]));
-    sendcmdto_one(&me, CMD_PONG, sptr, "%C %s %s %i %s", &me, origin,
-                  parv[3], diff, militime_float(NULL));
-    return 0;
-  }
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination)))
       sendcmdto_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
@@ -252,6 +244,14 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   origin      = parv[1];
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
+  if (parc > 3)
+  {
+    /* AsLL ping, send reply back */
+    int diff = atoi(militime_float(parv[3]));
+    sendcmdto_one(&me, CMD_PONG, sptr, "%C %s %s %i %s", &me, origin,
+                  parv[3], diff, militime_float(NULL));
+    return 0;
+  }
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination))) {
       /*
