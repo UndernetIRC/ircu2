@@ -1,3 +1,31 @@
+2005-09-11  Michael Poole <mdpoole@troilus.org>
+
+	* RELEASE.NOTES: Mention the side benefits of this change.
+
+	* include/ircd_string.h (ipmask_parse): Declare function here.
+	(ircd_aton): Becomes a special case of ipmask_parse().
+
+	* include/match.h (check_if_ipmask): Undeclare function.
+	(ipmask_parse): Remove function prototype from this file.
+
+	* ircd/ircd_string.c (ircd_aton_ip4): Add nullable pbits parameter
+	to accept ipmask length.  Rework to fill that in.
+	(ircd_aton): Rework into...
+	(ipmask_parse): this function, which knows how to fill in its own
+	pbits parameter.
+
+	* ircd/m_burst.c (ms_burst): Rely on make_ban() to set the ban
+	flags correctly, to avoid call to check_if_ipmask().
+
+	* ircd/match.c (ipmask_parse_ipv4): Delete function.
+	(check_if_ipmask): Likewise.
+	(ipmask_parse): Delete this version in favor of ircd_string.c's.
+
+	* ircd/test/ircd_in_addr_t.c (ipmask_test): New struct type.
+	(test_masks): New array of ipmask_test.
+	(test_ipmask): Function to run one of those tests.
+	(main): Call test_ipmask().
+
 2005-09-11  Alex Badea <vamposdecampos@gmail.com>
 
 	* ircd/m_ping.c (ms_ping, mo_ping): misplaced chunk of code

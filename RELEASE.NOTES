@@ -85,6 +85,10 @@ except X, you could use SILENCE *!*@*,~X!cservice@undernet.org.
 The server will no longer kick "net riders" in keyed (+k) channels if
 both sides of the net join have the same key.
 
+IP masks (as used in bans, G-lines, etc) are now parsed in a more
+forgiving manner.  127.0.0.0/8, 127.* and 127/8 are all accepted and
+mean the same thing.
+
 Configuration Changes:
 
 As mentioned above, the configuration file format has changed

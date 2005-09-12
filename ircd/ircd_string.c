@@ -453,12 +453,13 @@ const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* in)
 /** Attempt to parse an IPv4 address into a network-endian form.
  * @param[in] input Input string.
  * @param[out] output Network-endian representation of the address.
+ * @param[out] pbits Number of bits found in pbits.
  * @return Number of characters used from \a input, or 0 if the parse failed.
  */
 static unsigned int
-ircd_aton_ip4(const char *input, unsigned int *output)
+ircd_aton_ip4(const char *input, unsigned int *output, unsigned char *pbits)
 {
-  unsigned int dots = 0, pos = 0, part = 0, ip = 0;
+  unsigned int dots = 0, pos = 0, part = 0, ip = 0, bits;
 
   /* Intentionally no support for bizarre IPv4 formats (plain
    * integers, octal or hex components) -- only vanilla dotted
@@ -466,33 +467,60 @@ ircd_aton_ip4(const char *input, unsigned int *output)
    */
   if (input[0] == '.')
     return 0;
-  while (1) {
-    if (IsDigit(input[pos])) {
-      part = part * 10 + input[pos++] - '0';
-      if (part > 255)
-        return 0;
-      if ((dots == 3) && !IsDigit(input[pos])) {
-        *output = htonl(ip | part);
-        return pos;
-      }
-    } else if (input[pos] == '.') {
-      if (input[++pos] == '.')
-        return 0;
-      ip |= part << (24 - 8 * dots++);
-      part = 0;
-    } else
+  bits = 32;
+  while (1) switch (input[pos]) {
+  case '\0':
+    if (dots < 3)
       return 0;
+  out:
+    ip |= part << (24 - 8 * dots);
+    *output = htonl(ip);
+    if (pbits)
+      *pbits = bits;
+    return pos;
+  case '.':
+    if (input[++pos] == '.')
+      return 0;
+    ip |= part << (24 - 8 * dots++);
+    part = 0;
+    if (input[pos] == '*') {
+      while (input[++pos] == '*') ;
+      if (input[pos] != '\0')
+        return 0;
+      if (pbits)
+        *pbits = dots * 8;
+      *output = htonl(ip);
+      return pos;
+    }
+    break;
+  case '/':
+    if (!pbits || !IsDigit(input[pos + 1]))
+      return 0;
+    for (bits = 0; IsDigit(input[++pos]); )
+      bits = bits * 10 + input[pos] - '0';
+    if (bits > 32)
+      return 0;
+    goto out;
+  case '0': case '1': case '2': case '3': case '4':
+  case '5': case '6': case '7': case '8': case '9':
+    part = part * 10 + input[pos++] - '0';
+    if (part > 255)
+      return 0;
+    break;
+  default:
+    return 0;
   }
 }
 
 /** Parse a numeric IPv4 or IPv6 address into an irc_in_addr.
- * @param[out] ip Receives parsed IP address.
  * @param[in] input Input buffer.
+ * @param[out] ip Receives parsed IP address.
+ * @param[out] pbits If non-NULL, receives number of bits specified in address mask.
  * @return Number of characters used from \a input, or 0 if the
  * address was unparseable or malformed.
  */
 int
-ircd_aton(struct irc_in_addr *ip, const char *input)
+ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
 {
   char *colon;
   char *dot;
@@ -520,80 +548,104 @@ ircd_aton(struct irc_in_addr *ip, const char *input)
       pos += 2;
       part_start = input + pos;
     }
-    while (ii < 8) {
+    while (ii < 8) switch (input[pos]) {
       unsigned char chval;
-
-      switch (input[pos]) {
-      case '0': case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9':
-          chval = input[pos] - '0';
-      use_chval:
-        part = (part << 4) | chval;
-        if (part > 0xffff)
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
+      chval = input[pos] - '0';
+    use_chval:
+      part = (part << 4) | chval;
+      if (part > 0xffff)
+        return 0;
+      pos++;
+      break;
+    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+      chval = input[pos] - 'A' + 10;
+      goto use_chval;
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+      chval = input[pos] - 'a' + 10;
+      goto use_chval;
+    case ':':
+      part_start = input + ++pos;
+      if (input[pos] == '.')
+        return 0;
+      ip->in6_16[ii++] = htons(part);
+      part = 0;
+      if (input[pos] == ':') {
+        if (colon < 8)
           return 0;
+        colon = ii;
         pos++;
-        break;
-      case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-          chval = input[pos] - 'A' + 10;
-          goto use_chval;
-      case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-          chval = input[pos] - 'a' + 10;
-          goto use_chval;
-      case ':':
-        part_start = input + ++pos;
-        if (input[pos] == '.')
-          return 0;
-        ip->in6_16[ii++] = htons(part);
-        part = 0;
-        if (input[pos] == ':') {
-          if (colon < 8)
-            return 0;
-          colon = ii;
-          pos++;
-        }
-        break;
-      case '.': {
-        uint32_t ip4;
-        unsigned int len;
-        len = ircd_aton_ip4(part_start, &ip4);
-        if (!len || (ii > 6))
-          return 0;
-        ip->in6_16[ii++] = htons(ntohl(ip4) >> 16);
-        ip->in6_16[ii++] = htons(ntohl(ip4) & 65535);
-        if (colon < 8) {
-          unsigned int jj;
-          /* Shift stuff after "::" up and fill middle with zeros. */
-          for (jj = 0; jj < ii - colon; jj++)
-            ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
-          for (jj = 0; jj < 8 - ii; jj++)
-            ip->in6_16[colon + jj] = 0;
-        }
-        return part_start - input + len;
       }
-      default: {
-        ip->in6_16[ii++] = htons(part);
-        if (colon < 8) {
-          unsigned int jj;
-          /* Shift stuff after "::" up and fill middle with zeros. */
-          for (jj = 0; jj < ii - colon; jj++)
-            ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
-          for (jj = 0; jj < 8 - ii; jj++)
-            ip->in6_16[colon + jj] = 0;
-        }
-        return pos;
-      }
-      }
+      break;
+    case '.': {
+      uint32_t ip4;
+      unsigned int len;
+      len = ircd_aton_ip4(part_start, &ip4, pbits);
+      if (!len || (ii > 6))
+        return 0;
+      ip->in6_16[ii++] = htons(ntohl(ip4) >> 16);
+      ip->in6_16[ii++] = htons(ntohl(ip4) & 65535);
+      if (pbits)
+        *pbits += 96;
+      pos = part_start + len - input;
+      goto finish;
+    }
+    case '/':
+      if (!pbits || !IsDigit(input[pos + 1]))
+        return 0;
+      ip->in6_16[ii++] = htons(part);
+      for (part = 0; IsDigit(input[++pos]); )
+        part = part * 10 + input[pos] - '0';
+      if (part > 128)
+        return 0;
+      *pbits = part;
+      goto finish;
+    case '*':
+      while (input[++pos] == '*') ;
+      if (input[pos] != '\0' || colon < 8)
+        return 0;
+      if (pbits)
+        *pbits = ii * 16;
+      return pos;
+    case '\0':
+      ip->in6_16[ii++] = htons(part);
+      if (colon == 8 && ii < 8)
+        return 0;
+      if (pbits)
+        *pbits = 128;
+      goto finish;
+    default:
+      return 0;
+    }
+  finish:
+    if (colon < 8) {
+      unsigned int jj;
+      /* Shift stuff after "::" up and fill middle with zeros. */
+      for (jj = 0; jj < ii - colon; jj++)
+        ip->in6_16[7 - jj] = ip->in6_16[ii - jj - 1];
+      for (jj = 0; jj < 8 - ii; jj++)
+        ip->in6_16[colon + jj] = 0;
     }
     return pos;
   } else if (dot) {
     unsigned int addr;
-    int len = ircd_aton_ip4(input, &addr);
+    int len = ircd_aton_ip4(input, &addr, pbits);
     if (len) {
       ip->in6_16[5] = htons(65535);
       ip->in6_16[6] = htons(ntohl(addr) >> 16);
       ip->in6_16[7] = htons(ntohl(addr) & 65535);
-      return len;
+      if (pbits)
+        *pbits += 96;
     }
-  }
-  return 0; /* parse failed */
+    return len;
+  } else if (input[0] == '*') {
+    unsigned int pos = 0;
+    while (input[++pos] == '*') ;
+    if (input[pos] != '\0')
+      return 0;
+    if (pbits)
+      *pbits = 0;
+    return pos;
+  } else return 0; /* parse failed */
 }

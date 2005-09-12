@@ -371,11 +371,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    newban = make_ban(ban); /* create new ban */
             strcpy(newban->who, "*");
 	    newban->when = TStime();
-
-	    newban->flags = BAN_BURSTED; /* set flags */
-	    if ((ptr = strrchr(ban, '@')) && check_if_ipmask(ptr + 1))
-	      newban->flags |= BAN_IPMASK;
-
+	    newban->flags |= BAN_BURSTED;
 	    newban->next = 0;
 	    if (lp)
 	      lp->next = newban; /* link it in */

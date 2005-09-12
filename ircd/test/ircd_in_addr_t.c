@@ -95,13 +95,74 @@ test_address(struct address_test *addr)
     printf("Passed: %s (%s/%s)\n", addr->text, base64_v4, base64_v6);
 }
 
+/** Structure to describe a test for IP mask parsing. */
+struct ipmask_test {
+    const char *text; /**< Textual IP mask to parse. */
+    struct irc_in_addr expected; /**< Canonical form of address. */
+    unsigned int is_ipmask : 1; /**< Parse as an ipmask? */
+    unsigned int is_parseable : 1; /**< Is address parseable? */
+    unsigned int exp_bits : 8; /**< Number of bits expected in netmask */
+};
+
+/** Array of ipmasks to test with. */
+static struct ipmask_test test_masks[] = {
+    { "::", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 1, 128 },
+    { "::/0", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 1, 0 },
+    { "::10.0.0.0", {{ 0, 0, 0, 0, 0, 0, 0xa00, 0 }}, 1, 1, 128 },
+    { "192.168/16", {{ 0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0 }}, 1, 1, 112 },
+    { "192.*", {{ 0, 0, 0, 0, 0, 0xffff, 0xc000, 0 }}, 1, 1, 104 },
+    { "192.*/8", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "192*", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "192.168.0.0/16", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 0, 0, 0 },
+    { "ab.*", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "a*", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "*", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 1, 0 },
+    { "a:b", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "a::*", {{ 0, 0, 0, 0, 0, 0, 0, 0 }}, 1, 0, 0 },
+    { "a:*", {{ 0xa, 0, 0, 0, 0, 0, 0, 0 }}, 1, 1, 16 },
+    { "a:/16", {{ 0xa, 0, 0, 0, 0, 0, 0, 0 }}, 1, 1, 16 },
+    { 0 }
+};
+
+/** Perform tests for a single IP mask.
+ * @param[in] mask IP mask test structure.
+ */
+static void
+test_ipmask(struct ipmask_test *mask)
+{
+    struct irc_in_addr parsed;
+    unsigned int len, ii;
+    unsigned char bits = 0;
+
+    /* Convert expected address to network order. */
+    for (ii = 0; ii < 8; ++ii)
+        mask->expected.in6_16[ii] = htons(mask->expected.in6_16[ii]);
+    /* Try to parse; make sure its parseability and netmask length are
+     * as expected. */
+    len = ipmask_parse(mask->text, &parsed, mask->is_ipmask ? &bits : 0);
+    assert(!!len == mask->is_parseable);
+    if (!len) {
+        printf("X-Fail: %s\n", mask->text);
+        return;
+    }
+    if (mask->is_ipmask)
+        assert(bits == mask->exp_bits);
+    assert(!memcmp(&parsed, &mask->expected, sizeof(parsed)));
+    printf("Passed: %s (%s/%u)\n", mask->text, ircd_ntoa(&parsed), bits);
+}
+
 int
 main(int argc, char *argv[])
 {
     unsigned int ii;
 
+    printf("Testing address parsing..\n");
     for (ii = 0; test_addrs[ii].text; ++ii)
         test_address(&test_addrs[ii]);
+
+    printf("\nTesting ipmask parsing..\n");
+    for (ii = 0; test_masks[ii].text; ++ii)
+        test_ipmask(&test_masks[ii]);
 
     return 0;
 }
