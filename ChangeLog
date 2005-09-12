@@ -1,5 +1,10 @@
 2005-09-13  Alex Badea <vamposdecampos@gmail.com>
 
+	* ircd/ircd.c (try_connections): modify autoreconnect logic to
+	allow FEAT_CONNECTFREQUENCY to be smaller than Class connectfreq
+
+2005-09-13  Alex Badea <vamposdecampos@gmail.com>
+
 	* ircd/s_conf.c (close_mappings): NULL out GlobalServiceMapList,
 	otherwise the linked list has an invalid ending sentinel on rehash
 

@@ -269,14 +269,14 @@ static void try_connections(struct Event* ev) {
         || ((ajupe = jupe_find(aconf->name)) && JupeIsActive(ajupe)))
       continue;
 
+    /* Do we need to postpone this connection further? */
+    hold = aconf->hold > CurrentTime;
+
     /* Update next possible connection check time. */
-    if (next > aconf->hold || next == 0)
+    if (hold && (next > aconf->hold || next == 0))
         next = aconf->hold;
 
-    /* Update the next time we can consider this entry. */
     cltmp = aconf->conn_class;
-    hold = aconf->hold > CurrentTime; /* before we update aconf->hold */
-    aconf->hold = ConFreq(cltmp) ? CurrentTime + ConFreq(cltmp) : 0;
 
     /* Do not try to connect if its use is still on hold until future,
      * too many links in its connection class, it is already linked,
