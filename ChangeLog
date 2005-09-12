@@ -1,3 +1,8 @@
+2005-09-13  Alex Badea <vamposdecampos@gmail.com>
+
+	* ircd/s_conf.c (close_mappings): NULL out GlobalServiceMapList,
+	otherwise the linked list has an invalid ending sentinel on rehash
+
 2005-09-12  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (find_ban): Compare ban mask against hostname

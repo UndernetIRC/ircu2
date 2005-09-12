@@ -903,6 +903,7 @@ static void close_mappings(void)
     unregister_mapping(map);
     free_mapping(map);
   }
+  GlobalServiceMapList = NULL;
 }
 
 /** Reload the configuration file.
