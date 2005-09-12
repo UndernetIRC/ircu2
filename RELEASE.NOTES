@@ -87,7 +87,8 @@ both sides of the net join have the same key.
 
 IP masks (as used in bans, G-lines, etc) are now parsed in a more
 forgiving manner.  127.0.0.0/8, 127.* and 127/8 are all accepted and
-mean the same thing.
+mean the same thing.  Ambiguous expressions like 127/8 are interpreted
+as IPv4 masks; to interpret it as an IPv6 mask, use 127:/8.
 
 Configuration Changes:
 

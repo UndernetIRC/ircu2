@@ -628,7 +628,7 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
         ip->in6_16[colon + jj] = 0;
     }
     return pos;
-  } else if (dot) {
+  } else if (dot || strchr(input, '/')) {
     unsigned int addr;
     int len = ircd_aton_ip4(input, &addr, pbits);
     if (len) {

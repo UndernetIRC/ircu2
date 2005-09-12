@@ -1,5 +1,11 @@
 2005-09-12  Michael Poole <mdpoole@troilus.org>
 
+	* RELEASE.NOTES: Note the resolution of ambiguous ipmasks.
+
+	* ircd/ircd_string.c (ipmask_parse): Implement it.
+
+2005-09-12  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (m_join): If we find an empty key, null out the
 	key pointer.
 
