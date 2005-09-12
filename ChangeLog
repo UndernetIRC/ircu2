@@ -1,5 +1,11 @@
 2005-09-12  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (find_ban): Compare ban mask against hostname
+	even when it looks like an IP, to match things like *!*@1.* when
+	users have a hostname like 1.2.3.example.com.
+
+2005-09-12  Michael Poole <mdpoole@troilus.org>
+
 	* RELEASE.NOTES: Note the resolution of ambiguous ipmasks.
 
 	* ircd/ircd_string.c (ipmask_parse): Implement it.
