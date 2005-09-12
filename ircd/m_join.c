@@ -131,6 +131,10 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         && (keys = strchr(key = keys, ',')))
       *keys++ = '\0';
 
+    /* Empty keys are the same as no keys. */
+    if (!key[0])
+      key = 0;
+
     clean_channelname(name);
     if (!IsChannelName(name))
     {

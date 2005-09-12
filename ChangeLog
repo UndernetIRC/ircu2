@@ -1,3 +1,8 @@
+2005-09-12  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_join.c (m_join): If we find an empty key, null out the
+	key pointer.
+
 2005-09-11  Michael Poole <mdpoole@troilus.org>
 
 	* RELEASE.NOTES: Mention the side benefits of this change.
