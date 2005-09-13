@@ -380,16 +380,16 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
       continue;
     /* Compare host portion of ban. */
     hostmask = banlist->banstr + banlist->nu_len + 1;
-    if (((banlist->flags & BAN_IPMASK)
+    if (!((banlist->flags & BAN_IPMASK)
          && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
-        || match(hostmask, cli_user(cptr)->host)
-        || (sr && match(hostmask, sr) == 0)) {
-      /* If an exception matches, no ban can match. */
-      if (banlist->flags & BAN_EXCEPTION)
-        return NULL;
-      /* Otherwise, remember this ban but keep searching for an exception. */
-      found = banlist;
-    }
+        && match(hostmask, cli_user(cptr)->host)
+        && !(sr && match(hostmask, sr)))
+        continue;
+    /* If an exception matches, no ban can match. */
+    if (banlist->flags & BAN_EXCEPTION)
+      return NULL;
+    /* Otherwise, remember this ban but keep searching for an exception. */
+    found = banlist;
   }
   return found;
 }

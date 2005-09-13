@@ -1,3 +1,8 @@
+2005-09-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (find_ban): Revert to older style of comparison,
+	fixing the sense of one check.  Spotted by Alex Badea.
+
 2005-09-13  Alex Badea <vamposdecampos@gmail.com>
 
 	* ircd/ircd.c (try_connections): modify autoreconnect logic to
