@@ -364,7 +364,6 @@ extern int             LocalChanOperMode;
 /*
  * Proto types
  */
-extern void clean_channelname(char* name);
 extern void channel_modes(struct Client *cptr, char *mbuf, char *pbuf,
                           int buflen, struct Channel *chptr,
 			  struct Membership *member);

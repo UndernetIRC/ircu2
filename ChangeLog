@@ -1,5 +1,20 @@
 2005-09-13  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h (clean_channelname): Remove prototype.
+
+	* ircd/m_invite.c (m_invite): Do not clean channel name; just
+	reject invalid channel names.
+
+	* ircd/m_join.c (m_join): Likewise.
+
+	* ircd/m_mode.c (m_mode): Do not clean channel name.
+
+	* ircd/m_names.c (m_names): Likewise.
+
+	* ircd/m_opmode.c (mo_opmode): Likewise.
+
+2005-09-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (find_ban): Revert to older style of comparison,
 	fixing the sense of one check.  Spotted by Alex Badea.
 

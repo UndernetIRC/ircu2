@@ -111,8 +111,6 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 2)
     return need_more_params(sptr, "MODE");
 
-  clean_channelname(parv[1]);
-
   if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 

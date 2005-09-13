@@ -142,12 +142,9 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (is_silenced(sptr, acptr))
     return 0;
 
-  clean_channelname(parv[2]);
-
-  if (!IsChannelPrefix(*parv[2]))
-    return 0;
-
-  if (!(chptr = FindChannel(parv[2]))) {
+  if (!IsChannelName(parv[2])
+      || !strIsIrcCh(parv[2])
+      || !(chptr = FindChannel(parv[2]))) {
     send_reply(sptr, ERR_NOSUCHCHANNEL, parv[2]);
     return 0;
   }

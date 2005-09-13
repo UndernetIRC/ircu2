@@ -135,8 +135,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     if (key && !key[0])
       key = 0;
 
-    clean_channelname(name);
-    if (!IsChannelName(name))
+    if (!IsChannelName(name) || !strIsIrcCh(name))
     {
       /* bad channel name */
       send_reply(sptr, ERR_NOSUCHCHANNEL, name);

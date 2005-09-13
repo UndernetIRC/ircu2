@@ -159,7 +159,6 @@ int mo_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return send_reply(sptr, ERR_NOPRIVILEGES);
     force = 1;
   }
-  clean_channelname(chname);
 
   if (!HasPriv(sptr,
 	       IsLocalChannel(chname) ? PRIV_LOCAL_OPMODE : PRIV_OPMODE))

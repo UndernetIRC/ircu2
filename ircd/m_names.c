@@ -327,7 +327,6 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    *  (As performed with each /join) - ** High frequency usage **
    */
 
-  clean_channelname(para);
   chptr = FindChannel(para); 
 
   if (chptr) {
