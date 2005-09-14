@@ -1,3 +1,7 @@
+2005-09-14  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (find_ban): Fix the sense of another check.
+
 2005-09-13  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h (clean_channelname): Remove prototype.

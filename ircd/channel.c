@@ -383,7 +383,7 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
     if (!((banlist->flags & BAN_IPMASK)
          && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
         && match(hostmask, cli_user(cptr)->host)
-        && !(sr && match(hostmask, sr)))
+        && !(sr && !match(hostmask, sr)))
         continue;
     /* If an exception matches, no ban can match. */
     if (banlist->flags & BAN_EXCEPTION)
