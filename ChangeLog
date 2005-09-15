@@ -1,5 +1,9 @@
 2005-09-14  Michael Poole <mdpoole@troilus.org>
 
+	* doc/readme.cvs: Document the branching scheme for 2.10.12.
+
+2005-09-14  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Increment to reflect the
 	pre-release code freeze.
 
