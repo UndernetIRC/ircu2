@@ -60,10 +60,10 @@ last0(struct Client *cptr, struct Client *sptr, char *chanlist)
   int join0 = 0;
 
   for (p = chanlist; p[0]; p++) /* find last "JOIN 0" */
-    if (p[0] == '0' && (p[1] == ',' || p[1] == '\0' || !IsChannelChar(p[1]))) {
-      if (*++p == ',')
+    if (p[0] == '0' && (p[1] == ',' || p[1] == '\0')) {
+      if (p[1] == ',')
         p++;
-      chanlist = p;
+      chanlist = p + 1;
       join0 = 1;
     } else {
       while (p[0] != ',' && p[0] != '\0') /* skip past channel name */

@@ -1,3 +1,10 @@
+2005-09-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c (last0): fix problem leading to protocol
+	violations on certain combinations of /join 0 from remote servers
+	(probably from local users, too) [bug #1291029]; remove redundant
+	!IsChannelChar() check
+
 2005-09-14  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.cvs: Document the branching scheme for 2.10.12.
