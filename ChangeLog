@@ -1,3 +1,9 @@
+2005-09-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/Makefile.in: Regenerate "make depend" dependencies.
+
+	* ircd/test/Makefile.in: Likewise.
+
 2005-09-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_join.c (last0): fix problem leading to protocol

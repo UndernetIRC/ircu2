@@ -70,7 +70,9 @@ ircd_in_addr_t.o: ircd_in_addr_t.c ../../include/ircd_log.h \
   ../../include/numnicks.h ../../include/client.h \
   ../../include/ircd_defs.h ../../include/dbuf.h ../../include/msgq.h \
   ../../include/ircd_events.h ../../config.h ../../include/ircd_handler.h \
-  ../../include/res.h ../../include/capab.h
+  ../../include/res.h ../../include/capab.h ../../include/res.h
+ircd_match_t.o: ircd_match_t.c ../../include/ircd_log.h \
+  ../../include/match.h ../../include/res.h ../../config.h
 ircd_string_t.o: ircd_string_t.c ../../include/ircd_string.h \
   ../../include/ircd_chattr.h
 test_stub.o: test_stub.c ../../include/client.h ../../include/ircd_defs.h \
