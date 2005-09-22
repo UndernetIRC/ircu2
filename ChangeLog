@@ -1,3 +1,13 @@
+2005-09-22  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c (gline_checkmask): Add missing digit in mask length
+	check.
+
+2005-09-21  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Remove confused and outdated references to
+	Martians.
+
 2005-09-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/Makefile.in: Regenerate "make depend" dependencies.

@@ -285,7 +285,7 @@ gline_checkmask(char *mask)
         if (ipmask < 128)
           flags |= MASK_WILDS;
       } else {
-        if (dots != 3 || ipmask > 3)
+        if (dots != 3 || ipmask > 32)
           return CHECK_REJECTED;
         if (ipmask < 32)
 	  flags |= MASK_WILDS;
