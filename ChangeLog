@@ -1,5 +1,12 @@
 2005-09-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_parse_key): Only accept the new key when
+	the current one is empty or "greater" than the new one.
+	(mode_parse_upass): Likewise, for upass.
+	(mode_parse_apass): Likewise, for apass.
+
+2005-09-22  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/gline.c (gline_checkmask): Add missing digit in mask length
 	check.
 

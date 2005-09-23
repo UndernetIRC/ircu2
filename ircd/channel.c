@@ -2326,10 +2326,11 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
 
   if (state->flags & MODE_PARSE_SET) {
-    if (state->dir == MODE_ADD) /* set the new key */
-      ircd_strncpy(state->chptr->mode.key, t_str, KEYLEN);
-    else /* remove the old key */
+    if (state->dir == MODE_DEL) /* remove the old key */
       *state->chptr->mode.key = '\0';
+    else if (!state->chptr->mode.key[0]
+             || ircd_strcmp(t_str, state->chptr->mode.key) < 0)
+      ircd_strncpy(state->chptr->mode.key, t_str, KEYLEN);
   }
 }
 
@@ -2430,10 +2431,11 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     modebuf_mode_string(state->mbuf, state->dir | flag_p[0], t_str, 0);
 
   if (state->flags & MODE_PARSE_SET) {
-    if (state->dir == MODE_ADD) /* set the new upass */
-      ircd_strncpy(state->chptr->mode.upass, t_str, KEYLEN);
-    else /* remove the old upass */
+    if (state->dir == MODE_DEL) /* remove the old upass */
       *state->chptr->mode.upass = '\0';
+    else if (state->chptr->mode.upass[0] == '\0'
+             || ircd_strcmp(t_str, state->chptr->mode.upass) < 0)
+      ircd_strncpy(state->chptr->mode.upass, t_str, KEYLEN);
   }
 }
 
@@ -2538,8 +2540,14 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
 
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_ADD) { /* set the new apass */
+      /* Only accept the new apass if there is no current apass
+       * (e.g. when a user sets it) or the new one is "less" than the
+       * old (for resolving conflicts during burst).
+       */
+      if (state->chptr->mode.apass[0] == '\0'
+          || ircd_strcmp(t_str, state->chptr->mode.apass) < 0)
+        ircd_strncpy(state->chptr->mode.apass, t_str, KEYLEN);
       /* Make it VERY clear to the user that this is a one-time password */
-      ircd_strncpy(state->chptr->mode.apass, t_str, KEYLEN);
       if (MyUser(state->sptr)) {
 	send_reply(state->sptr, RPL_APASSWARN_SET, state->chptr->mode.apass);
 	send_reply(state->sptr, RPL_APASSWARN_SECRET, state->chptr->chname,
