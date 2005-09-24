@@ -23,6 +23,7 @@ struct Channel;
 
 #define WHOSELECT_OPER 1   /**< Flag for /WHO: Show IRC operators. */
 #define WHOSELECT_EXTRA 2  /**< Flag for /WHO: Pull rank to see users. */
+#define WHOSELECT_DELAY 4  /**< Flag for /WHO: Show join-delayed users. */
 
 #define WHO_FIELD_QTY 1    /**< Display query type. */
 #define WHO_FIELD_CHA 2    /**< Show common channel name. */

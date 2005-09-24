@@ -1,3 +1,15 @@
+2005-09-23  Michael Poole <mdpoole@troilus.org>
+
+	* include/whocmds.h (WHOSELECT_DELAY): Define new constant.
+
+	* ircd/m_who.c (m_who): Accept 'd'/'D' as a way to set
+	WHOSELECT_DELAY, just like 'o' for WHOSELECT_OPER.  Do not skip
+	join-delayed users if WHOSELECT_DELAY is set.
+
+	* ircd/whocmds.c (do_who): Remember membership for shared channel
+	if one exists.  Use it when displaying flags, adding '<' for
+	join-delayed users.
+
 2005-09-22  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_key): Only accept the new key when

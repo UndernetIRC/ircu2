@@ -72,7 +72,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
             int fields, char* qrt)
 {
   char *p1;
-  struct Channel *chptr = repchan;
+  struct Membership *chan;
 
   static char buf1[512];
   /* NOTE: with current fields list and sizes this _cannot_ overrun, 
@@ -85,14 +85,15 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
      unless the listing is for a channel service, we already know
      that there are no common channels, thus use PubChannel and not
      SeeChannel */
-  if (!chptr && (!fields || (fields & (WHO_FIELD_CHA | WHO_FIELD_FLA))) &&
-      !IsChannelService(acptr))
+  if (repchan)
+    chan = find_channel_member(acptr, repchan);
+  else if ((!fields || (fields & (WHO_FIELD_CHA | WHO_FIELD_FLA)))
+           && !IsChannelService(acptr))
   {
-    struct Membership* chan;
-    for (chan = cli_user(acptr)->channel; chan && !chptr; chan = chan->next_channel)
+    for (chan = cli_user(acptr)->channel; chan; chan = chan->next_channel)
       if (PubChannel(chan->channel) &&
           (acptr == sptr || !IsZombie(chan)))
-        chptr = chan->channel;
+        break;
   }
 
   /* Place the fields one by one in the buffer and send it
@@ -111,7 +112,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   {
     char *p2;
     *(p1++) = ' ';
-    if ((p2 = (chptr ? chptr->chname : NULL)))
+    if ((p2 = (chan ? chan->channel->chname : NULL)))
       while ((*p2) && (*(p1++) = *(p2++)));
     else
       *(p1++) = '*';
@@ -165,25 +166,32 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       *(p1++) = 'H';
     if SeeOper(sptr,acptr)
       *(p1++) = '*';
-    if (fields) {
+    if (!chan) {
+      /* No flags possible for the channel, so skip them all. */
+    }
+    else if (fields) {
       /* If you specified flags then we assume you know how to parse
        * multiple channel status flags, as this is currently the only
        * way to know if someone has @'s *and* is +'d.
        */
-      if (chptr && is_chan_op(acptr, chptr))
+      if (IsChanOp(chan))
         *(p1++) = '@';
-      if (chptr && has_voice(acptr, chptr))
+      if (HasVoice(chan))
         *(p1++) = '+';
-      if (chptr && is_zombie(acptr, chptr))
+      if (IsZombie(chan))
         *(p1++) = '!';
+      if (IsDelayedJoin(chan))
+        *(p1++) = '<';
     }
     else {
-      if (chptr && is_chan_op(acptr, chptr))
+      if (IsChanOp(chan))
         *(p1++) = '@';
-      else if (chptr && has_voice(acptr, chptr))
+      else if (HasVoice(chan))
         *(p1++) = '+';
-      else if (chptr && is_zombie(acptr, chptr))
+      else if (IsZombie(chan))
         *(p1++) = '!';
+      else if (IsDelayedJoin(chan))
+        *(p1++) = '<';
     }
     if (IsDeaf(acptr))
       *(p1++) = 'd';

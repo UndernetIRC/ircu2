@@ -174,6 +174,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     while (((ch = *(p++))) && (ch != '%') && (ch != ','))
       switch (ch)
       {
+        case 'd':
+        case 'D':
+          bitsel |= WHOSELECT_DELAY;
+          continue;
         case 'o':
         case 'O':
           bitsel |= WHOSELECT_OPER;
@@ -322,7 +326,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             acptr = member->user;
             if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
               continue;
-            if ((acptr != sptr) && (member->status & (CHFL_ZOMBIE | CHFL_DELAYED)))
+            if ((acptr != sptr)
+                && ((member->status & CHFL_ZOMBIE)
+                    || ((member->status & CHFL_DELAYED)
+                        && !(bitsel & WHOSELECT_DELAY))))
               continue;
             if (!(isthere || (SEE_USER(sptr, acptr, bitsel))))
               continue;
