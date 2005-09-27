@@ -678,20 +678,28 @@ add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
  * @param[in,out] mtree_p Trie node to remove command from.
  * @param[in] cmd Text of command to remove.
  */
-void
+struct MessageTree *
 del_msg_element(struct MessageTree *mtree_p, char *cmd)
 {
-  struct MessageTree *ntree_p;
+  int slot = *cmd & (MAXPTRLEN-1);
 
+  /* Either remove leaf message or from appropriate child. */
   if (*cmd == '\0')
-    return;
+    mtree_p->msg = NULL;
+  else
+    mtree_p->pointers[slot] = del_msg_element(mtree_p->pointers[slot], cmd + 1);
 
-  if ((ntree_p = mtree_p->pointers[*cmd & (MAXPTRLEN-1)]) != NULL)
-  {
-    del_msg_element(ntree_p, cmd+1);
-    MyFree(ntree_p);
-    mtree_p->pointers[*cmd & (MAXPTRLEN-1)] = NULL;
-  }
+  /* If current message or any child still exists, keep this node. */
+  if (mtree_p->msg)
+    return mtree_p;
+  for (slot = 0; slot < MAXPTRLEN; ++slot)
+    if (mtree_p->pointers[slot])
+      return mtree_p;
+
+  /* Otherwise, if we're not a root node, free it and return null. */
+  if (mtree_p != &msg_tree && mtree_p != &tok_tree)
+    MyFree(mtree_p);
+  return NULL;
 }
 
 /** Initialize the message lookup trie with all known commands. */

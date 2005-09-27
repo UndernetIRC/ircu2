@@ -1,5 +1,10 @@
 2005-09-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/parse.c (del_msg_element): Only delete empty subtrees, and
+	leave subtrees that may still contain data.
+
+2005-09-26  Michael Poole <mdpoole@troilus.org>
+
 	* include/channel.h (struct ModeBuf): Add mbm_oplevel to args
 	array.
 	(MB_OPLEVEL): New corresponding macro.
