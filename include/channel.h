@@ -317,6 +317,7 @@ struct ModeBuf {
       char	       *mbma_string;	/**< A string */
       struct Client    *mbma_client;	/**< A client */
     }			mbm_arg;	/**< The mode argument */
+    unsigned short      mbm_oplevel;    /**< Oplevel for a bounce */
   }			mb_modeargs[MAXMODEPARAMS];
 					/**< A mode w/args */
 };
@@ -339,6 +340,7 @@ struct ModeBuf {
 #define MB_UINT(mb, i)		((mb)->mb_modeargs[(i)].mbm_arg.mbma_uint)
 #define MB_STRING(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_string)
 #define MB_CLIENT(mb, i)	((mb)->mb_modeargs[(i)].mbm_arg.mbma_client)
+#define MB_OPLEVEL(mb, i)       ((mb)->mb_modeargs[(i)].mbm_oplevel)
 
 /** A buffer represeting a list of joins to send */
 struct JoinBuf {
@@ -421,7 +423,7 @@ extern void modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode,
 extern void modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode,
 				char *string, int free);
 extern void modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
-				struct Client *client);
+				struct Client *client, int oplevel);
 extern int modebuf_flush(struct ModeBuf *mbuf);
 extern void modebuf_extract(struct ModeBuf *mbuf, char *buf);
 

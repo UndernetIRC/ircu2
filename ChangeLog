@@ -1,3 +1,26 @@
+2005-09-26  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h (struct ModeBuf): Add mbm_oplevel to args
+	array.
+	(MB_OPLEVEL): New corresponding macro.
+	(modebuf_mode_client): Add corresponding argument.
+
+	* ircd/channel.c (modebuf_flush_int): Adjust worst-case buffer
+	usage to include :999 suffix.  Change format for oplevel passing.
+	(modebuf_mode_client): Set oplevel field in mbuf args array.
+	(struct ParseState): Add oplevel field to cli_change array.
+	(mode_parse_client): Accept and record oplevel suffix from
+	servers; fix it up if we're bouncing a deop.
+	(mode_process_clients): If a valid oplevel was parsed, use it.
+
+	* ircd/m_burst.c (ms_burst): Pass oplevel to modebuf_mode_client().
+
+	* ircd/m_clearmode.c (do_clearmode): Likewise.
+
+	* ircd/m_create.c (ms_create): Likewise.
+
+	* ircd/m_kick.c (ms_kick): Likewise.
+
 2005-09-23  Michael Poole <mdpoole@troilus.org>
 
 	* include/whocmds.h (WHOSELECT_DELAY): Define new constant.

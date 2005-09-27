@@ -1574,11 +1574,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE)) {
       tmp = strlen(cli_name(MB_CLIENT(mbuf, i)));
 
-      if ((totalbuflen - IRCD_MAX(5, tmp)) <= 0) /* don't overflow buffer */
+      if ((totalbuflen - IRCD_MAX(9, tmp)) <= 0) /* don't overflow buffer */
 	MB_TYPE(mbuf, i) |= MODE_SAVE; /* save for later */
       else {
 	bufptr[(*bufptr_i)++] = MB_TYPE(mbuf, i) & MODE_CHANOP ? 'o' : 'v';
-	totalbuflen -= IRCD_MAX(5, tmp) + 1;
+	totalbuflen -= IRCD_MAX(9, tmp) + 1;
       }
     } else if (MB_TYPE(mbuf, i) & (MODE_BAN | MODE_APASS | MODE_UPASS)) {
       tmp = strlen(MB_STRING(mbuf, i));
@@ -1748,8 +1748,17 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	strptr_i = &remstr_i;
       }
 
-      /* deal with modes that take clients */
-      if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
+      /* if we're changing oplevels we know the oplevel, pass it on */
+      if (mbuf->mb_channel->mode.apass[0]
+          && (MB_TYPE(mbuf, i) & MODE_CHANOP)
+          && MB_OPLEVEL(mbuf, i) < MAXOPLEVEL)
+          *strptr_i += ircd_snprintf(0, strptr + *strptr_i, BUFSIZE - *strptr_i,
+                                     " %s%s:%d",
+                                     NumNick(MB_CLIENT(mbuf, i)),
+                                     MB_OPLEVEL(mbuf, i));
+
+      /* deal with other modes that take clients */
+      else if (MB_TYPE(mbuf, i) & (MODE_CHANOP | MODE_VOICE))
 	build_string(strptr, strptr_i, NumNick(MB_CLIENT(mbuf, i)), ' ');
 
       /* deal with modes that take strings */
@@ -1969,16 +1978,18 @@ modebuf_mode_string(struct ModeBuf *mbuf, unsigned int mode, char *string,
  * @param mbuf		The modebuf to append the mode to.
  * @param mode		The mode to append.
  * @param client	The client argument to append.
+ * @param oplevel       The oplevel the user had or will have
  */
 void
 modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
-		    struct Client *client)
+		    struct Client *client, int oplevel)
 {
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
   MB_TYPE(mbuf, mbuf->mb_count) = mode;
   MB_CLIENT(mbuf, mbuf->mb_count) = client;
+  MB_OPLEVEL(mbuf, mbuf->mb_count) = oplevel;
 
   /* when we've reached the maximal count, flush the buffer */
   if (++mbuf->mb_count >=
@@ -2149,6 +2160,7 @@ struct ParseState {
   struct Ban banlist[MAXPARA];
   struct {
     unsigned int flag;
+    unsigned short oplevel;
     struct Client *client;
   } cli_change[MAXPARA];
 };
@@ -2829,6 +2841,8 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 {
   char *t_str;
   struct Client *acptr;
+  struct Membership *member;
+  int oplevel = MAXOPLEVEL + 1;
   int i;
 
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
@@ -2849,8 +2863,13 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 
   if (MyUser(state->sptr)) /* find client we're manipulating */
     acptr = find_chasing(state->sptr, t_str, NULL);
-  else
+  else {
+    if (t_str[5] == ':') {
+      t_str[5] = '\0';
+      oplevel = atoi(t_str + 6);
+    }
     acptr = findNUser(t_str);
+  }
 
   if (!acptr)
     return; /* find_chasing() already reported an error to the user */
@@ -2860,8 +2879,16 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 				       state->cli_change[i].flag & flag_p[0]))
       break; /* found a slot */
 
+  /* If we are going to bounce this deop, mark the correct oplevel. */
+  if (state->flags & MODE_PARSE_BOUNCE
+      && state->dir == MODE_DEL
+      && flag_p[0] == MODE_CHANOP
+      && (member = find_member_link(state->chptr, acptr)))
+      oplevel = OpLevel(member);
+
   /* Store what we're doing to them */
   state->cli_change[i].flag = state->dir | flag_p[0];
+  state->cli_change[i].oplevel = oplevel;
   state->cli_change[i].client = acptr;
 }
 
@@ -2939,20 +2966,22 @@ mode_process_clients(struct ParseState *state)
 		       "deop", equal ? "the same" : "a higher");
 	  continue;
 	}
-    }
+      }
     }
 
     /* set op-level of member being opped */
     if ((state->cli_change[i].flag & (MODE_ADD | MODE_CHANOP)) ==
 	(MODE_ADD | MODE_CHANOP)) {
-      /* If being opped by an outsider, get oplevel 1 for an apass
-       *   channel, else MAXOPLEVEL.
+      /* If a valid oplevel was specified, use it.
+       * Otherwise, if being opped by an outsider, get MAXOPLEVEL.
        * Otherwise, if not an apass channel, or state->member has
        *   MAXOPLEVEL, get oplevel MAXOPLEVEL.
        * Otherwise, get state->member's oplevel+1.
        */
-      if (!state->member)
-        SetOpLevel(member, state->chptr->mode.apass[0] ? 1 : MAXOPLEVEL);
+      if (state->cli_change[i].oplevel <= MAXOPLEVEL)
+        SetOpLevel(member, state->cli_change[i].oplevel);
+      else if (!state->member)
+        SetOpLevel(member, MAXOPLEVEL);
       else if (!state->chptr->mode.apass[0] || OpLevel(state->member) == MAXOPLEVEL)
         SetOpLevel(member, MAXOPLEVEL);
       else
@@ -2975,7 +3004,8 @@ mode_process_clients(struct ParseState *state)
 
     /* accumulate the change */
     modebuf_mode_client(state->mbuf, state->cli_change[i].flag,
-			state->cli_change[i].client);
+			state->cli_change[i].client,
+                        state->cli_change[i].oplevel);
   } /* for (i = 0; state->cli_change[i].flags; i++) */
 }
 

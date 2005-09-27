@@ -200,13 +200,13 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
       /* Drop channel operator status */
       if (IsChanOp(member) && del_mode & MODE_CHANOP) {
-	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user);
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, MAXOPLEVEL + 1);
 	member->status &= ~CHFL_CHANOP;
       }
 
       /* Drop voice */
       if (HasVoice(member) && del_mode & MODE_VOICE) {
-	modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, member->user);
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, member->user, MAXOPLEVEL + 1);
 	member->status &= ~CHFL_VOICE;
       }
     }

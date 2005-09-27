@@ -174,7 +174,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		      MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
 		      MODEBUF_DEST_BOUNCE)); /* And bounce the mode */
 
-	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr);
+	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr, MAXOPLEVEL + 1);
 
 	modebuf_flush(&mbuf);
 
