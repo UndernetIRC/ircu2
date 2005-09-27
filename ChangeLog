@@ -1,5 +1,10 @@
 2005-09-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/whocmds.c (do_who): Fix uninitialized variable warning
+	about 'chan'.
+
+2005-09-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/parse.c (del_msg_element): Only delete empty subtrees, and
 	leave subtrees that may still contain data.
 

@@ -72,7 +72,7 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
             int fields, char* qrt)
 {
   char *p1;
-  struct Membership *chan;
+  struct Membership *chan = 0;
 
   static char buf1[512];
   /* NOTE: with current fields list and sizes this _cannot_ overrun, 
