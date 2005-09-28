@@ -234,7 +234,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    MODEBUF_DEST_BOUNCE)); /* And bounce the MODE */
 
       if (IsChanOp(member))
-	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, who, MAXOPLEVEL + 1);
+	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, who, OpLevel(member));
       if (HasVoice(member))
 	modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, who, MAXOPLEVEL + 1);
 
