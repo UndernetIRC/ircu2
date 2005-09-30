@@ -1,3 +1,7 @@
+2005-09-30  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h: Update for release.
+
 2005-09-28  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_kick.c (ms_kick): Use correct oplevel when bouncing a
