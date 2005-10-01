@@ -26,7 +26,7 @@ build: ${TESTPROGS}
 depend: ${DEP_SRC}
 	@cd ${srcdir} && \
 	if [ -f Makefile.in.bak ]; then \
-	  echo "make depend: First remove ircd/Makefile.in.bak"; \
+	  echo "make depend: First remove ircd/test/Makefile.in.bak"; \
 	else \
 	  mv Makefile.in Makefile.in.bak && \
 	  grep -A1 -B10000 '^# DO NOT DELETE THIS LINE' Makefile.in.bak > Makefile.in && \

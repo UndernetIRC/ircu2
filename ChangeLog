@@ -1,5 +1,10 @@
 2005-09-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/test/Makefile.in: Add missing path component in warning
+	message about Makefile.in.bak.
+
+2005-09-30  Michael Poole <mdpoole@troilus.org>
+
 	* ChangeLog: Move old contents to ChangeLog.12 and create anew.
 
 	* include/patchlevel.h: Bump to 2.10.13.alpha.0.
