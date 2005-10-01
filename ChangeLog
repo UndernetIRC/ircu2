@@ -1,3 +1,8 @@
+2005-10-01  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/class.c (init_class): Only set default class's ->next
+	pointer when first allocating it.
+
 2005-09-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_who.c (m_who): Handle matchsel & WHO_FIELD_ACC when

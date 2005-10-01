@@ -91,8 +91,10 @@ void free_class(struct ConnectionClass* p)
  */
 void init_class(void)
 {
-  if (!connClassList)
+  if (!connClassList) {
     connClassList = (struct ConnectionClass*) make_class();
+    connClassList->next   = 0;
+  }
 
   /* We had better not try and free this... */
   ConClass(connClassList) = "default";
@@ -102,7 +104,6 @@ void init_class(void)
   MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   connClassList->valid    = 1;
   Links(connClassList)    = 1;
-  connClassList->next     = 0;
 }
 
 /** Mark current connection classes as invalid.
