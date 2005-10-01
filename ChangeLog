@@ -1,0 +1,5 @@
+2005-09-30  Michael Poole <mdpoole@troilus.org>
+
+	* ChangeLog: Move old contents to ChangeLog.12 and create anew.
+
+	* include/patchlevel.h: Bump to 2.10.13.alpha.0.
