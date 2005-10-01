@@ -1,5 +1,10 @@
 2005-10-01  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_kick.c (ms_kick): If the kick target is join-delayed,
+	only send the KICK to the kicker.  Spotted by Cesar_.
+
+2005-10-01  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Update to pre1.
 
 	* ircd/class.c (init_class): Only set default class's ->next
