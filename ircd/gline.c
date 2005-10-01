@@ -43,7 +43,6 @@
 #include "msg.h"
 #include "numnicks.h"
 #include "numeric.h"
-#include "whocmds.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
@@ -67,6 +66,34 @@
 struct Gline* GlobalGlineList  = 0;
 /** List of BadChan G-lines. */
 struct Gline* BadChanGlineList = 0;
+
+/** Count number of users who match \a mask.
+ * @param[in] mask user\@host or user\@ip mask to check.
+ * @return Count of matching users.
+ */
+static int
+count_users(char *mask)
+{
+  struct Client *acptr;
+  int count = 0;
+  char namebuf[USERLEN + HOSTLEN + 2];
+  char ipbuf[USERLEN + 16 + 2];
+
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
+    if (!IsUser(acptr))
+      continue;
+
+    ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
+		  cli_user(acptr)->username, cli_user(acptr)->host);
+    ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s@%s", cli_user(acptr)->username,
+		  ircd_ntoa(&cli_ip(acptr)));
+
+    if (!match(mask, namebuf) || !match(mask, ipbuf))
+      count++;
+  }
+
+  return count;
+}
 
 /** Find canonical user and host for a string.
  * If \a userhost starts with '$', assign \a userhost to *user_p and NULL to *host_p.

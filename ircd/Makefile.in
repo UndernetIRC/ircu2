@@ -211,7 +211,6 @@ IRCD_SRC = \
 	send.c \
 	uping.c \
 	userload.c \
-	whocmds.c \
 	whowas.c \
 	y.tab.c
 
@@ -426,7 +425,7 @@ gline.o: gline.c ../config.h ../include/gline.h ../include/res.h \
   ../include/ircd_chattr.h ../include/match.h ../include/numeric.h \
   ../include/s_bsd.h ../include/s_debug.h ../include/s_misc.h \
   ../include/s_stats.h ../include/send.h ../include/struct.h \
-  ../include/msg.h ../include/numnicks.h ../include/whocmds.h
+  ../include/msg.h ../include/numnicks.h
 hash.o: hash.c ../config.h ../include/hash.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../config.h ../include/ircd_handler.h \
@@ -1177,8 +1176,8 @@ m_who.o: m_who.c ../config.h ../include/channel.h ../include/ircd_defs.h \
   ../include/capab.h ../include/hash.h ../include/ircd.h \
   ../include/struct.h ../include/ircd_chattr.h ../include/ircd_features.h \
   ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_string.h \
-  ../include/match.h ../include/numeric.h ../include/numnicks.h \
-  ../include/send.h ../include/whocmds.h
+  ../include/ircd_snprintf.h ../include/match.h ../include/numeric.h \
+  ../include/numnicks.h ../include/send.h
 m_whois.o: m_whois.c ../config.h ../include/channel.h \
   ../include/ircd_defs.h ../include/res.h ../config.h ../include/client.h \
   ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
@@ -1187,7 +1186,7 @@ m_whois.o: m_whois.c ../config.h ../include/channel.h \
   ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_string.h \
   ../include/ircd_chattr.h ../include/match.h ../include/msg.h \
   ../include/numeric.h ../include/numnicks.h ../include/s_user.h \
-  ../include/send.h ../include/whocmds.h
+  ../include/send.h
 m_whowas.o: m_whowas.c ../config.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../config.h ../include/ircd_handler.h \
@@ -1262,7 +1261,7 @@ parse.o: parse.c ../config.h ../include/parse.h ../include/client.h \
   ../include/s_bsd.h ../include/s_conf.h ../include/client.h \
   ../include/s_debug.h ../include/s_misc.h ../include/s_numeric.h \
   ../include/s_user.h ../include/send.h ../include/struct.h \
-  ../include/sys.h ../include/whocmds.h ../include/whowas.h
+  ../include/sys.h ../include/whowas.h
 querycmds.o: querycmds.c ../config.h ../include/querycmds.h \
   ../include/ircd_features.h
 random.o: random.c ../config.h ../include/random.h ../include/client.h \
@@ -1431,20 +1430,6 @@ userload.o: userload.c ../config.h ../include/userload.h \
   ../include/numnicks.h ../include/querycmds.h ../include/ircd_features.h \
   ../include/s_misc.h ../include/s_stats.h ../include/send.h \
   ../include/struct.h ../include/sys.h
-whocmds.o: whocmds.c ../config.h ../include/whocmds.h \
-  ../include/channel.h ../include/ircd_defs.h ../include/res.h \
-  ../config.h ../include/client.h ../include/dbuf.h ../include/msgq.h \
-  ../include/ircd_events.h ../include/ircd_handler.h ../include/capab.h \
-  ../include/hash.h ../include/ircd.h ../include/struct.h \
-  ../include/ircd_chattr.h ../include/ircd_features.h \
-  ../include/ircd_reply.h ../include/ircd_snprintf.h \
-  ../include/ircd_string.h ../include/list.h ../include/match.h \
-  ../include/numeric.h ../include/numnicks.h ../include/querycmds.h \
-  ../include/ircd_features.h ../include/random.h ../include/s_bsd.h \
-  ../include/s_conf.h ../include/client.h ../include/s_misc.h \
-  ../include/s_user.h ../include/send.h ../include/struct.h \
-  ../include/sys.h ../include/userload.h ../include/version.h \
-  ../include/whowas.h ../include/msg.h
 whowas.o: whowas.c ../config.h ../include/whowas.h ../include/client.h \
   ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
   ../include/ircd_events.h ../config.h ../include/ircd_handler.h \

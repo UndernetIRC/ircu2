@@ -95,10 +95,12 @@
 #include "numnicks.h"
 #include "s_user.h"
 #include "send.h"
-#include "whocmds.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
+
+/** Maximum number of lines to send in response to a /WHOIS. */
+#define MAX_WHOIS_LINES 50
 
 /*
  * 2000-07-01: Isomer

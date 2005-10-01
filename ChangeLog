@@ -1,5 +1,31 @@
 2005-09-30  Michael Poole <mdpoole@troilus.org>
 
+	* include/whocmds.h: File becomes unused and almost empty; remove.
+
+	* ircd/whocmds.c: Likewise.
+
+	* ircd/gline.c (count_users): Move from whocmds.c and make static.
+
+	* ircd/m_who.c: Doxygenate comments about command handlers.  Do
+	not #include "whocmds.h", but instead #include "ircd_snprintf.h".
+	(WHOSELECT_*): Moved from whocmds.h.
+	(WHO_FIELD_*): Likewise.
+	(IS_VISIBLE_USER): Likewise.
+	(SEE_LUSER): Likewise.
+	(SEE_USER): Likewise.
+	(SHOW_MORE): Likewise.
+	(SEE_CHANNEL): Likewise.
+	(do_who): Move from whocmds.c and make static.
+
+	* ircd/m_whois.c: Do not #include "whocmds.h".
+	(MAX_WHOIS_USERS): Moved from whocmds.h.
+
+	* ircd/parse.c: Do not #include "whocmds.h".
+
+	* ircd/Makefile.in: Remove mention of whocmds.  Update depends.
+
+2005-09-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/test/Makefile.in: Add missing path component in warning
 	message about Makefile.in.bak.
 

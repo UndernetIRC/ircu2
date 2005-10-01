@@ -50,7 +50,6 @@
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
-#include "whocmds.h"
 #include "whowas.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
