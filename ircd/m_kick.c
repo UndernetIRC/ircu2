@@ -162,7 +162,6 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       sendcmdto_one(sptr, CMD_KICK, who, "%H %C :%s", chptr, who, comment);
     sendcmdto_one(who, CMD_JOIN, sptr, "%H", chptr);
     sendcmdto_one(sptr, CMD_KICK, sptr, "%H %C :%s", chptr, who, comment);
-    CheckDelayedJoins(chptr);
   } else
     sendcmdto_channel_butserv_butone(sptr, CMD_KICK, chptr, NULL, 0, "%H %C :%s", chptr, who,
                                      comment);
@@ -246,9 +245,15 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 			  comment);
 
     if (member) { /* and tell the channel about it */
-      sendcmdto_channel_butserv_butone(IsServer(sptr) ? &his : sptr, CMD_KICK,
-				       chptr, NULL, 0, "%H %C :%s", chptr, who,
-				       comment);
+      if (IsDelayedJoin(member)) {
+        if (MyUser(who))
+          sendcmdto_one(IsServer(sptr) ? &his : sptr, CMD_KICK,
+                        who, "%h %C :%s", chptr, who, comment);
+      } else {
+        sendcmdto_channel_butserv_butone(IsServer(sptr) ? &his : sptr, CMD_KICK,
+                                         chptr, NULL, 0, "%H %C :%s", chptr, who,
+                                         comment);
+      }
 
       make_zombie(member, who, cptr, sptr, chptr);
     }
