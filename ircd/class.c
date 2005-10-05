@@ -136,13 +136,12 @@ void class_delete_marked(void)
     /*
      * unlink marked classes, delete unreferenced ones
      */
-    if (cl->valid)
+    if (cl->valid || Links(cl) > 1)
       prev = cl;
     else
     {
       prev->next = cl->next;
-      if (0 == --cl->ref_count)
-        free_class(cl);
+      free_class(cl);
     }
   }
 }
@@ -215,7 +214,7 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
   Debug((DEBUG_DEBUG, "Add Class %s: cf: %u pf: %u ml: %u sq: %d",
          name, confreq, ping, maxli, sendq));
   assert(name != NULL);
-  p = find_class(name);
+  p = do_find_class(name, 1);
   if (!p)
     p = make_class();
   else
@@ -231,13 +230,16 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
 
 /** Find a connection class by name.
  * @param[in] name Name of connection class to search for.
+ * @param[in] extras If non-zero, include unreferenced classes.
  * @return Pointer to connection class structure (or NULL if none match).
  */
-struct ConnectionClass* find_class(const char *name)
+struct ConnectionClass* do_find_class(const char *name, int extras)
 {
   struct ConnectionClass *cltmp;
 
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next) {
+    if (!cltmp->valid || !extras)
+      continue;
     if (!ircd_strcmp(ConClass(cltmp), name))
       return cltmp;
   }
@@ -256,9 +258,9 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
   struct ConnectionClass *cltmp;
 
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next)
-    send_reply(sptr, RPL_STATSYLINE, 'Y', ConClass(cltmp), PingFreq(cltmp),
-	       ConFreq(cltmp), MaxLinks(cltmp), MaxSendq(cltmp),
-	       Links(cltmp) - 1);
+    send_reply(sptr, RPL_STATSYLINE, (cltmp->valid ? 'Y' : 'y'),
+               ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
+               MaxLinks(cltmp), MaxSendq(cltmp), Links(cltmp) - 1);
 }
 
 /** Return maximum SendQ length for a client.
