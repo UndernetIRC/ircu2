@@ -86,6 +86,8 @@ struct ConnectionClass {
 #define ConfLinks(x)    ((x)->conn_class->ref_count)
 /** Get default usermode for ConfItem \a x. */
 #define ConfUmode(x)    ((x)->conn_class->default_umode)
+/** Find a valid configuration class by name. */
+#define find_class(name) do_find_class((name), 0)
 
 /*
  * Proto types
@@ -97,7 +99,7 @@ extern const struct ConnectionClass* get_class_list(void);
 extern void class_mark_delete(void);
 extern void class_delete_marked(void);
 
-extern struct ConnectionClass *find_class(const char *name);
+extern struct ConnectionClass *do_find_class(const char *name, int extras);
 extern struct ConnectionClass *make_class(void);
 extern void free_class(struct ConnectionClass * tmp);
 extern char *get_conf_class(const struct ConfItem *aconf);

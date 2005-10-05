@@ -1,3 +1,16 @@
+2005-10-04  Michael Poole <mdpoole@troilus.org>
+	[Based on a patch by Jukka Ollila]
+
+	* include/class.h (find_class): Rename to do_find_class().
+
+	* ircd/class.c (class_delete_marked): Keep invalid classes in list
+	until next rehash.
+	(add_class): Use new parameter to do_find_class() to allow a class
+	to be "resurrected".
+	(find_class): Rename.
+	(report_classes): Use 'y' instead of 'Y' when reporting invalid
+	classes.
+
 2005-10-01  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_kick.c (ms_kick): If the kick target is join-delayed,
