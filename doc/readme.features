@@ -853,3 +853,10 @@ CHANNELLEN
 This is the allowed length of locally created channels.  It may not be
 larger than the CHANNELLEN #define.  Like the NICKLEN feature, this is
 intended to ease changes in channel name length across a network.
+
+USER_GLIST
+* Type: boolean
+* Default: FALSE
+
+Optionally removes the ability to list glines by users
+(ie /GLINE ident@host.mask.cc, shows reason, expiry time etc)

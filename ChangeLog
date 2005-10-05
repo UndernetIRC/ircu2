@@ -1,3 +1,13 @@
+2004-03-20  Fredrik Soderblom <froo@quakenet.org>
+
+	* doc/readme.features: Document this new feature.
+
+	* include/ircd_features.h (FEAT_USER_GLIST): New feature.
+
+	* ircd/m_gline.c (m_gline): Consult it.
+
+	* ircd/ircd_features.c (FEAT_USER_GLIST): Define it.
+
 2005-10-04  Michael Poole <mdpoole@troilus.org>
 	[Based on a patch by Jukka Ollila]
 
