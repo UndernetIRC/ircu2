@@ -1,5 +1,11 @@
 2005-10-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_names.c (m_names): Fix format string when forwarding
+	/names -D to other servers.
+	(ms_names): Likewise.  Add support for remote /names -D.
+
+2005-10-05  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/class.c (do_find_class): Fix bug from previous commit.
 
 	* ircd/ircd_parser.y (clientblock): Allow setting Client port.

@@ -226,12 +226,12 @@ int m_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   int showingdelayed = 0;
 
   if (parc > 1 && !ircd_strcmp(parv[1], "-D")) {
-      para = (parc > 2) ? parv[2] : 0;
-      showingdelayed = 1;
-  }
-
-  if ((parc - showingdelayed) > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2+showingdelayed, parc, parv))
-    return 0; 
+    para = (parc > 2) ? parv[2] : 0;
+    showingdelayed = 1;
+    if (parc > 3 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %s %C", 3, parc, parv))
+      return 0;
+  } else if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc, parv))
+    return 0;
 
   if (EmptyString(para)) {
     send_reply(sptr, RPL_ENDOFNAMES, "*");
@@ -370,9 +370,15 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Membership* member; 
   char* s;
   char* para = parc > 1 ? parv[1] : 0; 
+  int showingdelayed = 0;
 
-  if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc, parv))
-    return 0; 
+  if (parc > 1 && !ircd_strcmp(parv[1], "-D")) {
+    para = (parc > 2) ? parv[2] : 0;
+    showingdelayed = NAMES_DEL;
+    if (parc > 3 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %s %C", 3, parc, parv))
+      return 0;
+  } else if (parc > 2 && hunt_server_cmd(sptr, CMD_NAMES, cptr, 1, "%s %C", 2, parc, parv))
+    return 0;
 
   if (EmptyString(para)) {
     send_reply(sptr, RPL_ENDOFNAMES, "*");
@@ -383,7 +389,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   
   s = strchr(para, ','); /* Recursively call m_names for each comma-separated channel. */
   if (s) {
-    parv[1] = ++s;
+    parv[1+!!showingdelayed] = ++s;
     m_names(cptr, sptr, parc, parv);
   }
  
@@ -410,9 +416,9 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
       if (find_channel_member(sptr, ch2ptr))
       {
-        do_names(sptr, ch2ptr, NAMES_ALL); /* Full list if we're in this chan. */
+        do_names(sptr, ch2ptr, showingdelayed|NAMES_ALL); /* Full list if we're in this chan. */
       } else { 
-        do_names(sptr, ch2ptr, NAMES_VIS);
+        do_names(sptr, ch2ptr, showingdelayed|NAMES_VIS);
       }
     } 
  
@@ -474,7 +480,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     member = find_member_link(chptr, sptr);
     if (member)
     { 
-      do_names(sptr, chptr, NAMES_ALL);
+      do_names(sptr, chptr, showingdelayed|NAMES_ALL);
       if (!EmptyString(para))
       {
         send_reply(sptr, RPL_ENDOFNAMES, chptr ? chptr->chname : para);
@@ -487,7 +493,7 @@ int ms_names(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        *  Special Case 3: User isn't on this channel, show all visible users, in 
        *  non secret channels.
        */ 
-      do_names(sptr, chptr, NAMES_VIS);
+      do_names(sptr, chptr, showingdelayed|NAMES_VIS);
     } 
   } else { /* Channel doesn't exist. */ 
       send_reply(sptr, RPL_ENDOFNAMES, para); 
