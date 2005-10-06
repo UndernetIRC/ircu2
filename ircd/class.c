@@ -238,7 +238,7 @@ struct ConnectionClass* do_find_class(const char *name, int extras)
   struct ConnectionClass *cltmp;
 
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next) {
-    if (!cltmp->valid || !extras)
+    if (!cltmp->valid && !extras)
       continue;
     if (!ircd_strcmp(ConClass(cltmp), name))
       return cltmp;
