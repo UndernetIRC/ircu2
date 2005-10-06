@@ -665,6 +665,7 @@ porthidden: HIDDEN '=' YES ';'
 clientblock: CLIENT
 {
   maxlinks = 65535;
+  port = 0;
 }
 '{' clientitems '}' ';'
 {
@@ -684,6 +685,7 @@ clientblock: CLIENT
       memcpy(&aconf->address.addr, &addr, sizeof(aconf->address.addr));
     else
       memset(&aconf->address.addr, 0, sizeof(aconf->address.addr));
+    aconf->address.port = port;
     aconf->addrbits = addrbits;
     aconf->name = ip;
     aconf->conn_class = c_class;
@@ -701,9 +703,10 @@ clientblock: CLIENT
   c_class = NULL;
   ip = NULL;
   pass = NULL;
+  port = 0;
 };
 clientitems: clientitem clientitems | clientitem;
-clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks;
+clientitem: clienthost | clientip | clientusername | clientclass | clientpass | clientmaxlinks | clientport;
 clienthost: HOST '=' QSTRING ';'
 {
   char *sep = strchr($3, '@');
@@ -751,6 +754,10 @@ clientpass: PASS '=' QSTRING ';'
 clientmaxlinks: MAXLINKS '=' expr ';'
 {
   maxlinks = $3;
+};
+clientport: PORT '=' expr ';'
+{
+  port = $3;
 };
 
 killblock: KILL

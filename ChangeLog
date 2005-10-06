@@ -1,3 +1,13 @@
+2005-10-05  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/class.c (do_find_class): Fix bug from previous commit.
+
+	* ircd/ircd_parser.y (clientblock): Allow setting Client port.
+
+	* ircd/s_conf.c (check_limit_and_attach): Merge into attach_iline.
+	(attach_iline): Only set FLAG_DOID when we are sure we will attach
+	this Client block to the client. [Credit: Jukka Ollila and others]
+
 2005-10-04  Michael Poole <mdpoole@troilus.org>
 	[Based on a patch by Jukka Ollila]
 

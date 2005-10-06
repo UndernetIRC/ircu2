@@ -345,22 +345,6 @@ void det_confs_butmask(struct Client* cptr, int mask)
   }
 }
 
-/** Check client limits and attach Client block.
- * If there are more connections from the IP than \a aconf->maximum
- * allows, return ACR_TOO_MANY_FROM_IP.  Otherwise, attach \a aconf to
- * \a cptr.
- * @param cptr Client getting \a aconf.
- * @param aconf Configuration item to attach.
- * @return Authorization check result.
- */
-static enum AuthorizationCheckResult
-check_limit_and_attach(struct Client* cptr, struct ConfItem* aconf)
-{
-  if (IPcheck_nr(cptr) > aconf->maximum)
-    return ACR_TOO_MANY_FROM_IP;
-  return attach_conf(cptr, aconf);
-}
-
 /** Find the first (best) Client block to attach.
  * @param cptr Client for whom to check rules.
  * @return Authorization check result.
@@ -379,17 +363,18 @@ enum AuthorizationCheckResult attach_iline(struct Client* cptr)
      */
     if (aconf->address.port && aconf->address.port != cli_listener(cptr)->addr.port)
       continue;
-    if (aconf->username) {
-      SetFlag(cptr, FLAG_DOID);
-      if (match(aconf->username, cli_username(cptr)))
-        continue;
-    }
+    if (aconf->username && match(aconf->username, cli_username(cptr)))
+      continue;
     if (aconf->host && match(aconf->host, cli_sockhost(cptr)))
       continue;
     if ((aconf->addrbits >= 0)
         && !ipmask_check(&cli_ip(cptr), &aconf->address.addr, aconf->addrbits))
       continue;
-    return check_limit_and_attach(cptr, aconf);
+    if (IPcheck_nr(cptr) > aconf->maximum)
+      return ACR_TOO_MANY_FROM_IP;
+    if (aconf->username)
+      SetFlag(cptr, FLAG_DOID);
+    return attach_conf(cptr, aconf);
   }
   return ACR_NO_AUTHORIZATION;
 }
