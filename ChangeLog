@@ -1,3 +1,10 @@
+2005-10-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (clean_channelname): Delete unused function.
+
+	* ircd/m_join.c (m_join): Report too-long channel names as
+	non-existent.
+
 2005-10-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_names.c (m_names): Fix format string when forwarding
