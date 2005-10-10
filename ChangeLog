@@ -1,3 +1,8 @@
+2004-01-04  Kevin L Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_numeric.c (do_numeric): fix a crash when a numeric is
+	sent to a channel...
+
 2005-10-06  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_join.c (m_join): Report too-long channel names as
