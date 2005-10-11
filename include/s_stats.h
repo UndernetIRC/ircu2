@@ -55,8 +55,9 @@ struct StatDesc
 
 #define STAT_FLAG_OPERONLY 0x01    /**< Oper-only stat */
 #define STAT_FLAG_OPERFEAT 0x02    /**< Oper-only if the feature is true */
-#define STAT_FLAG_CASESENS 0x04    /**< Flag is case-sensitive */
-#define STAT_FLAG_VARPARAM 0x08    /**< May have an extra parameter */
+#define STAT_FLAG_LOCONLY  0x04    /**< Local user only */
+#define STAT_FLAG_CASESENS 0x08    /**< Flag is case-sensitive */
+#define STAT_FLAG_VARPARAM 0x10    /**< May have an extra parameter */
 
 extern void stats_init(void);
 const struct StatDesc *stats_find(const char *name_or_char);

@@ -525,7 +525,7 @@ stats_help(struct Client* to, const struct StatDesc* sd, char* param)
 
 /** Contains information about all statistics. */
 struct StatDesc statsinfo[] = {
-  { 'a', "nameservers", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_a,
+  { 'a', "nameservers", STAT_FLAG_OPERFEAT|STAT_FLAG_LOCONLY, FEAT_HIS_STATS_a,
     report_dns_servers, 0,
     "DNS servers." },
   { 'c', "connect", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
