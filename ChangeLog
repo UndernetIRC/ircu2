@@ -1,3 +1,11 @@
+2005-10-12  Perry Lorier <isomer@undernet.org>
+
+	* include/s_stats.h: Add new "Local" only flag to /stats.
+
+	* ircd/m_stats.c: Consult it.
+
+	* ircd/s_stats.c: Use the flag.
+
 2004-01-04  Kevin L Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_numeric.c (do_numeric): fix a crash when a numeric is

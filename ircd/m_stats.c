@@ -137,6 +137,10 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        ((sd->sd_flags & STAT_FLAG_OPERFEAT) && feature_bool(sd->sd_control))))
     return send_reply(cptr, ERR_NOPRIVILEGES);
 
+  /* Check if they are a local user */
+  if ((sd->sd_flags & STAT_FLAG_LOCONLY) && !MyUser(cptr))
+    return send_reply(cptr, ERR_NOPRIVILEGES);
+
   /* Check for extra parameter */
   if ((sd->sd_flags & STAT_FLAG_VARPARAM) && parc > 3 && !EmptyString(parv[3]))
     param = parv[3];
