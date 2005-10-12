@@ -1,3 +1,8 @@
+2005-10-11  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/os_generic.c (os_get_rusage): Make conditional on DEBUGMODE
+	to mitigate bug #1313429.
+
 2005-10-12  Perry Lorier <isomer@undernet.org>
 
 	* include/s_stats.h: Add new "Local" only flag to /stats.

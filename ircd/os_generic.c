@@ -162,14 +162,8 @@ int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, in
 
 #endif
 
-/*
- * This is part of the STATS replies. There is no official numeric for this
- * since this isn't an official command, in much the same way as HASH isn't.
- * It is also possible that some systems wont support this call or have
- * different field names for "struct rusage".
- * -avalon
- */
-/** Send resource usage information to a client.
+#ifdef DEBUGMODE
+/** Send resource usage information to an enumerator function.
  * @param[in] cptr Client requesting information.
  * @param[in] uptime Wall time in seconds since the server started.
  * @param[in] enumerator Function to call to send a line to \a cptr.
@@ -262,6 +256,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
 #endif /* HAVE_GETRUSAGE */
   return 1;
 }
+#endif
 
 /** Look up the most recent socket error for a socket file descriptor.
  * @param[in] fd File descriptor to check.
