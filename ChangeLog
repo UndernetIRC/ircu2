@@ -1,3 +1,10 @@
+2005-10-12  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Update documentation to match this change.
+
+	* ircd/client.c (client_set_privs): Make default global oper
+	privileges match what was in 2.10.11.
+
 2005-10-12  Perry Lorier <isomer@undernet.org>
 
 	* include/s_stats.h: Add new "Local" only flag to /stats.
