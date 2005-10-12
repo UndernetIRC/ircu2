@@ -1,3 +1,10 @@
+2005-10-12  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Update documentation to match this change.
+
+	* ircd/client.c (client_set_privs): Make default global oper
+	privileges match what was in 2.10.11.
+
 2005-10-11  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/os_generic.c (os_get_rusage): Make conditional on DEBUGMODE
