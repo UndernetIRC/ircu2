@@ -1,5 +1,9 @@
 2005-10-14  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Update to pre02.
+
+2005-10-14  Michael Poole <mdpoole@troilus.org>
+
 	* doc/readme.cvs: Document tag name consistently with the release
 	name.
 
