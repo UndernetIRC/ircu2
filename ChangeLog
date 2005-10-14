@@ -1,3 +1,8 @@
+2005-10-14  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHLEVEL): Bump patchlevel for release
+	of 2.10.12.01.
+
 2005-10-12  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Update documentation to match this change.
