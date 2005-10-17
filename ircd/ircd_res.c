@@ -788,7 +788,15 @@ res_readreply(struct Event *ev)
   if ((header->rcode != NO_ERRORS) || (header->ancount == 0))
   {
     if (SERVFAIL == header->rcode)
-      resend_query(request);
+    {
+        /*
+         * If a bad error was returned, we stop here and don't send
+         * send any more (no retries granted).
+         */
+        Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d rcode %d)", request, request->state, request->type, header->rcode));
+        (*request->callback)(request->callback_ctx, NULL, NULL);
+	rem_request(request);
+    }
     else
     {
       /*
@@ -807,16 +815,6 @@ res_readreply(struct Event *ev)
         request->state = REQ_INT;
         request->timeout += feature_int(FEAT_IRCD_RES_TIMEOUT);
         resend_query(request);
-      }
-      else
-      {
-        /*
-         * If a bad error was returned, we stop here and don't send
-         * send any more (no retries granted).
-         */
-        Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d rcode %d)", request, request->state, request->type, header->rcode));
-        (*request->callback)(request->callback_ctx, NULL, NULL);
-	rem_request(request);
       }
     }
 
