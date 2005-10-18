@@ -84,6 +84,7 @@
  * External stuff
  *--------------------------------------------------------------------------*/
 extern void init_counters(void);
+extern void init_isupport(void);
 extern void mem_dbg_initialise(void);
 
 /*----------------------------------------------------------------------------
@@ -679,6 +680,7 @@ int main(int argc, char **argv) {
   event_init(MAXCONNECTIONS);
 
   setup_signals();
+  init_isupport();
   feature_init(); /* initialize features... */
   log_init(*argv);
   set_nomem_handler(outofmemory);

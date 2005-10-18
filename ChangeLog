@@ -1,3 +1,36 @@
+2005-10-17  Michael Poole <mdpoole@troilus.org>
+	This code inspired by ircd-hybrid's implementation of the same
+	idea.  Thanks, Dianora!
+
+	* include/s_user.h: Declare isupport manipulation functions.
+
+	* include/supported.h: Delete.
+
+	* ircd/ircd.c (main): Call init_isupport().
+
+	* ircd/ircd_features.c (set_isupport_*): New functions to set
+	feature-based isupport settings.
+
+	* ircd/m_defaults.c: Remove unused #include "supported.h".
+
+	* ircd/m_proto.c: Likewise.
+
+	* ircd/m_version.c: Likewise.
+
+	* ircd/s_user.c: Remove #include "supported.h".  Declare new
+	struct ISupport.
+	(isupport): New file-scope variable.
+	(isupport_lines): Likewise.
+	(touch_isupport): New function.
+	(get_clean_isupport): New function.
+	(add_isupport*): New functions.
+	(del_isupport): New function.
+	(build_isupport_lines): New function.
+	(init_isupport): New function.
+	(send_supported): Rewrite to use the above.
+
+	* ircd/Makefile.in: Update dependencies.
+
 2005-10-17  Diane Bruce  <db@db.net>
 
 	* ircd/ircd_res.c: Don't send retries if the client did

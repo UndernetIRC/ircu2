@@ -37,7 +37,6 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
-#include "supported.h"
 #include "version.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */

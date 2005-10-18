@@ -41,6 +41,7 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_user.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"    /* FALSE bleah */
@@ -207,6 +208,54 @@ feature_log_get(struct Client* from, const char* const* fields, int count)
   }
 }
 
+static void
+set_isupport_maxsiles(void)
+{
+    add_isupport_i("SILENCE", feature_int(FEAT_MAXSILES));
+}
+
+static void
+set_isupport_maxchannels(void)
+{
+    add_isupport_i("MAXCHANNELS", feature_int(FEAT_MAXCHANNELSPERUSER));
+}
+
+static void
+set_isupport_maxbans(void)
+{
+    add_isupport_i("MAXBANS", feature_int(FEAT_MAXBANS));
+}
+
+static void
+set_isupport_nicklen(void)
+{
+    add_isupport_i("NICKLEN", feature_int(FEAT_NICKLEN));
+}
+
+static void
+set_isupport_channellen(void)
+{
+    add_isupport_i("CHANNELLEN", feature_int(FEAT_CHANNELLEN));
+}
+
+static void
+set_isupport_chantypes(void)
+{
+    add_isupport_s("CHANTYPES", feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#");
+}
+
+static void
+set_isupport_chanmodes(void)
+{
+    add_isupport_s("CHANMODES", feature_bool(FEAT_OPLEVELS) ? "b,AkU,l,imnpstrDd" : "b,k,l,imnpstrDd");
+}
+
+static void
+set_isupport_network(void)
+{
+    add_isupport_s("NETWORK", feature_str(FEAT_NETWORK));
+}
+
 /** Sets a feature to the given value.
  * @param[in] from Client trying to set parameters.
  * @param[in] fields Array of parameters to set.
@@ -308,18 +357,18 @@ static struct FeatureDesc {
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
   F_B(CONNEXIT_NOTICES, 0, 0, 0),
-  F_B(OPLEVELS, 0, 1, 0),
-  F_B(LOCAL_CHANNELS, 0, 1, 0),
+  F_B(OPLEVELS, 0, 1, set_isupport_chanmodes),
+  F_B(LOCAL_CHANNELS, 0, 1, set_isupport_chantypes),
   F_B(TOPIC_BURST, 0, 0, 0),
   F_B(USER_GLIST, 0, 1, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
-  F_I(MAXCHANNELSPERUSER, 0, 10, 0),
-  F_I(NICKLEN, 0, 12, 0),
+  F_I(MAXCHANNELSPERUSER, 0, 10, set_isupport_maxchannels),
+  F_I(NICKLEN, 0, 12, set_isupport_nicklen),
   F_I(AVBANLEN, 0, 40, 0),
-  F_I(MAXBANS, 0, 45, 0),
-  F_I(MAXSILES, 0, 15, 0),
+  F_I(MAXBANS, 0, 45, set_isupport_maxbans),
+  F_I(MAXSILES, 0, 15, set_isupport_maxsiles),
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
   F_I(CONNECTTIMEOUT, 0, 90, 0),
@@ -333,7 +382,7 @@ static struct FeatureDesc {
   F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
   F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
   F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
-  F_I(CHANNELLEN, 0, 200, 0),
+  F_I(CHANNELLEN, 0, 200, set_isupport_channellen),
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
@@ -403,7 +452,7 @@ static struct FeatureDesc {
   F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
 
   /* Misc. random stuff */
-  F_S(NETWORK, 0, "UnderNet", 0),
+  F_S(NETWORK, 0, "UnderNet", set_isupport_network),
   F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
 
 #undef F_S

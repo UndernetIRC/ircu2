@@ -31,7 +31,6 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
-#include "supported.h"
 #include "version.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */

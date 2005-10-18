@@ -58,7 +58,6 @@
 #include "s_serv.h" /* max_client_count */
 #include "send.h"
 #include "struct.h"
-#include "supported.h"
 #include "sys.h"
 #include "userload.h"
 #include "version.h"
@@ -1729,6 +1728,203 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
   return 1;
 }
 
+/** Describes one element of the ISUPPORT list. */
+struct ISupport {
+    const char *is_name; /**< Name of supported feature. */
+    enum {
+        OPT_NONE,
+        OPT_INT,
+        OPT_STRING
+    } is_type; /**< Type of the feature's value. */
+    union {
+        int iv;
+        char *sv;
+    } is_value; /**< Feature's value. */
+    struct ISupport *is_next; /**< Pointer to next feature. */
+};
+
+static struct ISupport *isupport; /**< List of supported ISUPPORT features. */
+static struct SLink *isupport_lines; /**< List of formatted ISUPPORT lines. */
+
+/** Mark #isupport_lines as dirty and needing a rebuild. */
+static void
+touch_isupport()
+{
+  while (isupport_lines) {
+    struct SLink *link = isupport_lines;
+    isupport_lines = link->next;
+    MyFree(link->value.cp);
+    free_link(link);
+  }
+}
+
+/** Get (or create) an ISupport element from #isupport with the
+ * specified name and OPT_NONE type.
+ * @param[in] name Name of ISUPPORT feature to describe.
+ * @return Pre-existing or newly allocated ISupport structure.
+ */
+static struct ISupport *
+get_clean_isupport(const char *name)
+{
+  struct ISupport *isv, *prev;
+
+  for (isv = isupport, prev = 0; isv; prev = isv, isv = isv->is_next) {
+    if (strcmp(isv->is_name, name))
+      continue;
+    if (isv->is_type == OPT_STRING)
+      MyFree(isv->is_value.sv);
+    break;
+  }
+
+  if (!isv) {
+    isv = MyMalloc(sizeof(*isv));
+    if (prev)
+        prev->is_next = isv;
+    else
+        isupport = isv;
+  }
+
+  isv->is_name = name;
+  isv->is_type = OPT_NONE;
+  isv->is_next = NULL;
+  touch_isupport();
+  return isv;
+}
+
+/** Declare support for a feature with no parameter.
+ * @param[in] name Name of ISUPPORT feature to announce.
+ */
+void add_isupport(const char *name)
+{
+  get_clean_isupport(name);
+}
+
+/** Declare support for a feature with an integer parameter.
+ * @param[in] name Name of ISUPPORT feature to announce.
+ * @param[in] value Value associated with the feature.
+ */
+void add_isupport_i(const char *name, int value)
+{
+  struct ISupport *isv = get_clean_isupport(name);
+  isv->is_type = OPT_INT;
+  isv->is_value.iv = value;
+}
+
+/** Declare support for a feature with a string parameter.
+ * @param[in] name Name of ISUPPORT feature to announce.
+ * @param[in] value Value associated with the feature.
+ */
+void add_isupport_s(const char *name, const char *value)
+{
+  struct ISupport *isv = get_clean_isupport(name);
+  isv->is_type = OPT_STRING;
+  DupString(isv->is_value.sv, value);
+}
+
+/** Stop announcing support for a feature.
+ * @param[in] name Name of ISUPPORT feature to revoke.
+ */
+void del_isupport(const char *name)
+{
+  struct ISupport *isv, *prev;
+
+  for (isv = isupport, prev = 0; isv; prev = isv, isv = isv->is_next) {
+    if (strcmp(isv->is_name, name))
+      continue;
+    if (isv->is_type == OPT_STRING)
+      MyFree(isv->is_value.sv);
+    if (prev)
+      prev->is_next = isv->is_next;
+    else
+      isupport = isv->is_next;
+    break;
+  }
+  touch_isupport();
+}
+
+/** Populate #isupport_lines from #isupport. */
+static void
+build_isupport_lines()
+{
+  struct ISupport *is;
+  struct SLink **plink;
+  char buf[BUFSIZE];
+  int used, len, usable;
+
+  /* Extra buffer space for :me.name 005 ClientNick <etc> */
+  assert(isupport_lines == 0);
+  usable = BUFSIZE - 10
+      - strlen(cli_name(&me))
+      - strlen(get_error_numeric(RPL_ISUPPORT)->format)
+      - feature_int(FEAT_NICKLEN);
+  plink = &isupport_lines;
+  used = 0;
+
+  /* For each ISUPPORT feature, */
+  for (is = isupport; is; ) {
+    /* Try to append it to the buffer. */
+    switch (is->is_type) {
+    case OPT_NONE:
+      len = ircd_snprintf(NULL, buf + used, usable - used,
+                          " %s", is->is_name);
+      break;
+    case OPT_INT:
+      len = ircd_snprintf(NULL, buf + used, usable - used,
+                          " %s=%d", is->is_name, is->is_value.iv);
+      break;
+    case OPT_STRING:
+      len = ircd_snprintf(NULL, buf + used, usable - used,
+                          " %s=%s", is->is_name, is->is_value.sv);
+      break;
+    default:
+      assert(0 && "Unhandled ISUPPORT option type");
+      len = 0;
+      break;
+    }
+
+    /* If it fits, move on; else flush buffer and try again. */
+    if (len + used < usable) {
+      used += len;
+      is = is->is_next;
+    } else {
+      assert(used > 0);
+      *plink = make_link();
+      DupString((*plink)->value.cp, buf + 1);
+      (*plink)->next = 0;
+      plink = &(*plink)->next;
+      used = 0;
+    }
+  }
+
+  /* Terminate buffer and flush last bit of it out. */
+  buf[used] = '\0';
+  *plink = make_link();
+  DupString((*plink)->value.cp, buf + 1);
+  (*plink)->next = 0;
+}
+
+/** Announce fixed-parameter and parameter-free ISUPPORT features
+ * provided by ircu's core code.
+ */
+void init_isupport(void)
+{
+  add_isupport("WHOX");
+  add_isupport("WALLCHOPS");
+  add_isupport("WALLVOICES");
+  add_isupport("USERIP");
+  add_isupport("CPRIVMSG");
+  add_isupport("CNOTICE");
+  add_isupport_i("MODES", MAXMODEPARAMS);
+  add_isupport_i("MAXNICKLEN", NICKLEN);
+  add_isupport_i("TOPICLEN", TOPICLEN);
+  add_isupport_i("AWAYLEN", AWAYLEN);
+  add_isupport_i("KICKLEN", TOPICLEN);
+  add_isupport_i("MAXCHANNELLEN", CHANNELLEN);
+  add_isupport_s("PREFIX", "(ov)@+");
+  add_isupport_s("STATUSMSG", "@+");
+  add_isupport_s("CASEMAPPING", "rfc1459");
+}
+
 /** Send RPL_ISUPPORT lines to \a cptr.
  * @param[in] cptr Client to send ISUPPORT to.
  * @return Zero.
@@ -1736,12 +1932,13 @@ int is_silenced(struct Client *sptr, struct Client *acptr)
 int
 send_supported(struct Client *cptr)
 {
-  char featurebuf[512];
+  struct SLink *line;
 
-  ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES1, FEATURESVALUES1);
-  send_reply(cptr, RPL_ISUPPORT, featurebuf);
-  ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES2, FEATURESVALUES2);
-  send_reply(cptr, RPL_ISUPPORT, featurebuf);
+  if (isupport && !isupport_lines)
+    build_isupport_lines();
+
+  for (line = isupport_lines; line; line = line->next)
+    send_reply(cptr, RPL_ISUPPORT, line->value.cp);
 
   return 0; /* convenience return, if it's ever needed */
 }
