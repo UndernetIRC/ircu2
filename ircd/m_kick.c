@@ -249,7 +249,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (IsDelayedJoin(member)) {
         if (MyUser(who))
           sendcmdto_one(IsServer(sptr) ? &his : sptr, CMD_KICK,
-                        who, "%h %C :%s", chptr, who, comment);
+                        who, "%H %C :%s", chptr, who, comment);
       } else {
         sendcmdto_channel_butserv_butone(IsServer(sptr) ? &his : sptr, CMD_KICK,
                                          chptr, NULL, 0, "%H %C :%s", chptr, who,

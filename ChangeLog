@@ -1,3 +1,7 @@
+2005-10-28  Alex Badea  <vamposdecampos@gmail.com>
+
+	* ircd/m_kick.c (ms_kick): Fix format string typo (bug #1339538)
+
 2005-10-17  Diane Bruce  <db@db.net>
 
 	* ircd/ircd_res.c: Don't send retries if the client did
