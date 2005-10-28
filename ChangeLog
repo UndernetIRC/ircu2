@@ -1,3 +1,7 @@
+2005-10-28  Alex Badea  <vamposdecampos@gmail.com>
+
+	* ircd/m_kick.c (ms_kick): Fix format string typo (bug #1339538)
+
 2005-10-17  Michael Poole <mdpoole@troilus.org>
 	This code inspired by ircd-hybrid's implementation of the same
 	idea.  Thanks, Dianora!
