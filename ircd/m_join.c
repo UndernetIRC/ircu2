@@ -210,24 +210,30 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (IsLocalChannel(chptr->chname)
           && HasPriv(sptr, PRIV_WALK_LCHAN)
           && !(flags & CHFL_CHANOP)
-          && key && !strcmp(key, "OVERRIDE")
-          && strcmp(chptr->mode.key, "OVERRIDE"))
+          && key && !strcmp(key, "OVERRIDE"))
       {
-        switch (err) {
-        case 0:
+        if (err == 0 && strcmp(chptr->mode.key, "OVERRIDE") &&
+            strcmp(chptr->mode.apass, "OVERRIDE") &&
+            strcmp(chptr->mode.upass, "OVERRIDE"))
+        {
           send_reply(sptr, ERR_DONTCHEAT, chptr->chname);
           continue;
-        case ERR_INVITEONLYCHAN: err = 'i'; break;
-        case ERR_CHANNELISFULL:  err = 'l'; break;
-        case ERR_BANNEDFROMCHAN: err = 'b'; break;
-        case ERR_BADCHANNELKEY:  err = 'k'; break;
-        case ERR_NEEDREGGEDNICK: err = 'r'; break;
-        default: err = '?'; break;
         }
-        /* send accountability notice */
-        sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
-                             "(overriding +%c)", sptr, chptr, err);
-        err = 0;
+        if (err != 0)
+        {
+          switch (err) {
+          case ERR_INVITEONLYCHAN: err = 'i'; break;
+          case ERR_CHANNELISFULL:  err = 'l'; break;
+          case ERR_BANNEDFROMCHAN: err = 'b'; break;
+          case ERR_BADCHANNELKEY:  err = 'k'; break;
+          case ERR_NEEDREGGEDNICK: err = 'r'; break;
+          default: err = '?'; break;
+          }
+          /* send accountability notice */
+          sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
+                               "(overriding +%c)", sptr, chptr, err);
+          err = 0;
+        }
       }
 
       /* Is there some reason the user may not join? */

@@ -1,3 +1,8 @@
+2005-10-30  Andrew Miller  <a1kmm@amxl.com>
+
+	* ircd/m_join.c (m_join): Fix check for OVERRIDE when the real channel
+	key is override.
+
 2005-10-28  Alex Badea  <vamposdecampos@gmail.com>
 
 	* ircd/m_kick.c (ms_kick): Fix format string typo (bug #1339538)
