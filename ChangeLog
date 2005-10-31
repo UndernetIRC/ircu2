@@ -1,3 +1,13 @@
+2005-10-30  Michael Poole <mdpoole@troilus.org>
+
+	* .cvsignore: Add autom4te.cache.
+
+	* ircd/.cvsignore: Add convert-conf.
+
+	* ircd/test/.cvsignore: Add ircd_match_t.
+
+	* patches/.cvsignore: Add marks.
+
 2005-10-30  Andrew Miller  <a1kmm@amxl.com>
 
 	* ircd/m_join.c (m_join): Fix check for OVERRIDE when the real channel
