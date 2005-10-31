@@ -5,6 +5,7 @@ ircd
 chkconf
 table_gen
 umkpasswd
+convert-conf
 chattr.tab.c
 lex.yy.c
 y.tab.c

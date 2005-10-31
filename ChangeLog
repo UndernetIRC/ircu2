@@ -1,3 +1,13 @@
+2005-10-30  Michael Poole <mdpoole@troilus.org>
+
+	* .cvsignore: Add autom4te.cache.
+
+	* ircd/.cvsignore: Add convert-conf.
+
+	* ircd/test/.cvsignore: Add ircd_match_t.
+
+	* patches/.cvsignore: Add marks.
+
 2005-10-28  Alex Badea  <vamposdecampos@gmail.com>
 
 	* ircd/m_kick.c (ms_kick): Fix format string typo (bug #1339538)

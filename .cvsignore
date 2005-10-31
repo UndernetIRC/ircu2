@@ -7,3 +7,4 @@ config.status
 config.cache
 .project
 ircu.tags
+autom4te.cache
