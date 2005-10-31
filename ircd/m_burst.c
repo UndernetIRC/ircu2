@@ -219,6 +219,57 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   timestamp = atoi(parv[2]);
 
+  if (chptr->creationtime)	/* 0 for new (empty) channels,
+                                   i.e. when this server just restarted. */
+  {
+    if (parc == 3)		/* Zannel BURST? */
+    {
+      /* An empty channel without +A set, will cause a BURST message
+	 with exactly 3 parameters (because all modes have been reset).
+	 If the timestamp on such channels is only a few seconds older
+	 from our own, then we ignore this burst: we do not deop our
+	 own side.
+	 Likewise, we expect the other (empty) side to copy our timestamp
+	 from our own BURST message, even though it is slightly larger.
+
+	 The reason for this is to allow people to join an empty
+	 non-A channel (a zannel) during a net.split, and not be
+	 deopped when the net reconnects (with another zannel). When
+	 someone joins a split zannel, their side increments the TS by one.
+	 If they cycle a few times then we still don't have a reason to
+	 deop them. Theoretically I see no reason not to accept ANY timestamp,
+	 but to be sure, we only accept timestamps that are just a few
+	 seconds off (one second for each time they cycled the channel). */
+
+      /* Don't even deop users who cycled four times during the net.break. */
+      if (timestamp < chptr->creationtime &&
+          chptr->creationtime <= timestamp + 4 &&
+	  chptr->users != 0)	/* Only do this when WE have users, so that
+	  			   if we do this the BURST that we sent has
+				   parc > 3 and the other side will use the
+				   test below: */
+	timestamp = chptr->creationtime; /* Do not deop our side. */
+    }
+    else if (chptr->creationtime < timestamp &&
+             timestamp <= chptr->creationtime + 4 &&
+	     chptr->users == 0)
+    {
+      /* If one side of the net.junction does the above
+         timestamp = chptr->creationtime, then the other
+	 side must do this: */
+      chptr->creationtime = timestamp;	/* Use the same TS on both sides. */
+    }
+    /* In more complex cases, we might still end up with a
+       creationtime desync of a few seconds, but that should
+       be synced automatically rather quickly (every JOIN
+       caries a timestamp and will sync it; modes by users do
+       not carry timestamps and are accepted regardless).
+       Only when nobody joins the channel on the side with
+       the oldest timestamp before a new net.break occurs
+       precisely inbetween the desync, an unexpected bounce
+       might happen on reconnect. */
+  }
+
   if (!chptr->creationtime || chptr->creationtime > timestamp) {
     /*
      * Kick local members if channel is +i or +k and our TS was larger

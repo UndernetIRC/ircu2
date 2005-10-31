@@ -182,15 +182,17 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       int flags = CHFL_DEOPPED;
       int err = 0;
 
-      /* Check target change limits. */
-
       /* Check Apass/Upass -- since we only ever look at a single
        * "key" per channel now, this hampers brute force attacks. */
       if (key && !strcmp(key, chptr->mode.apass))
         flags = CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
       else if (key && !strcmp(key, chptr->mode.upass))
         flags = CHFL_CHANOP;
-      else if (IsInvited(sptr, chptr)) {
+      else if (chptr->users == 0 && !chptr->mode.apass[0]) {
+        /* Joining a zombie channel (zannel): give ops and increment TS. */
+        flags = CHFL_CHANOP;
+        chptr->creationtime++;
+      } else if (IsInvited(sptr, chptr)) {
         /* Invites bypass these other checks. */
       } else if (chptr->mode.mode & MODE_INVITEONLY)
         err = ERR_INVITEONLYCHAN;
@@ -217,7 +219,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           if (strcmp(chptr->mode.key, "OVERRIDE")
               && strcmp(chptr->mode.apass, "OVERRIDE")
               && strcmp(chptr->mode.upass, "OVERRIDE")) {
-            send_reply(sptr, err, chptr->chname);
+            send_reply(sptr, ERR_DONTCHEAT, chptr->chname);
             continue;
           }
           break;
@@ -242,6 +244,15 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
 
       joinbuf_join(&join, chptr, flags);
+      if (flags & CHFL_CHANOP) {
+        /* Send a MODE to the other servers. If the user used the A/U pass,
+	 * let his server op him, otherwise let him op himself. */
+        struct ModeBuf mbuf;
+	modebuf_init(&mbuf, chptr->mode.apass[0] ? &me : sptr, cptr, chptr, MODEBUF_DEST_SERVER);
+	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr,
+                            chptr->mode.apass[0] ? ((flags & CHFL_CHANNEL_MANAGER) ? 0 : 1) : MAXOPLEVEL);
+	modebuf_flush(&mbuf);
+      }
     }
 
     del_invite(sptr, chptr);
@@ -302,18 +313,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
 
-    if (name[0] == '0' && name[1] == ':')
-    {
-      flags = CHFL_CHANOP | CHFL_CHANNEL_MANAGER;
-      name += 2;
-    }
-    else if (name[0] == '1' && name[1] == ':')
-    {
-      flags = CHFL_CHANOP;
-      name += 2;
-    }
-    else
-      flags = CHFL_DEOPPED;
+    flags = CHFL_DEOPPED;
 
     if (IsLocalChannel(name) || !IsChannelName(name))
     {
@@ -349,8 +349,14 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       else
         flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
       /* Always copy the timestamp when it is older, that is the only way to
-         ensure network-wide synchronization of creation times. */
-      if (creation && creation < chptr->creationtime)
+         ensure network-wide synchronization of creation times.
+         We now also copy a creation time that only 1 second younger...
+         this is needed because the timestamp must be incremented
+         by one when someone joins an existing, but empty, channel.
+         However, this is only necessary when the channel is still
+         empty (also here) and when this channel doesn't have +A set.
+      */
+      if (creation && creation - ((!chptr->mode.apass[0] && chptr->users == 0) ? 1 : 0) <= chptr->creationtime)
 	chptr->creationtime = creation;
     }
 

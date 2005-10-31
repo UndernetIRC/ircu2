@@ -1158,13 +1158,13 @@ static Numeric replyTable[] = {
 /* 562 */
   { ERR_CHANSECURED, "%s :Channel is older than 48 hours and secured. Cannot change Admin pass anymore", "562" },
 /* 563 */
-  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set.  First use /MODE %s -U <userpass>", "563" },
+  { ERR_UPASSSET, "%s :Cannot remove Admin pass (+A) while User pass (+U) is still set. First use /MODE %s -U <userpass>", "563" },
 /* 564 */
-  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set.  First use /MODE %s +A <adminpass>", "564" },
+  { ERR_UPASSNOTSET, "%s :Cannot set user pass (+U) until Admin pass (+A) is set. First use /MODE %s +A <adminpass>", "564" },
 /* 565 */
   { 0 },
 /* 566 */
-  { ERR_NOMANAGER, "%s :Re-create the channel.  The channel must be completely empty before it can be recreated.", "566" },
+  { ERR_NOMANAGER, "%s :Re-create the channel. The channel must be completely empty for a period of %s before it can be recreated.", "566" },
 /* 567 */
   { ERR_UPASS_SAME_APASS, "%s :Cannot use the same pass for both admin (+A) and user (+U) pass.", "567" },
 /* 568 */

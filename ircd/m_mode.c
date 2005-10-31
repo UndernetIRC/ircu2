@@ -179,12 +179,11 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    MODEBUF_DEST_HACK4));  /* Send a HACK(4) message */
     else
       /* Servers need to be able to op people who join using the Apass
-       * or upass, therefore we accept modes for channels with an Apass
-       * without generating a HACK3. */
+       * or upass, as well as people joining a zannel, therefore we no
+       * longer generate HACK3. */
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
-		    MODEBUF_DEST_SERVER |   /* Send mode to servers */
-		    (*chptr->mode.apass ? 0 : MODEBUF_DEST_HACK3)));
+		    MODEBUF_DEST_SERVER));   /* Send mode to servers */
 
     mode_parse(&mbuf, cptr, sptr, chptr, parc - 2, parv + 2,
 	       (MODE_PARSE_SET    | /* Set the mode */
@@ -192,7 +191,9 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		MODE_PARSE_FORCE),  /* And force it to be accepted */
 	        NULL);
   } else {
-    if (!(member = find_member_link(chptr, sptr)) || !IsChanOp(member)) {
+    if (!(member = find_member_link(chptr, sptr))
+        /* Allow people to op themselves on an empty channel. */
+        || (!IsChanOp(member) && chptr->users > 1)) {
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_SERVER |  /* Send mode to server */
 		    MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */

@@ -1,5 +1,36 @@
 2005-10-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_parse_apass): Move all send_reply() errors
+	inside an if (MyUser(state->sptr)) test.
+
+	* ircd/m_join.c (m_join): Reorganize zannel join check to match
+	surrounding code.
+
+2005-10-30  Carlo Wood <run@alinoe.com>
+
+	* ircd/channel.c (sub1_from_channel): Delay destruction for -A
+	channels.  They become zombie channels (zannels).
+	(mode_parse_upass): Add duration to ERR_NOMANAGER message.
+	(mode_parse_apass): Likewise.  Unconditionally set the member who
+	sets Apass as oplevel 0.  Clear Upass when clearing Apass.
+	(joinbuf_join): Remove code to pass oplevel in JOIN.
+
+	* ircd/m_burst.c (ms_burst): Handle zannels.
+
+	* ircd/m_join.c (m_join): Handle a join to a zannel.  If the user
+	is joining with ops and/or an oplevel, send those.
+	(ms_join): Stop trying to parse oplevels in JOIN.  Copy join
+	timestamp when a user joins a zannel.
+
+	* ircd/m_mode.c (ms_mode): Never generate HACK3.  Silently allow a
+	user to op himself if he is the only one in a channel.
+
+	* ircd/s_err.c (ERR_UPASSSET): Remove extra space.
+	(ERR_UPASSNOTSET): Likewise.
+	(ERR_NOMANAGER): Add field for channel lifetime.
+
+2005-10-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (m_join): Reorganize to reduce edit distance from
 	previous version and match code on u2_10_12_branch.
 
