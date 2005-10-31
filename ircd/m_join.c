@@ -210,13 +210,17 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (IsLocalChannel(chptr->chname)
           && HasPriv(sptr, PRIV_WALK_LCHAN)
           && !(flags & CHFL_CHANOP)
-          && key && !strcmp(key, "OVERRIDE")
-          && strcmp(chptr->mode.key, "OVERRIDE"))
+          && key && !strcmp(key, "OVERRIDE"))
       {
         switch (err) {
         case 0:
-          send_reply(sptr, ERR_DONTCHEAT, chptr->chname);
-          continue;
+          if (strcmp(chptr->mode.key, "OVERRIDE")
+              && strcmp(chptr->mode.apass, "OVERRIDE")
+              && strcmp(chptr->mode.upass, "OVERRIDE")) {
+            send_reply(sptr, err, chptr->chname);
+            continue;
+          }
+          break;
         case ERR_INVITEONLYCHAN: err = 'i'; break;
         case ERR_CHANNELISFULL:  err = 'l'; break;
         case ERR_BANNEDFROMCHAN: err = 'b'; break;
@@ -225,8 +229,9 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         default: err = '?'; break;
         }
         /* send accountability notice */
-        sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
-                             "(overriding +%c)", sptr, chptr, err);
+        if (err)
+          sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
+                               "(overriding +%c)", sptr, chptr, err);
         err = 0;
       }
 

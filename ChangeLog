@@ -1,5 +1,10 @@
 2005-10-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_join.c (m_join): Fix check for OVERRIDE when the real
+	channel key is OVERRIDE.  (Reworked patch from a1kmm.)
+
+2005-10-30  Michael Poole <mdpoole@troilus.org>
+
 	* .cvsignore: Add autom4te.cache.
 
 	* ircd/.cvsignore: Add convert-conf.
