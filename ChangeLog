@@ -1,5 +1,10 @@
 2005-10-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_join.c (m_join): Reorganize to reduce edit distance from
+	previous version and match code on u2_10_12_branch.
+
+2005-10-30  Michael Poole <mdpoole@troilus.org>
+
 	* .cvsignore: Add autom4te.cache.
 
 	* ircd/.cvsignore: Add convert-conf.

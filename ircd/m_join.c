@@ -212,28 +212,27 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
           && !(flags & CHFL_CHANOP)
           && key && !strcmp(key, "OVERRIDE"))
       {
-        if (err == 0 && strcmp(chptr->mode.key, "OVERRIDE") &&
-            strcmp(chptr->mode.apass, "OVERRIDE") &&
-            strcmp(chptr->mode.upass, "OVERRIDE"))
-        {
-          send_reply(sptr, ERR_DONTCHEAT, chptr->chname);
-          continue;
-        }
-        if (err != 0)
-        {
-          switch (err) {
-          case ERR_INVITEONLYCHAN: err = 'i'; break;
-          case ERR_CHANNELISFULL:  err = 'l'; break;
-          case ERR_BANNEDFROMCHAN: err = 'b'; break;
-          case ERR_BADCHANNELKEY:  err = 'k'; break;
-          case ERR_NEEDREGGEDNICK: err = 'r'; break;
-          default: err = '?'; break;
+        switch (err) {
+        case 0:
+          if (strcmp(chptr->mode.key, "OVERRIDE")
+              && strcmp(chptr->mode.apass, "OVERRIDE")
+              && strcmp(chptr->mode.upass, "OVERRIDE")) {
+            send_reply(sptr, err, chptr->chname);
+            continue;
           }
-          /* send accountability notice */
+          break;
+        case ERR_INVITEONLYCHAN: err = 'i'; break;
+        case ERR_CHANNELISFULL:  err = 'l'; break;
+        case ERR_BANNEDFROMCHAN: err = 'b'; break;
+        case ERR_BADCHANNELKEY:  err = 'k'; break;
+        case ERR_NEEDREGGEDNICK: err = 'r'; break;
+        default: err = '?'; break;
+        }
+        /* send accountability notice */
+        if (err)
           sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
                                "(overriding +%c)", sptr, chptr, err);
-          err = 0;
-        }
+        err = 0;
       }
 
       /* Is there some reason the user may not join? */
