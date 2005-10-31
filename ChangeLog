@@ -1,3 +1,9 @@
+2005-10-31  Michael Poole <mdpoole@troilus.org>
+	(Based on a patch by Romain Bignon <progs@ir3.org>)
+
+	* ircd/channel.c: Some modes (currently only WASDELJOINS) should
+	not be propagated to remote servers.
+
 2005-10-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_apass): Move all send_reply() errors

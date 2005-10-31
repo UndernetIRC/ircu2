@@ -1490,7 +1490,6 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_NOPRIVMSGS,	'n',
     MODE_REGONLY,	'r',
     MODE_DELJOINS,      'D',
-    MODE_WASDELJOINS,   'd',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
@@ -1498,15 +1497,19 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 /*  MODE_UPASS,		'U', */
     0x0, 0x0
   };
+  static int local_flags[] = {
+    MODE_WASDELJOINS,   'd',
+    0x0, 0x0
+  };
   int i;
   int *flag_p;
 
   struct Client *app_source; /* where the MODE appears to come from */
 
-  char addbuf[20]; /* accumulates +psmtin, etc. */
-  int addbuf_i = 0;
-  char rembuf[20]; /* accumulates -psmtin, etc. */
-  int rembuf_i = 0;
+  char addbuf[20], addbuf_local[20]; /* accumulates +psmtin, etc. */
+  int addbuf_i = 0, addbuf_local_i = 0;
+  char rembuf[20], rembuf_local[20]; /* accumulates -psmtin, etc. */
+  int rembuf_i = 0, rembuf_local_i = 0;
   char *bufptr; /* we make use of indirection to simplify the code */
   int *bufptr_i;
 
@@ -1550,6 +1553,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       addbuf[addbuf_i++] = flag_p[1];
     else if (*flag_p & mbuf->mb_rem)
       rembuf[rembuf_i++] = flag_p[1];
+  }
+
+  /* Some flags may be for local display only. */
+  for (flag_p = local_flags; flag_p[0]; flag_p += 2) {
+    if (*flag_p & mbuf->mb_add)
+      addbuf_local[addbuf_local_i++] = flag_p[1];
+    else if (*flag_p & mbuf->mb_rem)
+      rembuf_local[rembuf_local_i++] = flag_p[1];
   }
 
   /* Now go through the modes with arguments... */
@@ -1621,6 +1632,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   /* terminate the mode strings */
   addbuf[addbuf_i] = '\0';
   rembuf[rembuf_i] = '\0';
+  addbuf_local[addbuf_local_i] = '\0';
+  rembuf_local[rembuf_local_i] = '\0';
 
   /* If we're building a user visible MODE or HACK... */
   if (mbuf->mb_dest & (MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK2 |
@@ -1708,9 +1721,12 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
       sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL, 0,
-				"%H %s%s%s%s%s%s", mbuf->mb_channel,
-				rembuf_i ? "-" : "", rembuf,
-				addbuf_i ? "+" : "", addbuf, remstr, addstr);
+                                       "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
+                                       rembuf_i || rembuf_local_i ? "-" : "",
+                                       rembuf, rembuf_local,
+                                       addbuf_i || addbuf_local_i ? "+" : "",
+                                       addbuf, addbuf_local,
+                                       remstr, addstr);
   }
 
   /* Now are we supposed to propagate to other servers? */
