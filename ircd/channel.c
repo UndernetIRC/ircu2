@@ -2889,9 +2889,11 @@ static void
 mode_parse_client(struct ParseState *state, int *flag_p)
 {
   char *t_str;
+  char *colon;
   struct Client *acptr;
   struct Membership *member;
   int oplevel = MAXOPLEVEL + 1;
+  int req_oplevel;
   int i;
 
   if (MyUser(state->sptr) && state->max_args <= 0) /* drop if too many args */
@@ -2910,9 +2912,27 @@ mode_parse_client(struct ParseState *state, int *flag_p)
     return;
   }
 
-  if (MyUser(state->sptr)) /* find client we're manipulating */
+  if (MyUser(state->sptr)) {
+    colon = strchr(t_str, ':');
+    if (colon != NULL) {
+      *colon++ = '\0';
+      req_oplevel = atoi(colon);
+      if (!(state->flags & MODE_PARSE_FORCE)
+          && state->member
+          && (req_oplevel < OpLevel(state->member)
+              || (req_oplevel == OpLevel(state->member)
+                  && OpLevel(state->member) < MAXOPLEVEL)
+              || req_oplevel > MAXOPLEVEL))
+        send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
+                   t_str, state->chptr->chname,
+                   OpLevel(state->member), req_oplevel, "op",
+                   OpLevel(state->member) == req_oplevel ? "the same" : "a higher");
+      else if (req_oplevel <= MAXOPLEVEL)
+        oplevel = req_oplevel;
+    }
+    /* find client we're manipulating */
     acptr = find_chasing(state->sptr, t_str, NULL);
-  else {
+  } else {
     if (t_str[5] == ':') {
       t_str[5] = '\0';
       oplevel = atoi(t_str + 6);
@@ -3002,11 +3022,14 @@ mode_process_clients(struct ParseState *state)
 	  continue;
         }
 
-	/* don't allow to deop members with an op level that is <= our own level */
-	if (state->sptr != state->cli_change[i].client		/* but allow to deop oneself */
-            && state->chptr->mode.apass[0]
+	/* Forbid deopping other members with an oplevel less than
+         * one's own level, and other members with an oplevel the same
+         * as one's own unless both are at MAXOPLEVEL. */
+	if (state->sptr != state->cli_change[i].client
             && state->member
-            && OpLevel(member) <= OpLevel(state->member)) {
+            && ((OpLevel(member) < OpLevel(state->member))
+                || (OpLevel(member) == OpLevel(state->member)
+                    && OpLevel(member) < MAXOPLEVEL))) {
 	    int equal = (OpLevel(member) == OpLevel(state->member));
 	    send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
 		       cli_name(state->cli_change[i].client),

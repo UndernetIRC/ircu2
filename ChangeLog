@@ -1,3 +1,11 @@
+2005-11-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (mode_parse_client): Allow clients to specify
+	oplevel in MODE #channel +o.
+	(mode_process_clients): Allow oplevel 999 to deop another 999.
+
+	* ircd/kick.c (m_kick): Allow oplevel 999 to kick another 999.
+
 2005-10-31  Michael Poole <mdpoole@troilus.org>
 	(Based on a patch by Romain Bignon <progs@ir3.org>)
 

@@ -142,8 +142,12 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!(member = find_member_link(chptr, who)) || IsZombie(member))
     return send_reply(sptr, ERR_USERNOTINCHANNEL, cli_name(who), chptr->chname);
 
-  /* Don't allow to kick member with a higher or equal op-level */
-  if (chptr->mode.apass[0] && OpLevel(member) <= OpLevel(member2))
+  /* Don't allow to kick member with a higher op-level,
+   * or members with the same op-level unless both are MAXOPLEVEL.
+   */
+  if (OpLevel(member) < OpLevel(member2)
+      || (OpLevel(member) == OpLevel(member2)
+          && OpLevel(member) < MAXOPLEVEL))
     return send_reply(sptr, ERR_NOTLOWEROPLEVEL, cli_name(who), chptr->chname,
 	OpLevel(member2), OpLevel(member), "kick",
 	OpLevel(member) == OpLevel(member2) ? "the same" : "a higher");
