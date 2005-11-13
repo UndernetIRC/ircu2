@@ -1,5 +1,9 @@
 2005-11-12  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Bump for pre03.
+
+2005-11-12  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Update for release.
 
 2005-11-11  Michael Poole <mdpoole@troilus.org>
