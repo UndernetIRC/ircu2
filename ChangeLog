@@ -1,3 +1,11 @@
+2005-11-11  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.cvs: Document tag name consistently with the release
+	name.
+
+	* ircd/ircd_res.c (proc_answer): Follow CNAME when doing A
+	and AAAA lookups as well as PTR.
+
 2005-11-07  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_client): Allow clients to specify

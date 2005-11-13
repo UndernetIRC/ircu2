@@ -23,7 +23,7 @@ name is u2_10_12.  The branch's name is u2_10_12_branch.  The first
 release (ircu2.10.12) would be permanently tagged as u2_10_12_0, and
 until an update is released, it would also have the tag u2_10_12.
 When the first update is released, it would be permanently tagged as
-u2_10_12_1, and the tag u2_10_12 would be changed to point to it.
+u2_10_12_01, and the tag u2_10_12 would be changed to point to it.
 
 If the current stable series is 2.10.12, server admins should check
 out the code using the command:
