@@ -1,3 +1,10 @@
+2005-11-13  Carlo Wood <run@alinoe.com>
+
+	* ircd/m_create (ms_create): Accept CREATE for zannels.
+
+	* ircd/m_join.c (m_join): MODE +o for a zannel must come from the
+	server for compatibility with older versions.
+
 2005-11-11  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.cvs: Document tag name consistently with the release

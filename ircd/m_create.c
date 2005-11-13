@@ -168,7 +168,27 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Check if we need to bounce a mode */
       if (TStime() - chanTS > TS_LAG_TIME ||
 	  (chptr->creationtime && chanTS > chptr->creationtime &&
-	   chptr->creationtime != MAGIC_REMOTE_JOIN_TS)) {
+	   chptr->creationtime != MAGIC_REMOTE_JOIN_TS &&
+	   /* Accept CREATE for zannels. This is only really necessary on a network
+	      with servers prior to 2.10.12.02: we just accept their TS and ignore
+	      the fact that it was a zannel. The influence of this on a network
+	      that is completely 2.10.12.03 or higher is neglectable: Normally
+	      a server only sends a CREATE after first sending a DESTRUCT. Thus,
+	      by receiving a CREATE for a zannel one of two things happened:
+	      1. The DESTRUCT was sent during a net.break; this could mean that
+	         our zannel is at the verge of expiring too, it should have been
+		 destructed. It is correct to copy the newer TS now, all modes
+		 already have been reset, so it will be as if it was destructed
+		 and immediately recreated. In order to avoid desyncs of modes,
+		 we don't accept a CREATE for channels that have +A set.
+	      2. The DESTRUCT passed, then someone created the channel on our
+	         side and left it again. In this situation we have a near
+		 simultaneous creation on two servers; the person on our side
+		 already left within the time span of a message propagation.
+		 The channel will therefore be less than 48 hours old and no
+		 'protection' is necessary.
+	    */
+	   !(chptr->users == 0 && !chptr->mode.apass[0]))) {
 	modebuf_init(&mbuf, sptr, cptr, chptr,
 		     (MODEBUF_DEST_SERVER |  /* Send mode to server */
 		      MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
