@@ -1,3 +1,14 @@
+2005-11-13  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHLEVEL): Update for release.
+
+2005-11-13  Carlo Wood <run@alinoe.com>
+
+	* ircd/m_create (ms_create): Accept CREATE for zannels.
+
+	* ircd/m_join.c (m_join): MODE +o for a zannel must come from the
+	server for compatibility with older versions.
+
 2005-11-12  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre03.
