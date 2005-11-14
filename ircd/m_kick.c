@@ -213,7 +213,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* 2002-10-17: Don't send HACK if the users local server is kicking them */
   if (IsServer(sptr) &&
       !IsBurstOrBurstAck(sptr) &&
-      sptr!=cli_from(who))
+      sptr!=cli_user(who)->server)
     sendto_opmask_butone(0, SNO_HACK4, "HACK: %C KICK %H %C %s", sptr, chptr,
 			 who, comment);
 

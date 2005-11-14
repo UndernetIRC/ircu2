@@ -1,3 +1,8 @@
+2005-11-14  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_kick.c (ms_kick): Fix test for whether a client's own
+	server is kicking him.
+
 2005-11-13  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre04.
