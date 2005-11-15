@@ -1,3 +1,12 @@
+2005-11-14  Carlo Wood <run@alinoe.com>
+
+	* ircd/channel.c (modebuf_flush_int): Fix test for limitdel.
+	(modebuf_mode_uint): Make sure the limit is included as an
+	argument when necessary (and only when necessary) in a bounce.
+
+	* ircd/m_destruct.c (ms_destruct): Generate a mode bounce instead
+	of burst to resynchronize a non-empty destructed channel.
+
 2005-11-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (find_no_nickchange_channel): Disallow nick
