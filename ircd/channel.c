@@ -1771,7 +1771,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
      * limit is supressed if we're removing it; we have to figure out which
      * direction is the direction for it to be removed, though...
      */
-    limitdel |= (mbuf->mb_dest & MODEBUF_DEST_HACK2) ? MODE_DEL : MODE_ADD;
+    limitdel |= (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) ? MODE_DEL : MODE_ADD;
 
     for (i = 0; i < mbuf->mb_count; i++) {
       if (MB_TYPE(mbuf, i) & MODE_SAVE)
@@ -1968,7 +1968,7 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
-  if (mode == (MODE_LIMIT | MODE_DEL)) {
+  if (mode == (MODE_LIMIT | ((mbuf->mb_dest & MODEBUF_DEST_BOUNCE) ? MODE_ADD : MODE_DEL))) {
       mbuf->mb_rem |= mode;
       return;
   }
