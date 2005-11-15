@@ -1,3 +1,8 @@
+2005-11-14  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (member_can_send_to_channel): After prodding from
+	reed, always allow remote users to send to a channel.
+
 2005-11-14  Carlo Wood <run@alinoe.com>
 
 	* ircd/channel.c (modebuf_flush_int): Fix test for limitdel.

@@ -666,7 +666,7 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
  *
  * @param member	The membership of the user
  * @param reveal	If true, the user will be "revealed" on a delayed
- * 			joined channel. 
+ * 			joined channel.
  *
  * @returns True if the client can speak on the channel.
  */
@@ -674,10 +674,18 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
 {
   assert(0 != member);
 
-  /* Discourage using the Apass to get op.  They should use the upass. */
+  /* Do not check for users on other servers: This should be a
+   * temporary desynch, or maybe they are on an older server, but
+   * we do not want to send ERR_CANNOTSENDTOCHAN more than once.
+   */
+  if (!MyUser(member->user))
+    return 1;
+
+  /* Discourage using the Apass to get op.  They should use the Upass. */
   if (IsChannelManager(member) && member->channel->mode.apass[0])
     return 0;
 
+  /* If you have voice or ops, you can speak. */
   if (IsVoicedOrOpped(member))
     return 1;
 
@@ -687,15 +695,13 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
    */
   if (member->channel->mode.mode & MODE_MODERATED)
     return 0;
+
   /* If only logged in users may join and you're not one, you can't speak. */
   if (member->channel->mode.mode & MODE_REGONLY && !IsAccount(member->user))
     return 0;
-  /*
-   * If you're banned then you can't speak either.
-   * but because of the amount of CPU time that is_banned chews
-   * we only check it for our clients.
-   */
-  if (MyUser(member->user) && is_banned(member))
+
+  /* If you're banned then you can't speak either. */
+  if (is_banned(member))
     return 0;
 
   if (IsDelayedJoin(member) && reveal)
