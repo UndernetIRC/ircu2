@@ -1,5 +1,10 @@
 2005-11-14  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (find_no_nickchange_channel): Disallow nick
+	changes by voiceless no-account users on a +r channel.
+
+2005-11-14  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_kick.c (ms_kick): Fix test for whether a client's own
 	server is kicking him.
 

@@ -760,9 +760,11 @@ const char* find_no_nickchange_channel(struct Client* cptr)
     struct Membership* member;
     for (member = (cli_user(cptr))->channel; member;
 	 member = member->next_channel) {
-        if (!IsVoicedOrOpped(member) &&
-            (is_banned(member) ||
-             (member->channel->mode.mode & MODE_MODERATED)))
+      if (IsVoicedOrOpped(member))
+        continue;
+      if ((member->channel->mode.mode & MODE_MODERATED)
+          || (member->channel->mode.mode & MODE_REGONLY && !IsAccount(cptr))
+          || is_banned(member))
         return member->channel->chname;
     }
   }
