@@ -679,7 +679,11 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
    * we do not want to send ERR_CANNOTSENDTOCHAN more than once.
    */
   if (!MyUser(member->user))
+  {
+    if (IsDelayedJoin(member) && reveal)
+      RevealDelayedJoin(member);
     return 1;
+  }
 
   /* Discourage using the Apass to get op.  They should use the Upass. */
   if (IsChannelManager(member) && member->channel->mode.apass[0])
