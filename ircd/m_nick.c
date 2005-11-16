@@ -430,7 +430,7 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
 			 cli_lastnick(acptr), cptr, lastnick);
   }
-  type = differ ? "older nick overruled" : "nick collision from same user@host";
+  type = differ ? "overruled by older nick" : "nick collision from same user@host";
   /*
    * Now remove (kill) the nick on our side if it is the youngest.
    * If no timestamp was received, we ignore the incoming nick
@@ -443,40 +443,32 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if ((differ && lastnick >= cli_lastnick(acptr)) ||
       (!differ && lastnick <= cli_lastnick(acptr)))
   {
-    /* We need to bounce this kill straight back... Although the nick message
-     * for acptr is probably waiting in their recvq from me, its also possible
-     * that sptr will change their nick on cptr before cptr receives the
-     * nick message for acptr, which would leave acptr and sptr both alive
-     * on cptr, but only acptr alive on me, i.e. desync. This extra kill
-     * message has been absent for a while in ircu although it was a major
-     * problem when it was tried on efnet, so I don't know how big an issue it
-     * is. Probably best that this be left here, anyway...
-     */
     ServerStats->is_kill++;
-    sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s)",
-                  nick, cli_name(&me), type);
-    /* But if this was a nick change and not a nick introduction,
-     * we also need to ensure that we remove our local state
-     * record of the original client... Also, the rest of the
-     * net should be informed...
-     */
     if (!IsServer(sptr))
     {
+      /* If this was a nick change and not a nick introduction, we
+       * need to ensure that we remove our record of the client, and
+       * send a KILL to the whole network.
+       */
       assert(!MyConnect(sptr));
       /* Inform the rest of the net... */
-      sendcmdto_serv_butone(&me, CMD_KILL, cptr, "%s :%s (%s)",
-                            nick, cli_name(&me), type);
+      sendcmdto_serv_butone(&me, CMD_KILL, 0, "%C :%s (%s)",
+                            sptr, cli_name(&me), type);
       /* Don't go sending off a QUIT message... */
       SetFlag(sptr, FLAG_KILLED);
       /* Remove them locally. */
       exit_client_msg(cptr, sptr, &me,
                       "Killed (%s (%s))",
                       feature_str(FEAT_HIS_SERVERNAME), type);
-      /*
-       * We have killed sptr off, zero out it's pointer so if it's used
-       * again we'll know about it --Bleep
+    }
+    else
+    {
+      /* If the origin is a server, this was a new client, so we only
+       * send the KILL in the direction it came from.  We have no
+       * client record that we would have to clean up.
        */
-      sptr = NULL;
+      sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s)",
+                    parv[parc - 2], cli_name(&me), type);
     }
     /* If the timestamps differ and we just killed sptr, we don't need to kill
      * acptr as well.
@@ -492,8 +484,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * This exits the client we had before getting the NICK message
    */
-  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s"
-                        " (%s)", acptr, feature_str(FEAT_HIS_SERVERNAME),
+  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s (%s)",
+                        acptr, feature_str(FEAT_HIS_SERVERNAME),
                         type);
   exit_client_msg(cptr, acptr, &me, "Killed (%s (%s))",
                   feature_str(FEAT_HIS_SERVERNAME), type);
