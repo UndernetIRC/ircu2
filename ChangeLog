@@ -1,3 +1,9 @@
+2005-11-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_nick.c (ms_nick): Clarify message when an older nick
+	overrules a newer nick.  When killing a client for a nick
+	collision, make sure to use the numnick as the first argument.
+
 2005-11-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (member_can_send_to_channel): After prodding from
