@@ -143,30 +143,17 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
      a bug that causes two JOIN's for the same user to
      result in that user being on the channel twice). */
 
-    struct Membership *chanop;
     struct Membership *member;
-    int is_real_chanop;
     struct ModeBuf mbuf;
     struct Ban *link;
-
-    /* First find a channel op, if any. */
-    for (chanop = chptr->members; chanop && !IsChanOp(chanop); chanop = chanop->next_member);
-    /* Now chanop is either a channel op, or NULL. */
-    is_real_chanop = chanop ? 1 : 0;
 
     /* Next, send all PARTs upstream. */
     for (member = chptr->members; member; member = member->next_member)
       sendcmdto_one(member->user, CMD_PART, cptr, "%H", chptr);
 
-    /* Next, send a CREATE. If we don't have a chanop, just use the first member. */
-    if (!chanop)
-      chanop = chptr->members;
-    sendcmdto_one(chanop->user, CMD_CREATE, cptr, "%H %Tu", chptr, chanTS);
-
-    /* Next, send JOINs for possible other members. */
+    /* Next, send JOINs for all members. */
     for (member = chptr->members; member; member = member->next_member)
-      if (member != chanop)
-	sendcmdto_one(member->user, CMD_JOIN, cptr, "%H", chptr);
+      sendcmdto_one(member->user, CMD_JOIN, cptr, "%H", chptr);
 
     /* Build MODE strings. We use MODEBUF_DEST_BOUNCE with MODE_DEL to assure
        that the resulting MODEs are only sent upstream. */
@@ -175,8 +162,8 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
     /* Op/voice the users as appropriate. We use MODE_DEL because we fake a bounce. */
     for (member = chptr->members; member; member = member->next_member)
     {
-      if (IsChanOp(member) && member != chanop)
-	modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, OpLevel(member));
+      if (IsChanOp(member))
+        modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, OpLevel(member));
       if (HasVoice(member))
         modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, member->user, MAXOPLEVEL + 1);
     }
@@ -194,10 +181,6 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
     for (link = chptr->banlist; link; link = link->next)
       modebuf_mode_string(&mbuf, MODE_DEL | MODE_BAN, link->banstr, 0);
     modebuf_flush(&mbuf);
-
-    /* When chanop wasn't really a chanop, let him deop himself. */
-    if (!is_real_chanop)
-      sendcmdto_one(chanop->user, CMD_MODE, cptr, "%H -o %C", chptr, chanop->user);
 #endif
 
     return 0;

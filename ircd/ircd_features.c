@@ -358,6 +358,7 @@ static struct FeatureDesc {
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
   F_B(CONNEXIT_NOTICES, 0, 0, 0),
   F_B(OPLEVELS, 0, 1, set_isupport_chanmodes),
+  F_B(ZANNELS, 0, 1, 0),
   F_B(LOCAL_CHANNELS, 0, 1, set_isupport_chantypes),
   F_B(TOPIC_BURST, 0, 0, 0),
   F_B(USER_GLIST, 0, 1, 0),
