@@ -310,6 +310,7 @@ static void finish_features(void)
     size_t ii;
 
     fputs("Features {\n\t\"OPLEVELS\" = \"FALSE\";\n", stdout);
+    fputs("Features {\n\t\"ZANNELS\" = \"FALSE\";\n", stdout);
 
     for (feat = features; feat; feat = feat->next) {
         /* See if the feature was remapped to an oper privilege. */

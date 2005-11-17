@@ -1,3 +1,12 @@
+2005-11-17  Carlo Wood <run@alinoe.com>
+
+	* include/ircd_features.h (Feature): Add ZANNELS.
+	* ircd/ircd_features.c (FeatureDesc): idem.
+	* ircd/channel.c (sub1_from_channel): Don't keep zannels
+	around when ZANNELS and OPLEVELS are FALSE.
+	* ircd/m_destruct.c (ms_destruct): Use JOIN instead of
+	CREATE to recreate a non-empty channel after DESTRUCT.
+
 2005-11-16  Michael Poole <mdpoole@troilus.org>
 
 	* tools/convert-conf.py: Delete obsolete code.
