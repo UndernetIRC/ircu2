@@ -1,3 +1,8 @@
+2005-11-16  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_names.c (m_names): Fix handling of NAMES #a,#b.
+	(ms_names): Likewise.
+
 2005-11-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_nick.c (ms_nick): Clarify message when an older nick
