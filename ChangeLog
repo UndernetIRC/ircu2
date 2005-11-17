@@ -1,3 +1,9 @@
+2005-11-16  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Features): Mention ZANNELS default.
+
+	* doc/readme.features: Document OPLEVELS and ZANNELS.
+
 2005-11-17  Carlo Wood <run@alinoe.com>
 
 	* include/ircd_features.h (Feature): Add ZANNELS.

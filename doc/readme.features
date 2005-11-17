@@ -854,6 +854,25 @@ This is the allowed length of locally created channels.  It may not be
 larger than the CHANNELLEN #define.  Like the NICKLEN feature, this is
 intended to ease changes in channel name length across a network.
 
+OPLEVELS
+ * Type: boolean
+ * Default: TRUE
+
+This allows local users to set the +A and +U modes (admin and user
+passwords, respectively) on channels where they are marked as channel
+managers.  This feature must be disabled until all servers on the
+network are able to interpret and handle these modes correctly.
+
+ZANNELS
+ * Type: boolean
+ * Default: TRUE
+
+This preserves empty channels with no admin password so that it is
+impractical to become the channel manager by clearing out the channel.
+It must be set to FALSE if there are both 2.10.11.x servers and
+2.10.12.y servers on the network where y < 4.  It should be set to
+TRUE whenever the OPLEVELS features is TRUE.
+
 USER_GLIST
 * Type: boolean
 * Default: FALSE
