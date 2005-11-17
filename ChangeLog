@@ -1,5 +1,9 @@
 2005-11-16  Michael Poole <mdpoole@troilus.org>
 
+	* tools/convert-conf.py: Delete obsolete code.
+
+2005-11-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_names.c (m_names): Fix handling of NAMES #a,#b.
 	(ms_names): Likewise.
 
