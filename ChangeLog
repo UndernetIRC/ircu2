@@ -1,3 +1,18 @@
+2005-11-15  Brian Cline <brian.cline@gmail.com>
+
+	* doc/example.conf: Add new line for HIS_MODEWHO feature.
+
+	* doc/readme.features: Document new HIS_MODEWHO feature.
+
+	* include/ircd_features.h: Declare new HIS_MODEWHO feature.
+
+	* ircd/channel.c (modebuf_flush_int): Use new HIS_MODEWHO feature
+	to show or hide the server name that performed a channel mode change.
+
+	* ircd/ircd_features.c: Place new HIS_MODEWHO setting in the feature
+	table and give it a default value of true, which will hide the
+	originating server name.
+
 2005-11-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Features): Mention ZANNELS default.
