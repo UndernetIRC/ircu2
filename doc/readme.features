@@ -679,6 +679,13 @@ HIS_WHO_HOPCOUNT
 As per UnderNet CFV-165, this replaces hopcount to a static 3 in
 replies to /WHO.
 
+HIS_MODEWHO
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this doesn't show which server performed a channel
+mode change.
+
 HIS_BANWHO
  * Type: boolean
  * Default: TRUE

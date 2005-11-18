@@ -443,6 +443,7 @@ static struct FeatureDesc {
   F_B(HIS_WHOIS_LOCALCHAN, 0, 1, 0),
   F_B(HIS_WHO_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHO_HOPCOUNT, 0, 1, 0),
+  F_B(HIS_MODEWHO, 0, 1, 0),
   F_B(HIS_BANWHO, 0, 1, 0),
   F_B(HIS_KILLWHO, 0, 1, 0),
   F_B(HIS_REWRITE, 0, 1, 0),
