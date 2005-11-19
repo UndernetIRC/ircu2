@@ -111,6 +111,14 @@ struct string_list {
     char value[1];
 };
 
+/** Find or insert the element from \a list that contains \a value.
+ * If an element of \a list already contains \a value, return it.
+ * Otherwise, append a new element to \a list containing \a value and
+ * return it.
+ * @param[in,out] list A list of strings.
+ * @param[in] value A string to search for.
+ * @return A string list element from \a list containing \a value.
+ */
 static struct string_list *string_get(struct string_list **list, const char *value)
 {
     struct string_list *curr;
@@ -309,10 +317,15 @@ static void finish_features(void)
     struct feature *feat;
     size_t ii;
 
-    fputs("Features {\n\t\"OPLEVELS\" = \"FALSE\";\n", stdout);
-    fputs("Features {\n\t\"ZANNELS\" = \"FALSE\";\n", stdout);
+    fputs("Features {\n", stdout);
+    fputs("\t\"OPLEVELS\" = \"FALSE\";\n", stdout);
+    fputs("\t\"ZANNELS\" = \"FALSE\";\n", stdout);
 
     for (feat = features; feat; feat = feat->next) {
+        /* Display the original feature line we are talking about. */
+        for (sl = feat->origins; sl; sl = sl->next)
+            fprintf(stdout, "# %s\n", sl->value);
+
         /* See if the feature was remapped to an oper privilege. */
         for (rmf = remapped_features; rmf->name; rmf++)
             if (0 == strcmp(feat->name, rmf->name))
