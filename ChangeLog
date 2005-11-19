@@ -1,5 +1,9 @@
 2005-11-18  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Update for pre05.
+
+2005-11-18  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Update for release.
 
 2005-11-15  Brian Cline <brian.cline@gmail.com>
