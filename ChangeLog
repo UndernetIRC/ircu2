@@ -1,5 +1,10 @@
 2005-11-19  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_stats.c (stats_servers_verbose): Display IPv6 support
+	flag with the other per-server flags.
+
+2005-11-19  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/convert-conf.c (finish_features): Only emit "Features {"
 	once in the converted configuration file.  Display the original
 	input line for each feature line in the output.
