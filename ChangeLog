@@ -1,3 +1,9 @@
+2005-11-19  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/convert-conf.c (finish_features): Only emit "Features {"
+	once in the converted configuration file.  Display the original
+	input line for each feature line in the output.
+
 2005-11-18  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Update for pre05.
