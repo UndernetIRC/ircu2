@@ -167,7 +167,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
 
       /* Try to add the new channel as a recent target for the user. */
-      if (check_target_limit(sptr, chptr, chptr->chname, 1)) {
+      if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
         chptr->members = 0;
         destruct_channel(chptr);
         continue;

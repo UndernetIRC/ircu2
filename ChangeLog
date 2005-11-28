@@ -1,3 +1,8 @@
+2005-11-27  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_join.c (m_join): Count a join to a new channel as a
+	target change.
+
 2005-11-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_stats.c (stats_servers_verbose): Display IPv6 support
