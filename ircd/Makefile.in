@@ -253,7 +253,8 @@ convert-conf: ${CONVERT_CONF_OBJS}
 # must be a better solution...perhaps sum all of the .c files and include
 # only that one sum?
 #
-version.c: ../include/patchlist.h version.c.SH umkpasswd
+version.c: ../include/patchlist.h version.c.SH umkpasswd \
+	../include/version.h ../include/patchlevel.h ${SRC}
 	${SHELL} ${srcdir}/version.c.SH ${top_srcdir}
 
 ../include/patchlist.h:

@@ -1,5 +1,10 @@
 2005-11-27  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/Makefile.in (version.c): version.c also depends on
+	version.h, patchlevel.h and source files.
+
+2005-11-27  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (m_join): Count a join to a new channel as a
 	target change.
 
