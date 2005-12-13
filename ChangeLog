@@ -1,5 +1,11 @@
 2005-12-13  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_join.c (ms_join): Prevent net rides allowed by moving the
+	channel timestamp backwards in time without deopping current ops.
+	(Reported by Wouter Coekaerts.)
+
+2005-12-13  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Remove extraneous "Other" Client block.
 
 	* ircd/convert-conf.c (finish_operators): Fix operator precedence

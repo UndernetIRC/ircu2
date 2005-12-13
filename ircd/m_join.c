@@ -363,9 +363,37 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
          by one when someone joins an existing, but empty, channel.
          However, this is only necessary when the channel is still
          empty (also here) and when this channel doesn't have +A set.
+
+         To prevent this from allowing net-rides on the channel, we
+         clear all ops from the channel.
+
+         (Scenario for a net ride: c1 - s1 - s2 - c2, with c1 the only
+         user in the channel; c1 parts and rejoins, gaining ops.
+         Before s2 sees c1's part, c2 joins the channel and parts
+         immediately.  s1 sees c1 part, c1 create, c2 join, c2 part;
+         c2's join resets the timestamp.  s2 sees c2 join, c2 part, c1
+         part, c1 create; but since s2 sees the channel as a zannel or
+         non-existent, it does not bounce the create with the newer
+         timestamp.)
       */
       if (creation && creation - ((!chptr->mode.apass[0] && chptr->users == 0) ? 1 : 0) <= chptr->creationtime)
+      {
+        struct Membership *member;
+        struct ModeBuf mbuf;
+
 	chptr->creationtime = creation;
+        /* Deop the current ops.  (This will go in both directions on
+         * the network, and revise the channel timestamp as it goes,
+         * avoiding further traffic due to the JOIN.)
+         */
+        modebuf_init(&mbuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK3 | MODEBUF_DEST_SERVER);
+        for (member = chptr->members; member; member = member->next_member)
+        {
+          if (IsChanOp(member))
+            modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, OpLevel(member));
+        }
+        modebuf_flush(&mbuf);
+      }
     }
 
     joinbuf_join(&join, chptr, flags);
