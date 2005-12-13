@@ -421,7 +421,7 @@ static void finish_operators(void)
         }
         for (ii = 0; (remap = &remapped_features[ii++])->name; ) {
             if (!remap->feature || !remap->privilege
-                || !remap->feature->values || !remap->flags & mask)
+                || !remap->feature->values || !(remap->flags & mask))
                 continue;
             fprintf(stdout, "\t%s = %s;\n", remap->privilege,
                     strcmp(remap->feature->values->value, "TRUE") ? "no" : "yes");

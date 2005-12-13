@@ -1,3 +1,12 @@
+2005-12-13  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Remove extraneous "Other" Client block.
+
+	* ircd/convert-conf.c (finish_operators): Fix operator precedence
+	bug.
+
+	* ircd/ircd_parser.y (clientclass): Fix typo in error message.
+
 2005-11-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/Makefile.in (version.c): version.c also depends on

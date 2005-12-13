@@ -743,7 +743,7 @@ clientclass: CLASS '=' QSTRING ';'
 {
   c_class = find_class($3);
   if (!c_class)
-    parse_error("No such connection class '%s' for Class block", $3);
+    parse_error("No such connection class '%s' for Client block", $3);
   MyFree($3);
 };
 clientpass: PASS '=' QSTRING ';'
