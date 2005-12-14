@@ -22,8 +22,20 @@
  */
 #include "config.h"
 
-#define _XOPEN_SOURCE	600 /**< make limits.h #define IOV_MAX */
-#define __EXTENSIONS__  1   /**< make Solaris netinet/in.h know IPv6 */
+#ifdef IRCU_SOLARIS
+/* Solaris requires C99 support for SUSv3, but C99 support breaks other
+ * parts of the build.  So fall back to SUSv2, but request IPv6 support
+ * by defining __EXTENSIONS__.
+ */
+#define _XOPEN_SOURCE   500
+#define __EXTENSIONS__  1
+#else
+/* FreeBSD 6.0 requires SUSv3 to support IPv6.  Apparently some other
+ * OS requires SUSv3 to define IOV_MAX, but its identity is lost for
+ * the time being.
+ */
+#define _XOPEN_SOURCE   600
+#endif
 
 #include "ircd_osdep.h"
 #include "msgq.h"

@@ -25,7 +25,7 @@
  * function (typically a DES encryption routine, but can be anything nowadays).
  * 
  */
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 500
 
 #include "config.h"
 #include "ircd_crypt.h"

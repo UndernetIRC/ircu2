@@ -1,5 +1,15 @@
 2005-12-13  Michael Poole <mdpoole@troilus.org>
 
+	* configure.in: Define a macro when compiling on Solaris.
+
+	* ircd/ircd_crypt_native.c (_XOPEN_SOURCE): Turn down to 500 so
+	that Solaris doesn't complain that SUSv3 requires C99.
+
+	* ircd/os_generic.c (_XOPEN_SOURCE): Likewise, but leave it at 600
+	on non-Solaris platforms so that IPv6 stays supported.
+
+2005-12-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (ms_join): Prevent net rides allowed by moving the
 	channel timestamp backwards in time without deopping current ops.
 	(Reported by Wouter Coekaerts.)

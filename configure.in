@@ -171,6 +171,7 @@ case "$host" in
 	else
 	    unet_poll_syscall=no
 	fi
+        AC_DEFINE([IRCU_SOLARIS], 1, [Define if building on Solaris])
 	;;
 
     *-sunos*)
