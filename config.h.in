@@ -109,6 +109,9 @@
 /* Enable IPv6 support */
 #undef IPV6
 
+/* Define if building on Solaris */
+#undef IRCU_SOLARIS
+
 /* Path to debugging log file */
 #undef LPATH
 
@@ -213,7 +216,7 @@
 /* Define to `unsigned' if <sys/types.h> does not define. */
 #undef size_t
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* type to use in place of socklen_t if not defined */
 #undef socklen_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */

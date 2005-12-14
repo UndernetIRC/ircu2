@@ -9814,6 +9814,11 @@ echo "${ECHO_T}Solaris ($host) found." >&6
 	else
 	    unet_poll_syscall=no
 	fi
+
+cat >>confdefs.h <<\_ACEOF
+#define IRCU_SOLARIS 1
+_ACEOF
+
 	;;
 
     *-sunos*)
