@@ -1,3 +1,32 @@
+2005-12-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_lexer.l: automake does renaming tricks with the output
+	of lex and yacc, so change header name to match
+
+	* ircd/Makefile.in: replace hand-made Makefile.in with Makefile.am
+
+	* ircd/Makefile.am: replace hand-made Makefile.in with Makefile.am
+
+	* missing: automake-related file
+
+	* depcomp: automake-related file
+
+	* configure.ac: replace old configure.in with new configure.ac set
+	up to play nice with automake
+
+	* configure: regenerate from new configure.ac
+
+	* config.h.in: regenerate
+
+	* aclocal.m4: regenerate
+
+	* acinclude.m4: factor out some repetitious code dealing with
+	--enable-* and --with-*
+
+	* Makefile.in: replace hand-made Makefile.in with Makefile.am
+
+	* Makefile.am: replace hand-made Makefile.in with Makefile.am
+
 2005-12-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_join.c (ms_join): Prevent net rides allowed by moving the

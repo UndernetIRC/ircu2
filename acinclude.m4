@@ -200,3 +200,38 @@ AC_DEFUN(AC_LIBRARY_NET, [
   AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket, ,
     AC_CHECK_LIB(socket, socket, LIBS="-lsocket -lnsl $LIBS", , -lnsl)))
   ])
+
+dnl Option toggles
+dnl $1 = option name
+dnl $2 = default, "yes" or "no" (may be shell variable)
+dnl $3 = help text
+dnl $4 = emitted message
+dnl $5 = optional final check
+dnl Result is contained in $unet_cv_enable_$1
+AC_DEFUN([unet_TOGGLE],
+[AC_MSG_CHECKING([$4])
+AC_ARG_ENABLE([$1],
+	AS_HELP_STRING([--m4_if($2, no, enable, disable)-$1], [$3]),
+	[unet_cv_enable_$1=$enableval],
+	[AC_CACHE_VAL(unet_cv_enable_$1,
+		[unet_cv_enable_$1=$2])])
+
+m4_if($5, , , $5)
+AC_MSG_RESULT([$unet_cv_enable_$1])])
+
+dnl Option values
+dnl $1 = option name
+dnl $2 = default (may be shell variable)
+dnl $3 = help text
+dnl $4 = emitted message
+dnl $5 = optional final check
+dnl Result is contained in $unet_cv_with_$1
+AC_DEFUN([unet_VALUE],
+[AC_MSG_CHECKING([$4])
+AC_ARG_WITH([$1], AS_HELP_STRING([--with-$1], [$3]),
+	[unet_cv_with_$1=$withval],
+	[AC_CACHE_VAL(unet_cv_with_$1,
+		[unet_cv_with_$1=$2])])
+
+m4_if($5, , , $5)
+AC_MSG_RESULT([$unet_cv_with_$1])])

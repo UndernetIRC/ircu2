@@ -30,7 +30,7 @@
 #include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "s_debug.h"
-#include "y.tab.h"
+#include "ircd_parser.h"
 
 extern int lineno;
 

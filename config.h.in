@@ -1,19 +1,13 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if you have (reliable) BSD signals. */
 #undef BSD_RELIABLE_SIGNALS
-
-/* Configuration file name */
-#undef CPATH
 
 /* Enable debugging code */
 #undef DEBUGMODE
 
 /* Domain name to be used for some statistics gathering */
 #undef DOMAINNAME
-
-/* Path to data directory */
-#undef DPATH
 
 /* Define to implement epoll system calls */
 #undef EPOLL_NEED_BODY
@@ -109,9 +103,6 @@
 /* Enable IPv6 support */
 #undef IPV6
 
-/* Path to debugging log file */
-#undef LPATH
-
 /* Maximum number of network connections */
 #undef MAXCONNECTIONS
 
@@ -124,8 +115,11 @@
 /* Define if you have SysV non-blocking sockets. */
 #undef NBLOCK_SYSV
 
-/* Disable assertions */
+/* Disable assertion checking */
 #undef NDEBUG
+
+/* Name of package */
+#undef PACKAGE
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
@@ -163,9 +157,6 @@
 /* The size of a `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
 
-/* Path to executable for restarts */
-#undef SPATH
-
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
@@ -190,6 +181,9 @@
 /* Specify whether or not to use poll() */
 #undef USE_POLL
 
+/* Version number of package */
+#undef VERSION
+
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN
@@ -197,6 +191,9 @@
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #undef YYTEXT_POINTER
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#undef const
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t
@@ -213,7 +210,7 @@
 /* Define to `unsigned' if <sys/types.h> does not define. */
 #undef size_t
 
-/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* type to use in place of socklen_t if not defined */
 #undef socklen_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */
