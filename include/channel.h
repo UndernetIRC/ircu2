@@ -163,15 +163,6 @@ typedef enum ChannelGetType {
  */
 #define TS_LAG_TIME 86400
 
-/**
- * A Magic TS that is used for channels that are created by JOIN,
- * a channel with this TS accepts all TS without complaining that
- * it might receive later via MODE or CREATE.
- *
- * Part of the P9 compatibility, shouldn't occur on a P10 network.
- */
-#define MAGIC_REMOTE_JOIN_TS 1270080000
-
 
 
 extern const char* const PartFmt1;

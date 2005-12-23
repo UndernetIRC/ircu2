@@ -340,8 +340,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
       flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
 
-      /* when the network is 2.10.11+ then remove MAGIC_REMOTE_JOIN_TS */
-      chptr->creationtime = creation ? creation : MAGIC_REMOTE_JOIN_TS;
+      chptr->creationtime = creation;
     }
     else { /* We have a valid channel? */
       if ((member = find_member_link(chptr, sptr)))
@@ -376,8 +375,8 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
          non-existent, it does not bounce the create with the newer
          timestamp.)
       */
-      if (creation && creation - ((!chptr->mode.apass[0] && chptr->users == 0) ? 1 : 0) <= chptr->creationtime)
-      {
+      if (creation && (creation < chptr->creationtime ||
+		       (!chptr->mode.apass[0] && chptr->users == 0))) {
         struct Membership *member;
         struct ModeBuf mbuf;
 
@@ -389,8 +388,10 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         modebuf_init(&mbuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK3 | MODEBUF_DEST_SERVER);
         for (member = chptr->members; member; member = member->next_member)
         {
-          if (IsChanOp(member))
+          if (IsChanOp(member)) {
             modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, OpLevel(member));
+	    member->status &= ~CHFL_CHANOP;
+	  }
         }
         modebuf_flush(&mbuf);
       }
