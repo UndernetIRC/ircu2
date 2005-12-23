@@ -1,3 +1,9 @@
+2005-12-23  Michael Poole <mdpoole@troilus.org>
+
+	* config.guess: Update to current version.
+
+	* config.sub: Likewise.
+
 2005-12-23  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_join.c: get rid of MAGIC_REMOTE_JOIN_TS; perform the
