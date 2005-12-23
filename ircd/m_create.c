@@ -126,8 +126,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* A create that didn't appear during a burst has that servers idea of
    * the current time.  Use it for lag calculations.
    */
-  if (!IsBurstOrBurstAck(sptr) && 0 != chanTS &&
-      MAGIC_REMOTE_JOIN_TS != chanTS)
+  if (!IsBurstOrBurstAck(sptr) && 0 != chanTS)
     cli_serv(cli_user(sptr)->server)->lag = TStime() - chanTS;
 
   /* If this server is >1 minute fast, warn */
@@ -168,7 +167,6 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Check if we need to bounce a mode */
       if (TStime() - chanTS > TS_LAG_TIME ||
 	  (chptr->creationtime && chanTS > chptr->creationtime &&
-	   chptr->creationtime != MAGIC_REMOTE_JOIN_TS &&
 	   /* Accept CREATE for zannels. This is only really necessary on a network
 	      with servers prior to 2.10.12.02: we just accept their TS and ignore
 	      the fact that it was a zannel. The influence of this on a network

@@ -1,3 +1,14 @@
+2005-12-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_join.c: get rid of MAGIC_REMOTE_JOIN_TS; perform the
+	deop-other-users loop only when creation < channel timestamp or
+	when the channel in question happens to be a zannel; actually deop
+	users, don't just say we are and not do it
+
+	* ircd/m_create.c (ms_create): get rid of MAGIC_REMOTE_JOIN_TS
+
+	* include/channel.h: get rid of MAGIC_REMOTE_JOIN_TS
+
 2005-12-13  Michael Poole <mdpoole@troilus.org>
 
 	* configure.in: Define a macro when compiling on Solaris.
