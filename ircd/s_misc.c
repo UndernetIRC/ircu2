@@ -54,7 +54,6 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
-#include "sys.h"
 #include "uping.h"
 #include "userload.h"
 

@@ -52,7 +52,6 @@
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
-#include "sys.h"               /* TRUE bleah */
 
 #include <netdb.h>             /* struct hostent */
 #include <string.h>

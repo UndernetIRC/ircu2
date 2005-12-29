@@ -58,7 +58,6 @@
 #include "s_serv.h" /* max_client_count */
 #include "send.h"
 #include "struct.h"
-#include "sys.h"
 #include "userload.h"
 #include "version.h"
 #include "whowas.h"

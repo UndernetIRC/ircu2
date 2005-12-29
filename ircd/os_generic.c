@@ -25,12 +25,12 @@
 #define _XOPEN_SOURCE	600 /**< make limits.h #define IOV_MAX */
 #define __EXTENSIONS__  1   /**< make Solaris netinet/in.h know IPv6 */
 
+#include "ircd.h"
 #include "ircd_osdep.h"
 #include "msgq.h"
 #include "ircd_log.h"
 #include "res.h"
 #include "s_bsd.h"
-#include "sys.h"
 
 /* Include file dependency notes:
  * FreeBSD requires struct timeval from sys/time.h before struct

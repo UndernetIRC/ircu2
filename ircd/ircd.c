@@ -55,7 +55,6 @@
 #include "s_misc.h"
 #include "s_stats.h"
 #include "send.h"
-#include "sys.h"
 #include "uping.h"
 #include "userload.h"
 #include "version.h"

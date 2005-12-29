@@ -1,5 +1,31 @@
 2005-12-28  Michael Poole <mdpoole@troilus.org>
 
+	* include/sys.h: Delete this file.
+
+	* include/ircd.h: Move its definitions here.  Update MINOR_PROTOCOL.
+
+	* ircd/channel.c: No longer #include "sys.h", use "ircd.h" instead.
+
+	* ircd/dbuf.c, ircd/ircd.c, ircd/ircd_res.c: Likewise.
+
+	* ircd/listener.c, ircd/m_join.c, ircd/m_nick.c: Likewise.
+
+	* ircd/os_generic.c, ircd/uping.c: Likewise.
+
+	* ircd/hash.c: No longer #include "sys.h".  (It was unused.)
+
+	* ircd/ircd_features.c, ircd/jupe.c, ircd/parse.c: Likewise.
+
+	* ircd/s_auth.c, ircd/s_bsd.c, ircd/s_conf.c: Likewise.
+
+	* ircd/s_debug.c, ircd/s_misc.c, ircd/s_serv.c: Likewise.
+
+	* ircd/s_user.c, ircd/send.c, ircd/userload.c: Likewise.
+
+	* ircd/whowas.c: Likewise.
+
+2005-12-28  Michael Poole <mdpoole@troilus.org>
+
 	* acinclude.m4: Properly quote function names.
 
 	* aclocal.m4: Regenerate.

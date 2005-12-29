@@ -36,7 +36,6 @@
 #include "s_debug.h"
 #include "s_stats.h"
 #include "send.h"
-#include "sys.h"
 #include "res.h"
 #include "ircd_reslib.h"
 

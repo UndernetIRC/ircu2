@@ -42,7 +42,6 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "struct.h"
-#include "sys.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdio.h>

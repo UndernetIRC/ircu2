@@ -44,7 +44,6 @@
 #include "s_user.h"
 #include "send.h"
 #include "struct.h"
-#include "sys.h"    /* FALSE bleah */
 #include "whowas.h"	/* whowas_realloc */
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */

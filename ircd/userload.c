@@ -39,7 +39,6 @@
 #include "s_stats.h"
 #include "send.h"
 #include "struct.h"
-#include "sys.h"
 
 #include <stdio.h>
 #include <string.h>

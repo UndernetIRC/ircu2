@@ -29,11 +29,14 @@ struct Daemon
 #define TStime() (CurrentTime + TSoffset) /**< Current network time*/
 #define OLDEST_TS 780000000	/**< Any TS older than this is bogus */
 #define BadPtr(x) (!(x) || (*(x) == '\0')) /**< Is \a x a bad string? */
+#define IRCD_MAX(a, b)  ((a) > (b) ? (a) : (b)) /**< Find maximum of \a a and \a b. */
+#define IRCD_MIN(a, b)  ((a) < (b) ? (a) : (b)) /**< Find minimum of \a a and \a b. */
+#define MAXCLIENTS (MAXCONNECTIONS-24) /**< Maximum number of clients to accept. */
 
 /* Miscellaneous defines */
 
 #define UDP_PORT        "7007"  /**< Default port for server-to-server pings. */
-#define MINOR_PROTOCOL  "09"    /**< Minimum protocol version supported. */
+#define MINOR_PROTOCOL  "10"    /**< Minimum protocol version supported. */
 #define MAJOR_PROTOCOL  "10"    /**< Current protocol version. */
 #define BASE_VERSION    "u2.10" /**< Base name of IRC daemon version. */
 

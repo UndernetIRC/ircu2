@@ -54,7 +54,6 @@
 #include "s_misc.h"
 #include "send.h"
 #include "struct.h"
-#include "sys.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
