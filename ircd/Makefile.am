@@ -18,6 +18,7 @@
 ##
 ## @(#)$Id$
 
+SUBDIRS = test
 noinst_PROGRAMS = table_gen
 bin_PROGRAMS = convert-conf umkpasswd ircd
 

@@ -1,5 +1,19 @@
 2005-12-29  Michael Poole <mdpoole@troilus.org>
 
+	* configure.ac: ircd/test/Makefile is a new output file.
+
+	* configure: Regenerate.
+
+	* ircd/Makefile.am: Include "test" subdirectory in build.
+
+	* ircd/Makefile.in: Regenerate.
+
+	* ircd/test/Makefile.am: New automake Makefile.
+
+	* ircd/test/Makefile.in: Overwrite with generated version.
+
+2005-12-29  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd.h: Make maxclients and maxconnections variable.
 
 	* include/list.h (init_list): Add maximum connections argument.
