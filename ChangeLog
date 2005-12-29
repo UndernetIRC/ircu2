@@ -1,5 +1,17 @@
 2005-12-28  Michael Poole <mdpoole@troilus.org>
 
+	* acinclude.m4: Properly quote function names.
+
+	* aclocal.m4: Regenerate.
+
+	* Makefile.in: Likewise.
+
+	* configure: Likewise.
+
+	* ircd/Makefile.in: Likewise.
+
+2005-12-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd-patch: Do not use [ for test, and do not use $[] for expr.
 	(Solaris /bin/sh, among others, have problems with those.)
 
