@@ -279,10 +279,10 @@ void SetYXXCapacity(struct Client* c, unsigned int capacity)
    * Sanity checks
    */
   if (max_clients > NN_MAX_CLIENT) {
-    fprintf(stderr, "MAXCLIENTS (or MAXCONNECTIONS) is (at least) %d "
-            "too large ! Please decrease this value.\n",
-             max_clients - NN_MAX_CLIENT);
-    exit(-1);
+    fprintf(stderr, "maxclients (or maxconnections) is %d too large,"
+            " please decrease this value.\n",
+            capacity - NN_MAX_CLIENT);
+    max_clients = NN_MAX_CLIENT;
   }
   --max_clients;
   inttobase64(cli_serv(c)->nn_capacity, max_clients, 3);

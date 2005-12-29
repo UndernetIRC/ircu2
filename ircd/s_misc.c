@@ -554,7 +554,7 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
 
   sp = &tmp;
   memcpy(sp, ServerStats, sizeof(struct ServerStatistics));
-  for (i = 0; i < MAXCONNECTIONS; i++)
+  for (i = 0; i < HighestFd; i++)
   {
     if (!(acptr = LocalClientArray[i]))
       continue;

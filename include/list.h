@@ -47,7 +47,7 @@ struct DLink {
 
 extern void free_link(struct SLink *lp);
 extern struct SLink *make_link(void);
-extern void init_list(void);
+extern void init_list(int maxconn);
 extern struct Client *make_client(struct Client *from, int status);
 extern void free_connection(struct Connection *con);
 extern void free_client(struct Client *cptr);

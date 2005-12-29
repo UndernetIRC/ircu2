@@ -111,6 +111,8 @@ time_t         CurrentTime;             /**< Updated every time we leave select(
 char          *configfile        = CPATH; /**< Server configuration file */
 int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
+int            maxconnections    = MAXCONNECTIONS; /**< Maximum number of open files */
+int            maxclients        = -1;    /**< Maximum number of clients */
 static char   *dpath             = DPATH; /**< Working directory for daemon */
 static char   *dbg_client;                /**< Client specifier for chkconf */
 
@@ -454,10 +456,10 @@ static void check_pings(struct Event* ev) {
  * As a side effect, makes sure the process's effective user id is the
  * same as the real user id.
  * @param[in] argc Number of arguments on command line.
- * @param[in,out] argv Command-lne arguments.
+ * @param[in,out] argv Command-line arguments.
  */
 static void parse_command_line(int argc, char** argv) {
-  const char *options = "d:f:h:nktvx:c:";
+  const char *options = "d:f:h:nktvx:c:m:M:";
   int opt;
 
   if (thisServer.euid != thisServer.uid)
@@ -475,6 +477,8 @@ static void parse_command_line(int argc, char** argv) {
     case 'd':  dpath      = optarg;                    break;
     case 'f':  configfile = optarg;                    break;
     case 'h':  ircd_strncpy(cli_name(&me), optarg, HOSTLEN); break;
+    case 'm':  maxconnections = atoi(optarg);          break;
+    case 'M':  maxclients = atoi(optarg);              break;
     case 'v':
       printf("ircd %s\n", version);
       printf("Event engines: ");
@@ -492,7 +496,7 @@ static void parse_command_line(int argc, char** argv) {
 #else
       printf("select()");
 #endif
-      printf("\nCompiled for a maximum of %d connections.\n", MAXCONNECTIONS);
+      printf("\nDefaulting to %d connections.\n", MAXCONNECTIONS);
 
 
       exit(0);
@@ -507,11 +511,13 @@ static void parse_command_line(int argc, char** argv) {
       break;
 
     default:
-      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv] [-k [-c clispec]]\n"
+      printf("Usage: ircd [-f config] [-h servername] [-x loglevel] [-ntv] [-m maxconn] [-M maxclients] [-k [-c clispec]]\n"
              "\n -f config\t specify explicit configuration file"
              "\n -x loglevel\t set debug logging verbosity"
              "\n -n or -t\t don't detach"
              "\n -v\t\t display version"
+             "\n -m\t\t set maximum number of connections"
+             "\n -M\t\t set maximum number of clients"
              "\n -k\t\t exit after checking config"
              "\n -c clispec\t search for client/kill blocks matching client"
              "\n\t\t clispec is comma-separated list of user@host,"
@@ -636,6 +642,20 @@ int main(int argc, char **argv) {
 
   parse_command_line(argc, argv);
 
+  if (maxconnections < 32) {
+    fprintf(stderr,
+            "Fewer than 32 connections are not supported.  Reconfigure or use -m 32.\n");
+    return 2;
+  } else if (maxclients > maxconnections) {
+    fprintf(stderr,
+            "Maxclients (%d) must not exceed maxconnections (%d).  Reconfigure or use -m %d.\n", maxclients, maxconnections, maxclients + 24);
+    return 2;
+  } else if (maxclients > maxconnections - 24) {
+    fprintf(stderr,
+            "Maxclients (%d) is within 24 of maxconnections (%d).  This may cause problems.\n", maxclients, maxconnections);
+  } else if (maxclients < 0)
+    maxclients = maxconnections - 24;
+
   if (chdir(dpath)) {
     fprintf(stderr, "Fail: Cannot chdir(%s): %s, check DPATH\n", dpath, strerror(errno));
     return 2;
@@ -649,7 +669,7 @@ int main(int argc, char **argv) {
       !check_file_access(configfile, 'C', R_OK))
     return 4;
 
-  if (!init_connection_limits())
+  if (!init_connection_limits(maxconnections))
     return 9;
 
   close_connections(!(thisServer.bootopt & (BOOT_DEBUG | BOOT_TTY | BOOT_CHKCONF)));
@@ -676,7 +696,7 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  event_init(MAXCONNECTIONS);
+  event_init(maxconnections);
 
   setup_signals();
   init_isupport();
@@ -685,7 +705,7 @@ int main(int argc, char **argv) {
   set_nomem_handler(outofmemory);
 
   initload();
-  init_list();
+  init_list(maxconnections);
   init_hash();
   init_class();
   initwhowas();
@@ -714,7 +734,7 @@ int main(int argc, char **argv) {
   debug_init(thisServer.bootopt & BOOT_TTY);
   if (check_pid()) {
     Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
-    exit(2);
+    return 2;
   }
 
   init_server_identity();
@@ -741,7 +761,7 @@ int main(int argc, char **argv) {
   cli_serv(&me)->down      = NULL;
   cli_handler(&me)         = SERVER_HANDLER;
 
-  SetYXXCapacity(&me, MAXCLIENTS);
+  SetYXXCapacity(&me, maxclients);
 
   cli_lasttime(&me) = cli_since(&me) = cli_firsttime(&me) = CurrentTime;
 

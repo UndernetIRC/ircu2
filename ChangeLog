@@ -1,3 +1,42 @@
+2005-12-29  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd.h: Make maxclients and maxconnections variable.
+
+	* include/list.h (init_list): Add maximum connections argument.
+
+	* include/s_bsd.h (HighestFd): Align declaration.
+	(LocalClientArray): Convert into a pointer-to-pointer.
+	(init_connection_limits): Add maximum connections argument.
+
+	* ircd/ircd.c (maxconnections): Define.
+	(maxclients): Define.
+	(parse_command_line): Fix doxygen typo.  Interpret -m <maxconn>
+	and -M <maxclients> arguments.
+	(main): Sanity-check maxconnections and maxclients.
+
+	* ircd/list.c (init_list): Add maximum connections argument.
+
+	* ircd/listener.c (accept_connection): Use maxclients variable.
+
+	* ircd/m_trace.c (do_trace): Dynamically allocate link_s and
+	link_u arrays.
+	(m_trace): Update doxygen comments.
+	(ms_trace): Likewise.
+	(mo_trace): Likewise.
+
+	* ircd/numnicks.c (SetYXXCapacity): Update error message and make
+	it a soft error rather than a fatal one.
+
+	* ircd/os_generic.c (os_socket): Use maxclients variable.
+
+	* ircd/s_bsd.c (LocalClientArray): Update type.
+	(close_connections): Use maxconnections variable.
+	(init_connection_limits): Add maximum connections argument.  Use
+	it to allocate LocalClientArray.
+
+	* ircd/s_misc.c (tstats): Use HighestFd variable instead of
+	MAXCONNECTIONS.
+
 2005-12-28  Michael Poole <mdpoole@troilus.org>
 
 	* include/sys.h: Delete this file.

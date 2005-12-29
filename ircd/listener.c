@@ -416,7 +416,7 @@ static void accept_connection(struct Event* ev)
        * Enable the server to clear out other connections before
        * continuing to accept() new connections.
        */
-      if (fd > MAXCLIENTS - 1)
+      if (fd >= maxclients)
       {
         ++ServerStats->is_ref;
         send(fd, "ERROR :All connections in use\r\n", 32, 0);

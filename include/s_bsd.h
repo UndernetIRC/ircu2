@@ -49,8 +49,8 @@ extern const char* const SETBUFS_ERROR_MSG;
 extern const char* const TOS_ERROR_MSG;
 extern const char* const REGISTER_ERROR_MSG;
 
-extern int            HighestFd;
-extern struct Client* LocalClientArray[MAXCONNECTIONS];
+extern int                 HighestFd;
+extern struct Client**     LocalClientArray;
 extern struct irc_sockaddr VirtualHost_v4;
 extern struct irc_sockaddr VirtualHost_v6;
 
@@ -65,7 +65,7 @@ extern void add_connection(struct Listener* listener, int fd);
 extern int  read_message(time_t delay);
 extern void init_server_identity(void);
 extern void close_connections(int close_stderr);
-extern int  init_connection_limits(void);
+extern int  init_connection_limits(int maxconn);
 extern void update_write(struct Client* cptr);
 
 #endif /* INCLUDED_s_bsd_h */

@@ -31,7 +31,6 @@ struct Daemon
 #define BadPtr(x) (!(x) || (*(x) == '\0')) /**< Is \a x a bad string? */
 #define IRCD_MAX(a, b)  ((a) > (b) ? (a) : (b)) /**< Find maximum of \a a and \a b. */
 #define IRCD_MIN(a, b)  ((a) < (b) ? (a) : (b)) /**< Find minimum of \a a and \a b. */
-#define MAXCLIENTS (MAXCONNECTIONS-24) /**< Maximum number of clients to accept. */
 
 /* Miscellaneous defines */
 
@@ -56,7 +55,9 @@ extern int            GlobalRestartFlag;     /* 1 if SIGINT is received */
 extern char*          configfile;
 extern int            debuglevel;
 extern char*          debugmode;
-extern int	      running;
+extern int            running;
+extern int            maxconnections;
+extern int            maxclients;
 
 #endif /* INCLUDED_ircd_h */
 

@@ -617,7 +617,7 @@ int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
     report_error(SOCKET_ERROR_MSG, port_name, errno);
     return -1;
   }
-  if (fd > MAXCLIENTS - 1) {
+  if (fd >= maxclients) {
     report_error(CONNLIMIT_ERROR_MSG, port_name, 0);
     close(fd);
     return -1;

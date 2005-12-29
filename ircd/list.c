@@ -67,17 +67,17 @@ static struct Connection* connectionFreeList;
 static struct SLink* slinkFreeList;
 
 /** Initialize the list manipulation support system.
- * Pre-allocate MAXCONNECTIONS Client and Connection structures.
+ * @arg[in] maxconn Number of Client and Connection structures to preallocate.
  */
-void init_list(void)
+void init_list(int maxconn)
 {
   struct Client* cptr;
   struct Connection* con;
   int i;
   /*
-   * pre-allocate MAXCONNECTIONS clients and connections
+   * pre-allocate \a maxconn clients and connections
    */
-  for (i = 0; i < MAXCONNECTIONS; ++i) {
+  for (i = 0; i < maxconn; ++i) {
     cptr = (struct Client*) MyMalloc(sizeof(struct Client));
     cli_next(cptr) = clientFreeList;
     clientFreeList = cptr;

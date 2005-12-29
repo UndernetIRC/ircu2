@@ -71,7 +71,7 @@
 #include <unistd.h>
 
 /** Array of my own clients, indexed by file descriptor. */
-struct Client*            LocalClientArray[MAXCONNECTIONS];
+struct Client**           LocalClientArray;
 /** Maximum file descriptor in current use. */
 int                       HighestFd = -1;
 /** Default local address for outbound IPv4 connections. */
@@ -175,24 +175,32 @@ void close_connections(int close_stderr)
     close(1);
     close(2);
   }
-  for (i = 3; i < MAXCONNECTIONS; ++i)
+  for (i = 3; i < maxconnections; ++i)
     close(i);
 }
 
-/** Initialize process fd limit to MAXCONNECTIONS.
+/** Initialize process fd limit.
+ * @param[in] maxconn Maximum number of connections to support.
+ * @return Non-zero on success, zero on error.
  */
-int init_connection_limits(void)
+int init_connection_limits(int maxconn)
 {
-  int limit = os_set_fdlimit(MAXCONNECTIONS);
-  if (0 == limit)
+  int limit = os_set_fdlimit(maxconn);
+  if (0 == limit) {
+    LocalClientArray = MyCalloc(maxconn, sizeof(LocalClientArray[0]));
+    if (!LocalClientArray) {
+      fprintf(stderr, "unable to allocate client array for %d clients\n", maxconn);
+      return 0;
+    }
     return 1;
+  }
   if (limit < 0) {
-    fprintf(stderr, "error setting max fd's to %d\n", limit);
+    fprintf(stderr, "error setting max fd's to %d\n", maxconn);
   }
   else if (limit > 0) {
-    fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n",
-            limit, MAXCONNECTIONS);
-    fprintf(stderr, "set MAXCONNECTIONS to a smaller value");
+    fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n"
+            "set MAXCONNECTIONS or -m to a smaller value\n",
+            limit, maxconn);
   }
   return 0;
 }
