@@ -1,3 +1,8 @@
+2005-12-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd-patch: Do not use [ for test, and do not use $[] for expr.
+	(Solaris /bin/sh, among others, have problems with those.)
+
 2005-12-23  Michael Poole <mdpoole@troilus.org>
 
 	* config.guess: Update to current version.
