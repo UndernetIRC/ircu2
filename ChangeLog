@@ -1,5 +1,9 @@
+2005-12-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/engine_devpoll.c (engine_loop): Remove bogus assert.
+
 2005-12-31  Perry Lorier <isomer@undernet.org>
-	
+
 	* convert-conf.c: Skip with a warning, H:'s that are missing a
 	corresponding C:
 
