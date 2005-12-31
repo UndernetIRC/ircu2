@@ -1,5 +1,9 @@
 2005-12-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_conf.c (conf_debug_iline): Fix display of null passwords.
+
+2005-12-30  Michael Poole <mdpoole@troilus.org>
+
 	* RELEASE.NOTES: Mention removal of HIS_STATS_h.
 
 	* ircd/convert-conf.c (removed_features): Add AUTOHIDE,

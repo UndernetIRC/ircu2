@@ -482,7 +482,8 @@ struct ConfItem *conf_debug_iline(const char *client)
             (aconf->username ? aconf->username : "(null)"),
             (aconf->host ? aconf->host : "(null)"),
             (aconf->name ? aconf->name : "(null)"),
-            ConfClass(aconf), aconf->maximum,  aconf->passwd);
+            ConfClass(aconf), aconf->maximum,
+            (aconf->passwd ? aconf->passwd : "(null)"));
     break;
   }
 
