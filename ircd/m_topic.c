@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "channel.h"
@@ -97,7 +41,14 @@
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h> /* for atoi() */
 
-static void do_settopic(struct Client *sptr, struct Client *cptr, 
+/** Set a channel topic or report an error.
+ * @param[in] sptr Original topic setter.
+ * @param[in] cptr Neighbor that sent the topic message.
+ * @param[in] chptr Channel to set topic on.
+ * @param[in] topic New topic.
+ * @param[in] ts Timestamp that topic was set (0 for current time).
+ */
+static void do_settopic(struct Client *sptr, struct Client *cptr,
 		        struct Channel *chptr, char *topic, time_t ts)
 {
    struct Client *from;
@@ -107,21 +58,6 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
        from = &his;
    else
        from = sptr;
-   if (IsChannelService(sptr))
-   {
-       /* allow off-channel services to set the topic of any channel */
-   }
-   else if ((chptr->mode.mode & MODE_TOPICLIMIT) && !is_chan_op(sptr, chptr))
-   {
-      /* if +t and not @'d, return an error and ignore the topic */
-      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
-      return;
-   }
-   else if (!client_can_send_to_channel(sptr, chptr, 1))
-   {
-      send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
-      return;
-   }
    /* Note if this is just a refresh of an old topic, and don't
     * send it to all the clients to save bandwidth.  We still send
     * it to other servers as they may have split and lost the topic.
@@ -143,15 +79,20 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
        * it to everyone else on the channel to save bandwidth
        */
     else if (MyUser(sptr))
-      sendcmdto_one(sptr, CMD_TOPIC, sptr, "%H :%s", chptr, chptr->topic);   	
+      sendcmdto_one(sptr, CMD_TOPIC, sptr, "%H :%s", chptr, chptr->topic);
 }
 
-/*
- * m_topic - generic message handler
+/** Handle a local user's attempt to get or set a channel topic.
  *
- * parv[0]        = sender prefix
- * parv[1]        = channel
- * parv[parc - 1] = topic (if parc > 2)
+ * \a parv has the following elements:
+ * \li \a parv[1] is the channel name
+ * \li \a parv[\a parc - 1] is the topic (if \a parc > 2)
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -192,20 +133,28 @@ int m_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		   chptr->topic_time);
       }
     }
-    else 
+    else if ((chptr->mode.mode & MODE_TOPICLIMIT) && !is_chan_op(sptr, chptr))
+      send_reply(sptr, ERR_CHANOPRIVSNEEDED, chptr->chname);
+    else if (!client_can_send_to_channel(sptr, chptr, 1))
+      send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+    else
       do_settopic(sptr,cptr,chptr,topic,0);
   }
   return 0;
 }
 
-/*
- * ms_topic - server message handler
+/** Handle a remote user's attempt to set a channel topic.
+ * \a parv has the following elements:
+ * \li \a parv[1] is the channel name
+ * \li \a parv[2] is the channel creation timestamp (optional)
+ * \li \a parv[2] is the topic's timestamp (optional)
+ * \li \a parv[\a parc - 1] is the topic
  *
- * parv[0]        = sender prefix
- * parv[1]        = channel
- * parv[2]        = channel timestamp (optional)
- * parv[3]        = topic timestamp (optional)
- * parv[parc - 1] = topic
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

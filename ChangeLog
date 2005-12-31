@@ -1,5 +1,12 @@
 2005-12-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_topic.c: Remove block comment about sptr, cptr, etc.
+	(do_settopic): Add doxygen comment. Move permissions checks..
+	(m_topic): .. to here.  Update doxygen comment.
+	(ms_topic): Update doxygen comment here too.
+
+2005-12-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_conf.c (conf_debug_iline): Fix display of null passwords.
 
 2005-12-30  Michael Poole <mdpoole@troilus.org>
