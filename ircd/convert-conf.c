@@ -17,7 +17,7 @@
  * USA.
  */
 
-#include <ctype.h> /* tolower(), toupper(), isdigit() */
+#include <ctype.h> /* tolower() */
 #include <stdio.h> /* *printf(), fgets() */
 #include <stdlib.h> /* free(), strtol() */
 #include <string.h> /* strlen(), memcpy(), strchr(), strspn() */
@@ -30,7 +30,7 @@ const char *admin_names[] = { "location", "contact", "contact", 0 },
     *general_names[] = { "name", "vhost", "description", "", "#numeric", 0 },
     *motd_names[] = { "host", "file", 0 },
     *class_names[] = { "name", "#pingfreq", "#connectfreq", "#maxlinks", "#sendq", 0 },
-    *removed_features[] = { "VIRTUAL_HOST", "OPERS_SEE_IN_SECRET_CHANNELS", "LOCOP_SEE_IN_SECRET_CHANNELS", 0 };
+    *removed_features[] = { "VIRTUAL_HOST", "TIMESEC", "OPERS_SEE_IN_SECRET_CHANNELS", "LOCOP_SEE_IN_SECRET_CHANNELS", "HIS_STATS_h", "HIS_DESYNCS", "AUTOHIDE", 0 };
 char orig_line[512], line[512], dbuf[512];
 char *fields[MAX_FIELDS + 1];
 unsigned int nfields;
@@ -159,7 +159,7 @@ static struct connect *get_connect(const char *name)
     nlen = strlen(name);
     for (conn = connects; conn; conn = conn->next)
     {
-        for (ii = 0; tolower(name[ii]) == conn->name[ii] && ii < nlen; ++ii) ;
+        for (ii = 0; tolower(name[ii]) == tolower(conn->name[ii]) && ii < nlen; ++ii) ;
         if (conn->name[ii] == '\0' && name[ii] == '\0')
             break;
     }
@@ -169,7 +169,7 @@ static struct connect *get_connect(const char *name)
     {
         conn = calloc(1, sizeof(*conn) + nlen);
         for (ii = 0; ii < nlen; ++ii)
-            conn->name[ii] = tolower(name[ii]);
+            conn->name[ii] = name[ii];
         conn->next = connects;
         connects = conn;
     }
@@ -310,7 +310,7 @@ static void do_feature(void)
     ii = strlen(fields[0]);
     feat = calloc(1, sizeof(*feat) + ii);
     while (ii-- > 0)
-        feat->name[ii] = toupper(fields[0][ii]);
+        feat->name[ii] = fields[0][ii];
     feat->next = features;
     features = feat;
     string_get(&feat->origins, orig_line);
@@ -609,9 +609,10 @@ int main(int argc, char *argv[])
             fputs(line, stdout);
             continue;
         }
-        /* Strip EOL character(s) and pass blank lines through. */
-        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r'))
+        /* Strip trailing whitespace. */
+        while (len > 0 && isspace(line[len-1]))
             line[--len] = '\0';
+        /* Pass blank lines through. */
         if (len == 0) {
             fputc('\n', stdout);
             continue;

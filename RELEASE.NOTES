@@ -123,6 +123,8 @@ HIS_DESYNCS, TIMESEC.
 Deleted features since they are now controlled by other configuration
 entries: VIRTUAL_HOST, oper and locop privilege features.
 
+Deleted feature since it no longer applies: HIS_STATS_h.
+
 Compile Time Options:
 
 A listing of supported compile-time options may be seen by running
