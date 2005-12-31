@@ -1,5 +1,14 @@
 2005-12-30  Michael Poole <mdpoole@troilus.org>
 
+	* RELEASE.NOTES: Mention removal of HIS_STATS_h.
+
+	* ircd/convert-conf.c (removed_features): Add AUTOHIDE,
+	HIS_DESYNCS and TIMESEC.
+	(get_connect): Do not downcase connection name on insert.
+	(do_feature): Do not upcase feature name (cf HIS_STATS_k).
+
+2005-12-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/engine_devpoll.c (engine_loop): Remove bogus assert.
 
 2005-12-31  Perry Lorier <isomer@undernet.org>
