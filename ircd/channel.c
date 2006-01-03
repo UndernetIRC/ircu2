@@ -287,22 +287,13 @@ int sub1_from_channel(struct Channel* chptr)
       free_ban(link);
     }
     chptr->banlist = NULL;
-     
-#if 1 /* Temporary code */
-    /* Immediately destruct empty -A channels if ZANNELS is FALSE.
-       When OPLEVELS is true, ZANNELS should be TRUE too. Test for
-       that error. This is done to avoid the DESTRUCT message to
-       occur, which is necessary on a network with mixed versions
-       of 2.10.12.x, with x < 04 *and* 2.10.11 servers. Because
-       servers prior to 2.10.12.04 can cause a BURST message outside
-       the normal net.burst as a result of a DESTRUCT message, and
-       2.10.11 SQUIT servers when they do that. */
-    if (!(feature_bool(FEAT_ZANNELS) || feature_bool(FEAT_OPLEVELS)))
+
+    /* Immediately destruct empty -A channels if not using apass. */
+    if (!feature_bool(FEAT_OPLEVELS))
     {
       destruct_channel(chptr);
       return 0;
     }
-#endif
   }
   if (TStime() - chptr->creationtime < 172800)	/* Channel younger than 48 hours? */
     schedule_destruct_event_1m(chptr);		/* Get rid of it in approximately 4-5 minutes */
