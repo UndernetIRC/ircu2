@@ -1,3 +1,9 @@
+2006-01-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (modebuf_flush_int): Also send timestamp when &me
+	originates the MODE going to other servers (currently just when a
+	client joins a zannel or uses an A/U password).
+
 2006-01-02  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_features.h (FEAT_ZANNELS): Remove.

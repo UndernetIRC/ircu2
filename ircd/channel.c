@@ -1862,7 +1862,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
        * We're propagating a normal MODE command to the rest of the network;
        * we send the actual channel TS unless this is a HACK3 or a HACK4
        */
-      if (IsServer(mbuf->mb_source))
+      if (IsServer(mbuf->mb_source) || IsMe(mbuf->mb_source))
 	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
 			      "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
 			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
