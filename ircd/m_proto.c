@@ -105,6 +105,8 @@ static const char* const PROTO_REQ = "REQ";
 static const char* const PROTO_ACK = "ACK";
 static const char* const PROTO_SUP = "SUP";
 
+
+static
 int proto_handle_ack(struct Client* cptr, const char* msg)
 {
   /*
@@ -114,6 +116,7 @@ int proto_handle_ack(struct Client* cptr, const char* msg)
   return 0;
 }
 
+static
 int proto_handle_req(struct Client* cptr, const char* msg)
 {
   /*
@@ -123,6 +126,7 @@ int proto_handle_req(struct Client* cptr, const char* msg)
   return 0;
 }
 
+static
 int proto_send_supported(struct Client* cptr)
 {
   /*

@@ -74,6 +74,12 @@
 /** Count of allocated User structures. */
 static int userCount = 0;
 
+static
+void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
+                int sendset);
+static
+unsigned int umode_make_snomask(unsigned int oldmask, char *arg, int what);
+
 /** Makes sure that \a cptr has a User information block.
  * If cli_user(cptr) != NULL, does nothing.
  * @param[in] cptr Client to attach User struct to.
@@ -1192,6 +1198,27 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   return 0;
 }
 
+/**
+ * Check to see if this resembles a sno_mask.  It is if 1) there is
+ * at least one digit and 2) The first digit occurs before the first
+ * alphabetic character.
+ * @param[in] word Word to check for sno_mask-ness.
+ * @return Non-zero if \a word looks like a server notice mask; zero if not.
+ */
+static
+int is_snomask(char *word)
+{
+  if (word)
+  {
+    for (; *word; word++)
+      if (IsDigit(*word))
+        return 1;
+      else if (IsAlpha(*word))
+        return 0;
+  }
+  return 0;
+}
+
 /** Set a user's mode.  This function checks that \a cptr is trying to
  * set his own mode, prevents local users from setting inappropriate
  * modes through this function, and applies any other side effects of
@@ -1494,6 +1521,7 @@ char *umode_str(struct Client *cptr)
  * @param[in] sendset One of ALL_UMODES, SEND_UMODES_BUT_OPER,
  * SEND_UMODES, to select which changed user modes to send.
  */
+static
 void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
                 int sendset)
 {
@@ -1556,25 +1584,6 @@ void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
     sendcmdto_one(sptr, CMD_MODE, cptr, "%s :%s", cli_name(sptr), umodeBuf);
 }
 
-/**
- * Check to see if this resembles a sno_mask.  It is if 1) there is
- * at least one digit and 2) The first digit occurs before the first
- * alphabetic character.
- * @param[in] word Word to check for sno_mask-ness.
- * @return Non-zero if \a word looks like a server notice mask; zero if not.
- */
-int is_snomask(char *word)
-{
-  if (word)
-  {
-    for (; *word; word++)
-      if (IsDigit(*word))
-        return 1;
-      else if (IsAlpha(*word))
-        return 0;
-  }
-  return 0;
-}
 
 /** Update snomask \a oldmask according to \a arg and \a what.
  * @param[in] oldmask Original user mask.
@@ -1582,6 +1591,7 @@ int is_snomask(char *word)
  * @param[in] what MODE_ADD if adding the mask.
  * @return New value of service notice mask.
  */
+static
 unsigned int umode_make_snomask(unsigned int oldmask, char *arg, int what)
 {
   unsigned int sno_what;
@@ -1793,6 +1803,7 @@ get_clean_isupport(const char *name)
 /** Declare support for a feature with no parameter.
  * @param[in] name Name of ISUPPORT feature to announce.
  */
+static
 void add_isupport(const char *name)
 {
   get_clean_isupport(name);
@@ -1823,6 +1834,7 @@ void add_isupport_s(const char *name, const char *value)
 /** Stop announcing support for a feature.
  * @param[in] name Name of ISUPPORT feature to revoke.
  */
+static
 void del_isupport(const char *name)
 {
   struct ISupport *isv, *prev;

@@ -389,8 +389,6 @@ extern void remove_user_from_channel(struct Client *sptr, struct Channel *chptr)
 extern void remove_user_from_all_channels(struct Client* cptr);
 
 extern int is_chan_op(struct Client *cptr, struct Channel *chptr);
-extern int is_zombie(struct Client *cptr, struct Channel *chptr);
-extern int has_voice(struct Client *cptr, struct Channel *chptr);
 /*
    NOTE: pointer is compared, and not dereferenced, called by
    add_target with a void*, since targets could be anything,
@@ -401,9 +399,6 @@ extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_set_default(void); /* this belongs elsewhere! */
-
-extern void RevealDelayedJoin(struct Membership *member);
-extern void CheckDelayedJoins(struct Channel *chan);
 
 extern void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
 			 struct Client *connect, struct Channel *chan,

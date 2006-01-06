@@ -57,9 +57,9 @@ static void moveMacro(int from, int to);
 static void setLowHi(const char firstlow, const char lastlow,
     const char firsthi);
 
-char NTL_tolower_tab[1 + CHAR_MAX - CHAR_MIN];	/* 256 bytes */
-char NTL_toupper_tab[1 + CHAR_MAX - CHAR_MIN];	/* 256 bytes */
-int NTL_char_attrib[1 + CHAR_MAX - CHAR_MIN];	/* 256 ints = 0.5 to 2 kilobytes */
+static char NTL_tolower_tab[1 + CHAR_MAX - CHAR_MIN]; /* 256 bytes */
+static char NTL_toupper_tab[1 + CHAR_MAX - CHAR_MIN]; /* 256 bytes */
+static int NTL_char_attrib[1 + CHAR_MAX - CHAR_MIN];  /* 256 ints = 0.5 to 2 kilobytes */
 
 /*
  * makeTables() 

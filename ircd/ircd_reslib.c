@@ -241,50 +241,6 @@ add_nameserver(char *arg)
 }
 
 /**
- * Expand compressed domain name to full domain name.
- * Like irc_ns_name_uncompress(), but checks for a well-formed result.
- * @param[in] msg Pointer to the beginning of the message.
- * @param[in] eom First location after the message.
- * @param[in] src Pointer to where to starting decoding.
- * @param[out] dst Output buffer.
- * @param[in] dstsiz Number of bytes that can be written to \a dst.
- * @return Number of bytes written to \a dst.
- */
-int
-irc_dn_expand(const unsigned char *msg, const unsigned char *eom,
-              const unsigned char *src, char *dst, int dstsiz)
-{
-  int n = irc_ns_name_uncompress(msg, eom, src, dst, (size_t)dstsiz);
-
-  if (n > 0 && dst[0] == '.')
-    dst[0] = '\0';
-  return(n);
-}
-
-/**
- * Expand compressed domain name to full domain name.
- * @param[in] msg Pointer to the beginning of the message.
- * @param[in] eom First location after the message.
- * @param[in] src Pointer to where to starting decoding.
- * @param[out] dst Output buffer.
- * @param[in] dstsiz Number of bytes that can be written to \a dst.
- * @return Number of bytes written to \a dst.
- */
-int
-irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
-                       const unsigned char *src, char *dst, size_t dstsiz)
-{
-  unsigned char tmp[NS_MAXCDNAME];
-  int n;
-
-  if ((n = irc_ns_name_unpack(msg, eom, src, tmp, sizeof tmp)) == -1)
-    return(-1);
-  if (irc_ns_name_ntop((char*)tmp, (char*)dst, dstsiz) == -1)
-    return(-1);
-  return(n);
-}
-
-/**
  * Unpack compressed domain name to uncompressed form.
  * @param[in] msg Pointer to the beginning of the message.
  * @param[in] eom First location after the message.
@@ -293,7 +249,7 @@ irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
  * @param[in] dstsiz Number of bytes that can be written to \a dst.
  * @return Number of bytes written to \a dst.
  */
-int
+static int
 irc_ns_name_unpack(const unsigned char *msg, const unsigned char *eom,
                    const unsigned char *src, unsigned char *dst,
                    size_t dstsiz)
@@ -375,7 +331,7 @@ irc_ns_name_unpack(const unsigned char *msg, const unsigned char *eom,
  * @param[in] dstsiz Number of bytes that can be written to \a dst.
  * @return Number of bytes written to \a dst.
  */
-int
+static int
 irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz)
 {
 	const char *cp;
@@ -467,6 +423,52 @@ irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz)
 	return (dn - dst);
 }
 
+/**
+ * Expand compressed domain name to full domain name.
+ * @param[in] msg Pointer to the beginning of the message.
+ * @param[in] eom First location after the message.
+ * @param[in] src Pointer to where to starting decoding.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
+ */
+static int
+irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
+                       const unsigned char *src, char *dst, size_t dstsiz)
+{
+  unsigned char tmp[NS_MAXCDNAME];
+  int n;
+
+  if ((n = irc_ns_name_unpack(msg, eom, src, tmp, sizeof tmp)) == -1)
+    return(-1);
+  if (irc_ns_name_ntop((char*)tmp, (char*)dst, dstsiz) == -1)
+    return(-1);
+  return(n);
+}
+
+/**
+ * Expand compressed domain name to full domain name.
+ * Like irc_ns_name_uncompress(), but checks for a well-formed result.
+ * @param[in] msg Pointer to the beginning of the message.
+ * @param[in] eom First location after the message.
+ * @param[in] src Pointer to where to starting decoding.
+ * @param[out] dst Output buffer.
+ * @param[in] dstsiz Number of bytes that can be written to \a dst.
+ * @return Number of bytes written to \a dst.
+ */
+int
+irc_dn_expand(const unsigned char *msg, const unsigned char *eom,
+              const unsigned char *src, char *dst, int dstsiz)
+{
+  int n = irc_ns_name_uncompress(msg, eom, src, dst, (size_t)dstsiz);
+
+  if (n > 0 && dst[0] == '.')
+    dst[0] = '\0';
+  return(n);
+}
+
+
+
 /** Pack domain name from presentation form into compressed format.
  * @param[in] src Presentation form of name.
  * @param[out] dst Output buffer.
@@ -475,7 +477,7 @@ irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz)
  * @param[in] lastdnptr End of \a dnptrs array.
  * @return Number of bytes written to \a dst.
  */
-int
+static int
 irc_dn_comp(const char *src, unsigned char *dst, int dstsiz,
             unsigned char **dnptrs, unsigned char **lastdnptr)
 {
@@ -484,26 +486,12 @@ irc_dn_comp(const char *src, unsigned char *dst, int dstsiz,
                               (const unsigned char **)lastdnptr));
 }
 
-/** Skip over a compressed domain name.
- * @param[in] ptr Start of compressed name.
- * @param[in] eom End of message.
- * @return Length of the compressed name, or -1 on error.
- */
-int
-irc_dn_skipname(const unsigned char *ptr, const unsigned char *eom) {
-  const unsigned char *saveptr = ptr;
-
-  if (irc_ns_name_skip(&ptr, eom) == -1)
-    return(-1);
-  return(ptr - saveptr);
-}
-
 /** Advance \a ptrptr to skip over the compressed name it points at.
  * @param[in,out] ptrptr Pointer to the compressed name.
  * @param[in] eom End of message.
  * @return Zero on success; non-zero (with errno set) on failure.
  */
-int
+static int
 irc_ns_name_skip(const unsigned char **ptrptr, const unsigned char *eom)
 {
   const unsigned char *cp;
@@ -550,6 +538,20 @@ irc_ns_name_skip(const unsigned char **ptrptr, const unsigned char *eom)
   return(0);
 }
 
+/** Skip over a compressed domain name.
+ * @param[in] ptr Start of compressed name.
+ * @param[in] eom End of message.
+ * @return Length of the compressed name, or -1 on error.
+ */
+int
+irc_dn_skipname(const unsigned char *ptr, const unsigned char *eom) {
+  const unsigned char *saveptr = ptr;
+
+  if (irc_ns_name_skip(&ptr, eom) == -1)
+    return(-1);
+  return(ptr - saveptr);
+}
+
 /** Read a 16-bit network-endian value from \a src.
  * @param[in] src Input data buffer.
  * @return Value retrieved from buffer.
@@ -567,7 +569,7 @@ irc_ns_get16(const unsigned char *src)
  * @param[in] src Input data buffer.
  * @return Value retrieved from buffer.
  */
-unsigned long
+static unsigned long
 irc_ns_get32(const unsigned char *src)
 {
   unsigned long dst;
@@ -580,7 +582,7 @@ irc_ns_get32(const unsigned char *src)
  * @param[in] src Value to write.
  * @param[out] dst Output buffer.
  */
-void
+static void
 irc_ns_put16(unsigned int src, unsigned char *dst)
 {
   IRC_NS_PUT16(src, dst);
@@ -590,7 +592,7 @@ irc_ns_put16(unsigned int src, unsigned char *dst)
  * @param[in] src Value to write.
  * @param[out] dst Output buffer.
  */
-void
+static void
 irc_ns_put32(unsigned long src, unsigned char *dst)
 {
   IRC_NS_PUT32(src, dst);
@@ -710,7 +712,7 @@ irc_decode_bitstring(const char **cpp, char *dn, const char *eom)
  * @return -1 on failure, 0 if \a src was not fully qualified, 1 if \a
  * src was fully qualified.
  */
-int
+static int
 irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz)
 {
   unsigned char *label, *bp, *eom;
@@ -848,7 +850,7 @@ irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz)
  * @param[in] lastdnptr End of \a dnptrs array.
  * @return Number of bytes written to \a dst.
  */
-int
+static int
 irc_ns_name_pack(const unsigned char *src, unsigned char *dst, int dstsiz,
                  const unsigned char **dnptrs, const unsigned char **lastdnptr)
 {

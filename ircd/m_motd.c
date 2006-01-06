@@ -137,6 +137,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *
  * Now using the motd_* family of functions defined in motd.c
  */
+static
 int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   if (hunt_server_cmd(sptr, CMD_MOTD, cptr, 0, "%C", 1, parc, parv) !=

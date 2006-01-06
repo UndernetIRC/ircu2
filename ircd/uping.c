@@ -56,11 +56,14 @@
 static struct UPing* pingList = 0; /**< Linked list of UPing structs */
 static struct Socket upingSock_v4; /**< Socket struct for IPv4 upings */
 static struct Socket upingSock_v6; /**< Socket struct for IPv6 upings */
+static void uping_send(struct UPing* pptr);
+static void uping_read(struct UPing* pptr);
+static void uping_end(struct UPing* pptr);
 
 /** Start iteration of uping list.
  * @return Start of uping list.
  */
-struct UPing* uping_begin(void)
+static struct UPing* uping_begin(void)
 {
   return pingList;
 }
@@ -269,7 +272,7 @@ static void uping_start(struct UPing* pptr)
 /** Send a uping to another server.
  * @param[in] pptr Descriptor for uping.
  */
-void uping_send(struct UPing* pptr)
+static void uping_send(struct UPing* pptr)
 {
   struct timeval tv;
   char buf[BUFSIZE + 1];
@@ -305,7 +308,7 @@ void uping_send(struct UPing* pptr)
 /** Read the response from an outbound uping.
  * @param[in] pptr UPing to check.
  */
-void uping_read(struct UPing* pptr)
+static void uping_read(struct UPing* pptr)
 {
   struct irc_sockaddr sin;
   struct timeval     tv;
@@ -419,7 +422,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
 /** Clean up a UPing structure, reporting results to the requester.
  * @param[in,out] pptr UPing results.
  */
-void uping_end(struct UPing* pptr)
+static void uping_end(struct UPing* pptr)
 {
   Debug((DEBUG_DEBUG, "uping_end: %p", pptr));
 

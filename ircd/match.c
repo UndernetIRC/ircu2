@@ -568,6 +568,7 @@ trychunk:
  * @param[in] cmask Compiled mask.
  * @return Number of characters written to \a mask.
  */
+static
 int matchdecomp(char *mask, const char *cmask)
 {
   char *rtb = mask;
@@ -648,6 +649,7 @@ int matchdecomp(char *mask, const char *cmask)
  * @param[in] rminlen Minimum match length for \a rcm.
  * @return Zero if \a wcm is a superset of \a rcm, non-zero if not.
  */
+static
 int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
 {
   const char *w, *r, *br, *bw, *rx, *rz;

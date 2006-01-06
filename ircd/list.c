@@ -66,6 +66,10 @@ static struct Connection* connectionFreeList;
 /** Linked list of currently unused SLink structures. */
 static struct SLink* slinkFreeList;
 
+static
+void send_liststats(struct Client *cptr, const struct liststats *lstats,
+                    const char *itemname, struct liststats *totals);
+
 /** Initialize the list manipulation support system.
  * @arg[in] maxconn Number of Client and Connection structures to preallocate.
  */
@@ -496,6 +500,7 @@ void remove_dlink(struct DLink **lpp, struct DLink *lp)
  * @param[in] itemname Plural name of item type.
  * @param[in,out] totals If non-null, accumulates item counts and memory usage.
  */
+static
 void send_liststats(struct Client *cptr, const struct liststats *lstats,
                     const char *itemname, struct liststats *totals)
 {

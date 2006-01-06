@@ -186,13 +186,3 @@ int m_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-int mo_map(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  if (parc < 2)
-    parv[1] = "*";
-
-  dump_map(sptr, &me, parv[1], 0);
-  send_reply(sptr, RPL_MAPEND);
-
-  return 0;
-}

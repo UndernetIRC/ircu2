@@ -148,6 +148,7 @@ unsigned int base64toint(const char* s)
  * @param[in] v Value to encode.
  * @param[in] count Number of numnick digits to write to \a buf.
  */
+static
 const char* inttobase64(char* buf, unsigned int v, unsigned int count)
 {
   buf[count] = '\0';

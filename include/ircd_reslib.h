@@ -59,17 +59,7 @@
 
 int irc_res_init(void);
 int irc_dn_expand(const unsigned char *msg, const unsigned char *eom, const unsigned char *src, char *dst, int dstsiz);
-int irc_ns_name_uncompress(const unsigned char *msg, const unsigned char *eom, const unsigned char *src, char *dst, size_t dstsiz);
-int irc_ns_name_unpack(const unsigned char *msg, const unsigned char *eom, const unsigned char *src, unsigned char *dst, size_t dstsiz);
-int irc_ns_name_ntop(const char *src, char *dst, size_t dstsiz);
-int irc_dn_comp(const char *src, unsigned char *dst, int dstsiz, unsigned char **dnptrs, unsigned char **lastdnptr);
 int irc_dn_skipname(const unsigned char *ptr, const unsigned char *eom);
-int irc_ns_name_skip(const unsigned char **ptrptr, const unsigned char *eom);
-unsigned int irc_ns_get16(const unsigned char *src);
-unsigned long irc_ns_get32(const unsigned char *src);
-void irc_ns_put16(unsigned int src, unsigned char *dst);
-void irc_ns_put32(unsigned long src, unsigned char *dst);
-int irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz);
-int irc_ns_name_pack(const unsigned char *src, unsigned char *dst, int dstsiz, const unsigned char **dnptrs, const unsigned char **lastdnptr);
 int irc_res_mkquery(const char *dname, int class, int type, unsigned char *buf, int buflen);
+unsigned int irc_ns_get16(const unsigned char *src);
 #endif /* INCLUDED_res_h */

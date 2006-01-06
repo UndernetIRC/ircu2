@@ -104,12 +104,10 @@ struct Connection me_con;		/**< That's me too */
 struct Client *GlobalClientList  = &me; /**< Pointer to beginning of
 					   Client list */
 time_t         TSoffset          = 0;   /**< Offset of timestamps to system clock */
-int            GlobalRehashFlag  = 0;   /**< do a rehash if set */
-int            GlobalRestartFlag = 0;   /**< do a restart if set */
 time_t         CurrentTime;             /**< Updated every time we leave select() */
 
 char          *configfile        = CPATH; /**< Server configuration file */
-int            debuglevel        = -1;    /**< Server debug level  */
+static int     debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
 int            maxconnections    = MAXCONNECTIONS; /**< Maximum number of open files */
 int            maxclients        = -1;    /**< Maximum number of clients */
@@ -217,12 +215,12 @@ static void write_pidfile(void) {
     memset(buff, 0, sizeof(buff));
     sprintf(buff, "%5d\n", (int)getpid());
     if (write(thisServer.pid_fd, buff, strlen(buff)) == -1)
-      Debug((DEBUG_NOTICE, "Error writing to pid file %s: %m",
-	     feature_str(FEAT_PPATH)));
+      log_write(LS_SYSTEM, L_WARNING, 0, "Error writing to pid file %s: %m",
+	     feature_str(FEAT_PPATH));
     return;
   }
-  Debug((DEBUG_NOTICE, "Error opening pid file %s: %m",
-	 feature_str(FEAT_PPATH)));
+  log_write(LS_SYSTEM, L_WARNING, 0, "Error opening pid file %s: %m",
+	 feature_str(FEAT_PPATH));
 }
 
 /** Try to create the PID file.

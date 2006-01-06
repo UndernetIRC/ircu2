@@ -195,7 +195,7 @@ restart_resolver(void)
  * @param[in,out] hname Hostname to check.
  * @param[in] size Length of \a hname buffer.
  */
-void
+static void
 add_local_domain(char* hname, size_t size)
 {
   /* try to fix up unqualified names 

@@ -53,6 +53,7 @@ const struct ConnectionClass* get_class_list(void)
  * If #connClassList is not null, insert the new class just after it.
  * @return Newly allocated connection class structure.
  */
+static
 struct ConnectionClass* make_class(void)
 {
   struct ConnectionClass *tmp;
@@ -72,6 +73,7 @@ struct ConnectionClass* make_class(void)
 /** Dereference a connection class.
  * @param[in] p Connection class to dereference.
  */
+static
 void free_class(struct ConnectionClass* p)
 {
   if (p)
@@ -223,7 +225,7 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
   ConFreq(p) = confreq;
   PingFreq(p) = ping;
   MaxLinks(p) = maxli;
-  MaxSendq(p) = (sendq > 0) ?
+  MaxSendq(p) = (sendq > 0U) ?
      sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
   p->valid = 1;
 }

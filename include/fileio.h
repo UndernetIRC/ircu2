@@ -25,12 +25,6 @@ typedef struct FileBuf FBFILE;
  */
 extern FBFILE *fbopen(const char *filename, const char *mode);
 /*
- * associate a file descriptor with a FBFILE*
- * if a FBFILE* is associated here it MUST be closed using fbclose
- * see fdopen(3)
- */
-extern FBFILE *fdbopen(int fd, const char *mode);
-/*
  * close a file opened with fbopen, see fclose(3)
  */
 extern void fbclose(FBFILE * fb);

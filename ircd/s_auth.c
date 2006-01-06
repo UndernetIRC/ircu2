@@ -101,7 +101,9 @@ typedef enum {
    send(cli_fd(c), HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
 
 static void release_auth_client(struct Client* client);
-void free_auth_request(struct AuthRequest* auth);
+static void free_auth_request(struct AuthRequest* auth);
+static void send_auth_query(struct AuthRequest* auth);
+static void read_auth_reply(struct AuthRequest* auth);
 
 /** Verify that a hostname is valid, i.e., only contains characters
  * valid for a hostname and that a hostname is not too long.
@@ -250,7 +252,7 @@ static struct AuthRequest* make_auth_request(struct Client* client)
 /** Clean up auth request allocations (event loop objects, etc).
  * @param auth The request to clean up.
  */
-void free_auth_request(struct AuthRequest* auth)
+static void free_auth_request(struct AuthRequest* auth)
 {
   if (-1 < auth->fd) {
     close(auth->fd);
@@ -580,6 +582,7 @@ void start_auth(struct Client* client)
  * than this message to store it in should problems arise. -avalon
  * @param auth The request to send.
  */
+static
 void send_auth_query(struct AuthRequest* auth)
 {
   struct irc_sockaddr us;
@@ -613,6 +616,7 @@ void send_auth_query(struct AuthRequest* auth)
  * the authentication entirely. --Bleep
  * @param auth The request to read.
  */
+static
 void read_auth_reply(struct AuthRequest* auth)
 {
   char*        username = 0;

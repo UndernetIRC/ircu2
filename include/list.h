@@ -57,7 +57,6 @@ extern void add_client_to_list(struct Client *cptr);
 extern struct DLink *add_dlink(struct DLink **lpp, struct Client *cp);
 extern void remove_dlink(struct DLink **lpp, struct DLink *lp);
 extern struct ConfItem *make_conf(int type);
-extern void free_conf(struct ConfItem *aconf);
 extern void send_listinfo(struct Client *cptr, char *name);
 
 #endif /* INCLUDED_list_h */

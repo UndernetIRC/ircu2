@@ -47,6 +47,27 @@ struct FileBuf {
   char buf[BUFSIZ];             /**< buffer */
 };
 
+/** Open a FBFILE from a file descriptor.
+ * @param[in] fd File descriptor to use.
+ * @param[in] mode fopen()-style mode string (ignored).
+ */
+static
+FBFILE* fdbopen(int fd, const char *mode)
+{
+  /*
+   * ignore mode, if file descriptor hasn't been opened with the
+   * correct mode, the first use will fail
+   */
+  FBFILE *fb = (FBFILE *) MyMalloc(sizeof(FBFILE));
+  assert(0 != fb);
+  fb->ptr   = fb->endp = fb->buf;
+  fb->fd    = fd;
+  fb->flags = 0;
+
+  return fb;
+}
+
+
 /** Open a new FBFILE.
  * @param[in] filename Name of file to open.
  * @param[in] mode fopen()-style mode string.
@@ -96,25 +117,6 @@ FBFILE* fbopen(const char *filename, const char *mode)
 
   if (NULL == (fb = fdbopen(fd, NULL)))
     close(fd);
-  return fb;
-}
-
-/** Open a FBFILE from a file descriptor.
- * @param[in] fd File descriptor to use.
- * @param[in] mode fopen()-style mode string (ignored).
- */
-FBFILE* fdbopen(int fd, const char *mode)
-{
-  /*
-   * ignore mode, if file descriptor hasn't been opened with the
-   * correct mode, the first use will fail
-   */
-  FBFILE *fb = (FBFILE *) MyMalloc(sizeof(FBFILE));
-  assert(0 != fb);
-  fb->ptr   = fb->endp = fb->buf;
-  fb->fd    = fd;
-  fb->flags = 0;
-
   return fb;
 }
 

@@ -72,8 +72,6 @@ struct AuthRequest {
 #define IsDoingAuth(x)       ((x)->flags &  (AM_AUTH_PENDING | AM_AUTH_CONNECTING))
 
 extern void start_auth(struct Client *);
-extern void read_auth_reply(struct AuthRequest* req);
-extern void send_auth_query(struct AuthRequest* req);
 extern void destroy_auth_request(struct AuthRequest *req, int send_reports);
 
 #endif /* INCLUDED_s_auth_h */

@@ -51,7 +51,7 @@
 #include <sys/socket.h>
 
 /** List of listening sockets. */
-struct Listener* ListenerPollList = 0;
+static struct Listener* ListenerPollList = 0;
 
 static void accept_connection(struct Event* ev);
 
@@ -96,6 +96,7 @@ static void free_listener(struct Listener* listener)
  * @param[in] listener %Listener to format as a text string.
  * @return Pointer to a static buffer that contains "server.name:6667".
  */
+static
 const char* get_listener_name(const struct Listener* listener)
 {
   static char buf[HOSTLEN + PORTNAMELEN + 4];
@@ -306,6 +307,7 @@ void mark_listeners_closing(void)
 /** Close a single listener.
  * @param[in] listener Listener to close.
  */
+static
 void close_listener(struct Listener* listener)
 {
   assert(0 != listener);

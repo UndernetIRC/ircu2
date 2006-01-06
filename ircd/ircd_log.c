@@ -165,7 +165,7 @@ static struct LogDesc {
   S(IAUTH, -1, SNO_NETWORK),
   S(DEBUG, -1, SNO_DEBUG),
 #undef S
-  { LS_LAST_SYSTEM, 0, 0, -1, 0, -1, 0 }
+  { LS_LAST_SYSTEM, 0, 0, -1, 0, -1, 0, 0, 0 }
 };
 
 /** Describes a log file. */
@@ -185,6 +185,10 @@ static struct {
   const char	 *procname; /**< process's name */
   struct LogFile *dbfile;   /**< debug file */
 } logInfo = { 0, 0, LOG_USER, "ircd", 0 };
+
+static void
+log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
+	   const char *fmt, va_list vl);
 
 /** Helper routine to open a log file if needed.
  * If the log file is already open, do nothing.
@@ -361,7 +365,7 @@ log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
  * @param[in] fmt Format string for message.
  * @param[in] vl Variable-length argument list for message.
  */
-void
+static void
 log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 	   const char *fmt, va_list vl)
 {

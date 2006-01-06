@@ -257,20 +257,3 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return jupe_add(cptr, sptr, server, reason, expire_off, TStime(), flags);
 }
 
-/*
- * m_jupe - user message handler
- *
- * parv[0] = Send prefix
- *
- * From user:
- *
- * parv[1] = [<server name>]
- *
- */
-int m_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  if (parc < 2)
-    return jupe_list(sptr, 0);
-
-  return jupe_list(sptr, parv[1]);
-}

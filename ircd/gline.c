@@ -63,9 +63,9 @@
 #define MASK_HALT	0x40	/**< Finished processing mask */
 
 /** List of user G-lines. */
-struct Gline* GlobalGlineList  = 0;
+static struct Gline* GlobalGlineList  = 0;
 /** List of BadChan G-lines. */
-struct Gline* BadChanGlineList = 0;
+static struct Gline* BadChanGlineList = 0;
 
 /** Count number of users who match \a mask.
  * @param[in] mask user\@host or user\@ip mask to check.

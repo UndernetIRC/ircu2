@@ -116,8 +116,4 @@ extern void sendto_opmask_butone_ratelimited(struct Client *one,
 					     unsigned int mask, time_t *rate,
 					     const char *pattern, ...);
 
-/* Same as above, but with variable argument list */
-extern void vsendto_opmask_butone(struct Client *one, unsigned int mask,
-				  const char *pattern, va_list vl);
-
 #endif /* INCLUDED_send_h */

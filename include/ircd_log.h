@@ -75,8 +75,6 @@ extern void log_close(void);
 
 extern void log_write(enum LogSys subsys, enum LogLevel severity,
 		      unsigned int flags, const char *fmt, ...);
-extern void log_vwrite(enum LogSys subsys, enum LogLevel severity,
-		       unsigned int flags, const char *fmt, va_list vl);
 
 extern void log_write_kill(const struct Client *victim,
 			   const struct Client *killer,

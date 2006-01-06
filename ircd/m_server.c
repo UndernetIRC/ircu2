@@ -484,6 +484,7 @@ check_start_timestamp(struct Client *cptr, time_t timestamp, time_t start_timest
  * @param[in] cptr New server structure.
  * @param[in] flags String listing server's P10 flags.
  */
+static
 void set_server_flags(struct Client *cptr, const char *flags)
 {
     while (*flags) switch (*flags++) {

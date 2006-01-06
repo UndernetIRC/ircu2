@@ -104,6 +104,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+static
 int oper_password_match(const char* to_match, const char* passwd)
 {
   char *crypted;

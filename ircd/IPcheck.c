@@ -267,6 +267,7 @@ void IPcheck_init(void)
  * @param[out] next_target_out Receives time to grant another free target.
  * @return Non-zero if the connection is permitted, zero if denied.
  */
+static
 int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_out)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
@@ -326,6 +327,7 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
  * @param[in] is_burst Non-zero if client was introduced during a burst.
  * @return Non-zero if the client should be accepted, zero if they must be killed.
  */
+static
 int ip_registry_check_remote(struct Client* cptr, int is_burst)
 {
   struct IPRegistryEntry* entry;
@@ -374,6 +376,7 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
  * so the client's address is not penalized for the failure.
  * @param[in] addr Address of rejected client.
  */
+static
 void ip_registry_connect_fail(const struct irc_in_addr *addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
@@ -389,6 +392,7 @@ void ip_registry_connect_fail(const struct irc_in_addr *addr)
  * the entry.
  * @param[in,out] cptr Client that has successfully connected.
  */
+static
 void ip_registry_connect_succeeded(struct Client *cptr)
 {
   const char*             tr    = "";
@@ -412,6 +416,7 @@ void ip_registry_connect_succeeded(struct Client *cptr)
  * information for his IP registry entry.
  * @param[in] cptr Client that has exited.
  */
+static
 void ip_registry_disconnect(struct Client *cptr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(&cli_ip(cptr));
@@ -488,6 +493,7 @@ void ip_registry_disconnect(struct Client *cptr)
  * @param[in] addr Address to look up.
  * @return Number of clients known to be connected from that address.
  */
+static
 int ip_registry_count(const struct irc_in_addr *addr)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);

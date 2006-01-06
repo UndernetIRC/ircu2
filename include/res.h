@@ -108,7 +108,6 @@ typedef struct
 } HEADER;
 
 extern void restart_resolver(void);
-extern void add_local_domain(char *hname, size_t size);
 extern size_t cres_mem(struct Client* cptr);
 extern void delete_resolver_queries(const void *vptr);
 extern void report_dns_servers(struct Client *source_p, const struct StatDesc *sd, char *param);

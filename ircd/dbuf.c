@@ -214,6 +214,7 @@ int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length)
  * @param[out] length Receives number of bytes in block.
  * @return Pointer to start of block (or NULL if the first block is empty).
  */
+static
 const char *dbuf_map(const struct DBuf* dyn, unsigned int* length)
 {
   assert(0 != dyn);

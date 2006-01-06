@@ -100,8 +100,6 @@ extern void class_mark_delete(void);
 extern void class_delete_marked(void);
 
 extern struct ConnectionClass *do_find_class(const char *name, int extras);
-extern struct ConnectionClass *make_class(void);
-extern void free_class(struct ConnectionClass * tmp);
 extern char *get_conf_class(const struct ConfItem *aconf);
 extern int get_conf_ping(const struct ConfItem *aconf);
 extern char *get_client_class(struct Client *acptr);

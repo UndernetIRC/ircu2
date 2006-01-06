@@ -84,20 +84,34 @@ static char               readbuf[SERVER_TCP_WINDOW];
 /*
  * report_error text constants
  */
-const char* const ACCEPT_ERROR_MSG    = "error accepting connection for %s: %s";
-const char* const BIND_ERROR_MSG      = "bind error for %s: %s";
-const char* const CONNECT_ERROR_MSG   = "connect to host %s failed: %s";
-const char* const CONNLIMIT_ERROR_MSG = "connect limit exceeded for %s: %s";
-const char* const LISTEN_ERROR_MSG    = "listen error for %s: %s";
-const char* const NONB_ERROR_MSG      = "error setting non-blocking for %s: %s";
-const char* const PEERNAME_ERROR_MSG  = "getpeername failed for %s: %s";
-const char* const POLL_ERROR_MSG      = "poll error for %s: %s";
-const char* const REGISTER_ERROR_MSG  = "registering %s: %s";
-const char* const REUSEADDR_ERROR_MSG = "error setting SO_REUSEADDR for %s: %s";
-const char* const SELECT_ERROR_MSG    = "select error for %s: %s";
-const char* const SETBUFS_ERROR_MSG   = "error setting buffer size for %s: %s";
-const char* const SOCKET_ERROR_MSG    = "error creating socket for %s: %s";
-const char* const TOS_ERROR_MSG	      = "error setting TOS for %s: %s";
+static const char* const ACCEPT_ERROR_MSG    
+				= "error accepting connection for %s: %s";
+       const char* const BIND_ERROR_MSG      
+				= "bind error for %s: %s";
+static const char* const CONNECT_ERROR_MSG   
+				= "connect to host %s failed: %s";
+       const char* const CONNLIMIT_ERROR_MSG 
+				= "connect limit exceeded for %s: %s";
+       const char* const LISTEN_ERROR_MSG    
+				= "listen error for %s: %s";
+       const char* const NONB_ERROR_MSG      
+				= "error setting non-blocking for %s: %s";
+static const char* const PEERNAME_ERROR_MSG  
+				= "getpeername failed for %s: %s";
+static const char* const POLL_ERROR_MSG      
+				= "poll error for %s: %s";
+static const char* const REGISTER_ERROR_MSG  
+				= "registering %s: %s";
+       const char* const REUSEADDR_ERROR_MSG 
+				= "error setting SO_REUSEADDR for %s: %s";
+static const char* const SELECT_ERROR_MSG    
+				= "select error for %s: %s";
+       const char* const SETBUFS_ERROR_MSG   
+				= "error setting buffer size for %s: %s";
+       const char* const SOCKET_ERROR_MSG    
+				= "error creating socket for %s: %s";
+       const char* const TOS_ERROR_MSG	      
+				= "error setting TOS for %s: %s";
 
 
 static void client_sock_callback(struct Event* ev);

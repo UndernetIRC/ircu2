@@ -266,6 +266,7 @@ void iauth_mark_closing(void)
 /** Close a particular %IAuth connection.
  * @param[in] iauth %Connection to close.
  */
+static
 void iauth_close(struct IAuth *iauth)
 {
   /* Figure out what to do with the closing connection's requests. */

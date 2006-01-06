@@ -53,7 +53,6 @@ struct DBuf {
  */
 extern void dbuf_delete(struct DBuf *dyn, unsigned int length);
 extern int dbuf_put(struct DBuf *dyn, const char *buf, unsigned int length);
-extern const char *dbuf_map(const struct DBuf *dyn, unsigned int *length);
 extern unsigned int dbuf_get(struct DBuf *dyn, char *buf, unsigned int length);
 extern unsigned int dbuf_getmsg(struct DBuf *dyn, char *buf, unsigned int length);
 extern void dbuf_count_memory(size_t *allocated, size_t *used);

@@ -185,7 +185,7 @@ void print_tree(CRuleNodePtr);
 #endif
 
 /** Error messages, indexed by the corresponding crule_errcode. */
-char *crule_errstr[] = {
+static char *crule_errstr[] = {
   "Unknown error",              /* NOERR? - for completeness */
   "Unexpected token",           /* UNEXPCTTOK */
   "Unknown token",              /* UNKNWTOK */
@@ -206,7 +206,7 @@ struct crule_funclistent {
 };
 
 /** Defined connection rules. */
-struct crule_funclistent crule_funclist[] = {
+static struct crule_funclistent crule_funclist[] = {
   /* maximum function name length is 14 chars */
   {"connected", 1, crule_connected},
   {"directcon", 1, crule_directcon},

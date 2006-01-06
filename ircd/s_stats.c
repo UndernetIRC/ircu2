@@ -68,12 +68,136 @@
  *       it--not reversed as in ircd.conf!
  */
 
-/* The statsinfo array should only be used in this file, but just TRY
- * telling the compiler that you want to forward declare a static
- * array without specifying a length, and see how it responds.  So we
- * forward declare it "extern".
- */
-extern struct StatDesc statsinfo[];
+static void stats_configured_links(struct Client *sptr, 
+			const struct StatDesc* sd, char* param);
+static void stats_crule_list(struct Client* to, const struct StatDesc *sd,
+                 char *param);
+static void stats_engine(struct Client *to, const struct StatDesc *sd,
+		char *param);
+static void stats_access(struct Client *to, const struct StatDesc *sd, 
+		char *param);
+static void stats_klines(struct Client *sptr, const struct StatDesc *sd,
+		char *mask);
+static void stats_links(struct Client* sptr, const struct StatDesc* sd,
+		char* name);
+static void stats_modules(struct Client* to, const struct StatDesc* sd,
+		char* param);
+static void stats_commands(struct Client* to, const struct StatDesc* sd,
+		char* param);
+static void stats_configured_links(struct Client *sptr,
+		const struct StatDesc* sd, char* param);
+static void stats_quarantine(struct Client* to, const struct StatDesc* sd,
+		char* param);
+static void stats_mapping(struct Client *to, const struct StatDesc* sd,
+		char* param);
+static void stats_uptime(struct Client* to, const struct StatDesc* sd,
+		char* param);
+static void stats_servers_verbose(struct Client* sptr, 
+		const struct StatDesc* sd, char* param);
+static void stats_meminfo(struct Client* to, const struct StatDesc* sd,
+		char* param);
+static void stats_help(struct Client* to, const struct StatDesc* sd,
+		char* param);
+
+
+/** Contains information about all statistics. */
+struct StatDesc statsinfo[] = {
+  { 'a', "nameservers", STAT_FLAG_OPERFEAT|STAT_FLAG_LOCONLY, FEAT_HIS_STATS_a,
+    report_dns_servers, 0,
+    "DNS servers." },
+  { 'c', "connect", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
+    stats_configured_links, CONF_SERVER,
+    "Remote server connection lines." },
+  { 'd', "maskrules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
+    stats_crule_list, CRULE_MASK,
+    "Dynamic routing configuration." },
+  { 'D', "crules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
+    stats_crule_list, CRULE_ALL,
+    "Dynamic routing configuration." },
+  { 'e', "engine", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_e,
+    stats_engine, 0,
+    "Report server event loop engine." },
+  { 'f', "features", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_f,
+    feature_report, 0,
+    "Feature settings." },
+  { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
+    gline_stats, 0,
+    "Global bans (G-lines)." },
+  { 'i', "access", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
+    stats_access, CONF_CLIENT,
+    "Connection authorization lines." },
+  { 'j', "histogram", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_j,
+    msgq_histogram, 0,
+    "Message length histogram." },
+  { 'J', "jupes", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_J,
+    stats_nickjupes, 0,
+    "Nickname jupes." },
+  { 'k', "klines", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
+    stats_klines, 0,
+    "Local bans (K-Lines)." },
+  { 'l', "links", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS),
+    FEAT_HIS_STATS_l,
+    stats_links, 0,
+    "Current connections information." },
+  { 'L', "modules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS),
+    FEAT_HIS_STATS_L,
+    stats_modules, 0,
+    "Dynamically loaded modules." },
+  { 'm', "commands", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_m,
+    stats_commands, 0,
+    "Message usage information." },
+  { 'o', "operators", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
+    stats_configured_links, CONF_OPERATOR,
+    "Operator information." },
+  { 'p', "ports", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
+    show_ports, 0,
+    "Listening ports." },
+  { 'q', "quarantines", (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
+    stats_quarantine, 0,
+    "Quarantined channels list." },
+  { 'R', "mappings", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_R,
+    stats_mapping, 0,
+    "Service mappings." },
+#ifdef DEBUGMODE
+  { 'r', "usage", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_r,
+    send_usage, 0,
+    "System resource usage (Debug only)." },
+#endif
+  { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
+    motd_report, 0,
+    "Configured Message Of The Day files." },
+  { 't', "locals", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_t,
+    tstats, 0,
+    "Local connection statistics (Total SND/RCV, etc)." },
+  { 'U', "uworld", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_U,
+    stats_configured_links, CONF_UWORLD,
+    "Service server information." },
+  { 'u', "uptime", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
+    stats_uptime, 0,
+    "Current uptime & highest connection count." },
+  { 'v', "vservers", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
+    stats_servers_verbose, 1,
+    "Verbose server information." },
+  { 'V', "vserversmach", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
+    stats_servers_verbose, 0,
+    "Verbose server information." },
+  { 'w', "userload", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
+    calc_load, 0,
+    "Userload statistics." },
+  { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
+    stats_meminfo, 0,
+    "List usage information." },
+  { 'y', "classes", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
+    report_classes, 0,
+    "Connection classes." },
+  { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
+    count_memory, 0,
+    "Memory/Structure allocation information." },
+  { '*', "help", STAT_FLAG_CASESENS, FEAT_LAST_F,
+    stats_help, 0,
+    "Send help for stats." },
+  { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
+};
 
 /** Report items from #GlobalConfList.
  * Uses sd->sd_funcdata as a filter for ConfItem::status.
@@ -524,104 +648,6 @@ stats_help(struct Client* to, const struct StatDesc* sd, char* param)
                       asd->sd_name, asd->sd_desc);
 }
 
-/** Contains information about all statistics. */
-struct StatDesc statsinfo[] = {
-  { 'a', "nameservers", STAT_FLAG_OPERFEAT|STAT_FLAG_LOCONLY, FEAT_HIS_STATS_a,
-    report_dns_servers, 0,
-    "DNS servers." },
-  { 'c', "connect", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
-    stats_configured_links, CONF_SERVER,
-    "Remote server connection lines." },
-  { 'd', "maskrules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
-    stats_crule_list, CRULE_MASK,
-    "Dynamic routing configuration." },
-  { 'D', "crules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
-    stats_crule_list, CRULE_ALL,
-    "Dynamic routing configuration." },
-  { 'e', "engine", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_e,
-    stats_engine, 0,
-    "Report server event loop engine." },
-  { 'f', "features", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_f,
-    feature_report, 0,
-    "Feature settings." },
-  { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
-    gline_stats, 0,
-    "Global bans (G-lines)." },
-  { 'i', "access", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,
-    stats_access, CONF_CLIENT,
-    "Connection authorization lines." },
-  { 'j', "histogram", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_j,
-    msgq_histogram, 0,
-    "Message length histogram." },
-  { 'J', "jupes", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_J,
-    stats_nickjupes, 0,
-    "Nickname jupes." },
-  { 'k', "klines", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_k,
-    stats_klines, 0,
-    "Local bans (K-Lines)." },
-  { 'l', "links", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS),
-    FEAT_HIS_STATS_l,
-    stats_links, 0,
-    "Current connections information." },
-  { 'L', "modules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS),
-    FEAT_HIS_STATS_L,
-    stats_modules, 0,
-    "Dynamically loaded modules." },
-  { 'm', "commands", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_m,
-    stats_commands, 0,
-    "Message usage information." },
-  { 'o', "operators", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_o,
-    stats_configured_links, CONF_OPERATOR,
-    "Operator information." },
-  { 'p', "ports", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_p,
-    show_ports, 0,
-    "Listening ports." },
-  { 'q', "quarantines", (STAT_FLAG_OPERONLY | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_q,
-    stats_quarantine, 0,
-    "Quarantined channels list." },
-  { 'R', "mappings", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_R,
-    stats_mapping, 0,
-    "Service mappings." },
-#ifdef DEBUGMODE
-  { 'r', "usage", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_r,
-    send_usage, 0,
-    "System resource usage (Debug only)." },
-#endif
-  { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
-    motd_report, 0,
-    "Configured Message Of The Day files." },
-  { 't', "locals", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_t,
-    tstats, 0,
-    "Local connection statistics (Total SND/RCV, etc)." },
-  { 'U', "uworld", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_U,
-    stats_configured_links, CONF_UWORLD,
-    "Service server information." },
-  { 'u', "uptime", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_u,
-    stats_uptime, 0,
-    "Current uptime & highest connection count." },
-  { 'v', "vservers", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
-    stats_servers_verbose, 1,
-    "Verbose server information." },
-  { 'V', "vserversmach", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_v,
-    stats_servers_verbose, 0,
-    "Verbose server information." },
-  { 'w', "userload", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_w,
-    calc_load, 0,
-    "Userload statistics." },
-  { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_x,
-    stats_meminfo, 0,
-    "List usage information." },
-  { 'y', "classes", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_y,
-    report_classes, 0,
-    "Connection classes." },
-  { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
-    count_memory, 0,
-    "Memory/Structure allocation information." },
-  { '*', "help", STAT_FLAG_CASESENS, FEAT_LAST_F,
-    stats_help, 0,
-    "Send help for stats." },
-  { '\0', 0, FEAT_LAST_F, 0, 0, 0 }
-};
 
 /** Maps from characters to statistics descriptors.
  * Statistics descriptors with no single-character alias are not included.

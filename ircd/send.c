@@ -55,6 +55,9 @@ struct SLink *opsarray[32];     /* don't use highest bit unless you change
 /** Linked list of all connections with data queued to send. */
 static struct Connection *send_queues;
 
+static void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+			   const char *pattern, va_list vl);
+
 /*
  * dead_link
  *
@@ -818,7 +821,7 @@ void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
  * @param[in] pattern Format string for server notice.
  * @param[in] vl Argument list for format string.
  */
-void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+static void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 			   const char *pattern, va_list vl)
 {
   struct VarData vd;

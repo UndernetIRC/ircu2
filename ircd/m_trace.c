@@ -47,6 +47,7 @@
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
+static
 void do_trace(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   int i;

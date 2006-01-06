@@ -43,8 +43,8 @@
 #include "ircd_crypt_plain.h"
 
 /* bleah, evil globals */
-umkpasswd_conf_t* umkpasswd_conf;
-crypt_mechs_t* crypt_mechs_root;
+static umkpasswd_conf_t* umkpasswd_conf;
+static crypt_mechs_t* crypt_mechs_root;
 int log_inassert = 0;
 time_t CurrentTime;
 
@@ -209,6 +209,7 @@ char *basename_into(char *tmp, char *target)
   }
 }
 
+static
 void sum(char* tmp)
 {
 FILE* file;

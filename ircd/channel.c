@@ -76,9 +76,9 @@ static size_t bans_inuse;
  * @param lp	pointer to the start of the linked list
  * @return the number of items in the list
  */
-static int list_length(struct SLink *lp)
+static unsigned int list_length(struct SLink *lp)
 {
-  int count = 0;
+  unsigned int count = 0;
 
   for (; lp; lp = lp->next)
     ++count;
@@ -102,6 +102,35 @@ set_ban_mask(struct Ban *ban, const char *banstr)
     if (ipmask_parse(sep + 1, &ban->address, &ban->addrbits))
       ban->flags |= BAN_IPMASK;
   }
+}
+
+/* CheckDelayedJoins: checks and clear +d if necessary */
+
+static void CheckDelayedJoins(struct Channel *chan)
+{
+  struct Membership *memb2;
+
+  if (chan->mode.mode & MODE_WASDELJOINS) {
+    for (memb2=chan->members;memb2;memb2=memb2->next_member)
+      if (IsDelayedJoin(memb2))
+        break;
+
+    if (!memb2) {
+      /* clear +d */
+      chan->mode.mode &= ~MODE_WASDELJOINS;
+      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                       "%H -d", chan);
+    }
+  }
+}
+
+/* RevealDelayedJoin: sends a join for a hidden user */
+static void RevealDelayedJoin(struct Membership *member)
+{
+  ClearDelayedJoin(member);
+  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, 0, ":%H",
+                                   member->channel);
+  CheckDelayedJoins(member->channel);
 }
 
 /** Allocate a new Ban structure.
@@ -625,46 +654,6 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
   return 0;
 }
 
-/** Check if a user is a Zombie on a specific channel.
- *
- * @param cptr		The client to check.
- * @param chptr		The channel to check.
- *
- * @returns True if the client (cptr) is a zombie on the channel (chptr),
- * 	    False otherwise.
- *
- * @see \ref zombie
- */
-int is_zombie(struct Client *cptr, struct Channel *chptr)
-{
-  struct Membership* member;
-
-  assert(0 != chptr);
-
-  if ((member = find_member_link(chptr, cptr)))
-      return IsZombie(member);
-  return 0;
-}
-
-/** Returns if a user has voice on a channel.
- *
- * @param cptr 	The client
- * @param chptr	The channel
- *
- * @returns True if the client (cptr) is voiced on (chptr) and is not a zombie.
- * @see \ref zombie
- */
-int has_voice(struct Client* cptr, struct Channel* chptr)
-{
-  struct Membership* member;
-
-  assert(0 != chptr);
-  if ((member = find_member_link(chptr, cptr)))
-    return (!IsZombie(member) && HasVoice(member));
-
-  return 0;
-}
-
 /** Can this member send to a channel
  *
  * A user can speak on a channel iff:
@@ -887,6 +876,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
  *
  * Used for qsort(3).
  */
+static
 int compare_member_oplevel(const void *mp1, const void *mp2)
 {
   struct Membership const* member1 = *(struct Membership const**)mp1;
@@ -1290,7 +1280,7 @@ void add_invite(struct Client *cptr, struct Channel *chptr)
    * Delete last link in chain if the list is max length
    */
   assert(list_length((cli_user(cptr))->invited) == (cli_user(cptr))->invites);
-  if ((cli_user(cptr))->invites >= feature_int(FEAT_MAXCHANNELSPERUSER))
+  if ((int)(cli_user(cptr))->invites >= feature_int(FEAT_MAXCHANNELSPERUSER))
     del_invite(cptr, (cli_user(cptr))->invited->value.chptr);
   /*
    * Add client to channel invite list
@@ -1528,7 +1518,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_WASDELJOINS,   'd',
     0x0, 0x0
   };
-  int i;
+  unsigned int i;
   int *flag_p;
 
   struct Client *app_source; /* where the MODE appears to come from */
@@ -3504,32 +3494,3 @@ int IsInvited(struct Client* cptr, const void* chptr)
   return 0;
 }
 
-/* RevealDelayedJoin: sends a join for a hidden user */
-
-void RevealDelayedJoin(struct Membership *member)
-{
-  ClearDelayedJoin(member);
-  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, 0, ":%H",
-                                   member->channel);
-  CheckDelayedJoins(member->channel);
-}
-
-/* CheckDelayedJoins: checks and clear +d if necessary */
-
-void CheckDelayedJoins(struct Channel *chan)
-{
-  struct Membership *memb2;
-
-  if (chan->mode.mode & MODE_WASDELJOINS) {
-    for (memb2=chan->members;memb2;memb2=memb2->next_member)
-      if (IsDelayedJoin(memb2))
-        break;
-
-    if (!memb2) {
-      /* clear +d */
-      chan->mode.mode &= ~MODE_WASDELJOINS;
-      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
-                                       "%H -d", chan);
-    }
-  }
-}

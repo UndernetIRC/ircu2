@@ -114,7 +114,3 @@ int m_ignore(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-int m_unsupported(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  return 0;
-}

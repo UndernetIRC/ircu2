@@ -84,6 +84,9 @@ struct CRuleConf*  cruleConfList;
 /** Global list of K-lines. */
 struct DenyConf*   denyConfList;
 
+static
+int read_configuration_file(void);
+
 /** Tell a user that they are banned, dumping the message from a file.
  * @param sptr Client being rejected
  * @param filename Send this file's contents to \a sptr
@@ -139,6 +142,7 @@ struct ConfItem* make_conf(int type)
 /** Free a struct ConfItem and any resources it owns.
  * @param aconf Item to free.
  */
+static
 void free_conf(struct ConfItem *aconf)
 {
   Debug((DEBUG_DEBUG, "free_conf: %s %s %d",
@@ -348,6 +352,7 @@ void det_confs_butmask(struct Client* cptr, int mask)
  * @param cptr Client for whom to check rules.
  * @return Authorization check result.
  */
+static
 enum AuthorizationCheckResult attach_iline(struct Client* cptr)
 {
   struct ConfItem* aconf;
@@ -576,6 +581,7 @@ const struct LocalConf* conf_get_local(void)
  * @param statmask Filter to limit ConfItem::status.
  * @return First ConfItem attached to \a cptr.
  */
+static
 struct ConfItem* attach_confs_byname(struct Client* cptr, const char* name,
                                      int statmask)
 {
@@ -721,6 +727,7 @@ struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host,
  * @param statmask Filter for ConfItem::status.
  * @return First matching ConfItem from \a lp.
  */
+static
 struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
                                 int statmask)
 {
@@ -736,7 +743,7 @@ struct ConfItem* find_conf_byip(struct SLink* lp, const struct irc_in_addr* ip,
 }
 
 /** Free all CRules from #cruleConfList. */
-void conf_erase_crule_list(void)
+static void conf_erase_crule_list(void)
 {
   struct CRuleConf* next;
   struct CRuleConf* p = cruleConfList;
@@ -760,7 +767,7 @@ const struct CRuleConf* conf_get_crule_list(void)
 }
 
 /** Free all deny rules from #denyConfList. */
-void conf_erase_deny_list(void)
+static void conf_erase_deny_list(void)
 {
   struct DenyConf* next;
   struct DenyConf* p = denyConfList;
@@ -799,6 +806,7 @@ find_quarantine(const char *chname)
 }
 
 /** Free all qline structs from #GlobalQuarantineList. */
+static
 void clear_quarantines(void)
 {
   struct qline *qline;
