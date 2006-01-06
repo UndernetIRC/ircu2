@@ -265,14 +265,14 @@ void
 lookup_confhost(struct ConfItem *aconf)
 {
   if (EmptyString(aconf->host) || EmptyString(aconf->name)) {
-    Debug((DEBUG_ERROR, "Host/server name error: (%s) (%s)",
-           aconf->host, aconf->name));
+    log_write(LS_CONFIG, L_WARNING, 0, "Host/server name error: (%s) (%s)",
+           aconf->host, aconf->name);
     return;
   }
   if (aconf->origin_name
       && !ircd_aton(&aconf->origin.addr, aconf->origin_name)) {
-    Debug((DEBUG_ERROR, "Origin name error: (%s) (%s)",
-        aconf->origin_name, aconf->name));
+    log_write(LS_CONFIG, L_WARNING, 0, "Origin name error: (%s) (%s)",
+        aconf->origin_name, aconf->name);
   }
   /*
    * Do name lookup now on hostnames given and store the
@@ -280,8 +280,8 @@ lookup_confhost(struct ConfItem *aconf)
    */
   if (IsIP6Char(*aconf->host)) {
     if (!ircd_aton(&aconf->address.addr, aconf->host)) {
-      Debug((DEBUG_ERROR, "Host/server name error: (%s) (%s)",
-          aconf->host, aconf->name));
+      log_write(LS_CONFIG, L_WARNING, 0, "Host/server name error: (%s) (%s)",
+          aconf->host, aconf->name);
     }
   }
   else

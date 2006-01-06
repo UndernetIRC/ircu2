@@ -42,6 +42,7 @@ static OutOfMemoryHandler noMemHandler = nomem_handler;
 static void
 nomem_handler(void)
 {
+  log_write(LS_SYSTEM, L_CRIT, 0, "Out of memory, exiting");
 #ifdef MDEBUG
   assert(0);
 #else

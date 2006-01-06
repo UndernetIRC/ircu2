@@ -138,8 +138,8 @@ motd_cache(struct Motd *motd)
 
   /* gotta read in the file, now */
   if (!(file = fbopen(motd->path, "r"))) {
-    Debug((DEBUG_ERROR, "Couldn't open \"%s\": %s", motd->path,
-	   strerror(errno)));
+    log_write(LS_SYSTEM, L_WARNING, 0, "Couldn't open \"%s\": %s", motd->path,
+	   strerror(errno));
     return 0;
   }
 

@@ -64,6 +64,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "match.h"
 #include "s_bsd.h"
@@ -454,7 +455,8 @@ struct CRuleNode* crule_parse(const char *rule)
   if (ruleroot != NULL)
     crule_free(&ruleroot);
 #if !defined(CR_DEBUG) && !defined(CR_CHKCONF)
-  Debug((DEBUG_ERROR, "%s in rule: %s", crule_errstr[errcode], rule));
+  log_write(LS_CONFIG, L_WARNING, 0, "%s in rule: %s", 
+		  crule_errstr[errcode], rule);
 #else
   fprintf(stderr, "%s in rule: %s\n", crule_errstr[errcode], rule);
 #endif

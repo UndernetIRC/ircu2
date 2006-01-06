@@ -142,7 +142,8 @@ int uping_init(void)
     return -1;
   if (!socket_add(&upingSock_v4, uping_echo_callback, 0, SS_DATAGRAM,
                   SOCK_EVENT_READABLE, fd)) {
-    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
+    log_write(LS_SYSTEM, L_WARNING, 0,
+		    "UPING: Unable to queue fd to event system");
     close(fd);
     return -1;
   }
@@ -155,7 +156,8 @@ int uping_init(void)
     return -1;
   if (!socket_add(&upingSock_v6, uping_echo_callback, 0, SS_DATAGRAM,
                   SOCK_EVENT_READABLE, fd)) {
-    Debug((DEBUG_ERROR, "UPING: Unable to queue fd to event system"));
+    log_write(LS_SYSTEM, L_WARNING, 0, 
+		    "UPING: Unable to queue fd to event system");
     close(fd);
     return -1;
   }

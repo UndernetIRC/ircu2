@@ -731,7 +731,8 @@ int main(int argc, char **argv) {
 
   debug_init(thisServer.bootopt & BOOT_TTY);
   if (check_pid()) {
-    Debug((DEBUG_FATAL, "Failed to acquire PID file lock after fork"));
+    log_write(LS_SYSTEM, L_CRIT, 0, 
+		    "Failed to acquire PID file lock after fork");
     return 2;
   }
 

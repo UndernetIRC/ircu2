@@ -1,4 +1,9 @@
 2006-01-07  Perry Lorier <isomer@undernet.org>
+	* ircd/crule.c ircd/ircd.c ircd/ircd_alloc.c ircd/motd.c ircd/s_conf.c
+	  ircd/uping.c: Convert DEBUG's to log_write's 
+
+
+2006-01-07  Perry Lorier <isomer@undernet.org>
 
 	* ircd/*.c include/*.h: Add static to functions where possible,
 	removing the occasional completely unused function.
