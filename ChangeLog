@@ -1,5 +1,10 @@
 2006-01-06  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_process_clients): Do not reveal zombies who
+	are being opped (MODE and KICK crossed).  Reported by coekie.
+
+2006-01-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (ms_join): Wipe out all modes (not just chanops)
 	when replacing a resurrected channel.
 

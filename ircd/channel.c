@@ -3085,7 +3085,7 @@ mode_process_clients(struct ParseState *state)
     /* actually effect the change */
     if (state->flags & MODE_PARSE_SET) {
       if (state->cli_change[i].flag & MODE_ADD) {
-        if (IsDelayedJoin(member))
+        if (IsDelayedJoin(member) && !IsZombie(member))
           RevealDelayedJoin(member);
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
