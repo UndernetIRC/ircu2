@@ -364,7 +364,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
          empty (also here) and when this channel doesn't have +A set.
 
          To prevent this from allowing net-rides on the channel, we
-         clear all ops from the channel.
+         clear all modes from the channel.
 
          (Scenario for a net ride: c1 - s1 - s2 - c2, with c1 the only
          user in the channel; c1 parts and rejoins, gaining ops.
@@ -381,17 +381,42 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         struct ModeBuf mbuf;
 
 	chptr->creationtime = creation;
-        /* Deop the current ops.  (This will go in both directions on
-         * the network, and revise the channel timestamp as it goes,
-         * avoiding further traffic due to the JOIN.)
-         */
-        modebuf_init(&mbuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK3 | MODEBUF_DEST_SERVER);
+        /* Wipe out the current modes on the channel. */
+        modebuf_init(&mbuf, sptr, cptr, chptr, MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK3);
+
+        modebuf_mode(&mbuf, MODE_DEL | chptr->mode.mode);
+        chptr->mode.mode &= MODE_BURSTADDED | MODE_WASDELJOINS;
+
+        if (chptr->mode.limit) {
+          modebuf_mode_uint(&mbuf, MODE_DEL | MODE_LIMIT, chptr->mode.limit);
+          chptr->mode.limit = 0;
+        }
+
+        if (chptr->mode.key[0]) {
+          modebuf_mode_string(&mbuf, MODE_DEL | MODE_KEY, chptr->mode.key, 0);
+          chptr->mode.key[0] = '\0';
+        }
+
+        if (chptr->mode.upass[0]) {
+          modebuf_mode_string(&mbuf, MODE_DEL | MODE_UPASS, chptr->mode.upass, 0);
+          chptr->mode.upass[0] = '\0';
+        }
+
+        if (chptr->mode.apass[0]) {
+          modebuf_mode_string(&mbuf, MODE_DEL | MODE_APASS, chptr->mode.apass, 0);
+          chptr->mode.apass[0] = '\0';
+        }
+
         for (member = chptr->members; member; member = member->next_member)
         {
           if (IsChanOp(member)) {
             modebuf_mode_client(&mbuf, MODE_DEL | MODE_CHANOP, member->user, OpLevel(member));
 	    member->status &= ~CHFL_CHANOP;
 	  }
+          if (HasVoice(member)) {
+            modebuf_mode_client(&mbuf, MODE_DEL | MODE_VOICE, member->user, OpLevel(member));
+	    member->status &= ~CHFL_VOICE;
+          }
         }
         modebuf_flush(&mbuf);
       }

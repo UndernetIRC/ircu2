@@ -1,3 +1,11 @@
+2006-01-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_join.c (ms_join): Wipe out all modes (not just chanops)
+	when replacing a resurrected channel.
+
+	* ircd/convert-conf.c (dupstring): Fix probable off-by-one size
+	passed to memcpy().
+
 2006-01-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (modebuf_flush_int): Also send timestamp when &me
