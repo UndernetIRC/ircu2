@@ -1,3 +1,24 @@
+2006-01-06  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_log.h (log_vwrite): Re-export this symbol, which is
+	needed for DEBUGMODE.
+
+	* include/s_bsd.h (ACCEPT_ERROR_MSG): Undeclare this symbol, which
+	is static in s_bsd.c (causing gcc 4.x to error out).
+	(PEERNAME_ERROR_MSG): Likewise.
+	(POLL_ERROR_MSG): Likewise.
+	(SELECT_ERROR_MSG): Likewise.
+	(CONNECT_ERROR_MSG): Likewise.
+	(REGISTER_ERROR_MSG): Likewise.
+
+	* include/ircd.c (debuglevel): Re-export this symbol, which is
+	needed in s_debug.c for DEBUGMODE.
+
+	* ircd/ircd_log.c (log_vwrite): Likewise.
+
+	* ircd/umkpasswd.c (crypt_mechs_root): Re-export this symbol,
+	which is always needed in s_stats.c.
+
 2006-01-07  Perry Lorier <isomer@undernet.org>
 	* ircd/crule.c ircd/ircd.c ircd/ircd_alloc.c ircd/motd.c ircd/s_conf.c
 	  ircd/uping.c: Convert DEBUG's to log_write's 

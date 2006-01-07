@@ -107,7 +107,7 @@ time_t         TSoffset          = 0;   /**< Offset of timestamps to system cloc
 time_t         CurrentTime;             /**< Updated every time we leave select() */
 
 char          *configfile        = CPATH; /**< Server configuration file */
-static int     debuglevel        = -1;    /**< Server debug level  */
+int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
 int            maxconnections    = MAXCONNECTIONS; /**< Maximum number of open files */
 int            maxclients        = -1;    /**< Maximum number of clients */

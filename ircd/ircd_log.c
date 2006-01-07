@@ -186,10 +186,6 @@ static struct {
   struct LogFile *dbfile;   /**< debug file */
 } logInfo = { 0, 0, LOG_USER, "ircd", 0 };
 
-static void
-log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
-	   const char *fmt, va_list vl);
-
 /** Helper routine to open a log file if needed.
  * If the log file is already open, do nothing.
  * @param[in,out] lf Log file to open.
@@ -365,7 +361,7 @@ log_write(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
  * @param[in] fmt Format string for message.
  * @param[in] vl Variable-length argument list for message.
  */
-static void
+void
 log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 	   const char *fmt, va_list vl)
 {

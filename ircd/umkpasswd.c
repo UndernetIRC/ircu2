@@ -44,7 +44,7 @@
 
 /* bleah, evil globals */
 static umkpasswd_conf_t* umkpasswd_conf;
-static crypt_mechs_t* crypt_mechs_root;
+crypt_mechs_t* crypt_mechs_root;
 int log_inassert = 0;
 time_t CurrentTime;
 

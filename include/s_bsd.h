@@ -40,14 +40,8 @@ extern const char* const NONB_ERROR_MSG;
 extern const char* const REUSEADDR_ERROR_MSG;
 extern const char* const SOCKET_ERROR_MSG;
 extern const char* const CONNLIMIT_ERROR_MSG;
-extern const char* const ACCEPT_ERROR_MSG;
-extern const char* const PEERNAME_ERROR_MSG;
-extern const char* const POLL_ERROR_MSG;
-extern const char* const SELECT_ERROR_MSG;
-extern const char* const CONNECT_ERROR_MSG;
 extern const char* const SETBUFS_ERROR_MSG;
 extern const char* const TOS_ERROR_MSG;
-extern const char* const REGISTER_ERROR_MSG;
 
 extern int                 HighestFd;
 extern struct Client**     LocalClientArray;
