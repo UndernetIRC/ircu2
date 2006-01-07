@@ -637,7 +637,7 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_quit, m_ignore, m_ignore, m_ignore, m_ignore }
   },
-  { 0 }
+  { 0, 0, 0, 0, 0, 0, 0, { 0, 0, 0, 0, 0 } }
 };
 
 /** Array of command parameters. */
@@ -649,7 +649,7 @@ static char *para[MAXPARA + 2]; /* leave room for prefix and null */
  * @param[in] msg_p Message to insert.
  * @param[in] cmd Text of command to insert.
  */
-void
+static void
 add_msg_element(struct MessageTree *mtree_p, struct Message *msg_p, char *cmd)
 {
   struct MessageTree *ntree_p;

@@ -71,21 +71,6 @@ static size_t bans_alloc;
 /** Number of ban structures in use. */
 static size_t bans_inuse;
 
-#if !defined(NDEBUG)
-/** return the length (>=0) of a chain of links.
- * @param lp	pointer to the start of the linked list
- * @return the number of items in the list
- */
-static unsigned int list_length(struct SLink *lp)
-{
-  unsigned int count = 0;
-
-  for (; lp; lp = lp->next)
-    ++count;
-  return count;
-}
-#endif
-
 /** Set the mask for a ban, checking for IP masks.
  * @param[in,out] ban Ban structure to modify.
  * @param[in] banstr Mask to ban.
@@ -1261,43 +1246,6 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
     hAddChannel(chptr);
   }
   return chptr;
-}
-
-/** invite a user to a channel.
- *
- * Adds an invite for a user to a channel.  Limits the number of invites
- * to FEAT_MAXCHANNELSPERUSER.  Does not sent notification to the user.
- *
- * @param cptr	The client to be invited.
- * @param chptr	The channel to be invited to.
- */
-void add_invite(struct Client *cptr, struct Channel *chptr)
-{
-  struct SLink *inv, **tmp;
-
-  del_invite(cptr, chptr);
-  /*
-   * Delete last link in chain if the list is max length
-   */
-  assert(list_length((cli_user(cptr))->invited) == (cli_user(cptr))->invites);
-  if ((int)(cli_user(cptr))->invites >= feature_int(FEAT_MAXCHANNELSPERUSER))
-    del_invite(cptr, (cli_user(cptr))->invited->value.chptr);
-  /*
-   * Add client to channel invite list
-   */
-  inv = make_link();
-  inv->value.cptr = cptr;
-  inv->next = chptr->invites;
-  chptr->invites = inv;
-  /*
-   * Add channel to the end of the client invite list
-   */
-  for (tmp = &((cli_user(cptr))->invited); *tmp; tmp = &((*tmp)->next));
-  inv = make_link();
-  inv->value.chptr = chptr;
-  inv->next = NULL;
-  (*tmp) = inv;
-  (cli_user(cptr))->invites++;
 }
 
 /** Delete an invite

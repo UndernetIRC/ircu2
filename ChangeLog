@@ -1,3 +1,9 @@
+2006-01-08  Perry Lorier <isomer@undernet.org>
+
+	* ircd/channel.c ircd/channel.c ircd/convert-conf.c ircd/ircd_parser.y
+	ircd/m_invite.c ircd/parse.c ircd/s_stats.c ircd/mkpasswd.c: more
+	statsification
+
 2006-01-06  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_log.h (log_vwrite): Re-export this symbol, which is
@@ -20,9 +26,9 @@
 	which is always needed in s_stats.c.
 
 2006-01-07  Perry Lorier <isomer@undernet.org>
+
 	* ircd/crule.c ircd/ircd.c ircd/ircd_alloc.c ircd/motd.c ircd/s_conf.c
 	  ircd/uping.c: Convert DEBUG's to log_write's 
-
 
 2006-01-07  Perry Lorier <isomer@undernet.org>
 

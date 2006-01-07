@@ -24,17 +24,16 @@
 
 #define MAX_FIELDS 5
 
-const char *admin_names[] = { "location", "contact", "contact", 0 },
-    *connect_names[] = { "host", "password", "name", "#port", "class", 0 },
+static const char *admin_names[] = { "location", "contact", "contact", 0 },
     *crule_names[] = { "server", "",  "rule", 0 },
     *general_names[] = { "name", "vhost", "description", "", "#numeric", 0 },
     *motd_names[] = { "host", "file", 0 },
     *class_names[] = { "name", "#pingfreq", "#connectfreq", "#maxlinks", "#sendq", 0 },
     *removed_features[] = { "VIRTUAL_HOST", "TIMESEC", "OPERS_SEE_IN_SECRET_CHANNELS", "LOCOP_SEE_IN_SECRET_CHANNELS", "HIS_STATS_h", "HIS_DESYNCS", "AUTOHIDE", 0 };
-char orig_line[512], line[512], dbuf[512];
-char *fields[MAX_FIELDS + 1];
-unsigned int nfields;
-unsigned int lineno;
+static char orig_line[512], line[512], dbuf[512];
+static char *fields[MAX_FIELDS + 1];
+static unsigned int nfields;
+static unsigned int lineno;
 
 /*** GENERIC SUPPORT CODE ***/
 
@@ -138,7 +137,7 @@ static struct string_list *string_get(struct string_list **list, const char *val
 
 /*** SERVER CONNECTION RELATED CODE ***/
 
-struct connect {
+static struct connect {
     char *host;
     char *password;
     char *port;
@@ -244,14 +243,14 @@ static void finish_connects(void)
 
 /*** FEATURE MANAGEMENT CODE ***/
 
-struct feature {
+static struct feature {
     struct string_list *values;
     struct string_list *origins;
     struct feature *next;
     char name[1];
 } *features;
 
-struct remapped_feature {
+static struct remapped_feature {
     const char *name;
     const char *privilege;
     int flags; /* 2 = global, 1 = local */
@@ -365,7 +364,7 @@ static void finish_features(void)
 
 /*** OPERATOR BLOCKS ***/
 
-struct operator {
+static struct operator {
     char *name;
     char *host;
     char *password;
@@ -501,7 +500,7 @@ static void do_port(void)
     fprintf(stdout, "};\n");
 }
 
-struct string_list *quarantines;
+static struct string_list *quarantines;
 
 static void do_quarantine(void)
 {

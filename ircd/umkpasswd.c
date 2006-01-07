@@ -54,13 +54,13 @@ void sendto_opmask_butone(struct Client *one, unsigned int mask,
   /* only needed with memdebug, which also calls Debug() */
 }
 
-void copyright(void)
+static void copyright(void)
 {
   fprintf(stderr, "umkpasswd - Copyright (c) 2002 hikari\n");
-return;
+  return;
 }
 
-void show_help(void)
+static void show_help(void)
 {
 #ifdef DEBUGMODE
  char *debughelp = "[-d <level>] ";
@@ -115,7 +115,7 @@ void log_write(enum LogSys subsys, enum LogLevel severity,
 }
 
 /* quick and dirty salt generator */
-char *make_salt(const char *salts)
+static char *make_salt(const char *salts)
 {
 char *tmp = NULL;
 long int n = 0;
@@ -181,7 +181,7 @@ crypt_mechs_t* crypt_mech;
 return 0;
 }
 
-char *basename_into(char *tmp, char *target)
+static char *basename_into(char *tmp, char *target)
 {
   unsigned int len, ii;
 
@@ -233,7 +233,7 @@ unsigned char buffer[1024], digest[16];
 }
 
 /* dump the loaded mechs list */
-void show_mechs(void)
+static void show_mechs(void)
 {
 crypt_mechs_t* mechs;
 
@@ -257,7 +257,7 @@ crypt_mechs_t* mechs;
 }
 
 /* load in the mech "modules" */
-void load_mechs(void)
+static void load_mechs(void)
 {
  /* we need these loaded by hand for now */
 
@@ -268,7 +268,7 @@ void load_mechs(void)
 return;
 }
 
-crypt_mechs_t* hunt_mech(const char* mechname)
+static crypt_mechs_t* hunt_mech(const char* mechname)
 {
 crypt_mechs_t* mech;
 
@@ -291,7 +291,7 @@ crypt_mechs_t* mech;
  }
 }
 
-char* crypt_pass(const char* pw, const char* mech)
+static char* crypt_pass(const char* pw, const char* mech)
 {
 crypt_mechs_t* crypt_mech;
 char* salt, *untagged, *tagged;
@@ -319,7 +319,7 @@ char* salt, *untagged, *tagged;
 return tagged;
 }
 
-char* parse_arguments(int argc, char **argv)
+static char* parse_arguments(int argc, char **argv)
 {
 int len = 0, c = 0;
 const char* options = "a:d:lm:u:y:5:";

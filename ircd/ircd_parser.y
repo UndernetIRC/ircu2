@@ -67,15 +67,15 @@
 
   int yylex(void);
   /* Now all the globals we need :/... */
-  int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
-  char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
-  char *stringlist[MAX_STRINGS];
-  struct ConnectionClass *c_class;
-  struct DenyConf *dconf;
-  struct ServerConf *sconf;
-  struct s_map *smap;
-  struct Privs privs;
-  struct Privs privs_dirty;
+  static int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
+  static char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
+  static char *stringlist[MAX_STRINGS];
+  static struct ConnectionClass *c_class;
+  static struct DenyConf *dconf;
+  static struct ServerConf *sconf;
+  static struct s_map *smap;
+  static struct Privs privs;
+  static struct Privs privs_dirty;
 
 static void parse_error(char *pattern,...) {
   static char error_buffer[1024];

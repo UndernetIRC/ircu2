@@ -377,7 +377,6 @@ extern void make_zombie(struct Membership* member, struct Client* who,
                         struct Client* cptr, struct Client* sptr,
                         struct Channel* chptr);
 extern struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing);
-void add_invite(struct Client *cptr, struct Channel *chptr);
 int number_of_zombies(struct Channel *chptr);
 
 extern const char* find_no_nickchange_channel(struct Client* cptr);
