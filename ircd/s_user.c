@@ -690,6 +690,13 @@ int register_user(struct Client *cptr, struct Client *sptr,
   if (MyUser(sptr))
   {
     static struct Flags flags; /* automatically initialized to zeros */
+    /* To avoid sending +r to the client due to auth-on-connect, set
+     * the "old" FLAG_ACCOUNT bit to match the client's value.
+     */
+    if (IsAccount(cptr))
+      FlagSet(&flags, FLAG_ACCOUNT);
+    else
+      FlagClr(&flags, FLAG_ACCOUNT);
     send_umode(cptr, sptr, &flags, ALL_UMODES);
     if ((cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
       send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));

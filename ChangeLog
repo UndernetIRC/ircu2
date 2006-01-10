@@ -1,5 +1,10 @@
 2006-01-09  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_user.c (register_user): Do not send +r flag to user when
+	they first connect.
+
+2006-01-09  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_features.h (FEAT_ZANNELS): Actually, put it back.
 
 	* ircd/ircd_features.c (FEAT_ZANNELS): Likewise.
