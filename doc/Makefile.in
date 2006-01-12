@@ -45,7 +45,8 @@ maintainer-clean: distclean
 depend:
 
 install:
-	cd ${srcdir} && (test -d ${MANDIR}/man8 || mkdir ${MANDIR}/man8 || mkdir -p ${MANDIR}/man8) 2> /dev/null && ${INSTALL} -m 644 ircd.8 ${MANDIR}/man8
+	test -d ${MANDIR}/man8 || mkdir ${MANDIR}/man8 || mkdir -p ${MANDIR}/man8
+	${INSTALL} -m 644 ${srcdir}/ircd.8 ${MANDIR}/man8
 
 uninstall:
 	${RM} -f ${MANDIR}/man8/ircd.8

@@ -1,3 +1,12 @@
+2006-01-11  Michael Poole <mdpoole@troilus.org>
+
+	* doc/Makefile.in: Make install target VPATH-safe.
+
+	* doc/example.conf: Comment out example IAuth block.
+
+	* ircd/m_burst.c (ms_burst): Change isdigit() to IsDigit(),
+	silencing a warning on Solaris.
+
 2006-01-09  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (register_user): Do not send +r flag to user when
