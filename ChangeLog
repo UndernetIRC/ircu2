@@ -1,3 +1,7 @@
+2006-01-12  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHLEVEL): Update for release.
+
 2006-01-11  Michael Poole <mdpoole@troilus.org>
 
 	* doc/Makefile.in: Make install target VPATH-safe.
