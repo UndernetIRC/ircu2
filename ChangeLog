@@ -1,5 +1,9 @@
 2006-01-12  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Update for 2.10.12.pre06.
+
+2006-01-12  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Update for release.
 
 2006-01-11  Michael Poole <mdpoole@troilus.org>
