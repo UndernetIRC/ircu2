@@ -191,9 +191,7 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		MODE_PARSE_FORCE),  /* And force it to be accepted */
 	        NULL);
   } else {
-    if (!(member = find_member_link(chptr, sptr))
-        /* Allow people to op themselves on an empty channel. */
-        || (!IsChanOp(member) && chptr->users > 1)) {
+    if (!(member = find_member_link(chptr, sptr))) {
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_SERVER |  /* Send mode to server */
 		    MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */

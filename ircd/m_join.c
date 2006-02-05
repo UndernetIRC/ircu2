@@ -246,17 +246,13 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       joinbuf_join(&join, chptr, flags);
       if (flags & CHFL_CHANOP) {
         struct ModeBuf mbuf;
-#if 0
-        /* Send a MODE to the other servers. If the user used the A/U pass,
-	 * let his server op him, otherwise let him op himself. */
-	modebuf_init(&mbuf, chptr->mode.apass[0] ? &me : sptr, cptr, chptr, MODEBUF_DEST_SERVER);
-#else
 	/* Always let the server op him: this is needed on a net with older servers
 	   because they 'destruct' channels immediately when they become empty without
 	   sending out a DESTRUCT message. As a result, they would always bounce a mode
-	   (as HACK(2)) when the user ops himself. */
+	   (as HACK(2)) when the user ops himself.
+           (There is also no particularly good reason to have the user op himself.)
+        */
 	modebuf_init(&mbuf, &me, cptr, chptr, MODEBUF_DEST_SERVER);
-#endif
 	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr,
                             chptr->mode.apass[0] ? ((flags & CHFL_CHANNEL_MANAGER) ? 0 : 1) : MAXOPLEVEL);
 	modebuf_flush(&mbuf);

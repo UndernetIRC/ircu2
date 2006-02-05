@@ -1,3 +1,9 @@
+2006-02-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_join.c (m_join): Remove #if 0 code and update comment.
+
+	* ircd/m_mode.c (ms_mode): Remove self-op support.
+
 2006-01-12  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Update for 2.10.12.pre06.
