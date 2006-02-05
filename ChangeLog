@@ -1,5 +1,10 @@
 2006-02-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd.c (try_connections): Scan all Connect blocks for the
+	earliest hold time (suggested by Michael).
+
+2006-02-04  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_join.c (m_join): Remove #if 0 code and update comment.
 
 	* ircd/m_mode.c (ms_mode): Remove self-op support.
