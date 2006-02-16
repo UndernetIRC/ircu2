@@ -81,6 +81,17 @@
 #define getrusage(a,b) syscall(SYS_GETRUSAGE, a, b)
 #endif
 
+static int is_blocked(int error)
+{
+  return EWOULDBLOCK == error
+#ifdef ENOMEM
+    || ENOMEM == error
+#endif
+#ifdef ENOBUFS
+    || ENOBUFS == error
+#endif
+    || EAGAIN == error;
+}
 
 static void sockaddr_in_to_irc(const struct sockaddr_in *v4,
                                struct irc_sockaddr *irc)
@@ -428,31 +439,14 @@ IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
   int res;
   assert(0 != buf);
   assert(0 != count_out);
-  *count_out = 0;
-  errno = 0;
 
   if (0 < (res = recv(fd, buf, length, 0))) {
     *count_out = (unsigned) res;
     return IO_SUCCESS;
+  } else {
+    *count_out = 0;
+    return (res < 0) && is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
-  else if (res < 0) {
-    if (EWOULDBLOCK == errno || EAGAIN == errno
-#ifdef ENOMEM
-	|| ENOMEM == errno
-#endif
-#ifdef ENOBUFS
-	|| ENOBUFS == errno
-#endif
-	)
-      return IO_BLOCKED;
-    else
-      return IO_FAILURE;
-  }
-  /*
-   * 0   == client closed the connection
-   * < 1 == error
-   */
-  return IO_FAILURE;
 }
 
 /** Attempt to read from a non-blocking UDP socket.
@@ -473,25 +467,16 @@ IOResult os_recvfrom_nonb(int fd, char* buf, unsigned int length,
   assert(0 != buf);
   assert(0 != length_out);
   assert(0 != addr_out);
-  errno = 0;
-  *length_out = 0;
 
   res = recvfrom(fd, buf, length, 0, (struct sockaddr*) &addr, &len);
-  if (-1 == res) {
-    if (EWOULDBLOCK == errno || ENOMEM == errno
-#ifdef ENOMEM
-	|| ENOMEM == errno
-#endif
-#ifdef ENOBUFS
-	|| ENOBUFS == errno
-#endif
-	)
-      return IO_BLOCKED;
-    return IO_FAILURE;
+  if (-1 < res) {
+    sockaddr_to_irc(&addr, addr_out);
+    *length_out = res;
+    return IO_SUCCESS;
+  } else {
+    *length_out = 0;
+    return is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
-  sockaddr_to_irc(&addr, addr_out);
-  *length_out = res;
-  return IO_SUCCESS;
 }
 
 /** Attempt to write on a non-blocking UDP socket.
@@ -510,9 +495,6 @@ IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
   struct sockaddr_native addr;
   int res, size;
   assert(0 != buf);
-  if (count_out)
-    *count_out = 0;
-  errno = 0;
 
   size = sockaddr_from_irc(&addr, peer, fd);
   assert((addr.sn_family == AF_INET) == irc_in_addr_is_ipv4(&peer->addr));
@@ -520,17 +502,11 @@ IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
     if (count_out)
       *count_out = (unsigned) res;
     return IO_SUCCESS;
+  } else {
+    if (count_out)
+      *count_out = 0;
+    return is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
-  else if (EWOULDBLOCK == errno || EAGAIN == errno
-#ifdef ENOMEM
-	   || ENOMEM == errno
-#endif
-#ifdef ENOBUFS
-	   || ENOBUFS == errno
-#endif
-      )
-    return IO_BLOCKED;
-  return IO_FAILURE;
 }
 
 /** Attempt to write on a connected socket.
@@ -546,23 +522,14 @@ IOResult os_send_nonb(int fd, const char* buf, unsigned int length,
   int res;
   assert(0 != buf);
   assert(0 != count_out);
-  *count_out = 0;
-  errno = 0;
 
   if (-1 < (res = send(fd, buf, length, 0))) {
     *count_out = (unsigned) res;
     return IO_SUCCESS;
+  } else {
+    *count_out = 0;
+    return is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
-  else if (EWOULDBLOCK == errno || EAGAIN == errno
-#ifdef ENOMEM
-	   || ENOMEM == errno
-#endif
-#ifdef ENOBUFS
-	   || ENOBUFS == errno
-#endif
-      )
-    return IO_BLOCKED;
-  return IO_FAILURE;
 }
 
 /** Attempt a vectored write on a connected socket.
@@ -584,26 +551,15 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
   assert(0 != count_out);
 
   *count_in = 0;
-  *count_out = 0;
-  errno = 0;
-
   count = msgq_mapiov(buf, iov, IOV_MAX, count_in);
 
   if (-1 < (res = writev(fd, iov, count))) {
     *count_out = (unsigned) res;
     return IO_SUCCESS;
+  } else {
+    *count_out = 0;
+    return is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
-  else if (EWOULDBLOCK == errno || EAGAIN == errno
-#ifdef ENOMEM
-	   || ENOMEM == errno
-#endif
-#ifdef ENOBUFS
-	   || ENOBUFS == errno
-#endif
-      )
-    return IO_BLOCKED;
-
-  return IO_FAILURE;
 }
 
 /** Open a TCP or UDP socket on a particular address.
@@ -680,9 +636,12 @@ IOResult os_connect_nonb(int fd, const struct irc_sockaddr* sin)
   int size;
 
   size = sockaddr_from_irc(&addr, sin, fd);
-  if (connect(fd, (struct sockaddr*) &addr, size))
-    return (errno == EINPROGRESS) ? IO_BLOCKED : IO_FAILURE;
-  return IO_SUCCESS;
+  if (0 == connect(fd, (struct sockaddr*) &addr, size))
+    return IO_SUCCESS;
+  else if (errno == EINPROGRESS)
+    return IO_BLOCKED;
+  else
+    return IO_FAILURE;
 }
 
 /** Get local address of a socket.
@@ -727,4 +686,13 @@ int os_get_peername(int fd, struct irc_sockaddr* sin_out)
 int os_set_listen(int fd, int backlog)
 {
   return (0 == listen(fd, backlog));
+}
+
+/** Allocate a connected pair of local sockets.
+ * @param[out] sv Array of two file descriptors.
+ * @return Zero on success; non-zero number on error.
+ */
+int os_socketpair(int sv[2])
+{
+    return socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
 }

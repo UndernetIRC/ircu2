@@ -1,5 +1,13 @@
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_osdep.h (os_socketpair): Declare.
+
+	* ircd/os_generic.c (is_blocked): New local function.
+	(os_*): Use is_blocked() instead of cut-and-pasted code.
+	(os_socketpair): New function.
+
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/match.c (match): Fix backtracking bug after an escape
 	(reported by Michael, I think).
 
