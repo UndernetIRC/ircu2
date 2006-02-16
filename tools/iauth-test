@@ -11,7 +11,6 @@ use strict;
 use warnings;
 use vars qw(%pending);
 
-use Carp;       # for carp
 use Config;     # for $Config{sig_name} and $Config{sig_num}
 use FileHandle; # for autoflush method on file handles
 

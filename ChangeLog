@@ -1,5 +1,14 @@
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
+	* include/res.h (NXDOMAIN): Define.
+
+	* ircd/ircd_res.c (res_readreply): Treat NXDOMAIN just like
+	SERVFAIL.  Patch courtesy of Dianora.
+
+	* tools/iauth-test (Carp): This doesn't actually use Carp.
+
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Include new HIS_STATS_IAUTH feature.
 
 	* doc/readme.features: Document the feature.

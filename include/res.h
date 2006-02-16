@@ -45,6 +45,7 @@ struct StatDesc;
 #define QUERY 0      /**< Forward (normal) DNS query operation. */
 #define NO_ERRORS 0  /**< No errors processing a query. */
 #define SERVFAIL 2   /**< Server error while processing a query. */
+#define NXDOMAIN 3   /**< Domain name in query does not exist. */
 #define T_A 1        /**< Hostname -> IPv4 query type. */
 #define T_AAAA 28    /**< Hostname -> IPv6 query type. */
 #define T_PTR 12     /**< IP(v4 or v6) -> hostname query type. */

@@ -784,7 +784,7 @@ res_readreply(struct Event *ev)
 
   if ((header->rcode != NO_ERRORS) || (header->ancount == 0))
   {
-    if (SERVFAIL == header->rcode)
+    if (SERVFAIL == header->rcode || NXDOMAIN == header->rcode)
     {
         /*
          * If a bad error was returned, we stop here and don't send
