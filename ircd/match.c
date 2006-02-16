@@ -206,7 +206,7 @@ int match(const char *mask, const char *name)
     m++;
     /* allow escaping to force capitalization */
     if (*m++ != *n++)
-      return 1;
+      goto backtrack;
     break;
   case '*': case '?':
     for (star_p = 0; ; m++) {

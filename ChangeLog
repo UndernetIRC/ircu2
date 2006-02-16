@@ -1,3 +1,8 @@
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/match.c (match): Fix backtracking bug after an escape
+	(reported by Michael, I think).
+
 2006-02-04  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd.c (try_connections): Scan all Connect blocks for the
