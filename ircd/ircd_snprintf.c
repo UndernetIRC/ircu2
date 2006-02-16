@@ -1805,7 +1805,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 	if (fld_s.flags & TYPE_CHAR) /* eg, %hhu */
 	  fld_s.value.v_int = (unsigned char)va_arg(vp, unsigned int);
 	else if (fld_s.flags & TYPE_SHORT) /* eg, %hu */
-	  fld_s.value.v_int = (short)va_arg(vp, unsigned int);
+	  fld_s.value.v_int = (unsigned short)va_arg(vp, unsigned int);
 	else if (fld_s.flags & TYPE_QUAD) /* eg, %qu */
 	  fld_s.value.v_int = va_arg(vp, uint64_t);
 	else if (fld_s.flags & TYPE_LONG) /* eg, %lu */

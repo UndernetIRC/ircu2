@@ -1,5 +1,9 @@
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_snprintf.c (doprintf): Fix typecast for %hu.
+
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_signal.h (SigChldCallBack): New typedef.
 	(register_child): Declare.
 	(unregister_child): Declare.
