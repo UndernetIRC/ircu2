@@ -102,6 +102,7 @@ static struct lexer_token {
   TOKEN(USERMODE),
   TOKEN(FAST),
   TOKEN(AUTOCONNECT),
+  TOKEN(PROGRAM),
 #undef TOKEN
   { "administrator", ADMIN },
   { "apass_opmode", TPRIV_APASS_OPMODE },

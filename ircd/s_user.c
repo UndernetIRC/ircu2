@@ -34,7 +34,6 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
-#include "ircd_auth.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
@@ -51,6 +50,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "random.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -304,40 +304,6 @@ int hunt_server_prio_cmd(struct Client *from, const char *cmd, const char *tok,
 }
 
 
-/** Copy a cleaned-up version of a username.
- * Replace all instances of '~' and "invalid" username characters
- * (!isIrcUi()) with underscores, truncating at USERLEN or the first
- * control character.  \a dest and \a source may be the same buffer.
- * @param[out] dest Destination buffer.
- * @param[in] source Source buffer.
- * @param[in] tilde If non-zero, prepend a '~' to \a dest.
- */
-static char *clean_user_id(char *dest, char *source, int tilde)
-{
-  char ch;
-  char *d = dest;
-  char *s = source;
-  int rlen = USERLEN;
-
-  ch = *s++;                        /* Store first character to copy: */
-  if (tilde)
-  {
-    *d++ = '~';                        /* If `dest' == `source', then this overwrites `ch' */
-    --rlen;
-  }
-  while (ch && !IsCntrl(ch) && rlen--)
-  {
-    char nch = *s++;        /* Store next character to copy */
-    *d++ = IsUserChar(ch) ? ch : '_';        /* This possibly overwrites it */
-    if (nch == '~')
-      ch = '_';
-    else
-      ch = nch;
-  }
-  *d = 0;
-  return dest;
-}
-
 /*
  * register_user
  *
@@ -369,29 +335,13 @@ static char *clean_user_id(char *dest, char *source, int tilde)
  *
  * @param[in] cptr Client who introduced the user.
  * @param[in,out] sptr Client who has been fully introduced.
- * @param[in] nick Client's new nickname.
- * @param[in] username Client's username.
  * @return Zero or CPTR_KILLED.
  */
-int register_user(struct Client *cptr, struct Client *sptr,
-                  const char *nick, char *username)
+int register_user(struct Client *cptr, struct Client *sptr)
 {
-  struct ConfItem* aconf;
   char*            parv[4];
   char*            tmpstr;
-  char*            tmpstr2;
-  char             c = 0;    /* not alphanum */
-  char             d = 'a';  /* not a digit */
-  short            upper = 0;
-  short            lower = 0;
-  short            pos = 0;
-  short            leadcaps = 0;
-  short            other = 0;
-  short            digits = 0;
-  short            badid = 0;
-  short            digitgroups = 0;
   struct User*     user = cli_user(sptr);
-  int              killreason;
   char             ip_base64[25];
 
   user->last = CurrentTime;
@@ -400,165 +350,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
 
   if (MyConnect(sptr))
   {
-    static time_t last_too_many1;
-    static time_t last_too_many2;
-
     assert(cptr == sptr);
-    assert(cli_unreg(sptr) == 0);
-    if (!IsIAuthed(sptr)) {
-      if (iauth_active)
-        return iauth_start_client(iauth_active, sptr);
-      else
-        SetIAuthed(sptr);
-    }
-    switch (conf_check_client(sptr))
-    {
-      case ACR_OK:
-        break;
-      case ACR_NO_AUTHORIZATION:
-        sendto_opmask_butone(0, SNO_UNAUTH, "Unauthorized connection from %s.",
-                             get_client_name(sptr, HIDE_IP));
-        ++ServerStats->is_ref;
-        return exit_client(cptr, sptr, &me,
-                           "No Authorization - use another server");
-      case ACR_TOO_MANY_IN_CLASS:
-        if (CurrentTime - last_too_many1 >= (time_t) 60)
-        {
-          last_too_many1 = CurrentTime;
-          sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections in "
-                               "class %s for %s.", get_client_class(sptr),
-                               get_client_name(sptr, SHOW_IP));
-        }
-        ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr);
-        return exit_client(cptr, sptr, &me,
-                           "Sorry, your connection class is full - try "
-                           "again later or try another server");
-      case ACR_TOO_MANY_FROM_IP:
-        if (CurrentTime - last_too_many2 >= (time_t) 60)
-        {
-          last_too_many2 = CurrentTime;
-          sendto_opmask_butone(0, SNO_TOOMANY, "Too many connections from "
-                               "same IP for %s.",
-                               get_client_name(sptr, SHOW_IP));
-        }
-        ++ServerStats->is_ref;
-        return exit_client(cptr, sptr, &me,
-                           "Too many connections from your host");
-      case ACR_ALREADY_AUTHORIZED:
-        /* Can this ever happen? */
-      case ACR_BAD_SOCKET:
-        ++ServerStats->is_ref;
-        IPcheck_connect_fail(sptr);
-        return exit_client(cptr, sptr, &me, "Unknown error -- Try again");
-    }
-    ircd_strncpy(user->host, cli_sockhost(sptr), HOSTLEN);
-    ircd_strncpy(user->realhost, cli_sockhost(sptr), HOSTLEN);
-    aconf = cli_confs(sptr)->value.aconf;
 
-    clean_user_id(user->username,
-                  HasFlag(sptr, FLAG_GOTID) ? cli_username(sptr) : username,
-                  HasFlag(sptr, FLAG_DOID) && !HasFlag(sptr, FLAG_GOTID));
-
-    if ((user->username[0] == '\0')
-        || ((user->username[0] == '~') && (user->username[1] == '\000')))
-      return exit_client(cptr, sptr, &me, "USER: Bogus userid.");
-
-    if (!EmptyString(aconf->passwd)
-        && strcmp(cli_passwd(sptr), aconf->passwd))
-    {
-      ServerStats->is_ref++;
-      send_reply(sptr, ERR_PASSWDMISMATCH);
-      return exit_client(cptr, sptr, &me, "Bad Password");
-    }
-    memset(cli_passwd(sptr), 0, sizeof(cli_passwd(sptr)));
-    /*
-     * following block for the benefit of time-dependent K:-lines
-     */
-    killreason = find_kill(sptr);
-    if (killreason) {
-      ServerStats->is_ref++;
-      return exit_client(cptr, sptr, &me,
-                         (killreason == -1 ? "K-lined" : "G-lined"));
-    }
-    /*
-     * Check for mixed case usernames, meaning probably hacked.  Jon2 3-94
-     * Summary of rules now implemented in this patch:         Ensor 11-94
-     * In a mixed-case name, if first char is upper, one more upper may
-     * appear anywhere.  (A mixed-case name *must* have an upper first
-     * char, and may have one other upper.)
-     * A third upper may appear if all 3 appear at the beginning of the
-     * name, separated only by "others" (-/_/.).
-     * A single group of digits is allowed anywhere.
-     * Two groups of digits are allowed if at least one of the groups is
-     * at the beginning or the end.
-     * Only one '-', '_', or '.' is allowed (or two, if not consecutive).
-     * But not as the first or last char.
-     * No other special characters are allowed.
-     * Name must contain at least one letter.
-     */
-    tmpstr2 = tmpstr = (username[0] == '~' ? &username[1] : username);
-    while (*tmpstr && !badid)
-    {
-      pos++;
-      c = *tmpstr;
-      tmpstr++;
-      if (IsLower(c))
-      {
-        lower++;
-      }
-      else if (IsUpper(c))
-      {
-        upper++;
-        if ((leadcaps || pos == 1) && !lower && !digits)
-          leadcaps++;
-      }
-      else if (IsDigit(c))
-      {
-        digits++;
-        if (pos == 1 || !IsDigit(d))
-        {
-          digitgroups++;
-          if (digitgroups > 2)
-            badid = 1;
-        }
-      }
-      else if (c == '-' || c == '_' || c == '.')
-      {
-        other++;
-        if (pos == 1)
-          badid = 1;
-        else if (d == '-' || d == '_' || d == '.' || other > 2)
-          badid = 1;
-      }
-      else
-        badid = 1;
-      d = c;
-    }
-    if (!badid)
-    {
-      if (lower && upper && (!leadcaps || leadcaps > 3 ||
-          (upper > 2 && upper > leadcaps)))
-        badid = 1;
-      else if (digitgroups == 2 && !(IsDigit(tmpstr2[0]) || IsDigit(c)))
-        badid = 1;
-      else if ((!lower && !upper) || !IsAlnum(c))
-        badid = 1;
-    }
-    if (badid && (!HasFlag(sptr, FLAG_GOTID) ||
-        strcmp(cli_username(sptr), username) != 0))
-    {
-      ServerStats->is_ref++;
-
-      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-                 ":Your username is invalid.");
-      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-                 ":Connect with your real username, in lowercase.");
-      send_reply(cptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
-                 ":If your mail address were foo@bar.com, your username "
-                 "would be foo.");
-      return exit_client(cptr, sptr, &me, "USER: Bad username");
-    }
     Count_unknownbecomesclient(sptr, UserStats);
 
     SetUser(sptr);
@@ -569,7 +362,7 @@ int register_user(struct Client *cptr, struct Client *sptr,
                feature_str(FEAT_NETWORK),
                feature_str(FEAT_PROVIDER) ? " via " : "",
                feature_str(FEAT_PROVIDER) ? feature_str(FEAT_PROVIDER) : "",
-               nick);
+               cli_name(sptr));
     /*
      * This is a duplicate of the NOTICE but see below...
      */
@@ -621,12 +414,10 @@ int register_user(struct Client *cptr, struct Client *sptr,
     }
   }
   else {
-    struct Client *acptr;
+    struct Client *acptr = user->server;
 
-    ircd_strncpy(user->username, username, USERLEN);
-    Count_newremoteclient(UserStats, user->server);
+    Count_newremoteclient(UserStats, acptr);
 
-    acptr = user->server;
     if (cli_from(acptr) != cli_from(sptr))
     {
       sendcmdto_one(&me, CMD_KILL, cptr, "%C :%s (%s != %s[%s])",
@@ -671,7 +462,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
   sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
                              FLAG_IPV6, FLAG_LAST_FLAG,
                              "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                             nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
+                             cli_name(sptr), cli_hopcount(sptr) + 1,
+                             cli_lastnick(sptr),
                              user->username, user->realhost,
                              *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
                              iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 1),
@@ -680,7 +472,8 @@ int register_user(struct Client *cptr, struct Client *sptr,
   sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
                              FLAG_LAST_FLAG, FLAG_IPV6,
                              "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                             nick, cli_hopcount(sptr) + 1, cli_lastnick(sptr),
+                             cli_name(sptr), cli_hopcount(sptr) + 1,
+                             cli_lastnick(sptr),
                              user->username, user->realhost,
                              *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
                              iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 0),
@@ -789,6 +582,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 
     cli_serv(sptr)->ghost = 0;        /* :server NICK means end of net.burst */
     ircd_strncpy(cli_username(new_client), parv[4], USERLEN);
+    ircd_strncpy(cli_user(new_client)->username, parv[4], USERLEN);
     ircd_strncpy(cli_user(new_client)->host, parv[5], HOSTLEN);
     ircd_strncpy(cli_user(new_client)->realhost, parv[5], HOSTLEN);
     ircd_strncpy(cli_info(new_client), parv[parc - 1], REALLEN);
@@ -807,7 +601,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
       ircd_snprintf(0, cli_user(new_client)->host, HOSTLEN, "%s.%s",
         account, feature_str(FEAT_HIDDEN_HOST));
 
-    return register_user(cptr, new_client, cli_name(new_client), parv[4]);
+    return register_user(cptr, new_client);
   }
   else if ((cli_name(sptr))[0]) {
     /*
@@ -880,36 +674,9 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
   }
   else {
     /* Local client setting NICK the first time */
-
     strcpy(cli_name(sptr), nick);
-    if (!cli_user(sptr)) {
-      cli_user(sptr) = make_user(sptr);
-      cli_user(sptr)->server = &me;
-    }
     hAddClient(sptr);
-
-    cli_unreg(sptr) &= ~CLIREG_NICK; /* nickname now set */
-
-    /*
-     * If the client hasn't gotten a cookie-ping yet,
-     * choose a cookie and send it. -record!jegelhof@cloud9.net
-     */
-    if (!cli_cookie(sptr)) {
-      do {
-        cli_cookie(sptr) = (ircrandom() & 0x7fffffff);
-      } while (!cli_cookie(sptr));
-      sendrawto_one(cptr, MSG_PING " :%u", cli_cookie(sptr));
-    }
-    else if (!cli_unreg(sptr)) {
-      /*
-       * USER and PONG already received, now we have NICK.
-       * register_user may reject the client and call exit_client
-       * for it - must test this and exit m_nick too !
-       */
-      cli_lastnick(sptr) = TStime();        /* Always local client */
-      if (register_user(cptr, sptr, nick, cli_user(sptr)->username) == CPTR_KILLED)
-        return CPTR_KILLED;
-    }
+    return auth_set_nick(cli_auth(sptr), nick);
   }
   return 0;
 }

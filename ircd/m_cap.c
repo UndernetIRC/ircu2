@@ -36,6 +36,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "send.h"
+#include "s_auth.h"
 #include "s_user.h"
 
 #include <stdlib.h>
@@ -193,8 +194,7 @@ static int
 cap_ls(struct Client *sptr, const char *caplist)
 {
   if (IsUnknown(sptr)) /* registration hasn't completed; suspend it... */
-    cli_unreg(sptr) |= CLIREG_CAP;
-
+    auth_cap_start(cli_auth(sptr));
   return send_caplist(sptr, 0, 0, "LS"); /* send list of capabilities */
 }
 
@@ -209,7 +209,7 @@ cap_req(struct Client *sptr, const char *caplist)
   int neg;
 
   if (IsUnknown(sptr)) /* registration hasn't completed; suspend it... */
-    cli_unreg(sptr) |= CLIREG_CAP;
+    auth_cap_start(cli_auth(sptr));
 
   memset(&set, 0, sizeof(set));
   memset(&rem, 0, sizeof(rem));
@@ -300,12 +300,7 @@ cap_end(struct Client *sptr, const char *caplist)
   if (!IsUnknown(sptr)) /* registration has completed... */
     return 0; /* so just ignore the message... */
 
-  cli_unreg(sptr) &= ~CLIREG_CAP; /* capability negotiation is now done... */
-
-  if (!cli_unreg(sptr)) /* if client is now done... */
-    return register_user(sptr, sptr, cli_name(sptr), cli_user(sptr)->username);
-
-  return 0; /* Can't do registration yet... */
+  return auth_cap_done(cli_auth(sptr));
 }
 
 static int

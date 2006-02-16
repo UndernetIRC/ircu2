@@ -85,6 +85,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "s_auth.h"
 #include "send.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
@@ -94,21 +95,28 @@
  */
 int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  const char* password = parc > 1 ? parv[1] : 0;
+  char password[BUFSIZE];
+  int arg, len;
 
   assert(0 != cptr);
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
+  /* Some clients (brokenly) send "PASS x y" rather than "PASS :x y"
+   * when the user enters "x y" as the password.  Unsplit arguments to
+   * work around this.
+   */
+  for (arg = 1, len = 0; arg < parc; ++arg)
+  {
+    ircd_strncpy(password + len, parv[arg], sizeof(password) - len);
+    len += strlen(parv[arg]);
+    password[len++] = ' ';
+  }
+  password[--len] = '\0';
+
   if (EmptyString(password))
     return need_more_params(cptr, "PASS");
 
-  /* TODO: For protocol negotiation */
-#if 0
-  if (ircd_strcmp(password,"PROT")==0) {
-  	/* Do something here */
-  }
-#endif
   ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
-  return 0;
+  return cli_auth(cptr) ? auth_set_password(cli_auth(cptr), password) : 0;
 }

@@ -1,5 +1,87 @@
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Include new HIS_STATS_IAUTH feature.
+
+	* doc/readme.features: Document the feature.
+
+	* doc/readme.iauth: Rewrite to reflect the new progressive iauth
+	protocol, based on IRCnet's iauth.
+
+	* doc/snomask.html: Document SNO_AUTH server notice flag.
+
+	* include/client.h (FLAG_IAUTHED): Delete.
+	(con_cookie): Delete.
+	(con_unreg): Delete.
+	(con_auth): Make comment capitalization consistent.
+	(con_iauth): Delete.
+	(CLIREG_*): Delete.
+	(cli_unreg): Delete.
+	(cli_cookie): Delete.
+	(cli_iauth): Delete.
+	(con_unreg): Delete.
+	(con_iauth): Delete.
+	(IsIAuthed): Delete.
+	(SetIAuthed): Delete.
+	(SNO_AUTH): New server notice flag.
+	(SNO_ALL): Update to include SNO_AUTH.
+	(SNO_OPER): Update to include SNO_AUTH.
+
+	* include/ircd_auth.h: Delete file.
+
+	* include/ircd_features.h (HIS_STATS_IAUTH): New feature.
+
+	* include/s_auth.h: Rewrite almost everything for new auth system.
+
+	* include/s_user.h (COOKIE_VERIFIED): Delete.
+	(register_user): Remove redundant nick and username arguments.
+
+	* ircd/ircd_auth.c: Delete file.
+
+	* ircd/ircd_features.c (HIS_STATS_IAUTH): New feature.
+
+	* ircd/ircd_lexer.l (PROGRAM): New token in grammar.
+
+	* ircd/ircd_log.c (masks): Add SNO_AUTH flag.
+
+	* ircd/ircd_parser.y (stringlist): Simplify production.
+	(iauthblock): Revise to only include a PROGRAM production.
+
+	* ircd/list.c (make_client): Do not assign to deleted field.
+
+	* ircd/m_cap.c (cap_ls): Use auth_cap_start() instead of
+	cli_unreg().
+	(cap_req): Likewise.
+	(cap_end): Use auth_cap_done() instead of cli_unreg().
+
+	* ircd/m_pass.c (mr_pass): Merge arguments to PASS.  Use
+	auth_set_password() to notify iauth of password.
+
+	* ircd/m_pong.c (mr_pong): Use auth_set_pong() instead of
+	cli_cookie() and cli_unreg().
+
+	* ircd/m_user.c (m_user): Use auth_set_user() instead of
+	cli_unreg(), etc.
+
+	* ircd/s_auth.c: Rewrite most of the infrastructure for the new
+	auth system.
+
+	* ircd/s_conf.c (rehash): Call auth_*() instead of iauth_*().
+
+	* ircd/s_misc.c (exit_one_client): Do not use iauth_exit_client().
+	(exit_client): Use auth_send_exit() instead.
+
+	* ircd/s_stats.c (statsinfo): Include iauth and iauthconf.
+
+	* ircd/s_user.c (clean_user_id): Delete (moved into s_auth.c).
+	(register_user): Remove nick and username parameters; move conf
+	interactions and username validation to s_auth.c.
+	(set_nick_name): Use auth_set_nick() instead of cli_cookie(),
+	cli_unreg(), etc.
+
+	* tools/iauth-test: Implementation of iauth for testing purposes.
+
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_snprintf.c (doprintf): Fix typecast for %hu.
 
 2006-02-15  Michael Poole <mdpoole@troilus.org>

@@ -43,6 +43,7 @@
 #include "numnicks.h"
 #include "querycmds.h"
 #include "res.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -617,6 +618,12 @@ struct StatDesc statsinfo[] = {
   { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
+  { ' ', "iauth", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_IAUTH,
+    report_iauth_stats, 0,
+    "IAuth statistics." },
+  { ' ', "iauthconf", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_IAUTH,
+    report_iauth_conf, 0,
+    "IAuth configuration." },
   { '*', "help", STAT_FLAG_CASESENS, FEAT_LAST_F,
     stats_help, 0,
     "Send help for stats." },

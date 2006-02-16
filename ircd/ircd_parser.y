@@ -32,7 +32,6 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
-#include "ircd_auth.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -47,6 +46,7 @@
 #include "opercmds.h"
 #include "parse.h"
 #include "res.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -156,6 +156,7 @@ static void parse_error(char *pattern,...) {
 %token TIMEOUT
 %token FAST
 %token AUTOCONNECT
+%token PROGRAM
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -910,21 +911,14 @@ featureitem: QSTRING
 {
   stringlist[0] = $1;
   stringno = 1;
-} '=' stringlist ';';
-
-stringlist: QSTRING
-{
-  stringlist[1] = $1;
-  stringno = 2;
-} posextrastrings
-{
+} '=' stringlist ';' {
   unsigned int ii;
   feature_set(NULL, (const char * const *)stringlist, stringno);
   for (ii = 0; ii < stringno; ++ii)
     MyFree(stringlist[ii]);
 };
-posextrastrings: /* empty */ | extrastrings;
-extrastrings: extrastrings extrastring | extrastring;
+
+stringlist: stringlist extrastring | extrastring;
 extrastring: QSTRING
 {
   if (stringno < MAX_STRINGS)
@@ -1002,45 +996,17 @@ pseudoflags: FAST ';'
   smap->flags |= SMAP_FAST;
 };
 
-iauthblock: IAUTH '{'
+iauthblock: IAUTH '{' iauthitems '}' ';'
 {
-  tconn = 60;
-  tping = 60;
-} iauthitems '}' ';'
-{
-  if (!host)
-    parse_error("Missing host in iauth block");
-  else if (!port)
-    parse_error("Missing port in iauth block");
-  else
-    iauth_connect(host, port, pass, tconn, tping);
-  MyFree(pass);
-  MyFree(host);
-  pass = host = NULL;
-  port = tconn = tping = 0;
+  auth_spawn(stringno, stringlist);
+  while (stringno > 0)
+    MyFree(stringlist[stringno--]);
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
-iauthitem: iauthpass | iauthhost | iauthport | iauthconnfreq | iauthtimeout;
-iauthpass: PASS '=' QSTRING ';'
+iauthitem: iauthprogram;
+iauthprogram: PROGRAM '='
 {
-  MyFree(pass);
-  pass = $3;
-};
-iauthhost: HOST '=' QSTRING ';'
-{
-  MyFree(host);
-  host = $3;
-};
-iauthport: PORT '=' NUMBER ';'
-{
-  port = $3;
-};
-iauthconnfreq: CONNECTFREQ '=' timespec ';'
-{
-  tconn = $3;
-};
-iauthtimeout: TIMEOUT '=' timespec ';'
-{
-  tping = $3;
-};
+  while (stringno > 0)
+    MyFree(stringlist[stringno--]);
+} stringlist ';';

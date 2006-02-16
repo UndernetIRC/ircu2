@@ -155,7 +155,6 @@ enum Flag
     FLAG_BURST,                     /**< Server is receiving a net.burst */
     FLAG_BURST_ACK,                 /**< Server is waiting for eob ack */
     FLAG_IPCHECK,                   /**< Added or updated IPregistry data */
-    FLAG_IAUTHED,                   /**< Got IAUTH response for user */
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
     FLAG_OPER,                      /**< Operator */
@@ -198,7 +197,6 @@ struct Connection
   time_t              con_nexttarget;/**< Next time a target change is allowed */
   time_t              con_lasttime;  /**< Last time data read from socket */
   time_t              con_since;     /**< Last time we accepted a command */
-  unsigned int        con_cookie;    /**< Random number the user must PONG */
   struct MsgQ         con_sendQ;     /**< Outgoing message queue */
   struct DBuf         con_recvQ;     /**< Incoming data yet to be parsed */
   unsigned int        con_sendM;     /**< Stats: protocol messages sent */
@@ -211,7 +209,6 @@ struct Connection
   HandlerType         con_handler;   /**< Message index into command table
                                         for parsing. */
   struct ListingArgs* con_listing;   /**< Current LIST status. */
-  unsigned long       con_unreg;     /**< Indicate what still needs to be done */
   unsigned int        con_max_sendq; /**< cached max send queue for client */
   unsigned int        con_ping_freq; /**< cached ping freq */
   unsigned short      con_lastsq;    /**< # 2k blocks when sendqueued
@@ -233,8 +230,7 @@ struct Connection
   struct Privs        con_privs;     /**< Oper privileges */
   struct CapSet       con_capab;     /**< Client capabilities (from us) */
   struct CapSet       con_active;    /**< Active capabilities (to us) */
-  struct AuthRequest* con_auth;      /**< auth request for client */
-  struct IAuthRequest* con_iauth;    /**< iauth request for client */
+  struct AuthRequest* con_auth;      /**< Auth request for client */
 };
 
 /** Magic constant to identify valid Connection structures. */
@@ -263,13 +259,6 @@ struct Client {
   char cli_username[USERLEN + 1]; /**< Username determined by ident lookup */
   char cli_info[REALLEN + 1];     /**< Free form additional client information */
 };
-
-#define CLIREG_NICK	0x0001	/**< Client must set nickname */
-#define CLIREG_USER	0x0002	/**< Client must set username */
-#define CLIREG_COOKIE	0x0004	/**< Client must return cookie */
-#define CLIREG_CAP	0x0008	/**< Client in capability negotiation */
-
-#define CLIREG_INIT	(CLIREG_NICK | CLIREG_USER | CLIREG_COOKIE)
 
 /** Magic constant to identify valid Client structures. */
 #define CLIENT_MAGIC 0x4ca08286
@@ -322,8 +311,6 @@ struct Client {
 #define cli_capab(cli)		con_capab(cli_connect(cli))
 /** Get active client capabilities for client */
 #define cli_active(cli)		con_active(cli_connect(cli))
-/** Get flags for remaining registration tasks */
-#define cli_unreg(cli)		con_unreg(cli_connect(cli))
 /** Get client name. */
 #define cli_name(cli)		((cli)->cli_name)
 /** Get client username (ident). */
@@ -345,8 +332,6 @@ struct Client {
 #define cli_nextnick(cli)	con_nextnick(cli_connect(cli))
 /** Get next time a target change is allowed for the client. */
 #define cli_nexttarget(cli)	con_nexttarget(cli_connect(cli))
-/** Get required PING/PONG cookie for client. */
-#define cli_cookie(cli)		con_cookie(cli_connect(cli))
 /** Get SendQ for client. */
 #define cli_sendQ(cli)		con_sendQ(cli_connect(cli))
 /** Get RecvQ for client. */
@@ -389,8 +374,6 @@ struct Client {
 #define cli_proc(cli)		con_proc(cli_connect(cli))
 /** Get auth request for client. */
 #define cli_auth(cli)		con_auth(cli_connect(cli))
-/** Get iauth request for client. */
-#define cli_iauth(cli)          con_iauth(cli_connect(cli))
 /** Get sentalong marker for client. */
 #define cli_sentalong(cli)      con_sentalong(cli_connect(cli))
 
@@ -424,8 +407,6 @@ struct Client {
 #define con_lasttime(con)       ((con)->con_lasttime)
 /** Get last time we accepted a command from the connection. */
 #define con_since(con)          ((con)->con_since)
-/** Get PING/PONG confirmation cookie for connection. */
-#define con_cookie(con)		((con)->con_cookie)
 /** Get SendQ for connection. */
 #define con_sendQ(con)		((con)->con_sendQ)
 /** Get RecvQ for connection. */
@@ -446,8 +427,6 @@ struct Client {
 #define con_handler(con)	((con)->con_handler)
 /** Get the LIST status for the connection. */
 #define con_listing(con)	((con)->con_listing)
-/** Get remining steps before registration completes. */
-#define con_unreg(con)          ((con)->con_unreg)
 /** Get the maximum permitted SendQ size for the connection. */
 #define con_max_sendq(con)	((con)->con_max_sendq)
 /** Get the ping frequency for the connection. */
@@ -476,8 +455,6 @@ struct Client {
 #define con_active(con)         (&(con)->con_active)
 /** Get the auth request for the connection. */
 #define con_auth(con)		((con)->con_auth)
-/** Get the iauth request for the connection. */
-#define con_iauth(con)          ((con)->con_iauth)
 
 #define STAT_CONNECTING         0x001 /**< connecting to another server */
 #define STAT_HANDSHAKE          0x002 /**< pass - server sent */
@@ -572,8 +549,6 @@ struct Client {
 #define IsDeaf(x)               HasFlag(x, FLAG_DEAF)
 /** Return non-zero if the client has been IP-checked for clones. */
 #define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
-/** Return non-zero if the client has been okayed by iauth. */
-#define IsIAuthed(x)            HasFlag(x, FLAG_IAUTHED)
 /** Return non-zero if we have received an ident response for the client. */
 #define IsIdented(x)            HasFlag(x, FLAG_GOTID)
 /** Return non-zero if the client has set mode +i (invisible). */
@@ -626,8 +601,6 @@ struct Client {
 #define SetGotId(x)             SetFlag(x, FLAG_GOTID)
 /** Mark a client as being IP-checked. */
 #define SetIPChecked(x)         SetFlag(x, FLAG_IPCHECK)
-/** Mark a client as being iauth-checked. */
-#define SetIAuthed(x)           SetFlag(x, FLAG_IAUTHED)
 /** Mark a client as having mode +i (invisible). */
 #define SetInvisible(x)         SetFlag(x, FLAG_INVISIBLE)
 /** Mark a client as causing a net.join. */
@@ -716,12 +689,13 @@ struct Client {
 #define SNO_CONNEXIT    0x4000  /**< client connect/exit (ugh) */
 #define SNO_AUTO        0x8000  /**< AUTO G-Lines */
 #define SNO_DEBUG       0x10000 /**< debugging messages (DEBUGMODE only) */
+#define SNO_AUTH        0x20000 /**< IAuth notices */
 
+/** Bitmask of all valid server notice bits. */
 #ifdef DEBUGMODE
-# define SNO_ALL        0x1ffff  /**< Bitmask of all valid server
-                                  * notice bits. */
+# define SNO_ALL        0x3ffff
 #else
-# define SNO_ALL        0xffff
+# define SNO_ALL        0x2ffff
 #endif
 
 /** Server notice bits allowed to normal users. */
@@ -732,7 +706,7 @@ struct Client {
 /** Server notice bits enabled by default for IRC operators. */
 #define SNO_OPERDEFAULT (SNO_DEFAULT|SNO_HACK2|SNO_HACK4|SNO_THROTTLE|SNO_OLDSNO)
 /** Server notice bits reserved to IRC operators. */
-#define SNO_OPER (SNO_CONNEXIT|SNO_OLDREALOP)
+#define SNO_OPER (SNO_CONNEXIT|SNO_OLDREALOP|SNO_AUTH)
 /** Noisy server notice bits that cause other bits to be cleared during connect. */
 #define SNO_NOISY (SNO_SERVKILL|SNO_UNAUTH)
 

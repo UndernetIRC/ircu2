@@ -91,6 +91,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "opercmds.h"
+#include "s_auth.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -163,25 +164,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
-  /*
-   * Check to see if this is a PONG :cookie reply from an
-   * unregistered user.  If so, process it. -record
-   */
-  if (0 != cli_cookie(sptr) && COOKIE_VERIFIED != cli_cookie(sptr)) {
-    if (parc > 1 && cli_cookie(sptr) == atol(parv[parc - 1])) {
-      cli_cookie(sptr) = COOKIE_VERIFIED;
-      cli_unreg(sptr) &= ~CLIREG_COOKIE; /* cookie has been returned... */
-      if (!cli_unreg(sptr)) /* no more registration tasks... */
-        /*
-         * NICK and USER OK
-         */
-        return register_user(cptr, sptr, cli_name(sptr), cli_user(sptr)->username);
-    }
-    else  
-      send_reply(sptr, SND_EXPLICIT | ERR_BADPING,
-		 ":To connect, type /QUOTE PONG %u", cli_cookie(sptr));
-  }
-  return 0;
+  return (parc > 1) ? auth_set_pong(cli_auth(sptr), atol(parv[parc - 1])) : 0;
 }
 
 /*
