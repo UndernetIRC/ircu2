@@ -1,5 +1,23 @@
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_signal.h (SigChldCallBack): New typedef.
+	(register_child): Declare.
+	(unregister_child): Declare.
+	(reap_children): Declare.
+
+	* ircd/ircd_signal.c (alloc_crec): New function.
+	(release_crec): New function.
+	(register_child): New function.
+	(do_unregister_child): New function.
+	(unregister_child): New function.
+	(sigchld_callback): New function.
+	(setup_signals): Hook SIGCHLD.
+	(reap_children): New function.
+
+	* ircd/ircd.c (server_restart): Call reap_children() on exit.
+
+2006-02-15  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_osdep.h (os_socketpair): Declare.
 
 	* ircd/os_generic.c (is_blocked): New local function.

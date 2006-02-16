@@ -180,6 +180,8 @@ void server_restart(const char *message)
 
   close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG | BOOT_CHKCONF)));
 
+  reap_children();
+
   execv(SPATH, thisServer.argv);
 
   /* Have to reopen since it has been closed above */
