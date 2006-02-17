@@ -1,3 +1,12 @@
+2006-02-17  Alex Badea <vamposdecampos@gmail.com>
+
+	* ircd/s_auth.c (auth_set_username): Check if the last
+	character of the username is alphanumeric, instead of the
+	'\0' terminator.
+	
+	* ircd/m_pong.c (mr_pong): Parse cookie with strtoul(),
+	since atol() causes signedness problems.
+
 2006-02-15  Michael Poole <mdpoole@troilus.org>
 
 	* include/res.h (NXDOMAIN): Define.

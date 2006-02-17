@@ -322,7 +322,7 @@ static int auth_set_username(struct AuthRequest *auth)
     if (!lower && !upper)
       goto badid;
     /* Final character must not be punctuation. */
-    if (!IsAlnum(ch))
+    if (!IsAlnum(last))
       goto badid;
   }
 
