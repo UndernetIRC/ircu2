@@ -178,13 +178,13 @@ struct IAuth {
 };
 
 /** Return whether flag \a flag is set on \a iauth. */
-#define IAuthHas(iauth, flag) FlagHas(&iauth->i_flags, flag)
+#define IAuthHas(iauth, flag) ((iauth) && FlagHas(&(iauth)->i_flags, flag))
 /** Set flag \a flag on \a iauth. */
-#define IAuthSet(iauth, flag) FlagSet(&iauth->i_flags, flag)
+#define IAuthSet(iauth, flag) FlagSet(&(iauth)->i_flags, flag)
 /** Clear flag \a flag from \a iauth. */
-#define IAuthClr(iauth, flag) FlagClr(&iauth->i_flags, flag)
+#define IAuthClr(iauth, flag) FlagClr(&(iauth)->i_flags, flag)
 /** Get connected flag for \a iauth. */
-#define i_GetConnected(iauth) (s_fd(i_socket(iauth)) > -1)
+#define i_GetConnected(iauth) ((iauth) && s_fd(i_socket(iauth)) > -1)
 
 /** Return socket event generator for \a iauth. */
 #define i_socket(iauth) (&(iauth)->i_socket)
@@ -193,7 +193,7 @@ struct IAuth {
 /** Return outbound message queue for \a iauth. */
 #define i_sendQ(iauth) (&(iauth)->i_sendQ)
 /** Return debug level for \a iauth. */
-#define i_debug(iauth) (iauth->i_debug)
+#define i_debug(iauth) ((iauth)->i_debug)
 
 /** Active instance of IAuth. */
 struct IAuth *iauth;
