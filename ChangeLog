@@ -1,5 +1,11 @@
 2006-02-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_silence.c (apply_silence): Refuse to apply silences for
+	local users that are broader than an IPv4 /16 or an IPv6 /32,
+	unless they match every host indiscriminately.
+
+2006-02-22  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (check_auth_finished): Give non-iauth clients
 	connection classes, too.
 	(auth_close_unused): Remove redundant check for iauth != NULL.
