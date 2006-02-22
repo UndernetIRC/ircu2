@@ -370,6 +370,12 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
       return 0;
     }
 
+  /* If appropriate, do preliminary assignment to connection class. */
+  if (IsUserPort(auth->client)
+      && !FlagHas(&auth->flags, AR_IAUTH_HURRY)
+      && preregister_user(auth->client))
+    return CPTR_KILLED;
+
   /* Check if iauth is done. */
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING))
   {
@@ -380,10 +386,6 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
 
       /* Set "hurry" flag in auth request. */
       FlagSet(&auth->flags, AR_IAUTH_HURRY);
-
-      /* Do preliminary assignment to connection class. */
-      if (preregister_user(auth->client))
-        return CPTR_KILLED;
 
       /* Check password now (to avoid challenge/response conflicts). */
       aconf = cli_confs(auth->client)->value.aconf;
@@ -408,6 +410,9 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
            cli_fd(auth->client), AR_IAUTH_PENDING));
     return 0;
   }
+  else
+    FlagSet(&auth->flags, AR_IAUTH_HURRY);
+
 
   destroy_auth_request(auth, send_reports);
   if (!IsUserPort(auth->client))
@@ -1263,7 +1268,7 @@ static void iauth_disconnect(struct IAuth *iauth)
 /** Close all %IAuth connections marked as closing. */
 void auth_close_unused(void)
 {
-  if (iauth && IAuthHas(iauth, IAUTH_CLOSING)) {
+  if (IAuthHas(iauth, IAUTH_CLOSING)) {
     int ii;
     iauth_disconnect(iauth);
     if (iauth->i_argv) {
@@ -2018,7 +2023,7 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
 {
     struct SLink *link;
 
-    for (link = iauth->i_config; link; link = link->next)
+    if (iauth) for (link = iauth->i_config; link; link = link->next)
     {
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
@@ -2035,7 +2040,7 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
 {
     struct SLink *link;
 
-    for (link = iauth->i_stats; link; link = link->next)
+    if (iauth) for (link = iauth->i_stats; link; link = link->next)
     {
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
