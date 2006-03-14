@@ -359,10 +359,12 @@ msgq_vmake(struct Client *dest, const char *format, va_list vl)
     }
     if (!mb) { /* OK, try killing a client */
       kill_highest_sendq(0); /* Don't kill any server connections */
+      msgq_clear_freembs();  /* Release whatever was just freelisted */
       mb = msgq_alloc(0, BUFSIZE);
     }
     if (!mb) { /* hmmm... */
       kill_highest_sendq(1); /* Try killing a server connection now */
+      msgq_clear_freembs();  /* Clear freelist again */
       mb = msgq_alloc(0, BUFSIZE);
     }
     if (!mb) /* AIEEEE! */
@@ -564,9 +566,10 @@ msgq_count_memory(struct Client *cptr, size_t *msg_alloc, size_t *msgbuf_alloc)
 
   /* Data for Msg's is simple, so just send it */
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Msgs allocated %d(%zu) used %d(%zu)", MQData.msgs.alloc,
-	     MQData.msgs.alloc * sizeof(struct Msg), MQData.msgs.used,
-	     MQData.msgs.used * sizeof(struct Msg));
+	     ":Msgs allocated %d(%zu) used %d(%zu) text %zu",
+             MQData.msgs.alloc, MQData.msgs.alloc * sizeof(struct Msg),
+             MQData.msgs.used,  MQData.msgs.used * sizeof(struct Msg),
+             MQData.tot_bufsize);
   /* count_memory() wants to know the total */
   *msg_alloc = MQData.msgs.alloc * sizeof(struct Msg);
 

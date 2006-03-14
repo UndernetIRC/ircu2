@@ -1,3 +1,11 @@
+2006-03-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/msgq.c (msgq_vmake): Try to clear msgbuf freelist after
+	killing clients, so that that case does not lead immediately to a
+	server panic.
+	(msgq_count_memory): Report total buffer text used as a way to
+	determine whether the BUFFERPOOL value is marginal.
+
 2006-03-02  Michael Poole <mdpoole@troilus.org>
 
 	* include/ircd_osdep.h (os_socket): New parameter.
