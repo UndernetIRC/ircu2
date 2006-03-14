@@ -135,7 +135,7 @@ int uping_init(void)
   memcpy(&from, &VirtualHost_v4, sizeof(from));
   from.port = atoi(UDP_PORT);
 
-  fd = os_socket(&from, SOCK_DGRAM, "IPv4 uping listener");
+  fd = os_socket(&from, SOCK_DGRAM, "IPv4 uping listener", AF_INET);
   if (fd < 0)
     return -1;
   if (!socket_add(&upingSock_v4, uping_echo_callback, 0, SS_DATAGRAM,
@@ -145,10 +145,11 @@ int uping_init(void)
     return -1;
   }
 
+#ifdef AF_INET6
   memcpy(&from, &VirtualHost_v6, sizeof(from));
   from.port = atoi(UDP_PORT);
 
-  fd = os_socket(&from, SOCK_DGRAM, "IPv6 uping listener");
+  fd = os_socket(&from, SOCK_DGRAM, "IPv6 uping listener", AF_INET6);
   if (fd < 0)
     return -1;
   if (!socket_add(&upingSock_v6, uping_echo_callback, 0, SS_DATAGRAM,
@@ -157,6 +158,7 @@ int uping_init(void)
     close(fd);
     return -1;
   }
+#endif
 
   return 0;
 }
@@ -368,6 +370,7 @@ void uping_read(struct UPing* pptr)
 int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int count)
 {
   int fd;
+  int family = 0;
   struct UPing* pptr;
   struct irc_sockaddr *local;
 
@@ -383,8 +386,13 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   if (IsUPing(sptr))
     uping_cancel(sptr, sptr);  /* Cancel previous ping request */
 
-  local = irc_in_addr_is_ipv4(&aconf->address.addr) ? &VirtualHost_v4 : &VirtualHost_v6;
-  fd = os_socket(local, SOCK_DGRAM, "Outbound uping socket");
+  if (irc_in_addr_is_ipv4(&aconf->address.addr)) {
+    local = &VirtualHost_v4;
+    family = AF_INET;
+  } else {
+    local = &VirtualHost_v6;
+  }
+  fd = os_socket(local, SOCK_DGRAM, "Outbound uping socket", family);
   if (fd < 0)
     return 0;
 
@@ -430,7 +438,7 @@ void uping_end(struct UPing* pptr)
 	sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING %s%s",
 		      pptr->client, pptr->name, pptr->buf);
 	sendcmdto_one(&me, CMD_NOTICE, pptr->client, "%C :UPING Stats: "
-		      "sent %d recvd %d ; min/avg/max = %1lu/%1lu/%1lu ms",
+		      "sent %d recvd %d ; min/avg/max = %u/%u/%u ms",
 		      pptr->client, pptr->sent, pptr->received, pptr->ms_min,
 		      (2 * pptr->ms_ave) / (2 * pptr->received), pptr->ms_max);
       } else
@@ -474,5 +482,3 @@ void uping_cancel(struct Client *sptr, struct Client* acptr)
   }
   ClearUPing(sptr);
 }
-
-

@@ -826,7 +826,7 @@ static void start_auth_query(struct AuthRequest* auth)
   local_addr.port = 0;
   memcpy(&remote_addr.addr, &cli_ip(auth->client), sizeof(remote_addr.addr));
   remote_addr.port = 113;
-  fd = os_socket(&local_addr, SOCK_STREAM, "auth query");
+  fd = os_socket(&local_addr, SOCK_STREAM, "auth query", 0);
   if (fd < 0) {
     ++ServerStats->is_abad;
     if (IsUserPort(auth->client))

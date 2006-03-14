@@ -29,11 +29,13 @@
  */
 #define _XOPEN_SOURCE   500
 #define __EXTENSIONS__  1
-#else
-/* FreeBSD 6.0 requires SUSv3 to support IPv6.  Apparently some other
- * OS requires SUSv3 to define IOV_MAX, but its identity is lost for
- * the time being.
+#elif defined(__FreeBSD__) && __FreeBSD__ >= 5
+/* FreeBSD 6.0 requires SUSv3 to support IPv6 -- but if you ask for
+ * that specifically (by defining _XOPEN_SOURCE to anything at all),
+ * they cleverly hide IPPROTO_IPV6.  If you don't ask for anything,
+ * they give you everything.
  */
+#else
 #define _XOPEN_SOURCE   600
 #endif
 
@@ -70,6 +72,10 @@
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#if defined(IPV6_BINDV6ONLY) &&!defined(IPV6_V6ONLY)
+# define IPV6_V6ONLY IPV6_BINDV6ONLY
 #endif
 
 #ifndef IOV_MAX
@@ -131,15 +137,16 @@ void sockaddr_to_irc(const struct sockaddr_in6 *v6, struct irc_sockaddr *irc)
  * @param[in] compat_fd If non-negative, an FD specifying address family.
  * @return Length of address written to \a v6.
  */
-int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int compat_fd)
+int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int compat_fd, int family)
 {
     struct sockaddr_in6 sin6;
     socklen_t slen;
-    int family;
 
     assert(irc != 0);
     slen = sizeof(sin6);
-    if ((0 <= compat_fd)
+    if (family) {
+        /* accept whatever user specified */
+    } else if ((0 <= compat_fd)
         && (0 == getsockname(compat_fd, (struct sockaddr*)&sin6, &slen)))
         family = sin6.sin6_family;
     else if ((irc == &VirtualHost_v4) || irc_in_addr_is_ipv4(&irc->addr))
@@ -168,7 +175,7 @@ int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, i
 #define sn_family sin_family
 #define sockaddr_to_irc sockaddr_in_to_irc
 
-int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int compat_fd)
+int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, int compat_fd, int family)
 {
     assert(irc != 0);
     v4->sin_family = AF_INET;
@@ -179,7 +186,7 @@ int sockaddr_from_irc(struct sockaddr_in *v4, const struct irc_sockaddr *irc, in
     } else{
         memset(&v4, 0, sizeof(v4));
     }
-    (void)compat_fd;
+    (void)compat_fd; (void)family;
     return sizeof(*v4);
 }
 
@@ -496,7 +503,7 @@ IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
   int res, size;
   assert(0 != buf);
 
-  size = sockaddr_from_irc(&addr, peer, fd);
+  size = sockaddr_from_irc(&addr, peer, fd, 0);
   assert((addr.sn_family == AF_INET) == irc_in_addr_is_ipv4(&peer->addr));
   if (-1 < (res = sendto(fd, buf, length, flags, (struct sockaddr*)&addr, size))) {
     if (count_out)
@@ -566,15 +573,16 @@ IOResult os_sendv_nonb(int fd, struct MsgQ* buf, unsigned int* count_in,
  * @param[in] local Local address to bind to.
  * @param[in] type SOCK_STREAM or SOCK_DGRAM.
  * @param[in] port_name Port name (used in error diagnostics).
+ * @param[in] family A specific address family to use, or 0 for automatic.
  * @return Bound descriptor, or -1 on error.
  */
-int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
+int os_socket(const struct irc_sockaddr* local, int type, const char* port_name, int family)
 {
   struct sockaddr_native addr;
   int size, fd;
 
   assert(local != 0);
-  size = sockaddr_from_irc(&addr, local, -1);
+  size = sockaddr_from_irc(&addr, local, -1, family);
   fd = socket(addr.sn_family, type, 0);
   if (fd < 0) {
     report_error(SOCKET_ERROR_MSG, port_name, errno);
@@ -596,6 +604,11 @@ int os_socket(const struct irc_sockaddr* local, int type, const char* port_name)
     return -1;
   }
   if (local) {
+#if defined(IPV6_V6ONLY)
+    int on = 0;
+    if (family == 0 && irc_in_addr_unspec(&local->addr))
+      setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
+#endif
     if (bind(fd, (struct sockaddr*)&addr, size)) {
       report_error(BIND_ERROR_MSG, port_name, errno);
       close(fd);
@@ -635,7 +648,7 @@ IOResult os_connect_nonb(int fd, const struct irc_sockaddr* sin)
   struct sockaddr_native addr;
   int size;
 
-  size = sockaddr_from_irc(&addr, sin, fd);
+  size = sockaddr_from_irc(&addr, sin, fd, 0);
   if (0 == connect(fd, (struct sockaddr*) &addr, size))
     return IO_SUCCESS;
   else if (errno == EINPROGRESS)

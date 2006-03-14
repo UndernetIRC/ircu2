@@ -1,3 +1,31 @@
+2006-03-02  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_osdep.h (os_socket): New parameter.
+
+	* include/res.h (irc_in_addr_unspec): New macro.
+
+	* ircd/ircd_res.c (restart_resolver): Set family appropriately.
+
+	* ircd/listener.c (inetport): Let os_ library pick socket family.
+
+	* ircd/os_generic.c: Do not #define _XOPEN_SOURCE on FreeBSD 5+.
+	(sockaddr_from_irc): New parameter.
+	(os_sendto_nonb): Use new parameter to sockaddr_from_irc().
+	(os_socket): New parameter.  Try to turn off IPV6_V6ONLY on
+	sockets that listen on unspecified addresses.
+	(os_connect_nonb): Use new parameter to sockaddr_from_irc().
+
+	* ircd/s_auth.c (start_auth_query): Let os_ library pick socket
+	family.
+
+	* ircd/s_bsd.c (connect_inet): If we pick the IPv4 vhost, specify
+	family for os_socket() as AF_INET.
+
+	* ircd/uping.c (uping_init): Set socket family appropriately.
+	(uping_server): Likewise.
+	(uping_end): Fix format strings (the ms_* fields are int, not
+	long, and this causes bad results on LP64 machines).
+
 2006-02-22  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_silence.c (apply_silence): Refuse to apply silences for

@@ -173,19 +173,21 @@ restart_resolver(void)
 
   if (!s_active(&res_socket_v4))
   {
-    int fd = os_socket(&VirtualHost_v4, SOCK_DGRAM, "Resolver UDPv4 socket");
+    int fd = os_socket(&VirtualHost_v4, SOCK_DGRAM, "Resolver UDPv4 socket", AF_INET);
     if (fd >= 0)
       socket_add(&res_socket_v4, res_readreply, NULL,
                  SS_DATAGRAM, SOCK_EVENT_READABLE, fd);
   }
 
+#ifdef AF_INET6
   if (!s_active(&res_socket_v6))
   {
-    int fd = os_socket(&VirtualHost_v6, SOCK_DGRAM, "Resolver UDPv6 socket");
+    int fd = os_socket(&VirtualHost_v6, SOCK_DGRAM, "Resolver UDPv6 socket", AF_INET6);
     if (fd >= 0)
       socket_add(&res_socket_v6, res_readreply, NULL,
                  SS_DATAGRAM, SOCK_EVENT_READABLE, fd);
   }
+#endif
 
   if (s_active(&res_socket_v4) || s_active(&res_socket_v6))
     timer_init(&res_timeout);

@@ -187,7 +187,7 @@ static int inetport(struct Listener* listener)
   /*
    * At first, open a new socket
    */
-  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener));
+  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener), 0);
   if (fd < 0)
     return 0;
   /*

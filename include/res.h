@@ -116,6 +116,16 @@ extern void report_dns_servers(struct Client *source_p, const struct StatDesc *s
 extern void gethost_byname(const char *name, dns_callback_f callback, void *ctx);
 extern void gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callback, void *ctx);
 
+/** Evaluate to non-zero if \a ADDR is an unspecified (all zeros) address. */
+#define irc_in_addr_unspec(ADDR) (((ADDR)->in6_16[0] == 0) \
+                                  && ((ADDR)->in6_16[1] == 0) \
+                                  && ((ADDR)->in6_16[2] == 0) \
+                                  && ((ADDR)->in6_16[3] == 0) \
+                                  && ((ADDR)->in6_16[4] == 0) \
+                                  && ((ADDR)->in6_16[6] == 0) \
+                                  && ((ADDR)->in6_16[7] == 0) \
+                                  && ((ADDR)->in6_16[5] == 0 \
+                                      || (ADDR)->in6_16[5] == 65535))
 /** Evaluate to non-zero if \a ADDR is a valid address (not all 0s and not all 1s). */
 #define irc_in_addr_valid(ADDR) (((ADDR)->in6_16[0] && ~(ADDR)->in6_16[0]) \
                                  || (ADDR)->in6_16[1] != (ADDR)->in6_16[0] \
