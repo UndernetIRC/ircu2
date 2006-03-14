@@ -110,6 +110,7 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
 	send_reply(sptr, RPL_STATSCLINE, name, port, maximum, hub_limit, get_conf_class(tmp));
       else if (tmp->status & CONF_CLIENT)
         send_reply(sptr, RPL_STATSILINE,
+                   (tmp->username ? tmp->username : ""), (tmp->username ? "@" : ""),
                    (tmp->host ? tmp->host : "*"), maximum,
                    (name[0] == ':' ? "0" : ""), (tmp->name ? tmp->name : "*"),
                    port, get_conf_class(tmp));
@@ -184,6 +185,7 @@ stats_access(struct Client *to, const struct StatDesc *sd, char *param)
            || (aconf->name && !match(param, aconf->name))))
     {
       send_reply(to, RPL_STATSILINE,
+                 (aconf->username ? aconf->username : ""), (aconf->username ? "@" : ""), 
                  (aconf->host ? aconf->host : "*"), aconf->maximum,
                  (aconf->name && aconf->name[0] == ':' ? "0":""),
                  aconf->name ? aconf->name : "*",

@@ -1,3 +1,11 @@
+2006-03-14  Wouter Coekarts <wouter@coekaerts.be>
+
+	* ircd/s_err.c (RPL_STATSILINE): Add two %s to the first field.
+
+	* ircd/s_stats.c (stats_configured_links): Use the new %s's to
+	show username masks for I: lines that have them.
+	(stats_access): Likewise.
+
 2006-03-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/msgq.c (msgq_vmake): Try to clear msgbuf freelist after
