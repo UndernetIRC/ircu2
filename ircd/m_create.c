@@ -172,7 +172,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	      the fact that it was a zannel. The influence of this on a network
 	      that is completely 2.10.12.03 or higher is neglectable: Normally
 	      a server only sends a CREATE after first sending a DESTRUCT. Thus,
-	      by receiving a CREATE for a zannel one of two things happened:
+	      by receiving a CREATE for a zannel one of three things happened:
 	      1. The DESTRUCT was sent during a net.break; this could mean that
 	         our zannel is at the verge of expiring too, it should have been
 		 destructed. It is correct to copy the newer TS now, all modes
@@ -185,28 +185,45 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 		 already left within the time span of a message propagation.
 		 The channel will therefore be less than 48 hours old and no
 		 'protection' is necessary.
+              3. The source server sent the CREATE while linking,
+                 before it got the BURST for our zannel.  If this
+                 happens, we should reset the channel back to the old
+                 timestamp.  This can be distinguished from case #1 by
+                 checking IsBurstOrBurstAck(cli_user(sptr)->server).
 	    */
 	   !(chptr->users == 0 && !chptr->mode.apass[0]))) {
-	modebuf_init(&mbuf, sptr, cptr, chptr,
-		     (MODEBUF_DEST_SERVER |  /* Send mode to server */
-		      MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
-		      MODEBUF_DEST_BOUNCE)); /* And bounce the mode */
+        if (!IsBurstOrBurstAck(cli_user(sptr)->server)) {
+          modebuf_init(&mbuf, sptr, cptr, chptr,
+                       (MODEBUF_DEST_SERVER |  /* Send mode to server */
+                        MODEBUF_DEST_HACK2  |  /* Send a HACK(2) message */
+                        MODEBUF_DEST_BOUNCE)); /* And bounce the mode */
 
-	modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr, MAXOPLEVEL + 1);
+          modebuf_mode_client(&mbuf, MODE_ADD | MODE_CHANOP, sptr, MAXOPLEVEL + 1);
 
-	modebuf_flush(&mbuf);
+          modebuf_flush(&mbuf);
 
-	badop = 1;
+          badop = 1;
+        } else if (chanTS > chptr->creationtime + 4) {
+          /* If their handling of the BURST will lead to deopping the
+           * user, have the user join without getting ops (if the
+           * server's handling of the BURST keeps their ops, the channel
+           * will use our timestamp).
+           */
+          badop = 1;
+        }
+
+        if (badop)
+          joinbuf_join(&join, chptr, 0);
       }
     }
     else /* Channel doesn't exist: create it */
       chptr = get_channel(sptr, name, CGT_CREATE);
 
-    if (!badop) /* Set/correct TS */
+    if (!badop) {
+      /* Set (or correct) our copy of the TS */
       chptr->creationtime = chanTS;
-
-    joinbuf_join(badop ? &join : &create, chptr,
-		 (badop ? 0 : CHFL_CHANOP));
+      joinbuf_join(&create, chptr, CHFL_CHANOP);
+    }
   }
 
   joinbuf_flush(&join); /* flush out the joins and creates */

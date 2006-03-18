@@ -1,3 +1,15 @@
+2006-06-18  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (modebuf_flush_int): Fix typo about changing
+	oplevels.  Send correct channel TS for modes to other servers.
+	(mode_parse): Accept timestamps on modes from users on other
+	servers.  If the received timestamp is too large, handle that.
+
+	* ircd/m_create.c (ms_create): Mention the CREATE-during-burst
+	case and handle it.
+
+	* ircd/m_mode.c (ms_mode): Put back HACK(3) when oplevels are off.
+
 2006-03-14  Wouter Coekarts <wouter@coekaerts.be>
 
 	* ircd/s_err.c (RPL_STATSILINE): Add two %s to the first field.

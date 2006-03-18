@@ -1805,7 +1805,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 	strptr_i = &remstr_i;
       }
 
-      /* if we're changing oplevels we know the oplevel, pass it on */
+      /* if we're changing oplevels and we know the oplevel, pass it on */
       if (mbuf->mb_channel->mode.apass[0]
           && (MB_TYPE(mbuf, i) & MODE_CHANOP)
           && MB_OPLEVEL(mbuf, i) < MAXOPLEVEL)
@@ -1849,9 +1849,9 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 			    addbuf, remstr, addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
-       * If HACK2 was set, we're bouncing; we send the MODE back to the
-       * connection we got it from with the senses reversed and a TS of 0;
-       * origin is us
+       * If HACK2 was set, we're bouncing; we send the MODE back to
+       * the connection we got it from with the senses reversed and
+       * the proper TS; origin is us
        */
       sendcmdto_one(&me, CMD_MODE, mbuf->mb_connect, "%H %s%s%s%s%s%s %Tu",
 		    mbuf->mb_channel, addbuf_i ? "-" : "", addbuf,
@@ -1859,21 +1859,14 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		    mbuf->mb_channel->creationtime);
     } else {
       /*
-       * We're propagating a normal MODE command to the rest of the network;
-       * we send the actual channel TS unless this is a HACK3 or a HACK4
+       * We're propagating a normal (or HACK3 or HACK4) MODE command
+       * to the rest of the network.  We send the actual channel TS.
        */
-      if (IsServer(mbuf->mb_source) || IsMe(mbuf->mb_source))
-	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
-			      "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
-			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			      addbuf, remstr, addstr,
-			      (mbuf->mb_dest & MODEBUF_DEST_HACK4) ? 0 :
-			      mbuf->mb_channel->creationtime);
-      else
-	sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
-			      "%H %s%s%s%s%s%s", mbuf->mb_channel,
-			      rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			      addbuf, remstr, addstr);
+      sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
+                            "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
+                            rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+                            addbuf, remstr, addstr,
+                            mbuf->mb_channel->creationtime);
     }
   }
 
@@ -3272,7 +3265,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
       state.parc--;
 
       /* is it a TS? */
-      if (IsServer(state.sptr) && !state.parc && IsDigit(*modestr)) {
+      if (IsServer(state.cptr) && !state.parc && IsDigit(*modestr)) {
 	time_t recv_ts;
 
 	if (!(state.flags & MODE_PARSE_SET))	  /* don't set earlier TS if */
@@ -3282,6 +3275,35 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
 
 	if (recv_ts && recv_ts < state.chptr->creationtime)
 	  state.chptr->creationtime = recv_ts; /* respect earlier TS */
+        else if (recv_ts > state.chptr->creationtime) {
+          struct Client *sserv;
+
+          /* Check whether the originating server has fully processed
+           * the burst to it. */
+          sserv = state.cptr;
+          if (!IsServer(sserv))
+              sserv = cli_user(sserv)->server;
+          if (IsBurstOrBurstAck(sserv)) {
+            /* This is a legal but unusual case; the source server
+             * probably just has not processed the BURST for this
+             * channel.  It SHOULD wipe out all its modes soon, so
+             * silently ignore the mode change rather than send a
+             * bounce that could desync modes from our side (that
+             * have already been sent).
+             */
+            state.mbuf->mb_add = 0;
+            state.mbuf->mb_rem = 0;
+            state.mbuf->mb_count = 0;
+            return state.args_used;
+          } else {
+            /* Server is desynced; bounce the mode and deop the source
+             * to fix it. */
+            state.mbuf->mb_dest &= ~MODEBUF_DEST_CHANNEL;
+            state.mbuf->mb_dest |= MODEBUF_DEST_BOUNCE | MODEBUF_DEST_HACK2;
+            if (!IsServer(state.cptr))
+              state.mbuf->mb_dest |= MODEBUF_DEST_DEOP;
+          }
+        }
 
 	break; /* break out of while loop */
       } else if (state.flags & MODE_PARSE_STRICT ||
