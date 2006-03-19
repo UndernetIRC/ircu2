@@ -354,6 +354,14 @@ static void finish_features(void)
             continue;
         }
 
+        /* If it had no value before, drop it now since the lexer does
+         * not accept empty strings and the grammar does not accept
+         * empty stringlists.*/
+        if (!feat->values) {
+            fprintf(stdout, "# Above feature had no value.\n");
+            continue;
+        }
+
         /* Wasn't remapped, wasn't removed: print it out. */
         fprintf(stdout, "\t\"%s\" =", feat->name);
         for (sl = feat->values; sl; sl = sl->next)

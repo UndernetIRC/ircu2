@@ -1,5 +1,10 @@
 2006-06-18  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/convert-conf.c (finish_features): Do not emit a feature
+	setting that has no values.
+
+2006-06-18  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (mode_parse_key): Outside of burst, allow
 	overwriting of keys by a service when a key is already set.
 	(mode_parse_upass): Likewise.  Instead, ignore new Upass during
