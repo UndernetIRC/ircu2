@@ -1,5 +1,14 @@
 2006-06-18  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_parse_key): Outside of burst, allow
+	overwriting of keys by a service when a key is already set.
+	(mode_parse_upass): Likewise.  Instead, ignore new Upass during
+	burst if it is lexicographically greater than the current one.
+	(mode_parse_apas): Likewise for Apass, but only allow overwiting
+	an existing Apass in a BURST.
+
+2006-06-18  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (modebuf_flush_int): Fix typo about changing
 	oplevels.  Send correct channel TS for modes to other servers.
 	(mode_parse): Accept timestamps on modes from users on other

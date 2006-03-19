@@ -2390,8 +2390,7 @@ mode_parse_key(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_DEL) /* remove the old key */
       *state->chptr->mode.key = '\0';
-    else if (!state->chptr->mode.key[0]
-             || ircd_strcmp(t_str, state->chptr->mode.key) < 0)
+    else
       ircd_strncpy(state->chptr->mode.key, t_str, KEYLEN);
   }
 }
@@ -2485,6 +2484,13 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
       !ircd_strcmp(state->chptr->mode.upass, t_str))
     return; /* no upass change */
 
+  /* Skip if this is a burst, we have a Upass already and the new Upass is
+   * after the old one alphabetically */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      *(state->chptr->mode.upass) &&
+      ircd_strcmp(state->chptr->mode.upass, t_str) <= 0)
+    return;
+
   if (state->flags & MODE_PARSE_BOUNCE) {
     if (*state->chptr->mode.upass) /* reset old upass */
       modebuf_mode_string(state->mbuf, MODE_DEL | flag_p[0],
@@ -2497,8 +2503,7 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_DEL) /* remove the old upass */
       *state->chptr->mode.upass = '\0';
-    else if (state->chptr->mode.upass[0] == '\0'
-             || ircd_strcmp(t_str, state->chptr->mode.upass) < 0)
+    else
       ircd_strncpy(state->chptr->mode.upass, t_str, KEYLEN);
   }
 }
@@ -2596,6 +2601,13 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
       !ircd_strcmp(state->chptr->mode.apass, t_str))
     return; /* no apass change */
 
+  /* Skip if this is a burst, we have an Apass already and the new Apass is
+   * after the old one alphabetically */
+  if ((state->flags & MODE_PARSE_BURST) &&
+      *(state->chptr->mode.apass) &&
+      ircd_strcmp(state->chptr->mode.apass, t_str) <= 0)
+    return;
+
   if (state->flags & MODE_PARSE_BOUNCE) {
     if (*state->chptr->mode.apass) /* reset old apass */
       modebuf_mode_string(state->mbuf, MODE_DEL | flag_p[0],
@@ -2607,12 +2619,10 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
 
   if (state->flags & MODE_PARSE_SET) {
     if (state->dir == MODE_ADD) { /* set the new apass */
-      /* Only accept the new apass if there is no current apass
-       * (e.g. when a user sets it) or the new one is "less" than the
-       * old (for resolving conflicts during burst).
-       */
-      if (state->chptr->mode.apass[0] == '\0'
-          || ircd_strcmp(t_str, state->chptr->mode.apass) < 0)
+      /* Only accept the new apass if there is no current apass or
+       * this is a BURST. */
+      if (state->chptr->mode.apass[0] == '\0' ||
+          (state->flags & MODE_PARSE_BURST))
         ircd_strncpy(state->chptr->mode.apass, t_str, KEYLEN);
       /* Make it VERY clear to the user that this is a one-time password */
       if (MyUser(state->sptr)) {
