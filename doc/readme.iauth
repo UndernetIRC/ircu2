@@ -140,7 +140,7 @@ Example: 5 N host-1-10.example.org
 States: REGISTER(1)
 Next State: -
 Comments: Indicates that the server received hostname information for
-  a client.  Only one of 'H' and 'd' is sent.
+  a client.  Only one of 'N' and 'd' is sent.
 
 d - Hostname Timeout
 Syntax: <id> d
@@ -148,7 +148,7 @@ Example: 5 d
 States: REGISTER(1)
 Next State: -
 Comments: Indicates that the server did not receive hostname
-  information for a client in a timely fashion.  Only one of 'H' and
+  information for a client in a timely fashion.  Only one of 'N' and
   'd' is sent.
 
 P - Client Password

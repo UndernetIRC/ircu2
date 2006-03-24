@@ -50,6 +50,7 @@
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "list.h"
+#include "msg.h"	/* for MAXPARA */
 #include "numeric.h"
 #include "querycmds.h"
 #include "random.h"
@@ -202,7 +203,8 @@ static void iauth_sock_callback(struct Event *ev);
 static void iauth_stderr_callback(struct Event *ev);
 static int sendto_iauth(struct Client *cptr, const char *format, ...);
 static int preregister_user(struct Client *cptr);
-typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli, char *params);
+typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli,
+				 int parc, char **params);
 
 /** Set username for user associated with \a auth.
  * @param[in] auth Client authorization request to work on.
@@ -989,7 +991,7 @@ int auth_set_user(struct AuthRequest *auth, const char *username, const char *us
   ircd_strncpy(cli_user(cptr)->username, username, USERLEN);
   ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
   if (IAuthHas(iauth, IAUTH_UNDERNET))
-    sendto_iauth(cptr, "U %s %s", username, userinfo);
+    sendto_iauth(cptr, "U %s :%s", username, userinfo);
   else if (IAuthHas(iauth, IAUTH_ADDLINFO))
     sendto_iauth(cptr, "U %s", username);
   return check_auth_finished(auth, 0);
@@ -1030,7 +1032,7 @@ int auth_set_password(struct AuthRequest *auth, const char *password)
 {
   assert(auth != NULL);
   if (IAuthHas(iauth, IAUTH_ADDLINFO))
-    sendto_iauth(auth->client, "P %s", password);
+    sendto_iauth(auth->client, "P :%s", password);
   return 0;
 }
 
@@ -1350,26 +1352,30 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...)
 /** Send text to interested operators (SNO_AUTH server notice).
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Text to send.
  * @return Zero.
  */
-static int iauth_cmd_snotice(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_snotice(struct IAuth *iauth, struct Client *cli,
+			     int parc, char **params)
 {
-  sendto_opmask_butone(NULL, SNO_AUTH, "%s", params);
+  sendto_opmask_butone(NULL, SNO_AUTH, "%s", params[0]);
   return 0;
 }
 
 /** Set the debug level for the session.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params String starting with an integer.
  * @return Zero.
  */
-static int iauth_cmd_debuglevel(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_debuglevel(struct IAuth *iauth, struct Client *cli,
+				int parc, char **params)
 {
   int new_level;
 
-  new_level = atoi(params);
+  new_level = parc > 0 ? atoi(params[0]) : 0;
   if (i_debug(iauth) > 0 || new_level > 0) {
     /* The "ia_dbg" name is borrowed from (IRCnet) ircd. */
     sendto_opmask_butone(NULL, SNO_AUTH, "ia_dbg = %d", new_level);
@@ -1389,10 +1395,12 @@ static int iauth_cmd_debuglevel(struct IAuth *iauth, struct Client *cli, char *p
  *
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Zero or more policy options.
  * @return Zero.
  */
-static int iauth_cmd_policy(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_policy(struct IAuth *iauth, struct Client *cli,
+			    int parc, char **params)
 {
   enum IAuthFlag flag;
   char *p;
@@ -1401,44 +1409,85 @@ static int iauth_cmd_policy(struct IAuth *iauth, struct Client *cli, char *param
   for (flag = IAUTH_FIRST_OPTION; flag < IAUTH_LAST_FLAG; ++flag)
     IAuthClr(iauth, flag);
 
-  /* Parse new policy set. */
-  for (p = params; *p; p++) switch (*p) {
-  case 'A': IAuthSet(iauth, IAUTH_ADDLINFO); break;
-  case 'R': IAuthSet(iauth, IAUTH_REQUIRED); break;
-  case 'T': IAuthSet(iauth, IAUTH_TIMEOUT); break;
-  case 'W': IAuthSet(iauth, IAUTH_EXTRAWAIT); break;
-  case 'U': IAuthSet(iauth, IAUTH_UNDERNET); break;
-  }
+  if (parc > 0) /* only try to parse if we were given a policy string */
+    /* Parse new policy set. */
+    for (p = params[0]; *p; p++) switch (*p) {
+    case 'A': IAuthSet(iauth, IAUTH_ADDLINFO); break;
+    case 'R': IAuthSet(iauth, IAUTH_REQUIRED); break;
+    case 'T': IAuthSet(iauth, IAUTH_TIMEOUT); break;
+    case 'W': IAuthSet(iauth, IAUTH_EXTRAWAIT); break;
+    case 'U': IAuthSet(iauth, IAUTH_UNDERNET); break;
+    }
 
   /* Optionally notify operators. */
   if (i_debug(iauth) > 0)
-    sendto_opmask_butone(NULL, SNO_AUTH, "iauth options: %s", params);
+    sendto_opmask_butone(NULL, SNO_AUTH, "iauth options: %s", params[0]);
   return 0;
 }
 
 /** Set the iauth program version number.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Version number or name.
  * @return Zero.
  */
-static int iauth_cmd_version(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_version(struct IAuth *iauth, struct Client *cli,
+			     int parc, char **params)
 {
   MyFree(iauth->i_version);
-  while (IsSpace(*params))
-    ++params;
-  DupString(iauth->i_version, params);
-  sendto_opmask_butone(NULL, SNO_AUTH, "iauth version %s running.", iauth->i_version);
+  DupString(iauth->i_version, parc > 0 ? params[0] : "<NONE>");
+  sendto_opmask_butone(NULL, SNO_AUTH, "iauth version %s running.",
+		       iauth->i_version);
   return 0;
+}
+
+/** Paste a parameter list together into a single string.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Parameter list to paste together.
+ * @return Pasted parameter list.
+ */
+static char *paste_params(int parc, char **params)
+{
+  char *str, *tmp;
+  int len = 0, lengths[MAXPARA], i;
+
+  /* Compute the length... */
+  for (i = 0; i < parc; i++)
+    len += lengths[i] = strlen(params[i]);
+
+  /* Allocate memory, accounting for string lengths, spaces (parc - 1), a
+   * sentinel, and the trailing \0
+   */
+  str = MyMalloc(len + parc + 1);
+
+  /* Build the pasted string */
+  for (tmp = str, i = 0; i < parc; i++) {
+    if (i) /* add space separator... */
+      *(tmp++) = ' ';
+    if (i == parc - 1) /* add colon sentinel */
+      *(tmp++) = ':';
+
+    /* Copy string component... */
+    memcpy(tmp, params[i], lengths[i]);
+    tmp += lengths[i]; /* move to end of string */
+  }
+
+  /* terminate the string... */
+  *tmp = '\0';
+
+  return str; /* return the pasted string */
 }
 
 /** Clear cached iauth configuration information.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (0).
  * @param[in] params Parameter list (ignored).
  * @return Zero.
  */
-static int iauth_cmd_newconfig(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_newconfig(struct IAuth *iauth, struct Client *cli,
+			       int parc, char **params)
 {
   struct SLink *head;
   struct SLink *next;
@@ -1457,10 +1506,12 @@ static int iauth_cmd_newconfig(struct IAuth *iauth, struct Client *cli, char *pa
 /** Append iauth configuration information.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
  * @param[in] params Description of configuration element.
  * @return Zero.
  */
-static int iauth_cmd_config(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_config(struct IAuth *iauth, struct Client *cli,
+			    int parc, char **params)
 {
   struct SLink *node;
 
@@ -1470,19 +1521,20 @@ static int iauth_cmd_config(struct IAuth *iauth, struct Client *cli, char *param
   } else {
     node = iauth->i_config = make_link();
   }
-  while (IsSpace(*params))
-    ++params;
-  DupString(node->value.cp, params);
+  node->value.cp = paste_params(parc, params);
+  node->next = 0; /* must be explicitly cleared */
   return 0;
 }
 
 /** Clear cached iauth configuration information.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (0).
  * @param[in] params Parameter list (ignored).
  * @return Zero.
  */
-static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli,
+			      int parc, char **params)
 {
   struct SLink *head;
   struct SLink *next;
@@ -1501,10 +1553,12 @@ static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli, char *par
 /** Append iauth statistics information.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
  * @param[in] params Statistics element.
  * @return Zero.
  */
-static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli,
+			   int parc, char **params)
 {
   struct SLink *node;
   if (iauth->i_stats) {
@@ -1513,24 +1567,25 @@ static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli, char *params
   } else {
     node = iauth->i_stats = make_link();
   }
-  while (IsSpace(*params))
-    ++params;
-  DupString(node->value.cp, params);
+  node->value.cp = paste_params(parc, params);
+  node->next = 0; /* must be explicitly cleared */
   return 0;
 }
 
 /** Set client's username to a trusted string even if it breaks the rules.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Forced username.
  * @return One.
  */
-static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli,
+				     int parc, char **params)
 {
   assert(cli_auth(cli) != NULL);
   FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
-  if (!EmptyString(params)) {
-    ircd_strncpy(cli_username(cli), params, USERLEN);
+  if (!EmptyString(params[0])) {
+    ircd_strncpy(cli_username(cli), params[0], USERLEN);
     SetGotId(cli);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_USERNAME);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_FUSERNAME);
@@ -1541,15 +1596,17 @@ static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli, ch
 /** Set client's username to a trusted string.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Trusted username.
  * @return One.
  */
-static int iauth_cmd_username_good(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_username_good(struct IAuth *iauth, struct Client *cli,
+				   int parc, char **params)
 {
   assert(cli_auth(cli) != NULL);
   FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
-  if (!EmptyString(params)) {
-    ircd_strncpy(cli_username(cli), params, USERLEN);
+  if (!EmptyString(params[0])) {
+    ircd_strncpy(cli_username(cli), params[0], USERLEN);
     SetGotId(cli);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_USERNAME);
   }
@@ -1559,29 +1616,33 @@ static int iauth_cmd_username_good(struct IAuth *iauth, struct Client *cli, char
 /** Set client's username to an untrusted string.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Untrusted username.
  * @return One.
  */
-static int iauth_cmd_username_bad(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_username_bad(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
 {
   assert(cli_auth(cli) != NULL);
   FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
-  if (!EmptyString(params))
-    ircd_strncpy(cli_user(cli)->username, params, USERLEN);
+  if (!EmptyString(params[0]))
+    ircd_strncpy(cli_user(cli)->username, params[0], USERLEN);
   return 1;
 }
 
 /** Set client's hostname.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params New hostname for client.
  * @return Non-zero if \a cli authorization should be checked for completion.
  */
-static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
+			      int parc, char **params)
 {
   struct AuthRequest *auth;
 
-  if (EmptyString(params)) {
+  if (EmptyString(params[0])) {
     sendto_iauth(cli, "E Missing :Missing hostname parameter");
     return 0;
   }
@@ -1597,29 +1658,36 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli, char *par
       sendheader(cli, REPORT_FIN_DNS);
   }
   /* Set hostname from params. */
-  ircd_strncpy(cli_sockhost(cli), params, HOSTLEN);
+  ircd_strncpy(cli_sockhost(cli), params[0], HOSTLEN);
   return 1;
 }
 
 /** Set client's IP address.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params New IP address for client in dotted quad or
  *   standard IPv6 format.
  * @return Zero.
  */
-static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli,
+				int parc, char **params)
 {
   struct irc_in_addr addr;
   struct AuthRequest *auth;
+
+  if (EmptyString(params[0])) {
+    sendto_iauth(cli, "E Missing :Missing IP address parameter");
+    return 0;
+  }
 
   /* Get AuthRequest for client. */
   auth = cli_auth(cli);
   assert(auth != NULL);
 
   /* Parse the client's new IP address. */
-  if (!ircd_aton(&addr, params)) {
-    sendto_iauth(cli, "E Invalid :Unable to parse IP address [%s]", params);
+  if (!ircd_aton(&addr, params[0])) {
+    sendto_iauth(cli, "E Invalid :Unable to parse IP address [%s]", params[0]);
     return 0;
   }
 
@@ -1680,10 +1748,12 @@ static struct ConfItem *auth_find_class_conf(const char *class_name)
 /** Accept a client in IAuth.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
  * @param[in] params Optional class name for client.
  * @return One.
  */
-static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
+				 int parc, char **params)
 {
   static time_t warn_time;
 
@@ -1692,16 +1762,16 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli, char *
   FlagClr(&cli_auth(cli)->flags, AR_IAUTH_PENDING);
 
   /* If a connection class was specified (and usable), assign the client to it. */
-  if (!EmptyString(params)) {
+  if (!EmptyString(params[0])) {
     struct ConfItem *aconf;
 
-    aconf = auth_find_class_conf(params);
+    aconf = auth_find_class_conf(params[0]);
     if (aconf)
       attach_conf(cli, aconf);
     else
       sendto_opmask_butone_ratelimited(NULL, SNO_AUTH, &warn_time,
                                        "iauth tried to use undefined class [%s]",
-                                       params);
+                                       params[0]);
   }
 
   return 1;
@@ -1710,67 +1780,172 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli, char *
 /** Accept a client in IAuth and assign them to an account.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
  * @param[in] params Account name and optional class name for client.
  * @return Non-zero if \a cli authorization should be checked for completion.
  */
-static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
 {
-  char *end;
   size_t len;
 
   /* Sanity check. */
-  if (EmptyString(params)) {
+  if (EmptyString(params[0])) {
     sendto_iauth(cli, "E Missing :Missing account parameter");
     return 0;
   }
   /* Check length of account name. */
-  len = strcspn(params, ": ");
+  len = strcspn(params[0], ": ");
   if (len > ACCOUNTLEN) {
     sendto_iauth(cli, "E Invalid :Account parameter too long");
     return 0;
   }
   /* If account has a creation timestamp, use it. */
   assert(cli_user(cli) != NULL);
-  if (params[len] == ':')
-    cli_user(cli)->acc_create = strtoul(params + len + 1, &end, 10);
-  else
-    end = params + len;
+  if (params[0][len] == ':')
+    cli_user(cli)->acc_create = strtoul(params[0] + len + 1, NULL, 10);
+
   /* Copy account name to User structure. */
-  ircd_strncpy(cli_user(cli)->account, params, ACCOUNTLEN);
+  ircd_strncpy(cli_user(cli)->account, params[0], ACCOUNTLEN);
   SetAccount(cli);
-  /* Skip whitespace before next argument. */
-  while (IsSpace(*end))
-    ++end;
+
   /* Fall through to the normal "done" handler. */
-  return iauth_cmd_done_client(iauth, cli, end);
+  return iauth_cmd_done_client(iauth, cli, parc - 1, params + 1);
 }
 
 /** Reject a client's connection.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Optional kill message.
  * @return Zero.
  */
-static int iauth_cmd_kill(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_kill(struct IAuth *iauth, struct Client *cli,
+			  int parc, char **params)
 {
   if (cli_auth(cli))
     FlagClr(&cli_auth(cli)->flags, AR_IAUTH_PENDING);
-  if (EmptyString(params))
-    params = "Access denied";
-  exit_client(cli, cli, &me, params);
+  if (EmptyString(params[0]))
+    params[0] = "Access denied";
+  exit_client(cli, cli, &me, params[0]);
   return 0;
 }
 
 /** Send a challenge string to the client.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (1).
  * @param[in] params Challenge message for client.
  * @return Zero.
  */
-static int iauth_cmd_challenge(struct IAuth *iauth, struct Client *cli, char *params)
+static int iauth_cmd_challenge(struct IAuth *iauth, struct Client *cli,
+			       int parc, char **params)
 {
-  sendrawto_one(cli, "NOTICE AUTH :*** %s", params);
+  if (!EmptyString(params[0]))
+    sendrawto_one(cli, "NOTICE AUTH :*** %s", params[0]);
   return 0;
+}
+
+/** Parse a \a message from \a iauth.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] message Message to be parsed.
+ */
+static void iauth_parse(struct IAuth *iauth, char *message)
+{
+  char *params[MAXPARA + 1]; /* leave space for NULL */
+  int parc = 0;
+  iauth_cmd_handler handler;
+  struct AuthRequest *auth;
+  struct Client *cli;
+  int has_cli;
+  int id;
+
+  /* Find command handler... */
+  switch (*(message++)) {
+  case '>': handler = iauth_cmd_snotice; has_cli = 0; break;
+  case 'G': handler = iauth_cmd_debuglevel; has_cli = 0; break;
+  case 'O': handler = iauth_cmd_policy; has_cli = 0; break;
+  case 'V': handler = iauth_cmd_version; has_cli = 0; break;
+  case 'a': handler = iauth_cmd_newconfig; has_cli = 0; break;
+  case 'A': handler = iauth_cmd_config; has_cli = 0; break;
+  case 's': handler = iauth_cmd_newstats; has_cli = 0; break;
+  case 'S': handler = iauth_cmd_stats; has_cli = 0; break;
+  case 'o': handler = iauth_cmd_username_forced; has_cli = 1; break;
+  case 'U': handler = iauth_cmd_username_good; has_cli = 1; break;
+  case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;
+  case 'N': handler = iauth_cmd_hostname; has_cli = 1; break;
+  case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
+  case 'C': handler = iauth_cmd_challenge; has_cli = 1; break;
+  case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
+  case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;
+  case 'k': /* The 'k' command indicates the user should be booted
+	     * off without telling opers.  There is no way to
+	     * signal that to exit_client(), so we fall through to
+	     * the case that we do implement.
+	     */
+  case 'K': handler = iauth_cmd_kill; has_cli = 2; break;
+  case 'r': /* we handle termination directly */ return;
+  default:  sendto_iauth(NULL, "E Garbage :[%s]", message); return;
+  }
+
+  while (parc < MAXPARA) {
+    while (IsSpace(*message)) /* skip leading whitespace */
+      message++;
+
+    if (!*message) /* hit the end of the string, break out */
+      break;
+
+    if (*message == ':') { /* found sentinel... */
+      params[parc++] = message + 1;
+      break; /* it's the last parameter anyway */
+    }
+
+    params[parc++] = message; /* save the parameter */
+    while (*message && !IsSpace(*message))
+      message++; /* find the end of the parameter */
+
+    if (*message) /* terminate the parameter */
+      *(message++) = '\0';
+  }
+
+  params[parc] = NULL; /* terminate the parameter list */
+
+  /* Check to see if the command specifies a client... */
+  if (!has_cli) {
+    /* Handler does not need a client. */
+    handler(iauth, NULL, parc, params);
+  } else {
+    /* Try to find the client associated with the request. */
+    id = strtol(params[0], NULL, 10);
+    if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id]))
+      /* Client no longer exists (or never existed). */
+      sendto_iauth(NULL, "E Gone :[%s %s %s]", params[0], params[1],
+		   params[2]);
+    else if ((!(auth = cli_auth(cli)) ||
+	      !FlagHas(&auth->flags, AR_IAUTH_PENDING)) &&
+	     has_cli == 1)
+      /* Client is done with IAuth checks. */
+      sendto_iauth(cli, "E Done :[%s %s %s]", params[0], params[1], params[2]);
+    else {
+      struct irc_sockaddr addr;
+      int res;
+
+      /* Parse IP address and port number from parameters */
+      res = ipmask_parse(params[1], &addr.addr, NULL);
+      addr.port = strtol(params[2], NULL, 10);
+
+      /* Check IP address and port number against expected. */
+      if (0 == res ||
+	  irc_in_addr_cmp(&addr.addr, &cli_ip(cli)) ||
+	  (auth && addr.port != auth->port))
+	/* Report mismatch to iauth. */
+	sendto_iauth(cli, "E Mismatch :[%s] != [%s]", params[1],
+		     ircd_ntoa(&cli_ip(cli)));
+      else if (handler(iauth, cli, parc - 3, params + 3))
+	/* Handler indicated a possible state change. */
+	check_auth_finished(auth, 0);
+    }
+  }
 }
 
 /** Read input from \a iauth.
@@ -1780,138 +1955,39 @@ static int iauth_cmd_challenge(struct IAuth *iauth, struct Client *cli, char *pa
 static void iauth_read(struct IAuth *iauth)
 {
   static char readbuf[SERVER_TCP_WINDOW];
-  iauth_cmd_handler handler;
-  struct AuthRequest *auth;
-  struct Client *cli;
-  char *old_buffer;
-  char *params;
-  char *endp;
-  char *src;
-  unsigned int length;
-  int has_cli;
-  int res;
-  int id;
+  unsigned int length, count;
+  char *sol;
+  char *eol;
 
-  switch (os_recv_nonb(s_fd(i_socket(iauth)), readbuf, sizeof(readbuf), &length))
-  {
-  case IO_SUCCESS: break;
-  case IO_FAILURE: iauth_disconnect(iauth);
-  case IO_BLOCKED: return;
+  /* Copy partial data to readbuf, append new data. */
+  length = iauth->i_count;
+  memcpy(readbuf, iauth->i_buffer, length);
+  if (IO_SUCCESS != os_recv_nonb(s_fd(i_socket(iauth)),
+				 readbuf + length,
+				 sizeof(readbuf) - length - 1,
+				 &count))
+    return;
+  readbuf[length += count] = '\0';
+
+  /* Parse each complete line. */
+  for (sol = readbuf; (eol = strchr(sol, '\n')) != NULL; sol = eol + 1) {
+    *eol = '\0';
+    if (*(eol - 1) == '\r') /* take out carriage returns, too... */
+      *(eol - 1) = '\0';
+
+    /* If spammy debug, send the message to opers. */
+    if (i_debug(iauth) > 1)
+      sendto_opmask_butone(NULL, SNO_AUTH, "Parsing: \"%s\"", sol);
+
+    /* Parse the line... */
+    iauth_parse(iauth, sol);
   }
-  iauth->i_recvB += length;
-  old_buffer = iauth->i_buffer;
-  endp = old_buffer + iauth->i_count;
-  for (src = readbuf; length > 0; --length) {
-    *endp = *src++;
-    if (IsEol(*endp)) {
-      /* Terminate line, reset buffer and update statistics. */
-      *endp = '\0';
-      endp = old_buffer;
-      ++iauth->i_recvM;
 
-      /* If spammy debug, send the message to opers. */
-      if (i_debug(iauth) > 1)
-        sendto_opmask_butone(NULL, SNO_AUTH, "%s", endp);
-
-      /* Find command handler.  A lot of the handlers would be simpler
-       * with an argument splitter like in parse.c, but some commands
-       * (notably '>') do not use delimiters that way.
-       */
-      switch (*(endp = old_buffer)) {
-      case '>': handler = iauth_cmd_snotice; has_cli = 0; break;
-      case 'G': handler = iauth_cmd_debuglevel; has_cli = 0; break;
-      case 'O': handler = iauth_cmd_policy; has_cli = 0; break;
-      case 'V': handler = iauth_cmd_version; has_cli = 0; break;
-      case 'a': handler = iauth_cmd_newconfig; has_cli = 0; break;
-      case 'A': handler = iauth_cmd_config; has_cli = 0; break;
-      case 's': handler = iauth_cmd_newstats; has_cli = 0; break;
-      case 'S': handler = iauth_cmd_stats; has_cli = 0; break;
-      case 'o': handler = iauth_cmd_username_forced; has_cli = 1; break;
-      case 'U': handler = iauth_cmd_username_good; has_cli = 1; break;
-      case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;
-      case 'N': handler = iauth_cmd_hostname; has_cli = 1; break;
-      case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
-      case 'C': handler = iauth_cmd_challenge; has_cli = 1; break;
-      case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
-      case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;
-      case 'k': /* The 'k' command indicates the user should be booted
-                 * off without telling opers.  There is no way to
-                 * signal that to exit_client(), so we fall through to
-                 * the case that we do implement.
-                 */
-      case 'K': handler = iauth_cmd_kill; has_cli = 2; break;
-      case 'r': /* we handle termination directly */ continue;
-      default:  sendto_iauth(NULL, "E Garbage :[%s]", endp); continue;
-      }
-
-      /* Skip whitespace at start of arguments. */
-      while (IsSpace(*++endp)) ;
-
-      /* At this point, has_cli has one of three values:
-       * 0 - no client is identified
-       * 1 - a client is identified and must still be registering
-       * 2 - a client is identified but may be fully registered
-       */
-
-      /* Figure out how to handle the command. */
-      if (!has_cli) {
-        /* Handler does not need a client. */
-        handler(iauth, NULL, endp);
-      } else {
-        /* Try to find the client associated with the request. */
-        id = strtol(endp, &params, 10);
-        while (IsSpace(*params))
-          ++params;
-        if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id])) {
-          /* Client no longer exists (or never existed). */
-          sendto_iauth(NULL, "E Gone :[%s]", params);
-        } else if ((!(auth = cli_auth(cli))
-                    || !FlagHas(&auth->flags, AR_IAUTH_PENDING))
-                   && (has_cli == 1)) {
-          /* Client is done with IAuth checks. */
-          sendto_iauth(cli, "E Done :[%s]", params);
-        } else {
-          struct irc_sockaddr addr;
-          char *orig_ip;
-
-          /* Skip whitespace before IP address. */
-          while (IsSpace(*params))
-            ++params;
-          /* Record start of IP address, then null terminate it. */
-          orig_ip = params;
-          while (!IsSpace(*params) && *params != '\0')
-            ++params;
-          if (IsSpace(*params))
-            *params++ = '\0';
-          /* Parse out client IP address and port number. */
-          res = ipmask_parse(orig_ip, &addr.addr, NULL);
-          addr.port = strtol(params, &params, 10);
-          /* Skip whitespace and optional sentinel after port number. */
-          while (IsSpace(*params))
-            ++params;
-          if (*params == ':')
-            ++params;
-          /* Check IP address and port number against expected. */
-          if (0 == res
-              || irc_in_addr_cmp(&addr.addr, &cli_ip(cli))
-              || (auth && addr.port != auth->port)) {
-            /* Report mismatch to iauth. */
-            sendto_iauth(cli, "E Mismatch :[%s] != [%s]",
-                         orig_ip, ircd_ntoa(&cli_ip(cli)));
-          } else if (handler(iauth, cli, params)) {
-            /* Handler indicated a possible state change. */
-            check_auth_finished(auth, 0);
-          }
-        }
-      }
-
-      /* Reset buffer pointer to read next line. */
-      endp = old_buffer;
-    }
-    else if (endp < old_buffer + BUFSIZE)
-      ++endp;
-  }
-  iauth->i_count = endp - old_buffer;
+  /* Put unused data back into connection's buffer. */
+  iauth->i_count = strlen(sol);
+  if (iauth->i_count > BUFSIZE)
+    iauth->i_count = BUFSIZE;
+  memcpy(iauth->i_buffer, sol, iauth->i_count);
 }
 
 /** Handle socket activity for an %IAuth connection.
@@ -1957,7 +2033,7 @@ static void iauth_sock_callback(struct Event *ev)
 static void iauth_read_stderr(struct IAuth *iauth)
 {
   static char readbuf[SERVER_TCP_WINDOW];
-  unsigned int length;
+  unsigned int length, count;
   char *sol;
   char *eol;
 
@@ -1967,13 +2043,15 @@ static void iauth_read_stderr(struct IAuth *iauth)
   if (IO_SUCCESS != os_recv_nonb(s_fd(i_stderr(iauth)),
                                  readbuf + length,
                                  sizeof(readbuf) - length - 1,
-                                 &length))
+                                 &count))
     return;
-  readbuf[length] = '\0';
+  readbuf[length += count] = '\0';
 
   /* Send each complete line to SNO_AUTH. */
   for (sol = readbuf; (eol = strchr(sol, '\n')) != NULL; sol = eol + 1) {
     *eol = '\0';
+    if (*(eol - 1) == '\r') /* take out carriage returns, too... */
+      *(eol - 1) = '\0';
     Debug((DEBUG_ERROR, "IAuth error: %s", sol));
     log_write(LS_IAUTH, L_ERROR, 0, "IAuth error: %s", sol);
     sendto_opmask_butone(NULL, SNO_AUTH, "%s", sol);

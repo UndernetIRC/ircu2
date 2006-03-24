@@ -1,3 +1,16 @@
+2006-03-23  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_auth.c: rewrite iauth_read(), spliting out the parsing
+	into iauth_parse(); change parsing to separate parameters and deal
+	with the ':' sentinel; send sentinel in multi-word parameters; fix
+	iauth_cmd_config() and iauth_cmd_stats() to clear the 'next'
+	pointer in the SLink structure; fix buffering in
+	iauth_read_stderr(); remove carriage returns from STDERR contents
+	as well
+
+	* doc/readme.iauth: fix a minor typo in comments for 'd' and 'N'
+	server messages
+
 2006-06-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/convert-conf.c (finish_features): Do not emit a feature
