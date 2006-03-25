@@ -436,6 +436,7 @@ struct SLink* make_link(void)
   }
   assert(0 != lp);
   links.inuse++;
+  memset(lp, 0, sizeof(*lp));
   return lp;
 }
 

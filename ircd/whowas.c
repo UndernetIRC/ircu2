@@ -209,18 +209,6 @@ whowas_free(struct Whowas *ww)
   wwList.ww_alloc--;
 }
 
-/** Initialize a whowas record.
- * @param[in,out] ww Whowas record to initialize.
- * @return The pointer \a ww.
- */
-static struct Whowas *
-whowas_init(struct Whowas *ww)
-{
-  if (ww)
-    memset(ww, 0, sizeof(*ww));
-  return ww;
-}
-
 /** Return a fresh Whowas record.
  * If the total number of records is smaller than determined by
  * FEAT_NICKNAMEHISTORYLENGTH, allocate a new one.  Otherwise,
@@ -230,11 +218,20 @@ whowas_init(struct Whowas *ww)
 static struct Whowas *
 whowas_alloc(void)
 {
-  if (wwList.ww_alloc >= feature_int(FEAT_NICKNAMEHISTORYLENGTH))
-    return whowas_init(whowas_clean(wwList.ww_tail));
+  struct Whowas *ww;
 
-  wwList.ww_alloc++; /* going to allocate a new one... */
-  return whowas_init((struct Whowas *) MyMalloc(sizeof(struct Whowas)));
+  if (wwList.ww_alloc >= feature_int(FEAT_NICKNAMEHISTORYLENGTH)) {
+    /* reclaim the oldest whowas entry */
+    ww = whowas_clean(wwList.ww_tail);
+  } else {
+    /* allocate a new one */
+    wwList.ww_alloc++;
+    ww = (struct Whowas *) MyMalloc(sizeof(struct Whowas));
+  }
+
+  assert(ww != NULL);
+  memset(ww, 0, sizeof(*ww));
+  return ww;
 }
 
 /** If necessary, trim the whowas list.

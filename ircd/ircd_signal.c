@@ -134,6 +134,7 @@ static struct ChildRecord *alloc_crec(void)
     crec = MyCalloc(1, sizeof(*crec));
   }
 
+  memset(crec, 0, sizeof(*crec));
   crec->next = NULL;
   return crec;
 }
