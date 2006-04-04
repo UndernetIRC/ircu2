@@ -142,7 +142,7 @@ BEGIN {
 }
 
 sub send_server_notice () {
-    reply "> Hello the server!";
+    reply "> :Hello the server!";
 }
 
 my %handlers = (
@@ -174,7 +174,7 @@ my %handlers = (
                                   H_reply => 'D' },
                 '127.0.2.1'  => { C_reply => \&ip_change },
                 # 127.0.3.x: iC/sP functionality.
-                '127.0.3.0'  => { C_reply => 'C Please enter the password.',
+                '127.0.3.0'  => { C_reply => 'C :Please enter the password.',
                                   P_reply => \&passwd_check },
 );
 

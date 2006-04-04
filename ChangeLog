@@ -1,3 +1,9 @@
+2006-03-31  Michael Poole <mdpoole@troilus.org>
+
+	* tools/iauth-test (send_server_notice): Use a colon prefix before
+	the message.
+	(%handlers): Likewise.
+
 2006-03-24  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_signal.c (alloc_crec): Zero-fill returned
