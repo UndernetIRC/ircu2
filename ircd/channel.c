@@ -2685,8 +2685,12 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
   old_ban->banstr[old_ban->nu_len] = new_ban->banstr[new_ban->nu_len] = '@';
   if (res)
     return res;
-  /* Compare the addresses. */
-  return !ipmask_check(&new_ban->address, &old_ban->address, old_ban->addrbits);
+  /* If the old ban's mask mismatches, cannot be a superset. */
+  if (!ipmask_check(&new_ban->address, &old_ban->address, old_ban->addrbits))
+    return 1;
+  /* Otherwise it depends on whether the old ban's text is a superset
+   * of the new. */
+  return mmatch(old_ban->banstr, new_ban->banstr);
 }
 
 /** Add a ban from a ban list and mark bans that should be removed

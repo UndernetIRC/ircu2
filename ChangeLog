@@ -1,3 +1,9 @@
+2006-04-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (bmatch): If ipmask_check() indicates old_ban is
+	a CIDR-wise superset of new_ban, check whether new_ban is a
+	text-wise superset of old_ban.
+
 2006-03-31  Michael Poole <mdpoole@troilus.org>
 
 	* tools/iauth-test (send_server_notice): Use a colon prefix before
