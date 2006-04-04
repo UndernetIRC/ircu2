@@ -1,3 +1,7 @@
+2006-04-04  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h: Update for u2.10.12.06 release.
+
 2006-04-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (bmatch): If ipmask_check() indicates old_ban is
