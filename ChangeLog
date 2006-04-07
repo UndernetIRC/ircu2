@@ -1,5 +1,10 @@
 2006-04-06  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (start_auth): Add client to list after getting
+	endpoint names (which can apparently fail for some reason).
+
+2006-04-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_snprintf.c: Use SIZEOF_LONG_LONG (which is 0 for
 	unknown types) instead of the never-defined HAVE_LONG_LONG.
 

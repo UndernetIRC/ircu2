@@ -906,7 +906,6 @@ void start_auth(struct Client* client)
   if (cli_fd(client) > HighestFd)
     HighestFd = cli_fd(client);
   LocalClientArray[cli_fd(client)] = client;
-  add_client_to_list(client);
   socket_events(&(cli_socket(client)), SOCK_ACTION_SET | SOCK_EVENT_READABLE);
 
   /* Allocate the AuthRequest. */
@@ -947,6 +946,9 @@ void start_auth(struct Client* client)
     /* Try to start iauth lookup. */
     start_iauth_query(auth);
   }
+
+  /* Add client to GlobalClientList. */
+  add_client_to_list(client);
 
   /* Check which auth events remain pending. */
   check_auth_finished(auth, 0);
