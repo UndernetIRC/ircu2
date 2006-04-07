@@ -41,7 +41,7 @@ with "realname" = "1.2.3.4" when doing "/who 1.2/16 h" :)
 For both the masks and the options (and thus for all flags) case is NOT
 significative (so "/who <any> o" is exactly the same as "/who <ANY> O".
 
-The "options2" part can be as follows:
+The "options" part can be as follows:
 
  [<flags>][%[<fields>[,<querytype>]]]
 
