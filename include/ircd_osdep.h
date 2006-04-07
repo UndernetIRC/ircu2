@@ -32,7 +32,7 @@ extern int os_get_rusage(struct Client* cptr, int uptime, EnumFn enumerator);
 extern int os_get_sockerr(int fd);
 extern int os_get_sockname(int fd, struct irc_sockaddr* sin_out);
 extern int os_get_peername(int fd, struct irc_sockaddr* sin_out);
-extern int os_socket(const struct irc_sockaddr* local, int type, const char* port_name);
+extern int os_socket(const struct irc_sockaddr* local, int type, const char* port_name, int family);
 extern int os_accept(int fd, struct irc_sockaddr* peer);
 extern IOResult os_sendto_nonb(int fd, const char* buf, unsigned int length,
                                unsigned int* length_out, unsigned int flags,
@@ -53,6 +53,7 @@ extern int os_set_nonblocking(int fd);
 extern int os_set_reuseaddr(int fd);
 extern int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize);
 extern int os_set_tos(int fd,int tos);
+extern int os_socketpair(int sv[2]);
 
 #endif /* INCLUDED_ircd_osdep_h */
 

@@ -437,6 +437,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_x, 0, 1, 0),
   F_B(HIS_STATS_y, 0, 1, 0),
   F_B(HIS_STATS_z, 0, 1, 0),
+  F_B(HIS_STATS_IAUTH, 0, 1, 0),
   F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
   F_B(HIS_WHOIS_LOCALCHAN, 0, 1, 0),

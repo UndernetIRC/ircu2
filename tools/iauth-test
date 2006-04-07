@@ -1,0 +1,237 @@
+#! /usr/bin/perl
+# iauth-test: test script for IRC authorization (iauth) protocol
+# Copyright 2006 Michael Poole
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+require 5.008; # We assume deferred signal handlers, new in 5.008.
+use strict;
+use warnings;
+use vars qw(%pending);
+
+use Config;     # for $Config{sig_name} and $Config{sig_num}
+use FileHandle; # for autoflush method on file handles
+
+# This script is intended to help test an implementation of the iauth
+# protocol by exercising every command in the protocol and by
+# exercising most distinct combinations of commands.  It assumes IPv4
+# support in the server and POSIX real-time signal support in the OS
+# (recognized and supported by Perl).
+
+# Certain behavior is triggered by receipt of real-time signals.
+# SIGRTMIN + 0 -> Send server notice ('>').
+# SIGRTMIN + 1 -> Toggle debug level ('G').
+# SIGRTMIN + 2 -> Set policy options ('O').
+# SIGRTMIN + 3 -> Simulate config change ('a', 'A').
+# SIGRTMIN + 4 -> Simulate statistics change ('s', 'S').
+
+# In the following discussion, sX means message X from the server, and
+# iX means message X from iauth.  The hard part is the ordering of
+# various events during client registration.  This includes sC, sP,
+# sU, su, sn, sN/d, sH and sT; and o/U/u, iN, iI, iC and iD/R/k/K.
+
+# sC is first, sD/sT/iD/R/k/K is last.  If sH is sent, no more sU, su,
+# sn, sN, sd or sH messages may be sent.  If iI is sent, iN should
+# also be sent (either before or after iI).  Multiple sP, sU and iC
+# messages may be sent. Otherwse, the ordering of unrelated messages
+# from either source are not constrained, but only one message from
+# each set of alternatives may be sent.
+
+# This means the sets of commands with interesting orderings are:
+# sU, su, io/U/u
+# sN/d, iN, iI
+# sH, sT or iD/R/k/K
+
+# 127.x.y.z IP addresses are used to exercise these orderings; see the
+# %handlers variable below.
+
+sub dolog ($) {
+    print LOG "$_[0]\n";
+}
+
+sub reply ($;$$) {
+    my ($msg, $client, $extra) = @_;
+
+    if (not defined $msg) {
+        # Accept this for easier handling of client reply messages.
+        return;
+    } elsif (ref $msg eq '') {
+        $msg =~ s/^(.) ?/$1 $client->{id} $client->{ip} $client->{port} / if $client;
+        dolog "< $msg";
+        print "$msg\n";
+    } elsif (ref $msg eq 'ARRAY') {
+        grep { reply($_, $client, $extra); } @$msg;
+    } elsif (ref $msg eq 'CODE') {
+        &$msg($client, $extra);
+    } else {
+        die "Unknown reply message type.";
+    }
+}
+
+# Find the names of signals with values SIGRTMIN+1, +2, etc.
+BEGIN {
+    my @sig_name;
+    my %sig_num;
+
+    sub populate_signals () {
+        die "No sigs?"
+            unless $Config{sig_name} and $Config{sig_num};
+        my @names = split ' ', $Config{sig_name};
+        @sig_num{@names} = split ' ', $Config{sig_num};
+        foreach (@names) { $sig_name[$sig_num{$_}] ||= $_; }
+    }
+
+    sub assign_signal_handlers() {
+        my $sigrtmin = $sig_num{RTMIN};
+        die "No realtime signals?"
+            unless $sigrtmin;
+        $SIG{$sig_name[$sigrtmin+0]} = \&send_server_notice;
+        $SIG{$sig_name[$sigrtmin+1]} = \&toggle_debug_level;
+        $SIG{$sig_name[$sigrtmin+2]} = \&set_policy_options;
+        $SIG{$sig_name[$sigrtmin+3]} = \&sim_config_changed;
+        $SIG{$sig_name[$sigrtmin+4]} = \&sim_stats_change;
+    }
+}
+
+BEGIN {
+    my $debug_level = 0;
+    my $max_debug_level = 2;
+
+    sub toggle_debug_level () {
+        if (++$debug_level > $max_debug_level) {
+            $debug_level = 0;
+        }
+        reply "G $debug_level";
+    }
+}
+
+BEGIN {
+    my %rotation = (
+        '' => 'AU',
+        'AU' => 'AURTW',
+        'AURTW' => '',
+    );
+    my $policy = '';
+
+    sub set_policy_options () {
+        $policy = $rotation{$policy};
+        reply "O $policy";
+    }
+}
+
+BEGIN {
+    my $generation = 0;
+
+    sub sim_config_changed () {
+        reply "a";
+        reply "A config $generation";
+        $generation++;
+    }
+}
+
+BEGIN {
+    my $generation = 0;
+
+    sub sim_stats_change () {
+        reply "s";
+        reply "S stats $generation";
+        $generation++;
+    }
+}
+
+sub send_server_notice () {
+    reply "> :Hello the server!";
+}
+
+my %handlers = (
+                # Default handliner: immediately report done.
+                'default'    => { C_reply => 'D' },
+                # 127.0.0.x: various timings for iD/iR/ik/iK.
+                '127.0.0.1'  => { C_reply => 'D' },
+                '127.0.0.2'  => { C_reply => 'R account-1' },
+                '127.0.0.3'  => { C_reply => 'k' },
+                '127.0.0.4'  => { C_reply => 'K' },
+                '127.0.0.15' => { },
+                '127.0.0.16' => { H_reply => 'D' },
+                '127.0.0.17' => { H_reply => 'R account-2' },
+                '127.0.0.18' => { H_reply => 'k' },
+                '127.0.0.19' => { H_reply => 'K' },
+                '127.0.0.32' => { T_reply => 'D' },
+                '127.0.0.33' => { T_reply => 'R account-3' },
+                '127.0.0.34' => { T_reply => 'k' },
+                '127.0.0.35' => { T_reply => 'K' },
+                # 127.0.1.x: io/iU/iu functionality.
+                '127.0.1.0'  => { C_reply => 'o forced',
+                                  H_reply => 'D' },
+                '127.0.1.1'  => { C_reply => 'U trusted',
+                                  H_reply => 'D' },
+                '127.0.1.2'  => { C_reply => 'u untrusted',
+                                  H_reply => 'D' },
+                # 127.0.2.x: iI/iN functionality.
+                '127.0.2.0'  => { C_reply => 'N iauth.assigned.host',
+                                  H_reply => 'D' },
+                '127.0.2.1'  => { C_reply => \&ip_change },
+                # 127.0.3.x: iC/sP functionality.
+                '127.0.3.0'  => { C_reply => 'C :Please enter the password.',
+                                  P_reply => \&passwd_check },
+);
+
+sub handle_new_client ($$$$) {
+    my ($id, $ip, $port, $extra) = @_;
+    my $handler = $handlers{$ip} || $handlers{default};
+    my $client = { id => $id, ip => $ip, port => $port, handler => $handler };
+
+    # If we have any deferred reply handlers, we must save the client.
+    $pending{$id} = $client if grep /^[^C]_reply$/, keys %$handler;
+    reply $client->{handler}->{C_reply}, $client, $extra;
+}
+
+sub ip_change ($$) {
+    my ($client, $extra) = @_;
+    reply 'I 127.255.255.254', $client;
+    $client->{ip} = '127.255.255.254';
+    reply 'N other.assigned.host', $client;
+    reply 'D', $client;
+}
+
+sub passwd_check ($$) {
+    my ($client, $extra) = @_;
+    if ($extra eq 'secret') {
+        reply 'D', $client;
+    } else {
+        reply 'C :Bad password', $client;
+    }
+}
+
+open LOG, ">> iauth.log";
+populate_signals();
+assign_signal_handlers();
+autoflush LOG 1;
+autoflush STDOUT 1;
+autoflush STDERR 1;
+dolog "IAuth starting " . scalar(localtime(time));
+
+while (<>) {
+    my ($id, $client);
+
+    # Chomp newline and log incoming message.
+    s/\r?\n?\r?$//;
+    dolog "> $_";
+
+    # If there's an ID at the start of the line, parse it out.
+    if (s/^(\d+) //) { $id = $1; $client = $pending{$id}; }
+
+    # Figure out how to handle the command.
+    if (/^C (\S+) (\S+) (.+)$/) {
+        handle_new_client($id, $1, $2, $3);
+    } elsif (/^([DT])/ and $client) {
+        reply $client->{handler}->{"${1}_reply"}, $client;
+        delete $pending{$id};
+    } elsif (/^([d])/ and $client) {
+        reply $client->{handler}->{"${1}_reply"}, $client;
+    } elsif (/^([HNPUu]) (.+)/ and $client) {
+        reply $client->{handler}->{"${1}_reply"}, $client, $2;
+    }
+}

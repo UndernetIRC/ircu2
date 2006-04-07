@@ -99,7 +99,7 @@ static void simple_line(const char *block, const char **names, const char *extra
     fputs("};\n", stdout);
 }
 
-#define dupstring(TARGET, SOURCE) do { free(TARGET); if (SOURCE) { size_t len = strlen(SOURCE); (TARGET) = malloc(len+1); memcpy((TARGET), (SOURCE), len); } else (TARGET) = 0; } while(0)
+#define dupstring(TARGET, SOURCE) do { free(TARGET); if (SOURCE) { size_t len = strlen(SOURCE) + 1; (TARGET) = malloc(len); memcpy((TARGET), (SOURCE), len); } else (TARGET) = 0; } while(0)
 
 /*** MANAGING LISTS OF STRINGS ***/
 
@@ -349,6 +349,14 @@ static void finish_features(void)
                 break;
         if (removed_features[ii]) {
             fprintf(stdout, "# Above feature no longer exists.\n");
+            continue;
+        }
+
+        /* If it had no value before, drop it now since the lexer does
+         * not accept empty strings and the grammar does not accept
+         * empty stringlists.*/
+        if (!feat->values) {
+            fprintf(stdout, "# Above feature had no value.\n");
             continue;
         }
 

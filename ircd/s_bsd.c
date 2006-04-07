@@ -228,6 +228,8 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
 {
   const struct irc_sockaddr *local;
   IOResult result;
+  int family = 0;
+
   assert(0 != aconf);
   assert(0 != cptr);
   /*
@@ -236,11 +238,12 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
    */
   if (irc_in_addr_valid(&aconf->origin.addr))
     local = &aconf->origin;
-  else if (irc_in_addr_is_ipv4(&aconf->address.addr))
+  else if (irc_in_addr_is_ipv4(&aconf->address.addr)) {
     local = &VirtualHost_v4;
-  else
+    family = AF_INET;
+  } else
     local = &VirtualHost_v6;
-  cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr));
+  cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr), family);
   if (cli_fd(cptr) < 0)
     return 0;
 

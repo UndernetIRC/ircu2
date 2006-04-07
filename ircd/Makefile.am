@@ -57,7 +57,6 @@ ircd_SOURCES = \
 	hash.c \
 	ircd.c \
 	ircd_alloc.c \
-	ircd_auth.c \
 	ircd_crypt.c \
 	ircd_crypt_plain.c \
 	ircd_crypt_smd5.c \

@@ -478,7 +478,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  current_mode = (current_mode & ~CHFL_DELAYED) | CHFL_VOICE;
 		  oplevel = -1;	/* subsequent digits are an absolute op-level value. */
                 }
-		else if (isdigit(*ptr)) {
+		else if (IsDigit(*ptr)) {
 		  int level_increment = 0;
 		  if (oplevel == -1) { /* op-level is absolute value? */
 		    if (current_mode_needs_reset) {
@@ -490,7 +490,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
 		  do {
 		    level_increment = 10 * level_increment + *ptr++ - '0';
-		  } while(isdigit(*ptr));
+		  } while (IsDigit(*ptr));
 		  oplevel += level_increment;
 		}
 		else /* I don't recognize that flag */

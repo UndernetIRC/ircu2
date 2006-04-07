@@ -62,30 +62,30 @@ convert_conf_OBJECTS = convert-conf.$(OBJEXT)
 convert_conf_LDADD = $(LDADD)
 am__ircd_SOURCES_DIST = IPcheck.c channel.c class.c client.c crule.c \
 	dbuf.c destruct_event.c fileio.c gline.c hash.c ircd.c \
-	ircd_alloc.c ircd_auth.c ircd_crypt.c ircd_crypt_plain.c \
-	ircd_crypt_smd5.c ircd_crypt_native.c ircd_events.c \
-	ircd_features.c ircd_lexer.l ircd_log.c ircd_md5.c \
-	ircd_parser.y ircd_relay.c ircd_reply.c ircd_res.c \
-	ircd_reslib.c ircd_signal.c ircd_snprintf.c ircd_string.c \
-	jupe.c list.c listener.c m_account.c m_admin.c m_asll.c \
-	m_away.c m_burst.c m_cap.c m_clearmode.c m_close.c m_connect.c \
-	m_cprivmsg.c m_create.c m_defaults.c m_destruct.c m_desynch.c \
-	m_die.c m_endburst.c m_error.c m_get.c m_gline.c m_help.c \
-	m_info.c m_invite.c m_ison.c m_join.c m_jupe.c m_kick.c \
-	m_kill.c m_links.c m_list.c m_lusers.c m_map.c m_mode.c \
-	m_motd.c m_names.c m_nick.c m_notice.c m_oper.c m_opmode.c \
-	m_part.c m_pass.c m_ping.c m_pong.c m_privmsg.c m_privs.c \
-	m_proto.c m_pseudo.c m_quit.c m_rehash.c m_reset.c m_restart.c \
-	m_rping.c m_rpong.c m_server.c m_set.c m_settime.c m_silence.c \
-	m_squit.c m_stats.c m_time.c m_topic.c m_trace.c m_uping.c \
-	m_user.c m_userhost.c m_userip.c m_version.c m_wallchops.c \
-	m_wallops.c m_wallusers.c m_wallvoices.c m_who.c m_whois.c \
-	m_whowas.c match.c memdebug.c motd.c msgq.c numnicks.c \
-	opercmds.c os_generic.c packet.c parse.c querycmds.c random.c \
-	s_auth.c s_bsd.c s_conf.c s_debug.c s_err.c s_misc.c \
-	s_numeric.c s_serv.c s_stats.c s_user.c send.c uping.c \
-	userload.c whowas.c engine_poll.c engine_select.c \
-	engine_devpoll.c engine_epoll.c engine_kqueue.c
+	ircd_alloc.c ircd_crypt.c ircd_crypt_plain.c ircd_crypt_smd5.c \
+	ircd_crypt_native.c ircd_events.c ircd_features.c ircd_lexer.l \
+	ircd_log.c ircd_md5.c ircd_parser.y ircd_relay.c ircd_reply.c \
+	ircd_res.c ircd_reslib.c ircd_signal.c ircd_snprintf.c \
+	ircd_string.c jupe.c list.c listener.c m_account.c m_admin.c \
+	m_asll.c m_away.c m_burst.c m_cap.c m_clearmode.c m_close.c \
+	m_connect.c m_cprivmsg.c m_create.c m_defaults.c m_destruct.c \
+	m_desynch.c m_die.c m_endburst.c m_error.c m_get.c m_gline.c \
+	m_help.c m_info.c m_invite.c m_ison.c m_join.c m_jupe.c \
+	m_kick.c m_kill.c m_links.c m_list.c m_lusers.c m_map.c \
+	m_mode.c m_motd.c m_names.c m_nick.c m_notice.c m_oper.c \
+	m_opmode.c m_part.c m_pass.c m_ping.c m_pong.c m_privmsg.c \
+	m_privs.c m_proto.c m_pseudo.c m_quit.c m_rehash.c m_reset.c \
+	m_restart.c m_rping.c m_rpong.c m_server.c m_set.c m_settime.c \
+	m_silence.c m_squit.c m_stats.c m_time.c m_topic.c m_trace.c \
+	m_uping.c m_user.c m_userhost.c m_userip.c m_version.c \
+	m_wallchops.c m_wallops.c m_wallusers.c m_wallvoices.c m_who.c \
+	m_whois.c m_whowas.c match.c memdebug.c motd.c msgq.c \
+	numnicks.c opercmds.c os_generic.c packet.c parse.c \
+	querycmds.c random.c s_auth.c s_bsd.c s_conf.c s_debug.c \
+	s_err.c s_misc.c s_numeric.c s_serv.c s_stats.c s_user.c \
+	send.c uping.c userload.c whowas.c engine_poll.c \
+	engine_select.c engine_devpoll.c engine_epoll.c \
+	engine_kqueue.c
 @ENGINE_POLL_TRUE@am__objects_1 = engine_poll.$(OBJEXT)
 @ENGINE_POLL_FALSE@am__objects_2 = engine_select.$(OBJEXT)
 @ENGINE_DEVPOLL_TRUE@am__objects_3 = engine_devpoll.$(OBJEXT)
@@ -95,50 +95,49 @@ am_ircd_OBJECTS = IPcheck.$(OBJEXT) channel.$(OBJEXT) class.$(OBJEXT) \
 	client.$(OBJEXT) crule.$(OBJEXT) dbuf.$(OBJEXT) \
 	destruct_event.$(OBJEXT) fileio.$(OBJEXT) gline.$(OBJEXT) \
 	hash.$(OBJEXT) ircd.$(OBJEXT) ircd_alloc.$(OBJEXT) \
-	ircd_auth.$(OBJEXT) ircd_crypt.$(OBJEXT) \
-	ircd_crypt_plain.$(OBJEXT) ircd_crypt_smd5.$(OBJEXT) \
-	ircd_crypt_native.$(OBJEXT) ircd_events.$(OBJEXT) \
-	ircd_features.$(OBJEXT) ircd_lexer.$(OBJEXT) \
-	ircd_log.$(OBJEXT) ircd_md5.$(OBJEXT) ircd_parser.$(OBJEXT) \
-	ircd_relay.$(OBJEXT) ircd_reply.$(OBJEXT) ircd_res.$(OBJEXT) \
-	ircd_reslib.$(OBJEXT) ircd_signal.$(OBJEXT) \
-	ircd_snprintf.$(OBJEXT) ircd_string.$(OBJEXT) jupe.$(OBJEXT) \
-	list.$(OBJEXT) listener.$(OBJEXT) m_account.$(OBJEXT) \
-	m_admin.$(OBJEXT) m_asll.$(OBJEXT) m_away.$(OBJEXT) \
-	m_burst.$(OBJEXT) m_cap.$(OBJEXT) m_clearmode.$(OBJEXT) \
-	m_close.$(OBJEXT) m_connect.$(OBJEXT) m_cprivmsg.$(OBJEXT) \
-	m_create.$(OBJEXT) m_defaults.$(OBJEXT) m_destruct.$(OBJEXT) \
-	m_desynch.$(OBJEXT) m_die.$(OBJEXT) m_endburst.$(OBJEXT) \
-	m_error.$(OBJEXT) m_get.$(OBJEXT) m_gline.$(OBJEXT) \
-	m_help.$(OBJEXT) m_info.$(OBJEXT) m_invite.$(OBJEXT) \
-	m_ison.$(OBJEXT) m_join.$(OBJEXT) m_jupe.$(OBJEXT) \
-	m_kick.$(OBJEXT) m_kill.$(OBJEXT) m_links.$(OBJEXT) \
-	m_list.$(OBJEXT) m_lusers.$(OBJEXT) m_map.$(OBJEXT) \
-	m_mode.$(OBJEXT) m_motd.$(OBJEXT) m_names.$(OBJEXT) \
-	m_nick.$(OBJEXT) m_notice.$(OBJEXT) m_oper.$(OBJEXT) \
-	m_opmode.$(OBJEXT) m_part.$(OBJEXT) m_pass.$(OBJEXT) \
-	m_ping.$(OBJEXT) m_pong.$(OBJEXT) m_privmsg.$(OBJEXT) \
-	m_privs.$(OBJEXT) m_proto.$(OBJEXT) m_pseudo.$(OBJEXT) \
-	m_quit.$(OBJEXT) m_rehash.$(OBJEXT) m_reset.$(OBJEXT) \
-	m_restart.$(OBJEXT) m_rping.$(OBJEXT) m_rpong.$(OBJEXT) \
-	m_server.$(OBJEXT) m_set.$(OBJEXT) m_settime.$(OBJEXT) \
-	m_silence.$(OBJEXT) m_squit.$(OBJEXT) m_stats.$(OBJEXT) \
-	m_time.$(OBJEXT) m_topic.$(OBJEXT) m_trace.$(OBJEXT) \
-	m_uping.$(OBJEXT) m_user.$(OBJEXT) m_userhost.$(OBJEXT) \
-	m_userip.$(OBJEXT) m_version.$(OBJEXT) m_wallchops.$(OBJEXT) \
-	m_wallops.$(OBJEXT) m_wallusers.$(OBJEXT) \
-	m_wallvoices.$(OBJEXT) m_who.$(OBJEXT) m_whois.$(OBJEXT) \
-	m_whowas.$(OBJEXT) match.$(OBJEXT) memdebug.$(OBJEXT) \
-	motd.$(OBJEXT) msgq.$(OBJEXT) numnicks.$(OBJEXT) \
-	opercmds.$(OBJEXT) os_generic.$(OBJEXT) packet.$(OBJEXT) \
-	parse.$(OBJEXT) querycmds.$(OBJEXT) random.$(OBJEXT) \
-	s_auth.$(OBJEXT) s_bsd.$(OBJEXT) s_conf.$(OBJEXT) \
-	s_debug.$(OBJEXT) s_err.$(OBJEXT) s_misc.$(OBJEXT) \
-	s_numeric.$(OBJEXT) s_serv.$(OBJEXT) s_stats.$(OBJEXT) \
-	s_user.$(OBJEXT) send.$(OBJEXT) uping.$(OBJEXT) \
-	userload.$(OBJEXT) whowas.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5)
+	ircd_crypt.$(OBJEXT) ircd_crypt_plain.$(OBJEXT) \
+	ircd_crypt_smd5.$(OBJEXT) ircd_crypt_native.$(OBJEXT) \
+	ircd_events.$(OBJEXT) ircd_features.$(OBJEXT) \
+	ircd_lexer.$(OBJEXT) ircd_log.$(OBJEXT) ircd_md5.$(OBJEXT) \
+	ircd_parser.$(OBJEXT) ircd_relay.$(OBJEXT) \
+	ircd_reply.$(OBJEXT) ircd_res.$(OBJEXT) ircd_reslib.$(OBJEXT) \
+	ircd_signal.$(OBJEXT) ircd_snprintf.$(OBJEXT) \
+	ircd_string.$(OBJEXT) jupe.$(OBJEXT) list.$(OBJEXT) \
+	listener.$(OBJEXT) m_account.$(OBJEXT) m_admin.$(OBJEXT) \
+	m_asll.$(OBJEXT) m_away.$(OBJEXT) m_burst.$(OBJEXT) \
+	m_cap.$(OBJEXT) m_clearmode.$(OBJEXT) m_close.$(OBJEXT) \
+	m_connect.$(OBJEXT) m_cprivmsg.$(OBJEXT) m_create.$(OBJEXT) \
+	m_defaults.$(OBJEXT) m_destruct.$(OBJEXT) m_desynch.$(OBJEXT) \
+	m_die.$(OBJEXT) m_endburst.$(OBJEXT) m_error.$(OBJEXT) \
+	m_get.$(OBJEXT) m_gline.$(OBJEXT) m_help.$(OBJEXT) \
+	m_info.$(OBJEXT) m_invite.$(OBJEXT) m_ison.$(OBJEXT) \
+	m_join.$(OBJEXT) m_jupe.$(OBJEXT) m_kick.$(OBJEXT) \
+	m_kill.$(OBJEXT) m_links.$(OBJEXT) m_list.$(OBJEXT) \
+	m_lusers.$(OBJEXT) m_map.$(OBJEXT) m_mode.$(OBJEXT) \
+	m_motd.$(OBJEXT) m_names.$(OBJEXT) m_nick.$(OBJEXT) \
+	m_notice.$(OBJEXT) m_oper.$(OBJEXT) m_opmode.$(OBJEXT) \
+	m_part.$(OBJEXT) m_pass.$(OBJEXT) m_ping.$(OBJEXT) \
+	m_pong.$(OBJEXT) m_privmsg.$(OBJEXT) m_privs.$(OBJEXT) \
+	m_proto.$(OBJEXT) m_pseudo.$(OBJEXT) m_quit.$(OBJEXT) \
+	m_rehash.$(OBJEXT) m_reset.$(OBJEXT) m_restart.$(OBJEXT) \
+	m_rping.$(OBJEXT) m_rpong.$(OBJEXT) m_server.$(OBJEXT) \
+	m_set.$(OBJEXT) m_settime.$(OBJEXT) m_silence.$(OBJEXT) \
+	m_squit.$(OBJEXT) m_stats.$(OBJEXT) m_time.$(OBJEXT) \
+	m_topic.$(OBJEXT) m_trace.$(OBJEXT) m_uping.$(OBJEXT) \
+	m_user.$(OBJEXT) m_userhost.$(OBJEXT) m_userip.$(OBJEXT) \
+	m_version.$(OBJEXT) m_wallchops.$(OBJEXT) m_wallops.$(OBJEXT) \
+	m_wallusers.$(OBJEXT) m_wallvoices.$(OBJEXT) m_who.$(OBJEXT) \
+	m_whois.$(OBJEXT) m_whowas.$(OBJEXT) match.$(OBJEXT) \
+	memdebug.$(OBJEXT) motd.$(OBJEXT) msgq.$(OBJEXT) \
+	numnicks.$(OBJEXT) opercmds.$(OBJEXT) os_generic.$(OBJEXT) \
+	packet.$(OBJEXT) parse.$(OBJEXT) querycmds.$(OBJEXT) \
+	random.$(OBJEXT) s_auth.$(OBJEXT) s_bsd.$(OBJEXT) \
+	s_conf.$(OBJEXT) s_debug.$(OBJEXT) s_err.$(OBJEXT) \
+	s_misc.$(OBJEXT) s_numeric.$(OBJEXT) s_serv.$(OBJEXT) \
+	s_stats.$(OBJEXT) s_user.$(OBJEXT) send.$(OBJEXT) \
+	uping.$(OBJEXT) userload.$(OBJEXT) whowas.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5)
 nodist_ircd_OBJECTS = version.$(OBJEXT)
 ircd_OBJECTS = $(am_ircd_OBJECTS) $(nodist_ircd_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -288,7 +287,7 @@ umkpasswd_SOURCES = \
 nodist_ircd_SOURCES = version.c
 ircd_SOURCES = IPcheck.c channel.c class.c client.c crule.c dbuf.c \
 	destruct_event.c fileio.c gline.c hash.c ircd.c ircd_alloc.c \
-	ircd_auth.c ircd_crypt.c ircd_crypt_plain.c ircd_crypt_smd5.c \
+	ircd_crypt.c ircd_crypt_plain.c ircd_crypt_smd5.c \
 	ircd_crypt_native.c ircd_events.c ircd_features.c ircd_lexer.l \
 	ircd_log.c ircd_md5.c ircd_parser.y ircd_relay.c ircd_reply.c \
 	ircd_res.c ircd_reslib.c ircd_signal.c ircd_snprintf.c \
@@ -415,7 +414,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd_alloc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd_auth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd_crypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd_crypt_native.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ircd_crypt_plain.Po@am__quote@

@@ -223,7 +223,6 @@ struct Client* make_client(struct Client *from, int status)
     cli_connect(cptr) = con; /* set the connection and other fields */
     cli_since(cptr) = cli_lasttime(cptr) = cli_firsttime(cptr) = CurrentTime;
     cli_lastnick(cptr) = TStime();
-    cli_unreg(cptr) = CLIREG_INIT;
   } else
     cli_connect(cptr) = cli_connect(from); /* use 'from's connection */
 
@@ -441,6 +440,7 @@ struct SLink* make_link(void)
   }
   assert(0 != lp);
   links.inuse++;
+  memset(lp, 0, sizeof(*lp));
   return lp;
 }
 

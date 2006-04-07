@@ -33,7 +33,6 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
-#include "ircd_auth.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
@@ -47,6 +46,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "res.h"
+#include "s_auth.h"
 #include "s_bsd.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -265,8 +265,6 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     assert(!IsServer(bcptr));
     /* bcptr->user->server->serv->client_list[IndexYXX(bcptr)] = NULL; */
     RemoveYXXClient(cli_user(bcptr)->server, cli_yxx(bcptr));
-    if (IsIAuthed(bcptr) || cli_iauth(bcptr))
-      iauth_exit_client(bcptr);
   }
 
   /* Remove bcptr from the client list */
@@ -377,6 +375,9 @@ int exit_client(struct Client *cptr,
     update_load();
 
     on_for = CurrentTime - cli_firsttime(victim);
+
+    if (IsUser(victim) || IsUserPort(victim))
+      auth_send_exit(victim);
 
     if (IsUser(victim))
       log_write(LS_USER, L_TRACE, 0, "%Tu %i %s@%s %s %s %s%s %s :%s",

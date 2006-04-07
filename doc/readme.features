@@ -654,6 +654,13 @@ HIS_STATS_z
 
 As per UnderNet CFV-165, this removes /STATS z from users.
 
+HIS_STATS_IAUTH
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this disables /STATS IAUTH and
+/STATS IAUTHCONF from users.
+
 HIS_WHOIS_SERVERNAME
  * Type: boolean
  * Default: TRUE

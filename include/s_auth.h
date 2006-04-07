@@ -30,49 +30,24 @@
 #endif
 
 struct Client;
-
-/** Stores state of the DNS and RFC 1413 ident lookups for a client. */
-struct AuthRequest {
-  struct AuthRequest* next;      /**< linked list node ptr */
-  struct AuthRequest* prev;      /**< linked list node ptr */
-  struct Client*      client;    /**< pointer to client struct for request */
-  unsigned int        flags;     /**< current state of request */
-  int                 fd;        /**< file descriptor for auth queries */
-  struct Socket       socket;    /**< socket descriptor for auth queries */
-  struct Timer        timeout;   /**< timeout timer for auth queries */
-};
-
-/*
- * flag values for AuthRequest
- * NAMESPACE: AM_xxx - Authentication Module
- */
-#define AM_AUTH_CONNECTING   0x01 /**< waiting for ident connect to complete */
-#define AM_AUTH_PENDING      0x02 /**< ident connected, waiting for response */
-#define AM_DNS_PENDING       0x04 /**< dns request sent, waiting for response */
-
-#define AM_SOCKET            0x40 /**< socket structure not destroyed */
-#define AM_TIMEOUT           0x80 /**< timer structure not destroyed */
-
-/** If any of AM_FREE_MASK bits are set, operations are still in progress. */
-#define AM_FREE_MASK         (AM_SOCKET | AM_TIMEOUT)
-
-#define SetDNSPending(x)     ((x)->flags |= AM_DNS_PENDING)
-#define ClearDNSPending(x)   ((x)->flags &= ~AM_DNS_PENDING)
-#define IsDNSPending(x)      ((x)->flags &  AM_DNS_PENDING)
-
-#define SetAuthConnect(x)    ((x)->flags |= AM_AUTH_CONNECTING)
-#define ClearAuthConnect(x)  ((x)->flags &= ~AM_AUTH_CONNECTING)
-#define IsAuthConnect(x)     ((x)->flags &  AM_AUTH_CONNECTING)
-
-#define SetAuthPending(x)    ((x)->flags |= AM_AUTH_PENDING)
-#define ClearAuthPending(x)  ((x)->flags &= AM_AUTH_PENDING)
-#define IsAuthPending(x)     ((x)->flags &  AM_AUTH_PENDING)
-
-#define ClearAuth(x)         ((x)->flags &= ~(AM_AUTH_PENDING | AM_AUTH_CONNECTING))
-#define IsDoingAuth(x)       ((x)->flags &  (AM_AUTH_PENDING | AM_AUTH_CONNECTING))
+struct AuthRequest;
+struct StatDesc;
 
 extern void start_auth(struct Client *);
+extern int auth_set_pong(struct AuthRequest *auth, unsigned int cookie);
+extern int auth_set_user(struct AuthRequest *auth, const char *username, const char *userinfo);
+extern int auth_set_nick(struct AuthRequest *auth, const char *nickname);
+extern int auth_set_password(struct AuthRequest *auth, const char *password);
+extern int auth_cap_start(struct AuthRequest *auth);
+extern int auth_cap_done(struct AuthRequest *auth);
 extern void destroy_auth_request(struct AuthRequest *req, int send_reports);
+
+extern int auth_spawn(int argc, char *argv[]);
+extern void auth_send_exit(struct Client *cptr);
+extern void auth_mark_closing(void);
+extern void auth_close_unused(void);
+extern void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *param);
+extern void report_iauth_stats(struct Client *cptr, const struct StatDesc *sd, char *param);
 
 #endif /* INCLUDED_s_auth_h */
 

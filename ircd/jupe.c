@@ -64,6 +64,7 @@ make_jupe(char *server, char *reason, time_t expire, time_t lastmod,
   ajupe = (struct Jupe*) MyMalloc(sizeof(struct Jupe)); /* alloc memory */
   assert(0 != ajupe);
 
+  memset(ajupe, 0, sizeof(*ajupe));
   DupString(ajupe->ju_server, server); /* copy vital information */
   DupString(ajupe->ju_reason, reason);
   ajupe->ju_expire = expire;

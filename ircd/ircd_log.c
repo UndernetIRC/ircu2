@@ -126,7 +126,7 @@ static struct {
   M(NONE),       M(OLDSNO),     M(SERVKILL),   M(OPERKILL),   M(HACK2),
   M(HACK3),      M(UNAUTH),     M(TCPCOMMON),  M(TOOMANY),    M(HACK4),
   M(GLINE),      M(NETWORK),    M(IPMISMATCH), M(THROTTLE),   M(OLDREALOP),
-  M(CONNEXIT),   M(DEBUG),
+  M(CONNEXIT),   M(DEBUG),      M(AUTH),
 #undef M
   { 0, 0 }
 };

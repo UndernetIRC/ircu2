@@ -64,6 +64,7 @@ apply_silence(struct Client *sptr, char *mask)
 {
   struct Ban *sile;
   int flags;
+  char orig_mask[NICKLEN+USERLEN+HOSTLEN+3];
 
   assert(mask && mask[0]);
 
@@ -83,9 +84,22 @@ apply_silence(struct Client *sptr, char *mask)
     mask++;
   }
 
-  /* Make the silence, set flags, and apply it. */
+  /* Make the silence and set additional flags. */
+  ircd_strncpy(orig_mask, mask, sizeof(orig_mask) - 1);
   sile = make_ban(pretty_mask(mask));
   sile->flags |= flags;
+
+  /* If they're a local user trying to ban too broad a mask, forbid it. */
+  if (MyUser(sptr)
+      && (sile->flags & BAN_IPMASK)
+      && sile->addrbits > 0
+      && sile->addrbits < (irc_in_addr_is_ipv4(&sile->address) ? 112 : 32)) {
+    send_reply(sptr, ERR_MASKTOOWIDE, orig_mask);
+    free_ban(sile);
+    return NULL;
+  }
+
+  /* Apply it to the silence list. */
   return apply_ban(&cli_user(sptr)->silence, sile, 1) ? NULL : sile;
 }
 

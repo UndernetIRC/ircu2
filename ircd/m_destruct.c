@@ -190,7 +190,8 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   sendcmdto_serv_butone(&me, CMD_DESTRUCT, 0, "%s %Tu", parv[1], chanTS);
 
   /* Remove the empty channel. */
-  remove_destruct_event(chptr);
+  if (chptr->destruct_event)
+    remove_destruct_event(chptr);
   destruct_channel(chptr);
 
   return 0;
