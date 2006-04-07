@@ -36,7 +36,7 @@
 #include <time.h>
 
 /* Inhibit complaints when we use GCC extensions */
-#if defined(__GNUC__) && defined(HAVE_LONG_LONG)
+#if defined(__GNUC__) && SIZEOF_LONG_LONG
 # define EXTENSION __extension__
 #else
 /** Fallback (empty) definition of EXTENSION. */
@@ -44,7 +44,7 @@
 #endif
 
 /* Find the largest type */
-#ifdef HAVE_LONG_LONG
+#if SIZEOF_LONG_LONG
 EXTENSION typedef long long _large_t;
 EXTENSION typedef unsigned long long _ularge_t;
 # define SIZEOF__LARGE_T SIZEOF_LONG_LONG
