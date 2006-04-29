@@ -96,7 +96,7 @@ struct AuthRequest {
   struct irc_sockaddr local;      /**< local endpoint address */
   struct irc_in_addr  original;   /**< original client IP address */
   struct Socket       socket;     /**< socket descriptor for auth queries */
-  struct Timer        timeout;    /**< timeout timer for auth queries */
+  struct Timer        timeout;    /**< timeout timer for ident and dns queries */
   struct AuthRequestFlags flags;  /**< current state of request */
   unsigned int        cookie;     /**< cookie the user must PONG */
   unsigned short      port;       /**< client's remote port number */
@@ -405,7 +405,7 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
 
       /* If iauth wants it, give client more time. */
       if (IAuthHas(iauth, IAUTH_EXTRAWAIT))
-        timer_chg(&auth->timeout, TT_RELATIVE, feature_int(FEAT_AUTH_TIMEOUT));
+        cli_firsttime(auth->client) = CurrentTime;
     }
 
     Debug((DEBUG_INFO, "Auth %p [%d] still has flag %d", auth,
@@ -414,7 +414,6 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
   }
   else
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
-
 
   destroy_auth_request(auth, send_reports);
   if (!IsUserPort(auth->client))
@@ -716,7 +715,8 @@ void destroy_auth_request(struct AuthRequest* auth, int send_reports)
     s_fd(&auth->socket) = -1;
   }
 
-  timer_del(&auth->timeout);
+  if (t_active(&auth->timeout))
+    timer_del(&auth->timeout);
   cli_auth(auth->client) = NULL;
 }
 
@@ -746,9 +746,6 @@ static void auth_timeout_callback(struct Event* ev)
     }
     /* Try to register the client. */
     check_auth_finished(auth, 1);
-    /* If that failed, kick them off. */
-    if (!IsUser(auth->client))
-      exit_client(auth->client, auth->client, &me, "Authorization timed out");
   }
 }
 

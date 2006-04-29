@@ -1,5 +1,13 @@
 2006-04-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (AuthRequest): Clarify comment on 'timeout' field.
+	(check_auth_finished): Fix timeout update.
+	(destroy_auth_request): Only delete timer if it is active.
+	(auth_timeout_callback): Do not disconnect client on timeout, so
+	that the user can finish sending NICK/USER or doing iauth.
+
+2006-04-28  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Admin): Fix documentation of which line can be
 	listed twice.
 
