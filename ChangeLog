@@ -1,5 +1,10 @@
 2006-05-06  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_pong.c (mr_pong): No need to do any work if the client
+	PONGs with no pending PING.
+
+2006-05-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (AuthRequestFlag): Add AR_PASSWORD_CHECKED.
 	(check_auth_finished): Move password check out of iauth-only part
 	and use AR_PASSWORD_CHECKED to make sure we only check it once.
