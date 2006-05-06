@@ -162,8 +162,6 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
-  if (!HasFlag(cptr, FLAG_PINGSENT))
-    return 0;
   ClrFlag(cptr, FLAG_PINGSENT);
   cli_lasttime(cptr) = CurrentTime;
   return (parc > 1) ? auth_set_pong(cli_auth(sptr), strtoul(parv[parc - 1], NULL, 10)) : 0;
