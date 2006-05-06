@@ -83,6 +83,7 @@ enum AuthRequestFlag {
     AR_IAUTH_HURRY,     /**< we told iauth to hurry up */
     AR_IAUTH_USERNAME,  /**< iauth sent a username (preferred or forced) */
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
+    AR_PASSWORD_CHECKED, /**< client password already checked */
     AR_NUM_FLAGS
 };
 
@@ -378,30 +379,37 @@ static int check_auth_finished(struct AuthRequest *auth, int send_reports)
       && preregister_user(auth->client))
     return CPTR_KILLED;
 
+  /* If we have not done so, check client password.  Do this as soon
+   * as possible so that iauth's challenge/response (which uses PASS
+   * for responses) is not confused with the client's password.
+   */
+  if (!FlagHas(&auth->flags, AR_PASSWORD_CHECKED))
+  {
+    struct ConfItem *aconf;
+
+    aconf = cli_confs(auth->client)->value.aconf;
+    if (!EmptyString(aconf->passwd)
+        && strcmp(cli_passwd(auth->client), aconf->passwd))
+    {
+      ServerStats->is_ref++;
+      send_reply(auth->client, ERR_PASSWDMISMATCH);
+      return exit_client(auth->client, auth->client, &me, "Bad Password");
+    }
+    FlagSet(&auth->flags, AR_PASSWORD_CHECKED);
+  }
+
   /* Check if iauth is done. */
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING))
   {
     /* Switch auth request to hurry-up state. */
     if (!FlagHas(&auth->flags, AR_IAUTH_HURRY))
     {
-      struct ConfItem* aconf;
-
       /* Set "hurry" flag in auth request. */
       FlagSet(&auth->flags, AR_IAUTH_HURRY);
 
-      /* Check password now (to avoid challenge/response conflicts). */
-      aconf = cli_confs(auth->client)->value.aconf;
-      if (!EmptyString(aconf->passwd)
-          && strcmp(cli_passwd(auth->client), aconf->passwd))
-      {
-        ServerStats->is_ref++;
-        send_reply(auth->client, ERR_PASSWDMISMATCH);
-        return exit_client(auth->client, auth->client, &me, "Bad Password");
-      }
-
       /* If iauth wants it, send notification. */
       if (IAuthHas(iauth, IAUTH_UNDERNET))
-        sendto_iauth(auth->client, "H %s", ConfClass(aconf));
+        sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
 
       /* If iauth wants it, give client more time. */
       if (IAuthHas(iauth, IAUTH_EXTRAWAIT))
