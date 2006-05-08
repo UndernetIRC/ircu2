@@ -269,7 +269,7 @@ void free_client(struct Client* cptr)
 	 cptr, cli_connect(cptr)));
 
   if (cli_auth(cptr))
-    destroy_auth_request(cli_auth(cptr), 0);
+    destroy_auth_request(cli_auth(cptr));
 
   /* Make sure we didn't magically get re-added to the list */
   assert(cli_next(cptr) == 0);

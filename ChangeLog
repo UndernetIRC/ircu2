@@ -1,3 +1,23 @@
+2006-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_auth.h (destroy_auth_request): Remove second argument.
+
+	* ircd/list.c (free_client): Update to match.
+
+	* ircd/s_auth.c (check_auth_finished): Remove second argument and
+	update call to destroy_auth_request().
+	(send_auth_query): Update call to destroy_auth_request().
+	(destroy_auth_request): Remove second argument.
+	(auth_timeout_callback): Send timeout failure messages here
+	instead.  Update call to check_auth_finished().
+	(auth_dns_callback): Update call to check_auth_finished().
+	(start_auth): Likewise.
+	(auth_set_pong): Likewise.
+	(auth_set_user): Likewise.
+	(auth_set_nick): Likewise.
+	(auth_cap_done): Likewise.
+	(iauth_parse): Likewise.
+
 2006-05-06  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (AuthRequestFlag): Add AR_PASSWORD_CHECKED.
