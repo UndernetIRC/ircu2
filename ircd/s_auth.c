@@ -117,6 +117,7 @@ static struct {
   MSG("NOTICE AUTH :*** Checking Ident\r\n"),
   MSG("NOTICE AUTH :*** Got ident response\r\n"),
   MSG("NOTICE AUTH :*** No ident response\r\n"),
+  MSG("NOTICE AUTH :*** \r\n"),
   MSG("NOTICE AUTH :*** Your forward and reverse DNS do not match, "
     "ignoring hostname.\r\n"),
   MSG("NOTICE AUTH :*** Invalid hostname\r\n")
@@ -131,6 +132,7 @@ typedef enum {
   REPORT_DO_ID,
   REPORT_FIN_ID,
   REPORT_FAIL_ID,
+  REPORT_FAIL_IAUTH,
   REPORT_IP_MISMATCH,
   REPORT_INVAL_DNS
 } ReportType;
@@ -718,6 +720,49 @@ void destroy_auth_request(struct AuthRequest* auth)
   cli_auth(auth->client) = NULL;
 }
 
+/** Handle a 'ping' (authorization) timeout for a client.
+ * @param[in] cptr The client whose session authorization has timed out.
+ * @return Zero if client is kept, CPTR_KILLED if client rejected.
+ */
+int auth_ping_timeout(struct Client *cptr)
+{
+  struct AuthRequest *auth;
+  enum AuthRequestFlag flag;
+
+  auth = cli_auth(cptr);
+
+  /* Check for a user-controlled timeout. */
+  for (flag = 0; flag < AR_LAST_SCAN; ++flag) {
+    if (FlagHas(&auth->flags, flag)) {
+      /* Display message if they have sent a NICK and a USER but no
+       * nospoof PONG.
+       */
+      if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username) {
+        send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
+                   ":Your client may not be compatible with this server.");
+        send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
+                   ":Compatible clients are available at %s",
+                   feature_str(FEAT_URL_CLIENTS));
+      }
+      return exit_client_msg(cptr, cptr, &me, "Registration Timeout");
+    }
+  }
+
+  /* Check for iauth timeout. */
+  if (FlagHas(&auth->flags, AR_IAUTH_PENDING)) {
+    sendto_iauth(cptr, "T");
+    if (IAuthHas(iauth, IAUTH_REQUIRED)) {
+      sendheader(cptr, REPORT_FAIL_IAUTH);
+      return exit_client_msg(cptr, cptr, &me, "Authorization Timeout");
+    }
+    FlagClr(&auth->flags, AR_IAUTH_PENDING);
+    return check_auth_finished(auth);
+  }
+
+  assert(0 && "Unexpectedly reached end of auth_ping_timeout()");
+  return 0;
+}
+
 /** Timeout a given auth request.
  * @param[in] ev A timer event whose associated data is the expired
  *   struct AuthRequest.
@@ -735,14 +780,6 @@ static void auth_timeout_callback(struct Event* ev)
     /* Report the timeout in the log. */
     log_write(LS_RESOLVER, L_INFO, 0, "Registration timeout %s",
               get_client_name(auth->client, HIDE_IP));
-
-    /* Tell iauth if we will let the client on. */
-    if (FlagHas(&auth->flags, AR_IAUTH_PENDING)
-        && !IAuthHas(iauth, IAUTH_REQUIRED))
-    {
-      sendto_iauth(auth->client, "T");
-      FlagClr(&auth->flags , AR_IAUTH_PENDING);
-    }
 
     /* Notify client if ident lookup failed. */
     if (FlagHas(&auth->flags, AR_AUTH_PENDING)) {

@@ -1,5 +1,16 @@
 2006-05-07  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_auth.h (auth_ping_timeout): Declare new function.
+
+	* ircd/ircd.c (check_pings): Move auth timeout logic into that new
+	function.
+
+	* ircd/s_auth.c (HeaderMessages): Insert new message.
+	(auth_ping_timeout): Define new function.
+	(auth_timeout_callback): Remove "hurry" notification from here.
+
+2006-05-07  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_auth.h (destroy_auth_request): Remove second argument.
 
 	* ircd/list.c (free_client): Update to match.
