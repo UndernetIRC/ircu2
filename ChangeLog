@@ -1,3 +1,7 @@
+2006-05-14  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Connect): Mention the vhost option.
+
 2006-05-08  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_pong.c (mr_pong): Move cli_lasttime update from here...
