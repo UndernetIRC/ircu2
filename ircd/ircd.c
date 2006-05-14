@@ -379,28 +379,18 @@ static void check_pings(struct Event* ev) {
      */
     if (!IsRegistered(cptr)) {
       assert(!IsServer(cptr));
-      if ((CurrentTime-cli_firsttime(cptr) >= max_ping)) {
-       /* Display message if they have sent a NICK and a USER but no
-        * nospoof PONG.
-        */
-       if (*(cli_name(cptr)) && cli_user(cptr) && *(cli_user(cptr))->username) {
-         send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-           ":Your client may not be compatible with this server.");
-         send_reply(cptr, SND_EXPLICIT | ERR_BADPING,
-           ":Compatible clients are available at %s",
-         feature_str(FEAT_URL_CLIENTS));
-       }
-       exit_client_msg(cptr,cptr,&me, "Registration Timeout");
-       continue;
-      } else {
-        /* OK, they still have enough time left, so we'll just skip to the
-         * next client.  Set the next check to be when their time is up, if
-         * that's before the currently scheduled next check -- hikari */
-        expire = cli_firsttime(cptr) + max_ping;
-        if (expire < next_check)
-          next_check = expire;
+      /* If client authorization time has expired, ask auth whether they
+       * should be checked again later. */
+      if ((CurrentTime-cli_firsttime(cptr) >= max_ping)
+          && auth_ping_timeout(cptr))
         continue;
-      }
+      /* OK, they still have enough time left, so we'll just skip to the
+       * next client.  Set the next check to be when their time is up, if
+       * that's before the currently scheduled next check -- hikari */
+      expire = cli_firsttime(cptr) + max_ping;
+      if (expire < next_check)
+        next_check = expire;
+      continue;
     }
 
     /* Quit the client after max_ping*2 - they should have answered by now */

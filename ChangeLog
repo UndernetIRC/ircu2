@@ -1,3 +1,76 @@
+2006-05-14  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Connect): Mention the vhost option.
+
+2006-05-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pong.c (mr_pong): Move cli_lasttime update from here...
+
+	* ircd/s_auth.c (auth_set_pong): ... to here.
+
+2006-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_auth.h (auth_ping_timeout): Declare new function.
+
+	* ircd/ircd.c (check_pings): Move auth timeout logic into that new
+	function.
+
+	* ircd/s_auth.c (HeaderMessages): Insert new message.
+	(auth_ping_timeout): Define new function.
+	(auth_timeout_callback): Remove "hurry" notification from here.
+
+2006-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* include/s_auth.h (destroy_auth_request): Remove second argument.
+
+	* ircd/list.c (free_client): Update to match.
+
+	* ircd/s_auth.c (check_auth_finished): Remove second argument and
+	update call to destroy_auth_request().
+	(send_auth_query): Update call to destroy_auth_request().
+	(destroy_auth_request): Remove second argument.
+	(auth_timeout_callback): Send timeout failure messages here
+	instead.  Update call to check_auth_finished().
+	(auth_dns_callback): Update call to check_auth_finished().
+	(start_auth): Likewise.
+	(auth_set_pong): Likewise.
+	(auth_set_user): Likewise.
+	(auth_set_nick): Likewise.
+	(auth_cap_done): Likewise.
+	(iauth_parse): Likewise.
+
+2006-05-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pong.c (mr_pong): No need to do any work if the client
+	PONGs with no pending PING.
+
+2006-05-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pong.c (mr_pong): No need to do any work if the client
+	PONGs with no pending PING.
+
+2006-05-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (AuthRequestFlag): Add AR_PASSWORD_CHECKED.
+	(check_auth_finished): Move password check out of iauth-only part
+	and use AR_PASSWORD_CHECKED to make sure we only check it once.
+
+2006-04-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (AuthRequest): Clarify comment on 'timeout' field.
+	(check_auth_finished): Fix timeout update.
+	(destroy_auth_request): Only delete timer if it is active.
+	(auth_timeout_callback): Do not disconnect client on timeout, so
+	that the user can finish sending NICK/USER or doing iauth.
+
+2006-04-28  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Admin): Fix documentation of which line can be
+	listed twice.
+
+	* ircd/ircd_parser.y (adminblock): Allow admin information to be
+	changed via /rehash.
+
 2006-04-06  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (start_auth): Add client to list after getting

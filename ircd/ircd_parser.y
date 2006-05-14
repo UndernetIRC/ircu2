@@ -319,7 +319,14 @@ generalvhost: VHOST '=' QSTRING ';'
   MyFree($3);
 };
 
-adminblock: ADMIN '{' adminitems '}' ';'
+adminblock: ADMIN
+{
+  MyFree(localConf.location1);
+  MyFree(localConf.location2);
+  MyFree(localConf.contact);
+  localConf.location1 = localConf.location2 = localConf.contact = NULL;
+}
+'{' adminitems '}' ';'
 {
   if (localConf.location1 == NULL)
     DupString(localConf.location1, "");
