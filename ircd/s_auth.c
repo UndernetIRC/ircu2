@@ -1018,6 +1018,7 @@ int auth_set_pong(struct AuthRequest *auth, unsigned int cookie)
                ":To connect, type /QUOTE PONG %u", auth->cookie);
     return 0;
   }
+  cli_lasttime(auth->client) = CurrentTime;
   FlagClr(&auth->flags, AR_NEEDS_PONG);
   return check_auth_finished(auth);
 }

@@ -1,3 +1,9 @@
+2006-05-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pong.c (mr_pong): Move cli_lasttime update from here...
+
+	* ircd/s_auth.c (auth_set_pong): ... to here.
+
 2006-05-07  Michael Poole <mdpoole@troilus.org>
 
 	* include/s_auth.h (auth_ping_timeout): Declare new function.
