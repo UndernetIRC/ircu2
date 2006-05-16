@@ -125,12 +125,12 @@
 	* doc/readme.iauth: fix a minor typo in comments for 'd' and 'N'
 	server messages
 
-2006-06-18  Michael Poole <mdpoole@troilus.org>
+2006-03-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/convert-conf.c (finish_features): Do not emit a feature
 	setting that has no values.
 
-2006-06-18  Michael Poole <mdpoole@troilus.org>
+2006-03-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (mode_parse_key): Outside of burst, allow
 	overwriting of keys by a service when a key is already set.
@@ -139,7 +139,7 @@
 	(mode_parse_apas): Likewise for Apass, but only allow overwiting
 	an existing Apass in a BURST.
 
-2006-06-18  Michael Poole <mdpoole@troilus.org>
+2006-03-18  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/channel.c (modebuf_flush_int): Fix typo about changing
 	oplevels.  Send correct channel TS for modes to other servers.
