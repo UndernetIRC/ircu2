@@ -383,11 +383,13 @@ static int check_auth_finished(struct AuthRequest *auth)
    * as possible so that iauth's challenge/response (which uses PASS
    * for responses) is not confused with the client's password.
    */
-  if (!FlagHas(&auth->flags, AR_PASSWORD_CHECKED))
+  if (IsUserPort(auth->client)
+      && !FlagHas(&auth->flags, AR_PASSWORD_CHECKED))
   {
     struct ConfItem *aconf;
 
     aconf = cli_confs(auth->client)->value.aconf;
+    assert(aconf != NULL);
     if (!EmptyString(aconf->passwd)
         && strcmp(cli_passwd(auth->client), aconf->passwd))
     {
