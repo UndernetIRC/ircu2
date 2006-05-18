@@ -1,3 +1,8 @@
+2006-05-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/Makefile.in (install-*): Install convert-conf.  Install
+	umkpasswd when ${BINDIR}/ircd is not a symlink.
+
 2006-05-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (check_auth_finished): Only check passwords on
