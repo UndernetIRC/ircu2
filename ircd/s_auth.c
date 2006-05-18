@@ -734,7 +734,7 @@ int auth_ping_timeout(struct Client *cptr)
   auth = cli_auth(cptr);
 
   /* Check for a user-controlled timeout. */
-  for (flag = 0; flag < AR_LAST_SCAN; ++flag) {
+  for (flag = 0; flag <= AR_LAST_SCAN; ++flag) {
     if (FlagHas(&auth->flags, flag)) {
       /* Display message if they have sent a NICK and a USER but no
        * nospoof PONG.

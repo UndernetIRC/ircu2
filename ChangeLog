@@ -1,5 +1,9 @@
 2006-05-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (auth_ping_timeout): Fix off-by-one error.
+
+2006-05-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/Makefile.in (install-*): Install convert-conf.  Install
 	umkpasswd when ${BINDIR}/ircd is not a symlink.
 
