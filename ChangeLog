@@ -1,3 +1,11 @@
+2006-05-24  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_dns_callback): Be more careful about
+	handling failed DNS lookups.  Use a more standard function to
+	disconnect clients for IP mismatches.
+	(start_auth): Use a more standard function to disconnect clients
+	for peer or local socket address lookup failures.
+
 2006-05-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (auth_ping_timeout): Fix off-by-one error.
