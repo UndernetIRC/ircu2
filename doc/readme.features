@@ -293,7 +293,7 @@ This is the expected average ban mask length.  Leave it at 40.
 
 MAXBANS
  * Type: integer
- * Default: 30
+ * Default: 45
 
 This is the maximum number of bans a user may set on a given channel.
 
@@ -492,41 +492,35 @@ HIS_STATS_a
 
 As per UnderNet CFV-165, this removes /STATS a from users.
 
-HIS_STATS_l
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes /STATS l from users.
-
-HIS_STATS_L
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes /STATS L from users.
-
 HIS_STATS_c
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS c from users.
 
-HIS_STATS_g
+HIS_STATS_d
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes /STATS g from users.
+As per UnderNet CFV-165, this removes /STATS d from users.
 
-HIS_STATS_k
+HIS_STATS_e
  * Type: boolean
  * Default: TRUE
 
-As per UnderNet CFV-165, this removes /STATS k from users.
+As per UnderNet CFV-165, this removes /STATS e from users.
 
 HIS_STATS_f
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS f from users.
+
+HIS_STATS_g
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS g from users.
 
 HIS_STATS_i
  * Type: boolean
@@ -545,6 +539,24 @@ HIS_STATS_J
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS J from users.
+
+HIS_STATS_k
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS k from users.
+
+HIS_STATS_l
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS l from users.
+
+HIS_STATS_L
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS L from users.
 
 HIS_STATS_M
  * Type: boolean
@@ -587,18 +599,6 @@ HIS_STATS_R
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS R from users.
-
-HIS_STATS_d
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes /STATS d from users.
-
-HIS_STATS_e
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes /STATS e from users.
 
 HIS_STATS_t
  * Type: boolean
@@ -767,7 +767,7 @@ This defines a URL that users may visit to find compatible IRC clients.
 
 NICKLEN
  * Type: integer
- * Default: 9
+ * Default: 12
 
 This is the allowed length of the nickname length.  It may not be
 larger than the NICKLEN #define, and should usually be the same

@@ -1,3 +1,13 @@
+2006-05-28  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features (MAXBANS): Update default value.
+	(NICKLEN): Likewise.
+	(HIS_STATS_*): Sort alphabetically.
+
+	* ircd/m_stats.c (m_stats): Describe the intention so that there
+	are not further questions about local opers and remote /stats.
+	Fix places that use cptr instead of cptr.
+
 2006-05-24  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (auth_dns_callback): Be more careful about
