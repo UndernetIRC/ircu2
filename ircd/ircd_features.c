@@ -286,7 +286,12 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define FEAT_INT    0x0001	/**< set if entry contains an integer value */
 #define FEAT_BOOL   0x0002	/**< set if entry contains a boolean value */
 #define FEAT_STR    0x0003	/**< set if entry contains a string value */
+#define FEAT_ALIAS  0x0004	/**< set if entry is alias for another entry */
+#define FEAT_DEP    0x0005	/**< set if entry is deprecated feature */
 #define FEAT_MASK   0x000f	/**< possible value types */
+
+/** Extract just the feature type from a feature descriptor. */
+#define feat_type(feat)		((feat)->flags & FEAT_MASK)
 
 #define FEAT_MARK   0x0010	/**< set if entry has been changed */
 #define FEAT_NULL   0x0020	/**< NULL string is permitted */
@@ -314,6 +319,13 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define F_S(type, flags, v_str, notify)					      \
   { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
     0, 0, 0, (notify), 0, 0, 0 }
+/** Declare a feature as an alias for another feature. */
+#define F_A(type, alias)						      \
+  { FEAT_ ## type, #type, FEAT_ALIAS, 0, FEAT_ ## alias, 0, 0,		      \
+    0, 0, 0, 0, 0, 0, 0 }
+/** Declare a feature as deprecated. */
+#define F_D(type)							      \
+  { FEAT_ ## type, #type, FEAT_DEP, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 
 /** Table of feature descriptions. */
 static struct FeatureDesc {
@@ -409,34 +421,60 @@ static struct FeatureDesc {
   F_B(HIS_MAP, 0, 1, 0),
   F_B(HIS_LINKS, 0, 1, 0),
   F_B(HIS_TRACE, 0, 1, 0),
-  F_B(HIS_STATS_a, 0, 1, 0),
-  F_B(HIS_STATS_c, 0, 1, 0),
-  F_B(HIS_STATS_d, 0, 1, 0),
-  F_B(HIS_STATS_e, 0, 1, 0),
-  F_B(HIS_STATS_f, 0, 1, 0),
-  F_B(HIS_STATS_g, 0, 1, 0),
-  F_B(HIS_STATS_i, 0, 1, 0),
-  F_B(HIS_STATS_j, 0, 1, 0),
-  F_B(HIS_STATS_J, 0, 1, 0),
-  F_B(HIS_STATS_k, 0, 1, 0),
-  F_B(HIS_STATS_l, 0, 1, 0),
-  F_B(HIS_STATS_L, 0, 1, 0),
-  F_B(HIS_STATS_M, 0, 1, 0),
-  F_B(HIS_STATS_m, 0, 1, 0),
-  F_B(HIS_STATS_o, 0, 1, 0),
-  F_B(HIS_STATS_p, 0, 1, 0),
-  F_B(HIS_STATS_q, 0, 1, 0),
-  F_B(HIS_STATS_R, 0, 1, 0),
-  F_B(HIS_STATS_r, 0, 1, 0),
-  F_B(HIS_STATS_t, 0, 1, 0),
-  F_B(HIS_STATS_T, 0, 1, 0),
-  F_B(HIS_STATS_u, 0, 0, 0),
-  F_B(HIS_STATS_U, 0, 1, 0),
-  F_B(HIS_STATS_v, 0, 1, 0),
-  F_B(HIS_STATS_w, 0, 0, 0),
-  F_B(HIS_STATS_x, 0, 1, 0),
-  F_B(HIS_STATS_y, 0, 1, 0),
-  F_B(HIS_STATS_z, 0, 1, 0),
+  F_A(HIS_STATS_a, HIS_STATS_NAMESERVERS),
+  F_B(HIS_STATS_NAMESERVERS, 0, 1, 0),
+  F_A(HIS_STATS_c, HIS_STATS_CONNECT),
+  F_B(HIS_STATS_CONNECT, 0, 1, 0),
+  F_A(HIS_STATS_d, HIS_STATS_CRULES),
+  F_B(HIS_STATS_CRULES, 0, 1, 0),
+  F_A(HIS_STATS_e, HIS_STATS_ENGINE),
+  F_B(HIS_STATS_ENGINE, 0, 1, 0),
+  F_A(HIS_STATS_f, HIS_STATS_FEATURES),
+  F_B(HIS_STATS_FEATURES, 0, 1, 0),
+  F_A(HIS_STATS_g, HIS_STATS_GLINES),
+  F_B(HIS_STATS_GLINES, 0, 1, 0),
+  F_A(HIS_STATS_i, HIS_STATS_ACCESS),
+  F_B(HIS_STATS_ACCESS, 0, 1, 0),
+  F_A(HIS_STATS_j, HIS_STATS_HISTOGRAM),
+  F_B(HIS_STATS_HISTOGRAM, 0, 1, 0),
+  F_A(HIS_STATS_J, HIS_STATS_JUPES),
+  F_B(HIS_STATS_JUPES, 0, 1, 0),
+  F_A(HIS_STATS_k, HIS_STATS_KLINES),
+  F_B(HIS_STATS_KLINES, 0, 1, 0),
+  F_A(HIS_STATS_l, HIS_STATS_LINKS),
+  F_B(HIS_STATS_LINKS, 0, 1, 0),
+  F_A(HIS_STATS_L, HIS_STATS_MODULES),
+  F_B(HIS_STATS_MODULES, 0, 1, 0),
+  F_A(HIS_STATS_m, HIS_STATS_COMMANDS),
+  F_B(HIS_STATS_COMMANDS, 0, 1, 0),
+  F_A(HIS_STATS_o, HIS_STATS_OPERATORS),
+  F_B(HIS_STATS_OPERATORS, 0, 1, 0),
+  F_A(HIS_STATS_p, HIS_STATS_PORTS),
+  F_B(HIS_STATS_PORTS, 0, 1, 0),
+  F_A(HIS_STATS_q, HIS_STATS_QUARANTINES),
+  F_B(HIS_STATS_QUARANTINES, 0, 1, 0),
+  F_A(HIS_STATS_R, HIS_STATS_MAPPINGS),
+  F_B(HIS_STATS_MAPPINGS, 0, 1, 0),
+  F_A(HIS_STATS_r, HIS_STATS_USAGE),
+  F_B(HIS_STATS_USAGE, 0, 1, 0),
+  F_A(HIS_STATS_t, HIS_STATS_LOCALS),
+  F_B(HIS_STATS_LOCALS, 0, 1, 0),
+  F_A(HIS_STATS_T, HIS_STATS_MOTDS),
+  F_B(HIS_STATS_MOTDS, 0, 1, 0),
+  F_A(HIS_STATS_u, HIS_STATS_UPTIME),
+  F_B(HIS_STATS_UPTIME, 0, 0, 0),
+  F_A(HIS_STATS_U, HIS_STATS_UWORLD),
+  F_B(HIS_STATS_UWORLD, 0, 1, 0),
+  F_A(HIS_STATS_v, HIS_STATS_VSERVERS),
+  F_B(HIS_STATS_VSERVERS, 0, 1, 0),
+  F_A(HIS_STATS_w, HIS_STATS_USERLOAD),
+  F_B(HIS_STATS_USERLOAD, 0, 0, 0),
+  F_A(HIS_STATS_x, HIS_STATS_MEMUSAGE),
+  F_B(HIS_STATS_MEMUSAGE, 0, 1, 0),
+  F_A(HIS_STATS_y, HIS_STATS_CLASSES),
+  F_B(HIS_STATS_CLASSES, 0, 1, 0),
+  F_A(HIS_STATS_z, HIS_STATS_MEMORY),
+  F_B(HIS_STATS_MEMORY, 0, 1, 0),
   F_B(HIS_STATS_IAUTH, 0, 1, 0),
   F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
@@ -477,8 +515,30 @@ feature_desc(struct Client* from, const char *feature)
   assert(0 != feature);
 
   for (i = 0; features[i].type; i++) /* find appropriate descriptor */
-    if (!strcmp(feature, features[i].type))
+    if (!strcmp(feature, features[i].type)) {
+      if (feat_type(&features[i]) == FEAT_ALIAS) {
+	Debug((DEBUG_NOTICE, "Deprecated feature \"%s\" referenced; replace "
+	       "with %s", feature, features[features[i].def_int].type));
+	if (from) /* report a warning */
+	  send_reply(from, SND_EXPLICIT | ERR_NOFEATURE,
+		     "%s :Feature deprecated, use %s", feature,
+		     features[features[i].def_int].type);
+	else
+	  log_write(LS_CONFIG, L_WARNING, 0, "Feature \"%s\" deprecated, "
+		    "use \"%s\"", feature, features[features[i].def_int].type);
+
+	return &features[features[i].def_int];
+      } else if (feat_type(&features[i]) == FEAT_DEP) {
+	Debug((DEBUG_NOTICE, "Deprecated feature \"%s\" referenced", feature));
+	if (from) /* report a warning */
+	  send_reply(from, SND_EXPLICIT | ERR_NOFEATURE,
+		     "%s :Feature deprecated", feature);
+	else
+	  log_write(LS_CONFIG, L_WARNING, 0, "Feature \"%s\" deprecated",
+		    feature);
+      }
       return &features[i];
+    }
 
   Debug((DEBUG_ERROR, "Unknown feature \"%s\"", feature));
   if (from) /* report an error */
@@ -514,7 +574,7 @@ feature_set(struct Client* from, const char* const* fields, int count)
     if (from && feat->flags & FEAT_READ)
       return send_reply(from, ERR_NOFEATURE, fields[0]);
 
-    switch (feat->flags & FEAT_MASK) {
+    switch (feat_type(feat)) {
     case FEAT_NONE:
       if (feat->set && (i = (*feat->set)(from, fields + 1, count - 1))) {
 	change++; /* feature handler wants a change recorded */
@@ -665,7 +725,7 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     if (from && feat->flags & FEAT_READ)
       return send_reply(from, ERR_NOFEATURE, fields[0]);
 
-    switch (feat->flags & FEAT_MASK) {
+    switch (feat_type(feat)) {
     case FEAT_NONE: /* None... */
       if (feat->reset && (i = (*feat->reset)(from, fields + 1, count - 1))) {
 	change++; /* feature handler wants a change recorded */
@@ -726,7 +786,7 @@ feature_get(struct Client* from, const char* const* fields, int count)
 	(feat->flags & FEAT_OPER && !IsAnOper(from))) /* check privs */
       return send_reply(from, ERR_NOPRIVILEGES);
 
-    switch (feat->flags & FEAT_MASK) {
+    switch (feat_type(feat)) {
     case FEAT_NONE: /* none, call the callback... */
       if (feat->get) /* if there's a callback, use it */
 	(*feat->get)(from, fields + 1, count - 1);
@@ -779,7 +839,7 @@ feature_mark(void)
   for (i = 0; features[i].type; i++) {
     change = 0;
 
-    switch (features[i].flags & FEAT_MASK) {
+    switch (feat_type(&features[i])) {
     case FEAT_NONE:
       if (features[i].mark &&
 	  (*features[i].mark)(features[i].flags & FEAT_MARK ? 1 : 0))
@@ -819,7 +879,7 @@ feature_init(void)
   int i;
 
   for (i = 0; features[i].type; i++) {
-    switch (features[i].flags & FEAT_MASK) {
+    switch (feat_type(&features[i])) {
     case FEAT_NONE: /* you're on your own */
       break;
 
@@ -857,7 +917,7 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 	(features[i].flags & FEAT_OPER && !IsAnOper(to)))
       continue; /* skip this one */
 
-    switch (features[i].flags & FEAT_MASK) {
+    switch (feat_type(&features[i])) {
     case FEAT_NONE:
       if (features[i].report) /* let the callback handle this */
 	(*features[i].report)(to, features[i].flags & FEAT_MARK ? 1 : 0);
@@ -898,7 +958,7 @@ int
 feature_int(enum Feature feat)
 {
   assert(features[feat].feat == feat);
-  assert((features[feat].flags & FEAT_MASK) == FEAT_INT);
+  assert(feat_type(&features[feat]) == FEAT_INT);
 
   return features[feat].v_int;
 }
@@ -914,7 +974,7 @@ feature_bool(enum Feature feat)
   if (FEAT_LAST_F < feat)
     return 0;
   assert(features[feat].feat == feat);
-  assert((features[feat].flags & FEAT_MASK) == FEAT_BOOL);
+  assert(feat_type(&features[feat]) == FEAT_BOOL);
 
   return features[feat].v_int;
 }
@@ -927,7 +987,7 @@ const char *
 feature_str(enum Feature feat)
 {
   assert(features[feat].feat == feat);
-  assert((features[feat].flags & FEAT_MASK) == FEAT_STR);
+  assert(feat_type(&features[feat]) == FEAT_STR);
 
   return features[feat].v_str;
 }

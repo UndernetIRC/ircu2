@@ -486,169 +486,163 @@ HIS_TRACE
 
 As per UnderNet CFV-165, this removes /TRACE from users.
 
-HIS_STATS_a
+HIS_STATS_NAMESERVERS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS a from users.
 
-HIS_STATS_l
+HIS_STATS_LINKS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS l from users.
 
-HIS_STATS_L
+HIS_STATS_MODULES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS L from users.
 
-HIS_STATS_c
+HIS_STATS_CONNECT
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS c from users.
 
-HIS_STATS_g
+HIS_STATS_GLINES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS g from users.
 
-HIS_STATS_k
+HIS_STATS_KLINES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS k from users.
 
-HIS_STATS_f
+HIS_STATS_FEATURES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS f from users.
 
-HIS_STATS_i
+HIS_STATS_ACCESS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS i from users.
 
-HIS_STATS_j
+HIS_STATS_HISTOGRAM
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS j from users.
 
-HIS_STATS_J
+HIS_STATS_JUPES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS J from users.
 
-HIS_STATS_M
- * Type: boolean
- * Default: TRUE
-
-As per UnderNet CFV-165, this removes /STATS M from users.
-
-HIS_STATS_m
+HIS_STATS_COMMANDS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS m from users.
 
-HIS_STATS_o
+HIS_STATS_OPERATORS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS o from users.
 
-HIS_STATS_p
+HIS_STATS_PORTS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS p from users.
 
-HIS_STATS_q
+HIS_STATS_QUARANTINES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS q from users.
 
-HIS_STATS_r
+HIS_STATS_USAGE
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS r from users.
 
-HIS_STATS_R
+HIS_STATS_MAPPINGS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS R from users.
 
-HIS_STATS_d
+HIS_STATS_CRULES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS d from users.
 
-HIS_STATS_e
+HIS_STATS_ENGINE
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS e from users.
 
-HIS_STATS_t
+HIS_STATS_LOCALS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS t from users.
 
-HIS_STATS_T
+HIS_STATS_MOTDS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS T from users.
 
-HIS_STATS_u
+HIS_STATS_UPTIME
  * Type: boolean
  * Default: FALSE
 
 As per UnderNet CFV-165, this allows users to perform /STATS u.
 
-HIS_STATS_U
+HIS_STATS_UWORLD
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS U from users.
 
-HIS_STATS_v
+HIS_STATS_VSERVERS
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS v from users.
 
-HIS_STATS_w
+HIS_STATS_USERLOAD
  * Type: boolean
  * Default: FALSE
 
 As per UnderNet CFV-165, this allows users to perform /STATS w.
 
-HIS_STATS_x
+HIS_STATS_MEMUSAGE
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS x from users.
 
-HIS_STATS_y
+HIS_STATS_CLASSES
  * Type: boolean
  * Default: TRUE
 
 As per UnderNet CFV-165, this removes /STATS y from users.
 
-HIS_STATS_z
+HIS_STATS_MEMORY
  * Type: boolean
  * Default: TRUE
 

@@ -1,3 +1,26 @@
+2006-06-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_features.c: add FEAT_DEP to mark deprecated features
+	with no replacement; create and use feat_type() macro to extract
+	the type of a feature from its flags
+
+	* doc/readme.features: update for new HIS_STATS_* names
+
+	* doc/example.conf: update for new HIS_STATS_* names
+
+2006-05-31  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_stats.c: use new names for controlling features
+
+	* ircd/ircd_features.c: add support for deprecated aliases for
+	features--allows a feature to be accessed by user or .conf by two
+	names, but warns when the deprecated name is used; change all
+	HIS_STATS_? features to aliases for the new names; remove
+	unnecessary HIS_STATS_M
+
+	* include/ircd_features.h: add features covering new names for
+	FEAT_HIS_STATS_?; remove unnecessary FEAT_HIS_STATS_M
+
 2006-05-15  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (check_auth_finished): Only check passwords on
