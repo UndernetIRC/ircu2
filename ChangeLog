@@ -1,3 +1,8 @@
+2006-06-05  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_timeout_callback): Clear AR_DNS_PENDING when
+	destroying the lookup and reporting DNS failure.
+
 2006-05-28  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.features (MAXBANS): Update default value.
@@ -6,7 +11,7 @@
 
 	* ircd/m_stats.c (m_stats): Describe the intention so that there
 	are not further questions about local opers and remote /stats.
-	Fix places that use cptr instead of cptr.
+	Fix places that use cptr instead of sptr.
 
 2006-05-24  Michael Poole <mdpoole@troilus.org>
 

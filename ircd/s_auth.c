@@ -792,6 +792,7 @@ static void auth_timeout_callback(struct Event* ev)
 
     /* Likewise if dns lookup failed. */
     if (FlagHas(&auth->flags, AR_DNS_PENDING)) {
+      FlagClr(&auth->flags, AR_DNS_PENDING);
       delete_resolver_queries(auth);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_DNS);
