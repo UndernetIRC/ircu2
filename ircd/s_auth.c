@@ -733,6 +733,11 @@ int auth_ping_timeout(struct Client *cptr)
 
   auth = cli_auth(cptr);
 
+  /* Check whether the auth request is gone (more likely, it never
+   * existed, as in an outbound server connection). */
+  if (!auth)
+      return exit_client_msg(cptr, cptr, &me, "Registration Timeout");
+
   /* Check for a user-controlled timeout. */
   for (flag = 0; flag <= AR_LAST_SCAN; ++flag) {
     if (FlagHas(&auth->flags, flag)) {

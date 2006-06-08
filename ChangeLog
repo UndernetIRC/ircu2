@@ -1,3 +1,8 @@
+2006-06-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_ping_timeout): If the client never had an
+	auth request, kill them on ping timeout.
+
 2006-06-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (auth_timeout_callback): Clear AR_DNS_PENDING when
