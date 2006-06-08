@@ -1,5 +1,13 @@
 2006-06-07  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Document the list_chan privilege.
+
+	* ircd/ircd_lexer.l: Recognize the token.
+
+	* ircd/ircd_parser.y: Treat it appropriately.
+
+2006-06-07  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (auth_ping_timeout): If the client never had an
 	auth request, kill them on ping timeout.
 

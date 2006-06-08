@@ -119,6 +119,7 @@ static struct lexer_token {
   { "gline", TPRIV_GLINE },
   { "kb", KBYTES },
   { "kilobytes", KBYTES },
+  { "list_chan", TPRIV_LIST_CHAN },
   { "local_badchan", TPRIV_LOCAL_BADCHAN },
   { "local_gline", TPRIV_LOCAL_GLINE },
   { "local_jupe", TPRIV_LOCAL_JUPE },
