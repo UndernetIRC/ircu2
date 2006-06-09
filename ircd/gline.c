@@ -872,7 +872,9 @@ gline_stats(struct Client *sptr, const struct StatDesc *sd,
       send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user,
                  gline->gl_host ? "@" : "",
                  gline->gl_host ? gline->gl_host : "",
-		 gline->gl_expire + TSoffset, gline->gl_reason);
+		 gline->gl_expire + TSoffset,
+                 GlineIsActive(gline) ? '+' : '-',
+                 gline->gl_reason);
   }
 }
 

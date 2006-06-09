@@ -1,3 +1,9 @@
+2006-06-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c (gline_stats): Show activation state in /stats g.
+
+	* ircd/s_err.c (RPL_STATSGLINE): Update format string to match.
+
 2006-06-07  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Document the list_chan privilege.
