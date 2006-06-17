@@ -1,3 +1,7 @@
+2006-06-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pass.c (mr_pass): Only back 'len' up when it's safe.
+
 2006-06-08  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_whois.c (do_whois): Prefix '*' to names of secret (local)

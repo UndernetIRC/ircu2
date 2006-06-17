@@ -112,7 +112,9 @@ int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     len += strlen(parv[arg]);
     password[len++] = ' ';
   }
-  password[--len] = '\0';
+  if (len > 0)
+    --len;
+  password[len] = '\0';
 
   if (EmptyString(password))
     return need_more_params(cptr, "PASS");
