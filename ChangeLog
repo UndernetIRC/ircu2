@@ -1,5 +1,9 @@
 2006-06-26  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Bump for pre08.
+
+2006-06-26  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHEVEL): Bump for release.
 
 2006-06-17  Michael Poole <mdpoole@troilus.org>
