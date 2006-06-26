@@ -1,3 +1,7 @@
+2006-06-26  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHEVEL): Bump for release.
+
 2006-06-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_pass.c (mr_pass): Only back 'len' up when it's safe.
