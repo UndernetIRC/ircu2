@@ -733,8 +733,13 @@ int auth_ping_timeout(struct Client *cptr)
 
   auth = cli_auth(cptr);
 
+  /* Check whether the auth request is gone (more likely, it never
+   * existed, as in an outbound server connection). */
+  if (!auth)
+      return exit_client_msg(cptr, cptr, &me, "Registration Timeout");
+
   /* Check for a user-controlled timeout. */
-  for (flag = 0; flag < AR_LAST_SCAN; ++flag) {
+  for (flag = 0; flag <= AR_LAST_SCAN; ++flag) {
     if (FlagHas(&auth->flags, flag)) {
       /* Display message if they have sent a NICK and a USER but no
        * nospoof PONG.
@@ -792,6 +797,7 @@ static void auth_timeout_callback(struct Event* ev)
 
     /* Likewise if dns lookup failed. */
     if (FlagHas(&auth->flags, AR_DNS_PENDING)) {
+      FlagClr(&auth->flags, AR_DNS_PENDING);
       delete_resolver_queries(auth);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_DNS);
@@ -820,21 +826,18 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_DNS);
     sendto_iauth(auth->client, "d");
-  } else if (irc_in_addr_cmp(addr, &cli_ip(auth->client))
-             && irc_in_addr_cmp(addr, &auth->original)) {
+  } else if (!irc_in_addr_valid(addr)
+             || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
+                 && irc_in_addr_cmp(&auth->original, addr))) {
     /* IP for hostname did not match client's IP. */
     sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
                          cli_sock_ip(auth->client), h_name,
                          ircd_ntoa(addr));
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_IP_MISMATCH);
-    /* Clear DNS pending flag so free_client doesn't ask the resolver
-     * to delete the query that just finished.
-     */
     if (feature_bool(FEAT_KILL_IPMISMATCH)) {
-      IPcheck_disconnect(auth->client);
-      Count_unknowndisconnects(UserStats);
-      free_client(auth->client);
+      exit_client(auth->client, auth->client, &me, "IP mismatch");
+      return;
     }
   } else if (!auth_verify_hostname(h_name, HOSTLEN)) {
     /* Hostname did not look valid. */
@@ -973,9 +976,7 @@ void start_auth(struct Client* client)
     ++ServerStats->is_abad;
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
-    IPcheck_disconnect(auth->client);
-    Count_unknowndisconnects(UserStats);
-    free_client(auth->client);
+    exit_client(auth->client, auth->client, &me, "Socket local/peer lookup failed");
     return;
   }
   auth->port = remote.port;

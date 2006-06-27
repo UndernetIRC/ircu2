@@ -1,3 +1,62 @@
+2006-06-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_pass.c (mr_pass): Only back 'len' up when it's safe.
+
+2006-06-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_whois.c (do_whois): Prefix '*' to names of secret (local)
+	channels for locops as well as global opers.
+
+2006-06-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_gline.c (ms_gline): Use final argument as G-line reason.
+
+2006-06-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c (gline_stats): Show activation state in /stats g.
+
+	* ircd/s_err.c (RPL_STATSGLINE): Update format string to match.
+
+2006-06-07  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Document the list_chan privilege.
+
+	* ircd/ircd_lexer.l: Recognize the token.
+
+	* ircd/ircd_parser.y: Treat it appropriately.
+
+2006-06-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_ping_timeout): If the client never had an
+	auth request, kill them on ping timeout.
+
+2006-06-05  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_timeout_callback): Clear AR_DNS_PENDING when
+	destroying the lookup and reporting DNS failure.
+
+2006-05-28  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features (MAXBANS): Update default value.
+	(NICKLEN): Likewise.
+	(HIS_STATS_*): Sort alphabetically.
+
+	* ircd/m_stats.c (m_stats): Describe the intention so that there
+	are not further questions about local opers and remote /stats.
+	Fix places that use cptr instead of sptr.
+
+2006-05-24  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_dns_callback): Be more careful about
+	handling failed DNS lookups.  Use a more standard function to
+	disconnect clients for IP mismatches.
+	(start_auth): Use a more standard function to disconnect clients
+	for peer or local socket address lookup failures.
+
+2006-05-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_ping_timeout): Fix off-by-one error.
+
 2006-06-01  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd_features.c: add FEAT_DEP to mark deprecated features
