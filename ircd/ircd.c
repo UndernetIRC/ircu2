@@ -41,7 +41,6 @@
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
-#include "motd.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -703,8 +702,6 @@ int main(int argc, char **argv) {
   /* we need this for now, when we're modular this 
      should be removed -- hikari */
   ircd_crypt_init();
-
-  motd_init();
 
   if (!init_conf()) {
     log_write(LS_SYSTEM, L_CRIT, 0, "Failed to read configuration file %s",

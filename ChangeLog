@@ -1,3 +1,15 @@
+2006-06-26  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd.c (main): Remove now-redundant call to motd_init() and
+	#include "motd.h".
+
+	* ircd/ircd_features.c (FEAT_NOINIT): New feature flag.
+	(features): Use it on FEAT_RPATH.
+	(feature_init): Make notify callbacks automatically.
+
+	* ircd/motd.c (motd_init): Safely handle case where FEAT_MPATH
+	and/or FEAT_RPATH have not yet been set.
+
 2006-06-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_pass.c (mr_pass): Only back 'len' up when it's safe.

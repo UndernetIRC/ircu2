@@ -300,6 +300,7 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define FEAT_OPER   0x0100	/**< set to display only to opers */
 #define FEAT_MYOPER 0x0200	/**< set to display only to local opers */
 #define FEAT_NODISP 0x0400	/**< feature must never be displayed */
+#define FEAT_NOINIT 0x0800      /**< notifier should not be called at init */
 
 #define FEAT_READ   0x1000	/**< feature is read-only (for now, perhaps?) */
 
@@ -398,7 +399,7 @@ static struct FeatureDesc {
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
-  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd", motd_init),
+  F_S(RPATH, FEAT_CASE | FEAT_MYOPER | FEAT_NOINIT, "remote.motd", motd_init),
   F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid", 0),
 
   /* Networking features */
@@ -879,26 +880,29 @@ feature_init(void)
   int i;
 
   for (i = 0; features[i].type; i++) {
-    switch (feat_type(&features[i])) {
+    struct FeatureDesc *feat = &features[i];
+
+    switch (feat_type(feat)) {
     case FEAT_NONE: /* you're on your own */
       break;
 
     case FEAT_INT:  /* Integers or Booleans... */
     case FEAT_BOOL:
-      features[i].v_int = features[i].def_int;
+      feat->v_int = feat->def_int;
       break;
 
     case FEAT_STR:  /* Strings */
-      features[i].v_str = features[i].def_str;
-      assert(features[i].def_str || (features[i].flags & FEAT_NULL));
+      feat->v_str = feat->def_str;
+      assert(feat->def_str || (feat->flags & FEAT_NULL));
       break;
     }
+
+    if (feat->notify && !(feat->flags & FEAT_NOINIT))
+      (*feat->notify)();
   }
 
   cli_magic(&his) = CLIENT_MAGIC;
   cli_status(&his) = STAT_SERVER;
-  feature_notify_servername();
-  feature_notify_serverinfo();
 }
 
 /** Report all F-lines to a user.

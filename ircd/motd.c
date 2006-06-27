@@ -371,14 +371,20 @@ motd_init(void)
   if (MotdList.local) /* destroy old local... */
     motd_destroy(MotdList.local);
 
-  MotdList.local = motd_create(0, feature_str(FEAT_MPATH), MOTD_MAXLINES);
-  motd_cache(MotdList.local); /* init local and cache it */
+  if (!EmptyString(feature_str(FEAT_MPATH)))
+  {
+    MotdList.local = motd_create(0, feature_str(FEAT_MPATH), MOTD_MAXLINES);
+    motd_cache(MotdList.local); /* init local and cache it */
+  }
 
   if (MotdList.remote) /* destroy old remote... */
     motd_destroy(MotdList.remote);
 
-  MotdList.remote = motd_create(0, feature_str(FEAT_RPATH), MOTD_MAXREMOTE);
-  motd_cache(MotdList.remote); /* init remote and cache it */
+  if (!EmptyString(feature_str(FEAT_RPATH)))
+  {
+    MotdList.remote = motd_create(0, feature_str(FEAT_RPATH), MOTD_MAXREMOTE);
+    motd_cache(MotdList.remote); /* init remote and cache it */
+  }
 }
 
 /** Add a new MOTD.
