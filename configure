@@ -3282,6 +3282,21 @@ done
 test -n "$YACC" || YACC="yacc"
 
 
+echo $ECHO_N "checking $LEX compatibility... " >&6
+if ! $LEX ${srcdir}/test.l >&5 ; then
+  { { echo "$as_me:$LINENO: error: Unable to run $LEX on ${srcdir}/test.l, try using flex 2.5 or newer." >&5
+echo "$as_me: error: Unable to run $LEX on ${srcdir}/test.l, try using flex 2.5 or newer." >&2;}
+   { (exit 1); exit 1; }; }
+elif ! $CC -c $CFLAGS $CPPFLAGS lex.yy.c >&5 ; then
+  rm -f lex.yy.c
+  { { echo "$as_me:$LINENO: error: Unable to compile lex.yy.c, check config.log for $LEX errors." >&5
+echo "$as_me: error: Unable to compile lex.yy.c, check config.log for $LEX errors." >&2;}
+   { (exit 1); exit 1; }; }
+else
+  rm -f lex.yy.c lex.yy.o
+  echo "${ECHO_T}okay" >&6
+fi
+
 echo "$as_me:$LINENO: checking for library containing crypt" >&5
 echo $ECHO_N "checking for library containing crypt... $ECHO_C" >&6
 if test "${ac_cv_search_crypt+set}" = set; then

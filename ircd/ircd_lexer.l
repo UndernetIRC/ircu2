@@ -1,8 +1,8 @@
 /*
  * ircd_lexer.l: A lexical scanner for ircd config files.
  * This is part of ircu, an Internet Relay Chat server.
- * The contents of this file are Copyright(C) 2001 by Andrew Miller, the
- * ircd-hybrid team and the ircu team.
+ * Copyright 2006 Michael Poole
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -20,199 +20,149 @@
  * $Id$
  */
 
+%option never-interactive case-insensitive warn nodefault nounput yylineno
+
 %{
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+#ifndef YY_FATAL_ERROR
+# define YY_FATAL_ERROR(MSG) fprintf(stderr, MSG)
+#endif
+
+#ifndef YY_NEW_FILE
+# define YY_NEW_FILE
+#endif
+
 #include "config.h"
-#include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_string.h"
-#include "s_debug.h"
 #include "ircd_parser.h"
 
-extern int lineno;
-
-static struct lexer_token {
-  const char *string;
-  int value;
-} tokens[] = {
-#define TOKEN(NAME) { #NAME, NAME }
-  TOKEN(ADMIN),
-  TOKEN(GENERAL),
-  TOKEN(LOCATION),
-  TOKEN(CONTACT),
-  TOKEN(CLASS),
-  TOKEN(PINGFREQ),
-  TOKEN(CONNECT),
-  TOKEN(CONNECTFREQ),
-  TOKEN(MAXLINKS),
-  TOKEN(MAXHOPS),
-  TOKEN(SENDQ),
-  TOKEN(NAME),
-  TOKEN(HOST),
-  TOKEN(IP),
-  TOKEN(USERNAME),
-  TOKEN(PASS),
-  TOKEN(SECONDS),
-  TOKEN(MINUTES),
-  TOKEN(HOURS),
-  TOKEN(DAYS),
-  TOKEN(WEEKS),
-  TOKEN(MONTHS),
-  TOKEN(YEARS),
-  TOKEN(DECADES),
-  TOKEN(BYTES),
-  TOKEN(KBYTES),
-  TOKEN(MBYTES),
-  TOKEN(GBYTES),
-  TOKEN(TBYTES),
-  TOKEN(PORT),
-  TOKEN(SERVER),
-  TOKEN(YES),
-  TOKEN(NO),
-  TOKEN(HUB),
-  TOKEN(LEAF),
-  TOKEN(UWORLD),
-  TOKEN(OPER),
-  TOKEN(LOCAL),
-  TOKEN(VHOST),
-  TOKEN(MASK),
-  TOKEN(HIDDEN),
-  TOKEN(MOTD),
-  TOKEN(NUMERIC),
-  TOKEN(NICK),
-  TOKEN(JUPE),
-  TOKEN(DESCRIPTION),
-  TOKEN(CLIENT),
-  TOKEN(REAL),
-  TOKEN(REASON),
-  TOKEN(RULE),
-  TOKEN(ALL),
-  TOKEN(CRULE),
-  TOKEN(KILL),
-  TOKEN(QUARANTINE),
-  TOKEN(IAUTH),
-  TOKEN(TIMEOUT),
-  TOKEN(FEATURES),
-  TOKEN(CHANNEL),
-  TOKEN(PSEUDO),
-  TOKEN(PREPEND),
-  TOKEN(USERMODE),
-  TOKEN(FAST),
-  TOKEN(AUTOCONNECT),
-  TOKEN(PROGRAM),
-#undef TOKEN
-  { "administrator", ADMIN },
-  { "apass_opmode", TPRIV_APASS_OPMODE },
-  { "auto", AUTOCONNECT },
-  { "b", BYTES },
-  { "badchan", TPRIV_BADCHAN },
-  { "chan_limit", TPRIV_CHAN_LIMIT },
-  { "deop_lchan", TPRIV_DEOP_LCHAN },
-  { "die", TPRIV_DIE },
-  { "display", TPRIV_DISPLAY },
-  { "file", TFILE },
-  { "force_local_opmode", TPRIV_FORCE_LOCAL_OPMODE },
-  { "force_opmode", TPRIV_FORCE_OPMODE },
-  { "gline", TPRIV_GLINE },
-  { "kb", KBYTES },
-  { "kilobytes", KBYTES },
-  { "list_chan", TPRIV_LIST_CHAN },
-  { "local_badchan", TPRIV_LOCAL_BADCHAN },
-  { "local_gline", TPRIV_LOCAL_GLINE },
-  { "local_jupe", TPRIV_LOCAL_JUPE },
-  { "local_kill", TPRIV_LOCAL_KILL },
-  { "local_opmode", TPRIV_LOCAL_OPMODE },
-  { "mb", MBYTES },
-  { "megabytes", MBYTES },
-  { "mode_lchan", TPRIV_MODE_LCHAN },
-  { "gb", GBYTES },
-  { "gigabytes", GBYTES },
-  { "operator", OPER },
-  { "opmode", TPRIV_OPMODE },
-  { "password", PASS },
-  { "propagate", TPRIV_PROPAGATE },
-  { "realname", REAL },
-  { "rehash", TPRIV_REHASH },
-  { "restart", TPRIV_RESTART },
-  { "see_chan", TPRIV_SEE_CHAN },
-  { "see_opers", TPRIV_SEE_OPERS },
-  { "set", TPRIV_SET },
-  { "show_all_invis", TPRIV_SHOW_ALL_INVIS },
-  { "show_invis", TPRIV_SHOW_INVIS },
-  { "tb", TBYTES },
-  { "terabytes", TBYTES },
-  { "unlimit_query", TPRIV_UNLIMIT_QUERY },
-  { "walk_lchan", TPRIV_WALK_LCHAN },
-  { "wide_gline", TPRIV_WIDE_GLINE },
-  { "whox", TPRIV_WHOX },
-  { NULL, 0 }
-};
-static int ntokens;
-
-static int
-token_compare(const void *pa, const void *pb)
-{
-  const struct lexer_token *ta = pa;
-  const struct lexer_token *tb = pb;
-  unsigned int ii = 0;
-  int res;
-  while (ta->string[ii] && (ToLower(ta->string[ii]) == ToLower(tb->string[ii])))
-    ii++;
-  res = ToLower(tb->string[ii]) - ToLower(ta->string[ii]);
-  return res;
-}
-
-static void
-init_ntokens(void)
-{
-  for (ntokens = 0; tokens[ntokens].string; ++ntokens) ;
-  qsort(tokens, ntokens, sizeof(tokens[0]), token_compare);
-}
-
-static int
-find_token(char *token)
-{
-  struct lexer_token *tok;
-  if (!ntokens)
-    init_ntokens();
-  tok = bsearch(&token, tokens, ntokens, sizeof(tokens[0]), token_compare);
-  return tok ? tok->value : 0;
-}
-
 void
-init_lexer(void)
+init_lexer(const char *configfile)
 {
   yyin = fopen(configfile, "r");
   if (yyin == NULL)
   {
-#ifdef YY_FATAL_ERROR
     YY_FATAL_ERROR("Could not open the configuration file.");
-#else
-    fprintf(stderr, "Could not open the configuration file.");
-#endif
   }
-#ifdef YY_NEW_FILE
   YY_NEW_FILE;
-#endif
-  lineno = 1;
 }
 
 %}
 
-WHITE [ \t\r]+
-SHCOMMENT #[^\n]*
-NUMBER [0-9]+
-QSTRING \"[^"\n]+[\"\n]
 %%
 
-{QSTRING} {yytext[yyleng-1] = 0; DupString(yylval.text, yytext+1); return QSTRING;}
-{NUMBER} {yylval.num = strtoul(yytext, NULL, 10); return NUMBER;}
-{WHITE} ;
-{SHCOMMENT} ;
+\"[^"\n]+[\"\n] {yytext[yyleng-1] = 0; DupString(yylval.text, yytext+1); return QSTRING;}
+[0-9]+		{yylval.num = strtoul(yytext, NULL, 10); return NUMBER;}
+[ \t\r\n]+	;
+#.*		;
 
-[a-zA-Z_]+ { int res = find_token(yytext); if (res) return res; else REJECT; }
-\n lineno++;
+ADMIN		return ADMIN;
+ADMINISTRATOR	return ADMIN;
+APASS_OPMODE	return TPRIV_APASS_OPMODE;
+ALL		return ALL;
+AUTO		return AUTOCONNECT;
+AUTOCONNECT	return AUTOCONNECT;
+B		return BYTES;
+BADCHAN		return TPRIV_BADCHAN;
+BYTES		return BYTES;
+CHANNEL		return CHANNEL;
+CHAN_LIMIT	return TPRIV_CHAN_LIMIT;
+CLASS		return CLASS;
+CLIENT		return CLIENT;
+CONNECT		return CONNECT;
+CONNECTFREQ	return CONNECTFREQ;
+CONTACT		return CONTACT;
+CRULE		return CRULE;
+DAYS		return DAYS;
+DECADES		return DECADES;
+DEOP_LCHAN	return TPRIV_DEOP_LCHAN;
+DESCRIPTION	return DESCRIPTION;
+DIE		return TPRIV_DIE;
+DISPLAY		return TPRIV_DISPLAY;
+FAST		return FAST;
+FEATURES	return FEATURES;
+FILE		return TFILE;
+FORCE_LOCAL_OPMODE	return TPRIV_FORCE_LOCAL_OPMODE;
+FORCE_OPMODE	return TPRIV_FORCE_OPMODE;
+GB		return GBYTES;
+GBYTES		return GBYTES;
+GENERAL		return GENERAL;
+GIGABYTES	return GBYTES;
+GLINE		return TPRIV_GLINE;
+HIDDEN		return HIDDEN;
+HOST		return HOST;
+HOURS		return HOURS;
+HUB		return HUB;
+IAUTH		return IAUTH;
+IP		return IP;
+JUPE		return JUPE;
+KB		return KBYTES;
+KBYTES		return KBYTES;
+KILOBYTES	return KBYTES;
+KILL		return KILL;
+LEAF		return LEAF;
+LIST_CHAN	return TPRIV_LIST_CHAN;
+LOCAL		return LOCAL;
+LOCAL_BADCHAN	return TPRIV_LOCAL_BADCHAN;
+LOCAL_GLINE	return TPRIV_LOCAL_GLINE;
+LOCAL_JUPE	return TPRIV_LOCAL_JUPE;
+LOCAL_OPMODE	return TPRIV_LOCAL_OPMODE;
+LOCATION	return LOCATION;
+MASK		return MASK;
+MAXHOPS		return MAXHOPS;
+MAXLINKS	return MAXLINKS;
+MB		return MBYTES;
+MBYTES		return MBYTES;
+MEGABYTES	return MBYTES;
+MINUTES		return MINUTES;
+MODE_LCHAN	return TPRIV_MODE_LCHAN;
+MONTHS		return MONTHS;
+MOTD		return MOTD;
+NAME		return NAME;
+NICK		return NICK;
+NO		return NO;
+NUMERIC		return NUMERIC;
+OPER		return OPER;
+OPERATOR	return OPER;
+OPMODE		return TPRIV_OPMODE;
+PASS		return PASS;
+PASSWORD	return PASS;
+PINGFREQ	return PINGFREQ;
+PORT		return PORT;
+PREPEND		return PREPEND;
+PROGRAM		return PROGRAM;
+PROPAGATE	return TPRIV_PROPAGATE;
+PSEUDO		return PSEUDO;
+QUARANTINE	return QUARANTINE;
+REAL		return REAL;
+REALNAME	return REAL;
+REASON		return REASON;
+REHASH		return TPRIV_REHASH;
+RESTART		return TPRIV_RESTART;
+RULE		return RULE;
+SECONDS		return SECONDS;
+SEE_CHAN	return TPRIV_SEE_CHAN;
+SEE_OPERS	return TPRIV_SEE_OPERS;
+SENDQ		return SENDQ;
+SERVER		return SERVER;
+SET		return TPRIV_SET;
+SHOW_ALL_INVIS	return TPRIV_SHOW_ALL_INVIS;
+SHOW_INVIS	return TPRIV_SHOW_INVIS;
+TIMEOUT		return TIMEOUT;
+TB		return TBYTES;
+TBYTES		return TBYTES;
+TERABYTES	return TBYTES;
+UNLIMIT_QUERY	return TPRIV_UNLIMIT_QUERY;
+USERMODE	return USERMODE;
+USERNAME	return USERNAME;
+UWORLD		return UWORLD;
+VHOST		return VHOST;
+WALK_LCHAN	return TPRIV_WALK_LCHAN;
+WEEKS		return WEEKS;
+WIDE_GLINE	return TPRIV_WIDE_GLINE;
+WHOX		return TPRIV_WHOX;
+YEARS		return YEARS;
+YES		return YES;
+
 . return yytext[0];

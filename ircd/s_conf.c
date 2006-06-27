@@ -825,7 +825,7 @@ static int conf_error;
 static int conf_already_read;
 extern FILE *yyin;
 extern void yyparse(void);
-extern void init_lexer(void);
+extern void init_lexer(const char *configfile);
 
 /** Read configuration file.
  * @return Zero on failure, non-zero on success. */
@@ -833,8 +833,7 @@ int read_configuration_file(void)
 {
   conf_error = 0;
   feature_unmark(); /* unmark all features for resetting later */
-  /* Now just open an fd. The buffering isn't really needed... */
-  init_lexer();
+  init_lexer(configfile);
   yyparse();
   fclose(yyin);
   yyin = NULL;

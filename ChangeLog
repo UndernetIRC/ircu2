@@ -1,3 +1,14 @@
+2006-06-27  Michael Poole <mdpoole@troilus.org>
+
+	* configure.ac: Make sure that $LEX is flex-compatible.
+
+	* test.l: Helper file for this test.
+
+	* ircd/ircd_lexer.l: Rewrite to use flex features.
+
+	* ircd/s_conf.c (read_configuration_file): Pass configfile as a
+	parameter to init_lexer().
+
 2006-06-26  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h (CHFL_DEOPPED): Delete, along with its

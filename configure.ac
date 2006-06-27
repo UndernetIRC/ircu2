@@ -56,6 +56,18 @@ dnl Look up the lexer and yaccer
 AM_PROG_LEX
 AC_PROG_YACC
 
+dnl Make sure that lex is flex (or something sufficiently close)
+echo $ECHO_N "checking $LEX compatibility... " >&6
+if ! $LEX ${srcdir}/test.l >&5 ; then
+  AC_MSG_ERROR([Unable to run $LEX on ${srcdir}/test.l, try using flex 2.5 or newer.])
+elif ! $CC -c $CFLAGS $CPPFLAGS lex.yy.c >&5 ; then
+  rm -f lex.yy.c
+  AC_MSG_ERROR([Unable to compile lex.yy.c, check config.log for $LEX errors.])
+else
+  rm -f lex.yy.c lex.yy.o
+  echo "${ECHO_T}okay" >&6
+fi
+
 dnl Let's find the library containing crypt...
 AC_SEARCH_LIBS(crypt, [descrypt crypt], ,
 [AC_MSG_ERROR([Unable to find library containing crypt()])])
