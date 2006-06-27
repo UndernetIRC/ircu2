@@ -112,8 +112,6 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership* member2;
   char *name, *comment;
 
-  ClrFlag(sptr, FLAG_TS8);
-
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");
 
@@ -189,8 +187,6 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Channel *chptr;
   struct Membership *member = 0, *sptr_link = 0;
   char *name, *comment;
-
-  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3 || *parv[1] == '\0')
     return need_more_params(sptr, "KICK");

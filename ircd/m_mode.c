@@ -115,8 +115,6 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
 
-  ClrFlag(sptr, FLAG_TS8);
-
   member = find_member_link(chptr, sptr);
 
   if (parc < 3) {
@@ -169,8 +167,6 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (!(chptr = FindChannel(parv[1])))
     return set_user_mode(cptr, sptr, parc, parv);
-
-  ClrFlag(sptr, FLAG_TS8);
 
   if (IsServer(sptr)) {
     if (find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))

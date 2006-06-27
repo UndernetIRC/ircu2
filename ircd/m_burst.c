@@ -443,7 +443,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	int last_oplevel = 0;
 	struct Membership* member;
 
-        base_mode = CHFL_DEOPPED | CHFL_BURST_JOINED;
+        base_mode = CHFL_BURST_JOINED;
         if (chptr->mode.mode & MODE_DELJOINS)
             base_mode |= CHFL_DELAYED;
         current_mode = last_mode = base_mode;
@@ -468,7 +468,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    current_mode = base_mode;
 		    current_mode_needs_reset = 0;
 		  }
-		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
+		  current_mode = (current_mode & ~CHFL_DELAYED) | CHFL_CHANOP;
 		}
 		else if (*ptr == 'v') { /* has voice status */
 		  if (current_mode_needs_reset) {
@@ -487,7 +487,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    }
 		    oplevel = 0;
 		  }
-		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
+		  current_mode = (current_mode & ~CHFL_DELAYED) | CHFL_CHANOP;
 		  do {
 		    level_increment = 10 * level_increment + *ptr++ - '0';
 		  } while (IsDigit(*ptr));
@@ -582,9 +582,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  modebuf_mode_client(mbuf, MODE_DEL | CHFL_CHANOP, member->user, OpLevel(member));
 	if (member->status & CHFL_VOICE)
 	  modebuf_mode_client(mbuf, MODE_DEL | CHFL_VOICE, member->user, OpLevel(member));
-	member->status = (member->status
-                          & ~(CHFL_CHANNEL_MANAGER | CHFL_CHANOP | CHFL_VOICE))
-			 | CHFL_DEOPPED;
+	member->status &= ~(CHFL_CHANNEL_MANAGER | CHFL_CHANOP | CHFL_VOICE);
       }
     }
 

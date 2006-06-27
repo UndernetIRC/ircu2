@@ -1,5 +1,46 @@
 2006-06-26  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h (CHFL_DEOPPED): Delete, along with its
+	associated macros.
+	(CHFL_SERVOPOK): Likewise.
+
+	* include/client.h (FLAG_TS8): Likewise.
+
+	* ircd/channel.c (mode_process_clients): Remove references to
+	CHFL_DEOPPED, CHFL_SERVOPOK and FLAG_TS8
+
+	* ircd/m_burst.c (ms_burst): Likewise.
+
+	* ircd/m_join.c (m_join): Likewise.
+	(ms_join): Likewise.
+
+	* ircd/m_kick.c (m_kick): Remove references to FLAG_TS8.
+	(ms_kick): Likewise.
+
+	* ircd/m_mode.c (m_mode): Likewise.
+	(ms_mode): Likewise.
+
+	* ircd/m_notice.c (m_notice): Likewise.
+	(ms_notice): Likewise.
+	(mo_notice): Likewise.
+
+	* ircd/m_part.c (m_part): Likewise.
+	(ms_part): Likewise.
+
+	* ircd/m_privmsg.c (m_privmsg): Likewise.
+	(ms_privmsg): Likewise.
+	(mo_privmsg): Likewise.
+
+	* ircd/m_server.c (ms_server): Likewise.
+
+	* ircd/m_wallchops.c (m_wallchops): Likewise.
+
+	* ircd/m_wallvoices.c (m_wallvoices): Likewise.
+
+	* ircd/s_user.c (register_user): Likewise.
+
+2006-06-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd.c (main): Remove now-redundant call to motd_init() and
 	#include "motd.h".
 

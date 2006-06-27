@@ -149,7 +149,6 @@ enum Flag
     FLAG_GOTID,                     /**< successful ident lookup achieved */
     FLAG_DOID,                      /**< I-lines say must use ident return */
     FLAG_NONL,                      /**< No \n in buffer */
-    FLAG_TS8,                       /**< Why do you want to know? */
     FLAG_MAP,                       /**< Show server on the map */
     FLAG_JUNCTION,                  /**< Junction causing the net.burst. */
     FLAG_BURST,                     /**< Server is receiving a net.burst */

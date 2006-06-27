@@ -178,7 +178,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     } else if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
       continue;
     } else {
-      int flags = CHFL_DEOPPED;
+      int flags = 0;
       int err = 0;
 
       /* Check Apass/Upass -- since we only ever look at a single
@@ -287,7 +287,6 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Membership *member;
   struct Channel *chptr;
   struct JoinBuf join;
-  unsigned int flags;
   time_t creation = 0;
   char *p = 0;
   char *chanlist;
@@ -316,8 +315,6 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   for (name = ircd_strtok(&p, chanlist, ","); name;
        name = ircd_strtok(&p, 0, ",")) {
 
-    flags = CHFL_DEOPPED;
-
     if (IsLocalChannel(name) || !IsChannelName(name))
     {
       protocol_violation(cptr, "%s tried to join %s", cli_name(sptr), name);
@@ -333,8 +330,6 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         		   name,cli_name(sptr));
       	continue;
       }
-      flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
-
       chptr->creationtime = creation;
     }
     else { /* We have a valid channel? */
@@ -344,12 +339,9 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!IsZombie(member)) /* already on channel */
 	  continue;
 
-	flags = member->status & (CHFL_DEOPPED | CHFL_SERVOPOK);
 	remove_user_from_channel(sptr, chptr);
 	chptr = FindChannel(name);
       }
-      else
-        flags |= HasFlag(sptr, FLAG_TS8) ? CHFL_SERVOPOK : 0;
       /* Always copy the timestamp when it is older, that is the only way to
          ensure network-wide synchronization of creation times.
          We now also copy a creation time that only 1 second younger...
@@ -417,7 +409,7 @@ int ms_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
     }
 
-    joinbuf_join(&join, chptr, flags);
+    joinbuf_join(&join, chptr, 0);
   }
 
   joinbuf_flush(&join); /* flush joins... */

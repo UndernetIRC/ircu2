@@ -3005,8 +3005,6 @@ mode_process_clients(struct ParseState *state)
           RevealDelayedJoin(member);
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
-	if (state->cli_change[i].flag & MODE_CHANOP)
-	  ClearDeopped(member);
       } else
 	member->status &= ~(state->cli_change[i].flag &
 			    (MODE_CHANOP | MODE_VOICE));

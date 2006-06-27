@@ -59,8 +59,6 @@ struct Client;
 
 #define CHFL_CHANOP             0x0001  /**< Channel operator */
 #define CHFL_VOICE              0x0002  /**< the power to speak */
-#define CHFL_DEOPPED            0x0004  /**< Is de-opped by a server */
-#define CHFL_SERVOPOK           0x0008  /**< Server op allowed */
 #define CHFL_ZOMBIE             0x0010  /**< Kicked from channel */
 #define CHFL_BURST_JOINED       0x0100  /**< Just joined by net.junction */
 #define CHFL_BANVALID           0x0800  /**< CHFL_BANNED bit is valid */
@@ -198,13 +196,11 @@ struct Membership {
 #define MAXOPLEVEL          999
 
 #define IsZombie(x)         ((x)->status & CHFL_ZOMBIE) /**< see \ref zombie */
-#define IsDeopped(x)        ((x)->status & CHFL_DEOPPED)
 #define IsBanned(x)         ((x)->status & CHFL_BANNED)
 #define IsBanValid(x)       ((x)->status & CHFL_BANVALID)
 #define IsChanOp(x)         ((x)->status & CHFL_CHANOP)
 #define OpLevel(x)          ((x)->oplevel)
 #define HasVoice(x)         ((x)->status & CHFL_VOICE)
-#define IsServOpOk(x)       ((x)->status & CHFL_SERVOPOK)
 #define IsBurstJoined(x)    ((x)->status & CHFL_BURST_JOINED)
 #define IsVoicedOrOpped(x)  ((x)->status & CHFL_VOICED_OR_OPPED)
 #define IsChannelManager(x) ((x)->status & CHFL_CHANNEL_MANAGER)
@@ -213,8 +209,6 @@ struct Membership {
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
-#define SetDeopped(x)       ((x)->status |= CHFL_DEOPPED)
-#define SetServOpOk(x)      ((x)->status |= CHFL_SERVOPOK)
 #define SetBurstJoined(x)   ((x)->status |= CHFL_BURST_JOINED)
 #define SetZombie(x)        ((x)->status |= CHFL_ZOMBIE)
 #define SetChannelManager(x) ((x)->status |= CHFL_CHANNEL_MANAGER)
@@ -224,8 +218,6 @@ struct Membership {
 
 #define ClearBanned(x)      ((x)->status &= ~CHFL_BANNED)
 #define ClearBanValid(x)    ((x)->status &= ~CHFL_BANVALID)
-#define ClearDeopped(x)     ((x)->status &= ~CHFL_DEOPPED)
-#define ClearServOpOk(x)    ((x)->status &= ~CHFL_SERVOPOK)
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
 #define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
 

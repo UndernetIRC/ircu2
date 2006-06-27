@@ -749,8 +749,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     set_server_flags(acptr, parv[7] + 1);
 
   Count_newremoteserver(UserStats);
-  if (Protocol(acptr) < 10)
-    SetFlag(acptr, FLAG_TS8);
   add_client_to_list(acptr);
   hAddClient(acptr);
   if (*parv[5] == 'J')

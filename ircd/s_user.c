@@ -430,8 +430,6 @@ int register_user(struct Client *cptr, struct Client *sptr)
       SetFlag(sptr, FLAG_KILLED);
       return exit_client(cptr, sptr, &me, "NICK server wrong direction");
     }
-    else if (HasFlag(acptr, FLAG_TS8))
-      SetFlag(sptr, FLAG_TS8);
 
     /*
      * Check to see if this user is being propagated

@@ -113,8 +113,6 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  ClrFlag(sptr, FLAG_TS8);
-
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
 
@@ -155,8 +153,6 @@ int ms_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char* name;
   char* server;
-
-  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 3) {
     /*
@@ -202,8 +198,6 @@ int mo_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char*           vector[MAXTARGETS];
   assert(0 != cptr);
   assert(cptr == sptr);
-
-  ClrFlag(sptr, FLAG_TS8);
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
