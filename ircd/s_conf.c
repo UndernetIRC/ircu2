@@ -75,7 +75,7 @@ struct s_map     *GlobalServiceMapList;
 struct qline     *GlobalQuarantineList;
 
 /** Current line number in scanner input. */
-int lineno;
+extern int yylineno;
 
 /** Configuration information for #me. */
 struct LocalConf   localConf;
@@ -825,7 +825,7 @@ static int conf_error;
 static int conf_already_read;
 extern FILE *yyin;
 extern void yyparse(void);
-extern void init_lexer(const char *configfile);
+extern int init_lexer(const char *configfile);
 
 /** Read configuration file.
  * @return Zero on failure, non-zero on success. */
@@ -833,7 +833,8 @@ int read_configuration_file(void)
 {
   conf_error = 0;
   feature_unmark(); /* unmark all features for resetting later */
-  init_lexer(configfile);
+  if (!init_lexer(configfile))
+    return 0;
   yyparse();
   fclose(yyin);
   yyin = NULL;
@@ -849,11 +850,11 @@ void
 yyerror(const char *msg)
 {
  sendto_opmask_butone(0, SNO_ALL, "Config file parse error line %d: %s",
-                      lineno, msg);
+                      yylineno, msg);
  log_write(LS_CONFIG, L_ERROR, 0, "Config file parse error line %d: %s",
-           lineno, msg);
+           yylineno, msg);
  if (!conf_already_read)
-   fprintf(stderr, "Config file parse error line %d: %s\n", lineno, msg);
+   fprintf(stderr, "Config file parse error line %d: %s\n", yylineno, msg);
  conf_error = 1;
 }
 

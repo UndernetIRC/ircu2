@@ -24,38 +24,46 @@
 
 %{
 
-#ifndef YY_FATAL_ERROR
-# define YY_FATAL_ERROR(MSG) fprintf(stderr, MSG)
-#endif
-
-#ifndef YY_NEW_FILE
-# define YY_NEW_FILE
-#endif
-
 #include "config.h"
 #include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "ircd_parser.h"
 
-void
+extern void yyerror(const char *pattern);
+
+int
 init_lexer(const char *configfile)
 {
   yyin = fopen(configfile, "r");
   if (yyin == NULL)
   {
-    YY_FATAL_ERROR("Could not open the configuration file.");
+    fprintf(stderr, "Could not open the configuration file.");
+    return 0;
   }
-  YY_NEW_FILE;
+  return 1;
+}
+
+void
+lexer_include(const char *filename)
+{
+  yyin = fopen(filename, "r");
+  if (yyin == NULL)
+  {
+    yyerror("Unable to open included configuration file.");
+    return TEOF;
+  }
+  yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 }
 
 %}
 
 %%
 
-\"[^"\n]+[\"\n] {yytext[yyleng-1] = 0; DupString(yylval.text, yytext+1); return QSTRING;}
+\"[^"\n]+[\"\n]	{yytext[yyleng-1] = 0; DupString(yylval.text, yytext+1); return QSTRING;}
 [0-9]+		{yylval.num = strtoul(yytext, NULL, 10); return NUMBER;}
 [ \t\r\n]+	;
 #.*		;
+<<EOF>>		{ yypop_buffer_state(); if (YY_CURRENT_BUFFER) return TEOF; else yyterminate(); }
 
 ADMIN		return ADMIN;
 ADMINISTRATOR	return ADMIN;
@@ -66,7 +74,6 @@ AUTOCONNECT	return AUTOCONNECT;
 B		return BYTES;
 BADCHAN		return TPRIV_BADCHAN;
 BYTES		return BYTES;
-CHANNEL		return CHANNEL;
 CHAN_LIMIT	return TPRIV_CHAN_LIMIT;
 CLASS		return CLASS;
 CLIENT		return CLIENT;
@@ -85,6 +92,7 @@ FEATURES	return FEATURES;
 FILE		return TFILE;
 FORCE_LOCAL_OPMODE	return TPRIV_FORCE_LOCAL_OPMODE;
 FORCE_OPMODE	return TPRIV_FORCE_OPMODE;
+FROM		return FROM;
 GB		return GBYTES;
 GBYTES		return GBYTES;
 GENERAL		return GENERAL;
@@ -95,6 +103,7 @@ HOST		return HOST;
 HOURS		return HOURS;
 HUB		return HUB;
 IAUTH		return IAUTH;
+INCLUDE		return INCLUDE;
 IP		return IP;
 JUPE		return JUPE;
 KB		return KBYTES;
@@ -102,6 +111,7 @@ KBYTES		return KBYTES;
 KILOBYTES	return KBYTES;
 KILL		return KILL;
 LEAF		return LEAF;
+LINESYNC	return LINESYNC;
 LIST_CHAN	return TPRIV_LIST_CHAN;
 LOCAL		return LOCAL;
 LOCAL_BADCHAN	return TPRIV_LOCAL_BADCHAN;
@@ -149,7 +159,6 @@ SERVER		return SERVER;
 SET		return TPRIV_SET;
 SHOW_ALL_INVIS	return TPRIV_SHOW_ALL_INVIS;
 SHOW_INVIS	return TPRIV_SHOW_INVIS;
-TIMEOUT		return TIMEOUT;
 TB		return TBYTES;
 TBYTES		return TBYTES;
 TERABYTES	return TBYTES;

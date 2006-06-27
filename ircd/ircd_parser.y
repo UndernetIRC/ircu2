@@ -97,7 +97,6 @@ static void parse_error(char *pattern,...) {
 %token CONTACT
 %token CONNECT
 %token CLASS
-%token CHANNEL
 %token PINGFREQ
 %token CONNECTFREQ
 %token MAXLINKS
@@ -152,10 +151,13 @@ static void parse_error(char *pattern,...) {
 %token PREPEND
 %token USERMODE
 %token IAUTH
-%token TIMEOUT
 %token FAST
 %token AUTOCONNECT
 %token PROGRAM
+%token INCLUDE
+%token LINESYNC
+%token FROM
+%token TEOF
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -183,7 +185,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | iauthblock | error ';';
+       pseudoblock | iauthblock | includeblock | error ';';
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -1018,3 +1020,46 @@ iauthprogram: PROGRAM '='
   while (stringno > 0)
     MyFree(stringlist[stringno--]);
 } stringlist ';';
+
+includeblock: INCLUDE QSTRING ';' { lexer_include($2); } blocks TEOF;
+
+/* These limitations are truly a pain, but making the allowed blocks a
+ * function of a list after the INCLUDE means context dependency and
+ * making a build-time list of combinations, each one either a token
+ * emitted by the lexer (2**N token types, one state each) or a list
+ * of token permutations (O(N!) states) -- neither of which is a happy
+ * place for the generated parser.
+ */
+
+includeblock: INCLUDE LINESYNC FROM QSTRING ';' { lexer_include($4); } linesyncblocks2 TEOF;
+linesyncblocks2: linesyncblocks | error;
+linesyncblocks: linesyncblocks linesyncblock | ;
+linesyncblock: uworldblock | jupeblock | quarantineblock | killblock;
+
+includeblock: INCLUDE CLASS FROM QSTRING ';' { lexer_include($4); } classblocks2 TEOF;
+classblocks2: classblocks | error;
+classblocks: classblocks classblock | ;
+
+includeblock: INCLUDE UWORLD FROM QSTRING ';' { lexer_include($4); } uworldblocks2 TEOF;
+uworldblocks2: uworldblocks | error;
+uworldblocks: uworldblocks uworldblock | ;
+
+includeblock: INCLUDE OPER FROM QSTRING ';' { lexer_include($4); } operblocks2 TEOF;
+operblocks2: operblocks | error;
+operblocks: operblocks operblock | ;
+
+includeblock: INCLUDE JUPE FROM QSTRING ';' { lexer_include($4); } jupeblocks2 TEOF;
+jupeblocks2: jupeblocks | error;
+jupeblocks: jupeblocks jupeblock | ;
+
+includeblock: INCLUDE CLIENT FROM QSTRING ';' { lexer_include($4); } clientblocks2 TEOF;
+clientblocks2: clientblocks | error;
+clientblocks: clientblocks clientblock | ;
+
+includeblock: INCLUDE KILL FROM QSTRING ';' { lexer_include($4); } killblocks2 TEOF;
+killblocks2: killblocks | error;
+killblocks: killblocks killblock | ;
+
+includeblock: INCLUDE QUARANTINE FROM QSTRING ';' { lexer_include($4); } quarantineblocks2 TEOF;
+quarantineblocks2: quarantineblocks | error;
+quarantineblocks: quarantineblocks quarantineblock | ;
