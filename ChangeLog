@@ -1,5 +1,10 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_cap.c: Doxygenate structures, variables and functions
+	that were not documented before.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_burst.c (m_functions): Delete duplicative comment.
 	(netride_modes): Add doxygen comment.
 	(ms_burst): Convert comment to doxygen format.

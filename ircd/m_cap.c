@@ -44,14 +44,18 @@
 
 typedef int (*bqcmp)(const void *, const void *);
 
-static struct capabilities {
-  enum Capab cap;
-  char *capstr;
-  unsigned long flags;
-  char *name;
-  int namelen;
-} capab_list[] = {
-#define _CAP(cap, flags, name)						      \
+/** Capability descriptor structure. */
+struct capabilities {
+  enum Capab cap;	/**< Capability identifier. */
+  char *capstr;		/**< Capability id string. */
+  unsigned long flags;  /**< Bitset of CAPFL_* flags. */
+  char *name;		/**< Long capability name. */
+  int namelen;		/**< Length of capability name string. */
+};
+
+/** List of supported capabilities. */
+static struct capabilities capab_list[] = {
+#define _CAP(cap, flags, name) \
 	{ CAP_ ## cap, #cap, (flags), (name), sizeof(name) - 1 }
   CAPLIST
 #undef _CAP
@@ -59,12 +63,24 @@ static struct capabilities {
 
 #define CAPAB_LIST_LEN	(sizeof(capab_list) / sizeof(struct capabilities))
 
+/** Compare two capabilities by comparing their names.
+ * @param[in] cap1 First capability to compare.
+ * @param[in] cap2 Second capability to compare.
+ * @return <0, 0 or >0 if \a cap1->name is byte-wise before, equal to,
+ *   or after (respectively) \a cap2->name.
+ */
 static int
 capab_sort(const struct capabilities *cap1, const struct capabilities *cap2)
 {
   return ircd_strcmp(cap1->name, cap2->name);
 }
 
+/** Compare a name to a capability name, case-insensitively.
+ * @param[in] key Capability name to search for.
+ * @param[in] cap Capability to match against.
+ * @return <0 or >0 if the first word of \a key does not match \a
+ * cap->name; 0 if the first word of \a key is equal to \a cap->name.
+ */
 static int
 capab_search(const char *key, const struct capabilities *cap)
 {
@@ -82,6 +98,18 @@ capab_search(const char *key, const struct capabilities *cap)
   return (IsSpace(*key) && !*rb) ? 0 : (ToLower(*key) - ToLower(*rb));
 }
 
+/** Parse first capability name from a string.
+ * Scans past whitespace in \a *caplist_p.  If the next character is
+ * '-', sets \a *neg_p to non-zero, else sets it to zero.  The
+ * following word of the string is looked up as a capability name; if
+ * it matches, a pointer to the corresponding capability descriptor is
+ * returned.  \a *caplist_p is updated to point to the byte following
+ * the first word of the input string.
+ *
+ * @param[in,out] caplist_p Pointer to string to parse.
+ * @param[out] neg_p Set to non-zero to indicate a leading '-'.
+ * @return A pointer to the named capability, or NULL if none exists.
+ */
 static struct capabilities *
 find_cap(const char **caplist_p, int *neg_p)
 {
@@ -135,6 +163,7 @@ find_cap(const char **caplist_p, int *neg_p)
  * @param[in] set Capabilities to show as set (with ack and sticky modifiers).
  * @param[in] rem Capabalities to show as removed (with no other modifier).
  * @param[in] subcmd Name of capability subcommand.
+ * @return Zero.
  */
 static int
 send_caplist(struct Client *sptr, const struct CapSet *set,
@@ -190,6 +219,11 @@ send_caplist(struct Client *sptr, const struct CapSet *set,
   return 0; /* convenience return */
 }
 
+/** Send list of supported capabilities to a client.
+ * @param[in] sptr Client requesting list of capabilities.
+ * @param[in] caplist Ignored.
+ * @return Zero.
+ */
 static int
 cap_ls(struct Client *sptr, const char *caplist)
 {
@@ -198,6 +232,11 @@ cap_ls(struct Client *sptr, const char *caplist)
   return send_caplist(sptr, 0, 0, "LS"); /* send list of capabilities */
 }
 
+/** Handle a client's request for negotiated capabilities.
+ * @param[in] sptr Client requesting extended features.
+ * @param[in] caplist The list of capabilities being requested.
+ * @return Zero.
+ */
 static int
 cap_req(struct Client *sptr, const char *caplist)
 {
@@ -244,6 +283,11 @@ cap_req(struct Client *sptr, const char *caplist)
   return 0;
 }
 
+/** Handle a client's acceptance of negotiated capabilities.
+ * @param[in] sptr Client accepting extended features.
+ * @param[in] caplist Capabilities being acknowledged.
+ * @return Zero.
+ */
 static int
 cap_ack(struct Client *sptr, const char *caplist)
 {
@@ -269,6 +313,11 @@ cap_ack(struct Client *sptr, const char *caplist)
   return 0;
 }
 
+/** Handle a client's request to clear its active capabilities.
+ * @param[in] sptr Client requesting capability clearance.
+ * @param[in] caplist Ignored.
+ * @return Zero.
+ */
 static int
 cap_clear(struct Client *sptr, const char *caplist)
 {
@@ -294,6 +343,12 @@ cap_clear(struct Client *sptr, const char *caplist)
   return 0;
 }
 
+/** Handle a client's request to end capability negotiation.
+ * @param[in] sptr Client ending capability negotiation.
+ * @param[in] caplist Ignored.
+ * @return Non-zero if authorization process disconnected the client,
+ *   else zero.
+ */
 static int
 cap_end(struct Client *sptr, const char *caplist)
 {
@@ -303,6 +358,11 @@ cap_end(struct Client *sptr, const char *caplist)
   return auth_cap_done(cli_auth(sptr));
 }
 
+/** Handle a client's request for a list of active capabilities.
+ * @param[in] sptr Client requesting capability list.
+ * @param[in] caplist Ignored.
+ * @return Zero.
+ */
 static int
 cap_list(struct Client *sptr, const char *caplist)
 {
@@ -310,10 +370,17 @@ cap_list(struct Client *sptr, const char *caplist)
   return send_caplist(sptr, cli_capab(sptr), 0, "LIST");
 }
 
-static struct subcmd {
-  char *cmd;
+/** Capability sub-command descriptor structure. */
+struct subcmd {
+  char *cmd; /**< Sub-command name. */
+  /** Sub-command handler function. */
   int (*proc)(struct Client *sptr, const char *caplist);
-} cmdlist[] = {
+};
+
+/** List of supported CAP sub-commands.
+ * This MUST be sorted according to subcmd_search()'s order.
+ */
+static struct subcmd cmdlist[] = {
   { "ACK",   cap_ack   },
   { "CLEAR", cap_clear },
   { "END",   cap_end   },
@@ -323,6 +390,12 @@ static struct subcmd {
   { "REQ",   cap_req   }
 };
 
+/** Check a sub-command's name.
+ * @param[in] cmd Text command name.
+ * @param[in] elem Sub-command to compare against.
+ * @return <0, 0 or >0 if \a cmd is less than, equal to, or greater
+ *   than (respectively) than \a elem->cmd.
+ */
 static int
 subcmd_search(const char *cmd, const struct subcmd *elem)
 {
