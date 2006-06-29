@@ -823,7 +823,6 @@ void clear_quarantines(void)
 static int conf_error;
 /** When non-zero, indicates that the configuration file was loaded at least once. */
 static int conf_already_read;
-extern FILE *yyin;
 extern void yyparse(void);
 extern int init_lexer(const char *configfile);
 
@@ -836,8 +835,6 @@ int read_configuration_file(void)
   if (!init_lexer(configfile))
     return 0;
   yyparse();
-  fclose(yyin);
-  yyin = NULL;
   feature_mark(); /* reset unmarked features */
   conf_already_read = 1;
   return 1;
@@ -856,6 +853,41 @@ yyerror(const char *msg)
  if (!conf_already_read)
    fprintf(stderr, "Config file parse error line %d: %s\n", yylineno, msg);
  conf_error = 1;
+}
+
+/** Report an error message about the configuration file.
+ * @param fmt The error to report.
+ */
+void
+yyserror(const char *fmt, ...)
+{
+  static char error_buffer[1024];
+  va_list vl;
+
+  va_start(vl, fmt);
+  ircd_vsnprintf(NULL, error_buffer, sizeof(error_buffer), fmt, vl);
+  va_end(vl);
+  yyerror(error_buffer);
+}
+
+/** Report a recoverable warning about the configuration file.
+ * @param fmt The error to report.
+ */
+void
+yywarning(const char *fmt, ...)
+{
+  static char warn_buffer[1024];
+  va_list vl;
+
+  va_start(vl, fmt);
+  ircd_vsnprintf(NULL, warn_buffer, sizeof(warn_buffer), fmt, vl);
+  va_end(vl);
+  sendto_opmask_butone(0, SNO_ALL, "Config warning on line %d: %s",
+                       yylineno, warn_buffer);
+  log_write(LS_CONFIG, L_WARNING, 0, "Config warning on line %d: %s",
+                       yylineno, warn_buffer);
+  if (!conf_already_read)
+    fprintf(stderr, "Config warning on line %d: %s\n", yylineno, warn_buffer);
 }
 
 /** Attach CONF_UWORLD items to a server and everything attached to it. */

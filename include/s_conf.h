@@ -189,5 +189,7 @@ extern struct ConfItem *conf_debug_iline(const char *client);
 extern void free_mapping(struct s_map *smap);
 
 extern void yyerror(const char *msg);
+extern void yyserror(const char *fmt, ...);
+extern void yywarning(const char *fmt, ...);
 
 #endif /* INCLUDED_s_conf_h */

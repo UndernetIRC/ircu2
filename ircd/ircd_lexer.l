@@ -29,7 +29,7 @@
 #include "ircd_string.h"
 #include "ircd_parser.h"
 
-extern void yyerror(const char *pattern);
+extern void yyserror(const char *pattern, ...);
 
 int
 init_lexer(const char *configfile)
@@ -40,17 +40,25 @@ init_lexer(const char *configfile)
     fprintf(stderr, "Could not open the configuration file.");
     return 0;
   }
+  yy_init = 1;
   return 1;
 }
 
 void
 lexer_include(const char *filename)
 {
+  if (filename == NULL)
+  {
+    yypush_buffer_state(yy_scan_string(""));
+    return;
+  }
+
   yyin = fopen(filename, "r");
   if (yyin == NULL)
   {
-    yyerror("Unable to open included configuration file.");
-    return TEOF;
+    yyserror("Unable to open included file '%s'.", filename);
+    yypush_buffer_state(yy_scan_string(""));
+    return;
   }
   yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 }

@@ -1,5 +1,19 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_conf.h (yyserror): Declare new function.
+	(yywarning): Declare new function.
+
+	* ircd/ircd_lexer.l (init_lexer): Ensure lexer initializes its
+	state on rehash.
+	(lexer_include): Support NULL filename to mean empty string.  If
+	unable to open a file, warn with yyserror() but do the same.
+
+	* ircd/s_conf.c (yyin): Remove declaration and do not touch.
+	(yyserror): New function.
+	(yywarning): New function.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_alloc.h (MyFree): Fix "if" nesting.
 
 2006-06-27  Michael Poole <mdpoole@troilus.org>
