@@ -1,5 +1,41 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_clearmode.c (m_functions): Delete duplicative comment.
+	(do_clearmode): Write doxygen comment.
+	(ms_clearmode): Write doxygen comment.
+	(mo_clearmode): Write doxygen comment.
+
+	* ircd/m_close.c (m_functions): Delete duplicative comment.
+	(mo_close): Write doxygen comment.
+
+	* ircd/m_connect.c (m_functions): Delete duplicative comment.
+	(ms_connect): Write doxygen comment.
+	(mo_connect): Write doxygen comment.
+
+	* ircd/m_cprivmsg.c (m_functions): Delete duplicative comment.
+	(m_cprivmsg): Write doxygen comment.  Fix parv[3] use.
+	(m_cnotice): Write doxygen comment.  Fix parv[3] use.
+
+	* ircd/m_create.c (m_functions): Delete duplicative comment.
+	(ms_create): Write doxygen comment.
+
+	* ircd/m_defaults.c (m_functions): Delete duplicative comment.
+	(m_not_oper): Write doxygen comment.
+	(m_unregistered): Write doxygen comment.
+	(m_registered): Write doxygen comment.
+	(m_ignore): Write doxygen comment.
+
+	* ircd/m_destruct.c (ms_destruct): Convert comment to doxygen
+	format.
+
+	* ircd/m_desynch.c (m_functions): Delete duplicative comment.
+	(ms_desynch): Write doxygen comment.
+
+	* ircd/m_die.c (m_functions): Delete duplicative comment.
+	(mo_die): Write doxygen comment.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_cap.c: Doxygenate structures, variables and functions
 	that were not documented before.
 

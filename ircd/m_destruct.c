@@ -40,14 +40,13 @@
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
 
-/*
- * ms_destruct - server message handler
+/** Handle a DESTRUCT message from a server.
+ *
+ * \a parv has the following elements:
+ * \li \a parv[1] Name of channel to destroy
+ * \li \a parv[2] Timestamp of channel to destroy
  *
  * Added 1997 by Run, actually coded and used since 2002.
- *
- * parv[0] = sender prefix
- * parv[1] = channel channelname
- * parv[2] = channel time stamp
  *
  * This message is intended to destruct _empty_ channels.
  *
@@ -86,6 +85,12 @@
  *    destruct because it comes from an 'area' that will
  *    be overridden by our own CREATE: the state that generated
  *    this DESTRUCT is 'history'.
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
