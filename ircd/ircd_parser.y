@@ -77,13 +77,62 @@
   static struct Privs privs;
   static struct Privs privs_dirty;
 
-static void parse_error(char *pattern,...) {
-  static char error_buffer[1024];
-  va_list vl;
-  va_start(vl,pattern);
-  ircd_vsnprintf(NULL, error_buffer, sizeof(error_buffer), pattern, vl);
-  va_end(vl);
-  yyerror(error_buffer);
+#define parse_error yyserror
+
+enum ConfigBlock
+{
+  BLOCK_ADMIN,
+  BLOCK_CLASS,
+  BLOCK_CLIENT,
+  BLOCK_CONNECT,
+  BLOCK_CRULE,
+  BLOCK_FEATURES,
+  BLOCK_GENERAL,
+  BLOCK_IAUTH,
+  BLOCK_INCLUDE,
+  BLOCK_JUPE,
+  BLOCK_KILL,
+  BLOCK_MOTD,
+  BLOCK_OPER,
+  BLOCK_PORT,
+  BLOCK_PSEUDO,
+  BLOCK_QUARANTINE,
+  BLOCK_UWORLD,
+  BLOCK_LAST_BLOCK
+};
+
+struct ConfigBlocks
+{
+  struct ConfigBlocks *cb_parent;
+  unsigned long cb_allowed;
+  char cb_fname[1];
+};
+
+static struct ConfigBlocks *includes;
+
+static int
+permitted(enum ConfigBlock type, int warn)
+{
+  extern int yylineno;
+  static const char *block_names[BLOCK_LAST_BLOCK] = {
+    "Admin", "Class", "Client", "Connect", "CRule", "Features",
+    "General", "IAuth", "Include", "Jupe", "Kill", "Motd", "Oper",
+    "Port", "Pseudo", "Quarantine", "UWorld",
+  };
+
+  if (!includes)
+    return 1;
+  if (includes->cb_allowed & (1 << type))
+    return 1;
+  if (warn)
+  {
+    /* Unfortunately, flex's yylineno is hosed for included files, so
+     * do not try to use it.
+     */
+    yywarning("Forbidden '%s' block at %s.", block_names[type],
+              includes->cb_fname);
+  }
+  return 0;
 }
 
 %}
@@ -171,6 +220,7 @@ static void parse_error(char *pattern,...) {
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
 %type <num> expr yesorno privtype
+%type <num> blocklimit blocktypes blocktype
 %left '+' '-'
 %left '*' '/'
 
@@ -257,20 +307,28 @@ expr: NUMBER
 		}
 		;
 
-jupeblock: JUPE '{' jupeitems '}' ';' ;
+jupeblock: JUPE '{' {
+  (void)permitted(BLOCK_JUPE, 1);
+} jupeitems '}' ';' ;
 jupeitems: jupeitem jupeitems | jupeitem;
 jupeitem: jupenick;
 jupenick: NICK '=' QSTRING ';'
 {
-  addNickJupes($3);
-  MyFree($3);
+  if (permitted(BLOCK_JUPE, 0))
+  {
+    addNickJupes($3);
+    MyFree($3);
+  }
 };
 
 generalblock: GENERAL
 {
+  if (permitted(BLOCK_GENERAL, 1))
+  {
     /* Zero out the vhost addresses, in case they were removed. */
     memset(&VirtualHost_v4.addr, 0, sizeof(VirtualHost_v4.addr));
     memset(&VirtualHost_v6.addr, 0, sizeof(VirtualHost_v6.addr));
+  }
 } '{' generalitems '}' ';' {
   if (localConf.name == NULL)
     parse_error("Your General block must contain a name.");
@@ -281,7 +339,9 @@ generalitems: generalitem generalitems | generalitem;
 generalitem: generalnumeric | generalname | generalvhost | generaldesc;
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
-  if (localConf.numeric == 0)
+  if (!permitted(BLOCK_GENERAL, 0))
+    ;
+  else if (localConf.numeric == 0)
     localConf.numeric = $3;
   else if (localConf.numeric != $3)
     parse_error("Redefinition of server numeric %i (%i)", $3,
@@ -290,9 +350,12 @@ generalnumeric: NUMERIC '=' NUMBER ';'
 
 generalname: NAME '=' QSTRING ';'
 {
-  if (localConf.name == NULL)
+  if (!permitted(BLOCK_GENERAL, 0))
+    MyFree($3);
+  else if (localConf.name == NULL)
     localConf.name = $3;
-  else {
+  else
+  {
     if (strcmp(localConf.name, $3))
       parse_error("Redefinition of server name %s (%s)", $3,
                   localConf.name);
@@ -302,15 +365,22 @@ generalname: NAME '=' QSTRING ';'
 
 generaldesc: DESCRIPTION '=' QSTRING ';'
 {
-  MyFree(localConf.description);
-  localConf.description = $3;
-  ircd_strncpy(cli_info(&me), $3, REALLEN);
+  if (!permitted(BLOCK_GENERAL, 0))
+    MyFree($3);
+  else
+  {
+    MyFree(localConf.description);
+    localConf.description = $3;
+    ircd_strncpy(cli_info(&me), $3, REALLEN);
+  }
 };
 
 generalvhost: VHOST '=' QSTRING ';'
 {
   struct irc_in_addr addr;
-  if (!strcmp($3, "*")) {
+  if (!permitted(BLOCK_GENERAL, 0))
+    ;
+  else if (!strcmp($3, "*")) {
     /* This traditionally meant bind to all interfaces and connect
      * from the default. */
   } else if (!ircd_aton(&addr, $3))
@@ -324,10 +394,13 @@ generalvhost: VHOST '=' QSTRING ';'
 
 adminblock: ADMIN
 {
-  MyFree(localConf.location1);
-  MyFree(localConf.location2);
-  MyFree(localConf.contact);
-  localConf.location1 = localConf.location2 = localConf.contact = NULL;
+  if (permitted(BLOCK_ADMIN, 1))
+  {
+    MyFree(localConf.location1);
+    MyFree(localConf.location2);
+    MyFree(localConf.contact);
+    localConf.location1 = localConf.location2 = localConf.contact = NULL;
+  }
 }
 '{' adminitems '}' ';'
 {
@@ -342,7 +415,9 @@ adminitems: adminitems adminitem | adminitem;
 adminitem: adminlocation | admincontact;
 adminlocation: LOCATION '=' QSTRING ';'
 {
-  if (localConf.location1 == NULL)
+  if (!permitted(BLOCK_ADMIN, 0))
+    MyFree($3);
+  else if (localConf.location1 == NULL)
     localConf.location1 = $3;
   else if (localConf.location2 == NULL)
     localConf.location2 = $3;
@@ -351,15 +426,22 @@ adminlocation: LOCATION '=' QSTRING ';'
 };
 admincontact: CONTACT '=' QSTRING ';'
 {
- MyFree(localConf.contact);
- localConf.contact = $3;
+  if (!permitted(BLOCK_ADMIN, 0))
+    MyFree($3);
+  else
+  {
+    MyFree(localConf.contact);
+    localConf.contact = $3;
+  }
 };
 
 classblock: CLASS {
   tping = 90;
 } '{' classitems '}' ';'
 {
-  if (name != NULL)
+  if (!permitted(BLOCK_CLASS, 1))
+    ;
+  else if (name != NULL)
   {
     struct ConnectionClass *c_class;
     add_class(name, tping, tconn, maxlinks, sendq);
@@ -417,7 +499,9 @@ connectblock: CONNECT
 } '{' connectitems '}' ';'
 {
  struct ConfItem *aconf = NULL;
- if (name == NULL)
+ if (!permitted(BLOCK_CONNECT, 1))
+   ;
+ else if (name == NULL)
   parse_error("Missing name in connect block");
  else if (pass == NULL)
   parse_error("Missing password in connect block");
@@ -507,18 +591,23 @@ connectmaxhops: MAXHOPS '=' expr ';'
 connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
  | AUTOCONNECT '=' NO ';' { flags &= ~CONF_AUTOCONNECT; };
 
-uworldblock: UWORLD '{' uworlditems '}' ';';
+uworldblock: UWORLD '{' {
+  (void)permitted(BLOCK_UWORLD, 1);
+}  uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
 uworlditem: uworldname;
 uworldname: NAME '=' QSTRING ';'
 {
-  make_conf(CONF_UWORLD)->host = $3;
+  if (permitted(BLOCK_UWORLD, 0))
+    make_conf(CONF_UWORLD)->host = $3;
 };
 
 operblock: OPER '{' operitems '}' ';'
 {
   struct ConfItem *aconf = NULL;
-  if (name == NULL)
+  if (!permitted(BLOCK_OPER, 1))
+    ;
+  else if (name == NULL)
     parse_error("Missing name in operator block");
   else if (pass == NULL)
     parse_error("Missing password in operator block");
@@ -629,7 +718,9 @@ yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 /* The port block... */
 portblock: PORT '{' portitems '}' ';'
 {
-  if (port > 0 && port <= 0xFFFF)
+  if (!permitted(BLOCK_PORT, 1))
+    ;
+  else if (port > 0 && port <= 0xFFFF)
     add_listener(port, host, pass, tconn, tping);
   else
     parse_error("Port %d is out of range", port);
@@ -684,7 +775,9 @@ clientblock: CLIENT
   struct irc_in_addr addr;
   unsigned char addrbits = 0;
 
-  if (!c_class)
+  if (!permitted(BLOCK_CLIENT, 1))
+    ;
+  else if (!c_class)
     parse_error("Invalid or missing class in Client block");
   else if (ip && !ipmask_parse(ip, &addr, &addrbits))
     parse_error("Invalid IP address %s in Client block", ip);
@@ -776,7 +869,16 @@ killblock: KILL
   dconf = (struct DenyConf*) MyCalloc(1, sizeof(*dconf));
 } '{' killitems '}' ';'
 {
-  if (dconf->usermask || dconf->hostmask ||dconf->realmask) {
+  if (!permitted(BLOCK_KILL, 1))
+  {
+    MyFree(dconf->usermask);
+    MyFree(dconf->hostmask);
+    MyFree(dconf->realmask);
+    MyFree(dconf->message);
+    MyFree(dconf);
+  }
+  else if (dconf->usermask || dconf->hostmask ||dconf->realmask)
+  {
     dconf->next = denyConfList;
     denyConfList = dconf;
   }
@@ -844,7 +946,9 @@ cruleblock: CRULE
 } '{' cruleitems '}' ';'
 {
   struct CRuleNode *node = NULL;
-  if (host == NULL)
+  if (!permitted(BLOCK_CRULE, 1))
+    ;
+  else if (host == NULL)
     parse_error("Missing host in crule block");
   else if (pass == NULL)
     parse_error("Missing rule in crule block");
@@ -895,7 +999,7 @@ cruleall: ALL '=' YES ';'
 
 motdblock: MOTD '{' motditems '}' ';'
 {
-  if (host != NULL && pass != NULL)
+  if (permitted(BLOCK_MOTD, 1) && host != NULL && pass != NULL)
     motd_add(host, pass);
   MyFree(host);
   MyFree(pass);
@@ -914,7 +1018,9 @@ motdfile: TFILE '=' QSTRING ';'
   pass = $3;
 };
 
-featuresblock: FEATURES '{' featureitems '}' ';';
+featuresblock: FEATURES '{' {
+  (void)permitted(BLOCK_FEATURES, 1);
+} featureitems '}' ';';
 featureitems: featureitems featureitem | featureitem;
 
 featureitem: QSTRING
@@ -923,7 +1029,8 @@ featureitem: QSTRING
   stringno = 1;
 } '=' stringlist ';' {
   unsigned int ii;
-  feature_set(NULL, (const char * const *)stringlist, stringno);
+  if (permitted(BLOCK_FEATURES, 0))
+    feature_set(NULL, (const char * const *)stringlist, stringno);
   for (ii = 0; ii < stringno; ++ii)
     MyFree(stringlist[ii]);
 };
@@ -937,15 +1044,25 @@ extrastring: QSTRING
     MyFree($1);
 };
 
-quarantineblock: QUARANTINE '{' quarantineitems '}' ';';
+quarantineblock: QUARANTINE '{' {
+  (void)permitted(BLOCK_QUARANTINE, 1);
+} quarantineitems '}' ';';
 quarantineitems: quarantineitems quarantineitem | quarantineitem;
 quarantineitem: QSTRING '=' QSTRING ';'
 {
-  struct qline *qconf = MyCalloc(1, sizeof(*qconf));
-  qconf->chname = $1;
-  qconf->reason = $3;
-  qconf->next = GlobalQuarantineList;
-  GlobalQuarantineList = qconf;
+  if (!permitted(BLOCK_QUARANTINE, 0))
+  {
+    MyFree($1);
+    MyFree($3);
+  }
+  else
+  {
+    struct qline *qconf = MyCalloc(1, sizeof(*qconf));
+    qconf->chname = $1;
+    qconf->reason = $3;
+    qconf->next = GlobalQuarantineList;
+    GlobalQuarantineList = qconf;
+  }
 };
 
 pseudoblock: PSEUDO QSTRING '{'
@@ -957,7 +1074,9 @@ pseudoitems '}' ';'
 {
   int valid = 0;
 
-  if (!smap->name)
+  if (!permitted(BLOCK_PSEUDO, 1))
+    ;
+  else if (!smap->name)
     parse_error("Missing name in pseudo %s block", smap->command);
   else if (!smap->services)
     parse_error("Missing nick in pseudo %s block", smap->command);
@@ -1008,7 +1127,8 @@ pseudoflags: FAST ';'
 
 iauthblock: IAUTH '{' iauthitems '}' ';'
 {
-  auth_spawn(stringno, stringlist);
+  if (permitted(BLOCK_IAUTH, 1))
+    auth_spawn(stringno, stringlist);
   while (stringno > 0)
     MyFree(stringlist[stringno--]);
 };
@@ -1021,45 +1141,49 @@ iauthprogram: PROGRAM '='
     MyFree(stringlist[stringno--]);
 } stringlist ';';
 
-includeblock: INCLUDE QSTRING ';' { lexer_include($2); } blocks TEOF;
+includeblock: INCLUDE blocklimit QSTRING ';' {
+  struct ConfigBlocks *child;
 
-/* These limitations are truly a pain, but making the allowed blocks a
- * function of a list after the INCLUDE means context dependency and
- * making a build-time list of combinations, each one either a token
- * emitted by the lexer (2**N token types, one state each) or a list
- * of token permutations (O(N!) states) -- neither of which is a happy
- * place for the generated parser.
- */
+  child = MyCalloc(1, sizeof(*child) + strlen($3));
+  strcpy(child->cb_fname, $3);
+  child->cb_allowed = $2 & (includes ? includes->cb_allowed : ~0);
+  child->cb_parent = includes;
+  MyFree($3);
 
-includeblock: INCLUDE LINESYNC FROM QSTRING ';' { lexer_include($4); } linesyncblocks2 TEOF;
-linesyncblocks2: linesyncblocks | error;
-linesyncblocks: linesyncblocks linesyncblock | ;
-linesyncblock: uworldblock | jupeblock | quarantineblock | killblock;
+  if (permitted(BLOCK_INCLUDE, 1))
+    lexer_include(child->cb_fname);
+  else
+    lexer_include(NULL);
 
-includeblock: INCLUDE CLASS FROM QSTRING ';' { lexer_include($4); } classblocks2 TEOF;
-classblocks2: classblocks | error;
-classblocks: classblocks classblock | ;
+  includes = child;
+} blocks TEOF {
+  struct ConfigBlocks *parent;
 
-includeblock: INCLUDE UWORLD FROM QSTRING ';' { lexer_include($4); } uworldblocks2 TEOF;
-uworldblocks2: uworldblocks | error;
-uworldblocks: uworldblocks uworldblock | ;
+  parent = includes->cb_parent;
+  MyFree(includes);
+  includes = parent;
+};
 
-includeblock: INCLUDE OPER FROM QSTRING ';' { lexer_include($4); } operblocks2 TEOF;
-operblocks2: operblocks | error;
-operblocks: operblocks operblock | ;
-
-includeblock: INCLUDE JUPE FROM QSTRING ';' { lexer_include($4); } jupeblocks2 TEOF;
-jupeblocks2: jupeblocks | error;
-jupeblocks: jupeblocks jupeblock | ;
-
-includeblock: INCLUDE CLIENT FROM QSTRING ';' { lexer_include($4); } clientblocks2 TEOF;
-clientblocks2: clientblocks | error;
-clientblocks: clientblocks clientblock | ;
-
-includeblock: INCLUDE KILL FROM QSTRING ';' { lexer_include($4); } killblocks2 TEOF;
-killblocks2: killblocks | error;
-killblocks: killblocks killblock | ;
-
-includeblock: INCLUDE QUARANTINE FROM QSTRING ';' { lexer_include($4); } quarantineblocks2 TEOF;
-quarantineblocks2: quarantineblocks | error;
-quarantineblocks: quarantineblocks quarantineblock | ;
+blocklimit: { $$ = ~0; } ;
+blocklimit: blocktypes FROM;
+blocktypes: blocktypes ',' blocktype { $$ = $1 | $3; };
+blocktypes: blocktype;
+blocktype: ALL { $$ = ~0; }
+  | ADMIN { $$ = 1 << BLOCK_ADMIN; }
+  | CLASS { $$ = 1 << BLOCK_CLASS; }
+  | CLIENT { $$ = 1 << BLOCK_CLIENT; }
+  | CONNECT { $$ = 1 << BLOCK_CONNECT; }
+  | CRULE { $$ = 1 << BLOCK_CRULE; }
+  | FEATURES { $$ = 1 << BLOCK_FEATURES; }
+  | GENERAL { $$ = 1 << BLOCK_GENERAL; }
+  | IAUTH { $$ = 1 << BLOCK_IAUTH; }
+  | INCLUDE { $$ = 1 << BLOCK_INCLUDE; }
+  | JUPE { $$ = 1 << BLOCK_JUPE; }
+  | KILL { $$ = 1 << BLOCK_KILL; }
+  | MOTD { $$ = 1 << BLOCK_MOTD; }
+  | OPER { $$ = 1 << BLOCK_OPER; }
+  | PORT { $$ = 1 << BLOCK_PORT; }
+  | PSEUDO { $$ = 1 << BLOCK_PSEUDO; }
+  | QUARANTINE { $$ = 1 << BLOCK_QUARANTINE; }
+  | UWORLD { $$ = 1 << BLOCK_UWORLD; }
+  ;

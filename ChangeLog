@@ -1,5 +1,23 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Include): Update documentation to reflect
+	these changes.
+
+	* ircd/ircd_parser.y (parse_error): Redefine to yyserror().
+	(ConfigBlock): New enumerated type.
+	(ConfigBlocks): New structure type.
+	(includes): New file-scoped variable.
+	(permitted): Function to check whether a block is permitted and
+	optionally warn when it is not.
+	(*): Check whether a block is permitted before letting it take
+	effect.
+	(includeblock): Rewrite.
+	(blocklimit): New non-terminal with several productions.
+	(blocktypes): Likewise.
+	(blocktype): Likewise.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_conf.h (yyserror): Declare new function.
 	(yywarning): Declare new function.
 
