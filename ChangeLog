@@ -1,5 +1,30 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_burst.c (m_functions): Delete duplicative comment.
+	(netride_modes): Add doxygen comment.
+	(ms_burst): Convert comment to doxygen format.
+
+	* ircd/m_endburst.c (m_functions): Delete duplicative comment.
+	(ms_end_of_burst): Convert comment to doxygen format.
+	(ms_end_of_burst_ack): Convert comment to doxygen format.
+
+	* ircd/m_error.c (m_functions): Delete duplicative comment.
+	(mr_error): Write doxygen comment.
+	(ms_error): Write doxygen comment.
+
+	* ircd/m_get.c (m_functions): Delete duplicative comment.
+	(mo_get): Write doxygen comment.
+
+	* ircd/m_gline.c (m_functions): Delete duplicative comment.
+	(ms_gline): Write doxygen comment.
+	(mo_gline): Write doxygen comment.
+	(m_gline): Write doxygen comment.
+
+	* ircd/m_help.c (m_functions): Delete duplicative comment.
+	(m_help): Write doxygen comment.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_account.c (m_functions): Remove large cut-and-paste
 	comment.
 	(ms_account): Write full doxygen comment.
