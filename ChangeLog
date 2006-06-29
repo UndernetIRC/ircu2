@@ -1,5 +1,27 @@
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_account.c (m_functions): Remove large cut-and-paste
+	comment.
+	(ms_account): Write full doxygen comment.
+
+	* ircd/m_admin.c (m_functions): Cut out the cut-and-paste.
+	(send_admin_info): Add doxygen comment.
+	(m_admin): Write full doxygen comment.
+	(mo_admin): Likewise.
+	(ms_admin): Likewise.
+
+	* ircd/m_asll.c (m_functions): Kill the yank-and-killed block.
+	(send_asll_reply): Add doxygen comment.
+	(ms_asll): Write full doxygen comment.
+	(mo_asll): Likewise.
+
+	* ircd/m_away.c (m_functions): Trim back excess growth.
+	(user_set_away): Write full doxygen comment.
+	(m_away): Likewise.
+	(ms_away): Likewise.
+
+2006-06-28  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Include): Update documentation to reflect
 	these changes.
 
