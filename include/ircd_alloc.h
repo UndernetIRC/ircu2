@@ -43,8 +43,7 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
 
 /** Helper macro for freeing memory. */
 #define MyFree(p) \
-  if (p) \
-    DoFree(p, __FILE__, __LINE__)
+  do { if (p) DoFree(p, __FILE__, __LINE__); } while(0)
 
 /** Helper macro for reallocating memory. */
 #define MyRealloc(p, size) \
