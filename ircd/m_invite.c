@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "channel.h"
@@ -152,12 +96,11 @@ static void add_invite(struct Client *cptr, struct Channel *chptr)
 }
 
 
-/*
- * m_invite - generic message handler
+/** Handle an INVITE from a local client.
  *
- *   parv[0] - sender prefix
- *   parv[1] - user to invite
- *   parv[2] - channel name
+ * \a parv has the following elements:
+ * \li \a parv[1] is the nickname of the client to invite
+ * \li \a parv[2] is the name of the channel to invite \a parv[1] to
  *
  * - INVITE now is accepted only if who does it is chanop (this of course
  *   implies that channel must exist and he must be on it).
@@ -167,6 +110,12 @@ static void add_invite(struct Client *cptr, struct Channel *chptr)
  *
  * - Invite with no parameters now lists the channels you are invited to.
  *                                                         - Isomer 23 Oct 99
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -252,13 +201,12 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-/*
- * ms_invite - server message handler
+/** Handle an INVITE from a server connection.
  *
- *   parv[0] - sender prefix
- *   parv[1] - user to invite
- *   parv[2] - channel name
- *   parv[3] - (optional) channel timestamp
+ * \a parv has the following elements:
+ * \li \a parv[1] is the nickname of the client to invite
+ * \li \a parv[2] is the name of the channel to invite \a parv[1] to
+ * \li \a parv[3] (optional) is the channel's timestamp
  *
  * - INVITE now is accepted only if who does it is chanop (this of course
  *   implies that channel must exist and he must be on it).
@@ -271,6 +219,12 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  *
  * - Invite with too-late timestamp, or with no timestamp from a bursting
  *   server, is silently discarded.                   - Entrope 19 Jan 05
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

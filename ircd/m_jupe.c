@@ -24,62 +24,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "client.h"
@@ -102,19 +46,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * ms_jupe - server message handler
+/** Handle a JUPE message from a server connection.
  *
- * parv[0] = Send prefix
+ * \a parv has the following elements:
+ * \li \a parv[1] is the target server's numnick (or "*" for all servers)
+ * \li \a parv[2] is the server name to jupe, optionally with '+' or '-' prefix
+ * \li \a parv[3] is the jupe's duration in seconds
+ * \li \a parv[4] is the last modification time of the jupe
+ * \li \a parv[\a parc - 1] is the comment or explanation of the jupe
  *
- * From server:
+ * The default is to deactivate the jupe; activating or adding a jupe
+ * requires the '+' prefix to \a parv[2].
  *
- * parv[1] = Target: server numeric or *
- * parv[2] = (+|-)<server name>
- * parv[3] = Expiration offset
- * parv[4] = Last modification time
- * parv[5] = Comment
- *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -122,7 +70,7 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Jupe *ajupe;
   unsigned int flags = 0;
   time_t expire_off, lastmod;
-  char *server = parv[2], *target = parv[1], *reason = parv[5];
+  char *server = parv[2], *target = parv[1], *reason = parv[parc - 1];
 
   if (parc < 6)
     return need_more_params(sptr, "JUPE");
@@ -169,23 +117,23 @@ int ms_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return jupe_add(cptr, sptr, server, reason, expire_off, lastmod, flags);
 }
 
-/*
- * mo_jupe - oper message handler
+/** Handle a JUP message from an operator.
  *
- * parv[0] = Send prefix
- * parv[1] = [[+|-]<server name>]
+ * \a parv has the following elements:
+ * \li \a parv[1] is the target server's numnick (or "*" for all servers)
+ * \li \a parv[2] (optional) is the server name to jupe with '+' or '-' prefix
+ * \li \a parv[N+1] is the jupe's duration in seconds
+ * \li \a parv[N+2] is the last modification time of the jupe
+ * \li \a parv[\a parc - 1] is the comment or explanation of the jupe
  *
- * Local (to me) style:
+ * Unlike GLINE and server-to-server JUPE, the '+' or '-' prefix
+ * before the target is REQUIRED.
  *
- * parv[2] = [Expiration offset]
- * parv[3] = [Comment]
- *
- * Global (or remote local) style:
- *
- * parv[2] = [target]
- * parv[3] = [Expiration offset]
- * parv[4] = [Comment]
- *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -211,14 +159,14 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (parc == 4) {
     expire_off = atoi(parv[2]);
-    reason = parv[3];
     flags |= JUPE_LOCAL;
   } else if (parc > 4) {
     target = parv[2];
     expire_off = atoi(parv[3]);
-    reason = parv[4];
   } else
     return need_more_params(sptr, "JUPE");
+
+  reason = parv[parc - 1];
 
   if (target) {
     if (!(target[0] == '*' && target[1] == '\0')) {

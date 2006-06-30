@@ -1,3 +1,30 @@
+2006-06-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_info.c (m_functions): Delete duplicative comment.
+	(m_info): Write doxygen comment.
+	(ms_info): Write doxygen comment.
+	(mo_info): Write doxygen comment.
+
+	* ircd/m_invite.c (m_functions): Delete duplicative comment.
+	(m_invite): Convert comment to doxygen format.
+	(ms_invite): Convert comment to doxygen format.
+
+	* ircd/m_ison.c (m_functions): Delete duplicative comment.
+	(m_ison): Convert comment to doxygen format.
+
+	* ircd/m_jupe.c (m_functions): Delete duplicative comment.
+	(ms_jupe): Write doxygen comment.  Fix parv[parc-1] usage.
+	(mo_jupe): Write doxygen comment.  Fix parv[parc-1] usage.
+
+	* ircd/m_kick.c (m_functions): Delete duplicative comment.
+	(m_kick): Write doxygen comment.
+	(ms_kick): Write doxygen comment.
+
+	* ircd/m_kill.c (m_functions): Delete duplicative comment.
+	(do_kill): Write doxygen comment.
+	(ms_kill): Write doxygen comment.
+	(mo_kill): Write doxygen comment.
+
 2006-06-28  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_clearmode.c (m_functions): Delete duplicative comment.
