@@ -1,5 +1,15 @@
 2006-06-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y (iauth*): Avoid leaking program name string.
+
+2006-06-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (check_auth_finished): Free auth structure when
+	done with it.
+	(sendto_iauth): Free message buffer when done with it.
+
+2006-06-30  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_info.c (m_functions): Delete duplicative comment.
 	(m_info): Write doxygen comment.
 	(ms_info): Write doxygen comment.

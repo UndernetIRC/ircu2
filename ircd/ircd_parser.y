@@ -1130,7 +1130,7 @@ iauthblock: IAUTH '{' iauthitems '}' ';'
   if (permitted(BLOCK_IAUTH, 1))
     auth_spawn(stringno, stringlist);
   while (stringno > 0)
-    MyFree(stringlist[stringno--]);
+    MyFree(stringlist[--stringno]);
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
@@ -1138,7 +1138,7 @@ iauthitem: iauthprogram;
 iauthprogram: PROGRAM '='
 {
   while (stringno > 0)
-    MyFree(stringlist[stringno--]);
+    MyFree(stringlist[--stringno]);
 } stringlist ';';
 
 includeblock: INCLUDE blocklimit QSTRING ';' {
