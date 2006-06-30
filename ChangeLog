@@ -1,3 +1,9 @@
+2006-06-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (check_auth_finished): Free auth structure when
+	done with it.
+	(sendto_iauth): Free message buffer when done with it.
+
 2006-06-26  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre08.

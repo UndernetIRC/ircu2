@@ -427,11 +427,15 @@ static int check_auth_finished(struct AuthRequest *auth)
 
   destroy_auth_request(auth);
   if (!IsUserPort(auth->client))
-    return 0;
-  memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
-  res = auth_set_username(auth);
-  if (res == 0)
+  {
+    memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
+    res = auth_set_username(auth);
+    if (res == 0)
       res = register_user(auth->client, auth->client);
+  }
+  else
+    res = 0;
+  MyFree(auth);
   return res;
 }
 
@@ -1399,6 +1403,7 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...)
   /* Tack it onto the iauth sendq and try to write it. */
   ++iauth->i_sendM;
   msgq_add(i_sendQ(iauth), mb, 0);
+  msgq_clean(mb);
   iauth_write(iauth);
   return 1;
 }
