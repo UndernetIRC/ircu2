@@ -426,7 +426,7 @@ static int check_auth_finished(struct AuthRequest *auth)
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
 
   destroy_auth_request(auth);
-  if (!IsUserPort(auth->client))
+  if (IsUserPort(auth->client))
   {
     memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
     res = auth_set_username(auth);
