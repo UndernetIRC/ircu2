@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "channel.h"
@@ -129,6 +73,10 @@ static struct ListingArgs la_default = {
   {0}                         /* wildcard */
 };
 
+/** Send LIST usage instructions to a client.
+ * @param[in] sptr Client who needs instructions.
+ * @return LPARAM_ERROR
+ */
 static int
 show_usage(struct Client *sptr)
 {
@@ -178,6 +126,15 @@ show_usage(struct Client *sptr)
   return LPARAM_ERROR; /* return error condition */
 }
 
+/** Parse a parameter to a LIST message.
+ * @param[in] sptr Client that originated the request.
+ * @param[in] param Parameter to parse.
+ * @param[in,out] args List arguments to update based on \a param.
+ * @param[in] permit_chan If non-zero, allow \a param to be a
+ *   comma-separated list of channel names.
+ * @return LPARAM_ERROR on failure, LPARAM_CHANNEL if \a param should
+ *   be interpreted as channel names, LPARAM_SUCCESS otherwise.
+ */
 static int
 param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	    int permit_chan)
@@ -316,6 +273,10 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
   return LPARAM_SUCCESS;
 }
 
+/** Initialize #la_default.
+ * Modifies #la_default to be #la_init modified by the value of
+ * FEAT_DEFAULT_LIST_PARAM.
+ */
 void
 list_set_default(void)
 {
@@ -326,12 +287,22 @@ list_set_default(void)
     la_default = la_init; /* recover from error by switching to default */
 }
 
-/*
- * m_list - generic message handler
+/** Handle a LIST request from a local connection.
  *
- * parv[0] = sender prefix
- * parv[1] = channel list or user/time limit
- * parv[2...] = more user/time limits
+ * \a parv has the following elements:
+ * \li \a parv[1] (optional) is a comma-separated list of channel
+ *   names, or a filter specification
+ * \li \a parv[2..\a parc - 1] (optional) are additional filters
+ *
+ * If a listing is already in progress, it is stopped before the new
+ * list is started.  If there are no arguments or if \a parv[1] is
+ * "STOP", the listing is stopped with no new list started.
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {

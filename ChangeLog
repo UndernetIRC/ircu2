@@ -1,3 +1,56 @@
+2006-07-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_links.c (m_functions): Delete duplicative comment.
+	(m_links): Write doxygen comment.
+	(ms_links): Write doxygen comment.
+
+	* ircd/m_list.c (m_functions): Delete duplicative comment.
+	(show_usage): Write doxygen comment.
+	(param_parse): Write doxygen comment.
+	(list_set_default): Write doxygen comment.
+	(m_list): Write doxygen comment.
+
+	* ircd/m_lusers.c (m_functions): Delete duplicative comment.
+	(m_lusers): Write doxygen comment.
+	(ms_lusers): Write doxygen comment.
+
+	* ircd/m_map.c (m_functions): Delete duplicative comment.
+	(dump_map): Write doxygen comment.
+	(m_map): Write doxygen comment.
+
+	* ircd/m_mode.c (m_functions): Delete duplicative comment.
+	(m_mode): Write doxygen comment.
+	(ms_mode): Write doxygen comment.
+
+	* ircd/m_motd.c (m_functions): Delete duplicative comment.
+	(m_motd): Convert comment to doxygen format.
+	(ms_motd): Convert comment to doxygen format.
+
+	* ircd/m_names.c (m_functions): Delete duplicative comment.
+	(do_names): Convert comment to doxygen format.
+	(m_names): Write doxygen comment.
+	(ms_names): Write doxygen comment.
+
+	* ircd/m_nick.c (m_functions): Delete duplicative comment.
+	(do_nick_name): Convert comment to doxygen format.
+	(m_nick): Write doxygen comment.
+	(ms_nick): Write doxygen comment.
+
+	* ircd/m_notice.c (m_functions): Delete duplicative comment.
+	(m_notice): Write doxygen comment.
+	(ms_notice): Write doxygen comment.
+	(mo_notice): Write doxygen comment.
+
+	* ircd/m_oper.c (m_functions): Delete duplicative comment.
+	(oper_password_match): Write doxygen comment.
+	(m_oper): Write doxygen comment.
+	(ms_oper): Write doxygen comment.
+	(mo_oper): Write doxygen comment.
+
+	* ircd/m_opmode.c (m_functions): Delete duplicative comment.
+	(ms_opmode): Write doxygen comment.
+	(mo_opmode): Write doxygen comment.
+
 2006-06-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y (iauth*): Avoid leaking program name string.
