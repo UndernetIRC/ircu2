@@ -1,5 +1,27 @@
 2006-07-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_quit.c (m_functions): Delete duplicative comment.
+	(m_quit): Write doxygen comment.
+	(ms_quit): Write doxygen comment.
+
+	* ircd/m_rehash.c (m_functions): Delete duplicative comment.
+	(mo_rehash): Write doxygen comment.
+
+	* ircd/m_reset.c (m_functions): Delete duplicative comment.
+	(mo_reset): Write doxygen comment.
+
+	* ircd/m_restart.c (m_functions): Delete duplicative comment.
+	(mo_restart): Write doxygen comment.
+
+	* ircd/m_rping.c (m_functions): Delete duplicative comment.
+	(ms_rping): Write doxygen comment.
+	(mo_rping): Write doxygen comment.
+
+	* ircd/m_rpong.c (m_functions): Delete duplicative comment.
+	(mo_rpong): Write doxygen comment.
+
+2006-07-04  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_part.c (m_functions): Delete duplicative comment.
 	(m_part): Write doxygen comment.
 	(ms_part): Write doxygen comment.

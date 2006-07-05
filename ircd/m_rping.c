@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "client.h"
@@ -105,21 +49,48 @@
  * Parsing: j RI Z jAA 953865133 0 :<No client start time>
  */
 
-/*
- * ms_rping - server message handler
+/** Handle an RPING message from a server connection.
  * -- by Run
  *
- *    parv[0] = sender (sptr->name thus)
- * if sender is a person: (traveling towards start server)
- *    parv[1] = pinged server[mask]
- *    parv[2] = start server (current target)
- *    parv[3] = optional remark
- * if sender is a server: (traveling towards pinged server)
- *    parv[1] = pinged server (current target)
- *    parv[2] = original sender (person)
- *    parv[3] = start time in s
- *    parv[4] = start time in us
- *    parv[5] = the optional remark
+ * This is a way for an operator somewhere on the network to request
+ * that some server on the network ping another server, even if the
+ * operator is not connected to either of those servers.
+ *
+ * The operator requests an remote ping:
+ *   RPING ServerA.* ServerB.* :Rping message
+ * If ServerB.* is not the operator's server, this message goes to
+ * ServerB.* (OpNmN is the operator's numnick, RI is the RPING token,
+ * SA is ServerA.*'s numnick, SB is ServerB.*'s numnick):
+ *   OpNmN RI SA SB :Rping message
+ * ServerB.* then rpings ServerA.*:
+ *   SB RI SA OpNmN 123456789 12345 :Rping message
+ * ServerA.* responds (RO is the RPONG token):
+ *   SA RO ServerB.* OpNmN 12345689 12 :Rping message
+ * ServerB.* eventually gets this, and may have to send it back to the
+ * operator's server (567 is the number of elapsed milliseconds):
+ *   SB RO OpNmN ServerA.* 567 :Rping message
+ * The operator's server informs the operator:
+ *   ServerB.* RPONG OperNick ServerA.* 567 :Rping message
+ *
+ * If \a sptr is a server, it is the rping source and \a parv has the
+ * following elements:
+ * \li \a parv[1] is the rping target's numnick
+ * \li \a parv[2] is the rping requester's numnick
+ * \li \a parv[3] is the rping start time (seconds part)
+ * \li \a parv[4] is the rping start time (microseconds part)
+ * \li \a parv[5] is the requester's remark
+ *
+ * If \a sptr is a user, it is the rping requester and \a parv has the
+ * following elements:
+ * \li \a parv[1] is the rping target's numnick
+ * \li \a parv[2] is the rping source's numnick
+ * \li \a parv[3] is the requester's remark
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -178,23 +149,24 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-/*
- * mo_rping - oper message handler
+/** Handle an RPING message from an operator connection.
  * -- by Run
  *
+ * This message is used for remotely initiated pings.  See ms_rping()
+ * for the theory of operation.
  *
- * Receive:
- *          RPING blah.*
- *          RPING blah.* :<start time>
- *          RPING blah.* server.* :<start time>
+ * \a parv has the following elements:
+ * \li \a parv[1] is the name of the rping target
+ * \li \a parv[2] (optional) is the name of the rping source (defaults
+ *   to this server)
+ * \li \a parv[3] (optional) is a remark (defaults to "<No client
+ *   start time>")
  *
- *    parv[0] = sender (sptr->name thus)
- *    parv[1] = pinged server name or mask (required)
- *    parv[2] = start server name or mask (optional, defaults to me)
- *    parv[3] = client start time (optional) 
- * 
- * Send: NumNick(sptr) RPING blah.* server.net :<start time> (hunt_server)
- *       NumServ(&me) RPING NumServ(blah.bar.net) NumNick(sptr) :<start time> (here)
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int mo_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
