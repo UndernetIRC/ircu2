@@ -1,3 +1,10 @@
+2006-07-05  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (auth_freelist): New static variable.
+	(check_auth_finished): Move call to destroy_auth_request().
+	(destroy_auth_request): Prepend auth request to freelist.
+	(start_auth): Use struct from auth freelist if possible.
+
 2006-06-30  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y (iauth*): Avoid leaking program name string.
