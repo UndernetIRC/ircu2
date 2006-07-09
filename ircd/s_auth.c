@@ -200,7 +200,9 @@ struct IAuth {
 #define i_debug(iauth) ((iauth)->i_debug)
 
 /** Active instance of IAuth. */
-struct IAuth *iauth;
+static struct IAuth *iauth;
+/** Freelist of AuthRequest structures. */
+static struct AuthRequest *auth_freelist;
 
 static void iauth_sock_callback(struct Event *ev);
 static void iauth_stderr_callback(struct Event *ev);
@@ -425,7 +427,6 @@ static int check_auth_finished(struct AuthRequest *auth)
   else
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
 
-  destroy_auth_request(auth);
   if (IsUserPort(auth->client))
   {
     memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
@@ -435,7 +436,8 @@ static int check_auth_finished(struct AuthRequest *auth)
   }
   else
     res = 0;
-  MyFree(auth);
+  if (res == 0)
+    destroy_auth_request(auth);
   return res;
 }
 
@@ -723,7 +725,10 @@ void destroy_auth_request(struct AuthRequest* auth)
 
   if (t_active(&auth->timeout))
     timer_del(&auth->timeout);
+
   cli_auth(auth->client) = NULL;
+  auth->next = auth_freelist;
+  auth_freelist = auth;
 }
 
 /** Handle a 'ping' (authorization) timeout for a client.
@@ -966,8 +971,13 @@ void start_auth(struct Client* client)
   socket_events(&(cli_socket(client)), SOCK_ACTION_SET | SOCK_EVENT_READABLE);
 
   /* Allocate the AuthRequest. */
-  auth = MyCalloc(1, sizeof(*auth));
+  auth = auth_freelist;
+  if (auth)
+      auth_freelist = auth->next;
+  else
+      auth = MyMalloc(sizeof(*auth));
   assert(0 != auth);
+  memset(auth, 0, sizeof(*auth));
   auth->client = client;
   cli_auth(client) = auth;
   s_fd(&auth->socket) = -1;
