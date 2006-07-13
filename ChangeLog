@@ -1,3 +1,18 @@
+2006-07-12  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_set.c (m_functions): Delete duplicative comment.
+	(mo_set): Write doxygen comment.
+
+	* ircd/m_settime.c (m_functions): Delete duplicative comment.
+	(ms_settime): Write doxygen comment.
+	(mo_settime): Write doxygen comment.
+
+	* ircd/m_squit.c (ms_squit): Write doxygen comment.
+	(mo_squit): Write doxygen comment.
+
+	* ircd/m_stats.c (m_functions): Delete duplicative comment.
+	(m_stats): Write doxygen comment.
+
 2006-07-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (auth_freelist): New static variable.

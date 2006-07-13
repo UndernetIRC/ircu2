@@ -44,18 +44,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- *  ms_squit (server)
+/** Handle a SQUIT message from a server.
  *
- *    parv[0] = sender prefix
- *    parv[1] = server name
- *    parv[2] = timestamp
- *    parv[parc-1] = comment
+ * \a parv has the following elements:
+ * \li \a parv[1] is the target server's numnick
+ * \li \a parv[2] is the server's link timestamp (or zero to force)
+ * \li \a parv[\a parc - 1] is the squit message
  *
- * No longer supports wildcards from servers. 
+ * No longer supports wildcards from servers.
  * No longer squits a server that gave us an malformed squit message.
  *    - Isomer 1999-12-18
- * 
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -103,13 +107,17 @@ int ms_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return exit_client(cptr, acptr, sptr, comment);
 }
 
-/*
- *  mo_squit (oper)
+/** Handle a SQUIT message from an operator.
  *
- *    parv[0] = sender prefix
- *    parv[1] = server name
- *    parv[2] = comment (optional)
+ * \a parv has the following elements:
+ * \li \a parv[1] is the target server's name (or wildcard mask)
+ * \li \a parv[\a parc - 1] is the squit message
  *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int mo_squit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
