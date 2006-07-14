@@ -1,3 +1,35 @@
+2006-07-14  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_time.c (m_functions): Delete duplicative comment.
+	(m_time): Write doxygen comment.
+
+	* ircd/m_tmpl.c (m_functions): Delete duplicative comment.
+	(m_tmpl): Write doxygen comment.
+	(ms_tmpl): Write doxygen comment.
+	(mo_tmpl): Write doxygen comment.
+	(mv_tmpl): Write doxygen comment.
+	(mr_tmpl): New function.
+
+	* ircd/m_uping.c (m_functions): Delete duplicative comment.
+	(ms_uping): Write doxygen comment.
+	(mo_uping): Write doxygen comment.
+
+	* ircd/m_user.c (m_functions): Delete duplicative comment.
+	(m_user): Write doxygen comment.  Change parv[4] to parv[argc-1].
+
+	* ircd/m_userhost.c (m_functions): Delete duplicative comment.
+	(userhost_formatter): Write doxygen comment.
+	(m_userhost): Write doxygen comment.
+
+	* ircd/m_userip.c (m_functions): Delete duplicative comment.
+	(userip_formatter): Write doxygen comment.
+	(m_userip): Write doxygen comment.
+
+	* ircd/m_version.c (m_functions): Delete duplicative comment.
+	(m_version): Write doxygen comment.
+	(mo_version): Write doxygen comment.
+	(ms_version): Write doxygen comment.
+
 2006-07-12  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_set.c (m_functions): Delete duplicative comment.

@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "handlers.h"
@@ -101,14 +45,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * m_user
+/** Handle a USER message from an unregistered connection
  *
- * parv[0] = sender prefix
- * parv[1] = username           (login name, account)
- * parv[2] = host name          (ignored)
- * parv[3] = server name        (ignored)
- * parv[4] = users real name info
+ * \a parv has the following elements:
+ * \li \a parv[1] is the username (sometimes called ident, login or account)
+ * \li \a parv[2] is ignored (used to be the client's hostname)
+ * \li \a parv[3] is ignored (used to be the server's name)
+ * \li \a parv[\a parc - 1] is the realname information
+ *
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
@@ -137,7 +86,7 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   else
     username = "NoUser";
 
-  info     = (EmptyString(parv[4])) ? "No Info" : parv[4];
+  info     = (EmptyString(parv[parc - 1])) ? "No Info" : parv[parc - 1];
 
   return auth_set_user(cli_auth(cptr), username, info);
 }
