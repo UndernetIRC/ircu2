@@ -1,5 +1,36 @@
 2006-07-14  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_wallchops.c (m_functions): Delete duplicative comment.
+	(m_wallchops): Write doxygen comment.
+	(ms_wallchops): Write doxygen comment.
+
+	* ircd/m_wallops.c (m_functions): Delete duplicative comment.
+	(ms_wallops): Write doxygen comment.  Change parv[1] to
+	parv[parc-1].
+	(mo_wallops): Write doxygen comment.  Change parv[1] to
+	parv[parc-1].
+
+	* ircd/m_wallusers.c (m_functions): Delete duplicative comment.
+	(ms_wallusers): Write doxygen comment.  Change parv[1] to
+	parv[parc-1].
+	(mo_wallusers): Write doxygen comment.  Change parv[1] to
+	parv[parc-1].
+
+	* ircd/m_wallvoices.c (m_functions): Delete duplicative comment.
+	(m_wallvoices): Write doxygen comment.
+	(ms_wallvoices): Write doxygen comment.
+
+	* ircd/m_whois.c (m_functions): Delete duplicative comment.
+	(do_whois): Convert comment to doxygen format and elaborate.
+	(do_wilds): Convert comment to doxygen format and elaborate.
+	(m_whois): Write doxygen comment.
+	(ms_whois): Write doxygen comment.
+
+	* ircd/m_whowas.c (m_functions): Delete duplicative comment.
+	(m_whowas): Convert comment to doxygen format.
+
+2006-07-14  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_time.c (m_functions): Delete duplicative comment.
 	(m_time): Write doxygen comment.
 
@@ -15,7 +46,7 @@
 	(mo_uping): Write doxygen comment.
 
 	* ircd/m_user.c (m_functions): Delete duplicative comment.
-	(m_user): Write doxygen comment.  Change parv[4] to parv[argc-1].
+	(m_user): Write doxygen comment.  Change parv[4] to parv[parc-1].
 
 	* ircd/m_userhost.c (m_functions): Delete duplicative comment.
 	(userhost_formatter): Write doxygen comment.

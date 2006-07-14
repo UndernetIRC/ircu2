@@ -23,62 +23,6 @@
  * $Id$
  */
 
-/*
- * m_functions execute protocol messages on this server:
- *
- *    cptr    is always NON-NULL, pointing to a *LOCAL* client
- *            structure (with an open socket connected!). This
- *            identifies the physical socket where the message
- *            originated (or which caused the m_function to be
- *            executed--some m_functions may call others...).
- *
- *    sptr    is the source of the message, defined by the
- *            prefix part of the message if present. If not
- *            or prefix not found, then sptr==cptr.
- *
- *            (!IsServer(cptr)) => (cptr == sptr), because
- *            prefixes are taken *only* from servers...
- *
- *            (IsServer(cptr))
- *                    (sptr == cptr) => the message didn't
- *                    have the prefix.
- *
- *                    (sptr != cptr && IsServer(sptr) means
- *                    the prefix specified servername. (?)
- *
- *                    (sptr != cptr && !IsServer(sptr) means
- *                    that message originated from a remote
- *                    user (not local).
- *
- *            combining
- *
- *            (!IsServer(sptr)) means that, sptr can safely
- *            taken as defining the target structure of the
- *            message in this server.
- *
- *    *Always* true (if 'parse' and others are working correct):
- *
- *    1)      sptr->from == cptr  (note: cptr->from == cptr)
- *
- *    2)      MyConnect(sptr) <=> sptr == cptr (e.g. sptr
- *            *cannot* be a local connection, unless it's
- *            actually cptr!). [MyConnect(x) should probably
- *            be defined as (x == x->from) --msa ]
- *
- *    parc    number of variable parameter strings (if zero,
- *            parv is allowed to be NULL)
- *
- *    parv    a NULL terminated list of parameter pointers,
- *
- *                    parv[0], sender (prefix string), if not present
- *                            this points to an empty string.
- *                    parv[1]...parv[parc-1]
- *                            pointers to additional parameters
- *                    parv[parc] == NULL, *always*
- *
- *            note:   it is guaranteed that parv[0]..parv[parc-1] are all
- *                    non-NULL pointers.
- */
 #include "config.h"
 
 #include "channel.h"
@@ -126,8 +70,10 @@
  *     up.
  */
 
-/*
- * Send whois information for acptr to sptr
+/** Send whois information for \a acptr to \a sptr.
+ * @param[in] sptr Client requesting information
+ * @param[in] acptr Client whose information is requested
+ * @param[in] parc 2 for a "normal" whois, >=3 for a remote whois
  */
 static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 {
@@ -228,9 +174,12 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
   }
 }
 
-/*
- * Search and return as many people as matched by the wild 'nick'.
- * returns the number of people found (or, obviously, 0, if none where
+/** Search and return as many people as matched by the wild 'nick'.
+ * @param[in] sptr Client searching for other clients
+ * @param[in] nick Nickname mask to search for
+ * @param[in] count Number of clients previously found
+ * @param[in] parc Value passed to do_whois
+ * @return The number of people found (or, obviously, 0, if none were
  * found).
  */
 static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
@@ -336,16 +285,17 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
   return found;
 }
 
-/*
- * m_whois - generic message handler
+/** Handle a WHOIS message from a local client
  *
- * parv[0] = sender prefix
- * parv[1] = nickname masklist
+ * \a parv has the following elements:
+ * \li \a parv[1] (optional) is the target's nickname if a remote WHOIS is requested
+ * \li \a parv[N+1] is the target's nickname, or a comma-separated mask list
  *
- * or
- *
- * parv[1] = target server, or a nickname representing a server to target.
- * parv[2] = nickname masklist
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -434,16 +384,17 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   return 0;
 }
 
-/*
- * ms_whois - server message handler
+/** Handle a WHOIS message from a server.
  *
- * parv[0] = sender prefix
- * parv[1] = nickname masklist
+ * \a parv has the following elements:
+ * \li \a parv[1] is the numnick of the server to query
+ * \li \a parv[N+1] is the target's nickname, or a comma-separated mask list
  *
- * or
- *
- * parv[1] = target server, or a nickname representing a server to target.
- * parv[2] = nickname masklist
+ * See @ref m_functions for discussion of the arguments.
+ * @param[in] cptr Client that sent us the message.
+ * @param[in] sptr Original source of message.
+ * @param[in] parc Number of arguments.
+ * @param[in] parv Argument vector.
  */
 int ms_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
