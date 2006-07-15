@@ -135,6 +135,7 @@ void sockaddr_to_irc(const struct sockaddr_in6 *v6, struct irc_sockaddr *irc)
  * @param[out] v6 Native socket address.
  * @param[in] irc IRC socket address.
  * @param[in] compat_fd If non-negative, an FD specifying address family.
+ * @param[in] family If non-zero, the address family to use.
  * @return Length of address written to \a v6.
  */
 int sockaddr_from_irc(struct sockaddr_in6 *v6, const struct irc_sockaddr *irc, int compat_fd, int family)

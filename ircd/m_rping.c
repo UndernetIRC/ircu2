@@ -159,8 +159,8 @@ int ms_rping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * \li \a parv[1] is the name of the rping target
  * \li \a parv[2] (optional) is the name of the rping source (defaults
  *   to this server)
- * \li \a parv[3] (optional) is a remark (defaults to "<No client
- *   start time>")
+ * \li \a parv[3] (optional) is a remark (defaults to "\<No client
+ *   start time\>")
  *
  * See @ref m_functions for discussion of the arguments.
  * @param[in] cptr Client that sent us the message.

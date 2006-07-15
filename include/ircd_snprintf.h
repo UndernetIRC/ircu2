@@ -33,12 +33,12 @@
 
 struct Client;
 
-/** structure passed as argument for %v conversion */
+/** structure passed as argument for \%v conversion */
 struct VarData {
   size_t	vd_chars;	/**< number of characters inserted */
   size_t	vd_overflow;	/**< number of characters that couldn't be */
   const char   *vd_format;	/**< format string */
-  va_list	vd_args;	/**< arguments for %v */
+  va_list	vd_args;	/**< arguments for \%v */
 };
 
 #ifndef HAVE_VA_COPY
@@ -76,35 +76,35 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 ** would be required by ANSI; the first is support for multibyte
 ** character strings, and the second is support for locales, neither
 ** of which have any relevance for ircu, so again omission seemed to
-** be a good policy.  Additionally, %#x always causes '0x' (or '0X')
+** be a good policy.  Additionally, \%\#x always causes '0x' (or '0X')
 ** to be printed, even if the number is zero.
 **
 **   These functions also have some extensions not seen in a
 ** standards-compliant implementation; technically, the ISO 9x
 ** extensions fall into this category, for instance.  The ISO 9x
-** extensions supported are type extensions--%ju, %tu, and %zu, for
-** instance; %qu and %hhu are also supported.  The extensions added
-** for use in ircu are %Tu, which takes a time_t, and the new %C
+** extensions supported are type extensions--\%ju, \%tu, and \%zu, for
+** instance; \%qu and \%hhu are also supported.  The extensions added
+** for use in ircu are \%Tu, which takes a time_t, and the new \%C
 ** conversion, which inserts either a numeric or a nick, dependant on
-** the &lt;dest> parameter.  The GNU %m extension, which inserts the
+** the \<dest\> parameter.  The GNU \%m extension, which inserts the
 ** strerror() string corresponding to the current value of errno, is
-** also supported, as is a special %v extension, which essentially
+** also supported, as is a special \%v extension, which essentially
 ** does a recursive call to ircd_snprintf.
 **
 **   The following description is descended from the Linux manpage for
 ** the printf family of functions.
 **
 **   The format string is composed of zero or more directives:
-** ordinary characters (not %), which are copied unchanged to the
+** ordinary characters (not \%), which are copied unchanged to the
 ** output stream; and conversion specifications, each of which results
 ** in fetching zero or more subsequent arguments.  Each conversion
-** specification is introduced by the character %.  The arguments must
+** specification is introduced by the character \%.  The arguments must
 ** correspond properly (after type promotion) with the conversion
-** specifier.  After the %, the following appear in sequence:
+** specifier.  After the \%, the following appear in sequence:
 **
 ** <ul><li>Zero or more of the following flags:<dl>
 **
-** <dt>#</dt>
+** <dt>\#</dt>
 **      <dd>specifying that the value should be converted to an
 **	"alternate form."  For c, d, i, n, p, s, and u conversions,
 **	this option has no effect.  For o conversions, the precision
@@ -270,7 +270,7 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **
 ** <dt>p</dt>
 **		<dd>The "void *" pointer argument is printed in
-**		hexadecimal (as if by %#x or %#lx).</dd>
+**		hexadecimal (as if by \%\#x or \%\#lx).</dd>
 **
 ** <dt>n</dt>
 **		<dd>The number of characters written so far is stored into
@@ -279,11 +279,11 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **
 ** <dt>m</dt>
 **		<dd>The error message associated with the current value of
-**		errno is printed as if by %s.</dd>
+**		errno is printed as if by \%s.</dd>
 **
 ** <dt>C</dt>
 **		<dd>The client argument identifier is printed under the
-**		control of the &lt;dest> argument; if &lt;dest> is NULL or
+**		control of the \<dest\> argument; if \<dest\> is NULL or
 **		is a user, the client's name (nickname or server name)
 **		is printed; otherwise, the client's network numeric is
 **		printed.</dd>
@@ -301,9 +301,9 @@ extern int ircd_vsnprintf(struct Client *dest, char *buf, size_t buf_len,
 **		could not be added due to buffer overflow or due to a
 **		precision.</dd>
 **
-** <dt>%<dt>
-**		<dd>A `%' is written.  No argument is converted.  The
-**		complete conversion specification is `%%'.</dd>
+** <dt>\%<dt>
+**		<dd>A `\%' is written.  No argument is converted.  The
+**		complete conversion specification is `\%\%'.</dd>
 ** </dl>
 **
 **   In no case does a non-existent or small field width cause

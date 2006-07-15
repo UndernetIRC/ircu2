@@ -54,7 +54,7 @@
 #include <sys/stat.h>
 
 /** Global list of messages of the day. */
-static struct {
+static struct MotdList_s {
   struct Motd*	    local;     /**< Local MOTD. */
   struct Motd*	    remote;    /**< Remote MOTD. */
   struct Motd*	    other;     /**< MOTDs specified in configuration file. */

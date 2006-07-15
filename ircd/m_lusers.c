@@ -44,8 +44,8 @@
 /** Handle a LUSERS message from a local connection.
  *
  * \a parv may either be empty or have the following elements:
- * \a \li parv[1] is ignored
- * \a \li parv[2] is the server to query
+ * \li \a parv[1] is ignored
+ * \li \a parv[2] is the server to query
  *
  * See @ref m_functions for discussion of the arguments.
  * @param[in] cptr Client that sent us the message.
@@ -82,8 +82,8 @@ int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 /** Handle a LUSERS message from a server connection.
  *
  * \a parv has the following elements:
- * \a \li parv[1] is ignored
- * \a \li parv[2] is the server to query
+ * \li \a parv[1] is ignored
+ * \li \a parv[2] is the server to query
  *
  * See @ref m_functions for discussion of the arguments.
  * @param[in] cptr Client that sent us the message.

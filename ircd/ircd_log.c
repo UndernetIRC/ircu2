@@ -98,7 +98,7 @@ static struct LevelData {
 #define LOG_NOTFOUND -2 /**< didn't find a facility corresponding to name */
 
 /** Map names to syslog facilities. */
-static struct {
+static struct facilities_s {
   char *name;   /**< Textual name of facility. */
   int facility; /**< Facility value for syslog(). */
 } facilities[] = {
@@ -118,7 +118,7 @@ static struct {
 #define SNO_NOTFOUND 0xffffffff /**< didn't find a SNO_MASK value for name */
 
 /** Map names to snomask values. */
-static struct {
+static struct masks_s {
   char *name;           /**< Name of server notice bit. */
   unsigned int snomask; /**< Bitmask corresponding to name. */
 } masks[] = {
@@ -178,7 +178,7 @@ struct LogFile {
 };
 
 /** Modifiable static information. */
-static struct {
+static struct logInfo_s {
   struct LogFile *filelist; /**< list of log files */
   struct LogFile *freelist; /**< list of free'd log files */
   int		  facility; /**< default facility */

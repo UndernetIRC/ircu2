@@ -228,8 +228,9 @@ void conf_parse_userhost(struct ConfItem *aconf, char *host)
 }
 
 /** Copies a completed DNS query into its ConfItem.
- * @param vptr Pointer to struct ConfItem for the block.
- * @param hp DNS reply, or NULL if the lookup failed.
+ * @param[in] vptr Pointer to struct ConfItem for the block.
+ * @param[in] addr The resolved IP address (NULL on failure).
+ * @param[in] h_name The DNS name being resolved.
  */
 static void conf_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
 {
@@ -902,7 +903,7 @@ attach_conf_uworld(struct Client *cptr)
 }
 
 /** Free all memory associated with service mapping \a smap.
- * @param smap[in] The mapping to free.
+ * @param[in] smap The mapping to free.
  */
 void free_mapping(struct s_map *smap)
 {

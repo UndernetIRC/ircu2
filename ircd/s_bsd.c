@@ -160,8 +160,9 @@ void report_error(const char* text, const char* who, int err)
 /** Called when resolver query finishes.  If the DNS lookup was
  * successful, start the connection; otherwise notify opers of the
  * failure.
- * @param vptr The struct ConfItem representing the Connect block.
- * @param hp A pointer to the DNS lookup results (NULL on failure).
+ * @param[in] vptr The struct ConfItem representing the Connect block.
+ * @param[in] addr The resolved IP address (NULL on failure).
+ * @param[in] h_name The name being looked up.
  */
 static void connect_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
 {

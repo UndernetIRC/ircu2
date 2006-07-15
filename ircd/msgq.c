@@ -72,7 +72,7 @@ struct MsgSizes {
 };
 
 /** Global tracking data for message buffers. */
-static struct {
+static struct MQData_s {
   struct MsgBuf *msglist;	/**< list of in-use MsgBuf's */
   struct {
     unsigned int alloc;		/**< number of Msg's allocated */

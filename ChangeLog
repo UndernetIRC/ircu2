@@ -1,5 +1,54 @@
 2006-07-14  Michael Poole <mdpoole@troilus.org>
 
+	* include/ircd_snprintf.h: Escape %, #, < and > with \.
+
+	* ircd/ircd_events.c (sigInfo): Name the struct type.
+	(evInfo): Likewise.
+
+	* ircd/ircd_log.c (facilities): Likewise.
+	(masks): Likewise.
+	(logInfo): Likewise.
+
+	* ircd/ircd_res.c (make_request): Update doxygen parameters list.
+	(gethost_byname): Likewise.
+	(gethost_byaddr): Likewise.
+	(do_query_name): Likewise.
+	(do_query_number): Likewise.
+
+	* ircd/m_burst.c (ms_burst): Escape %, < and > with \.
+
+	* ircd/m_lusers.c (m_lusers): Fix ordering of \li and \a.
+	(ms_lusers): Likewise.
+
+	* ircd/m_map.c (m_map): Delete stray \.
+
+	* ircd/m_motd.c (m_motd): Fix ordering of \li and \a.
+	(ms_motd): Likewise.
+
+	* ircd/m_oper.c (ms_oper): Escape < and > with \.
+
+	* ircd/m_rping.c (mo_rping): Likewise.
+
+	* ircd/motd.c (MotdList): Name the struct type.
+
+	* ircd/msgq.c (MQData): Likewise.
+
+	* ircd/os_generic.c (sockaddr_from_irc): Add doxygen comment for
+	argument 'family'.
+
+	* ircd/s_auth.c (HeaderMessages): Name the struct type.
+
+	* ircd/s_bsd.c (connect_dns_callback): Update doxygen parameters list.
+
+	* ircd/s_conf.c (conf_dns_callback): Likewise.
+	(free_mapping): Move '[in]' before the name of the parameter it
+	modifies.
+
+	* ircd/whowas.c (wwList): Name the struct type.
+	(m_whowas): Escape $, < and > with \.
+
+2006-07-14  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_wallchops.c (m_functions): Delete duplicative comment.
 	(m_wallchops): Write doxygen comment.
 	(ms_wallchops): Write doxygen comment.

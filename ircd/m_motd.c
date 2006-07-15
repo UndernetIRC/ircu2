@@ -47,7 +47,7 @@
 /** Handle a MOTD message from a local connection.
  *
  * \a parv has the following elements:
- * \a \li parv[1] is the server to query
+ * \li \a parv[1] is the server to query
  *
  * modified 30 mar 1995 by flux (cmlambertus@ucdavis.edu)
  * T line patch - display motd based on hostmask
@@ -75,7 +75,7 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 /** Handle a MOTD message from a server connection.
  *
  * \a parv has the following elements:
- * \a \li parv[1] is the server to query
+ * \li \a parv[1] is the server to query
  *
  * modified 30 mar 1995 by flux (cmlambertus@ucdavis.edu)
  * T line patch - display motd based on hostmask

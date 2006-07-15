@@ -100,20 +100,20 @@ netride_modes(int parc, char **parv, const char *curr_key)
  * The meaning of the following parv[]'s depend on their first character:
  * If parv[n] starts with a '+':
  * Net burst, additive modes
- *   parv[n] = <mode>
- *   parv[n+1] = <param> (optional)
- *   parv[n+2] = <param> (optional)
+ *   parv[n] = \<mode\>
+ *   parv[n+1] = \<param\> (optional)
+ *   parv[n+2] = \<param\> (optional)
  * If parv[n] starts with a '%', then n will be parc-1:
- *   parv[n] = %<ban> <ban> <ban> ...
+ *   parv[n] = \%\<ban\> \<ban\> \<ban\> ...
  * If parv[n] starts with another character:
- *   parv[n] = <nick>[:<mode>],<nick>[:<mode>],...
- *   where <mode> defines the mode and op-level
+ *   parv[n] = \<nick\>[:\<mode\>],\<nick\>[:\<mode\>],...
+ *   where \<mode\> defines the mode and op-level
  *   for nick and all following nicks until the
- *   next <mode> field.
- *   Digits in the <mode> field have of two meanings:
+ *   next \<mode\> field.
+ *   Digits in the \<mode\> field have of two meanings:
  *   1) if it is the first field in this BURST message
  *      that contains digits, and/or when a 'v' is
- *      present in the <mode>:
+ *      present in the \<mode\>:
  *      The absolute value of the op-level.
  *   2) if there are only digits in this field and
  *      it is not the first field with digits:
@@ -127,7 +127,7 @@ netride_modes(int parc, char **parv, const char *curr_key)
  * Example:
  * "A8 B #test 87654321 +ntkAl key secret 123 A8AAG,A8AAC:v,A8AAA:0,A8AAF:2,A8AAD,A8AAB:v1,A8AAE:1 :%ban1 ban2"
  *
- * <mode> list example:
+ * \<mode\> list example:
  *
  * "xxx,sss:v,ttt,aaa:123,bbb,ccc:2,ddd,kkk:v2,lll:2,mmm"
  *
@@ -135,7 +135,7 @@ netride_modes(int parc, char **parv, const char *curr_key)
  *
  *  xxx		// first modeless nicks
  *  sss +v	// then opless nicks
- *  ttt +v	// no ":<mode>": everything stays the same
+ *  ttt +v	// no ":\<mode\>": everything stays the same
  *  aaa -123	// first field with digit: absolute value
  *  bbb -123
  *  ccc -125	// only digits, not first field: increment

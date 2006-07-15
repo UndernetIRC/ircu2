@@ -106,7 +106,7 @@ struct AuthRequest {
 /** Array of message text (with length) pairs for AUTH status
  * messages.  Indexed using #ReportType.
  */
-static struct {
+static struct HeaderMessages_s {
   const char*  message;
   unsigned int length;
 } HeaderMessages [] = {

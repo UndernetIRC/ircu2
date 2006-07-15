@@ -85,13 +85,13 @@ static const struct Engine *evEngines[] = {
  * This is used if an engine does not implement signal handling itself
  * (when Engine::eng_signal is NULL).
  */
-static struct {
+static struct sigInfo_s {
   int		fd;	/**< signal routine's fd */
   struct Socket	sock;	/**< and its struct Socket */
 } sigInfo = { -1 };
 
 /** All the thread info */
-static struct {
+static struct evInfo_s {
   struct Generators    gens;		/**< List of all generators */
   struct Event*	       events_free;	/**< struct Event free list */
   unsigned int	       events_alloc;	/**< count of allocated struct Events */

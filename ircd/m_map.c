@@ -115,7 +115,7 @@ static void dump_map(struct Client *cptr, struct Client *server, char *mask, int
 /** Handle a MAP request from a local connection.
  * -- by Run
  *
- * \a \parv has the following elements:
+ * \a parv has the following elements:
  * \li \a parv[1] (optional) is a mask of servers to display in the map
  *
  * See @ref m_functions for discussion of the arguments.

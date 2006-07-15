@@ -161,7 +161,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 }
 
 /** Handle an OPER message from a server connection.
- * Usually, a server will just send a MODE <numnick> +o message
+ * Usually, a server will just send a MODE \<numnick\> +o message
  * instead.
  *
  * \a parv has the following elements:

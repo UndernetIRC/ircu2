@@ -245,7 +245,8 @@ rem_request(struct reslist *request)
 }
 
 /** Create a DNS request record for the server.
- * @param[in] query Callback information for caller.
+ * @param[in] callback Callback function to use.
+ * @param[in] ctx Context parameter for \a callback.
  * @return Newly allocated and linked-in reslist.
  */
 static struct reslist *
@@ -416,7 +417,8 @@ find_id(int id)
 
 /** Try to look up address for a hostname, trying IPv6 (T_AAAA) first.
  * @param[in] name Hostname to look up.
- * @param[in] query Callback information.
+ * @param[in] callback Function to call upon completion.
+ * @param[in] ctx Callback data to pass to \a callback.
  */
 void
 gethost_byname(const char *name, dns_callback_f callback, void *ctx)
@@ -426,7 +428,8 @@ gethost_byname(const char *name, dns_callback_f callback, void *ctx)
 
 /** Try to look up hostname for an address.
  * @param[in] addr Address to look up.
- * @param[in] query Callback information.
+ * @param[in] callback Function to call upon completion.
+ * @param[in] ctx Callback data to pass to \a callback.
  */
 void
 gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callback, void *ctx)
@@ -435,7 +438,8 @@ gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callback, void *ct
 }
 
 /** Send a query to look up the address for a name.
- * @param[in] query Callback information.
+ * @param[in] callback Function to call upon completion.
+ * @param[in] ctx Context data to pass to \a callback.
  * @param[in] name Hostname to look up.
  * @param[in] request DNS lookup structure (may be NULL).
  * @param[in] type Preferred request type.
@@ -467,7 +471,8 @@ do_query_name(dns_callback_f callback, void *ctx, const char *name,
 }
 
 /** Send a query to look up the name for an address.
- * @param[in] query Callback information.
+ * @param[in] callback Callback function to call upon completion.
+ * @param[in] ctx Context information to pass to \a callback.
  * @param[in] addr Address to look up.
  * @param[in] request DNS lookup structure (may be NULL).
  */

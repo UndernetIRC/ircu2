@@ -57,7 +57,7 @@
 
 
 /** Keeps track of whowas least-recently-used list. */
-static struct {
+static struct wwList_s {
   struct Whowas *ww_list;	/**< list of whowas structures */
   struct Whowas *ww_tail;	/**< tail of list for getting structures */
   unsigned int	 ww_alloc;	/**< alloc count */
@@ -68,10 +68,10 @@ struct Whowas* whowashash[WW_MAX];
 
 /** @file
  * @brief Manipulation functions for the whowas list.
- * @version $Id$
+ * @version \$Id$
  *
  * Since the introduction of numeric nicks (at least for upstream messages,
- * like MODE +o &lt;nick>, KICK #chan &lt;nick>, KILL &lt;nick> etc), there is no
+ * like MODE +o \<nick\>, KICK \#chan \<nick\>, KILL \<nick\> etc), there is no
  * real important reason for a nick history anymore.
  * Nevertheless, there are two reason why we might want to keep it:
  * @li The /WHOWAS command, which is often useful to catch harassing
@@ -102,9 +102,9 @@ struct Whowas* whowashash[WW_MAX];
  * is not anymore maintained (and hopefully not used anymore either ;).
  *
  * So now we have two ways of accessing this database:
- * @li Given a &lt;nick> we can calculate a hashv and then whowashash[hashv] will
+ * @li Given a \<nick\> we can calculate a hashv and then whowashash[hashv] will
  *    point to the start of the 'hash list': all entries with the same hashv.
- *    We'll have to search this list to find the entry with the correct &lt;nick>.
+ *    We'll have to search this list to find the entry with the correct \<nick\>.
  *    Once we found the correct whowas entry, we have a pointer to the
  *    corresponding client - if still online - for nick chasing purposes.
  *    Note that the same nick can occur multiple times in the whowas history,
