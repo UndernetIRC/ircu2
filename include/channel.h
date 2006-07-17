@@ -241,7 +241,7 @@ struct Mode {
 /** A single ban for a channel. */
 struct Ban {
   struct Ban* next;           /**< next ban in the channel */
-  struct irc_in_addr address; /**< addres for BAN_IPMASK bans */
+  struct irc_in_addr address; /**< address for BAN_IPMASK bans */
   time_t when;                /**< timestamp when ban was added */
   unsigned short flags;       /**< modifier flags for the ban */
   unsigned char nu_len;       /**< length of nick!user part of banstr */
@@ -390,6 +390,7 @@ extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_set_default(void); /* this belongs elsewhere! */
+extern void check_spambot_warning(struct Client *cptr);
 
 extern void modebuf_init(struct ModeBuf *mbuf, struct Client *source,
 			 struct Client *connect, struct Channel *chan,

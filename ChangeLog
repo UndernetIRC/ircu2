@@ -1,5 +1,40 @@
 2006-07-14  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Features): Show the four added features.
+
+	* doc/readme.features (USER_GLIST): Fix indentation of headers.
+	(SPAM_OPER_COUNTDOWN): Document new feature.
+	(SPAM_EXPIRE_TIME): Likewise.
+	(SPAM_JOINED_TIME): Likewise.
+	(SPAM_FJP_COUNT): Likewise.
+
+	* include/channel.h (Ban): Fix typo in comment.
+	(check_spambot_warning): Declare new function.
+
+	* include/client.h (Connection): New fields for spambot detection.
+	(cli_last_join): New helper macro.
+	(cli_last_part): New helper macro.
+	(cli_join_part_count): New helper macro.
+	(cli_warn_countdown): New helper macro.
+
+	* include/ircd_features.h (FEAT_SPAM_OPER_COUNTDOWN): New feature.
+	(FEAT_SPAM_EXPIRE_TIME): Likewise.
+	(FEAT_SPAM_JOINED_TIME): Likewise.
+	(FEAT_SPAM_FJP_COUNT): Likewise.
+
+	* ircd/channel.c (check_spambot_warning): New function.
+
+	* ircd/ircd_features.c (SPAM_OPER_COUNTDOWN): Define new feature.
+	(SPAM_EXPIRE_TIME): Likewise.
+	(SPAM_JOINED_TIME): Likewise.
+	(SPAM_FJP_COUNT): Likewise.
+
+	* ircd/m_join.c (m_join): Update last-join time at each join.
+
+	* ircd/m_part.c (m_part): Check spambot behavior at each part.
+
+2006-07-14  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_snprintf.h: Escape %, #, < and > with \.
 
 	* ircd/ircd_events.c (sigInfo): Name the struct type.

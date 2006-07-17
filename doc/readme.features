@@ -882,8 +882,36 @@ It must be set to FALSE if there are both 2.10.11.x servers and
 TRUE whenever the OPLEVELS features is TRUE.
 
 USER_GLIST
-* Type: boolean
-* Default: FALSE
+ * Type: boolean
+ * Default: FALSE
 
 Optionally removes the ability to list glines by users
 (ie /GLINE ident@host.mask.cc, shows reason, expiry time etc)
+
+SPAM_OPER_COUNTDOWN
+ * Type: integer
+ * Default: 5
+
+Number of times a user may continue to join in a spambot-like fashion
+between snotices.
+
+SPAM_EXPIRE_TIME
+ * Type: integer
+ * Default: 120
+
+Number of seconds before a spambot-like join is "forgotten".
+
+SPAM_JOINED_TIME
+ * Type: integer
+ * Default: 60
+
+Number of seconds a client must stay in channels before a join/part
+sequence is not considered spambot-like.  This can be set to zero to
+disable spambot warnings.
+
+SPAM_FJP_COUNT
+ * Type: integer
+ * Default: 5
+
+Number of fast join-part sequences before a client is judged to look
+like a spambot.

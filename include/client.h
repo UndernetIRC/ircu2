@@ -196,6 +196,10 @@ struct Connection
   time_t              con_nexttarget;/**< Next time a target change is allowed */
   time_t              con_lasttime;  /**< Last time data read from socket */
   time_t              con_since;     /**< Last time we accepted a command */
+  time_t              con_last_join; /**< Last time this client joined a channel */
+  time_t              con_last_part; /**< Last time this client left a channel */
+  int                 con_join_part_count; /**< Count of fast join/parts */
+  int                 con_warn_countdown; /**< Counter for spambot warnings */
   struct MsgQ         con_sendQ;     /**< Outgoing message queue */
   struct DBuf         con_recvQ;     /**< Incoming data yet to be parsed */
   unsigned int        con_sendM;     /**< Stats: protocol messages sent */
@@ -316,6 +320,14 @@ struct Client {
 #define cli_username(cli)	((cli)->cli_username)
 /** Get client realname (information field). */
 #define cli_info(cli)		((cli)->cli_info)
+/** Get client's last channel join time. */
+#define cli_last_join(cli)      (cli_connect(cli)->con_last_join)
+/** Get client's last channel part time. */
+#define cli_last_part(cli)      (cli_connect(cli)->con_last_part)
+/** Get client's fast join/part count. */
+#define cli_join_part_count(cli) (cli_connect(cli)->con_join_part_count)
+/** Get client's warning countdown value. */
+#define cli_warn_countdown(cli) (cli_connect(cli)->con_warn_countdown)
 
 /** Get number of incoming bytes queued for client. */
 #define cli_count(cli)		con_count(cli_connect(cli))

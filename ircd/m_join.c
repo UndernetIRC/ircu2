@@ -243,6 +243,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       }
 
       joinbuf_join(&join, chptr, flags);
+      cli_last_join(sptr) = CurrentTime;
       if (flags & CHFL_CHANOP) {
         struct ModeBuf mbuf;
 	/* Always let the server op him: this is needed on a net with older servers

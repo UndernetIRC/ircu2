@@ -98,6 +98,7 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       flags |= CHFL_DELAYED;
 
     joinbuf_join(&parts, chptr, flags); /* part client from channel */
+    check_spambot_warning(sptr);
   }
 
   return joinbuf_flush(&parts); /* flush channel parts */

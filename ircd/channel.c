@@ -3467,3 +3467,52 @@ int IsInvited(struct Client* cptr, const void* chptr)
   return 0;
 }
 
+/** Check whether \a sptr is acting like a spambot when it leaves a
+ * channel.
+ * Side effects: Updates \a sptr's join_part_count, last_part and
+ * warn_countdown fields; may warn operators.
+ * Based on code by Dianora.
+ *
+ * @param[in] sptr Client to check
+ * @param[in] name Channel being joined (or NULL if a part).
+ */
+void
+check_spambot_warning(struct Client *sptr)
+{
+  int decrement_count;
+
+  if (!MyUser(sptr))
+  {
+    /* This client's behavior is someone else's problem. */
+  }
+  else if (cli_join_part_count(sptr) >= feature_int(FEAT_SPAM_FJP_COUNT))
+  {
+    if (cli_warn_countdown(sptr) > 0)
+      cli_warn_countdown(sptr)--;
+
+    if (cli_warn_countdown(sptr) == 0)
+    {
+      /* Its already known as a possible spambot */
+      sendto_opmask_butone(0, SNO_OLDSNO,
+                           "User %s (%s@%s) is a possible spambot",
+                           cli_name(sptr), cli_username(sptr),
+                           cli_sockhost(sptr));
+      cli_warn_countdown(sptr) = feature_int(FEAT_SPAM_OPER_COUNTDOWN);
+    }
+  }
+  else if ((decrement_count = (CurrentTime - cli_last_part(sptr))
+            / feature_int(FEAT_SPAM_EXPIRE_TIME)) > 0)
+  {
+    if (decrement_count > cli_join_part_count(sptr))
+      cli_join_part_count(sptr) = 0;
+    else
+      cli_join_part_count(sptr) -= decrement_count;
+  }
+  else if ((CurrentTime - (cli_last_join(sptr))) < feature_int(FEAT_SPAM_JOINED_TIME))
+  {
+    /* oh, its a possible spambot */
+    cli_join_part_count(sptr)++;
+  }
+
+  cli_last_part(sptr) = CurrentTime;
+}

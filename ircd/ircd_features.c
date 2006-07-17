@@ -495,6 +495,10 @@ static struct FeatureDesc {
   /* Misc. random stuff */
   F_S(NETWORK, 0, "UnderNet", set_isupport_network),
   F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
+  F_I(SPAM_OPER_COUNTDOWN, 0, 5, 0),
+  F_I(SPAM_EXPIRE_TIME, 0, 120, 0),
+  F_I(SPAM_JOINED_TIME, 0, 60, 0),
+  F_I(SPAM_FJP_COUNT, 0, 5, 0),
 
 #undef F_S
 #undef F_B
