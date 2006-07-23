@@ -149,7 +149,7 @@ void exec_expired_destruct_events(struct Event* ev)
     {
       struct Channel* chptr = (*list_bottom)->chptr;
       /* Send DESTRUCT message */
-      sendcmdto_serv_butone(&me, CMD_DESTRUCT, 0, "%s %Tu", chptr->chname, chptr->creationtime);
+      sendcmdto_serv(&me, CMD_DESTRUCT, 0, "%s %Tu", chptr->chname, chptr->creationtime);
       remove_destruct_event(chptr);
       destruct_channel(chptr);
     }

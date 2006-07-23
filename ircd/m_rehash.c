@@ -77,9 +77,7 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   send_reply(sptr, RPL_REHASHING, configfile);
-  sendto_opmask_butone(0, SNO_OLDSNO, "%C is rehashing Server config file",
-		       sptr);
-
+  sendto_opmask(0, SNO_OLDSNO, "%C is rehashing Server config file", sptr);
   log_write(LS_SYSTEM, L_INFO, 0, "REHASH From %#C", sptr);
 
   return rehash(cptr, flag);

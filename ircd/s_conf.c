@@ -847,8 +847,8 @@ int read_configuration_file(void)
 void
 yyerror(const char *msg)
 {
- sendto_opmask_butone(0, SNO_ALL, "Config file parse error line %d: %s",
-                      yylineno, msg);
+ sendto_opmask(0, SNO_ALL, "Config file parse error line %d: %s",
+               yylineno, msg);
  log_write(LS_CONFIG, L_ERROR, 0, "Config file parse error line %d: %s",
            yylineno, msg);
  if (!conf_already_read)
@@ -883,10 +883,10 @@ yywarning(const char *fmt, ...)
   va_start(vl, fmt);
   ircd_vsnprintf(NULL, warn_buffer, sizeof(warn_buffer), fmt, vl);
   va_end(vl);
-  sendto_opmask_butone(0, SNO_ALL, "Config warning on line %d: %s",
-                       yylineno, warn_buffer);
+  sendto_opmask(0, SNO_ALL, "Config warning on line %d: %s",
+                yylineno, warn_buffer);
   log_write(LS_CONFIG, L_WARNING, 0, "Config warning on line %d: %s",
-                       yylineno, warn_buffer);
+            yylineno, warn_buffer);
   if (!conf_already_read)
     fprintf(stderr, "Config warning on line %d: %s\n", yylineno, warn_buffer);
 }
@@ -949,8 +949,8 @@ int rehash(struct Client *cptr, int sig)
   int               found_g = 0;
 
   if (1 == sig)
-    sendto_opmask_butone(0, SNO_OLDSNO,
-                         "Got signal SIGHUP, reloading ircd conf. file");
+    sendto_opmask(0, SNO_OLDSNO,
+                  "Got signal SIGHUP, reloading ircd conf. file");
 
   while ((tmp2 = *tmp)) {
     if (tmp2->clients) {
@@ -1024,11 +1024,11 @@ int rehash(struct Client *cptr, int sig)
        * whats going on.
        */
       if ((found_g = find_kill(acptr))) {
-        sendto_opmask_butone(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
-                             found_g == -2 ? "G-line active for %s%s" :
-                             "K-line active for %s%s",
-                             IsUnknown(acptr) ? "Unregistered Client ":"",
-                             get_client_name(acptr, SHOW_IP));
+        sendto_opmask(0, found_g == -2 ? SNO_GLINE : SNO_OPERKILL,
+                      found_g == -2 ? "G-line active for %s%s" :
+                      "K-line active for %s%s",
+                      IsUnknown(acptr) ? "Unregistered Client ":"",
+                      get_client_name(acptr, SHOW_IP));
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;
@@ -1182,9 +1182,9 @@ int conf_check_server(struct Client *cptr)
   if (IsConnecting(cptr) || IsHandshake(cptr)) {
     c_conf = find_conf_byname(lp, cli_name(cptr), CONF_SERVER);
     if (!c_conf) {
-      sendto_opmask_butone(0, SNO_OLDSNO,
-                           "Connect Error: lost Connect block for %s",
-                           cli_name(cptr));
+      sendto_opmask(0, SNO_OLDSNO,
+                    "Connect Error: lost Connect block for %s",
+                    cli_name(cptr));
       det_confs_butmask(cptr, 0);
       return -1;
     }

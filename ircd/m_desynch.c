@@ -55,9 +55,9 @@
 int ms_desynch(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   if (parc >= 2)
-    sendwallto_group_butone(sptr, WALL_DESYNCH, cptr, "%s", parv[parc - 1]);
+    sendwallto_group(sptr, WALL_DESYNCH, cptr, "%s", parv[parc - 1]);
   else
-    need_more_params(sptr,"DESYNCH");			
+    need_more_params(sptr,"DESYNCH");
 
   return 0;
 }

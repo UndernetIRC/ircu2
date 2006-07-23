@@ -103,8 +103,8 @@ static void CheckDelayedJoins(struct Channel *chan)
     if (!memb2) {
       /* clear +d */
       chan->mode.mode &= ~MODE_WASDELJOINS;
-      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
-                                       "%H -d", chan);
+      sendcmdto_channel(&his, CMD_MODE, chan, NULL, SKIP_SERVERS,
+                        "%H -d", chan);
     }
   }
 }
@@ -113,8 +113,9 @@ static void CheckDelayedJoins(struct Channel *chan)
 static void RevealDelayedJoin(struct Membership *member)
 {
   ClearDelayedJoin(member);
-  sendcmdto_channel_butserv_butone(member->user, CMD_JOIN, member->channel, member->user, 0, ":%H",
-                                   member->channel);
+  sendcmdto_channel(member->user, CMD_JOIN, member->channel,
+                    member->user, SKIP_SERVERS,
+                    ":%H", member->channel);
   CheckDelayedJoins(member->channel);
 }
 
@@ -1644,33 +1645,31 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     /* send the messages off to their destination */
     if (mbuf->mb_dest & MODEBUF_DEST_HACK2)
-      sendto_opmask_butone(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]",
-                           cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
-                                    mbuf->mb_source : app_source),
-			   mbuf->mb_channel->chname,
-			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			   addbuf, remstr, addstr,
-			   mbuf->mb_channel->creationtime);
+      sendto_opmask(0, SNO_HACK2, "HACK(2): %s MODE %s %s%s%s%s%s%s [%Tu]",
+                    cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+                             mbuf->mb_source : app_source),
+                    mbuf->mb_channel->chname,
+                    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+                    addbuf, remstr, addstr,
+                    mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK3)
-      sendto_opmask_butone(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
-			   "%s%s%s%s%s%s [%Tu]",
-                           cli_name(feature_bool(FEAT_HIS_SNOTICES) ? 
-                                    mbuf->mb_source : app_source),
-			   mbuf->mb_channel->chname, rembuf_i ? "-" : "",
-			   rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
-			   mbuf->mb_channel->creationtime);
+      sendto_opmask(0, SNO_HACK3, "BOUNCE or HACK(3): %s MODE %s "
+                    "%s%s%s%s%s%s [%Tu]",
+                    cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+                             mbuf->mb_source : app_source),
+                    mbuf->mb_channel->chname, rembuf_i ? "-" : "",
+                    rembuf, addbuf_i ? "+" : "", addbuf, remstr, addstr,
+                    mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_HACK4)
-      sendto_opmask_butone(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s "
-			   "[%Tu]",
-			   cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
-                                    mbuf->mb_source : app_source),
-			   mbuf->mb_channel->chname,
-			   rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			   addbuf, remstr, addstr,
-			   mbuf->mb_channel->creationtime);
+      sendto_opmask(0, SNO_HACK4, "HACK(4): %s MODE %s %s%s%s%s%s%s [%Tu]",
+                    cli_name(feature_bool(FEAT_HIS_SNOTICES) ?
+                             mbuf->mb_source : app_source),
+                    mbuf->mb_channel->chname,
+                    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+                    addbuf, remstr, addstr,
+                    mbuf->mb_channel->creationtime);
 
     if (mbuf->mb_dest & MODEBUF_DEST_LOG)
       log_write(LS_OPERMODE, L_INFO, LOG_NOSNOTICE,
@@ -1679,13 +1678,13 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		addbuf_i ? "+" : "", addbuf, remstr, addstr);
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL, 0,
-                                       "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
-                                       rembuf_i || rembuf_local_i ? "-" : "",
-                                       rembuf, rembuf_local,
-                                       addbuf_i || addbuf_local_i ? "+" : "",
-                                       addbuf, addbuf_local,
-                                       remstr, addstr);
+      sendcmdto_channel(app_source, CMD_MODE, mbuf->mb_channel, NULL, SKIP_SERVERS,
+                        "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
+                        rembuf_i || rembuf_local_i ? "-" : "",
+                        rembuf, rembuf_local,
+                        addbuf_i || addbuf_local_i ? "+" : "",
+                        addbuf, addbuf_local,
+                        remstr, addstr);
   }
 
   /* Now are we supposed to propagate to other servers? */
@@ -1752,10 +1751,10 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 
     if (mbuf->mb_dest & MODEBUF_DEST_OPMODE) {
       /* If OPMODE was set, we're propagating the mode as an OPMODE message */
-      sendcmdto_serv_butone(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
-			    "%H %s%s%s%s%s%s", mbuf->mb_channel,
-			    rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-			    addbuf, remstr, addstr);
+      sendcmdto_serv(mbuf->mb_source, CMD_OPMODE, mbuf->mb_connect,
+                     "%H %s%s%s%s%s%s", mbuf->mb_channel,
+                     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+                     addbuf, remstr, addstr);
     } else if (mbuf->mb_dest & MODEBUF_DEST_BOUNCE) {
       /*
        * If HACK2 was set, we're bouncing; we send the MODE back to
@@ -1771,11 +1770,11 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
        * We're propagating a normal (or HACK3 or HACK4) MODE command
        * to the rest of the network.  We send the actual channel TS.
        */
-      sendcmdto_serv_butone(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
-                            "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
-                            rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
-                            addbuf, remstr, addstr,
-                            mbuf->mb_channel->creationtime);
+      sendcmdto_serv(mbuf->mb_source, CMD_MODE, mbuf->mb_connect,
+                     "%H %s%s%s%s%s%s %Tu", mbuf->mb_channel,
+                     rembuf_i ? "-" : "", rembuf, addbuf_i ? "+" : "",
+                     addbuf, remstr, addstr,
+                     mbuf->mb_channel->creationtime);
     }
   }
 
@@ -2934,10 +2933,10 @@ mode_process_clients(struct ParseState *state)
       /* prevent +k users from being deopped */
       if (IsChannelService(state->cli_change[i].client)) {
 	if (state->flags & MODE_PARSE_FORCE) /* it was forced */
-	  sendto_opmask_butone(0, SNO_HACK4, "Deop of +k user on %H by %s",
-			       state->chptr,
-			       (IsServer(state->sptr) ? cli_name(state->sptr) :
-				cli_name((cli_user(state->sptr))->server)));
+	  sendto_opmask(0, SNO_HACK4, "Deop of +k user on %H by %s",
+                        state->chptr,
+                        (IsServer(state->sptr) ? cli_name(state->sptr) :
+                         cli_name((cli_user(state->sptr))->server)));
 
 	else if (MyUser(state->sptr) && state->flags & MODE_PARSE_SET) {
 	  send_reply(state->sptr, ERR_ISCHANSERVICE,
@@ -3331,7 +3330,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
   assert(0 != jbuf);
 
   if (!chan) {
-    sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect, "0");
+    sendcmdto_serv(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect, "0");
     return;
   }
 
@@ -3346,9 +3345,9 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     /* Send notification to channel */
     if (!(flags & (CHFL_ZOMBIE | CHFL_DELAYED)))
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL, 0,
-				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
-				":%H" : "%H :%s", chan, jbuf->jb_comment);
+      sendcmdto_channel(jbuf->jb_source, CMD_PART, chan, NULL, SKIP_SERVERS,
+                        (flags & CHFL_BANNED || !jbuf->jb_comment) ?
+                        ":%H" : "%H :%s", chan, jbuf->jb_comment);
     else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
 		    (flags & CHFL_BANNED || !jbuf->jb_comment) ?
@@ -3375,18 +3374,19 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     /* send JOIN notification to all servers (CREATE is sent later). */
     if (jbuf->jb_type != JOINBUF_TYPE_CREATE && !is_local)
-      sendcmdto_serv_butone(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
-			    "%H %Tu", chan, chan->creationtime);
+      sendcmdto_serv(jbuf->jb_source, CMD_JOIN, jbuf->jb_connect,
+                     "%H %Tu", chan, chan->creationtime);
 
     if (!((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))) {
       /* Send the notification to the channel */
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_JOIN, chan, NULL, 0, "%H", chan);
+      sendcmdto_channel(jbuf->jb_source, CMD_JOIN, chan, NULL, SKIP_SERVERS,
+                        "%H", chan);
 
       /* send an op, too, if needed */
       if (flags & CHFL_CHANOP && (oplevel < MAXOPLEVEL || !MyUser(jbuf->jb_source)))
-	sendcmdto_channel_butserv_butone((chan->mode.apass[0] ? &his : jbuf->jb_source),
-                                         CMD_MODE, chan, NULL, 0, "%H +o %C",
-					 chan, jbuf->jb_source);
+	sendcmdto_channel((chan->mode.apass[0] ? &his : jbuf->jb_source),
+                          CMD_MODE, chan, NULL, SKIP_SERVERS,
+                          "%H +o %C", chan, jbuf->jb_source);
     } else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_JOIN, jbuf->jb_source, ":%H", chan);
   }
@@ -3442,14 +3442,14 @@ joinbuf_flush(struct JoinBuf *jbuf)
   /* and send the appropriate command */
   switch (jbuf->jb_type) {
   case JOINBUF_TYPE_CREATE:
-    sendcmdto_serv_butone(jbuf->jb_source, CMD_CREATE, jbuf->jb_connect,
-			  "%s %Tu", chanlist, jbuf->jb_create);
+    sendcmdto_serv(jbuf->jb_source, CMD_CREATE, jbuf->jb_connect,
+                   "%s %Tu", chanlist, jbuf->jb_create);
     break;
 
   case JOINBUF_TYPE_PART:
-    sendcmdto_serv_butone(jbuf->jb_source, CMD_PART, jbuf->jb_connect,
-			  jbuf->jb_comment ? "%s :%s" : "%s", chanlist,
-			  jbuf->jb_comment);
+    sendcmdto_serv(jbuf->jb_source, CMD_PART, jbuf->jb_connect,
+                   jbuf->jb_comment ? "%s :%s" : "%s", chanlist,
+                   jbuf->jb_comment);
     break;
   }
 
@@ -3500,10 +3500,10 @@ check_spambot_warning(struct Client *sptr)
     if (cli_warn_countdown(sptr) == 0)
     {
       /* Its already known as a possible spambot */
-      sendto_opmask_butone(0, SNO_OLDSNO,
-                           "User %s (%s@%s) is a possible spambot",
-                           cli_name(sptr), cli_username(sptr),
-                           cli_sockhost(sptr));
+      sendto_opmask(0, SNO_OLDSNO,
+                    "User %s (%s@%s) is a possible spambot",
+                    cli_name(sptr), cli_username(sptr),
+                    cli_sockhost(sptr));
       cli_warn_countdown(sptr) = feature_int(FEAT_SPAM_OPER_COUNTDOWN);
     }
   }

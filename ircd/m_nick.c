@@ -251,8 +251,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if ((IsServer(sptr) && parc < 8) || parc < 3)
   {
-    sendto_opmask_butone(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
-			 parv[1], cptr);
+    sendto_opmask(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
+                  parv[1], cptr);
     return need_more_params(sptr, "NICK");
   }
 
@@ -282,8 +282,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, ERR_ERRONEUSNICKNAME, parv[1]);
     
     ++ServerStats->is_kill;
-    sendto_opmask_butone(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
-			 parv[0], cptr);
+    sendto_opmask(0, SNO_OLDSNO, "Bad Nick: %s From: %s %C", parv[1],
+                  parv[0], cptr);
     sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (%s <- %s[%s])",
 		  IsServer(sptr) ? parv[parc - 2] : parv[0], cli_name(&me), parv[1],
 		  nick, cli_name(cptr));
@@ -292,11 +292,11 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * bad nick _change_
        */
-      sendcmdto_serv_butone(&me, CMD_KILL, 0, "%s :%s (%s <- %s!%s@%s)",
-			    parv[0], cli_name(&me), cli_name(cptr), parv[0],
-			    cli_user(sptr) ? cli_username(sptr) : "",
-			    cli_user(sptr) ? cli_name(cli_user(sptr)->server) :
-			    cli_name(cptr));
+      sendcmdto_serv(&me, CMD_KILL, 0, "%s :%s (%s <- %s!%s@%s)",
+                     parv[0], cli_name(&me), cli_name(cptr), parv[0],
+                     cli_user(sptr) ? cli_username(sptr) : "",
+                     cli_user(sptr) ? cli_name(cli_user(sptr)->server) :
+                     cli_name(cptr));
     }
     return 0;
   }
@@ -369,10 +369,10 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     base64toip(parv[parc - 3], &ip);
     differ =  (0 != memcmp(&cli_ip(acptr), &ip, sizeof(cli_ip(acptr)))) ||
               (0 != ircd_strcmp(cli_user(acptr)->username, parv[4]));
-    sendto_opmask_butone(0, SNO_OLDSNO, "Nick collision on %C (%C %Tu <- "
-			 "%C %Tu (%s user@host))", acptr, cli_from(acptr),
-			 cli_lastnick(acptr), cptr, lastnick,
-			 differ ? "Different" : "Same");
+    sendto_opmask(0, SNO_OLDSNO, "Nick collision on %C (%C %Tu <- "
+                  "%C %Tu (%s user@host))", acptr, cli_from(acptr),
+                  cli_lastnick(acptr), cptr, lastnick,
+                  differ ? "Different" : "Same");
   }
   else
   {
@@ -383,9 +383,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     differ =  (0 != memcmp(&cli_ip(acptr), &cli_ip(sptr), sizeof(cli_ip(acptr)))) ||
               (0 != ircd_strcmp(cli_user(acptr)->username, cli_user(sptr)->username));
-    sendto_opmask_butone(0, SNO_OLDSNO, "Nick change collision from %C to "
-			 "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
-			 cli_lastnick(acptr), cptr, lastnick);
+    sendto_opmask(0, SNO_OLDSNO, "Nick change collision from %C to "
+                  "%C (%C %Tu <- %C %Tu)", sptr, acptr, cli_from(acptr),
+                  cli_lastnick(acptr), cptr, lastnick);
   }
   type = differ ? "overruled by older nick" : "nick collision from same user@host";
   /*
@@ -409,8 +409,8 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        */
       assert(!MyConnect(sptr));
       /* Inform the rest of the net... */
-      sendcmdto_serv_butone(&me, CMD_KILL, 0, "%C :%s (%s)",
-                            sptr, cli_name(&me), type);
+      sendcmdto_serv(&me, CMD_KILL, 0, "%C :%s (%s)",
+                     sptr, cli_name(&me), type);
       /* Don't go sending off a QUIT message... */
       SetFlag(sptr, FLAG_KILLED);
       /* Remove them locally. */
@@ -441,9 +441,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /*
    * This exits the client we had before getting the NICK message
    */
-  sendcmdto_serv_butone(&me, CMD_KILL, NULL, "%C :%s (%s)",
-                        acptr, feature_str(FEAT_HIS_SERVERNAME),
-                        type);
+  sendcmdto_serv(&me, CMD_KILL, NULL, "%C :%s (%s)",
+                 acptr, feature_str(FEAT_HIS_SERVERNAME),
+                 type);
   exit_client_msg(cptr, acptr, &me, "Killed (%s (%s))",
                   feature_str(FEAT_HIS_SERVERNAME), type);
   if (lastnick == cli_lastnick(acptr))

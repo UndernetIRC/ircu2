@@ -478,24 +478,24 @@ static int preregister_user(struct Client *cptr)
   case ACR_OK:
     break;
   case ACR_NO_AUTHORIZATION:
-    sendto_opmask_butone(0, SNO_UNAUTH, "Unauthorized connection from %s.",
-                         get_client_name(cptr, HIDE_IP));
+    sendto_opmask(0, SNO_UNAUTH, "Unauthorized connection from %s.",
+                  get_client_name(cptr, HIDE_IP));
     ++ServerStats->is_ref;
     return exit_client(cptr, cptr, &me,
                        "No Authorization - use another server");
   case ACR_TOO_MANY_IN_CLASS:
-    sendto_opmask_butone_ratelimited(0, SNO_TOOMANY, &last_too_many1,
-                                     "Too many connections in class %s for %s.",
-                                     get_client_class(cptr),
-                                     get_client_name(cptr, SHOW_IP));
+    sendto_opmask_ratelimited(0, SNO_TOOMANY, &last_too_many1,
+                              "Too many connections in class %s for %s.",
+                              get_client_class(cptr),
+                              get_client_name(cptr, SHOW_IP));
     ++ServerStats->is_ref;
     return exit_client(cptr, cptr, &me,
                        "Sorry, your connection class is full - try "
                        "again later or try another server");
   case ACR_TOO_MANY_FROM_IP:
-    sendto_opmask_butone_ratelimited(0, SNO_TOOMANY, &last_too_many2,
-                                     "Too many connections from same IP for %s.",
-                                     get_client_name(cptr, SHOW_IP));
+    sendto_opmask_ratelimited(0, SNO_TOOMANY, &last_too_many2,
+                              "Too many connections from same IP for %s.",
+                              get_client_name(cptr, SHOW_IP));
     ++ServerStats->is_ref;
     return exit_client(cptr, cptr, &me,
                        "Too many connections from your host");
@@ -839,9 +839,8 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
              || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
                  && irc_in_addr_cmp(&auth->original, addr))) {
     /* IP for hostname did not match client's IP. */
-    sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-                         cli_sock_ip(auth->client), h_name,
-                         ircd_ntoa(addr));
+    sendto_opmask(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
+                  cli_sock_ip(auth->client), h_name, ircd_ntoa(addr));
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_IP_MISMATCH);
     if (feature_bool(FEAT_KILL_IPMISMATCH)) {
@@ -1151,7 +1150,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
 
   if (automatic && CurrentTime - iauth->started < 5)
   {
-    sendto_opmask_butone(NULL, SNO_AUTH, "IAuth crashed fast, leaving it dead.");
+    sendto_opmask(NULL, SNO_AUTH, "IAuth crashed fast, leaving it dead.");
     return -1;
   }
 
@@ -1428,7 +1427,7 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...)
 static int iauth_cmd_snotice(struct IAuth *iauth, struct Client *cli,
 			     int parc, char **params)
 {
-  sendto_opmask_butone(NULL, SNO_AUTH, "%s", params[0]);
+  sendto_opmask(NULL, SNO_AUTH, "%s", params[0]);
   return 0;
 }
 
@@ -1447,7 +1446,7 @@ static int iauth_cmd_debuglevel(struct IAuth *iauth, struct Client *cli,
   new_level = parc > 0 ? atoi(params[0]) : 0;
   if (i_debug(iauth) > 0 || new_level > 0) {
     /* The "ia_dbg" name is borrowed from (IRCnet) ircd. */
-    sendto_opmask_butone(NULL, SNO_AUTH, "ia_dbg = %d", new_level);
+    sendto_opmask(NULL, SNO_AUTH, "ia_dbg = %d", new_level);
   }
   i_debug(iauth) = new_level;
   return 0;
@@ -1490,7 +1489,7 @@ static int iauth_cmd_policy(struct IAuth *iauth, struct Client *cli,
 
   /* Optionally notify operators. */
   if (i_debug(iauth) > 0)
-    sendto_opmask_butone(NULL, SNO_AUTH, "iauth options: %s", params[0]);
+    sendto_opmask(NULL, SNO_AUTH, "iauth options: %s", params[0]);
   return 0;
 }
 
@@ -1506,8 +1505,8 @@ static int iauth_cmd_version(struct IAuth *iauth, struct Client *cli,
 {
   MyFree(iauth->i_version);
   DupString(iauth->i_version, parc > 0 ? params[0] : "<NONE>");
-  sendto_opmask_butone(NULL, SNO_AUTH, "iauth version %s running.",
-		       iauth->i_version);
+  sendto_opmask(NULL, SNO_AUTH, "iauth version %s running.",
+                iauth->i_version);
   return 0;
 }
 
@@ -1568,7 +1567,7 @@ static int iauth_cmd_newconfig(struct IAuth *iauth, struct Client *cli,
     MyFree(head->value.cp);
     free_link(head);
   }
-  sendto_opmask_butone(NULL, SNO_AUTH, "New iauth configuration.");
+  sendto_opmask(NULL, SNO_AUTH, "New iauth configuration.");
   return 0;
 }
 
@@ -1615,7 +1614,7 @@ static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli,
     MyFree(head->value.cp);
     free_link(head);
   }
-  sendto_opmask_butone(NULL, SNO_AUTH, "New iauth statistics.");
+  sendto_opmask(NULL, SNO_AUTH, "New iauth statistics.");
   return 0;
 }
 
@@ -1801,9 +1800,9 @@ static struct ConfItem *auth_find_class_conf(const char *class_name)
   if (!aconf) {
     aconf = make_conf(CONF_CLIENT);
     if (!aconf) {
-      sendto_opmask_butone(NULL, SNO_AUTH,
-                           "Unable to allocate ConfItem for class %s!",
-                           ConClass(class));
+      sendto_opmask(NULL, SNO_AUTH,
+                    "Unable to allocate ConfItem for class %s!",
+                    ConClass(class));
       return NULL;
     }
     aconf->conn_class = class;
@@ -1838,9 +1837,9 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
     if (aconf)
       attach_conf(cli, aconf);
     else
-      sendto_opmask_butone_ratelimited(NULL, SNO_AUTH, &warn_time,
-                                       "iauth tried to use undefined class [%s]",
-                                       params[0]);
+      sendto_opmask_ratelimited(NULL, SNO_AUTH, &warn_time,
+                                "iauth tried to use undefined class [%s]",
+                                params[0]);
   }
 
   return 1;
@@ -2046,7 +2045,7 @@ static void iauth_read(struct IAuth *iauth)
 
     /* If spammy debug, send the message to opers. */
     if (i_debug(iauth) > 1)
-      sendto_opmask_butone(NULL, SNO_AUTH, "Parsing: \"%s\"", sol);
+      sendto_opmask(NULL, SNO_AUTH, "Parsing: \"%s\"", sol);
 
     /* Parse the line... */
     iauth_parse(iauth, sol);
@@ -2123,7 +2122,7 @@ static void iauth_read_stderr(struct IAuth *iauth)
       *(eol - 1) = '\0';
     Debug((DEBUG_ERROR, "IAuth error: %s", sol));
     log_write(LS_IAUTH, L_ERROR, 0, "IAuth error: %s", sol);
-    sendto_opmask_butone(NULL, SNO_AUTH, "%s", sol);
+    sendto_opmask(NULL, SNO_AUTH, "%s", sol);
   }
 
   /* Put unused data back into connection's buffer. */

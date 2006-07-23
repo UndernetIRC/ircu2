@@ -105,8 +105,8 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
-  sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
-			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
+  sendcmdto_channel(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
+                    SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
 }
 
 /** Relay a local user's notice to a channel.
@@ -134,8 +134,8 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
-  sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, cli_from(sptr),
-			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
+  sendcmdto_channel(sptr, CMD_NOTICE, chptr, cli_from(sptr),
+                    SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
 }
 
 /** Relay a message to a channel.
@@ -161,8 +161,8 @@ void server_relay_channel_message(struct Client* sptr, const char* name, const c
    * Servers may have channel services, need to check for it here
    */
   if (client_can_send_to_channel(sptr, chptr, 1) || IsChannelService(sptr)) {
-    sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
-			     SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
+    sendcmdto_channel(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
+                      SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
   }
   else
     send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
@@ -189,8 +189,8 @@ void server_relay_channel_notice(struct Client* sptr, const char* name, const ch
    * Servers may have channel services, need to check for it here
    */
   if (client_can_send_to_channel(sptr, chptr, 1) || IsChannelService(sptr)) {
-    sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, cli_from(sptr),
-			     SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
+    sendcmdto_channel(sptr, CMD_NOTICE, chptr, cli_from(sptr),
+                      SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
   }
 }
 
@@ -476,10 +476,10 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
     ++s;
   }
 
-  sendcmdto_match_butone(sptr, CMD_PRIVATE, s,
-			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
-			 host_mask ? MATCH_HOST : MATCH_SERVER,
-			 "%s :%s", mask, text);
+  sendcmdto_match(sptr, CMD_PRIVATE, s,
+                  IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+                  host_mask ? MATCH_HOST : MATCH_SERVER,
+                  "%s :%s", mask, text);
 }
 
 /** Relay a masked notice from a local user.
@@ -518,10 +518,10 @@ void relay_masked_notice(struct Client* sptr, const char* mask, const char* text
     ++s;
   }
 
-  sendcmdto_match_butone(sptr, CMD_NOTICE, s,
-			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
-			 host_mask ? MATCH_HOST : MATCH_SERVER,
-			 "%s :%s", mask, text);
+  sendcmdto_match(sptr, CMD_NOTICE, s,
+                  IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+                  host_mask ? MATCH_HOST : MATCH_SERVER,
+                  "%s :%s", mask, text);
 }
 
 /** Relay a masked message that arrived from a server.
@@ -541,10 +541,10 @@ void server_relay_masked_message(struct Client* sptr, const char* mask, const ch
     host_mask = 1;
     ++s;
   }
-  sendcmdto_match_butone(sptr, CMD_PRIVATE, s,
-			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
-			 host_mask ? MATCH_HOST : MATCH_SERVER,
-			 "%s :%s", mask, text);
+  sendcmdto_match(sptr, CMD_PRIVATE, s,
+                  IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+                  host_mask ? MATCH_HOST : MATCH_SERVER,
+                  "%s :%s", mask, text);
 }
 
 /** Relay a masked notice that arrived from a server.
@@ -564,9 +564,9 @@ void server_relay_masked_notice(struct Client* sptr, const char* mask, const cha
     host_mask = 1;
     ++s;
   }
-  sendcmdto_match_butone(sptr, CMD_NOTICE, s,
-			 IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
-			 host_mask ? MATCH_HOST : MATCH_SERVER,
-			 "%s :%s", mask, text);
+  sendcmdto_match(sptr, CMD_NOTICE, s,
+                  IsServer(cli_from(sptr)) ? cli_from(sptr) : 0,
+                  host_mask ? MATCH_HOST : MATCH_SERVER,
+                  "%s :%s", mask, text);
 }
 

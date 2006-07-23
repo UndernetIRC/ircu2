@@ -113,10 +113,10 @@ propagate_jupe(struct Client *cptr, struct Client *sptr, struct Jupe *jupe)
   if (JupeIsLocal(jupe)) /* don't propagate local jupes */
     return;
 
-  sendcmdto_serv_butone(sptr, CMD_JUPE, cptr, "* %c%s %Tu %Tu :%s",
-			JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
-			jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
-			jupe->ju_reason);
+  sendcmdto_serv(sptr, CMD_JUPE, cptr, "* %c%s %Tu %Tu :%s",
+                 JupeIsRemActive(jupe) ? '+' : '-', jupe->ju_server,
+                 jupe->ju_expire - CurrentTime, jupe->ju_lastmod,
+                 jupe->ju_reason);
 }
 
 /** Add a new server jupe.
@@ -152,13 +152,11 @@ jupe_add(struct Client *cptr, struct Client *sptr, char *server, char *reason,
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_NETWORK, "%s adding %sJUPE for %s, expiring at "
-                       "%Tu: %s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-		       flags & JUPE_LOCAL ? "local " : "", server,
-		       expire + TSoffset, reason);
+  sendto_opmask(0, SNO_NETWORK, "%s adding %sJUPE for %s, expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                flags & JUPE_LOCAL ? "local " : "", server,
+                expire + TSoffset, reason);
 
   log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
 	    "%#C adding %sJUPE for %s, expiring at %Tu: %s", sptr,
@@ -207,13 +205,11 @@ jupe_activate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
     return 0; /* was active to begin with */
 
   /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_NETWORK, "%s activating JUPE for %s, expiring "
-		       "at %Tu: %s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-		       jupe->ju_server, jupe->ju_expire + TSoffset,
-		       jupe->ju_reason);
+  sendto_opmask(0, SNO_NETWORK, "%s activating JUPE for %s, expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                jupe->ju_server, jupe->ju_expire + TSoffset,
+                jupe->ju_reason);
 
   log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
 	    "%#C activating JUPE for %s, expiring at %Tu: %s",sptr,
@@ -260,14 +256,12 @@ jupe_deactivate(struct Client *cptr, struct Client *sptr, struct Jupe *jupe,
   }
 
   /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_NETWORK, "%s %s JUPE for %s, expiring at %Tu: "
-		       "%s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-		       JupeIsLocal(jupe) ? "removing local" : "deactivating",
-		       jupe->ju_server, jupe->ju_expire + TSoffset,
-		       jupe->ju_reason);
+  sendto_opmask(0, SNO_NETWORK, "%s %s JUPE for %s, expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                JupeIsLocal(jupe) ? "removing local" : "deactivating",
+                jupe->ju_server, jupe->ju_expire + TSoffset,
+                jupe->ju_reason);
 
   log_write(LS_JUPE, L_INFO, LOG_NOSNOTICE,
 	    "%#C %s JUPE for %s, expiring at %Tu: %s", sptr,

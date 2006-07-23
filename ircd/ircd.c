@@ -171,7 +171,7 @@ void server_restart(const char *message)
   if (restarting++) /* increment restarting to prevent looping */
     return;
 
-  sendto_opmask_butone(0, SNO_OLDSNO, "Restarting server: %s", message);
+  sendto_opmask(0, SNO_OLDSNO, "Restarting server: %s", message);
   Debug((DEBUG_NOTICE, "Restarting server..."));
   flush_connections(0);
 
@@ -304,8 +304,8 @@ static void try_connections(struct Event* ev) {
 
     /* Activate the connection itself. */
     if (connect_server(aconf, 0))
-      sendto_opmask_butone(0, SNO_OLDSNO, "Connection to %s activated.",
-			   aconf->name);
+      sendto_opmask(0, SNO_OLDSNO, "Connection to %s activated.",
+                    aconf->name);
 
     /* And stop looking for further candidates. */
     done = 1;
@@ -397,9 +397,9 @@ static void check_pings(struct Event* ev) {
     {
       /* If it was a server, then tell ops about it. */
       if (IsServer(cptr) || IsConnecting(cptr) || IsHandshake(cptr))
-        sendto_opmask_butone(0, SNO_OLDSNO,
-                             "No response from %s, closing link",
-                             cli_name(cptr));
+        sendto_opmask(0, SNO_OLDSNO,
+                      "No response from %s, closing link",
+                      cli_name(cptr));
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
     }

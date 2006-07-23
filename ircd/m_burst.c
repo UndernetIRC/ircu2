@@ -261,8 +261,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
               && (!(check_modes & MODE_INVITEONLY) || IsAnOper(member->user))
               && (!(check_modes & MODE_REGONLY) || IsAccount(member->user)))
             continue;
-          sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
-          sendcmdto_channel_butserv_butone(&his, CMD_KICK, chptr, NULL, 0, "%H %C :Net Rider", chptr, member->user);
+          sendcmdto_serv(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
+          sendcmdto_channel(&his, CMD_KICK, chptr, NULL, SKIP_SERVERS, "%H %C :Net Rider", chptr, member->user);
           make_zombie(member, member->user, &me, &me, chptr);
         }
       }
@@ -319,8 +319,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       *chptr->topic = '\0';
       *chptr->topic_nick = '\0';
       chptr->topic_time = 0;
-      sendcmdto_channel_butserv_butone(&his, CMD_TOPIC, chptr, NULL, 0,
-                                       "%H :%s", chptr, chptr->topic);
+      sendcmdto_channel(&his, CMD_TOPIC, chptr, NULL, SKIP_SERVERS,
+                        "%H :%s", chptr, chptr->topic);
     }
   } else if (chptr->creationtime == timestamp) {
     modebuf_init(mbuf = &modebuf, &me, cptr, chptr,
@@ -495,7 +495,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  {
 	    add_user_to_channel(chptr, acptr, current_mode, oplevel);
             if (!(current_mode & CHFL_DELAYED))
-              sendcmdto_channel_butserv_butone(acptr, CMD_JOIN, chptr, NULL, 0, "%H", chptr);
+              sendcmdto_channel(acptr, CMD_JOIN, chptr, NULL, SKIP_SERVERS, "%H", chptr);
 	  }
 	  else
 	  {
@@ -525,8 +525,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   } else
     modestr[0] = '\0';
 
-  sendcmdto_serv_butone(sptr, CMD_BURST, cptr, "%H %Tu%s%s%s", chptr,
-			chptr->creationtime, modestr, nickstr, banstr);
+  sendcmdto_serv(sptr, CMD_BURST, cptr, "%H %Tu%s%s%s", chptr,
+                 chptr->creationtime, modestr, nickstr, banstr);
 
   if (parse_flags & MODE_PARSE_WIPEOUT || banpos)
     mode_ban_invalidate(chptr);

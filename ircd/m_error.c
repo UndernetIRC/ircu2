@@ -65,10 +65,10 @@ int mr_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   Debug((DEBUG_ERROR, "Received ERROR message from %s: %s", cli_name(sptr), para));
 
   if (cptr == sptr)
-    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
+    sendto_opmask(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
   else
-    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
-			 cptr, para);
+    sendto_opmask(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
+                  cptr, para);
 
   if (cli_serv(sptr))
   {
@@ -99,10 +99,10 @@ int ms_error(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   Debug((DEBUG_ERROR, "Received ERROR message from %s: %s", cli_name(sptr), para));
 
   if (cptr == sptr)
-    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
+    sendto_opmask(0, SNO_OLDSNO, "ERROR :from %C -- %s", cptr, para);
   else
-    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
-			 cptr, para);
+    sendto_opmask(0, SNO_OLDSNO, "ERROR :from %C via %C -- %s", sptr,
+                  cptr, para);
 
   if (cli_serv(sptr))
   {

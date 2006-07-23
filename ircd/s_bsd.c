@@ -149,7 +149,7 @@ void report_error(const char* text, const char* who, int err)
     /*
      * pace error messages so opers don't get flooded by transients
      */
-    sendto_opmask_butone(0, SNO_OLDSNO, text, who, errmsg);
+    sendto_opmask(0, SNO_OLDSNO, text, who, errmsg);
     last_notice = CurrentTime;
   }
   log_write(LS_SOCKET, L_ERROR, 0, text, who, errmsg);
@@ -174,8 +174,8 @@ static void connect_dns_callback(void* vptr, const struct irc_in_addr *addr, con
     connect_server(aconf, 0);
   }
   else
-    sendto_opmask_butone(0, SNO_OLDSNO, "Connect to %s failed: host lookup",
-                         aconf->name);
+    sendto_opmask(0, SNO_OLDSNO, "Connect to %s failed: host lookup",
+                  aconf->name);
 }
 
 /** Closes all file descriptors.
@@ -347,12 +347,12 @@ static int completed_connection(struct Client* cptr)
     const char* msg = strerror(cli_error(cptr));
     if (!msg)
       msg = "Unknown error";
-    sendto_opmask_butone(0, SNO_OLDSNO, "Connection failed to %s: %s",
-                         cli_name(cptr), msg);
+    sendto_opmask(0, SNO_OLDSNO, "Connection failed to %s: %s",
+                  cli_name(cptr), msg);
     return 0;
   }
   if (!(aconf = find_conf_byname(cli_confs(cptr), cli_name(cptr), CONF_SERVER))) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "Lost Server Line for %s", cli_name(cptr));
+    sendto_opmask(0, SNO_OLDSNO, "Lost Server Line for %s", cli_name(cptr));
     return 0;
   }
   if (s_state(&(cli_socket(cptr))) == SS_CONNECTING)
@@ -720,8 +720,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
   assert(0 != aconf);
 
   if (aconf->dns_pending) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "Server %s connect DNS pending",
-                         aconf->name);
+    sendto_opmask(0, SNO_OLDSNO, "Server %s connect DNS pending",
+                  aconf->name);
     return 0;
   }
   Debug((DEBUG_NOTICE, "Connect to %s[@%s]", aconf->name,
@@ -729,8 +729,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
 
   if ((cptr = FindClient(aconf->name))) {
     if (IsServer(cptr) || IsMe(cptr)) {
-      sendto_opmask_butone(0, SNO_OLDSNO, "Server %s already present from %s", 
-                           aconf->name, cli_name(cli_from(cptr)));
+      sendto_opmask(0, SNO_OLDSNO, "Server %s already present from %s", 
+                    aconf->name, cli_name(cli_from(cptr)));
       if (by && IsUser(by) && !MyUser(by)) {
         sendcmdto_one(&me, CMD_NOTICE, by, "%C :Server %s already present "
                       "from %s", by, aconf->name, cli_name(cli_from(cptr)));
@@ -773,8 +773,8 @@ int connect_server(struct ConfItem* aconf, struct Client* by)
   attach_confs_byhost(cptr, aconf->host, CONF_SERVER);
 
   if (!find_conf_byhost(cli_confs(cptr), aconf->host, CONF_SERVER)) {
-    sendto_opmask_butone(0, SNO_OLDSNO, "Host %s is not enabled for "
-                         "connecting: no Connect block", aconf->name);
+    sendto_opmask(0, SNO_OLDSNO, "Host %s is not enabled for "
+                  "connecting: no Connect block", aconf->name);
     if (by && IsUser(by) && !MyUser(by)) {
       sendcmdto_one(&me, CMD_NOTICE, by, "%C :Connect to host %s failed: no "
                     "Connect block", by, aconf->name);

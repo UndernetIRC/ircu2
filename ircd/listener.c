@@ -408,8 +408,8 @@ static void accept_connection(struct Event* ev)
        * here.  If it turns out too many messages are generated for
        * meaningless reasons we can filter them back.
        */
-      sendto_opmask_butone(0, SNO_TCPCOMMON,
-			   "Unable to accept connection: %m");
+      sendto_opmask(0, SNO_TCPCOMMON,
+                    "Unable to accept connection: %m");
       return;
       }
       /*

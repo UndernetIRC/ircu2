@@ -69,9 +69,9 @@ int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[
       if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
           check_target_limit(sptr, chptr, chptr->chname, 0))
         return 0;
-      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
-			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
-			       "%H :+ %s", chptr, parv[parc - 1]);
+      sendcmdto_channel(sptr, CMD_WALLVOICES, chptr, cptr,
+                        SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+                        "%H :+ %s", chptr, parv[parc - 1]);
     }
     else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
@@ -105,9 +105,9 @@ int ms_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv
 
   if (!IsLocalChannel(parv[1]) && (chptr = FindChannel(parv[1]))) {
     if (client_can_send_to_channel(sptr, chptr, 0)) {
-      sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
-			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
-			       "%H :%s", chptr, parv[parc - 1]);
+      sendcmdto_channel(sptr, CMD_WALLVOICES, chptr, cptr,
+                        SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
+                        "%H :%s", chptr, parv[parc - 1]);
     } else
       send_reply(sptr, ERR_CANNOTSENDTOCHAN, parv[1]);
   }

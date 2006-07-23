@@ -57,8 +57,8 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
   vd.vd_format = pattern;
   va_start(vd.vd_args, pattern);
 
-  sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-			"Protocol Violation from %s: %v", cli_name(cptr), &vd);
+  sendwallto_group(&me, WALL_DESYNCH, NULL,
+                   "Protocol Violation from %s: %v", cli_name(cptr), &vd);
 
   va_end(vd.vd_args);
   return 0;

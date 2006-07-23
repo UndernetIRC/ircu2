@@ -65,9 +65,8 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   assert(0 != cptr);
   assert(0 != sptr);
 
-  sendto_opmask_butone(0, SNO_NETWORK, "Completed net.burst from %C.", 
-  	sptr);
-  sendcmdto_serv_butone(sptr, CMD_END_OF_BURST, cptr, "");
+  sendto_opmask(0, SNO_NETWORK, "Completed net.burst from %C.", sptr);
+  sendcmdto_serv(sptr, CMD_END_OF_BURST, cptr, "");
   ClearBurst(sptr);
   SetBurstAck(sptr);
   if (MyConnect(sptr))
@@ -105,9 +104,8 @@ int ms_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char
   if (!IsServer(sptr))
     return 0;
 
-  sendto_opmask_butone(0, SNO_NETWORK, "%C acknowledged end of net.burst.",
-		       sptr);
-  sendcmdto_serv_butone(sptr, CMD_END_OF_BURST_ACK, cptr, "");
+  sendto_opmask(0, SNO_NETWORK, "%C acknowledged end of net.burst.", sptr);
+  sendcmdto_serv(sptr, CMD_END_OF_BURST_ACK, cptr, "");
   ClearBurstAck(sptr);
 
   return 0;

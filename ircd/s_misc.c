@@ -204,7 +204,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
      * that the client can show the "**signoff" message).
      * (Note: The notice is to the local clients *only*)
      */
-    sendcmdto_common_channels_butone(bcptr, CMD_QUIT, NULL, ":%s", comment);
+    sendcmdto_common_channels(bcptr, CMD_QUIT, NULL, ":%s", comment);
 
     remove_user_from_all_channels(bcptr);
 
@@ -244,8 +244,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
   }
   else if (IsMe(bcptr))
   {
-    sendto_opmask_butone(0, SNO_OLDSNO, "ERROR: tried to exit me! : %s",
-			 comment);
+    sendto_opmask(0, SNO_OLDSNO, "ERROR: tried to exit me! : %s", comment);
     return;                     /* ...must *never* exit self! */
   }
   else if (IsUnknown(bcptr) || IsConnecting(bcptr) || IsHandshake(bcptr))
@@ -366,12 +365,12 @@ int exit_client(struct Client *cptr,
     SetFlag(victim, FLAG_CLOSING);
 
     if (feature_bool(FEAT_CONNEXIT_NOTICES) && IsUser(victim))
-      sendto_opmask_butone(0, SNO_CONNEXIT,
-                           "Client exiting: %s (%s@%s) [%s] [%s] <%s%s>",
-                           cli_name(victim), cli_user(victim)->username,
-                           cli_user(victim)->host, comment,
-                           ircd_ntoa(&cli_ip(victim)),
-                           NumNick(victim) /* two %s's */);
+      sendto_opmask(0, SNO_CONNEXIT,
+                    "Client exiting: %s (%s@%s) [%s] [%s] <%s%s>",
+                    cli_name(victim), cli_user(victim)->username,
+                    cli_user(victim)->host, comment,
+                    ircd_ntoa(&cli_ip(victim)),
+                    NumNick(victim) /* two %s's */);
     update_load();
 
     on_for = CurrentTime - cli_firsttime(victim);
@@ -431,8 +430,8 @@ int exit_client(struct Client *cptr,
           }
         }
         if (killer == &me)
-	  sendto_opmask_butone(acptr, SNO_OLDSNO, "Link with %s canceled: %s",
-			       cli_name(victim), comment);
+	  sendto_opmask(acptr, SNO_OLDSNO, "Link with %s canceled: %s",
+                        cli_name(victim), comment);
       }
     }
     /*
@@ -453,18 +452,18 @@ int exit_client(struct Client *cptr,
     }
 
     if (IsUser(killer))
-      sendto_opmask_butone(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
-			   (cli_user(killer)->server == victim ||
-			    cli_user(killer)->server == cli_serv(victim)->up) ?
-			   "Local" : "Remote",
-			   get_client_name(killer, HIDE_IP),
-			   cli_name(cli_user(killer)->server));
+      sendto_opmask(killer, SNO_OLDSNO, "%s SQUIT by %s [%s]:",
+                    (cli_user(killer)->server == victim ||
+                     cli_user(killer)->server == cli_serv(victim)->up) ?
+                    "Local" : "Remote",
+                    get_client_name(killer, HIDE_IP),
+                    cli_name(cli_user(killer)->server));
     else if (killer != &me && cli_serv(victim)->up != killer)
-      sendto_opmask_butone(0, SNO_OLDSNO, "Received SQUIT %s from %s :",
-			   cli_name(victim), IsServer(killer) ? cli_name(killer) :
-			   get_client_name(killer, HIDE_IP));
-    sendto_opmask_butone(0, SNO_NETWORK, "Net break: %C %C (%s)",
-			 cli_serv(victim)->up, victim, comment);
+      sendto_opmask(0, SNO_OLDSNO, "Received SQUIT %s from %s :",
+                    cli_name(victim), IsServer(killer) ? cli_name(killer) :
+                    get_client_name(killer, HIDE_IP));
+    sendto_opmask(0, SNO_NETWORK, "Net break: %C %C (%s)",
+                  cli_serv(victim)->up, victim, comment);
   }
 
   /*

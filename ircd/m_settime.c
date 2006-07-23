@@ -113,8 +113,8 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     /* don't apply settime--reliable */
     if ((dt > 600) || (dt < -600))
-      sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-                            "(delta %ld)", cli_name(sptr), t, dt);
+      sendcmdto_serv(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
+                     "(delta %ld)", cli_name(sptr), t, dt);
     /* Let user know we're ignoring him */
     if (IsUser(sptr))
     {
@@ -125,9 +125,9 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else /* tell opers about time change */
   {
-    sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
-			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-			 (dt < 0) ? "forwards" : "backwards");
+    sendto_opmask(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+                  "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
+                  (dt < 0) ? "forwards" : "backwards");
     /* Apply time change... */
     TSoffset -= dt;
     /* Let the issuing user know what we did... */
@@ -196,8 +196,8 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (feature_bool(FEAT_RELIABLE_CLOCK)) /* don't apply settime--reliable */
   {
     if ((dt > 600) || (dt < -600))
-      sendcmdto_serv_butone(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
-                            "(delta %ld)", cli_name(sptr), t, dt);
+      sendcmdto_serv(&me, CMD_DESYNCH, 0, ":Bad SETTIME from %s: %Tu "
+                     "(delta %ld)", cli_name(sptr), t, dt);
     if (IsUser(sptr)) /* Let user know we're ignoring him */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is not set %ld seconds "
                     "%s: RELIABLE_CLOCK is defined", sptr, (dt < 0) ? -dt : dt,
@@ -205,9 +205,9 @@ int mo_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   else /* tell opers about time change */
   {
-    sendto_opmask_butone(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
-			 "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
-			 (dt < 0) ? "forwards" : "backwards");
+    sendto_opmask(0, SNO_OLDSNO, "SETTIME from %s, clock is set %ld "
+                  "seconds %s", cli_name(sptr), (dt < 0) ? -dt : dt,
+                  (dt < 0) ? "forwards" : "backwards");
     TSoffset -= dt; /* apply time change */
     if (IsUser(sptr)) /* let user know what we did */
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :clock is set %ld seconds %s",

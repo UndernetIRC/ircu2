@@ -221,7 +221,7 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
         if (dest)
           sendcmdto_one(sptr, CMD_SILENCE, dest, "%C %s", dest, buf);
         else
-          sendcmdto_serv_butone(sptr, CMD_SILENCE, sptr, "* %s", buf);
+          sendcmdto_serv(sptr, CMD_SILENCE, sptr, "* %s", buf);
         buf_used = 0;
       }
       if (buf_used)
@@ -237,7 +237,7 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
         if (dest)
           sendcmdto_one(sptr, CMD_SILENCE, dest, "%C %s", dest, buf);
         else
-          sendcmdto_serv_butone(sptr, CMD_SILENCE, sptr, "* %s", buf);
+          sendcmdto_serv(sptr, CMD_SILENCE, sptr, "* %s", buf);
         buf_used = 0;
     }
   }

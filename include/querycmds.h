@@ -72,7 +72,7 @@ extern struct UserStatistics UserStats;
     { \
       max_connection_count = UserStats.local_clients + UserStats.local_servers; \
       if (max_connection_count % 10 == 0) \
-        sendto_opmask_butone(0, SNO_OLDSNO, "Maximum connections: %d (%d clients)", \
+        sendto_opmask(0, SNO_OLDSNO, "Maximum connections: %d (%d clients)", \
             max_connection_count, max_client_count); \
     } \
   } while(0)

@@ -1,5 +1,196 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* include/querycmds.h (Count_unknownbecomesclient): Remove _butone
+	qualifier for send functions.
+
+	* include/send.h (sendcmdto_flag_serv_butone): Likewise.
+	(sendcmdto_serv_butone): Likewise.
+	(sendcmdto_common_channels_butone): Likewise.
+	(sendcmdto_channel_butserv_butone): Make a special case of
+	sendcmdto_channel().
+	(sendcmdto_channel_servers_butone): Likewise.
+	(sendcmdto_channel_butone): Remove _butone qualifier.
+	(SKIP_SERVERS): New flag.
+	(SKIP_LOCALS): New flag.
+	(sendwallto_group_butone): Remove _butone qualifier.
+	(sendcmdto_match_butone): Likewise.
+	(sendto_opmask_butone): Likewise.
+	(sendto_opmask_butone_ratelimited): Remove _butone qualifier.
+
+	* ircd/channel.c (CheckDelayedJoins): Replace _butserv qualfier
+	with SKIP_SERVERS flag; remove _butone qualifier.
+	(RevealDelayedJoin): Likewise.
+	(modebuf_flush_int): Likewise.
+	(mode_process_clients): Likewise.
+	(joinbuf_join): Likewise.
+	(joinbuf_flush): Likewise.
+	(check_spambot_warning): Likewise.
+
+	* ircd/destruct_event.c (exec_expired_destruct_events): Remove
+	_butone qualifier.
+
+	* ircd/gline.c (do_gline): Remove _butone qualifier.
+	(gline_propagate): Likewise.
+	(gline_add): Likewise.
+	(gline_activate): Likewise.
+	(gline_deactivate): Likewise.
+
+	* ircd/ircd.c (server_restart): Remove _butone qualifier.
+	(try_connections): Likewise.
+	(check_pings): Likewise.
+
+	* ircd/ircd_log.c (log_vwrite): Remove _butone qualifier.
+
+	* ircd/ircd_relay.c (relay_channel_message): Remove _butone
+	qualifier.
+	(relay_channel_notice): Likewise.
+	(server_relay_channel_message): Likewise.
+	(server_relay_channel_notice): Likewise.
+	(relay_masked_message): Likewise.
+	(relay_masked_notice): Likewise.
+	(server_relay_masked_message): Likewise.
+	(server_relay_masked_notice): Likewise.
+
+	* ircd/ircd_reply.c (protocol_violation): Remove _butone
+	qualifier.
+
+	* ircd/jupe.c (propagate_jupe): Remove _butone qualifier.
+	(jupe_add): Likewise.
+	(jupe_activate): Likewise.
+	(jupe_deactivate): Likewise.
+
+	* ircd/listener.c (accept_connection): Remove _butone qualifier.
+
+	* ircd/m_account.c (ms_account): Remove _butone qualifier.
+
+	* ircd/m_away.c (m_away): Remove _butone qualifier.
+	(ms_away): Likewise.
+
+	* ircd/m_burst.c (ms_burst): Remove _butone qualifier.
+
+	* ircd/m_clearmode.c (m_clearmode): Remove _butone qualifier.
+
+	* ircd/m_connect.c (ms_connect): Remove _butone qualifier.
+
+	* ircd/m_create.c (ms_create): Remove _butone qualifier.
+
+	* ircd/m_destruct.c (ms_destruct): Remove _butone qualifier.
+
+	* ircd/m_desynch.c (ms_desynch): Remove _butone qualifier.
+
+	* ircd/m_endburst.c (ms_end_of_burst): Remove _butone qualifier.
+	(ms_end_of_burst_ack): Likewise.
+
+	* ircd/m_error.c (mr_error): Remove _butone qualifier.
+	(ms_error): Likewise.
+
+	* ircd/m_gline.c (ms_gline): Remove _butone qualifier.
+
+	* ircd/m_invite.c (m_invite): Replace _butserv qualfier with
+	SKIP_SERVERS flag and _servers qualifier with SKIP_LOCALS flag;
+	remove _butone qualifier.
+	(ms_invite): Likewise.
+
+	* ircd/m_join.c (m_join): Remove _butone qualifier.
+
+	* ircd/m_kick.c (m_kick): Remove _butone qualifier.  Replace
+	_butserv qualifier with SKIP_SERVERS flag.
+	(ms_kick): Likewise.
+
+	* ircd/m_kill.c (do_kill): Remove _butone qualifier.
+
+	* ircd/m_nick.c (ms_nick): Remove _butone qualifier.
+
+	* ircd/m_oper.c (m_oper): Remove _butone qualifier.
+	(ms_oper): Likewise.
+
+	* ircd/m_rehash.c (mo_rehash): Remove _butone qualifier.
+
+	* ircd/m_server.c (check_loop_and_lh): Remove _butone qualifier.
+	(check_start_timestamp): Likewise.
+	(mr_server): Likewise.
+	(ms_server): Likewise.
+
+	* ircd/m_settime.c (ms_settime): Remove _butone qualifier.
+	(mo_settime): Likewise.
+
+	* ircd/m_silence.c (forward_silences): Remove _butone qualifier.
+
+	* ircd/m_topic.c (do_settopic): Remove _butone qualifier.  Replace
+	_butserv qualifier with SKIP_SERVERS flag.
+
+	* ircd/m_wallchops.c (m_wallchops): Remove _butone qualifier.
+	(ms_wallchops): Likewise.
+
+	* ircd/m_wallops.c (ms_wallops): Remove _butone qualifier.
+	(mo_wallchops): Likewise.
+
+	* ircd/m_wallusers.c (ms_wallusers): Remove _butone qualifier.
+	(mo_wallusers): Likewise.
+
+	* ircd/m_wallvoices.c (m_wallvoices): Remove _butone qualifier.
+	(ms_wallvoices): Likewise.
+
+	* ircd/memdebug.c (dbg_memory_leaked): Remove _butone qualifier.
+
+	* ircd/s_auth.c (preregister_user): Remove _butone qualifier.
+	(auth_dns_callback): Likewise.
+	(iauth_do_spawn): Likewise.
+	(iauth_cmd_snotice): Likewise.
+	(iauth_cmd_debuglevel): Likewise.
+	(iauth_cmd_policy): Likewise.
+	(iauth_cmd_version): Likewise.
+	(iauth_cmd_newconfig): Likewise.
+	(iauth_cmd_newstats): Likewise.
+	(auth_find_class_conf): Likewise.
+	(iauth_cmd_done_client): Likewise.
+	(iauth_read): Likewise.
+	(iauth_read_stderr): Likewise.
+
+	* ircd/s_bsd.c (report_error): Remove _butone qualifier.
+	(connect_dns_callback): Likewise.
+	(completed_connection): Likewise.
+	(connect_server): Likewise.
+
+	* ircd/s_conf.c (yyerror): Remove _butone qualifier.
+	(yywarning): Likewise.
+	(rehash): Likewise.
+	(conf_check_server): Likewise.
+
+	* ircd/s_misc.c (exit_one_client): Remove _butone qualifier.
+	(exit_client): Likewise.
+
+	* ircd/s_numeric.c (do_numeric): Remove _butone qualifier.
+
+	* ircd/s_serv.c (server_estab): Remove _butone qualifier.
+
+	* ircd/s_user.c (register_user): Remove _butone qualifier.
+	(set_nick_name): Likewise.
+	(hide_hostmask): Likewise.
+	(set_user_mode): Likewise.
+	(set_snomask): Likewise.
+
+	* ircd/send.c (vsendto_opmask_butone): Remove _butone qualifier.
+	(dead_link): Likewise.
+	(send_buffer): Likewise.
+	(sendcmdto_flag_serv_butone): Likewise.  Optimize "one" test.
+	(sendcmdto_serv_butone): Likewise.
+	(sendcmdto_common_channels_butone): Remove _butone qualifier.
+	(sendcmdto_channel_butserv_butone): Delete function.
+	(sendcmdto_channel_servers_butone): Likewise.
+	(sendcmdto_channel_butone): Remove _butone qualifier.  Move
+	sentalong test to front of list.  Add SKIP_SERVERS and SKIP_LOCALS
+	tests.
+	(sendwallto_group_butone): Remove _butone qualifier.
+	(sendcmdto_match_butone): Likewise.
+	(sendto_opmask_butone): Likewise.
+	(sendto_opmask_butone_ratelimited): Likewise.
+	(vsendto_opmask_butone): Likewise.
+
+	* ircd/umkpasswd.c (sendto_opmask): Remove _butone qualifier.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_events.c (event_generate): Separate into threaded and
 	non-threaded versions.
 	(event_execute): Move into IRCD_THREADED section.

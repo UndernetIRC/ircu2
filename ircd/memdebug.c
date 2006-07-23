@@ -214,10 +214,10 @@ dbg_memory_leaked(void *p, int sz)
   mh = p;
   if (mh->magic != 0xA110CA7E)
     return;
-  sendto_opmask_butone(NULL, SNO_OLDSNO,
-                       "%s leak at %s:%u(%u bytes for %u seconds)",
-                       mh->type, mh->file, mh->line, mh->length,
-                       CurrentTime - mh->since);
+  sendto_opmask(NULL, SNO_OLDSNO,
+                "%s leak at %s:%u(%u bytes for %u seconds)",
+                mh->type, mh->file, mh->line, mh->length,
+                CurrentTime - mh->since);
   Debug((DEBUG_ERROR,
          "%s leak at %s:%u(%u bytes for %u seconds)",
          mh->type, mh->file, mh->line, mh->length,

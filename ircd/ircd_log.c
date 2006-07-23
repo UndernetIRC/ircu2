@@ -451,8 +451,8 @@ log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
 
   /* can't forget server notices... */
   if (flags & LOG_DOSNOTICE)
-    sendto_opmask_butone(0, ldata->snomask ? ldata->snomask : desc->snomask,
-			 "%s", buf);
+    sendto_opmask(0, ldata->snomask ? ldata->snomask : desc->snomask,
+                  "%s", buf);
 }
 
 /** Log an appropriate message for kills.

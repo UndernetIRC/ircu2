@@ -55,7 +55,7 @@ struct SLink *opsarray[32];     /* don't use highest bit unless you change
 /** Linked list of all connections with data queued to send. */
 static struct Connection *send_queues;
 
-static void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+static void vsendto_opmask(struct Client *one, unsigned int mask,
 			   const char *pattern, va_list vl);
 
 /*
@@ -97,7 +97,7 @@ static void dead_link(struct Client *to, char *notice)
   ircd_strncpy(cli_info(to), notice, REALLEN);
 
   if (!IsUser(to) && !IsUnknown(to) && !HasFlag(to, FLAG_CLOSING))
-    sendto_opmask_butone(0, SNO_OLDSNO, "%s for %s", cli_info(to), cli_name(to));
+    sendto_opmask(0, SNO_OLDSNO, "%s for %s", cli_info(to), cli_name(to));
   Debug((DEBUG_ERROR, cli_info(to)));
 }
 
@@ -231,9 +231,8 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
 
   if (MsgQLength(&(cli_sendQ(to))) > get_sendq(to)) {
     if (IsServer(to))
-      sendto_opmask_butone(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: "
-			   "%zu > %zu", to, MsgQLength(&(cli_sendQ(to))),
-			   get_sendq(to));
+      sendto_opmask(0, SNO_OLDSNO, "Max SendQ limit exceeded for %C: %zu > %zu",
+                    to, MsgQLength(&(cli_sendQ(to))), get_sendq(to));
     dead_link(to, "Max sendQ exceeded");
     return;
   }
@@ -376,10 +375,10 @@ void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
  * @param[in] forbid Do not send to servers with this Flag bit set.
  * @param[in] pattern Format string for command arguments.
  */
-void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,
-                                const char *tok, struct Client *one,
-                                int require, int forbid,
-                                const char *pattern, ...)
+void sendcmdto_flag_serv(struct Client *from, const char *cmd,
+                         const char *tok, struct Client *one,
+                         int require, int forbid,
+                         const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -392,9 +391,13 @@ void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,
   mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
+  /* canonicalize 'one' pointer */
+  if (one)
+    one = cli_from(one);
+
   /* send it to our downlinks */
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
-    if (one && lp->value.cptr == cli_from(one))
+    if (lp->value.cptr == one)
       continue;
     if ((require < FLAG_LAST_FLAG) && !HasFlag(lp->value.cptr, require))
       continue;
@@ -414,9 +417,9 @@ void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,
  * @param[in] one Client direction to skip (or NULL).
  * @param[in] pattern Format string for command arguments.
  */
-void sendcmdto_serv_butone(struct Client *from, const char *cmd,
-			   const char *tok, struct Client *one,
-			   const char *pattern, ...)
+void sendcmdto_serv(struct Client *from, const char *cmd,
+                    const char *tok, struct Client *one,
+                    const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -429,9 +432,13 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
   mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
   va_end(vd.vd_args);
 
+  /* canonicalize 'one' pointer */
+  if (one)
+    one = cli_from(one);
+
   /* send it to our downlinks */
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
-    if (one && lp->value.cptr == cli_from(one))
+    if (lp->value.cptr == one)
       continue;
     send_buffer(lp->value.cptr, mb, 0);
   }
@@ -468,9 +475,9 @@ bump_sentalong(struct Client *one)
  * @param[in] one Client direction to skip (or NULL).
  * @param[in] pattern Format string for command arguments.
  */
-void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
-				      const char *tok, struct Client *one,
-				      const char *pattern, ...)
+void sendcmdto_common_channels(struct Client *from, const char *cmd,
+                               const char *tok, struct Client *one,
+                               const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -514,89 +521,6 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
   msgq_clean(mb);
 }
 
-/** Send a (prefixed) command to all local users on a channel.
- * @param[in] from Client originating the command.
- * @param[in] cmd Long name of command.
- * @param[in] tok Short name of command (ignored).
- * @param[in] to Destination channel.
- * @param[in] one Client direction to skip (or NULL).
- * @param[in] skip Bitmask of SKIP_DEAF, SKIP_NONOPS, SKIP_NONVOICES indicating which clients to skip.
- * @param[in] pattern Format string for command arguments.
- */
-void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
-				      const char *tok, struct Channel *to,
-				      struct Client *one, unsigned int skip,
-                                      const char *pattern, ...)
-{
-  struct VarData vd;
-  struct MsgBuf *mb;
-  struct Membership *member;
-
-  vd.vd_format = pattern; /* set up the struct VarData for %v */
-  va_start(vd.vd_args, pattern);
-
-  /* build the buffer */
-  mb = msgq_make(0, "%:#C %s %v", from, cmd, &vd);
-  va_end(vd.vd_args);
-
-  /* send the buffer to each local channel member */
-  for (member = to->members; member; member = member->next_member) {
-    if (!MyConnect(member->user)
-        || member->user == one 
-        || IsZombie(member)
-        || (skip & SKIP_DEAF && IsDeaf(member->user))
-        || (skip & SKIP_NONOPS && !IsChanOp(member))
-        || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
-        continue;
-      send_buffer(member->user, mb, 0);
-  }
-
-  msgq_clean(mb);
-}
-
-/** Send a (prefixed) command to all servers with users on \a to.
- * Skip \a from and \a one plus those indicated in \a skip.
- * @param[in] from Client originating the command.
- * @param[in] cmd Long name of command (ignored).
- * @param[in] tok Short name of command.
- * @param[in] to Destination channel.
- * @param[in] one Client direction to skip (or NULL).
- * @param[in] skip Bitmask of SKIP_NONOPS and SKIP_NONVOICES indicating which clients to skip.
- * @param[in] pattern Format string for command arguments.
- */
-void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
-                                      const char *tok, struct Channel *to,
-                                      struct Client *one, unsigned int skip,
-                                      const char *pattern, ...)
-{
-  struct VarData vd;
-  struct MsgBuf *serv_mb;
-  struct Membership *member;
-
-  /* build the buffer */
-  vd.vd_format = pattern;
-  va_start(vd.vd_args, pattern);
-  serv_mb = msgq_make(&me, "%:#C %s %v", from, tok, &vd);
-  va_end(vd.vd_args);
-
-  /* send the buffer to each server */
-  bump_sentalong(one);
-  cli_sentalong(from) = sentalong_marker;
-  for (member = to->members; member; member = member->next_member) {
-    if (MyConnect(member->user)
-        || IsZombie(member)
-        || cli_fd(cli_from(member->user)) < 0
-        || cli_sentalong(member->user) == sentalong_marker
-        || (skip & SKIP_NONOPS && !IsChanOp(member))
-        || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
-      continue;
-    cli_sentalong(member->user) = sentalong_marker;
-    send_buffer(member->user, serv_mb, 0);
-  }
-  msgq_clean(serv_mb);
-}
-
-
 /** Send a (prefixed) command to all users on this channel, except for
  * \a one and those matching \a skip.
  * @param[in] from Client originating the command.
@@ -607,10 +531,10 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
  * @param[in] skip Bitmask of SKIP_NONOPS, SKIP_NONVOICES, SKIP_DEAF, SKIP_BURST.
  * @param[in] pattern Format string for command arguments.
  */
-void sendcmdto_channel_butone(struct Client *from, const char *cmd,
-			      const char *tok, struct Channel *to,
-			      struct Client *one, unsigned int skip,
-			      const char *pattern, ...)
+void sendcmdto_channel(struct Client *from, const char *cmd,
+                       const char *tok, struct Channel *to,
+                       struct Client *one, unsigned int skip,
+                       const char *pattern, ...)
 {
   struct Membership *member;
   struct VarData vd;
@@ -633,14 +557,16 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
   /* send buffer along! */
   bump_sentalong(one);
   for (member = to->members; member; member = member->next_member) {
-    /* skip one, zombies, and deaf users... */
-    if (IsZombie(member) ||
+    /* skip duplicates, zombies, and flagged users... */
+    if (cli_sentalong(member->user) == sentalong_marker ||
+        IsZombie(member) ||
         (skip & SKIP_DEAF && IsDeaf(member->user)) ||
         (skip & SKIP_NONOPS && !IsChanOp(member)) ||
         (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)) ||
         (skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
-        cli_fd(cli_from(member->user)) < 0 ||
-        cli_sentalong(member->user) == sentalong_marker)
+        (skip & SKIP_SERVERS && !MyUser(member->user)) ||
+        (skip & SKIP_LOCALS && MyUser(member->user)) ||
+        cli_fd(cli_from(member->user)) < 0)
       continue;
     cli_sentalong(member->user) = sentalong_marker;
 
@@ -660,8 +586,8 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
  * @param[in] one Client direction to skip (or NULL).
  * @param[in] pattern Format string for command arguments.
  */
-void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
-			     const char *pattern, ...)
+void sendwallto_group(struct Client *from, int type, struct Client *one,
+                      const char *pattern, ...)
 {
   struct VarData vd;
   struct Client *cptr;
@@ -734,10 +660,10 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
  * @param[in] who Type of match for \a to (either MATCH_HOST or MATCH_SERVER).
  * @param[in] pattern Format string for command arguments.
  */
-void sendcmdto_match_butone(struct Client *from, const char *cmd,
-			    const char *tok, const char *to,
-			    struct Client *one, unsigned int who,
-			    const char *pattern, ...)
+void sendcmdto_match(struct Client *from, const char *cmd,
+                     const char *tok, const char *to,
+                     struct Client *one, unsigned int who,
+                     const char *pattern, ...)
 {
   struct VarData vd;
   struct Client *cptr;
@@ -759,8 +685,10 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
   /* send buffer along */
   bump_sentalong(one);
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
-    if (!IsRegistered(cptr) || IsServer(cptr) ||
-	!match_it(from, cptr, to, who) || cli_fd(cli_from(cptr)) < 0 ||
+    if (!IsRegistered(cptr) ||
+        IsServer(cptr) ||
+	!match_it(from, cptr, to, who) ||
+        cli_fd(cli_from(cptr)) < 0 ||
 	cli_sentalong(cptr) == sentalong_marker)
       continue; /* skip it */
     cli_sentalong(cptr) = sentalong_marker;
@@ -781,13 +709,13 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
  * @param[in] mask One of the SNO_* constants.
  * @param[in] pattern Format string for server notice.
  */
-void sendto_opmask_butone(struct Client *one, unsigned int mask,
-			  const char *pattern, ...)
+void sendto_opmask(struct Client *one, unsigned int mask,
+                   const char *pattern, ...)
 {
   va_list vl;
 
   va_start(vl, pattern);
-  vsendto_opmask_butone(one, mask, pattern, vl);
+  vsendto_opmask(one, mask, pattern, vl);
   va_end(vl);
 }
 
@@ -798,8 +726,8 @@ void sendto_opmask_butone(struct Client *one, unsigned int mask,
  * @param[in,out] rate Pointer to the last time the message was sent.
  * @param[in] pattern Format string for server notice.
  */
-void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
-				      time_t *rate, const char *pattern, ...)
+void sendto_opmask_ratelimited(struct Client *one, unsigned int mask,
+                               time_t *rate, const char *pattern, ...)
 {
   va_list vl;
 
@@ -809,7 +737,7 @@ void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
     *rate = CurrentTime;
 
   va_start(vl, pattern);
-  vsendto_opmask_butone(one, mask, pattern, vl);
+  vsendto_opmask(one, mask, pattern, vl);
   va_end(vl);
 }
 
@@ -821,7 +749,7 @@ void sendto_opmask_butone_ratelimited(struct Client *one, unsigned int mask,
  * @param[in] pattern Format string for server notice.
  * @param[in] vl Argument list for format string.
  */
-static void vsendto_opmask_butone(struct Client *one, unsigned int mask,
+static void vsendto_opmask(struct Client *one, unsigned int mask,
 			   const char *pattern, va_list vl)
 {
   struct VarData vd;

@@ -231,8 +231,8 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         }
         /* send accountability notice */
         if (err)
-          sendto_opmask_butone(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
-                               "(overriding +%c)", sptr, chptr, err);
+          sendto_opmask(0, SNO_HACK4, "OPER JOIN: %C JOIN %H "
+                        "(overriding +%c)", sptr, chptr, err);
         err = 0;
       }
 

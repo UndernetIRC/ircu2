@@ -176,8 +176,7 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
 
   /* Then send it */
   if (!IsLocalChannel(chptr->chname))
-    sendcmdto_serv_butone(sptr, CMD_CLEARMODE, cptr, "%H %s", chptr,
-			  control_buf);
+    sendcmdto_serv(sptr, CMD_CLEARMODE, cptr, "%H %s", chptr, control_buf);
 
   return 0;
 }

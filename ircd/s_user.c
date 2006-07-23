@@ -381,11 +381,11 @@ int register_user(struct Client *cptr, struct Client *sptr)
     if (cli_snomask(sptr) & SNO_NOISY)
       set_snomask(sptr, cli_snomask(sptr) & SNO_NOISY, SNO_ADD);
     if (feature_bool(FEAT_CONNEXIT_NOTICES))
-      sendto_opmask_butone(0, SNO_CONNEXIT,
-                           "Client connecting: %s (%s@%s) [%s] {%s} [%s] <%s%s>",
-                           cli_name(sptr), user->username, user->host,
-                           cli_sock_ip(sptr), get_client_class(sptr),
-                           cli_info(sptr), NumNick(cptr) /* two %s's */);
+      sendto_opmask(0, SNO_CONNEXIT,
+                    "Client connecting: %s (%s@%s) [%s] {%s} [%s] <%s%s>",
+                    cli_name(sptr), user->username, user->host,
+                    cli_sock_ip(sptr), get_client_class(sptr),
+                    cli_info(sptr), NumNick(cptr) /* two %s's */);
 
     IPcheck_connect_succeeded(sptr);
     /*
@@ -461,25 +461,25 @@ int register_user(struct Client *cptr, struct Client *sptr)
 
   tmpstr = umode_str(sptr);
   /* Send full IP address to IPv6-grokking servers. */
-  sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
-                             FLAG_IPV6, FLAG_LAST_FLAG,
-                             "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                             cli_name(sptr), cli_hopcount(sptr) + 1,
-                             cli_lastnick(sptr),
-                             user->username, user->realhost,
-                             *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-                             iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 1),
-                             NumNick(sptr), cli_info(sptr));
+  sendcmdto_flag_serv(user->server, CMD_NICK, cptr,
+                      FLAG_IPV6, FLAG_LAST_FLAG,
+                      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                      cli_name(sptr), cli_hopcount(sptr) + 1,
+                      cli_lastnick(sptr),
+                      user->username, user->realhost,
+                      *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                      iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 1),
+                      NumNick(sptr), cli_info(sptr));
   /* Send fake IPv6 addresses to pre-IPv6 servers. */
-  sendcmdto_flag_serv_butone(user->server, CMD_NICK, cptr,
-                             FLAG_LAST_FLAG, FLAG_IPV6,
-                             "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
-                             cli_name(sptr), cli_hopcount(sptr) + 1,
-                             cli_lastnick(sptr),
-                             user->username, user->realhost,
-                             *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
-                             iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 0),
-                             NumNick(sptr), cli_info(sptr));
+  sendcmdto_flag_serv(user->server, CMD_NICK, cptr,
+                      FLAG_LAST_FLAG, FLAG_IPV6,
+                      "%s %d %Tu %s %s %s%s%s%s %s%s :%s",
+                      cli_name(sptr), cli_hopcount(sptr) + 1,
+                      cli_lastnick(sptr),
+                      user->username, user->realhost,
+                      *tmpstr ? "+" : "", tmpstr, *tmpstr ? " " : "",
+                      iptobase64(ip_base64, &cli_ip(sptr), sizeof(ip_base64), 0),
+                      NumNick(sptr), cli_info(sptr));
 
   /* Send user mode to client */
   if (MyUser(sptr))
@@ -661,10 +661,9 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      * on that channel. Propagate notice to other servers.
      */
     if (IsUser(sptr)) {
-      sendcmdto_common_channels_butone(sptr, CMD_NICK, NULL, ":%s", nick);
+      sendcmdto_common_channels(sptr, CMD_NICK, NULL, ":%s", nick);
       add_history(sptr, 1);
-      sendcmdto_serv_butone(sptr, CMD_NICK, cptr, "%s %Tu", nick,
-                            cli_lastnick(sptr));
+      sendcmdto_serv(sptr, CMD_NICK, cptr, "%s %Tu", nick, cli_lastnick(sptr));
     }
     else
       sendcmdto_one(sptr, CMD_NICK, sptr, ":%s", nick);
@@ -939,7 +938,7 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   if (!HasFlag(cptr, FLAG_HIDDENHOST) || !HasFlag(cptr, FLAG_ACCOUNT))
     return 0;
 
-  sendcmdto_common_channels_butone(cptr, CMD_QUIT, cptr, ":Registered");
+  sendcmdto_common_channels(cptr, CMD_QUIT, cptr, ":Registered");
   ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
                 cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
 
@@ -957,15 +956,17 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
       continue;
     /* Send a JOIN unless the user's join has been delayed. */
     if (!IsDelayedJoin(chan))
-      sendcmdto_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr, 0,
-                                         "%H", chan->channel);
+      sendcmdto_channel(cptr, CMD_JOIN, chan->channel, cptr, SKIP_SERVERS,
+                        "%H", chan->channel);
     if (IsChanOp(chan) && HasVoice(chan))
-      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-                                       "%H +ov %C %C", chan->channel, cptr,
-                                       cptr);
-    else if (IsChanOp(chan) || HasVoice(chan))
-      sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-        "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
+      sendcmdto_channel(&his, CMD_MODE, chan->channel, cptr, SKIP_SERVERS,
+                        "%H +ov %C %C", chan->channel, cptr, cptr);
+    else if (IsChanOp(chan))
+      sendcmdto_channel(&his, CMD_MODE, chan->channel, cptr, SKIP_SERVERS,
+                        "%H +o %C", chan->channel, cptr);
+    else if (HasVoice(chan))
+      sendcmdto_channel(&his, CMD_MODE, chan->channel, cptr, SKIP_SERVERS,
+                        "%H +v %C", chan->channel, cptr);
   }
   return 0;
 }
@@ -1031,9 +1032,9 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (IsServer(sptr) || sptr != acptr)
   {
     if (IsServer(cptr))
-      sendwallto_group_butone(&me, WALL_WALLOPS, 0, 
-	  		    "MODE for User %s from %s!%s", parv[1],
-                            cli_name(cptr), cli_name(sptr));
+      sendwallto_group(&me, WALL_WALLOPS, 0,
+                       "MODE for User %s from %s!%s", parv[1],
+                       cli_name(cptr), cli_name(sptr));
     else
       send_reply(sptr, ERR_USERSDONTMATCH);
     return 0;
@@ -1435,7 +1436,7 @@ void set_snomask(struct Client *cptr, unsigned int newmask, int what)
   else if (what == SNO_DEL)
     newmask = oldmask & ~newmask;
   else if (what != SNO_SET)        /* absolute set, no math needed */
-    sendto_opmask_butone(0, SNO_OLDSNO, "setsnomask called with %d ?!", what);
+    sendto_opmask(0, SNO_OLDSNO, "setsnomask called with %d ?!", what);
 
   newmask &= (IsAnOper(cptr) ? SNO_ALL : SNO_USER);
 

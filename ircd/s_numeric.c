@@ -98,8 +98,8 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
                     &me : sptr,
                   num, num, acptr, "%C %s", acptr, parv[2]);
   else
-    sendcmdto_channel_butone(feature_bool(FEAT_HIS_REWRITE) ? &me : sptr,
-                             num, num, achptr, cptr, SKIP_DEAF | SKIP_BURST,
-                             "%H %s", achptr, parv[2]);
+    sendcmdto_channel(feature_bool(FEAT_HIS_REWRITE) ? &me : sptr,
+                      num, num, achptr, cptr, SKIP_DEAF | SKIP_BURST,
+                      "%H %s", achptr, parv[2]);
   return 0;
 }

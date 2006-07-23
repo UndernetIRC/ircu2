@@ -262,8 +262,8 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
       	   gline->gl_reason);
 
       /* let the ops know about it */
-      sendto_opmask_butone(0, SNO_GLINE, "G-line active for %s",
-                           get_client_name(acptr, SHOW_IP));
+      sendto_opmask(0, SNO_GLINE, "G-line active for %s",
+                    get_client_name(acptr, SHOW_IP));
 
       /* and get rid of him */
       if ((tval = exit_client_msg(cptr, acptr, &me, "G-lined (%s)",
@@ -359,20 +359,20 @@ gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
     return 0;
 
   if (gline->gl_lastmod)
-    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
-			  GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
-			  gline->gl_host ? "@" : "",
-			  gline->gl_host ? gline->gl_host : "",
-			  gline->gl_expire - CurrentTime, gline->gl_lastmod,
-			  gline->gl_reason);
+    sendcmdto_serv(sptr, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu :%s",
+                   GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
+                   gline->gl_host ? "@" : "",
+                   gline->gl_host ? gline->gl_host : "",
+                   gline->gl_expire - CurrentTime, gline->gl_lastmod,
+                   gline->gl_reason);
   else
-    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr,
-			  (GlineIsRemActive(gline) ?
-			   "* +%s%s%s %Tu :%s" : "* -%s%s%s"),
-			  gline->gl_user, 
-			  gline->gl_host ? "@" : "",
-			  gline->gl_host ? gline->gl_host : "",
-			  gline->gl_expire - CurrentTime, gline->gl_reason);
+    sendcmdto_serv(sptr, CMD_GLINE, cptr,
+                   (GlineIsRemActive(gline) ?
+                    "* +%s%s%s %Tu :%s" : "* -%s%s%s"),
+                   gline->gl_user,
+                   gline->gl_host ? "@" : "",
+                   gline->gl_host ? gline->gl_host : "",
+                   gline->gl_expire - CurrentTime, gline->gl_reason);
 
   return 0;
 }
@@ -422,7 +422,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
         if (IsServer(cptr))
           return protocol_violation(sptr,"%s has been smoking the sweet leaf and sent me a whacky gline",cli_name(sptr));
         else {
-         sendto_opmask_butone(NULL, SNO_GLINE, "%s has been smoking the sweet leaf and sent me a whacky gline", cli_name(sptr));
+         sendto_opmask(NULL, SNO_GLINE, "%s has been smoking the sweet leaf and sent me a whacky gline", cli_name(sptr));
          return 0;
         }
         break;
@@ -464,17 +464,15 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   expire += CurrentTime; /* convert from lifetime to timestamp */
 
   /* Inform ops... */
-  sendto_opmask_butone(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
-                       SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at "
-                       "%Tu: %s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-		       (flags & GLINE_LOCAL) ? "local" : "global",
-		       (flags & GLINE_BADCHAN) ? "BADCHAN" : "GLINE", user,
-		       (flags & (GLINE_BADCHAN|GLINE_REALNAME)) ? "" : "@",
-		       (flags & (GLINE_BADCHAN|GLINE_REALNAME)) ? "" : host,
-		       expire + TSoffset, reason);
+  sendto_opmask(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
+                SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                (flags & GLINE_LOCAL) ? "local" : "global",
+                (flags & GLINE_BADCHAN) ? "BADCHAN" : "GLINE", user,
+                (flags & (GLINE_BADCHAN|GLINE_REALNAME)) ? "" : "@",
+                (flags & (GLINE_BADCHAN|GLINE_REALNAME)) ? "" : host,
+                expire + TSoffset, reason);
 
   /* and log it */
   log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
@@ -531,16 +529,15 @@ gline_activate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
     return 0; /* was active to begin with */
 
   /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
-                       "expiring at %Tu: %s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-                       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-                       gline->gl_user, gline->gl_host ? "@" : "",
-                       gline->gl_host ? gline->gl_host : "",
-                       gline->gl_expire + TSoffset, gline->gl_reason);
-  
+  sendto_opmask(0, SNO_GLINE, "%s activating global %s for %s%s%s, "
+                "expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+                gline->gl_user, gline->gl_host ? "@" : "",
+                gline->gl_host ? gline->gl_host : "",
+                gline->gl_expire + TSoffset, gline->gl_reason);
+
   log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
 	    "%#C activating global %s for %s%s%s, expiring at %Tu: %s", sptr,
 	    GlineIsBadChan(gline) ? "BADCHAN" : "GLINE", gline->gl_user,
@@ -599,15 +596,13 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   }
 
   /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: "
-		       "%s",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) :
-                         cli_name((cli_user(sptr))->server),
-		       msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
-		       gline->gl_user, gline->gl_host ? "@" : "",
-                       gline->gl_host ? gline->gl_host : "",
-		       gline->gl_expire + TSoffset, gline->gl_reason);
+  sendto_opmask(0, SNO_GLINE, "%s %s %s for %s%s%s, expiring at %Tu: %s",
+                (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
+                cli_name(sptr) : cli_name((cli_user(sptr))->server),
+                msg, GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
+                gline->gl_user, gline->gl_host ? "@" : "",
+                gline->gl_host ? gline->gl_host : "",
+                gline->gl_expire + TSoffset, gline->gl_reason);
 
   log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
 	    "%#C %s %s for %s%s%s, expiring at %Tu: %s", sptr, msg,

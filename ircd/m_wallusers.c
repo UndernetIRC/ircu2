@@ -58,8 +58,7 @@ int ms_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
 
-  sendwallto_group_butone(sptr, WALL_WALLUSERS, cptr, "%s",
-			message);
+  sendwallto_group(sptr, WALL_WALLUSERS, cptr, "%s", message);
   return 0;
 }
 
@@ -83,7 +82,7 @@ int mo_wallusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[
   if (EmptyString(message))
     return need_more_params(sptr, "WALLUSERS");
 
-  sendwallto_group_butone(sptr, WALL_WALLUSERS, 0, "%s", message);
+  sendwallto_group(sptr, WALL_WALLUSERS, 0, "%s", message);
   return 0;
 }
 

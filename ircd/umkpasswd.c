@@ -48,8 +48,8 @@ crypt_mechs_t* crypt_mechs_root;
 int log_inassert = 0;
 time_t CurrentTime;
 
-void sendto_opmask_butone(struct Client *one, unsigned int mask,
-			  const char *pattern, ...)
+void sendto_opmask(struct Client *one, unsigned int mask,
+                   const char *pattern, ...)
 {
   /* only needed with memdebug, which also calls Debug() */
 }

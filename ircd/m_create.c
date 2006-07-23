@@ -87,11 +87,11 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (TStime() - chanTS<-60)
   {
     static time_t rate;
-    sendto_opmask_butone_ratelimited(0, SNO_NETWORK, &rate,
-                                     "Timestamp drift from %C (%is); issuing "
-                                     "SETTIME to correct this",
-				     cli_user(sptr)->server,
-				     chanTS - TStime());
+    sendto_opmask_ratelimited(0, SNO_NETWORK, &rate,
+                              "Timestamp drift from %C (%is); issuing "
+                              "SETTIME to correct this",
+                              cli_user(sptr)->server,
+                              chanTS - TStime());
     /* Now issue a SETTIME to resync.  If we're in the wrong, our
      * (RELIABLE_CLOCK) hub will bounce a SETTIME back to us.
      */

@@ -69,10 +69,10 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * Note: "victim->name" is used instead of "user" because we may
    *       have changed the target because of the nickname change.
    */
-  sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-                       "Received KILL message for %s. From %s Path: %s!%s %s",
-                       get_client_name(victim, SHOW_IP), cli_name(sptr),
-                       inpath, path, msg);
+  sendto_opmask(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
+                "Received KILL message for %s. From %s Path: %s!%s %s",
+                get_client_name(victim, SHOW_IP), cli_name(sptr),
+                inpath, path, msg);
   log_write_kill(victim, sptr, inpath, path, msg);
 
   /*
@@ -82,8 +82,8 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    * Client suicide kills are NOT passed on --SRB
    */
   if (IsServer(cptr) || !MyConnect(victim)) {
-    sendcmdto_serv_butone(sptr, CMD_KILL, cptr, "%C :%s!%s %s", victim,
-                          inpath, path, msg);
+    sendcmdto_serv(sptr, CMD_KILL, cptr, "%C :%s!%s %s", victim,
+                   inpath, path, msg);
 
     /*
      * Set FLAG_KILLED. This prevents exit_one_client from sending

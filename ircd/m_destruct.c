@@ -192,7 +192,7 @@ int ms_destruct(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
   }
 
   /* Pass on DESTRUCT message and ALSO bounce it back! */
-  sendcmdto_serv_butone(&me, CMD_DESTRUCT, 0, "%s %Tu", parv[1], chanTS);
+  sendcmdto_serv(&me, CMD_DESTRUCT, 0, "%s %Tu", parv[1], chanTS);
 
   /* Remove the empty channel. */
   if (chptr->destruct_event)

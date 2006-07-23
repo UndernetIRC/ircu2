@@ -156,7 +156,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * anyway.
      */
     if (!(flags & GLINE_LOCAL))
-      sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* -%s", mask);
+      sendcmdto_serv(sptr, CMD_GLINE, cptr, "* -%s", mask);
     return 0;
   } else if (parc < 5)
     return need_more_params(sptr, "GLINE");
