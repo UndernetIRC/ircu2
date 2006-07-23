@@ -3480,8 +3480,15 @@ void
 check_spambot_warning(struct Client *sptr)
 {
   int decrement_count;
+  int spam_expire_time;
 
-  if (!MyUser(sptr))
+  spam_expire_time = feature_int(FEAT_SPAM_EXPIRE_TIME);
+  if (!spam_expire_time)
+  {
+    /* Admin apparently does not want this feature (we do not want to
+     * divide by zero below). */
+  }
+  else if (!MyUser(sptr))
   {
     /* This client's behavior is someone else's problem. */
   }
@@ -3501,7 +3508,7 @@ check_spambot_warning(struct Client *sptr)
     }
   }
   else if ((decrement_count = (CurrentTime - cli_last_part(sptr))
-            / feature_int(FEAT_SPAM_EXPIRE_TIME)) > 0)
+            / spam_expire_time) > 0)
   {
     if (decrement_count > cli_join_part_count(sptr))
       cli_join_part_count(sptr) = 0;

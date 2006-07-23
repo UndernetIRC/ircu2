@@ -1,5 +1,10 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (check_spambot_warning): Avoid division by zero;
+	bug pointed out by comstud.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_user.c (get_clean_isupport): Only initialize is_next the
 	first time around (otherwise entries get lost).
 
