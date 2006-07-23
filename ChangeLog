@@ -1,5 +1,18 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Features): Show NOIDENT example.
+
+	* doc/readme.features (NOIDENT): Document new feature setting.
+
+	* include/ircd_features.h (NOIDENT): Declare new feature.
+
+	* ircd/ircd_features.c (NOIDENT): Define new feature.
+
+	* ircd/s_auth.c (start_auth): Check NOIDENT before starting auth
+	request.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* include/querycmds.h (Count_unknownbecomesclient): Remove _butone
 	qualifier for send functions.
 

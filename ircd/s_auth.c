@@ -998,7 +998,8 @@ void start_auth(struct Client* client)
   start_dns_query(auth);
 
   /* Try to start ident lookup. */
-  start_auth_query(auth);
+  if (!feature_bool(FEAT_NOIDENT))
+    start_auth_query(auth);
 
   /* Set required client inputs for users. */
   if (IsUserPort(client)) {

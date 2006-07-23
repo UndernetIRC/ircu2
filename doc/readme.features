@@ -190,6 +190,13 @@ the server will not try to resolve clients that connect to
 "localhost."  Note that other DNS lookups are still done for outbound
 connections.
 
+NOIDENT
+ * Type: boolean
+ * Default: FALSE
+
+NOIDENT disables RFC 1413 (ident protocol) lookups of clients'
+usernames.
+
 RANDOM_SEED
  * Type: string
  * Default: none
