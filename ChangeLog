@@ -1,5 +1,11 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_bsd.c (close_connection): Clear FREEFLAG_SOCKET when
+	closing the socket.
+	(client_sock_callback): Fix typo in a comment.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (check_spambot_warning): Avoid division by zero;
 	bug pointed out by comstud.
 

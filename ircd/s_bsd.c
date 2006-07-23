@@ -437,6 +437,7 @@ void close_connection(struct Client *cptr)
     close(cli_fd(cptr));
     socket_del(&(cli_socket(cptr))); /* queue a socket delete */
     cli_fd(cptr) = -1;
+    cli_freeflag(cptr) &= ~FREEFLAG_SOCKET;
   }
   SetFlag(cptr, FLAG_DEADSOCKET);
 
@@ -887,7 +888,7 @@ static void client_sock_callback(struct Event* ev)
     cli_error(cptr) = ev_data(ev);
     if (s_state(&(con_socket(con))) == SS_CONNECTING) {
       completed_connection(cptr);
-      /* for some reason, the os_get_sockerr() in completed_connect()
+      /* for some reason, the os_get_sockerr() in completed_connection()
        * can return 0 even when ev_data(ev) indicates a real error, so
        * re-assign the client error here.
        */
