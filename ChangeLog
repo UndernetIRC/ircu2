@@ -1,5 +1,12 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_events.c (event_generate): Separate into threaded and
+	non-threaded versions.
+	(event_execute): Move into IRCD_THREADED section.
+	(event_add): Likewise.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_bsd.c (close_connection): Clear FREEFLAG_SOCKET when
 	closing the socket.
 	(client_sock_callback): Fix typo in a comment.

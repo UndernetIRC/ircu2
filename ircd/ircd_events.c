@@ -143,6 +143,48 @@ gen_init(struct GenHeader* gen, EventCallBack call, void* data,
   }
 }
 
+#ifndef IRCD_THREADED
+
+/** Generate and execute an event.
+ * @param[in] type Type of event to generate.
+ * @param[in] arg Pointer to an event generator (GenHeader).
+ * @param[in] data Extra data for event.
+ */
+void
+event_generate(enum EventType type, void* arg, int data)
+{
+  struct Event ev;
+  struct GenHeader *gen = (struct GenHeader*) arg;
+
+  assert(0 != gen);
+  assert(gen->gh_flags & GEN_ACTIVE);
+
+  if (type == ET_DESTROY)
+  {
+    if (gen->gh_flags & GEN_DESTROY)
+      return;
+    gen->gh_flags &= ~GEN_ACTIVE;
+  }
+  else if (type == ET_ERROR)
+    gen->gh_flags |= GEN_ERROR;
+
+  Debug((DEBUG_LIST, "Generating event type %s for generator %p (%s)",
+	 event_to_name(type), gen, gen_flags(gen->gh_flags)));
+
+  ev.ev_next = NULL;
+  ev.ev_prev_p = NULL;
+  ev.ev_type = type;
+  ev.ev_data = data;
+  ev.ev_gen.gen_header = gen;
+  gen->gh_ref++;
+
+  gen->gh_call(&ev);
+  if (type != ET_DESTROY)
+    gen_ref_dec(gen);
+}
+
+#else
+
 /** Execute an event.
  * Optimizations should inline this.
  * @param[in] event Event to execute.
@@ -177,17 +219,6 @@ event_execute(struct Event* event)
   evInfo.events_free = event;
 }
 
-#ifndef IRCD_THREADED
-/** we synchronously execute the event when not threaded */
-#define event_add(event)	\
-do {									      \
-  struct Event* _ev = (event);						      \
-  _ev->ev_next = 0;							      \
-  _ev->ev_prev_p = 0;							      \
-  event_execute(_ev);							      \
-} while (0)
-
-#else
 /** Add an event to the work queue.
  * @param[in] event Event to enqueue.
  */
@@ -238,6 +269,43 @@ event_add(struct Event* event)
     /* We'd also have to signal the work crew here */
   }
 }
+
+/** Generate an event and add it to the queue (or execute it).
+ * @param[in] type Type of event to generate.
+ * @param[in] arg Pointer to an event generator (GenHeader).
+ * @param[in] data Extra data for event.
+ */
+void
+event_generate(enum EventType type, void* arg, int data)
+{
+  struct Event* ptr;
+  struct GenHeader* gen = (struct GenHeader*) arg;
+
+  assert(0 != gen);
+
+  /* don't create events (other than ET_DESTROY) for destroyed generators */
+  if (type != ET_DESTROY && (gen->gh_flags & GEN_DESTROY))
+    return;
+
+  Debug((DEBUG_LIST, "Generating event type %s for generator %p (%s)",
+	 event_to_name(type), gen, gen_flags(gen->gh_flags)));
+
+  if ((ptr = evInfo.events_free))
+    evInfo.events_free = ptr->ev_next; /* pop one off the freelist */
+  else { /* allocate another structure */
+    ptr = (struct Event*) MyMalloc(sizeof(struct Event));
+    evInfo.events_alloc++; /* count of allocated events */
+  }
+
+  ptr->ev_type = type; /* Record event type */
+  ptr->ev_data = data;
+
+  ptr->ev_gen.gen_header = (struct GenHeader*) gen;
+  ptr->ev_gen.gen_header->gh_ref++;
+
+  event_add(ptr); /* add event to queue */
+}
+
 #endif /* IRCD_THREADED */
 
 /** Place a timer in the correct spot on the queue.
@@ -376,42 +444,6 @@ event_loop(void)
   assert(0 != evInfo.engine->eng_loop);
 
   (*evInfo.engine->eng_loop)(&evInfo.gens);
-}
-
-/** Generate an event and add it to the queue (or execute it).
- * @param[in] type Type of event to generate.
- * @param[in] arg Pointer to an event generator (GenHeader).
- * @param[in] data Extra data for event.
- */
-void
-event_generate(enum EventType type, void* arg, int data)
-{
-  struct Event* ptr;
-  struct GenHeader* gen = (struct GenHeader*) arg;
-
-  assert(0 != gen);
-
-  /* don't create events (other than ET_DESTROY) for destroyed generators */
-  if (type != ET_DESTROY && (gen->gh_flags & GEN_DESTROY))
-    return;
-
-  Debug((DEBUG_LIST, "Generating event type %s for generator %p (%s)",
-	 event_to_name(type), gen, gen_flags(gen->gh_flags)));
-
-  if ((ptr = evInfo.events_free))
-    evInfo.events_free = ptr->ev_next; /* pop one off the freelist */
-  else { /* allocate another structure */
-    ptr = (struct Event*) MyMalloc(sizeof(struct Event));
-    evInfo.events_alloc++; /* count of allocated events */
-  }
-
-  ptr->ev_type = type; /* Record event type */
-  ptr->ev_data = data;
-
-  ptr->ev_gen.gen_header = (struct GenHeader*) gen;
-  ptr->ev_gen.gen_header->gh_ref++;
-
-  event_add(ptr); /* add event to queue */
 }
 
 #if 0
