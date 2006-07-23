@@ -1563,11 +1563,11 @@ get_clean_isupport(const char *name)
         prev->is_next = isv;
     else
         isupport = isv;
+    isv->is_next = NULL;
   }
 
   isv->is_name = name;
   isv->is_type = OPT_NONE;
-  isv->is_next = NULL;
   touch_isupport();
   return isv;
 }

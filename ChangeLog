@@ -1,3 +1,8 @@
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (get_clean_isupport): Only initialize is_next the
+	first time around (otherwise entries get lost).
+
 2006-07-14  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Features): Show the four added features.
