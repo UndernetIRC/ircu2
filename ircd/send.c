@@ -528,7 +528,7 @@ void sendcmdto_common_channels(struct Client *from, const char *cmd,
  * @param[in] tok Short name of command.
  * @param[in] to Destination channel.
  * @param[in] one Client direction to skip (or NULL).
- * @param[in] skip Bitmask of SKIP_NONOPS, SKIP_NONVOICES, SKIP_DEAF, SKIP_BURST.
+ * @param[in] skip Bitmask of SKIP_NONOPS, SKIP_NONVOICES, SKIP_DEAF, SKIP_BURST, SKIP_SERVERS.
  * @param[in] pattern Format string for command arguments.
  */
 void sendcmdto_channel(struct Client *from, const char *cmd,
@@ -546,13 +546,19 @@ void sendcmdto_channel(struct Client *from, const char *cmd,
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
   user_mb = msgq_make(0, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? "%:#C %s @%v" : "%:#C %s %v",
-                      from, skip & (SKIP_NONOPS | SKIP_NONVOICES) ? MSG_NOTICE : cmd, &vd);
+                      from, cmd, &vd);
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
-  va_start(vd.vd_args, pattern);
-  serv_mb = msgq_make(&me, "%C %s %v", from, tok, &vd);
-  va_end(vd.vd_args);
+  if (skip & SKIP_SERVERS)
+    serv_mb = NULL;
+  else
+  {
+    va_start(vd.vd_args, pattern);
+    serv_mb = msgq_make(&me, skip & SKIP_NONOPS ? "%C %s @%v" : "%C %s %v",
+                        from, tok, &vd);
+    va_end(vd.vd_args);
+  }
 
   /* send buffer along! */
   bump_sentalong(one);
@@ -565,19 +571,17 @@ void sendcmdto_channel(struct Client *from, const char *cmd,
         (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)) ||
         (skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
         (skip & SKIP_SERVERS && !MyUser(member->user)) ||
-        (skip & SKIP_LOCALS && MyUser(member->user)) ||
         cli_fd(cli_from(member->user)) < 0)
       continue;
     cli_sentalong(member->user) = sentalong_marker;
 
-    if (MyConnect(member->user)) /* pick right buffer to send */
-      send_buffer(member->user, user_mb, 0);
-    else
-      send_buffer(member->user, serv_mb, 0);
+    /* pick right buffer to send */
+    send_buffer(member->user, MyConnect(member->user) ? user_mb : serv_mb, 0);
   }
 
   msgq_clean(user_mb);
-  msgq_clean(serv_mb);
+  if (serv_mb)
+    msgq_clean(serv_mb);
 }
 
 /** Send a (prefixed) WALL of type \a type to all users except \a one.

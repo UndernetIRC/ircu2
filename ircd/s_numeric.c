@@ -47,6 +47,11 @@
  */
 
 /** Forwards a numeric message from a remote server.
+ *
+ * For this function, parv[2] may be special in the sense that it may
+ * actually be multiple parameters.  parse_server() has special case
+ * code to do this when it parses numeric messages.
+ *
  * @param numeric Value of numeric message.
  * @param nnn If non-zero, treat parv[1] as a numnick; else as a client name.
  * @param cptr Client that originated the numeric.
@@ -60,6 +65,7 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
 {
   struct Client *acptr = 0;
   struct Channel *achptr = 0;
+  int send_flags = SKIP_DEAF | SKIP_BURST;
   char num[4];
 
   /* Avoid trash, we need it to come from a server and have a target  */
@@ -72,7 +78,12 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
      should never generate numeric replies to non-users anyway
      Ahem... it can be a channel actually, csc bots use it :\ --Nem */
 
-  if (IsChannelName(parv[1]))
+  if (parv[1][0] == '@' && IsChannelName(parv[1] + 1))
+  {
+    send_flags |= SKIP_NONOPS;
+    achptr = FindChannel(parv[1] + 1);
+  }
+  else if (IsChannelName(parv[1]))
     achptr = FindChannel(parv[1]);
   else
     acptr = (nnn) ? (findNUser(parv[1])) : (FindUser(parv[1]));
@@ -99,7 +110,7 @@ int do_numeric(int numeric, int nnn, struct Client *cptr, struct Client *sptr,
                   num, num, acptr, "%C %s", acptr, parv[2]);
   else
     sendcmdto_channel(feature_bool(FEAT_HIS_REWRITE) ? &me : sptr,
-                      num, num, achptr, cptr, SKIP_DEAF | SKIP_BURST,
+                      num, num, achptr, cptr, send_flags,
                       "%H %s", achptr, parv[2]);
   return 0;
 }

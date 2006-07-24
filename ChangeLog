@@ -1,5 +1,19 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* include/msg.h (CMD_WALLCHOPS): Change to what is actually used.
+	(CMD_WALLVOICES): Likewise.
+
+	* ircd/m_wallvoices.c (ms_wallvoices): Add missing "+ ".
+
+	* ircd/s_numeric.c (do_numeric): Document slightly irregular
+	parv[2].  Allow parv[1] to be of the form @#channel.
+
+	* ircd/send.c (sendcmdto_channel): Do not override "cmd" for local
+	sends.  Do not build serv_mb if servers are skipped.  Remove the
+	SKIP_LOCALS handling, which is about to become unused.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* include/s_user.h (del_isupport): Declare.
 
 	* ircd/engine_select.c (engine_loop): Fix type of codesize
