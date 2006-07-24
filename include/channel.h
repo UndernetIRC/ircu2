@@ -250,6 +250,15 @@ struct Ban {
   char banstr[NICKLEN+USERLEN+HOSTLEN+3];  /**< hostmask that the ban matches */
 };
 
+/** An invitation to a channel. */
+struct Invite {
+  struct Invite*     next_user;    /**< next invite to the user */
+  struct Invite*     next_channel; /**< next invite to the channel */
+  struct Client*     user;         /**< user being invited */
+  struct Channel*    channel;      /**< channel to which invited */
+  char inviter[NICKLEN+USERLEN+HOSTLEN+3]; /**< hostmask of inviter */
+};
+
 /** Information about a channel */
 struct Channel {
   struct Channel*    next;	/**< next channel in the global channel list */
@@ -260,7 +269,7 @@ struct Channel {
   time_t             topic_time;   /**< Modification time of the topic */
   unsigned int       users;	   /**< Number of clients on this channel */
   struct Membership* members;	   /**< Pointer to the clients on this channel*/
-  struct SLink*      invites;	   /**< List of invites on this channel */
+  struct Invite*     invites;	   /**< List of invites on this channel */
   struct Ban*        banlist;      /**< List of bans on this channel */
   struct Mode        mode;	   /**< This channels mode */
   char               topic[TOPICLEN + 1]; /**< Channels topic */
@@ -380,14 +389,10 @@ extern void remove_user_from_channel(struct Client *sptr, struct Channel *chptr)
 extern void remove_user_from_all_channels(struct Client* cptr);
 
 extern int is_chan_op(struct Client *cptr, struct Channel *chptr);
-/*
-   NOTE: pointer is compared, and not dereferenced, called by
-   add_target with a void*, since targets could be anything,
-   this function can't make any assumptions that it has a channel
-*/
-extern int IsInvited(struct Client* cptr, const void* chptr);
 extern void send_channel_modes(struct Client *cptr, struct Channel *chptr);
 extern char *pretty_mask(char *mask);
+extern struct Invite* is_invited(struct Client* cptr, struct Channel* chptr);
+extern void add_invite(struct Client *cptr, struct Channel *chptr, struct Client *inviter);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_set_default(void); /* this belongs elsewhere! */
 extern void check_spambot_warning(struct Client *cptr);

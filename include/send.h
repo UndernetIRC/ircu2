@@ -74,7 +74,6 @@ extern void sendcmdto_channel(struct Client *from, const char *cmd,
 #define SKIP_NONVOICES  0x08    /**< skip users that aren't voiced (includes
                                    chanops) */
 #define SKIP_SERVERS    0x10    /**< skip server links */
-#define SKIP_LOCALS     0x20    /**< skip local clients */
 
 /* Send command to all users having a particular flag set */
 extern void sendwallto_group(struct Client *from, int type, 

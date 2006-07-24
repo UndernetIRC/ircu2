@@ -43,59 +43,6 @@
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
-#if !defined(NDEBUG)
-/** return the length (>=0) of a chain of links.
- * @param lp	pointer to the start of the linked list
- * @return the number of items in the list
- */
-static unsigned int list_length(struct SLink *lp)
-{
-  unsigned int count = 0;
-
-  for (; lp; lp = lp->next)
-    ++count;
-  return count;
-}
-#endif
-
-/** invite a user to a channel.
- *
- * Adds an invite for a user to a channel.  Limits the number of invites
- * to FEAT_MAXCHANNELSPERUSER.  Does not sent notification to the user.
- *
- * @param cptr	The client to be invited.
- * @param chptr	The channel to be invited to.
- */
-static void add_invite(struct Client *cptr, struct Channel *chptr)
-{
-  struct SLink *inv, **tmp;
-
-  del_invite(cptr, chptr);
-  /*
-   * Delete last link in chain if the list is max length
-   */
-  assert(list_length((cli_user(cptr))->invited) == (cli_user(cptr))->invites);
-  if ((int)(cli_user(cptr))->invites >= feature_int(FEAT_MAXCHANNELSPERUSER))
-    del_invite(cptr, (cli_user(cptr))->invited->value.chptr);
-  /*
-   * Add client to channel invite list
-   */
-  inv = make_link();
-  inv->value.cptr = cptr;
-  inv->next = chptr->invites;
-  chptr->invites = inv;
-  /*
-   * Add channel to the end of the client invite list
-   */
-  for (tmp = &((cli_user(cptr))->invited); *tmp; tmp = &((*tmp)->next));
-  inv = make_link();
-  inv->value.chptr = chptr;
-  inv->next = NULL;
-  (*tmp) = inv;
-  (cli_user(cptr))->invites++;
-}
-
-
 /** Handle an INVITE from a local client.
  *
  * \a parv has the following elements:
@@ -121,18 +68,18 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client *acptr;
   struct Channel *chptr;
-  
-  if (parc < 2 ) { 
+
+  if (parc < 2 ) {
     /*
      * list the channels you have an invite to.
      */
-    struct SLink *lp;
-    for (lp = cli_user(sptr)->invited; lp; lp = lp->next)
-      send_reply(cptr, RPL_INVITELIST, lp->value.chptr->chname);
+    struct Invite *ip;
+    for (ip = cli_user(sptr)->invited; ip; ip = ip->next_user)
+      send_reply(cptr, RPL_INVITELIST, ip->channel->chname);
     send_reply(cptr, RPL_ENDOFINVITELIST);
     return 0;
   }
-  
+
   if (parc < 3 || EmptyString(parv[2]))
     return need_more_params(sptr, "INVITE");
 
@@ -177,26 +124,11 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, RPL_AWAY, cli_name(acptr), cli_user(acptr)->away);
 
   if (MyConnect(acptr)) {
-    add_invite(acptr, chptr);
+    add_invite(acptr, chptr, sptr);
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
   } else if (!IsLocalChannel(chptr->chname)) {
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr), chptr,
                   chptr->creationtime);
-  }
-
-  if (!IsLocalChannel(chptr->chname) || MyConnect(acptr)) {
-    if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
-      /* Announce to channel operators. */
-      sendcmdto_channel(&his, get_error_numeric(RPL_ISSUEDINVITE)->str,
-                        NULL, chptr, sptr, SKIP_NONOPS | SKIP_SERVERS,
-                        "%H %C %C :%C has been invited by %C",
-                        chptr, acptr, sptr, acptr, sptr);
-      /* Announce to servers with channel operators. */
-      sendcmdto_channel(sptr, NULL, TOK_INVITE, chptr, acptr,
-                        SKIP_NONOPS | SKIP_LOCALS,
-                        "%s %H %Tu", cli_name(acptr),
-                        chptr, chptr->creationtime);
-    }
   }
 
   return 0;
@@ -288,24 +220,11 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
 
   if (MyConnect(acptr)) {
-    add_invite(acptr, chptr);
+    add_invite(acptr, chptr, sptr);
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H", cli_name(acptr), chptr);
   } else {
     sendcmdto_one(sptr, CMD_INVITE, acptr, "%s %H %Tu", cli_name(acptr), chptr,
                   chptr->creationtime);
-  }
-
-  if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
-    /* Announce to channel operators. */
-    sendcmdto_channel(&his, get_error_numeric(RPL_ISSUEDINVITE)->str,
-                      NULL, chptr, sptr, SKIP_NONOPS | SKIP_SERVERS,
-                      "%H %C %C :%C has been invited by %C",
-                      chptr, acptr, sptr, acptr, sptr);
-    /* Announce to servers with channel operators. */
-    sendcmdto_channel(sptr, NULL, TOK_INVITE, chptr, acptr,
-                      SKIP_NONOPS | SKIP_LOCALS,
-                      "%s %H %Tu", cli_name(acptr), chptr,
-                      chptr->creationtime);
   }
 
   return 0;

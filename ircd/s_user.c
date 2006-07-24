@@ -742,7 +742,7 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
   targets = cli_targets(sptr);
 
   /* If user is invited to channel, give him/her a free target */
-  if (IsChannelName(name) && IsInvited(sptr, target))
+  if (IsChannelName(name) && is_invited(sptr, target))
     return 0;
 
   /*

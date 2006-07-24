@@ -1,5 +1,41 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* include/channel.h (struct Invite): New structure.
+	(struct Channel): Change type of invites field.
+	(IsInvited): Rename to is_invited; change return type.
+	(add_invite): Declare function.
+
+	* include/send.h (SKIP_LOCALS): Remove definition.
+
+	* include/struct.h (struct Invite): Declare
+	(struct User): Change type of invited field; remove invites.
+
+	* ircd/channel.c (sub1_from_channel): Use mode_invite_clear() to
+	clear the channel's invite list.
+	(destruct_channel): Likewise.
+	(IsInvited): Rename to is_invited and rework significantly.
+	(invite_freelist): New file-scope variable.
+	(add_invite): Rewrite function.
+	(del_invite): Rewrite function.
+	(mode_invite_clear): Adapt to new struct Invite.
+
+	* ircd/m_invite.c (list_length): Delete function.
+	(add_invite): Delete function (it moved to channel.c).
+	(m_invite): Adapt to new struct Invite and add_invite().  Remove
+	old ANNOUNCE_INVITES handling.
+	(ms_invite): Adapt to new add_invite().  Remove old
+	ANNOUNCE_INVITES handling.
+
+	* ircd/m_join.c (m_join): Add new ANNOUNCE_INVITES handling.
+
+	* ircd/s_debug.c (count_memory): Adapt to new struct Invite.
+
+	* ircd/s_misc.c (exit_one_client): Adapt to new struct Invite.
+
+	* ircd/s_user.c (check_target_limit): Rename IsInvited().
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* include/msg.h (CMD_WALLCHOPS): Change to what is actually used.
 	(CMD_WALLVOICES): Likewise.
 

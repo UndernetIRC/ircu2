@@ -294,8 +294,7 @@ int sub1_from_channel(struct Channel* chptr)
     struct Ban *link, *next;
     chptr->mode.mode = 0;
     *chptr->mode.key = '\0';
-    while (chptr->invites)
-      del_invite(chptr->invites->value.cptr, chptr);
+    mode_invite_clear(chptr);
     for (link = chptr->banlist; link; link = next) {
       next = link->next;
       free_ban(link);
@@ -336,8 +335,7 @@ int destruct_channel(struct Channel* chptr)
   /*
    * Now, find all invite links from channel structure
    */
-  while (chptr->invites)
-    del_invite(chptr->invites->value.cptr, chptr);
+  mode_invite_clear(chptr);
 
   for (ban = chptr->banlist; ban; ban = next)
   {
@@ -1240,6 +1238,83 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
   return chptr;
 }
 
+/** Find invitation (if any) for \a cptr to \a chptr.
+ * @param[in] cptr Possibly invited client.
+ * @param[in] chptr Channel to search for.
+ * @return A pointer to the relevant struct Invite, or NULL if not invited.
+ */
+struct Invite *is_invited(struct Client* cptr, struct Channel* chptr)
+{
+  struct Invite *ip;
+
+  for (ip = (cli_user(cptr))->invited; ip; ip = ip->next_user)
+    if (ip->channel == chptr)
+      return ip;
+
+  return 0;
+}
+
+static struct Invite *invite_freelist;
+
+/** Invite a user to a channel.
+ *
+ * Adds an invite for a user to a channel.  Limits the number of invites
+ * to FEAT_MAXCHANNELSPERUSER.  Does not notify the user.
+ *
+ * @param[in] cptr	The client to be invited.
+ * @param[in] chptr	The channel to be invited to.
+ * @param[in] inviter	The client inviting \a cptr.
+ */
+void add_invite(struct Client *cptr, struct Channel *chptr, struct Client *inviter)
+{
+  struct Invite **uprev = &cli_user(cptr)->invited;
+  struct Invite *inv;
+  int max = feature_int(FEAT_MAXCHANNELSPERUSER);
+  int count = 0;
+
+  /* See if the user is already invited. */
+  while ((inv = *uprev) != NULL)
+  {
+    if (inv->channel == chptr)
+      break;
+    else if (++count >= max)
+      del_invite(cptr, inv->channel);
+    else
+      uprev = &inv->next_user;
+  }
+
+  if (inv) {
+    /* Remove from the user's invite list. */
+    *uprev = inv->next_user;
+    /* Search for end of invite list. */
+    while ((*uprev)->next_user)
+      uprev = &(*uprev)->next_user;
+  } else {
+    /* Find or allocate an Invite struct. */
+    if (invite_freelist) {
+      inv = invite_freelist;
+      invite_freelist = inv->next_user;
+    } else {
+      inv = MyCalloc(1, sizeof(*inv));
+    }
+
+    /* Set client and channel fields; add to channel list. */
+    inv->user = cptr;
+    inv->channel = chptr;
+    inv->next_channel = chptr->invites;
+    chptr->invites = inv;
+  }
+
+  /* Add to the user's invite list. */
+  assert(uprev != NULL);
+  *uprev = inv;
+
+  /* Set the remaining fields. */
+  ircd_snprintf(NULL, inv->inviter, sizeof(inv->inviter) - 1,
+                "%#C", inviter);
+  inv->next_user = NULL;
+}
+
 /** Delete an invite
  * Delete Invite block from channel invite list and client invite list
  *
@@ -1248,26 +1323,31 @@ struct Channel *get_channel(struct Client *cptr, char *chname, ChannelGetType fl
  */
 void del_invite(struct Client *cptr, struct Channel *chptr)
 {
-  struct SLink **inv, *tmp;
+  struct Invite **inv, *tmp;
 
-  for (inv = &(chptr->invites); (tmp = *inv); inv = &tmp->next)
-    if (tmp->value.cptr == cptr)
+  /* Remove from channel's invite list. */
+  for (inv = &(chptr->invites); (tmp = *inv); inv = &tmp->next_channel)
+    if (tmp->user == cptr)
     {
-      *inv = tmp->next;
-      free_link(tmp);
-      tmp = 0;
-      (cli_user(cptr))->invites--;
+      *inv = tmp->next_channel;
       break;
     }
 
-  for (inv = &((cli_user(cptr))->invited); (tmp = *inv); inv = &tmp->next)
-    if (tmp->value.chptr == chptr)
+  /* If nothing found, bail. */
+  if (!tmp)
+    return;
+
+  /* Remove from client's invite list. */
+  for (inv = &((cli_user(cptr))->invited); (tmp = *inv); inv = &tmp->next_user)
+    if (tmp->channel == chptr)
     {
-      *inv = tmp->next;
-      free_link(tmp);
-      tmp = 0;
+      *inv = tmp->next_user;
       break;
     }
+
+  /* Append to freelist of invites. */
+  tmp->next_user = invite_freelist;
+  invite_freelist = tmp;
 }
 
 /** @page zombie Explanation of Zombies
@@ -2087,7 +2167,7 @@ void
 mode_invite_clear(struct Channel *chan)
 {
   while (chan->invites)
-    del_invite(chan->invites->value.cptr, chan);
+    del_invite(chan->invites->user, chan);
 }
 
 /* What we've done for mode_parse so far... */
@@ -3453,17 +3533,6 @@ joinbuf_flush(struct JoinBuf *jbuf)
     break;
   }
 
-  return 0;
-}
-
-/* Returns TRUE (1) if client is invited, FALSE (0) if not */
-int IsInvited(struct Client* cptr, const void* chptr)
-{
-  struct SLink *lp;
-
-  for (lp = (cli_user(cptr))->invited; lp; lp = lp->next)
-    if (lp->value.chptr == chptr)
-      return 1;
   return 0;
 }
 

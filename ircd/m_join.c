@@ -178,6 +178,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     } else if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
       continue;
     } else {
+      struct Invite *invite;
       int flags = 0;
       int err = 0;
 
@@ -191,8 +192,6 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         /* Joining a zombie channel (zannel): give ops and increment TS. */
         flags = CHFL_CHANOP;
         chptr->creationtime++;
-      } else if (IsInvited(sptr, chptr)) {
-        /* Invites bypass these other checks. */
       } else if (chptr->mode.mode & MODE_INVITEONLY)
         err = ERR_INVITEONLYCHAN;
       else if (chptr->mode.limit && (chptr->users >= chptr->mode.limit))
@@ -203,6 +202,19 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         err = ERR_BANNEDFROMCHAN;
       else if (*chptr->mode.key && (!key || strcmp(key, chptr->mode.key)))
         err = ERR_BADCHANNELKEY;
+
+      /* If the user is invited, s/he can bypass the normal errors. */
+      if (err && feature_bool(FEAT_ANNOUNCE_INVITES)
+          && (invite = is_invited(sptr, chptr))) {
+        const struct Numeric *num;
+        num = get_error_numeric(RPL_ISSUEDINVITE);
+        sendcmdto_channel(&me, num->str, num->str, chptr, cptr,
+                          SKIP_NONOPS | SKIP_BURST,
+                          "%H %s %s :%s has been invited by %s",
+                          chptr, cli_name(sptr), invite->inviter,
+                          cli_name(sptr), invite->inviter);
+        err = 0;
+      }
 
       /* An oper with WALK_LCHAN privilege can join a local channel
        * he otherwise could not join by using "OVERRIDE" as the key.

@@ -206,6 +206,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
                   char *param)
 {
   struct Client *acptr;
+  struct Invite *inv;
   struct SLink *link;
   struct Ban *ban;
   struct Channel *chptr;
@@ -218,7 +219,6 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
       cn = 0,                   /* connections */
       ch = 0,                   /* channels */
       lcc = 0,                  /* local client conf links */
-      chi = 0,                  /* channel invites */
       chb = 0,                  /* channel bans */
       wwu = 0,                  /* whowas users */
       cl = 0,                   /* classes */
@@ -267,7 +267,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
     }
     if (cli_user(acptr))
     {
-      for (link = cli_user(acptr)->invited; link; link = link->next)
+      for (inv = cli_user(acptr)->invited; inv; inv = inv->next_user)
         usi++;
       for (member = cli_user(acptr)->channel; member; member = member->next_channel)
         ++memberships;
@@ -289,8 +289,6 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   {
     ch++;
     chm += (strlen(chptr->chname) + sizeof(struct Channel));
-    for (link = chptr->invites; link; link = link->next)
-      chi++;
     for (ban = chptr->banlist; ban; ban = ban->next)
     {
       chb++;
@@ -315,7 +313,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Users %zu(%zu) Accounts %d(%zu) Invites %d(%zu)",
              us, usm, acc, acc * (ACCOUNTLEN + 1),
-	     usi, usi * sizeof(struct SLink));
+	     usi, usi * sizeof(struct Invite));
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":User channels %d(%zu) Aways %d(%zu)", memberships,
 	     memberships * sizeof(struct Membership), aw, awm);
@@ -330,11 +328,10 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Channels %d(%zu) Bans %d(%zu)", ch, chm, chb, chbm);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Channel Members %d(%zu) Invites %d(%zu)", memberships,
-	     memberships * sizeof(struct Membership), chi,
-	     chi * sizeof(struct SLink));
+	     ":Channel Members %d(%zu)", memberships,
+	     memberships * sizeof(struct Membership));
 
-  totch = chm + chbm + chi * sizeof(struct SLink);
+  totch = chm + chbm;
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":Whowas Users %d(%zu) Away %d(%zu) Array %d(%zu)",

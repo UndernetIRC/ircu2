@@ -180,7 +180,7 @@ const char* get_client_name(const struct Client* sptr, int showip)
 /* Rewritten by Run - 24 sept 94 */
 static void exit_one_client(struct Client* bcptr, const char* comment)
 {
-  struct SLink *lp;
+  struct Invite *ip;
   struct Ban *bp;
 
   if (cli_serv(bcptr) && cli_serv(bcptr)->client_list)  /* Was SetServerYXX called ? */
@@ -209,8 +209,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     remove_user_from_all_channels(bcptr);
 
     /* Clean up invitefield */
-    while ((lp = cli_user(bcptr)->invited))
-      del_invite(bcptr, lp->value.chptr);
+    while ((ip = cli_user(bcptr)->invited))
+      del_invite(bcptr, ip->channel);
 
     /* Clean up silencefield */
     while ((bp = cli_user(bcptr)->silence)) {
