@@ -549,6 +549,8 @@ trychunk:
   return 0;
 }
 
+#if 0
+
 /*
  * matchdecomp()
  * Prints the human readable version of *cmask into *mask, (decompiles
@@ -840,6 +842,8 @@ int mmexec(const char *wcm, int wminlen, const char *rcm, int rminlen)
   }
   return 1;                     /* Auch... something left out ? Fail */
 }
+
+#endif
 
 /** Test whether an address matches the most significant bits of a mask.
  * @param[in] addr Address to test.

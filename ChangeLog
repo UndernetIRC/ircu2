@@ -1,5 +1,29 @@
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
+	* include/s_user.h (del_isupport): Declare.
+
+	* ircd/engine_select.c (engine_loop): Fix type of codesize
+	variable.
+
+	* ircd/ircd_parser.y (lexer_include): Declare.
+	(sconf): Delete.
+	(yylineno): Undeclare.
+
+	* ircd/ircd_reslib.c (irc_ns_get32): Delete.
+	(irc_ns_put16): Delete.
+	(irc_ns_put32): Delete.
+
+	* ircd/m_motd.c (ms_motd): Export symbol.
+
+	* ircd/match.c (matchdecomp): Disable via #if.
+	(mmexec): Likewise.
+
+	* ircd/s_user.c (del_isupport): Export symbol.
+
+	* ircd/uping.c (uping_begin): Delete.
+
+2006-07-23  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Features): Show NOIDENT example.
 
 	* doc/readme.features (NOIDENT): Document new feature setting.

@@ -66,13 +66,14 @@
   extern struct qline*      GlobalQuarantineList;
 
   int yylex(void);
+  void lexer_include(const char *filename);
+
   /* Now all the globals we need :/... */
   static int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   static char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   static char *stringlist[MAX_STRINGS];
   static struct ConnectionClass *c_class;
   static struct DenyConf *dconf;
-  static struct ServerConf *sconf;
   static struct s_map *smap;
   static struct Privs privs;
   static struct Privs privs_dirty;
@@ -113,7 +114,6 @@ static struct ConfigBlocks *includes;
 static int
 permitted(enum ConfigBlock type, int warn)
 {
-  extern int yylineno;
   static const char *block_names[BLOCK_LAST_BLOCK] = {
     "Admin", "Class", "Client", "Connect", "CRule", "Features",
     "General", "IAuth", "Include", "Jupe", "Kill", "Motd", "Oper",

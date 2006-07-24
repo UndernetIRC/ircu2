@@ -1607,7 +1607,6 @@ void add_isupport_s(const char *name, const char *value)
 /** Stop announcing support for a feature.
  * @param[in] name Name of ISUPPORT feature to revoke.
  */
-static
 void del_isupport(const char *name)
 {
   struct ISupport *isv, *prev;

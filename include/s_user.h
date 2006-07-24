@@ -97,6 +97,7 @@ extern void add_target(struct Client *sptr, void *target);
 extern void init_isupport(void);
 extern void add_isupport_i(const char *name, int value);
 extern void add_isupport_s(const char *name, const char *value);
+extern void del_isupport(const char *name);
 extern int send_supported(struct Client *cptr);
 
 #define NAMES_ALL 1 /**< List all users in channel */

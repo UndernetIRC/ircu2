@@ -91,7 +91,6 @@ int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  * @param[in] parc Number of arguments.
  * @param[in] parv Argument vector.
  */
-static
 int ms_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   if (hunt_server_cmd(sptr, CMD_MOTD, cptr, 0, "%C", 1, parc, parv) !=

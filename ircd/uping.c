@@ -60,14 +60,6 @@ static void uping_send(struct UPing* pptr);
 static void uping_read(struct UPing* pptr);
 static void uping_end(struct UPing* pptr);
 
-/** Start iteration of uping list.
- * @return Start of uping list.
- */
-static struct UPing* uping_begin(void)
-{
-  return pingList;
-}
-
 /** Removes \a p from uping list.
  * @param[in,out] p UPing to remove from list.
  */

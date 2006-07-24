@@ -565,39 +565,6 @@ irc_ns_get16(const unsigned char *src)
   return(dst);
 }
 
-/** Read a 32-bit network-endian value from \a src.
- * @param[in] src Input data buffer.
- * @return Value retrieved from buffer.
- */
-static unsigned long
-irc_ns_get32(const unsigned char *src)
-{
-  unsigned long dst;
-
-  IRC_NS_GET32(dst, src);
-  return(dst);
-}
-
-/** Write a 16-bit network-endian value to \a dst.
- * @param[in] src Value to write.
- * @param[out] dst Output buffer.
- */
-static void
-irc_ns_put16(unsigned int src, unsigned char *dst)
-{
-  IRC_NS_PUT16(src, dst);
-}
-
-/** Write a 32-bit network-endian value to \a dst.
- * @param[in] src Value to write.
- * @param[out] dst Output buffer.
- */
-static void
-irc_ns_put32(unsigned long src, unsigned char *dst)
-{
-  IRC_NS_PUT32(src, dst);
-}
-
 /* From ns_name.c */
 
 /** Indicate whether a character needs quoting.
