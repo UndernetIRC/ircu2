@@ -599,8 +599,14 @@ uworlditem: uworldname;
 uworldname: NAME '=' QSTRING ';'
 {
   if (permitted(BLOCK_UWORLD, 0))
-    make_conf(CONF_UWORLD)->host = $3;
+    conf_make_uworld($3);
 };
+
+uworldblock: UWORLD QSTRING ';'
+{
+  if (permitted(BLOCK_UWORLD, 1))
+    conf_make_uworld($2);
+}
 
 operblock: OPER '{' operitems '}' ';'
 {

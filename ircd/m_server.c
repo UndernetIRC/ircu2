@@ -211,11 +211,9 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
       return exit_client_msg(cptr, cptr, &me,
                              "Nickname %s already exists!", host);
     /*
-     * Our new server might be a juped server,
-     * or someone trying abuse a second Uworld:
+     * Our new server might be a juped server:
      */
-    else if (IsServer(acptr) && (0 == ircd_strncmp(cli_info(acptr), "JUPE", 4) ||
-        find_conf_byhost(cli_confs(cptr), cli_name(acptr), CONF_UWORLD)))
+    else if (IsServer(acptr) && (0 == ircd_strncmp(cli_info(acptr), "JUPE", 4)))
     {
       if (!IsServer(sptr))
         return exit_client(cptr, sptr, &me, cli_info(acptr));
@@ -626,9 +624,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   memset(cli_privs(cptr), 255, sizeof(struct Privs));
   ClrPriv(cptr, PRIV_SET);
   SetServerYXX(cptr, cptr, parv[6]);
-
-  /* Attach any necessary UWorld config items. */
-  attach_confs_byhost(cptr, host, CONF_UWORLD);
+  update_uworld_flags(cptr);
 
   if (*parv[7] == '+')
     set_server_flags(cptr, parv[7] + 1);
@@ -740,9 +736,7 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Use cptr, because we do protocol 9 -> 10 translation
      for numeric nicks ! */
   SetServerYXX(cptr, acptr, parv[6]);
-
-  /* Attach any necessary UWorld config items. */
-  attach_confs_byhost(cptr, host, CONF_UWORLD);
+  update_uworld_flags(cptr);
 
   if (*parv[7] == '+')
     set_server_flags(acptr, parv[7] + 1);

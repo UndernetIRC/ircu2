@@ -284,6 +284,8 @@ struct Client {
 #define cli_user(cli)		((cli)->cli_user)
 /** Get Server structure for client, if client is a server. */
 #define cli_serv(cli)		((cli)->cli_serv)
+/** Return true if client has uworld privileges. */
+#define cli_uworld(cli)         (cli_serv(cli) && (cli_serv(cli)->flags & SFLAG_UWORLD))
 /** Get Whowas link for client. */
 #define cli_whowas(cli)		((cli)->cli_whowas)
 /** Get client numnick. */

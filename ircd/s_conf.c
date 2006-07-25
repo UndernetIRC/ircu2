@@ -891,15 +891,75 @@ yywarning(const char *fmt, ...)
     fprintf(stderr, "Config warning on line %d: %s\n", yylineno, warn_buffer);
 }
 
-/** Attach CONF_UWORLD items to a server and everything attached to it. */
-static void
-attach_conf_uworld(struct Client *cptr)
+/** List of server names with UWorld privileges. */
+static struct SLink *uworlds;
+
+/** Update the UWorld status flag for a server and every server behind it.
+ * @param[in] cptr The server to check against UWorld.
+ */
+void
+update_uworld_flags(struct Client *cptr)
 {
   struct DLink *lp;
+  struct SLink *sp;
 
-  attach_confs_byhost(cptr, cli_name(cptr), CONF_UWORLD);
+  assert(cli_serv(cptr) != NULL);
+
+  for (sp = uworlds; sp; sp = sp->next)
+    if (0 == ircd_strcmp(cli_name(cptr), sp->value.cp))
+      break;
+
+  if (sp)
+    cli_serv(cptr)->flags |= SFLAG_UWORLD;
+  else
+    cli_serv(cptr)->flags &= ~SFLAG_UWORLD;
+
   for (lp = cli_serv(cptr)->down; lp; lp = lp->next)
-    attach_conf_uworld(lp->value.cptr);
+    update_uworld_flags(lp->value.cptr);
+}
+
+/** Empty the list of known UWorld servers. */
+static void
+conf_erase_uworld_list(void)
+{
+  struct SLink *sp;
+
+  while (uworlds)
+  {
+    sp = uworlds;
+    uworlds = sp->next;
+    MyFree(sp->value.cp);
+    free_link(sp);
+  }
+
+  update_uworld_flags(&me);
+}
+
+/** Record the name of a server having UWorld privileges.
+ * @param[in] name Privileged server's name.
+ */
+void conf_make_uworld(char *name)
+{
+  struct SLink *sp;
+
+  sp = make_link();
+  sp->value.cp = name;
+  sp->next = uworlds;
+  uworlds = sp;
+}
+
+/** Send a list of UWorld servers.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
+void
+stats_uworld(struct Client* to, const struct StatDesc* sd, char* param)
+{
+  struct SLink *sp;
+
+  for (sp = uworlds; sp; sp = sp->next)
+    send_reply(to, RPL_STATSULINE, sp->value.cp);
 }
 
 /** Free all memory associated with service mapping \a smap.
@@ -973,6 +1033,7 @@ int rehash(struct Client *cptr, int sig)
       free_conf(tmp2);
     }
   }
+  conf_erase_uworld_list();
   conf_erase_crule_list();
   conf_erase_deny_list();
   motd_clear();
@@ -1018,7 +1079,7 @@ int rehash(struct Client *cptr, int sig)
     if ((acptr = LocalClientArray[i])) {
       assert(!IsMe(acptr));
       if (IsServer(acptr))
-        det_confs_butmask(acptr, ~(CONF_UWORLD | CONF_ILLEGAL));
+        det_confs_butmask(acptr, ~(CONF_ILLEGAL));
       /* Because admin's are getting so uppity about people managing to
        * get past K/G's etc, we'll "fix" the bug by actually explaining
        * whats going on.
@@ -1036,7 +1097,7 @@ int rehash(struct Client *cptr, int sig)
     }
   }
 
-  attach_conf_uworld(&me);
+  update_uworld_flags(&me);
 
   return ret;
 }

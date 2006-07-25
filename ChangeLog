@@ -1,5 +1,42 @@
 2006-07-24  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h (cli_uworld): New macro.
+
+	* include/s_conf.h (CONF_UWORLD): Delete.
+	(update_uworld_flags): New function.
+	(conf_make_uworld): New function.
+	(stats_uworld): New function.
+
+	* include/struct.h (struct Server): Add new "flags" field.
+	(SFLAG_UWORLD): New macro.
+
+	* ircd/ircd_parser.y (uworldname): Use conf_make_uworld().
+	(uworldblock): New production, using conf_make_uworld().
+
+	* ircd/m_gline.c (ms_gline): Use cli_uworld() to check UWorld status.
+
+	* ircd/m_mode.c (ms_mode): Use cli_uworld() to check UWorld status.
+
+	* ircd/m_server.c (check_loop_and_lh): Remove redundant UWorld check.
+	(mr_server): Use update_uworld_flags() to update a server's UWorld status.
+	(ms_server): Likewise.
+
+	* ircd/s_conf.c (uworlds): New static variable.
+	(attach_conf_uworld): Delete function.
+	(update_uworld_flags): New function.
+	(conf_erase_uworld_list): New function.
+	(conf_make_uworld): New function.
+	(stats_uworld): New function.
+	(rehash): Call conf_erase_uworld_list().  Remove CONF_UWORLD
+	reference.  Call update_uworld_flags(&me) after rehash.
+
+	* ircd/s_serv.c (server_estab): Remove CONF_UWORLD reference.
+
+	* ircd/s_stats.c (statsinfo): Point /stats U to stats_uworld().
+	(stats_configured_links): Remove CONF_UWORLD handling.
+
+2006-07-24  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/umkpasswd.c (parse_arguments): Exit rather than abort when
 	encountering an invalid argument.
 	(main): Exit rather than abort when not given a mechanism.

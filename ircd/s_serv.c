@@ -134,7 +134,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 		  *(cli_info(&me)) ? cli_info(&me) : "IRCers United");
   }
 
-  det_confs_butmask(cptr, CONF_SERVER | CONF_UWORLD);
+  det_confs_butmask(cptr, CONF_SERVER);
 
   if (!IsHandshake(cptr))
     hAddClient(cptr);

@@ -30,7 +30,6 @@ struct Message;
 #define CONF_CLIENT             0x0002     /**< ConfItem describes a Client block */
 #define CONF_SERVER             0x0004     /**< ConfItem describes a Connect block */
 #define CONF_OPERATOR           0x0020     /**< ConfItem describes an Operator block */
-#define CONF_UWORLD             0x8000     /**< ConfItem describes a Uworld server */
 
 #define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
 
@@ -174,6 +173,10 @@ extern struct ConfItem* attach_confs_byhost(struct Client* cptr, const char* hos
 extern struct ConfItem* find_conf_byhost(struct SLink* lp, const char* host, int statmask);
 extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name, int statmask);
 extern struct ConfItem* conf_find_server(const char* name);
+
+extern void update_uworld_flags(struct Client *cptr);
+extern void conf_make_uworld(char *name);
+extern void stats_uworld(struct Client* to, const struct StatDesc* sd, char* param);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
 extern enum AuthorizationCheckResult attach_conf(struct Client *cptr, struct ConfItem *aconf);

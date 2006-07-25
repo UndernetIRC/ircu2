@@ -171,7 +171,7 @@ static struct StatDesc statsinfo[] = {
     tstats, 0,
     "Local connection statistics (Total SND/RCV, etc)." },
   { 'U', "uworld", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_UWORLD,
-    stats_configured_links, CONF_UWORLD,
+    stats_uworld, 0,
     "Service server information." },
   { 'u', "uptime", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_UPTIME,
     stats_uptime, 0,
@@ -228,9 +228,7 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
       maximum = tmp->maximum;
       port = tmp->address.port;
 
-      if (tmp->status & CONF_UWORLD)
-	send_reply(sptr, RPL_STATSULINE, host);
-      else if (tmp->status & CONF_SERVER)
+      if (tmp->status & CONF_SERVER)
 	send_reply(sptr, RPL_STATSCLINE, name, port, maximum, hub_limit, get_conf_class(tmp));
       else if (tmp->status & CONF_CLIENT)
         send_reply(sptr, RPL_STATSILINE,

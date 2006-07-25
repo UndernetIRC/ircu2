@@ -140,7 +140,7 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return set_user_mode(cptr, sptr, parc, parv);
 
   if (IsServer(sptr)) {
-    if (find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD))
+    if (cli_uworld(sptr))
       modebuf_init(&mbuf, sptr, cptr, chptr,
 		   (MODEBUF_DEST_CHANNEL | /* Send mode to clients */
 		    MODEBUF_DEST_SERVER  | /* Send mode to servers */
