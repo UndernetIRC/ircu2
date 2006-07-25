@@ -1,3 +1,13 @@
+2006-07-24  Michael Poole <mdpoole@troilus.org>
+
+	* include/motd.h (motd_init): Split into two functions.
+
+	* ircd/ircd_features.c (FEAT_NOINIT): Delete.
+	(features): Remove FEAT_NOINIT from remote motd filename.
+	(feature_init): Remove FEAT_NOINIT check.
+
+	* ircd/motd.c (motd_init): Split into two functions.
+
 2006-07-23  Michael Poole <mdpoole@troilus.org>
 
 	* include/channel.h (struct Invite): New structure.

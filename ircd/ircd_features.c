@@ -300,7 +300,6 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define FEAT_OPER   0x0100	/**< set to display only to opers */
 #define FEAT_MYOPER 0x0200	/**< set to display only to local opers */
 #define FEAT_NODISP 0x0400	/**< feature must never be displayed */
-#define FEAT_NOINIT 0x0800      /**< notifier should not be called at init */
 
 #define FEAT_READ   0x1000	/**< feature is read-only (for now, perhaps?) */
 
@@ -399,8 +398,8 @@ static struct FeatureDesc {
   F_I(CHANNELLEN, 0, 200, set_isupport_channellen),
 
   /* Some misc. default paths */
-  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),
-  F_S(RPATH, FEAT_CASE | FEAT_MYOPER | FEAT_NOINIT, "remote.motd", motd_init),
+  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init_local),
+  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd", motd_init_remote),
   F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid", 0),
 
   /* Networking features */
@@ -902,7 +901,7 @@ feature_init(void)
       break;
     }
 
-    if (feat->notify && !(feat->flags & FEAT_NOINIT))
+    if (feat->notify)
       (*feat->notify)();
   }
 

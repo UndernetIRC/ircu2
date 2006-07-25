@@ -91,10 +91,11 @@ void motd_signon(struct Client* cptr);
 /* motd_recache causes all the MOTD caches to be cleared */
 void motd_recache(void);
 
-/* motd_init initializes the MOTD routines, including reading the
+/* motd_init_* initialize the MOTDs, including reading the
  * ircd.motd and remote.motd files into cache
  */
-void motd_init(void);
+void motd_init_local(void);
+void motd_init_remote(void);
 
 /* This routine adds a MOTD */
 void motd_add(const char *hostmask, const char *path);

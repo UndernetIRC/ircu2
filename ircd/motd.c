@@ -362,11 +362,11 @@ motd_recache(void)
   motd_cache(MotdList.remote);
 }
 
-/** Re-cache the local and remote MOTDs.
- * If they already exist, they are deallocated first.
+/** Re-cache the local MOTD.
+ * If it already exists it is deallocated first.
  */
 void
-motd_init(void)
+motd_init_local(void)
 {
   if (MotdList.local) /* destroy old local... */
     motd_destroy(MotdList.local);
@@ -376,7 +376,14 @@ motd_init(void)
     MotdList.local = motd_create(0, feature_str(FEAT_MPATH), MOTD_MAXLINES);
     motd_cache(MotdList.local); /* init local and cache it */
   }
+}
 
+/** Re-cache the remote MOTD.
+ * If it already exists it is deallocated first.
+ */
+void
+motd_init_remote(void)
+{
   if (MotdList.remote) /* destroy old remote... */
     motd_destroy(MotdList.remote);
 
