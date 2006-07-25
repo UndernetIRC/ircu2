@@ -1,5 +1,11 @@
 2006-07-24  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/umkpasswd.c (parse_arguments): Exit rather than abort when
+	encountering an invalid argument.
+	(main): Exit rather than abort when not given a mechanism.
+
+2006-07-24  Michael Poole <mdpoole@troilus.org>
+
 	* include/motd.h (motd_init): Split into two functions.
 
 	* ircd/ircd_features.c (FEAT_NOINIT): Delete.
