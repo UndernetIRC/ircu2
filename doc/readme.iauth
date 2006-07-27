@@ -169,7 +169,9 @@ Next State: -
 Comments: Indicates the client's claimed username and "GECOS"
   information.  This information is not reliable.  This message is
   enabled by requesting the A policy.
-Compatibility: ircd does not include the <userinfo> data.
+Compatibility: The <userinfo> field is an Undernet extension and ircd
+  does not send it.  It is enabled by the iauth instance requesting
+  the U policy.
 
 u - Client Username
 Syntax: <id> u <username>
