@@ -143,7 +143,7 @@ int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination)))
-      sendcmdto_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
+      sendcmdto_prio_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
     else
       send_reply(sptr, ERR_NOSUCHSERVER, destination);
   }
@@ -214,8 +214,8 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     /* AsLL ping, send reply back */
     int diff = atoi(militime_float(parv[3]));
-    sendcmdto_one(&me, CMD_PONG, sptr, "%C %s %s %i %s", &me, origin,
-                  parv[3], diff, militime_float(NULL));
+    sendcmdto_prio_one(&me, CMD_PONG, sptr, "%C %s %s %i %s", &me, origin,
+                       parv[3], diff, militime_float(NULL));
     return 0;
   }
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
@@ -223,7 +223,7 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * Servers can just forward the origin
        */
-      sendcmdto_one(sptr, CMD_PING, acptr, "%s :%s", origin, destination);
+      sendcmdto_prio_one(sptr, CMD_PING, acptr, "%s :%s", origin, destination);
     }
     else {
       /*
@@ -238,7 +238,7 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * NOTE:  sptr is never local so if pong handles numerics everywhere we
      * could send a numeric here.
      */
-    sendcmdto_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
+    sendcmdto_prio_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
   }
   return 0;
 }

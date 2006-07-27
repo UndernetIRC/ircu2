@@ -419,8 +419,8 @@ static void check_pings(struct Event* ev) {
       else
       {
         char *asll_ts = militime_float(NULL);
-        sendcmdto_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
-                      cli_name(cptr), asll_ts);
+        sendcmdto_prio_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
+                           cli_name(cptr), asll_ts);
       }
     }
     

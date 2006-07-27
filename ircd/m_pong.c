@@ -99,7 +99,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     struct Client* acptr;
     if ((acptr = FindClient(destination)))
-      sendcmdto_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
+      sendcmdto_prio_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
   }
   return 0;
 }

@@ -1,3 +1,12 @@
+2006-07-26  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd.c (check_pings): Send AsLL pings as high priority.
+
+	* ircd/m_ping.c (mo_ping): Forward PINGs with high priority.
+	(ms_ping): Likewise.  Send PONG replies with high priority too.
+
+	* ircd/m_pong.c (ms_pong): Forward PONGs with high priority.
+
 2006-07-25  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (CRule): Update documentation.
