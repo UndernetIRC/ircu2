@@ -1,5 +1,11 @@
 2006-07-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/send.c (match_it): Add parameters to allow IP matching.
+	(sendcmdto_match): Try to parse 'to' to get an IP mask.  Move the
+	cli_sentalong() test  first (avoiding most match_it() calls).
+
+2006-07-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd.c (check_pings): Send AsLL pings as high priority.
 
 	* ircd/m_ping.c (mo_ping): Forward PINGs with high priority.

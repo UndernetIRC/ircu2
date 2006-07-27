@@ -273,15 +273,19 @@ void send_buffer(struct Client* to, struct MsgBuf* buf, int prio)
  * @param[in] from Client trying to send a message (ignored).
  * @param[in] one Client being considered as a target.
  * @param[in] mask Mask for matching against.
+ * @param[in] addr IP address prefix to match against.
+ * @param[in] nbits Number of bits in \a addr (> 128 if none valid).
  * @param[in] what Type of match (either MATCH_HOST or MATCH_SERVER).
  * @return Non-zero if \a one matches, zero if not.
  */
-static int match_it(struct Client *from, struct Client *one, const char *mask, int what)
+static int match_it(struct Client *from, struct Client *one, const char *mask,
+                    struct irc_in_addr *addr, unsigned char nbits, int what)
 {
   switch (what)
   {
     case MATCH_HOST:
-      return (match(mask, cli_user(one)->host) == 0 ||
+      return ((nbits <= 128 && ipmask_check(&cli_ip(one), addr, nbits)) ||
+        match(mask, cli_user(one)->host) == 0 ||
         (HasHiddenHost(one) && match(mask, cli_user(one)->realhost) == 0));
     case MATCH_SERVER:
     default:
@@ -670,11 +674,17 @@ void sendcmdto_match(struct Client *from, const char *cmd,
                      const char *pattern, ...)
 {
   struct VarData vd;
+  struct irc_in_addr addr;
   struct Client *cptr;
   struct MsgBuf *user_mb;
   struct MsgBuf *serv_mb;
+  unsigned char nbits;
 
   vd.vd_format = pattern;
+
+  /* See if destination looks like an IP mask. */
+  if (!ipmask_parse(to, &addr, &nbits))
+    nbits = 255;
 
   /* Build buffer to send to users */
   va_start(vd.vd_args, pattern);
@@ -689,11 +699,11 @@ void sendcmdto_match(struct Client *from, const char *cmd,
   /* send buffer along */
   bump_sentalong(one);
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
-    if (!IsRegistered(cptr) ||
+    if (cli_sentalong(cptr) == sentalong_marker ||
+        !IsRegistered(cptr) ||
         IsServer(cptr) ||
-	!match_it(from, cptr, to, who) ||
-        cli_fd(cli_from(cptr)) < 0 ||
-	cli_sentalong(cptr) == sentalong_marker)
+	!match_it(from, cptr, to, &addr, nbits, who) ||
+        cli_fd(cli_from(cptr)) < 0)
       continue; /* skip it */
     cli_sentalong(cptr) = sentalong_marker;
 
