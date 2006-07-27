@@ -44,7 +44,7 @@ Examples
 
 A simple example of a connect rule might be:
 
-connected(*eu.under*)
+connected("*eu.under*")
 
 This might be used in a US undernet server for a Europe CN pair to
 insure that a second Europe link is not allowed if one US-EU link
@@ -54,8 +54,8 @@ city.country.eu.undernet.org.
 
 A more interesting example might be:
 
-connected(*eu.under*) && 
-  ( !direct(*eu.under*) || via(manhat*, *eu.under*) )
+connected("*eu.under*") && 
+  ( !direct("*eu.under*") || via("manhat*", "*eu.under*") )
 
 Imagine the Boston undernet server uses this rule on its Europe CN
 pairs.  This says that if a Europe server is already connected, a
@@ -71,7 +71,7 @@ server is already linked to Manhattan.
 
 A example of the remaining function, directop(), is:
 
-connected(*eu.under*) || directop()
+connected("*eu.under*") || directop()
 
 If this line is used on Boston for the Paderborn CN pair, it will allow
 connects to Paderborn only if another Europe server is not already
@@ -87,23 +87,24 @@ present to monitor their performance.
 ircd.conf entries
 -----------------
 
-A rule is listed in the ircd.conf file using a D or d line (which can
-be thought of as a "disallow" line).  D lines will apply to all oper
-and server originated connects, while d lines will apply only to
-autoconnects (ie: they are overrideable by opers).  The formats are:
+A rule is listed in the ircd.conf file using a CRule line (which can
+be thought of as a "disallow" line).  You may specify "ALL" either
+before or after the target mask to make the rule apply to all
+connections (inbound, automatic outbound and oper-initiated outbound);
+without the "ALL" modifier, the rule will apply only to automatic
+outbound connections.  The formats are:
 
-D:targetmask::rule
-d:targetmask::rule
+CRule "targetmask" rule;
+CRule "targetmask" all rule;
 
-Remember that newlines are not allowed in conf lines.  Two examples
-(from above) are:
+Two examples (from above) are:
 
-D:*eu.under*::connected(*eu.under*)
-d:*eu.under*::connected(*eu.under*) || directop()
+CRule "*.eu.under*" all connected("*eu.under*");
+CRule "*.eu.under*" connected("*eu.under*") || directop();
 
-Connects originating from other servers will be checked against and
-matching D lines, while matching d lines will be ignored as it will not
-be clear whether or not the connection attempt is oper initiated.
+Connects originating from other servers will be checked against any
+matching ALL CRules, while matching non-ALL CRules will be ignored as
+it will not be clear whether the connection attempt is oper-initiated.
 
 Checking and viewing rules
 --------------------------

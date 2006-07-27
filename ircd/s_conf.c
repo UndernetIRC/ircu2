@@ -751,7 +751,7 @@ static void conf_erase_crule_list(void)
 
   for ( ; p; p = next) {
     next = p->next;
-    crule_free(&p->node);
+    crule_free(p->node);
     MyFree(p->hostmask);
     MyFree(p->rule);
     MyFree(p);

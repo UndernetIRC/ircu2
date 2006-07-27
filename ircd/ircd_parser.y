@@ -207,6 +207,8 @@ permitted(enum ConfigBlock type, int warn)
 %token LINESYNC
 %token FROM
 %token TEOF
+%token LOGICAL_AND LOGICAL_OR
+%token CONNECTED DIRECTCON VIA DIRECTOP
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -221,10 +223,17 @@ permitted(enum ConfigBlock type, int warn)
 %type <num> timespec timefactor factoredtimes factoredtime
 %type <num> expr yesorno privtype
 %type <num> blocklimit blocktypes blocktype
+%type <num> optall
+%type <crule> crule_expr
+%left LOGICAL_OR
+%left LOGICAL_AND
 %left '+' '-'
 %left '*' '/'
+%nonassoc '!'
+%nonassoc '(' ')'
 
 %union{
+ struct CRuleNode *crule;
  char *text;
  int num;
 }
@@ -946,62 +955,33 @@ killreasonfile: TFILE '=' QSTRING ';'
  dconf->message = $3;
 };
 
-cruleblock: CRULE
+cruleblock: CRULE optall QSTRING optall crule_expr ';'
 {
-  tconn = CRULE_AUTO;
-} '{' cruleitems '}' ';'
-{
-  struct CRuleNode *node = NULL;
-  if (!permitted(BLOCK_CRULE, 1))
-    ;
-  else if (host == NULL)
-    parse_error("Missing host in crule block");
-  else if (pass == NULL)
-    parse_error("Missing rule in crule block");
-  else if ((node = crule_parse(pass)) == NULL)
-    parse_error("Invalid rule '%s' in crule block", pass);
-  else
+  if (permitted(BLOCK_CRULE, 1) && $5)
   {
     struct CRuleConf *p = (struct CRuleConf*) MyMalloc(sizeof(*p));
-    p->hostmask = host;
-    p->rule = pass;
-    p->type = tconn;
-    p->node = node;
+    p->hostmask = collapse($3);
+    p->rule = crule_text($5);
+    p->type = ($2 || $4) ? CRULE_ALL : CRULE_AUTO;
+    p->node = $5;
     p->next = cruleConfList;
     cruleConfList = p;
   }
-  if (!node)
-  {
-    MyFree(host);
-    MyFree(pass);
-  }
-  host = pass = NULL;
-  tconn = 0;
 };
 
-cruleitems: cruleitem cruleitems | cruleitem;
-cruleitem: cruleserver | crulerule | cruleall;
+optall: { $$ = 0; };
+  | ALL { $$ = 1; };
 
-cruleserver: SERVER '=' QSTRING ';'
-{
-  MyFree(host);
-  collapse($3);
-  host = $3;
-};
-
-crulerule: RULE '=' QSTRING ';'
-{
- MyFree(pass);
- pass = $3;
-};
-
-cruleall: ALL '=' YES ';'
-{
- tconn = CRULE_ALL;
-} | ALL '=' NO ';'
-{
- tconn = CRULE_AUTO;
-};
+crule_expr:
+    '(' crule_expr ')' { $$ = $2; }
+  | crule_expr LOGICAL_AND crule_expr { $$ = crule_make_and($1, $3); }
+  | crule_expr LOGICAL_OR crule_expr { $$ = crule_make_or($1, $3); }
+  | '!' crule_expr { $$ = crule_make_not($2); }
+  | CONNECTED '(' QSTRING ')' { $$ = crule_make_connected($3); }
+  | DIRECTCON '(' QSTRING ')' { $$ = crule_make_directcon($3); }
+  | VIA '(' QSTRING ',' QSTRING ')' { $$ = crule_make_via($3, $5); }
+  | DIRECTOP '(' ')' { $$ = crule_make_directop(); }
+  ;
 
 motdblock: MOTD '{' motditems '}' ';'
 {

@@ -1,3 +1,34 @@
+2006-07-25  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (CRule): Update documentation.
+
+	* doc/readme.crules: Update documentation.
+
+	* include/crule.h (crule_free): Remove a level of indirection.
+	(crule_parse): Remove declaration.
+	(crule_text): New function.
+	(crule_make_and): New function.
+	(crule_make_or): New function.
+	(crule_make_not): New function.
+	(crule_make_connected): New function.
+	(crule_make_directcon): New function.
+	(crule_make_via): New function.
+	(crule_make_directop): New function.
+
+	* ircd/crule.c: Rewrite.
+
+	* ircd/ircd_lexer.l: Recognize new tokens &&, ||, CONNECTED,
+	DIRECTCON, DIRECTOP, VIA.
+
+	* ircd/ircd_parser.y: Declare the new tokens.
+	(optall): New production with type <num>.
+	(crule_expr): New production with type <crule>.
+	(%union): Add new member to expression type union.
+	(cruleblock): Rewrite to not use {} and to use optall, crule_expr.
+
+	* ircd/s_conf.c (conf_erase_crule_list): Remove a level of
+	indirection for crule_free().
+
 2006-07-24  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h (cli_uworld): New macro.

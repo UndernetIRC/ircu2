@@ -73,6 +73,8 @@ lexer_include(const char *filename)
 #.*		;
 <<EOF>>		{ yypop_buffer_state(); if (YY_CURRENT_BUFFER) return TEOF; else yyterminate(); }
 
+\&\&            return LOGICAL_AND;
+\|\|            return LOGICAL_OR;
 ADMIN		return ADMIN;
 ADMINISTRATOR	return ADMIN;
 APASS_OPMODE	return TPRIV_APASS_OPMODE;
@@ -86,6 +88,7 @@ CHAN_LIMIT	return TPRIV_CHAN_LIMIT;
 CLASS		return CLASS;
 CLIENT		return CLIENT;
 CONNECT		return CONNECT;
+CONNECTED       return CONNECTED;
 CONNECTFREQ	return CONNECTFREQ;
 CONTACT		return CONTACT;
 CRULE		return CRULE;
@@ -94,6 +97,8 @@ DECADES		return DECADES;
 DEOP_LCHAN	return TPRIV_DEOP_LCHAN;
 DESCRIPTION	return DESCRIPTION;
 DIE		return TPRIV_DIE;
+DIRECTCON       return DIRECTCON;
+DIRECTOP        return DIRECTOP;
 DISPLAY		return TPRIV_DISPLAY;
 FAST		return FAST;
 FEATURES	return FEATURES;
@@ -175,6 +180,7 @@ USERMODE	return USERMODE;
 USERNAME	return USERNAME;
 UWORLD		return UWORLD;
 VHOST		return VHOST;
+VIA             return VIA;
 WALK_LCHAN	return TPRIV_WALK_LCHAN;
 WEEKS		return WEEKS;
 WIDE_GLINE	return TPRIV_WIDE_GLINE;
