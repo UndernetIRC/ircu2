@@ -1,5 +1,10 @@
 2006-07-27  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/send.c (sendcmdto_channels): Do not build serv_mb for local
+	channels.  Use serv_mb to decide whether to skip remote members.
+
+2006-07-27  Michael Poole <mdpoole@troilus.org>
+
 	* doc/readme.iauth: Clarify compatibility for the ircd U message's
 	<userinfo> field.
 

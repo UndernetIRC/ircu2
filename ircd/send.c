@@ -554,7 +554,7 @@ void sendcmdto_channel(struct Client *from, const char *cmd,
   va_end(vd.vd_args);
 
   /* Build buffer to send to servers */
-  if (skip & SKIP_SERVERS)
+  if ((skip & SKIP_SERVERS) || IsLocalChannel(to->chname))
     serv_mb = NULL;
   else
   {
@@ -574,7 +574,7 @@ void sendcmdto_channel(struct Client *from, const char *cmd,
         (skip & SKIP_NONOPS && !IsChanOp(member)) ||
         (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)) ||
         (skip & SKIP_BURST && IsBurstOrBurstAck(cli_from(member->user))) ||
-        (skip & SKIP_SERVERS && !MyUser(member->user)) ||
+        !(serv_mb || MyUser(member->user)) ||
         cli_fd(cli_from(member->user)) < 0)
       continue;
     cli_sentalong(member->user) = sentalong_marker;
