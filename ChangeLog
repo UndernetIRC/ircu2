@@ -1,3 +1,7 @@
+2006-08-02  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h (struct Ban): Fix typo in doxygen comment.
+
 2006-07-09  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre09.

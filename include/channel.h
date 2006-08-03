@@ -249,7 +249,7 @@ struct Mode {
 /** A single ban for a channel. */
 struct Ban {
   struct Ban* next;           /**< next ban in the channel */
-  struct irc_in_addr address; /**< addres for BAN_IPMASK bans */
+  struct irc_in_addr address; /**< address for BAN_IPMASK bans */
   time_t when;                /**< timestamp when ban was added */
   unsigned short flags;       /**< modifier flags for the ban */
   unsigned char nu_len;       /**< length of nick!user part of banstr */
