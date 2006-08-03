@@ -514,6 +514,8 @@ connectblock: CONNECT
   parse_error("Missing name in connect block");
  else if (pass == NULL)
   parse_error("Missing password in connect block");
+ else if (strlen(pass) > PASSWDLEN)
+  parse_error("Password too long in connect block");
  else if (host == NULL)
   parse_error("Missing host in connect block");
  else if (strchr(host, '*') || strchr(host, '?'))
@@ -626,10 +628,14 @@ operblock: OPER '{' operitems '}' ';'
     parse_error("Missing name in operator block");
   else if (pass == NULL)
     parse_error("Missing password in operator block");
+  /* Do not check password length because it may be crypted. */
   else if (host == NULL)
     parse_error("Missing host in operator block");
   else if (c_class == NULL)
     parse_error("Invalid or missing class in operator block");
+  else if (!FlagHas(&privs_dirty, PRIV_PROPAGATE)
+           && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
+    parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
   else {
     aconf = make_conf(CONF_OPERATOR);
     aconf->name = name;
@@ -638,9 +644,6 @@ operblock: OPER '{' operitems '}' ';'
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
-    if (!FlagHas(&privs_dirty, PRIV_PROPAGATE)
-        && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
-      parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
   }
   if (!aconf) {
     MyFree(name);
@@ -794,6 +797,8 @@ clientblock: CLIENT
     ;
   else if (!c_class)
     parse_error("Invalid or missing class in Client block");
+  else if (pass && strlen(pass) > PASSWDLEN)
+    parse_error("Password too long in connect block");
   else if (ip && !ipmask_parse(ip, &addr, &addrbits))
     parse_error("Invalid IP address %s in Client block", ip);
   else {

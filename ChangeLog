@@ -1,3 +1,11 @@
+2006-08-02  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y (connectblock): Check for too-long password.
+	(operblock): Comment why we don't check password length.  Move
+	PRIV_PROPAGATE test earlier (so a buggy edit, rehash, /oper will
+	not crash).
+	(clientblock): Check for too-long password.
+
 2006-07-27  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/send.c (sendcmdto_channels): Do not build serv_mb for local
