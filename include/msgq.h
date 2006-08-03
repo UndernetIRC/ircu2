@@ -46,6 +46,7 @@ struct MsgBuf;
 struct MsgQList {
   struct Msg *head;		/**< First Msg in queue list */
   struct Msg *tail;		/**< Last Msg in queue list */
+  unsigned int sent;		/**< Bytes in *head that have already been sent */
 };
 
 /** Entire two-priority message queue for a destination. */

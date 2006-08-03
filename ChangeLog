@@ -1,5 +1,15 @@
 2006-08-02  Michael Poole <mdpoole@troilus.org>
 
+	* include/msgq.h (MsgQList): Add 'sent' field.
+
+	* ircd/msgq.c (Msg): Remove 'sent' field.
+	(msgq_delmsg): Update for new position of 'sent'.
+	(msgq_delete): Likewise.
+	(msgq_mapiov): Likewise.
+	(msgq_add): msg->sent went away; do not set it.
+
+2006-08-02  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y (connectblock): Check for too-long password.
 	(operblock): Comment why we don't check password length.  Move
 	PRIV_PROPAGATE test earlier (so a buggy edit, rehash, /oper will

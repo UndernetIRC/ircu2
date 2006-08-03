@@ -61,7 +61,6 @@ struct MsgBuf {
 /** Message body for a particular destination. */
 struct Msg {
   struct Msg *next;		/**< next msg */
-  unsigned int sent;		/**< bytes in msg that have already been sent */
   struct MsgBuf *msg;		/**< actual message in queue */
 };
 
@@ -111,7 +110,7 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
 
   m = qlist->head; /* find the msg we're deleting from */
 
-  msglen = m->msg->length - m->sent; /* calculate how much is left */
+  msglen = m->msg->length - qlist->sent; /* calculate how much is left */
 
   if (*length_p >= msglen) { /* deleted it all? */
     mq->length -= msglen; /* decrement length */
@@ -121,6 +120,7 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
     msgq_clean(m->msg); /* free up the struct MsgBuf */
     m->msg = 0; /* don't let it point anywhere nasty, please */
 
+    qlist->sent = 0; /* haven't sent any of the next message */
     if (qlist->head == qlist->tail) /* figure out if we emptied the queue */
       qlist->head = qlist->tail = 0;
     else
@@ -132,7 +132,7 @@ msgq_delmsg(struct MsgQ *mq, struct MsgQList *qlist, unsigned int *length_p)
     MQData.msgs.free = m;
   } else {
     mq->length -= *length_p; /* decrement queue length */
-    m->sent += *length_p; /* this much of the message has been sent */
+    qlist->sent += *length_p; /* this much of the message has been sent */
     *length_p = 0; /* we've dealt with it all */
   }
 }
@@ -163,7 +163,7 @@ msgq_delete(struct MsgQ *mq, unsigned int length)
   assert(0 != mq);
 
   while (length > 0) {
-    if (mq->queue.head && mq->queue.head->sent > 0) /* partial msg on norm q */
+    if (mq->queue.sent > 0) /* partial msg on norm q */
       msgq_delmsg(mq, &mq->queue, &length);
     else if (mq->prio.head) /* message (partial or complete) on prio queue */
       msgq_delmsg(mq, &mq->prio, &length);
@@ -197,9 +197,9 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
   if (mq->length <= 0) /* no data to map */
     return 0;
 
-  if (mq->queue.head && mq->queue.head->sent > 0) { /* partial msg on norm q */
-    iov[i].iov_base = mq->queue.head->msg->msg + mq->queue.head->sent;
-    iov[i].iov_len = mq->queue.head->msg->length - mq->queue.head->sent;
+  if (mq->queue.sent > 0) { /* partial msg on norm q */
+    iov[i].iov_base = mq->queue.head->msg->msg + mq->queue.sent;
+    iov[i].iov_len = mq->queue.head->msg->length - mq->queue.sent;
     *len += iov[i].iov_len;
 
     queue = mq->queue.head->next; /* where we start later... */
@@ -210,9 +210,9 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
   } else
     queue = mq->queue.head; /* start at head of queue */
 
-  if (mq->prio.head && mq->prio.head->sent > 0) { /* partial msg on prio q */
-    iov[i].iov_base = mq->prio.head->msg->msg + mq->prio.head->sent;
-    iov[i].iov_len = mq->prio.head->msg->length - mq->prio.head->sent;
+  if (mq->prio.sent > 0) { /* partial msg on prio q */
+    iov[i].iov_base = mq->prio.head->msg->msg + mq->prio.sent;
+    iov[i].iov_len = mq->prio.head->msg->length - mq->prio.sent;
     *len += iov[i].iov_len;
 
     prio = mq->prio.head->next; /* where we start later... */
@@ -502,7 +502,6 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
   MQData.msgs.used++; /* we're using another */
 
   msg->next = 0; /* initialize the msg */
-  msg->sent = 0;
 
   /* Get the real buffer, allocating one if necessary */
   if (!mb->real) {
