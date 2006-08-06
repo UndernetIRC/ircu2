@@ -206,6 +206,12 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 
     case 'S':
     case 's':
+      /* Admins have no business making the default LIST include
+       * secret channels, even if it is just for opers with the
+       * LIST_CHAN privilege. */
+      if (!sptr)
+        break;
+
       if (!IsAnOper(sptr) || !HasPriv(sptr, PRIV_LIST_CHAN))
         return show_usage(sptr);
 
