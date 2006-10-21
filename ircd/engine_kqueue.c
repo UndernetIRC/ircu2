@@ -173,6 +173,12 @@ set_or_clear(struct Socket* sock, unsigned int clear, unsigned int set)
     chglist[i].fflags = 0;
     chglist[i].data = 0;
     chglist[i].udata = 0; /* I love udata, but it can't really be used here */
+    /* The reason it cannot be used is that handling an error on the
+     * read or write filter could close the socket after the other
+     * filter was returned in an activity list, so we have to track
+     * active sockets in the sockList array rather than only in
+     * .udata.
+     */
 
     if (set & SOCK_EVENT_READABLE) /* it's set */
       chglist[i].flags |= EV_ENABLE;
@@ -276,27 +282,16 @@ engine_events(struct Socket* sock, unsigned int new_events)
 static void
 engine_delete(struct Socket* sock)
 {
-  struct kevent dellist[2];
-
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
   Debug((DEBUG_ENGINE, "kqueue: Deleting socket %d [%p], state %s",
 	 s_fd(sock), sock, state_to_name(s_state(sock))));
 
-  dellist[0].ident = s_fd(sock); /* set up the delete list */
-  dellist[0].filter = EVFILT_READ; /* readable filter */
-  dellist[0].flags = EV_DELETE; /* delete it */
-  dellist[0].fflags = 0;
-  dellist[0].data = 0;
-  dellist[0].udata = 0;
-
-  dellist[1].ident = s_fd(sock);
-  dellist[1].filter = EVFILT_WRITE; /* writable filter */
-  dellist[1].flags = EV_DELETE; /* delete it */
-  dellist[1].fflags = 0;
-  dellist[1].data = 0;
-  dellist[1].udata = 0;
+  /* No need to remove it from the kernel - the fds may be closed
+   * already, and the kernel automatically removes fds from the kqueue
+   * when they are closed.  So we just remove it from sockList[].
+   */
 
   sockList[s_fd(sock)] = 0;
 }
