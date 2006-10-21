@@ -1,3 +1,8 @@
+2006-10-21  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/convert-conf.c (finish_connects): Fix error display for
+	missing C: lines when an H: line is present.
+
 2006-08-02  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y (connectblock): Check for too-long password.

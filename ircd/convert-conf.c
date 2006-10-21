@@ -213,12 +213,11 @@ static void finish_connects(void)
     {
         for (sl = conn->origins; sl; sl = sl->next)
             fprintf(stdout, "# %s\n", sl->value);
-	if (conn->name == NULL
-            || conn->host == NULL
+	if (conn->host == NULL
             || conn->password == NULL
             || conn->class == NULL)
         {
-	    fprintf(stderr, "H:line missing C:line for %s\n",sl->value);
+	    fprintf(stderr, "H:line missing C:line for %s\n", conn->name);
 	    continue;
 	}
 
