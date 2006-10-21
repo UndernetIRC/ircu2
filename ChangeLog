@@ -1,5 +1,10 @@
 2006-10-21  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/convert-conf.c (finish_connects): Fix error display for
+	missing C: lines when an H: line is present.
+
+2006-10-21  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/engine_kqueue.c (set_or_clear): Explain in comment why
 	udata can't be used.
 	(engine_delete): Remove unused dellist[] variable and explain
