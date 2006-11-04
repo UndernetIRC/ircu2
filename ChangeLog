@@ -1,5 +1,9 @@
 2006-11-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/version.c.SH: Skip version.c.
+
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
 	* doc/readme.who: Document new 'o' field flag.
 
 	* include/whocmds.h (WHO_FIELD_OPL): New flag.
