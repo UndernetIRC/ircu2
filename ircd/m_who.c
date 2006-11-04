@@ -80,6 +80,7 @@ static void move_marker(void)
 #define WHO_FIELD_REN 512  /**< Show realname (info). */
 #define WHO_FIELD_IDL 1024 /**< Show idle time. */
 #define WHO_FIELD_ACC 2048 /**< Show account name. */
+#define WHO_FIELD_OPL 4096 /**< Show oplevel. */
 
 /** Default fields for /WHO */
 #define WHO_FIELD_DEF ( WHO_FIELD_NIC | WHO_FIELD_UID | WHO_FIELD_HOS | WHO_FIELD_SER )
@@ -303,6 +304,23 @@ static void do_who(struct Client* sptr, struct Client* acptr,
       *(p1++) = '0';
   }
 
+  if (fields & WHO_FIELD_OPL)
+  {
+      if (!chan || !IsChanOp(chan))
+      {
+        strcpy(p1, " n/a");
+        p1 += 4;
+      }
+      else
+      {
+        int vis_level = MAXOPLEVEL;
+        if ((IsGlobalChannel(chan->channel->chname) ? IsOper(sptr) : IsAnOper(sptr))
+            || is_chan_op(sptr, chan->channel))
+          vis_level = OpLevel(chan);
+        p1 += ircd_snprintf(0, p1, 5, " %d", vis_level);
+      }
+  }
+
   if (!fields || (fields & WHO_FIELD_REN))
   {
     char *p2 = cli_info(acptr);
@@ -473,6 +491,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           case 'a':
           case 'A':
             fields |= WHO_FIELD_ACC;
+            break;
+          case 'o':
+          case 'O':
+            fields |= WHO_FIELD_OPL;
             break;
           default:
             break;

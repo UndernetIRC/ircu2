@@ -84,15 +84,17 @@ const char *infotext[] = {
 !SUB!THIS!
 
 for file in ${srcdir}/ircd/*.c ; do
- echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
-done;
+ if [ `basename $file` != version.c ] ; then
+  echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
+ fi
+done
 
 echo "    \"\"," >> version.c
 echo "    \"Headers:\"," >> version.c
 
 for file in ${srcdir}/include/*.h ; do
  echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
-done;
+done
 
 /bin/cat >>version.c <<!SUB!THIS!
     0,

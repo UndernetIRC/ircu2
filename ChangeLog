@@ -1,3 +1,28 @@
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_nick.c (m_nick): If we get NICK on a server port, tell
+	the client to go away.
+
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/version.c.SH: Skip version.c.
+
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.who: Document new 'o' field flag.
+
+	* ircd/channel.c (send_channel_modes): Rename feat_oplevels to
+	send_oplevels and determine it automatically.
+	(modebuf_flush_int): Pass along oplevel if it's less than
+	MAXOPLEVEL.
+	(mode_process_clients): Allow oplevels to be inherited for -A
+	channels.  Inherit the opper's oplevel if >= MAXOPLEVEL.
+
+	* ircd/m_who.c (WHO_FIELD_OPL): New flag.
+	(do_who): Send oplevel for WHO_FIELD_OPL, but only show up to the
+	requester's own oplevel.
+	(m_who): Recognize 'o' flag as WHO_FIELD_OPL.
+
 2006-10-21  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/convert-conf.c (finish_connects): Fix error display for

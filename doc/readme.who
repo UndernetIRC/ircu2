@@ -99,6 +99,7 @@ in which:
    t : Include the querytype in the reply
    u : Include userID with eventual ~
    a : Include account name
+   o : Include oplevel (shows 999 to users without ops in the channel)
 
 And the ,<querytype> final option can be used to specify what you want the
 server to say in the querytype field of the output, useful to filter the

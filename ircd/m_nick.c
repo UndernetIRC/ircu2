@@ -104,6 +104,9 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
+  if (IsServerPort(cptr))
+    return exit_client(cptr, cptr, &me, "Use a different port");
+
   /*
    * parv[0] will be empty for clients connecting for the first time
    */
@@ -113,6 +116,7 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, ERR_NONICKNAMEGIVEN);
     return 0;
   }
+
   /*
    * Don't let them send make us send back a really long string of
    * garbage
