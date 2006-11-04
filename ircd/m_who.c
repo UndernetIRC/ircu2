@@ -271,6 +271,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           case 'A':
             fields |= WHO_FIELD_ACC;
             break;
+          case 'o':
+          case 'O':
+            fields |= WHO_FIELD_OPL;
+            break;
           default:
             break;
         }

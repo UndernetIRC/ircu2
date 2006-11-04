@@ -914,7 +914,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
   int                 opped_members_index = 0;
   struct Membership** opped_members = NULL;
   int                 last_oplevel = 0;
-  int                 feat_oplevels = (chptr->mode.apass[0]) != '\0';
+  int                 send_oplevels = 0;
 
   assert(0 != cptr);
   assert(0 != chptr); 
@@ -972,6 +972,9 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	    ++number_of_ops;
 	  else
 	    opped_members[opped_members_index++] = member;
+          /* We also send oplevels if anyone is below the weakest level.  */
+          if (OpLevel(member) < MAXOPLEVEL)
+            send_oplevels = 1;
 	}
 	/* Only handle the members with the flags that we are interested in. */
         if ((member->status & CHFL_VOICED_OR_OPPED) == current_flags[flag_cnt])
@@ -1012,7 +1015,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	    if (IsChanOp(member))	/* flag_cnt == 2 or 3 */
 	    {
               /* append the absolute value of the oplevel */
-              if (feat_oplevels)
+              if (send_oplevels)
                 loc += ircd_snprintf(0, tbuf + loc, sizeof(tbuf) - loc, "%u", last_oplevel = member->oplevel);
               else
                 tbuf[loc++] = 'o';
@@ -1021,7 +1024,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
 	    msgq_append(&me, mb, tbuf);
 	    new_mode = 0;
 	  }
-	  else if (feat_oplevels && flag_cnt > 1 && last_oplevel != member->oplevel)
+	  else if (send_oplevels && flag_cnt > 1 && last_oplevel != member->oplevel)
 	  {
 	    /*
 	     * This can't be the first member of a (continued) BURST
@@ -1806,8 +1809,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
       }
 
       /* if we're changing oplevels and we know the oplevel, pass it on */
-      if (mbuf->mb_channel->mode.apass[0]
-          && (MB_TYPE(mbuf, i) & MODE_CHANOP)
+      if ((MB_TYPE(mbuf, i) & MODE_CHANOP)
           && MB_OPLEVEL(mbuf, i) < MAXOPLEVEL)
           *strptr_i += ircd_snprintf(0, strptr + *strptr_i, BUFSIZE - *strptr_i,
                                      " %s%s:%d",
@@ -3083,8 +3085,8 @@ mode_process_clients(struct ParseState *state)
         SetOpLevel(member, state->cli_change[i].oplevel);
       else if (!state->member)
         SetOpLevel(member, MAXOPLEVEL);
-      else if (!state->chptr->mode.apass[0] || OpLevel(state->member) == MAXOPLEVEL)
-        SetOpLevel(member, MAXOPLEVEL);
+      else if (OpLevel(state->member) >= MAXOPLEVEL)
+          SetOpLevel(member, OpLevel(state->member));
       else
         SetOpLevel(member, OpLevel(state->member) + 1);
     }

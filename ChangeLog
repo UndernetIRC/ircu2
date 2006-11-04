@@ -1,3 +1,21 @@
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.who: Document new 'o' field flag.
+
+	* include/whocmds.h (WHO_FIELD_OPL): New flag.
+
+	* ircd/channel.c (send_channel_modes): Rename feat_oplevels to
+	send_oplevels and determine it automatically.
+	(modebuf_flush_int): Pass along oplevel if it's less than
+	MAXOPLEVEL.
+	(mode_process_clients): Allow oplevels to be inherited for -A
+	channels.  Inherit the opper's oplevel if >= MAXOPLEVEL.
+
+	* ircd/m_who.c (m_who): Recognize 'o' flag as WHO_FIELD_OPL.
+
+	* ircd/whocmds.c (do_who): Send oplevel for WHO_FIELD_OPL, but
+	only show up to the requester's own oplevel.
+
 2006-10-21  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/convert-conf.c (finish_connects): Fix error display for

@@ -37,6 +37,7 @@ struct Channel;
 #define WHO_FIELD_REN 512  /**< Show realname (info). */
 #define WHO_FIELD_IDL 1024 /**< Show idle time. */
 #define WHO_FIELD_ACC 2048 /**< Show account name. */
+#define WHO_FIELD_OPL 4096 /**< Show oplevel. */
 
 /** Default fields for /WHO */
 #define WHO_FIELD_DEF ( WHO_FIELD_NIC | WHO_FIELD_UID | WHO_FIELD_HOS | WHO_FIELD_SER )

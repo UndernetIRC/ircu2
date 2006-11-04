@@ -86,7 +86,9 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
      that there are no common channels, thus use PubChannel and not
      SeeChannel */
   if (repchan)
+  {
     chan = find_channel_member(acptr, repchan);
+  }
   else if ((!fields || (fields & (WHO_FIELD_CHA | WHO_FIELD_FLA)))
            && !IsChannelService(acptr))
   {
@@ -240,6 +242,23 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
       while ((*p2) && (*(p1++) = *(p2++)));
     else
       *(p1++) = '0';
+  }
+
+  if (fields & WHO_FIELD_OPL)
+  {
+      if (!chan || !IsChanOp(chan))
+      {
+        strcpy(p1, " n/a");
+        p1 += 4;
+      }
+      else
+      {
+        int vis_level = MAXOPLEVEL;
+        if ((IsGlobalChannel(chan->channel->chname) ? IsOper(sptr) : IsAnOper(sptr))
+            || is_chan_op(sptr, chan->channel))
+          vis_level = OpLevel(chan);
+        p1 += ircd_snprintf(0, p1, 5, " %d", vis_level);
+      }
   }
 
   if (!fields || (fields & WHO_FIELD_REN))
