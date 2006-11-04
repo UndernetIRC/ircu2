@@ -1,5 +1,10 @@
 2006-11-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_nick.c (m_nick): If we get NICK on a server port, tell
+	the client to go away.
+
+2006-11-04  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/version.c.SH: Skip version.c.
 
 2006-11-04  Michael Poole <mdpoole@troilus.org>
