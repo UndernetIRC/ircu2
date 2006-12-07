@@ -605,8 +605,8 @@ int os_socket(const struct irc_sockaddr* local, int type, const char* port_name,
   }
   if (local) {
 #if defined(IPV6_V6ONLY)
-    int on = 0;
-    if (family == 0 && irc_in_addr_unspec(&local->addr))
+    int on = 1;
+    if (family == AF_INET6 && irc_in_addr_unspec(&local->addr))
       setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
 #endif
     if (bind(fd, (struct sockaddr*)&addr, size)) {

@@ -48,6 +48,10 @@ enum ListenerFlag {
   LISTEN_HIDDEN,
   /** Port accepts only server connections. */
   LISTEN_SERVER,
+  /** Port listens for IPv4 connections. */
+  LISTEN_IPV4,
+  /** Port listens for IPv6 connections. */
+  LISTEN_IPV6,
   /** Sentinel for counting listener flags. */
   LISTEN_LAST_FLAG
 };
@@ -58,14 +62,16 @@ DECLARE_FLAGSET(ListenerFlags, LISTEN_LAST_FLAG);
 struct Listener {
   struct Listener* next;               /**< list node pointer */
   struct ListenerFlags flags;          /**< on-off flags for listener */
-  int              fd;                 /**< file descriptor */
+  int              fd_v4;              /**< file descriptor for IPv4 */
+  int              fd_v6;              /**< file descriptor for IPv6 */
   int              ref_count;          /**< number of connection references */
   unsigned char    mask_bits;          /**< number of bits in mask address */
   int              index;              /**< index into poll array */
   time_t           last_accept;        /**< last time listener accepted */
   struct irc_sockaddr addr;            /**< virtual address and port */
   struct irc_in_addr mask;             /**< listener hostmask */
-  struct Socket    socket;             /**< describe socket to event system */
+  struct Socket    socket_v4;          /**< describe IPv4 socket to event system */
+  struct Socket    socket_v6;          /**< describe IPv6 socket to event system */
 };
 
 #define listener_server(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_SERVER)

@@ -116,7 +116,11 @@ static struct lexer_token {
   { "file", TFILE },
   { "force_local_opmode", TPRIV_FORCE_LOCAL_OPMODE },
   { "force_opmode", TPRIV_FORCE_OPMODE },
+  { "gb", GBYTES },
+  { "gigabytes", GBYTES },
   { "gline", TPRIV_GLINE },
+  { "ipv4", TOK_IPV4 },
+  { "ipv6", TOK_IPV6 },
   { "kb", KBYTES },
   { "kilobytes", KBYTES },
   { "list_chan", TPRIV_LIST_CHAN },
@@ -128,8 +132,6 @@ static struct lexer_token {
   { "mb", MBYTES },
   { "megabytes", MBYTES },
   { "mode_lchan", TPRIV_MODE_LCHAN },
-  { "gb", GBYTES },
-  { "gigabytes", GBYTES },
   { "operator", OPER },
   { "opmode", TPRIV_OPMODE },
   { "password", PASS },
@@ -213,6 +215,6 @@ QSTRING \"[^"\n]+[\"\n]
 {WHITE} ;
 {SHCOMMENT} ;
 
-[a-zA-Z_]+ { int res = find_token(yytext); if (res) return res; else REJECT; }
+[a-zA-Z_][a-zA-Z_0-9]* { int res = find_token(yytext); if (res) return res; else REJECT; }
 \n lineno++;
 . return yytext[0];

@@ -1,3 +1,41 @@
+2006-12-07  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Port): Document the method to select IPv4 or
+	IPv6 restriction for a port.
+
+	* include/listener.h (LISTEN_IPV4): New listener flag.
+	(LISTEN_IPV6): New listener flag.
+	(struct Listener): Split 'fd' and 'socket' fields into two each.
+
+	* ircd/ircd_lexer.l (gb): Move to be alphabetical.
+	(gigabytes): Likewise.
+	(ipv4): New token.
+	(ipv6): Likewise.
+	Adapted word matcher to handle digits in the non-leading character.
+
+	* ircd/ircd_parser.y (USE_IPV4): New macro.
+	(USE_IPV6): Likewise.
+	(TOK_IPV4): New token.
+	(TOK_IPV6): Likewise.
+	(address_family): New non-terminal rule.
+	(portblock): Default to listening on both IPv4 and IPv6.
+	(portnumber): Add address_family element and use it.
+	(portvhost): Likewise.
+
+	* ircd/listener.c (make_listener): Adjust for newly split fields
+	in struct Listener.
+	(inetport): Likewise.  Adjust return value as well.
+	(add_listener): Update to handle both IPv4 and IPV6 support.
+	(close_listener): Likewise.
+	(accept_connection): Because each listener has two sockets, it is
+	no longer safe to free the listener when one is destroyed -- so
+	don't.  Also accept() on the file descriptor from the incoming
+	event rather than on a fixed fd.
+
+	* ircd/os_generic.c (os_socket): For platforms with IPV6_V6ONLY,
+	enable it for AF_INET6 sockets rather than disabling it for
+	unspecified sockets.
+
 2006-12-06  Michael Poole <mdpoole@troilus.org>
 
 	* include/listener.h (enum ListenerFlag): New enum.

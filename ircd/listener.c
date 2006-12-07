@@ -70,7 +70,8 @@ static struct Listener* make_listener(int port, const struct irc_in_addr *addr)
 
   memset(listener, 0, sizeof(struct Listener));
 
-  listener->fd          = -1;
+  listener->fd_v4       = -1;
+  listener->fd_v6       = -1;
   listener->addr.port   = port;
   memcpy(&listener->addr.addr, addr, sizeof(listener->addr.addr));
 
@@ -210,35 +211,36 @@ static int set_listener_options(struct Listener *listener, int fd)
 
 /** Open listening socket for \a listener.
  * @param[in,out] listener Listener to make a socket for.
- * @return Non-zero on success, zero on failure.
+ * @param[in] family Socket address family to use.
+ * @return Negative on failure, file descriptor on success.
  */
-static int inetport(struct Listener* listener)
+static int inetport(struct Listener* listener, int family)
 {
+  struct Socket *sock;
   int fd;
 
   /*
    * At first, open a new socket
    */
-  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener), 0);
+  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener), family);
   if (fd < 0)
-    return 0;
+    return -1;
   if (!os_set_listen(fd, HYBRID_SOMAXCONN)) {
     report_error(LISTEN_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
-    return 0;
+    return -1;
   }
   if (!set_listener_options(listener, fd))
-    return 0;
-  if (!socket_add(&listener->socket, accept_connection, (void*) listener,
+    return -1;
+  sock = (family == AF_INET) ? &listener->socket_v4 : &listener->socket_v6;
+  if (!socket_add(sock, accept_connection, (void*) listener,
 		  SS_LISTENING, 0, fd)) {
     /* Error should already have been reported to the logs */
     close(fd);
-    return 0;
+    return -1;
   }
 
-  listener->fd = fd;
-
-  return 1;
+  return fd;
 }
 
 /** Find the listener (if any) for a particular port and address.
@@ -270,6 +272,9 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
 {
   struct Listener* listener;
   struct irc_in_addr vaddr;
+  int okay = 0;
+  int new_listener = 0;
+  int fd;
 
   /*
    * if no port in conf line, don't bother
@@ -286,7 +291,10 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
 
   listener = find_listener(port, &vaddr);
   if (!listener)
+  {
+    new_listener = 1;
     listener = make_listener(port, &vaddr);
+  }
   memcpy(&listener->flags, flags, sizeof(listener->flags));
   FlagSet(&listener->flags, LISTEN_ACTIVE);
   if (mask)
@@ -294,18 +302,42 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   else
     listener->mask_bits = 0;
 
-  if (listener->fd >= 0) {
-    /* If the listener is already open, do not try to re-open.
-     * Only update the socket options.
-     */
-    set_listener_options(listener, listener->fd);
+#ifdef IPV6
+  if (FlagHas(&listener->flags, LISTEN_IPV6)) {
+    if (listener->fd_v6 >= 0) {
+      set_listener_options(listener, listener->fd_v6);
+      okay = 1;
+    } else if ((fd = inetport(listener, AF_INET6)) >= 0) {
+      listener->fd_v6 = fd;
+      okay = 1;
+    }
+  } else if (-1 < listener->fd_v6) {
+    close(listener->fd_v6);
+    socket_del(&listener->socket_v6);
+    listener->fd_v6 = -1;
   }
-  else if (inetport(listener)) {
+#endif
+
+  if (FlagHas(&listener->flags, LISTEN_IPV4)) {
+    if (listener->fd_v4 >= 0) {
+      set_listener_options(listener, listener->fd_v4);
+      okay = 1;
+    } else if ((fd = inetport(listener, AF_INET)) >= 0) {
+      listener->fd_v4 = fd;
+      okay = 1;
+    }
+  } else if (-1 < listener->fd_v4) {
+    close(listener->fd_v4);
+    socket_del(&listener->socket_v4);
+    listener->fd_v4 = -1;
+  }
+
+  if (!okay)
+    free_listener(listener);
+  else if (new_listener) {
     listener->next   = ListenerPollList;
     ListenerPollList = listener;
   }
-  else
-    free_listener(listener);
 }
 
 /** Mark all listeners as closing (inactive).
@@ -338,9 +370,17 @@ void close_listener(struct Listener* listener)
       }
     }
   }
-  if (-1 < listener->fd)
-    close(listener->fd);
-  socket_del(&listener->socket);
+  if (-1 < listener->fd_v4) {
+    close(listener->fd_v4);
+    socket_del(&listener->socket_v4);
+    listener->fd_v4 = -1;
+  }
+  if (-1 < listener->fd_v6) {
+    close(listener->fd_v6);
+    socket_del(&listener->socket_v6);
+    listener->fd_v6 = -1;
+  }
+  free_listener(listener);
 }
 
 /** Close all inactive listeners. */
@@ -384,7 +424,7 @@ static void accept_connection(struct Event* ev)
   listener = (struct Listener*) s_data(ev_socket(ev));
 
   if (ev_type(ev) == ET_DESTROY) /* being destroyed */
-    free_listener(listener);
+    return;
   else {
     assert(ev_type(ev) == ET_ACCEPT || ev_type(ev) == ET_ERROR);
 
@@ -409,7 +449,7 @@ static void accept_connection(struct Event* ev)
      */
     while (1)
     {
-      if ((fd = os_accept(listener->fd, &addr)) == -1)
+      if ((fd = os_accept(s_fd(ev_socket(ev)), &addr)) == -1)
       {
         if (errno == EAGAIN ||
 #ifdef EWOULDBLOCK

@@ -58,7 +58,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+
 #define MAX_STRINGS 80 /* Maximum number of feature params. */
+#define USE_IPV4 (1 << 0)
+#define USE_IPV6 (1 << 1)
+
   extern struct LocalConf   localConf;
   extern struct DenyConf*   denyConfList;
   extern struct CRuleConf*  cruleConfList;
@@ -158,6 +162,7 @@ static void parse_error(char *pattern,...) {
 %token FAST
 %token AUTOCONNECT
 %token PROGRAM
+%token TOK_IPV4 TOK_IPV6
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -170,7 +175,7 @@ static void parse_error(char *pattern,...) {
 /* and some types... */
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
-%type <num> expr yesorno privtype
+%type <num> expr yesorno privtype address_family
 %left '+' '-'
 %left '*' '/'
 
@@ -631,9 +636,26 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
+/* not a recursive definition because some pedant will just come along
+ * and whine that the parser accepts "ipv4 ipv4 ipv4 ipv4"
+ */
+address_family:
+               { $$ = 0; }
+    | TOK_IPV4 { $$ = USE_IPV4; }
+    | TOK_IPV6 { $$ = USE_IPV6; }
+    | TOK_IPV4 TOK_IPV6 { $$ = USE_IPV4 | USE_IPV6; }
+    | TOK_IPV6 TOK_IPV4 { $$ = USE_IPV6 | USE_IPV4; }
+    ;
+
 /* The port block... */
 portblock: PORT '{' portitems '}' ';'
 {
+  if (!FlagHas(&listen_flags, LISTEN_IPV4)
+      && !FlagHas(&listen_flags, LISTEN_IPV6))
+  {
+    FlagSet(&listen_flags, LISTEN_IPV4);
+    FlagSet(&listen_flags, LISTEN_IPV6);
+  }
   if (port > 0 && port <= 0xFFFF)
     add_listener(port, host, pass, &listen_flags);
   else
@@ -646,15 +668,25 @@ portblock: PORT '{' portitems '}' ';'
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portmask | portserver | porthidden;
-portnumber: PORT '=' NUMBER ';'
+portnumber: PORT '=' address_family NUMBER ';'
 {
-  port = $3;
+  int families = $3;
+  if (families & USE_IPV4)
+    FlagSet(&listen_flags, LISTEN_IPV4);
+  else if (families & USE_IPV6)
+    FlagSet(&listen_flags, LISTEN_IPV6);
+  port = $4;
 };
 
-portvhost: VHOST '=' QSTRING ';'
+portvhost: VHOST '=' address_family QSTRING ';'
 {
+  int families = $3;
+  if (families & USE_IPV4)
+    FlagSet(&listen_flags, LISTEN_IPV4);
+  else if (families & USE_IPV6)
+    FlagSet(&listen_flags, LISTEN_IPV6);
   MyFree(host);
-  host = $3;
+  host = $4;
 };
 
 portmask: MASK '=' QSTRING ';'
