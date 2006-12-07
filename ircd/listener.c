@@ -134,6 +134,7 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
   int show_hidden = IsOper(sptr);
   int count = (IsOper(sptr) || MyUser(sptr)) ? 100 : 8;
   int port = 0;
+  int len;
 
   assert(0 != sptr);
 
@@ -143,18 +144,14 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
   for (listener = ListenerPollList; listener; listener = listener->next) {
     if (port && port != listener->addr.port)
       continue;
-    flags[0] = (listener->server) ? 'S' : 'C';
-    if (listener->hidden) {
-      if (!show_hidden)
-        continue;
-      flags[1] = 'H';
-      flags[2] = '\0';
-    }
-    else
-      flags[1] = '\0';
+    len = 0;
+    flags[len++] = listener_server(listener) ? 'S' : 'C';
+    if (show_hidden && FlagHas(&listener->flags, LISTEN_HIDDEN))
+      flags[len++] = 'H';
+    flags[len] = '\0';
 
     send_reply(sptr, RPL_STATSPLINE, listener->addr.port, listener->ref_count,
-	       flags, (listener->active) ? "active" : "disabled");
+	       flags, listener_active(listener) ? "active" : "disabled");
     if (--count == 0)
       break;
   }
@@ -176,20 +173,16 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
 #define HYBRID_SOMAXCONN 64
 #endif
 
-/** Open listening socket for \a listener.
- * @param[in,out] listener Listener to make a socket for.
+/** Set or update socket options for \a listener.
+ * @param[in] listener Listener to determine socket option values.
+ * @param[in] fd File descriptor being updated.
  * @return Non-zero on success, zero on failure.
  */
-static int inetport(struct Listener* listener)
+static int set_listener_options(struct Listener *listener, int fd)
 {
-  int                fd;
+  int is_server;
 
-  /*
-   * At first, open a new socket
-   */
-  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener), 0);
-  if (fd < 0)
-    return 0;
+  is_server = listener_server(listener);
   /*
    * Set the buffer sizes for the listener. Accepted connections
    * inherit the accepting sockets settings for SO_RCVBUF S_SNDBUF
@@ -198,24 +191,44 @@ static int inetport(struct Listener* listener)
    * NOTE: this must be set before listen is called
    */
   if (!os_set_sockbufs(fd,
-                       (listener->server) ? feature_int(FEAT_SOCKSENDBUF) : CLIENT_TCP_WINDOW,
-                       (listener->server) ? feature_int(FEAT_SOCKRECVBUF) : CLIENT_TCP_WINDOW)) {
+                       is_server ? feature_int(FEAT_SOCKSENDBUF) : CLIENT_TCP_WINDOW,
+                       is_server ? feature_int(FEAT_SOCKRECVBUF) : CLIENT_TCP_WINDOW)) {
     report_error(SETBUFS_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
     return 0;
   }
+
+  /*
+   * Set the TOS bits - this is nonfatal if it doesn't stick.
+   */
+  if (!os_set_tos(fd,feature_int(is_server ? FEAT_TOS_SERVER : FEAT_TOS_CLIENT))) {
+    report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
+  }
+
+  return 1;
+}
+
+/** Open listening socket for \a listener.
+ * @param[in,out] listener Listener to make a socket for.
+ * @return Non-zero on success, zero on failure.
+ */
+static int inetport(struct Listener* listener)
+{
+  int fd;
+
+  /*
+   * At first, open a new socket
+   */
+  fd = os_socket(&listener->addr, SOCK_STREAM, get_listener_name(listener), 0);
+  if (fd < 0)
+    return 0;
   if (!os_set_listen(fd, HYBRID_SOMAXCONN)) {
     report_error(LISTEN_ERROR_MSG, get_listener_name(listener), errno);
     close(fd);
     return 0;
   }
-  /*
-   * Set the TOS bits - this is nonfatal if it doesn't stick.
-   */
-  if (!os_set_tos(fd,feature_int((listener->server)?FEAT_TOS_SERVER : FEAT_TOS_CLIENT))) {
-    report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
-  }
-
+  if (!set_listener_options(listener, fd))
+    return 0;
   if (!socket_add(&listener->socket, accept_connection, (void*) listener,
 		  SS_LISTENING, 0, fd)) {
     /* Error should already have been reported to the logs */
@@ -250,11 +263,10 @@ static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
  * @param[in] port Port number to listen on.
  * @param[in] vhost_ip Local address to listen on.
  * @param[in] mask Address mask to accept connections from.
- * @param[in] is_server Non-zero if the port should only accept server connections.
- * @param[in] is_hidden Non-zero if the port should be hidden from /STATS P output.
+ * @param[in] flags Flags describing listener options.
  */
 void add_listener(int port, const char* vhost_ip, const char* mask,
-                  int is_server, int is_hidden)
+                  const struct ListenerFlags *flags)
 {
   struct Listener* listener;
   struct irc_in_addr vaddr;
@@ -275,16 +287,18 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   listener = find_listener(port, &vaddr);
   if (!listener)
     listener = make_listener(port, &vaddr);
-  listener->active = 1;
-  listener->hidden = is_hidden;
-  listener->server = is_server;
+  memcpy(&listener->flags, flags, sizeof(listener->flags));
+  FlagSet(&listener->flags, LISTEN_ACTIVE);
   if (mask)
     ipmask_parse(mask, &listener->mask, &listener->mask_bits);
   else
     listener->mask_bits = 0;
 
   if (listener->fd >= 0) {
-    /* If the listener is already open, do not try to re-open. */
+    /* If the listener is already open, do not try to re-open.
+     * Only update the socket options.
+     */
+    set_listener_options(listener, listener->fd);
   }
   else if (inetport(listener)) {
     listener->next   = ListenerPollList;
@@ -301,7 +315,7 @@ void mark_listeners_closing(void)
 {
   struct Listener* listener;
   for (listener = ListenerPollList; listener; listener = listener->next)
-    listener->active = 0;
+    FlagClr(&listener->flags, LISTEN_ACTIVE);
 }
 
 /** Close a single listener.
@@ -339,7 +353,7 @@ void close_listeners(void)
    */
   for (listener = ListenerPollList; listener; listener = listener_next) {
     listener_next = listener->next;
-    if (0 == listener->active && 0 == listener->ref_count)
+    if (!listener_active(listener) && 0 == listener->ref_count)
       close_listener(listener);
   }
 }
@@ -351,7 +365,7 @@ void release_listener(struct Listener* listener)
 {
   assert(0 != listener);
   assert(0 < listener->ref_count);
-  if (0 == --listener->ref_count && !listener->active)
+  if (0 == --listener->ref_count && !listener_active(listener))
     close_listener(listener);
 }
 
@@ -429,7 +443,7 @@ static void accept_connection(struct Event* ev)
        * to accept(), because it makes sense to clear our the
        * socket's queue as fast as possible.
        */
-      if (!listener->active)
+      if (!listener_active(listener))
       {
         ++ServerStats->is_ref;
         send(fd, "ERROR :Use another port\r\n", 25, 0);

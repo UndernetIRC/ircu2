@@ -71,6 +71,7 @@
   int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   char *stringlist[MAX_STRINGS];
+  struct ListenerFlags listen_flags;
   struct ConnectionClass *c_class;
   struct DenyConf *dconf;
   struct ServerConf *sconf;
@@ -309,16 +310,18 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 generalvhost: VHOST '=' QSTRING ';'
 {
   struct irc_in_addr addr;
-  if (!strcmp($3, "*")) {
+  char *vhost = $3;
+
+  if (!strcmp(vhost, "*")) {
     /* This traditionally meant bind to all interfaces and connect
      * from the default. */
-  } else if (!ircd_aton(&addr, $3))
-    parse_error("Invalid virtual host '%s'.", $3);
+  } else if (!ircd_aton(&addr, vhost))
+    parse_error("Invalid virtual host '%s'.", vhost);
   else if (irc_in_addr_is_ipv4(&addr))
     memcpy(&VirtualHost_v4.addr, &addr, sizeof(addr));
   else
     memcpy(&VirtualHost_v6.addr, &addr, sizeof(addr));
-  MyFree($3);
+  MyFree(vhost);
 };
 
 adminblock: ADMIN
@@ -632,13 +635,14 @@ yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 portblock: PORT '{' portitems '}' ';'
 {
   if (port > 0 && port <= 0xFFFF)
-    add_listener(port, host, pass, tconn, tping);
+    add_listener(port, host, pass, &listen_flags);
   else
     parse_error("Port %d is out of range", port);
   MyFree(host);
   MyFree(pass);
+  memset(&listen_flags, 0, sizeof(listen_flags));
   host = pass = NULL;
-  port = tconn = tping = 0;
+  port = 0;
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portmask | portserver | porthidden;
@@ -661,18 +665,18 @@ portmask: MASK '=' QSTRING ';'
 
 portserver: SERVER '=' YES ';'
 {
-  tconn = -1;
+  FlagSet(&listen_flags, LISTEN_SERVER);
 } | SERVER '=' NO ';'
 {
-  tconn = 0;
+  FlagClr(&listen_flags, LISTEN_SERVER);
 };
 
 porthidden: HIDDEN '=' YES ';'
 {
-  tping = -1;
+  FlagSet(&listen_flags, LISTEN_HIDDEN);
 } | HIDDEN '=' NO ';'
 {
-  tping = 0;
+  FlagClr(&listen_flags, LISTEN_HIDDEN);
 };
 
 clientblock: CLIENT

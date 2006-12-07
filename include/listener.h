@@ -30,6 +30,9 @@
 #ifndef INCLUDED_res_h
 #include "res.h"
 #endif
+#ifndef INCLUDED_client_h
+#include "client.h" /* flagset stuff.  oh well. */
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>       /* size_t, broken BSD system headers */
 #define INCLUDED_sys_types_h
@@ -38,14 +41,25 @@
 struct Client;
 struct StatDesc;
 
+enum ListenerFlag {
+  /** Port is currently accepting connections. */
+  LISTEN_ACTIVE,
+  /** Port is hidden from /STATS P output. */
+  LISTEN_HIDDEN,
+  /** Port accepts only server connections. */
+  LISTEN_SERVER,
+  /** Sentinel for counting listener flags. */
+  LISTEN_LAST_FLAG
+};
+
+DECLARE_FLAGSET(ListenerFlags, LISTEN_LAST_FLAG);
+
 /** Describes a single listening port. */
 struct Listener {
   struct Listener* next;               /**< list node pointer */
+  struct ListenerFlags flags;          /**< on-off flags for listener */
   int              fd;                 /**< file descriptor */
   int              ref_count;          /**< number of connection references */
-  unsigned char    active;             /**< current state of listener */
-  unsigned char    hidden;             /**< hidden in stats output for clients */
-  unsigned char    server;             /**< 1 if port is a server listener */
   unsigned char    mask_bits;          /**< number of bits in mask address */
   int              index;              /**< index into poll array */
   time_t           last_accept;        /**< last time listener accepted */
@@ -54,9 +68,12 @@ struct Listener {
   struct Socket    socket;             /**< describe socket to event system */
 };
 
+#define listener_server(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_SERVER)
+#define listener_active(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_ACTIVE)
+
 extern void        add_listener(int port, const char* vaddr_ip, 
-                                const char* mask, int is_server, 
-                                int is_hidden);
+                                const char* mask,
+                                const struct ListenerFlags *flags);
 extern void        close_listener(struct Listener* listener);
 extern void        close_listeners(void);
 extern void        count_listener_memory(int* count_out, size_t* size_out);
