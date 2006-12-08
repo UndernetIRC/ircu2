@@ -149,6 +149,18 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
     flags[len++] = listener_server(listener) ? 'S' : 'C';
     if (show_hidden && FlagHas(&listener->flags, LISTEN_HIDDEN))
       flags[len++] = 'H';
+    if (FlagHas(&listener->flags, LISTEN_IPV4))
+    {
+      flags[len++] = '4';
+      if (listener->fd_v4 < 0)
+        flags[len++] = '-';
+    }
+    if (FlagHas(&listener->flags, LISTEN_IPV6))
+    {
+      flags[len++] = '6';
+      if (listener->fd_v6 < 0)
+        flags[len++] = '-';
+    }
     flags[len] = '\0';
 
     send_reply(sptr, RPL_STATSPLINE, listener->addr.port, listener->ref_count,
