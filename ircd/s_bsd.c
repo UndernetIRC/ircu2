@@ -145,13 +145,7 @@ void report_error(const char* text, const char* who, int err)
   if (EmptyString(who))
     who = "unknown";
 
-  if (last_notice + 20 < CurrentTime) {
-    /*
-     * pace error messages so opers don't get flooded by transients
-     */
-    sendto_opmask(0, SNO_OLDSNO, text, who, errmsg);
-    last_notice = CurrentTime;
-  }
+  sendto_opmask_ratelimited(0, SNO_OLDSNO, &last_notice, text, who, errmsg);
   log_write(LS_SOCKET, L_ERROR, 0, text, who, errmsg);
   errno = errtmp;
 }
@@ -522,7 +516,7 @@ void add_connection(struct Listener* listener, int fd) {
    */
   os_disable_options(fd);
 
-  if (listener->server)
+  if (listener_server(listener))
   {
     new_client = make_client(0, STAT_UNKNOWN_SERVER);
   }

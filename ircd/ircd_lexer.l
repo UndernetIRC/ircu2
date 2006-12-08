@@ -118,6 +118,8 @@ HUB		return HUB;
 IAUTH		return IAUTH;
 INCLUDE		return INCLUDE;
 IP		return IP;
+IPV4		return TOK_IPV4;
+IPV6		return TOK_IPV6;
 JUPE		return JUPE;
 KB		return KBYTES;
 KBYTES		return KBYTES;

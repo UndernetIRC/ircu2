@@ -30,6 +30,9 @@
 #ifndef INCLUDED_res_h
 #include "res.h"
 #endif
+#ifndef INCLUDED_client_h
+#include "client.h" /* flagset stuff.  oh well. */
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>       /* size_t, broken BSD system headers */
 #define INCLUDED_sys_types_h
@@ -38,25 +41,45 @@
 struct Client;
 struct StatDesc;
 
+enum ListenerFlag {
+  /** Port is currently accepting connections. */
+  LISTEN_ACTIVE,
+  /** Port is hidden from /STATS P output. */
+  LISTEN_HIDDEN,
+  /** Port accepts only server connections. */
+  LISTEN_SERVER,
+  /** Port listens for IPv4 connections. */
+  LISTEN_IPV4,
+  /** Port listens for IPv6 connections. */
+  LISTEN_IPV6,
+  /** Sentinel for counting listener flags. */
+  LISTEN_LAST_FLAG
+};
+
+DECLARE_FLAGSET(ListenerFlags, LISTEN_LAST_FLAG);
+
 /** Describes a single listening port. */
 struct Listener {
   struct Listener* next;               /**< list node pointer */
-  int              fd;                 /**< file descriptor */
+  struct ListenerFlags flags;          /**< on-off flags for listener */
+  int              fd_v4;              /**< file descriptor for IPv4 */
+  int              fd_v6;              /**< file descriptor for IPv6 */
   int              ref_count;          /**< number of connection references */
-  unsigned char    active;             /**< current state of listener */
-  unsigned char    hidden;             /**< hidden in stats output for clients */
-  unsigned char    server;             /**< 1 if port is a server listener */
   unsigned char    mask_bits;          /**< number of bits in mask address */
   int              index;              /**< index into poll array */
   time_t           last_accept;        /**< last time listener accepted */
   struct irc_sockaddr addr;            /**< virtual address and port */
   struct irc_in_addr mask;             /**< listener hostmask */
-  struct Socket    socket;             /**< describe socket to event system */
+  struct Socket    socket_v4;          /**< describe IPv4 socket to event system */
+  struct Socket    socket_v6;          /**< describe IPv6 socket to event system */
 };
 
+#define listener_server(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_SERVER)
+#define listener_active(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_ACTIVE)
+
 extern void        add_listener(int port, const char* vaddr_ip, 
-                                const char* mask, int is_server, 
-                                int is_hidden);
+                                const char* mask,
+                                const struct ListenerFlags *flags);
 extern void        close_listeners(void);
 extern void        count_listener_memory(int* count_out, size_t* size_out);
 extern void        mark_listeners_closing(void);

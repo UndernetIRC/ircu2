@@ -57,7 +57,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+
 #define MAX_STRINGS 80 /* Maximum number of feature params. */
+#define USE_IPV4 (1 << 0)
+#define USE_IPV6 (1 << 1)
+
   extern struct LocalConf   localConf;
   extern struct DenyConf*   denyConfList;
   extern struct CRuleConf*  cruleConfList;
@@ -72,6 +76,7 @@
   static int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   static char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
   static char *stringlist[MAX_STRINGS];
+  struct ListenerFlags listen_flags;
   static struct ConnectionClass *c_class;
   static struct DenyConf *dconf;
   static struct s_map *smap;
@@ -203,6 +208,7 @@ permitted(enum ConfigBlock type, int warn)
 %token FAST
 %token AUTOCONNECT
 %token PROGRAM
+%token TOK_IPV4 TOK_IPV6
 %token INCLUDE
 %token LINESYNC
 %token FROM
@@ -221,7 +227,7 @@ permitted(enum ConfigBlock type, int warn)
 /* and some types... */
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
-%type <num> expr yesorno privtype
+%type <num> expr yesorno privtype address_family
 %type <num> blocklimit blocktypes blocktype
 %type <num> optall
 %type <crule> crule_expr
@@ -387,18 +393,20 @@ generaldesc: DESCRIPTION '=' QSTRING ';'
 generalvhost: VHOST '=' QSTRING ';'
 {
   struct irc_in_addr addr;
+  char *vhost = $3;
+
   if (!permitted(BLOCK_GENERAL, 0))
     ;
-  else if (!strcmp($3, "*")) {
+  else if (!strcmp(vhost, "*")) {
     /* This traditionally meant bind to all interfaces and connect
      * from the default. */
-  } else if (!ircd_aton(&addr, $3))
-    parse_error("Invalid virtual host '%s'.", $3);
+  } else if (!ircd_aton(&addr, vhost))
+    parse_error("Invalid virtual host '%s'.", vhost);
   else if (irc_in_addr_is_ipv4(&addr))
     memcpy(&VirtualHost_v4.addr, &addr, sizeof(addr));
   else
     memcpy(&VirtualHost_v6.addr, &addr, sizeof(addr));
-  MyFree($3);
+  MyFree(vhost);
 };
 
 adminblock: ADMIN
@@ -733,31 +741,61 @@ privtype: TPRIV_CHAN_LIMIT { $$ = PRIV_CHAN_LIMIT; } |
 
 yesorno: YES { $$ = 1; } | NO { $$ = 0; };
 
+/* not a recursive definition because some pedant will just come along
+ * and whine that the parser accepts "ipv4 ipv4 ipv4 ipv4"
+ */
+address_family:
+               { $$ = 0; }
+    | TOK_IPV4 { $$ = USE_IPV4; }
+    | TOK_IPV6 { $$ = USE_IPV6; }
+    | TOK_IPV4 TOK_IPV6 { $$ = USE_IPV4 | USE_IPV6; }
+    | TOK_IPV6 TOK_IPV4 { $$ = USE_IPV6 | USE_IPV4; }
+    ;
+
 /* The port block... */
 portblock: PORT '{' portitems '}' ';'
 {
   if (!permitted(BLOCK_PORT, 1))
     ;
   else if (port > 0 && port <= 0xFFFF)
-    add_listener(port, host, pass, tconn, tping);
+  {
+    if (!FlagHas(&listen_flags, LISTEN_IPV4)
+        && !FlagHas(&listen_flags, LISTEN_IPV6))
+    {
+      FlagSet(&listen_flags, LISTEN_IPV4);
+      FlagSet(&listen_flags, LISTEN_IPV6);
+    }
+    add_listener(port, host, pass, &listen_flags);
+  }
   else
     parse_error("Port %d is out of range", port);
   MyFree(host);
   MyFree(pass);
+  memset(&listen_flags, 0, sizeof(listen_flags));
   host = pass = NULL;
-  port = tconn = tping = 0;
+  port = 0;
 };
 portitems: portitem portitems | portitem;
 portitem: portnumber | portvhost | portmask | portserver | porthidden;
-portnumber: PORT '=' NUMBER ';'
+portnumber: PORT '=' address_family NUMBER ';'
 {
-  port = $3;
+  int families = $3;
+  if (families & USE_IPV4)
+    FlagSet(&listen_flags, LISTEN_IPV4);
+  else if (families & USE_IPV6)
+    FlagSet(&listen_flags, LISTEN_IPV6);
+  port = $4;
 };
 
-portvhost: VHOST '=' QSTRING ';'
+portvhost: VHOST '=' address_family QSTRING ';'
 {
+  int families = $3;
+  if (families & USE_IPV4)
+    FlagSet(&listen_flags, LISTEN_IPV4);
+  else if (families & USE_IPV6)
+    FlagSet(&listen_flags, LISTEN_IPV6);
   MyFree(host);
-  host = $3;
+  host = $4;
 };
 
 portmask: MASK '=' QSTRING ';'
@@ -768,18 +806,18 @@ portmask: MASK '=' QSTRING ';'
 
 portserver: SERVER '=' YES ';'
 {
-  tconn = -1;
+  FlagSet(&listen_flags, LISTEN_SERVER);
 } | SERVER '=' NO ';'
 {
-  tconn = 0;
+  FlagClr(&listen_flags, LISTEN_SERVER);
 };
 
 porthidden: HIDDEN '=' YES ';'
 {
-  tping = -1;
+  FlagSet(&listen_flags, LISTEN_HIDDEN);
 } | HIDDEN '=' NO ';'
 {
-  tping = 0;
+  FlagClr(&listen_flags, LISTEN_HIDDEN);
 };
 
 clientblock: CLIENT
