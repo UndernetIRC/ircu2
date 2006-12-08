@@ -30,8 +30,8 @@
 #ifndef INCLUDED_res_h
 #include "res.h"
 #endif
-#ifndef INCLUDED_client_h
-#include "client.h" /* flagset stuff.  oh well. */
+#ifndef INCLUDED_flagset_h
+#include "flagset.h"
 #endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>       /* size_t, broken BSD system headers */

@@ -29,6 +29,9 @@
 #ifndef INCLUDED_dbuf_h
 #include "dbuf.h"
 #endif
+#ifndef INCLUDED_flagset_h
+#include "flagset.h"
+#endif
 #ifndef INCLUDED_msgq_h
 #include "msgq.h"
 #endif
@@ -64,30 +67,6 @@ struct AuthRequest;
  * source files. Other structures go in the header file of there corresponding
  * source file, or in the source file itself (when only used in that file).
  */
-
-/** Single element in a flag bitset array. */
-typedef unsigned long flagpage_t;
-
-/** Number of bits in a flagpage_t. */
-#define FLAGSET_NBITS (8 * sizeof(flagpage_t))
-/** Element number for flag \a flag. */
-#define FLAGSET_INDEX(flag) ((flag) / FLAGSET_NBITS)
-/** Element bit for flag \a flag. */
-#define FLAGSET_MASK(flag) (1ul<<((flag) % FLAGSET_NBITS))
-
-/** Declare a flagset structure of a particular size. */
-#define DECLARE_FLAGSET(name,max) \
-  struct name \
-  { \
-    unsigned long bits[((max + FLAGSET_NBITS - 1) / FLAGSET_NBITS)]; \
-  }
-
-/** Test whether a flag is set in a flagset. */
-#define FlagHas(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] & FLAGSET_MASK(flag))
-/** Set a flag in a flagset. */
-#define FlagSet(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag))
-/** Clear a flag in a flagset. */
-#define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containing valid user modes, in no particular order. */
 #define infousermodes "dioswkgx"

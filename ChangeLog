@@ -1,5 +1,16 @@
 2006-12-07  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/flagset.h: New file.
+
+	* ircd/capab.h: #include "flagset.h" rather than "client.h"
+
+	* include/client.h: Move flagset definitions to flagset.h.
+	Include that file.
+
+	* include/listener.h: #include "flagset.h" rather than "client.h"
+
+2006-12-07  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/crule.c (crule_free): Move decrement so that MyFree() may
 	continue to evaluate its argument twice (bleh).
 	(crule_cat): Properly set terminal byte for compound expressions.

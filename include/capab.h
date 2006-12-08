@@ -23,8 +23,8 @@
  * @version $Id$
  */
 
-#ifndef INCLUDED_client_h
-#include "client.h"
+#ifndef INCLUDED_flagset_h
+#include "flagset.h"
 #endif
 
 #define CAPFL_HIDDEN	0x0001	/**< Do not advertize this capability */
