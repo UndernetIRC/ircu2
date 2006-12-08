@@ -202,8 +202,8 @@ void crule_free(struct CRuleNode* elem)
   }
   else
   {
-    while (elem->numargs)
-      MyFree(elem->arg[--elem->numargs]);
+    while (elem->numargs--)
+      MyFree(elem->arg[elem->numargs]);
   }
   MyFree(elem);
 }
@@ -279,6 +279,7 @@ crule_cat(struct CRuleNode *rule, char *buf, size_t remain)
     used += crule_cat(rule->arg[1], buf + used, (remain < used) ? 0 : remain - used);
     if (remain > used++)
       buf[used - 1] = ')';
+    buf[used] = '\0';
     return used;
   } else if (rule->funcptr == crule_not) {
     if (remain)

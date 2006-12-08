@@ -40,7 +40,6 @@ init_lexer(const char *configfile)
     fprintf(stderr, "Could not open the configuration file.");
     return 0;
   }
-  yy_init = 1;
   return 1;
 }
 
@@ -71,7 +70,7 @@ lexer_include(const char *filename)
 [0-9]+		{yylval.num = strtoul(yytext, NULL, 10); return NUMBER;}
 [ \t\r\n]+	;
 #.*		;
-<<EOF>>		{ yypop_buffer_state(); if (YY_CURRENT_BUFFER) return TEOF; else yyterminate(); }
+<<EOF>>		{ yypop_buffer_state(); if (YY_CURRENT_BUFFER) return TEOF; else { yy_init = 0; yyterminate(); } }
 
 \&\&            return LOGICAL_AND;
 \|\|            return LOGICAL_OR;
