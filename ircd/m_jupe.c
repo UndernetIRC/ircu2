@@ -226,18 +226,18 @@ int mo_jupe(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	return send_reply(sptr, ERR_NOSUCHSERVER, target);
 
       if (!IsMe(acptr)) { /* manually propagate, since we don't set it */
-	if (!HasPriv(sptr, PRIV_GLINE))
+	if (!HasPriv(sptr, PRIV_JUPE))
 	  return send_reply(sptr, ERR_NOPRIVILEGES);
 
 	sendcmdto_one(sptr, CMD_JUPE, acptr, "%C %c%s %s %Tu :%s", acptr,
 		      flags & JUPE_ACTIVE ? '+' : '-', server, parv[3],
 		      TStime(), reason);
 	return 0;
-      } else if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
+      } else if (!HasPriv(sptr, PRIV_LOCAL_JUPE))
 	return send_reply(sptr, ERR_NOPRIVILEGES);
 
       flags |= JUPE_LOCAL;
-    } else if (!HasPriv(sptr, PRIV_GLINE))
+    } else if (!HasPriv(sptr, PRIV_JUPE))
       return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
