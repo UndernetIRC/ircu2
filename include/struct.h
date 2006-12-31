@@ -59,6 +59,7 @@ struct Server {
   int            asll_rtt;      /**< AsLL round-trip time */
   int            asll_to;       /**< AsLL upstream lag */
   int            asll_from;     /**< AsLL downstream lag */
+  time_t         asll_last;     /**< Last time we sent or received an AsLL ping */
 
   char *last_error_msg;         /**< Allocated memory with last message receive with an ERROR */
   char by[NICKLEN + 1];         /**< Numnick of client who requested the link */
