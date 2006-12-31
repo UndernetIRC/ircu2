@@ -601,7 +601,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
     }
     if (HasHiddenHost(new_client))
       ircd_snprintf(0, cli_user(new_client)->host, HOSTLEN, "%s.%s",
-        account, feature_str(FEAT_HIDDEN_HOST));
+        cli_user(new_client)->account, feature_str(FEAT_HIDDEN_HOST));
 
     return register_user(cptr, new_client);
   }
