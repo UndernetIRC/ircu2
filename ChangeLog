@@ -1,5 +1,10 @@
 2006-12-30  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_string.c (ircd_strncpy): Make sure the output buffer
+	is terminated.  We don't rely on the arguable strncpy semantics.
+
+2006-12-30  Michael Poole <mdpoole@troilus.org>
+
 	* include/struct.h (struct Server): Add asll_last field.
 
 	* ircd/ircd.c (check_pings): Add check for asll_last.  When a
