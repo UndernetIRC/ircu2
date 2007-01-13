@@ -67,6 +67,7 @@ in which:
    User mode matching flags (specifying one of these means that only clients
    with that umode are considered, what is not specified is always matched):
 
+   d   Join-delayed channel members
    o   Irc operator
        [In the future more flags will be supported, basically all
         usermodes plus the +/- specificators to revert the filtering]
