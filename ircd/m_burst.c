@@ -469,6 +469,14 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    current_mode_needs_reset = 0;
 		  }
 		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
+                  /*
+                   * Older servers may send XXYYY:ov, in which case we
+                   * do not want to use the code for 'v' below.
+                   */
+                  if (ptr[1] == 'v') {
+                    current_mode |= CHFL_VOICE;
+                    ptr++;
+                  }
 		}
 		else if (*ptr == 'v') { /* has voice status */
 		  if (current_mode_needs_reset) {

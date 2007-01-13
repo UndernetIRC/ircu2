@@ -1,5 +1,9 @@
 2006-01-13  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_burst.c (ms_burst): Properly handle member mode :ov.
+
+2006-01-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_create.c (ms_create): Add channel name to the protocol
 	violation notice for a redundant CREATE.
 
