@@ -160,7 +160,7 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     {
       /* Is the remote server confused? */
       if (find_member_link(chptr, sptr)) {
-        protocol_violation(sptr, "%s tried to CREATE a channel already joined", cli_name(sptr));
+        protocol_violation(sptr, "%s tried to CREATE a channel already joined (%s)", cli_name(sptr), chptr->chname);
         continue;
       }
 
