@@ -156,6 +156,8 @@ char* ircd_strncpy(char* s1, const char* s2, size_t n)
 
   while (s < endp && (*s++ = *s2++))
     ;
+  if (s == endp)
+    *s = '\0';
   return s1;
 }
 

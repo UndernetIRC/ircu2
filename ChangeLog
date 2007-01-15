@@ -1,3 +1,28 @@
+2006-12-31  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_mode.c (ms_mode): Bounce modes from deopped members.
+
+2006-12-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_string.c (ircd_strncpy): Make sure the output buffer
+	is terminated.  We don't rely on the arguable strncpy semantics.
+
+2006-12-30  Michael Poole <mdpoole@troilus.org>
+
+	* include/struct.h (struct Server): Add asll_last field.
+
+	* ircd/ircd.c (check_pings): Add check for asll_last.  When a
+	server doesn't ping, use an old-style ping rather than AsLL ping.
+
+	* ircd/m_pong.c (ms_pong): Use ClearPingSent() rather than
+	ClrFlag().  Set asll_last to current time.
+	(mr_pong): Use ClearPingSent() rather than ClrFlag().
+	(m_pong): Likewise.
+
+	* ircd/s_bsd.c (completed_connection): Likewise.
+	(read_packet): Likewise.  Update cli_lasttime for servers in
+	addition to clients.
+
 2006-01-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Properly handle member mode :ov.

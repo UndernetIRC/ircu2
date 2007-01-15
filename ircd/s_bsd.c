@@ -352,7 +352,7 @@ static int completed_connection(struct Client* cptr)
    * Make us timeout after twice the timeout for DNS look ups
    */
   cli_lasttime(cptr) = CurrentTime;
-  SetFlag(cptr, FLAG_PINGSENT);
+  ClearPingSent(cptr);
 
   sendrawto_one(cptr, MSG_SERVER " %s 1 %Tu %Tu J%s %s%s +%s6 :%s",
                 cli_name(&me), cli_serv(&me)->timestamp, newts,
@@ -581,12 +581,11 @@ static int read_packet(struct Client *cptr, int socket_ready)
     case IO_SUCCESS:
       if (length)
       {
-        if (!IsServer(cptr))
-          cli_lasttime(cptr) = CurrentTime;
+        cli_lasttime(cptr) = CurrentTime;
+        ClearPingSent(cptr);
+        ClrFlag(cptr, FLAG_NONL);
         if (cli_lasttime(cptr) > cli_since(cptr))
           cli_since(cptr) = cli_lasttime(cptr);
-        ClrFlag(cptr, FLAG_PINGSENT);
-        ClrFlag(cptr, FLAG_NONL);
       }
       break;
     case IO_BLOCKED:

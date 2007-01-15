@@ -356,6 +356,24 @@ static void check_pings(struct Event* ev) {
 	   IsPingSent(cptr) ? "[Ping Sent]" : "[]", 
 	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
 
+    /* If it's a server and we have not sent an AsLL lately, do so. */
+    if (IsServer(cptr)) {
+      if (CurrentTime - cli_serv(cptr)->asll_last >= max_ping) {
+        char *asll_ts;
+
+        SetPingSent(cptr);
+        cli_serv(cptr)->asll_last = CurrentTime;
+        expire = cli_serv(cptr)->asll_last + max_ping;
+        asll_ts = militime_float(NULL);
+        sendcmdto_prio_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
+                           cli_name(cptr), asll_ts);
+      }
+
+      expire = cli_serv(cptr)->asll_last + max_ping;
+      if (expire < next_check)
+        next_check = expire;
+    }
+
     /* Ok, the thing that will happen most frequently, is that someone will
      * have sent something recently.  Cover this first for speed.
      * -- 
@@ -418,11 +436,7 @@ static void check_pings(struct Event* ev) {
       if (IsUser(cptr))
         sendrawto_one(cptr, MSG_PING " :%s", cli_name(&me));
       else
-      {
-        char *asll_ts = militime_float(NULL);
-        sendcmdto_one(&me, CMD_PING, cptr, "!%s %s %s", asll_ts,
-                      cli_name(cptr), asll_ts);
-      }
+        sendcmdto_prio_one(&me, CMD_PING, cptr, ":%s", cli_name(&me));
     }
     
     expire = cli_lasttime(cptr) + max_ping * 2;

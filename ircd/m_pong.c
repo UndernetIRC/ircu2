@@ -119,8 +119,8 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   origin      = parv[1];
   destination = parv[2];
-  ClrFlag(cptr, FLAG_PINGSENT);
-  ClrFlag(sptr, FLAG_PINGSENT);
+  ClearPingSent(cptr);
+  ClearPingSent(sptr);
   cli_lasttime(cptr) = CurrentTime;
 
   if (parc > 5)
@@ -129,6 +129,7 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     cli_serv(cptr)->asll_rtt = atoi(militime_float(parv[3]));
     cli_serv(cptr)->asll_to = atoi(parv[4]);
     cli_serv(cptr)->asll_from = atoi(militime_float(parv[5]));
+    cli_serv(cptr)->asll_last = CurrentTime;
     return 0;
   }
   
@@ -162,7 +163,7 @@ int mr_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(cptr == sptr);
   assert(!IsRegistered(sptr));
 
-  ClrFlag(cptr, FLAG_PINGSENT);
+  ClearPingSent(cptr);
   return (parc > 1) ? auth_set_pong(cli_auth(sptr), strtoul(parv[parc - 1], NULL, 10)) : 0;
 }
 
@@ -178,7 +179,7 @@ int m_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  ClrFlag(cptr, FLAG_PINGSENT);
+  ClearPingSent(cptr);
   cli_lasttime(cptr) = CurrentTime;
   return 0;
 }

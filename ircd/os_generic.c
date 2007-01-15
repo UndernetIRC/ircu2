@@ -450,9 +450,13 @@ IOResult os_recv_nonb(int fd, char* buf, unsigned int length,
   if (0 < (res = recv(fd, buf, length, 0))) {
     *count_out = (unsigned) res;
     return IO_SUCCESS;
+  } else if (res == 0) {
+    *count_out = 0;
+    errno = 0; /* or ECONNRESET? */
+    return IO_FAILURE;
   } else {
     *count_out = 0;
-    return (res < 0) && is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
+    return is_blocked(errno) ? IO_BLOCKED : IO_FAILURE;
   }
 }
 
