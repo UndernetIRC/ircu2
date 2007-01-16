@@ -1,3 +1,14 @@
+2006-01-15  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.iauth (U): Document extended fields.
+
+	* include/s_auth.h (auth_set_user): Declare new parameters.
+
+	* ircd/m_user.c (m_user): Pass new parameters.
+
+	* ircd/s_auth.c (auth_set_user): Accept new parameters.  When
+	using Undernet extensions, forward them to the iauth process.
+
 2006-01-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/os_generic.c (os_recv_nonb): Set errno to zero when

@@ -1043,10 +1043,14 @@ int auth_set_pong(struct AuthRequest *auth, unsigned int cookie)
 /** Record a user's claimed username and userinfo.
  * @param[in] auth Authorization request for client.
  * @param[in] username Client's asserted username.
+ * @param[in] hostname Third argument of USER command (client's
+ *   hostname, per RFC 1459).
+ * @param[in] servername Fourth argument of USER command (server's
+ *   name, per RFC 1459).
  * @param[in] userinfo Client's asserted self-description.
  * @return Zero if client should be kept, CPTR_KILLED if rejected.
  */
-int auth_set_user(struct AuthRequest *auth, const char *username, const char *userinfo)
+int auth_set_user(struct AuthRequest *auth, const char *username, const char *hostname, const char *servername, const char *userinfo)
 {
   struct Client *cptr;
 
@@ -1059,7 +1063,7 @@ int auth_set_user(struct AuthRequest *auth, const char *username, const char *us
   ircd_strncpy(cli_user(cptr)->username, username, USERLEN);
   ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
   if (IAuthHas(iauth, IAUTH_UNDERNET))
-    sendto_iauth(cptr, "U %s :%s", username, userinfo);
+    sendto_iauth(cptr, "U %s %s %s :%s", username, hostname, servername, userinfo);
   else if (IAuthHas(iauth, IAUTH_ADDLINFO))
     sendto_iauth(cptr, "U %s", username);
   return check_auth_finished(auth);

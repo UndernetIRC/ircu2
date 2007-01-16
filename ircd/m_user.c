@@ -139,6 +139,6 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   info     = (EmptyString(parv[4])) ? "No Info" : parv[4];
 
-  return auth_set_user(cli_auth(cptr), username, info);
+  return auth_set_user(cli_auth(cptr), username, parv[2], parv[3], info);
 }
 

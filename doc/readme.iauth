@@ -162,14 +162,15 @@ Comments: Indicates the client's password information.  This may be a
   enabled by requesting the A policy.
 
 U - Client Username
-Syntax: <id> U <username> :<userinfo ...>
-Example: 5 U buddha :Gautama Siddhartha
+Syntax: <id> U <username> <hostname> <servername> :<userinfo ...>
+Example: 5 U buddha bodhisattva.example.com irc.undernet.org :Gautama Siddhartha
 States: REGISTER(1+)
 Next State: -
 Comments: Indicates the client's claimed username and "GECOS"
-  information.  This information is not reliable.  This message is
-  enabled by requesting the A policy.
-Compatibility: ircd does not include the <userinfo> data.
+  information, along with client hostname and server name.  This
+  information is not reliable.  This message is enabled by requesting
+  the A policy.
+Compatibility: ircd only sends the <username> parameter.
 
 u - Client Username
 Syntax: <id> u <username>
