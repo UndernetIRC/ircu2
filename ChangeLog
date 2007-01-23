@@ -1,5 +1,15 @@
 2007-01-22  Michael Poole <mdpoole@troilus.org>
 
+	* tests: New subdirectory for test framework.
+
+	* tests/ircd.conf: Helper file for testing.
+
+	* tests/readme.txt: Simple documentation of test framework.
+
+	* tests/test-driver.pl: Testing script interpreter.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Fix potentially confusing comment about ip
 	mask syntax.
 
