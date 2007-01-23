@@ -89,23 +89,28 @@ set_ban_mask(struct Ban *ban, const char *banstr)
   }
 }
 
+/** Check a channel for join-delayed members.
+ * @param[in] chan Channel to search.
+ * @return Non-zero if any members are join-delayed; false if none are.
+ */
+static int
+find_delayed_joins(const struct Channel *chan)
+{
+  const struct Membership *memb;
+  for (memb = chan->members; memb; memb = memb->next_member)
+    if (IsDelayedJoin(memb))
+      return 1;
+  return 0;
+}
+
 /* CheckDelayedJoins: checks and clear +d if necessary */
 
 static void CheckDelayedJoins(struct Channel *chan)
 {
-  struct Membership *memb2;
-
-  if (chan->mode.mode & MODE_WASDELJOINS) {
-    for (memb2=chan->members;memb2;memb2=memb2->next_member)
-      if (IsDelayedJoin(memb2))
-        break;
-
-    if (!memb2) {
-      /* clear +d */
-      chan->mode.mode &= ~MODE_WASDELJOINS;
-      sendcmdto_channel(&his, CMD_MODE, chan, NULL, SKIP_SERVERS,
-                        "%H -d", chan);
-    }
+  if ((chan->mode.mode & MODE_WASDELJOINS) && !find_delayed_joins(chan)) {
+    chan->mode.mode &= ~MODE_WASDELJOINS;
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+                                     "%H -d", chan);
   }
 }
 
@@ -2046,19 +2051,22 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 int
 modebuf_flush(struct ModeBuf *mbuf)
 {
-  struct Membership *memb;
-
-  /* Check if MODE_WASDELJOINS should be set */
-  if (!(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
-      && (mbuf->mb_rem & MODE_DELJOINS)) {
-    for (memb = mbuf->mb_channel->members; memb; memb = memb->next_member) {
-      if (IsDelayedJoin(memb)) {
-          mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
-          mbuf->mb_add |= MODE_WASDELJOINS;
-          mbuf->mb_rem &= ~MODE_WASDELJOINS;
-          break;
-      }
-    }
+  /* Check if MODE_WASDELJOINS should be set: */
+  /* Must be set if going -D and some clients are hidden */
+  if ((mbuf->mb_rem & MODE_DELJOINS)
+      && !(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
+      && find_delayed_joins(mbuf->mb_channel)) {
+    mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
+    mbuf->mb_add |= MODE_WASDELJOINS;
+    mbuf->mb_rem &= ~MODE_WASDELJOINS;
+  }
+  /* Must be cleared if +D is set */
+  if ((mbuf->mb_add & MODE_DELJOINS)
+      && ((mbuf->mb_channel->mode.mode & (MODE_WASDELJOINS | MODE_WASDELJOINS))
+          == (MODE_WASDELJOINS | MODE_WASDELJOINS))) {
+    mbuf->mb_channel->mode.mode &= ~MODE_WASDELJOINS;
+    mbuf->mb_add &= ~MODE_WASDELJOINS;
+    mbuf->mb_rem |= MODE_WASDELJOINS;
   }
 
   return modebuf_flush_int(mbuf, 1);
@@ -3123,10 +3131,6 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
     } else if (flag_p[0] & MODE_PRIVATE) {
       state->add &= ~MODE_SECRET;
       state->del |= MODE_SECRET;
-    }
-    if (flag_p[0] & MODE_DELJOINS) {
-      state->add &= ~MODE_WASDELJOINS;
-      state->del |= MODE_WASDELJOINS;
     }
   } else {
     state->add &= ~flag_p[0];

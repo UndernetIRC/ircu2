@@ -1,4 +1,37 @@
-2006-01-15  Michael Poole <mdpoole@troilus.org>
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (find_delayed_joins): New function.
+	(modebuf_flush): Handle +D-D and related cases.
+	(mode_parse_mode): It is too early to handle +D here, so don't.
+	(CheckDelayedJoins): Use find_delayed_joins().
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
+	* tests: New subdirectory for test framework.
+
+	* tests/ircd.conf: Helper file for testing.
+
+	* tests/readme.txt: Simple documentation of test framework.
+
+	* tests/test-driver.pl: Testing script interpreter.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Fix potentially confusing comment about ip
+	mask syntax.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
+	* INSTALL: Mention source directory naming; update the reference
+	to the config file converter (hah); update CVS directions.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
+	* include/supported.h: Move parameters from FEATURES1 to FEATURES2
+	so that neither ISUPPORT line has more than 15 parameters.  (Some
+	clients are picky about this.)
+
+2007-01-15  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.iauth (U): Document extended fields.
 
@@ -9,7 +42,7 @@
 	* ircd/s_auth.c (auth_set_user): Accept new parameters.  When
 	using Undernet extensions, forward them to the iauth process.
 
-2006-01-14  Michael Poole <mdpoole@troilus.org>
+2007-01-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/os_generic.c (os_recv_nonb): Set errno to zero when
 	returning IO_FAILURE due to a closed connection.
