@@ -1,5 +1,10 @@
 2007-01-22  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Fix potentially confusing comment about ip
+	mask syntax.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
 	* INSTALL: Mention source directory naming; update the reference
 	to the config file converter (hah); update CVS directions.
 
