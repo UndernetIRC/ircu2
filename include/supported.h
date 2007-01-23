@@ -42,15 +42,16 @@
                 " MODES=%i" \
                 " MAXCHANNELS=%i" \
                 " MAXBANS=%i" \
-                " NICKLEN=%i" \
-                " MAXNICKLEN=%i" \
+                " NICKLEN=%i"
+                
+
+#define FEATURES2 " MAXNICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " AWAYLEN=%i" \
                 " KICKLEN=%i" \
                 " CHANNELLEN=%i" \
-                " MAXCHANNELLEN=%i"
-
-#define FEATURES2 "CHANTYPES=%s" \
+                " MAXCHANNELLEN=%i" \
+                " CHANTYPES=%s" \
                 " PREFIX=%s" \
                 " STATUSMSG=%s" \
                 " CHANMODES=%s" \
@@ -59,11 +60,11 @@
 
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
 			feature_int(FEAT_MAXCHANNELSPERUSER), \
-                        feature_int(FEAT_MAXBANS), feature_int(FEAT_NICKLEN), \
-                        NICKLEN, TOPICLEN, AWAYLEN, TOPICLEN, \
-                        feature_int(FEAT_CHANNELLEN), CHANNELLEN
+                        feature_int(FEAT_MAXBANS), feature_int(FEAT_NICKLEN)
 
-#define FEATURESVALUES2 (feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#"), "(ov)@+", "@+", \
+#define FEATURESVALUES2 NICKLEN, TOPICLEN, AWAYLEN, TOPICLEN, \
+                        feature_int(FEAT_CHANNELLEN), CHANNELLEN, \
+                        (feature_bool(FEAT_LOCAL_CHANNELS) ? "#&" : "#"), "(ov)@+", "@+", \
                         (feature_bool(FEAT_OPLEVELS) ? "b,AkU,l,imnpstrDd" : "b,k,l,imnpstrDd"), \
                         "rfc1459", feature_str(FEAT_NETWORK)
 
