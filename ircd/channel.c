@@ -109,8 +109,8 @@ static void CheckDelayedJoins(struct Channel *chan)
 {
   if ((chan->mode.mode & MODE_WASDELJOINS) && !find_delayed_joins(chan)) {
     chan->mode.mode &= ~MODE_WASDELJOINS;
-    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
-                                     "%H -d", chan);
+    sendcmdto_channel(&his, CMD_MODE, chan, NULL, SKIP_SERVERS,
+                      "%H -d", chan);
   }
 }
 
