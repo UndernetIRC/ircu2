@@ -1,5 +1,12 @@
 2007-01-22  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (find_delayed_joins): New function.
+	(modebuf_flush): Handle +D-D and related cases.
+	(mode_parse_mode): It is too early to handle +D here, so don't.
+	(CheckDelayedJoins): Use find_delayed_joins().
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
 	* tests: New subdirectory for test framework.
 
 	* tests/ircd.conf: Helper file for testing.
