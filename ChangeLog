@@ -1,5 +1,10 @@
 2007-01-22  Michael Poole <mdpoole@troilus.org>
 
+	* INSTALL: Mention source directory naming; update the reference
+	to the config file converter (hah); update CVS directions.
+
+2007-01-22  Michael Poole <mdpoole@troilus.org>
+
 	* include/supported.h: Move parameters from FEATURES1 to FEATURES2
 	so that neither ISUPPORT line has more than 15 parameters.  (Some
 	clients are picky about this.)
