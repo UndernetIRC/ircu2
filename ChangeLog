@@ -1,12 +1,12 @@
-2006-01-21  Michael Poole <mdpoole@troilus.org>
+2007-01-21  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre10 development.
 
-2006-01-20  Michael Poole <mdpoole@troilus.org>
+2007-01-20  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for 2.10.12.09 release.
 
-2006-01-15  Michael Poole <mdpoole@troilus.org>
+2007-01-15  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.iauth (U): Document extended fields.
 
@@ -17,7 +17,7 @@
 	* ircd/s_auth.c (auth_set_user): Accept new parameters.  When
 	using Undernet extensions, forward them to the iauth process.
 
-2006-01-14  Michael Poole <mdpoole@troilus.org>
+2007-01-14  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/os_generic.c (os_recv_nonb): Set errno to zero when
 	returning IO_FAILURE due to a closed connection.
