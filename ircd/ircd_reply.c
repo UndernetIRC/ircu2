@@ -50,17 +50,18 @@
 int protocol_violation(struct Client* cptr, const char* pattern, ...)
 {
   struct VarData vd;
+  char message[BUFSIZE];
 
   assert(pattern);
   assert(cptr);
 
   vd.vd_format = pattern;
   va_start(vd.vd_args, pattern);
-
-  sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-			"Protocol Violation from %s: %v", cli_name(cptr), &vd);
-
+  ircd_snprintf(NULL, message, sizeof(message),
+                "Protocol Violation from %s: %v", cli_name(cptr), &vd);
   va_end(vd.vd_args);
+
+  sendwallto_group_butone(&me, WALL_DESYNCH, NULL, "%s", message);
   return 0;
 }
 

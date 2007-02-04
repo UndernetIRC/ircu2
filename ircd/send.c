@@ -597,6 +597,7 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
 
 /** Send a (prefixed) command to all users on this channel, except for
  * \a one and those matching \a skip.
+ * @warning \a pattern must not contain %v.
  * @param[in] from Client originating the command.
  * @param[in] cmd Long name of command.
  * @param[in] tok Short name of command.
@@ -653,6 +654,7 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 }
 
 /** Send a (prefixed) WALL of type \a type to all users except \a one.
+ * @warning \a pattern must not contain %v.
  * @param[in] from Source of the command.
  * @param[in] type One of WALL_DESYNCH, WALL_WALLOPS or WALL_WALLUSERS.
  * @param[in] one Client direction to skip (or NULL).
@@ -724,6 +726,7 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
 }
 
 /** Send a (prefixed) command to all users matching \a to as \a who.
+ * @warning \a pattern must not contain %v.
  * @param[in] from Source of the command.
  * @param[in] cmd Long name of command.
  * @param[in] tok Short name of command.
