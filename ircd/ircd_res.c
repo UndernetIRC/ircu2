@@ -55,6 +55,10 @@ static struct Socket res_socket_v4;
 static struct Socket res_socket_v6;
 /** Next DNS lookup timeout. */
 static struct Timer res_timeout;
+/** Local address for IPv4 DNS lookups. */
+struct irc_sockaddr VirtualHost_dns_v4;
+/** Local address for IPv6 DNS lookups. */
+struct irc_sockaddr VirtualHost_dns_v6;
 /** Check for whether the resolver has been initialized yet. */
 #define resolver_started() (request_list.next != NULL)
 
@@ -141,6 +145,16 @@ extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
 extern char irc_domain[HOSTLEN];
 
+/** Prepare the resolver library to (optionally) accept a list of
+ * DNS servers through add_dns_server().
+ */
+void clear_nameservers(void)
+{
+  irc_nscount = 0;
+  memset(&VirtualHost_dns_v4, 0, sizeof(VirtualHost_dns_v4));
+  memset(&VirtualHost_dns_v6, 0, sizeof(VirtualHost_dns_v6));
+}
+
 /** Check whether \a inp is a nameserver we use.
  * @param[in] inp Nameserver address.
  * @return Non-zero if we trust \a inp; zero if not.
@@ -165,23 +179,38 @@ res_ourserver(const struct irc_sockaddr *inp)
 void
 restart_resolver(void)
 {
+  int need_v4;
+  int need_v6;
+  int ns;
+
   irc_res_init();
 
   if (!request_list.next)
     request_list.next = request_list.prev = &request_list;
 
-  if (!s_active(&res_socket_v4))
+  /* Check which address family (or families) our nameservers use. */
+  for (need_v4 = need_v6 = ns = 0; ns < irc_nscount; ns++)
   {
-    int fd = os_socket(&VirtualHost_v4, SOCK_DGRAM, "Resolver UDPv4 socket", AF_INET);
+    if (irc_in_addr_is_ipv4(&irc_nsaddr_list[ns].addr))
+      need_v4 = 1;
+    else
+      need_v6 = 1;
+  }
+
+  /* If we need an IPv4 socket, and don't have one, open it. */
+  if (need_v4 && !s_active(&res_socket_v4))
+  {
+    int fd = os_socket(&VirtualHost_dns_v4, SOCK_DGRAM, "Resolver UDPv4 socket", AF_INET);
     if (fd >= 0)
       socket_add(&res_socket_v4, res_readreply, NULL,
                  SS_DATAGRAM, SOCK_EVENT_READABLE, fd);
   }
 
 #ifdef AF_INET6
-  if (!s_active(&res_socket_v6))
+  /* If we need an IPv6 socket, and don't have one, open it. */
+  if (need_v6 && !s_active(&res_socket_v6))
   {
-    int fd = os_socket(&VirtualHost_v6, SOCK_DGRAM, "Resolver UDPv6 socket", AF_INET6);
+    int fd = os_socket(&VirtualHost_dns_v6, SOCK_DGRAM, "Resolver UDPv6 socket", AF_INET6);
     if (fd >= 0)
       socket_add(&res_socket_v6, res_readreply, NULL,
                  SS_DATAGRAM, SOCK_EVENT_READABLE, fd);

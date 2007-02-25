@@ -99,6 +99,7 @@ DIE		return TPRIV_DIE;
 DIRECTCON       return DIRECTCON;
 DIRECTOP        return DIRECTOP;
 DISPLAY		return TPRIV_DISPLAY;
+DNS             return DNS;
 FAST		return FAST;
 FEATURES	return FEATURES;
 FILE		return TFILE;

@@ -209,6 +209,7 @@ permitted(enum ConfigBlock type, int warn)
 %token AUTOCONNECT
 %token PROGRAM
 %token TOK_IPV4 TOK_IPV6
+%token DNS
 %token INCLUDE
 %token LINESYNC
 %token FROM
@@ -351,7 +352,9 @@ generalblock: GENERAL
     parse_error("Your General block must contain a numeric (between 1 and 4095).");
 };
 generalitems: generalitem generalitems | generalitem;
-generalitem: generalnumeric | generalname | generalvhost | generaldesc;
+generalitem: generalnumeric | generalname | generalvhost | generaldesc
+  | generaldnsvhost | generaldnsserver;
+
 generalnumeric: NUMERIC '=' NUMBER ';'
 {
   if (!permitted(BLOCK_GENERAL, 0))
@@ -407,6 +410,36 @@ generalvhost: VHOST '=' QSTRING ';'
   else
     memcpy(&VirtualHost_v6.addr, &addr, sizeof(addr));
   MyFree(vhost);
+};
+
+generaldnsvhost: DNS VHOST '=' address_family QSTRING ';'
+{
+  struct irc_in_addr addr;
+  int families = $4;
+  char *vhost = $5;
+
+  if (!strcmp(vhost, "*")) {
+    /* Let the operating system assign the default. */
+  } else if (!ircd_aton(&addr, vhost))
+    parse_error("Invalid DNS virtual host '%s'.", vhost);
+  else
+  {
+    if ((families & USE_IPV4)
+        || (!families && irc_in_addr_is_ipv4(&addr)))
+      memcpy(&VirtualHost_dns_v4.addr, &addr, sizeof(addr));
+    if ((families & USE_IPV6)
+        || (!families && !irc_in_addr_is_ipv4(&addr)))
+      memcpy(&VirtualHost_dns_v6.addr, &addr, sizeof(addr));
+  }
+  MyFree(vhost);
+};
+
+generaldnsserver: DNS SERVER '=' QSTRING ';'
+{
+  char *server = $4;
+
+  add_nameserver(server);
+  MyFree(server);
 };
 
 adminblock: ADMIN

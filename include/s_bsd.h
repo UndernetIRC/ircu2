@@ -47,6 +47,8 @@ extern int                 HighestFd;
 extern struct Client**     LocalClientArray;
 extern struct irc_sockaddr VirtualHost_v4;
 extern struct irc_sockaddr VirtualHost_v6;
+extern struct irc_sockaddr VirtualHost_dns_v4;
+extern struct irc_sockaddr VirtualHost_dns_v6;
 
 /*
  * Proto types
