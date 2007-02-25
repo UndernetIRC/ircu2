@@ -986,7 +986,7 @@ static Numeric replyTable[] = {
 /* 476 */
   { ERR_BADCHANMASK, "%s :Bad Channel Mask", "476" },
 /* 477 */
-  { ERR_NEEDREGGEDNICK, "%s :Cannot join channel (+r)", "477" },
+  { ERR_NEEDREGGEDNICK, "%s :Cannot join channel (+r): this channel requires authentication -- you can obtain an account from %s", "477" },
 /* 478 */
   { ERR_BANLISTFULL, "%s %s :Channel ban/ignore list is full", "478" },
 /* 479 */

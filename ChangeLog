@@ -1,3 +1,19 @@
+2007-01-27  Jeannot Langlois <jeannot12@linuxmail.org>
+
+	* doc/example.conf (Features): Illustrate URLREG feature.
+
+	* doc/readme.features (URLREG): Define new feature.
+
+	* include/ircd_features.h (Feature): Add FEAT_URLREG.
+
+	* ircd/ircd_features.c (features): Set the default value.
+
+	* ircd/m_join.c (m_join): For ERR_NEEDREGGEDNICK, include the
+	URLREG value as a format argument.
+
+	* ircd/s_err.c (replyTable): Update ERR_NEEDREGGEDNICK
+	appropriately.
+
 2007-02-03  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_reply.c (protocol_violation): Avoid reusing the
