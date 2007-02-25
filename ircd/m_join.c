@@ -239,7 +239,17 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       /* Is there some reason the user may not join? */
       if (err) {
-        send_reply(sptr, err, chptr->chname);
+        switch(err) {
+          case ERR_NEEDREGGEDNICK:
+            send_reply(sptr, 
+                       ERR_NEEDREGGEDNICK, 
+                       chptr->chname, 
+                       feature_str(FEAT_URLREG));            
+            break;
+          default:
+            send_reply(sptr, err, chptr->chname);
+            break;
+        }
         continue;
       }
 

@@ -407,6 +407,7 @@ static struct FeatureDesc {
   /* Misc. random stuff */
   F_S(NETWORK, 0, "UnderNet", 0),
   F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
+  F_S(URLREG, 0, "http://cservice.undernet.org/live/", 0),
 
 #undef F_S
 #undef F_B

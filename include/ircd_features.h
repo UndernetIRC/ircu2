@@ -154,6 +154,7 @@ enum Feature {
   /* Misc. random stuff */
   FEAT_NETWORK,
   FEAT_URL_CLIENTS,
+  FEAT_URLREG,
 
   FEAT_LAST_F
 };

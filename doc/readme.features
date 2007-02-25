@@ -765,6 +765,14 @@ URL_CLIENTS
 
 This defines a URL that users may visit to find compatible IRC clients.
 
+URLREG
+ * Type: string
+ * Default: "http://cservice.undernet.org/live/"
+
+This defines a URL that is used in server response 477 (ERR_NEEDREGGEDNICK) to
+let users know which website they must visit to obtain a proper account for
+authentication.
+
 NICKLEN
  * Type: integer
  * Default: 12
