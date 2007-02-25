@@ -105,7 +105,7 @@
 /** Array of nameserver addresses. */
 struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 /** Number of nameservers in #irc_nsaddr_list. */
-int irc_nscount = 0;
+int irc_nscount;
 /** Local domain to use as a search suffix. */
 char irc_domain[HOSTLEN + 1];
 
@@ -130,7 +130,6 @@ static const char digitvalue[256] = {
 };
 
 static int parse_resvconf(void);
-static void add_nameserver(char *arg);
 
 /** Array of decimal digits, indexed by value. */
 static const char digits[] = "0123456789";
@@ -152,8 +151,7 @@ static int mklower(int ch);
 int
 irc_res_init(void)
 {
-  irc_nscount = 0;
-  return(parse_resvconf());
+  return (irc_nscount == 0) ? parse_resvconf() : 0;
 }
 
 /** Read resolver configuration file for domain and nameserver lines.
@@ -223,13 +221,13 @@ parse_resvconf(void)
 /** Add a resolver to #irc_nsaddr_list.
  * @param[in] arg Dotted quad or IPv6 text form of nameserver address.
  */
-static void
-add_nameserver(char *arg)
+void
+add_nameserver(const char *arg)
 {
   struct irc_sockaddr res;
 
   /* Done max number of nameservers? */
-  if ((irc_nscount + 1) >= IRCD_MAXNS)
+  if (irc_nscount >= IRCD_MAXNS)
     return;
 
   /* Failure converting from numeric string? */

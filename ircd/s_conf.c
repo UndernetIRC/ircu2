@@ -826,6 +826,7 @@ int read_configuration_file(void)
 {
   conf_error = 0;
   feature_unmark(); /* unmark all features for resetting later */
+  clear_nameservers(); /* clear previous list of DNS servers */
   /* Now just open an fd. The buffering isn't really needed... */
   init_lexer();
   yyparse();

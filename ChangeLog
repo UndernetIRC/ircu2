@@ -1,3 +1,35 @@
+2007-02-25  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf: Document new options for General block.
+	
+	* include/res.h (clear_nameservers): Declare new function.
+	(add_nameserver): Declare previously static function.
+
+	* include/s_bsd.h (VirtualHost_dns_v4): Declare.
+	(VirtualHost_dns_v6): Likewise.
+
+	* ircd/ircd_lexer.l (DNS): Recognize new token.
+
+	* ircd/ircd_parser.y (DNS): Declare new token.
+	(generalitem): Allow new items for dns vhost(s) and dns servers.
+	(generaldnsvhost): New production.
+	(generaldnsserver): New production.
+
+	* ircd/ircd_res.c (VirtualHost_dns_v4): New variable.
+	(VirtualHost_dns_v6): Likewise.
+	(clear_nameservers): New function.
+	(restart_resolver): Scan specified servers so we only try to open
+	DNS client sockets that we need.
+
+	* ircd/ircd_reslib.c (irc_nscount): Remove redundant initializer.
+	(irc_res_init): Only read the resolver config file if there are no
+	nameservers provided.
+	(add_nameserver): Make non-static.  Remove off-by-one check
+	against IRCD_MAXNS.
+
+	* ircd/s_conf.c (read_configuration_file): Clear nameserver list
+	before reading the config file.
+
 2007-01-27  Jeannot Langlois <jeannot12@linuxmail.org>
 
 	* doc/example.conf (Features): Illustrate URLREG feature.

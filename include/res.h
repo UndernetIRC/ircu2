@@ -109,6 +109,8 @@ typedef struct
 } HEADER;
 
 extern void restart_resolver(void);
+extern void clear_nameservers(void);
+extern void add_nameserver(const char *ipaddr);
 extern void add_local_domain(char *hname, size_t size);
 extern size_t cres_mem(struct Client* cptr);
 extern void delete_resolver_queries(const void *vptr);
