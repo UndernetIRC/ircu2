@@ -1,3 +1,9 @@
+2007-02-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/os_generic.c (sockaddr_from_irc): Zero out socket address
+	before setting family, and regardless of whether we have an
+	irc_sockaddr template.
+
 2007-02-25  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf: Document new options for General block.
