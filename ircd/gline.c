@@ -77,7 +77,7 @@ count_users(char *mask)
   struct Client *acptr;
   int count = 0;
   char namebuf[USERLEN + HOSTLEN + 2];
-  char ipbuf[USERLEN + 16 + 2];
+  char ipbuf[USERLEN + SOCKIPLEN + 2];
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
     if (!IsUser(acptr))
