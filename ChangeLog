@@ -1,3 +1,11 @@
+2007-03-05  Michael Poole <mdpoole@troilus.org>
+
+	* tests/ircd.conf: Make into a hub.
+
+	* tests/ircd-2.conf: New file, for a second server.
+
+	* tests/ircd-3.conf: Configuration for a third server.
+
 2007-03-04  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/gline.c (count_users): Fix length of ipbuf.  (Spotted by
