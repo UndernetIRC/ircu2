@@ -58,6 +58,7 @@ POE::Session->create(inline_states =>
                       cmd_mode => \&cmd_generic,
                       cmd_nick => \&cmd_generic,
                       cmd_notice => \&cmd_message,
+                      cmd_oper => \&cmd_generic,
                       cmd_part => \&cmd_generic,
                       cmd_privmsg => \&cmd_message,
                       cmd_quit => \&cmd_generic,
