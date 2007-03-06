@@ -94,7 +94,7 @@ int ms_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       else if (MyUser(acptr))
 	client_report_privs(sptr, acptr);
       else
-        sendcmdto_one(cptr, CMD_PRIVS, acptr, "%s%s", NumNick(acptr));
+        sendcmdto_one(sptr, CMD_PRIVS, acptr, "%s%s", NumNick(acptr));
     }
   }
 

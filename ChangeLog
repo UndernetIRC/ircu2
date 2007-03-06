@@ -1,5 +1,14 @@
 2007-03-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_privs.c (ms_privs): Use the correct source when
+	forwarding the PRIVS request.
+
+	* tests/bug-1674539.cmd: New file to test for this.
+
+	* tests/test-driver.pl: Recognize "oper" command from scripts.
+
+2007-03-05  Michael Poole <mdpoole@troilus.org>
+
 	* tests/ircd.conf: Make into a hub.
 
 	* tests/ircd-2.conf: New file, for a second server.
