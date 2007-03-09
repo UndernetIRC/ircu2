@@ -1,5 +1,9 @@
 2007-03-09  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Bump for .pre11 development.
+
+2007-03-09  Michael Poole <mdpoole@troilus.org>
+
 	* include/patchlevel.h (PATCHLEVEL): Bump for u2.10.12.10 release.
 
 2007-03-05  Michael Poole <mdpoole@troilus.org>
