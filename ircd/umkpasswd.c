@@ -400,7 +400,7 @@ const char* options = "a:d:lm:u:y:5:";
    default:
     /* unknown option - spit out syntax and b0rk */
     show_help();
-    abort();
+    exit(1);
    break;
   }
  }

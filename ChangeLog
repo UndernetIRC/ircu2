@@ -1,3 +1,9 @@
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/umkpasswd.c (parse_arguments): Exit cleanly rather than
+	aborting on unrecognized arguments.  It isn't nice to core on
+	"umkpasswd --help"..
+
 2007-03-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Class): Move the "Recommended client classes"
