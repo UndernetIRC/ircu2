@@ -1,5 +1,10 @@
 2007-03-16  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd.c (parse_command_line): Emit a warning if using -x
+	when DEBUGMODE is disabled.
+
+2007-03-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_conf.c (find_conf_exact): Treat maxlinks == 0 as being
 	unlimited here, to match attach_conf()'s behavior.
 
