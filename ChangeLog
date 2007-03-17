@@ -1,3 +1,8 @@
+2007-03-16  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_conf.c (find_conf_exact): Treat maxlinks == 0 as being
+	unlimited here, to match attach_conf()'s behavior.
+
 2007-03-16  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_conf.c (find_kill): check FEAT_DISABLE_GLINES prior to
