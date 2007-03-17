@@ -1,4 +1,4 @@
-GLINE documentation, last updated on 18 Mar 2000
+GLINE documentation, last updated on 17 Mar 2007
 
 For an ordinary user, the syntax is:
 
@@ -10,66 +10,115 @@ an error is returned.
 
 For an operator, the syntax is:
 
-  GLINE [[!][+|-]<mask> [[<target>] <expiration> :<reason>]]
+  GLINE [[!][+|-|>|<]<mask> [<target>] [<expiration> [:<reason>]]]
 
-If <mask> is not given, or if it is not prefixed by "+" or "-", the
-operation is exactly the same as if it were issued by an ordinary
-user, except that a list of all G-lines may be returned.  If the "+"
-or "-" prefixes are used, the arguments <target>, <expiration>, and
-<reason> must be given, even if the G-line already exists.  If
-<target> is "*" and the currently existing G-line is a local G-line,
-the local G-line will be erased and recreated with the parameters
-given, as described below.  Otherwise, if the G-line currently exists,
-a prefix of "+" will cause an inactive G-line to be activated, whereas
-a prefix of "-" will cause an active G-line to be deactivated.  If an
-attempt is made to modify a G-line set by a U-lined service such as
-Uworld, the change will be forced to be local.  If the mask would not
-be permitted due to it being too wide or affecting too many users
-(governed by the GLINEMAXUSERCOUNT feature), the "!" prefix may be
-used to force the G-line to be set anyway.
+There are a total of 10 basic forms of the GLINE command.  If no
+arguments are given, all existing G-lines will be listed; if only
+<mask> is given, the behavior is the same as for an ordinary user.
+The remaining forms allow G-lines to be set, manipulated, or possibly
+destroyed.
 
-If the G-line does not already exist, it is created. The <target>
-parameter is used to select whether the G-line is only to apply to a
-single server (which need not be the local server) or to the whole
-network; if <target> is not given, it is assumed to be the local
-server.  This could be useful if a single particular link is having
-problems, for instance.  The <expiration> parameter is a number of
-seconds, not to exceed 7 days, for the G-line to exist.  The <reason>
-argument is mandatory and should describe why this particular G-line
-was placed.  The <mask> parameter must be a user@host mask; the host
-component must contain at least 2 non-wildcarded subdomains or, if it
-is an IP address, at least 16 bits.  Normally, the host component may
-not contain *any* wildcards, but that can be overridden with the "!"
-prefix, as indicated above, if the operator has the WIDE_GLINE
-privilege.
+* Local G-lines.
+
+Opers may set or remove G-lines that only apply to a specific server.
+When the <target> parameter is not given, the specific server will be
+the local server; otherwise, it will be taken to be a remote server,
+and the G-line operations will take place there, if the oper has the
+GLINE privilege.  When <mask> is preceded with the '+' character, the
+G-line will be added, and <expiration> and <reason> are required; when
+<mask> is preceded with the '-' character, the G-line will be removed,
+and <expiration> and <reason> are not required.  The '<' and '>'
+character prefixes are not valid for local G-lines.
+
+* Local modifications to global G-lines.
+
+Opers may locally activate or deactivate global G-lines.  In this
+mode, <mask> is interpreted as referencing an existing G-line, and
+will be preceded by either '<' (to locally deactivate the G-line) or
+'>' (to locally activate the G-line).  This local state overrides the
+global state of the G-line, and persists until there is a global state
+change to the G-line, or until the G-line expires.  The <expiration>
+and <reason> arguments are not required, but <target> may be given if
+the oper desires to make the appropriate change on a remote
+server--note that the oper will need the GLINE privilege for this.
+
+* Global G-lines.
+
+Opers may, if they have the GLINE privilege, set and manipulate global
+G-lines on the network.  To create a new G-line, the oper must prefix
+the <mask> with either '+' (for globally activated G-lines) or '-'
+(for globally deactivated G-lines).  Additionally, <target> must be
+given as "*", and the <expiration> and <reason> parameters are
+required.  If the G-line already exists, it will be modified to match
+the new global status, <expiration>, and <reason>.
+
+When the G-line already exists, an oper may activate or deactivate it
+simply by setting <target> to "*" and prefixing the <mask> with either
+"+" (to activate the G-line) or "-" (to deactivate it).  If it is
+desired to simply modify the expiration time or reason, without
+changing the activation status, specify <mask> without any prefix, set
+<target> to "*", and provide the updated <expire> and optionally an
+updated <reason>.
+
+* Privilege notes.
+
+Note that, for all locally-restricted G-line changes, such as locally
+activating a G-line or creating a local G-line, the oper must have the
+LOCAL_GLINE privilege.  For any other G-line change, including
+locally-restricted changes on remote servers, the server's
+CONFIG_OPERCMDS privilege must be enabled and the oper must have the
+GLINE privilege.  There are also restrictions to prevent an oper from
+setting a G-line that is too wide; in some cases, those restrictions
+may be overridden by prefixing the <mask> parameter with the "!"
+character, IF the operator has the WIDE_GLINE privilege.
 
 For a server, the syntax is:
 
-  <prefix> GL <target> (+|-)<mask> <expiration> <lastmod> :<reason>
+  <prefix> GL <target> [!][+|-|>|<]<mask> [<expiration>] [<lastmod>]
+	[<lifetime>] [:<reason>]
 
-The <target> may be a server numeric or the character "*", for a
-globally scoped G-line.  The <mask> argument is a server name, and
-must be prefixed by one of "+" (to indicate an active G-line) or "-"
-(to indicate an inactive G-line).  The parameter <expiration> is a
-total number of seconds the G-line is to live for, and <lastmod> is
-used for versioning.  Since GLINEs are propagated during netbursts,
-there must be some way of resolving conflicting states, which is the
-reason for this argument, and is also the reason G-lines cannot be
-deleted, only deactivated.  The <reason> parameter indicates the
-reason the G-line was placed.
+There are a total of 8 basic forms of the GL command.  The primary
+innovation is the addition of the <lifetime> parameter, which
+specifies a lifetime for the G-line record which may be longer than
+the expiration time.  <lifetime> will be monotonically increasing,
+enabling <expiration> to be modified in any way desirable.
 
-If a GLINE is received with a <target> of "*", any G-lines with local
-scope are deleted, in preference for the globally scoped version.  If
-the G-line already exists, the values of <lastmod> are compared; if
-the received <lastmod> is less than the stored <lastmod>, the existing
-G-line is resent to the server from which the GLINE message was
-received; otherwise, the G-line is activated or deactivated, depending
-on the <mask> prefix.  If the G-line does not currently exist, it is
-created with the parameters given.
+* Local G-lines.
 
-For a U-lined server, this syntax should be used:
+Remote servers, or opers on them, may remotely set local G-lines on
+the local server.  To create a local G-line, <target> will be set to
+the numeric of the local server, and <mask> must be preceded by '+'
+(optionally preceded by '!' if the origin desires to override some
+safety settings).  The <expiration> and <reason> parameters are
+required.  The <lastmod> and <lifetime> parameters will be ignored if
+present, allowing backwards compatibility with ircu2.10.12.10 and
+prior versions.  Removing local G-lines is similar--<mask> must be
+preceded by '-', and all other parameters are ignored to allow
+backwards compatibility.
 
-  <prefix> GL <target> +<mask> <expiration> :<reason>
-  <prefix> GL <target> -<mask>
+* Local modifications to global G-lines.
 
-The <lastmod> parameter will be assumed to be 0.
+Remote servers, or opers on them, may also locally activate or
+deactivate a global G-line on the local server.  The <target> must be
+set to the numeric of the local server, and <mask> must be preceded by
+either '<' (to locally deactivate the G-line) or '>' (to locally
+activate the G-line).  This local state overrides the global state of
+the G-line, and persists until there is a global state change to the
+G-line, or until the G-line expires.  No other parameters are
+necessary in this mode, and will be ignored if present.
+
+* Global G-lines.
+
+For creation and manipulation of global G-lines, the <target>
+parameter must be set to "*".  If the G-line does not exist, and if
+<expiration> is given, the G-line will be created with the specified
+expiration and <reason> (the latter defaulting to "No reason" if not
+present).  Otherwise, the G-line will be updated according to the
+available parameters.  The rules are similar to those for oper-issued
+global G-lines, with the addition of a <lastmod> parameter, which is a
+monotonically increasing serial number for the G-line, and an optional
+<lifetime> parameter that specifies a monotonically increasing
+lifetime for the G-line record.  Note that, for existing G-lines where
+only state changes (global activation or deactivation) are necessary,
+only <lastmod> is required; <expiration> must be specified for all
+other forms of the GL command.

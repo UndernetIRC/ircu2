@@ -94,6 +94,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "s_conf.h"
+#include "s_debug.h"
 #include "s_misc.h"
 #include "send.h"
 
@@ -107,17 +108,8 @@
  * parv[0] = Sender prefix
  * parv[1] = Target: server numeric
  * parv[2] = (+|-)<G-line mask>
- * parv[3] = G-line lifetime
  *
- * From Uworld:
- *
- * parv[4] = Comment
- *
- * From somewhere else:
- *
- * parv[4] = Last modification time
- * parv[5] = Comment
- *
+ * For other parameters, see doc/readme.gline.
  */
 int
 ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
@@ -132,11 +124,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (parc < 3)
     return need_more_params(sptr, "GLINE");
 
+  if (IsServer(sptr))
+    flags |= GLINE_FORCE;
+
   if (*mask == '!') {
     mask++;
     flags |= GLINE_OPERFORCE; /* assume oper had WIDE_GLINE */
-  } else if (IsServer(sptr))
-    flags |= GLINE_FORCE;
+  }
 
   switch (*mask) { /* handle +, -, <, and > */
   case '+': /* activate the G-line */
@@ -164,19 +158,35 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if (action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE ||
       (target[0] == '*' && target[1] == '\0'))
     flags |= GLINE_GLOBAL;
-  else {
-    if (!(acptr = FindNServer(target)))
-      return 0; /* no such server, jump out */
-
+  else
     flags |= GLINE_LOCAL;
+
+  /* now figure out if we need to resolve a server */
+  if ((action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE ||
+       (flags & GLINE_LOCAL)) && !(acptr = FindNServer(target)))
+    return 0; /* no such server, jump out */
+
+  /* If it's a local activate/deactivate and server isn't me, propagate it */
+  if ((action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE) &&
+      !IsMe(acptr)) {
+    Debug((DEBUG_DEBUG, "I am forwarding a local change to a global gline "
+	   "to a remote server; target %s, mask %s, operforce %s, action %s",
+	   target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
+	   action == GLINE_LOCAL_ACTIVATE ? ">" : "<"));
+
+    sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s", acptr,
+		  flags & GLINE_OPERFORCE ? "!" : "",
+		  action == GLINE_LOCAL_ACTIVATE ? ">" : "<", mask);
+
+    return 0; /* all done */
   }
 
   /* Next, try to find the G-line... */
   if ((flags & GLINE_GLOBAL) || IsMe(acptr)) /* don't bother if it's not me! */
     agline = gline_find(mask, flags | GLINE_ANY | GLINE_EXACT);
 
-  /* We now have all the pieces to tell us what we've got; let's
-   * put it all together and convert the rest of the arguments.
+  /* We now have all the pieces to tell us what we've got; let's put
+   * it all together and convert the rest of the arguments.
    */
 
   /* Handle the local G-lines first... */
@@ -197,22 +207,29 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       reason = parv[parc - 1]; /* and reason */
 
       if (IsMe(acptr)) {
-	/* XXX and create the local G-line */
-	sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-				"I would create a local G-line here; target "
-				"%s, mask %s, operforce %s, action %s, "
-				"expire %Tu, reason: %s", target, mask,
-				flags & GLINE_OPERFORCE ? "YES" : "NO",
-				action == GLINE_ACTIVATE ? "+" : "-",
-				expire_off, reason);
+	if (agline) /* G-line already exists, so let's ignore it... */
+	  return 0;
+
+	/* OK, create the local G-line */
+	Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
+	       "mask %s, operforce %s, action %s, expire %Tu, reason: %s",
+	       target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
+	       action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+
+	return gline_add(cptr, sptr, mask, reason, expire_off, lastmod,
+			 lifetime, flags | GLINE_ACTIVE);
       }
     } else if (IsMe(acptr)) { /* destroying a local G-line */
-      /* XXX destroy the G-line */;
-      sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-			      "I would destroy a local G-line here; target "
-			      "%s, mask %s, operforce %s, action %s", target,
-			      mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-			      action == GLINE_ACTIVATE ? "+" : "-");
+      if (!agline) /* G-line doesn't exist, so let's complain... */
+	return send_reply(sptr, ERR_NOSUCHGLINE, mask);
+
+      /* Let's now destroy the G-line */;
+      Debug((DEBUG_DEBUG, "I am destroying a local G-line here; target %s, "
+	     "mask %s, operforce %s, action %s", target, mask,
+	     flags & GLINE_OPERFORCE ? "YES" : "NO",
+	     action == GLINE_ACTIVATE ? "+" : "-"));
+
+      return gline_destroy(cptr, sptr, agline);
     }
 
     /* OK, we've converted arguments; if it's not for us, forward */
@@ -221,20 +238,19 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * <lastmod> for GLINE_ACTIVATE and to omit <expire>, <lastmod>,
      * and <reason> for GLINE_DEACTIVATE.
      */
-    if (!IsMe(acptr)) {
-      sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-			      "I am forwarding a local G-line to a remote "
-			      "server; target %s, mask %s, operforce %s, "
-			      "action %s, expire %Tu, lastmod %Tu, reason: %s",
-			      target, mask,
-			      flags & GLINE_OPERFORCE ? "YES" : "NO",
-			      action == GLINE_ACTIVATE ? "+" :  "-",
-			      expire_off, CurrentTime, reason);
-      sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
-		    acptr, flags & GLINE_OPERFORCE ? "!" : "",
-		    action == GLINE_ACTIVATE ? '+' : '-', mask, expire_off,
-		    CurrentTime, reason);
-    }
+    assert(!IsMe(acptr));
+
+    Debug((DEBUG_DEBUG, "I am forwarding a local G-line to a remote server; "
+	   "target %s, mask %s, operforce %s, action %s, expire %Tu, "
+	   "lastmod %Tu, reason: %s", target, mask,
+	   flags & GLINE_OPERFORCE ? "YES" : "NO",
+	   action == GLINE_ACTIVATE ? "+" :  "-", expire_off, CurrentTime,
+	   reason));
+
+    sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
+		  acptr, flags & GLINE_OPERFORCE ? "!" : "",
+		  action == GLINE_ACTIVATE ? '+' : '-', mask, expire_off,
+		  CurrentTime, reason);
 
     return 0; /* all done */
   }
@@ -247,6 +263,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   switch (action) {
   case GLINE_LOCAL_ACTIVATE: /* locally activating a G-line */
   case GLINE_LOCAL_DEACTIVATE: /* locally deactivating a G-line */
+    if (!agline) /* no G-line to locally activate or deactivate? */
+      return send_reply(sptr, ERR_NOSUCHGLINE, mask);
     break; /* no additional parameters to manipulate */
 
   case GLINE_ACTIVATE: /* activating a G-line */
@@ -266,9 +284,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       expire_off = atoi(parv[3]); /* convert expiration and lastmod */
       lastmod = atoi(parv[4]);
 
+      flags |= GLINE_EXPIRE; /* we have an expiration time update */
+
       if (parc > 6) { /* no question, have a lifetime and reason */
 	lifetime = atoi(parv[5]);
 	reason = parv[parc - 1];
+
+	flags |= GLINE_LIFETIME | GLINE_REASON;
       } else if (parc == 6) { /* either a lifetime or a reason */
 	if (!agline || /* gline creation, has to be the reason */
 	    /* trial-convert as lifetime, and if it doesn't fully convert,
@@ -276,111 +298,42 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	    ((lifetime = strtoul(parv[5], &tmp, 10)) && !*tmp)) {
 	  lifetime = 0;
 	  reason = parv[5];
-	}
+
+	  flags |= GLINE_REASON; /* have a reason update */
+	} else if (lifetime)
+	  flags |= GLINE_LIFETIME; /* have a lifetime update */
       }
     }
   }
 
-  sendwallto_group_butone(&me, WALL_DESYNCH, NULL,
-			  "I have a global G-line I would act upon now; "
-			  "target %s, mask %s, operforce %s, action %s, "
-			  "expire %Tu, lastmod %Tu, lifetime %Tu, "
-			  "reason: %s; gline %s!",
-			  target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-			  action == GLINE_ACTIVATE ? "+" :
-			  (action == GLINE_DEACTIVATE ? "-" :
-			   (action == GLINE_LOCAL_ACTIVATE ? ">" :
-			    (action == GLINE_LOCAL_DEACTIVATE ? "<" :
-			     "(MODIFY)"))), expire_off, lastmod, lifetime,
-			  reason, agline ? "EXISTS" : "does not exist");
+  Debug((DEBUG_DEBUG, "I have a global G-line I am acting upon now; "
+	 "target %s, mask %s, operforce %s, action %s, expire %Tu, "
+	 "lastmod %Tu, lifetime %Tu, reason: %s; gline %s!  (fields "
+	 "present: %s %s %s)", target, mask,
+	 flags & GLINE_OPERFORCE ? "YES" : "NO",
+	 action == GLINE_ACTIVATE ? "+" :
+	 (action == GLINE_DEACTIVATE ? "-" :
+	  (action == GLINE_LOCAL_ACTIVATE ? ">" :
+	   (action == GLINE_LOCAL_DEACTIVATE ? "<" : "(MODIFY)"))),
+	 expire_off, lastmod, lifetime, reason,
+	 agline ? "EXISTS" : "does not exist",
+	 flags & GLINE_EXPIRE ? "expire" : "",
+	 flags & GLINE_LIFETIME ? "lifetime" : "",
+	 flags & GLINE_REASON ? "reason" : ""));
 
   /* OK, at this point, we have converted all available parameters.
    * Let's actually do the action!
    */
   if (agline)
-    /* XXX modify the G-line */;
+    return gline_modify(cptr, sptr, agline, action, reason, expire_off,
+			lastmod, lifetime, flags);
 
-  /* XXX create the G-line */return 0;
+  assert(action != GLINE_LOCAL_ACTIVATE);
+  assert(action != GLINE_LOCAL_DEACTIVATE);
+  assert(action != GLINE_MODIFY);
 
-
-
-
-
-/*   if ((parc == 3 && *mask == '-') || parc == 5) */
-/*   { */
-/*     if (!find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD)) */
-/*       return need_more_params(sptr, "GLINE"); */
-
-/*     flags |= GLINE_FORCE; */
-/*   } */
-/*   else if (parc > 5) */
-/*     lastmod = atoi(parv[4]); */
-/*   else */
-/*     return need_more_params(sptr, "GLINE"); */
-
-/*   if (parc > 4) */
-/*     reason = parv[parc - 1]; */
-
-/*   if (IsServer(sptr)) */
-/*     flags |= GLINE_FORCE; */
-
-/*   if (!(target[0] == '*' && target[1] == '\0')) { */
-/*     if (!(acptr = FindNServer(target))) */
-/*       return 0; /\* no such server *\/ */
-
-/*     if (!IsMe(acptr)) { /\* manually propagate *\/ */
-/*       if (!lastmod) */
-/* 	sendcmdto_one(sptr, CMD_GLINE, acptr, */
-/* 		      (parc == 3) ? "%C %s" : "%C %s %s :%s", acptr, mask, */
-/* 		      parv[3], reason); */
-/*       else */
-/* 	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%s %s %s :%s", acptr, */
-/* 		      flags & GLINE_OPERFORCE ? "!" : "", mask, parv[3], */
-/* 		      parv[4], reason); */
-
-/*       return 0; */
-/*     } */
-
-/*     flags |= GLINE_LOCAL; */
-/*   } */
-
-/*   if (*mask == '-') */
-/*     mask++; */
-/*   else if (*mask == '+') { */
-/*     flags |= GLINE_ACTIVE; */
-/*     mask++; */
-/*   } else */
-/*     flags |= GLINE_ACTIVE; */
-
-/*   expire_off = parc < 5 ? 0 : atoi(parv[3]); */
-
-/*   agline = gline_find(mask, GLINE_ANY | GLINE_EXACT); */
-
-/*   if (agline) { */
-/*     if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /\* global over local *\/ */
-/*       gline_free(agline); */
-/*     else if (!lastmod && ((flags & GLINE_ACTIVE) == GlineIsRemActive(agline))) */
-/*       return gline_propagate(cptr, sptr, agline); */
-/*     else if (!lastmod || GlineLastMod(agline) < lastmod) { /\* new mod *\/ */
-/*       if (flags & GLINE_ACTIVE) */
-/* 	return gline_activate(cptr, sptr, agline, lastmod, flags); */
-/*       else */
-/* 	return gline_deactivate(cptr, sptr, agline, lastmod, flags); */
-/*     } else if (GlineLastMod(agline) == lastmod || IsBurstOrBurstAck(cptr)) */
-/*       return 0; */
-/*     else */
-/*       return gline_resend(cptr, agline); /\* other server desynched WRT gline *\/ */
-/*   } else if (parc == 3 && !(flags & GLINE_ACTIVE)) { */
-/*     /\* U-lined server removing a G-line we don't have; propagate the removal */
-/*      * anyway. */
-/*      *\/ */
-/*     if (!(flags & GLINE_LOCAL)) */
-/*       sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* -%s", mask); */
-/*     return 0; */
-/*   } else if (parc < 5) */
-/*     return need_more_params(sptr, "GLINE"); */
-
-/*   return gline_add(cptr, sptr, mask, reason, expire_off, lastmod, flags); */
+  return gline_add(cptr, sptr, mask, reason, expire_off, lastmod, lifetime,
+		   flags | ((action == GLINE_ACTIVATE) ? GLINE_ACTIVE : 0));
 }
 
 /*
@@ -389,26 +342,17 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
  * parv[0] = Sender prefix
  * parv[1] = [[+|-]<G-line mask>]
  *
- * Local (to me) style:
- *
- * parv[2] = [Expiration offset]
- * parv[3] = [Comment]
- *
- * Global (or remote local) style:
- *
- * parv[2] = [target]
- * parv[3] = [Expiration offset]
- * parv[4] = [Comment]
- *
+ * For other parameters, see doc/readme.gline.
  */
 int
 mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   struct Client *acptr = 0;
-  struct Gline *agline;
+  struct Gline *agline = 0;
   unsigned int flags = 0;
-  time_t expire_off;
-  char *mask = parv[1], *target = 0, *reason;
+  enum GlineAction action = GLINE_MODIFY;
+  time_t expire_off = 0;
+  char *mask = parv[1], *target = 0, *reason = 0;
 
   if (parc < 2)
     return gline_list(sptr, 0);
@@ -420,77 +364,210 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       flags |= GLINE_OPERFORCE;
   }
 
-  if (*mask == '+') {
-    flags |= GLINE_ACTIVE;
+  switch (*mask) { /* handle +, -, <, and > */
+  case '+': /* activate the G-line */
+    action = GLINE_ACTIVATE;
     mask++;
+    break;
 
-  } else if (*mask == '-')
+  case '-': /* deactivate the G-line */
+    action = GLINE_DEACTIVATE;
     mask++;
-  else
-    return gline_list(sptr, mask);
+    break;
 
-  if (parc == 4) {
-    expire_off = atoi(parv[2]);
-    reason = parv[3];
+  case '>': /* locally activate the G-line */
+    action = GLINE_LOCAL_ACTIVATE;
+    mask++;
+    break;
+
+  case '<': /* locally deactivate the G-line */
+    action = GLINE_LOCAL_DEACTIVATE;
+    mask++;
+    break;
+  }
+
+  /* OK, let's figure out the parameters... */
+  switch (action) {
+  case GLINE_MODIFY: /* no specific action on the G-line... */
+    if (parc == 2) /* user wants a listing of a specific G-line */
+      return gline_list(sptr, mask);
+    else if (parc < 4) /* must have target and expire, minimum */
+      return need_more_params(sptr, "GLINE");
+
+    target = parv[2]; /* get the target... */
+    expire_off = atoi(parv[3]); /* and the expiration */
+
+    flags |= GLINE_EXPIRE; /* remember that we got an expire time */
+
+    if (parc > 4) { /* also got a reason... */
+      reason = parv[4];
+      flags |= GLINE_REASON;
+    }
+
+    /* target is not global, interpolate action and require reason */
+    if (target[0] != '*' || target[1] != '\0') {
+      if (!reason) /* have to have a reason for this */
+	return need_more_params(sptr, "GLINE");
+
+      action = GLINE_ACTIVATE;
+    }
+    break;
+
+  case GLINE_LOCAL_ACTIVATE: /* locally activate a G-line */
+  case GLINE_LOCAL_DEACTIVATE: /* locally deactivate a G-line */
+    if (parc > 2) /* if target is available, pick it */
+      target = parv[2];
+    break;
+
+  case GLINE_ACTIVATE: /* activating/adding a G-line */
+  case GLINE_DEACTIVATE: /* deactivating/removing a G-line */
+    if (parc < 3)
+      return need_more_params(sptr, "GLINE");
+
+    if (parc > 3) {
+      /* get expiration and target */
+      expire_off = atoi(parv[parc - 2]);
+      reason = parv[parc - 1];
+
+      flags |= GLINE_EXPIRE | GLINE_REASON; /* remember that we got 'em */
+
+      if (parc > 4) /* also have a target! */
+	target = parv[2];
+    } else {
+      target = parv[2]; /* target has to be present, and has to be '*' */
+
+      if (target[0] != '*' || target[1] != '\0')
+	return need_more_params(sptr, "GLINE");
+    }
+    break;
+  }
+
+  /* Now let's figure out which is the target server */
+  if (!target) /* no target, has to be me... */
+    acptr = &me;
+  /* if it's not '*', look up the server */
+  else if ((target[0] != '*' || target[1] != '\0') &&
+	   !(acptr = find_match_server(target)))
+    return send_reply(sptr, ERR_NOSUCHSERVER, target);
+
+  /* Now, is the G-line local or global? */
+  if (action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE ||
+      !acptr)
+    flags |= GLINE_GLOBAL;
+  else /* it's some form of local G-line */
     flags |= GLINE_LOCAL;
-  } else if (parc > 4) {
-    target = parv[2];
-    expire_off = atoi(parv[3]);
-    reason = parv[4];
-  } else
-    return need_more_params(sptr, "GLINE");
 
-  if (target)
-  {
-    if (!(target[0] == '*' && target[1] == '\0'))
-    {
-      if (!(acptr = find_match_server(target)))
-	return send_reply(sptr, ERR_NOSUCHSERVER, target);
+  /* If it's a local activate/deactivate and server isn't me, propagate it */
+  if ((action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE) &&
+      !IsMe(acptr)) {
+    Debug((DEBUG_DEBUG, "I am forwarding a local change to a global gline "
+	   "to a remote server; target %s, mask %s, operforce %s, action %s",
+	   cli_name(acptr), mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
+	   action == GLINE_LOCAL_ACTIVATE ? ">" : "<"));
 
-      /* manually propagate, since we don't set it */
-      if (!IsMe(acptr))
-      {
-	if (!feature_bool(FEAT_CONFIG_OPERCMDS))
-	  return send_reply(sptr, ERR_DISABLED, "GLINE");
+    sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s", acptr,
+		  flags & GLINE_OPERFORCE ? "!" : "",
+		  action == GLINE_LOCAL_ACTIVATE ? ">" : "<", mask);
 
-	if (!HasPriv(sptr, PRIV_GLINE))
-	  return send_reply(sptr, ERR_NOPRIVILEGES);
+    return 0; /* all done */
+  }
 
-	sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %s %Tu :%s", acptr,
-		      flags & GLINE_OPERFORCE ? "!" : "",
-		      flags & GLINE_ACTIVE ? '+' : '-', mask, parv[3],
-		      TStime(), reason);
+  /* Next, try to find the G-line... */
+  if ((flags & GLINE_GLOBAL) || IsMe(acptr)) /* don't bother if it's not me! */
+    agline = gline_find(mask, flags | GLINE_ANY | GLINE_EXACT);
+
+  /* We now have all the pieces to tell us what we've got; let's put
+   * it all together and convert the rest of the arguments.
+   */
+
+  /* Handle the local G-lines first... */
+  if (flags & GLINE_LOCAL) {
+    assert(acptr);
+
+    /* normalize the action, first */
+    if (action == GLINE_LOCAL_ACTIVATE || action == GLINE_MODIFY)
+      action = GLINE_ACTIVATE;
+    else if (action == GLINE_LOCAL_DEACTIVATE)
+      action = GLINE_DEACTIVATE;
+
+    /* If it's not for us, forward */
+    /* UPDATE NOTE: Once all servers are updated to u2.10.12.11, the
+     * format string in this sendcmdto_one() may be updated to omit
+     * <lastmod> for GLINE_ACTIVATE and to omit <expire>, <lastmod>,
+     * and <reason> for GLINE_DEACTIVATE.
+     */
+
+    if (!IsMe(acptr)) {
+      Debug((DEBUG_DEBUG, "I am forwarding a local G-line to a remote "
+	     "server; target %s, mask %s, operforce %s, action %s, "
+	     "expire %Tu, reason %s", target, mask,
+	     flags & GLINE_OPERFORCE ? "YES" : "NO",
+	     action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+
+      sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
+		    acptr, flags & GLINE_OPERFORCE ? "!" : "",
+		    action == GLINE_ACTIVATE ? "+" : "-", mask, expire_off,
+		    CurrentTime, reason);
+
+      return 0; /* all done */
+    }
+
+    /* let's handle activation... */
+    if (action == GLINE_ACTIVATE) {
+      if (agline) /* G-line already exists, so let's ignore it... */
 	return 0;
-      }
-      flags |= GLINE_LOCAL;
+
+      /* OK, create the local G-line */
+      Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
+	     "mask %s, operforce %s, action  %s, expire %Tu, reason: %s",
+	     target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
+	     action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+
+      return gline_add(cptr, sptr, mask, reason, expire_off, 0, 0,
+		       flags | GLINE_ACTIVE);
+    } else { /* OK, it's a deactivation/destruction */
+      if (!agline) /* G-line doesn't exist, so let's complain... */
+	return send_reply(sptr, ERR_NOSUCHGLINE, mask);
+
+      /* Let's now destroy the G-line */
+      Debug((DEBUG_DEBUG, "I am destroying a local G-line here; target %s, "
+	     "mask %s, operforce %s, action %s", target, mask,
+	     flags & GLINE_OPERFORCE ? "YES" : "NO",
+	     action == GLINE_ACTIVATE ? "+" : "-"));
+
+      return gline_destroy(cptr, sptr, agline);
     }
   }
 
-  if (!(flags & GLINE_LOCAL) && !feature_bool(FEAT_CONFIG_OPERCMDS))
-    return send_reply(sptr, ERR_DISABLED, "GLINE");
+  /* can't modify a G-line that doesn't exist... */
+  if (!agline &&
+      (action == GLINE_MODIFY || action == GLINE_LOCAL_ACTIVATE ||
+       action == GLINE_LOCAL_DEACTIVATE))
+    return send_reply(sptr, ERR_NOSUCHGLINE, mask);
 
-  if (!HasPriv(sptr, (flags & GLINE_LOCAL ? PRIV_LOCAL_GLINE : PRIV_GLINE)))
-    return send_reply(sptr, ERR_NOPRIVILEGES);
+  Debug((DEBUG_DEBUG, "I have a global G-line I am acting upon now; "
+	 "target %s, mask %s, operforce %s, action %s, expire %Tu, "
+	 "reason: %s; gline %s!  (fields present: %s %s)", target, 
+	 mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
+	 action == GLINE_ACTIVATE ? "+" :
+	 (action == GLINE_DEACTIVATE ? "-" :
+	  (action == GLINE_LOCAL_ACTIVATE ? ">" :
+	   (action == GLINE_LOCAL_DEACTIVATE ? "<" : "(MODIFY)"))),
+	 expire_off, reason, agline ? "EXISTS" : "does not exist",
+	 flags & GLINE_EXPIRE ? "expire" : "",
+	 flags & GLINE_REASON ? "reason" : ""));
 
-  agline = gline_find(mask, GLINE_ANY | GLINE_EXACT);
+  if (agline) /* modifying an existing G-line */
+    return gline_modify(cptr, sptr, agline, action, reason, expire_off,
+			CurrentTime, 0, flags);
 
-  if (agline) {
-    if (GlineIsLocal(agline) && !(flags & GLINE_LOCAL)) /* global over local */
-      gline_free(agline);
-    else {
-      if (!GlineLastMod(agline)) /* force mods to Uworld-set G-lines local */
-	flags |= GLINE_LOCAL;
+  assert(action != GLINE_LOCAL_ACTIVATE);
+  assert(action != GLINE_LOCAL_DEACTIVATE);
+  assert(action != GLINE_MODIFY);
 
-      if (flags & GLINE_ACTIVE)
-	return gline_activate(cptr, sptr, agline,
-			      GlineLastMod(agline) ? TStime() : 0, flags);
-      else
-	return gline_deactivate(cptr, sptr, agline,
-				GlineLastMod(agline) ? TStime() : 0, flags);
-    }
-  }
-
-  return gline_add(cptr, sptr, mask, reason, expire_off, TStime(), flags);
+  /* create a new G-line */
+  return gline_add(cptr, sptr, mask, reason, expire_off, CurrentTime, 0,
+		   flags | ((action == GLINE_ACTIVATE) ? GLINE_ACTIVE : 0));
 }
 
 /*

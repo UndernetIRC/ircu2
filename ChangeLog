@@ -1,3 +1,50 @@
+2007-03-17  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_err.c: update replies to handle new fields in
+	RPL_STATSGLINE and RPL_GLIST--new fields indicate G-line lastmod,
+	G-line lifetime, and local activation status
+
+	* ircd/m_gline.c: update function documentation for ms_gline();
+	move test for server to before mask processing; don't look up
+	remote server too early; add code to process local activations and
+	deactivations early in ms_gline(); implement adding and destroying
+	local G-lines; don't try to locally activate or deactivate G-lines
+	that don't exist; add code to keep track of which fields were
+	available to ms_gline(); implement G-line modification and
+	creation; remove old ms_gline() code; convert
+	sendwallto_group_butone() calls to Debug() calls; reimplement
+	mo_gline() to take into account new syntax
+
+	* ircd/gline.c: change gl_rexpire to gl_lifetime to better reflect
+	its meaning; make sure to set gl_state to GLOCAL_GLOBAL when
+	G-line expires; add lifetime parameter to make_gline(); disable
+	overlapping G-line check; initialize gl_lifetime from lifetime
+	parameter; initialize gl_state to GLOCAL_GLOBAL; update
+	gline_propagate() to send lifetime parameter; add lifetime
+	parameter to gline_add(); remove some old code in gline_add();
+	figure out lifetime to set on new G-line; remove test for
+	make_gline() returning NULL, since it should never do so now; add
+	modify_gline() for modifying global G-lines; add gline_destroy()
+	for destroying local G-lines; update gline_burst() to send
+	lifetime parameter; update gline_resend() to send lifetime
+	parameter; update gline_list() to add lastmod, lifetime, and local
+	status indicators; update gline_stats() to send lastmod, lifetime,
+	and local status indicators; count BADCHANs in
+	gline_memory_count()
+
+	* include/gline.h: add enum GlineLocalState for keeping track of
+	local state changes to global G-lines; store state in struct
+	Gline; document enum GlineAction; add GLINE_EXPIRE,
+	GLINE_LIFETIME, and GLINE_REASON flags to indicate the presence of
+	those fields to gline_modify(); add GLINE_UPDATE mask for checking
+	for the above flags; update GlineIsActive() to take into account
+	new gl_state field in struct Gline; add lifetime to gline_add();
+	add gline_modify() for modifying existing global G-lines, and
+	gline_destroy() for destroying local G-lines
+
+	* doc/readme.gline: update documentation to reflect changes made
+	to G-line command syntax
+
 2007-03-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/umkpasswd.c (parse_arguments): Exit cleanly rather than
