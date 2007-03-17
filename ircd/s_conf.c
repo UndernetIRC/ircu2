@@ -662,6 +662,7 @@ struct ConfItem* find_conf_exact(const char* name, struct Client *cptr, int stat
     else if (!ipmask_check(&cli_ip(cptr), &tmp->address.addr, tmp->addrbits))
       continue;
     if ((tmp->status & CONF_OPERATOR)
+        && (MaxLinks(tmp->conn_class) > 0)
         && (tmp->clients >= MaxLinks(tmp->conn_class)))
       continue;
     return tmp;

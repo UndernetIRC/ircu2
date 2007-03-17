@@ -509,6 +509,9 @@ static void parse_command_line(int argc, char** argv) {
 	debuglevel = 0;
       debugmode = optarg;
       thisServer.bootopt |= BOOT_DEBUG;
+#ifndef DEBUGMODE
+      printf("WARNING: DEBUGMODE disabled; -x has no effect.\n");
+#endif
       break;
 
     default:
