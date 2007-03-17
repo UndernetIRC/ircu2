@@ -47,9 +47,18 @@ struct Gline {
   char	       *gl_reason;    /**< Reason for G-line. */
   time_t	gl_expire;    /**< Expiration timestamp. */
   time_t	gl_lastmod;   /**< Last modification timestamp. */
+  time_t	gl_rexpire;   /**< Record expiration timestamp. */
   struct irc_in_addr gl_addr; /**< IP address (for IP-based G-lines). */
   unsigned char gl_bits;      /**< Usable bits in gl_addr. */
   unsigned int	gl_flags;     /**< G-line status flags. */
+};
+
+enum GlineAction {
+  GLINE_ACTIVATE,
+  GLINE_DEACTIVATE,
+  GLINE_LOCAL_ACTIVATE,
+  GLINE_LOCAL_DEACTIVATE,
+  GLINE_MODIFY
 };
 
 #define GLINE_ACTIVE	0x0001  /**< G-line is active. */

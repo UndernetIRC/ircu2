@@ -1,3 +1,28 @@
+2007-03-16  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_conf.c (find_kill): check FEAT_DISABLE_GLINES prior to
+	checking for a G-line matching a new user
+
+	* ircd/m_gline.c (ms_gline): rework ms_gline() to handle new
+	command syntax--although it can parse the new syntax, it doesn't
+	yet perform the actions demanded by that syntax
+
+	* ircd/ircd_features.c: trap-door feature FEAT_DISABLE_GLINES to
+	disable G-lines
+
+	* ircd/gline.c: create gliter() macro which performs an iteration
+	over all G-lines in a specified G-line list; initialize record
+	expire in make_gline() (to be redone); check FEAT_DISABLE_GLINES
+	in do_gline(); add and document what happens if GLINE_LOCAL is
+	passed to gline_find()
+
+	* include/ircd_features.h: trap-door feature FEAT_DISABLE_GLINES
+	to disable G-lines; intended use: accidental G-line of *@*
+
+	* include/gline.h: add rexpire (record expiration time) field to
+	gline description structure; add GlineAction enumeration (still
+	undocumented) to describe actions that may be performed on G-lines
+
 2007-03-09  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for .pre11 development.

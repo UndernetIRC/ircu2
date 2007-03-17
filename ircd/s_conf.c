@@ -1085,7 +1085,7 @@ int find_kill(struct Client *cptr)
     return -1;
   }
 
-  if ((agline = gline_lookup(cptr, 0))) {
+  if (!feature_bool(FEAT_DISABLE_GLINES) && (agline = gline_lookup(cptr, 0))) {
     /*
      * find active glines
      * added a check against the user's IP address to find_gline() -Kev

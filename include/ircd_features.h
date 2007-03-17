@@ -59,6 +59,7 @@ enum Feature {
   FEAT_ZANNELS,
   FEAT_LOCAL_CHANNELS,
   FEAT_TOPIC_BURST,
+  FEAT_DISABLE_GLINES,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,
