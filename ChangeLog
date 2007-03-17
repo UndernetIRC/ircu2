@@ -1,5 +1,12 @@
 2007-03-16  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Class): Move the "Recommended client classes"
+	comment to a better place (and stop recommending them).  Clarify
+	what maxlinks does.  Make it clear that Operator password entries
+	only support umkpasswd formats.
+	
+2007-03-16  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd.c (parse_command_line): Emit a warning if using -x
 	when DEBUGMODE is disabled.
 
