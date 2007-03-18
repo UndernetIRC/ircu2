@@ -1,3 +1,8 @@
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/list.c (free_link): Only decrement the in-use count of
+	links if we free a link.
+
 2007-03-17  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/s_err.c: update replies to handle new fields in
