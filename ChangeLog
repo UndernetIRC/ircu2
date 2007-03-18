@@ -1,5 +1,10 @@
 2007-03-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/listener.c (add_listener): Only try to create IPv6 sockets
+	for IPv6-compatible addresses; likewise for IPv4.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf (Operator): Update documentation to mention
 	more than one host entry is allowed.
 	(Motd): Likewise.
