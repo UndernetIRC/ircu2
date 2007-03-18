@@ -1,5 +1,22 @@
 2007-03-17  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (Operator): Update documentation to mention
+	more than one host entry is allowed.
+	(Motd): Likewise.
+
+	* ircd/ircd_parser.y (hosts): New file-scope variable.
+	(free_slist): New helper function.
+	(operblock): Iterate over hosts instead of using the single host.
+	(operhost): Prepend the mask to hosts.
+	(motdblock): Iterate over hosts instead of using the single host.
+	(motdhost): Prepend the mask to hosts.
+	(motdfile): Fix possible leak of "pass" string (the filename).
+
+	* ircd/s_conf.c (conf_parse_userhost): Stop freeing the host
+	string; operblock (the only caller) frees it now.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/list.c (free_link): Only decrement the in-use count of
 	links if we free a link.
 

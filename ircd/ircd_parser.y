@@ -74,6 +74,7 @@
   /* Now all the globals we need :/... */
   int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
+  struct SLink *hosts;
   char *stringlist[MAX_STRINGS];
   struct ListenerFlags listen_flags;
   struct ConnectionClass *c_class;
@@ -90,6 +91,16 @@ static void parse_error(char *pattern,...) {
   ircd_vsnprintf(NULL, error_buffer, sizeof(error_buffer), pattern, vl);
   va_end(vl);
   yyerror(error_buffer);
+}
+
+static void free_slist(struct SLink **link) {
+  struct SLink *next;
+  while (*link != NULL) {
+    next = (*link)->next;
+    MyFree((*link)->value.cp);
+    free_link(*link);
+    *link = next;
+  }
 }
 
 %}
@@ -560,33 +571,33 @@ uworldname: NAME '=' QSTRING ';'
 operblock: OPER '{' operitems '}' ';'
 {
   struct ConfItem *aconf = NULL;
+  struct SLink *link;
+
   if (name == NULL)
     parse_error("Missing name in operator block");
   else if (pass == NULL)
     parse_error("Missing password in operator block");
   /* Do not check password length because it may be crypted. */
-  else if (host == NULL)
-    parse_error("Missing host in operator block");
+  else if (hosts == NULL)
+    parse_error("Missing host(s) in operator block");
   else if (c_class == NULL)
     parse_error("Invalid or missing class in operator block");
   else if (!FlagHas(&privs_dirty, PRIV_PROPAGATE)
            && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
     parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
-  else {
+  else for (link = hosts; link != NULL; link = link->next) {
     aconf = make_conf(CONF_OPERATOR);
-    aconf->name = name;
-    aconf->passwd = pass;
-    conf_parse_userhost(aconf, host);
+    DupString(aconf->name, name);
+    DupString(aconf->passwd, pass);
+    conf_parse_userhost(aconf, link->value.cp);
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
   }
-  if (!aconf) {
-    MyFree(name);
-    MyFree(pass);
-    MyFree(host);
-  }
-  name = pass = host = NULL;
+  MyFree(name);
+  MyFree(pass);
+  free_slist(&hosts);
+  name = pass = NULL;
   c_class = NULL;
   memset(&privs, 0, sizeof(privs));
   memset(&privs_dirty, 0, sizeof(privs_dirty));
@@ -605,16 +616,19 @@ operpass: PASS '=' QSTRING ';'
 };
 operhost: HOST '=' QSTRING ';'
 {
- MyFree(host);
+ struct SLink *link;
+ link = make_link();
  if (!strchr($3, '@'))
  {
    int uh_len;
-   host = (char*) MyMalloc((uh_len = strlen($3)+3));
-   ircd_snprintf(0, host, uh_len, "*@%s", $3);
-   MyFree($3);
+   link->value.cp = (char*) MyMalloc((uh_len = strlen($3)+3));
+   ircd_snprintf(0, link->value.cp, uh_len, "*@%s", $3);
  }
  else
-   host = $3;
+   DupString(link->value.cp, $3);
+ MyFree($3);
+ link->next = hosts;
+ hosts = link;
 };
 operclass: CLASS '=' QSTRING ';'
 {
@@ -968,22 +982,29 @@ cruleall: ALL '=' YES ';'
 
 motdblock: MOTD '{' motditems '}' ';'
 {
-  if (host != NULL && pass != NULL)
-    motd_add(host, pass);
-  MyFree(host);
+  struct SLink *link;
+  if (pass != NULL)
+    for (link = hosts; link != NULL; link = link->next)
+      motd_add(link->value.cp, pass);
+  free_slist(&hosts);
   MyFree(pass);
-  host = pass = NULL;
+  pass = NULL;
 };
 
 motditems: motditem motditems | motditem;
 motditem: motdhost | motdfile;
 motdhost: HOST '=' QSTRING ';'
 {
-  host = $3;
+  struct SLink *link;
+  link = make_link();
+  link->value.cp = $3;
+  link->next = hosts;
+  hosts = link;
 };
 
 motdfile: TFILE '=' QSTRING ';'
 {
+  MyFree(pass);
   pass = $3;
 };
 

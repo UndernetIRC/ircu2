@@ -221,7 +221,6 @@ void conf_parse_userhost(struct ConfItem *aconf, char *host)
     aconf->addrbits = addrbits;
   else
     aconf->addrbits = -1;
-  MyFree(host);
 }
 
 /** Copies a completed DNS query into its ConfItem.
