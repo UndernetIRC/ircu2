@@ -4,7 +4,7 @@ dnl
 dnl   Check whether we have posix, bsd or sysv non-blocking sockets and
 dnl   define respectively NBLOCK_POSIX, NBLOCK_BSD or NBLOCK_SYSV.
 dnl
-AC_DEFUN(unet_NONBLOCKING,
+AC_DEFUN([unet_NONBLOCKING],
 [dnl Do we have posix, bsd or sysv non-blocking stuff ?
 AC_CACHE_CHECK([for posix non-blocking], unet_cv_sys_nonblocking_posix,
 [AC_TRY_RUN([#include <sys/types.h>
@@ -71,7 +71,7 @@ dnl   Check if we have posix signals, reliable bsd signals or
 dnl   unreliable sysv signals and define respectively POSIX_SIGNALS,
 dnl   BSD_RELIABLE_SIGNALS or SYSV_UNRELIABLE_SIGNALS.
 dnl
-AC_DEFUN(unet_SIGNALS,
+AC_DEFUN([unet_SIGNALS],
 [dnl Do we have posix signals, reliable bsd signals or unreliable sysv signals ?
 AC_CACHE_CHECK([for posix signals], unet_cv_sys_signal_posix,
 [AC_TRY_COMPILE([#include <signal.h>],
@@ -108,7 +108,7 @@ dnl Macro: unet_CHECK_TYPE_SIZES
 dnl
 dnl Check the size of several types and define a valid int16_t and int32_t.
 dnl
-AC_DEFUN(unet_CHECK_TYPE_SIZES,
+AC_DEFUN([unet_CHECK_TYPE_SIZES],
 [dnl Check type sizes
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
@@ -179,7 +179,7 @@ dnl
 dnl The check for libresolv is in case you are attempting to link statically
 dnl and happen to have a libresolv.a lying around (and no libnsl.a).
 dnl
-AC_DEFUN(AC_LIBRARY_NET, [
+AC_DEFUN([AC_LIBRARY_NET], [
    # Most operating systems have gethostbyname() in the default searched
    # libraries (i.e. libc):
    AC_CHECK_FUNC(gethostbyname, ,

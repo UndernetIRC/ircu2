@@ -1,3 +1,10 @@
+2007-03-18  Michael Poole <mdpoole@troilus.org>
+
+	* acinclude.m4 (unet_NONBLOCKING): Properly quote function name.
+	(unet_SIGNALS): Likewise.
+	(unet_CHECK_TYPE_SIZES): Likewise.
+	(AC_LIBRARY_NET): Likewise.
+
 2007-03-18  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_gline.c (mo_gline): add permissions checks I kept
