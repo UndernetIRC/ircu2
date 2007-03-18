@@ -59,8 +59,8 @@
 #include <arpa/inet.h>
 
 #define MAX_STRINGS 80 /* Maximum number of feature params. */
-#define USE_IPV4 (1 << 0)
-#define USE_IPV6 (1 << 1)
+#define USE_IPV4 (1 << 16)
+#define USE_IPV6 (1 << 17)
 
   extern struct LocalConf   localConf;
   extern struct DenyConf*   denyConfList;
@@ -75,6 +75,7 @@
   /* Now all the globals we need :/... */
   static int tping, tconn, maxlinks, sendq, port, invert, stringno, flags;
   static char *name, *pass, *host, *ip, *username, *origin, *hub_limit;
+  struct SLink *hosts;
   static char *stringlist[MAX_STRINGS];
   struct ListenerFlags listen_flags;
   static struct ConnectionClass *c_class;
@@ -138,6 +139,16 @@ permitted(enum ConfigBlock type, int warn)
               includes->cb_fname);
   }
   return 0;
+}
+
+static void free_slist(struct SLink **link) {
+  struct SLink *next;
+  while (*link != NULL) {
+    next = (*link)->next;
+    MyFree((*link)->value.cp);
+    free_link(*link);
+    *link = next;
+  }
 }
 
 %}
@@ -663,6 +674,8 @@ uworldblock: UWORLD QSTRING ';'
 operblock: OPER '{' operitems '}' ';'
 {
   struct ConfItem *aconf = NULL;
+  struct SLink *link;
+
   if (!permitted(BLOCK_OPER, 1))
     ;
   else if (name == NULL)
@@ -670,28 +683,26 @@ operblock: OPER '{' operitems '}' ';'
   else if (pass == NULL)
     parse_error("Missing password in operator block");
   /* Do not check password length because it may be crypted. */
-  else if (host == NULL)
-    parse_error("Missing host in operator block");
+  else if (hosts == NULL)
+    parse_error("Missing host(s) in operator block");
   else if (c_class == NULL)
     parse_error("Invalid or missing class in operator block");
   else if (!FlagHas(&privs_dirty, PRIV_PROPAGATE)
            && !FlagHas(&c_class->privs_dirty, PRIV_PROPAGATE))
     parse_error("Operator block for %s and class %s have no LOCAL setting", name, c_class->cc_name);
-  else {
+  else for (link = hosts; link != NULL; link = link->next) {
     aconf = make_conf(CONF_OPERATOR);
-    aconf->name = name;
-    aconf->passwd = pass;
-    conf_parse_userhost(aconf, host);
+    DupString(aconf->name, name);
+    DupString(aconf->passwd, pass);
+    conf_parse_userhost(aconf, link->value.cp);
     aconf->conn_class = c_class;
     memcpy(&aconf->privs, &privs, sizeof(aconf->privs));
     memcpy(&aconf->privs_dirty, &privs_dirty, sizeof(aconf->privs_dirty));
   }
-  if (!aconf) {
-    MyFree(name);
-    MyFree(pass);
-    MyFree(host);
-  }
-  name = pass = host = NULL;
+  MyFree(name);
+  MyFree(pass);
+  free_slist(&hosts);
+  name = pass = NULL;
   c_class = NULL;
   memset(&privs, 0, sizeof(privs));
   memset(&privs_dirty, 0, sizeof(privs_dirty));
@@ -710,16 +721,19 @@ operpass: PASS '=' QSTRING ';'
 };
 operhost: HOST '=' QSTRING ';'
 {
- MyFree(host);
+ struct SLink *link;
+ link = make_link();
  if (!strchr($3, '@'))
  {
    int uh_len;
-   host = (char*) MyMalloc((uh_len = strlen($3)+3));
-   ircd_snprintf(0, host, uh_len, "*@%s", $3);
-   MyFree($3);
+   link->value.cp = (char*) MyMalloc((uh_len = strlen($3)+3));
+   ircd_snprintf(0, link->value.cp, uh_len, "*@%s", $3);
  }
  else
-   host = $3;
+   DupString(link->value.cp, $3);
+ MyFree($3);
+ link->next = hosts;
+ hosts = link;
 };
 operclass: CLASS '=' QSTRING ';'
 {
@@ -788,47 +802,69 @@ address_family:
 /* The port block... */
 portblock: PORT '{' portitems '}' ';'
 {
+  struct ListenerFlags flags_here;
+  struct SLink *link;
   if (!permitted(BLOCK_PORT, 1))
     ;
-  else if (port > 0 && port <= 0xFFFF)
-  {
-    if (!FlagHas(&listen_flags, LISTEN_IPV4)
-        && !FlagHas(&listen_flags, LISTEN_IPV6))
-    {
-      FlagSet(&listen_flags, LISTEN_IPV4);
-      FlagSet(&listen_flags, LISTEN_IPV6);
+  else for (link = hosts; link != NULL; link = link->next) {
+    memcpy(&flags_here, &listen_flags, sizeof(&flags_here));
+    switch (link->flags & (USE_IPV4 | USE_IPV6)) {
+    case USE_IPV4:
+      FlagSet(&flags_here, LISTEN_IPV4);
+      break;
+    case USE_IPV6:
+      FlagSet(&flags_here, LISTEN_IPV6);
+      break;
+    default: /* 0 or USE_IPV4|USE_IPV6 */
+      FlagSet(&flags_here, LISTEN_IPV4);
+      FlagSet(&flags_here, LISTEN_IPV6);
+      break;
     }
-    add_listener(port, host, pass, &listen_flags);
+    if (link->flags & 65535)
+      port = link->flags & 65535;
+    add_listener(port, link->value.cp, pass, &flags_here);
   }
-  else
-    parse_error("Port %d is out of range", port);
-  MyFree(host);
+  free_slist(&hosts);
   MyFree(pass);
   memset(&listen_flags, 0, sizeof(listen_flags));
-  host = pass = NULL;
+  pass = NULL;
   port = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portmask | portserver | porthidden;
+portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | porthidden;
 portnumber: PORT '=' address_family NUMBER ';'
 {
-  int families = $3;
-  if (families & USE_IPV4)
-    FlagSet(&listen_flags, LISTEN_IPV4);
-  else if (families & USE_IPV6)
-    FlagSet(&listen_flags, LISTEN_IPV6);
-  port = $4;
+  if ($4 < 1 || $4 > 65535) {
+    parse_error("Port %d is out of range", port);
+  } else {
+    port = $3 | $4;
+    if (hosts && (0 == (hosts->flags & 65535)))
+      hosts->flags = (hosts->flags & ~65535) | port;
+  }
 };
 
 portvhost: VHOST '=' address_family QSTRING ';'
 {
-  int families = $3;
-  if (families & USE_IPV4)
-    FlagSet(&listen_flags, LISTEN_IPV4);
-  else if (families & USE_IPV6)
-    FlagSet(&listen_flags, LISTEN_IPV6);
-  MyFree(host);
-  host = $4;
+  struct SLink *link;
+  link = make_link();
+  link->value.cp = $4;
+  link->flags = $3 | port;
+  link->next = hosts;
+  hosts = link;
+};
+
+portvhostnumber: VHOST '=' address_family QSTRING NUMBER ';'
+{
+  if ($5 < 1 || $5 > 65535) {
+    parse_error("Port %d is out of range", port);
+  } else {
+    struct SLink *link;
+    link = make_link();
+    link->value.cp = $4;
+    link->flags = $3 | $5;
+    link->next = hosts;
+    hosts = link;
+  }
 };
 
 portmask: MASK '=' QSTRING ';'
@@ -1061,22 +1097,30 @@ crule_expr:
 
 motdblock: MOTD '{' motditems '}' ';'
 {
-  if (permitted(BLOCK_MOTD, 1) && host != NULL && pass != NULL)
-    motd_add(host, pass);
-  MyFree(host);
+  struct SLink *link;
+  if (permitted(BLOCK_MOTD, 1) && pass != NULL) {
+    for (link = hosts; link != NULL; link = link->next)
+      motd_add(link->value.cp, pass);
+  }
+  free_slist(&hosts);
   MyFree(pass);
-  host = pass = NULL;
+  pass = NULL;
 };
 
 motditems: motditem motditems | motditem;
 motditem: motdhost | motdfile;
 motdhost: HOST '=' QSTRING ';'
 {
-  host = $3;
+  struct SLink *link;
+  link = make_link();
+  link->value.cp = $3;
+  link->next = hosts;
+  hosts = link;
 };
 
 motdfile: TFILE '=' QSTRING ';'
 {
+  MyFree(pass);
   pass = $3;
 };
 

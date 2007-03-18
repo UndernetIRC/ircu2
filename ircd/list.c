@@ -452,8 +452,8 @@ void free_link(struct SLink* lp)
   if (lp) {
     lp->next = slinkFreeList;
     slinkFreeList = lp;
+    links.inuse--;
   }
-  links.inuse--;
 }
 
 /** Add an element to a doubly linked list.

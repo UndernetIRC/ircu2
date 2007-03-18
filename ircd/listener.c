@@ -315,7 +315,8 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     listener->mask_bits = 0;
 
 #ifdef IPV6
-  if (FlagHas(&listener->flags, LISTEN_IPV6)) {
+  if (FlagHas(&listener->flags, LISTEN_IPV6)
+      && (irc_in_addr_unspec(&vaddr) || !irc_in_addr_is_ipv4(&vaddr))) {
     if (listener->fd_v6 >= 0) {
       set_listener_options(listener, listener->fd_v6);
       okay = 1;
@@ -330,7 +331,8 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   }
 #endif
 
-  if (FlagHas(&listener->flags, LISTEN_IPV4)) {
+  if (FlagHas(&listener->flags, LISTEN_IPV4)
+      && (irc_in_addr_unspec(&vaddr) || irc_in_addr_is_ipv4(&vaddr))) {
     if (listener->fd_v4 >= 0) {
       set_listener_options(listener, listener->fd_v4);
       okay = 1;

@@ -1,3 +1,46 @@
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Port): Document the optional additional field
+	for vhost entries.  Document the support for multiple vhost
+	entries in a single Port block.
+
+	* ircd/ircd_parser.y (USE_IPV4): Shift up by 16 bytes.
+	(USE_IPV6): Likewise.
+	(portblock): Iterate over hosts rather than using the single host.
+	(portitem): Add portvhostnumber alternative production.
+	(portnumber): Check port number here.  If valid, combine address
+	family and port number in "port" variable.  If a port-less item
+	exists in "hosts", set its port number.
+	(portvhost): Prepend mask to "hosts" list.
+	(portvhostnumber): New production.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/listener.c (add_listener): Only try to create IPv6 sockets
+	for IPv6-compatible addresses; likewise for IPv4.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* doc/example.conf (Operator): Update documentation to mention
+	more than one host entry is allowed.
+	(Motd): Likewise.
+
+	* ircd/ircd_parser.y (hosts): New file-scope variable.
+	(free_slist): New helper function.
+	(operblock): Iterate over hosts instead of using the single host.
+	(operhost): Prepend the mask to hosts.
+	(motdblock): Iterate over hosts instead of using the single host.
+	(motdhost): Prepend the mask to hosts.
+	(motdfile): Fix possible leak of "pass" string (the filename).
+
+	* ircd/s_conf.c (conf_parse_userhost): Stop freeing the host
+	string; operblock (the only caller) frees it now.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/list.c (free_link): Only decrement the in-use count of
+	links if we free a link.
+
 2007-03-16  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Class): Move the "Recommended client classes"
