@@ -460,6 +460,12 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* If it's a local activate/deactivate and server isn't me, propagate it */
   if ((action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE) &&
       !IsMe(acptr)) {
+    /* check for permissions... */
+    if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+      return send_reply(sptr, ERR_DISABLED, "GLINE");
+    else if (!HasPriv(sptr, PRIV_GLINE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+
     Debug((DEBUG_DEBUG, "I am forwarding a local change to a global gline "
 	   "to a remote server; target %s, mask %s, operforce %s, action %s",
 	   cli_name(acptr), mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
@@ -498,6 +504,12 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      */
 
     if (!IsMe(acptr)) {
+      /* check for permissions... */
+      if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+	return send_reply(sptr, ERR_DISABLED, "GLINE");
+      else if (!HasPriv(sptr, PRIV_GLINE))
+	return send_reply(sptr, ERR_NOPRIVILEGES);
+
       Debug((DEBUG_DEBUG, "I am forwarding a local G-line to a remote "
 	     "server; target %s, mask %s, operforce %s, action %s, "
 	     "expire %Tu, reason %s", target, mask,
@@ -511,6 +523,10 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       return 0; /* all done */
     }
+
+    /* check local G-line permissions... */
+    if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
 
     /* let's handle activation... */
     if (action == GLINE_ACTIVATE) {
@@ -544,6 +560,18 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       (action == GLINE_MODIFY || action == GLINE_LOCAL_ACTIVATE ||
        action == GLINE_LOCAL_DEACTIVATE))
     return send_reply(sptr, ERR_NOSUCHGLINE, mask);
+
+  /* check for G-line permissions... */
+  if (action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE) {
+    /* only need local privileges for locally-limited status changes */
+    if (!HasPriv(sptr, PRIV_LOCAL_GLINE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+  } else { /* global privileges required */
+    if (!feature_bool(FEAT_CONFIG_OPERCMDS))
+      return send_reply(sptr, ERR_DISABLED, "GLINE");
+    else if (!HasPriv(sptr, PRIV_GLINE))
+      return send_reply(sptr, ERR_NOPRIVILEGES);
+  }
 
   Debug((DEBUG_DEBUG, "I have a global G-line I am acting upon now; "
 	 "target %s, mask %s, operforce %s, action %s, expire %Tu, "
