@@ -60,8 +60,8 @@
 #include <arpa/inet.h>
 
 #define MAX_STRINGS 80 /* Maximum number of feature params. */
-#define USE_IPV4 (1 << 0)
-#define USE_IPV6 (1 << 1)
+#define USE_IPV4 (1 << 16)
+#define USE_IPV6 (1 << 17)
 
   extern struct LocalConf   localConf;
   extern struct DenyConf*   denyConfList;
@@ -695,45 +695,68 @@ address_family:
     ;
 
 /* The port block... */
-portblock: PORT '{' portitems '}' ';'
-{
-  if (!FlagHas(&listen_flags, LISTEN_IPV4)
-      && !FlagHas(&listen_flags, LISTEN_IPV6))
-  {
-    FlagSet(&listen_flags, LISTEN_IPV4);
-    FlagSet(&listen_flags, LISTEN_IPV6);
+portblock: PORT '{' portitems '}' ';' {
+  struct ListenerFlags flags_here;
+  struct SLink *link;
+  for (link = hosts; link != NULL; link = link->next) {
+    memcpy(&flags_here, &listen_flags, sizeof(&flags_here));
+    switch (link->flags & (USE_IPV4 | USE_IPV6)) {
+    case USE_IPV4:
+      FlagSet(&flags_here, LISTEN_IPV4);
+      break;
+    case USE_IPV6:
+      FlagSet(&flags_here, LISTEN_IPV6);
+      break;
+    default: /* 0 or USE_IPV4|USE_IPV6 */
+      FlagSet(&flags_here, LISTEN_IPV4);
+      FlagSet(&flags_here, LISTEN_IPV6);
+      break;
+    }
+    if (link->flags & 65535)
+      port = link->flags & 65535;
+    add_listener(port, link->value.cp, pass, &flags_here);
   }
-  if (port > 0 && port <= 0xFFFF)
-    add_listener(port, host, pass, &listen_flags);
-  else
-    parse_error("Port %d is out of range", port);
-  MyFree(host);
+  free_slist(&hosts);
   MyFree(pass);
   memset(&listen_flags, 0, sizeof(listen_flags));
-  host = pass = NULL;
+  pass = NULL;
   port = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portmask | portserver | porthidden;
+portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | porthidden;
 portnumber: PORT '=' address_family NUMBER ';'
 {
-  int families = $3;
-  if (families & USE_IPV4)
-    FlagSet(&listen_flags, LISTEN_IPV4);
-  else if (families & USE_IPV6)
-    FlagSet(&listen_flags, LISTEN_IPV6);
-  port = $4;
+  if ($4 < 1 || $4 > 65535) {
+    parse_error("Port %d is out of range", port);
+  } else {
+    port = $3 | $4;
+    if (hosts && (0 == (hosts->flags & 65535)))
+      hosts->flags = (hosts->flags & ~65535) | port;
+  }
 };
 
 portvhost: VHOST '=' address_family QSTRING ';'
 {
-  int families = $3;
-  if (families & USE_IPV4)
-    FlagSet(&listen_flags, LISTEN_IPV4);
-  else if (families & USE_IPV6)
-    FlagSet(&listen_flags, LISTEN_IPV6);
-  MyFree(host);
-  host = $4;
+  struct SLink *link;
+  link = make_link();
+  link->value.cp = $4;
+  link->flags = $3 | port;
+  link->next = hosts;
+  hosts = link;
+};
+
+portvhostnumber: VHOST '=' address_family QSTRING NUMBER ';'
+{
+  if ($5 < 1 || $5 > 65535) {
+    parse_error("Port %d is out of range", port);
+  } else {
+    struct SLink *link;
+    link = make_link();
+    link->value.cp = $4;
+    link->flags = $3 | $5;
+    link->next = hosts;
+    hosts = link;
+  }
 };
 
 portmask: MASK '=' QSTRING ';'
@@ -931,28 +954,30 @@ cruleblock: CRULE
 } '{' cruleitems '}' ';'
 {
   struct CRuleNode *node = NULL;
-  if (host == NULL)
-    parse_error("Missing host in crule block");
+  struct SLink *link;
+
+  if (hosts == NULL)
+    parse_error("Missing server(s) in crule block");
   else if (pass == NULL)
     parse_error("Missing rule in crule block");
   else if ((node = crule_parse(pass)) == NULL)
     parse_error("Invalid rule '%s' in crule block", pass);
-  else
+  else for (link = hosts; link != NULL; link = link->next)
   {
     struct CRuleConf *p = (struct CRuleConf*) MyMalloc(sizeof(*p));
-    p->hostmask = host;
-    p->rule = pass;
+    if (node == NULL)
+      node = crule_parse(pass);
+    DupString(p->hostmask, link->value.cp);
+    DupString(p->rule, pass);
     p->type = tconn;
     p->node = node;
+    node = NULL;
     p->next = cruleConfList;
     cruleConfList = p;
   }
-  if (!node)
-  {
-    MyFree(host);
-    MyFree(pass);
-  }
-  host = pass = NULL;
+  free_slist(&hosts);
+  MyFree(pass);
+  pass = NULL;
   tconn = 0;
 };
 
@@ -961,9 +986,11 @@ cruleitem: cruleserver | crulerule | cruleall;
 
 cruleserver: SERVER '=' QSTRING ';'
 {
-  MyFree(host);
-  collapse($3);
-  host = $3;
+  struct SLink *link;
+  link = make_link();
+  link->value.cp = $3;
+  link->next = hosts;
+  hosts = link;
 };
 
 crulerule: RULE '=' QSTRING ';'

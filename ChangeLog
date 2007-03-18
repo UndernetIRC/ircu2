@@ -1,5 +1,26 @@
 2007-03-17  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf (CRule): Document the support for multiple
+	server masks in a single CRule block.
+	(Port): Document the optional additional field for vhost entries.
+	Document the support for multiple vhost entries in a single Port
+	block.
+
+	* ircd/ircd_parser.y (USE_IPV4): Shift up by 16 bytes.
+	(USE_IPV6): Likewise.
+	(portblock): Iterate over hosts rather than using the single host.
+	(portitem): Add portvhostnumber alternative production.
+	(portnumber): Check port number here.  If valid, combine address
+	family and port number in "port" variable.  If a port-less item
+	exists in "hosts", set its port number.
+	(portvhost): Prepend mask to "hosts" list.
+	(portvhostnumber): New production.
+	(cruleblock): Iterate over hosts rather than using the single
+	host.
+	(cruleserver): Prepend server mask to "hosts" list.
+
+2007-03-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/listener.c (add_listener): Only try to create IPv6 sockets
 	for IPv6-compatible addresses; likewise for IPv4.
 
