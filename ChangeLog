@@ -1,3 +1,7 @@
+2007-03-26  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.iauth (iauth I): Fix example and syntax.
+
 2007-03-18  Michael Poole <mdpoole@troilus.org>
 
 	* acinclude.m4 (unet_NONBLOCKING): Properly quote function name.

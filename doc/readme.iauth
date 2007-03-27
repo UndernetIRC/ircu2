@@ -366,8 +366,8 @@ Compatibility: This is an Undernet extension and ircd does not support
   this message.
 
 I - Client IP Address
-Syntax: N <id> <currentip> <remoteport> <newip>
-Example: N 5 192.168.1.10 23367 127.128.129.130
+Syntax: I <id> <currentip> <remoteport> <newip>
+Example: I 5 192.168.1.10 23367 127.128.129.130
 States: REGISTER, HURRY
 Next State: -
 Comments: Indicates that the iauth instance wants the server to
