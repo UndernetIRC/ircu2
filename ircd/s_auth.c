@@ -1990,7 +1990,9 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   } else {
     /* Try to find the client associated with the request. */
     id = strtol(params[0], NULL, 10);
-    if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id]))
+    if (parc < 3)
+      sendto_iauth(NULL, "E Missing :Need <id> <ip> <port>");
+    else if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id]))
       /* Client no longer exists (or never existed). */
       sendto_iauth(NULL, "E Gone :[%s %s %s]", params[0], params[1],
 		   params[2]);

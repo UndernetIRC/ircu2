@@ -1,5 +1,16 @@
 2007-03-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (iauth_parse): Check for missing arguments when
+	parsing the iauth message.
+
+	* tests/bug-1685648.cmd: New file to test this.
+
+	* tests/iauth-test: New file to exercise the code path.
+
+	* tests/ircd.conf: Use the iauth-test helper program.
+
+2007-03-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_silence.c (forward_silences): Do not try twice to process
 	silences that were both added and deleted.
 
