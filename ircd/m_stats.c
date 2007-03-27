@@ -140,6 +140,12 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
        ((sd->sd_flags & STAT_FLAG_OPERFEAT) && feature_bool(sd->sd_control))))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
+  /* Ok, track down who's supposed to get this... */
+  if (hunt_server_cmd(sptr, CMD_STATS, cptr, feature_int(FEAT_HIS_REMOTE),
+		      param ? "%s %C :%s" : "%s :%C", 2, parc, parv) !=
+      HUNTED_ISME)
+    return 0; /* Someone else--cool :) */
+
   /* Check if they are a local user */
   if ((sd->sd_flags & STAT_FLAG_LOCONLY) && !MyUser(sptr))
     return send_reply(sptr, ERR_NOPRIVILEGES);
@@ -147,12 +153,6 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Check for extra parameter */
   if ((sd->sd_flags & STAT_FLAG_VARPARAM) && parc > 3 && !EmptyString(parv[3]))
     param = parv[3];
-
-  /* Ok, track down who's supposed to get this... */
-  if (hunt_server_cmd(sptr, CMD_STATS, cptr, feature_int(FEAT_HIS_REMOTE),
-		      param ? "%s %C :%s" : "%s :%C", 2, parc, parv) !=
-      HUNTED_ISME)
-    return 0; /* Someone else--cool :) */
 
   assert(sd->sd_func != 0);
 

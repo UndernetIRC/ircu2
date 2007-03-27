@@ -1,5 +1,10 @@
 2007-03-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_stats.c (m_stats): Move check for STAT_FLAG_LOCONLY (and
+	the assignment to "param") to the hunted server.
+
+2007-03-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (iauth_parse): Check for missing arguments when
 	parsing the iauth message.
 
