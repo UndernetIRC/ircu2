@@ -698,6 +698,14 @@ address_family:
 portblock: PORT '{' portitems '}' ';' {
   struct ListenerFlags flags_here;
   struct SLink *link;
+  if (hosts == NULL) {
+    struct SLink *link;
+    link = make_link();
+    DupString(link->value.cp, "*");
+    link->flags = 0;
+    link->next = hosts;
+    hosts = link;
+  }
   for (link = hosts; link != NULL; link = link->next) {
     memcpy(&flags_here, &listen_flags, sizeof(&flags_here));
     switch (link->flags & (USE_IPV4 | USE_IPV6)) {

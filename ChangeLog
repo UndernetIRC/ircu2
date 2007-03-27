@@ -1,5 +1,10 @@
 2007-03-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y (portblock): Restore old behavior for Port
+	blocks with no host listed.
+
+2007-03-26  Michael Poole <mdpoole@troilus.org>
+
 	* doc/readme.iauth (iauth I): Fix example and syntax.
 
 2007-03-18  Michael Poole <mdpoole@troilus.org>
