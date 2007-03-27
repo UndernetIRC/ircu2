@@ -64,6 +64,7 @@ apply_silence(struct Client *sptr, char *mask)
 {
   struct Ban *sile;
   int flags;
+  int res;
   char orig_mask[NICKLEN+USERLEN+HOSTLEN+3];
 
   assert(mask && mask[0]);
@@ -100,7 +101,8 @@ apply_silence(struct Client *sptr, char *mask)
   }
 
   /* Apply it to the silence list. */
-  return apply_ban(&cli_user(sptr)->silence, sile, 1) ? NULL : sile;
+  res = apply_ban(&cli_user(sptr)->silence, sile, 1);
+  return res ? NULL : sile;
 }
 
 /** Apply and send silence updates for a user.
@@ -122,7 +124,6 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
     if ((sile = apply_silence(sptr, cp)))
       accepted[ac_count++] = sile;
   }
-
 
   if (MyUser(sptr)) {
     size_t siles, maxsiles, totlength, maxlength, jj;
@@ -258,8 +259,9 @@ forward_silences(struct Client *sptr, char *silences, struct Client *dest)
 
   /* Free any silence-deleting updates. */
   for (ii = 0; ii < ac_count; ++ii) {
-    if (accepted[ii]->flags & BAN_DEL)
+    if ((accepted[ii]->flags & (BAN_ADD | BAN_DEL)) == BAN_DEL) {
       free_ban(accepted[ii]);
+    }
   }
 }
 

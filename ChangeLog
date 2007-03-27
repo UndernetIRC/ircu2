@@ -1,5 +1,10 @@
 2007-03-26  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_silence.c (forward_silences): Do not try twice to process
+	silences that were both added and deleted.
+
+2007-03-26  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_parser.y (portblock): Restore old behavior for Port
 	blocks with no host listed.
 
