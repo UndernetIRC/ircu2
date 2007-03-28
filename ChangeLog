@@ -1,3 +1,10 @@
+2007-03-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_asll.c (ms_asll): Count hits and report at the end, so
+	that a client is told whether any match (and has a hint that only
+	directly linked servers are checked).
+	(mo_asll): Likewise.
+
 2007-03-26  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_stats.c (m_stats): Move check for STAT_FLAG_LOCONLY (and
