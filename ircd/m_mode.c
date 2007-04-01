@@ -113,7 +113,22 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return need_more_params(sptr, "MODE");
 
   if (!IsChannelName(parv[1]) || !(chptr = FindChannel(parv[1])))
+  {
+    struct Client *acptr;
+
+    acptr = FindUser(parv[1]);
+    if (!acptr)
+    {
+      send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
+      return 0;
+    }
+    else if (sptr != acptr)
+    {
+      send_reply(sptr, ERR_USERSDONTMATCH);
+      return 0;
+    }
     return set_user_mode(cptr, sptr, parc, parv);
+  }
 
   ClrFlag(sptr, FLAG_TS8);
 
@@ -168,7 +183,23 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return 0;
 
   if (!(chptr = FindChannel(parv[1])))
+  {
+    struct Client *acptr;
+
+    acptr = FindUser(parv[1]);
+    if (!acptr)
+    {
+      return 0;
+    }
+    else if (sptr != acptr)
+    {
+      sendwallto_group_butone(&me, WALL_WALLOPS, 0, 
+                              "MODE for User %s from %s!%s", parv[1],
+                              cli_name(cptr), cli_name(sptr));
+      return 0;
+    }
     return set_user_mode(cptr, sptr, parc, parv);
+  }
 
   ClrFlag(sptr, FLAG_TS8);
 

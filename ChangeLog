@@ -1,5 +1,13 @@
 2007-03-31  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_mode.c (m_mode): Check and report target/source
+	violations before calling set_user_mode().
+	(ms_mode): Likewise.
+
+	* ircd/s_user.c (set_user_mode): Remove those checks from here.
+
+2007-03-31  Michael Poole <mdpoole@troilus.org>
+
 	* include/ircd_events.h (struct Generators): Convert elements to
 	be struct GenHeader*.
 	(timer_next): Update to match.

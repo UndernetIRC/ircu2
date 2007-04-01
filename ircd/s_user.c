@@ -984,7 +984,6 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
 {
   char** p;
   char*  m;
-  struct Client *acptr;
   int what;
   int i;
   struct Flags setflags;
@@ -995,27 +994,6 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   int do_host_hiding = 0;
 
   what = MODE_ADD;
-
-  if (parc < 2)
-    return need_more_params(sptr, "MODE");
-
-  if (!(acptr = FindUser(parv[1])))
-  {
-    if (MyConnect(sptr))
-      send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
-    return 0;
-  }
-
-  if (IsServer(sptr) || sptr != acptr)
-  {
-    if (IsServer(cptr))
-      sendwallto_group_butone(&me, WALL_WALLOPS, 0, 
-	  		    "MODE for User %s from %s!%s", parv[1],
-                            cli_name(cptr), cli_name(sptr));
-    else
-      send_reply(sptr, ERR_USERSDONTMATCH);
-    return 0;
-  }
 
   if (parc < 3)
   {
