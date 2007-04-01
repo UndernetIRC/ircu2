@@ -1,3 +1,16 @@
+2007-03-31  Michael Poole <mdpoole@troilus.org>
+
+	* include/ircd_events.h (struct Generators): Convert elements to
+	be struct GenHeader*.
+	(timer_next): Update to match.
+
+	* ircd/ircd_events.c (timer_enqueue): Update to match.
+	(signal_callback): Likewise.
+	(timer_init): Remove a typecast with something slightly safer.
+	(timer_run): Update to deal with new type of Generator.g_timer.
+	(signal_add): Likewise.
+	(socket_add): Likewise.
+	
 2007-03-28  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_asll.c (ms_asll): Count hits and report at the end, so
