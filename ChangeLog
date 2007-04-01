@@ -1,5 +1,20 @@
 2007-03-31  Michael Poole <mdpoole@troilus.org>
 
+	* doc/readme.iauth (IAuth M): Document new command.
+
+	* ircd/m_user.c (m_user): Recognize RFC 2812 mode request and a
+	saner usermode request.
+
+	* ircd/s_auth.c (iauth_cmd_usermode): New command.
+	(iauth_parse): Dispatch to it.
+
+	* ircd/s_user.c (set_user_mode): Only broadcast usermode changes
+	for registered clients.
+
+	* tools/iauth-test (127.0.1.3): Test the new M command.
+
+2007-03-31  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_mode.c (m_mode): Check and report target/source
 	violations before calling set_user_mode().
 	(ms_mode): Likewise.

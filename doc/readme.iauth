@@ -377,6 +377,16 @@ Comments: Indicates that the iauth instance wants the server to
 Compatibility: This is an Undernet extension and ircd does not support
   this message.
 
+M - Adjust User Mode
+Syntax: M <id> <remoteip> <remoteport> +<mode changes>
+Example: M 5 192.168.1.10 23367 +iwg
+States: REGISTER, HURRY
+Next State: -
+Comments: Indicates a set of user mode changes to be applied to the
+  client.
+Compatibility: This is an Undernet extension and ircd does not support
+  this message.
+
 C - Challenge User
 Syntax: C <id> <remoteip> <remoteport> :<challenge string>
 Example: C 5 192.168.1.10 23367 :In which year did Columbus sail the ocean blue?

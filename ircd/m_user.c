@@ -113,7 +113,9 @@
 int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   char*        username;
+  char*        term;
   const char*  info;
+  unsigned int mode_request;
 
   assert(0 != cptr);
   assert(cptr == sptr);
@@ -136,6 +138,27 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   }
   else
     username = "NoUser";
+
+  if ((mode_request = strtoul(parv[2], &term, 10)) != 0
+      && term != NULL && *term != '\0')
+  {
+    /* These bitmask values are codified in RFC 2812, showing
+     * ... well, something that is probably best not said.
+     */
+    if (mode_request & 8)
+      SetInvisible(cptr);
+    if (mode_request & 4)
+      SetWallops(cptr);
+  }
+  else if (parv[2][0] == '+')
+  {
+    char *user_modes[4];
+    user_modes[0] = NULL;
+    user_modes[1] = NULL;
+    user_modes[2] = parv[2];
+    user_modes[3] = NULL;
+    set_user_mode(cptr, sptr, 3, user_modes);
+  }
 
   info     = (EmptyString(parv[4])) ? "No Info" : parv[4];
 

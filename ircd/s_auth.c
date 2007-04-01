@@ -1904,6 +1904,25 @@ static int iauth_cmd_kill(struct IAuth *iauth, struct Client *cli,
   return 0;
 }
 
+/** Change a client's usermode.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (at least one).
+ * @param[in] params Usermode arguments for client (with the first
+ *   starting with '+').
+ * @return Zero.
+ */
+static int iauth_cmd_usermode(struct IAuth *iauth, struct Client *cli,
+                              int parc, char **params)
+{
+  if (params[0][0] == '+')
+  {
+    set_user_mode(cli, cli, parc + 2, params - 2);
+  }
+  return 0;
+}
+
+
 /** Send a challenge string to the client.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -1948,6 +1967,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;
   case 'N': handler = iauth_cmd_hostname; has_cli = 1; break;
   case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
+  case 'M': handler = iauth_cmd_usermode; has_cli = 1; break;
   case 'C': handler = iauth_cmd_challenge; has_cli = 1; break;
   case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
   case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;

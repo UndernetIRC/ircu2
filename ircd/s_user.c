@@ -1189,7 +1189,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
     ++UserStats.inv_clients;
   if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding)
     hide_hostmask(sptr, FLAG_HIDDENHOST);
-  send_umode_out(cptr, sptr, &setflags, prop);
+  if (IsRegistered(sptr))
+    send_umode_out(cptr, sptr, &setflags, prop);
 
   return 0;
 }
