@@ -945,15 +945,15 @@ int rehash(struct Client *cptr, int sig)
 
   clear_quarantines();
 
-  if (sig != 2)
-    restart_resolver();
-
   class_mark_delete();
   mark_listeners_closing();
   auth_mark_closing();
   close_mappings();
 
   read_configuration_file();
+
+  if (sig != 2)
+    restart_resolver();
 
   log_reopen(); /* reopen log files */
 

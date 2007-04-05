@@ -1,3 +1,9 @@
+2007-04-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_conf.c (rehash): Restart resolver after reading the
+	config file; this un-breaks the resolver after /rehash if the
+	ircd.conf contains no "dns server = <ipstring>;" lines.
+
 2007-04-01  J. R. Lenz <ralf@starshadow.com>
 
 	* ircd/s_user.c (register_user): Check for host-hiding when fully
