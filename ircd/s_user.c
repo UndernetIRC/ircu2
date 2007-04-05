@@ -456,6 +456,12 @@ int register_user(struct Client *cptr, struct Client *sptr)
     ++UserStats.inv_clients;
   if (IsOper(sptr))
     ++UserStats.opers;
+  /* If they get both +x and an account during registration, hide
+   * their hostmask here.  Calling hide_hostmask() from IAuth's
+   * account assignment causes a numeric reply during registration.
+   */
+  if (HasHiddenHost(sptr))
+    hide_hostmask(sptr, FLAG_HIDDENHOST);
 
   tmpstr = umode_str(sptr);
   /* Send full IP address to IPv6-grokking servers. */
