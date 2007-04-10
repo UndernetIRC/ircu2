@@ -1,3 +1,7 @@
+2007-04-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (ms_gline): lastmod must be non-zero
+
 2007-04-04  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_conf.c (rehash): Restart resolver after reading the
