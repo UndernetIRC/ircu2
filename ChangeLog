@@ -1,3 +1,8 @@
+2007-04-10  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_parser.y (iauth): Avoid problems related to MyFree's
+	multiple evaluation of its argument.
+
 2007-04-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_gline.c (ms_gline): lastmod must be non-zero

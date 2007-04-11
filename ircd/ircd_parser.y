@@ -1139,7 +1139,10 @@ iauthblock: IAUTH '{' iauthitems '}' ';'
 {
   auth_spawn(stringno, stringlist);
   while (stringno > 0)
-    MyFree(stringlist[--stringno]);
+  {
+    --stringno;
+    MyFree(stringlist[stringno]);
+  }
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
@@ -1147,5 +1150,8 @@ iauthitem: iauthprogram;
 iauthprogram: PROGRAM '='
 {
   while (stringno > 0)
-    MyFree(stringlist[--stringno]);
+  {
+    --stringno;
+    MyFree(stringlist[stringno]);
+  }
 } stringlist ';';
