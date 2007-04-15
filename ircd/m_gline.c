@@ -241,10 +241,10 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     assert(!IsMe(acptr));
 
     Debug((DEBUG_DEBUG, "I am forwarding a local G-line to a remote server; "
-	   "target %s, mask %s, operforce %s, action %s, expire %Tu, "
+	   "target %s, mask %s, operforce %s, action %c, expire %Tu, "
 	   "lastmod %Tu, reason: %s", target, mask,
 	   flags & GLINE_OPERFORCE ? "YES" : "NO",
-	   action == GLINE_ACTIVATE ? "+" :  "-", expire_off, CurrentTime,
+	   action == GLINE_ACTIVATE ? '+' :  '-', expire_off, CurrentTime,
 	   reason));
 
     sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
@@ -514,14 +514,14 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	return send_reply(sptr, ERR_NOPRIVILEGES);
 
       Debug((DEBUG_DEBUG, "I am forwarding a local G-line to a remote "
-	     "server; target %s, mask %s, operforce %s, action %s, "
+	     "server; target %s, mask %s, operforce %s, action %c, "
 	     "expire %Tu, reason %s", target, mask,
 	     flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+	     action == GLINE_ACTIVATE ? '+' : '-', expire_off, reason));
 
       sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
 		    acptr, flags & GLINE_OPERFORCE ? "!" : "",
-		    action == GLINE_ACTIVATE ? "+" : "-", mask, expire_off,
+		    action == GLINE_ACTIVATE ? '+' : '-', mask, expire_off,
 		    CurrentTime, reason);
 
       return 0; /* all done */

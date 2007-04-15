@@ -3,6 +3,8 @@
 	* ircd/m_gline.c: fix minor typo in code that forwards remote
 	local activations/deactivations: %c takes characters, not
 	pointers!
+	(mo_gline): fix similar typo in code forwarding remote local
+	G-lines by opers
 
 2007-04-10  Michael Poole <mdpoole@troilus.org>
 
