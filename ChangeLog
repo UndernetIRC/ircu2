@@ -1,3 +1,9 @@
+2007-04-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c: fix minor typo in code that forwards remote
+	local activations/deactivations: %c takes characters, not
+	pointers!
+
 2007-04-10  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_parser.y (iauth): Avoid problems related to MyFree's

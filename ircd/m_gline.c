@@ -170,13 +170,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if ((action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE) &&
       !IsMe(acptr)) {
     Debug((DEBUG_DEBUG, "I am forwarding a local change to a global gline "
-	   "to a remote server; target %s, mask %s, operforce %s, action %s",
+	   "to a remote server; target %s, mask %s, operforce %s, action %c",
 	   target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	   action == GLINE_LOCAL_ACTIVATE ? ">" : "<"));
+	   action == GLINE_LOCAL_ACTIVATE ? '>' : '<'));
 
     sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s", acptr,
 		  flags & GLINE_OPERFORCE ? "!" : "",
-		  action == GLINE_LOCAL_ACTIVATE ? ">" : "<", mask);
+		  action == GLINE_LOCAL_ACTIVATE ? '>' : '<', mask);
 
     return 0; /* all done */
   }
@@ -470,13 +470,13 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return send_reply(sptr, ERR_NOPRIVILEGES);
 
     Debug((DEBUG_DEBUG, "I am forwarding a local change to a global gline "
-	   "to a remote server; target %s, mask %s, operforce %s, action %s",
+	   "to a remote server; target %s, mask %s, operforce %s, action %c",
 	   cli_name(acptr), mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	   action == GLINE_LOCAL_ACTIVATE ? ">" : "<"));
+	   action == GLINE_LOCAL_ACTIVATE ? '>' : '<'));
 
     sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s", acptr,
 		  flags & GLINE_OPERFORCE ? "!" : "",
-		  action == GLINE_LOCAL_ACTIVATE ? ">" : "<", mask);
+		  action == GLINE_LOCAL_ACTIVATE ? '>' : '<', mask);
 
     return 0; /* all done */
   }
