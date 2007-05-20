@@ -89,6 +89,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "match.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -108,15 +109,12 @@
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
-  if (parc > 1 && (!(acptr = find_match_server(parv[1])) || !IsMe(acptr)))
-    send_reply(sptr, ERR_NOPRIVILEGES);
-  else
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-               debug_serveropts());
-    send_supported(sptr);
-  }
+  if (parc > 1 && match(parv[1], cli_name(&me)))
+    return send_reply(sptr, ERR_NOPRIVILEGES);
+
+  send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
+             debug_serveropts());
+  send_supported(sptr);
   return 0;
 }
 

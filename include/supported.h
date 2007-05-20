@@ -45,7 +45,7 @@
                 " NICKLEN=%i"
                 
 
-#define FEATURES2 " MAXNICKLEN=%i" \
+#define FEATURES2 "MAXNICKLEN=%i" \
                 " TOPICLEN=%i" \
                 " AWAYLEN=%i" \
                 " KICKLEN=%i" \
