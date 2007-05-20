@@ -1,5 +1,9 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_err.c (ERR_DONTCHEAT): Add apparently missing %s.
+	
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_connect.c (mo_connect): Return an error to a locop who
 	tries to do a remote connect.
 
