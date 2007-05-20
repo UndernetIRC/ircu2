@@ -1090,6 +1090,8 @@ pseudoitems '}' ';'
     parse_error("Missing name in pseudo %s block", smap->command);
   else if (!smap->services)
     parse_error("Missing nick in pseudo %s block", smap->command);
+  else if (!strIsAlpha(smap->command))
+    parse_error("Pseudo command %s invalid: must all be letters", smap->command);
   else
     valid = 1;
   if (valid && register_mapping(smap))

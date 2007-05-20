@@ -1,5 +1,10 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_parser.y (pseudoblock): Forbid pseudo commands that
+	are not all alphabetic characters.
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* configure.in (maxcon): Check that maximum connections is
 	sufficiently large to avoid underflow in MAXCLIENTS.
 	
