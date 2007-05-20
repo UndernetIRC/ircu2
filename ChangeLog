@@ -1,5 +1,11 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_features.c (feature_set): Report new value of feature
+	for /set.
+	(feature_reset): Likewise, for /reset.
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_burst.c (netride_modes): Return -1 if someone tries to
 	remove modes in the burst.
 	(ms_burst): Check for, and handle, that protocol violation.

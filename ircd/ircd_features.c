@@ -590,6 +590,9 @@ feature_set(struct Client* from, const char* const* fields, int count)
 
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
+
+    if (from)
+      return feature_get(from, fields, count);
   }
 
   return 0;
@@ -653,6 +656,9 @@ feature_reset(struct Client* from, const char* const* fields, int count)
 
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
+
+    if (from)
+      return feature_get(from, fields, count);
   }
 
   return 0;
