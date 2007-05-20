@@ -1,5 +1,10 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_connect.c (mo_connect): Return an error to a locop who
+	tries to do a remote connect.
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/parse.c (msgtab): Make SETTIME consistent with other
 	oper commands, in using m_not_oper for non-opered clients.
 

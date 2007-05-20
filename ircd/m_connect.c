@@ -247,15 +247,14 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /*
        * Only allow LocOps to make local CONNECTS --SRB
        */
-      return 0;
+      return send_reply(cptr, ERR_NOPRIVILEGES);
     }
     else {
       struct Client* acptr2;
       struct Client* acptr3;
 
       if (!(acptr3 = find_match_server(parv[3]))) {
-        send_reply(sptr, ERR_NOSUCHSERVER, parv[3]);
-        return 0;
+        return send_reply(sptr, ERR_NOSUCHSERVER, parv[3]);
       }
 
       /*
