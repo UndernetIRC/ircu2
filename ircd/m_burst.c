@@ -545,7 +545,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
             last_oplevel = oplevel;
 	  }
 
-	  if (IsBurst(sptr) || !(member = find_member_link(chptr, acptr)))
+	  if (!(member = find_member_link(chptr, acptr)))
 	  {
 	    add_user_to_channel(chptr, acptr, current_mode, oplevel);
             if (!(current_mode & CHFL_DELAYED))

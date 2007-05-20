@@ -1,5 +1,10 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_burst.c (ms_burst): Do not let bursting servers join a
+	user to a channel more than once.
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_features.c (feature_set): Report new value of feature
 	for /set.
 	(feature_reset): Likewise, for /reset.
