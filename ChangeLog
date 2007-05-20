@@ -1,5 +1,11 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_burst.c (netride_modes): Return -1 if someone tries to
+	remove modes in the burst.
+	(ms_burst): Check for, and handle, that protocol violation.
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_privs.c (mo_privs): Report "no such nickname" for unknown
 	nicks in the list.  (Unfortunately, the nick is lost before ms_privs.)
 
