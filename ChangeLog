@@ -1,5 +1,10 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_privs.c (mo_privs): Report "no such nickname" for unknown
+	nicks in the list.  (Unfortunately, the nick is lost before ms_privs.)
+
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/listener.c (show_ports): Actually hide hidden ports from
 	clients that should not see them.
 
