@@ -391,7 +391,7 @@ struct Message msgtab[] = {
     TOK_SETTIME,
     0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_ignore, ms_settime, mo_settime, m_ignore }
+    { m_unregistered, m_not_oper, ms_settime, mo_settime, m_ignore }
   },
   {
     MSG_RPING,
