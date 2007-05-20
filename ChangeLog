@@ -1,5 +1,10 @@
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
+	* configure.in (maxcon): Check that maximum connections is
+	sufficiently large to avoid underflow in MAXCLIENTS.
+	
+2007-05-20  Michael Poole <mdpoole@troilus.org>
+
 	* include/supported.h (FEATURES2): Remove extra space.
 
 	* ircd/m_admin.c (m_admin): Only check server mask against our

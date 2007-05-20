@@ -710,7 +710,12 @@ AC_ARG_WITH([maxcon],
 [unet_cv_with_maxcon=$unet_maxcon])])
 
 if test x"$unet_cv_with_maxcon" = xyes -o x"$unet_cv_with_maxcon" = xno; then
+    if test "$unet_maxcon" -lt 32; then
+      AC_MSG_ERROR([Maximum connections (number of open files minus 4) must be at least 32.])
+    fi
     unet_cv_with_maxcon=$unet_maxcon
+elif test "$unet_cv_with_maxcon" -lt 32; then
+    AC_MSG_ERROR([Maximum connections (--with-maxcon) must be at least 32.])
 fi
 
 AC_MSG_RESULT([$unet_cv_with_maxcon])
