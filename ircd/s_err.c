@@ -866,7 +866,7 @@ static Numeric replyTable[] = {
 /* 416 */
   { ERR_QUERYTOOLONG, "%s :Too many lines in the output, restrict your query", "416" },
 /* 417 */
-  { 0 },
+  { ERR_INPUTTOOLONG, ":Input line was too long", "417" },
 /* 418 */
   { 0 },
 /* 419 */

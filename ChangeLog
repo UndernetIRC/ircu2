@@ -1,3 +1,11 @@
+2007-05-28  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h (ERR_INPUTTOOLONG): New numeric.
+
+	* ircd/s_bsd.c (read_packet): Use it.
+
+	* ircd/s_err.c (replyTable): Give it a format string.
+
 2007-05-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Do not let bursting servers join a
