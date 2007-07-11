@@ -1,3 +1,8 @@
+2007-07-12  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_user.c (m_luser): Fix broken RFC 2812 on connect user mode 
+	setting
+
 2007-05-28  Michael Poole <mdpoole@troilus.org>
 
 	* include/numeric.h (ERR_INPUTTOOLONG): New numeric.
