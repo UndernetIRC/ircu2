@@ -140,7 +140,7 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     username = "NoUser";
 
   if ((mode_request = strtoul(parv[2], &term, 10)) != 0
-      && term != NULL && *term != '\0')
+      && term != NULL && *term == '\0')
   {
     /* These bitmask values are codified in RFC 2812, showing
      * ... well, something that is probably best not said.
