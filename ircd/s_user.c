@@ -118,6 +118,7 @@ void free_user(struct User* user)
     assert(0 == user->channel);
 
     MyFree(user);
+    assert(userCount>0);
     --userCount;
   }
 }
@@ -452,10 +453,6 @@ int register_user(struct Client *cptr, struct Client *sptr)
     SetUser(sptr);
   }
 
-  if (IsInvisible(sptr))
-    ++UserStats.inv_clients;
-  if (IsOper(sptr))
-    ++UserStats.opers;
   /* If they get both +x and an account during registration, hide
    * their hostmask here.  Calling hide_hostmask() from IAuth's
    * account assignment causes a numeric reply during registration.
@@ -984,9 +981,12 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
  * @param[in] sptr Client who sent the mode change message.
  * @param[in] parc Number of parameters in \a parv.
  * @param[in] parv Parameters to MODE.
+ * @param[in] allow_modes ALLOWMODES_ANY for any mode, ALLOWMODES_DEFAULT for 
+ *                        only permitting legitimate default user modes.
  * @return Zero.
  */
-int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
+int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, 
+		char *parv[], int allow_modes)
 {
   char** p;
   char*  m;
@@ -1186,18 +1186,23 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv
   if (FlagHas(&setflags, FLAG_OPER) && !IsOper(sptr))
   {
     /* user no longer oper */
+    assert(UserStats.opers > 0);
     --UserStats.opers;
     client_set_privs(sptr, NULL); /* will clear propagate privilege */
   }
-  if (FlagHas(&setflags, FLAG_INVISIBLE) && !IsInvisible(sptr))
+  if (FlagHas(&setflags, FLAG_INVISIBLE) && !IsInvisible(sptr)) {
+    assert(UserStats.inv_clients > 0);
     --UserStats.inv_clients;
+  }
   if (!FlagHas(&setflags, FLAG_INVISIBLE) && IsInvisible(sptr))
     ++UserStats.inv_clients;
-  if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding)
+  if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding && allow_modes != ALLOWMODES_DEFAULT)
     hide_hostmask(sptr, FLAG_HIDDENHOST);
   if (IsRegistered(sptr))
     send_umode_out(cptr, sptr, &setflags, prop);
 
+  assert(UserStats.opers <= UserStats.clients + UserStats.unknowns);
+  assert(UserStats.inv_clients <= UserStats.clients + UserStats.unknowns);
   return 0;
 }
 

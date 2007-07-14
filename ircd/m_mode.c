@@ -127,7 +127,7 @@ m_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       send_reply(sptr, ERR_USERSDONTMATCH);
       return 0;
     }
-    return set_user_mode(cptr, sptr, parc, parv);
+    return set_user_mode(cptr, sptr, parc, parv, ALLOWMODES_ANY);
   }
 
   ClrFlag(sptr, FLAG_TS8);
@@ -198,7 +198,7 @@ ms_mode(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
                               cli_name(cptr), cli_name(sptr));
       return 0;
     }
-    return set_user_mode(cptr, sptr, parc, parv);
+    return set_user_mode(cptr, sptr, parc, parv, ALLOWMODES_ANY);
   }
 
   ClrFlag(sptr, FLAG_TS8);

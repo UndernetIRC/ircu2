@@ -1,4 +1,27 @@
 2007-07-12  Perry Lorier <isomer@undernet.org>
+	Reconsider how we manage modes before registration, to avoid stats
+	getting out of sync.
+
+	* ircd/s_user.c (set_user_mode): Add new parameter to set_user_mode to
+	ignore some modes.
+	(register_user): Use set_user_mode to parse default usermode for
+	users.
+
+	* ircd/m_user.c: Add extra parameter to set_user_mode call
+
+	* ircd/s_auth.c: Add extra parameter to set_user_mode call
+
+	* ircd/m_mode.c: Add extra parameter to set_user_mode call
+
+	* ircd/s_misc.c: Verify stats are consistant.
+
+	* include/s_user.h: Change prototype, add flag definitions.
+
+	* ircd/m_lusers.c (m_users): Assert that we're generating sane stats,
+	include "unknowns" in the total user connections to avoid negative
+	wrap arounds.
+
+2007-07-12  Perry Lorier <isomer@undernet.org>
 	
 	* ircd/m_user.c (m_luser): Fix broken RFC 2812 on connect user mode 
 	setting

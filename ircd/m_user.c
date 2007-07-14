@@ -142,13 +142,15 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   if ((mode_request = strtoul(parv[2], &term, 10)) != 0
       && term != NULL && *term == '\0')
   {
+    char *invisible[4] = { NULL, NULL, "+i", NULL };
+    char *wallops[4] = { NULL, NULL, "+w" , NULL };
     /* These bitmask values are codified in RFC 2812, showing
      * ... well, something that is probably best not said.
      */
     if (mode_request & 8)
-      SetInvisible(cptr);
+      set_user_mode(cptr, sptr, 3, invisible, ALLOWMODES_ANY);
     if (mode_request & 4)
-      SetWallops(cptr);
+      set_user_mode(cptr, sptr, 3, wallops, ALLOWMODES_ANY);
   }
   else if (parv[2][0] == '+')
   {
@@ -157,7 +159,7 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     user_modes[1] = NULL;
     user_modes[2] = parv[2];
     user_modes[3] = NULL;
-    set_user_mode(cptr, sptr, 3, user_modes);
+    set_user_mode(cptr, sptr, 3, user_modes, ALLOWMODES_ANY);
   }
 
   info     = (EmptyString(parv[4])) ? "No Info" : parv[4];
