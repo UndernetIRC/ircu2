@@ -1,3 +1,19 @@
+2007-07-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c: create abs_expire() macro to convert an expire
+	timestamp from the network into an absolute time, if needed;
+	rename expire_off to expire globally, since it now represents an
+	absolute expiration time; use expire - CurrentTime in gline
+	forwarding statements; in ms_gline(), use abs_expire() to convert
+	network expiration timestamp into absolute timestamp; in
+	mo_gline(), add CurrentTime to oper-provided expiration offset to
+	convert to absolute timestamp
+
+	* ircd/gline.c: assume expire and lifetime arguments to
+	gline_add() and gline_modify() are already absolute timestamps;
+	send lifetime parameter as an absolute timestamp, but leave expire
+	timestamp as relative as first part of a 2-phase update
+
 2007-07-12  Perry Lorier <isomer@undernet.org>
 	Reconsider how we manage modes before registration, to avoid stats
 	getting out of sync.

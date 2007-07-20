@@ -102,6 +102,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PASTWATCH	157680000	/* number of seconds in 5 years */
+
+/*
+ * If the expiration value, interpreted as an absolute timestamp, is
+ * more recent than 5 years in the past, we interpret it as an
+ * absolute timestamp; otherwise, we assume it's relative and convert
+ * it to an absolute timestamp.  Either way, the output of this macro
+ * is an absolute timestamp--not guaranteed to be a *valid* timestamp,
+ * but you can't have everything in a macro ;)
+ */
+#define abs_expire(exp)							\
+  ((exp) >= CurrentTime - PASTWATCH ? (exp) : (exp) + CurrentTime)
+
 /*
  * ms_gline - server message handler
  *
@@ -118,7 +131,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *agline = 0;
   unsigned int flags = 0;
   enum GlineAction action = GLINE_MODIFY;
-  time_t expire_off = 0, lastmod = 0, lifetime = 0;
+  time_t expire = 0, lastmod = 0, lifetime = 0;
   char *mask = parv[2], *target = parv[1], *reason = "No reason", *tmp = 0;
 
   if (parc < 3)
@@ -203,7 +216,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (parc < 5) /* check parameter count... */
 	return need_more_params(sptr, "GLINE");
 
-      expire_off = atoi(parv[3]); /* get expiration... */
+      expire = atoi(parv[3]); /* get expiration... */
+      expire = abs_expire(expire); /* convert to absolute... */
       reason = parv[parc - 1]; /* and reason */
 
       if (IsMe(acptr)) {
@@ -214,9 +228,9 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
 	       "mask %s, operforce %s, action %s, expire %Tu, reason: %s",
 	       target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	       action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+	       action == GLINE_ACTIVATE ? "+" : "-", expire, reason));
 
-	return gline_add(cptr, sptr, mask, reason, expire_off, lastmod,
+	return gline_add(cptr, sptr, mask, reason, expire, lastmod,
 			 lifetime, flags | GLINE_ACTIVE);
       }
     } else if (IsMe(acptr)) { /* destroying a local G-line */
@@ -244,13 +258,13 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	   "target %s, mask %s, operforce %s, action %c, expire %Tu, "
 	   "lastmod %Tu, reason: %s", target, mask,
 	   flags & GLINE_OPERFORCE ? "YES" : "NO",
-	   action == GLINE_ACTIVATE ? '+' :  '-', expire_off, CurrentTime,
+	   action == GLINE_ACTIVATE ? '+' :  '-', expire, CurrentTime,
 	   reason));
 
     sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
 		  acptr, flags & GLINE_OPERFORCE ? "!" : "",
-		  action == GLINE_ACTIVATE ? '+' : '-', mask, expire_off,
-		  CurrentTime, reason);
+		  action == GLINE_ACTIVATE ? '+' : '-', mask,
+		  expire - CurrentTime, CurrentTime, reason);
 
     return 0; /* all done */
   }
@@ -281,7 +295,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (parc < 5)
 	return need_more_params(sptr, "GLINE");
 
-      expire_off = atoi(parv[3]); /* convert expiration and lastmod */
+      expire = atoi(parv[3]); /* convert expiration and lastmod */
+      expire = abs_expire(expire);
       lastmod = atoi(parv[4]);
 
       flags |= GLINE_EXPIRE; /* we have an expiration time update */
@@ -318,7 +333,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	 (action == GLINE_DEACTIVATE ? "-" :
 	  (action == GLINE_LOCAL_ACTIVATE ? ">" :
 	   (action == GLINE_LOCAL_DEACTIVATE ? "<" : "(MODIFY)"))),
-	 expire_off, lastmod, lifetime, reason,
+	 expire, lastmod, lifetime, reason,
 	 agline ? "EXISTS" : "does not exist",
 	 flags & GLINE_EXPIRE ? "expire" : "",
 	 flags & GLINE_LIFETIME ? "lifetime" : "",
@@ -328,14 +343,14 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
    * Let's actually do the action!
    */
   if (agline)
-    return gline_modify(cptr, sptr, agline, action, reason, expire_off,
+    return gline_modify(cptr, sptr, agline, action, reason, expire,
 			lastmod, lifetime, flags);
 
   assert(action != GLINE_LOCAL_ACTIVATE);
   assert(action != GLINE_LOCAL_DEACTIVATE);
   assert(action != GLINE_MODIFY);
 
-  return gline_add(cptr, sptr, mask, reason, expire_off, lastmod, lifetime,
+  return gline_add(cptr, sptr, mask, reason, expire, lastmod, lifetime,
 		   flags | ((action == GLINE_ACTIVATE) ? GLINE_ACTIVE : 0));
 }
 
@@ -354,7 +369,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   struct Gline *agline = 0;
   unsigned int flags = 0;
   enum GlineAction action = GLINE_MODIFY;
-  time_t expire_off = 0;
+  time_t expire = 0;
   char *mask = parv[1], *target = 0, *reason = 0;
 
   if (parc < 2)
@@ -398,7 +413,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return need_more_params(sptr, "GLINE");
 
     target = parv[2]; /* get the target... */
-    expire_off = atoi(parv[3]); /* and the expiration */
+    expire = atoi(parv[3]) + CurrentTime; /* and the expiration */
 
     flags |= GLINE_EXPIRE; /* remember that we got an expire time */
 
@@ -429,7 +444,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (parc > 3) {
       /* get expiration and target */
-      expire_off = atoi(parv[parc - 2]);
+      expire = atoi(parv[parc - 2]) + CurrentTime;
       reason = parv[parc - 1];
 
       flags |= GLINE_EXPIRE | GLINE_REASON; /* remember that we got 'em */
@@ -517,12 +532,12 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	     "server; target %s, mask %s, operforce %s, action %c, "
 	     "expire %Tu, reason %s", target, mask,
 	     flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? '+' : '-', expire_off, reason));
+	     action == GLINE_ACTIVATE ? '+' : '-', expire, reason));
 
       sendcmdto_one(sptr, CMD_GLINE, acptr, "%C %s%c%s %Tu %Tu :%s",
 		    acptr, flags & GLINE_OPERFORCE ? "!" : "",
-		    action == GLINE_ACTIVATE ? '+' : '-', mask, expire_off,
-		    CurrentTime, reason);
+		    action == GLINE_ACTIVATE ? '+' : '-', mask,
+		    expire - CurrentTime, CurrentTime, reason);
 
       return 0; /* all done */
     }
@@ -540,9 +555,9 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
 	     "mask %s, operforce %s, action  %s, expire %Tu, reason: %s",
 	     target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? "+" : "-", expire_off, reason));
+	     action == GLINE_ACTIVATE ? "+" : "-", expire, reason));
 
-      return gline_add(cptr, sptr, mask, reason, expire_off, 0, 0,
+      return gline_add(cptr, sptr, mask, reason, expire, 0, 0,
 		       flags | GLINE_ACTIVE);
     } else { /* OK, it's a deactivation/destruction */
       if (!agline) /* G-line doesn't exist, so let's complain... */
@@ -584,12 +599,12 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	 (action == GLINE_DEACTIVATE ? "-" :
 	  (action == GLINE_LOCAL_ACTIVATE ? ">" :
 	   (action == GLINE_LOCAL_DEACTIVATE ? "<" : "(MODIFY)"))),
-	 expire_off, reason, agline ? "EXISTS" : "does not exist",
+	 expire, reason, agline ? "EXISTS" : "does not exist",
 	 flags & GLINE_EXPIRE ? "expire" : "",
 	 flags & GLINE_REASON ? "reason" : ""));
 
   if (agline) /* modifying an existing G-line */
-    return gline_modify(cptr, sptr, agline, action, reason, expire_off,
+    return gline_modify(cptr, sptr, agline, action, reason, expire,
 			CurrentTime, 0, flags);
 
   assert(action != GLINE_LOCAL_ACTIVATE);
@@ -597,7 +612,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   assert(action != GLINE_MODIFY);
 
   /* create a new G-line */
-  return gline_add(cptr, sptr, mask, reason, expire_off, CurrentTime, 0,
+  return gline_add(cptr, sptr, mask, reason, expire, CurrentTime, 0,
 		   flags | ((action == GLINE_ACTIVATE) ? GLINE_ACTIVE : 0));
 }
 
