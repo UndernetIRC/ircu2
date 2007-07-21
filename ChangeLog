@@ -1,3 +1,10 @@
+2007-07-21  Perry Lorier <isomer@undernet.org>
+
+	* ircd/s_user.c: Move set_nick_name() to use set_user_mode(),
+	set_user_mode() now interprets +r usermodes properly (and ignores
+	them from non servers).  This fixes a problem where remote users
+	weren't being counted properly anymore.
+
 2007-07-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_gline.c: create abs_expire() macro to convert an expire
