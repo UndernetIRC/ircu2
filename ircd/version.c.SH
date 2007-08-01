@@ -89,7 +89,7 @@ for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
  base=`basename $file`
  if [ $base != version.c -a $base != y.tab.c -a $base != lex.yy.c -a \
       $base != chattr.tab.c ] ; then
-  vers=`grep '$Id' $file | sed -e 's/.*\$Id$[^$]*//' | \
+  vers=`grep '$Id' $file | sed -e 's/.*\$Id\://' -e 's/\$[^$]*//' | \
 	awk '{ print $2; exit; }'`
   echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
  fi
@@ -99,7 +99,7 @@ echo "    \"\"," >> version.c
 echo "    \"Headers:\"," >> version.c
 
 for file in ${srcdir}/include/*.h ; do
- vers=`grep '$Id' $file | sed -e 's/.*\$Id$[^$]*//' | \
+ vers=`grep '$Id' $file | sed -e 's/.*\$Id\://' -e 's/\$[^$]*//' | \
        awk '{ print $2; exit; }'`
  echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
 done
