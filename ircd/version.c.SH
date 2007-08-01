@@ -1,5 +1,7 @@
 #! /bin/sh
 
+# $Id$
+
 echo "Extracting ircd/version.c ..."
 
 srcdir=$1
@@ -83,9 +85,13 @@ const char *infotext[] = {
     "Sources:",
 !SUB!THIS!
 
-for file in ${srcdir}/ircd/*.c ; do
- if [ `basename $file` != version.c ] ; then
-  echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
+for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
+ base=`basename $file`
+ if [ $base != version.c -a $base != y.tab.c -a $base != lex.yy.c -a \
+      $base != chattr.tab.c ] ; then
+  vers=`grep '$Id' $file | sed -e 's/.*\$Id$[^$]*//' | \
+	awk '{ print $2; exit; }'`
+  echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
  fi
 done
 
@@ -93,7 +99,9 @@ echo "    \"\"," >> version.c
 echo "    \"Headers:\"," >> version.c
 
 for file in ${srcdir}/include/*.h ; do
- echo "    \"[" `./umkpasswd -5 $file` " ]\"," >> version.c
+ vers=`grep '$Id' $file | sed -e 's/.*\$Id$[^$]*//' | \
+       awk '{ print $2; exit; }'`
+ echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
 done
 
 /bin/cat >>version.c <<!SUB!THIS!
