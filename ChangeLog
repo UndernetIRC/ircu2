@@ -1,3 +1,15 @@
+2007-08-08  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (report_iauth_conf): Remove end-of-stats message;
+	m_stats() already does that.
+
+	(report_iauth_stats): Likewise.
+
+2007-08-08  Michael Poole <mdpoole@troilus.org>
+
+	* include/res.h (irc_in_addr_is_ipv4): Fix classification of
+	addresses like 0.0.0.0.
+
 2007-07-21  Perry Lorier <isomer@undernet.org>
 
 	* ircd/s_user.c: Move set_nick_name() to use set_user_mode(),

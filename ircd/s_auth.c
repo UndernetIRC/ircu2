@@ -2201,7 +2201,6 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
     }
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":End of IAuth configuration.");
 }
 
 /** Report active iauth's statistics to \a cptr.
@@ -2218,5 +2217,4 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
     }
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":End of IAuth statistics.");
 }
