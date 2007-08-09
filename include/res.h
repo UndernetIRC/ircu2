@@ -139,8 +139,9 @@ extern void gethost_byaddr(const struct irc_in_addr *addr, dns_callback_f callba
                                  || (ADDR)->in6_16[7] != (ADDR)->in6_16[0])
 /** Evaluate to non-zero if \a ADDR (of type struct irc_in_addr) is an IPv4 address. */
 #define irc_in_addr_is_ipv4(ADDR) (!(ADDR)->in6_16[0] && !(ADDR)->in6_16[1] && !(ADDR)->in6_16[2] \
-                                   && !(ADDR)->in6_16[3] && !(ADDR)->in6_16[4] && (ADDR)->in6_16[6] \
-                                   && (!(ADDR)->in6_16[5] || (ADDR)->in6_16[5] == 65535))
+                                   && !(ADDR)->in6_16[3] && !(ADDR)->in6_16[4] \
+                                   && ((!(ADDR)->in6_16[5] && (ADDR)->in6_16[6]) \
+                                       || (ADDR)->in6_16[5] == 65535))
 /** Evaluate to non-zero if \a A is a different IP than \a B. */
 #define irc_in_addr_cmp(A,B) (irc_in_addr_is_ipv4(A) ? ((A)->in6_16[6] != (B)->in6_16[6] \
                                   || (A)->in6_16[7] != (B)->in6_16[7] || !irc_in_addr_is_ipv4(B)) \
