@@ -1,4 +1,11 @@
-2008-04-10  Michael Poole <mdpoole@troilus.org>
+2007-08-11  Michael Poole <mdpoole@troilus.org>
+
+	* configure.ac: Remove AC_SYS_RESTARTABLE_SYSCALLS.
+
+	* ircd/ircd_signal.c (setup_signals): Remove code for restartable
+	syscalls.  Using sigaction() requires a flag to restart syscalls.
+
+2007-04-10  Michael Poole <mdpoole@troilus.org>
 
 	* test.l: #include <errno.h> since we use errno.
 

@@ -124,10 +124,6 @@ int getpeername (int $arg2 *, $t *);],[$t len;
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
 
-dnl Do we have restarting syscalls?
-dnl XXX Note: this macro has been obsoleted
-AC_SYS_RESTARTABLE_SYSCALLS
-
 dnl Figure out non-blocking and signals
 unet_NONBLOCKING
 unet_SIGNALS
