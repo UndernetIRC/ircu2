@@ -1,3 +1,7 @@
+2008-04-10  Michael Poole <mdpoole@troilus.org>
+
+	* test.l: #include <errno.h> since we use errno.
+
 2007-03-17  Michael Poole <mdpoole@troilus.org>
 
 	* doc/example.conf (Port): Document the optional additional field

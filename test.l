@@ -1,5 +1,8 @@
 %option never-interactive case-insensitive warn nodefault nounput
 %x incl
+%{
+#include <errno.h>
+%}
 
 %%
 
