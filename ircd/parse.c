@@ -342,7 +342,7 @@ struct Message msgtab[] = {
     TOK_NAMES,
     0, MAXPARA, MFLG_SLOW, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_unregistered, m_names, ms_names, m_names, m_ignore }
+    { m_unregistered, m_names, m_names, m_names, m_ignore }
   },
   {
     MSG_USERHOST,
