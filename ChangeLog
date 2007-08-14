@@ -1,5 +1,10 @@
 2007-08-13  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_user.c (whipser): CNOTICEs should not trigger away
+	messages, only CPRIVMSGs.
+
+2007-08-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_who.c (m_who): Reorder responses and change the
 	ERR_QUERYTOOLONG parameter to be consistent with m_whois().
 	

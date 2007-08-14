@@ -796,12 +796,14 @@ int whisper(struct Client* source, const char* nick, const char* channel,
   if (is_silenced(source, dest))
     return 0;
           
-  if (cli_user(dest)->away)
-    send_reply(source, RPL_AWAY, cli_name(dest), cli_user(dest)->away);
   if (is_notice)
     sendcmdto_one(source, CMD_NOTICE, dest, "%C :%s", dest, text);
   else
+  {
+    if (cli_user(dest)->away)
+      send_reply(source, RPL_AWAY, cli_name(dest), cli_user(dest)->away);
     sendcmdto_one(source, CMD_PRIVATE, dest, "%C :%s", dest, text);
+  }
   return 0;
 }
 
