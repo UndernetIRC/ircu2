@@ -390,7 +390,8 @@ int register_user(struct Client *cptr, struct Client *sptr)
      */
     tmpstr = (char*)client_get_default_umode(sptr);
     if (tmpstr) {
-      char *umodev[] = { NULL, NULL, tmpstr, NULL };
+      char *umodev[] = { NULL, NULL, NULL, NULL };
+      umodev[2] = tmpstr;
       set_user_mode(cptr, sptr, 1, umodev, ALLOWMODES_ANY);
     }
 
