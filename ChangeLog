@@ -1,5 +1,10 @@
 2007-08-13  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_who.c (m_who): Reorder responses and change the
+	ERR_QUERYTOOLONG parameter to be consistent with m_whois().
+	
+2007-08-13  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_user.c (register_user): Initialize umodev[] in a
 	C89-compatible way.  (gcc 4.1.2 warned about it.)
 
