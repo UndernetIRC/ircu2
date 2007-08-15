@@ -85,24 +85,16 @@ const char *infotext[] = {
     "Sources:",
 !SUB!THIS!
 
-for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
- base=`basename $file`
- if [ $base != version.c -a $base != y.tab.c -a $base != lex.yy.c -a \
-      $base != chattr.tab.c ] ; then
-  vers=`grep '$Id' $file | sed -e 's/.*\$Id\://' -e 's/\$[^$]*//' | \
-	awk '{ print $2; exit; }'`
-  echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
- fi
-done
+( for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
+    case `basename $file` in
+      ( version.c | y.tab.c | lex.yy.c | chattr.tab.c ) ;;
+      ( * ) echo $file ;;
+    esac done ) | ./umkpasswd -5 >> version.c
 
 echo "    \"\"," >> version.c
 echo "    \"Headers:\"," >> version.c
 
-for file in ${srcdir}/include/*.h ; do
- vers=`grep '$Id' $file | sed -e 's/.*\$Id\://' -e 's/\$[^$]*//' | \
-       awk '{ print $2; exit; }'`
- echo "    \"[" `./umkpasswd -5 $file` " $vers ]\"," >> version.c
-done
+( for file in ${srcdir}/include/*.h ; do echo $file ; done ) | ./umkpasswd -5 >> version.c
 
 /bin/cat >>version.c <<!SUB!THIS!
     0,

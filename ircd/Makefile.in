@@ -242,18 +242,8 @@ ircd: ${OBJS} ../include/patchlevel.h version.o
 convert-conf: ${CONVERT_CONF_OBJS}
 	${PURIFY} ${CC} ${CONVERT_CONF_OBJS} ${LDFLAGS} -o convert-conf
 
-#
-# Make sure the anti hack checksums get included when things change
-# bleah
-#
-# Yeah, "bleah" is right.  These checksums don't cover even a fraction of
-# the "important" .c files...but are useful to determine whether someone
-# actually is running the version they claim to be running or not.  There
-# must be a better solution...perhaps sum all of the .c files and include
-# only that one sum?
-#
-version.c: ../include/patchlist.h version.c.SH umkpasswd \
-	../include/version.h ../include/patchlevel.h ${SRC}
+.PHONY: version.c
+version.c: version.c.SH umkpasswd
 	${SHELL} ${srcdir}/version.c.SH ${top_srcdir}
 
 ../include/patchlist.h:
@@ -322,7 +312,7 @@ uninstall:
 	@echo "Please remove the contents of ${DPATH} manually"
 
 clean:
-	${RM} -f *.o *.bak ircd version.c umkpasswd convert-conf chattr.tab.c table_gen y.tab.* lex.yy.*
+	${RM} -f *.o *.bak ircd umkpasswd convert-conf chattr.tab.c table_gen y.tab.* lex.yy.*
 
 distclean: clean
 	${RM} -f Makefile stamp-m

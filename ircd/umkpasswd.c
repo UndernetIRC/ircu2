@@ -20,6 +20,7 @@
 */
 #include "config.h"
 #include <unistd.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -181,54 +182,46 @@ crypt_mechs_t* crypt_mech;
 return 0;
 }
 
-char *basename_into(char *tmp, char *target)
-{
-  unsigned int len, ii;
-
-  len = strlen(tmp);
-  for (ii = len; ii > 0; )
-    if (tmp[--ii] == '/')
-      break;
-  if (ii < len - 1)
-    return tmp + ii + (tmp[ii] == '/');
-  else if (tmp[ii] != '/')
-    return tmp;
-  else if (ii == 0)
-    return tmp;
-  else
-  {
-    while (ii > 0)
-      if (tmp[--ii] == '/')
-         break;
-    if (tmp[ii] == '/')
-        ii++;
-    for (len = 0; tmp[ii] != '/'; )
-      target[len++] = tmp[ii++];
-    target[len] = '\0';
-    return target;
-  }
-}
-
 void sum(char* tmp)
 {
+char* str;
 FILE* file;
 MD5_CTX context;
 int len;
-unsigned char buffer[1024], digest[16];
+unsigned char buffer[1024], digest[16], vstr[32];
 
+vstr[0] = '\0';
+ str = tmp + strlen(tmp);
+ while (str[-1] == '\r' || str[-1] == '\n') *--str = '\0';
  if (NULL == (file = fopen(tmp, "r")))
+ {
+  fprintf(stderr, "unable to open %s: %s", tmp, strerror(errno));
   exit(0);
+ }
  MD5Init(&context);
- while ((len = fread (buffer, 1, 1024, file)))
+ while ((fgets((char*)buffer, sizeof(buffer), file)) != NULL)
+ {
+  MD5Update(&context, buffer, strlen(buffer));
+  str = strstr((char*)buffer, "$Id: ");
+  if (str != NULL)
+  {
+   for (str += 5; !isspace(*str); ++str) {}
+   while (isspace(*++str)) {}
+   for (len = 0; !isspace(str[len]); ++len) vstr[len] = str[len];
+   vstr[len] = '\0';
+   break;
+  }
+ }
+ while ((len = fread (buffer, 1, sizeof(buffer), file)))
   MD5Update(&context, buffer, len);
  MD5Final(digest, &context);
  fclose(file);
 
- printf("%s: ", basename_into(tmp, (char*)buffer));
+ str = strrchr(tmp, '/');
+ printf("    \"[ %s: ", str ? (str + 1) : tmp);
  for (len = 0; len < 16; len++)
   printf ("%02x", digest[len]);
- printf("\n");
- exit(0);
+ printf(" %s ]\",\n", vstr);
 }
 
 /* dump the loaded mechs list */
@@ -321,7 +314,7 @@ return tagged;
 char* parse_arguments(int argc, char **argv)
 {
 int len = 0, c = 0;
-const char* options = "a:d:lm:u:y:5:";
+const char* options = "a:d:lm:u:y:5";
 
  umkpasswd_conf = (umkpasswd_conf_t*)MyMalloc(sizeof(umkpasswd_conf_t));
 
@@ -346,8 +339,11 @@ const char* options = "a:d:lm:u:y:5:";
   switch (c)
   {
    case '5':
-    sum(optarg);
-   break;
+   {
+    char t1[1024];
+    while (fgets(t1, sizeof(t1), stdin)) sum(t1);
+   }
+   exit(0);
 
    case 'y':
     umkpasswd_conf->operclass = atoi(optarg);
