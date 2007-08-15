@@ -1,3 +1,11 @@
+2007-08-14  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (DONE_*): Split key changes into _ADD and _DEL.
+	(mode_parse_key): Check both, to properly handle -k+k changes.
+	(mode_parse_upass): Likewise, for -U+U.
+	(mode_parse_apass): Liekwise, for -A+A (in case that ever happens).
+	(mode_parse): Update which "done" flag is checked during a wipeout.
+
 2007-08-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (whipser): CNOTICEs should not trigger away
