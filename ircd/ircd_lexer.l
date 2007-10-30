@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
+#include "fileio.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_string.h"
@@ -185,22 +186,38 @@ find_token(char *token)
   return tok ? tok->value : 0;
 }
 
-void
+static FBFILE *lexer_input;
+
+#undef YY_INPUT
+#define YY_INPUT(buf, res, size) res = (fbgets(buf, size, lexer_input) ? strlen(buf) : 0)
+
+int
 init_lexer(void)
 {
-  yyin = fopen(configfile, "r");
-  if (yyin == NULL)
+  lexer_input = fbopen(configfile, "r");
+  if (lexer_input == NULL)
   {
 #ifdef YY_FATAL_ERROR
     YY_FATAL_ERROR("Could not open the configuration file.");
 #else
     fprintf(stderr, "Could not open the configuration file.");
 #endif
+    return 0;
   }
 #ifdef YY_NEW_FILE
   YY_NEW_FILE;
 #endif
   lineno = 1;
+  return 1;
+}
+
+void deinit_lexer(void)
+{
+  if (lexer_input != NULL)
+  {
+    fbclose(lexer_input);
+    lexer_input = NULL;
+  }
 }
 
 %}

@@ -1,5 +1,15 @@
 2007-10-29  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_lexer.l (YY_INPUT): Redefine to use fbgets().
+	(init_lexer): Return a value to indicate failure.  Use fbopen().
+	(deinit_lexer): New function.
+
+	* ircd/s_conf.c (read_configuration_file): Update extern
+	declarations.  Bail if init_lexer() fails.  Call deinit_lexer()
+	rather than directly munging yyin.
+
+2007-10-29  Michael Poole <mdpoole@troilus.org>
+
 	* include/gline.h: Delete declaration of gline_propagate().
 
 	* include/whocmds.h: Delete declaration of count_users().
