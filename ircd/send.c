@@ -669,6 +669,7 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   struct DLink *lp;
   char *prefix=NULL;
   char *tok=NULL;
+  int his_wallops;
   int i;
 
   vd.vd_format = pattern;
@@ -695,15 +696,15 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   va_end(vd.vd_args);
 
   /* send buffer along! */
+  his_wallops = feature_bool(FEAT_HIS_WALLOPS);
   for (i = 0; i <= HighestFd; i++)
   {
     if (!(cptr = LocalClientArray[i]) ||
 	(cli_fd(cli_from(cptr)) < 0) ||
-	(type == WALL_DESYNCH && !HasFlag(cptr, FLAG_DEBUG)) ||
+	(type == WALL_DESYNCH && !SendDebug(cptr)) ||
 	(type == WALL_WALLOPS &&
-         (!HasFlag(cptr, FLAG_WALLOP) || (feature_bool(FEAT_HIS_WALLOPS) &&
-                                          !IsAnOper(cptr)))) ||
-        (type == WALL_WALLUSERS && !HasFlag(cptr, FLAG_WALLOP)))
+         (!SendWallops(cptr) || (his_wallops && !IsAnOper(cptr)))) ||
+        (type == WALL_WALLUSERS && !SendWallops(cptr)))
       continue; /* skip it */
     send_buffer(cptr, mb, 1);
   }

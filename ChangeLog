@@ -1,5 +1,11 @@
 2007-08-20  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/send.c (sendwallto_group_butone): Move a feature_bool()
+	call out of a loop.  Convert HasFlag() uses to appropriate macros
+	from client.h.
+
+2007-08-20  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_string.c (ircd_aton_ip4): Allow a sequence of *.* at
 	the end of an IPv4 mask.
 	(ipmask_parse): Likewise for *:* at the end of IPv6 masks.
