@@ -44,7 +44,6 @@
 #include "msg.h"
 #include "numnicks.h"
 #include "numeric.h"
-#include "whocmds.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
@@ -77,6 +76,10 @@ struct Gline* BadChanGlineList = 0;
  * @param[in] gl Name of a struct Gline pointer variable that will be made to point to the G-lines in sequence.
  * @param[in] next Name of a scratch struct Gline pointer variable.
  */
+/* There is some subtlety here with the boolean operators:
+ * (x || 1) is used to continue in a logical-and series even when !x.
+ * (x && 0) is used to continue in a logical-or series even when x.
+ */
 #define gliter(list, gl, next)				\
   /* Iterate through the G-lines in the list */		\
   for ((gl) = (list); (gl); (gl) = (next))		\
@@ -87,8 +90,8 @@ struct Gline* BadChanGlineList = 0;
       /* Record has expired, so free the G-line */	\
       gline_free((gl));					\
     /* See if we need to expire the G-line */		\
-    else if (((gl)->gl_expire > CurrentTime ||		\
-	      ((gl)->gl_flags &= ~GLINE_ACTIVE) ||	\
+    else if ((((gl)->gl_expire > CurrentTime) ||        \
+	      (((gl)->gl_flags &= ~GLINE_ACTIVE) && 0) ||	\
 	      ((gl)->gl_state = GLOCAL_GLOBAL)) && 0)	\
       ; /* empty statement */				\
     else
@@ -137,37 +140,7 @@ static struct Gline *
 make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 	   time_t lifetime, unsigned int flags)
 {
-  struct Gline *gline, *after = 0;
-
-  /* Disable checking for overlapping G-lines.  The problem is that we
-   * may have a wide-mask, long lifetime G-line that we've
-   * deactivated--maybe it was a mistake?--and someone comes along and
-   * wants to set a narrower overlapping G-line with a shorter
-   * lifetime.  If we were to leave this logic enabled, there would be
-   * no way to set that narrower G-line.
-   */
-/*   if (!(flags & GLINE_BADCHAN)) { /\* search for overlapping glines first *\/ */
-
-/*     for (gline = GlobalGlineList; gline; gline = sgline) { */
-/*       sgline = gline->gl_next; */
-
-/*       if (gline->gl_expire <= CurrentTime) */
-/* 	gline_free(gline); */
-/*       else if (((gline->gl_flags & GLINE_LOCAL) != (flags & GLINE_LOCAL)) || */
-/*                (gline->gl_host && !host) || (!gline->gl_host && host)) */
-/* 	continue; */
-/*       else if (!mmatch(gline->gl_user, user) /\* gline contains new mask *\/ */
-/* 	       && (gline->gl_host == NULL || !mmatch(gline->gl_host, host))) { */
-/* 	if (expire <= gline->gl_expire) /\* will expire before wider gline *\/ */
-/* 	  return 0; */
-/* 	else */
-/* 	  after = gline; /\* stick new gline after this one *\/ */
-/*       } else if (!mmatch(user, gline->gl_user) /\* new mask contains gline *\/ */
-/* 		 && (gline->gl_host==NULL || !mmatch(host, gline->gl_host))  */
-/* 		 && gline->gl_expire <= expire) /\* old expires before new *\/ */
-/* 	gline_free(gline); /\* save some memory *\/ */
-/*     } */
-/*   } */
+  struct Gline *gline;
 
   gline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
   assert(0 != gline);
@@ -181,7 +154,7 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 
   if (flags & GLINE_BADCHAN) { /* set a BADCHAN gline */
     DupString(gline->gl_user, user); /* first, remember channel */
-    gline->gl_host = 0;
+    gline->gl_host = NULL;
 
     gline->gl_next = BadChanGlineList; /* then link it into list */
     gline->gl_prev_p = &BadChanGlineList;
@@ -198,19 +171,11 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
     if (*user != '$' && ipmask_parse(host, &gline->gl_addr, &gline->gl_bits))
       gline->gl_flags |= GLINE_IPMASK;
 
-    if (after) {
-      gline->gl_next = after->gl_next;
-      gline->gl_prev_p = &after->gl_next;
-      if (after->gl_next)
-	after->gl_next->gl_prev_p = &gline->gl_next;
-      after->gl_next = gline;
-    } else {
-      gline->gl_next = GlobalGlineList; /* then link it into list */
-      gline->gl_prev_p = &GlobalGlineList;
-      if (GlobalGlineList)
-	GlobalGlineList->gl_prev_p = &gline->gl_next;
-      GlobalGlineList = gline;
-    }
+    gline->gl_next = GlobalGlineList; /* then link it into list */
+    gline->gl_prev_p = &GlobalGlineList;
+    if (GlobalGlineList)
+      GlobalGlineList->gl_prev_p = &gline->gl_next;
+    GlobalGlineList = gline;
   }
 
   return gline;
@@ -362,7 +327,7 @@ gline_checkmask(char *mask)
  * @param[in] gline G-line to forward.
  * @return Zero.
  */
-int
+static int
 gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 {
   if (GlineIsLocal(gline))
@@ -378,6 +343,59 @@ gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 			gline->gl_lifetime, gline->gl_reason);
 
   return 0;
+}
+
+/** Count number of users who match \a mask.
+ * @param[in] mask user\@host or user\@ip mask to check.
+ * @return Count of matching users.
+ */
+static int
+count_users(char *mask)
+{
+  struct Client *acptr;
+  int count = 0;
+  char namebuf[USERLEN + HOSTLEN + 2];
+  char ipbuf[USERLEN + SOCKIPLEN + 2];
+
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
+    if (!IsUser(acptr))
+      continue;
+
+    ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
+		  cli_user(acptr)->username, cli_user(acptr)->host);
+    ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s@%s", cli_user(acptr)->username,
+		  ircd_ntoa(&cli_ip(acptr)));
+
+    if (!match(mask, namebuf) || !match(mask, ipbuf))
+      count++;
+  }
+
+  return count;
+}
+
+/** Count number of users with a realname matching \a mask.
+ * @param[in] mask Wildcard mask to match against realnames.
+ * @return Count of matching users.
+ */
+static int
+count_realnames(const char *mask)
+{
+  struct Client *acptr;
+  int minlen;
+  int count;
+  char cmask[BUFSIZE];
+
+  count = 0;
+  matchcomp(cmask, &minlen, NULL, mask);
+  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
+    if (!IsUser(acptr))
+      continue;
+    if (strlen(cli_info(acptr)) < minlen)
+      continue;
+    if (!matchexec(cli_info(acptr), cmask, minlen))
+      count++;
+  }
+  return count;
 }
 
 /** Create a new G-line and add it to global lists.
@@ -420,7 +438,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
     flags |= GLINE_BADCHAN;
     user = userhost;
-    host = 0;
+    host = NULL;
   } else if (*userhost == '$') {
     switch (userhost[1]) {
       case 'R': flags |= GLINE_REALNAME; break;
@@ -430,14 +448,15 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
            -- hikari */
         if (IsServer(cptr))
           return protocol_violation(sptr,"%s has been smoking the sweet leaf and sent me a whacky gline",cli_name(sptr));
-        else {
-         sendto_opmask_butone(NULL, SNO_GLINE, "%s has been smoking the sweet leaf and sent me a whacky gline", cli_name(sptr));
-         return 0;
-        }
-        break;
+        sendto_opmask_butone(NULL, SNO_GLINE, "%s has been smoking the sweet leaf and sent me a whacky gline", cli_name(sptr));
+        return 0;
     }
-     user = userhost;
-     host = 0;
+    user = userhost;
+    host = NULL;
+    tmp = count_realnames(userhost + 2);
+    if ((tmp >= feature_int(FEAT_GLINEMAXUSERCOUNT))
+        && !(flags & GLINE_OPERFORCE))
+      return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
   } else {
     canon_userhost(userhost, &user, &host, "*");
     if (sizeof(uhmask) <
@@ -505,8 +524,6 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
    * never be NULL...
    */
   assert(agline);
-/*   if (!agline) /\* if it overlapped, silently return *\/ */
-/*     return 0; */
 
   gline_propagate(cptr, sptr, agline);
 

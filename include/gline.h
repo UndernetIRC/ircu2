@@ -119,8 +119,6 @@ enum GlineAction {
 /** Return last modification time of a G-line. */
 #define GlineLastMod(g)		((g)->gl_lastmod)
 
-extern int gline_propagate(struct Client *cptr, struct Client *sptr,
-			   struct Gline *gline);
 extern int gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		     char *reason, time_t expire, time_t lastmod,
 		     time_t lifetime, unsigned int flags);

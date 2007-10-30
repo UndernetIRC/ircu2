@@ -276,31 +276,3 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
   p1 = buf1;
   send_reply(sptr, fields ? RPL_WHOSPCRPL : RPL_WHOREPLY, ++p1);
 }
-
-/** Count number of users who match \a mask.
- * @param[in] mask user\@host or user\@ip mask to check.
- * @return Count of matching users.
- */
-int
-count_users(char *mask)
-{
-  struct Client *acptr;
-  int count = 0;
-  char namebuf[USERLEN + HOSTLEN + 2];
-  char ipbuf[USERLEN + SOCKIPLEN + 2];
-
-  for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
-    if (!IsUser(acptr))
-      continue;
-
-    ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
-		  cli_user(acptr)->username, cli_user(acptr)->host);
-    ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s@%s", cli_user(acptr)->username,
-		  ircd_ntoa(&cli_ip(acptr)));
-
-    if (!match(mask, namebuf) || !match(mask, ipbuf))
-      count++;
-  }
-
-  return count;
-}

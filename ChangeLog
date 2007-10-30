@@ -1,3 +1,22 @@
+2007-10-29  Michael Poole <mdpoole@troilus.org>
+
+	* include/gline.h: Delete declaration of gline_propagate().
+
+	* include/whocmds.h: Delete declaration of count_users().
+
+	* ircd/whocmds.c (count_users): Move to gline.c as a static.
+
+	* ircd/gline.c (whocmds.h): Remove #include.
+	(gliter): Document boolean trickiness.  Add missing trickiness
+	when gl_flags has bits set besides GLINE_ACTIVE.
+	(make_gline): Get rid of now-unused "after" variable and the
+	comments related to overlapping G-lines.
+	(gline_propagate): Make static.
+	(count_users): Move from whocmds.c as a static function.
+	(count_realnames): New function.
+	(gline_add): Require a force to hit lots of users with a realname
+	G-line.
+
 2007-09-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_gline.c (ms_gline): Remove dead branch when 4 < parc < 5.
