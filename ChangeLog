@@ -1,5 +1,10 @@
 2007-09-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_gline.c (ms_gline): Remove dead branch when 4 < parc < 5.
+	(mo_gline): Consistently use the last argument as the reason.
+
+2007-09-05  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/Makefile.in: Fix dependencies for version.h generation.
 
 2007-08-20  Michael Poole <mdpoole@troilus.org>

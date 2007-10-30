@@ -292,9 +292,6 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   case GLINE_MODIFY: /* modifying a G-line */
     /* convert expire and lastmod, look for lifetime and reason */
     if (parc > 4) { /* protect against fall-through from 4-param form */
-      if (parc < 5)
-	return need_more_params(sptr, "GLINE");
-
       expire = atoi(parv[3]); /* convert expiration and lastmod */
       expire = abs_expire(expire);
       lastmod = atoi(parv[4]);
@@ -418,7 +415,7 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     flags |= GLINE_EXPIRE; /* remember that we got an expire time */
 
     if (parc > 4) { /* also got a reason... */
-      reason = parv[4];
+      reason = parv[parc - 1];
       flags |= GLINE_REASON;
     }
 
