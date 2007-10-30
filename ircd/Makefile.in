@@ -243,10 +243,10 @@ convert-conf: ${CONVERT_CONF_OBJS}
 	${PURIFY} ${CC} ${CONVERT_CONF_OBJS} ${LDFLAGS} -o convert-conf
 
 .PHONY: version.c
-version.c: version.c.SH umkpasswd
+version.c: version.c.SH ${top_srcdir}/include/patchlist.h umkpasswd
 	${SHELL} ${srcdir}/version.c.SH ${top_srcdir}
 
-../include/patchlist.h:
+${top_srcdir}/include/patchlist.h:
 	(cd ${top_srcdir} ; ./ircd-patch update)
 
 ircd_string.o: ircd_string.c chattr.tab.c
