@@ -220,8 +220,11 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
       if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
 	return show_usage(sptr);
 
-      if (is_time && val < 80000000) /* Toggle UTC/offset */
-	val = TStime() - val * 60;
+      if (is_time && val < 80000000) {
+        /* Convert age to timestamp and reverse direction */
+        val = TStime() - val * 60;
+        dir = (dir == '>') ? '<' : '>';
+      }
       
       switch (is_time) {
       case 0: /* number of users on channel */
@@ -231,18 +234,18 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	  args->min_users = val;
 	break;
 
-      case 1: /* channel topic */
+      case 1: /* channel creation time */
 	if (dir == '<')
-	  args->min_topic_time = val;
+	  args->max_time = val;
 	else
-	  args->max_topic_time = val;
+	  args->min_time = val;
 	break;
 
-      case 2: /* channel creation time */
+      case 2: /* channel topic */
 	if (dir == '<')
-	  args->min_time = val;
+	  args->max_topic_time = val;
 	else
-	  args->max_time = val;
+	  args->min_topic_time = val;
 	break;
       }
       break;
@@ -304,7 +307,6 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	return show_usage(sptr);
 
       return LPARAM_CHANNEL;
-      break;
     }
 
     if (!*param) /* hit end of string? */
@@ -360,7 +362,6 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       switch (param_parse(sptr, parv[param], &args, parc == 2)) {
       case LPARAM_ERROR: /* error encountered, usage already sent, return */
 	return 0;
-	break;
 
       case LPARAM_CHANNEL: /* show channel instead */
 	show_channels++;

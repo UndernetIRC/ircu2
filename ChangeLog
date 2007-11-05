@@ -1,3 +1,12 @@
+2007-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_list.c (param_parse): Reverse comparison direction when
+	converting from minutes to time_t, and which bound is set (so that
+	T<time_t works correctly).  Also switch is_time cases so that 'T'
+	and 'C' work as documented.  Remove a "break" after a "return".
+
+	(m_list): Remove a "break" after a "return".
+
 2007-10-29  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_lexer.l (YY_INPUT): Redefine to use fbgets().
