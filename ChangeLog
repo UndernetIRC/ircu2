@@ -1,5 +1,16 @@
 2007-11-04  Michael Poole <mdpoole@troilus.org>
 
+	* doc/example.conf: Document /LIST M as controlled by list_chan.
+
+	* include/channel.h (LISTARG_SHOWMODES): Define.
+
+	* ircd/hash.c (list_next_channels): Handle it.
+
+	* ircd/m_list.c (show_usage): Document 'M' flag.
+	(param_parse): Recognize 'M' as LISTARGS_SHOWMODES.
+
+2007-11-04  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_list.c (param_parse): Reverse comparison direction when
 	converting from minutes to time_t, and which bound is set (so that
 	T<time_t works correctly).  Also switch is_time cases so that 'T'
