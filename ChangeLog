@@ -1,5 +1,10 @@
 2007-11-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_stats.c (m_stats): Properly assign param before it is
+	used in the hunt_server_cmd() call.
+	
+2007-11-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (iauth_disconnect): Avoid destroying invalid
 	sockets.
 	(iauth_stderr_callback): Disconnect iauth child if stderr has
