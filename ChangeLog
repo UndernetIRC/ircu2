@@ -1,3 +1,10 @@
+2007-11-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (iauth_disconnect): Avoid destroying invalid
+	sockets.
+	(iauth_stderr_callback): Disconnect iauth child if stderr has
+	EOF (in case stdin notification is delayed somehow).
+	
 2007-11-04  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/umkpasswd.c (sum): Typecast buffer to avoid a warning about

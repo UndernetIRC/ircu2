@@ -1325,18 +1325,22 @@ void auth_mark_closing(void)
  */
 static void iauth_disconnect(struct IAuth *iauth)
 {
-  if (!i_GetConnected(iauth))
+  if (iauth == NULL)
     return;
 
   /* Close main socket. */
-  close(s_fd(i_socket(iauth)));
-  socket_del(i_socket(iauth));
-  s_fd(i_socket(iauth)) = -1;
+  if (s_fd(i_socket(iauth)) != -1) {
+    close(s_fd(i_socket(iauth)));
+    socket_del(i_socket(iauth));
+    s_fd(i_socket(iauth)) = -1;
+  }
 
   /* Close error socket. */
-  close(s_fd(i_stderr(iauth)));
-  socket_del(i_stderr(iauth));
-  s_fd(i_stderr(iauth)) = -1;
+  if (s_fd(i_stderr(iauth)) != -1) {
+    close(s_fd(i_stderr(iauth)));
+    socket_del(i_stderr(iauth));
+    s_fd(i_stderr(iauth)) = -1;
+  }
 }
 
 /** Close all %IAuth connections marked as closing. */
@@ -2172,14 +2176,17 @@ static void iauth_stderr_callback(struct Event *ev)
   assert(0 != iauth);
 
   switch (ev_type(ev)) {
+  case ET_DESTROY:
+    /* We do not restart iauth here: the stdout handler does that for us. */
+    break;
   case ET_READ:
     iauth_read_stderr(iauth);
     break;
   case ET_ERROR:
     log_write(LS_IAUTH, L_ERROR, 0, "IAuth stderr error: %s", strerror(ev_data(ev)));
-    /* and fall through to the ET_EOF/ET_DESTROY case */
-  case ET_DESTROY:
+    /* and fall through to the ET_EOF case */
   case ET_EOF:
+    iauth_disconnect(iauth);
     break;
   default:
     assert(0 && "Unrecognized event type");
