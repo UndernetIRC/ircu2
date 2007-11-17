@@ -1,5 +1,10 @@
 2007-11-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/umkpasswd.c (sum): Typecast buffer to avoid a warning about
+	the parameter type being passed to strlen().
+	
+2007-11-04  Michael Poole <mdpoole@troilus.org>
+
 	* doc/example.conf: Document /LIST M as controlled by list_chan.
 
 	* include/channel.h (LISTARG_SHOWMODES): Define.

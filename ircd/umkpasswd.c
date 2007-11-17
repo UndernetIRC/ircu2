@@ -201,7 +201,7 @@ vstr[0] = '\0';
  MD5Init(&context);
  while ((fgets((char*)buffer, sizeof(buffer), file)) != NULL)
  {
-  MD5Update(&context, buffer, strlen(buffer));
+  MD5Update(&context, buffer, strlen((char*)buffer));
   str = strstr((char*)buffer, "$Id: ");
   if (str != NULL)
   {
