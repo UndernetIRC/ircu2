@@ -179,14 +179,6 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
       /* space, modifier, nick, \r \n \0 */
     {
       send_reply(sptr, (filter & NAMES_DEL) ? RPL_DELNAMREPLY : RPL_NAMREPLY, buf);
-      strcpy(buf, "* ");
-      ircd_strncpy(buf + 2, chptr->chname, len + 1);
-      buf[len + 2] = ':';
-      buf[len + 3] = '\0';
-      if (PubChannel(chptr))
-        *buf = '=';
-      else if (SecretChannel(chptr))
-        *buf = '@';
       idx = len + 4;
       flag = 0;
       needs_space=0;

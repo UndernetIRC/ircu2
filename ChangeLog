@@ -1,3 +1,9 @@
+2007-11-24  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_names.c (do_names): Don't try to re-initialize the start
+	of buf[] for each line.  It's done the first time around and that
+	can be reused safely.
+
 2007-11-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_stats.c (m_stats): Properly assign param before it is
