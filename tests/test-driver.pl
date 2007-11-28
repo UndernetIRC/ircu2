@@ -297,12 +297,12 @@ sub drv_default {
       my $expect = $client->{expect}->[0];
       my $mismatch;
       $args = $args->[2]; # ->[1] is the entire string, ->[2] is split
-      for (my $x=2; ($x<=$#$expect) and ($x<=$#$args) and not $mismatch; $x++) {
-        if ($args->[$x] !~ /$expect->[$x]/i) {
+      for (my $x=0; ($x+2<=$#$expect) and ($x<=$#$args) and not $mismatch; $x++) {
+        my $expectation = $expect->[$x+2];
+        if ($args->[$x] !~ /$expectation/i) {
           $mismatch = 1;
-          print "Mismatch in arg $x: $args->[$x] !~ $expect->[$x]\n";
+          print "Mismatch in arg $x: $args->[$x] !~ $expectation\n";
         }
-        # $mismatch = 1 unless $args->[$x] =~ /$expect->[$x]/i;
       }
       unexpect($kernel, $session, $client) unless $mismatch;
     }
@@ -391,22 +391,10 @@ sub check_expect {
   my $expected = $client->{expect}->[0];
 
   # check sender
-  if ($expected->[0] =~ /\*(.+)/) {
-    # we expect *sessionname, so look up session's current nick
-    my $exp = $1;
-    $sender =~ /^(.+)!/;
-    return 0 if lc($heap->{clients}->{$exp}->{nick}) ne lc($1);
-  } elsif ($expected->[0] =~ /^:?(.+!.+)/) {
-    # expect :nick!user@host, so compare whole thing
-    return 0 if lc($1) ne lc($sender);
-  } else {
-    # we only expect :nick, so compare that part
-    $sender =~ /^:?(.+)!/;
-    return 0 if lc($expected->[0]) ne lc($1);
-  }
+  return 0 unless $sender =~ /^:?\Q$expected->[0]\E/i;
 
   # compare text
-  return 0 if lc($text) !~ /$expected->[2]/i;
+  return 0 unless $text =~ /$expected->[2]/i;
 
   # drop expectation of event
   unexpect($kernel, $session, $client);

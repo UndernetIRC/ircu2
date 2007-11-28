@@ -26,10 +26,10 @@ connect cl2 %cl2-nick% d00dm4n %srv1% :Someone Else
 # servers.)
 :cl1 mode %channel% +D-D
 :cl1 mode %channel%
-:cl1 expect %srv1-name% 324 %cl1-nick% %channel% \\+.*d
+:cl1 expect %srv1-name% 324 %channel% \\+.*d
 
 # Make sure that client 1 does see the -d when client 2 quits
 :cl2 wait cl1
-:cl2 part %channel% leaving
 :cl1 expect %hidden-srv% mode %channel% -d
+:cl2 part %channel%
 :cl1 quit done
