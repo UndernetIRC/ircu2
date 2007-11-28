@@ -1,3 +1,8 @@
+2007-11-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (mode_ban_invalidate): Clarify Doxygen comments.
+	(apply_ban): Only block narrower bans if the wider ban is active.
+
 2007-11-24  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_names.c (do_names): Don't try to re-initialize the start
