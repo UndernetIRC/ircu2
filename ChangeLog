@@ -1,5 +1,22 @@
 2007-11-28  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Bump for u2.10.12.11 release.
+
+2007-11-28  Michael Poole <mdpoole@troilus.org>
+
+	* tests/test-driver.pl (drv_default): Fix expect for numeric
+	responses that have non-trivial parameters.
+	(check_expect): Simplify (and fix) sender name check.
+
+	* tests/bug-1640796.cmd: Update expect NNN for new POE behavior
+	and part to not try to part the channel named "leaving".
+
+	* tests/bug-1674539.cmd: Update expect NNN for new POE behavior.
+
+	* tests/bug-1840011.cmd: New test script.
+	
+2007-11-28  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (mode_ban_invalidate): Clarify Doxygen comments.
 	(apply_ban): Only block narrower bans if the wider ban is active.
 
