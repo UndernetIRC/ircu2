@@ -1,3 +1,15 @@
+2007-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/ircd_lexer.l: provide an implementation of yywrap() so we
+	no longer have to link against -lfl
+
+	* configure.in: drop tests on LEXLIB and don't add it to the list
+	of libs
+
+	* ircd/gline.c (gline_add): apply too-many-users test to realname
+	G-lines *only* when the origin is my user (or a user, for
+	remote-local G-lines)
+
 2007-11-28  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for pre12 development.

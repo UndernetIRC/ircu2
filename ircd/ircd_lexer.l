@@ -220,6 +220,12 @@ void deinit_lexer(void)
   }
 }
 
+int
+yywrap(void)
+{
+  return 1;
+}
+
 %}
 
 WHITE [ \t\r]+

@@ -132,14 +132,6 @@ else
   AC_MSG_ERROR([Cannot use $LEX as flex.])
 fi
 
-if test -z "$LEXLIB" ; then
-  AC_MSG_FAILURE([Cannot find a library with yywrap() in, but flex was found.
-  It's possible the compiler you're using ($CC) is incompatible with the
-  installed library.])
-fi
-
-LIBS="$LEXLIB $LIBS"
-
 dnl YACC - ditto
 AC_PROG_YACC
 dnl The autoconf docs say $YACC defaults to 'yacc'.  This seems to be true,
