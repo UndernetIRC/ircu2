@@ -1,5 +1,7 @@
 2007-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/version.c.SH: correct invalid syntax in shell case/esac
+
 	* ircd/ircd_lexer.l: provide an implementation of yywrap() so we
 	no longer have to link against -lfl
 
