@@ -1,3 +1,8 @@
+2007-12-03  Michael Poole <mdpoole@troilus.org>
+
+	* doc/Makefile.in (DATAROOTDIR): Define.
+	(DATADIR): Likewise.
+	
 2007-11-30  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/version.c.SH: correct invalid syntax in shell case/esac
