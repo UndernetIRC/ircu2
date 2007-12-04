@@ -1,5 +1,9 @@
 2007-12-03  Michael Poole <mdpoole@troilus.org>
 
+	* include/patchlevel.h (PATCHLEVEL): Bump for u2.10.12.12 release.
+
+2007-12-03  Michael Poole <mdpoole@troilus.org>
+
 	* doc/Makefile.in (DATAROOTDIR): Define.
 	(DATADIR): Likewise.
 	
