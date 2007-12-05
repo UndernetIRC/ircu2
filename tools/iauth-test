@@ -162,12 +162,14 @@ my %handlers = (
                 '127.0.0.33' => { T_reply => 'R account-3' },
                 '127.0.0.34' => { T_reply => 'k' },
                 '127.0.0.35' => { T_reply => 'K' },
-                # 127.0.1.x: io/iU/iu functionality.
+                # 127.0.1.x: io/iU/iu/iM functionality.
                 '127.0.1.0'  => { C_reply => 'o forced',
                                   H_reply => 'D' },
                 '127.0.1.1'  => { C_reply => 'U trusted',
                                   H_reply => 'D' },
                 '127.0.1.2'  => { C_reply => 'u untrusted',
+                                  H_reply => 'D' },
+                '127.0.1.3'  => { C_reply => 'M +i',
                                   H_reply => 'D' },
                 # 127.0.2.x: iI/iN functionality.
                 '127.0.2.0'  => { C_reply => 'N iauth.assigned.host',

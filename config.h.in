@@ -42,10 +42,6 @@
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
 
-/* Define to 1 if system calls automatically restart after interruption by a
-   signal. */
-#undef HAVE_RESTARTABLE_SYSCALLS
-
 /* Define to 1 if you have the `setrlimit' function. */
 #undef HAVE_SETRLIMIT
 
@@ -84,9 +80,6 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
-
-/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
-#undef HAVE_SYS_WAIT_H
 
 /* Define to 1 if you have the `times' function. */
 #undef HAVE_TIMES
@@ -139,22 +132,22 @@
 /* Define if you have POSIX signals. */
 #undef POSIX_SIGNALS
 
-/* The size of a `int', as computed by sizeof. */
+/* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
-/* The size of a `int64_t', as computed by sizeof. */
+/* The size of `int64_t', as computed by sizeof. */
 #undef SIZEOF_INT64_T
 
-/* The size of a `long', as computed by sizeof. */
+/* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of a `long long', as computed by sizeof. */
+/* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* The size of a `short', as computed by sizeof. */
+/* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
-/* The size of a `void *', as computed by sizeof. */
+/* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -207,7 +200,7 @@
 /* Define to `long long' if <sys/types.h> does not define. */
 #undef int64_t
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* type to use in place of socklen_t if not defined */

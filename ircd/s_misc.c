@@ -222,10 +222,14 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     if (MyUser(bcptr))
       set_snomask(bcptr, ~0, SNO_DEL);
 
-    if (IsInvisible(bcptr))
+    if (IsInvisible(bcptr)) {
+      assert(UserStats.inv_clients > 0);
       --UserStats.inv_clients;
-    if (IsOper(bcptr))
+    }
+    if (IsOper(bcptr)) {
+      assert(UserStats.opers > 0);
       --UserStats.opers;
+    }
     if (MyConnect(bcptr))
       Count_clientdisconnects(bcptr, UserStats);
     else

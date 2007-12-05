@@ -17,14 +17,14 @@ connect cl3 %cl3-nick% oper %srv2% :Oper 3
 # Check that we get local privileges properly.
 :cl1 wait cl2,cl3
 :cl1 raw :privs %cl1-nick%
-:cl1 expect %srv1-name% 270 %cl1-nick% %cl1-nick% :CHAN_LIMIT
+:cl1 expect %srv1-name% 270 %cl1-nick% :CHAN_LIMIT
 :cl1 raw :privs %cl2-nick%
-:cl1 expect %srv1-name% 270 %cl1-nick% %cl2-nick% :CHAN_LIMIT
+:cl1 expect %srv1-name% 270 %cl2-nick% :CHAN_LIMIT
 
 # Bug 1674539 is that remote /privs do not get any response.
 # Testing shows that the problem only shows up with a hub between.
 :cl1 raw :privs %cl3-nick%
-:cl1 expect %srv2-name% 270 %cl1-nick% %cl3-nick% :CHAN_LIMIT
+:cl1 expect %srv2-name% 270 %cl3-nick% :CHAN_LIMIT
 
 # Synchronize everything
 sync cl1,cl2,cl3

@@ -804,6 +804,14 @@ portblock: PORT '{' portitems '}' ';'
 {
   struct ListenerFlags flags_here;
   struct SLink *link;
+  if (hosts == NULL) {
+    struct SLink *link;
+    link = make_link();
+    DupString(link->value.cp, "*");
+    link->flags = 0;
+    link->next = hosts;
+    hosts = link;
+  }
   if (!permitted(BLOCK_PORT, 1))
     ;
   else for (link = hosts; link != NULL; link = link->next) {
@@ -1186,6 +1194,8 @@ pseudoitems '}' ';'
     parse_error("Missing name in pseudo %s block", smap->command);
   else if (!smap->services)
     parse_error("Missing nick in pseudo %s block", smap->command);
+  else if (!strIsAlpha(smap->command))
+    parse_error("Pseudo command %s invalid: must all be letters", smap->command);
   else
     valid = 1;
   if (valid && register_mapping(smap))
@@ -1236,7 +1246,10 @@ iauthblock: IAUTH '{' iauthitems '}' ';'
   if (permitted(BLOCK_IAUTH, 1))
     auth_spawn(stringno, stringlist);
   while (stringno > 0)
-    MyFree(stringlist[--stringno]);
+  {
+    --stringno;
+    MyFree(stringlist[stringno]);
+  }
 };
 
 iauthitems: iauthitem iauthitems | iauthitem;
@@ -1244,7 +1257,10 @@ iauthitem: iauthprogram;
 iauthprogram: PROGRAM '='
 {
   while (stringno > 0)
-    MyFree(stringlist[--stringno]);
+  {
+    --stringno;
+    MyFree(stringlist[stringno]);
+  }
 } stringlist ';';
 
 includeblock: INCLUDE blocklimit QSTRING ';' {

@@ -147,6 +147,7 @@ typedef enum ChannelGetType {
 #define LISTARG_TOPICLIMITS     0x0001
 #define LISTARG_SHOWSECRET      0x0002
 #define LISTARG_NEGATEWILDCARD  0x0004
+#define LISTARG_SHOWMODES       0x0008
 
 /**
  * Maximum acceptable lag time in seconds: A channel younger than

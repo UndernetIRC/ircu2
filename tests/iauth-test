@@ -1,0 +1,66 @@
+#! /usr/bin/perl
+# iauth-test: test script for IRC authorization (iauth) protocol
+# Copyright 2006-2007 Michael Poole
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
+require 5.008; # We assume deferred signal handlers, new in 5.008.
+use strict;
+use warnings;
+use vars qw(%pending);
+
+use FileHandle; # for autoflush method on file handles
+
+# This script is an iauth helper script to help check for bugs in
+# ircu's IAuth handling.
+
+sub dolog ($) {
+    print LOG "$_[0]\n";
+}
+
+sub reply ($;$$) {
+    my ($msg, $client, $extra) = @_;
+
+    if (not defined $msg) {
+        # Accept this for easier handling of client reply messages.
+        return;
+    } elsif (ref $msg eq '') {
+        $msg =~ s/^(.) ?/$1 $client->{id} $client->{ip} $client->{port} / if $client;
+        dolog "< $msg";
+        print "$msg\n";
+    } elsif (ref $msg eq 'ARRAY') {
+        grep { reply($_, $client, $extra); } @$msg;
+    } elsif (ref $msg eq 'CODE') {
+        &$msg($client, $extra);
+    } else {
+        die "Unknown reply message type.";
+    }
+}
+
+open LOG, ">> iauth.log";
+autoflush LOG 1;
+autoflush STDOUT 1;
+autoflush STDERR 1;
+dolog "IAuth starting at " . scalar(localtime(time));
+reply("O ARU");
+
+while (<>) {
+    # Chomp newline and log incoming message.
+    s/\r?\n?\r?$//;
+    dolog "> $_";
+
+    # If there's an ID at the start of the line, parse it out.
+    my $client = $pending{my $id = $1} if s/^(\d+) //;
+
+    # Figure out how to handle the command.
+    if (/^C (\S+) (\S+) (.+)$/) {
+        $pending{$id} = { id => $id, ip => $1, port => $2 };
+    } elsif (/^([DT])/ and $client) {
+        delete $pending{$id};
+    } elsif (/^n (.+)$/ and $client) {
+        reply("C $client->{id} :Do not choke on missing parameters.") if $1 eq 'Bug1685648';
+        reply("D", $client);
+    }
+}

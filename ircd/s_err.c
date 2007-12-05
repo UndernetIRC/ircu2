@@ -866,7 +866,7 @@ static Numeric replyTable[] = {
 /* 416 */
   { ERR_QUERYTOOLONG, "%s :Too many lines in the output, restrict your query", "416" },
 /* 417 */
-  { 0 },
+  { ERR_INPUTTOOLONG, ":Input line was too long", "417" },
 /* 418 */
   { 0 },
 /* 419 */
@@ -1064,7 +1064,7 @@ static Numeric replyTable[] = {
 /* 515 */
   { ERR_BADEXPIRE, "%Tu :Bad expire time", "515" },
 /* 516 */
-  { ERR_DONTCHEAT, " :Don't Cheat.", "516" },
+  { ERR_DONTCHEAT, "%s :Don't Cheat.", "516" },
 /* 517 */
   { ERR_DISABLED, "%s :Command disabled.", "517" },
 /* 518 */

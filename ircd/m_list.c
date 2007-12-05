@@ -116,9 +116,12 @@ show_usage(struct Client *sptr)
              "matching \037pattern\037. ");
   send_reply(sptr, RPL_LISTUSAGE, "Note: Patterns may contain * and ?. "
              "You may only give one pattern match constraint.");
-  if (IsAnOper(sptr))
+  if (IsAnOper(sptr)) {
     send_reply(sptr, RPL_LISTUSAGE,
                " \002S\002             ; Show secret channels.");
+    send_reply(sptr, RPL_LISTUSAGE,
+               " \002M\002             ; Show channel modes.");
+  }
   send_reply(sptr, RPL_LISTUSAGE,
 	     "Example: LIST <3,>1,C<10,T>0,#a*  ; 2 users, younger than 10 "
 	     "min., topic set., starts with #a");
@@ -177,8 +180,11 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
       if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
 	return show_usage(sptr);
 
-      if (is_time && val < 80000000) /* Toggle UTC/offset */
-	val = TStime() - val * 60;
+      if (is_time && val < 80000000) {
+        /* Convert age to timestamp and reverse direction */
+        val = TStime() - val * 60;
+        dir = (dir == '>') ? '<' : '>';
+      }
       
       switch (is_time) {
       case 0: /* number of users on channel */
@@ -188,18 +194,18 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	  args->min_users = val;
 	break;
 
-      case 1: /* channel topic */
+      case 1: /* channel creation time */
 	if (dir == '<')
-	  args->min_topic_time = val;
+	  args->max_time = val;
 	else
-	  args->max_topic_time = val;
+	  args->min_time = val;
 	break;
 
-      case 2: /* channel creation time */
+      case 2: /* channel topic */
 	if (dir == '<')
-	  args->min_time = val;
+	  args->max_topic_time = val;
 	else
-	  args->max_time = val;
+	  args->min_topic_time = val;
 	break;
       }
       break;
@@ -216,6 +222,18 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
         return show_usage(sptr);
 
       args->flags |= LISTARG_SHOWSECRET;
+      param++;
+
+      if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
+        return show_usage(sptr);
+      break;
+
+    case 'M':
+    case 'm':
+      if (!IsAnOper(sptr) || !HasPriv(sptr, PRIV_LIST_CHAN))
+        return show_usage(sptr);
+
+      args->flags |= LISTARG_SHOWMODES;
       param++;
 
       if (*param != ',' && *param != ' ' && *param != '\0') /* check syntax */
@@ -267,7 +285,6 @@ param_parse(struct Client *sptr, const char *param, struct ListingArgs *args,
 	return show_usage(sptr);
 
       return LPARAM_CHANNEL;
-      break;
     }
 
     if (!*param) /* hit end of string? */
@@ -337,7 +354,6 @@ int m_list(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       switch (param_parse(sptr, parv[param], &args, parc == 2)) {
       case LPARAM_ERROR: /* error encountered, usage already sent, return */
 	return 0;
-	break;
 
       case LPARAM_CHANNEL: /* show channel instead */
 	show_channels++;

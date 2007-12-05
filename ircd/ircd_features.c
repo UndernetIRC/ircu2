@@ -374,6 +374,7 @@ static struct FeatureDesc {
   F_B(LOCAL_CHANNELS, 0, 1, set_isupport_chantypes),
   F_B(TOPIC_BURST, 0, 0, 0),
   F_B(USER_GLIST, 0, 1, 0),
+  F_B(DISABLE_GLINES, 0, 0, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
@@ -703,6 +704,9 @@ feature_set(struct Client* from, const char* const* fields, int count)
 
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
+
+    if (from)
+      return feature_get(from, fields, count);
   }
 
   return 0;
@@ -766,6 +770,9 @@ feature_reset(struct Client* from, const char* const* fields, int count)
 
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
+
+    if (from)
+      return feature_get(from, fields, count);
   }
 
   return 0;

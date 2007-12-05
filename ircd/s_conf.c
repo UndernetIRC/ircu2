@@ -826,6 +826,7 @@ static int conf_error;
 static int conf_already_read;
 extern void yyparse(void);
 extern int init_lexer(const char *configfile);
+extern void deinit_lexer(void);
 
 /** Read configuration file.
  * @return Zero on failure, non-zero on success. */
@@ -837,6 +838,7 @@ int read_configuration_file(void)
   if (!init_lexer(configfile))
     return 0;
   yyparse();
+  deinit_lexer();
   feature_mark(); /* reset unmarked features */
   conf_already_read = 1;
   return 1;
@@ -1046,15 +1048,15 @@ int rehash(struct Client *cptr, int sig)
 
   clear_quarantines();
 
-  if (sig != 2)
-    restart_resolver();
-
   class_mark_delete();
   mark_listeners_closing();
   auth_mark_closing();
   close_mappings();
 
   read_configuration_file();
+
+  if (sig != 2)
+    restart_resolver();
 
   log_reopen(); /* reopen log files */
 

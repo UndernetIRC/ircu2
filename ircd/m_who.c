@@ -689,11 +689,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Make a clean mask suitable to be sent in the "end of" */
   if (mask && (p = strchr(mask, ' ')))
     *p = '\0';
-  send_reply(sptr, RPL_ENDOFWHO, BadPtr(mask) ? "*" : mask);
-
   /* Notify the user if we decided that his query was too long */
   if (counter < 0)
-    send_reply(sptr, ERR_QUERYTOOLONG, "WHO");
+    send_reply(sptr, ERR_QUERYTOOLONG, BadPtr(mask) ? "*" : mask);
+  send_reply(sptr, RPL_ENDOFWHO, BadPtr(mask) ? "*" : mask);
 
   return 0;
 }

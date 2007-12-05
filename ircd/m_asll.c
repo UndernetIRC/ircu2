@@ -131,6 +131,7 @@ int mo_asll(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char *mask;
   struct Client *acptr;
+  int hits;
   int i;
 
   if (parc < 2)
@@ -143,12 +144,14 @@ int mo_asll(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   mask = parv[1];
 
-  for (i = 0; i <= HighestFd; i++) {
+  for (i = hits = 0; i <= HighestFd; i++) {
     acptr = LocalClientArray[i];
     if (!acptr || !IsServer(acptr) || !MyConnect(acptr) || match(mask, cli_name(acptr)))
       continue;
     send_asll_reply(&me, sptr, cli_name(acptr), cli_serv(acptr)->asll_rtt,
       cli_serv(acptr)->asll_to, cli_serv(acptr)->asll_from);
+    hits++;
   }
+  sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :AsLL for %s: %d local servers matched", sptr, mask, hits);
   return 0;
 }

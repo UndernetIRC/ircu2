@@ -336,6 +336,7 @@ extern const struct Numeric* get_error_numeric(int err);
      /* ERR_BADMASK          415           IRCnet extension */
 #define ERR_QUERYTOOLONG     416        /* Undernet extension */
      /* ERR_TOOMANYMATCHES   416           IRCnet extension */
+#define ERR_INPUTTOOLONG     417
 /*      ERR_LENGTHTRUNCATED  419           aircd */
 
 #define ERR_UNKNOWNCOMMAND   421

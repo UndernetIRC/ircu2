@@ -1325,18 +1325,22 @@ void auth_mark_closing(void)
  */
 static void iauth_disconnect(struct IAuth *iauth)
 {
-  if (!i_GetConnected(iauth))
+  if (iauth == NULL)
     return;
 
   /* Close main socket. */
-  close(s_fd(i_socket(iauth)));
-  socket_del(i_socket(iauth));
-  s_fd(i_socket(iauth)) = -1;
+  if (s_fd(i_socket(iauth)) != -1) {
+    close(s_fd(i_socket(iauth)));
+    socket_del(i_socket(iauth));
+    s_fd(i_socket(iauth)) = -1;
+  }
 
   /* Close error socket. */
-  close(s_fd(i_stderr(iauth)));
-  socket_del(i_stderr(iauth));
-  s_fd(i_stderr(iauth)) = -1;
+  if (s_fd(i_stderr(iauth)) != -1) {
+    close(s_fd(i_stderr(iauth)));
+    socket_del(i_stderr(iauth));
+    s_fd(i_stderr(iauth)) = -1;
+  }
 }
 
 /** Close all %IAuth connections marked as closing. */
@@ -1904,6 +1908,25 @@ static int iauth_cmd_kill(struct IAuth *iauth, struct Client *cli,
   return 0;
 }
 
+/** Change a client's usermode.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters (at least one).
+ * @param[in] params Usermode arguments for client (with the first
+ *   starting with '+').
+ * @return Zero.
+ */
+static int iauth_cmd_usermode(struct IAuth *iauth, struct Client *cli,
+                              int parc, char **params)
+{
+  if (params[0][0] == '+')
+  {
+    set_user_mode(cli, cli, parc + 2, params - 2, ALLOWMODES_ANY);
+  }
+  return 0;
+}
+
+
 /** Send a challenge string to the client.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -1948,6 +1971,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;
   case 'N': handler = iauth_cmd_hostname; has_cli = 1; break;
   case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
+  case 'M': handler = iauth_cmd_usermode; has_cli = 1; break;
   case 'C': handler = iauth_cmd_challenge; has_cli = 1; break;
   case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
   case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;
@@ -1990,7 +2014,9 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   } else {
     /* Try to find the client associated with the request. */
     id = strtol(params[0], NULL, 10);
-    if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id]))
+    if (parc < 3)
+      sendto_iauth(NULL, "E Missing :Need <id> <ip> <port>");
+    else if (id < 0 || id > HighestFd || !(cli = LocalClientArray[id]))
       /* Client no longer exists (or never existed). */
       sendto_iauth(NULL, "E Gone :[%s %s %s]", params[0], params[1],
 		   params[2]);
@@ -2150,14 +2176,17 @@ static void iauth_stderr_callback(struct Event *ev)
   assert(0 != iauth);
 
   switch (ev_type(ev)) {
+  case ET_DESTROY:
+    /* We do not restart iauth here: the stdout handler does that for us. */
+    break;
   case ET_READ:
     iauth_read_stderr(iauth);
     break;
   case ET_ERROR:
     log_write(LS_IAUTH, L_ERROR, 0, "IAuth stderr error: %s", strerror(ev_data(ev)));
-    /* and fall through to the ET_EOF/ET_DESTROY case */
-  case ET_DESTROY:
+    /* and fall through to the ET_EOF case */
   case ET_EOF:
+    iauth_disconnect(iauth);
     break;
   default:
     assert(0 && "Unrecognized event type");
@@ -2179,7 +2208,6 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
     }
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":End of IAuth configuration.");
 }
 
 /** Report active iauth's statistics to \a cptr.
@@ -2196,5 +2224,4 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
         send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
                    link->value.cp);
     }
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":End of IAuth statistics.");
 }

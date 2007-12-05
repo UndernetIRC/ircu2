@@ -27,6 +27,8 @@ SHELL = @SHPROG@
 RM = @RMPROG@
 @SET_MAKE@
 
+DATAROOTDIR = @datarootdir@
+DATADIR = @datadir@
 MANDIR = @mandir@
 
 #### End of system configuration section. ####

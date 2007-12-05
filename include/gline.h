@@ -38,18 +38,36 @@ struct StatDesc;
 
 #define GLINE_MAX_EXPIRE 604800	/**< max expire: 7 days */
 
+/** Local state of a G-line. */
+enum GlineLocalState {
+  GLOCAL_GLOBAL,		/**< G-line state unmodified locally. */
+  GLOCAL_ACTIVATED,		/**< G-line state locally activated. */
+  GLOCAL_DEACTIVATED		/**< G-line state locally deactivated. */
+};
+
 /** Description of a G-line. */
 struct Gline {
-  struct Gline *gl_next;      /**< Next G-line in linked list. */
-  struct Gline**gl_prev_p;    /**< Previous pointer to this G-line. */
-  char	       *gl_user;      /**< Username mask (or channel/realname mask). */
-  char	       *gl_host;      /**< Host prtion of mask. */
-  char	       *gl_reason;    /**< Reason for G-line. */
-  time_t	gl_expire;    /**< Expiration timestamp. */
-  time_t	gl_lastmod;   /**< Last modification timestamp. */
-  struct irc_in_addr gl_addr; /**< IP address (for IP-based G-lines). */
-  unsigned char gl_bits;      /**< Usable bits in gl_addr. */
-  unsigned int	gl_flags;     /**< G-line status flags. */
+  struct Gline *gl_next;	/**< Next G-line in linked list. */
+  struct Gline**gl_prev_p;	/**< Previous pointer to this G-line. */
+  char	       *gl_user;	/**< Username mask (or channel/realname mask). */
+  char	       *gl_host;	/**< Host prtion of mask. */
+  char	       *gl_reason;	/**< Reason for G-line. */
+  time_t	gl_expire;	/**< Expiration timestamp. */
+  time_t	gl_lastmod;	/**< Last modification timestamp. */
+  time_t	gl_lifetime;	/**< Record expiration timestamp. */
+  struct irc_in_addr gl_addr;	/**< IP address (for IP-based G-lines). */
+  unsigned char gl_bits;	/**< Usable bits in gl_addr. */
+  unsigned int	gl_flags;	/**< G-line status flags. */
+  enum GlineLocalState gl_state;/**< G-line local state. */
+};
+
+/** Action to perform on a G-line. */
+enum GlineAction {
+  GLINE_ACTIVATE,		/**< G-line should be activated. */
+  GLINE_DEACTIVATE,		/**< G-line should be deactivated. */
+  GLINE_LOCAL_ACTIVATE,		/**< G-line should be locally activated. */
+  GLINE_LOCAL_DEACTIVATE,	/**< G-line should be locally deactivated. */
+  GLINE_MODIFY			/**< G-line should be modified. */
 };
 
 #define GLINE_ACTIVE	0x0001  /**< G-line is active. */
@@ -65,14 +83,22 @@ struct Gline {
 #define GLINE_OPERFORCE	0x0400	/**< Oper forcing G-line to be set. */
 #define GLINE_REALNAME  0x0800  /**< G-line matches only the realname field. */
 
+#define GLINE_EXPIRE	0x1000	/**< Expiration time update */
+#define GLINE_LIFETIME	0x2000	/**< Record lifetime update */
+#define GLINE_REASON	0x4000	/**< Reason update */
+
 /** Controllable flags that can be set on an actual G-line. */
 #define GLINE_MASK	(GLINE_ACTIVE | GLINE_BADCHAN | GLINE_LOCAL | GLINE_REALNAME)
 /** Mask for G-line activity flags. */
 #define GLINE_ACTMASK	(GLINE_ACTIVE | GLINE_LDEACT)
 
+/** Mask for G-line update flags. */
+#define GLINE_UPDATE	(GLINE_EXPIRE | GLINE_LIFETIME | GLINE_REASON)
+
 /** Test whether \a g is active. */
-#define GlineIsActive(g)	(((g)->gl_flags & GLINE_ACTMASK) == \
-				 GLINE_ACTIVE)
+#define GlineIsActive(g)	((((g)->gl_flags & GLINE_ACTIVE) &&	  \
+				  (g)->gl_state != GLOCAL_DEACTIVATED) || \
+				 (g)->gl_state == GLOCAL_ACTIVATED)
 /** Test whether \a g is remotely (globally) active. */
 #define GlineIsRemActive(g)	((g)->gl_flags & GLINE_ACTIVE)
 /** Test whether \a g is an IP-based G-line. */
@@ -93,17 +119,21 @@ struct Gline {
 /** Return last modification time of a G-line. */
 #define GlineLastMod(g)		((g)->gl_lastmod)
 
-extern int gline_propagate(struct Client *cptr, struct Client *sptr,
-			   struct Gline *gline);
 extern int gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 		     char *reason, time_t expire, time_t lastmod,
-		     unsigned int flags);
+		     time_t lifetime, unsigned int flags);
 extern int gline_activate(struct Client *cptr, struct Client *sptr,
 			  struct Gline *gline, time_t lastmod,
 			  unsigned int flags);
 extern int gline_deactivate(struct Client *cptr, struct Client *sptr,
 			    struct Gline *gline, time_t lastmod,
 			    unsigned int flags);
+extern int gline_modify(struct Client *cptr, struct Client *sptr,
+			struct Gline *gline, enum GlineAction action,
+			char *reason, time_t expire, time_t lastmod,
+			time_t lifetime, unsigned int flags);
+extern int gline_destroy(struct Client *cptr, struct Client *sptr,
+			 struct Gline *gline);
 extern struct Gline *gline_find(char *userhost, unsigned int flags);
 extern struct Gline *gline_lookup(struct Client *cptr, unsigned int flags);
 extern void gline_free(struct Gline *gline);

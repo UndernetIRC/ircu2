@@ -59,7 +59,7 @@ int mo_privs(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     for (name = ircd_strtok(&p, parv[i], " "); name;
 	 name = ircd_strtok(&p, 0, " ")) {
       if (!(acptr = FindUser(name)))
-        continue;
+        send_reply(sptr, ERR_NOSUCHNICK, name);
       else if (MyUser(acptr))
 	client_report_privs(sptr, acptr);
       else

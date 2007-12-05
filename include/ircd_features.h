@@ -61,6 +61,7 @@ enum Feature {
   FEAT_LOCAL_CHANNELS,
   FEAT_TOPIC_BURST,
   FEAT_USER_GLIST,
+  FEAT_DISABLE_GLINES,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,

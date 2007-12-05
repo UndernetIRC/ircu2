@@ -451,7 +451,17 @@ void list_next_channels(struct Client *cptr)
           && ((args->flags & LISTARG_SHOWSECRET)
               || ShowChannel(cptr, chptr)))
       {
-        send_reply(cptr, RPL_LIST, chptr->chname, chptr->users, chptr->topic);
+        if (args->flags & LISTARG_SHOWMODES) {
+          char modebuf[MODEBUFLEN];
+          char parabuf[MODEBUFLEN];
+
+          modebuf[0] = modebuf[1] = parabuf[0] = '\0';
+          channel_modes(cptr, modebuf, parabuf, sizeof(parabuf), chptr, NULL);
+          send_reply(cptr, RPL_LIST | SND_EXPLICIT, "%s %u %s %s :%s",
+                     chptr->chname, chptr->users, modebuf, parabuf, chptr->topic);
+        } else {
+          send_reply(cptr, RPL_LIST, chptr->chname, chptr->users, chptr->topic);
+        }
       }
     }
     /* If, at the end of the bucket, client sendq is more than half

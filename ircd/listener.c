@@ -147,8 +147,12 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
       continue;
     len = 0;
     flags[len++] = listener_server(listener) ? 'S' : 'C';
-    if (show_hidden && FlagHas(&listener->flags, LISTEN_HIDDEN))
+    if (FlagHas(&listener->flags, LISTEN_HIDDEN))
+    {
+      if (!show_hidden)
+        continue;
       flags[len++] = 'H';
+    }
     if (FlagHas(&listener->flags, LISTEN_IPV4))
     {
       flags[len++] = '4';

@@ -314,7 +314,7 @@ event_generate(enum EventType type, void* arg, int data)
 static void
 timer_enqueue(struct Timer* timer)
 {
-  struct Timer** ptr_p;
+  struct GenHeader** ptr_p;
 
   assert(0 != timer);
   assert(0 == timer->t_header.gh_prev_p); /* not already on queue */
@@ -333,16 +333,16 @@ timer_enqueue(struct Timer* timer)
 
   /* Find a slot to insert timer */
   for (ptr_p = &evInfo.gens.g_timer; ;
-       ptr_p = (struct Timer**) &(*ptr_p)->t_header.gh_next)
-    if (!*ptr_p || timer->t_expire < (*ptr_p)->t_expire)
+       ptr_p = &(*ptr_p)->gh_next)
+    if (!*ptr_p || timer->t_expire < ((struct Timer*)*ptr_p)->t_expire)
       break;
 
   /* link it in the right place */
-  timer->t_header.gh_next = (struct GenHeader*) *ptr_p;
-  timer->t_header.gh_prev_p = (struct GenHeader**) ptr_p;
+  timer->t_header.gh_next = *ptr_p;
+  timer->t_header.gh_prev_p = ptr_p;
   if (*ptr_p)
-    (*ptr_p)->t_header.gh_prev_p = &timer->t_header.gh_next;
-  *ptr_p = timer;
+    (*ptr_p)->gh_prev_p = &timer->t_header.gh_next;
+  *ptr_p = &timer->t_header;
 }
 
 /** &Signal handler for writing signal notification to pipe.
@@ -368,7 +368,7 @@ signal_callback(struct Event* event)
 {
   unsigned char sigstr[SIGS_PER_SOCK];
   int sig, n_sigs, i;
-  struct Signal* ptr;
+  struct GenHeader* ptr;
 
   assert(event->ev_type == ET_READ); /* readable events only */
 
@@ -378,8 +378,8 @@ signal_callback(struct Event* event)
     sig = (int) sigstr[i]; /* get signal */
 
     for (ptr = evInfo.gens.g_signal; ptr;
-	 ptr = (struct Signal*) ptr->sig_header.gh_next)
-      if (ptr->sig_signal == sig) /* find its descriptor... */
+	 ptr = ptr->gh_next)
+      if (((struct Signal*)ptr)->sig_signal == sig) /* find its descriptor... */
 	break;
 
     if (ptr)
@@ -479,7 +479,7 @@ timer_verify(void)
 struct Timer*
 timer_init(struct Timer* timer)
 {
-  gen_init((struct GenHeader*) timer, 0, 0, 0, 0);
+  gen_init(&timer->t_header, 0, 0, 0, 0);
 
   timer->t_header.gh_flags = 0; /* turn off active flag */
 
@@ -580,7 +580,7 @@ timer_run(void)
   struct Timer* ptr;
 
   /* go through queue... */
-  while ((ptr = evInfo.gens.g_timer)) {
+  while ((ptr = (struct Timer*)evInfo.gens.g_timer)) {
     if (CurrentTime < ptr->t_expire)
       break; /* processed all pending timers */
 
@@ -619,9 +619,9 @@ signal_add(struct Signal* signal, EventCallBack call, void* data, int sig)
   assert(0 != evInfo.engine);
 
   /* set up struct */
-  gen_init((struct GenHeader*) signal, call, data,
-	   (struct GenHeader*) evInfo.gens.g_signal,
-	   (struct GenHeader**) &evInfo.gens.g_signal);
+  gen_init(&signal->sig_header, call, data,
+	   evInfo.gens.g_signal,
+	   &evInfo.gens.g_signal);
 
   signal->sig_signal = sig;
 
@@ -655,9 +655,9 @@ socket_add(struct Socket* sock, EventCallBack call, void* data,
   assert(0 != evInfo.engine->eng_add);
 
   /* set up struct */
-  gen_init((struct GenHeader*) sock, call, data,
-	   (struct GenHeader*) evInfo.gens.g_socket,
-	   (struct GenHeader**) &evInfo.gens.g_socket);
+  gen_init(&sock->s_header, call, data,
+	   evInfo.gens.g_socket,
+	   &evInfo.gens.g_socket);
 
   sock->s_state = state;
   sock->s_events = events & SOCK_EVENT_MASK;

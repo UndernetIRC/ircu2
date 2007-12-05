@@ -25,19 +25,29 @@
 %{
 
 #include "config.h"
+#include "fileio.h"
 #include "ircd_alloc.h"
 #include "ircd_string.h"
 #include "ircd_parser.h"
 
 extern void yyserror(const char *pattern, ...);
 
+#define lexer_input ((FBFILE*)yyin)
+
+#undef YY_INPUT
+#define YY_INPUT(buf, res, size) res = (fbgets(buf, size, lexer_input) ? strlen(buf) : 0)
+
 int
 init_lexer(const char *configfile)
 {
-  yyin = fopen(configfile, "r");
-  if (yyin == NULL)
+  yyin = (FILE*)fbopen(configfile, "r");
+  if (lexer_input == NULL)
   {
+#ifdef YY_FATAL_ERROR
+    YY_FATAL_ERROR("Could not open the configuration file.");
+#else
     fprintf(stderr, "Could not open the configuration file.");
+#endif
     return 0;
   }
   return 1;
@@ -60,6 +70,15 @@ lexer_include(const char *filename)
     return;
   }
   yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+}
+
+void deinit_lexer(void)
+{
+  if (lexer_input != NULL)
+  {
+    fbclose(lexer_input);
+    yyin = NULL;
+  }
 }
 
 %}

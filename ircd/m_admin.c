@@ -31,6 +31,7 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
+#include "match.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -70,12 +71,10 @@ static int send_admin_info(struct Client* sptr)
  */
 int m_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct Client *acptr;
-
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (parc > 1  && (!(acptr = find_match_server(parv[1])) || !IsMe(acptr)))
+  if (parc > 1  && match(parv[1], cli_name(&me)))
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
   return send_admin_info(sptr);
