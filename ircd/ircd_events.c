@@ -870,7 +870,8 @@ event_to_name(enum EventType type)
 const char*
 gen_flags(unsigned int flags)
 {
-  int i, loc = 0;
+  size_t loc = 0;
+  int i;
   static char buf[256];
   NS(unsigned int) map[] = {
     NM(GEN_DESTROY),
@@ -902,7 +903,8 @@ gen_flags(unsigned int flags)
 const char*
 sock_flags(unsigned int flags)
 {
-  int i, loc = 0;
+  size_t loc = 0;
+  int i;
   static char buf[256];
   NS(unsigned int) map[] = {
     NM(SOCK_EVENT_READABLE),

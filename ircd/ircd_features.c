@@ -216,7 +216,7 @@ set_isupport_maxsiles(void)
 static void
 set_isupport_maxchannels(void)
 {
-    add_isupport_i("MAXCHANNELS", feature_int(FEAT_MAXCHANNELSPERUSER));
+    add_isupport_i("MAXCHANNELS", feature_uint(FEAT_MAXCHANNELSPERUSER));
 }
 
 static void
@@ -228,13 +228,13 @@ set_isupport_maxbans(void)
 static void
 set_isupport_nicklen(void)
 {
-    add_isupport_i("NICKLEN", feature_int(FEAT_NICKLEN));
+    add_isupport_i("NICKLEN", feature_uint(FEAT_NICKLEN));
 }
 
 static void
 set_isupport_channellen(void)
 {
-    add_isupport_i("CHANNELLEN", feature_int(FEAT_CHANNELLEN));
+    add_isupport_i("CHANNELLEN", feature_uint(FEAT_CHANNELLEN));
 }
 
 static void
@@ -288,6 +288,7 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define FEAT_STR    0x0003	/**< set if entry contains a string value */
 #define FEAT_ALIAS  0x0004	/**< set if entry is alias for another entry */
 #define FEAT_DEP    0x0005	/**< set if entry is deprecated feature */
+#define FEAT_UINT   0x0006	/**< set if entry contains an unsigned value */
 #define FEAT_MASK   0x000f	/**< possible value types */
 
 /** Extract just the feature type from a feature descriptor. */
@@ -310,6 +311,10 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 /** Declare a feature that takes integer values. */
 #define F_I(type, flags, v_int, notify)					      \
   { FEAT_ ## type, #type, FEAT_INT | (flags), 0, (v_int), 0, 0,		      \
+    0, 0, 0, (notify), 0, 0, 0 }
+/** Declare a feature that takes unsigned integer values. */
+#define F_U(type, flags, v_uint, notify)				      \
+  { FEAT_ ## type, #type, FEAT_UINT | (flags), 0, (v_uint), 0, 0,	      \
     0, 0, 0, (notify), 0, 0, 0 }
 /** Declare a feature that takes boolean values. */
 #define F_B(type, flags, v_int, notify)					      \
@@ -349,9 +354,9 @@ static struct FeatureDesc {
       0, log_feature_unmark, log_feature_mark, log_feature_report),
   F_S(DOMAINNAME, 0, DOMAINNAME, 0),
   F_B(RELIABLE_CLOCK, 0, 0, 0),
-  F_I(BUFFERPOOL, 0, 27000000, 0),
+  F_U(BUFFERPOOL, 0, 27000000, 0),
   F_B(HAS_FERGUSON_FLUSHER, 0, 0, 0),
-  F_I(CLIENT_FLOOD, 0, 1024, 0),
+  F_U(CLIENT_FLOOD, 0, 1024, 0),
   F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
   F_B(NODEFAULTMOTD, 0, 1, 0),
   F_S(MOTD_BANNER, FEAT_NULL, 0, 0),
@@ -364,7 +369,7 @@ static struct FeatureDesc {
   F_B(NOIDENT, 0, 0, 0),
   F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
   F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
-  F_I(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
+  F_U(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
   F_B(HOST_HIDING, 0, 1, 0),
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
@@ -378,8 +383,8 @@ static struct FeatureDesc {
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
-  F_I(MAXCHANNELSPERUSER, 0, 10, set_isupport_maxchannels),
-  F_I(NICKLEN, 0, 12, set_isupport_nicklen),
+  F_U(MAXCHANNELSPERUSER, 0, 10, set_isupport_maxchannels),
+  F_U(NICKLEN, 0, 12, set_isupport_nicklen),
   F_I(AVBANLEN, 0, 40, 0),
   F_I(MAXBANS, 0, 45, set_isupport_maxbans),
   F_I(MAXSILES, 0, 15, set_isupport_maxsiles),
@@ -389,14 +394,14 @@ static struct FeatureDesc {
   F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
   F_I(PINGFREQUENCY, 0, 120, init_class),
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
-  F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
+  F_U(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
   F_I(GLINEMAXUSERCOUNT, 0, 20, 0),
   F_I(SOCKSENDBUF, 0, SERVER_TCP_WINDOW, 0),
   F_I(SOCKRECVBUF, 0, SERVER_TCP_WINDOW, 0),
   F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
   F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
   F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
-  F_I(CHANNELLEN, 0, 200, set_isupport_channellen),
+  F_U(CHANNELLEN, 0, 200, set_isupport_channellen),
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init_local),
@@ -593,6 +598,7 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	break;
       }
 
+    case FEAT_UINT: /* an unsigned integer value */
     case FEAT_INT: /* an integer value */
       tmp = feat->v_int; /* detect changes... */
 
@@ -747,6 +753,7 @@ feature_reset(struct Client* from, const char* const* fields, int count)
       }
       break;
 
+    case FEAT_UINT: /* Unsigned... */
     case FEAT_INT:  /* Integer... */
     case FEAT_BOOL: /* Boolean... */
       if (feat->v_int != feat->def_int)
@@ -810,6 +817,11 @@ feature_get(struct Client* from, const char* const* fields, int count)
 		 ":Integer value of %s: %d", feat->type, feat->v_int);
       break;
 
+    case FEAT_UINT: /* unsigned integer, report its value */
+      send_reply(from, SND_EXPLICIT | RPL_FEATURE,
+		 ":Unsigned value of %s: %u", feat->type, feat->v_int);
+      break;
+
     case FEAT_BOOL: /* boolean, report boolean value */
       send_reply(from, SND_EXPLICIT | RPL_FEATURE,
 		 ":Boolean value of %s: %s", feat->type,
@@ -860,6 +872,7 @@ feature_mark(void)
       break;
 
     case FEAT_INT:  /* Integers or Booleans... */
+    case FEAT_UINT:
     case FEAT_BOOL:
       if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
 	if (features[i].v_int != features[i].def_int)
@@ -899,6 +912,7 @@ feature_init(void)
       break;
 
     case FEAT_INT:  /* Integers or Booleans... */
+    case FEAT_UINT:
     case FEAT_BOOL:
       feat->v_int = feat->def_int;
       break;
@@ -946,6 +960,12 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 		   features[i].type, features[i].v_int);
       break;
 
+    case FEAT_UINT: /* Report an F-line with unsigned values */
+      if (features[i].flags & FEAT_MARK) /* it's been changed */
+	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %u",
+		   features[i].type, features[i].v_int);
+      break;
+
     case FEAT_BOOL: /* Report an F-line with boolean values */
       if (features[i].flags & FEAT_MARK) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
@@ -975,6 +995,19 @@ feature_int(enum Feature feat)
 {
   assert(features[feat].feat == feat);
   assert(feat_type(&features[feat]) == FEAT_INT);
+
+  return features[feat].v_int;
+}
+
+/** Return a feature's unsigned integer value.
+ * @param[in] feat &Feature identifier.
+ * @return Unsigned integer value of feature.
+ */
+unsigned int
+feature_uint(enum Feature feat)
+{
+  assert(features[feat].feat == feat);
+  assert(feat_type(&features[feat]) == FEAT_UINT);
 
   return features[feat].v_int;
 }

@@ -171,7 +171,8 @@ send_caplist(struct Client *sptr, const struct CapSet *set,
 {
   char capbuf[BUFSIZE] = "", pfx[16];
   struct MsgBuf *mb;
-  int i, loc, len, flags, pfx_len;
+  unsigned int i, loc;
+  int len, flags, pfx_len;
 
   /* set up the buffer for the final LS message... */
   mb = msgq_make(sptr, "%:#C " MSG_CAP " %s :", &me, subcmd);

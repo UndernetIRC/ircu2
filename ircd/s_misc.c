@@ -297,7 +297,7 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
   struct DLink *next;
   struct DLink *lp;
   struct Client **acptrp;
-  int i;
+  unsigned int i;
 
   /* Run over all its downlinks */
   for (lp = cli_serv(cptr)->down; lp; lp = next)

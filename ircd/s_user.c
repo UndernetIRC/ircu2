@@ -975,7 +975,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   char** p;
   char*  m;
   int what;
-  int i;
+  unsigned int i;
   struct Flags setflags;
   unsigned int tmpmask = 0;
   int snomask_given = 0;
@@ -1222,7 +1222,7 @@ char *umode_str(struct Client *cptr)
 {
   /* Maximum string size: "owidgrx\0" */
   char *m = umodeBuf;
-  int i;
+  unsigned int i;
   struct Flags c_flags = cli_flags(cptr);
 
   if (!HasPriv(cptr, PRIV_PROPAGATE))
@@ -1273,7 +1273,7 @@ static
 void send_umode(struct Client *cptr, struct Client *sptr, struct Flags *old,
                 int sendset)
 {
-  int i;
+  unsigned int i;
   int flag;
   char *m;
   int what = MODE_NULL;
@@ -1614,7 +1614,7 @@ build_isupport_lines()
   usable = BUFSIZE - 10
       - strlen(cli_name(&me))
       - strlen(get_error_numeric(RPL_ISUPPORT)->format)
-      - feature_int(FEAT_NICKLEN);
+      - feature_uint(FEAT_NICKLEN);
   plink = &isupport_lines;
   used = 0;
 

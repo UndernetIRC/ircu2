@@ -70,11 +70,11 @@ static char serveropts[256]; /* should be large enough for anything */
  */
 const char* debug_serveropts(void)
 {
-  int bp;
+  unsigned int bp;
   int i = 0;
 #define AddC(c)	serveropts[i++] = (c)
 
-  bp = feature_int(FEAT_BUFFERPOOL);
+  bp = feature_uint(FEAT_BUFFERPOOL);
   if (bp < 1000000) {
     AddC('b');
     if (bp > 99999)
@@ -192,7 +192,7 @@ void send_usage(struct Client *cptr, const struct StatDesc *sd,
 {
   os_get_rusage(cptr, CurrentTime - cli_since(&me), debug_enumerator);
 
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %d used %d",
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":DBUF alloc %u used %u",
 	     DBufAllocCount, DBufUsedCount);
 }
 #endif /* DEBUGMODE */
@@ -253,7 +253,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
       totcl = 0, totch = 0, totww = 0, tot = 0;
 
   count_whowas_memory(&wwu, &wwm, &wwa, &wwam);
-  wwm += sizeof(struct Whowas) * feature_int(FEAT_NICKNAMEHISTORYLENGTH);
+  wwm += sizeof(struct Whowas) * feature_uint(FEAT_NICKNAMEHISTORYLENGTH);
   wwm += sizeof(struct Whowas *) * WW_MAX;
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
@@ -334,9 +334,9 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
   totch = chm + chbm;
 
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":Whowas Users %d(%zu) Away %d(%zu) Array %d(%zu)",
+	     ":Whowas Users %d(%zu) Away %d(%zu) Array %u(%zu)",
              wwu, wwu * sizeof(struct User), wwa, wwam,
-             feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwm);
+             feature_uint(FEAT_NICKNAMEHISTORYLENGTH), wwm);
 
   totww = wwu * sizeof(struct User) + wwam + wwm;
 
@@ -364,7 +364,7 @@ void count_memory(struct Client *cptr, const struct StatDesc *sd,
    */
   dbuf_count_memory(&dbufs_allocated, &dbufs_used);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
-	     ":DBufs allocated %d(%zu) used %d(%zu)", DBufAllocCount,
+	     ":DBufs allocated %u(%zu) used %u(%zu)", DBufAllocCount,
 	     dbufs_allocated, DBufUsedCount, dbufs_used);
 
   /* The DBuf caveats now count for this, but this routine now sends

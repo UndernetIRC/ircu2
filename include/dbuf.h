@@ -30,8 +30,8 @@
 /*
  * These two globals should be considered read only
  */
-extern int DBufAllocCount;
-extern int DBufUsedCount;
+extern unsigned int DBufAllocCount;
+extern unsigned int DBufUsedCount;
 
 struct DBufBuffer;
 

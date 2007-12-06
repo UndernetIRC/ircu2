@@ -372,7 +372,7 @@ generalnumeric: NUMERIC '=' NUMBER ';'
     ;
   else if (localConf.numeric == 0)
     localConf.numeric = $3;
-  else if (localConf.numeric != $3)
+  else if (localConf.numeric != (unsigned int)$3)
     parse_error("Redefinition of server numeric %i (%i)", $3,
     		localConf.numeric);
 };
@@ -1142,7 +1142,7 @@ featureitem: QSTRING
   stringlist[0] = $1;
   stringno = 1;
 } '=' stringlist ';' {
-  unsigned int ii;
+  int ii;
   if (permitted(BLOCK_FEATURES, 0))
     feature_set(NULL, (const char * const *)stringlist, stringno);
   for (ii = 0; ii < stringno; ++ii)
@@ -1268,7 +1268,7 @@ includeblock: INCLUDE blocklimit QSTRING ';' {
 
   child = MyCalloc(1, sizeof(*child) + strlen($3));
   strcpy(child->cb_fname, $3);
-  child->cb_allowed = $2 & (includes ? includes->cb_allowed : ~0);
+  child->cb_allowed = $2 & (includes ? includes->cb_allowed : ~0ul);
   child->cb_parent = includes;
   MyFree($3);
 

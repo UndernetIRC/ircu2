@@ -142,7 +142,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       continue;
     }
 
-    if (cli_user(sptr)->joined >= feature_int(FEAT_MAXCHANNELSPERUSER)
+    if (cli_user(sptr)->joined >= feature_uint(FEAT_MAXCHANNELSPERUSER)
 	&& !HasPriv(sptr, PRIV_CHAN_LIMIT)) {
       send_reply(sptr, ERR_TOOMANYCHANNELS, name);
       break; /* no point processing the other channels */
@@ -157,7 +157,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (!(chptr = FindChannel(name))) {
       if (((name[0] == '&') && !feature_bool(FEAT_LOCAL_CHANNELS))
-	  || strlen(name) >= IRCD_MIN(CHANNELLEN, feature_int(FEAT_CHANNELLEN))) {
+	  || strlen(name) >= IRCD_MIN(CHANNELLEN, feature_uint(FEAT_CHANNELLEN))) {
         send_reply(sptr, ERR_NOSUCHCHANNEL, name);
         continue;
       }

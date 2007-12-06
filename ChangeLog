@@ -1,3 +1,106 @@
+2007-12-05  Michael Poole <mdpoole@troilus.org>
+
+	* include/dbuf.h (DBufAllocCount): Make unsigned.
+	(DBufUsedCount): Likewise.
+
+	* include/ircd_crypt.h (crypt_token_size): Make unsigned.
+
+	* include/ircd_features.h (feature_uint): Declare new function.
+
+	* include/res.h (irc_in_addr_valid): Since in6_16[0] is unsigned
+	short, bitwise not could happen after extension to signed int,
+	which would give us undesired results.  Compare to 65535 instead.
+
+	* ircd/channel.c (add_invite): Make max and count unsigned.
+	(modebuf_extract): Make i and len unsigned.
+	(joinbuf_flush): Make i unsigned.
+
+	* ircd/class.c (init_class): Use feature_uint() to retrieve
+	the value of FEAT_DEFAULTMAXSENDQLENGTH.
+	(add_class): Likewise.
+	(get_sendq): Likewise.
+
+	* ircd/dbuf.c (DBufAllocCount): Make unsigned.
+	(DBufUsedCount): Make unsigned.
+	(dbuf_alloc): Use feature_uint() for FEAT_BUFFERPOOL.
+
+	* ircd/engine_poll.c (engine_add): Make i unsigned.
+	(engine_loop): Likewise.
+
+	* ircd/gline.c (count_realnames): Cast minlen to unsigned for
+	comparison.  Should be safe since it comes from matchcomp().
+	(gline_add): Cast the result of ircd_snprintf() to unsigned.
+	Should be safe since negative numbers will exceed sizeof(uhmask).
+
+	* ircd/ircd_events.c (gen_flags): Give loc type size_t.
+	(sock_flags): Likewise.
+
+	* ircd/ircd_features.c (set_isupport_maxchannels): Use
+	feature_uint() for FEAT_MAXCHANNELSPERUSER.
+	(set_isupport_nicklen): Likewise for FEAT_NICKLEN.
+	(set_isupport_channellen): Likewise for FEAT_CHANNELLEN.
+	(FEAT_UINT): New value.
+	(F_U): New helper macro.
+	(features): Use F_U instead of F_I for FEAT_BUFFERPOOL,
+	FEAT_CLIENT_FLOOD, FEAT_NICKNAMEHISTORYLENGTH, FEAT_NICKLEN,
+	FEAT_MAXCHANNELSPERUSER, FEAT_DEFAULTMAXSENDQLENGTH and
+	FEAT_CHANNELLEN.
+	(feature_set): Handle FEAT_UINT case.
+	(feature_reset): Likewise.
+	(feature_get): Likewise.
+	(feature_mark): Likewise.
+	(feature_init): Likewise.
+	(feature_report): Likewise.
+	(feature_uint): New function.
+
+	* ircd/ircd_parser.y (generalnumeric): Typecast the number as
+	unsigned int.
+	(featureitem): Make ii signed.
+	(includeblock): Make the ~0 unsigned long to match cb_allowed.
+
+	* ircd/ircd_snprintf.c (PAD_LENGTH): Make signed.
+
+	* ircd/m_cap.c (send_caplist): Make i and loc unsigned.
+
+	* ircd/m_join.c (m_join): Use feature_uint() to retrieve the value
+	of FEAT_MAXCHANNELSPERUSER.
+
+	* ircd/m_nick.c (m_nick): Likewise for FEAT_NICKLEN.
+
+	* ircd/m_server.c (check_loop_and_lh): Make hop unsigned.
+	(mr_server): Likewise.
+
+	* ircd/msgq.c (bufsize): Make result unsigned.
+	(msgq_alloc): Make power unsigned.  Use feature_uint() to retrieve
+	the value of FEAT_BUFFERPOOL.
+
+	* ircd/numnicks.c (markMatchexServer): Make i unsigned.
+	(find_match_server): Likewise.
+
+	* ircd/s_bsd.c (read_packet): Use feature_uint() to retrieve the
+	value of FEAT_CLIENT_FLOOD.
+
+	* ircd/s_debug.c (debug_serveropts): Make bp unsigned.  Use
+	feature_uint() to retrieve the value of FEAT_BUFFERPOOL.
+	(send_usage): Fix format string for dbufs.
+	(count_memory): Use feature_uint() to retrieve the value of
+	FEAT_NICKNAMEHISTORYLENGTH.  Fix format string for whowas array
+	dimension and dbuf counts.
+
+	* ircd/s_misc.c (exit_downlinks): Make i unsigned.
+
+	* ircd/s_user.c (set_user_mode): Make i unsigned.
+	(umode_str): Likewise.
+	(send_umode): Likewise.
+	(build_isupport_lines): Use feature_uint() to retrieve the value
+	of FEAT_NICKLEN.
+
+	* ircd/uping.c (uping_read): Make pingtime type time_t.
+	Typecast it before passing it to sprintf().
+
+	* ircd/whowas.c (whowas_alloc): Use feature_uint() to retrieve the
+	value of FEAT_NICKNAMEHISTORYLENGTH.  Fix format string to match.
+
 2007-12-03  Michael Poole <mdpoole@troilus.org>
 
 	* doc/Makefile.in (DATAROOTDIR): Define.

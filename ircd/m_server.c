@@ -110,7 +110,7 @@ parse_protocol(const char *proto)
  * was SQUIT.  1 if the new server is allowed.
  */
 static int
-check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const char *host, const char *numnick, time_t timestamp, int hop, int junction)
+check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const char *host, const char *numnick, time_t timestamp, unsigned int hop, int junction)
 {
   struct Client* acptr;
   struct Client* LHcptr = NULL;
@@ -514,7 +514,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char*            host;
   struct ConfItem* aconf;
   struct Jupe*     ajupe;
-  int              hop;
+  unsigned int     hop;
   int              ret;
   unsigned short   prot;
   time_t           start_timestamp;

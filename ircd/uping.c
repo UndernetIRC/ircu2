@@ -309,7 +309,7 @@ static void uping_read(struct UPing* pptr)
   struct irc_sockaddr sin;
   struct timeval     tv;
   unsigned int       len;
-  unsigned int       pingtime;
+  time_t             pingtime;
   char*              s;
   char               buf[BUFSIZE + 1];
   IOResult           ior;
@@ -349,7 +349,7 @@ static void uping_read(struct UPing* pptr)
   timer_chg(&pptr->killer, TT_RELATIVE, UPINGTIMEOUT);
 
   s = pptr->buf + strlen(pptr->buf);
-  sprintf(s, " %u", pingtime);
+  sprintf(s, " %u", (unsigned int)pingtime);
 
   if (pptr->received == pptr->count)
     uping_end(pptr);

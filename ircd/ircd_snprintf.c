@@ -212,7 +212,7 @@ static char spaces[] = "                                                  ";
 static char zeros[]  = "00000000000000000000000000000000000000000000000000";
 
 /** Length of predefined padding strings. */
-#define PAD_LENGTH	(sizeof(spaces) - 1)
+#define PAD_LENGTH	((int)sizeof(spaces) - 1)
 
 /*
  * Note that these string tables have characters reversed.  There is, of

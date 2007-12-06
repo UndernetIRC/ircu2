@@ -35,7 +35,7 @@ struct crypt_mech_s {
  char* crypt_token;  /* what identifies a password string 
                         as belonging to this mechanism */
 
- int crypt_token_size; /* how long is the token */
+ unsigned int crypt_token_size; /* how long is the token */
 };
 
 typedef struct crypt_mech_s crypt_mech_t;

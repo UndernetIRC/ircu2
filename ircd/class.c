@@ -103,7 +103,7 @@ void init_class(void)
   PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);
   ConFreq(connClassList)  = feature_int(FEAT_CONNECTFREQUENCY);
   MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
-  MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+  MaxSendq(connClassList) = feature_uint(FEAT_DEFAULTMAXSENDQLENGTH);
   connClassList->valid    = 1;
   Links(connClassList)    = 1;
 }
@@ -226,7 +226,7 @@ void add_class(char *name, unsigned int ping, unsigned int confreq,
   PingFreq(p) = ping;
   MaxLinks(p) = maxli;
   MaxSendq(p) = (sendq > 0U) ?
-     sendq : feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+    sendq : feature_uint(FEAT_DEFAULTMAXSENDQLENGTH);
   p->valid = 1;
 }
 
@@ -291,7 +291,7 @@ get_sendq(struct Client *cptr)
       }
     }
   }
-  return feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+  return feature_uint(FEAT_DEFAULTMAXSENDQLENGTH);
 }
 
 /** Report connection class memory statistics to a client.

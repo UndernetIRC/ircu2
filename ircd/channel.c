@@ -1277,8 +1277,8 @@ void add_invite(struct Client *cptr, struct Channel *chptr, struct Client *invit
 {
   struct Invite **uprev = &cli_user(cptr)->invited;
   struct Invite *inv;
-  int max = feature_int(FEAT_MAXCHANNELSPERUSER);
-  int count = 0;
+  unsigned int max = feature_uint(FEAT_MAXCHANNELSPERUSER);
+  unsigned int count = 0;
 
   /* See if the user is already invited. */
   while ((inv = *uprev) != NULL)
@@ -2098,8 +2098,8 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_DELJOINS,      'D',
     0x0, 0x0
   };
-  unsigned int add;
-  int i, bufpos = 0, len;
+  unsigned int add, i, len;
+  int bufpos = 0;
   int *flag_p;
   char *key = 0, limitbuf[20];
   char *apass = 0, *upass = 0;
@@ -3537,7 +3537,7 @@ joinbuf_flush(struct JoinBuf *jbuf)
 {
   char chanlist[BUFSIZE];
   int chanlist_i = 0;
-  int i;
+  unsigned int i;
 
   if (!jbuf->jb_count || jbuf->jb_type == JOINBUF_TYPE_PARTALL ||
       jbuf->jb_type == JOINBUF_TYPE_JOIN)

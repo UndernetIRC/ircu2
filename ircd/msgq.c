@@ -56,7 +56,7 @@ struct MsgBuf {
 };
 
 /** Return allocated length of the buffer of \a buf. */
-#define bufsize(buf)	(1 << (buf)->power)
+#define bufsize(buf)	(1u << (buf)->power)
 
 /** Message body for a particular destination. */
 struct Msg {
@@ -256,7 +256,7 @@ static struct MsgBuf *
 msgq_alloc(struct MsgBuf *in_mb, int length)
 {
   struct MsgBuf *mb;
-  int power;
+  unsigned int power;
 
   /* Find the power of two size that will accommodate the message */
   for (power = MB_BASE_SHIFT; power < MB_MAX_SHIFT + 1; power++)
@@ -275,7 +275,7 @@ msgq_alloc(struct MsgBuf *in_mb, int length)
   /* Try popping one off the freelist first */
   if ((mb = MQData.msgBufs[power - MB_BASE_SHIFT].free)) {
     MQData.msgBufs[power - MB_BASE_SHIFT].free = mb->next;
-  } else if (MQData.tot_bufsize < feature_int(FEAT_BUFFERPOOL)) {
+  } else if (MQData.tot_bufsize < feature_uint(FEAT_BUFFERPOOL)) {
     /* Allocate another if we won't bust the BUFFERPOOL */
     Debug((DEBUG_MALLOC, "Allocating MsgBuf of length %d (total size %zu)",
 	   length, sizeof(struct MsgBuf) + length));

@@ -44,11 +44,11 @@
 /** Number of dbufs allocated.
  * This should only be modified by dbuf.c.
  */
-int DBufAllocCount = 0;
+unsigned int DBufAllocCount = 0;
 /** Number of dbufs in use.
  * This should only be modified by dbuf.c.
  */
-int DBufUsedCount = 0;
+unsigned int DBufUsedCount = 0;
 
 /** List of allocated but unused DBuf structures. */
 static struct DBufBuffer *dbufFreeList = 0;
@@ -89,7 +89,7 @@ static struct DBufBuffer *dbuf_alloc(void)
     dbufFreeList = db->next;
     ++DBufUsedCount;
   }
-  else if (DBufAllocCount * DBUF_SIZE < feature_int(FEAT_BUFFERPOOL)) {
+  else if (DBufAllocCount * DBUF_SIZE < feature_uint(FEAT_BUFFERPOOL)) {
     db = (struct DBufBuffer*) MyMalloc(sizeof(struct DBufBuffer));
     assert(0 != db);
     ++DBufAllocCount;

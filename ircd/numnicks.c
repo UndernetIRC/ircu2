@@ -392,7 +392,7 @@ int SetLocalNumNick(struct Client *cptr)
 int markMatchexServer(const char *cmask, int minlen)
 {
   int cnt = 0;
-  int i;
+  unsigned int i;
   struct Client *acptr;
 
   for (i = 0; i < lastNNServer; i++) {
@@ -417,7 +417,7 @@ int markMatchexServer(const char *cmask, int minlen)
 struct Client* find_match_server(char *mask)
 {
   struct Client *acptr;
-  int i;
+  unsigned int i;
 
   if (!(BadPtr(mask))) {
     collapse(mask);

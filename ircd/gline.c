@@ -140,7 +140,7 @@ count_realnames(const char *mask)
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
     if (!IsUser(acptr))
       continue;
-    if (strlen(cli_info(acptr)) < minlen)
+    if (strlen(cli_info(acptr)) < (unsigned int)minlen)
       continue;
     if (!matchexec(cli_info(acptr), cmask, minlen))
       count++;
@@ -461,7 +461,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
   } else {
     canon_userhost(userhost, &user, &host, "*");
     if (sizeof(uhmask) <
-	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
+	(unsigned int)ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
       return send_reply(sptr, ERR_LONGMASK);
     else if (MyUser(sptr) || (IsUser(sptr) && flags & GLINE_LOCAL)) {
       switch (gline_checkmask(host)) {

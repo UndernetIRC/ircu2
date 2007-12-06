@@ -219,7 +219,7 @@ whowas_alloc(void)
 {
   struct Whowas *ww;
 
-  if (wwList.ww_alloc >= feature_int(FEAT_NICKNAMEHISTORYLENGTH)) {
+  if (wwList.ww_alloc >= feature_uint(FEAT_NICKNAMEHISTORYLENGTH)) {
     /* reclaim the oldest whowas entry */
     ww = whowas_clean(wwList.ww_tail);
   } else {
@@ -241,10 +241,10 @@ void
 whowas_realloc(void)
 {
   Debug((DEBUG_LIST, "whowas_realloc() called with alloc count %d, "
-	 "history length %d, tail pointer %p", wwList.ww_alloc,
-	 feature_int(FEAT_NICKNAMEHISTORYLENGTH), wwList.ww_tail));
+	 "history length %u, tail pointer %p", wwList.ww_alloc,
+	 feature_uint(FEAT_NICKNAMEHISTORYLENGTH), wwList.ww_tail));
 
-  while (wwList.ww_alloc > feature_int(FEAT_NICKNAMEHISTORYLENGTH)) {
+  while (wwList.ww_alloc > feature_uint(FEAT_NICKNAMEHISTORYLENGTH)) {
     if (!wwList.ww_tail) { /* list is empty... */
       Debug((DEBUG_LIST, "whowas list emptied with alloc count %d",
 	     wwList.ww_alloc));

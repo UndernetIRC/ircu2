@@ -122,8 +122,8 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
    * garbage
    */
   arg = parv[1];
-  if (strlen(arg) > IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN)))
-    arg[IRCD_MIN(NICKLEN, feature_int(FEAT_NICKLEN))] = '\0';
+  if (strlen(arg) > IRCD_MIN(NICKLEN, feature_uint(FEAT_NICKLEN)))
+    arg[IRCD_MIN(NICKLEN, feature_uint(FEAT_NICKLEN))] = '\0';
 
   if ((s = strchr(arg, '~')))
     *s = '\0';

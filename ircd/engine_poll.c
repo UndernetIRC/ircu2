@@ -168,7 +168,7 @@ set_or_clear(int idx, unsigned int clear, unsigned int set)
 static int
 engine_add(struct Socket* sock)
 {
-  int i;
+  unsigned int i;
 
   assert(0 != sock);
 
@@ -276,7 +276,7 @@ engine_loop(struct Generators* gen)
 {
   int wait;
   int nfds;
-  int i;
+  unsigned int i;
   int errcode;
   socklen_t codesize;
   struct Socket *sock;
