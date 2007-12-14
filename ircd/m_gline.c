@@ -347,6 +347,18 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   assert(action != GLINE_LOCAL_DEACTIVATE);
   assert(action != GLINE_MODIFY);
 
+  if (!expire) { /* Cannot *add* a G-line we don't have, but try hard */
+    Debug((DEBUG_DEBUG, "Propagating G-line %s for G-line we don't have",
+	   action == GLINE_ACTIVATE ? "activation" : "deactivation"));
+
+    /* propagate the G-line, even though we don't have it */
+    sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* %c%s %Tu",
+			  action == GLINE_ACTIVATE ? '+' : '-',
+			  mask, lastmod);
+
+    return 0;
+  }
+
   return gline_add(cptr, sptr, mask, reason, expire, lastmod, lifetime,
 		   flags | ((action == GLINE_ACTIVATE) ? GLINE_ACTIVE : 0));
 }

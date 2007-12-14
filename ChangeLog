@@ -1,3 +1,13 @@
+2007-12-13  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_gline.c (ms_gline): if we got an activate or deactivate
+	for a global G-line we never heard of, and we cannot create it
+	because no expire time was sent, manually propagate the G-line
+	instead of trying to call gline_add()
+
+	* ircd/gline.c (make_gline): never allow a G-line to be created
+	with a 0 expire time
+
 2007-12-03  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump for u2.10.12.12 release.

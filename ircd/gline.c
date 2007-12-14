@@ -142,6 +142,8 @@ make_gline(char *user, char *host, char *reason, time_t expire, time_t lastmod,
 {
   struct Gline *gline;
 
+  assert(0 != expire);
+
   gline = (struct Gline *)MyMalloc(sizeof(struct Gline)); /* alloc memory */
   assert(0 != gline);
 
