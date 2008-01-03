@@ -507,10 +507,13 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  do {
 		    level_increment = 10 * level_increment + *ptr++ - '0';
 		  } while (IsDigit(*ptr));
+		  --ptr;
 		  oplevel += level_increment;
 		}
-		else /* I don't recognize that flag */
+		else { /* I don't recognize that flag */
+		  protocol_violation(sptr, "Invalid flag '%c' in nick part of burst", *ptr);
 		  break; /* so stop processing */
+		}
 	      }
 	    }
 	  }

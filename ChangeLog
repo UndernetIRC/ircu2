@@ -1,3 +1,13 @@
+2008-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/m_burst.c (ms_burst): surround protocol_violation() and
+	break in braces to do what Jan Krueger was trying to do...
+
+2008-01-03  Jan Krueger  <jast@heapsort.de>
+
+       * ircd/m_burst.c: prevent leaking the next nick into the current one's
+       oplevel. Add protocol_violation when an invalid nick flag appears.
+
 2007-12-28  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/channel.c: add MODE_REGISTERED, mapped to +R; arrange to
