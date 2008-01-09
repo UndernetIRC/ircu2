@@ -1,3 +1,7 @@
+2008-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel
+
 2008-01-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_burst.c (ms_burst): surround protocol_violation() and
