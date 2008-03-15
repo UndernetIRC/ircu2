@@ -1,5 +1,10 @@
 2008-03-15  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_bsd.c (init_connection_limits): Remove errant apostrophe.
+	Print text error message when unable to set max FDs.
+
+2008-03-15  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_user.c (set_user_mode): Check for end of argument list
 	when processing 'r' modes.
 

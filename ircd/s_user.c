@@ -1078,7 +1078,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
 	  do_host_hiding = 1;
 	break;
       case 'r':
-	if (what == MODE_ADD) {
+	if (*(p + 1) && (what == MODE_ADD)) {
 	  account = *(++p);
 	  SetAccount(sptr);
 	}
