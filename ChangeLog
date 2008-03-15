@@ -1,3 +1,8 @@
+2008-03-15  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (set_user_mode): Check for end of argument list
+	when processing 'r' modes.
+
 2008-01-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel

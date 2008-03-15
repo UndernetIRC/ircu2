@@ -182,7 +182,7 @@ int init_connection_limits(void)
   if (0 == limit)
     return 1;
   if (limit < 0) {
-    fprintf(stderr, "error setting max fd's to %d\n", limit);
+    fprintf(stderr, "error setting max fds to %d: %s\n", limit, strerror(errno));
   }
   else if (limit > 0) {
     fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n",
