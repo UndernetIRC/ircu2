@@ -146,21 +146,21 @@ static void pending_exit(struct PendingExit *pe)
     if (pe->who) { /* write notice to log */
       log_write(LS_SYSTEM, level, 0, "%s %s server: %s", pe->who, what,
 		pe->message);
-      sendcmdto_serv(&me, CMD_ERROR, 0, "%s %s server: %s", pe->who, what,
+      sendcmdto_serv(&me, CMD_ERROR, 0, ":%s %s server: %s", pe->who, what,
 		     pe->message);
     } else {
       log_write(LS_SYSTEM, level, 0, "Server %s: %s", what, pe->message);
-      sendcmdto_serv(&me, CMD_ERROR, 0, "Server %s: %s", what, pe->message);
+      sendcmdto_serv(&me, CMD_ERROR, 0, ":Server %s: %s", what, pe->message);
     }
   } else { /* just notify of the restart/termination */
     sendto_lusers("Server %s...", what);
 
     if (pe->who) { /* write notice to log */
       log_write(LS_SYSTEM, level, 0, "%s %s server...", pe->who, what);
-      sendcmdto_serv(&me, CMD_ERROR, 0, "%s %s server...", pe->who, what);
+      sendcmdto_serv(&me, CMD_ERROR, 0, ":%s %s server...", pe->who, what);
     } else {
       log_write(LS_SYSTEM, level, 0, "Server %s...", what);
-      sendcmdto_serv(&me, CMD_ERROR, 0, "Server %s...", what);
+      sendcmdto_serv(&me, CMD_ERROR, 0, ":Server %s...", what);
     }
   }
 

@@ -1,5 +1,7 @@
 2008-03-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd.c: add a preceding colon in ERROR messages
+
 	* doc/example.conf: document 'exempt' port flag
 
 	* ircd/send.c: implement sendto_lusers() to send server notices to
