@@ -48,6 +48,8 @@ enum ListenerFlag {
   LISTEN_HIDDEN,
   /** Port accepts only server connections. */
   LISTEN_SERVER,
+  /** Port is exempt from connection prohibitions. */
+  LISTEN_EXEMPT,
   /** Port listens for IPv4 connections. */
   LISTEN_IPV4,
   /** Port listens for IPv6 connections. */
@@ -76,6 +78,7 @@ struct Listener {
 
 #define listener_server(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_SERVER)
 #define listener_active(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_ACTIVE)
+#define listener_exempt(LISTENER) FlagHas(&(LISTENER)->flags, LISTEN_EXEMPT)
 
 extern void        add_listener(int port, const char* vaddr_ip, 
                                 const char* mask,

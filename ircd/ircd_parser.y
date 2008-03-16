@@ -197,6 +197,7 @@ static void free_slist(struct SLink **link) {
 %token OPER
 %token VHOST
 %token HIDDEN
+%token EXEMPT
 %token MOTD
 %token JUPE
 %token NICK
@@ -839,7 +840,7 @@ portblock: PORT '{' portitems '}' ';'
   port = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | porthidden;
+portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | porthidden | portexempt;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {
@@ -895,6 +896,14 @@ porthidden: HIDDEN '=' YES ';'
 } | HIDDEN '=' NO ';'
 {
   FlagClr(&listen_flags, LISTEN_HIDDEN);
+};
+
+portexempt: EXEMPT '=' YES ';'
+{
+  FlagSet(&listen_flags, LISTEN_EXEMPT);
+} | EXEMPT '=' NO ';'
+{
+  FlagClr(&listen_flags, LISTEN_EXEMPT);
 };
 
 clientblock: CLIENT

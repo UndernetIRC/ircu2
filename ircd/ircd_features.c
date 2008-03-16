@@ -507,6 +507,11 @@ static struct FeatureDesc {
   F_I(SPAM_JOINED_TIME, 0, 60, 0),
   F_I(SPAM_FJP_COUNT, 0, 5, 0),
 
+  /* Really special features (tm) */
+  F_B(NETWORK_REHASH, 0, 0, 0),
+  F_B(NETWORK_RESTART, 0, 0, 0),
+  F_B(NETWORK_DIE, 0, 0, 0),
+
 #undef F_S
 #undef F_B
 #undef F_I

@@ -36,6 +36,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_signal.h"
+#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "ircd_crypt.h"
 #include "jupe.h"
@@ -110,12 +111,14 @@ int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
 int            maxconnections    = MAXCONNECTIONS; /**< Maximum number of open files */
 int            maxclients        = -1;    /**< Maximum number of clients */
+int            refuse            = 0;     /**< Refuse new connecting clients */
 static char   *dpath             = DPATH; /**< Working directory for daemon */
 static char   *dbg_client;                /**< Client specifier for chkconf */
 
 static struct Timer connect_timer; /**< timer structure for try_connections() */
 static struct Timer ping_timer; /**< timer structure for check_pings() */
 static struct Timer destruct_event_timer; /**< timer structure for exec_expired_destruct_events() */
+static struct Timer countdown_timer; /**< timer structure for exit_countdown() */
 
 /** Daemon information. */
 static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, -1 };
@@ -124,19 +127,265 @@ static struct Daemon thisServer  = { 0, 0, 0, 0, 0, 0, -1 };
 int running = 1;
 
 
-/*----------------------------------------------------------------------------
- * API: server_die
- *--------------------------------------------------------------------------*/
-/** Terminate the server with a message.
- * @param[in] message Message to log and send to operators.
+/**
+ * Perform a restart or die, sending and logging all necessary messages.
+ * @param[in] pe Pointer to structure describing pending exit.
  */
-void server_die(const char *message)
+static void pending_exit(struct PendingExit *pe)
 {
-  /* log_write will send out message to both log file and as server notice */
-  log_write(LS_SYSTEM, L_CRIT, 0, "Server terminating: %s", message);
+  static int looping = 0;
+  enum LogLevel level = pe->restart ? L_WARNING : L_CRIT;
+  const char *what = pe->restart ? "restarting" : "terminating";
+
+  if (looping++) /* increment looping to prevent looping */
+    return;
+
+  if (pe->message) {
+    sendto_lusers("Server %s: %s", what, pe->message);
+
+    if (pe->who) { /* write notice to log */
+      log_write(LS_SYSTEM, level, 0, "%s %s server: %s", pe->who, what,
+		pe->message);
+      sendcmdto_serv(&me, CMD_ERROR, 0, "%s %s server: %s", pe->who, what,
+		     pe->message);
+    } else {
+      log_write(LS_SYSTEM, level, 0, "Server %s: %s", what, pe->message);
+      sendcmdto_serv(&me, CMD_ERROR, 0, "Server %s: %s", what, pe->message);
+    }
+  } else { /* just notify of the restart/termination */
+    sendto_lusers("Server %s...", what);
+
+    if (pe->who) { /* write notice to log */
+      log_write(LS_SYSTEM, level, 0, "%s %s server...", pe->who, what);
+      sendcmdto_serv(&me, CMD_ERROR, 0, "%s %s server...", pe->who, what);
+    } else {
+      log_write(LS_SYSTEM, level, 0, "Server %s...", what);
+      sendcmdto_serv(&me, CMD_ERROR, 0, "Server %s...", what);
+    }
+  }
+
+  /* now let's perform the restart or exit */
   flush_connections(0);
-  close_connections(1);
-  running = 0;
+  log_close();
+  close_connections(!pe->restart ||
+		    !(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG | BOOT_CHKCONF)));
+
+  if (!pe->restart) { /* just set running = 0 */
+    running = 0;
+    return;
+  }
+
+  /* OK, so we're restarting... */
+  reap_children();
+
+  execv(SPATH, thisServer.argv); /* restart the server */
+
+  /* something failed; reopen the logs so we can complain */
+  log_reopen();
+
+  log_write(LS_SYSTEM, L_CRIT,  0, "execv(%s,%s) failed: %m", SPATH,
+	    *thisServer.argv);
+
+  Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s", SPATH,
+	 (strerror(errno)) ? strerror(errno) : ""));
+  exit(8);
+}
+
+/**
+ * Issue server notice warning about impending restart or die.
+ * @param[in] pe Pointer to structure describing pending exit.
+ * @param[in] until How long until the exit (approximately).
+ */
+static void countdown_notice(struct PendingExit *pe, time_t until)
+{
+  const char *what = pe->restart ? "restarting" : "terminating";
+  const char *units;
+
+  if (until >= 60) { /* measure in minutes */
+    until /= 60; /* so convert it to minutes */
+    units = (until == 1) ? "minute" : "minutes";
+  } else
+    units = (until == 1) ? "second" : "seconds";
+
+  /* send the message */
+  if (pe->message)
+    sendto_lusers("Server %s in %d %s: %s", what, until, units, pe->message);
+  else
+    sendto_lusers("Server %s in %d %s...", what, until, units);
+}
+
+static void exit_countdown(struct Event *ev);
+
+/**
+ * Performs a delayed pending exit, issuing server notices as appropriate.
+ * Reschedules exit_countdown() as needed.
+ * @param[in] ev Timer event.
+ */
+static void _exit_countdown(struct PendingExit *pe, int do_notice)
+{
+  time_t total, next, approx;
+
+  if (CurrentTime >= pe->time) { /* time to do the exit */
+    pending_exit(pe);
+    return;
+  }
+
+  /* OK, we need to figure out how long to the next message and approximate
+   * how long until the actual exit.
+   */
+  total = pe->time - CurrentTime; /* how long until exit */
+
+#define t_adjust(interval, interval2)				\
+  do {								\
+    approx = next = total - (total % (interval));		\
+    if (next >= total - (interval2)) {				\
+      next -= (interval); /* have to adjust next... */		\
+      if (next < (interval)) /* slipped into next interval */	\
+	next = (interval) - (interval2);			\
+    } else /* have to adjust approx... */			\
+      approx += (interval);					\
+  } while (0)
+
+  if (total > PEND_INT_LONG) /* in the long interval regime */
+    t_adjust(PEND_INT_LONG, PEND_INT_MEDIUM);
+  else if (total > PEND_INT_MEDIUM) /* in the medium interval regime */
+    t_adjust(PEND_INT_MEDIUM, PEND_INT_SHORT);
+  else if (total > PEND_INT_SHORT) /* in the short interval regime */
+    t_adjust(PEND_INT_SHORT, PEND_INT_END);
+  else if (total > PEND_INT_END) /* in the end interval regime */
+    t_adjust(PEND_INT_END, PEND_INT_LAST);
+  else if (total > PEND_INT_LAST) /* in the last message interval */
+    t_adjust(PEND_INT_LAST, PEND_INT_LAST);
+  else { /* next event is to actually exit */
+    next = 0;
+    approx = PEND_INT_LAST;
+  }
+
+  /* convert next to an absolute timestamp */
+  next = pe->time - next;
+  assert(next > CurrentTime);
+
+  /* issue the warning notices... */
+  if (do_notice)
+    countdown_notice(pe, approx);
+
+  /* reschedule the timer... */
+  timer_add(&countdown_timer, exit_countdown, pe, TT_ABSOLUTE, next);
+}
+
+/**
+ * Timer callback for _exit_countdown().
+ * @param[in] ev Timer event.
+ */
+static void exit_countdown(struct Event *ev)
+{
+  if (ev_type(ev) == ET_DESTROY)
+    return; /* do nothing with destroy events */
+
+  assert(ET_EXPIRE == ev_type(ev));
+
+  /* perform the event we were called to do */
+  _exit_countdown(t_data(&countdown_timer), 1);
+}
+
+/**
+ * Cancel a pending exit.
+ * @param[in] who Client cancelling the impending exit.
+ */
+void exit_cancel(struct Client *who)
+{
+  const char *what;
+  struct PendingExit *pe;
+
+  if (!t_onqueue(&countdown_timer))
+    return; /* it's not running... */
+
+  pe = t_data(&countdown_timer); /* get the pending exit data */
+  timer_del(&countdown_timer); /* delete the timer */
+
+  if (who) { /* explicitly issued cancellation */
+    /* issue a notice about the exit being canceled */
+    sendto_lusers("Server %s CANCELED",
+		  what = (pe->restart ? "restart" : "termination"));
+
+    /* log the cancellation */
+    if (IsUser(who))
+      log_write(LS_SYSTEM, L_NOTICE, 0, "Server %s CANCELED by %s!%s@%s", what,
+		cli_name(who), cli_user(who)->username, cli_sockhost(who));
+    else
+      log_write(LS_SYSTEM, L_NOTICE, 0, "Server %s CANCELED by %s", what,
+		cli_name(who));
+  }
+
+  /* release the pending exit structure */
+  if (pe->who)
+    MyFree(pe->who);
+  if (pe->message)
+    MyFree(pe->message);
+  MyFree(pe);
+
+  /* Oh, and restore connections */
+  refuse = 0;
+}
+
+/**
+ * Schedule a pending exit.  Note that only real people issue delayed
+ * exits, so \a who should not be NULL if \a when is non-zero.
+ * @param[in] restart True if a restart is desired, false otherwise.
+ * @param[in] when Interval until the exit; 0 for immediate exit.
+ * @param[in] who Client issuing exit (or NULL).
+ * @param[in] message Message explaining exit.
+ */
+void exit_schedule(int restart, time_t when, struct Client *who,
+		   const char *message)
+{
+  struct PendingExit *pe;
+
+  /* first, let's cancel any pending exit */
+  exit_cancel(0);
+
+  /* now create a new pending exit */
+  pe = MyMalloc(sizeof(struct PendingExit));
+  pe->restart = restart;
+  pe->time = when + CurrentTime; /* make time absolute */
+  if (who) { /* save who issued it... */
+    if (IsUser(who)) {
+      char nuhbuf[NICKLEN + USERLEN + HOSTLEN + 3];
+      ircd_snprintf(0, nuhbuf, sizeof(nuhbuf), "%s!%s@%s", cli_name(who),
+		    cli_user(who)->username, cli_sockhost(who));
+      DupString(pe->who, nuhbuf);
+    } else
+      DupString(pe->who, cli_name(who));
+  } else
+    pe->who = 0;
+  if (message) /* also save the message */
+    DupString(pe->message, message);
+  else
+    pe->message = 0;
+
+  /* let's refuse new connections... */
+  refuse = 1;
+
+  if (!when) { /* do it right now? */
+    pending_exit(pe);
+    return;
+  }
+
+  assert(who); /* only people issue delayed exits */
+
+  /* issue a countdown notice... */
+  countdown_notice(pe, when);
+
+  /* log who issued the shutdown */
+  if (pe->message)
+    log_write(LS_SYSTEM, L_NOTICE, 0, "Delayed server %s issued by %s: %s",
+	      restart ? "restart" : "termination", pe->who, pe->message);
+  else
+    log_write(LS_SYSTEM, L_NOTICE, 0, "Delayed server %s issued by %s...",
+	      restart ? "restart" : "termination", pe->who);
+
+  /* and schedule the timer */
+  _exit_countdown(pe, 0);
 }
 
 /*----------------------------------------------------------------------------
@@ -155,45 +404,6 @@ void server_panic(const char *message)
   exit(1);
 }
 
-/*----------------------------------------------------------------------------
- * API: server_restart
- *--------------------------------------------------------------------------*/
-/** Restart the server with a message.
- * @param[in] message Message to log and send to operators.
- */
-void server_restart(const char *message)
-{
-  static int restarting = 0;
-
-  /* inhibit sending any server notices; we may be in a loop */
-  log_write(LS_SYSTEM, L_WARNING, LOG_NOSNOTICE, "Restarting Server: %s",
-	    message);
-  if (restarting++) /* increment restarting to prevent looping */
-    return;
-
-  sendto_opmask(0, SNO_OLDSNO, "Restarting server: %s", message);
-  Debug((DEBUG_NOTICE, "Restarting server..."));
-  flush_connections(0);
-
-  log_close();
-
-  close_connections(!(thisServer.bootopt & (BOOT_TTY | BOOT_DEBUG | BOOT_CHKCONF)));
-
-  reap_children();
-
-  execv(SPATH, thisServer.argv);
-
-  /* Have to reopen since it has been closed above */
-  log_reopen();
-
-  log_write(LS_SYSTEM, L_CRIT, 0, "execv(%s,%s) failed: %m", SPATH,
-	    *thisServer.argv);
-
-  Debug((DEBUG_FATAL, "Couldn't restart server \"%s\": %s",
-         SPATH, (strerror(errno)) ? strerror(errno) : ""));
-  exit(8);
-}
-
 
 /*----------------------------------------------------------------------------
  * outofmemory:  Handler for out of memory conditions...
@@ -201,7 +411,7 @@ void server_restart(const char *message)
 /** Handle out-of-memory condition. */
 static void outofmemory(void) {
   Debug((DEBUG_FATAL, "Out of memory: restarting server..."));
-  server_restart("Out of Memory");
+  exit_schedule(1, 0, 0, "Out of Memory");
 }
 
 
@@ -750,6 +960,7 @@ int main(int argc, char **argv) {
   timer_add(timer_init(&connect_timer), try_connections, 0, TT_RELATIVE, 1);
   timer_add(timer_init(&ping_timer), check_pings, 0, TT_RELATIVE, 1);
   timer_add(timer_init(&destruct_event_timer), exec_expired_destruct_events, 0, TT_PERIODIC, 60);
+  timer_init(&countdown_timer);
 
   CurrentTime = time(NULL);
 

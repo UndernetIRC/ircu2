@@ -119,6 +119,7 @@ DIRECTCON       return DIRECTCON;
 DIRECTOP        return DIRECTOP;
 DISPLAY		return TPRIV_DISPLAY;
 DNS             return DNS;
+EXEMPT          return EXEMPT;
 FAST		return FAST;
 FEATURES	return FEATURES;
 FILE		return TFILE;

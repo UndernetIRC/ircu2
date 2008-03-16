@@ -99,4 +99,7 @@ extern void sendto_opmask_ratelimited(struct Client *one,
                                       unsigned int mask, time_t *rate,
                                       const char *pattern, ...);
 
+/* Send server notice to all local users */
+extern void sendto_lusers(const char *pattern, ...);
+
 #endif /* INCLUDED_send_h */

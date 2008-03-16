@@ -189,6 +189,11 @@ enum Feature {
   FEAT_SPAM_JOINED_TIME,
   FEAT_SPAM_FJP_COUNT,
 
+  /* Really special features (tm) */
+  FEAT_NETWORK_REHASH,
+  FEAT_NETWORK_RESTART,
+  FEAT_NETWORK_DIE,
+
   FEAT_LAST_F
 };
 

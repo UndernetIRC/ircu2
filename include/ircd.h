@@ -23,6 +23,15 @@ struct Daemon
   int          pid_fd;      /**< File descriptor for process id file. */
 };
 
+/** Describes pending exit. */
+struct PendingExit
+{
+  int          restart;     /**< Pending exit is for a restart. */
+  char*        who;         /**< Who initiated the exit. */
+  char*        message;     /**< Message to emit. */
+  time_t       time;        /**< Absolute time at which to exit. */
+};
+
 /*
  * Macros
  */
@@ -39,12 +48,20 @@ struct Daemon
 #define MAJOR_PROTOCOL  "10"    /**< Current protocol version. */
 #define BASE_VERSION    "u2.10" /**< Base name of IRC daemon version. */
 
+#define PEND_INT_LONG   300     /**< Length of long message interval. */
+#define PEND_INT_MEDIUM  60     /**< Length of medium message interval. */
+#define PEND_INT_SHORT   30     /**< Length of short message interval. */
+#define PEND_INT_END     10     /**< Length of the end message interval. */
+#define PEND_INT_LAST     1     /**< Length of last message interval. */
+
 /*
  * Proto types
  */
-extern void server_die(const char* message);
 extern void server_panic(const char* message);
-extern void server_restart(const char* message);
+
+extern void exit_cancel(struct Client *who);
+extern void exit_schedule(int restart, time_t when, struct Client *who,
+			  const char *message);
 
 extern struct Client  me;
 extern time_t         CurrentTime;
@@ -58,6 +75,7 @@ extern char*          debugmode;
 extern int            running;
 extern int            maxconnections;
 extern int            maxclients;
+extern int            refuse;
 
 #endif /* INCLUDED_ircd_h */
 

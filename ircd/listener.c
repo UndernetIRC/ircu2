@@ -153,6 +153,8 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
         continue;
       flags[len++] = 'H';
     }
+    if (FlagHas(&listener->flags, LISTEN_EXEMPT))
+      flags[len++] = 'X';
     if (FlagHas(&listener->flags, LISTEN_IPV4))
     {
       flags[len++] = '4';
@@ -493,7 +495,9 @@ static void accept_connection(struct Event* ev)
       if (fd >= maxclients)
       {
         ++ServerStats->is_ref;
-        send(fd, "ERROR :All connections in use\r\n", 32, 0);
+	/*                 11111111112222222222 3 3 */
+	/*        12345678901234567890123456789 0 1 */
+        send(fd, "ERROR :All connections in use\r\n", 31, 0);
         close(fd);
         return;
       }
@@ -505,6 +509,8 @@ static void accept_connection(struct Event* ev)
       if (!listener_active(listener))
       {
         ++ServerStats->is_ref;
+	/*                 11111111112222 2 2 */
+	/*        12345678901234567890123 4 5 */
         send(fd, "ERROR :Use another port\r\n", 25, 0);
         close(fd);
         continue;
@@ -515,9 +521,23 @@ static void accept_connection(struct Event* ev)
       if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
       {
         ++ServerStats->is_ref;
+	/*                 11111111112222 2 2 */
+	/*        12345678901234567890123 4 5 */
         send(fd, "ERROR :Use another port\r\n", 25, 0);
         close(fd);
         continue;
+      }
+      /*
+       * check to see if server is shutting down.
+       */
+      if (refuse && !listener_exempt(listener))
+      {
+	++ServerStats->is_ref;
+	/*                 111111111122222222223 3 3 */
+	/*        123456789012345678901234567890 1 2 */
+	send(fd, "ERROR :Server is shutting down\r\n", 32, 0);
+	close(fd);
+	continue;
       }
       ++ServerStats->is_ac;
       /* nextping = CurrentTime; */

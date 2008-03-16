@@ -1,3 +1,84 @@
+2008-03-15  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* doc/example.conf: document 'exempt' port flag
+
+	* ircd/send.c: implement sendto_lusers() to send server notices to
+	all local users
+
+	* ircd/parse.c: add ms_die, ms_rehash, and ms_restart
+
+	* ircd/m_restart.c: reimplemented mo_restart() in terms of
+	exit_schedule(); implemented ms_restart() under control of
+	FEAT_NETWORK_RESTART
+
+	* ircd/m_rehash.c: implemented ms_rehash() under control of
+	FEAT_NETWORK_REHASH
+
+	* ircd/m_die.c: reimplemented mo_die() in terms of
+	exit_schedule(); implemented ms_die() under control of
+	FEAT_NETWORK_DIE
+
+	* ircd/listener.c: create new 'exempt' flag for listeners,
+	indicated in /stats p by an 'X' flag; fix a typo in a length fed
+	to send()
+
+	* ircd/ircd_signal.c: use exit_schedule() in place of server_die()
+	and server_restart()
+
+	* ircd/ircd_parser.y: add port 'exempt' clause to mark a port as
+	exempt from connection restrictions during timed /restart or /die
+
+	* ircd/ircd_lexer.l: add 'exempt' keyword
+
+	* ircd/ircd_features.c: new features NETWORK_REHASH (allow /rehash
+	from the network), NETWORK_RESTART (ibid, for /restart), and
+	NETWORK_DIE (ibid)
+
+	* ircd/ircd.c: suite of functions to implement scheduled exits
+	(abstract term for both server restart and server termination);
+	includes definition of the 'refuse' flag to block new client
+	connections except from exempt ports; also remove deprecated
+	server_die() and server_restart()
+
+	* ircd/engine_select.c: call exit_schedule() instead of
+	server_restart()
+
+	* ircd/engine_poll.c: call exit_schedule() instead of
+	server_restart()
+
+	* ircd/engine_kqueue.c: call exit_schedule() instead of
+	server_restart()
+
+	* ircd/engine_epoll.c: call exit_schedule() instead of
+	server_restart()
+
+	* ircd/engine_devpoll.c: call exit_schedule() instead of
+	server_restart()
+
+	* include/send.h: declare sendto_lusers() to send a server notice
+	to all local users
+
+	* include/msg.h: create 2 character tokens for rehash, restart,
+	and die
+
+	* include/listener.h: create new "exempt" flag for listeners, to
+	make a specific port exempt from the restrictions implied by the
+	refuse flag
+
+	* include/ircd_features.h: define features FEAT_NETWORK_REHASH,
+	FEAT_NETWORK_RESTART, and FEAT_NETWORK_DIE
+
+	* include/ircd.h: set up struct PendingExit; define PEND_INT_*
+	macros; remove declarations for server_die() and server_restart(),
+	which are now replaced by exit_cancel() and exit_schedule();
+	declare refuse integer to signal that new connections are to be
+	refused
+
+	* include/handlers.h: add declarations for ms_die(), ms_rehash(),
+	and ms_restart()
+
+	* doc/readme.features: document new features
+
 2007-12-05  Michael Poole <mdpoole@troilus.org>
 
 	* include/dbuf.h (DBufAllocCount): Make unsigned.

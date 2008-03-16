@@ -293,7 +293,7 @@ engine_loop(struct Generators* gen)
 	  timer_add(timer_init(&clear_error), error_clear, 0, TT_PERIODIC,
 		    ERROR_EXPIRE_TIME);
 	else if (errors > SELECT_ERROR_THRESHOLD) /* too many errors... */
-	  server_restart("too many select errors");
+	  exit_schedule(1, 0, 0, "too many select errors");
       }
       /* old code did a sleep(1) here; with usage these days,
        * that may be too expensive

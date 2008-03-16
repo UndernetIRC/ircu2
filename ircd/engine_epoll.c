@@ -275,7 +275,7 @@ engine_loop(struct Generators *gen)
           timer_add(timer_init(&clear_error), error_clear, 0, TT_PERIODIC,
                     ERROR_EXPIRE_TIME);
         else if (errors > EPOLL_ERROR_THRESHOLD)
-          server_restart("too many epoll errors");
+          exit_schedule(1, 0, 0, "too many epoll errors");
       }
       continue;
     }

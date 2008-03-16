@@ -796,3 +796,31 @@ static void vsendto_opmask(struct Client *one, unsigned int mask,
 
   msgq_clean(mb);
 }
+
+/** Send a server notice to all local users on this server.
+ * @param[in] pattern Format string for server notice.
+ */
+void sendto_lusers(const char *pattern, ...)
+{
+  struct VarData vd;
+  struct Client *cptr;
+  struct MsgBuf *mb;
+  int i;
+
+  /* Build the message we're going to send... */
+  vd.vd_format = pattern;
+  va_start(vd.vd_args, pattern);
+  mb = msgq_make(0, ":%s " MSG_NOTICE " * :*** Notice -- %v", cli_name(&me),
+		 &vd);
+  va_end(vd.vd_args);
+
+  /* send it along */
+  for (i = 0; i <= HighestFd; i++) {
+    if (!(cptr = LocalClientArray[i]) || !IsUser(cptr))
+      continue; /* skip empty slots... */
+
+    send_buffer(cptr, mb, 1); /* send with high priority */
+  }
+
+  msgq_clean(mb); /* clean up after ourselves */
+}
