@@ -1,5 +1,8 @@
 2008-03-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ircd.c: you know what, let's just make those SQUIT
+	messages, like they were probably supposed to be in the beginning
+
 	* ircd/ircd.c: add a preceding colon in ERROR messages
 
 	* doc/example.conf: document 'exempt' port flag
