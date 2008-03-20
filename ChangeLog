@@ -1,3 +1,12 @@
+2008-03-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_string.c (ircd_aton_ip4): Reject strings with more
+	than 3 dots in them.
+
+	* ircd/test/ircd_in_addr_t.c (test_addrs): Update the expected
+	parsing for a bare IPv4 address to a IPv4-mapped address.
+	(test_masks): Add a test for the ircd_string.c change.
+
 2008-03-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/client.h: IsLocOp() now checks to see if its MyUser() as

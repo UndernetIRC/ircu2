@@ -481,9 +481,11 @@ ircd_aton_ip4(const char *input, unsigned int *output, unsigned char *pbits)
       *pbits = bits;
     return pos;
   case '.':
+    if (++dots > 3)
+      return 0;
     if (input[++pos] == '.')
       return 0;
-    ip |= part << (24 - 8 * dots++);
+    ip |= part << (32 - 8 * dots);
     part = 0;
     if (input[pos] == '*') {
       while (input[++pos] == '*' || input[pos] == '.') ;
