@@ -523,7 +523,7 @@ struct Client {
 #define HasFlag(cli, flag)  FlagHas(&cli_flags(cli), flag)
 
 /** Return non-zero if the client is an IRC operator (global or local). */
-#define IsAnOper(x)             (HasFlag(x, FLAG_OPER) || HasFlag(x, FLAG_LOCOP))
+#define IsAnOper(x)             (IsOper(x) || IsLocOp(x))
 /** Return non-zero if the client's connection is blocked. */
 #define IsBlocked(x)            HasFlag(x, FLAG_BLOCKED)
 /** Return non-zero if the client's connection is still being burst. */
@@ -547,8 +547,8 @@ struct Client {
 #define IsInvisible(x)          HasFlag(x, FLAG_INVISIBLE)
 /** Return non-zero if the client caused a net.burst. */
 #define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
-/** Return non-zero if the client has set mode +O (local operator). */
-#define IsLocOp(x)              HasFlag(x, FLAG_LOCOP)
+/** Return non-zero if the client has set mode +O (local operator) locally. */
+#define IsLocOp(x)              (MyUser(x) && HasFlag(x, FLAG_LOCOP))
 /** Return non-zero if the client has set mode +o (global operator). */
 #define IsOper(x)               HasFlag(x, FLAG_OPER)
 /** Return non-zero if the client has an active UDP ping request. */

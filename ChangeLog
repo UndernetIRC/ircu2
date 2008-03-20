@@ -1,3 +1,9 @@
+2008-03-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/client.h: IsLocOp() now checks to see if its MyUser() as
+	well; IsAnOper() uses IsOper() and IsLocOp() instead of directly
+	testing the flags
+
 2008-03-15  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/ircd.c: you know what, let's just make those SQUIT
