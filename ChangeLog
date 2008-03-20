@@ -1,5 +1,11 @@
 2008-03-20  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* include/client.h (infousermodes): add +O to the list of
+	supported usermodes--some clients complain if they see it
+	otherwise
+
+2008-03-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
 	* ircd/ircd_features.c: update CHANMODES ISUPPORT setting to
 	include 'R' channel mode
 

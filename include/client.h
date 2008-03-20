@@ -69,7 +69,7 @@ struct AuthRequest;
  */
 
 /** String containing valid user modes, in no particular order. */
-#define infousermodes "dioswkgx"
+#define infousermodes "dioOswkgx"
 
 /** Operator privileges. */
 enum Priv
