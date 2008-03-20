@@ -809,6 +809,8 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'D';
   else if (MyUser(cptr) && (chptr->mode.mode & MODE_WASDELJOINS))
     *mbuf++ = 'd';
+  if (chptr->mode.mode & MODE_REGISTERED)
+    *mbuf++ = 'R';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
@@ -1535,6 +1537,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_NOPRIVMSGS,	'n',
     MODE_REGONLY,	'r',
     MODE_DELJOINS,      'D',
+    MODE_REGISTERED,	'R',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
@@ -1946,7 +1949,7 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
 
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
-           MODE_DELJOINS | MODE_WASDELJOINS);
+           MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;
@@ -2092,6 +2095,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_KEY,		'k',
     MODE_APASS,		'A',
     MODE_UPASS,		'U',
+    MODE_REGISTERED,	'R',
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
@@ -3155,6 +3159,11 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
   if (!state->mbuf)
     return;
 
+  /* Local users are not permitted to change registration status */
+  if (flag_p[0] == MODE_REGISTERED && !(state->flags & MODE_PARSE_FORCE) &&
+      MyUser(state->sptr))
+    return;
+
   if (state->dir == MODE_ADD) {
     state->add |= flag_p[0];
     state->del &= ~flag_p[0];
@@ -3198,6 +3207,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_KEY,		'k',
     MODE_APASS,		'A',
     MODE_UPASS,		'U',
+    MODE_REGISTERED,	'R',
     MODE_BAN,		'b',
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',

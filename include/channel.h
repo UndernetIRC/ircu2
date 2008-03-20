@@ -99,6 +99,8 @@ struct Client;
 #define MODE_LIMIT      0x0400		/**< +l Limit */
 #define MODE_REGONLY    0x0800  	/**< Only +r users may join */
 #define MODE_DELJOINS   0x1000  	/**< New join messages are delayed */
+#define MODE_REGISTERED 0x2000  	/**< Channel marked as registered
+					 * (for future semantic expansion) */
 #define MODE_SAVE	0x20000		/**< save this mode-with-arg 'til 
 					 * later */
 #define MODE_FREE	0x40000 	/**< string needs to be passed to 
@@ -113,7 +115,7 @@ struct Client;
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
 /** Available Channel modes */
-#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrD" : "biklmnopstvrD"
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDR" : "biklmnopstvrDR"
 /** Available Channel modes that take parameters */
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "AbkloUv" : "bklov"
 

@@ -246,7 +246,7 @@ set_isupport_chantypes(void)
 static void
 set_isupport_chanmodes(void)
 {
-    add_isupport_s("CHANMODES", feature_bool(FEAT_OPLEVELS) ? "b,AkU,l,imnpstrDd" : "b,k,l,imnpstrDd");
+    add_isupport_s("CHANMODES", feature_bool(FEAT_OPLEVELS) ? "b,AkU,l,imnpstrDdR" : "b,k,l,imnpstrDdR");
 }
 
 static void
