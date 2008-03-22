@@ -1,5 +1,16 @@
 2008-03-22  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/ancillary.c: implementation of generic ancillary data
+	subsystem
+
+	* include/ancillary.h: implementation of generic ancillary data
+	subsystem
+
+	* ircd/register.c: minor correction to copyright comment--this is
+	ircd/register.c, not include/register.h!
+
+2008-03-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
 	* ircd/register.c: implementation of generic registration
 	subsystem
 

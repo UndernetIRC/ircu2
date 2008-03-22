@@ -1,5 +1,5 @@
 /*
- * IRC - Internet Relay Chat, include/register.h
+ * IRC - Internet Relay Chat, ircd/register.c
  * Copyright (C) 2008 Kevin L. Mitchell
  *
  * This program is free software; you can redistribute it and/or modify
