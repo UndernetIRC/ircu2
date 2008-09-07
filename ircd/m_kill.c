@@ -119,7 +119,7 @@ static int do_kill(struct Client* cptr, struct Client* sptr,
    *       have changed the target because of the nickname change.
    */
   sendto_opmask_butone(0, IsServer(sptr) ? SNO_SERVKILL : SNO_OPERKILL,
-                       "Received KILL message for %s. From %s Path: %s!%s %s",
+                       "Received KILL message for %s from %s Path: %s!%s %s",
                        get_client_name(victim, SHOW_IP), cli_name(sptr),
                        inpath, path, msg);
   log_write_kill(victim, sptr, inpath, path, msg);

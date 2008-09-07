@@ -1,3 +1,8 @@
+2008-09-07  Perry Lorier <isomer@undernet.org>
+	
+	* ircd/m_kill.c: Remove the . from the end of the nickname in kill
+	messages to make cut and pasting easier.
+
 2008-03-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_string.c (ircd_aton_ip4): Reject strings with more
