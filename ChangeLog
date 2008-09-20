@@ -1,3 +1,9 @@
+2008-09-19  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/flagset.h: we declared flagpage_t, then never used
+	it--fixed; add FlagZero() and FlagSwap() to zero a flagset and
+	swap the values of 2 flagsets
+
 2008-03-27  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/watch.c: implementation of generic watch subsystem

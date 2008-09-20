@@ -37,7 +37,7 @@ typedef unsigned long flagpage_t;
 #define DECLARE_FLAGSET(name,max) \
   struct name \
   { \
-    unsigned long bits[((max + FLAGSET_NBITS - 1) / FLAGSET_NBITS)]; \
+    flagpage_t bits[((max + FLAGSET_NBITS - 1) / FLAGSET_NBITS)]; \
   }
 
 /** Test whether a flag is set in a flagset. */
@@ -46,5 +46,25 @@ typedef unsigned long flagpage_t;
 #define FlagSet(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] |= FLAGSET_MASK(flag))
 /** Clear a flag in a flagset. */
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
+
+/** Zero a flagset. */
+#define FlagZero(set,max) \
+  do { \
+    unsigned int _max = FLAGSET_INDEX(max), _i; \
+    for (_i = 0; _i < _max; _i++) \
+      (set)->bits[_i] = 0; \
+  } while (0)
+
+/** Swap two flagsets. */
+#define FlagSwap(s1,s2,max) \
+  do { \
+    unsigned int _max = FLAGSET_INDEX(max), _i; \
+    flagpage_t _tmp; \
+    for (_i = 0; _i < _max; _i++) { \
+      _tmp = (s1)->bits[_i]; \
+      (s1)->bits[_i] = (s2)->bits[_i]; \
+      (s2)->bits[_i] = _tmp; \
+    } \
+  } while (0)
 
 #endif /* ndef INCLUDED_flagset_h */
