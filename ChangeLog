@@ -1,3 +1,8 @@
+2008-09-22  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: begin sketching out structures for new, unified
+	mode processing system
+
 2008-09-19  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/flagset.h: we declared flagpage_t, then never used
