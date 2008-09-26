@@ -1,3 +1,18 @@
+2008-09-26  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/ancillary.h: correct a minor typo in ancdata_init();
+	this eventually needs to be updated to utilize the new keyspace
+	routines
+
+	* include/mode.h: add keyspaces to ModeList; update style from
+	mine to ircu's
+
+	* include/keyspace.h: types, structures, etc. for allocating and
+	deallocating "keys" from "keyspaces"
+
+	* ircd/keyspace.c: generic routines to allocate and deallocate
+	"keys" from a "keyspace"
+
 2008-09-22  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/mode.h: begin sketching out structures for new, unified

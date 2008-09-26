@@ -28,6 +28,9 @@
 #ifndef INCLUDED_flagset_h
 #include "flagset.h"
 #endif
+#ifndef INCLUDED_keyspace_h
+#include "keyspace.h"
+#endif
 
 struct Client;
 struct Channel;
@@ -38,7 +41,7 @@ struct Channel;
 #define MAX_MODEPARAMS		6
 
 /** Specifies the numerical value of a mode switch. */
-typedef unsigned int mode_t;
+typedef key_t mode_t;
 
 /** Describes a single mode, including parsing flags and policy flags. */
 typedef struct ModeDesc mode_desc_t;
@@ -56,7 +59,7 @@ struct ModeDesc {
   regent_t		md_regent;	/**< Registration entry. */
   int			md_switch;	/**< Mode switch (character). */
   mode_t		md_mode;	/**< Numerical value of mode. */
-  const char	       *md_desc;	/**< Textual description of mode. */
+  const char*		md_desc;	/**< Textual description of mode. */
   flagpage_t		md_flags;	/**< Flags affecting mode. */
 };
 
@@ -120,8 +123,10 @@ struct ModeList {
   regtab_t		ml_table;	/**< Registration table. */
   size_t		ml_offset;	/**< Offset of mode structure
 					     within entity. */
-  mode_desc_t	       *ml_smap[256];	/**< Mode switch map. */
-  mode_desc_t	       *ml_mmap[MAX_MODES];
+  keyspace_t*		ml_keyspace;	/**< Keyspace for mode value
+					     allocation. */
+  mode_desc_t*		ml_smap[256];	/**< Mode switch map. */
+  mode_desc_t*		ml_mmap[MAX_MODES];
 					/**< Mode value map. */
 };
 
@@ -139,17 +144,17 @@ DECLARE_FLAGSET(ModeSet, MAX_MODES);
 
 /** Contains a set of modes with arguments. */
 struct ModeArgs {
-  mode_args_t	       *ma_next;	/**< Chain to next set of modes with
+  mode_args_t*		ma_next;	/**< Chain to next set of modes with
 					     arguments. */
-  mode_args_t	       *ma_prev;	/**< Chain to previous set of modes
+  mode_args_t*		ma_prev;	/**< Chain to previous set of modes
 					     with arguments. */
   struct {
-    mode_desc_t	       *mam_mode;	/**< The mode. */
+    mode_desc_t*		mam_mode;	/**< The mode. */
     mode_dir_t		mam_dir;	/**< Direction of mode. */
     union {
       unsigned int	mama_int;	/**< Unsigned integer argument. */
-      const char       *mama_str;	/**< String argument (keys). */
-      struct Client    *mama_cli;	/**< Client argument (chanops). */
+      const char*	mama_str;	/**< String argument (keys). */
+      struct Client*	mama_cli;	/**< Client argument (chanops). */
     }			mam_arg;	/**< Argument for mode. */
     unsigned short	mam_oplevel;	/**< Oplevel for a bounce. */
   }			ma_modeargs[MAX_MODEPARAMS];
@@ -158,14 +163,14 @@ struct ModeArgs {
 
 /** Describes the difference between two mode_set_t's. */
 struct ModeDelta {
-  struct Client	       *md_origin;	/**< Origin of delta. */
+  struct Client*	md_origin;	/**< Origin of delta. */
   int			md_etype;	/**< Type of entity--1 for channel,
 					     0 for client. */
   union {
-    struct Client      *mde_client;	/**< Client mode delta applies to. */
-    struct Channel     *mde_chan;	/**< Channel mode delta applies to. */
+    struct Client*	mde_client;	/**< Client mode delta applies to. */
+    struct Channel*	mde_chan;	/**< Channel mode delta applies to. */
   }			md_entity;	/**< Entity mode delta applies to. */
-  mode_list_t	       *md_modes;	/**< Mode list used by this delta. */
+  mode_list_t*		md_modes;	/**< Mode list used by this delta. */
 
   mode_set_t		md_add;		/**< Simple modes to be added. */
   mode_set_t		md_rem;		/**< Simple modes to be removed. */
@@ -173,7 +178,7 @@ struct ModeDelta {
   flagpage_t		md_flags;	/**< Flags affecting the delta. */
   int			md_count;	/**< Number of modes with args. */
 
-  mode_args_t	       *md_tail;	/**< Tail of modes-with-args list. */
+  mode_args_t*		md_tail;	/**< Tail of modes-with-args list. */
   mode_args_t		md_head;	/**< First element of modes-with-args
 					     list. */
 };

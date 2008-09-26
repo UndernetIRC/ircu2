@@ -117,12 +117,12 @@ struct AncData {
   { (module), 0, 0 }
 
 /** Dynamically initialize an ancdata_t.
- * @param[in,out] ad The ancdata_t to be initialized.
+ * @param[in,out] ad A pointer to the ancdata_t to be initialized.
  * @param[in] module The module the object is in.
  */
 #define ancdata_init(ad, module)		\
   do {						\
-    ancdata_t _ad = (ad);			\
+    ancdata_t *_ad = (ad);			\
     _ad->ad_module = (module);			\
     _ad->ad_alloc = 0;				\
     _ad->ad_data = 0;				\
