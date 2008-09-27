@@ -58,6 +58,7 @@ typedef struct ModeDelta mode_delta_t;
 struct ModeDesc {
   regent_t		md_regent;	/**< Registration entry. */
   int			md_switch;	/**< Mode switch (character). */
+  int			md_prefix;	/**< Indicator prefix for mode. */
   mode_t		md_mode;	/**< Numerical value of mode. */
   const char*		md_desc;	/**< Textual description of mode. */
   flagpage_t		md_flags;	/**< Flags affecting mode. */
@@ -69,6 +70,11 @@ struct ModeDesc {
 #define MDFLAG_LOCAL		0x40000000
 /** Accept octal or hexadecimal integers, not just decimal. */
 #define MDFLAG_HEXINT		0x20000000
+/** Mode can only be set or reset once per message. */
+#define MDFLAG_ONESHOT		0x10000000
+
+/** Mask for prefix ordering priority. */
+#define MDFLAG_PRIO		0x000f0000
 
 /** Mode is visible to anyone. */
 #define MDFLAG_VIS_OPEN		0x00000000

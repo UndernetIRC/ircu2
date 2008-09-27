@@ -169,9 +169,11 @@ static regtab_t reg_table = REGTAB_INIT(REG_TABLE, REGTAB_MAGIC, 0,
 /** Search a table for a named entry.
  * @param[in] table Table to search.
  * @param[in] id Identifier of the entry to look up.
- * @return Pointer to the identified entry, or NULL if there isn't one.
+ * @return Pointer to the identified entry, or NULL if there isn't
+ * one.
  */
-static regent_t* _reg_find(regtab_t* table, const char* id)
+static regent_t*
+_reg_find(regtab_t* table, const char* id)
 {
   regent_t *cursor, *tmp;
 
@@ -211,7 +213,8 @@ static regent_t* _reg_find(regtab_t* table, const char* id)
  * @param[in] table Table to add the entry to.
  * @param[in] entry Entry to add.
  */
-static void reg_add(regtab_t* table, regent_t* entry)
+static void
+reg_add(regtab_t* table, regent_t* entry)
 {
   assert(0 != table);
   assert(0 != entry);
@@ -232,7 +235,8 @@ static void reg_add(regtab_t* table, regent_t* entry)
  * @param[in] table Table to remove entry from.
  * @param[in] entry Entry to remove.
  */
-static void reg_rem(regtab_t* table, regent_t* entry)
+static void
+reg_rem(regtab_t* table, regent_t* entry)
 {
   assert(0 != table);
   assert(0 != entry);
@@ -256,7 +260,8 @@ static void reg_rem(regtab_t* table, regent_t* entry)
  * @param[in] entry Table being unregistered.
  * @return 0 to accept the unregistration.
  */
-static int reg_flush(regtab_t* table, regtab_t* entry)
+static int
+reg_flush(regtab_t* table, regtab_t* entry)
 {
   /* Unregister each entry in turn */
   while (entry->reg_list) {
@@ -271,23 +276,22 @@ static int reg_flush(regtab_t* table, regtab_t* entry)
   return 0;
 }
 
-/** Register a new entry in a table.
- * @param[in] table Name of table entry should belong to.
+/** Register a new entry in a specified table.
+ * @param[in] tab Pointer to the regtab_t entry should belong to.
  * @param[in] entry Entry to add; must begin with a regent_t.
- * @return 0 if entry was added, non-zero otherwise; -1 means no table by
- * that name; -2 means the magic numbers don't match; -3 means it already
+ * @return 0 if entry was added, non-zero otherwise; -1 means invalid
+ * table; -2 means the magic numbers don't match; -3 means it already
  * exists in the table; other values returned by table reg function.
  */
-int reg(const char* table, void* entry)
+int
+regtab(regtab_t* tab, void* entry)
 {
   int retval;
-  regtab_t *tab;
 
   reg_init(); /* initialize subsystem */
 
-  /* look up the requested table */
-  if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
-    return -1; /* no such table */
+  if (!REGTAB_CHECK(tab)) /* valid table? */
+    return -1;
 
   /* double-check the magic numbers */
   if (((regent_t*) entry)->rl_magic != tab->reg_magic)
@@ -307,18 +311,17 @@ int reg(const char* table, void* entry)
   return 0; /* all set */
 }
 
-/** Register an array of entries in a table.
- * @param[in] table Name of table entries should belong to.
- * @param[in] ent_array Array of entries to add; each must be same size and
- * begin with a regent_t.
- * @param[in] n Number of entries in array.
- * @param[in] size Size of each entry in array.
- * @return n if all entries were added; -1 means no table by that name;
- * otherwise, the index of the first entry not added to the table.
+/** Register a new entry in a table.
+ * @param[in] table Name of table entry should belong to.
+ * @param[in] entry Entry to add; must begin with a regent_t.
+ * @return 0 if entry was added, non-zero otherwise; -1 means no table
+ * by that name; -2 means the magic numbers don't match; -3 means it
+ * already exists in the table; other values returned by table reg
+ * function.
  */
-int reg_n(const char* table, void* ent_array, int n, size_t size)
+int
+reg(const char* table, void* entry)
 {
-  int i;
   regtab_t *tab;
 
   reg_init(); /* initialize subsystem */
@@ -326,6 +329,29 @@ int reg_n(const char* table, void* ent_array, int n, size_t size)
   /* look up the requested table */
   if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
     return -1; /* no such table */
+
+  /* use regtab function */
+  return regtab(tab, entry);
+}
+
+/** Register an array of entries in a specified table.
+ * @param[in] tab Pointer to the regtab_t entries should belong to.
+ * @param[in] ent_array Array of entries to add; each must be same
+ * size and begin with a regent_t.
+ * @param[in] n Number of entries in array.
+ * @param[in] size Size of each entry in array.
+ * @return n if all entries were added; -1 means invalid table;
+ * otherwise, the index of the first entry not added to the table.
+ */
+int
+regtab_n(regtab_t* tab, void* ent_array, int n, size_t size)
+{
+  int i;
+
+  reg_init(); /* initialize subsystem */
+
+  if (!REGTAB_CHECK(tab)) /* valid table? */
+    return -1;
 
   /* walk through each array entry and add it */
   for (i = 0; i < n; i++) {
@@ -351,24 +377,48 @@ int reg_n(const char* table, void* ent_array, int n, size_t size)
   return i; /* should be n, indicating all entries processed */
 }
 
-/** Unregister an entry from a table.
- * @param[in] table Name of table entry should be removed from.
- * @param[in] entry Entry to remove; must begin with a regent_t.
- * @return 0 if entry was removed, non-zero otherwise; -1 means no table by
- * that name; other values returned by table unreg function.
+/** Register an array of entries in a table.
+ * @param[in] table Name of table entries should belong to.
+ * @param[in] ent_array Array of entries to add; each must be same
+ * size and begin with a regent_t.
+ * @param[in] n Number of entries in array.
+ * @param[in] size Size of each entry in array.
+ * @return n if all entries were added; -1 means no table by that
+ * name; otherwise, the index of the first entry not added to the
+ * table.
  */
-int unreg(const char* table, void* entry)
+int
+reg_n(const char* table, void* ent_array, int n, size_t size)
 {
-  int retval;
   regtab_t *tab;
 
   reg_init(); /* initialize subsystem */
 
   /* look up the requested table */
   if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
-    return -1;
+    return -1; /* no such table */
 
-  assert(tab == ((regent_t*) entry)->rl_desc);
+  /* use regtab_n function */
+  return regtab_n(tab, ent_array, n, size);
+}
+
+/** Unregister an entry from a specified table.
+ * @param[in] tab Pointer to the regtab_t entry should be removed
+ * from.
+ * @param[in] entry Entry to remove; must begin with a regent_t.
+ * @return 0 if entry was removed, non-zero otherwise; -1 means
+ * invalid or wrong table; other values returned by table unreg
+ * function.
+ */
+int
+unregtab(regtab_t* tab, void* entry)
+{
+  int retval;
+
+  reg_init(); /* initialize subsystem */
+
+  if (!REGTAB_CHECK(tab) || tab != ((regent_t*) entry)->rl_desc)
+    return -1; /* invalid or incorrect table */
 
   /* perform any table-specific unregistration */
   if (tab->reg_unreg && (retval = (tab->reg_unreg)(tab, entry)))
@@ -380,26 +430,50 @@ int unreg(const char* table, void* entry)
   return 0; /* all set */
 }
 
-/** Unregister an array of entries from a table.
- * @param[in] table Name of table entries should be removed from.
- * @param[in] ent_array Array of entries to remove; each must be same size and
- * begin with a regent_t.
- * @param[in] n Number of entries in array.
- * @param[in] size Size of each entry in array.
- * @return n if all entries were removed; -1 means no table by that name;
- * otherwise, the index of the first entry not removed from the table.  Note
- * only table unreg function returning non-zero can halt processing.
+/** Unregister an entry from a table.
+ * @param[in] table Name of table entry should be removed from.
+ * @param[in] entry Entry to remove; must begin with a regent_t.
+ * @return 0 if entry was removed, non-zero otherwise; -1 means no
+ * table by that name; other values returned by table unreg function.
  */
-int unreg_n(const char* table, void* ent_array, int n, size_t size)
+int
+unreg(const char* table, void* entry)
 {
-  int i;
   regtab_t *tab;
 
   reg_init(); /* initialize subsystem */
 
   /* look up the requested table */
   if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
-    return -1; /* no such table */
+    return -1;
+
+  assert(tab == ((regent_t*) entry)->rl_desc);
+
+  /* use unregtab function */
+  return unregtab(tab, entry);
+}
+
+/** Unregister an array of entries from a specified table.
+ * @param[in] tab Pointer to the regtab_t entries should be removed
+ * from.
+ * @param[in] ent_array Array of entries to remove; each must be same
+ * size and begin with a regent_t.
+ * @param[in] n Number of entries in array.
+ * @param[in] size Size of each entry in array.
+ * @return n if all entries were removed; -1 means invalid or
+ * incorrect table; otherwise, the index of the first entry not
+ * removed from the table.  Note only table unreg function returning
+ * non-zero can halt processing.
+ */
+int
+unregtab_n(regtab_t* tab, void* ent_array, int n, size_t size)
+{
+  int i;
+
+  reg_init(); /* initialize subsystem */
+
+  if (!REGTAB_CHECK(tab) || tab != ((regent_t*) ent_array)->rl_desc)
+    return -1; /* invalid or incorrect table */
 
   /* walk through each array entry and add it */
   for (i = 0; i < n; i++) {
@@ -419,13 +493,59 @@ int unreg_n(const char* table, void* ent_array, int n, size_t size)
   return i; /* should be n, indicating all entries processed */
 }
 
+/** Unregister an array of entries from a table.
+ * @param[in] table Name of table entries should be removed from.
+ * @param[in] ent_array Array of entries to remove; each must be same
+ * size and begin with a regent_t.
+ * @param[in] n Number of entries in array.
+ * @param[in] size Size of each entry in array.
+ * @return n if all entries were removed; -1 means no table by that
+ * name; otherwise, the index of the first entry not removed from the
+ * table.  Note only table unreg function returning non-zero can halt
+ * processing.
+ */
+int
+unreg_n(const char* table, void* ent_array, int n, size_t size)
+{
+  regtab_t *tab;
+
+  reg_init(); /* initialize subsystem */
+
+  /* look up the requested table */
+  if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
+    return -1; /* no such table */
+
+  assert(tab == ((regent_t*) ent_array)->rl_desc); /* first entry */
+
+  /* use unregtab_n function */
+  return unregtab_n(tab, ent_array, n, size);
+}
+
+
+/** Find an entry in a specified table.
+ * @param[in] tab Pointer to regtab_t to search.
+ * @param[in] id Name of entry to look up.
+ * @return Pointer to entry, or NULL if not found.
+ */
+void*
+regtab_find(regtab_t* tab, const char* id)
+{
+  reg_init(); /* initialize subsystem */
+
+  if (!REGTAB_CHECK(tab)) /* valid table? */
+    return 0;
+
+  /* return the result of looking up the entry */
+  return (void*) _reg_find(tab, id);
+}
 
 /** Find an entry in a table.
  * @param[in] table Name of table to search.
  * @param[in] id Name of entry to look up.
  * @return Pointer to entry, or NULL if not found.
  */
-void* reg_find(const char* table, const char* id)
+void*
+reg_find(const char* table, const char* id)
 {
   regtab_t *tab;
 
@@ -439,6 +559,34 @@ void* reg_find(const char* table, const char* id)
   return (void*) _reg_find(tab, id);
 }
 
+/** Iterate over all entries in a specified table.
+ * @param[in] tab Pointer to regtab_t to walk.
+ * @param[in] func Iteration function to execute.
+ * @param[in] extra Extra data to pass to iteration function.
+ * @return -1 if table is invalid; otherwise, 0 or whatever non-zero
+ * value \a func returns.
+ */
+int
+regtab_iter(regtab_t* tab, regiter_t func, void* extra)
+{
+  int retval;
+  regent_t *cursor;
+
+  assert(0 != func);
+
+  reg_init(); /* initialize subsystem */
+
+  if (!REGTAB_CHECK(tab)) /* valid table? */
+    return -1;
+
+  /* walk the linked list */
+  for (cursor = tab->reg_list; cursor; cursor = cursor->rl_next)
+    if ((retval = (func)(tab, (void*) cursor, extra)))
+      return retval; /* iteration function signaled for stop */
+
+  return 0; /* all done */
+}
+
 /** Iterate over all entries in a table.
  * @param[in] table Name of table to walk.
  * @param[in] func Iteration function to execute.
@@ -446,11 +594,10 @@ void* reg_find(const char* table, const char* id)
  * @return -1 if table doesn't exist; otherwise, 0 or whatever
  * non-zero value \a func returns.
  */
-int reg_iter(const char* table, regiter_t func, void* extra)
+int
+reg_iter(const char* table, regiter_t func, void* extra)
 {
-  int retval;
   regtab_t *tab;
-  regent_t *cursor;
 
   assert(0 != func);
 
@@ -460,10 +607,6 @@ int reg_iter(const char* table, regiter_t func, void* extra)
   if (!(tab = (regtab_t*) _reg_find(&reg_table, table)))
     return -1;
 
-  /* walk the linked list */
-  for (cursor = tab->reg_list; cursor; cursor = cursor->rl_next)
-    if ((retval = (func)(tab, (void*) cursor, extra)))
-      return retval; /* iteration function signaled for stop */
-
-  return 0; /* all done */
+  /* use regtab_iter function */
+  return regtab_iter(tab, func, extra);
 }

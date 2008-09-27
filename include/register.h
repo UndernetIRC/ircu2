@@ -126,4 +126,17 @@ extern void* reg_find(const char* table, const char* id);
 /* iterate over entries in the table */
 extern int reg_iter(const char* table, regiter_t func, void* extra);
 
+/* register an entry in a specified table */
+extern int regtab(regtab_t *tab, void* entry);
+/* register an array of entries in a specified table */
+extern int regtab_n(regtab_t *tab, void* ent_array, int n, size_t size);
+/* unregister an entry from a specified table */
+extern int unregtab(regtab_t *tab, void* entry);
+/* unregister an array of entries from a specified table */
+extern int unregtab_n(regtab_t *tab, void* ent_array, int n, size_t size);
+/* look up an entry in the specified table */
+extern void* regtab_find(regtab_t *tab, const char* id);
+/* iterate over entries in the specified table */
+extern int regtab_iter(regtab_t *tab, regiter_t func, void* extra);
+
 #endif /* INCLUDED_register_h */

@@ -1,5 +1,17 @@
 2008-09-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* include/mode.h: add a flag to mark one-shot modes like +k; add
+	mask for storing priorities for prefix string calculations; add
+	prefix indicator to struct ModeDesc
+
+	* include/register.h: add {un,}regtab* functions that take
+	pointers to regtab_t instead of table names (for use by new mode
+	infrastructure)
+
+	* ircd/register.c: stylistic clean-ups; add {un,}regtab* functions
+	that take pointers to regtab_t instead of table names (for use by
+	new mode infrastructure)
+
 	* include/ancillary.h: correct a minor typo in ancdata_init();
 	this eventually needs to be updated to utilize the new keyspace
 	routines
