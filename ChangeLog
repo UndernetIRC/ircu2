@@ -1,3 +1,18 @@
+2008-10-02  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: mode deltas are not necessarily applied against
+	a specific client, so pull that code out; remove pre-declaration
+	of struct Channel that's no longer needed; define magic number and
+	initialization for modedesc_t; add MDFLAG_ARGEXTENDED flag to mark
+	extended argument flags; add MDPOL_AUTHZ_NONE for modes that will
+	be set only by the software; define initializer for modelist_t
+
+	* include/mode-compat.h: begin roughing out an interrim
+	compatibility mechanism while I'm building the mode system
+
+	* ircd/mode-compat.c: begin roughing out an interrim compatibility
+	mechanism while I'm building the mode system
+
 2008-09-26  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/mode.h: add a flag to mark one-shot modes like +k; add

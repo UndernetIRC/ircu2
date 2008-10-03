@@ -33,7 +33,6 @@
 #endif
 
 struct Client;
-struct Channel;
 
 /** Specifies the maximum number of modes permitted on any entity. */
 #define MAX_MODES		64
@@ -64,6 +63,21 @@ struct ModeDesc {
   flagpage_t		md_flags;	/**< Flags affecting mode. */
 };
 
+/** Magic number for a mode descriptor. */
+#define MODE_DESC_MAGIC 0x54aacaed
+
+/** Initialize a modedesc_t.
+ * @param[in] name Descriptive name for the mode.
+ * @param[in] sw "Switch" character for the mode.
+ * @param[in] desc Description of the mode.
+ * @param[in] flags Flags affecting the mode.
+ * @param[in] pfx Prefix character used in /NAMES reply.
+ * @param[in] prio Priority for ordering prefix characters; unused otherwise.
+ */
+#define MODE_DESC_INIT(name, sw, desc, flags, pfx, prio)		\
+  { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
+    (flags) | (((prio) & 0x0f) << 16) }
+
 /** Mode maintains a list. */
 #define MDFLAG_LIST		0x80000000
 /** Mode should not be propagated to other servers. */
@@ -72,6 +86,8 @@ struct ModeDesc {
 #define MDFLAG_HEXINT		0x20000000
 /** Mode can only be set or reset once per message. */
 #define MDFLAG_ONESHOT		0x10000000
+/** Mode defaults to extended syntax. */
+#define MDFLAG_ARGEXTENDED	0x08000000
 
 /** Mask for prefix ordering priority. */
 #define MDFLAG_PRIO		0x000f0000
@@ -99,6 +115,8 @@ struct ModeDesc {
 #define MDPOL_AUTHZ_GOP		0x00000300
 /** Only servers can set or clear mode. */
 #define MDPOL_AUTHZ_SERV	0x00000400
+/** No one can set or clear mode (mode under software control). */
+#define MDPOL_AUTHZ_NONE	0x00000500
 /** Mode authorization mask. */
 #define MDPOL_AUTHZ_MASK	0x00000f00
 
@@ -136,6 +154,14 @@ struct ModeList {
 					/**< Mode value map. */
 };
 
+/** Initialize a modelist_t.
+ * @param[in] name Descriptive name for the mode list.
+ * @param[in] offset Offset of modeset_t entry in entity structure.
+ */
+#define MODE_LIST_INIT(name, offset)				\
+  { REGTAB_INIT((name), MODE_DESC_MAGIC, 0, 0), (offset),	\
+    KEYSPACE_INIT(MAX_MODES, 0, 0, 0) }
+
 /** Describes the set of modes set on a specific channel, user, etc. */
 DECLARE_FLAGSET(ModeSet, MAX_MODES);
 
@@ -155,7 +181,7 @@ struct ModeArgs {
   mode_args_t*		ma_prev;	/**< Chain to previous set of modes
 					     with arguments. */
   struct {
-    mode_desc_t*		mam_mode;	/**< The mode. */
+    mode_desc_t*	mam_mode;	/**< The mode. */
     mode_dir_t		mam_dir;	/**< Direction of mode. */
     union {
       unsigned int	mama_int;	/**< Unsigned integer argument. */
@@ -170,12 +196,6 @@ struct ModeArgs {
 /** Describes the difference between two mode_set_t's. */
 struct ModeDelta {
   struct Client*	md_origin;	/**< Origin of delta. */
-  int			md_etype;	/**< Type of entity--1 for channel,
-					     0 for client. */
-  union {
-    struct Client*	mde_client;	/**< Client mode delta applies to. */
-    struct Channel*	mde_chan;	/**< Channel mode delta applies to. */
-  }			md_entity;	/**< Entity mode delta applies to. */
   mode_list_t*		md_modes;	/**< Mode list used by this delta. */
 
   mode_set_t		md_add;		/**< Simple modes to be added. */
