@@ -39,6 +39,9 @@ struct Client;
 /** Specifies the maximum number of mode params permitted in one message. */
 #define MAX_MODEPARAMS		6
 
+/** Registration table for mode lists. */
+#define MODE_TABLE		"mode"
+
 /** Specifies the numerical value of a mode switch. */
 typedef key_t mode_t;
 
@@ -158,8 +161,9 @@ struct ModeList {
  * @param[in] name Descriptive name for the mode list.
  * @param[in] offset Offset of modeset_t entry in entity structure.
  */
-#define MODE_LIST_INIT(name, offset)				\
-  { REGTAB_INIT((name), MODE_DESC_MAGIC, 0, 0), (offset),	\
+#define MODE_LIST_INIT(name, offset)					\
+  { REGTAB_INIT((name), MODE_DESC_MAGIC, (reg_t) _mode_desc_reg,	\
+		(unreg_t) _mode_desc_unreg), (offset),			\
     KEYSPACE_INIT(MAX_MODES, 0, 0, 0) }
 
 /** Describes the set of modes set on a specific channel, user, etc. */
@@ -213,5 +217,13 @@ struct ModeDelta {
 #define MDELTA_NOAUTOFLUSH	0x80000000
 /** The delta is in reverse-sense mode. */
 #define MDELTA_REVERSE		0x40000000
+
+/* Assign mode and add to appropriate tables. */
+extern int _mode_desc_reg(regtab_t* table, modedesc_t* md);
+/* Release mode and remove from tables. */
+extern int _mode_desc_unreg(regtab_t* table, modedesc_t* md);
+
+/* Initialize mode subsystem. */
+extern void mode_init(void);
 
 #endif /* INCLUDED_mode_h */

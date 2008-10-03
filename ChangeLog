@@ -1,5 +1,14 @@
 2008-10-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/mode-compat.c: implement mode_compat_init()
+
+	* include/mode.h: define mode table name; adjust MODE_LIST_INIT()
+	to reference reg_t and unreg_t callbacks; declare those callbacks
+	and mode_init() function
+
+	* ircd/mode.c: begin sketching out the actual code of the generic
+	mode system
+
 	* include/mode.h: mode deltas are not necessarily applied against
 	a specific client, so pull that code out; remove pre-declaration
 	of struct Channel that's no longer needed; define magic number and

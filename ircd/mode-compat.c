@@ -24,6 +24,10 @@
 
 #include "mode-compat.h"
 #include "mode.h"
+#include "register.h"
+
+/** Compute the number of entries in a modedesc_t array. */
+#define mdcount(arr)		(sizeof(arr) / sizeof(modedesc_t))
 
 /** Initial list of channel modes.  Note that this must be the same
  * order as enum ChanModes!
@@ -125,4 +129,13 @@ modelist_t servmodes = MODE_LIST_INIT("server", 0);
 void
 mode_compat_init(void)
 {
+  /* Let's first register the mode lists... */
+  reg(MODE_TABLE, &chanmodes);
+  reg(MODE_TABLE, &usermodes);
+  reg(MODE_TABLE, &servmodes);
+
+  /* Now, let's register the mode descriptors. */
+  regtab_n(&chanmodes, _cmodes, mdcount(_cmodes), sizeof(modedesc_t));
+  regtab_n(&usermodes, _umodes, mdcount(_umodes), sizeof(modedesc_t));
+  regtab_n(&servmodes, _smodes, mdcount(_smodes), sizeof(modedesc_t));
 }
