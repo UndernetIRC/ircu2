@@ -1,3 +1,14 @@
+2008-10-03  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: define MODE_DESC_CHECK() and MODE_LIST_CHECK()
+	macros; declare mode_str_info(), mode_str_modes(), and
+	mode_str_prefix()
+
+	* ircd/mode-compat.c: +o and +v also maintain lists...
+
+	* ircd/mode.c: implement *_reg() and *_unreg() routines; implement
+	mode_str_info(), mode_str_modes(), and mode_str_prefix()
+
 2008-10-02  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/mode-compat.c: implement mode_compat_init()

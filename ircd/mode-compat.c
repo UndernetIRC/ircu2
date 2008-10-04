@@ -34,11 +34,11 @@
  */
 modedesc_t _cmodes[] = {
   MODE_DESC_INIT("CHANOP",	'o', "Channel operator.",
-		 MDPAR_ARG_CLI | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP,
-		 '@', 15),
+		 MDPAR_ARG_CLI | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
+		 MDFLAG_LIST, '@', 15),
   MODE_DESC_INIT("VOICE",	'v', "Has voice.",
-		 MDPAR_ARG_CLI | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP,
-		 '+', 0),
+		 MDPAR_ARG_CLI | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
+		 MDFLAG_LIST, '+', 0),
   MODE_DESC_INIT("PRIVATE",	'p', "Channel is private.",
 		 MDPOL_AUTHZ_CHOP, 0, 0),
   MODE_DESC_INIT("SECRET",	's', "Channel is secret.",

@@ -81,6 +81,9 @@ struct ModeDesc {
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
     (flags) | (((prio) & 0x0f) << 16) }
 
+/** Check the mode descriptor for validity. */
+#define MODE_DESC_CHECK(md)	REGENT_CHECK((md), MODE_DESC_MAGIC)
+
 /** Mode maintains a list. */
 #define MDFLAG_LIST		0x80000000
 /** Mode should not be propagated to other servers. */
@@ -166,6 +169,10 @@ struct ModeList {
 		(unreg_t) _mode_desc_unreg), (offset),			\
     KEYSPACE_INIT(MAX_MODES, 0, 0, 0) }
 
+/** Check the mode list for validity. */
+#define MODE_LIST_CHECK(ml)	(REGTAB_CHECK(ml) &&			\
+				 reg_magic(&(ml->ml_table)) == MODE_DESC_MAGIC)
+
 /** Describes the set of modes set on a specific channel, user, etc. */
 DECLARE_FLAGSET(ModeSet, MAX_MODES);
 
@@ -225,5 +232,12 @@ extern int _mode_desc_unreg(regtab_t* table, modedesc_t* md);
 
 /* Initialize mode subsystem. */
 extern void mode_init(void);
+
+/* Build mode list strings for RPL_MYINFO. */
+extern char* mode_str_info(modelist_t* ml, char* buf, int* len, int args);
+/* Build mode list strings for CHANMODES in RPL_ISUPPORT. */
+extern char* mode_str_modes(modelist_t* ml, char* buf, int* len);
+/* Build prefix string for PREFIX in RPL_ISUPPORT. */
+extern char* mode_str_prefix(modelist_t* ml, char* buf, int* len);
 
 #endif /* INCLUDED_mode_h */
