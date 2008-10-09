@@ -138,14 +138,14 @@ enum ServModes {
 #define SMODE_IPV6		(&_umodes[_SMODE_IPV6])
 
 /* Arrays of mode descriptors. */
-extern modedesc_t _cmodes[];
-extern modedesc_t _umodes[];
-extern modedesc_t _smodes[];
+extern mode_desc_t _cmodes[];
+extern mode_desc_t _umodes[];
+extern mode_desc_t _smodes[];
 
 /* Mode list descriptors. */
-extern modelist_t chanmodes;
-extern modelist_t usermodes;
-extern modelist_t servmodes;
+extern mode_list_t chanmodes;
+extern mode_list_t usermodes;
+extern mode_list_t servmodes;
 
 /* Initialize mode compatibility layer. */
 extern void mode_compat_init(void);

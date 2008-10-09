@@ -26,13 +26,13 @@
 #include "mode.h"
 #include "register.h"
 
-/** Compute the number of entries in a modedesc_t array. */
-#define mdcount(arr)		(sizeof(arr) / sizeof(modedesc_t))
+/** Compute the number of entries in a mode_desc_t array. */
+#define mdcount(arr)		(sizeof(arr) / sizeof(mode_desc_t))
 
 /** Initial list of channel modes.  Note that this must be the same
  * order as enum ChanModes!
  */
-modedesc_t _cmodes[] = {
+mode_desc_t _cmodes[] = {
   MODE_DESC_INIT("CHANOP",	'o', "Channel operator.",
 		 MDPAR_ARG_CLI | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
 		 MDFLAG_LIST, '@', 15),
@@ -73,13 +73,13 @@ modedesc_t _cmodes[] = {
 		 MDPAR_ARG_STR | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
 		 MDFLAG_VIS_CHOP | MDFLAG_ONESHOT, 0, 0),
   MODE_DESC_INIT("WASDELJOINS",	'd', "Channel has delayed joins.",
-		 MDFLAG_AUTHZ_NONE, 0, 0)
+		 MDPOL_AUTHZ_NONE, 0, 0)
 };
 
 /** Initial list of user modes.  Note that this must be the same order
  * as enum UserModes!
  */
-modedesc_t _umodes[] = {
+mode_desc_t _umodes[] = {
   MODE_DESC_INIT("LOCOP",	'O', "Local IRC operator.",
 		 MDPOL_AUTHZ_OPER, 0, 0),
   MODE_DESC_INIT("OPER",	'o', "Global IRC operator.",
@@ -107,7 +107,7 @@ modedesc_t _umodes[] = {
 /** Initial list of server modes.  Note that this must be the same
  * order as enum ServModes!
  */
-modedesc_t _smodes[] = {
+mode_desc_t _smodes[] = {
   MODE_DESC_INIT("HUB",		'h', "Server is a hub.",
 		 MDPOL_AUTHZ_SERV, 0, 0),
   MODE_DESC_INIT("SERVICE",	's', "Server is a service.",
@@ -117,13 +117,13 @@ modedesc_t _smodes[] = {
 };
 
 /** Mode list for channels. */
-modelist_t chanmodes = MODE_LIST_INIT("channel", 0);
+mode_list_t chanmodes = MODE_LIST_INIT("channel", 0);
 
 /** Mode list for users. */
-modelist_t usermodes = MODE_LIST_INIT("user", 0);
+mode_list_t usermodes = MODE_LIST_INIT("user", 0);
 
 /** Mode list for servers. */
-modelist_t servmodes = MODE_LIST_INIT("server", 0);
+mode_list_t servmodes = MODE_LIST_INIT("server", 0);
 
 /** Initialize the mode compatibility layer. */
 void
@@ -135,7 +135,10 @@ mode_compat_init(void)
   reg(MODE_TABLE, &servmodes);
 
   /* Now, let's register the mode descriptors. */
-  regtab_n(&chanmodes, _cmodes, mdcount(_cmodes), sizeof(modedesc_t));
-  regtab_n(&usermodes, _umodes, mdcount(_umodes), sizeof(modedesc_t));
-  regtab_n(&servmodes, _smodes, mdcount(_smodes), sizeof(modedesc_t));
+  regtab_n((regtab_t*) &chanmodes, _cmodes, mdcount(_cmodes),
+	   sizeof(mode_desc_t));
+  regtab_n((regtab_t*) &usermodes, _umodes, mdcount(_umodes),
+	   sizeof(mode_desc_t));
+  regtab_n((regtab_t*) &servmodes, _smodes, mdcount(_smodes),
+	   sizeof(mode_desc_t));
 }

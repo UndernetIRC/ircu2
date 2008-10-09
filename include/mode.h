@@ -43,7 +43,7 @@ struct Client;
 #define MODE_TABLE		"mode"
 
 /** Specifies the numerical value of a mode switch. */
-typedef key_t mode_t;
+typedef ircd_key_t mode_t;
 
 /** Describes a single mode, including parsing flags and policy flags. */
 typedef struct ModeDesc mode_desc_t;
@@ -69,7 +69,7 @@ struct ModeDesc {
 /** Magic number for a mode descriptor. */
 #define MODE_DESC_MAGIC 0x54aacaed
 
-/** Initialize a modedesc_t.
+/** Initialize a mode_desc_t.
  * @param[in] name Descriptive name for the mode.
  * @param[in] sw "Switch" character for the mode.
  * @param[in] desc Description of the mode.
@@ -153,14 +153,14 @@ struct ModeList {
   regtab_t		ml_table;	/**< Registration table. */
   size_t		ml_offset;	/**< Offset of mode structure
 					     within entity. */
-  keyspace_t*		ml_keyspace;	/**< Keyspace for mode value
+  keyspace_t		ml_keyspace;	/**< Keyspace for mode value
 					     allocation. */
   mode_desc_t*		ml_smap[256];	/**< Mode switch map. */
   mode_desc_t*		ml_mmap[MAX_MODES];
 					/**< Mode value map. */
 };
 
-/** Initialize a modelist_t.
+/** Initialize a mode_list_t.
  * @param[in] name Descriptive name for the mode list.
  * @param[in] offset Offset of modeset_t entry in entity structure.
  */
@@ -193,7 +193,7 @@ struct ModeArgs {
 					     with arguments. */
   struct {
     mode_desc_t*	mam_mode;	/**< The mode. */
-    mode_dir_t		mam_dir;	/**< Direction of mode. */
+    flagpage_t		mam_dir;	/**< Direction of mode. */
     union {
       unsigned int	mama_int;	/**< Unsigned integer argument. */
       const char*	mama_str;	/**< String argument (keys). */
@@ -226,18 +226,18 @@ struct ModeDelta {
 #define MDELTA_REVERSE		0x40000000
 
 /* Assign mode and add to appropriate tables. */
-extern int _mode_desc_reg(regtab_t* table, modedesc_t* md);
+extern int _mode_desc_reg(mode_list_t* table, mode_desc_t* md);
 /* Release mode and remove from tables. */
-extern int _mode_desc_unreg(regtab_t* table, modedesc_t* md);
+extern int _mode_desc_unreg(mode_list_t* table, mode_desc_t* md);
 
 /* Initialize mode subsystem. */
 extern void mode_init(void);
 
 /* Build mode list strings for RPL_MYINFO. */
-extern char* mode_str_info(modelist_t* ml, char* buf, int* len, int args);
+extern char* mode_str_info(mode_list_t* ml, char* buf, int* len, int args);
 /* Build mode list strings for CHANMODES in RPL_ISUPPORT. */
-extern char* mode_str_modes(modelist_t* ml, char* buf, int* len);
+extern char* mode_str_modes(mode_list_t* ml, char* buf, int* len);
 /* Build prefix string for PREFIX in RPL_ISUPPORT. */
-extern char* mode_str_prefix(modelist_t* ml, char* buf, int* len);
+extern char* mode_str_prefix(mode_list_t* ml, char* buf, int* len);
 
 #endif /* INCLUDED_mode_h */

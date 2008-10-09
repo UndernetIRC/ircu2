@@ -34,12 +34,12 @@
  * @return 0 for valid mode list, non-zero otherwise.
  */
 static int
-ml_reg(regtab_t* table, modelist_t* ml)
+ml_reg(regtab_t* table, mode_list_t* ml)
 {
   /* Sanity-check the mode list */
   if (reg_magic(&ml->ml_table) != MODE_DESC_MAGIC ||
-      reg_reg(&ml->ml_table) != _mode_desc_reg ||
-      reg_unreg(&ml->ml_table) != _mode_desc_unreg)
+      reg_reg(&ml->ml_table) != (reg_t) _mode_desc_reg ||
+      reg_unreg(&ml->ml_table) != (unreg_t) _mode_desc_unreg)
     return -2;
 
   /* Initialize the keyspace and the maps */
@@ -51,16 +51,16 @@ ml_reg(regtab_t* table, modelist_t* ml)
 }
 
 /** Remove all existing mode descriptors from a mode list.
- * @param[in,out] ml Pointer to modelist_t.
- * @param[in,out] md Pointer to modedesc_t.
+ * @param[in,out] ml Pointer to mode_list_t.
+ * @param[in,out] md Pointer to mode_desc_t.
  * @param[in] extra Extra pointer passed to regtab_iter().
  * @return 0 to continue iteration.
  */
 static int
-ml_unreg_flush(modelist_t* ml, modedesc_t* md, void* extra)
+ml_unreg_flush(mode_list_t* ml, mode_desc_t* md, void* extra)
 {
   /* unregister the mode descriptor */
-  unregtab(ml, md);
+  unregtab((regtab_t*) ml, md);
 
   return 0;
 }
@@ -71,7 +71,7 @@ ml_unreg_flush(modelist_t* ml, modedesc_t* md, void* extra)
  * @return 0 to accept unregistration.
  */
 static int
-ml_unreg(regtab_t* table, modelist_t* ml)
+ml_unreg(regtab_t* table, mode_list_t* ml)
 {
   /* Remove all descriptors from the table */
   regtab_iter(&ml->ml_table, (regiter_t) ml_unreg_flush, 0);
@@ -80,6 +80,8 @@ ml_unreg(regtab_t* table, modelist_t* ml)
   ks_clean(&ml->ml_keyspace);
   memset(&ml->ml_smap, 0, sizeof(mode_desc_t*) * 256);
   memset(&ml->ml_mmap, 0, sizeof(mode_desc_t*) * MAX_MODES);
+
+  return 0;
 }
 
 /** Table of mode lists. */
@@ -92,7 +94,7 @@ static regtab_t md_table = REGTAB_INIT(MODE_TABLE, REGTAB_MAGIC,
  * @return 0 for valid mode descriptor, non-zero otherwise.
  */
 int
-_mode_desc_reg(modelist_t* ml, modedesc_t* md)
+_mode_desc_reg(mode_list_t* ml, mode_desc_t* md)
 {
   /* First, verify that the mode descriptor is valid */
   if (!md->md_switch)
@@ -119,7 +121,7 @@ _mode_desc_reg(modelist_t* ml, modedesc_t* md)
  * @return 0 to accept unregistration.
  */
 int
-_mode_desc_unreg(modelist_t* ml, modedesc_t* md)
+_mode_desc_unreg(mode_list_t* ml, mode_desc_t* md)
 {
   /* Make sure the mode really is in the list... */
   if (ml->ml_smap[md->md_switch] != md || ml->ml_mmap[md->md_mode] != md)
@@ -152,13 +154,13 @@ struct info_state {
 
 /** Determine if a specific mode should be added to the informative
  * mode string.
- * @param[in] table Registration table modedesc_t is in.
+ * @param[in] table Registration table mode_desc_t is in.
  * @param[in] md Mode descriptor.
  * @param[in,out] is Info string state.
  * @return 0 to continue iteration.
  */
 static int
-mi_build(regtab_t* table, modedesc_t* md, struct info_state *is)
+mi_build(regtab_t* table, mode_desc_t* md, struct info_state *is)
 {
   assert(MODE_DESC_CHECK(md));
 
@@ -180,7 +182,7 @@ mi_build(regtab_t* table, modedesc_t* md, struct info_state *is)
  * @return Buffer containing informative mode string.
  */
 char*
-mode_str_info(modelist_t* ml, char* buf, int* len, int args)
+mode_str_info(mode_list_t* ml, char* buf, int* len, int args)
 {
   struct info_state is = { buf, 0, 0, args };
 
@@ -219,13 +221,13 @@ enum mode_type {
 };
 
 /** Add specific modes to the appropriate string component.
- * @param[in] table Registration table modedesc_t is in.
+ * @param[in] table Registration table mode_desc_t is in.
  * @param[in] md Mode descriptor.
  * @param[in,out] ms String buffer state.
  * @return 0 to continue iteration.
  */
 static int
-mm_build(regtab_t* table, modedesc_t* md, struct mode_state *ms)
+mm_build(regtab_t* table, mode_desc_t* md, struct mode_state *ms)
 {
   enum mode_type type;
 
@@ -238,7 +240,7 @@ mm_build(regtab_t* table, modedesc_t* md, struct mode_state *ms)
     return 0; /* skip this one */
 
   /* Check the length... */
-  if (ms.len + 1 <= ms.size)
+  if (ms->len + 1 <= ms->size)
     return -1;
 
   /* Figure out which type of mode this is. */
@@ -265,15 +267,15 @@ mm_build(regtab_t* table, modedesc_t* md, struct mode_state *ms)
     }
 
   /* OK, let's shift the string over one position */
-  memmove(ms.types[type] + 1, ms.types[type],
-	  ms.len + 1 - (ms.types[type] - ms.buf));
+  memmove(ms->types[type] + 1, ms->types[type],
+	  ms->len + 1 - (ms->types[type] - ms->buf));
 
   /* add this mode to the string */
-  *ms.types[type] = md->md_switch;
+  *ms->types[type] = md->md_switch;
 
   /* shift up the component pointers... */
   for (; type <= TYPE_D; type++)
-    ms.types[type]++;
+    ms->types[type]++;
 
   return 0;
 }
@@ -285,7 +287,7 @@ mm_build(regtab_t* table, modedesc_t* md, struct mode_state *ms)
  * @return Buffer containing modes string.
  */
 char*
-mode_str_modes(modelist_t* ml, char* buf, int* len)
+mode_str_modes(mode_list_t* ml, char* buf, int* len)
 {
   struct mode_state ms = { buf, 0, 0, { 0, 0, 0, 0 } };
 
@@ -310,7 +312,7 @@ mode_str_modes(modelist_t* ml, char* buf, int* len)
   ms.len = 3;
 
   /* Now let's iterate over all the mode descriptors */
-  if (regtab_iter(&ml->ml_table, (regiter_t) ms_build, &ms))
+  if (regtab_iter(&ml->ml_table, (regiter_t) mm_build, &ms))
     return 0; /* some kind of failure occurred */
 
   return ms.buf; /* return the buffer */
@@ -323,18 +325,18 @@ mode_str_modes(modelist_t* ml, char* buf, int* len)
 struct pfx_state {
   int		count;		/**< Number of modes to enter. */
   int		max;		/**< Maximum number of modes to enter. */
-  modedesc_t*	modes[flag2prio(MDFLAG_PRIO) + 1];
+  mode_desc_t*	modes[flag2prio(MDFLAG_PRIO) + 1];
 				/**< Modes contributing to prefix. */
 };
 
 /** Determine if a specific mode participates in the prefix calculation.
- * @param[in] table Registration table modedesc_t is in.
+ * @param[in] table Registration table mode_desc_t is in.
  * @param[in] md Mode descriptor.
  * @param[in,out] ps Prefix string state.
  * @return 0 to continue iteration, non-zero if there is a problem.
  */
 static int
-mp_build(regtab_t* table, modedesc_t* md, struct pfx_state *ps)
+mp_build(regtab_t* table, mode_desc_t* md, struct pfx_state *ps)
 {
   assert(MODE_DESC_CHECK(md));
 
@@ -357,7 +359,7 @@ mp_build(regtab_t* table, modedesc_t* md, struct pfx_state *ps)
  * @return Buffer containing prefix string.
  */
 char*
-mode_str_prefix(modelist_t* ml, char* buf, int* len)
+mode_str_prefix(mode_list_t* ml, char* buf, int* len)
 {
   struct pfx_state ps;
   int i, j, offset;

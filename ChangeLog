@@ -1,3 +1,42 @@
+2008-10-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: it's not modedesc_t or modelist_t, it's
+	mode_desc_t and mode_list_t; also take care of renaming key_t to
+	ircd_key_t; ml_keyspace field should not be a *pointer* to a
+	keyspace_t; we never defined mode_dir_t (originally was going to
+	make it an enum), so use flagpage_t instead; _mode_desc_reg() and
+	_mode_desc_unreg() were changed to take mode_list_t pointers
+	instead of regtab_t pointers
+
+	* include/mode-compat.h: it's not modedesc_t or modelist_t, it's
+	mode_desc_t and mode_list_t
+
+	* include/keyspace.h: key_t conflicts with a system-defined type,
+	so change it to ircd_key_t
+
+	* ircd/mode-compat.c: it's not modedesc_t or modelist_t, it's
+	mode_desc_t and mode_list_t; also, have to cast mode_list_t
+	pointers to regtab_t pointers; there is no MDFLAG_AUTHZ_NONE, use
+	MDPOL_AUTHZ_NONE
+
+	* ircd/ircd.c: initialize mode system and mode compatibility layer
+
+	* ircd/Makefile.in: regenerate from Makefile.am
+
+	* ircd/Makefile.am (ircd_SOURCES): add keyspace.c, mode.c,
+	mode-compat.c, and register.c to list of sources
+
+	* ircd/mode.c: it's not modelist_t and modedesc_t, it's
+	mode_list_t and mode_desc_t; cast _mode_desc_reg and
+	_mode_desc_unreg to reg_t and unreg_t, respectively, in ml_reg();
+	cast ml to regtab_t* in ml_unreg_flush(); ml_unreg() needs to
+	return a value; mm_build() needs to refer to ms as a pointer
+	rather than a structure; mode_str_modes() needs to use mm_build,
+	not ms_build
+
+	* ircd/keyspace.c: key_t conflicts with a system-defined type, so
+	change it to ircd_key_t
+
 2008-10-03  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/mode.h: define MODE_DESC_CHECK() and MODE_LIST_CHECK()

@@ -30,11 +30,11 @@
 #define INCLUDED_limits_h
 #endif
 
-/** Invalid key_t value for returning errors from ks_reserve(). */
+/** Invalid ircd_key_t value for returning errors from ks_reserve(). */
 #define KEY_INVKEY	UINT_MAX
 
 /** Specifies a key value. */
-typedef unsigned int key_t;
+typedef unsigned int ircd_key_t;
 /** Specifies a space of keys to allocate from. */
 typedef struct KeySpace keyspace_t;
 
@@ -42,17 +42,17 @@ typedef struct KeySpace keyspace_t;
  * @param[in] space Key space being grown.
  * @param[in] new New size for key space allocation.
  */
-typedef void (*keygrow_t)(keyspace_t* space, key_t new);
+typedef void (*keygrow_t)(keyspace_t* space, ircd_key_t new);
 
 /** Contains details of the key space. */
 struct KeySpace {
   unsigned long	ks_magic;	/**< Magic number */
   unsigned int	ks_alloc;	/**< Total number of bitmap entries */
-  key_t		ks_count;	/**< Current count of keys */
-  key_t		ks_highest;	/**< Highest allocated key to date */
-  key_t		ks_max;		/**< Maximum number of keys to allocate */
-  key_t		ks_extern;	/**< External key tracker size */
-  key_t		ks_chunk;	/**< Chunk to round key tracker size to */
+  ircd_key_t	ks_count;	/**< Current count of keys */
+  ircd_key_t	ks_highest;	/**< Highest allocated key to date */
+  ircd_key_t	ks_max;		/**< Maximum number of keys to allocate */
+  ircd_key_t	ks_extern;	/**< External key tracker size */
+  ircd_key_t	ks_chunk;	/**< Chunk to round key tracker size to */
   keygrow_t	ks_grow;	/**< External routine to signal on growth */
   flagpage_t*	ks_keys;	/**< Key allocation bitmap */
   void*		ks_extra;	/**< Extra data associated with keyspace */
@@ -115,10 +115,10 @@ struct KeySpace {
   } while (0)
 
 /* Reserve a key, optionally a specified one. */
-extern key_t ks_reserve(keyspace_t* space);
+extern ircd_key_t ks_reserve(keyspace_t* space);
 
 /* Release an allocated key. */
-extern void ks_release(keyspace_t* space, key_t key);
+extern void ks_release(keyspace_t* space, ircd_key_t key);
 
 /* Clean up a keyspace. */
 extern void ks_clean(keyspace_t* space);

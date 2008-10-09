@@ -75,6 +75,7 @@ ircd_SOURCES = \
 	ircd_snprintf.c \
 	ircd_string.c \
 	jupe.c \
+	keyspace.c \
 	list.c \
 	listener.c \
 	m_account.c \
@@ -152,6 +153,8 @@ ircd_SOURCES = \
 	m_whowas.c \
 	match.c \
 	memdebug.c \
+	mode.c \
+	mode-compat.c \
 	motd.c \
 	msgq.c \
 	numnicks.c \
@@ -161,6 +164,7 @@ ircd_SOURCES = \
 	parse.c \
 	querycmds.c \
 	random.c \
+	register.c \
 	s_auth.c \
 	s_bsd.c \
 	s_conf.c \

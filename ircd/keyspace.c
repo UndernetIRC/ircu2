@@ -43,14 +43,15 @@
  *
  * @section keyman Managing Keys
  *
- * Keys are represented by the type key_t, and they are allocated from
- * \a keyspaces, which are specified by a keyspace_t object.  This
- * keyspace_t object must be initialized either with KEYSPACE_INIT()
- * or ks_init()--the latter allowing for dynamic initialization.  Once
- * keys are allocated, the keyspace_t object will contain some
- * allocated memory, which may be reclaimed by calling the ks_clean()
- * routine on the keyspace.  Note that the keyspace must be
- * reinitialized by a call to ks_init() before it can be used again.
+ * Keys are represented by the type ircd_key_t, and they are allocated
+ * from \a keyspaces, which are specified by a keyspace_t object.
+ * This keyspace_t object must be initialized either with
+ * KEYSPACE_INIT() or ks_init()--the latter allowing for dynamic
+ * initialization.  Once keys are allocated, the keyspace_t object
+ * will contain some allocated memory, which may be reclaimed by
+ * calling the ks_clean() routine on the keyspace.  Note that the
+ * keyspace must be reinitialized by a call to ks_init() before it can
+ * be used again.
  *
  * Allocation of a key is simple--simply call the ks_reserve()
  * function, passing it a pointer to the keyspace.  If no more keys
@@ -100,11 +101,11 @@
  * @section infokey Important Subsystem Information
  *
  * This subsystem provides one structure--struct KeySpace--and 2
- * types: key_t, for the value of keys; and keyspace_t, corresponding
- * to the struct KeySpace.  In particular, keyspace_t should be
- * treated as opaque by all callers, only referenced through the
- * provided macros, whereas key_t can be treated as an integral type
- * suitable for use as an array index.
+ * types: ircd_key_t, for the value of keys; and keyspace_t,
+ * corresponding to the struct KeySpace.  In particular, keyspace_t
+ * should be treated as opaque by all callers, only referenced through
+ * the provided macros, whereas ircd_key_t can be treated as an
+ * integral type suitable for use as an array index.
  *
  * This subsystem is intentionally designed to pull in as few other
  * ircu subsystems as possible, in order to minimize issues with
@@ -126,10 +127,10 @@
  * @param[in,out] space The keyspace from which to allocate the key.
  * @return The reserved key, or #KEY_INVKEY if one could not be allocated.
  */
-key_t
+ircd_key_t
 ks_reserve(keyspace_t* space)
 {
-  key_t key = KEY_INVKEY;
+  ircd_key_t key = KEY_INVKEY;
 
   assert(KEYSPACE_CHECK(space));
 
@@ -205,7 +206,7 @@ ks_reserve(keyspace_t* space)
  * @param[in] key The key to release.
  */
 void
-ks_release(keyspace_t* space, key_t key)
+ks_release(keyspace_t* space, ircd_key_t key)
 {
   assert(KEYSPACE_CHECK(space));
 

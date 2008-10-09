@@ -42,6 +42,8 @@
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
+#include "mode.h"
+#include "mode-compat.h"
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
@@ -928,6 +930,10 @@ int main(int argc, char **argv) {
   initwhowas();
   initmsgtree();
   initstats();
+
+  /* Initialize modes */
+  mode_init();
+  mode_compat_init();
 
   /* we need this for now, when we're modular this 
      should be removed -- hikari */
