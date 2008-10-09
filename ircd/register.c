@@ -218,7 +218,7 @@ reg_add(regtab_t* table, regent_t* entry)
 {
   assert(0 != table);
   assert(0 != entry);
-  assert(0 != entry->rl_desc);
+  assert(0 == entry->rl_desc);
 
   /* OK, add the new entry to the head of the linked list */
   entry->rl_next = table->reg_list;

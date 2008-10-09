@@ -1,5 +1,10 @@
 2008-10-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
+	* ircd/register.c (reg_add): at this point, entry->rl_desc is
+	*supposed* to be 0
+
+2008-10-09  Kevin L. Mitchell  <klmitch@mit.edu>
+
 	* include/mode.h: it's not modedesc_t or modelist_t, it's
 	mode_desc_t and mode_list_t; also take care of renaming key_t to
 	ircd_key_t; ml_keyspace field should not be a *pointer* to a
