@@ -28,11 +28,15 @@
 #ifndef INCLUDED_flagset_h
 #include "flagset.h"
 #endif
+#ifndef INCLUDED_features_h
+#include "ircd_features.h"
+#endif
 #ifndef INCLUDED_keyspace_h
 #include "keyspace.h"
 #endif
 
 struct Client;
+struct Channel;
 
 /** Specifies the maximum number of modes permitted on any entity. */
 #define MAX_MODES		64
@@ -56,6 +60,14 @@ typedef struct ModeArgs mode_args_t;
 /** Describes the difference between two sets of modes. */
 typedef struct ModeDelta mode_delta_t;
 
+/** Indicate type of target. */
+typedef enum ModeTargetType {
+  MTT_NONE,		/**< No specific target. */
+  MTT_USER,		/**< Target is a user. */
+  MTT_CHANNEL,		/**< Target is a channel. */
+  MTT_SERVER		/**< Target is a server. */
+} mode_targ_t;
+
 /** Describes a single mode. */
 struct ModeDesc {
   regent_t		md_regent;	/**< Registration entry. */
@@ -64,6 +76,7 @@ struct ModeDesc {
   mode_t		md_mode;	/**< Numerical value of mode. */
   const char*		md_desc;	/**< Textual description of mode. */
   flagpage_t		md_flags;	/**< Flags affecting mode. */
+  enum Feature		md_feat;	/**< Features controlling mode. */
 };
 
 /** Magic number for a mode descriptor. */
@@ -74,12 +87,48 @@ struct ModeDesc {
  * @param[in] sw "Switch" character for the mode.
  * @param[in] desc Description of the mode.
  * @param[in] flags Flags affecting the mode.
+ */
+#define MODE_DESC(name, sw, desc, flags)				\
+  { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), 0, 0, (desc), (flags),	\
+    FEAT_LAST_F }
+
+/** Initialize a mode_desc_t.
+ * @param[in] name Descriptive name for the mode.
+ * @param[in] sw "Switch" character for the mode.
+ * @param[in] desc Description of the mode.
+ * @param[in] flags Flags affecting the mode.
  * @param[in] pfx Prefix character used in /NAMES reply.
  * @param[in] prio Priority for ordering prefix characters; unused otherwise.
  */
-#define MODE_DESC_INIT(name, sw, desc, flags, pfx, prio)		\
+#define MODE_DESC_PFX(name, sw, desc, flags, pfx, prio)			\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
-    (flags) | (((prio) & 0x0f) << 16) }
+    (flags) | (((prio) & 0x0f) << 16), FEAT_LAST_F }
+
+/** Initialize a mode_desc_t.
+ * @param[in] name Descriptive name for the mode.
+ * @param[in] sw "Switch" character for the mode.
+ * @param[in] desc Description of the mode.
+ * @param[in] flags Flags affecting the mode.
+ * @param[in] pfx Prefix character used in /NAMES reply.
+ * @param[in] prio Priority for ordering prefix characters; unused otherwise.
+ * @param[in] feat Feature controlling availability of mode.
+ */
+#define MODE_DESC_FEAT(name, sw, desc, flags, feat)		\
+  { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), 0, 0, (desc),	\
+    (flags) | MDFLAG_FEATURE, (feat) }
+
+/** Initialize a mode_desc_t.
+ * @param[in] name Descriptive name for the mode.
+ * @param[in] sw "Switch" character for the mode.
+ * @param[in] desc Description of the mode.
+ * @param[in] flags Flags affecting the mode.
+ * @param[in] pfx Prefix character used in /NAMES reply.
+ * @param[in] prio Priority for ordering prefix characters; unused otherwise.
+ * @param[in] feat Feature controlling availability of mode.
+ */
+#define MODE_DESC_FEAT_PFX(name, sw, desc, flags, pfx, prio, feat)	\
+  { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
+    (flags) | (((prio) & 0x0f) << 16) | MDFLAG_FEATURE, (feat) }
 
 /** Check the mode descriptor for validity. */
 #define MODE_DESC_CHECK(md)	REGENT_CHECK((md), MODE_DESC_MAGIC)
@@ -94,6 +143,8 @@ struct ModeDesc {
 #define MDFLAG_ONESHOT		0x10000000
 /** Mode defaults to extended syntax. */
 #define MDFLAG_ARGEXTENDED	0x08000000
+/** Mode is controlled by a feature. */
+#define MDFLAG_FEATURE		0x04000000
 
 /** Mask for prefix ordering priority. */
 #define MDFLAG_PRIO		0x000f0000
@@ -208,6 +259,12 @@ struct ModeArgs {
 struct ModeDelta {
   struct Client*	md_origin;	/**< Origin of delta. */
   mode_list_t*		md_modes;	/**< Mode list used by this delta. */
+
+  mode_targ_t		md_targtype;	/**< Target type for delta. */
+  union {
+    struct Client*	md_client;	/**< Client target. */
+    struct Channel*	md_channel;	/**< Channel target. */
+  }			md_target;	/**< Target of delta. */
 
   mode_set_t		md_add;		/**< Simple modes to be added. */
   mode_set_t		md_rem;		/**< Simple modes to be removed. */

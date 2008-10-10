@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "mode.h"
+#include "ircd_features.h"
 #include "ircd_log.h"
 #include "register.h"
 #include "s_debug.h"
@@ -168,7 +169,8 @@ mi_build(regtab_t* table, mode_desc_t* md, struct info_state *is)
   /* Check if we're including this mode */
   if (!(md->md_flags & MDFLAG_ARGEXTENDED) &&
       (md->md_flags & MDFLAG_VIS_MASK) < MDFLAG_VIS_SERV &&
-      (!is->args || (md->md_flags & MDPAR_TYPE_MASK) > MDPAR_TYPE_OPTARG))
+      (!is->args || (md->md_flags & MDPAR_TYPE_MASK) > MDPAR_TYPE_OPTARG) &&
+      (!(md->md_flags & MDFLAG_FEATURE) || feature_bool(md->md_feat)))
     /* Add this mode to the buffer */
     is->buf[is->len++] = md->md_switch;
 
@@ -237,7 +239,8 @@ mm_build(regtab_t* table, mode_desc_t* md, struct mode_state *ms)
   /* Check if we need to omit this mode */
   if ((md->md_flags & MDFLAG_ARGEXTENDED) ||
       (md->md_flags & MDFLAG_VIS_MASK) >= MDFLAG_VIS_SERV ||
-      md->md_prefix)
+      md->md_prefix ||
+      ((md->md_flags & MDFLAG_FEATURE) && !feature_bool(md->md_feat)))
     return 0; /* skip this one */
 
   Debug((DEBUG_DEBUG, "mm_build() processing mode %s (%c)", rl_id(md),
@@ -366,7 +369,8 @@ mp_build(regtab_t* table, mode_desc_t* md, struct pfx_state *ps)
   assert(MODE_DESC_CHECK(md));
 
   /* Does this mode have an associated prefix? */
-  if (md->md_prefix) {
+  if (md->md_prefix &&
+      (!(md->md_flags & MDFLAG_FEATURE) || feature_bool(md->md_feat))) {
     if (ps->modes[flag2prio(md->md_flags)] || ps->count >= ps->max)
       return -1; /* two modes of the same priority, or buffer too small */
 
