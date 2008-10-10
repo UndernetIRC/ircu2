@@ -68,10 +68,10 @@ am__ircd_SOURCES_DIST = IPcheck.c channel.c class.c client.c crule.c \
 	m_destruct.c m_desynch.c m_die.c m_endburst.c m_error.c \
 	m_get.c m_gline.c m_help.c m_info.c m_invite.c m_ison.c \
 	m_join.c m_jupe.c m_kick.c m_kill.c m_links.c m_list.c \
-	m_lusers.c m_map.c m_mode.c m_motd.c m_names.c m_nick.c \
-	m_notice.c m_oper.c m_opmode.c m_part.c m_pass.c m_ping.c \
-	m_pong.c m_privmsg.c m_privs.c m_proto.c m_pseudo.c m_quit.c \
-	m_rehash.c m_reset.c m_restart.c m_rping.c m_rpong.c \
+	m_lusers.c m_map.c m_mode.c m_motd.c m_mtest.c m_names.c \
+	m_nick.c m_notice.c m_oper.c m_opmode.c m_part.c m_pass.c \
+	m_ping.c m_pong.c m_privmsg.c m_privs.c m_proto.c m_pseudo.c \
+	m_quit.c m_rehash.c m_reset.c m_restart.c m_rping.c m_rpong.c \
 	m_server.c m_set.c m_settime.c m_silence.c m_squit.c m_stats.c \
 	m_time.c m_topic.c m_trace.c m_uping.c m_user.c m_userhost.c \
 	m_userip.c m_version.c m_wallchops.c m_wallops.c m_wallusers.c \
@@ -110,32 +110,32 @@ am_ircd_OBJECTS = IPcheck.$(OBJEXT) channel.$(OBJEXT) class.$(OBJEXT) \
 	m_ison.$(OBJEXT) m_join.$(OBJEXT) m_jupe.$(OBJEXT) \
 	m_kick.$(OBJEXT) m_kill.$(OBJEXT) m_links.$(OBJEXT) \
 	m_list.$(OBJEXT) m_lusers.$(OBJEXT) m_map.$(OBJEXT) \
-	m_mode.$(OBJEXT) m_motd.$(OBJEXT) m_names.$(OBJEXT) \
-	m_nick.$(OBJEXT) m_notice.$(OBJEXT) m_oper.$(OBJEXT) \
-	m_opmode.$(OBJEXT) m_part.$(OBJEXT) m_pass.$(OBJEXT) \
-	m_ping.$(OBJEXT) m_pong.$(OBJEXT) m_privmsg.$(OBJEXT) \
-	m_privs.$(OBJEXT) m_proto.$(OBJEXT) m_pseudo.$(OBJEXT) \
-	m_quit.$(OBJEXT) m_rehash.$(OBJEXT) m_reset.$(OBJEXT) \
-	m_restart.$(OBJEXT) m_rping.$(OBJEXT) m_rpong.$(OBJEXT) \
-	m_server.$(OBJEXT) m_set.$(OBJEXT) m_settime.$(OBJEXT) \
-	m_silence.$(OBJEXT) m_squit.$(OBJEXT) m_stats.$(OBJEXT) \
-	m_time.$(OBJEXT) m_topic.$(OBJEXT) m_trace.$(OBJEXT) \
-	m_uping.$(OBJEXT) m_user.$(OBJEXT) m_userhost.$(OBJEXT) \
-	m_userip.$(OBJEXT) m_version.$(OBJEXT) m_wallchops.$(OBJEXT) \
-	m_wallops.$(OBJEXT) m_wallusers.$(OBJEXT) \
-	m_wallvoices.$(OBJEXT) m_who.$(OBJEXT) m_whois.$(OBJEXT) \
-	m_whowas.$(OBJEXT) match.$(OBJEXT) memdebug.$(OBJEXT) \
-	mode.$(OBJEXT) mode-compat.$(OBJEXT) motd.$(OBJEXT) \
-	msgq.$(OBJEXT) numnicks.$(OBJEXT) opercmds.$(OBJEXT) \
-	os_generic.$(OBJEXT) packet.$(OBJEXT) parse.$(OBJEXT) \
-	querycmds.$(OBJEXT) random.$(OBJEXT) register.$(OBJEXT) \
-	s_auth.$(OBJEXT) s_bsd.$(OBJEXT) s_conf.$(OBJEXT) \
-	s_debug.$(OBJEXT) s_err.$(OBJEXT) s_misc.$(OBJEXT) \
-	s_numeric.$(OBJEXT) s_serv.$(OBJEXT) s_stats.$(OBJEXT) \
-	s_user.$(OBJEXT) send.$(OBJEXT) uping.$(OBJEXT) \
-	userload.$(OBJEXT) whowas.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5)
+	m_mode.$(OBJEXT) m_motd.$(OBJEXT) m_mtest.$(OBJEXT) \
+	m_names.$(OBJEXT) m_nick.$(OBJEXT) m_notice.$(OBJEXT) \
+	m_oper.$(OBJEXT) m_opmode.$(OBJEXT) m_part.$(OBJEXT) \
+	m_pass.$(OBJEXT) m_ping.$(OBJEXT) m_pong.$(OBJEXT) \
+	m_privmsg.$(OBJEXT) m_privs.$(OBJEXT) m_proto.$(OBJEXT) \
+	m_pseudo.$(OBJEXT) m_quit.$(OBJEXT) m_rehash.$(OBJEXT) \
+	m_reset.$(OBJEXT) m_restart.$(OBJEXT) m_rping.$(OBJEXT) \
+	m_rpong.$(OBJEXT) m_server.$(OBJEXT) m_set.$(OBJEXT) \
+	m_settime.$(OBJEXT) m_silence.$(OBJEXT) m_squit.$(OBJEXT) \
+	m_stats.$(OBJEXT) m_time.$(OBJEXT) m_topic.$(OBJEXT) \
+	m_trace.$(OBJEXT) m_uping.$(OBJEXT) m_user.$(OBJEXT) \
+	m_userhost.$(OBJEXT) m_userip.$(OBJEXT) m_version.$(OBJEXT) \
+	m_wallchops.$(OBJEXT) m_wallops.$(OBJEXT) \
+	m_wallusers.$(OBJEXT) m_wallvoices.$(OBJEXT) m_who.$(OBJEXT) \
+	m_whois.$(OBJEXT) m_whowas.$(OBJEXT) match.$(OBJEXT) \
+	memdebug.$(OBJEXT) mode.$(OBJEXT) mode-compat.$(OBJEXT) \
+	motd.$(OBJEXT) msgq.$(OBJEXT) numnicks.$(OBJEXT) \
+	opercmds.$(OBJEXT) os_generic.$(OBJEXT) packet.$(OBJEXT) \
+	parse.$(OBJEXT) querycmds.$(OBJEXT) random.$(OBJEXT) \
+	register.$(OBJEXT) s_auth.$(OBJEXT) s_bsd.$(OBJEXT) \
+	s_conf.$(OBJEXT) s_debug.$(OBJEXT) s_err.$(OBJEXT) \
+	s_misc.$(OBJEXT) s_numeric.$(OBJEXT) s_serv.$(OBJEXT) \
+	s_stats.$(OBJEXT) s_user.$(OBJEXT) send.$(OBJEXT) \
+	uping.$(OBJEXT) userload.$(OBJEXT) whowas.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5)
 nodist_ircd_OBJECTS = version.$(OBJEXT)
 ircd_OBJECTS = $(am_ircd_OBJECTS) $(nodist_ircd_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -305,10 +305,10 @@ ircd_SOURCES = IPcheck.c channel.c class.c client.c crule.c dbuf.c \
 	m_destruct.c m_desynch.c m_die.c m_endburst.c m_error.c \
 	m_get.c m_gline.c m_help.c m_info.c m_invite.c m_ison.c \
 	m_join.c m_jupe.c m_kick.c m_kill.c m_links.c m_list.c \
-	m_lusers.c m_map.c m_mode.c m_motd.c m_names.c m_nick.c \
-	m_notice.c m_oper.c m_opmode.c m_part.c m_pass.c m_ping.c \
-	m_pong.c m_privmsg.c m_privs.c m_proto.c m_pseudo.c m_quit.c \
-	m_rehash.c m_reset.c m_restart.c m_rping.c m_rpong.c \
+	m_lusers.c m_map.c m_mode.c m_motd.c m_mtest.c m_names.c \
+	m_nick.c m_notice.c m_oper.c m_opmode.c m_part.c m_pass.c \
+	m_ping.c m_pong.c m_privmsg.c m_privs.c m_proto.c m_pseudo.c \
+	m_quit.c m_rehash.c m_reset.c m_restart.c m_rping.c m_rpong.c \
 	m_server.c m_set.c m_settime.c m_silence.c m_squit.c m_stats.c \
 	m_time.c m_topic.c m_trace.c m_uping.c m_user.c m_userhost.c \
 	m_userip.c m_version.c m_wallchops.c m_wallops.c m_wallusers.c \
@@ -476,6 +476,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_map.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_mode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_motd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_mtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_names.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_nick.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_notice.Po@am__quote@

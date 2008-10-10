@@ -1,3 +1,32 @@
+2008-10-10  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/msg.h: add temporary command MTEST to help test and
+	debug the new mode infrastructure
+
+	* include/handlers.h: add temporary command MTEST to help test and
+	debug the new mode infrastructure
+
+	* ircd/Makefile.in: regenerate from Makefile.am
+
+	* ircd/Makefile.am (ircd_SOURCES): add temporary command MTEST to
+	help test and debug the new mode infrastructure
+
+	* ircd/parse.c: add temporary command MTEST to help test and debug
+	the new mode infrastructure
+
+	* ircd/mode.c: mi_build() should include modes *with* arguments
+	when is->args is true; add debugging statements to mm_build();
+	length test fails when length is *greater* than size, not less
+	than; mm_build() must increment buffer length once a mode is
+	added; mode_str_prefix() needs to increment j when building the
+	prefix string
+
+	* ircd/m_mtest.c: temporary command to help test and debug the new
+	mode infrastructure
+
+	* ircd/register.c (_reg_find): when cursor->rl_prev is NULL, we
+	have to update the root of the linked list
+
 2008-10-09  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/register.c (reg_add): at this point, entry->rl_desc is

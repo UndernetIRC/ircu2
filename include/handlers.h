@@ -107,6 +107,7 @@ extern int m_map(struct Client*, struct Client*, int, char*[]);
 extern int m_map_redirect(struct Client*, struct Client*, int, char*[]);
 extern int m_mode(struct Client*, struct Client*, int, char*[]);
 extern int m_motd(struct Client*, struct Client*, int, char*[]);
+extern int m_mtest(struct Client*, struct Client*, int, char*[]);
 extern int m_names(struct Client*, struct Client*, int, char*[]);
 extern int m_nick(struct Client*, struct Client*, int, char*[]);
 extern int m_not_oper(struct Client*, struct Client*, int, char*[]);

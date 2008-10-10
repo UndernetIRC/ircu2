@@ -232,6 +232,10 @@ struct Client;
 #define TOK_MODE                "M"
 #define CMD_MODE		MSG_MODE, TOK_MODE
 
+#define MSG_MTEST		"MTEST"		/* MTES */
+#define TOK_MTEST		"MTEST"
+#define CMD_MTEST		MSG_MTEST, TOK_MTEST
+
 #define MSG_KICK                "KICK"          /* KICK */
 #define TOK_KICK                "K"
 #define CMD_KICK		MSG_KICK, TOK_KICK

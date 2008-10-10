@@ -25,6 +25,7 @@
 #include "mode.h"
 #include "ircd_log.h"
 #include "register.h"
+#include "s_debug.h"
 
 #include <string.h>
 
@@ -167,7 +168,7 @@ mi_build(regtab_t* table, mode_desc_t* md, struct info_state *is)
   /* Check if we're including this mode */
   if (!(md->md_flags & MDFLAG_ARGEXTENDED) &&
       (md->md_flags & MDFLAG_VIS_MASK) < MDFLAG_VIS_SERV &&
-      (!is->args || (md->md_flags & MDPAR_TYPE_MASK) <= MDPAR_TYPE_OPTARG))
+      (!is->args || (md->md_flags & MDPAR_TYPE_MASK) > MDPAR_TYPE_OPTARG))
     /* Add this mode to the buffer */
     is->buf[is->len++] = md->md_switch;
 
@@ -239,8 +240,11 @@ mm_build(regtab_t* table, mode_desc_t* md, struct mode_state *ms)
       md->md_prefix)
     return 0; /* skip this one */
 
+  Debug((DEBUG_DEBUG, "mm_build() processing mode %s (%c)", rl_id(md),
+	 md->md_switch));
+
   /* Check the length... */
-  if (ms->len + 1 <= ms->size)
+  if (ms->len + 1 >= ms->size)
     return -1;
 
   /* Figure out which type of mode this is. */
@@ -266,6 +270,18 @@ mm_build(regtab_t* table, mode_desc_t* md, struct mode_state *ms)
       break;
     }
 
+  Debug((DEBUG_DEBUG, "Mode is type %d (%c)", type,
+	 type == TYPE_A ? 'A' :
+	 (type == TYPE_B ? 'B' :
+	  (type == TYPE_C ? 'C' :
+	   (type == TYPE_D ? 'D' : '?')))));
+  Debug((DEBUG_DEBUG, "Buffer offsets: (%d, %d, %d, %d); contents \"%s\" (%p)",
+	 ms->types[TYPE_A] - ms->buf, ms->types[TYPE_B] - ms->buf,
+	 ms->types[TYPE_C] - ms->buf, ms->types[TYPE_D] - ms->buf,
+	 ms->buf, ms->buf));
+  Debug((DEBUG_DEBUG, "memmove(%p, %p, %d)", ms->types[type] + 1,
+	 ms->types[type], ms->len + 1 - (ms->types[type] - ms->buf)));
+
   /* OK, let's shift the string over one position */
   memmove(ms->types[type] + 1, ms->types[type],
 	  ms->len + 1 - (ms->types[type] - ms->buf));
@@ -276,6 +292,15 @@ mm_build(regtab_t* table, mode_desc_t* md, struct mode_state *ms)
   /* shift up the component pointers... */
   for (; type <= TYPE_D; type++)
     ms->types[type]++;
+
+  /* increment the length */
+  ms->len++;
+
+  Debug((DEBUG_DEBUG, "Buffer offsets now: (%d, %d, %d, %d); "
+	 "contents \"%s\" (%p)",
+	 ms->types[TYPE_A] - ms->buf, ms->types[TYPE_B] - ms->buf,
+	 ms->types[TYPE_C] - ms->buf, ms->types[TYPE_D] - ms->buf,
+	 ms->buf, ms->buf));
 
   return 0;
 }
@@ -387,6 +412,7 @@ mode_str_prefix(mode_list_t* ml, char* buf, int* len)
     if (ps.modes[i]) {
       buf[j + 1] = ps.modes[i]->md_switch;
       buf[j + offset] = ps.modes[i]->md_prefix;
+      j++;
     }
 
   return buf; /* and return the assembled buffer */

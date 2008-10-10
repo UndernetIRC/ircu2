@@ -111,6 +111,7 @@ ircd_SOURCES = \
 	m_map.c \
 	m_mode.c \
 	m_motd.c \
+	m_mtest.c \
 	m_names.c \
 	m_nick.c \
 	m_notice.c \

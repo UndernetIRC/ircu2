@@ -198,6 +198,8 @@ _reg_find(regtab_t* table, const char* id)
 	/* update surrounding entries in the list */
 	if (cursor->rl_prev)
 	  cursor->rl_prev->rl_next = cursor;
+	else
+	  table->reg_list = cursor;
 	if (tmp->rl_next)
 	  tmp->rl_next->rl_prev = tmp;
       }
