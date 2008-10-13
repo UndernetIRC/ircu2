@@ -347,7 +347,7 @@ mode_str_modes(mode_list_t* ml, char* buf, int* len)
 }
 
 /** Convert a flag value with prefix priority into just the priority. */
-#define flag2prio(f)	(((f) & MDFLAG_PRIO) >> 16)
+#define flag2prio(f)	(((f) & MDFLAG_PRIO) >> MDFLAG_PRIO_SHIFT)
 
 /** Current state of prefix accumulation. */
 struct pfx_state {

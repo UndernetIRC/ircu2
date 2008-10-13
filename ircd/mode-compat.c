@@ -54,7 +54,7 @@ mode_desc_t _cmodes[] = {
 	    MDPOL_AUTHZ_CHOP),
   MODE_DESC("KEY",		'k', "Channel key.",
 	    MDPAR_ARG_STR | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
-	    MDFLAG_VIS_CHOP | MDFLAG_ONESHOT),
+	    MDFLAG_AVIS_CHOP | MDFLAG_ONESHOT | MDFLAG_SHOWARG),
   MODE_DESC("BAN",		'b', "Channel ban.",
 	    MDPAR_ARG_STR | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
 	    MDFLAG_LIST),
@@ -69,12 +69,12 @@ mode_desc_t _cmodes[] = {
 	    MDPOL_AUTHZ_SERV),
   MODE_DESC_FEAT("UPASS",	'U', "Channel user pass.",
 		 MDPAR_ARG_STR | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
-		 MDFLAG_VIS_CHOP | MDFLAG_ONESHOT, FEAT_OPLEVELS),
+		 MDFLAG_AVIS_SERV | MDFLAG_ONECHANGE, FEAT_OPLEVELS),
   MODE_DESC_FEAT("APASS",	'A', "Channel admin pass.",
 		 MDPAR_ARG_STR | MDPAR_TYPE_REQARG | MDPOL_AUTHZ_CHOP |
-		 MDFLAG_VIS_CHOP | MDFLAG_ONESHOT, FEAT_OPLEVELS),
+		 MDFLAG_AVIS_SERV | MDFLAG_ONECHANGE, FEAT_OPLEVELS),
   MODE_DESC("WASDELJOINS",	'd', "Channel has delayed joins.",
-	    MDPOL_AUTHZ_NONE)
+	    MDPOL_AUTHZ_NONE | MDFLAG_LOCAL)
 };
 
 /** Initial list of user modes.  Note that this must be the same order

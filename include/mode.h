@@ -28,6 +28,9 @@
 #ifndef INCLUDED_flagset_h
 #include "flagset.h"
 #endif
+#ifndef INCLUDED_ircd_defs_h
+#include "ircd_defs.h"
+#endif
 #ifndef INCLUDED_features_h
 #include "ircd_features.h"
 #endif
@@ -42,6 +45,8 @@ struct Channel;
 #define MAX_MODES		64
 /** Specifies the maximum number of mode params permitted in one message. */
 #define MAX_MODEPARAMS		6
+/** Specifies the maximum number of destinations for a mode_delta_t. */
+#define MAX_DESTS		6
 
 /** Registration table for mode lists. */
 #define MODE_TABLE		"mode"
@@ -59,6 +64,10 @@ typedef struct ModeSet mode_set_t;
 typedef struct ModeArgs mode_args_t;
 /** Describes the difference between two sets of modes. */
 typedef struct ModeDelta mode_delta_t;
+/** Describes a destination a mode delta may be flushed to. */
+typedef struct ModeDest mode_dest_t;
+/** Buffer for mode delta data currently being sent to a destination. */
+typedef struct ModeBuffer mode_buf_t;
 
 /** Indicate type of target. */
 typedef enum ModeTargetType {
@@ -67,6 +76,23 @@ typedef enum ModeTargetType {
   MTT_CHANNEL,		/**< Target is a channel. */
   MTT_SERVER		/**< Target is a server. */
 } mode_targ_t;
+
+/** Indicate flag operation. */
+typedef enum ModeFlagOp {
+  MFO_SET,		/**< Set the specified flags. */
+  MFO_CLEAR,		/**< Clear the specified flags. */
+  MFO_REPLACE		/**< Replace with the specified flags. */
+} mode_flagop_t;
+
+/** Processor for delta destinations.
+ * @param[in] delta Delta being processed.
+ * @param[in] dest Destination description, including extra data.
+ * @param[in] buf Buffer containing the data to send to destination.
+ * @param[in] flags Any flags passed to mode_delta_flush().  If this
+ * is an autoflush, this will contain MDFLUSH_AUTO.
+ */
+typedef void (*mode_dproc_t)(mode_delta_t* delta, mode_dest_t* dest,
+			     mode_buf_t* buf, flagpage_t flags);
 
 /** Describes a single mode. */
 struct ModeDesc {
@@ -102,7 +128,7 @@ struct ModeDesc {
  */
 #define MODE_DESC_PFX(name, sw, desc, flags, pfx, prio)			\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
-    (flags) | (((prio) & 0x0f) << 16), FEAT_LAST_F }
+    (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT), FEAT_LAST_F }
 
 /** Initialize a mode_desc_t.
  * @param[in] name Descriptive name for the mode.
@@ -128,7 +154,8 @@ struct ModeDesc {
  */
 #define MODE_DESC_FEAT_PFX(name, sw, desc, flags, pfx, prio, feat)	\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
-    (flags) | (((prio) & 0x0f) << 16) | MDFLAG_FEATURE, (feat) }
+    (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT) | MDFLAG_FEATURE,	\
+    (feat) }
 
 /** Check the mode descriptor for validity. */
 #define MODE_DESC_CHECK(md)	REGENT_CHECK((md), MODE_DESC_MAGIC)
@@ -145,59 +172,96 @@ struct ModeDesc {
 #define MDFLAG_ARGEXTENDED	0x08000000
 /** Mode is controlled by a feature. */
 #define MDFLAG_FEATURE		0x04000000
+/** Mode can be changed, i.e., by "-M+M old new". */
+#define MDFLAG_ONECHANGE	0x02000000
+/** Mode argument can be displayed under certain circumstances. */
+#define MDFLAG_SHOWARG		0x01000000
+
+/** Helper macro to convert a value to a flag. */
+#define MDFLAG_VAL2FLAG(val, shift)			\
+				((val) << (shift))
+/** Helper macro to convert a flag to a value. */
+#define MDFLAG_FLAG2VAL(flags, mask, shift)			\
+				(((flags) & (mask)) >> (shift))
+
+/** Bit offset for prefix ordering priority. */
+#define MDFLAG_PRIO_SHIFT	15
+/** Bit offset for argument visibility. */
+#define MDFLAG_AVIS_SHIFT	12
+/** Bit offset for mode visibility. */
+#define MDFLAG_VIS_SHIFT	 9
+/** Bit offset for authorization policy. */
+#define MDPOL_AUTHZ_SHIFT	 6
+/** Bit offset for parser mode type. */
+#define MDPAR_TYPE_SHIFT	 3
+/** Bit offset for parser argument type. */
+#define MDPAR_TYPE_SHIFT	 0
 
 /** Mask for prefix ordering priority. */
-#define MDFLAG_PRIO		0x000f0000
+#define MDFLAG_PRIO		MDFLAG_VAL2FLAG(15, MDFLAG_PRIO_SHIFT)
+
+/** Mode argument is visible to anyone. */
+#define MDFLAG_AVIS_OPEN	MDFLAG_VAL2FLAG(0, MDFLAG_AVIS_SHIFT)
+/** Mode argument is visible only to channel operators. */
+#define MDFLAG_AVIS_CHOP	MDFLAG_VAL2FLAG(1, MDFLAG_AVIS_SHIFT)
+/** Mode argument is visible only to IRC operators. */
+#define MDFLAG_AVIS_OPER	MDFLAG_VAL2FLAG(2, MDFLAG_AVIS_SHIFT)
+/** Mode argument is visible only to global IRC operators. */
+#define MDFLAG_AVIS_GOP		MDFLAG_VAL2FLAG(3, MDFLAG_AVIS_SHIFT)
+/** Mode argument is visible only to servers. */
+#define MDFLAG_AVIS_SERV	MDFLAG_VAL2FLAG(4, MDFLAG_AVIS_SHIFT)
+/** Mode argument visibility mask. */
+#define MDFLAG_AVIS_MASK	MDFLAG_VAL2FLAG(7, MDFLAG_AVIS_SHIFT)
 
 /** Mode is visible to anyone. */
-#define MDFLAG_VIS_OPEN		0x00000000
+#define MDFLAG_VIS_OPEN		MDFLAG_VAL2FLAG(0, MDFLAG_VIS_SHIFT)
 /** Mode is visible only to channel operators. */
-#define MDFLAG_VIS_CHOP		0x00001000
+#define MDFLAG_VIS_CHOP		MDFLAG_VAL2FLAG(1, MDFLAG_VIS_SHIFT)
 /** Mode is visible only to IRC operators. */
-#define MDFLAG_VIS_OPER		0x00002000
+#define MDFLAG_VIS_OPER		MDFLAG_VAL2FLAG(2, MDFLAG_VIS_SHIFT)
 /** Mode is visible only to global IRC operators. */
-#define MDFLAG_VIS_GOP		0x00003000
+#define MDFLAG_VIS_GOP		MDFLAG_VAL2FLAG(3, MDFLAG_VIS_SHIFT)
 /** Mode is visible only to servers. */
-#define MDFLAG_VIS_SERV		0x00004000
+#define MDFLAG_VIS_SERV		MDFLAG_VAL2FLAG(4, MDFLAG_VIS_SHIFT)
 /** Mode visibility mask. */
-#define MDFLAG_VIS_MASK		0x0000f000
+#define MDFLAG_VIS_MASK		MDFLAG_VAL2FLAG(7, MDFLAG_VIS_SHIFT)
 
 /** Anyone can set or clear mode. */
-#define MDPOL_AUTHZ_OPEN	0x00000000
+#define MDPOL_AUTHZ_OPEN	MDFLAG_VAL2FLAG(0, MDPOL_AUTHZ_SHIFT)
 /** Only channel operator can set or clear mode. */
-#define MDPOL_AUTHZ_CHOP	0x00000100
+#define MDPOL_AUTHZ_CHOP	MDFLAG_VAL2FLAG(1, MDPOL_AUTHZ_SHIFT)
 /** Only IRC operators can set or clear mode. */
-#define MDPOL_AUTHZ_OPER	0x00000200
+#define MDPOL_AUTHZ_OPER	MDFLAG_VAL2FLAG(2, MDPOL_AUTHZ_SHIFT)
 /** Only global IRC operators can set or clear mode. */
-#define MDPOL_AUTHZ_GOP		0x00000300
+#define MDPOL_AUTHZ_GOP		MDFLAG_VAL2FLAG(3, MDPOL_AUTHZ_SHIFT)
 /** Only servers can set or clear mode. */
-#define MDPOL_AUTHZ_SERV	0x00000400
+#define MDPOL_AUTHZ_SERV	MDFLAG_VAL2FLAG(4, MDPOL_AUTHZ_SHIFT)
 /** No one can set or clear mode (mode under software control). */
-#define MDPOL_AUTHZ_NONE	0x00000500
+#define MDPOL_AUTHZ_NONE	MDFLAG_VAL2FLAG(5, MDPOL_AUTHZ_SHIFT)
 /** Mode authorization mask. */
-#define MDPOL_AUTHZ_MASK	0x00000f00
+#define MDPOL_AUTHZ_MASK	MDFLAG_VAL2FLAG(7, MDPOL_AUTHZ_SHIFT)
 
 /** Mode describes a simple switch, e.g., +t channel mode. */
-#define MDPAR_TYPE_SWITCH	0x00000000
+#define MDPAR_TYPE_SWITCH	MDFLAG_VAL2FLAG(0, MDPAR_TYPE_SHIFT)
 /** Mode takes an optional argument, e.g., +s user mode. */
-#define MDPAR_TYPE_OPTARG	0x00000010
+#define MDPAR_TYPE_OPTARG	MDFLAG_VAL2FLAG(1, MDPAR_TYPE_SHIFT)
 /** Mode takes an argument only when added, e.g., +l channel mode. */
-#define MDPAR_TYPE_ADDARG	0x00000020
+#define MDPAR_TYPE_ADDARG	MDFLAG_VAL2FLAG(2, MDPAR_TYPE_SHIFT)
 /** Mode takes a required argument, e.g., +k channel mode. */
-#define MDPAR_TYPE_REQARG	0x00000030
+#define MDPAR_TYPE_REQARG	MDFLAG_VAL2FLAG(3, MDPAR_TYPE_SHIFT)
 /** Mode type mask. */
-#define MDPAR_TYPE_MASK		0x000000f0
+#define MDPAR_TYPE_MASK		MDFLAG_VAL2FLAG(7, MDPAR_TYPE_SHIFT)
 
 /** Mode takes no argument. */
-#define MDPAR_ARG_NONE		0x00000000
+#define MDPAR_ARG_NONE		MDFLAG_VAL2FLAG(0, MDPAR_ARG_SHIFT)
 /** Mode takes an integer argument, e.g., +l channel mode. */
-#define MDPAR_ARG_INT		0x00000001
+#define MDPAR_ARG_INT		MDFLAG_VAL2FLAG(1, MDPAR_ARG_SHIFT)
 /** Mode takes a simple string argument, e.g., +k channel mode. */
-#define MDPAR_ARG_STR		0x00000002
+#define MDPAR_ARG_STR		MDFLAG_VAL2FLAG(2, MDPAR_ARG_SHIFT)
 /** Mode takes an argument indicating a client, e.g., +o channel mode. */
-#define MDPAR_ARG_CLI		0x00000003
+#define MDPAR_ARG_CLI		MDFLAG_VAL2FLAG(3, MDPAR_ARG_SHIFT)
 /** Mode argument type mask. */
-#define MDPAR_ARG_MASK		0x0000000f
+#define MDPAR_ARG_MASK		MDFLAG_VAL2FLAG(7, MDPAR_ARG_SHIFT)
 
 /** Describes the list of modes available for a channel, user, etc. */
 struct ModeList {
@@ -236,6 +300,9 @@ DECLARE_FLAGSET(ModeSet, MAX_MODES);
 /** Direction mask. */
 #define MDIR_MASK		0x00000003
 
+/** String needs to be freed. */
+#define MDIRFLAG_FREE		0x80000000
+
 /** Contains a set of modes with arguments. */
 struct ModeArgs {
   mode_args_t*		ma_next;	/**< Chain to next set of modes with
@@ -257,9 +324,10 @@ struct ModeArgs {
 
 /** Describes the difference between two mode_set_t's. */
 struct ModeDelta {
-  struct Client*	md_origin;	/**< Origin of delta. */
+  unsigned long		md_magic;	/**< Magic number. */
   mode_list_t*		md_modes;	/**< Mode list used by this delta. */
 
+  struct Client*	md_origin;	/**< Origin of delta. */
   mode_targ_t		md_targtype;	/**< Target type for delta. */
   union {
     struct Client*	md_client;	/**< Client target. */
@@ -275,12 +343,107 @@ struct ModeDelta {
   mode_args_t*		md_tail;	/**< Tail of modes-with-args list. */
   mode_args_t		md_head;	/**< First element of modes-with-args
 					     list. */
+
+  int			md_dcnt;	/**< Count of destinations. */
+  mode_dest_t*		md_dest[MAX_DESTS];
+					/**< Destinations to which to flush
+					     mode delta. */
 };
+
+/** Magic number for a mode delta. */
+#define MODE_DELTA_MAGIC 0xc4c75949
+
+/** Check a mode delta for validity. */
+#define MODE_DELTA_CHECK(md)	((md) && (md)->md_magic == MODE_DELTA_MAGIC)
 
 /** The delta should not be automatically flushed. */
 #define MDELTA_NOAUTOFLUSH	0x80000000
 /** The delta is in reverse-sense mode. */
 #define MDELTA_REVERSE		0x40000000
+
+/** Application-specific delta flag mask. */
+#define MDELTA_APPMASK		0x0000ffff
+
+/** Describes a destination for a mode_delta_t to be flushed to. */
+struct ModeDest {
+  unsigned long		md_magic;	/**< Magic number. */
+  mode_dproc_t		md_proc;	/**< Destination processor. */
+  flagpage_t		md_flags;	/**< Flags for destination. */
+  void*			md_extra;	/**< Extra information for
+					     processor. */
+};
+
+/** Magic number for a mode destination. */
+#define MODE_DEST_MAGIC 0xf5bedaef
+
+/** Initialize a destination.
+ * @param[in] proc Processor callback for destination.
+ * @param[in] flags Flags for the destination.  One of MDEST_LOCAL or
+ * MDEST_REMOTE is required to be set.
+ * @param[in] extra Extra data needed by the processor callback.
+ */
+#define MODE_DEST_INIT(proc, flags, extra)	\
+  { MODE_DEST_MAGIC, (proc), (flags), (extra) }
+
+/** Check a mode destination for validity. */
+#define MODE_DEST_CHECK(md)	((md) && (md)->md_magic == MODE_DEST_MAGIC)
+
+/** The destination is local. */
+#define MDEST_LOCAL		0x80000000
+/** The destination is remote. */
+#define MDEST_REMOTE		0x40000000
+/** Allow flagged modes to reveal the mode argument. */
+#define MDEST_SHOWARG		0x20000000
+
+/** Destination-specific flag mask. */
+#define MDEST_SPECMASK		0x0000ffff
+
+/* XXX This string buffer stuff really should be in ircd_string */
+/** Declare a string buffer storing up to \a size characters. */
+#define STRBUF(size)				\
+  struct {					\
+    char		s_buf[(size)];		\
+    int			s_len;			\
+  }
+
+/** Initializer for a string buffer. */
+#define STRBUF_INIT		{ "", 0 }
+
+/** Worst-case size for mode specification.  There can be at most
+ * MAX_MODES different kinds of modes, so the buffer should be at
+ * least that long.  Additionally, some of those modes may be repeated
+ * up to MAX_MODEPARAMS times.  Since one instance is already
+ * accounted for in MAX_MODES, we need MAX_MODEPARAMS-1 more
+ * positions...but we also need a terminating '\\0', so we drop the -1
+ * and that gets you the value selected here.
+ */
+#define MDSWITCHBUF		(MAX_MODES + MAX_MODEPARAMS)
+
+/** Mode buffer group. */
+struct ModeBufGroup {
+  STRBUF(MDSWITCHBUF)	mbg_switch;	/**< Simple switches. */
+  STRBUF(BUFSIZE)	mbg_extended;	/**< Extended modes. */
+  STRBUF(BUFSIZE)	mbg_param;	/**< Parameters for simple switches. */
+};
+
+/** Initializer for a mode buffer group. */
+#define MBG_INIT		{ STRBUF_INIT, STRBUF_INIT, STRBUF_INIT }
+
+/** Buffer for the mode delta data currently being sent to a destination. */
+struct ModeBuffer {
+  struct ModeBufGroup	mb_add;		/**< Modes being added. */
+  struct ModeBufGroup	mb_locadd;	/**< Local modes being added. */
+  struct ModeBufGroup	mb_rem;		/**< Modes being removed. */
+  struct ModeBufGroup	mb_locrem;	/**< Local modes being removed. */
+  int			mb_buflen;	/**< Maximum length to assume. */
+};
+
+/** Initializer for a mode buffer.  The initial value for mb_buflen is
+ * set with a 200-byte fuzz factor to avoid overrunning the buffers in
+ * the destination processors.
+ */
+#define MODE_BUF_INIT						\
+  { MBG_INIT, MBG_INIT, MBG_INIT, MBG_INIT, BUFSIZE - 200 }
 
 /* Assign mode and add to appropriate tables. */
 extern int _mode_desc_reg(mode_list_t* table, mode_desc_t* md);
@@ -296,5 +459,43 @@ extern char* mode_str_info(mode_list_t* ml, char* buf, int* len, int args);
 extern char* mode_str_modes(mode_list_t* ml, char* buf, int* len);
 /* Build prefix string for PREFIX in RPL_ISUPPORT. */
 extern char* mode_str_prefix(mode_list_t* ml, char* buf, int* len);
+
+/* Initialize a mode_delta_t. */
+extern void mode_delta_init(mode_delta_t* md, mode_list_t* ml,
+			    struct Client* source, mode_targ_t targtype,
+			    void *target, flagpage_t flags);
+/* Add a destination for flushing the mode_delta_t. */
+extern int mode_delta_dest(mode_delta_t* md, mode_dest_t* dest, int n);
+/* Change flags set on the delta. */
+extern void mode_delta_flags(mode_delta_t* md, mode_flagop_t op,
+			     flagpage_t flags);
+/* Set or clear the specified flags. */
+extern void mode_delta_mode(mode_delta_t* md, flagpage_t dir,
+			    mode_desc_t* mode);
+/* Set or clear the specified flags, with an integer argument. */
+extern void mode_delta_mode_int(mode_delta_t* md, flagpage_t dir,
+				mode_desc_t* mode, unsigned int value);
+/* Set or clear the specified flags, with a string argument. */
+extern void mode_delta_mode_str(mode_delta_t* md, flagpage_t dir,
+				mode_desc_t* mode, const char* value);
+/* Set or clear the specified flags, with a client argument. */
+extern void mode_delta_mode_cli(mode_delta_t* md, flagpage_t dir,
+				mode_desc_t* mode, struct Client* value,
+				int oplevel);
+/* Flush the delta. */
+extern void mode_delta_flush(mode_delta_t* md, flagpage_t flags);
+
+/** Flag indicating that flush was automatically triggered.  Not
+ * accepted in the flags parameter of mode_delta_flush().
+ */
+#define MDFLUSH_AUTO		0x80000000
+
+/** Indicates that all modes should flushed.  Implied by the call to
+ * mode_delta_flush().
+ */
+#define MDFLUSH_ALL		0x40000000
+
+/** Destination-specific flag mask. */
+#define MDFLUSH_MASK		0x0000ffff
 
 #endif /* INCLUDED_mode_h */

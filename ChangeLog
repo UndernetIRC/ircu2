@@ -1,3 +1,25 @@
+2008-10-11  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: add concept of "destinations" to mode_delta_t;
+	define a buffer for assembling modes; use MDFLAG_PRIO_SHIFT
+	instead of hard-coded 16 for priorities; add MDFLAG_ONECHANGE and
+	MDFLAG_SHOWARG flags; define all mode, parser, and policy values
+	using shifted values, for clarity; add argument visibility
+	specifications; provide a way for strings to be marked for later
+	freeing; add a magic number to mode_delta_t, along with associated
+	magic number and checking; add destinations to mode_delta_t; begin
+	roughing out mode_delta_* API
+
+	* ircd/mode-compat.c: KEY, UPASS, and APASS have arguments that
+	are not visible to the user, rather than the modes themselves
+	being invisible; also, use MDFLAG_ONECHANGE instead of
+	MDFLAG_ONESHOT for UPASS and APASS; mark WASDELJOINS at being
+	local with MDFLAG_LOCAL; mark KEY so that its argument may be
+	shown under certain circumstances
+
+	* ircd/mode.c (flag2prio): use MDFLAG_PRIO_SHIFT instead of a
+	hard-coded constant of 16
+
 2008-10-10  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/mode.h: add support for filtering modes based on feature
