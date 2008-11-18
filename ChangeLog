@@ -1,3 +1,8 @@
+2008-11-17  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/match.c (match): Fix an error in backtracking (apparently
+	exacerbated by escapes).
+
 2008-09-07  Perry Lorier <isomer@undernet.org>
 	
 	* ircd/m_kill.c: Remove the . from the end of the nickname in kill
