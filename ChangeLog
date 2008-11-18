@@ -1,5 +1,10 @@
 2008-11-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_kick.c (ms_kick): Properly handle crossing net rider and
+	normal KICKs (in the case where we get the normal kick first).
+
+2008-11-17  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/match.c (match): Fix an error in backtracking (apparently
 	exacerbated by escapes).
 
