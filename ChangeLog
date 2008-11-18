@@ -3,6 +3,11 @@
 	* ircd/match.c (match): Fix an error in backtracking (apparently
 	exacerbated by escapes).
 
+	* ircd/test/ircd_match_t.c: Update headers and make sure we have a
+	mmap() anonymous request flag.
+	(test_match): New function.
+	(do_match_test): Use it instead of calling match() directly.
+
 2008-09-07  Perry Lorier <isomer@undernet.org>
 	
 	* ircd/m_kill.c: Remove the . from the end of the nickname in kill
