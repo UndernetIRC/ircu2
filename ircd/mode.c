@@ -343,6 +343,9 @@ mode_str_modes(mode_list_t* ml, char* buf, int* len)
   if (regtab_iter(&ml->ml_table, (regiter_t) mm_build, &ms))
     return 0; /* some kind of failure occurred */
 
+  /* Update the buffer length */
+  *len = ms.len;
+
   return ms.buf; /* return the buffer */
 }
 
@@ -420,4 +423,195 @@ mode_str_prefix(mode_list_t* ml, char* buf, int* len)
     }
 
   return buf; /* and return the assembled buffer */
+}
+
+/** Initialize a mode_delta_t.
+ * @param[out] md Mode delta to initialize.
+ * @param[in] ml Mode list delta is to be drawn from.
+ * @param[in] source Client issuing the delta; may be NULL.
+ * @param[in] targtype A mode_targ_t value indicating the type of \a target.
+ * @param[in] target The target of the delta; may be NULL.
+ * @param[in] flags Flags controlling the delta.
+ */
+void
+mode_delta_init(mode_delta_t* md, mode_list_t* ml, struct Client* source,
+		mode_targ_t targtype, void *target, flagpage_t flags)
+{
+  int i;
+
+  assert(md != 0);
+  assert(MODE_LIST_CHECK(ml));
+  assert(source == 0 || cli_verify(source));
+  assert(targtype >= MTT_NONE && targtype <= MTT_SERVER);
+  assert(targtype != MTT_NONE || target == 0);
+  assert((targtype != MTT_USER && targtype != MTT_SERVER) ||
+	 (target != 0 && cli_verify((struct Client*) target)));
+  assert(targtype != MTT_CHANNEL || target != 0);
+
+  /* normalize the flags */
+  flags &= MDELTA_NOAUTOFLUSH | MDELTA_REVERSE | MDELTA_APPMASK;
+
+  /* if there is no explicit target, let's set the noautoflush flag */
+  if (targtype == MTT_NONE)
+    flags |= MDELTA_NOAUTOFLUSH;
+
+  /* now start initializing the delta */
+  md->md_magic = MODE_DELTA_MAGIC;
+  md->md_modes = ml;
+  md->md_origin = source;
+
+  /* set targeting information */
+  switch ((md->md_targtype = targtype)) {
+  case MTT_NONE: /* no target (off-line mode) */
+    md->md_target.md_client = 0;
+    break;
+
+  case MTT_USER: /* target is a user */
+  case MTT_SERVER: /* target is a server */
+    md->md_target.md_client = (struct Client*) target;
+    break;
+
+  case MTT_CHANNEL: /* target is a channel */
+    md->md_target.md_channel = (struct Channel*) target;
+    break;
+  }
+
+  /* zero the add and remove sets */
+  FlagZero(&md->md_add, MAX_MODES);
+  FlagZero(&md->md_rem, MAX_MODES);
+
+  md->md_flags = flags;
+  md->md_count = 0; /* no modes with args yet */
+
+  md->md_tail = &md->md_head; /* toil points to the head of the list */
+  md->md_head.ma_next = md->md_head.ma_prev = 0; /* list is empty */
+  for (i = 0; i < MAX_MODEPARAMS; i++) {
+    md->md_head.ma_modeargs[i].mam_mode = 0; /* zero the mode params */
+    md->md_head.ma_modeargs[i].mam_dir = MDIR_NONE;
+    md->md_head.ma_modeargs[i].mam_arg.mama_int = 0;
+    md->md_head.ma_modeargs[i].mam_oplevel = 0;
+  }
+
+  md->md_dcnt = 0; /* no destinations yet, either */
+  for (i = 0; i < MAX_DESTS; i++)
+    md->md_dest[i] = 0; /* zero the possible destinations */
+}
+
+/** Add a destination for flushing the mode_delta_t.
+ * @param[in,out] md Mode delta to add destination to.
+ * @param[in] dest Destinations to add.
+ * @param[in] n Number of destinations in \a dest array.
+ */
+void
+mode_delta_dest(mode_delta_t* md, mode_dest_t* dest, int n)
+{
+  int i;
+
+  assert(MODE_DELTA_CHECK(md));
+  assert(md->md_dcnt + n < MAX_DESTS);
+
+  /* add the desired destinations */
+  for (i = 0; i < n; i++) {
+    assert(MODE_DEST_CHECK(&dest[i]));
+    md->md_dest[md->md_dcnt++] = &dest[i];
+  }
+}
+
+/** Change flags set on the delta.
+ * @param[in,out] md Mode delta to change the flags of.
+ * @param[in] op Operation to perform on those flags.
+ * @param[in] flags The flags to use in the operation.
+ */
+void
+mode_delta_flags(mode_delta_t* md, mode_flagop_t op, flagpage_t flags)
+{
+  assert(MODE_DELTA_CHECK(md));
+  assert(op >= MFO_SET && op <= MFO_REPLACE);
+
+  /* normalize flags... */
+  flags &= MDELTA_NOAUTOFLUSH | MDELTA_REVERSE | MDELTA_APPMASK;
+
+  /* perform requested flag operation */
+  switch (op) {
+  case MFO_SET: /* set the flags */
+    md->md_flags |= flags;
+    break;
+
+  case MFO_CLEAR: /* clear the flags */
+    md->md_flags &= ~flags;
+    break;
+
+  case MFO_REPLACE: /* replace the flags wholesale */
+    md->md_flags = flags;
+    break;
+  }
+}
+
+/** Set or clear the specified modes.
+ * @param[in,out] md Mode delta in which to set or clear the modes.
+ * @param[in] dir Direction of mode change--add or remove.
+ * @param[in] mode Mode to set or clear.
+ */
+void
+mode_delta_mode(mode_delta_t* md, flagpage_t dir, mode_desc_t* mode)
+{
+  assert(MODE_DELTA_CHECK(md));
+  assert(MODE_DESC_CHECK(md));
+
+  /* take care of clearing the modes from the various sets */
+  if ((dir & MDIR_MASK) == MDIR_ADD || (dir & MDIR_MASK) == MDIR_NONE)
+    ModeClr(&md->md_rem, mode);
+  if ((dir & MDIR_MASK) == MDIR_REM || (dir & MDIR_MASK) == MDIR_NONE)
+    ModeClr(&md->md_add, mode);
+
+  /* now add the mode to the correct set */
+  switch (dir & MDIR_MASK) {
+  case MDIR_ADD: /* adding the mode */
+    ModeSet(&md->md_add, mode);
+    break;
+
+  case MDIR_REM: /* removing the mode */
+    ModeSet(&md->md_rem, mode);
+    break;
+  }
+}
+
+/** Set or clear the specified modes, with an integer argument.
+ */
+void
+mode_delta_mode_int(mode_delta_t* md, flagpage_t dir, mode_desc_t* mode,
+		    unsigned int value)
+{
+}
+
+/** Set or clear the specified modes, with a string argument.  If the
+ * string needs to be freed, OR MDIRFLAG_FREE with \a dir.
+ */
+void
+mode_delta_mode_str(mode_delta_t* md, flagpage_t dir, mode_desc_t* mode,
+		    const char* value)
+{
+}
+
+/** Set or clear the specified modes, with a client argument.
+ */
+void
+mode_delta_mode_cli(mode_delta_t* md, flagpage_t dir, mode_desc_t* mode,
+		    struct Client* value, int oplevel)
+{
+}
+
+/** Flush the delta.
+ */
+void
+mode_delta_flush(mode_delta_t* md, flagpage_t flags)
+{
+}
+
+/** Apply the delta to a target.
+ */
+void
+mode_delta_apply(mode_delta_t* md, mode_targ_t targtype, void* target,
+		 mode_dest_t* dest, int n, flagpage_t flags)
+{
 }

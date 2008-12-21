@@ -116,7 +116,7 @@ struct ModeDesc {
  */
 #define MODE_DESC(name, sw, desc, flags)				\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), 0, 0, (desc), (flags),	\
-    FEAT_LAST_F }
+      FEAT_LAST_F }
 
 /** Initialize a mode_desc_t.
  * @param[in] name Descriptive name for the mode.
@@ -128,7 +128,7 @@ struct ModeDesc {
  */
 #define MODE_DESC_PFX(name, sw, desc, flags, pfx, prio)			\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
-    (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT), FEAT_LAST_F }
+      (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT), FEAT_LAST_F }
 
 /** Initialize a mode_desc_t.
  * @param[in] name Descriptive name for the mode.
@@ -141,7 +141,7 @@ struct ModeDesc {
  */
 #define MODE_DESC_FEAT(name, sw, desc, flags, feat)		\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), 0, 0, (desc),	\
-    (flags) | MDFLAG_FEATURE, (feat) }
+      (flags) | MDFLAG_FEATURE, (feat) }
 
 /** Initialize a mode_desc_t.
  * @param[in] name Descriptive name for the mode.
@@ -154,8 +154,8 @@ struct ModeDesc {
  */
 #define MODE_DESC_FEAT_PFX(name, sw, desc, flags, pfx, prio, feat)	\
   { REGENT_INIT(MODE_DESC_MAGIC, (name)), (sw), (pfx), 0, (desc),	\
-    (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT) | MDFLAG_FEATURE,	\
-    (feat) }
+      (flags) | (((prio) & 0x0f) << MDFLAG_PRIO_SHIFT) | MDFLAG_FEATURE, \
+      (feat) }
 
 /** Check the mode descriptor for validity. */
 #define MODE_DESC_CHECK(md)	REGENT_CHECK((md), MODE_DESC_MAGIC)
@@ -282,7 +282,7 @@ struct ModeList {
 #define MODE_LIST_INIT(name, offset)					\
   { REGTAB_INIT((name), MODE_DESC_MAGIC, (reg_t) _mode_desc_reg,	\
 		(unreg_t) _mode_desc_unreg), (offset),			\
-    KEYSPACE_INIT(MAX_MODES, 0, 0, 0) }
+      KEYSPACE_INIT(MAX_MODES, 0, 0, 0) }
 
 /** Check the mode list for validity. */
 #define MODE_LIST_CHECK(ml)	(REGTAB_CHECK(ml) &&			\
@@ -290,6 +290,24 @@ struct ModeList {
 
 /** Describes the set of modes set on a specific channel, user, etc. */
 DECLARE_FLAGSET(ModeSet, MAX_MODES);
+
+/** Check if a mode is set.
+ * @param[in] set Mode set to check.
+ * @param[in] mode mode_desc_t describing the mode.
+ */
+#define ModeHas(set, mode)	FlagHas((set), (mode)->md_mode)
+
+/** Set a mode.
+ * @param[in,out] set Mode set.
+ * @param[in] mode mode_desc_t describing the mode.
+ */
+#define ModeSet(set, mode)	FlagSet((set), (mode)->md_mode)
+
+/** Clear a mode.
+ * @param[in,out] set Mode set.
+ * @param[in] mode mode_desc_t describing the mode.
+ */
+#define ModeClr(set, mode)	FlagClr((set), (mode)->md_mode)
 
 /** Direction not yet selected. */
 #define MDIR_NONE		0x00000000
@@ -465,35 +483,45 @@ extern void mode_delta_init(mode_delta_t* md, mode_list_t* ml,
 			    struct Client* source, mode_targ_t targtype,
 			    void *target, flagpage_t flags);
 /* Add a destination for flushing the mode_delta_t. */
-extern int mode_delta_dest(mode_delta_t* md, mode_dest_t* dest, int n);
+extern void mode_delta_dest(mode_delta_t* md, mode_dest_t* dest, int n);
 /* Change flags set on the delta. */
 extern void mode_delta_flags(mode_delta_t* md, mode_flagop_t op,
 			     flagpage_t flags);
-/* Set or clear the specified flags. */
+/* Set or clear the specified modes. */
 extern void mode_delta_mode(mode_delta_t* md, flagpage_t dir,
 			    mode_desc_t* mode);
-/* Set or clear the specified flags, with an integer argument. */
+/* Set or clear the specified modes, with an integer argument. */
 extern void mode_delta_mode_int(mode_delta_t* md, flagpage_t dir,
 				mode_desc_t* mode, unsigned int value);
-/* Set or clear the specified flags, with a string argument. */
+/* Set or clear the specified modes, with a string argument. */
 extern void mode_delta_mode_str(mode_delta_t* md, flagpage_t dir,
 				mode_desc_t* mode, const char* value);
-/* Set or clear the specified flags, with a client argument. */
+/* Set or clear the specified modes, with a client argument. */
 extern void mode_delta_mode_cli(mode_delta_t* md, flagpage_t dir,
 				mode_desc_t* mode, struct Client* value,
 				int oplevel);
 /* Flush the delta. */
 extern void mode_delta_flush(mode_delta_t* md, flagpage_t flags);
+/* Apply the delta to a target. */
+extern void mode_delta_apply(mode_delta_t* md, mode_targ_t targtype,
+			     void* target, mode_dest_t* dest, int n,
+			     flagpage_t flags);
 
 /** Flag indicating that flush was automatically triggered.  Not
  * accepted in the flags parameter of mode_delta_flush().
  */
 #define MDFLUSH_AUTO		0x80000000
 
-/** Indicates that all modes should flushed.  Implied by the call to
- * mode_delta_flush().
+/** Indicates that all modes should be flushed.  Implied by the call
+ * to mode_delta_flush().
  */
 #define MDFLUSH_ALL		0x40000000
+
+/** Indicates that modes should not be applied to the target. */
+#define MDFLUSH_NOAPPLY		0x20000000
+
+/** Indicates that the mode delta should not be released. */
+#define MDFLUSH_NORELEASE	0x10000000
 
 /** Destination-specific flag mask. */
 #define MDFLUSH_MASK		0x0000ffff

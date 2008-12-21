@@ -1,3 +1,18 @@
+2008-12-20  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/mode.h: create ModeHas(), ModeSet(), and ModeClr()
+	macros; set return type on mode_delta_dest() to be void; update
+	some comments (we're not playing with flags, but modes!); declare
+	mode_delta_apply() when mode delta is applied to no particular
+	target; add MDFLUSH_NOAPPLY and MDFLUSH_NORELEASE flags for
+	mode_delta_apply() and mode_delta_flush()
+
+	* ircd/mode.c: make sure mode_str_modes() updates the len before
+	returning; define mode_delta_init(), mode_delta_dest(),
+	mode_delta_flags(), and mode_delta_mode(); rough in
+	mode_delta_mode_int(), mode_delta_mode_str(),
+	mode_delta_mode_cli(), mode_delta_flush(), and mode_delta_apply()
+
 2008-10-11  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/mode.h: add concept of "destinations" to mode_delta_t;
