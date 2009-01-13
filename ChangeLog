@@ -1,5 +1,9 @@
 2009-01-12  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (modebuf_mode_uint): Fix bouncing of limit changes.
+
+2009-01-12  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/gline.c (count_users): Accept "flags" mask to limit count
 	to local users.
 	(gline_add): Pass the flags to count_users().

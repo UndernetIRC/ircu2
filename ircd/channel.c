@@ -1986,7 +1986,7 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
-  if (mode == (MODE_LIMIT | ((mbuf->mb_dest & MODEBUF_DEST_BOUNCE) ? MODE_ADD : MODE_DEL))) {
+  if (mode == (MODE_LIMIT | MODE_DEL)) {
       mbuf->mb_rem |= mode;
       return;
   }
