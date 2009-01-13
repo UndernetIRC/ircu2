@@ -349,10 +349,11 @@ gline_propagate(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 
 /** Count number of users who match \a mask.
  * @param[in] mask user\@host or user\@ip mask to check.
+ * @param[in] flags Bitmask possibly containing the value GLINE_LOCAL, to limit searches to this server.
  * @return Count of matching users.
  */
 static int
-count_users(char *mask)
+count_users(char *mask, int flags)
 {
   struct irc_in_addr ipmask;
   struct Client *acptr;
@@ -365,6 +366,8 @@ count_users(char *mask)
   ipmask_valid = ipmask_parse(mask, &ipmask, &ipmask_len);
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr)) {
     if (!IsUser(acptr))
+      continue;
+    if ((flags & GLINE_LOCAL) && !MyConnect(acptr))
       continue;
 
     ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
@@ -485,7 +488,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	break;
       }
 
-      if ((tmp = count_users(uhmask)) >=
+      if ((tmp = count_users(uhmask, flags)) >=
 	  feature_int(FEAT_GLINEMAXUSERCOUNT) && !(flags & GLINE_OPERFORCE))
 	return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
     }

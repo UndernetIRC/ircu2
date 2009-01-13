@@ -1,5 +1,11 @@
 2009-01-12  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/gline.c (count_users): Accept "flags" mask to limit count
+	to local users.
+	(gline_add): Pass the flags to count_users().
+
+2009-01-12  Michael Poole <mdpoole@troilus.org>
+
 	* include/gline.h (gline_forward_deactivation): Declare.
 
 	* ircd/gline.c (count_users): Use ipmask-based checks too.
