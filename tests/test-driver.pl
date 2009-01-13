@@ -164,7 +164,7 @@ sub drv_heartbeat {
 
     # expand any macros in the line
     $line =~ s/(?<=[^\\])%(\S+?)%/$heap->{macros}->{$1}
-      or die "Use of undefined macro $1 at $heap->{lineno}\n"/eg;
+      or die "Use of undefined macro $1 at line $heap->{lineno}\n"/eg;
     # remove any \-escapes
     $line =~ s/\\(.)/$1/g;
     # figure out the type of line
@@ -235,7 +235,7 @@ sub drv_heartbeat {
         my $client = $heap->{clients}->{$c};
         if (not $client) {
           print "ERROR: Unknown session name $c (line $heap->{lineno}; ignoring)\n";
-        } elsif (($used->{$c} and not $zero_time->{$cmd}) or not $client->{ready}) {
+        } elsif (($used->{$c} and not $zero_time->{$cmd}) or ($cmd ne 'expect' and not $client->{ready})) {
           push @unavail, $c;
         } else {
           push @avail, $c;
@@ -276,8 +276,8 @@ sub drv_heartbeat {
 }
 
 sub drv_timeout_expect {
-  my ($kernel, $session, $client) = @_[KERNEL, SESSION, ARG0];
-  print "ERROR: Dropping timed-out expectation by $client->{name}: ".join(',', @{$client->{expect}->[0]})."\n";
+  my ($kernel, $session, $client, $heap) = @_[KERNEL, SESSION, ARG0, HEAP];
+  print "\nERROR: Dropping timed-out expectation by $client->{name} (line $heap->{expect_lineno}): ".join(',', @{$client->{expect}->[0]})."\n";
   $client->{expect_alarms}->[0] = undef;
   unexpect($kernel, $session, $client);
 }
@@ -370,6 +370,7 @@ sub cmd_wait {
 sub cmd_expect {
   my ($kernel, $session, $heap, $client, $args) = @_[KERNEL, SESSION, HEAP, ARG0, ARG1];
   die "Missing argument" unless $#$args >= 0;
+  $heap->{expect_lineno} = $heap->{lineno};
   push @{$client->{expect}}, $args;
   push @{$client->{expect_alarms}}, $kernel->delay_set('timeout_expect', EXPECT_TIMEOUT, $client);
   $kernel->call($session, 'disable_client', $client);

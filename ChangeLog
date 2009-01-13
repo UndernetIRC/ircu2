@@ -1,3 +1,36 @@
+2009-01-12  Michael Poole <mdpoole@troilus.org>
+
+	* include/gline.h (gline_forward_deactivation): Declare.
+
+	* ircd/gline.c (count_users): Use ipmask-based checks too.
+	(gline_add): Require flags to have exactly one of the GLINE_GLOBAL
+	and GLINE_LOCAL bits set.
+	(gline_forward_deactivation): Implement new function.
+	(gline_find): Only require the GLINE_LOCAL flag to be set in the
+	gline structure; infer GLINE_GLOBAL when it is cleared.  (This
+	matches the value and usage of GLINE_MASK.)
+
+	* ircd/m_gline.c (ms_gline): Default lastmod to the known lastmod
+	time for GLINE_LOCAL_{DE,}ACTIVATE.
+	(mo_gline): Check that expiration times parse as expected.  Reject
+	"*" as a target for GLINE_LOCAL_{DE,}ACTIVATE.  Require reason and
+	expiration time for new G-lines.  Allow deactivation of an unknown
+	G-line without creating it ("so-and-so ... creating new G-line" is
+	a confusing message for a deactivation).
+
+	* tests/glines.cmd: New test script for G-line parsing tests.
+
+	* tests/ircd.conf: Enable CONFIG_OPERCMDS for glines.cmd.
+
+	* tests/ircd-2.conf: Likewise.
+
+	* tests/readme.txt: Add section on command syntax.
+
+	* tests/test-driver.pl: Report line numbers more clearly.
+	Fix (somewhat kludgily) the brokenness of consecutive "expect"
+	lines, as demonstrated by the numeric 219 and 281 expects in
+	glines.cmd.
+
 2008-11-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_kick.c (ms_kick): Properly handle crossing net rider and
