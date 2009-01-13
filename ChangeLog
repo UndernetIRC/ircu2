@@ -1,5 +1,18 @@
 2009-01-12  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_topic.c (do_settopic): Just before sending the topic out,
+	check to see if the user is join-delayed and should be shown.
+
+	* ircd/m_wallchops.c (m_wallchops): Allow this command to expose
+	join-delayed users.
+	(ms_wallchops): Likewise.
+
+	* ircd/m_wallvoices.c (m_wallvoices): Allow this command to expose
+	join-delayed users.
+	(ms_wallvoices): Likewise.
+
+2009-01-12  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (modebuf_mode_uint): Fix bouncing of limit changes.
 
 2009-01-12  Michael Poole <mdpoole@troilus.org>
