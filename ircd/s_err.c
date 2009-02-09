@@ -1082,7 +1082,7 @@ static Numeric replyTable[] = {
 /* 524 */
   { ERR_QUARANTINED, "%s :Channel is quarantined : %s", "524" },
 /* 525 */
-  { 0 },
+  { ERR_INVALIDKEY, "%s :Key is not well-formed", "525" },
 /* 526 */
   { 0 },
 /* 527 */

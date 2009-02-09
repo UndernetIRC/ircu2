@@ -1,5 +1,20 @@
 2009-02-08  Michael Poole <mdpoole@troilus.org>
 
+	* include/numeric.h (ERR_INVALIDKEY): Define new numeric.
+
+	* ircd/s_err.c (ERR_INVALIDKEY): Give it a text string.
+
+	* ircd/channel.c (is_clean_key): Rename from clean_key(), and make
+	this function responsible for sending error messages to the client
+	when necessary.
+	(mode_parse_key): Update to match the new is_clean_key() behavior.
+	(mode_parse_upass): Likewise.
+	(mode_parse_apass): Likewise.
+
+	* tests/channel-keys.cmd: New file for regression testing.
+
+2009-02-08  Michael Poole <mdpoole@troilus.org>
+
 	* include/gline.h (gline_forward_deactivation): Undeclare.
 
 	* ircd/m_gline.c (mo_gline): Remove the special case to call
