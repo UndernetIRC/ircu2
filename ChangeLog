@@ -1,5 +1,18 @@
 2009-02-08  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h (ClearHub): New macro.
+
+	* ircd/ircd.c (main): Set IPv6 flag on &me if appropriate.
+
+	* ircd/ircd_features.c (feature_notify_hub): New function.
+	(features[]): Register it for FEAT_HUB.
+
+	* ircd/ircd_parser.y (connectblock): Do not default maxlinks to
+	65535 unless "hub" is specified.
+	(clientblock): Reset maxlinks on cleanup.
+
+2009-02-08  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (clean_channelname): Delete this function; it is
 	no longer used, and had the same length-off-by-one bug.
 

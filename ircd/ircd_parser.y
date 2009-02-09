@@ -463,7 +463,6 @@ classusermode: USERMODE '=' QSTRING ';'
 
 connectblock: CONNECT
 {
- maxlinks = 65535;
  flags = CONF_AUTOCONNECT;
 } '{' connectitems '}' ';'
 {
@@ -488,7 +487,10 @@ connectblock: CONNECT
    aconf->conn_class = c_class;
    aconf->address.port = port;
    aconf->host = host;
-   aconf->maximum = maxlinks;
+   /* If the user specified a hub allowance, but not maximum links,
+    * allow an effectively unlimited number of hops.
+    */
+   aconf->maximum = (hub_limit != NULL && maxlinks == 0) ? 65535 : maxlinks;
    aconf->hub_limit = hub_limit;
    aconf->flags = flags;
    lookup_confhost(aconf);
@@ -502,7 +504,7 @@ connectblock: CONNECT
  }
  name = pass = host = origin = hub_limit = NULL;
  c_class = NULL;
- port = flags = 0;
+ port = flags = maxlinks = 0;
 };
 connectitems: connectitem connectitems | connectitem;
 connectitem: connectname | connectpass | connectclass | connecthost
@@ -830,6 +832,7 @@ clientblock: CLIENT
   host = NULL;
   username = NULL;
   c_class = NULL;
+  maxlinks = 0;
   ip = NULL;
   pass = NULL;
   port = 0;
