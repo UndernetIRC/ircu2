@@ -1,3 +1,16 @@
+2009-02-08  Michael Poole <mdpoole@troilus.org>
+
+	* include/gline.h (gline_forward_deactivation): Undeclare.
+
+	* ircd/m_gline.c (mo_gline): Remove the special case to call
+	gline_forward_deactivation().
+
+	* ircd/gline.c (gline_add): Mention if the new G-line is already
+	deactivated.
+	(gline_forward_deactivation): Delete implementation.
+
+	* tests/glines.cmd: Update the expected output to match.
+
 2009-01-12  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_topic.c (do_settopic): Just before sending the topic out,

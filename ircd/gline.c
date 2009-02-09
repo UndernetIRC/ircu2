@@ -512,11 +512,12 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 
   /* Inform ops... */
   sendto_opmask_butone(0, ircd_strncmp(reason, "AUTO", 4) ? SNO_GLINE :
-                       SNO_AUTO, "%s adding %s %s for %s%s%s, expiring at "
+                       SNO_AUTO, "%s adding %s%s %s for %s%s%s, expiring at "
                        "%Tu: %s",
                        (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
                          cli_name(sptr) :
                          cli_name((cli_user(sptr))->server),
+                       (flags & GLINE_ACTIVE) ? "" : "deactivated ",
 		       (flags & GLINE_LOCAL) ? "local" : "global",
 		       (flags & GLINE_BADCHAN) ? "BADCHAN" : "GLINE", user,
 		       (flags & (GLINE_BADCHAN|GLINE_REALNAME)) ? "" : "@",
@@ -671,42 +672,6 @@ gline_deactivate(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   /* if it's a local gline or a Uworld gline (and not locally deactivated).. */
   if (GlineIsLocal(gline) || (!gline->gl_lastmod && !(flags & GLINE_LOCAL)))
     gline_free(gline); /* get rid of it */
-
-  return 0;
-}
-
-/** Send a deactivation request for a locally unknown G-line.
- * @param[in] cptr Client that sent us the G-line modification.
- * @param[in] sptr Client that originated the G-line modification.
- * @param[in] userhost Text representation of G-line target.
- * @param[in] expire Expiration time of G-line.
- * @param[in] lastmod Last modification time of G-line.
- * @param[in] lifetime Lifetime of G-line.
- * @param[in] flags Bitwise combination of GLINE_* flags.
- * @return Zero.
- */
-int
-gline_forward_deactivation(struct Client *cptr, struct Client *sptr,
-                           char *userhost, time_t expire, time_t lastmod,
-                           time_t lifetime, unsigned int flags)
-{
-  char *msg = "deactivating unknown global";
-
-  if (!lifetime)
-    lifetime = expire;
-
-  /* Inform ops and log it */
-  sendto_opmask_butone(0, SNO_GLINE, "%s %s GLINE for %s, expiring at %Tu",
-                       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
-                         cli_name(sptr) : cli_name((cli_user(sptr))->server),
-		       msg, userhost, expire + TSoffset);
-
-  log_write(LS_GLINE, L_INFO, LOG_NOSNOTICE,
-	    "%#C %s GLINE for %s, expiring at %Tu", sptr, msg, userhost,
-	    expire);
-
-  sendcmdto_serv_butone(sptr, CMD_GLINE, cptr, "* -%s %Tu %Tu %Tu",
-                        userhost, expire, lastmod, lifetime);
 
   return 0;
 }

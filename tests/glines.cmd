@@ -203,8 +203,8 @@ connect cl2 %cl2-nick% oper %srv2% :Some IRC Operator
 :cl1 expect %srv1-name% 515 \\* :Bad expire time
 :cl1 raw :GLINE -test@example.com * 100000
 :cl1 expect %srv1-name% 515 \\* :Bad expire time
-:cl1 raw :GLINE -test@example.com * 100000 :foo
-:cl1 expect %srv1-name% NOTICE :\\*\\*\\* Notice -- %cl1-nick% deactivating unknown global GLINE for test@example.com
+:cl1 raw :GLINE -test2@example.com * 100000 :foo
+:cl1 expect %srv1-name% NOTICE :\\*\\*\\* Notice -- %cl1-nick% adding deactivated global GLINE for test2@example.com
 
 # Now start with the operations that create or need a global G-line.
 

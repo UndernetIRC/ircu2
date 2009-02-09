@@ -610,12 +610,6 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       return send_reply(sptr, ERR_NOPRIVILEGES);
   }
 
-  /* If globally disabling a G-line that we do not already have, avoid
-   * creating a temporary one. */
-  if (!agline && action == GLINE_DEACTIVATE) {
-    return gline_forward_deactivation(cptr, sptr, mask, expire, CurrentTime, 0, flags);
-  }
-
   Debug((DEBUG_DEBUG, "I have a global G-line I am acting upon now; "
 	 "target %s, mask %s, operforce %s, action %s, expire %Tu, "
 	 "reason: %s; gline %s!  (fields present: %s %s)", target, 
