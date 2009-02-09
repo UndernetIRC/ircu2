@@ -158,7 +158,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
     if (!(chptr = FindChannel(name))) {
       if (((name[0] == '&') && !feature_bool(FEAT_LOCAL_CHANNELS))
-          || strlen(name) >= IRCD_MIN(CHANNELLEN, feature_int(FEAT_CHANNELLEN))) {
+          || strlen(name) > IRCD_MIN(CHANNELLEN, feature_int(FEAT_CHANNELLEN))) {
         send_reply(sptr, ERR_NOSUCHCHANNEL, name);
         continue;
       }

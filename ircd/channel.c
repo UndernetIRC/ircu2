@@ -1224,34 +1224,6 @@ static void send_ban_list(struct Client* cptr, struct Channel* chptr)
   send_reply(cptr, RPL_ENDOFBANLIST, chptr->chname);
 }
 
-/** Remove bells and commas from channel name
- *
- * @param cn	Channel name to clean, modified in place.
- */
-void clean_channelname(char *cn)
-{
-  int i;
-
-  for (i = 0; cn[i]; i++) {
-    if (i >= IRCD_MIN(CHANNELLEN, feature_int(FEAT_CHANNELLEN))
-        || !IsChannelChar(cn[i])) {
-      cn[i] = '\0';
-      return;
-    }
-    if (IsChannelLower(cn[i])) {
-      cn[i] = ToLower(cn[i]);
-#ifndef FIXME
-      /*
-       * Remove for .08+
-       * toupper(0xd0)
-       */
-      if ((unsigned char)(cn[i]) == 0xd0)
-        cn[i] = (char) 0xf0;
-#endif
-    }
-  }
-}
-
 /** Get a channel block, creating if necessary.
  *  Get Channel block for chname (and allocate a new channel
  *  block, if it didn't exists before).

@@ -1,5 +1,16 @@
 2009-02-08  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (clean_channelname): Delete this function; it is
+	no longer used, and had the same length-off-by-one bug.
+
+	* ircd/m_join.c (m_join): Use > instead of >= with CHANNELLEN.
+
+	* tests/ircd.conf: Set CHANNELLEN to make it easier to test this.
+
+	* tests/bug-2328334.cmd: New file for regression testing.
+
+2009-02-08  Michael Poole <mdpoole@troilus.org>
+
 	* include/numeric.h (ERR_INVALIDKEY): Define new numeric.
 
 	* ircd/s_err.c (ERR_INVALIDKEY): Give it a text string.
