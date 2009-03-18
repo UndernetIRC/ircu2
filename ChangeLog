@@ -1,5 +1,10 @@
 2009-03-17  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/send.c (sendcmdto_match_butone): Move match_it() to the end
+	of the if() to minimize the number of expensive function calls.
+
+2009-03-17  Michael Poole <mdpoole@troilus.org>
+
 	* patches/diffs/antispambot.diff: Forward port a patch by Dianora
 	to add rudimentary spam bot detection to ircu.
 
