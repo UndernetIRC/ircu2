@@ -1,3 +1,8 @@
+2009-03-17  Michael Poole <mdpoole@troilus.org>
+
+	* patches/diffs/antispambot.diff: Forward port a patch by Dianora
+	to add rudimentary spam bot detection to ircu.
+
 2009-02-08  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h (ClearHub): New macro.

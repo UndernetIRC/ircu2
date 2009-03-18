@@ -1,0 +1,179 @@
+Index: ircd/m_join.c
+===================================================================
+--- ircd/m_join.c	(revision 1907)
++++ ircd/m_join.c	(working copy)
+@@ -254,6 +254,7 @@
+       }
+ 
+       joinbuf_join(&join, chptr, flags);
++      cli_last_join_time(sptr) = CurrentTime;
+       if (flags & CHFL_CHANOP) {
+         struct ModeBuf mbuf;
+ 	/* Always let the server op him: this is needed on a net with older servers
+Index: ircd/channel.c
+===================================================================
+--- ircd/channel.c	(revision 1907)
++++ ircd/channel.c	(working copy)
+@@ -3594,6 +3594,69 @@
+   return 0;
+ }
+ 
++/* check_spambot_warning()
++ *
++ * inputs       - Client to check, channel name or NULL if this is a part.
++ * output       - NONE
++ * side effects - Updates the client's oper_warn_count_down, warns the
++ *                IRC operators if necessary, and updates
++ *                join_leave_countdown as needed.
++ */
++void
++check_spambot_warning(struct Client *source_p, const char *name)
++{
++  time_t t_delta;
++  int decrement_count;
++
++  if (source_p->join_leave_count >= SPAM_NUM)
++  {
++    if (source_p->oper_warn_count_down > 0)
++      source_p->oper_warn_count_down--;
++    else
++      source_p->oper_warn_count_down = 0;
++    if (source_p->oper_warn_count_down == 0)
++    {
++      /* Its already known as a possible spambot */
++      if (name != NULL)
++        sendto_opmask_butone(0, SNO_OLDSNO,
++                             "User %s (%s@%s) trying to join %s is a possible spambot",
++                             cli_name(source_p), cli_username(source_p),
++                             cli_sockhost(source_p), name);
++      else
++        sendto_opmask_butone(0, SNO_OLDSNO,
++                             "User %s (%s@%s) is a possible spambot",
++                             cli_name(source_p), cli_username(source_p),
++                             cli_sockhost(source_p));
++
++      cli_oper_warn_count_down(source_p) = OPER_SPAM_COUNTDOWN;
++    }
++  }
++  else
++  {
++    if ((t_delta = (CurrentTime - source_p->last_leave_time)) >
++         JOIN_LEAVE_COUNT_EXPIRE_TIME)
++    {
++      decrement_count = (t_delta / JOIN_LEAVE_COUNT_EXPIRE_TIME);
++      if (decrement_count > source_p->join_leave_count)
++        source_p->join_leave_count = 0;
++      else
++        source_p->join_leave_count -= decrement_count;
++    }
++    else
++    {
++      if ((CurrentTime - (source_p->last_join_time)) < SPAM_TIME)
++      {
++        /* oh, its a possible spambot */
++        source_p->join_leave_count++;
++      }
++    }
++    if (name != NULL)
++      cli_last_join_time(source_p) = CurrentTime;
++    else
++      cli_last_leave_time(source_p) = CurrentTime;
++  }
++}
++
+ /* Returns TRUE (1) if client is invited, FALSE (0) if not */
+ int IsInvited(struct Client* cptr, const void* chptr)
+ {
+Index: ircd/m_part.c
+===================================================================
+--- ircd/m_part.c	(revision 1907)
++++ ircd/m_part.c	(working copy)
+@@ -150,6 +150,8 @@
+     if (IsDelayedJoin(member))
+       flags |= CHFL_DELAYED;
+ 
++    if (!IsOper(sptr))
++      check_spambot_warning(sptr, NULL);
+     joinbuf_join(&parts, chptr, flags); /* part client from channel */
+   }
+ 
+Index: include/channel.h
+===================================================================
+--- include/channel.h	(revision 1907)
++++ include/channel.h	(working copy)
+@@ -449,4 +449,40 @@
+ extern int apply_ban(struct Ban **banlist, struct Ban *newban, int free);
+ extern void free_ban(struct Ban *ban);
+ 
++/* ANTISPAM join/part bot code.
++ *
++ * You might want to make these tweakable with an oper command
++ * Or move them into config.h
++ *
++ * - Dianora
++ */
++/* Minimum length of time on a channel that a client has to be on
++ * before its not considered a possible spam bot.
++ */
++#define MIN_JOIN_LEAVE_TIME  60	
++/* So opers don't get overly spammed about spambots, only warn
++ * every OPER_SPAM_COUNTDOWN times. You could remove this code.
++ */
++#define OPER_SPAM_COUNTDOWN   5 
++/* After a client leaves, we zero the counters after this length
++ * of time. i.e. if a client is well behaved, we simply zero.
++ */
++#define JOIN_LEAVE_COUNT_EXPIRE_TIME 120
++
++/* These are leftovers from hybrids /quote set, for now I have
++ * left them in. You can remove as you wish.
++ */
++#define MIN_SPAM_NUM 5
++#define MIN_SPAM_TIME 60
++/* This is a leftover from hybrids /quote set system.
++ */
++#define MAX_JOIN_LEAVE_COUNT  25
++
++/* You will really want to tweak these, but these aren't bad if
++ * they have to be statically defined.
++ */
++#define SPAM_TIME MIN_JOIN_LEAVE_TIME
++#define SPAM_NUM  MIN_SPAM_NUM
++
++extern void check_spambot_warning(struct Client *source_p, const char *name);
+ #endif /* INCLUDED_channel_h */
+Index: include/client.h
+===================================================================
+--- include/client.h	(revision 1907)
++++ include/client.h	(working copy)
+@@ -258,6 +258,16 @@
+   char cli_name[HOSTLEN + 1];     /**< Unique name of the client, nick or host */
+   char cli_username[USERLEN + 1]; /**< Username determined by ident lookup */
+   char cli_info[REALLEN + 1];     /**< Free form additional client information */
++
++  /* Anti flooding part, all because of lamers... */
++  time_t            last_join_time;   /* when this client last 
++                                         joined a channel */
++  time_t            last_leave_time;  /* when this client last 
++                                       * left a channel */
++  int               join_leave_count; /* count of JOIN/LEAVE in less than 
++                                         MIN_JOIN_LEAVE_TIME seconds */
++  int               oper_warn_count_down; /* warn opers of this possible 
++                                             spambot every time this gets to 0 */
+ };
+ 
+ /** Magic constant to identify valid Client structures. */
+@@ -736,5 +746,13 @@
+ extern void client_set_privs(struct Client *client, struct ConfItem *oper);
+ extern int client_report_privs(struct Client* to, struct Client* client);
+ 
++/* ANTISPAM bot patch
++ * - Dianora
++ */
++#define cli_last_join_time(cli)		((cli)->last_join_time)
++#define cli_last_leave_time(cli)	((cli)->last_leave_time)
++#define cli_join_leave_count(cli)	((cli)->join_leave_count)
++#define cli_oper_warn_count_down(cli)	((cli)->oper_warn_count_down)
++
+ #endif /* INCLUDED_client_h */
+ 
