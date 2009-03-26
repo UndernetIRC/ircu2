@@ -1,3 +1,9 @@
+2009-03-25  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/channel.c (mode_parse): Add Doxygen comment.  When bouncing
+	a mode from a desynced U-lined server, do not set the modes or
+	send the change as a HACK(4) message.
+
 2009-03-17  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/send.c (sendcmdto_match_butone): Move match_it() to the end

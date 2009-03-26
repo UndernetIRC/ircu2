@@ -3194,10 +3194,19 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
 	 (state->add & (MODE_SECRET | MODE_PRIVATE)));
 }
 
-/*
+/**
  * This routine is intended to parse MODE or OPMODE commands and effect the
- * changes (or just build the bounce buffer).  We pass the starting offset
- * as a 
+ * changes (or just build the bounce buffer).
+ *
+ * \param[out] mbuf Receives parsed representation of mode change.
+ * \param[in] cptr Connection that sent the message to this server.
+ * \param[in] sptr Original source of the message.
+ * \param[in] chptr Channel whose modes are being changed.
+ * \param[in] parc Number of valid strings in \a parv.
+ * \param[in] parv Text arguments representing mode change, with the
+ *   zero'th element containing a string like "+m" or "-o".
+ * \param[in] flags Set of bitwise MODE_PARSE_* flags.
+ * \param[in] member If non-null, the channel member attempting to change the modes.
  */
 int
 mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
@@ -3357,7 +3366,9 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
           } else {
             /* Server is desynced; bounce the mode and deop the source
              * to fix it. */
-            state.mbuf->mb_dest &= ~MODEBUF_DEST_CHANNEL;
+            state.flags &= ~MODE_PARSE_SET;
+            state.flags |= MODE_PARSE_BOUNCE;
+            state.mbuf->mb_dest &= ~(MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK4);
             state.mbuf->mb_dest |= MODEBUF_DEST_BOUNCE | MODEBUF_DEST_HACK2;
             if (!IsServer(state.cptr))
               state.mbuf->mb_dest |= MODEBUF_DEST_DEOP;
