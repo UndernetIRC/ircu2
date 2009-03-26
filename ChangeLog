@@ -1,5 +1,13 @@
 2009-03-25  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (iauth_cmd_hostname): Properly assign the spoofed
+	hostname (yea, even as the "real" host) in the hurry state.
+
+	* tools/iauth-test: Add reminder about perl's RTMIN signal and a
+	new handler to exercise the N command in the hurry state.
+
+2009-03-25  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (mode_parse): Add Doxygen comment.  When bouncing
 	a mode from a desynced U-lined server, do not set the modes or
 	send the change as a HACK(4) message.

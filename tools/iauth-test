@@ -26,6 +26,8 @@ use FileHandle; # for autoflush method on file handles
 # SIGRTMIN + 2 -> Set policy options ('O').
 # SIGRTMIN + 3 -> Simulate config change ('a', 'A').
 # SIGRTMIN + 4 -> Simulate statistics change ('s', 'S').
+# Note that Perl's value for SIGRTMIN may be different than your OS's.
+# The easiest check is by running "perl -V:sig_num -V:sig_name".
 
 # In the following discussion, sX means message X from the server, and
 # iX means message X from iauth.  The hard part is the ordering of
@@ -175,6 +177,7 @@ my %handlers = (
                 '127.0.2.0'  => { C_reply => 'N iauth.assigned.host',
                                   H_reply => 'D' },
                 '127.0.2.1'  => { C_reply => \&ip_change },
+                '127.0.2.2'  => { H_reply => \&host_change_and_done },
                 # 127.0.3.x: iC/sP functionality.
                 '127.0.3.0'  => { C_reply => 'C :Please enter the password.',
                                   P_reply => \&passwd_check },
@@ -195,6 +198,16 @@ sub ip_change ($$) {
     reply 'I 127.255.255.254', $client;
     $client->{ip} = '127.255.255.254';
     reply 'N other.assigned.host', $client;
+    reply 'D', $client;
+}
+
+# Note to potential debuggers: You will have to change the iauth
+# policy before this (or any other H_reply hooks) will have any
+# effect.  Do this by sending two signals of $SIG{RTMIN+2} to the
+# iauth-test process, as noted near the beginning of this script.
+sub host_change_and_done ($$) {
+    my ($client, $extra) = @_;
+    reply 'N iauth.assigned.host', $client;
     reply 'D', $client;
 }
 

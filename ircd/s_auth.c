@@ -1736,6 +1736,14 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
   }
   /* Set hostname from params. */
   ircd_strncpy(cli_sockhost(cli), params[0], HOSTLEN);
+  /* If we have gotten here, the user is in a "hurry" state and has
+   * been pre-registered.  Their hostname was set during that, and
+   * needs to be overwritten now.
+   */
+  if (FlagHas(&auth->flags, AR_IAUTH_HURRY)) {
+    ircd_strncpy(cli_user(cli)->host, cli_sockhost(cli), HOSTLEN);
+    ircd_strncpy(cli_user(cli)->realhost, cli_sockhost(cli), HOSTLEN);
+  }
   return 1;
 }
 
