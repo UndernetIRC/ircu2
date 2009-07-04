@@ -1,3 +1,20 @@
+2009-07-04  Michael Poole <mdpoole@troilus.org>
+
+	* include/channel.h (RevealDelayedJoinIfNeeded): Declare.
+
+	* ircd/channel.c (RevealDelayedJoinIfNeeded): Implement.
+
+	* ircd/ircd_relay.c (relay_channel_message): Only reveal the user
+	if he passes the check_target_limit() test.
+	(relay_channel_notice): Likewise.
+
+	* ircd/m_wallchops.c (m_wallchops): Likewise.
+
+	* ircd/m_wallvoices.c (m_wallvoices): Likewise.
+
+	* ircd/s_user.c (check_target_limit): Micro-optimize to only check
+	the user's channel list for invites if we are about to deny it.
+
 2009-03-25  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd.c (main): Unconditionally set +6 flag on self.

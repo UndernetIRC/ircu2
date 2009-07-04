@@ -702,10 +702,6 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
   assert(cli_local(sptr));
   targets = cli_targets(sptr);
 
-  /* If user is invited to channel, give him/her a free target */
-  if (IsChannelName(name) && IsInvited(sptr, target))
-    return 0;
-
   /*
    * Same target as last time?
    */
@@ -723,6 +719,10 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
    */
   if (!created) {
     if (CurrentTime < cli_nexttarget(sptr)) {
+      /* If user is invited to channel, give him/her a free target */
+      if (IsChannelName(name) && IsInvited(sptr, target))
+        return 0;
+
       if (cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
         /*
          * No server flooding

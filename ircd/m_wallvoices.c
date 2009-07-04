@@ -114,10 +114,11 @@ int m_wallvoices(struct Client* cptr, struct Client* sptr, int parc, char* parv[
     return send_reply(sptr, ERR_NOTEXTTOSEND);
 
   if (IsChannelName(parv[1]) && (chptr = FindChannel(parv[1]))) {
-    if (client_can_send_to_channel(sptr, chptr, 1)) {
+    if (client_can_send_to_channel(sptr, chptr, 0)) {
       if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
           check_target_limit(sptr, chptr, chptr->chname, 0))
         return 0;
+      RevealDelayedJoinIfNeeded(sptr, chptr);
       sendcmdto_channel_butone(sptr, CMD_WALLVOICES, chptr, cptr,
 			       SKIP_DEAF | SKIP_BURST | SKIP_NONVOICES, 
 			       "%H :+ %s", chptr, parv[parc - 1]);

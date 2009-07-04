@@ -3636,3 +3636,12 @@ void CheckDelayedJoins(struct Channel *chan)
                                      "%H -d", chan);
   }
 }
+
+/** Send a join for the user if (s)he is a hidden member of the channel.
+ */
+void RevealDelayedJoinIfNeeded(struct Client *sptr, struct Channel *chptr)
+{
+  struct Membership *member = find_member_link(chptr, sptr);
+  if (member && IsDelayedJoin(member))
+    RevealDelayedJoin(member);
+}

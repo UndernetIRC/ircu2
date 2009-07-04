@@ -405,6 +405,7 @@ extern char *pretty_mask(char *mask);
 extern void del_invite(struct Client *cptr, struct Channel *chptr);
 extern void list_set_default(void); /* this belongs elsewhere! */
 
+extern void RevealDelayedJoinIfNeeded(struct Client *sptr, struct Channel *chptr);
 extern void RevealDelayedJoin(struct Membership *member);
 extern void CheckDelayedJoins(struct Channel *chan);
 
