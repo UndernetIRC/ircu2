@@ -1,5 +1,9 @@
 2009-03-25  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd.c (main): Unconditionally set +6 flag on self.
+
+2009-03-25  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_auth.c (iauth_cmd_hostname): Properly assign the spoofed
 	hostname (yea, even as the "real" host) in the hurry state.
 
