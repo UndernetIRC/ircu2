@@ -1,5 +1,20 @@
 2009-07-04  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (find_conf_client): New function.
+	(preregister_user): Use it to avoid assigning a second conf class
+	on client connection.
+	(auth_ping_timeout): Send the "T" message only if we do not kill
+	the client (and thus send a "D" message).
+	(auth_find_classs_conf): Do not allow IAuth to select a disabled
+	class.  Unlink new conf items from GlobalConfList.
+	(iauth_cmd_done_client): Handle failures from attach_conf().
+	(iauth_parse): Behave decently when a client is killed by the
+	message handler.
+
+	* tools/iauth-test (%handlers): Add entries to help test this.
+
+2009-07-04  Michael Poole <mdpoole@troilus.org>
+
 	* include/channel.h (RevealDelayedJoinIfNeeded): Declare.
 
 	* ircd/channel.c (RevealDelayedJoinIfNeeded): Implement.
