@@ -2989,17 +2989,19 @@ mode_parse_client(struct ParseState *state, int *flag_p)
     if (colon != NULL) {
       *colon++ = '\0';
       req_oplevel = atoi(colon);
-      if (!(state->flags & MODE_PARSE_FORCE)
+      if (*flag_p == CHFL_VOICE || state->dir == MODE_DEL) {
+        /* Ignore the colon and its argument. */
+      } else if (!(state->flags & MODE_PARSE_FORCE)
           && state->member
           && (req_oplevel < OpLevel(state->member)
               || (req_oplevel == OpLevel(state->member)
                   && OpLevel(state->member) < MAXOPLEVEL)
-              || req_oplevel > MAXOPLEVEL))
+              || req_oplevel > MAXOPLEVEL)) {
         send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
                    t_str, state->chptr->chname,
                    OpLevel(state->member), req_oplevel, "op",
                    OpLevel(state->member) == req_oplevel ? "the same" : "a higher");
-      else if (req_oplevel <= MAXOPLEVEL)
+      } else if (req_oplevel <= MAXOPLEVEL)
         oplevel = req_oplevel;
     }
     /* find client we're manipulating */
