@@ -1,4 +1,4 @@
-/*
+\/*
  * IRC - Internet Relay Chat, ircd/m_gline.c
  * Copyright (C) 1990 Jarkko Oikarinen and
  *                    University of Oulu, Computing Center
@@ -308,7 +308,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!agline || /* gline creation, has to be the reason */
 	    /* trial-convert as lifetime, and if it doesn't fully convert,
 	     * it must be the reason */
-	    ((lifetime = strtoul(parv[5], &tmp, 10)) && !*tmp)) {
+	    (!(lifetime = strtoul(parv[5], &tmp, 10)) && !*tmp)) {
 	  lifetime = 0;
 	  reason = parv[5];
 
