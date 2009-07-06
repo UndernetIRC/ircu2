@@ -392,9 +392,8 @@ int register_user(struct Client *cptr, struct Client *sptr)
     if (tmpstr) {
       char *umodev[] = { NULL, NULL, NULL, NULL };
       umodev[2] = tmpstr;
-      set_user_mode(cptr, sptr, 1, umodev, ALLOWMODES_ANY);
+      set_user_mode(cptr, sptr, 3, umodev, ALLOWMODES_ANY);
     }
-
   }
   else {
     struct Client *acptr = user->server;
@@ -439,10 +438,6 @@ int register_user(struct Client *cptr, struct Client *sptr)
    */
   if (HasHiddenHost(sptr))
     hide_hostmask(sptr, FLAG_HIDDENHOST);
-  if (IsInvisible(sptr))
-    ++UserStats.inv_clients;
-  if (IsOper(sptr))
-    ++UserStats.opers;
 
   tmpstr = umode_str(sptr);
   /* Send full IP address to IPv6-grokking servers. */

@@ -1,5 +1,11 @@
 2009-07-05  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_user.c (register_user): Use correct parc for
+	set_user_mode().  Do not increment UserStats fields here, because
+	set_user_mode() handles that.
+
+2009-07-05  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_gline.c (ms_gline): Fix the sense of the test for
 	strtoul() when parsing G-line lifetimes -- zero indicates failure.
 
