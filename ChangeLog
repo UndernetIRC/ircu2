@@ -1,3 +1,10 @@
+2009-07-30  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_user.c (register_user): Move the default-usermodes call
+	to set_user_mode() to before SetUser(), so that the former does
+	not increment the UserStats fields.  Add back the explicit
+	adjustments to UserStats for invisible and opered clients.
+
 2009-07-05  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (register_user): Use correct parc for

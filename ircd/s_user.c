@@ -355,6 +355,16 @@ int register_user(struct Client *cptr, struct Client *sptr)
 
     Count_unknownbecomesclient(sptr, UserStats);
 
+    /*
+     * Set user's initial modes
+     */
+    tmpstr = (char*)client_get_default_umode(sptr);
+    if (tmpstr) {
+      char *umodev[] = { NULL, NULL, NULL, NULL };
+      umodev[2] = tmpstr;
+      set_user_mode(cptr, sptr, 3, umodev, ALLOWMODES_ANY);
+    }
+
     SetUser(sptr);
     cli_handler(sptr) = CLIENT_HANDLER;
     SetLocalNumNick(sptr);
@@ -385,15 +395,6 @@ int register_user(struct Client *cptr, struct Client *sptr)
                            cli_info(sptr), NumNick(cptr) /* two %s's */);
 
     IPcheck_connect_succeeded(sptr);
-    /*
-     * Set user's initial modes
-     */
-    tmpstr = (char*)client_get_default_umode(sptr);
-    if (tmpstr) {
-      char *umodev[] = { NULL, NULL, NULL, NULL };
-      umodev[2] = tmpstr;
-      set_user_mode(cptr, sptr, 3, umodev, ALLOWMODES_ANY);
-    }
   }
   else {
     struct Client *acptr = user->server;
@@ -438,6 +439,10 @@ int register_user(struct Client *cptr, struct Client *sptr)
    */
   if (HasHiddenHost(sptr))
     hide_hostmask(sptr, FLAG_HIDDENHOST);
+  if (IsInvisible(sptr))
+    ++UserStats.inv_clients;
+  if (IsOper(sptr))
+    ++UserStats.opers;
 
   tmpstr = umode_str(sptr);
   /* Send full IP address to IPv6-grokking servers. */
