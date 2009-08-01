@@ -23,6 +23,9 @@
  */
 #ifndef INCLUDED_channel_h
 #define INCLUDED_channel_h
+#ifndef INCLUDED_authz_h
+#include "authz.h"
+#endif
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"        /* NICKLEN */
 #endif
@@ -357,6 +360,9 @@ struct JoinBuf {
 
 extern struct Channel* GlobalChannelList;
 extern int             LocalChanOperMode;
+
+extern authz_t* authz_chanop;
+extern authz_t* authz_hasvoice;
 
 /*
  * Proto types

@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include "client.h"
+#include "authz.h"
 #include "class.h"
 #include "ircd.h"
 #include "ircd_features.h"
@@ -264,3 +265,71 @@ client_report_privs(struct Client *to, struct Client *client)
 
   return 0;
 }
+
+/* Authorization stuff */
+
+/** Check client for operator status.
+ * @param[in] client Client for which authorization is being checked.
+ * @param[in] flags Flags affecting the check.  In particular,
+ * AUTHZ_NOMSG should inhibit sending messages to clients.
+ * @param[in] authz Authorization to check.
+ * @param[in] vl Optional extra parameters passed to authz().
+ * @return AUTHZ_DENY to deny authorization, AUTHZ_PASS to continue
+ * checking authorizations, or AUTHZ_GRANT to grant authorization.
+ */
+static unsigned int
+check_oper(struct Client* client, unsigned int flags, authz_t* authz,
+	   va_list vl)
+{
+  return IsAnOper(client) ? AUTHZ_GRANT : AUTHZ_DENY;
+}
+
+/** Check client for global operator status.
+ * @param[in] client Client for which authorization is being checked.
+ * @param[in] flags Flags affecting the check.  In particular,
+ * AUTHZ_NOMSG should inhibit sending messages to clients.
+ * @param[in] authz Authorization to check.
+ * @param[in] vl Optional extra parameters passed to authz().
+ * @return AUTHZ_DENY to deny authorization, AUTHZ_PASS to continue
+ * checking authorizations, or AUTHZ_GRANT to grant authorization.
+ */
+static unsigned int
+check_globop(struct Client* client, unsigned int flags, authz_t* authz,
+	     va_list vl)
+{
+  return IsOper(client) ? AUTHZ_GRANT : AUTHZ_DENY;
+}
+
+/** Check client privileges.
+ * @param[in] client Client for which authorization is being checked.
+ * @param[in] flags Flags affecting the check.  In particular,
+ * AUTHZ_NOMSG should inhibit sending messages to clients.
+ * @param[in] authz Authorization to check.
+ * @param[in] vl Optional extra parameters passed to authz().
+ * @return AUTHZ_DENY to deny authorization, AUTHZ_PASS to continue
+ * checking authorizations, or AUTHZ_GRANT to grant authorization.
+ */
+static unsigned int
+check_priv(struct Client* client, unsigned int flags, authz_t* authz,
+	   va_list vl)
+{
+  return HasPriv(client, az_e_int(authz)) ? AUTHZ_GRANT : AUTHZ_DENY;
+}
+
+/** Authorization check for oper status. */
+authz_t* authz_oper = AUTHZ_INIT(check_oper, 0, 0);
+/** Authorization check for global oper status. */
+authz_t* authz_globop = AUTHZ_INIT(check_globop, 0, 0);
+/** Authorization check table for various privileges. */
+authz_t* authz_priv[] = {
+#define P(priv) AUTHZ_INIT(check_priv, 0, PRIV_ ## priv)
+  P(CHAN_LIMIT),     P(MODE_LCHAN),     P(WALK_LCHAN),    P(DEOP_LCHAN),
+  P(SHOW_INVIS),     P(SHOW_ALL_INVIS), P(UNLIMIT_QUERY), P(KILL),
+  P(LOCAL_KILL),     P(REHASH),         P(RESTART),       P(DIE),
+  P(GLINE),          P(LOCAL_GLINE),    P(JUPE),          P(LOCAL_JUPE),
+  P(OPMODE),         P(LOCAL_OPMODE),   P(SET),           P(WHOX),
+  P(BADCHAN),        P(LOCAL_BADCHAN),  P(SEE_CHAN),      P(PROPAGATE),
+  P(DISPLAY),        P(SEE_OPERS),      P(WIDE_GLINE),    P(LIST_CHAN),
+  P(FORCE_OPMODE),   P(FORCE_LOCAL_OPMODE), P(APASS_OPMODE)
+#undef P
+};

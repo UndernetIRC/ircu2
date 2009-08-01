@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "channel.h"
+#include "authz.h"
 #include "client.h"
 #include "destruct_event.h"
 #include "hash.h"
@@ -3642,3 +3643,49 @@ check_spambot_warning(struct Client *sptr)
 
   cli_last_part(sptr) = CurrentTime;
 }
+
+/* Authorization stuff */
+
+/** Check client for channel operator status.
+ * @param[in] client Client for which authorization is being checked.
+ * @param[in] flags Flags affecting the check.  In particular,
+ * AUTHZ_NOMSG should inhibit sending messages to clients.
+ * @param[in] authz Authorization to check.
+ * @param[in] vl Optional extra parameters passed to authz().
+ * @return AUTHZ_DENY to deny authorization, AUTHZ_PASS to continue
+ * checking authorizations, or AUTHZ_GRANT to grant authorization.
+ */
+static unsigned int
+check_chanop(struct Client* client, unsigned int flags, authz_t* authz,
+	       va_list vl)
+{
+  /* Get the channel... */
+  channel = va_arg(vl, struct Channel*);
+
+  return is_chan_op(client, channel) ? AUTHZ_GRANT : AUTHZ_DENY;
+}
+
+/** Check if client has a voice.
+ * @param[in] client Client for which authorization is being checked.
+ * @param[in] flags Flags affecting the check.  In particular,
+ * AUTHZ_NOMSG should inhibit sending messages to clients.
+ * @param[in] authz Authorization to check.
+ * @param[in] vl Optional extra parameters passed to authz().
+ * @return AUTHZ_DENY to deny authorization, AUTHZ_PASS to continue
+ * checking authorizations, or AUTHZ_GRANT to grant authorization.
+ */
+static unsigned int
+check_hasvoice(struct Client* client, unsigned int flags, authz_t* authz,
+	       va_list vl)
+{
+  /* Get the channel... */
+  channel = va_arg(vl, struct Channel*);
+
+  return client_can_send_to_channel(client, channel, 0) ?
+    AUTHZ_GRANT : AUTHZ_DENY;
+}
+
+/** Authorization check for channel operator status. */
+authz_t* authz_chanop = AUTHZ_INIT(check_chanop, 0, 0);
+/** Authorization check for channel voice status. */
+authz_t* authz_hasvoice = AUTHZ_INIT(check_hasvoice, 0, 0);

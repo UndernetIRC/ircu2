@@ -46,6 +46,7 @@ umkpasswd_SOURCES = \
 nodist_ircd_SOURCES = version.c
 ircd_SOURCES = \
 	IPcheck.c \
+	authz.c \
 	channel.c \
 	class.c \
 	client.c \

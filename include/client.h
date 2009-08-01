@@ -23,6 +23,9 @@
  */
 #ifndef INCLUDED_client_h
 #define INCLUDED_client_h
+#ifndef INCLUDED_authz_h
+#include "authz.h"
+#endif
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"
 #endif
@@ -716,6 +719,10 @@ struct Client {
 
 #define HIDE_IP 0 /**< Do not show IP address in get_client_name() */
 #define SHOW_IP 1 /**< Show ident and IP address in get_client_name() */
+
+extern authz_t* authz_oper;
+extern authz_t* authz_globop;
+extern authz_t* authz_priv[];
 
 extern const char* get_client_name(const struct Client* sptr, int showip);
 extern const char* client_get_default_umode(const struct Client* sptr);
