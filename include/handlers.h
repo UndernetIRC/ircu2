@@ -170,6 +170,7 @@ extern int mo_uping(struct Client*, struct Client*, int, char*[]);
 extern int mo_version(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallops(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallusers(struct Client*, struct Client*, int, char*[]);
+extern int mo_xquery(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
@@ -225,6 +226,8 @@ extern int ms_wallops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallusers(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallvoices(struct Client*, struct Client*, int, char*[]);
 extern int ms_whois(struct Client*, struct Client*, int, char*[]);
+extern int ms_xquery(struct Client*, struct Client*, int, char*[]);
+extern int ms_xreply(struct Client*, struct Client*, int, char*[]);
 
 #endif /* INCLUDED_handlers_h */
 

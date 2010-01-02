@@ -1,3 +1,28 @@
+2010-01-01  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* doc/readme.xquery: documentation for design and use of the
+	extension query mechanism
+
+	* doc/readme.iauth: document X iauth message and X and x server
+	messages
+
+	* include/msg.h: declare XQUERY/XQ and XREPLY/XR commands/tokens
+
+	* include/handlers.h: declare mo_xquery(), ms_xquery(), and
+	ms_xreply() message handlers
+
+	* include/s_auth.h: declare auth_send_xreply() to forward replies
+	to extension queries to the iauth instance
+
+	* ircd/m_xquery.c: process extension queries
+
+	* ircd/m_xreply.c: process replies to extension queries
+
+	* ircd/parse.c: add XQUERY and XREPLY commands to the list
+
+	* ircd/s_auth.c: add support for extension queries to iauth
+	protocol
+
 2010-01-01  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (iauth_do_spawn): Add debug output to diagnose

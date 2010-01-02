@@ -45,6 +45,7 @@ extern void destroy_auth_request(struct AuthRequest *req);
 
 extern int auth_spawn(int argc, char *argv[]);
 extern void auth_send_exit(struct Client *cptr);
+extern void auth_send_xreply(struct Client *sptr, const char *routing, const char *reply);
 extern void auth_mark_closing(void);
 extern void auth_close_unused(void);
 extern void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *param);

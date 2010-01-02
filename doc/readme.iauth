@@ -114,8 +114,8 @@ Comments: This is an example message description.  Each message is a
   message may be sent during those states (restrictions only make
   sense when Next State is -).  The Next State field indicates which
   new state is implied by the message; a hyphen indicates no state
-  change is implied.  The X (Example) message is not a real message
-  type.
+  change is implied.  This is an example, not a description of the
+  actual X message.
 Compatibility: If we believe ircu behavior is different than ircd's,
   this describes ircd's behavior or expectations.
 
@@ -235,6 +235,33 @@ Comments: Indicates the server's name and upper bound on client
 Compatibility: ircd does not include the <capacity> information.
   The <id> should be ignored: ircd sends 0 and ircu sends -1.
 
+X - Extension Query Reply
+Syntax: <id> X <servername> <routing> :<reply>
+Example: -1 X channels.undernet.org 5/127.0.0.1/6667 :OK kev Logged in
+States: N/A
+Next State: -
+Comments: Used to deliver the reply to an extension query to the iauth
+  instance.  The <servername> parameter indicates the origin of the
+  reply.  The <routing> parameter is the same as was used in the X
+  message from the iauth instance, and can be used to pair the reply
+  with the original request.  The <reply> parameter contains the text
+  of the reply.
+Compatibility: This is an Undernet extension and ircd does not send
+  it.
+
+x - Extension Query Server Not Linked
+Syntax: <id> x <servername> <routing> :Server not online
+Example: -1 x channels.undernet.org 5/127.0.0.1/6667 :Server not online
+States: N/A
+Next State: -
+Comments: Used to indicate to the iauth instance that the server
+  specified in the X message is not presently linked to the network.
+  This will not detect the extension query being lost due to a network
+  break, so iauth instances should further implement a timeout
+  mechanism for extension queries.
+Compatibility: This is an Undernet extension and ircd does not send
+  it.
+
 IAUTH MESSAGES
 ==============
 
@@ -251,6 +278,7 @@ Comments: This is an example message description.  Each message is a
   accept this message.  Clients in other states should ignore the
   message or treat it as an error.  The Next State field, where
   present, indicates what the next state should be for the client.
+  This is an example, not a description of the actual X message.
 Compatibility: If we believe ircu behavior is different than ircd's,
   this describes ircd's behavior or expectations.
 
@@ -438,5 +466,17 @@ Comments: Indicates that the iauth instance believes the specified
   client should be allowed onto the network, pre-authenticated to
   the account listed.  If a class parameter is given, the client
   should be assigned to that class.
+Compatibility: This is an Undernet extension and ircd does not support
+  this message.
+
+X - Extension Query
+Syntax: X <servername> <routing> :<query>
+Example: X channels.undernet.org 5/127.0.0.1/6667 :login kev pass
+Comments: Used by the iauth instance to send an extension query to
+  the server specified by <servername>.  The <routing> parameter is
+  not interpreted by the servers; it will be returned unchanged in
+  the extension query reply message (the X server message) and may be
+  used to pair the query with its reply.  The <query> parameter is
+  sent to <servername>.
 Compatibility: This is an Undernet extension and ircd does not support
   this message.
