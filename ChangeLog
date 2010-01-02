@@ -1,5 +1,13 @@
 2010-01-01  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_auth.c (iauth_do_spawn): Add debug output to diagnose
+	which system call might be failing.
+	(auth_spawn): Avoid reading past the end of iauth->i_argv[].  When
+	discarding an existing IAuth instance, use auth_close_unused() to
+	close the sockets and avoid leaking memory.
+
+2010-01-01  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (mode_process_bans): Bypass total ban count and
 	length checks for OPMODEs.
 

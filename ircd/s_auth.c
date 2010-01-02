@@ -1188,13 +1188,17 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
 
   /* Attempt to allocate a pair of sockets. */
   res = os_socketpair(s_io);
-  if (res)
-    return errno;
+  if (res) {
+    res = errno;
+    Debug((DEBUG_INFO, "Unable to create IAuth socketpair: %s", strerror(res)));
+    return res;
+  }
 
   /* Mark the parent's side of the pair (element 0) as non-blocking. */
   res = os_set_nonblocking(s_io[0]);
   if (!res) {
     res = errno;
+    Debug((DEBUG_INFO, "Unable to make IAuth socket non-blocking: %s", strerror(res)));
     close(s_io[1]);
     close(s_io[0]);
     return res;
@@ -1205,6 +1209,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
                    SS_CONNECTED, SOCK_EVENT_READABLE, s_io[0]);
   if (!res) {
     res = errno;
+    Debug((DEBUG_INFO, "Unable to register IAuth socket: %s", strerror(res)));
     close(s_io[1]);
     close(s_io[0]);
     return res;
@@ -1214,6 +1219,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   res = os_socketpair(s_err);
   if (res) {
     res = errno;
+    Debug((DEBUG_INFO, "Unable to create IAuth stderr: %s", strerror(res)));
     socket_del(i_socket(iauth));
     close(s_io[1]);
     close(s_io[0]);
@@ -1224,6 +1230,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   res = os_set_nonblocking(s_err[0]);
   if (!res) {
     res = errno;
+    Debug((DEBUG_INFO, "Unable to make IAuth stderr non-blocking: %s", strerror(res)));
     close(s_err[1]);
     close(s_err[0]);
     socket_del(i_socket(iauth));
@@ -1237,6 +1244,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
                    SS_CONNECTED, SOCK_EVENT_READABLE, s_err[0]);
   if (!res) {
     res = errno;
+    Debug((DEBUG_INFO, "Unable to register IAuth stderr: %s", strerror(res)));
     close(s_err[1]);
     close(s_err[0]);
     socket_del(i_socket(iauth));
@@ -1250,6 +1258,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (cpid < 0) {
     /* Error forking the child, still in parent. */
     res = errno;
+    Debug((DEBUG_INFO, "Unable to fork IAuth child: %s", strerror(res)));
     socket_del(i_stderr(iauth));
     close(s_err[1]);
     close(s_err[0]);
@@ -1309,17 +1318,15 @@ int auth_spawn(int argc, char *argv[])
         same = 0;
     }
     /* Check that we have no more pre-existing arguments. */
-    if (iauth->i_argv[ii])
+    if (same && iauth->i_argv[ii])
       same = 0;
-    /* If they are the same and still connected, clear the "closing" flag and exit.*/
+    /* If they are the same and still connected, clear the "closing" flag and exit. */
     if (same && i_GetConnected(iauth)) {
+      Debug((DEBUG_INFO, "Reusing existing IAuth process"));
       IAuthClr(iauth, IAUTH_CLOSING);
       return 2;
     }
-    /* Deallocate old argv elements. */
-    for (ii = 0; iauth->i_argv[ii]; ++ii)
-      MyFree(iauth->i_argv[ii]);
-    MyFree(iauth->i_argv);
+    auth_close_unused();
   }
 
   /* Need to initialize a new connection. */
