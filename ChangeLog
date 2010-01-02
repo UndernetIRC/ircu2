@@ -1,5 +1,10 @@
 2010-01-01  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (mode_process_bans): Bypass total ban count and
+	length checks for OPMODEs.
+
+2010-01-01  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/ircd_features.c (feature_report): If sd->sd_funcdata is
 	non-zero, report even unchanged features (using prefix 'f').
 

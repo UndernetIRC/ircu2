@@ -2919,6 +2919,7 @@ mode_process_bans(struct ParseState *state)
 	len -= banlen;
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
+            !(state->mbuf->mb_dest & MODEBUF_DEST_OPMODE) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
 	     count > feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
