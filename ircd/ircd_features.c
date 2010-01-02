@@ -41,6 +41,7 @@
 #include "s_bsd.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "sys.h"    /* FALSE bleah */
@@ -819,6 +820,8 @@ feature_init(void)
 void
 feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 {
+  char changed;
+  int report;
   int i;
 
   for (i = 0; features[i].type; i++) {
@@ -827,33 +830,36 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 	(features[i].flags & FEAT_OPER && !IsAnOper(to)))
       continue; /* skip this one */
 
+    changed = (features[i].flags & FEAT_MARK) ? 'F' : 'f';
+    report = (features[i].flags & FEAT_MARK) || sd->sd_funcdata;
+
     switch (features[i].flags & FEAT_MASK) {
     case FEAT_NONE:
       if (features[i].report) /* let the callback handle this */
-	(*features[i].report)(to, features[i].flags & FEAT_MARK ? 1 : 0);
+	(*features[i].report)(to, report);
       break;
 
 
     case FEAT_INT: /* Report an F-line with integer values */
-      if (features[i].flags & FEAT_MARK) /* it's been changed */
-	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %d",
-		   features[i].type, features[i].v_int);
+      if (report) /* it's been changed */
+	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %d",
+		   changed, features[i].type, features[i].v_int);
       break;
 
     case FEAT_BOOL: /* Report an F-line with boolean values */
-      if (features[i].flags & FEAT_MARK) /* it's been changed */
-	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
-		   features[i].type, features[i].v_int ? "TRUE" : "FALSE");
+      if (report) /* it's been changed */
+	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
+		   changed, features[i].type, features[i].v_int ? "TRUE" : "FALSE");
       break;
 
     case FEAT_STR: /* Report an F-line with string values */
-      if (features[i].flags & FEAT_MARK) { /* it's been changed */
+      if (report) { /* it's been changed */
 	if (features[i].v_str)
-	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
-		     features[i].type, features[i].v_str);
+	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
+		     changed, features[i].type, features[i].v_str);
 	else /* Actually, F:<type> would reset it; you want F:<type>: */
-	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s",
-		     features[i].type);
+	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s",
+		     changed, features[i].type);
       }
       break;
     }
