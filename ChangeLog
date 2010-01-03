@@ -1,5 +1,12 @@
 2010-01-03  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/channel.c (find_delayed_joins): Move earlier in the file.
+	(modebuf_flush_int): Move the checks for changing between +D and
+	+d to here...
+	(modebuf_flush): ... from here.
+
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_server.c (check_loop_and_lh): Never return 1 when we kill
 	another server.  Update the squit message text for maxhops and hub
 	violations.

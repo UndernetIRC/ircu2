@@ -1489,6 +1489,20 @@ build_string(char *strptr, int *strptr_i, const char *str1,
   strptr[(*strptr_i)] = '\0';
 }
 
+/** Check a channel for join-delayed members.
+ * @param[in] chan Channel to search.
+ * @return Non-zero if any members are join-delayed; false if none are.
+ */
+static int
+find_delayed_joins(const struct Channel *chan)
+{
+  const struct Membership *memb;
+  for (memb = chan->members; memb; memb = memb->next_member)
+    if (IsDelayedJoin(memb))
+      return 1;
+  return 0;
+}
+
 /** Flush out the modes
  * This is the workhorse of our ModeBuf suite; this actually generates the
  * output MODE commands, HACK notices, or whatever.  It's pretty complicated.
@@ -1567,6 +1581,23 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     app_source = &his;
   else
     app_source = mbuf->mb_source;
+
+  /* Must be set if going -D and some clients are hidden */
+  if ((mbuf->mb_rem & MODE_DELJOINS)
+      && !(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
+      && find_delayed_joins(mbuf->mb_channel)) {
+    mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
+    mbuf->mb_add |= MODE_WASDELJOINS;
+    mbuf->mb_rem &= ~MODE_WASDELJOINS;
+  }
+
+  /* +d must be cleared if +D is set */
+  if ((mbuf->mb_add & MODE_DELJOINS)
+      && (mbuf->mb_channel->mode.mode & MODE_WASDELJOINS)) {
+    mbuf->mb_channel->mode.mode &= ~MODE_WASDELJOINS;
+    mbuf->mb_add &= ~MODE_WASDELJOINS;
+    mbuf->mb_rem |= MODE_WASDELJOINS;
+  }
 
   /*
    * Account for user we're bouncing; we have to get it in on the first
@@ -2024,47 +2055,15 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
     modebuf_flush_int(mbuf, 0);
 }
 
-/** Check a channel for join-delayed members.
- * @param[in] chan Channel to search.
- * @return Non-zero if any members are join-delayed; false if none are.
- */
-static int
-find_delayed_joins(const struct Channel *chan)
-{
-  const struct Membership *memb;
-  for (memb = chan->members; memb; memb = memb->next_member)
-    if (IsDelayedJoin(memb))
-      return 1;
-  return 0;
-}
-
 /** The exported binding for modebuf_flush()
  *
  * @param mbuf	The mode buffer to flush.
- * 
+ *
  * @see modebuf_flush_int()
  */
 int
 modebuf_flush(struct ModeBuf *mbuf)
 {
-  /* Check if MODE_WASDELJOINS should be set: */
-  /* Must be set if going -D and some clients are hidden */
-  if ((mbuf->mb_rem & MODE_DELJOINS)
-      && !(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
-      && find_delayed_joins(mbuf->mb_channel)) {
-    mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
-    mbuf->mb_add |= MODE_WASDELJOINS;
-    mbuf->mb_rem &= ~MODE_WASDELJOINS;
-  }
-  /* Must be cleared if +D is set */
-  if ((mbuf->mb_add & MODE_DELJOINS)
-      && ((mbuf->mb_channel->mode.mode & (MODE_WASDELJOINS | MODE_WASDELJOINS))
-          == (MODE_WASDELJOINS | MODE_WASDELJOINS))) {
-    mbuf->mb_channel->mode.mode &= ~MODE_WASDELJOINS;
-    mbuf->mb_add &= ~MODE_WASDELJOINS;
-    mbuf->mb_rem |= MODE_WASDELJOINS;
-  }
-
   return modebuf_flush_int(mbuf, 1);
 }
 
