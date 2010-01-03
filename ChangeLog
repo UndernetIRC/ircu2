@@ -1,5 +1,10 @@
 2010-01-03  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_names.c (m_names): Terminate the buffer used for listing
+	clients who are not in any channel.
+
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/channel.c (find_delayed_joins): Move earlier in the file.
 	(modebuf_flush_int): Move the checks for changing between +D and
 	+d to here...
