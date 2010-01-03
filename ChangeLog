@@ -1,5 +1,11 @@
 2010-01-03  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_server.c (check_loop_and_lh): Never return 1 when we kill
+	another server.  Update the squit message text for maxhops and hub
+	violations.
+
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/Makefile.in (IRCD_SRC): Add m_xquery.c and m_xreply.c to
 	the build.
 
