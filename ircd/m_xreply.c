@@ -83,9 +83,11 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
+#include "numnicks.h"
 #include "s_auth.h"
 #include "send.h"
 
@@ -101,7 +103,7 @@
  */
 int ms_xreply(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct client* acptr;
+  struct Client* acptr;
   const char* routing;
   const char* reply;
 
@@ -112,7 +114,7 @@ int ms_xreply(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   reply = parv[3];
 
   /* Look up the target */
-  if (!(acptr = FindNServer(parv[1])) && !(acptr = FindNUser(parv[1])))
+  if (!(acptr = FindNServer(parv[1])) && !(acptr = findNUser(parv[1])))
     return send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHSERVER,
 		      "* :Server has disconnected");
 

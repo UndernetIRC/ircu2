@@ -83,6 +83,7 @@
 #include "client.h"
 #include "ircd.h"
 #include "ircd_log.h"
+#include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
 #include "numeric.h"
@@ -101,7 +102,7 @@
  */
 int mo_xquery(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct client* acptr;
+  struct Client* acptr;
 
   if (parc < 4) /* have enough parameters? */
     return need_more_params(sptr, "XQUERY");
@@ -128,7 +129,7 @@ int mo_xquery(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
  */
 int ms_xquery(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  struct client* acptr;
+  struct Client* acptr;
 
   if (parc < 4) /* have enough parameters? */
     return need_more_params(sptr, "XQUERY");

@@ -1,3 +1,15 @@
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/Makefile.in (IRCD_SRC): Add m_xquery.c and m_xreply.c to
+	the build.
+
+	* ircd/m_xquery.c: Add missing include.
+	(mo_xquery): Fix spelling of struct Client.
+	(ms_xquery): Likewise.
+
+	* ircd/m_xreply.c: Add missing includes.
+	(ms_xreply): Fix spelling of struct Client and findNUser().
+
 2010-01-01  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* doc/readme.xquery: documentation for design and use of the
