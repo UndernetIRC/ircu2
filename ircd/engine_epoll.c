@@ -104,6 +104,12 @@ static int epoll_fd;
 static int errors;
 /** Periodic timer to forget errors. */
 static struct Timer clear_error;
+/** Current array of event descriptors. */
+static struct epoll_event *events;
+/** Number of ::events elements that have been populated. */
+static int events_used;
+/** Current processing position in ::events. */
+static int events_i;
 
 /** Decrement the error count (once per hour).
  * @param[in] ev Expired timer event (ignored).
@@ -236,10 +242,17 @@ engine_set_events(struct Socket *sock, unsigned new_events)
 static void
 engine_delete(struct Socket *sock)
 {
+  int ii;
+
   assert(0 != sock);
   Debug((DEBUG_ENGINE, "epoll: Deleting socket %d [%p], state %s",
 	 s_fd(sock), sock, state_to_name(s_state(sock))));
-  /* No action necessary; epoll removes the socket on close(). */
+  /* Drop any unprocessed events citing this socket. */
+  for (ii = events_i; ii < events_used; ii++) {
+    if (events[ii].data.ptr == sock) {
+      events[ii] = events[--events_used];
+    }
+  }
 }
 
 /** Run engine event loop.
@@ -248,27 +261,27 @@ engine_delete(struct Socket *sock)
 static void
 engine_loop(struct Generators *gen)
 {
-  struct epoll_event *events;
+  struct epoll_event *evt;
   struct Socket *sock;
   socklen_t codesize;
-  int events_count, i, wait, nevs, errcode;
+  int events_count, tmp, wait, errcode;
 
   if ((events_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)
     events_count = 20;
   events = MyMalloc(sizeof(events[0]) * events_count);
   while (running) {
-    if ((i = feature_int(FEAT_POLLS_PER_LOOP)) >= 20 && i != events_count) {
-      events = MyRealloc(events, sizeof(events[0]) * i);
-      events_count = i;
+    if ((tmp = feature_int(FEAT_POLLS_PER_LOOP)) >= 20 && tmp != events_count) {
+      events = MyRealloc(events, sizeof(events[0]) * tmp);
+      events_count = tmp;
     }
 
     wait = timer_next(gen) ? (timer_next(gen) - CurrentTime) * 1000 : -1;
     Debug((DEBUG_ENGINE, "epoll: delay: %d (%d) %d", timer_next(gen),
            CurrentTime, wait));
-    nevs = epoll_wait(epoll_fd, events, events_count, wait);
+    events_used = epoll_wait(epoll_fd, events, events_count, wait);
     CurrentTime = time(0);
 
-    if (nevs < 0) {
+    if (events_used < 0) {
       if (errno != EINTR) {
         log_write(LS_SOCKET, L_ERROR, 0, "epoll() error: %m");
         if (!errors++)
@@ -280,8 +293,9 @@ engine_loop(struct Generators *gen)
       continue;
     }
 
-    for (i = 0; i < nevs; i++) {
-      if (!(sock = events[i].data.ptr))
+    for (events_i = 0; events_i < events_used; ) {
+      evt = &events[events_i++];
+      if (!(sock = evt->data.ptr))
         continue;
       gen_ref_inc(sock);
       Debug((DEBUG_ENGINE,
@@ -289,7 +303,7 @@ engine_loop(struct Generators *gen)
              sock, s_fd(sock), state_to_name(s_state(sock)),
              sock_flags(s_events(sock))));
 
-      if (events[i].events & EPOLLERR) {
+      if (evt->events & EPOLLERR) {
         errcode = 0;
         codesize = sizeof(errcode);
         if (getsockopt(s_fd(sock), SOL_SOCKET, SO_ERROR, &errcode,
@@ -300,16 +314,16 @@ engine_loop(struct Generators *gen)
           gen_ref_dec(sock);
           continue;
         }
-      } else if (events[i].events & EPOLLHUP) {
+      } else if (evt->events & EPOLLHUP) {
         event_generate(ET_EOF, sock, 0);
       } else switch (s_state(sock)) {
       case SS_CONNECTING:
-        if (events[i].events & EPOLLOUT) /* connection completed */
+        if (evt->events & EPOLLOUT) /* connection completed */
           event_generate(ET_CONNECT, sock, 0);
         break;
 
       case SS_LISTENING:
-        if (events[i].events & EPOLLIN) /* incoming connection */
+        if (evt->events & EPOLLIN) /* incoming connection */
           event_generate(ET_ACCEPT, sock, 0);
         break;
 
@@ -317,9 +331,9 @@ engine_loop(struct Generators *gen)
       case SS_CONNECTED:
       case SS_DATAGRAM:
       case SS_CONNECTDG:
-        if (events[i].events & EPOLLIN)
+        if (evt->events & EPOLLIN)
           event_generate(ET_READ, sock, 0);
-        if (events[i].events & EPOLLOUT)
+        if (evt->events & EPOLLOUT)
           event_generate(ET_WRITE, sock, 0);
         break;
       }

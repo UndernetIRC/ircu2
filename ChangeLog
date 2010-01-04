@@ -1,5 +1,22 @@
 2010-01-03  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/engine_devpoll.c: Make some variables that were local to
+	engine_loop() file-scoped so engine_delete() can see them.
+	(engine_delete): Discard unprocessed events for the deleted
+	socket.
+	(engine_loop): Update to use the new variable names.  Change a
+	frequent debug statement to DEBUG_ENGINE.  Fix the type of the
+	codesize variable.
+
+	* ircd/engine_epoll.c: Same as ircd/engine_devpoll.c, but the
+	debug statement and codesize variable were already fixed.
+
+	* ircd/engine_kqueue.c: Same as ircd/engine_devpoll.c, but also
+	fix a typo in an engine_signal() assertion, and get rid of dead
+	variables in engine_delete().
+
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/s_bsd.c (client_sock_callback): Invalidate cli_fd() when we
 	receive an EBADF error.
 
