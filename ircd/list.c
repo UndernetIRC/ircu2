@@ -427,9 +427,6 @@ void verify_client_list(void)
  */
 struct SLink* make_link(void)
 {
-#if 1
-  struct SLink* lp = (struct SLink*) MyMalloc(sizeof(struct SLink));
-#else
   struct SLink* lp = slinkFreeList;
   if (lp)
     slinkFreeList = lp->next;
@@ -437,7 +434,6 @@ struct SLink* make_link(void)
     lp = (struct SLink*) MyMalloc(sizeof(struct SLink));
     links.alloc++;
   }
-#endif
   assert(0 != lp);
   links.inuse++;
   memset(lp, 0, sizeof(*lp));
@@ -450,12 +446,8 @@ struct SLink* make_link(void)
 void free_link(struct SLink* lp)
 {
   if (lp) {
-#if 1
-    MyFree(lp);
-#else
     lp->next = slinkFreeList;
     slinkFreeList = lp;
-#endif
     links.inuse--;
   }
 }
