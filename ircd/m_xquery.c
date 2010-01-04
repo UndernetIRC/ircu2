@@ -139,10 +139,14 @@ int ms_xquery(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHSERVER,
 		      "* :Server has disconnected");
 
-  /* If it's to us, do nothing; otherwise, forward the query */
+  /* Forward the query to its destination */
   if (!IsMe(acptr))
     sendcmdto_one(sptr, CMD_XQUERY, acptr, "%C %s :%s", acptr, parv[2],
 		  parv[3]);
+  else /* if it's to us, log it */
+    log_write(LS_SYSTEM, L_NOTICE, 0, "Received extension query from "
+	      "%#C to %#C routing %s; message: %s", sptr, acptr,
+	      parv[2], parv[3]);
 
   return 0;
 }

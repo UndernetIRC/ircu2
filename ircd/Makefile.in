@@ -186,8 +186,8 @@ IRCD_SRC = \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \
-	m_xreply.c \
 	m_xquery.c \
+	m_xreply.c \
 	match.c \
 	memdebug.c \
 	motd.c \

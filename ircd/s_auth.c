@@ -2026,7 +2026,7 @@ static int iauth_cmd_challenge(struct IAuth *iauth, struct Client *cli,
 static int iauth_cmd_xquery(struct IAuth *iauth, struct Client *cli,
 			    int parc, char **params)
 {
-  const char *serv;
+  char *serv;
   const char *routing;
   const char *query;
   struct Client *acptr;
