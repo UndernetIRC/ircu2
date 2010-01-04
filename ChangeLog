@@ -1,5 +1,10 @@
 2010-01-03  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_bsd.c (client_sock_callback): Invalidate cli_fd() when we
+	receive an EBADF error.
+
+2010-01-03  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/engine_select.c (engine_loop): Remove a bogus assert() that
 	the structure's FD is correct after the event-handling callback
 	returns.  Also fix a warning about the type of the last parameter
