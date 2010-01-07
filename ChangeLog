@@ -1,5 +1,21 @@
 2010-01-06  Michael Poole <mdpoole@troilus.org>
 
+	* Makefile.in: Remove doc/Makefile from the build.
+
+	* configure.in: Do not generate doc/Makefile.
+
+	* configure: Regenerate.
+
+	* doc/Makefile.in: Delete.
+
+	* doc/irc.1: Delete.
+
+	* doc/ircd.8: Delete.
+
+	* libs: Delete.
+
+2010-01-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_topic.c (ms_topic): When no topic timestamp is passed,
 	use the current time instead of the channel creation time.
 

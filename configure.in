@@ -716,7 +716,7 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
 dnl Finally really generate all output files:
-AC_OUTPUT(Makefile ircd/Makefile ircd/test/Makefile doc/Makefile, [echo timestamp > stamp-h])
+AC_OUTPUT(Makefile ircd/Makefile ircd/test/Makefile, [echo timestamp > stamp-h])
 
 dnl Report configuration
 AC_OUTPUT_COMMANDS([echo "
