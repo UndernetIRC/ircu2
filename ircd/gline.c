@@ -503,6 +503,9 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
     if (!IsServer(sptr) && MyConnect(sptr))
       send_reply(sptr, ERR_BADEXPIRE, expire);
     return 0;
+  } else if (expire <= CurrentTime) {
+    /* This expired G-line was forced to be added, so mark it inactive. */
+    flags &= ~GLINE_ACTIVE;
   }
 
   if (!lifetime) /* no lifetime set, use expiration time */
