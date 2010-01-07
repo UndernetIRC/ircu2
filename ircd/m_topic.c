@@ -197,6 +197,7 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (parc > 3 && (ts = atoi(parv[2])) && chptr->creationtime < ts)
       continue;
 
+    ts = 0; /* Default to the current time if no topic_time is passed. */
     if (parc > 4 && (ts = atoi(parv[3])) && chptr->topic_time > ts)
       continue;
 
