@@ -1,5 +1,11 @@
 2010-01-06  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_silence.c (m_silence): Only show the silence list for the
+	requesting client and for channel services, to help keep other
+	clients' servers hidden.
+
+2010-01-06  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/gline.c (gline_add): If a forced G-line has already
 	expired, create it in a deactivated state.
 
