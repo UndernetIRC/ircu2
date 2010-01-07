@@ -509,6 +509,11 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  } while (IsDigit(*ptr));
 		  --ptr;
 		  oplevel += level_increment;
+                  if (oplevel > MAXOPLEVEL) {
+                    protocol_violation(sptr, "Invalid cumulative oplevel %u during burst", oplevel);
+                    oplevel = MAXOPLEVEL;
+                    break;
+                  }
 		}
 		else { /* I don't recognize that flag */
 		  protocol_violation(sptr, "Invalid flag '%c' in nick part of burst", *ptr);
@@ -537,7 +542,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	      nickstr[nickpos++] = 'v';
 	    if (current_mode & CHFL_CHANOP)
             {
-              if (chptr->mode.apass[0])
+              if (oplevel != MAXOPLEVEL)
 	        nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel);
               else
                 nickstr[nickpos++] = 'o';

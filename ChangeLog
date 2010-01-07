@@ -1,3 +1,9 @@
+2010-01-06  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_burst.c (ms_burst): Gracefully handle the case where a
+	server sends us a too-large oplevel.  Forward oplevels whenever
+	they are in use, not just when the channel is +A.
+
 2010-01-04  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* ircd/m_xquery.c (ms_xquery): Resolving my patches with
