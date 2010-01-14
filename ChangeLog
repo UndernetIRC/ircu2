@@ -1,3 +1,8 @@
+2010-01-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_burst.c (ms_burst): Do not clear keys or limit here --
+	MODE_PARSE_WIPEOUT gets modebuf_flush() to do that for us.
+
 2010-01-06  Michael Poole <mdpoole@troilus.org>
 
 	* Makefile.in: Remove doc/Makefile from the build.
