@@ -1,3 +1,7 @@
+2010-02-02  Michael Poole <mdpoole@troilus.org>
+
+	* include/patchlevel.h (PATCHLEVEL): Bump to (u2.10.12.)13-rc2.
+
 2010-01-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_burst.c (ms_burst): Do not clear keys or limit here --
