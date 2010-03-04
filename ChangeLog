@@ -1,3 +1,8 @@
+2010-03-04  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* ircd/s_bsd.c: use feature_int() to get the integer value of the
+	feature...and don't try to set the TOS to its index!
+
 2010-02-02  Michael Poole <mdpoole@troilus.org>
 
 	* include/patchlevel.h (PATCHLEVEL): Bump to (u2.10.12.)13-rc2.

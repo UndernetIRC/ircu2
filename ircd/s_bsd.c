@@ -238,7 +238,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   /*
    * Set the TOS bits - this is nonfatal if it doesn't stick.
    */
-  if (!os_set_tos(cli_fd(cptr), FEAT_TOS_SERVER)) {
+  if (!os_set_tos(cli_fd(cptr), feature_int(FEAT_TOS_SERVER))) {
     report_error(TOS_ERROR_MSG, cli_name(cptr), errno);
   }
   if ((result = os_connect_nonb(cli_fd(cptr), &aconf->address)) == IO_FAILURE) {
