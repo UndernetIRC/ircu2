@@ -1,5 +1,13 @@
 2010-03-08  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_server.c (enum lh_type): New type.
+	(check_loop_and_lh): Use the enum instead of magic integers.
+	Make the error message a little clearer when neither "hub" nor
+	"maxhops" is specified for a server.  Clean up the control flow
+	when we decide to reject the link.
+
+2010-03-08  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/test/ircd_match_t.c (_SC_PAGE_SIZE): Default to
 	_SC_PAGESIZE if that is defined (as it is on some Unixes).
 
