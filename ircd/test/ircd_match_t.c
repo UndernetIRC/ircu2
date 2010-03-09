@@ -20,6 +20,14 @@
 # endif
 #endif
 
+#if !defined(_SC_PAGE_SIZE)
+# if defined(_SC_PAGESIZE)
+#  define _SC_PAGE_SIZE _SC_PAGESIZE
+# else
+#  error I do not know how to request the page size from your OS.
+# endif
+#endif
+
 struct match_test {
   const char *glob;
   const char *should_match;
