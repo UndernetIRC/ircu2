@@ -1,3 +1,11 @@
+2010-03-28  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c: Replace CurrentTime with TStime(), and remove the
+	uses of TSoffset, so that all G-line-related times are assumed to
+	be in network time.
+
+	* ircd/m_gline.c: Likewise.
+
 2010-03-08  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_server.c (enum lh_type): New type.
