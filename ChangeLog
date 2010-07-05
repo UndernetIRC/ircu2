@@ -1,3 +1,11 @@
+2010-07-05  Kevin L. Mitchell  <klmitch@mit.edu>
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel from -rc2 to
+	actual 13
+
+	* ircd/ircd_features.c: bump MAXBANS from 45 to 50, and MAXSILES
+	from 15 to 25
+
 2010-03-28  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/gline.c: Replace CurrentTime with TStime(), and remove the
