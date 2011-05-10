@@ -339,6 +339,18 @@ static void check_pings(struct Event* ev) {
     if (!cptr)
       continue;
      
+    /* We don't need to check zombies here */
+    if (IsNotConn(cptr)) {
+      assert(IsUser(cptr));
+      /* for now: reap after fixed time (15 minutes) */
+      if ((CurrentTime - cli_user(cptr)->last) >= 900) {
+        SetFlag(cptr, FLAG_DEADSOCKET);
+        /* this will be used as exit message */
+        ircd_strncpy(cli_info(cptr), "Ping timeout", REALLEN);
+      } else
+        continue;
+    }
+
     assert(&me != cptr);  /* I should never be in the local client array! */
    
 
@@ -419,6 +431,14 @@ static void check_pings(struct Event* ev) {
         sendto_opmask_butone(0, SNO_OLDSNO,
                              "No response from %s, closing link",
                              cli_name(cptr));
+      /*
+       * Keep client structure around when a user pings out, so that they can
+       * reconnect to it later
+       */
+      if (IsUser(cptr) && IsAccount(cptr)) {
+        zombie_client(&me, &me, cptr);
+        continue;
+      }
       exit_client_msg(cptr, cptr, &me, "Ping timeout");
       continue;
     }

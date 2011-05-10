@@ -336,6 +336,14 @@ struct Client;
 #define TOK_ACCOUNT		"AC"
 #define CMD_ACCOUNT		MSG_ACCOUNT, TOK_ACCOUNT
 
+#define MSG_ZOMBIE		"ZOMBIE"	/* ZOMB */
+#define TOK_ZOMBIE		"ZO"
+#define CMD_ZOMBIE		MSG_ZOMBIE, TOK_ZOMBIE
+
+#define MSG_UNZOMBIE		"UNZOMBIE"	/* UZMB */
+#define TOK_UNZOMBIE		"ZU"
+#define CMD_UNZOMBIE		MSG_UNZOMBIE, TOK_UNZOMBIE
+
 #define MSG_ASLL               "ASLL"          /* ASLL */
 #define TOK_ASLL               "LL"
 #define CMD_ASLL               MSG_ASLL, TOK_ASLL

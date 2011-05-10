@@ -76,6 +76,10 @@ struct ServerStatistics {
 
 extern int check_registered(struct Client *sptr);
 extern int check_registered_user(struct Client *sptr);
+extern void zombie_client(struct Client *cptr, struct Client *killer,
+			 struct Client *victim);
+extern void unzombie_client(struct Client *cptr, struct Client *sptr,
+			    struct Client *acptr, struct Client *victim);
 extern int exit_client(struct Client *cptr, struct Client *bcptr,
     struct Client *sptr, const char *comment);
 extern char *myctime(time_t value);

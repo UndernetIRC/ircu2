@@ -106,7 +106,7 @@ static void dead_link(struct Client *to, char *notice)
 static int can_send(struct Client* to)
 {
   assert(0 != to);
-  return (IsDead(to) || IsMe(to) || -1 == cli_fd(to)) ? 0 : 1;
+  return (IsDead(to) || IsMe(to) || IsNotConn(to) || -1 == cli_fd(to)) ? 0 : 1;
 }
 
 /** Close the connection with the highest sendq.

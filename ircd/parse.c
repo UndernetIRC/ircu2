@@ -611,6 +611,20 @@ struct Message msgtab[] = {
     { m_ignore, m_ignore, ms_account, m_ignore, m_ignore }
   },
   {
+    MSG_ZOMBIE,
+    TOK_ZOMBIE,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_zombie, m_ignore, m_ignore }
+  },
+  {
+    MSG_UNZOMBIE,
+    TOK_UNZOMBIE,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_unzombie, m_ignore, m_ignore }
+  },
+  {
     MSG_ASLL,
     TOK_ASLL,
     0, MAXPARA, MFLG_SLOW, 0, NULL,

@@ -431,6 +431,34 @@ void close_connection(struct Client *cptr)
   }
 }
 
+/**
+ * Switches a client's connection over to a different, zombied client.
+ *
+ * @param source client to attach to zombied client
+ * @param target zombied client
+ */
+void connection_switch_to_client(struct Client *source, struct Client *target)
+{
+  assert(IsNotConn(target));
+  assert(MyConnect(source));
+  assert(-1 < cli_fd(source));
+  cli_connect(target) = cli_connect(source);
+  /* conveniently, this makes it much easier to get rid of source later on */
+  cli_from(target) = target;
+  LocalClientArray[cli_fd(source)] = target;
+
+  /* make main loop remove source soonish */
+  SetFlag(source, FLAG_DEADSOCKET);
+
+  /* need to copy over data from old client */
+  cli_user(target)->server = cli_user(source)->server;
+  strcpy(cli_yxx(target), cli_yxx(source));
+  cli_hopcount(target) = cli_hopcount(source);
+  cli_ip(target) = cli_ip(source);
+  strcpy(cli_username(target), cli_username(source));
+  strcpy(cli_user(target)->realhost, cli_user(source)->realhost);
+}
+
 /** Close all unregistered connections.
  * @param source Oper who requested the close.
  * @return Number of closed connections.

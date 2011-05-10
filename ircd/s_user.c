@@ -499,7 +499,8 @@ static const struct UserMode {
   { FLAG_CHSERV,      'k' },
   { FLAG_DEBUG,       'g' },
   { FLAG_ACCOUNT,     'r' },
-  { FLAG_HIDDENHOST,  'x' }
+  { FLAG_HIDDENHOST,  'x' },
+  { FLAG_NOTCONN,     'Z' }
 };
 
 /** Length of #userModeList. */
@@ -1084,6 +1085,12 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
 	}
 	/* There is no -r */
 	break;
+      case 'Z':
+	if (what == MODE_ADD)
+	  SetNotConn(sptr);
+	else
+	  ClearNotConn(sptr);
+	break;
       default:
         send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;
@@ -1102,6 +1109,8 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
       ClearLocOp(sptr);
     if (!FlagHas(&setflags, FLAG_ACCOUNT) && IsAccount(sptr))
       ClrFlag(sptr, FLAG_ACCOUNT);
+    if (!FlagHas(&setflags, FLAG_NOTCONN) && IsNotConn(sptr))
+      ClrFlag(sptr, FLAG_NOTCONN);
     /*
      * new umode; servers can set it, local users cannot;
      * prevents users from /kick'ing or /mode -o'ing

@@ -319,6 +319,91 @@ static void exit_downlinks(struct Client *cptr, struct Client *sptr, char *comme
   }
 }
 
+/**
+ * Marks a local client as disconnected, and close its link if it is a local client.
+ *
+ * @param cptr server that notified us
+ * @param killer origin of decision to zombie \a victim
+ * @param victim zombied client
+ */
+void zombie_client(struct Client *cptr, struct Client *killer, struct Client *victim)
+{
+  assert(IsServer(cptr) || IsMe(cptr));
+  assert(IsServer(killer) || IsMe(killer));
+  assert(IsUser(victim));
+
+  /*
+   * Stop a running /LIST clean
+   */
+  if (MyUser(victim) && cli_listing(victim)) {
+    MyFree(cli_listing(victim));
+    cli_listing(victim) = NULL;
+  }
+
+  if (MyConnect(victim))
+    close_connection(victim);
+  /* need this so that main loop doesn't exit the client */
+  ClrFlag(victim, FLAG_DEADSOCKET);
+
+  SetNotConn(victim);
+  sendcmdto_serv_butone(killer, CMD_ZOMBIE, cptr, "%C", victim);
+}
+
+/**
+ * Attaches a client to a zombied client, removing the superfluous client in the process.
+ *
+ * @param cptr server that notified us
+ * @param sptr origin server of unzombie operation
+ * @param acptr client that is attaching to \a victim
+ * @param victim zombied client that someone is attaching to
+ */
+void unzombie_client(struct Client *cptr, struct Client *sptr, struct Client *acptr, struct Client *victim)
+{
+  assert(IsServer(cptr) || IsMe(cptr));
+  assert(IsServer(sptr) || IsMe(sptr));
+  assert(IsUser(acptr));
+  assert(IsNotConn(victim));
+
+  if (MyConnect(acptr))
+    connection_switch_to_client(acptr, victim);
+
+  ClearOper(victim);
+  ClearNotConn(victim);
+
+  if (MyConnect(victim)) {
+    /* inform client about "new" modes */
+    struct Flags setflags = cli_flags(acptr);
+    struct Membership *chan;
+    sendcmdto_one(acptr, CMD_NICK, victim, "%C", victim);
+    send_umode(victim, victim, &setflags, ALL_UMODES);
+
+    /*
+     * mark current client as zombie on all channels so that it does not show
+     * up in the memberships we'll resend below
+     */
+    for (chan = cli_user(acptr)->channel; chan; chan = chan->next_channel) {
+      SetZombie(chan);
+    }
+
+    /* resend channel memberships */
+    for (chan = cli_user(victim)->channel; chan; chan = chan->next_channel) {
+      struct Channel *chptr = chan->channel;
+      /* pretty unlikely to happen but let's handle this anyway */
+      if (IsZombie(chan))
+        continue;
+      sendcmdto_one(victim, CMD_JOIN, victim, ":%H", chptr);
+      if (chptr->topic[0]) {
+        send_reply(victim, RPL_TOPIC, chptr->chname, chptr->topic);
+        send_reply(victim, RPL_TOPICWHOTIME, chptr->chname, chptr->topic_nick,
+		   chptr->topic_time);
+      }
+      do_names(victim, chptr, NAMES_ALL|NAMES_EON); /* send /names list */
+    }
+  }
+
+  sendcmdto_serv_butone(sptr, CMD_UNZOMBIE, cptr, "%C %C", acptr, victim);
+}
+
 /* exit_client, rewritten 25-9-94 by Run */
 /**
  * Exits a client of *any* type (user, server, etc)

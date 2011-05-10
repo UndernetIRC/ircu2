@@ -63,6 +63,8 @@ extern unsigned int deliver_it(struct Client *cptr, struct MsgQ *buf);
 extern int connect_server(struct ConfItem* aconf, struct Client* by);
 extern int  net_close_unregistered_connections(struct Client* source);
 extern void close_connection(struct Client *cptr);
+extern void connection_switch_to_client(struct Client *source,
+					struct Client *target);
 extern void add_connection(struct Listener* listener, int fd);
 extern int  read_message(time_t delay);
 extern void init_server_identity(void);

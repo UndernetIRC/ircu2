@@ -219,6 +219,7 @@ extern int ms_squit(struct Client*, struct Client*, int, char*[]);
 extern int ms_stats(struct Client*, struct Client*, int, char*[]);
 extern int ms_topic(struct Client*, struct Client*, int, char*[]);
 extern int ms_trace(struct Client*, struct Client*, int, char*[]);
+extern int ms_unzombie(struct Client*, struct Client*, int, char*[]);
 extern int ms_uping(struct Client*, struct Client*, int, char*[]);
 extern int ms_version(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallchops(struct Client*, struct Client*, int, char*[]);
@@ -228,6 +229,7 @@ extern int ms_wallvoices(struct Client*, struct Client*, int, char*[]);
 extern int ms_whois(struct Client*, struct Client*, int, char*[]);
 extern int ms_xquery(struct Client*, struct Client*, int, char*[]);
 extern int ms_xreply(struct Client*, struct Client*, int, char*[]);
+extern int ms_zombie(struct Client*, struct Client*, int, char*[]);
 
 #endif /* INCLUDED_handlers_h */
 
