@@ -90,6 +90,8 @@
 #include "s_misc.h"
 #include "ircd_reply.h"
 
+#include "hash.h"
+
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
 
@@ -104,6 +106,18 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
+
+  if (!strcmp(parv[parc - 1], "ZOMBIE")) {
+    zombie_client(&me, &me, sptr);
+    return 0;
+  }
+  if (!strcmp(parv[parc - 1], "UNZOMBIE")) {
+    struct Client *victim = FindUser("jast");
+    if (victim) {
+      unzombie_client(&me, &me, sptr, victim);
+      return 0;
+    }
+  }
 
   if (cli_user(sptr)) {
     struct Membership* chan;
