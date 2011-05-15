@@ -1,3 +1,8 @@
+2011-05-15  Michael Poole  <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (iauth_cmd_done_account): Do not copy the
+	account's creation timestamp into the account name.
+
 2010-07-05  Kevin L. Mitchell  <klmitch@mit.edu>
 
 	* include/patchlevel.h (PATCHLEVEL): bump patchlevel from -rc2 to

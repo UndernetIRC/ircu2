@@ -1953,8 +1953,10 @@ static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli,
   }
   /* If account has a creation timestamp, use it. */
   assert(cli_user(cli) != NULL);
-  if (params[0][len] == ':')
+  if (params[0][len] == ':') {
     cli_user(cli)->acc_create = strtoul(params[0] + len + 1, NULL, 10);
+    params[0][len] = '\0';
+  }
 
   /* Copy account name to User structure. */
   ircd_strncpy(cli_user(cli)->account, params[0], ACCOUNTLEN);
