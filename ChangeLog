@@ -1,3 +1,9 @@
+2011-08-17  Kevin L. Mitchell <klmitch@mit.edu>
+
+	* include/client.h: Fix minor issue in IsLocOp() test
+
+	* include/patchlevel.h (PATCHLEVEL): bump patchlevel to 14
+
 2011-05-15  Michael Poole  <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (iauth_cmd_done_account): Do not copy the

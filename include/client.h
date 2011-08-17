@@ -556,7 +556,7 @@ struct Client {
 /** Return non-zero if the client caused a net.burst. */
 #define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
 /** Return non-zero if the client has set mode +O (local operator) locally. */
-#define IsLocOp(x)              (MyUser(x) && HasFlag(x, FLAG_LOCOP))
+#define IsLocOp(x)              (MyConnect(x) && HasFlag(x, FLAG_LOCOP))
 /** Return non-zero if the client has set mode +o (global operator). */
 #define IsOper(x)               HasFlag(x, FLAG_OPER)
 /** Return non-zero if the client has an active UDP ping request. */
