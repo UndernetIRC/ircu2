@@ -1020,12 +1020,6 @@ void start_auth(struct Client* client)
   }
   auth->port = remote.port;
 
-  /* Try to start DNS lookup. */
-  start_dns_query(auth);
-
-  /* Try to start ident lookup. */
-  start_auth_query(auth);
-
   /* Set required client inputs for users. */
   if (IsUserPort(client)) {
     cli_user(client) = make_user(client);
@@ -1036,6 +1030,12 @@ void start_auth(struct Client* client)
     /* Try to start iauth lookup. */
     start_iauth_query(auth);
   }
+
+  /* Try to start DNS lookup. */
+  start_dns_query(auth);
+
+  /* Try to start ident lookup. */
+  start_auth_query(auth);
 
   /* Add client to GlobalClientList. */
   add_client_to_list(client);
