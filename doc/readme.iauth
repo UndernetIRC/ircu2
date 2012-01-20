@@ -446,6 +446,18 @@ Next State: GONE
 Comments: Indicates that the specified client should be disconnected
   for the reason given.  Operators should be notified.
 
+d - "Soft" Done Checking
+Syntax: d <id> <remoteip> <remoteport>
+Example: d 5 192.168.1.10 23367
+States: REGISTER, HURRY
+Next State: -
+Comments: Indicates that the iauth instance has no objection to letting
+  the specified client onto the network, but that some further work is
+  in process.  In particular, an account stamp and/or connection class
+  might be available later.
+Compatibility: This is an Undernet extension and ircd does not support
+  this message.
+
 D - Done Checking
 Syntax: D <id> <remoteip> <remoteport> [class]
 Example: D 5 192.168.1.10 23367

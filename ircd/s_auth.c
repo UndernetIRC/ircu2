@@ -84,6 +84,7 @@ enum AuthRequestFlag {
     AR_IAUTH_HURRY,     /**< we told iauth to hurry up */
     AR_IAUTH_USERNAME,  /**< iauth sent a username (preferred or forced) */
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
+    AR_IAUTH_SOFT_DONE, /**< iauth has no objection to client */
     AR_PASSWORD_CHECKED, /**< client password already checked */
     AR_NUM_FLAGS
 };
@@ -791,7 +792,8 @@ int auth_ping_timeout(struct Client *cptr)
 
   /* Check for iauth timeout. */
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING)) {
-    if (IAuthHas(iauth, IAUTH_REQUIRED)) {
+    if (IAuthHas(iauth, IAUTH_REQUIRED)
+        && !FlagHas(&auth->flags, AR_IAUTH_SOFT_DONE)) {
       sendheader(cptr, REPORT_FAIL_IAUTH);
       return exit_client_msg(cptr, cptr, &me, "Authorization Timeout");
     }
@@ -1880,6 +1882,22 @@ static struct ConfItem *auth_find_class_conf(const char *class_name)
   return aconf;
 }
 
+/** Tentatively accept a client in IAuth.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Optional class name for client.
+ * @return Negative (CPTR_KILLED) if the connection is refused, one otherwise.
+ */
+static int iauth_cmd_soft_done(struct IAuth *iauth, struct Client *cli,
+			       int parc, char **params)
+{
+  /* Clear iauth pending flag. */
+  assert(cli_auth(cli) != NULL);
+  FlagSet(&cli_auth(cli)->flags, AR_IAUTH_SOFT_DONE);
+  return 1;
+}
+
 /** Accept a client in IAuth.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -2099,6 +2117,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 'I': handler = iauth_cmd_ip_address; has_cli = 1; break;
   case 'M': handler = iauth_cmd_usermode; has_cli = 1; break;
   case 'C': handler = iauth_cmd_challenge; has_cli = 1; break;
+  case 'd': handler = iauth_cmd_soft_done; has_cli = 1; break;
   case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
   case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;
   case 'k': /* The 'k' command indicates the user should be booted
