@@ -1,3 +1,19 @@
+2011-01-19  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.iauth: Document the new 'd' IAuth command.
+
+	* ircd/s_auth.c (AuthRequestFlag): Add "soft done" flag.
+	(auth_ping_timeout): Do not impose Authorization Timeout on
+	clients with the "soft done" flag set.
+	(iauth_cmd_soft_done): New IAuth command handler.
+	(iauth_parse): Call it.
+
+2011-01-19  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_auth.c (start_auth): Call start_dns_query() and
+	start_auth_query() after start_iauth_query() rather than
+	before.
+
 2011-08-17  Kevin L. Mitchell <klmitch@mit.edu>
 
 	* include/client.h: Fix minor issue in IsLocOp() test
