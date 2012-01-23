@@ -1,3 +1,8 @@
+2011-01-23  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c (gline_modify): Notify opers using SNO_AUTO rather
+	than SNO_GLINE if a G-line had, and still has, an AUTO prefix.
+
 2011-01-19  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.iauth: Document the new 'd' IAuth command.

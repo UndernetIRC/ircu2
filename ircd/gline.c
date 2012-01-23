@@ -697,7 +697,7 @@ gline_modify(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 	     time_t lastmod, time_t lifetime, unsigned int flags)
 {
   char buf[BUFSIZE], *op = "";
-  int pos = 0;
+  int pos = 0, non_auto = 0;
 
   assert(gline);
   assert(!GlineIsLocal(gline));
@@ -841,6 +841,7 @@ gline_modify(struct Client *cptr, struct Client *sptr, struct Gline *gline,
 
   /* Now, handle reason changes... */
   if (flags & GLINE_REASON) {
+    non_auto = non_auto || ircd_strncmp(gline->gl_reason, "AUTO", 4);
     MyFree(gline->gl_reason); /* release old reason */
     DupString(gline->gl_reason, reason); /* store new reason */
     if (pos < BUFSIZE)
@@ -850,7 +851,9 @@ gline_modify(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   }
 
   /* All right, inform ops... */
-  sendto_opmask_butone(0, SNO_GLINE, "%s modifying global %s for %s%s%s:%s",
+  non_auto = non_auto || ircd_strncmp(gline->gl_reason, "AUTO", 4);
+  sendto_opmask_butone(0, non_auto ? SNO_GLINE : SNO_AUTO,
+		       "%s modifying global %s for %s%s%s:%s",
 		       (feature_bool(FEAT_HIS_SNOTICES) || IsServer(sptr)) ?
 		       cli_name(sptr) : cli_name((cli_user(sptr))->server),
 		       GlineIsBadChan(gline) ? "BADCHAN" : "GLINE",
