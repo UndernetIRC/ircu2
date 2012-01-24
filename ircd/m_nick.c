@@ -146,18 +146,12 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char           nick[NICKLEN + 2];
   char*          arg;
   char*          s;
-  const char*    client_name;
 
   assert(0 != cptr);
   assert(cptr == sptr);
 
   if (IsServerPort(cptr))
     return exit_client(cptr, cptr, &me, "Use a different port");
-
-  /*
-   * parv[0] will be empty for clients connecting for the first time
-   */
-  client_name = (*(cli_name(sptr))) ? cli_name(sptr) : "*";
 
   if (parc < 2) {
     send_reply(sptr, ERR_NONICKNAMEGIVEN);

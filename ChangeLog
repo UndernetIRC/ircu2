@@ -1,5 +1,23 @@
 2011-01-23  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/ircd_res.c (proc_answer): Delete unread variable
+	query_class.
+
+	* ircd/m_nick.c (m_nick): Delete unread variable client_name.
+
+	* ircd/m_ping.c (m_ping): Delete unread variable origin.
+
+	* ircd/m_whois.c (do_whois): Delete unread variable name.
+
+	* ircd/parse.c (parse_client): Delete unread variable noprefix.
+
+	* ircd/s_conf.c (killcomment): Delete unread variable tm.
+
+	* ircd/s_stats.c (stats_configured_links): Delete unread variable
+	pass.
+
+2011-01-23  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/gline.c (gline_modify): Notify opers using SNO_AUTO rather
 	than SNO_GLINE if a G-line had, and still has, an AUTO prefix.
 

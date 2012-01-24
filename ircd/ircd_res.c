@@ -633,7 +633,6 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
 {
   char hostbuf[HOSTLEN + 100]; /* working buffer */
   unsigned char *current;      /* current position in buf */
-  int query_class;             /* answer class */
   int type;                    /* answer type */
   int n;                       /* temp count */
   int rd_length;
@@ -687,9 +686,8 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
     type = irc_ns_get16(current);
     current += TYPE_SIZE;
 
-    query_class = irc_ns_get16(current);
+    /* We do not use the class or TTL values. */
     current += CLASS_SIZE;
-
     current += TTL_SIZE;
 
     rd_length = irc_ns_get16(current);

@@ -824,7 +824,6 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   char*           s;
   int             i;
   int             paramcount;
-  int             noprefix = 0;
   struct Message* mptr;
   MessageHandler  handler = 0;
 
@@ -842,8 +841,6 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     while (*ch == ' ')
       ch++;                     /* Advance to command */
   }
-  else
-    noprefix = 1;
   if (*ch == '\0')
   {
     ServerStats->is_empt++;

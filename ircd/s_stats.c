@@ -90,14 +90,13 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
   struct ConfItem *tmp;
   unsigned short int port;
   int maximum;
-  char *host, *pass, *name, *username, *hub_limit;
+  char *host, *name, *username, *hub_limit;
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next)
   {
     if ((tmp->status & sd->sd_funcdata))
     {
       host = BadPtr(tmp->host) ? null : tmp->host;
-      pass = BadPtr(tmp->passwd) ? null : tmp->passwd;
       name = BadPtr(tmp->name) ? null : tmp->name;
       username = BadPtr(tmp->username) ? null : tmp->username;
       hub_limit = BadPtr(tmp->hub_limit) ? null : tmp->hub_limit;
