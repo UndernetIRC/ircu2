@@ -32,6 +32,7 @@
 #include "msg.h"
 #include "numnicks.h"
 #include "s_debug.h"
+#include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
 
