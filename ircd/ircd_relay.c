@@ -86,7 +86,8 @@
 void relay_channel_message(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
-  int perm=0;
+  int perm;
+
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);
@@ -126,7 +127,8 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
 void relay_channel_notice(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
-  int perm=0;
+  int perm;
+
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);

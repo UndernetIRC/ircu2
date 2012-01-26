@@ -763,12 +763,10 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int r
     if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
-    else {
-      if (find_ban(cptr, chptr->banlist))
-	return 0;
-      else 
-	return CHFL_CAN_SEND;
-    }
+    else if (find_ban(cptr, chptr->banlist))
+      return 0;
+    else
+      return CHFL_CAN_SEND;
   }
   return member_can_send_to_channel(member, reveal);
 }
@@ -3663,12 +3661,13 @@ void RevealDelayedJoinIfNeeded(struct Client *sptr, struct Channel *chptr)
  * Side effects: check for flood attack on target chptr
  * modified from Hybrid by Dianora
  *
- * @param[in] flag 0 if PRIVMSG 1 if NOTICE. RFC says NOTICE must not auto reply
- * @param[in] source_p source Client 
+ * @param[in] is_notice 0 if PRIVMSG, 1 if NOTICE (RFC says NOTICE
+ *   must not auto reply)
+ * @param[in] source_p source Client
  * @param[in] pointer to target channel
  * @param[out] 1 if target is under flood attack
  */
-int flood_attack_channel(int p_or_n, struct Client *source_p,
+int flood_attack_channel(int is_notice, struct Client *source_p,
                      struct Channel *chptr)
 {
   int delta;
@@ -3701,7 +3700,7 @@ int flood_attack_channel(int p_or_n, struct Client *source_p,
         /* Add a bit of penalty */
         chptr->received_number_of_privmsgs += 2;
       }
-      if (MyUser(source_p) && (p_or_n != NOTICE))
+      if (MyUser(source_p) && !is_notice)
         sendcmdto_one(&me, CMD_NOTICE, source_p,
 	  "%s :*** Message to %s throttled due to flooding", cli_name(source_p),
 		chptr->chname);

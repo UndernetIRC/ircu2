@@ -146,8 +146,6 @@ typedef enum ChannelGetType {
 #define MODE_ADD       0x40000000
 #define MODE_DEL       0x20000000
 
-#define STATUS_FLOOD_NOTICED 0x10000000 /* XXX is this really free ? */
-
 /* used in ListingArgs.flags */
 
 #define LISTARG_TOPICLIMITS     0x0001
@@ -234,14 +232,11 @@ struct Membership {
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
 #define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
 
-/* Channel flood control -Dianora */
-/* Sort later if needed */
+/* Channel flood control */
+#define STATUS_FLOOD_NOTICED 0x10000000
 #define IsSetFloodNoticed(x) ((x)->status & STATUS_FLOOD_NOTICED)
-#define SetFloodNoticed(x)   ((x)->status != STATUS_FLOOD_NOTICED)
+#define SetFloodNoticed(x)   ((x)->status |= STATUS_FLOOD_NOTICED)
 #define ClearFloodNoticed(x) ((x)->status &= ~STATUS_FLOOD_NOTICED)
-
-/* XXX NOTICE might not belong in channel.h ;-) */
-#define NOTICE 1
 
 /** Mode information for a channel */
 struct Mode {
@@ -285,7 +280,7 @@ struct Channel {
   struct SLink*      invites;	   /**< List of invites on this channel */
   struct Ban*        banlist;      /**< List of bans on this channel */
   struct Mode        mode;	   /**< This channels mode */
-  int		     status;
+  int		     status;       /**< Anti-flood status */
   char               topic[TOPICLEN + 1]; /**< Channels topic */
   char               topic_nick[NICKLEN + 1]; /**< Nick of the person who set
 						*  The topic
@@ -464,6 +459,6 @@ extern struct Ban *find_ban(struct Client *cptr, struct Ban *banlist);
 extern int apply_ban(struct Ban **banlist, struct Ban *newban, int free);
 extern void free_ban(struct Ban *ban);
 
-int flood_attack_channel(int p_or_n, struct Client *source_p,
+int flood_attack_channel(int is_notice, struct Client *source_p,
                      struct Channel *chptr);
 #endif /* INCLUDED_channel_h */
