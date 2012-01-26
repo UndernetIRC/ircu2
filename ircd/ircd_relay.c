@@ -86,6 +86,7 @@
 void relay_channel_message(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  int perm=0;
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);
@@ -97,7 +98,9 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
   /*
    * This first: Almost never a server/service
    */
-  if (!client_can_send_to_channel(sptr, chptr, 0)) {
+  perm = client_can_send_to_channel(sptr, chptr, 1);
+
+  if (perm == 0) {
     send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
     return;
   }
@@ -105,6 +108,10 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
+  /* Chanops and Voiced get a free pass */
+  if (((perm & CHFL_VOICED_OR_OPPED) == 0)
+      && flood_attack_channel(0, sptr, chptr))
+    return;
   RevealDelayedJoinIfNeeded(sptr, chptr);
   sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
 			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
@@ -119,6 +126,7 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
 void relay_channel_notice(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  int perm=0;
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);
@@ -128,13 +136,19 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
   /*
    * This first: Almost never a server/service
    */
-  if (!client_can_send_to_channel(sptr, chptr, 0))
+  perm = client_can_send_to_channel(sptr, chptr, 1);
+
+  if (perm == 0)
     return;
 
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
+  /* Chanops and Voiced get a free pass */
+  if (((perm & CHFL_VOICED_OR_OPPED) == 0)
+      && flood_attack_channel(1, sptr, chptr))
+    return;
   RevealDelayedJoinIfNeeded(sptr, chptr);
   sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, cli_from(sptr),
 			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);

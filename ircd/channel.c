@@ -623,7 +623,7 @@ int is_chan_op(struct Client *cptr, struct Channel *chptr)
  * @param chptr		The channel to check.
  *
  * @returns True if the client (cptr) is a zombie on the channel (chptr),
- * 	    False otherwise.
+ *	    False otherwise.
  *
  * @see \ref zombie
  */
@@ -640,7 +640,7 @@ int is_zombie(struct Client *cptr, struct Channel *chptr)
 
 /** Returns if a user has voice on a channel.
  *
- * @param cptr 	The client
+ * @param cptr	The client
  * @param chptr	The channel
  *
  * @returns True if the client (cptr) is voiced on (chptr) and is not a zombie.
@@ -656,6 +656,9 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
 
   return 0;
 }
+
+/* XXX Maybe move this into channel.h ? - Dianora */
+#define CHFL_CAN_SEND	0x800000
 
 /** Can this member send to a channel
  *
@@ -673,9 +676,11 @@ int has_voice(struct Client* cptr, struct Channel* chptr)
  *
  * @param member	The membership of the user
  * @param reveal	If true, the user will be "revealed" on a delayed
- * 			joined channel.
+ *			joined channel.
  *
- * @returns True if the client can speak on the channel.
+ * @returns CHFL_CAN_SEND or CHFL_VOICED_OR_OPPED if
+ *	    the client can speak on the channel.
+ *	    0 if the client cannot speak on the channel.
  */
 int member_can_send_to_channel(struct Membership* member, int reveal)
 {
@@ -689,7 +694,7 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   {
     if (IsDelayedJoin(member) && reveal)
       RevealDelayedJoin(member);
-    return 1;
+    return CHFL_CAN_SEND;
   }
 
   /* Discourage using the Apass to get op.  They should use the Upass. */
@@ -698,7 +703,7 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
 
   /* If you have voice or ops, you can speak. */
   if (IsVoicedOrOpped(member))
-    return 1;
+    return CHFL_VOICED_OR_OPPED;
 
   /*
    * If it's moderated, and you aren't a privileged user, you can't
@@ -718,8 +723,9 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   if (IsDelayedJoin(member) && reveal)
     RevealDelayedJoin(member);
 
-  return 1;
+  return CHFL_CAN_SEND;
 }
+
 
 /** Check if a client can send to a channel.
  *
@@ -731,11 +737,12 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
  * @param reveal If the user should be revealed (see 
  * 		member_can_send_to_channel())
  *
- * @returns true if the client is allowed to speak on the channel, false 
- * 		otherwise
+ * @returns CHFL_CAN_SEND
+ *	    if the client is allowed to speak on the channel, 0	otherwise
  *
  * @see member_can_send_to_channel()
  */
+
 int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal)
 {
   struct Membership *member;
@@ -744,7 +751,7 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int r
    * Servers can always speak on channels.
    */
   if (IsServer(cptr))
-    return 1;
+    return CHFL_CAN_SEND;
 
   member = find_channel_member(cptr, chptr);
 
@@ -756,8 +763,12 @@ int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int r
     if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
 	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
       return 0;
-    else
-      return !find_ban(cptr, chptr->banlist);
+    else {
+      if (find_ban(cptr, chptr->banlist))
+	return 0;
+      else 
+	return CHFL_CAN_SEND;
+    }
   }
   return member_can_send_to_channel(member, reveal);
 }
@@ -3646,4 +3657,59 @@ void RevealDelayedJoinIfNeeded(struct Client *sptr, struct Channel *chptr)
   struct Membership *member = find_member_link(chptr, sptr);
   if (member && IsDelayedJoin(member))
     RevealDelayedJoin(member);
+}
+
+/** Check whether a channel is being flooded or not
+ * Side effects: check for flood attack on target chptr
+ * modified from Hybrid by Dianora
+ *
+ * @param[in] flag 0 if PRIVMSG 1 if NOTICE. RFC says NOTICE must not auto reply
+ * @param[in] source_p source Client 
+ * @param[in] pointer to target channel
+ * @param[out] 1 if target is under flood attack
+ */
+int flood_attack_channel(int p_or_n, struct Client *source_p,
+                     struct Channel *chptr)
+{
+  int delta;
+
+  if (feature_int(FEAT_CHANNEL_FLOOD_COUNT) != 0)
+  {
+    if ((chptr->first_received_message_time + 1) < CurrentTime)
+    {
+      delta = CurrentTime - chptr->first_received_message_time;
+      chptr->received_number_of_privmsgs -= delta;
+      chptr->first_received_message_time = CurrentTime;
+      if (chptr->received_number_of_privmsgs <= 0)
+      {
+        chptr->received_number_of_privmsgs = 0;
+        ClearFloodNoticed(chptr);
+      }
+    }
+
+    if ((chptr->received_number_of_privmsgs >=
+	    feature_int(FEAT_CHANNEL_FLOOD_COUNT))
+		|| IsSetFloodNoticed(chptr))
+    {
+      if (!IsSetFloodNoticed(chptr))
+      {
+        sendto_opmask_butone(0, SNO_OLDSNO,
+                             "Possible Flooder %s target: %s",
+                             cli_name(source_p), chptr->chname);
+        SetFloodNoticed(chptr);
+
+        /* Add a bit of penalty */
+        chptr->received_number_of_privmsgs += 2;
+      }
+      if (MyUser(source_p) && (p_or_n != NOTICE))
+        sendcmdto_one(&me, CMD_NOTICE, source_p,
+	  "%s :*** Message to %s throttled due to flooding", cli_name(source_p),
+		chptr->chname);
+      return(1);
+    }
+    else
+      chptr->received_number_of_privmsgs++;
+  }
+
+  return(0);
 }
