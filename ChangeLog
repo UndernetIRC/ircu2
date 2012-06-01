@@ -1,5 +1,11 @@
 2012-05-31  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/m_gline.c (ms_gline): If the mask was empty after removing
+	the command character(s), reject the command.
+	(mo_gline): Likewise.
+
+2012-05-31  Michael Poole <mdpoole@troilus.org>
+
 	* include/channel.h (infochanmodes): Add +d channel mode.
 
 	* include/client.h (infousermodes): Add +O user mode.

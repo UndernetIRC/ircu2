@@ -167,6 +167,10 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     break;
   }
 
+  /* Is there no mask left? */
+  if (mask[0] == '\0')
+    return need_more_params(sptr, "GLINE");
+
   /* Now, let's figure out if it's a local or global G-line */
   if (action == GLINE_LOCAL_ACTIVATE || action == GLINE_LOCAL_DEACTIVATE ||
       (target[0] == '*' && target[1] == '\0'))
@@ -476,6 +480,10 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
     break;
   }
+
+  /* Is there no mask left? */
+  if (mask[0] == '\0')
+    return need_more_params(sptr, "GLINE");
 
   /* Now let's figure out which is the target server */
   if (!target) /* no target, has to be me... */
