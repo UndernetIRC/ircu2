@@ -1,5 +1,13 @@
 2012-05-07  Michael Poole <mdpoole@troilus.org>
 
+	* include/client.h (cli_account): New helper macro to return the
+	client's account name, or "0" for unstamped clients.
+
+	* ircd/s_misc.c (exit_client): Use that when logging the client's
+	exit.
+
+2012-05-07  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/gline.c (count_users): Use the client's real host, rather
 	than their masked host, for +x users.
 

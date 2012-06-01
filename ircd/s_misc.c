@@ -389,7 +389,7 @@ int exit_client(struct Client *cptr,
 		cli_firsttime(victim), on_for,
 		cli_user(victim)->username, cli_sockhost(victim),
                 ircd_ntoa(&cli_ip(victim)),
-                IsAccount(victim) ? cli_username(victim) : "0",
+                cli_account(victim),
                 NumNick(victim), /* two %s's */
                 cli_name(victim), cli_info(victim));
 
