@@ -1,3 +1,8 @@
+2012-05-07  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/gline.c (count_users): Use the client's real host, rather
+	than their masked host, for +x users.
+
 2012-04-29  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/crule.c (crule_connected): Fix logic for ignoring

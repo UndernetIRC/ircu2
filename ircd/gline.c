@@ -371,7 +371,7 @@ count_users(char *mask, int flags)
       continue;
 
     ircd_snprintf(0, namebuf, sizeof(namebuf), "%s@%s",
-		  cli_user(acptr)->username, cli_user(acptr)->host);
+		  cli_user(acptr)->username, cli_user(acptr)->realhost);
     ircd_snprintf(0, ipbuf, sizeof(ipbuf), "%s@%s", cli_user(acptr)->username,
 		  ircd_ntoa(&cli_ip(acptr)));
 
