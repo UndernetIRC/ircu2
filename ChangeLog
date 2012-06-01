@@ -1,3 +1,9 @@
+2012-05-09  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_who.c (m_who): Only set WHOSELECT_EXTRA for current
+	opers.  Because privileges are kept after -o, this would let
+	de-opered clients use WHOX.
+
 2012-05-07  Michael Poole <mdpoole@troilus.org>
 
 	* include/client.h (cli_account): New helper macro to return the

@@ -184,10 +184,11 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           continue;
         case 'x':
         case 'X':
-          bitsel |= WHOSELECT_EXTRA;
-          if (HasPriv(sptr, PRIV_WHOX))
-	    log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
-		      (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
+          if (HasPriv(sptr, PRIV_WHOX) && IsAnOper(sptr)) {
+              bitsel |= WHOSELECT_EXTRA;
+              log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
+                        (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
+          }
           continue;
         case 'n':
         case 'N':
