@@ -1,4 +1,11 @@
-2011-01-23  Michael Poole <mdpoole@troilus.org>
+2012-04-29  Michael Poole <mdpoole@troilus.org>
+
+	* */.cvsignore: Rename to .gitignore.
+
+	* ircd/.cvsignore: Likewise, and add *.o because git does not
+	ignore any patterns by default.
+
+2012-01-23  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_res.c (proc_answer): Delete unread variable
 	query_class.
@@ -16,12 +23,12 @@
 	* ircd/s_stats.c (stats_configured_links): Delete unread variable
 	pass.
 
-2011-01-23  Michael Poole <mdpoole@troilus.org>
+2012-01-23  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/gline.c (gline_modify): Notify opers using SNO_AUTO rather
 	than SNO_GLINE if a G-line had, and still has, an AUTO prefix.
 
-2011-01-19  Michael Poole <mdpoole@troilus.org>
+2012-01-19  Michael Poole <mdpoole@troilus.org>
 
 	* doc/readme.iauth: Document the new 'd' IAuth command.
 
@@ -31,7 +38,7 @@
 	(iauth_cmd_soft_done): New IAuth command handler.
 	(iauth_parse): Call it.
 
-2011-01-19  Michael Poole <mdpoole@troilus.org>
+2012-01-19  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_auth.c (start_auth): Call start_dns_query() and
 	start_auth_query() after start_iauth_query() rather than

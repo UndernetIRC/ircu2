@@ -1,3 +1,4 @@
+*.o
 Makefile
 stamp-m
 version.c
