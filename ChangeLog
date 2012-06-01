@@ -1,5 +1,13 @@
 2012-05-31  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/gline.c (gline_add): Add length checks for badchan and
+	realname G-lines, comparable to the existing check for traditional
+	G-lines.
+
+	* ircd/s_err.c (ERR_LONGMASK): Remove extra space in format string.
+
+2012-05-31  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_server.c (check_loop_and_lh): Mention the mechanism used
 	to control HUB.
 
