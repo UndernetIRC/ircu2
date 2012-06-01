@@ -1128,7 +1128,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   {
     if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP)) &&
         !IsAnOper(sptr))
+    {
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPERATOR);
+      client_set_privs(sptr, NULL);
+    }
 
     if (SendServNotice(sptr))
     {

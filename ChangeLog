@@ -1,5 +1,10 @@
 2012-05-09  Michael Poole <mdpoole@troilus.org>
 
+	* ircd/s_user.c (set_user_mode): When a user deopers, revoke their
+	oper privileges in addition to their oper user mode.
+
+2012-05-09  Michael Poole <mdpoole@troilus.org>
+
 	* ircd/m_who.c (m_who): Only set WHOSELECT_EXTRA for current
 	opers.  Because privileges are kept after -o, this would let
 	de-opered clients use WHOX.
