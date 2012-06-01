@@ -1,3 +1,8 @@
+2012-05-31  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/m_server.c (check_loop_and_lh): Mention the mechanism used
+	to control HUB.
+
 2012-05-09  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_user.c (set_user_mode): When a user deopers, revoke their

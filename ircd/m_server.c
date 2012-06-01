@@ -429,7 +429,7 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
     else /* I_AM_NOT_HUB */
     {
       ServerStats->is_ref++;
-      return exit_client(cptr, LHcptr, &me, "I'm a leaf, define HUB");
+      return exit_client(cptr, LHcptr, &me, "I'm a leaf, define the HUB feature");
     }
   }
 
