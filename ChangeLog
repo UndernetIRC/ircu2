@@ -1,3 +1,8 @@
+2012-06-13  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/s_stats.c (stats_configured_links): Correctly distinguish
+	local Operator blocks from global Operator blocks.
+
 2012-05-31  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/m_gline.c (ms_gline): If the mask was empty after removing

@@ -114,12 +114,13 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                    (name[0] == ':' ? "0" : ""), (tmp->name ? tmp->name : "*"),
                    port, get_conf_class(tmp));
       else if (tmp->status & CONF_OPERATOR)
-        send_reply(sptr, RPL_STATSOLINE,
-                   ((FlagHas(&tmp->privs_dirty, PRIV_PROPAGATE)
-                     && FlagHas(&tmp->privs, PRIV_PROPAGATE))
-                    || (FlagHas(&tmp->conn_class->privs_dirty, PRIV_PROPAGATE)
-                        && FlagHas(&tmp->conn_class->privs, PRIV_PROPAGATE)))
-                   ? 'O' : 'o', username, host, name, get_conf_class(tmp));
+      {
+        int global = FlagHas(&tmp->privs_dirty, PRIV_PROPAGATE)
+            ? FlagHas(&tmp->privs, PRIV_PROPAGATE)
+            : FlagHas(&tmp->conn_class->privs, PRIV_PROPAGATE);
+        send_reply(sptr, RPL_STATSOLINE, global ? 'O' : 'o',
+                   username, host, name, get_conf_class(tmp));
+      }
     }
   }
 }
