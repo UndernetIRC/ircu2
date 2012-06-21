@@ -622,6 +622,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
     default:
       return 0;
     }
+    if (input[pos] != '\0')
+      return 0;
   finish:
     if (colon < 8) {
       unsigned int jj;

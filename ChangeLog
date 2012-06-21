@@ -1,3 +1,8 @@
+2012-06-20  Michael Poole <mdpoole@troilus.org>
+
+	* ircd/ircd_string.c (ipmask_parse): Return zero if there is junk
+	after eight valid IPv6 address elements.
+
 2012-06-13  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/s_stats.c (stats_configured_links): Correctly distinguish
