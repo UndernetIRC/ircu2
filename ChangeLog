@@ -1,3 +1,18 @@
+2012-10-15  Michael Poole <mdpoole@troilus.org>
+
+	* include/IPcheck.h (IPcheck_connect_fail): Add new 'disconnect'
+	parameter.  This treats the failure as a disconnection from the
+	client's current IP address.
+
+	* ircd/IPcheck.c (ip_registry_connect_fail): Likewise.
+	(IPcheck_connect_fail): Pass it through.
+
+	* ircd/m_nick.c (m_nick): Pass zero for the new parameter.
+	(ms_nick): Likewise.
+
+	* ircd/s_auth.c (preregister_user): Likewise.
+	(iauth_cmd_ip_address): Pass one for the new parameter.
+
 2012-06-20  Michael Poole <mdpoole@troilus.org>
 
 	* ircd/ircd_string.c (ipmask_parse): Return zero if there is junk

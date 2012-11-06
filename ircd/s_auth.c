@@ -529,7 +529,7 @@ static int preregister_user(struct Client *cptr)
     /* Can this ever happen? */
   case ACR_BAD_SOCKET:
     ++ServerStats->is_ref;
-    IPcheck_connect_fail(cptr);
+    IPcheck_connect_fail(cptr, 0);
     return exit_client(cptr, cptr, &me, "Unknown error -- Try again");
   }
   return 0;
@@ -1828,7 +1828,7 @@ static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli,
     memcpy(&auth->original, &cli_ip(cli), sizeof(auth->original));
 
   /* Undo original IP connection in IPcheck. */
-  IPcheck_connect_fail(cli);
+  IPcheck_connect_fail(cli, 1);
   ClearIPChecked(cli);
 
   /* Update the IP and charge them as a remote connect. */

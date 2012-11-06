@@ -373,13 +373,20 @@ int ip_registry_check_remote(struct Client* cptr, int is_burst)
  * of their own.  This "undoes" the effect of ip_registry_check_local()
  * so the client's address is not penalized for the failure.
  * @param[in] addr Address of rejected client.
+ * @param[in] disconnect If true, also count the client as disconnecting.
  */
-void ip_registry_connect_fail(const struct irc_in_addr *addr)
+void ip_registry_connect_fail(const struct irc_in_addr *addr, int disconnect)
 {
   struct IPRegistryEntry* entry = ip_registry_find(addr);
-  if (entry && 0 == --entry->attempts) {
-    Debug((DEBUG_DNS, "IPcheck noting local connection failure for %s.", ircd_ntoa(&entry->addr)));
-    ++entry->attempts;
+  if (entry) {
+    if (0 == --entry->attempts) {
+      Debug((DEBUG_DNS, "IPcheck noting local connection failure for %s.", ircd_ntoa(&entry->addr)));
+      ++entry->attempts;
+    }
+    if (disconnect) {
+      assert(entry->connected > 0);
+      entry->connected--;
+    }
   }
 }
 
@@ -521,11 +528,12 @@ int IPcheck_remote_connect(struct Client *cptr, int is_burst)
  * of their own.  This "undoes" the effect of ip_registry_check_local()
  * so the client's address is not penalized for the failure.
  * @param[in] cptr Client who has been rejected.
+ * @param[in] disconnect If true, also count the client as disconnecting.
  */
-void IPcheck_connect_fail(const struct Client *cptr)
+void IPcheck_connect_fail(const struct Client *cptr, int disconnect)
 {
   assert(IsIPChecked(cptr));
-  ip_registry_connect_fail(&cli_ip(cptr));
+  ip_registry_connect_fail(&cli_ip(cptr), disconnect);
 }
 
 /** Handle a client that has successfully connected.
