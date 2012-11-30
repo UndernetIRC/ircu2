@@ -1,3 +1,13 @@
+2012-11-03  Michael Poole <mdpoole@troilus.org>
+
+	* include/numeric.h (RPL_WHOISACTUALLY): Remove this.
+
+	* ircd/m_whois.c (do_whois): Remove the RPL_WHOISACTUALLY line.
+
+	* ircd/m_whowas.c (m_whowas): Likewise.
+
+	* ircd/s_err.c (replyTable): Remove the RPL_WHOISACTUALLY string.
+
 2012-10-15  Michael Poole <mdpoole@troilus.org>
 
 	* include/IPcheck.h (IPcheck_connect_fail): Add new 'disconnect'

@@ -708,7 +708,7 @@ static Numeric replyTable[] = {
 /* 337 */
   { 0 },
 /* 338 */
-  { RPL_WHOISACTUALLY, "%s %s@%s %s :Actual user@host, Actual IP", "338" },
+  { 0 },
 /* 339 */
   { 0 },
 /* 340 */
