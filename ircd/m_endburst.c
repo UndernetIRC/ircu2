@@ -92,6 +92,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "whocmds.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
@@ -154,6 +155,7 @@ int ms_end_of_burst_ack(struct Client *cptr, struct Client *sptr, int parc, char
 		       sptr);
   sendcmdto_serv_butone(sptr, CMD_END_OF_BURST_ACK, cptr, "");
   ClearBurstAck(sptr);
+  whox_check_server(sptr);
 
   return 0;
 }

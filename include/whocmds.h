@@ -86,7 +86,10 @@ struct Channel;
 /*
  * Prototypes
  */
+extern void whox_check_server(struct Client *sptr);
+extern void whox_start_log(struct Client *sptr, const char flags[], const char nicks[]);
+extern void whox_end_log(void);
 extern void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
-                   int fields, char* qrt);
+                   int fields, char* qrt, int whox);
 
 #endif /* INCLUDED_whocmds_h */

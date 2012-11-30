@@ -444,6 +444,37 @@ until the entire network has been upgraded.  It is not required that
 all servers set this to "TRUE" in order for the features to be used,
 as long as all servers are running u2.10.11 or above.
 
+WHOX_LOG_CHANNEL
+ * Type: string
+ * Default: none
+
+If this is set, all uses of /WHO with the X flag (which shows
+information to IRC operators that is normally hidden by the
+head-in-sand features) are logged to the named channel.  This channel
+should generally be a GLINEd "badchan", or otherwise protected against
+untrusted parties seeing the information.
+
+WHOX_LOG_FILE
+ * Type: string
+ * Default: "whox.log"
+
+If WHOX_LOG_CHANNEL and WHOX_LOG_SERVER are both set, this file is
+used to log uses of /WHO with the X flag when WHOX_LOG_SERVER is not
+linked to the network.  (This file is not persistent; ircu will clear
+it out once WHOX_LOG_SERVER is relinked and ircu has sent the logged
+data.)
+
+WHOX_LOG_SERVER
+ * Type: string
+ * Default: none
+
+If this and WHOX_LOG_CHANNEL are both set, uses of /WHO with the X
+flag are only logged to WHOX_LOG_CHANNEL when WHOX_LOG_SERVER is
+linked to the network.  If the WHOX_LOG_SERVER server is not
+connected, uses are logged to a temporary file that is played back
+when the server (re-)links.  This makes it easier to record these uses
+of /WHO in one place.
+
 HIS_MAP
  * Type: boolean
  * Default: TRUE

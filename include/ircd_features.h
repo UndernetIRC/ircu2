@@ -99,6 +99,9 @@ enum Feature {
 
   /* features that affect all operators */
   FEAT_CONFIG_OPERCMDS,
+  FEAT_WHOX_LOG_CHANNEL,
+  FEAT_WHOX_LOG_FILE,
+  FEAT_WHOX_LOG_SERVER,
 
   /* HEAD_IN_SAND Features */
   FEAT_HIS_SNOTICES,

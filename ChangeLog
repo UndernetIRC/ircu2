@@ -1,3 +1,39 @@
+2012-11-04  Michael Poole <mdpoole@troilus.org>
+
+	* doc/readme.features (WHOX_LOG_CHANNEL): Document this.
+	(WHOX_LOG_FILE): Document this.
+	(WHOX_LOG_SERVER): Document this.
+
+	* include/ircd_features.h (FEAT_WHOX_LOG_CHANNEL): Define value.
+	(FEAT_WHOX_LOG_FILE): Likewise.
+	(FEAT_WHOX_LOG_SERVER): Likewise.
+
+	* include/whocmds.h (whox_check_server): Declare new function.
+	(whox_start_log): Likewise.
+	(whox_end_log): Likewise.
+	(do_who): Add new 'whox' parameter.
+
+	* ircd/ircd_features.c (WHOX_LOG_CHANNEL): Define behavior.
+	(WHOX_LOG_FILE): Likewise.
+	(WHOX_LOG_SERVER): Likewise.
+
+	* ircd/m_endburst.c (ms_end_of_burst_ack): Call
+	whox_check_server() when a server finishes its net burst.
+
+	* ircd/m_who.c (maybe_do_who): New function to consolidate a bunch
+	of cut-and-paste code.  Among the fixes, only compare realhost for
+	WHOX uses.
+	(m_who): Call whox_start_log() instead of directly calling
+	log_write() to report WHOX usage, and call whox_end_log() when
+	done.  Pass the 'whox' argument to do_who().
+
+	* ircd/whocmds.c (whox_check_server): Implement new function.
+	(log_whox): New local function.
+	(whox_start_log): Implement new function.
+	(whox_end_log): Implement new function.
+	(do_who): Add 'whox' parameter, and use it to determine whether to
+	log clients whos real IP address is shown via WHOX use.
+
 2012-11-03  Michael Poole <mdpoole@troilus.org>
 
 	* include/numeric.h (RPL_WHOISACTUALLY): Remove this.

@@ -33,6 +33,7 @@
 #include "ircd.h"
 #include "ircd_chattr.h"
 #include "ircd_features.h"
+#include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
@@ -54,12 +55,122 @@
 #include "whowas.h"
 #include "msg.h"
 
+#include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+/* ":<server> PRIVMSG #channel :<message>\r\n" must not exceed BUFSIZE. */
+#define WHOX_LOG_LEN (BUFSIZE - HOSTLEN - 2)
+
+static FILE *whox_log;
+static struct Client *whox_sptr;
+static int whox_pos;
+static int whox_limit;
+static char whox_line[BUFSIZE];
+
+/** If \a sptr is WHOX_LOG_SERVER, send previously logged /whox uses.
+ *
+ * @param[in] sptr Server that has finished linking.
+ */
+void whox_check_server(struct Client *sptr)
+{
+  struct Channel *chptr;
+  char buf[BUFSIZE];
+
+  if (!whox_log
+      || ircd_strcmp(cli_name(sptr), feature_str(FEAT_WHOX_LOG_SERVER))
+      || !(chptr = FindChannel(feature_str(FEAT_WHOX_LOG_CHANNEL))))
+    return;
+
+  rewind(whox_log);
+  while (fgets(buf, sizeof(buf), whox_log)) {
+    sendcmdto_channel_butone(&me, CMD_PRIVATE, chptr, NULL, SKIP_DEAF |
+                             SKIP_BURST, "%H :%s", chptr, buf);
+  }
+  fclose(whox_log);
+  whox_log = NULL;
+  unlink(feature_str(FEAT_WHOX_LOG_FILE));
+}
+
+/** Log text describing a /whox use.
+ *
+ * @param[in] sptr Client that used /whox.
+ * @param[in] format ircd_snprintf() format string.
+ * @param[in] ... Format arguments.
+ */
+static void log_whox(struct Client* sptr, const char *format, ...)
+{
+  va_list ap;
+  struct Client *srv;
+  struct Channel *chptr;
+  const char *srv_name;
+  const char *log_name;
+  char buf[BUFSIZE];
+
+  chptr = FindChannel(feature_str(FEAT_WHOX_LOG_CHANNEL));
+  if (!chptr)
+    return;
+
+  /* Do we only log to the network if some server is linked? */
+  srv_name = feature_str(FEAT_WHOX_LOG_SERVER);
+  if (srv_name && !(srv = FindServer(srv_name))) {
+    /* If no log file configured, exit, even if there was a log file
+     * already open (i.e. the admin turned off that config option).
+     */
+    if (!(log_name = feature_str(FEAT_WHOX_LOG_FILE)))
+      return;
+
+    /* Do we need to open the log file? */
+    if (!whox_log && !(whox_log = fopen(log_name, "a+"))) {
+      log_write(LS_WHO, L_ERROR, 0, "Unable to open WHOX_LOG_FILE: %s",
+                strerror(errno));
+      return;
+    }
+  }
+
+  va_start(ap, format);
+  ircd_vsnprintf(NULL, buf, sizeof(buf), format, ap);
+  va_end(ap);
+
+  if (whox_log) {
+    fputs(buf, whox_log);
+    fputc('\n', whox_log);
+  } else {
+    sendcmdto_channel_butone(&me, CMD_PRIVATE, chptr, NULL, SKIP_DEAF |
+                             SKIP_BURST, "%H :%s", chptr, buf);
+  }
+}
+
+void whox_start_log(struct Client *sptr, const char flags[], const char nicks[])
+{
+  struct Channel *chptr;
+
+  log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr, nicks, flags);
+  chptr = FindChannel(feature_str(FEAT_WHOX_LOG_CHANNEL));
+  whox_pos = 0;
+  if (chptr) {
+    whox_sptr = sptr;
+    log_whox(sptr, "%#C WHO %s %s", sptr, nicks, flags);
+    whox_limit = BUFSIZE - strlen(cli_name(&me)) - strlen(chptr->chname)
+        - strlen(": PRIVMSG  : ..\r\n");
+  } else {
+    whox_sptr = NULL;
+    whox_limit = 0;
+  }
+}
+
+void whox_end_log(void)
+{
+  if (whox_pos > 0) {
+    whox_line[whox_pos] = '\0';
+    log_whox(whox_sptr, " ..%s", whox_line);
+  }
+}
 
 /** Send a WHO reply to a client who asked.
  * @param[in] sptr Client who is searching for other users.
@@ -67,9 +178,11 @@
  * @param[in] repchan Shared channel that provides visibility.
  * @param[in] fields Bitmask of WHO_FIELD_* values, indicating what to show.
  * @param[in] qrt Query type string (ignored unless \a fields & WHO_FIELD_QTY).
+ * @param[in] whox Non-zero flag to indicate private information
+ *   should be shown because an operator used /WHO with the X flag.
  */
 void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
-            int fields, char* qrt)
+            int fields, char* qrt, int whox)
 {
   char *p1;
   struct Membership *chan = 0;
@@ -129,11 +242,27 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
 
   if (fields & WHO_FIELD_NIP)
   {
-    const char* p2 = HasHiddenHost(acptr) && !IsAnOper(sptr) ?
+    const char* p2 = HasHiddenHost(acptr) && !whox ?
       feature_str(FEAT_HIDDEN_IP) :
       ircd_ntoa(&cli_ip(acptr));
     *(p1++) = ' ';
     while ((*p2) && (*(p1++) = *(p2++)));
+
+    if (HasHiddenHost(acptr) && whox && whox_sptr) {
+      const char *acct = cli_account(acptr);
+      int len = strlen(acct);
+
+      if (whox_pos + len + 2 >= whox_limit) {
+        whox_line[whox_pos] = '\0';
+        log_whox(whox_sptr, " ..%s", whox_line);
+        whox_pos = 0;
+      }
+
+      if (whox_pos > 0)
+        whox_line[whox_pos++] = ' ';
+      strcpy(whox_line + whox_pos, acct);
+      whox_pos += len;
+    }
   }
 
   if (!fields || (fields & WHO_FIELD_HOS))

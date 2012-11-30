@@ -122,6 +122,40 @@ static void move_marker(void)
 #define CheckMark(x, y) ((x == y) ? 0 : (x = y))
 #define Process(cptr) CheckMark(cli_marker(cptr), who_marker)
 
+static int maybe_do_who(struct Client *sptr, struct Client *acptr, struct Channel *chptr, char *mymask, int minlen, char *qrt, struct irc_in_addr *imask, unsigned char ibits, int bitsel, int matchsel, int fields, int counter)
+{
+  if (!(IsUser(acptr) && Process(acptr)))
+    return 0;           /* Now Process() is at the beginning, if we fail
+                           we'll never have to show this acptr in this query */
+  if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
+    return 0;
+  if (matchsel
+      && (!(matchsel & WHO_FIELD_NIC)
+          || matchexec(cli_name(acptr), mymask, minlen))
+      && (!(matchsel & WHO_FIELD_UID)
+          || matchexec(cli_user(acptr)->username, mymask, minlen))
+      && (!(matchsel & WHO_FIELD_SER)
+          || (!(HasFlag(cli_user(acptr)->server, FLAG_MAP))))
+      && (!(matchsel & WHO_FIELD_HOS)
+          || matchexec(cli_user(acptr)->host, mymask, minlen))
+      && (!(matchsel & WHO_FIELD_HOS)
+          || !HasHiddenHost(acptr)
+          || !(bitsel & WHOSELECT_EXTRA)
+          || matchexec(cli_user(acptr)->realhost, mymask, minlen))
+      && (!(matchsel & WHO_FIELD_REN)
+          || matchexec(cli_info(acptr), mymask, minlen))
+      && (!(matchsel & WHO_FIELD_NIP)
+          || (HasHiddenHost(acptr) && !(bitsel & WHOSELECT_EXTRA))
+          || !ipmask_check(&cli_ip(acptr), imask, ibits))
+      && (!(matchsel & WHO_FIELD_ACC)
+          || matchexec(cli_user(acptr)->account, mymask, minlen)))
+    return 0;
+  if (!SHOW_MORE(sptr, counter))
+    return 1;
+  do_who(sptr, acptr, chptr, fields, qrt, bitsel & WHOSELECT_EXTRA);
+  return 0;
+}
+
 /*
  * m_who - generic message handler
  *
@@ -155,6 +189,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   char *p;                      /* Scratch char pointer                     */
   char *qrt;                    /* Pointer to the query type                */
   static char mymask[512];      /* To save the mask before corrupting it    */
+  static char whox_buf[512];    /* Holds a partial line for logging         */
 
   /* Let's find where is our mask, and if actually contains something */
   mask = ((parc > 1) ? parv[1] : 0);
@@ -186,8 +221,8 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         case 'X':
           if (HasPriv(sptr, PRIV_WHOX) && IsAnOper(sptr)) {
               bitsel |= WHOSELECT_EXTRA;
-              log_write(LS_WHO, L_INFO, LOG_NOSNOTICE, "%#C WHO %s %s", sptr,
-                        (BadPtr(parv[3]) ? parv[1] : parv[3]), parv[2]);
+              whox_start_log(sptr, parv[2],
+                             (BadPtr(parv[3]) ? parv[1] : parv[3]));
           }
           continue;
         case 'n':
@@ -342,7 +377,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
               continue;
             if (!(isthere || (SHOW_MORE(sptr, counter))))
               break;
-            do_who(sptr, acptr, chptr, fields, qrt);
+            do_who(sptr, acptr, chptr, fields, qrt, bitsel & WHOSELECT_EXTRA);
           }
         }
       }
@@ -352,7 +387,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
             ((!(bitsel & WHOSELECT_OPER)) || SeeOper(sptr,acptr)) &&
             Process(acptr) && SHOW_MORE(sptr, counter))
         {
-          do_who(sptr, acptr, 0, fields, qrt);
+          do_who(sptr, acptr, 0, fields, qrt, bitsel & WHOSELECT_EXTRA);
         }
       }
     }
@@ -393,36 +428,10 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         chptr = chan->channel;
         for (member = chptr->members; member; member = member->next_member)
         {
-          acptr = member->user;
-          if (!(IsUser(acptr) && Process(acptr)))
-            continue;           /* Now Process() is at the beginning, if we fail
-                                   we'll never have to show this acptr in this query */
- 	  if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
-	    continue;
-          if ((mask) &&
-              ((!(matchsel & WHO_FIELD_NIC))
-              || matchexec(cli_name(acptr), mymask, minlen))
-              && ((!(matchsel & WHO_FIELD_UID))
-              || matchexec(cli_user(acptr)->username, mymask, minlen))
-              && ((!(matchsel & WHO_FIELD_SER))
-              || (!(HasFlag(cli_user(acptr)->server, FLAG_MAP))))
-              && ((!(matchsel & WHO_FIELD_HOS))
-              || matchexec(cli_user(acptr)->host, mymask, minlen))
-              && ((!(matchsel & WHO_FIELD_HOS))
-	      || !HasHiddenHost(acptr)
-	      || !IsAnOper(sptr)
-              || matchexec(cli_user(acptr)->realhost, mymask, minlen))
-              && ((!(matchsel & WHO_FIELD_REN))
-              || matchexec(cli_info(acptr), mymask, minlen))
-              && ((!(matchsel & WHO_FIELD_NIP))
-	      || (HasHiddenHost(acptr) && !IsAnOper(sptr))
-              || !ipmask_check(&cli_ip(acptr), &imask, ibits))
-              && ((!(matchsel & WHO_FIELD_ACC))
-              || matchexec(cli_user(acptr)->account, mymask, minlen)))
-            continue;
-          if (!SHOW_MORE(sptr, counter))
+          if (maybe_do_who(sptr, member->user, member->channel, mymask,
+                           minlen, qrt, &imask, ibits, bitsel, matchsel,
+                           fields, counter))
             break;
-          do_who(sptr, acptr, chptr, fields, qrt);
         }
       }
     }
@@ -431,39 +440,14 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if ((!(counter < 1)) && matchsel)
       for (acptr = cli_prev(&me); acptr; acptr = cli_prev(acptr))
       {
-        if (!(IsUser(acptr) && Process(acptr)))
-          continue;
-	if ((bitsel & WHOSELECT_OPER) && !SeeOper(sptr,acptr))
-	  continue;
-        if (!(SEE_USER(sptr, acptr, bitsel)))
-          continue;
-        if ((mask) &&
-            ((!(matchsel & WHO_FIELD_NIC))
-            || matchexec(cli_name(acptr), mymask, minlen))
-            && ((!(matchsel & WHO_FIELD_UID))
-            || matchexec(cli_user(acptr)->username, mymask, minlen))
-            && ((!(matchsel & WHO_FIELD_SER))
-                || (!(HasFlag(cli_user(acptr)->server, FLAG_MAP))))
-            && ((!(matchsel & WHO_FIELD_HOS))
-            || matchexec(cli_user(acptr)->host, mymask, minlen))
-            && ((!(matchsel & WHO_FIELD_HOS))
-	    || !HasHiddenHost(acptr)
-	    || !IsAnOper(sptr)
-            || matchexec(cli_user(acptr)->realhost, mymask, minlen))
-            && ((!(matchsel & WHO_FIELD_REN))
-            || matchexec(cli_info(acptr), mymask, minlen))
-            && ((!(matchsel & WHO_FIELD_NIP))
-	    || (HasHiddenHost(acptr) && !IsAnOper(sptr))
-            || !ipmask_check(&cli_ip(acptr), &imask, ibits))
-            && ((!(matchsel & WHO_FIELD_ACC))
-            || matchexec(cli_user(acptr)->account, mymask, minlen)))
-          continue;
-        if (!SHOW_MORE(sptr, counter))
+        if (maybe_do_who(sptr, acptr, 0, mymask, minlen, qrt, &imask, ibits,
+                         bitsel, matchsel, fields, counter))
           break;
-        do_who(sptr, acptr, 0, fields, qrt);
       }
   }
 
+  if (bitsel & WHOSELECT_EXTRA)
+      whox_end_log();
   /* Make a clean mask suitable to be sent in the "end of" */
   if (mask && (p = strchr(mask, ' ')))
     *p = '\0';
