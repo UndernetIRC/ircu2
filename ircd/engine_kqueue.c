@@ -53,8 +53,6 @@ static int kqueue_id;
 static struct kevent *events;
 /** Number of ::events elements that have been populated. */
 static int events_used;
-/** Current processing position in ::events. */
-static int events_i;
 
 /** Number of recent errors from kqueue. */
 static int errors = 0;
@@ -293,7 +291,7 @@ engine_delete(struct Socket* sock)
   sockList[s_fd(sock)] = 0;
 
   /* Drop any unprocessed events citing this socket. */
-  for (ii = events_i; ii < events_used; ii++) {
+  for (ii = 0; ii < events_used; ii++) {
     if (events[ii].ident == s_fd(sock)) {
       events[ii] = events[--events_used];
     }
@@ -353,8 +351,8 @@ engine_loop(struct Generators* gen)
       continue;
     }
 
-    for (events_i = 0; events_i < events_used; events_i++) {
-      evt = &events[events_i];
+    while (events_used > 0) {
+      evt = &events[--events_used];
 
       if (evt->filter == EVFILT_SIGNAL) {
 	/* it's a signal; deal appropriately */

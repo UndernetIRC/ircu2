@@ -108,8 +108,6 @@ static struct Timer clear_error;
 static struct epoll_event *events;
 /** Number of ::events elements that have been populated. */
 static int events_used;
-/** Current processing position in ::events. */
-static int events_i;
 
 /** Decrement the error count (once per hour).
  * @param[in] ev Expired timer event (ignored).
@@ -248,7 +246,7 @@ engine_delete(struct Socket *sock)
   Debug((DEBUG_ENGINE, "epoll: Deleting socket %d [%p], state %s",
 	 s_fd(sock), sock, state_to_name(s_state(sock))));
   /* Drop any unprocessed events citing this socket. */
-  for (ii = events_i; ii < events_used; ii++) {
+  for (ii = 0; ii < events_used; ii++) {
     if (events[ii].data.ptr == sock) {
       events[ii] = events[--events_used];
     }
@@ -293,8 +291,8 @@ engine_loop(struct Generators *gen)
       continue;
     }
 
-    for (events_i = 0; events_i < events_used; ) {
-      evt = &events[events_i++];
+    while (events_used > 0) {
+      evt = &events[--events_used];
       if (!(sock = evt->data.ptr))
         continue;
       gen_ref_inc(sock);

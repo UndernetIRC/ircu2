@@ -78,8 +78,6 @@ static struct Timer clear_error;
 static struct pollfd *polls;
 /** Number of ::polls elements that have been populated. */
 static int polls_used;
-/** Current processing position in ::polls. */
-static int polls_i;
 
 /** Decrement the error count (once per hour).
  * @param[in] ev Expired timer event (ignored).
@@ -273,7 +271,7 @@ engine_delete(struct Socket* sock)
   sockList[s_fd(sock)] = 0; /* zero the socket list entry */
 
   /* Drop any unprocessed events citing this socket. */
-  for (ii = polls_i; ii < polls_used; ii++) {
+  for (ii = 0; ii < polls_used; ii++) {
     if (polls[ii].fd == s_fd(sock)) {
       polls[ii] = polls[--polls_used];
     }
@@ -336,8 +334,8 @@ engine_loop(struct Generators* gen)
       continue;
     }
 
-    for (polls_i = 0; polls_i < polls_used; polls_i++) {
-      pfd = &polls[polls_i];
+    while (polls_used > 0) {
+      pfd = &polls[--polls_used];
       assert(-1 < pfd->fd);
 
       sock = sockList[pfd->fd];
