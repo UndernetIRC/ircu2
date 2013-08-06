@@ -1373,18 +1373,18 @@ static void iauth_disconnect(struct IAuth *iauth)
   if (iauth == NULL)
     return;
 
-  /* Close main socket. */
-  if (s_fd(i_socket(iauth)) != -1) {
-    close(s_fd(i_socket(iauth)));
-    socket_del(i_socket(iauth));
-    s_fd(i_socket(iauth)) = -1;
-  }
-
   /* Close error socket. */
   if (s_fd(i_stderr(iauth)) != -1) {
     close(s_fd(i_stderr(iauth)));
     socket_del(i_stderr(iauth));
     s_fd(i_stderr(iauth)) = -1;
+  }
+
+  /* Close main socket. */
+  if (s_fd(i_socket(iauth)) != -1) {
+    close(s_fd(i_socket(iauth)));
+    socket_del(i_socket(iauth));
+    s_fd(i_socket(iauth)) = -1;
   }
 }
 
