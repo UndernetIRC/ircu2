@@ -3,6 +3,9 @@ Makefile
 stamp-m
 version.c
 ircd
+ircd_lexer.c
+ircd_parser.c
+ircd_parser.h
 chkconf
 table_gen
 umkpasswd
