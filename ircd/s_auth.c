@@ -2248,8 +2248,7 @@ static void iauth_sock_callback(struct Event *ev)
 
   switch (ev_type(ev)) {
   case ET_DESTROY:
-    /* Hm, what happened here? */
-    if (!IAuthHas(iauth, IAUTH_CLOSING))
+    if (!IAuthHas(iauth, IAUTH_CLOSING) && !s_active(i_stderr(iauth)))
       iauth_do_spawn(iauth, 1);
     break;
   case ET_READ:
@@ -2322,7 +2321,8 @@ static void iauth_stderr_callback(struct Event *ev)
 
   switch (ev_type(ev)) {
   case ET_DESTROY:
-    /* We do not restart iauth here: the stdout handler does that for us. */
+    if (!IAuthHas(iauth, IAUTH_CLOSING) && !s_active(i_socket(iauth)))
+      iauth_do_spawn(iauth, 1);
     break;
   case ET_READ:
     iauth_read_stderr(iauth);
