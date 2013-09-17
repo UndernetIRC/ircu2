@@ -348,13 +348,36 @@ static void check_pings(struct Event* ev) {
       continue;
     }
 
-    max_ping = IsRegistered(cptr) ? client_get_ping(cptr) :
-      feature_int(FEAT_CONNECTTIMEOUT);
-   
-    Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s limit: %d current: %d",
+    Debug((DEBUG_DEBUG, "check_pings(%s)=status:%s current: %d",
 	   cli_name(cptr),
 	   IsPingSent(cptr) ? "[Ping Sent]" : "[]", 
-	   max_ping, (int)(CurrentTime - cli_lasttime(cptr))));
+	   (int)(CurrentTime - cli_lasttime(cptr))));
+
+    /* Unregistered clients pingout after max_ping seconds, they don't
+     * get given a second chance - if they were then people could not quite
+     * finish registration and hold resources without being subject to k/g
+     * lines
+     */
+    if (!IsRegistered(cptr)) {
+      assert(!IsServer(cptr));
+      max_ping = feature_int(FEAT_CONNECTTIMEOUT);
+      /* If client authorization time has expired, ask auth whether they
+       * should be checked again later. */
+      if ((CurrentTime-cli_firsttime(cptr) >= max_ping)
+          && auth_ping_timeout(cptr))
+        continue;
+      if (!IsRegistered(cptr)) {
+	/* OK, they still have enough time left, so we'll just skip to the
+	 * next client.  Set the next check to be when their time is up, if
+	 * that's before the currently scheduled next check -- hikari */
+	expire = cli_firsttime(cptr) + max_ping;
+	if (expire < next_check)
+	  next_check = expire;
+	continue;
+      }
+    }
+
+    max_ping = client_get_ping(cptr);
 
     /* If it's a server and we have not sent an AsLL lately, do so. */
     if (IsServer(cptr)) {
@@ -387,27 +410,6 @@ static void check_pings(struct Event* ev) {
       expire = cli_lasttime(cptr) + max_ping;
       if (expire < next_check) 
 	next_check = expire;
-      continue;
-    }
-
-    /* Unregistered clients pingout after max_ping seconds, they don't
-     * get given a second chance - if they were then people could not quite
-     * finish registration and hold resources without being subject to k/g
-     * lines
-     */
-    if (!IsRegistered(cptr)) {
-      assert(!IsServer(cptr));
-      /* If client authorization time has expired, ask auth whether they
-       * should be checked again later. */
-      if ((CurrentTime-cli_firsttime(cptr) >= max_ping)
-          && auth_ping_timeout(cptr))
-        continue;
-      /* OK, they still have enough time left, so we'll just skip to the
-       * next client.  Set the next check to be when their time is up, if
-       * that's before the currently scheduled next check -- hikari */
-      expire = cli_firsttime(cptr) + max_ping;
-      if (expire < next_check)
-        next_check = expire;
       continue;
     }
 
