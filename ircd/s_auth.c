@@ -679,6 +679,8 @@ static void read_auth_reply(struct AuthRequest* auth)
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     ++ServerStats->is_abad;
+    if (IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(auth->client, "u");
   } else {
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FIN_ID);

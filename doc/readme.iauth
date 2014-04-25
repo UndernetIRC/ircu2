@@ -174,12 +174,14 @@ Compatibility: ircd only sends the <username> parameter.
 
 u - Client Username
 Syntax: <id> u <username>
+Syntax: <id> u
 Example: 5 u notbuddha
 States: REGISTER(1)
 Next State: -
 Comments: Indicates a more reliable username for the client.
 Compatibility: This is an Undernet extension and ircd does not send
   it.  It is enabled by the iauth instance requesting the U policy.
+  If the identd lookup fails for a user, no username is passed.
 
 n - Client Nickname
 Syntax: <id> n <nickname>
