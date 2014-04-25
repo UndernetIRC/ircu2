@@ -709,7 +709,7 @@ portblock: PORT '{' portitems '}' ';' {
     hosts = link;
   }
   for (link = hosts; link != NULL; link = link->next) {
-    memcpy(&flags_here, &listen_flags, sizeof(&flags_here));
+    memcpy(&flags_here, &listen_flags, sizeof(flags_here));
     switch (link->flags & (USE_IPV4 | USE_IPV6)) {
     case USE_IPV4:
       FlagSet(&flags_here, LISTEN_IPV4);
