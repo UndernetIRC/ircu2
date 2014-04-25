@@ -213,6 +213,31 @@ static int preregister_user(struct Client *cptr);
 typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli,
 				 int parc, char **params);
 
+/** Copies a username, cleaning it in the process.
+ *
+ * @param[out] dest Destination buffer for user name.
+ * @param[in] src Source buffer for user name.  Must be distinct from
+ *   \a dest.
+ */
+void clean_username(char *dest, const char *src)
+{
+  int rlen = USERLEN;
+  char ch;
+
+  /* First character can be ~, later characters cannot. */
+  if (!IsCntrl(*src))
+  {
+    ch = *src++;
+    *dest++ = IsUserChar(ch) ? ch : '_';
+    rlen--;
+  }
+  while (rlen-- && !IsCntrl(ch = *src++))
+  {
+    *dest++ = (IsUserChar(ch) && (ch != '~')) ? ch : '_';
+  }
+  *dest = '\0';
+}
+
 /** Set username for user associated with \a auth.
  * @param[in] auth Client authorization request to work on.
  * @return Zero if client is kept, CPTR_KILLED if client rejected.
@@ -223,11 +248,9 @@ static int auth_set_username(struct AuthRequest *auth)
   struct User   *user = cli_user(sptr);
   char *d;
   char *s;
-  int   rlen = USERLEN;
   int   killreason;
   short upper = 0;
   short lower = 0;
-  short pos = 0;
   short leadcaps = 0;
   short other = 0;
   short digits = 0;
@@ -235,32 +258,26 @@ static int auth_set_username(struct AuthRequest *auth)
   char  ch;
   char  last;
 
-  if (FlagHas(&auth->flags, AR_IAUTH_USERNAME))
+  if (FlagHas(&auth->flags, AR_IAUTH_FUSERNAME))
   {
-      ircd_strncpy(cli_user(sptr)->username, cli_username(sptr), USERLEN);
+    ircd_strncpy(user->username, cli_username(sptr), USERLEN);
   }
-  else
+  else if (IsIdented(sptr))
   {
-    /* Copy username from source to destination.  Since they may be the
-     * same, and we may prefix with a '~', use a buffer character (ch)
-     * to hold the next character to copy.
-     */
-    s = IsIdented(sptr) ? cli_username(sptr) : user->username;
-    last = *s++;
-    d = user->username;
-    if (HasFlag(sptr, FLAG_DOID) && !IsIdented(sptr))
-    {
-      *d++ = '~';
-      --rlen;
-    }
-    while (last && !IsCntrl(last) && rlen--)
-    {
-      ch = *s++;
-      *d++ = IsUserChar(last) ? last : '_';
-      last = (ch != '~') ? ch : '_';
-    }
-    *d = 0;
+    clean_username(user->username, cli_username(sptr));
   }
+  else if (HasFlag(sptr, FLAG_DOID))
+  {
+    /* Prepend ~ to user->username. */
+    s = user->username;
+    s[USERLEN-1] = '\0';
+    for (last = '~'; (ch = *s) != '\0'; )
+    {
+      *s++ = last;
+      last = ch;
+    }
+    *s = '\0';
+  } /* else cleaned version of client-provided name is in place */
 
   /* If username is empty or just ~, reject. */
   if ((user->username[0] == '\0')
@@ -283,7 +300,7 @@ static int auth_set_username(struct AuthRequest *auth)
     s = d = user->username + (user->username[0] == '~');
     for (last = '\0';
          (ch = *d++) != '\0';
-         pos++, last = ch)
+         last = ch)
     {
       if (IsLower(ch))
       {
@@ -293,13 +310,13 @@ static int auth_set_username(struct AuthRequest *auth)
       {
         upper++;
         /* Accept caps as leading if we haven't seen lower case or digits yet. */
-        if ((leadcaps || pos == 0) && !lower && !digits)
+        if ((leadcaps || last == '\0') && !lower && !digits)
           leadcaps++;
       }
       else if (IsDigit(ch))
       {
         digits++;
-        if (pos == 0 || !IsDigit(last))
+        if (!IsDigit(last))
         {
           digitgroups++;
           /* If more than two groups of digits, reject. */
@@ -311,7 +328,7 @@ static int auth_set_username(struct AuthRequest *auth)
       {
         other++;
         /* If -_. exist at start, consecutively, or more than twice, reject. */
-        if (pos == 0 || last == '-' || last == '_' || last == '.' || other > 2)
+        if (last == '\0' || last == '-' || last == '_' || last == '.' || other > 2)
           goto badid;
       }
       else /* All other punctuation is rejected. */
@@ -1089,10 +1106,10 @@ int auth_set_user(struct AuthRequest *auth, const char *username, const char *ho
   FlagClr(&auth->flags, AR_NEEDS_USER);
   cptr = auth->client;
   ircd_strncpy(cli_info(cptr), userinfo, REALLEN);
-  ircd_strncpy(cli_user(cptr)->username, username, USERLEN);
+  clean_username(cli_user(cptr)->username, username);
   ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
   if (IAuthHas(iauth, IAUTH_UNDERNET))
-    sendto_iauth(cptr, "U %s %s %s :%s", username, hostname, servername, userinfo);
+    sendto_iauth(cptr, "U %s %s %s :%s", cli_user(cptr)->username, hostname, servername, userinfo);
   else if (IAuthHas(iauth, IAUTH_ADDLINFO))
     sendto_iauth(cptr, "U %s", username);
   return check_auth_finished(auth);
