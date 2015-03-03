@@ -260,10 +260,15 @@ cap_ack(struct Client *sptr, const char *caplist)
 	(neg ? HasCap(sptr, cap->cap) : !HasCap(sptr, cap->cap))) /* uh... */
       continue;
 
-    if (neg) /* set or clear the active capability... */
+    if (neg) { /* set or clear the active capability... */
+      if (cap->flags & CAPFL_STICKY)
+        continue; /* but don't clear sticky capabilities */
       CapClr(cli_active(sptr), cap->cap);
-    else
+    } else {
+      if (cap->flags & CAPFL_PROHIBIT)
+        continue; /* and don't set prohibited ones */
       CapSet(cli_active(sptr), cap->cap);
+    }
   }
 
   return 0;
