@@ -609,6 +609,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
       while (input[++pos] == '*' || input[pos] == ':') ;
       if (input[pos] != '\0' || colon < 8)
         return 0;
+      if (part && ii < 8)
+          ip->in6_16[ii++] = htons(part);
       if (pbits)
         *pbits = ii * 16;
       return pos;
