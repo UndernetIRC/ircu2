@@ -578,6 +578,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
       if (input[pos] == ':') {
         if (colon < 8)
           return 0;
+        if (ii == 8)
+            return 0;
         colon = ii;
         pos++;
       }
