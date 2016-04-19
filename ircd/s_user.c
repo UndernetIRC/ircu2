@@ -1128,10 +1128,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   {
     if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP)) &&
         !IsAnOper(sptr))
-    {
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPERATOR);
-      client_set_privs(sptr, NULL);
-    }
 
     if (SendServNotice(sptr))
     {
@@ -1172,10 +1169,13 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
     if (HasPriv(sptr, PRIV_PROPAGATE)) {
       prop = 1;
     }
-    if (FlagHas(&setflags, FLAG_OPER) && !IsOper(sptr)) {
-      /* user no longer oper */
-      assert(UserStats.opers > 0);
-      --UserStats.opers;
+    if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP))
+        && !IsOper(sptr)) {
+      if (FlagHas(&setflags, FLAG_OPER)) {
+        /* user no longer (global) oper */
+        assert(UserStats.opers > 0);
+        --UserStats.opers;
+      }
       client_set_privs(sptr, NULL); /* will clear propagate privilege */
     }
     if (FlagHas(&setflags, FLAG_INVISIBLE) && !IsInvisible(sptr)) {
