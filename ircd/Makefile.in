@@ -330,7 +330,7 @@ depend: ${DEP_SRC} chattr.tab.c
 	else \
 	  ( ${MV} Makefile.in Makefile.in.bak; \
 	    ${GREP} -A1 -B10000 '^# DO NOT DELETE THIS LINE' Makefile.in.bak > Makefile.in;\
-	    ${CC} ${CFLAGS} -MM ${CPPFLAGS} ${DEP_SRC} >> Makefile.in; ) \
+	    ${CC} ${CFLAGS} -DMAKE_DEPEND -MM ${CPPFLAGS} ${DEP_SRC} >> Makefile.in; ) \
 	fi
 
 # Coders: You need GNU make for this to work
