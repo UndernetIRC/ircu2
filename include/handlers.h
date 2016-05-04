@@ -137,6 +137,7 @@ extern int m_userip(struct Client*, struct Client*, int, char*[]);
 extern int m_version(struct Client*, struct Client*, int, char*[]);
 extern int m_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int m_wallvoices(struct Client*, struct Client*, int, char*[]);
+extern int m_webirc(struct Client*, struct Client*, int, char*[]);
 extern int m_who(struct Client*, struct Client*, int, char*[]);
 extern int m_whois(struct Client*, struct Client*, int, char*[]);
 extern int m_whowas(struct Client*, struct Client*, int, char*[]);

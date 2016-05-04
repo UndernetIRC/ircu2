@@ -98,6 +98,7 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      RPL_STATSQLINE       217           Various */
 #define RPL_STATSYLINE       218
 #define RPL_ENDOFSTATS       219        /* See also RPL_STATSDLINE */
+#define RPL_STATSWLINE       220        /* Undernet extension */
 /*      RPL_STATSPLINE       220           Hybrid - Because 217 was for
                                            old Q: lines. */
 /*      RPL_STATSBLINE       220	   Numerics List: Dalnet,unreal */
@@ -233,6 +234,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define RPL_ENDOFWHOIS       318        /* See RPL_WHOISUSER/RPL_WHOISSERVER/
                                            RPL_WHOISOPERATOR/RPL_WHOISIDLE */
 #define RPL_WHOISCHANNELS    319
+#define RPL_WHOISWEBIRC      320
 /*      RPL_WHOIS_HIDDEN     320         Anothernet +h, ick! */
 /*	RPL_WHOISSPECIAL     320	unreal */
 #define RPL_LISTSTART        321

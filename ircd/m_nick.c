@@ -152,6 +152,8 @@ int m_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   if (IsServerPort(cptr))
     return exit_client(cptr, cptr, &me, "Use a different port");
+  if (IsWebircPort(cptr) && !cli_wline(cptr))
+    return exit_client(cptr, cptr, &me, "WebIRC authorization required");
 
   if (parc < 2) {
     send_reply(sptr, ERR_NONICKNAMEGIVEN);

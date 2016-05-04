@@ -93,6 +93,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_conf.h"
 #include "s_user.h"
 #include "send.h"
 #include "whocmds.h"
@@ -202,6 +203,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 
   if (user)
   {
+    const struct wline *wline;
+
     if (user->away)
        send_reply(sptr, RPL_AWAY, name, user->away);
 
@@ -223,6 +226,12 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
                              (sptr == acptr || IsAnOper(sptr) || parc >= 3)))
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
                   cli_firsttime(acptr));
+    if (MyConnect(acptr)
+        && ((parc >= 3 && !feature_bool(FEAT_HIS_WEBIRC))
+            || sptr == acptr || IsAnOper(sptr))
+        && ((wline = cli_wline(acptr)) != NULL))
+        send_reply(sptr, RPL_WHOISWEBIRC, name, wline->description
+                   ? wline->description : "(unspecified WebIRC proxy)");
   }
 }
 

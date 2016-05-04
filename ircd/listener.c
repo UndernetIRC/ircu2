@@ -146,7 +146,9 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
     if (port && port != listener->addr.port)
       continue;
     len = 0;
-    flags[len++] = listener_server(listener) ? 'S' : 'C';
+    flags[len++] = listener_server(listener) ? 'S'
+        : listener_webirc(listener) ? 'W'
+        : 'C';
     if (FlagHas(&listener->flags, LISTEN_HIDDEN))
     {
       if (!show_hidden)

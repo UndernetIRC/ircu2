@@ -1043,21 +1043,25 @@ void start_auth(struct Client* client)
   auth->port = remote.port;
 
   /* Set required client inputs for users. */
-  if (IsUserPort(client)) {
+  if (IsUserPort(client) || IsWebircPort(client)) {
     cli_user(client) = make_user(client);
     cli_user(client)->server = &me;
     FlagSet(&auth->flags, AR_NEEDS_USER);
     FlagSet(&auth->flags, AR_NEEDS_NICK);
 
-    /* Try to start iauth lookup. */
-    start_iauth_query(auth);
+    if (IsUserPort(client)) {
+      /* Try to start iauth lookup. */
+      start_iauth_query(auth);
+    }
   }
 
-  /* Try to start DNS lookup. */
-  start_dns_query(auth);
+  if (!IsWebircPort(client)) {
+    /* Try to start DNS lookup. */
+    start_dns_query(auth);
 
-  /* Try to start ident lookup. */
-  start_auth_query(auth);
+    /* Try to start ident lookup. */
+    start_auth_query(auth);
+  }
 
   /* Add client to GlobalClientList. */
   add_client_to_list(client);
@@ -1195,6 +1199,53 @@ int auth_cap_done(struct AuthRequest *auth)
 {
   assert(auth != NULL);
   FlagClr(&auth->flags, AR_CAP_PENDING);
+  return check_auth_finished(auth);
+}
+
+/** Set a client's username, hostname and IP with minimal checking.
+ * (The spoofed values should be from a trusted source.)
+ *
+ * @param[in] auth Authorization request for client.
+ * @param[in] username Requested username.
+ * @param[in] hostname Requested hostname.
+ * @param[in] ip Requested IP address.
+ * @return Zero if client should be kept, negative if killed if rejected.
+ */
+int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *hostname, const char *ip)
+{
+  struct Client *sptr = auth->client;
+  time_t next_target = 0;
+  int killreason;
+
+  if (!auth_verify_hostname(hostname, HOSTLEN))
+    return 1;
+  if (!ipmask_parse(ip, &cli_ip(sptr), NULL))
+    return 2;
+  if (!IPcheck_local_connect(&cli_ip(sptr), &next_target)) {
+    ++ServerStats->is_ref;
+    return exit_client(sptr, sptr, &me, "Your host is trying to (re)connect too fast -- throttled");
+  }
+  SetIPChecked(sptr);
+
+  if (next_target)
+    cli_nexttarget(sptr) = next_target;
+  ircd_strncpy(cli_sock_ip(sptr), ip, SOCKIPLEN);
+  ircd_strncpy(cli_sockhost(sptr), hostname, HOSTLEN);
+  ircd_strncpy(cli_username(sptr), username, USERLEN);
+  SetGotId(sptr);
+
+  killreason = find_kill(sptr);
+  if (killreason) {
+    ++ServerStats->is_ref;
+    return exit_client(sptr, sptr, &me,
+                       (killreason == -1 ? "K-lined" : "G-lined"));
+  }
+
+  start_iauth_query(auth);
+  sendto_iauth(sptr, "N %s", hostname);
+  if (IAuthHas(iauth, IAUTH_UNDERNET))
+    sendto_iauth(sptr, "u %s", cli_username(sptr));
+
   return check_auth_finished(auth);
 }
 

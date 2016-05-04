@@ -636,6 +636,12 @@ HIS_STATS_w
 
 As per UnderNet CFV-165, this allows users to perform /STATS w.
 
+HIS_STATS_W
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS W from users.
+
 HIS_STATS_x
  * Type: boolean
  * Default: TRUE
@@ -660,6 +666,14 @@ HIS_STATS_IAUTH
 
 As per UnderNet CFV-165, this disables /STATS IAUTH and
 /STATS IAUTHCONF from users.
+
+HIS_WEBIRC
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this disables display of WebIRC status in
+/WHOIS replies (unless the client is asking about itself) and the
+^ prefix for WebIRC usernames.
 
 HIS_WHOIS_SERVERNAME
  * Type: boolean

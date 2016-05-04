@@ -69,6 +69,7 @@
   extern struct ServerConf* serverConfList;
   extern struct s_map*      GlobalServiceMapList;
   extern struct qline*      GlobalQuarantineList;
+  extern struct wline*      GlobalWebircList;
 
   int yylex(void);
   /* Now all the globals we need :/... */
@@ -175,6 +176,7 @@ static void free_slist(struct SLink **link) {
 %token PROGRAM
 %token TOK_IPV4 TOK_IPV6
 %token DNS
+%token WEBIRC
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -202,7 +204,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | iauthblock | error ';';
+       pseudoblock | iauthblock | webircblock | error ';';
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -733,11 +735,14 @@ portblock: PORT '{' portitems '}' ';' {
   port = 0;
 };
 portitems: portitem portitems | portitem;
-portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | porthidden;
+portitem: portnumber | portvhost | portvhostnumber | portmask | portserver | portwebirc | porthidden;
 portnumber: PORT '=' address_family NUMBER ';'
 {
   if ($4 < 1 || $4 > 65535) {
     parse_error("Port %d is out of range", port);
+  } else if (FlagHas(&listen_flags, LISTEN_WEBIRC)
+             && FlagHas(&listen_flags, LISTEN_SERVER)) {
+    parse_error("Port %d cannot be both WEBIRC and SERVER", port);
   } else {
     port = $3 | $4;
     if (hosts && (0 == (hosts->flags & 65535)))
@@ -789,6 +794,14 @@ porthidden: HIDDEN '=' YES ';'
 } | HIDDEN '=' NO ';'
 {
   FlagClr(&listen_flags, LISTEN_HIDDEN);
+};
+
+portwebirc: WEBIRC '=' YES ';'
+{
+  FlagSet(&listen_flags, LISTEN_WEBIRC);
+} | WEBIRC '=' NO ';'
+{
+  FlagClr(&listen_flags, LISTEN_WEBIRC);
 };
 
 clientblock: CLIENT
@@ -1160,3 +1173,52 @@ iauthprogram: PROGRAM '='
     MyFree(stringlist[stringno]);
   }
 } stringlist ';';
+
+webircblock: WEBIRC '{' webircitems '}' ';'
+{
+  struct wline *wline;
+  struct irc_in_addr peer;
+  unsigned char bits;
+
+  if (!ip)
+    parse_error("Missing IP address in WebIRC block");
+  else if (!pass)
+    parse_error("Missing password in WebIRC block");
+  else if (!ipmask_parse(ip, &peer, &bits))
+    parse_error("Invalid IP address in WebIRC block");
+  else {
+    /* Search for a wline with the same IP (mask) and password. */
+    for (wline = GlobalWebircList; wline; wline = wline->next) {
+      if ((bits == wline->bits)
+          && ipmask_check(&peer, &wline->ip, bits)
+          && (0 == strcmp(pass, wline->passwd)))
+        break;
+    }
+
+    /* Update it, or create a new structure. */
+    if (wline) {
+      MyFree(wline->description);
+    } else {
+      wline = (struct wline *) MyMalloc(sizeof(*wline));
+      memcpy(&wline->ip, &peer, sizeof(wline->ip));
+      wline->bits = bits;
+      wline->stale = 0;
+      wline->passwd = pass;
+      wline->next = GlobalWebircList;
+      GlobalWebircList = wline;
+    }
+    wline->stale = 0;
+    wline->description = name;
+
+    MyFree(ip);
+    ip = NULL;
+    pass = NULL;
+    name = NULL;
+  }
+};
+
+webircitems: webircitem | webircitems webircitem;
+webircitem: webircip | webircpass | webircdesc;
+webircip: IP '=' QSTRING ';' { MyFree(ip); ip = $3; };
+webircpass: PASS '=' QSTRING ';' { MyFree(pass); pass = $3; };
+webircdesc: DESCRIPTION '=' QSTRING ';' { MyFree(name); name = $3; };

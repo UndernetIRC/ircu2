@@ -472,7 +472,7 @@ static Numeric replyTable[] = {
 /* 219 */
   { RPL_ENDOFSTATS, "%s :End of /STATS report", "219" },
 /* 220 */
-  { 0 },
+  { RPL_STATSWLINE, "W %s %d :%s", "220" },
 /* 221 */
   { RPL_UMODEIS, "%s", "221" },
 /* 222 */
@@ -672,7 +672,7 @@ static Numeric replyTable[] = {
 /* 319 */
   { RPL_WHOISCHANNELS, "%s :%s", "319" },
 /* 320 */
-  { 0 },
+  { RPL_WHOISWEBIRC, "%s :is connected via %s", "320" },
 /* 321 */
   { RPL_LISTSTART, "Channel :Users  Name", "321" },
 /* 322 */
