@@ -315,7 +315,9 @@ static int completed_connection(struct Client* cptr)
    * get the socket status from the fd first to check if
    * connection actually succeeded
    */
-  if ((cli_error(cptr) = os_get_sockerr(cli_fd(cptr)))) {
+  if (cli_fd(cptr) >= 0)
+      cli_error(cptr) = os_get_sockerr(cli_fd(cptr));
+  if (cli_error(cptr) != 0) {
     const char* msg = strerror(cli_error(cptr));
     if (!msg)
       msg = "Unknown error";
