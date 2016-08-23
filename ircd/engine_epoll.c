@@ -32,68 +32,10 @@
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
 #include <sys/types.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h> /* bah */
-#endif
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <time.h>
-#include <linux/unistd.h>
-
-/* The GNU C library may have a valid header but stub implementations
- * of the epoll system calls.  If so, provide our own. */
-#if defined(__stub_epoll_create) || defined(__stub___epoll_create) || defined(EPOLL_NEED_BODY)
-
-/* Oh, did we mention that some glibc releases do not even define the
- * syscall numbers? */
-#if !defined(__NR_epoll_create)
-#if defined(__ia64__)
-#define __NR_epoll_create 1243
-#define __NR_epoll_ctl 1244
-#define __NR_epoll_wait 1245
-#elif defined(__x86_64__)
-#define __NR_epoll_create 214
-#define __NR_epoll_ctl 233
-#define __NR_epoll_wait 232
-#elif defined(__sparc64__) || defined(__sparc__)
-#define __NR_epoll_create 193
-#define __NR_epoll_ctl 194
-#define __NR_epoll_wait 195
-#elif defined(__s390__) || defined(__m68k__)
-#define __NR_epoll_create 249
-#define __NR_epoll_ctl 250
-#define __NR_epoll_wait 251
-#elif defined(__ppc64__) || defined(__ppc__)
-#define __NR_epoll_create 236
-#define __NR_epoll_ctl 237
-#define __NR_epoll_wait 238
-#elif defined(__parisc__) || defined(__arm26__) || defined(__arm__)
-#define __NR_epoll_create 224
-#define __NR_epoll_ctl 225
-#define __NR_epoll_wait 226
-#elif defined(__alpha__)
-#define __NR_epoll_create 407
-#define __NR_epoll_ctl 408
-#define __NR_epoll_wait 409
-#elif defined(__sh64__)
-#define __NR_epoll_create 282
-#define __NR_epoll_ctl 283
-#define __NR_epoll_wait 284
-#elif defined(__i386__) || defined(__sh__) || defined(__m32r__) || defined(__h8300__) || defined(__frv__)
-#define __NR_epoll_create 254
-#define __NR_epoll_ctl 255
-#define __NR_epoll_wait 256
-#else /* cpu types */
-#error No system call numbers defined for epoll family.
-#endif /* cpu types */
-#endif /* !defined(__NR_epoll_create) */
-
-_syscall1(int, epoll_create, int, size)
-_syscall4(int, epoll_ctl, int, epfd, int, op, int, fd, struct epoll_event *, event)
-_syscall4(int, epoll_wait, int, epfd, struct epoll_event *, pevents, int, maxevents, int, timeout)
-
-#endif /* epoll_create defined as stub */
 
 #define EPOLL_ERROR_THRESHOLD 20   /**< after 20 epoll errors, restart */
 #define ERROR_EXPIRE_TIME     3600 /**< expire errors after an hour */
