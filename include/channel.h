@@ -66,19 +66,19 @@ struct Client;
 #define CHFL_BANVALID           0x0800  /**< CHFL_BANNED bit is valid */
 #define CHFL_BANNED             0x1000  /**< Channel member is banned */
 #define CHFL_SILENCE_IPMASK     0x2000  /**< silence mask is a CIDR */
-#define CHFL_BURST_ALREADY_OPPED	0x04000  
-					/**< In oob BURST, but was already 
-					 * joined and opped 
+#define CHFL_BURST_ALREADY_OPPED	0x04000
+					/**< In oob BURST, but was already
+					 * joined and opped
 					 */
-#define CHFL_BURST_ALREADY_VOICED	0x08000  
-					/**, In oob BURST, but was already 
-					 * joined and voiced 
+#define CHFL_BURST_ALREADY_VOICED	0x08000
+					/**< In oob BURST, but was already
+					 * joined and voiced
 					 */
-#define CHFL_CHANNEL_MANAGER	0x10000	/**< Set when creating channel or using 
-					 * Apass 
+#define CHFL_CHANNEL_MANAGER	0x10000	/**< Set when creating channel or using
+					 * Apass
 					 */
-#define CHFL_USER_PARTING       0x20000 /**< User is already parting that 
-					 * channel 
+#define CHFL_USER_PARTING       0x20000 /**< User is already parting that
+					 * channel
 					 */
 #define CHFL_DELAYED            0x40000 /**< User's join message is delayed */
 
@@ -103,14 +103,14 @@ struct Client;
 #define MODE_DELJOINS   0x1000  	/**< New join messages are delayed */
 #define MODE_REGISTERED 0x2000  	/**< Channel marked as registered
 					 * (for future semantic expansion) */
-#define MODE_SAVE	0x20000		/**< save this mode-with-arg 'til 
+#define MODE_SAVE	0x20000		/**< save this mode-with-arg 'til
 					 * later */
-#define MODE_FREE	0x40000 	/**< string needs to be passed to 
+#define MODE_FREE	0x40000 	/**< string needs to be passed to
 					 * MyFree() */
 #define MODE_BURSTADDED	0x80000		/**< channel was created by a BURST */
 #define MODE_UPASS	0x100000
 #define MODE_APASS	0x200000
-#define MODE_WASDELJOINS 0x400000 	/**< Not DELJOINS, but some joins 
+#define MODE_WASDELJOINS 0x400000 	/**< Not DELJOINS, but some joins
 					 * pending */
 /** mode flags which take another parameter (With PARAmeterS)
  */
