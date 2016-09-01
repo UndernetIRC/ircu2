@@ -155,6 +155,11 @@ int ms_create(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     if (IsLocalChannel(name))
       continue;
+    
+    if (!IsChannelName(name)) {
+      protocol_violation(sptr, "%s tried to CREATE a non-channel (%s)", cli_name(sptr), name);
+      continue;
+    }
 
     if ((chptr = FindChannel(name)))
     {

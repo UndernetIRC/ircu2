@@ -215,6 +215,9 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 3)
     return protocol_violation(sptr,"Too few parameters for BURST");
+  
+  if (!IsChannelName(parv[1]))
+    return protocol_violation(sptr, "Invalid channel name in BURST");
 
   if (!(chptr = get_channel(sptr, parv[1], CGT_CREATE)))
     return 0; /* can't create the channel? */
