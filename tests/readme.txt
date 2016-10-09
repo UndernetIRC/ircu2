@@ -14,7 +14,7 @@ The test-driver.pl script accepts several command-line options:
 
  -D enables POE::Component::IRC debugging output
  -V enables test-driver.pl debugging output
- -Hipaddr sets the IPv4 address to use for connections to the server
+ -Hipaddr sets the default IPv4 address for clients to connect from
  one or more script names to interpret and execute
 
 The normal output is one dot for each line that is executed.  Using
@@ -34,10 +34,11 @@ abort.
 
 Following the variable definitions is usually one or more "connect"
 statements.  These have the syntax:
-	connect <tag> <nickname> <username> <server:port> :<Real Name or GECOS>
+	connect <tag[:ip[:port]]> <nickname> <username> <server:port> :<Real Name or GECOS>
 This creates a client and starts a connection to an IRC server.  The
-tag is used to issue commands for that client in the rest of the file.
-The remaining fields have their usual meanings for IRC.
+tag is used to issue commands for that client in the rest of the file,
+and may be followed by a colon, an IP address, and an optional colon and
+port number.  The remaining fields have their usual meanings for IRC.
 
 A number of IRC commands are supported natively, including:
 	:<tag> join <channel>
