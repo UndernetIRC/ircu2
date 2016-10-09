@@ -73,6 +73,7 @@
 
 /** Pending operations during registration. */
 enum AuthRequestFlag {
+    AR_UNUSED,          /**< unused bit, see check_auth_finished() */
     AR_AUTH_PENDING,    /**< ident connecting or waiting for response */
     AR_DNS_PENDING,     /**< dns request sent, waiting for response */
     AR_CAP_PENDING,     /**< in middle of CAP negotiations */
@@ -248,7 +249,6 @@ static int auth_set_username(struct AuthRequest *auth)
   struct User   *user = cli_user(sptr);
   char *d;
   char *s;
-  int   killreason;
   short upper = 0;
   short lower = 0;
   short leadcaps = 0;
@@ -284,14 +284,6 @@ static int auth_set_username(struct AuthRequest *auth)
   if ((user->username[0] == '\0')
       || ((user->username[0] == '~') && (user->username[1] == '\0')))
     return exit_client(sptr, sptr, &me, "USER: Bogus userid.");
-
-  /* Check for K- or G-line. */
-  killreason = find_kill(sptr);
-  if (killreason) {
-    ServerStats->is_ref++;
-    return exit_client(sptr, sptr, &me,
-                       (killreason == -1 ? "K-lined" : "G-lined"));
-  }
 
   if (!FlagHas(&auth->flags, AR_IAUTH_FUSERNAME))
   {
@@ -372,6 +364,50 @@ badid:
   return exit_client(sptr, sptr, &me, "USER: Bad username");
 }
 
+/** Notifies IAuth of a status change for the client.
+ *
+ * @param[in] auth Authorization request that was updated.
+ * @param[in] flag Which flag was updated.
+ */
+static void iauth_notify(struct AuthRequest *auth, enum AuthRequestFlag flag)
+{
+  struct Client *sptr = auth->client;
+
+  switch (flag)
+  {
+  case AR_AUTH_PENDING:
+    if (IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(sptr, "u %s", cli_username(sptr));
+    break;
+
+  case AR_DNS_PENDING:
+    if (cli_sockhost(auth->client)[0] == '\0')
+      sendto_iauth(sptr, "d");
+    else
+      sendto_iauth(sptr, "N %s", cli_sockhost(auth->client));
+    break;
+
+  case AR_NEEDS_USER:
+    if (IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(sptr, "U %s :%s", cli_user(sptr)->username, cli_info(sptr));
+    else if (IAuthHas(iauth, IAUTH_ADDLINFO))
+      sendto_iauth(sptr, "U %s", cli_user(sptr)->username);
+    break;
+
+  case AR_NEEDS_NICK:
+    if (IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(auth->client, "n %s", cli_name(sptr));
+    break;
+
+  case AR_IAUTH_PENDING:
+    sendto_iauth(sptr, "T");
+    break;
+
+  default:
+    break;
+  }
+}
+
 /** Check whether an authorization request is complete.
  * This means that no flags from 0 to #AR_LAST_SCAN are set on \a auth.
  * If #AR_IAUTH_PENDING is set, optionally go into "hurry" state.  If
@@ -379,21 +415,62 @@ badid:
  * destroy \a auth, clear the password, set the username, and register
  * the client.
  * @param[in] auth Authorization request to check.
+ * @param[in] bitclr A value from AuthRequestFlag, or a negative
+ *   version of such a value to indicate iauth as the source.
  * @return Zero if client is kept, CPTR_KILLED if client rejected.
  */
-static int check_auth_finished(struct AuthRequest *auth)
+static int check_auth_finished(struct AuthRequest *auth, int bitclr)
 {
   enum AuthRequestFlag flag;
+  int from_iauth;
+  int hurry_up;
   int res;
 
+  /* Handle \a bitclr. */
+  from_iauth = (bitclr < 0);
+  if (from_iauth)
+    bitclr = -bitclr;
+  if (bitclr != AR_IAUTH_SOFT_DONE)
+    FlagClr(&auth->flags, bitclr);
+
+  /* Should we set (or update) the client's username? */
+  if ((bitclr == AR_AUTH_PENDING) && IsUserPort(auth->client))
+  {
+    res = auth_set_username(auth);
+    if (res)
+      return res;
+  }
+
+  /* Did this affect username and/or hostname?
+   * If so, and we have both of those, we should look for a matching
+   * G-line or Kill block.
+   */
+  if (((bitclr == AR_AUTH_PENDING) || (bitclr == AR_DNS_PENDING))
+      && !FlagHas(&auth->flags, AR_AUTH_PENDING)
+      && !FlagHas(&auth->flags, AR_DNS_PENDING))
+  {
+    struct Client *sptr = auth->client;
+    int killreason = find_kill(sptr);
+    if (killreason)
+    {
+      ServerStats->is_ref++;
+      return exit_client(sptr, sptr, &me,
+                         (killreason == -1 ? "K-lined" : "G-lined"));
+    }
+  }
+
   /* Check non-iauth registration blocking flags. */
-  for (flag = 0; flag <= AR_LAST_SCAN; ++flag)
+  for (flag = 1; flag <= AR_LAST_SCAN; ++flag)
+  {
     if (FlagHas(&auth->flags, flag))
     {
       Debug((DEBUG_INFO, "Auth %p [%d] still has flag %d", auth,
              cli_fd(auth->client), flag));
+      if (!from_iauth)
+        iauth_notify(auth, (enum AuthRequestFlag)bitclr);
       return 0;
     }
+  }
 
   /* If appropriate, do preliminary assignment to connection class. */
   if (IsUserPort(auth->client)
@@ -423,6 +500,7 @@ static int check_auth_finished(struct AuthRequest *auth)
   }
 
   /* Check if iauth is done. */
+  hurry_up = 0;
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING))
   {
     /* Switch auth request to hurry-up state. */
@@ -430,15 +508,15 @@ static int check_auth_finished(struct AuthRequest *auth)
     {
       /* Set "hurry" flag in auth request. */
       FlagSet(&auth->flags, AR_IAUTH_HURRY);
-
-      /* If iauth wants it, send notification. */
-      if (IAuthHas(iauth, IAUTH_UNDERNET))
-        sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
+      hurry_up = 1;
 
       /* If iauth wants it, give client more time. */
       if (IAuthHas(iauth, IAUTH_EXTRAWAIT))
         cli_firsttime(auth->client) = CurrentTime;
     }
+
+    if (!from_iauth)
+      iauth_notify(auth, (enum AuthRequestFlag)bitclr);
 
     Debug((DEBUG_INFO, "Auth %p [%d] still has flag %d", auth,
            cli_fd(auth->client), AR_IAUTH_PENDING));
@@ -447,15 +525,18 @@ static int check_auth_finished(struct AuthRequest *auth)
   else
     FlagSet(&auth->flags, AR_IAUTH_HURRY);
 
+  res = 0;
   if (IsUserPort(auth->client))
   {
     memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
-    res = auth_set_username(auth);
-    if (res == 0)
-      res = register_user(auth->client, auth->client);
+    res = register_user(auth->client, auth->client);
+    /* Notify IAuth (if appropriate). */
+    if ((res == 0) && !from_iauth)
+      iauth_notify(auth, (enum AuthRequestFlag)bitclr);
+    /* Do we need to tell IAuth to hurry up? */
+    if ((res == 0) && hurry_up && IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
   }
-  else
-    res = 0;
   if (res == 0)
     destroy_auth_request(auth);
   return res;
@@ -577,8 +658,7 @@ static void send_auth_query(struct AuthRequest* auth)
     ++ServerStats->is_abad;
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
-    FlagClr(&auth->flags, AR_AUTH_PENDING);
-    check_auth_finished(auth);
+    check_auth_finished(auth, AR_AUTH_PENDING);
   }
 }
 
@@ -697,8 +777,6 @@ static void read_auth_reply(struct AuthRequest* auth)
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_ID);
     ++ServerStats->is_abad;
-    if (IAuthHas(iauth, IAUTH_UNDERNET))
-      sendto_iauth(auth->client, "u");
   } else {
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FIN_ID);
@@ -707,12 +785,9 @@ static void read_auth_reply(struct AuthRequest* auth)
       ircd_strncpy(cli_username(auth->client), username, USERLEN);
       SetGotId(auth->client);
     }
-    if (IAuthHas(iauth, IAUTH_UNDERNET))
-      sendto_iauth(auth->client, "u %s", username);
   }
 
-  FlagClr(&auth->flags, AR_AUTH_PENDING);
-  check_auth_finished(auth);
+  check_auth_finished(auth, AR_AUTH_PENDING);
 }
 
 /** Handle socket I/O activity.
@@ -817,9 +892,7 @@ int auth_ping_timeout(struct Client *cptr)
       sendheader(cptr, REPORT_FAIL_IAUTH);
       return exit_client_msg(cptr, cptr, &me, "Authorization Timeout");
     }
-    sendto_iauth(cptr, "T");
-    FlagClr(&auth->flags, AR_IAUTH_PENDING);
-    return check_auth_finished(auth);
+    return check_auth_finished(auth, AR_IAUTH_PENDING);
   }
 
   assert(0 && "Unexpectedly reached end of auth_ping_timeout()");
@@ -840,27 +913,31 @@ static void auth_timeout_callback(struct Event* ev)
   auth = (struct AuthRequest*) t_data(ev_timer(ev));
 
   if (ev_type(ev) == ET_EXPIRE) {
+    int flag = 0;
+
     /* Report the timeout in the log. */
     log_write(LS_RESOLVER, L_INFO, 0, "Registration timeout %s",
               get_client_name(auth->client, HIDE_IP));
 
     /* Notify client if ident lookup failed. */
     if (FlagHas(&auth->flags, AR_AUTH_PENDING)) {
-      FlagClr(&auth->flags, AR_AUTH_PENDING);
+      flag = AR_AUTH_PENDING;
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_ID);
     }
 
     /* Likewise if dns lookup failed. */
     if (FlagHas(&auth->flags, AR_DNS_PENDING)) {
-      FlagClr(&auth->flags, AR_DNS_PENDING);
+      if (flag != 0)
+        FlagClr(&auth->flags, flag);
+      flag = AR_DNS_PENDING;
       delete_resolver_queries(auth);
       if (IsUserPort(auth->client))
         sendheader(auth->client, REPORT_FAIL_DNS);
     }
 
     /* Try to register the client. */
-    check_auth_finished(auth);
+    check_auth_finished(auth, flag);
   }
 }
 
@@ -876,12 +953,10 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(0 != auth);
 
-  FlagClr(&auth->flags, AR_DNS_PENDING);
   if (!addr) {
     /* DNS entry was missing for the IP. */
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FAIL_DNS);
-    sendto_iauth(auth->client, "d");
   } else if (!irc_in_addr_valid(addr)
              || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
                  && irc_in_addr_cmp(&auth->original, addr))) {
@@ -899,15 +974,13 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
     /* Hostname did not look valid. */
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_INVAL_DNS);
-    sendto_iauth(auth->client, "d");
   } else {
     /* Hostname and mappings checked out. */
     if (IsUserPort(auth->client))
       sendheader(auth->client, REPORT_FIN_DNS);
     ircd_strncpy(cli_sockhost(auth->client), h_name, HOSTLEN);
-    sendto_iauth(auth->client, "N %s", h_name);
   }
-  check_auth_finished(auth);
+  check_auth_finished(auth, AR_DNS_PENDING);
 }
 
 /** Flag the client to show an attempt to contact the ident server on
@@ -1067,7 +1140,7 @@ void start_auth(struct Client* client)
   add_client_to_list(client);
 
   /* Check which auth events remain pending. */
-  check_auth_finished(auth);
+  check_auth_finished(auth, 0);
 }
 
 /** Mark that a user has PONGed while unregistered.
@@ -1087,8 +1160,7 @@ int auth_set_pong(struct AuthRequest *auth, unsigned int cookie)
     return 0;
   }
   cli_lasttime(auth->client) = CurrentTime;
-  FlagClr(&auth->flags, AR_NEEDS_PONG);
-  return check_auth_finished(auth);
+  return check_auth_finished(auth, AR_NEEDS_PONG);
 }
 
 /** Record a user's claimed username and userinfo.
@@ -1108,16 +1180,11 @@ int auth_set_user(struct AuthRequest *auth, const char *username, const char *ho
   assert(auth != NULL);
   if (FlagHas(&auth->flags, AR_IAUTH_HURRY))
     return 0;
-  FlagClr(&auth->flags, AR_NEEDS_USER);
   cptr = auth->client;
   ircd_strncpy(cli_info(cptr), userinfo, REALLEN);
   clean_username(cli_user(cptr)->username, username);
   ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
-  if (IAuthHas(iauth, IAUTH_UNDERNET))
-    sendto_iauth(cptr, "U %s %s %s :%s", cli_user(cptr)->username, hostname, servername, userinfo);
-  else if (IAuthHas(iauth, IAUTH_ADDLINFO))
-    sendto_iauth(cptr, "U %s", username);
-  return check_auth_finished(auth);
+  return check_auth_finished(auth, AR_NEEDS_USER);
 }
 
 /** Handle authorization-related aspects of initial nickname selection.
@@ -1129,7 +1196,6 @@ int auth_set_user(struct AuthRequest *auth, const char *username, const char *ho
 int auth_set_nick(struct AuthRequest *auth, const char *nickname)
 {
   assert(auth != NULL);
-  FlagClr(&auth->flags, AR_NEEDS_NICK);
   /*
    * If the client hasn't gotten a cookie-ping yet,
    * choose a cookie and send it. -record!jegelhof@cloud9.net
@@ -1141,9 +1207,7 @@ int auth_set_nick(struct AuthRequest *auth, const char *nickname)
     sendrawto_one(auth->client, "PING :%u", auth->cookie);
     FlagSet(&auth->flags, AR_NEEDS_PONG);
   }
-  if (IAuthHas(iauth, IAUTH_UNDERNET))
-    sendto_iauth(auth->client, "n %s", nickname);
-  return check_auth_finished(auth);
+  return check_auth_finished(auth, AR_NEEDS_NICK);
 }
 
 /** Record a user's password.
@@ -1198,8 +1262,7 @@ int auth_cap_start(struct AuthRequest *auth)
 int auth_cap_done(struct AuthRequest *auth)
 {
   assert(auth != NULL);
-  FlagClr(&auth->flags, AR_CAP_PENDING);
-  return check_auth_finished(auth);
+  return check_auth_finished(auth, AR_CAP_PENDING);
 }
 
 /** Set a client's username, hostname and IP with minimal checking.
@@ -1246,7 +1309,7 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
   if (IAuthHas(iauth, IAUTH_UNDERNET))
     sendto_iauth(sptr, "u %s", cli_username(sptr));
 
-  return check_auth_finished(auth);
+  return check_auth_finished(auth, 0);
 }
 
 /** Attempt to spawn the process for an IAuth instance.
@@ -1770,20 +1833,19 @@ static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters (1).
  * @param[in] params Forced username.
- * @return One.
+ * @return \a AR_AUTH_PENDING.
  */
 static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli,
 				     int parc, char **params)
 {
   assert(cli_auth(cli) != NULL);
-  FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
   if (!EmptyString(params[0])) {
     ircd_strncpy(cli_username(cli), params[0], USERLEN);
     SetGotId(cli);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_USERNAME);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_FUSERNAME);
   }
-  return 1;
+  return AR_AUTH_PENDING;
 }
 
 /** Set client's username to a trusted string.
@@ -1791,19 +1853,18 @@ static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters (1).
  * @param[in] params Trusted username.
- * @return One.
+ * @return \a AR_AUTH_PENDING.
  */
 static int iauth_cmd_username_good(struct IAuth *iauth, struct Client *cli,
 				   int parc, char **params)
 {
   assert(cli_auth(cli) != NULL);
-  FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
   if (!EmptyString(params[0])) {
     ircd_strncpy(cli_username(cli), params[0], USERLEN);
     SetGotId(cli);
     FlagSet(&cli_auth(cli)->flags, AR_IAUTH_USERNAME);
   }
-  return 1;
+  return AR_AUTH_PENDING;
 }
 
 /** Set client's username to an untrusted string.
@@ -1811,16 +1872,14 @@ static int iauth_cmd_username_good(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters (1).
  * @param[in] params Untrusted username.
- * @return One.
+ * @return \a AR_AUTH_PENDING.
  */
 static int iauth_cmd_username_bad(struct IAuth *iauth, struct Client *cli,
 				  int parc, char **params)
 {
-  assert(cli_auth(cli) != NULL);
-  FlagClr(&cli_auth(cli)->flags, AR_AUTH_PENDING);
   if (!EmptyString(params[0]))
     ircd_strncpy(cli_user(cli)->username, params[0], USERLEN);
-  return 1;
+  return AR_AUTH_PENDING;
 }
 
 /** Set client's hostname.
@@ -1828,7 +1887,8 @@ static int iauth_cmd_username_bad(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters (1).
  * @param[in] params New hostname for client.
- * @return Non-zero if \a cli authorization should be checked for completion.
+ * @return \a AR_DNS_PENDING if \a cli authorization should be checked
+ *   for completion, else zero.
  */
 static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
 			      int parc, char **params)
@@ -1845,7 +1905,6 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
 
   /* If a DNS request is pending, abort it. */
   if (FlagHas(&auth->flags, AR_DNS_PENDING)) {
-    FlagClr(&auth->flags, AR_DNS_PENDING);
     delete_resolver_queries(auth);
     if (IsUserPort(cli))
       sendheader(cli, REPORT_FIN_DNS);
@@ -1860,7 +1919,7 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
     ircd_strncpy(cli_user(cli)->host, cli_sockhost(cli), HOSTLEN);
     ircd_strncpy(cli_user(cli)->realhost, cli_sockhost(cli), HOSTLEN);
   }
-  return 1;
+  return AR_DNS_PENDING;
 }
 
 /** Set client's IP address.
@@ -1869,7 +1928,7 @@ static int iauth_cmd_hostname(struct IAuth *iauth, struct Client *cli,
  * @param[in] parc Number of parameters (1).
  * @param[in] params New IP address for client in dotted quad or
  *   standard IPv6 format.
- * @return Zero.
+ * @return Zero or \a AR_DNS_PENDING.
  */
 static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli,
 				int parc, char **params)
@@ -1906,7 +1965,8 @@ static int iauth_cmd_ip_address(struct IAuth *iauth, struct Client *cli,
   memcpy(&cli_ip(cli), &addr, sizeof(cli_ip(cli)));
   IPcheck_remote_connect(cli, 0);
 
-  return 0;
+  /* Treat as a DNS update to trigger G-line/Kill checks. */
+  return AR_DNS_PENDING;
 }
 
 /** Find a ConfItem structure for a named connection class.
@@ -1958,7 +2018,7 @@ static struct ConfItem *auth_find_class_conf(const char *class_name)
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters.
  * @param[in] params Optional class name for client.
- * @return Negative (CPTR_KILLED) if the connection is refused, one otherwise.
+ * @return \a AR_IAUTH_SOFT_DONE.
  */
 static int iauth_cmd_soft_done(struct IAuth *iauth, struct Client *cli,
 			       int parc, char **params)
@@ -1966,7 +2026,7 @@ static int iauth_cmd_soft_done(struct IAuth *iauth, struct Client *cli,
   /* Clear iauth pending flag. */
   assert(cli_auth(cli) != NULL);
   FlagSet(&cli_auth(cli)->flags, AR_IAUTH_SOFT_DONE);
-  return 1;
+  return AR_IAUTH_SOFT_DONE;
 }
 
 /** Accept a client in IAuth.
@@ -1974,16 +2034,13 @@ static int iauth_cmd_soft_done(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters.
  * @param[in] params Optional class name for client.
- * @return Negative (CPTR_KILLED) if the connection is refused, one otherwise.
+ * @return Negative (CPTR_KILLED) if the connection is refused, \a
+ *   AR_IAUTH_PENDING otherwise.
  */
 static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
 				 int parc, char **params)
 {
   static time_t warn_time;
-
-  /* Clear iauth pending flag. */
-  assert(cli_auth(cli) != NULL);
-  FlagClr(&cli_auth(cli)->flags, AR_IAUTH_PENDING);
 
   /* If a connection class was specified (and usable), assign the client to it. */
   if (!EmptyString(params[0])) {
@@ -2013,7 +2070,7 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
                                        params[0]);
   }
 
-  return 1;
+  return AR_IAUTH_PENDING;
 }
 
 /** Accept a client in IAuth and assign them to an account.
@@ -2021,8 +2078,9 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
  * @param[in] cli Client referenced by command.
  * @param[in] parc Number of parameters.
  * @param[in] params Account name and optional class name for client.
- * @return Negative if the connection is refused, otherwise non-zero
- *   if \a cli authorization should be checked for completion.
+ * @return Negative if the connection is refused, otherwise \a
+ *   AR_IAUTH_PENDING if \a cli authorization should be checked for
+ *   completion.
  */
 static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli,
 				  int parc, char **params)
@@ -2256,9 +2314,13 @@ static void iauth_parse(struct IAuth *iauth, char *message)
 	/* Report mismatch to iauth. */
 	sendto_iauth(cli, "E Mismatch :[%s] != [%s]", params[1],
 		     ircd_ntoa(&cli_ip(cli)));
-      else if (handler(iauth, cli, parc - 3, params + 3) > 0)
-	/* Handler indicated a possible state change. */
-	check_auth_finished(auth);
+      else
+      {
+        /* Does handler indicate a possible state change? */
+        int bitclr = handler(iauth, cli, parc - 3, params + 3);
+        if (bitclr > 0)
+          check_auth_finished(auth, -bitclr);
+      }
     }
   }
 }
