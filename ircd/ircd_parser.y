@@ -566,11 +566,17 @@ connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
 
 uworldblock: UWORLD '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
-uworlditem: uworldname;
+uworlditem: uworldname | uworldoper;
 uworldname: NAME '=' QSTRING ';'
 {
   make_conf(CONF_UWORLD)->host = $3;
 };
+uworldoper: OPER '=' QSTRING ';'
+{
+  struct ConfItem *conf = make_conf(CONF_UWORLD);
+  conf->host = $3;
+  conf->flags = CONF_UWORLD_OPER;
+}
 
 operblock: OPER '{' operitems '}' ';'
 {

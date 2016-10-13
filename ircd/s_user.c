@@ -477,7 +477,7 @@ int register_user(struct Client *cptr, struct Client *sptr)
       FlagSet(&flags, FLAG_ACCOUNT);
     else
       FlagClr(&flags, FLAG_ACCOUNT);
-    client_set_privs(sptr, NULL);
+    client_set_privs(sptr, NULL, 0);
     send_umode(cptr, sptr, &flags, ALL_UMODES);
     if ((cli_snomask(sptr) != SNO_DEFAULT) && HasFlag(sptr, FLAG_SERVNOTICE))
       send_reply(sptr, RPL_SNOMASK, cli_snomask(sptr), cli_snomask(sptr));
@@ -932,13 +932,12 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   return 0;
 }
 
-/** Set a user's mode.  This function checks that \a cptr is trying to
- * set his own mode, prevents local users from setting inappropriate
- * modes through this function, and applies any other side effects of
+/** Set a user's mode.  This function prevents local users from setting
+ * unauthorized modes and applies any other side effects of
  * a successful mode change.
  *
- * @param[in,out] cptr User setting someone's mode.
- * @param[in] sptr Client who sent the mode change message.
+ * @param[in] cptr Neighbor that sent the mode change message.
+ * @param[in] sptr Source (originator) of the mode change.
  * @param[in] parc Number of parameters in \a parv.
  * @param[in] parv Parameters to MODE.
  * @param[in] allow_modes ALLOWMODES_ANY for any mode, ALLOWMODES_DEFAULT for 
@@ -1163,7 +1162,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
     if (!FlagHas(&setflags, FLAG_OPER) && IsOper(sptr)) {
       /* user now oper */
       ++UserStats.opers;
-      client_set_privs(sptr, NULL); /* may set propagate privilege */
+      client_set_privs(sptr, NULL, 0); /* may set propagate privilege */
     }
     /* remember propagate privilege setting */
     if (HasPriv(sptr, PRIV_PROPAGATE)) {
@@ -1176,7 +1175,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
         assert(UserStats.opers > 0);
         --UserStats.opers;
       }
-      client_set_privs(sptr, NULL); /* will clear propagate privilege */
+      client_set_privs(sptr, NULL, 0); /* will clear propagate privilege */
     }
     if (FlagHas(&setflags, FLAG_INVISIBLE) && !IsInvisible(sptr)) {
       assert(UserStats.inv_clients > 0);
