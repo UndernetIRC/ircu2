@@ -104,7 +104,10 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
       port = tmp->address.port;
 
       if (tmp->status & CONF_UWORLD)
-	send_reply(sptr, RPL_STATSULINE, host);
+      {
+        const char *oper = (tmp->flags & CONF_UWORLD_OPER) ? "+" : "";
+        send_reply(sptr, RPL_STATSULINE, oper, host);
+      }
       else if (tmp->status & CONF_SERVER)
 	send_reply(sptr, RPL_STATSCLINE, name, port, maximum, hub_limit, get_conf_class(tmp));
       else if (tmp->status & CONF_CLIENT)
