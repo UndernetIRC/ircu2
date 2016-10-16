@@ -239,16 +239,11 @@ Miscellaneous bug fixes / "undocumented feature" changes:
 - When one user is +i is shown _only_ if there is a common channel,
   the first common channel found is shown in the reply.
 
-- As requested by many persons an escape has been provided for opers,
-  when #defined SHOW_ALL_CHANNELS opers can /who #channel from outside
-  and see users in there even if the channel is +s|+p
-  Each admin decides locally if this feature is enabled to his opers.
+- IRC operators with the "see_chan" privilege can /WHO #channel for
+  +s and +p channels even when they are not in the channel.
 
-- As requested by many admins an escape from the query-size limit
-  has been provided for opers, by #defining UNLIMIT_OPER_QUERY opers
-  can do unlimited sized /who-s (until they get disconnected by max
-  SendQ exceeded ;)
-  Again admins will decide if enable or not this feature.
+- IRC operators with the "unlimit_query" privilege can get full results
+  for /WHO lists (until they get disconnected by max SendQ exceeded ;)
 
 - A /who a,c,b,d,e,f used to return as many ** END OF WHO as there 
   were elements in the list, since now the command is supposed to be
