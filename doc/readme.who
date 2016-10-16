@@ -116,7 +116,7 @@ out-of-standard 352 crashes EPIC and confuses several other clients. I used
 :"source" 354 "target" ["querytype"] ["channel"] ["user"] 
                        ["IP"] ["host"] ["server"] ["nick"] 
                        ["flags"] ["hops"] ["idle"] ["account"]
-                       [:"realname"]
+                       ["oplevel"] [:"realname"]
 
 Where only the fields specified in the %fields options are present.
 
