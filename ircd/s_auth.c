@@ -87,6 +87,7 @@ enum AuthRequestFlag {
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
     AR_IAUTH_SOFT_DONE, /**< iauth has no objection to client */
     AR_PASSWORD_CHECKED, /**< client password already checked */
+    AR_GLINE_CHECKED,   /**< checked for a G-line banning the client */
     AR_NUM_FLAGS
 };
 
@@ -433,30 +434,34 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   if (bitclr != AR_IAUTH_SOFT_DONE)
     FlagClr(&auth->flags, bitclr);
 
-  /* Should we set (or update) the client's username? */
-  if ((bitclr == AR_AUTH_PENDING) && IsUserPort(auth->client))
+  if (!FlagHas(&auth->flags, AR_GLINE_CHECKED))
   {
-    res = auth_set_username(auth);
-    if (res)
-      return res;
-  }
+    struct Client *sptr;
+    int killreason;
 
-  /* Did this affect username and/or hostname?
-   * If so, and we have both of those, we should look for a matching
-   * G-line or Kill block.
-   */
-  if (((bitclr == AR_AUTH_PENDING) || (bitclr == AR_DNS_PENDING))
-      && !FlagHas(&auth->flags, AR_AUTH_PENDING)
-      && !FlagHas(&auth->flags, AR_DNS_PENDING))
-  {
-    struct Client *sptr = auth->client;
-    int killreason = find_kill(sptr);
+    /* Bail out until we have DNS and ident. */
+    if (FlagHas(&auth->flags, AR_AUTH_PENDING)
+        || FlagHas(&auth->flags, AR_DNS_PENDING))
+      return 0;
+
+    /* Check for K- or G-line. */
+    sptr = auth->client;
+    FlagSet(&auth->flags, AR_GLINE_CHECKED);
+    killreason = find_kill(sptr);
     if (killreason)
     {
       ServerStats->is_ref++;
       return exit_client(sptr, sptr, &me,
                          (killreason == -1 ? "K-lined" : "G-lined"));
     }
+
+    /* Tell IAuth about the client. */
+    iauth_notify(auth, AR_DNS_PENDING);
+    iauth_notify(auth, AR_AUTH_PENDING);
+    if (!FlagHas(&auth->flags, AR_NEEDS_USER))
+      iauth_notify(auth, AR_NEEDS_USER);
+    if (!FlagHas(&auth->flags, AR_NEEDS_NICK))
+      iauth_notify(auth, AR_NEEDS_NICK);
   }
 
   /* Check non-iauth registration blocking flags. */
@@ -529,7 +534,9 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   if (IsUserPort(auth->client))
   {
     memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
-    res = register_user(auth->client, auth->client);
+    res = auth_set_username(auth);
+    if (res == 0)
+      res = register_user(auth->client, auth->client);
     /* Notify IAuth (if appropriate). */
     if ((res == 0) && !from_iauth)
       iauth_notify(auth, (enum AuthRequestFlag)bitclr);
