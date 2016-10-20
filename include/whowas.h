@@ -72,7 +72,7 @@ extern struct Whowas* whowashash[];
 
 extern unsigned int hash_whowas_name(const char *name);
 
-extern struct Client *get_history(const char *nick, time_t timelimit);
+extern struct Client *get_history(const char *nick);
 extern void add_history(struct Client *cptr, int still_on);
 extern void off_history(const struct Client *cptr);
 extern void initwhowas(void);

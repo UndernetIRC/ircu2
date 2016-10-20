@@ -229,7 +229,7 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
   if (who)
     return who;
 
-  if (!(who = get_history(user, feature_int(FEAT_KILLCHASETIMELIMIT)))) {
+  if (!(who = get_history(user))) {
     send_reply(sptr, ERR_NOSUCHNICK, user);
     return 0;
   }

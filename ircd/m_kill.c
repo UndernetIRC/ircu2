@@ -262,7 +262,7 @@ int mo_kill(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * rewrite the KILL for this new nickname--this keeps
      * servers in synch when nick change and kill collide
      */
-    if (!(victim = get_history(user, (long)15)))
+    if (!(victim = get_history(user)))
       return send_reply(sptr, ERR_NOSUCHNICK, user);
 
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Changed KILL %s into %s", sptr,

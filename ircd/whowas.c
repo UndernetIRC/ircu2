@@ -317,13 +317,12 @@ void off_history(const struct Client *cptr)
 
 /** Find a client who has recently used a particular nickname.
  * @param[in] nick Nickname to find.
- * @param[in] timelimit Maximum age for entry.
  * @return User's online client, or NULL if none is found.
  */
-struct Client *get_history(const char *nick, time_t timelimit)
+struct Client *get_history(const char *nick)
 {
   struct Whowas *temp = whowashash[hash_whowas_name(nick)];
-  timelimit = CurrentTime - timelimit;
+  time_t timelimit = CurrentTime - feature_int(FEAT_KILLCHASETIMELIMIT);
 
   for (; temp; temp = temp->hnext)
     if (0 == ircd_strcmp(nick, temp->name) && temp->logoff > timelimit)
