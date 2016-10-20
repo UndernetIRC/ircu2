@@ -227,7 +227,7 @@ struct Client* make_client(struct Client *from, int status)
   cli_magic(cptr) = CLIENT_MAGIC;
   cli_status(cptr) = status;
   cli_hnext(cptr) = cptr;
-  strcpy(cli_username(cptr), "unknown");
+  strcpy(cli_username(cptr), "");
 
   return cptr;
 }
