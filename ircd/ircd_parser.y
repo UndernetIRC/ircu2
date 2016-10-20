@@ -628,15 +628,7 @@ operhost: HOST '=' QSTRING ';'
 {
  struct SLink *link;
  link = make_link();
- if (!strchr($3, '@'))
- {
-   int uh_len;
-   link->value.cp = (char*) MyMalloc((uh_len = strlen($3)+3));
-   ircd_snprintf(0, link->value.cp, uh_len, "*@%s", $3);
- }
- else
-   DupString(link->value.cp, $3);
- MyFree($3);
+ link->value.cp = $3;
  link->next = hosts;
  hosts = link;
 };
