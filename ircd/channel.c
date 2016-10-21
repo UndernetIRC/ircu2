@@ -3001,6 +3001,7 @@ mode_parse_client(struct ParseState *state, int *flag_p)
                    t_str, state->chptr->chname,
                    OpLevel(state->member), req_oplevel, "op",
                    OpLevel(state->member) == req_oplevel ? "the same" : "a higher");
+        return;
       } else if (req_oplevel <= MAXOPLEVEL)
         oplevel = req_oplevel;
     }
