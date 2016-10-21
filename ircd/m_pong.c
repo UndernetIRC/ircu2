@@ -108,7 +108,6 @@
  */
 int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  char*          origin;
   char*          destination;
   assert(0 != cptr);
   assert(0 != sptr);
@@ -117,7 +116,6 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 2 || EmptyString(parv[1])) {
     return protocol_violation(sptr,"No Origin on PONG");
   }
-  origin      = parv[1];
   destination = parv[2];
   ClearPingSent(cptr);
   ClearPingSent(sptr);
@@ -144,8 +142,12 @@ int ms_pong(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   else if (0 != ircd_strcmp(destination, cli_name(&me)))
   {
     struct Client* acptr;
-    if ((acptr = FindClient(destination)))
-      sendcmdto_one(sptr, CMD_PONG, acptr, "%s %s", origin, destination);
+    if ((acptr = findNUser(destination))) {
+      if (MyUser(acptr))
+        sendcmdto_one(sptr, CMD_PONG, acptr, "%C %s", sptr, parv[1]);
+      else
+        sendcmdto_one(sptr, CMD_PONG, acptr, "%s %C", parv[1], acptr);
+    }
   }
   return 0;
 }
