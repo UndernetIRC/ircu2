@@ -433,7 +433,7 @@ struct Message msgtab[] = {
     TOK_VERSION,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_version, m_version, ms_version, mo_version, m_ignore }
+    { m_version, m_version, m_version, m_version, m_ignore }
   },
   {
     MSG_STATS,
