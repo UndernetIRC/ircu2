@@ -314,7 +314,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   commas = (mask && strchr(mask, ','));
 
   /* First treat mask as a list of plain nicks/channels */
-  if (mask)
+  if (mask && (commas || (matchsel & (WHO_FIELD_NIC | WHO_FIELD_CHA))))
   {
     strcpy(mymask, mask);
     for (p = 0, nick = ircd_strtok(&p, mymask, ","); nick;
