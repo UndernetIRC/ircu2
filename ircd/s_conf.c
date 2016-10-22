@@ -643,9 +643,7 @@ struct ConfItem* find_conf_exact(const char* name, struct Client *cptr, int stat
     if (!(tmp->status & statmask) || !tmp->name || !tmp->host ||
         0 != ircd_strcmp(tmp->name, name))
       continue;
-    if (tmp->username
-        && (EmptyString(cli_username(cptr))
-            || match(tmp->username, cli_username(cptr))))
+    if (tmp->username && match(tmp->username, cli_username(cptr)))
       continue;
     if (tmp->addrbits < 0)
     {
