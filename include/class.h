@@ -71,6 +71,8 @@ struct ConnectionClass {
 #define MaxSendq(x)     ((x)->max_sendq)
 /** Get number of references to \a x. */
 #define Links(x)        ((x)->ref_count)
+/** Get default usermode for \a x. */
+#define CCUmode(x)      ((x)->default_umode)
 
 /** Get class name for ConfItem \a x. */
 #define ConfClass(x)    ((x)->conn_class->cc_name)
