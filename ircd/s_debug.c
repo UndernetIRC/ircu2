@@ -78,41 +78,40 @@ const char* debug_serveropts(void)
   bp = feature_int(FEAT_BUFFERPOOL);
   if (bp < 1000000) {
     AddC('b');
-    if (bp > 99999)
-      AddC((char)('0' + (bp / 100000)));
-    if (bp > 9999)
-      AddC((char)('0' + (bp / 10000) % 10));
+    AddC((char)('0' + (bp / 100000)));
+    AddC((char)('0' + (bp / 10000) % 10));
     AddC((char)('0' + (bp / 1000) % 10));
   } else {
     AddC('B');
-    if (bp > 99999999)
-      AddC((char)('0' + (bp / 100000000)));
-    if (bp > 9999999)
-      AddC((char)('0' + (bp / 10000000) % 10));
+    AddC((char)('0' + (bp / 100000000)));
+    AddC((char)('0' + (bp / 10000000) % 10));
     AddC((char)('0' + (bp / 1000000) % 10));
   }
 
 #ifndef NDEBUG
   AddC('A');
+#else
+  AddC('-');
 #endif
 #ifdef  DEBUGMODE
   AddC('D');
+#else
+  AddC('-');
 #endif
 
-  if (feature_bool(FEAT_HUB))
-    AddC('H');
-
-  if (feature_bool(FEAT_IDLE_FROM_MSG))
-    AddC('M');
-
-  if (feature_bool(FEAT_RELIABLE_CLOCK))
-    AddC('R');
+  AddC(feature_bool(FEAT_HUB) ? 'H' : '-');
+  AddC(feature_bool(FEAT_IDLE_FROM_MSG) ? 'M' : '-');
+  AddC(feature_bool(FEAT_RELIABLE_CLOCK) ? 'R' : '-');
 
 #if defined(USE_POLL) && defined(HAVE_POLL_H)
   AddC('U');
+#else
+  AddC('-');
 #endif
 #ifdef  IPV6
   AddC('6');
+#else
+  AddC('-');
 #endif
 
   serveropts[i] = '\0';
