@@ -86,6 +86,8 @@
 void relay_channel_message(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  const char *ch;
+
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);
@@ -105,6 +107,15 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
 
+  if (chptr->mode.mode & MODE_NOCOLOR) {
+    for (ch = text; *ch != '\0'; ++ch) {
+      if (*ch == 3 || *ch == 27) {
+        send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+        return;
+      }
+    }
+  }
+
   RevealDelayedJoinIfNeeded(sptr, chptr);
   sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
 			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
@@ -119,6 +130,8 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
 void relay_channel_notice(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  const char *ch;
+
   assert(0 != sptr);
   assert(0 != name);
   assert(0 != text);
@@ -134,6 +147,15 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
       check_target_limit(sptr, chptr, chptr->chname, 0))
     return;
+
+  if (chptr->mode.mode & MODE_NOCOLOR) {
+    for (ch = text; *ch != '\0'; ++ch) {
+      if (*ch == 3 || *ch == 27) {
+        send_reply(sptr, ERR_CANNOTSENDTOCHAN, chptr->chname);
+        return;
+      }
+    }
+  }
 
   RevealDelayedJoinIfNeeded(sptr, chptr);
   sendcmdto_channel_butone(sptr, CMD_NOTICE, chptr, cli_from(sptr),
