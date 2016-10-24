@@ -77,8 +77,9 @@ static struct IPRegistryEntry* freeList;
 static struct Timer expireTimer;
 
 /** Convert IP addresses to canonical form for comparison.  IPv4
- * addresses are translated into 6to4 form; IPv6 addresses are left
- * alone.
+ * addresses are translated into 6to4 form; IPv6 addresses are
+ * truncated to their /64 prefix.
+ *
  * @param[out] out Receives canonical format for address.
  * @param[in] in IP address to canonicalize.
  */
@@ -88,10 +89,16 @@ static void ip_registry_canonicalize(struct irc_in_addr *out, const struct irc_i
         out->in6_16[0] = htons(0x2002);
         out->in6_16[1] = in->in6_16[6];
         out->in6_16[2] = in->in6_16[7];
-        out->in6_16[3] = out->in6_16[4] = out->in6_16[5] = 0;
-        out->in6_16[6] = out->in6_16[7] = 0;
-    } else
-        memcpy(out, in, sizeof(*out));
+        out->in6_16[3] = 0;
+    } else {
+        out->in6_16[0] = in->in6_16[0];
+        out->in6_16[1] = in->in6_16[1];
+        out->in6_16[2] = in->in6_16[2];
+        out->in6_16[3] = in->in6_16[3];
+    }
+
+    out->in6_16[4] = out->in6_16[5] = 0;
+    out->in6_16[6] = out->in6_16[7] = 0;
 }
 
 /** Calculate hash value for an IP address.
