@@ -573,7 +573,7 @@ struct StatDesc statsinfo[] = {
   { 'F', "featuresall", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_f,
     feature_report, 1,
     "All feature settings, including defaulted values." },
-  { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_g,
+  { 'g', "glines", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_g,
     gline_stats, 0,
     "Global bans (G-lines)." },
   { 'i', "access", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_i,

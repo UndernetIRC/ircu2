@@ -1156,7 +1156,7 @@ gline_list(struct Client *sptr, char *userhost)
 /** Statistics callback to list G-lines.
  * @param[in] sptr Client requesting statistics.
  * @param[in] sd Stats descriptor for request (ignored).
- * @param[in] param Extra parameter from user (ignored).
+ * @param[in] param Mask to filter reported G-lines.
  */
 void
 gline_stats(struct Client *sptr, const struct StatDesc *sd,
@@ -1166,6 +1166,18 @@ gline_stats(struct Client *sptr, const struct StatDesc *sd,
   struct Gline *sgline;
 
   gliter(GlobalGlineList, gline, sgline) {
+    if (param) {
+      char gl_mask[USERLEN+HOSTLEN+2];
+      strcpy(gl_mask, gline->gl_user);
+      if (gline->gl_host) {
+	size_t len = strlen(gl_mask);
+	gl_mask[len++] = '@';
+	strcpy(gl_mask + len, gline->gl_host);
+      }
+      if (mmatch(param, gl_mask))
+	continue;
+    }
+
     send_reply(sptr, RPL_STATSGLINE, 'G', gline->gl_user,
 	       gline->gl_host ? "@" : "",
 	       gline->gl_host ? gline->gl_host : "",
