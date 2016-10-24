@@ -63,6 +63,7 @@
 #define MASK_WILDS	0x10	/**< Mask contains wildcards */
 #define MASK_IP		0x20	/**< Mask is an IP address */
 #define MASK_HALT	0x40	/**< Finished processing mask */
+#define ONE_MONTH	(30 * 24 * 3600) /**< Number of seconds in 30 days */
 
 /** List of user G-lines. */
 struct Gline* GlobalGlineList  = 0;
@@ -87,7 +88,9 @@ struct Gline* BadChanGlineList = 0;
     /* Figure out the next pointer in list... */	\
     if ((((next) = (gl)->gl_next) || 1) &&		\
 	/* Then see if it's expired */			\
-	(gl)->gl_lifetime <= TStime())                  \
+	(((gl)->gl_lifetime <= TStime()) ||             \
+	 (((gl)->gl_expire < TStime() - ONE_MONTH) &&   \
+	  ((gl)->gl_lastmod < TStime() - ONE_MONTH))))  \
       /* Record has expired, so free the G-line */	\
       gline_free((gl));					\
     /* See if we need to expire the G-line */		\
