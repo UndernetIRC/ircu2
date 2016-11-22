@@ -100,10 +100,13 @@
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
-static void make_oper(struct Client *dptr)
+static void make_oper(struct Client *sptr, struct Client *dptr)
 {
+  struct Flags old_mode = cli_flags(dptr);
+
   ++UserStats.opers;
   SetOper(dptr);
+
   if (MyConnect(dptr))
   {
     cli_handler(dptr) = OPER_HANDLER;
@@ -111,7 +114,19 @@ static void make_oper(struct Client *dptr)
     SetDebug(dptr);
     SetServNotice(dptr);
     det_confs_butmask(dptr, CONF_CLIENT & ~CONF_OPERATOR);
+    set_snomask(dptr, SNO_OPERDEFAULT, SNO_ADD);
+    cli_max_sendq(dptr) = 0; /* Get the sendq from the oper's class */
     client_set_privs(dptr, NULL, 1);
+
+    send_umode_out(dptr, dptr, &old_mode, HasPriv(dptr, PRIV_PROPAGATE));
+    send_reply(dptr, RPL_YOUREOPER);
+
+    sendto_opmask_butone(0, SNO_OLDSNO, "%s (%s@%s) is now operator (%c)",
+			 cli_name(dptr), cli_user(dptr)->username,
+			 cli_sockhost(dptr), IsOper(dptr) ? 'O' : 'o');
+
+    log_write(LS_OPER, L_INFO, 0, "REMOTE OPER (%#C) by (%s)", dptr,
+	      cli_name(sptr));
   }
 }
 
@@ -170,7 +185,7 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * not support remote mode setting or setting +o.
      */
     if (!strcmp(parv[2], "+o") && !IsOper(dptr))
-      make_oper(dptr);
+      make_oper(sptr, dptr);
     else if (!strcmp(parv[2], "-o") && IsOper(dptr))
       de_oper(dptr);
 
