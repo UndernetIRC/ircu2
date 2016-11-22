@@ -125,10 +125,11 @@ int ms_settime(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     if (IsServer(sptr)) /* protocol violation if it's from a server */
       protocol_violation(sptr, "SETTIME: Bad value (%Tu, delta %ld)", t, dt);
-    else
+    else {
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value (%Tu, "
                     "delta %ld)", sptr, t, dt);
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :SETTIME: Bad value", sptr);
+    }
     return 0;
   }
 
