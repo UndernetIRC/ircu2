@@ -839,6 +839,22 @@ to 10, then a user is only allowed to connect once in 10s, if they connect
 again within 10s, then they are considered to be connecting too fast and
 they are throttled.
 
+IPCHECK_48_CLONE_LIMIT
+ * Type: integer
+ * Default: 50
+
+This is a limit that works like IPCHECK_CLONE_LIMIT, but for all
+clients connecting from a given IPv6 /48 block.
+
+IPCHECK_48_CLONE_PERIOD
+ * Type: integer
+ * Default: 10
+
+This is a timer that works like IPCHECK_CLONE_PERIOD, but for all
+clients connecting from a given IPv6 /48 block.  The number of
+connection attempts allowed in this period is given by the
+IPCHECK_48_CLONE_LIMIT feature.
+
 IPCHECK_CLONE_DELAY
  * Type: integer
  * Default: 600
