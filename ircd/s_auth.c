@@ -267,19 +267,7 @@ static int auth_set_username(struct AuthRequest *auth)
   {
     clean_username(user->username, cli_username(sptr));
   }
-  else if (HasFlag(sptr, FLAG_DOID))
-  {
-    /* Prepend ~ to user->username. */
-    s = user->username;
-    s[USERLEN] = '\0';
-    for (last = '~'; (ch = *s) != '\0'; )
-    {
-      *s++ = last;
-      last = ch;
-    }
-    *s++ = last;
-    *s = '\0';
-  } /* else cleaned version of client-provided name is in place */
+  /* else username was set by identd lookup (or failure thereof) */
 
   /* If username is empty or just ~, reject. */
   if ((user->username[0] == '\0')
@@ -436,6 +424,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
 
   if (!FlagHas(&auth->flags, AR_GLINE_CHECKED))
   {
+    struct User   *user;
     struct Client *sptr;
     int killreason;
 
@@ -444,8 +433,34 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
         || FlagHas(&auth->flags, AR_DNS_PENDING))
       return 0;
 
-    /* Check for K- or G-line. */
+    /* If appropriate, do preliminary assignment to Client block. */
+    if (IsUserPort(auth->client)
+        && preregister_user(auth->client))
+      return CPTR_KILLED;
+
+    /* Copy username to struct User.username for kill checking. */
     sptr = auth->client;
+    user = cli_user(sptr);
+    if (IsIdented(sptr))
+    {
+      clean_username(user->username, cli_username(sptr));
+    }
+    else if (HasFlag(sptr, FLAG_DOID))
+    {
+      /* Prepend ~ to user->username. */
+      char *s = user->username;
+      char last, ch;
+      s[USERLEN] = '\0';
+      for (last = '~'; (ch = *s) != '\0'; )
+      {
+        *s++ = last;
+        last = ch;
+      }
+      *s++ = last;
+      *s = '\0';
+    } /* else cleaned version of client-provided name is in place */
+
+    /* Check for K- or G-line. */
     FlagSet(&auth->flags, AR_GLINE_CHECKED);
     killreason = find_kill(sptr);
     if (killreason)
@@ -476,12 +491,6 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
       return 0;
     }
   }
-
-  /* If appropriate, do preliminary assignment to connection class. */
-  if (IsUserPort(auth->client)
-      && !FlagHas(&auth->flags, AR_IAUTH_HURRY)
-      && preregister_user(auth->client))
-    return CPTR_KILLED;
 
   /* If we have not done so, check client password.  Do this as soon
    * as possible so that iauth's challenge/response (which uses PASS
