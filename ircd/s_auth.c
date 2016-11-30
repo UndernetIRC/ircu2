@@ -441,7 +441,11 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     /* Copy username to struct User.username for kill checking. */
     sptr = auth->client;
     user = cli_user(sptr);
-    if (IsIdented(sptr))
+    if (IsServerPort(sptr) || IsServer(sptr))
+    {
+      /* servers don't get username assignments */
+    }
+    else if (IsIdented(sptr))
     {
       clean_username(user->username, cli_username(sptr));
     }
