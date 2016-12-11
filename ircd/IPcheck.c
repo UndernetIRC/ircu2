@@ -414,8 +414,11 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
      * Don't refuse connection when we just rebooted the server
      */
 reject:
-    assert(entry->connected > 0);
-    --entry->connected;
+    if (entry)
+    {
+      assert(entry->connected > 0);
+      --entry->connected;
+    }
     Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(&entry->addr)));
     return 0;
   }
