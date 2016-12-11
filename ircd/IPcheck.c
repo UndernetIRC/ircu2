@@ -419,7 +419,7 @@ reject:
       assert(entry->connected > 0);
       --entry->connected;
     }
-    Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(&entry->addr)));
+    Debug((DEBUG_DNS, "IPcheck refusing local connection from %s: too fast.", ircd_ntoa(addr)));
     return 0;
   }
 #endif
