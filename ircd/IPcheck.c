@@ -373,7 +373,18 @@ int ip_registry_check_local(const struct irc_in_addr *addr, time_t* next_target_
 #ifndef NOTHROTTLE
     if ((entry_48->attempts >= IPCHECK_48_CLONE_LIMIT)
         && ((CurrentTime - cli_since(&me) > IPCHECK_CLONE_DELAY)))
+    {
+      if (entry)
+      {
+        entry->last_connect = NOW;
+        if (!++entry->connected)
+        {
+          entry->connected--;
+          entry = NULL;
+        }
+      }
       goto reject;
+    }
 #endif
   }
 
