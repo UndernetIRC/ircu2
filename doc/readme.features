@@ -293,7 +293,7 @@ This is the expected average ban mask length.  Leave it at 40.
 
 MAXBANS
  * Type: integer
- * Default: 45
+ * Default: 100
 
 This is the maximum number of bans a user may set on a given channel.
 
