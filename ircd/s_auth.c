@@ -453,15 +453,11 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     {
       /* Prepend ~ to user->username. */
       char *s = user->username;
-      char last, ch;
+      int ii;
+      for (ii = USERLEN-1; ii > 0; ii--)
+        s[ii] = s[ii-1];
+      s[0] = '~';
       s[USERLEN] = '\0';
-      for (last = '~'; (ch = *s) != '\0'; )
-      {
-        *s++ = last;
-        last = ch;
-      }
-      *s++ = last;
-      *s = '\0';
     } /* else cleaned version of client-provided name is in place */
 
     /* Check for K- or G-line. */
