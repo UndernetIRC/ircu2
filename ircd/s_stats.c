@@ -86,7 +86,7 @@ static void
 stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                        char* param)
 {
-  static char null[] = "<NULL>";
+  static char null[] = "";
   struct ConfItem *tmp;
   unsigned short int port;
   int maximum;
@@ -96,10 +96,10 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
   {
     if ((tmp->status & sd->sd_funcdata))
     {
-      host = BadPtr(tmp->host) ? null : tmp->host;
-      name = BadPtr(tmp->name) ? null : tmp->name;
-      username = BadPtr(tmp->username) ? null : tmp->username;
-      hub_limit = BadPtr(tmp->hub_limit) ? null : tmp->hub_limit;
+      host = tmp->host ? tmp->host : null;
+      name = tmp->name ? tmp->name : null;
+      username = tmp->username ? tmp->username : null;
+      hub_limit = tmp->hub_limit ? tmp->hub_limit : null;
       maximum = tmp->maximum;
       port = tmp->address.port;
 
