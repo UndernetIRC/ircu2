@@ -1315,6 +1315,9 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
     return exit_client(sptr, sptr, &me,
                        (killreason == -1 ? "K-lined" : "G-lined"));
   }
+  FlagSet(&auth->flags, AR_GLINE_CHECKED);
+  if (preregister_user(auth->client))
+    return CPTR_KILLED;
 
   start_iauth_query(auth);
   sendto_iauth(sptr, "N %s", hostname);
