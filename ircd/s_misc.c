@@ -167,7 +167,7 @@ const char* get_client_name(const struct Client* sptr, int showip)
   if (!MyConnect(sptr) || !showip)
     return cli_name(sptr);
   ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
-                IsIdented(sptr) ? cli_username(sptr) : "",
+                IsGotId(sptr) ? cli_username(sptr) : "",
                 cli_sock_ip(sptr));
   return nbuf;
 }

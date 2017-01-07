@@ -561,7 +561,7 @@ struct Client {
 /** Return non-zero if the client has been IP-checked for clones. */
 #define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
 /** Return non-zero if we have received an ident response for the client. */
-#define IsIdented(x)            HasFlag(x, FLAG_GOTID)
+#define IsGotId(x)              HasFlag(x, FLAG_GOTID)
 /** Return non-zero if the client has set mode +i (invisible). */
 #define IsInvisible(x)          HasFlag(x, FLAG_INVISIBLE)
 /** Return non-zero if the client caused a net.burst. */

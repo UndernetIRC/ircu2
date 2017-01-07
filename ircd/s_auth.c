@@ -263,7 +263,7 @@ static int auth_set_username(struct AuthRequest *auth)
   {
     ircd_strncpy(user->username, cli_username(sptr), USERLEN);
   }
-  else if (IsIdented(sptr))
+  else if (IsGotId(sptr))
   {
     clean_username(user->username, cli_username(sptr));
   }
@@ -339,7 +339,7 @@ static int auth_set_username(struct AuthRequest *auth)
 badid:
   /* If we confirmed their username, and it is what they claimed,
    * accept it. */
-  if (IsIdented(sptr) && !strcmp(cli_username(sptr), user->username))
+  if (IsGotId(sptr) && !strcmp(cli_username(sptr), user->username))
     return 0;
 
   ServerStats->is_ref++;
@@ -445,7 +445,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     {
       /* servers don't get username assignments */
     }
-    else if (IsIdented(sptr))
+    else if (IsGotId(sptr))
     {
       clean_username(user->username, cli_username(sptr));
     }
