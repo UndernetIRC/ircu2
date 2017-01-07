@@ -126,12 +126,9 @@ int ms_xreply(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   /* OK, figure out where to route the message */
-  if (!ircd_strncmp("iauth:", routing, 6)) {
-    /* Forward the reply to the iauth */
-    routing += 6;
-
-    auth_send_xreply(sptr, routing, reply);
-  } else
+  if (!ircd_strncmp("iauth:", routing, 6))
+    auth_send_xreply(sptr, routing + 6, reply);
+  else
     /* If we don't know where to route it, log it and drop it */
     log_write(LS_SYSTEM, L_NOTICE, 0, "Received unroutable extension reply "
 	      "from %#C to %#C routing %s; message: %s", sptr, acptr,
