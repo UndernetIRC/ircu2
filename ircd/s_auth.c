@@ -422,7 +422,8 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   if (bitclr != AR_IAUTH_SOFT_DONE)
     FlagClr(&auth->flags, bitclr);
 
-  if (!FlagHas(&auth->flags, AR_GLINE_CHECKED))
+  if (IsUserPort(auth->client)
+      && !FlagHas(&auth->flags, AR_GLINE_CHECKED))
   {
     struct User   *user;
     struct Client *sptr;
@@ -434,18 +435,13 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
       return 0;
 
     /* If appropriate, do preliminary assignment to Client block. */
-    if (IsUserPort(auth->client)
-        && preregister_user(auth->client))
+    if (preregister_user(auth->client))
       return CPTR_KILLED;
 
     /* Copy username to struct User.username for kill checking. */
     sptr = auth->client;
     user = cli_user(sptr);
-    if (IsServerPort(sptr) || IsServer(sptr))
-    {
-      /* servers don't get username assignments */
-    }
-    else if (IsGotId(sptr))
+    if (IsGotId(sptr))
     {
       clean_username(user->username, cli_username(sptr));
     }
