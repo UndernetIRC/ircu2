@@ -1362,9 +1362,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (!res) {
     res = errno;
     Debug((DEBUG_INFO, "Unable to make IAuth socket non-blocking: %s", strerror(res)));
-    close(s_io[1]);
-    close(s_io[0]);
-    return res;
+    goto fail_1;
   }
 
   /* Initialize the socket structure to talk to the child. */
@@ -1373,9 +1371,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (!res) {
     res = errno;
     Debug((DEBUG_INFO, "Unable to register IAuth socket: %s", strerror(res)));
-    close(s_io[1]);
-    close(s_io[0]);
-    return res;
+    goto fail_1;
   }
 
   /* Allocate another pair for stderr. */
@@ -1383,10 +1379,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (res) {
     res = errno;
     Debug((DEBUG_INFO, "Unable to create IAuth stderr: %s", strerror(res)));
-    socket_del(i_socket(iauth));
-    close(s_io[1]);
-    close(s_io[0]);
-    return res;
+    goto fail_2;
   }
 
   /* Mark parent side of this pair non-blocking, too. */
@@ -1394,12 +1387,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (!res) {
     res = errno;
     Debug((DEBUG_INFO, "Unable to make IAuth stderr non-blocking: %s", strerror(res)));
-    close(s_err[1]);
-    close(s_err[0]);
-    socket_del(i_socket(iauth));
-    close(s_io[1]);
-    close(s_io[0]);
-    return res;
+    goto fail_3;
   }
 
   /* And set up i_stderr(iauth). */
@@ -1408,12 +1396,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   if (!res) {
     res = errno;
     Debug((DEBUG_INFO, "Unable to register IAuth stderr: %s", strerror(res)));
-    close(s_err[1]);
-    close(s_err[0]);
-    socket_del(i_socket(iauth));
-    close(s_io[1]);
-    close(s_io[0]);
-    return res;
+    goto fail_3;
   }
 
   /* Attempt to fork a child process. */
@@ -1423,9 +1406,14 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
     res = errno;
     Debug((DEBUG_INFO, "Unable to fork IAuth child: %s", strerror(res)));
     socket_del(i_stderr(iauth));
+    s_fd(i_stderr(iauth)) = -1;
+  fail_3:
     close(s_err[1]);
     close(s_err[0]);
+  fail_2:
     socket_del(i_socket(iauth));
+    s_fd(i_socket(iauth)) = -1;
+  fail_1:
     close(s_io[1]);
     close(s_io[0]);
     return res;
