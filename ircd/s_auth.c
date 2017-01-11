@@ -1594,10 +1594,7 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...)
   /* Build the message buffer. */
   vd.vd_format = format;
   va_start(vd.vd_args, format);
-  if (0 == cptr)
-    mb = msgq_make(NULL, "-1 %v", &vd);
-  else
-    mb = msgq_make(NULL, "%d %v", cli_fd(cptr), &vd);
+  mb = msgq_make(NULL, "%d %v", cptr ? cli_fd(cptr) : -1, &vd);
   va_end(vd.vd_args);
 
   /* Tack it onto the iauth sendq and try to write it. */
