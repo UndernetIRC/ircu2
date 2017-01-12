@@ -89,6 +89,7 @@ struct wline
   struct irc_in_addr ip; /**< IP of webirc service. */
   unsigned char bits;    /**< Number of bits used in #ip. */
   unsigned char stale;   /**< Non-zero during config re-read. */
+  unsigned char hidden;  /**< If non-zero, hide IP in /stats webirc. */
   char *passwd;          /**< Password field. */
   char *description;     /**< Text description, e.g. for provider. */
 };

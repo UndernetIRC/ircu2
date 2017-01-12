@@ -511,7 +511,10 @@ stats_webirc(struct Client *to, const struct StatDesc *sd, char *param)
     const char *desc = wline->description;
     if (!desc)
       desc = "(no description provided)";
-    ircd_ntoa_r(ip_text, &wline->ip);
+    if (wline->hidden)
+      strcpy(ip_text, "*");
+    else
+      ircd_ntoa_r(ip_text, &wline->ip);
     send_reply(to, RPL_STATSWLINE, ip_text, wline->bits, desc);
   }
 }

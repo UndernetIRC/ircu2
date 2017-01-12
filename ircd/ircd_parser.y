@@ -1172,7 +1172,11 @@ iauthprogram: PROGRAM '='
   }
 } stringlist ';';
 
-webircblock: WEBIRC '{' webircitems '}' ';'
+webircblock: WEBIRC
+{
+  flags = 0;
+}
+'{' webircitems '}' ';'
 {
   struct wline *wline;
   struct irc_in_addr peer;
@@ -1200,12 +1204,12 @@ webircblock: WEBIRC '{' webircitems '}' ';'
       wline = (struct wline *) MyMalloc(sizeof(*wline));
       memcpy(&wline->ip, &peer, sizeof(wline->ip));
       wline->bits = bits;
-      wline->stale = 0;
       wline->passwd = pass;
       wline->next = GlobalWebircList;
       GlobalWebircList = wline;
     }
     wline->stale = 0;
+    wline->hidden = (flags & 1) != 0;
     wline->description = name;
 
     MyFree(ip);
@@ -1216,7 +1220,8 @@ webircblock: WEBIRC '{' webircitems '}' ';'
 };
 
 webircitems: webircitem | webircitems webircitem;
-webircitem: webircip | webircpass | webircdesc;
+webircitem: webircip | webircpass | webircdesc | webirchidden;
 webircip: IP '=' QSTRING ';' { MyFree(ip); ip = $3; };
 webircpass: PASS '=' QSTRING ';' { MyFree(pass); pass = $3; };
 webircdesc: DESCRIPTION '=' QSTRING ';' { MyFree(name); name = $3; };
+webirchidden: HIDDEN '=' YES ';' { flags = flags | 1; }
