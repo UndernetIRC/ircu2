@@ -204,7 +204,7 @@ int init_connection_limits(int maxconn)
     return 1;
   }
   if (limit < 0) {
-    fprintf(stderr, "error setting max fd's to %d\n", maxconn);
+    fprintf(stderr, "error setting max fds to %d: %s\n", limit, strerror(errno));
   }
   else if (limit > 0) {
     fprintf(stderr, "ircd fd table too big\nHard Limit: %d IRC max: %d\n"
@@ -260,7 +260,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   /*
    * Set the TOS bits - this is nonfatal if it doesn't stick.
    */
-  if (!os_set_tos(cli_fd(cptr), FEAT_TOS_SERVER)) {
+  if (!os_set_tos(cli_fd(cptr), feature_int(FEAT_TOS_SERVER))) {
     report_error(TOS_ERROR_MSG, cli_name(cptr), errno);
   }
   if ((result = os_connect_nonb(cli_fd(cptr), &aconf->address)) == IO_FAILURE) {
@@ -337,7 +337,9 @@ static int completed_connection(struct Client* cptr)
    * get the socket status from the fd first to check if
    * connection actually succeeded
    */
-  if ((cli_error(cptr) = os_get_sockerr(cli_fd(cptr)))) {
+  if (cli_fd(cptr) >= 0)
+      cli_error(cptr) = os_get_sockerr(cli_fd(cptr));
+  if (cli_error(cptr) != 0) {
     const char* msg = strerror(cli_error(cptr));
     if (!msg)
       msg = "Unknown error";
@@ -519,6 +521,10 @@ void add_connection(struct Listener* listener, int fd) {
   if (listener_server(listener))
   {
     new_client = make_client(0, STAT_UNKNOWN_SERVER);
+  }
+  else if (listener_webirc(listener))
+  {
+      new_client = make_client(0, STAT_WEBIRC);
   }
   else
   {
@@ -885,6 +891,11 @@ static void client_sock_callback(struct Event* ev)
   case ET_ERROR: /* an error occurred */
     fallback = cli_info(cptr);
     cli_error(cptr) = ev_data(ev);
+    /* If the OS told us we have a bad file descriptor, we should
+     * record that for future reference.
+     */
+    if (cli_error(cptr) == EBADF)
+      cli_fd(cptr) = -1;
     if (s_state(&(con_socket(con))) == SS_CONNECTING) {
       completed_connection(cptr);
       /* for some reason, the os_get_sockerr() in completed_connection()

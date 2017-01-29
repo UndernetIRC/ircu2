@@ -31,7 +31,7 @@
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>

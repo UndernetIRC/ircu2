@@ -69,7 +69,7 @@ int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     --len;
   password[len] = '\0';
 
-  if (EmptyString(password))
+  if (password[0] == '\0')
     return need_more_params(cptr, "PASS");
 
   ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);

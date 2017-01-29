@@ -66,14 +66,28 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
    /* setting a topic */
    ircd_strncpy(chptr->topic, topic, TOPICLEN);
    ircd_strncpy(chptr->topic_nick, cli_name(from), NICKLEN);
-   chptr->topic_time = ts ? ts : TStime();
+   if (ts == 0) {
+     ts = TStime();
+     if (ts <= chptr->topic_time)
+       ts = chptr->topic_time;
+   }
+   chptr->topic_time = ts;
    /* Fixed in 2.10.11: Don't propagate local topics */
    if (!IsLocalChannel(chptr->chname))
      sendcmdto_serv(sptr, CMD_TOPIC, cptr, "%H %Tu %Tu :%s", chptr,
                     chptr->creationtime, chptr->topic_time, chptr->topic);
    if (newtopic)
+   {
+     struct Membership *member;
+
+     /* If the member is delayed-join, show them. */
+     member = find_channel_member(sptr, chptr);
+     if (member && IsDelayedJoin(member))
+       RevealDelayedJoin(member);
+
      sendcmdto_channel(from, CMD_TOPIC, chptr, NULL, SKIP_SERVERS,
                        "%H :%s", chptr, chptr->topic);
+   }
       /* if this is the same topic as before we send it to the person that
        * set it (so they knew it went through ok), but don't bother sending
        * it to everyone else on the channel to save bandwidth
@@ -188,6 +202,7 @@ int ms_topic(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (parc > 3 && (ts = atoi(parv[2])) && chptr->creationtime < ts)
       continue;
 
+    ts = 0; /* Default to the current time if no topic_time is passed. */
     if (parc > 4 && (ts = atoi(parv[3])) && chptr->topic_time > ts)
       continue;
 

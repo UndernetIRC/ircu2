@@ -37,10 +37,63 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "querycmds.h"
 #include "send.h"
 #include "s_conf.h"
+#include "s_user.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
+
+static void make_oper(struct Client *sptr, struct Client *dptr)
+{
+  struct Flags old_mode = cli_flags(dptr);
+
+  ++UserStats.opers;
+  SetOper(dptr);
+
+  if (MyConnect(dptr))
+  {
+    cli_handler(dptr) = OPER_HANDLER;
+    SetWallops(dptr);
+    SetDebug(dptr);
+    SetServNotice(dptr);
+    det_confs_butmask(dptr, CONF_CLIENT & ~CONF_OPERATOR);
+    set_snomask(dptr, SNO_OPERDEFAULT, SNO_ADD);
+    cli_max_sendq(dptr) = 0; /* Get the sendq from the oper's class */
+    client_set_privs(dptr, NULL, 1);
+
+    send_umode_out(dptr, dptr, &old_mode, HasPriv(dptr, PRIV_PROPAGATE));
+    send_reply(dptr, RPL_YOUREOPER);
+
+    sendto_opmask(0, SNO_OLDSNO, "%s (%s@%s) is now operator (%c)",
+		 cli_name(dptr), cli_user(dptr)->username,
+		 cli_sockhost(dptr), IsOper(dptr) ? 'O' : 'o');
+
+    log_write(LS_OPER, L_INFO, 0, "REMOTE OPER (%#C) by (%s)", dptr,
+	      cli_name(sptr));
+  }
+}
+
+static void de_oper(struct Client *dptr)
+{
+  --UserStats.opers;
+  ClearOper(dptr);
+  if (MyConnect(dptr))
+  {
+    cli_handler(dptr) = CLIENT_HANDLER;
+    if (feature_bool(FEAT_WALLOPS_OPER_ONLY))
+      ClearWallops(dptr);
+    if (feature_bool(FEAT_HIS_DEBUG_OPER_ONLY))
+      ClearDebug(dptr);
+    if (feature_bool(FEAT_HIS_SNOTICES_OPER_ONLY))
+    {
+      ClearServNotice(dptr);
+      set_snomask(dptr, 0, SNO_SET);
+    }
+    det_confs_butmask(dptr, CONF_CLIENT & ~CONF_OPERATOR);
+    client_set_privs(dptr, NULL, 0);
+  }
+}
 
 /** Handle an OPMODE message from a server connection.
  *
@@ -63,7 +116,31 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (IsLocalChannel(parv[1]))
     return 0;
 
-  if ('#' != *parv[1] || !(chptr = FindChannel(parv[1])))
+  if (('#' != *parv[1]) && IsServer(sptr))
+  {
+    struct Client *dptr;
+
+    if (!(cli_serv(sptr)->flags & SFLAG_REMOTE_OPER))
+      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
+
+    dptr = findNUser(parv[1]);
+    if (!dptr)
+      return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
+
+    sendcmdto_serv(sptr, CMD_OPMODE, cptr, "%s %s", parv[1], parv[2]);
+
+    /* At the moment, we only support +o and -o.  set_user_mode() does
+     * not support remote mode setting or setting +o.
+     */
+    if (!strcmp(parv[2], "+o") && !IsOper(dptr))
+      make_oper(sptr, dptr);
+    else if (!strcmp(parv[2], "-o") && IsOper(dptr))
+      de_oper(dptr);
+
+    return 0;
+  }
+
+  if (!(chptr = FindChannel(parv[1])))
     return send_reply(sptr, ERR_NOSUCHCHANNEL, parv[1]);
 
   modebuf_init(&mbuf, sptr, cptr, chptr,

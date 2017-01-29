@@ -213,6 +213,7 @@ struct Connection
   struct CapSet       con_capab;     /**< Client capabilities (from us) */
   struct CapSet       con_active;    /**< Active capabilities (to us) */
   struct AuthRequest* con_auth;      /**< Auth request for client */
+  const struct wline* con_wline;     /**< WebIRC authorization for client */
 };
 
 /** Magic constant to identify valid Connection structures. */
@@ -309,6 +310,8 @@ struct Client {
 #define cli_join_part_count(cli) (cli_connect(cli)->con_join_part_count)
 /** Get client's warning countdown value. */
 #define cli_warn_countdown(cli) (cli_connect(cli)->con_warn_countdown)
+/** Get client account string. */
+#define cli_account(cli)	(cli_user(cli) ? cli_user(cli)->account : "0")
 
 /** Get number of incoming bytes queued for client. */
 #define cli_count(cli)		con_count(cli_connect(cli))
@@ -366,6 +369,8 @@ struct Client {
 #define cli_proc(cli)		con_proc(cli_connect(cli))
 /** Get auth request for client. */
 #define cli_auth(cli)		con_auth(cli_connect(cli))
+/** Get WebIRC authorization for client. */
+#define cli_wline(cli)          con_wline(cli_connect(cli))
 /** Get sentalong marker for client. */
 #define cli_sentalong(cli)      con_sentalong(cli_connect(cli))
 
@@ -447,6 +452,8 @@ struct Client {
 #define con_active(con)         (&(con)->con_active)
 /** Get the auth request for the connection. */
 #define con_auth(con)		((con)->con_auth)
+/** Get the WebIRC block (if any) used by the connection. */
+#define con_wline(con)          ((con)->con_wline)
 
 #define STAT_CONNECTING         0x001 /**< connecting to another server */
 #define STAT_HANDSHAKE          0x002 /**< pass - server sent */
@@ -456,6 +463,7 @@ struct Client {
 #define STAT_UNKNOWN_SERVER     0x020 /**< connection on a server port */
 #define STAT_SERVER             0x040 /**< fully registered server */
 #define STAT_USER               0x080 /**< fully registered user */
+#define STAT_WEBIRC             0x100 /**< connection on a webirc port */
 
 /*
  * status macros.
@@ -472,13 +480,16 @@ struct Client {
 #define IsMe(x)                 (cli_status(x) == STAT_ME)
 /** Return non-zero if the client has not yet registered. */
 #define IsUnknown(x)            (cli_status(x) & \
-        (STAT_UNKNOWN | STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER))
+        (STAT_UNKNOWN | STAT_UNKNOWN_USER | STAT_UNKNOWN_SERVER | STAT_WEBIRC))
 /** Return non-zero if the client is an unregistered connection on a
  * server port. */
 #define IsServerPort(x)         (cli_status(x) == STAT_UNKNOWN_SERVER )
 /** Return non-zero if the client is an unregistered connection on a
  * user port. */
 #define IsUserPort(x)           (cli_status(x) == STAT_UNKNOWN_USER )
+/** Return non-zero if the client is an unregistered connection on a
+ * WebIRC port. */
+#define IsWebircPort(x)         (cli_status(x) == STAT_WEBIRC)
 /** Return non-zero if the client is a real client connection. */
 #define IsClient(x)             (cli_status(x) & \
         (STAT_HANDSHAKE | STAT_ME | STAT_UNKNOWN |\
@@ -542,13 +553,13 @@ struct Client {
 /** Return non-zero if the client has been IP-checked for clones. */
 #define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
 /** Return non-zero if we have received an ident response for the client. */
-#define IsIdented(x)            HasFlag(x, FLAG_GOTID)
+#define IsGotId(x)              HasFlag(x, FLAG_GOTID)
 /** Return non-zero if the client has set mode +i (invisible). */
 #define IsInvisible(x)          HasFlag(x, FLAG_INVISIBLE)
 /** Return non-zero if the client caused a net.burst. */
 #define IsJunction(x)           HasFlag(x, FLAG_JUNCTION)
 /** Return non-zero if the client has set mode +O (local operator) locally. */
-#define IsLocOp(x)              (MyUser(x) && HasFlag(x, FLAG_LOCOP))
+#define IsLocOp(x)              (MyConnect(x) && HasFlag(x, FLAG_LOCOP))
 /** Return non-zero if the client has set mode +o (global operator). */
 #define IsOper(x)               HasFlag(x, FLAG_OPER)
 /** Return non-zero if the client has an active UDP ping request. */
@@ -652,6 +663,8 @@ struct Client {
 #define ClearHiddenHost(x)      ClrFlag(x, FLAG_HIDDENHOST)
 /** Clear the client's pending PING flag. */
 #define ClearPingSent(x)        ClrFlag(x, FLAG_PINGSENT)
+/** Clear the client's HUB flag. */
+#define ClearHub(x)             ClrFlag(x, FLAG_HUB)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */
@@ -723,7 +736,8 @@ extern int client_get_ping(const struct Client* local_client);
 extern void client_drop_sendq(struct Connection* con);
 extern void client_add_sendq(struct Connection* con,
 			     struct Connection** con_p);
-extern void client_set_privs(struct Client *client, struct ConfItem *oper);
+extern void client_set_privs(struct Client *client, struct ConfItem *oper,
+			     int forceOper);
 extern int client_report_privs(struct Client* to, struct Client* client);
 
 #endif /* INCLUDED_client_h */

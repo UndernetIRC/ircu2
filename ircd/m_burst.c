@@ -177,6 +177,9 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (parc < 3)
     return protocol_violation(sptr,"Too few parameters for BURST");
+  
+  if (!IsChannelName(parv[1]))
+    return protocol_violation(sptr, "Invalid channel name in BURST");
 
   if (!(chptr = get_channel(sptr, parv[1], CGT_CREATE)))
     return 0; /* can't create the channel? */
@@ -298,25 +301,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     modebuf_mode(mbuf, MODE_DEL | chptr->mode.mode); /* wipeout modes */
     chptr->mode.mode &= MODE_BURSTADDED | MODE_WASDELJOINS;
 
-    /* wipe out modes not represented in chptr->mode.mode */
-    if (chptr->mode.limit) {
-      modebuf_mode_uint(mbuf, MODE_DEL | MODE_LIMIT, chptr->mode.limit);
-      chptr->mode.limit = 0;
-    }
-    if (chptr->mode.key[0]) {
-      modebuf_mode_string(mbuf, MODE_DEL | MODE_KEY, chptr->mode.key, 0);
-      chptr->mode.key[0] = '\0';
-    }
-    if (chptr->mode.upass[0]) {
-      modebuf_mode_string(mbuf, MODE_DEL | MODE_UPASS, chptr->mode.upass, 0);
-      chptr->mode.upass[0] = '\0';
-    }
-    if (chptr->mode.apass[0]) {
-      modebuf_mode_string(mbuf, MODE_DEL | MODE_APASS, chptr->mode.apass, 0);
-      chptr->mode.apass[0] = '\0';
-    }
-
-    parse_flags |= (MODE_PARSE_SET | MODE_PARSE_WIPEOUT); /* wipeout keys */
+    /* wipeout any limit and keys that are set */
+    parse_flags |= (MODE_PARSE_SET | MODE_PARSE_WIPEOUT);
 
     /* mark bans for wipeout */
     for (lp = chptr->banlist; lp; lp = lp->next)
@@ -461,10 +447,18 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		  do {
 		    level_increment = 10 * level_increment + *ptr++ - '0';
 		  } while (IsDigit(*ptr));
+		  --ptr;
 		  oplevel += level_increment;
+                  if (oplevel > MAXOPLEVEL) {
+                    protocol_violation(sptr, "Invalid cumulative oplevel %u during burst", oplevel);
+                    oplevel = MAXOPLEVEL;
+                    break;
+                  }
 		}
-		else /* I don't recognize that flag */
+		else { /* I don't recognize that flag */
+		  protocol_violation(sptr, "Invalid flag '%c' in nick part of burst", *ptr);
 		  break; /* so stop processing */
+		}
 	      }
 	    }
 	  }
@@ -488,7 +482,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	      nickstr[nickpos++] = 'v';
 	    if (current_mode & CHFL_CHANOP)
             {
-              if (chptr->mode.apass[0])
+              if (oplevel != MAXOPLEVEL)
 	        nickpos += ircd_snprintf(0, nickstr + nickpos, sizeof(nickstr) - nickpos, "%u", oplevel);
               else
                 nickstr[nickpos++] = 'o';

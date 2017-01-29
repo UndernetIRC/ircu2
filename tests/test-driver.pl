@@ -163,8 +163,7 @@ sub drv_heartbeat {
     next if $line =~ /^\#/ or $line !~ /\S/;
 
     # expand any macros in the line
-    $line =~ s/(?<=[^\\])%(\S+?)%/$heap->{macros}->{$1}
-      or die "Use of undefined macro $1 at $heap->{lineno}\n"/eg;
+    $line =~ s/(?:<=[^\\])%(\S+?)%/$heap->{macros}->{$1} or die "Use of undefined macro $1 at line $heap->{lineno}\n"/eg;
     # remove any \-escapes
     $line =~ s/\\(.)/$1/g;
     # figure out the type of line
@@ -178,7 +177,7 @@ sub drv_heartbeat {
       # connect a new session (named $1) to server $4
       my ($name, $nick, $ident, $server, $userinfo, $port) = ($1, $2, $3, $4, $5, 6667);
       $server = $heap->{servers}->{$server} || $server;
-      if ($server =~ /(.+):(\d+)/) {
+      if ($server =~ /(.+)(?::(\d+))?/) {
         $server = $1;
         $port = $2;
       }
@@ -192,14 +191,34 @@ sub drv_heartbeat {
                     expect_alarms => [],
                     params => { Nick     => $nick,
                                 Server   => $server,
-                                Port     => $port,
                                 Username => $ident,
                                 Ircname  => $userinfo,
                                 Debug    => $heap->{irc_debug},
                               }
                    };
+      $client->{params}->{Port} = $port
+        if $port;
       $client->{params}->{LocalAddr} = $heap->{local_address}
         if $heap->{local_address};
+      if ($name =~ /^([^:]+):(.+)$/) {
+        my $host = $2;
+        my $c_port;
+        $client->{name} = $name = $1;
+        if ($host =~ /^\[(.+)](?::(\d+))?$/) {
+          # [a:b::d]:e, IPv6-compatible host+port syntax
+          $c_port = $2;
+          $host = $1;
+        } elsif ($host =~ /^((?:\d+\.)+\d+):(\d+)$/) {
+          # IPv4 syntax
+          $c_port = $2;
+          $host = $1;
+        } elsif ($host =~ /:/) {
+          print "WARNING: connect using host '$host' looks ambiguous"
+        } # else assume it's a bare IP address
+        $client->{params}->{LocalAddr} = $host;
+        $client->{params}->{LocalPort} = $c_port
+          if defined $c_port;
+      }
       my $irc = POE::Component::IRC->spawn
         (
          alias => $alias,
@@ -235,7 +254,7 @@ sub drv_heartbeat {
         my $client = $heap->{clients}->{$c};
         if (not $client) {
           print "ERROR: Unknown session name $c (line $heap->{lineno}; ignoring)\n";
-        } elsif (($used->{$c} and not $zero_time->{$cmd}) or not $client->{ready}) {
+        } elsif (($used->{$c} and not $zero_time->{$cmd}) or ($cmd ne 'expect' and not $client->{ready})) {
           push @unavail, $c;
         } else {
           push @avail, $c;
@@ -276,8 +295,8 @@ sub drv_heartbeat {
 }
 
 sub drv_timeout_expect {
-  my ($kernel, $session, $client) = @_[KERNEL, SESSION, ARG0];
-  print "ERROR: Dropping timed-out expectation by $client->{name}: ".join(',', @{$client->{expect}->[0]})."\n";
+  my ($kernel, $session, $client, $heap) = @_[KERNEL, SESSION, ARG0, HEAP];
+  print "\nERROR: Dropping timed-out expectation by $client->{name} (line $heap->{expect_lineno}): ".join(',', @{$client->{expect}->[0]})."\n";
   $client->{expect_alarms}->[0] = undef;
   unexpect($kernel, $session, $client);
 }
@@ -370,6 +389,7 @@ sub cmd_wait {
 sub cmd_expect {
   my ($kernel, $session, $heap, $client, $args) = @_[KERNEL, SESSION, HEAP, ARG0, ARG1];
   die "Missing argument" unless $#$args >= 0;
+  $heap->{expect_lineno} = $heap->{lineno};
   push @{$client->{expect}}, $args;
   push @{$client->{expect_alarms}}, $kernel->delay_set('timeout_expect', EXPECT_TIMEOUT, $client);
   $kernel->call($session, 'disable_client', $client);

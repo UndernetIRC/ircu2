@@ -201,6 +201,8 @@ int match(const char *mask, const char *name)
       return 1;
     m = m_tmp;
     n = ++n_tmp;
+    if (*n == '\0')
+      return 1;
     break;
   case '\\':
     m++;

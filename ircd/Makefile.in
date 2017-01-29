@@ -129,13 +129,13 @@ am__ircd_SOURCES_DIST = IPcheck.c channel.c class.c client.c crule.c \
 	m_restart.c m_rping.c m_rpong.c m_server.c m_set.c m_settime.c \
 	m_silence.c m_squit.c m_stats.c m_time.c m_topic.c m_trace.c \
 	m_uping.c m_user.c m_userhost.c m_userip.c m_version.c \
-	m_wallchops.c m_wallops.c m_wallusers.c m_wallvoices.c m_who.c \
-	m_whois.c m_whowas.c match.c memdebug.c motd.c msgq.c \
-	numnicks.c opercmds.c os_generic.c packet.c parse.c \
-	querycmds.c random.c s_auth.c s_bsd.c s_conf.c s_debug.c \
-	s_err.c s_misc.c s_numeric.c s_serv.c s_stats.c s_user.c \
-	send.c uping.c userload.c whowas.c engine_poll.c \
-	engine_select.c engine_devpoll.c engine_epoll.c \
+	m_wallchops.c m_wallops.c m_wallusers.c m_wallvoices.c \
+	m_webirc.c m_who.c m_whois.c m_whowas.c m_xquery.c m_xreply.c \
+	match.c memdebug.c motd.c msgq.c numnicks.c opercmds.c \
+	os_generic.c packet.c parse.c querycmds.c random.c s_auth.c \
+	s_bsd.c s_conf.c s_debug.c s_err.c s_misc.c s_numeric.c \
+	s_serv.c s_stats.c s_user.c send.c uping.c userload.c whowas.c \
+	engine_poll.c engine_select.c engine_devpoll.c engine_epoll.c \
 	engine_kqueue.c
 @ENGINE_POLL_TRUE@am__objects_1 = engine_poll.$(OBJEXT)
 @ENGINE_POLL_FALSE@am__objects_2 = engine_select.$(OBJEXT)
@@ -177,18 +177,19 @@ am_ircd_OBJECTS = IPcheck.$(OBJEXT) channel.$(OBJEXT) class.$(OBJEXT) \
 	m_topic.$(OBJEXT) m_trace.$(OBJEXT) m_uping.$(OBJEXT) \
 	m_user.$(OBJEXT) m_userhost.$(OBJEXT) m_userip.$(OBJEXT) \
 	m_version.$(OBJEXT) m_wallchops.$(OBJEXT) m_wallops.$(OBJEXT) \
-	m_wallusers.$(OBJEXT) m_wallvoices.$(OBJEXT) m_who.$(OBJEXT) \
-	m_whois.$(OBJEXT) m_whowas.$(OBJEXT) match.$(OBJEXT) \
-	memdebug.$(OBJEXT) motd.$(OBJEXT) msgq.$(OBJEXT) \
-	numnicks.$(OBJEXT) opercmds.$(OBJEXT) os_generic.$(OBJEXT) \
-	packet.$(OBJEXT) parse.$(OBJEXT) querycmds.$(OBJEXT) \
-	random.$(OBJEXT) s_auth.$(OBJEXT) s_bsd.$(OBJEXT) \
-	s_conf.$(OBJEXT) s_debug.$(OBJEXT) s_err.$(OBJEXT) \
-	s_misc.$(OBJEXT) s_numeric.$(OBJEXT) s_serv.$(OBJEXT) \
-	s_stats.$(OBJEXT) s_user.$(OBJEXT) send.$(OBJEXT) \
-	uping.$(OBJEXT) userload.$(OBJEXT) whowas.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5)
+	m_wallusers.$(OBJEXT) m_wallvoices.$(OBJEXT) \
+	m_webirc.$(OBJEXT) m_who.$(OBJEXT) m_whois.$(OBJEXT) \
+	m_whowas.$(OBJEXT) m_xquery.$(OBJEXT) m_xreply.$(OBJEXT) \
+	match.$(OBJEXT) memdebug.$(OBJEXT) motd.$(OBJEXT) \
+	msgq.$(OBJEXT) numnicks.$(OBJEXT) opercmds.$(OBJEXT) \
+	os_generic.$(OBJEXT) packet.$(OBJEXT) parse.$(OBJEXT) \
+	querycmds.$(OBJEXT) random.$(OBJEXT) s_auth.$(OBJEXT) \
+	s_bsd.$(OBJEXT) s_conf.$(OBJEXT) s_debug.$(OBJEXT) \
+	s_err.$(OBJEXT) s_misc.$(OBJEXT) s_numeric.$(OBJEXT) \
+	s_serv.$(OBJEXT) s_stats.$(OBJEXT) s_user.$(OBJEXT) \
+	send.$(OBJEXT) uping.$(OBJEXT) userload.$(OBJEXT) \
+	whowas.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5)
 nodist_ircd_OBJECTS = version.$(OBJEXT)
 ircd_OBJECTS = $(am_ircd_OBJECTS) $(nodist_ircd_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -455,14 +456,14 @@ ircd_SOURCES = IPcheck.c channel.c class.c client.c crule.c dbuf.c \
 	m_restart.c m_rping.c m_rpong.c m_server.c m_set.c m_settime.c \
 	m_silence.c m_squit.c m_stats.c m_time.c m_topic.c m_trace.c \
 	m_uping.c m_user.c m_userhost.c m_userip.c m_version.c \
-	m_wallchops.c m_wallops.c m_wallusers.c m_wallvoices.c m_who.c \
-	m_whois.c m_whowas.c match.c memdebug.c motd.c msgq.c \
-	numnicks.c opercmds.c os_generic.c packet.c parse.c \
-	querycmds.c random.c s_auth.c s_bsd.c s_conf.c s_debug.c \
-	s_err.c s_misc.c s_numeric.c s_serv.c s_stats.c s_user.c \
-	send.c uping.c userload.c whowas.c $(am__append_1) \
-	$(am__append_2) $(am__append_3) $(am__append_4) \
-	$(am__append_5)
+	m_wallchops.c m_wallops.c m_wallusers.c m_wallvoices.c \
+	m_webirc.c m_who.c m_whois.c m_whowas.c m_xquery.c m_xreply.c \
+	match.c memdebug.c motd.c msgq.c numnicks.c opercmds.c \
+	os_generic.c packet.c parse.c querycmds.c random.c s_auth.c \
+	s_bsd.c s_conf.c s_debug.c s_err.c s_misc.c s_numeric.c \
+	s_serv.c s_stats.c s_user.c send.c uping.c userload.c whowas.c \
+	$(am__append_1) $(am__append_2) $(am__append_3) \
+	$(am__append_4) $(am__append_5)
 ircd_LDADD = $(LEXLIB)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -677,9 +678,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_wallops.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_wallusers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_wallvoices.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_webirc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_who.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_whois.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_whowas.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_xquery.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m_xreply.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/match.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memdebug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motd.Po@am__quote@

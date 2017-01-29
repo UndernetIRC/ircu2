@@ -42,6 +42,7 @@
 #include "s_debug.h"
 #include "s_misc.h"
 #include "s_user.h"
+#include "s_stats.h"
 #include "send.h"
 #include "struct.h"
 #include "whowas.h"	/* whowas_realloc */
@@ -255,6 +256,17 @@ set_isupport_network(void)
     add_isupport_s("NETWORK", feature_str(FEAT_NETWORK));
 }
 
+/** Update whether #me is a hub or not.
+ */
+static void
+feature_notify_hub(void)
+{
+  if (feature_bool(FEAT_HUB))
+    SetHub(&me);
+  else
+    ClearHub(&me);
+}
+
 /** Sets a feature to the given value.
  * @param[in] from Client trying to set parameters.
  * @param[in] fields Array of parameters to set.
@@ -363,7 +375,7 @@ static struct FeatureDesc {
   F_S(PROVIDER, FEAT_NULL, 0, 0),
   F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
   F_B(IDLE_FROM_MSG, 0, 1, 0),
-  F_B(HUB, 0, 0, 0),
+  F_B(HUB, 0, 0, feature_notify_hub),
   F_B(WALLOPS_OPER_ONLY, 0, 0, 0),
   F_B(NODNS, 0, 0, 0),
   F_B(NOIDENT, 0, 0, 0),
@@ -386,8 +398,8 @@ static struct FeatureDesc {
   F_U(MAXCHANNELSPERUSER, 0, 10, set_isupport_maxchannels),
   F_U(NICKLEN, 0, 12, set_isupport_nicklen),
   F_I(AVBANLEN, 0, 40, 0),
-  F_I(MAXBANS, 0, 45, set_isupport_maxbans),
-  F_I(MAXSILES, 0, 15, set_isupport_maxsiles),
+  F_I(MAXBANS, 0, 100, set_isupport_maxbans),
+  F_I(MAXSILES, 0, 25, set_isupport_maxsiles),
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
   F_I(CONNECTTIMEOUT, 0, 90, 0),
@@ -400,6 +412,8 @@ static struct FeatureDesc {
   F_I(SOCKRECVBUF, 0, SERVER_TCP_WINDOW, 0),
   F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
   F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
+  F_I(IPCHECK_48_CLONE_LIMIT, 0, 50, 0),
+  F_I(IPCHECK_48_CLONE_PERIOD, 0, 10, 0),
   F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
   F_U(CHANNELLEN, 0, 200, set_isupport_channellen),
 
@@ -438,6 +452,8 @@ static struct FeatureDesc {
   F_B(HIS_STATS_ENGINE, 0, 1, 0),
   F_A(HIS_STATS_f, HIS_STATS_FEATURES),
   F_B(HIS_STATS_FEATURES, 0, 1, 0),
+  F_A(HIS_STATS_F, HIS_STATS_FEATURESALL),
+  F_B(HIS_STATS_FEATURESALL, 0, 1, 0),
   F_A(HIS_STATS_g, HIS_STATS_GLINES),
   F_B(HIS_STATS_GLINES, 0, 1, 0),
   F_A(HIS_STATS_i, HIS_STATS_ACCESS),
@@ -476,6 +492,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_VSERVERS, 0, 1, 0),
   F_A(HIS_STATS_w, HIS_STATS_USERLOAD),
   F_B(HIS_STATS_USERLOAD, 0, 0, 0),
+  F_B(HIS_STATS_W, 0, 1, 0),
   F_A(HIS_STATS_x, HIS_STATS_MEMUSAGE),
   F_B(HIS_STATS_MEMUSAGE, 0, 1, 0),
   F_A(HIS_STATS_y, HIS_STATS_CLASSES),
@@ -483,6 +500,7 @@ static struct FeatureDesc {
   F_A(HIS_STATS_z, HIS_STATS_MEMORY),
   F_B(HIS_STATS_MEMORY, 0, 1, 0),
   F_B(HIS_STATS_IAUTH, 0, 1, 0),
+  F_B(HIS_WEBIRC, 0, 1, 0),
   F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
   F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
   F_B(HIS_WHOIS_LOCALCHAN, 0, 1, 0),
@@ -944,6 +962,8 @@ feature_init(void)
 void
 feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 {
+  char changed;
+  int report;
   int i;
 
   for (i = 0; features[i].type; i++) {
@@ -952,17 +972,20 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
 	(features[i].flags & FEAT_OPER && !IsAnOper(to)))
       continue; /* skip this one */
 
-    switch (feat_type(&features[i])) {
+    changed = (features[i].flags & FEAT_MARK) ? 'F' : 'f';
+    report = (features[i].flags & FEAT_MARK) || sd->sd_funcdata;
+
+    switch (features[i].flags & FEAT_MASK) {
     case FEAT_NONE:
       if (features[i].report) /* let the callback handle this */
-	(*features[i].report)(to, features[i].flags & FEAT_MARK ? 1 : 0);
+	(*features[i].report)(to, report);
       break;
 
 
     case FEAT_INT: /* Report an F-line with integer values */
-      if (features[i].flags & FEAT_MARK) /* it's been changed */
-	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %d",
-		   features[i].type, features[i].v_int);
+      if (report) /* it's been changed */
+	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %d",
+		   changed, features[i].type, features[i].v_int);
       break;
 
     case FEAT_UINT: /* Report an F-line with unsigned values */
@@ -972,19 +995,19 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
       break;
 
     case FEAT_BOOL: /* Report an F-line with boolean values */
-      if (features[i].flags & FEAT_MARK) /* it's been changed */
-	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
-		   features[i].type, features[i].v_int ? "TRUE" : "FALSE");
+      if (report) /* it's been changed */
+	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
+		   changed, features[i].type, features[i].v_int ? "TRUE" : "FALSE");
       break;
 
     case FEAT_STR: /* Report an F-line with string values */
-      if (features[i].flags & FEAT_MARK) { /* it's been changed */
+      if (report) { /* it's been changed */
 	if (features[i].v_str)
-	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %s",
-		     features[i].type, features[i].v_str);
+	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
+		     changed, features[i].type, features[i].v_str);
 	else /* Actually, F:<type> would reset it; you want F:<type>: */
-	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s",
-		     features[i].type);
+	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s",
+		     changed, features[i].type);
       }
       break;
     }

@@ -73,6 +73,8 @@ int              GlobalConfCount;
 struct s_map     *GlobalServiceMapList;
 /** Global list of channel quarantines. */
 struct qline     *GlobalQuarantineList;
+/** Global list of webirc authorizations. */
+struct wline*      GlobalWebircList;
 
 /** Current line number in scanner input. */
 extern int yylineno;
@@ -96,7 +98,6 @@ static void killcomment(struct Client* sptr, const char* filename)
   FBFILE*     file = 0;
   char        line[80];
   struct stat sb;
-  struct tm*  tm;
 
   if (NULL == (file = fbopen(filename, "r"))) {
     send_reply(sptr, ERR_NOMOTD);
@@ -105,7 +106,6 @@ static void killcomment(struct Client* sptr, const char* filename)
     return;
   }
   fbstat(&sb, file);
-  tm = localtime((time_t*) &sb.st_mtime);        /* NetBSD needs cast */
   while (fbgets(line, sizeof(line) - 1, file)) {
     char* end = line + strlen(line);
     while (end > line) {
@@ -649,9 +649,7 @@ struct ConfItem* find_conf_exact(const char* name, struct Client *cptr, int stat
     if (!(tmp->status & statmask) || !tmp->name || !tmp->host ||
         0 != ircd_strcmp(tmp->name, name))
       continue;
-    if (tmp->username
-        && (EmptyString(cli_username(cptr))
-            || match(tmp->username, cli_username(cptr))))
+    if (tmp->username && match(tmp->username, cli_username(cptr)))
       continue;
     if (tmp->addrbits < 0)
     {
@@ -806,6 +804,23 @@ find_quarantine(const char *chname)
   return NULL;
 }
 
+/** Find a WebIRC authorization for the given client address.
+ * @param addr IP address to search for.
+ * @param passwd Client-provided password for block.
+ * @return WebIRC authorization block, or NULL if none exists.
+ */
+const struct wline *
+find_webirc(const struct irc_in_addr *addr, const char *passwd)
+{
+  struct wline *wline;
+
+  for (wline = GlobalWebircList; wline; wline = wline->next)
+    if (ipmask_check(addr, &wline->ip, wline->bits)
+        && (0 == strcmp(wline->passwd, passwd)))
+      return wline;
+  return NULL;
+}
+
 /** Free all qline structs from #GlobalQuarantineList. */
 static
 void clear_quarantines(void)
@@ -817,6 +832,31 @@ void clear_quarantines(void)
     MyFree(qline->reason);
     MyFree(qline->chname);
     MyFree(qline);
+  }
+}
+
+/** Mark everything in #GlobalWebircList stale. */
+static void webirc_mark_stale(void)
+{
+  struct wline *wline;
+  for (wline = GlobalWebircList; wline; wline = wline->next)
+    wline->stale = 1;
+}
+
+/** Remove any still-stale entries in #GlobalWebircList. */
+static void webirc_remove_stale(void)
+{
+  struct wline *wline, **pp_w;
+
+  for (pp_w = &GlobalWebircList; (wline = *pp_w) != NULL; ) {
+    if (wline->stale) {
+      *pp_w = wline->next;
+      MyFree(wline->passwd);
+      MyFree(wline->description);
+      MyFree(wline);
+    } else {
+      pp_w = &wline->next;
+    }
   }
 }
 
@@ -917,6 +957,11 @@ update_uworld_flags(struct Client *cptr)
   else
     cli_serv(cptr)->flags &= ~SFLAG_UWORLD;
 
+  if (sp && (sp->flags & CONF_UWORLD_OPER))
+    cli_serv(cptr)->flags |= SFLAG_REMOTE_OPER;
+  else
+    cli_serv(cptr)->flags &= ~SFLAG_REMOTE_OPER;
+
   for (lp = cli_serv(cptr)->down; lp; lp = lp->next)
     update_uworld_flags(lp->value.cptr);
 }
@@ -940,14 +985,17 @@ conf_erase_uworld_list(void)
 
 /** Record the name of a server having UWorld privileges.
  * @param[in] name Privileged server's name.
+ * @param[in] flags Flags indicating additional privileges for this
+ *   server.
  */
-void conf_make_uworld(char *name)
+void conf_make_uworld(char *name, unsigned int flags)
 {
   struct SLink *sp;
 
   sp = make_link();
   sp->value.cp = name;
   sp->next = uworlds;
+  sp->flags = flags;
   uworlds = sp;
 }
 
@@ -1051,6 +1099,7 @@ int rehash(struct Client *cptr, int sig)
   class_mark_delete();
   mark_listeners_closing();
   auth_mark_closing();
+  webirc_mark_stale();
   close_mappings();
 
   read_configuration_file();
@@ -1080,6 +1129,7 @@ int rehash(struct Client *cptr, int sig)
 
   for (i = 0; i <= HighestFd; i++) {
     if ((acptr = LocalClientArray[i])) {
+      const struct wline *wline;
       assert(!IsMe(acptr));
       if (IsServer(acptr))
         det_confs_butmask(acptr, ~(CONF_ILLEGAL));
@@ -1096,11 +1146,16 @@ int rehash(struct Client *cptr, int sig)
         if (exit_client(cptr, acptr, &me, found_g == -2 ? "G-lined" :
             "K-lined") == CPTR_KILLED)
           ret = CPTR_KILLED;
+      } else if ((wline = cli_wline(acptr)) && wline->stale) {
+        if (exit_client(cptr, acptr, &me, "WebIRC authorization removed")
+            == CPTR_KILLED)
+          ret = CPTR_KILLED;
       }
     }
   }
 
   update_uworld_flags(&me);
+  webirc_remove_stale();
 
   return ret;
 }
@@ -1188,7 +1243,7 @@ int find_kill(struct Client *cptr)
     return -1;
   }
 
-  if ((agline = gline_lookup(cptr, 0))) {
+  if (!feature_bool(FEAT_DISABLE_GLINES) && (agline = gline_lookup(cptr, 0))) {
     /*
      * find active glines
      * added a check against the user's IP address to find_gline() -Kev

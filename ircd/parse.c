@@ -431,7 +431,7 @@ struct Message msgtab[] = {
     TOK_VERSION,
     0, MAXPARA, MFLG_SLOW | MFLG_UNREG, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { m_version, m_version, ms_version, mo_version, m_ignore }
+    { m_version, m_version, m_version, m_version, m_ignore }
   },
   {
     MSG_STATS,
@@ -615,6 +615,27 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_ignore, m_not_oper, ms_asll, mo_asll, m_ignore }
    },
+  {
+    MSG_WEBIRC,
+    TOK_WEBIRC,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_webirc, m_registered, m_ignore, m_registered, m_ignore }
+  },
+  {
+    MSG_XQUERY,
+    TOK_XQUERY,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_xquery, mo_xquery, m_ignore }
+  },
+  {
+    MSG_XREPLY,
+    TOK_XREPLY,
+    0, MAXPARA, MFLG_SLOW, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_ignore, ms_xreply, m_ignore, m_ignore }
+  },
 #if WE_HAVE_A_REAL_CAPABILITY_NOW
   {
     MSG_CAP,
@@ -808,7 +829,6 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   char*           s;
   int             i;
   int             paramcount;
-  int             noprefix = 0;
   struct Message* mptr;
   MessageHandler  handler = 0;
 
@@ -826,8 +846,6 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     while (*ch == ' ')
       ch++;                     /* Advance to command */
   }
-  else
-    noprefix = 1;
   if (*ch == '\0')
   {
     ServerStats->is_empt++;

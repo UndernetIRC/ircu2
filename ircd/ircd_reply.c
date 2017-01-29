@@ -58,7 +58,7 @@ int protocol_violation(struct Client* cptr, const char* pattern, ...)
   vd.vd_format = pattern;
   va_start(vd.vd_args, pattern);
   ircd_snprintf(NULL, message, sizeof(message),
-                   "Protocol Violation from %s: %v", cli_name(cptr), &vd);
+                "Protocol Violation from %s: %v", cli_name(cptr), &vd);
   va_end(vd.vd_args);
 
   sendwallto_group(&me, WALL_DESYNCH, NULL, "%s", message);

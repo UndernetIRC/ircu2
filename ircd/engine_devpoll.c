@@ -74,6 +74,10 @@ static int devpoll_fd;
 static int errors = 0;
 /** Periodic timer to forget errors. */
 static struct Timer clear_error;
+/** Array of currently polled file descriptors. */
+static struct pollfd *polls;
+/** Number of ::polls elements that have been populated. */
+static int polls_used;
 
 /** Decrement the error count (once per hour).
  * @param[in] ev Expired timer event (ignored).
@@ -254,6 +258,8 @@ engine_events(struct Socket* sock, unsigned int new_events)
 static void
 engine_delete(struct Socket* sock)
 {
+  int ii;
+
   assert(0 != sock);
   assert(sock == sockList[s_fd(sock)]);
 
@@ -263,6 +269,13 @@ engine_delete(struct Socket* sock)
   set_events(sock, 0); /* get rid of the socket */
 
   sockList[s_fd(sock)] = 0; /* zero the socket list entry */
+
+  /* Drop any unprocessed events citing this socket. */
+  for (ii = 0; ii < polls_used; ii++) {
+    if (polls[ii].fd == s_fd(sock)) {
+      polls[ii] = polls[--polls_used];
+    }
+  }
 }
 
 /** Run engine event loop.
@@ -272,13 +285,13 @@ static void
 engine_loop(struct Generators* gen)
 {
   struct dvpoll dopoll;
-  struct pollfd *polls;
   int polls_count;
   struct Socket* sock;
+  struct pollfd *pfd;
   int nfds;
   int i;
   int errcode;
-  size_t codesize;
+  socklen_t codesize;
 
   if ((polls_count = feature_int(FEAT_POLLS_PER_LOOP)) < 20)
     polls_count = 20;
@@ -297,15 +310,15 @@ engine_loop(struct Generators* gen)
     dopoll.dp_timeout = timer_next(gen) ?
       (timer_next(gen) - CurrentTime) * 1000 : -1;
 
-    Debug((DEBUG_INFO, "devpoll: delay: %Tu (%Tu) %d", timer_next(gen),
+    Debug((DEBUG_ENGINE, "devpoll: delay: %Tu (%Tu) %d", timer_next(gen),
 	   CurrentTime, dopoll.dp_timeout));
 
     /* check for active files */
-    nfds = ioctl(devpoll_fd, DP_POLL, &dopoll);
+    polls_used = ioctl(devpoll_fd, DP_POLL, &dopoll);
 
     CurrentTime = time(0); /* set current time... */
 
-    if (nfds < 0) {
+    if (polls_used < 0) {
       if (errno != EINTR) { /* ignore interrupts */
 	/* Log the poll error */
 	log_write(LS_SOCKET, L_ERROR, 0, "ioctl(DP_POLL) error: %m");
@@ -321,14 +334,15 @@ engine_loop(struct Generators* gen)
       continue;
     }
 
-    for (i = 0; i < nfds; i++) {
-      assert(-1 < polls[i].fd);
+    while (polls_used > 0) {
+      pfd = &polls[--polls_used];
+      assert(-1 < pfd->fd);
 
-      sock = sockList[polls[i].fd];
+      sock = sockList[pfd->fd];
       if (!sock) /* slots may become empty while processing events */
 	continue;
 
-      assert(s_fd(sock) == polls[i].fd);
+      assert(s_fd(sock) == pfd->fd);
 
       gen_ref_inc(sock); /* can't have it going away on us */
 
@@ -352,10 +366,10 @@ engine_loop(struct Generators* gen)
 	}
       }
 
-      assert(!(polls[i].revents & POLLERR));
+      assert(!(pfd->revents & POLLERR));
 
 #ifdef POLLHUP
-      if (polls[i].revents & POLLHUP) { /* hang-up on socket */
+      if (pfd->revents & POLLHUP) { /* hang-up on socket */
 	Debug((DEBUG_ENGINE, "devpoll: EOF from client (POLLHUP)"));
 	event_generate(ET_EOF, sock, 0);
 	nfds--;
@@ -365,21 +379,21 @@ engine_loop(struct Generators* gen)
 
       switch (s_state(sock)) {
       case SS_CONNECTING:
-	if (polls[i].revents & POLLWRITEFLAGS) { /* connection completed */
+	if (pfd->revents & POLLWRITEFLAGS) { /* connection completed */
 	  Debug((DEBUG_ENGINE, "devpoll: Connection completed"));
 	  event_generate(ET_CONNECT, sock, 0);
 	}
 	break;
 
       case SS_LISTENING:
-	if (polls[i].revents & POLLREADFLAGS) { /* connect. to be accept. */
+	if (pfd->revents & POLLREADFLAGS) { /* connect. to be accept. */
 	  Debug((DEBUG_ENGINE, "devpoll: Ready for accept"));
 	  event_generate(ET_ACCEPT, sock, 0);
 	}
 	break;
 
       case SS_NOTSOCK:
-	if (polls[i].revents & POLLREADFLAGS) { /* data on socket */
+	if (pfd->revents & POLLREADFLAGS) { /* data on socket */
 	  /* can't peek; it's not a socket */
 	  Debug((DEBUG_ENGINE, "devpoll: non-socket readable"));
 	  event_generate(ET_READ, sock, 0);
@@ -387,7 +401,7 @@ engine_loop(struct Generators* gen)
 	break;
 
       case SS_CONNECTED:
-	if (polls[i].revents & POLLREADFLAGS) { /* data on socket */
+	if (pfd->revents & POLLREADFLAGS) { /* data on socket */
 	  char c;
 
 	  switch (recv(s_fd(sock), &c, 1, MSG_PEEK)) { /* check EOF */
@@ -412,18 +426,18 @@ engine_loop(struct Generators* gen)
 	    break;
 	  }
 	}
-	if (polls[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	if (pfd->revents & POLLWRITEFLAGS) { /* socket writable */
 	  Debug((DEBUG_ENGINE, "devpoll: Data can be written"));
 	  event_generate(ET_WRITE, sock, 0);
 	}
 	break;
 
       case SS_DATAGRAM: case SS_CONNECTDG:
-	if (polls[i].revents & POLLREADFLAGS) { /* socket readable */
+	if (pfd->revents & POLLREADFLAGS) { /* socket readable */
 	  Debug((DEBUG_ENGINE, "devpoll: Datagram to be read"));
 	  event_generate(ET_READ, sock, 0);
 	}
-	if (polls[i].revents & POLLWRITEFLAGS) { /* socket writable */
+	if (pfd->revents & POLLWRITEFLAGS) { /* socket writable */
 	  Debug((DEBUG_ENGINE, "devpoll: Datagram can be written"));
 	  event_generate(ET_WRITE, sock, 0);
 	}

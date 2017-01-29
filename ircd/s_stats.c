@@ -97,6 +97,8 @@ static void stats_servers_verbose(struct Client* sptr,
 		const struct StatDesc* sd, char* param);
 static void stats_meminfo(struct Client* to, const struct StatDesc* sd,
 		char* param);
+static void stats_webirc(struct Client *to, const struct StatDesc *sd,
+		char *param);
 static void stats_help(struct Client* to, const struct StatDesc* sd,
 		char* param);
 
@@ -118,9 +120,12 @@ static struct StatDesc statsinfo[] = {
   { 'e', "engine", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_ENGINE,
     stats_engine, 0,
     "Report server event loop engine." },
-  { 'f', "features", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_FEATURES,
+  { 'f', "features", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_FEATURES,
     feature_report, 0,
     "Feature settings." },
+  { 'F', "featuresall", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_FEATURESALL,
+    feature_report, 1,
+    "All feature settings, including defaulted values." },
   { 'g', "glines", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_GLINES,
     gline_stats, 0,
     "Global bans (G-lines)." },
@@ -182,9 +187,12 @@ static struct StatDesc statsinfo[] = {
   { 'V', "vserversmach", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_CASESENS), FEAT_HIS_STATS_VSERVERS,
     stats_servers_verbose, 0,
     "Verbose server information." },
-  { 'w', "userload", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_USERLOAD,
+  { 'w', "userload", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_USERLOAD,
     calc_load, 0,
     "Userload statistics." },
+  { 'W', "webirc", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_W,
+    stats_webirc, 0,
+    "WebIRC authorizations." },
   { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_MEMUSAGE,
     stats_meminfo, 0,
     "List usage information." },
@@ -210,21 +218,20 @@ static void
 stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                        char* param)
 {
-  static char null[] = "<NULL>";
+  static char null[] = "";
   struct ConfItem *tmp;
   unsigned short int port;
   int maximum;
-  char *host, *pass, *name, *username, *hub_limit;
+  char *host, *name, *username, *hub_limit;
 
   for (tmp = GlobalConfList; tmp; tmp = tmp->next)
   {
     if ((tmp->status & sd->sd_funcdata))
     {
-      host = BadPtr(tmp->host) ? null : tmp->host;
-      pass = BadPtr(tmp->passwd) ? null : tmp->passwd;
-      name = BadPtr(tmp->name) ? null : tmp->name;
-      username = BadPtr(tmp->username) ? null : tmp->username;
-      hub_limit = BadPtr(tmp->hub_limit) ? null : tmp->hub_limit;
+      host = tmp->host ? tmp->host : null;
+      name = tmp->name ? tmp->name : null;
+      username = tmp->username ? tmp->username : null;
+      hub_limit = tmp->hub_limit ? tmp->hub_limit : null;
       maximum = tmp->maximum;
       port = tmp->address.port;
 
@@ -237,12 +244,13 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
                    (name[0] == ':' ? "0" : ""), (tmp->name ? tmp->name : "*"),
                    port, get_conf_class(tmp));
       else if (tmp->status & CONF_OPERATOR)
-        send_reply(sptr, RPL_STATSOLINE,
-                   ((FlagHas(&tmp->privs_dirty, PRIV_PROPAGATE)
-                     && FlagHas(&tmp->privs, PRIV_PROPAGATE))
-                    || (FlagHas(&tmp->conn_class->privs_dirty, PRIV_PROPAGATE)
-                        && FlagHas(&tmp->conn_class->privs, PRIV_PROPAGATE)))
-                   ? 'O' : 'o', username, host, name, get_conf_class(tmp));
+      {
+        int global = FlagHas(&tmp->privs_dirty, PRIV_PROPAGATE)
+            ? FlagHas(&tmp->privs, PRIV_PROPAGATE)
+            : FlagHas(&tmp->conn_class->privs, PRIV_PROPAGATE);
+        send_reply(sptr, RPL_STATSOLINE, global ? 'O' : 'o',
+                   username, host, name, get_conf_class(tmp));
+      }
     }
   }
 }
@@ -612,6 +620,29 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
                cli_serv(acptr)->prot,
                cli_serv(acptr)->timestamp,
                cli_info(acptr));
+  }
+}
+
+/** Lists WebIRC authorizations.
+ * @param[in] to Client requesting statistics.
+ * @param[in] sd Stats descriptor for request (ignored).
+ * @param[in] param Extra parameter from user (ignored).
+ */
+static void
+stats_webirc(struct Client *to, const struct StatDesc *sd, char *param)
+{
+  struct wline *wline;
+  char ip_text[SOCKIPLEN + 1];
+
+  for (wline = GlobalWebircList; wline; wline = wline->next) {
+    const char *desc = wline->description;
+    if (!desc)
+      desc = "(no description provided)";
+    if (wline->hidden)
+      strcpy(ip_text, "*");
+    else
+      ircd_ntoa_r(ip_text, &wline->ip);
+    send_reply(to, RPL_STATSWLINE, ip_text, wline->bits, desc);
   }
 }
 

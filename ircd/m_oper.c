@@ -126,7 +126,7 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       return 0;
     }
     SetLocOp(sptr);
-    client_set_privs(sptr, aconf);
+    client_set_privs(sptr, aconf, 1);
     if (HasPriv(sptr, PRIV_PROPAGATE))
     {
       ClearLocOp(sptr);

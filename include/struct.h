@@ -66,6 +66,7 @@ struct Server {
 };
 
 #define SFLAG_UWORLD         0x0001  /**< Server has UWorld privileges */
+#define SFLAG_REMOTE_OPER    0x0002  /**< Server has remote (de-)opering privileges */
 
 /** Describes a user on the network. */
 struct User {

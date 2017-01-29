@@ -147,9 +147,12 @@ ircd_SOURCES = \
 	m_wallops.c \
 	m_wallusers.c \
 	m_wallvoices.c \
+	m_webirc.c \
 	m_who.c \
 	m_whois.c \
 	m_whowas.c \
+	m_xquery.c \
+	m_xreply.c \
 	match.c \
 	memdebug.c \
 	motd.c \

@@ -4459,17 +4459,6 @@ done
 test -n "$YACC" || YACC="yacc"
 
 
-echo $ECHO_N "checking $LEX compatibility... " >&6
-if ! $LEX ${srcdir}/test.l >&5 ; then
-  as_fn_error $? "Unable to run $LEX on ${srcdir}/test.l, try using flex 2.5 or newer." "$LINENO" 5
-elif ! $CC -c $CFLAGS $CPPFLAGS lex.yy.c >&5 ; then
-  rm -f lex.yy.c
-  as_fn_error $? "Unable to compile lex.yy.c, check config.log for $LEX errors." "$LINENO" 5
-else
-  rm -f lex.yy.c lex.yy.o
-  echo "${ECHO_T}okay" >&6
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing crypt" >&5
 $as_echo_n "checking for library containing crypt... " >&6; }
 if ${ac_cv_search_crypt+:} false; then :

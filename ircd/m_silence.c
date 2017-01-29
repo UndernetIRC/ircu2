@@ -289,7 +289,7 @@ int m_silence(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* See if the user is requesting a silence list. */
   acptr = sptr;
   if (parc < 2 || EmptyString(parv[1]) || (acptr = FindUser(parv[1]))) {
-    if (cli_user(acptr)) {
+    if (cli_user(acptr) && ((acptr == sptr) || IsChannelService(acptr))) {
       for (sile = cli_user(acptr)->silence; sile; sile = sile->next) {
         send_reply(sptr, RPL_SILELIST, cli_name(acptr),
                    (sile->flags & BAN_EXCEPTION ? "~" : ""),  sile->banstr);

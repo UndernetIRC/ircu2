@@ -135,6 +135,7 @@ extern int m_userip(struct Client*, struct Client*, int, char*[]);
 extern int m_version(struct Client*, struct Client*, int, char*[]);
 extern int m_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int m_wallvoices(struct Client*, struct Client*, int, char*[]);
+extern int m_webirc(struct Client*, struct Client*, int, char*[]);
 extern int m_who(struct Client*, struct Client*, int, char*[]);
 extern int m_whois(struct Client*, struct Client*, int, char*[]);
 extern int m_whowas(struct Client*, struct Client*, int, char*[]);
@@ -165,9 +166,9 @@ extern int mo_squit(struct Client*, struct Client*, int, char*[]);
 extern int mo_stats(struct Client*, struct Client*, int, char*[]);
 extern int mo_trace(struct Client*, struct Client*, int, char*[]);
 extern int mo_uping(struct Client*, struct Client*, int, char*[]);
-extern int mo_version(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallops(struct Client*, struct Client*, int, char*[]);
 extern int mo_wallusers(struct Client*, struct Client*, int, char*[]);
+extern int mo_xquery(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_error(struct Client*, struct Client*, int, char*[]);
 extern int mr_pong(struct Client*, struct Client*, int, char*[]);
@@ -220,12 +221,13 @@ extern int ms_stats(struct Client*, struct Client*, int, char*[]);
 extern int ms_topic(struct Client*, struct Client*, int, char*[]);
 extern int ms_trace(struct Client*, struct Client*, int, char*[]);
 extern int ms_uping(struct Client*, struct Client*, int, char*[]);
-extern int ms_version(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallchops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallops(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallusers(struct Client*, struct Client*, int, char*[]);
 extern int ms_wallvoices(struct Client*, struct Client*, int, char*[]);
 extern int ms_whois(struct Client*, struct Client*, int, char*[]);
+extern int ms_xquery(struct Client*, struct Client*, int, char*[]);
+extern int ms_xreply(struct Client*, struct Client*, int, char*[]);
 
 #endif /* INCLUDED_handlers_h */
 

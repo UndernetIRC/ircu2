@@ -481,9 +481,11 @@ ircd_aton_ip4(const char *input, unsigned int *output, unsigned char *pbits)
       *pbits = bits;
     return pos;
   case '.':
+    if (++dots > 3)
+      return 0;
     if (input[++pos] == '.')
       return 0;
-    ip |= part << (24 - 8 * dots++);
+    ip |= part << (32 - 8 * dots);
     part = 0;
     if (input[pos] == '*') {
       while (input[++pos] == '*' || input[pos] == '.') ;
@@ -576,6 +578,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
       if (input[pos] == ':') {
         if (colon < 8)
           return 0;
+        if (ii == 8)
+            return 0;
         colon = ii;
         pos++;
       }
@@ -607,6 +611,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
       while (input[++pos] == '*' || input[pos] == ':') ;
       if (input[pos] != '\0' || colon < 8)
         return 0;
+      if (part && ii < 8)
+          ip->in6_16[ii++] = htons(part);
       if (pbits)
         *pbits = ii * 16;
       return pos;
@@ -620,6 +626,8 @@ ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
     default:
       return 0;
     }
+    if (input[pos] != '\0')
+      return 0;
   finish:
     if (colon < 8) {
       unsigned int jj;

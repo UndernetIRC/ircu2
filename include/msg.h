@@ -356,9 +356,21 @@ struct Client;
 #define TOK_PRIVS		"PR"
 #define CMD_PRIVS               MSG_PRIVS, TOK_PRIVS
 
+#define MSG_WEBIRC	        "WEBIRC"	/* WEBI */
+#define TOK_WEBIRC		"WEBIRC"
+#define CMD_WEBIRC		MSG_WEBIRC, TOK_WEBIRC
+
 #define MSG_CAP			"CAP"
 #define TOK_CAP			"CAP"
 #define CMD_CAP			MSG_CAP, TOK_CAP
+
+#define MSG_XQUERY		"XQUERY"
+#define TOK_XQUERY		"XQ"
+#define CMD_XQUERY		MSG_XQUERY, TOK_XQUERY
+
+#define MSG_XREPLY		"XREPLY"
+#define TOK_XREPLY		"XR"
+#define CMD_XREPLY		MSG_XREPLY, TOK_XREPLY
 
 /*
  * Constants

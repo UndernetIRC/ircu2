@@ -166,7 +166,7 @@ const char* get_client_name(const struct Client* sptr, int showip)
   if (!MyConnect(sptr) || !showip)
     return cli_name(sptr);
   ircd_snprintf(0, nbuf, sizeof(nbuf), "%s[%s@%s]", cli_name(sptr),
-                IsIdented(sptr) ? cli_username(sptr) : "",
+                IsGotId(sptr) ? cli_username(sptr) : "",
                 cli_sock_ip(sptr));
   return nbuf;
 }
@@ -379,6 +379,9 @@ int exit_client(struct Client *cptr,
 
     on_for = CurrentTime - cli_firsttime(victim);
 
+    /* This intentionally excludes WebIRC ports to make port scanning
+     * for it a little harder.
+     */
     if (IsUser(victim) || IsUserPort(victim))
       auth_send_exit(victim);
 
@@ -387,7 +390,7 @@ int exit_client(struct Client *cptr,
 		cli_firsttime(victim), on_for,
 		cli_user(victim)->username, cli_sockhost(victim),
                 ircd_ntoa(&cli_ip(victim)),
-                IsAccount(victim) ? cli_username(victim) : "0",
+                cli_account(victim),
                 NumNick(victim), /* two %s's */
                 cli_name(victim), cli_info(victim));
 

@@ -57,40 +57,6 @@
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (parc > 1 && match(parv[1], cli_name(&me)))
-    return send_reply(sptr, ERR_NOPRIVILEGES);
-
-  send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-             debug_serveropts());
-  send_supported(sptr);
-  return 0;
-}
-
-/** Handle a VERSION message from an operator.
- *
- * \a parv has the following elements:
- * \li \a parc[1] is the server to query
- *
- * See @ref m_functions for discussion of the arguments.
- * @param[in] cptr Client that sent us the message.
- * @param[in] sptr Original source of message.
- * @param[in] parc Number of arguments.
- * @param[in] parv Argument vector.
- */
-int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  struct Client *acptr;
-
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
-  }
-
   if (hunt_server_cmd(sptr, CMD_VERSION, cptr, feature_int(FEAT_HIS_REMOTE),
                                                            ":%C", 1,
                                                            parc, parv)
@@ -98,42 +64,8 @@ int mo_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
 	       debug_serveropts());
-    send_supported(sptr);
-  }
-
-  return 0;
-}
-
-/** Handle a VERSION message from a server.
- *
- * \a parv has the following elements:
- * \li \a parc[1] is the server to query
- *
- * See @ref m_functions for discussion of the arguments.
- * @param[in] cptr Client that sent us the message.
- * @param[in] sptr Original source of message.
- * @param[in] parc Number of arguments.
- * @param[in] parv Argument vector.
- */
-int ms_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  struct Client *acptr;
-
-  if (MyConnect(sptr) && parc > 1)
-  {
-    if (!(acptr = find_match_server(parv[1])))
-    {
-      send_reply(sptr, ERR_NOSUCHSERVER, parv[1]);
-      return 0;
-    }
-    parv[1] = cli_name(acptr);
-  }
-
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, 0, ":%C", 1, parc, parv) ==
-      HUNTED_ISME)
-  {
-    send_reply(sptr, RPL_VERSION, version, debugmode, cli_name(&me),
-	       debug_serveropts());
+    if (MyUser(sptr))
+      send_supported(sptr);
   }
 
   return 0;

@@ -262,7 +262,8 @@ report_classes(struct Client *sptr, const struct StatDesc *sd,
   for (cltmp = connClassList; cltmp; cltmp = cltmp->next)
     send_reply(sptr, RPL_STATSYLINE, (cltmp->valid ? 'Y' : 'y'),
                ConClass(cltmp), PingFreq(cltmp), ConFreq(cltmp),
-               MaxLinks(cltmp), MaxSendq(cltmp), Links(cltmp) - 1);
+               MaxLinks(cltmp), MaxSendq(cltmp), Links(cltmp) - 1,
+               CCUmode(cltmp) ? CCUmode(cltmp) : "+");
 }
 
 /** Return maximum SendQ length for a client.

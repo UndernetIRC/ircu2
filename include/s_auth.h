@@ -41,10 +41,12 @@ extern int auth_set_nick(struct AuthRequest *auth, const char *nickname);
 extern int auth_set_password(struct AuthRequest *auth, const char *password);
 extern int auth_cap_start(struct AuthRequest *auth);
 extern int auth_cap_done(struct AuthRequest *auth);
+extern int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *hostname, const char *ip);
 extern void destroy_auth_request(struct AuthRequest *req);
 
 extern int auth_spawn(int argc, char *argv[]);
 extern void auth_send_exit(struct Client *cptr);
+extern void auth_send_xreply(struct Client *sptr, const char *routing, const char *reply);
 extern void auth_mark_closing(void);
 extern void auth_close_unused(void);
 extern void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *param);

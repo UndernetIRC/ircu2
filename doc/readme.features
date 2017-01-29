@@ -300,7 +300,7 @@ This is the expected average ban mask length.  Leave it at 40.
 
 MAXBANS
  * Type: integer
- * Default: 45
+ * Default: 100
 
 This is the maximum number of bans a user may set on a given channel.
 
@@ -637,6 +637,12 @@ HIS_STATS_USERLOAD
 
 As per UnderNet CFV-165, this allows users to perform /STATS w.
 
+HIS_STATS_W
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this removes /STATS W from users.
+
 HIS_STATS_MEMUSAGE
  * Type: boolean
  * Default: TRUE
@@ -661,6 +667,14 @@ HIS_STATS_IAUTH
 
 As per UnderNet CFV-165, this disables /STATS IAUTH and
 /STATS IAUTHCONF from users.
+
+HIS_WEBIRC
+ * Type: boolean
+ * Default: TRUE
+
+As per UnderNet CFV-165, this disables display of WebIRC status in
+/WHOIS replies (unless the client is asking about itself) and the
+^ prefix for WebIRC usernames.
 
 HIS_WHOIS_SERVERNAME
  * Type: boolean
@@ -825,6 +839,22 @@ For instance if you set IPCHECK_CLONE_LIMIT to 1, and IPCHECK_CLONE_PERIOD
 to 10, then a user is only allowed to connect once in 10s, if they connect
 again within 10s, then they are considered to be connecting too fast and
 they are throttled.
+
+IPCHECK_48_CLONE_LIMIT
+ * Type: integer
+ * Default: 50
+
+This is a limit that works like IPCHECK_CLONE_LIMIT, but for all
+clients connecting from a given IPv6 /48 block.
+
+IPCHECK_48_CLONE_PERIOD
+ * Type: integer
+ * Default: 10
+
+This is a timer that works like IPCHECK_CLONE_PERIOD, but for all
+clients connecting from a given IPv6 /48 block.  The number of
+connection attempts allowed in this period is given by the
+IPCHECK_48_CLONE_LIMIT feature.
 
 IPCHECK_CLONE_DELAY
  * Type: integer

@@ -703,11 +703,9 @@ void sendcmdto_match(struct Client *from, const char *cmd,
   /* send buffer along */
   bump_sentalong(one);
   for (cptr = GlobalClientList; cptr; cptr = cli_next(cptr)) {
-    if (cli_sentalong(cptr) == sentalong_marker ||
-        !IsRegistered(cptr) ||
-        IsServer(cptr) ||
-	!match_it(from, cptr, to, &addr, nbits, who) ||
-        cli_fd(cli_from(cptr)) < 0)
+    if (!IsRegistered(cptr) || IsServer(cptr) || cli_fd(cli_from(cptr)) < 0 ||
+        cli_sentalong(cptr) == sentalong_marker ||
+        !match_it(from, cptr, to, &addr, nbits, who))
       continue; /* skip it */
     cli_sentalong(cptr) = sentalong_marker;
 

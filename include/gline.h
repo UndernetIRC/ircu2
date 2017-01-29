@@ -50,13 +50,13 @@ struct Gline {
   struct Gline *gl_next;	/**< Next G-line in linked list. */
   struct Gline**gl_prev_p;	/**< Previous pointer to this G-line. */
   char	       *gl_user;	/**< Username mask (or channel/realname mask). */
-  char	       *gl_host;	/**< Host prtion of mask. */
+  char	       *gl_host;	/**< Host portion of mask. */
   char	       *gl_reason;	/**< Reason for G-line. */
   time_t	gl_expire;	/**< Expiration timestamp. */
   time_t	gl_lastmod;	/**< Last modification timestamp. */
   time_t	gl_lifetime;	/**< Record expiration timestamp. */
   struct irc_in_addr gl_addr;	/**< IP address (for IP-based G-lines). */
-  unsigned char gl_bits;	/**< Usable bits in gl_addr. */
+  unsigned char gl_bits;	/**< Bits in gl_addr used in the mask. */
   unsigned int	gl_flags;	/**< G-line status flags. */
   enum GlineLocalState gl_state;/**< G-line local state. */
 };

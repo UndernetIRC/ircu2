@@ -37,6 +37,7 @@
 #include "msg.h"
 #include "numeric.h"
 #include "numnicks.h"
+#include "s_conf.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -150,6 +151,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
 
   if (user)
   {
+    const struct wline *wline;
+
     if (user->away)
        send_reply(sptr, RPL_AWAY, name, user->away);
 
@@ -171,6 +174,12 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
                              (sptr == acptr || IsAnOper(sptr) || parc >= 3)))
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
                   cli_firsttime(acptr));
+    if (MyConnect(acptr)
+        && ((parc >= 3 && !feature_bool(FEAT_HIS_WEBIRC))
+            || sptr == acptr || IsAnOper(sptr))
+        && ((wline = cli_wline(acptr)) != NULL))
+        send_reply(sptr, RPL_WHOISWEBIRC, name, wline->description
+                   ? wline->description : "(unspecified WebIRC proxy)");
   }
 }
 
@@ -186,7 +195,6 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
 {
   struct Client *acptr; /* Current client we're considering */
   struct User *user; 	/* the user portion of the client */
-  const char *name; 	/* the name of this client */
   struct Membership* chan; 
   int invis; 		/* does +i apply? */
   int member;		/* Is this user on any channels? */
@@ -224,7 +232,6 @@ static int do_wilds(struct Client* sptr, char *nick, int count, int parc)
      *   the target user(s) are on;
      */
     user = cli_user(acptr);
-    name = (!*(cli_name(acptr))) ? "?" : cli_name(acptr);
     assert(user);
 
     invis = (acptr != sptr) && IsInvisible(acptr);

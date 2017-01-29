@@ -33,6 +33,8 @@ struct Message;
 
 #define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
 
+#define CONF_UWORLD_OPER        0x0001     /**< UWorld server can remotely oper users */
+
 /** Indicates ConfItem types that count associated clients. */
 #define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPERATOR | CONF_SERVER)
 
@@ -77,6 +79,18 @@ struct qline
   struct qline *next; /**< Next qline in #GlobalQuarantineList. */
   char *chname;       /**< Quarantined channel name. */
   char *reason;       /**< Reason for quarantine. */
+};
+
+/** Webirc authorization structure. */
+struct wline
+{
+  struct wline *next;    /**< Next wline in #GlobalWebircList. */
+  struct irc_in_addr ip; /**< IP of webirc service. */
+  unsigned char bits;    /**< Number of bits used in #ip. */
+  unsigned char stale;   /**< Non-zero during config re-read. */
+  unsigned char hidden;  /**< If non-zero, hide IP in /stats webirc. */
+  char *passwd;          /**< Password field. */
+  char *description;     /**< Text description, e.g. for provider. */
 };
 
 /** Local K-line structure. */
@@ -156,6 +170,7 @@ extern struct ConfItem* GlobalConfList;
 extern int              GlobalConfCount;
 extern struct s_map*    GlobalServiceMapList;
 extern struct qline*    GlobalQuarantineList;
+extern struct wline*    GlobalWebircList;
 
 /*
  * Proto types
@@ -175,7 +190,7 @@ extern struct ConfItem* find_conf_byname(struct SLink* lp, const char *name, int
 extern struct ConfItem* conf_find_server(const char* name);
 
 extern void update_uworld_flags(struct Client *cptr);
-extern void conf_make_uworld(char *name);
+extern void conf_make_uworld(char *name, unsigned int flags);
 extern void stats_uworld(struct Client* to, const struct StatDesc* sd, char* param);
 
 extern void det_confs_butmask(struct Client *cptr, int mask);
@@ -186,6 +201,7 @@ extern int  conf_check_server(struct Client *cptr);
 extern int rehash(struct Client *cptr, int sig);
 extern int find_kill(struct Client *cptr);
 extern const char *find_quarantine(const char* chname);
+extern const struct wline *find_webirc(const struct irc_in_addr *addr, const char *passwd);
 extern void lookup_confhost(struct ConfItem *aconf);
 extern void conf_parse_userhost(struct ConfItem *aconf, char *host);
 extern struct ConfItem *conf_debug_iline(const char *client);

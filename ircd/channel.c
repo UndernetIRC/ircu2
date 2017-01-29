@@ -105,7 +105,7 @@ find_delayed_joins(const struct Channel *chan)
 
 /* CheckDelayedJoins: checks and clear +d if necessary */
 
-static void CheckDelayedJoins(struct Channel *chan)
+void CheckDelayedJoins(struct Channel *chan)
 {
   if ((chan->mode.mode & MODE_WASDELJOINS) && !find_delayed_joins(chan)) {
     chan->mode.mode &= ~MODE_WASDELJOINS;
@@ -115,7 +115,7 @@ static void CheckDelayedJoins(struct Channel *chan)
 }
 
 /* RevealDelayedJoin: sends a join for a hidden user */
-static void RevealDelayedJoin(struct Membership *member)
+void RevealDelayedJoin(struct Membership *member)
 {
   ClearDelayedJoin(member);
   sendcmdto_channel(member->user, CMD_JOIN, member->channel,
@@ -248,7 +248,7 @@ struct Client* find_chasing(struct Client* sptr, const char* user, int* chasing)
   if (who)
     return who;
 
-  if (!(who = get_history(user, feature_int(FEAT_KILLCHASETIMELIMIT)))) {
+  if (!(who = get_history(user))) {
     send_reply(sptr, ERR_NOSUCHNICK, user);
     return 0;
   }
@@ -426,6 +426,7 @@ struct Ban *find_ban(struct Client *cptr, struct Ban *banlist)
     if (!((banlist->flags & BAN_IPMASK)
          && ipmask_check(&cli_ip(cptr), &banlist->address, banlist->addrbits))
         && match(hostmask, cli_user(cptr)->host)
+        && match(hostmask, iphost)
         && !(sr && !match(hostmask, sr)))
         continue;
     /* If an exception matches, no ban can match. */
@@ -811,6 +812,10 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'd';
   if (chptr->mode.mode & MODE_REGISTERED)
     *mbuf++ = 'R';
+  if (chptr->mode.mode & MODE_NOCOLOR)
+    *mbuf++ = 'c';
+  if (chptr->mode.mode & MODE_NOCTCP)
+    *mbuf++ = 'C';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
@@ -1538,6 +1543,8 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_REGONLY,	'r',
     MODE_DELJOINS,      'D',
     MODE_REGISTERED,	'R',
+    MODE_NOCOLOR,       'c',
+    MODE_NOCTCP,        'C',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
@@ -1590,6 +1597,23 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     app_source = &his;
   else
     app_source = mbuf->mb_source;
+
+  /* Must be set if going -D and some clients are hidden */
+  if ((mbuf->mb_rem & MODE_DELJOINS)
+      && !(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
+      && find_delayed_joins(mbuf->mb_channel)) {
+    mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
+    mbuf->mb_add |= MODE_WASDELJOINS;
+    mbuf->mb_rem &= ~MODE_WASDELJOINS;
+  }
+
+  /* +d must be cleared if +D is set */
+  if ((mbuf->mb_add & MODE_DELJOINS)
+      && (mbuf->mb_channel->mode.mode & MODE_WASDELJOINS)) {
+    mbuf->mb_channel->mode.mode &= ~MODE_WASDELJOINS;
+    mbuf->mb_add &= ~MODE_WASDELJOINS;
+    mbuf->mb_rem |= MODE_WASDELJOINS;
+  }
 
   /*
    * Account for user we're bouncing; we have to get it in on the first
@@ -1949,6 +1973,7 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
 
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
+           MODE_NOCOLOR | MODE_NOCTCP |
            MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
@@ -1979,7 +2004,7 @@ modebuf_mode_uint(struct ModeBuf *mbuf, unsigned int mode, unsigned int uint)
   assert(0 != mbuf);
   assert(0 != (mode & (MODE_ADD | MODE_DEL)));
 
-  if (mode == (MODE_LIMIT | ((mbuf->mb_dest & MODEBUF_DEST_BOUNCE) ? MODE_ADD : MODE_DEL))) {
+  if (mode == (MODE_LIMIT | MODE_DEL)) {
       mbuf->mb_rem |= mode;
       return;
   }
@@ -2048,30 +2073,12 @@ modebuf_mode_client(struct ModeBuf *mbuf, unsigned int mode,
 /** The exported binding for modebuf_flush()
  *
  * @param mbuf	The mode buffer to flush.
- * 
+ *
  * @see modebuf_flush_int()
  */
 int
 modebuf_flush(struct ModeBuf *mbuf)
 {
-  /* Check if MODE_WASDELJOINS should be set: */
-  /* Must be set if going -D and some clients are hidden */
-  if ((mbuf->mb_rem & MODE_DELJOINS)
-      && !(mbuf->mb_channel->mode.mode & (MODE_DELJOINS | MODE_WASDELJOINS))
-      && find_delayed_joins(mbuf->mb_channel)) {
-    mbuf->mb_channel->mode.mode |= MODE_WASDELJOINS;
-    mbuf->mb_add |= MODE_WASDELJOINS;
-    mbuf->mb_rem &= ~MODE_WASDELJOINS;
-  }
-  /* Must be cleared if +D is set */
-  if ((mbuf->mb_add & MODE_DELJOINS)
-      && ((mbuf->mb_channel->mode.mode & (MODE_WASDELJOINS | MODE_WASDELJOINS))
-          == (MODE_WASDELJOINS | MODE_WASDELJOINS))) {
-    mbuf->mb_channel->mode.mode &= ~MODE_WASDELJOINS;
-    mbuf->mb_add &= ~MODE_WASDELJOINS;
-    mbuf->mb_rem |= MODE_WASDELJOINS;
-  }
-
   return modebuf_flush_int(mbuf, 1);
 }
 
@@ -2100,6 +2107,8 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
     MODE_DELJOINS,      'D',
+    MODE_NOCOLOR,       'c',
+    MODE_NOCTCP,        'C',
     0x0, 0x0
   };
   unsigned int add, i, len;
@@ -2309,15 +2318,41 @@ mode_parse_limit(struct ParseState *state, int *flag_p)
   }
 }
 
-/** Helper function to clean key-like parameters. */
-static void
-clean_key(char *s)
+/** Helper function to validate key-like parameters.
+ *
+ * @param[in] state Parse state for feedback to user.
+ * @param[in] s Key to validate.
+ * @param[in] command String to pass for need_more_params() command.
+ * @return Zero on an invalid key, non-zero if the key was okay.
+ */
+static int
+is_clean_key(struct ParseState *state, char *s, char *command)
 {
-  int t_len = KEYLEN;
+  int ii;
 
-  while (*s > ' ' && *s != ':' && *s != ',' && t_len--)
-    s++;
-  *s = '\0';
+  if (s[0] == '\0') {
+    if (MyUser(state->sptr))
+      need_more_params(state->sptr, command);
+    return 0;
+  }
+  else if (s[0] == ':') {
+    if (MyUser(state->sptr))
+      send_reply(state->sptr, ERR_INVALIDKEY, state->chptr->chname);
+    return 0;
+  }
+  for (ii = 0; (ii <= KEYLEN) && (s[ii] != '\0'); ++ii) {
+    if ((unsigned char)s[ii] <= ' ' || s[ii] == ',') {
+      if (MyUser(state->sptr))
+        send_reply(state->sptr, ERR_INVALIDKEY, state->chptr->chname);
+      return 0;
+    }
+  }
+  if (ii > KEYLEN) {
+    if (MyUser(state->sptr))
+      send_reply(state->sptr, ERR_INVALIDKEY, state->chptr->chname);
+    return 0;
+  }
+  return 1;
 }
 
 /*
@@ -2362,14 +2397,10 @@ mode_parse_key(struct ParseState *state, int *flag_p)
     state->done |= DONE_KEY_DEL;
   }
 
-  /* clean up the key string */
-  clean_key(t_str);
-  if (!*t_str || *t_str == ':') { /* warn if empty */
-    if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +k" :
-		       "MODE -k");
+  /* If the key is invalid, tell the user and bail. */
+  if (!is_clean_key(state, t_str, state->dir == MODE_ADD ? "MODE +k" :
+                    "MODE -k"))
     return;
-  }
 
   if (!state->mbuf)
     return;
@@ -2474,14 +2505,10 @@ mode_parse_upass(struct ParseState *state, int *flag_p)
     state->done |= DONE_UPASS_DEL;
   }
 
-  /* clean up the upass string */
-  clean_key(t_str);
-  if (!*t_str || *t_str == ':') { /* warn if empty */
-    if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +U" :
-		       "MODE -U");
+  /* If the Upass is invalid, tell the user and bail. */
+  if (!is_clean_key(state, t_str, state->dir == MODE_ADD ? "MODE +U" :
+                    "MODE -U"))
     return;
-  }
 
   if (!state->mbuf)
     return;
@@ -2621,14 +2648,10 @@ mode_parse_apass(struct ParseState *state, int *flag_p)
     state->done |= DONE_APASS_DEL;
   }
 
-  /* clean up the apass string */
-  clean_key(t_str);
-  if (!*t_str || *t_str == ':') { /* warn if empty */
-    if (MyUser(state->sptr))
-      need_more_params(state->sptr, state->dir == MODE_ADD ? "MODE +A" :
-		       "MODE -A");
+  /* If the Apass is invalid, tell the user and bail. */
+  if (!is_clean_key(state, t_str, state->dir == MODE_ADD ? "MODE +A" :
+                    "MODE -A"))
     return;
-  }
 
   if (!state->mbuf)
     return;
@@ -2912,6 +2935,7 @@ mode_process_bans(struct ParseState *state)
 	len -= banlen;
       } else {
 	if (state->flags & MODE_PARSE_SET && MyUser(state->sptr) &&
+            !(state->mbuf->mb_dest & MODEBUF_DEST_OPMODE) &&
 	    (len > (feature_int(FEAT_AVBANLEN) * feature_int(FEAT_MAXBANS)) ||
 	     count > feature_int(FEAT_MAXBANS))) {
 	  send_reply(state->sptr, ERR_BANLISTFULL, state->chptr->chname,
@@ -2982,17 +3006,20 @@ mode_parse_client(struct ParseState *state, int *flag_p)
     if (colon != NULL) {
       *colon++ = '\0';
       req_oplevel = atoi(colon);
-      if (!(state->flags & MODE_PARSE_FORCE)
+      if (*flag_p == CHFL_VOICE || state->dir == MODE_DEL) {
+        /* Ignore the colon and its argument. */
+      } else if (!(state->flags & MODE_PARSE_FORCE)
           && state->member
           && (req_oplevel < OpLevel(state->member)
               || (req_oplevel == OpLevel(state->member)
                   && OpLevel(state->member) < MAXOPLEVEL)
-              || req_oplevel > MAXOPLEVEL))
+              || req_oplevel > MAXOPLEVEL)) {
         send_reply(state->sptr, ERR_NOTLOWEROPLEVEL,
                    t_str, state->chptr->chname,
                    OpLevel(state->member), req_oplevel, "op",
                    OpLevel(state->member) == req_oplevel ? "the same" : "a higher");
-      else if (req_oplevel <= MAXOPLEVEL)
+        return;
+      } else if (req_oplevel <= MAXOPLEVEL)
         oplevel = req_oplevel;
     }
     /* find client we're manipulating */
@@ -3185,10 +3212,19 @@ mode_parse_mode(struct ParseState *state, int *flag_p)
 	 (state->add & (MODE_SECRET | MODE_PRIVATE)));
 }
 
-/*
+/**
  * This routine is intended to parse MODE or OPMODE commands and effect the
- * changes (or just build the bounce buffer).  We pass the starting offset
- * as a 
+ * changes (or just build the bounce buffer).
+ *
+ * \param[out] mbuf Receives parsed representation of mode change.
+ * \param[in] cptr Connection that sent the message to this server.
+ * \param[in] sptr Original source of the message.
+ * \param[in] chptr Channel whose modes are being changed.
+ * \param[in] parc Number of valid strings in \a parv.
+ * \param[in] parv Text arguments representing mode change, with the
+ *   zero'th element containing a string like "+m" or "-o".
+ * \param[in] flags Set of bitwise MODE_PARSE_* flags.
+ * \param[in] member If non-null, the channel member attempting to change the modes.
  */
 int
 mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
@@ -3212,6 +3248,8 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_LIMIT,		'l',
     MODE_REGONLY,	'r',
     MODE_DELJOINS,      'D',
+    MODE_NOCOLOR,       'c',
+    MODE_NOCTCP,        'C',
     MODE_ADD,		'+',
     MODE_DEL,		'-',
     0x0, 0x0
@@ -3348,7 +3386,9 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
           } else {
             /* Server is desynced; bounce the mode and deop the source
              * to fix it. */
-            state.mbuf->mb_dest &= ~MODEBUF_DEST_CHANNEL;
+            state.flags &= ~MODE_PARSE_SET;
+            state.flags |= MODE_PARSE_BOUNCE;
+            state.mbuf->mb_dest &= ~(MODEBUF_DEST_CHANNEL | MODEBUF_DEST_HACK4);
             state.mbuf->mb_dest |= MODEBUF_DEST_BOUNCE | MODEBUF_DEST_HACK2;
             if (!IsServer(state.cptr))
               state.mbuf->mb_dest |= MODEBUF_DEST_DEOP;
@@ -3641,4 +3681,13 @@ check_spambot_warning(struct Client *sptr)
   }
 
   cli_last_part(sptr) = CurrentTime;
+}
+
+/** Send a join for the user if (s)he is a hidden member of the channel.
+ */
+void RevealDelayedJoinIfNeeded(struct Client *sptr, struct Channel *chptr)
+{
+  struct Membership *member = find_member_link(chptr, sptr);
+  if (member && IsDelayedJoin(member))
+    RevealDelayedJoin(member);
 }

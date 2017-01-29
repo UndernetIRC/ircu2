@@ -131,36 +131,27 @@ int m_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 int mo_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Client* acptr;
-  char *destination, *origin;
+  char *origin;
+  char *destination;
   assert(0 != cptr);
   assert(cptr == sptr);
 
   if (parc < 2 || EmptyString(parv[1]))
     return send_reply(sptr, ERR_NOORIGIN);
 
+  /* Historically, the text here was truncated to 64 bytes. */
   origin = parv[1];
+  if (strlen(origin) > 64)
+    origin[64] = '\0';
   destination = parv[2];        /* Will get NULL or pointer (parc >= 2!!) */
 
   if (!EmptyString(destination) && 0 != ircd_strcmp(destination, cli_name(&me))) {
     if ((acptr = FindServer(destination)))
-      sendcmdto_prio_one(sptr, CMD_PING, acptr, "%C :%s", sptr, destination);
+      sendcmdto_prio_one(sptr, CMD_PING, acptr, "%C :%s", origin, destination);
     else
       send_reply(sptr, ERR_NOSUCHSERVER, destination);
   }
   else {
-    /*
-     * NOTE: clients rely on this to return the origin string.
-     * it's pointless to send more than 64 bytes back tho'
-     */
-    char* origin = parv[1];
-    
-    /* Is this supposed to be here? */
-    acptr = FindClient(origin);
-    if (acptr && acptr != sptr)
-      origin = cli_name(cptr);
-    
-    if (strlen(origin) > 64)
-      origin[64] = '\0';
     sendcmdto_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
   }
   return 0;
@@ -238,7 +229,7 @@ int ms_ping(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * NOTE:  sptr is never local so if pong handles numerics everywhere we
      * could send a numeric here.
      */
-    sendcmdto_prio_one(&me, CMD_PONG, sptr, "%C :%s", &me, origin);
+    sendcmdto_prio_one(&me, CMD_PONG, sptr, "%s :%C", origin, sptr);
   }
   return 0;
 }

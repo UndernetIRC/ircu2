@@ -468,11 +468,11 @@ static Numeric replyTable[] = {
 /* 217 */
   { RPL_STATSPLINE, "P %d %d %s %s", "217" },
 /* 218 */
-  { RPL_STATSYLINE, "%c %s %d %d %u %u %u", "218" },
+  { RPL_STATSYLINE, "%c %s %d %d %u %u %u %s", "218" },
 /* 219 */
   { RPL_ENDOFSTATS, "%s :End of /STATS report", "219" },
 /* 220 */
-  { 0 },
+  { RPL_STATSWLINE, "W %s %d :%s", "220" },
 /* 221 */
   { RPL_UMODEIS, "%s", "221" },
 /* 222 */
@@ -526,9 +526,9 @@ static Numeric replyTable[] = {
 /* 246 */
   { RPL_STATSTLINE, "%c %s %s", "246" },
 /* 247 */
-  { RPL_STATSGLINE, "%c %s%s%s %Tu %c :%s", "247" },
+  { RPL_STATSGLINE, "%c %s%s%s %Tu %Tu %Tu %s%c :%s", "247" },
 /* 248 */
-  { RPL_STATSULINE, "U %s", "248" },
+  { RPL_STATSULINE, "U %s%s", "248" },
 /* 249 */
   { RPL_STATSDEBUG, 0, "249" },
 /* 250 */
@@ -592,7 +592,7 @@ static Numeric replyTable[] = {
 /* 279 */
   { 0 },
 /* 280 */
-  { RPL_GLIST, "%s%s%s %Tu %s %c :%s", "280" },
+  { RPL_GLIST, "%s%s%s %Tu %Tu %Tu %s %s%c :%s", "280" },
 /* 281 */
   { RPL_ENDOFGLIST, ":End of G-line List", "281" },
 /* 282 */
@@ -672,7 +672,7 @@ static Numeric replyTable[] = {
 /* 319 */
   { RPL_WHOISCHANNELS, "%s :%s", "319" },
 /* 320 */
-  { 0 },
+  { RPL_WHOISWEBIRC, "%s :is connected via %s", "320" },
 /* 321 */
   { RPL_LISTSTART, "Channel :Users  Name", "321" },
 /* 322 */
@@ -1068,7 +1068,7 @@ static Numeric replyTable[] = {
 /* 517 */
   { ERR_DISABLED, "%s :Command disabled.", "517" },
 /* 518 */
-  { ERR_LONGMASK, " :Mask is too long", "518" },
+  { ERR_LONGMASK, ":Mask is too long", "518" },
 /* 519 */
   { ERR_TOOMANYUSERS, "%d :Too many users affected by mask", "519" },
 /* 520 */
@@ -1082,7 +1082,7 @@ static Numeric replyTable[] = {
 /* 524 */
   { ERR_QUARANTINED, "%s :Channel is quarantined : %s", "524" },
 /* 525 */
-  { 0 },
+  { ERR_INVALIDKEY, "%s :Key is not well-formed", "525" },
 /* 526 */
   { 0 },
 /* 527 */

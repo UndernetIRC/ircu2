@@ -204,6 +204,7 @@ UWORLD		return UWORLD;
 VHOST		return VHOST;
 VIA             return VIA;
 WALK_LCHAN	return TPRIV_WALK_LCHAN;
+WEBIRC          return WEBIRC;
 WEEKS		return WEEKS;
 WIDE_GLINE	return TPRIV_WIDE_GLINE;
 WHOX		return TPRIV_WHOX;

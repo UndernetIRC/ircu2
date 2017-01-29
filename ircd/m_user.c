@@ -71,6 +71,8 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
   if (IsServerPort(cptr))
     return exit_client(cptr, cptr, &me, "Use a different port");
+  if (IsWebircPort(cptr) && !cli_wline(cptr))
+    return exit_client(cptr, cptr, &me, "WebIRC authorization required");
 
   if (parc < 5)
     return need_more_params(sptr, "USER");
