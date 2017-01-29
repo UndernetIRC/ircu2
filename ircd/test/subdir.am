@@ -18,8 +18,6 @@
 ##
 ## @(#)$Id$
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I.. -I../..
-
 check_PROGRAMS = \
 	ircd_chattr_t \
 	ircd_in_addr_t \
@@ -27,25 +25,25 @@ check_PROGRAMS = \
 	ircd_string_t
 
 ircd_chattr_t_SOURCES = \
-	ircd_chattr_t.c \
-	test_stub.c \
-	../ircd_string.c
+	ircd/test/ircd_chattr_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c
 
 ircd_in_addr_t_SOURCES = \
-	ircd_in_addr_t.c \
-	test_stub.c \
-	../ircd_alloc.c \
-	../ircd_string.c \
-	../match.c \
-	../numnicks.c
+	ircd/test/ircd_in_addr_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_alloc.c \
+	ircd/ircd_string.c \
+	ircd/match.c \
+	ircd/numnicks.c
 
 ircd_match_t_SOURCES = \
-	ircd_match_t.c \
-	test_stub.c \
-	../ircd_string.c \
-	../match.c
+	ircd/test/ircd_match_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c \
+	ircd/match.c
 
 ircd_string_t_SOURCES = \
-	ircd_string_t.c \
-	test_stub.c \
-	../ircd_string.c
+	ircd/test/ircd_string_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c

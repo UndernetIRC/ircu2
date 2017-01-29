@@ -44,7 +44,7 @@ AC_PREFIX_DEFAULT([$HOME])
 
 dnl Define configuration header file and other output files
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile])
+AC_CONFIG_FILES([Makefile])
 
 dnl What type of system is this?
 AC_CANONICAL_HOST

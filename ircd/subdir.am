@@ -1,0 +1,205 @@
+## AutoMake Makefile fragment for the Undernet IRC Daemon sources
+##
+## Copyright (C) 2005 by Kevin L. Mitchell <klmitch@mit.edu>
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+noinst_PROGRAMS = ircd/table_gen
+bin_PROGRAMS = ircd/convert-conf umkpasswd ircd/ircd
+
+AM_CPPFLAGS = -I. -I$(top_srcdir)/include -DDPATH="\"$(sysconfdir)\"" \
+	-DSPATH="\"$(bindir)/ircd\"" -DCPATH="\"ircd.conf\"" \
+	-DLPATH="\"ircd.log\""
+
+BUILT_SOURCES = ircd/ircd_parser.h
+AM_YFLAGS = -d
+
+EXTRA_DIST += ircd/version.c.SH
+
+DISTCLEANFILES = version.c
+
+umkpasswd_SOURCES = \
+	ircd/ircd_md5.c \
+	ircd/ircd_crypt_plain.c \
+	ircd/ircd_crypt_smd5.c \
+	ircd/ircd_crypt_native.c \
+	ircd/ircd_alloc.c \
+	ircd/ircd_string.c \
+	ircd/memdebug.c \
+	ircd/umkpasswd.c
+
+nodist_ircd_ircd_SOURCES = version.c
+ircd_ircd_SOURCES = \
+	ircd/IPcheck.c \
+	ircd/channel.c \
+	ircd/class.c \
+	ircd/client.c \
+	ircd/crule.c \
+	ircd/dbuf.c \
+	ircd/destruct_event.c \
+	ircd/fileio.c \
+	ircd/gline.c \
+	ircd/hash.c \
+	ircd/ircd.c \
+	ircd/ircd_alloc.c \
+	ircd/ircd_crypt.c \
+	ircd/ircd_crypt_plain.c \
+	ircd/ircd_crypt_smd5.c \
+	ircd/ircd_crypt_native.c \
+	ircd/ircd_events.c \
+	ircd/ircd_features.c \
+	ircd/ircd_lexer.l \
+	ircd/ircd_log.c \
+	ircd/ircd_md5.c \
+	ircd/ircd_parser.y \
+	ircd/ircd_relay.c \
+	ircd/ircd_reply.c \
+	ircd/ircd_res.c \
+	ircd/ircd_reslib.c \
+	ircd/ircd_signal.c \
+	ircd/ircd_snprintf.c \
+	ircd/ircd_string.c \
+	ircd/jupe.c \
+	ircd/list.c \
+	ircd/listener.c \
+	ircd/m_account.c \
+	ircd/m_admin.c \
+	ircd/m_asll.c \
+	ircd/m_away.c \
+	ircd/m_burst.c \
+	ircd/m_cap.c \
+	ircd/m_clearmode.c \
+	ircd/m_close.c \
+	ircd/m_connect.c \
+	ircd/m_cprivmsg.c \
+	ircd/m_create.c \
+	ircd/m_defaults.c \
+	ircd/m_destruct.c \
+	ircd/m_desynch.c \
+	ircd/m_die.c \
+	ircd/m_endburst.c \
+	ircd/m_error.c \
+	ircd/m_get.c \
+	ircd/m_gline.c \
+	ircd/m_help.c \
+	ircd/m_info.c \
+	ircd/m_invite.c \
+	ircd/m_ison.c \
+	ircd/m_join.c \
+	ircd/m_jupe.c \
+	ircd/m_kick.c \
+	ircd/m_kill.c \
+	ircd/m_links.c \
+	ircd/m_list.c \
+	ircd/m_lusers.c \
+	ircd/m_map.c \
+	ircd/m_mode.c \
+	ircd/m_motd.c \
+	ircd/m_names.c \
+	ircd/m_nick.c \
+	ircd/m_notice.c \
+	ircd/m_oper.c \
+	ircd/m_opmode.c \
+	ircd/m_part.c \
+	ircd/m_pass.c \
+	ircd/m_ping.c \
+	ircd/m_pong.c \
+	ircd/m_privmsg.c \
+	ircd/m_privs.c \
+	ircd/m_proto.c \
+	ircd/m_pseudo.c \
+	ircd/m_quit.c \
+	ircd/m_rehash.c \
+	ircd/m_reset.c \
+	ircd/m_restart.c \
+	ircd/m_rping.c \
+	ircd/m_rpong.c \
+	ircd/m_server.c \
+	ircd/m_set.c \
+	ircd/m_settime.c \
+	ircd/m_silence.c \
+	ircd/m_squit.c \
+	ircd/m_stats.c \
+	ircd/m_time.c \
+	ircd/m_topic.c \
+	ircd/m_trace.c \
+	ircd/m_uping.c \
+	ircd/m_user.c \
+	ircd/m_userhost.c \
+	ircd/m_userip.c \
+	ircd/m_version.c \
+	ircd/m_wallchops.c \
+	ircd/m_wallops.c \
+	ircd/m_wallusers.c \
+	ircd/m_wallvoices.c \
+	ircd/m_webirc.c \
+	ircd/m_who.c \
+	ircd/m_whois.c \
+	ircd/m_whowas.c \
+	ircd/m_xquery.c \
+	ircd/m_xreply.c \
+	ircd/match.c \
+	ircd/memdebug.c \
+	ircd/motd.c \
+	ircd/msgq.c \
+	ircd/numnicks.c \
+	ircd/opercmds.c \
+	ircd/os_generic.c \
+	ircd/packet.c \
+	ircd/parse.c \
+	ircd/querycmds.c \
+	ircd/random.c \
+	ircd/s_auth.c \
+	ircd/s_bsd.c \
+	ircd/s_conf.c \
+	ircd/s_debug.c \
+	ircd/s_err.c \
+	ircd/s_misc.c \
+	ircd/s_numeric.c \
+	ircd/s_serv.c \
+	ircd/s_stats.c \
+	ircd/s_user.c \
+	ircd/send.c \
+	ircd/uping.c \
+	ircd/userload.c \
+	ircd/whowas.c
+
+if ENGINE_POLL
+ircd_ircd_SOURCES += ircd/engine_poll.c
+else
+ircd_ircd_SOURCES += ircd/engine_select.c
+endif
+
+if ENGINE_DEVPOLL
+ircd_ircd_SOURCES += ircd/engine_devpoll.c
+endif
+if ENGINE_EPOLL
+ircd_ircd_SOURCES += ircd/engine_epoll.c
+endif
+if ENGINE_KQUEUE
+ircd_ircd_SOURCES += ircd/engine_kqueue.c
+endif
+
+ircd_ircd_LDADD = $(LEXLIB)
+
+ircd/ircd_string.$(OBJEXT): ircd/ircd_string.c chattr.tab.c
+chattr.tab.c: ircd/table_gen
+	./ircd/table_gen > chattr.tab.c
+
+version.c: include/patchlist.h ircd/version.c.SH umkpasswd \
+	include/version.h include/patchlevel.h $(ircd_SOURCES)
+	$(SHELL) $(srcdir)/ircd/version.c.SH $(top_srcdir)
+include/patchlist.h:
+	cd $(top_srcdir) && ./ircd-patch update

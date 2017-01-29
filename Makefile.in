@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -88,6 +89,16 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = ircd/table_gen$(EXEEXT)
+bin_PROGRAMS = ircd/convert-conf$(EXEEXT) umkpasswd$(EXEEXT) \
+	ircd/ircd$(EXEEXT)
+@ENGINE_POLL_TRUE@am__append_1 = ircd/engine_poll.c
+@ENGINE_POLL_FALSE@am__append_2 = ircd/engine_select.c
+@ENGINE_DEVPOLL_TRUE@am__append_3 = ircd/engine_devpoll.c
+@ENGINE_EPOLL_TRUE@am__append_4 = ircd/engine_epoll.c
+@ENGINE_KQUEUE_TRUE@am__append_5 = ircd/engine_kqueue.c
+check_PROGRAMS = ircd_chattr_t$(EXEEXT) ircd_in_addr_t$(EXEEXT) \
+	ircd_match_t$(EXEEXT) ircd_string_t$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -102,6 +113,160 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(sysconfdir)"
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
+ircd_convert_conf_SOURCES = ircd/convert-conf.c
+am__dirstamp = $(am__leading_dot)dirstamp
+ircd_convert_conf_OBJECTS = ircd/convert-conf.$(OBJEXT)
+ircd_convert_conf_LDADD = $(LDADD)
+am__ircd_ircd_SOURCES_DIST = ircd/IPcheck.c ircd/channel.c \
+	ircd/class.c ircd/client.c ircd/crule.c ircd/dbuf.c \
+	ircd/destruct_event.c ircd/fileio.c ircd/gline.c ircd/hash.c \
+	ircd/ircd.c ircd/ircd_alloc.c ircd/ircd_crypt.c \
+	ircd/ircd_crypt_plain.c ircd/ircd_crypt_smd5.c \
+	ircd/ircd_crypt_native.c ircd/ircd_events.c \
+	ircd/ircd_features.c ircd/ircd_lexer.l ircd/ircd_log.c \
+	ircd/ircd_md5.c ircd/ircd_parser.y ircd/ircd_relay.c \
+	ircd/ircd_reply.c ircd/ircd_res.c ircd/ircd_reslib.c \
+	ircd/ircd_signal.c ircd/ircd_snprintf.c ircd/ircd_string.c \
+	ircd/jupe.c ircd/list.c ircd/listener.c ircd/m_account.c \
+	ircd/m_admin.c ircd/m_asll.c ircd/m_away.c ircd/m_burst.c \
+	ircd/m_cap.c ircd/m_clearmode.c ircd/m_close.c \
+	ircd/m_connect.c ircd/m_cprivmsg.c ircd/m_create.c \
+	ircd/m_defaults.c ircd/m_destruct.c ircd/m_desynch.c \
+	ircd/m_die.c ircd/m_endburst.c ircd/m_error.c ircd/m_get.c \
+	ircd/m_gline.c ircd/m_help.c ircd/m_info.c ircd/m_invite.c \
+	ircd/m_ison.c ircd/m_join.c ircd/m_jupe.c ircd/m_kick.c \
+	ircd/m_kill.c ircd/m_links.c ircd/m_list.c ircd/m_lusers.c \
+	ircd/m_map.c ircd/m_mode.c ircd/m_motd.c ircd/m_names.c \
+	ircd/m_nick.c ircd/m_notice.c ircd/m_oper.c ircd/m_opmode.c \
+	ircd/m_part.c ircd/m_pass.c ircd/m_ping.c ircd/m_pong.c \
+	ircd/m_privmsg.c ircd/m_privs.c ircd/m_proto.c ircd/m_pseudo.c \
+	ircd/m_quit.c ircd/m_rehash.c ircd/m_reset.c ircd/m_restart.c \
+	ircd/m_rping.c ircd/m_rpong.c ircd/m_server.c ircd/m_set.c \
+	ircd/m_settime.c ircd/m_silence.c ircd/m_squit.c \
+	ircd/m_stats.c ircd/m_time.c ircd/m_topic.c ircd/m_trace.c \
+	ircd/m_uping.c ircd/m_user.c ircd/m_userhost.c ircd/m_userip.c \
+	ircd/m_version.c ircd/m_wallchops.c ircd/m_wallops.c \
+	ircd/m_wallusers.c ircd/m_wallvoices.c ircd/m_webirc.c \
+	ircd/m_who.c ircd/m_whois.c ircd/m_whowas.c ircd/m_xquery.c \
+	ircd/m_xreply.c ircd/match.c ircd/memdebug.c ircd/motd.c \
+	ircd/msgq.c ircd/numnicks.c ircd/opercmds.c ircd/os_generic.c \
+	ircd/packet.c ircd/parse.c ircd/querycmds.c ircd/random.c \
+	ircd/s_auth.c ircd/s_bsd.c ircd/s_conf.c ircd/s_debug.c \
+	ircd/s_err.c ircd/s_misc.c ircd/s_numeric.c ircd/s_serv.c \
+	ircd/s_stats.c ircd/s_user.c ircd/send.c ircd/uping.c \
+	ircd/userload.c ircd/whowas.c ircd/engine_poll.c \
+	ircd/engine_select.c ircd/engine_devpoll.c ircd/engine_epoll.c \
+	ircd/engine_kqueue.c
+@ENGINE_POLL_TRUE@am__objects_1 = ircd/engine_poll.$(OBJEXT)
+@ENGINE_POLL_FALSE@am__objects_2 = ircd/engine_select.$(OBJEXT)
+@ENGINE_DEVPOLL_TRUE@am__objects_3 = ircd/engine_devpoll.$(OBJEXT)
+@ENGINE_EPOLL_TRUE@am__objects_4 = ircd/engine_epoll.$(OBJEXT)
+@ENGINE_KQUEUE_TRUE@am__objects_5 = ircd/engine_kqueue.$(OBJEXT)
+am_ircd_ircd_OBJECTS = ircd/IPcheck.$(OBJEXT) ircd/channel.$(OBJEXT) \
+	ircd/class.$(OBJEXT) ircd/client.$(OBJEXT) \
+	ircd/crule.$(OBJEXT) ircd/dbuf.$(OBJEXT) \
+	ircd/destruct_event.$(OBJEXT) ircd/fileio.$(OBJEXT) \
+	ircd/gline.$(OBJEXT) ircd/hash.$(OBJEXT) ircd/ircd.$(OBJEXT) \
+	ircd/ircd_alloc.$(OBJEXT) ircd/ircd_crypt.$(OBJEXT) \
+	ircd/ircd_crypt_plain.$(OBJEXT) ircd/ircd_crypt_smd5.$(OBJEXT) \
+	ircd/ircd_crypt_native.$(OBJEXT) ircd/ircd_events.$(OBJEXT) \
+	ircd/ircd_features.$(OBJEXT) ircd/ircd_lexer.$(OBJEXT) \
+	ircd/ircd_log.$(OBJEXT) ircd/ircd_md5.$(OBJEXT) \
+	ircd/ircd_parser.$(OBJEXT) ircd/ircd_relay.$(OBJEXT) \
+	ircd/ircd_reply.$(OBJEXT) ircd/ircd_res.$(OBJEXT) \
+	ircd/ircd_reslib.$(OBJEXT) ircd/ircd_signal.$(OBJEXT) \
+	ircd/ircd_snprintf.$(OBJEXT) ircd/ircd_string.$(OBJEXT) \
+	ircd/jupe.$(OBJEXT) ircd/list.$(OBJEXT) \
+	ircd/listener.$(OBJEXT) ircd/m_account.$(OBJEXT) \
+	ircd/m_admin.$(OBJEXT) ircd/m_asll.$(OBJEXT) \
+	ircd/m_away.$(OBJEXT) ircd/m_burst.$(OBJEXT) \
+	ircd/m_cap.$(OBJEXT) ircd/m_clearmode.$(OBJEXT) \
+	ircd/m_close.$(OBJEXT) ircd/m_connect.$(OBJEXT) \
+	ircd/m_cprivmsg.$(OBJEXT) ircd/m_create.$(OBJEXT) \
+	ircd/m_defaults.$(OBJEXT) ircd/m_destruct.$(OBJEXT) \
+	ircd/m_desynch.$(OBJEXT) ircd/m_die.$(OBJEXT) \
+	ircd/m_endburst.$(OBJEXT) ircd/m_error.$(OBJEXT) \
+	ircd/m_get.$(OBJEXT) ircd/m_gline.$(OBJEXT) \
+	ircd/m_help.$(OBJEXT) ircd/m_info.$(OBJEXT) \
+	ircd/m_invite.$(OBJEXT) ircd/m_ison.$(OBJEXT) \
+	ircd/m_join.$(OBJEXT) ircd/m_jupe.$(OBJEXT) \
+	ircd/m_kick.$(OBJEXT) ircd/m_kill.$(OBJEXT) \
+	ircd/m_links.$(OBJEXT) ircd/m_list.$(OBJEXT) \
+	ircd/m_lusers.$(OBJEXT) ircd/m_map.$(OBJEXT) \
+	ircd/m_mode.$(OBJEXT) ircd/m_motd.$(OBJEXT) \
+	ircd/m_names.$(OBJEXT) ircd/m_nick.$(OBJEXT) \
+	ircd/m_notice.$(OBJEXT) ircd/m_oper.$(OBJEXT) \
+	ircd/m_opmode.$(OBJEXT) ircd/m_part.$(OBJEXT) \
+	ircd/m_pass.$(OBJEXT) ircd/m_ping.$(OBJEXT) \
+	ircd/m_pong.$(OBJEXT) ircd/m_privmsg.$(OBJEXT) \
+	ircd/m_privs.$(OBJEXT) ircd/m_proto.$(OBJEXT) \
+	ircd/m_pseudo.$(OBJEXT) ircd/m_quit.$(OBJEXT) \
+	ircd/m_rehash.$(OBJEXT) ircd/m_reset.$(OBJEXT) \
+	ircd/m_restart.$(OBJEXT) ircd/m_rping.$(OBJEXT) \
+	ircd/m_rpong.$(OBJEXT) ircd/m_server.$(OBJEXT) \
+	ircd/m_set.$(OBJEXT) ircd/m_settime.$(OBJEXT) \
+	ircd/m_silence.$(OBJEXT) ircd/m_squit.$(OBJEXT) \
+	ircd/m_stats.$(OBJEXT) ircd/m_time.$(OBJEXT) \
+	ircd/m_topic.$(OBJEXT) ircd/m_trace.$(OBJEXT) \
+	ircd/m_uping.$(OBJEXT) ircd/m_user.$(OBJEXT) \
+	ircd/m_userhost.$(OBJEXT) ircd/m_userip.$(OBJEXT) \
+	ircd/m_version.$(OBJEXT) ircd/m_wallchops.$(OBJEXT) \
+	ircd/m_wallops.$(OBJEXT) ircd/m_wallusers.$(OBJEXT) \
+	ircd/m_wallvoices.$(OBJEXT) ircd/m_webirc.$(OBJEXT) \
+	ircd/m_who.$(OBJEXT) ircd/m_whois.$(OBJEXT) \
+	ircd/m_whowas.$(OBJEXT) ircd/m_xquery.$(OBJEXT) \
+	ircd/m_xreply.$(OBJEXT) ircd/match.$(OBJEXT) \
+	ircd/memdebug.$(OBJEXT) ircd/motd.$(OBJEXT) \
+	ircd/msgq.$(OBJEXT) ircd/numnicks.$(OBJEXT) \
+	ircd/opercmds.$(OBJEXT) ircd/os_generic.$(OBJEXT) \
+	ircd/packet.$(OBJEXT) ircd/parse.$(OBJEXT) \
+	ircd/querycmds.$(OBJEXT) ircd/random.$(OBJEXT) \
+	ircd/s_auth.$(OBJEXT) ircd/s_bsd.$(OBJEXT) \
+	ircd/s_conf.$(OBJEXT) ircd/s_debug.$(OBJEXT) \
+	ircd/s_err.$(OBJEXT) ircd/s_misc.$(OBJEXT) \
+	ircd/s_numeric.$(OBJEXT) ircd/s_serv.$(OBJEXT) \
+	ircd/s_stats.$(OBJEXT) ircd/s_user.$(OBJEXT) \
+	ircd/send.$(OBJEXT) ircd/uping.$(OBJEXT) \
+	ircd/userload.$(OBJEXT) ircd/whowas.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5)
+nodist_ircd_ircd_OBJECTS = version.$(OBJEXT)
+ircd_ircd_OBJECTS = $(am_ircd_ircd_OBJECTS) \
+	$(nodist_ircd_ircd_OBJECTS)
+am__DEPENDENCIES_1 =
+ircd_ircd_DEPENDENCIES = $(am__DEPENDENCIES_1)
+ircd_table_gen_SOURCES = ircd/table_gen.c
+ircd_table_gen_OBJECTS = ircd/table_gen.$(OBJEXT)
+ircd_table_gen_LDADD = $(LDADD)
+am_ircd_chattr_t_OBJECTS = ircd/test/ircd_chattr_t.$(OBJEXT) \
+	ircd/test/test_stub.$(OBJEXT) ircd/ircd_string.$(OBJEXT)
+ircd_chattr_t_OBJECTS = $(am_ircd_chattr_t_OBJECTS)
+ircd_chattr_t_LDADD = $(LDADD)
+am_ircd_in_addr_t_OBJECTS = ircd/test/ircd_in_addr_t.$(OBJEXT) \
+	ircd/test/test_stub.$(OBJEXT) ircd/ircd_alloc.$(OBJEXT) \
+	ircd/ircd_string.$(OBJEXT) ircd/match.$(OBJEXT) \
+	ircd/numnicks.$(OBJEXT)
+ircd_in_addr_t_OBJECTS = $(am_ircd_in_addr_t_OBJECTS)
+ircd_in_addr_t_LDADD = $(LDADD)
+am_ircd_match_t_OBJECTS = ircd/test/ircd_match_t.$(OBJEXT) \
+	ircd/test/test_stub.$(OBJEXT) ircd/ircd_string.$(OBJEXT) \
+	ircd/match.$(OBJEXT)
+ircd_match_t_OBJECTS = $(am_ircd_match_t_OBJECTS)
+ircd_match_t_LDADD = $(LDADD)
+am_ircd_string_t_OBJECTS = ircd/test/ircd_string_t.$(OBJEXT) \
+	ircd/test/test_stub.$(OBJEXT) ircd/ircd_string.$(OBJEXT)
+ircd_string_t_OBJECTS = $(am_ircd_string_t_OBJECTS)
+ircd_string_t_LDADD = $(LDADD)
+am_umkpasswd_OBJECTS = ircd/ircd_md5.$(OBJEXT) \
+	ircd/ircd_crypt_plain.$(OBJEXT) ircd/ircd_crypt_smd5.$(OBJEXT) \
+	ircd/ircd_crypt_native.$(OBJEXT) ircd/ircd_alloc.$(OBJEXT) \
+	ircd/ircd_string.$(OBJEXT) ircd/memdebug.$(OBJEXT) \
+	ircd/umkpasswd.$(OBJEXT)
+umkpasswd_OBJECTS = $(am_umkpasswd_OBJECTS)
+umkpasswd_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -114,16 +279,44 @@ AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 = 
-SOURCES =
-DIST_SOURCES =
-RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
-	ctags-recursive dvi-recursive html-recursive info-recursive \
-	install-data-recursive install-dvi-recursive \
-	install-exec-recursive install-html-recursive \
-	install-info-recursive install-pdf-recursive \
-	install-ps-recursive install-recursive installcheck-recursive \
-	installdirs-recursive pdf-recursive ps-recursive \
-	tags-recursive uninstall-recursive
+DEFAULT_INCLUDES = -I.@am__isrc@
+depcomp = $(SHELL) $(top_srcdir)/depcomp
+am__depfiles_maybe = depfiles
+am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC      " $@;
+am__v_CC_1 = 
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD    " $@;
+am__v_CCLD_1 = 
+LEXCOMPILE = $(LEX) $(AM_LFLAGS) $(LFLAGS)
+AM_V_LEX = $(am__v_LEX_@AM_V@)
+am__v_LEX_ = $(am__v_LEX_@AM_DEFAULT_V@)
+am__v_LEX_0 = @echo "  LEX     " $@;
+am__v_LEX_1 = 
+YLWRAP = $(top_srcdir)/ylwrap
+am__yacc_c2h = sed -e s/cc$$/hh/ -e s/cpp$$/hpp/ -e s/cxx$$/hxx/ \
+		   -e s/c++$$/h++/ -e s/c$$/h/
+YACCCOMPILE = $(YACC) $(AM_YFLAGS) $(YFLAGS)
+AM_V_YACC = $(am__v_YACC_@AM_V@)
+am__v_YACC_ = $(am__v_YACC_@AM_DEFAULT_V@)
+am__v_YACC_0 = @echo "  YACC    " $@;
+am__v_YACC_1 = 
+SOURCES = ircd/convert-conf.c $(ircd_ircd_SOURCES) \
+	$(nodist_ircd_ircd_SOURCES) ircd/table_gen.c \
+	$(ircd_chattr_t_SOURCES) $(ircd_in_addr_t_SOURCES) \
+	$(ircd_match_t_SOURCES) $(ircd_string_t_SOURCES) \
+	$(umkpasswd_SOURCES)
+DIST_SOURCES = ircd/convert-conf.c $(am__ircd_ircd_SOURCES_DIST) \
+	ircd/table_gen.c $(ircd_chattr_t_SOURCES) \
+	$(ircd_in_addr_t_SOURCES) $(ircd_match_t_SOURCES) \
+	$(ircd_string_t_SOURCES) $(umkpasswd_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -157,18 +350,9 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 man8dir = $(mandir)/man8
-am__installdirs = "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(sysconfdir)"
 NROFF = nroff
 MANS = $(man_MANS)
 DATA = $(sysconf_DATA)
-RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
-  distclean-recursive maintainer-clean-recursive
-am__recursive_targets = \
-  $(RECURSIVE_TARGETS) \
-  $(RECURSIVE_CLEAN_TARGETS) \
-  $(am__extra_recursive_targets)
-AM_RECURSIVE_TARGETS = $(am__recursive_targets:-recursive=) TAGS CTAGS \
-	cscope distdir dist dist-all distcheck
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) \
 	$(LISP)config.h.in
 # Read a list of newline-separated strings from the standard input,
@@ -190,10 +374,12 @@ am__define_uniq_tagged_files = \
 ETAGS = etags
 CTAGS = ctags
 CSCOPE = cscope
-DIST_SUBDIRS = $(SUBDIRS)
+AM_RECURSIVE_TARGETS = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
+	$(srcdir)/ircd/subdir.am $(srcdir)/ircd/test/subdir.am \
 	ChangeLog INSTALL README compile config.guess config.sub \
-	depcomp install-sh missing ylwrap
+	depcomp install-sh ircd/ircd_lexer.c ircd/ircd_parser.c \
+	ircd/ircd_parser.h missing ylwrap
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -204,31 +390,6 @@ am__remove_distdir = \
       || { sleep 5 && rm -rf "$(distdir)"; }; \
   else :; fi
 am__post_remove_distdir = $(am__remove_distdir)
-am__relativize = \
-  dir0=`pwd`; \
-  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
-  sed_rest='s,^[^/]*/*,,'; \
-  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
-  sed_butlast='s,/*[^/]*$$,,'; \
-  while test -n "$$dir1"; do \
-    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
-    if test "$$first" != "."; then \
-      if test "$$first" = ".."; then \
-        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
-        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
-      else \
-        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
-        if test "$$first2" = "$$first"; then \
-          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
-        else \
-          dir2="../$$dir2"; \
-        fi; \
-        dir0="$$dir0"/"$$first"; \
-      fi; \
-    fi; \
-    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
-  done; \
-  reldir="$$dir2"
 DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 DIST_TARGETS = dist-gzip
@@ -337,21 +498,102 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = ircd
 EXTRA_DIST = doc patches tools include Doxyfile INSTALL_FR ircd-patch \
-	ChangeLog.11 ChangeLog.12 LICENSE RELEASE.NOTES
-
+	ChangeLog.11 ChangeLog.12 LICENSE RELEASE.NOTES \
+	ircd/version.c.SH
 
 # Install man page and example.conf
 man_MANS = doc/ircd.8
 sysconf_DATA = doc/example.conf
-all: config.h
-	$(MAKE) $(AM_MAKEFLAGS) all-recursive
+AM_CPPFLAGS = -I. -I$(top_srcdir)/include -DDPATH="\"$(sysconfdir)\"" \
+	-DSPATH="\"$(bindir)/ircd\"" -DCPATH="\"ircd.conf\"" \
+	-DLPATH="\"ircd.log\""
+
+BUILT_SOURCES = ircd/ircd_parser.h
+AM_YFLAGS = -d
+DISTCLEANFILES = version.c
+umkpasswd_SOURCES = \
+	ircd/ircd_md5.c \
+	ircd/ircd_crypt_plain.c \
+	ircd/ircd_crypt_smd5.c \
+	ircd/ircd_crypt_native.c \
+	ircd/ircd_alloc.c \
+	ircd/ircd_string.c \
+	ircd/memdebug.c \
+	ircd/umkpasswd.c
+
+nodist_ircd_ircd_SOURCES = version.c
+ircd_ircd_SOURCES = ircd/IPcheck.c ircd/channel.c ircd/class.c \
+	ircd/client.c ircd/crule.c ircd/dbuf.c ircd/destruct_event.c \
+	ircd/fileio.c ircd/gline.c ircd/hash.c ircd/ircd.c \
+	ircd/ircd_alloc.c ircd/ircd_crypt.c ircd/ircd_crypt_plain.c \
+	ircd/ircd_crypt_smd5.c ircd/ircd_crypt_native.c \
+	ircd/ircd_events.c ircd/ircd_features.c ircd/ircd_lexer.l \
+	ircd/ircd_log.c ircd/ircd_md5.c ircd/ircd_parser.y \
+	ircd/ircd_relay.c ircd/ircd_reply.c ircd/ircd_res.c \
+	ircd/ircd_reslib.c ircd/ircd_signal.c ircd/ircd_snprintf.c \
+	ircd/ircd_string.c ircd/jupe.c ircd/list.c ircd/listener.c \
+	ircd/m_account.c ircd/m_admin.c ircd/m_asll.c ircd/m_away.c \
+	ircd/m_burst.c ircd/m_cap.c ircd/m_clearmode.c ircd/m_close.c \
+	ircd/m_connect.c ircd/m_cprivmsg.c ircd/m_create.c \
+	ircd/m_defaults.c ircd/m_destruct.c ircd/m_desynch.c \
+	ircd/m_die.c ircd/m_endburst.c ircd/m_error.c ircd/m_get.c \
+	ircd/m_gline.c ircd/m_help.c ircd/m_info.c ircd/m_invite.c \
+	ircd/m_ison.c ircd/m_join.c ircd/m_jupe.c ircd/m_kick.c \
+	ircd/m_kill.c ircd/m_links.c ircd/m_list.c ircd/m_lusers.c \
+	ircd/m_map.c ircd/m_mode.c ircd/m_motd.c ircd/m_names.c \
+	ircd/m_nick.c ircd/m_notice.c ircd/m_oper.c ircd/m_opmode.c \
+	ircd/m_part.c ircd/m_pass.c ircd/m_ping.c ircd/m_pong.c \
+	ircd/m_privmsg.c ircd/m_privs.c ircd/m_proto.c ircd/m_pseudo.c \
+	ircd/m_quit.c ircd/m_rehash.c ircd/m_reset.c ircd/m_restart.c \
+	ircd/m_rping.c ircd/m_rpong.c ircd/m_server.c ircd/m_set.c \
+	ircd/m_settime.c ircd/m_silence.c ircd/m_squit.c \
+	ircd/m_stats.c ircd/m_time.c ircd/m_topic.c ircd/m_trace.c \
+	ircd/m_uping.c ircd/m_user.c ircd/m_userhost.c ircd/m_userip.c \
+	ircd/m_version.c ircd/m_wallchops.c ircd/m_wallops.c \
+	ircd/m_wallusers.c ircd/m_wallvoices.c ircd/m_webirc.c \
+	ircd/m_who.c ircd/m_whois.c ircd/m_whowas.c ircd/m_xquery.c \
+	ircd/m_xreply.c ircd/match.c ircd/memdebug.c ircd/motd.c \
+	ircd/msgq.c ircd/numnicks.c ircd/opercmds.c ircd/os_generic.c \
+	ircd/packet.c ircd/parse.c ircd/querycmds.c ircd/random.c \
+	ircd/s_auth.c ircd/s_bsd.c ircd/s_conf.c ircd/s_debug.c \
+	ircd/s_err.c ircd/s_misc.c ircd/s_numeric.c ircd/s_serv.c \
+	ircd/s_stats.c ircd/s_user.c ircd/send.c ircd/uping.c \
+	ircd/userload.c ircd/whowas.c $(am__append_1) $(am__append_2) \
+	$(am__append_3) $(am__append_4) $(am__append_5)
+ircd_ircd_LDADD = $(LEXLIB)
+ircd_chattr_t_SOURCES = \
+	ircd/test/ircd_chattr_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c
+
+ircd_in_addr_t_SOURCES = \
+	ircd/test/ircd_in_addr_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_alloc.c \
+	ircd/ircd_string.c \
+	ircd/match.c \
+	ircd/numnicks.c
+
+ircd_match_t_SOURCES = \
+	ircd/test/ircd_match_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c \
+	ircd/match.c
+
+ircd_string_t_SOURCES = \
+	ircd/test/ircd_string_t.c \
+	ircd/test/test_stub.c \
+	ircd/ircd_string.c
+
+all: $(BUILT_SOURCES) config.h
+	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
+.SUFFIXES: .c .l .o .obj .y
 am--refresh: Makefile
 	@:
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/ircd/subdir.am $(srcdir)/ircd/test/subdir.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -373,6 +615,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe);; \
 	esac;
+$(srcdir)/ircd/subdir.am $(srcdir)/ircd/test/subdir.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -397,6 +640,571 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
+	fi; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p \
+	  ; then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' \
+	    -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
+	    } \
+	; done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' \
+	`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+
+clean-checkPROGRAMS:
+	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
+
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+ircd/$(am__dirstamp):
+	@$(MKDIR_P) ircd
+	@: > ircd/$(am__dirstamp)
+ircd/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ircd/$(DEPDIR)
+	@: > ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/convert-conf.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+
+ircd/convert-conf$(EXEEXT): $(ircd_convert_conf_OBJECTS) $(ircd_convert_conf_DEPENDENCIES) $(EXTRA_ircd_convert_conf_DEPENDENCIES) ircd/$(am__dirstamp)
+	@rm -f ircd/convert-conf$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_convert_conf_OBJECTS) $(ircd_convert_conf_LDADD) $(LIBS)
+ircd/IPcheck.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/channel.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/class.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/client.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/crule.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/dbuf.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/destruct_event.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/fileio.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/gline.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/hash.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_alloc.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_crypt.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_crypt_plain.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_crypt_smd5.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_crypt_native.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_events.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_features.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_lexer.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_log.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_md5.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_parser.h: ircd/ircd_parser.c
+	@if test ! -f $@; then rm -f ircd/ircd_parser.c; else :; fi
+	@if test ! -f $@; then $(MAKE) $(AM_MAKEFLAGS) ircd/ircd_parser.c; else :; fi
+ircd/ircd_parser.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_relay.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_reply.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_res.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_reslib.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_signal.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_snprintf.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/ircd_string.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/jupe.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/list.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/listener.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_account.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_admin.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_asll.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_away.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_burst.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_cap.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_clearmode.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_close.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_connect.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_cprivmsg.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_create.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_defaults.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_destruct.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_desynch.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_die.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_endburst.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_error.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_get.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_gline.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_help.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_info.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_invite.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_ison.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_join.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_jupe.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_kick.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_kill.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_links.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_list.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_lusers.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_map.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_mode.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_motd.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_names.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_nick.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_notice.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_oper.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_opmode.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_part.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_pass.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_ping.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_pong.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_privmsg.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_privs.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_proto.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_pseudo.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_quit.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_rehash.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_reset.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_restart.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_rping.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_rpong.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_server.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_set.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_settime.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_silence.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_squit.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_stats.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_time.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_topic.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_trace.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_uping.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_user.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_userhost.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_userip.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_version.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_wallchops.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_wallops.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_wallusers.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_wallvoices.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_webirc.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_who.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_whois.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_whowas.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_xquery.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/m_xreply.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/match.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/memdebug.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/motd.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/msgq.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/numnicks.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/opercmds.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/os_generic.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/packet.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/parse.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/querycmds.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/random.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_auth.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_bsd.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_conf.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_debug.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_err.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_misc.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_numeric.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_serv.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_stats.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/s_user.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/send.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/uping.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/userload.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/whowas.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/engine_poll.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/engine_select.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/engine_devpoll.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/engine_epoll.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+ircd/engine_kqueue.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+
+ircd/ircd$(EXEEXT): $(ircd_ircd_OBJECTS) $(ircd_ircd_DEPENDENCIES) $(EXTRA_ircd_ircd_DEPENDENCIES) ircd/$(am__dirstamp)
+	@rm -f ircd/ircd$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_ircd_OBJECTS) $(ircd_ircd_LDADD) $(LIBS)
+ircd/table_gen.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+
+ircd/table_gen$(EXEEXT): $(ircd_table_gen_OBJECTS) $(ircd_table_gen_DEPENDENCIES) $(EXTRA_ircd_table_gen_DEPENDENCIES) ircd/$(am__dirstamp)
+	@rm -f ircd/table_gen$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_table_gen_OBJECTS) $(ircd_table_gen_LDADD) $(LIBS)
+ircd/test/$(am__dirstamp):
+	@$(MKDIR_P) ircd/test
+	@: > ircd/test/$(am__dirstamp)
+ircd/test/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ircd/test/$(DEPDIR)
+	@: > ircd/test/$(DEPDIR)/$(am__dirstamp)
+ircd/test/ircd_chattr_t.$(OBJEXT): ircd/test/$(am__dirstamp) \
+	ircd/test/$(DEPDIR)/$(am__dirstamp)
+ircd/test/test_stub.$(OBJEXT): ircd/test/$(am__dirstamp) \
+	ircd/test/$(DEPDIR)/$(am__dirstamp)
+
+ircd_chattr_t$(EXEEXT): $(ircd_chattr_t_OBJECTS) $(ircd_chattr_t_DEPENDENCIES) $(EXTRA_ircd_chattr_t_DEPENDENCIES) 
+	@rm -f ircd_chattr_t$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_chattr_t_OBJECTS) $(ircd_chattr_t_LDADD) $(LIBS)
+ircd/test/ircd_in_addr_t.$(OBJEXT): ircd/test/$(am__dirstamp) \
+	ircd/test/$(DEPDIR)/$(am__dirstamp)
+
+ircd_in_addr_t$(EXEEXT): $(ircd_in_addr_t_OBJECTS) $(ircd_in_addr_t_DEPENDENCIES) $(EXTRA_ircd_in_addr_t_DEPENDENCIES) 
+	@rm -f ircd_in_addr_t$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_in_addr_t_OBJECTS) $(ircd_in_addr_t_LDADD) $(LIBS)
+ircd/test/ircd_match_t.$(OBJEXT): ircd/test/$(am__dirstamp) \
+	ircd/test/$(DEPDIR)/$(am__dirstamp)
+
+ircd_match_t$(EXEEXT): $(ircd_match_t_OBJECTS) $(ircd_match_t_DEPENDENCIES) $(EXTRA_ircd_match_t_DEPENDENCIES) 
+	@rm -f ircd_match_t$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_match_t_OBJECTS) $(ircd_match_t_LDADD) $(LIBS)
+ircd/test/ircd_string_t.$(OBJEXT): ircd/test/$(am__dirstamp) \
+	ircd/test/$(DEPDIR)/$(am__dirstamp)
+
+ircd_string_t$(EXEEXT): $(ircd_string_t_OBJECTS) $(ircd_string_t_DEPENDENCIES) $(EXTRA_ircd_string_t_DEPENDENCIES) 
+	@rm -f ircd_string_t$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ircd_string_t_OBJECTS) $(ircd_string_t_LDADD) $(LIBS)
+ircd/umkpasswd.$(OBJEXT): ircd/$(am__dirstamp) \
+	ircd/$(DEPDIR)/$(am__dirstamp)
+
+umkpasswd$(EXEEXT): $(umkpasswd_OBJECTS) $(umkpasswd_DEPENDENCIES) $(EXTRA_umkpasswd_DEPENDENCIES) 
+	@rm -f umkpasswd$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(umkpasswd_OBJECTS) $(umkpasswd_LDADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT)
+	-rm -f ircd/*.$(OBJEXT)
+	-rm -f ircd/test/*.$(OBJEXT)
+
+distclean-compile:
+	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/version.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/IPcheck.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/channel.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/class.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/client.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/convert-conf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/crule.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/dbuf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/destruct_event.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/engine_devpoll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/engine_epoll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/engine_kqueue.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/engine_poll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/engine_select.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/fileio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/gline.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/hash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_alloc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_crypt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_crypt_native.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_crypt_plain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_crypt_smd5.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_events.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_features.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_lexer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_log.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_md5.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_parser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_relay.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_reply.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_res.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_reslib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_signal.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_snprintf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/ircd_string.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/jupe.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/listener.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_account.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_admin.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_asll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_away.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_burst.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_cap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_clearmode.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_close.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_connect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_cprivmsg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_create.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_defaults.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_destruct.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_desynch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_die.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_endburst.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_error.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_get.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_gline.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_help.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_info.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_invite.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_ison.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_join.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_jupe.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_kick.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_kill.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_links.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_lusers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_map.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_mode.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_motd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_names.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_nick.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_notice.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_oper.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_opmode.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_part.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_pass.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_ping.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_pong.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_privmsg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_privs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_proto.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_pseudo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_quit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_rehash.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_reset.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_restart.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_rping.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_rpong.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_server.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_set.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_settime.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_silence.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_squit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_stats.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_time.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_topic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_trace.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_uping.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_user.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_userhost.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_userip.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_version.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_wallchops.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_wallops.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_wallusers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_wallvoices.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_webirc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_who.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_whois.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_whowas.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_xquery.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/m_xreply.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/match.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/memdebug.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/motd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/msgq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/numnicks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/opercmds.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/os_generic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/packet.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/parse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/querycmds.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/random.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_auth.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_bsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_conf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_debug.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_err.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_misc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_numeric.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_serv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_stats.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/s_user.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/send.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/table_gen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/umkpasswd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/uping.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/userload.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/$(DEPDIR)/whowas.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/test/$(DEPDIR)/ircd_chattr_t.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/test/$(DEPDIR)/ircd_in_addr_t.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/test/$(DEPDIR)/ircd_match_t.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/test/$(DEPDIR)/ircd_string_t.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@ircd/test/$(DEPDIR)/test_stub.Po@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.l.c:
+	$(AM_V_LEX)$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)
+
+.y.c:
+	$(AM_V_YACC)$(am__skipyacc) $(SHELL) $(YLWRAP) $< y.tab.c $@ y.tab.h `echo $@ | $(am__yacc_c2h)` y.output $*.output -- $(YACCCOMPILE)
 install-man8: $(man_MANS)
 	@$(NORMAL_INSTALL)
 	@list1=''; \
@@ -462,61 +1270,14 @@ uninstall-sysconfDATA:
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
 
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run 'make' without going through this Makefile.
-# To change the values of 'make' variables: instead of editing Makefiles,
-# (1) if the variable is set in 'config.status', edit 'config.status'
-#     (which will cause the Makefiles to be regenerated when you run 'make');
-# (2) otherwise, pass the desired values on the 'make' command line.
-$(am__recursive_targets):
-	@fail=; \
-	if $(am__make_keepgoing); then \
-	  failcom='fail=yes'; \
-	else \
-	  failcom='exit 1'; \
-	fi; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
-tags: tags-recursive
+tags: tags-am
 TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
 	here=`pwd`; \
-	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	  empty_fix=.; \
-	else \
-	  include_option=--include; \
-	  empty_fix=; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test ! -f $$subdir/TAGS || \
-	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	$(am__define_uniq_tagged_files); \
 	shift; \
 	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
@@ -529,7 +1290,7 @@ tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	      $$unique; \
 	  fi; \
 	fi
-ctags: ctags-recursive
+ctags: ctags-am
 
 CTAGS: ctags
 ctags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
@@ -548,7 +1309,7 @@ cscope: cscope.files
 clean-cscope:
 	-rm -f cscope.files
 cscope.files: clean-cscope cscopelist
-cscopelist: cscopelist-recursive
+cscopelist: cscopelist-am
 
 cscopelist-am: $(am__tagged_files)
 	list='$(am__tagged_files)'; \
@@ -598,31 +1359,6 @@ distdir: $(DISTFILES)
 	    test -f "$(distdir)/$$file" \
 	    || cp -p $$d/$$file "$(distdir)/$$file" \
 	    || exit 1; \
-	  fi; \
-	done
-	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    $(am__make_dryrun) \
-	      || test -d "$(distdir)/$$subdir" \
-	      || $(MKDIR_P) "$(distdir)/$$subdir" \
-	      || exit 1; \
-	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
-	    $(am__relativize); \
-	    new_distdir=$$reldir; \
-	    dir1=$$subdir; dir2="$(top_distdir)"; \
-	    $(am__relativize); \
-	    new_top_distdir=$$reldir; \
-	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
-	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
-	    ($(am__cd) $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$$new_top_distdir" \
-	        distdir="$$new_distdir" \
-		am__remove_distdir=: \
-		am__skip_length_check=: \
-		am__skip_mode_fix=: \
-	        distdir) \
-	      || exit 1; \
 	  fi; \
 	done
 	$(MAKE) $(AM_MAKEFLAGS) \
@@ -760,22 +1496,24 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
-check: check-recursive
-all-am: Makefile $(MANS) $(DATA) config.h
-installdirs: installdirs-recursive
-installdirs-am:
-	for dir in "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(sysconfdir)"; do \
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+check: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) check-am
+all-am: Makefile $(PROGRAMS) $(MANS) $(DATA) config.h
+installdirs:
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(sysconfdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+install: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -793,99 +1531,115 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f ircd/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ircd/$(am__dirstamp)
+	-rm -f ircd/test/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ircd/test/$(am__dirstamp)
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+	-rm -f ircd/ircd_lexer.c
+	-rm -f ircd/ircd_parser.c
+	-rm -f ircd/ircd_parser.h
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+clean: clean-am
 
-clean-am: clean-generic mostlyclean-am
+clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
+	clean-noinstPROGRAMS mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+	-rm -rf ./$(DEPDIR) ircd/$(DEPDIR) ircd/test/$(DEPDIR)
 	-rm -f Makefile
-distclean-am: clean-am distclean-generic distclean-hdr distclean-tags
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-hdr distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-html: html-recursive
+html: html-am
 
 html-am:
 
-info: info-recursive
+info: info-am
 
 info-am:
 
 install-data-am: install-man
 
-install-dvi: install-dvi-recursive
+install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-sysconfDATA
+install-exec-am: install-binPROGRAMS install-sysconfDATA
 
-install-html: install-html-recursive
+install-html: install-html-am
 
 install-html-am:
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-info-am:
 
 install-man: install-man8
 
-install-pdf: install-pdf-recursive
+install-pdf: install-pdf-am
 
 install-pdf-am:
 
-install-ps: install-ps-recursive
+install-ps: install-ps-am
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
+	-rm -rf ./$(DEPDIR) ircd/$(DEPDIR) ircd/test/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-generic
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-man uninstall-sysconfDATA
+uninstall-am: uninstall-binPROGRAMS uninstall-man \
+	uninstall-sysconfDATA
 
 uninstall-man: uninstall-man8
 
-.MAKE: $(am__recursive_targets) all install-am install-strip
+.MAKE: all check check-am install install-am install-strip
 
-.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
-	am--refresh check check-am clean clean-cscope clean-generic \
-	cscope cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
-	dist-gzip dist-hook dist-lzip dist-shar dist-tarZ dist-xz \
-	dist-zip distcheck distclean distclean-generic distclean-hdr \
+.PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am clean \
+	clean-binPROGRAMS clean-checkPROGRAMS clean-cscope \
+	clean-generic clean-noinstPROGRAMS cscope cscopelist-am ctags \
+	ctags-am dist dist-all dist-bzip2 dist-gzip dist-hook \
+	dist-lzip dist-shar dist-tarZ dist-xz dist-zip distcheck \
+	distclean distclean-compile distclean-generic distclean-hdr \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-man8 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip install-sysconfDATA installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
-	pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-man uninstall-man8 uninstall-sysconfDATA
+	install-binPROGRAMS install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-man8 install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip install-sysconfDATA installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-man \
+	uninstall-man8 uninstall-sysconfDATA
 
 .PRECIOUS: Makefile
 
@@ -893,6 +1647,16 @@ uninstall-man: uninstall-man8
 # Make sure to filter out those CVS directories
 dist-hook:
 	find $(distdir) -name CVS -print -prune | xargs rm -rf
+
+ircd/ircd_string.$(OBJEXT): ircd/ircd_string.c chattr.tab.c
+chattr.tab.c: ircd/table_gen
+	./ircd/table_gen > chattr.tab.c
+
+version.c: include/patchlist.h ircd/version.c.SH umkpasswd \
+	include/version.h include/patchlevel.h $(ircd_SOURCES)
+	$(SHELL) $(srcdir)/ircd/version.c.SH $(top_srcdir)
+include/patchlist.h:
+	cd $(top_srcdir) && ./ircd-patch update
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

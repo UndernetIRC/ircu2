@@ -2,7 +2,7 @@
 
 # $Id$
 
-echo "Extracting ircd/version.c ..."
+echo "Extracting version.c ..."
 
 srcdir=$1
 
