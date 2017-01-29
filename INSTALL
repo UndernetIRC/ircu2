@@ -7,7 +7,7 @@ ircu - INSTALL
 
 Compiling and installing ircu should be a fairly straightforward process,
 if you have obtained this software as a (.tar.gz) package, please consider
-using CVS (described below). Using CVS will make updating your installation
+using git (described below). Using git will make updating your installation
 much easier. 
 
 After obtaining the latest version of the ircu source code, change into the
@@ -40,22 +40,17 @@ compiled during "make" and installed to $PREFIX/bin/convert-conf.
 
 Good Luck!
 
-RETRIEVING IRCU VIA CVS
+RETRIEVING IRCU VIA GIT
 
-The recommended way to get the ircu package now is to use CVS.  CVS makes
+The recommended way to get the ircu package now is to use git.  git makes
 upgrades a lot less painful and lets you get the latest package.
 
-The first thing you need to do is login to the cvs server:
-# cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu login
+To retrieve the latest development code into a new "ircu2" directory:
+$ git clone https://github.com/UndernetIRC/ircu2.git
 
-(we recommend that you cut and paste the above line to use it :)
-When it prompts you for a password hit enter since there isn't one.
+To update your source tree to the latest version, run "git pull" from
+within the ircu2 directory.
 
-To check out the the last development version of ircu, use:
-# cvs -d :pserver:anonymous@cvs.undernet.org:/cvsroot/undernet-ircu co -P ircu2.10
-The latest stable version has a tag name that depends on the version
-number; see doc/readme.cvs for details.
-
-To update your source tree to the latest version, run "cvs update -dP" from within the
-ircu2.10 directory. For more information, see http://coder-com.undernet.org.
-
+The latest stable version has a tag that follows the version name; for
+example, the tag for ircu2.10.12.15 would be v2.10.12.15.  To switch
+to a particular tag or branch by name, run "git checkout <name>".
