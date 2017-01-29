@@ -16,8 +16,8 @@ dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 dnl
 dnl @(#)$Id$
 
-AC_INIT([Undernet IRC Daemon], 10.13.alpha.0, [bugs@undernet.org], [ircu2])
-AC_PREREQ(2.59)
+AC_INIT([Undernet IRC Daemon],[10.13.alpha.0],[bugs@undernet.org],[ircu2])
+AC_PREREQ([2.69])
 
 AC_COPYRIGHT(
 [This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA])
 AC_REVISION($Revision$)
 
 AC_CONFIG_SRCDIR([ircd/ircd.c])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 dnl Set the default prefix
 AC_PREFIX_DEFAULT([$HOME])
@@ -51,6 +51,9 @@ AC_CANONICAL_HOST
 
 dnl Check for a compiler and make sure to ANSIfy it
 AC_PROG_CC
+
+dnl Default to "silent" rules.
+AM_SILENT_RULES([yes])
 
 dnl Look up the lexer and yaccer
 AM_PROG_LEX
@@ -107,11 +110,11 @@ dnl arg to getpeername.
     curl_cv_socklen_t_equiv=
     for arg2 in "struct sockaddr" void ; do
       for t in int size_t unsigned long "unsigned long" ; do
-        AC_TRY_COMPILE([#include <sys/types.h>
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
-int getpeername (int $arg2 *, $t *);],[$t len;
-  getpeername(0, 0, &len);], [curl_cv_socklen_t_equiv="$t"
-  break])
+int getpeername (int $arg2 *, $t *);]], [[$t len;
+  getpeername(0, 0, &len);]])],[curl_cv_socklen_t_equiv="$t"
+  break],[])
       done
     done
   ])
@@ -348,7 +351,7 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
     [Maximum number of network connections])
 
 dnl Report configuration
-dnl AC_OUTPUT_COMMANDS([echo "
+dnl AC_CONFIG_COMMANDS([default-1],[[echo "
 dnl ircu is now hopefully configured for your system.
 
 dnl   Host system:         $host_os
@@ -363,7 +366,7 @@ dnl   poll() engine:       $unet_cv_enable_poll
 dnl   kqueue() engine:     $unet_cv_enable_kqueue
 dnl   /dev/poll engine:    $unet_cv_enable_devpoll
 dnl   epoll() engine:      $unet_cv_enable_epoll
-dnl "])
+dnl "]],[[]])
 
 dnl Output everything...
 AC_OUTPUT
