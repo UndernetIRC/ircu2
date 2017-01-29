@@ -1,3 +1,6 @@
+Starting with u2.10.12.15, this file is no longer maintained.  Refer
+to the revision control system's log for up-to-date history.
+
 2012-10-15  Michael Poole <mdpoole@troilus.org>
 
 	* include/IPcheck.h (IPcheck_connect_fail): Add new 'disconnect'
