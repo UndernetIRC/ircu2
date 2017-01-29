@@ -190,7 +190,7 @@ static struct StatDesc statsinfo[] = {
   { 'w', "userload", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_USERLOAD,
     calc_load, 0,
     "Userload statistics." },
-  { 'W', "webirc", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_W,
+  { 'W', "webirc", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_WEBIRC,
     stats_webirc, 0,
     "WebIRC authorizations." },
   { 'x', "memusage", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_MEMUSAGE,

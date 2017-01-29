@@ -637,7 +637,7 @@ HIS_STATS_USERLOAD
 
 As per UnderNet CFV-165, this allows users to perform /STATS w.
 
-HIS_STATS_W
+HIS_STATS_WEBIRC
  * Type: boolean
  * Default: TRUE
 
