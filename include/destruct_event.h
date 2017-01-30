@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Functions for handling timed channel destruction events.
- * @version $Id$
  */
 
 #ifndef INCLUDED_config_h

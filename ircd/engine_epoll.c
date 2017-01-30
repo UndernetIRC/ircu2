@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Linux epoll_*() event engine.
- * @version $Id$
  */
 #include "config.h"
 

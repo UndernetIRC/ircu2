@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Input packet handling functions.
- * @version $Id$
  */
 #include "config.h"
 

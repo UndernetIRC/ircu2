@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Functions that now (or in the past) relied on BSD APIs.
- * @version $Id$
  */
 #include "config.h"
 

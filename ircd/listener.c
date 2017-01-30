@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation for handling listening sockets.
- * @version $Id$
  */
 #include "config.h"
 

@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Helper functions to relay various types of messages.
- * @version $Id$
  *
  * There are four basic types of messages, each with four subtypes.
  *

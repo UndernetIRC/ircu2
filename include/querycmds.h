@@ -1,6 +1,5 @@
 /** @file
  * @brief Interface and declarations for client counting functions.
- * @version $Id$
  */
 #ifndef INCLUDED_querycmds_h
 #define INCLUDED_querycmds_h

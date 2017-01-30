@@ -1,6 +1,5 @@
 /** @file ircd_string.h
  * @brief Public declarations and APIs for string operations.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_string_h
 #define INCLUDED_ircd_string_h

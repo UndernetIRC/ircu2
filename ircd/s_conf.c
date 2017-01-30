@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief ircd configuration file driver
- * @version $Id$
  */
 #include "config.h"
 

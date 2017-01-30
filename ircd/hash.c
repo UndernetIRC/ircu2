@@ -45,7 +45,6 @@
 
 /** @file
  * @brief Hash table management.
- * @version $Id$
  *
  * This file used to use some very complicated hash function.  Now it
  * uses CRC-32, but effectively remaps each input byte according to a

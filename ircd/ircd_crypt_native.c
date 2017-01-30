@@ -19,7 +19,6 @@
 /**
  * @file
  * @brief Native crypt() function routines
- * @version $Id$
  * 
  * Routines for handling passwords encrypted with the system's native crypt()
  * function (typically a DES encryption routine, but can be anything nowadays).

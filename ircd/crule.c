@@ -1,7 +1,6 @@
 /**
  * @file
  * @brief Connection rule parser and checker
- * @version $Id$
  *
  * by Tony Vencill (Tonto on IRC) <vencill@bga.com>
  * rewritten by Michael Poole <mdpoole@troilus.org>

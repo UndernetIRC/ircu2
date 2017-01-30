@@ -16,8 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# @(#)$Id$
-#
 # This program is intended to be used in conjunction with ringlog and
 # the binutils program addr2line.  The -r option specifies the path to
 # the ringlog program; the -a option specifies the path to addr2line.

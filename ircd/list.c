@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Singly and doubly linked list manipulation implementation.
- * @version $Id$
  */
 #include "config.h"
 

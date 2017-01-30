@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Implementation of client counting functions.
- * @version $Id$
  */
 #include "config.h"
 

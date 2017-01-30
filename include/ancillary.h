@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Structures and functions for handling generic ancillary data.
- * @version $Id$
  */
 #ifndef INCLUDED_ancillary_h
 #define INCLUDED_ancillary_h

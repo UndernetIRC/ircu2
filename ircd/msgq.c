@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Outbound message queue implementation.
- * @version $Id$
  */
 #include "config.h"
 

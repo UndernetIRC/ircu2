@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of configurable feature support.
- * @version $Id$
  */
 #include "config.h"
 

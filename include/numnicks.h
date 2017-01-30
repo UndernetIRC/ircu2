@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Interface for numeric nickname functions.
- * @version $Id$
  */
 #ifndef INCLUDED_numnicks_h
 #define INCLUDED_numnicks_h

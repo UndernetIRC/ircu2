@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief  Interface and declarations for juped server handling.
- * @version $Id$
  */
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>

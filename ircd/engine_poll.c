@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief POSIX poll() event engine.
- * @version $Id$
  */
 #include "config.h"
 

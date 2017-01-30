@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief UDP ping implementation.
- * @version $Id$
  */
 #ifndef INCLUDED_uping_h
 #define INCLUDED_uping_h

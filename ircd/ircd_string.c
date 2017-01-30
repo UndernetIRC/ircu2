@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of string operations.
- * @version $Id$
  */
 #include "config.h"
 

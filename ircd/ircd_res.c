@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief IRC resolver functions.
- * @version $Id$
  */
 
 #include "client.h"

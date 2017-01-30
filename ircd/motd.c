@@ -23,7 +23,6 @@
  */
 /** @file
  * @brief Message-of-the-day manipulation implementation.
- * @version $Id$
  */
 #include "config.h"
 

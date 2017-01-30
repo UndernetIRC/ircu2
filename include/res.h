@@ -1,6 +1,5 @@
 /** @file
  * @brief IRC resolver API.
- * @version $Id$
  */
 
 #ifndef INCLUDED_res_h

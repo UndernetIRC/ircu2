@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Outbound message queue interface and declarations.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_defs_h
 #include "ircd_defs.h"	/* BUFSIZE */

@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of event loop mid-layer.
- * @version $Id$
  */
 #include "config.h"
 

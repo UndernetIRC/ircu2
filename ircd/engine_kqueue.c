@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief FreeBSD kqueue()/kevent() event engine.
- * @version $Id$
  */
 #include "config.h"
 

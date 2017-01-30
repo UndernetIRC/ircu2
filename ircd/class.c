@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of connection class handling functions.
- * @version $Id$
  */
 #include "config.h"
 

@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief IRC-specific printf() clone interface.
- * @version $Id$
  */
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>

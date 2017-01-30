@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of functions dealing with data buffers.
- * @version $Id$
  */
 #include "config.h"
 

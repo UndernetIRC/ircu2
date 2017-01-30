@@ -25,7 +25,6 @@
  */
 /** @file
  * @brief Userload tracking and statistics.
- * @version $Id$
  */
 #include "config.h"
 

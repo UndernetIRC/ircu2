@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief IRC logging implementation.
- * @version $Id$
  */
 #include "config.h"
 

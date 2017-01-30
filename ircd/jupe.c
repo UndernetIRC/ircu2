@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Implementation of juped server handling functions.
- * @version $Id$
  */
 #include "config.h"
 

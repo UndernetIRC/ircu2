@@ -31,7 +31,6 @@
  */
 /** @file
  * @brief Implementation of DNS and ident lookups.
- * @version $Id$
  */
 #include "config.h"
 

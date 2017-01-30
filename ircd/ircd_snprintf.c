@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief IRC-specific printf() clone implementation.
- * @version $Id$
  */
 #include "config.h"
 

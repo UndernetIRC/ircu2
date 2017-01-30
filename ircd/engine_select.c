@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief BSD sockets select() event engine.
- * @version $Id$
  */
 #include "config.h"
 

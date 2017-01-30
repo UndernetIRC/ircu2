@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief IRC daemon memory allocation functions.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_alloc_h
 #define INCLUDED_ircd_alloc_h

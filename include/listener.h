@@ -17,7 +17,6 @@
  */
 /** @file
  * @brief Interface and declarations for handling listening sockets.
- * @version $Id$
  */
 #ifndef INCLUDED_listener_h
 #define INCLUDED_listener_h

@@ -1,6 +1,5 @@
 /** @file ircd.h
  * @brief Global data for the daemon.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_h
 #define INCLUDED_ircd_h

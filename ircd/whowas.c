@@ -68,7 +68,6 @@ struct Whowas* whowashash[WW_MAX];
 
 /** @file
  * @brief Manipulation functions for the whowas list.
- * @version \$Id$
  *
  * Since the introduction of numeric nicks (at least for upstream messages,
  * like MODE +o \<nick\>, KICK \#chan \<nick\>, KILL \<nick\> etc), there is no

@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Interface and public definitions for event loop.
- * @version $Id$
  */
 
 #ifndef INCLUDED_config_h

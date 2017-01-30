@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Channel management and maintenance.
- * @version $Id$
  */
 #ifndef INCLUDED_channel_h
 #define INCLUDED_channel_h

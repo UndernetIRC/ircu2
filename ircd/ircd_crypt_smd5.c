@@ -20,7 +20,6 @@
 /** 
  * @file
  * @brief Routines for Salted MD5 passwords
- * @version $Id$
  * 
  * ircd_crypt_smd5 is largely taken from md5_crypt.c from the Linux PAM 
  * source code.  it's been modified to fit in with ircu and some of the 

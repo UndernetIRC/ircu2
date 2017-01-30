@@ -1,6 +1,5 @@
 /** @file opercmds.h
  * @brief Declarations of AsLL ping helper commands.
- * @version $Id$
  */
 #ifndef INCLUDED_opercmds_h
 #define INCLUDED_opercmds_h

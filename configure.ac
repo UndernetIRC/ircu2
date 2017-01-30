@@ -13,8 +13,6 @@ dnl
 dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-dnl
-dnl @(#)$Id$
 
 AC_INIT([Undernet IRC Daemon],[10.13.alpha.0],[bugs@undernet.org],[ircu2])
 AC_PREREQ([2.69])

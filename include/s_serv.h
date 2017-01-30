@@ -1,6 +1,5 @@
 /** @file s_serv.h
  * @brief Miscellaneous server support functions.
- * @version $Id$
  */
 #ifndef INCLUDED_s_serv_h
 #define INCLUDED_s_serv_h

@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of generic function registration.
- * @version $Id$
  */
 #include "config.h"
 

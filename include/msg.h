@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Command and token declarations and structures.
- * @version $Id$
  */
 #ifndef INCLUDED_msg_h
 #define INCLUDED_msg_h

@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief UDP ping implementation.
- * @version $Id$
  */
 #include "config.h"
 

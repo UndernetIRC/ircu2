@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Declarations and interfaces for handling connection classes.
- * @version $Id$
  */
 #ifndef INCLUDED_class_h
 #define INCLUDED_class_h

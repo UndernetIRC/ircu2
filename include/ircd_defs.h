@@ -27,7 +27,6 @@
  * NOTE: Changing any of these definitions (except for the
  * target-related ones at the bottom) is equivalent to a protocol
  * revision. Every server on a given network must use the same values.
- * @version $Id$
  */
 
 /** Maximum length allowed for a nickname.

@@ -4,8 +4,6 @@
 #
 # Creates a 'structs.html', containing HTML Table definitions
 # for all structures encountered in *.h in the current directory.
-#
-# $Id: autodoc.py,v 1.1 2000-03-18 05:20:30 bleep Exp $
 
 import string, fnmatch, os
 

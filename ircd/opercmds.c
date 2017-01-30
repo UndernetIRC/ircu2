@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Implementation of AsLL ping helper commands.
- * @version $Id$
  */
 #include "config.h"
 

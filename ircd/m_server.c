@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Handlers for the SERVER command.
- * @version $Id$
  */
 
 #include "config.h"

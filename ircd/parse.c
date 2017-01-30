@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Parse input from IRC clients and other servers.
- * @version $Id$
  */
 #include "config.h"
 

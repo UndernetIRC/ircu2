@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Miscellaneous user-related helper functions.
- * @version $Id$
  */
 #include "config.h"
 

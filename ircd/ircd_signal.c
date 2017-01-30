@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Signal handlers for ircu.
- * @version $Id$
  */
 #include "config.h"
 

@@ -1,7 +1,5 @@
 /*
  * version.h
- *
- * $Id$
  */
 #ifndef INCLUDED_version_h
 #define INCLUDED_version_h

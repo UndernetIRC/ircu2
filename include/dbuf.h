@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Interfaces and declarations for dealing with data buffers.
- * @version $Id$
  */
 #ifndef INCLUDED_dbuf_h
 #define INCLUDED_dbuf_h

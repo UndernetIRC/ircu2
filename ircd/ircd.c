@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Entry point and other initialization functions for the daemon.
- * @version $Id$
  */
 #include "config.h"
 

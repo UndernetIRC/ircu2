@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Implementation of Gline manipulation functions.
- * @version $Id$
  */
 #include "config.h"
 

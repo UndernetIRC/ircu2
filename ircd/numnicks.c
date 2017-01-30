@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of numeric nickname operations.
- * @version $Id$
  */
 #include "config.h"
 

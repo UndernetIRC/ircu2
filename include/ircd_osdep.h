@@ -1,6 +1,5 @@
 /** @file ircd_osdep.h
  * @brief Public definitions and APIs for OS-dependent operations.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_osdep_h
 #define INCLUDED_ircd_osdep_h

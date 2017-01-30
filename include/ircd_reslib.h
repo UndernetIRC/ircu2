@@ -4,7 +4,6 @@
  */
 /** @file
  * @brief Interface from ircd resolver to its support functions.
- * @version $Id$
  */
 #ifndef INCLUDED_ircdreslib_h
 #define INCLUDED_ircdreslib_h

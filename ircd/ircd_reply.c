@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Implementation of functions to send common replies to users.
- * @version $Id$
  */
 #include "config.h"
 

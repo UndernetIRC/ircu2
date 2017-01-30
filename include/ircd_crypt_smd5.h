@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Declarations for salted MD5 password crypting.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_crypt_smd5_h
 #define INCLUDED_ircd_crypt_smd5_h

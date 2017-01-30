@@ -15,9 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id$
-*/
+ */
 #include "config.h"
 #include <unistd.h>
 #include <ctype.h>
@@ -188,9 +186,8 @@ char* str;
 FILE* file;
 MD5_CTX context;
 int len;
-unsigned char buffer[1024], digest[16], vstr[32];
+unsigned char buffer[1024], digest[16];
 
-vstr[0] = '\0';
  str = tmp + strlen(tmp);
  while (str[-1] == '\r' || str[-1] == '\n') *--str = '\0';
  if (NULL == (file = fopen(tmp, "r")))
@@ -202,15 +199,6 @@ vstr[0] = '\0';
  while ((fgets((char*)buffer, sizeof(buffer), file)) != NULL)
  {
   MD5Update(&context, buffer, strlen((char*)buffer));
-  str = strstr((char*)buffer, "$Id: ");
-  if (str != NULL)
-  {
-   for (str += 5; !isspace(*str); ++str) {}
-   while (isspace(*++str)) {}
-   for (len = 0; !isspace(str[len]); ++len) vstr[len] = str[len];
-   vstr[len] = '\0';
-   break;
-  }
  }
  while ((len = fread (buffer, 1, sizeof(buffer), file)))
   MD5Update(&context, buffer, len);
@@ -221,7 +209,7 @@ vstr[0] = '\0';
  printf("    \"[ %s: ", str ? (str + 1) : tmp);
  for (len = 0; len < 16; len++)
   printf ("%02x", digest[len]);
- printf(" %s ]\",\n", vstr);
+ printf(" ]\",\n");
 }
 
 /* dump the loaded mechs list */

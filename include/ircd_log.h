@@ -17,7 +17,6 @@
  */
 /** @file
  * @brief IRC logging interface.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_log_h
 #define INCLUDED_ircd_log_h

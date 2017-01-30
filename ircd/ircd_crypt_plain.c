@@ -20,7 +20,6 @@
 /**
  * @file
  * @brief Routines for PLAIN passwords.
- * @version $Id$
  * 
  * PLAIN text encryption.  Oxymoron and a half that.
  */

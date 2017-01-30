@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Userload tracking and statistics.
- * @version $Id$
  */
 #ifndef INCLUDED_userload_h
 #define INCLUDED_userload_h

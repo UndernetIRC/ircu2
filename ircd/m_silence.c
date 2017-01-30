@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Handlers for SILENCE command.
- * @version $Id$
  */
 
 #include "config.h"

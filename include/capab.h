@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Interface and public definitions for capabilities extension
- * @version $Id$
  */
 
 #ifndef INCLUDED_flagset_h

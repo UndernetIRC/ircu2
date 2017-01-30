@@ -17,7 +17,6 @@
  */
 /** @file
  * @brief 32-bit pseudo-random number generator implementation.
- * @version $Id$
  */
 #include "config.h"
 

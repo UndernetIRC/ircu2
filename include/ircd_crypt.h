@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Core password encryption and hashing APIs.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_crypt_h
 #define INCLUDED_ircd_crypt_h

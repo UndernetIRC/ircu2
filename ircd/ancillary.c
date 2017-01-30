@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of generic ancillary data.
- * @version $Id$
  */
 #include "config.h"
 

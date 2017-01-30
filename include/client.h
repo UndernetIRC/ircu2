@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Structures and functions for handling local clients.
- * @version $Id$
  */
 #ifndef INCLUDED_client_h
 #define INCLUDED_client_h

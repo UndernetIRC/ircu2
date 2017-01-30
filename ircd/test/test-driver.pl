@@ -4,7 +4,6 @@
 # collection isn't broken.  POE is sometimes too clever for our good
 # in finding references to sessions, and keeps running even after we
 # want to stop.
-# $Id$
 
 # This interprets a simple scripting language.  Lines starting with a
 # hash mark (#, aka octothorpe, pound sign, etc) are ignored.  The

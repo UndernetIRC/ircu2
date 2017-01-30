@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Error handling support.
- * @version $Id$
  */
 #include "config.h"
 

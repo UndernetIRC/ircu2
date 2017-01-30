@@ -15,7 +15,6 @@
  */
 /** @file
  * @brief MD5 implementation for ircu.
- * @version $Id$
  */
 #ifndef ircd_md5_h
 #define ircd_md5_h

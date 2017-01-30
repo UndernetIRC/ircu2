@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Structures and functions for handling generic function registration.
- * @version $Id$
  */
 #ifndef INCLUDED_register_h
 #define INCLUDED_register_h

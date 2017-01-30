@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Hash table management APIs.
- * @version $Id$
  */
 
 #ifndef INCLUDED_hash_h

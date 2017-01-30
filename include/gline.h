@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Structures and APIs for G-line manipulation.
- * @version $Id$
  */
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>

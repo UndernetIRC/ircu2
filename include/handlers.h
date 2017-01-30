@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Declarations for all protocol message handler functions.
- * @version $Id$
  */
 #ifndef INCLUDED_handlers_h
 #define INCLUDED_handlers_h

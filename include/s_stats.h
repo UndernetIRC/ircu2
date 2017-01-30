@@ -21,7 +21,6 @@
  */
 /** @file
  * @brief Report configuration lines and other statistics from this server.
- * @version $Id$
  */
 
 #ifndef INCLUDED_s_stats_h

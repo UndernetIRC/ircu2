@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Declarations of numeric replies and supporting functions.
- * @version $Id$
  */
 #ifndef INCLUDED_numeric_h
 #define INCLUDED_numeric_h

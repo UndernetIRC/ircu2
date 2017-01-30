@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Structures and functions for handling watches.
- * @version $Id$
  */
 #ifndef INCLUDED_watch_h
 #define INCLUDED_watch_h

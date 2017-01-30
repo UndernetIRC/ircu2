@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Send messages to certain targets.
- * @version $Id$
  */
 #include "config.h"
 

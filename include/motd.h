@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Message-of-the-day manipulation interface and declarations.
- * @version $Id$
  */
 
 #ifndef INCLUDED_time_h

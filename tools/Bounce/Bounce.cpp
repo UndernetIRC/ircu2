@@ -26,9 +26,6 @@
  * then forward any data recived on those ports, to another host/port combo.
  * Each listening port can bounce to a different host/port defined in the
  * config file. --Gte 
- *
- * $Id: Bounce.cpp,v 1.3 2002-03-07 22:52:57 ghostwolf Exp $ 
- *
  */
 
 #include "Bounce.h"

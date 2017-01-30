@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of OS-dependent operations.
- * @version $Id$
  */
 #include "config.h"
 

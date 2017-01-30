@@ -17,7 +17,6 @@
  */
 /** @file
  * @brief Interface for DNS and ident lookups.
- * @version $Id$
  */
 #ifndef INCLUDED_s_auth_h
 #define INCLUDED_s_auth_h

@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of functions for handling local clients.
- * @version $Id$
  */
 #include "config.h"
 

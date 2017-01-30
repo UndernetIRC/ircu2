@@ -1,6 +1,5 @@
 /** @file packet.h
  * @brief Declarations for packet handling functions.
- * @version $Id$
  */
 #ifndef INCLUDED_packet_h
 #define INCLUDED_packet_h

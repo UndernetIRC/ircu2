@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Miscellaneous server support functions.
- * @version $Id$
  */
 #include "config.h"
 

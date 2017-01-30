@@ -22,7 +22,6 @@
  */
 /** @file
  * @brief Report operators' privileges to others
- * @version $Id$
  */
 
 #include "config.h"

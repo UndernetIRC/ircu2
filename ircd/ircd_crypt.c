@@ -21,7 +21,6 @@
 /**
  * @file
  * @brief Core password encryption routines.
- * @version $Id$
  * 
  * This is a new look crypto API for ircu, it can handle different
  * password formats by the grace of magic tokens at the beginning of the 

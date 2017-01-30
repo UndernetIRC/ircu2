@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Send a numeric message to a client.
- * @version $Id$
  */
 #include "config.h"
 

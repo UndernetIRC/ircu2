@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Debug support for the ircd.
- * @version $Id$
  */
 #include "config.h"
 

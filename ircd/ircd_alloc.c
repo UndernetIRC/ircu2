@@ -21,7 +21,6 @@
  */
 /** @file
  * @brief IRC daemon memory allocation functions.
- * @version $Id$
  */
 #include "config.h"
 

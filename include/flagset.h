@@ -17,7 +17,6 @@
  */
 /** @file
  * @brief Structures and macros for handling sets of boolean flags.
- * @version $Id$
  */
 
 #ifndef INCLUDED_flagset_h

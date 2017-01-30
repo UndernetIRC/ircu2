@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Message handler types and definitions.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_handler_h
 #define INCLUDED_ircd_handler_h

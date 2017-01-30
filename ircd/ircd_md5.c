@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief MD5 implementation for ircu.
- * @version $Id$
  */
 
 #include <string.h>

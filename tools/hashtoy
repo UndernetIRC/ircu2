@@ -10,8 +10,6 @@
 #          details of the encoding.
 #
 # --Liandrin
-#
-# $Id: hashtoy,v 1.2 2002-03-07 22:52:57 ghostwolf Exp $
 
 @convert2n = (
 	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,

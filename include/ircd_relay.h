@@ -24,7 +24,6 @@
  */
 /** @file
  * @brief Interface to functions for relaying messages.
- * @version $Id$
  */
 
 struct Client;

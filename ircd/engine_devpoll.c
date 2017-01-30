@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Solaris /dev/poll event engine.
- * @version $Id$
  */
 #include "config.h"
 

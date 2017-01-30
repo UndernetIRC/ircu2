@@ -19,7 +19,6 @@
 
 /** @file
  * @brief Character attribute definitions and arrays.
- * @version $Id$
  *
  * This character set code is adapted from Nemesi's Tools Library,
  * which gives us the prefix NTL_ on these macros.

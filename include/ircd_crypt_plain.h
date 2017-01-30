@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Declarations for plaintext password "crypting".
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_crypt_plain_h
 #define INCLUDED_ircd_crypt_plain_h

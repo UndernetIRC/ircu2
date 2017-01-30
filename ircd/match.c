@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Functions to match strings against IRC mask strings.
- * @version $Id$
  */
 #include "config.h"
 

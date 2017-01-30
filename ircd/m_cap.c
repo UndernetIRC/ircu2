@@ -21,7 +21,6 @@
  */
 /** @file
  * @brief Capability negotiation commands
- * @version $Id$
  */
 
 #include "config.h"

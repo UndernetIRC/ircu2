@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Channel management and maintenance
- * @version $Id$
  */
 #include "config.h"
 

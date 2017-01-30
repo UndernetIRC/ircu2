@@ -19,7 +19,6 @@
  */
 /** @file
  * @brief Interfaces for sending common replies to users.
- * @version $Id$
  */
 #ifndef INCLUDED_ircd_reply_h
 #define INCLUDED_ircd_reply_h

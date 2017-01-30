@@ -1,6 +1,5 @@
 /** @file send.h
  * @brief Send messages to certain targets.
- * @version $Id$
  */
 #ifndef INCLUDED_send_h
 #define INCLUDED_send_h

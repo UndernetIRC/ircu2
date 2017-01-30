@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief ANSI FILE* clone API implementation.
- * @version $Id$
  */
 #include "config.h"
 

@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Structure definitions for users and servers.
- * @version $Id$
  */
 #ifndef INCLUDED_struct_h
 #define INCLUDED_struct_h

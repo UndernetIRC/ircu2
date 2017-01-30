@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Code to count users connected from particular IP addresses.
- * @version $Id$
  */
 #include "config.h"
 

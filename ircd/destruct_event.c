@@ -18,7 +18,6 @@
  */
 /** @file
  * @brief Implementation of timed channel destruction events.
- * @version $Id$
  */
 #include "config.h"
 

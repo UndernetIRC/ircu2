@@ -1,6 +1,5 @@
 /** @file fileio.h
  * @brief ANSI FILE* clone API declarations.
- * @version $Id$
  */
 #ifndef INCLUDED_fileio_h
 #define INCLUDED_fileio_h

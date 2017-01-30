@@ -99,7 +99,6 @@
 
 /** @file
  * @brief DNS resolver library functions.
- * @version $Id$
  */
 
 /** Array of nameserver addresses. */

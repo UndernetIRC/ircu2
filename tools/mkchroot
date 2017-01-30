@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-# $Id: mkchroot,v 1.1 2001-06-21 15:48:16 kev Exp $
 
 if test $# -lt 2; then
     echo "Usage: $0 <destdir> <executable> [<executable> [...]]" >&2

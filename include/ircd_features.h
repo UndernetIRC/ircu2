@@ -20,7 +20,6 @@
  */
 /** @file
  * @brief Public interfaces and declarations for dealing with configurable features.
- * @version $Id$
  */
 
 struct Client;

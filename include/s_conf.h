@@ -1,6 +1,5 @@
 /** @file s_conf.h
  * @brief ircd configuration file API.
- * @version $Id$
  */
 #ifndef INCLUDED_s_conf_h
 #define INCLUDED_s_conf_h

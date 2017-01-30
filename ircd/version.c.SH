@@ -1,7 +1,5 @@
 #! /bin/sh
 
-# $Id$
-
 echo "Extracting version.c ..."
 
 srcdir=$1
