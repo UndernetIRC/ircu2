@@ -25,9 +25,5 @@ EXTRA_DIST = doc patches tools include Doxyfile INSTALL_FR ircd-patch \
 man_MANS = doc/ircd.8
 sysconf_DATA = doc/example.conf
 
-# Make sure to filter out those CVS directories
-dist-hook:
-	find $(distdir) -name CVS -print -prune | xargs rm -rf
-
 include ircd/subdir.am
 include ircd/test/subdir.am

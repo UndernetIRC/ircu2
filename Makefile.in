@@ -1361,9 +1361,6 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-	$(MAKE) $(AM_MAKEFLAGS) \
-	  top_distdir="$(top_distdir)" distdir="$(distdir)" \
-	  dist-hook
 	-test -n "$(am__skip_mode_fix)" \
 	|| find "$(distdir)" -type d ! -perm -755 \
 		-exec chmod u+rwx,go+rx {} \; -o \
@@ -1625,9 +1622,9 @@ uninstall-man: uninstall-man8
 .PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am clean \
 	clean-binPROGRAMS clean-checkPROGRAMS clean-cscope \
 	clean-generic clean-noinstPROGRAMS cscope cscopelist-am ctags \
-	ctags-am dist dist-all dist-bzip2 dist-gzip dist-hook \
-	dist-lzip dist-shar dist-tarZ dist-xz dist-zip distcheck \
-	distclean distclean-compile distclean-generic distclean-hdr \
+	ctags-am dist dist-all dist-bzip2 dist-gzip dist-lzip \
+	dist-shar dist-tarZ dist-xz dist-zip distcheck distclean \
+	distclean-compile distclean-generic distclean-hdr \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-binPROGRAMS install-data install-data-am install-dvi \
@@ -1643,10 +1640,6 @@ uninstall-man: uninstall-man8
 
 .PRECIOUS: Makefile
 
-
-# Make sure to filter out those CVS directories
-dist-hook:
-	find $(distdir) -name CVS -print -prune | xargs rm -rf
 
 ircd/ircd_string.$(OBJEXT): ircd/ircd_string.c chattr.tab.c
 chattr.tab.c: ircd/table_gen
