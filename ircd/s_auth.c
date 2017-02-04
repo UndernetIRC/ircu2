@@ -2142,7 +2142,7 @@ static int iauth_cmd_usermode(struct IAuth *iauth, struct Client *cli,
 {
   if (params[0][0] == '+')
   {
-    set_user_mode(cli, cli, parc + 2, params - 2, ALLOWMODES_ANY);
+    set_user_mode(cli, cli, parc + 2, params - 2);
   }
   return 0;
 }

@@ -365,7 +365,7 @@ int register_user(struct Client *cptr, struct Client *sptr)
     if (tmpstr) {
       char *umodev[] = { NULL, NULL, NULL, NULL };
       umodev[2] = tmpstr;
-      set_user_mode(cptr, sptr, 3, umodev, ALLOWMODES_ANY);
+      set_user_mode(cptr, sptr, 3, umodev);
     }
 
     SetUser(sptr);
@@ -405,7 +405,7 @@ int register_user(struct Client *cptr, struct Client *sptr)
     if (tmpstr) {
       char *umodev[] = { NULL, NULL, NULL, NULL };
       umodev[2] = tmpstr;
-      set_user_mode(cptr, sptr, 1, umodev, ALLOWMODES_ANY);
+      set_user_mode(cptr, sptr, 1, umodev);
     }
   }
   else {
@@ -570,7 +570,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 
     if (parc > 7 && *parv[6] == '+') {
       /* (parc-4) -3 for the ip, numeric nick, realname */
-      set_user_mode(cptr, new_client, parc-7, parv+4, ALLOWMODES_ANY);
+      set_user_mode(cptr, new_client, parc-7, parv+4);
     }
 
     return register_user(cptr, new_client);
@@ -976,12 +976,10 @@ int is_snomask(char *word)
  * @param[in] sptr Source (originator) of the mode change.
  * @param[in] parc Number of parameters in \a parv.
  * @param[in] parv Parameters to MODE.
- * @param[in] allow_modes ALLOWMODES_ANY for any mode, ALLOWMODES_DEFAULT for 
- *                        only permitting legitimate default user modes.
  * @return Zero.
  */
 int set_user_mode(struct Client *cptr, struct Client *sptr, int parc, 
-		char *parv[], int allow_modes)
+		char *parv[])
 {
   char** p;
   char*  m;
@@ -1191,7 +1189,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
       }
       ircd_strncpy(cli_user(sptr)->account, account, len);
   }
-  if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding && allow_modes != ALLOWMODES_DEFAULT)
+  if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding)
     hide_hostmask(sptr, FLAG_HIDDENHOST);
 
   if (IsRegistered(sptr)) {

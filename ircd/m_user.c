@@ -97,9 +97,9 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * ... well, something that is probably best not said.
      */
     if (mode_request & 8)
-      set_user_mode(cptr, sptr, 3, invisible, ALLOWMODES_ANY);
+      set_user_mode(cptr, sptr, 3, invisible);
     if (mode_request & 4)
-      set_user_mode(cptr, sptr, 3, wallops, ALLOWMODES_ANY);
+      set_user_mode(cptr, sptr, 3, wallops);
   }
   else if (parv[2][0] == '+')
   {
@@ -108,7 +108,7 @@ int m_user(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     user_modes[1] = NULL;
     user_modes[2] = parv[2];
     user_modes[3] = NULL;
-    set_user_mode(cptr, sptr, 3, user_modes, ALLOWMODES_ANY);
+    set_user_mode(cptr, sptr, 3, user_modes);
   }
 
   info     = (EmptyString(parv[parc - 1])) ? "No Info" : parv[parc - 1];

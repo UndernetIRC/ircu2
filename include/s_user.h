@@ -49,10 +49,6 @@ struct Flags;
 #define MATCH_SERVER  1 /**< flag for relay_masked_message (etc) to indicate the mask matches a server name */
 #define MATCH_HOST    2 /**< flag for relay_masked_message (etc) to indicate the mask matches host name */
 
-/* used for parsing user modes */
-#define ALLOWMODES_ANY	0 /**< Allow any user mode */
-#define ALLOWMODES_DEFAULT  1 /**< Only allow the subset of modes that are legit defaults */
-
 /** Formatter function for send_user_info().
  * @param who Client being displayed.
  * @param sptr Client requesting information.
@@ -80,7 +76,7 @@ extern void send_user_info(struct Client* to, char* names, int rpl,
 
 extern int hide_hostmask(struct Client *cptr, unsigned int flags);
 extern int set_user_mode(struct Client *cptr, struct Client *sptr,
-                         int parc, char *parv[], int allow_modes);
+                         int parc, char *parv[]);
 extern int is_silenced(struct Client *sptr, struct Client *acptr);
 extern int hunt_server_cmd(struct Client *from, const char *cmd,
 			   const char *tok, struct Client *one,
