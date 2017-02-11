@@ -14,3 +14,4 @@ chattr.tab.c
 lex.yy.c
 y.tab.c
 y.tab.h
+.dirstamp
