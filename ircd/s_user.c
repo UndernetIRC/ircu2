@@ -1169,7 +1169,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
       prop = 1;
     }
     if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP))
-        && !IsOper(sptr)) {
+        && !IsAnOper(sptr)) {
       if (FlagHas(&setflags, FLAG_OPER)) {
         /* user no longer (global) oper */
         assert(UserStats.opers > 0);
