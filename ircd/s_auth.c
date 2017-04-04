@@ -973,12 +973,19 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   } else if (!irc_in_addr_valid(addr)
              || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
                  && irc_in_addr_cmp(&auth->original, addr))) {
-    /* IP for hostname did not match client's IP. */
-    sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-                         cli_sock_ip(auth->client), h_name,
-                         ircd_ntoa(addr));
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client)) {
+      /* IP for hostname did not match client's IP. */
+      sendto_opmask_butone(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
+                           cli_sock_ip(auth->client), h_name,
+                           ircd_ntoa(addr));
       sendheader(auth->client, REPORT_IP_MISMATCH);
+    } else {
+      /* Mismatch for a server, do not send to opers. */
+      log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE,
+                "IP# Mismatch: %s != %s[%s]",
+                cli_sock_ip(auth->client), h_name,
+                ircd_ntoa(addr));
+    }
     if (feature_bool(FEAT_KILL_IPMISMATCH)) {
       exit_client(auth->client, auth->client, &me, "IP mismatch");
       return;
