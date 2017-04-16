@@ -640,7 +640,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   ret = server_estab(cptr, aconf);
 
   if (feature_bool(FEAT_RELIABLE_CLOCK) &&
-      abs(cli_serv(cptr)->timestamp - recv_time) > 30) {
+      labs(cli_serv(cptr)->timestamp - recv_time) > 30) {
     sendto_opmask_butone(0, SNO_OLDSNO, "Connected to a net with a "
 			 "timestamp-clock difference of %Td seconds! "
 			 "Used SETTIME to correct this.",
