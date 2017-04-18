@@ -46,7 +46,7 @@ struct StatDesc
   char         sd_c;           /**< stats character (or '\\0') */
   char        *sd_name;        /**< full name for stats */
   unsigned int sd_flags;       /**< flags to control the stats */
-  enum Feature sd_control;     /**< feature controlling stats */
+  int         *sd_control;     /**< feature controlling stats */
   StatFunc     sd_func;        /**< function to dispatch to */
   int          sd_funcdata;    /**< extra data for the function */
   char        *sd_desc;        /**< descriptive text */

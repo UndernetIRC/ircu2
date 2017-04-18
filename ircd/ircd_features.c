@@ -52,6 +52,13 @@
 
 struct Client his;
 
+#define F_I(NAME, FLAGS, DEFAULT, NOTIFY) int FEAT_ ## NAME = DEFAULT;
+#define F_U(NAME, FLAGS, DEFAULT, NOTIFY) unsigned int FEAT_ ## NAME = DEFAULT;
+#define F_B(NAME, FLAGS, DEFAULT, NOTIFY) int FEAT_ ## NAME = DEFAULT;
+#define F_S(NAME, FLAGS, DEFAULT, NOTIFY) const char *FEAT_ ## NAME = DEFAULT;
+#define F_A(NAME, REAL_NAME)
+#include "ircd_features.inc"
+
 /** List of log output types that can be set */
 static struct LogTypes {
   char *type; /**< Settable name. */
@@ -298,7 +305,6 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 #define FEAT_BOOL   0x0002	/**< set if entry contains a boolean value */
 #define FEAT_STR    0x0003	/**< set if entry contains a string value */
 #define FEAT_ALIAS  0x0004	/**< set if entry is alias for another entry */
-#define FEAT_DEP    0x0005	/**< set if entry is deprecated feature */
 #define FEAT_UINT   0x0006	/**< set if entry contains an unsigned value */
 #define FEAT_MASK   0x000f	/**< possible value types */
 
@@ -317,40 +323,35 @@ typedef void (*feat_report_call)(struct Client* sptr, int marked);
 
 /** Declare a feature with custom behavior. */
 #define F_N(type, flags, set, reset, get, notify, unmark, mark, report)	      \
-  { FEAT_ ## type, #type, FEAT_NONE | (flags), 0, 0, 0, 0,		      \
-    (set), (reset), (get), (notify), (unmark), (mark), (report) }
+  { NULL, #type, FEAT_NONE | (flags), 0, 0, 				      \
+    (set), (reset), (get), (notify), (unmark), (mark), (report) },
 /** Declare a feature that takes integer values. */
 #define F_I(type, flags, v_int, notify)					      \
-  { FEAT_ ## type, #type, FEAT_INT | (flags), 0, (v_int), 0, 0,		      \
-    0, 0, 0, (notify), 0, 0, 0 }
+  { &FEAT_ ## type, #type, FEAT_INT | (flags), (v_int), 0,	      \
+    0, 0, 0, (notify), 0, 0, 0 },
 /** Declare a feature that takes unsigned integer values. */
 #define F_U(type, flags, v_uint, notify)				      \
-  { FEAT_ ## type, #type, FEAT_UINT | (flags), 0, (v_uint), 0, 0,	      \
-    0, 0, 0, (notify), 0, 0, 0 }
+  { &FEAT_ ## type, #type, FEAT_UINT | (flags), (v_uint), 0,	      \
+    0, 0, 0, (notify), 0, 0, 0 },
 /** Declare a feature that takes boolean values. */
 #define F_B(type, flags, v_int, notify)					      \
-  { FEAT_ ## type, #type, FEAT_BOOL | (flags), 0, (v_int), 0, 0,	      \
-    0, 0, 0, (notify), 0, 0, 0 }
+  { &FEAT_ ## type, #type, FEAT_BOOL | (flags), (v_int), 0,	      \
+    0, 0, 0, (notify), 0, 0, 0 },
 /** Declare a feature that takes string values. */
 #define F_S(type, flags, v_str, notify)					      \
-  { FEAT_ ## type, #type, FEAT_STR | (flags), 0, 0, 0, (v_str),		      \
-    0, 0, 0, (notify), 0, 0, 0 }
+  { &FEAT_ ## type, #type, FEAT_STR | (flags), 0, (v_str),	      \
+    0, 0, 0, (notify), 0, 0, 0 },
 /** Declare a feature as an alias for another feature. */
 #define F_A(type, alias)						      \
-  { FEAT_ ## type, #type, FEAT_ALIAS, 0, FEAT_ ## alias, 0, 0,		      \
-    0, 0, 0, 0, 0, 0, 0 }
-/** Declare a feature as deprecated. */
-#define F_D(type)							      \
-  { FEAT_ ## type, #type, FEAT_DEP, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+  { NULL, #type, FEAT_ALIAS, 0, #alias,				      \
+    0, 0, 0, 0, 0, 0, 0 },
 
 /** Table of feature descriptions. */
 static struct FeatureDesc {
-  enum Feature	   feat;    /**< feature identifier */
-  char*		   type;    /**< string describing type */
+  void*            var;     /**< pointer to variable holding the value */
+  char*		   type;    /**< unprefixed name of the feature */
   unsigned int     flags;   /**< flags for feature */
-  int		   v_int;   /**< integer value */
   int		   def_int; /**< default value */
-  char*		   v_str;   /**< string value */
   char*		   def_str; /**< default value */
   feat_set_call	   set;	    /**< set feature values */
   feat_set_call	   reset;   /**< reset feature values to defaults */
@@ -362,180 +363,28 @@ static struct FeatureDesc {
 } features[] = {
   /* Misc. features */
   F_N(LOG, FEAT_MYOPER, feature_log_set, feature_log_reset, feature_log_get,
-      0, log_feature_unmark, log_feature_mark, log_feature_report),
-  F_S(DOMAINNAME, 0, DOMAINNAME, 0),
-  F_B(RELIABLE_CLOCK, 0, 0, 0),
-  F_U(BUFFERPOOL, 0, 27000000, 0),
-  F_B(HAS_FERGUSON_FLUSHER, 0, 0, 0),
-  F_U(CLIENT_FLOOD, 0, 1024, 0),
-  F_I(SERVER_PORT, FEAT_OPER, 4400, 0),
-  F_B(NODEFAULTMOTD, 0, 1, 0),
-  F_S(MOTD_BANNER, FEAT_NULL, 0, 0),
-  F_S(PROVIDER, FEAT_NULL, 0, 0),
-  F_B(KILL_IPMISMATCH, FEAT_OPER, 0, 0),
-  F_B(IDLE_FROM_MSG, 0, 1, 0),
-  F_B(HUB, 0, 0, feature_notify_hub),
-  F_B(WALLOPS_OPER_ONLY, 0, 0, 0),
-  F_B(NODNS, 0, 0, 0),
-  F_B(NOIDENT, 0, 0, 0),
-  F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0),
-  F_S(DEFAULT_LIST_PARAM, FEAT_NULL, 0, list_set_default),
-  F_U(NICKNAMEHISTORYLENGTH, 0, 800, whowas_realloc),
-  F_B(HOST_HIDING, 0, 1, 0),
-  F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
-  F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
-  F_B(CONNEXIT_NOTICES, 0, 0, 0),
-  F_B(OPLEVELS, 0, 1, set_isupport_chanmodes),
-  F_B(ZANNELS, 0, 1, 0),
-  F_B(LOCAL_CHANNELS, 0, 1, set_isupport_chantypes),
-  F_B(TOPIC_BURST, 0, 0, 0),
-  F_B(USER_GLIST, 0, 1, 0),
-  F_B(DISABLE_GLINES, 0, 0, 0),
-
-  /* features that probably should not be touched */
-  F_I(KILLCHASETIMELIMIT, 0, 30, 0),
-  F_U(MAXCHANNELSPERUSER, 0, 10, set_isupport_maxchannels),
-  F_U(NICKLEN, 0, 12, set_isupport_nicklen),
-  F_I(AVBANLEN, 0, 40, 0),
-  F_I(MAXBANS, 0, 100, set_isupport_maxbans),
-  F_I(MAXSILES, 0, 25, set_isupport_maxsiles),
-  F_I(HANGONGOODLINK, 0, 300, 0),
-  F_I(HANGONRETRYDELAY, 0, 10, 0),
-  F_I(CONNECTTIMEOUT, 0, 90, 0),
-  F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
-  F_I(PINGFREQUENCY, 0, 120, init_class),
-  F_I(CONNECTFREQUENCY, 0, 600, init_class),
-  F_U(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
-  F_I(GLINEMAXUSERCOUNT, 0, 20, 0),
-  F_I(SOCKSENDBUF, 0, SERVER_TCP_WINDOW, 0),
-  F_I(SOCKRECVBUF, 0, SERVER_TCP_WINDOW, 0),
-  F_I(IPCHECK_CLONE_LIMIT, 0, 4, 0),
-  F_I(IPCHECK_CLONE_PERIOD, 0, 40, 0),
-  F_I(IPCHECK_48_CLONE_LIMIT, 0, 50, 0),
-  F_I(IPCHECK_48_CLONE_PERIOD, 0, 10, 0),
-  F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
-  F_U(CHANNELLEN, 0, 200, set_isupport_channellen),
-
-  /* Some misc. default paths */
-  F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init_local),
-  F_S(RPATH, FEAT_CASE | FEAT_MYOPER, "remote.motd", motd_init_remote),
-  F_S(PPATH, FEAT_CASE | FEAT_MYOPER | FEAT_READ, "ircd.pid", 0),
-
-  /* Networking features */
-  F_I(TOS_SERVER, 0, 0x08, 0),
-  F_I(TOS_CLIENT, 0, 0x08, 0),
-  F_I(POLLS_PER_LOOP, 0, 200, 0),
-  F_I(IRCD_RES_RETRIES, 0, 2, 0),
-  F_I(IRCD_RES_TIMEOUT, 0, 4, 0),
-  F_I(AUTH_TIMEOUT, 0, 9, 0),
-  F_B(ANNOUNCE_INVITES, 0, 0, 0),
-
-  /* features that affect all operators */
-  F_B(CONFIG_OPERCMDS, 0, 0, 0),
-
-  /* HEAD_IN_SAND Features */
-  F_B(HIS_SNOTICES, 0, 1, 0),
-  F_B(HIS_SNOTICES_OPER_ONLY, 0, 1, 0),
-  F_B(HIS_DEBUG_OPER_ONLY, 0, 1, 0),
-  F_B(HIS_WALLOPS, 0, 1, 0),
-  F_B(HIS_MAP, 0, 1, 0),
-  F_B(HIS_LINKS, 0, 1, 0),
-  F_B(HIS_TRACE, 0, 1, 0),
-  F_A(HIS_STATS_a, HIS_STATS_NAMESERVERS),
-  F_B(HIS_STATS_NAMESERVERS, 0, 1, 0),
-  F_A(HIS_STATS_c, HIS_STATS_CONNECT),
-  F_B(HIS_STATS_CONNECT, 0, 1, 0),
-  F_A(HIS_STATS_d, HIS_STATS_CRULES),
-  F_B(HIS_STATS_CRULES, 0, 1, 0),
-  F_A(HIS_STATS_e, HIS_STATS_ENGINE),
-  F_B(HIS_STATS_ENGINE, 0, 1, 0),
-  F_A(HIS_STATS_f, HIS_STATS_FEATURES),
-  F_B(HIS_STATS_FEATURES, 0, 1, 0),
-  F_A(HIS_STATS_F, HIS_STATS_FEATURESALL),
-  F_B(HIS_STATS_FEATURESALL, 0, 1, 0),
-  F_A(HIS_STATS_g, HIS_STATS_GLINES),
-  F_B(HIS_STATS_GLINES, 0, 1, 0),
-  F_A(HIS_STATS_i, HIS_STATS_ACCESS),
-  F_B(HIS_STATS_ACCESS, 0, 1, 0),
-  F_A(HIS_STATS_j, HIS_STATS_HISTOGRAM),
-  F_B(HIS_STATS_HISTOGRAM, 0, 1, 0),
-  F_A(HIS_STATS_J, HIS_STATS_JUPES),
-  F_B(HIS_STATS_JUPES, 0, 1, 0),
-  F_A(HIS_STATS_k, HIS_STATS_KLINES),
-  F_B(HIS_STATS_KLINES, 0, 1, 0),
-  F_A(HIS_STATS_l, HIS_STATS_LINKS),
-  F_B(HIS_STATS_LINKS, 0, 1, 0),
-  F_A(HIS_STATS_L, HIS_STATS_MODULES),
-  F_B(HIS_STATS_MODULES, 0, 1, 0),
-  F_A(HIS_STATS_m, HIS_STATS_COMMANDS),
-  F_B(HIS_STATS_COMMANDS, 0, 1, 0),
-  F_A(HIS_STATS_o, HIS_STATS_OPERATORS),
-  F_B(HIS_STATS_OPERATORS, 0, 1, 0),
-  F_A(HIS_STATS_p, HIS_STATS_PORTS),
-  F_B(HIS_STATS_PORTS, 0, 1, 0),
-  F_A(HIS_STATS_q, HIS_STATS_QUARANTINES),
-  F_B(HIS_STATS_QUARANTINES, 0, 1, 0),
-  F_A(HIS_STATS_R, HIS_STATS_MAPPINGS),
-  F_B(HIS_STATS_MAPPINGS, 0, 1, 0),
-  F_A(HIS_STATS_r, HIS_STATS_USAGE),
-  F_B(HIS_STATS_USAGE, 0, 1, 0),
-  F_A(HIS_STATS_t, HIS_STATS_LOCALS),
-  F_B(HIS_STATS_LOCALS, 0, 1, 0),
-  F_A(HIS_STATS_T, HIS_STATS_MOTDS),
-  F_B(HIS_STATS_MOTDS, 0, 1, 0),
-  F_A(HIS_STATS_u, HIS_STATS_UPTIME),
-  F_B(HIS_STATS_UPTIME, 0, 0, 0),
-  F_A(HIS_STATS_U, HIS_STATS_UWORLD),
-  F_B(HIS_STATS_UWORLD, 0, 1, 0),
-  F_A(HIS_STATS_v, HIS_STATS_VSERVERS),
-  F_B(HIS_STATS_VSERVERS, 0, 1, 0),
-  F_A(HIS_STATS_w, HIS_STATS_USERLOAD),
-  F_B(HIS_STATS_USERLOAD, 0, 0, 0),
-  F_A(HIS_STATS_W, HIS_STATS_WEBIRC),
-  F_B(HIS_STATS_WEBIRC, 0, 1, 0),
-  F_A(HIS_STATS_x, HIS_STATS_MEMUSAGE),
-  F_B(HIS_STATS_MEMUSAGE, 0, 1, 0),
-  F_A(HIS_STATS_y, HIS_STATS_CLASSES),
-  F_B(HIS_STATS_CLASSES, 0, 1, 0),
-  F_A(HIS_STATS_z, HIS_STATS_MEMORY),
-  F_B(HIS_STATS_MEMORY, 0, 1, 0),
-  F_B(HIS_STATS_IAUTH, 0, 1, 0),
-  F_B(HIS_WEBIRC, 0, 1, 0),
-  F_B(HIS_WHOIS_SERVERNAME, 0, 1, 0),
-  F_B(HIS_WHOIS_IDLETIME, 0, 1, 0),
-  F_B(HIS_WHOIS_LOCALCHAN, 0, 1, 0),
-  F_B(HIS_WHO_SERVERNAME, 0, 1, 0),
-  F_B(HIS_WHO_HOPCOUNT, 0, 1, 0),
-  F_B(HIS_MODEWHO, 0, 1, 0),
-  F_B(HIS_BANWHO, 0, 1, 0),
-  F_B(HIS_KILLWHO, 0, 1, 0),
-  F_B(HIS_REWRITE, 0, 1, 0),
-  F_I(HIS_REMOTE, 0, 1, 0),
-  F_B(HIS_NETSPLIT, 0, 1, 0),
-  F_S(HIS_SERVERNAME, 0, "*.undernet.org", feature_notify_servername),
-  F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", feature_notify_serverinfo),
-  F_S(HIS_URLSERVERS, 0, "http://www.undernet.org/servers.php", 0),
-
-  /* Misc. random stuff */
-  F_S(NETWORK, 0, "UnderNet", set_isupport_network),
-  F_S(URL_CLIENTS, 0, "ftp://ftp.undernet.org/pub/irc/clients", 0),
-  F_S(URLREG, 0, "http://cservice.undernet.org/live/", 0),
-  F_I(SPAM_OPER_COUNTDOWN, 0, 5, 0),
-  F_I(SPAM_EXPIRE_TIME, 0, 120, 0),
-  F_I(SPAM_JOINED_TIME, 0, 60, 0),
-  F_I(SPAM_FJP_COUNT, 0, 5, 0),
-
-  /* Really special features (tm) */
-  F_B(NETWORK_REHASH, 0, 0, 0),
-  F_B(NETWORK_RESTART, 0, 0, 0),
-  F_B(NETWORK_DIE, 0, 0, 0),
-
-#undef F_S
-#undef F_B
-#undef F_I
-#undef F_N
-  { FEAT_LAST_F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+      0, log_feature_unmark, log_feature_mark, log_feature_report)
+  F_N(RANDOM_SEED, FEAT_NODISP, random_seed_set, 0, 0, 0, 0, 0, 0)
+#include "ircd_features.inc"
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
+
+#define N_FEATURES (sizeof(features) / sizeof(features[0]) - 1)
+
+static int
+feature_cmp(const void *v_a, const void *v_b)
+{
+  const struct FeatureDesc *a = v_a, *b = v_b;
+  return strcmp(a->type, b->type);
+}
+
+static int
+feature_find(const void *v_key, const void *v_feat)
+{
+  const char *key = v_key;
+  const struct FeatureDesc *feat = v_feat;
+  return strcmp(key, feat->type);
+}
 
 /** Given a feature's identifier, look up the feature descriptor.
  * @param[in] from Client looking up feature, or NULL.
@@ -545,34 +394,34 @@ static struct FeatureDesc {
 static struct FeatureDesc *
 feature_desc(struct Client* from, const char *feature)
 {
+  static int sorted;
+  struct FeatureDesc *feat;
   int i;
 
   assert(0 != feature);
 
-  for (i = 0; features[i].type; i++) /* find appropriate descriptor */
-    if (!strcmp(feature, features[i].type)) {
-      if (feat_type(&features[i]) == FEAT_ALIAS) {
+  if (!sorted) {
+    qsort(features, N_FEATURES, sizeof(features[0]), feature_cmp);
+    sorted = 1;
+  }
+
+  feat = bsearch(feature, features, N_FEATURES, sizeof(features[0]),
+    feature_find);
+  if (feat) {
+      if (feat_type(feat) == FEAT_ALIAS) {
 	Debug((DEBUG_NOTICE, "Deprecated feature \"%s\" referenced; replace "
-	       "with %s", feature, features[features[i].def_int].type));
+	       "with %s", feature, feat->def_str));
 	if (from) /* report a warning */
 	  send_reply(from, SND_EXPLICIT | ERR_NOFEATURE,
 		     "%s :Feature deprecated, use %s", feature,
-		     features[features[i].def_int].type);
+		     feat->def_str);
 	else
 	  log_write(LS_CONFIG, L_WARNING, 0, "Feature \"%s\" deprecated, "
-		    "use \"%s\"", feature, features[features[i].def_int].type);
+		    "use \"%s\"", feature, feat->def_str);
 
-	return &features[features[i].def_int];
-      } else if (feat_type(&features[i]) == FEAT_DEP) {
-	Debug((DEBUG_NOTICE, "Deprecated feature \"%s\" referenced", feature));
-	if (from) /* report a warning */
-	  send_reply(from, SND_EXPLICIT | ERR_NOFEATURE,
-		     "%s :Feature deprecated", feature);
-	else
-	  log_write(LS_CONFIG, L_WARNING, 0, "Feature \"%s\" deprecated",
-		    feature);
+	return feature_desc(from, feat->def_str);
       }
-      return &features[i];
+      return feat;
     }
 
   Debug((DEBUG_ERROR, "Unknown feature \"%s\"", feature));
@@ -593,8 +442,9 @@ feature_desc(struct Client* from, const char *feature)
 int
 feature_set(struct Client* from, const char* const* fields, int count)
 {
-  int i, change = 0, tmp;
+  int i, change = 0, tmp, new_int;
   const char *t_str;
+  char **p_str;
   struct FeatureDesc *feat;
 
   if (from && !HasPriv(from, PRIV_SET))
@@ -618,45 +468,46 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	  feat->flags |= FEAT_MARK;
 	else /* i < 0 */
 	  feat->flags &= ~FEAT_MARK;
-	break;
       }
+      break;
 
     case FEAT_UINT: /* an unsigned integer value */
     case FEAT_INT: /* an integer value */
-      tmp = feat->v_int; /* detect changes... */
+      tmp = *(int *)feat->var; /* detect changes... */
 
       if (count < 2) { /* reset value */
-	feat->v_int = feat->def_int;
+	new_int = feat->def_int;
 	feat->flags &= ~FEAT_MARK;
       } else { /* ok, figure out the value and whether to mark it */
-	feat->v_int = strtoul(fields[1], 0, 0);
-	if (feat->v_int == feat->def_int)
+	new_int = strtoul(fields[1], 0, 0);
+	if (new_int == feat->def_int)
 	  feat->flags &= ~FEAT_MARK;
 	else
 	  feat->flags |= FEAT_MARK;
       }
 
-      if (feat->v_int != tmp) /* check for change */
+      *(int *)feat->var = new_int;
+      if (new_int != tmp) /* check for change */
 	change++;
       break;
 
     case FEAT_BOOL: /* it's a boolean value--true or false */
-      tmp = feat->v_int; /* detect changes... */
+      tmp = *(int *)feat->var; /* detect changes... */
 
       if (count < 2) { /* reset value */
-	feat->v_int = feat->def_int;
+	new_int = feat->def_int;
 	feat->flags &= ~FEAT_MARK;
       } else { /* figure out the value and whether to mark it */
 	if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
 	    !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
 	    (strlen(fields[1]) >= 2 &&
 	     !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
-	  feat->v_int = 1;
+	  new_int = 1;
 	else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
 		 !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
 		 (strlen(fields[1]) >= 2 &&
 		  !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
-	  feat->v_int = 0;
+	  new_int = 0;
 	else if (from) /* report an error... */
 	  return send_reply(from, ERR_BADFEATVALUE, fields[1], feat->type);
 	else {
@@ -665,13 +516,14 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	  return 0;
 	}
 
-	if (feat->v_int == feat->def_int) /* figure out whether to mark it */
+	if (new_int == feat->def_int) /* figure out whether to mark it */
 	  feat->flags &= ~FEAT_MARK;
 	else
 	  feat->flags |= FEAT_MARK;
       }
 
-      if (feat->v_int != tmp) /* check for change */
+      *(int *)feat->var = new_int;
+      if (new_int != tmp) /* check for change */
 	change++;
       break;
 
@@ -691,39 +543,40 @@ feature_set(struct Client* from, const char* const* fields, int count)
 	}
       }
 
+      p_str = (char **)feat->var;
       if (t_str == feat->def_str ||
 	  (t_str && feat->def_str &&
 	   !(feat->flags & FEAT_CASE ? strcmp(t_str, feat->def_str) :
 	     ircd_strcmp(t_str, feat->def_str)))) { /* resetting to default */
-	if (feat->v_str != feat->def_str) {
+	if (*p_str != feat->def_str) {
 	  change++; /* change from previous value */
 
-	  if (feat->v_str)
-	    MyFree(feat->v_str); /* free old value */
+	  if (*p_str)
+	    MyFree(*p_str); /* free old value */
 	}
 
-	feat->v_str = feat->def_str; /* very special... */
+	*p_str = feat->def_str; /* very special... */
 
 	feat->flags &= ~FEAT_MARK;
       } else if (!t_str) {
-	if (feat->v_str) {
+	if (*p_str) {
 	  change++; /* change from previous value */
 
-	  if (feat->v_str != feat->def_str)
-	    MyFree(feat->v_str); /* free old value */
+	  if (*p_str != feat->def_str)
+	    MyFree(*p_str); /* free old value */
 	}
 
-	feat->v_str = 0; /* set it to NULL */
+	*p_str = 0; /* set it to NULL */
 
 	feat->flags |= FEAT_MARK;
-      } else if (!feat->v_str ||
-		 (feat->flags & FEAT_CASE ? strcmp(t_str, feat->v_str) :
-		  ircd_strcmp(t_str, feat->v_str))) { /* new value */
+      } else if (!*p_str ||
+		 (feat->flags & FEAT_CASE ? strcmp(t_str, *p_str) :
+		  ircd_strcmp(t_str, *p_str))) { /* new value */
 	change++; /* change from previous value */
 
-	if (feat->v_str && feat->v_str != feat->def_str)
-	  MyFree(feat->v_str); /* free old value */
-	DupString(feat->v_str, t_str); /* store new value */
+	if (*p_str && *p_str != feat->def_str)
+	  MyFree(*p_str); /* free old value */
+	DupString(*p_str, t_str); /* store new value */
 
 	feat->flags |= FEAT_MARK;
       } else /* they match, but don't match the default */
@@ -779,21 +632,21 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     case FEAT_UINT: /* Unsigned... */
     case FEAT_INT:  /* Integer... */
     case FEAT_BOOL: /* Boolean... */
-      if (feat->v_int != feat->def_int)
+      if (*(int *)feat->var != feat->def_int)
 	change++; /* change will be made */
 
-      feat->v_int = feat->def_int; /* set the default */
+      *(int *)feat->var = feat->def_int; /* set the default */
       feat->flags &= ~FEAT_MARK; /* unmark it */
       break;
 
     case FEAT_STR: /* string! */
-      if (feat->v_str != feat->def_str) {
+      if (*(char **)feat->var != feat->def_str) {
 	change++; /* change has been made */
-	if (feat->v_str)
-	  MyFree(feat->v_str); /* free old value */
+	if (*(char **)feat->var)
+	  MyFree(*(char **)feat->var); /* free old value */
       }
 
-      feat->v_str = feat->def_str; /* set it to default */
+      *(char **)feat->var = feat->def_str; /* set it to default */
       feat->flags &= ~FEAT_MARK; /* unmark it */
       break;
     }
@@ -837,24 +690,27 @@ feature_get(struct Client* from, const char* const* fields, int count)
 
     case FEAT_INT: /* integer, report integer value */
       send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		 ":Integer value of %s: %d", feat->type, feat->v_int);
+		 ":Integer value of %s: %d", feat->type,
+		 *(int *)feat->var);
       break;
 
     case FEAT_UINT: /* unsigned integer, report its value */
       send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		 ":Unsigned value of %s: %u", feat->type, feat->v_int);
+		 ":Unsigned value of %s: %u", feat->type,
+		 *(int *)feat->var);
       break;
 
     case FEAT_BOOL: /* boolean, report boolean value */
       send_reply(from, SND_EXPLICIT | RPL_FEATURE,
 		 ":Boolean value of %s: %s", feat->type,
-		 feat->v_int ? "TRUE" : "FALSE");
+		 *(int *)feat->var ? "TRUE" : "FALSE");
       break;
 
     case FEAT_STR: /* string, report string value */
-      if (feat->v_str) /* deal with null case */
+      if (*(char **)feat->var) /* deal with null case */
 	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
-		   ":String value of %s: %s", feat->type, feat->v_str);
+		   ":String value of %s: %s", feat->type,
+		   *(char **)feat->var);
       else
 	send_reply(from, SND_EXPLICIT | RPL_FEATURE,
 		   ":String value for %s not set", feat->type);
@@ -898,20 +754,22 @@ feature_mark(void)
     case FEAT_UINT:
     case FEAT_BOOL:
       if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
-	if (features[i].v_int != features[i].def_int)
+        int *p_int = features[i].var;
+	if (*p_int != features[i].def_int)
 	  change++; /* we're making a change */
-	features[i].v_int = features[i].def_int;
+	*p_int = features[i].def_int;
       }
       break;
 
     case FEAT_STR: /* strings... */
       if (!(features[i].flags & FEAT_MARK)) { /* not changed? */
-	if (features[i].v_str != features[i].def_str) {
+        char **p_str = features[i].var;
+	if (*p_str != features[i].def_str) {
 	  change++; /* we're making a change */
-	  if (features[i].v_str)
-	    MyFree(features[i].v_str); /* free old value */
+	  if (*p_str)
+	    MyFree(*p_str); /* free old value */
 	}
-	features[i].v_str = features[i].def_str;
+	*p_str = features[i].def_str;
       }
       break;
     }
@@ -932,16 +790,12 @@ feature_init(void)
 
     switch (feat_type(feat)) {
     case FEAT_NONE: /* you're on your own */
-      break;
-
     case FEAT_INT:  /* Integers or Booleans... */
     case FEAT_UINT:
     case FEAT_BOOL:
-      feat->v_int = feat->def_int;
       break;
 
     case FEAT_STR:  /* Strings */
-      feat->v_str = feat->def_str;
       assert(feat->def_str || (feat->flags & FEAT_NULL));
       break;
     }
@@ -985,26 +839,28 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
     case FEAT_INT: /* Report an F-line with integer values */
       if (report) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %d",
-		   changed, features[i].type, features[i].v_int);
+		   changed, features[i].type, *(int *)features[i].var);
       break;
 
     case FEAT_UINT: /* Report an F-line with unsigned values */
       if (features[i].flags & FEAT_MARK) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "F %s %u",
-		   features[i].type, features[i].v_int);
+		   features[i].type, *(int *)features[i].var);
       break;
 
     case FEAT_BOOL: /* Report an F-line with boolean values */
       if (report) /* it's been changed */
 	send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
-		   changed, features[i].type, features[i].v_int ? "TRUE" : "FALSE");
+		   changed, features[i].type,
+		   *(int *)features[i].var ? "TRUE" : "FALSE");
       break;
 
     case FEAT_STR: /* Report an F-line with string values */
       if (report) { /* it's been changed */
-	if (features[i].v_str)
+	if (*(char **)features[i].var)
 	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s %s",
-		     changed, features[i].type, features[i].v_str);
+		     changed, features[i].type,
+		     *(char **)features[i].var);
 	else /* Actually, F:<type> would reset it; you want F:<type>: */
 	  send_reply(to, SND_EXPLICIT | RPL_STATSFLINE, "%c %s",
 		     changed, features[i].type);
@@ -1012,59 +868,4 @@ feature_report(struct Client* to, const struct StatDesc* sd, char* param)
       break;
     }
   }
-}
-
-/** Return a feature's integer value.
- * @param[in] feat &Feature identifier.
- * @return Integer value of feature.
- */
-int
-feature_int(enum Feature feat)
-{
-  assert(features[feat].feat == feat);
-  assert(feat_type(&features[feat]) == FEAT_INT);
-
-  return features[feat].v_int;
-}
-
-/** Return a feature's unsigned integer value.
- * @param[in] feat &Feature identifier.
- * @return Unsigned integer value of feature.
- */
-unsigned int
-feature_uint(enum Feature feat)
-{
-  assert(features[feat].feat == feat);
-  assert(feat_type(&features[feat]) == FEAT_UINT);
-
-  return features[feat].v_int;
-}
-
-/** Return a feature's boolean value.
- * @param[in] feat &Feature identifier.
- * @return Boolean value of feature.
- */
-int
-feature_bool(enum Feature feat)
-{
-  assert(feat <= FEAT_LAST_F);
-  if (FEAT_LAST_F < feat)
-    return 0;
-  assert(features[feat].feat == feat);
-  assert(feat_type(&features[feat]) == FEAT_BOOL);
-
-  return features[feat].v_int;
-}
-
-/** Return a feature's string value.
- * @param[in] feat &Feature identifier.
- * @return String value of feature.
- */
-const char *
-feature_str(enum Feature feat)
-{
-  assert(features[feat].feat == feat);
-  assert(feat_type(&features[feat]) == FEAT_STR);
-
-  return features[feat].v_str;
 }
