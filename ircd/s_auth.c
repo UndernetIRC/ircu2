@@ -966,6 +966,9 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(0 != auth);
 
+  /* Clear the dns-pending flag so exit_client() cleans up properly. */
+  FlagClr(&auth->flags, AR_DNS_PENDING);
+
   if (!addr) {
     /* DNS entry was missing for the IP. */
     if (IsUserPort(auth->client))
