@@ -170,10 +170,6 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     struct ConfItem *conf;
     struct Client *dptr;
 
-    conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
-    if (!conf || !(conf->flags & CONF_UWORLD_OPER))
-      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
-
     dptr = findNUser(parv[1]);
     if (!dptr)
       return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
@@ -184,6 +180,10 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         parv[1], parv[2]);
       return 0;
     }
+
+    conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
+    if (!conf || !(conf->flags & CONF_UWORLD_OPER))
+      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
 
     /* At the moment, we only support +o and -o.  set_user_mode() does
      * not support remote mode setting or setting +o.
