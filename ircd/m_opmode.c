@@ -178,8 +178,12 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!dptr)
       return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
 
-    sendcmdto_serv_butone(sptr, CMD_OPMODE, cptr, "%s %s",
-      parv[1], parv[2]);
+    if (!MyConnect(dptr))
+    {
+      sendcmdto_serv_butone(sptr, CMD_OPMODE, cptr, "%s %s",
+        parv[1], parv[2]);
+      return 0;
+    }
 
     /* At the moment, we only support +o and -o.  set_user_mode() does
      * not support remote mode setting or setting +o.
