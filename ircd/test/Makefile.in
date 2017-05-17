@@ -3,7 +3,7 @@ srcdir = @srcdir@
 VPATH = @srcdir@
 CPPFLAGS = -I${top_srcdir}/include -I../..
 CFLAGS   = -g -Wall
-LDFLAGS  =
+LDFLAGS  = @LDFLAGS@
 CC = @CC@
 
 TESTPROGS = \
