@@ -60,7 +60,7 @@ int ms_xreply(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   reply = parv[3];
 
   /* Look up the target */
-  acptr = parv[1][2] ? findNUser(parv[1]) : FindNServer(parv[1]);
+  acptr = FindNClient(parv[1]);
   if (!acptr)
     return send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHSERVER,
 		      "* :Server has disconnected");
