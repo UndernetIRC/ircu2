@@ -438,7 +438,7 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
   /*
    * nickname addressed?
    */
-  if (0 == (acptr = findNUser(name)) || !IsUser(acptr)) {
+  if (!(acptr = findNUser(name)) || !IsUser(acptr)) {
     send_reply(sptr, SND_EXPLICIT | ERR_NOSUCHNICK, "* :Target left %s. "
 	       "Failed to deliver: [%.20s]", feature_str(FEAT_NETWORK),
                text);
@@ -469,7 +469,7 @@ void server_relay_private_notice(struct Client* sptr, const char* name, const ch
   /*
    * nickname addressed?
    */
-  if (0 == (acptr = findNUser(name)) || !IsUser(acptr))
+  if (!(acptr = findNUser(name)) || !IsUser(acptr))
     return;
 
   if (is_silenced(sptr, acptr))
