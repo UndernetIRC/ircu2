@@ -158,19 +158,38 @@ const char* inttobase64(char* buf, unsigned int v, unsigned int count)
   return buf;
 }
 
-/** Look up a server by numnick string.
+/** Look up an IRC "client" by numnick string.
  * See @ref numnicks for more details.
- * @param[in] numeric %Numeric nickname of server (may contain trailing junk).
- * @return %Server with that numnick (or NULL).
+ * @param[in] numnick %Numeric nickname of server or user.
+ * @return %Client with that numnick (or NULL).
  */
-static struct Client* FindXNServer(const char* numeric)
+struct Client *FindNClient(const char* numnick)
 {
-  char buf[3];
-  buf[0] = *numeric++;
-  buf[1] = *numeric;
-  buf[2] = '\0';
-  Debug((DEBUG_DEBUG, "FindXNServer: %s(%d)", buf, base64toint(buf)));
-  return server_list[base64toint(buf)];
+  unsigned int i = 0, nn = 0;
+  struct Client *srv;
+
+  while (numnick[i] != '\0') {
+    nn = (nn << NUMNICKLOG) | convert2n[(unsigned char)numnick[i++]];
+  }
+
+  switch (i) {
+  case 1: /* S */
+  case 2: /* SS */
+    return server_list[nn];
+  case 3: /* SCC */
+    srv = server_list[nn >> (2 * NUMNICKLOG)];
+    break;
+  case 4: /* SCCC */
+  case 5: /* SSCCC */
+    srv = server_list[nn >> (3 * NUMNICKLOG)];
+  default:
+    return NULL;
+  }
+
+  if (srv)
+    return cli_serv(srv)->client_list[nn & cli_serv(srv)->nn_mask];
+
+  return NULL;
 }
 
 /** Look up a server by numnick string.
@@ -180,18 +199,8 @@ static struct Client* FindXNServer(const char* numeric)
  */
 struct Client* FindNServer(const char* numeric)
 {
-  unsigned int len = strlen(numeric);
-
-  if (len < 3) {
-    Debug((DEBUG_DEBUG, "FindNServer: %s(%d)", numeric, base64toint(numeric)));
-    return server_list[base64toint(numeric)];
-  }
-  else if (len == 3) {
-    Debug((DEBUG_DEBUG, "FindNServer: %c(%d)", *numeric, 
-           convert2n[(unsigned char) *numeric]));
-    return server_list[convert2n[(unsigned char) *numeric]];
-  }
-  return FindXNServer(numeric);
+  struct Client* cli = FindNClient(numeric);
+  return (cli && cli_serv(cli)) ? cli : NULL;
 }
 
 /** Look up a user by numnick string.
@@ -201,20 +210,8 @@ struct Client* FindNServer(const char* numeric)
  */
 struct Client* findNUser(const char* yxx)
 {
-  struct Client* server = 0;
-  if (5 == strlen(yxx)) {
-    if (0 != (server = FindXNServer(yxx))) {
-      Debug((DEBUG_DEBUG, "findNUser: %s(%d)", yxx, 
-             base64toint(yxx + 2) & cli_serv(server)->nn_mask));
-      return cli_serv(server)->client_list[base64toint(yxx + 2) & cli_serv(server)->nn_mask];
-    }
-  }
-  else if (0 != (server = FindNServer(yxx))) {
-    Debug((DEBUG_DEBUG, "findNUser: %s(%d)",
-           yxx, base64toint(yxx + 1) & cli_serv(server)->nn_mask));
-    return cli_serv(server)->client_list[base64toint(yxx + 1) & cli_serv(server)->nn_mask];
-  }
-  return 0;
+  struct Client* cli = FindNClient(yxx);
+  return (cli && cli_user(cli)) ? cli : NULL;
 }
 
 /** Remove a client from a server's user array.
