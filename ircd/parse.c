@@ -1035,36 +1035,23 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   else
   {
     char numeric_prefix[6];
-    int  i;
-    for (i = 0; i < 5; ++i)
-    {
-      if ('\0' == ch[i] || ' ' == (numeric_prefix[i] = ch[i]))
-      {
-        break;
-      }
-    }
+    for (i = 0; (i < 5) && (*ch != ' ') && (*ch != '\0'); ++i)
+      numeric_prefix[i] = *ch++;
     numeric_prefix[i] = '\0';
 
-    /*
-     * We got a numeric nick as prefix
-     * 1 or 2 character prefixes are from servers
-     * 3 or 5 chars are from clients
-     */
     if (0 == i)
     {
       protocol_violation(cptr,"Missing Prefix");
       from = cptr;
     }
-    else if (' ' == ch[1] || ' ' == ch[2])
-      from = FindNServer(numeric_prefix);
     else
-      from = findNUser(numeric_prefix);
-
-    do
     {
-      ++ch;
+      from = FindNClient(numeric_prefix);
     }
-    while (*ch != ' ' && *ch);
+    while (*ch != ' ' && *ch != '\0')
+      ch++;
+    while (*ch == ' ')
+      ch++;
 
     /*
      * If the client corresponding to the
@@ -1081,24 +1068,25 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     if (from == NULL)
     {
       ServerStats->is_unpf++;
-      while (*ch == ' ')
-        ch++;
-      if (*ch == 'N' && (ch[1] == ' ' || ch[1] == 'I'))
-        /* Only sent a KILL for a nick change */
+      if (ch[0] == 'N' && (ch[1] == ' ' || !strncmp(ch+1, "ICK ", 4)))
+        /* Only send a KILL for a nick change */
       {
         struct Client *server;
         /* Kill the unknown numeric prefix upstream if
-         * it's server still exists: */
+         * its server still exists: */
         if ((server = FindNServer(numeric_prefix)) && cli_from(server) == cptr)
 	  sendcmdto_one(&me, CMD_KILL, cptr, "%s :%s (Unknown numeric nick)",
 			numeric_prefix, cli_name(&me));
       }
       /*
-       * Things that must be allowed to travel
+       * SQ(UIT) and D/KILL must be allowed to travel
        * upstream against an squit:
        */
-      if (ch[1] == 'Q' || (*ch == 'D' && ch[1] == ' ') ||
-          (*ch == 'K' && ch[2] == 'L'))
+      if ((ch[0] == 'S' && ch[1] == 'Q'
+            && (ch[2] == ' ' || !strncmp(ch+2, "UIT ", 4)))
+          || (ch[0] == 'D' && ch[1] == ' ')
+          || (ch[0] == 'K'
+            && (ch[1] == ' ' || !strncmp(ch+1, "ILL ", 4))))
         from = cptr;
       else
         return 0;
@@ -1116,8 +1104,6 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     }
   }
 
-  while (*ch == ' ')
-    ch++;
   if (*ch == '\0')
   {
     ServerStats->is_empt++;
