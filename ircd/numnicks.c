@@ -182,6 +182,7 @@ struct Client *FindNClient(const char* numnick)
   case 4: /* SCCC */
   case 5: /* SSCCC */
     srv = server_list[nn >> (3 * NUMNICKLOG)];
+    break;
   default:
     return NULL;
   }
@@ -200,7 +201,7 @@ struct Client *FindNClient(const char* numnick)
 struct Client* FindNServer(const char* numeric)
 {
   struct Client* cli = FindNClient(numeric);
-  return (cli && cli_serv(cli)) ? cli : NULL;
+  return !cli ? NULL : cli_serv(cli) ? cli : cli_user(cli)->server;
 }
 
 /** Look up a user by numnick string.
