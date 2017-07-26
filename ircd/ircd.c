@@ -104,8 +104,6 @@ struct Connection me_con;		/**< That's me too */
 struct Client *GlobalClientList  = &me; /**< Pointer to beginning of
 					   Client list */
 time_t         TSoffset          = 0;   /**< Offset of timestamps to system clock */
-int            GlobalRehashFlag  = 0;   /**< do a rehash if set */
-int            GlobalRestartFlag = 0;   /**< do a restart if set */
 time_t         CurrentTime;             /**< Updated every time we leave select() */
 
 char          *configfile        = CPATH; /**< Server configuration file */
