@@ -240,6 +240,12 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   cli_fd(cptr) = os_socket(local, SOCK_STREAM, cli_name(cptr), family);
   if (cli_fd(cptr) < 0)
     return 0;
+#ifdef AF_INET6
+  if ((family == 0) && !irc_in_addr_is_ipv4(&local->addr))
+    family = AF_INET6;
+  else
+#endif
+    family = AF_INET;
 
   /*
    * save connection info in client
@@ -259,7 +265,7 @@ static int connect_inet(struct ConfItem* aconf, struct Client* cptr)
   /*
    * Set the TOS bits - this is nonfatal if it doesn't stick.
    */
-  if (!os_set_tos(cli_fd(cptr), feature_int(FEAT_TOS_SERVER))) {
+  if (!os_set_tos(cli_fd(cptr), feature_int(FEAT_TOS_SERVER), family)) {
     report_error(TOS_ERROR_MSG, cli_name(cptr), errno);
   }
   if ((result = os_connect_nonb(cli_fd(cptr), &aconf->address)) == IO_FAILURE) {

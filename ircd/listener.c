@@ -196,9 +196,10 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
 /** Set or update socket options for \a listener.
  * @param[in] listener Listener to determine socket option values.
  * @param[in] fd File descriptor being updated.
+ * @param[in] family Address family for \a fd.
  * @return Non-zero on success, zero on failure.
  */
-static int set_listener_options(struct Listener *listener, int fd)
+static int set_listener_options(struct Listener *listener, int fd, int family)
 {
   int is_server;
 
@@ -221,7 +222,7 @@ static int set_listener_options(struct Listener *listener, int fd)
   /*
    * Set the TOS bits - this is nonfatal if it doesn't stick.
    */
-  if (!os_set_tos(fd,feature_int(is_server ? FEAT_TOS_SERVER : FEAT_TOS_CLIENT))) {
+  if (!os_set_tos(fd, feature_int(is_server ? FEAT_TOS_SERVER : FEAT_TOS_CLIENT), family)) {
     report_error(TOS_ERROR_MSG, get_listener_name(listener), errno);
   }
 
@@ -249,7 +250,7 @@ static int inetport(struct Listener* listener, int family)
     close(fd);
     return -1;
   }
-  if (!set_listener_options(listener, fd))
+  if (!set_listener_options(listener, fd, family))
     return -1;
   sock = (family == AF_INET) ? &listener->socket_v4 : &listener->socket_v6;
   if (!socket_add(sock, accept_connection, (void*) listener,
@@ -325,7 +326,7 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   if (FlagHas(&listener->flags, LISTEN_IPV6)
       && (irc_in_addr_unspec(&vaddr) || !irc_in_addr_is_ipv4(&vaddr))) {
     if (listener->fd_v6 >= 0) {
-      set_listener_options(listener, listener->fd_v6);
+      set_listener_options(listener, listener->fd_v6, AF_INET6);
       okay = 1;
     } else if ((fd = inetport(listener, AF_INET6)) >= 0) {
       listener->fd_v6 = fd;
@@ -341,7 +342,7 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   if (FlagHas(&listener->flags, LISTEN_IPV4)
       && (irc_in_addr_unspec(&vaddr) || irc_in_addr_is_ipv4(&vaddr))) {
     if (listener->fd_v4 >= 0) {
-      set_listener_options(listener, listener->fd_v4);
+      set_listener_options(listener, listener->fd_v4, AF_INET);
       okay = 1;
     } else if ((fd = inetport(listener, AF_INET)) >= 0) {
       listener->fd_v4 = fd;

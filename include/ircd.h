@@ -66,8 +66,6 @@ extern struct Client  me;
 extern time_t         CurrentTime;
 extern struct Client* GlobalClientList;
 extern time_t         TSoffset;
-extern int            GlobalRehashFlag;      /* 1 if SIGHUP is received */
-extern int            GlobalRestartFlag;     /* 1 if SIGINT is received */
 extern char*          configfile;
 extern int            debuglevel;
 extern char*          debugmode;

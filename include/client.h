@@ -487,7 +487,7 @@ struct Client {
  * user port. */
 #define IsUserPort(x)           (cli_status(x) == STAT_UNKNOWN_USER )
 /** Return non-zero if the client is an unregistered connection on a
- * WebIRC port. */
+ * WebIRC port that has not yet sent WEBIRC. */
 #define IsWebircPort(x)         (cli_status(x) == STAT_WEBIRC)
 /** Return non-zero if the client is a real client connection. */
 #define IsClient(x)             (cli_status(x) & \

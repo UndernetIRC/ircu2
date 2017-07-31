@@ -51,7 +51,7 @@ extern int os_set_listen(int fd, int backlog);
 extern int os_set_nonblocking(int fd);
 extern int os_set_reuseaddr(int fd);
 extern int os_set_sockbufs(int fd, unsigned int ssize, unsigned int rsize);
-extern int os_set_tos(int fd,int tos);
+extern int os_set_tos(int fd, int tos, int family);
 extern int os_socketpair(int sv[2]);
 
 #endif /* INCLUDED_ircd_osdep_h */

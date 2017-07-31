@@ -50,9 +50,7 @@
 int m_webirc(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 {
   const struct wline *wline;
-  char mod_ident[USERLEN+1];
   const char *passwd;
-  const char *ident;
   const char *hostname;
   const char *ip;
 
@@ -63,7 +61,6 @@ int m_webirc(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     return need_more_params(sptr, "WEBIRC");
 
   passwd = parv[1];
-  ident = parv[2];
   hostname = parv[3];
   ip = parv[4];
 
@@ -77,15 +74,7 @@ int m_webirc(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   /* Treat client as a normally connecting user from now on. */
   cli_status(sptr) = STAT_UNKNOWN_USER;
 
-  /* If FEAT_HIS_WEBIRC is off, prefix ident with ^. */
-  if (!feature_bool(FEAT_HIS_WEBIRC)) {
-      mod_ident[0] = '^';
-      strncpy(mod_ident + 1, ident, sizeof(mod_ident) - 1);
-      mod_ident[sizeof(mod_ident) - 1] = '\0';
-      ident = mod_ident;
-  }
-
-  int res = auth_spoof_user(cli_auth(cptr), ident, hostname, ip);
+  int res = auth_spoof_user(cli_auth(cptr), NULL, hostname, ip);
   if (res > 0)
     return exit_client(cptr, cptr, &me, "WEBIRC invalid spoof");
   return res;

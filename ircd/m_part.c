@@ -54,7 +54,7 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel *chptr;
   struct Membership *member;
   struct JoinBuf parts;
-  unsigned int flags = 0;
+  int colors = 0;
   char *p = 0;
   char *name;
 
@@ -67,9 +67,20 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 	       (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0,
 	       0);
 
+  /* check for colors in message */
+  if (parts.jb_comment) {
+    for (p = parts.jb_comment; *p != '\0'; ++p) {
+      if (*p == 3 || *p == 27) {
+        colors = 1;
+        break;
+      }
+    }
+  }
+
   /* scan through channel list */
   for (name = ircd_strtok(&p, parv[1], ","); name;
        name = ircd_strtok(&p, 0, ",")) {
+    unsigned int flags = 0;
 
     chptr = get_channel(sptr, name, CGT_NO_CREATE); /* look up channel */
 
@@ -91,6 +102,9 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       /* Remote clients don't want to see a comment either. */
       parts.jb_comment = 0;
     }
+
+    if ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
+      flags |= CHFL_BANNED;
 
     if (IsDelayedJoin(member))
       flags |= CHFL_DELAYED;

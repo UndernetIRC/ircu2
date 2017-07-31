@@ -118,14 +118,18 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     struct Client *dptr;
 
-    if (!(cli_serv(sptr)->flags & SFLAG_REMOTE_OPER))
-      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
-
     dptr = findNUser(parv[1]);
     if (!dptr)
       return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
 
-    sendcmdto_serv(sptr, CMD_OPMODE, cptr, "%s %s", parv[1], parv[2]);
+    if (!MyConnect(dptr))
+    {
+      sendcmdto_serv(sptr, CMD_OPMODE, cptr, "%s %s", parv[1], parv[2]);
+      return 0;
+    }
+
+    if (!(cli_serv(sptr)->flags & SFLAG_REMOTE_OPER))
+      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
 
     /* At the moment, we only support +o and -o.  set_user_mode() does
      * not support remote mode setting or setting +o.

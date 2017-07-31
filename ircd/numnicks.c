@@ -456,7 +456,7 @@ const char* iptobase64(char* buf, const struct irc_in_addr* addr, unsigned int c
 
     assert(count >= 25);
     /* Can start by printing out the leading non-zero parts. */
-    for (ii = 0; (addr->in6_16[ii]) && (ii < 8); ++ii) {
+    for (ii = 0; (ii < 8) && (addr->in6_16[ii]); ++ii) {
       inttobase64(output, ntohs(addr->in6_16[ii]), 3);
       output += 3;
     }

@@ -430,7 +430,8 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
 
     /* Bail out until we have DNS and ident. */
     if (FlagHas(&auth->flags, AR_AUTH_PENDING)
-        || FlagHas(&auth->flags, AR_DNS_PENDING))
+        || FlagHas(&auth->flags, AR_DNS_PENDING)
+        || FlagHas(&auth->flags, AR_NEEDS_USER))
       return 0;
 
     /* If appropriate, do preliminary assignment to Client block. */
@@ -451,7 +452,8 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
       int ii;
       for (ii = USERLEN-1; ii > 0; ii--)
         s[ii] = s[ii-1];
-      s[0] = '~';
+      s[0] = (cli_wline(sptr) && !feature_bool(FEAT_HIS_WEBIRC))
+        ? '^' : '~';
       s[USERLEN] = '\0';
     } /* else cleaned version of client-provided name is in place */
 
@@ -466,12 +468,11 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     }
 
     /* Tell IAuth about the client. */
-    iauth_notify(auth, AR_DNS_PENDING);
-    iauth_notify(auth, AR_AUTH_PENDING);
-    if (!FlagHas(&auth->flags, AR_NEEDS_USER))
-      iauth_notify(auth, AR_NEEDS_USER);
-    if (!FlagHas(&auth->flags, AR_NEEDS_NICK))
-      iauth_notify(auth, AR_NEEDS_NICK);
+    for (flag = 1; flag <= AR_LAST_SCAN; ++flag)
+    {
+      if (!FlagHas(&auth->flags, flag))
+        iauth_notify(auth, flag);
+    }
   }
 
   /* Check non-iauth registration blocking flags. */
@@ -964,6 +965,9 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   struct AuthRequest* auth = (struct AuthRequest*) vptr;
   assert(0 != auth);
 
+  /* Clear the dns-pending flag so exit_client() cleans up properly. */
+  FlagClr(&auth->flags, AR_DNS_PENDING);
+
   if (!addr) {
     /* DNS entry was missing for the IP. */
     if (IsUserPort(auth->client))
@@ -971,11 +975,18 @@ static void auth_dns_callback(void* vptr, const struct irc_in_addr *addr, const 
   } else if (!irc_in_addr_valid(addr)
              || (irc_in_addr_cmp(&cli_ip(auth->client), addr)
                  && irc_in_addr_cmp(&auth->original, addr))) {
-    /* IP for hostname did not match client's IP. */
-    sendto_opmask(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
-                  cli_sock_ip(auth->client), h_name, ircd_ntoa(addr));
-    if (IsUserPort(auth->client))
+    if (IsUserPort(auth->client)) {
+      /* IP for hostname did not match client's IP. */
+      sendto_opmask(0, SNO_IPMISMATCH, "IP# Mismatch: %s != %s[%s]",
+                   cli_sock_ip(auth->client), h_name, ircd_ntoa(addr));
       sendheader(auth->client, REPORT_IP_MISMATCH);
+    } else {
+      /* Mismatch for a server, do not send to opers. */
+      log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE,
+                "IP# Mismatch: %s != %s[%s]",
+                cli_sock_ip(auth->client), h_name,
+                ircd_ntoa(addr));
+    }
     if (feature_bool(FEAT_KILL_IPMISMATCH)) {
       exit_client(auth->client, auth->client, &me, "IP mismatch");
       return;
@@ -1279,7 +1290,7 @@ int auth_cap_done(struct AuthRequest *auth)
  * (The spoofed values should be from a trusted source.)
  *
  * @param[in] auth Authorization request for client.
- * @param[in] username Requested username.
+ * @param[in] username Requested username (possibly null).
  * @param[in] hostname Requested hostname.
  * @param[in] ip Requested IP address.
  * @return Zero if client should be kept, negative if killed if rejected.
@@ -1288,7 +1299,6 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
 {
   struct Client *sptr = auth->client;
   time_t next_target = 0;
-  int killreason;
 
   if (!auth_verify_hostname(hostname, HOSTLEN))
     return 1;
@@ -1304,21 +1314,14 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
     cli_nexttarget(sptr) = next_target;
   ircd_strncpy(cli_sock_ip(sptr), ip, SOCKIPLEN);
   ircd_strncpy(cli_sockhost(sptr), hostname, HOSTLEN);
-  ircd_strncpy(cli_username(sptr), username, USERLEN);
-  SetGotId(sptr);
-
-  killreason = find_kill(sptr);
-  if (killreason) {
-    ++ServerStats->is_ref;
-    return exit_client(sptr, sptr, &me,
-                       (killreason == -1 ? "K-lined" : "G-lined"));
+  if (username) {
+    ircd_strncpy(cli_username(sptr), username, USERLEN);
+    SetGotId(sptr);
+  } else {
+    SetFlag(sptr, FLAG_DOID);
   }
-  FlagSet(&auth->flags, AR_GLINE_CHECKED);
-  if (preregister_user(auth->client))
-    return CPTR_KILLED;
 
   start_iauth_query(auth);
-  sendto_iauth(sptr, "N %s", hostname);
   if (IAuthHas(iauth, IAUTH_UNDERNET))
     sendto_iauth(sptr, "u %s", cli_username(sptr));
 
