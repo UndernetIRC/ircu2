@@ -506,8 +506,7 @@ EXTRA_DIST = doc patches tools include Doxyfile INSTALL_FR ircd-patch \
 man_MANS = doc/ircd.8
 sysconf_DATA = doc/example.conf
 AM_CPPFLAGS = -I. -I$(top_srcdir)/include -DDPATH="\"$(sysconfdir)\"" \
-	-DSPATH="\"$(bindir)/ircd\"" -DCPATH="\"ircd.conf\"" \
-	-DLPATH="\"ircd.log\""
+	-DSPATH="\"$(bindir)/ircd\""
 
 BUILT_SOURCES = ircd/ircd_parser.h
 AM_YFLAGS = -d

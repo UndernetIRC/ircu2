@@ -27,7 +27,7 @@ struct StatDesc;
  * @param x A two-or-more element list containing level, format and arguments.
  */
 #define Debug(x) debug x
-#define LOGFILE LPATH /**< Path to debug log file. */
+#define LOGFILE "ircd.log" /**< Path to debug log file. */
 
 /*
  * defined debugging levels

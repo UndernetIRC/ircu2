@@ -20,8 +20,7 @@ noinst_PROGRAMS = ircd/table_gen
 bin_PROGRAMS = ircd/convert-conf umkpasswd ircd/ircd
 
 AM_CPPFLAGS = -I. -I$(top_srcdir)/include -DDPATH="\"$(sysconfdir)\"" \
-	-DSPATH="\"$(bindir)/ircd\"" -DCPATH="\"ircd.conf\"" \
-	-DLPATH="\"ircd.log\""
+	-DSPATH="\"$(bindir)/ircd\""
 
 BUILT_SOURCES = ircd/ircd_parser.h
 AM_YFLAGS = -d

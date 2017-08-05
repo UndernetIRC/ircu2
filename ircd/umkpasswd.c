@@ -80,9 +80,6 @@ static void show_help(void)
 #ifdef DEBUGMODE
  fprintf(stderr, "  -d <level>    Debug level to run at.\n");
 #endif
-/*
- fprintf(stderr, "  -c <file>     Conf file to use, default is DPATH/CPATH.\n\n");
-*/
 return;
 }
 
@@ -312,7 +309,7 @@ const char* options = "a:d:lm:u:y:5";
  umkpasswd_conf->user = NULL;
  umkpasswd_conf->mech = NULL;
 
-
+#define CPATH "ircd.conf"
  len = strlen(DPATH) + strlen(CPATH) + 2;
  umkpasswd_conf->conf = (char *)MyMalloc(len*sizeof(char));
  memset(umkpasswd_conf->conf, 0, len*sizeof(char));

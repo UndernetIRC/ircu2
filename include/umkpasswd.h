@@ -22,7 +22,7 @@
 struct umkpasswd_conf_s {
  int debuglevel;	/* you really need me to comment this? */
  char* mech;		/* mechanism we want to use */
- char* conf;		/* conf file, otherwise DPATH/CPATH */
+ char* conf;		/* conf file, otherwise DPATH/ircd.conf */
  int flags;		/* to add or not to add (or maybe to update) */
  char* user;		/* username */
  int operclass;		/* connection class to use */

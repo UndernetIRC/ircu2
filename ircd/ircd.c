@@ -105,7 +105,7 @@ struct Client *GlobalClientList  = &me; /**< Pointer to beginning of
 time_t         TSoffset          = 0;   /**< Offset of timestamps to system clock */
 time_t         CurrentTime;             /**< Updated every time we leave select() */
 
-char          *configfile        = CPATH; /**< Server configuration file */
+char          *configfile        = "ircd.conf"; /**< Server configuration file */
 int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
 int            maxconnections    = MAXCONNECTIONS; /**< Maximum number of open files */
@@ -769,27 +769,6 @@ static void daemon_init(int no_fork) {
   setsid();
 }
 
-/** Check that we have access to a particular file.
- * If we do not have access to the file, complain on stderr.
- * @param[in] path File name to check for access.
- * @param[in] which Configuration character associated with file.
- * @param[in] mode Bitwise combination of R_OK, W_OK, X_OK and/or F_OK.
- * @return Non-zero if we have the necessary access, zero if not.
- */
-static char check_file_access(const char *path, char which, int mode) {
-  if (!access(path, mode))
-    return 1;
-
-  fprintf(stderr, 
-	  "Check on %cPATH (%s) failed: %s\n"
-	  "Please create this file and/or rerun `configure' "
-	  "using --with-%cpath and recompile to correct this.\n",
-	  which, path, strerror(errno), which);
-
-  return 0;
-}
-
-
 /*----------------------------------------------------------------------------
  * set_core_limit
  *--------------------------------------------------------------------------*/
@@ -883,9 +862,17 @@ int main(int argc, char **argv) {
     return 3;
 
   /* Check paths for accessibility */
-  if (!check_file_access(SPATH, 'S', X_OK) ||
-      !check_file_access(configfile, 'C', R_OK))
+  if (access(SPATH, X_OK) < 0) {
+    fprintf(stderr, "ircd binary %s is not executable; please check it.\n",
+      SPATH);
     return 4;
+  }
+
+  if (access(configfile, R_OK) < 0) {
+    fprintf(stderr, "Config file %s is not readable; please check it\n"
+      "or use -f <filename> parameter.\n", configfile);
+    return 5;
+  }
 
   if (!init_connection_limits(maxconnections))
     return 9;
