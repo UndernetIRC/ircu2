@@ -53,7 +53,7 @@ const struct match_test match_tests[] = {
   { "\\?",
     "?\0",
     "a\0" },
-  { "*\\\\[*!~*",
+  { "*\\[*!~*",
     "har\\[dy!~boy\0",
     "dark\\s|de!pimp\0joe\\[mama\0" },
   { NULL, NULL, NULL }
