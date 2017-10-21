@@ -1028,10 +1028,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
           ClrFlag(sptr, FLAG_OPER);
           ClrFlag(sptr, FLAG_LOCOP);
           if (MyConnect(sptr))
-          {
             tmpmask = cli_snomask(sptr) & ~SNO_OPER;
-            cli_handler(sptr) = CLIENT_HANDLER;
-          }
         }
         break;
       case 'O':
@@ -1042,10 +1039,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
           ClrFlag(sptr, FLAG_OPER);
           ClrFlag(sptr, FLAG_LOCOP);
           if (MyConnect(sptr))
-          {
             tmpmask = cli_snomask(sptr) & ~SNO_OPER;
-            cli_handler(sptr) = CLIENT_HANDLER;
-          }
         }
         break;
       case 'i':
@@ -1127,7 +1121,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   {
     if ((FlagHas(&setflags, FLAG_OPER) || FlagHas(&setflags, FLAG_LOCOP)) &&
         !IsAnOper(sptr))
+    {
+      cli_handler(sptr) = CLIENT_HANDLER;
       det_confs_butmask(sptr, CONF_CLIENT & ~CONF_OPERATOR);
+    }
 
     if (SendServNotice(sptr))
     {
