@@ -119,6 +119,8 @@ int mr_pass(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (password[0] == '\0')
     return need_more_params(cptr, "PASS");
 
-  ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
+  if (cli_passwd(cptr)[0] == '\0')
+    ircd_strncpy(cli_passwd(cptr), password, PASSWDLEN);
+
   return cli_auth(cptr) ? auth_set_password(cli_auth(cptr), password) : 0;
 }
