@@ -437,7 +437,10 @@ static void accept_connection(struct Event* ev)
 {
   struct Listener*    listener;
   struct irc_sockaddr addr;
+  const char*         msg;
   int                 fd;
+  int                 len;
+  char                msgbuf[BUFSIZE];
 
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
@@ -494,8 +497,13 @@ static void accept_connection(struct Event* ev)
        */
       if (fd > MAXCLIENTS - 1)
       {
+        msg = "All connections in use";
+      reject:
         ++ServerStats->is_ref;
-        send(fd, "ERROR :All connections in use\r\n", 32, 0);
+        len = snprintf(msgbuf, sizeof(msgbuf), ":%s ERROR :%s\r\n",
+          cli_name(&me), msg);
+        if (len < sizeof(msgbuf))
+          send(fd, msgbuf, len, 0);
         close(fd);
         return;
       }
@@ -506,20 +514,16 @@ static void accept_connection(struct Event* ev)
        */
       if (!listener_active(listener))
       {
-        ++ServerStats->is_ref;
-        send(fd, "ERROR :Use another port\r\n", 25, 0);
-        close(fd);
-        continue;
+        msg = "Use another port";
+        goto reject;
       }
       /*
        * check to see if connection is allowed for this address mask
        */
       if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
       {
-        ++ServerStats->is_ref;
-        send(fd, "ERROR :Use another port\r\n", 25, 0);
-        close(fd);
-        continue;
+        msg = "Use another port";
+        goto reject;
       }
       ++ServerStats->is_ac;
       /* nextping = CurrentTime; */
