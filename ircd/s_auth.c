@@ -341,7 +341,7 @@ badid:
   if (IsGotId(sptr) && !strcmp(cli_username(sptr), user->username))
     return 0;
 
-  ServerStats->is_ref++;
+  ++ServerStats->is_bad_username;
   send_reply(sptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
              ":Your username is invalid.");
   send_reply(sptr, SND_EXPLICIT | ERR_INVALIDUSERNAME,
@@ -458,7 +458,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     killreason = find_kill(sptr);
     if (killreason)
     {
-      ServerStats->is_ref++;
+      ++ServerStats->is_k_lined;
       return exit_client(sptr, sptr, &me,
                          (killreason == -1 ? "K-lined" : "G-lined"));
     }
@@ -537,7 +537,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
           && !EmptyString(aconf->passwd)
           && strcmp(cli_passwd(auth->client), aconf->passwd))
       {
-        ServerStats->is_ref++;
+        ++ServerStats->is_bad_password;
         send_reply(auth->client, ERR_PASSWDMISMATCH);
         res = exit_client(auth->client, auth->client, &me, "Bad Password");
       }
@@ -615,7 +615,7 @@ static int preregister_user(struct Client *cptr)
   case ACR_NO_AUTHORIZATION:
     sendto_opmask_butone(0, SNO_UNAUTH, "Unauthorized connection from %s.",
                          get_client_name(cptr, HIDE_IP));
-    ++ServerStats->is_ref;
+    ++ServerStats->is_no_client;
     return exit_client(cptr, cptr, &me,
                        "No Authorization - use another server");
   case ACR_TOO_MANY_IN_CLASS:
@@ -623,7 +623,7 @@ static int preregister_user(struct Client *cptr)
                                      "Too many connections in class %s for %s.",
                                      get_client_class(cptr),
                                      get_client_name(cptr, SHOW_IP));
-    ++ServerStats->is_ref;
+    ++ServerStats->is_class_full;
     return exit_client(cptr, cptr, &me,
                        "Sorry, your connection class is full - try "
                        "again later or try another server");
@@ -631,13 +631,13 @@ static int preregister_user(struct Client *cptr)
     sendto_opmask_butone_ratelimited(0, SNO_TOOMANY, &last_too_many2,
                                      "Too many connections from same IP for %s.",
                                      get_client_name(cptr, SHOW_IP));
-    ++ServerStats->is_ref;
+    ++ServerStats->is_ip_full;
     return exit_client(cptr, cptr, &me,
                        "Too many connections from your host");
   case ACR_ALREADY_AUTHORIZED:
     /* Can this ever happen? */
   case ACR_BAD_SOCKET:
-    ++ServerStats->is_ref;
+    ++ServerStats->is_bad_socket;
     IPcheck_connect_fail(cptr, 0);
     return exit_client(cptr, cptr, &me, "Unknown error -- Try again");
   }
@@ -1304,7 +1304,7 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
   if (!ipmask_parse(ip, &cli_ip(sptr), NULL))
     return 2;
   if (!IPcheck_local_connect(&cli_ip(sptr), &next_target)) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_throttled;
     return exit_client(sptr, sptr, &me, "Your host is trying to (re)connect too fast -- throttled");
   }
   SetIPChecked(sptr);

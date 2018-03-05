@@ -560,6 +560,7 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
   int i;
   struct ServerStatistics *sp;
   struct ServerStatistics tmp;
+  unsigned int is_ref;
 
   sp = &tmp;
   memcpy(sp, ServerStats, sizeof(struct ServerStatistics));
@@ -585,8 +586,30 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
       sp->is_ni++;
   }
 
+  is_ref = sp->is_inactive + sp->is_all_inuse + sp->is_bad_ip
+    + sp->is_reg_collided + sp->is_bad_username + sp->is_k_lined
+    + sp->is_bad_password + sp->is_no_client + sp->is_class_full
+    + sp->is_ip_full + sp->is_bad_socket + sp->is_throttled
+    + sp->is_not_hub + sp->is_crule_fail + sp->is_not_server
+    + sp->is_bad_server;
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
-	     sp->is_ac, sp->is_ref);
+	     sp->is_ac, is_ref);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":inactive %u all in use %u bad ip %u collided %u",
+             sp->is_inactive, sp->is_all_inuse, sp->is_bad_ip,
+             sp->is_reg_collided);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":bad username %u G/K-lined %u bad password %u no client block %u",
+             sp->is_bad_username, sp->is_k_lined, sp->is_bad_password,
+             sp->is_no_client);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":class full %u IP full %u bad socket %u throttled %u",
+             sp->is_class_full, sp->is_ip_full, sp->is_bad_socket,
+             sp->is_throttled);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":not hub %u crule faile %u no server block %u bad password %u",
+             sp->is_not_hub, sp->is_crule_fail, sp->is_not_server,
+             sp->is_bad_server);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":unknown commands %u prefixes %u", sp->is_unco, sp->is_unpf);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,

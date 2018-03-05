@@ -486,7 +486,7 @@ void add_connection(struct Listener* listener, int fd) {
    * connections.
    */
   if (!os_get_peername(fd, &addr) || !os_set_nonblocking(fd)) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_bad_socket;
     close(fd);
     return;
   }
@@ -518,7 +518,7 @@ void add_connection(struct Listener* listener, int fd) {
      */
     if (!IPcheck_local_connect(&addr.addr, &next_target))
     {
-      ++ServerStats->is_ref;
+      ++ServerStats->is_throttled;
       write(fd, throttle_message, strlen(throttle_message));
       close(fd);
       return;
@@ -541,7 +541,7 @@ void add_connection(struct Listener* listener, int fd) {
   cli_fd(new_client) = fd;
   if (!socket_add(&(cli_socket(new_client)), client_sock_callback,
 		  (void*) cli_connect(new_client), SS_CONNECTED, 0, fd)) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_bad_socket;
     write(fd, register_message, strlen(register_message));
     close(fd);
     cli_fd(new_client) = -1;

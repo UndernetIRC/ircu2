@@ -56,7 +56,22 @@ struct ServerStatistics {
   uint64_t is_cti;              /**< time spent connected by clients */
   uint64_t is_sti;              /**< time spent connected by servers */
   unsigned int is_ac;           /**< connections accepted */
-  unsigned int is_ref;          /**< accepts refused */
+  unsigned int is_inactive;     /**< client rejected: listener shutting down */
+  unsigned int is_all_inuse;    /**< client rejected: all connections in use */
+  unsigned int is_bad_ip;       /**< client rejected: IP not allowed on port */
+  unsigned int is_reg_collided; /**< client rejected: registration collision */
+  unsigned int is_bad_username; /**< client rejected: illegal username */
+  unsigned int is_k_lined;      /**< client rejected: K- or G-lined */
+  unsigned int is_bad_password; /**< client rejected: bad password */
+  unsigned int is_no_client;    /**< client rejected: no Client block */
+  unsigned int is_class_full;   /**< client rejected: too many in class */
+  unsigned int is_ip_full;      /**< client rejected: too many from IP */
+  unsigned int is_bad_socket;   /**< client rejected: socket failure */
+  unsigned int is_throttled;    /**< client rejected: IP connecting too fast */
+  unsigned int is_not_hub;      /**< server rejected: I am not a hub */
+  unsigned int is_crule_fail;   /**< server rejected: CRULE rejected */
+  unsigned int is_not_server;   /**< server rejected: no matching Connect block */
+  unsigned int is_bad_server;   /**< server rejected: bad password */
   unsigned int is_unco;         /**< unknown commands */
   unsigned int is_wrdi;         /**< command going in wrong direction */
   unsigned int is_unpf;         /**< unknown prefix */

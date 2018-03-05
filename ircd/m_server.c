@@ -428,7 +428,7 @@ check_loop_and_lh(struct Client* cptr, struct Client *sptr, time_t *ghost, const
     }
     else /* I_AM_NOT_HUB */
     {
-      ServerStats->is_ref++;
+      ++ServerStats->is_not_hub;
       return exit_client(cptr, LHcptr, &me, "I'm a leaf, define the HUB feature");
     }
   }
@@ -548,7 +548,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* check connection rules */
   if (0 != conf_eval_crule(host, CRULE_ALL)) {
-    ServerStats->is_ref++;
+    ++ServerStats->is_crule_fail;
     sendto_opmask_butone(0, SNO_OLDSNO, "Refused connection from %s.", cli_name(cptr));
     return exit_client(cptr, cptr, &me, "Disallowed by connection rule");
   }
@@ -586,7 +586,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   cli_hopcount(cptr) = hop;
 
   if (conf_check_server(cptr)) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_not_server;
     sendto_opmask_butone(0, SNO_OLDSNO, "Received unauthorized connection "
                          "from %s.", cli_name(cptr));
     log_write(LS_NETWORK, L_NOTICE, LOG_NOSNOTICE, "Received unauthorized "
@@ -600,7 +600,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   update_load();
 
   if (!(aconf = find_conf_byname(cli_confs(cptr), host, CONF_SERVER))) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_not_server;
     sendto_opmask_butone(0, SNO_OLDSNO, "Access denied. No conf line for "
                          "server %s", cli_name(cptr));
     return exit_client_msg(cptr, cptr, &me,
@@ -608,7 +608,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
 
   if (*aconf->passwd && !!strcmp(aconf->passwd, cli_passwd(cptr))) {
-    ++ServerStats->is_ref;
+    ++ServerStats->is_bad_server;
     sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (passwd mismatch) %s",
                          cli_name(cptr));
     return exit_client_msg(cptr, cptr, &me,

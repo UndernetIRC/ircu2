@@ -498,8 +498,8 @@ static void accept_connection(struct Event* ev)
       if (fd > MAXCLIENTS - 1)
       {
         msg = "All connections in use";
+        ++ServerStats->is_all_inuse;
       reject:
-        ++ServerStats->is_ref;
         len = snprintf(msgbuf, sizeof(msgbuf), ":%s ERROR :%s\r\n",
           cli_name(&me), msg);
         if (len < sizeof(msgbuf))
@@ -515,6 +515,7 @@ static void accept_connection(struct Event* ev)
       if (!listener_active(listener))
       {
         msg = "Use another port";
+        ++ServerStats->is_inactive;
         goto reject;
       }
       /*
@@ -523,6 +524,7 @@ static void accept_connection(struct Event* ev)
       if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
       {
         msg = "Use another port";
+        ++ServerStats->is_bad_ip;
         goto reject;
       }
       ++ServerStats->is_ac;
