@@ -561,6 +561,7 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
   struct ServerStatistics *sp;
   struct ServerStatistics tmp;
   unsigned int is_ref;
+  unsigned int maxconn;
 
   sp = &tmp;
   memcpy(sp, ServerStats, sizeof(struct ServerStatistics));
@@ -592,6 +593,7 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
     + sp->is_ip_full + sp->is_bad_socket + sp->is_throttled
     + sp->is_not_hub + sp->is_crule_fail + sp->is_not_server
     + sp->is_bad_server;
+  maxconn = MAXCONNECTIONS;
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
 	     sp->is_ac, is_ref);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
@@ -623,8 +625,8 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":local connections %u",
 	     sp->is_loc);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":Client server");
-  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u",
-	     sp->is_cl, sp->is_sv);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":connected %u %u maxconn %u",
+	     sp->is_cl, sp->is_sv, maxconn);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes sent %Lu %Lu",
 	     sp->is_cbs, sp->is_sbs);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":bytes recv %Lu %Lu",
