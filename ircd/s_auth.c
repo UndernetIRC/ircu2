@@ -86,7 +86,6 @@ enum AuthRequestFlag {
     AR_IAUTH_USERNAME,  /**< iauth sent a username (preferred or forced) */
     AR_IAUTH_FUSERNAME, /**< iauth sent a forced username */
     AR_IAUTH_SOFT_DONE, /**< iauth has no objection to client */
-    AR_PASSWORD_CHECKED, /**< client password already checked */
     AR_GLINE_CHECKED,   /**< checked for a G-line banning the client */
     AR_NUM_FLAGS
 };
@@ -435,10 +434,6 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
         || FlagHas(&auth->flags, AR_NEEDS_USER))
       return 0;
 
-    /* If appropriate, do preliminary assignment to Client block. */
-    if (preregister_user(auth->client))
-      return CPTR_KILLED;
-
     /* Copy username to struct User.username for kill checking. */
     sptr = auth->client;
     user = cli_user(sptr);
@@ -489,27 +484,6 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     }
   }
 
-  /* If we have not done so, check client password.  Do this as soon
-   * as possible so that iauth's challenge/response (which uses PASS
-   * for responses) is not confused with the client's password.
-   */
-  if (IsUserPort(auth->client)
-      && !FlagHas(&auth->flags, AR_PASSWORD_CHECKED))
-  {
-    struct ConfItem *aconf;
-
-    aconf = cli_confs(auth->client)->value.aconf;
-    if (aconf
-        && !EmptyString(aconf->passwd)
-        && strcmp(cli_passwd(auth->client), aconf->passwd))
-    {
-      ServerStats->is_ref++;
-      send_reply(auth->client, ERR_PASSWDMISMATCH);
-      return exit_client(auth->client, auth->client, &me, "Bad Password");
-    }
-    FlagSet(&auth->flags, AR_PASSWORD_CHECKED);
-  }
-
   /* Check if iauth is done. */
   hurry_up = 0;
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING))
@@ -526,8 +500,13 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
         cli_firsttime(auth->client) = CurrentTime;
     }
 
+    /* Notify IAuth (if appropriate). */
     if (!from_iauth)
       iauth_notify(auth, (enum AuthRequestFlag)bitclr);
+
+    /* Do we need to tell IAuth to hurry up? */
+    if (hurry_up && IAuthHas(iauth, IAUTH_UNDERNET))
+      sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
 
     Debug((DEBUG_INFO, "Auth %p [%d] still has flag %d", auth,
            cli_fd(auth->client), AR_IAUTH_PENDING));
@@ -539,16 +518,34 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   res = 0;
   if (IsUserPort(auth->client))
   {
-    memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
     res = auth_set_username(auth);
+
+    /* If client has an attached conf, IAuth assigned a class; use it.
+     * Otherwise, assign to a Client block and check password.
+     */
+    if (!cli_confs(auth->client))
+    {
+      struct ConfItem *aconf;
+
+      /* If appropriate, do preliminary assignment to Client block. */
+      if ((res == 0) && preregister_user(auth->client))
+        res = CPTR_KILLED;
+
+      /* Check password. */
+      aconf = cli_confs(auth->client)->value.aconf;
+      if (aconf
+          && !EmptyString(aconf->passwd)
+          && strcmp(cli_passwd(auth->client), aconf->passwd))
+      {
+        ServerStats->is_ref++;
+        send_reply(auth->client, ERR_PASSWDMISMATCH);
+        res = exit_client(auth->client, auth->client, &me, "Bad Password");
+      }
+    }
+
+    memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
     if (res == 0)
       res = register_user(auth->client, auth->client);
-    /* Notify IAuth (if appropriate). */
-    if ((res == 0) && !from_iauth)
-      iauth_notify(auth, (enum AuthRequestFlag)bitclr);
-    /* Do we need to tell IAuth to hurry up? */
-    if ((res == 0) && hurry_up && IAuthHas(iauth, IAUTH_UNDERNET))
-      sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
   }
   if (res == 0)
     destroy_auth_request(auth);
@@ -2057,12 +2054,9 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
       switch (acr) {
       case ACR_OK:
         /* There should maybe be some way to set FLAG_DOID here.. */
-        break;
       case ACR_TOO_MANY_IN_CLASS:
-        ++ServerStats->is_ref;
-        return exit_client(cli, cli, &me,
-                           "Sorry, your connection class is full - try "
-                           "again later or try another server");
+        /* Take iauth's word for it. */
+        break;
       default:
         log_write(LS_IAUTH, L_ERROR, 0, "IAuth: Unexpected AuthorizationCheckResult %d from attach_conf()", acr);
         break;
