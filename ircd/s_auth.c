@@ -506,7 +506,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
 
     /* Do we need to tell IAuth to hurry up? */
     if (hurry_up && IAuthHas(iauth, IAUTH_UNDERNET))
-      sendto_iauth(auth->client, "H %s", get_client_class(auth->client));
+      sendto_iauth(auth->client, "H");
 
     Debug((DEBUG_INFO, "Auth %p [%d] still has flag %d", auth,
            cli_fd(auth->client), AR_IAUTH_PENDING));
@@ -518,34 +518,40 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
   res = 0;
   if (IsUserPort(auth->client))
   {
+    struct Client *cptr = auth->client;
+
+    ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
+    ircd_strncpy(cli_user(cptr)->realhost, cli_sockhost(cptr), HOSTLEN);
     res = auth_set_username(auth);
 
     /* If client has an attached conf, IAuth assigned a class; use it.
      * Otherwise, assign to a Client block and check password.
      */
-    if (!cli_confs(auth->client))
+    if (!cli_confs(cptr))
     {
       struct ConfItem *aconf;
 
       /* If appropriate, do preliminary assignment to Client block. */
-      if ((res == 0) && preregister_user(auth->client))
+      if ((res == 0) && preregister_user(cptr))
         res = CPTR_KILLED;
 
       /* Check password. */
-      aconf = cli_confs(auth->client)->value.aconf;
-      if (aconf
+      if ((res == 0)
+          && ((aconf = cli_confs(cptr)->value.aconf) != NULL)
           && !EmptyString(aconf->passwd)
-          && strcmp(cli_passwd(auth->client), aconf->passwd))
+          && strcmp(cli_passwd(cptr), aconf->passwd))
       {
         ++ServerStats->is_bad_password;
-        send_reply(auth->client, ERR_PASSWDMISMATCH);
-        res = exit_client(auth->client, auth->client, &me, "Bad Password");
+        send_reply(cptr, ERR_PASSWDMISMATCH);
+        res = exit_client(cptr, cptr, &me, "Bad Password");
       }
     }
 
-    memset(cli_passwd(auth->client), 0, sizeof(cli_passwd(auth->client)));
     if (res == 0)
-      res = register_user(auth->client, auth->client);
+    {
+      memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
+      res = register_user(cptr, cptr);
+    }
   }
   if (res == 0)
     destroy_auth_request(auth);
@@ -600,9 +606,6 @@ static int preregister_user(struct Client *cptr)
 {
   static time_t last_too_many1;
   static time_t last_too_many2;
-
-  ircd_strncpy(cli_user(cptr)->host, cli_sockhost(cptr), HOSTLEN);
-  ircd_strncpy(cli_user(cptr)->realhost, cli_sockhost(cptr), HOSTLEN);
 
   if (find_conf_client(cptr)) {
     return 0;

@@ -192,14 +192,12 @@ Compatibility: This is an Undernet extension and ircd does not send
   it.  It is enabled by the iauth instance requesting the U policy.
 
 H - Hurry Up
-Syntax: <id> H <class>
-Example: 5 H Others
+Syntax: <id> H
+Example: 5 H
 States: REGISTER
 Next State: HURRY
 Comments: Indicates that the server is ready to register the client
-  except for needing a response from the iauth server.  <class> is
-  a tentative connection class for the user, which will be used unless
-  iauth overrides it in a D or R message.
+  except for needing a response from the iauth server.
 Compatibility: This is an Undernet extension and ircd does not send
   it.  It is enabled by the iauth instance requesting the U policy.
 
