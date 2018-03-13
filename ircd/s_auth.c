@@ -65,6 +65,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -1448,6 +1449,7 @@ int iauth_do_spawn(struct IAuth *iauth, int automatic)
   }
 
   /* If we got here, something was seriously wrong. */
+  fprintf(stderr, "Unable to exec IAuth: %s\n", strerror(errno));
   exit(EXIT_FAILURE);
 }
 
