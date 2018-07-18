@@ -663,12 +663,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
        */
       if (IsHandshake(cptr) || IsServer(cptr))
       {
-        while (-1)
+        while (1)
         {
           dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
-          if (dolen <= 0)
-            return 1;
-          else if (dolen == 0)
+          if (dolen == 0)
           {
             if (DBufLength(&(cli_recvQ(cptr))) < 510)
               SetFlag(cptr, FLAG_NONL);
