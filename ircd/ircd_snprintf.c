@@ -2000,7 +2000,7 @@ doprintf(struct Client *dest, struct BufData *buf_p, const char *fmt,
 
       doprintf(dest, &buf_s, vdata->vd_format, vdata->vd_args);
 
-      plen = (fld_s.width - buf_s.buf_loc <= 0 ? 0 :
+      plen = (fld_s.width <= buf_s.buf_loc ? 0 :
 	      fld_s.width - buf_s.buf_loc);
 
       if (plen > 0) {
