@@ -82,6 +82,7 @@
 #include "config.h"
 
 #include "client.h"
+#include "handlers.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
 #include "ircd_relay.h"

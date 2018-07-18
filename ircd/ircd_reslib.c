@@ -141,7 +141,7 @@ static int irc_ns_name_compress(const char *src, unsigned char *dst, size_t dsts
     const unsigned char **dnptrs, const unsigned char **lastdnptr);
 static int irc_dn_find(const unsigned char *, const unsigned char *, const unsigned char * const *,
                        const unsigned char * const *);
-static int irc_encode_bitsring(const char **, const char *, unsigned char **, unsigned char **,
+static int irc_encode_bitstring(const char **, const char *, unsigned char **, unsigned char **,
                                const char *);
 static int mklower(int ch);
 
@@ -728,7 +728,7 @@ irc_ns_name_pton(const char *src, unsigned char *dst, size_t dstsiz)
           errno = EINVAL; /* ??? */
           return(-1);
         }
-        if ((e = irc_encode_bitsring(&src,
+        if ((e = irc_encode_bitstring(&src,
                cp + 2,
                &label,
                &bp,
@@ -964,17 +964,15 @@ irc_ns_name_compress(const char *src, unsigned char *dst, size_t dstsiz,
  * @param[out] eom End of output buffer.
  */
 static int
-irc_encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
+irc_encode_bitstring(const char **bp, const char *end, unsigned char **labelp,
                     unsigned char **dst, const char *eom)
 {
   int afterslash = 0;
   const char *cp = *bp;
   char *tp, c;
-  const char *beg_blen;
+  const char *beg_blen = NULL;
   char *end_blen = NULL;
   int value = 0, count = 0, tbcount = 0, blen = 0;
-
-  beg_blen = end_blen = NULL;
 
   /* a bitstring must contain at least 2 characters */
   if (end - cp < 2)

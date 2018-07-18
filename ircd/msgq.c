@@ -194,7 +194,7 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
   assert(0 != count);
   assert(0 != len);
 
-  if (mq->length <= 0) /* no data to map */
+  if (mq->length < 1) /* no data to map */
     return 0;
 
   if (mq->queue.head && mq->queue.head->sent > 0) { /* partial msg on norm q */

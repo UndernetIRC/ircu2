@@ -144,7 +144,7 @@ static void timeout_resolver(struct Event *notused);
 
 extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
-extern char irc_domain[HOSTLEN];
+extern char irc_domain[HOSTLEN + 1];
 
 /** Prepare the resolver library to (optionally) accept a list of
  * DNS servers through add_dns_server().

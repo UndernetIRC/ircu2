@@ -188,8 +188,6 @@ int ms_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   tmpport = aconf->address.port;
   if (port)
     aconf->address.port = port;
-  else
-    port = aconf->address.port;
 
   /*
    * Notify all operators about remote connect requests

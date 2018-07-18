@@ -685,7 +685,6 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (parc < 8)
   {
     return need_more_params(sptr, "SERVER");
-    return exit_client(cptr, cptr, &me, "Need more parameters");
   }
   host = clean_servername(parv[1]);
   if (!host)

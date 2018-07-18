@@ -2346,7 +2346,8 @@ static void iauth_read(struct IAuth *iauth)
 				 sizeof(readbuf) - length - 1,
 				 &count))
     return;
-  readbuf[length += count] = '\0';
+  length += count;
+  readbuf[length] = '\0';
 
   /* Parse each complete line. */
   for (sol = readbuf; (eol = strchr(sol, '\n')) != NULL; sol = eol + 1) {
@@ -2423,7 +2424,8 @@ static void iauth_read_stderr(struct IAuth *iauth)
                                  sizeof(readbuf) - length - 1,
                                  &count))
     return;
-  readbuf[length += count] = '\0';
+  length += count;
+  readbuf[length] = '\0';
 
   /* Send each complete line to SNO_AUTH. */
   for (sol = readbuf; (eol = strchr(sol, '\n')) != NULL; sol = eol + 1) {

@@ -230,9 +230,9 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
 	/* OK, create the local G-line */
 	Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
-	       "mask %s, operforce %s, action %s, expire %Tu, reason: %s",
+	       "mask %s, operforce %s, expire %Tu, reason: %s",
 	       target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	       action == GLINE_ACTIVATE ? "+" : "-", expire, reason));
+	       expire, reason));
 
 	return gline_add(cptr, sptr, mask, reason, expire, lastmod,
 			 lifetime, flags | GLINE_ACTIVE);
@@ -243,9 +243,8 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       /* Let's now destroy the G-line */;
       Debug((DEBUG_DEBUG, "I am destroying a local G-line here; target %s, "
-	     "mask %s, operforce %s, action %s", target, mask,
-	     flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? "+" : "-"));
+	     "mask %s, operforce %s", target, mask,
+	     flags & GLINE_OPERFORCE ? "YES" : "NO"));
 
       return gline_destroy(cptr, sptr, agline);
     }
@@ -578,9 +577,9 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       /* OK, create the local G-line */
       Debug((DEBUG_DEBUG, "I am creating a local G-line here; target %s, "
-	     "mask %s, operforce %s, action  %s, expire %Tu, reason: %s",
+	     "mask %s, operforce %s, expire %Tu, reason: %s",
 	     target, mask, flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? "+" : "-", expire, reason));
+	     expire, reason));
 
       return gline_add(cptr, sptr, mask, reason, expire, 0, 0,
 		       flags | GLINE_ACTIVE);
@@ -590,9 +589,8 @@ mo_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 
       /* Let's now destroy the G-line */
       Debug((DEBUG_DEBUG, "I am destroying a local G-line here; target %s, "
-	     "mask %s, operforce %s, action %s", target, mask,
-	     flags & GLINE_OPERFORCE ? "YES" : "NO",
-	     action == GLINE_ACTIVATE ? "+" : "-"));
+	     "mask %s, operforce %s", target, mask,
+	     flags & GLINE_OPERFORCE ? "YES" : "NO"));
 
       return gline_destroy(cptr, sptr, agline);
     }

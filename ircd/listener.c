@@ -475,11 +475,10 @@ static void accept_connection(struct Event* ev)
     {
       if ((fd = os_accept(s_fd(ev_socket(ev)), &addr)) == -1)
       {
-        if (errno == EAGAIN ||
+        if (errno == EAGAIN) return;
 #ifdef EWOULDBLOCK
-            errno == EWOULDBLOCK)
+	if (errno == EWOULDBLOCK) return;
 #endif
-          return;
       /* Lotsa admins seem to have problems with not giving enough file
        * descriptors to their server so we'll add a generic warning mechanism
        * here.  If it turns out too many messages are generated for

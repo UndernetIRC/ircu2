@@ -252,8 +252,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
           rus.ru_nsignals, rus.ru_nvcsw, rus.ru_nivcsw);
   (*enumerator)(cptr, buf);
 
-#else /* HAVE_GETRUSAGE */
-#if HAVE_TIMES
+#elif HAVE_TIMES
   char buf[256];
   struct tms tmsbuf;
   time_t secs, mins;
@@ -281,8 +280,7 @@ int os_get_rusage(struct Client *cptr, int uptime, EnumFn enumerator)
   sprintf(buf, "CPU Secs %d:%d User %d:%d System %d:%d", 
           mins, secs, umin, usec, smin, ssec);
   (*enumerator)(cptr, buf);
-#endif /* HAVE_TIMES */
-#endif /* HAVE_GETRUSAGE */
+#endif /* HAVE_GETRUSAGE, elif HAVE_TIMES */
   return 1;
 }
 #endif
