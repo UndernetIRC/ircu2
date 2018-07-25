@@ -528,7 +528,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     /* If client has an attached conf, IAuth assigned a class; use it.
      * Otherwise, assign to a Client block and check password.
      */
-    if (!cli_confs(cptr))
+    if ((res == 0) && !cli_confs(cptr))
     {
       struct ConfItem *aconf;
 
