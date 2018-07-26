@@ -667,16 +667,10 @@ static int read_packet(struct Client *cptr, int socket_ready)
         {
           dolen = dbuf_get(&(cli_recvQ(cptr)), readbuf, sizeof(readbuf));
           if (dolen == 0)
-          {
-            if (DBufLength(&(cli_recvQ(cptr))) < 510)
-              SetFlag(cptr, FLAG_NONL);
-            else
-              DBufClear(&(cli_recvQ(cptr)));
-          }
-          else if ((IsServer(cptr) &&
-                    server_dopacket(cptr, readbuf, dolen) == CPTR_KILLED) ||
-                   (!IsServer(cptr) &&
-                    connect_dopacket(cptr, readbuf, dolen) == CPTR_KILLED))
+            return 1;
+          if ((IsServer(cptr)
+               ? server_dopacket(cptr, readbuf, dolen)
+               : connect_dopacket(cptr, readbuf, dolen)) == CPTR_KILLED)
             return CPTR_KILLED;
         }
       }
