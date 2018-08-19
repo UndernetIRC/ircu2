@@ -105,7 +105,7 @@ static void makeTables(void)
   markRange(NTL_IRCCL, '\330', '\336');
 
   moveMacro(NTL_ALNUM, NTL_IRCHN);
-  markString(NTL_IRCHN, "-_.");	/* Some DNS might allow '_' per RFC 1033 ! */
+  markString(NTL_IRCHN, "-_.:");	/* Some DNS might allow '_' per RFC 1033 ! */
 
   moveMacro(NTL_DIGIT, NTL_IRCIP);
   markString(NTL_IRCIP, ".");
