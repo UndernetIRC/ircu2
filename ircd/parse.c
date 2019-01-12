@@ -1055,6 +1055,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
      */
     if (0 == i)
     {
+      Debug((DEBUG_ERROR, "Missing prefix from %C: %s", cptr, ch));
       protocol_violation(cptr,"Missing Prefix");
       from = cptr;
     }
