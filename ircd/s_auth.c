@@ -2343,17 +2343,26 @@ static void iauth_read(struct IAuth *iauth)
   memcpy(readbuf, iauth->i_buffer, length);
   if (IO_SUCCESS != os_recv_nonb(s_fd(i_socket(iauth)),
 				 readbuf + length,
-				 sizeof(readbuf) - length - 1,
+				 sizeof(readbuf) - length,
 				 &count))
     return;
   length += count;
-  readbuf[length] = '\0';
 
   /* Parse each complete line. */
-  for (sol = readbuf; (eol = strchr(sol, '\n')) != NULL; sol = eol + 1) {
-    *eol = '\0';
-    if (*(eol - 1) == '\r') /* take out carriage returns, too... */
-      *(eol - 1) = '\0';
+  for (sol = readbuf; 1; sol = eol + 1) {
+    for (eol = sol; eol != readbuf+length && !IsEol(*eol) && *eol != '\0'; eol++) {}
+    if (eol == readbuf+length) {
+      break;
+    } else if (*eol == '\n') {
+      *eol = '\0';
+    } else if (*eol == '\r' && eol[1] == '\n') {
+      *eol = '\0';
+      *++eol = '\0';
+    } else {
+      log_write(LS_IAUTH, L_WARNING, 0,
+        "Illegal control character from IAuth: \\x%02x", (int)*eol);
+      continue;
+    }
 
     /* If spammy debug, send the message to opers. */
     if (i_debug(iauth) > 1)
@@ -2364,7 +2373,7 @@ static void iauth_read(struct IAuth *iauth)
   }
 
   /* Put unused data back into connection's buffer. */
-  iauth->i_count = strlen(sol);
+  iauth->i_count = readbuf + length - sol;
   if (iauth->i_count > BUFSIZE)
     iauth->i_count = BUFSIZE;
   memcpy(iauth->i_buffer, sol, iauth->i_count);
