@@ -153,7 +153,7 @@ void vdebug(int level, const char *form, va_list vl)
   if (!loop && (debuglevel >= 0) && (level <= debuglevel))
   {
     loop = 1;
-    log_vwrite(LS_DEBUG, L_DEBUG, 0, form, vl);
+    log_vwrite(LS_DEBUG, level, 0, form, vl);
     loop = 0;
   }
   errno = err;
