@@ -2492,13 +2492,22 @@ static void iauth_stderr_callback(struct Event *ev)
  */
 void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
-    struct SLink *link;
+  struct SLink *link;
 
-    if (iauth) for (link = iauth->i_config; link; link = link->next)
-    {
-        send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
-                   link->value.cp);
-    }
+  if (!iauth)
+    return;
+
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, " :%s",
+    iauth->i_version ? iauth->i_version : "IAuth did not report a version");
+  for (link = iauth->i_config; link; link = link->next)
+  {
+    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", link->value.cp);
+  }
+
+  if (param && !strcmp(param, "get"))
+  {
+    sendto_iauth(NULL, "? config");
+  }
 }
 
 /** Report active iauth's statistics to \a cptr.
@@ -2508,11 +2517,18 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
  */
  void report_iauth_stats(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
-    struct SLink *link;
+  struct SLink *link;
 
-    if (iauth) for (link = iauth->i_stats; link; link = link->next)
-    {
-        send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s",
-                   link->value.cp);
-    }
+  if (!iauth)
+    return;
+
+  for (link = iauth->i_stats; link; link = link->next)
+  {
+    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", link->value.cp);
+  }
+
+  if (param && !strcmp(param, "get"))
+  {
+    sendto_iauth(NULL, "? stats");
+  }
 }

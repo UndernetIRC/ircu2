@@ -261,6 +261,17 @@ Comments: Used to indicate to the iauth instance that the server
 Compatibility: This is an Undernet extension and ircd does not send
   it.
 
+? - Information Request
+Syntax: <id> ? <type>
+Example: -1 ? config
+States: N/A
+Next State: -
+Comments: Request that the iauth program send a particular type of
+  information to the server.  The predefined values for <type> are:
+  config - iauth should send an "a", followed by all current "A" lines
+  stats - iauth should send an "s", followed by all current "S" lines
+Compatibility: This is an Undernet extension and ircd does not send it.
+
 IAUTH MESSAGES
 ==============
 
