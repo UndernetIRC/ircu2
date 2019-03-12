@@ -141,7 +141,7 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return send_reply(sptr, ERR_NOPRIVILEGES);
 
   /* Check for extra parameter */
-  if ((sd->sd_flags & STAT_FLAG_VARPARAM) && parc > 3 && !EmptyString(parv[3]))
+  if (parc > 3 && !EmptyString(parv[3]))
     param = parv[3];
   else
     param = NULL;
@@ -155,6 +155,10 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Check if they are a local user */
   if ((sd->sd_flags & STAT_FLAG_LOCONLY) && !MyUser(sptr))
     return send_reply(sptr, ERR_NOPRIVILEGES);
+
+  /* Should we ignore "param"? */
+  if (!(sd->sd_flags & STAT_FLAG_VARPARAM))
+     param = NULL;
 
   assert(sd->sd_func != 0);
 
