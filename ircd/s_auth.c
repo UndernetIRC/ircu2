@@ -442,7 +442,7 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     {
       clean_username(user->username, cli_username(sptr));
     }
-    else if (HasFlag(sptr, FLAG_DOID))
+    else if (DoIdentLookups)
     {
       /* Prepend ~ to user->username. */
       char *s = user->username;
@@ -1157,7 +1157,8 @@ void start_auth(struct Client* client)
     start_dns_query(auth);
 
     /* Try to start ident lookup. */
-    start_auth_query(auth);
+    if (DoIdentLookups)
+      start_auth_query(auth);
   }
 
   /* Add client to GlobalClientList. */
@@ -1320,8 +1321,6 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
   if (username) {
     ircd_strncpy(cli_username(sptr), username, USERLEN);
     SetGotId(sptr);
-  } else {
-    SetFlag(sptr, FLAG_DOID);
   }
 
   start_iauth_query(auth);
@@ -2058,7 +2057,6 @@ static int iauth_cmd_done_client(struct IAuth *iauth, struct Client *cli,
       acr = attach_conf(cli, aconf);
       switch (acr) {
       case ACR_OK:
-        /* There should maybe be some way to set FLAG_DOID here.. */
       case ACR_TOO_MANY_IN_CLASS:
         /* Take iauth's word for it. */
         break;

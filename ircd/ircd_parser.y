@@ -840,6 +840,8 @@ clientblock: CLIENT
     MyFree(ip);
     MyFree(pass);
   }
+  if (username)
+    DoIdentLookups = 1;
   host = NULL;
   username = NULL;
   c_class = NULL;

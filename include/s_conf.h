@@ -172,6 +172,7 @@ extern int              GlobalConfCount;
 extern struct s_map*    GlobalServiceMapList;
 extern struct qline*    GlobalQuarantineList;
 extern struct wline*    GlobalWebircList;
+extern int              DoIdentLookups;
 
 /*
  * Proto types
