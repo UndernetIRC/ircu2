@@ -161,6 +161,9 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
       flags |= CHFL_BANNED;
 
+    if (member->channel->mode.mode & MODE_NOPARTMSGS)
+      flags |= CHFL_BANNED;
+
     if (IsDelayedJoin(member))
       flags |= CHFL_DELAYED;
 
