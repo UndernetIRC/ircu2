@@ -108,7 +108,8 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (cli_user(sptr)) {
     struct Membership* chan;
     for (chan = cli_user(sptr)->channel; chan; chan = chan->next_channel) {
-        if (!IsZombie(chan) && !IsDelayedJoin(chan) && !member_can_send_to_channel(chan, 0))
+        if (!IsZombie(chan) && !IsDelayedJoin(chan) &&
+          (!member_can_send_to_channel(chan, 0) || chan->channel->mode.mode & MODE_NOPARTMSGS))
         return exit_client(cptr, sptr, sptr, "Signed off");
     }
   }
