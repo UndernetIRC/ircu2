@@ -126,6 +126,11 @@ do_clearmode(struct Client *cptr, struct Client *sptr, struct Channel *chptr,
     MODE_DELJOINS,      'D',
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
+<<<<<<< HEAD
+=======
+    MODE_MODERATENOREG, 'M',
+    MODE_SSLONLY,       'Z',
+>>>>>>> 94216d4d... implementation of chanmode +M
     0x0, 0x0
   };
   int *flag_p;
