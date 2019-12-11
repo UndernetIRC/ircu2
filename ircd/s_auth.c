@@ -1702,41 +1702,31 @@ static int iauth_cmd_version(struct IAuth *iauth, struct Client *cli,
   return 0;
 }
 
-/** Paste a parameter list together into a single string.
+/** Paste a parameter list together into a single (static) string.
  * @param[in] parc Number of parameters.
  * @param[in] params Parameter list to paste together.
  * @return Pasted parameter list.
  */
 static char *paste_params(int parc, char **params)
 {
-  char *str, *tmp;
-  int len = 0, lengths[MAXPARA], i;
+  static char buf[BUFSIZE+1];
+  int len, i, j;
 
   /* Compute the length... */
-  for (i = 0; i < parc; i++)
-    len += lengths[i] = strlen(params[i]);
-
-  /* Allocate memory, accounting for string lengths, spaces (parc - 1), a
-   * sentinel, and the trailing \0
-   */
-  str = MyMalloc(len + parc + 1);
-
-  /* Build the pasted string */
-  for (tmp = str, i = 0; i < parc; i++) {
-    if (i) /* add space separator... */
-      *(tmp++) = ' ';
-    if (i == parc - 1) /* add colon sentinel */
-      *(tmp++) = ':';
-
-    /* Copy string component... */
-    memcpy(tmp, params[i], lengths[i]);
-    tmp += lengths[i]; /* move to end of string */
+  for (i = len = 0; i < parc; i++) {
+    char *p = params[i];
+    if (i && (len < BUFSIZE)) /* add space separator... */
+      buf[len++] = ' ';
+    if ((i == parc - 1) && (len < BUFSIZE)) /* add colon sentinel */
+      buf[len++] = ':';
+    for (j = 0; (p[j] != '\0') && (len < BUFSIZE); ++j) /* copy arg */
+      buf[len++] = p[j];
   }
 
-  /* terminate the string... */
-  *tmp = '\0';
+  /* terminate the string */
+  buf[len] = '\0';
 
-  return str; /* return the pasted string */
+  return buf;
 }
 
 /** Clear cached iauth configuration information.
@@ -1773,15 +1763,13 @@ static int iauth_cmd_newconfig(struct IAuth *iauth, struct Client *cli,
 static int iauth_cmd_config(struct IAuth *iauth, struct Client *cli,
 			    int parc, char **params)
 {
-  struct SLink *node;
+  struct SLink *node, **pptr;
+  char *line;
 
-  if (iauth->i_config) {
-    for (node = iauth->i_config; node->next; node = node->next) ;
-    node = node->next = make_link();
-  } else {
-    node = iauth->i_config = make_link();
-  }
-  node->value.cp = paste_params(parc, params);
+  for (pptr = &iauth->i_config; *pptr; pptr = &((*pptr)->next)) ;
+  node = *pptr = make_link();
+  line = paste_params(parc, params);
+  DupString(node->value.cp, line);
   node->next = 0; /* must be explicitly cleared */
   return 0;
 }
@@ -1820,14 +1808,13 @@ static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli,
 static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli,
 			   int parc, char **params)
 {
-  struct SLink *node;
-  if (iauth->i_stats) {
-    for (node = iauth->i_stats; node->next; node = node->next) ;
-    node = node->next = make_link();
-  } else {
-    node = iauth->i_stats = make_link();
-  }
-  node->value.cp = paste_params(parc, params);
+  struct SLink *node, **pptr;
+  char *line;
+
+  for (pptr = &iauth->i_stats; *pptr; pptr = &((*pptr)->next)) ;
+  node = *pptr = make_link();
+  line = paste_params(parc, params);
+  DupString(node->value.cp, line);
   node->next = 0; /* must be explicitly cleared */
   return 0;
 }
