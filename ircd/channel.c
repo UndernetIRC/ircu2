@@ -712,10 +712,6 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
   if (member->channel->mode.mode & (MODE_MODERATENOREG|MODE_REGONLY) && !IsAccount(member->user))
     return 0;
 
-  /* If only logged in users may join and you're not one, you can't speak. */
-  if (member->channel->mode.mode & MODE_REGONLY && !IsAccount(member->user))
-    return 0;
-
   /* If you're banned then you can't speak either. */
   if (is_banned(member))
     return 0;
