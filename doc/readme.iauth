@@ -270,6 +270,7 @@ Comments: Request that the iauth program send a particular type of
   information to the server.  The predefined values for <type> are:
   config - iauth should send an "a", followed by all current "A" lines
   stats - iauth should send an "s", followed by all current "S" lines
+  stats2 - iauth should send all current "S" lines, followed by an "s"
 Compatibility: This is an Undernet extension and ircd does not send it.
 
 IAUTH MESSAGES
@@ -332,8 +333,9 @@ Comments: Sets policy options for the iauth conversation.  Old policy
        When this policy is in effect and a DNS message (N or d) is
        sent for a client, that client's registration timeout is
        extended or reset.
-Compatibility: The U policy is an Undernet extension and is not
-  recognized by ircd.
+   S - IAuth supports the "? stats2" info request.
+Compatibility: The U and A policies are an Undernet extensions and are
+  not recognized by ircd.
 
 V - iauth Program Version
 Syntax: V :<version string>
@@ -360,7 +362,8 @@ Syntax: s
 Example: s
 Notify: yes
 Comments: Indicates a new set of statistics will be sent.  Any cached
-  statistics records should be cleared.
+  statistics records should be cleared.  In response to a "? stats2"
+  request, instead marks the end of a set of statistics.
 
 S - Statistics Information
 Syntax: S <module> :<module information>

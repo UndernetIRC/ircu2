@@ -165,6 +165,10 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Ok, dispatch the stats function */
   (*sd->sd_func)(sptr, sd, param);
 
+  /* If the response is asynchronous, do not send RPL_ENDOFSTATS yet. */
+  if (sd->sd_flags & STAT_FLAG_ASYNC)
+    return 0;
+
   /* Done sending them the stats */
   return send_reply(sptr, RPL_ENDOFSTATS, parv[1]);
 }

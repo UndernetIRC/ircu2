@@ -60,6 +60,7 @@
 #include "s_conf.h"
 #include "s_debug.h"
 #include "s_misc.h"
+#include "s_stats.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -158,6 +159,7 @@ enum IAuthFlag
   IAUTH_TIMEOUT,                        /**< Refuse new connections if IAuth is behind. */
   IAUTH_EXTRAWAIT,                      /**< Give IAuth extra time to answer. */
   IAUTH_UNDERNET,                       /**< Enable Undernet extensions. */
+  IAUTH_STATS2,                         /**< Support "? stats2" request. */
   IAUTH_LAST_FLAG                       /**< total number of flags */
 };
 /** Declare a bitset structure indexed by IAuthFlag. */
@@ -207,6 +209,10 @@ struct IAuth {
 static struct IAuth *iauth;
 /** Freelist of AuthRequest structures. */
 static struct AuthRequest *auth_freelist;
+/** Clients currently receiving IAuth statistics. */
+static struct SLink *iauth_stats_clients;
+/** Clients queued to get IAuth statistics. */
+static struct SLink *iauth_stats_queued;
 
 static void iauth_sock_callback(struct Event *ev);
 static void iauth_stderr_callback(struct Event *ev);
@@ -1652,6 +1658,7 @@ static int iauth_cmd_debuglevel(struct IAuth *iauth, struct Client *cli,
  * \li T IAUTH_TIMEOUT
  * \li W IAUTH_EXTRAWAIT
  * \li U IAUTH_UNDERNET
+ * \li S IAUTH_STATS2
  *
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -1677,6 +1684,7 @@ static int iauth_cmd_policy(struct IAuth *iauth, struct Client *cli,
     case 'T': IAuthSet(iauth, IAUTH_TIMEOUT); break;
     case 'W': IAuthSet(iauth, IAUTH_EXTRAWAIT); break;
     case 'U': IAuthSet(iauth, IAUTH_UNDERNET); break;
+    case 'S': IAuthSet(iauth, IAUTH_STATS2); break;
     }
 
   /* Optionally notify operators. */
@@ -1787,14 +1795,34 @@ static int iauth_cmd_newstats(struct IAuth *iauth, struct Client *cli,
   struct SLink *head;
   struct SLink *next;
 
-  head = iauth->i_stats;
-  iauth->i_stats = NULL;
-  for (; head; head = next) {
-    next = head->next;
-    MyFree(head->value.cp);
-    free_link(head);
+  if (iauth_stats_clients)
+  {
+    for (head = iauth_stats_clients; head; head = next)
+    {
+      next = head->next;
+      send_reply(head->value.cptr, RPL_ENDOFSTATS, "iauthstats");
+      free_link(head);
+    }
+
+    iauth_stats_clients = iauth_stats_queued;
+    iauth_stats_queued = NULL;
+    if (iauth_stats_clients)
+    {
+      sendto_iauth(NULL, "? stats2");
+    }
   }
-  sendto_opmask_butone(NULL, SNO_AUTH, "New iauth statistics.");
+  else
+  {
+    head = iauth->i_stats;
+    iauth->i_stats = NULL;
+    for (; head; head = next) {
+      next = head->next;
+      MyFree(head->value.cp);
+      free_link(head);
+    }
+    sendto_opmask_butone(NULL, SNO_AUTH, "New iauth statistics.");
+  }
+
   return 0;
 }
 
@@ -1811,11 +1839,23 @@ static int iauth_cmd_stats(struct IAuth *iauth, struct Client *cli,
   struct SLink *node, **pptr;
   char *line;
 
-  for (pptr = &iauth->i_stats; *pptr; pptr = &((*pptr)->next)) ;
-  node = *pptr = make_link();
   line = paste_params(parc, params);
-  DupString(node->value.cp, line);
-  node->next = 0; /* must be explicitly cleared */
+  if (iauth_stats_clients)
+  {
+    for (node = iauth_stats_clients; node; node = node->next)
+    {
+      struct Client *cptr = node->value.cptr;
+      send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", line);
+    }
+  }
+  else
+  {
+    for (pptr = &iauth->i_stats; *pptr; pptr = &((*pptr)->next)) ;
+    node = *pptr = make_link();
+    DupString(node->value.cp, line);
+    node->next = 0; /* must be explicitly cleared */
+  }
+
   return 0;
 }
 
@@ -2500,20 +2540,63 @@ void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *par
  * @param[in] sd Stats descriptor for request.
  * @param[in] param Extra parameter from user (may be NULL).
  */
- void report_iauth_stats(struct Client *cptr, const struct StatDesc *sd, char *param)
+void report_iauth_stats(struct Client *cptr, const struct StatDesc *sd, char *param)
 {
   struct SLink *link;
 
   if (!iauth)
     return;
 
-  for (link = iauth->i_stats; link; link = link->next)
+  if (IAuthHas(iauth, IAUTH_STATS2))
   {
-    send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", link->value.cp);
-  }
+    struct SLink *link;
 
-  if (param && !strcmp(param, "get"))
-  {
-    sendto_iauth(NULL, "? stats");
+    link = make_link();
+    link->value.cptr = cptr;
+    if (iauth_stats_clients)
+    {
+      link->next = iauth_stats_queued;
+      iauth_stats_queued = link;
+    }
+    else
+    {
+      iauth_stats_clients = link;
+      sendto_iauth(NULL, "? stats2");
+    }
   }
+  else
+  {
+    for (link = iauth->i_stats; link; link = link->next)
+    {
+      send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":%s", link->value.cp);
+    }
+    send_reply(cptr, RPL_ENDOFSTATS, sd->sd_name);
+
+    if (param && !strcmp(param, "get") && !IAuthHas(iauth, IAUTH_STATS2))
+    {
+        sendto_iauth(NULL, "? stats");
+    }
+  }
+}
+
+static void remove_client_from_slist(struct Client *cptr, struct SLink **pptr)
+{
+  for (; *pptr != NULL; pptr = &((*pptr)->next))
+  {
+    if ((*pptr)->value.cptr == cptr)
+    {
+      struct SLink *link = *pptr;
+      *pptr = link->next;
+      free_link(link);
+    }
+  }
+}
+
+/** Cancel a client's request for IAuth statistics.
+ * @param[in] cptr Client to cancel request for.
+ */
+void auth_cancel_iauth_stats(struct Client *cptr)
+{
+  remove_client_from_slist(cptr, &iauth_stats_clients);
+  remove_client_from_slist(cptr, &iauth_stats_queued);
 }

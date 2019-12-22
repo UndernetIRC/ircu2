@@ -154,6 +154,7 @@ enum Flag
     FLAG_BURST,                     /**< Server is receiving a net.burst */
     FLAG_BURST_ACK,                 /**< Server is waiting for eob ack */
     FLAG_IPCHECK,                   /**< Added or updated IPregistry data */
+    FLAG_IAUTH_STATS,               /**< Wanted IAuth statistics */
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
     FLAG_OPER,                      /**< Operator */
@@ -573,6 +574,8 @@ struct Client {
 #define IsUPing(x)              HasFlag(x, FLAG_UPING)
 /** Return non-zero if the client has no '\n' in its buffer. */
 #define NoNewLine(x)            HasFlag(x, FLAG_NONL)
+/** Return non-zero if the client has requested IAuth statistics. */
+#define IsIAuthStats(x)         HasFlag(x, FLAG_IAUTH_STATS)
 /** Return non-zero if the client has set mode +g (debugging). */
 #define SendDebug(x)            HasFlag(x, FLAG_DEBUG)
 /** Return non-zero if the client has set mode +s (server notices). */

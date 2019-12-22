@@ -193,6 +193,11 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     if (IsUPing(bcptr))
       uping_cancel(bcptr, 0);
     /*
+     * Remove from /stats iauthstats lst
+     */
+    if (IsIAuthStats(bcptr))
+      auth_cancel_iauth_stats(bcptr);
+    /*
      * Stop a running /LIST clean
      */
     if (MyUser(bcptr) && cli_listing(bcptr)) {
