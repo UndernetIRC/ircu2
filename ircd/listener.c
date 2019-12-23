@@ -436,6 +436,7 @@ void release_listener(struct Listener* listener)
 static void accept_connection(struct Event* ev)
 {
   struct Listener*    listener;
+  struct Socket*      socket;
   struct irc_sockaddr addr;
   const char*         msg;
   int                 fd;
@@ -445,90 +446,75 @@ static void accept_connection(struct Event* ev)
   assert(0 != ev_socket(ev));
   assert(0 != s_data(ev_socket(ev)));
 
-  listener = (struct Listener*) s_data(ev_socket(ev));
+  socket = ev_socket(ev);
+  listener = (struct Listener*) s_data(socket);
 
   if (ev_type(ev) == ET_DESTROY) /* being destroyed */
     return;
-  else {
-    assert(ev_type(ev) == ET_ACCEPT || ev_type(ev) == ET_ERROR);
 
-    listener->last_accept = CurrentTime;
+  assert(ev_type(ev) == ET_ACCEPT || ev_type(ev) == ET_ERROR);
+
+  listener->last_accept = CurrentTime;
+  /* To be efficient, and to support edge-triggered event loops, we
+   * accept all the connections we can until we encounter an error.
+   */
+  while ((fd = os_accept(s_fd(socket), &addr)) >= 0)
+  {
     /*
-     * There may be many reasons for error return, but
-     * in otherwise correctly working environment the
-     * probable cause is running out of file descriptors
-     * (EMFILE, ENFILE or others?). The man pages for
-     * accept don't seem to list these as possible,
-     * although it's obvious that it may happen here.
-     * Thus no specific errors are tested at this
-     * point, just assume that connections cannot
-     * be accepted until some old is closed first.
-     *
-     * This piece of code implements multi-accept, based
-     * on the idea that poll/select can only be efficient,
-     * if we succeed in handling all available events,
-     * i.e. accept all pending connections.
-     *
-     * http://www.hpl.hp.com/techreports/2000/HPL-2000-174.html
+     * Check for connection limit. If this fd exceeds the limit,
+     * all further accept()ed connections will also exceed it.
+     * Enable the server to clear out other connections before
+     * continuing to accept() new connections.
      */
-    while (1)
+    if (fd >= MAXCLIENTS)
     {
-      if ((fd = os_accept(s_fd(ev_socket(ev)), &addr)) == -1)
-      {
-        if (errno == EAGAIN) return;
-#ifdef EWOULDBLOCK
-	if (errno == EWOULDBLOCK) return;
-#endif
-      /* Lotsa admins seem to have problems with not giving enough file
-       * descriptors to their server so we'll add a generic warning mechanism
-       * here.  If it turns out too many messages are generated for
-       * meaningless reasons we can filter them back.
-       */
-      sendto_opmask_butone(0, SNO_TCPCOMMON,
-			   "Unable to accept connection: %m");
-      return;
-      }
-      /*
-       * check for connection limit. If this fd exceeds the limit,
-       * all further accept()ed connections will also exceed it.
-       * Enable the server to clear out other connections before
-       * continuing to accept() new connections.
-       */
-      if (fd > MAXCLIENTS - 1)
-      {
-        msg = "All connections in use";
-        ++ServerStats->is_all_inuse;
-      reject:
-        len = snprintf(msgbuf, sizeof(msgbuf), ":%s ERROR :%s\r\n",
-          cli_name(&me), msg);
-        if (len < sizeof(msgbuf))
-          send(fd, msgbuf, len, 0);
-        close(fd);
-        return;
-      }
-      /*
-       * check to see if listener is shutting down. Continue
-       * to accept(), because it makes sense to clear our the
-       * socket's queue as fast as possible.
-       */
-      if (!listener_active(listener))
-      {
-        msg = "Use another port";
-        ++ServerStats->is_inactive;
-        goto reject;
-      }
-      /*
-       * check to see if connection is allowed for this address mask
-       */
-      if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
-      {
-        msg = "Use another port";
-        ++ServerStats->is_bad_ip;
-        goto reject;
-      }
-      ++ServerStats->is_ac;
-      /* nextping = CurrentTime; */
-      add_connection(listener, fd);
+      msg = "All connections in use";
+      ++ServerStats->is_all_inuse;
+    reject:
+      len = snprintf(msgbuf, sizeof(msgbuf), ":%s ERROR :%s\r\n",
+        cli_name(&me), msg);
+      if (len < sizeof(msgbuf))
+        send(fd, msgbuf, len, 0);
+      close(fd);
+      continue;
     }
+    /*
+     * check to see if listener is shutting down. Continue
+     * to accept(), because it makes sense to clear our the
+     * socket's queue as fast as possible.
+     */
+    if (!listener_active(listener))
+    {
+      msg = "Use another port";
+      ++ServerStats->is_inactive;
+      goto reject;
+    }
+    /*
+     * check to see if connection is allowed for this address mask
+     */
+    if (!ipmask_check(&addr.addr, &listener->mask, listener->mask_bits))
+    {
+      msg = "Use another port";
+      ++ServerStats->is_bad_ip;
+      goto reject;
+    }
+
+    ++ServerStats->is_ac;
+    add_connection(listener, fd);
+  }
+
+  if ((errno != EAGAIN)
+#ifdef EWOULDBLOCK
+      && (errno != EWOULDBLOCK)
+#endif
+  )
+  {
+    /* Lotsa admins seem to have problems with not giving enough file
+     * descriptors to their server so we'll add a generic warning mechanism
+     * here.  If it turns out too many messages are generated for
+     * meaningless reasons we can filter them back.
+     */
+    sendto_opmask_butone(0, SNO_TCPCOMMON,
+        "Unable to accept connection: %m");
   }
 }
