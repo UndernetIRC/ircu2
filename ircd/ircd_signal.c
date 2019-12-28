@@ -247,14 +247,7 @@ void setup_signals(void)
   signal_add(&sig_term, sigterm_callback, 0, SIGTERM);
   signal_add(&sig_chld, sigchld_callback, 0, SIGCHLD);
 
-#ifdef HAVE_RESTARTABLE_SYSCALLS
-  /*
-   * At least on Apollo sr10.1 it seems continuing system calls
-   * after signal is the default. The following 'siginterrupt'
-   * should change that default to interrupting calls.
-   */
   siginterrupt(SIGALRM, 1);
-#endif
 }
 
 /** Kill and clean up all child processes. */

@@ -51,7 +51,10 @@ dnl This should be done early.
 AC_PROG_CC
 
 dnl ANSIfy the C compiler whenever possible.
-AM_PROG_CC_STDC
+AC_PROG_CC
+
+dnl Check for pkg-config.
+PKG_PROG_PKG_CONFIG
 
 dnl Checks for libraries.
 
@@ -105,9 +108,6 @@ int getpeername (int $arg2 *, $t *);],[$t len;
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
-
-dnl Do we have restarting syscalls ?
-AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl Check for required features for admins?
 AC_MSG_CHECKING([for donuts])
@@ -716,10 +716,12 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
 dnl Finally really generate all output files:
-AC_OUTPUT(Makefile ircd/Makefile ircd/test/Makefile, [echo timestamp > stamp-h])
+AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
+    [echo timestamp > stamp-h])
+AC_OUTPUT()
 
 dnl Report configuration
-AC_OUTPUT_COMMANDS([echo "
+echo "
 ircu is now hopefully configured for your system.
 
   Host system:         $host_os
@@ -741,4 +743,4 @@ ircu is now hopefully configured for your system.
   kqueue() engine:     $unet_cv_enable_kqueue
   /dev/poll engine:    $unet_cv_enable_devpoll
   epoll() engine:      $unet_cv_enable_epoll
-"])
+"
