@@ -1060,8 +1060,7 @@ int init_conf(void)
     /*
      * make sure we're sane to start if the config
      * file read didn't get everything we need.
-     * XXX - should any of these abort the server?
-     * TODO: add warning messages
+     * ircd_parser.y now has parse_error() for serious problems.
      */
     if (0 == localConf.name || 0 == localConf.numeric)
       return 0;
