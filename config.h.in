@@ -54,6 +54,9 @@
 /* Define to 1 if you have the `setrlimit' function. */
 #undef HAVE_SETRLIMIT
 
+/* Define to 1 if you have the `SSL_set_ciphersuites' function. */
+#undef HAVE_SSL_SET_CIPHERSUITES
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 

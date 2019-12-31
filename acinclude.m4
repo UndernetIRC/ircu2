@@ -147,6 +147,94 @@ else
   AC_MSG_ERROR([Cannot find a type with size of 64 bits])
 fi])
 
+dnl
+dnl Macro: unet_LIBTLS
+dnl
+dnl Set unet_cv_with_libtls to "yes" if the system has an OpenBSD-style
+dnl libtls, or to "no" otherwise.
+dnl
+AC_DEFUN([unet_LIBTLS],
+[dnl OpenBSD libtls needs manual checks.
+AC_MSG_CHECKING([for OpenBSD-style libtls])
+AC_CACHE_VAL(unet_cv_with_libtls,
+[save_LIBS="$LIBS"
+LIBS="$LIBS -ltls"
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([#include <tls.h>], [tls_init()])],
+    [unet_cv_with_libtls=yes],
+    [unet_cv_with_libtls=no])
+LIBS="$save_LIBS"])
+AC_MSG_RESULT([$unet_cv_with_libtls])])
+
+dnl
+dnl Macro: unet_TLS
+dnl
+dnl Set unet_cv_with_tls and TLS_C to an available TLS implementation.
+dnl
+AC_DEFUN([unet_TLS],
+[dnl Perform some preliminary checks for system TLS libraries.
+AX_CHECK_OPENSSL()
+PKG_CHECK_MODULES([GNUTLS], [gnutls])
+unet_LIBTLS
+
+dnl --with-tls allows selection of the TLS library.
+AC_MSG_CHECKING([for a TLS library])
+AC_ARG_WITH([tls],
+[  --with-tls=library      TLS library to use (none, openssl, gnutls, libtls)],
+[unet_cv_with_tls=$with_tls],
+[AC_CACHE_VAL(unet_cv_with_tls,
+[unet_cv_with_tls=yes])])
+TLS_C=""
+
+dnl If --with-tls or --with-tls=yes, try to autodetect: OpenSSL first.
+if test x"$unet_cv_with_tls" = xyes ; then
+  if test x"$OPENSSL_LIBS" != x ; then
+    unet_cv_with_tls=openssl
+  fi
+fi
+dnl Try gnutls next.
+if test x"$unet_cv_with_tls" = xyes ; then
+  if test x"$GNUTLS_LIBS" != x ; then
+    unet_cv_with_tls=gnutls
+  fi
+fi
+dnl Try libtls next.
+if test x"$unet_cv_with_libtls" = xyes ; then
+  unet_cv_with_tls=libtls
+fi
+
+case x"$unet_cv_with_tls" in
+xopenssl)
+    CFLAGS="$CFLAGS $OPENSSL_CFLAGS"
+    LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
+    LIBS="$LIBS $OPENSSL_LIBS"
+    TLS_C="tls_openssl.c"
+    ;;
+xgnutls)
+    CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
+    LDFLAGS="$LDFLAGS $GNUTLS_LDFLAGS"
+    LIBS="$LIBS $GNUTLS_LIBS"
+    TLS_C="tls_gnutls.c"
+    ;;
+xlibtls)
+    LIBS="$LIBS -ltls"
+    TLS_C="tls_libtls.c"
+    ;;
+xyes|xno)
+    TLS_C="tls_none.c"
+    ;;
+esac
+if test x"$TLS_C" = x ; then
+  AC_MSG_WARN([Unknown TLS library $unet_cv_with_tls])
+  TLS_C="tls_none.c"
+fi
+AC_MSG_RESULT([$unet_cv_with_tls])
+AC_SUBST([TLS_C])
+
+if test x"$unet_cv_with_tls" = xopenssl ; then
+  AC_CHECK_FUNCS([SSL_set_ciphersuites])
+fi])
+
 dnl Written by John Hawkinson <jhawk@mit.edu>. This code is in the Public
 dnl Domain.
 dnl

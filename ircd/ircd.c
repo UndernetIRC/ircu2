@@ -38,6 +38,7 @@
 #include "ircd_signal.h"
 #include "ircd_string.h"
 #include "ircd_crypt.h"
+#include "ircd_tls.h"
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
@@ -110,6 +111,8 @@ time_t         CurrentTime;             /**< Updated every time we leave select(
 char          *configfile        = CPATH; /**< Server configuration file */
 int            debuglevel        = -1;    /**< Server debug level  */
 char          *debugmode         = "";    /**< Server debug level */
+char          *ircd_tls_keyfile;          /**< Private key file for TLS */
+char          *ircd_tls_certfile;         /**< Public key file for TLS */
 static char   *dpath             = DPATH; /**< Working directory for daemon */
 static char   *dbg_client;                /**< Client specifier for chkconf */
 
@@ -709,6 +712,11 @@ int main(int argc, char **argv) {
     log_write(LS_SYSTEM, L_CRIT, 0, "Failed to read configuration file %s",
 	      configfile);
     return 7;
+  }
+
+  if (ircd_tls_init()) {
+    log_write(LS_SYSTEM, L_CRIT, 0, "TLS initialization failed");
+    return 10;
   }
 
   if (thisServer.bootopt & BOOT_CHKCONF) {

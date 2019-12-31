@@ -137,6 +137,7 @@ It's used for providing promotional space to providers as per CFV-202
 
 KILL_IPMISMATCH
  * Type: boolean
+
  * Default: FALSE
 
 When a client connects to your server, the IP address of the client is
@@ -914,6 +915,94 @@ This allows local users to set the +A and +U modes (admin and user
 passwords, respectively) on channels where they are marked as channel
 managers.  This feature must be disabled until all servers on the
 network are able to interpret and handle these modes correctly.
+
+TLS_CACERTFILE
+ * Type: string
+ * Default: ""
+
+This optionally names a file that contains public keys for certificate
+authorities (CAs) that are trusted to sign keys for clients and servers
+connected to this server.  Certificates in this file take precedence
+over those in TLS_CACERTDIR.
+
+TLS_CACERTDIR
+ * Type: string
+ * Default: ""
+
+This optionally names a directory that contains public keys for
+certificate authorities (CAs) that are trusted to sign keys for clients
+and servers connected to this server.
+
+TLS_CIPHERS
+ * Type: string
+ * Default: ""
+
+This specifies the default list of ciphers to use.  This list is used
+for client connections that use STARTTLS, for outbound connections to
+servers with no "tls ciphers" directive in their Connect blocks, and for
+inbound connections on TLS-only ports with no "tls ciphers" directive in
+their Port blocks.
+
+This cipher list is interpreted by, and thus depends on, the TLS library
+in use:
+
+ - For all libraries, an empty string represents use of the library's
+   default cipher suites.
+ - For OpenSSL, it is parsed as "L1 L2" (two lists, separated by spaces)
+   where L1 is used for TLSv1.2 and below (with SSL_set_cipher_list())
+   and L2 is used for TLSv1.3 (with SSL_set_ciphersuites()).
+ - For GnuTLS, it is parsed as a "priority string" by the function
+   gnutls_priority_init() and then applied to sessions.
+ - For OpenBSD's libtls, it is passed to tls_config_set_ciphers().
+
+TLS_SSLV2
+ * Type: boolean
+ * Default: FALSE
+
+This controls whether SSLv2 connections are supported.  DO NOT USE SSLv2
+unless you are aware of, and willing to accept, the serious security
+weaknesses of the SSLv2 protocol.
+
+TLS_SSLV3
+ * Type: boolean
+ * Default: FALSE
+
+This controls whether SSLv3 connections are supported.  DO NOT USE SSLv3
+unless you are aware of, and willing to accept, the serious security
+weaknesses of the SSLv3 protocol.
+
+TLS_V1P0
+ * Type: boolean
+ * Default: FALSE
+
+This controls whether TLS 1.0 connections are supported.  This is
+strongly discouraged in favor of TLS 1.1 and later because of security
+weaknesses in CBC modes of operation under TLS 1.1.
+
+TLS_V1P1
+ * Type: boolean
+ * Default: TRUE
+
+This controls whether TLS 1.1 connections are supported.  In most cases,
+TLS 1.2 is strictly preferable to TLS 1.1, so a server might want to
+disable TLS 1.1.
+
+TLS_V1P2
+ * Type: boolean
+ * Default: TRUE
+
+This controls whether TLS 1.2 connections are supported.
+
+TLS_V1P3
+ * Type: boolean
+ * Default: TRUE
+
+This controls whether TLS 1.3 connections are supported.  This offers a
+number of minor security improvements over TLS 1.2, but is incompatible
+with some proxies, so it may break connections.  At the time of writing
+this documentation (December 2019), not all deployed TLS libraries
+support TLS 1.3; this feature setting is effectively false for such
+libraries.
 
 ZANNELS
  * Type: boolean

@@ -86,6 +86,7 @@
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "motd.h"
 #include "numeric.h"
 #include "s_conf.h"
@@ -99,6 +100,7 @@
  * parv[1] = 'm' flushes the MOTD cache and returns
  * parv[1] = 'l' reopens the log files and returns
  * parv[1] = 'q' to not rehash the resolver (optional)
+ * parv[1] = 's' to reload TLS certificate and private key files
  */
 int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
@@ -115,6 +117,10 @@ int mo_rehash(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     } else if (*parv[1] == 'l') {
       send_reply(sptr, SND_EXPLICIT | RPL_REHASHING, ":Reopening log files");
       log_reopen(); /* reopen log files */
+      return 0;
+    } else if (*parv[1] == 's') {
+      send_reply(sptr, SND_EXPLICIT | RPL_REHASHING, ":Reloading TLS files");
+      ircd_tls_init();
       return 0;
     } else if (*parv[1] == 'q')
       flag = 2;

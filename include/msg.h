@@ -372,6 +372,10 @@ struct Client;
 #define TOK_XREPLY		"XR"
 #define CMD_XREPLY		MSG_XREPLY, TOK_XREPLY
 
+#define MSG_STARTTLS  "STARTTLS"
+#define TOK_STARTTLS  "STARTTLS"
+#define CMD_STARTTLS  MSG_STARTTLS, TOK_STARTTLS
+
 /*
  * Constants
  */

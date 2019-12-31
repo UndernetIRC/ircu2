@@ -32,8 +32,14 @@ struct Message;
 #define CONF_OPERATOR           0x0020     /**< ConfItem describes an Operator block */
 #define CONF_UWORLD             0x8000     /**< ConfItem describes a Uworld server */
 
+/* These flags apply to Connect blocks: */
 #define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
+#define CONF_CONNECT_TLS        0x0002     /**< Server connection uses TLS */
 
+/* These flags apply to Port blocks: */
+#define CONF_PORT_TLS           0x0001     /**< Port should use TLS */
+
+/* These flags apply to UWorld blocks: */
 #define CONF_UWORLD_OPER        0x0001     /**< UWorld server can remotely oper users */
 
 /** Indicates ConfItem types that count associated clients. */
@@ -64,6 +70,8 @@ struct ConfItem
   char *name;         /**< Name of peer */
   char *hub_limit;    /**< Mask that limits servers allowed behind
                          this one. */
+  char *tls_ciphers;  /**< TLS cipher preference list. */
+  char *tls_fingerprint; /**< Peer must have this TLS cert fingerprint. */
   time_t hold;        /**< Earliest time to attempt an outbound
                          connect on this ConfItem. */
   int dns_pending;    /**< A dns request is pending. */

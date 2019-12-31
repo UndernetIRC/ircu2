@@ -388,6 +388,7 @@ extern const struct Numeric* get_error_numeric(int err);
 #define ERR_INVALIDUSERNAME  468        /* Undernet extension */
 /* 	ERR_ONLYSERVERSCANCHANGE 468	   Dalnet,unreal */
 /*	ERR_LINKSET	     469	unreal */
+#define ERR_TLSONLYCHAN      469        /* Nefarious, Undernet */
 /*	ERR_LINKCHANNEL	     470	unreal */
 /*      ERR_KICKEDFROMCHAN   470         aircd */
 #define ERR_CHANNELISFULL    471
@@ -459,6 +460,7 @@ extern const struct Numeric* get_error_numeric(int err);
 	ERR_WHOLIMEXCEED     523	dalnet */
 #define ERR_QUARANTINED      524       /* Undernet extension -Vampire */
 #define ERR_INVALIDKEY       525        /* Undernet extension */
+#define ERR_TLSCLIFINGERPRINT 632   /* Nefarious & Undernet extension */
 
 #define ERR_NOTLOWEROPLEVEL  560	/* Undernet extension */
 #define ERR_NOTMANAGER       561	/* Undernet extension */
@@ -468,7 +470,12 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOMANAGER_LONG   565	no longer used */
 #define ERR_NOMANAGER        566	/* Undernet extension */
 #define ERR_UPASS_SAME_APASS 567        /* Undernet extension */
-#define ERR_LASTERROR        568
+
+#define RPL_STARTTLS         670    /* Nefarious, Undernet */
+
+#define ERR_STARTTLS         691    /* Nefarious, Undernet */
+
+#define ERR_LASTERROR        692
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

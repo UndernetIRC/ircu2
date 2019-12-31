@@ -597,7 +597,7 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
     + sp->is_bad_password + sp->is_no_client + sp->is_class_full
     + sp->is_ip_full + sp->is_bad_socket + sp->is_throttled
     + sp->is_not_hub + sp->is_crule_fail + sp->is_not_server
-    + sp->is_bad_server;
+    + sp->is_bad_server + sp->is_bad_fingerprint + sp->is_wrong_server;
   maxconn = MAXCONNECTIONS;
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG, ":accepts %u refused %u",
 	     sp->is_ac, is_ref);
@@ -617,6 +617,9 @@ void tstats(struct Client *cptr, const struct StatDesc *sd, char *param)
              ":not hub %u crule faile %u no server block %u bad password %u",
              sp->is_not_hub, sp->is_crule_fail, sp->is_not_server,
              sp->is_bad_server);
+  send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
+             ":bad client fingerprint %u bad server fingerprint %u",
+             sp->is_bad_fingerprint, sp->is_wrong_server);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,
 	     ":unknown commands %u prefixes %u", sp->is_unco, sp->is_unpf);
   send_reply(cptr, SND_EXPLICIT | RPL_STATSDEBUG,

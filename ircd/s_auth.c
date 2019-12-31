@@ -49,6 +49,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "list.h"
 #include "msg.h"	/* for MAXPARA */
 #include "numeric.h"
@@ -142,10 +143,6 @@ typedef enum {
   REPORT_INVAL_DNS
 } ReportType;
 
-/** Sends response \a r (from #ReportType) to client \a c. */
-#define sendheader(c, r) \
-   send(cli_fd(c), HeaderMessages[(r)].message, HeaderMessages[(r)].length, 0)
-
 /** Enumeration of IAuth connection flags. */
 enum IAuthFlag
 {
@@ -220,6 +217,21 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...);
 static int preregister_user(struct Client *cptr);
 typedef int (*iauth_cmd_handler)(struct IAuth *iauth, struct Client *cli,
 				 int parc, char **params);
+
+/** Sends response \a r (from #ReportType) to client \a cptr. */
+static void sendheader(struct Client *cptr, ReportType r)
+{
+  if (IsTLS(cptr))
+  {
+    sendrawto_one(cptr, "%.*s", HeaderMessages[r].length - 2,
+      HeaderMessages[r].message);
+    send_queued(cptr);
+  }
+  else
+  {
+   send(cli_fd(cptr), HeaderMessages[r].message, HeaderMessages[r].length, 0);
+  }
+}
 
 /** Copies a username, cleaning it in the process.
  *
@@ -551,6 +563,15 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
         ++ServerStats->is_bad_password;
         send_reply(cptr, ERR_PASSWDMISMATCH);
         res = exit_client(cptr, cptr, &me, "Bad Password");
+      }
+
+      /* Check TLS fingerprint. */
+      if ((res == 0) && aconf && !EmptyString(aconf->tls_fingerprint)
+        && !ircd_tls_fingerprint_matches(cptr, aconf->tls_fingerprint))
+      {
+        ++ServerStats->is_bad_fingerprint;
+        send_reply(cptr, ERR_TLSCLIFINGERPRINT);
+        res = exit_client(cptr, cptr, &me, "Bad TLS fingerprint");
       }
     }
 

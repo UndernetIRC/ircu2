@@ -549,6 +549,41 @@ msgq_add(struct MsgQ *mq, struct MsgBuf *mb, int prio)
   mq->count++; /* and the queue count */
 }
 
+static int msgqlist_excise(struct MsgQ *mq, struct MsgQList *qlist,
+                           const char *buf, unsigned int len)
+{
+  struct Msg *msg;
+
+  msg = qlist->head;
+  if (!msg)
+    return 0;
+
+  if (buf != msg->msg->msg)
+    return 0;
+
+  assert(len == msg->msg->length);
+  msgq_delmsg(mq, qlist, &len);
+  return 1;
+}
+
+/** Excise a message from the front of a message queue.
+ *
+ * This is used for TLS, where TLS libraries may return an EAGAIN-like
+ * condition for a send but also require the application to provide
+ * exactly the same contents for the next send.
+ *
+ * @warning \a buf must be at the front of one of \a mq's queues.
+ * @param[in] mq Message queue to operate on.
+ * @param[in] buf Buffered message to excise.
+ * @param[in] len Length of buffered message.
+ */
+void msgq_excise(struct MsgQ *mq, const char *buf, unsigned int len)
+{
+  if (!msgqlist_excise(mq, &mq->queue, buf, len)
+      && !msgqlist_excise(mq, &mq->prio, buf, len))
+    assert(0 && "msgq_excise() could not find message to excise");
+}
+
 /** Report memory statistics for message buffers.
  * @param[in] cptr Client requesting information.
  * @param[out] msg_alloc Receives number of bytes allocated in Msg structs.

@@ -159,6 +159,8 @@ void free_conf(struct ConfItem *aconf)
   MyFree(aconf->passwd);
   MyFree(aconf->name);
   MyFree(aconf->hub_limit);
+  MyFree(aconf->tls_ciphers);
+  MyFree(aconf->tls_fingerprint);
   MyFree(aconf);
   --GlobalConfCount;
 }

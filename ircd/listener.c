@@ -33,6 +33,7 @@
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "match.h"
 #include "numeric.h"
 #include "s_bsd.h"
@@ -154,6 +155,10 @@ void show_ports(struct Client* sptr, const struct StatDesc* sd,
       if (!show_hidden)
         continue;
       flags[len++] = 'H';
+    }
+    if (FlagHas(&listener->flags, LISTEN_TLS))
+    {
+      flags[len++] = 'E';
     }
     if (FlagHas(&listener->flags, LISTEN_IPV4))
     {
@@ -284,9 +289,11 @@ static struct Listener* find_listener(int port, const struct irc_in_addr *addr)
  * @param[in] port Port number to listen on.
  * @param[in] vhost_ip Local address to listen on.
  * @param[in] mask Address mask to accept connections from.
+ * @param[in] tls_ciphers TLS cipher(s) to use.
  * @param[in] flags Flags describing listener options.
  */
 void add_listener(int port, const char* vhost_ip, const char* mask,
+                  const char* tls_ciphers,
                   const struct ListenerFlags *flags)
 {
   struct Listener* listener;
@@ -299,6 +306,9 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
    * if no port in conf line, don't bother
    */
   if (0 == port)
+    return;
+  /* if TLS requested but no implementation, skip this port */
+  if (FlagHas(flags, LISTEN_TLS) && !ircd_tls_version)
     return;
 
   memset(&vaddr, 0, sizeof(vaddr));
@@ -320,6 +330,10 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     ipmask_parse(mask, &listener->mask, &listener->mask_bits);
   else
     listener->mask_bits = 0;
+  if (!EmptyString(tls_ciphers))
+    DupString(listener->tls_ciphers, tls_ciphers);
+  else
+    listener->tls_ciphers = NULL;
 
 #ifdef IPV6
   if (FlagHas(&listener->flags, LISTEN_IPV6)

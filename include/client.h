@@ -155,6 +155,8 @@ enum Flag
     FLAG_BURST_ACK,                 /**< Server is waiting for eob ack */
     FLAG_IPCHECK,                   /**< Added or updated IPregistry data */
     FLAG_IAUTH_STATS,               /**< Wanted IAuth statistics */
+    FLAG_NEGOTIATING_TLS,           /**< TLS negotation ongoing */
+
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
     FLAG_OPER,                      /**< Operator */
@@ -166,6 +168,7 @@ enum Flag
     FLAG_DEBUG,                     /**< send global debug/anti-hack info */
     FLAG_ACCOUNT,                   /**< account name has been set */
     FLAG_HIDDENHOST,                /**< user's host is hidden */
+    FLAG_TLS,                       /**< user is using TLS */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
     FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
@@ -223,6 +226,7 @@ struct Connection
   char con_buffer[BUFSIZE];          /**< Incoming message buffer; or
                                         the error that caused this
                                         clients socket to close. */
+  char con_tls_fingerprint[65];      /**< TLS SHA-256 fingerprint. */
   struct Socket       con_socket;    /**< socket descriptor for
                                       client */
   struct Timer        con_proc;      /**< process latent messages from
@@ -232,6 +236,8 @@ struct Connection
   struct CapSet       con_active;    /**< Active capabilities (to us) */
   struct AuthRequest* con_auth;      /**< Auth request for client */
   const struct wline* con_wline;     /**< WebIRC authorization for client */
+  char*               con_rexmit;    /**< TLS retransmission data */
+  size_t              con_rexmit_len; /**, TLS retransmission length */
 };
 
 /** Magic constant to identify valid Connection structures. */
@@ -369,6 +375,8 @@ struct Client {
 #define cli_sockhost(cli)	con_sockhost(cli_connect(cli))
 /** Get the client's password. */
 #define cli_passwd(cli)		con_passwd(cli_connect(cli))
+/** Get the client's TLS fingerprint. */
+#define cli_tls_fingerprint(cli) con_tls_fingerprint(cli_connect(cli))
 /** Get the unprocessed input buffer for a client's connection.  */
 #define cli_buffer(cli)		con_buffer(cli_connect(cli))
 /** Get the Socket structure for sending to a client. */
@@ -446,6 +454,8 @@ struct Client {
 #define con_sockhost(con)	((con)->con_sockhost)
 /** Get the password sent by the remote end of the connection.  */
 #define con_passwd(con)		((con)->con_passwd)
+/** Get the fingerprint of the peer's TLS certificate. */
+#define con_tls_fingerprint(con) ((con)->con_tls_fingerprint)
 /** Get the buffer of unprocessed incoming data from the connection. */
 #define con_buffer(con)		((con)->con_buffer)
 /** Get the Socket for the connection. */
@@ -594,6 +604,10 @@ struct Client {
 #define IsHiddenHost(x)         HasFlag(x, FLAG_HIDDENHOST)
 /** Return non-zero if the client has an active PING request. */
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
+/** Return non-zero if the client is using TLS. */
+#define IsTLS(x)                HasFlag(x, FLAG_TLS)
+/** Return non-zero if the client is (re-)negotiating TLS. */
+#define IsNegotiatingTLS(x)     HasFlag(x, FLAG_NEGOTIATING_TLS)
 
 /** Return non-zero if the client has operator or server privileges. */
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
@@ -640,6 +654,10 @@ struct Client {
 #define SetHiddenHost(x)        SetFlag(x, FLAG_HIDDENHOST)
 /** Mark a client as having a pending PING. */
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
+/** Mark a client as using TLS. */
+#define SetTLS(x)               SetFlag(x, FLAG_TLS)
+/** Mark a client as (re-)negotiating TLS. */
+#define SetNegotiatingTLS(x)    SetFlag(x, FLAG_NEGOTIATING_TLS)
 
 /** Return non-zero if \a sptr sees \a acptr as an operator. */
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
@@ -675,6 +693,8 @@ struct Client {
 #define ClearPingSent(x)        ClrFlag(x, FLAG_PINGSENT)
 /** Clear the client's HUB flag. */
 #define ClearHub(x)             ClrFlag(x, FLAG_HUB)
+/** Mark a client's TLS negotation as complete. */
+#define ClearNegotiatingTLS(x)  ClrFlag(x, FLAG_NEGOTIATING_TLS)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */

@@ -106,6 +106,11 @@ static struct lexer_token {
   TOKEN(PROGRAM),
   TOKEN(DNS),
   TOKEN(WEBIRC),
+  TOKEN(TLS),
+  TOKEN(CERTFILE),
+  TOKEN(CIPHERS),
+  TOKEN(FINGERPRINT),
+  TOKEN(KEYFILE),
 #undef TOKEN
   { "administrator", ADMIN },
   { "apass_opmode", TPRIV_APASS_OPMODE },

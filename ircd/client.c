@@ -28,6 +28,8 @@
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
+#include "ircd_string.h"
+#include "ircd_tls.h"
 #include "list.h"
 #include "msgq.h"
 #include "numeric.h"
@@ -275,4 +277,34 @@ client_report_privs(struct Client *to, struct Client *client)
   msgq_clean(mb);
 
   return 0;
+}
+
+int
+ircd_tls_fingerprint_matches(struct Client *cptr,
+                             const char *fingerprint)
+{
+  static const char hexdigits[] = "0123456789abcdef";
+  void *ctx;
+  int i;
+  char tls_fp[32];
+
+  if (EmptyString(fingerprint))
+    return 1;
+
+  ctx = s_tls(&cli_socket(cptr));
+  if (!ctx)
+    return 0;
+
+  ircd_tls_fingerprint(ctx, tls_fp);
+  for (i = 0; i < sizeof(tls_fp); i++)
+  {
+    unsigned char ch = tls_fp[i];
+    if ((hexdigits[ch >> 4] != ToLower(fingerprint[2*i+0]))
+        || (hexdigits[ch & 15] != ToLower(fingerprint[2*i+1])))
+    {
+      return 0;
+    }
+  }
+
+  return 1;
 }

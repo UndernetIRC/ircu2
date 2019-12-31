@@ -715,6 +715,8 @@ AC_MSG_RESULT([$unet_cv_with_maxcon])
 AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
+unet_TLS
+
 dnl Finally really generate all output files:
 AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
     [echo timestamp > stamp-h])
