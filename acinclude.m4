@@ -175,8 +175,8 @@ dnl Set unet_cv_with_tls and TLS_C to an available TLS implementation.
 dnl
 AC_DEFUN([unet_TLS],
 [dnl Perform some preliminary checks for system TLS libraries.
-AX_CHECK_OPENSSL()
-PKG_CHECK_MODULES([GNUTLS], [gnutls])
+AX_CHECK_OPENSSL(, [:])
+PKG_CHECK_MODULES([GNUTLS], [gnutls], , [:])
 unet_LIBTLS
 
 dnl --with-tls allows selection of the TLS library.
@@ -223,6 +223,7 @@ xlibtls)
     TLS_C="tls_libtls.c"
     ;;
 xyes|xno)
+    unet_cv_with_tls="none"
     TLS_C="tls_none.c"
     ;;
 esac
