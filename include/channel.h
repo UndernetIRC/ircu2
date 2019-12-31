@@ -116,6 +116,8 @@ struct Client;
 					 * pending */
 #define MODE_NOPARTMSGS 0x800000       /**< +P No part messages */
 #define MODE_MODERATENOREG 0x1000000    /**< +M Moderate unauthed users */
+#define MODE_TLSONLY       0x1000000    /**< +Z TLS users only */
+#define MODE_MODERATENOREG 0x2000000    /**< +M Moderate unauthed users */
 
 /** mode flags which take another parameter (With PARAmeterS)
  */

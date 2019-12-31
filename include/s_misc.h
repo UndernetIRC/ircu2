@@ -68,10 +68,12 @@ struct ServerStatistics {
   unsigned int is_ip_full;      /**< client rejected: too many from IP */
   unsigned int is_bad_socket;   /**< client rejected: socket failure */
   unsigned int is_throttled;    /**< client rejected: IP connecting too fast */
+  unsigned int is_bad_fingerprint; /**< client rejected: bad TLS fingerprint */
   unsigned int is_not_hub;      /**< server rejected: I am not a hub */
   unsigned int is_crule_fail;   /**< server rejected: CRULE rejected */
   unsigned int is_not_server;   /**< server rejected: no matching Connect block */
   unsigned int is_bad_server;   /**< server rejected: bad password */
+  unsigned int is_wrong_server; /**< server rejected: bad TLS fingerprint */
   unsigned int is_unco;         /**< unknown commands */
   unsigned int is_wrdi;         /**< command going in wrong direction */
   unsigned int is_unpf;         /**< unknown prefix */

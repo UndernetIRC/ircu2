@@ -34,6 +34,7 @@
 #include "ircd_features.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
+#include "ircd_tls.h"
 #include "jupe.h"
 #include "list.h"
 #include "match.h"
@@ -605,6 +606,14 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                          "server %s", cli_name(cptr));
     return exit_client_msg(cptr, cptr, &me,
                            "Access denied. No conf line for server %s", cli_name(cptr));
+  }
+
+  if (!ircd_tls_fingerprint_matches(cptr, aconf->tls_fingerprint)) {
+    ++ServerStats->is_wrong_server;
+    sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (fingerprint mismatch) %s",
+                         cli_name(cptr));
+    return exit_client_msg(cptr, cptr, &me,
+                           "Access denied. Bad TLS fingerprint for server %s", cli_name(cptr));
   }
 
   if (*aconf->passwd && !!strcmp(aconf->passwd, cli_passwd(cptr))) {
