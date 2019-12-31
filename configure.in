@@ -740,6 +740,7 @@ ircu is now hopefully configured for your system.
   CPath:               $unet_cv_with_cpath
   LPath:               $unet_cv_with_lpath
   Maximum connections: $unet_cv_with_maxcon
+  TLS implementation:  $unet_cv_with_tls
 
   poll() engine:       $unet_cv_enable_poll
   kqueue() engine:     $unet_cv_enable_kqueue
