@@ -36,6 +36,10 @@
 #include <openssl/ssl.h>
 #include <sys/uio.h> /* IOV_MAX */
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+# error ircu2 requires OpenSSL >= 1.1.0
+#endif
+
 const char *ircd_tls_version = OPENSSL_VERSION_TEXT;
 
 static SSL_CTX *base_ctx;
@@ -169,20 +173,20 @@ int ircd_tls_init(void)
     return 2;
   }
 
-  if (feature_bool(FEAT_TLS_SSLV2))
+  if (!feature_bool(FEAT_TLS_SSLV2))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_SSLv2);
-  if (feature_bool(FEAT_TLS_SSLV3))
+  if (!feature_bool(FEAT_TLS_SSLV3))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_SSLv3);
-  if (feature_bool(FEAT_TLS_V1P0))
+  if (!feature_bool(FEAT_TLS_V1P0))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_TLSv1);
-  if (feature_bool(FEAT_TLS_V1P1))
+  if (!feature_bool(FEAT_TLS_V1P1))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_TLSv1_1);
-  if (feature_bool(FEAT_TLS_V1P2))
+  if (!feature_bool(FEAT_TLS_V1P2))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_TLSv1_2);
 
   /* OpenSSL only defines this macro if it supports TLS 1.3. */
 #if defined(SSL_OP_NO_TLSv1_3)
-  if (feature_bool(FEAT_TLS_V1P3))
+  if (!feature_bool(FEAT_TLS_V1P3))
     SSL_CTX_set_options(new_ctx, SSL_OP_NO_TLSv1_3);
 #endif
 
