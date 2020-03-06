@@ -27,15 +27,17 @@
 #include "ircd_string.h"
 #include "ircd_tls.h"
 #include "listener.h"
+#include "s_conf.h"
 #include "s_debug.h"
 
 #include <stddef.h>
 #include <string.h>
 #include <tls.h>
 
-const char *ircd_tls_version = "libtls " #TLS_API;
+#define CONCAT(A, B) A # B
+const char *ircd_tls_version = CONCAT("libtls ", TLS_API);
 static struct tls_config *tls_cfg;
-static struct tls *tls_server;
+static struct tls *tls_srv;
 
 int ircd_tls_init(void)
 {
@@ -54,7 +56,7 @@ int ircd_tls_init(void)
     libtls_init = 1;
     if (tls_init() < 0)
     {
-      log_write(LS_SYSTEM, L_ERROR, 0, "tls_init() failed", );
+      log_write(LS_SYSTEM, L_ERROR, 0, "tls_init() failed");
       return 1;
     }
   }
@@ -69,7 +71,7 @@ int ircd_tls_init(void)
   new_srv = tls_server();
   if (!new_srv)
   {
-    log_write(LOS_SYSTEM, L_ERROR, 0, "unable to create new TLS server context");
+    log_write(LS_SYSTEM, L_ERROR, 0, "unable to create new TLS server context");
     tls_config_free(new_cfg);
     return 3;
   }
@@ -146,8 +148,8 @@ int ircd_tls_init(void)
 done:
   tls_config_free(tls_cfg);
   tls_cfg = new_cfg;
-  tls_free(tls_server);
-  tls_server = new_srv;
+  tls_free(tls_srv);
+  tls_srv = new_srv;
   return 0;
 }
 
@@ -157,10 +159,10 @@ void *ircd_tls_accept(struct Listener *listener, int fd)
 
   /* TODO: adjust acceptable ciphers list */
 
-  if (tls_accept_socket(tls_server, &tls, fd) < 0)
+  if (tls_accept_socket(tls_srv, &tls, fd) < 0)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "TLS accept failed: %s",
-              tls_error(tls_server));
+              tls_error(tls_srv));
     return NULL;
   }
 
@@ -219,7 +221,7 @@ void ircd_tls_fingerprint(void *ctx, char *fingerprint)
   memset(fingerprint, 0, 32);
 }
 
-static int tls_handle_error(struct Client *cptr, struct tls *tls, int res)
+static int tls_handle_error(struct Client *cptr, struct tls *tls, int err)
 {
   if (err == TLS_WANT_POLLIN)
   {
