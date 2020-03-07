@@ -963,6 +963,9 @@ This controls whether SSLv2 connections are supported.  DO NOT USE SSLv2
 unless you are aware of, and willing to accept, the serious security
 weaknesses of the SSLv2 protocol.
 
+NOTE: This feature only affects ircu2 when using OpenSSL.  gnutls and
+libtls have no support for SSLv2.
+
 TLS_SSLV3
  * Type: boolean
  * Default: FALSE
@@ -971,13 +974,19 @@ This controls whether SSLv3 connections are supported.  DO NOT USE SSLv3
 unless you are aware of, and willing to accept, the serious security
 weaknesses of the SSLv3 protocol.
 
+NOTE: This feature only affects ircu2 when using OpenSSL.  libtls has
+no support for SSLv2.  For gnutls, add "-VERS-SSL3.0" to TLS_CIPHERS.
+
 TLS_V1P0
  * Type: boolean
- * Default: FALSE
+ * Default: FALSE (except for gnutls, which uses TRUE)
 
 This controls whether TLS 1.0 connections are supported.  This is
 strongly discouraged in favor of TLS 1.1 and later because of security
 weaknesses in CBC modes of operation under TLS 1.1.
+
+NOTE: This feature only affects ircu2 when using OpenSSL or libtls.  For
+gnutls, add "-VERS-TLS1.0" to TLS_CIPHERS.
 
 TLS_V1P1
  * Type: boolean
@@ -987,11 +996,17 @@ This controls whether TLS 1.1 connections are supported.  In most cases,
 TLS 1.2 is strictly preferable to TLS 1.1, so a server might want to
 disable TLS 1.1.
 
+NOTE: This feature only affects ircu2 when using OpenSSL or libtls.  For
+gnutls, add "-VERS-TLS1.1" to TLS_CIPHERS.
+
 TLS_V1P2
  * Type: boolean
  * Default: TRUE
 
 This controls whether TLS 1.2 connections are supported.
+
+NOTE: This feature only affects ircu2 when using OpenSSL or libtls.  For
+gnutls, add "-VERS-TLS1.2" to TLS_CIPHERS.
 
 TLS_V1P3
  * Type: boolean
@@ -1003,6 +1018,9 @@ with some proxies, so it may break connections.  At the time of writing
 this documentation (December 2019), not all deployed TLS libraries
 support TLS 1.3; this feature setting is effectively false for such
 libraries.
+
+NOTE: This feature only affects ircu2 when using OpenSSL or libtls.  For
+gnutls, add "-VERS-TLS1.3" to TLS_CIPHERS.
 
 ZANNELS
  * Type: boolean
