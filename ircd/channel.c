@@ -3565,7 +3565,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */
-  len = chan ? strlen(chan->chname) + 1 : 2;
+  len = strlen(chan->chname) + 1;
   if (jbuf->jb_strlen + len > BUFSIZE)
     joinbuf_flush(jbuf);
 
