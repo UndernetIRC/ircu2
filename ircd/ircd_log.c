@@ -422,6 +422,7 @@ log_vwrite(enum LogSys subsys, enum LogLevel severity, unsigned int flags,
   vector[1].iov_len =
     ircd_snprintf(0, buf, sizeof(buf), "%s [%s]: %v", desc->name,
 		  ldata->string, &vd);
+  va_end(vd.vd_args);
 
   /* if we have something to write to... */
   if (flags & LOG_DOFILELOG) {
