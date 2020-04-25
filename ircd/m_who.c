@@ -248,6 +248,7 @@ int m_who(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
           case 'l':
           case 'L':
             fields |= WHO_FIELD_IDL;
+            break;
           case 'n':
           case 'N':
             fields |= WHO_FIELD_NIC;
