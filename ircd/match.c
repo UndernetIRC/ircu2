@@ -409,6 +409,7 @@ int matchcomp(char *cmask, int *minlen, int *charset, const char *mask)
         case '\\':
           if ((*m == '?') || (*m == '*'))
             ch = *m++;
+          /* fall through */
         default:
           if (star)
           {
@@ -604,6 +605,7 @@ int matchdecomp(char *mask, const char *cmask)
         case '*':
         case '?':
           *rtb++ = '\\';
+          /* fall through */
         default:
           *rtb++ = *rcm;
       };
