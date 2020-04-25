@@ -516,8 +516,7 @@ static int crule_parseorexpr(CRuleNodePtr * orrootp, int *next_tokp, const char*
         return (errcode);
       }
     }
-    if ((errcode = crule_gettoken(next_tokp, ruleptr)) != CR_NOERR)
-      return (errcode);
+    errcode = crule_gettoken(next_tokp, ruleptr);
   }
   return (errcode);
 }
@@ -577,8 +576,7 @@ static int crule_parseandexpr(CRuleNodePtr * androotp, int *next_tokp, const cha
         return (errcode);
       }
     }
-    if ((errcode = crule_gettoken(next_tokp, ruleptr)) != CR_NOERR)
-      return (errcode);
+    errcode = crule_gettoken(next_tokp, ruleptr);
   }
   return (errcode);
 }
