@@ -634,7 +634,7 @@ feature_reset(struct Client* from, const char* const* fields, int count)
   if (count < 1) /* check arguments */
     need_more_params(from, "RESET");
   else if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
-    if (from && feat->flags & FEAT_READ)
+    if (feat->flags & FEAT_READ)
       return send_reply(from, ERR_NOFEATURE, fields[0]);
 
     switch (feat->flags & FEAT_MASK) {
