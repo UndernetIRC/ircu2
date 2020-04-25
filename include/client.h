@@ -193,6 +193,8 @@ struct Connection
   int                 con_error;     /**< last socket level error for client */
   int                 con_sentalong; /**< sentalong marker for connection */
   unsigned int        con_snomask;   /**< mask for server messages */
+  HandlerType         con_handler;   /**< Message index into command table
+                                        for parsing. */
   time_t              con_nextnick;  /**< Next time a nick change is allowed */
   time_t              con_nexttarget;/**< Next time a target change is allowed */
   time_t              con_lasttime;  /**< Last time data read from socket */
@@ -206,8 +208,6 @@ struct Connection
   struct Listener*    con_listener;  /**< Listening socket which we accepted
                                         from. */
   struct SLink*       con_confs;     /**< Associated configuration records. */
-  HandlerType         con_handler;   /**< Message index into command table
-                                        for parsing. */
   struct ListingArgs* con_listing;   /**< Current LIST status. */
   unsigned int        con_max_sendq; /**< cached max send queue for client */
   unsigned int        con_ping_freq; /**< cached ping freq */
