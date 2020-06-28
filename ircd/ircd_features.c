@@ -632,8 +632,9 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     return send_reply(from, ERR_NOPRIVILEGES);
 
   if (count < 1) /* check arguments */
-    need_more_params(from, "RESET");
-  else if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
+    return need_more_params(from, "RESET");
+
+  if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
     if (feat->flags & FEAT_READ)
       return send_reply(from, ERR_NOFEATURE, fields[0]);
 
@@ -673,8 +674,7 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
 
-    if (from)
-      return feature_get(from, fields, count);
+    return feature_get(from, fields, count);
   }
 
   return 0;
