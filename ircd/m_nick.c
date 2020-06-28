@@ -299,6 +299,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return need_more_params(sptr, "NICK");
   }
 
+  if (sptr == NULL)
+    return 0;
+
   ircd_strncpy(nick, parv[1], NICKLEN);
   nick[NICKLEN] = '\0';
 
@@ -490,8 +493,6 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   exit_client_msg(cptr, acptr, &me, "Killed (%s (%s))",
                   feature_str(FEAT_HIS_SERVERNAME), type);
   if (lastnick == cli_lastnick(acptr))
-    return 0;
-  if (sptr == NULL)
     return 0;
   return set_nick_name(cptr, sptr, nick, parc, parv);
 }
