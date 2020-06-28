@@ -2121,7 +2121,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   buf[0] = '\0';
   limitbuf[0] = '\0';
 
-  add = mbuf->mb_add;
+  add = mbuf->mb_add & ~(MODE_KEY | MODE_LIMIT | MODE_APASS | MODE_UPASS);
 
   for (i = 0; i < mbuf->mb_count; i++) { /* find keys and limits */
     if (MB_TYPE(mbuf, i) & MODE_ADD) {
