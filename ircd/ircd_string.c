@@ -526,16 +526,16 @@ ircd_aton_ip4(const char *input, unsigned int *output, unsigned char *pbits)
 int
 ipmask_parse(const char *input, struct irc_in_addr *ip, unsigned char *pbits)
 {
-  char *colon;
+  char *colon_char;
   char *dot;
 
   assert(ip);
   assert(input);
   memset(ip, 0, sizeof(*ip));
-  colon = strchr(input, ':');
+  colon_char = strchr(input, ':');
   dot = strchr(input, '.');
 
-  if (colon && (!dot || (dot > colon))) {
+  if (colon_char && (!dot || (dot > colon_char))) {
     unsigned int part = 0, pos = 0, ii = 0, colon = 8;
     const char *part_start = NULL;
 
