@@ -3511,7 +3511,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
     struct Membership *member = find_member_link(chan, jbuf->jb_source);
-    if (IsUserParting(member))
+    if (!member || IsUserParting(member))
       return;
     SetUserParting(member);
 
