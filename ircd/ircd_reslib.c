@@ -649,7 +649,7 @@ labellen(const unsigned char *lp)
     return(-1); /* unknown ELT */
   }
 
-  return(l);
+  return(l & ~NS_CMPRSFLGS);
 }
 
 
