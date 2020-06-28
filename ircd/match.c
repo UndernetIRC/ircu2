@@ -528,7 +528,7 @@ trychunk:
       return 0;
     if (*b == 'Z')
     {
-      bs = --s;
+      --s;
       bb = b;
       continue;
     };
