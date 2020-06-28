@@ -415,7 +415,7 @@ int uping_server(struct Client* sptr, struct ConfItem* aconf, int port, int coun
   pptr->count               = IRCD_MIN(20, count);
   pptr->client              = sptr;
   pptr->freeable            = UPING_PENDING_SOCKET;
-  strcpy(pptr->name, aconf->name);
+  ircd_strncpy(pptr->name, aconf->name, sizeof(pptr->name));
 
   pptr->next = pingList;
   pingList   = pptr;
