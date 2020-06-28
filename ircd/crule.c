@@ -637,7 +637,6 @@ static int crule_parseprimary(CRuleNodePtr* primrootp, int *next_tokp, const cha
           errcode = CR_EXPCTPRIM;
         break;
     }
-    return (errcode);
   }
   return (errcode);
 }
