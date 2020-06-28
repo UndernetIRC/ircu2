@@ -1633,6 +1633,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   }
 
   /* Now go through the modes with arguments... */
+  limitbuf[0] = '\0';
   for (i = 0; i < mbuf->mb_count; i++) {
     if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
       bufptr = addbuf;
@@ -2118,6 +2119,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   assert(0 != buf);
 
   buf[0] = '\0';
+  limitbuf[0] = '\0';
 
   add = mbuf->mb_add;
 
