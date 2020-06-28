@@ -66,13 +66,13 @@
 /** Array mapping characters to RFC 1459 lower-case versions.
  * Yes, the variable name lies about the encoding.
  */
-extern const char ToLowerTab_8859_1[];
+extern const char ToLowerTab_8859_1[256];
 /** Array mapping characters to RFC 1459 upper-case versions.
  * Yes, the variable name lies about the encoding.
  */
-extern const char ToUpperTab_8859_1[];
+extern const char ToUpperTab_8859_1[256];
 /** Array mapping characters to attribute bitmasks. */
-extern const unsigned int  IRCD_CharAttrTab[];
+extern const unsigned int  IRCD_CharAttrTab[256];
 
 /*
  * Translation macros for channel name case translation
