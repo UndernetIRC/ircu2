@@ -851,7 +851,7 @@ gline_modify(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   }
 
   /* Now, handle reason changes... */
-  if (flags & GLINE_REASON) {
+  if ((flags & GLINE_REASON) && reason) {
     non_auto = non_auto || ircd_strncmp(gline->gl_reason, "AUTO", 4);
     MyFree(gline->gl_reason); /* release old reason */
     DupString(gline->gl_reason, reason); /* store new reason */
