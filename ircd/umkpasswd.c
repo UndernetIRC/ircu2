@@ -176,8 +176,8 @@ crypt_mechs_t* crypt_mech;
  }
 
  /* we're done */
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: %s: %s", crypt_mech->mech->shortname, crypt_mech->mech->description));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s.", crypt_mech->mech->shortname));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: description: %s", crypt_mech->mech->description));
 
 return 0;
 }
