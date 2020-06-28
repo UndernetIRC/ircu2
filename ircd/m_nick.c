@@ -292,15 +292,15 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != sptr);
   assert(IsServer(cptr));
 
+  if (sptr == NULL)
+    return 0;
+
   if ((IsServer(sptr) && parc < 8) || parc < 3)
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
 			 parv[1], cptr);
     return need_more_params(sptr, "NICK");
   }
-
-  if (sptr == NULL)
-    return 0;
 
   ircd_strncpy(nick, parv[1], NICKLEN);
   nick[NICKLEN] = '\0';
