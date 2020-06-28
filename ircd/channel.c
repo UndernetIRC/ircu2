@@ -3039,6 +3039,10 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 				       state->cli_change[i].flag & flag_p[0]))
       break; /* found a slot */
 
+  /* The check on max_args should prevent this for local clients. */
+  if (i >= MAXPARA)
+    return;
+
   /* If we are going to bounce this deop, mark the correct oplevel. */
   if (state->flags & MODE_PARSE_BOUNCE
       && state->dir == MODE_DEL
