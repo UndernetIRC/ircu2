@@ -316,9 +316,12 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
   }
   memcpy(&listener->flags, flags, sizeof(listener->flags));
   FlagSet(&listener->flags, LISTEN_ACTIVE);
-  if (mask)
-    ipmask_parse(mask, &listener->mask, &listener->mask_bits);
-  else
+  if (mask) {
+    if (ipmask_parse(mask, &listener->mask, &listener->mask_bits) < 1) {
+      sendto_opmask_butone(NULL, SNO_TCPCOMMON, "Invalid IP mask for "
+        "listening port: %s", mask);
+    }
+  } else
     listener->mask_bits = 0;
 
 #ifdef IPV6
