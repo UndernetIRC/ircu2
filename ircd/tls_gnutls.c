@@ -303,7 +303,7 @@ IOResult ircd_tls_recv(struct Client *cptr, char *buf,
     if (res >= 0)
       return IO_SUCCESS;
   }
-  if (res == GNUTLS_E_INTERRUPTED || GNUTLS_E_AGAIN)
+  if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
     handle_blocked(cptr, tls);
   return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
 }
@@ -346,7 +346,7 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
     res = gnutls_record_send(tls, con->con_rexmit, con->con_rexmit_len);
     if (res <= 0)
     {
-      if (res == GNUTLS_E_INTERRUPTED || GNUTLS_E_AGAIN)
+      if (res == GNUTLS_E_INTERRUPTED || res == GNUTLS_E_AGAIN)
         handle_blocked(cptr, tls);
       return gnutls_error_is_fatal(res) ? IO_FAILURE : IO_BLOCKED;
     }
