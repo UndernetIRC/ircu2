@@ -137,7 +137,7 @@ int mo_admin(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != cptr);
   assert(cptr == sptr);
 
-  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, feature_int(FEAT_HIS_REMOTE), 
+  if (hunt_server_cmd(sptr, CMD_ADMIN, cptr, feature_bool(FEAT_HIS_REMOTE),
                       ":%C", 1, parc, parv) != HUNTED_ISME)
     return 0;
   return send_admin_info(sptr);

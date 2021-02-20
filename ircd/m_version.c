@@ -109,7 +109,7 @@
  */
 int m_version(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, feature_int(FEAT_HIS_REMOTE),
+  if (hunt_server_cmd(sptr, CMD_VERSION, cptr, feature_bool(FEAT_HIS_REMOTE),
                                                            ":%C", 1,
                                                            parc, parv)
                       == HUNTED_ISME)

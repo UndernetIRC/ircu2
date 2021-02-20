@@ -373,7 +373,7 @@ int m_whois(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * it with the correct servername - as is needed by hunt_server().
      * This is the secret behind the /whois nick nick trick.
      */
-    if (feature_int(FEAT_HIS_REMOTE))
+    if (feature_bool(FEAT_HIS_REMOTE))
     {
       /* If remote queries are disabled, then use the *second* parameter of
        * of whois, so /whois nick nick still works.
