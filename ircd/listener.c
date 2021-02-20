@@ -205,7 +205,7 @@ static int set_listener_options(struct Listener *listener, int fd, int family)
   is_server = listener_server(listener);
   /*
    * Set the buffer sizes for the listener. Accepted connections
-   * inherit the accepting sockets settings for SO_RCVBUF S_SNDBUF
+   * inherit the accepting sockets settings for SO_RCVBUF SO_SNDBUF
    * The window size is set during the SYN ACK so setting it anywhere
    * else has no effect whatsoever on the connection.
    * NOTE: this must be set before listen is called
