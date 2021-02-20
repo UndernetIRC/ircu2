@@ -104,8 +104,8 @@ void init_class(void)
   ConClass(connClassList) = "default";
   PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);
   ConFreq(connClassList)  = feature_int(FEAT_CONNECTFREQUENCY);
-  MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
   MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+  MaxLinks(connClassList) = 1;
   connClassList->valid    = 1;
   Links(connClassList)    = 1;
 }

@@ -336,7 +336,6 @@ static struct FeatureDesc {
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
   F_I(CONNECTTIMEOUT, 0, 90, 0),
-  F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
   F_I(PINGFREQUENCY, 0, 120, init_class),
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
   F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),

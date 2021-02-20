@@ -338,13 +338,6 @@ change this value, but if you do, consider the fact that users whose
 clients do not support NOSPOOF will have to type /QUOTE PING <big
 number> before registration.
 
-MAXIMUM_LINKS
- * Type: integer
- * Default: 1
-
-This is the maximum number of links for the built-in client class 0.
-Leave this value at 1.
-
 PINGFREQUENCY
  * Type: integer
  * Default: 120
