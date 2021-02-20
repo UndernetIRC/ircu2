@@ -330,7 +330,7 @@ CONNECTTIMEOUT
  * Type: integer
  * Default: 90
 
-Number of seconds to wait for a connect(2) call to complete.  NOTE:
+Number of seconds to wait for a client registration to complete.  NOTE:
 this must be at *LEAST* 10.  When a client connects, it has
 CONNECTTIMEOUT - 10 seconds for its host to respond to an ident lookup
 query and for a DNS lookup to complete. It is recommended that you not
