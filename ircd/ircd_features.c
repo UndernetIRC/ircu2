@@ -522,11 +522,13 @@ feature_set(struct Client* from, const char* const* fields, int count)
       } else { /* figure out the value and whether to mark it */
 	if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
 	    !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
+	    !ircd_strncmp(fields[1], "1", strlen(fields[1])) ||
 	    (strlen(fields[1]) >= 2 &&
 	     !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
 	  feat->v_int = 1;
 	else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
 		 !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
+		 !ircd_strncmp(fields[1], "0", strlen(fields[1])) ||
 		 (strlen(fields[1]) >= 2 &&
 		  !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
 	  feat->v_int = 0;
