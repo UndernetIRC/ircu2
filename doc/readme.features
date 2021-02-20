@@ -908,7 +908,7 @@ intended to ease changes in channel name length across a network.
 
 OPLEVELS
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This allows local users to set the +A and +U modes (admin and user
 passwords, respectively) on channels where they are marked as channel
@@ -917,7 +917,7 @@ network are able to interpret and handle these modes correctly.
 
 ZANNELS
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This preserves empty channels with no admin password so that it is
 impractical to become the channel manager by clearing out the channel.
