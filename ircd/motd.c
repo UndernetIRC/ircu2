@@ -470,12 +470,14 @@ motd_memory_count(struct Client *cptr)
     mt++;
     mtm += sizeof(struct Motd);
     mtm += ptr->path ? (strlen(ptr->path) + 1) : 0;
+    mtm += ptr->hostmask ? (strlen(ptr->hostmask) + 1) : 0;
   }
 
   for (cache = MotdList.cachelist; cache; cache = cache->next)
   {
     mtc++;
     mtcm += sizeof(struct MotdCache) + (MOTD_LINESIZE * (cache->count - 1));
+    mtcm += cache->path ? (strlen(cache->path) + 1) : 0;
   }
 
   if (MotdList.freelist)
