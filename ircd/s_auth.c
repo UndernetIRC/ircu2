@@ -448,6 +448,10 @@ static int check_auth_finished(struct AuthRequest *auth, int bitclr)
     {
       clean_username(user->username, cli_username(sptr));
     }
+    else if (cli_wline(sptr)) /* trust USER if we trusted WEBIRC */
+    {
+      ircd_strncpy(cli_username(sptr), user->username, USERLEN);
+    }
     else if (DoIdentLookups)
     {
       /* Prepend ~ to user->username. */
