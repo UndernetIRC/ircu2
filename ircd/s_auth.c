@@ -1330,7 +1330,7 @@ int auth_spoof_user(struct AuthRequest *auth, const char *username, const char *
   }
 
   start_iauth_query(auth);
-  if (IAuthHas(iauth, IAUTH_UNDERNET))
+  if (username && IAuthHas(iauth, IAUTH_UNDERNET))
     sendto_iauth(sptr, "u %s", cli_username(sptr));
 
   return check_auth_finished(auth, 0);
