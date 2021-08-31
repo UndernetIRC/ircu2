@@ -205,9 +205,11 @@ int match(const char *mask, const char *name)
       return 1;
     break;
   case '\\':
-    if ((m[1] == '*') || (m[1] == '?'))
-      m++;
-    goto normal_character;
+    m++;
+    /* allow escaping to force capitalization */
+    if (*m++ != *n++)
+      goto backtrack;
+    break;
   case '*': case '?':
     for (star_p = 0; ; m++) {
       if (*m == '*')
@@ -220,12 +222,18 @@ int match(const char *mask, const char *name)
     if (star_p) {
       if (!*m)
         return 0;
-      m_tmp = m;
-      for (n_tmp = n; *n && ToLower(*n) != ToLower(*m); n++) ;
+      else if (*m == '\\') {
+        m_tmp = ++m;
+        if (!*m)
+          return 1;
+        for (n_tmp = n; *n && *n != *m; n++) ;
+      } else {
+        m_tmp = m;
+        for (n_tmp = n; *n && ToLower(*n) != ToLower(*m); n++) ;
+      }
     }
     /* and fall through */
   default:
-  normal_character:
     if (!*n)
       return *m != '\0';
     if (ToLower(*m) != ToLower(*n))
