@@ -227,12 +227,14 @@ int match(const char *mask, const char *name)
         if (!*m)
           return 1;
         for (n_tmp = n; *n && *n != *m; n++) ;
+        if (!*n || *n++ != *m++)
+          return 1;
       } else {
         m_tmp = m;
         for (n_tmp = n; *n && ToLower(*n) != ToLower(*m); n++) ;
       }
     }
-    /* and fall through */
+    continue;
   default:
     if (!*n)
       return *m != '\0';
