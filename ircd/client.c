@@ -152,7 +152,6 @@ client_set_privs(struct Client *client, struct ConfItem *oper, int forceOper)
   {
     memset(&privs_global, -1, sizeof(privs_global));
     FlagClr(&privs_global, PRIV_WALK_LCHAN);
-    FlagClr(&privs_global, PRIV_UNLIMIT_QUERY);
     FlagClr(&privs_global, PRIV_SET);
     FlagClr(&privs_global, PRIV_BADCHAN);
     FlagClr(&privs_global, PRIV_LOCAL_BADCHAN);
