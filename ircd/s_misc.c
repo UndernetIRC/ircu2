@@ -279,7 +279,7 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
 
   /* Remove bcptr from the client list */
 #ifdef DEBUGMODE
-  if (hRemClient(bcptr) != 0)
+  if (hRemClient(bcptr) != 0 && cli_name(bcptr)[0])
     Debug((DEBUG_ERROR, "%p !in tab %s[%s] %p %p %p %d %d %p",
           bcptr, cli_name(bcptr), cli_from(bcptr) ? cli_sockhost(cli_from(bcptr)) : "??host",
           cli_from(bcptr), cli_next(bcptr), cli_prev(bcptr), cli_fd(bcptr),
