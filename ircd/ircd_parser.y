@@ -30,6 +30,7 @@
 #include "fileio.h"
 #include "gline.h"
 #include "hash.h"
+#include "IPcheck.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
@@ -177,6 +178,8 @@ static void free_slist(struct SLink **link) {
 %token TOK_IPV4 TOK_IPV6
 %token DNS
 %token WEBIRC
+%token IPCHECK
+%token EXCEPT
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -204,7 +207,7 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | iauthblock | webircblock | error ';';
+       pseudoblock | iauthblock | webircblock | ipcheckblock | error ';';
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -1227,3 +1230,23 @@ webircip: IP '=' QSTRING ';' { MyFree(ip); ip = $3; };
 webircpass: PASS '=' QSTRING ';' { MyFree(pass); pass = $3; };
 webircdesc: DESCRIPTION '=' QSTRING ';' { MyFree(name); name = $3; };
 webirchidden: HIDDEN '=' YES ';' { flags = flags | 1; }
+
+ipcheckblock: IPCHECK
+{
+  IPcheck_clear_config();
+}
+'{' ipcheckitems '}' ';';
+
+ipcheckitems: ipcheckitem | ipcheckitems ipcheckitem;
+ipcheckitem: ipcheck_except;
+ipcheck_except: EXCEPT ipcheck_except_ips ';';
+ipcheck_except_ips: ipcheck_except_ip_mask
+  | ipcheck_except_ips ipcheck_except_ip_mask;
+ipcheck_except_ip_mask: QSTRING
+{
+  if (IPcheck_except($1)) {
+    parse_error("IPCheck except: Unable to parse '%s' as an IP mask.",
+      $1);
+  }
+  MyFree($1);
+};

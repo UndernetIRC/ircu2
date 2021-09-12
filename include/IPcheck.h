@@ -17,6 +17,8 @@ struct irc_in_addr;
  * Prototypes
  */
 extern void IPcheck_init(void);
+extern void IPcheck_clear_config(void);
+extern int IPcheck_except(const char *ip_mask);
 extern int IPcheck_local_connect(const struct irc_in_addr *ip, time_t *next_target_out);
 extern void IPcheck_connect_fail(const struct Client *cptr, int disconnect);
 extern void IPcheck_connect_succeeded(struct Client *cptr);
