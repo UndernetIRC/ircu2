@@ -131,8 +131,10 @@ static unsigned int ip_registry_hash(const struct irc_in_addr *ip)
 }
 
 /** Find an IP registry entry if one exists for the IP address.
- * If \a ip looks like an IPv6 address, only consider the first 64 bits
- * of the address. Otherwise, only consider the final 32 bits.
+ *
+ * If \a ip canonicalizes to a 6to4 mapped IPv6 address, use the first
+ * 48 bits to detect matches.  Otherwise use the first 64 bits.
+ *
  * @param[in] ip IP address to search for.
  * @return Matching registry entry, or NULL if none exists.
  */
@@ -140,10 +142,12 @@ static struct IPRegistryEntry* ip_registry_find(const struct irc_in_addr *ip)
 {
   struct irc_in_addr canon;
   struct IPRegistryEntry* entry;
+  int bits;
+
   ip_registry_canonicalize(&canon, ip);
+  bits = (canon.in6_16[0] == htons(0x2002)) ? 48 : 64;
   entry = hashTable[ip_registry_hash(&canon)];
   for ( ; entry; entry = entry->next) {
-    int bits = (canon.in6_16[0] == htons(0x2002)) ? 48 : 64;
     if (ipmask_check(&canon, &entry->addr, bits))
       break;
   }
