@@ -39,7 +39,6 @@ CHGRP = chgrp
 MKDIR = mkdir
 TOUCH = touch
 GREP = grep
-LEX = @LEX@
 YACC = @YACC@
 ENGINE_C = @ENGINE_C@
 @SET_MAKE@
@@ -101,6 +100,7 @@ IRCD_SRC = \
 	ircd_crypt.c \
 	ircd_events.c \
 	ircd_features.c \
+	ircd_lexer.c \
 	ircd_log.c \
 	ircd_relay.c \
 	ircd_reply.c \
@@ -110,7 +110,6 @@ IRCD_SRC = \
 	ircd_snprintf.c \
 	ircd_string.c \
 	jupe.c \
-	lex.yy.c \
 	list.c \
 	listener.c \
 	m_account.c \
@@ -260,9 +259,6 @@ table_gen: table_gen.o
 chattr.tab.c: table_gen
 	./table_gen > chattr.tab.c
 
-lex.yy.c: ircd_lexer.l y.tab.h
-	${LEX} ${srcdir}/ircd_lexer.l
-
 y.tab.c y.tab.h: ircd_parser.y
 	${YACC} -d ${srcdir}/ircd_parser.y
 
@@ -315,7 +311,7 @@ uninstall:
 	@echo "Please remove the contents of ${DPATH} manually"
 
 clean:
-	${RM} -f *.o *.bak ircd umkpasswd convert-conf chattr.tab.c table_gen y.tab.* lex.yy.*
+	${RM} -f *.o *.bak ircd umkpasswd convert-conf chattr.tab.c table_gen y.tab.*
 
 distclean: clean
 	${RM} -f Makefile stamp-m
@@ -354,13 +350,14 @@ depend: ${DEP_SRC} chattr.tab.c
 
 # DO NOT DELETE THIS LINE (or the blank line after it) -- make depend depends on them.
 
-IPcheck.o: IPcheck.c ../config.h ../include/IPcheck.h ../include/client.h \
- ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
- ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
- ../include/capab.h ../include/ircd.h ../include/struct.h \
- ../include/match.h ../include/msg.h ../include/ircd_alloc.h \
- ../include/ircd_events.h ../include/ircd_features.h \
- ../include/ircd_log.h ../include/ircd_string.h ../include/ircd_chattr.h \
+IPcheck.o: IPcheck.c ../config.h ../include/IPcheck.h \
+ ../include/channel.h ../include/ircd_defs.h ../include/res.h \
+ ../include/client.h ../include/dbuf.h ../include/msgq.h \
+ ../include/ircd_events.h ../include/ircd_handler.h ../include/capab.h \
+ ../include/ircd.h ../include/struct.h ../include/match.h \
+ ../include/msg.h ../include/ircd_alloc.h ../include/ircd_events.h \
+ ../include/ircd_features.h ../include/ircd_log.h \
+ ../include/ircd_string.h ../include/ircd_chattr.h ../include/res.h \
  ../include/s_debug.h ../include/s_user.h ../include/send.h
 channel.o: channel.c ../config.h ../include/channel.h \
  ../include/ircd_defs.h ../include/res.h ../include/client.h \
@@ -470,6 +467,9 @@ ircd_features.o: ircd_features.c ../config.h ../include/ircd_features.h \
  ../include/random.h ../include/s_bsd.h ../include/s_debug.h \
  ../include/s_misc.h ../include/s_stats.h ../include/send.h \
  ../include/struct.h ../include/sys.h ../include/whowas.h
+ircd_lexer.o: ircd_lexer.c ../config.h ../include/ircd_alloc.h \
+ ../include/ircd_chattr.h ../include/ircd_log.h ../include/ircd_string.h \
+ y.tab.h
 ircd_log.o: ircd_log.c ../config.h ../include/ircd_log.h \
  ../include/client.h ../include/ircd_defs.h ../include/dbuf.h \
  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
@@ -534,10 +534,6 @@ jupe.o: jupe.c ../config.h ../include/jupe.h ../include/client.h \
  ../include/numeric.h ../include/numnicks.h ../include/s_bsd.h \
  ../include/s_misc.h ../include/send.h ../include/struct.h \
  ../include/sys.h
-lex.yy.o: lex.yy.c ../config.h ../include/fileio.h ../include/ircd.h \
- ../include/struct.h ../include/ircd_defs.h ../include/ircd_alloc.h \
- ../include/ircd_string.h ../include/ircd_chattr.h ../include/s_debug.h \
- y.tab.h
 list.o: list.c ../config.h ../include/list.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
@@ -637,7 +633,8 @@ m_cprivmsg.o: m_cprivmsg.c ../config.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
  ../include/capab.h ../include/ircd_log.h ../include/ircd_reply.h \
- ../include/ircd_string.h ../include/ircd_chattr.h ../include/s_user.h
+ ../include/ircd_string.h ../include/ircd_chattr.h ../include/s_user.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_features.h
 m_create.o: m_create.c ../config.h ../include/channel.h \
  ../include/ircd_defs.h ../include/res.h ../include/client.h \
  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
@@ -853,10 +850,10 @@ m_nick.o: m_nick.c ../config.h ../include/IPcheck.h ../include/client.h \
 m_notice.o: m_notice.c ../config.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
- ../include/capab.h ../include/ircd_chattr.h ../include/ircd_log.h \
- ../include/ircd_relay.h ../include/ircd_reply.h ../include/ircd_string.h \
- ../include/match.h ../include/msg.h ../include/numeric.h \
- ../include/send.h ../include/handlers.h
+ ../include/capab.h ../include/handlers.h ../include/ircd_chattr.h \
+ ../include/ircd_log.h ../include/ircd_relay.h ../include/ircd_reply.h \
+ ../include/ircd_string.h ../include/match.h ../include/msg.h \
+ ../include/numeric.h ../include/send.h
 m_oper.o: m_oper.c ../config.h ../include/client.h ../include/ircd_defs.h \
  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
  ../include/ircd_handler.h ../include/res.h ../include/capab.h \
@@ -875,8 +872,9 @@ m_opmode.o: m_opmode.c ../config.h ../include/client.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_features.h \
  ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_string.h \
  ../include/ircd_chattr.h ../include/msg.h ../include/numeric.h \
- ../include/numnicks.h ../include/send.h ../include/s_conf.h \
- ../include/client.h
+ ../include/numnicks.h ../include/querycmds.h ../include/ircd_features.h \
+ ../include/send.h ../include/s_conf.h ../include/client.h \
+ ../include/s_user.h
 m_part.o: m_part.c ../config.h ../include/channel.h \
  ../include/ircd_defs.h ../include/res.h ../include/client.h \
  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
@@ -1263,8 +1261,8 @@ s_auth.o: s_auth.c ../config.h ../include/s_auth.h \
  ../include/msg.h ../include/numeric.h ../include/numnicks.h \
  ../include/querycmds.h ../include/ircd_features.h ../include/random.h \
  ../include/res.h ../include/s_bsd.h ../include/s_conf.h \
- ../include/s_debug.h ../include/s_misc.h ../include/s_user.h \
- ../include/send.h
+ ../include/s_debug.h ../include/s_misc.h ../include/s_stats.h \
+ ../include/s_user.h ../include/send.h
 s_bsd.o: s_bsd.c ../config.h ../include/s_bsd.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
@@ -1437,15 +1435,15 @@ y.tab.o: y.tab.c ../config.h ../include/s_conf.h ../include/client.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
  ../include/capab.h ../include/class.h ../include/client.h \
  ../include/crule.h ../include/ircd_features.h ../include/fileio.h \
- ../include/gline.h ../include/hash.h ../include/ircd.h \
- ../include/struct.h ../include/ircd_alloc.h ../include/ircd_chattr.h \
- ../include/ircd_log.h ../include/ircd_reply.h ../include/ircd_snprintf.h \
- ../include/ircd_string.h ../include/list.h ../include/listener.h \
- ../include/match.h ../include/motd.h ../include/numeric.h \
- ../include/numnicks.h ../include/opercmds.h ../include/parse.h \
- ../include/res.h ../include/s_auth.h ../include/s_bsd.h \
- ../include/s_debug.h ../include/s_misc.h ../include/send.h \
- ../include/struct.h ../include/sys.h
+ ../include/gline.h ../include/hash.h ../include/IPcheck.h \
+ ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
+ ../include/ircd_chattr.h ../include/ircd_log.h ../include/ircd_reply.h \
+ ../include/ircd_snprintf.h ../include/ircd_string.h ../include/list.h \
+ ../include/listener.h ../include/match.h ../include/motd.h \
+ ../include/numeric.h ../include/numnicks.h ../include/opercmds.h \
+ ../include/parse.h ../include/res.h ../include/s_auth.h \
+ ../include/s_bsd.h ../include/s_debug.h ../include/s_misc.h \
+ ../include/send.h ../include/struct.h ../include/sys.h
 engine_devpoll.o: engine_devpoll.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
  ../include/ircd_alloc.h ../include/ircd_features.h ../include/ircd_log.h \
