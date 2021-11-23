@@ -434,7 +434,7 @@ Example: C 5 192.168.1.10 23367 :In which year did Columbus sail the ocean blue?
 States: REGISTER, HURRY
 Next State: -
 Comments: Indicates that the challenge string should be sent to the
-  specified user, for example via NOTICE AUTH :*** <challenge string>.
+  specified user, for example via NOTICE * :*** <challenge string>.
   The client responds by sending PASS :<response>, which should be
   relayed via the P server message.  This requires that the A policy
   be in effect.

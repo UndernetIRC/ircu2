@@ -116,16 +116,16 @@ static struct {
   unsigned int length;
 } HeaderMessages [] = {
 #define MSG(STR) { STR, sizeof(STR) - 1 }
-  MSG("NOTICE AUTH :*** Looking up your hostname\r\n"),
-  MSG("NOTICE AUTH :*** Found your hostname\r\n"),
-  MSG("NOTICE AUTH :*** Couldn't look up your hostname\r\n"),
-  MSG("NOTICE AUTH :*** Checking Ident\r\n"),
-  MSG("NOTICE AUTH :*** Got ident response\r\n"),
-  MSG("NOTICE AUTH :*** No ident response\r\n"),
-  MSG("NOTICE AUTH :*** \r\n"),
-  MSG("NOTICE AUTH :*** Your forward and reverse DNS do not match, "
+  MSG("NOTICE * :*** Looking up your hostname\r\n"),
+  MSG("NOTICE * :*** Found your hostname\r\n"),
+  MSG("NOTICE * :*** Couldn't look up your hostname\r\n"),
+  MSG("NOTICE * :*** Checking Ident\r\n"),
+  MSG("NOTICE * :*** Got ident response\r\n"),
+  MSG("NOTICE * :*** No ident response\r\n"),
+  MSG("NOTICE * :*** \r\n"),
+  MSG("NOTICE * :*** Your forward and reverse DNS do not match, "
     "ignoring hostname.\r\n"),
-  MSG("NOTICE AUTH :*** Invalid hostname\r\n")
+  MSG("NOTICE * :*** Invalid hostname\r\n")
 #undef MSG
 };
 
@@ -2192,7 +2192,7 @@ static int iauth_cmd_challenge(struct IAuth *iauth, struct Client *cli,
 			       int parc, char **params)
 {
   if (!EmptyString(params[0]))
-    sendrawto_one(cli, "NOTICE AUTH :*** %s", params[0]);
+    sendrawto_one(cli, "NOTICE * :*** %s", params[0]);
   return 0;
 }
 
