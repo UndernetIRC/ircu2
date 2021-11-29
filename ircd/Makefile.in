@@ -467,9 +467,12 @@ ircd_features.o: ircd_features.c ../config.h ../include/ircd_features.h \
  ../include/random.h ../include/s_bsd.h ../include/s_debug.h \
  ../include/s_misc.h ../include/s_stats.h ../include/send.h \
  ../include/struct.h ../include/sys.h ../include/whowas.h
-ircd_lexer.o: ircd_lexer.c ../config.h ../include/ircd_alloc.h \
- ../include/ircd_chattr.h ../include/ircd_log.h ../include/ircd_string.h \
- y.tab.h
+ircd_lexer.o: ircd_lexer.c ../config.h ../include/ircd.h \
+ ../include/struct.h ../include/ircd_defs.h ../include/ircd_alloc.h \
+ ../include/ircd_log.h ../include/ircd_string.h ../include/ircd_chattr.h \
+ ../include/s_conf.h ../include/client.h ../include/dbuf.h \
+ ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
+ ../include/res.h ../include/capab.h y.tab.h
 ircd_log.o: ircd_log.c ../config.h ../include/ircd_log.h \
  ../include/client.h ../include/ircd_defs.h ../include/dbuf.h \
  ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
@@ -1286,13 +1289,14 @@ s_conf.o: s_conf.c ../config.h ../include/s_conf.h ../include/client.h \
  ../include/client.h ../include/crule.h ../include/ircd_features.h \
  ../include/fileio.h ../include/gline.h ../include/hash.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
- ../include/ircd_chattr.h ../include/ircd_log.h ../include/ircd_reply.h \
- ../include/ircd_snprintf.h ../include/ircd_string.h ../include/list.h \
- ../include/listener.h ../include/match.h ../include/motd.h \
- ../include/numeric.h ../include/numnicks.h ../include/opercmds.h \
- ../include/parse.h ../include/res.h ../include/s_auth.h \
- ../include/s_bsd.h ../include/s_debug.h ../include/s_misc.h \
- ../include/send.h ../include/struct.h ../include/sys.h
+ ../include/ircd_chattr.h ../include/ircd_lexer.h ../include/ircd_log.h \
+ ../include/ircd_reply.h ../include/ircd_snprintf.h \
+ ../include/ircd_string.h ../include/list.h ../include/listener.h \
+ ../include/match.h ../include/motd.h ../include/numeric.h \
+ ../include/numnicks.h ../include/opercmds.h ../include/parse.h \
+ ../include/res.h ../include/s_auth.h ../include/s_bsd.h \
+ ../include/s_debug.h ../include/s_misc.h ../include/send.h \
+ ../include/struct.h ../include/sys.h y.tab.h
 s_debug.o: s_debug.c ../config.h ../include/s_debug.h \
  ../include/ircd_defs.h ../include/channel.h ../include/res.h \
  ../include/class.h ../include/client.h ../include/dbuf.h \
@@ -1434,16 +1438,17 @@ y.tab.o: y.tab.c ../config.h ../include/s_conf.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
  ../include/capab.h ../include/class.h ../include/client.h \
- ../include/crule.h ../include/ircd_features.h ../include/fileio.h \
- ../include/gline.h ../include/hash.h ../include/IPcheck.h \
- ../include/ircd.h ../include/struct.h ../include/ircd_alloc.h \
- ../include/ircd_chattr.h ../include/ircd_log.h ../include/ircd_reply.h \
- ../include/ircd_snprintf.h ../include/ircd_string.h ../include/list.h \
- ../include/listener.h ../include/match.h ../include/motd.h \
- ../include/numeric.h ../include/numnicks.h ../include/opercmds.h \
- ../include/parse.h ../include/res.h ../include/s_auth.h \
- ../include/s_bsd.h ../include/s_debug.h ../include/s_misc.h \
- ../include/send.h ../include/struct.h ../include/sys.h
+ ../include/crule.h ../include/fileio.h ../include/gline.h \
+ ../include/hash.h ../include/IPcheck.h ../include/ircd.h \
+ ../include/struct.h ../include/ircd_alloc.h ../include/ircd_chattr.h \
+ ../include/ircd_features.h ../include/ircd_lexer.h ../include/ircd_log.h \
+ ../include/ircd_reply.h ../include/ircd_snprintf.h \
+ ../include/ircd_string.h ../include/list.h ../include/listener.h \
+ ../include/match.h ../include/motd.h ../include/numeric.h \
+ ../include/numnicks.h ../include/opercmds.h ../include/parse.h \
+ ../include/res.h ../include/s_auth.h ../include/s_bsd.h \
+ ../include/s_debug.h ../include/s_misc.h ../include/send.h \
+ ../include/struct.h ../include/sys.h
 engine_devpoll.o: engine_devpoll.c ../config.h ../include/ircd_events.h \
  ../include/ircd.h ../include/struct.h ../include/ircd_defs.h \
  ../include/ircd_alloc.h ../include/ircd_features.h ../include/ircd_log.h \

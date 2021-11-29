@@ -26,7 +26,6 @@
 #include "class.h"
 #include "client.h"
 #include "crule.h"
-#include "ircd_features.h"
 #include "fileio.h"
 #include "gline.h"
 #include "hash.h"
@@ -34,6 +33,8 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_chattr.h"
+#include "ircd_features.h"
+#include "ircd_lexer.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_snprintf.h"
@@ -86,6 +87,30 @@
   struct Privs privs;
   struct Privs privs_dirty;
 
+enum ConfigBlock
+{
+  BLOCK_ADMIN,
+  BLOCK_CLASS,
+  BLOCK_CLIENT,
+  BLOCK_CONNECT,
+  BLOCK_CRULE,
+  BLOCK_FEATURES,
+  BLOCK_GENERAL,
+  BLOCK_IAUTH,
+  BLOCK_INCLUDE,
+  BLOCK_JUPE,
+  BLOCK_KILL,
+  BLOCK_MOTD,
+  BLOCK_OPER,
+  BLOCK_PORT,
+  BLOCK_PSEUDO,
+  BLOCK_QUARANTINE,
+  BLOCK_UWORLD,
+  BLOCK_WEBIRC,
+  BLOCK_IPCHECK,
+  BLOCK_LAST_BLOCK
+};
+
 static void parse_error(char *pattern,...) {
   static char error_buffer[1024];
   va_list vl;
@@ -93,6 +118,22 @@ static void parse_error(char *pattern,...) {
   ircd_vsnprintf(NULL, error_buffer, sizeof(error_buffer), pattern, vl);
   va_end(vl);
   yyerror(error_buffer);
+}
+
+static int
+permitted(enum ConfigBlock type)
+{
+  static const char *block_names[BLOCK_LAST_BLOCK+1] = {
+    "Admin", "Class", "Client", "Connect", "CRule", "Features",
+    "General", "IAuth", "Include", "Jupe", "Kill", "Motd", "Oper",
+    "Port", "Pseudo", "Quarantine", "UWorld", "IAuth", "IPCheck",
+    NULL
+  };
+
+  if (lexer_allowed(type))
+    return 1;
+  parse_error("Block '%s' forbidden", block_names[type]);
+  return 0;
 }
 
 static void free_slist(struct SLink **link) {
@@ -116,7 +157,6 @@ static void free_slist(struct SLink **link) {
 %token CONTACT
 %token CONNECT
 %token CLASS
-%token CHANNEL
 %token PINGFREQ
 %token CONNECTFREQ
 %token MAXLINKS
@@ -171,7 +211,6 @@ static void free_slist(struct SLink **link) {
 %token PREPEND
 %token USERMODE
 %token IAUTH
-%token TIMEOUT
 %token FAST
 %token AUTOCONNECT
 %token PROGRAM
@@ -180,6 +219,10 @@ static void free_slist(struct SLink **link) {
 %token WEBIRC
 %token IPCHECK
 %token EXCEPT
+%token INCLUDE
+%token LINESYNC
+%token FROM
+%token TEOF
 /* and now a lot of privileges... */
 %token TPRIV_CHAN_LIMIT TPRIV_MODE_LCHAN TPRIV_DEOP_LCHAN TPRIV_WALK_LCHAN
 %token TPRIV_LOCAL_KILL TPRIV_REHASH TPRIV_RESTART TPRIV_DIE
@@ -193,6 +236,8 @@ static void free_slist(struct SLink **link) {
 %type <num> sizespec
 %type <num> timespec timefactor factoredtimes factoredtime
 %type <num> expr yesorno privtype address_family
+%type <num> blocktypes blocktype
+%type <text> blockspec
 %left '+' '-'
 %left '*' '/'
 
@@ -207,7 +252,8 @@ blocks: blocks block | block;
 block: adminblock | generalblock | classblock | connectblock |
        uworldblock | operblock | portblock | jupeblock | clientblock |
        killblock | cruleblock | motdblock | featuresblock | quarantineblock |
-       pseudoblock | iauthblock | webircblock | ipcheckblock | error ';';
+       pseudoblock | iauthblock | webircblock | ipcheckblock |
+       includeblock | error '}' ';' { yyerrok; };
 
 /* The timespec, sizespec and expr was ripped straight from
  * ircd-hybrid-7. */
@@ -279,7 +325,9 @@ expr: NUMBER
 		}
 		;
 
-jupeblock: JUPE '{' jupeitems '}' ';' ;
+jupeblock: JUPE {
+  if (!permitted(BLOCK_JUPE)) YYERROR;
+} '{' jupeitems '}' ';' ;
 jupeitems: jupeitem jupeitems | jupeitem;
 jupeitem: jupenick;
 jupenick: NICK '=' QSTRING ';'
@@ -290,6 +338,7 @@ jupenick: NICK '=' QSTRING ';'
 
 generalblock: GENERAL
 {
+  if (!permitted(BLOCK_GENERAL)) YYERROR;
     /* Zero out the vhost addresses, in case they were removed. */
     memset(&VirtualHost_v4.addr, 0, sizeof(VirtualHost_v4.addr));
     memset(&VirtualHost_v6.addr, 0, sizeof(VirtualHost_v6.addr));
@@ -380,6 +429,7 @@ generaldnsserver: DNS SERVER '=' QSTRING ';'
 
 adminblock: ADMIN
 {
+  if (!permitted(BLOCK_ADMIN)) YYERROR;
   MyFree(localConf.location1);
   MyFree(localConf.location2);
   MyFree(localConf.contact);
@@ -412,6 +462,7 @@ admincontact: CONTACT '=' QSTRING ';'
 };
 
 classblock: CLASS {
+  if (!permitted(BLOCK_CLASS)) YYERROR;
   tping = 90;
 } '{' classitems '}' ';'
 {
@@ -426,6 +477,7 @@ classblock: CLASS {
     memcpy(&c_class->privs_dirty, &privs_dirty, sizeof(c_class->privs_dirty));
   }
   else {
+   if (pass) MyFree(pass);
    parse_error("Missing name in class block");
   }
   name = NULL;
@@ -468,6 +520,7 @@ classusermode: USERMODE '=' QSTRING ';'
 
 connectblock: CONNECT
 {
+ if (!permitted(BLOCK_CONNECT)) YYERROR;
  flags = CONF_AUTOCONNECT;
 } '{' connectitems '}' ';'
 {
@@ -567,7 +620,9 @@ connectmaxhops: MAXHOPS '=' expr ';'
 connectauto: AUTOCONNECT '=' YES ';' { flags |= CONF_AUTOCONNECT; }
  | AUTOCONNECT '=' NO ';' { flags &= ~CONF_AUTOCONNECT; };
 
-uworldblock: UWORLD '{' uworlditems '}' ';';
+uworldblock: UWORLD {
+  if (!permitted(BLOCK_UWORLD)) YYERROR;
+} '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
 uworlditem: uworldname | uworldoper;
 uworldname: NAME '=' QSTRING ';'
@@ -581,8 +636,9 @@ uworldoper: OPER '=' QSTRING ';'
   conf->flags = CONF_UWORLD_OPER;
 }
 
-operblock: OPER '{' operitems '}' ';'
-{
+operblock: OPER {
+  if (!permitted(BLOCK_OPER)) YYERROR;
+} '{' operitems '}' ';' {
   struct ConfItem *aconf = NULL;
   struct SLink *link;
 
@@ -700,7 +756,9 @@ address_family:
     ;
 
 /* The port block... */
-portblock: PORT '{' portitems '}' ';' {
+portblock: PORT {
+  if (!permitted(BLOCK_PORT)) YYERROR;
+} '{' portitems '}' ';' {
   struct ListenerFlags flags_here;
   struct SLink *link;
   if (hosts == NULL) {
@@ -807,6 +865,7 @@ portwebirc: WEBIRC '=' YES ';'
 
 clientblock: CLIENT
 {
+  if (!permitted(BLOCK_CLIENT)) YYERROR;
   maxlinks = 65535;
   port = 0;
 }
@@ -910,6 +969,7 @@ clientport: PORT '=' expr ';'
 
 killblock: KILL
 {
+  if (!permitted(BLOCK_KILL)) YYERROR;
   dconf = (struct DenyConf*) MyCalloc(1, sizeof(*dconf));
 } '{' killitems '}' ';'
 {
@@ -977,6 +1037,7 @@ killreasonfile: TFILE '=' QSTRING ';'
 
 cruleblock: CRULE
 {
+  if (!permitted(BLOCK_CRULE)) YYERROR;
   tconn = CRULE_AUTO;
 } '{' cruleitems '}' ';'
 {
@@ -1034,8 +1095,9 @@ cruleall: ALL '=' YES ';'
  tconn = CRULE_AUTO;
 };
 
-motdblock: MOTD '{' motditems '}' ';'
-{
+motdblock: MOTD {
+  if (!permitted(BLOCK_MOTD)) YYERROR;
+} '{' motditems '}' ';' {
   struct SLink *link;
   if (pass != NULL)
     for (link = hosts; link != NULL; link = link->next)
@@ -1062,7 +1124,9 @@ motdfile: TFILE '=' QSTRING ';'
   pass = $3;
 };
 
-featuresblock: FEATURES '{' featureitems '}' ';';
+featuresblock: FEATURES {
+  if (!permitted(BLOCK_FEATURES)) YYERROR;
+} '{' featureitems '}' ';';
 featureitems: featureitems featureitem | featureitem;
 
 featureitem: QSTRING
@@ -1085,7 +1149,9 @@ extrastring: QSTRING
     MyFree($1);
 };
 
-quarantineblock: QUARANTINE '{' quarantineitems '}' ';';
+quarantineblock: QUARANTINE {
+  if (!permitted(BLOCK_QUARANTINE)) YYERROR;
+} '{' quarantineitems '}' ';';
 quarantineitems: quarantineitems quarantineitem | quarantineitem;
 quarantineitem: QSTRING '=' QSTRING ';'
 {
@@ -1096,10 +1162,11 @@ quarantineitem: QSTRING '=' QSTRING ';'
   GlobalQuarantineList = qconf;
 };
 
-pseudoblock: PSEUDO QSTRING '{'
-{
+pseudoblock: PSEUDO {
+  if (!permitted(BLOCK_PSEUDO)) YYERROR;
+} QSTRING '{' {
   smap = MyCalloc(1, sizeof(struct s_map));
-  smap->command = $2;
+  smap->command = $3;
 }
 pseudoitems '}' ';'
 {
@@ -1156,8 +1223,9 @@ pseudoflags: FAST ';'
   smap->flags |= SMAP_FAST;
 };
 
-iauthblock: IAUTH '{' iauthitems '}' ';'
-{
+iauthblock: IAUTH {
+  if (!permitted(BLOCK_IAUTH)) YYERROR;
+} '{' iauthitems '}' ';' {
   auth_spawn(stringno, stringlist);
   while (stringno > 0)
   {
@@ -1179,6 +1247,7 @@ iauthprogram: PROGRAM '='
 
 webircblock: WEBIRC
 {
+  if (!permitted(BLOCK_WEBIRC)) YYERROR;
   flags = 0;
 }
 '{' webircitems '}' ';'
@@ -1233,6 +1302,7 @@ webirchidden: HIDDEN '=' YES ';' { flags = flags | 1; }
 
 ipcheckblock: IPCHECK
 {
+  if (!permitted(BLOCK_IPCHECK)) YYERROR;
   IPcheck_clear_config();
 }
 '{' ipcheckitems '}' ';';
@@ -1250,3 +1320,37 @@ ipcheck_except_ip_mask: QSTRING
   }
   MyFree($1);
 };
+
+includeblock: INCLUDE {
+  if (!permitted(BLOCK_INCLUDE)) YYERROR;
+  flags = 0;
+} blockspec ';' {
+  lexer_include($3, flags);
+  yychar = YYEMPTY;
+} blocks TEOF;
+
+blockspec: QSTRING { flags = ~0; }
+  | blocktypes FROM QSTRING { flags = $1; $$ = $3; };
+blocktypes: blocktypes ',' blocktype { $$ = $1 | $3; }
+  | blocktype;
+blocktype: ALL { $$ = ~0; }
+  | ADMIN { $$ = 1 << BLOCK_ADMIN; }
+  | CLASS { $$ = 1 << BLOCK_CLASS; }
+  | CLIENT { $$ = 1 << BLOCK_CLIENT; }
+  | CONNECT { $$ = 1 << BLOCK_CONNECT; }
+  | CRULE { $$ = 1 << BLOCK_CRULE; }
+  | FEATURES { $$ = 1 << BLOCK_FEATURES; }
+  | GENERAL { $$ = 1 << BLOCK_GENERAL; }
+  | IAUTH { $$ = 1 << BLOCK_IAUTH; }
+  | INCLUDE { $$ = 1 << BLOCK_INCLUDE; }
+  | JUPE { $$ = 1 << BLOCK_JUPE; }
+  | KILL { $$ = 1 << BLOCK_KILL; }
+  | MOTD { $$ = 1 << BLOCK_MOTD; }
+  | OPER { $$ = 1 << BLOCK_OPER; }
+  | PORT { $$ = 1 << BLOCK_PORT; }
+  | PSEUDO { $$ = 1 << BLOCK_PSEUDO; }
+  | QUARANTINE { $$ = 1 << BLOCK_QUARANTINE; }
+  | UWORLD { $$ = 1 << BLOCK_UWORLD; }
+  | WEBIRC { $$ = 1 << BLOCK_WEBIRC; }
+  | IPCHECK { $$ = 1 << BLOCK_IPCHECK; }
+  ;

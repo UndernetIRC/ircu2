@@ -11,6 +11,7 @@
 #include "ircd_alloc.h"
 #include "ircd_log.h"
 #include "ircd_string.h" /* ircd_strcmp() */
+#include "s_conf.h"
 #include "y.tab.h"
 
 #if !defined(O_CLOEXEC)
@@ -29,6 +30,9 @@ struct lex_file
 
   /** Name of this config file. */
   char *name;
+
+  /** Bitmask of allowed config blocks for this file. */
+  unsigned int allowed;
 
   /** File descriptor for this config file. */
   int fd;
@@ -66,7 +70,6 @@ static const struct lexer_token tokens[] = {
   { "badchan", TPRIV_BADCHAN },
   { "bytes", BYTES },
   { "chan_limit", TPRIV_CHAN_LIMIT },
-  { "channel", CHANNEL },
   { "class", CLASS },
   { "client", CLIENT },
   { "connect", CONNECT },
@@ -96,6 +99,7 @@ static const struct lexer_token tokens[] = {
   { "hours", HOURS },
   { "hub", HUB },
   { "iauth", IAUTH },
+  { "include", INCLUDE },
   { "ip", IP },
   { "ipcheck", IPCHECK },
   { "ipv4", TOK_IPV4 },
@@ -157,7 +161,6 @@ static const struct lexer_token tokens[] = {
   { "tb", TBYTES },
   { "tbytes", TBYTES },
   { "terabytes", TBYTES },
-  { "timeout", TIMEOUT },
   { "unlimit_query", TPRIV_UNLIMIT_QUERY },
   { "usermode", USERMODE },
   { "username", USERNAME },
@@ -174,27 +177,48 @@ static const struct lexer_token tokens[] = {
 };
 static const int ntokens = sizeof(tokens) / sizeof(tokens[0]) - 1;
 static struct lex_file *yy_in;
-extern int lineno;
 
-static int lexer_open(const char *fname, int allow_fail)
+int lexer_allowed(unsigned int bitnum)
+{
+  return !yy_in || ((yy_in->allowed & (1u << bitnum)) != 0);
+}
+
+const char *lexer_position(int *lineno)
+{
+  if (yy_in)
+  {
+    if (lineno)
+      *lineno = yy_in->lineno;
+    return yy_in->name;
+  }
+
+  if (lineno)
+    *lineno = -1;
+  return "<undef>";
+}
+
+static int lexer_open(const char *fname, int allow_fail, unsigned int allowed)
 {
   struct lex_file *obj;
 
   obj = MyMalloc(sizeof(*obj));
   obj->fd = open(fname, O_RDONLY | O_NOCTTY | O_CLOEXEC);
-  if (obj->fd < 0) {
-    if (!allow_fail) {
-      log_write(LS_CONFIG, L_CRIT, 0, "unable to open config file: %s", fname);
-    }
-    MyFree(obj);
-    return -1;
-  }
-
   DupString(obj->name, fname);
+  obj->allowed = allowed;
   obj->parent = yy_in;
   obj->lineno = 1;
   obj->tok_ofs = obj->buf_used = 0;
   yy_in = obj;
+
+  if (obj->fd < 0) {
+    yyerror("error opening file");
+    if (!allow_fail) {
+      yy_in = obj->parent;
+      MyFree(obj);
+      return -1;
+    }
+  }
+
   return 0;
 }
 
@@ -233,7 +257,7 @@ int init_lexer(void)
   }
 #endif
 
-  return lexer_open(configfile, 1) == 0; /* we return non-zero on success */
+  return lexer_open(configfile, 1, ~0u) == 0; /* we return non-zero on success */
 }
 
 void deinit_lexer(void)
@@ -243,6 +267,11 @@ void deinit_lexer(void)
   while (yy_in) {
     lexer_pop();
   }
+}
+
+void lexer_include(const char *fname, unsigned int allowed)
+{
+  lexer_open(fname, 1, allowed);
 }
 
 static int token_compare(const void *key, const void *ptok)
@@ -269,7 +298,10 @@ int yylex(void)
   char save;
 
   if (!yy_in)
-    return 0;
+    return YYEOF;
+
+  if (yy_in->fd < 0)
+    return YYerror;
 
   for (;;) {
     pos = yy_in->buf + yy_in->tok_ofs;
@@ -305,7 +337,6 @@ int yylex(void)
       *pos++ = '\0';
       DupString(yylval.text, start + 1);
       yy_in->tok_ofs = pos - yy_in->buf;
-      lineno = yy_in->lineno;
       return QSTRING;
     }
 
@@ -319,7 +350,6 @@ int yylex(void)
         goto grab_more;
       yy_in->tok_ofs = pos - yy_in->buf;
       yylval.num = num;
-      lineno = yy_in->lineno;
       return NUMBER;
     }
 
@@ -334,7 +364,6 @@ int yylex(void)
       nbr = find_token(start);
       *pos = save;
       yy_in->tok_ofs = pos - yy_in->buf;
-      lineno = yy_in->lineno;
       if (nbr)
         return nbr;
       log_write(LS_CONFIG, L_CRIT, 0, "unhandled token %s at line %d of %s",
@@ -344,7 +373,6 @@ int yylex(void)
     /* Otherwise we are looking at a meaningful character. */
     if (pos < stop) {
       yy_in->tok_ofs = ++pos - yy_in->buf;
-      lineno = yy_in->lineno;
       return pos[-1];
     }
 
@@ -370,7 +398,7 @@ int yylex(void)
       lexer_pop();
       if (!yy_in)
         return 0;
-      /* TODO: return end-of-included-file token */
+      return TEOF;
     }
     if (nbr < 0) {
       log_write(LS_CONFIG, L_ERROR, 0, "read from %s failed: %s",
