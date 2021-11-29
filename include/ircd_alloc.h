@@ -42,9 +42,10 @@ extern void set_nomem_handler(OutOfMemoryHandler handler);
   DoMallocZero((size) * (nelem), "calloc", __FILE__, __LINE__)
 
 /** Helper macro for freeing memory. */
-#define MyFree(p) \
-  if (p) \
-    DoFree(p, __FILE__, __LINE__)
+#define MyFree(p) do { \
+    if (p) \
+      DoFree(p, __FILE__, __LINE__); \
+  } while (0)
 
 /** Helper macro for reallocating memory. */
 #define MyRealloc(p, size) \
