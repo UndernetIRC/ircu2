@@ -297,11 +297,14 @@ int yylex(void)
   ssize_t nbr;
   char save;
 
+#if !defined(YYEOF)
+# define YYEOF 0
+#endif
   if (!yy_in)
     return YYEOF;
 
   if (yy_in->fd < 0)
-    return YYerror;
+    return TOKERR;
 
   for (;;) {
     pos = yy_in->buf + yy_in->tok_ofs;

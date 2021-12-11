@@ -28,4 +28,6 @@ extern const char *lexer_position(int *lineno);
 extern int lexer_allowed(unsigned int bitnum);
 extern void deinit_lexer(void);
 
+extern int yyparse();
+
 #endif /* INCLUDED_ircd_lexer_h */
