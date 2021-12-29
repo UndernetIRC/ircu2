@@ -740,27 +740,27 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
 int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal)
 {
   struct Membership *member;
-  assert(0 != cptr); 
-  /*
-   * Servers can always speak on channels.
-   */
+  assert(0 != cptr);
+
+  /* Servers can always speak on channels. */
   if (IsServer(cptr))
     return 1;
 
+  /* If you are on the channel, use the function for that. */
   member = find_channel_member(cptr, chptr);
+  if (member)
+    return member_can_send_to_channel(member, reveal);
 
-  /*
-   * You can't speak if you're off channel, and it is +n (no external messages)
-   * or +m (moderated).
-   */
-  if (!member) {
-    if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
-        ((chptr->mode.mode & (MODE_REGONLY|MODE_MODERATENOREG)) && !IsAccount(cptr)))
-      return 0;
-    else
-      return !find_ban(cptr, chptr->banlist);
-  }
-  return member_can_send_to_channel(member, reveal);
+  /* Otherwise, you cannot send to a +n or +m channel. */
+  if (chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED))
+    return 0;
+
+  /* .. or to a +r or +M channel when you are not logged in. */
+  if ((chptr->mode.mode & (MODE_REGONLY|MODE_MODERATENOREG)) && !IsAccount(cptr))
+    return 0;
+
+  /* Finally, you cannot speak if you are banned. */
+  return !find_ban(cptr, chptr->banlist);
 }
 
 /** Returns the name of a channel that prevents the user from changing nick.
