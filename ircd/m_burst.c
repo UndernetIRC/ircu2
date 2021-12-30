@@ -462,7 +462,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    current_mode = base_mode;
 		    current_mode_needs_reset = 0;
 		  }
-		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
+		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED
+                                  | CHFL_DELAYED_TARGET)) | CHFL_CHANOP;
                   /*
                    * Older servers may send XXYYY:ov, in which case we
                    * do not want to use the code for 'v' below.
@@ -477,7 +478,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
                     current_mode = base_mode;
 		    current_mode_needs_reset = 0;
 		  }
-		  current_mode = (current_mode & ~CHFL_DELAYED) | CHFL_VOICE;
+		  current_mode = (current_mode & ~(CHFL_DELAYED | CHFL_DELAYED_TARGET)) | CHFL_VOICE;
 		  oplevel = -1;	/* subsequent digits are an absolute op-level value. */
                 }
 		else if (IsDigit(*ptr)) {
@@ -489,7 +490,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 		    }
 		    oplevel = 0;
 		  }
-		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED)) | CHFL_CHANOP;
+		  current_mode = (current_mode & ~(CHFL_DEOPPED | CHFL_DELAYED | CHFL_DELAYED_TARGET)) | CHFL_CHANOP;
 		  do {
 		    level_increment = 10 * level_increment + *ptr++ - '0';
 		  } while (IsDigit(*ptr));

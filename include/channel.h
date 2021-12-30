@@ -81,6 +81,7 @@ struct Client;
 					 * channel
 					 */
 #define CHFL_DELAYED            0x40000 /**< User's join message is delayed */
+#define CHFL_DELAYED_TARGET     0x80000 /**< User has not used a target on this channel */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -216,6 +217,7 @@ struct Membership {
 #define IsChannelManager(x) ((x)->status & CHFL_CHANNEL_MANAGER)
 #define IsUserParting(x)    ((x)->status & CHFL_USER_PARTING)
 #define IsDelayedJoin(x)    ((x)->status & CHFL_DELAYED)
+#define IsDelayedTarget(x)  ((x)->status & CHFL_DELAYED_TARGET)
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
@@ -234,6 +236,7 @@ struct Membership {
 #define ClearServOpOk(x)    ((x)->status &= ~CHFL_SERVOPOK)
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
 #define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
+#define ClearDelayedTarget(x) ((x)->status &= ~CHFL_DELAYED_TARGET)
 
 /** Mode information for a channel */
 struct Mode {

@@ -3160,6 +3160,7 @@ mode_process_clients(struct ParseState *state)
       if (state->cli_change[i].flag & MODE_ADD) {
         if (IsDelayedJoin(member) && !IsZombie(member))
           RevealDelayedJoin(member);
+        ClearDelayedTarget(member);
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
 	if (state->cli_change[i].flag & MODE_CHANOP)

@@ -88,6 +88,7 @@
 #include "ircd_string.h"
 #include "struct.h"
 #include "s_misc.h"
+#include "s_user.h"
 #include "ircd_reply.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
@@ -101,6 +102,8 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
+  int delayed_targets = 0;
+
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
@@ -108,11 +111,17 @@ int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (cli_user(sptr)) {
     struct Membership* chan;
     for (chan = cli_user(sptr)->channel; chan; chan = chan->next_channel) {
-        if (!IsZombie(chan) && !IsDelayedJoin(chan) && !member_can_send_to_channel(chan, 0))
+      if (!IsZombie(chan) && !IsDelayedJoin(chan) && !member_can_send_to_channel(chan, 0))
         return exit_client(cptr, sptr, sptr, "Signed off");
+      if (IsDelayedTarget(chan))
+        ++delayed_targets;
     }
   }
-  if (parc > 1 && !BadPtr(parv[parc - 1]))
+
+  /* Bypass check_target_limit() because we do not want to advance cli_nexttarget(). */
+  if (delayed_targets)
+    delayed_targets = cli_nexttarget(sptr) + TARGET_DELAY * delayed_targets > CurrentTime;
+  if (parc > 1 && !BadPtr(parv[parc - 1]) && !delayed_targets)
     return exit_client_msg(cptr, sptr, sptr, "Quit: %s", parv[parc - 1]);
   else
     return exit_client(cptr, sptr, sptr, "Quit");

@@ -60,6 +60,7 @@ enum Feature {
   FEAT_LOCAL_CHANNELS,
   FEAT_TOPIC_BURST,
   FEAT_DISABLE_GLINES,
+  FEAT_JOIN_TARGET,
 
   /* features that probably should not be touched */
   FEAT_KILLCHASETIMELIMIT,

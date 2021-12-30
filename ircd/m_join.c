@@ -95,6 +95,23 @@ last0(struct Client *cptr, struct Client *sptr, char *chanlist)
   return chanlist;
 }
 
+/** Decide whether a client can join a channel.
+ *
+ * @param[in] cptr Client trying to join the channel.
+ * @param[in] chptr Channel being joined.
+ * @return Zero if the join is allowed normally, 1 if client cannot join,
+ *  CHFL_DELAYED_TARGET if they should have a delayed target use.
+ */
+static int check_target_join(struct Client *cptr, struct Channel *chptr)
+{
+  if (check_target_limit(cptr, NULL, chptr))
+  {
+    return feature_bool(FEAT_JOIN_TARGET) ? 1 : CHFL_DELAYED_TARGET;
+  }
+
+  return 0;
+}
+
 /** Handle a JOIN message from a client connection.
  * See @ref m_functions for discussion of the arguments.
  * @param[in] cptr Client that sent us the message.
@@ -112,6 +129,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   char *chanlist;
   char *name;
   char *keys;
+  int delay_flag;
 
   if (parc < 2 || *parv[1] == '\0')
     return need_more_params(sptr, "JOIN");
@@ -167,16 +185,17 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
 
       /* Try to add the new channel as a recent target for the user. */
-      if (check_target_limit(sptr, NULL, chptr)) {
+      delay_flag = check_target_join(sptr, chptr);
+      if (delay_flag == 1) {
         chptr->members = 0;
         destruct_channel(chptr);
         continue;
       }
 
-      joinbuf_join(&create, chptr, CHFL_CHANOP | CHFL_CHANNEL_MANAGER);
+      joinbuf_join(&create, chptr, CHFL_CHANOP | CHFL_CHANNEL_MANAGER | delay_flag);
     } else if (find_member_link(chptr, sptr)) {
       continue; /* already on channel */
-    } else if (check_target_limit(sptr, NULL, chptr)) {
+    } else if ((delay_flag = check_target_join(sptr, chptr)) == 1) {
       continue;
     } else {
       int flags = CHFL_DEOPPED;
@@ -241,10 +260,10 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       if (err) {
         switch(err) {
           case ERR_NEEDREGGEDNICK:
-            send_reply(sptr, 
-                       ERR_NEEDREGGEDNICK, 
-                       chptr->chname, 
-                       feature_str(FEAT_URLREG));            
+            send_reply(sptr,
+                       ERR_NEEDREGGEDNICK,
+                       chptr->chname,
+                       feature_str(FEAT_URLREG));
             break;
           default:
             send_reply(sptr, err, chptr->chname);
@@ -253,7 +272,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
       }
 
-      joinbuf_join(&join, chptr, flags);
+      joinbuf_join(&join, chptr, flags | delay_flag);
       if (flags & CHFL_CHANOP) {
         struct ModeBuf mbuf;
 	/* Always let the server op him: this is needed on a net with older servers

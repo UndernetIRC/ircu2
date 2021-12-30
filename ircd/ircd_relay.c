@@ -86,6 +86,7 @@
 void relay_channel_message(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  struct Membership* memb;
   const char *ch;
 
   assert(0 != sptr);
@@ -106,6 +107,9 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
       check_target_limit(sptr, NULL, chptr))
     return;
+  memb = find_member_link(chptr, sptr);
+  if (memb && IsDelayedTarget(memb))
+    ClearDelayedTarget(memb);
 
   if (chptr->mode.mode & MODE_NOCOLOR) {
     for (ch = text; *ch != '\0'; ++ch) {
@@ -139,6 +143,7 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
 void relay_channel_notice(struct Client* sptr, const char* name, const char* text)
 {
   struct Channel* chptr;
+  struct Membership* memb;
   const char *ch;
 
   assert(0 != sptr);
@@ -156,6 +161,9 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
       check_target_limit(sptr, NULL, chptr))
     return;
+  memb = find_member_link(chptr, sptr);
+  if (memb && IsDelayedTarget(memb))
+    ClearDelayedTarget(memb);
 
   if (chptr->mode.mode & MODE_NOCOLOR) {
     for (ch = text; *ch != '\0'; ++ch) {
