@@ -644,12 +644,13 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
 }
 
 /** Calculate the hash value for a target.
- * @param[in] target Pointer to target, cast to unsigned int.
+ * @param[in] target Pointer to target.
  * @return Hash value constructed from the pointer.
  */
-static unsigned char hash_target(unsigned int target)
+static unsigned char hash_target(void *target)
 {
-  return (unsigned char) (target >> 16) ^ (target >> 8);
+  unsigned long value = (unsigned long) target;
+  return (unsigned char) (value >> 16) ^ (value >> 8);
 }
 
 /** Records \a target as a recent target for \a sptr.
@@ -661,7 +662,7 @@ add_target(struct Client *sptr, void *target)
 {
   /* Ok, this shouldn't work esp on alpha
   */
-  unsigned char  hash = hash_target((unsigned long) target);
+  unsigned char  hash = hash_target(target);
   unsigned char* targets;
   int            i;
   assert(0 != sptr);
@@ -686,15 +687,15 @@ add_target(struct Client *sptr, void *target)
 
 /** Check whether \a sptr can send to or join \a target yet.
  * @param[in] sptr User trying to join a channel or send a message.
- * @param[in] target Target of the join or message.
- * @param[in] name Name of the target.
- * @param[in] created If non-zero, trying to join a new channel.
- * @return Non-zero if too many target changes; zero if okay to send.
+ * @param[in] acptr Destination client (NULL if sending to a channel).
+ * @param[in] chptr Destination channel (NULL if sending to a client).
+ * @return Non-zero if too many target changes (after sending
+ *   ERR_TARGETTOOFAST); zero if okay to send.
  */
-int check_target_limit(struct Client *sptr, void *target, const char *name,
-    int created)
+int check_target_limit(struct Client *sptr, struct Client *acptr,
+                       struct Channel *chptr)
 {
-  unsigned char hash = hash_target((unsigned long) target);
+  unsigned char hash = hash_target(acptr ? (void *)acptr : chptr);
   int            i;
   unsigned char* targets;
 
@@ -714,31 +715,32 @@ int check_target_limit(struct Client *sptr, void *target, const char *name,
       return 0;
     }
   }
+
   /*
    * New target
    */
-  if (!created) {
-    if (CurrentTime < cli_nexttarget(sptr)) {
-      /* If user is invited to channel, give him/her a free target */
-      if (IsChannelName(name) && IsInvited(sptr, target))
-        return 0;
-
-      if (cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
-        /*
-         * No server flooding
-         */
-        cli_nexttarget(sptr) += 2;
-        send_reply(sptr, ERR_TARGETTOOFAST, name,
-                   cli_nexttarget(sptr) - CurrentTime);
-      }
-      return 1;
+  if (CurrentTime < cli_nexttarget(sptr)) {
+    /* If user is invited to channel, give him/her a free target */
+    if (chptr && IsInvited(sptr, chptr))
+      return 0;
+    if (cli_nexttarget(sptr) - CurrentTime < TARGET_DELAY + 8) {
+      const char *name;
+      /*
+       * No server flooding
+       */
+      cli_nexttarget(sptr) += 2;
+      name = acptr ? cli_name(acptr) : chptr->chname;
+      send_reply(sptr, ERR_TARGETTOOFAST, name,
+                 cli_nexttarget(sptr) - CurrentTime);
     }
-    else {
-      cli_nexttarget(sptr) += TARGET_DELAY;
-      if (cli_nexttarget(sptr) < CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1)))
-        cli_nexttarget(sptr) = CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1));
-    }
+    return 1;
   }
+  else {
+    cli_nexttarget(sptr) += TARGET_DELAY;
+    if (cli_nexttarget(sptr) < CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1)))
+      cli_nexttarget(sptr) = CurrentTime - (TARGET_DELAY * (MAXTARGETS - 1));
+  }
+
   memmove(&targets[1], &targets[0], MAXTARGETS - 1);
   targets[0] = hash;
   return 0;

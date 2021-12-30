@@ -166,7 +166,7 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* If we get here, it was a VALID and meaningful INVITE */
 
-  if (check_target_limit(sptr, acptr, cli_name(acptr), 0))
+  if (check_target_limit(sptr, acptr, NULL))
     return 0;
 
   send_reply(sptr, RPL_INVITING, cli_name(acptr), chptr->chname);

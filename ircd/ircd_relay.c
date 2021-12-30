@@ -104,7 +104,7 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
     return;
   }
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
-      check_target_limit(sptr, chptr, chptr->chname, 0))
+      check_target_limit(sptr, NULL, chptr))
     return;
 
   if (chptr->mode.mode & MODE_NOCOLOR) {
@@ -154,7 +154,7 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
     return;
 
   if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
-      check_target_limit(sptr, chptr, chptr->chname, 0))
+      check_target_limit(sptr, NULL, chptr))
     return;
 
   if (chptr->mode.mode & MODE_NOCOLOR) {
@@ -375,8 +375,9 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
+  /* Note: X does silence users who flood it. */
   if ((!IsChannelService(acptr) &&
-       check_target_limit(sptr, acptr, cli_name(acptr), 0)) ||
+       check_target_limit(sptr, acptr, NULL)) ||
       is_silenced(sptr, acptr))
     return;
 
@@ -412,7 +413,7 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
   if (0 == (acptr = FindUser(name)))
     return;
   if ((!IsChannelService(acptr) && 
-       check_target_limit(sptr, acptr, cli_name(acptr), 0)) ||
+       check_target_limit(sptr, acptr, NULL)) ||
       is_silenced(sptr, acptr))
     return;
   /*

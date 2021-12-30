@@ -167,7 +167,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
         continue;
 
       /* Try to add the new channel as a recent target for the user. */
-      if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
+      if (check_target_limit(sptr, NULL, chptr)) {
         chptr->members = 0;
         destruct_channel(chptr);
         continue;
@@ -176,7 +176,7 @@ int m_join(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       joinbuf_join(&create, chptr, CHFL_CHANOP | CHFL_CHANNEL_MANAGER);
     } else if (find_member_link(chptr, sptr)) {
       continue; /* already on channel */
-    } else if (check_target_limit(sptr, chptr, chptr->chname, 0)) {
+    } else if (check_target_limit(sptr, NULL, chptr)) {
       continue;
     } else {
       int flags = CHFL_DEOPPED;
