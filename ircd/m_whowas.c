@@ -150,7 +150,7 @@ int m_whowas(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         cur++;
         found++;
       }
-      if (max >= 0 && cur >= max)
+      if (max >= 1 && cur >= max)
         break;
     }
     if (!found)
