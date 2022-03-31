@@ -178,8 +178,8 @@ INVITE list:
  invite to (ie: an invite to a channel which you haven't joined)
  
  Additional Numerics:
-  RPL_INVITELIST      346
-  RPL_ENDOFINVITELIST 347
+  RPL_INVITELIST      336
+  RPL_ENDOFINVITELIST 337
 
 NICK change:
  Version: Since the dawn of time.

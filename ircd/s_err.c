@@ -704,9 +704,9 @@ static Numeric replyTable[] = {
 /* 335 */
   { 0 },
 /* 336 */
-  { 0 },
+  { RPL_INVITELIST, ":%s", "336" },
 /* 337 */
-  { 0 },
+  { RPL_ENDOFINVITELIST, ":End of Invite List", "337" },
 /* 338 */
   { RPL_WHOISACTUALLY, "%s %s@%s %s :Actual user@host, Actual IP", "338" },
 /* 339 */
@@ -724,9 +724,9 @@ static Numeric replyTable[] = {
 /* 345 */
   { RPL_ISSUEDINVITE, "%s %s %s :%s has been invited by %s", "345" },
 /* 346 */
-  { RPL_INVITELIST, ":%s", "346" },
+  { 0 },
 /* 347 */
-  { RPL_ENDOFINVITELIST, ":End of Invite List", "347" },
+  { 0 },
 /* 348 */
   { 0 },
 /* 349 */
