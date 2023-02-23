@@ -2771,7 +2771,6 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
 
   assert(newban->flags & (BAN_ADD|BAN_DEL));
   if (newban->flags & BAN_ADD) {
-    size_t totlen = 0;
     /* If a less specific *active* entry is found, fail.  */
     for (ban = *banlist; ban; ban = ban->next) {
       if (!bmatch(ban, newban) && !(ban->flags & BAN_DEL)) {
@@ -2781,7 +2780,6 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
       }
       if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
         count++;
-        totlen += strlen(ban->banstr);
       }
     }
     /* Mark more specific entries and add this one to the end of the list. */
