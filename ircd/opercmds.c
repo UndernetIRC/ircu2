@@ -72,7 +72,7 @@ char *militime(char* sec, char* usec)
     sprintf(timebuf, "%ld",
         (tv.tv_sec - atoi(sec)) * 1000 + (tv.tv_usec - atoi(usec)) / 1000);
   else
-    sprintf(timebuf, "%ld %ld", tv.tv_sec, tv.tv_usec);
+    sprintf(timebuf, "%ld %ld", tv.tv_sec, (long)tv.tv_usec);
   return timebuf;
 }
 
@@ -113,6 +113,6 @@ char *militime_float(char* start)
       strcpy(timebuf, "0");
   }
   else
-    sprintf(timebuf, "%ld.%ld", tv.tv_sec, tv.tv_usec);
+    sprintf(timebuf, "%ld.%ld", tv.tv_sec, (long)tv.tv_usec);
   return timebuf;
 }
