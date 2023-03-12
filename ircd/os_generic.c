@@ -35,6 +35,11 @@
  * they cleverly hide IPPROTO_IPV6.  If you don't ask for anything,
  * they give you everything.
  */
+#elif defined (__APPLE__) && defined(__MACH__)
+/* Mac OS X / Darwin hides most details of struct rusage if you ask for
+ * any particular standard.  And like FreeBSD, if you don't ask for
+ * anything, they give you everything.
+ */
 #else
 #define _XOPEN_SOURCE   600
 #endif
