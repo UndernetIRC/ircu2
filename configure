@@ -7658,6 +7658,10 @@ if test x"$unet_maxcon" = xunlimited; then
     unet_maxcon=`ulimit -Sn`
 fi
 unet_maxcon=`expr $unet_maxcon - 4`
+NN_MAX_CLIENT_P=262168
+if test "$unet_maxcon" -gt $NN_MAX_CLIENT_P ; then
+    unet_maxcon=$NN_MAX_CLIENT_P
+fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking max connections" >&5
 printf %s "checking max connections... " >&6; }
 
