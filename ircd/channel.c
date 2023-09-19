@@ -2767,7 +2767,6 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
 int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
 {
   struct Ban *ban;
-  size_t count = 0;
 
   assert(newban->flags & (BAN_ADD|BAN_DEL));
   if (newban->flags & BAN_ADD) {
@@ -2777,9 +2776,6 @@ int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
         if (do_free)
           free_ban(newban);
         return 1;
-      }
-      if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
-        count++;
       }
     }
     /* Mark more specific entries and add this one to the end of the list. */
