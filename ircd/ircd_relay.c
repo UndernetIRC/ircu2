@@ -294,8 +294,8 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
    * this. -- Isomer 2001-09-16
    */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
-      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)) ||
-      !IsChannelService(acptr))
+      !IsChannelService(acptr) ||
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)))
   {
     /*
      * By this stage we might as well not bother because they will
@@ -363,8 +363,8 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
    * allow services to receive /notice nick@server.undernet.org notices.
   */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
-      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)) ||
-      !IsChannelService(acptr))
+      !IsChannelService(acptr) ||
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)))
   {
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
