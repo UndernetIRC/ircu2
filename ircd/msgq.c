@@ -247,8 +247,8 @@ msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
 }
 
 /** Allocate a message buffer large enough to hold \a length bytes.
- * TODO: \a in_mb needs better documentation.
- * @param[in] in_mb Some other message buffer(?).
+ *
+ * @param[in] in_mb Buffer containing the desired message.
  * @param[in] length Number of bytes of space to reserve in output.
  * @return Pointer to some usable message buffer.
  */

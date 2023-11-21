@@ -104,7 +104,7 @@
  */
 int m_time(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (hunt_server_cmd(sptr, CMD_TIME, cptr, feature_int(FEAT_HIS_REMOTE), ":%C",
+  if (hunt_server_cmd(sptr, CMD_TIME, cptr, feature_bool(FEAT_HIS_REMOTE), ":%C",
                       1, parc, parv)
       != HUNTED_ISME)
     return 0;

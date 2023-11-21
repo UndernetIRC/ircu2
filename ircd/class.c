@@ -65,6 +65,11 @@ struct ConnectionClass* make_class(void)
     tmp->next = connClassList->next;
     connClassList->next = tmp;
   }
+  else
+  {
+    tmp->next = 0;
+    connClassList = tmp;
+  }
   ++connClassAllocCount;
   return tmp;
 }
@@ -92,16 +97,15 @@ void free_class(struct ConnectionClass* p)
 void init_class(void)
 {
   if (!connClassList) {
-    connClassList = (struct ConnectionClass*) make_class();
-    connClassList->next   = 0;
+    make_class();
   }
 
   /* We had better not try and free this... */
   ConClass(connClassList) = "default";
   PingFreq(connClassList) = feature_int(FEAT_PINGFREQUENCY);
   ConFreq(connClassList)  = feature_int(FEAT_CONNECTFREQUENCY);
-  MaxLinks(connClassList) = feature_int(FEAT_MAXIMUM_LINKS);
   MaxSendq(connClassList) = feature_int(FEAT_DEFAULTMAXSENDQLENGTH);
+  MaxLinks(connClassList) = 1;
   connClassList->valid    = 1;
   Links(connClassList)    = 1;
 }
@@ -129,7 +133,8 @@ void class_delete_marked(void)
 
   Debug((DEBUG_DEBUG, "Class check:"));
 
-  for (prev = cl = connClassList; cl; cl = prev->next) {
+  prev = connClassList;
+  while ((cl = prev->next) != NULL) {
     Debug((DEBUG_DEBUG, "Class %s : CF: %d PF: %d ML: %d LI: %d SQ: %d",
            ConClass(cl), ConFreq(cl), PingFreq(cl), MaxLinks(cl),
            Links(cl), MaxSendq(cl)));

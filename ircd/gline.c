@@ -851,7 +851,7 @@ gline_modify(struct Client *cptr, struct Client *sptr, struct Gline *gline,
   }
 
   /* Now, handle reason changes... */
-  if (flags & GLINE_REASON) {
+  if ((flags & GLINE_REASON) && reason) {
     non_auto = non_auto || ircd_strncmp(gline->gl_reason, "AUTO", 4);
     MyFree(gline->gl_reason); /* release old reason */
     DupString(gline->gl_reason, reason); /* store new reason */
@@ -1163,16 +1163,16 @@ gline_stats(struct Client *sptr, const struct StatDesc *sd,
 {
   struct Gline *gline;
   struct Gline *sgline;
+  char gl_mask[USERLEN+HOSTLEN+2];
 
   gliter(GlobalGlineList, gline, sgline) {
     if (param) {
-      char gl_mask[USERLEN+HOSTLEN+2];
-      strcpy(gl_mask, gline->gl_user);
-      if (gline->gl_host) {
-	size_t len = strlen(gl_mask);
-	gl_mask[len++] = '@';
-	strcpy(gl_mask + len, gline->gl_host);
-      }
+      if (gline->gl_host)
+	ircd_snprintf(NULL, gl_mask, sizeof(gl_mask), "%s@%s",
+	              gline->gl_user, gline->gl_host);
+      else
+	ircd_strncpy(gl_mask, gline->gl_user, sizeof(gl_mask));
+
       if (mmatch(param, gl_mask))
 	continue;
     }

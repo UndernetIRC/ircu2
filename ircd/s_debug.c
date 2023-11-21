@@ -149,11 +149,14 @@ void vdebug(int level, const char *form, va_list vl)
 {
   static int loop = 0;
   int err = errno;
+  int l_level = level;
+  if (l_level >= L_LAST_LEVEL)
+    l_level = L_DEBUG;
 
   if (!loop && (debuglevel >= 0) && (level <= debuglevel))
   {
     loop = 1;
-    log_vwrite(LS_DEBUG, level, 0, form, vl);
+    log_vwrite(LS_DEBUG, l_level, 0, form, vl);
     loop = 0;
   }
   errno = err;

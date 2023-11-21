@@ -116,7 +116,7 @@
  */
 int m_motd(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  if (hunt_server_cmd(sptr, CMD_MOTD, cptr, feature_int(FEAT_HIS_REMOTE), "%C", 1,
+  if (hunt_server_cmd(sptr, CMD_MOTD, cptr, feature_bool(FEAT_HIS_REMOTE), "%C", 1,
 		      parc, parv) != HUNTED_ISME)
     return 0;
 

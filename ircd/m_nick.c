@@ -292,6 +292,9 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   assert(0 != sptr);
   assert(IsServer(cptr));
 
+  if (sptr == NULL)
+    return 0;
+
   if ((IsServer(sptr) && parc < 8) || parc < 3)
   {
     sendto_opmask_butone(0, SNO_OLDSNO, "bad NICK param count for %s from %C",
@@ -490,8 +493,6 @@ int ms_nick(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   exit_client_msg(cptr, acptr, &me, "Killed (%s (%s))",
                   feature_str(FEAT_HIS_SERVERNAME), type);
   if (lastnick == cli_lastnick(acptr))
-    return 0;
-  if (sptr == NULL)
     return 0;
   return set_nick_name(cptr, sptr, nick, parc, parv);
 }

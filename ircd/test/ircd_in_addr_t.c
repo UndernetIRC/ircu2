@@ -46,6 +46,10 @@ static struct address_test test_addrs[] = {
     { "1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8",
       {{ 1, 2, 3, 4, 5, 6, 7, 8 }},
       "AAAAAA", "AABAACAADAAEAAFAAGAAHAAI", 1, 0, 0 },
+    { "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+      "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+      {{ 65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535 }},
+      "AAAAAA", "P]]P]]P]]P]]P]]P]]P]]P]]", 0, 0, 0 },
     { 0 },
 };
 

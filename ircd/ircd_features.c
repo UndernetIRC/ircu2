@@ -320,11 +320,12 @@ static struct FeatureDesc {
   F_S(HIDDEN_HOST, FEAT_CASE, "users.undernet.org", 0),
   F_S(HIDDEN_IP, 0, "127.0.0.1", 0),
   F_B(CONNEXIT_NOTICES, 0, 0, 0),
-  F_B(OPLEVELS, 0, 1, 0),
-  F_B(ZANNELS, 0, 1, 0),
+  F_B(OPLEVELS, 0, 0, 0),
+  F_B(ZANNELS, 0, 0, 0),
   F_B(LOCAL_CHANNELS, 0, 1, 0),
   F_B(TOPIC_BURST, 0, 0, 0),
   F_B(DISABLE_GLINES, 0, 0, 0),
+  F_B(JOIN_TARGET, 0, 0, 0),
 
   /* features that probably should not be touched */
   F_I(KILLCHASETIMELIMIT, 0, 30, 0),
@@ -336,7 +337,6 @@ static struct FeatureDesc {
   F_I(HANGONGOODLINK, 0, 300, 0),
   F_I(HANGONRETRYDELAY, 0, 10, 0),
   F_I(CONNECTTIMEOUT, 0, 90, 0),
-  F_I(MAXIMUM_LINKS, 0, 1, init_class), /* reinit class 0 as needed */
   F_I(PINGFREQUENCY, 0, 120, init_class),
   F_I(CONNECTFREQUENCY, 0, 600, init_class),
   F_I(DEFAULTMAXSENDQLENGTH, 0, 40000, init_class),
@@ -415,7 +415,7 @@ static struct FeatureDesc {
   F_B(HIS_BANWHO, 0, 1, 0),
   F_B(HIS_KILLWHO, 0, 1, 0),
   F_B(HIS_REWRITE, 0, 1, 0),
-  F_I(HIS_REMOTE, 0, 1, 0),
+  F_B(HIS_REMOTE, 0, 1, 0),
   F_B(HIS_NETSPLIT, 0, 1, 0),
   F_S(HIS_SERVERNAME, 0, "*.undernet.org", feature_notify_servername),
   F_S(HIS_SERVERINFO, 0, "The Undernet Underworld", feature_notify_serverinfo),
@@ -522,11 +522,13 @@ feature_set(struct Client* from, const char* const* fields, int count)
       } else { /* figure out the value and whether to mark it */
 	if (!ircd_strncmp(fields[1], "TRUE", strlen(fields[1])) ||
 	    !ircd_strncmp(fields[1], "YES", strlen(fields[1])) ||
+	    !ircd_strncmp(fields[1], "1", strlen(fields[1])) ||
 	    (strlen(fields[1]) >= 2 &&
 	     !ircd_strncmp(fields[1], "ON", strlen(fields[1]))))
 	  feat->v_int = 1;
 	else if (!ircd_strncmp(fields[1], "FALSE", strlen(fields[1])) ||
 		 !ircd_strncmp(fields[1], "NO", strlen(fields[1])) ||
+		 !ircd_strncmp(fields[1], "0", strlen(fields[1])) ||
 		 (strlen(fields[1]) >= 2 &&
 		  !ircd_strncmp(fields[1], "OFF", strlen(fields[1]))))
 	  feat->v_int = 0;
@@ -632,9 +634,10 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     return send_reply(from, ERR_NOPRIVILEGES);
 
   if (count < 1) /* check arguments */
-    need_more_params(from, "RESET");
-  else if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
-    if (from && feat->flags & FEAT_READ)
+    return need_more_params(from, "RESET");
+
+  if ((feat = feature_desc(from, fields[0]))) { /* get descriptor */
+    if (feat->flags & FEAT_READ)
       return send_reply(from, ERR_NOFEATURE, fields[0]);
 
     switch (feat->flags & FEAT_MASK) {
@@ -673,8 +676,7 @@ feature_reset(struct Client* from, const char* const* fields, int count)
     if (change && feat->notify) /* call change notify function */
       (*feat->notify)();
 
-    if (from)
-      return feature_get(from, fields, count);
+    return feature_get(from, fields, count);
   }
 
   return 0;

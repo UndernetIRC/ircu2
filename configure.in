@@ -51,7 +51,10 @@ dnl This should be done early.
 AC_PROG_CC
 
 dnl ANSIfy the C compiler whenever possible.
-AM_PROG_CC_STDC
+AC_PROG_CC
+
+dnl Check for pkg-config.
+PKG_PROG_PKG_CONFIG
 
 dnl Checks for libraries.
 
@@ -106,9 +109,6 @@ int getpeername (int $arg2 *, $t *);],[$t len;
 dnl Checks for library functions.
 AC_CHECK_FUNCS([kqueue setrlimit getrusage times])
 
-dnl Do we have restarting syscalls ?
-AC_SYS_RESTARTABLE_SYSCALLS
-
 dnl Check for required features for admins?
 AC_MSG_CHECKING([for donuts])
 AC_MSG_RESULT([yes])
@@ -120,17 +120,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PATH_PROGS(RMPROG, rm, /bin/rm)
 AC_PATH_PROGS(SHPROG, sh, /bin/sh)
-
-dnl (F)LEX - needed for the new conf file parser
-AC_PROG_LEX
-dnl The autoconf docs say $LEX defaults to 'lex'.  They lie.
-if test "$LEX" = ":" ; then
-  AC_MSG_ERROR([Cannot find flex.])
-elif echo "" | $LEX -V -v --version > /dev/null 2>&1 ; then
-  :
-else
-  AC_MSG_ERROR([Cannot use $LEX as flex.])
-fi
 
 dnl YACC - ditto
 AC_PROG_YACC
@@ -694,6 +683,11 @@ if test x"$unet_maxcon" = xunlimited; then
     unet_maxcon=`ulimit -Sn`
 fi
 unet_maxcon=`expr $unet_maxcon - 4`
+dnl NN_MAX_CLIENT_P reflects SetYXXCapacity() and how it is called
+NN_MAX_CLIENT_P=262168
+if test "$unet_maxcon" -gt $NN_MAX_CLIENT_P ; then
+    unet_maxcon=$NN_MAX_CLIENT_P
+fi
 AC_MSG_CHECKING([max connections])
 AC_ARG_WITH([maxcon],
 [  --with-maxcon=maxcon    Maximum number of connections server will accept],
@@ -716,10 +710,12 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
 dnl Finally really generate all output files:
-AC_OUTPUT(Makefile ircd/Makefile ircd/test/Makefile, [echo timestamp > stamp-h])
+AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
+    [echo timestamp > stamp-h])
+AC_OUTPUT()
 
 dnl Report configuration
-AC_OUTPUT_COMMANDS([echo "
+echo "
 ircu is now hopefully configured for your system.
 
   Host system:         $host_os
@@ -741,4 +737,4 @@ ircu is now hopefully configured for your system.
   kqueue() engine:     $unet_cv_enable_kqueue
   /dev/poll engine:    $unet_cv_enable_devpoll
   epoll() engine:      $unet_cv_enable_epoll
-"])
+"

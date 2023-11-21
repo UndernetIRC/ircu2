@@ -617,7 +617,7 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   memset(cli_passwd(cptr), 0, sizeof(cli_passwd(cptr)));
 
-  ret = check_loop_and_lh(cptr, sptr, &ghost, host, (parc > 7 ? parv[6] : NULL), timestamp, hop, 1);
+  ret = check_loop_and_lh(cptr, sptr, &ghost, host, parv[6], timestamp, hop, 1);
   if (ret != 1)
     return ret;
 

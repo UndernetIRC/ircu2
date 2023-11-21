@@ -108,7 +108,7 @@ int m_lusers(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   int longoutput = MyUser(sptr) || IsOper(sptr);
   if (parc > 2)
-    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, feature_int(FEAT_HIS_REMOTE),
+    if (hunt_server_cmd(sptr, CMD_LUSERS, cptr, feature_bool(FEAT_HIS_REMOTE),
                         "%s :%C", 2, parc, parv) != HUNTED_ISME)
       return 0;
 

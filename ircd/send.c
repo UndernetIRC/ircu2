@@ -845,6 +845,7 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
   va_copy(vd.vd_args, vl);
   mb = msgq_make(0, ":%s " MSG_NOTICE " * :*** Notice -- %v", cli_name(&me),
 		 &vd);
+  va_end(vd.vd_args);
 
   for (; opslist; opslist = opslist->next)
     if (opslist->value.cptr != one)

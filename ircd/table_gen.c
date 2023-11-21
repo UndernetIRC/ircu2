@@ -154,7 +154,7 @@ int main(void)
   printf("#include <limits.h>\n");
 
   /* NTL_tolower_tab */
-  printf("const char ToLowerTab_8859_1[] = {\n");
+  printf("const char ToLowerTab_8859_1[256] = {\n");
   printf("#if (CHAR_MIN<0)\n");
   i = (int)((char)SCHAR_MIN);
   dumphb(NTL_tolower_tab, i);
@@ -170,7 +170,7 @@ int main(void)
   printf("  };\n\n");
 
   /* NTL_toupper_tab */
-  printf("const char ToUpperTab_8859_1[] = {\n");
+  printf("const char ToUpperTab_8859_1[256] = {\n");
   printf("#if (CHAR_MIN<0)\n");
   i = (int)((char)SCHAR_MIN);
   dumphb(NTL_toupper_tab, i);
@@ -186,7 +186,7 @@ int main(void)
   printf("  };\n\n");
 
   /* NTL_char_attrib */
-  printf("const unsigned int IRCD_CharAttrTab[] = {\n");
+  printf("const unsigned int IRCD_CharAttrTab[256] = {\n");
   printf("#if (CHAR_MIN<0)\n");
   i = (int)((char)SCHAR_MIN);
   dumphw(NTL_char_attrib, i);

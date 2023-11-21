@@ -91,6 +91,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "s_user.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <string.h>
@@ -151,11 +152,11 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     assert(!IsZombie(member)); /* Local users should never zombie */
 
-    if (!member_can_send_to_channel(member, 0))
+    if (!member_can_send_to_channel(member, 0)
+        || ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
+        || (IsDelayedTarget(member) && check_target_limit(sptr, NULL, chptr)))
     {
       flags |= CHFL_BANNED;
-      /* Remote clients don't want to see a comment either. */
-      parts.jb_comment = 0;
     }
 
     if ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
@@ -217,6 +218,9 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     if (IsDelayedJoin(member))
       flags |= CHFL_DELAYED;
+
+    if (IsDelayedTarget(member))
+      flags |= CHFL_DELAYED_TARGET;
 
     /* part user from channel */
     joinbuf_join(&parts, chptr, flags);

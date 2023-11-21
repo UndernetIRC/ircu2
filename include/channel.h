@@ -81,6 +81,7 @@ struct Client;
 					 * channel
 					 */
 #define CHFL_DELAYED            0x40000 /**< User's join message is delayed */
+#define CHFL_DELAYED_TARGET     0x80000 /**< User has not used a target on this channel */
 
 #define CHFL_OVERLAP         (CHFL_CHANOP | CHFL_VOICE)
 #define CHFL_BANVALIDMASK    (CHFL_BANVALID | CHFL_BANNED)
@@ -113,15 +114,15 @@ struct Client;
 #define MODE_APASS	0x200000
 #define MODE_WASDELJOINS 0x400000 	/**< Not DELJOINS, but some joins
 					 * pending */
-
-#define MODE_NOPARTMSGS 0x4000000       /**< +P No part messages */
+#define MODE_NOPARTMSGS 0x800000       /**< +P No part messages */
+#define MODE_MODERATENOREG 0x1000000    /**< +M Moderate unauthed users */
 
 /** mode flags which take another parameter (With PARAmeterS)
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
 /** Available Channel modes */
-#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCP" : "biklmnopstvrDdRcCP"
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCPM" : "biklmnopstvrDdRcCPM"
 /** Available Channel modes that take parameters */
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "AbkloUv" : "bklov"
 
@@ -217,6 +218,7 @@ struct Membership {
 #define IsChannelManager(x) ((x)->status & CHFL_CHANNEL_MANAGER)
 #define IsUserParting(x)    ((x)->status & CHFL_USER_PARTING)
 #define IsDelayedJoin(x)    ((x)->status & CHFL_DELAYED)
+#define IsDelayedTarget(x)  ((x)->status & CHFL_DELAYED_TARGET)
 
 #define SetBanned(x)        ((x)->status |= CHFL_BANNED)
 #define SetBanValid(x)      ((x)->status |= CHFL_BANVALID)
@@ -235,6 +237,7 @@ struct Membership {
 #define ClearServOpOk(x)    ((x)->status &= ~CHFL_SERVOPOK)
 #define ClearBurstJoined(x) ((x)->status &= ~CHFL_BURST_JOINED)
 #define ClearDelayedJoin(x) ((x)->status &= ~CHFL_DELAYED)
+#define ClearDelayedTarget(x) ((x)->status &= ~CHFL_DELAYED_TARGET)
 
 /** Mode information for a channel */
 struct Mode {

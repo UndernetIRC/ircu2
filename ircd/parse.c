@@ -1142,6 +1142,12 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   if (len == 3 && IsDigit(*ch))
   {
     numeric = (*ch - '0') * 100 + (*(ch + 1) - '0') * 10 + (*(ch + 2) - '0');
+    if ((numeric < 1) || (numeric > 999))
+    {
+      Debug((DEBUG_NOTICE, "Bad numeric: Message (%s) coming from (%s)",
+          buffer, cli_name(cptr)));
+      return -1;
+    }
     paramcount = 2; /* destination, and the rest of it */
     ServerStats->is_num++;
     mptr = NULL;                /* Init. to avoid stupid compiler warning :/ */

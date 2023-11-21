@@ -652,7 +652,7 @@ struct StatDesc statsinfo[] = {
   { 'z', "memory", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_z,
     count_memory, 0,
     "Memory/Structure allocation information." },
-  { ' ', "iauth", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_IAUTH,
+  { ' ', "iauth", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM | STAT_FLAG_ASYNC), FEAT_HIS_STATS_IAUTH,
     report_iauth_stats, 0,
     "IAuth statistics." },
   { ' ', "iauthconf", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_IAUTH,

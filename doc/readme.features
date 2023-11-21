@@ -330,20 +330,13 @@ CONNECTTIMEOUT
  * Type: integer
  * Default: 90
 
-Number of seconds to wait for a connect(2) call to complete.  NOTE:
+Number of seconds to wait for a client registration to complete.  NOTE:
 this must be at *LEAST* 10.  When a client connects, it has
 CONNECTTIMEOUT - 10 seconds for its host to respond to an ident lookup
 query and for a DNS lookup to complete. It is recommended that you not
 change this value, but if you do, consider the fact that users whose
 clients do not support NOSPOOF will have to type /QUOTE PING <big
 number> before registration.
-
-MAXIMUM_LINKS
- * Type: integer
- * Default: 1
-
-This is the maximum number of links for the built-in client class 0.
-Leave this value at 1.
 
 PINGFREQUENCY
  * Type: integer
@@ -728,8 +721,8 @@ As per UnderNet CFV-165, this remaps remote numerics to come from the local
 server.
 
 HIS_REMOTE
- * Type: integer
- * Default: 1
+ * Type: boolean
+ * Default: TRUE
 
 As per UnderNet CFV-165, this disallows remote queries. (*sob!*)
 
@@ -908,7 +901,7 @@ intended to ease changes in channel name length across a network.
 
 OPLEVELS
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This allows local users to set the +A and +U modes (admin and user
 passwords, respectively) on channels where they are marked as channel
@@ -917,7 +910,7 @@ network are able to interpret and handle these modes correctly.
 
 ZANNELS
  * Type: boolean
- * Default: TRUE
+ * Default: FALSE
 
 This preserves empty channels with no admin password so that it is
 impractical to become the channel manager by clearing out the channel.

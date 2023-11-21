@@ -709,7 +709,7 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
     return 0;
 
   /* If only logged in users may join and you're not one, you can't speak. */
-  if (member->channel->mode.mode & MODE_REGONLY && !IsAccount(member->user))
+  if (member->channel->mode.mode & (MODE_MODERATENOREG|MODE_REGONLY) && !IsAccount(member->user))
     return 0;
 
   /* If you're banned then you can't speak either. */
@@ -740,27 +740,27 @@ int member_can_send_to_channel(struct Membership* member, int reveal)
 int client_can_send_to_channel(struct Client *cptr, struct Channel *chptr, int reveal)
 {
   struct Membership *member;
-  assert(0 != cptr); 
-  /*
-   * Servers can always speak on channels.
-   */
+  assert(0 != cptr);
+
+  /* Servers can always speak on channels. */
   if (IsServer(cptr))
     return 1;
 
+  /* If you are on the channel, use the function for that. */
   member = find_channel_member(cptr, chptr);
+  if (member)
+    return member_can_send_to_channel(member, reveal);
 
-  /*
-   * You can't speak if you're off channel, and it is +n (no external messages)
-   * or +m (moderated).
-   */
-  if (!member) {
-    if ((chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED)) ||
-	((chptr->mode.mode & MODE_REGONLY) && !IsAccount(cptr)))
-      return 0;
-    else
-      return !find_ban(cptr, chptr->banlist);
-  }
-  return member_can_send_to_channel(member, reveal);
+  /* Otherwise, you cannot send to a +n or +m channel. */
+  if (chptr->mode.mode & (MODE_NOPRIVMSGS|MODE_MODERATED))
+    return 0;
+
+  /* .. or to a +r or +M channel when you are not logged in. */
+  if ((chptr->mode.mode & (MODE_REGONLY|MODE_MODERATENOREG)) && !IsAccount(cptr))
+    return 0;
+
+  /* Finally, you cannot speak if you are banned. */
+  return !find_ban(cptr, chptr->banlist);
 }
 
 /** Returns the name of a channel that prevents the user from changing nick.
@@ -781,7 +781,7 @@ const char* find_no_nickchange_channel(struct Client* cptr)
       if (IsVoicedOrOpped(member))
         continue;
       if ((member->channel->mode.mode & MODE_MODERATED)
-          || (member->channel->mode.mode & MODE_REGONLY && !IsAccount(cptr))
+          || (member->channel->mode.mode & (MODE_MODERATENOREG|MODE_REGONLY) && !IsAccount(cptr))
           || is_banned(member))
         return member->channel->chname;
     }
@@ -841,6 +841,8 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
     *mbuf++ = 'C';
   if (chptr->mode.mode & MODE_NOPARTMSGS)
     *mbuf++ = 'P';
+  if (chptr->mode.mode & MODE_MODERATENOREG)
+    *mbuf++ = 'M';
   if (chptr->mode.limit) {
     *mbuf++ = 'l';
     ircd_snprintf(0, pbuf, buflen, "%u", chptr->mode.limit);
@@ -1539,6 +1541,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
     MODE_NOPARTMSGS,    'P',
+    MODE_MODERATENOREG, 'M',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
     MODE_LIMIT,		'l',
@@ -1633,6 +1636,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
   }
 
   /* Now go through the modes with arguments... */
+  limitbuf[0] = '\0';
   for (i = 0; i < mbuf->mb_count; i++) {
     if (MB_TYPE(mbuf, i) & MODE_ADD) { /* adding or removing? */
       bufptr = addbuf;
@@ -1969,8 +1973,8 @@ modebuf_mode(struct ModeBuf *mbuf, unsigned int mode)
 
   mode &= (MODE_ADD | MODE_DEL | MODE_PRIVATE | MODE_SECRET | MODE_MODERATED |
 	   MODE_TOPICLIMIT | MODE_INVITEONLY | MODE_NOPRIVMSGS | MODE_REGONLY |
-           MODE_NOCOLOR | MODE_NOCTCP | MODE_NOPARTMSGS |
-           MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
+	   MODE_NOCOLOR | MODE_NOCTCP | MODE_NOPARTMSGS | MODE_MODERATENOREG |
+	   MODE_DELJOINS | MODE_WASDELJOINS | MODE_REGISTERED);
 
   if (!(mode & ~(MODE_ADD | MODE_DEL))) /* don't add empty modes... */
     return;
@@ -2106,6 +2110,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
     MODE_NOPARTMSGS,    'P',
+    MODE_MODERATENOREG, 'M',
     0x0, 0x0
   };
   unsigned int add;
@@ -2118,8 +2123,9 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
   assert(0 != buf);
 
   buf[0] = '\0';
+  limitbuf[0] = '\0';
 
-  add = mbuf->mb_add;
+  add = mbuf->mb_add & ~(MODE_KEY | MODE_LIMIT | MODE_APASS | MODE_UPASS);
 
   for (i = 0; i < mbuf->mb_count; i++) { /* find keys and limits */
     if (MB_TYPE(mbuf, i) & MODE_ADD) {
@@ -2765,21 +2771,15 @@ bmatch(struct Ban *old_ban, struct Ban *new_ban)
 int apply_ban(struct Ban **banlist, struct Ban *newban, int do_free)
 {
   struct Ban *ban;
-  size_t count = 0;
 
   assert(newban->flags & (BAN_ADD|BAN_DEL));
   if (newban->flags & BAN_ADD) {
-    size_t totlen = 0;
     /* If a less specific *active* entry is found, fail.  */
     for (ban = *banlist; ban; ban = ban->next) {
       if (!bmatch(ban, newban) && !(ban->flags & BAN_DEL)) {
         if (do_free)
           free_ban(newban);
         return 1;
-      }
-      if (!(ban->flags & (BAN_OVERLAPPED|BAN_DEL))) {
-        count++;
-        totlen += strlen(ban->banstr);
       }
     }
     /* Mark more specific entries and add this one to the end of the list. */
@@ -3037,6 +3037,10 @@ mode_parse_client(struct ParseState *state, int *flag_p)
 				       state->cli_change[i].flag & flag_p[0]))
       break; /* found a slot */
 
+  /* The check on max_args should prevent this for local clients. */
+  if (i >= MAXPARA)
+    return;
+
   /* If we are going to bounce this deop, mark the correct oplevel. */
   if (state->flags & MODE_PARSE_BOUNCE
       && state->dir == MODE_DEL
@@ -3154,6 +3158,7 @@ mode_process_clients(struct ParseState *state)
       if (state->cli_change[i].flag & MODE_ADD) {
         if (IsDelayedJoin(member) && !IsZombie(member))
           RevealDelayedJoin(member);
+        ClearDelayedTarget(member);
 	member->status |= (state->cli_change[i].flag &
 			   (MODE_CHANOP | MODE_VOICE));
 	if (state->cli_change[i].flag & MODE_CHANOP)
@@ -3250,6 +3255,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
     MODE_NOPARTMSGS,    'P',
+    MODE_MODERATENOREG, 'M',
     MODE_ADD,		'+',
     MODE_DEL,		'-',
     0x0, 0x0
@@ -3509,7 +3515,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
   if (jbuf->jb_type == JOINBUF_TYPE_PART ||
       jbuf->jb_type == JOINBUF_TYPE_PARTALL) {
     struct Membership *member = find_member_link(chan, jbuf->jb_source);
-    if (IsUserParting(member))
+    if (!member || IsUserParting(member))
       return;
     SetUserParting(member);
 
@@ -3565,7 +3571,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
     return; /* don't send to remote */
 
   /* figure out if channel name will cause buffer to be overflowed */
-  len = chan ? strlen(chan->chname) + 1 : 2;
+  len = strlen(chan->chname) + 1;
   if (jbuf->jb_strlen + len > BUFSIZE)
     joinbuf_flush(jbuf);
 

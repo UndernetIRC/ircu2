@@ -152,7 +152,6 @@ client_set_privs(struct Client *client, struct ConfItem *oper, int forceOper)
   {
     memset(&privs_global, -1, sizeof(privs_global));
     FlagClr(&privs_global, PRIV_WALK_LCHAN);
-    FlagClr(&privs_global, PRIV_UNLIMIT_QUERY);
     FlagClr(&privs_global, PRIV_SET);
     FlagClr(&privs_global, PRIV_BADCHAN);
     FlagClr(&privs_global, PRIV_LOCAL_BADCHAN);
@@ -183,9 +182,15 @@ client_set_privs(struct Client *client, struct ConfItem *oper, int forceOper)
   else
   {
     class = find_class("RemoteOpers");
-    if (class && (!FlagHas(&class->privs_dirty, PRIV_PROPAGATE
-              || !FlagHas(&class->privs, PRIV_PROPAGATE))))
+    if (class && (!FlagHas(&class->privs_dirty, PRIV_PROPAGATE)
+              || !FlagHas(&class->privs, PRIV_PROPAGATE)))
       class = NULL;
+
+    /* For remote opers, we need to also set their max sendq because
+     * we will not be attaching an Operator block to their client.
+     */
+    if (MaxSendq(class))
+      cli_max_sendq(client) = MaxSendq(class);
   }
 
   /* Decide whether to use global or local oper defaults. */

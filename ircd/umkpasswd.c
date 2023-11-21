@@ -135,7 +135,7 @@ long int n = 0;
   memcpy((tmp+1), (salts+n), 1);
 
   Debug((DEBUG_DEBUG, "salts = %s", salts));
-  Debug((DEBUG_DEBUG, "strlen(salts) = %d", strlen(salts)));
+  Debug((DEBUG_DEBUG, "strlen(salts) = %zu", strlen(salts)));
  }
 
 return tmp;
@@ -176,8 +176,8 @@ crypt_mechs_t* crypt_mech;
  }
 
  /* we're done */
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s, crypt_function is at 0x%X.", crypt_mech->mech->shortname, &crypt_mech->mech->crypt_function));
- Debug((DEBUG_INFO, "ircd_crypt_register_mech: %s: %s", crypt_mech->mech->shortname, crypt_mech->mech->description));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: registered mechanism: %s.", crypt_mech->mech->shortname));
+ Debug((DEBUG_INFO, "ircd_crypt_register_mech: description: %s", crypt_mech->mech->description));
 
 return 0;
 }
@@ -306,7 +306,7 @@ char* salt, *untagged, *tagged;
  tagged = (char *)MyMalloc(strlen(untagged)+CryptTokSize(crypt_mech->mech)+1);
  memset(tagged, 0, strlen(untagged)+CryptTokSize(crypt_mech->mech)+1);
  strncpy(tagged, CryptTok(crypt_mech->mech), CryptTokSize(crypt_mech->mech));
- strncpy(tagged+CryptTokSize(crypt_mech->mech), untagged, strlen(untagged));
+ strcpy(tagged+CryptTokSize(crypt_mech->mech), untagged);
 
 return tagged;
 }

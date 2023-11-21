@@ -97,8 +97,8 @@ extern void send_umode(struct Client *cptr, struct Client *sptr,
                        struct Flags *old, int sendset);
 extern void set_snomask(struct Client *, unsigned int, int);
 extern int is_snomask(char *);
-extern int check_target_limit(struct Client *sptr, void *target, const char *name,
-    int created);
+extern int check_target_limit(struct Client *sptr, struct Client *acptr,
+                              struct Channel *chptr);
 extern void add_target(struct Client *sptr, void *target);
 extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);

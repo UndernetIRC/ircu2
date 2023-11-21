@@ -53,7 +53,13 @@ const struct match_test match_tests[] = {
   { "\\?",
     "?\0",
     "a\0" },
-  { "*\\[*!~*",
+  { "*\\*",
+    "foo*\0",
+    "bar\\\0" },
+  { "???\\?",
+    "you?\0",
+    "no? \0" },
+  { "*\\\\[*!~*",
     "har\\[dy!~boy\0",
     "dark\\s|de!pimp\0joe\\[mama\0" },
   { NULL, NULL, NULL }
@@ -122,11 +128,13 @@ int test_match(const char glob[], const char name[])
   return match(test_glob, test_name);
 }
 
-void do_match_test(const struct match_test *test)
+int do_match_test(const struct match_test *test)
 {
   const char *candidate;
   unsigned int matched, not_matched;
-  int res;
+  int res, any_failed;
+
+  any_failed = 0;
 
   for (candidate = test->should_match, matched = 0;
        *candidate;
@@ -134,7 +142,7 @@ void do_match_test(const struct match_test *test)
     res = test_match(test->glob, candidate);
     if (res != 0) {
       fprintf(stderr, "\"%s\" failed to match \"%s\".\n", test->glob, candidate);
-      assert(0);
+      any_failed = 1;
     }
   }
 
@@ -144,18 +152,27 @@ void do_match_test(const struct match_test *test)
     res = test_match(test->glob, candidate);
     if (res == 0) {
       fprintf(stderr, "\"%s\" incorrectly matched \"%s\".\n", test->glob, candidate);
-      assert(0);
+      any_failed = 1;
     }
   }
 
-  printf("Passed: %s (%u matches, %u non-matches)\n",
-         test->glob, matched, not_matched);
+  if (!any_failed) {
+    printf("Passed: %s (%u matches, %u non-matches)\n",
+           test->glob, matched, not_matched);
+  }
+
+  return any_failed;
 }
 
 int main(int argc, char *argv[])
 {
   const struct match_test *match;
+  int any_failed;
+
+  any_failed = 0;
+
   for (match = match_tests; match->glob; ++match)
-    do_match_test(match);
-  return 0;
+    any_failed = do_match_test(match) || any_failed;
+
+  return any_failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }

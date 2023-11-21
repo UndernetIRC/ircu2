@@ -147,7 +147,7 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     param = NULL;
 
   /* Ok, track down who's supposed to get this... */
-  if (hunt_server_cmd(sptr, CMD_STATS, cptr, feature_int(FEAT_HIS_REMOTE),
+  if (hunt_server_cmd(sptr, CMD_STATS, cptr, feature_bool(FEAT_HIS_REMOTE),
 		      param ? "%s %C :%s" : "%s :%C", 2, parc, parv) !=
       HUNTED_ISME)
     return 0; /* Someone else--cool :) */
@@ -164,6 +164,10 @@ m_stats(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* Ok, dispatch the stats function */
   (*sd->sd_func)(sptr, sd, param);
+
+  /* If the response is asynchronous, do not send RPL_ENDOFSTATS yet. */
+  if (sd->sd_flags & STAT_FLAG_ASYNC)
+    return 0;
 
   /* Done sending them the stats */
   return send_reply(sptr, RPL_ENDOFSTATS, parv[1]);
