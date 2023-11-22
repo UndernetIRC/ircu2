@@ -114,14 +114,15 @@ struct Client;
 #define MODE_APASS	0x200000
 #define MODE_WASDELJOINS 0x400000 	/**< Not DELJOINS, but some joins
 					 * pending */
-#define MODE_MODERATENOREG 0x2000000    /**< +M Moderate unauthed users */
+#define MODE_NOPARTMSGS 0x800000       /**< +P No part messages */
+#define MODE_MODERATENOREG 0x1000000    /**< +M Moderate unauthed users */
 
 /** mode flags which take another parameter (With PARAmeterS)
  */
 #define MODE_WPARAS     (MODE_CHANOP|MODE_VOICE|MODE_BAN|MODE_KEY|MODE_LIMIT|MODE_APASS|MODE_UPASS)
 
 /** Available Channel modes */
-#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCM" : "biklmnopstvrDdRcCM"
+#define infochanmodes feature_bool(FEAT_OPLEVELS) ? "AbiklmnopstUvrDdRcCPM" : "biklmnopstvrDdRcCPM"
 /** Available Channel modes that take parameters */
 #define infochanmodeswithparams feature_bool(FEAT_OPLEVELS) ? "AbkloUv" : "bklov"
 
