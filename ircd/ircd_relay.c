@@ -294,8 +294,8 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
    * this. -- Isomer 2001-09-16
    */
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
-      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)) ||
-      !IsChannelService(acptr))
+      !IsChannelService(acptr) ||
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)))
   {
     /*
      * By this stage we might as well not bother because they will
@@ -333,8 +333,12 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   assert(0 != text);
   assert(0 != server);
 
-  if (0 == (acptr = FindServer(server + 1)))
+  if ((acptr = FindServer(server + 1)) == NULL || !IsService(acptr))
+  {
+    send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
+  }
+
   /*
    * NICK[%host]@server addressed? See if <server> is me first
    */
@@ -354,6 +358,17 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
       (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)))
     return;
+
+  /* Apply the same logic to NOTICE that is applied to PRIVMSG: only
+   * allow services to receive /notice nick@server.undernet.org notices.
+  */
+  if (!(acptr = FindUser(name)) || !MyUser(acptr) ||
+      !IsChannelService(acptr) ||
+      (!EmptyString(host) && 0 != match(host, cli_user(acptr)->host)))
+  {
+    send_reply(sptr, ERR_NOSUCHNICK, name);
+    return;
+  }
 
   *server = '@';
   if (host)
