@@ -311,7 +311,7 @@ ms_gline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	if (!agline || /* gline creation, has to be the reason */
 	    /* trial-convert as lifetime, and if it doesn't fully convert,
 	     * it must be the reason */
-	    (!(lifetime = strtoul(parv[5], &tmp, 10)) && !*tmp)) {
+	    (lifetime = strtoul(parv[5], &tmp, 10), *tmp != '\0')) {
 	  lifetime = 0;
 	  reason = parv[5];
 
