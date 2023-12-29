@@ -96,7 +96,7 @@ typedef unsigned long flagpage_t;
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containing valid user modes, in no particular order. */
-#define infousermodes "diOoswkgxczI"
+#define infousermodes "diOoswkgxczIR"
 
 /** Operator privileges. */
 enum Priv
@@ -171,6 +171,7 @@ enum Flag
     FLAG_INVISIBLE,                 /**< makes user invisible */
     FLAG_WALLOP,                    /**< send wallops to them */
     FLAG_DEAF,                      /**< Makes user deaf */
+    FLAG_BLOCK_UNAUTH_USERS,        /**< Block msgs from unauthenticated users */
     FLAG_CHSERV,                    /**< Disallow KICK or MODE -o on the user;
                                        don't display channels in /whois */
     FLAG_DEBUG,                     /**< send global debug/anti-hack info */
@@ -614,6 +615,8 @@ struct Client {
 #define IsDead(x)               HasFlag(x, FLAG_DEADSOCKET)
 /** Return non-zero if the client has set mode +d (deaf). */
 #define IsDeaf(x)               HasFlag(x, FLAG_DEAF)
+/** Return non-zero if the client has mode +R (block unauthed users). */
+#define IsBlockUnauthUsers(x)   HasFlag(x, FLAG_BLOCK_UNAUTH_USERS)
 /** Return non-zero if the client has been IP-checked for clones. */
 #define IsIPChecked(x)          HasFlag(x, FLAG_IPCHECK)
 /** Return non-zero if we have received an ident response for the client. */
@@ -678,6 +681,8 @@ struct Client {
 #define SetChannelService(x)    SetFlag(x, FLAG_CHSERV)
 /** Mark a client as having mode +d (deaf). */
 #define SetDeaf(x)              SetFlag(x, FLAG_DEAF)
+/** Mark a client as having mode +R (block unauthed users). */
+#define SetBlockUnauthUsers(x)  SetFlag(x, FLAG_BLOCK_UNAUTH_USERS)
 /** Mark a client as having mode +g (debugging). */
 #define SetDebug(x)             SetFlag(x, FLAG_DEBUG)
 /** Mark a client as having ident looked up. */
@@ -728,45 +733,47 @@ struct Client {
                             || HasPriv(sptr, PRIV_SEE_OPERS)))
 
 /** Clear the client's net.burst in-progress flag. */
-#define ClearBurst(x)           ClrFlag(x, FLAG_BURST)
+#define ClearBurst(x)            ClrFlag(x, FLAG_BURST)
 /** Clear the client's between EOB and EOB ACK flag. */
-#define ClearBurstAck(x)        ClrFlag(x, FLAG_BURST_ACK)
+#define ClearBurstAck(x)         ClrFlag(x, FLAG_BURST_ACK)
 /** Remove mode +k (channel service) from the client. */
-#define ClearChannelService(x)  ClrFlag(x, FLAG_CHSERV)
+#define ClearChannelService(x)   ClrFlag(x, FLAG_CHSERV)
 /** Remove mode +d (deaf) from the client. */
-#define ClearDeaf(x)            ClrFlag(x, FLAG_DEAF)
+#define ClearDeaf(x)             ClrFlag(x, FLAG_DEAF)
+/** Remove mode +R (block unauthenticated users) from the client. */
+#define ClearBlockUnauthUsers(x) ClrFlag(x, FLAG_BLOCK_UNAUTH_USERS)
 /** Remove mode +g (debugging) from the client. */
-#define ClearDebug(x)           ClrFlag(x, FLAG_DEBUG)
+#define ClearDebug(x)            ClrFlag(x, FLAG_DEBUG)
 /** Remove the client's IP-checked flag. */
-#define ClearIPChecked(x)       ClrFlag(x, FLAG_IPCHECK)
+#define ClearIPChecked(x)        ClrFlag(x, FLAG_IPCHECK)
 /** Remove mode +i (invisible) from the client. */
-#define ClearInvisible(x)       ClrFlag(x, FLAG_INVISIBLE)
+#define ClearInvisible(x)        ClrFlag(x, FLAG_INVISIBLE)
 /** Remove mode +O (local operator) from the client. */
-#define ClearLocOp(x)           ClrFlag(x, FLAG_LOCOP)
+#define ClearLocOp(x)            ClrFlag(x, FLAG_LOCOP)
 /** Remove mode +o (global operator) from the client. */
-#define ClearOper(x)            ClrFlag(x, FLAG_OPER)
+#define ClearOper(x)             ClrFlag(x, FLAG_OPER)
 /** Clear the client's pending UDP ping flag. */
-#define ClearUPing(x)           ClrFlag(x, FLAG_UPING)
+#define ClearUPing(x)            ClrFlag(x, FLAG_UPING)
 /** Remove mode +w (wallops) from the client. */
-#define ClearWallops(x)         ClrFlag(x, FLAG_WALLOP)
+#define ClearWallops(x)          ClrFlag(x, FLAG_WALLOP)
 /** Remove mode +s (server notices) from the client. */
-#define ClearServNotice(x)      ClrFlag(x, FLAG_SERVNOTICE)
+#define ClearServNotice(x)       ClrFlag(x, FLAG_SERVNOTICE)
 /** Remove mode +x (hidden host) from the client. */
-#define ClearHiddenHost(x)      ClrFlag(x, FLAG_HIDDENHOST)
+#define ClearHiddenHost(x)       ClrFlag(x, FLAG_HIDDENHOST)
 /** Remove mode +I (hide idle time) from the client. */
-#define ClearHideIdle(x)        ClrFlag(x, FLAG_HIDEIDLE)
+#define ClearHideIdle(x)         ClrFlag(x, FLAG_HIDEIDLE)
 /** Clear the client's pending PING flag. */
-#define ClearPingSent(x)        ClrFlag(x, FLAG_PINGSENT)
+#define ClearPingSent(x)         ClrFlag(x, FLAG_PINGSENT)
 /** Clear the client's HUB flag. */
-#define ClearHub(x)             ClrFlag(x, FLAG_HUB)
+#define ClearHub(x)              ClrFlag(x, FLAG_HUB)
 /** Mark a client's TLS negotation as complete. */
-#define ClearNegotiatingTLS(x)  ClrFlag(x, FLAG_NEGOTIATING_TLS)
+#define ClearNegotiatingTLS(x)   ClrFlag(x, FLAG_NEGOTIATING_TLS)
 /** Clear the client's spam hold flag. */
-#define ClearSpamHold(x)        ClrFlag(x, FLAG_SPAMHOLD)
+#define ClearSpamHold(x)         ClrFlag(x, FLAG_SPAMHOLD)
 /** Remove mode +c (only accepts messages from common channels) from the client. */
-#define ClearCommonChans(x)     ClrFlag(x, FLAG_COMMONCHANS)
+#define ClearCommonChans(x)      ClrFlag(x, FLAG_COMMONCHANS)
 /** Mark a client as no longer exempt from input throttling. */
-#define ClearExemptThrottle(x)  ClrFlag(x, FLAG_EXEMPT_THROTTLE)
+#define ClearExemptThrottle(x)   ClrFlag(x, FLAG_EXEMPT_THROTTLE)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */
