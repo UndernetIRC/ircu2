@@ -139,6 +139,9 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     return 0;
   }
 
+  if (should_block_unauth_user(sptr, acptr))
+    return send_reply_blocked_unauth_user(sptr, acptr);
+
   if (is_silenced(sptr, acptr))
     return 0;
 
@@ -275,6 +278,9 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     send_reply(sptr, ERR_USERONCHANNEL, cli_name(acptr), chptr->chname);
     return 0;
   }
+
+  if (should_block_unauth_user(sptr, acptr))
+    return send_reply_blocked_unauth_user(sptr, acptr);
 
   if (is_silenced(sptr, acptr))
     return 0;
