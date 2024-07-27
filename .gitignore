@@ -10,3 +10,7 @@ config.cache
 ircu.tags
 autom4te.cache
 stamp-h1
+chattr.tab.c
+umkpasswd
+version.c
+version.o
