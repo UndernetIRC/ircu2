@@ -490,16 +490,17 @@ static const struct UserMode {
   unsigned int flag; /**< User mode constant. */
   char         c;    /**< Character corresponding to the mode. */
 } userModeList[] = {
-  { FLAG_OPER,        'o' },
-  { FLAG_LOCOP,       'O' },
-  { FLAG_INVISIBLE,   'i' },
-  { FLAG_WALLOP,      'w' },
-  { FLAG_SERVNOTICE,  's' },
-  { FLAG_DEAF,        'd' },
-  { FLAG_CHSERV,      'k' },
-  { FLAG_DEBUG,       'g' },
-  { FLAG_ACCOUNT,     'r' },
-  { FLAG_HIDDENHOST,  'x' }
+  { FLAG_OPER,               'o' },
+  { FLAG_LOCOP,              'O' },
+  { FLAG_INVISIBLE,          'i' },
+  { FLAG_WALLOP,             'w' },
+  { FLAG_SERVNOTICE,         's' },
+  { FLAG_DEAF,               'd' },
+  { FLAG_CHSERV,             'k' },
+  { FLAG_DEBUG,              'g' },
+  { FLAG_ACCOUNT,            'r' },
+  { FLAG_BLOCK_UNAUTH_USERS, 'R' },
+  { FLAG_HIDDENHOST,         'x' }
 };
 
 /** Length of #userModeList. */
@@ -799,9 +800,13 @@ int whisper(struct Client* source, const char* nick, const char* channel,
   if (0 == membership || IsZombie(membership)) {
     return send_reply(source, ERR_USERNOTINCHANNEL, cli_name(dest), chptr->chname);
   }
+
+  if (should_block_unauth_user(source, dest))
+    return send_reply_blocked_unauth_user(source, dest);
+
   if (is_silenced(source, dest))
     return 0;
-          
+
   if (is_notice)
     sendcmdto_one(source, CMD_NOTICE, dest, "%C :%s", dest, text);
   else
@@ -813,6 +818,31 @@ int whisper(struct Client* source, const char* nick, const char* channel,
   return 0;
 }
 
+/** Return true if the source client isn't authenticated to a registered
+ *  username, and the dest client has mode +R (block unauthed users).
+ * @param[in] source Client sending the message.
+ * @param[in] dest Destination of the message.
+ */
+int should_block_unauth_user(struct Client *source, struct Client *dest)
+{
+    // Only block regular users.
+    if (IsServer(source) || IsChannelService(source))
+        return 0;
+
+    return IsBlockUnauthUsers(dest) && !IsAccount(source);
+}
+
+/** Sends an error message telling the source that the dest doesn't allow
+ *  unauthed users to contact them.
+ * @param[in] source Client whose message was blocked.
+ * @param[in] dest Client who rejected the message.
+ */
+int send_reply_blocked_unauth_user(struct Client *source, struct Client *dest)
+{
+  return send_reply(source, SND_EXPLICIT | ERR_NEEDREGGEDNICK,
+    "%s :You need to be identified to a registered account to contact this user -- you can obtain an account from %s",
+    cli_name(dest), feature_str(FEAT_URLREG));
+}
 
 /** Send a user mode change for \a cptr to neighboring servers.
  * @param[in] cptr User whose mode is changing.
@@ -1055,6 +1085,12 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
           SetDeaf(sptr);
         else
           ClearDeaf(sptr);
+        break;
+      case 'R':
+        if (what == MODE_ADD)
+          SetBlockUnauthUsers(sptr);
+        else
+          ClearBlockUnauthUsers(sptr);
         break;
       case 'k':
         if (what == MODE_ADD)

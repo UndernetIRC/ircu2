@@ -310,6 +310,11 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
   if (host)
     *--host = '%';
 
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
   if (!(is_silenced(sptr, acptr)))
     sendcmdto_one(sptr, CMD_PRIVATE, acptr, "%s :%s", name, text);
 }
@@ -374,6 +379,11 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   if (host)
     *--host = '%';
 
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
   if (!(is_silenced(sptr, acptr)))
     sendcmdto_one(sptr, CMD_NOTICE, acptr, "%s :%s", name, text);
 }
@@ -398,10 +408,17 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
     send_reply(sptr, ERR_NOSUCHNICK, name);
     return;
   }
+
   /* Note: X does silence users who flood it. */
-  if ((!IsChannelService(acptr) &&
-       check_target_limit(sptr, acptr, NULL)) ||
-      is_silenced(sptr, acptr))
+  if (!IsChannelService(acptr) && check_target_limit(sptr, acptr, NULL))
+    return;
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
+  if (is_silenced(sptr, acptr))
     return;
 
   /*
@@ -435,10 +452,18 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
 
   if (0 == (acptr = FindUser(name)))
     return;
-  if ((!IsChannelService(acptr) && 
-       check_target_limit(sptr, acptr, NULL)) ||
-      is_silenced(sptr, acptr))
+
+  if (!IsChannelService(acptr) && check_target_limit(sptr, acptr, NULL))
     return;
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
+  if (is_silenced(sptr, acptr))
+    return;
+
   /*
    * deliver the message
    */
@@ -469,6 +494,12 @@ void server_relay_private_message(struct Client* sptr, const char* name, const c
                text);
     return;
   }
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
+
   if (is_silenced(sptr, acptr))
     return;
 
@@ -496,6 +527,11 @@ void server_relay_private_notice(struct Client* sptr, const char* name, const ch
    */
   if (0 == (acptr = findNUser(name)) || !IsUser(acptr))
     return;
+
+  if (should_block_unauth_user(sptr, acptr)) {
+    send_reply_blocked_unauth_user(sptr, acptr);
+    return;
+  }
 
   if (is_silenced(sptr, acptr))
     return;

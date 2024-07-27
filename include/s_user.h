@@ -104,6 +104,9 @@ extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);
 extern int send_supported(struct Client *cptr);
 
+int should_block_unauth_user(struct Client *source, struct Client *dest);
+int send_reply_blocked_unauth_user(struct Client *source, struct Client *dest);
+
 #define NAMES_ALL 1 /**< List all users in channel */
 #define NAMES_VIS 2 /**< List only visible users in non-secret channels */
 #define NAMES_EON 4 /**< Add an 'End Of Names' reply to the end */
