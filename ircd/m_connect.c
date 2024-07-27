@@ -313,20 +313,22 @@ int mo_connect(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   port = aconf->address.port;
   if (parc > 2) {
     assert(0 != parv[2]);
-    if (0 == (port = atoi(parv[2]))) {
+    /*
+     * Allow opers to `/connect foo.* 0` using the conf's port
+     */
+    if (0 == (port = atoi(parv[2])) && strcmp(parv[2], "0") != 0) {
       sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: Invalid port number",
 		    sptr);
       return 0;
     }
   }
-  if (0 == port && 0 == (port = feature_int(FEAT_SERVER_PORT))) {
-    sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :Connect: missing port number",
-		  sptr);
-    return 0;
-  }
-
+  /*
+   * Save the old port
+   */
   tmpport = aconf->address.port;
-  aconf->address.port = port;
+  /* Use the port provided by the user if different from 0. Otherwise, use config's. */
+  if (port)
+    aconf->address.port = port;
 
   if (connect_server(aconf, sptr)) {
     sendcmdto_one(&me, CMD_NOTICE, sptr, "%C :*** Connecting to %s.", sptr,
