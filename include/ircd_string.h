@@ -30,6 +30,7 @@ extern int         token_vector(char* names, char token,
                                 char** vector, int size);
 extern const char* ircd_ntoa(const struct irc_in_addr* addr);
 extern const char* ircd_ntoa_r(char* buf, const struct irc_in_addr* addr);
+extern const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned char bits);
 #define ircd_aton(ADDR, STR) ipmask_parse((STR), (ADDR), NULL)
 extern int ipmask_parse(const char *in, struct irc_in_addr *mask, unsigned char *bits_ptr);
 extern char*       host_from_uh(char* buf, const char* userhost, size_t len);
