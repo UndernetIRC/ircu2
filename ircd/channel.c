@@ -840,7 +840,7 @@ void channel_modes(struct Client *cptr, char *mbuf, char *pbuf, int buflen,
   if (chptr->mode.mode & MODE_NOCTCP)
     *mbuf++ = 'C';
   if (chptr->mode.mode & MODE_NOPARTMSGS)
-    *mbuf++ = 'P';
+    *mbuf++ = 'u';
   if (chptr->mode.mode & MODE_MODERATENOREG)
     *mbuf++ = 'M';
   if (chptr->mode.limit) {
@@ -1541,7 +1541,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
     MODE_REGISTERED,	'R',
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
-    MODE_NOPARTMSGS,    'P',
+    MODE_NOPARTMSGS,    'u',
     MODE_MODERATENOREG, 'M',
 /*  MODE_KEY,		'k', */
 /*  MODE_BAN,		'b', */
@@ -2110,7 +2110,7 @@ modebuf_extract(struct ModeBuf *mbuf, char *buf)
     MODE_DELJOINS,      'D',
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
-    MODE_NOPARTMSGS,    'P',
+    MODE_NOPARTMSGS,    'u',
     MODE_MODERATENOREG, 'M',
     0x0, 0x0
   };
@@ -3255,7 +3255,7 @@ mode_parse(struct ModeBuf *mbuf, struct Client *cptr, struct Client *sptr,
     MODE_DELJOINS,      'D',
     MODE_NOCOLOR,       'c',
     MODE_NOCTCP,        'C',
-    MODE_NOPARTMSGS,    'P',
+    MODE_NOPARTMSGS,    'u',
     MODE_MODERATENOREG, 'M',
     MODE_ADD,		'+',
     MODE_DEL,		'-',
