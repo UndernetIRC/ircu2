@@ -660,6 +660,21 @@ static int read_packet(struct Client *cptr, int socket_ready)
 
   int is_ws_handshake = (IsWebsocketPort(cptr) && !IsWebsocket(cptr));
   unsigned int flood_limit = is_ws_handshake ? WEBSOCKET_MAX_HEADER : GetMaxFlood(cptr);
+
+  /* A connection class whose maxflood exceeds the CLIENT_FLOOD default marks
+   * its clients exempt from input throttling. Evaluated here in the shared
+   * prologue so the flag is consistent for both the line-based and WebSocket
+   * readers, and re-checked each read so it tracks class changes. Note the
+   * Excess Flood ceiling below still applies -- this exempts from throttling,
+   * not from the recvQ limit.
+   */
+  if (!is_ws_handshake) {
+    if (flood_limit > feature_int(FEAT_CLIENT_FLOOD))
+      SetExemptThrottle(cptr);
+    else
+      ClearExemptThrottle(cptr);
+  }
+
   if (socket_ready &&
       !(IsUser(cptr) &&
 	DBufLength(&(cli_recvQ(cptr))) > flood_limit)) {
@@ -788,7 +803,15 @@ static int read_packet(struct Client *cptr, int socket_ready)
               return exit_client(cptr, cptr, &me, "Excess Flood");
 
             /* Only drain once a full logical message has arrived (FIN); a
-             * fragmented message keeps accumulating in recvQ until then. */
+             * fragmented message keeps accumulating in recvQ until then.
+             *
+             * NOTE: unlike the line-based reader below, this path does not
+             * enforce the cli_since penalty gate, so WebSocket clients are
+             * not currently throttled (the Excess Flood ceiling above still
+             * bounds them). FLAG_EXEMPT_THROTTLE is maintained for them in
+             * the shared prologue so it is correct once throttle enforcement
+             * is added to this reader in a follow-up change.
+             */
             if (msg_ready) {
               dolen = dbuf_getframe(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
               if (dolen == 0) {
@@ -852,8 +875,8 @@ static int read_packet(struct Client *cptr, int socket_ready)
     if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
-    while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
-           (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
+    while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
+           (IsTrusted(cptr) || IsExemptThrottle(cptr) || cli_since(cptr) - CurrentTime < 10))
     {
       dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
       /*
@@ -898,14 +921,16 @@ static int read_packet(struct Client *cptr, int socket_ready)
       }
     }
 
-    /* If there's still data to process, wait 2 seconds first */
+    /* If there's still data to process, wait 2 seconds first,
+     * unless the client is exempt from throttling.
+     */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	!t_onqueue(&(cli_proc(cptr))))
+        !IsExemptThrottle(cptr) && !t_onqueue(&(cli_proc(cptr))))
     {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_freeflag(cptr) |= FREEFLAG_TIMER;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
-		TT_RELATIVE, 2);
+                TT_RELATIVE, 2);
     }
   }
   return 1;

@@ -39,6 +39,7 @@ services:
     ports:
       - "6668:6668"
       - "4401:4401"
+      - "6690:6690"
     networks:
       ircu-test-net:
         ipv4_address: 10.55.0.11

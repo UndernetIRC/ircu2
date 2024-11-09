@@ -162,6 +162,7 @@ enum Flag
     FLAG_IPCHECK,                   /**< Added or updated IPregistry data */
     FLAG_IAUTH_STATS,               /**< Wanted IAuth statistics */
     FLAG_NEGOTIATING_TLS,           /**< TLS negotation ongoing */
+    FLAG_EXEMPT_THROTTLE,           /**< exempt from input throttling (raised-maxflood class) */
 
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
@@ -659,6 +660,8 @@ struct Client {
 #define IsSpamHold(x)           HasFlag(x, FLAG_SPAMHOLD)
 /** Return non-zero if the client has mode +c (only messages from common channels). */
 #define IsCommonChans(x)        HasFlag(x, FLAG_COMMONCHANS)
+/** Return non-zero if the client is exempt from input throttling. */
+#define IsExemptThrottle(x)     HasFlag(x, FLAG_EXEMPT_THROTTLE)
 
 /** Return non-zero if the client has completed the handshake for a WebSocket connection. */
 #define IsWebsocket(x)           (cli_ws_mode(x) != WS_NONE)
@@ -717,6 +720,8 @@ struct Client {
 #define SetSpamHold(x)          SetFlag(x, FLAG_SPAMHOLD)
 /** Mark a client as having mode +c (only messages from those in common channels). */
 #define SetCommonChans(x)       SetFlag(x, FLAG_COMMONCHANS)
+/** Mark a client as being exempt from input throttling. */
+#define SetExemptThrottle(x)    SetFlag(x, FLAG_EXEMPT_THROTTLE)
 
 /** Return non-zero if \a sptr sees \a acptr as an operator. */
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
@@ -760,6 +765,8 @@ struct Client {
 #define ClearSpamHold(x)        ClrFlag(x, FLAG_SPAMHOLD)
 /** Remove mode +c (only accepts messages from common channels) from the client. */
 #define ClearCommonChans(x)     ClrFlag(x, FLAG_COMMONCHANS)
+/** Mark a client as no longer exempt from input throttling. */
+#define ClearExemptThrottle(x)  ClrFlag(x, FLAG_EXEMPT_THROTTLE)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */
