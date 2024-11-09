@@ -636,8 +636,15 @@ static int read_packet(struct Client *cptr, int socket_ready)
     if (DBufLength(&(cli_recvQ(cptr))) > GetMaxFlood(cptr))
       return exit_client(cptr, cptr, &me, "Excess Flood");
 
+    /* If client has a higher sendq limit than default, 
+     * mark them flood exempt to avoid throttling 
+     */
+    if (GetMaxFlood(cptr) > feature_int(FEAT_CLIENT_FLOOD)) {
+      SetExemptFlood(cptr);
+    }
+
     while (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) && 
-           (IsTrusted(cptr) || cli_since(cptr) - CurrentTime < 10))
+           (IsTrusted(cptr) || IsExemptFlood(cptr) || cli_since(cptr) - CurrentTime < 10))
     {
       dolen = dbuf_getmsg(&(cli_recvQ(cptr)), cli_buffer(cptr), BUFSIZE);
       /*
@@ -682,14 +689,16 @@ static int read_packet(struct Client *cptr, int socket_ready)
       }
     }
 
-    /* If there's still data to process, wait 2 seconds first */
+    /* If there's still data to process, wait 2 seconds first,
+     * unless the user is exempt from throttling
+     */
     if (DBufLength(&(cli_recvQ(cptr))) && !NoNewLine(cptr) &&
-	!t_onqueue(&(cli_proc(cptr))))
+	      !IsExemptFlood(cptr) && !t_onqueue(&(cli_proc(cptr))))
     {
       Debug((DEBUG_LIST, "Adding client process timer for %C", cptr));
       cli_freeflag(cptr) |= FREEFLAG_TIMER;
       timer_add(&(cli_proc(cptr)), client_timer_callback, cli_connect(cptr),
-		TT_RELATIVE, 2);
+		    TT_RELATIVE, 2);
     }
   }
   return 1;
