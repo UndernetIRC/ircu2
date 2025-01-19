@@ -349,6 +349,7 @@ static struct FeatureDesc {
   F_I(IPCHECK_48_CLONE_PERIOD, 0, 10, 0),
   F_I(IPCHECK_CLONE_DELAY, 0, 600, 0),
   F_I(CHANNELLEN, 0, 200, 0),
+  F_B(STRICT_USERNAME, 0, 0, 0),
 
   /* Some misc. default paths */
   F_S(MPATH, FEAT_CASE | FEAT_MYOPER, "ircd.motd", motd_init),

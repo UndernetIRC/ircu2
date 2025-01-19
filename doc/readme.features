@@ -437,6 +437,20 @@ until the entire network has been upgraded.  It is not required that
 all servers set this to "TRUE" in order for the features to be used,
 as long as all servers are running u2.10.11 or above.
 
+STRICT_USERNAME
+ * Type: boolean
+ * Default: FALSE
+
+ircu checks the composition of usernames and reject usernames matching
+certain rules. Enabling this feature will reject users with usernames
+matching any of the following additional criterias:
+ - If mixed case, first must be capital, but no more than three;
+   but if three capitals, they must all be leading.
+ - If two different groups of digits, one must be either at the
+   start or end.
+ - No more than two groups of digits.
+ - Final character must not be punctuation.
+
 HIS_MAP
  * Type: boolean
  * Default: TRUE

@@ -307,9 +307,6 @@ static int auth_set_username(struct AuthRequest *auth)
         if (!IsDigit(last))
         {
           digitgroups++;
-          /* If more than two groups of digits, reject. */
-          if (digitgroups > 2)
-            goto badid;
         }
       }
       else if (ch == '-' || ch == '_' || ch == '.')
@@ -323,6 +320,16 @@ static int auth_set_username(struct AuthRequest *auth)
         goto badid;
     }
 
+    /* Must have at least one letter. */
+    if (!lower && !upper)
+      goto badid;
+    /* Simplified username test? Then we're done here. */
+    if (!feature_bool(FEAT_STRICT_USERNAME))
+      return 0;
+
+    /* If more than two groups of digits, reject. */
+    if (digitgroups > 2)
+      goto badid;
     /* If mixed case, first must be capital, but no more than three;
      * but if three capitals, they must all be leading. */
     if (lower && upper && (!leadcaps || leadcaps > 3 ||
@@ -331,9 +338,6 @@ static int auth_set_username(struct AuthRequest *auth)
     /* If two different groups of digits, one must be either at the
      * start or end. */
     if (digitgroups == 2 && !(IsDigit(s[0]) || IsDigit(ch)))
-      goto badid;
-    /* Must have at least one letter. */
-    if (!lower && !upper)
       goto badid;
     /* Final character must not be punctuation. */
     if (!IsAlnum(last))

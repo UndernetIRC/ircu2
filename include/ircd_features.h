@@ -84,6 +84,7 @@ enum Feature {
   FEAT_IPCHECK_48_CLONE_PERIOD,
   FEAT_IPCHECK_CLONE_DELAY,
   FEAT_CHANNELLEN,
+  FEAT_STRICT_USERNAME,
 
   /* Some misc. default paths */
   FEAT_MPATH,
