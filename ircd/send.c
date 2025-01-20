@@ -568,7 +568,10 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
     }
   }
 
-  if (MyConnect(from) && from != one)
+  if (MyConnect(from)
+      && from != one
+      && (require == _CAP_LAST_CAP || CapHas(cli_active(from), require))
+      && (forbid == _CAP_LAST_CAP || !CapHas(cli_active(from), forbid)))
     send_buffer(from, mb, 0);
 
   msgq_clean(mb);

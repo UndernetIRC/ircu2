@@ -2133,11 +2133,18 @@ static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli,
     sendto_iauth(cli, "E Invalid :Account parameter too long");
     return 0;
   }
-  /* If account has a creation timestamp, use it. */
+  /* If account has an id, use it. */
   assert(cli_user(cli) != NULL);
   if (params[0][len] == ':') {
-    cli_user(cli)->acc_create = strtoul(params[0] + len + 1, NULL, 10);
+    cli_user(cli)->acc_id = strtoul(params[0] + len + 1, NULL, 10);
     params[0][len] = '\0';
+
+    /* If account has flags, use it. */
+    char *flags_start = strchr(params[0] + len + 1, ':');
+    if (flags_start != NULL) {
+        cli_user(cli)->acc_flags = strtoul(flags_start + 1, NULL, 10);
+        *flags_start = '\0';
+    }
   }
 
   /* Copy account name to User structure. */

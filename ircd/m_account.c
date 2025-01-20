@@ -101,11 +101,14 @@
  * parv[0] = sender prefix
  * parv[1] = numeric of client to act on
  * parv[2] = account name (12 characters or less)
+ * parv[3] = account id
+ * parv[4] = account flags
  */
 int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 	       char* parv[])
 {
   struct Client *acptr;
+  uint64_t acc_id = 0, acc_flags = 0;
 
   if (parc < 3)
     return need_more_params(sptr, "ACCOUNT");
@@ -117,38 +120,57 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
   if (!(acptr = findNUser(parv[1])))
     return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
 
-  if (IsAccount(acptr))
-    return protocol_violation(cptr, "ACCOUNT for already registered user %s "
-			      "(%s -> %s)", cli_name(acptr),
-			      cli_user(acptr)->account, parv[2]);
+  if (parc > 3)
+    acc_id = atoi(parv[3]);
 
-  assert(0 == cli_user(acptr)->account[0]);
+  if (parc > 4)
+    acc_flags = atoi(parv[4]);
 
-  if (strlen(parv[2]) > ACCOUNTLEN)
-    return protocol_violation(cptr,
-                              "Received account (%s) longer than %d for %s; "
-                              "ignoring.",
-                              parv[2], ACCOUNTLEN, cli_name(acptr));
+  /* If the client already has an account, we do not accept changes to the account or acc_id. */
+  if (IsAccount(acptr)) {
+    if (strcmp(cli_user(acptr)->account, parv[2]))
+      return protocol_violation(cptr, "ACCOUNT for already registered user %s "
+              "(%s -> %s)", cli_name(acptr),
+              cli_user(acptr)->account, parv[2]);
+    if (acc_id &&
+        cli_user(acptr)->acc_id != 0 &&
+        cli_user(acptr)->acc_id != acc_id)
+       return protocol_violation(cptr, "ACCOUNT ID for already registered user %s "
+              "(%qu -> %qu)", cli_name(acptr),
+              cli_user(acptr)->acc_id, acc_id);
+  } else {
+    /* Client did not already have an account. */
+    if (strlen(parv[2]) > ACCOUNTLEN)
+      return protocol_violation(cptr,
+                                "Received account (%s) longer than %d for %s; "
+                                "ignoring.",
+                                parv[2], ACCOUNTLEN, cli_name(acptr));
 
-  if (parc > 3) {
-    cli_user(acptr)->acc_create = atoi(parv[3]);
-    Debug((DEBUG_DEBUG, "Received timestamped account: account \"%s\", "
-           "timestamp %Tu", parv[2], cli_user(acptr)->acc_create));
+    if (acc_id) {
+      cli_user(acptr)->acc_id = acc_id;
+      Debug((DEBUG_DEBUG, "Received account id: account \"%s\", "
+            "id %qu", parv[2], cli_user(acptr)->acc_id));
+    }
+
+    ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
+    hide_hostmask(acptr, FLAG_ACCOUNT);
+
+    sendcmdto_capflag_common_channels_butone(acptr, CMD_ACCOUNT, NULL, CAP_ACCOUNTNOTIFY,
+                          _CAP_LAST_CAP, "%s", cli_user(acptr)->account);
   }
 
-  ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
-  hide_hostmask(acptr, FLAG_ACCOUNT);
+  if (parc > 4) {
+    cli_user(acptr)->acc_flags = acc_flags;
+    Debug((DEBUG_DEBUG, "Received account flags: account \"%s\", "
+           "flags %qu", parv[2], cli_user(acptr)->acc_flags));
+  }
 
+  /* To propagate a 0 flag, we check the param number rather than whether acc_flags is true. */
   sendcmdto_serv_butone(sptr, CMD_ACCOUNT, cptr,
-                        cli_user(acptr)->acc_create ? "%C %s %Tu" : "%C %s",
+                        cli_user(acptr)->acc_id ? (parc > 4 ? "%C %s %qu %qu" : "%C %s %qu") : "%C %s",
                         acptr, cli_user(acptr)->account,
-                        cli_user(acptr)->acc_create);
-
-  sendcmdto_capflag_common_channels_butone(acptr, CMD_ACCOUNT, acptr, CAP_ACCOUNTNOTIFY,
-                        _CAP_LAST_CAP, "%s", cli_user(acptr)->account);
-
-  if (CapHas(cli_active(acptr), CAP_ACCOUNTNOTIFY))
-    sendcmdto_one(acptr, CMD_ACCOUNT, cli_from(acptr), "%s", cli_user(acptr)->account);
+                        cli_user(acptr)->acc_id,
+                        cli_user(acptr)->acc_flags);
 
   return 0;
 }

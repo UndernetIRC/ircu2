@@ -24,6 +24,10 @@
  */
 #ifndef INCLUDED_struct_h
 #define INCLUDED_struct_h
+#ifndef INCLUDED_stdint_h
+#include <stdint.h>
+#define INCLUDED_stdint_h
+#endif
 #ifndef INCLUDED_sys_types_h
 #include <sys/types.h>      /* time_t */
 #define INCLUDED_sys_types_h
@@ -83,7 +87,8 @@ struct User {
   char               host[HOSTLEN + 1];       /**< displayed hostname */
   char               realhost[HOSTLEN + 1];   /**< actual hostname */
   char               account[ACCOUNTLEN + 1]; /**< IRC account name */
-  time_t	     acc_create;              /**< IRC account timestamp */
+  uint64_t	     acc_id;                  /**< IRC account id */
+  uint64_t           acc_flags;               /**< IRC account flags */
 };
 
 #endif /* INCLUDED_struct_h */

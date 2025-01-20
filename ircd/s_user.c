@@ -904,13 +904,13 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
     return 0;
 
   sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, _CAP_LAST_CAP, CAP_CHGHOST, ":Registered");
-  sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, cptr, CAP_CHGHOST, _CAP_LAST_CAP, "%s %s.%s",
+  sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, _CAP_LAST_CAP, "%s %s.%s",
     cli_user(cptr)->username, cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
   ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
                 cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
 
   /* ok, the client is now fully hidden, so let them know -- hikari */
-  if (MyConnect(cptr))
+  if (MyConnect(cptr) && !CapHas(cli_active(cptr), CAP_CHGHOST))
    send_reply(cptr, RPL_HOSTHIDDEN, cli_user(cptr)->host);
 
   /*
@@ -1146,13 +1146,23 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
    */
   if (!FlagHas(&setflags, FLAG_ACCOUNT) && IsAccount(sptr)) {
       int len = ACCOUNTLEN;
-      char *ts;
-      if ((ts = strchr(account, ':'))) {
-	len = (ts++) - account;
-	cli_user(sptr)->acc_create = atoi(ts);
-	Debug((DEBUG_DEBUG, "Received timestamped account in user mode; "
-	      "account \"%s\", timestamp %Tu", account,
-	      cli_user(sptr)->acc_create));
+      char *id, *flags;
+      if ((id = strchr(account, ':'))) {
+        len = (id++) - account;
+	      cli_user(sptr)->acc_id = atoi(id);
+	      Debug((DEBUG_DEBUG, "Received account id in user mode; "
+	        "account \"%s\", id %qu", account,
+	        cli_user(sptr)->acc_id));
+
+        /* Check for account flags */
+        if ((flags = strchr(id, ':'))) {
+            // Parse the flags after the second colon.
+            cli_user(sptr)->acc_flags = atoi(flags + 1);
+            // Null-terminate the account string before flags.
+            *flags = '\0';
+            Debug((DEBUG_DEBUG, "Received account flags; account \"%s\", flags %qu",
+                    account, cli_user(sptr)->acc_flags));
+        }
       }
       ircd_strncpy(cli_user(sptr)->account, account, len);
   }
@@ -1222,13 +1232,23 @@ char *umode_str(struct Client *cptr)
     while ((*m++ = *t++))
       ; /* Empty loop */
 
-    if (cli_user(cptr)->acc_create) {
-      char nbuf[20];
-      Debug((DEBUG_DEBUG, "Sending timestamped account in user mode for "
-	     "account \"%s\"; timestamp %Tu", cli_user(cptr)->account,
-	     cli_user(cptr)->acc_create));
-      ircd_snprintf(0, t = nbuf, sizeof(nbuf), ":%Tu",
-		    cli_user(cptr)->acc_create);
+    if (cli_user(cptr)->acc_id) {
+      char nbuf[30];
+      Debug((DEBUG_DEBUG, "Sending account id in user mode for "
+	     "account \"%s\"; id %qu", cli_user(cptr)->account,
+	     cli_user(cptr)->acc_id));
+
+      if (cli_user(cptr)->acc_flags) {
+      Debug((DEBUG_DEBUG, "Sending account flags in user mode for "
+	     "account \"%s\"; flags %qu", cli_user(cptr)->account,
+	     cli_user(cptr)->acc_flags));
+
+        ircd_snprintf(0, t = nbuf, sizeof(nbuf), ":%qu:%qu",
+                      cli_user(cptr)->acc_id, cli_user(cptr)->acc_flags);
+      } else {
+        ircd_snprintf(0, t = nbuf, sizeof(nbuf), ":%qu",
+                      cli_user(cptr)->acc_id);
+      }
       m--; /* back up over previous nul-termination */
       while ((*m++ = *t++))
 	; /* Empty loop */
