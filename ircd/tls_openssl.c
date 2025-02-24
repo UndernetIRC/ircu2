@@ -68,30 +68,6 @@ static void ssl_log_error(const char *msg)
   }
 }
 
-void ircd_tls_fingerprint(void *ctx, char *fingerprint)
-{
-  SSL *tls;
-  X509 *cert;
-  int res;
-
-  if (!ctx)
-  {
-  no_fingerprint:
-    memset(fingerprint, 0, 32);
-    return;
-  }
-
-  tls = ctx;
-  cert = SSL_get_peer_certificate(tls);
-  if (!cert)
-    goto no_fingerprint;
-
-  res = X509_digest(cert, fp_digest, (unsigned char *)fingerprint, NULL);
-  X509_free(cert);
-  if (res)
-    Debug((DEBUG_NOTICE, "X509_digest failed to make fingerprint"));
-}
-
 static void ssl_set_ciphers(SSL_CTX *ctx, SSL *tls, const char *text)
 {
   const char *sep;
@@ -293,6 +269,12 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
   return tls;
 }
 
+int ircd_tls_listen(struct Listener *listener)
+{
+  /* noop for OpenSSL */
+  return 0;
+}
+
 static int ssl_handle_error(struct Client *cptr, SSL *tls, int res, int orig_errno)
 {
   int err = SSL_get_error(tls, res);
@@ -323,7 +305,10 @@ static int ssl_handle_error(struct Client *cptr, SSL *tls, int res, int orig_err
 int ircd_tls_negotiate(struct Client *cptr)
 {
   SSL *tls;
+  X509 *cert;
+  unsigned int len;
   int res;
+  unsigned char buf[EVP_MAX_MD_SIZE];
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls)
@@ -332,6 +317,26 @@ int ircd_tls_negotiate(struct Client *cptr)
   res = SSL_accept(tls);
   if (res == 1)
   {
+    cert = SSL_get_peer_certificate(tls);
+    if (cert)
+    {
+      len = sizeof(buf);
+      res = X509_digest(cert, fp_digest, buf, &len);
+      X509_free(cert);
+      if (res)
+      {
+        log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %s: %d",
+          cli_name(cptr), res);
+      }
+      if (len == 32)
+      {
+        /* TODO: convert fingerprint to hex (into cli_tls_fingerprint(cptr)) */
+      }
+      else
+      {
+        memset(cli_tls_fingerprint(cptr), 0, 65);
+      }
+    }
     ClearNegotiatingTLS(cptr);
   }
   else

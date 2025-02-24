@@ -370,6 +370,11 @@ void add_listener(int port, const char* vhost_ip, const char* mask,
     listener->fd_v4 = -1;
   }
 
+  if (okay
+      && FlagHas(flags, LISTEN_TLS)
+      && ircd_tls_listen(listener))
+    okay = 0;
+
   if (!okay)
     free_listener(listener);
   else if (new_listener) {

@@ -73,6 +73,7 @@ struct Listener {
   int              index;              /**< index into poll array */
   time_t           last_accept;        /**< last time listener accepted */
   char*            tls_ciphers;        /**< ciphers to use for TLS */
+  void*            tls_ctx;            /**< TLS context for the listener */
   struct irc_sockaddr addr;            /**< virtual address and port */
   struct irc_in_addr mask;             /**< listener hostmask */
   struct Socket    socket_v4;          /**< describe IPv4 socket to event system */

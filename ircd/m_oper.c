@@ -157,7 +157,8 @@ int m_oper(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   }
   assert(0 != (aconf->status & CONF_OPERATOR));
 
-  if (!ircd_tls_fingerprint_matches(sptr, aconf->tls_fingerprint))
+  if (!EmptyString(aconf->tls_fingerprint)
+    && ircd_strcmp(cli_tls_fingerprint(sptr), aconf->tls_fingerprint))
   {
     send_reply(sptr, ERR_TLSCLIFINGERPRINT);
     sendto_opmask_butone(0, SNO_OLDREALOP, "Failed OPER attempt by %s (%s@%s)",

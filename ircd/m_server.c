@@ -608,7 +608,8 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
                            "Access denied. No conf line for server %s", cli_name(cptr));
   }
 
-  if (!ircd_tls_fingerprint_matches(cptr, aconf->tls_fingerprint)) {
+  if (!EmptyString(aconf->tls_fingerprint)
+    && ircd_strcmp(cli_tls_fingerprint(cptr), aconf->tls_fingerprint)) {
     ++ServerStats->is_wrong_server;
     sendto_opmask_butone(0, SNO_OLDSNO, "Access denied (fingerprint mismatch) %s",
                          cli_name(cptr));

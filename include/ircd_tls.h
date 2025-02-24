@@ -40,25 +40,6 @@ extern char *ircd_tls_keyfile;
 /** ircd_tls_certfile holds this server's public key certificate. */
 extern char *ircd_tls_certfile;
 
-/** ircd_tls_fingerprint_matches() returns non-zero if \a cptr uses a
- * TLS certificate that matches the fingerprint in \a fingerprint.
- *
- * If \a fingerprint is null or empty (zero-length), any client matches
- * it (even clients not using TLS).  If \a fingerprint has length from
- * 1 to 63, no client matches it.  Otherwise, the first 64 characters of
- * \a fingerprint are compared (as hexadecimal digits) to the SHA-256
- * digest of the X.509 DER representation of the peer's TLS certificate.
- *
- * \warning \a cptr must be directly connected to this server.
- *
- * @param[in] cptr Client to check.
- * @param[in] fingerprint Empty string, or 64-digit hex string.
- * \returns Non-zero if the client has a matching TLS certificate
- *   fingerprint, zero if the fingerprint does not match.
- */
-int ircd_tls_fingerprint_matches(struct Client *cptr,
-                                 const char *fingerprint);
-
 /* The following variables are provided by the TLS interface. */
 
 /** ircd_tls_version identifies the TLS library in current use. */
@@ -112,14 +93,14 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd);
  */
 void ircd_tls_close(void *ctx, const char *message);
 
-/** ircd_tls_fingerprint() fills \a fingerprint with the TLS fingerprint
- * used by the TLS session \a ctx.  If \a ctx is null or there is some
- * internal failure, \a fingerprint should be filled with zero bytes.
+/** ircd_tls_listen() configures any listener-specific TLS parameters.
+ * \a listener->tls_ciphers is populated on entry.  \a listener->tls_ctx
+ * may be null or may have been previously set by the TLS implementation.
  *
- * @param[in] ctx TLS session to query.
- * @param[out] fingerprint 32-byte binary buffer.
+ * @param[in,out] listener Listener structure to configure.
+ * \returns Zero on success, non-zero to indicate failure.
  */
-void ircd_tls_fingerprint(void *ctx, char *fingerprint);
+int ircd_tls_listen(struct Listener *listener);
 
 /** ircd_tls_negotiate() attempts to continue an initial TLS handshake
  * for \a cptr.  If the handshake completes, this function calls

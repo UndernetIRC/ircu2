@@ -47,13 +47,14 @@ void ircd_tls_close(void *ctx, const char *message)
 {
 }
 
-void ircd_tls_fingerprint(void *ctx, char *fingerprint)
+int ircd_tls_listen(struct Listener *listener)
 {
-  memset(fingerprint, 0, 32);
+  return 0;
 }
 
 int ircd_tls_negotiate(struct Client *cptr)
 {
+  ClearNegotiatingTLS(cptr);
   return 1;
 }
 
