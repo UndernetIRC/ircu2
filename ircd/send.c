@@ -559,8 +559,8 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
           && -1 < cli_fd(cli_from(member->user))
           && member->user != one
           && cli_sentalong(member->user) != sentalong_marker
-          && (require == _CAP_LAST_CAP || CapHas(cli_active(member->user), require))
-          && (forbid == _CAP_LAST_CAP || !CapHas(cli_active(member->user), forbid)))
+          && CapHas(cli_active(member->user), require)
+          && !CapHas(cli_active(member->user), forbid))
       {
           cli_sentalong(member->user) = sentalong_marker;
           send_buffer(member->user, mb, 0);
@@ -612,8 +612,8 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
         || (skip & SKIP_DEAF && IsDeaf(member->user))
         || (skip & SKIP_NONOPS && !IsChanOp(member))
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member))
-        || (require < _CAP_LAST_CAP && !CapHas(cli_active(member->user), require))
-        || (forbid < _CAP_LAST_CAP && CapHas(cli_active(member->user), forbid)))
+        || !CapHas(cli_active(member->user), require)
+        || CapHas(cli_active(member->user), forbid))
         continue;
 
     send_buffer(member->user, mb, 0);
