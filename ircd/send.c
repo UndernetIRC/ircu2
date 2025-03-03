@@ -524,7 +524,7 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
  */
 void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *cmd,
 					      const char *tok, struct Client *one,
-					      int require, int forbid, const char *pattern, ...)
+					      capset_t require, capset_t forbid, const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -591,7 +591,8 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
 void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *cmd,
 					      const char *tok, struct Channel *to,
 					      struct Client *one, unsigned int skip,
-					      int require, int forbid, const char *pattern, ...)
+					      capset_t require, capset_t forbid,
+					      const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -620,6 +621,40 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
   }
 
   msgq_clean(mb);
+}
+
+/* Send JOIN to all local channel users matching or not matching
+ * capability flags.
+ * @param[in] from Client joining the channel.
+ * @param[in] chptr Channel being joined.
+ * @param[in] require Capability mask to send this message for.
+ * @param[in] forbid Capability mask to block this message for.
+ */
+void sendjointo_channel_butserv(struct Client *from, struct Channel *chptr,
+				capset_t require,
+				capset_t forbid)
+{
+  sendcmdto_capflag_channel_butserv_butone(from, CMD_JOIN, chptr, NULL,
+    0, require | CAP_EXTJOIN, forbid, "%H %s :%s", chptr,
+    IsAccount(from) ? cli_account(from) : "*", cli_info(from));
+  sendcmdto_capflag_channel_butserv_butone(from, CMD_JOIN, chptr, NULL,
+    0, require, forbid | CAP_EXTJOIN, "%H", chptr);
+}
+
+/* Send JOIN to a single user.
+ * @param[in] from Client joining the channel.
+ * @param[in] chptr Channel being joined.
+ * @param[in] one Client to send the message to.
+ */
+void sendjointo_one(struct Client *from,
+		    struct Channel *chptr,
+		    struct Client *one)
+{
+  if (CapHas(cli_active(one), CAP_EXTJOIN))
+    sendcmdto_one(one, CMD_JOIN, from, "%H %s :%s", chptr,
+      IsAccount(from) ? cli_account(from) : "*", cli_info(from));
+  else
+    sendcmdto_one(one, CMD_JOIN, from, "%H", chptr);
 }
 
 /** Send a (prefixed) command to all local users on a channel.

@@ -164,7 +164,7 @@ int m_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
      * the kicking and the victim */
     if (MyUser(who))
       sendcmdto_one(sptr, CMD_KICK, who, "%H %C :%s", chptr, who, comment);
-    sendcmdto_one(who, CMD_JOIN, sptr, "%H", chptr);
+    sendjointo_one(who, chptr, sptr);
     sendcmdto_one(sptr, CMD_KICK, sptr, "%H %C :%s", chptr, who, comment);
     CheckDelayedJoins(chptr);
   } else
@@ -239,7 +239,7 @@ int ms_kick(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     sendto_opmask_butone(0, SNO_HACK2, "HACK: %C KICK %H %C %s", sptr, chptr,
 			 who, comment);
 
-    sendcmdto_one(who, CMD_JOIN, cptr, "%H", chptr);
+    sendjointo_one(who, chptr, cptr);
 
     /* Reop/revoice member */
     if (IsChanOp(member) || HasVoice(member)) {
