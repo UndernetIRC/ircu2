@@ -559,8 +559,8 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
           && -1 < cli_fd(cli_from(member->user))
           && member->user != one
           && cli_sentalong(member->user) != sentalong_marker
-          && CapHas(cli_active(member->user), require)
-          && !CapHas(cli_active(member->user), forbid))
+          && (require == 0 || CapHas(cli_active(member->user), require))
+          && (forbid == 0 || !CapHas(cli_active(member->user), forbid)))
       {
           cli_sentalong(member->user) = sentalong_marker;
           send_buffer(member->user, mb, 0);
@@ -570,8 +570,8 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
 
   if (MyConnect(from)
       && from != one
-      && (require == _CAP_LAST_CAP || CapHas(cli_active(from), require))
-      && (forbid == _CAP_LAST_CAP || !CapHas(cli_active(from), forbid)))
+      && (require == 0 || CapHas(cli_active(from), require))
+      && (forbid == 0 || !CapHas(cli_active(from), forbid)))
     send_buffer(from, mb, 0);
 
   msgq_clean(mb);
@@ -613,8 +613,8 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
         || (skip & SKIP_DEAF && IsDeaf(member->user))
         || (skip & SKIP_NONOPS && !IsChanOp(member))
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member))
-        || !CapHas(cli_active(member->user), require)
-        || CapHas(cli_active(member->user), forbid))
+        || (require && !CapHas(cli_active(member->user), require))
+        || (forbid && CapHas(cli_active(member->user), forbid)))
         continue;
 
     send_buffer(member->user, mb, 0);
@@ -651,10 +651,10 @@ void sendjointo_one(struct Client *from,
 		    struct Client *one)
 {
   if (CapHas(cli_active(one), CAP_EXTJOIN))
-    sendcmdto_one(one, CMD_JOIN, from, "%H %s :%s", chptr,
+    sendcmdto_one(from, CMD_JOIN, one, "%H %s :%s", chptr,
       IsAccount(from) ? cli_account(from) : "*", cli_info(from));
   else
-    sendcmdto_one(one, CMD_JOIN, from, "%H", chptr);
+    sendcmdto_one(from, CMD_JOIN, one, "%H", chptr);
 }
 
 /** Send a (prefixed) command to all local users on a channel.

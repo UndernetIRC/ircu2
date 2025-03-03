@@ -3652,6 +3652,9 @@ void RevealDelayedJoin(struct Membership *member)
 {
   ClearDelayedJoin(member);
   sendjointo_channel_butserv(member->user, member->channel, 0, 0);
+  if (cli_user(member->user)->away)
+    sendcmdto_capflag_channel_butserv_butone(member->user, CMD_AWAY, member->channel,
+      NULL, 0, CAP_AWAYNOTIFY, 0, ":%s", cli_user(member->user)->away);
   CheckDelayedJoins(member->channel);
 }
 

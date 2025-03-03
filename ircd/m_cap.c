@@ -45,7 +45,7 @@
 typedef int (*bqcmp)(const void *, const void *);
 
 static struct capabilities {
-  enum Capab cap;
+  enum CapabBits cap;
   char *capstr;
   unsigned int config;
   unsigned long flags;
@@ -53,7 +53,7 @@ static struct capabilities {
   int namelen;
 } capab_list[] = {
 #define _CAP(cap, config, flags, name)      \
-	{ E_CAP_ ## cap, #cap, (config), (flags), (name), sizeof(name) - 1 }
+	{ CAP_ ## cap, #cap, (config), (flags), (name), sizeof(name) - 1 }
   CAPLIST
 #undef _CAP
 };
@@ -151,6 +151,10 @@ send_caplist(struct Client *sptr, capset_t set,
   for (i = 0, loc = 0; i < CAPAB_LIST_LEN; i++) {
     flags = capab_list[i].flags;
 
+    /* If the client has no capabilities set, and this is the LIST subcmd, break. */
+    if (!set && !strcmp(subcmd, "LIST"))
+      break;
+
     /* Check if the capability is enabled in features() */
     if (!feature_bool(capab_list[i].config))
       continue;
@@ -217,8 +221,6 @@ cap_req(struct Client *sptr, const char *caplist)
   if (IsUserPort(sptr)) /* registration hasn't completed; suspend it... */
     auth_cap_start(cli_auth(sptr));
 
-  memset(&set, 0, sizeof(set));
-  memset(&rem, 0, sizeof(rem));
   while (cl) { /* walk through the capabilities list... */
     if (!(cap = find_cap(&cl, &neg)) /* look up capability... */
         || !feature_bool(cap->config) /* is it deactivated in config? */
