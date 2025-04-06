@@ -903,8 +903,8 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
   if (!HasFlag(cptr, FLAG_HIDDENHOST) || !HasFlag(cptr, FLAG_ACCOUNT))
     return 0;
 
-  sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, _CAP_LAST_CAP, CAP_CHGHOST, ":Registered");
-  sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, _CAP_LAST_CAP, "%s %s.%s",
+  sendcmdto_capflag_common_channels_butone(cptr, CMD_QUIT, cptr, 0, CAP_CHGHOST, ":Registered");
+  sendcmdto_capflag_common_channels_butone(cptr, CMD_CHGHOST, NULL, CAP_CHGHOST, 0, "%s %s.%s",
     cli_user(cptr)->username, cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
   ircd_snprintf(0, cli_user(cptr)->host, HOSTLEN, "%s.%s",
                 cli_user(cptr)->account, feature_str(FEAT_HIDDEN_HOST));
@@ -923,15 +923,19 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
       continue;
     /* Send a JOIN unless the user's join has been delayed. */
     if (!IsDelayedJoin(chan))
-      sendcmdto_capflag_channel_butserv_butone(cptr, CMD_JOIN, chan->channel, cptr, 0,
-                                         _CAP_LAST_CAP, CAP_CHGHOST, "%H", chan->channel);
+    {
+      sendjointo_channel_butserv(cptr, chan->channel, 0, CAP_CHGHOST);
+      if (cli_user(cptr)->away)
+        sendcmdto_capflag_channel_butserv_butone(cptr, CMD_AWAY, chan->channel,
+          NULL, 0, CAP_AWAYNOTIFY, CAP_CHGHOST, ":%s", cli_user(cptr)->away);
+    }
     if (IsChanOp(chan) && HasVoice(chan))
       sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-                                       _CAP_LAST_CAP, CAP_CHGHOST, "%H +ov %C %C", chan->channel, cptr,
+                                       0, CAP_CHGHOST, "%H +ov %C %C", chan->channel, cptr,
                                        cptr);
     else if (IsChanOp(chan) || HasVoice(chan))
       sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-        _CAP_LAST_CAP, CAP_CHGHOST, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
+        0, CAP_CHGHOST, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
   }
   return 0;
 }

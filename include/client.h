@@ -65,6 +65,9 @@ struct AuthRequest;
  * source file, or in the source file itself (when only used in that file).
  */
 
+/** Value to hold a set of capability bits (from capab.h). */
+typedef unsigned short capset_t;
+
 /** Single element in a flag bitset array. */
 typedef unsigned long flagpage_t;
 
@@ -229,8 +232,8 @@ struct Connection
   struct Timer        con_proc;      /**< process latent messages from
                                       client */
   struct Privs        con_privs;     /**< Oper privileges */
-  struct CapSet       con_capab;     /**< Client capabilities (from us) */
-  struct CapSet       con_active;    /**< Active capabilities (to us) */
+  capset_t            con_capab;     /**< Client capabilities (from us) */
+  capset_t            con_active;    /**< Active capabilities (to us) */
   struct AuthRequest* con_auth;      /**< Auth request for client */
   const struct wline* con_wline;     /**< WebIRC authorization for client */
 };
@@ -460,9 +463,9 @@ struct Client {
 /** Get the oper privilege set for the connection. */
 #define con_privs(con)          (&(con)->con_privs)
 /** Get the peer's capabilities for the connection. */
-#define con_capab(con)          (&(con)->con_capab)
+#define con_capab(con)          ((con)->con_capab)
 /** Get the active capabilities for the connection. */
-#define con_active(con)         (&(con)->con_active)
+#define con_active(con)         ((con)->con_active)
 /** Get the auth request for the connection. */
 #define con_auth(con)		((con)->con_auth)
 /** Get the WebIRC block (if any) used by the connection. */
