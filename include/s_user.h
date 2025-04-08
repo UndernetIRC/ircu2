@@ -103,6 +103,7 @@ extern void add_target(struct Client *sptr, void *target);
 extern unsigned int umode_make_snomask(unsigned int oldmask, char *arg,
                                        int what);
 extern int send_supported(struct Client *cptr);
+extern int register_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[]);
 
 #define NAMES_ALL 1 /**< List all users in channel */
 #define NAMES_VIS 2 /**< List only visible users in non-secret channels */

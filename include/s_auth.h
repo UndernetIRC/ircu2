@@ -50,6 +50,7 @@ extern void auth_send_xreply(struct Client *sptr, const char *routing, const cha
 extern void auth_mark_closing(void);
 extern void auth_close_unused(void);
 extern void auth_cancel_iauth_stats(struct Client *cptr);
+extern int auth_set_sasl(struct AuthRequest *auth, const char *crypt);
 extern void report_iauth_conf(struct Client *cptr, const struct StatDesc *sd, char *param);
 extern void report_iauth_stats(struct Client *cptr, const struct StatDesc *sd, char *param);
 

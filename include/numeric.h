@@ -468,7 +468,17 @@ extern const struct Numeric* get_error_numeric(int err);
 /*      ERR_NOMANAGER_LONG   565	no longer used */
 #define ERR_NOMANAGER        566	/* Undernet extension */
 #define ERR_UPASS_SAME_APASS 567        /* Undernet extension */
-#define ERR_LASTERROR        568
+#define RPL_LOGGEDIN         900    /* IRCv3 */
+#define RPL_LOGGEDOUT        901    /* IRCv3 */
+#define ERR_NICKLOCKED       902    /* IRCv3 */
+#define RPL_SASLSUCCESS      903    /* IRCv3 */
+#define ERR_SASLFAIL         904    /* IRCv3 */
+#define ERR_SASLTOOLONG      905    /* IRCv3 */
+#define ERR_SASLABORTED      906    /* IRCv3 */
+#define ERR_SASLALREADY      907    /* IRCv3 */
+#define RPL_SASLMECHS        908
+#define ERR_CANNOTCHANGECHANMODE 974    /* IRCv3 */
+#define ERR_LASTERROR        999
 
 /*	RPL_LOGON	     600	dalnet,unreal
 	RPL_LOGOFF           601	dalnet,unreal

@@ -1522,5 +1522,11 @@ send_supported(struct Client *cptr)
   return 0; /* convenience return, if it's ever needed */
 }
 
-/* vim: shiftwidth=2 
- */ 
+/**
+ * Registers SASL
+ */
+int
+register_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+	auth_set_sasl(cli_auth(sptr), parv[1]);
+}

@@ -771,6 +771,17 @@ static char* check_ident_reply(char* reply)
   return token;
 }
 
+/** Handle SASL
+*/
+int auth_set_sasl(struct AuthRequest *auth, const char *crypt)
+{
+  assert(auth != NULL);
+  if(CapHas(cli_active(auth->client), CAP_SASL)) {
+	 sendto_iauth(auth->client, "Y %s", crypt);
+  }
+  return 0;
+}
+
 /** Read the reply (if any) from the ident server we connected to.  We
  * only give it one shot, if the reply isn't good the first time fail
  * the authentication entirely. --Bleep
@@ -1887,6 +1898,51 @@ static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli,
   return AR_AUTH_PENDING;
 }
 
+/** Accept a client in IAuth and assign them to an account.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Account name and optional class name for client.
+ * @return Non-zero if \a cli authorization should be checked for completion.
+ */
+static int iauth_cmd_sasl(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
+{
+  assert(cli_auth(cli) != NULL);
+  /* Sanity check. */
+  if (EmptyString(params[0])) {
+    return 0;
+  }
+  char *cmd = params[0];
+	if(!ircd_strcmp(cmd, "Q")) {
+		sendcmdto_one(&me, CMD_AUTHENTICATE, cli, params[1]); 
+	} else if(!ircd_strcmp(cmd, "O")) {
+		send_reply(cli, ERR_SASLABORTED);
+	} else if(!ircd_strcmp(cmd, "S")) {
+		if (EmptyString(params[3]) || EmptyString(params[4])) {
+			return 0;
+		}		
+		char *nick = params[1];
+		char *account = params[2]; 
+		char *timestamp = params[3];
+		char *id = params[4];     
+		ircd_strncpy(cli_user(cli)->account, account, ACCOUNTLEN);
+	    cli_user(cli)->acc_id = strtoul(id, NULL, 10);
+		SetAccount(cli);
+		send_reply(cli, RPL_LOGGEDIN, cli, cli_name(cli), account);
+		send_reply(cli, RPL_SASLSUCCESS);
+	} else if(!ircd_strcmp(cmd, "N")) {
+		send_reply(cli, ERR_NICKLOCKED); 
+		send_reply(cli, ERR_SASLFAIL);
+	} else if(!ircd_strcmp(cmd, "A")) {
+		send_reply(cli, ERR_SASLALREADY);
+		send_reply(cli, ERR_SASLFAIL); 
+	} else if(!ircd_strcmp(cmd, "F")) {
+		send_reply(cli, ERR_SASLFAIL);	
+	}
+  return 0;
+}
+
 /** Set client's username to a trusted string.
  * @param[in] iauth Active IAuth session.
  * @param[in] cli Client referenced by command.
@@ -2281,6 +2337,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 's': handler = iauth_cmd_newstats; has_cli = 0; break;
   case 'S': handler = iauth_cmd_stats; has_cli = 0; break;
   case 'X': handler = iauth_cmd_xquery; has_cli = 0; break;
+  case 'Y': handler = iauth_cmd_sasl; has_cli = 1; break;
   case 'o': handler = iauth_cmd_username_forced; has_cli = 1; break;
   case 'U': handler = iauth_cmd_username_good; has_cli = 1; break;
   case 'u': handler = iauth_cmd_username_bad; has_cli = 1; break;

@@ -164,6 +164,7 @@ IRCD_SRC = \
 	m_restart.c \
 	m_rping.c \
 	m_rpong.c \
+	m_sasl.c \
 	m_server.c \
 	m_set.c \
 	m_settime.c \

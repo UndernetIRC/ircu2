@@ -256,6 +256,7 @@ struct Client {
   time_t         cli_firsttime;   /**< time client was created */
   time_t         cli_lastnick;    /**< TimeStamp on nick */
   int            cli_marker;      /**< /who processing marker */
+  int  			 cli_sasl;        /**< Client uses sasl */
   struct Flags   cli_flags;       /**< client flags */
   unsigned int   cli_hopcount;    /**< number of servers to this 0 = local */
   struct irc_in_addr cli_ip;      /**< Real IP of client */
