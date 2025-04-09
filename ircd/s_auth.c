@@ -1927,7 +1927,7 @@ static int iauth_cmd_sasl(struct IAuth *iauth, struct Client *cli,
 		char *flags = params[3];
 		char *id = params[4];     
 		ircd_strncpy(cli_user(cli)->account, account, ACCOUNTLEN);
-	    cli_user(cli)->acc_id = strtoul(id, NULL, 10);
+	    cli_user(cli)->acc_id = atoi(id);
 	    cli_user(cli)->acc_flags = atoi(flags);
 		SetAccount(cli);
 		send_reply(cli, RPL_LOGGEDIN, cli, cli_name(cli), account);
