@@ -367,6 +367,7 @@ static struct FeatureDesc {
 
   /* features that affect all operators */
   F_B(CONFIG_OPERCMDS, 0, 0, 0),
+  F_B(ENABLE_GLINE_OPER_EXCEPTION, 0, 1, 0),
 
   /* IRCv3 capabilities */
   F_B(CAP_ACCOUNTNOTIFY, 0, 1, 0),

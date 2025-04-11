@@ -106,29 +106,81 @@ struct Gline* BadChanGlineList = 0;
  * Otherwise, assign \a def_user to *user_p and \a userhost to *host_p.
  *
  * @param[in] userhost Input string from user.
+ * @param[out] nick_p Gets pointer to nick part of hostmask.
  * @param[out] user_p Gets pointer to user (or channel/realname) part of hostmask.
  * @param[out] host_p Gets point to host part of hostmask (may be assigned NULL).
  * @param[in] def_user Default value for user part.
  */
 static void
-canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
+canon_userhost(char *userhost, char **nick_p, char **user_p, char **host_p, char *def_user)
 {
-  char *tmp;
+  char *tmp, *s;
 
   if (*userhost == '$') {
     *user_p = userhost;
     *host_p = NULL;
+    *nick_p = NULL;
     return;
   }
 
-  if (!(tmp = strchr(userhost, '@'))) {
-    *user_p = def_user;
-    *host_p = userhost;
-  } else {
-    *user_p = userhost;
+  if ((tmp = strchr(userhost, '!'))) {
+    *nick_p = userhost;
     *(tmp++) = '\0';
-    *host_p = tmp;
+  } else {
+    *nick_p = def_user;
+    tmp = userhost;
   }
+
+  if (!(s = strchr(tmp, '@'))) {
+    *user_p = def_user;
+    *host_p = tmp;
+  } else {
+    *user_p = tmp;
+    *(s++) = '\0';
+    *host_p = s;
+  }
+}
+
+/** This scans all users for the real host
+ * @param[in] host The host to parse
+ */
+static void 
+get_realhost(char **host) {
+  struct Client *acptr;	
+  int fd;   
+  /*
+   * checks G-line affects accounts!
+   */  
+  for (fd = HighestFd; fd >= 0; --fd) {
+    /*
+     * get the users!
+     */
+    if ((acptr = LocalClientArray[fd])) {
+      if (!cli_user(acptr))
+        continue;
+	  if (IsAccount(acptr)) { 
+	    if(match(*host, cli_user(acptr)->authhost)) {
+          return;
+		}
+	  }
+	}
+  }
+  /*
+   * G-lines the real host!
+   */  
+  for (fd = HighestFd; fd >= 0; --fd) {
+   /*
+   * get the users!
+   */  
+    if ((acptr = LocalClientArray[fd])) {
+      if (!cli_user(acptr))
+        continue;
+	  if (cli_user(acptr)->realhost && match(*host, cli_user(acptr)->host)) {
+	    *host = cli_user(acptr)->realhost; 
+		return;
+      }
+	}
+  }  
 }
 
 /** Create a Gline structure.
@@ -232,9 +284,15 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
             continue;
         }
         else {
-          if (match(gline->gl_host, cli_sockhost(acptr)) != 0)
+          if (match(gline->gl_host, cli_user(acptr)->host) != 0 && match(gline->gl_host, cli_sockhost(acptr)) != 0 && match(gline->gl_host, cli_user(acptr)->authhost) != 0)
             continue;
         }
+          if (IsAnOper(acptr) && feature_bool(FEAT_ENABLE_GLINE_OPER_EXCEPTION)) {
+                    sendto_opmask_butone(0, SNO_GLINE, "G-line for %s ignored, nick is an oper...",
+                             cli_name(acptr));
+			continue;
+		  }
+		
       }
 
       /* ok, here's one that got G-lined */
@@ -436,7 +494,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 {
   struct Gline *agline;
   char uhmask[USERLEN + HOSTLEN + 2];
-  char *user, *host;
+  char *nick, *user, *host;
   int tmp;
 
   assert(0 != userhost);
@@ -484,7 +542,8 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
     }
   } else {
-    canon_userhost(userhost, &user, &host, "*");
+    canon_userhost(userhost, &nick, &user, &host, "*");	
+	get_realhost(&host);
     if (sizeof(uhmask) <
 	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
       return send_reply(sptr, ERR_LONGMASK);
@@ -943,7 +1002,7 @@ gline_find(char *userhost, unsigned int flags)
 {
   struct Gline *gline = 0;
   struct Gline *sgline;
-  char *user, *host, *t_uh;
+  char *nick, *user, *host, *t_uh;
 
   if (flags & (GLINE_BADCHAN | GLINE_ANY)) {
     gliter(BadChanGlineList, gline, sgline) {
@@ -961,7 +1020,7 @@ gline_find(char *userhost, unsigned int flags)
     return 0;
 
   DupString(t_uh, userhost);
-  canon_userhost(t_uh, &user, &host, "*");
+  canon_userhost(t_uh, &nick, &user, &host, "*");
 
   gliter(GlobalGlineList, gline, sgline) {
     if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
@@ -1016,7 +1075,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
           continue;
       }
       else {
-        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0)
+        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0 && match(gline->gl_host, cli_user(cptr)->host) != 0 && match(gline->gl_host, cli_sockhost(cptr)) != 0 && match(gline->gl_host, cli_user(cptr)->authhost) != 0)
           continue;
       }
     }

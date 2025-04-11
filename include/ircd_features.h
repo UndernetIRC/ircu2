@@ -102,6 +102,7 @@ enum Feature {
 
   /* features that affect all operators */
   FEAT_CONFIG_OPERCMDS,
+  FEAT_ENABLE_GLINE_OPER_EXCEPTION,
 
   /* IRCv3 capabilities */
   FEAT_CAP_ACCOUNTNOTIFY,
