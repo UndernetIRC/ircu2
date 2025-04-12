@@ -1110,13 +1110,6 @@ gline_resend(struct Client *cptr, struct Gline *gline)
  * @param[in] userhost G-line mask to search for (or NULL).
  * @return Zero.
  */
-/** Display one or all G-lines to a user.
- * If \a userhost is not NULL, only send the first matching G-line.
- * Otherwise send the whole list.
- * @param[in] sptr User asking for G-line list.
- * @param[in] userhost G-line mask to search for (or NULL).
- * @return Zero.
- */
 int
 gline_list(struct Client *sptr, char *userhost)
 {
