@@ -156,7 +156,7 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     hide_hostmask(acptr, FLAG_ACCOUNT);
 
     sendcmdto_capflag_common_channels_butone(acptr, CMD_ACCOUNT, NULL, CAP_ACCOUNTNOTIFY,
-                          _CAP_LAST_CAP, "%s", cli_user(acptr)->account);
+                          0, "%s", cli_user(acptr)->account);
   }
 
   if (parc > 4) {
