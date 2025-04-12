@@ -106,38 +106,28 @@ struct Gline* BadChanGlineList = 0;
  * Otherwise, assign \a def_user to *user_p and \a userhost to *host_p.
  *
  * @param[in] userhost Input string from user.
- * @param[out] nick_p Gets pointer to nick part of hostmask.
  * @param[out] user_p Gets pointer to user (or channel/realname) part of hostmask.
  * @param[out] host_p Gets point to host part of hostmask (may be assigned NULL).
  * @param[in] def_user Default value for user part.
  */
 static void
-canon_userhost(char *userhost, char **nick_p, char **user_p, char **host_p, char *def_user)
+canon_userhost(char *userhost, char **user_p, char **host_p, char *def_user)
 {
-  char *tmp, *s;
+  char *tmp;
 
   if (*userhost == '$') {
     *user_p = userhost;
     *host_p = NULL;
-    *nick_p = NULL;
     return;
   }
 
-  if ((tmp = strchr(userhost, '!'))) {
-    *nick_p = userhost;
-    *(tmp++) = '\0';
-  } else {
-    *nick_p = def_user;
-    tmp = userhost;
-  }
-
-  if (!(s = strchr(tmp, '@'))) {
+  if (!(tmp = strchr(userhost, '@'))) {
     *user_p = def_user;
-    *host_p = tmp;
+    *host_p = userhost;
   } else {
-    *user_p = tmp;
-    *(s++) = '\0';
-    *host_p = s;
+    *user_p = userhost;
+    *(tmp++) = '\0';
+    *host_p = tmp;
   }
 }
 
@@ -452,7 +442,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 {
   struct Gline *agline;
   char uhmask[USERLEN + HOSTLEN + 2];
-  char *nick, *user, *host;
+  char *user, *host;
   int tmp;
 
   assert(0 != userhost);
@@ -500,7 +490,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
     }
   } else {
-    canon_userhost(userhost, &nick, &user, &host, "*");	
+    canon_userhost(userhost, &user, &host, "*");	
     if (sizeof(uhmask) <
 	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
       return send_reply(sptr, ERR_LONGMASK);
@@ -959,7 +949,7 @@ gline_find(char *userhost, unsigned int flags)
 {
   struct Gline *gline = 0;
   struct Gline *sgline;
-  char *nick, *user, *host, *t_uh;
+  char *user, *host, *t_uh;
 
   if (flags & (GLINE_BADCHAN | GLINE_ANY)) {
     gliter(BadChanGlineList, gline, sgline) {
@@ -977,7 +967,7 @@ gline_find(char *userhost, unsigned int flags)
     return 0;
 
   DupString(t_uh, userhost);
-  canon_userhost(t_uh, &nick, &user, &host, "*");
+  canon_userhost(t_uh, &user, &host, "*");
 
   gliter(GlobalGlineList, gline, sgline) {
     if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
@@ -1120,6 +1110,13 @@ gline_resend(struct Client *cptr, struct Gline *gline)
  * @param[in] userhost G-line mask to search for (or NULL).
  * @return Zero.
  */
+/** Display one or all G-lines to a user.
+ * If \a userhost is not NULL, only send the first matching G-line.
+ * Otherwise send the whole list.
+ * @param[in] sptr User asking for G-line list.
+ * @param[in] userhost G-line mask to search for (or NULL).
+ * @return Zero.
+ */
 int
 gline_list(struct Client *sptr, char *userhost)
 {
@@ -1131,25 +1128,26 @@ gline_list(struct Client *sptr, char *userhost)
       return send_reply(sptr, ERR_NOSUCHGLINE, userhost);
 
     /* send gline information along */
-    send_reply(sptr, RPL_GLIST,
-               "",
-               "",
-               gline->gl_user, GlineIsBadChan(gline) || GlineIsRealName(gline) ? "" : "@",
+    send_reply(sptr, RPL_GLIST, gline->gl_user,
+               gline->gl_host ? "@" : "",
                gline->gl_host ? gline->gl_host : "",
-	       gline->gl_expire + TSoffset,
+	       gline->gl_expire, gline->gl_lastmod,
+	       gline->gl_lifetime,
 	       GlineIsLocal(gline) ? cli_name(&me) : "*",
-	       GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
+	       gline->gl_state == GLOCAL_ACTIVATED ? ">" :
+	       (gline->gl_state == GLOCAL_DEACTIVATED ? "<" : ""),
+	       GlineIsRemActive(gline) ? '+' : '-', gline->gl_reason);
   } else {
     gliter(GlobalGlineList, gline, sgline) {
-       send_reply(sptr, RPL_GLIST,
-                   "",
-                   "",
-                   gline->gl_user,
-                   gline->gl_host ? "@" : "",
-                   gline->gl_host ? gline->gl_host : "",
-		   gline->gl_expire + TSoffset,
-		   GlineIsLocal(gline) ? cli_name(&me) : "*",
-		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
+      send_reply(sptr, RPL_GLIST, gline->gl_user,
+		 gline->gl_host ? "@" : "",
+		 gline->gl_host ? gline->gl_host : "",
+		 gline->gl_expire, gline->gl_lastmod,
+		 gline->gl_lifetime,
+		 GlineIsLocal(gline) ? cli_name(&me) : "*",
+		 gline->gl_state == GLOCAL_ACTIVATED ? ">" :
+		 (gline->gl_state == GLOCAL_DEACTIVATED ? "<" : ""),
+		 GlineIsRemActive(gline) ? '+' : '-', gline->gl_reason);
     }
 
     gliter(BadChanGlineList, gline, sgline) {

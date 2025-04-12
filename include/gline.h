@@ -96,8 +96,9 @@ enum GlineAction {
 #define GLINE_UPDATE	(GLINE_EXPIRE | GLINE_LIFETIME | GLINE_REASON)
 
 /** Test whether \a g is active. */
-#define GlineIsActive(g)	(((g)->gl_flags & GLINE_ACTMASK) == \
-				 GLINE_ACTIVE)
+#define GlineIsActive(g)	((((g)->gl_flags & GLINE_ACTIVE) &&	  \
+				  (g)->gl_state != GLOCAL_DEACTIVATED) || \
+				 (g)->gl_state == GLOCAL_ACTIVATED)
 /** Test whether \a g is remotely (globally) active. */
 #define GlineIsRemActive(g)	((g)->gl_flags & GLINE_ACTIVE)
 /** Test whether \a g is an IP-based G-line. */
