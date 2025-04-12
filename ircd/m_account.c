@@ -81,19 +81,13 @@
 #include "config.h"
 
 #include "client.h"
-#include "hash.h"
 #include "ircd.h"
-#include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
-#include "ircd_snprintf.h"
 #include "ircd_string.h"
 #include "msg.h"
-#include "numeric.h"
 #include "numnicks.h"
-#include "s_conf.h"
 #include "s_debug.h"
-#include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
 
@@ -114,7 +108,6 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 	       char* parv[])
 {
   struct Client *acptr;
-  int killreason;
   uint64_t acc_id = 0, acc_flags = 0;
 
   if (parc < 3)
@@ -160,9 +153,10 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
     }
 
     ircd_strncpy(cli_user(acptr)->account, parv[2], ACCOUNTLEN);
-    sendcmdto_capflag_common_channels_butone(acptr, CMD_ACCOUNT, NULL, CAP_ACCOUNTNOTIFY,
-                          0, "%s", cli_user(acptr)->account);
     hide_hostmask(acptr, FLAG_ACCOUNT);
+
+    sendcmdto_capflag_common_channels_butone(acptr, CMD_ACCOUNT, NULL, CAP_ACCOUNTNOTIFY,
+                          _CAP_LAST_CAP, "%s", cli_user(acptr)->account);
   }
 
   if (parc > 4) {
@@ -177,13 +171,6 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
                         acptr, cli_user(acptr)->account,
                         cli_user(acptr)->acc_id,
                         cli_user(acptr)->acc_flags);
-   ircd_snprintf(0, cli_user(acptr)->authhost, HOSTLEN, "%s.%s", parv[2], feature_str(FEAT_HIDDEN_HOST));	
-   killreason = find_kill(acptr);
-   if (killreason)
-   {
-     ++ServerStats->is_k_lined;
-     return exit_client(acptr, acptr, cptr,
-                        (killreason == -1 ? "K-lined" : "G-lined"));
-   }
+
   return 0;
 }
