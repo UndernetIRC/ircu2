@@ -141,48 +141,6 @@ canon_userhost(char *userhost, char **nick_p, char **user_p, char **host_p, char
   }
 }
 
-/** This scans all users for the real host
- * @param[in] host The host to parse
- */
-static void 
-get_realhost(char **host) {
-  struct Client *acptr;	
-  int fd;   
-  /*
-   * checks G-line affects accounts!
-   */  
-  for (fd = HighestFd; fd >= 0; --fd) {
-    /*
-     * get the users!
-     */
-    if ((acptr = LocalClientArray[fd])) {
-      if (!cli_user(acptr))
-        continue;
-	  if (IsAccount(acptr)) { 
-	    if(match(*host, cli_user(acptr)->authhost)) {
-          return;
-		}
-	  }
-	}
-  }
-  /*
-   * G-lines the real host!
-   */  
-  for (fd = HighestFd; fd >= 0; --fd) {
-   /*
-   * get the users!
-   */  
-    if ((acptr = LocalClientArray[fd])) {
-      if (!cli_user(acptr))
-        continue;
-	  if (cli_user(acptr)->realhost && match(*host, cli_user(acptr)->host)) {
-	    *host = cli_user(acptr)->realhost; 
-		return;
-      }
-	}
-  }  
-}
-
 /** Create a Gline structure.
  * @param[in] user User part of mask.
  * @param[in] host Host part of mask (NULL if not applicable).
@@ -543,7 +501,6 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
     }
   } else {
     canon_userhost(userhost, &nick, &user, &host, "*");	
-	get_realhost(&host);
     if (sizeof(uhmask) <
 	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
       return send_reply(sptr, ERR_LONGMASK);
