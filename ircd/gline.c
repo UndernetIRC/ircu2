@@ -232,7 +232,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
             continue;
         }
         else {
-          if (match(gline->gl_host, cli_user(acptr)->host) != 0 && match(gline->gl_host, cli_sockhost(acptr)) != 0 && match(gline->gl_host, cli_user(acptr)->authhost) != 0)
+          if (match(gline->gl_host, cli_user(acptr)->host) != 0)
             continue;
         }
           if (IsAnOper(acptr) && feature_bool(FEAT_ENABLE_GLINE_OPER_EXCEPTION)) {
@@ -1022,7 +1022,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
           continue;
       }
       else {
-        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0 && match(gline->gl_host, cli_user(cptr)->host) != 0 && match(gline->gl_host, cli_sockhost(cptr)) != 0)
+        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0)
           continue;
       }
     }
