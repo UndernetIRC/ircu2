@@ -1032,7 +1032,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
           continue;
       }
       else {
-        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0 && match(gline->gl_host, cli_user(cptr)->host) != 0 && match(gline->gl_host, cli_sockhost(cptr)) != 0 && match(gline->gl_host, cli_user(cptr)->authhost) != 0)
+        if (match(gline->gl_host, (cli_user(cptr))->realhost) != 0 && match(gline->gl_host, cli_user(cptr)->host) != 0 && match(gline->gl_host, cli_sockhost(cptr)) != 0)
           continue;
       }
     }
@@ -1131,26 +1131,25 @@ gline_list(struct Client *sptr, char *userhost)
       return send_reply(sptr, ERR_NOSUCHGLINE, userhost);
 
     /* send gline information along */
-    send_reply(sptr, RPL_GLIST, gline->gl_user,
-               gline->gl_host ? "@" : "",
+    send_reply(sptr, RPL_GLIST,
+               "",
+               "",
+               gline->gl_user, GlineIsBadChan(gline) || GlineIsRealName(gline) ? "" : "@",
                gline->gl_host ? gline->gl_host : "",
-	       gline->gl_expire, gline->gl_lastmod,
-	       gline->gl_lifetime,
+	       gline->gl_expire + TSoffset,
 	       GlineIsLocal(gline) ? cli_name(&me) : "*",
-	       gline->gl_state == GLOCAL_ACTIVATED ? ">" :
-	       (gline->gl_state == GLOCAL_DEACTIVATED ? "<" : ""),
-	       GlineIsRemActive(gline) ? '+' : '-', gline->gl_reason);
+	       GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
   } else {
     gliter(GlobalGlineList, gline, sgline) {
-      send_reply(sptr, RPL_GLIST, gline->gl_user,
-		 gline->gl_host ? "@" : "",
-		 gline->gl_host ? gline->gl_host : "",
-		 gline->gl_expire, gline->gl_lastmod,
-		 gline->gl_lifetime,
-		 GlineIsLocal(gline) ? cli_name(&me) : "*",
-		 gline->gl_state == GLOCAL_ACTIVATED ? ">" :
-		 (gline->gl_state == GLOCAL_DEACTIVATED ? "<" : ""),
-		 GlineIsRemActive(gline) ? '+' : '-', gline->gl_reason);
+       send_reply(sptr, RPL_GLIST,
+                   "",
+                   "",
+                   gline->gl_user,
+                   gline->gl_host ? "@" : "",
+                   gline->gl_host ? gline->gl_host : "",
+		   gline->gl_expire + TSoffset,
+		   GlineIsLocal(gline) ? cli_name(&me) : "*",
+		   GlineIsActive(gline) ? '+' : '-', gline->gl_reason);
     }
 
     gliter(BadChanGlineList, gline, sgline) {
