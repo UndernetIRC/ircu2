@@ -490,7 +490,7 @@ gline_add(struct Client *cptr, struct Client *sptr, char *userhost,
 	return send_reply(sptr, ERR_TOOMANYUSERS, tmp);
     }
   } else {
-    canon_userhost(userhost, &user, &host, "*");	
+    canon_userhost(userhost, &user, &host, "*");
     if (sizeof(uhmask) <
 	ircd_snprintf(0, uhmask, sizeof(uhmask), "%s@%s", user, host))
       return send_reply(sptr, ERR_LONGMASK);
