@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: m_sasl.c,v 1.3.2.1 2025/04/01 04:04:32 entrope Exp $
+ * $Id$
  */
 
 /*
