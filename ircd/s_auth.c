@@ -337,7 +337,7 @@ static int auth_set_username(struct AuthRequest *auth)
       goto badid;
     /* If two different groups of digits, one must be either at the
      * start or end. */
-    if (digitgroups == 2 && !(IsDigit(s[0]) || IsDigit(ch)))
+    if (digitgroups == 2 && !(IsDigit(s[0]) || IsDigit(last)))
       goto badid;
     /* Final character must not be punctuation. */
     if (!IsAlnum(last))
