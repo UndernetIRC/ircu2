@@ -164,14 +164,14 @@ int m_away(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!was_away)
     {
       sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, ":%s", away_message);
-      sendcmdto_capflag_common_channels_butone(sptr, CMD_AWAY, cptr, CAP_AWAYNOTIFY, _CAP_LAST_CAP, ":%s", away_message);
+      sendcmdto_capflag_common_channels_butone(sptr, CMD_AWAY, cptr, CAP_AWAYNOTIFY, 0, ":%s", away_message);
     }
 
     send_reply(sptr, RPL_NOWAWAY);
   }
   else {
     sendcmdto_serv_butone(sptr, CMD_AWAY, cptr, "");
-    sendcmdto_capflag_common_channels_butone(sptr, CMD_AWAY, cptr, CAP_AWAYNOTIFY, _CAP_LAST_CAP, "");
+    sendcmdto_capflag_common_channels_butone(sptr, CMD_AWAY, cptr, CAP_AWAYNOTIFY, 0, "");
     send_reply(sptr, RPL_UNAWAY);
   }
   return 0;

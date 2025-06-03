@@ -421,6 +421,7 @@ static int ip_registry_is_exempt(const struct irc_in_addr *addr)
     if (ipmask_check(addr, &list->address, list->addrbits))   {
       return 1;
     }
+    list = list->next;
   }
 
   return 0;

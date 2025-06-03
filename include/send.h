@@ -13,6 +13,10 @@
 #define INCLUDED_time_h
 #endif
 
+#ifndef INCLUDED_client_h
+#include "client.h" /* capset_t */
+#endif
+
 struct Channel;
 struct Client;
 struct DBuf;
@@ -67,15 +71,16 @@ extern void sendcmdto_capflag_common_channels_butone(struct Client *from,
 						     const char *cmd,
 						     const char *tok,
 						     struct Client *one,
-						     int require,
-						     int forbid,
+						     capset_t require,
+						     capset_t forbid,
 						     const char *pattern, ...);
 
 /* Send command to all channel users on this server matching or not matching a capability flag */
 void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *cmd,
 					      const char *tok, struct Channel *to,
 					      struct Client *one, unsigned int skip,
-					      int require, int forbid, const char *pattern, ...);
+					      capset_t require, capset_t forbid,
+					      const char *pattern, ...);
 
 /* Send command to all channel users on this server */
 extern void sendcmdto_channel_butserv_butone(struct Client *from,
@@ -100,6 +105,18 @@ extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 				     const char *tok, struct Channel *to,
 				     struct Client *one, unsigned int skip,
 				     const char *pattern, ...);
+
+
+/* Send JOIN to all local channel users matching or not matching capability flags */
+extern void sendjointo_channel_butserv(struct Client *from,
+				       struct Channel *chptr,
+				       capset_t require,
+				       capset_t forbid);
+
+/* Send JOIN to a single user */
+extern void sendjointo_one(struct Client *from,
+			   struct Channel *chptr,
+			   struct Client *one);
 
 #define SKIP_DEAF	0x01	/**< skip users that are +d */
 #define SKIP_BURST	0x02	/**< skip users that are bursting */
