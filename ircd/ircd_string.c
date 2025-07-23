@@ -465,7 +465,7 @@ const char* ircd_ntocidrmask(const struct irc_in_addr* in, const unsigned char b
 
   mask_str = ircd_ntoa(in);
   assert(strlen(mask_str) < 40);
-  snprintf(cidr, CIDR_LEN, "%s/%u", mask_str, (unsigned int) irc_in_addr_is_ipv4(in) ? (bits - 96) : bits);
+  snprintf(cidr, CIDR_LEN + 1, "%s/%u", mask_str, (unsigned int) irc_in_addr_is_ipv4(in) ? (bits - 96) : bits);
   cidr[CIDR_LEN] = 0;
   return cidr;
 }
