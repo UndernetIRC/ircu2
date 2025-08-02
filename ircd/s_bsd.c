@@ -148,13 +148,13 @@ void report_error(const char* text, const char* who, int err)
  * @param vptr The struct ConfItem representing the Connect block.
  * @param hp A pointer to the DNS lookup results (NULL on failure).
  */
-static void connect_dns_callback(void* vptr, const struct irc_in_addr *addr, const char *h_name)
+static void connect_dns_callback(void* vptr, const struct irc_in_addr *addrs, int addr_count, const char *h_name)
 {
   struct ConfItem* aconf = (struct ConfItem*) vptr;
   assert(aconf);
   aconf->dns_pending = 0;
-  if (addr) {
-    memcpy(&aconf->address, addr, sizeof(aconf->address));
+  if (addrs && addr_count > 0) {
+    memcpy(&aconf->address, &addrs[0], sizeof(aconf->address));
     connect_server(aconf, 0);
   }
   else
