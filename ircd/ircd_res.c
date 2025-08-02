@@ -121,6 +121,10 @@ struct reslist
   char *name;              /**< Hostname for this request. */
   dns_callback_f callback; /**< Callback function on completion. */
   void *callback_ctx;      /**< Context pointer for callback. */
+  /* Support for multiple IP addresses */
+  struct irc_in_addr *addrs; /**< Array of IP addresses for this request. */
+  int addr_count;          /**< Number of IP addresses in addrs array. */
+  int addr_capacity;       /**< Capacity of addrs array. */
 };
 
 /** Base of request list. */
@@ -141,6 +145,34 @@ static int proc_answer(struct reslist *request, HEADER *header, char *, char *);
 static struct reslist *find_id(int id);
 static void res_readreply(struct Event *ev);
 static void timeout_resolver(struct Event *notused);
+
+/** Add an IP address to the reslist's address array.
+ * @param[in] request The reslist to add the address to.
+ * @param[in] addr The IP address to add.
+ * @return Non-zero if the address was added successfully.
+ */
+static int
+add_addr_to_request(struct reslist *request, const struct irc_in_addr *addr)
+{
+  if (request->addr_count >= request->addr_capacity) {
+    int new_capacity = request->addr_capacity == 0 ? 4 : request->addr_capacity * 2;
+    Debug((DEBUG_DNS, "Growing IP array for request %p from %d to %d capacity", 
+           request, request->addr_capacity, new_capacity));
+    struct irc_in_addr *new_addrs = MyRealloc(request->addrs, 
+                                              new_capacity * sizeof(struct irc_in_addr));
+    if (!new_addrs)
+      return 0;
+    request->addrs = new_addrs;
+    request->addr_capacity = new_capacity;
+  }
+  
+  memcpy(&request->addrs[request->addr_count], addr, sizeof(struct irc_in_addr));
+  request->addr_count++;
+  Debug((DEBUG_DNS, "Added IP %s to request %p (total: %d/%d)", 
+         ircd_ntoa(addr), request, request->addr_count, request->addr_capacity));
+  return 1;
+}
+
 
 extern struct irc_sockaddr irc_nsaddr_list[IRCD_MAXNS];
 extern int irc_nscount;
@@ -297,6 +329,9 @@ make_request(dns_callback_f callback, void *ctx)
   memset(&request->addr, 0, sizeof(request->addr));
   request->callback = callback;
   request->callback_ctx = ctx;
+  request->addrs = NULL;
+  request->addr_count = 0;
+  request->addr_capacity = 0;
 
   add_dlink(&request->node, &request_list);
   return(request);
@@ -345,7 +380,7 @@ timeout_resolver(struct Event *ev)
       if (--request->retries <= 0)
       {
         Debug((DEBUG_DNS, "Request %p out of retries; destroying", request));
-        (*request->callback)(request->callback_ctx, NULL, NULL);
+        (*request->callback)(request->callback_ctx, NULL, 0, NULL);
         rem_request(request);
         continue;
       }
@@ -703,21 +738,35 @@ proc_answer(struct reslist *request, HEADER* header, char* buf, char* eob)
           return(0);
 
         /*
-         * check for invalid rd_length or too many addresses
+         * check for invalid rd_length
          */
         if (rd_length != sizeof(struct in_addr))
           return(0);
-        memset(&request->addr, 0, sizeof(request->addr));
-        memcpy(&request->addr.in6_16[6], current, sizeof(struct in_addr));
-        return(1);
+        
+        /* Add this IP address to our collection */
+        {
+          struct irc_in_addr ipv4_addr;
+          memset(&ipv4_addr, 0, sizeof(ipv4_addr));
+          memcpy(&ipv4_addr.in6_16[6], current, sizeof(struct in_addr));
+          Debug((DEBUG_DNS, "Adding IPv4 address %s to request %p (now has %d IPs)", 
+                 ircd_ntoa(&ipv4_addr), request, request->addr_count));
+          if (!add_addr_to_request(request, &ipv4_addr))
+            return(0);
+        }
+        current += rd_length;
         break;
       case T_AAAA:
         if (request->type != T_AAAA)
           return(0);
         if (rd_length != sizeof(struct irc_in_addr))
           return(0);
-        memcpy(&request->addr, current, sizeof(struct irc_in_addr));
-        return(1);
+        
+        /* Add this IP address to our collection */
+        Debug((DEBUG_DNS, "Adding IPv6 address %s to request %p (now has %d IPs)", 
+               ircd_ntoa((struct irc_in_addr *)current), request, request->addr_count));
+        if (!add_addr_to_request(request, (struct irc_in_addr *)current))
+          return(0);
+        current += rd_length;
         break;
       case T_PTR:
         if (request->type != T_PTR)
@@ -820,7 +869,7 @@ res_readreply(struct Event *ev)
          * send any more (no retries granted).
          */
         Debug((DEBUG_DNS, "Request %p has bad response (state %d type %d rcode %d)", request, request->state, request->type, header->rcode));
-        (*request->callback)(request->callback_ctx, NULL, NULL);
+        (*request->callback)(request->callback_ctx, NULL, 0, NULL);
 	rem_request(request);
     }
     else
@@ -863,7 +912,7 @@ res_readreply(struct Event *ev)
          * don't bother trying again, the client address doesn't resolve
          */
         Debug((DEBUG_DNS, "Request %p PTR had empty name", request));
-        (*request->callback)(request->callback_ctx, NULL, NULL);
+        (*request->callback)(request->callback_ctx, NULL, 0, NULL);
         rem_request(request);
         return;
       }
@@ -885,9 +934,15 @@ res_readreply(struct Event *ev)
     {
       /*
        * got a name and address response, client resolved
+       * Pass all IPs to the callback with count
        */
-      (*request->callback)(request->callback_ctx, &request->addr, request->name);
-      Debug((DEBUG_DNS, "Request %p got forward resolution", request));
+      if (request->addr_count > 0) {
+        (*request->callback)(request->callback_ctx, request->addrs, request->addr_count, request->name);
+        Debug((DEBUG_DNS, "Request %p got forward resolution with %d IPs", request, request->addr_count));
+      } else {
+        (*request->callback)(request->callback_ctx, &request->addr, 1, request->name);
+        Debug((DEBUG_DNS, "Request %p got forward resolution", request));
+      }
       rem_request(request);
     }
   }
