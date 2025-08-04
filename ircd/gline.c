@@ -288,7 +288,7 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
 
         if (GlineIsIpMask(gline)) {
           // Only apply ipmask_check() if the gline host and the cli_ip are both ipv4 or both ipv6.
-          if (strchr(ircd_ntoa(&cli_ip(acptr)), ':') != strchr(gline->gl_host, ':'))
+          if (irc_in_addr_is_ipv4(&cli_ip(acptr)) != irc_in_addr_is_ipv4(&gline->gl_addr))
             continue;
           if (!ipmask_check(&cli_ip(acptr), &gline->gl_addr, gline->gl_bits))
             continue;
