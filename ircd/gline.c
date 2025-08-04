@@ -1016,7 +1016,7 @@ gline_find(char *userhost, unsigned int flags)
     return 0;
 
   if (flags & (GLINE_BADCHAN | GLINE_ANY)) {
-    gliter(BadChanGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+    gliter(BadChanGlineList, gline, sgline, 0, node) {
       if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
           (flags & GLINE_LASTMOD && !gline->gl_lastmod))
         continue;
@@ -1064,7 +1064,7 @@ gline_find(char *userhost, unsigned int flags)
   }
 
   if (!gline) {
-    gliter(GlobalGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+    gliter(GlobalGlineList, gline, sgline, 0, node) {
       if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
           (flags & GLINE_LASTMOD && !gline->gl_lastmod))
         continue;
@@ -1118,7 +1118,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
     }
   }
 
-  gliter(GlobalGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+  gliter(GlobalGlineList, gline, sgline, 0, node) {
     if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
         (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
@@ -1196,7 +1196,7 @@ gline_burst(struct Client *cptr)
     } CIDR_ITER_END;
   }
 
-  gliter(GlobalGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+  gliter(GlobalGlineList, gline, sgline, 0, node) {
     if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s%s%s %Tu %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
@@ -1206,7 +1206,7 @@ gline_burst(struct Client *cptr)
                     gline->gl_lifetime, gline->gl_reason);
   }
 
-  gliter(BadChanGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+  gliter(BadChanGlineList, gline, sgline, 0, node) {
     if (!GlineIsLocal(gline) && gline->gl_lastmod)
       sendcmdto_one(&me, CMD_GLINE, cptr, "* %c%s %Tu %Tu %Tu :%s",
 		    GlineIsRemActive(gline) ? '+' : '-', gline->gl_user,
@@ -1284,7 +1284,7 @@ gline_list(struct Client *sptr, char *userhost)
       } CIDR_ITER_END;
     }
 
-    gliter(GlobalGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+    gliter(GlobalGlineList, gline, sgline, 0, node) {
       send_reply(sptr, RPL_GLIST, gline->gl_user,
 		 gline->gl_host ? "@" : "",
 		 gline->gl_host ? gline->gl_host : "",
@@ -1296,7 +1296,7 @@ gline_list(struct Client *sptr, char *userhost)
 		 GlineIsRemActive(gline) ? '+' : '-', gline->gl_reason);
     }
 
-    gliter(BadChanGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+    gliter(BadChanGlineList, gline, sgline, 0, node) {
       send_reply(sptr, RPL_GLIST, gline->gl_user, "", "",
 		 gline->gl_expire, gline->gl_lastmod,
 		 gline->gl_lifetime,
@@ -1353,7 +1353,7 @@ gline_stats(struct Client *sptr, const struct StatDesc *sd,
     } CIDR_ITER_END;
   }
 
-  gliter(GlobalGlineList, gline, sgline, GlobalIpMaskPTree, node) {
+  gliter(GlobalGlineList, gline, sgline, 0, node) {
     if (param) {
       if (gline->gl_host)
 	ircd_snprintf(NULL, gl_mask, sizeof(gl_mask), "%s@%s",
