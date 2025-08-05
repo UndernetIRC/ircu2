@@ -1385,7 +1385,24 @@ int
 gline_memory_count(size_t *gl_size)
 {
   struct Gline *gline;
+  struct Gline *sgline;
   unsigned int gl = 0;
+  cidr_node *node = 0;
+
+  if (GlobalIpMaskPTree) {
+    CIDR_ITER(GlobalIpMaskPTree, node) {
+      *gl_size += sizeof(cidr_node);
+      if (!node->data)
+        continue;
+      gliter((struct Gline *) node->data, gline, sgline, GlobalIpMaskPTree, node) {
+        gl++;
+        *gl_size += sizeof(struct Gline);
+        *gl_size += gline->gl_user ? (strlen(gline->gl_user) + 1) : 0;
+        *gl_size += gline->gl_host ? (strlen(gline->gl_host) + 1) : 0;
+        *gl_size += gline->gl_reason ? (strlen(gline->gl_reason) + 1) : 0;
+      }
+    } CIDR_ITER_END;
+  }
 
   for (gline = GlobalGlineList; gline; gline = gline->gl_next) {
     gl++;
