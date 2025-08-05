@@ -1110,9 +1110,7 @@ gline_lookup(struct Client *cptr, unsigned int flags)
       continue;
 
     assert(GlineIsIpMask(gline));
-    //TODO: Replace the below check with an assert().
-    if (!ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits))
-      continue;
+    assert(ipmask_check(&cli_ip(cptr), &gline->gl_addr, gline->gl_bits));
     if (GlineIsActive(gline)) {
       return gline;
     }
