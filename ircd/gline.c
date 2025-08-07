@@ -112,8 +112,9 @@ struct Gline* BadChanGlineList = 0;
 
 /** Iterate through \a list of ipmask-based G-lines that match \a ip.
  * This will return the most specific glines first (i.e cidr /32 before /31).
- * i.e., follow it with braces and use whatever you passed as \a gl
- * as a single G-line to be acted upon.
+ * Usage: follow it with braces and use whatever you passed as \a gl
+ * as a single struct G-line to be acted upon.
+ * Note: `break;` instruction will not work as expected, because of nested loops inside this macro.
  *
  * @param[in] gl Name of a struct Gline pointer variable that will be made to point to the G-lines in sequence.
  * @param[in] next Name of a scratch struct Gline pointer variable.
@@ -121,33 +122,41 @@ struct Gline* BadChanGlineList = 0;
  * @param[in] nbits cidr bits
  * @param[in] tree pointer to cidr_root_node.
  * @param[in] node pointer to cidr_node.
- * @param[in] stop_loop break loop when stop_loop = 0 (something break alone can't do in nested loops).
  */
-#define gliterIpMask(gl, next, ip, nbits, tree, node, stop_loop)  \
-  (stop_loop) = 0;                                                \
-  if ((tree) == NULL)                                             \
-    (tree) = cidr_new_tree();                                     \
-  assert((tree));                                                 \
-  for ((node) = cidr_search_best((tree), (ip), (nbits));          \
-        (node);                                                   \
-        (node) = (node)->parent)                                  \
-    if ((stop_loop))                                              \
-      break;                                                      \
-    else                                                          \
-      gliter((struct Gline *)(node)->data, (gl),                  \
-              (next), (tree), (node))
+#define gliterIpMask(gl, next, ip, nbits, tree, node)         \
+  if ((tree) == NULL)                                         \
+    (tree) = cidr_new_tree();                                 \
+  assert((tree));                                             \
+  for ((node) = cidr_search_best((tree), (ip), (nbits));      \
+        (node);                                               \
+        (node) = (node)->parent)                              \
+    gliter((struct Gline *)(node)->data, (gl),                \
+            (next), (tree), (node))
 
-#define gliterExactIpMask(gl, next, ip, nbits, tree, node, stop_loop)   \
-  (stop_loop) = 0;                                                      \
-  (node) = 0;                                                           \
-  if ((tree) == NULL)                                                   \
-    (tree) = cidr_new_tree();                                           \
-  assert((tree));                                                       \
-  (node) = _cidr_find_exact_node((tree), (ip), (nbits));                \
-  if (!(node))                                                          \
-    ;  /* empty statement */                                            \
-  else                                                                  \
-    gliter((struct Gline *)(node)->data, (gl),                          \
+/** Iterate through \a list of ipmask-based G-lines that match exactly \a ip.
+ * This will return only glines that have the exact IP mask and bits.
+ * Usage: follow it with braces and use whatever you passed as \a gl
+ * as a single struct G-line to be acted upon.
+ * Note: `break;` instruction will not work as expected, because of nested loops inside this macro.
+ *
+ * @param[in] gl Name of a struct Gline pointer variable that will be made to point to the G-lines in sequence.
+ * @param[in] next Name of a scratch struct Gline pointer variable.
+ * @param[in] ip irc_in_addr struct
+ * @param[in] nbits cidr bits
+ * @param[in] tree pointer to cidr_root_node.
+ * @param[in] node pointer to cidr_node.
+ */
+
+#define gliterExactIpMask(gl, next, ip, nbits, tree, node)    \
+  (node) = 0;                                                 \
+  if ((tree) == NULL)                                         \
+    (tree) = cidr_new_tree();                                 \
+  assert((tree));                                             \
+  (node) = _cidr_find_exact_node((tree), (ip), (nbits));      \
+  if (!(node))                                                \
+    ;  /* empty statement */                                  \
+  else                                                        \
+    gliter((struct Gline *)(node)->data, (gl),                \
             (next), (tree), (node))
 
 /** Find canonical user and host for a string.
@@ -1010,7 +1019,6 @@ gline_find(char *userhost, unsigned int flags)
   struct irc_in_addr mask;
   unsigned char bits;
   const char *cidr;
-  unsigned char stop_loop = 0;
 
   if ((flags & GLINE_IPMASK) && (!GlobalIpMaskPTree))
     return 0;
@@ -1036,19 +1044,19 @@ gline_find(char *userhost, unsigned int flags)
   if (*user != '$' && host && ipmask_parse(host, &mask, &bits)) {
     cidr = ircd_ntocidrmask(&mask, bits);
     if (flags & GLINE_EXACT) {
-      gliterExactIpMask(gline, sgline, &mask, bits, GlobalIpMaskPTree, node, stop_loop) {
+      gliterExactIpMask(gline, sgline, &mask, bits, GlobalIpMaskPTree, node) {
         if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
             (flags & GLINE_LASTMOD && !gline->gl_lastmod))
           continue;
         if (((gline->gl_host && host && ircd_strcmp(gline->gl_host, host) == 0) ||
             (!gline->gl_host && !host)) &&
             (ircd_strcmp(gline->gl_user, user) == 0)) {
-          stop_loop = 1;
-          break;
+          MyFree(t_uh);
+          return gline;
         }
       }
     } else {
-      gliterIpMask(gline, sgline, &mask, bits, GlobalIpMaskPTree, node, stop_loop) {
+      gliterIpMask(gline, sgline, &mask, bits, GlobalIpMaskPTree, node) {
         if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
             (flags & GLINE_LASTMOD && !gline->gl_lastmod))
           continue;
@@ -1056,29 +1064,27 @@ gline_find(char *userhost, unsigned int flags)
          *  the list of glines that match the ip provided.
          */
         if (match(user, gline->gl_user) == 0) {
-          stop_loop = 1;
-          break;
+          MyFree(t_uh);
+          return gline;
         }
       }
     }
   }
 
-  if (!gline) {
-    gliter(GlobalGlineList, gline, sgline, 0, node) {
-      if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
-          (flags & GLINE_LASTMOD && !gline->gl_lastmod))
-        continue;
-      else if (flags & GLINE_EXACT) {
-        if (((gline->gl_host && host && ircd_strcmp(gline->gl_host, host) == 0) ||
-            (!gline->gl_host && !host)) &&
-            (ircd_strcmp(gline->gl_user, user) == 0))
-          break;
-      } else {
-        if (((gline->gl_host && host && match(host, gline->gl_host) == 0) ||
-            (!gline->gl_host && !host)) &&
-            (match(user, gline->gl_user) == 0))
-          break;
-      }
+  gliter(GlobalGlineList, gline, sgline, 0, node) {
+    if ((flags & (GlineIsLocal(gline) ? GLINE_GLOBAL : GLINE_LOCAL)) ||
+        (flags & GLINE_LASTMOD && !gline->gl_lastmod))
+      continue;
+    else if (flags & GLINE_EXACT) {
+      if (((gline->gl_host && host && ircd_strcmp(gline->gl_host, host) == 0) ||
+          (!gline->gl_host && !host)) &&
+          (ircd_strcmp(gline->gl_user, user) == 0))
+        break;
+    } else {
+      if (((gline->gl_host && host && match(host, gline->gl_host) == 0) ||
+          (!gline->gl_host && !host)) &&
+          (match(user, gline->gl_user) == 0))
+        break;
     }
   }
 
@@ -1099,9 +1105,8 @@ gline_lookup(struct Client *cptr, unsigned int flags)
   struct Gline *gline;
   struct Gline *sgline;
   cidr_node *node = 0;
-  unsigned char stop_loop = 0;
 
-  gliterIpMask(gline, sgline, &cli_ip(cptr), 128, GlobalIpMaskPTree, node, stop_loop) {
+  gliterIpMask(gline, sgline, &cli_ip(cptr), 128, GlobalIpMaskPTree, node) {
     if ((flags & GLINE_GLOBAL && gline->gl_flags & GLINE_LOCAL) ||
         (flags & GLINE_LASTMOD && !gline->gl_lastmod))
       continue;
