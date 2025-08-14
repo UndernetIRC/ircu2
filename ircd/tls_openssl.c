@@ -357,11 +357,9 @@ static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int ori
   switch (err)
   {
   case SSL_ERROR_WANT_READ:
-    socket_events(&cli_socket(cptr), SOCK_EVENT_READABLE);
     return IO_BLOCKED;
 
   case SSL_ERROR_WANT_WRITE:
-    socket_events(&cli_socket(cptr), SOCK_EVENT_WRITABLE);
     return IO_BLOCKED;
 
   case SSL_ERROR_SYSCALL:
