@@ -368,12 +368,7 @@ static struct FeatureDesc {
   F_S(TLS_CACERTFILE, FEAT_NULL | FEAT_CASE | FEAT_OPER, 0, 0),
   F_S(TLS_CACERTDIR, FEAT_NULL | FEAT_CASE | FEAT_OPER, 0, 0),
   F_S(TLS_CIPHERS, FEAT_NULL | FEAT_CASE | FEAT_OPER, 0, 0),
-  F_B(TLS_SSLV2, 0, 0, 0),
-  F_B(TLS_SSLV3, 0, 0, 0),
-  F_B(TLS_V1P0, 0, 0, 0),
-  F_B(TLS_V1P1, 0, 1, 0),
-  F_B(TLS_V1P2, 0, 1, 0),
-  F_B(TLS_V1P3, 0, 1, 0),
+  F_B(TLS_ALLOW_SELFSIGNED, 0, 1, 0),
 
   /* features that affect all operators */
   F_B(CONFIG_OPERCMDS, 0, 0, 0),

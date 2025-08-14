@@ -30,6 +30,9 @@ struct Listener;
 struct MsgQ;
 struct Socket;
 
+/** Timeout for TLS handshake in seconds */
+#define TLS_HANDSHAKE_TIMEOUT 5
+
 /* The following variables and functions are provided by ircu2's core
  * code, not by the TLS interface.
  */

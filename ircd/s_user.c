@@ -967,6 +967,7 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   int prop = 0;
   int do_host_hiding = 0;
   char* account = NULL;
+  char* tls_fingerprint = NULL;
 
   what = MODE_ADD;
 
@@ -1087,8 +1088,10 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
 	/* There is no -r */
 	break;
       case 'z':
-        if (what == MODE_ADD)
+        if (what == MODE_ADD) {
           SetTLS(sptr);
+          tls_fingerprint = *(++p);
+        }
         /* There is no -z */
         break;
       default:
@@ -1183,6 +1186,12 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
   if (!FlagHas(&setflags, FLAG_HIDDENHOST) && do_host_hiding && allow_modes != ALLOWMODES_DEFAULT)
     hide_hostmask(sptr, FLAG_HIDDENHOST);
 
+  if (tls_fingerprint && tls_fingerprint[0] != '_') {
+    ircd_strncpy(cli_tls_fingerprint(sptr), tls_fingerprint, 64);
+    Debug((DEBUG_DEBUG, "Received TLS fingerprint in user mode; "
+          "fingerprint \"%s\"", cli_tls_fingerprint(sptr)));
+  }
+
   if (IsRegistered(sptr)) {
     if (!FlagHas(&setflags, FLAG_OPER) && IsOper(sptr)) {
       /* user now oper */
@@ -1246,6 +1255,8 @@ char *umode_str(struct Client *cptr)
     while ((*m++ = *t++))
       ; /* Empty loop */
 
+    m--; /* back up over previous nul-termination */
+
     if (cli_user(cptr)->acc_id) {
       char nbuf[30];
       Debug((DEBUG_DEBUG, "Sending account id in user mode for "
@@ -1263,9 +1274,25 @@ char *umode_str(struct Client *cptr)
         ircd_snprintf(0, t = nbuf, sizeof(nbuf), ":%qu",
                       cli_user(cptr)->acc_id);
       }
-      m--; /* back up over previous nul-termination */
       while ((*m++ = *t++))
 	; /* Empty loop */
+      m--; /* back up over previous nul-termination */
+    }
+  }
+
+  /** If the client is on a secure connection (umode +z) we append the fingerprint.
+   * If the fingerprint is empty (client has not provided a certificate),
+   * we return _ in the place of the fingerprint.
+   */
+  if (IsTLS(cptr))
+  {
+    char* t = cli_tls_fingerprint(cptr);
+
+    *m++ = ' ';
+    if (t && *t) {
+        while ((*m++ = *t++));
+    } else {
+        *m++ = '_';
     }
   }
 

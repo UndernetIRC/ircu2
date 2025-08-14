@@ -128,7 +128,6 @@ extern int m_registered(struct Client*, struct Client*, int, char*[]);
 extern int m_sasl(struct Client*, struct Client*, int, char*[]);
 extern int ms_config(struct Client*, struct Client*, int, char*[]);
 extern int m_silence(struct Client*, struct Client*, int, char*[]);
-extern int m_starttls(struct Client*, struct Client*, int, char*[]);
 extern int m_stats(struct Client*, struct Client*, int, char*[]);
 extern int m_time(struct Client*, struct Client*, int, char*[]);
 extern int m_topic(struct Client*, struct Client*, int, char*[]);

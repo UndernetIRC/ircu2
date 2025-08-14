@@ -1375,6 +1375,8 @@ static Numeric replyTable[] = {
   { 0 },
 /* 671 */
   { 0 },
+/* 671 */
+  { RPL_WHOISSECURE, "%s :is using a secure connection", "671" },
 /* 672 */
   { 0 },
 /* 673 */

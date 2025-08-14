@@ -1,4 +1,3 @@
-
 /*
  * IRC - Internet Relay Chat, ircd/m_clearmode.c
  * Copyright (C) 1990 Jarkko Oikarinen and

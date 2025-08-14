@@ -23,6 +23,7 @@
 #include "config.h"
 #include "ircd_tls.h"
 #include "client.h"
+#include "s_auth.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -45,6 +46,7 @@ void *ircd_tls_connect(struct ConfItem *aconf, int fd)
 
 void ircd_tls_close(void *ctx, const char *message)
 {
+  return;
 }
 
 int ircd_tls_listen(struct Listener *listener)
@@ -55,6 +57,8 @@ int ircd_tls_listen(struct Listener *listener)
 int ircd_tls_negotiate(struct Client *cptr)
 {
   ClearNegotiatingTLS(cptr);
+  if (!IsConnecting(cptr))
+    start_auth(cptr);
   return 1;
 }
 
