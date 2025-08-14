@@ -150,25 +150,6 @@ else
 fi])
 
 dnl
-dnl Macro: unet_LIBTLS
-dnl
-dnl Set unet_cv_with_libtls to "yes" if the system has an OpenBSD-style
-dnl libtls, or to "no" otherwise.
-dnl
-AC_DEFUN([unet_LIBTLS],
-[dnl OpenBSD libtls needs manual checks.
-AC_MSG_CHECKING([for OpenBSD-style libtls])
-AC_CACHE_VAL(unet_cv_with_libtls,
-[save_LIBS="$LIBS"
-LIBS="$LIBS -ltls"
-AC_LINK_IFELSE(
-    [AC_LANG_PROGRAM([#include <tls.h>], [tls_init()])],
-    [unet_cv_with_libtls=yes],
-    [unet_cv_with_libtls=no])
-LIBS="$save_LIBS"])
-AC_MSG_RESULT([$unet_cv_with_libtls])])
-
-dnl
 dnl Macro: unet_TLS
 dnl
 dnl Set unet_cv_with_tls and TLS_C to an available TLS implementation.
@@ -177,7 +158,6 @@ AC_DEFUN([unet_TLS],
 [dnl Perform some preliminary checks for system TLS libraries.
 AX_CHECK_OPENSSL(, [:])
 PKG_CHECK_MODULES([GNUTLS], [gnutls], , [:])
-unet_LIBTLS
 
 dnl --with-tls allows selection of the TLS library.
 AC_MSG_CHECKING([for a TLS library])
@@ -201,8 +181,18 @@ if test x"$unet_cv_with_tls" = xyes ; then
   fi
 fi
 dnl Try libtls next.
-if test x"$unet_cv_with_libtls" = xyes ; then
-  unet_cv_with_tls=libtls
+if test x"$unet_cv_with_tls" = xyes ; then
+  dnl First try pkg-config (Linux/ports with libtls.pc). Do not modify LIBS/CFLAGS yet.
+  PKG_CHECK_MODULES([LIBTLS], [libtls], [
+    unet_cv_with_tls=libtls
+  ], [
+    dnl Fallback for OpenBSD base (no .pc): header + symbol link test.
+    AC_CHECK_HEADER([tls.h], [
+      AC_CHECK_LIB([tls], [tls_init], [
+        unet_cv_with_tls=libtls
+      ])
+    ])
+  ])
 fi
 
 case x"$unet_cv_with_tls" in
@@ -219,7 +209,9 @@ xgnutls)
     TLS_C="tls_gnutls.c"
     ;;
 xlibtls)
-    LIBS="$LIBS -ltls"
+    CFLAGS="$CFLAGS $LIBTLS_CFLAGS"
+    LDFLAGS="$LDFLAGS $LIBTLS_LDFLAGS"
+    LIBS="$LIBS $LIBTLS_LIBS"
     TLS_C="tls_libtls.c"
     ;;
 xyes|xno)
