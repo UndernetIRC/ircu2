@@ -369,6 +369,7 @@ static struct FeatureDesc {
   F_S(TLS_CACERTDIR, FEAT_NULL | FEAT_CASE | FEAT_OPER, 0, 0),
   F_S(TLS_CIPHERS, FEAT_NULL | FEAT_CASE | FEAT_OPER, 0, 0),
   F_B(TLS_ALLOW_SELFSIGNED, 0, 1, 0),
+  F_B(TLS_BURST_FINGERPRINT, 0, 1, 0),
 
   /* features that affect all operators */
   F_B(CONFIG_OPERCMDS, 0, 0, 0),

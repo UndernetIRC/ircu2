@@ -104,6 +104,7 @@ enum Feature {
   FEAT_TLS_CACERTDIR,
   FEAT_TLS_CIPHERS,
   FEAT_TLS_ALLOW_SELFSIGNED,
+  FEAT_TLS_BURST_FINGERPRINT,
 
   /* features that affect all operators */
   FEAT_CONFIG_OPERCMDS,
