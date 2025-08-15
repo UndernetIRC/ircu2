@@ -182,17 +182,20 @@ if test x"$unet_cv_with_tls" = xyes ; then
 fi
 dnl Try libtls next.
 if test x"$unet_cv_with_tls" = xyes ; then
-  dnl First try pkg-config (Linux/ports with libtls.pc). Do not modify LIBS/CFLAGS yet.
-  PKG_CHECK_MODULES([LIBTLS], [libtls], [
-    unet_cv_with_tls=libtls
-  ], [
+  dnl Temporarily disable pkg-config to force fallback path
+  dnl PKG_CHECK_MODULES([LIBTLS], [libtls], [
+  dnl   unet_cv_with_tls=libtls
+  dnl ], [
     dnl Fallback for OpenBSD base (no .pc): header + symbol link test.
     AC_CHECK_HEADER([tls.h], [
       AC_CHECK_LIB([tls], [tls_init], [
         unet_cv_with_tls=libtls
+        LIBTLS_LIBS="-ltls"
+        LIBTLS_CFLAGS=""
+        LIBTLS_LDFLAGS=""
       ])
     ])
-  ])
+  dnl ])
 fi
 
 case x"$unet_cv_with_tls" in
@@ -209,6 +212,10 @@ xgnutls)
     TLS_C="tls_gnutls.c"
     ;;
 xlibtls)
+    # Ensure LIBTLS_LIBS is set even when explicitly specified
+    if test x"$LIBTLS_LIBS" = x ; then
+        LIBTLS_LIBS="-ltls"
+    fi
     CFLAGS="$CFLAGS $LIBTLS_CFLAGS"
     LDFLAGS="$LDFLAGS $LIBTLS_LDFLAGS"
     LIBS="$LIBS $LIBTLS_LIBS"

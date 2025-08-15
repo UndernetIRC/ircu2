@@ -23,19 +23,26 @@
 #include "config.h"
 #include "client.h"
 #include "ircd_features.h"
+#include "ircd.h"
 #include "ircd_log.h"
 #include "ircd_string.h"
 #include "ircd_tls.h"
 #include "listener.h"
+#include "s_auth.h"
+#include "send.h"
 #include "s_conf.h"
 #include "s_debug.h"
 
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <tls.h>
 
-#define CONCAT(A, B) A # B
-const char *ircd_tls_version = CONCAT("libtls ", TLS_API);
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+const char *ircd_tls_version = "libtls " TOSTRING(TLS_API);
 
 int ircd_tls_init(void)
 {
@@ -70,13 +77,11 @@ static struct tls_config *make_tls_config(const char *ciphers)
     return NULL;
   }
 
-  if (tls_config_add_keypair_file(new_cfg, ircd_tls_certfile, ircd_tls_keyfile) < 0)
+  if (tls_config_set_keypair_file(new_cfg, ircd_tls_certfile, ircd_tls_keyfile) < 0)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "unable to load certificate and key: %s",
               tls_config_error(new_cfg));
-  fail:
-    tls_config_free(new_cfg);
-    return NULL;
+    goto fail;
   }
 
   str = feature_str(FEAT_TLS_CACERTDIR);
@@ -86,8 +91,8 @@ static struct tls_config *make_tls_config(const char *ciphers)
     {
       log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA path to %s: %s",
                 str, tls_config_error(new_cfg));
+      goto fail;
     }
-    goto fail;
   }
 
   str = feature_str(FEAT_TLS_CACERTFILE);
@@ -97,21 +102,21 @@ static struct tls_config *make_tls_config(const char *ciphers)
     {
       log_write(LS_SYSTEM, L_ERROR, 0, "unable to set CA file to %s: %s",
                 str, tls_config_error(new_cfg));
+      goto fail;
     }
-    goto fail;
+  }
+
+  /* Configure verification based on self-signed certificate feature */
+  if (feature_bool(FEAT_TLS_ALLOW_SELFSIGNED)) {
+    tls_config_verify_client_optional(new_cfg);
+    tls_config_insecure_noverifycert(new_cfg);
   }
 
   protos = 0;
-  /* libtls does not support SSLv2 or SSLv3. */
-  if (feature_bool(FEAT_TLS_V1P0))
-    protos |= TLS_PROTOCOL_TLSv1_0;
-  if (feature_bool(FEAT_TLS_V1P1))
-    protos |= TLS_PROTOCOL_TLSv1_1;
-  if (feature_bool(FEAT_TLS_V1P2))
-    protos |= TLS_PROTOCOL_TLSv1_2;
+  /* Set minimum TLS version to 1.2 (like OpenSSL) and support 1.3 */
+  protos |= TLS_PROTOCOL_TLSv1_2;
 #ifdef TLS_PROTOCOL_TLSv1_3
-  if (feature_bool(FEAT_TLS_V1P3))
-    protos |= TLS_PROTOCOL_TLSv1_3;
+  protos |= TLS_PROTOCOL_TLSv1_3;
 #endif
   if (tls_config_set_protocols(new_cfg, protos) < 0)
   {
@@ -134,16 +139,30 @@ static struct tls_config *make_tls_config(const char *ciphers)
   }
 
   return new_cfg;
+
+fail:
+  tls_config_free(new_cfg);
+  return NULL;
 }
 
 void *ircd_tls_accept(struct Listener *listener, int fd)
 {
   struct tls *tls;
 
-  if (tls_accept_socket(listener->tls_ctx, &tls, fd) < 0)
+  if (!listener) {
+    log_write(LS_SYSTEM, L_ERROR, 0, "TLS accept called with NULL listener");
+    return NULL;
+  }
+
+  if (!listener->tls_ctx) {
+    log_write(LS_SYSTEM, L_ERROR, 0, "TLS accept called with NULL tls_ctx");
+    return NULL;
+  }
+
+  if (tls_accept_socket((struct tls *)listener->tls_ctx, &tls, fd) < 0)
   {
     log_write(LS_SYSTEM, L_ERROR, 0, "TLS accept failed: %s",
-              tls_error(listener->tls_ctx));
+              tls_error((struct tls *)listener->tls_ctx));
     return NULL;
   }
 
@@ -194,49 +213,59 @@ void ircd_tls_close(void *ctx, const char *message)
   tls_free(ctx);
 }
 
-static int tls_handle_error(struct Client *cptr, struct tls *tls, int err)
+static IOResult tls_handle_error(struct Client *cptr, struct tls *tls, int err)
 {
-  if (err == TLS_WANT_POLLIN)
-  {
-    socket_events(&cli_socket(cptr), SOCK_EVENT_READABLE);
-    return 0;
+  switch (err) {
+    case TLS_WANT_POLLIN:
+    case TLS_WANT_POLLOUT:
+      return IO_BLOCKED;
+    
+    default:
+      /* Fatal error */
+      Debug((DEBUG_DEBUG, "tls fatal error for %s: %s", cli_name(cptr), tls_error(tls)));
+      break;
   }
-  if (err == TLS_WANT_POLLOUT)
-  {
-    socket_events(&cli_socket(cptr), SOCK_EVENT_WRITABLE);
-    return 0;
-  }
-  Debug((DEBUG_DEBUG, "tls fatal error for %s: %s", cli_name(cptr), tls_error(tls)));
   tls_free(tls);
   s_tls(&cli_socket(cptr)) = NULL;
-  return -1;
+  return IO_FAILURE;
 }
 
 int ircd_tls_listen(struct Listener *listener)
 {
   struct tls_config *cfg;
-  struct tls *srv;
+  struct tls *server_ctx;
 
   cfg = make_tls_config(listener->tls_ciphers);
   if (!cfg)
     return 1;
-  tls_config_verify_client_optional(cfg);
 
   if (listener->tls_ctx)
-    tls_reset(listener->tls_ctx);
-  else if (!(listener->tls_ctx = tls_server()))
+    server_ctx = (struct tls *)listener->tls_ctx;
+  else
   {
-    log_write(LS_SYSTEM, L_ERROR, 0, "tls_server failed");
-    return 2;
+    server_ctx = tls_server();
+    if (!server_ctx)
+    {
+      log_write(LS_SYSTEM, L_ERROR, 0, "tls_server failed");
+      tls_config_free(cfg);
+      return 2;
+    }
+    listener->tls_ctx = (void *)server_ctx;
   }
 
-  if (tls_configure(listener->tls_ctx, cfg) < 0)
+  if (tls_configure(server_ctx, cfg) < 0)
   {
+    const char *error = tls_error(server_ctx);
+    fprintf(stderr, "TLS configure failed: %s\n", error ? error : "unknown error");
     log_write(LS_SYSTEM, L_ERROR, 0, "unable to configure TLS server context: %s",
-              tls_error(listener->tls_ctx));
-    return 3;
+              error ? error : "unknown error");
+    tls_free(server_ctx);
+    listener->tls_ctx = NULL;
+    tls_config_free(cfg);
+    return 3;  /* Return error when configuration fails */
   }
 
+  tls_config_free(cfg);
   return 0;
 }
 
@@ -245,23 +274,61 @@ int ircd_tls_negotiate(struct Client *cptr)
   const char *hash;
   struct tls *tls;
   int res;
+  const char* const error_tls = "ERROR :TLS connection error\r\n";
 
   tls = s_tls(&cli_socket(cptr));
   if (!tls)
     return 1;
 
+  /* Check for handshake timeout */
+  if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
+    Debug((DEBUG_DEBUG, "libtls handshake timeout for %s", cli_name(cptr)));
+    return -1;
+  }
+
+  Debug((DEBUG_DEBUG, "libtls handshake for %s", cli_name(cptr)));
+
   res = tls_handshake(tls);
   if (res == 0)
   {
+    ClearNegotiatingTLS(cptr);
+
     hash = tls_peer_cert_hash(tls);
     if (hash && !ircd_strncmp(hash, "SHA256:", 7))
     {
-      ircd_strncpy(cli_tls_fingerprint(cptr), hash+7, 64);
+      /* Convert the hash to our fingerprint format */
+      if (strlen(hash + 7) <= 64) {
+        ircd_strncpy(cli_tls_fingerprint(cptr), hash + 7, 64);
+        Debug((DEBUG_DEBUG, "Fingerprint for %s: %s", cli_name(cptr), cli_tls_fingerprint(cptr)));
+      } else {
+        memset(cli_tls_fingerprint(cptr), 0, 65);
+        Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", strlen(hash + 7)));
+      }
+    } else {
+      memset(cli_tls_fingerprint(cptr), 0, 65);
+      Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
     }
-    ClearNegotiatingTLS(cptr);
+
+    /* For incoming connections, start auth like OpenSSL/GnuTLS */
+    if (!IsConnecting(cptr)) {
+      start_auth(cptr);
+    }
+
     return 1;
   }
-  return tls_handle_error(cptr, tls, res);
+  
+  if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT) {
+    return 0; /* Handshake in progress */
+  }
+  
+  IOResult tls_result = tls_handle_error(cptr, tls, res);
+  if (tls_result == IO_FAILURE) {
+    Debug((DEBUG_DEBUG, "TLS handshake failed for %s", cli_name(cptr)));
+    write(cli_fd(cptr), error_tls, strlen(error_tls));
+    return -1;
+  }
+  /* tls_result == IO_BLOCKED - handshake still in progress */
+  return 0;
 }
 
 IOResult ircd_tls_recv(struct Client *cptr, char *buf,
@@ -275,12 +342,13 @@ IOResult ircd_tls_recv(struct Client *cptr, char *buf,
     return IO_FAILURE;
 
   res = tls_read(tls, buf, length);
-  if (res >= 0)
+  if (res > 0)
   {
     *count_out = res;
     return IO_SUCCESS;
   }
-  return (tls_handle_error(cptr, tls, res) < 0) ? IO_FAILURE : IO_BLOCKED;
+
+  return tls_handle_error(cptr, tls, res);
 }
 
 IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
@@ -289,7 +357,8 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
   struct iovec iov[512];
   struct tls *tls;
   struct Connection *con;
-  int ii, count, res, orig_errno;
+  IOResult result = IO_BLOCKED;
+  int ii, count, res;
 
   con = cli_connect(cptr);
   tls = s_tls(&con_socket(con));
@@ -298,6 +367,30 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
 
   /* tls_write() does not document any restriction on retries. */
   *count_out = 0;
+  if (con->con_rexmit)
+  {
+    res = tls_write(tls, con->con_rexmit, con->con_rexmit_len);
+    if (res <= 0) {
+      if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT)
+        return IO_BLOCKED;
+      return tls_handle_error(cptr, tls, res);
+    }
+
+    // Only excise the message if the full message was sent
+    if (res == (int)con->con_rexmit_len) {
+      msgq_excise(buf, con->con_rexmit, con->con_rexmit_len);
+      con->con_rexmit_len = 0;
+      con->con_rexmit = NULL;
+      result = IO_SUCCESS;
+    } else {
+      // Partial send, update pointer and length for next retry
+      con->con_rexmit = (char *)con->con_rexmit + res;
+      con->con_rexmit_len -= res;
+      return IO_BLOCKED;
+    }
+  }
+
+  // Process remaining messages in the queue
   count = msgq_mapiov(buf, iov, sizeof(iov) / sizeof(iov[0]), count_in);
   for (ii = 0; ii < count; ++ii)
   {
@@ -305,11 +398,26 @@ IOResult ircd_tls_sendv(struct Client *cptr, struct MsgQ *buf,
     if (res > 0)
     {
       *count_out += res;
-      break;
+      result = IO_SUCCESS;
+      if (res < (int)iov[ii].iov_len) {
+        // Partial send, store for retransmission
+        cli_connect(cptr)->con_rexmit = (char *)iov[ii].iov_base + res;
+        cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len - res;
+        return IO_BLOCKED;
+      }
+      // else, full message sent, continue to next
+      continue;
     }
 
-    return (tls_handle_error(cptr, tls, res) < 0) ? IO_FAILURE : IO_BLOCKED;
+    /* We only reach this if the tls_write failed. */
+    if (res == TLS_WANT_POLLIN || res == TLS_WANT_POLLOUT) {
+      cli_connect(cptr)->con_rexmit = iov[ii].iov_base;
+      cli_connect(cptr)->con_rexmit_len = iov[ii].iov_len;
+      return IO_BLOCKED;
+    }
+    result = tls_handle_error(cptr, tls, res);
+    break;
   }
 
-  return IO_SUCCESS;
+  return result;
 }

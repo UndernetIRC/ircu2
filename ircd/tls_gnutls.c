@@ -38,6 +38,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #if defined(GNUTLS_AUTO_REAUTH) /* 3.6.4 */
 # define TLS_SESSION_FLAGS GNUTLS_NONBLOCK | GNUTLS_NO_SIGNAL \
@@ -334,7 +335,13 @@ int ircd_tls_negotiate(struct Client *cptr)
   default:
     Debug((DEBUG_DEBUG, " ... gnutls_handshake() failed -> %s (%d)",
            gnutls_strerror(res), res));
-    return gnutls_error_is_fatal(res) ? -1 : 0;
+    if (gnutls_error_is_fatal(res)) {
+      const char* const error_tls = "ERROR :TLS connection error\r\n";
+      Debug((DEBUG_DEBUG, "GnuTLS handshake failed for %s: %s", cli_name(cptr), gnutls_strerror(res)));
+      write(cli_fd(cptr), error_tls, strlen(error_tls));
+      return -1;
+    }
+    return 0;
   }
 }
 
