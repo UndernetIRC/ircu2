@@ -127,7 +127,7 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	 name = ircd_strtok(&p, 0, " ")) {
       if ((acptr = FindUser(name))) {
 	if (msgq_bufleft(mb) < strlen(cli_name(acptr)) + 1) {
-	  send_buffer(sptr, mb, 0); /* send partial response */
+	  send_buffer(sptr, NULL, mb, 0); /* send partial response */
 	  msgq_clean(mb); /* then do another round */
 	  mb = msgq_make(sptr, rpl_str(RPL_ISON), cli_name(&me),
 			 cli_name(sptr));
@@ -137,7 +137,7 @@ int m_ison(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     }
   }
 
-  send_buffer(sptr, mb, 0); /* send response */
+  send_buffer(sptr, NULL, mb, 0); /* send response */
   msgq_clean(mb);
 
   return 0;

@@ -64,6 +64,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 /** Array of English month names (0 = January). */
@@ -149,6 +150,35 @@ char *myctime(time_t value)
     *p = '\0';
 
   return buf;
+}
+
+/** Formats the current time as an ISO 8601 timestamp with milliseconds.
+ * @param[out] buffer Buffer to store the formatted timestamp.
+ * @param[in] buffer_size Size of the buffer.
+ * @return Pointer to the buffer containing a timestamp like "2025-08-17T14:23:45.123Z".
+ */
+char *iso8601_timestamp(char *buffer, size_t buffer_size)
+{
+  struct timeval tv;
+  struct tm *tm_info;
+  
+  /* Get current time with microsecond precision */
+  gettimeofday(&tv, NULL);
+  
+  /* Convert to UTC time structure */
+  tm_info = gmtime(&tv.tv_sec);
+  
+  /* Format the timestamp with milliseconds */
+  snprintf(buffer, buffer_size, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+           tm_info->tm_year + 1900,
+           tm_info->tm_mon + 1,
+           tm_info->tm_mday,
+           tm_info->tm_hour,
+           tm_info->tm_min,
+           tm_info->tm_sec,
+           (int)(tv.tv_usec / 1000));  /* Convert microseconds to milliseconds */
+  
+  return buffer;
 }
 
 /** Return the name of the client for various tracking and admin

@@ -194,7 +194,7 @@ send_caplist(struct Client *sptr, capset_t set,
   }
 
   msgq_append(0, mb, "%s", capbuf); /* append capabilities to the final cmd */
-  send_buffer(sptr, mb, 0); /* send them out... */
+  send_buffer(sptr, NULL, mb, 0); /* send them out... */
   msgq_clean(mb); /* and release the buffer */
 
   return 0; /* convenience return */

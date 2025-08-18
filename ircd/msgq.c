@@ -318,6 +318,79 @@ msgq_clear_freembs(void)
     }
 }
 
+/** Format a message buffer for a client from a tag string.
+ * Does not add \r\n at the end of the buffer such that this buffer will prefix the next immediate buffer.
+ * @param[in] dest %Client that receives the data (may be NULL).
+ * @param[in] tags_info Tag information to include in the message.
+ * @return Allocated MsgBuf.
+ */
+struct MsgBuf *
+msgq_tags(struct Client *dest, const char *tags_info)
+{
+  struct MsgBuf *mb;
+
+  assert(0 != tags_info);
+
+  if (!(mb = msgq_alloc(0, BUFSIZE))) { /* Tags can be 4096 bytes, but not (yet) necessary. */
+    if (feature_bool(FEAT_HAS_FERGUSON_FLUSHER)) {
+      /*
+       * from "Married With Children" episode were Al bought a REAL toilet
+       * on the black market because he was tired of the wimpy water
+       * conserving toilets they make these days --Bleep
+       */
+      /*
+       * Apparently this doesn't work, the server _has_ to
+       * dump a few clients to handle the load. A fully loaded
+       * server cannot handle a net break without dumping some
+       * clients. If we flush the connections here under a full
+       * load we may end up starving the kernel for mbufs and
+       * crash the machine
+       */
+      /*
+       * attempt to recover from buffer starvation before
+       * bailing this may help servers running out of memory
+       */
+      flush_connections(0);
+      mb = msgq_alloc(0, BUFSIZE);
+    }
+    if (!mb) { /* OK, try clearing the buffer free list */
+      msgq_clear_freembs();
+      mb = msgq_alloc(0, BUFSIZE);
+    }
+    if (!mb) { /* OK, try killing a client */
+      kill_highest_sendq(0); /* Don't kill any server connections */
+      msgq_clear_freembs();  /* Release whatever was just freelisted */
+      mb = msgq_alloc(0, BUFSIZE);
+    }
+    if (!mb) { /* hmmm... */
+      kill_highest_sendq(1); /* Try killing a server connection now */
+      msgq_clear_freembs();  /* Clear freelist again */
+      mb = msgq_alloc(0, BUFSIZE);
+    }
+    if (!mb) /* AIEEEE! */
+      server_panic("Unable to allocate buffers!");
+  }
+
+  mb->next = MQData.msglist; /* initialize the msgbuf */
+  mb->prev_p = &MQData.msglist;
+
+  /* fill the buffer */
+  mb->length = ircd_snprintf(0, mb->msg, bufsize(mb) - 1, tags_info);
+
+  if (mb->length > bufsize(mb))
+    mb->length = bufsize(mb);
+
+  mb->msg[mb->length] = '\0'; /* not strictly necessary */
+
+  assert(mb->length <= bufsize(mb));
+
+  if (MQData.msglist) /* link it into the list */
+    MQData.msglist->prev_p = &mb->next;
+  MQData.msglist = mb;
+
+  return mb;
+}
+
 /** Format a message buffer for a client from a format string.
  * @param[in] dest %Client that receives the data (may be NULL).
  * @param[in] format Format string for message.

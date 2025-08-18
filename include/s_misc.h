@@ -98,6 +98,7 @@ extern int exit_client_msg(struct Client *cptr, struct Client *bcptr,
                            struct Client *sptr, const char *pattern, ...);
 extern void initstats(void);
 extern char *date(time_t clock);
+extern char *iso8601_timestamp(char *buffer, size_t buffer_size);
 extern int vexit_client_msg(struct Client *cptr, struct Client *bcptr,
     struct Client *sptr, const char *pattern, va_list vl);
 extern void tstats(struct Client *cptr, const struct StatDesc *sd,

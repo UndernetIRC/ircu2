@@ -77,6 +77,8 @@ extern int msgq_mapiov(const struct MsgQ *mq, struct iovec *iov, int count,
 extern struct MsgBuf *msgq_make(struct Client *dest, const char *format, ...);
 extern struct MsgBuf *msgq_vmake(struct Client *dest, const char *format,
 				 va_list args);
+extern struct MsgBuf *msgq_tags(struct Client *dest, const char *tags_info);
+
 extern void msgq_append(struct Client *dest, struct MsgBuf *mb,
 			const char *format, ...);
 extern void msgq_clean(struct MsgBuf *mb);

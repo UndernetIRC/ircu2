@@ -107,7 +107,7 @@ int send_reply(struct Client *to, int reply, ...)
   va_end(vd.vd_args);
 
   /* send it to the user */
-  send_buffer(to, mb, 0);
+  send_buffer(to, NULL, mb, 0);
 
   msgq_clean(mb);
 
