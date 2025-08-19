@@ -1190,6 +1190,10 @@ void start_auth(struct Client* client)
     if (IsUserPort(client)) {
       /* Try to start iauth lookup. */
       start_iauth_query(auth);
+
+      /* Pass on fingerprint to iauth. */
+      if (IsTLS(client) && cli_tls_fingerprint(client))
+        sendto_iauth(auth->client, "Z %s", cli_tls_fingerprint(client));
     }
   }
 
