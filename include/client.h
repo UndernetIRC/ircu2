@@ -93,7 +93,7 @@ typedef unsigned long flagpage_t;
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containing valid user modes, in no particular order. */
-#define infousermodes "diOoswkgx"
+#define infousermodes "diOoswkgxz"
 
 /** Operator privileges. */
 enum Priv
