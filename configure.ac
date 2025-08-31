@@ -19,11 +19,11 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 dnl
-dnl $Id$
 
 dnl Make sure we are in the correct directory (someone could have run
 dnl 'configure' with a wrong '--srcdir').
-AC_INIT(ircd/ircd.c)
+AC_INIT
+AC_CONFIG_SRCDIR([ircd/ircd.c])
 
 dnl Set the default prefix
 AC_PREFIX_DEFAULT([$HOME])
@@ -39,10 +39,10 @@ dnl file!
 ac_default_prefix=$unet_cv_prefix
 
 dnl Define the input and output configuration header file.
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
-dnl Demand at least version 2.59 of autoconf (for AS_HELP_STRING)
-AC_PREREQ(2.59)
+dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
+AC_PREREQ([2.72])
 
 dnl Find out what type of system we are
 AC_CANONICAL_HOST
@@ -66,14 +66,17 @@ dnl Do all the checks necessary to figure out -lnsl / -lsocket stuff
 AC_LIBRARY_NET
 
 dnl Checks for header files.
-AC_HEADER_STDC
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS(crypt.h poll.h inttypes.h stdint.h sys/devpoll.h sys/epoll.h sys/event.h sys/param.h sys/resource.h sys/socket.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics
 dnl AC_C_CONST
 AC_C_BIGENDIAN
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+
 AC_STRUCT_TM
 AC_TYPE_UID_T
 unet_CHECK_TYPE_SIZES
@@ -92,11 +95,11 @@ dnl arg to getpeername.
     curl_cv_socklen_t_equiv=
     for arg2 in "struct sockaddr" void ; do
       for t in int size_t unsigned long "unsigned long" ; do
-        AC_TRY_COMPILE([#include <sys/types.h>
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
-int getpeername (int $arg2 *, $t *);],[$t len;
-  getpeername(0, 0, &len);], [curl_cv_socklen_t_equiv="$t"
-  break])
+int getpeername (int $arg2 *, $t *);]], [[$t len;
+  getpeername(0, 0, &len);]])],[curl_cv_socklen_t_equiv="$t"
+  break],[])
       done
     done
   ])
@@ -712,7 +715,7 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 dnl Finally really generate all output files:
 AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
     [echo timestamp > stamp-h])
-AC_OUTPUT()
+AC_OUTPUT
 
 dnl Report configuration
 echo "
