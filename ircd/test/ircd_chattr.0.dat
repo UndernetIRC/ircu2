@@ -13,3 +13,4 @@ IsUserChar:      '-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqr
 IsHostChar:      -.0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_abcdefghijklmnopqrstuvwxyz{|}~
 IsIPChar:        .0123456789
 IsEol:           \n\r
+IsCommand:       ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz

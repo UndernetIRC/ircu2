@@ -125,6 +125,10 @@ static void makeTables(void)
   markString(NTL_EOL, "\n\r");
   markString(NTL_CHPFX, "#&");
 
+  moveMacro(NTL_ALPHA, NTL_COMMAND);
+  markString(NTL_COMMAND, "_");
+  unMarkString(NTL_COMMAND, "[\\]^{|}~");
+
   /* And finally let's take care of the toLower/toUpper stuff */
 
   setLowHi('a', 'z', 'A');

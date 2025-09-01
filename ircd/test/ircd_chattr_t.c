@@ -82,6 +82,11 @@ int eval_eol(char c)
   return (0 != IsEol(c));
 }
 
+int eval_command(char c)
+{
+  return (0 != IsCommand(c));
+}
+
 struct CharTest {
   const char* name;
   EvalFn      evaluator;
@@ -101,6 +106,7 @@ struct CharTest {
   { "IsHostChar:      ", eval_host_char },
   { "IsIPChar:        ", eval_ip_char },
   { "IsEol:           ", eval_eol },
+  { "IsCommand:       ", eval_command },
 };
 
 #define TESTLIST_SIZE sizeof(testList) / sizeof(struct CharTest)

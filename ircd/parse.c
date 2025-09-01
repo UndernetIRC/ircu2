@@ -748,9 +748,9 @@ msg_tree_parse(char *cmd, struct MessageTree *root)
   struct MessageTree *mtree;
 
   for (mtree = root; mtree; mtree = mtree->pointers[(*cmd++) & (MAXPTRLEN-1)]) {
-      if (*cmd == '\0' && mtree->msg)
+      if (*cmd == '\0')
           return mtree->msg;
-      else if (!IsAlpha(*cmd) && *cmd != '_')
+      if (!IsCommand(*cmd))
           return NULL;
   }
   return NULL;
