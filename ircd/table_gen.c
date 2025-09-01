@@ -124,7 +124,6 @@ static void makeTables(void)
   markString(NTL_IRCUI, ".-_^'`~");
   markString(NTL_EOL, "\n\r");
   markString(NTL_CHPFX, "#&");
-  markString(NTL_KTIME, " ,-0123456789");
 
   /* And finally let's take care of the toLower/toUpper stuff */
 

@@ -82,11 +82,6 @@ int eval_eol(char c)
   return (0 != IsEol(c));
 }
 
-int eval_ktime_char(char c)
-{
-  return (0 != IsKTimeChar(c));
-}
-
 struct CharTest {
   const char* name;
   EvalFn      evaluator;
@@ -106,7 +101,6 @@ struct CharTest {
   { "IsHostChar:      ", eval_host_char },
   { "IsIPChar:        ", eval_ip_char },
   { "IsEol:           ", eval_eol },
-  { "IsKTimeChar:     ", eval_ktime_char }
 };
 
 #define TESTLIST_SIZE sizeof(testList) / sizeof(struct CharTest)
