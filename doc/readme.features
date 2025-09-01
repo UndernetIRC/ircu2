@@ -899,11 +899,16 @@ If set, allow users to create local channels.
 
 TOPIC_BURST
  * Type: boolean
- * Default: FALSE
+ * Default: TRUE
 
-If set, send the current topic value and timestamp for channels during
-burst.  This generally only makes sense for hubs to use, and it causes
-a large increase in net.burst size.
+Send during burst the current topic, nick of person who set the topic and
+topic timestamp.
+
+AWAY_BURST
+ * Type: boolean
+ * Default: TRUE
+
+Send the away message for clients flagged as away during burst.
 
 CHANNELLEN
  * Type: integer
