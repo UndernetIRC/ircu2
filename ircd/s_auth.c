@@ -1304,6 +1304,23 @@ int auth_cap_done(struct AuthRequest *auth)
   return check_auth_finished(auth, AR_CAP_PENDING);
 }
 
+/** Passes SASL authentication data to iauth.
+ * @param[in] auth Authorization request for client.
+ * @return Zero if client should be kept, CPTR_KILLED if rejected.
+ */
+int auth_parse_sasl(struct AuthRequest *auth, int parc, char* parv[])
+{
+  assert(auth != NULL);
+
+  if (strcmp(parv[1], "*") == 0) {
+    send_reply(auth->client, ERR_SASLABORTED);
+    sendto_iauth(auth->client, "A");
+    return 0;
+  }
+
+  return sendto_iauth(auth->client, "Y %s", parv[1]);
+}
+
 /** Set a client's username, hostname and IP with minimal checking.
  * (The spoofed values should be from a trusted source.)
  *
@@ -2151,6 +2168,12 @@ static int iauth_cmd_done_account(struct IAuth *iauth, struct Client *cli,
   ircd_strncpy(cli_user(cli)->account, params[0], ACCOUNTLEN);
   SetAccount(cli);
 
+  if (HasFlag(cli, FLAG_SASL))
+    send_reply(cli, RPL_LOGGEDIN,
+      cli_name(cli), cli_username(cli),
+      cli_user(cli)->host, cli_user(cli)->account,
+      cli_user(cli)->account);
+
   /* Fall through to the normal "done" handler. */
   return iauth_cmd_done_client(iauth, cli, parc - 1, params + 1);
 }
@@ -2256,6 +2279,74 @@ static int iauth_cmd_xquery(struct IAuth *iauth, struct Client *cli,
   return 0;
 }
 
+/** Sends ERR_SASLFAIL to a client.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Authentication failure message.
+ * @return Zero.
+ */
+static int iauth_cmd_sasl_fail(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
+{
+  assert(cli_auth(cli) != NULL);
+  if (EmptyString(params[0]))
+    return 0;
+
+  return send_reply(cli, ERR_SASLFAIL, params[0]);
+}
+
+/** Sends RPL_SASLMECHS to a client.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Supported mechanisms.
+ * @return Zero.
+ */
+static int iauth_cmd_sasl_mechs(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
+{
+  assert(cli_auth(cli) != NULL);
+  if (EmptyString(params[0]))
+    return send_reply(cli, ERR_SASLFAIL, "SASL failed due to an error");
+
+  return send_reply(cli, RPL_SASLMECHS, params[0]);
+}
+
+/** Sends RPL_SASLSUCCESS to a client.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params Should be empty.
+ * @return Zero.
+ */
+static int iauth_cmd_sasl_success(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
+{
+  assert(cli_auth(cli) != NULL);
+
+  SetFlag(cli, FLAG_SASL);
+  return send_reply(cli, RPL_SASLSUCCESS);
+}
+
+/** Sends a SASL authentication challenge to the client.
+ * @param[in] iauth Active IAuth session.
+ * @param[in] cli Client referenced by command.
+ * @param[in] parc Number of parameters.
+ * @param[in] params SASL challenge.
+ * @return Zero.
+ */
+static int iauth_cmd_sasl_challenge(struct IAuth *iauth, struct Client *cli,
+				  int parc, char **params)
+{
+  assert(cli_auth(cli) != NULL);
+  if (EmptyString(params[0]))
+    return 0;
+
+	sendcmdto_one(&me, CMD_AUTHENTICATE, cli, params[0]);
+  return 0;
+}
+
 /** Parse a \a message from \a iauth.
  * @param[in] iauth Active IAuth session.
  * @param[in] message Message to be parsed.
@@ -2291,6 +2382,10 @@ static void iauth_parse(struct IAuth *iauth, char *message)
   case 'd': handler = iauth_cmd_soft_done; has_cli = 1; break;
   case 'D': handler = iauth_cmd_done_client; has_cli = 1; break;
   case 'R': handler = iauth_cmd_done_account; has_cli = 1; break;
+  case 'Y': handler = iauth_cmd_sasl_success; has_cli = 1; break;
+  case 'F': handler = iauth_cmd_sasl_fail; has_cli = 1; break;
+  case 'Q': handler = iauth_cmd_sasl_challenge; has_cli = 1; break;
+  case 'm': handler = iauth_cmd_sasl_mechs; has_cli = 1; break;
   case 'k': /* The 'k' command indicates the user should be booted
 	     * off without telling opers.  There is no way to
 	     * signal that to exit_client(), so we fall through to

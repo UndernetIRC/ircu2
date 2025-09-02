@@ -161,6 +161,7 @@ enum Flag
     FLAG_LOCOP,                     /**< Local operator -- SRB */
     FLAG_SERVNOTICE,                /**< server notices such as kill */
     FLAG_OPER,                      /**< Operator */
+    FLAG_SASL,                      /**< Authenticated using SASL */
     FLAG_INVISIBLE,                 /**< makes user invisible */
     FLAG_WALLOP,                    /**< send wallops to them */
     FLAG_DEAF,                      /**< Makes user deaf */
