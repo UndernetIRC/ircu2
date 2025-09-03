@@ -399,7 +399,8 @@ static void iauth_notify(struct AuthRequest *auth, enum AuthRequestFlag flag)
     break;
 
   case AR_IAUTH_PENDING:
-    sendto_iauth(sptr, "T");
+    if (!FlagHas(&auth->flags, AR_CAP_PENDING))
+      sendto_iauth(sptr, "T");
     break;
 
   default:
@@ -1290,6 +1291,7 @@ int auth_cap_start(struct AuthRequest *auth)
 {
   assert(auth != NULL);
   FlagSet(&auth->flags, AR_CAP_PENDING);
+  sendto_iauth(auth->client, "c");
   return 0;
 }
 
@@ -1301,6 +1303,7 @@ int auth_cap_start(struct AuthRequest *auth)
 int auth_cap_done(struct AuthRequest *auth)
 {
   assert(auth != NULL);
+  sendto_iauth(auth->client, "e");
   return check_auth_finished(auth, AR_CAP_PENDING);
 }
 
@@ -1623,7 +1626,7 @@ static int sendto_iauth(struct Client *cptr, const char *format, ...)
   /* Do not send for clients in the NORMAL state. */
   if (cptr
       && (format[0] != 'D')
-      && (!cli_auth(cptr) || !FlagHas(&cli_auth(cptr)->flags, AR_IAUTH_PENDING)))
+      && (!cli_auth(cptr) || (!FlagHas(&cli_auth(cptr)->flags, AR_IAUTH_PENDING) && !FlagHas(&cli_auth(cptr)->flags, AR_CAP_PENDING))))
     return 0;
 
   /* Build the message buffer. */
@@ -2432,7 +2435,7 @@ static void iauth_parse(struct IAuth *iauth, char *message)
       sendto_iauth(NULL, "E Gone :[%s %s %s]", params[0], params[1],
 		   params[2]);
     else if ((!(auth = cli_auth(cli)) ||
-	      !FlagHas(&auth->flags, AR_IAUTH_PENDING)) &&
+            (!FlagHas(&auth->flags, AR_IAUTH_PENDING) && !FlagHas(&auth->flags, AR_CAP_PENDING))) &&
 	     has_cli == 1)
       /* Client is done with IAuth checks. */
       sendto_iauth(cli, "E Done :[%s %s %s]", params[0], params[1], params[2]);
