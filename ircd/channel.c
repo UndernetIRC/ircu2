@@ -3520,15 +3520,19 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       return;
     SetUserParting(member);
 
+    /* Clear part message if CHFL_BANNED is set. */
+    if (flags & CHFL_BANNED)
+      jbuf->jb_comment = NULL;
+
     /* Send notification to channel */
     if (!(flags & (CHFL_ZOMBIE | CHFL_DELAYED)))
       sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL, 0,
-				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
-				":%H" : "%H :%s", chan, jbuf->jb_comment);
+				jbuf->jb_comment ?
+				"%H :%s" : ":%H", chan, jbuf->jb_comment);
     else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
-		    (flags & CHFL_BANNED || !jbuf->jb_comment) ?
-		    ":%H" : "%H :%s", chan, jbuf->jb_comment);
+		    jbuf->jb_comment ?
+		    "%H :%s" : ":%H", chan, jbuf->jb_comment);
     /* XXX: Shouldn't we send a PART here anyway? */
     /* to users on the channel?  Why?  From their POV, the user isn't on
      * the channel anymore anyway.  We don't send to servers until below,
