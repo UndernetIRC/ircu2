@@ -217,10 +217,12 @@ void send_tags(struct Client* to, struct Client* from, int prio)
   if (IsServer(to))
     return;
 
+  int tag_written = 0;
   if (CapHas(cli_active(to), CAP_SERVER_TIME)) {
     char timestamp[32];
     iso8601_timestamp(timestamp, sizeof(timestamp));
-    pos += sprintf(pos, "@time=%s ", timestamp);
+    pos += sprintf(pos, "@time=%s", timestamp);
+    tag_written = 1;
   }
 
   if (CapHas(cli_active(to), CAP_ACCOUNT_TAG)
@@ -228,7 +230,15 @@ void send_tags(struct Client* to, struct Client* from, int prio)
       && IsUser(from)
       && cli_user(from) != NULL
       && IsAccount(from)) {
-    pos += sprintf(pos, "@account=%s ", cli_user(from)->account);
+    if (tag_written) {
+      pos += sprintf(pos, ";account=%s", cli_user(from)->account);
+    } else {
+      pos += sprintf(pos, "@account=%s", cli_user(from)->account);
+    }
+    tag_written = 1;
+  }
+  if (tag_written) {
+    pos += sprintf(pos, " ");
   }
 
   if (strlen(tags_buffer) > 0) {
