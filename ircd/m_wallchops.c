@@ -93,6 +93,7 @@
 #include "numnicks.h"
 #include "s_user.h"
 #include "send.h"
+#include "sline.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
@@ -119,6 +120,11 @@ int m_wallchops(struct Client* cptr, struct Client* sptr, int parc, char* parv[]
       if ((chptr->mode.mode & MODE_NOPRIVMSGS) &&
           check_target_limit(sptr, NULL, chptr))
         return 0;
+
+      if (sline_check_chanmsg(sptr, chptr, parv[parc - 1], MSG_WALLCHOPS)) {
+        return 0;
+      }
+
       RevealDelayedJoinIfNeeded(sptr, chptr);
       sendcmdto_channel_butone(sptr, CMD_WALLCHOPS, chptr, cptr,
 			       SKIP_DEAF | SKIP_BURST | SKIP_NONOPS,

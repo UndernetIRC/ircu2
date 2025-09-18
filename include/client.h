@@ -149,6 +149,7 @@ enum Flag
     FLAG_HUB,                       /**< server is a hub */
     FLAG_IPV6,                      /**< server understands P10 IPv6 addrs */
     FLAG_SERVICE,                   /**< server is a service */
+    FLAG_SPAMFILTER,                /**< server is a spamfilter */
     FLAG_GOTID,                     /**< successful ident lookup achieved */
     FLAG_NONL,                      /**< No \n in buffer */
     FLAG_TS8,                       /**< Why do you want to know? */
@@ -169,6 +170,7 @@ enum Flag
     FLAG_DEBUG,                     /**< send global debug/anti-hack info */
     FLAG_ACCOUNT,                   /**< account name has been set */
     FLAG_HIDDENHOST,                /**< user's host is hidden */
+    FLAG_SPAMHOLD,                  /**< user is the sender or recipient of a message on hold */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
     FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
@@ -596,12 +598,16 @@ struct Client {
 #define IsIPv6(x)               HasFlag(x, FLAG_IPV6)
 /** Return non-zero if the client claims to be a services server. */
 #define IsService(x)            HasFlag(x, FLAG_SERVICE)
+/** Return non-zero if the client claims to be a spamfilter server. */
+#define IsSpamfilter(x)         HasFlag(x, FLAG_SPAMFILTER)
 /** Return non-zero if the client has an account stamp. */
 #define IsAccount(x)            HasFlag(x, FLAG_ACCOUNT)
 /** Return non-zero if the client has set mode +x (hidden host). */
 #define IsHiddenHost(x)         HasFlag(x, FLAG_HIDDENHOST)
 /** Return non-zero if the client has an active PING request. */
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
+/** Return non-zero if the client is the sender or recipient of a message on hold (spamfilter) */
+#define IsSpamHold(x)           HasFlag(x, FLAG_SPAMHOLD)
 
 /** Return non-zero if the client has operator or server privileges. */
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
@@ -642,12 +648,16 @@ struct Client {
 #define SetIPv6(x)              SetFlag(x, FLAG_IPV6)
 /** Mark a client as being a services server. */
 #define SetService(x)           SetFlag(x, FLAG_SERVICE)
+/** Mark a client as being a spamfilter server. */
+#define SetSpamfilter(x)        SetFlag(x, FLAG_SPAMFILTER)
 /** Mark a client as having an account stamp. */
 #define SetAccount(x)           SetFlag(x, FLAG_ACCOUNT)
 /** Mark a client as having mode +x (hidden host). */
 #define SetHiddenHost(x)        SetFlag(x, FLAG_HIDDENHOST)
 /** Mark a client as having a pending PING. */
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
+/** Mark a client as being the sender or recipient of a message on hold (spamfilter). */
+#define SetSpamHold(x)          SetFlag(x, FLAG_SPAMHOLD)
 
 /** Return non-zero if \a sptr sees \a acptr as an operator. */
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
@@ -683,6 +693,10 @@ struct Client {
 #define ClearPingSent(x)        ClrFlag(x, FLAG_PINGSENT)
 /** Clear the client's HUB flag. */
 #define ClearHub(x)             ClrFlag(x, FLAG_HUB)
+/** Clear the client's spamfilter flag. */
+#define ClearSpamfilter(x)      ClrFlag(x, FLAG_SPAMFILTER)
+/** Clear the client's spam hold flag. */
+#define ClearSpamHold(x)        ClrFlag(x, FLAG_SPAMHOLD)
 
 /* free flags */
 #define FREEFLAG_SOCKET	0x0001	/**< socket needs to be freed */

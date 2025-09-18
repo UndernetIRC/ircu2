@@ -61,6 +61,7 @@ enum Feature {
   FEAT_TOPIC_BURST,
   FEAT_AWAY_BURST,
   FEAT_DISABLE_GLINES,
+  FEAT_DISABLE_SLINES,
   FEAT_JOIN_TARGET,
 
   /* features that probably should not be touched */
@@ -99,6 +100,8 @@ enum Feature {
   FEAT_IRCD_RES_RETRIES,
   FEAT_IRCD_RES_TIMEOUT,
   FEAT_AUTH_TIMEOUT,
+  FEAT_SLINE_HOLD_TIMEOUT,
+  FEAT_SLINE_HOLD_TIMEOUT_BLOCK,
   FEAT_ANNOUNCE_INVITES,
 
   /* features that affect all operators */
@@ -139,6 +142,7 @@ enum Feature {
   FEAT_HIS_STATS_q,
   FEAT_HIS_STATS_R,
   FEAT_HIS_STATS_r,
+  FEAT_HIS_STATS_s,
   FEAT_HIS_STATS_t,
   FEAT_HIS_STATS_T,
   FEAT_HIS_STATS_u,

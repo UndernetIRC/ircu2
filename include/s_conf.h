@@ -35,6 +35,7 @@ struct Message;
 #define CONF_AUTOCONNECT        0x0001     /**< Autoconnect to a server */
 
 #define CONF_UWORLD_OPER        0x0001     /**< UWorld server can remotely oper users */
+#define CONF_UWORLD_SPAMFILTER  0x0002     /**< UWorld server can filter spam */
 
 /** Indicates ConfItem types that count associated clients. */
 #define CONF_CLIENT_MASK        (CONF_CLIENT | CONF_OPERATOR | CONF_SERVER)

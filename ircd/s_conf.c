@@ -900,6 +900,14 @@ attach_conf_uworld(struct Client *cptr)
   struct DLink *lp;
 
   attach_confs_byhost(cptr, cli_name(cptr), CONF_UWORLD);
+
+  /* Set FLAG_SPAMFILTER if the server is U:lined as a spamfilter. */
+  struct ConfItem* conf = find_conf_byhost(cli_confs(cptr), cli_name(cptr), CONF_UWORLD);
+  if (conf && (conf->flags & CONF_UWORLD_SPAMFILTER))
+    SetSpamfilter(cptr);
+  else if (IsSpamfilter(cptr)) /* If U:line has later been removed; clear flag. */
+    ClearSpamfilter(cptr);
+
   for (lp = cli_serv(cptr)->down; lp; lp = lp->next)
     attach_conf_uworld(lp->value.cptr);
 }

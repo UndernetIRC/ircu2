@@ -191,6 +191,7 @@ static void free_slist(struct SLink **link) {
 %token YES
 %token NO
 %token OPER
+%token SPAM
 %token VHOST
 %token HIDDEN
 %token MOTD
@@ -630,7 +631,7 @@ uworldblock: UWORLD {
   if (!permitted(BLOCK_UWORLD)) YYERROR;
 } '{' uworlditems '}' ';';
 uworlditems: uworlditem uworlditems | uworlditem;
-uworlditem: uworldname | uworldoper;
+uworlditem: uworldname | uworldoper | uworldspam;
 uworldname: NAME '=' QSTRING ';'
 {
   make_conf(CONF_UWORLD)->host = $3;
@@ -640,6 +641,12 @@ uworldoper: OPER '=' QSTRING ';'
   struct ConfItem *conf = make_conf(CONF_UWORLD);
   conf->host = $3;
   conf->flags = CONF_UWORLD_OPER;
+}
+uworldspam: SPAM '=' QSTRING ';'
+{
+  struct ConfItem *conf = make_conf(CONF_UWORLD);
+  conf->host = $3;
+  conf->flags = CONF_UWORLD_SPAMFILTER;
 }
 
 operblock: OPER {

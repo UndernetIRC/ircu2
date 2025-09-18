@@ -159,6 +159,7 @@ static const struct lexer_token tokens[] = {
   { "set", TPRIV_SET },
   { "show_all_invis", TPRIV_SHOW_ALL_INVIS },
   { "show_invis", TPRIV_SHOW_INVIS },
+  { "spam", SPAM },
   { "tb", TBYTES },
   { "tbytes", TBYTES },
   { "terabytes", TBYTES },

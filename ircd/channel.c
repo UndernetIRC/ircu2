@@ -49,6 +49,7 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
+#include "sline.h"
 #include "struct.h"
 #include "sys.h"
 #include "whowas.h"
@@ -330,6 +331,12 @@ int destruct_channel(struct Channel* chptr)
     next = ban->next;
     free_ban(ban);
   }
+  
+  /*
+   * Clean up S-line hold queue entries for this channel
+   */
+  sline_cleanup_channel(chptr);
+  
   if (chptr->prev)
     chptr->prev->next = chptr->next;
   else

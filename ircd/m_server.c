@@ -630,7 +630,11 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   SetServerYXX(cptr, cptr, parv[6]);
 
   /* Attach any necessary UWorld config items. */
-  attach_confs_byhost(cptr, host, CONF_UWORLD);
+  struct ConfItem* conf = attach_confs_byhost(cptr, host, CONF_UWORLD);
+
+  /* Flag server as spamfilter. */
+  if (conf && (conf->flags & CONF_UWORLD_SPAMFILTER))
+    SetSpamfilter(cptr);
 
   if (*parv[7] == '+')
     set_server_flags(cptr, parv[7] + 1);
@@ -744,6 +748,11 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   /* Attach any necessary UWorld config items. */
   attach_confs_byhost(cptr, host, CONF_UWORLD);
+
+  /* Flag server as spamfilter. */
+  struct ConfItem* conf = find_conf_byhost(cli_confs(cptr), host, CONF_UWORLD);
+  if (conf && (conf->flags & CONF_UWORLD_SPAMFILTER))
+    SetSpamfilter(acptr);
 
   if (*parv[7] == '+')
     set_server_flags(acptr, parv[7] + 1);

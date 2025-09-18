@@ -55,6 +55,7 @@
 #include "s_misc.h"
 #include "s_stats.h"
 #include "send.h"
+#include "sline.h"
 #include "sys.h"
 #include "uping.h"
 #include "userload.h"
@@ -731,6 +732,7 @@ int main(int argc, char **argv) {
   stats_init();
 
   IPcheck_init();
+  sline_init();
   timer_add(timer_init(&connect_timer), try_connections, 0, TT_RELATIVE, 1);
   timer_add(timer_init(&ping_timer), check_pings, 0, TT_RELATIVE, 1);
   timer_add(timer_init(&destruct_event_timer), exec_expired_destruct_events, 0, TT_PERIODIC, 60);

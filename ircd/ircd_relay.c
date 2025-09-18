@@ -63,6 +63,7 @@
 #include "s_misc.h"
 #include "s_user.h"
 #include "send.h"
+#include "sline.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdio.h>
@@ -129,6 +130,10 @@ void relay_channel_message(struct Client* sptr, const char* name, const char* te
     }
   }
 
+  if (sline_check_chanmsg(sptr, chptr, text, MSG_PRIVATE)) {
+    return;
+  }
+
   RevealDelayedJoinIfNeeded(sptr, chptr);
   sendcmdto_channel_butone(sptr, CMD_PRIVATE, chptr, cli_from(sptr),
 			   SKIP_DEAF | SKIP_BURST, "%H :%s", chptr, text);
@@ -184,6 +189,10 @@ void relay_channel_notice(struct Client* sptr, const char* name, const char* tex
         return;
       }
     }
+  }
+
+  if (sline_check_chanmsg(sptr, chptr, text, MSG_NOTICE)) {
+    return;
   }
 
   RevealDelayedJoinIfNeeded(sptr, chptr);
@@ -315,6 +324,10 @@ void relay_directed_message(struct Client* sptr, char* name, char* server, const
     return;
   }
 
+  if (sline_check_privmsg(sptr, acptr, text, MSG_PRIVATE)) {
+    return;
+  }
+  
   *server = '@';
   if (host)
     *--host = '%';
@@ -387,6 +400,10 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
     return;
   }
 
+  if (sline_check_privmsg(sptr, acptr, text, MSG_NOTICE)) {
+    return;
+  }
+
   *server = '@';
   if (host)
     *--host = '%';
@@ -426,6 +443,10 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
       is_silenced(sptr, acptr))
     return;
 
+  if (sline_check_privmsg(sptr, acptr, text, MSG_PRIVATE)) {
+    return;
+  }
+
   /*
    * send away message if user away
    */
@@ -464,6 +485,11 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
        check_target_limit(sptr, acptr, NULL)) ||
       is_silenced(sptr, acptr))
     return;
+
+  if (sline_check_privmsg(sptr, acptr, text, MSG_NOTICE)) {
+    return;
+  }
+
   /*
    * deliver the message
    */
@@ -579,7 +605,7 @@ void relay_masked_message(struct Client* sptr, const char* mask, const char* tex
     sendcmdto_one(sptr, CMD_PRIVATE, cli_from(sptr), "%s :%s", mask, text);
 
 }
-
+//SPAM: Relevant here?
 /** Relay a masked notice from a local user.
  * Sends an error response if there is no top-level domain label in \a
  * mask, or if that TLD contains a wildcard.

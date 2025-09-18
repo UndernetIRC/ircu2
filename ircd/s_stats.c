@@ -25,6 +25,7 @@
 #include "client.h"
 #include "gline.h"
 #include "hash.h"
+#include "sline.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
 #include "ircd_events.h"
@@ -105,8 +106,12 @@ stats_configured_links(struct Client *sptr, const struct StatDesc* sd,
 
       if (tmp->status & CONF_UWORLD)
       {
-        const char *oper = (tmp->flags & CONF_UWORLD_OPER) ? "+" : "";
-        send_reply(sptr, RPL_STATSULINE, oper, host);
+        char flags[3] = "";
+        if (tmp->flags & CONF_UWORLD_OPER)
+          strcat(flags, "+");
+        if (tmp->flags & CONF_UWORLD_SPAMFILTER)
+          strcat(flags, "*");
+        send_reply(sptr, RPL_STATSULINE, flags, host);
       }
       else if (tmp->status & CONF_SERVER)
 	send_reply(sptr, RPL_STATSCLINE, name, port, maximum, hub_limit, get_conf_class(tmp));
@@ -461,9 +466,9 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
                "%-20s %-20s Flags Hops Numeric   Lag  RTT   Up Down "
                "Clients/Max Proto %-10s :Info", "Servername", "Uplink",
                "LinkTS");
-    fmt = "%-20s %-20s %c%c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i P%-2i   %Tu :%s";
+    fmt = "%-20s %-20s %c%c%c%c%c%c  %4i %s %-4i %5i %4i %4i %4i %5i %5i P%-2i   %Tu :%s";
   } else {
-    fmt = "%s %s %c%c%c%c%c %i %s %i %i %i %i %i %i %i P%i %Tu :%s";
+    fmt = "%s %s %c%c%c%c%c%c %i %s %i %i %i %i %i %i %i P%i %Tu :%s";
   }
 
   for (acptr = GlobalClientList; acptr; acptr = cli_next(acptr))
@@ -478,6 +483,7 @@ stats_servers_verbose(struct Client* sptr, const struct StatDesc* sd,
                cli_name(cli_serv(acptr)->up),
                IsBurst(acptr) ? 'B' : '-',
                IsBurstAck(acptr) ? 'A' : '-',
+               IsSpamfilter(acptr) ? 'F' : '-',
                IsHub(acptr) ? 'H' : '-',
                IsService(acptr) ? 'S' : '-',
                IsIPv6(acptr) ? '6' : '-',
@@ -532,6 +538,7 @@ stats_meminfo(struct Client* to, const struct StatDesc* sd, char* param)
 
   class_send_meminfo(to);
   bans_send_meminfo(to);
+  sline_send_meminfo(to);
   send_listinfo(to, 0);
 }
 
@@ -619,6 +626,9 @@ struct StatDesc statsinfo[] = {
     send_usage, 0,
     "System resource usage (Debug only)." },
 #endif
+  { 's', "slines", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_s,
+    sline_stats, 0,
+    "Regex pattern bans (S-lines)." },
   { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
     motd_report, 0,
     "Configured Message Of The Day files." },

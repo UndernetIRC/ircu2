@@ -326,6 +326,7 @@ static struct FeatureDesc {
   F_B(TOPIC_BURST, 0, 1, 0),
   F_B(AWAY_BURST, 0, 1, 0),
   F_B(DISABLE_GLINES, 0, 0, 0),
+  F_B(DISABLE_SLINES, 0, 0, 0),
   F_B(JOIN_TARGET, 0, 0, 0),
 
   /* features that probably should not be touched */
@@ -364,6 +365,8 @@ static struct FeatureDesc {
   F_I(IRCD_RES_RETRIES, 0, 2, 0),
   F_I(IRCD_RES_TIMEOUT, 0, 4, 0),
   F_I(AUTH_TIMEOUT, 0, 9, 0),
+  F_I(SLINE_HOLD_TIMEOUT, 0, 60, 0),
+  F_B(SLINE_HOLD_TIMEOUT_BLOCK, 0, 1, 0),
   F_B(ANNOUNCE_INVITES, 0, 0, 0),
 
   /* features that affect all operators */
@@ -404,6 +407,7 @@ static struct FeatureDesc {
   F_B(HIS_STATS_q, 0, 1, 0),
   F_B(HIS_STATS_R, 0, 1, 0),
   F_B(HIS_STATS_r, 0, 1, 0),
+  F_B(HIS_STATS_s, 0, 1, 0),
   F_B(HIS_STATS_t, 0, 1, 0),
   F_B(HIS_STATS_T, 0, 1, 0),
   F_B(HIS_STATS_u, 0, 0, 0),
