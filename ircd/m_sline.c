@@ -215,4 +215,4 @@ ms_sline(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
     *state, lastmod, expire, sline_flags_to_string(msgtype), pattern);
 
   return 1;
-} 
+}

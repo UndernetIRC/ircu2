@@ -188,7 +188,6 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   unsigned int flags;
   char *p = 0;
   char *name;
-  int colors = 0;
 
   ClrFlag(sptr, FLAG_TS8);
 
@@ -200,16 +199,6 @@ int ms_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   joinbuf_init(&parts, sptr, cptr, JOINBUF_TYPE_PART,
 	       (parc > 2 && !EmptyString(parv[parc - 1])) ? parv[parc - 1] : 0,
 	       0);
-
-  /* check for colors in message */
-  if (parts.jb_comment) {
-    for (p = parts.jb_comment; *p != '\0'; ++p) {
-      if (*p == 3 || *p == 27) {
-        colors = 1;
-        break;
-      }
-    }
-  }
 
   /* scan through channel list */
   for (name = ircd_strtok(&p, parv[1], ","); name;
