@@ -182,16 +182,22 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
 
     conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
-    if (!conf || !(conf->flags & CONF_UWORLD_OPER))
+    if (!conf || ((!strcmp(parv[2], "+o") || !strcmp(parv[2], "-o")) && !(conf->flags & CONF_UWORLD_OPER)))
       return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
 
-    /* At the moment, we only support +o and -o.  set_user_mode() does
+    /* At the moment, we only support +o, -o and +x.  set_user_mode() does
      * not support remote mode setting or setting +o.
      */
     if (!strcmp(parv[2], "+o") && !IsOper(dptr))
       make_oper(sptr, dptr);
     else if (!strcmp(parv[2], "-o") && IsOper(dptr))
       de_oper(dptr);
+    else if (!strcmp(parv[2], "+x") && IsAccount(dptr) && !HasHiddenHost(dptr)) {
+      struct Flags old_mode = cli_flags(dptr);
+      SetHiddenHost(dptr);
+      send_umode_out(dptr, dptr, &old_mode, HasPriv(dptr, PRIV_PROPAGATE));
+      hide_hostmask(dptr, FLAG_HIDDENHOST);
+    }
 
     return 0;
   }
