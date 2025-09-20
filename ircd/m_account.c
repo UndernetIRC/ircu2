@@ -87,9 +87,11 @@
 #include "ircd_string.h"
 #include "msg.h"
 #include "numnicks.h"
+#include "s_conf.h"
 #include "s_debug.h"
 #include "s_user.h"
 #include "send.h"
+#include "numeric.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <stdlib.h>
@@ -108,6 +110,7 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 	       char* parv[])
 {
   struct Client *acptr;
+  struct ConfItem *conf;
   uint64_t acc_id = 0, acc_flags = 0;
 
   if (parc < 3)
@@ -116,6 +119,9 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
   if (!IsServer(sptr))
     return protocol_violation(cptr, "ACCOUNT from non-server %s",
 			      cli_name(sptr));
+
+  if (!(conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD)))
+    return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]); /* Ignore ACCOUNT from non U:lined servers. */
 
   if (!(acptr = findNUser(parv[1])))
     return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */
