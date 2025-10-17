@@ -125,16 +125,33 @@ AC_PATH_PROGS(RMPROG, rm, /bin/rm)
 AC_PATH_PROGS(SHPROG, sh, /bin/sh)
 
 dnl YACC - ditto
-AC_PROG_YACC
-dnl The autoconf docs say $YACC defaults to 'yacc'.  This seems to be true,
-dnl but judging from AC_PROG_LEX, it may not stay true.
-if test "$YACC" = ":" ; then
-  AC_MSG_ERROR([Cannot find yacc.])
-elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
-  :
+dnl Prefer bison if present
+AC_CHECK_PROGS([BISON], [bison])
+
+if test -n "$BISON"; then
+  YACC="$BISON -y"
 else
-dnl byacc does not seem to have any way to test for workingness, so only warn.
-  AC_MSG_WARN([$YACC may not work as yacc.])
+  AC_PROG_YACC
+fi
+
+dnl Test whether the selected $YACC actually works
+AC_CACHE_CHECK([whether $YACC can parse a minimal grammar], [ac_cv_yacc_works], [
+  cat > conftest.y <<'EOF'
+%token T
+%%
+start: /* empty */ ;
+%%
+EOF
+  if $YACC -d conftest.y >/dev/null 2>&1; then
+    ac_cv_yacc_works=yes
+  else
+    ac_cv_yacc_works=no
+  fi
+  rm -f conftest.y conftest.tab.c conftest.tab.h conftest.output
+])
+
+if test "$ac_cv_yacc_works" = "no"; then
+  AC_MSG_ERROR([No working yacc/bison found. Please install bison or a compatible yacc (e.g. byacc).])
 fi
 
 unet_NONBLOCKING
