@@ -88,7 +88,6 @@ static struct ConfigEntry *config_find(const char *key)
     if (ircd_strcmp(entry->key, key) == 0)
       return entry;
   }
-
   return NULL;
 }
 
@@ -100,7 +99,6 @@ static struct ConfigEntry *config_find(const char *key)
 static void config_call_callbacks(const char *key, const char *old_value, const char *new_value)
 {
   struct ConfigCallback *cb;
-
   for (cb = callback_list; cb; cb = cb->next) {
     if (ircd_strncmp(key, cb->key_prefix, strlen(cb->key_prefix)) == 0) {
       cb->callback(key, old_value, new_value);
@@ -161,7 +159,6 @@ int config_set(const char *key, const char *value, time_t timestamp)
     MyFree(entry->value);
     DupString(entry->value, value);
     entry->timestamp = timestamp;
-
     result = value_changed ? CONFIG_CHANGED : CONFIG_TIMESTAMP;
   } else {
     /* Create new entry */
@@ -202,6 +199,20 @@ const char *config_get(const char *key)
   return entry ? entry->value : NULL;
 }
 
+/** Get the timestamp of a configuration option
+ * @param[in] key Configuration key
+ * @return Timestamp or 0 if not found
+ */
+time_t config_get_timestamp(const char *key)
+{
+  struct ConfigEntry *entry;
+  
+  assert(key != NULL);
+  
+  entry = config_find(key);
+  return entry ? entry->timestamp : 0;
+}
+
 /** Count the number of configuration entries
  * @return Number of configuration entries
  */
@@ -234,7 +245,6 @@ void config_register_callback(const char *key_prefix, config_callback_f callback
       return;
     }
   }
-
   /* Create new callback */
   cb = MyMalloc(sizeof(struct ConfigCallback));
   DupString(cb->key_prefix, key_prefix);
@@ -294,7 +304,6 @@ void config_burst(struct Client *cptr)
 void config_stats(struct Client *sptr, const struct StatDesc *sd, char *param)
 {
   struct ConfigEntry *entry;
-
   for (entry = config_list; entry; entry = entry->next) {
     send_reply(sptr, SND_EXPLICIT | RPL_STATSDEBUG,
                "%Tu %s :%s",
