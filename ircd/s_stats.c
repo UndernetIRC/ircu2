@@ -27,6 +27,7 @@
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_chattr.h"
+#include "ircd_netconf.h"
 #include "ircd_events.h"
 #include "ircd_features.h"
 #include "ircd_crypt.h"
@@ -558,9 +559,12 @@ struct StatDesc statsinfo[] = {
   { 'a', "nameservers", STAT_FLAG_OPERFEAT|STAT_FLAG_LOCONLY, FEAT_HIS_STATS_a,
     report_dns_servers, 0,
     "DNS servers." },
-  { 'c', "connect", STAT_FLAG_OPERFEAT, FEAT_HIS_STATS_c,
+  { 'c', "connect", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_c,
     stats_configured_links, CONF_SERVER,
     "Remote server connection lines." },
+  { 'C', "config", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_C,
+    config_stats, 0,
+    "Network configuration entries." },
   { 'd', "maskrules", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_d,
     stats_crule_list, CRULE_MASK,
     "Dynamic routing configuration." },
