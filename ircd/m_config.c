@@ -50,18 +50,18 @@ int ms_config(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char *old_value;
   int result;
 
-    if (parc < 3)
-      return need_more_params(sptr, "CF");
+  if (parc < 3)
+    return need_more_params(sptr, "CF");
 
-    timestamp = atol(parv[1]);
-    key = parv[2];
-    value = (parc >= 4) ? parv[3] : "";
+  timestamp = atol(parv[1]);
+  key = parv[2];
+  value = (parc >= 4) ? parv[3] : "";
 
-    /* Get the old value for comparison */
-    old_value = config_get(key);
-    char *old_value_copy = NULL;
-    if (old_value)
-      DupString(old_value_copy, old_value);
+  /* Get the old value for comparison */
+  old_value = config_get(key);
+  char *old_value_copy = NULL;
+  if (old_value)
+    DupString(old_value_copy, old_value);
   
   /* Try to set the configuration */
   result = config_set(key, value, timestamp);
