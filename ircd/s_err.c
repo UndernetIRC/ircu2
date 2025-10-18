@@ -512,7 +512,7 @@ static Numeric replyTable[] = {
 /* 239 */
   { 0 },
 /* 240 */
-  { 0 },
+  { RPL_STATSSLINE, "%Tu %Tu %d %s :%s", "240" },
 /* 241 */
   { RPL_STATSLLINE, "Module Description EntryPoint", "241" },
 /* 242 */

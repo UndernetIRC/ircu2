@@ -86,6 +86,7 @@
 #include "ircd.h"
 #include "ircd_log.h"
 #include "ircd_string.h"
+#include "sline.h"
 #include "struct.h"
 #include "s_misc.h"
 #include "s_user.h"
@@ -102,17 +103,21 @@
  */
 int m_quit(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
-  int delayed_targets = 0;
+  int delayed_targets = 0, slined = 0;
 
   assert(0 != cptr);
   assert(0 != sptr);
   assert(cptr == sptr);
 
+  /* Check if the quit message matches any S-line patterns */
+  if (parc > 1 && sline_check_pattern_bool(parv[parc - 1], SLINE_QUIT))
+    slined = 1;
+
   if (cli_user(sptr)) {
     struct Membership* chan;
     for (chan = cli_user(sptr)->channel; chan; chan = chan->next_channel) {
         if (!IsZombie(chan) && !IsDelayedJoin(chan) &&
-          (!member_can_send_to_channel(chan, 0) || chan->channel->mode.mode & MODE_NOPARTMSGS))
+          (!member_can_send_to_channel(chan, 0) || chan->channel->mode.mode & MODE_NOPARTMSGS || slined))
         return exit_client(cptr, sptr, sptr, "Signed off");
       if (IsDelayedTarget(chan))
         ++delayed_targets;
