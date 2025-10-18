@@ -52,6 +52,12 @@ struct ConfigCallback {
   struct ConfigCallback *next;         /**< Next callback */
 };
 
+/** Network configuration options */
+enum NetConf {
+    /* To be included. This is the implementation only. */
+    NETCONF_LAST_NC
+};
+
 /*
  * Prototypes
  */
@@ -62,5 +68,8 @@ extern void config_register_callback(const char *key_prefix, config_callback_f c
 extern void config_unregister_callback(const char *key_prefix);
 extern void config_burst(struct Client *cptr);
 extern void config_stats(struct Client *sptr, const struct StatDesc *sd, char *param);
+extern int netconf_int(enum NetConf key);
+extern int netconf_bool(enum NetConf key);
+extern const char *netconf_str(enum NetConf key);
 
-#endif /* INCLUDED_ircd_config_h */
+#endif /* INCLUDED_ircd_netconf_h */
