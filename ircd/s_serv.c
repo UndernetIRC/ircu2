@@ -31,6 +31,7 @@
 #include "channel.h"
 #include "client.h"
 #include "gline.h"
+#include "sline.h"
 #include "hash.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -198,6 +199,7 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
    */
   gline_burst(cptr);
   jupe_burst(cptr);
+  sline_burst(cptr);
 
   /* Burst server configuration. */
   config_burst(cptr);

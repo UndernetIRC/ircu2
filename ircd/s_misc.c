@@ -54,6 +54,7 @@
 #include "s_user.h"
 #include "sasl.h"
 #include "send.h"
+#include "sline.h"
 #include "struct.h"
 #include "sys.h"
 #include "uping.h"
@@ -236,6 +237,10 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
     /* Clean up snotice lists */
     if (MyUser(bcptr))
       set_snomask(bcptr, ~0, SNO_DEL);
+
+    /* Clean up S-line hold queue entries */
+    if (IsSpamHold(bcptr))
+      sline_cleanup_client(bcptr);
 
     if (IsInvisible(bcptr)) {
       assert(UserStats.inv_clients > 0);

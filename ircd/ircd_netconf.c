@@ -75,6 +75,11 @@ static struct NetConfDesc {
   NC_S(SASL_MECHANISMS, "sasl.mechanisms", ""),
   NC_I(SASL_TIMEOUT, "sasl.timeout", 30),
 
+  /* S:line related settings */
+  NC_S(SLINE_SERVER, "sline.server", ""),
+  NC_I(SLINE_HOLD_TIMEOUT, "sline.hold_timeout", 60),
+  NC_B(SLINE_HOLD_TIMEOUT_BLOCK, "sline.hold_timeout_block", 1),
+
   { NETCONF_LAST_NC, 0, 0, 0, 0, 0, 0 } /* sentinel */
 };
 
@@ -308,12 +313,10 @@ void config_stats(struct Client *sptr, const struct StatDesc *sd, char *param)
 static struct NetConfDesc *netconf_find(enum NetConf key)
 {
   int i;
-
   for (i = 0; netconf_descs[i].netconf != NETCONF_LAST_NC; i++) {
     if (netconf_descs[i].netconf == key)
       return &netconf_descs[i];
   }
-
   return NULL;
 }
 

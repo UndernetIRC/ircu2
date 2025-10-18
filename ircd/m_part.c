@@ -91,6 +91,7 @@
 #include "numeric.h"
 #include "numnicks.h"
 #include "send.h"
+#include "sline.h"
 #include "s_user.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
@@ -108,7 +109,7 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   struct Channel *chptr;
   struct Membership *member;
   struct JoinBuf parts;
-  int colors = 0;
+  int colors = 0, slined = 0;
   char *p = 0;
   char *name;
 
@@ -133,6 +134,10 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
   }
 
+  /* Check if the part message matches any S-line patterns */
+  if (sline_check_pattern_bool(parts.jb_comment, SLINE_PART))
+    slined = 1;
+
   /* scan through channel list */
   for (name = ircd_strtok(&p, parv[1], ","); name;
        name = ircd_strtok(&p, 0, ",")) {
@@ -154,15 +159,9 @@ int m_part(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     if (!member_can_send_to_channel(member, 0)
         || ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
+        || (member->channel->mode.mode & MODE_NOPARTMSGS)
+        || slined
         || (IsDelayedTarget(member) && check_target_limit(sptr, NULL, chptr)))
-    {
-      flags |= CHFL_BANNED;
-    }
-
-    if ((member->channel->mode.mode & MODE_NOCOLOR) && colors)
-      flags |= CHFL_BANNED;
-
-    if (member->channel->mode.mode & MODE_NOPARTMSGS)
       flags |= CHFL_BANNED;
 
     if (IsDelayedJoin(member))
