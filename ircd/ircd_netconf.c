@@ -199,20 +199,6 @@ const char *config_get(const char *key)
   return entry ? entry->value : NULL;
 }
 
-/** Get the timestamp of a configuration option
- * @param[in] key Configuration key
- * @return Timestamp or 0 if not found
- */
-time_t config_get_timestamp(const char *key)
-{
-  struct ConfigEntry *entry;
-  
-  assert(key != NULL);
-  
-  entry = config_find(key);
-  return entry ? entry->timestamp : 0;
-}
-
 /** Count the number of configuration entries
  * @return Number of configuration entries
  */
