@@ -363,6 +363,50 @@ badid:
   return exit_client(sptr, sptr, &me, "USER: Bad username");
 }
 
+/** Set account for user associated with \a auth.
+ * @param[in] auth Authorization request for client.
+ */
+int auth_set_account(struct AuthRequest *auth, const char *account_info)
+{
+  assert(auth != NULL);
+
+  struct Client *sptr = auth->client;
+  char *account_copy = NULL, *account = NULL, *id_str = NULL, *flags_str = NULL, *extra = NULL;
+
+  /* Parse account information: username:id:flags */
+  DupString(account_copy, account_info);
+  if (!account_copy)
+    return 1;
+
+  account = strtok(account_copy, ":");
+  id_str = strtok(NULL, ":");
+  flags_str = strtok(NULL, " ");
+  extra = strtok(NULL, "");
+
+  /* Copy account name to User structure */
+  ircd_strncpy(cli_user(sptr)->account, account, ACCOUNTLEN);
+
+  /* Parse account ID if provided */
+  if (id_str) {
+    cli_user(sptr)->acc_id = strtoul(id_str, NULL, 10);
+  }
+
+  if (flags_str) {
+    cli_user(sptr)->acc_flags = strtoul(flags_str, NULL, 10);
+  }
+
+  SetAccount(sptr);
+
+  /* Check for +x flag (host hiding) */
+  if (extra && strstr(extra, "+x") && feature_bool(FEAT_HOST_HIDING)) {
+    SetHiddenHost(sptr);
+  }
+
+  sendto_iauth(sptr, "A %s", cli_user(sptr)->account);
+  MyFree(account_copy);
+  return 0;
+}
+
 /** Notifies IAuth of a status change for the client.
  *
  * @param[in] auth Authorization request that was updated.
@@ -399,7 +443,8 @@ static void iauth_notify(struct AuthRequest *auth, enum AuthRequestFlag flag)
     break;
 
   case AR_IAUTH_PENDING:
-    sendto_iauth(sptr, "T");
+    if (!FlagHas(&auth->flags, AR_CAP_PENDING))
+      sendto_iauth(sptr, "T");
     break;
 
   default:
@@ -1296,6 +1341,7 @@ int auth_cap_start(struct AuthRequest *auth)
 {
   assert(auth != NULL);
   FlagSet(&auth->flags, AR_CAP_PENDING);
+  sendto_iauth(auth->client, "c");
   return 0;
 }
 
@@ -1307,6 +1353,7 @@ int auth_cap_start(struct AuthRequest *auth)
 int auth_cap_done(struct AuthRequest *auth)
 {
   assert(auth != NULL);
+  sendto_iauth(auth->client, "e");
   return check_auth_finished(auth, AR_CAP_PENDING);
 }
 
