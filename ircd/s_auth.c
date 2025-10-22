@@ -966,8 +966,7 @@ int auth_ping_timeout(struct Client *cptr)
 
   /* Check for iauth timeout. */
   if (FlagHas(&auth->flags, AR_IAUTH_PENDING)) {
-    if (IAuthHas(iauth, IAUTH_REQUIRED)
-        && !FlagHas(&auth->flags, AR_IAUTH_SOFT_DONE)) {
+    if (IAuthHas(iauth, IAUTH_REQUIRED)) {
       sendheader(cptr, REPORT_FAIL_IAUTH);
       return exit_client_msg(cptr, cptr, &me, "Authorization Timeout");
     }
