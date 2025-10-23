@@ -978,7 +978,7 @@ static void client_sock_callback(struct Event* ev)
         break;
       }
        /* TLS negotiation succeeded */
-       (IsConnecting(cptr) ? completed_connection : start_auth)(cptr);
+       IsConnecting(cptr) ? completed_connection(cptr) : start_auth(cptr);
        return;
     }
     ClrFlag(cptr, FLAG_BLOCKED);
