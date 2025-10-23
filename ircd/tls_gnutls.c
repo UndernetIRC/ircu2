@@ -324,11 +324,6 @@ int ircd_tls_negotiate(struct Client *cptr)
       memset(cli_tls_fingerprint(cptr), 0, 65);
       Debug((DEBUG_DEBUG, "Invalid fingerprint length: %zu", len));
     }
-
-    /* For incoming connections, start auth like OpenSSL version */
-    if (!IsConnecting(cptr)) {
-      start_auth(cptr);
-    }
     
     return 1;
 

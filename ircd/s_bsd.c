@@ -969,16 +969,17 @@ static void client_sock_callback(struct Event* ev)
           ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
           s_tls(&cli_socket(cptr)) = NULL;
         }
-        exit_client(cptr, cptr, &me, "TLS negotiation failed");
-        return;
+        fmt = "TLS negotiation failed: %s";
+        fallback = "TLS negotiation failed";
+        break;
       }
       if (res == 0) {
         /* Still negotiating */
         break;
       }
-      /* TLS negotiation succeeded */
-      if (IsConnecting(cptr))
-        completed_connection(cptr);
+       /* TLS negotiation succeeded */
+       (IsConnecting(cptr) ? completed_connection : start_auth)(cptr);
+       return;
     }
     ClrFlag(cptr, FLAG_BLOCKED);
     if (cli_listing(cptr) && MsgQLength(&(cli_sendQ(cptr))) < 2048)
@@ -1000,8 +1001,9 @@ static void client_sock_callback(struct Event* ev)
             ircd_tls_close(s_tls(&cli_socket(cptr)), "TLS negotiation failed");
             s_tls(&cli_socket(cptr)) = NULL;
           }
-          exit_client(cptr, cptr, &me, "TLS negotiation failed");
-          return;
+          fmt = "TLS negotiation failed: %s";
+          fallback = "TLS negotiation failed";
+          break;
         }
         if (res == 0) {
           /* Still negotiating */

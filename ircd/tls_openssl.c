@@ -351,8 +351,8 @@ static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int ori
 {
   int err = SSL_get_error(tls, res);
 
-  Debug((DEBUG_DEBUG, "ssl_handle_error: SSL_get_error=%d, res=%d, orig_errno=%d for %s",
-         err, res, orig_errno, cli_name(cptr)));
+  Debug((DEBUG_DEBUG, "ssl_handle_error: SSL_get_error=%d, res=%d, orig_errno=%d for %C",
+         err, res, orig_errno, cptr));
 
   switch (err)
   {
@@ -367,23 +367,24 @@ static IOResult ssl_handle_error(struct Client *cptr, SSL *tls, int res, int ori
       return IO_BLOCKED;
     break;
   case SSL_ERROR_ZERO_RETURN:
-    Debug((DEBUG_DEBUG, "SSL_ERROR_ZERO_RETURN: peer closed connection for %s", cli_name(cptr)));
+    Debug((DEBUG_DEBUG, "SSL_ERROR_ZERO_RETURN: peer closed connection for %C", cptr));
     if (SSL_shutdown(tls) == 0)
       SSL_shutdown(tls);
     break;
 
   default:
     /* Fatal SSL error */
-    Debug((DEBUG_ERROR, "SSL fatal error %d for %s", err, cli_name(cptr)));
+    Debug((DEBUG_ERROR, "SSL fatal error %d for %C", err, cptr));
     unsigned long e;
     while ((e = ERR_get_error()) != 0) {
-        Debug((DEBUG_ERROR, "[SSL] %s", ERR_error_string(e, NULL)));
+        Debug((DEBUG_ERROR, "SSL ERROR: %s", ERR_error_string(e, NULL)));
     }
     break;
   }
 
   /* Fatal error - clean up SSL context */
   if (tls && s_tls(&cli_socket(cptr)) == tls) {
+    Debug((DEBUG_ERROR, "SSL fall-through fatal error %d for %C", err, cptr));
     s_tls(&cli_socket(cptr)) = NULL;
     /* Do not call SSL_shutdown() after fatal errors */
     SSL_free(tls);
@@ -407,7 +408,7 @@ int ircd_tls_negotiate(struct Client *cptr)
 
   /* Check for handshake timeout */
   if (CurrentTime - cli_firsttime(cptr) > TLS_HANDSHAKE_TIMEOUT) {
-    Debug((DEBUG_DEBUG, "SSL handshake timeout for %s", cli_name(cptr)));
+    Debug((DEBUG_DEBUG, "SSL handshake timeout for fd=%d", cli_fd(cptr)));
     return -1;
   }
 
@@ -420,18 +421,18 @@ int ircd_tls_negotiate(struct Client *cptr)
 
   if (res == 1)
   {
-    Debug((DEBUG_DEBUG, "SSL handshake success for %s", cli_name(cptr)));
+    Debug((DEBUG_DEBUG, "SSL handshake success for fd=%d", cli_fd(cptr)));
     cert = SSL_get_peer_certificate(tls);
     if (cert)
     {
-      Debug((DEBUG_DEBUG, "SSL_get_peer_certificate success for %s", cli_name(cptr)));
+      Debug((DEBUG_DEBUG, "SSL_get_peer_certificate success for fd=%d", cli_fd(cptr)));
       len = sizeof(buf);
       res = X509_digest(cert, fp_digest, buf, &len);
       X509_free(cert);
       if (res)
       {
-        log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %s: %d",
-          cli_name(cptr), res);
+        log_write(LS_SYSTEM, L_ERROR, 0, "X509_digest failed for %C: %d",
+          cptr, res);
       }
       if (len == 32) {
         /* Convert fingerprint to lowercase hex */
@@ -440,7 +441,7 @@ int ircd_tls_negotiate(struct Client *cptr)
           sprintf(p + (i * 2), "%02x", buf[i]);
         }
         p[len * 2] = '\0';
-        Debug((DEBUG_DEBUG, "Fingerprint for %s: %s", cli_name(cptr), cli_tls_fingerprint(cptr)));
+        Debug((DEBUG_DEBUG, "Fingerprint for %C: %s", cptr, cli_tls_fingerprint(cptr)));
       }
       else {
         memset(cli_tls_fingerprint(cptr), 0, 65);
@@ -448,11 +449,6 @@ int ircd_tls_negotiate(struct Client *cptr)
       }
     }
     ClearNegotiatingTLS(cptr);
-
-    /* For incoming connections, start auth */
-    if (!IsConnecting(cptr)) {
-      start_auth(cptr);
-    }
   }
   else
   {
@@ -460,7 +456,7 @@ int ircd_tls_negotiate(struct Client *cptr)
     /* Handshake in progress. */
     IOResult ssl_result = ssl_handle_error(cptr, tls, res, orig_errno);
     if (ssl_result == IO_FAILURE) {
-      Debug((DEBUG_DEBUG, "SSL handshake failed for %s", cli_name(cptr)));
+      Debug((DEBUG_DEBUG, "SSL handshake failed for fd=%d", cli_fd(cptr)));
       write(cli_fd(cptr), error_ssl, strlen(error_ssl));
       return -1;
     }

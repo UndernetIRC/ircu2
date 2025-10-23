@@ -501,6 +501,7 @@ static void parse_command_line(int argc, char** argv) {
 #else
       printf("select()");
 #endif
+      printf("\nTLS: %s", ircd_tls_version);
       printf("\nCompiled for a maximum of %d connections.\n", MAXCONNECTIONS);
 
 

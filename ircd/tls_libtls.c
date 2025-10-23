@@ -309,11 +309,6 @@ int ircd_tls_negotiate(struct Client *cptr)
       Debug((DEBUG_DEBUG, "Failed to get fingerprint for %s", cli_name(cptr)));
     }
 
-    /* For incoming connections, start auth like OpenSSL/GnuTLS */
-    if (!IsConnecting(cptr)) {
-      start_auth(cptr);
-    }
-
     return 1;
   }
   

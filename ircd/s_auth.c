@@ -1192,7 +1192,7 @@ void start_auth(struct Client* client)
       start_iauth_query(auth);
 
       /* Pass on fingerprint to iauth. */
-      if (IsTLS(client) && cli_tls_fingerprint(client))
+      if (IsTLS(client) && *cli_tls_fingerprint(client))
         sendto_iauth(auth->client, "Z %s", cli_tls_fingerprint(client));
     }
   }
