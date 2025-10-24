@@ -1339,8 +1339,10 @@ void auth_send_xreply(struct Client *sptr, const char *routing,
 int auth_cap_start(struct AuthRequest *auth)
 {
   assert(auth != NULL);
-  FlagSet(&auth->flags, AR_CAP_PENDING);
-  sendto_iauth(auth->client, "c");
+  if (!FlagHas(&auth->flags, AR_CAP_PENDING)) {
+    FlagSet(&auth->flags, AR_CAP_PENDING);
+    sendto_iauth(auth->client, "c");
+  }
   return 0;
 }
 
