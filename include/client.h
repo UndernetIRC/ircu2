@@ -171,10 +171,10 @@ enum Flag
     FLAG_ACCOUNT,                   /**< account name has been set */
     FLAG_HIDDENHOST,                /**< user's host is hidden */
     FLAG_CAP302,                    /**< client supports IRCv3.2 */
-    FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_EXEMPTFLOOD,               /**< Client is exempt from flood limits */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
-    FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
+    FLAG_GLOBAL_UMODES = FLAG_OPER, /**< First global mode flag */
+    FLAG_LAST_FLAG                  /**< number of flags */
   };
 
 /** Declare flagset type for operator privileges. */
