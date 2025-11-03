@@ -348,8 +348,8 @@ sline_stats(struct Client *sptr, const struct StatDesc *sd,
   int count = 0;
 
   for (sline = GlobalSlineList; sline; sline = sline->sl_next) {
-    if (sline->sl_expire > 0 && sline->sl_expire < TStime()) {
-      /* Expired S-line, skip it */
+    if (!(sline->sl_flags & SLINE_ACTIVE)) {
+      /* Deactivated S-line, skip it */
       continue;
     }
 
@@ -449,9 +449,8 @@ sline_burst(struct Client *cptr)
 {
   assert(cptr);
 
-  struct Sline *sline;
+  struct Sline *sline, *next;
 
-  struct Sline *next;
   for (sline = GlobalSlineList; sline; sline = next) {
     next = sline->sl_next;
     if (sline->sl_expire > 0 && sline->sl_expire < TStime()) {
@@ -556,7 +555,7 @@ sline_check_pattern(const char *text, sl_msgtype_t msg_type)
 int
 sline_check_pattern_bool(const char *text, sl_msgtype_t msg_type)
 {
-  struct Sline *sline;
+  struct Sline *sline, *next;
   regmatch_t matches[SLINE_MAX_CAPTURES];
   
   if (!text)
@@ -565,12 +564,18 @@ sline_check_pattern_bool(const char *text, sl_msgtype_t msg_type)
   Debug((DEBUG_DEBUG, "sline_check_pattern_bool: checking text='%s' against msg_type=0x%04x", text, msg_type));
 
   /* Check each S-line pattern */
-  for (sline = GlobalSlineList; sline; sline = sline->sl_next) {
+  for (sline = GlobalSlineList; sline; sline = next) {
+    next = sline->sl_next;
+    if (sline->sl_expire > 0 && sline->sl_expire < TStime()) {
+      sline_free(sline);
+      continue;
+    }
+
     /* Check if this S-line is active and valid and applies to the message type */
     if (!(sline->sl_msgtype & msg_type)
         || (sline->sl_expire > 0 && sline->sl_expire < TStime())
         || !(sline->sl_flags & SLINE_ACTIVE)
-        || !(sline->sl_flags & SLINE_INVALID))
+        || (sline->sl_flags & SLINE_INVALID))
       continue;
 
     Debug((DEBUG_DEBUG, "sline_check_pattern_bool: testing pattern '%s'", sline->sl_pattern));
