@@ -645,6 +645,13 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_cap, m_cap, m_ignore, m_cap, m_ignore }
   },
+  {
+    MSG_TAGMSG,
+    TOK_TAGMSG,
+    0, MAXPARA, 0, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { mu_tagmsg, m_tagmsg, ms_tagmsg, m_tagmsg, m_ignore }
+  },
   /* This command is an alias for QUIT during the unregistered part of
    * of the server.  This is because someone jumping via a broken web
    * proxy will send a 'POST' as their first command - which we will
@@ -827,6 +834,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   struct Client*  from = cptr;
   char*           ch;
   char*           s;
+  char*           tags = NULL;
   int             i;
   int             paramcount;
   struct Message* mptr;
@@ -838,7 +846,22 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     return 0;
 
   para[0] = cli_name(from);
+  
+  /* Check for message tags (IRCv3) */
   for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
+  if (*ch == '@')
+  {
+    /* Extract tags */
+    tags = ch;
+    for (++ch; *ch && *ch != ' '; ++ch)
+      ; /* Find end of tag block */
+    if (*ch == ' ')
+    {
+      *ch = '\0';  /* Null-terminate the tag block */
+      for (++ch; *ch == ' '; ch++); /* Eat spaces after tags */
+    }
+  }
+  
   if (*ch == ':')               /* Is any client doing this ? */
   {
     for (++ch; *ch && *ch != ' '; ++ch)
@@ -884,8 +907,12 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   paramcount = mptr->parameters;
   i = bufend - ((s) ? s : ch);
   mptr->bytes += i;
-  if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
-    cli_since(cptr) += (2 + i / 120);
+  
+  /* TAGMSG is exempt from penalties - it has its own rate limiting */
+  if (!(mptr->cmd && 0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG))) {
+    if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
+      cli_since(cptr) += (2 + i / 120);
+  }
   /*
    * Allow only 1 msg per 2 seconds
    * (on average) to prevent dumping.
@@ -942,6 +969,17 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
       for (; *s != ' ' && *s; s++);
     }
   }
+  
+  /* If this is TAGMSG and we had a tags prefix, insert it as first parameter */
+  if (tags && mptr && mptr->cmd && 0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG)) {
+    int j;
+    /* shift parameters up by one: para[1..i] -> para[2..i+1] */
+    for (j = i; j >= 1; --j)
+      para[j+1] = para[j];
+    para[1] = tags;
+    ++i;
+  }
+  
   para[++i] = NULL;
   ++mptr->count;
 

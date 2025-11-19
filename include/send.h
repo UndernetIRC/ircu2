@@ -106,6 +106,13 @@ extern void sendcmdto_channel_butone(struct Client *from, const char *cmd,
 				     struct Client *one, unsigned int skip,
 				     const char *pattern, ...);
 
+/* Send TAGMSG to channel users with message-tags capability */
+extern void sendcmdto_channel_tagmsg(struct Client *from, struct Channel *to,
+                                     struct Client *one, const char *tags);
+
+/* Send TAGMSG to private user with message-tags capability */
+extern void sendcmdto_user_tagmsg(struct Client *from, struct Client *to,
+                                  struct Client *one, const char *tags);
 
 /* Send JOIN to all local channel users matching or not matching capability flags */
 extern void sendjointo_channel_butserv(struct Client *from,

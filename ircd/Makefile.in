@@ -170,6 +170,7 @@ IRCD_SRC = \
 	m_silence.c \
 	m_squit.c \
 	m_stats.c \
+	m_tagmsg.c \
 	m_time.c \
 	m_topic.c \
 	m_trace.c \

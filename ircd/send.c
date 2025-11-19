@@ -998,3 +998,73 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 
   msgq_clean(mb);
 }
+
+/** Send TAGMSG to channel users with message-tags capability.
+ * @param[in] from Source of the TAGMSG.
+ * @param[in] to Target channel.
+ * @param[in] one Client direction to skip (or NULL).
+ * @param[in] tags Tag string to send.
+ */
+void sendcmdto_channel_tagmsg(struct Client *from, struct Channel *to,
+                              struct Client *one, const char *tags)
+{
+  struct Membership *member;
+  struct MsgBuf *user_mb;
+  struct MsgBuf *serv_mb;
+
+  /* Build buffer to send to users */
+  user_mb = msgq_make(0, "%s %:#C %s %H", tags ? tags : "", from, MSG_TAGMSG, to);
+
+  /* Build buffer to send to servers */
+  serv_mb = msgq_make(&me, "%s %:#C %s %H", tags ? tags : "", from, TOK_TAGMSG, to);
+
+  /* send buffer along! */
+  bump_sentalong(one);
+  for (member = to->members; member; member = member->next_member) {
+    /* skip zombies and users without the capability */
+    if (IsZombie(member) ||
+        cli_fd(cli_from(member->user)) < 0 ||
+        cli_sentalong(member->user) == sentalong_marker)
+      continue;
+
+    cli_sentalong(member->user) = sentalong_marker;
+
+    /* Only send to users with message-tags capability */
+    if (MyConnect(member->user)) {
+      if (CapActive(member->user, CAP_MESSAGETAGS))
+        send_buffer(member->user, user_mb, 0);
+    } else {
+      send_buffer(member->user, serv_mb, 0);
+    }
+  }
+
+  msgq_clean(user_mb);
+  msgq_clean(serv_mb);
+}
+
+/** Send TAGMSG to private user with message-tags capability.
+ * @param[in] from Source of the TAGMSG.
+ * @param[in] to Target user.
+ * @param[in] one Client direction to skip (or NULL).
+ * @param[in] tags Tag string to send.
+ */
+void sendcmdto_user_tagmsg(struct Client *from, struct Client *to,
+                           struct Client *one, const char *tags)
+{
+  if (MyConnect(to)) {
+    /* Only send to local users with message-tags capability */
+    if (CapActive(to, CAP_MESSAGETAGS)) {
+      struct MsgBuf *mb = msgq_make(0, "%s %:#C %s %C",
+                                    tags ? tags : "", from, MSG_TAGMSG, to);
+      send_buffer(to, mb, 0);
+      msgq_clean(mb);
+    }
+  } else {
+    /* Forward to remote server */
+    struct MsgBuf *mb = msgq_make(&me, "%s %:#C %s %C",
+                                  tags ? tags : "", from, TOK_TAGMSG, to);
+    send_buffer(to, mb, 0);
+    msgq_clean(mb);
+  }
+}
+
