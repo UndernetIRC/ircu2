@@ -7,7 +7,7 @@ dnl
 AC_DEFUN([unet_NONBLOCKING],
 [dnl Do we have posix, bsd or sysv non-blocking stuff ?
 AC_CACHE_CHECK([for posix non-blocking], unet_cv_sys_nonblocking_posix,
-[AC_TRY_RUN([#include <sys/types.h>
+[AC_RUN_IFELSE([AC_LANG_SOURCE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -29,12 +29,12 @@ int main(void)
     exit(0);
   }
   exit(1);
-}], unet_cv_sys_nonblocking_posix=yes, unet_cv_sys_nonblocking_posix=no)])
+}])], [unet_cv_sys_nonblocking_posix=yes], [unet_cv_sys_nonblocking_posix=no])])
 if test $unet_cv_sys_nonblocking_posix = yes; then
   AC_DEFINE([NBLOCK_POSIX],,[Define if you have POSIX non-blocking sockets.])
 else
 AC_CACHE_CHECK([for bsd non-blocking], unet_cv_sys_nonblocking_bsd,
-[AC_TRY_RUN([#include <sys/types.h>
+[AC_RUN_IFELSE([AC_LANG_SOURCE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -56,7 +56,7 @@ int main(void)
     exit(0);
   }
   exit(1);
-}], unet_cv_sys_nonblocking_bsd=yes, unet_cv_sys_nonblocking_bsd=no)])
+}])], [unet_cv_sys_nonblocking_bsd=yes], [unet_cv_sys_nonblocking_bsd=no])])
 if test $unet_cv_sys_nonblocking_bsd = yes; then
   AC_DEFINE([NBLOCK_BSD],,[Define if you have BSD non-blocking sockets.])
 else
@@ -74,14 +74,16 @@ dnl
 AC_DEFUN([unet_SIGNALS],
 [dnl Do we have posix signals, reliable bsd signals or unreliable sysv signals ?
 AC_CACHE_CHECK([for posix signals], unet_cv_sys_signal_posix,
-[AC_TRY_COMPILE([#include <signal.h>],
-[sigaction(SIGTERM, (struct sigaction *)0L, (struct sigaction *)0L)],
-unet_cv_sys_signal_posix=yes, unet_cv_sys_signal_posix=no)])
+[AC_COMPILE_IFELSE([AC_LANG_SOURCE([#include <signal.h>
+int main(void) {
+  sigaction(SIGTERM, (struct sigaction *)0L, (struct sigaction *)0L);
+  return 0;
+}])], [unet_cv_sys_signal_posix=yes], [unet_cv_sys_signal_posix=no])])
 if test $unet_cv_sys_signal_posix = yes; then
   AC_DEFINE([POSIX_SIGNALS],,[Define if you have POSIX signals.])
 else
 AC_CACHE_CHECK([for bsd reliable signals], unet_cv_sys_signal_bsd,
-[AC_TRY_RUN([#include <signal.h>
+[AC_RUN_IFELSE([AC_LANG_SOURCE([#include <signal.h>
 int calls = 0;
 $ac_cv_type_signal handler()
 {
@@ -95,7 +97,7 @@ int main(void)
   signal(SIGTERM, handler);
   kill(getpid(), SIGTERM);
   exit (0);
-}], unet_cv_sys_signal_bsd=yes, unet_cv_sys_signal_bsd=no)])
+}])], [unet_cv_sys_signal_bsd=yes], [unet_cv_sys_signal_bsd=no])])
 if test $unet_cv_sys_signal_bsd = yes; then
   AC_DEFINE([BSD_RELIABLE_SIGNALS],,[Define if you have (reliable) BSD signals.])
 else

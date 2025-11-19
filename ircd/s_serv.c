@@ -251,6 +251,8 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
 		    *s ? "+" : "", s, *s ? " " : "",
 		    iptobase64(xxx_buf, &cli_ip(acptr), sizeof(xxx_buf), IsIPv6(cptr)),
 		    NumNick(acptr), cli_info(acptr));
+      if (feature_bool(FEAT_AWAY_BURST) && cli_user(acptr)->away)
+        sendcmdto_one(acptr, CMD_AWAY, cptr, ":%s", cli_user(acptr)->away);
     }
   }
   /*

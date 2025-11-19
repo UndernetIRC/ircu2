@@ -56,7 +56,7 @@
 #define NTL_IRCHN   0x4000  /**< Hostnames charset (weak, RFC 1033)  */
 #define NTL_IRCIP   0x8000  /**< Numeric IPs charset (DIGIT and .)   */
 #define NTL_EOL    0x10000  /**< \\r\\n                              */
-#define NTL_KTIME  0x20000  /**< Valid character for a k:line time   */
+#define NTL_COMMAND 0x20000 /**< (NTL_ALPHA | '_')                   */
 #define NTL_CHPFX  0x40000  /**< channel prefix char # & +           */
 #define NTL_IRCIP6 0x80000  /**< Numeric IPv6 character (hex or colon) */
 
@@ -123,8 +123,8 @@ extern const unsigned int  IRCD_CharAttrTab[256];
 #define IsIP6Char(c)       (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_IRCIP6)
 /** Test whether a character is an end-of-line character. */
 #define IsEol(c)           (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_EOL)
-/** Test whether a character is valid in a K: line expiration string. */
-#define IsKTimeChar(c)     (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_KTIME)
+/** Test whether a character may be part of a command. */
+#define IsCommand(c)       (IRCD_CharAttrTab[(c) - CHAR_MIN] & NTL_COMMAND)
 
 
 #endif /* INCLUDED_ircd_chattr_h */
