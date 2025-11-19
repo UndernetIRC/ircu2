@@ -777,7 +777,9 @@ int auth_set_sasl(struct AuthRequest *auth, const char *crypt)
 {
   assert(auth != NULL);
   if(CapHas(cli_active(auth->client), CAP_SASL)) {
-	 sendto_iauth(auth->client, "Y %s", crypt);
+    if (!sendto_iauth(auth->client, "Y %s", crypt)) {
+      return -1;
+    }
   }
   return 0;
 }
@@ -1906,52 +1908,70 @@ static int iauth_cmd_username_forced(struct IAuth *iauth, struct Client *cli,
  * @return Non-zero if \a cli authorization should be checked for completion.
  */
 static int iauth_cmd_sasl(struct IAuth *iauth, struct Client *cli,
-				  int parc, char **params)
+                          int parc, char **params)
 {
+  enum { CMD_IDX = 0, NICK_IDX = 1, ACCOUNT_IDX = 2, TS_IDX = 4, ID_IDX = 3 };
   assert(cli_auth(cli) != NULL);
-  /* Sanity check. */
-  if (EmptyString(params[0])) {
+
+  if (parc < 1 || EmptyString(params[CMD_IDX])) {
+    send_reply(cli, ERR_SASLFAIL);
     return 0;
   }
-  char *cmd = params[0];
-	if(!ircd_strcmp(cmd, "Q")) {
-		sendcmdto_one(&me, CMD_AUTHENTICATE, cli, params[1]); 
-	} else if(!ircd_strcmp(cmd, "O")) {
-		send_reply(cli, ERR_SASLABORTED);
-	} else if(!ircd_strcmp(cmd, "S")) {
-		if (EmptyString(params[3]) || EmptyString(params[4])) {
-			return 0;
-		}		
-		char *nick = params[1];
-		char *account = params[2]; 
-		char *timestamp = params[3];
-		char *id = params[4];     
-		ircd_strncpy(cli_user(cli)->account, account, ACCOUNTLEN);
-        cli_user(cli)->acc_create = atoi(timestamp);
-	    cli_user(cli)->acc_id = strtoul(id, NULL, 10);
-		SetAccount(cli);
-		ircd_snprintf(0, cli_user(cli)->authhost, HOSTLEN, "%s.%s", account, feature_str(FEAT_HIDDEN_HOST));
-		int killreason = find_kill(cli,1);	
-	    if (killreason)
-	    {
-		  ++ServerStats->is_ref;
-		  return exit_client(cli, cli, &me,
-							(killreason == -1 ? "K-lined" : "G-lined"));
-	    }		
-		send_reply(cli, RPL_LOGGEDIN, cli, cli_name(cli), account);
-		send_reply(cli, RPL_SASLSUCCESS);
-	} else if(!ircd_strcmp(cmd, "N")) {
-		send_reply(cli, ERR_NICKLOCKED);
-		send_reply(cli, ERR_SASLFAIL);	
-	} else if(!ircd_strcmp(cmd, "L")) {
-		send_reply(cli, ERR_SASLTOOLONG);
-		send_reply(cli, ERR_SASLFAIL);
-	} else if(!ircd_strcmp(cmd, "A")) {
-		send_reply(cli, ERR_SASLALREADY);
-		send_reply(cli, ERR_SASLFAIL);
-	} else if(!ircd_strcmp(cmd, "F")) {
-		send_reply(cli, ERR_SASLFAIL);
-	}
+
+  const char *cmd = params[CMD_IDX];
+
+  if (!ircd_strcmp(cmd, "Q")) {
+    if (parc > NICK_IDX && !EmptyString(params[NICK_IDX]))
+      sendcmdto_one(&me, CMD_AUTHENTICATE, cli, params[NICK_IDX]);
+    else
+      send_reply(cli, ERR_SASLFAIL);
+  }
+  else if (!ircd_strcmp(cmd, "O")) {
+    send_reply(cli, ERR_SASLABORTED);
+  }
+  else if (!ircd_strcmp(cmd, "M")) {
+    if (parc > NICK_IDX)
+      send_reply(cli, RPL_SASLMECHS, params[parc - 1]);
+    send_reply(cli, ERR_SASLFAIL);
+  }
+  else if (!ircd_strcmp(cmd, "S")) {
+    if (parc <= ID_IDX || EmptyString(params[TS_IDX]) || EmptyString(params[ID_IDX])) {
+      send_reply(cli, ERR_SASLFAIL);
+      return 0;
+    }
+    const char *nick = params[NICK_IDX];
+    const char *account = params[ACCOUNT_IDX];
+    const char *flags = params[TS_IDX];
+    const char *id = params[ID_IDX];
+
+    ircd_strncpy(cli_user(cli)->account, account, ACCOUNTLEN);
+    cli_user(cli)->acc_flags = atoi(flags);
+    cli_user(cli)->acc_id = atoi(id);
+    SetAccount(cli);
+    send_reply(cli, RPL_LOGGEDIN, cli, cli_name(cli), account);
+    send_reply(cli, RPL_SASLSUCCESS);
+    
+    /* Clear iauth pending flag and continue registration */
+    FlagClr(&cli_auth(cli)->flags, AR_IAUTH_PENDING);
+  }
+  else if (!ircd_strcmp(cmd, "N")) {
+    send_reply(cli, ERR_NICKLOCKED);
+    send_reply(cli, ERR_SASLFAIL);
+  }
+  else if (!ircd_strcmp(cmd, "L")) {
+    send_reply(cli, ERR_SASLTOOLONG);
+    send_reply(cli, ERR_SASLFAIL);
+  }
+  else if (!ircd_strcmp(cmd, "A")) {
+    send_reply(cli, ERR_SASLALREADY);
+    send_reply(cli, ERR_SASLFAIL);
+  }
+  else if (!ircd_strcmp(cmd, "F")) {
+    send_reply(cli, ERR_SASLFAIL);
+  }
+  else {
+    send_reply(cli, ERR_SASLFAIL);
+  }
   return 0;
 }
 

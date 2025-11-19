@@ -106,12 +106,30 @@
 #include <stddef.h>
 
 /*
- * m_sasl - client message handler
+ * m_sasl - client message handler (for unregistered clients)
  */
 int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{		
-  if (parc < 2 || *parv[1] == '\0')
-    return need_more_params(sptr, "AUTHENTICATE");	
-  register_sasl(cptr, sptr, parc, parv);
-  return 0;
+{
+    if (parc < 2 || *parv[1] == '\0') {
+        return need_more_params(sptr, "AUTHENTICATE");
+    }
+    if (!cli_auth(cptr)) {
+        send_reply(sptr, ERR_SASLFAIL);
+        return 0;
+    }
+    int result = auth_set_sasl(cli_auth(cptr), parv[1]);
+    if (result < 0) {
+        send_reply(sptr, ERR_SASLFAIL);
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * mr_sasl - registered client message handler
+ * Returns ERR_SASLALREADY if client is already registered
+ */
+int mr_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
+{
+    return send_reply(sptr, ERR_SASLALREADY);
 }

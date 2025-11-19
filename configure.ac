@@ -41,8 +41,8 @@ ac_default_prefix=$unet_cv_prefix
 dnl Define the input and output configuration header file.
 AC_CONFIG_HEADERS([config.h])
 
-dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
-AC_PREREQ([2.72])
+dnl Demand at least version 2.71 of autoconf (for AS_HELP_STRING)
+AC_PREREQ([2.71])
 
 dnl Find out what type of system we are
 AC_CANONICAL_HOST
