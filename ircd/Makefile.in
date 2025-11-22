@@ -86,7 +86,9 @@ UMKPASSWD_SRC = ${CRYPTO_SRC} \
 
 IRCD_SRC = \
 	IPcheck.c \
+	batch.c \
 	channel.c \
+	msg_tag.c \
 	class.c \
 	client.c \
 	crule.c \

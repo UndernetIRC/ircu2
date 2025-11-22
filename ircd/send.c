@@ -24,10 +24,12 @@
 #include "config.h"
 
 #include "send.h"
+#include "batch.h"
 #include "channel.h"
 #include "class.h"
 #include "client.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
 #include "ircd_snprintf.h"
@@ -35,6 +37,7 @@
 #include "list.h"
 #include "match.h"
 #include "msg.h"
+#include "msg_tag.h"
 #include "numnicks.h"
 #include "parse.h"
 #include "s_bsd.h"
@@ -208,36 +211,70 @@ void send_queued(struct Client *to)
   update_write(to);
 }
 
-void send_tags(struct Client* to, struct Client* from, int prio)
+void send_tags(struct Client* to, struct MsgTag *tags, int prio)
 {
   char tags_buffer[512] = "";
   char *pos = tags_buffer;
   struct MsgBuf* buf;
+  struct MsgTag *tag;
+  const char *batch_id_in_tags = NULL;
 
   if (IsServer(to))
     return;
 
-  int tag_written = 0;
+  /* Check for batch tag and handle batch start automatically */
+  for (tag = tags; tag; tag = tag->next) {
+    if (strcmp(tag->key, "batch") == 0) {
+      batch_id_in_tags = tag->value;
+      break;
+    }
+  }
+  
+  if (batch_id_in_tags && CapHas(cli_active(to), CAP_BATCH)) {
+    /* Send batch start if we haven't already sent it for this batch */
+    enum BatchType type;
+    const char *param;
+    if (batch_get_meta(batch_id_in_tags, &type, &param)) {
+      batch_send_start(to, type, param, batch_id_in_tags);
+    }
+  }
+
+  /* Add tags from the tag list */
+  for (tag = tags; tag; tag = tag->next) {
+    /* Check capability for each tag type */
+    int should_add = 0;
+    if (strcmp(tag->key, "batch") == 0 && CapHas(cli_active(to), CAP_BATCH)) {
+      should_add = 1;
+    } else if (strcmp(tag->key, "account") == 0 && CapHas(cli_active(to), CAP_ACCOUNT_TAG)) {
+      should_add = 1;
+    } else {
+      should_add = 0; // TODO: We only add if message-tags capability is supported
+    }
+
+    if (should_add) {
+      if (tag->value) {
+	      pos += sprintf(pos, "%s=%s;", tag->key, tag->value);
+      } else {
+	      pos += sprintf(pos, "%s;", tag->key);
+      }
+    }
+  }
+
+  /* Add server-time tag if capability is enabled (time should never be added to the MsgTags list) */
   if (CapHas(cli_active(to), CAP_SERVER_TIME)) {
     char timestamp[32];
     iso8601_timestamp(timestamp, sizeof(timestamp));
-    pos += sprintf(pos, "@time=%s", timestamp);
-    tag_written = 1;
+    pos += sprintf(pos, "time=%s;", timestamp);
   }
 
-  if (CapHas(cli_active(to), CAP_ACCOUNT_TAG)
-      && from != NULL
-      && IsUser(from)
-      && cli_user(from) != NULL
-      && IsAccount(from)) {
-    if (tag_written) {
-      pos += sprintf(pos, ";account=%s", cli_user(from)->account);
-    } else {
-      pos += sprintf(pos, "@account=%s", cli_user(from)->account);
-    }
-    tag_written = 1;
-  }
-  if (tag_written) {
+  /* Remove trailing semicolon and prepend @ if we have tags */
+  if (pos > tags_buffer) {
+    pos--; /* Remove last semicolon */
+    *pos = '\0';
+    /* Prepend @ to the beginning */
+    memmove(tags_buffer + 1, tags_buffer, strlen(tags_buffer));
+    tags_buffer[0] = '@';
+    pos = tags_buffer + strlen(tags_buffer);
     pos += sprintf(pos, " ");
   }
 
@@ -254,8 +291,9 @@ void send_tags(struct Client* to, struct Client* from, int prio)
  * @param[in,out] to Client to send message to.
  * @param[in] buf Message to send.
  * @param[in] prio If non-zero, send as high priority.
+ * @param[in] tags Optional list of message tags (can be NULL).
  */
-void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int prio)
+void send_buffer(struct Client* to, struct MsgBuf* buf, int prio, struct MsgTag *tags)
 {
   assert(0 != to);
   assert(0 != buf);
@@ -278,7 +316,7 @@ void send_buffer(struct Client* to, struct Client* from, struct MsgBuf* buf, int
     return;
   }
 
-  send_tags(to, from, prio);
+  send_tags(to, tags, prio);
   Debug((DEBUG_SEND, "Sending [%p] to %s", buf, cli_name(to)));
 
   msgq_add(&(cli_sendQ(to)), buf, prio);
@@ -344,7 +382,7 @@ void sendrawto_one(struct Client *to, const char *pattern, ...)
   mb = msgq_vmake(to, pattern, vl);
   va_end(vl);
 
-  send_buffer(to, NULL, mb, 0);
+  send_buffer(to, mb, 0, NULL);
 
   msgq_clean(mb);
 }
@@ -372,7 +410,9 @@ void sendcmdto_one(struct Client *from, const char *cmd, const char *tok,
 
   va_end(vd.vd_args);
 
-  send_buffer(to, from, mb, 0);
+  struct MsgTag *tags = msg_tag_build(from, NULL);
+  send_buffer(to, mb, 0, tags);
+  msg_tag_free(tags);
 
   msgq_clean(mb);
 }
@@ -401,7 +441,9 @@ void sendcmdto_prio_one(struct Client *from, const char *cmd, const char *tok,
 
   va_end(vd.vd_args);
 
-  send_buffer(to, from, mb, 1);
+  struct MsgTag *tags = msg_tag_build(from, NULL);
+  send_buffer(to, mb, 1, tags);
+  msg_tag_free(tags);
 
   msgq_clean(mb);
 }
@@ -441,7 +483,7 @@ void sendcmdto_flag_serv_butone(struct Client *from, const char *cmd,
       continue;
     if ((forbid < FLAG_LAST_FLAG) && HasFlag(lp->value.cptr, forbid))
       continue;
-    send_buffer(lp->value.cptr, from, mb, 0);
+    send_buffer(lp->value.cptr, mb, 0, NULL);
   }
 
   msgq_clean(mb);
@@ -474,7 +516,7 @@ void sendcmdto_serv_butone(struct Client *from, const char *cmd,
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
-    send_buffer(lp->value.cptr, from, mb, 0);
+    send_buffer(lp->value.cptr, mb, 0, NULL);
   }
 
   msgq_clean(mb);
@@ -502,6 +544,8 @@ bump_sentalong(struct Client *one)
     cli_sentalong(one) = sentalong_marker;
 }
 
+
+
 /** Send a (prefixed) command to all channels that \a from is on.
  * @param[in] from Client originating the command.
  * @param[in] cmd Long name of command.
@@ -510,7 +554,7 @@ bump_sentalong(struct Client *one)
  * @param[in] pattern Format string for command arguments.
  */
 void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
-				      const char *tok, struct Client *one,
+				      const char *tok, struct Client *one, struct MsgTag *tags,
 				      const char *pattern, ...)
 {
   struct VarData vd;
@@ -539,18 +583,23 @@ void sendcmdto_common_channels_butone(struct Client *from, const char *cmd,
     if (IsZombie(chan) || IsDelayedJoin(chan))
       continue;
     for (member = chan->channel->members; member;
-	 member = member->next_member)
+	        member = member->next_member)
       if (MyConnect(member->user)
           && -1 < cli_fd(cli_from(member->user))
           && member->user != one
           && cli_sentalong(member->user) != sentalong_marker) {
-	cli_sentalong(member->user) = sentalong_marker;
-	send_buffer(member->user, from, mb, 0);
+        cli_sentalong(member->user) = sentalong_marker;
+        struct MsgTag *final_tags = msg_tag_add_account(tags, from);
+        send_buffer(member->user, mb, 0, final_tags);
+        if (final_tags != tags) msg_tag_free(final_tags);
       }
   }
 
-  if (MyConnect(from) && from != one)
-    send_buffer(from, from, mb, 0);
+  if (MyConnect(from) && from != one) {
+    struct MsgTag *final_tags = msg_tag_add_account(tags, from);
+    send_buffer(from, mb, 0, final_tags);
+    if (final_tags != tags) msg_tag_free(final_tags);
+  }
 
   msgq_clean(mb);
 }
@@ -606,7 +655,9 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
           && (forbid == 0 || !CapHas(cli_active(member->user), forbid)))
       {
           cli_sentalong(member->user) = sentalong_marker;
-          send_buffer(member->user, from, mb, 0);
+          struct MsgTag *tags = msg_tag_build(from, NULL);
+          send_buffer(member->user, mb, 0, tags);
+          msg_tag_free(tags);
       }
     }
   }
@@ -614,8 +665,11 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
   if (MyConnect(from)
       && from != one
       && (require == 0 || CapHas(cli_active(from), require))
-      && (forbid == 0 || !CapHas(cli_active(from), forbid)))
-    send_buffer(from, from, mb, 0);
+      && (forbid == 0 || !CapHas(cli_active(from), forbid))) {
+      struct MsgTag *tags = msg_tag_build(from, NULL);
+      send_buffer(from, mb, 0, tags);
+      msg_tag_free(tags);
+    }
 
   msgq_clean(mb);
 }
@@ -629,12 +683,14 @@ void sendcmdto_capflag_common_channels_butone(struct Client *from, const char *c
  * @param[in] skip Bitmask of SKIP_DEAF, SKIP_NONOPS, SKIP_NONVOICES indicating which clients to skip.
  * @param[in] require Only send to clients with this Flag bit set.
  * @param[in] forbid Do not send to clients with this Flag bit set.
+ * @param[in] tags Optional list of message tags (can be NULL).
  * @param[in] pattern Format string for command arguments.
  */
 void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *cmd,
 					      const char *tok, struct Channel *to,
 					      struct Client *one, unsigned int skip,
 					      capset_t require, capset_t forbid,
+                struct MsgTag *tags,
 					      const char *pattern, ...)
 {
   struct VarData vd;
@@ -660,7 +716,9 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
         || (forbid && CapHas(cli_active(member->user), forbid)))
         continue;
 
-    send_buffer(member->user, from, mb, 0);
+    struct MsgTag *final_tags = msg_tag_add_account(tags, from);
+    send_buffer(member->user, mb, 0, final_tags);
+    if (final_tags != tags) msg_tag_free(final_tags);
   }
 
   msgq_clean(mb);
@@ -675,13 +733,16 @@ void sendcmdto_capflag_channel_butserv_butone(struct Client *from, const char *c
  */
 void sendjointo_channel_butserv(struct Client *from, struct Channel *chptr,
 				capset_t require,
-				capset_t forbid)
+				capset_t forbid,
+				struct MsgTag *tags)
 {
+  /* Pass through tags if provided (from server struct during netjoin) */
+  /* Send JOIN messages with tags */
   sendcmdto_capflag_channel_butserv_butone(from, CMD_JOIN, chptr, NULL,
-    0, require | CAP_EXTJOIN, forbid, "%H %s :%s", chptr,
+    0, require | CAP_EXTJOIN, forbid, tags, "%H %s :%s", chptr,
     IsAccount(from) ? cli_account(from) : "*", cli_info(from));
   sendcmdto_capflag_channel_butserv_butone(from, CMD_JOIN, chptr, NULL,
-    0, require, forbid | CAP_EXTJOIN, "%H", chptr);
+    0, require, forbid | CAP_EXTJOIN, tags, "%H", chptr);
 }
 
 /* Send JOIN to a single user.
@@ -734,7 +795,9 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
         || (skip & SKIP_NONOPS && !IsChanOp(member))
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
         continue;
-      send_buffer(member->user, from, mb, 0);
+      struct MsgTag *tags = msg_tag_build(from, NULL);
+      send_buffer(member->user, mb, 0, tags);
+      msg_tag_free(tags);
   }
 
   msgq_clean(mb);
@@ -777,7 +840,9 @@ void sendcmdto_channel_servers_butone(struct Client *from, const char *cmd,
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
       continue;
     cli_sentalong(member->user) = sentalong_marker;
-    send_buffer(member->user, from, serv_mb, 0);
+    struct MsgTag *tags = msg_tag_build(from, NULL);
+    send_buffer(member->user, serv_mb, 0, tags);
+    msg_tag_free(tags);
   }
   msgq_clean(serv_mb);
 }
@@ -831,10 +896,12 @@ void sendcmdto_channel_butone(struct Client *from, const char *cmd,
       continue;
     cli_sentalong(member->user) = sentalong_marker;
 
+    struct MsgTag *tags = msg_tag_build(from, NULL);
     if (MyConnect(member->user)) /* pick right buffer to send */
-      send_buffer(member->user, from, user_mb, 0);
+      send_buffer(member->user, user_mb, 0, tags);
     else
-      send_buffer(member->user, from, serv_mb, 0);
+      send_buffer(member->user, serv_mb, 0, tags);
+    msg_tag_free(tags);
   }
 
   msgq_clean(user_mb);
@@ -894,7 +961,9 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
          (!SendWallops(cptr) || (his_wallops && !IsAnOper(cptr)))) ||
         (type == WALL_WALLUSERS && !SendWallops(cptr)))
       continue; /* skip it */
-    send_buffer(cptr, from, mb, 1);
+    struct MsgTag *tags = msg_tag_build(from, NULL);
+    send_buffer(cptr, mb, 1, tags);
+    msg_tag_free(tags);
   }
 
   msgq_clean(mb);
@@ -908,7 +977,9 @@ void sendwallto_group_butone(struct Client *from, int type, struct Client *one,
   for (lp = cli_serv(&me)->down; lp; lp = lp->next) {
     if (one && lp->value.cptr == cli_from(one))
       continue;
-    send_buffer(lp->value.cptr, from, mb, 1);
+    struct MsgTag *tags = msg_tag_build(from, NULL);
+    send_buffer(lp->value.cptr, mb, 1, tags);
+    msg_tag_free(tags);
   }
 
   msgq_clean(mb);
@@ -955,10 +1026,12 @@ void sendcmdto_match_butone(struct Client *from, const char *cmd,
       continue; /* skip it */
     cli_sentalong(cptr) = sentalong_marker;
 
+    struct MsgTag *tags = msg_tag_build(from, NULL);
     if (MyConnect(cptr)) /* send right buffer */
-      send_buffer(cptr, from, user_mb, 0);
+      send_buffer(cptr, user_mb, 0, tags);
     else
-      send_buffer(cptr, from, serv_mb, 0);
+      send_buffer(cptr, serv_mb, 0, tags);
+    msg_tag_free(tags);
   }
 
   msgq_clean(user_mb);
@@ -1037,7 +1110,7 @@ void vsendto_opmask_butone(struct Client *one, unsigned int mask,
 
   for (; opslist; opslist = opslist->next)
     if (opslist->value.cptr != one)
-      send_buffer(opslist->value.cptr, NULL, mb, 0);
+      send_buffer(opslist->value.cptr, mb, 0, NULL);
 
   msgq_clean(mb);
 }

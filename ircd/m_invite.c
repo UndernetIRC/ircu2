@@ -189,14 +189,14 @@ int m_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      */
     sendcmdto_capflag_channel_butserv_butone(sptr, CMD_INVITE,
                                              chptr, sptr, SKIP_NONOPS,
-                                             CAP_INVITENOTIFY, 0,
+                                             CAP_INVITENOTIFY, 0, NULL,
                                              "%C %H", acptr, chptr);
 
     if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
       /* Announce to channel operators without CAP_INVITENOTIFY enabled. */
       sendcmdto_capflag_channel_butserv_butone(&his, get_error_numeric(RPL_ISSUEDINVITE)->str,
                                                NULL, chptr, sptr, SKIP_NONOPS,
-                                               0, CAP_INVITENOTIFY,
+                                               0, CAP_INVITENOTIFY, NULL,
                                                "%H %C %C :%C has been invited by %C",
                                                chptr, acptr, sptr, acptr, sptr);
       /* Announce to servers with channel operators. */
@@ -300,14 +300,14 @@ int ms_invite(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   /* Announce to channel operators with CAP_NOTIFY enabled. */
   sendcmdto_capflag_channel_butserv_butone(sptr, CMD_INVITE,
                                            chptr, sptr, SKIP_NONOPS,
-                                           CAP_INVITENOTIFY, 0,
+                                           CAP_INVITENOTIFY, 0, NULL,
                                            "%C %H", acptr, chptr);
 
   if (feature_bool(FEAT_ANNOUNCE_INVITES)) {
     /* Announce to channel operators without CAP_NOTIFY enabled. */
     sendcmdto_capflag_channel_butserv_butone(&his, get_error_numeric(RPL_ISSUEDINVITE)->str,
                                              NULL, chptr, sptr, SKIP_NONOPS,
-                                             0, CAP_INVITENOTIFY,
+                                             0, CAP_INVITENOTIFY, NULL,
                                              "%H %C %C :%C has been invited by %C",
                                              chptr, acptr, sptr, acptr, sptr);
     /* Announce to servers with channel operators. */

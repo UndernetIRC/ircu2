@@ -1101,7 +1101,7 @@ void send_channel_modes(struct Client *cptr, struct Channel *chptr)
       }
     }
 
-    send_buffer(cptr, NULL, mb, 0);  /* Send this message */
+    send_buffer(cptr, mb, 0, NULL);  /* Send this message */
     msgq_clean(mb);
   }                             /* Continue when there was something
                                  that didn't fit (full==1) */
@@ -3556,7 +3556,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     if (!((chan->mode.mode & MODE_DELJOINS) && !(flags & CHFL_VOICED_OR_OPPED))) {
       /* Send the notification to the channel */
-      sendjointo_channel_butserv(jbuf->jb_source, chan, 0, 0);
+      sendjointo_channel_butserv(jbuf->jb_source, chan, 0, 0, NULL);
       if (cli_user(jbuf->jb_source)->away)
         sendcmdto_capflag_common_channels_butone(jbuf->jb_source, CMD_AWAY, jbuf->jb_connect,
           CAP_AWAYNOTIFY, 0, ":%s", cli_user(jbuf->jb_source)->away);
@@ -3651,10 +3651,10 @@ int IsInvited(struct Client* cptr, const void* chptr)
 void RevealDelayedJoin(struct Membership *member)
 {
   ClearDelayedJoin(member);
-  sendjointo_channel_butserv(member->user, member->channel, 0, 0);
+  sendjointo_channel_butserv(member->user, member->channel, 0, 0, NULL);
   if (cli_user(member->user)->away)
     sendcmdto_capflag_channel_butserv_butone(member->user, CMD_AWAY, member->channel,
-      NULL, 0, CAP_AWAYNOTIFY, 0, ":%s", cli_user(member->user)->away);
+      NULL, 0, CAP_AWAYNOTIFY, 0, NULL, ":%s", cli_user(member->user)->away);
   CheckDelayedJoins(member->channel);
 }
 

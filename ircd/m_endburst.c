@@ -81,10 +81,12 @@
  */
 #include "config.h"
 
+#include "batch.h"
 #include "channel.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
+#include "ircd_alloc.h"
 #include "ircd_log.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -111,6 +113,8 @@
 int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chan, *next_chan;
+  struct Client *local_user;
+  char *batch_id;
 
   assert(0 != cptr);
   assert(0 != sptr);
@@ -122,6 +126,13 @@ int ms_end_of_burst(struct Client* cptr, struct Client* sptr, int parc, char* pa
   SetBurstAck(sptr);
   if (MyConnect(sptr))
     sendcmdto_one(&me, CMD_END_OF_BURST_ACK, sptr, "");
+
+  /* Send batch end for netjoin batch if one was created */
+  batch_id = cli_serv(sptr)->batch_id;
+  if (batch_id) {
+    batch_complete(batch_id);
+    cli_serv(sptr)->batch_id = NULL;
+  }
 
   /* Count through channels... */
   for (chan = GlobalChannelList; chan; chan = next_chan) {

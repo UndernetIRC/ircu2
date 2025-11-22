@@ -279,7 +279,7 @@ client_report_privs(struct Client *to, struct Client *client)
     if (HasPriv(client, privtab[i].priv))
       msgq_append(0, mb, "%s%s", found1++ ? " " : "", privtab[i].name);
 
-  send_buffer(to, NULL, mb, 0); /* send response */
+  send_buffer(to, mb, 0, NULL); /* send response */
   msgq_clean(mb);
 
   return 0;

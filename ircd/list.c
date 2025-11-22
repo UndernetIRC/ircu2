@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "list.h"
+#include "batch.h"
 #include "client.h"
 #include "ircd.h"
 #include "ircd_alloc.h"
@@ -349,6 +350,10 @@ void remove_client_from_list(struct Client *cptr)
     cli_prev(cli_next(cptr)) = cli_prev(cptr);
   }
   cli_next(cptr) = cli_prev(cptr) = 0;
+
+  /* Remove client from all batch lists */
+  if (MyConnect(cptr))
+    batch_remove_client(cptr);
 
   if (IsUser(cptr) && cli_user(cptr)) {
     add_history(cptr, 0);

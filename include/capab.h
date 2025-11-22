@@ -39,6 +39,7 @@
 #define CAPLIST	\
 	_CAP(ACCOUNTNOTIFY, FEAT_CAP_ACCOUNTNOTIFY, 0, "account-notify"), \
 	_CAP(AWAYNOTIFY, FEAT_CAP_AWAYNOTIFY, 0 , "away-notify"), \
+	_CAP(BATCH, FEAT_CAP_BATCH, 0, "batch"), \
 	_CAP(CHGHOST, FEAT_CAP_CHGHOST, 0, "chghost"), \
 	_CAP(ECHOMESSAGE, FEAT_CAP_ECHOMESSAGE, 0, "echo-message"), \
 	_CAP(EXTJOIN, FEAT_CAP_EXTJOIN, 0, "extended-join"), \

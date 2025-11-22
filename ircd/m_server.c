@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include "batch.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -635,6 +636,23 @@ int mr_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (*parv[7] == '+')
     set_server_flags(cptr, parv[7] + 1);
 
+  if (!cli_serv(cptr)->batch_id) {
+    char batch_param[HOSTLEN + HOSTLEN + 2];
+    
+    /* Determine the netjoin comment (same logic as netsplit but with *.join) */
+    if (feature_bool(FEAT_HIS_NETSPLIT))
+    	strcpy(batch_param, "*.net *.join");
+    else
+    {
+      strcpy(batch_param, cli_name(&me));
+      strcat(batch_param, " ");
+      strcat(batch_param, cli_name(cptr));
+    }
+      
+    cli_serv(cptr)->batch_id = batch_generate_id();
+    batch_register(cli_serv(cptr)->batch_id, BATCH_TYPE_NETJOIN, batch_param);
+  }
+
   recv_time = TStime();
   check_start_timestamp(cptr, timestamp, start_timestamp, recv_time);
   ret = server_estab(cptr, aconf);
@@ -757,6 +775,22 @@ int ms_server(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   {
     SetBurst(acptr);
     SetJunction(acptr);
+    /* Generate batch ID for this netjoin burst */
+    if (!cli_serv(acptr)->batch_id) {
+      char batch_param[HOSTLEN + HOSTLEN + 2];
+      
+      /* Determine the netjoin comment (same logic as netsplit but with *.join) */
+      if (feature_bool(FEAT_HIS_NETSPLIT))
+        strcpy(batch_param, "*.net *.join");
+      else {
+        strcpy(batch_param, cli_name(sptr));
+        strcat(batch_param, " ");
+        strcat(batch_param, cli_name(acptr));
+      }
+      
+      cli_serv(acptr)->batch_id = batch_generate_id();
+      batch_register(cli_serv(acptr)->batch_id, BATCH_TYPE_NETJOIN, batch_param);
+    }
     for (bcptr = cli_serv(acptr)->up; !IsMe(bcptr); bcptr = cli_serv(bcptr)->up)
       if (IsBurstOrBurstAck(bcptr))
           break;

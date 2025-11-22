@@ -82,6 +82,7 @@
 #include "config.h"
 
 #include "channel.h"
+#include "msg_tag.h"
 #include "client.h"
 #include "hash.h"
 #include "ircd.h"
@@ -544,11 +545,13 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  {
 	    add_user_to_channel(chptr, acptr, current_mode, oplevel);
 	    if (!(current_mode & CHFL_DELAYED)) {
-	      sendjointo_channel_butserv(acptr, chptr, 0, 0);
-              if (cli_user(acptr)->away)
-                sendcmdto_capflag_channel_butserv_butone(acptr, CMD_AWAY, chptr,
-                  NULL, 0, CAP_AWAYNOTIFY, 0, ":%s", cli_user(acptr)->away);
-              }
+	      struct MsgTag *tags = cli_serv(sptr)->batch_id ? 
+		                          msg_tag_build_batch(cli_serv(sptr)->batch_id) : NULL;
+	      sendjointo_channel_butserv(acptr, chptr, 0, 0, tags);
+        if (cli_user(acptr)->away)
+          sendcmdto_capflag_channel_butserv_butone(acptr, CMD_AWAY, chptr,
+            NULL, 0, CAP_AWAYNOTIFY, 0, NULL, ":%s", cli_user(acptr)->away);
+        }
 	  }
 	  else
 	  {

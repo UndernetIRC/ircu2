@@ -364,6 +364,13 @@ struct Client;
 #define TOK_CAP			"CAP"
 #define CMD_CAP			MSG_CAP, TOK_CAP
 
+#ifdef MSG_BATCH
+#undef MSG_BATCH
+#endif
+#define MSG_BATCH		"BATCH"		/* BATCH */
+#define TOK_BATCH		"BATCH"
+#define CMD_BATCH		MSG_BATCH, TOK_BATCH
+
 #define MSG_XQUERY		"XQUERY"
 #define TOK_XQUERY		"XQ"
 #define CMD_XQUERY		MSG_XQUERY, TOK_XQUERY

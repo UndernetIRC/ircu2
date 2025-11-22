@@ -371,6 +371,7 @@ static struct FeatureDesc {
   /* IRCv3 capabilities */
   F_B(CAP_ACCOUNTNOTIFY, 0, 1, 0),
   F_B(CAP_AWAYNOTIFY, 0, 1, 0),
+  F_B(CAP_BATCH, 0, 1, 0),
   F_B(CAP_CHGHOST, 0, 1, 0),
   F_B(CAP_ECHOMESSAGE, 0, 1, 0),
   F_B(CAP_EXTJOIN, 0, 1, 0),

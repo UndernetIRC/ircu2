@@ -87,6 +87,11 @@
 /** Maximum length for away messages.
  */
 #define AWAYLEN		160
+
+/** Maximum length for a batch ID.
+ */
+#define BATCHLEN        20
+
 /** Exactly long enough to hold one protocol message (RFC 1459)
  * including the line termination (\\r\\n).  DO NOT CHANGE THIS!!!!
  */

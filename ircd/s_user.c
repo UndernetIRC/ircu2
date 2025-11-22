@@ -621,7 +621,7 @@ int set_nick_name(struct Client* cptr, struct Client* sptr,
      * on that channel. Propagate notice to other servers.
      */
     if (IsUser(sptr)) {
-      sendcmdto_common_channels_butone(sptr, CMD_NICK, NULL, ":%s", nick);
+      sendcmdto_common_channels_butone(sptr, CMD_NICK, NULL, NULL, ":%s", nick);
       add_history(sptr, 1);
       sendcmdto_serv_butone(sptr, CMD_NICK, cptr, "%s %Tu", nick,
                             cli_lastnick(sptr));
@@ -869,7 +869,7 @@ void send_user_info(struct Client* sptr, char* names, int rpl, InfoFormatter fmt
     if (5 == ++arg_count)
       break;
   }
-  send_buffer(sptr, NULL, mb, 0);
+  send_buffer(sptr, mb, 0, NULL);
   msgq_clean(mb);
 }
 
@@ -924,18 +924,18 @@ hide_hostmask(struct Client *cptr, unsigned int flag)
     /* Send a JOIN unless the user's join has been delayed. */
     if (!IsDelayedJoin(chan))
     {
-      sendjointo_channel_butserv(cptr, chan->channel, 0, CAP_CHGHOST);
+      sendjointo_channel_butserv(cptr, chan->channel, 0, CAP_CHGHOST, NULL);
       if (cli_user(cptr)->away)
         sendcmdto_capflag_channel_butserv_butone(cptr, CMD_AWAY, chan->channel,
-          NULL, 0, CAP_AWAYNOTIFY, CAP_CHGHOST, ":%s", cli_user(cptr)->away);
+          NULL, 0, CAP_AWAYNOTIFY, CAP_CHGHOST, NULL, ":%s", cli_user(cptr)->away);
     }
     if (IsChanOp(chan) && HasVoice(chan))
       sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-                                       0, CAP_CHGHOST, "%H +ov %C %C", chan->channel, cptr,
+                                       0, CAP_CHGHOST, NULL, "%H +ov %C %C", chan->channel, cptr,
                                        cptr);
     else if (IsChanOp(chan) || HasVoice(chan))
       sendcmdto_capflag_channel_butserv_butone(&his, CMD_MODE, chan->channel, cptr, 0,
-        0, CAP_CHGHOST, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
+        0, CAP_CHGHOST, NULL, "%H +%c %C", chan->channel, IsChanOp(chan) ? 'o' : 'v', cptr);
   }
   return 0;
 }
