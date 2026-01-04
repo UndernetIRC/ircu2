@@ -34,11 +34,11 @@
  * Because certain networks are very helpful in finding bugs, the below
  * is a default that can easily be overridden in CFLAGS.  Just add
  * -DNICKLEN=15 to CFLAGS during configure, and you can forget about
- * it.  Thanks for helping debug guys.
+ * it.
  * See also F:NICKLEN in ircd.conf.
  */
 #ifndef NICKLEN
-#define NICKLEN         15
+#define NICKLEN         31
 #endif
 /** Maximum length allowed of a user name, including an optional
  * leading '~' if the user name has not been authenticated by an auth (RFC 931)
