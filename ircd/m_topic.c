@@ -86,7 +86,7 @@ static void do_settopic(struct Client *sptr, struct Client *cptr,
      if (member && IsDelayedJoin(member))
        RevealDelayedJoin(member);
 
-     sendcmdto_channel_butserv_butone(from, CMD_TOPIC, chptr, NULL, 0,
+     sendcmdto_channel_butserv_butone(from, CMD_TOPIC, chptr, NULL, 0, NULL,
       				       "%H :%s", chptr, chptr->topic);
    }
       /* if this is the same topic as before we send it to the person that

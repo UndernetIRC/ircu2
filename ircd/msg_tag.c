@@ -1,6 +1,6 @@
 /*
  * IRC - Internet Relay Chat, ircd/msg_tag.c
- * Copyright (C) 2024
+ * Copyright (C) 2025
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

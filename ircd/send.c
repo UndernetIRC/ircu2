@@ -773,7 +773,7 @@ void sendjointo_one(struct Client *from,
 void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
 				      const char *tok, struct Channel *to,
 				      struct Client *one, unsigned int skip,
-                                      const char *pattern, ...)
+              struct MsgTag* tags, const char *pattern, ...)
 {
   struct VarData vd;
   struct MsgBuf *mb;
@@ -795,9 +795,9 @@ void sendcmdto_channel_butserv_butone(struct Client *from, const char *cmd,
         || (skip & SKIP_NONOPS && !IsChanOp(member))
         || (skip & SKIP_NONVOICES && !IsChanOp(member) && !HasVoice(member)))
         continue;
-      struct MsgTag *tags = msg_tag_build(from, NULL);
+//      struct MsgTag *final_tags = msg_tag_add_account(tags, from);
       send_buffer(member->user, mb, 0, tags);
-      msg_tag_free(tags);
+//      if (final_tags != tags) msg_tag_free(final_tags);
   }
 
   msgq_clean(mb);

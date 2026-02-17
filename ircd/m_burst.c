@@ -213,6 +213,8 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
   unsigned int parse_flags = (MODE_PARSE_FORCE | MODE_PARSE_BURST);
   int param, nickpos = 0, banpos = 0;
   char modestr[BUFSIZE], nickstr[BUFSIZE], banstr[BUFSIZE];
+  struct MsgTag *tags = cli_serv(sptr)->batch_id ?
+                        msg_tag_build_batch(cli_serv(sptr)->batch_id) : NULL;
 
   if (parc < 3)
     return protocol_violation(sptr,"Too few parameters for BURST");
@@ -312,7 +314,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
               && (!(check_modes & MODE_REGONLY) || IsAccount(member->user)))
             continue;
           sendcmdto_serv_butone(&me, CMD_KICK, NULL, "%H %C :Net Rider", chptr, member->user);
-          sendcmdto_channel_butserv_butone(&his, CMD_KICK, chptr, NULL, 0, "%H %C :Net Rider", chptr, member->user);
+          sendcmdto_channel_butserv_butone(&his, CMD_KICK, chptr, NULL, 0, tags, "%H %C :Net Rider", chptr, member->user);
           make_zombie(member, member->user, &me, &me, chptr);
         }
       }
@@ -352,7 +354,7 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
       *chptr->topic = '\0';
       *chptr->topic_nick = '\0';
       chptr->topic_time = 0;
-      sendcmdto_channel_butserv_butone(&his, CMD_TOPIC, chptr, NULL, 0,
+      sendcmdto_channel_butserv_butone(&his, CMD_TOPIC, chptr, NULL, 0, NULL,
                                        "%H :%s", chptr, chptr->topic);
     }
   } else if (chptr->creationtime == timestamp) {
@@ -545,13 +547,13 @@ int ms_burst(struct Client *cptr, struct Client *sptr, int parc, char *parv[])
 	  {
 	    add_user_to_channel(chptr, acptr, current_mode, oplevel);
 	    if (!(current_mode & CHFL_DELAYED)) {
-	      struct MsgTag *tags = cli_serv(sptr)->batch_id ? 
-		                          msg_tag_build_batch(cli_serv(sptr)->batch_id) : NULL;
 	      sendjointo_channel_butserv(acptr, chptr, 0, 0, tags);
         if (cli_user(acptr)->away)
           sendcmdto_capflag_channel_butserv_butone(acptr, CMD_AWAY, chptr,
-            NULL, 0, CAP_AWAYNOTIFY, 0, NULL, ":%s", cli_user(acptr)->away);
-        }
+            NULL, 0, CAP_AWAYNOTIFY, 0, tags, ":%s", cli_user(acptr)->away);
+        if (mbuf)
+          mbuf->mb_tags = tags;
+          }
 	  }
 	  else
 	  {

@@ -92,6 +92,7 @@ extern void sendcmdto_channel_butserv_butone(struct Client *from,
 					     struct Channel *to,
 					     struct Client *one,
                          unsigned int skip,
+						 struct MsgTag *tags,
 					     const char *pattern, ...);
 
 /* Send command to all servers interested in a channel */

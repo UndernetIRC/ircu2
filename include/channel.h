@@ -311,6 +311,7 @@ struct ModeBuf {
   struct Channel       *mb_channel;	/**< Channel they affect */
   unsigned int		mb_dest;	/**< Destination of MODE changes */
   unsigned int		mb_count;	/**< Number of modes w/args */
+  struct MsgTag   *mb_tags; /**< Message tags for this mode change */
   struct {
     unsigned int	mbm_type;	/**< Type of argument */
     union {

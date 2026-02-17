@@ -1794,7 +1794,7 @@ modebuf_flush_int(struct ModeBuf *mbuf, int all)
 		addbuf_i ? "+" : "", addbuf, remstr, addstr);
 
     if (mbuf->mb_dest & MODEBUF_DEST_CHANNEL)
-      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL, 0,
+      sendcmdto_channel_butserv_butone(app_source, CMD_MODE, mbuf->mb_channel, NULL, 0, mbuf->mb_tags,
                                        "%H %s%s%s%s%s%s%s%s", mbuf->mb_channel,
                                        rembuf_i || rembuf_local_i ? "-" : "",
                                        rembuf, rembuf_local,
@@ -1951,6 +1951,7 @@ modebuf_init(struct ModeBuf *mbuf, struct Client *source,
   mbuf->mb_channel = chan;
   mbuf->mb_dest = dest;
   mbuf->mb_count = 0;
+  mbuf->mb_tags = NULL;
 
   /* clear each mode-with-parameter slot */
   for (i = 0; i < MAXMODEPARAMS; i++) {
@@ -3522,9 +3523,10 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
 
     /* Send notification to channel */
     if (!(flags & (CHFL_ZOMBIE | CHFL_DELAYED)))
-      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL, 0,
+      sendcmdto_channel_butserv_butone(jbuf->jb_source, CMD_PART, chan, NULL, 0, NULL,
 				(flags & CHFL_BANNED || !jbuf->jb_comment) ?
 				":%H" : "%H :%s", chan, jbuf->jb_comment);
+
     else if (MyUser(jbuf->jb_source))
       sendcmdto_one(jbuf->jb_source, CMD_PART, jbuf->jb_source,
 		    (flags & CHFL_BANNED || !jbuf->jb_comment) ?
@@ -3564,7 +3566,7 @@ joinbuf_join(struct JoinBuf *jbuf, struct Channel *chan, unsigned int flags)
       /* send an op, too, if needed */
       if (flags & CHFL_CHANOP && (oplevel < MAXOPLEVEL || !MyUser(jbuf->jb_source)))
 	sendcmdto_channel_butserv_butone((chan->mode.apass[0] ? &his : jbuf->jb_source),
-                                         CMD_MODE, chan, NULL, 0, "%H +o %C",
+                                         CMD_MODE, chan, NULL, 0, NULL, "%H +o %C",
 					 chan, jbuf->jb_source);
     } else if (MyUser(jbuf->jb_source))
       sendjointo_one(jbuf->jb_source, chan, jbuf->jb_source);
@@ -3664,7 +3666,7 @@ void CheckDelayedJoins(struct Channel *chan)
 {
   if ((chan->mode.mode & MODE_WASDELJOINS) && !find_delayed_joins(chan)) {
     chan->mode.mode &= ~MODE_WASDELJOINS;
-    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0,
+    sendcmdto_channel_butserv_butone(&his, CMD_MODE, chan, NULL, 0, NULL,
                                      "%H -d", chan);
   }
 }
