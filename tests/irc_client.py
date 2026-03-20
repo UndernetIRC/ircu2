@@ -180,19 +180,16 @@ class IRCClient:
 
         Non-matching messages are stashed in the buffer for later retrieval.
         """
-        deadline = asyncio.get_event_loop().time() + timeout
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
         # First check buffered messages
-        remaining_buffer = []
-        for msg in self._buffer:
+        for i, msg in enumerate(self._buffer):
             if msg.command == command or msg.command.upper() == command.upper():
-                remaining_buffer.extend(self._buffer[self._buffer.index(msg) + 1:])
-                self._buffer = remaining_buffer
+                self._buffer = self._buffer[:i] + self._buffer[i + 1:]
                 return msg
-            remaining_buffer.append(msg)
-        self._buffer = remaining_buffer
         # Then read from stream
         while True:
-            remaining = deadline - asyncio.get_event_loop().time()
+            remaining = deadline - loop.time()
             if remaining <= 0:
                 raise asyncio.TimeoutError(
                     f"Timed out waiting for {command}"
@@ -208,7 +205,7 @@ class IRCClient:
         Returns the full list including the terminator message.
         """
         collected = []
-        deadline = asyncio.get_event_loop().time() + timeout
+        deadline = asyncio.get_running_loop().time() + timeout
         while True:
             remaining = deadline - asyncio.get_event_loop().time()
             if remaining <= 0:
