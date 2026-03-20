@@ -1,6 +1,5 @@
 """pytest fixtures for ircu2 integration testing."""
 
-import asyncio
 import subprocess
 import time
 
@@ -30,7 +29,7 @@ def docker_compose(*args, check=True):
         ["docker", "compose"] + list(args),
         capture_output=True,
         text=True,
-        timeout=300,
+        timeout=600,
     )
     if check and result.returncode != 0:
         raise RuntimeError(
@@ -44,10 +43,22 @@ LEAF1 = {"host": "127.0.0.1", "port": 6668, "server_port": 4401, "name": "leaf1.
 LEAF2 = {"host": "127.0.0.1", "port": 6669, "server_port": 4402, "name": "leaf2.test.net"}
 
 
+def _start_services(*services):
+    """Stop any running containers, rebuild, and start fresh."""
+    docker_compose("down", check=False)
+    args = ["up", "--build", "--force-recreate", "-d"]
+    args.extend(services)
+    docker_compose(*args)
+
+
 @pytest.fixture(scope="session")
 def ircd_hub():
-    """Start the hub ircd container. Session-scoped — shared across all tests."""
-    docker_compose("up", "--build", "-d", "ircd-hub")
+    """Start the hub ircd container. Session-scoped — shared across all tests.
+
+    Always rebuilds the image from the current working tree to ensure
+    the test runs against the checked-out code.
+    """
+    _start_services("ircd-hub")
     try:
         wait_for_port(HUB["host"], HUB["port"])
         yield HUB
@@ -57,8 +68,11 @@ def ircd_hub():
 
 @pytest.fixture(scope="session")
 def ircd_network():
-    """Start all three ircd containers (hub + 2 leaves). Session-scoped."""
-    docker_compose("up", "--build", "-d")
+    """Start all three ircd containers (hub + 2 leaves). Session-scoped.
+
+    Always rebuilds from the current working tree.
+    """
+    _start_services()
     try:
         for server in (HUB, LEAF1, LEAF2):
             wait_for_port(server["host"], server["port"])
