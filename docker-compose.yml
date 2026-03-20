@@ -9,7 +9,8 @@ services:
       - "6667:6667"
       - "4400:4400"
     networks:
-      - ircu-test-net
+      ircu-test-net:
+        ipv4_address: 10.55.0.10
 
   ircd-leaf1:
     build:
@@ -21,7 +22,8 @@ services:
       - "6668:6668"
       - "4401:4401"
     networks:
-      - ircu-test-net
+      ircu-test-net:
+        ipv4_address: 10.55.0.11
     depends_on:
       - ircd-hub
 
@@ -35,10 +37,14 @@ services:
       - "6669:6669"
       - "4402:4402"
     networks:
-      - ircu-test-net
+      ircu-test-net:
+        ipv4_address: 10.55.0.12
     depends_on:
       - ircd-hub
 
 networks:
   ircu-test-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.55.0.0/24
