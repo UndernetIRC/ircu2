@@ -6,33 +6,33 @@ Python-based integration test suite for ircu2 using Docker and pytest.
 
 - Docker and Docker Compose
 - Python 3.10+
-- pip
+- [uv](https://docs.astral.sh/uv/)
 
 ## Setup
 
 ```bash
-pip install -r tests/requirements.txt
+uv sync
 ```
 
 ## Running Tests
 
 ```bash
 # All tests (starts Docker containers automatically)
-pytest tests/
+uv run pytest tests/
 
 # Specific PR tests
-pytest tests/pr59_part_messages/
-pytest tests/pr61_uhnames/
+uv run pytest tests/pr59_part_messages/
+uv run pytest tests/pr61_uhnames/
 
 # Only unit tests (no Docker needed)
-pytest tests/test_irc_client.py
+uv run pytest tests/test_irc_client.py
 
 # By marker
-pytest -m single_server    # tests needing only the hub
-pytest -m multi_server     # tests needing hub + 2 leaves
+uv run pytest -m single_server    # tests needing only the hub
+uv run pytest -m multi_server     # tests needing hub + 2 leaves
 
 # Verbose with output
-pytest tests/ -v -s --timeout=60
+uv run pytest tests/ -v -s --timeout=60
 ```
 
 ## Test Organization

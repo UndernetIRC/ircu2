@@ -3,6 +3,11 @@ name = "ircu2-tests"
 version = "0.1.0"
 description = "Test harness for ircu2 IRC daemon"
 requires-python = ">=3.10"
+dependencies = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-timeout",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
