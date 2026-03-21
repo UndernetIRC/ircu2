@@ -41,11 +41,17 @@ Each PR has its own directory under `tests/`:
 
 ```
 tests/
+  irc_client.py          # Async IRC client for client-level testing
+  p10_server.py          # Fake P10 server for server-to-server testing
+  conftest.py            # pytest fixtures (ircd_hub, ircd_network, make_client)
   pr59_part_messages/
     test_fix.py          # TDD: reproduces the exact bug the PR fixes
     test_edge_cases.py   # Adversarial: tries to break the implementation
   pr61_uhnames/
     test_fix.py
+    test_edge_cases.py
+  pr62_remote_x/
+    test_fix.py          # S2S tests using P10Server for OPMODE +x and ACCOUNT
     test_edge_cases.py
 ```
 
@@ -65,6 +71,13 @@ Three ircd servers form a test network:
 The hub is a HUB server. Leaves autoconnect to the hub. All servers have `NODNS` enabled for fast client registration.
 
 Operator credentials: name `testoper`, password `operpass`.
+
+The hub also has Connect blocks for two external test servers used by the P10 test harness:
+
+| Server              | Numeric | U:lined | Purpose                          |
+|---------------------|---------|---------|----------------------------------|
+| services.test.net   | 4       | Yes     | Fake services for S2S testing    |
+| notulined.test.net  | 5       | No      | Non-U:lined server for rejection tests |
 
 Configs are baked into the Docker images (in `tests/docker/`), not volume-mounted.
 
@@ -97,6 +110,32 @@ msg = await client.send_and_expect("NAMES #channel", "366")
 
 `Message` is a namedtuple: `Message(prefix, command, params)`.
 
+## P10 Server API
+
+`tests/p10_server.py` provides `P10Server` — a fake IRC server that connects to ircd on its server port and speaks the P10 protocol. This enables testing server-to-server behavior (OPMODE, ACCOUNT, etc.) that can't be triggered from client connections.
+
+```python
+from tests.p10_server import P10Server
+
+srv = P10Server("services.test.net", numeric=4, password="testpass")
+await srv.connect("127.0.0.1", 4400)
+await srv.handshake()
+
+# Wait for a user to appear (registered after handshake)
+numnick = await srv.wait_for_user("somenick")
+
+# Send S2S commands
+await srv.send_account(numnick, "AccountName")
+await srv.send_opmode(numnick, "+x")
+
+# Read server responses
+await srv.drain_messages()
+
+await srv.disconnect()
+```
+
+The P10 server handles the full handshake (PASS, SERVER, burst, EB/EA), auto-responds to PINGs, and tracks users by parsing NICK messages. It requires a matching Connect block in the hub config.
+
 ## pytest Fixtures
 
 - **`ircd_hub`** (session) — starts the hub container, yields connection info
@@ -114,7 +153,8 @@ msg = await client.send_and_expect("NAMES #channel", "366")
 3. Write `test_fix.py` — reproduce the bug/feature
 4. Write `test_edge_cases.py` — try to break it
 5. Use `@pytest.mark.single_server` or `@pytest.mark.multi_server`
-6. Use the `/ircu2-test` Claude skill for automated test generation
+6. For S2S protocol tests, use `P10Server` to connect as a fake server
+7. Use the `/ircu2-test` Claude skill for automated test generation
 
 ## Troubleshooting
 
