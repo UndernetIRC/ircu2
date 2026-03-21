@@ -17,3 +17,6 @@ EXTRA_DIST = \
     ChangeLog.11 \
     ChangeLog.12 \
     Doxyfile
+
+dist-hook:
+	rm -rf `find $(distdir) -name __pycache__ -o -name .pytest_cache`
