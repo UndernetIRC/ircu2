@@ -22,7 +22,7 @@ dnl
 
 dnl Make sure we are in the correct directory (someone could have run
 dnl 'configure' with a wrong '--srcdir').
-AC_INIT
+AC_INIT([ircu2], [10.12.19])
 AC_CONFIG_SRCDIR([ircd/ircd.c])
 
 dnl Set the default prefix
@@ -40,6 +40,8 @@ ac_default_prefix=$unet_cv_prefix
 
 dnl Define the input and output configuration header file.
 AC_CONFIG_HEADERS([config.h])
+
+AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 
 dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
 AC_PREREQ([2.72])
@@ -118,7 +120,7 @@ AC_MSG_RESULT([yes])
 
 dnl Test for programs
 AC_PROG_AWK
-AC_PROG_MAKE_SET
+
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PATH_PROGS(RMPROG, rm, /bin/rm)
@@ -713,8 +715,7 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
 dnl Finally really generate all output files:
-AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
-    [echo timestamp > stamp-h])
+AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile])
 AC_OUTPUT
 
 dnl Report configuration

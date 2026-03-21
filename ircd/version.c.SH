@@ -87,7 +87,7 @@ const char *infotext[] = {
 
 ( for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
     case `basename $file` in
-      version.c | y.tab.c | lex.yy.c | chattr.tab.c ) ;;
+      version.c | ircd_parser.c | lex.yy.c | chattr.tab.c ) ;;
       * ) echo $file ;;
     esac done ) | ./umkpasswd -5 >> version.c
 
