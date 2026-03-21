@@ -42,7 +42,8 @@
 	_CAP(CHGHOST, FEAT_CAP_CHGHOST, 0, "chghost"), \
 	_CAP(ECHOMESSAGE, FEAT_CAP_ECHOMESSAGE, 0, "echo-message"), \
 	_CAP(EXTJOIN, FEAT_CAP_EXTJOIN, 0, "extended-join"), \
-	_CAP(INVITENOTIFY, FEAT_CAP_INVITENOTIFY, 0, "invite-notify")
+	_CAP(INVITENOTIFY, FEAT_CAP_INVITENOTIFY, 0, "invite-notify"), \
+	_CAP(UHNAMES, FEAT_CAP_UHNAMES, 0, "userhost-in-names")
 
 /** Client capabilities, counting by index. */
 enum Capab {
