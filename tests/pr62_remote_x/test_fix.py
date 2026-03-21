@@ -204,6 +204,69 @@ async def test_remote_opmode_x_without_account(ircd_network, services):
             await client.disconnect()
 
 
+async def test_account_rejected_from_non_ulined_server(ircd_network):
+    """ACCOUNT from a non-U:lined server should be rejected with ERR_NOPRIVILEGES.
+
+    This is the second change in PR #62: ms_account now checks for a
+    CONF_UWORLD entry before accepting ACCOUNT. A server without a
+    UWorld block should get 481 back and the user's account should
+    not be set.
+    """
+    hub = ircd_network["hub"]
+
+    # Connect a non-U:lined fake server (has Connect block but no UWorld)
+    rogue = P10Server(
+        name="notulined.test.net",
+        numeric=5,
+        password="testpass",
+    )
+    await rogue.connect(hub["host"], hub["server_port"])
+    await rogue.handshake()
+
+    # Connect a user to the hub
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("usr62d", "testuser", "Test User")
+
+    # Observer to check WHOIS
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    await observer.register("obs62d", "testuser", "Test User")
+
+    try:
+        numnick = await rogue.wait_for_user("usr62d")
+
+        # Non-U:lined server tries to set ACCOUNT
+        await rogue.send_account(numnick, "HackedAcct")
+        await asyncio.sleep(0.5)
+
+        # Drain messages from the rogue server — should see 481
+        await rogue.drain_messages(timeout=1.0)
+        got_denied = any("481" in line for line in rogue.received)
+
+        assert got_denied, (
+            "Non-U:lined server did not get ERR_NOPRIVILEGES for ACCOUNT — "
+            "the U:line restriction from PR #62 may not be applied"
+        )
+
+        # Verify the user does NOT have an account set
+        await observer.send("WHOIS usr62d")
+        whois = await observer.collect_until("318", timeout=5.0)
+        acct_replies = [m for m in whois if m.command == "330"]
+        assert len(acct_replies) == 0, (
+            f"User should NOT have an account from non-U:lined server: "
+            f"{acct_replies[0].params if acct_replies else 'none'}"
+        )
+    finally:
+        await rogue.disconnect()
+        for client in (user, observer):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
 async def test_remote_opmode_o_still_works(ircd_network, services):
     """OPMODE +o from U:lined server should still work (regression test).
 
