@@ -57,6 +57,31 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** Array of command parameters. */
+static char *para[MAXPARA + 2]; /* leave room for prefix and null */
+
+static int command_supports_message_tags(struct Message* mptr)
+{
+  return mptr && mptr->cmd &&
+         (0 == ircd_strcmp(mptr->cmd, MSG_PRIVATE) ||
+          0 == ircd_strcmp(mptr->cmd, MSG_NOTICE) ||
+          0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG));
+}
+
+static int prepend_message_tags(char* tags, struct Message* mptr, int argc)
+{
+  int j;
+
+  if (!tags || !command_supports_message_tags(mptr))
+    return argc;
+
+  for (j = argc; j >= 1; --j)
+    para[j + 1] = para[j];
+  para[1] = tags;
+
+  return argc + 1;
+}
+
 /*
  * Message Tree stuff mostly written by orabidoo, with changes by Dianora.
  * Adapted to Undernet, adding token support, etc by comstud 10/06/97
@@ -645,6 +670,13 @@ struct Message msgtab[] = {
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
     { m_cap, m_cap, m_ignore, m_cap, m_ignore }
   },
+  {
+    MSG_TAGMSG,
+    TOK_TAGMSG,
+    0, MAXPARA, MFLG_IGNORE, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_ignore, m_tagmsg, ms_tagmsg, m_tagmsg, m_ignore }
+  },
   /* This command is an alias for QUIT during the unregistered part of
    * of the server.  This is because someone jumping via a broken web
    * proxy will send a 'POST' as their first command - which we will
@@ -660,10 +692,6 @@ struct Message msgtab[] = {
   },
   { 0 }
 };
-
-/** Array of command parameters. */
-static char *para[MAXPARA + 2]; /* leave room for prefix and null */
-
 
 /** Add a message to the lookup trie.
  * @param[in,out] mtree_p Trie node to insert under.
@@ -827,6 +855,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   struct Client*  from = cptr;
   char*           ch;
   char*           s;
+  char*           tags = NULL;
   int             i;
   int             paramcount;
   struct Message* mptr;
@@ -838,7 +867,22 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     return 0;
 
   para[0] = cli_name(from);
+  
+  /* Check for message tags (IRCv3) */
   for (ch = buffer; *ch == ' '; ch++);  /* Eat leading spaces */
+  if (*ch == '@')
+  {
+    /* Extract tags */
+    tags = ch;
+    for (++ch; *ch && *ch != ' '; ++ch)
+      ; /* Find end of tag block */
+    if (*ch == ' ')
+    {
+      *ch = '\0';  /* Null-terminate the tag block */
+      for (++ch; *ch == ' '; ch++); /* Eat spaces after tags */
+    }
+  }
+  
   if (*ch == ':')               /* Is any client doing this ? */
   {
     for (++ch; *ch && *ch != ' '; ++ch)
@@ -884,8 +928,12 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
   paramcount = mptr->parameters;
   i = bufend - ((s) ? s : ch);
   mptr->bytes += i;
-  if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
-    cli_since(cptr) += (2 + i / 120);
+  
+  /* TAGMSG is exempt from penalties - it has its own rate limiting */
+  if (!(mptr->cmd && 0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG))) {
+    if ((mptr->flags & MFLG_SLOW) || !IsAnOper(cptr))
+      cli_since(cptr) += (2 + i / 120);
+  }
   /*
    * Allow only 1 msg per 2 seconds
    * (on average) to prevent dumping.
@@ -942,6 +990,9 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
       for (; *s != ' ' && *s; s++);
     }
   }
+  
+  i = prepend_message_tags(tags, mptr, i);
+  
   para[++i] = NULL;
   ++mptr->count;
 
@@ -967,6 +1018,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   struct Client*  from = cptr;
   char*           ch = buffer;
   char*           s;
+  char*           tags = NULL;
   int             len;
   int             i;
   int             numeric = 0;
@@ -979,6 +1031,21 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     return 0;
 
   para[0] = cli_name(from);
+
+  while (*ch == ' ')
+    ch++;
+  if (*ch == '@')
+  {
+    tags = ch;
+    for (++ch; *ch && *ch != ' '; ++ch)
+      ;
+    if (*ch == ' ')
+    {
+      *ch = '\0';
+      for (++ch; *ch == ' '; ch++)
+        ;
+    }
+  }
 
   /*
    * A server ALWAYS sends a prefix. When it starts with a ':' it's the
@@ -1246,6 +1313,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       for (; *s != ' ' && *s; s++);
     }
   }
+  i = prepend_message_tags(tags, mptr, i);
   para[++i] = NULL;
   if (numeric)
     return (do_numeric(numeric, (*buffer != ':'), cptr, from, i, para));

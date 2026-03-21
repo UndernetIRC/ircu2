@@ -202,6 +202,8 @@ struct Connection
   time_t              con_nexttarget;/**< Next time a target change is allowed */
   time_t              con_lasttime;  /**< Last time data read from socket */
   time_t              con_since;     /**< Last time we accepted a command */
+  time_t              con_tagmsg_window; /**< Window start (seconds) for TAGMSG rate */
+  unsigned int        con_tagmsg_count;  /**< TAGMSGs seen in current window */
   struct MsgQ         con_sendQ;     /**< Outgoing message queue */
   struct DBuf         con_recvQ;     /**< Incoming data yet to be parsed */
   unsigned int        con_sendM;     /**< Stats: protocol messages sent */
@@ -339,6 +341,10 @@ struct Client {
 #define cli_nextnick(cli)	con_nextnick(cli_connect(cli))
 /** Get next time a target change is allowed for the client. */
 #define cli_nexttarget(cli)	con_nexttarget(cli_connect(cli))
+/** Get TAGMSG window start time for the client. */
+#define cli_tagmsg_window(cli)  con_tagmsg_window(cli_connect(cli))
+/** Get TAGMSG count in current window for the client. */
+#define cli_tagmsg_count(cli)   con_tagmsg_count(cli_connect(cli))
 /** Get SendQ for client. */
 #define cli_sendQ(cli)		con_sendQ(cli_connect(cli))
 /** Get RecvQ for client. */
@@ -418,6 +424,10 @@ struct Client {
 #define con_lasttime(con)       ((con)->con_lasttime)
 /** Get last time we accepted a command from the connection. */
 #define con_since(con)          ((con)->con_since)
+/** Get TAGMSG window start time for the connection. */
+#define con_tagmsg_window(con)  ((con)->con_tagmsg_window)
+/** Get TAGMSG count for the connection. */
+#define con_tagmsg_count(con)   ((con)->con_tagmsg_count)
 /** Get SendQ for connection. */
 #define con_sendQ(con)		((con)->con_sendQ)
 /** Get RecvQ for connection. */

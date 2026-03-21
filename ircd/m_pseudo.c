@@ -142,7 +142,7 @@ int m_pseudo(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
         || (server != cli_user(target)->server))
       continue;
     nh->nick[nh->nicklen] = '@';
-    relay_directed_message(sptr, nh->nick, nh->nick + nh->nicklen, text);
+    relay_directed_message(sptr, nh->nick, nh->nick + nh->nicklen, text, 0);
     return 0;
   }
 
