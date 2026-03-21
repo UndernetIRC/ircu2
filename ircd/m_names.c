@@ -116,6 +116,7 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
   int flag;
   int needs_space; 
   int len; 
+  int cap_extra = CapHas(cli_active(sptr), CAP_UHNAMES) ? (1 + USERLEN + 1 + HOSTLEN) : 0;
   char buf[BUFSIZE];
   struct Client *c2ptr;
   struct Membership* member;
@@ -174,8 +175,18 @@ void do_names(struct Client* sptr, struct Channel* chptr, int filter)
       buf[idx++] = '+';
     strcpy(buf + idx, cli_name(c2ptr));
     idx += strlen(cli_name(c2ptr));
+
+    if (CapHas(cli_active(sptr), CAP_UHNAMES)) {
+      buf[idx++] = '!';
+      strcpy(buf + idx, cli_user(c2ptr)->username);
+      idx += strlen(cli_user(c2ptr)->username);
+      buf[idx++] = '@';
+      strcpy(buf + idx, cli_user(c2ptr)->host);
+      idx += strlen(cli_user(c2ptr)->host);
+    }
+
     flag = 1;
-    if (mlen + idx + NICKLEN + 5 > BUFSIZE)
+    if (mlen + idx + NICKLEN + 5 + cap_extra > BUFSIZE)
       /* space, modifier, nick, \r \n \0 */
     {
       send_reply(sptr, (filter & NAMES_DEL) ? RPL_DELNAMREPLY : RPL_NAMREPLY, buf);
