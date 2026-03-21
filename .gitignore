@@ -22,6 +22,9 @@
 Makefile.in
 Makefile
 
+# Editor/tool backup files
+*~
+
 # Build artifacts
 .deps/
 .project
