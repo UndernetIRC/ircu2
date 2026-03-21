@@ -116,11 +116,11 @@ async def test_remote_opmode_x_sets_hidden_host(ircd_network, services):
 
 
 async def test_remote_opmode_x_without_account(ircd_network, services):
-    """OPMODE +x on a user without an account should be silently ignored.
+    """OPMODE +x should be ignored without account, then work once account is set.
 
     The PR #62 implementation requires IsAccount(dptr) before applying +x.
-    Without an account, there's no point setting +x since the host won't
-    be hidden anyway. The server should not send a MODE notification.
+    This test verifies both sides: first +x is silently ignored (no account),
+    then after ACCOUNT is set, the same +x succeeds.
     """
     hub = ircd_network["hub"]
 
@@ -141,14 +141,13 @@ async def test_remote_opmode_x_without_account(ircd_network, services):
         host_before = [m for m in whois_before if m.command == "311"]
         original_host = host_before[0].params[3]
 
-        # Send OPMODE +x WITHOUT setting account first
+        # --- Phase 1: +x WITHOUT account should be ignored ---
         await services.send_opmode(numnick, "+x")
         await asyncio.sleep(0.5)
 
         # User should NOT get a MODE notification (no account = +x ignored)
         try:
             mode_msg = await user.wait_for("MODE", timeout=2.0)
-            # If we got a MODE, it shouldn't be +x
             has_x = "x" in mode_msg.params[-1]
             assert not has_x, (
                 f"User got MODE +x without account — should be ignored: "
@@ -166,6 +165,35 @@ async def test_remote_opmode_x_without_account(ircd_network, services):
         assert new_host == original_host, (
             f"Host should NOT change without account: "
             f"{original_host!r} -> {new_host!r}"
+        )
+
+        # --- Phase 2: set account, then +x should succeed ---
+        await services.send_account(numnick, "TestAcct62b")
+        await asyncio.sleep(0.3)
+
+        await services.send_opmode(numnick, "+x")
+        await asyncio.sleep(0.5)
+
+        try:
+            mode_msg = await user.wait_for("MODE", timeout=3.0)
+            assert "x" in mode_msg.params[-1], (
+                f"Expected +x after account was set: {mode_msg.params}"
+            )
+        except asyncio.TimeoutError:
+            pytest.fail(
+                "User did not receive MODE +x after account was set — "
+                "OPMODE +x should work once IsAccount is true"
+            )
+
+        # Host should now be hidden
+        await observer.send("WHOIS usr62b")
+        whois_final = await observer.collect_until("318", timeout=5.0)
+        host_final = [m for m in whois_final if m.command == "311"]
+        final_host = host_final[0].params[3]
+
+        assert final_host != original_host, (
+            f"Host should be hidden after ACCOUNT + OPMODE +x: "
+            f"still {original_host!r}"
         )
     finally:
         for client in (user, observer):
