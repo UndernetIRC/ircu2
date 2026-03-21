@@ -39,6 +39,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 #define KQUEUE_ERROR_THRESHOLD	20	/**< after 20 kqueue errors, restart */
 #define ERROR_EXPIRE_TIME	3600	/**< expire errors after an hour */
@@ -102,7 +103,7 @@ engine_init(int max_sockets)
 static void
 engine_signal(struct Signal* sig)
 {
-  struct kevent sigevent;
+  struct kevent sigevent = {0};
   struct sigaction act;
 
   assert(0 != sig);
@@ -165,7 +166,7 @@ static void
 set_or_clear(struct Socket* sock, unsigned int clear, unsigned int set)
 {
   int i = 0;
-  struct kevent chglist[2];
+  struct kevent chglist[2] = {0};
 
   assert(0 != sock);
   assert(-1 < s_fd(sock));
