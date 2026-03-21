@@ -685,7 +685,7 @@ AC_DEFINE_UNQUOTED(LPATH, "$unet_lpath", [Path to debugging log file])
 dnl --with-maxcon allows us to set the maximum connections
 AC_MSG_CHECKING([max connections])
 AC_ARG_WITH([maxcon],
-[  --with-maxcon=maxcon    Maximum number of connections server will accept],
+[  --with-maxcon=maxcon    Maximum number of connections server will accept (default: 16384)],
 [unet_cv_with_maxcon=$with_maxcon],
 [AC_CACHE_VAL(unet_cv_with_maxcon,
 [unet_cv_with_maxcon=16384])])
