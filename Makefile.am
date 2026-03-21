@@ -15,6 +15,7 @@ MAINTAINERCLEANFILES = \
     depcomp \
     compile \
     ylwrap \
+    test-driver \
     Makefile.in \
     ircd/Makefile.in \
     ircd/test/Makefile.in

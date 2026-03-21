@@ -9,6 +9,7 @@
 /depcomp
 /compile
 /ylwrap
+/test-driver
 /stamp-h.in
 /autom4te.cache/
 /config.h

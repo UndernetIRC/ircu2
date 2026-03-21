@@ -3,6 +3,8 @@ AM_CFLAGS = -g -Wall
 
 check_PROGRAMS = ircd_chattr_t ircd_in_addr_t ircd_match_t ircd_string_t
 
+TESTS = $(check_PROGRAMS)
+
 ircd_chattr_t_SOURCES = ircd_chattr_t.c test_stub.c
 ircd_chattr_t_LDADD = ../ircd_string.o
 
