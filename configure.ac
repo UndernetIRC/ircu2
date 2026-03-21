@@ -683,28 +683,15 @@ fi
 AC_DEFINE_UNQUOTED(LPATH, "$unet_lpath", [Path to debugging log file])
 
 dnl --with-maxcon allows us to set the maximum connections
-unet_maxcon=`ulimit -Hn`
-if test x"$unet_maxcon" = xunlimited; then
-    unet_maxcon=`ulimit -Sn`
-fi
-unet_maxcon=`expr $unet_maxcon - 4`
-dnl NN_MAX_CLIENT_P reflects SetYXXCapacity() and how it is called
-NN_MAX_CLIENT_P=262168
-if test "$unet_maxcon" -gt $NN_MAX_CLIENT_P ; then
-    unet_maxcon=$NN_MAX_CLIENT_P
-fi
 AC_MSG_CHECKING([max connections])
 AC_ARG_WITH([maxcon],
 [  --with-maxcon=maxcon    Maximum number of connections server will accept],
 [unet_cv_with_maxcon=$with_maxcon],
 [AC_CACHE_VAL(unet_cv_with_maxcon,
-[unet_cv_with_maxcon=$unet_maxcon])])
+[unet_cv_with_maxcon=16384])])
 
 if test x"$unet_cv_with_maxcon" = xyes -o x"$unet_cv_with_maxcon" = xno; then
-    if test "$unet_maxcon" -lt 32; then
-      AC_MSG_ERROR([Maximum connections (number of open files minus 4) must be at least 32.])
-    fi
-    unet_cv_with_maxcon=$unet_maxcon
+    unet_cv_with_maxcon=16384
 elif test "$unet_cv_with_maxcon" -lt 32; then
     AC_MSG_ERROR([Maximum connections (--with-maxcon) must be at least 32.])
 fi
