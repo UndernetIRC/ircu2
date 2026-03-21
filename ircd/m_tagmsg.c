@@ -38,6 +38,7 @@
 #include "ircd_chattr.h"
 #include "ircd_features.h"
 #include "ircd_log.h"
+#include "ircd_messagetags.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "msg.h"
@@ -47,127 +48,33 @@
 #include "send.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
-#include <string.h>
-
-/* Forward declaration */
-int ms_tagmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[]);
-
-/* Limits (conservative) */
-#define TAGMSG_LINE_TAGS_MAX   1024   /**< total length of tag segment */
-#define TAGMSG_KEY_MAX         64     /**< max length of a tag key */
-#define TAGMSG_VALUE_MAX       256    /**< max length of a tag value */
-#define TAGMSG_COUNT_MAX       64     /**< max number of tags */
-
-/** Check if character is valid in a tag key.
- * @param[in] c Character to check.
- * @return Non-zero if valid, zero otherwise.
- */
-static int valid_tag_key_char(int c)
-{
-  return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-          (c >= '0' && c <= '9') || c == '-' || c == '/' || c == '+' || c == '.');
-}
-
-/** Validate and normalize tag string.
- * Tags are modified in-place to decode escape sequences.
- * @param[in,out] tags Tag string to validate (modified in-place).
- * @return 0 on success, -1 on validation error.
- */
-static int validate_and_normalize_tags(char *tags)
-{
-  if (!tags || *tags != '@')
-    return 0; /* no tag prefix */
-
-  char *p = tags + 1; /* skip leading '@' */
-  int tag_count = 0;
-  
-  while (*p) {
-    if (tag_count++ >= TAGMSG_COUNT_MAX)
-      return -1;
-      
-    char *key_start = p;
-    while (*p && *p != '=' && *p != ';') {
-      if (!valid_tag_key_char((unsigned char)*p))
-        return -1;
-      if ((p - key_start) >= TAGMSG_KEY_MAX)
-        return -1;
-      p++;
-    }
-    
-    if (*p == '=') {
-      p++; /* value start */
-      char *val_start = p;
-      char *write = p; /* decode escape sequences */
-      
-      while (*p && *p != ';') {
-        if (*p == '\\') { /* escape */
-          p++;
-          if (*p == ':' || *p == 's' || *p == 'r' || *p == 'n' || *p == '\\') {
-            /* Decode IRCv3 tag escapes */
-            switch (*p) {
-              case ':':  *write++ = ';';  break;
-              case 's':  *write++ = ' ';  break;
-              case 'r':  *write++ = '\r'; break;
-              case 'n':  *write++ = '\n'; break;
-              case '\\': *write++ = '\\'; break;
-            }
-            p++;
-          } else if (*p) {
-            /* unknown escape, keep char if present */
-            *write++ = *p++;
-          }
-        } else {
-          *write++ = *p++;
-        }
-        
-        if ((write - val_start) >= TAGMSG_VALUE_MAX)
-          return -1;
-      }
-      
-      *write = '\0';
-      p = (*p == ';') ? p + 1 : p; /* skip separator */
-    } else if (*p == ';') {
-      /* key-only tag */
-      p++;
-    } else {
-      /* end of string after a key-only tag */
-      break;
-    }
-  }
-  
-  return 0;
-}
 
 /** Handle TAGMSG from local clients.
  * @param[in] cptr Client that sent the command.
  * @param[in] sptr Original source of the command.
  * @param[in] parc Number of parameters.
- * @param[in] parv Parameter array. parv[1] = target
+ * @param[in] parv Parameter array. parv[1] = tags, parv[2] = target
  */
 int m_tagmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char *tags;
+  char *target;
+  int too_long;
   struct Channel *chptr;
   struct Client *acptr;
 
-  /* After parser shift: parv[1]=tags, parv[2]=target */
-  if (parc < 3 || EmptyString(parv[1]) || EmptyString(parv[2]))
+  if (!ircd_parse_message_tags(sptr, parc, parv, &tags, &target, 0, 1, 0))
     return need_more_params(sptr, "TAGMSG");
 
   /* Check if capability is negotiated */
   if (!feature_bool(FEAT_CAP_MESSAGETAGS) || !CapActive(sptr, CAP_MESSAGETAGS))
     return 0;
 
-  /* Get tags from parv[1] (inserted by parser) */
-  tags = parv[1];
-  
-  /* Validate tag length */
-  if (strlen(tags) > TAGMSG_LINE_TAGS_MAX)
-    return 0; /* silently drop oversized tag block */
-
-  /* Validate and normalize tags */
-  if (validate_and_normalize_tags(tags) != 0)
-    return 0; /* invalid tag syntax */
+  if (!ircd_sanitize_message_tags(&tags, 1, 1, 1, &too_long)) {
+    if (too_long)
+      return send_reply(sptr, ERR_INPUTTOOLONG);
+    return 0;
+  }
 
   /* Apply per-client TAGMSG rate limiting for local users */
   if (MyUser(sptr)) {
@@ -192,77 +99,74 @@ int m_tagmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
   }
 
-  /* Find target (now in parv[2] after parser shift) */
-  if (IsChannelName(parv[2])) {
-    if (!(chptr = FindChannel(parv[2])))
+  /* Find target */
+  if (IsChannelName(target)) {
+    if (!(chptr = FindChannel(target)))
       return 0; /* No such channel */
 
     /* Check permissions */
     if (!client_can_send_to_channel(sptr, chptr, 0))
       return 0;
 
-    /* Send to channel members with message-tags capability */
-    sendcmdto_channel_tagmsg(sptr, chptr, cptr, tags);
+    sendcmdto_capflag_channel_butserv_butone_tagged(sptr, CMD_TAGMSG, chptr,
+                                                    cptr, 0,
+                                                    CAP_MESSAGETAGS, 0,
+                                                    tags, "%H", chptr);
+    sendcmdto_channel_servers_butone_tagged(sptr, CMD_TAGMSG, chptr, cptr, 0,
+                                            tags, "%H", chptr);
   } else {
-    if (!(acptr = FindUser(parv[2])))
+    if (!(acptr = FindUser(target)))
       return 0; /* No such nick */
 
     /* Check if silenced */
     if (is_silenced(sptr, acptr))
       return 0;
 
-    /* Send to user if they have message-tags capability */
-    sendcmdto_user_tagmsg(sptr, acptr, cptr, tags);
+    if (!MyConnect(acptr) || CapActive(acptr, CAP_MESSAGETAGS))
+      sendcmdto_one_tagged(sptr, CMD_TAGMSG, acptr, tags, "%C", acptr);
   }
 
   return 0;
-}
-
-/** Handle TAGMSG from unregistered connections.
- * @param[in] cptr Client that sent the command.
- * @param[in] sptr Original source of the command.
- * @param[in] parc Number of parameters.
- * @param[in] parv Parameter array.
- */
-int mu_tagmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
-{
-  /* If this is a server in handshake state, route through server handler */
-  if (IsHandshake(cptr) || IsServer(cptr))
-    return ms_tagmsg(cptr, sptr, parc, parv);
-
-  /* Unregistered clients cannot send TAGMSG */
-  return send_reply(sptr, ERR_NOTREGISTERED);
 }
 
 /** Handle TAGMSG from servers.
  * @param[in] cptr Client that sent the command.
  * @param[in] sptr Original source of the command.
  * @param[in] parc Number of parameters.
- * @param[in] parv Parameter array. parv[1] = target
+ * @param[in] parv Parameter array. parv[1] = tags, parv[2] = target
  */
 int ms_tagmsg(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   struct Channel *chptr;
   struct Client *acptr;
   char *tags;
+  char *target;
+  int too_long;
 
-  /* After parser shift: parv[1]=tags, parv[2]=target */
-  if (parc < 3)
-    return need_more_params(sptr, "TAGMSG");
+  if (!ircd_parse_message_tags(sptr, parc, parv, &tags, &target, 0, 1, 0))
+    return 0;
+
+  if (!ircd_sanitize_message_tags(&tags, 0, 0, 1, &too_long))
+    return 0;
 
   if (!feature_bool(FEAT_CAP_MESSAGETAGS))
     return 0;
 
-  /* Trust upstream server validation */
-  tags = parv[1];
-
   /* Find target and forward */
-  if (IsChannelName(parv[2])) {
-    if ((chptr = FindChannel(parv[2])))
-      sendcmdto_channel_tagmsg(sptr, chptr, cptr, tags);
+  if (IsChannelName(target)) {
+    if ((chptr = FindChannel(target)))
+    {
+      sendcmdto_capflag_channel_butserv_butone_tagged(sptr, CMD_TAGMSG, chptr,
+                                                      cptr, 0,
+                                                      CAP_MESSAGETAGS, 0,
+                                                      tags, "%H", chptr);
+      sendcmdto_channel_servers_butone_tagged(sptr, CMD_TAGMSG, chptr, cptr, 0,
+                                              tags, "%H", chptr);
+    }
   } else {
-    if ((acptr = FindUser(parv[2])))
-      sendcmdto_user_tagmsg(sptr, acptr, cptr, tags);
+    if ((acptr = findNUser(target)))
+      if (!MyConnect(acptr) || CapActive(acptr, CAP_MESSAGETAGS))
+        sendcmdto_one_tagged(sptr, CMD_TAGMSG, acptr, tags, "%C", acptr);
   }
 
   return 0;

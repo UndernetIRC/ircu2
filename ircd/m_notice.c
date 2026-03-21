@@ -85,6 +85,7 @@
 #include "handlers.h"
 #include "ircd_chattr.h"
 #include "ircd_log.h"
+#include "ircd_messagetags.h"
 #include "ircd_relay.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
@@ -107,8 +108,11 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char*           name;
   char*           server;
+  char*           tags;
   int             i;
   int             count;
+  int             too_long;
+  int             target_index;
   char*           vector[MAXTARGETS];
 
   assert(0 != cptr);
@@ -116,18 +120,23 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
   ClrFlag(sptr, FLAG_TS8);
 
-  if (parc < 2 || EmptyString(parv[1]))
+  ircd_parse_message_tags(sptr, parc, parv, &tags, 0, &target_index, 0, 1);
+
+  if (!ircd_sanitize_message_tags(&tags, 1, 1, 0, &too_long) && too_long)
+    return send_reply(sptr, ERR_INPUTTOOLONG);
+
+  if (parc < target_index + 1 || EmptyString(parv[target_index]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
 
-  if (parc < 3 || EmptyString(parv[parc - 1]))
+  if (parc < target_index + 2 || EmptyString(parv[parc - 1]))
     return send_reply(sptr, ERR_NOTEXTTOSEND);
 
-  if (parv[1][0] == '@' && IsChannelPrefix(parv[1][1])) {
-    parv[1]++;                        /* Get rid of '@' */
+  if (parv[target_index][0] == '@' && IsChannelPrefix(parv[target_index][1])) {
+    parv[target_index]++;                        /* Get rid of '@' */
     return m_wallchops(cptr, sptr, parc, parv);
   }
 
-  count = unique_name_vector(parv[1], ',', vector, MAXTARGETS);
+  count = unique_name_vector(parv[target_index], ',', vector, MAXTARGETS);
 
   for (i = 0; i < count; ++i) {
     name = vector[i];
@@ -135,16 +144,16 @@ int m_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * channel msg?
      */
     if (IsChannelPrefix(*name)) {
-      relay_channel_notice(sptr, name, parv[parc - 1]);
+      relay_channel_notice(sptr, name, parv[parc - 1], tags);
     }
     /*
      * we have to check for the '@' at least once no matter what we do
      * handle it first so we don't have to do it twice
      */
     else if ((server = strchr(name, '@')))
-      relay_directed_notice(sptr, name, server, parv[parc - 1]);
+      relay_directed_notice(sptr, name, server, parv[parc - 1], tags);
     else 
-      relay_private_notice(sptr, name, parv[parc - 1]);
+      relay_private_notice(sptr, name, parv[parc - 1], tags);
   }
   return 0;
 }
@@ -156,37 +165,44 @@ int ms_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char* name;
   char* server;
+  char* tags;
+  int   too_long;
+  int   target_index;
 
   ClrFlag(sptr, FLAG_TS8);
 
-  if (parc < 3) {
+  ircd_parse_message_tags(sptr, parc, parv, &tags, 0, &target_index, 0, 0);
+
+  ircd_sanitize_message_tags(&tags, 0, 0, 0, &too_long);
+
+  if (parc < target_index + 2) {
     /*
      * we can't deliver it, sending an error back is pointless
      */
     return protocol_violation(sptr,"Not enough params for NOTICE");
   }
-  name = parv[1];
+  name = parv[target_index];
   /*
    * channel msg?
    */
   if (IsChannelPrefix(*name)) {
-    server_relay_channel_notice(sptr, name, parv[parc - 1]);
+    server_relay_channel_notice(sptr, name, parv[parc - 1], tags);
   }
   /*
    * coming from another server, we have to check this here
    */
   else if ('$' == *name && IsOper(sptr)) {
-    server_relay_masked_notice(sptr, name, parv[parc - 1]);
+    server_relay_masked_notice(sptr, name, parv[parc - 1], tags);
   }
   else if ((server = strchr(name, '@'))) {
     /*
      * XXX - can't get away with not doing everything
      * relay_directed_notice has to do
      */
-    relay_directed_notice(sptr, name, server, parv[parc - 1]);
+    relay_directed_notice(sptr, name, server, parv[parc - 1], tags);
   }
   else {
-    server_relay_private_notice(sptr, name, parv[parc - 1]);
+    server_relay_private_notice(sptr, name, parv[parc - 1], tags);
   }
   return 0;
 }
@@ -198,26 +214,34 @@ int mo_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 {
   char*           name;
   char*           server;
+  char*           tags;
   int             i;
   int             count;
+  int             too_long;
+  int             target_index;
   char*           vector[MAXTARGETS];
   assert(0 != cptr);
   assert(cptr == sptr);
 
   ClrFlag(sptr, FLAG_TS8);
 
-  if (parc < 2 || EmptyString(parv[1]))
+  ircd_parse_message_tags(sptr, parc, parv, &tags, 0, &target_index, 0, 1);
+
+  if (!ircd_sanitize_message_tags(&tags, 1, 1, 0, &too_long) && too_long)
+    return send_reply(sptr, ERR_INPUTTOOLONG);
+
+  if (parc < target_index + 1 || EmptyString(parv[target_index]))
     return send_reply(sptr, ERR_NORECIPIENT, MSG_NOTICE);
 
-  if (parc < 3 || EmptyString(parv[parc - 1]))
+  if (parc < target_index + 2 || EmptyString(parv[parc - 1]))
     return send_reply(sptr, ERR_NOTEXTTOSEND);
 
-  if (parv[1][0] == '@' && IsChannelPrefix(parv[1][1])) {
-    parv[1]++;                        /* Get rid of '@' */
+  if (parv[target_index][0] == '@' && IsChannelPrefix(parv[target_index][1])) {
+    parv[target_index]++;                        /* Get rid of '@' */
     return m_wallchops(cptr, sptr, parc, parv);
   }
 
-  count = unique_name_vector(parv[1], ',', vector, MAXTARGETS);
+  count = unique_name_vector(parv[target_index], ',', vector, MAXTARGETS);
 
   for (i = 0; i < count; ++i) {
     name = vector[i];
@@ -225,16 +249,16 @@ int mo_notice(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
      * channel msg?
      */
     if (IsChannelPrefix(*name))
-      relay_channel_notice(sptr, name, parv[parc - 1]);
+      relay_channel_notice(sptr, name, parv[parc - 1], tags);
 
     else if (*name == '$')
-      relay_masked_notice(sptr, name, parv[parc - 1]);
+      relay_masked_notice(sptr, name, parv[parc - 1], tags);
 
     else if ((server = strchr(name, '@')))
-      relay_directed_notice(sptr, name, server, parv[parc - 1]);
+      relay_directed_notice(sptr, name, server, parv[parc - 1], tags);
 
     else 
-      relay_private_notice(sptr, name, parv[parc - 1]);
+      relay_private_notice(sptr, name, parv[parc - 1], tags);
   }
   return 0;
 }

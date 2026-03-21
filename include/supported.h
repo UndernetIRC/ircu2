@@ -58,6 +58,8 @@
                 " CASEMAPPING=%s" \
                 " NETWORK=%s"
 
+#define FEATURES3 "CLIENTTAGDENY=%s"
+
 #define FEATURESVALUES1 feature_int(FEAT_MAXSILES), MAXMODEPARAMS, \
 			feature_int(FEAT_MAXCHANNELSPERUSER), \
                         feature_int(FEAT_MAXBANS), feature_int(FEAT_NICKLEN)
@@ -69,6 +71,8 @@
                         ? "b,AkU,l,imnpstrDdRcCPM" \
                         :   "b,k,l,imnpstrDdRcCPM"), \
                         "rfc1459", feature_str(FEAT_NETWORK)
+
+#define FEATURESVALUES3 feature_str(FEAT_CLIENTTAGDENY)
 
 #endif /* INCLUDED_supported_h */
 

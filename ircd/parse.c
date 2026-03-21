@@ -57,6 +57,31 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** Array of command parameters. */
+static char *para[MAXPARA + 2]; /* leave room for prefix and null */
+
+static int command_supports_message_tags(struct Message* mptr)
+{
+  return mptr && mptr->cmd &&
+         (0 == ircd_strcmp(mptr->cmd, MSG_PRIVATE) ||
+          0 == ircd_strcmp(mptr->cmd, MSG_NOTICE) ||
+          0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG));
+}
+
+static int prepend_message_tags(char* tags, struct Message* mptr, int argc)
+{
+  int j;
+
+  if (!tags || !command_supports_message_tags(mptr))
+    return argc;
+
+  for (j = argc; j >= 1; --j)
+    para[j + 1] = para[j];
+  para[1] = tags;
+
+  return argc + 1;
+}
+
 /*
  * Message Tree stuff mostly written by orabidoo, with changes by Dianora.
  * Adapted to Undernet, adding token support, etc by comstud 10/06/97
@@ -648,9 +673,9 @@ struct Message msgtab[] = {
   {
     MSG_TAGMSG,
     TOK_TAGMSG,
-    0, MAXPARA, 0, 0, NULL,
+    0, MAXPARA, MFLG_IGNORE, 0, NULL,
     /* UNREG, CLIENT, SERVER, OPER, SERVICE */
-    { mu_tagmsg, m_tagmsg, ms_tagmsg, m_tagmsg, m_ignore }
+    { m_ignore, m_tagmsg, ms_tagmsg, m_tagmsg, m_ignore }
   },
   /* This command is an alias for QUIT during the unregistered part of
    * of the server.  This is because someone jumping via a broken web
@@ -667,10 +692,6 @@ struct Message msgtab[] = {
   },
   { 0 }
 };
-
-/** Array of command parameters. */
-static char *para[MAXPARA + 2]; /* leave room for prefix and null */
-
 
 /** Add a message to the lookup trie.
  * @param[in,out] mtree_p Trie node to insert under.
@@ -970,15 +991,7 @@ parse_client(struct Client *cptr, char *buffer, char *bufend)
     }
   }
   
-  /* If this is TAGMSG and we had a tags prefix, insert it as first parameter */
-  if (tags && mptr && mptr->cmd && 0 == ircd_strcmp(mptr->cmd, MSG_TAGMSG)) {
-    int j;
-    /* shift parameters up by one: para[1..i] -> para[2..i+1] */
-    for (j = i; j >= 1; --j)
-      para[j+1] = para[j];
-    para[1] = tags;
-    ++i;
-  }
+  i = prepend_message_tags(tags, mptr, i);
   
   para[++i] = NULL;
   ++mptr->count;
@@ -1005,6 +1018,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
   struct Client*  from = cptr;
   char*           ch = buffer;
   char*           s;
+  char*           tags = NULL;
   int             len;
   int             i;
   int             numeric = 0;
@@ -1017,6 +1031,21 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
     return 0;
 
   para[0] = cli_name(from);
+
+  while (*ch == ' ')
+    ch++;
+  if (*ch == '@')
+  {
+    tags = ch;
+    for (++ch; *ch && *ch != ' '; ++ch)
+      ;
+    if (*ch == ' ')
+    {
+      *ch = '\0';
+      for (++ch; *ch == ' '; ch++)
+        ;
+    }
+  }
 
   /*
    * A server ALWAYS sends a prefix. When it starts with a ':' it's the
@@ -1284,6 +1313,7 @@ int parse_server(struct Client *cptr, char *buffer, char *bufend)
       for (; *s != ' ' && *s; s++);
     }
   }
+  i = prepend_message_tags(tags, mptr, i);
   para[++i] = NULL;
   if (numeric)
     return (do_numeric(numeric, (*buffer != ':'), cptr, from, i, para));

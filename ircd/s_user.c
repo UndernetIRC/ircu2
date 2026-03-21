@@ -1518,6 +1518,10 @@ send_supported(struct Client *cptr)
   send_reply(cptr, RPL_ISUPPORT, featurebuf);
   ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES2, FEATURESVALUES2);
   send_reply(cptr, RPL_ISUPPORT, featurebuf);
+  if (feature_bool(FEAT_CAP_MESSAGETAGS)) {
+    ircd_snprintf(0, featurebuf, sizeof(featurebuf), FEATURES3, FEATURESVALUES3);
+    send_reply(cptr, RPL_ISUPPORT, featurebuf);
+  }
 
   return 0; /* convenience return, if it's ever needed */
 }

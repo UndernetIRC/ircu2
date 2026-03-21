@@ -100,6 +100,7 @@ IRCD_SRC = \
 	ircd_crypt.c \
 	ircd_events.c \
 	ircd_features.c \
+	ircd_messagetags.c \
 	ircd_lexer.c \
 	ircd_log.c \
 	ircd_relay.c \
@@ -468,6 +469,12 @@ ircd_features.o: ircd_features.c ../config.h ../include/ircd_features.h \
  ../include/random.h ../include/s_bsd.h ../include/s_debug.h \
  ../include/s_misc.h ../include/s_stats.h ../include/send.h \
  ../include/struct.h ../include/sys.h ../include/whowas.h
+ircd_messagetags.o: ircd_messagetags.c ../config.h \
+ ../include/ircd_messagetags.h ../include/client.h \
+ ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
+ ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
+ ../include/capab.h ../include/ircd_features.h \
+ ../include/ircd_string.h ../include/ircd_chattr.h
 ircd_lexer.o: ircd_lexer.c ../config.h ../include/ircd.h \
  ../include/struct.h ../include/ircd_defs.h ../include/ircd_alloc.h \
  ../include/ircd_log.h ../include/ircd_string.h ../include/ircd_chattr.h \
@@ -855,9 +862,10 @@ m_notice.o: m_notice.c ../config.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
  ../include/capab.h ../include/handlers.h ../include/ircd_chattr.h \
- ../include/ircd_log.h ../include/ircd_relay.h ../include/ircd_reply.h \
- ../include/ircd_string.h ../include/match.h ../include/msg.h \
- ../include/numeric.h ../include/send.h
+ ../include/ircd_log.h ../include/ircd_messagetags.h \
+ ../include/ircd_relay.h ../include/ircd_reply.h ../include/ircd_string.h \
+ ../include/match.h ../include/msg.h ../include/numeric.h \
+ ../include/send.h
 m_oper.o: m_oper.c ../config.h ../include/client.h ../include/ircd_defs.h \
  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
  ../include/ircd_handler.h ../include/res.h ../include/capab.h \
@@ -913,9 +921,10 @@ m_privmsg.o: m_privmsg.c ../config.h ../include/client.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
  ../include/capab.h ../include/ircd.h ../include/struct.h \
  ../include/ircd_chattr.h ../include/ircd_features.h \
- ../include/ircd_log.h ../include/ircd_relay.h ../include/ircd_reply.h \
- ../include/ircd_string.h ../include/match.h ../include/msg.h \
- ../include/numeric.h ../include/send.h
+ ../include/ircd_log.h ../include/ircd_messagetags.h \
+ ../include/ircd_relay.h ../include/ircd_reply.h ../include/ircd_string.h \
+ ../include/match.h ../include/msg.h ../include/numeric.h \
+ ../include/send.h
 m_privs.o: m_privs.c ../config.h ../include/client.h \
  ../include/ircd_defs.h ../include/dbuf.h ../include/msgq.h \
  ../include/ircd_events.h ../include/ircd_handler.h ../include/res.h \
@@ -1039,6 +1048,15 @@ m_stats.o: m_stats.c ../config.h ../include/client.h \
  ../include/ircd_string.h ../include/ircd_chattr.h ../include/msg.h \
  ../include/numeric.h ../include/s_stats.h ../include/s_user.h \
  ../include/send.h ../include/struct.h
+m_tagmsg.o: m_tagmsg.c ../config.h ../include/capab.h ../include/channel.h \
+ ../include/client.h ../include/ircd_defs.h ../include/dbuf.h \
+ ../include/msgq.h ../include/ircd_events.h ../include/ircd_handler.h \
+ ../include/res.h ../include/hash.h ../include/ircd.h \
+ ../include/struct.h ../include/ircd_chattr.h \
+ ../include/ircd_features.h ../include/ircd_log.h \
+ ../include/ircd_messagetags.h ../include/ircd_reply.h \
+ ../include/ircd_string.h ../include/msg.h ../include/numeric.h \
+ ../include/numnicks.h ../include/s_user.h ../include/send.h
 m_time.o: m_time.c ../config.h ../include/client.h ../include/ircd_defs.h \
  ../include/dbuf.h ../include/msgq.h ../include/ircd_events.h \
  ../include/ircd_handler.h ../include/res.h ../include/capab.h \
