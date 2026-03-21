@@ -116,11 +116,11 @@ async def test_remote_opmode_x_sets_hidden_host(ircd_network, services):
 
 
 async def test_remote_opmode_x_without_account(ircd_network, services):
-    """OPMODE +x from U:lined server without ACCOUNT should set the mode
-    flag but NOT hide the host (requires both +x and account).
+    """OPMODE +x on a user without an account should be silently ignored.
 
-    This should work with the PR — the mode gets set, but host hiding
-    requires FLAG_ACCOUNT too.
+    The PR #62 implementation requires IsAccount(dptr) before applying +x.
+    Without an account, there's no point setting +x since the host won't
+    be hidden anyway. The server should not send a MODE notification.
     """
     hub = ircd_network["hub"]
 
@@ -145,20 +145,19 @@ async def test_remote_opmode_x_without_account(ircd_network, services):
         await services.send_opmode(numnick, "+x")
         await asyncio.sleep(0.5)
 
-        # User should still get the MODE notification with PR applied
+        # User should NOT get a MODE notification (no account = +x ignored)
         try:
-            mode_msg = await user.wait_for("MODE", timeout=3.0)
-            has_mode = "x" in mode_msg.params[-1]
-        except asyncio.TimeoutError:
-            has_mode = False
-
-        if not has_mode:
-            pytest.fail(
-                "User did not receive MODE +x — OPMODE +x was likely "
-                "ignored (base branch behavior, PR #62 not applied)"
+            mode_msg = await user.wait_for("MODE", timeout=2.0)
+            # If we got a MODE, it shouldn't be +x
+            has_x = "x" in mode_msg.params[-1]
+            assert not has_x, (
+                f"User got MODE +x without account — should be ignored: "
+                f"{mode_msg.params}"
             )
+        except asyncio.TimeoutError:
+            pass  # Expected: no MODE sent
 
-        # But host should NOT be hidden (no account set)
+        # Host should remain unchanged
         await observer.send("WHOIS usr62b")
         whois_after = await observer.collect_until("318", timeout=5.0)
         host_after = [m for m in whois_after if m.command == "311"]
