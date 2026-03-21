@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build/ircu2
 COPY . .
 
+# Remove any host-compiled binaries (e.g., macOS Mach-O) so make rebuilds for Linux
+RUN find . -name '*.o' -delete && rm -f ircd/ircd
+
 # Touch generated files to prevent make from trying to regenerate them
 # (the container may have a different autoconf version than what generated these)
 RUN touch aclocal.m4 configure config.h.in stamp-h.in

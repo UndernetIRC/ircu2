@@ -1,0 +1,215 @@
+"""TDD tests for PR #62: Remote +x and ACCOUNT restriction.
+
+PR #62 makes two changes to server-to-server message handlers:
+1. ms_opmode: Allow U:lined servers to set user mode +x remotely via
+   OPMODE (previously only +o/-o were supported).
+2. ms_account: Only accept ACCOUNT messages from U:lined servers.
+
+These tests use a fake P10 server (services.test.net) that connects
+to the hub as a U:lined service, then sends OPMODE and ACCOUNT
+messages to verify the behavior.
+
+Tests should FAIL on the base branch and PASS with the PR applied:
+- OPMODE +x: base code ignores +x (only handles +o/-o); PR adds +x.
+- ACCOUNT restriction: base code accepts ACCOUNT from any server;
+  PR restricts to U:lined servers only (tested in edge cases).
+"""
+
+import asyncio
+import pytest
+
+from tests.irc_client import IRCClient
+from tests.p10_server import P10Server
+
+
+pytestmark = pytest.mark.multi_server
+
+
+@pytest.fixture
+async def services(ircd_network):
+    """Connect a fake P10 services server to the hub."""
+    hub = ircd_network["hub"]
+    srv = P10Server(
+        name="services.test.net",
+        numeric=4,
+        password="testpass",
+    )
+    await srv.connect(hub["host"], hub["server_port"])
+    await srv.handshake()
+    yield srv
+    await srv.disconnect()
+
+
+async def test_remote_opmode_x_sets_hidden_host(ircd_network, services):
+    """U:lined server sending OPMODE +x should set the user's hidden host.
+
+    This is the core feature PR #62 adds. Before the PR, ms_opmode
+    only handles +o/-o and ignores +x. With the PR, +x is handled
+    and the user gets FLAG_HIDDENHOST set.
+
+    We also need to set the user's account (via ACCOUNT) for the
+    hidden host to actually activate (ircu2 requires both +x AND
+    account for host hiding).
+    """
+    hub = ircd_network["hub"]
+
+    # Connect a user to the hub
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("usr62a", "testuser", "Test User")
+
+    # Observer on hub to WHOIS
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    await observer.register("obs62a", "testuser", "Test User")
+
+    try:
+        # Get user's numnick from the services server's user table
+        numnick = await services.wait_for_user("usr62a")
+
+        # Get the user's host before any changes
+        await observer.send("WHOIS usr62a")
+        whois_before = await observer.collect_until("318", timeout=5.0)
+        host_before = [m for m in whois_before if m.command == "311"]
+        assert len(host_before) == 1
+        original_host = host_before[0].params[3]
+
+        # Services sets the user's account via ACCOUNT
+        await services.send_account(numnick, "TestAccount")
+        await asyncio.sleep(0.3)
+
+        # Services sets +x on the user via OPMODE
+        await services.send_opmode(numnick, "+x")
+        await asyncio.sleep(0.5)
+
+        # Check user received mode change notification
+        # The user should see a MODE message with +x
+        try:
+            mode_msg = await user.wait_for("MODE", timeout=3.0)
+            assert "x" in mode_msg.params[-1], (
+                f"Expected +x in mode change: {mode_msg.params}"
+            )
+        except asyncio.TimeoutError:
+            pytest.fail(
+                "User did not receive MODE +x — OPMODE +x was likely "
+                "ignored (base branch behavior, PR #62 not applied)"
+            )
+
+        # WHOIS should now show a hidden host
+        await observer.send("WHOIS usr62a")
+        whois_after = await observer.collect_until("318", timeout=5.0)
+        host_after = [m for m in whois_after if m.command == "311"]
+        assert len(host_after) == 1
+        new_host = host_after[0].params[3]
+
+        assert new_host != original_host, (
+            f"Host should have changed after ACCOUNT + OPMODE +x: "
+            f"still {original_host!r}"
+        )
+    finally:
+        for client in (user, observer):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_remote_opmode_x_without_account(ircd_network, services):
+    """OPMODE +x from U:lined server without ACCOUNT should set the mode
+    flag but NOT hide the host (requires both +x and account).
+
+    This should work with the PR — the mode gets set, but host hiding
+    requires FLAG_ACCOUNT too.
+    """
+    hub = ircd_network["hub"]
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("usr62b", "testuser", "Test User")
+
+    observer = IRCClient()
+    await observer.connect(hub["host"], hub["port"])
+    await observer.register("obs62b", "testuser", "Test User")
+
+    try:
+        numnick = await services.wait_for_user("usr62b")
+
+        # Get original host
+        await observer.send("WHOIS usr62b")
+        whois_before = await observer.collect_until("318", timeout=5.0)
+        host_before = [m for m in whois_before if m.command == "311"]
+        original_host = host_before[0].params[3]
+
+        # Send OPMODE +x WITHOUT setting account first
+        await services.send_opmode(numnick, "+x")
+        await asyncio.sleep(0.5)
+
+        # User should still get the MODE notification with PR applied
+        try:
+            mode_msg = await user.wait_for("MODE", timeout=3.0)
+            has_mode = "x" in mode_msg.params[-1]
+        except asyncio.TimeoutError:
+            has_mode = False
+
+        if not has_mode:
+            pytest.fail(
+                "User did not receive MODE +x — OPMODE +x was likely "
+                "ignored (base branch behavior, PR #62 not applied)"
+            )
+
+        # But host should NOT be hidden (no account set)
+        await observer.send("WHOIS usr62b")
+        whois_after = await observer.collect_until("318", timeout=5.0)
+        host_after = [m for m in whois_after if m.command == "311"]
+        new_host = host_after[0].params[3]
+
+        assert new_host == original_host, (
+            f"Host should NOT change without account: "
+            f"{original_host!r} -> {new_host!r}"
+        )
+    finally:
+        for client in (user, observer):
+            try:
+                await client.send("QUIT :cleanup")
+            except Exception:
+                pass
+            await client.disconnect()
+
+
+async def test_remote_opmode_o_still_works(ircd_network, services):
+    """OPMODE +o from U:lined server should still work (regression test).
+
+    The existing +o functionality must not break when +x support is added.
+    """
+    hub = ircd_network["hub"]
+
+    user = IRCClient()
+    await user.connect(hub["host"], hub["port"])
+    await user.register("usr62c", "testuser", "Test User")
+
+    try:
+        numnick = await services.wait_for_user("usr62c")
+
+        # Services opers the user via OPMODE +o
+        await services.send_opmode(numnick, "+o")
+        await asyncio.sleep(0.5)
+
+        # User should see the mode change
+        mode_msg = await user.wait_for("MODE", timeout=3.0)
+        assert "o" in mode_msg.params[-1], (
+            f"Expected +o in mode change: {mode_msg.params}"
+        )
+
+        # Verify user is now an oper by checking MODE response
+        await user.send(f"MODE usr62c")
+        umode = await user.wait_for("221", timeout=3.0)
+        assert "o" in umode.params[-1], (
+            f"User should be oper after OPMODE +o: {umode.params}"
+        )
+    finally:
+        try:
+            await user.send("QUIT :cleanup")
+        except Exception:
+            pass
+        await user.disconnect()
