@@ -103,8 +103,7 @@ engine_init(int max_sockets)
 static void
 engine_signal(struct Signal* sig)
 {
-  struct kevent sigevent;
-  memset(&sigevent, 0, sizeof(sigevent));
+  struct kevent sigevent = {0};
   struct sigaction act;
 
   assert(0 != sig);
@@ -167,8 +166,7 @@ static void
 set_or_clear(struct Socket* sock, unsigned int clear, unsigned int set)
 {
   int i = 0;
-  struct kevent chglist[2];
-  memset(chglist, 0, sizeof(chglist));
+  struct kevent chglist[2] = {0};
 
   assert(0 != sock);
   assert(-1 < s_fd(sock));
