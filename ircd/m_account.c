@@ -121,7 +121,7 @@ int ms_account(struct Client* cptr, struct Client* sptr, int parc,
 			      cli_name(sptr));
 
   if (!(conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD)))
-    return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]); /* Ignore ACCOUNT from non U:lined servers. */
+    return protocol_violation(cptr, "ACCOUNT from non U:lined server %s", cli_name(sptr)); /* Ignore ACCOUNT from non U:lined servers. */
 
   if (!(acptr = findNUser(parv[1])))
     return 0; /* Ignore ACCOUNT for a user that QUIT; probably crossed */

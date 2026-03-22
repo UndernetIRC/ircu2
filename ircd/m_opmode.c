@@ -132,6 +132,8 @@ static void make_oper(struct Client *sptr, struct Client *dptr)
 
 static void de_oper(struct Client *dptr)
 {
+  struct Flags old_mode = cli_flags(dptr);
+
   --UserStats.opers;
   ClearOper(dptr);
   if (MyConnect(dptr))
@@ -148,6 +150,9 @@ static void de_oper(struct Client *dptr)
     }
     det_confs_butmask(dptr, CONF_CLIENT & ~CONF_OPERATOR);
     client_set_privs(dptr, NULL, 0);
+    /* prop must be 1 so send_umode_out includes FLAG_OPER; after de_oper,
+     * HasPriv(PRIV_PROPAGATE) is false but SEND_UMODES_BUT_OPER would drop -o. */
+    send_umode_out(dptr, dptr, &old_mode, 1);
   }
 }
 
@@ -172,7 +177,7 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
 
     dptr = findNUser(parv[1]);
     if (!dptr)
-      return send_reply(sptr, ERR_NOSUCHNICK, parv[1]);
+      return 0;
 
     if (!MyConnect(dptr))
     {
@@ -182,8 +187,15 @@ int ms_opmode(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     }
 
     conf = find_conf_byhost(cli_confs(cptr), cli_name(sptr), CONF_UWORLD);
-    if (!conf || ((!strcmp(parv[2], "+o") || !strcmp(parv[2], "-o")) && !(conf->flags & CONF_UWORLD_OPER)))
-      return send_reply(sptr, ERR_NOPRIVILEGES, parv[1]);
+    if (!conf) {
+      protocol_violation(cptr, "OPMODE from non U:lined server %s", cli_name(sptr));
+      return 0;
+    }
+
+    if ((!strcmp(parv[2], "+o") || !strcmp(parv[2], "-o")) && !(conf->flags & CONF_UWORLD_OPER)) {
+      protocol_violation(cptr, "OPMODE from non U:lined (OPER) server %s", cli_name(sptr));
+      return 0;
+    }
 
     /* At the moment, we only support +o, -o and +x.  set_user_mode() does
      * not support remote mode setting or setting +o.
