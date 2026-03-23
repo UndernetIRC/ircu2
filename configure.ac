@@ -43,6 +43,19 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 
+dnl ---------------------------------------------------------------------------
+dnl Version component defines — derived from AC_INIT version (MAJOR.MINOR.PATCH)
+dnl This is the single source of truth for all version information.
+dnl ---------------------------------------------------------------------------
+m4_define([v_major], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\1]))
+m4_define([v_minor], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\2]))
+m4_define([v_patch], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\3]))
+
+AC_DEFINE([BASE_VERSION],   ["u2.]v_major["],  [Base version prefix, e.g. "u2.10"])
+AC_DEFINE([MAJOR_PROTOCOL], ["]v_major["],      [Major protocol version, e.g. "10"])
+AC_DEFINE([RELEASE],        [".]v_minor[."],    [Release number with dots, e.g. ".12."])
+AC_DEFINE([PATCHLEVEL],     ["]v_patch["],      [Patch level, e.g. "19"])
+
 dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
 AC_PREREQ([2.72])
 
