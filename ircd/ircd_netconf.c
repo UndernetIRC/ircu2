@@ -125,6 +125,27 @@ int config_set(const char *key, const char *value, time_t timestamp)
 
   entry = config_find(key);
 
+  if (value[0] == '\0') {
+    /* Delete the entry if it exists and timestamp is newer */
+    if (entry && timestamp > entry->timestamp) {
+      DupString(old_value, entry->value);
+      /* Remove from list */
+      struct ConfigEntry **p = &config_list;
+      while (*p && *p != entry) p = &(*p)->next;
+      if (*p == entry) {
+        *p = entry->next;
+        MyFree(entry->key);
+        MyFree(entry->value);
+        MyFree(entry);
+      }
+      config_call_callbacks(key, old_value, NULL);
+      if (old_value) MyFree(old_value);
+      return CONFIG_DELETED;
+    } else {
+      return CONFIG_REJECTED;
+    }
+  }
+
   if (entry) {
     /* Only update if timestamp is newer */
     if (timestamp <= entry->timestamp)

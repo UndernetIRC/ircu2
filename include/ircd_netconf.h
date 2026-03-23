@@ -33,6 +33,7 @@ struct StatDesc;
 #define CONFIG_CREATED        0  /**< New entry created */
 #define CONFIG_TIMESTAMP      1  /**< Timestamp updated, same value */
 #define CONFIG_CHANGED        2  /**< Value actually changed */
+#define CONFIG_DELETED        3  /**< Entry deleted */
 
 /** Configuration entry structure */
 struct ConfigEntry {

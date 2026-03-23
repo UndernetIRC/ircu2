@@ -49,29 +49,34 @@ int ms_config(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   const char *key, *value;
   const char *old_value;
   int result;
-  
-  if (parc < 4)
-    return need_more_params(sptr, "CF");
 
-  timestamp = atol(parv[1]);
-  key = parv[2];
-  value = parv[3];
+    if (parc < 3)
+      return need_more_params(sptr, "CF");
 
-  /* Get the old value for comparison */
-  old_value = config_get(key);
-  char *old_value_copy = NULL;
-  if (old_value)
-    DupString(old_value_copy, old_value);
+    timestamp = atol(parv[1]);
+    key = parv[2];
+    value = (parc >= 4) ? parv[3] : "";
+
+    /* Get the old value for comparison */
+    old_value = config_get(key);
+    char *old_value_copy = NULL;
+    if (old_value)
+      DupString(old_value_copy, old_value);
   
   /* Try to set the configuration */
   result = config_set(key, value, timestamp);
-  
+
   if (result != CONFIG_REJECTED) {
-    /* Configuration was set or updated, propagate to other servers */
-    sendcmdto_serv_butone(sptr, CMD_CONFIG, cptr, "%Tu %s :%s",
-                          timestamp, key, value);
-    
-    /* Send notification to operators based on what actually happened */
+    /* Propagate to other servers */
+    if (value[0] != '\0') {
+      sendcmdto_serv_butone(sptr, CMD_CONFIG, cptr, "%Tu %s :%s",
+                            timestamp, key, value);
+    } else {
+      sendcmdto_serv_butone(sptr, CMD_CONFIG, cptr, "%Tu %s",
+                            timestamp, key);
+    }
+
+    /* Notify operators */
     if (result == CONFIG_CREATED) {
       sendto_opmask_butone(0, SNO_NETWORK,
                           "Network configuration set: %s = %s",
@@ -80,10 +85,16 @@ int ms_config(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       sendto_opmask_butone(0, SNO_NETWORK,
                           "Network configuration updated: %s = %s (was: %s)",
                           key, value, old_value_copy ? old_value_copy : "(unset)");
+    } else if (result == CONFIG_DELETED) {
+      sendto_opmask_butone(0, SNO_NETWORK,
+                          "Network configuration deleted: %s (was: %s)",
+                          key, old_value_copy ? old_value_copy : "(unset)");
+      Debug((DEBUG_DEBUG, "NETCONF: %s deleted %s (timestamp: %Tu)",
+             cli_name(sptr), key, timestamp));
+    } else {
+      Debug((DEBUG_DEBUG, "NETCONF: %s set %s = %s (timestamp: %Tu)",
+             cli_name(sptr), key, value, timestamp));
     }
-    
-    Debug((DEBUG_DEBUG, "NETCONF: %s set %s = %s (timestamp: %Tu)",
-           cli_name(sptr), key, value, timestamp));
   }
   
   /* Clean up the copied old value */
