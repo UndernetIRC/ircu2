@@ -221,7 +221,12 @@ async def test_account_then_opmode_x_hides_host(ircd_network, services):
 
 
 async def test_opmode_minus_o_still_works(ircd_network, services):
-    """OPMODE -o should still de-oper a user (regression)."""
+    """OPMODE -o should still de-oper a user (regression).
+
+    PR #62 adds send_umode_out() to de_oper(), so the user now
+    receives a MODE -o notification (previously de_oper did not
+    propagate the mode change).
+    """
     hub = ircd_network["hub"]
 
     user = IRCClient()
@@ -238,12 +243,23 @@ async def test_opmode_minus_o_still_works(ircd_network, services):
         assert "o" in mode_msg.params[-1]
 
         # Now de-oper via OPMODE -o
-        # Note: de_oper() doesn't send a MODE notification to the user,
-        # so we verify by querying the user mode directly.
         await services.send_opmode(numnick, "-o")
         await asyncio.sleep(0.5)
 
-        # Verify user is no longer oper
+        # PR #62 adds send_umode_out() to de_oper(), so user should
+        # receive a MODE -o notification
+        try:
+            deoper_msg = await user.wait_for("MODE", timeout=3.0)
+            assert "o" in deoper_msg.params[-1], (
+                f"Expected -o in de-oper mode change: {deoper_msg.params}"
+            )
+        except asyncio.TimeoutError:
+            pytest.fail(
+                "User did not receive MODE -o notification — "
+                "de_oper() should call send_umode_out() per PR #62"
+            )
+
+        # Also verify via MODE query that oper is removed
         await user.send(f"MODE usr62e5")
         umode = await user.wait_for("221", timeout=3.0)
         assert "o" not in umode.params[-1], (

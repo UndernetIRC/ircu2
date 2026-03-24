@@ -205,12 +205,12 @@ async def test_remote_opmode_x_without_account(ircd_network, services):
 
 
 async def test_account_rejected_from_non_ulined_server(ircd_network):
-    """ACCOUNT from a non-U:lined server should be rejected with ERR_NOPRIVILEGES.
+    """ACCOUNT from a non-U:lined server should be silently rejected.
 
     This is the second change in PR #62: ms_account now checks for a
     CONF_UWORLD entry before accepting ACCOUNT. A server without a
-    UWorld block should get 481 back and the user's account should
-    not be set.
+    UWorld block triggers a protocol_violation() (wallops desynch
+    notice) and the ACCOUNT is dropped — no numeric is sent back.
     """
     hub = ircd_network["hub"]
 
@@ -236,18 +236,9 @@ async def test_account_rejected_from_non_ulined_server(ircd_network):
     try:
         numnick = await rogue.wait_for_user("usr62d")
 
-        # Non-U:lined server tries to set ACCOUNT
+        # Non-U:lined server tries to set ACCOUNT — should be silently dropped
         await rogue.send_account(numnick, "HackedAcct")
         await asyncio.sleep(0.5)
-
-        # Drain messages from the rogue server — should see 481
-        await rogue.drain_messages(timeout=1.0)
-        got_denied = any("481" in line for line in rogue.received)
-
-        assert got_denied, (
-            "Non-U:lined server did not get ERR_NOPRIVILEGES for ACCOUNT — "
-            "the U:line restriction from PR #62 may not be applied"
-        )
 
         # Verify the user does NOT have an account set
         await observer.send("WHOIS usr62d")
