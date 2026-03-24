@@ -56,7 +56,7 @@
 #include "send.h"
 #include "struct.h"
 #include "sys.h"
-#include "y.tab.h"
+#include "ircd_parser.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <errno.h>

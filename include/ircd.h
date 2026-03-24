@@ -34,8 +34,6 @@ struct Daemon
 
 #define UDP_PORT        "7007"  /**< Default port for server-to-server pings. */
 #define MINOR_PROTOCOL  "09"    /**< Minimum protocol version supported. */
-#define MAJOR_PROTOCOL  "10"    /**< Current protocol version. */
-#define BASE_VERSION    "u2.10" /**< Base name of IRC daemon version. */
 
 /*
  * Proto types

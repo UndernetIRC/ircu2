@@ -1,12 +1,32 @@
-makefile
+# Autotools generated files
+/configure
+/aclocal.m4
+/config.h.in
+/config.guess
+/config.sub
+/install-sh
+/missing
+/depcomp
+/compile
+/ylwrap
+/test-driver
+/stamp-h.in
+/autom4te.cache/
+/config.h
+/config.log
+/config.status
+/config.cache
+/stamp-h
+/stamp-h1
+
+# Generated Makefile.in (automake output) and Makefile (configure output)
+Makefile.in
 Makefile
-config.log
-config.h
-stamp-h
-config.status
-config.cache
+
+# Editor/tool backup files
+*~
+
+# Build artifacts
 .deps/
 .project
 ircu.tags
-autom4te.cache
-stamp-h1

@@ -22,7 +22,7 @@ dnl
 
 dnl Make sure we are in the correct directory (someone could have run
 dnl 'configure' with a wrong '--srcdir').
-AC_INIT
+AC_INIT([ircu2], [10.12.19])
 AC_CONFIG_SRCDIR([ircd/ircd.c])
 
 dnl Set the default prefix
@@ -40,6 +40,21 @@ ac_default_prefix=$unet_cv_prefix
 
 dnl Define the input and output configuration header file.
 AC_CONFIG_HEADERS([config.h])
+
+AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
+
+dnl ---------------------------------------------------------------------------
+dnl Version component defines — derived from AC_INIT version (MAJOR.MINOR.PATCH)
+dnl This is the single source of truth for all version information.
+dnl ---------------------------------------------------------------------------
+m4_define([v_major], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\1]))
+m4_define([v_minor], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\2]))
+m4_define([v_patch], m4_bregexp(AC_PACKAGE_VERSION, [\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)], [\3]))
+
+AC_DEFINE([BASE_VERSION],   ["u2.]v_major["],  [Base version prefix, e.g. "u2.10"])
+AC_DEFINE([MAJOR_PROTOCOL], ["]v_major["],      [Major protocol version, e.g. "10"])
+AC_DEFINE([RELEASE],        [".]v_minor[."],    [Release number with dots, e.g. ".12."])
+AC_DEFINE([PATCHLEVEL],     ["]v_patch["],      [Patch level, e.g. "19"])
 
 dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
 AC_PREREQ([2.72])
@@ -118,23 +133,33 @@ AC_MSG_RESULT([yes])
 
 dnl Test for programs
 AC_PROG_AWK
-AC_PROG_MAKE_SET
+
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PATH_PROGS(RMPROG, rm, /bin/rm)
 AC_PATH_PROGS(SHPROG, sh, /bin/sh)
 
-dnl YACC - ditto
+dnl YACC - AC_PROG_YACC prefers 'bison -y', then byacc, then yacc.
 AC_PROG_YACC
-dnl The autoconf docs say $YACC defaults to 'yacc'.  This seems to be true,
-dnl but judging from AC_PROG_LEX, it may not stay true.
-if test "$YACC" = ":" ; then
-  AC_MSG_ERROR([Cannot find yacc.])
-elif echo "" | $YACC -V -v --version > /dev/null 2>&1 ; then
-  :
-else
-dnl byacc does not seem to have any way to test for workingness, so only warn.
-  AC_MSG_WARN([$YACC may not work as yacc.])
+
+dnl Verify the selected yacc can actually parse a grammar.
+AC_CACHE_CHECK([whether $YACC can parse a minimal grammar], [ac_cv_yacc_works], [
+  cat > conftest.y <<'EOF'
+%token T
+%%
+start: /* empty */ ;
+%%
+EOF
+  if $YACC -d conftest.y >/dev/null 2>&1; then
+    ac_cv_yacc_works=yes
+  else
+    ac_cv_yacc_works=no
+  fi
+  rm -f conftest.y y.tab.c y.tab.h y.output
+])
+
+if test "$ac_cv_yacc_works" = "no"; then
+  AC_MSG_ERROR([No working yacc/bison found. Please install bison or a compatible yacc.])
 fi
 
 unet_NONBLOCKING
@@ -681,28 +706,15 @@ fi
 AC_DEFINE_UNQUOTED(LPATH, "$unet_lpath", [Path to debugging log file])
 
 dnl --with-maxcon allows us to set the maximum connections
-unet_maxcon=`ulimit -Hn`
-if test x"$unet_maxcon" = xunlimited; then
-    unet_maxcon=`ulimit -Sn`
-fi
-unet_maxcon=`expr $unet_maxcon - 4`
-dnl NN_MAX_CLIENT_P reflects SetYXXCapacity() and how it is called
-NN_MAX_CLIENT_P=262168
-if test "$unet_maxcon" -gt $NN_MAX_CLIENT_P ; then
-    unet_maxcon=$NN_MAX_CLIENT_P
-fi
 AC_MSG_CHECKING([max connections])
 AC_ARG_WITH([maxcon],
-[  --with-maxcon=maxcon    Maximum number of connections server will accept],
+[  --with-maxcon=maxcon    Maximum number of connections server will accept (default: 16384)],
 [unet_cv_with_maxcon=$with_maxcon],
 [AC_CACHE_VAL(unet_cv_with_maxcon,
-[unet_cv_with_maxcon=$unet_maxcon])])
+[unet_cv_with_maxcon=16384])])
 
 if test x"$unet_cv_with_maxcon" = xyes -o x"$unet_cv_with_maxcon" = xno; then
-    if test "$unet_maxcon" -lt 32; then
-      AC_MSG_ERROR([Maximum connections (number of open files minus 4) must be at least 32.])
-    fi
-    unet_cv_with_maxcon=$unet_maxcon
+    unet_cv_with_maxcon=16384
 elif test "$unet_cv_with_maxcon" -lt 32; then
     AC_MSG_ERROR([Maximum connections (--with-maxcon) must be at least 32.])
 fi
@@ -713,8 +725,7 @@ AC_DEFINE_UNQUOTED(MAXCONNECTIONS, $unet_cv_with_maxcon,
 [Maximum number of network connections])
 
 dnl Finally really generate all output files:
-AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile],
-    [echo timestamp > stamp-h])
+AC_CONFIG_FILES([Makefile ircd/Makefile ircd/test/Makefile])
 AC_OUTPUT
 
 dnl Report configuration

@@ -22,7 +22,7 @@ awk '{if (NF == 6) \
 else \
 	 { print $1 " " $2 " " $3 " " $7 " at " $4 " " $5 " " $6 }}'`
 
-/bin/cat >version.c <<!SUB!THIS!
+cat >version.c <<!SUB!THIS!
 /*
  * IRC - Internet Relay Chat, ircd/version.c
  * Copyright (C) 1990 Chelsea Ashley Dyerman
@@ -87,7 +87,7 @@ const char *infotext[] = {
 
 ( for file in ${srcdir}/ircd/*.[cly] ${srcdir}/ircd/version.c.SH ; do
     case `basename $file` in
-      version.c | y.tab.c | lex.yy.c | chattr.tab.c ) ;;
+      version.c | ircd_parser.c | lex.yy.c | chattr.tab.c ) ;;
       * ) echo $file ;;
     esac done ) | ./umkpasswd -5 >> version.c
 
@@ -96,7 +96,7 @@ echo "    \"Headers:\"," >> version.c
 
 ( for file in ${srcdir}/include/*.h ; do echo $file ; done ) | ./umkpasswd -5 >> version.c
 
-/bin/cat >>version.c <<!SUB!THIS!
+cat >>version.c <<!SUB!THIS!
     0,
 };
 !SUB!THIS!

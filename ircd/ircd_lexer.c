@@ -12,7 +12,7 @@
 #include "ircd_log.h"
 #include "ircd_string.h" /* ircd_strcmp() */
 #include "s_conf.h"
-#include "y.tab.h"
+#include "ircd_parser.h"
 
 #if !defined(O_CLOEXEC)
 # define O_CLOEXEC O_RDONLY

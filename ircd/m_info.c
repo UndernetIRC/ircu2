@@ -95,6 +95,7 @@
 #include "send.h"
 #include "version.h"
 
+#include <string.h>
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 
 /*
@@ -111,11 +112,8 @@ int m_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
       HUNTED_ISME)
 	return 0;
 
-  while (text[218])
-  {
-    send_reply(sptr, RPL_INFO, *text);
-    text++;
-  }
+  while (*text && strcmp(*text, "Sources:"))
+    send_reply(sptr, RPL_INFO, *text++);
   send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":Birth Date: %s, compile # %s",
       creation, generation);
   send_reply(sptr, SND_EXPLICIT | RPL_INFO, ":On-line since %s",
@@ -141,12 +139,10 @@ int ms_info(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
   if (hunt_server_cmd(sptr, CMD_INFO, cptr, 1, ":%C", 1, parc, parv) !=
       HUNTED_ISME)
 	return 0;
-  while (text[218])
-  {
-    if (!IsOper(sptr))
-      send_reply(sptr, RPL_INFO, *text);
-    text++;
-  }
+
+  while (*text && strcmp(*text, "Sources:"))
+    send_reply(sptr, RPL_INFO, *text++);
+
   if (IsOper(sptr))
   {
     while (*text)
