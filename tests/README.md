@@ -51,8 +51,10 @@ tests/
     test_fix.py
     test_edge_cases.py
   pr62_remote_x/
-    test_fix.py          # S2S tests using P10Server for OPMODE +x and ACCOUNT
+    test_fix.py              # S2S tests using P10Server for OPMODE +x and ACCOUNT
     test_edge_cases.py
+    test_privilege_check.py  # U:line privilege tiers (CONF_UWORLD vs CONF_UWORLD_OPER)
+    test_umode_ordering.py   # send_umode_out() / hide_hostmask() ordering
 ```
 
 - **test_fix.py** — focused tests that reproduce the bug or verify the feature claimed by the PR. These fail on the base branch and pass with the PR applied.
@@ -74,10 +76,11 @@ Operator credentials: name `testoper`, password `operpass`.
 
 The hub also has Connect blocks for two external test servers used by the P10 test harness:
 
-| Server              | Numeric | U:lined | Purpose                          |
-|---------------------|---------|---------|----------------------------------|
-| services.test.net   | 4       | Yes     | Fake services for S2S testing    |
-| notulined.test.net  | 5       | No      | Non-U:lined server for rejection tests |
+| Server              | Numeric | U:lined     | Purpose                              |
+|---------------------|---------|-------------|--------------------------------------|
+| services.test.net   | 4       | Yes (oper)  | Fake services for S2S testing        |
+| notulined.test.net  | 5       | No          | Non-U:lined server for rejection tests |
+| uworldonly.test.net | 6       | Yes (no oper) | U:lined without CONF_UWORLD_OPER   |
 
 Configs are baked into the Docker images (in `tests/docker/`), not volume-mounted.
 
