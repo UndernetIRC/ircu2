@@ -56,8 +56,8 @@ AC_DEFINE([MAJOR_PROTOCOL], ["]v_major["],      [Major protocol version, e.g. "1
 AC_DEFINE([RELEASE],        [".]v_minor[."],    [Release number with dots, e.g. ".12."])
 AC_DEFINE([PATCHLEVEL],     ["]v_patch["],      [Patch level, e.g. "19"])
 
-dnl Demand at least version 2.72 of autoconf (for AS_HELP_STRING)
-AC_PREREQ([2.72])
+dnl Demand at least version 2.69 of autoconf
+AC_PREREQ([2.69])
 
 dnl Find out what type of system we are
 AC_CANONICAL_HOST
