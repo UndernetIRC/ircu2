@@ -278,7 +278,7 @@ void config_burst(struct Client *cptr)
   struct ConfigEntry *entry;
 
   for (entry = config_list; entry; entry = entry->next) {
-    sendcmdto_one(&me, CMD_CONFIG, cptr, "%Tu %s %s",
+    sendcmdto_one(&me, CMD_CONFIG, cptr, "%Tu %s :%s",
                   entry->timestamp, entry->key, entry->value);
   }
 
