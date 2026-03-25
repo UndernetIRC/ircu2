@@ -376,6 +376,10 @@ struct Client;
 #define TOK_CHGHOST		"CHGHOST"
 #define CMD_CHGHOST		MSG_CHGHOST, TOK_CHGHOST
 
+#define MSG_CONFIG		"CONFIG"
+#define TOK_CONFIG		"CF"
+#define CMD_CONFIG		MSG_CONFIG, TOK_CONFIG
+
 /*
  * Constants
  */

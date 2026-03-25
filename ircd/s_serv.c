@@ -35,6 +35,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_log.h"
+#include "ircd_netconf.h"
 #include "ircd_reply.h"
 #include "ircd_string.h"
 #include "ircd_snprintf.h"
@@ -196,6 +197,9 @@ int server_estab(struct Client *cptr, struct ConfItem *aconf)
    */
   gline_burst(cptr);
   jupe_burst(cptr);
+
+  /* Burst server configuration. */
+  config_burst(cptr);
 
   /*
    * Pass on my client information to the new server

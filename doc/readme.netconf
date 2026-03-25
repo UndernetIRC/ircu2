@@ -1,0 +1,149 @@
+# Network Configuration (netconf) Feature
+
+## Overview
+The `netconf` feature provides a dynamic, network-wide configuration system. It allows services (such as SASL authentication layers) to set, update, or delete configuration options that are instantly propagated to all servers in the network. This eliminates the need for manual updates to feature blocks or configuration files on every server when introducing new service-related settings that would need to be known by ircu.
+
+## Key Concepts
+- **Network-wide Options:** Settings are stored in a central configuration list and propagated to all servers.
+- **Dynamic Updates:** Options can be set, updated, or deleted at runtime without reloading configuration files.
+- **Timestamps:** Each configuration entry is timestamped; only newer updates are accepted, preventing stale data from overwriting recent changes.
+- **Callbacks:** Modules can register callbacks for configuration key prefixes (e.g., `sasl.`) to react to changes instantly.
+- **Service Integration:** Especially useful for SASL and other service-related features, allowing them to advertise supported mechanisms and options network-wide.
+
+## How It Works
+- **Setting a Configuration:**
+  - Services send a `CF` (CONFIG) message with a key, value, and timestamp.
+  - If the value is empty, the key is deleted (if the timestamp is newer).
+  - If the key exists and the timestamp is newer, the value is updated.
+  - Changes are propagated to all servers.
+- **Registering Callbacks:**
+  - Modules can register a callback for a key prefix to be notified when relevant configuration changes occur.
+
+## Example Use Case: SASL
+The SASL authentication service can dynamically advertise supported mechanisms to the entire network using netconf. For example, when the service starts or its capabilities change, it can send:
+
+```
+YY CF 1711200000 sasl.mechanisms :PLAIN,EXTERNAL,SCRAM-SHA-256
+```
+
+This message sets the `sasl.mechanisms` key to the given value with the specified timestamp. All servers will update their configuration and propagate the change. To remove the key:
+
+```
+YY CF 1711201234 sasl.mechanisms
+```
+
+This deletes the key if the timestamp is newer than the previous value.
+
+**No static config changes are needed in ircd.conf; this is all dynamic and network-wide.**
+
+## API Summary
+## Accessing Configuration Options in Code
+
+The ircu codebase uses an enum, `NetConf`, to represent each network configuration feature. These enums are used as keys to access configuration values in a type-safe and readable way. For example:
+
+```c
+/** Network configuration options */
+enum NetConf {
+  NETCONF_SASL_SERVER,
+  NETCONF_SASL_MECHANISMS,
+  NETCONF_SASL_TIMEOUT,
+  NETCONF_LAST_NC
+};
+```
+
+To access a configuration value, use one of the following functions:
+
+- `int netconf_int(enum NetConf key);` — Get an integer config value
+- `int netconf_bool(enum NetConf key);` — Get a boolean config value
+- `const char *netconf_str(enum NetConf key);` — Get a string config value
+
+Example usage:
+
+```c
+int timeout = netconf_int(NETCONF_SASL_TIMEOUT);
+const char *mechs = netconf_str(NETCONF_SASL_MECHANISMS);
+```
+
+This approach ensures that features are accessed consistently and safely throughout the codebase. These are not modules, but configuration features/options. New features should be added as new enum values in `NetConf`.
+
+- `int config_set(const char *key, const char *value, time_t timestamp);`
+  - Set or update a configuration key/value with a timestamp.
+- `const char *config_get(const char *key);`
+  - Retrieve the value for a configuration key.
+- `void config_register_callback(const char *key_prefix, config_callback_f callback);`
+  - Register a callback for changes to keys with the given prefix.
+- `void config_unregister_callback(const char *key_prefix);`
+  - Unregister a callback.
+- `void config_burst(struct Client *cptr);`
+  - Send all current configuration entries to a newly connected server.
+- `void config_stats(struct Client *sptr, const struct StatDesc *sd, char *param);`
+  - Show configuration entries using /STATS C.
+
+## Integration Example: Registering for SASL Changes
+
+Suppose you are writing a module that needs to react when the available SASL mechanisms change. You can register a callback for the `sasl.` prefix:
+
+```c
+static void sasl_mech_update(const char *key, const char *old_value, const char *new_value) {
+    printf("SASL config changed: %s: %s -> %s\n", key, old_value ? old_value : "(unset)", new_value ? new_value : "(deleted)");
+    // React to new mechanisms, e.g., update internal state
+}
+
+void module_init(void) {
+    config_register_callback("sasl.", sasl_mech_update);
+}
+
+void module_exit(void) {
+    config_unregister_callback("sasl.");
+}
+```
+
+Now, whenever any `sasl.*` key is set, updated, or deleted, your callback will be invoked.
+
+## Integration Example: Setting and Reading a Config Value
+
+To set a network-wide option from code (e.g., from a service or privileged module):
+
+```c
+#include <time.h>
+time_t now = time(NULL);
+config_set("sasl.mechanisms", "PLAIN,EXTERNAL", now);
+```
+
+To read the current value anywhere in the codebase:
+
+```c
+const char *mechs = config_get("sasl.mechanisms");
+if (mechs) {
+    printf("Current SASL mechanisms: %s\n", mechs);
+}
+```
+
+This pattern can be used for any feature that needs dynamic, network-wide configuration.
+
+## Example: Full CF Message Syntax
+
+```
+CF <timestamp> <key> <value>
+```
+
+- `<timestamp>`: UNIX time (seconds since epoch)
+- `<key>`: configuration key (e.g., `sasl.mechanisms`)
+- `<value>`: value to set (omit or leave empty to delete the key)
+
+Examples:
+
+```
+CF 1711200000 sasl.mechanisms PLAIN,EXTERNAL,SCRAM-SHA-256
+CF 1711201234 sasl.mechanisms
+```
+
+## Benefits
+- Centralized, real-time configuration for the entire IRC network
+- Reduces operational overhead and risk of configuration drift
+- Enables rapid deployment of new service features
+
+## See Also
+- `include/ircd_netconf.h`
+- `ircd/ircd_netconf.c`
+- `ircd/m_config.c`

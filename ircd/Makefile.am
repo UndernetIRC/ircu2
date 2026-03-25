@@ -25,6 +25,7 @@ ircd_SOURCES = \
 	ircd_features.c \
 	ircd_lexer.c \
 	ircd_log.c \
+	ircd_netconf.c \
 	ircd_relay.c \
 	ircd_reply.c \
 	ircd_res.c \
@@ -43,6 +44,7 @@ ircd_SOURCES = \
 	m_cap.c \
 	m_clearmode.c \
 	m_close.c \
+	m_config.c \
 	m_connect.c \
 	m_cprivmsg.c \
 	m_create.c \
