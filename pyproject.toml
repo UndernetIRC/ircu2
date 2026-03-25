@@ -1,0 +1,19 @@
+[project]
+name = "ircu2-tests"
+version = "0.1.0"
+description = "Test harness for ircu2 IRC daemon"
+requires-python = ">=3.10"
+dependencies = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-timeout",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "single_server: tests that need only the hub server",
+    "multi_server: tests that need the full hub + 2 leaves topology",
+]
+timeout = 60

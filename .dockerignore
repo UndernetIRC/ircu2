@@ -1,0 +1,11 @@
+.git
+*.o
+config.cache
+config.status
+config.log
+stamp-h
+specs/
+tests/__pycache__/
+.claude/
+.venv/
+uv.lock

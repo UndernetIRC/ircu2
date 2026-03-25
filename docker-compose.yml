@@ -1,0 +1,50 @@
+services:
+  ircd-hub:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-hub.conf
+    container_name: ircu-hub
+    ports:
+      - "6667:6667"
+      - "4400:4400"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.10
+
+  ircd-leaf1:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-leaf1.conf
+    container_name: ircu-leaf1
+    ports:
+      - "6668:6668"
+      - "4401:4401"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.11
+    depends_on:
+      - ircd-hub
+
+  ircd-leaf2:
+    build:
+      context: .
+      args:
+        IRCD_CONF: tests/docker/ircd-leaf2.conf
+    container_name: ircu-leaf2
+    ports:
+      - "6669:6669"
+      - "4402:4402"
+    networks:
+      ircu-test-net:
+        ipv4_address: 10.55.0.12
+    depends_on:
+      - ircd-hub
+
+networks:
+  ircu-test-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.55.0.0/24
