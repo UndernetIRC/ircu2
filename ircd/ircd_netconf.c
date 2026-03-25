@@ -70,6 +70,10 @@ static struct NetConfDesc {
   char*         v_str;    /**< string value */
   char*         def_str;  /**< default string value */
 } netconf_descs[] = {
+  /* SASL configuration options */
+  NC_S(SASL_SERVER, "sasl.server", ""),
+  NC_S(SASL_MECHANISMS, "sasl.mechanisms", ""),
+  NC_I(SASL_TIMEOUT, "sasl.timeout", 30),
 
   { NETCONF_LAST_NC, 0, 0, 0, 0, 0, 0 } /* sentinel */
 };

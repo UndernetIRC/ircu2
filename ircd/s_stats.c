@@ -52,6 +52,7 @@
 #include "s_serv.h"
 #include "s_stats.h"
 #include "s_user.h"
+#include "sasl.h"
 #include "send.h"
 #include "struct.h"
 #include "userload.h"
@@ -623,6 +624,9 @@ struct StatDesc statsinfo[] = {
     send_usage, 0,
     "System resource usage (Debug only)." },
 #endif
+  { 'S', "sasl", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_S,
+    sasl_stats, 0,
+    "SASL authentication statistics." },
   { 'T', "motds", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_T,
     motd_report, 0,
     "Configured Message Of The Day files." },
@@ -662,6 +666,9 @@ struct StatDesc statsinfo[] = {
   { ' ', "iauthconf", (STAT_FLAG_OPERFEAT | STAT_FLAG_VARPARAM), FEAT_HIS_STATS_IAUTH,
     report_iauth_conf, 0,
     "IAuth configuration." },
+  { ' ', "netconf", (STAT_FLAG_OPERFEAT | STAT_FLAG_CASESENS), FEAT_HIS_STATS_C,
+    config_stats, 0,
+    "Network configuration entries." },
   { '*', "help", STAT_FLAG_CASESENS, FEAT_LAST_F,
     stats_help, 0,
     "Send help for stats." },

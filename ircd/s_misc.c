@@ -57,6 +57,7 @@
 #include "sys.h"
 #include "uping.h"
 #include "userload.h"
+#include "sasl.h"
 
 /* #include <assert.h> -- Now using assert in ircd_log.h */
 #include <fcntl.h>
@@ -251,6 +252,8 @@ static void exit_one_client(struct Client* bcptr, const char* comment)
       Count_serverdisconnects(UserStats);
     else
       Count_remoteserverquits(UserStats);
+
+    sasl_check_capability();
   }
   else if (IsMe(bcptr))
   {

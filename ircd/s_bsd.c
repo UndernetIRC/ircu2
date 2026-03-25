@@ -30,6 +30,7 @@
 #include "class.h"
 #include "hash.h"
 #include "ircd_alloc.h"
+#include "ircd_events.h"
 #include "ircd_log.h"
 #include "ircd_features.h"
 #include "ircd_osdep.h"
@@ -427,6 +428,12 @@ void close_connection(struct Client *cptr)
   set_snomask(cptr, 0, SNO_SET);
 
   det_confs_butmask(cptr, 0);
+
+  /* Clean up SASL timer if it exists */
+  if (cli_sasl_timer(cptr) && t_active(cli_sasl_timer(cptr))) {
+    timer_del(cli_sasl_timer(cptr));
+    memset(cli_sasl_timer(cptr), 0, sizeof(struct Timer));
+  }
 
   if (cli_listener(cptr)) {
     release_listener(cli_listener(cptr));

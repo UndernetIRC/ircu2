@@ -659,6 +659,13 @@ struct Message msgtab[] = {
     { m_quit, m_ignore, m_ignore, m_ignore, m_ignore }
   },
   {
+    MSG_AUTHENTICATE,
+    TOK_AUTHENTICATE,
+    0, MAXPARA, 0, 0, NULL,
+    /* UNREG, CLIENT, SERVER, OPER, SERVICE */
+    { m_sasl, m_sasl, m_ignore, m_sasl, m_ignore }
+  },
+  {
     MSG_CONFIG,
     TOK_CONFIG,
     0, MAXPARA, 0, 0, NULL,

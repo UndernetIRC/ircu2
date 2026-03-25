@@ -89,6 +89,7 @@ ircd_SOURCES = \
 	m_restart.c \
 	m_rping.c \
 	m_rpong.c \
+	m_sasl.c \
 	m_server.c \
 	m_set.c \
 	m_settime.c \
@@ -134,6 +135,7 @@ ircd_SOURCES = \
 	s_serv.c \
 	s_stats.c \
 	s_user.c \
+	sasl.c \
 	send.c \
 	uping.c \
 	userload.c \
