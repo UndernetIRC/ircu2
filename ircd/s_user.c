@@ -499,7 +499,8 @@ static const struct UserMode {
   { FLAG_CHSERV,      'k' },
   { FLAG_DEBUG,       'g' },
   { FLAG_ACCOUNT,     'r' },
-  { FLAG_HIDDENHOST,  'x' }
+  { FLAG_HIDDENHOST,  'x' },
+  { FLAG_HIDEIDLE,    'I' }
 };
 
 /** Length of #userModeList. */
@@ -1085,6 +1086,12 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
 	}
 	/* There is no -r */
 	break;
+      case 'I':
+        if (what == MODE_ADD)
+          SetHideIdle(sptr);
+        else
+          ClearHideIdle(sptr);
+        break;
       default:
         send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;

@@ -227,7 +227,8 @@ void do_who(struct Client* sptr, struct Client* acptr, struct Channel* repchan,
     *p1++ = ' ';
     if (MyUser(acptr) &&
 	(IsAnOper(sptr) || !feature_bool(FEAT_HIS_WHO_SERVERNAME) ||
-	 acptr == sptr))
+	 acptr == sptr) &&
+	(!IsHideIdle(acptr) || sptr == acptr || IsAnOper(sptr)))
       p1 += ircd_snprintf(0, p1, 11, "%d",
                           CurrentTime - cli_user(acptr)->last);
     else

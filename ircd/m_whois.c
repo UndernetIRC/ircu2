@@ -223,7 +223,8 @@ static void do_whois(struct Client* sptr, struct Client *acptr, int parc)
      */
 
     if (MyConnect(acptr) && (!feature_bool(FEAT_HIS_WHOIS_IDLETIME) ||
-                             (sptr == acptr || IsAnOper(sptr) || parc >= 3)))
+                             (sptr == acptr || IsAnOper(sptr) || parc >= 3))
+        && (!IsHideIdle(acptr) || sptr == acptr || IsAnOper(sptr)))
        send_reply(sptr, RPL_WHOISIDLE, name, CurrentTime - user->last,
                   cli_firsttime(acptr));
     if (MyConnect(acptr)
