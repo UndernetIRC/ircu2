@@ -235,6 +235,12 @@ do_gline(struct Client *cptr, struct Client *sptr, struct Gline *gline)
           if (match(gline->gl_host, cli_sockhost(acptr)) != 0)
             continue;
         }
+          if (IsAnOper(acptr) && feature_bool(FEAT_ENABLE_GLINE_OPER_EXCEPTION)) {
+                    sendto_opmask_butone(0, SNO_GLINE, "G-line for %s ignored, nick is an oper...",
+                             cli_name(acptr));
+			continue;
+		  }
+		
       }
 
       /* ok, here's one that got G-lined */
