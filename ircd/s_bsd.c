@@ -48,6 +48,7 @@
 #include "parse.h"
 #include "querycmds.h"
 #include "res.h"
+#include "sasl.h"
 #include "s_auth.h"
 #include "s_conf.h"
 #include "s_debug.h"
@@ -430,10 +431,7 @@ void close_connection(struct Client *cptr)
   det_confs_butmask(cptr, 0);
 
   /* Clean up SASL timer if it exists */
-  if (cli_sasl_timer(cptr) && t_active(cli_sasl_timer(cptr))) {
-    timer_del(cli_sasl_timer(cptr));
-    memset(cli_sasl_timer(cptr), 0, sizeof(struct Timer));
-  }
+  sasl_stop_timeout(cptr);
 
   if (cli_listener(cptr)) {
     release_listener(cli_listener(cptr));

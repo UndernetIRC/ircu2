@@ -1353,11 +1353,11 @@ static Numeric replyTable[] = {
   { 0 },
 /* 660 */
   { 0 },
-/* 667 */
+/* 661 */
   { 0 },
-/* 668 */
+/* 662 */
   { 0 },
-/* 669 */
+/* 663 */
   { 0 },
 /* 664 */
   { 0 },
@@ -1843,7 +1843,7 @@ static Numeric replyTable[] = {
   { ERR_SASLFAIL, ":%s", "904" },
 /* 905 */
   { ERR_SASLTOOLONG, ":SASL message too long", "905" },
-/* 909 */
+/* 906 */
   { ERR_SASLABORTED, ":SASL authentication aborted", "906" },
 /* 907 */
   { ERR_SASLALREADY, ":You have already authenticated using SASL", "907" },

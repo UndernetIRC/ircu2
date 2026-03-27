@@ -389,7 +389,7 @@ void cap_new(enum Capab cap)
     return;
   
   /* Iterate through all local clients */
-  for (i = 0; i < MAXCONNECTIONS; i++) {
+  for (i = 0; i < HighestFd; i++) {
     if (!(acptr = LocalClientArray[i]))
       continue;
       
@@ -422,7 +422,6 @@ void cap_del(enum Capab cap)
     if (capab_list[i].cap == (1u << cap)) {
       cap_index = i;
       cap_name = capab_list[i].name;
-      flags = capab_list[i].flags;
       break;
     }
   }
@@ -432,7 +431,7 @@ void cap_del(enum Capab cap)
   }
   
   /* Iterate through all local clients */
-  for (i = 0; i < MAXCONNECTIONS; i++) {
+  for (i = 0; i < HighestFd; i++) {
     if (!(acptr = LocalClientArray[i]))
       continue;
       

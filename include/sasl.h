@@ -36,5 +36,7 @@ extern void sasl_send_xreply(struct Client* sptr, const char* routing, const cha
 extern struct Client* find_sasl_client(unsigned long cookie);
 extern void sasl_stats(struct Client* sptr, const struct StatDesc* sd, char* param);
 extern void sasl_stop_timeout(struct Client* cptr);
+extern void sasl_session_add(unsigned long cookie, struct Client* client);
+extern void sasl_session_remove(unsigned long cookie);
 
 #endif /* INCLUDED_sasl_h */

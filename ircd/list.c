@@ -261,6 +261,7 @@ void free_client(struct Client* cptr)
    */
   assert(cli_verify(cptr));
   assert(cli_hnext(cptr) == cptr);
+  assert(cli_sasl(cptr) == 0);
   /* or from linked list? */
   assert(cli_next(cptr) == 0);
   assert(cli_prev(cptr) == 0);

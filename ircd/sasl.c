@@ -20,10 +20,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/** @file
- * @brief SASL authentication implementation
- */
-
 #include "config.h"
 
 #include "sasl.h"
@@ -31,6 +27,7 @@
 #include "ircd.h"
 #include "ircd_alloc.h"
 #include "ircd_events.h"
+#include "ircd_log.h"
 #include "ircd_string.h"
 #include "ircd_reply.h"
 #include "ircd_netconf.h"
@@ -44,11 +41,31 @@
 
 #include <string.h>
 
+/*** SASL session hash table for cookie->client mapping
+ *
+ * This table maps SASL session cookies (unsigned long) to client pointers.
+ * It is used to efficiently look up a client by its SASL cookie during authentication.
+ *
+ * The table uses separate chaining for collision resolution and is fixed at 1024 buckets.
+ * Only used internally to sasl.c.
+ */
+#define SASL_HASH_SIZE 256
+
+/** Entry in the SASL session hash table. */
+struct SaslSessionEntry {
+  unsigned long cookie;              /**< SASL session cookie (key) */
+  struct Client* client;             /**< Pointer to associated client */
+  struct SaslSessionEntry* next;     /**< Next entry in the bucket (chaining) */
+};
+
 /** SASL statistics */
 struct SaslStats {
   unsigned long auth_success; /**< Number of successful authentications */
   unsigned long auth_failed;  /**< Number of failed authentications */
 };
+
+/** Hash table of SASL session entries. */
+static struct SaslSessionEntry* sasl_session_table[SASL_HASH_SIZE];
 
 /** Global SASL statistics */
 static struct SaslStats sasl_statistics = { 0, 0 };
@@ -127,7 +144,7 @@ void sasl_check_capability(void)
  */
 static void sasl_config_callback(const char *key, const char *old_value, const char *new_value)
 {
-  Debug((DEBUG_INFO, "SASL config changed: %s = %s (was: %s)", 
+  Debug((DEBUG_DEBUG, "SASL config changed: %s = %s (was: %s)", 
          key, new_value, old_value ? old_value : "(unset)"));
   
   /* Update SASL capability value if mechanisms changed */
@@ -145,28 +162,55 @@ void sasl_init(void)
   config_register_callback("sasl.", sasl_config_callback);
 }
 
-/** Find a client by their SASL session cookie
- * @param[in] cookie SASL session cookie to search for
- * @return Client with matching SASL cookie, or NULL if not found
+/** Compute hash bucket index for a given cookie. */
+static unsigned int sasl_cookie_hash(unsigned long cookie) {
+  return (unsigned int)(cookie % SASL_HASH_SIZE);
+}
+
+/** Add a SASL session to the hash table.
+ * @param cookie SASL session cookie (key)
+ * @param client Pointer to associated client
  */
-struct Client* find_sasl_client(unsigned long cookie)
-{
-  struct Client* cptr;
-  int i;
-  
-  if (!cookie)
-    return NULL;
-    
-  /* Search through all local clients */
-  for (i = 0; i < MAXCONNECTIONS; i++) {
-    if (!(cptr = LocalClientArray[i]))
-      continue;
-      
-    /* Check if this client has the matching SASL cookie */
-    if (cli_sasl(cptr) == cookie)
-      return cptr;
+void sasl_session_add(unsigned long cookie, struct Client* client) {
+  if (!cookie || !client) return;
+  unsigned int idx = sasl_cookie_hash(cookie);
+  struct SaslSessionEntry* entry = (struct SaslSessionEntry*)MyMalloc(sizeof(struct SaslSessionEntry));
+  entry->cookie = cookie;
+  entry->client = client;
+  entry->next = sasl_session_table[idx];
+  sasl_session_table[idx] = entry;
+}
+
+/** Remove a SASL session from the hash table.
+ * @param cookie SASL session cookie to remove
+ */
+void sasl_session_remove(unsigned long cookie) {
+  if (!cookie) return;
+  unsigned int idx = sasl_cookie_hash(cookie);
+  struct SaslSessionEntry **pp = &sasl_session_table[idx], *cur;
+  while ((cur = *pp)) {
+    if (cur->cookie == cookie) {
+      *pp = cur->next;
+      MyFree(cur);
+      return;
+    }
+    pp = &cur->next;
   }
-  
+}
+
+/** Find a client by its SASL session cookie.
+ * @param cookie SASL session cookie to look up
+ * @return Pointer to associated client, or NULL if not found
+ */
+struct Client* find_sasl_client(unsigned long cookie) {
+  if (!cookie) return NULL;
+  unsigned int idx = sasl_cookie_hash(cookie);
+  struct SaslSessionEntry* entry = sasl_session_table[idx];
+  while (entry) {
+    if (entry->cookie == cookie)
+      return entry->client;
+    entry = entry->next;
+  }
   return NULL;
 }
 
@@ -194,6 +238,7 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
   cli = find_sasl_client(cookie);
   if (!cli) {
     Debug((DEBUG_DEBUG, "sasl_send_xreply: No client found for SASL cookie %lu", cookie));
+    sasl_session_remove(cookie);
     return;
   }
   
@@ -252,6 +297,7 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
     }
 
     sasl_stop_timeout(cli);
+    sasl_session_remove(cookie);
     cli_sasl(cli) = 0;
     SetFlag(cli, FLAG_SASL);
 
@@ -263,6 +309,7 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
     
     /* Stop SASL timeout timer and clear session */
     sasl_stop_timeout(cli);
+    sasl_session_remove(cookie);
     cli_sasl(cli) = 0;
     
     /* Increment failed authentication counter */
@@ -271,6 +318,25 @@ void sasl_send_xreply(struct Client* sptr, const char* routing, const char* repl
   } else if (0 == ircd_strncmp(reply, "SASL ", 5)) {
     /* Send the AUTHENTICATE reply to the client */
     sendcmdto_one(&me, CMD_AUTHENTICATE, cli, "%s", reply + 5);
+  }
+}
+
+/** Stop the SASL timeout timer for a client
+ * @param[in] cptr Client to stop timeout for
+ */
+void sasl_stop_timeout(struct Client* cptr)
+{
+  struct Timer* timer;
+
+  assert(cptr != NULL);
+  assert(MyConnect(cptr));
+
+  timer = cli_sasl_timer(cptr);
+
+  /* Only delete if timer exists and is active */
+  if (t_active(timer)) {
+    timer_del(timer);
+    Debug((DEBUG_DEBUG, "SASL timeout stopped for client %s", cli_name(cptr)));
   }
 }
 

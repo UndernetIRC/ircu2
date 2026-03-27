@@ -95,6 +95,7 @@
 
 #include <stdlib.h>
 
+
 /** SASL timeout callback - called when a SASL session times out
  * @param[in] ev Timer event (contains client pointer in timer data)
  */
@@ -116,23 +117,24 @@ static void sasl_timeout_callback(struct Event* ev)
     if (!cli_sasl(cptr))
       return;
       
-    Debug((DEBUG_INFO, "SASL timeout for client %s (cookie: %lu)", 
+    Debug((DEBUG_DEBUG, "SASL timeout for client %s (cookie: %lu)",
            cli_name(cptr), cli_sasl(cptr)));
     
     /* Send timeout error to client */
     send_reply(cptr, ERR_SASLFAIL, "Authentication timed out");
     
     /* Clear SASL session */
+    sasl_stop_timeout(cptr);
     cli_sasl(cptr) = 0;
   }
-}/** Start the SASL timeout timer for a client
+}
+
+/** Start the SASL timeout timer for a client
  * @param[in] cptr Client to set timeout for
  */
 static void sasl_start_timeout(struct Client* cptr)
 {
   struct Timer* timer;
-  const char* timeout_str;
-  int timeout_seconds = 60; /* Default 1 minute */
   
   assert(cptr != NULL);
   assert(MyConnect(cptr));
@@ -147,27 +149,8 @@ static void sasl_start_timeout(struct Client* cptr)
   timer_add(timer_init(timer), sasl_timeout_callback, (void*) cptr,
             TT_RELATIVE, netconf_int(NETCONF_SASL_TIMEOUT));
 
-  Debug((DEBUG_INFO, "SASL timeout started for client %s (%d seconds)", 
+  Debug((DEBUG_DEBUG, "SASL timeout started for client %s (%d seconds)",
          cli_name(cptr), netconf_int(NETCONF_SASL_TIMEOUT)));
-}
-
-/** Stop the SASL timeout timer for a client
- * @param[in] cptr Client to stop timeout for
- */
-void sasl_stop_timeout(struct Client* cptr)
-{
-  struct Timer* timer;
-  
-  assert(cptr != NULL);
-  assert(MyConnect(cptr));
-
-  timer = cli_sasl_timer(cptr);
-  
-  /* Only delete if timer exists and is active */
-  if (t_active(timer)) {
-    timer_del(timer);
-    Debug((DEBUG_INFO, "SASL timeout stopped for client %s", cli_name(cptr)));
-  }
 }
 
 int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
@@ -206,9 +189,13 @@ int m_sasl(struct Client* cptr, struct Client* sptr, int parc, char* parv[])
     if (!sasl_mechanism_supported(parv[1]))
       return send_reply(cptr, RPL_SASLMECHS, netconf_str(NETCONF_SASL_MECHANISMS));
 
-    cli_sasl(cptr) = ++routing_ticker;
+    if (++routing_ticker == 0)
+      ++routing_ticker; 
     
-    Debug((DEBUG_INFO, "SASL session started for %s (cookie: %lu)", 
+    cli_sasl(cptr) = routing_ticker;
+    sasl_session_add(routing_ticker, cptr);
+
+    Debug((DEBUG_DEBUG, "SASL session started for %s (cookie: %lu)",
            cli_name(cptr), cli_sasl(cptr)));
 
     /* Start timeout for new session */
