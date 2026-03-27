@@ -171,9 +171,10 @@ enum Flag
     FLAG_ACCOUNT,                   /**< account name has been set */
     FLAG_HIDDENHOST,                /**< user's host is hidden */
     FLAG_CAP302,                    /**< client supports IRCv3.2 */
-    FLAG_LAST_FLAG,                 /**< number of flags */
+    FLAG_EXEMPTFLOOD,               /**< Client is exempt from flood limits */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
-    FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
+    FLAG_GLOBAL_UMODES = FLAG_OPER, /**< First global mode flag */
+    FLAG_LAST_FLAG                  /**< number of flags */
   };
 
 /** Declare flagset type for operator privileges. */
@@ -614,6 +615,8 @@ struct Client {
 #define IsHiddenHost(x)         HasFlag(x, FLAG_HIDDENHOST)
 /** Return non-zero if the client has an active PING request. */
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
+/** Return non-zero if the client is exempt from flood limits. */
+#define IsExemptFlood(x)        HasFlag(x, FLAG_EXEMPTFLOOD)
 
 /** Return non-zero if the client has operator or server privileges. */
 #define IsPrivileged(x)         (IsAnOper(x) || IsServer(x))
@@ -660,6 +663,8 @@ struct Client {
 #define SetHiddenHost(x)        SetFlag(x, FLAG_HIDDENHOST)
 /** Mark a client as having a pending PING. */
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
+/** Mark a client as being exempt from flood limits. */
+#define SetExemptFlood(x)       SetFlag(x, FLAG_EXEMPTFLOOD)
 
 /** Return non-zero if \a sptr sees \a acptr as an operator. */
 #define SeeOper(sptr,acptr) (IsAnOper(acptr) && (HasPriv(acptr, PRIV_DISPLAY) \
