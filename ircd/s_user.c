@@ -500,7 +500,8 @@ static const struct UserMode {
   { FLAG_DEBUG,       'g' },
   { FLAG_ACCOUNT,     'r' },
   { FLAG_HIDDENHOST,  'x' },
-  { FLAG_TLS,         'z' }
+  { FLAG_TLS,         'z' },
+  { FLAG_HIDEIDLE,    'I' }
 };
 
 /** Length of #userModeList. */
@@ -1094,6 +1095,11 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
             tls_fingerprint = *(++p);
         }
         /* There is no -z */
+      case 'I':
+        if (what == MODE_ADD)
+          SetHideIdle(sptr);
+        else
+          ClearHideIdle(sptr);
         break;
       default:
         send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);

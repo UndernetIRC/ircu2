@@ -93,7 +93,7 @@ typedef unsigned long flagpage_t;
 #define FlagClr(set,flag) ((set)->bits[FLAGSET_INDEX(flag)] &= ~FLAGSET_MASK(flag))
 
 /** String containing valid user modes, in no particular order. */
-#define infousermodes "diOoswkgxz"
+#define infousermodes "diOoswkgxzI"
 
 /** Operator privileges. */
 enum Priv
@@ -175,9 +175,10 @@ enum Flag
     FLAG_CAP302,                    /**< client supports IRCv3.2 */
     FLAG_TLS,                       /**< user is using TLS */
     FLAG_SPAMHOLD,                  /**< user is the sender or recipient of a message on hold */
+    FLAG_HIDEIDLE,                  /**< Hide idle time from non-opers */
     FLAG_LAST_FLAG,                 /**< number of flags */
     FLAG_LOCAL_UMODES = FLAG_LOCOP, /**< First local mode flag */
-    FLAG_GLOBAL_UMODES = FLAG_OPER  /**< First global mode flag */
+    FLAG_GLOBAL_UMODES = FLAG_OPER, /**< First global mode flag */
   };
 
 /** Declare flagset type for operator privileges. */
@@ -621,6 +622,8 @@ struct Client {
 #define IsAccount(x)            HasFlag(x, FLAG_ACCOUNT)
 /** Return non-zero if the client has set mode +x (hidden host). */
 #define IsHiddenHost(x)         HasFlag(x, FLAG_HIDDENHOST)
+/** Return non-zero if the client has set mode +I (hide idle time). */
+#define IsHideIdle(x)           HasFlag(x, FLAG_HIDEIDLE)
 /** Return non-zero if the client has an active PING request. */
 #define IsPingSent(x)           HasFlag(x, FLAG_PINGSENT)
 /** Return non-zero if the client is using TLS. */
@@ -673,6 +676,8 @@ struct Client {
 #define SetAccount(x)           SetFlag(x, FLAG_ACCOUNT)
 /** Mark a client as having mode +x (hidden host). */
 #define SetHiddenHost(x)        SetFlag(x, FLAG_HIDDENHOST)
+/** Mark a client as having mode +I (hide idle time). */
+#define SetHideIdle(x)          SetFlag(x, FLAG_HIDEIDLE)
 /** Mark a client as having a pending PING. */
 #define SetPingSent(x)          SetFlag(x, FLAG_PINGSENT)
 /** Mark a client as using TLS. */
@@ -712,6 +717,8 @@ struct Client {
 #define ClearServNotice(x)      ClrFlag(x, FLAG_SERVNOTICE)
 /** Remove mode +x (hidden host) from the client. */
 #define ClearHiddenHost(x)      ClrFlag(x, FLAG_HIDDENHOST)
+/** Remove mode +I (hide idle time) from the client. */
+#define ClearHideIdle(x)        ClrFlag(x, FLAG_HIDEIDLE)
 /** Clear the client's pending PING flag. */
 #define ClearPingSent(x)        ClrFlag(x, FLAG_PINGSENT)
 /** Clear the client's HUB flag. */
