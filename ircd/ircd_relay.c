@@ -400,6 +400,28 @@ void relay_directed_notice(struct Client* sptr, char* name, char* server, const 
   }
 }
 
+/** Check if two users share a common channel.
+ * @param[in] sptr Source client.
+ * @param[in] acptr Target client.
+ * @return Non-zero if users share a channel, zero otherwise.
+ */
+static int has_common_channel(struct Client *sptr, struct Client *acptr)
+{
+  struct Membership *schan, *achan;
+
+  for (schan = cli_user(sptr)->channel; schan; schan = schan->next_channel) {
+    if (IsZombie(schan) || IsDelayedJoin(schan))
+      continue;
+    for (achan = cli_user(acptr)->channel; achan; achan = achan->next_channel) {
+      if (IsZombie(achan) || IsDelayedJoin(achan))
+        continue;
+      if (schan->channel == achan->channel)
+        return 1;  /* Found common channel */
+    }
+  }
+  return 0;  /* No common channels */
+}
+
 /** Relay a private message from a local user.
  * Returns an error if the user does not exist or sending to him would
  * exceed the source's free targets.  Sends an AWAY status message if
@@ -425,6 +447,12 @@ void relay_private_message(struct Client* sptr, const char* name, const char* te
        check_target_limit(sptr, acptr, NULL)) ||
       is_silenced(sptr, acptr))
     return;
+
+  /* Check +c mode: block private messages from users not in common channels */
+  if (IsCommonChans(acptr) && !IsChannelService(sptr) && !IsOper(sptr)) {
+    if (!has_common_channel(sptr, acptr))
+      return;
+  }
 
   /*
    * send away message if user away
@@ -464,6 +492,13 @@ void relay_private_notice(struct Client* sptr, const char* name, const char* tex
        check_target_limit(sptr, acptr, NULL)) ||
       is_silenced(sptr, acptr))
     return;
+
+  /* Check +c mode: block notices from users not in common channels */
+  if (IsCommonChans(acptr) && !IsChannelService(sptr) && !IsOper(sptr)) {
+    if (!has_common_channel(sptr, acptr))
+      return;
+  }
+
   /*
    * deliver the message
    */

@@ -499,7 +499,8 @@ static const struct UserMode {
   { FLAG_CHSERV,      'k' },
   { FLAG_DEBUG,       'g' },
   { FLAG_ACCOUNT,     'r' },
-  { FLAG_HIDDENHOST,  'x' }
+  { FLAG_HIDDENHOST,  'x' },
+  { FLAG_COMMONCHANS, 'c' }
 };
 
 /** Length of #userModeList. */
@@ -1085,12 +1086,19 @@ int set_user_mode(struct Client *cptr, struct Client *sptr, int parc,
 	}
 	/* There is no -r */
 	break;
+      case 'c':
+        if (what == MODE_ADD)
+          SetCommonChans(sptr);
+        else
+          ClearCommonChans(sptr);
+        break;
       default:
         send_reply(sptr, ERR_UMODEUNKNOWNFLAG, *m);
         break;
       }
     }
   }
+  
   /*
    * Evaluate rules for new user mode
    * Stop users making themselves operators too easily:
